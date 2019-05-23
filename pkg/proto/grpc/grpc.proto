@@ -4,6 +4,7 @@ option go_package = "github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 package grpc;
 
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
 import "billing/billing.proto";
 
 service BillingService {
@@ -59,6 +60,10 @@ service BillingService {
 
     rpc CreateToken(TokenRequest) returns (TokenResponse) {}
     rpc CheckProjectRequestSignature(CheckProjectRequestSignatureRequest) returns (CheckProjectRequestSignatureResponse) {}
+
+    rpc FindAllOrders(FindAllOrdersRequest) returns (billing.OrderPaginate) {}
+    rpc GetRevenueDynamic(RevenueDynamicRequest) returns (RevenueDynamicResult) {}
+    rpc GetAccountingPayment(RevenueDynamicRequest) returns (billing.AccountingPayment) {}
 }
 
 message EmptyRequest {
@@ -602,4 +607,40 @@ message CheckProjectRequestSignatureRequest {
 message CheckProjectRequestSignatureResponse {
     int32 status = 1;
     string message = 2;
+}
+
+message FindAllOrdersRequest {
+    //@inject_tag: validate:"required" query:"values"
+    map<string, google.protobuf.ListValue> values = 1;
+    //@inject_tag: validate:"required" query:"projects"
+    map<string, string> projects = 2;
+    //@inject_tag: validate:"required" query:"merchant"
+    billing.Merchant merchant = 3;
+    // @inject_tag: validate:"omitempty,numeric,gt=0" query:"limit"
+    int32 limit = 4;
+    // @inject_tag: validate:"omitempty,numeric,gte=0" query:"offset"
+    int32 offset = 5;
+    // @inject_tag: query:"sort[]"
+    repeated string sort = 6;
+}
+
+message RevenueDynamicRequest {
+    //@inject_tag: validate:"required"
+    int64 from = 1;
+    //@inject_tag: validate:"required"
+    int64 to = 2;
+    //@inject_tag: validate:"required"
+    repeated string project = 3;
+    //@inject_tag: validate:"required"
+    string period = 4;
+    string merchant_identifier = 5;
+}
+
+message RevenueDynamicResult {
+    //@inject_tag: json:"points"
+    repeated billing.RevenueDynamicPoint points = 1;
+    //@inject_tag: json:"revenue"
+    billing.RevenueDynamicMainData revenue = 2;
+    //@inject_tag: json:"refund"
+    billing.RevenueDynamicMainData refund = 3;
 }
