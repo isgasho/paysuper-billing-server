@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
@@ -41,6 +42,8 @@ const (
 
 	cardPayDateFormat          = "2006-01-02T15:04:05Z"
 	cardPayInitiatorCardholder = "cit"
+
+	errorBankCardBrandUnknown = "unknown or unsupported credit card brand"
 )
 
 var (
@@ -76,6 +79,8 @@ var (
 		pkg.CardPayPaymentResponseStatusCompleted:  true,
 	}
 )
+
+type digits [6]int
 
 type cardPay struct {
 	processor *paymentProcessor
@@ -290,7 +295,7 @@ func (h *cardPay) CreatePayment(requisites map[string]string) (url string, err e
 		return
 	}
 
-	h.processor.order.Status = constant.OrderStatusPaymentSystemRejectOnCreate
+	h.processor.order.PrivateStatus = constant.OrderStatusPaymentSystemRejectOnCreate
 
 	b, _ := json.Marshal(cpOrder)
 
@@ -300,6 +305,13 @@ func (h *cardPay) CreatePayment(requisites map[string]string) (url string, err e
 	}
 
 	req, err := http.NewRequest(cardPayPaths[action].method, qUrl, bytes.NewBuffer(b))
+	if err != nil {
+		zap.L().Error(
+			fmt.Sprintf("[PAYONE_BILLING] %s", "CardPay create payment failed"),
+			zap.Error(err),
+			zap.Any("request", cpOrder),
+		)
+	}
 
 	token := h.getToken(h.processor.order.PaymentMethod.Params.ExternalId)
 	auth := strings.Title(token.TokenType) + " " + token.AccessToken
@@ -311,7 +323,7 @@ func (h *cardPay) CreatePayment(requisites map[string]string) (url string, err e
 
 	if err != nil {
 		zap.L().Error(
-			fmt.Sprintf("[PAYONE_BILLING] %s", "CardPay create payment failer"),
+			fmt.Sprintf("[PAYONE_BILLING] %s", "CardPay create payment failed"),
 			zap.Error(err),
 			zap.Any("request", cpOrder),
 		)
@@ -345,16 +357,45 @@ func (h *cardPay) CreatePayment(requisites map[string]string) (url string, err e
 		return
 	}
 
-	h.processor.order.Status = constant.OrderStatusPaymentSystemCreate
+	h.processor.order.PrivateStatus = constant.OrderStatusPaymentSystemCreate
 	url = cpResponse.RedirectUrl
 
 	return
 }
 
+// At returns the digits from the start to the given length
+func (d *digits) At(i int) int {
+	return d[i-1]
+}
+
+func (h *cardPay) getCardBrand(pan string) (string, error) {
+	ccLen := len(pan)
+	ccDigits := digits{}
+
+	for i := 0; i < 6; i++ {
+		if i < ccLen {
+			ccDigits[i], _ = strconv.Atoi(pan[:i+1])
+		}
+	}
+
+	switch {
+	case ccDigits.At(2) == 62:
+		return "UNIONPAY", nil
+	case ccDigits.At(4) >= 3528 && ccDigits.At(4) <= 3589:
+		return "JCB", nil
+	case ccDigits.At(2) >= 51 && ccDigits.At(2) <= 55:
+		return "MASTERCARD", nil
+	case ccDigits.At(1) == 4:
+		return "VISA", nil
+	default:
+		return "", errors.New(errorBankCardBrandUnknown)
+	}
+}
+
 func (h *cardPay) ProcessPayment(message proto.Message, raw, signature string) (err error) {
 	req := message.(*billing.CardPayPaymentCallback)
 	order := h.processor.order
-	order.Status = constant.OrderStatusPaymentSystemReject
+	order.PrivateStatus = constant.OrderStatusPaymentSystemReject
 
 	err = h.checkCallbackRequestSignature(raw, signature)
 
@@ -397,6 +438,46 @@ func (h *cardPay) ProcessPayment(message proto.Message, raw, signature string) (
 	case constant.PaymentSystemGroupAliasBankCard:
 		order.PaymentMethodPayerAccount = req.CardAccount.MaskedPan
 		order.PaymentMethodTxnParams = req.GetBankCardTxnParams()
+
+		first6 := ""
+		last4 := ""
+		pan, ok := order.PaymentMethodTxnParams[pkg.PaymentCreateFieldPan]
+		if !ok {
+			pan, ok = order.PaymentRequisites["pan"]
+			if !ok {
+				pan = ""
+			}
+		}
+		if pan != "" {
+			first6 = string(pan[0:6])
+			last4 = string(pan[len(pan)-4:])
+		}
+		cardBrand, _ := h.getCardBrand(pan)
+
+		month, ok := order.PaymentRequisites["month"]
+		if !ok {
+			month = ""
+		}
+		year, ok := order.PaymentRequisites["year"]
+		if !ok {
+			year = ""
+		}
+
+		order.PaymentMethod.Card = &billing.PaymentMethodCard{
+			Masked:      pan,
+			First6:      first6,
+			Last4:       last4,
+			ExpiryMonth: month,
+			ExpiryYear:  year,
+			Brand:       cardBrand,
+			Secure3D:    order.PaymentMethodTxnParams[pkg.TxnParamsFieldBankCardIs3DS] == "1",
+		}
+		b, err := json.Marshal(order.PaymentMethod.Card)
+		if err != nil {
+			hash := sha256.New()
+			hash.Write([]byte(string(b)))
+			order.PaymentMethod.Card.Fingerprint = hex.EncodeToString(hash.Sum(nil))
+		}
 		break
 	case constant.PaymentSystemGroupAliasQiwi,
 		constant.PaymentSystemGroupAliasWebMoney,
@@ -404,10 +485,18 @@ func (h *cardPay) ProcessPayment(message proto.Message, raw, signature string) (
 		constant.PaymentSystemGroupAliasAlipay:
 		order.PaymentMethodPayerAccount = req.EwalletAccount.Id
 		order.PaymentMethodTxnParams = req.GetEWalletTxnParams()
+		order.PaymentMethod.Wallet = &billing.PaymentMethodWallet{
+			Brand:   order.PaymentMethod.Name,
+			Account: order.PaymentMethodTxnParams[pkg.PaymentCreateFieldEWallet],
+		}
 		break
 	case constant.PaymentSystemGroupAliasBitcoin:
 		order.PaymentMethodPayerAccount = req.CryptocurrencyAccount.CryptoAddress
 		order.PaymentMethodTxnParams = req.GetCryptoCurrencyTxnParams()
+		order.PaymentMethod.CryptoCurrency = &billing.PaymentMethodCrypto{
+			Brand:   order.PaymentMethod.Name,
+			Address: order.PaymentMethodTxnParams[pkg.PaymentCreateFieldCrypto],
+		}
 		break
 	default:
 		return NewError(paymentSystemErrorRequestPaymentMethodIsInvalid, pkg.StatusErrorValidation)
@@ -415,19 +504,20 @@ func (h *cardPay) ProcessPayment(message proto.Message, raw, signature string) (
 
 	switch req.GetStatus() {
 	case pkg.CardPayPaymentResponseStatusDeclined:
-		order.Status = constant.OrderStatusPaymentSystemDeclined
+		order.PrivateStatus = constant.OrderStatusPaymentSystemDeclined
 		break
 	case pkg.CardPayPaymentResponseStatusCancelled:
-		order.Status = constant.OrderStatusPaymentSystemCanceled
+		order.PrivateStatus = constant.OrderStatusPaymentSystemCanceled
+		order.CanceledAt = ptypes.TimestampNow()
 		break
 	case pkg.CardPayPaymentResponseStatusCompleted:
-		order.Status = constant.OrderStatusPaymentSystemComplete
+		order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
 		break
 	default:
 		return NewError(paymentSystemErrorRequestTemporarySkipped, pkg.StatusTemporary)
 	}
 
-	order.PaymentMethodOrderId = req.GetId()
+	order.Transaction = req.GetId()
 	order.PaymentMethodOrderClosedAt = ts
 	order.PaymentMethodIncomeAmount = reqAmount
 	order.PaymentMethodIncomeCurrency = order.PaymentMethodOutcomeCurrency
@@ -827,7 +917,7 @@ func (h *cardPay) CreateRefund(refund *billing.Refund) error {
 			Description: refund.Reason,
 		},
 		PaymentData: &CardPayRecurringDataFiling{
-			Id: h.processor.order.PaymentMethodOrderId,
+			Id: h.processor.order.Transaction,
 		},
 		RefundData: &CardPayRefundData{
 			Amount:   refund.Amount,

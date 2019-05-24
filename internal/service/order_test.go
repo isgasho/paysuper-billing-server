@@ -1395,7 +1395,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessProjectOrderId_Duplicate_Error() {
 		ProjectIncomeCurrency:              processor.checked.currency,
 		ProjectOutcomeAmount:               req.Amount,
 		ProjectParams:                      req.Other,
-		Status:                             constant.OrderStatusNew,
+		PrivateStatus:                      constant.OrderStatusNew,
 		CreatedAt:                          ptypes.TimestampNow(),
 		IsJsonRequest:                      false,
 		AmountInMerchantAccountingCurrency: tools.FormatAmount(req.Amount),
@@ -2216,7 +2216,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessOrderCommissions_Ok() {
 		ProjectIncomeCurrency:              processor.checked.currency,
 		ProjectOutcomeAmount:               req.Amount,
 		ProjectParams:                      req.Other,
-		Status:                             constant.OrderStatusNew,
+		PrivateStatus:                      constant.OrderStatusNew,
 		CreatedAt:                          ptypes.TimestampNow(),
 		IsJsonRequest:                      false,
 		AmountInMerchantAccountingCurrency: tools.FormatAmount(req.Amount),
@@ -2233,7 +2233,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessOrderCommissions_Ok() {
 		},
 	}
 
-	assert.Nil(suite.T(), order.ProjectFeeAmount)
+	assert.Nil(suite.T(), order.PlatformFee)
 	assert.Nil(suite.T(), order.PspFeeAmount)
 	assert.Nil(suite.T(), order.PaymentSystemFeeAmount)
 	assert.Nil(suite.T(), order.Tax)
@@ -2311,7 +2311,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessOrderCommissions_VatNotFound_Error
 		ProjectIncomeCurrency:              processor.checked.currency,
 		ProjectOutcomeAmount:               req.Amount,
 		ProjectParams:                      req.Other,
-		Status:                             constant.OrderStatusNew,
+		PrivateStatus:                      constant.OrderStatusNew,
 		CreatedAt:                          ptypes.TimestampNow(),
 		IsJsonRequest:                      false,
 		AmountInMerchantAccountingCurrency: tools.FormatAmount(req.Amount),
@@ -2328,7 +2328,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessOrderCommissions_VatNotFound_Error
 		},
 	}
 
-	assert.Nil(suite.T(), order.ProjectFeeAmount)
+	assert.Nil(suite.T(), order.PlatformFee)
 	assert.Nil(suite.T(), order.PspFeeAmount)
 	assert.Nil(suite.T(), order.PaymentSystemFeeAmount)
 }
@@ -2386,7 +2386,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessOrderCommissions_PaymentSystemAcco
 		ProjectIncomeCurrency:              processor.checked.currency,
 		ProjectOutcomeAmount:               req.Amount,
 		ProjectParams:                      req.Other,
-		Status:                             constant.OrderStatusNew,
+		PrivateStatus:                      constant.OrderStatusNew,
 		CreatedAt:                          ptypes.TimestampNow(),
 		IsJsonRequest:                      false,
 		AmountInMerchantAccountingCurrency: tools.FormatAmount(req.Amount),
@@ -2403,7 +2403,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessOrderCommissions_PaymentSystemAcco
 		},
 	}
 
-	assert.Nil(suite.T(), order.ProjectFeeAmount)
+	assert.Nil(suite.T(), order.PlatformFee)
 	assert.Nil(suite.T(), order.PspFeeAmount)
 	assert.Nil(suite.T(), order.PaymentSystemFeeAmount)
 
@@ -2609,7 +2609,7 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_DuplicateProjectOrderI
 			IsActive: true,
 		},
 		ProjectParams: req.Other,
-		Status:        constant.OrderStatusNew,
+		PrivateStatus: constant.OrderStatusNew,
 		CreatedAt:     ptypes.TimestampNow(),
 		IsJsonRequest: false,
 
@@ -3326,8 +3326,8 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_OrderHasEndedStatu
 	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
 	assert.Nil(suite.T(), err)
 
-	rsp.Status = constant.OrderStatusProjectComplete
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(rsp.Id), rsp)
+	rsp.PrivateStatus = constant.OrderStatusProjectComplete
+	err = suite.service.updateOrder(rsp)
 
 	data := map[string]string{
 		pkg.PaymentCreateFieldOrderId:         rsp.Uuid,
@@ -3365,7 +3365,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_ProjectProcess_Err
 	assert.Nil(suite.T(), err)
 
 	rsp.Project.Id = suite.inactiveProject.Id
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(rsp.Id), rsp)
+	err = suite.service.updateOrder(rsp)
 
 	data := map[string]string{
 		pkg.PaymentCreateFieldOrderId:         rsp.Uuid,
@@ -3473,7 +3473,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_AmountLimitProcess
 	assert.Nil(suite.T(), err)
 
 	rsp.ProjectIncomeAmount = 10
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(rsp.Id), rsp)
+	err = suite.service.updateOrder(rsp)
 
 	data := map[string]string{
 		pkg.PaymentCreateFieldOrderId:         rsp.Uuid,
@@ -3919,7 +3919,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_FormInputTimeExpired
 	order.ExpireDateToFormInput, err = ptypes.TimestampProto(time.Now().Add(time.Minute * -40))
 	assert.NoError(suite.T(), err)
 
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = suite.service.updateOrder(order)
 
 	expireYear := time.Now().AddDate(1, 0, 0)
 
@@ -4048,8 +4048,8 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Ok() {
 	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(order.Id)).One(&order2)
 	suite.NotNil(suite.T(), order2)
 
-	assert.Equal(suite.T(), int32(constant.OrderStatusPaymentSystemComplete), order2.Status)
-	assert.Equal(suite.T(), callbackRequest.GetId(), order2.PaymentMethodOrderId)
+	assert.Equal(suite.T(), int32(constant.OrderStatusPaymentSystemComplete), order2.PrivateStatus)
+	assert.Equal(suite.T(), callbackRequest.GetId(), order2.Transaction)
 	assert.Equal(suite.T(), callbackRequest.GetAmount(), order2.PaymentMethodIncomeAmount)
 	assert.Equal(suite.T(), callbackRequest.GetCurrency(), order2.PaymentMethodIncomeCurrency.CodeA3)
 }
@@ -4162,8 +4162,8 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Recurring_Ok() {
 	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(order.Id)).One(&order2)
 	suite.NotNil(suite.T(), order2)
 
-	assert.Equal(suite.T(), int32(constant.OrderStatusPaymentSystemComplete), order2.Status)
-	assert.Equal(suite.T(), callbackRequest.GetId(), order2.PaymentMethodOrderId)
+	assert.Equal(suite.T(), int32(constant.OrderStatusPaymentSystemComplete), order2.PrivateStatus)
+	assert.Equal(suite.T(), callbackRequest.GetId(), order2.Transaction)
 	assert.Equal(suite.T(), callbackRequest.GetAmount(), order2.PaymentMethodIncomeAmount)
 	assert.Equal(suite.T(), callbackRequest.GetCurrency(), order2.PaymentMethodIncomeCurrency.CodeA3)
 }

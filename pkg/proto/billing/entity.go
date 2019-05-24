@@ -15,6 +15,20 @@ var (
 		constant.OrderStatusProjectComplete:       true,
 		constant.OrderStatusProjectPending:        true,
 	}
+
+	orderStatusPublicMapping = map[int32]string{
+		constant.OrderStatusNew:                         constant.OrderPublicStatusCreated,
+		constant.OrderStatusPaymentSystemCreate:         constant.OrderPublicStatusCreated,
+		constant.OrderStatusPaymentSystemCanceled:       constant.OrderPublicStatusCanceled,
+		constant.OrderStatusPaymentSystemRejectOnCreate: constant.OrderPublicStatusRejected,
+		constant.OrderStatusPaymentSystemReject:         constant.OrderPublicStatusRejected,
+		constant.OrderStatusProjectReject:               constant.OrderPublicStatusRejected,
+		constant.OrderStatusPaymentSystemDeclined:       constant.OrderPublicStatusRejected,
+		constant.OrderStatusPaymentSystemComplete:       constant.OrderPublicStatusProcessed,
+		constant.OrderStatusProjectComplete:             constant.OrderPublicStatusProcessed,
+		constant.OrderStatusRefund:                      constant.OrderPublicStatusRefunded,
+		constant.OrderStatusChargeback:                  constant.OrderPublicStatusChargeback,
+	}
 )
 
 func (m *Merchant) ChangesAllowed() bool {
@@ -54,13 +68,13 @@ func (m *PaymentMethodOrder) GetAccountingCurrency() *Currency {
 }
 
 func (m *Order) HasEndedStatus() bool {
-	return m.Status == constant.OrderStatusPaymentSystemReject || m.Status == constant.OrderStatusProjectComplete ||
-		m.Status == constant.OrderStatusProjectReject || m.Status == constant.OrderStatusRefund ||
-		m.Status == constant.OrderStatusChargeback
+	return m.PrivateStatus == constant.OrderStatusPaymentSystemReject || m.PrivateStatus == constant.OrderStatusProjectComplete ||
+		m.PrivateStatus == constant.OrderStatusProjectReject || m.PrivateStatus == constant.OrderStatusRefund ||
+		m.PrivateStatus == constant.OrderStatusChargeback
 }
 
 func (m *Order) RefundAllowed() bool {
-	v, ok := orderRefundAllowedStatuses[m.Status]
+	v, ok := orderRefundAllowedStatuses[m.PrivateStatus]
 
 	return ok && v == true
 }
@@ -109,4 +123,46 @@ func (m *Project) NeedChangeStatusToDraft(req *Project) bool {
 
 func (m *OrderUser) IsIdentified() bool {
 	return m.Id != "" && bson.IsObjectIdHex(m.Id) == true
+}
+
+func (m *Order) GetPublicStatus() string {
+	st, ok := orderStatusPublicMapping[m.PrivateStatus]
+	if !ok {
+		return constant.OrderPublicStatusPending
+	}
+	return st
+}
+
+func (m *Order) GetReceiptUserEmail() string {
+	if m.User != nil {
+		return m.User.Email
+	}
+	return ""
+}
+
+func (m *Order) GetReceiptUserPhone() string {
+	if m.User != nil {
+		return m.User.Phone
+	}
+	return ""
+}
+
+func (m *Order) GetCountry() string {
+	if m.BillingAddress != nil && m.BillingAddress.Country != "" {
+		return m.BillingAddress.Country
+	}
+	if m.User != nil && m.User.Address != nil && m.User.Address.Country != "" {
+		return m.User.Address.Country
+	}
+	return ""
+}
+
+func (m *Order) GetState() string {
+	if m.BillingAddress != nil && m.BillingAddress.State != "" {
+		return m.BillingAddress.State
+	}
+	if m.User != nil && m.User.Address != nil && m.User.Address.State != "" {
+		return m.User.Address.State
+	}
+	return ""
 }
