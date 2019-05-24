@@ -2580,8 +2580,8 @@ func (s *Service) GetRevenueDynamic(
 	req *grpc.RevenueDynamicRequest,
 	rsp *grpc.RevenueDynamicResult,
 ) error {
-	req.From = getTimeRangeFrom(time.Unix(req.From, 0)).Unix()
-	req.To = getTimeRangeFrom(time.Unix(req.To, 0)).Unix()
+	req.From = getTimeRange(time.Unix(req.From, 0)).Unix()
+	req.To = getTimeRange(time.Unix(req.To, 0)).Unix()
 
 	res, err := s.getRevenueDynamic(req)
 	if err != nil {
@@ -2802,8 +2802,8 @@ func (s *Service) GetAccountingPayment(
 	req *grpc.RevenueDynamicRequest,
 	rsp *billing.AccountingPayment,
 ) error {
-	req.From = getTimeRangeFrom(time.Unix(req.From, 0)).Unix()
-	req.To = getTimeRangeTo(time.Unix(req.To, 0)).Unix()
+	req.From = getTimeRange(time.Unix(req.From, 0)).Unix()
+	req.To = getTimeRange(time.Unix(req.To, 0)).Unix()
 
 	res, err := s.getAccountingPayment(req)
 	if err != nil {
@@ -2979,11 +2979,7 @@ func (s *Service) getAccountingPayment(req *grpc.RevenueDynamicRequest) ([]map[s
 	return result, err
 }
 
-func getTimeRangeFrom(t time.Time) time.Time {
-	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
-}
-
-func getTimeRangeTo(t time.Time) time.Time {
+func getTimeRange(t time.Time) time.Time {
 	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
 }
 
