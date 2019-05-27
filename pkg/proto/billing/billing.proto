@@ -446,71 +446,7 @@ message OrderPaginate {
     // @inject_tag: json:"count"
     int32 count = 1; // total count of selected orders
     // @inject_tag: json:"items"
-    repeated OrderSimple items = 2; // array of selected orders
-}
-
-message OrderSimple {
-    // @inject_tag: json:"id"
-    string id = 1; // unique order identifier in Protocol One
-    // @inject_tag: json:"project"
-    SimpleItem project = 2; // object which contains main information about project
-    // @inject_tag: json:"account"
-    string account = 3; // user account in project
-    // @inject_tag: json:"order_id"
-    string project_order_id = 4; // unique order identifier in project
-    // @inject_tag: json:"payer_data"
-    PayerData payer_data = 5; // data about payer, for example: country, city, ip and etc
-    // @inject_tag: json:"payment_requisites"
-    map<string, string> payment_requisites = 6; // payer payment requisites
-    // @inject_tag: json:"payment_method"
-    SimpleItem payment_method = 7; // object which contains main information about payment method
-    // @inject_tag: json:"project_amount_income"
-    OrderSimpleAmountObject project_amount_income = 8; // object which contains main information about accounting finances of project which received of project
-    // @inject_tag: json:"project_amount_outcome"
-    OrderSimpleAmountObject project_amount_outcome = 9; // object which contains main information about accounting finances of project which will send to project
-    // @inject_tag: json:"payment_method_amount_income"
-    OrderSimpleAmountObject payment_method_amount_income = 10; // object which contains main information about finances of payment system which received of payment system
-    // @inject_tag: json:"status"
-    Status status = 12; // object which contains main information about payment status
-    // @inject_tag: json:"created_at"
-    int64 created_at = 13; // date when payment created
-    // @inject_tag: json:"confirmed_at"
-    int64 confirmed_at = 14; // date when payment was confirmed from payment system side
-    // @inject_tag: json:"closed_at"
-    int64 closed_at = 15; // date when project was notification about payment
-    // @inject_tag: json:"psp_fee"
-    OrderFeePsp psp_fee_amount = 16; // PSP (P1) fee amount in merchant accounting currency
-    // @inject_tag: json:"ps_fee_amount"
-    OrderFeePaymentSystem payment_system_fee_amount = 17; // payment system fee for payment operation in payment system accounting currency
-    // @inject_tag: json:"project_fee_amount"
-    OrderFee project_fee_amount = 18; // fee is charged with the project for the operation in merchant accounting currency
-    // @inject_tag: json:"to_payer_fee_amount"
-    OrderFee to_payer_fee_amount = 19; // value of fee which added to payer amount in merchant accounting currency
-    // @inject_tag: json:"vat_amount"
-    double vat_amount = 20; // vat amount in payment system accounting currency
-}
-
-message SimpleItem {
-    // @inject_tag: json:"id"
-    string id = 1;
-    // @inject_tag: json:"name"
-    string name = 2;
-}
-
-message OrderSimpleAmountObject {
-    // @inject_tag: json:"amount"
-    double amount = 1;
-    // @inject_tag: json:"currency"
-    SimpleCurrency currency = 2;
-}
-
-message SimpleCurrency {
-    // @inject_tag: json:"code_int"
-    int32 code_int = 1;
-    // @inject_tag: json:"code_a3"
-    string code_a3 = 2;
-    // @inject_tag: json:"name"
-    Name name = 3;
+    repeated Order items = 2; // array of selected orders
 }
 
 message Status {
@@ -535,26 +471,6 @@ message Currency {
     google.protobuf.Timestamp created_at = 6;
     // @inject_tag: bson:"updated_at"
     google.protobuf.Timestamp updated_at = 7;
-}
-
-message PayerData {
-    // @inject_tag: bson:"ip" structure:"ip"
-    string ip = 1; // payer ip from create order request
-    // @inject_tag: bson:"country_code_a2" structure:"country_code_a2"
-    string country = 2; // payer country code by ISO 3166-1 from create order request
-    // @inject_tag: bson:"country_name" structure:"country_name"
-    Name country_name = 3; // payer country names
-    // @inject_tag: bson:"city" structure:"city"
-    Name city = 4; // payer city names, get from ip geo location
-    string zip = 5;
-    string state = 6;
-    string language = 7;
-    // @inject_tag: bson:"timezone" structure:"timezone"
-    string timezone = 9; // payer timezone name, get from ip geo location
-    // @inject_tag: bson:"phone" structure:"phone"
-    string phone = 10; // payer phone from create order request
-    // @inject_tag: bson:"email" structure:"email"
-    string email = 11; // payer email from create order request
 }
 
 message PaymentMethodOrder {
@@ -1091,47 +1007,4 @@ message TokenSettings {
     repeated string products_ids = 9;
     //@inject_tag: json:"metadata"
     map<string, string> metadata = 10;
-}
-
-message RevenueDynamicPoint {
-    //@inject_tag: json:"date"
-    RevenueDynamicPointDate date = 1;
-    //@inject_tag: json:"amount"
-    double amount = 2;
-}
-
-message RevenueDynamicMainData {
-    //@inject_tag: json:"count"
-    int32 count = 1;
-    //@inject_tag: json:"total"
-    double total = 2;
-    //@inject_tag: json:"avg"
-    double avg = 3;
-}
-
-message RevenueDynamicPointDate {
-    //@inject_tag: json:"year"
-    int32 year = 1;
-    //@inject_tag: json:"month,omitempty"
-    int32 month = 2;
-    //@inject_tag: json:"week,omitempty"
-    int32 week = 3;
-    //@inject_tag: json:"day,omitempty"
-    int32 day = 4;
-    //@inject_tag: json:"hour,omitempty"
-    int32 hour = 5;
-}
-
-// Contain information about accounting payment to merchant by accounting period
-message AccountingPayment {
-    //@inject_tag: json:"success_with_commissions"
-    double SuccessWithCommissions = 1; // total amount to accounting payment to merchant include commissions
-    //@inject_tag: json:"success_without_commissions"
-    double SuccessWithoutCommissions = 2; // total amount to accounting payment to merchant exclude commissions
-    //@inject_tag: json:"total_refund"
-    double TotalRefund = 3; // total amount refunded payments
-    //@inject_tag: json:"total_chargeback"
-    double TotalChargeback = 4; // total amount charged payments
-    //@inject_tag: json:"total_commission"
-    double TotalCommission = 5; // total amount of commissions
 }

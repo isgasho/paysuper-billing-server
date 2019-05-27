@@ -6,7 +6,6 @@ package grpc
 import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
-	_ "github.com/golang/protobuf/ptypes/struct"
 	_ "github.com/golang/protobuf/ptypes/timestamp"
 	billing "github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	math "math"
@@ -79,9 +78,7 @@ type BillingService interface {
 	DeleteProject(ctx context.Context, in *GetProjectRequest, opts ...client.CallOption) (*ChangeProjectResponse, error)
 	CreateToken(ctx context.Context, in *TokenRequest, opts ...client.CallOption) (*TokenResponse, error)
 	CheckProjectRequestSignature(ctx context.Context, in *CheckProjectRequestSignatureRequest, opts ...client.CallOption) (*CheckProjectRequestSignatureResponse, error)
-	FindAllOrders(ctx context.Context, in *FindAllOrdersRequest, opts ...client.CallOption) (*billing.OrderPaginate, error)
-	GetRevenueDynamic(ctx context.Context, in *RevenueDynamicRequest, opts ...client.CallOption) (*RevenueDynamicResult, error)
-	GetAccountingPayment(ctx context.Context, in *RevenueDynamicRequest, opts ...client.CallOption) (*billing.AccountingPayment, error)
+	FindAllOrders(ctx context.Context, in *ListOrdersRequest, opts ...client.CallOption) (*billing.OrderPaginate, error)
 }
 
 type billingService struct {
@@ -522,29 +519,9 @@ func (c *billingService) CheckProjectRequestSignature(ctx context.Context, in *C
 	return out, nil
 }
 
-func (c *billingService) FindAllOrders(ctx context.Context, in *FindAllOrdersRequest, opts ...client.CallOption) (*billing.OrderPaginate, error) {
+func (c *billingService) FindAllOrders(ctx context.Context, in *ListOrdersRequest, opts ...client.CallOption) (*billing.OrderPaginate, error) {
 	req := c.c.NewRequest(c.name, "BillingService.FindAllOrders", in)
 	out := new(billing.OrderPaginate)
-	err := c.c.Call(ctx, req, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *billingService) GetRevenueDynamic(ctx context.Context, in *RevenueDynamicRequest, opts ...client.CallOption) (*RevenueDynamicResult, error) {
-	req := c.c.NewRequest(c.name, "BillingService.GetRevenueDynamic", in)
-	out := new(RevenueDynamicResult)
-	err := c.c.Call(ctx, req, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *billingService) GetAccountingPayment(ctx context.Context, in *RevenueDynamicRequest, opts ...client.CallOption) (*billing.AccountingPayment, error) {
-	req := c.c.NewRequest(c.name, "BillingService.GetAccountingPayment", in)
-	out := new(billing.AccountingPayment)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -597,9 +574,7 @@ type BillingServiceHandler interface {
 	DeleteProject(context.Context, *GetProjectRequest, *ChangeProjectResponse) error
 	CreateToken(context.Context, *TokenRequest, *TokenResponse) error
 	CheckProjectRequestSignature(context.Context, *CheckProjectRequestSignatureRequest, *CheckProjectRequestSignatureResponse) error
-	FindAllOrders(context.Context, *FindAllOrdersRequest, *billing.OrderPaginate) error
-	GetRevenueDynamic(context.Context, *RevenueDynamicRequest, *RevenueDynamicResult) error
-	GetAccountingPayment(context.Context, *RevenueDynamicRequest, *billing.AccountingPayment) error
+	FindAllOrders(context.Context, *ListOrdersRequest, *billing.OrderPaginate) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -646,9 +621,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		DeleteProject(ctx context.Context, in *GetProjectRequest, out *ChangeProjectResponse) error
 		CreateToken(ctx context.Context, in *TokenRequest, out *TokenResponse) error
 		CheckProjectRequestSignature(ctx context.Context, in *CheckProjectRequestSignatureRequest, out *CheckProjectRequestSignatureResponse) error
-		FindAllOrders(ctx context.Context, in *FindAllOrdersRequest, out *billing.OrderPaginate) error
-		GetRevenueDynamic(ctx context.Context, in *RevenueDynamicRequest, out *RevenueDynamicResult) error
-		GetAccountingPayment(ctx context.Context, in *RevenueDynamicRequest, out *billing.AccountingPayment) error
+		FindAllOrders(ctx context.Context, in *ListOrdersRequest, out *billing.OrderPaginate) error
 	}
 	type BillingService struct {
 		billingService
@@ -829,14 +802,6 @@ func (h *billingServiceHandler) CheckProjectRequestSignature(ctx context.Context
 	return h.BillingServiceHandler.CheckProjectRequestSignature(ctx, in, out)
 }
 
-func (h *billingServiceHandler) FindAllOrders(ctx context.Context, in *FindAllOrdersRequest, out *billing.OrderPaginate) error {
+func (h *billingServiceHandler) FindAllOrders(ctx context.Context, in *ListOrdersRequest, out *billing.OrderPaginate) error {
 	return h.BillingServiceHandler.FindAllOrders(ctx, in, out)
-}
-
-func (h *billingServiceHandler) GetRevenueDynamic(ctx context.Context, in *RevenueDynamicRequest, out *RevenueDynamicResult) error {
-	return h.BillingServiceHandler.GetRevenueDynamic(ctx, in, out)
-}
-
-func (h *billingServiceHandler) GetAccountingPayment(ctx context.Context, in *RevenueDynamicRequest, out *billing.AccountingPayment) error {
-	return h.BillingServiceHandler.GetAccountingPayment(ctx, in, out)
 }
