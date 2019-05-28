@@ -3958,8 +3958,8 @@ func (m *CheckProjectRequestSignatureResponse) GetMessage() string {
 }
 
 type ListOrdersRequest struct {
-	// @inject_tag: query:"id" validate:"omitempty,uuid"
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty" query:"id" validate:"omitempty,uuid"`
+	// @inject_tag: query:"id" validate:"omitempty,uuid,hexadecimal,len=24"
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty" query:"id" validate:"omitempty,uuid,hexadecimal,len=24"`
 	// @inject_tag: query:"project[]" validate:"omitempty,dive,hexadecimal,len=24"
 	Project []string `protobuf:"bytes,2,rep,name=project,proto3" json:"project,omitempty" query:"project[]" validate:"omitempty,dive,hexadecimal,len=24"`
 	// @inject_tag: query:"payment_method[]" validate:"omitempty,dive,hexadecimal,len=24"

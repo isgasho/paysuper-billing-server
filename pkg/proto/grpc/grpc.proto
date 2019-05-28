@@ -607,7 +607,7 @@ message CheckProjectRequestSignatureResponse {
 }
 
 message ListOrdersRequest {
-    // @inject_tag: query:"id" validate:"omitempty,uuid"
+    // @inject_tag: query:"id" validate:"omitempty,uuid,hexadecimal,len=24"
     string id = 1;
     // @inject_tag: query:"project[]" validate:"omitempty,dive,hexadecimal,len=24"
     repeated string project = 2;
