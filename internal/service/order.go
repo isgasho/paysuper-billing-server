@@ -309,7 +309,10 @@ func (s *Service) PaymentFormJsonDataProcess(
 	p1 := &OrderCreateRequestProcessor{
 		Service: s,
 		checked: &orderCreateRequestProcessorChecked{
-			user: &billing.OrderUser{Ip: req.Ip},
+			user: &billing.OrderUser{
+				Ip:      req.Ip,
+				Address: &billing.OrderBillingAddress{},
+			},
 		},
 	}
 
