@@ -52,7 +52,7 @@ const (
 	orderErrorAmountLowerThanMinAllowedPaymentMethod   = "order amount is lower than min allowed payment amount for payment method"
 	orderErrorAmountGreaterThanMaxAllowedPaymentMethod = "order amount is greater than max allowed payment amount for payment method"
 	orderErrorCanNotCreate                             = "order can't create. try request later"
-	orderErrorSignatureInvalid                         = "order request signature is invalid"
+	orderErrorSignatureInvalid                         = "request signature is invalid"
 	orderErrorNotFound                                 = "order with specified identifier not found"
 	orderErrorOrderAlreadyComplete                     = "order with specified identifier payed early"
 	orderErrorFormInputTimeExpired                     = "time to enter date on payment form expired"
