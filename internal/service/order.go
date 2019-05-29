@@ -1102,7 +1102,7 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 		PrivateMetadata: v.checked.privateMetadata,
 		Issuer: &billing.OrderIssuer{
 			Url:      v.request.IssuerUrl,
-			Embedded: v.request.IssuerEmbedded,
+			Embedded: v.request.IsEmbedded,
 		},
 	}
 

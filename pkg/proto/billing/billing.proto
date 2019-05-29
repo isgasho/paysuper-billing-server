@@ -65,8 +65,8 @@ message OrderCreateRequest {
     string receipt_url = 26; // payer receipt url from create order request
     // @inject_tag: json:"issuer_url"
     string issuer_url = 27;
-    // @inject_tag: json:"issuer_embedded"
-    bool issuer_embedded = 28;
+    // @inject_tag: json:"is_embedded"
+    bool is_embedded = 28;
 
     string token = 29;
     OrderUser user = 30;
