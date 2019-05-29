@@ -313,10 +313,12 @@ func (s *Service) PaymentFormJsonDataProcess(
 		},
 	}
 
-	err = p1.processPayerIp()
+	if req.Ip != "" {
+		err = p1.processPayerIp()
 
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
 	}
 
 	loc, ctr := s.getCountryFromAcceptLanguage(req.Locale)
@@ -1133,7 +1135,7 @@ func (v *OrderCreateRequestProcessor) processPayerIp() error {
 	rsp, err := v.geo.GetIpData(context.TODO(), &proto.GeoIpDataRequest{IP: v.checked.user.Ip})
 
 	if err != nil {
-		zap.S().Errorw("[PAYONE_BILLING] Order create get payer data error", "err", err, "ip", v.request.PayerIp)
+		zap.S().Errorw("[PAYONE_BILLING] Order create get payer data error", "err", err, "ip", v.checked.user.Ip)
 		return errors.New(orderErrorPayerRegionUnknown)
 	}
 
