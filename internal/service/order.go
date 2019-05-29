@@ -930,18 +930,6 @@ func (s *Service) saveRecurringCard(order *billing.Order, recurringId string) {
 	}
 }
 
-func (s *Service) orderNotifyMerchant(order *billing.Order) {
-	err := s.broker.Publish(constant.PayOneTopicNotifyMerchantName, order, amqp.Table{"x-retry-count": int32(0)})
-
-	if err != nil {
-		s.logError("Publish notify message to queue failed", []interface{}{
-			"err", err.Error(), "order", order, "topic", constant.PayOneTopicNotifyMerchantName,
-		})
-	}
-
-	return
-}
-
 func (s *Service) updateOrder(order *billing.Order) error {
 	originalOrder, _ := s.getOrderById(order.Id)
 
@@ -960,7 +948,7 @@ func (s *Service) updateOrder(order *billing.Order) error {
 	}
 
 	if statusChanged && ps != constant.OrderPublicStatusCreated && ps != constant.OrderPublicStatusPending {
-		s.orderNotifyMerchant(order)
+		s.orderNotifyMerchant(*order)
 	}
 
 	return nil

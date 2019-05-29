@@ -34,15 +34,14 @@ type Application struct {
 	service    micro.Service
 	httpServer *http.Server
 	router     *http.ServeMux
-
-	cacheExit chan bool
-	logger    *zap.Logger
+	logger     *zap.Logger
+	svc        *service.Service
 }
 
 type appHealthCheck struct{}
 
 func NewApplication() *Application {
-	return &Application{cacheExit: make(chan bool, 1)}
+	return &Application{}
 }
 
 func (app *Application) Init() {
@@ -80,6 +79,43 @@ func (app *Application) Init() {
 		micro.WrapHandler(metrics.NewHandlerWrapper()),
 		micro.AfterStop(func() error {
 			app.logger.Info("Micro service stopped")
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
+			if err := app.httpServer.Shutdown(ctx); err != nil {
+				app.logger.Error("Http server shutdown failed", zap.Error(err))
+			}
+			app.logger.Info("Http server stopped")
+
+			if app.svc != nil {
+				app.svc.Shutdown()
+				app.logger.Info("GRPC service stopped")
+			} else {
+				app.logger.Error("GRPC service not initialized")
+			}
+
+			app.database.Close()
+			app.logger.Info("Database connection closed")
+
+			func() {
+				err := app.redis.Close()
+
+				if err != nil {
+					zap.L().Error("Redis connection close failed", zap.Error(err))
+				} else {
+					zap.L().Info("Redis connection closed")
+				}
+			}()
+
+			func() {
+				if err := app.logger.Sync(); err != nil {
+					app.logger.Error("Logger sync failed", zap.Error(err))
+				} else {
+					app.logger.Info("Logger synced")
+				}
+			}()
+
 			return nil
 		}),
 	}
@@ -98,10 +134,9 @@ func (app *Application) Init() {
 	repService := repository.NewRepositoryService(constant.PayOneRepositoryServiceName, app.service.Client())
 	taxService := tax_service.NewTaxService(taxPkg.ServiceName, app.service.Client())
 
-	svc := service.NewBillingService(
+	app.svc = service.NewBillingService(
 		app.database,
 		app.cfg,
-		app.cacheExit,
 		geoService,
 		repService,
 		taxService,
@@ -109,11 +144,11 @@ func (app *Application) Init() {
 		app.redis,
 	)
 
-	if err := svc.Init(); err != nil {
+	if err := app.svc.Init(); err != nil {
 		app.logger.Fatal("[PAYONE_BILLING] Create service instance failed", zap.Error(err))
 	}
 
-	err = grpc.RegisterBillingServiceHandler(app.service.Server(), svc)
+	err = grpc.RegisterBillingServiceHandler(app.service.Server(), app.svc)
 
 	if err != nil {
 		app.logger.Fatal("[PAYONE_BILLING] Service init failed", zap.Error(err))
@@ -199,40 +234,6 @@ func (app *Application) Run() {
 	if err := app.service.Run(); err != nil {
 		app.logger.Fatal("[PAYONE_BILLING] Micro service starting failed", zap.Error(err))
 	}
-}
-
-func (app *Application) Stop() {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := app.httpServer.Shutdown(ctx); err != nil {
-		app.logger.Fatal("Http server shutdown failed", zap.Error(err))
-	}
-	app.logger.Info("Http server stopped")
-
-	app.cacheExit <- true
-	app.logger.Info("Cache rebuilding stopped")
-
-	app.database.Close()
-	app.logger.Info("Database connection closed")
-
-	func() {
-		err := app.redis.Close()
-
-		if err != nil {
-			zap.L().Fatal("Redis connection close failed", zap.Error(err))
-		} else {
-			zap.L().Info("Redis connection closed")
-		}
-	}()
-
-	func() {
-		if err := app.logger.Sync(); err != nil {
-			app.logger.Fatal("Logger sync failed", zap.Error(err))
-		} else {
-			app.logger.Info("Logger synced")
-		}
-	}()
 }
 
 func (c *appHealthCheck) Status() (interface{}, error) {

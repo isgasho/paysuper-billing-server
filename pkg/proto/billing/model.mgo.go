@@ -266,6 +266,7 @@ type MgoOrder struct {
 	ExpireDateToFormInput                   time.Time                `bson:"expire_date_to_form_input"`
 	UserAddressDataRequired                 bool                     `bson:"user_address_data_required"`
 	Products                                []string                 `bson:"products"`
+	OriginalOrderId                         string                   `bson:"original_order_id"`
 }
 
 type MgoPaymentSystem struct {
@@ -920,6 +921,7 @@ func (m *Order) GetBSON() (interface{}, error) {
 		PaymentSystemFeeAmount:                  m.PaymentSystemFeeAmount,
 		UserAddressDataRequired:                 m.UserAddressDataRequired,
 		Products:                                m.Products,
+		OriginalOrderId:                         m.OriginalOrderId,
 	}
 
 	if m.PaymentMethod != nil {
@@ -1147,6 +1149,7 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.PaymentSystemFeeAmount = decoded.PaymentSystemFeeAmount
 	m.UserAddressDataRequired = decoded.UserAddressDataRequired
 	m.Products = decoded.Products
+	m.OriginalOrderId = decoded.OriginalOrderId
 
 	m.PaymentMethodOrderClosedAt, err = ptypes.TimestampProto(decoded.PaymentMethodOrderClosedAt)
 	if err != nil {

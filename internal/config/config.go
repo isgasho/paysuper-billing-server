@@ -53,6 +53,9 @@ type Config struct {
 	*CacheConfig
 	*PaymentSystemConfig
 	*CustomerTokenConfig
+
+	NotificationsRetryTimeout int64 `envconfig:"NOTIFICATIONS_RETRY_TIMEOUT" default:"60"`
+	NotificationsRetryAlarm   int32 `envconfig:"NOTIFICATIONS_RETRY_ALARM" default:"5"`
 }
 
 func NewConfig() (*Config, error) {

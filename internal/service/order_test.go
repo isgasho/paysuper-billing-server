@@ -752,7 +752,6 @@ func (suite *OrderTestSuite) SetupTest() {
 	suite.service = NewBillingService(
 		db,
 		cfg,
-		make(chan bool, 1),
 		mock.NewGeoIpServiceTestOk(),
 		mock.NewRepositoryServiceOk(),
 		mock.NewTaxServiceOkMock(),

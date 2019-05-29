@@ -1,6 +1,7 @@
 package service
 
 import (
+	"container/list"
 	"context"
 	"crypto/sha512"
 	"encoding/hex"
@@ -70,7 +71,6 @@ type Service struct {
 	db               *database.Source
 	mx               sync.Mutex
 	cfg              *config.Config
-	exitCh           chan bool
 	ctx              context.Context
 	geo              proto.GeoIpService
 	rep              repository.RepositoryService
@@ -96,6 +96,16 @@ type Service struct {
 
 	rebuild      bool
 	rebuildError error
+
+	wg                       sync.WaitGroup
+	exitCacheRebuild         chan bool
+	exitNotifications        chan bool
+	exitNotificationsPublish chan bool
+	notificationsWg          sync.WaitGroup
+	notifications            chan *billing.Order
+	notificationsQueue       *list.List
+	notificationsRetryCount  int32
+	notificationsRetryTicker *time.Ticker
 }
 
 type Cacher interface {
@@ -106,7 +116,6 @@ type Cacher interface {
 func NewBillingService(
 	db *database.Source,
 	cfg *config.Config,
-	exitCh chan bool,
 	geo proto.GeoIpService,
 	rep repository.RepositoryService,
 	tax tax_service.TaxService,
@@ -114,14 +123,19 @@ func NewBillingService(
 	redis *redis.Client,
 ) *Service {
 	return &Service{
-		db:     db,
-		cfg:    cfg,
-		exitCh: exitCh,
-		geo:    geo,
-		rep:    rep,
-		tax:    tax,
-		broker: broker,
-		redis:  redis,
+		db:                       db,
+		cfg:                      cfg,
+		geo:                      geo,
+		rep:                      rep,
+		tax:                      tax,
+		broker:                   broker,
+		redis:                    redis,
+		wg:                       sync.WaitGroup{},
+		notificationsWg:          sync.WaitGroup{},
+		exitCacheRebuild:         make(chan bool, 1),
+		exitNotifications:        make(chan bool, 1),
+		exitNotificationsPublish: make(chan bool, 1),
+		notifications:            make(chan *billing.Order),
 	}
 }
 
@@ -146,12 +160,28 @@ func (s *Service) Init() (err error) {
 		return errors.New(errorAccountingCurrencyNotFound)
 	}
 
+	err = s.initNotifications()
+	if err != nil {
+		return errors.New(errorInitNotificationsFailed)
+	}
+
+	s.wg.Add(1)
 	go s.reBuildCache()
 
 	return
 }
 
+func (s *Service) Shutdown() {
+	zap.S().Info("Shutting down GRPC serivce...")
+	s.exitCacheRebuild <- true
+	s.exitNotifications <- true
+	s.exitNotificationsPublish <- true
+	s.wg.Wait()
+}
+
 func (s *Service) reBuildCache() {
+	defer s.wg.Done()
+
 	var err error
 	var key string
 
@@ -189,8 +219,9 @@ func (s *Service) reBuildCache() {
 			s.mx.Lock()
 			s.systemFeesCache = make(map[string]map[string]map[string]*billing.SystemFees)
 			s.mx.Unlock()
-		case <-s.exitCh:
+		case <-s.exitCacheRebuild:
 			s.rebuild = false
+			zap.S().Info("Cache rebuilding stopped")
 			return
 		}
 

@@ -472,6 +472,8 @@ message Order {
     bool user_address_data_required = 63;
     // @inject_tag: json:"-" bson:"products" validate:"omitempty,gte=1,dive,hexadecimal,len=24"
     repeated string products = 64;
+    // @inject_tag: json:"-" bson:"original_order_id" validate:"omitempty,hexadecimal,len=24"
+    string original_order_id = 65;
 }
 
 message OrderItem {
