@@ -33,6 +33,7 @@ import (
 )
 
 const (
+	orderErrorProjectIdIncorrect                       = "project identifier is incorrect"
 	orderErrorProjectNotFound                          = "project with specified identifier not found"
 	orderErrorProjectInactive                          = "project with specified identifier is inactive"
 	orderErrorProjectMerchantInactive                  = "merchant for project with specified identifier is inactive"
@@ -167,6 +168,10 @@ func (s *Service) OrderCreateProcess(
 
 		if err != nil {
 			return err
+		}
+	} else {
+		if req.ProjectId == "" || bson.IsObjectIdHex(req.ProjectId) == false {
+			return errors.New(orderErrorProjectIdIncorrect)
 		}
 	}
 
