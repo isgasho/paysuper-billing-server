@@ -390,7 +390,13 @@ func (s *Service) PaymentFormJsonDataProcess(
 
 	if ctr != order.User.Address.Country {
 		order.UserAddressDataRequired = true
+
 		rsp.UserAddressDataRequired = order.UserAddressDataRequired
+		rsp.UserIpData = &grpc.UserIpData{
+			Country: order.User.Address.Country,
+			City:    order.User.Address.City,
+			Zip:     order.User.Address.PostalCode,
+		}
 	}
 
 	err = s.ProcessOrderProducts(order)
