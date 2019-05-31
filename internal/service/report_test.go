@@ -454,6 +454,36 @@ func (suite *ReportTestSuite) TestReport_FindById() {
 	assert.Equal(suite.T(), oRsp.Id, rsp.Items[0].Id)
 }
 
+func (suite *ReportTestSuite) TestReport_FindByMerchantId() {
+	oReq := &billing.OrderCreateRequest{
+		ProjectId: suite.project.Id,
+		Currency:  suite.currencyRub.CodeA3,
+		Amount:    100,
+	}
+	oRsp := &billing.Order{}
+	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
+	assert.NoError(suite.T(), err, "Unable to create order")
+
+	merchantId = bson.NewObjectId().Hex()
+	oRsp.Project.MerchantId = merchantId
+	suite.service.updateOrder(oRsp)
+
+	req := &grpc.ListOrdersRequest{Merchant: []string{bson.NewObjectId().Hex()}}
+	rsp := &billing.OrderPaginate{}
+	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), int32(0), rsp.Count)
+
+	req = &grpc.ListOrdersRequest{Merchant: []string{merchantId}}
+	rsp = &billing.OrderPaginate{}
+	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), int32(1), rsp.Count)
+	assert.Equal(suite.T(), oRsp.Id, rsp.Items[0].Id)
+}
+
 func (suite *ReportTestSuite) TestReport_FindByProject() {
 	oReq := &billing.OrderCreateRequest{
 		ProjectId: suite.project.Id,

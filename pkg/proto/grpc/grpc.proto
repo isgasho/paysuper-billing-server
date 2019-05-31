@@ -639,5 +639,6 @@ message ListOrdersRequest {
     int32 offset = 13;
     // @inject_tag: query:"sort[]"
     repeated string sort = 14;
-    billing.Merchant merchant = 15;
+    // @inject_tag: query:"merchant[]" validate:"omitempty,hexadecimal,len=24"
+    repeated string merchant = 15;
 }

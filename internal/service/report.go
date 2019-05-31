@@ -31,6 +31,16 @@ func (s *Service) FindAllOrders(
 			query["uuid"] = req.Id
 		}
 
+		if len(req.Merchant) > 0 {
+			var merchants []bson.ObjectId
+
+			for _, v := range req.Merchant {
+				merchants = append(merchants, bson.ObjectIdHex(v))
+			}
+
+			query["project.merchant_id"] = bson.M{"$in": merchants}
+		}
+
 		if len(req.Project) > 0 {
 			var projects []bson.ObjectId
 
