@@ -80,8 +80,6 @@ var (
 	}
 )
 
-type digits [6]int
-
 type cardPay struct {
 	processor *paymentProcessor
 	mu        sync.Mutex
@@ -311,6 +309,7 @@ func (h *cardPay) CreatePayment(requisites map[string]string) (url string, err e
 			zap.Error(err),
 			zap.Any("request", cpOrder),
 		)
+		return
 	}
 
 	token := h.getToken(h.processor.order.PaymentMethod.Params.ExternalId)
@@ -327,9 +326,10 @@ func (h *cardPay) CreatePayment(requisites map[string]string) (url string, err e
 			zap.Error(err),
 			zap.Any("request", cpOrder),
 		)
+		return
 	}
 
-	if err != nil || resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusOK {
 		return "", errors.New(paymentSystemErrorCreateRequestFailed)
 	}
 
@@ -361,11 +361,6 @@ func (h *cardPay) CreatePayment(requisites map[string]string) (url string, err e
 	url = cpResponse.RedirectUrl
 
 	return
-}
-
-// At returns the digits from the start to the given length
-func (d *digits) At(i int) int {
-	return d[i-1]
 }
 
 func (h *cardPay) getCardBrand(pan string) (string, error) {
@@ -500,7 +495,7 @@ func (h *cardPay) fillPaymentDataCard(req *billing.CardPayPaymentCallback) error
 			pan = ""
 		}
 	}
-	if pan != "" {
+	if len(pan) >= 6 {
 		first6 = string(pan[0:6])
 		last4 = string(pan[len(pan)-4:])
 	}
