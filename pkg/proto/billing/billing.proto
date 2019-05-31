@@ -285,6 +285,7 @@ message OrderBillingAddress {
     // @inject_tag: validate:"omitempty,alpha,len=2"
     string country = 1;
     string city = 2;
+    // @inject_tag: bson:"postal_code"
     string postal_code = 3;
     string state = 4;
 }
@@ -294,17 +295,17 @@ message OrderUser {
     string id = 1;
     // @inject_tag: json:"object"
     string object = 2;
-    // @inject_tag: json:"external_id"
+    // @inject_tag: json:"external_id" bson:"external_id"
     string external_id = 3;
     // @inject_tag: json:"name"
     string name = 4;
     // @inject_tag: json:"email" validate:"omitempty,email"
     string email = 5;
-    // @inject_tag: json:"email_verified"
+    // @inject_tag: json:"email_verified" bson:"email_verified"
     bool email_verified = 6;
     // @inject_tag: json:"phone" validate:"omitempty,phone"
     string phone = 7;
-    // @inject_tag: json:"phone_verified"
+    // @inject_tag: json:"phone_verified" bson:"phone_verified"
     bool phone_verified = 8;
     // @inject_tag: json:"ip" validate:"omitempty,ip"
     string ip = 9;

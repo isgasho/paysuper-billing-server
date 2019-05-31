@@ -1642,9 +1642,10 @@ func (m *OrderTax) GetCurrency() string {
 
 type OrderBillingAddress struct {
 	// @inject_tag: validate:"omitempty,alpha,len=2"
-	Country              string   `protobuf:"bytes,1,opt,name=country,proto3" json:"country,omitempty" validate:"omitempty,alpha,len=2"`
-	City                 string   `protobuf:"bytes,2,opt,name=city,proto3" json:"city,omitempty"`
-	PostalCode           string   `protobuf:"bytes,3,opt,name=postal_code,json=postalCode,proto3" json:"postal_code,omitempty"`
+	Country string `protobuf:"bytes,1,opt,name=country,proto3" json:"country,omitempty" validate:"omitempty,alpha,len=2"`
+	City    string `protobuf:"bytes,2,opt,name=city,proto3" json:"city,omitempty"`
+	// @inject_tag: bson:"postal_code"
+	PostalCode           string   `protobuf:"bytes,3,opt,name=postal_code,json=postalCode,proto3" json:"postal_code,omitempty" bson:"postal_code"`
 	State                string   `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -1709,18 +1710,18 @@ type OrderUser struct {
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id"`
 	// @inject_tag: json:"object"
 	Object string `protobuf:"bytes,2,opt,name=object,proto3" json:"object"`
-	// @inject_tag: json:"external_id"
-	ExternalId string `protobuf:"bytes,3,opt,name=external_id,json=externalId,proto3" json:"external_id"`
+	// @inject_tag: json:"external_id" bson:"external_id"
+	ExternalId string `protobuf:"bytes,3,opt,name=external_id,json=externalId,proto3" json:"external_id" bson:"external_id"`
 	// @inject_tag: json:"name"
 	Name string `protobuf:"bytes,4,opt,name=name,proto3" json:"name"`
 	// @inject_tag: json:"email" validate:"omitempty,email"
 	Email string `protobuf:"bytes,5,opt,name=email,proto3" json:"email" validate:"omitempty,email"`
-	// @inject_tag: json:"email_verified"
-	EmailVerified bool `protobuf:"varint,6,opt,name=email_verified,json=emailVerified,proto3" json:"email_verified"`
+	// @inject_tag: json:"email_verified" bson:"email_verified"
+	EmailVerified bool `protobuf:"varint,6,opt,name=email_verified,json=emailVerified,proto3" json:"email_verified" bson:"email_verified"`
 	// @inject_tag: json:"phone" validate:"omitempty,phone"
 	Phone string `protobuf:"bytes,7,opt,name=phone,proto3" json:"phone" validate:"omitempty,phone"`
-	// @inject_tag: json:"phone_verified"
-	PhoneVerified bool `protobuf:"varint,8,opt,name=phone_verified,json=phoneVerified,proto3" json:"phone_verified"`
+	// @inject_tag: json:"phone_verified" bson:"phone_verified"
+	PhoneVerified bool `protobuf:"varint,8,opt,name=phone_verified,json=phoneVerified,proto3" json:"phone_verified" bson:"phone_verified"`
 	// @inject_tag: json:"ip" validate:"omitempty,ip"
 	Ip string `protobuf:"bytes,9,opt,name=ip,proto3" json:"ip" validate:"omitempty,ip"`
 	// @inject_tag: json:"locale" validate:"omitempty,alpha,len=2"
