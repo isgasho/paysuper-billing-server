@@ -33,6 +33,7 @@ import (
 )
 
 const (
+	orderErrorProjectIdIncorrect                       = "project identifier is incorrect"
 	orderErrorProjectNotFound                          = "project with specified identifier not found"
 	orderErrorProjectInactive                          = "project with specified identifier is inactive"
 	orderErrorProjectMerchantInactive                  = "merchant for project with specified identifier is inactive"
@@ -52,7 +53,7 @@ const (
 	orderErrorAmountLowerThanMinAllowedPaymentMethod   = "order amount is lower than min allowed payment amount for payment method"
 	orderErrorAmountGreaterThanMaxAllowedPaymentMethod = "order amount is greater than max allowed payment amount for payment method"
 	orderErrorCanNotCreate                             = "order can't create. try request later"
-	orderErrorSignatureInvalid                         = "order request signature is invalid"
+	orderErrorSignatureInvalid                         = "request signature is invalid"
 	orderErrorNotFound                                 = "order with specified identifier not found"
 	orderErrorOrderAlreadyComplete                     = "order with specified identifier payed early"
 	orderErrorFormInputTimeExpired                     = "time to enter date on payment form expired"
@@ -181,6 +182,10 @@ func (s *Service) OrderCreateProcess(
 
 		if err != nil {
 			return err
+		}
+	} else {
+		if req.ProjectId == "" || bson.IsObjectIdHex(req.ProjectId) == false {
+			return errors.New(orderErrorProjectIdIncorrect)
 		}
 	}
 
@@ -323,14 +328,19 @@ func (s *Service) PaymentFormJsonDataProcess(
 	p1 := &OrderCreateRequestProcessor{
 		Service: s,
 		checked: &orderCreateRequestProcessorChecked{
-			user: &billing.OrderUser{Ip: req.Ip},
+			user: &billing.OrderUser{
+				Ip:      req.Ip,
+				Address: &billing.OrderBillingAddress{},
+			},
 		},
 	}
 
-	err = p1.processPayerIp()
+	if req.Ip != "" {
+		err = p1.processPayerIp()
 
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
 	}
 
 	loc, ctr := s.getCountryFromAcceptLanguage(req.Locale)
@@ -394,7 +404,13 @@ func (s *Service) PaymentFormJsonDataProcess(
 
 	if ctr != order.User.Address.Country {
 		order.UserAddressDataRequired = true
+
 		rsp.UserAddressDataRequired = order.UserAddressDataRequired
+		rsp.UserIpData = &grpc.UserIpData{
+			Country: order.User.Address.Country,
+			City:    order.User.Address.City,
+			Zip:     order.User.Address.PostalCode,
+		}
 	}
 
 	err = s.ProcessOrderProducts(order)
@@ -1147,7 +1163,7 @@ func (v *OrderCreateRequestProcessor) processPayerIp() error {
 	rsp, err := v.geo.GetIpData(context.TODO(), &proto.GeoIpDataRequest{IP: v.checked.user.Ip})
 
 	if err != nil {
-		zap.S().Errorw("[PAYONE_BILLING] Order create get payer data error", "err", err, "ip", v.request.PayerIp)
+		zap.S().Errorw("[PAYONE_BILLING] Order create get payer data error", "err", err, "ip", v.checked.user.Ip)
 		return errors.New(orderErrorPayerRegionUnknown)
 	}
 

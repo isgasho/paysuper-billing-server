@@ -13,11 +13,11 @@ message Name {
 }
 
 message OrderCreateRequest {
-    // @inject_tag: query:"PO_PROJECT_ID" form:"PO_PROJECT_ID" json:"project" validate:"required,hexadecimal"
+    // @inject_tag: query:"PO_PROJECT_ID" form:"PO_PROJECT_ID" json:"project" validate:"omitempty,hexadecimal"
     string project_id = 1;
     // @inject_tag: query:"PO_SIGNATURE" form:"PO_SIGNATURE" validate:"omitempty,alphanum"
     string signature = 2;
-    // @inject_tag: query:"PO_AMOUNT" form:"PO_AMOUNT" json:"amount" validate:"required,numeric"
+    // @inject_tag: query:"PO_AMOUNT" form:"PO_AMOUNT" json:"amount" validate:"omitempty,numeric,gte=0"
     double amount = 3;
     // @inject_tag: query:"PO_CURRENCY" form:"PO_CURRENCY" json:"currency" validate:"omitempty,alpha,len=3"
     string currency = 4;

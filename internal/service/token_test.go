@@ -425,7 +425,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_ExistCustomer_UpdateExistIden
 	assert.Equal(suite.T(), req.User.Locale.Value, customers[0].Locale)
 	assert.Equal(suite.T(), req.User.Address, customers[0].Address)
 
-	assert.NotEmpty(suite.T(), customers[0].IpHistory)
+	assert.Empty(suite.T(), customers[0].IpHistory)
 	assert.NotEmpty(suite.T(), customers[0].LocaleHistory)
 	assert.NotEmpty(suite.T(), customers[0].AddressHistory)
 

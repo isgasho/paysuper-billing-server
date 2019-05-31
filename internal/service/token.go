@@ -370,26 +370,29 @@ func (s *Service) processCustomer(
 		customer.Name = user.Name.Value
 	}
 
-	if user.Ip != nil {
+	if user.Ip != nil && user.Ip.Value != "" {
 		ip := net.IP(customer.Ip)
+		customer.Ip = net.ParseIP(user.Ip.Value)
 
-		if ip.String() != user.Ip.Value {
+		if len(ip) > 0 && ip.String() != user.Ip.Value {
 			history := &billing.CustomerIpHistory{
-				Ip:        customer.Ip,
+				Ip:        ip,
 				CreatedAt: ptypes.TimestampNow(),
 			}
-			customer.Ip = net.ParseIP(user.Ip.Value)
 			customer.IpHistory = append(customer.IpHistory, history)
 		}
 	}
 
-	if user.Locale != nil && customer.Locale != user.Locale.Value {
+	if user.Locale != nil && user.Locale.Value != "" && customer.Locale != user.Locale.Value {
 		history := &billing.CustomerStringValueHistory{
 			Value:     customer.Locale,
 			CreatedAt: ptypes.TimestampNow(),
 		}
 		customer.Locale = user.Locale.Value
-		customer.LocaleHistory = append(customer.LocaleHistory, history)
+
+		if history.Value != "" {
+			customer.LocaleHistory = append(customer.LocaleHistory, history)
+		}
 	}
 
 	if user.Address != nil && customer.Address != user.Address {
@@ -417,7 +420,10 @@ func (s *Service) processCustomer(
 			CreatedAt: ptypes.TimestampNow(),
 		}
 		customer.AcceptLanguage = user.AcceptLanguage
-		customer.AcceptLanguageHistory = append(customer.AcceptLanguageHistory, history)
+
+		if history.Value != "" {
+			customer.AcceptLanguageHistory = append(customer.AcceptLanguageHistory, history)
+		}
 	}
 }
 

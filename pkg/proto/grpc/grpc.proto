@@ -117,11 +117,14 @@ message PaymentFormJsonDataResponse {
     string token = 11; // access token to websocket private chanel
     // @inject_tag: json:"user_address_data_required"
     bool user_address_data_required = 12;
+    // @inject_tag: json:"user_ip_data"
+    UserIpData user_ip_data = 13;
     // @inject_tag: json:"items" validate="omitempty,gte=1,dive"
-    repeated billing.OrderItem items = 13;
+    repeated billing.OrderItem items = 14;
     // @inject_tag: json:"-"
-    string cookie = 14;
-    string email = 15;
+    string cookie = 15;
+    // @inject_tag: json:"email"
+    string email = 16;
 }
 
 message PaymentNotifyRequest {
@@ -387,6 +390,7 @@ message UserIpData {
 message PaymentFormDataChangeResponseItem {
     // @inject_tag: json:"user_address_data_required"
     bool user_address_data_required = 1;
+    // @inject_tag: json:"user_ip_data"
     UserIpData user_ip_data = 2;
 }
 

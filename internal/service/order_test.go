@@ -5082,6 +5082,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_ExistCookie_Ok
 		Scheme:  "http",
 		Host:    "127.0.0.1",
 		Cookie:  cookie,
+		Ip:      "127.0.0.1",
 	}
 	rsp2 := &grpc.PaymentFormJsonDataResponse{}
 	err = suite.service.PaymentFormJsonDataProcess(context.TODO(), req2, rsp2)
