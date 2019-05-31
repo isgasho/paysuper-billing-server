@@ -7,12 +7,14 @@ import (
 	"github.com/go-redis/redis"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/google/uuid"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/stoewer/go-strcase"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -43,9 +45,8 @@ func Test_Report(t *testing.T) {
 
 func (suite *ReportTestSuite) SetupTest() {
 	cfg, err := config.NewConfig()
-	if err != nil {
-		suite.FailNow("Config load failed", "%v", err)
-	}
+	assert.NoError(suite.T(), err, "Config load failed")
+
 	cfg.AccountingCurrency = "RUB"
 	cfg.CardPayApiUrl = "https://sandbox.cardpay.com"
 
@@ -57,10 +58,7 @@ func (suite *ReportTestSuite) SetupTest() {
 	}
 
 	db, err := database.NewDatabase(settings)
-
-	if err != nil {
-		suite.FailNow("Database connection failed", "%v", err)
-	}
+	assert.NoError(suite.T(), err, "Database connection failed")
 
 	suite.currencyRub = &billing.Currency{
 		CodeInt:  643,
@@ -78,10 +76,7 @@ func (suite *ReportTestSuite) SetupTest() {
 	currency := []interface{}{suite.currencyRub, suite.currencyUsd}
 
 	err = db.Collection(pkg.CollectionCurrency).Insert(currency...)
-
-	if err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
+	assert.NoError(suite.T(), err, "Insert currency test data failed")
 
 	rate := []interface{}{
 		&billing.CurrencyRate{
@@ -115,10 +110,7 @@ func (suite *ReportTestSuite) SetupTest() {
 	}
 
 	err = db.Collection(pkg.CollectionCurrencyRate).Insert(rate...)
-
-	if err != nil {
-		suite.FailNow("Insert rates test data failed", "%v", err)
-	}
+	assert.NoError(suite.T(), err, "Insert rates test data failed")
 
 	ru := &billing.Country{
 		CodeInt:  643,
@@ -192,10 +184,7 @@ func (suite *ReportTestSuite) SetupTest() {
 	}
 
 	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -360))
-
-	if err != nil {
-		suite.FailNow("Generate merchant date failed", "%v", err)
-	}
+	assert.NoError(suite.T(), err, "Generate merchant date failed")
 
 	merchant := &billing.Merchant{
 		Id:      bson.NewObjectId().Hex(),
@@ -272,10 +261,7 @@ func (suite *ReportTestSuite) SetupTest() {
 	}
 
 	err = db.Collection(pkg.CollectionMerchant).Insert([]interface{}{merchant}...)
-
-	if err != nil {
-		suite.FailNow("Insert merchant test data failed", "%v", err)
-	}
+	assert.NoError(suite.T(), err, "Insert merchant test data failed")
 
 	project := &billing.Project{
 		Id:                       bson.NewObjectId().Hex(),
@@ -311,24 +297,15 @@ func (suite *ReportTestSuite) SetupTest() {
 	}
 
 	err = db.Collection(pkg.CollectionProject).Insert(projects...)
-
-	if err != nil {
-		suite.FailNow("Insert project test data failed", "%v", err)
-	}
+	assert.NoError(suite.T(), err, "Insert project test data failed")
 
 	pms := []interface{}{pmBankCard, pmBitcoin1}
 
 	err = db.Collection(pkg.CollectionPaymentMethod).Insert(pms...)
-
-	if err != nil {
-		suite.FailNow("Insert payment methods test data failed", "%v", err)
-	}
+	assert.NoError(suite.T(), err, "Insert payment methods test data failed")
 
 	commissionStartDate, err := ptypes.TimestampProto(time.Now().Add(time.Minute * -10))
-
-	if err != nil {
-		suite.FailNow("Commission start date conversion failed", "%v", err)
-	}
+	assert.NoError(suite.T(), err, "Commission start date conversion failed")
 
 	commissions := []interface{}{
 		&billing.Commission{
@@ -350,10 +327,7 @@ func (suite *ReportTestSuite) SetupTest() {
 	}
 
 	err = db.Collection(pkg.CollectionCommission).Insert(commissions...)
-
-	if err != nil {
-		suite.FailNow("Insert commission test data failed", "%v", err)
-	}
+	assert.NoError(suite.T(), err, "Insert commission test data failed")
 
 	bin := &BinData{
 		Id:                bson.NewObjectId(),
@@ -367,22 +341,13 @@ func (suite *ReportTestSuite) SetupTest() {
 	}
 
 	err = db.Collection(pkg.CollectionBinData).Insert(bin)
-
-	if err != nil {
-		suite.FailNow("Insert BIN test data failed", "%v", err)
-	}
+	assert.NoError(suite.T(), err, "Insert BIN test data failed")
 
 	suite.log, err = zap.NewProduction()
-
-	if err != nil {
-		suite.FailNow("Logger initialization failed", "%v", err)
-	}
+	assert.NoError(suite.T(), err, "Logger initialization failed")
 
 	broker, err := rabbitmq.NewBroker(cfg.BrokerAddress)
-
-	if err != nil {
-		suite.FailNow("Creating RabbitMQ publisher failed", "%v", err)
-	}
+	assert.NoError(suite.T(), err, "Creating RabbitMQ publisher failed")
 
 	redisClient := database.NewRedis(
 		&redis.Options{
@@ -402,10 +367,7 @@ func (suite *ReportTestSuite) SetupTest() {
 		redisClient,
 	)
 	err = suite.service.Init()
-
-	if err != nil {
-		suite.FailNow("Billing service initialization failed", "%v", err)
-	}
+	assert.NoError(suite.T(), err, "Billing service initialization failed")
 
 	var productIds []string
 	names := []string{"Madalin Stunt Cars M2", "Plants vs Zombies"}
@@ -461,7 +423,7 @@ func (suite *ReportTestSuite) TestReport_ReturnEmptyList() {
 	rsp := &billing.OrderPaginate{}
 	err := suite.service.FindAllOrders(context.TODO(), req, rsp)
 
-	assert.Nil(suite.T(), err)
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(0), rsp.Count)
 	assert.Empty(suite.T(), rsp.Items)
 }
@@ -474,22 +436,20 @@ func (suite *ReportTestSuite) TestReport_FindById() {
 	}
 	oRsp := &billing.Order{}
 	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
-	if err != nil {
-		suite.FailNow("Unable to create order", "%v", err)
-	}
+	assert.NoError(suite.T(), err, "Unable to create order")
 
-	req := &grpc.ListOrdersRequest{Id: bson.NewObjectId().Hex()}
+	req := &grpc.ListOrdersRequest{Id: uuid.New().String()}
 	rsp := &billing.OrderPaginate{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
 
-	assert.Nil(suite.T(), err)
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(0), rsp.Count)
 
-	req = &grpc.ListOrdersRequest{Id: oRsp.Id}
+	req = &grpc.ListOrdersRequest{Id: oRsp.Uuid}
 	rsp = &billing.OrderPaginate{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
 
-	assert.Nil(suite.T(), err)
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(1), rsp.Count)
 	assert.Equal(suite.T(), oRsp.Id, rsp.Items[0].Id)
 }
@@ -502,22 +462,20 @@ func (suite *ReportTestSuite) TestReport_FindByProject() {
 	}
 	oRsp := &billing.Order{}
 	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
-	if err != nil {
-		suite.FailNow("Unable to create order", "%v", err)
-	}
+	assert.NoError(suite.T(), err, "Unable to create order")
 
 	req := &grpc.ListOrdersRequest{Project: []string{bson.NewObjectId().Hex()}}
 	rsp := &billing.OrderPaginate{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
 
-	assert.Nil(suite.T(), err)
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(0), rsp.Count)
 
 	req = &grpc.ListOrdersRequest{Project: []string{suite.project.Id}}
 	rsp = &billing.OrderPaginate{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
 
-	assert.Nil(suite.T(), err)
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(1), rsp.Count)
 	assert.Equal(suite.T(), oRsp.Project.Id, rsp.Items[0].Project.Id)
 }
@@ -528,29 +486,27 @@ func (suite *ReportTestSuite) TestReport_FindByCountry() {
 		Currency:  suite.currencyRub.CodeA3,
 		User: &billing.OrderUser{
 			Address: &billing.OrderBillingAddress{
-				Country: "RUS",
+				Country: "RU",
 			},
 		},
 		Amount: 100,
 	}
 	oRsp := &billing.Order{}
 	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
-	if err != nil {
-		suite.FailNow("Unable to create order", "%v", err)
-	}
+	assert.NoError(suite.T(), err, "Unable to create order")
 
 	req := &grpc.ListOrdersRequest{Country: []string{"USA"}}
 	rsp := &billing.OrderPaginate{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
 
-	assert.Nil(suite.T(), err)
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(0), rsp.Count)
 
-	req = &grpc.ListOrdersRequest{Country: []string{"RUS"}}
+	req = &grpc.ListOrdersRequest{Country: []string{"RU"}}
 	rsp = &billing.OrderPaginate{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
 
-	assert.Nil(suite.T(), err)
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(1), rsp.Count)
 	assert.Equal(suite.T(), oRsp.Project.Id, rsp.Items[0].Project.Id)
 }
@@ -564,22 +520,20 @@ func (suite *ReportTestSuite) TestReport_FindByPaymentMethod() {
 	}
 	oRsp := &billing.Order{}
 	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
-	if err != nil {
-		suite.FailNow("Unable to create order", "%v", err)
-	}
+	assert.NoError(suite.T(), err, "Unable to create order")
 
 	req := &grpc.ListOrdersRequest{PaymentMethod: []string{bson.NewObjectId().Hex()}}
 	rsp := &billing.OrderPaginate{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
 
-	assert.Nil(suite.T(), err)
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(0), rsp.Count)
 
 	req = &grpc.ListOrdersRequest{PaymentMethod: []string{oRsp.PaymentMethod.Id}}
 	rsp = &billing.OrderPaginate{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
 
-	assert.Nil(suite.T(), err)
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(1), rsp.Count)
 	assert.Equal(suite.T(), oRsp.PaymentMethod.Id, rsp.Items[0].PaymentMethod.Id)
 }
@@ -592,25 +546,23 @@ func (suite *ReportTestSuite) TestReport_FindByStatus() {
 	}
 	oRsp := &billing.Order{}
 	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
-	if err != nil {
-		suite.FailNow("Unable to create order", "%v", err)
-	}
+	assert.NoError(suite.T(), err, "Unable to create order")
 
-	oRsp.Status = OrderStatusPaymentSystemRejectOnCreate
+	oRsp.Status = constant.OrderStatusPaymentSystemRejectOnCreate
 	suite.service.updateOrder(oRsp)
 
-	req := &grpc.ListOrdersRequest{Status: []int32{OrderStatusPaymentSystemCreate}}
+	req := &grpc.ListOrdersRequest{Status: []int32{constant.OrderStatusPaymentSystemCreate}}
 	rsp := &billing.OrderPaginate{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
 
-	assert.Nil(suite.T(), err)
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(0), rsp.Count)
 
-	req = &grpc.ListOrdersRequest{Status: []int32{OrderStatusPaymentSystemRejectOnCreate}}
+	req = &grpc.ListOrdersRequest{Status: []int32{constant.OrderStatusPaymentSystemRejectOnCreate}}
 	rsp = &billing.OrderPaginate{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
 
-	assert.Nil(suite.T(), err)
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(1), rsp.Count)
 	assert.Equal(suite.T(), oRsp.Status, rsp.Items[0].Status)
 }
@@ -624,22 +576,20 @@ func (suite *ReportTestSuite) TestReport_FindByAccount() {
 	}
 	oRsp := &billing.Order{}
 	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
-	if err != nil {
-		suite.FailNow("Unable to create order", "%v", err)
-	}
+	assert.NoError(suite.T(), err, "Unable to create order")
 
 	req := &grpc.ListOrdersRequest{Account: "unexists"}
 	rsp := &billing.OrderPaginate{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
 
-	assert.Nil(suite.T(), err)
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(0), rsp.Count)
 
 	req = &grpc.ListOrdersRequest{Account: "account"}
 	rsp = &billing.OrderPaginate{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
 
-	assert.Nil(suite.T(), err)
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(1), rsp.Count)
 	assert.Equal(suite.T(), oRsp.ProjectAccount, rsp.Items[0].ProjectAccount)
 }
@@ -652,9 +602,7 @@ func (suite *ReportTestSuite) TestReport_FindByPmDateFrom() {
 	}
 	oRsp := &billing.Order{}
 	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
-	if err != nil {
-		suite.FailNow("Unable to create order", "%v", err)
-	}
+	assert.NoError(suite.T(), err, "Unable to create order")
 
 	t := time.Now()
 	oRsp.PaymentMethodOrderClosedAt = &timestamp.Timestamp{Seconds: t.Unix()}
@@ -664,14 +612,14 @@ func (suite *ReportTestSuite) TestReport_FindByPmDateFrom() {
 	rsp := &billing.OrderPaginate{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
 
-	assert.Nil(suite.T(), err)
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(0), rsp.Count)
 
 	req = &grpc.ListOrdersRequest{PmDateFrom: t.Unix() - 3}
 	rsp = &billing.OrderPaginate{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
 
-	assert.Nil(suite.T(), err)
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(1), rsp.Count)
 	assert.Equal(suite.T(), oRsp.Id, rsp.Items[0].Id)
 }
@@ -684,9 +632,7 @@ func (suite *ReportTestSuite) TestReport_FindByPmDateTo() {
 	}
 	oRsp := &billing.Order{}
 	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
-	if err != nil {
-		suite.FailNow("Unable to create order", "%v", err)
-	}
+	assert.NoError(suite.T(), err, "Unable to create order")
 
 	t := time.Now()
 	oRsp.PaymentMethodOrderClosedAt = &timestamp.Timestamp{Seconds: t.Unix()}
@@ -696,14 +642,14 @@ func (suite *ReportTestSuite) TestReport_FindByPmDateTo() {
 	rsp := &billing.OrderPaginate{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
 
-	assert.Nil(suite.T(), err)
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(0), rsp.Count)
 
 	req = &grpc.ListOrdersRequest{PmDateTo: t.Unix() + 3}
 	rsp = &billing.OrderPaginate{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
 
-	assert.Nil(suite.T(), err)
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(1), rsp.Count)
 	assert.Equal(suite.T(), oRsp.Id, rsp.Items[0].Id)
 }
@@ -716,9 +662,7 @@ func (suite *ReportTestSuite) TestReport_FindByProjectDateFrom() {
 	}
 	oRsp := &billing.Order{}
 	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
-	if err != nil {
-		suite.FailNow("Unable to create order", "%v", err)
-	}
+	assert.NoError(suite.T(), err, "Unable to create order")
 
 	t := time.Now()
 	oRsp.CreatedAt = &timestamp.Timestamp{Seconds: t.Unix()}
@@ -728,14 +672,14 @@ func (suite *ReportTestSuite) TestReport_FindByProjectDateFrom() {
 	rsp := &billing.OrderPaginate{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
 
-	assert.Nil(suite.T(), err)
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(0), rsp.Count)
 
 	req = &grpc.ListOrdersRequest{ProjectDateFrom: t.Unix() - 3}
 	rsp = &billing.OrderPaginate{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
 
-	assert.Nil(suite.T(), err)
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(1), rsp.Count)
 	assert.Equal(suite.T(), oRsp.Id, rsp.Items[0].Id)
 }
@@ -748,9 +692,7 @@ func (suite *ReportTestSuite) TestReport_FindByProjectDateTo() {
 	}
 	oRsp := &billing.Order{}
 	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
-	if err != nil {
-		suite.FailNow("Unable to create order", "%v", err)
-	}
+	assert.NoError(suite.T(), err, "Unable to create order")
 
 	t := time.Now()
 	oRsp.CreatedAt = &timestamp.Timestamp{Seconds: t.Unix()}
@@ -760,14 +702,14 @@ func (suite *ReportTestSuite) TestReport_FindByProjectDateTo() {
 	rsp := &billing.OrderPaginate{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
 
-	assert.Nil(suite.T(), err)
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(0), rsp.Count)
 
 	req = &grpc.ListOrdersRequest{ProjectDateTo: t.Unix() + 3}
 	rsp = &billing.OrderPaginate{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
 
-	assert.Nil(suite.T(), err)
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(1), rsp.Count)
 	assert.Equal(suite.T(), oRsp.Id, rsp.Items[0].Id)
 }
@@ -780,22 +722,20 @@ func (suite *ReportTestSuite) TestReport_FindByQuickSearch_Id() {
 	}
 	oRsp := &billing.Order{}
 	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
-	if err != nil {
-		suite.FailNow("Unable to create order", "%v", err)
-	}
+	assert.NoError(suite.T(), err, "Unable to create order")
 
-	req := &grpc.ListOrdersRequest{QuickSearch: bson.NewObjectId().Hex()}
+	req := &grpc.ListOrdersRequest{QuickSearch: uuid.New().String()}
 	rsp := &billing.OrderPaginate{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
 
-	assert.Nil(suite.T(), err)
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(0), rsp.Count)
 
-	req = &grpc.ListOrdersRequest{QuickSearch: oRsp.Id}
+	req = &grpc.ListOrdersRequest{QuickSearch: oRsp.Uuid}
 	rsp = &billing.OrderPaginate{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
 
-	assert.Nil(suite.T(), err)
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(1), rsp.Count)
 	assert.Equal(suite.T(), oRsp.Id, rsp.Items[0].Id)
 }
@@ -808,9 +748,7 @@ func (suite *ReportTestSuite) TestReport_FindByQuickSearch_ProjectOrderId() {
 	}
 	oRsp := &billing.Order{}
 	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
-	if err != nil {
-		suite.FailNow("Unable to create order", "%v", err)
-	}
+	assert.NoError(suite.T(), err, "Unable to create order")
 
 	oRsp.ProjectOrderId = "project_order_id"
 	suite.service.updateOrder(oRsp)
@@ -819,14 +757,114 @@ func (suite *ReportTestSuite) TestReport_FindByQuickSearch_ProjectOrderId() {
 	rsp := &billing.OrderPaginate{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
 
-	assert.Nil(suite.T(), err)
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(0), rsp.Count)
 
 	req = &grpc.ListOrdersRequest{QuickSearch: "project_order_id"}
 	rsp = &billing.OrderPaginate{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
 
-	assert.Nil(suite.T(), err)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), int32(1), rsp.Count)
+	assert.Equal(suite.T(), oRsp.Id, rsp.Items[0].Id)
+}
+
+func (suite *ReportTestSuite) TestReport_FindByQuickSearch_UserExternalId() {
+	oReq := &billing.OrderCreateRequest{
+		ProjectId: suite.project.Id,
+		Currency:  suite.currencyRub.CodeA3,
+		Amount:    100,
+	}
+	oRsp := &billing.Order{}
+	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
+	assert.NoError(suite.T(), err, "Unable to create order")
+
+	oRsp.User.ExternalId = "user_id"
+	suite.service.updateOrder(oRsp)
+
+	req := &grpc.ListOrdersRequest{QuickSearch: "unknown"}
+	rsp := &billing.OrderPaginate{}
+	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), int32(0), rsp.Count)
+
+	req = &grpc.ListOrdersRequest{QuickSearch: "user_id"}
+	rsp = &billing.OrderPaginate{}
+	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), int32(1), rsp.Count)
+	assert.Equal(suite.T(), oRsp.Id, rsp.Items[0].Id)
+}
+
+func (suite *ReportTestSuite) TestReport_FindByQuickSearch_ProjectName() {
+	oReq := &billing.OrderCreateRequest{
+		ProjectId: suite.project.Id,
+		Currency:  suite.currencyRub.CodeA3,
+		Amount:    100,
+	}
+	oRsp := &billing.Order{}
+	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
+	assert.NoError(suite.T(), err, "Unable to create order")
+
+	oRsp.Project.Name["en"] = "project_name_english"
+	oRsp.Project.Name["ru"] = "project_name_русский"
+	suite.service.updateOrder(oRsp)
+
+	req := &grpc.ListOrdersRequest{QuickSearch: "unknown"}
+	rsp := &billing.OrderPaginate{}
+	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), int32(0), rsp.Count)
+
+	req = &grpc.ListOrdersRequest{QuickSearch: "project_name_english"}
+	rsp = &billing.OrderPaginate{}
+	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), int32(1), rsp.Count)
+	assert.Equal(suite.T(), oRsp.Id, rsp.Items[0].Id)
+
+	req = &grpc.ListOrdersRequest{QuickSearch: "project_name_русский"}
+	rsp = &billing.OrderPaginate{}
+	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), int32(1), rsp.Count)
+	assert.Equal(suite.T(), oRsp.Id, rsp.Items[0].Id)
+}
+
+func (suite *ReportTestSuite) TestReport_FindByQuickSearch_PaymentMethodName() {
+	oReq := &billing.OrderCreateRequest{
+		ProjectId: suite.project.Id,
+		Currency:  suite.currencyRub.CodeA3,
+		Amount:    100,
+	}
+	oRsp := &billing.Order{}
+	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
+	assert.NoError(suite.T(), err, "Unable to create order")
+
+	oRsp.PaymentMethod = &billing.PaymentMethodOrder{
+		Id:            bson.NewObjectId().Hex(),
+		Name:          "payment_method",
+		PaymentSystem: &billing.PaymentSystem{},
+	}
+	suite.service.updateOrder(oRsp)
+
+	req := &grpc.ListOrdersRequest{QuickSearch: "unknown"}
+	rsp := &billing.OrderPaginate{}
+	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), int32(0), rsp.Count)
+
+	req = &grpc.ListOrdersRequest{QuickSearch: "payment_method"}
+	rsp = &billing.OrderPaginate{}
+	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
+
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(1), rsp.Count)
 	assert.Equal(suite.T(), oRsp.Id, rsp.Items[0].Id)
 }

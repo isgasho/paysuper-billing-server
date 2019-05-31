@@ -89,20 +89,6 @@ const (
 	paymentCreateBankCardFieldIssuerName    = "bank_issuer_name"
 	paymentCreateBankCardFieldIssuerCountry = "bank_issuer_country"
 
-	OrderStatusNew                         = 0
-	OrderStatusPaymentSystemCreate         = 1
-	OrderStatusPaymentSystemRejectOnCreate = 2
-	OrderStatusPaymentSystemReject         = 3
-	OrderStatusPaymentSystemComplete       = 4
-	OrderStatusProjectInProgress           = 5
-	OrderStatusProjectComplete             = 6
-	OrderStatusProjectPending              = 7
-	OrderStatusProjectReject               = 8
-	OrderStatusRefund                      = 9
-	OrderStatusChargeBack                  = 10
-	OrderStatusPaymentSystemDeclined       = 11
-	OrderStatusPaymentSystemCanceled       = 12
-
 	orderDefaultDescription      = "Payment by order # %s"
 	orderInlineFormImagesUrlMask = "//%s%s"
 

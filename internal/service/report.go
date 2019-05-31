@@ -20,13 +20,15 @@ func (s *Service) FindAllOrders(
 		r := bson.RegEx{Pattern: ".*" + req.QuickSearch + ".*", Options: "i"}
 
 		query["$or"] = []bson.M{
-			{"project_account": bson.M{"$regex": r}},
+			{"uuid": bson.M{"$regex": r, "$exists": true}},
+			{"user.externalid": bson.M{"$regex": r, "$exists": true}},
 			{"project_order_id": bson.M{"$regex": r, "$exists": true}},
-			{"id_string": bson.M{"$regex": r, "$exists": true}},
+			{"project.name": bson.M{"$elemMatch": bson.M{"value": r}}},
+			{"payment_method.name": bson.M{"$regex": r, "$exists": true}},
 		}
 	} else {
 		if req.Id != "" {
-			query["id_string"] = req.Id
+			query["uuid"] = req.Id
 		}
 
 		if len(req.Project) > 0 {

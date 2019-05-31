@@ -449,15 +449,6 @@ message OrderPaginate {
     repeated Order items = 2; // array of selected orders
 }
 
-message Status {
-    // @inject_tag: json:"status"
-    int32 status = 1;
-    // @inject_tag: json:"name"
-    string name = 2;
-    // @inject_tag: json:"description"
-    string description = 3;
-}
-
 message Currency {
     // @inject_tag: bson:"code_int"
     int32 code_int = 1;
@@ -517,23 +508,6 @@ message PaymentSystem {
     google.protobuf.Timestamp created_at = 7;
     // @inject_tag: bson:"updated_at" structure:"updated_at,timestamp"
     google.protobuf.Timestamp updated_at = 8;
-}
-
-message FixedPackage {
-    // @inject_tag: bson:"id" structure:"id"
-    string id = 1; // unique identifier of package
-    // @inject_tag: bson:"name" structure:"name"
-    string name = 2; // package name
-    // @inject_tag: bson:"currency"
-    Currency currency = 3;
-    // @inject_tag: bson:"price" structure:"price"
-    double price = 4; // package price in chosen currency
-    // @inject_tag: bson:"is_active" structure:"is_active"
-    bool is_active = 5; // is package active
-}
-
-message FixedPackages {
-    repeated FixedPackage fixed_package = 1;
 }
 
 message OrderFee {
