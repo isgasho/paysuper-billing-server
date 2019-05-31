@@ -16,6 +16,16 @@ func (s *Service) FindAllOrders(
 ) error {
 	query := make(bson.M)
 
+	if len(req.Merchant) > 0 {
+		var merchants []bson.ObjectId
+
+		for _, v := range req.Merchant {
+			merchants = append(merchants, bson.ObjectIdHex(v))
+		}
+
+		query["project.merchant_id"] = bson.M{"$in": merchants}
+	}
+
 	if req.QuickSearch != "" {
 		r := bson.RegEx{Pattern: ".*" + req.QuickSearch + ".*", Options: "i"}
 
@@ -29,16 +39,6 @@ func (s *Service) FindAllOrders(
 	} else {
 		if req.Id != "" {
 			query["uuid"] = req.Id
-		}
-
-		if len(req.Merchant) > 0 {
-			var merchants []bson.ObjectId
-
-			for _, v := range req.Merchant {
-				merchants = append(merchants, bson.ObjectIdHex(v))
-			}
-
-			query["project.merchant_id"] = bson.M{"$in": merchants}
 		}
 
 		if len(req.Project) > 0 {
