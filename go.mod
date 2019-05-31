@@ -27,6 +27,7 @@ require (
 	github.com/ttacon/builder v0.0.0-20170518171403-c099f663e1c2 // indirect
 	github.com/ttacon/libphonenumber v1.0.1
 	go.uber.org/zap v1.9.1
+	golang.org/x/crypto v0.0.0-20190222235706-ffb98f73852f
 	golang.org/x/exp/errors v0.0.0-20190123073158-f1c91bc264ca
 	golang.org/x/net v0.0.0-20190327214358-63eda1eb0650
 	google.golang.org/grpc v1.19.1

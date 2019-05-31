@@ -3,7 +3,6 @@ package service
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
@@ -16,6 +15,7 @@ import (
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -523,9 +523,10 @@ func (h *cardPay) fillPaymentDataCard(req *billing.CardPayPaymentCallback) error
 	if err != nil {
 		return err
 	}
-	hash := sha256.New()
-	hash.Write([]byte(string(b)))
-	order.PaymentMethod.Card.Fingerprint = hex.EncodeToString(hash.Sum(nil))
+	fp, err := bcrypt.GenerateFromPassword([]byte(string(b)), bcrypt.MinCost)
+	if err == nil {
+		order.PaymentMethod.Card.Fingerprint = string(fp)
+	}
 	return nil
 }
 
