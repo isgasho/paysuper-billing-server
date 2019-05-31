@@ -2,11 +2,18 @@ package service
 
 import (
 	"context"
+	"errors"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"time"
+)
+
+const (
+	reportErrorIncorrectId         = "incorrect order identifier"
+	reportErrorIncorrectMerchantId = "incorrect order merchant identifier"
+	reportErrorNotFound            = "not found"
 )
 
 func (s *Service) FindAllOrders(
@@ -117,6 +124,27 @@ func (s *Service) FindAllOrders(
 
 	rsp.Count = int32(co)
 	rsp.Items = o
+
+	return nil
+}
+
+func (s *Service) GetOrder(
+	ctx context.Context,
+	req *grpc.GetOrderRequest,
+	rsp *billing.Order,
+) error {
+	if req.Id == "" {
+		return errors.New(reportErrorIncorrectId)
+	}
+
+	if req.Merchant == "" || bson.IsObjectIdHex(req.Merchant) == false {
+		return errors.New(reportErrorIncorrectMerchantId)
+	}
+
+	if err := s.db.Collection(pkg.CollectionOrder).Find(bson.M{"uuid": req.Id, "project.merchant_id": bson.ObjectIdHex(req.Merchant)}).One(&rsp); err != nil {
+		s.logError("Query from table ended with error", []interface{}{"table", pkg.CollectionOrder, "error", err})
+		return err
+	}
 
 	return nil
 }

@@ -60,6 +60,7 @@ service BillingService {
     rpc CreateToken(TokenRequest) returns (TokenResponse) {}
     rpc CheckProjectRequestSignature(CheckProjectRequestSignatureRequest) returns (CheckProjectRequestSignatureResponse) {}
 
+    rpc GetOrder(GetOrderRequest) returns (billing.Order) {}
     rpc FindAllOrders(ListOrdersRequest) returns (billing.OrderPaginate) {}
 }
 
@@ -641,4 +642,11 @@ message ListOrdersRequest {
     repeated string sort = 14;
     // @inject_tag: query:"merchant[]" validate:"omitempty,hexadecimal,len=24"
     repeated string merchant = 15;
+}
+
+message GetOrderRequest {
+    // @inject_tag: query:"id" validate:"omitempty,uuid"
+    string id = 1;
+    // @inject_tag: query:"merchant" validate:"omitempty,hexadecimal,len=24"
+    string merchant = 2;
 }

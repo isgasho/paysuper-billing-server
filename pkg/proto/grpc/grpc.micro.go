@@ -78,6 +78,7 @@ type BillingService interface {
 	DeleteProject(ctx context.Context, in *GetProjectRequest, opts ...client.CallOption) (*ChangeProjectResponse, error)
 	CreateToken(ctx context.Context, in *TokenRequest, opts ...client.CallOption) (*TokenResponse, error)
 	CheckProjectRequestSignature(ctx context.Context, in *CheckProjectRequestSignatureRequest, opts ...client.CallOption) (*CheckProjectRequestSignatureResponse, error)
+	GetOrder(ctx context.Context, in *GetOrderRequest, opts ...client.CallOption) (*billing.Order, error)
 	FindAllOrders(ctx context.Context, in *ListOrdersRequest, opts ...client.CallOption) (*billing.OrderPaginate, error)
 }
 
@@ -519,6 +520,16 @@ func (c *billingService) CheckProjectRequestSignature(ctx context.Context, in *C
 	return out, nil
 }
 
+func (c *billingService) GetOrder(ctx context.Context, in *GetOrderRequest, opts ...client.CallOption) (*billing.Order, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetOrder", in)
+	out := new(billing.Order)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *billingService) FindAllOrders(ctx context.Context, in *ListOrdersRequest, opts ...client.CallOption) (*billing.OrderPaginate, error) {
 	req := c.c.NewRequest(c.name, "BillingService.FindAllOrders", in)
 	out := new(billing.OrderPaginate)
@@ -574,6 +585,7 @@ type BillingServiceHandler interface {
 	DeleteProject(context.Context, *GetProjectRequest, *ChangeProjectResponse) error
 	CreateToken(context.Context, *TokenRequest, *TokenResponse) error
 	CheckProjectRequestSignature(context.Context, *CheckProjectRequestSignatureRequest, *CheckProjectRequestSignatureResponse) error
+	GetOrder(context.Context, *GetOrderRequest, *billing.Order) error
 	FindAllOrders(context.Context, *ListOrdersRequest, *billing.OrderPaginate) error
 }
 
@@ -621,6 +633,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		DeleteProject(ctx context.Context, in *GetProjectRequest, out *ChangeProjectResponse) error
 		CreateToken(ctx context.Context, in *TokenRequest, out *TokenResponse) error
 		CheckProjectRequestSignature(ctx context.Context, in *CheckProjectRequestSignatureRequest, out *CheckProjectRequestSignatureResponse) error
+		GetOrder(ctx context.Context, in *GetOrderRequest, out *billing.Order) error
 		FindAllOrders(ctx context.Context, in *ListOrdersRequest, out *billing.OrderPaginate) error
 	}
 	type BillingService struct {
@@ -800,6 +813,10 @@ func (h *billingServiceHandler) CreateToken(ctx context.Context, in *TokenReques
 
 func (h *billingServiceHandler) CheckProjectRequestSignature(ctx context.Context, in *CheckProjectRequestSignatureRequest, out *CheckProjectRequestSignatureResponse) error {
 	return h.BillingServiceHandler.CheckProjectRequestSignature(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetOrder(ctx context.Context, in *GetOrderRequest, out *billing.Order) error {
+	return h.BillingServiceHandler.GetOrder(ctx, in, out)
 }
 
 func (h *billingServiceHandler) FindAllOrders(ctx context.Context, in *ListOrdersRequest, out *billing.OrderPaginate) error {

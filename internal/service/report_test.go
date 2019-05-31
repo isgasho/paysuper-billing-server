@@ -898,3 +898,58 @@ func (suite *ReportTestSuite) TestReport_FindByQuickSearch_PaymentMethodName() {
 	assert.Equal(suite.T(), int32(1), rsp.Count)
 	assert.Equal(suite.T(), oRsp.Id, rsp.Items[0].Id)
 }
+
+func (suite *ReportTestSuite) TestReport_GetOrder_ReturnError_IncorrectId() {
+	req := &grpc.GetOrderRequest{Merchant: "merchant"}
+	rsp := &billing.Order{}
+	err := suite.service.GetOrder(context.TODO(), req, rsp)
+
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), reportErrorIncorrectId, err.Error())
+}
+
+func (suite *ReportTestSuite) TestReport_GetOrder_ReturnError_IncorrectMerchantId() {
+	req := &grpc.GetOrderRequest{Id: "id"}
+	rsp := &billing.Order{}
+	err := suite.service.GetOrder(context.TODO(), req, rsp)
+
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), reportErrorIncorrectMerchantId, err.Error())
+
+	req.Merchant = "merchant"
+	err = suite.service.GetOrder(context.TODO(), req, rsp)
+
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), reportErrorIncorrectMerchantId, err.Error())
+}
+
+func (suite *ReportTestSuite) TestReport_GetOrder_ReturnError_NotFound() {
+	req := &grpc.GetOrderRequest{Id: "id", Merchant: bson.NewObjectId().Hex()}
+	rsp := &billing.Order{}
+	err := suite.service.GetOrder(context.TODO(), req, rsp)
+
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), reportErrorNotFound, err.Error())
+}
+
+func (suite *ReportTestSuite) TestReport_GetOrder_ReturnOrder() {
+	oReq := &billing.OrderCreateRequest{
+		ProjectId: suite.project.Id,
+		Currency:  suite.currencyRub.CodeA3,
+		Amount:    100,
+	}
+	oRsp := &billing.Order{}
+	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
+	assert.NoError(suite.T(), err, "Unable to create order")
+
+	merchantId = bson.NewObjectId().Hex()
+	oRsp.Project.MerchantId = merchantId
+	suite.service.updateOrder(oRsp)
+
+	req := &grpc.GetOrderRequest{Id: oRsp.Uuid, Merchant: merchantId}
+	rsp := &billing.Order{}
+	err = suite.service.GetOrder(context.TODO(), req, rsp)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), oRsp.Uuid, rsp.Uuid)
+}
