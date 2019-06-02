@@ -59,6 +59,9 @@ service BillingService {
 
     rpc CreateToken(TokenRequest) returns (TokenResponse) {}
     rpc CheckProjectRequestSignature(CheckProjectRequestSignatureRequest) returns (CheckProjectRequestSignatureResponse) {}
+
+    rpc GetOrder(GetOrderRequest) returns (billing.Order) {}
+    rpc FindAllOrders(ListOrdersRequest) returns (billing.OrderPaginate) {}
 }
 
 message EmptyRequest {
@@ -606,4 +609,44 @@ message CheckProjectRequestSignatureRequest {
 message CheckProjectRequestSignatureResponse {
     int32 status = 1;
     string message = 2;
+}
+
+message ListOrdersRequest {
+    // @inject_tag: query:"id" validate:"omitempty,uuid"
+    string id = 1;
+    // @inject_tag: query:"project[]" validate:"omitempty,dive,hexadecimal,len=24"
+    repeated string project = 2;
+    // @inject_tag: query:"payment_method[]" validate:"omitempty,dive,hexadecimal,len=24"
+    repeated string payment_method = 3;
+    // @inject_tag: query:"country[]" validate:"omitempty,dive,alpha,len=2"
+    repeated string country = 4;
+    // @inject_tag: query:"status[]" validate:"omitempty,numeric,oneof=0 1 2 3 4 5 6 7 8 9 10 11 12"
+    repeated int32 status = 5;
+    // @inject_tag: query:"account"
+    string account = 6;
+    // @inject_tag: query:"pm_date_from" validate:"omitempty,numeric,gt=0"
+    int64 pm_date_from = 7;
+    // @inject_tag: query:"pm_date_to" validate:"omitempty,numeric,gt=0"
+    int64 pm_date_to = 8;
+    // @inject_tag: query:"project_date_from" validate:"omitempty,numeric,gt=0"
+    int64 project_date_from = 9;
+    // @inject_tag: query:"project_date_to" validate:"omitempty,numeric,gt=0"
+    int64 project_date_to = 10;
+    // @inject_tag: query:"quick_search"
+    string quick_search = 11;
+    // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
+    int32 limit = 12;
+    // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
+    int32 offset = 13;
+    // @inject_tag: query:"sort[]"
+    repeated string sort = 14;
+    // @inject_tag: query:"merchant[]" validate:"omitempty,hexadecimal,len=24"
+    repeated string merchant = 15;
+}
+
+message GetOrderRequest {
+    // @inject_tag: query:"id" validate:"omitempty,uuid"
+    string id = 1;
+    // @inject_tag: query:"merchant" validate:"omitempty,hexadecimal,len=24"
+    string merchant = 2;
 }

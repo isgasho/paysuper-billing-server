@@ -285,6 +285,7 @@ message OrderBillingAddress {
     // @inject_tag: validate:"omitempty,alpha,len=2"
     string country = 1;
     string city = 2;
+    // @inject_tag: bson:"postal_code"
     string postal_code = 3;
     string state = 4;
 }
@@ -294,17 +295,17 @@ message OrderUser {
     string id = 1;
     // @inject_tag: json:"object"
     string object = 2;
-    // @inject_tag: json:"external_id"
+    // @inject_tag: json:"external_id" bson:"external_id"
     string external_id = 3;
     // @inject_tag: json:"name"
     string name = 4;
     // @inject_tag: json:"email" validate:"omitempty,email"
     string email = 5;
-    // @inject_tag: json:"email_verified"
+    // @inject_tag: json:"email_verified" bson:"email_verified"
     bool email_verified = 6;
     // @inject_tag: json:"phone" validate:"omitempty,phone"
     string phone = 7;
-    // @inject_tag: json:"phone_verified"
+    // @inject_tag: json:"phone_verified" bson:"phone_verified"
     bool phone_verified = 8;
     // @inject_tag: json:"ip" validate:"omitempty,ip"
     string ip = 9;
@@ -440,7 +441,13 @@ message OrderItem {
     google.protobuf.Timestamp created_at = 11;
     //@inject_tag: json:"updated_at"
     google.protobuf.Timestamp updated_at = 12;
+}
 
+message OrderPaginate {
+    // @inject_tag: json:"count"
+    int32 count = 1; // total count of selected orders
+    // @inject_tag: json:"items"
+    repeated Order items = 2; // array of selected orders
 }
 
 message Currency {
@@ -456,26 +463,6 @@ message Currency {
     google.protobuf.Timestamp created_at = 6;
     // @inject_tag: bson:"updated_at"
     google.protobuf.Timestamp updated_at = 7;
-}
-
-message PayerData {
-    // @inject_tag: bson:"ip" structure:"ip"
-    string ip = 1; // payer ip from create order request
-    // @inject_tag: bson:"country_code_a2" structure:"country_code_a2"
-    string country = 2; // payer country code by ISO 3166-1 from create order request
-    // @inject_tag: bson:"country_name" structure:"country_name"
-    Name country_name = 3; // payer country names
-    // @inject_tag: bson:"city" structure:"city"
-    Name city = 4; // payer city names, get from ip geo location
-    string zip = 5;
-    string state = 6;
-    string language = 7;
-    // @inject_tag: bson:"timezone" structure:"timezone"
-    string timezone = 9; // payer timezone name, get from ip geo location
-    // @inject_tag: bson:"phone" structure:"phone"
-    string phone = 10; // payer phone from create order request
-    // @inject_tag: bson:"email" structure:"email"
-    string email = 11; // payer email from create order request
 }
 
 message PaymentMethodOrder {
@@ -522,23 +509,6 @@ message PaymentSystem {
     google.protobuf.Timestamp created_at = 7;
     // @inject_tag: bson:"updated_at" structure:"updated_at,timestamp"
     google.protobuf.Timestamp updated_at = 8;
-}
-
-message FixedPackage {
-    // @inject_tag: bson:"id" structure:"id"
-    string id = 1; // unique identifier of package
-    // @inject_tag: bson:"name" structure:"name"
-    string name = 2; // package name
-    // @inject_tag: bson:"currency"
-    Currency currency = 3;
-    // @inject_tag: bson:"price" structure:"price"
-    double price = 4; // package price in chosen currency
-    // @inject_tag: bson:"is_active" structure:"is_active"
-    bool is_active = 5; // is package active
-}
-
-message FixedPackages {
-    repeated FixedPackage fixed_package = 1;
 }
 
 message OrderFee {

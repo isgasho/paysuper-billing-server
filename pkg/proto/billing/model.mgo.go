@@ -165,17 +165,17 @@ type MgoCommissionBilling struct {
 }
 
 type MgoOrderProject struct {
-	Id                bson.ObjectId     `bson:"_id" `
-	MerchantId        bson.ObjectId     `bson:"merchant_id"`
-	Name              map[string]string `bson:"name"`
-	UrlSuccess        string            `bson:"url_success"`
-	UrlFail           string            `bson:"url_fail"`
-	NotifyEmails      []string          `bson:"notify_emails"`
-	SecretKey         string            `bson:"secret_key"`
-	SendNotifyEmail   bool              `bson:"send_notify_email"`
-	UrlCheckAccount   string            `bson:"url_check_account"`
-	UrlProcessPayment string            `bson:"url_process_payment"`
-	CallbackProtocol  string            `bson:"callback_protocol"`
+	Id                bson.ObjectId   `bson:"_id" `
+	MerchantId        bson.ObjectId   `bson:"merchant_id"`
+	Name              []*MgoMultiLang `bson:"name"`
+	UrlSuccess        string          `bson:"url_success"`
+	UrlFail           string          `bson:"url_fail"`
+	NotifyEmails      []string        `bson:"notify_emails"`
+	SecretKey         string          `bson:"secret_key"`
+	SendNotifyEmail   bool            `bson:"send_notify_email"`
+	UrlCheckAccount   string          `bson:"url_check_account"`
+	UrlProcessPayment string          `bson:"url_process_payment"`
+	CallbackProtocol  string          `bson:"callback_protocol"`
 }
 
 type MgoOrderPaymentMethod struct {
@@ -188,7 +188,6 @@ type MgoOrderPaymentMethod struct {
 
 type MgoOrder struct {
 	Id                                      bson.ObjectId          `bson:"_id"`
-	IdString                                string                 `bson:"id_string"`
 	Project                                 *MgoOrderProject       `bson:"project"`
 	ProjectOrderId                          string                 `bson:"project_order_id"`
 	ProjectAccount                          string                 `bson:"project_account"`
@@ -215,7 +214,6 @@ type MgoOrder struct {
 	AmountInPaymentSystemAccountingCurrency float64                `bson:"amount_ps_ac"`
 	PaymentMethodPayerAccount               string                 `bson:"pm_account"`
 	PaymentMethodTxnParams                  map[string]string      `bson:"pm_txn_params"`
-	FixedPackage                            *FixedPackage          `bson:"fixed_package"`
 	PaymentRequisites                       map[string]string      `bson:"payment_requisites"`
 	PspFeeAmount                            *OrderFeePsp           `bson:"psp_fee_amount"`
 	ProjectFeeAmount                        *OrderFee              `bson:"project_fee_amount"`
@@ -820,7 +818,6 @@ func (m *Order) GetBSON() (interface{}, error) {
 		Project: &MgoOrderProject{
 			Id:                bson.ObjectIdHex(m.Project.Id),
 			MerchantId:        bson.ObjectIdHex(m.Project.MerchantId),
-			Name:              m.Project.Name,
 			UrlSuccess:        m.Project.UrlSuccess,
 			UrlFail:           m.Project.UrlFail,
 			NotifyEmails:      m.Project.NotifyEmails,
@@ -889,8 +886,6 @@ func (m *Order) GetBSON() (interface{}, error) {
 		st.Id = bson.ObjectIdHex(m.Id)
 	}
 
-	st.IdString = st.Id.Hex()
-
 	if m.CreatedAt != nil {
 		t, err := ptypes.Timestamp(m.CreatedAt)
 
@@ -947,6 +942,12 @@ func (m *Order) GetBSON() (interface{}, error) {
 		st.ExpireDateToFormInput = time.Now()
 	}
 
+	if m.Project != nil && len(m.Project.Name) > 0 {
+		for k, v := range m.Project.Name {
+			st.Project.Name = append(st.Project.Name, &MgoMultiLang{Lang: k, Value: v})
+		}
+	}
+
 	return st, nil
 }
 
@@ -962,7 +963,6 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.Project = &ProjectOrder{
 		Id:                decoded.Project.Id.Hex(),
 		MerchantId:        decoded.Project.MerchantId.Hex(),
-		Name:              decoded.Project.Name,
 		UrlSuccess:        decoded.Project.UrlSuccess,
 		UrlFail:           decoded.Project.UrlFail,
 		NotifyEmails:      decoded.Project.NotifyEmails,
@@ -971,6 +971,17 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 		UrlCheckAccount:   decoded.Project.UrlCheckAccount,
 		UrlProcessPayment: decoded.Project.UrlProcessPayment,
 		CallbackProtocol:  decoded.Project.CallbackProtocol,
+	}
+
+	if decoded.Project != nil {
+		nameLen := len(decoded.Project.Name)
+		if nameLen > 0 {
+			m.Project.Name = make(map[string]string, nameLen)
+
+			for _, v := range decoded.Project.Name {
+				m.Project.Name[v.Lang] = v.Value
+			}
+		}
 	}
 
 	m.ProjectOrderId = decoded.ProjectOrderId
