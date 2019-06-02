@@ -98,23 +98,17 @@ func (app *Application) Init() {
 			app.database.Close()
 			app.logger.Info("Database connection closed")
 
-			func() {
-				err := app.redis.Close()
+			if err := app.redis.Close(); err != nil {
+				zap.L().Error("Redis connection close failed", zap.Error(err))
+			} else {
+				zap.L().Info("Redis connection closed")
+			}
 
-				if err != nil {
-					zap.L().Error("Redis connection close failed", zap.Error(err))
-				} else {
-					zap.L().Info("Redis connection closed")
-				}
-			}()
-
-			func() {
-				if err := app.logger.Sync(); err != nil {
-					app.logger.Error("Logger sync failed", zap.Error(err))
-				} else {
-					app.logger.Info("Logger synced")
-				}
-			}()
+			if err := app.logger.Sync(); err != nil {
+				app.logger.Error("Logger sync failed", zap.Error(err))
+			} else {
+				app.logger.Info("Logger synced")
+			}
 
 			return nil
 		}),
