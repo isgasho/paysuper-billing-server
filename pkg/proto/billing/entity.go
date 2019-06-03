@@ -71,6 +71,10 @@ func (m *Order) FormInputTimeIsEnded() bool {
 	return err != nil || t.Before(time.Now())
 }
 
+func (m *Order) GetProjectId() string {
+	return m.Project.Id
+}
+
 func (m *Project) IsProduction() bool {
 	return m.Status == pkg.ProjectStatusInProduction
 }

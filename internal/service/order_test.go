@@ -5135,3 +5135,96 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_NotOwnBankCard_Error
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
 	assert.Equal(suite.T(), orderErrorRecurringCardNotOwnToUser, rsp1.Message)
 }
+
+func (suite *OrderTestSuite) TestOrder_IsOrderCanBePaying_Ok() {
+	req := &billing.OrderCreateRequest{
+		ProjectId:   suite.project.Id,
+		Currency:    "RUB",
+		Amount:      100,
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+	}
+
+	rsp := &billing.Order{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+
+	req1 := &grpc.IsOrderCanBePayingRequest{
+		OrderId:   rsp.Uuid,
+		ProjectId: rsp.GetProjectId(),
+	}
+	rsp1 := &grpc.IsOrderCanBePayingResponse{}
+	err = suite.service.IsOrderCanBePaying(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.Empty(suite.T(), rsp1.Message)
+	assert.NotNil(suite.T(), rsp1.Item)
+	assert.Equal(suite.T(), req1.ProjectId, rsp1.Item.GetProjectId())
+	assert.Equal(suite.T(), req1.OrderId, rsp1.Item.Uuid)
+}
+
+func (suite *OrderTestSuite) TestOrder_IsOrderCanBePaying_IncorrectProject_Error() {
+	req := &billing.OrderCreateRequest{
+		ProjectId:   suite.project.Id,
+		Currency:    "RUB",
+		Amount:      100,
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+	}
+
+	rsp := &billing.Order{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+
+	req1 := &grpc.IsOrderCanBePayingRequest{
+		OrderId:   rsp.Uuid,
+		ProjectId: bson.NewObjectId().Hex(),
+	}
+	rsp1 := &grpc.IsOrderCanBePayingResponse{}
+	err = suite.service.IsOrderCanBePaying(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
+	assert.Equal(suite.T(), orderErrorOrderCreatedAnotherProject, rsp1.Message)
+	assert.Nil(suite.T(), rsp1.Item)
+}
+
+func (suite *OrderTestSuite) TestOrder_IsOrderCanBePaying_HasEndedStatus_Error() {
+	req := &billing.OrderCreateRequest{
+		ProjectId:   suite.project.Id,
+		Currency:    "RUB",
+		Amount:      100,
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+	}
+
+	rsp := &billing.Order{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+
+	rsp.Status = constant.OrderStatusProjectComplete
+	err = suite.service.updateOrder(rsp)
+	assert.NoError(suite.T(), err)
+
+	req1 := &grpc.IsOrderCanBePayingRequest{
+		OrderId:   rsp.Uuid,
+		ProjectId: rsp.GetProjectId(),
+	}
+	rsp1 := &grpc.IsOrderCanBePayingResponse{}
+	err = suite.service.IsOrderCanBePaying(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
+	assert.Equal(suite.T(), orderErrorOrderAlreadyComplete, rsp1.Message)
+	assert.Nil(suite.T(), rsp1.Item)
+}

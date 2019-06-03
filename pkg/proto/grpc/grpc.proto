@@ -62,6 +62,7 @@ service BillingService {
 
     rpc GetOrder(GetOrderRequest) returns (billing.Order) {}
     rpc FindAllOrders(ListOrdersRequest) returns (billing.OrderPaginate) {}
+    rpc IsOrderCanBePaying(IsOrderCanBePayingRequest) returns (IsOrderCanBePayingResponse) {}
 }
 
 message EmptyRequest {
@@ -649,4 +650,15 @@ message GetOrderRequest {
     string id = 1;
     // @inject_tag: query:"merchant" validate:"omitempty,hexadecimal,len=24"
     string merchant = 2;
+}
+
+message IsOrderCanBePayingRequest {
+    string project_id = 1;
+    string order_id = 2;
+}
+
+message IsOrderCanBePayingResponse {
+    int32 status = 1;
+    string message = 2;
+    billing.Order item = 3;
 }

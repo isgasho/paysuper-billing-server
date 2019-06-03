@@ -56,6 +56,7 @@ const (
 	orderErrorSignatureInvalid                         = "request signature is invalid"
 	orderErrorNotFound                                 = "order with specified identifier not found"
 	orderErrorOrderAlreadyComplete                     = "order with specified identifier payed early"
+	orderErrorOrderCreatedAnotherProject               = "order created for another project"
 	orderErrorFormInputTimeExpired                     = "time to enter date on payment form expired"
 	orderErrorCurrencyIsRequired                       = "parameter currency in create order request is required"
 	orderErrorUnknown                                  = "unknown error. try request later"
@@ -2190,4 +2191,28 @@ func (s *Service) processCustomerData(
 	_, err = s.updateCustomer(tokenReq, project, customer)
 
 	return customer, err
+}
+
+func (s *Service) IsOrderCanBePaying(
+	ctx context.Context,
+	req *grpc.IsOrderCanBePayingRequest,
+	rsp *grpc.IsOrderCanBePayingResponse,
+) error {
+	order, err := s.getOrderByUuidToForm(req.OrderId)
+	rsp.Status = pkg.ResponseStatusBadData
+
+	if err != nil {
+		rsp.Message = err.Error()
+		return nil
+	}
+
+	if order != nil && order.GetProjectId() != req.ProjectId {
+		rsp.Message = orderErrorOrderCreatedAnotherProject
+		return nil
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
+	rsp.Item = order
+
+	return nil
 }
