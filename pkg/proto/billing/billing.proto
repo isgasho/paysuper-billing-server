@@ -62,6 +62,9 @@ message OrderCreateRequest {
 
     string token = 25;
     OrderUser user = 26;
+
+    // @inject_tag: json:"order" validate:"omitempty,uuid"
+    string psp_order_uuid = 53;
 }
 
 message Project {
@@ -414,9 +417,6 @@ message Order {
 
     // @inject_tag: json:"-"
     map<string, string> private_metadata = 52;
-
-    // @inject_tag: json:"order" validate:"omitempty,uuid"
-    string order_id = 53;
 }
 
 message OrderItem {
