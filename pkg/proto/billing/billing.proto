@@ -414,6 +414,9 @@ message Order {
 
     // @inject_tag: json:"-"
     map<string, string> private_metadata = 52;
+
+    // @inject_tag: json:"order" validate:"omitempty,uuid"
+    string order_id = 53;
 }
 
 message OrderItem {
