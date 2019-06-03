@@ -1,7 +1,6 @@
 package service
 
 import (
-	"container/list"
 	"context"
 	"crypto/sha512"
 	"encoding/hex"
@@ -97,15 +96,8 @@ type Service struct {
 	rebuild      bool
 	rebuildError error
 
-	wg                       sync.WaitGroup
-	exitCacheRebuild         chan bool
-	exitNotifications        chan bool
-	exitNotificationsPublish chan bool
-	notificationsWg          sync.WaitGroup
-	notifications            chan *billing.Order
-	notificationsQueue       *list.List
-	notificationsRetryCount  int32
-	notificationsRetryTicker *time.Ticker
+	wg               sync.WaitGroup
+	exitCacheRebuild chan bool
 }
 
 type Cacher interface {
@@ -123,19 +115,15 @@ func NewBillingService(
 	redis *redis.Client,
 ) *Service {
 	return &Service{
-		db:                       db,
-		cfg:                      cfg,
-		geo:                      geo,
-		rep:                      rep,
-		tax:                      tax,
-		broker:                   broker,
-		redis:                    redis,
-		wg:                       sync.WaitGroup{},
-		notificationsWg:          sync.WaitGroup{},
-		exitCacheRebuild:         make(chan bool, 1),
-		exitNotifications:        make(chan bool, 1),
-		exitNotificationsPublish: make(chan bool, 1),
-		notifications:            make(chan *billing.Order),
+		db:               db,
+		cfg:              cfg,
+		geo:              geo,
+		rep:              rep,
+		tax:              tax,
+		broker:           broker,
+		redis:            redis,
+		wg:               sync.WaitGroup{},
+		exitCacheRebuild: make(chan bool, 1),
 	}
 }
 
@@ -160,11 +148,6 @@ func (s *Service) Init() (err error) {
 		return errors.New(errorAccountingCurrencyNotFound)
 	}
 
-	err = s.initNotifications()
-	if err != nil {
-		return errors.New(errorInitNotificationsFailed)
-	}
-
 	s.wg.Add(1)
 	go s.reBuildCache()
 
@@ -174,8 +157,6 @@ func (s *Service) Init() (err error) {
 func (s *Service) Shutdown() {
 	zap.S().Info("Shutting down GRPC serivce...")
 	s.exitCacheRebuild <- true
-	s.exitNotifications <- true
-	s.exitNotificationsPublish <- true
 	s.wg.Wait()
 }
 

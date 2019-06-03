@@ -76,6 +76,8 @@ const (
 	orderErrorNoDescriptionInRequiredLanguage          = "no description in required language %s"
 	orderErrorProjectMerchantNotFound                  = "merchant for project with specified identifier not found"
 	orderErrorRecurringCardNotOwnToUser                = "you can't use not own bank card for payment"
+	orderErrorPublishNotificationFailed                = "publish order notification failed"
+	orderErrorUpdateOrderDataFailed                    = "Update order data failed"
 
 	orderErrorCreatePaymentRequiredFieldIdNotFound            = "required field with order identifier not found"
 	orderErrorCreatePaymentRequiredFieldPaymentMethodNotFound = "required field with payment method identifier not found"
@@ -542,8 +544,6 @@ func (s *Service) PaymentCreateProcess(
 	err = s.updateOrder(order)
 
 	if err != nil {
-		s.logError("Update order data failed", []interface{}{"err", err.Error(), "order", order})
-
 		rsp.Message = orderErrorUnknown
 		rsp.Status = pkg.ResponseStatusSystemError
 
@@ -572,8 +572,6 @@ func (s *Service) PaymentCreateProcess(
 	errDb := s.updateOrder(order)
 
 	if errDb != nil {
-		s.logError("Update order data failed", []interface{}{"err", errDb.Error(), "order", order})
-
 		rsp.Message = orderErrorUnknown
 		rsp.Status = pkg.ResponseStatusSystemError
 
@@ -658,8 +656,6 @@ func (s *Service) PaymentCallbackProcess(
 	err = s.updateOrder(order)
 
 	if err != nil {
-		s.logError("Update order data failed", []interface{}{"err", err.Error(), "order", order})
-
 		rsp.Error = orderErrorUnknown
 		rsp.Status = pkg.StatusErrorSystem
 
@@ -943,15 +939,32 @@ func (s *Service) updateOrder(order *billing.Order) error {
 	err := s.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
 
 	if err != nil {
-		s.logError("Update order data failed", []interface{}{"error", err.Error(), "order", order})
-		return errors.New(orderErrorUnknown)
+		s.logError(orderErrorUpdateOrderDataFailed, []interface{}{"error", err.Error(), "order", order})
+		return err
 	}
 
 	if statusChanged && ps != constant.OrderPublicStatusCreated && ps != constant.OrderPublicStatusPending {
-		s.orderNotifyMerchant(*order)
+		s.orderNotifyMerchant(order)
 	}
 
 	return nil
+}
+
+func (s *Service) orderNotifyMerchant(order *billing.Order) {
+	err := s.broker.Publish(constant.PayOneTopicNotifyMerchantName, order, amqp.Table{"x-retry-count": int32(0)})
+	if err != nil {
+		s.logError(orderErrorPublishNotificationFailed, []interface{}{
+			"err", err.Error(), "order", order, "topic", constant.PayOneTopicNotifyMerchantName,
+		})
+	}
+	if order.IsNotificationsSent == nil {
+		order.IsNotificationsSent = make(map[string]bool)
+	}
+	order.IsNotificationsSent[order.GetPublicStatus()] = err == nil
+	err = s.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	if err != nil {
+		s.logError(orderErrorUpdateOrderDataFailed, []interface{}{"error", err.Error(), "order", order})
+	}
 }
 
 func (s *Service) getOrderById(id string) (order *billing.Order, err error) {

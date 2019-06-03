@@ -472,8 +472,8 @@ message Order {
     bool user_address_data_required = 63;
     // @inject_tag: json:"-" bson:"products" validate:"omitempty,gte=1,dive,hexadecimal,len=24"
     repeated string products = 64;
-    // @inject_tag: json:"-" bson:"original_order_id" validate:"omitempty,hexadecimal,len=24"
-    string original_order_id = 65;
+    // @inject_tag: json:"-" bson:"is_notifications_sent"
+    map<string, bool> is_notifications_sent = 65;
 }
 
 message OrderItem {
@@ -523,30 +523,6 @@ message Currency {
     google.protobuf.Timestamp created_at = 6;
     // @inject_tag: bson:"updated_at"
     google.protobuf.Timestamp updated_at = 7;
-}
-
-message PayerData {
-    // @inject_tag: bson:"ip" structure:"ip"
-    string ip = 1; // payer ip from create order request
-    // @inject_tag: bson:"country_code_a2" structure:"country_code_a2"
-    string country = 2; // payer country code by ISO 3166-1 from create order request
-    // @inject_tag: bson:"country_name" structure:"country_name"
-    Name country_name = 3; // payer country names
-    // @inject_tag: bson:"city" structure:"city"
-    Name city = 4; // payer city names, get from ip geo location
-    string zip = 5;
-    string state = 6;
-    string language = 7;
-    // @inject_tag: bson:"timezone" structure:"timezone"
-    string timezone = 9; // payer timezone name, get from ip geo location
-    // @inject_tag: bson:"phone" structure:"phone"
-    string phone = 10; // payer phone from create order request
-    // @inject_tag: bson:"email" structure:"email"
-    string email = 11; // payer email from create order request
-    // @inject_tag: bson:"receipt_number" structure:"receipt_number"
-    string receipt_number = 12; // payer receipt number from create order request
-    // @inject_tag: bson:"receipt_url" structure:"receipt_url"
-    string receipt_url = 13; // payer receipt url from create order request
 }
 
 message PaymentMethodOrder {

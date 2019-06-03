@@ -5219,7 +5219,7 @@ func (suite *OrderTestSuite) TestOrder_IsOrderCanBePaying_HasEndedStatus_Error()
 	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 
-	rsp.Status = constant.OrderStatusProjectComplete
+	rsp.PrivateStatus = constant.OrderStatusProjectComplete
 	err = suite.service.updateOrder(rsp)
 	assert.NoError(suite.T(), err)
 

@@ -19,7 +19,6 @@ const (
 	CollectionSystemFees                   = "system_fees"
 	CollectionMerchantPaymentMethodHistory = "payment_method_history"
 	CollectionCustomer                     = "customer"
-	CollectionFailedOrderNotifications     = "failed_notifications"
 
 	CardPayPaymentResponseStatusInProgress = "IN_PROGRESS"
 	CardPayPaymentResponseStatusPending    = "PENDING"

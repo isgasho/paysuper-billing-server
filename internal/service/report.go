@@ -70,7 +70,7 @@ func (s *Service) FindAllOrders(
 		}
 
 		if len(req.Status) > 0 {
-			query["status"] = bson.M{"$in": req.Status}
+			query["private_status"] = bson.M{"$in": req.Status}
 		}
 
 		if req.Account != "" {

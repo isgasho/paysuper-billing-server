@@ -169,22 +169,22 @@ type MgoCommissionBilling struct {
 }
 
 type MgoOrderProject struct {
-	Id                bson.ObjectId     `bson:"_id" `
-	MerchantId        bson.ObjectId     `bson:"merchant_id"`
-	Name              []*MgoMultiLang `bson:"name"`
-	UrlSuccess        string            `bson:"url_success"`
-	UrlFail           string            `bson:"url_fail"`
-	NotifyEmails      []string          `bson:"notify_emails"`
-	SecretKey         string            `bson:"secret_key"`
-	SendNotifyEmail   bool              `bson:"send_notify_email"`
-	UrlCheckAccount   string            `bson:"url_check_account"`
-	UrlProcessPayment string            `bson:"url_process_payment"`
-	CallbackProtocol  string            `bson:"callback_protocol"`
-	UrlChargebackPayment string            `bson:"url_chargeback_payment"`
-	UrlCancelPayment     string            `bson:"url_cancel_payment"`
-	UrlFraudPayment      string            `bson:"url_fraud_payment"`
-	UrlRefundPayment     string            `bson:"url_refund_payment"`
-	Status               int32             `bson:"status"`
+	Id                   bson.ObjectId   `bson:"_id" `
+	MerchantId           bson.ObjectId   `bson:"merchant_id"`
+	Name                 []*MgoMultiLang `bson:"name"`
+	UrlSuccess           string          `bson:"url_success"`
+	UrlFail              string          `bson:"url_fail"`
+	NotifyEmails         []string        `bson:"notify_emails"`
+	SecretKey            string          `bson:"secret_key"`
+	SendNotifyEmail      bool            `bson:"send_notify_email"`
+	UrlCheckAccount      string          `bson:"url_check_account"`
+	UrlProcessPayment    string          `bson:"url_process_payment"`
+	CallbackProtocol     string          `bson:"callback_protocol"`
+	UrlChargebackPayment string          `bson:"url_chargeback_payment"`
+	UrlCancelPayment     string          `bson:"url_cancel_payment"`
+	UrlFraudPayment      string          `bson:"url_fraud_payment"`
+	UrlRefundPayment     string          `bson:"url_refund_payment"`
+	Status               int32           `bson:"status"`
 }
 
 type MgoOrderPaymentMethod struct {
@@ -202,7 +202,6 @@ type MgoOrderPaymentMethod struct {
 
 type MgoOrder struct {
 	Id                                      bson.ObjectId            `bson:"_id"`
-	IdString                                string                 `bson:"id_string"`
 	Uuid                                    string                   `bson:"uuid"`
 	Transaction                             string                   `bson:"pm_order_id"`
 	Object                                  string                   `bson:"object"`
@@ -266,7 +265,7 @@ type MgoOrder struct {
 	ExpireDateToFormInput                   time.Time                `bson:"expire_date_to_form_input"`
 	UserAddressDataRequired                 bool                     `bson:"user_address_data_required"`
 	Products                                []string                 `bson:"products"`
-	OriginalOrderId                         string                   `bson:"original_order_id"`
+	IsNotificationsSent                     map[string]bool          `bson:"is_notifications_sent"`
 }
 
 type MgoPaymentSystem struct {
@@ -865,8 +864,8 @@ func (m *Order) GetBSON() (interface{}, error) {
 		Refunded:           m.PrivateStatus == constant.OrderStatusRefund,
 		ReceiptEmail:       m.GetReceiptUserEmail(),
 		ReceiptPhone:       m.GetReceiptUserPhone(),
-		ReceiptNumber:      "", // todo: get receipt number
-		ReceiptUrl:         "", // todo: get receipt url
+		ReceiptNumber:      m.ReceiptNumber,
+		ReceiptUrl:         m.ReceiptUrl,
 		AgreementVersion:   m.AgreementVersion,
 		AgreementAccepted:  m.AgreementAccepted,
 		NotifySale:         m.NotifySale,
@@ -921,7 +920,7 @@ func (m *Order) GetBSON() (interface{}, error) {
 		PaymentSystemFeeAmount:                  m.PaymentSystemFeeAmount,
 		UserAddressDataRequired:                 m.UserAddressDataRequired,
 		Products:                                m.Products,
-		OriginalOrderId:                         m.OriginalOrderId,
+		IsNotificationsSent:                     m.IsNotificationsSent,
 	}
 
 	if m.PaymentMethod != nil {
@@ -1149,7 +1148,7 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.PaymentSystemFeeAmount = decoded.PaymentSystemFeeAmount
 	m.UserAddressDataRequired = decoded.UserAddressDataRequired
 	m.Products = decoded.Products
-	m.OriginalOrderId = decoded.OriginalOrderId
+	m.IsNotificationsSent = decoded.IsNotificationsSent
 
 	m.PaymentMethodOrderClosedAt, err = ptypes.TimestampProto(decoded.PaymentMethodOrderClosedAt)
 	if err != nil {
