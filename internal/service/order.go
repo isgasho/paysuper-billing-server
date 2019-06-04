@@ -951,10 +951,10 @@ func (s *Service) updateOrder(order *billing.Order) error {
 }
 
 func (s *Service) orderNotifyMerchant(order *billing.Order) {
-	err := s.broker.Publish(constant.PayOneTopicNotifyMerchantName, order, amqp.Table{"x-retry-count": int32(0)})
+	err := s.broker.Publish(constant.PayOneTopicNotifyPaymentName, order, amqp.Table{"x-retry-count": int32(0)})
 	if err != nil {
 		s.logError(orderErrorPublishNotificationFailed, []interface{}{
-			"err", err.Error(), "order", order, "topic", constant.PayOneTopicNotifyMerchantName,
+			"err", err.Error(), "order", order, "topic", constant.PayOneTopicNotifyPaymentName,
 		})
 	}
 	order.SetNotificationStatus(order.GetPublicStatus(), err == nil)
