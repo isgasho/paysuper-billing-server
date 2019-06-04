@@ -646,7 +646,7 @@ message ListOrdersRequest {
 }
 
 message GetOrderRequest {
-    // @inject_tag: query:"id" validate:"omitempty,uuid"
+    // @inject_tag: query:"id" validate:"required,uuid"
     string id = 1;
     // @inject_tag: query:"merchant" validate:"omitempty,hexadecimal,len=24"
     string merchant = 2;

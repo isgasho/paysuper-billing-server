@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -133,16 +132,16 @@ func (s *Service) GetOrder(
 	req *grpc.GetOrderRequest,
 	rsp *billing.Order,
 ) error {
-	if req.Id == "" {
-		return errors.New(reportErrorIncorrectId)
+	query := bson.M{"uuid": req.Id}
+
+	if req.Merchant != "" {
+		query["project.merchant_id"] = bson.ObjectIdHex(req.Merchant)
 	}
 
-	if req.Merchant == "" || bson.IsObjectIdHex(req.Merchant) == false {
-		return errors.New(reportErrorIncorrectMerchantId)
-	}
+	err := s.db.Collection(pkg.CollectionOrder).Find(query).One(&rsp)
 
-	if err := s.db.Collection(pkg.CollectionOrder).Find(bson.M{"uuid": req.Id, "project.merchant_id": bson.ObjectIdHex(req.Merchant)}).One(&rsp); err != nil {
-		s.logError("Query from table ended with error", []interface{}{"table", pkg.CollectionOrder, "error", err})
+	if err != nil {
+		s.logError("Query from table ended with error", []interface{}{"table", pkg.CollectionOrder, "error", err, "query", query})
 		return err
 	}
 
