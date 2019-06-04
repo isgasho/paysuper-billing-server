@@ -166,3 +166,21 @@ func (m *Order) GetState() string {
 	}
 	return ""
 }
+
+func (m *Order) SetNotificationStatus(key string, val bool) {
+	if m.IsNotificationsSent == nil {
+		m.IsNotificationsSent = make(map[string]bool)
+	}
+	m.IsNotificationsSent[key] = val
+}
+
+func (m *Order) GetNotificationStatus(key string) bool {
+	if m.IsNotificationsSent == nil {
+		return false
+	}
+	val, ok := m.IsNotificationsSent[key]
+	if !ok {
+		return false
+	}
+	return val
+}

@@ -957,10 +957,7 @@ func (s *Service) orderNotifyMerchant(order *billing.Order) {
 			"err", err.Error(), "order", order, "topic", constant.PayOneTopicNotifyMerchantName,
 		})
 	}
-	if order.IsNotificationsSent == nil {
-		order.IsNotificationsSent = make(map[string]bool)
-	}
-	order.IsNotificationsSent[order.GetPublicStatus()] = err == nil
+	order.SetNotificationStatus(order.GetPublicStatus(), err == nil)
 	err = s.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
 	if err != nil {
 		s.logError(orderErrorUpdateOrderDataFailed, []interface{}{"error", err.Error(), "order", order})
