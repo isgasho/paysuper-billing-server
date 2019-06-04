@@ -389,7 +389,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 		}
 	}
 
-	if ctr != order.User.Address.Country {
+	if ctr != order.User.Address.Country || loc != order.User.Locale {
 		order.UserAddressDataRequired = true
 
 		rsp.UserAddressDataRequired = order.UserAddressDataRequired
