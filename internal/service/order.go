@@ -375,21 +375,22 @@ func (s *Service) PaymentFormJsonDataProcess(
 			order.User.Id = s.getTokenString(s.cfg.Length)
 		}
 
+		if order.User.TechEmail == "" {
+			order.User.TechEmail = order.User.Id + pkg.TechEmailDomain
+		}
+	}
+
+	if order.User.Ip == "" || req.Ip != order.User.Ip {
 		order.User.Ip = p1.checked.user.Ip
-		order.User.Locale = loc
 		order.User.Address = &billing.OrderBillingAddress{
 			Country:    p1.checked.user.Address.Country,
 			City:       p1.checked.user.Address.City,
 			PostalCode: p1.checked.user.Address.PostalCode,
 			State:      p1.checked.user.Address.State,
 		}
-
-		if order.User.TechEmail == "" {
-			order.User.TechEmail = order.User.Id + pkg.TechEmailDomain
-		}
 	}
 
-	if ctr != order.User.Address.Country || loc != order.User.Locale {
+	if (order.User.Address != nil && ctr != order.User.Address.Country) || loc != order.User.Locale {
 		order.UserAddressDataRequired = true
 
 		rsp.UserAddressDataRequired = order.UserAddressDataRequired
@@ -397,6 +398,10 @@ func (s *Service) PaymentFormJsonDataProcess(
 			Country: order.User.Address.Country,
 			City:    order.User.Address.City,
 			Zip:     order.User.Address.PostalCode,
+		}
+
+		if loc != order.User.Locale {
+			order.User.Locale = loc
 		}
 	}
 
@@ -1692,6 +1697,10 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 		return err
 	}
 
+	if order.User.Ip != v.ip {
+		order.User.Ip = v.ip
+	}
+
 	updCustomerReq := &grpc.TokenRequest{User: &billing.TokenUser{}}
 
 	if val, ok := v.data[pkg.PaymentCreateFieldEmail]; ok {
@@ -1723,10 +1732,14 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 	}
 
 	if order.User.IsIdentified() == true {
-		err = v.service.updateCustomerFromRequest(order, updCustomerReq, v.ip, v.acceptLanguage, v.userAgent)
+		customer, err := v.service.updateCustomerFromRequest(order, updCustomerReq, v.ip, v.acceptLanguage, v.userAgent)
 
 		if err != nil {
 			v.service.logError("Update customer data by request failed", []interface{}{"error", err.Error(), "data", updCustomerReq})
+		} else {
+			if customer.Locale != order.User.Locale {
+				order.User.Locale = customer.Locale
+			}
 		}
 	}
 

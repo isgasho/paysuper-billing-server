@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
+	"net"
 	"sort"
 	"strconv"
 	"strings"
@@ -3642,6 +3643,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_ChangePaymentSyste
 			pkg.PaymentCreateFieldYear:            expireYear.Format("2006"),
 			pkg.PaymentCreateFieldHolder:          "Mr. Card Holder",
 		},
+		Ip: "127.0.0.1",
 	}
 
 	rsp := &grpc.PaymentCreateResponse{}
@@ -3734,6 +3736,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_Ok() {
 			pkg.PaymentCreateFieldYear:            expireYear.Format("2006"),
 			pkg.PaymentCreateFieldHolder:          "Mr. Card Holder",
 		},
+		Ip: "127.0.0.1",
 	}
 
 	rsp := &grpc.PaymentCreateResponse{}
@@ -3840,6 +3843,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_ChangeTerminalData_O
 			pkg.PaymentCreateFieldYear:            expireYear.Format("2006"),
 			pkg.PaymentCreateFieldHolder:          "Mr. Card Holder",
 		},
+		Ip: "127.0.0.1",
 	}
 
 	rsp := &grpc.PaymentCreateResponse{}
@@ -3970,6 +3974,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Ok() {
 			pkg.PaymentCreateFieldYear:            expireYear.Format("2006"),
 			pkg.PaymentCreateFieldHolder:          "Mr. Card Holder",
 		},
+		Ip: "127.0.0.1",
 	}
 
 	rsp := &grpc.PaymentCreateResponse{}
@@ -4721,6 +4726,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequi
 			pkg.PaymentCreateFieldUserCity:        "Washington",
 			pkg.PaymentCreateFieldUserZip:         "98001",
 		},
+		Ip: "127.0.0.1",
 	}
 
 	rsp1 := &grpc.PaymentCreateResponse{}
@@ -5227,4 +5233,137 @@ func (suite *OrderTestSuite) TestOrder_IsOrderCanBePaying_HasEndedStatus_Error()
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
 	assert.Equal(suite.T(), orderErrorOrderAlreadyComplete, rsp1.Message)
 	assert.Nil(suite.T(), rsp1.Item)
+}
+
+func (suite *OrderTestSuite) TestOrder_CreatePayment_ChangeCustomerData_Ok() {
+	req := &billing.OrderCreateRequest{
+		ProjectId: suite.project.Id,
+		Currency:  "RUB",
+		Amount:    100,
+		User: &billing.OrderUser{
+			Email:  "test@unit.unit",
+			Ip:     "127.0.0.1",
+			Locale: "ru",
+		},
+	}
+
+	rsp := &billing.Order{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+
+	customer1, err := suite.service.getCustomerById(rsp.User.Id)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), customer1)
+	assert.Equal(suite.T(), rsp.User.Id, customer1.Id)
+	assert.Equal(suite.T(), rsp.User.Email, customer1.Email)
+	assert.Equal(suite.T(), rsp.User.Ip, net.IP(customer1.Ip).String())
+	assert.Len(suite.T(), customer1.Identity, 1)
+	assert.Equal(suite.T(), rsp.User.Email, customer1.Identity[0].Value)
+	assert.Empty(suite.T(), customer1.IpHistory)
+	assert.Empty(suite.T(), customer1.AcceptLanguage)
+	assert.Empty(suite.T(), customer1.AcceptLanguageHistory)
+	assert.Equal(suite.T(), rsp.User.Locale, customer1.Locale)
+	assert.Empty(suite.T(), customer1.LocaleHistory)
+	assert.Empty(suite.T(), customer1.UserAgent)
+
+	req1 := &grpc.PaymentFormJsonDataRequest{
+		OrderId:   rsp.Uuid,
+		Scheme:    "http",
+		Host:      "localhost",
+		Locale:    "en-US",
+		Ip:        "127.0.0.2",
+		UserAgent: "linux",
+	}
+	rsp1 := &grpc.PaymentFormJsonDataResponse{}
+	err = suite.service.PaymentFormJsonDataProcess(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+
+	customer2, err := suite.service.getCustomerById(rsp.User.Id)
+	assert.NoError(suite.T(), err)
+
+	order, err := suite.service.getOrderById(rsp.Id)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), order)
+	assert.NotNil(suite.T(), order.User)
+	assert.Equal(suite.T(), customer2.Id, order.User.Id)
+	assert.Equal(suite.T(), order.User.Ip, net.IP(customer2.Ip).String())
+	assert.Equal(suite.T(), order.User.Locale, customer2.Locale)
+	assert.Equal(suite.T(), order.User.Email, customer2.Email)
+	assert.True(suite.T(), order.UserAddressDataRequired)
+
+	assert.NotNil(suite.T(), customer2)
+	assert.Equal(suite.T(), customer1.Id, customer2.Id)
+	assert.Equal(suite.T(), customer1.Email, customer2.Email)
+	assert.Equal(suite.T(), req1.Ip, net.IP(customer2.Ip).String())
+	assert.NotEmpty(suite.T(), customer2.IpHistory)
+	assert.Len(suite.T(), customer2.IpHistory, 1)
+	assert.Equal(suite.T(), customer2.IpHistory[0].Ip, customer1.Ip)
+	assert.Len(suite.T(), customer2.Identity, 1)
+	assert.Equal(suite.T(), rsp.User.Email, customer2.Identity[0].Value)
+	assert.Equal(suite.T(), req1.Locale, customer2.AcceptLanguage)
+	assert.Empty(suite.T(), customer2.AcceptLanguageHistory)
+	assert.Equal(suite.T(), "en", customer2.Locale)
+	assert.NotEmpty(suite.T(), customer2.LocaleHistory)
+	assert.Len(suite.T(), customer2.LocaleHistory, 1)
+	assert.Equal(suite.T(), customer1.Locale, customer2.LocaleHistory[0].Value)
+	assert.Equal(suite.T(), req1.UserAgent, customer2.UserAgent)
+
+	expireYear := time.Now().AddDate(1, 0, 0)
+
+	req2 := &grpc.PaymentCreateRequest{
+		Data: map[string]string{
+			pkg.PaymentCreateFieldOrderId:         rsp.Uuid,
+			pkg.PaymentCreateFieldPaymentMethodId: suite.paymentMethod.Id,
+			pkg.PaymentCreateFieldEmail:           "test123@unit.unit",
+			pkg.PaymentCreateFieldPan:             "4000000000000002",
+			pkg.PaymentCreateFieldCvv:             "123",
+			pkg.PaymentCreateFieldMonth:           "02",
+			pkg.PaymentCreateFieldYear:            expireYear.Format("2006"),
+			pkg.PaymentCreateFieldHolder:          "MR. CARD HOLDER",
+			pkg.PaymentCreateFieldUserCountry:     "US",
+			pkg.PaymentCreateFieldUserCity:        "Washington",
+			pkg.PaymentCreateFieldUserZip:         "123456",
+		},
+		Ip:             "127.0.0.3",
+		AcceptLanguage: "fr-CA",
+		UserAgent:      "windows",
+	}
+	rsp2 := &grpc.PaymentCreateResponse{}
+	err = suite.service.PaymentCreateProcess(context.TODO(), req2, rsp2)
+	assert.NoError(suite.T(), err)
+
+	order, err = suite.service.getOrderById(rsp.Id)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), order)
+	assert.Equal(suite.T(), int32(constant.OrderStatusPaymentSystemCreate), order.Status)
+
+	customer3, err := suite.service.getCustomerById(rsp.User.Id)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), customer3)
+
+	assert.Equal(suite.T(), customer2.Id, customer3.Id)
+	assert.Equal(suite.T(), customer3.Id, order.User.Id)
+	assert.Equal(suite.T(), order.User.Ip, req2.Ip)
+	assert.Equal(suite.T(), "fr", order.User.Locale)
+	assert.Equal(suite.T(), "test123@unit.unit", order.User.Email)
+
+	assert.Equal(suite.T(), order.User.Email, customer3.Email)
+	assert.Equal(suite.T(), order.User.Ip, net.IP(customer3.Ip).String())
+	assert.Len(suite.T(), customer3.IpHistory, 2)
+	assert.Equal(suite.T(), customer2.Ip, customer3.IpHistory[1].Ip)
+	assert.Equal(suite.T(), customer1.Ip, customer3.IpHistory[0].Ip)
+
+	assert.Len(suite.T(), customer3.Identity, 2)
+	assert.Equal(suite.T(), order.User.Email, customer3.Identity[1].Value)
+	assert.Equal(suite.T(), customer2.Email, customer3.Identity[0].Value)
+
+	assert.Equal(suite.T(), req2.AcceptLanguage, customer3.AcceptLanguage)
+	assert.Len(suite.T(), customer3.AcceptLanguageHistory, 1)
+	assert.Equal(suite.T(), customer2.AcceptLanguage, customer3.AcceptLanguageHistory[0].Value)
+
+	assert.Equal(suite.T(), order.User.Locale, customer3.Locale)
+	assert.Len(suite.T(), customer3.LocaleHistory, 2)
+	assert.Equal(suite.T(), customer1.Locale, customer3.LocaleHistory[0].Value)
+	assert.Equal(suite.T(), customer2.Locale, customer3.LocaleHistory[1].Value)
+	assert.Equal(suite.T(), req2.UserAgent, customer3.UserAgent)
 }

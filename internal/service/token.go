@@ -558,21 +558,22 @@ func (s *Service) updateCustomerFromRequest(
 	order *billing.Order,
 	req *grpc.TokenRequest,
 	ip, acceptLanguage, userAgent string,
-) error {
+) (*billing.Customer, error) {
 	customer, err := s.getCustomerById(order.User.Id)
 	project := &billing.Project{Id: order.Project.Id, MerchantId: order.Project.MerchantId}
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	req.User.Ip = &billing.TokenUserIpValue{Value: ip}
 	req.User.AcceptLanguage = acceptLanguage
 	req.User.UserAgent = userAgent
 
-	_, err = s.updateCustomer(req, project, customer)
+	req.User.Locale = &billing.TokenUserLocaleValue{}
+	req.User.Locale.Value, _ = s.getCountryFromAcceptLanguage(acceptLanguage)
 
-	return err
+	return s.updateCustomer(req, project, customer)
 }
 
 func (s *Service) updateCustomerFromRequestLocale(
@@ -585,7 +586,7 @@ func (s *Service) updateCustomerFromRequestLocale(
 		},
 	}
 
-	err := s.updateCustomerFromRequest(order, tokenReq, ip, acceptLanguage, userAgent)
+	_, err := s.updateCustomerFromRequest(order, tokenReq, ip, acceptLanguage, userAgent)
 
 	if err != nil {
 		s.logError("Update customer data by request failed", []interface{}{"error", err})

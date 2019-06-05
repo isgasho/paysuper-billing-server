@@ -10,9 +10,7 @@ import (
 )
 
 const (
-	reportErrorIncorrectId         = "incorrect order identifier"
-	reportErrorIncorrectMerchantId = "incorrect order merchant identifier"
-	reportErrorNotFound            = "not found"
+	reportErrorNotFound = "not found"
 )
 
 func (s *Service) FindAllOrders(
