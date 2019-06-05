@@ -29,7 +29,6 @@ It has these top-level messages:
 	OrderItem
 	OrderPaginate
 	Currency
-	PayerData
 	PaymentMethodOrder
 	PaymentMethodParams
 	PaymentSystem
