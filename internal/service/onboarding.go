@@ -574,7 +574,7 @@ func (s *Service) GetMerchantPaymentMethod(
 
 	rsp.Status = pkg.ResponseStatusOk
 	pms, err := s.merchant.GetMerchantPaymentMethod(req.MerchantId, req.PaymentMethodId)
-	if err != nil {
+	if err == nil {
 		rsp.Item = pms
 
 		return nil
@@ -653,7 +653,7 @@ func (s *Service) ListMerchantPaymentMethods(
 			IsActive:    true,
 		}
 
-		if err != nil {
+		if err == nil {
 			paymentMethod.Commission = mPm.Commission
 			paymentMethod.Integration = mPm.Integration
 			paymentMethod.IsActive = mPm.IsActive
@@ -679,14 +679,13 @@ func (s *Service) ChangeMerchantPaymentMethod(
 		return
 	}
 
-	pm, err := s.paymentMethod.GetPaymentMethodById(req.PaymentMethod.Id)
-	if err != nil {
+	pm, e := s.paymentMethod.GetPaymentMethodById(req.PaymentMethod.Id)
+	if e != nil {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = orderErrorPaymentMethodNotFound
 
 		return
 	}
-
 	req.Integration.Integrated = req.HasIntegration()
 
 	if req.HasPerTransactionCurrency() {

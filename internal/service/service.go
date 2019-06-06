@@ -103,13 +103,13 @@ func NewBillingService(
 		redis:  redis,
 		cacher: cache,
 	}
+	s.paymentMethod = newPaymentMethodService(s)
+	s.merchant = newMerchantService(s)
 	s.currency = newCurrencyService(s)
 	s.currencyRate = newCurrencyRateService(s)
 	s.commission = newCommissionService(s)
 	s.country = newCountryService(s)
 	s.project = newProjectService(s)
-	s.merchant = newMerchantService(s)
-	s.paymentMethod = newPaymentMethodService(s)
 	s.systemFees = newSystemFeesService(s)
 
 	return s

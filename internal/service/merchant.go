@@ -209,7 +209,7 @@ func (h Merchant) getMerchantPaymentMethod(m *billing.Merchant, pmId string) (*b
 func (h *Merchant) loadAllToCache() error {
 	var data []*billing.Merchant
 
-	err := h.svc.db.Collection(pkg.CollectionCountry).Find(bson.M{}).All(&data)
+	err := h.svc.db.Collection(pkg.CollectionMerchant).Find(bson.M{}).All(&data)
 	if err != nil && err != mgo.ErrNotFound {
 		return err
 	}

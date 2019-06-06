@@ -473,7 +473,9 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_LimitCurrencyNo
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_MgoInsertError() {
-	suite.service.merchant.Update(suite.merchant)
+	m := suite.merchant
+	m.Id = "qwerty"
+	suite.service.merchant.Update(m)
 
 	req := &billing.Project{
 		MerchantId:         "qwerty",
