@@ -2,15 +2,17 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-    "github.com/paysuper/paysuper-recurring-repository/tools"
-    "sort"
+	"github.com/paysuper/paysuper-recurring-repository/tools"
+	"sort"
 )
 
 type kv struct {
@@ -53,14 +55,14 @@ func (s *Service) AddSystemFees(
 ) error {
 
 	if req.Region != "" && req.Region != "EU" {
-		_, err := s.GetCountryByCodeA2(req.Region)
+		_, err := s.country.GetCountryByCodeA2(req.Region)
 		if err != nil {
 			s.logError(errorSystemFeeRegionInvalid, []interface{}{"data", req})
 			return errors.New(errorSystemFeeRegionInvalid)
 		}
 	}
 
-	method, err := s.GetPaymentMethodById(req.MethodId)
+	method, err := s.paymentMethod.GetPaymentMethodById(req.MethodId)
 	if err != nil {
 		s.logError("GetPaymentMethodById failed", []interface{}{"err", err.Error(), "data", req})
 		return err
@@ -87,17 +89,17 @@ func (s *Service) AddSystemFees(
 		return errors.New(errorSystemFeeRequiredFeeset)
 	}
 
-    // formatting values
+	// formatting values
 	for _, f := range req.Fees {
-        f.TransactionCost.Percent = tools.FormatAmount(f.TransactionCost.Percent)
-        f.TransactionCost.FixAmount = tools.FormatAmount(f.TransactionCost.FixAmount)
-        f.AuthorizationFee.Percent = tools.FormatAmount(f.AuthorizationFee.Percent)
-        f.AuthorizationFee.FixAmount = tools.FormatAmount(f.AuthorizationFee.FixAmount)
+		f.TransactionCost.Percent = tools.FormatAmount(f.TransactionCost.Percent)
+		f.TransactionCost.FixAmount = tools.FormatAmount(f.TransactionCost.FixAmount)
+		f.AuthorizationFee.Percent = tools.FormatAmount(f.AuthorizationFee.Percent)
+		f.AuthorizationFee.FixAmount = tools.FormatAmount(f.AuthorizationFee.FixAmount)
 
-        for c, v := range f.MinAmounts {
-            f.MinAmounts[c] = tools.FormatAmount(v)
-        }
-    }
+		for c, v := range f.MinAmounts {
+			f.MinAmounts[c] = tools.FormatAmount(v)
+		}
+	}
 
 	fees := &billing.SystemFees{
 		Id:        bson.NewObjectId().Hex(),
@@ -129,13 +131,9 @@ func (s *Service) AddSystemFees(
 	s.mx.Lock()
 	defer s.mx.Unlock()
 
-	if _, ok := s.systemFeesCache[fees.MethodId]; !ok {
-		s.systemFeesCache[fees.MethodId] = make(map[string]map[string]*billing.SystemFees)
+	if err := s.systemFees.Update(fees); err != nil {
+		return err
 	}
-	if _, ok := s.systemFeesCache[fees.MethodId][fees.Region]; !ok {
-		s.systemFeesCache[fees.MethodId][fees.Region] = make(map[string]*billing.SystemFees)
-	}
-	s.systemFeesCache[fees.MethodId][fees.Region][fees.CardBrand] = fees
 
 	return nil
 }
@@ -145,18 +143,8 @@ func (s *Service) GetSystemFeesForPayment(
 	req *billing.GetSystemFeesRequest,
 	res *billing.FeeSet,
 ) error {
-	sf, ok := s.systemFeesCache[req.MethodId]
-	if !ok {
-		return errors.New(errorSystemFeeNotFound)
-	}
-
-	sfr, ok := sf[req.Region]
-	if !ok {
-		return errors.New(errorSystemFeeNotFound)
-	}
-
-	systemFees, ok := sfr[req.CardBrand]
-	if !ok {
+	systemFees, err := s.systemFees.Find(req.MethodId, req.Region, req.CardBrand)
+	if err != nil {
 		return errors.New(errorSystemFeeNotFound)
 	}
 
@@ -203,4 +191,121 @@ func (s *Service) GetActualSystemFeesList(
 	}
 	res.SystemFees = fees
 	return nil
+}
+
+func newSystemFeesService(svc *Service) *SystemFee {
+	s := &SystemFee{svc: svc}
+
+	s.mx.Lock()
+	defer s.mx.Unlock()
+
+	s.loadAllToCache()
+
+	return s
+}
+
+func (h *SystemFee) Update(fees *billing.SystemFees) error {
+	h.mx.Lock()
+	defer h.mx.Unlock()
+
+	pool, err := h.loadAllFromCache()
+	if err != nil {
+		return err
+	}
+
+	if _, ok := pool[fees.MethodId]; !ok {
+		pool[fees.MethodId] = make(map[string]map[string]*billing.SystemFees)
+	}
+	if _, ok := pool[fees.MethodId][fees.Region]; !ok {
+		pool[fees.MethodId][fees.Region] = make(map[string]*billing.SystemFees)
+	}
+	pool[fees.MethodId][fees.Region][fees.CardBrand] = fees
+
+	if err := h.svc.cacher.Set(pkg.CollectionSystemFees, pool, 0); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h SystemFee) Find(methodId string, region string, cardBrand string) (*billing.SystemFees, error) {
+	h.mx.Lock()
+	defer h.mx.Unlock()
+
+	pool, err := h.loadAllFromCache()
+	if err != nil {
+		return nil, err
+	}
+
+	if _, ok := pool[methodId]; !ok {
+		return nil, fmt.Errorf(errorNotFound, pkg.CollectionSystemFees)
+	}
+	if _, ok := pool[methodId][region]; !ok {
+		return nil, fmt.Errorf(errorNotFound, pkg.CollectionSystemFees)
+	}
+	if _, ok := pool[methodId][region][cardBrand]; !ok {
+		return nil, fmt.Errorf(errorNotFound, pkg.CollectionSystemFees)
+	}
+
+	return pool[methodId][region][cardBrand], nil
+}
+
+func (h SystemFee) GetAll() map[string]map[string]map[string]*billing.SystemFees {
+	h.mx.Lock()
+	defer h.mx.Unlock()
+
+	pool, err := h.loadAllFromCache()
+	if err != nil {
+		return nil
+	}
+
+	return pool
+}
+
+func (h *SystemFee) loadAllToCache() error {
+	list := &billing.SystemFeesList{}
+
+	if err := h.svc.GetActualSystemFeesList(context.TODO(), &grpc.EmptyRequest{}, list); err != nil {
+		h.svc.logError("Get System fees failed", []interface{}{"err", err.Error()})
+		return err
+	}
+
+	systemFees := make(map[string]map[string]map[string]*billing.SystemFees)
+	for _, r := range list.SystemFees {
+		if _, ok := systemFees[r.MethodId]; !ok {
+			systemFees[r.MethodId] = make(map[string]map[string]*billing.SystemFees)
+		}
+
+		if _, ok := systemFees[r.MethodId][r.Region]; !ok {
+			systemFees[r.MethodId][r.Region] = make(map[string]*billing.SystemFees)
+		}
+
+		if ff, ok := systemFees[r.MethodId][r.Region][r.CardBrand]; ok && ff != nil {
+			h.svc.logError(errorSystemFeeDuplicatedActive, []interface{}{"fee", ff})
+			return nil
+		}
+
+		systemFees[r.MethodId][r.Region][r.CardBrand] = r
+	}
+
+	if err := h.svc.cacher.Set(pkg.CollectionSystemFees, systemFees, 0); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h *SystemFee) loadAllFromCache() (map[string]map[string]map[string]*billing.SystemFees, error) {
+	b, err := h.svc.cacher.Get(pkg.CollectionSystemFees)
+	if err != nil {
+		return nil, err
+	}
+
+	a := make(map[string]map[string]map[string]*billing.SystemFees)
+	err = json.Unmarshal(*b, &a)
+	if err != nil {
+		return nil, err
+	}
+
+	return a, nil
 }

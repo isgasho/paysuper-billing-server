@@ -207,7 +207,7 @@ func (s *Service) ChangeMerchant(
 	}
 
 	if req.Country != "" {
-		country, err := s.GetCountryByCodeA2(req.Country)
+		country, err := s.country.GetCountryByCodeA2(req.Country)
 
 		if err != nil {
 			s.logError("Get country for merchant failed", []interface{}{"err", err.Error(), "request", req})
@@ -220,7 +220,7 @@ func (s *Service) ChangeMerchant(
 	merchant.Banking = &billing.MerchantBanking{}
 
 	if req.Banking != nil && req.Banking.Currency != "" {
-		currency, err := s.GetCurrencyByCodeA3(req.Banking.Currency)
+		currency, err := s.currency.GetCurrencyByCodeA3(req.Banking.Currency)
 
 		if err != nil {
 			s.logError("Get currency for merchant failed", []interface{}{"err", err.Error(), "request", req})
@@ -260,7 +260,10 @@ func (s *Service) ChangeMerchant(
 	}
 
 	s.mapMerchantData(rsp, merchant)
-	s.merchantCache[merchant.Id] = merchant
+
+	if err := s.merchant.Update(merchant); err != nil {
+		return errors.New(merchantErrorUnknown)
+	}
 
 	return
 }
@@ -323,7 +326,10 @@ func (s *Service) ChangeMerchantStatus(
 	}
 
 	s.mapMerchantData(rsp, merchant)
-	s.merchantCache[merchant.Id] = merchant
+
+	if err := s.merchant.Update(merchant); err != nil {
+		return errors.New(merchantErrorUnknown)
+	}
 
 	return nil
 }
@@ -380,7 +386,10 @@ func (s *Service) ChangeMerchantData(
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = merchant
-	s.merchantCache[merchant.Id] = merchant
+
+	if err := s.merchant.Update(merchant); err != nil {
+		return errors.New(merchantErrorUnknown)
+	}
 
 	return nil
 }
@@ -410,7 +419,10 @@ func (s *Service) SetMerchantS3Agreement(
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = merchant
-	s.merchantCache[merchant.Id] = merchant
+
+	if err := s.merchant.Update(merchant); err != nil {
+		return errors.New(merchantErrorUnknown)
+	}
 
 	return nil
 }
@@ -561,19 +573,14 @@ func (s *Service) GetMerchantPaymentMethod(
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
-	pms, ok := s.merchantPaymentMethods[req.MerchantId]
+	pms, err := s.merchant.GetMerchantPaymentMethod(req.MerchantId, req.PaymentMethodId)
+	if err != nil {
+		rsp.Item = pms
 
-	if ok {
-		pm, ok := pms[req.PaymentMethodId]
-
-		if ok {
-			rsp.Item = pm
-
-			return nil
-		}
+		return nil
 	}
 
-	pm, err := s.GetPaymentMethodById(req.PaymentMethodId)
+	pm, err := s.paymentMethod.GetPaymentMethodById(req.PaymentMethodId)
 
 	if err != nil {
 		s.logError(
@@ -633,10 +640,8 @@ func (s *Service) ListMerchantPaymentMethods(
 		return nil
 	}
 
-	mPms, ok := s.merchantPaymentMethods[req.MerchantId]
-
 	for _, pm := range pms {
-		mPm, ok1 := mPms[pm.Id]
+		mPm, err := s.merchant.GetMerchantPaymentMethod(req.MerchantId, pm.Id)
 
 		paymentMethod := &billing.MerchantPaymentMethod{
 			PaymentMethod: &billing.MerchantPaymentMethodIdentification{
@@ -648,7 +653,7 @@ func (s *Service) ListMerchantPaymentMethods(
 			IsActive:    true,
 		}
 
-		if ok && ok1 {
+		if err != nil {
 			paymentMethod.Commission = mPm.Commission
 			paymentMethod.Integration = mPm.Integration
 			paymentMethod.IsActive = mPm.IsActive
@@ -674,9 +679,8 @@ func (s *Service) ChangeMerchantPaymentMethod(
 		return
 	}
 
-	pm, ok := s.paymentMethodIdCache[req.PaymentMethod.Id]
-
-	if !ok {
+	pm, err := s.paymentMethod.GetPaymentMethodById(req.PaymentMethod.Id)
+	if err != nil {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = orderErrorPaymentMethodNotFound
 
@@ -686,11 +690,11 @@ func (s *Service) ChangeMerchantPaymentMethod(
 	req.Integration.Integrated = req.HasIntegration()
 
 	if req.HasPerTransactionCurrency() {
-		if _, ok := s.currencyCache[req.GetPerTransactionCurrency()]; !ok {
+		if _, err := s.currency.GetCurrencyByCodeA3(req.GetPerTransactionCurrency()); err != nil {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = orderErrorCurrencyNotFound
 
-			return
+			return nil
 		}
 	}
 
@@ -739,12 +743,9 @@ func (s *Service) ChangeMerchantPaymentMethod(
 	s.mx.Lock()
 	defer s.mx.Unlock()
 
-	if _, ok := s.merchantPaymentMethods[merchant.Id]; !ok {
-		s.merchantPaymentMethods[merchant.Id] = make(map[string]*billing.MerchantPaymentMethod)
+	if err := s.merchant.Update(merchant); err != nil {
+		return errors.New(merchantErrorUnknown)
 	}
-
-	s.merchantCache[merchant.Id] = merchant
-	s.merchantPaymentMethods[merchant.Id][pm.Id] = merchant.PaymentMethods[pm.Id]
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = merchant.PaymentMethods[pm.Id]

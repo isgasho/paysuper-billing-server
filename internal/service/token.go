@@ -77,16 +77,13 @@ func (s *Service) CreateToken(
 		return nil
 	}
 
-	project, ok := s.projectCache[req.Settings.ProjectId]
-
-	if !ok {
+	project, err := s.project.GetProjectById(req.Settings.ProjectId)
+	if err != nil {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = projectErrorNotFound
 
 		return nil
 	}
-
-	var err error
 
 	if project.IsProductsCheckout == true {
 		if len(req.Settings.Items) <= 0 {

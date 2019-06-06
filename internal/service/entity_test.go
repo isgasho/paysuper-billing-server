@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
+	"github.com/go-redis/redis"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
@@ -15,7 +16,7 @@ import (
 	"time"
 )
 
-type ProjectTestSuite struct {
+type EntityTestSuite struct {
 	suite.Suite
 	service *Service
 	log     *zap.Logger
@@ -24,11 +25,11 @@ type ProjectTestSuite struct {
 	paymentMethod *billing.PaymentMethod
 }
 
-func Test_Project(t *testing.T) {
-	suite.Run(t, new(ProjectTestSuite))
+func Test_Entity(t *testing.T) {
+	suite.Run(t, new(EntityTestSuite))
 }
 
-func (suite *ProjectTestSuite) SetupTest() {
+func (suite *EntityTestSuite) SetupTest() {
 	cfg, err := config.NewConfig()
 
 	if err != nil {
@@ -342,7 +343,15 @@ func (suite *ProjectTestSuite) SetupTest() {
 
 	suite.projectId = project.Id
 
-	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil)
+	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
+		Addrs:        cfg.CacheRedis.Address,
+		Password:     cfg.CacheRedis.Password,
+		MaxRetries:   cfg.CacheRedis.MaxRetries,
+		MaxRedirects: cfg.CacheRedis.MaxRedirects,
+		PoolSize:     cfg.CacheRedis.PoolSize,
+	})
+
+	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, NewCacheRedis(redisdb))
 	err = suite.service.Init()
 
 	if err != nil {
@@ -352,7 +361,7 @@ func (suite *ProjectTestSuite) SetupTest() {
 	suite.paymentMethod = pmBankCard
 }
 
-func (suite *ProjectTestSuite) TearDownTest() {
+func (suite *EntityTestSuite) TearDownTest() {
 	if err := suite.service.db.Drop(); err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}
@@ -360,24 +369,8 @@ func (suite *ProjectTestSuite) TearDownTest() {
 	suite.service.db.Close()
 }
 
-func (suite *ProjectTestSuite) TestProject_GetProjectByIdOk() {
-	project, err := suite.service.GetProjectById(suite.projectId)
-
-	assert.Nil(suite.T(), err)
-	assert.NotNil(suite.T(), project)
-	assert.Equal(suite.T(), suite.projectId, project.Id)
-}
-
-func (suite *ProjectTestSuite) TestProject_GetProjectByIdError() {
-	project, err := suite.service.GetProjectById(bson.NewObjectId().Hex())
-
-	assert.Error(suite.T(), err)
-	assert.Nil(suite.T(), project)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, pkg.CollectionProject), err.Error())
-}
-
-func (suite *ProjectTestSuite) TestProject_GetGetPaymentMethodByGroupAndCurrencyOk() {
-	pm, err := suite.service.GetPaymentMethodByGroupAndCurrency(suite.paymentMethod.Group, 643)
+func (suite *EntityTestSuite) TestProject_GetGetPaymentMethodByGroupAndCurrencyOk() {
+	pm, err := suite.service.paymentMethod.GetPaymentMethodByGroupAndCurrency(suite.paymentMethod.Group, 643)
 
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
@@ -385,16 +378,16 @@ func (suite *ProjectTestSuite) TestProject_GetGetPaymentMethodByGroupAndCurrency
 	assert.Equal(suite.T(), suite.paymentMethod.Group, pm.Group)
 }
 
-func (suite *ProjectTestSuite) TestProject_GetGetPaymentMethodByGroupAndCurrency_GroupError() {
-	pm, err := suite.service.GetPaymentMethodByGroupAndCurrency("group_from_my_head", 643)
+func (suite *EntityTestSuite) TestProject_GetGetPaymentMethodByGroupAndCurrency_GroupError() {
+	pm, err := suite.service.paymentMethod.GetPaymentMethodByGroupAndCurrency("group_from_my_head", 643)
 
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), pm)
 	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, pkg.CollectionPaymentMethod), err.Error())
 }
 
-func (suite *ProjectTestSuite) TestProject_GetGetPaymentMethodByGroupAndCurrency_CurrencyError() {
-	pm, err := suite.service.GetPaymentMethodByGroupAndCurrency(suite.paymentMethod.Group, 960)
+func (suite *EntityTestSuite) TestProject_GetGetPaymentMethodByGroupAndCurrency_CurrencyError() {
+	pm, err := suite.service.paymentMethod.GetPaymentMethodByGroupAndCurrency(suite.paymentMethod.Group, 960)
 
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), pm)

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"github.com/globalsign/mgo/bson"
+	"github.com/go-redis/redis"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
@@ -317,7 +318,15 @@ func (suite *OnboardingTestSuite) SetupTest() {
 	suite.log, err = zap.NewProduction()
 	assert.NoError(suite.T(), err, "Logger initialization failed")
 
-	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil)
+	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
+		Addrs:        cfg.CacheRedis.Address,
+		Password:     cfg.CacheRedis.Password,
+		MaxRetries:   cfg.CacheRedis.MaxRetries,
+		MaxRedirects: cfg.CacheRedis.MaxRedirects,
+		PoolSize:     cfg.CacheRedis.PoolSize,
+	})
+
+	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, NewCacheRedis(redisdb))
 	err = suite.service.Init()
 	assert.NoError(suite.T(), err, "Billing service initialization failed")
 
@@ -1457,7 +1466,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_Merc
 
 	assert.Nil(suite.T(), err)
 	assert.True(suite.T(), len(rsp.PaymentMethods) > 0)
-	assert.Len(suite.T(), rsp.PaymentMethods, len(suite.service.paymentMethodIdCache))
+	assert.Len(suite.T(), rsp.PaymentMethods, len(suite.service.paymentMethod.GetAll()))
 
 	for _, v := range rsp.PaymentMethods {
 		assert.True(suite.T(), v.PaymentMethod.Id != "")
@@ -1482,10 +1491,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_Exis
 
 	assert.Nil(suite.T(), err)
 	assert.True(suite.T(), len(rsp.PaymentMethods) > 0)
-	assert.Len(suite.T(), rsp.PaymentMethods, len(suite.service.paymentMethodIdCache))
-
-	_, ok := suite.service.merchantPaymentMethods[suite.merchant.Id]
-	assert.True(suite.T(), ok)
+	assert.Len(suite.T(), rsp.PaymentMethods, len(suite.service.paymentMethod.GetAll()))
 
 	for _, v := range rsp.PaymentMethods {
 		if v.PaymentMethod.Id != suite.pmBankCard.Id {
@@ -1554,10 +1560,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_NewM
 
 	assert.Nil(suite.T(), err)
 	assert.True(suite.T(), len(rspListMerchantPaymentMethods.PaymentMethods) > 0)
-	assert.Len(suite.T(), rspListMerchantPaymentMethods.PaymentMethods, len(suite.service.paymentMethodIdCache))
-
-	_, ok := suite.service.merchantPaymentMethods[rsp.Id]
-	assert.False(suite.T(), ok)
+	assert.Len(suite.T(), rspListMerchantPaymentMethods.PaymentMethods, len(suite.service.paymentMethod.GetAll()))
 
 	for _, v := range rspListMerchantPaymentMethods.PaymentMethods {
 		assert.True(suite.T(), v.PaymentMethod.Id != "")
@@ -1601,11 +1604,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_NewM
 	assert.NotNil(suite.T(), rspMerchantPaymentMethodAdd.Item)
 	assert.True(suite.T(), len(rspMerchantPaymentMethodAdd.Item.PaymentMethod.Id) > 0)
 
-	_, ok = suite.service.merchantPaymentMethods[rsp.Id]
-	assert.True(suite.T(), ok)
-	assert.True(suite.T(), len(suite.service.merchantPaymentMethods[rsp.Id]) > 0)
-	pm, ok := suite.service.merchantPaymentMethods[rsp.Id][suite.pmBankCard.Id]
-	assert.True(suite.T(), ok)
+	pm, err := suite.service.merchant.GetMerchantPaymentMethod(rsp.Id, suite.pmBankCard.Id)
+	assert.NoError(suite.T(), err)
 
 	assert.Equal(suite.T(), reqMerchantPaymentMethodAdd.PaymentMethod.Id, pm.PaymentMethod.Id)
 	assert.Equal(suite.T(), reqMerchantPaymentMethodAdd.PaymentMethod.Name, pm.PaymentMethod.Name)

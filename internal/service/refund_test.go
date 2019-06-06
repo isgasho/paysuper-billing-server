@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"github.com/ProtocolONE/rabbitmq/pkg"
 	"github.com/globalsign/mgo/bson"
+	"github.com/go-redis/redis"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
@@ -328,6 +329,14 @@ func (suite *RefundTestSuite) SetupTest() {
 	broker, err := rabbitmq.NewBroker(cfg.BrokerAddress)
 	assert.NoError(suite.T(), err, "Creating RabbitMQ publisher failed")
 
+	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
+		Addrs:        cfg.CacheRedis.Address,
+		Password:     cfg.CacheRedis.Password,
+		MaxRetries:   cfg.CacheRedis.MaxRetries,
+		MaxRedirects: cfg.CacheRedis.MaxRedirects,
+		PoolSize:     cfg.CacheRedis.PoolSize,
+	})
+
 	suite.service = NewBillingService(
 		db,
 		cfg,
@@ -337,6 +346,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		mock.NewTaxServiceOkMock(),
 		broker,
 		nil,
+		NewCacheRedis(redisdb),
 	)
 	err = suite.service.Init()
 	assert.NoError(suite.T(), err, "Billing service initialization failed")

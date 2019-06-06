@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
@@ -31,7 +33,7 @@ func (s *Service) ChangeProject(
 	var project *billing.Project
 	var err error
 
-	if _, ok := s.merchantCache[req.MerchantId]; !ok {
+	if _, err := s.merchant.Get(req.MerchantId); err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = merchantErrorNotFound
 
@@ -57,7 +59,7 @@ func (s *Service) ChangeProject(
 	}
 
 	if req.CallbackCurrency != "" {
-		if _, ok := s.currencyCache[req.CallbackCurrency]; !ok {
+		if _, err := s.currency.GetCurrencyByCodeA3(req.CallbackCurrency); err != nil {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = projectErrorCallbackCurrencyIncorrect
 
@@ -66,7 +68,7 @@ func (s *Service) ChangeProject(
 	}
 
 	if req.LimitsCurrency != "" {
-		if _, ok := s.currencyCache[req.LimitsCurrency]; !ok {
+		if _, err := s.currency.GetCurrencyByCodeA3(req.LimitsCurrency); err != nil {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = projectErrorLimitCurrencyIncorrect
 
@@ -97,7 +99,12 @@ func (s *Service) ChangeProject(
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = project
 
-	s.updateProjectCache(project)
+	if err := s.project.Update(project); err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = err.Error()
+
+		return nil
+	}
 
 	return nil
 }
@@ -261,7 +268,12 @@ func (s *Service) DeleteProject(
 		return nil
 	}
 
-	s.updateProjectCache(project)
+	if err := s.project.Update(project); err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = err.Error()
+
+		return nil
+	}
 
 	return nil
 }
@@ -314,14 +326,8 @@ func (s *Service) createProject(req *billing.Project) (*billing.Project, error) 
 		return nil, errors.New(orderErrorUnknown)
 	}
 
-	// Add payment methods default commissions to created project
-	s.mx.Lock()
-	defer s.mx.Unlock()
-
-	s.commissionCache[project.Id] = make(map[string]*billing.MerchantPaymentMethodCommissions)
-
-	for k := range s.paymentMethodIdCache {
-		s.commissionCache[project.Id][k] = s.getDefaultPaymentMethodCommissions()
+	for k := range s.paymentMethod.GetAll() {
+		s.commission.Update(project.Id, k, s.getDefaultPaymentMethodCommissions())
 	}
 
 	return project, nil
@@ -366,10 +372,101 @@ func (s *Service) updateProject(req *billing.Project, project *billing.Project) 
 	return nil
 }
 
-func (s *Service) updateProjectCache(project *billing.Project) {
-	s.mx.Lock()
-	s.projectCache[project.Id] = project
-	s.mx.Unlock()
+func newProjectService(svc *Service) *Project {
+	s := &Project{svc: svc}
 
-	return
+	s.mx.Lock()
+	defer s.mx.Unlock()
+
+	s.loadAllToCache()
+
+	return s
+}
+
+func (h *Project) Update(project *billing.Project) error {
+	h.mx.Lock()
+	defer h.mx.Unlock()
+
+	pool, err := h.loadAllFromCache()
+	if err != nil {
+		return err
+	}
+
+	if _, ok := pool[project.Id]; !ok {
+		pool[project.Id] = &billing.Project{}
+	}
+	pool[project.Id] = project
+
+	if err := h.svc.cacher.Set(pkg.CollectionProject, pool, 0); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h Project) GetProjectById(id string) (*billing.Project, error) {
+	h.mx.Lock()
+	defer h.mx.Unlock()
+
+	pool, err := h.loadAllFromCache()
+	if err != nil {
+		return nil, err
+	}
+
+	c, ok := pool[id]
+	if !ok {
+		return nil, fmt.Errorf(errorNotFound, pkg.CollectionProject)
+	}
+
+	return c, nil
+}
+
+func (h Project) GetAll() map[string]*billing.Project {
+	h.mx.Lock()
+	defer h.mx.Unlock()
+
+	pool, err := h.loadAllFromCache()
+	if err != nil {
+		return nil
+	}
+
+	return pool
+}
+
+func (h *Project) loadAllToCache() error {
+	var data []*billing.Project
+
+	err := h.svc.db.Collection(pkg.CollectionProject).Find(bson.M{}).All(&data)
+	if err != nil && err != mgo.ErrNotFound {
+		return err
+	}
+
+	pool := map[string]*billing.Project{}
+	if data != nil {
+		pool = make(map[string]*billing.Project, len(data))
+		for _, v := range data {
+			pool[v.Id] = v
+		}
+	}
+
+	if err := h.svc.cacher.Set(pkg.CollectionProject, pool, 0); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h *Project) loadAllFromCache() (map[string]*billing.Project, error) {
+	b, err := h.svc.cacher.Get(pkg.CollectionProject)
+	if err != nil {
+		return nil, err
+	}
+
+	var a map[string]*billing.Project
+	err = json.Unmarshal(*b, &a)
+	if err != nil {
+		return nil, err
+	}
+
+	return a, nil
 }

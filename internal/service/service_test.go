@@ -4,9 +4,9 @@ import (
 	"context"
 	"crypto/sha512"
 	"encoding/hex"
-	"errors"
 	"github.com/ProtocolONE/rabbitmq/pkg"
 	"github.com/globalsign/mgo/bson"
+	"github.com/go-redis/redis"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
@@ -30,22 +30,6 @@ type BillingServiceTestSuite struct {
 	service *Service
 
 	project *billing.Project
-}
-
-type getAllErrorTest Currency
-
-func newGetAllErrorTest(svc *Service) Cacher {
-	return &getAllErrorTest{svc: svc}
-}
-
-func (h *getAllErrorTest) setCache(recs []interface{}) {
-	return
-}
-
-func (h *getAllErrorTest) getAll() (recs []interface{}, err error) {
-	err = errors.New("unit test")
-
-	return
 }
 
 func Test_BillingService(t *testing.T) {
@@ -463,6 +447,14 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		suite.FailNow("Creating RabbitMQ publisher failed", "%v", err)
 	}
 
+	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
+		Addrs:        cfg.CacheRedis.Address,
+		Password:     cfg.CacheRedis.Password,
+		MaxRetries:   cfg.CacheRedis.MaxRetries,
+		MaxRedirects: cfg.CacheRedis.MaxRedirects,
+		PoolSize:     cfg.CacheRedis.PoolSize,
+	})
+
 	suite.service = NewBillingService(
 		db,
 		cfg,
@@ -472,11 +464,8 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		mock.NewTaxServiceOkMock(),
 		broker,
 		nil,
+		NewCacheRedis(redisdb),
 	)
-
-	if _, ok := handlers["unit"]; ok {
-		delete(handlers, "unit")
-	}
 
 	err = suite.service.Init()
 
@@ -497,104 +486,23 @@ func (suite *BillingServiceTestSuite) TearDownTest() {
 }
 
 func (suite *BillingServiceTestSuite) TestNewBillingService() {
-	service := NewBillingService(suite.db, suite.cfg, suite.exCh, nil, nil, nil, nil, nil)
-
-	if _, ok := handlers["unit"]; ok {
-		delete(handlers, "unit")
-	}
-
-	err := service.Init()
-
-	assert.Nil(suite.T(), err)
-	assert.True(suite.T(), len(service.currencyCache) > 0)
-	assert.True(suite.T(), len(service.projectCache) > 0)
-	assert.True(suite.T(), len(service.currencyRateCache) > 0)
-	assert.True(suite.T(), len(service.paymentMethodCache) > 0)
-	assert.True(suite.T(), len(service.commissionCache) > 0)
-}
-
-func (suite *BillingServiceTestSuite) TestBillingService_GetAllError() {
-	svc := NewBillingService(suite.db, suite.cfg, suite.exCh, nil, nil, nil, nil, nil)
-
-	key := "unit"
-	err := svc.cache(key, newGetAllErrorTest(svc))
-
-	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), "unit test", err.Error())
-}
-
-func (suite *BillingServiceTestSuite) TestBillingService_InitCacheError() {
-	svc := NewBillingService(suite.db, suite.cfg, suite.exCh, nil, nil, nil, nil, nil)
-
-	key := "unit"
-	handlers[key] = newGetAllErrorTest
-
-	err := svc.Init()
-
-	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), "unit test", err.Error())
-}
-
-func (suite *BillingServiceTestSuite) TestBillingService_RebuildCacheExit() {
-	service := NewBillingService(suite.db, suite.cfg, suite.exCh, nil, nil, nil, nil, nil)
-
-	if _, ok := handlers["unit"]; ok {
-		delete(handlers, "unit")
-	}
+	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
+		Addrs:        suite.cfg.CacheRedis.Address,
+		Password:     suite.cfg.CacheRedis.Password,
+		MaxRetries:   suite.cfg.CacheRedis.MaxRetries,
+		MaxRedirects: suite.cfg.CacheRedis.MaxRedirects,
+		PoolSize:     suite.cfg.CacheRedis.PoolSize,
+	})
+	service := NewBillingService(suite.db, suite.cfg, suite.exCh, nil, nil, nil, nil, nil, NewCacheRedis(redisdb))
 
 	err := service.Init()
 
 	assert.Nil(suite.T(), err)
-	time.Sleep(time.Second * 1)
-	assert.True(suite.T(), service.rebuild)
-
-	tp := time.NewTimer(time.Second * 2)
-	exit := make(chan bool, 1)
-
-	select {
-	case <-tp.C:
-		suite.exCh <- true
-		exit <- true
-	}
-	<-exit
-
-	time.Sleep(time.Second * 1)
-	assert.False(suite.T(), service.rebuild)
-	assert.Nil(suite.T(), service.rebuildError)
-}
-
-func (suite *BillingServiceTestSuite) TestBillingService_RebuildCacheByTimer() {
-	cfg := suite.cfg
-	cfg.CacheConfig.CurrencyTimeout = 3
-
-	service := NewBillingService(suite.db, cfg, suite.exCh, nil, nil, nil, nil, nil)
-
-	if _, ok := handlers["unit"]; ok {
-		delete(handlers, "unit")
-	}
-
-	err := service.Init()
-	assert.Nil(suite.T(), err)
-
-	c := &billing.Currency{
-		CodeInt:  826,
-		CodeA3:   "GBP",
-		Name:     &billing.Name{Ru: "Фунт стерлингов Соединенного королевства", En: "British Pound Sterling"},
-		IsActive: true,
-	}
-
-	err = suite.db.Collection(pkg.CollectionCurrency).Insert(c)
-	assert.Nil(suite.T(), err)
-
-	_, ok := service.currencyCache[c.CodeA3]
-	assert.False(suite.T(), ok)
-
-	time.Sleep(time.Second * time.Duration(cfg.CurrencyTimeout+1))
-
-	_, ok = service.currencyCache[c.CodeA3]
-	assert.True(suite.T(), ok)
-	assert.True(suite.T(), service.rebuild)
-	assert.Nil(suite.T(), service.rebuildError)
+	assert.True(suite.T(), len(service.currency.GetAll()) > 0)
+	assert.True(suite.T(), len(service.project.GetAll()) > 0)
+	assert.True(suite.T(), len(service.currencyRate.GetAll()) > 0)
+	assert.True(suite.T(), len(service.paymentMethod.GetAll()) > 0)
+	assert.True(suite.T(), len(service.commission.GetAll()) > 0)
 }
 
 func (suite *BillingServiceTestSuite) TestBillingService_AccountingCurrencyInitError() {
@@ -603,23 +511,28 @@ func (suite *BillingServiceTestSuite) TestBillingService_AccountingCurrencyInitE
 	assert.NoError(suite.T(), err)
 
 	cfg.AccountingCurrency = "AUD"
-
-	service := NewBillingService(suite.db, cfg, suite.exCh, nil, nil, nil, nil, nil)
-
-	if _, ok := handlers["unit"]; ok {
-		delete(handlers, "unit")
-	}
+	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
+		Addrs:        suite.cfg.CacheRedis.Address,
+		Password:     suite.cfg.CacheRedis.Password,
+		MaxRetries:   suite.cfg.CacheRedis.MaxRetries,
+		MaxRedirects: suite.cfg.CacheRedis.MaxRedirects,
+		PoolSize:     suite.cfg.CacheRedis.PoolSize,
+	})
+	service := NewBillingService(suite.db, cfg, suite.exCh, nil, nil, nil, nil, nil, NewCacheRedis(redisdb))
 
 	err = service.Init()
 	assert.Error(suite.T(), err)
 }
 
 func (suite *BillingServiceTestSuite) TestBillingService_IsProductionEnvironment() {
-	service := NewBillingService(suite.db, suite.cfg, suite.exCh, nil, nil, nil, nil, nil)
-
-	if _, ok := handlers["unit"]; ok {
-		delete(handlers, "unit")
-	}
+	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
+		Addrs:        suite.cfg.CacheRedis.Address,
+		Password:     suite.cfg.CacheRedis.Password,
+		MaxRetries:   suite.cfg.CacheRedis.MaxRetries,
+		MaxRedirects: suite.cfg.CacheRedis.MaxRedirects,
+		PoolSize:     suite.cfg.CacheRedis.PoolSize,
+	})
+	service := NewBillingService(suite.db, suite.cfg, suite.exCh, nil, nil, nil, nil, nil, NewCacheRedis(redisdb))
 
 	err := service.Init()
 	assert.Nil(suite.T(), err)

@@ -356,6 +356,14 @@ func (suite *ReportTestSuite) SetupTest() {
 		},
 	)
 
+	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
+		Addrs:        cfg.CacheRedis.Address,
+		Password:     cfg.CacheRedis.Password,
+		MaxRetries:   cfg.CacheRedis.MaxRetries,
+		MaxRedirects: cfg.CacheRedis.MaxRedirects,
+		PoolSize:     cfg.CacheRedis.PoolSize,
+	})
+
 	suite.service = NewBillingService(
 		db,
 		cfg,
@@ -365,6 +373,7 @@ func (suite *ReportTestSuite) SetupTest() {
 		mock.NewTaxServiceOkMock(),
 		broker,
 		redisClient,
+		NewCacheRedis(redisdb),
 	)
 	err = suite.service.Init()
 	assert.NoError(suite.T(), err, "Billing service initialization failed")

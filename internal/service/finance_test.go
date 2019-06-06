@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
+	"github.com/go-redis/redis"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
@@ -267,7 +268,15 @@ func (suite *FinanceTestSuite) SetupTest() {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
-	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil)
+	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
+		Addrs:        cfg.CacheRedis.Address,
+		Password:     cfg.CacheRedis.Password,
+		MaxRetries:   cfg.CacheRedis.MaxRetries,
+		MaxRedirects: cfg.CacheRedis.MaxRedirects,
+		PoolSize:     cfg.CacheRedis.PoolSize,
+	})
+
+	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, NewCacheRedis(redisdb))
 	err = suite.service.Init()
 
 	if err != nil {
@@ -287,7 +296,7 @@ func (suite *FinanceTestSuite) TearDownTest() {
 }
 
 func (suite *FinanceTestSuite) TestFinance_GetCurrencyByCodeA3Ok() {
-	c, err := suite.service.GetCurrencyByCodeA3("RUB")
+	c, err := suite.service.currency.GetCurrencyByCodeA3("RUB")
 
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), c)
@@ -295,7 +304,7 @@ func (suite *FinanceTestSuite) TestFinance_GetCurrencyByCodeA3Ok() {
 }
 
 func (suite *FinanceTestSuite) TestFinance_GetCurrencyByCodeA3Error() {
-	c, err := suite.service.GetCurrencyByCodeA3("AUD")
+	c, err := suite.service.currency.GetCurrencyByCodeA3("AUD")
 
 	assert.NotNil(suite.T(), err)
 	assert.Nil(suite.T(), c)
@@ -306,7 +315,7 @@ func (suite *FinanceTestSuite) TestFinance_ConvertOk() {
 	origin := float64(1000)
 	expect := 15.63
 
-	amount, err := suite.service.Convert(643, 840, origin)
+	amount, err := suite.service.currencyRate.Convert(643, 840, origin)
 
 	assert.Nil(suite.T(), err)
 	assert.True(suite.T(), amount > 0)
@@ -314,7 +323,7 @@ func (suite *FinanceTestSuite) TestFinance_ConvertOk() {
 }
 
 func (suite *FinanceTestSuite) TestFinance_ConvertCurrencyFromError() {
-	amount, err := suite.service.Convert(980, 840, 1000)
+	amount, err := suite.service.currencyRate.Convert(980, 840, 1000)
 
 	assert.Error(suite.T(), err)
 	assert.True(suite.T(), amount == 0)
@@ -322,7 +331,7 @@ func (suite *FinanceTestSuite) TestFinance_ConvertCurrencyFromError() {
 }
 
 func (suite *FinanceTestSuite) TestFinance_ConvertCurrencyToError() {
-	amount, err := suite.service.Convert(643, 980, 1000)
+	amount, err := suite.service.currencyRate.Convert(643, 980, 1000)
 
 	assert.Error(suite.T(), err)
 	assert.True(suite.T(), amount == 0)
@@ -332,7 +341,7 @@ func (suite *FinanceTestSuite) TestFinance_ConvertCurrencyToError() {
 func (suite *FinanceTestSuite) TestFinance_CalculateCommissionOk() {
 	amount := float64(100)
 
-	commission, err := suite.service.CalculatePmCommission(suite.project.Id, suite.paymentMethod.Id, amount)
+	commission, err := suite.service.commission.CalculatePmCommission(suite.project.Id, suite.paymentMethod.Id, amount)
 
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), commission)
@@ -341,7 +350,7 @@ func (suite *FinanceTestSuite) TestFinance_CalculateCommissionOk() {
 }
 
 func (suite *FinanceTestSuite) TestFinance_CalculateCommissionProjectError() {
-	commission, err := suite.service.CalculatePmCommission(bson.NewObjectId().Hex(), suite.paymentMethod.Id, float64(100))
+	commission, err := suite.service.commission.CalculatePmCommission(bson.NewObjectId().Hex(), suite.paymentMethod.Id, float64(100))
 
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), float64(0), commission)
@@ -349,7 +358,7 @@ func (suite *FinanceTestSuite) TestFinance_CalculateCommissionProjectError() {
 }
 
 func (suite *FinanceTestSuite) TestFinance_CalculateCommissionPaymentMethodError() {
-	commission, err := suite.service.CalculatePmCommission(suite.project.Id, bson.NewObjectId().Hex(), float64(100))
+	commission, err := suite.service.commission.CalculatePmCommission(suite.project.Id, bson.NewObjectId().Hex(), float64(100))
 
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), float64(0), commission)
