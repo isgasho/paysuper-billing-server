@@ -475,7 +475,8 @@ func (suite *ReportTestSuite) TestReport_FindByMerchantId() {
 
 	merchantId = bson.NewObjectId().Hex()
 	oRsp.Project.MerchantId = merchantId
-	suite.service.updateOrder(oRsp)
+	err = suite.service.updateOrder(oRsp)
+	assert.NoError(suite.T(), err)
 
 	req := &grpc.ListOrdersRequest{Merchant: []string{bson.NewObjectId().Hex()}}
 	rsp := &billing.OrderPaginate{}
@@ -588,7 +589,8 @@ func (suite *ReportTestSuite) TestReport_FindByStatus() {
 	assert.NoError(suite.T(), err, "Unable to create order")
 
 	oRsp.Status = constant.OrderStatusPaymentSystemRejectOnCreate
-	suite.service.updateOrder(oRsp)
+	err = suite.service.updateOrder(oRsp)
+	assert.NoError(suite.T(), err)
 
 	req := &grpc.ListOrdersRequest{Status: []int32{constant.OrderStatusPaymentSystemCreate}}
 	rsp := &billing.OrderPaginate{}
@@ -645,7 +647,8 @@ func (suite *ReportTestSuite) TestReport_FindByPmDateFrom() {
 
 	t := time.Now()
 	oRsp.PaymentMethodOrderClosedAt = &timestamp.Timestamp{Seconds: t.Unix()}
-	suite.service.updateOrder(oRsp)
+	err = suite.service.updateOrder(oRsp)
+	assert.NoError(suite.T(), err)
 
 	req := &grpc.ListOrdersRequest{PmDateFrom: t.Unix() + 3}
 	rsp := &billing.OrderPaginate{}
@@ -675,7 +678,8 @@ func (suite *ReportTestSuite) TestReport_FindByPmDateTo() {
 
 	t := time.Now()
 	oRsp.PaymentMethodOrderClosedAt = &timestamp.Timestamp{Seconds: t.Unix()}
-	suite.service.updateOrder(oRsp)
+	err = suite.service.updateOrder(oRsp)
+	assert.NoError(suite.T(), err)
 
 	req := &grpc.ListOrdersRequest{PmDateTo: t.Unix() - 3}
 	rsp := &billing.OrderPaginate{}
@@ -705,7 +709,8 @@ func (suite *ReportTestSuite) TestReport_FindByProjectDateFrom() {
 
 	t := time.Now()
 	oRsp.CreatedAt = &timestamp.Timestamp{Seconds: t.Unix()}
-	suite.service.updateOrder(oRsp)
+	err = suite.service.updateOrder(oRsp)
+	assert.NoError(suite.T(), err)
 
 	req := &grpc.ListOrdersRequest{ProjectDateFrom: t.Unix() + 3}
 	rsp := &billing.OrderPaginate{}
@@ -735,7 +740,8 @@ func (suite *ReportTestSuite) TestReport_FindByProjectDateTo() {
 
 	t := time.Now()
 	oRsp.CreatedAt = &timestamp.Timestamp{Seconds: t.Unix()}
-	suite.service.updateOrder(oRsp)
+	err = suite.service.updateOrder(oRsp)
+	assert.NoError(suite.T(), err)
 
 	req := &grpc.ListOrdersRequest{ProjectDateTo: t.Unix() - 3}
 	rsp := &billing.OrderPaginate{}
@@ -790,7 +796,8 @@ func (suite *ReportTestSuite) TestReport_FindByQuickSearch_ProjectOrderId() {
 	assert.NoError(suite.T(), err, "Unable to create order")
 
 	oRsp.ProjectOrderId = "project_order_id"
-	suite.service.updateOrder(oRsp)
+	err = suite.service.updateOrder(oRsp)
+	assert.NoError(suite.T(), err)
 
 	req := &grpc.ListOrdersRequest{QuickSearch: "unknown"}
 	rsp := &billing.OrderPaginate{}
@@ -819,7 +826,8 @@ func (suite *ReportTestSuite) TestReport_FindByQuickSearch_UserExternalId() {
 	assert.NoError(suite.T(), err, "Unable to create order")
 
 	oRsp.User.ExternalId = "user_id"
-	suite.service.updateOrder(oRsp)
+	err = suite.service.updateOrder(oRsp)
+	assert.NoError(suite.T(), err)
 
 	req := &grpc.ListOrdersRequest{QuickSearch: "unknown"}
 	rsp := &billing.OrderPaginate{}
@@ -849,7 +857,8 @@ func (suite *ReportTestSuite) TestReport_FindByQuickSearch_ProjectName() {
 
 	oRsp.Project.Name["en"] = "project_name_english"
 	oRsp.Project.Name["ru"] = "project_name_русский"
-	suite.service.updateOrder(oRsp)
+	err = suite.service.updateOrder(oRsp)
+	assert.NoError(suite.T(), err)
 
 	req := &grpc.ListOrdersRequest{QuickSearch: "unknown"}
 	rsp := &billing.OrderPaginate{}
@@ -890,7 +899,8 @@ func (suite *ReportTestSuite) TestReport_FindByQuickSearch_PaymentMethodName() {
 		Name:          "payment_method",
 		PaymentSystem: &billing.PaymentSystem{},
 	}
-	suite.service.updateOrder(oRsp)
+	err = suite.service.updateOrder(oRsp)
+	assert.NoError(suite.T(), err)
 
 	req := &grpc.ListOrdersRequest{QuickSearch: "unknown"}
 	rsp := &billing.OrderPaginate{}
@@ -906,30 +916,6 @@ func (suite *ReportTestSuite) TestReport_FindByQuickSearch_PaymentMethodName() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(1), rsp.Count)
 	assert.Equal(suite.T(), oRsp.Id, rsp.Items[0].Id)
-}
-
-func (suite *ReportTestSuite) TestReport_GetOrder_ReturnError_IncorrectId() {
-	req := &grpc.GetOrderRequest{Merchant: "merchant"}
-	rsp := &billing.Order{}
-	err := suite.service.GetOrder(context.TODO(), req, rsp)
-
-	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), reportErrorIncorrectId, err.Error())
-}
-
-func (suite *ReportTestSuite) TestReport_GetOrder_ReturnError_IncorrectMerchantId() {
-	req := &grpc.GetOrderRequest{Id: "id"}
-	rsp := &billing.Order{}
-	err := suite.service.GetOrder(context.TODO(), req, rsp)
-
-	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), reportErrorIncorrectMerchantId, err.Error())
-
-	req.Merchant = "merchant"
-	err = suite.service.GetOrder(context.TODO(), req, rsp)
-
-	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), reportErrorIncorrectMerchantId, err.Error())
 }
 
 func (suite *ReportTestSuite) TestReport_GetOrder_ReturnError_NotFound() {
@@ -953,7 +939,8 @@ func (suite *ReportTestSuite) TestReport_GetOrder_ReturnOrder() {
 
 	merchantId = bson.NewObjectId().Hex()
 	oRsp.Project.MerchantId = merchantId
-	suite.service.updateOrder(oRsp)
+	err = suite.service.updateOrder(oRsp)
+	assert.NoError(suite.T(), err)
 
 	req := &grpc.GetOrderRequest{Id: oRsp.Uuid, Merchant: merchantId}
 	rsp := &billing.Order{}

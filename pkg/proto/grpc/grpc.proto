@@ -620,7 +620,7 @@ message ListOrdersRequest {
     repeated string payment_method = 3;
     // @inject_tag: query:"country[]" validate:"omitempty,dive,alpha,len=2"
     repeated string country = 4;
-    // @inject_tag: query:"status[]" validate:"omitempty,numeric,oneof=0 1 2 3 4 5 6 7 8 9 10 11 12"
+    // @inject_tag: query:"status[]" validate:"omitempty,dive,numeric,oneof=0 1 2 3 4 5 6 7 8 9 10 11 12"
     repeated int32 status = 5;
     // @inject_tag: query:"account"
     string account = 6;
@@ -645,7 +645,7 @@ message ListOrdersRequest {
 }
 
 message GetOrderRequest {
-    // @inject_tag: query:"id" validate:"omitempty,uuid"
+    // @inject_tag: query:"id" validate:"required,uuid"
     string id = 1;
     // @inject_tag: query:"merchant" validate:"omitempty,hexadecimal,len=24"
     string merchant = 2;
