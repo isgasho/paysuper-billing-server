@@ -8,12 +8,13 @@ import (
 )
 
 const (
-	CacheStorageKey = "cache_%s"
+	CacheStorageKey = "cache:%s"
 )
 
 type CacheInterface interface {
 	Set(string, interface{}, time.Duration) error
 	Get(string) (*[]byte, error)
+	GetSet(string, func() (interface{}, error), time.Duration) (*[]byte, error)
 }
 
 type Cache struct {
@@ -46,4 +47,27 @@ func (c *Cache) Get(key string) (*[]byte, error) {
 	}
 
 	return &b, nil
+}
+
+func (c *Cache) Delete(key string) error {
+	result := c.redis.Del(fmt.Sprintf(CacheStorageKey, key))
+	return result.Err()
+}
+
+func (c *Cache) Clean() error {
+	result := c.redis.FlushAll()
+	return result.Err()
+}
+
+func (c *Cache) GetSet(key string, fn func() (interface{}, error), duration time.Duration) (*[]byte, error) {
+	val, err := c.Get(key)
+	if err != nil {
+		r, err := fn()
+		if err == nil {
+			c.Set(key, r, duration)
+			val = r.(*[]byte)
+		}
+	}
+
+	return val, nil
 }

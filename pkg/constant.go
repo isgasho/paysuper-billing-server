@@ -106,6 +106,8 @@ const (
 
 	TechEmailDomain        = "@paysuper.com"
 	OrderInlineFormUrlMask = "%s://%s/order/%s"
+
+	CacheCountryCodeA2 = CollectionCountry + "code_a2:%s"
 )
 
 var (

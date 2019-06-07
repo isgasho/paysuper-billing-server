@@ -79,8 +79,9 @@ func (suite *CountryTestSuite) SetupTest() {
 		MaxRedirects: cfg.CacheRedis.MaxRedirects,
 		PoolSize:     cfg.CacheRedis.PoolSize,
 	})
-
-	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, NewCacheRedis(redisdb))
+	cache := NewCacheRedis(redisdb)
+	cache.Clean()
+	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, cache)
 	err = suite.service.Init()
 
 	if err != nil {
@@ -94,12 +95,6 @@ func (suite *CountryTestSuite) TearDownTest() {
 	}
 
 	suite.service.db.Close()
-}
-
-func (suite *CountryTestSuite) TestCountry_GetAll() {
-	c := suite.service.country.GetAll()
-
-	assert.NotNil(suite.T(), c)
 }
 
 func (suite *CountryTestSuite) TestCountry_GetCountryByCodeA2_Ok() {

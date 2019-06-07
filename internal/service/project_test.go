@@ -907,7 +907,7 @@ func (suite *ProjectTestSuite) TearDownTest() {
 }
 
 func (suite *ProjectTestSuite) TestProject_GetAll() {
-	c := suite.service.country.GetAll()
+	c := suite.service.project.GetAll()
 
 	assert.NotNil(suite.T(), c)
 }
