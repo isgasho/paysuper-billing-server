@@ -14,9 +14,6 @@ func newCountryService(svc *Service) *Country {
 }
 
 func (h Country) GetCountryByCodeA2(code string) (*billing.Country, error) {
-	h.mx.Lock()
-	defer h.mx.Unlock()
-
 	var c *billing.Country
 	key := fmt.Sprintf(pkg.CacheCountryCodeA2, code)
 	res, err := h.svc.cacher.Get(key)
