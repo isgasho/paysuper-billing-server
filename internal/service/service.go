@@ -103,6 +103,11 @@ func NewBillingService(
 		redis:  redis,
 		cacher: cache,
 	}
+
+	return s
+}
+
+func (s *Service) Init() (err error) {
 	s.paymentMethod = newPaymentMethodService(s)
 	s.merchant = newMerchantService(s)
 	s.currency = newCurrencyService(s)
@@ -111,14 +116,6 @@ func NewBillingService(
 	s.country = newCountryService(s)
 	s.project = newProjectService(s)
 	s.systemFees = newSystemFeesService(s)
-
-	return s
-}
-
-func (s *Service) Init() (err error) {
-	if err != nil {
-		return
-	}
 
 	s.centrifugoClient = gocent.New(
 		gocent.Config{

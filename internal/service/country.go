@@ -17,27 +17,22 @@ func (h Country) GetCountryByCodeA2(code string) (*billing.Country, error) {
 	h.mx.Lock()
 	defer h.mx.Unlock()
 
-	res, err := h.svc.cacher.GetSet(
-		fmt.Sprintf(pkg.CacheCountryCodeA2, code),
-		func() (interface{}, error) {
-			var c *billing.Country
-			err := h.svc.db.Collection(pkg.CollectionCountry).Find(bson.M{"is_active": true, "code_a2": code}).One(&c)
-			if err != nil {
-				return nil, fmt.Errorf(errorNotFound, pkg.CollectionCountry)
-			}
+	var c *billing.Country
+	key := fmt.Sprintf(pkg.CacheCountryCodeA2, code)
+	res, err := h.svc.cacher.Get(key)
 
-			return c, nil
-		},
-		0,
-	)
-	if err != nil || res == nil {
-		return nil, fmt.Errorf(errorNotFound, pkg.CollectionCountry)
-	}
-
-	c := &billing.Country{}
-	err = json.Unmarshal(*res, c)
 	if err != nil {
-		return nil, fmt.Errorf(errorNotFound, pkg.CollectionCountry)
+		err := h.svc.db.Collection(pkg.CollectionCountry).Find(bson.M{"is_active": true, "code_a2": code}).One(&c)
+		if err != nil {
+			return nil, fmt.Errorf(errorNotFound, pkg.CollectionCountry)
+		}
+
+		_ = h.svc.cacher.Set(key, c, 0)
+	} else {
+		err = json.Unmarshal(*res, c)
+		if err != nil {
+			return nil, fmt.Errorf(errorNotFound, pkg.CollectionCountry)
+		}
 	}
 
 	return c, nil

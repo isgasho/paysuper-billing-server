@@ -14,7 +14,8 @@ const (
 type CacheInterface interface {
 	Set(string, interface{}, time.Duration) error
 	Get(string) (*[]byte, error)
-	GetSet(string, func() (interface{}, error), time.Duration) (*[]byte, error)
+	Delete(string) error
+	Clean()
 }
 
 type Cache struct {
@@ -28,7 +29,7 @@ func NewCacheRedis(redis *redis.ClusterClient) *Cache {
 func (c *Cache) Set(key string, value interface{}, duration time.Duration) error {
 	b, err := json.Marshal(value)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	result := c.redis.Set(fmt.Sprintf(CacheStorageKey, key), b, duration)
@@ -54,20 +55,6 @@ func (c *Cache) Delete(key string) error {
 	return result.Err()
 }
 
-func (c *Cache) Clean() error {
-	result := c.redis.FlushAll()
-	return result.Err()
-}
-
-func (c *Cache) GetSet(key string, fn func() (interface{}, error), duration time.Duration) (*[]byte, error) {
-	val, err := c.Get(key)
-	if err != nil {
-		r, err := fn()
-		if err == nil {
-			c.Set(key, r, duration)
-			val = r.(*[]byte)
-		}
-	}
-
-	return val, nil
+func (c *Cache) Clean() {
+	c.redis.FlushAll()
 }

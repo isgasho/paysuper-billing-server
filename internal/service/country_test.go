@@ -17,6 +17,7 @@ type CountryTestSuite struct {
 	suite.Suite
 	service *Service
 	log     *zap.Logger
+	cache   CacheInterface
 	country *billing.Country
 }
 
@@ -79,9 +80,8 @@ func (suite *CountryTestSuite) SetupTest() {
 		MaxRedirects: cfg.CacheRedis.MaxRedirects,
 		PoolSize:     cfg.CacheRedis.PoolSize,
 	})
-	cache := NewCacheRedis(redisdb)
-	cache.Clean()
-	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, cache)
+	suite.cache = NewCacheRedis(redisdb)
+	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, suite.cache)
 	err = suite.service.Init()
 
 	if err != nil {
@@ -95,6 +95,7 @@ func (suite *CountryTestSuite) TearDownTest() {
 	}
 
 	suite.service.db.Close()
+	suite.cache.Clean()
 }
 
 func (suite *CountryTestSuite) TestCountry_GetCountryByCodeA2_Ok() {
