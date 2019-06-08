@@ -582,14 +582,14 @@ func (suite *ReportTestSuite) TestReport_FindByStatus() {
 	err = suite.service.updateOrder(oRsp)
 	assert.NoError(suite.T(), err)
 
-	req := &grpc.ListOrdersRequest{Status: []int32{constant.OrderStatusPaymentSystemCreate}}
+	req := &grpc.ListOrdersRequest{PrivateStatus: []int32{constant.OrderStatusPaymentSystemCreate}}
 	rsp := &billing.OrderPaginate{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
 
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(0), rsp.Count)
 
-	req = &grpc.ListOrdersRequest{Status: []int32{constant.OrderStatusPaymentSystemRejectOnCreate}}
+	req = &grpc.ListOrdersRequest{PrivateStatus: []int32{constant.OrderStatusPaymentSystemRejectOnCreate}}
 	rsp = &billing.OrderPaginate{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
 

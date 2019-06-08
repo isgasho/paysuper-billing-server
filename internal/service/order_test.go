@@ -5335,7 +5335,7 @@ func (suite *OrderTestSuite) TestOrder_CreatePayment_ChangeCustomerData_Ok() {
 	order, err = suite.service.getOrderById(rsp.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), order)
-	assert.Equal(suite.T(), int32(constant.OrderStatusPaymentSystemCreate), order.Status)
+	assert.Equal(suite.T(), int32(constant.OrderStatusPaymentSystemCreate), order.PrivateStatus)
 
 	customer3, err := suite.service.getCustomerById(rsp.User.Id)
 	assert.NoError(suite.T(), err)
@@ -5366,4 +5366,165 @@ func (suite *OrderTestSuite) TestOrder_CreatePayment_ChangeCustomerData_Ok() {
 	assert.Equal(suite.T(), customer1.Locale, customer3.LocaleHistory[0].Value)
 	assert.Equal(suite.T(), customer2.Locale, customer3.LocaleHistory[1].Value)
 	assert.Equal(suite.T(), req2.UserAgent, customer3.UserAgent)
+}
+
+func (suite *OrderTestSuite) TestOrder_GetPublicStatus() {
+	order := &billing.Order{}
+
+	order.PrivateStatus = constant.OrderStatusNew
+	assert.Equal(suite.T(), order.GetPublicStatus(), constant.OrderPublicStatusCreated)
+
+	order.PrivateStatus = constant.OrderStatusPaymentSystemCreate
+	assert.Equal(suite.T(), order.GetPublicStatus(), constant.OrderPublicStatusCreated)
+
+	order.PrivateStatus = constant.OrderStatusPaymentSystemCanceled
+	assert.Equal(suite.T(), order.GetPublicStatus(), constant.OrderPublicStatusCanceled)
+
+	order.PrivateStatus = constant.OrderStatusPaymentSystemRejectOnCreate
+	assert.Equal(suite.T(), order.GetPublicStatus(), constant.OrderPublicStatusRejected)
+
+	order.PrivateStatus = constant.OrderStatusPaymentSystemReject
+	assert.Equal(suite.T(), order.GetPublicStatus(), constant.OrderPublicStatusRejected)
+
+	order.PrivateStatus = constant.OrderStatusProjectReject
+	assert.Equal(suite.T(), order.GetPublicStatus(), constant.OrderPublicStatusRejected)
+
+	order.PrivateStatus = constant.OrderStatusPaymentSystemDeclined
+	assert.Equal(suite.T(), order.GetPublicStatus(), constant.OrderPublicStatusRejected)
+
+	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
+	assert.Equal(suite.T(), order.GetPublicStatus(), constant.OrderPublicStatusProcessed)
+
+	order.PrivateStatus = constant.OrderStatusProjectComplete
+	assert.Equal(suite.T(), order.GetPublicStatus(), constant.OrderPublicStatusProcessed)
+
+	order.PrivateStatus = constant.OrderStatusRefund
+	assert.Equal(suite.T(), order.GetPublicStatus(), constant.OrderPublicStatusRefunded)
+
+	order.PrivateStatus = constant.OrderStatusChargeback
+	assert.Equal(suite.T(), order.GetPublicStatus(), constant.OrderPublicStatusChargeback)
+}
+
+func (suite *OrderTestSuite) TestOrder_GetReceiptUserEmail() {
+	order := &billing.Order{}
+	assert.Empty(suite.T(), order.GetReceiptUserEmail())
+
+	order.User = &billing.OrderUser{}
+	assert.Empty(suite.T(), order.GetReceiptUserEmail())
+
+	order.User.Email = "test@test.com"
+	assert.NotEmpty(suite.T(), order.GetReceiptUserEmail())
+	assert.Equal(suite.T(), order.GetReceiptUserEmail(), "test@test.com")
+}
+
+func (suite *OrderTestSuite) TestOrder_GetReceiptUserPhone() {
+	order := &billing.Order{}
+	assert.Empty(suite.T(), order.GetReceiptUserPhone())
+
+	order.User = &billing.OrderUser{}
+	assert.Empty(suite.T(), order.GetReceiptUserPhone())
+
+	order.User.Phone = "79111234567"
+	assert.NotEmpty(suite.T(), order.GetReceiptUserPhone())
+	assert.Equal(suite.T(), order.GetReceiptUserPhone(), "79111234567")
+}
+
+func (suite *OrderTestSuite) TestOrder_GetCountry() {
+	order := &billing.Order{}
+	assert.Empty(suite.T(), order.GetCountry())
+
+	order.User = &billing.OrderUser{
+		Address: &billing.OrderBillingAddress{
+			Country: "RU",
+		},
+	}
+	assert.NotEmpty(suite.T(), order.GetCountry())
+	assert.Equal(suite.T(), order.GetCountry(), "RU")
+
+	order.BillingAddress = &billing.OrderBillingAddress{
+		Country: "CY",
+	}
+	assert.NotEmpty(suite.T(), order.GetCountry())
+	assert.Equal(suite.T(), order.GetCountry(), "CY")
+}
+
+func (suite *OrderTestSuite) TestOrder_GetState() {
+	order := &billing.Order{}
+	assert.Empty(suite.T(), order.GetState())
+
+	order.User = &billing.OrderUser{
+		Address: &billing.OrderBillingAddress{
+			Country: "US",
+			State:   "AL",
+		},
+	}
+	assert.NotEmpty(suite.T(), order.GetState())
+	assert.Equal(suite.T(), order.GetState(), "AL")
+
+	order.BillingAddress = &billing.OrderBillingAddress{
+		Country: "US",
+		State:   "MN",
+	}
+	assert.NotEmpty(suite.T(), order.GetState())
+	assert.Equal(suite.T(), order.GetState(), "MN")
+}
+
+func (suite *OrderTestSuite) TestOrder_SetNotificationStatus() {
+	order := &billing.Order{}
+	assert.Nil(suite.T(), order.IsNotificationsSent)
+
+	order.SetNotificationStatus("somekey", true)
+	assert.NotNil(suite.T(), order.IsNotificationsSent)
+	assert.Equal(suite.T(), len(order.IsNotificationsSent), 1)
+	assert.Equal(suite.T(), order.IsNotificationsSent["somekey"], true)
+}
+
+func (suite *OrderTestSuite) TestOrder_GetNotificationStatus() {
+	order := &billing.Order{}
+	assert.Nil(suite.T(), order.IsNotificationsSent)
+
+	ns := order.GetNotificationStatus("somekey")
+	assert.False(suite.T(), ns)
+
+	order.IsNotificationsSent = make(map[string]bool)
+	order.IsNotificationsSent["somekey"] = true
+
+	ns = order.GetNotificationStatus("somekey")
+	assert.True(suite.T(), ns)
+}
+
+func (suite *OrderTestSuite) TestOrder_orderNotifyMerchant_Ok() {
+	req := &billing.OrderCreateRequest{
+		ProjectId:   suite.project.Id,
+		Currency:    "RUB",
+		Amount:      100,
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+	}
+
+	order := &billing.Order{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	assert.Nil(suite.T(), err)
+
+	ps := order.GetPublicStatus()
+	assert.Equal(suite.T(), ps, constant.OrderPublicStatusCreated)
+	nS := order.GetNotificationStatus(ps)
+	assert.False(suite.T(), nS)
+	assert.False(suite.T(), order.GetNotificationStatus(constant.OrderPublicStatusProcessed))
+	assert.Equal(suite.T(), len(order.IsNotificationsSent), 0)
+
+	order.PrivateStatus = constant.OrderStatusProjectComplete
+	err = suite.service.updateOrder(order)
+	assert.NoError(suite.T(), err)
+
+	ps = order.GetPublicStatus()
+	assert.Equal(suite.T(), ps, constant.OrderPublicStatusProcessed)
+	nS = order.GetNotificationStatus(ps)
+	assert.True(suite.T(), nS)
+	assert.Equal(suite.T(), len(order.IsNotificationsSent), 1)
 }
