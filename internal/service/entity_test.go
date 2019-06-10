@@ -72,12 +72,6 @@ func (suite *EntityTestSuite) SetupTest() {
 		IsActive:     true,
 	}
 
-	err = db.Collection(pkg.CollectionCurrencyRate).Insert(rate)
-
-	if err != nil {
-		suite.FailNow("Insert rates test data failed", "%v", err)
-	}
-
 	project := &billing.Project{
 		Id:                 bson.NewObjectId().Hex(),
 		MerchantId:         bson.NewObjectId().Hex(),
@@ -340,6 +334,10 @@ func (suite *EntityTestSuite) SetupTest() {
 
 	if err := suite.service.country.Insert(country); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
+	}
+
+	if err = suite.service.currencyRate.Insert(rate); err != nil {
+		suite.FailNow("Insert rates test data failed", "%v", err)
 	}
 
 	suite.paymentMethod = pmBankCard

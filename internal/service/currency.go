@@ -28,6 +28,19 @@ func (h *Currency) Insert(currency *billing.Currency) error {
 	return nil
 }
 
+func (h Currency) MultipleInsert(currency []*billing.Currency) error {
+	c := make([]interface{}, len(currency))
+	for i, v := range currency {
+		c[i] = v
+	}
+
+	if err := h.svc.db.Collection(pkg.CollectionCurrency).Insert(c...); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (h Currency) GetByCodeA3(code string) (*billing.Currency, error) {
 	var c billing.Currency
 	key := fmt.Sprintf(CacheCurrencyA3, code)

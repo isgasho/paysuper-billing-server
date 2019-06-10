@@ -70,9 +70,6 @@ func (suite *RefundTestSuite) SetupTest() {
 		IsActive:     true,
 	}
 
-	err = db.Collection(pkg.CollectionCurrencyRate).Insert(rate)
-	assert.NoError(suite.T(), err, "Insert rates test data failed")
-
 	country := &billing.Country{
 		CodeInt:  643,
 		CodeA2:   "RU",
@@ -350,6 +347,10 @@ func (suite *RefundTestSuite) SetupTest() {
 
 	if err := suite.service.country.Insert(country); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
+	}
+
+	if err = suite.service.currencyRate.Insert(rate); err != nil {
+		suite.FailNow("Insert rates test data failed", "%v", err)
 	}
 
 	suite.project = project

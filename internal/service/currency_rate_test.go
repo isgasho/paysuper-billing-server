@@ -62,9 +62,6 @@ func (suite *CurrencyRateTestSuite) SetupTest() {
 		IsActive:     true,
 	}
 
-	err = db.Collection(pkg.CollectionCurrencyRate).Insert(suite.rate)
-	assert.NoError(suite.T(), err, "Insert rates test data failed")
-
 	suite.log, err = zap.NewProduction()
 
 	if err != nil {
@@ -81,6 +78,10 @@ func (suite *CurrencyRateTestSuite) SetupTest() {
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
+	}
+
+	if err = suite.service.currencyRate.Insert(suite.rate); err != nil {
+		suite.FailNow("Insert rates test data failed", "%v", err)
 	}
 }
 

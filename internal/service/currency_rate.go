@@ -17,6 +17,31 @@ func newCurrencyRateService(svc *Service) *CurrencyRate {
 	return s
 }
 
+func (h *CurrencyRate) Insert(rate *billing.CurrencyRate) error {
+	if err := h.svc.db.Collection(pkg.CollectionCurrencyRate).Insert(rate); err != nil {
+		return err
+	}
+
+	if err := h.svc.cacher.Set(fmt.Sprintf(CacheCurrencyRateFromTo, rate.CurrencyFrom, rate.CurrencyTo), rate, 0); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h CurrencyRate) MultipleInsert(country []*billing.CurrencyRate) error {
+	c := make([]interface{}, len(country))
+	for i, v := range country {
+		c[i] = v
+	}
+
+	if err := h.svc.db.Collection(pkg.CollectionCurrencyRate).Insert(c...); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (h *CurrencyRate) GetFromTo(from int32, to int32) (*billing.CurrencyRate, error) {
 	var c billing.CurrencyRate
 	key := fmt.Sprintf(CacheCurrencyRateFromTo, from, to)

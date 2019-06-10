@@ -74,29 +74,29 @@ func (suite *ReportTestSuite) SetupTest() {
 		IsActive: true,
 	}
 
-	rate := []interface{}{
-		&billing.CurrencyRate{
+	rate := []*billing.CurrencyRate{
+		{
 			CurrencyFrom: 840,
 			CurrencyTo:   643,
 			Rate:         0.015625,
 			Date:         ptypes.TimestampNow(),
 			IsActive:     true,
 		},
-		&billing.CurrencyRate{
+		{
 			CurrencyFrom: 643,
 			CurrencyTo:   840,
 			Rate:         64,
 			Date:         ptypes.TimestampNow(),
 			IsActive:     true,
 		},
-		&billing.CurrencyRate{
+		{
 			CurrencyFrom: 643,
 			CurrencyTo:   643,
 			Rate:         1,
 			Date:         ptypes.TimestampNow(),
 			IsActive:     true,
 		},
-		&billing.CurrencyRate{
+		{
 			CurrencyFrom: 643,
 			CurrencyTo:   51,
 			Rate:         1,
@@ -104,9 +104,6 @@ func (suite *ReportTestSuite) SetupTest() {
 			IsActive:     true,
 		},
 	}
-
-	err = db.Collection(pkg.CollectionCurrencyRate).Insert(rate...)
-	assert.NoError(suite.T(), err, "Insert rates test data failed")
 
 	ru := &billing.Country{
 		CodeInt:  643,
@@ -280,6 +277,10 @@ func (suite *ReportTestSuite) SetupTest() {
 		Status:             pkg.ProjectStatusInProduction,
 		MerchantId:         merchant.Id,
 	}
+	projects := []*billing.Project{
+		project,
+		project1,
+	}
 
 	commissionStartDate, err := ptypes.TimestampProto(time.Now().Add(time.Minute * -10))
 	assert.NoError(suite.T(), err, "Commission start date conversion failed")
@@ -369,10 +370,10 @@ func (suite *ReportTestSuite) SetupTest() {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 
-	projects := []*billing.Project{
-		project,
-		project1,
+	if err = suite.service.currencyRate.MultipleInsert(rate); err != nil {
+		suite.FailNow("Insert rates test data failed", "%v", err)
 	}
+
 	if err := suite.service.project.MultipleInsert(projects); err != nil {
 		suite.FailNow("Insert project test data failed", "%v", err)
 	}

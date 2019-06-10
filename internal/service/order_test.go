@@ -109,49 +109,35 @@ func (suite *OrderTestSuite) SetupTest() {
 		IsActive: true,
 	}
 
-	currency := []interface{}{rub, usd, uah, amd}
-
-	err = db.Collection(pkg.CollectionCurrency).Insert(currency...)
-
-	if err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
-
-	rate := []interface{}{
-		&billing.CurrencyRate{
+	rate := []*billing.CurrencyRate{
+		{
 			CurrencyFrom: 840,
 			CurrencyTo:   643,
 			Rate:         0.015625,
 			Date:         ptypes.TimestampNow(),
 			IsActive:     true,
 		},
-		&billing.CurrencyRate{
+		{
 			CurrencyFrom: 643,
 			CurrencyTo:   840,
 			Rate:         64,
 			Date:         ptypes.TimestampNow(),
 			IsActive:     true,
 		},
-		&billing.CurrencyRate{
+		{
 			CurrencyFrom: 643,
 			CurrencyTo:   643,
 			Rate:         1,
 			Date:         ptypes.TimestampNow(),
 			IsActive:     true,
 		},
-		&billing.CurrencyRate{
+		{
 			CurrencyFrom: 643,
 			CurrencyTo:   51,
 			Rate:         1,
 			Date:         ptypes.TimestampNow(),
 			IsActive:     true,
 		},
-	}
-
-	err = db.Collection(pkg.CollectionCurrencyRate).Insert(rate...)
-
-	if err != nil {
-		suite.FailNow("Insert rates test data failed", "%v", err)
 	}
 
 	ru := &billing.Country{
@@ -512,6 +498,15 @@ func (suite *OrderTestSuite) SetupTest() {
 		SecretKey:          "test project 2 secret key",
 		Status:             pkg.ProjectStatusDeleted,
 	}
+	projects := []*billing.Project{
+		project,
+		projectFixedAmount,
+		inactiveProject,
+		projectWithoutPaymentMethods,
+		projectIncorrectPaymentMethodId,
+		projectEmptyPaymentMethodTerminal,
+		projectUahLimitCurrency,
+	}
 
 	pmWebMoney := &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
@@ -710,6 +705,10 @@ func (suite *OrderTestSuite) SetupTest() {
 		suite.FailNow("Creating RabbitMQ publisher failed", "%v", err)
 	}
 
+	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
+		suite.FailNow("Insert currency test data failed", "%v", err)
+	}
+
 	redisClient := database.NewRedis(
 		&redis.Options{
 			Addr:     cfg.RedisHost,
@@ -750,17 +749,17 @@ func (suite *OrderTestSuite) SetupTest() {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 
-	projects := []*billing.Project{
-		project,
-		projectFixedAmount,
-		inactiveProject,
-		projectWithoutPaymentMethods,
-		projectIncorrectPaymentMethodId,
-		projectEmptyPaymentMethodTerminal,
-		projectUahLimitCurrency,
+	if err = suite.service.currencyRate.MultipleInsert(rate); err != nil {
+		suite.FailNow("Insert rates test data failed", "%v", err)
 	}
+
 	if err := suite.service.project.MultipleInsert(projects); err != nil {
 		suite.FailNow("Insert project test data failed", "%v", err)
+	}
+
+	currency := []*billing.Currency{rub, usd, uah, amd}
+	if err := suite.service.currency.MultipleInsert(currency); err != nil {
+		suite.FailNow("Insert currency test data failed", "%v", err)
 	}
 
 	var productIds []string

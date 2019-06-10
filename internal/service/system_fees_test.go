@@ -201,13 +201,13 @@ func (suite *SystemFeesTestSuite) SetupTest() {
 				for _, cb := range cardBrands {
 					systemFee.Id = bson.NewObjectId().Hex()
 					systemFee.CardBrand = cb
-					err = db.Collection(pkg.CollectionSystemFees).Insert(systemFee)
+					err = suite.service.systemFees.Insert(systemFee)
 					if err != nil {
 						suite.FailNow("Insert system fees test data failed", "%v", err)
 					}
 				}
 			} else {
-				err = db.Collection(pkg.CollectionSystemFees).Insert(systemFee)
+				err = suite.service.systemFees.Insert(systemFee)
 				if err != nil {
 					suite.FailNow("Insert system fees test data failed", "%v", err)
 				}

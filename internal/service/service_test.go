@@ -38,12 +38,11 @@ func Test_BillingService(t *testing.T) {
 
 func (suite *BillingServiceTestSuite) SetupTest() {
 	cfg, err := config.NewConfig()
-
 	if err != nil {
 		suite.FailNow("Config load failed", "%v", err)
 	}
-	cfg.AccountingCurrency = "RUB"
 
+	cfg.AccountingCurrency = "RUB"
 	suite.cfg = cfg
 
 	settings := database.Connection{
@@ -54,12 +53,21 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 	}
 
 	db, err := database.NewDatabase(settings)
-
 	if err != nil {
 		suite.FailNow("Database connection failed", "%v", err)
 	}
 
 	suite.db = db
+
+	suite.log, err = zap.NewProduction()
+	if err != nil {
+		suite.FailNow("Logger initialization failed", "%v", err)
+	}
+
+	broker, err := rabbitmq.NewBroker(cfg.BrokerAddress)
+	if err != nil {
+		suite.FailNow("Creating RabbitMQ publisher failed", "%v", err)
+	}
 
 	rub := &billing.Currency{
 		CodeInt:  643,
@@ -79,6 +87,26 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		CodeA3:   "UAH",
 		Name:     &billing.Name{Ru: "Украинская гривна", En: "Ukrainian Hryvnia"},
 		IsActive: true,
+	}
+	if err := InitTestCurrency(db, []interface{}{rub, usd, uah}); err != nil {
+		suite.FailNow("Insert currency test data failed", "%v", err)
+	}
+
+	redisdb := mock.NewTestRedis()
+	suite.service = NewBillingService(
+		db,
+		cfg,
+		make(chan bool, 1),
+		mock.NewGeoIpServiceTestOk(),
+		mock.NewRepositoryServiceOk(),
+		mock.NewTaxServiceOkMock(),
+		broker,
+		nil,
+		NewCacheRedis(redisdb),
+	)
+
+	if err := suite.service.Init(); err != nil {
+		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 
 	country := &billing.Country{
@@ -214,76 +242,70 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		Status:             pkg.ProjectStatusInProduction,
 	}
 
-	rate := []interface{}{
-		&billing.CurrencyRate{
+	rate := []*billing.CurrencyRate{
+		{
 			CurrencyFrom: 980,
 			CurrencyTo:   643,
 			Rate:         0.411128442,
 			Date:         ptypes.TimestampNow(),
 			IsActive:     true,
 		},
-		&billing.CurrencyRate{
+		{
 			CurrencyFrom: 980,
 			CurrencyTo:   980,
 			Rate:         27.13085922,
 			Date:         ptypes.TimestampNow(),
 			IsActive:     true,
 		},
-		&billing.CurrencyRate{
+		{
 			CurrencyFrom: 980,
 			CurrencyTo:   978,
 			Rate:         30.96446748,
 			Date:         ptypes.TimestampNow(),
 			IsActive:     true,
 		},
-		&billing.CurrencyRate{
+		{
 			CurrencyFrom: 840,
 			CurrencyTo:   980,
 			Rate:         0.034680066,
 			Date:         ptypes.TimestampNow(),
 			IsActive:     true,
 		},
-		&billing.CurrencyRate{
+		{
 			CurrencyFrom: 840,
 			CurrencyTo:   643,
 			Rate:         0.01469893,
 			Date:         ptypes.TimestampNow(),
 			IsActive:     true,
 		},
-		&billing.CurrencyRate{
+		{
 			CurrencyFrom: 840,
 			CurrencyTo:   840,
 			Rate:         1.00000000,
 			Date:         ptypes.TimestampNow(),
 			IsActive:     true,
 		},
-		&billing.CurrencyRate{
+		{
 			CurrencyFrom: 643,
 			CurrencyTo:   840,
 			Rate:         64.01146400,
 			Date:         ptypes.TimestampNow(),
 			IsActive:     true,
 		},
-		&billing.CurrencyRate{
+		{
 			CurrencyFrom: 643,
 			CurrencyTo:   643,
 			Rate:         1,
 			Date:         ptypes.TimestampNow(),
 			IsActive:     true,
 		},
-		&billing.CurrencyRate{
+		{
 			CurrencyFrom: 643,
 			CurrencyTo:   980,
 			Rate:         2.2885792,
 			Date:         ptypes.TimestampNow(),
 			IsActive:     true,
 		},
-	}
-
-	err = suite.db.Collection(pkg.CollectionCurrencyRate).Insert(rate...)
-
-	if err != nil {
-		suite.FailNow("Insert rates test data failed", "%v", err)
 	}
 
 	pmQiwi := &billing.PaymentMethod{
@@ -404,37 +426,10 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		suite.FailNow("Insert commission test data failed", "%v", err)
 	}
 
-	suite.log, err = zap.NewProduction()
-
-	if err != nil {
-		suite.FailNow("Logger initialization failed", "%v", err)
-	}
-
-	broker, err := rabbitmq.NewBroker(cfg.BrokerAddress)
-
-	if err != nil {
-		suite.FailNow("Creating RabbitMQ publisher failed", "%v", err)
-	}
-
-	if err := InitTestCurrency(db, []interface{}{rub, usd, uah}); err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
-
-	redisdb := mock.NewTestRedis()
-	suite.service = NewBillingService(
-		db,
-		cfg,
-		make(chan bool, 1),
-		mock.NewGeoIpServiceTestOk(),
-		mock.NewRepositoryServiceOk(),
-		mock.NewTaxServiceOkMock(),
-		broker,
-		nil,
-		NewCacheRedis(redisdb),
-	)
-
-	if err := suite.service.Init(); err != nil {
-		suite.FailNow("Billing service initialization failed", "%v", err)
+	projects := []*billing.Project{
+		projectDefault,
+		projectXsolla,
+		projectCardpay,
 	}
 
 	pms := []*billing.PaymentMethod{pmBankCard, pmQiwi, pmBitcoin}
@@ -450,11 +445,10 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 
-	projects := []*billing.Project{
-		projectDefault,
-		projectXsolla,
-		projectCardpay,
+	if err = suite.service.currencyRate.MultipleInsert(rate); err != nil {
+		suite.FailNow("Insert rates test data failed", "%v", err)
 	}
+
 	if err := suite.service.project.MultipleInsert(projects); err != nil {
 		suite.FailNow("Insert project test data failed", "%v", err)
 	}

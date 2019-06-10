@@ -58,20 +58,12 @@ func (suite *FinanceTestSuite) SetupTest() {
 		IsActive: true,
 	}
 
-	rate := []interface{}{
-		&billing.CurrencyRate{
-			CurrencyFrom: 643,
-			CurrencyTo:   840,
-			Rate:         64,
-			Date:         ptypes.TimestampNow(),
-			IsActive:     true,
-		},
-	}
-
-	err = db.Collection(pkg.CollectionCurrencyRate).Insert(rate...)
-
-	if err != nil {
-		suite.FailNow("Insert rates test data failed", "%v", err)
+	rate := &billing.CurrencyRate{
+		CurrencyFrom: 643,
+		CurrencyTo:   840,
+		Rate:         64,
+		Date:         ptypes.TimestampNow(),
+		IsActive:     true,
 	}
 
 	pmBankCard := &billing.PaymentMethod{
@@ -272,6 +264,10 @@ func (suite *FinanceTestSuite) SetupTest() {
 
 	if err := suite.service.country.Insert(country); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
+	}
+
+	if err = suite.service.currencyRate.Insert(rate); err != nil {
+		suite.FailNow("Insert rates test data failed", "%v", err)
 	}
 
 	suite.project = project
