@@ -6,7 +6,6 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
-	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/stoewer/go-strcase"
@@ -70,10 +69,6 @@ func (suite *ProductTestSuite) SetupTest() {
 		IsActive: true,
 	}
 
-	currency := []interface{}{rub, usd}
-
-	err = db.Collection(pkg.CollectionCurrency).Insert(currency...)
-
 	if err != nil {
 		suite.FailNow("Insert currency test data failed", "%v", err)
 	}
@@ -83,6 +78,10 @@ func (suite *ProductTestSuite) SetupTest() {
 
 	broker, err := rabbitmq.NewBroker(cfg.BrokerAddress)
 	assert.NoError(suite.T(), err, "Creating RabbitMQ publisher failed")
+
+	if err := InitTestCurrency(db, []interface{}{rub, usd}); err != nil {
+		suite.FailNow("Insert currency test data failed", "%v", err)
+	}
 
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)

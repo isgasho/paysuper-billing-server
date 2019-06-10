@@ -71,25 +71,6 @@ func (suite *SystemFeesTestSuite) SetupTest() {
 		IsActive: true,
 	}
 
-	currency := []interface{}{rub, usd}
-
-	err = db.Collection(pkg.CollectionCurrency).Insert(currency...)
-
-	us := &billing.Country{
-		CodeInt:  840,
-		CodeA2:   "US",
-		CodeA3:   "USA",
-		Name:     &billing.Name{Ru: "США", En: "USA"},
-		IsActive: true,
-	}
-
-	err = db.Collection(pkg.CollectionCountry).Insert([]interface{}{us}...)
-	assert.NoError(suite.T(), err, "Insert country test data failed")
-
-	if err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
-
 	pmBankCard := &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
 		Name:             "Bank card",
@@ -197,6 +178,10 @@ func (suite *SystemFeesTestSuite) SetupTest() {
 	broker, err := rabbitmq.NewBroker(cfg.BrokerAddress)
 	assert.NoError(suite.T(), err, "Creating RabbitMQ publisher failed")
 
+	if err := InitTestCurrency(db, []interface{}{rub, usd}); err != nil {
+		suite.FailNow("Insert currency test data failed", "%v", err)
+	}
+
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
@@ -217,6 +202,17 @@ func (suite *SystemFeesTestSuite) SetupTest() {
 
 	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {
 		suite.FailNow("Insert payment methods test data failed", "%v", err)
+	}
+
+	country := &billing.Country{
+		CodeInt:  840,
+		CodeA2:   "US",
+		CodeA3:   "USA",
+		Name:     &billing.Name{Ru: "США", En: "USA"},
+		IsActive: true,
+	}
+	if err := suite.service.country.Insert(country); err != nil {
+		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 
 	suite.AdminUserId = adminUserId

@@ -74,11 +74,6 @@ func (suite *ReportTestSuite) SetupTest() {
 		IsActive: true,
 	}
 
-	currency := []interface{}{suite.currencyRub, suite.currencyUsd}
-
-	err = db.Collection(pkg.CollectionCurrency).Insert(currency...)
-	assert.NoError(suite.T(), err, "Insert currency test data failed")
-
 	rate := []interface{}{
 		&billing.CurrencyRate{
 			CurrencyFrom: 840,
@@ -127,9 +122,6 @@ func (suite *ReportTestSuite) SetupTest() {
 		Name:     &billing.Name{Ru: "США", En: "USA"},
 		IsActive: true,
 	}
-
-	err = db.Collection(pkg.CollectionCountry).Insert([]interface{}{ru, us}...)
-	assert.NoError(suite.T(), err, "Insert country test data failed")
 
 	pmBankCard := &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
@@ -289,14 +281,6 @@ func (suite *ReportTestSuite) SetupTest() {
 		MerchantId:         merchant.Id,
 	}
 
-	projects := []interface{}{
-		project,
-		project1,
-	}
-
-	err = db.Collection(pkg.CollectionProject).Insert(projects...)
-	assert.NoError(suite.T(), err, "Insert project test data failed")
-
 	commissionStartDate, err := ptypes.TimestampProto(time.Now().Add(time.Minute * -10))
 	assert.NoError(suite.T(), err, "Commission start date conversion failed")
 
@@ -349,6 +333,10 @@ func (suite *ReportTestSuite) SetupTest() {
 		},
 	)
 
+	if err := InitTestCurrency(db, []interface{}{suite.currencyRub, suite.currencyUsd}); err != nil {
+		suite.FailNow("Insert currency test data failed", "%v", err)
+	}
+
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
@@ -374,6 +362,19 @@ func (suite *ReportTestSuite) SetupTest() {
 
 	if err := suite.service.merchant.Insert(merchant); err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
+	}
+
+	country := []*billing.Country{ru, us}
+	if err := suite.service.country.MultipleInsert(country); err != nil {
+		suite.FailNow("Insert country test data failed", "%v", err)
+	}
+
+	projects := []*billing.Project{
+		project,
+		project1,
+	}
+	if err := suite.service.project.MultipleInsert(projects); err != nil {
+		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 
 	var productIds []string

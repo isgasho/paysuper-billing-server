@@ -56,13 +56,6 @@ func (suite *CommissionTestSuite) SetupTest() {
 		IsActive: true,
 	}
 
-	currency := []interface{}{rub}
-
-	err = db.Collection(pkg.CollectionCurrency).Insert(currency...)
-	if err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
-
 	suite.paymentMethod1 = bson.NewObjectId().Hex()
 	suite.paymentMethod2 = bson.NewObjectId().Hex()
 	paymentMethods := map[string]*billing.MerchantPaymentMethod{
@@ -124,13 +117,14 @@ func (suite *CommissionTestSuite) SetupTest() {
 		MerchantId:               suite.merchant.Id,
 	}
 
-	err = db.Collection(pkg.CollectionProject).Insert(suite.project)
-	assert.NoError(suite.T(), err, "Insert project test data failed")
-
 	suite.log, err = zap.NewProduction()
 
 	if err != nil {
 		suite.FailNow("Logger initialization failed", "%v", err)
+	}
+
+	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
+		suite.FailNow("Insert currency test data failed", "%v", err)
 	}
 
 	suite.cache = NewCacheRedis(mock.NewTestRedis())
@@ -142,6 +136,10 @@ func (suite *CommissionTestSuite) SetupTest() {
 
 	if err := suite.service.merchant.Insert(suite.merchant); err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
+	}
+
+	if err := suite.service.project.Insert(suite.project); err != nil {
+		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 }
 

@@ -55,9 +55,6 @@ func (suite *TokenTestSuite) SetupTest() {
 		IsActive: true,
 	}
 
-	err = db.Collection(pkg.CollectionCurrency).Insert(rub)
-	assert.NoError(suite.T(), err, "Insert currency test data failed")
-
 	project := &billing.Project{
 		Id:                       bson.NewObjectId().Hex(),
 		CallbackCurrency:         "RUB",
@@ -86,9 +83,6 @@ func (suite *TokenTestSuite) SetupTest() {
 		Status:                   pkg.ProjectStatusInProduction,
 		MerchantId:               bson.NewObjectId().Hex(),
 	}
-
-	err = db.Collection(pkg.CollectionProject).Insert([]interface{}{project, projectWithProducts}...)
-	assert.NoError(suite.T(), err, "Insert project test data failed")
 
 	product1 := &grpc.Product{
 		Object:          "product",
@@ -137,6 +131,10 @@ func (suite *TokenTestSuite) SetupTest() {
 		},
 	)
 
+	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
+		suite.FailNow("Insert currency test data failed", "%v", err)
+	}
+
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
@@ -153,6 +151,14 @@ func (suite *TokenTestSuite) SetupTest() {
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
+	}
+
+	projects := []*billing.Project{
+		project,
+		projectWithProducts,
+	}
+	if err := suite.service.project.MultipleInsert(projects); err != nil {
+		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 
 	suite.project = project

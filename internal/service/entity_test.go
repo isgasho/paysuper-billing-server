@@ -64,12 +64,6 @@ func (suite *EntityTestSuite) SetupTest() {
 		IsActive: true,
 	}
 
-	err = db.Collection(pkg.CollectionCurrency).Insert(rub)
-
-	if err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
-
 	rate := &billing.CurrencyRate{
 		CurrencyFrom: 643,
 		CurrencyTo:   840,
@@ -96,12 +90,6 @@ func (suite *EntityTestSuite) SetupTest() {
 		IsProductsCheckout: true,
 		SecretKey:          "test project 1 secret key",
 		Status:             pkg.ProjectStatusInProduction,
-	}
-
-	err = db.Collection(pkg.CollectionProject).Insert(project)
-
-	if err != nil {
-		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 
 	pmBankCard := &billing.PaymentMethod{
@@ -195,12 +183,6 @@ func (suite *EntityTestSuite) SetupTest() {
 		CodeA3:   "RUS",
 		Name:     &billing.Name{Ru: "Россия", En: "Russia (Russian Federation)"},
 		IsActive: true,
-	}
-
-	err = db.Collection(pkg.CollectionCountry).Insert(country)
-
-	if err != nil {
-		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 
 	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -360))
@@ -330,6 +312,10 @@ func (suite *EntityTestSuite) SetupTest() {
 
 	suite.projectId = project.Id
 
+	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
+		suite.FailNow("Insert currency test data failed", "%v", err)
+	}
+
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, suite.cache)
@@ -346,6 +332,14 @@ func (suite *EntityTestSuite) SetupTest() {
 	merchants := []*billing.Merchant{merchant, merchantAgreement, merchant1}
 	if err := suite.service.merchant.MultipleInsert(merchants); err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
+	}
+
+	if err := suite.service.project.Insert(project); err != nil {
+		suite.FailNow("Insert project test data failed", "%v", err)
+	}
+
+	if err := suite.service.country.Insert(country); err != nil {
+		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 
 	suite.paymentMethod = pmBankCard

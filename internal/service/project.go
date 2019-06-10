@@ -257,18 +257,10 @@ func (s *Service) DeleteProject(
 	}
 
 	project.Status = pkg.ProjectStatusDeleted
-	err = s.db.Collection(pkg.CollectionProject).UpdateId(bson.ObjectIdHex(project.Id), project)
-
-	if err != nil {
-		s.logError("Query to delete project failed", []interface{}{"err", err.Error(), "data", project})
-
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = orderErrorUnknown
-
-		return nil
-	}
 
 	if err := s.project.Update(project); err != nil {
+		s.logError("Query to delete project failed", []interface{}{"err", err.Error(), "data", project})
+
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = err.Error()
 
@@ -319,9 +311,7 @@ func (s *Service) createProject(req *billing.Project) (*billing.Project, error) 
 		UpdatedAt:                ptypes.TimestampNow(),
 	}
 
-	err := s.db.Collection(pkg.CollectionProject).Insert(project)
-
-	if err != nil {
+	if err := s.project.Insert(project); err != nil {
 		s.logError("Query to create project failed", []interface{}{"err", err.Error(), "data", project})
 		return nil, errors.New(orderErrorUnknown)
 	}
@@ -356,9 +346,7 @@ func (s *Service) updateProject(req *billing.Project, project *billing.Project) 
 	project.UrlCheckAccount = req.UrlCheckAccount
 	project.UrlProcessPayment = req.UrlProcessPayment
 
-	err := s.db.Collection(pkg.CollectionProject).UpdateId(bson.ObjectIdHex(project.Id), project)
-
-	if err != nil {
+	if err := s.project.Update(project); err != nil {
 		s.logError("Query to update project failed", []interface{}{"err", err.Error(), "data", project})
 		return errors.New(orderErrorUnknown)
 	}
@@ -373,7 +361,37 @@ func newProjectService(svc *Service) *Project {
 	return s
 }
 
+func (h *Project) Insert(project *billing.Project) error {
+	if err := h.svc.db.Collection(pkg.CollectionProject).Insert(project); err != nil {
+		return err
+	}
+
+	key := fmt.Sprintf(pkg.CacheProjectId, project.Id)
+	if err := h.svc.cacher.Set(key, project, 0); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h *Project) MultipleInsert(projects []*billing.Project) error {
+	p := make([]interface{}, len(projects))
+	for i, v := range projects {
+		p[i] = v
+	}
+
+	if err := h.svc.db.Collection(pkg.CollectionProject).Insert(p...); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (h *Project) Update(project *billing.Project) error {
+	if err := h.svc.db.Collection(pkg.CollectionProject).UpdateId(bson.ObjectIdHex(project.Id), project); err != nil {
+		return err
+	}
+
 	key := fmt.Sprintf(pkg.CacheProjectId, project.Id)
 	if err := h.svc.cacher.Set(key, project, 0); err != nil {
 		return err

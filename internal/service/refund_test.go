@@ -62,9 +62,6 @@ func (suite *RefundTestSuite) SetupTest() {
 		IsActive: true,
 	}
 
-	err = db.Collection(pkg.CollectionCurrency).Insert(rub)
-	assert.NoError(suite.T(), err, "Insert currency test data failed")
-
 	rate := &billing.CurrencyRate{
 		CurrencyFrom: 643,
 		CurrencyTo:   643,
@@ -83,9 +80,6 @@ func (suite *RefundTestSuite) SetupTest() {
 		Name:     &billing.Name{Ru: "Россия", En: "Russia (Russian Federation)"},
 		IsActive: true,
 	}
-
-	err = db.Collection(pkg.CollectionCountry).Insert(country)
-	assert.NoError(suite.T(), err, "Insert country test data failed")
 
 	pmBankCard := &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
@@ -185,9 +179,6 @@ func (suite *RefundTestSuite) SetupTest() {
 		Status:                   pkg.ProjectStatusInProduction,
 		MerchantId:               merchant.Id,
 	}
-
-	err = db.Collection(pkg.CollectionProject).Insert(project)
-	assert.NoError(suite.T(), err, "Insert project test data failed")
 
 	pmQiwi := &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
@@ -321,6 +312,10 @@ func (suite *RefundTestSuite) SetupTest() {
 	broker, err := rabbitmq.NewBroker(cfg.BrokerAddress)
 	assert.NoError(suite.T(), err, "Creating RabbitMQ publisher failed")
 
+	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
+		suite.FailNow("Insert currency test data failed", "%v", err)
+	}
+
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
@@ -347,6 +342,14 @@ func (suite *RefundTestSuite) SetupTest() {
 	merchants := []*billing.Merchant{merchant, merchantAgreement, merchant1}
 	if err := suite.service.merchant.MultipleInsert(merchants); err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
+	}
+
+	if err := suite.service.project.Insert(project); err != nil {
+		suite.FailNow("Insert project test data failed", "%v", err)
+	}
+
+	if err := suite.service.country.Insert(country); err != nil {
+		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 
 	suite.project = project

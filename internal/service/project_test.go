@@ -106,9 +106,6 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		},
 	}
 
-	err = db.Collection(pkg.CollectionCurrency).Insert(rub)
-	assert.NoError(suite.T(), err, "Insert currency test data failed")
-
 	paymentMethods := map[string]*billing.MerchantPaymentMethod{
 		pm1.Id: {
 			Commission: &billing.MerchantPaymentMethodCommissions{
@@ -167,9 +164,6 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		Status:                   pkg.ProjectStatusInProduction,
 		MerchantId:               merchant.Id,
 	}
-
-	err = db.Collection(pkg.CollectionProject).Insert(project)
-	assert.NoError(suite.T(), err, "Insert project test data failed")
 
 	products := []interface{}{
 		&grpc.Product{
@@ -231,6 +225,10 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 	err = db.Collection(pkg.CollectionProduct).Insert(products...)
 	assert.NoError(suite.T(), err, "Insert product test data failed")
 
+	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
+		suite.FailNow("Insert currency test data failed", "%v", err)
+	}
+
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, suite.cache)
@@ -246,6 +244,10 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 
 	if err := suite.service.merchant.Insert(merchant); err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
+	}
+
+	if err := suite.service.project.Insert(project); err != nil {
+		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 
 	suite.merchant = merchant
@@ -826,11 +828,6 @@ func (suite *ProjectTestSuite) SetupTest() {
 		Name:     &billing.Name{Ru: "Российский рубль", En: "Russian ruble"},
 		IsActive: true,
 	}
-	currency := []interface{}{rub}
-	err = db.Collection(pkg.CollectionCurrency).Insert(currency...)
-	if err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
 
 	suite.project = &billing.Project{
 		Id:                 bson.NewObjectId().Hex(),
@@ -845,10 +842,6 @@ func (suite *ProjectTestSuite) SetupTest() {
 		SecretKey:          "test project 1 secret key",
 		Status:             pkg.ProjectStatusInProduction,
 	}
-	err = db.Collection(pkg.CollectionProject).Insert(suite.project)
-	if err != nil {
-		suite.FailNow("Insert project test data failed", "%v", err)
-	}
 
 	suite.log, err = zap.NewProduction()
 
@@ -856,13 +849,20 @@ func (suite *ProjectTestSuite) SetupTest() {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
+	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
+		suite.FailNow("Insert currency test data failed", "%v", err)
+	}
+
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, suite.cache)
-	err = suite.service.Init()
 
-	if err != nil {
+	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
+	}
+
+	if err := suite.service.project.Insert(suite.project); err != nil {
+		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 }
 

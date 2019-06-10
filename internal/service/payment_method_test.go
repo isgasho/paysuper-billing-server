@@ -52,11 +52,6 @@ func (suite *PaymentMethodTestSuite) SetupTest() {
 		Name:     &billing.Name{Ru: "Российский рубль", En: "Russian ruble"},
 		IsActive: true,
 	}
-	currency := []interface{}{rub}
-	err = db.Collection(pkg.CollectionCurrency).Insert(currency...)
-	if err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
 
 	suite.pmQiwi = &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
@@ -78,6 +73,10 @@ func (suite *PaymentMethodTestSuite) SetupTest() {
 
 	if err != nil {
 		suite.FailNow("Logger initialization failed", "%v", err)
+	}
+
+	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
+		suite.FailNow("Insert currency test data failed", "%v", err)
 	}
 
 	redisdb := mock.NewTestRedis()

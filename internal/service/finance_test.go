@@ -58,14 +58,6 @@ func (suite *FinanceTestSuite) SetupTest() {
 		IsActive: true,
 	}
 
-	currency := []interface{}{rub}
-
-	err = db.Collection(pkg.CollectionCurrency).Insert(currency...)
-
-	if err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
-
 	rate := []interface{}{
 		&billing.CurrencyRate{
 			CurrencyFrom: 643,
@@ -105,9 +97,6 @@ func (suite *FinanceTestSuite) SetupTest() {
 		Name:     &billing.Name{Ru: "Россия", En: "Russia (Russian Federation)"},
 		IsActive: true,
 	}
-
-	err = db.Collection(pkg.CollectionCountry).Insert(country)
-	assert.NoError(suite.T(), err, "Insert country test data failed")
 
 	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -360))
 	assert.NoError(suite.T(), err, "Generate merchant date failed")
@@ -179,9 +168,6 @@ func (suite *FinanceTestSuite) SetupTest() {
 		Status:             pkg.ProjectStatusInProduction,
 		MerchantId:         merchant.Id,
 	}
-
-	err = db.Collection(pkg.CollectionProject).Insert(project)
-	assert.NoError(suite.T(), err, "Insert project test data failed")
 
 	pmQiwi := &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
@@ -259,6 +245,10 @@ func (suite *FinanceTestSuite) SetupTest() {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
+	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
+		suite.FailNow("Insert currency test data failed", "%v", err)
+	}
+
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, suite.cache)
@@ -274,6 +264,14 @@ func (suite *FinanceTestSuite) SetupTest() {
 
 	if err := suite.service.merchant.Insert(merchant); err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
+	}
+
+	if err := suite.service.project.Insert(project); err != nil {
+		suite.FailNow("Insert project test data failed", "%v", err)
+	}
+
+	if err := suite.service.country.Insert(country); err != nil {
+		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 
 	suite.project = project

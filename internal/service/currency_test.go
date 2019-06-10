@@ -13,6 +13,14 @@ import (
 	"testing"
 )
 
+func InitTestCurrency(db *database.Source, country []interface{}) error {
+	if err := db.Collection(pkg.CollectionCurrency).Insert(country...); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 type CurrencyTestSuite struct {
 	suite.Suite
 	service *Service
@@ -50,11 +58,6 @@ func (suite *CurrencyTestSuite) SetupTest() {
 		Name:     &billing.Name{Ru: "Российский рубль", En: "Russian ruble"},
 		IsActive: true,
 	}
-	currency := []interface{}{rub}
-	err = db.Collection(pkg.CollectionCurrency).Insert(currency...)
-	if err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
 
 	suite.log, err = zap.NewProduction()
 
@@ -62,12 +65,15 @@ func (suite *CurrencyTestSuite) SetupTest() {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
+	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
+		suite.FailNow("Insert currency test data failed", "%v", err)
+	}
+
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, suite.cache)
-	err = suite.service.Init()
 
-	if err != nil {
+	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 }

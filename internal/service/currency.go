@@ -13,6 +13,19 @@ func newCurrencyService(svc *Service) *Currency {
 	return s
 }
 
+func (h *Currency) Insert(currency *billing.Currency) error {
+	if err := h.svc.db.Collection(pkg.CollectionCurrency).Insert(currency); err != nil {
+		return err
+	}
+
+	key := fmt.Sprintf(pkg.CacheCurrencyA3, currency.CodeA3)
+	if err := h.svc.cacher.Set(key, currency, 0); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (h Currency) GetByCodeA3(code string) (*billing.Currency, error) {
 	c := &billing.Currency{}
 	key := fmt.Sprintf(pkg.CacheCurrencyA3, code)

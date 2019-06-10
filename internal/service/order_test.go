@@ -176,9 +176,6 @@ func (suite *OrderTestSuite) SetupTest() {
 		IsActive: true,
 	}
 
-	err = db.Collection(pkg.CollectionCountry).Insert([]interface{}{ru, us, by}...)
-	assert.NoError(suite.T(), err, "Insert country test data failed")
-
 	pmBankCard := &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
 		Name:             "Bank card",
@@ -516,22 +513,6 @@ func (suite *OrderTestSuite) SetupTest() {
 		Status:             pkg.ProjectStatusDeleted,
 	}
 
-	projects := []interface{}{
-		project,
-		projectFixedAmount,
-		inactiveProject,
-		projectWithoutPaymentMethods,
-		projectIncorrectPaymentMethodId,
-		projectEmptyPaymentMethodTerminal,
-		projectUahLimitCurrency,
-	}
-
-	err = db.Collection(pkg.CollectionProject).Insert(projects...)
-
-	if err != nil {
-		suite.FailNow("Insert project test data failed", "%v", err)
-	}
-
 	pmWebMoney := &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
 		Name:             "WebMoney",
@@ -762,6 +743,24 @@ func (suite *OrderTestSuite) SetupTest() {
 	merchants := []*billing.Merchant{merchant, merchantAgreement, merchant1}
 	if err := suite.service.merchant.MultipleInsert(merchants); err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
+	}
+
+	country := []*billing.Country{ru, us, by}
+	if err := suite.service.country.MultipleInsert(country); err != nil {
+		suite.FailNow("Insert country test data failed", "%v", err)
+	}
+
+	projects := []*billing.Project{
+		project,
+		projectFixedAmount,
+		inactiveProject,
+		projectWithoutPaymentMethods,
+		projectIncorrectPaymentMethodId,
+		projectEmptyPaymentMethodTerminal,
+		projectUahLimitCurrency,
+	}
+	if err := suite.service.project.MultipleInsert(projects); err != nil {
+		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 
 	var productIds []string

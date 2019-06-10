@@ -68,26 +68,17 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		IsActive: true,
 	}
 
-	currency := []interface{}{
-		&billing.Currency{
-			CodeInt:  840,
-			CodeA3:   "USD",
-			Name:     &billing.Name{Ru: "Доллар США", En: "US Dollar"},
-			IsActive: true,
-		},
-		rub,
-		&billing.Currency{
-			CodeInt:  980,
-			CodeA3:   "UAH",
-			Name:     &billing.Name{Ru: "Украинская гривна", En: "Ukrainian Hryvnia"},
-			IsActive: true,
-		},
+	usd := &billing.Currency{
+		CodeInt:  840,
+		CodeA3:   "USD",
+		Name:     &billing.Name{Ru: "Доллар США", En: "US Dollar"},
+		IsActive: true,
 	}
-
-	err = suite.db.Collection(pkg.CollectionCurrency).Insert(currency...)
-
-	if err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
+	uah := &billing.Currency{
+		CodeInt:  980,
+		CodeA3:   "UAH",
+		Name:     &billing.Name{Ru: "Украинская гривна", En: "Ukrainian Hryvnia"},
+		IsActive: true,
 	}
 
 	country := &billing.Country{
@@ -97,9 +88,6 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		Name:     &billing.Name{Ru: "Россия", En: "Russia (Russian Federation)"},
 		IsActive: true,
 	}
-
-	err = db.Collection(pkg.CollectionCountry).Insert(country)
-	assert.NoError(suite.T(), err, "Insert country test data failed")
 
 	pmBankCard := &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
@@ -224,14 +212,6 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		IsProductsCheckout: true,
 		SecretKey:          "test project 3 secret key",
 		Status:             pkg.ProjectStatusInProduction,
-	}
-
-	project := []interface{}{projectDefault, projectXsolla, projectCardpay}
-
-	err = suite.db.Collection(pkg.CollectionProject).Insert(project...)
-
-	if err != nil {
-		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 
 	rate := []interface{}{
@@ -436,6 +416,10 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		suite.FailNow("Creating RabbitMQ publisher failed", "%v", err)
 	}
 
+	if err := InitTestCurrency(db, []interface{}{rub, usd, uah}); err != nil {
+		suite.FailNow("Insert currency test data failed", "%v", err)
+	}
+
 	redisdb := mock.NewTestRedis()
 	suite.service = NewBillingService(
 		db,
@@ -460,6 +444,19 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 
 	if err := suite.service.merchant.Insert(merchant); err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
+	}
+
+	if err := suite.service.country.Insert(country); err != nil {
+		suite.FailNow("Insert country test data failed", "%v", err)
+	}
+
+	projects := []*billing.Project{
+		projectDefault,
+		projectXsolla,
+		projectCardpay,
+	}
+	if err := suite.service.project.MultipleInsert(projects); err != nil {
+		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 
 	suite.exCh = make(chan bool, 1)

@@ -51,10 +51,23 @@ func (suite *CountryTestSuite) SetupTest() {
 		Name:     &billing.Name{Ru: "Российский рубль", En: "Russian ruble"},
 		IsActive: true,
 	}
-	currency := []interface{}{rub}
-	err = db.Collection(pkg.CollectionCurrency).Insert(currency...)
+
+	suite.log, err = zap.NewProduction()
+
 	if err != nil {
+		suite.FailNow("Logger initialization failed", "%v", err)
+	}
+
+	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
 		suite.FailNow("Insert currency test data failed", "%v", err)
+	}
+
+	redisdb := mock.NewTestRedis()
+	suite.cache = NewCacheRedis(redisdb)
+	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, suite.cache)
+
+	if err := suite.service.Init(); err != nil {
+		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 
 	suite.country = &billing.Country{
@@ -64,21 +77,8 @@ func (suite *CountryTestSuite) SetupTest() {
 		Name:     &billing.Name{Ru: "Россия", En: "Russia (Russian Federation)"},
 		IsActive: true,
 	}
-	err = db.Collection(pkg.CollectionCountry).Insert(suite.country)
-	assert.NoError(suite.T(), err, "Insert country test data failed")
-
-	suite.log, err = zap.NewProduction()
-
-	if err != nil {
-		suite.FailNow("Logger initialization failed", "%v", err)
-	}
-
-	redisdb := mock.NewTestRedis()
-	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, suite.cache)
-
-	if err := suite.service.Init(); err != nil {
-		suite.FailNow("Billing service initialization failed", "%v", err)
+	if err := suite.service.country.Insert(suite.country); err != nil {
+		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 }
 

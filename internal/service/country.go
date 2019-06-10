@@ -13,6 +13,32 @@ func newCountryService(svc *Service) *Country {
 	return s
 }
 
+func (h *Country) Insert(country *billing.Country) error {
+	if err := h.svc.db.Collection(pkg.CollectionCountry).Insert(country); err != nil {
+		return err
+	}
+
+	key := fmt.Sprintf(pkg.CacheCountryCodeA2, country.CodeA2)
+	if err := h.svc.cacher.Set(key, country, 0); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h Country) MultipleInsert(country []*billing.Country) error {
+	c := make([]interface{}, len(country))
+	for i, v := range country {
+		c[i] = v
+	}
+
+	if err := h.svc.db.Collection(pkg.CollectionCountry).Insert(c...); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (h Country) GetByCodeA2(code string) (*billing.Country, error) {
 	c := &billing.Country{}
 	key := fmt.Sprintf(pkg.CacheCountryCodeA2, code)
