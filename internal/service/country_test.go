@@ -5,7 +5,6 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
-	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -102,5 +101,5 @@ func (suite *CountryTestSuite) TestCountry_GetCountryByCodeA2_NotFound() {
 	_, err := suite.service.country.GetByCodeA2("AAA")
 
 	assert.Error(suite.T(), err)
-	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, pkg.CollectionCountry))
+	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, collectionCountry))
 }
