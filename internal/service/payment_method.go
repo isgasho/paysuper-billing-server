@@ -24,7 +24,9 @@ func (h PaymentMethod) GetByGroupAndCurrency(group string, currency int32) (*bil
 	key := fmt.Sprintf(cachePaymentMethodGroup, group)
 
 	if err := h.svc.cacher.Get(key, c); err != nil {
-		if err = h.svc.db.Collection(collectionPaymentMethod).Find(bson.M{"group_alias": group, "currencies": currency}).One(&c); err != nil {
+		if err = h.svc.db.Collection(collectionPaymentMethod).
+			Find(bson.M{"group_alias": group, "currencies": currency}).
+			One(&c); err != nil {
 			return nil, fmt.Errorf(errorNotFound, collectionPaymentMethod)
 		}
 	}
@@ -38,7 +40,9 @@ func (h PaymentMethod) GetById(id string) (*billing.PaymentMethod, error) {
 	key := fmt.Sprintf(cachePaymentMethodId, id)
 
 	if err := h.svc.cacher.Get(key, c); err != nil {
-		if err = h.svc.db.Collection(collectionPaymentMethod).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&c); err != nil {
+		if err = h.svc.db.Collection(collectionPaymentMethod).
+			Find(bson.M{"_id": bson.ObjectIdHex(id)}).
+			One(&c); err != nil {
 			return nil, fmt.Errorf(errorNotFound, collectionPaymentMethod)
 		}
 	}

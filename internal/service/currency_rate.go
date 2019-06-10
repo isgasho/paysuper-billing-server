@@ -48,7 +48,9 @@ func (h *CurrencyRate) GetFromTo(from int32, to int32) (*billing.CurrencyRate, e
 	key := fmt.Sprintf(cacheCurrencyRateFromTo, from, to)
 
 	if err := h.svc.cacher.Get(key, c); err != nil {
-		if err = h.svc.db.Collection(collectionCurrencyRate).Find(bson.M{"is_active": true, "currency_from": from, "currency_to": to}).One(&c); err != nil {
+		if err = h.svc.db.Collection(collectionCurrencyRate).
+			Find(bson.M{"is_active": true, "currency_from": from, "currency_to": to}).
+			One(&c); err != nil {
 			return nil, fmt.Errorf(errorNotFound, collectionCurrencyRate)
 		}
 	}
