@@ -668,7 +668,8 @@ message CardExpire {
 message SavedCard {
     string id = 1;
     string pan = 2;
-    CardExpire expire = 3;
+    string card_holder = 3;
+    CardExpire expire = 4;
 }
 
 message PaymentFormPaymentMethod {
