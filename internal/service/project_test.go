@@ -469,30 +469,6 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_LimitCurrencyNo
 	assert.Nil(suite.T(), rsp.Item)
 }
 
-func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_MgoInsertError() {
-	m := suite.merchant
-	m.Id = "qwerty"
-	suite.service.merchant.Update(m)
-
-	req := &billing.Project{
-		MerchantId:         "qwerty",
-		Name:               map[string]string{"en": "Unit test", "ru": "Юнит тест"},
-		CallbackCurrency:   "RUB",
-		CallbackProtocol:   pkg.ProjectCallbackProtocolEmpty,
-		LimitsCurrency:     "RUB",
-		MinPaymentAmount:   0,
-		MaxPaymentAmount:   15000,
-		IsProductsCheckout: false,
-	}
-	rsp := &grpc.ChangeProjectResponse{}
-	err := suite.service.ChangeProject(context.TODO(), req, rsp)
-
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp.Status)
-	assert.Equal(suite.T(), orderErrorUnknown, rsp.Message)
-	assert.Nil(suite.T(), rsp.Item)
-}
-
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_GetProject_Ok() {
 	req := &grpc.GetProjectRequest{
 		ProjectId:  suite.project.Id,
