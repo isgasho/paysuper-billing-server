@@ -109,6 +109,49 @@ func (suite *SystemFeesTestSuite) SetupTest() {
 	regions := []string{"", "EU"}
 	adminUserId := bson.NewObjectId().Hex()
 
+	suite.log, err = zap.NewProduction()
+	assert.NoError(suite.T(), err, "Logger initialization failed")
+
+	broker, err := rabbitmq.NewBroker(cfg.BrokerAddress)
+	assert.NoError(suite.T(), err, "Creating RabbitMQ publisher failed")
+
+	if err := InitTestCurrency(db, []interface{}{rub, usd}); err != nil {
+		suite.FailNow("Insert currency test data failed", "%v", err)
+	}
+
+	redisdb := mock.NewTestRedis()
+	suite.cache = NewCacheRedis(redisdb)
+	suite.service = NewBillingService(
+		db,
+		cfg,
+		make(chan bool, 1),
+		mock.NewGeoIpServiceTestOk(),
+		mock.NewRepositoryServiceOk(),
+		mock.NewTaxServiceOkMock(),
+		broker,
+		nil,
+		suite.cache,
+	)
+
+	if err := suite.service.Init(); err != nil {
+		suite.FailNow("Billing service initialization failed", "%v", err)
+	}
+
+	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {
+		suite.FailNow("Insert payment methods test data failed", "%v", err)
+	}
+
+	country := &billing.Country{
+		CodeInt:  840,
+		CodeA2:   "US",
+		CodeA3:   "USA",
+		Name:     &billing.Name{Ru: "США", En: "USA"},
+		IsActive: true,
+	}
+	if err := suite.service.country.Insert(country); err != nil {
+		suite.FailNow("Insert country test data failed", "%v", err)
+	}
+
 	for _, pm := range pms {
 		for _, reg := range regions {
 
@@ -172,58 +215,15 @@ func (suite *SystemFeesTestSuite) SetupTest() {
 		}
 	}
 
-	suite.log, err = zap.NewProduction()
-	assert.NoError(suite.T(), err, "Logger initialization failed")
-
-	broker, err := rabbitmq.NewBroker(cfg.BrokerAddress)
-	assert.NoError(suite.T(), err, "Creating RabbitMQ publisher failed")
-
-	if err := InitTestCurrency(db, []interface{}{rub, usd}); err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
-
-	redisdb := mock.NewTestRedis()
-	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(
-		db,
-		cfg,
-		make(chan bool, 1),
-		mock.NewGeoIpServiceTestOk(),
-		mock.NewRepositoryServiceOk(),
-		mock.NewTaxServiceOkMock(),
-		broker,
-		nil,
-		suite.cache,
-	)
-
-	if err := suite.service.Init(); err != nil {
-		suite.FailNow("Billing service initialization failed", "%v", err)
-	}
-
-	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {
-		suite.FailNow("Insert payment methods test data failed", "%v", err)
-	}
-
-	country := &billing.Country{
-		CodeInt:  840,
-		CodeA2:   "US",
-		CodeA3:   "USA",
-		Name:     &billing.Name{Ru: "США", En: "USA"},
-		IsActive: true,
-	}
-	if err := suite.service.country.Insert(country); err != nil {
-		suite.FailNow("Insert country test data failed", "%v", err)
-	}
-
 	suite.AdminUserId = adminUserId
 	suite.paymentMethod = pmBankCard
 	suite.pmWebMoney = pmWebMoney
 }
 
 func (suite *SystemFeesTestSuite) TearDownTest() {
-	if err := suite.service.db.Drop(); err != nil {
+	/*if err := suite.service.db.Drop(); err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
-	}
+	}*/
 
 	suite.service.db.Close()
 }

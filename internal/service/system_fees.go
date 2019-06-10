@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -113,22 +112,17 @@ func (s *Service) AddSystemFees(
 		IsActive:  true,
 	}
 
-	query := bson.M{"method_id": bson.ObjectIdHex(req.MethodId), "region": req.Region, "card_brand": req.CardBrand, "is_active": true}
-	err = s.db.Collection(pkg.CollectionSystemFees).Update(query, bson.M{"$set": bson.M{"is_active": false}})
-
-	if err != nil && err != mgo.ErrNotFound {
-		s.logError("Query to disable old fees failed", []interface{}{"err", err.Error(), "query", query, "req", req})
-		return err
+	f, err := s.systemFees.Find(req.MethodId, req.Region, req.CardBrand)
+	if f != nil {
+		f.IsActive = false
+		if err := s.systemFees.Update(f); err != nil {
+			s.logError("Query to disable old fees failed", []interface{}{"err", err.Error(), "req", req})
+			return err
+		}
 	}
 
-	err = s.db.Collection(pkg.CollectionSystemFees).Insert(fees)
-
-	if err != nil {
+	if err := s.systemFees.Insert(fees); err != nil {
 		s.logError("Query to add fees failed", []interface{}{"err", err.Error(), "data", req})
-		return err
-	}
-
-	if err := s.systemFees.Update(fees); err != nil {
 		return err
 	}
 
@@ -195,7 +189,23 @@ func newSystemFeesService(svc *Service) *SystemFee {
 	return s
 }
 
+func (h *SystemFee) Insert(fees *billing.SystemFees) error {
+	if err := h.svc.db.Collection(pkg.CollectionSystemFees).Insert(fees); err != nil {
+		return err
+	}
+
+	if err := h.svc.cacher.Set(fmt.Sprintf(CacheSystemFeesMethodRegionBrand, fees.MethodId, fees.Region, fees.CardBrand), fees, 0); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (h *SystemFee) Update(fees *billing.SystemFees) error {
+	if err := h.svc.db.Collection(pkg.CollectionSystemFees).UpdateId(bson.ObjectIdHex(fees.Id), fees); err != nil {
+		return err
+	}
+
 	if err := h.svc.cacher.Set(fmt.Sprintf(CacheSystemFeesMethodRegionBrand, fees.MethodId, fees.Region, fees.CardBrand), fees, 0); err != nil {
 		return err
 	}
