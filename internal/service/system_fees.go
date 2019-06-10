@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/globalsign/mgo"
@@ -21,6 +20,8 @@ type kv struct {
 }
 
 const (
+	CacheSystemFeesMethodRegionBrand = pkg.CollectionSystemFees + ":method:%s:region:%s:brand:%s"
+
 	errorSystemFeeCardBrandRequired        = "card brand required for this method"
 	errorSystemFeeCardBrandNotAllowed      = "card brand not allowed for this method"
 	errorSystemFeeCardBrandInvalid         = "card brand invalid or not supported"
@@ -195,8 +196,7 @@ func newSystemFeesService(svc *Service) *SystemFee {
 }
 
 func (h *SystemFee) Update(fees *billing.SystemFees) error {
-	key := fmt.Sprintf(pkg.CacheSystemFeesMethodRegionBrand, fees.MethodId, fees.Region, fees.CardBrand)
-	if err := h.svc.cacher.Set(key, fees, 0); err != nil {
+	if err := h.svc.cacher.Set(fmt.Sprintf(CacheSystemFeesMethodRegionBrand, fees.MethodId, fees.Region, fees.CardBrand), fees, 0); err != nil {
 		return err
 	}
 
@@ -204,23 +204,15 @@ func (h *SystemFee) Update(fees *billing.SystemFees) error {
 }
 
 func (h SystemFee) Find(methodId string, region string, cardBrand string) (*billing.SystemFees, error) {
-	c := &billing.SystemFees{}
-	key := fmt.Sprintf(pkg.CacheSystemFeesMethodRegionBrand, methodId, region, cardBrand)
-	res, err := h.svc.cacher.Get(key)
+	var c billing.SystemFees
+	key := fmt.Sprintf(CacheSystemFeesMethodRegionBrand, methodId, region, cardBrand)
 
-	if res != nil {
-		err := json.Unmarshal(res, &c)
-		if err != nil {
-			return nil, fmt.Errorf(errorInterfaceCast, pkg.CollectionSystemFees)
+	if err := h.svc.cacher.Get(key, c); err != nil {
+		if err = h.svc.db.Collection(pkg.CollectionSystemFees).Find(bson.M{"method_id": bson.ObjectIdHex(methodId), "region": region, "card_brand": cardBrand, "is_active": true}).One(&c); err != nil {
+			return nil, fmt.Errorf(errorNotFound, pkg.CollectionSystemFees)
 		}
-		return c, nil
-	}
-
-	err = h.svc.db.Collection(pkg.CollectionSystemFees).Find(bson.M{"method_id": bson.ObjectIdHex(methodId), "region": region, "card_brand": cardBrand}).One(&c)
-	if err != nil {
-		return nil, fmt.Errorf(errorNotFound, pkg.CollectionSystemFees)
 	}
 
 	_ = h.svc.cacher.Set(key, c, 0)
-	return c, nil
+	return &c, nil
 }

@@ -1,12 +1,15 @@
 package service
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+)
+
+const (
+	CacheMerchantId = pkg.CollectionMerchant + ":id:%s"
 )
 
 func newMerchantService(svc *Service) *Merchant {
@@ -19,8 +22,7 @@ func (h *Merchant) Update(merchant *billing.Merchant) error {
 		return err
 	}
 
-	key := fmt.Sprintf(pkg.CacheMerchantId, merchant.Id)
-	if err := h.svc.cacher.Set(key, merchant, 0); err != nil {
+	if err := h.svc.cacher.Set(fmt.Sprintf(CacheMerchantId, merchant.Id), merchant, 0); err != nil {
 		return err
 	}
 
@@ -32,8 +34,7 @@ func (h *Merchant) Insert(merchant *billing.Merchant) error {
 		return err
 	}
 
-	key := fmt.Sprintf(pkg.CacheMerchantId, merchant.Id)
-	if err := h.svc.cacher.Set(key, merchant, 0); err != nil {
+	if err := h.svc.cacher.Set(fmt.Sprintf(CacheMerchantId, merchant.Id), merchant, 0); err != nil {
 		return err
 	}
 
@@ -54,25 +55,17 @@ func (h *Merchant) MultipleInsert(merchants []*billing.Merchant) error {
 }
 
 func (h *Merchant) GetById(id string) (*billing.Merchant, error) {
-	c := &billing.Merchant{}
-	key := fmt.Sprintf(pkg.CacheMerchantId, id)
-	res, err := h.svc.cacher.Get(key)
+	var c billing.Merchant
+	key := fmt.Sprintf(CacheMerchantId, id)
 
-	if res != nil {
-		err := json.Unmarshal(res, &c)
-		if err != nil {
-			return nil, fmt.Errorf(errorInterfaceCast, pkg.CollectionMerchant)
+	if err := h.svc.cacher.Get(key, c); err != nil {
+		if err = h.svc.db.Collection(pkg.CollectionMerchant).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&c); err != nil {
+			return nil, fmt.Errorf(errorNotFound, pkg.CollectionMerchant)
 		}
-		return c, nil
-	}
-
-	err = h.svc.db.Collection(pkg.CollectionMerchant).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&c)
-	if err != nil {
-		return nil, fmt.Errorf(errorNotFound, pkg.CollectionMerchant)
 	}
 
 	_ = h.svc.cacher.Set(key, c, 0)
-	return c, nil
+	return &c, nil
 }
 
 func (h Merchant) GetPaymentMethod(merchantId string, method string) (*billing.MerchantPaymentMethod, error) {

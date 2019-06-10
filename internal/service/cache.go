@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-redis/redis"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"time"
 )
 
@@ -13,7 +14,7 @@ const (
 
 type CacheInterface interface {
 	Set(string, interface{}, time.Duration) error
-	Get(string) ([]byte, error)
+	Get(string, interface{}) error
 	Delete(string) error
 	Clean()
 }
@@ -39,13 +40,18 @@ func (c *Cache) Set(key string, value interface{}, duration time.Duration) error
 	return nil
 }
 
-func (c *Cache) Get(key string) ([]byte, error) {
+func (c *Cache) Get(key string, obj interface{}) error {
 	b, err := c.redis.Get(fmt.Sprintf(CacheStorageKey, key)).Bytes()
+
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return b, nil
+	if err := json.Unmarshal(b, obj); err != nil {
+		return fmt.Errorf(errorInterfaceCast, pkg.CollectionCurrency)
+	}
+
+	return nil
 }
 
 func (c *Cache) Delete(key string) error {

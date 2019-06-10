@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/globalsign/mgo"
@@ -14,6 +13,8 @@ import (
 )
 
 const (
+	CacheProjectId = pkg.CollectionProject + ":id:%s"
+
 	projectErrorNotFound                  = "project with specified identifier not found"
 	projectErrorNameDefaultLangRequired   = "project name in \"" + DefaultLanguage + "\" locale is required"
 	projectErrorCallbackCurrencyIncorrect = "project callback currency is incorrect"
@@ -366,8 +367,7 @@ func (h *Project) Insert(project *billing.Project) error {
 		return err
 	}
 
-	key := fmt.Sprintf(pkg.CacheProjectId, project.Id)
-	if err := h.svc.cacher.Set(key, project, 0); err != nil {
+	if err := h.svc.cacher.Set(fmt.Sprintf(CacheProjectId, project.Id), project, 0); err != nil {
 		return err
 	}
 
@@ -392,8 +392,7 @@ func (h *Project) Update(project *billing.Project) error {
 		return err
 	}
 
-	key := fmt.Sprintf(pkg.CacheProjectId, project.Id)
-	if err := h.svc.cacher.Set(key, project, 0); err != nil {
+	if err := h.svc.cacher.Set(fmt.Sprintf(CacheProjectId, project.Id), project, 0); err != nil {
 		return err
 	}
 
@@ -401,23 +400,15 @@ func (h *Project) Update(project *billing.Project) error {
 }
 
 func (h Project) GetById(id string) (*billing.Project, error) {
-	c := &billing.Project{}
-	key := fmt.Sprintf(pkg.CacheProjectId, id)
-	res, err := h.svc.cacher.Get(key)
+	var c billing.Project
+	key := fmt.Sprintf(CacheProjectId, id)
 
-	if res != nil {
-		err := json.Unmarshal(res, &c)
-		if err != nil {
-			return nil, fmt.Errorf(errorInterfaceCast, pkg.CollectionProject)
+	if err := h.svc.cacher.Get(key, c); err != nil {
+		if err = h.svc.db.Collection(pkg.CollectionProject).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&c); err != nil {
+			return nil, fmt.Errorf(errorNotFound, pkg.CollectionProject)
 		}
-		return c, nil
-	}
-
-	err = h.svc.db.Collection(pkg.CollectionProject).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&c)
-	if err != nil {
-		return nil, fmt.Errorf(errorNotFound, pkg.CollectionProject)
 	}
 
 	_ = h.svc.cacher.Set(key, c, 0)
-	return c, nil
+	return &c, nil
 }
