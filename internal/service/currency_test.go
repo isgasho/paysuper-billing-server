@@ -2,9 +2,9 @@ package service
 
 import (
 	"fmt"
-	"github.com/go-redis/redis"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
+	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/stretchr/testify/assert"
@@ -17,6 +17,7 @@ type CurrencyTestSuite struct {
 	suite.Suite
 	service *Service
 	log     *zap.Logger
+	cache   CacheInterface
 }
 
 func Test_Currency(t *testing.T) {
@@ -61,15 +62,9 @@ func (suite *CurrencyTestSuite) SetupTest() {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
-	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs:        cfg.CacheRedis.Address,
-		Password:     cfg.CacheRedis.Password,
-		MaxRetries:   cfg.CacheRedis.MaxRetries,
-		MaxRedirects: cfg.CacheRedis.MaxRedirects,
-		PoolSize:     cfg.CacheRedis.PoolSize,
-	})
-
-	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, NewCacheRedis(redisdb))
+	redisdb := mock.NewTestRedis()
+	suite.cache = NewCacheRedis(redisdb)
+	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, suite.cache)
 	err = suite.service.Init()
 
 	if err != nil {
@@ -86,7 +81,7 @@ func (suite *CurrencyTestSuite) TearDownTest() {
 }
 
 func (suite *CurrencyTestSuite) TestCurrency_GetCurrencyByCodeA3_Ok() {
-	c, err := suite.service.currency.GetCurrencyByCodeA3("RUB")
+	c, err := suite.service.currency.GetByCodeA3("RUB")
 
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), c)
@@ -94,14 +89,8 @@ func (suite *CurrencyTestSuite) TestCurrency_GetCurrencyByCodeA3_Ok() {
 }
 
 func (suite *CurrencyTestSuite) TestCurrency_GetCurrencyByCodeA3_NotFound() {
-	_, err := suite.service.currency.GetCurrencyByCodeA3("AAA")
+	_, err := suite.service.currency.GetByCodeA3("AAA")
 
 	assert.Error(suite.T(), err)
 	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, pkg.CollectionCurrency))
-}
-
-func (suite *CurrencyTestSuite) TestCurrency_GetAll() {
-	c := suite.service.currency.GetAll()
-
-	assert.NotNil(suite.T(), c)
 }

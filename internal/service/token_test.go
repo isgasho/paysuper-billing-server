@@ -6,6 +6,7 @@ import (
 	"github.com/go-redis/redis"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
+	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -18,6 +19,7 @@ import (
 type TokenTestSuite struct {
 	suite.Suite
 	service *Service
+	cache   CacheInterface
 
 	project             *billing.Project
 	projectWithProducts *billing.Project
@@ -135,14 +137,8 @@ func (suite *TokenTestSuite) SetupTest() {
 		},
 	)
 
-	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs:        cfg.CacheRedis.Address,
-		Password:     cfg.CacheRedis.Password,
-		MaxRetries:   cfg.CacheRedis.MaxRetries,
-		MaxRedirects: cfg.CacheRedis.MaxRedirects,
-		PoolSize:     cfg.CacheRedis.PoolSize,
-	})
-
+	redisdb := mock.NewTestRedis()
+	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
 		db,
 		cfg,
@@ -152,7 +148,7 @@ func (suite *TokenTestSuite) SetupTest() {
 		nil,
 		nil,
 		redisClient,
-		NewCacheRedis(redisdb),
+		suite.cache,
 	)
 	err = suite.service.Init()
 	assert.NoError(suite.T(), err, "Billing service initialization failed")

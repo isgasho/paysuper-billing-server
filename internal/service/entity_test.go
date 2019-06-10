@@ -3,10 +3,10 @@ package service
 import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
-	"github.com/go-redis/redis"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
+	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/stretchr/testify/assert"
@@ -20,6 +20,7 @@ type EntityTestSuite struct {
 	suite.Suite
 	service *Service
 	log     *zap.Logger
+	cache   CacheInterface
 
 	projectId     string
 	paymentMethod *billing.PaymentMethod
@@ -147,14 +148,6 @@ func (suite *EntityTestSuite) SetupTest() {
 		},
 		Type:     "crypto",
 		IsActive: true,
-	}
-
-	pms := []interface{}{pmBankCard, pmQiwi, pmBitcoin}
-
-	err = db.Collection(pkg.CollectionPaymentMethod).Insert(pms...)
-
-	if err != nil {
-		suite.FailNow("Insert payment methods test data failed", "%v", err)
 	}
 
 	commissionStartDate, err := ptypes.TimestampProto(time.Now().Add(time.Minute * -10))
@@ -343,19 +336,17 @@ func (suite *EntityTestSuite) SetupTest() {
 
 	suite.projectId = project.Id
 
-	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs:        cfg.CacheRedis.Address,
-		Password:     cfg.CacheRedis.Password,
-		MaxRetries:   cfg.CacheRedis.MaxRetries,
-		MaxRedirects: cfg.CacheRedis.MaxRedirects,
-		PoolSize:     cfg.CacheRedis.PoolSize,
-	})
+	redisdb := mock.NewTestRedis()
+	suite.cache = NewCacheRedis(redisdb)
+	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, suite.cache)
 
-	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, NewCacheRedis(redisdb))
-	err = suite.service.Init()
-
-	if err != nil {
+	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
+	}
+
+	pms := []*billing.PaymentMethod{pmBankCard, pmQiwi, pmBitcoin}
+	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {
+		suite.FailNow("Insert payment methods test data failed", "%v", err)
 	}
 
 	suite.paymentMethod = pmBankCard
@@ -369,8 +360,8 @@ func (suite *EntityTestSuite) TearDownTest() {
 	suite.service.db.Close()
 }
 
-func (suite *EntityTestSuite) TestProject_GetGetPaymentMethodByGroupAndCurrencyOk() {
-	pm, err := suite.service.paymentMethod.GetPaymentMethodByGroupAndCurrency(suite.paymentMethod.Group, 643)
+func (suite *EntityTestSuite) TestProject_GetPaymentMethodByGroupAndCurrency_Ok() {
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(suite.paymentMethod.Group, 643)
 
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
@@ -378,16 +369,16 @@ func (suite *EntityTestSuite) TestProject_GetGetPaymentMethodByGroupAndCurrencyO
 	assert.Equal(suite.T(), suite.paymentMethod.Group, pm.Group)
 }
 
-func (suite *EntityTestSuite) TestProject_GetGetPaymentMethodByGroupAndCurrency_GroupError() {
-	pm, err := suite.service.paymentMethod.GetPaymentMethodByGroupAndCurrency("group_from_my_head", 643)
+func (suite *EntityTestSuite) TestProject_GetPaymentMethodByGroupAndCurrency_GroupError() {
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency("group_from_my_head", 643)
 
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), pm)
 	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, pkg.CollectionPaymentMethod), err.Error())
 }
 
-func (suite *EntityTestSuite) TestProject_GetGetPaymentMethodByGroupAndCurrency_CurrencyError() {
-	pm, err := suite.service.paymentMethod.GetPaymentMethodByGroupAndCurrency(suite.paymentMethod.Group, 960)
+func (suite *EntityTestSuite) TestProject_GetPaymentMethodByGroupAndCurrency_CurrencyError() {
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(suite.paymentMethod.Group, 960)
 
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), pm)

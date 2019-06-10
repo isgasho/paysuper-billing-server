@@ -3,9 +3,9 @@ package service
 import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
-	"github.com/go-redis/redis"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
+	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/stretchr/testify/assert"
@@ -18,6 +18,7 @@ type PaymentMethodTestSuite struct {
 	suite.Suite
 	service *Service
 	log     *zap.Logger
+	cache   CacheInterface
 	pmQiwi  *billing.PaymentMethod
 }
 
@@ -72,11 +73,6 @@ func (suite *PaymentMethodTestSuite) SetupTest() {
 		Type:     "ewallet",
 		IsActive: true,
 	}
-	pms := []interface{}{suite.pmQiwi}
-	err = db.Collection(pkg.CollectionPaymentMethod).Insert(pms...)
-	if err != nil {
-		suite.FailNow("Insert payment methods test data failed", "%v", err)
-	}
 
 	suite.log, err = zap.NewProduction()
 
@@ -84,19 +80,17 @@ func (suite *PaymentMethodTestSuite) SetupTest() {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
-	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs:        cfg.CacheRedis.Address,
-		Password:     cfg.CacheRedis.Password,
-		MaxRetries:   cfg.CacheRedis.MaxRetries,
-		MaxRedirects: cfg.CacheRedis.MaxRedirects,
-		PoolSize:     cfg.CacheRedis.PoolSize,
-	})
+	redisdb := mock.NewTestRedis()
+	suite.cache = NewCacheRedis(redisdb)
+	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, suite.cache)
 
-	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, NewCacheRedis(redisdb))
-	err = suite.service.Init()
-
-	if err != nil {
+	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
+	}
+
+	pms := []*billing.PaymentMethod{suite.pmQiwi}
+	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {
+		suite.FailNow("Insert payment methods test data failed", "%v", err)
 	}
 }
 
@@ -115,7 +109,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetAll() {
 }
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodById_Ok() {
-	pm, err := suite.service.paymentMethod.GetPaymentMethodById(suite.pmQiwi.Id)
+	pm, err := suite.service.paymentMethod.GetById(suite.pmQiwi.Id)
 
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
@@ -123,14 +117,14 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodById_Ok()
 }
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodById_NotFound() {
-	_, err := suite.service.paymentMethod.GetPaymentMethodById("unknown")
+	_, err := suite.service.paymentMethod.GetById(bson.NewObjectId().Hex())
 
 	assert.Error(suite.T(), err)
 	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, pkg.CollectionPaymentMethod))
 }
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodByGroupAndCurrency_Ok() {
-	pm, err := suite.service.paymentMethod.GetPaymentMethodByGroupAndCurrency(suite.pmQiwi.Group, 643)
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(suite.pmQiwi.Group, 643)
 
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
@@ -138,11 +132,11 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodByGroupAn
 }
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodByGroupAndCurrency_NotFound() {
-	_, err := suite.service.paymentMethod.GetPaymentMethodByGroupAndCurrency("unknown", 643)
+	_, err := suite.service.paymentMethod.GetByGroupAndCurrency("unknown", 643)
 	assert.Error(suite.T(), err)
 	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, pkg.CollectionPaymentMethod))
 
-	_, err = suite.service.paymentMethod.GetPaymentMethodByGroupAndCurrency(suite.pmQiwi.Group, 1)
+	_, err = suite.service.paymentMethod.GetByGroupAndCurrency(suite.pmQiwi.Group, 1)
 	assert.Error(suite.T(), err)
 	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, pkg.CollectionPaymentMethod))
 }

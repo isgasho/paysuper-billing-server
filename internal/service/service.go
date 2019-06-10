@@ -29,6 +29,7 @@ const (
 	errorNotFound                   = "[PAYONE_BILLING] %s not found"
 	errorQueryMask                  = "[PAYONE_BILLING] Query from collection \"%s\" failed"
 	errorAccountingCurrencyNotFound = "[PAYONE_BILLING] Accounting currency not found"
+	errorInterfaceCast              = "[PAYONE_BILLING] Unable to cast interface to object %s"
 
 	errorBbNotFoundMessage = "not found"
 
@@ -125,7 +126,7 @@ func (s *Service) Init() (err error) {
 		},
 	)
 
-	s.accountingCurrency, err = s.currency.GetCurrencyByCodeA3(s.cfg.AccountingCurrency)
+	s.accountingCurrency, err = s.currency.GetByCodeA3(s.cfg.AccountingCurrency)
 
 	if err != nil {
 		return errors.New(errorAccountingCurrencyNotFound)

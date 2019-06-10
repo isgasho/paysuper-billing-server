@@ -2,9 +2,9 @@ package service
 
 import (
 	"fmt"
-	"github.com/go-redis/redis"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
+	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/stretchr/testify/assert"
@@ -73,13 +73,7 @@ func (suite *CountryTestSuite) SetupTest() {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
-	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs:        cfg.CacheRedis.Address,
-		Password:     cfg.CacheRedis.Password,
-		MaxRetries:   cfg.CacheRedis.MaxRetries,
-		MaxRedirects: cfg.CacheRedis.MaxRedirects,
-		PoolSize:     cfg.CacheRedis.PoolSize,
-	})
+	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, suite.cache)
 	err = suite.service.Init()
@@ -95,11 +89,10 @@ func (suite *CountryTestSuite) TearDownTest() {
 	}
 
 	suite.service.db.Close()
-	suite.cache.Clean()
 }
 
 func (suite *CountryTestSuite) TestCountry_GetCountryByCodeA2_Ok() {
-	c, err := suite.service.country.GetCountryByCodeA2("RU")
+	c, err := suite.service.country.GetByCodeA2("RU")
 
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), c)
@@ -107,7 +100,7 @@ func (suite *CountryTestSuite) TestCountry_GetCountryByCodeA2_Ok() {
 }
 
 func (suite *CountryTestSuite) TestCountry_GetCountryByCodeA2_NotFound() {
-	_, err := suite.service.country.GetCountryByCodeA2("AAA")
+	_, err := suite.service.country.GetByCodeA2("AAA")
 
 	assert.Error(suite.T(), err)
 	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, pkg.CollectionCountry))

@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"github.com/ProtocolONE/rabbitmq/pkg"
 	"github.com/globalsign/mgo/bson"
-	"github.com/go-redis/redis"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
@@ -28,6 +27,7 @@ type BillingServiceTestSuite struct {
 	cfg     *config.Config
 	exCh    chan bool
 	service *Service
+	cache   CacheInterface
 
 	project *billing.Project
 }
@@ -340,14 +340,6 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		IsActive: true,
 	}
 
-	pms := []interface{}{pmBankCard, pmQiwi, pmBitcoin}
-
-	err = suite.db.Collection(pkg.CollectionPaymentMethod).Insert(pms...)
-
-	if err != nil {
-		suite.FailNow("Insert payment methods test data failed", "%v", err)
-	}
-
 	commissionStartDate, err := ptypes.TimestampProto(time.Now().Add(time.Minute * -10))
 
 	if err != nil {
@@ -447,14 +439,7 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		suite.FailNow("Creating RabbitMQ publisher failed", "%v", err)
 	}
 
-	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs:        cfg.CacheRedis.Address,
-		Password:     cfg.CacheRedis.Password,
-		MaxRetries:   cfg.CacheRedis.MaxRetries,
-		MaxRedirects: cfg.CacheRedis.MaxRedirects,
-		PoolSize:     cfg.CacheRedis.PoolSize,
-	})
-
+	redisdb := mock.NewTestRedis()
 	suite.service = NewBillingService(
 		db,
 		cfg,
@@ -467,10 +452,13 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		NewCacheRedis(redisdb),
 	)
 
-	err = suite.service.Init()
-
-	if err != nil {
+	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
+	}
+
+	pms := []*billing.PaymentMethod{pmBankCard, pmQiwi, pmBitcoin}
+	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {
+		suite.FailNow("Insert payment methods test data failed", "%v", err)
 	}
 
 	suite.exCh = make(chan bool, 1)
@@ -486,23 +474,12 @@ func (suite *BillingServiceTestSuite) TearDownTest() {
 }
 
 func (suite *BillingServiceTestSuite) TestNewBillingService() {
-	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs:        suite.cfg.CacheRedis.Address,
-		Password:     suite.cfg.CacheRedis.Password,
-		MaxRetries:   suite.cfg.CacheRedis.MaxRetries,
-		MaxRedirects: suite.cfg.CacheRedis.MaxRedirects,
-		PoolSize:     suite.cfg.CacheRedis.PoolSize,
-	})
-	service := NewBillingService(suite.db, suite.cfg, suite.exCh, nil, nil, nil, nil, nil, NewCacheRedis(redisdb))
+	redisdb := mock.NewTestRedis()
+	suite.cache = NewCacheRedis(redisdb)
+	service := NewBillingService(suite.db, suite.cfg, suite.exCh, nil, nil, nil, nil, nil, suite.cache)
 
 	err := service.Init()
-
 	assert.Nil(suite.T(), err)
-	assert.True(suite.T(), len(service.currency.GetAll()) > 0)
-	assert.True(suite.T(), len(service.project.GetAll()) > 0)
-	assert.True(suite.T(), len(service.currencyRate.GetAll()) > 0)
-	assert.True(suite.T(), len(service.paymentMethod.GetAll()) > 0)
-	assert.True(suite.T(), len(service.commission.GetAll()) > 0)
 }
 
 func (suite *BillingServiceTestSuite) TestBillingService_AccountingCurrencyInitError() {
@@ -511,28 +488,17 @@ func (suite *BillingServiceTestSuite) TestBillingService_AccountingCurrencyInitE
 	assert.NoError(suite.T(), err)
 
 	cfg.AccountingCurrency = "AUD"
-	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs:        suite.cfg.CacheRedis.Address,
-		Password:     suite.cfg.CacheRedis.Password,
-		MaxRetries:   suite.cfg.CacheRedis.MaxRetries,
-		MaxRedirects: suite.cfg.CacheRedis.MaxRedirects,
-		PoolSize:     suite.cfg.CacheRedis.PoolSize,
-	})
-	service := NewBillingService(suite.db, cfg, suite.exCh, nil, nil, nil, nil, nil, NewCacheRedis(redisdb))
+	suite.cache = NewCacheRedis(mock.NewTestRedis())
+	service := NewBillingService(suite.db, cfg, suite.exCh, nil, nil, nil, nil, nil, suite.cache)
 
 	err = service.Init()
 	assert.Error(suite.T(), err)
 }
 
 func (suite *BillingServiceTestSuite) TestBillingService_IsProductionEnvironment() {
-	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs:        suite.cfg.CacheRedis.Address,
-		Password:     suite.cfg.CacheRedis.Password,
-		MaxRetries:   suite.cfg.CacheRedis.MaxRetries,
-		MaxRedirects: suite.cfg.CacheRedis.MaxRedirects,
-		PoolSize:     suite.cfg.CacheRedis.PoolSize,
-	})
-	service := NewBillingService(suite.db, suite.cfg, suite.exCh, nil, nil, nil, nil, nil, NewCacheRedis(redisdb))
+	redisdb := mock.NewTestRedis()
+	suite.cache = NewCacheRedis(redisdb)
+	service := NewBillingService(suite.db, suite.cfg, suite.exCh, nil, nil, nil, nil, nil, suite.cache)
 
 	err := service.Init()
 	assert.Nil(suite.T(), err)

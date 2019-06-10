@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"github.com/ProtocolONE/rabbitmq/pkg"
-	"github.com/go-redis/redis"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
@@ -30,6 +29,7 @@ type ProductTestSuite struct {
 	suite.Suite
 	service *Service
 	log     *zap.Logger
+	cache   CacheInterface
 
 	project    *billing.Project
 	pmBankCard *billing.PaymentMethod
@@ -84,14 +84,8 @@ func (suite *ProductTestSuite) SetupTest() {
 	broker, err := rabbitmq.NewBroker(cfg.BrokerAddress)
 	assert.NoError(suite.T(), err, "Creating RabbitMQ publisher failed")
 
-	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs:        cfg.CacheRedis.Address,
-		Password:     cfg.CacheRedis.Password,
-		MaxRetries:   cfg.CacheRedis.MaxRetries,
-		MaxRedirects: cfg.CacheRedis.MaxRedirects,
-		PoolSize:     cfg.CacheRedis.PoolSize,
-	})
-
+	redisdb := mock.NewTestRedis()
+	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
 		db,
 		cfg,
@@ -101,7 +95,7 @@ func (suite *ProductTestSuite) SetupTest() {
 		mock.NewTaxServiceOkMock(),
 		broker,
 		nil,
-		NewCacheRedis(redisdb),
+		suite.cache,
 	)
 	err = suite.service.Init()
 	assert.NoError(suite.T(), err, "Billing service initialization failed")
@@ -152,7 +146,7 @@ func (suite *ProductTestSuite) TestProduct_CRUDProduct_Ok() {
 
 	createdProductId = res.Id
 
-	// Get product OK
+	// GetById product OK
 
 	req2 := &grpc.RequestProduct{
 		Id:         createdProductId,
@@ -450,7 +444,7 @@ func (suite *ProductTestSuite) TestProduct_ListProduct_Ok() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res7.Total, int32(3))
 
-	// Get products for order
+	// GetById products for order
 
 	res8 := grpc.ListProductsResponse{}
 

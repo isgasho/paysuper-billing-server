@@ -3,74 +3,95 @@ package service
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 )
 
+const (
+	paymentMethodErrorInsert = "unable to insert payment method"
+)
+
 func newPaymentMethodService(svc *Service) *PaymentMethod {
 	s := &PaymentMethod{svc: svc}
-	s.loadAllToCache()
-
 	return s
 }
 
-func (h PaymentMethod) GetPaymentMethodByGroupAndCurrency(group string, currency int32) (*billing.PaymentMethod, error) {
-	h.mx.Lock()
-	defer h.mx.Unlock()
+func (h PaymentMethod) GetByGroupAndCurrency(group string, currency int32) (*billing.PaymentMethod, error) {
+	c := &billing.PaymentMethod{}
+	key := fmt.Sprintf(pkg.CachePaymentMethodGroup, group)
+	res, err := h.svc.cacher.Get(key)
 
-	pool, err := h.loadAllFromCache()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, r := range pool {
-		for _, v := range r.Currencies {
-			if v == currency && r.Group == group {
-				return r, nil
-			}
+	if res != nil {
+		err := json.Unmarshal(res, &c)
+		if err != nil {
+			return nil, fmt.Errorf(errorInterfaceCast, pkg.CollectionPaymentMethod)
 		}
+		return c, nil
 	}
 
-	return nil, fmt.Errorf(errorNotFound, pkg.CollectionPaymentMethod)
-}
-
-func (h PaymentMethod) GetPaymentMethodById(id string) (*billing.PaymentMethod, error) {
-	h.mx.Lock()
-	defer h.mx.Unlock()
-
-	pool, err := h.loadAllFromCache()
+	err = h.svc.db.Collection(pkg.CollectionPaymentMethod).Find(bson.M{"group_alias": group, "currencies": currency}).One(&c)
 	if err != nil {
-		return nil, err
-	}
-
-	c, ok := pool[id]
-	if !ok {
 		return nil, fmt.Errorf(errorNotFound, pkg.CollectionPaymentMethod)
 	}
 
+	_ = h.svc.cacher.Set(key, c, 0)
+	return c, nil
+}
+
+func (h PaymentMethod) GetById(id string) (*billing.PaymentMethod, error) {
+	c := &billing.PaymentMethod{}
+	key := fmt.Sprintf(pkg.CachePaymentMethodId, id)
+	res, err := h.svc.cacher.Get(key)
+
+	if res != nil {
+		err := json.Unmarshal(res, &c)
+		if err != nil {
+			return nil, fmt.Errorf(errorInterfaceCast, pkg.CollectionPaymentMethod)
+		}
+		return c, nil
+	}
+
+	err = h.svc.db.Collection(pkg.CollectionPaymentMethod).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&c)
+	if err != nil {
+		return nil, fmt.Errorf(errorNotFound, pkg.CollectionPaymentMethod)
+	}
+
+	_ = h.svc.cacher.Set(key, c, 0)
 	return c, nil
 }
 
 func (h PaymentMethod) GetAll() map[string]*billing.PaymentMethod {
-	h.mx.Lock()
-	defer h.mx.Unlock()
+	c := map[string]*billing.PaymentMethod{}
+	key := pkg.CachePaymentMethodAll
+	res, err := h.svc.cacher.Get(key)
 
-	pool, err := h.loadAllFromCache()
-	if err != nil {
+	if res != nil {
+		err := json.Unmarshal(res, &c)
+		if err != nil {
+			return nil
+		}
+		return c
+	}
+
+	var data []*billing.PaymentMethod
+	err = h.svc.db.Collection(pkg.CollectionPaymentMethod).Find(bson.M{}).All(&data)
+	if err != nil || data == nil {
 		return nil
 	}
 
+	pool := make(map[string]*billing.PaymentMethod, len(data))
+	for _, v := range data {
+		pool[v.Id] = v
+	}
+
+	_ = h.svc.cacher.Set(key, pool, 0)
 	return pool
 }
 
 func (h PaymentMethod) Groups() map[string]map[int32]*billing.PaymentMethod {
-	h.mx.Lock()
-	defer h.mx.Unlock()
-
-	pool, err := h.loadAllFromCache()
-	if err != nil {
+	pool := h.GetAll()
+	if pool == nil {
 		return nil
 	}
 
@@ -86,40 +107,31 @@ func (h PaymentMethod) Groups() map[string]map[int32]*billing.PaymentMethod {
 	return groups
 }
 
-func (h *PaymentMethod) loadAllToCache() error {
-	var data []*billing.PaymentMethod
+func (h PaymentMethod) MultipleInsert(pm []*billing.PaymentMethod) error {
+	pms := make([]interface{}, len(pm))
+	for i, v := range pm {
+		pms[i] = v
+	}
 
-	err := h.svc.db.Collection(pkg.CollectionPaymentMethod).Find(bson.M{}).All(&data)
-	if err != nil && err != mgo.ErrNotFound {
+	if err := h.svc.db.Collection(pkg.CollectionPaymentMethod).Insert(pms...); err != nil {
 		return err
 	}
 
-	pool := map[string]*billing.PaymentMethod{}
-	if data != nil {
-		pool = make(map[string]*billing.PaymentMethod, len(data))
-		for _, v := range data {
-			pool[v.Id] = v
-		}
-	}
-
-	if err := h.svc.cacher.Set(pkg.CollectionPaymentMethod, pool, 0); err != nil {
+	if err := h.svc.cacher.Delete(pkg.CachePaymentMethodAll); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (h *PaymentMethod) loadAllFromCache() (map[string]*billing.PaymentMethod, error) {
-	b, err := h.svc.cacher.Get(pkg.CollectionPaymentMethod)
-	if err != nil {
-		return nil, err
+func (h PaymentMethod) Insert(pm *billing.PaymentMethod) error {
+	if err := h.svc.db.Collection(pkg.CollectionPaymentMethod).Insert(pm); err != nil {
+		return err
 	}
 
-	var a map[string]*billing.PaymentMethod
-	err = json.Unmarshal(*b, &a)
-	if err != nil {
-		return nil, err
+	if err := h.svc.cacher.Delete(pkg.CachePaymentMethodAll); err != nil {
+		return err
 	}
 
-	return a, nil
+	return nil
 }

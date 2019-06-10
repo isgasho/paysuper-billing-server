@@ -107,7 +107,15 @@ const (
 	TechEmailDomain        = "@paysuper.com"
 	OrderInlineFormUrlMask = "%s://%s/order/%s"
 
-	CacheCountryCodeA2 = CollectionCountry + "code_a2:%s"
+	CacheProjectId                   = CollectionProject + ":id:%s"
+	CacheMerchantId                  = CollectionMerchant + ":id:%s"
+	CacheCurrencyRateFromTo          = CollectionCurrencyRate + ":from:%d:to:%d"
+	CacheCountryCodeA2               = CollectionCountry + ":code_a2:%s"
+	CacheCurrencyA3                  = CollectionCurrency + ":code_a3:%s"
+	CachePaymentMethodId             = CollectionPaymentMethod + ":id:%s"
+	CachePaymentMethodGroup          = CollectionPaymentMethod + ":group:%s"
+	CachePaymentMethodAll            = CollectionPaymentMethod + ":all"
+	CacheSystemFeesMethodRegionBrand = CollectionSystemFees + ":method:%s:region:%s:brand:%s"
 )
 
 var (

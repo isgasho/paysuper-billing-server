@@ -27,6 +27,7 @@ import (
 type ReportTestSuite struct {
 	suite.Suite
 	service *Service
+	cache   CacheInterface
 	log     *zap.Logger
 
 	currencyRub             *billing.Currency
@@ -299,11 +300,6 @@ func (suite *ReportTestSuite) SetupTest() {
 	err = db.Collection(pkg.CollectionProject).Insert(projects...)
 	assert.NoError(suite.T(), err, "Insert project test data failed")
 
-	pms := []interface{}{pmBankCard, pmBitcoin1}
-
-	err = db.Collection(pkg.CollectionPaymentMethod).Insert(pms...)
-	assert.NoError(suite.T(), err, "Insert payment methods test data failed")
-
 	commissionStartDate, err := ptypes.TimestampProto(time.Now().Add(time.Minute * -10))
 	assert.NoError(suite.T(), err, "Commission start date conversion failed")
 
@@ -356,14 +352,8 @@ func (suite *ReportTestSuite) SetupTest() {
 		},
 	)
 
-	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs:        cfg.CacheRedis.Address,
-		Password:     cfg.CacheRedis.Password,
-		MaxRetries:   cfg.CacheRedis.MaxRetries,
-		MaxRedirects: cfg.CacheRedis.MaxRedirects,
-		PoolSize:     cfg.CacheRedis.PoolSize,
-	})
-
+	redisdb := mock.NewTestRedis()
+	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
 		db,
 		cfg,
@@ -373,10 +363,17 @@ func (suite *ReportTestSuite) SetupTest() {
 		mock.NewTaxServiceOkMock(),
 		broker,
 		redisClient,
-		NewCacheRedis(redisdb),
+		suite.cache,
 	)
-	err = suite.service.Init()
-	assert.NoError(suite.T(), err, "Billing service initialization failed")
+
+	if err := suite.service.Init(); err != nil {
+		suite.FailNow("Billing service initialization failed", "%v", err)
+	}
+
+	pms := []*billing.PaymentMethod{pmBankCard, pmBitcoin1}
+	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {
+		suite.FailNow("Insert payment methods test data failed", "%v", err)
+	}
 
 	var productIds []string
 	names := []string{"Madalin Stunt Cars M2", "Plants vs Zombies"}

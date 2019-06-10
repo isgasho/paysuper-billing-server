@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/globalsign/mgo/bson"
-	"github.com/go-redis/redis"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
+	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -19,6 +19,7 @@ import (
 type ProjectCRUDTestSuite struct {
 	suite.Suite
 	service *Service
+	cache   CacheInterface
 
 	merchant *billing.Merchant
 	project  *billing.Project
@@ -104,9 +105,6 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 			IsActive:           true,
 		},
 	}
-
-	err = db.Collection(pkg.CollectionPaymentMethod).Insert([]interface{}{pm1, pm2}...)
-	assert.NoError(suite.T(), err, "Insert payment methods test data failed")
 
 	err = db.Collection(pkg.CollectionCurrency).Insert(rub)
 	assert.NoError(suite.T(), err, "Insert currency test data failed")
@@ -236,17 +234,18 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 	err = db.Collection(pkg.CollectionProduct).Insert(products...)
 	assert.NoError(suite.T(), err, "Insert product test data failed")
 
-	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs:        cfg.CacheRedis.Address,
-		Password:     cfg.CacheRedis.Password,
-		MaxRetries:   cfg.CacheRedis.MaxRetries,
-		MaxRedirects: cfg.CacheRedis.MaxRedirects,
-		PoolSize:     cfg.CacheRedis.PoolSize,
-	})
+	redisdb := mock.NewTestRedis()
+	suite.cache = NewCacheRedis(redisdb)
+	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, suite.cache)
 
-	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, NewCacheRedis(redisdb))
-	err = suite.service.Init()
-	assert.NoError(suite.T(), err, "Billing service initialization failed")
+	if err := suite.service.Init(); err != nil {
+		suite.FailNow("Billing service initialization failed", "%v", err)
+	}
+
+	pms := []*billing.PaymentMethod{pm1, pm2}
+	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {
+		suite.FailNow("Insert payment methods test data failed", "%v", err)
+	}
 
 	suite.merchant = merchant
 	suite.project = project
@@ -306,7 +305,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_Ok()
 	assert.Equal(suite.T(), project.IsProductsCheckout, rsp.Item.IsProductsCheckout)
 	assert.Equal(suite.T(), project.Status, rsp.Item.Status)
 
-	cProject, err := suite.service.project.GetProjectById(project.Id)
+	cProject, err := suite.service.project.GetById(project.Id)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), project.Id, cProject.Id)
 	assert.Equal(suite.T(), project.MerchantId, cProject.MerchantId)
@@ -318,9 +317,6 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_Ok()
 	assert.Equal(suite.T(), project.MaxPaymentAmount, cProject.MaxPaymentAmount)
 	assert.Equal(suite.T(), project.IsProductsCheckout, cProject.IsProductsCheckout)
 	assert.Equal(suite.T(), project.Status, cProject.Status)
-
-	pms := suite.service.commission.GetByProject(project.Id)
-	assert.Equal(suite.T(), len(pms), len(suite.service.paymentMethod.GetAll()))
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_ExistProject_Ok() {
@@ -357,7 +353,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_ExistProject_Ok
 	assert.Equal(suite.T(), project.IsProductsCheckout, rsp.Item.IsProductsCheckout)
 	assert.Equal(suite.T(), project.Status, rsp.Item.Status)
 
-	cProject, err := suite.service.project.GetProjectById(project.Id)
+	cProject, err := suite.service.project.GetById(project.Id)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), project.Id, cProject.Id)
 	assert.Equal(suite.T(), project.MerchantId, cProject.MerchantId)
@@ -765,7 +761,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_DeleteProject_Ok() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ProjectStatusDeleted, project.Status)
 
-	project1, err := suite.service.project.GetProjectById(rsp.Item.Id)
+	project1, err := suite.service.project.GetById(rsp.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), project.Status, project1.Status)
 }
@@ -818,6 +814,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_DeleteDeletedProject_Ok() {
 type ProjectTestSuite struct {
 	suite.Suite
 	service *Service
+	cache   CacheInterface
 	log     *zap.Logger
 	project *billing.Project
 }
@@ -882,15 +879,9 @@ func (suite *ProjectTestSuite) SetupTest() {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
-	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs:        cfg.CacheRedis.Address,
-		Password:     cfg.CacheRedis.Password,
-		MaxRetries:   cfg.CacheRedis.MaxRetries,
-		MaxRedirects: cfg.CacheRedis.MaxRedirects,
-		PoolSize:     cfg.CacheRedis.PoolSize,
-	})
-
-	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, NewCacheRedis(redisdb))
+	redisdb := mock.NewTestRedis()
+	suite.cache = NewCacheRedis(redisdb)
+	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, suite.cache)
 	err = suite.service.Init()
 
 	if err != nil {
@@ -906,14 +897,8 @@ func (suite *ProjectTestSuite) TearDownTest() {
 	suite.service.db.Close()
 }
 
-func (suite *ProjectTestSuite) TestProject_GetAll() {
-	c := suite.service.project.GetAll()
-
-	assert.NotNil(suite.T(), c)
-}
-
 func (suite *ProjectTestSuite) TestProject_GetProjectById_Ok() {
-	c, err := suite.service.project.GetProjectById(suite.project.Id)
+	c, err := suite.service.project.GetById(suite.project.Id)
 
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), c)
@@ -921,7 +906,7 @@ func (suite *ProjectTestSuite) TestProject_GetProjectById_Ok() {
 }
 
 func (suite *ProjectTestSuite) TestProject_GetProjectById_NotFound() {
-	_, err := suite.service.project.GetProjectById(bson.NewObjectId().Hex())
+	_, err := suite.service.project.GetById(bson.NewObjectId().Hex())
 
 	assert.Error(suite.T(), err)
 	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, pkg.CollectionProject))

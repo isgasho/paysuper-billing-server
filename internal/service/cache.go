@@ -13,16 +13,16 @@ const (
 
 type CacheInterface interface {
 	Set(string, interface{}, time.Duration) error
-	Get(string) (*[]byte, error)
+	Get(string) ([]byte, error)
 	Delete(string) error
 	Clean()
 }
 
 type Cache struct {
-	redis *redis.ClusterClient
+	redis redis.Cmdable
 }
 
-func NewCacheRedis(redis *redis.ClusterClient) *Cache {
+func NewCacheRedis(redis redis.Cmdable) *Cache {
 	return &Cache{redis: redis}
 }
 
@@ -32,27 +32,24 @@ func (c *Cache) Set(key string, value interface{}, duration time.Duration) error
 		return err
 	}
 
-	result := c.redis.Set(fmt.Sprintf(CacheStorageKey, key), b, duration)
-	if result.Err() != nil {
-		return result.Err()
+	if err := c.redis.Set(fmt.Sprintf(CacheStorageKey, key), b, duration).Err(); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (c *Cache) Get(key string) (*[]byte, error) {
-	result := c.redis.Get(fmt.Sprintf(CacheStorageKey, key))
-	b, err := result.Bytes()
+func (c *Cache) Get(key string) ([]byte, error) {
+	b, err := c.redis.Get(fmt.Sprintf(CacheStorageKey, key)).Bytes()
 	if err != nil {
 		return nil, err
 	}
 
-	return &b, nil
+	return b, nil
 }
 
 func (c *Cache) Delete(key string) error {
-	result := c.redis.Del(fmt.Sprintf(CacheStorageKey, key))
-	return result.Err()
+	return c.redis.Del(fmt.Sprintf(CacheStorageKey, key)).Err()
 }
 
 func (c *Cache) Clean() {

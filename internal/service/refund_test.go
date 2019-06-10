@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"github.com/ProtocolONE/rabbitmq/pkg"
 	"github.com/globalsign/mgo/bson"
-	"github.com/go-redis/redis"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
@@ -28,6 +27,7 @@ type RefundTestSuite struct {
 	suite.Suite
 	service *Service
 	log     *zap.Logger
+	cache   CacheInterface
 
 	project    *billing.Project
 	pmBankCard *billing.PaymentMethod
@@ -220,11 +220,6 @@ func (suite *RefundTestSuite) SetupTest() {
 		IsActive: true,
 	}
 
-	pms := []interface{}{pmBankCard, pmQiwi, pmBitcoin}
-
-	err = db.Collection(pkg.CollectionPaymentMethod).Insert(pms...)
-	assert.NoError(suite.T(), err, "Insert payment methods test data failed")
-
 	commissionStartDate, err := ptypes.TimestampProto(time.Now().Add(time.Minute * -10))
 	assert.NoError(suite.T(), err, "Commission start date conversion failed")
 
@@ -329,14 +324,8 @@ func (suite *RefundTestSuite) SetupTest() {
 	broker, err := rabbitmq.NewBroker(cfg.BrokerAddress)
 	assert.NoError(suite.T(), err, "Creating RabbitMQ publisher failed")
 
-	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs:        cfg.CacheRedis.Address,
-		Password:     cfg.CacheRedis.Password,
-		MaxRetries:   cfg.CacheRedis.MaxRetries,
-		MaxRedirects: cfg.CacheRedis.MaxRedirects,
-		PoolSize:     cfg.CacheRedis.PoolSize,
-	})
-
+	redisdb := mock.NewTestRedis()
+	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
 		db,
 		cfg,
@@ -346,10 +335,17 @@ func (suite *RefundTestSuite) SetupTest() {
 		mock.NewTaxServiceOkMock(),
 		broker,
 		nil,
-		NewCacheRedis(redisdb),
+		suite.cache,
 	)
-	err = suite.service.Init()
-	assert.NoError(suite.T(), err, "Billing service initialization failed")
+
+	if err := suite.service.Init(); err != nil {
+		suite.FailNow("Billing service initialization failed", "%v", err)
+	}
+
+	pms := []*billing.PaymentMethod{pmBankCard, pmQiwi, pmBitcoin}
+	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {
+		suite.FailNow("Insert payment methods test data failed", "%v", err)
+	}
 
 	suite.project = project
 	suite.pmBankCard = pmBankCard

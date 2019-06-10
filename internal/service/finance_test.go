@@ -3,12 +3,13 @@ package service
 import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
-	"github.com/go-redis/redis"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
+	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
@@ -20,6 +21,7 @@ type FinanceTestSuite struct {
 	suite.Suite
 	service *Service
 	log     *zap.Logger
+	cache   CacheInterface
 
 	project       *billing.Project
 	paymentMethod *billing.PaymentMethod
@@ -215,14 +217,6 @@ func (suite *FinanceTestSuite) SetupTest() {
 		IsActive: true,
 	}
 
-	pms := []interface{}{pmBankCard, pmQiwi, pmBitcoin}
-
-	err = db.Collection(pkg.CollectionPaymentMethod).Insert(pms...)
-
-	if err != nil {
-		suite.FailNow("Insert payment methods test data failed", "%v", err)
-	}
-
 	commissionStartDate, err := ptypes.TimestampProto(time.Now().Add(time.Minute * -10))
 
 	if err != nil {
@@ -268,19 +262,17 @@ func (suite *FinanceTestSuite) SetupTest() {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
-	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs:        cfg.CacheRedis.Address,
-		Password:     cfg.CacheRedis.Password,
-		MaxRetries:   cfg.CacheRedis.MaxRetries,
-		MaxRedirects: cfg.CacheRedis.MaxRedirects,
-		PoolSize:     cfg.CacheRedis.PoolSize,
-	})
+	redisdb := mock.NewTestRedis()
+	suite.cache = NewCacheRedis(redisdb)
+	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, suite.cache)
 
-	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, NewCacheRedis(redisdb))
-	err = suite.service.Init()
-
-	if err != nil {
+	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
+	}
+
+	pms := []*billing.PaymentMethod{pmBankCard, pmQiwi, pmBitcoin}
+	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {
+		suite.FailNow("Insert payment methods test data failed", "%v", err)
 	}
 
 	suite.project = project
@@ -296,7 +288,7 @@ func (suite *FinanceTestSuite) TearDownTest() {
 }
 
 func (suite *FinanceTestSuite) TestFinance_GetCurrencyByCodeA3Ok() {
-	c, err := suite.service.currency.GetCurrencyByCodeA3("RUB")
+	c, err := suite.service.currency.GetByCodeA3("RUB")
 
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), c)
@@ -304,7 +296,7 @@ func (suite *FinanceTestSuite) TestFinance_GetCurrencyByCodeA3Ok() {
 }
 
 func (suite *FinanceTestSuite) TestFinance_GetCurrencyByCodeA3Error() {
-	c, err := suite.service.currency.GetCurrencyByCodeA3("AUD")
+	c, err := suite.service.currency.GetByCodeA3("AUD")
 
 	assert.NotNil(suite.T(), err)
 	assert.Nil(suite.T(), c)
@@ -357,10 +349,10 @@ func (suite *FinanceTestSuite) TestFinance_CalculateCommissionProjectError() {
 	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, pkg.CollectionCommission), err.Error())
 }
 
-func (suite *FinanceTestSuite) TestFinance_CalculateCommissionPaymentMethodError() {
+func (suite *FinanceTestSuite) TestFinance_CalculateCommissionPaymentMethod_DefaultPaymentCommission() {
 	commission, err := suite.service.commission.CalculatePmCommission(suite.project.Id, bson.NewObjectId().Hex(), float64(100))
-
-	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), float64(0), commission)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, pkg.CollectionCommission), err.Error())
+	dCommission := suite.service.getDefaultPaymentMethodCommissions()
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), commission)
+	assert.Equal(suite.T(), tools.FormatAmount(float64(100)*(dCommission.Fee/100)), commission)
 }

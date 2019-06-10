@@ -2,10 +2,10 @@ package service
 
 import (
 	"fmt"
-	"github.com/go-redis/redis"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
+	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/stretchr/testify/assert"
@@ -19,6 +19,7 @@ type CurrencyRateTestSuite struct {
 	suite.Suite
 	service *Service
 	log     *zap.Logger
+	cache   CacheInterface
 	rate    *billing.CurrencyRate
 }
 
@@ -75,15 +76,9 @@ func (suite *CurrencyRateTestSuite) SetupTest() {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
-	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs:        cfg.CacheRedis.Address,
-		Password:     cfg.CacheRedis.Password,
-		MaxRetries:   cfg.CacheRedis.MaxRetries,
-		MaxRedirects: cfg.CacheRedis.MaxRedirects,
-		PoolSize:     cfg.CacheRedis.PoolSize,
-	})
-
-	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, NewCacheRedis(redisdb))
+	redisdb := mock.NewTestRedis()
+	suite.cache = NewCacheRedis(redisdb)
+	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, suite.cache)
 	err = suite.service.Init()
 
 	if err != nil {
@@ -99,21 +94,15 @@ func (suite *CurrencyRateTestSuite) TearDownTest() {
 	suite.service.db.Close()
 }
 
-func (suite *CurrencyRateTestSuite) TestCurrencyRate_GetAll() {
-	c := suite.service.currencyRate.GetAll()
-
-	assert.NotNil(suite.T(), c)
-}
-
 func (suite *CurrencyRateTestSuite) TestCurrencyRate_Get_Ok() {
-	c, err := suite.service.currencyRate.Get(643, 641)
+	c, err := suite.service.currencyRate.GetFromTo(643, 641)
 
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), suite.rate.Id, c.Id)
 }
 
 func (suite *CurrencyRateTestSuite) TestCurrencyRate_Get_NotFound() {
-	c, err := suite.service.currencyRate.Get(641, 641)
+	c, err := suite.service.currencyRate.GetFromTo(641, 641)
 
 	assert.Nil(suite.T(), c)
 	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, pkg.CollectionCurrencyRate))

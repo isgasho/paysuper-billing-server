@@ -34,6 +34,7 @@ import (
 type OrderTestSuite struct {
 	suite.Suite
 	service *Service
+	cache   CacheInterface
 	log     *zap.Logger
 
 	project                                *billing.Project
@@ -602,14 +603,6 @@ func (suite *OrderTestSuite) SetupTest() {
 		IsActive: false,
 	}
 
-	pms := []interface{}{pmBankCard, pmQiwi, pmBitcoin, pmWebMoney, pmWebMoneyWME, pmBitcoin1}
-
-	err = db.Collection(pkg.CollectionPaymentMethod).Insert(pms...)
-
-	if err != nil {
-		suite.FailNow("Insert payment methods test data failed", "%v", err)
-	}
-
 	commissionStartDate, err := ptypes.TimestampProto(time.Now().Add(time.Minute * -10))
 
 	if err != nil {
@@ -749,14 +742,8 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 	)
 
-	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs:        cfg.CacheRedis.Address,
-		Password:     cfg.CacheRedis.Password,
-		MaxRetries:   cfg.CacheRedis.MaxRetries,
-		MaxRedirects: cfg.CacheRedis.MaxRedirects,
-		PoolSize:     cfg.CacheRedis.PoolSize,
-	})
-
+	redisdb := mock.NewTestRedis()
+	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
 		db,
 		cfg,
@@ -766,12 +753,16 @@ func (suite *OrderTestSuite) SetupTest() {
 		mock.NewTaxServiceOkMock(),
 		broker,
 		redisClient,
-		NewCacheRedis(redisdb),
+		suite.cache,
 	)
-	err = suite.service.Init()
 
-	if err != nil {
+	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
+	}
+
+	pms := []*billing.PaymentMethod{pmBankCard, pmQiwi, pmBitcoin, pmWebMoney, pmWebMoneyWME, pmBitcoin1}
+	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {
+		suite.FailNow("Insert payment methods test data failed", "%v", err)
 	}
 
 	var productIds []string
@@ -1441,7 +1432,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethod_Ok() {
 	err = processor.processCurrency()
 	assert.Nil(suite.T(), err)
 
-	pm, err := suite.service.paymentMethod.GetPaymentMethodByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
 
@@ -1465,7 +1456,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethod_PaymentMethodInactiv
 	err := processor.processCurrency()
 	assert.Nil(suite.T(), err)
 
-	pm, err := suite.service.paymentMethod.GetPaymentMethodByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
 
@@ -1490,7 +1481,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethod_PaymentSystemInactiv
 	err := processor.processCurrency()
 	assert.Nil(suite.T(), err)
 
-	pm, err := suite.service.paymentMethod.GetPaymentMethodByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
 
@@ -1522,7 +1513,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_Ok() {
 
 	processor.processAmount()
 
-	pm, err := suite.service.paymentMethod.GetPaymentMethodByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
 
@@ -1555,7 +1546,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_ConvertAmount_Ok() {
 
 	processor.processAmount()
 
-	pm, err := suite.service.paymentMethod.GetPaymentMethodByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
 
@@ -1586,7 +1577,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_ProjectMinAmount_Erro
 	err = processor.processCurrency()
 	assert.Nil(suite.T(), err)
 
-	pm, err := suite.service.paymentMethod.GetPaymentMethodByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
 
@@ -1620,7 +1611,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_ProjectMaxAmount_Erro
 
 	processor.processAmount()
 
-	pm, err := suite.service.paymentMethod.GetPaymentMethodByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
 
@@ -1654,7 +1645,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_PaymentMethodMinAmoun
 
 	processor.processAmount()
 
-	pm, err := suite.service.paymentMethod.GetPaymentMethodByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
 
@@ -1688,7 +1679,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_PaymentMethodMaxAmoun
 
 	processor.processAmount()
 
-	pm, err := suite.service.paymentMethod.GetPaymentMethodByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
 
@@ -1934,7 +1925,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_PaymentMethod_Ok() {
 	err = processor.processLimitAmounts()
 	assert.Nil(suite.T(), err)
 
-	pm, err := suite.service.paymentMethod.GetPaymentMethodByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
 
@@ -2153,7 +2144,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_Commission_Error() {
 	err = processor.processLimitAmounts()
 	assert.Nil(suite.T(), err)
 
-	pm, err := suite.service.paymentMethod.GetPaymentMethodByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
 
@@ -2194,7 +2185,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessOrderCommissions_Ok() {
 	err = processor.processPaylinkProducts()
 	assert.Nil(suite.T(), err)
 
-	pm, err := suite.service.paymentMethod.GetPaymentMethodByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
 
@@ -2289,7 +2280,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessOrderCommissions_VatNotFound_Error
 	err = processor.processPaylinkProducts()
 	assert.Nil(suite.T(), err)
 
-	pm, err := suite.service.paymentMethod.GetPaymentMethodByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
 
@@ -3667,7 +3658,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_ChangePaymentSyste
 	var check *billing.Order
 	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(order.Id)).One(&check)
 
-	terminal, err := suite.service.merchant.GetMerchantPaymentMethodTerminalId(suite.project.MerchantId, suite.paymentMethod.Id)
+	terminal, err := suite.service.merchant.GetPaymentMethodTerminalId(suite.project.MerchantId, suite.paymentMethod.Id)
 	assert.NoError(suite.T(), err)
 
 	assert.Nil(suite.T(), err)
@@ -3761,14 +3752,14 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_Ok() {
 	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(order.Id)).One(&order1)
 	assert.NotNil(suite.T(), order1)
 
-	commission, err := suite.service.commission.Get(order1.Project.Id, order1.PaymentMethod.Id)
+	commission, err := suite.service.commission.GetByProjectIdAndMethod(order1.Project.Id, order1.PaymentMethod.Id)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), commission)
 
-	merchant, err := suite.service.merchant.Get(order1.Project.MerchantId)
+	merchant, err := suite.service.merchant.GetById(order1.Project.MerchantId)
 	assert.NoError(suite.T(), err)
 
-	rate, err := suite.service.currencyRate.Get(order1.PaymentMethodOutcomeCurrency.CodeInt, merchant.GetPayoutCurrency().CodeInt)
+	rate, err := suite.service.currencyRate.GetFromTo(order1.PaymentMethodOutcomeCurrency.CodeInt, merchant.GetPayoutCurrency().CodeInt)
 	pmCommission := tools.FormatAmount(order1.ProjectIncomeAmount * (commission.Fee / 100))
 
 	assert.Equal(suite.T(), pmCommission, order1.PaymentSystemFeeAmount.AmountPaymentMethodCurrency)

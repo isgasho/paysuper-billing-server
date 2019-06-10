@@ -33,7 +33,7 @@ func (s *Service) ChangeProject(
 	var project *billing.Project
 	var err error
 
-	if _, err := s.merchant.Get(req.MerchantId); err != nil {
+	if _, err := s.merchant.GetById(req.MerchantId); err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = merchantErrorNotFound
 
@@ -59,7 +59,7 @@ func (s *Service) ChangeProject(
 	}
 
 	if req.CallbackCurrency != "" {
-		if _, err := s.currency.GetCurrencyByCodeA3(req.CallbackCurrency); err != nil {
+		if _, err := s.currency.GetByCodeA3(req.CallbackCurrency); err != nil {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = projectErrorCallbackCurrencyIncorrect
 
@@ -68,7 +68,7 @@ func (s *Service) ChangeProject(
 	}
 
 	if req.LimitsCurrency != "" {
-		if _, err := s.currency.GetCurrencyByCodeA3(req.LimitsCurrency); err != nil {
+		if _, err := s.currency.GetByCodeA3(req.LimitsCurrency); err != nil {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = projectErrorLimitCurrencyIncorrect
 
@@ -326,10 +326,6 @@ func (s *Service) createProject(req *billing.Project) (*billing.Project, error) 
 		return nil, errors.New(orderErrorUnknown)
 	}
 
-	for k := range s.paymentMethod.GetAll() {
-		s.commission.Update(project.Id, k, s.getDefaultPaymentMethodCommissions())
-	}
-
 	return project, nil
 }
 
@@ -374,99 +370,36 @@ func (s *Service) updateProject(req *billing.Project, project *billing.Project) 
 
 func newProjectService(svc *Service) *Project {
 	s := &Project{svc: svc}
-
-	s.mx.Lock()
-	defer s.mx.Unlock()
-
-	s.loadAllToCache()
-
 	return s
 }
 
 func (h *Project) Update(project *billing.Project) error {
-	h.mx.Lock()
-	defer h.mx.Unlock()
-
-	pool, err := h.loadAllFromCache()
-	if err != nil {
-		return err
-	}
-
-	if _, ok := pool[project.Id]; !ok {
-		pool[project.Id] = &billing.Project{}
-	}
-	pool[project.Id] = project
-
-	if err := h.svc.cacher.Set(pkg.CollectionProject, pool, 0); err != nil {
+	key := fmt.Sprintf(pkg.CacheProjectId, project.Id)
+	if err := h.svc.cacher.Set(key, project, 0); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (h Project) GetProjectById(id string) (*billing.Project, error) {
-	h.mx.Lock()
-	defer h.mx.Unlock()
+func (h Project) GetById(id string) (*billing.Project, error) {
+	c := &billing.Project{}
+	key := fmt.Sprintf(pkg.CacheProjectId, id)
+	res, err := h.svc.cacher.Get(key)
 
-	pool, err := h.loadAllFromCache()
-	if err != nil {
-		return nil, err
+	if res != nil {
+		err := json.Unmarshal(res, &c)
+		if err != nil {
+			return nil, fmt.Errorf(errorInterfaceCast, pkg.CollectionProject)
+		}
+		return c, nil
 	}
 
-	c, ok := pool[id]
-	if !ok {
+	err = h.svc.db.Collection(pkg.CollectionProject).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&c)
+	if err != nil {
 		return nil, fmt.Errorf(errorNotFound, pkg.CollectionProject)
 	}
 
+	_ = h.svc.cacher.Set(key, c, 0)
 	return c, nil
-}
-
-func (h Project) GetAll() map[string]*billing.Project {
-	h.mx.Lock()
-	defer h.mx.Unlock()
-
-	pool, err := h.loadAllFromCache()
-	if err != nil {
-		return nil
-	}
-
-	return pool
-}
-
-func (h *Project) loadAllToCache() error {
-	var data []*billing.Project
-
-	err := h.svc.db.Collection(pkg.CollectionProject).Find(bson.M{}).All(&data)
-	if err != nil && err != mgo.ErrNotFound {
-		return err
-	}
-
-	pool := map[string]*billing.Project{}
-	if data != nil {
-		pool = make(map[string]*billing.Project, len(data))
-		for _, v := range data {
-			pool[v.Id] = v
-		}
-	}
-
-	if err := h.svc.cacher.Set(pkg.CollectionProject, pool, 0); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *Project) loadAllFromCache() (map[string]*billing.Project, error) {
-	b, err := h.svc.cacher.Get(pkg.CollectionProject)
-	if err != nil {
-		return nil, err
-	}
-
-	var a map[string]*billing.Project
-	err = json.Unmarshal(*b, &a)
-	if err != nil {
-		return nil, err
-	}
-
-	return a, nil
 }

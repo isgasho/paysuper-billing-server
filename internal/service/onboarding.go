@@ -207,7 +207,7 @@ func (s *Service) ChangeMerchant(
 	}
 
 	if req.Country != "" {
-		country, err := s.country.GetCountryByCodeA2(req.Country)
+		country, err := s.country.GetByCodeA2(req.Country)
 
 		if err != nil {
 			s.logError("Get country for merchant failed", []interface{}{"err", err.Error(), "request", req})
@@ -220,7 +220,7 @@ func (s *Service) ChangeMerchant(
 	merchant.Banking = &billing.MerchantBanking{}
 
 	if req.Banking != nil && req.Banking.Currency != "" {
-		currency, err := s.currency.GetCurrencyByCodeA3(req.Banking.Currency)
+		currency, err := s.currency.GetByCodeA3(req.Banking.Currency)
 
 		if err != nil {
 			s.logError("Get currency for merchant failed", []interface{}{"err", err.Error(), "request", req})
@@ -573,14 +573,14 @@ func (s *Service) GetMerchantPaymentMethod(
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
-	pms, err := s.merchant.GetMerchantPaymentMethod(req.MerchantId, req.PaymentMethodId)
+	pms, err := s.merchant.GetPaymentMethod(req.MerchantId, req.PaymentMethodId)
 	if err == nil {
 		rsp.Item = pms
 
 		return nil
 	}
 
-	pm, err := s.paymentMethod.GetPaymentMethodById(req.PaymentMethodId)
+	pm, err := s.paymentMethod.GetById(req.PaymentMethodId)
 
 	if err != nil {
 		s.logError(
@@ -641,7 +641,7 @@ func (s *Service) ListMerchantPaymentMethods(
 	}
 
 	for _, pm := range pms {
-		mPm, err := s.merchant.GetMerchantPaymentMethod(req.MerchantId, pm.Id)
+		mPm, err := s.merchant.GetPaymentMethod(req.MerchantId, pm.Id)
 
 		paymentMethod := &billing.MerchantPaymentMethod{
 			PaymentMethod: &billing.MerchantPaymentMethodIdentification{
@@ -679,7 +679,7 @@ func (s *Service) ChangeMerchantPaymentMethod(
 		return
 	}
 
-	pm, e := s.paymentMethod.GetPaymentMethodById(req.PaymentMethod.Id)
+	pm, e := s.paymentMethod.GetById(req.PaymentMethod.Id)
 	if e != nil {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = orderErrorPaymentMethodNotFound
@@ -689,7 +689,7 @@ func (s *Service) ChangeMerchantPaymentMethod(
 	req.Integration.Integrated = req.HasIntegration()
 
 	if req.HasPerTransactionCurrency() {
-		if _, err := s.currency.GetCurrencyByCodeA3(req.GetPerTransactionCurrency()); err != nil {
+		if _, err := s.currency.GetByCodeA3(req.GetPerTransactionCurrency()); err != nil {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = orderErrorCurrencyNotFound
 
@@ -738,9 +738,6 @@ func (s *Service) ChangeMerchantPaymentMethod(
 
 		return
 	}
-
-	s.mx.Lock()
-	defer s.mx.Unlock()
 
 	if err := s.merchant.Update(merchant); err != nil {
 		return errors.New(merchantErrorUnknown)

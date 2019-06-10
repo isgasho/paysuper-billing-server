@@ -77,7 +77,7 @@ func (s *Service) CreateToken(
 		return nil
 	}
 
-	project, err := s.project.GetProjectById(req.Settings.ProjectId)
+	project, err := s.project.GetById(req.Settings.ProjectId)
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = projectErrorNotFound

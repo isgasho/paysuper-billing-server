@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/ProtocolONE/rabbitmq/pkg"
 	"github.com/globalsign/mgo/bson"
-	"github.com/go-redis/redis"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
@@ -22,6 +21,7 @@ type SystemFeesTestSuite struct {
 	suite.Suite
 	service       *Service
 	log           *zap.Logger
+	cache         CacheInterface
 	project       *billing.Project
 	paymentMethod *billing.PaymentMethod
 	pmWebMoney    *billing.PaymentMethod
@@ -123,20 +123,12 @@ func (suite *SystemFeesTestSuite) SetupTest() {
 		},
 	}
 
-	pms := []interface{}{pmBankCard, pmWebMoney}
-
-	err = db.Collection(pkg.CollectionPaymentMethod).Insert(pms...)
-
-	if err != nil {
-		suite.FailNow("Insert payment methods test data failed", "%v", err)
-	}
-
+	pms := []*billing.PaymentMethod{pmBankCard, pmWebMoney}
 	cardBrands := []string{"MASTERCARD", "VISA"}
 	regions := []string{"", "EU"}
 	adminUserId := bson.NewObjectId().Hex()
 
-	for _, r := range pms {
-		pm := r.(*billing.PaymentMethod)
+	for _, pm := range pms {
 		for _, reg := range regions {
 
 			systemFee := &billing.SystemFees{
@@ -205,14 +197,8 @@ func (suite *SystemFeesTestSuite) SetupTest() {
 	broker, err := rabbitmq.NewBroker(cfg.BrokerAddress)
 	assert.NoError(suite.T(), err, "Creating RabbitMQ publisher failed")
 
-	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs:        cfg.CacheRedis.Address,
-		Password:     cfg.CacheRedis.Password,
-		MaxRetries:   cfg.CacheRedis.MaxRetries,
-		MaxRedirects: cfg.CacheRedis.MaxRedirects,
-		PoolSize:     cfg.CacheRedis.PoolSize,
-	})
-
+	redisdb := mock.NewTestRedis()
+	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
 		db,
 		cfg,
@@ -222,10 +208,16 @@ func (suite *SystemFeesTestSuite) SetupTest() {
 		mock.NewTaxServiceOkMock(),
 		broker,
 		nil,
-		NewCacheRedis(redisdb),
+		suite.cache,
 	)
-	err = suite.service.Init()
-	assert.NoError(suite.T(), err, "Billing service initialization failed")
+
+	if err := suite.service.Init(); err != nil {
+		suite.FailNow("Billing service initialization failed", "%v", err)
+	}
+
+	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {
+		suite.FailNow("Insert payment methods test data failed", "%v", err)
+	}
 
 	suite.AdminUserId = adminUserId
 	suite.paymentMethod = pmBankCard

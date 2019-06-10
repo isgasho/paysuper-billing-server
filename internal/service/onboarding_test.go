@@ -3,11 +3,11 @@ package service
 import (
 	"context"
 	"github.com/globalsign/mgo/bson"
-	"github.com/go-redis/redis"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
+	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -22,10 +22,13 @@ type OnboardingTestSuite struct {
 	suite.Suite
 	service *Service
 	log     *zap.Logger
+	cache   CacheInterface
 
 	merchant          *billing.Merchant
 	merchantAgreement *billing.Merchant
 	merchant1         *billing.Merchant
+
+	project *billing.Project
 
 	pmBankCard *billing.PaymentMethod
 	pmQiwi     *billing.PaymentMethod
@@ -297,9 +300,6 @@ func (suite *OnboardingTestSuite) SetupTest() {
 	err = db.Collection(pkg.CollectionProject).Insert(project)
 	assert.NoError(suite.T(), err, "Insert project test data failed")
 
-	err = db.Collection(pkg.CollectionPaymentMethod).Insert([]interface{}{pmBankCard, pmQiwi}...)
-	assert.NoError(suite.T(), err, "Insert payment methods test data failed")
-
 	commissionStartDate, err := ptypes.TimestampProto(time.Now().Add(time.Minute * -10))
 	assert.NoError(suite.T(), err, "Commission start date conversion failed")
 
@@ -318,21 +318,24 @@ func (suite *OnboardingTestSuite) SetupTest() {
 	suite.log, err = zap.NewProduction()
 	assert.NoError(suite.T(), err, "Logger initialization failed")
 
-	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs:        cfg.CacheRedis.Address,
-		Password:     cfg.CacheRedis.Password,
-		MaxRetries:   cfg.CacheRedis.MaxRetries,
-		MaxRedirects: cfg.CacheRedis.MaxRedirects,
-		PoolSize:     cfg.CacheRedis.PoolSize,
-	})
+	redisdb := mock.NewTestRedis()
+	suite.cache = NewCacheRedis(redisdb)
+	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, suite.cache)
 
-	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, NewCacheRedis(redisdb))
-	err = suite.service.Init()
-	assert.NoError(suite.T(), err, "Billing service initialization failed")
+	if err := suite.service.Init(); err != nil {
+		suite.FailNow("Billing service initialization failed", "%v", err)
+	}
+
+	pms := []*billing.PaymentMethod{pmBankCard, pmQiwi}
+	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {
+		suite.FailNow("Insert payment methods test data failed", "%v", err)
+	}
 
 	suite.merchant = merchant
 	suite.merchantAgreement = merchantAgreement
 	suite.merchant1 = merchant1
+
+	suite.project = project
 
 	suite.pmBankCard = pmBankCard
 	suite.pmQiwi = pmQiwi
@@ -1604,7 +1607,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_NewM
 	assert.NotNil(suite.T(), rspMerchantPaymentMethodAdd.Item)
 	assert.True(suite.T(), len(rspMerchantPaymentMethodAdd.Item.PaymentMethod.Id) > 0)
 
-	pm, err := suite.service.merchant.GetMerchantPaymentMethod(rsp.Id, suite.pmBankCard.Id)
+	pm, err := suite.service.merchant.GetPaymentMethod(rsp.Id, suite.pmBankCard.Id)
 	assert.NoError(suite.T(), err)
 
 	assert.Equal(suite.T(), reqMerchantPaymentMethodAdd.PaymentMethod.Id, pm.PaymentMethod.Id)
@@ -1644,6 +1647,41 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_NewM
 	assert.Equal(suite.T(), pm.Integration.TerminalPassword, pm1.Integration.TerminalPassword)
 	assert.Equal(suite.T(), pm.Integration.Integrated, pm1.Integration.Integrated)
 	assert.Equal(suite.T(), pm.IsActive, pm1.IsActive)
+}
+
+func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_UpdateMerchant_Ok() {
+	reqMerchantPaymentMethodAdd := &grpc.MerchantPaymentMethodRequest{
+		MerchantId: suite.merchant.Id,
+		PaymentMethod: &billing.MerchantPaymentMethodIdentification{
+			Id:   suite.pmQiwi.Id,
+			Name: suite.pmQiwi.Name,
+		},
+		Commission: &billing.MerchantPaymentMethodCommissions{
+			Fee: 5,
+			PerTransaction: &billing.MerchantPaymentMethodPerTransactionCommission{
+				Fee:      100,
+				Currency: "RUB",
+			},
+		},
+		Integration: &billing.MerchantPaymentMethodIntegration{
+			TerminalId:       "1234567890",
+			TerminalPassword: "0987654321",
+			Integrated:       true,
+		},
+		IsActive: true,
+		UserId:   bson.NewObjectId().Hex(),
+	}
+	rspMerchantPaymentMethodAdd := &grpc.MerchantPaymentMethodResponse{}
+	err := suite.service.ChangeMerchantPaymentMethod(context.TODO(), reqMerchantPaymentMethodAdd, rspMerchantPaymentMethodAdd)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rspMerchantPaymentMethodAdd.Status)
+
+	comm, err := suite.service.commission.GetByProjectIdAndMethod(suite.project.Id, suite.pmQiwi.Id)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), reqMerchantPaymentMethodAdd.Commission.Fee, comm.Fee)
+	assert.Equal(suite.T(), reqMerchantPaymentMethodAdd.Commission.PerTransaction.Fee, comm.PerTransaction.Fee)
+	assert.Equal(suite.T(), reqMerchantPaymentMethodAdd.Commission.PerTransaction.Currency, comm.PerTransaction.Currency)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_PaymentMethodsIsEmpty_Ok() {

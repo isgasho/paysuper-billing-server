@@ -3,9 +3,9 @@ package service
 import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
-	"github.com/go-redis/redis"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
+	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/stretchr/testify/assert"
@@ -18,6 +18,7 @@ type CommissionTestSuite struct {
 	suite.Suite
 	service        *Service
 	log            *zap.Logger
+	cache          CacheInterface
 	merchant       *billing.Merchant
 	project        *billing.Project
 	paymentMethod1 string
@@ -135,15 +136,8 @@ func (suite *CommissionTestSuite) SetupTest() {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
-	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs:        cfg.CacheRedis.Address,
-		Password:     cfg.CacheRedis.Password,
-		MaxRetries:   cfg.CacheRedis.MaxRetries,
-		MaxRedirects: cfg.CacheRedis.MaxRedirects,
-		PoolSize:     cfg.CacheRedis.PoolSize,
-	})
-
-	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, NewCacheRedis(redisdb))
+	suite.cache = NewCacheRedis(mock.NewTestRedis())
+	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, suite.cache)
 	err = suite.service.Init()
 
 	if err != nil {
@@ -159,51 +153,15 @@ func (suite *CommissionTestSuite) TearDownTest() {
 	suite.service.db.Close()
 }
 
-func (suite *CommissionTestSuite) TestCommission_GetAll() {
-	c := suite.service.commission.GetAll()
-
-	assert.NotNil(suite.T(), c)
-}
-
-func (suite *CommissionTestSuite) TestCommission_GetByProject_Ok() {
-	c := suite.service.commission.GetByProject(suite.project.Id)
-
-	assert.NotNil(suite.T(), c)
-}
-
-func (suite *CommissionTestSuite) TestCommission_GetByProject_NotFound() {
-	c := suite.service.commission.GetByProject(bson.NewObjectId().Hex())
-
-	assert.Nil(suite.T(), c)
-}
-
-func (suite *CommissionTestSuite) TestCommission_Get_Ok() {
-	c, err := suite.service.commission.Get(suite.project.Id, suite.paymentMethod1)
-
-	assert.NoError(suite.T(), err)
-	assert.NotNil(suite.T(), c)
-}
-
-func (suite *CommissionTestSuite) TestCommission_Get_NotFound() {
-	c, err := suite.service.commission.Get(suite.project.Id, bson.NewObjectId().Hex())
+func (suite *CommissionTestSuite) TestCommission_GetByProjectIdAndMethod_NotFound() {
+	_, err := suite.service.commission.GetByProjectIdAndMethod(bson.NewObjectId().Hex(), bson.NewObjectId().Hex())
 	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, pkg.CollectionCommission))
-	assert.Nil(suite.T(), c)
-
-	c2, err := suite.service.commission.Get(bson.NewObjectId().Hex(), suite.paymentMethod1)
-	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, pkg.CollectionCommission))
-	assert.Nil(suite.T(), c2)
 }
 
-func (suite *CommissionTestSuite) TestCommission_Update_Ok() {
-	projectId := bson.NewObjectId().Hex()
-	payId := bson.NewObjectId().Hex()
-	commission := &billing.MerchantPaymentMethodCommissions{Fee: 1}
-	err := suite.service.commission.Update(projectId, payId, commission)
+func (suite *CommissionTestSuite) TestCommission_GetByProjectIdAndMethod_Ok() {
+	a, err := suite.service.commission.GetByProjectIdAndMethod(suite.project.Id, suite.paymentMethod1)
 	assert.NoError(suite.T(), err)
-
-	c, err := suite.service.commission.Get(projectId, payId)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), commission.Fee, c.Fee)
+	assert.Equal(suite.T(), suite.merchant.PaymentMethods[suite.paymentMethod1].Commission.Fee, a.Fee)
 }
 
 func (suite *CommissionTestSuite) TestCommission_CalculatePmCommission_NotFound() {
