@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	CacheMerchantId = pkg.CollectionMerchant + ":id:%s"
+	cacheMerchantId = "merchant:id:%s"
 )
 
 func newMerchantService(svc *Service) *Merchant {
@@ -22,7 +22,7 @@ func (h *Merchant) Update(merchant *billing.Merchant) error {
 		return err
 	}
 
-	if err := h.svc.cacher.Set(fmt.Sprintf(CacheMerchantId, merchant.Id), merchant, 0); err != nil {
+	if err := h.svc.cacher.Set(fmt.Sprintf(cacheMerchantId, merchant.Id), merchant, 0); err != nil {
 		return err
 	}
 
@@ -34,7 +34,7 @@ func (h *Merchant) Insert(merchant *billing.Merchant) error {
 		return err
 	}
 
-	if err := h.svc.cacher.Set(fmt.Sprintf(CacheMerchantId, merchant.Id), merchant, 0); err != nil {
+	if err := h.svc.cacher.Set(fmt.Sprintf(cacheMerchantId, merchant.Id), merchant, 0); err != nil {
 		return err
 	}
 
@@ -56,7 +56,7 @@ func (h *Merchant) MultipleInsert(merchants []*billing.Merchant) error {
 
 func (h *Merchant) GetById(id string) (*billing.Merchant, error) {
 	var c billing.Merchant
-	key := fmt.Sprintf(CacheMerchantId, id)
+	key := fmt.Sprintf(cacheMerchantId, id)
 
 	if err := h.svc.cacher.Get(key, c); err != nil {
 		if err = h.svc.db.Collection(pkg.CollectionMerchant).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&c); err != nil {

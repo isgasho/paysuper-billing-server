@@ -8,9 +8,9 @@ import (
 )
 
 const (
-	CachePaymentMethodId    = pkg.CollectionPaymentMethod + ":id:%s"
-	CachePaymentMethodGroup = pkg.CollectionPaymentMethod + ":group:%s"
-	CachePaymentMethodAll   = pkg.CollectionPaymentMethod + ":all"
+	cachePaymentMethodId    = "payment_method:id:%s"
+	cachePaymentMethodGroup = "payment_method:group:%s"
+	cachePaymentMethodAll   = "payment_method:all"
 )
 
 func newPaymentMethodService(svc *Service) *PaymentMethod {
@@ -20,7 +20,7 @@ func newPaymentMethodService(svc *Service) *PaymentMethod {
 
 func (h PaymentMethod) GetByGroupAndCurrency(group string, currency int32) (*billing.PaymentMethod, error) {
 	var c billing.PaymentMethod
-	key := fmt.Sprintf(CachePaymentMethodGroup, group)
+	key := fmt.Sprintf(cachePaymentMethodGroup, group)
 
 	if err := h.svc.cacher.Get(key, c); err != nil {
 		if err = h.svc.db.Collection(pkg.CollectionPaymentMethod).Find(bson.M{"group_alias": group, "currencies": currency}).One(&c); err != nil {
@@ -34,7 +34,7 @@ func (h PaymentMethod) GetByGroupAndCurrency(group string, currency int32) (*bil
 
 func (h PaymentMethod) GetById(id string) (*billing.PaymentMethod, error) {
 	var c billing.PaymentMethod
-	key := fmt.Sprintf(CachePaymentMethodId, id)
+	key := fmt.Sprintf(cachePaymentMethodId, id)
 
 	if err := h.svc.cacher.Get(key, c); err != nil {
 		if err = h.svc.db.Collection(pkg.CollectionPaymentMethod).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&c); err != nil {
@@ -48,7 +48,7 @@ func (h PaymentMethod) GetById(id string) (*billing.PaymentMethod, error) {
 
 func (h PaymentMethod) GetAll() map[string]*billing.PaymentMethod {
 	var c map[string]*billing.PaymentMethod
-	key := CachePaymentMethodAll
+	key := cachePaymentMethodAll
 
 	if err := h.svc.cacher.Get(key, c); err != nil {
 		var data []*billing.PaymentMethod
@@ -95,7 +95,7 @@ func (h PaymentMethod) MultipleInsert(pm []*billing.PaymentMethod) error {
 		return err
 	}
 
-	if err := h.svc.cacher.Delete(CachePaymentMethodAll); err != nil {
+	if err := h.svc.cacher.Delete(cachePaymentMethodAll); err != nil {
 		return err
 	}
 
@@ -107,7 +107,7 @@ func (h PaymentMethod) Insert(pm *billing.PaymentMethod) error {
 		return err
 	}
 
-	if err := h.svc.cacher.Delete(CachePaymentMethodAll); err != nil {
+	if err := h.svc.cacher.Delete(cachePaymentMethodAll); err != nil {
 		return err
 	}
 

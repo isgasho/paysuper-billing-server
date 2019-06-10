@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	CacheProjectId = pkg.CollectionProject + ":id:%s"
+	cacheProjectId = "project:id:%s"
 
 	projectErrorNotFound                  = "project with specified identifier not found"
 	projectErrorNameDefaultLangRequired   = "project name in \"" + DefaultLanguage + "\" locale is required"
@@ -367,7 +367,7 @@ func (h *Project) Insert(project *billing.Project) error {
 		return err
 	}
 
-	if err := h.svc.cacher.Set(fmt.Sprintf(CacheProjectId, project.Id), project, 0); err != nil {
+	if err := h.svc.cacher.Set(fmt.Sprintf(cacheProjectId, project.Id), project, 0); err != nil {
 		return err
 	}
 
@@ -392,7 +392,7 @@ func (h *Project) Update(project *billing.Project) error {
 		return err
 	}
 
-	if err := h.svc.cacher.Set(fmt.Sprintf(CacheProjectId, project.Id), project, 0); err != nil {
+	if err := h.svc.cacher.Set(fmt.Sprintf(cacheProjectId, project.Id), project, 0); err != nil {
 		return err
 	}
 
@@ -401,7 +401,7 @@ func (h *Project) Update(project *billing.Project) error {
 
 func (h Project) GetById(id string) (*billing.Project, error) {
 	var c billing.Project
-	key := fmt.Sprintf(CacheProjectId, id)
+	key := fmt.Sprintf(cacheProjectId, id)
 
 	if err := h.svc.cacher.Get(key, c); err != nil {
 		if err = h.svc.db.Collection(pkg.CollectionProject).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&c); err != nil {

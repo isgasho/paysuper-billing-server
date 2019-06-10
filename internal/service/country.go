@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	CacheCountryCodeA2 = pkg.CollectionCountry + ":code_a2:%s"
+	cacheCountryCodeA2 = "country:code_a2:%s"
 )
 
 func newCountryService(svc *Service) *Country {
@@ -21,7 +21,7 @@ func (h *Country) Insert(country *billing.Country) error {
 		return err
 	}
 
-	if err := h.svc.cacher.Set(fmt.Sprintf(CacheCountryCodeA2, country.CodeA2), country, 0); err != nil {
+	if err := h.svc.cacher.Set(fmt.Sprintf(cacheCountryCodeA2, country.CodeA2), country, 0); err != nil {
 		return err
 	}
 
@@ -43,7 +43,7 @@ func (h Country) MultipleInsert(country []*billing.Country) error {
 
 func (h Country) GetByCodeA2(code string) (*billing.Country, error) {
 	var c billing.Country
-	key := fmt.Sprintf(CacheCountryCodeA2, code)
+	key := fmt.Sprintf(cacheCountryCodeA2, code)
 
 	if err := h.svc.cacher.Get(key, c); err != nil {
 		if err = h.svc.db.Collection(pkg.CollectionCountry).Find(bson.M{"is_active": true, "code_a2": code}).One(&c); err != nil {

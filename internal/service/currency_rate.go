@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	CacheCurrencyRateFromTo = pkg.CollectionCurrencyRate + ":from:%d:to:%d"
+	cacheCurrencyRateFromTo = "currency_rate:from:%d:to:%d"
 )
 
 func newCurrencyRateService(svc *Service) *CurrencyRate {
@@ -22,7 +22,7 @@ func (h *CurrencyRate) Insert(rate *billing.CurrencyRate) error {
 		return err
 	}
 
-	if err := h.svc.cacher.Set(fmt.Sprintf(CacheCurrencyRateFromTo, rate.CurrencyFrom, rate.CurrencyTo), rate, 0); err != nil {
+	if err := h.svc.cacher.Set(fmt.Sprintf(cacheCurrencyRateFromTo, rate.CurrencyFrom, rate.CurrencyTo), rate, 0); err != nil {
 		return err
 	}
 
@@ -44,7 +44,7 @@ func (h CurrencyRate) MultipleInsert(country []*billing.CurrencyRate) error {
 
 func (h *CurrencyRate) GetFromTo(from int32, to int32) (*billing.CurrencyRate, error) {
 	var c billing.CurrencyRate
-	key := fmt.Sprintf(CacheCurrencyRateFromTo, from, to)
+	key := fmt.Sprintf(cacheCurrencyRateFromTo, from, to)
 
 	if err := h.svc.cacher.Get(key, c); err != nil {
 		if err = h.svc.db.Collection(pkg.CollectionCurrencyRate).Find(bson.M{"is_active": true, "currency_from": from, "currency_to": to}).One(&c); err != nil {

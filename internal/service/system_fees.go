@@ -19,7 +19,7 @@ type kv struct {
 }
 
 const (
-	CacheSystemFeesMethodRegionBrand = pkg.CollectionSystemFees + ":method:%s:region:%s:brand:%s"
+	cacheSystemFeesMethodRegionBrand = "system_fees:method:%s:region:%s:brand:%s"
 
 	errorSystemFeeCardBrandRequired        = "card brand required for this method"
 	errorSystemFeeCardBrandNotAllowed      = "card brand not allowed for this method"
@@ -194,7 +194,7 @@ func (h *SystemFee) Insert(fees *billing.SystemFees) error {
 		return err
 	}
 
-	if err := h.svc.cacher.Set(fmt.Sprintf(CacheSystemFeesMethodRegionBrand, fees.MethodId, fees.Region, fees.CardBrand), fees, 0); err != nil {
+	if err := h.svc.cacher.Set(fmt.Sprintf(cacheSystemFeesMethodRegionBrand, fees.MethodId, fees.Region, fees.CardBrand), fees, 0); err != nil {
 		return err
 	}
 
@@ -206,7 +206,7 @@ func (h *SystemFee) Update(fees *billing.SystemFees) error {
 		return err
 	}
 
-	if err := h.svc.cacher.Set(fmt.Sprintf(CacheSystemFeesMethodRegionBrand, fees.MethodId, fees.Region, fees.CardBrand), fees, 0); err != nil {
+	if err := h.svc.cacher.Set(fmt.Sprintf(cacheSystemFeesMethodRegionBrand, fees.MethodId, fees.Region, fees.CardBrand), fees, 0); err != nil {
 		return err
 	}
 
@@ -215,7 +215,7 @@ func (h *SystemFee) Update(fees *billing.SystemFees) error {
 
 func (h SystemFee) Find(methodId string, region string, cardBrand string) (*billing.SystemFees, error) {
 	var c billing.SystemFees
-	key := fmt.Sprintf(CacheSystemFeesMethodRegionBrand, methodId, region, cardBrand)
+	key := fmt.Sprintf(cacheSystemFeesMethodRegionBrand, methodId, region, cardBrand)
 
 	if err := h.svc.cacher.Get(key, c); err != nil {
 		if err = h.svc.db.Collection(pkg.CollectionSystemFees).Find(bson.M{"method_id": bson.ObjectIdHex(methodId), "region": region, "card_brand": cardBrand, "is_active": true}).One(&c); err != nil {

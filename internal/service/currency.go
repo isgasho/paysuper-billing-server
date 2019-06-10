@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	CacheCurrencyA3 = pkg.CollectionCurrency + ":code_a3:%s"
+	cacheCurrencyA3 = "currency:code_a3:%s"
 )
 
 func newCurrencyService(svc *Service) *Currency {
@@ -21,7 +21,7 @@ func (h *Currency) Insert(currency *billing.Currency) error {
 		return err
 	}
 
-	if err := h.svc.cacher.Set(fmt.Sprintf(CacheCurrencyA3, currency.CodeA3), currency, 0); err != nil {
+	if err := h.svc.cacher.Set(fmt.Sprintf(cacheCurrencyA3, currency.CodeA3), currency, 0); err != nil {
 		return err
 	}
 
@@ -43,7 +43,7 @@ func (h Currency) MultipleInsert(currency []*billing.Currency) error {
 
 func (h Currency) GetByCodeA3(code string) (*billing.Currency, error) {
 	var c billing.Currency
-	key := fmt.Sprintf(CacheCurrencyA3, code)
+	key := fmt.Sprintf(cacheCurrencyA3, code)
 
 	if err := h.svc.cacher.Get(key, c); err != nil {
 		if err = h.svc.db.Collection(pkg.CollectionCurrency).Find(bson.M{"is_active": true, "code_a3": code}).One(&c); err != nil {
