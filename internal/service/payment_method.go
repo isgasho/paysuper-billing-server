@@ -56,9 +56,11 @@ func (h PaymentMethod) GetAll() map[string]*billing.PaymentMethod {
 			return nil
 		}
 
+		pool := make(map[string]*billing.PaymentMethod, len(data))
 		for _, v := range data {
-			c[v.Id] = v
+			pool[v.Id] = v
 		}
+		c = pool
 	}
 
 	_ = h.svc.cacher.Set(key, c, 0)
