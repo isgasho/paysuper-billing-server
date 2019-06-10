@@ -98,6 +98,9 @@ const (
 
 	taxTypeVat      = "vat"
 	taxTypeSalesTax = "sales_tax"
+
+	collectionOrder   = "order"
+	collectionBinData = "bank_bin"
 )
 
 type orderCreateRequestProcessorChecked struct {
@@ -256,10 +259,10 @@ func (s *Service) OrderCreateProcess(
 		return err
 	}
 
-	err = s.db.Collection(pkg.CollectionOrder).Insert(order)
+	err = s.db.Collection(collectionOrder).Insert(order)
 
 	if err != nil {
-		zap.S().Errorw(fmt.Sprintf(errorQueryMask, pkg.CollectionOrder), "err", err, "inserted_data", order)
+		zap.S().Errorw(fmt.Sprintf(errorQueryMask, collectionOrder), "err", err, "inserted_data", order)
 		return errors.New(orderErrorCanNotCreate)
 	}
 
@@ -529,7 +532,7 @@ func (s *Service) PaymentCreateProcess(
 		delete(order.PaymentRequisites, pkg.PaymentCreateFieldRecurringId)
 	}
 
-	err = s.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = s.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
 
 	if err != nil {
 		s.logError("Update order data failed", []interface{}{"err", err.Error(), "order", order})
@@ -559,7 +562,7 @@ func (s *Service) PaymentCreateProcess(
 	}
 
 	url, err := h.CreatePayment(req.Data)
-	errDb := s.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	errDb := s.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
 
 	if errDb != nil {
 		s.logError("Update order data failed", []interface{}{"err", errDb.Error(), "order", order})
@@ -645,7 +648,7 @@ func (s *Service) PaymentCallbackProcess(
 		}
 	}
 
-	err = s.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = s.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
 
 	if err != nil {
 		s.logError("Update order data failed", []interface{}{"err", err.Error(), "order", order})
@@ -912,7 +915,7 @@ func (s *Service) saveRecurringCard(order *billing.Order, recurringId string) {
 }
 
 func (s *Service) updateOrder(order *billing.Order) error {
-	err := s.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err := s.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
 
 	if err != nil {
 		s.logError("Update order data failed", []interface{}{"error", err.Error(), "order", order})
@@ -923,7 +926,7 @@ func (s *Service) updateOrder(order *billing.Order) error {
 }
 
 func (s *Service) getOrderById(id string) (order *billing.Order, err error) {
-	err = s.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(id)).One(&order)
+	err = s.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(id)).One(&order)
 
 	if err != nil && err != mgo.ErrNotFound {
 		s.logError("Order not found in payment create process", []interface{}{"err", err.Error(), "order_id", id})
@@ -937,7 +940,7 @@ func (s *Service) getOrderById(id string) (order *billing.Order, err error) {
 }
 
 func (s *Service) getOrderByUuid(uuid string) (order *billing.Order, err error) {
-	err = s.db.Collection(pkg.CollectionOrder).Find(bson.M{"uuid": uuid}).One(&order)
+	err = s.db.Collection(collectionOrder).Find(bson.M{"uuid": uuid}).One(&order)
 
 	if err != nil && err != mgo.ErrNotFound {
 		s.logError("Order not found in payment create process", []interface{}{"err", err.Error(), "uuid", uuid})
@@ -981,7 +984,7 @@ func (s *Service) getBinData(pan string) (data *BinData) {
 		return
 	}
 
-	err = s.db.Collection(pkg.CollectionBinData).Find(bson.M{"card_bin": int32(i)}).One(&data)
+	err = s.db.Collection(collectionBinData).Find(bson.M{"card_bin": int32(i)}).One(&data)
 
 	if err != nil {
 		s.logError("Query to get bank card BIN data failed", []interface{}{"error", err.Error(), "pan", pan})
@@ -1235,7 +1238,7 @@ func (v *OrderCreateRequestProcessor) processProjectOrderId() error {
 		"project_order_id": v.request.OrderId,
 	}
 
-	err := v.db.Collection(pkg.CollectionOrder).Find(filter).One(&order)
+	err := v.db.Collection(collectionOrder).Find(filter).One(&order)
 
 	if err != nil && err != mgo.ErrNotFound {
 		zap.S().Errorw("[PAYONE_BILLING] Order create check project order id unique", "err", err, "filter", filter)

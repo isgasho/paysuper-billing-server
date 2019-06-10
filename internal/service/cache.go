@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-redis/redis"
-	"github.com/paysuper/paysuper-billing-server/pkg"
 	"time"
 )
 
@@ -48,7 +47,7 @@ func (c *Cache) Get(key string, obj interface{}) error {
 	}
 
 	if err := json.Unmarshal(b, obj); err != nil {
-		return fmt.Errorf(errorInterfaceCast, pkg.CollectionCurrency)
+		return fmt.Errorf(errorInterfaceCast, collectionCurrency)
 	}
 
 	return nil

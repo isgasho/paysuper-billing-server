@@ -165,7 +165,7 @@ func (suite *EntityTestSuite) SetupTest() {
 		},
 	}
 
-	err = db.Collection(pkg.CollectionCommission).Insert(commissions...)
+	err = db.Collection(collectionCommission).Insert(commissions...)
 
 	if err != nil {
 		suite.FailNow("Insert commission test data failed", "%v", err)
@@ -365,7 +365,7 @@ func (suite *EntityTestSuite) TestProject_GetPaymentMethodByGroupAndCurrency_Gro
 
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), pm)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, pkg.CollectionPaymentMethod), err.Error())
+	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionPaymentMethod), err.Error())
 }
 
 func (suite *EntityTestSuite) TestProject_GetPaymentMethodByGroupAndCurrency_CurrencyError() {
@@ -373,5 +373,5 @@ func (suite *EntityTestSuite) TestProject_GetPaymentMethodByGroupAndCurrency_Cur
 
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), pm)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, pkg.CollectionPaymentMethod), err.Error())
+	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionPaymentMethod), err.Error())
 }

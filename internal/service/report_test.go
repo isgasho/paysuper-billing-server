@@ -304,7 +304,7 @@ func (suite *ReportTestSuite) SetupTest() {
 		},
 	}
 
-	err = db.Collection(pkg.CollectionCommission).Insert(commissions...)
+	err = db.Collection(collectionCommission).Insert(commissions...)
 	assert.NoError(suite.T(), err, "Insert commission test data failed")
 
 	bin := &BinData{
@@ -318,7 +318,7 @@ func (suite *ReportTestSuite) SetupTest() {
 		BankCountryCodeA2: "US",
 	}
 
-	err = db.Collection(pkg.CollectionBinData).Insert(bin)
+	err = db.Collection(collectionBinData).Insert(bin)
 	assert.NoError(suite.T(), err, "Insert BIN test data failed")
 
 	suite.log, err = zap.NewProduction()

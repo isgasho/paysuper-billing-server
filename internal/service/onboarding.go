@@ -28,6 +28,8 @@ const (
 	notificationErrorUserIdIncorrect         = "user identifier incorrect, notification can't be saved"
 	notificationErrorMessageIsEmpty          = "notification message can't be empty"
 	notificationErrorNotFound                = "notification not found"
+
+	collectionNotification = "notification"
 )
 
 var (
@@ -132,14 +134,14 @@ func (s *Service) ListMerchants(
 		query["status"] = bson.M{"$in": req.Statuses}
 	}
 
-	count, err := s.db.Collection(pkg.CollectionMerchant).Find(query).Count()
+	count, err := s.db.Collection(collectionMerchant).Find(query).Count()
 
 	if err != nil {
 		s.logError("Query to count merchants failed", []interface{}{"err", err.Error(), "query", query})
 		return errors.New(merchantErrorUnknown)
 	}
 
-	err = s.db.Collection(pkg.CollectionMerchant).Find(query).Sort(req.Sort...).Limit(int(req.Limit)).
+	err = s.db.Collection(collectionMerchant).Find(query).Sort(req.Sort...).Limit(int(req.Limit)).
 		Skip(int(req.Offset)).All(&merchants)
 
 	if err != nil {
@@ -482,14 +484,14 @@ func (s *Service) ListNotifications(
 		}
 	}
 
-	count, err := s.db.Collection(pkg.CollectionNotification).Find(query).Count()
+	count, err := s.db.Collection(collectionNotification).Find(query).Count()
 
 	if err != nil {
 		s.logError("Query to count merchant notifications failed", []interface{}{"err", err.Error(), "query", query})
 		return errors.New(orderErrorUnknown)
 	}
 
-	err = s.db.Collection(pkg.CollectionNotification).Find(query).Sort(req.Sort...).
+	err = s.db.Collection(collectionNotification).Find(query).Sort(req.Sort...).
 		Limit(int(req.Limit)).Skip(int(req.Offset)).All(&notifications)
 
 	if err != nil {
@@ -524,7 +526,7 @@ func (s *Service) MarkNotificationAsRead(
 
 	notification.IsRead = true
 
-	err = s.db.Collection(pkg.CollectionNotification).UpdateId(bson.ObjectIdHex(notification.Id), notification)
+	err = s.db.Collection(collectionNotification).UpdateId(bson.ObjectIdHex(notification.Id), notification)
 
 	if err != nil {
 		s.logError("Update notification failed", []interface{}{"err", err.Error(), "query", notification})
@@ -607,7 +609,7 @@ func (s *Service) ListMerchantPaymentMethods(
 		query["name"] = bson.RegEx{Pattern: ".*" + req.PaymentMethodName + ".*", Options: "i"}
 	}
 
-	err = s.db.Collection(pkg.CollectionPaymentMethod).Find(query).Sort(req.Sort...).All(&pms)
+	err = s.db.Collection(collectionPaymentMethod).Find(query).Sort(req.Sort...).All(&pms)
 
 	if err != nil {
 		s.logError("Query to find payment methods failed", []interface{}{"error", err.Error(), "query", query})
@@ -696,7 +698,7 @@ func (s *Service) ChangeMerchantPaymentMethod(
 		CreatedAt:     ptypes.TimestampNow(),
 		PaymentMethod: mpm,
 	}
-	err = s.db.Collection(pkg.CollectionMerchantPaymentMethodHistory).Insert(history)
+	err = s.db.Collection(collectionMerchantPaymentMethodHistory).Insert(history)
 	if err != nil {
 		s.logError("Query to update merchant payment methods history", []interface{}{"error", err.Error(), "query", merchant})
 
@@ -722,7 +724,7 @@ func (s *Service) ChangeMerchantPaymentMethod(
 }
 
 func (s *Service) getMerchantBy(query bson.M) (merchant *billing.Merchant, err error) {
-	err = s.db.Collection(pkg.CollectionMerchant).Find(query).One(&merchant)
+	err = s.db.Collection(collectionMerchant).Find(query).One(&merchant)
 
 	if err != nil && err != mgo.ErrNotFound {
 		s.logError("Query to find merchant by id failed", []interface{}{"err", err.Error(), "query", query})
@@ -791,7 +793,7 @@ func (s *Service) addNotification(
 		notification.UserId = userId
 	}
 
-	err := s.db.Collection(pkg.CollectionNotification).Insert(notification)
+	err := s.db.Collection(collectionNotification).Insert(notification)
 
 	if err != nil {
 		s.logError("Query to insert notification failed", []interface{}{"err", err.Error(), "query", notification})
@@ -808,7 +810,7 @@ func (s *Service) getNotificationById(
 		"merchant_id": bson.ObjectIdHex(merchantId),
 		"_id":         bson.ObjectIdHex(notificationId),
 	}
-	err = s.db.Collection(pkg.CollectionNotification).Find(query).One(&notification)
+	err = s.db.Collection(collectionNotification).Find(query).One(&notification)
 
 	if err != nil {
 		if err != mgo.ErrNotFound {

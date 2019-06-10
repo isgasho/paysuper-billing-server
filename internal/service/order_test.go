@@ -670,7 +670,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 	}
 
-	err = db.Collection(pkg.CollectionCommission).Insert(commissions...)
+	err = db.Collection(collectionCommission).Insert(commissions...)
 
 	if err != nil {
 		suite.FailNow("Insert commission test data failed", "%v", err)
@@ -687,7 +687,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		BankCountryCodeA2: "US",
 	}
 
-	err = db.Collection(pkg.CollectionBinData).Insert(bin)
+	err = db.Collection(collectionBinData).Insert(bin)
 
 	if err != nil {
 		suite.FailNow("Insert BIN test data failed", "%v", err)
@@ -1402,7 +1402,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessProjectOrderId_Duplicate_Error() {
 		PaymentMethodIncomeCurrency:        processor.checked.currency,
 	}
 
-	err = suite.service.db.Collection(pkg.CollectionOrder).Insert(order)
+	err = suite.service.db.Collection(collectionOrder).Insert(order)
 	assert.Nil(suite.T(), err)
 
 	err = processor.processProjectOrderId()
@@ -2095,7 +2095,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_Convert_Error() {
 	order, err := processor.prepareOrder()
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), order)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, pkg.CollectionCurrencyRate), err.Error())
+	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionCurrencyRate), err.Error())
 }
 
 func (suite *OrderTestSuite) TestOrder_PrepareOrder_Commission_Error() {
@@ -2408,7 +2408,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessOrderCommissions_PaymentSystemAcco
 
 	err = processor.processOrderCommissions(order)
 	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, pkg.CollectionCurrencyRate), err.Error())
+	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionCurrencyRate), err.Error())
 }
 
 func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_Ok() {
@@ -2627,7 +2627,7 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_DuplicateProjectOrderI
 		},
 	}
 
-	err := suite.service.db.Collection(pkg.CollectionOrder).Insert(order)
+	err := suite.service.db.Collection(collectionOrder).Insert(order)
 	assert.Nil(suite.T(), err)
 
 	rsp := &billing.Order{}
@@ -3323,7 +3323,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_OrderHasEndedStatu
 	assert.Nil(suite.T(), err)
 
 	rsp.Status = constant.OrderStatusProjectComplete
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(rsp.Id), rsp)
+	err = suite.service.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(rsp.Id), rsp)
 
 	data := map[string]string{
 		pkg.PaymentCreateFieldOrderId:         rsp.Uuid,
@@ -3361,7 +3361,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_ProjectProcess_Err
 	assert.Nil(suite.T(), err)
 
 	rsp.Project.Id = suite.inactiveProject.Id
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(rsp.Id), rsp)
+	err = suite.service.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(rsp.Id), rsp)
 
 	data := map[string]string{
 		pkg.PaymentCreateFieldOrderId:         rsp.Uuid,
@@ -3469,7 +3469,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_AmountLimitProcess
 	assert.Nil(suite.T(), err)
 
 	rsp.ProjectIncomeAmount = 10
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(rsp.Id), rsp)
+	err = suite.service.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(rsp.Id), rsp)
 
 	data := map[string]string{
 		pkg.PaymentCreateFieldOrderId:         rsp.Uuid,
@@ -3653,7 +3653,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_ChangePaymentSyste
 	assert.True(suite.T(), rsp.NeedRedirect)
 
 	var check *billing.Order
-	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(order.Id)).One(&check)
+	err = suite.service.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(order.Id)).One(&check)
 
 	terminal, err := suite.service.merchant.GetPaymentMethodTerminalId(suite.project.MerchantId, suite.paymentMethod.Id)
 	assert.NoError(suite.T(), err)
@@ -3746,7 +3746,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_Ok() {
 	assert.True(suite.T(), rsp.NeedRedirect)
 
 	var order1 *billing.Order
-	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(order.Id)).One(&order1)
+	err = suite.service.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(order.Id)).One(&order1)
 	assert.NotNil(suite.T(), order1)
 
 	commission, err := suite.service.commission.GetByProjectIdAndMethod(order1.Project.Id, order1.PaymentMethod.Id)
@@ -3906,13 +3906,13 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_FormInputTimeExpired
 	assert.NoError(suite.T(), err)
 
 	var order *billing.Order
-	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(rsp1.Id)).One(&order)
+	err = suite.service.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(rsp1.Id)).One(&order)
 	assert.NotNil(suite.T(), order)
 
 	order.ExpireDateToFormInput, err = ptypes.TimestampProto(time.Now().Add(time.Minute * -40))
 	assert.NoError(suite.T(), err)
 
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = suite.service.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
 
 	expireYear := time.Now().AddDate(1, 0, 0)
 
@@ -3978,7 +3978,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Ok() {
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 
 	var order1 *billing.Order
-	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(order.Id)).One(&order1)
+	err = suite.service.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(order.Id)).One(&order1)
 	suite.NotNil(suite.T(), order1)
 
 	callbackRequest := &billing.CardPayPaymentCallback{
@@ -4038,7 +4038,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Ok() {
 	assert.Equal(suite.T(), pkg.StatusOK, callbackResponse.Status)
 
 	var order2 *billing.Order
-	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(order.Id)).One(&order2)
+	err = suite.service.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(order.Id)).One(&order2)
 	suite.NotNil(suite.T(), order2)
 
 	assert.Equal(suite.T(), int32(constant.OrderStatusPaymentSystemComplete), order2.Status)
@@ -4089,7 +4089,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Recurring_Ok() {
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 
 	var order1 *billing.Order
-	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(order.Id)).One(&order1)
+	err = suite.service.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(order.Id)).One(&order1)
 	suite.NotNil(suite.T(), order1)
 
 	callbackRequest := &billing.CardPayPaymentCallback{
@@ -4152,7 +4152,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Recurring_Ok() {
 	assert.Equal(suite.T(), pkg.StatusOK, callbackResponse.Status)
 
 	var order2 *billing.Order
-	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(order.Id)).One(&order2)
+	err = suite.service.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(order.Id)).One(&order2)
 	suite.NotNil(suite.T(), order2)
 
 	assert.Equal(suite.T(), int32(constant.OrderStatusPaymentSystemComplete), order2.Status)

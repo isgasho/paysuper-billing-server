@@ -121,7 +121,7 @@ func (suite *TokenTestSuite) SetupTest() {
 		Prices: []*grpc.ProductPrice{{Currency: "USD", Amount: 1005.00}},
 	}
 
-	err = db.Collection(pkg.CollectionProduct).Insert([]interface{}{product1, product2}...)
+	err = db.Collection(collectionProduct).Insert([]interface{}{product1, product2}...)
 	assert.NoError(suite.T(), err, "Insert product test data failed")
 
 	redisClient := database.NewRedis(
@@ -208,7 +208,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_NewCustomer_Ok() {
 	assert.NoError(suite.T(), err)
 
 	var customer *billing.Customer
-	err = suite.service.db.Collection(pkg.CollectionCustomer).FindId(bson.ObjectIdHex(rep.token.CustomerId)).One(&customer)
+	err = suite.service.db.Collection(collectionCustomer).FindId(bson.ObjectIdHex(rep.token.CustomerId)).One(&customer)
 	assert.NotNil(suite.T(), customer)
 
 	assert.Equal(suite.T(), req.User.Id, customer.ExternalId)
@@ -299,7 +299,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_ExistCustomer_Ok() {
 	assert.Equal(suite.T(), rep.token.CustomerId, rep1.token.CustomerId)
 
 	var customers []*billing.Customer
-	err = suite.service.db.Collection(pkg.CollectionCustomer).FindId(bson.ObjectIdHex(rep.token.CustomerId)).All(&customers)
+	err = suite.service.db.Collection(collectionCustomer).FindId(bson.ObjectIdHex(rep.token.CustomerId)).All(&customers)
 	assert.Len(suite.T(), customers, 1)
 
 	assert.Len(suite.T(), customers[0].Identity, 4)
@@ -368,7 +368,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_ExistCustomer_UpdateExistIden
 	assert.NoError(suite.T(), err)
 
 	var customer *billing.Customer
-	err = suite.service.db.Collection(pkg.CollectionCustomer).FindId(bson.ObjectIdHex(rep.token.CustomerId)).One(&customer)
+	err = suite.service.db.Collection(collectionCustomer).FindId(bson.ObjectIdHex(rep.token.CustomerId)).One(&customer)
 	assert.NotNil(suite.T(), customer)
 	assert.False(suite.T(), customer.Identity[1].Verified)
 
@@ -411,7 +411,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_ExistCustomer_UpdateExistIden
 	assert.Equal(suite.T(), rep.token.CustomerId, rep1.token.CustomerId)
 
 	var customers []*billing.Customer
-	err = suite.service.db.Collection(pkg.CollectionCustomer).FindId(bson.ObjectIdHex(rep.token.CustomerId)).All(&customers)
+	err = suite.service.db.Collection(collectionCustomer).FindId(bson.ObjectIdHex(rep.token.CustomerId)).All(&customers)
 	assert.Len(suite.T(), customers, 1)
 
 	assert.Len(suite.T(), customers[0].Identity, 3)

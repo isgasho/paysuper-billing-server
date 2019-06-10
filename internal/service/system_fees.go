@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
@@ -20,6 +19,8 @@ type kv struct {
 
 const (
 	cacheSystemFeesMethodRegionBrand = "system_fees:method:%s:region:%s:brand:%s"
+
+	collectionSystemFees = "system_fees"
 
 	errorSystemFeeCardBrandRequired        = "card brand required for this method"
 	errorSystemFeeCardBrandNotAllowed      = "card brand not allowed for this method"
@@ -175,7 +176,7 @@ func (s *Service) GetActualSystemFeesList(
 		fees  []*billing.SystemFees
 		query = bson.M{"is_active": true}
 	)
-	e := s.db.Collection(pkg.CollectionSystemFees).Find(query).All(&fees)
+	e := s.db.Collection(collectionSystemFees).Find(query).All(&fees)
 	if e != nil {
 		s.logError("Get System fees failed", []interface{}{"err", e.Error(), "query", query})
 		return e
@@ -190,7 +191,7 @@ func newSystemFeesService(svc *Service) *SystemFee {
 }
 
 func (h *SystemFee) Insert(fees *billing.SystemFees) error {
-	if err := h.svc.db.Collection(pkg.CollectionSystemFees).Insert(fees); err != nil {
+	if err := h.svc.db.Collection(collectionSystemFees).Insert(fees); err != nil {
 		return err
 	}
 
@@ -202,7 +203,7 @@ func (h *SystemFee) Insert(fees *billing.SystemFees) error {
 }
 
 func (h *SystemFee) Update(fees *billing.SystemFees) error {
-	if err := h.svc.db.Collection(pkg.CollectionSystemFees).UpdateId(bson.ObjectIdHex(fees.Id), fees); err != nil {
+	if err := h.svc.db.Collection(collectionSystemFees).UpdateId(bson.ObjectIdHex(fees.Id), fees); err != nil {
 		return err
 	}
 
@@ -218,8 +219,8 @@ func (h SystemFee) Find(methodId string, region string, cardBrand string) (*bill
 	key := fmt.Sprintf(cacheSystemFeesMethodRegionBrand, methodId, region, cardBrand)
 
 	if err := h.svc.cacher.Get(key, c); err != nil {
-		if err = h.svc.db.Collection(pkg.CollectionSystemFees).Find(bson.M{"method_id": bson.ObjectIdHex(methodId), "region": region, "card_brand": cardBrand, "is_active": true}).One(&c); err != nil {
-			return nil, fmt.Errorf(errorNotFound, pkg.CollectionSystemFees)
+		if err = h.svc.db.Collection(collectionSystemFees).Find(bson.M{"method_id": bson.ObjectIdHex(methodId), "region": region, "card_brand": cardBrand, "is_active": true}).One(&c); err != nil {
+			return nil, fmt.Errorf(errorNotFound, collectionSystemFees)
 		}
 	}
 

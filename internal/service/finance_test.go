@@ -225,7 +225,7 @@ func (suite *FinanceTestSuite) SetupTest() {
 		},
 	}
 
-	err = db.Collection(pkg.CollectionCommission).Insert(commissions...)
+	err = db.Collection(collectionCommission).Insert(commissions...)
 
 	if err != nil {
 		suite.FailNow("Insert commission test data failed", "%v", err)
@@ -295,7 +295,7 @@ func (suite *FinanceTestSuite) TestFinance_GetCurrencyByCodeA3Error() {
 
 	assert.NotNil(suite.T(), err)
 	assert.Nil(suite.T(), c)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, pkg.CollectionCurrency), err.Error())
+	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionCurrency), err.Error())
 }
 
 func (suite *FinanceTestSuite) TestFinance_ConvertOk() {
@@ -314,7 +314,7 @@ func (suite *FinanceTestSuite) TestFinance_ConvertCurrencyFromError() {
 
 	assert.Error(suite.T(), err)
 	assert.True(suite.T(), amount == 0)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, pkg.CollectionCurrencyRate), err.Error())
+	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionCurrencyRate), err.Error())
 }
 
 func (suite *FinanceTestSuite) TestFinance_ConvertCurrencyToError() {
@@ -322,7 +322,7 @@ func (suite *FinanceTestSuite) TestFinance_ConvertCurrencyToError() {
 
 	assert.Error(suite.T(), err)
 	assert.True(suite.T(), amount == 0)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, pkg.CollectionCurrencyRate), err.Error())
+	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionCurrencyRate), err.Error())
 }
 
 func (suite *FinanceTestSuite) TestFinance_CalculateCommissionOk() {
@@ -341,7 +341,7 @@ func (suite *FinanceTestSuite) TestFinance_CalculateCommissionProjectError() {
 
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), float64(0), commission)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, pkg.CollectionCommission), err.Error())
+	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionCommission), err.Error())
 }
 
 func (suite *FinanceTestSuite) TestFinance_CalculateCommissionPaymentMethod_DefaultPaymentCommission() {

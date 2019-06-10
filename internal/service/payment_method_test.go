@@ -6,7 +6,6 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
-	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -119,7 +118,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodById_NotF
 	_, err := suite.service.paymentMethod.GetById(bson.NewObjectId().Hex())
 
 	assert.Error(suite.T(), err)
-	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, pkg.CollectionPaymentMethod))
+	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, collectionPaymentMethod))
 }
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodByGroupAndCurrency_Ok() {
@@ -133,11 +132,11 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodByGroupAn
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodByGroupAndCurrency_NotFound() {
 	_, err := suite.service.paymentMethod.GetByGroupAndCurrency("unknown", 643)
 	assert.Error(suite.T(), err)
-	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, pkg.CollectionPaymentMethod))
+	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, collectionPaymentMethod))
 
 	_, err = suite.service.paymentMethod.GetByGroupAndCurrency(suite.pmQiwi.Group, 1)
 	assert.Error(suite.T(), err)
-	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, pkg.CollectionPaymentMethod))
+	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, collectionPaymentMethod))
 }
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_Groups() {

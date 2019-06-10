@@ -3,12 +3,13 @@ package service
 import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
-	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 )
 
 const (
 	cacheCurrencyA3 = "currency:code_a3:%s"
+
+	collectionCurrency = "currency"
 )
 
 func newCurrencyService(svc *Service) *Currency {
@@ -17,7 +18,7 @@ func newCurrencyService(svc *Service) *Currency {
 }
 
 func (h *Currency) Insert(currency *billing.Currency) error {
-	if err := h.svc.db.Collection(pkg.CollectionCurrency).Insert(currency); err != nil {
+	if err := h.svc.db.Collection(collectionCurrency).Insert(currency); err != nil {
 		return err
 	}
 
@@ -34,7 +35,7 @@ func (h Currency) MultipleInsert(currency []*billing.Currency) error {
 		c[i] = v
 	}
 
-	if err := h.svc.db.Collection(pkg.CollectionCurrency).Insert(c...); err != nil {
+	if err := h.svc.db.Collection(collectionCurrency).Insert(c...); err != nil {
 		return err
 	}
 
@@ -46,8 +47,8 @@ func (h Currency) GetByCodeA3(code string) (*billing.Currency, error) {
 	key := fmt.Sprintf(cacheCurrencyA3, code)
 
 	if err := h.svc.cacher.Get(key, c); err != nil {
-		if err = h.svc.db.Collection(pkg.CollectionCurrency).Find(bson.M{"is_active": true, "code_a3": code}).One(&c); err != nil {
-			return nil, fmt.Errorf(errorNotFound, pkg.CollectionCurrency)
+		if err = h.svc.db.Collection(collectionCurrency).Find(bson.M{"is_active": true, "code_a3": code}).One(&c); err != nil {
+			return nil, fmt.Errorf(errorNotFound, collectionCurrency)
 		}
 	}
 

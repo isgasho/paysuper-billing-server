@@ -3,12 +3,13 @@ package service
 import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
-	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 )
 
 const (
 	cacheCountryCodeA2 = "country:code_a2:%s"
+
+	collectionCountry = "country"
 )
 
 func newCountryService(svc *Service) *Country {
@@ -17,7 +18,7 @@ func newCountryService(svc *Service) *Country {
 }
 
 func (h *Country) Insert(country *billing.Country) error {
-	if err := h.svc.db.Collection(pkg.CollectionCountry).Insert(country); err != nil {
+	if err := h.svc.db.Collection(collectionCountry).Insert(country); err != nil {
 		return err
 	}
 
@@ -34,7 +35,7 @@ func (h Country) MultipleInsert(country []*billing.Country) error {
 		c[i] = v
 	}
 
-	if err := h.svc.db.Collection(pkg.CollectionCountry).Insert(c...); err != nil {
+	if err := h.svc.db.Collection(collectionCountry).Insert(c...); err != nil {
 		return err
 	}
 
@@ -46,8 +47,8 @@ func (h Country) GetByCodeA2(code string) (*billing.Country, error) {
 	key := fmt.Sprintf(cacheCountryCodeA2, code)
 
 	if err := h.svc.cacher.Get(key, c); err != nil {
-		if err = h.svc.db.Collection(pkg.CollectionCountry).Find(bson.M{"is_active": true, "code_a2": code}).One(&c); err != nil {
-			return nil, fmt.Errorf(errorNotFound, pkg.CollectionCountry)
+		if err = h.svc.db.Collection(collectionCountry).Find(bson.M{"is_active": true, "code_a2": code}).One(&c); err != nil {
+			return nil, fmt.Errorf(errorNotFound, collectionCountry)
 		}
 	}
 

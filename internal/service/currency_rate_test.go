@@ -6,7 +6,6 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
-	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -104,7 +103,7 @@ func (suite *CurrencyRateTestSuite) TestCurrencyRate_Get_NotFound() {
 	c, err := suite.service.currencyRate.GetFromTo(641, 641)
 
 	assert.Nil(suite.T(), c)
-	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, pkg.CollectionCurrencyRate))
+	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, collectionCurrencyRate))
 }
 
 func (suite *CurrencyRateTestSuite) TestCurrencyRate_Convert_Ok() {
@@ -117,5 +116,5 @@ func (suite *CurrencyRateTestSuite) TestCurrencyRate_Convert_Ok() {
 func (suite *CurrencyRateTestSuite) TestCurrencyRate_Convert_NotFound() {
 	_, err := suite.service.currencyRate.Convert(641, 641, 10)
 
-	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, pkg.CollectionCurrencyRate))
+	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, collectionCurrencyRate))
 }

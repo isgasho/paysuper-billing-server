@@ -4,12 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"github.com/globalsign/mgo/bson"
-	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 )
 
 const (
 	cacheMerchantId = "merchant:id:%s"
+
+	collectionMerchant                     = "merchant"
+	collectionMerchantPaymentMethodHistory = "payment_method_history"
 )
 
 func newMerchantService(svc *Service) *Merchant {
@@ -18,7 +20,7 @@ func newMerchantService(svc *Service) *Merchant {
 }
 
 func (h *Merchant) Update(merchant *billing.Merchant) error {
-	if err := h.svc.db.Collection(pkg.CollectionMerchant).UpdateId(bson.ObjectIdHex(merchant.Id), merchant); err != nil {
+	if err := h.svc.db.Collection(collectionMerchant).UpdateId(bson.ObjectIdHex(merchant.Id), merchant); err != nil {
 		return err
 	}
 
@@ -30,7 +32,7 @@ func (h *Merchant) Update(merchant *billing.Merchant) error {
 }
 
 func (h *Merchant) Insert(merchant *billing.Merchant) error {
-	if err := h.svc.db.Collection(pkg.CollectionMerchant).Insert(merchant); err != nil {
+	if err := h.svc.db.Collection(collectionMerchant).Insert(merchant); err != nil {
 		return err
 	}
 
@@ -47,7 +49,7 @@ func (h *Merchant) MultipleInsert(merchants []*billing.Merchant) error {
 		m[i] = v
 	}
 
-	if err := h.svc.db.Collection(pkg.CollectionMerchant).Insert(m...); err != nil {
+	if err := h.svc.db.Collection(collectionMerchant).Insert(m...); err != nil {
 		return err
 	}
 
@@ -59,8 +61,8 @@ func (h *Merchant) GetById(id string) (*billing.Merchant, error) {
 	key := fmt.Sprintf(cacheMerchantId, id)
 
 	if err := h.svc.cacher.Get(key, c); err != nil {
-		if err = h.svc.db.Collection(pkg.CollectionMerchant).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&c); err != nil {
-			return nil, fmt.Errorf(errorNotFound, pkg.CollectionMerchant)
+		if err = h.svc.db.Collection(collectionMerchant).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&c); err != nil {
+			return nil, fmt.Errorf(errorNotFound, collectionMerchant)
 		}
 	}
 
@@ -109,7 +111,7 @@ func (h Merchant) GetPaymentMethod(merchantId string, method string) (*billing.M
 	}
 
 	if _, ok := merchantPaymentMethods[method]; !ok {
-		return nil, fmt.Errorf(errorNotFound, pkg.CollectionMerchant)
+		return nil, fmt.Errorf(errorNotFound, collectionMerchant)
 	}
 
 	return merchantPaymentMethods[method], nil

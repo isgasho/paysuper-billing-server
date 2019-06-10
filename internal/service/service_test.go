@@ -420,7 +420,7 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		},
 	}
 
-	err = suite.db.Collection(pkg.CollectionCommission).Insert(commissions...)
+	err = suite.db.Collection(collectionCommission).Insert(commissions...)
 
 	if err != nil {
 		suite.FailNow("Insert commission test data failed", "%v", err)

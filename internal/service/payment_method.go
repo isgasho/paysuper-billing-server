@@ -3,7 +3,6 @@ package service
 import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
-	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 )
 
@@ -11,6 +10,8 @@ const (
 	cachePaymentMethodId    = "payment_method:id:%s"
 	cachePaymentMethodGroup = "payment_method:group:%s"
 	cachePaymentMethodAll   = "payment_method:all"
+
+	collectionPaymentMethod = "payment_method"
 )
 
 func newPaymentMethodService(svc *Service) *PaymentMethod {
@@ -23,8 +24,8 @@ func (h PaymentMethod) GetByGroupAndCurrency(group string, currency int32) (*bil
 	key := fmt.Sprintf(cachePaymentMethodGroup, group)
 
 	if err := h.svc.cacher.Get(key, c); err != nil {
-		if err = h.svc.db.Collection(pkg.CollectionPaymentMethod).Find(bson.M{"group_alias": group, "currencies": currency}).One(&c); err != nil {
-			return nil, fmt.Errorf(errorNotFound, pkg.CollectionPaymentMethod)
+		if err = h.svc.db.Collection(collectionPaymentMethod).Find(bson.M{"group_alias": group, "currencies": currency}).One(&c); err != nil {
+			return nil, fmt.Errorf(errorNotFound, collectionPaymentMethod)
 		}
 	}
 
@@ -37,8 +38,8 @@ func (h PaymentMethod) GetById(id string) (*billing.PaymentMethod, error) {
 	key := fmt.Sprintf(cachePaymentMethodId, id)
 
 	if err := h.svc.cacher.Get(key, c); err != nil {
-		if err = h.svc.db.Collection(pkg.CollectionPaymentMethod).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&c); err != nil {
-			return nil, fmt.Errorf(errorNotFound, pkg.CollectionPaymentMethod)
+		if err = h.svc.db.Collection(collectionPaymentMethod).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&c); err != nil {
+			return nil, fmt.Errorf(errorNotFound, collectionPaymentMethod)
 		}
 	}
 
@@ -52,7 +53,7 @@ func (h PaymentMethod) GetAll() map[string]*billing.PaymentMethod {
 
 	if err := h.svc.cacher.Get(key, c); err != nil {
 		var data []*billing.PaymentMethod
-		if err = h.svc.db.Collection(pkg.CollectionPaymentMethod).Find(bson.M{}).All(&data); err != nil {
+		if err = h.svc.db.Collection(collectionPaymentMethod).Find(bson.M{}).All(&data); err != nil {
 			return nil
 		}
 
@@ -91,7 +92,7 @@ func (h PaymentMethod) MultipleInsert(pm []*billing.PaymentMethod) error {
 		pms[i] = v
 	}
 
-	if err := h.svc.db.Collection(pkg.CollectionPaymentMethod).Insert(pms...); err != nil {
+	if err := h.svc.db.Collection(collectionPaymentMethod).Insert(pms...); err != nil {
 		return err
 	}
 
@@ -103,7 +104,7 @@ func (h PaymentMethod) MultipleInsert(pm []*billing.PaymentMethod) error {
 }
 
 func (h PaymentMethod) Insert(pm *billing.PaymentMethod) error {
-	if err := h.svc.db.Collection(pkg.CollectionPaymentMethod).Insert(pm); err != nil {
+	if err := h.svc.db.Collection(collectionPaymentMethod).Insert(pm); err != nil {
 		return err
 	}
 

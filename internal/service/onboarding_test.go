@@ -297,7 +297,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 		StartDate:               commissionStartDate,
 	}
 
-	err = db.Collection(pkg.CollectionCommission).Insert(commission)
+	err = db.Collection(collectionCommission).Insert(commission)
 	assert.NoError(suite.T(), err, "Insert commission test data failed")
 
 	suite.log, err = zap.NewProduction()
@@ -402,7 +402,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_NewMerchant_Ok()
 	assert.Equal(suite.T(), req.Contacts.Authorized.Position, rsp.Contacts.Authorized.Position)
 	assert.Equal(suite.T(), req.Banking.Name, rsp.Banking.Name)
 
-	err = suite.service.db.Collection(pkg.CollectionMerchant).Find(bson.M{"_id": bson.ObjectIdHex(rsp.Id)}).One(&merchant)
+	err = suite.service.db.Collection(collectionMerchant).Find(bson.M{"_id": bson.ObjectIdHex(rsp.Id)}).One(&merchant)
 
 	assert.NotNil(suite.T(), merchant)
 	assert.Equal(suite.T(), rsp.Status, merchant.Status)
@@ -457,7 +457,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_UpdateMerchant_O
 	assert.Equal(suite.T(), req.Banking.AccountNumber, rsp.Banking.AccountNumber)
 
 	var merchant *billing.Merchant
-	err = suite.service.db.Collection(pkg.CollectionMerchant).Find(bson.M{"_id": bson.ObjectIdHex(rsp.Id)}).One(&merchant)
+	err = suite.service.db.Collection(collectionMerchant).Find(bson.M{"_id": bson.ObjectIdHex(rsp.Id)}).One(&merchant)
 
 	assert.NotNil(suite.T(), merchant)
 	assert.Equal(suite.T(), rsp.Status, merchant.Status)
@@ -1462,7 +1462,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_AgreementS
 
 func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_MerchantPaymentMethodsEmpty_Ok() {
 	var merchant *billing.Merchant
-	err := suite.service.db.Collection(pkg.CollectionMerchant).FindId(bson.ObjectIdHex(suite.merchant1.Id)).One(&merchant)
+	err := suite.service.db.Collection(collectionMerchant).FindId(bson.ObjectIdHex(suite.merchant1.Id)).One(&merchant)
 
 	assert.NotNil(suite.T(), merchant)
 	assert.Len(suite.T(), merchant.PaymentMethods, 0)
@@ -1627,7 +1627,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_NewM
 	assert.Equal(suite.T(), reqMerchantPaymentMethodAdd.IsActive, pm.IsActive)
 
 	var merchant *billing.Merchant
-	err = suite.service.db.Collection(pkg.CollectionMerchant).FindId(bson.ObjectIdHex(rsp.Id)).One(&merchant)
+	err = suite.service.db.Collection(collectionMerchant).FindId(bson.ObjectIdHex(rsp.Id)).One(&merchant)
 	assert.NotNil(suite.T(), merchant)
 	assert.True(suite.T(), len(merchant.PaymentMethods) > 0)
 
@@ -1691,7 +1691,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_Upda
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_PaymentMethodsIsEmpty_Ok() {
-	_, err := suite.service.db.Collection(pkg.CollectionPaymentMethod).RemoveAll(bson.M{})
+	_, err := suite.service.db.Collection(collectionPaymentMethod).RemoveAll(bson.M{})
 
 	req := &grpc.ListMerchantPaymentMethodsRequest{
 		MerchantId: suite.merchant1.Id,
@@ -1906,7 +1906,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_CreateNotification_Ok() {
 		"merchant_id": bson.ObjectIdHex(suite.merchant.Id),
 		"user_id":     bson.ObjectIdHex(userId),
 	}
-	err := suite.service.db.Collection(pkg.CollectionNotification).Find(query).One(&notification)
+	err := suite.service.db.Collection(collectionNotification).Find(query).One(&notification)
 	assert.Nil(suite.T(), notification)
 
 	req := &grpc.NotificationRequest{
@@ -1925,7 +1925,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_CreateNotification_Ok() {
 	assert.Equal(suite.T(), req.Title, rsp.Title)
 	assert.Equal(suite.T(), req.Message, rsp.Message)
 
-	err = suite.service.db.Collection(pkg.CollectionNotification).Find(query).One(&notification)
+	err = suite.service.db.Collection(collectionNotification).Find(query).One(&notification)
 	assert.NotNil(suite.T(), notification)
 	assert.Equal(suite.T(), rsp.Id, notification.Id)
 	assert.Equal(suite.T(), rsp.MerchantId, notification.MerchantId)
@@ -2165,7 +2165,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_MarkNotificationAsRead_Ok() {
 	assert.Equal(suite.T(), rsp1.Id, rsp2.Id)
 
 	var notification *billing.Notification
-	err = suite.service.db.Collection(pkg.CollectionNotification).FindId(bson.ObjectIdHex(rsp1.Id)).One(&notification)
+	err = suite.service.db.Collection(collectionNotification).FindId(bson.ObjectIdHex(rsp1.Id)).One(&notification)
 	assert.NotNil(suite.T(), notification)
 
 	assert.True(suite.T(), notification.IsRead)

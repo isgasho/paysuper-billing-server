@@ -2,9 +2,12 @@ package service
 
 import (
 	"fmt"
-	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
+)
+
+const (
+	collectionCommission = "commission"
 )
 
 func newCommissionService(svc *Service) *Commission {
@@ -15,12 +18,12 @@ func newCommissionService(svc *Service) *Commission {
 func (h *Commission) GetByProjectIdAndMethod(projectId string, method string) (*billing.MerchantPaymentMethodCommissions, error) {
 	project, err := h.svc.project.GetById(projectId)
 	if err != nil {
-		return nil, fmt.Errorf(errorNotFound, pkg.CollectionCommission)
+		return nil, fmt.Errorf(errorNotFound, collectionCommission)
 	}
 
 	merchant, err := h.svc.merchant.GetById(project.MerchantId)
 	if err != nil {
-		return nil, fmt.Errorf(errorNotFound, pkg.CollectionCommission)
+		return nil, fmt.Errorf(errorNotFound, collectionCommission)
 	}
 
 	pm, ok := merchant.PaymentMethods[method]
@@ -34,7 +37,7 @@ func (h *Commission) GetByProjectIdAndMethod(projectId string, method string) (*
 func (h *Commission) CalculatePmCommission(projectId string, method string, amount float64) (float64, error) {
 	c, err := h.GetByProjectIdAndMethod(projectId, method)
 	if err != nil {
-		return float64(0), fmt.Errorf(errorNotFound, pkg.CollectionCommission)
+		return float64(0), fmt.Errorf(errorNotFound, collectionCommission)
 	}
 
 	return tools.FormatAmount(amount * (c.Fee / 100)), nil

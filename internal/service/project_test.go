@@ -222,7 +222,7 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		},
 	}
 
-	err = db.Collection(pkg.CollectionProduct).Insert(products...)
+	err = db.Collection(collectionProduct).Insert(products...)
 	assert.NoError(suite.T(), err, "Insert product test data failed")
 
 	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
@@ -886,5 +886,5 @@ func (suite *ProjectTestSuite) TestProject_GetProjectById_NotFound() {
 	_, err := suite.service.project.GetById(bson.NewObjectId().Hex())
 
 	assert.Error(suite.T(), err)
-	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, pkg.CollectionProject))
+	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, collectionProject))
 }

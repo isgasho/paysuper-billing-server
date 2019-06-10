@@ -153,7 +153,7 @@ func (suite *CommissionTestSuite) TearDownTest() {
 
 func (suite *CommissionTestSuite) TestCommission_GetByProjectIdAndMethod_NotFound() {
 	_, err := suite.service.commission.GetByProjectIdAndMethod(bson.NewObjectId().Hex(), bson.NewObjectId().Hex())
-	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, pkg.CollectionCommission))
+	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, collectionCommission))
 }
 
 func (suite *CommissionTestSuite) TestCommission_GetByProjectIdAndMethod_Ok() {
@@ -164,7 +164,7 @@ func (suite *CommissionTestSuite) TestCommission_GetByProjectIdAndMethod_Ok() {
 
 func (suite *CommissionTestSuite) TestCommission_CalculatePmCommission_NotFound() {
 	a, err := suite.service.commission.CalculatePmCommission(bson.NewObjectId().Hex(), bson.NewObjectId().Hex(), 1)
-	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, pkg.CollectionCommission))
+	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, collectionCommission))
 	assert.Equal(suite.T(), float64(0), a)
 }
 

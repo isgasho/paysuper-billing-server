@@ -8,7 +8,6 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
-	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/stretchr/testify/assert"
@@ -241,7 +240,7 @@ func (suite *SystemFeesTestSuite) TestSystemFees_AddSystemFees() {
 
 	// get existing fees
 
-	err := suite.service.db.Collection(pkg.CollectionSystemFees).Find(query).All(&fees)
+	err := suite.service.db.Collection(collectionSystemFees).Find(query).All(&fees)
 	assert.NoError(suite.T(), err)
 	assert.True(suite.T(), len(fees) == 1)
 	assert.True(suite.T(), len(fees[0].Fees) == 2)
@@ -273,7 +272,7 @@ func (suite *SystemFeesTestSuite) TestSystemFees_AddSystemFees() {
 
 	// get fees again with new actual values
 
-	err = suite.service.db.Collection(pkg.CollectionSystemFees).Find(query).All(&fees)
+	err = suite.service.db.Collection(collectionSystemFees).Find(query).All(&fees)
 	assert.NoError(suite.T(), err)
 	assert.True(suite.T(), len(fees) == 1)
 

@@ -15,6 +15,8 @@ import (
 const (
 	cacheProjectId = "project:id:%s"
 
+	collectionProject = "project"
+
 	projectErrorNotFound                  = "project with specified identifier not found"
 	projectErrorNameDefaultLangRequired   = "project name in \"" + DefaultLanguage + "\" locale is required"
 	projectErrorCallbackCurrencyIncorrect = "project callback currency is incorrect"
@@ -161,7 +163,7 @@ func (s *Service) ListProjects(
 		query["status"] = bson.M{"$in": req.Statuses}
 	}
 
-	count, err := s.db.Collection(pkg.CollectionProject).Find(query).Count()
+	count, err := s.db.Collection(collectionProject).Find(query).Count()
 
 	if err != nil {
 		s.logError("Query to count projects failed", []interface{}{"err", err.Error(), "query", query})
@@ -172,7 +174,7 @@ func (s *Service) ListProjects(
 		{"$match": query},
 		{
 			"$lookup": bson.M{
-				"from":         pkg.CollectionProduct,
+				"from":         collectionProduct,
 				"localField":   "_id",
 				"foreignField": "project_id",
 				"as":           "products",
@@ -214,7 +216,7 @@ func (s *Service) ListProjects(
 		afQuery = s.mgoPipeSort(afQuery, req.Sort)
 	}
 
-	err = s.db.Collection(pkg.CollectionProject).Pipe(afQuery).All(&projects)
+	err = s.db.Collection(collectionProject).Pipe(afQuery).All(&projects)
 
 	if err != nil {
 		s.logError("Query to find projects failed", []interface{}{"err", err.Error(), "query", afQuery})
@@ -272,7 +274,7 @@ func (s *Service) DeleteProject(
 }
 
 func (s *Service) getProjectBy(query bson.M) (project *billing.Project, err error) {
-	err = s.db.Collection(pkg.CollectionProject).Find(query).One(&project)
+	err = s.db.Collection(collectionProject).Find(query).One(&project)
 
 	if err != nil {
 		if err != mgo.ErrNotFound {
@@ -363,7 +365,7 @@ func newProjectService(svc *Service) *Project {
 }
 
 func (h *Project) Insert(project *billing.Project) error {
-	if err := h.svc.db.Collection(pkg.CollectionProject).Insert(project); err != nil {
+	if err := h.svc.db.Collection(collectionProject).Insert(project); err != nil {
 		return err
 	}
 
@@ -380,7 +382,7 @@ func (h *Project) MultipleInsert(projects []*billing.Project) error {
 		p[i] = v
 	}
 
-	if err := h.svc.db.Collection(pkg.CollectionProject).Insert(p...); err != nil {
+	if err := h.svc.db.Collection(collectionProject).Insert(p...); err != nil {
 		return err
 	}
 
@@ -388,7 +390,7 @@ func (h *Project) MultipleInsert(projects []*billing.Project) error {
 }
 
 func (h *Project) Update(project *billing.Project) error {
-	if err := h.svc.db.Collection(pkg.CollectionProject).UpdateId(bson.ObjectIdHex(project.Id), project); err != nil {
+	if err := h.svc.db.Collection(collectionProject).UpdateId(bson.ObjectIdHex(project.Id), project); err != nil {
 		return err
 	}
 
@@ -404,8 +406,8 @@ func (h Project) GetById(id string) (*billing.Project, error) {
 	key := fmt.Sprintf(cacheProjectId, id)
 
 	if err := h.svc.cacher.Get(key, c); err != nil {
-		if err = h.svc.db.Collection(pkg.CollectionProject).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&c); err != nil {
-			return nil, fmt.Errorf(errorNotFound, pkg.CollectionProject)
+		if err = h.svc.db.Collection(collectionProject).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&c); err != nil {
+			return nil, fmt.Errorf(errorNotFound, collectionProject)
 		}
 	}
 

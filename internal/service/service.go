@@ -144,7 +144,7 @@ func (s *Service) logError(msg string, data []interface{}) {
 }
 
 func (s *Service) UpdateOrder(ctx context.Context, req *billing.Order, rsp *grpc.EmptyResponse) error {
-	err := s.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(req.Id), req)
+	err := s.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(req.Id), req)
 
 	if err != nil {
 		s.logError("Update order failed", []interface{}{"error", err.Error(), "order", req})
