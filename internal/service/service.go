@@ -154,7 +154,7 @@ func (s *Service) UpdateOrder(ctx context.Context, req *billing.Order, rsp *grpc
 }
 
 func (s *Service) UpdateMerchant(ctx context.Context, req *billing.Merchant, rsp *grpc.EmptyResponse) error {
-	err := s.db.Collection(pkg.CollectionMerchant).UpdateId(bson.ObjectIdHex(req.Id), req)
+	err := s.merchant.Update(req)
 
 	if err != nil {
 		s.logError("Update merchant failed", []interface{}{"error", err.Error(), "order", req})

@@ -150,8 +150,10 @@ func (suite *TokenTestSuite) SetupTest() {
 		redisClient,
 		suite.cache,
 	)
-	err = suite.service.Init()
-	assert.NoError(suite.T(), err, "Billing service initialization failed")
+
+	if err := suite.service.Init(); err != nil {
+		suite.FailNow("Billing service initialization failed", "%v", err)
+	}
 
 	suite.project = project
 	suite.projectWithProducts = projectWithProducts

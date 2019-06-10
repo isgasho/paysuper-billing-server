@@ -153,9 +153,6 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		PaymentMethods:            paymentMethods,
 	}
 
-	err = db.Collection(pkg.CollectionMerchant).Insert(merchant)
-	assert.NoError(suite.T(), err, "Insert merchant test data failed")
-
 	project := &billing.Project{
 		Id:                       projectId,
 		CallbackCurrency:         "RUB",
@@ -245,6 +242,10 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 	pms := []*billing.PaymentMethod{pm1, pm2}
 	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {
 		suite.FailNow("Insert payment methods test data failed", "%v", err)
+	}
+
+	if err := suite.service.merchant.Insert(merchant); err != nil {
+		suite.FailNow("Insert merchant test data failed", "%v", err)
 	}
 
 	suite.merchant = merchant

@@ -170,14 +170,14 @@ func (s *Service) ChangeMerchant(
 	} else {
 		query := make(bson.M)
 
-		if req.Id != "" && req.User.Id != "" {
+		if req.Id != "" && req.User != nil && req.User.Id != "" {
 			query["$or"] = []bson.M{{"_id": bson.ObjectIdHex(req.Id)}, {"user.id": req.User.Id}}
 		} else {
 			if req.Id != "" {
 				query["_id"] = bson.ObjectIdHex(req.Id)
 			}
 
-			if req.User.Id != "" {
+			if req.User != nil && req.User.Id != "" {
 				query["user.id"] = req.User.Id
 			}
 		}
@@ -249,9 +249,9 @@ func (s *Service) ChangeMerchant(
 	merchant.UpdatedAt = ptypes.TimestampNow()
 
 	if isNew {
-		err = s.db.Collection(pkg.CollectionMerchant).Insert(merchant)
+		err = s.merchant.Insert(merchant)
 	} else {
-		err = s.db.Collection(pkg.CollectionMerchant).UpdateId(bson.ObjectIdHex(merchant.Id), merchant)
+		err = s.merchant.Update(merchant)
 	}
 
 	if err != nil {
@@ -260,10 +260,6 @@ func (s *Service) ChangeMerchant(
 	}
 
 	s.mapMerchantData(rsp, merchant)
-
-	if err := s.merchant.Update(merchant); err != nil {
-		return errors.New(merchantErrorUnknown)
-	}
 
 	return
 }
@@ -318,18 +314,12 @@ func (s *Service) ChangeMerchantStatus(
 		}
 	}
 
-	err = s.db.Collection(pkg.CollectionMerchant).UpdateId(bson.ObjectIdHex(merchant.Id), merchant)
-
-	if err != nil {
+	if err := s.merchant.Update(merchant); err != nil {
 		s.logError("Query to change merchant data failed", []interface{}{"err", err.Error(), "data", rsp})
 		return errors.New(merchantErrorUnknown)
 	}
 
 	s.mapMerchantData(rsp, merchant)
-
-	if err := s.merchant.Update(merchant); err != nil {
-		return errors.New(merchantErrorUnknown)
-	}
 
 	return nil
 }
@@ -377,19 +367,13 @@ func (s *Service) ChangeMerchantData(
 		merchant.Status = pkg.MerchantStatusAgreementSigned
 	}
 
-	err = s.db.Collection(pkg.CollectionMerchant).UpdateId(bson.ObjectIdHex(merchant.Id), merchant)
-
-	if err != nil {
+	if err := s.merchant.Update(merchant); err != nil {
 		s.logError("Query to change merchant data failed", []interface{}{"err", err.Error(), "data", merchant})
 		return errors.New(merchantErrorUnknown)
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = merchant
-
-	if err := s.merchant.Update(merchant); err != nil {
-		return errors.New(merchantErrorUnknown)
-	}
 
 	return nil
 }
@@ -410,19 +394,13 @@ func (s *Service) SetMerchantS3Agreement(
 
 	merchant.S3AgreementName = req.S3AgreementName
 
-	err = s.db.Collection(pkg.CollectionMerchant).UpdateId(bson.ObjectIdHex(merchant.Id), merchant)
-
-	if err != nil {
+	if err := s.merchant.Update(merchant); err != nil {
 		s.logError("Query to change merchant data failed", []interface{}{"err", err.Error(), "data", merchant})
 		return errors.New(merchantErrorUnknown)
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = merchant
-
-	if err := s.merchant.Update(merchant); err != nil {
-		return errors.New(merchantErrorUnknown)
-	}
 
 	return nil
 }
@@ -676,7 +654,7 @@ func (s *Service) ChangeMerchantPaymentMethod(
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = err.Error()
 
-		return
+		return nil
 	}
 
 	pm, e := s.paymentMethod.GetById(req.PaymentMethod.Id)
@@ -684,7 +662,7 @@ func (s *Service) ChangeMerchantPaymentMethod(
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = orderErrorPaymentMethodNotFound
 
-		return
+		return nil
 	}
 	req.Integration.Integrated = req.HasIntegration()
 
@@ -725,28 +703,22 @@ func (s *Service) ChangeMerchantPaymentMethod(
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = orderErrorUnknown
 
-		return
+		return nil
 	}
 
-	err = s.db.Collection(pkg.CollectionMerchant).UpdateId(bson.ObjectIdHex(merchant.Id), merchant)
-
-	if err != nil {
+	if err := s.merchant.Update(merchant); err != nil {
 		s.logError("Query to update merchant payment methods failed", []interface{}{"error", err.Error(), "query", merchant})
 
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = orderErrorUnknown
 
-		return
-	}
-
-	if err := s.merchant.Update(merchant); err != nil {
-		return errors.New(merchantErrorUnknown)
+		return nil
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = merchant.PaymentMethods[pm.Id]
 
-	return
+	return nil
 }
 
 func (s *Service) getMerchantBy(query bson.M) (merchant *billing.Merchant, err error) {

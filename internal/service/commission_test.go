@@ -109,9 +109,6 @@ func (suite *CommissionTestSuite) SetupTest() {
 		PaymentMethods:            paymentMethods,
 	}
 
-	err = db.Collection(pkg.CollectionMerchant).Insert(suite.merchant)
-	assert.NoError(suite.T(), err, "Insert merchant test data failed")
-
 	suite.project = &billing.Project{
 		Id:                       bson.NewObjectId().Hex(),
 		CallbackCurrency:         "RUB",
@@ -138,10 +135,13 @@ func (suite *CommissionTestSuite) SetupTest() {
 
 	suite.cache = NewCacheRedis(mock.NewTestRedis())
 	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, suite.cache)
-	err = suite.service.Init()
 
-	if err != nil {
+	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
+	}
+
+	if err := suite.service.merchant.Insert(suite.merchant); err != nil {
+		suite.FailNow("Insert merchant test data failed", "%v", err)
 	}
 }
 

@@ -15,8 +15,38 @@ func newMerchantService(svc *Service) *Merchant {
 }
 
 func (h *Merchant) Update(merchant *billing.Merchant) error {
+	if err := h.svc.db.Collection(pkg.CollectionMerchant).UpdateId(bson.ObjectIdHex(merchant.Id), merchant); err != nil {
+		return err
+	}
+
 	key := fmt.Sprintf(pkg.CacheMerchantId, merchant.Id)
 	if err := h.svc.cacher.Set(key, merchant, 0); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h *Merchant) Insert(merchant *billing.Merchant) error {
+	if err := h.svc.db.Collection(pkg.CollectionMerchant).Insert(merchant); err != nil {
+		return err
+	}
+
+	key := fmt.Sprintf(pkg.CacheMerchantId, merchant.Id)
+	if err := h.svc.cacher.Set(key, merchant, 0); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h *Merchant) MultipleInsert(merchants []*billing.Merchant) error {
+	m := make([]interface{}, len(merchants))
+	for i, v := range merchants {
+		m[i] = v
+	}
+
+	if err := h.svc.db.Collection(pkg.CollectionMerchant).Insert(m...); err != nil {
 		return err
 	}
 
