@@ -34,24 +34,24 @@ type Application struct {
 	service    micro.Service
 	httpServer *http.Server
 	router     *http.ServeMux
-
-	cacheExit chan bool
-	logger    *zap.Logger
+	logger     *zap.Logger
+	svc        *service.Service
 }
 
 type appHealthCheck struct{}
 
 func NewApplication() *Application {
-	return &Application{cacheExit: make(chan bool, 1)}
+	return &Application{}
 }
 
 func (app *Application) Init() {
 	app.initLogger()
+	app.logger.Info("Blah-blah-blah")
 
 	cfg, err := config.NewConfig()
 
 	if err != nil {
-		app.logger.Fatal("[PAYONE_BILLING] Config load failed", zap.Error(err))
+		app.logger.Fatal("Config load failed", zap.Error(err))
 	}
 
 	app.cfg = cfg
@@ -80,16 +80,17 @@ func (app *Application) Init() {
 		micro.WrapHandler(metrics.NewHandlerWrapper()),
 		micro.AfterStop(func() error {
 			app.logger.Info("Micro service stopped")
+			app.Stop()
 			return nil
 		}),
 	}
 
 	if app.cfg.MicroRegistry == constant.RegistryKubernetes {
 		app.service = k8s.NewService(options...)
-		app.logger.Info("[PAYSUPER_REPOSITORY] Initialize k8s service")
+		app.logger.Info("Initialize k8s service")
 	} else {
 		app.service = micro.NewService(options...)
-		app.logger.Info("[PAYSUPER_REPOSITORY] Initialize micro service")
+		app.logger.Info("Initialize micro service")
 	}
 
 	app.service.Init()
@@ -98,10 +99,9 @@ func (app *Application) Init() {
 	repService := repository.NewRepositoryService(constant.PayOneRepositoryServiceName, app.service.Client())
 	taxService := tax_service.NewTaxService(taxPkg.ServiceName, app.service.Client())
 
-	svc := service.NewBillingService(
+	app.svc = service.NewBillingService(
 		app.database,
 		app.cfg,
-		app.cacheExit,
 		geoService,
 		repService,
 		taxService,
@@ -109,14 +109,14 @@ func (app *Application) Init() {
 		app.redis,
 	)
 
-	if err := svc.Init(); err != nil {
-		app.logger.Fatal("[PAYONE_BILLING] Create service instance failed", zap.Error(err))
+	if err := app.svc.Init(); err != nil {
+		app.logger.Fatal("Create service instance failed", zap.Error(err))
 	}
 
-	err = grpc.RegisterBillingServiceHandler(app.service.Server(), svc)
+	err = grpc.RegisterBillingServiceHandler(app.service.Server(), app.svc)
 
 	if err != nil {
-		app.logger.Fatal("[PAYONE_BILLING] Service init failed", zap.Error(err))
+		app.logger.Fatal("Service init failed", zap.Error(err))
 	}
 
 	app.router = http.NewServeMux()
@@ -127,11 +127,12 @@ func (app *Application) Init() {
 func (app *Application) initLogger() {
 	var err error
 
-	app.logger, err = zap.NewProduction()
+	logger, err := zap.NewProduction()
 
 	if err != nil {
-		log.Fatalf("[PAYONE_BILLING] Application logger initialization failed with error: %s\n", err)
+		log.Fatalf("Application logger initialization failed with error: %s\n", err)
 	}
+	app.logger = logger.Named(pkg.LoggerName)
 	zap.ReplaceGlobals(app.logger)
 }
 
@@ -147,7 +148,7 @@ func (app *Application) initDatabase() {
 
 	if err != nil {
 		app.logger.Fatal(
-			"[PAYONE_BILLING] Database connection failed",
+			"Database connection failed",
 			zap.Error(err),
 			zap.String("connection_string", settings.String()),
 		)
@@ -168,14 +169,14 @@ func (app *Application) initHealth() {
 	})
 
 	if err != nil {
-		app.logger.Fatal("[PAYONE_BILLING] Health check register failed", zap.Error(err))
+		app.logger.Fatal("Health check register failed", zap.Error(err))
 	}
 
 	if err = h.Start(); err != nil {
-		app.logger.Fatal("[PAYONE_BILLING] Health check start failed", zap.Error(err))
+		app.logger.Fatal("Health check start failed", zap.Error(err))
 	}
 
-	app.logger.Info("[PAYONE_BILLING] Health check listener started", zap.String("port", app.cfg.MetricsPort))
+	app.logger.Info("Health check listener started", zap.String("port", app.cfg.MetricsPort))
 
 	app.router.HandleFunc("/health", handlers.NewJSONHandlerFunc(h, nil))
 }
@@ -192,13 +193,17 @@ func (app *Application) Run() {
 
 	go func() {
 		if err := app.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			app.logger.Fatal("[PAYONE_BILLING] Http server starting failed", zap.Error(err))
+			app.logger.Fatal("Http server starting failed", zap.Error(err))
 		}
 	}()
 
 	if err := app.service.Run(); err != nil {
-		app.logger.Fatal("[PAYONE_BILLING] Micro service starting failed", zap.Error(err))
+		app.logger.Fatal("Micro service starting failed", zap.Error(err))
 	}
+}
+
+func (c *appHealthCheck) Status() (interface{}, error) {
+	return "ok", nil
 }
 
 func (app *Application) Stop() {
@@ -206,35 +211,29 @@ func (app *Application) Stop() {
 	defer cancel()
 
 	if err := app.httpServer.Shutdown(ctx); err != nil {
-		app.logger.Fatal("Http server shutdown failed", zap.Error(err))
+		app.logger.Error("Http server shutdown failed", zap.Error(err))
 	}
 	app.logger.Info("Http server stopped")
 
-	app.cacheExit <- true
-	app.logger.Info("Cache rebuilding stopped")
+	if app.svc != nil {
+		app.svc.Shutdown()
+		app.logger.Info("GRPC service stopped")
+	} else {
+		app.logger.Error("GRPC service not initialized")
+	}
 
 	app.database.Close()
 	app.logger.Info("Database connection closed")
 
-	func() {
-		err := app.redis.Close()
+	if err := app.redis.Close(); err != nil {
+		zap.L().Error("Redis connection close failed", zap.Error(err))
+	} else {
+		zap.L().Info("Redis connection closed")
+	}
 
-		if err != nil {
-			zap.L().Fatal("Redis connection close failed", zap.Error(err))
-		} else {
-			zap.L().Info("Redis connection closed")
-		}
-	}()
-
-	func() {
-		if err := app.logger.Sync(); err != nil {
-			app.logger.Fatal("Logger sync failed", zap.Error(err))
-		} else {
-			app.logger.Info("Logger synced")
-		}
-	}()
-}
-
-func (c *appHealthCheck) Status() (interface{}, error) {
-	return "ok", nil
+	if err := app.logger.Sync(); err != nil {
+		app.logger.Error("Logger sync failed", zap.Error(err))
+	} else {
+		app.logger.Info("Logger synced")
+	}
 }

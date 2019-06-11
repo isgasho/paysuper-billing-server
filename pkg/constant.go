@@ -4,6 +4,8 @@ const (
 	ServiceName    = "p1paybilling"
 	ServiceVersion = "latest"
 
+	LoggerName = "PAYONE_BILLING_SERVER"
+
 	CollectionCurrency                     = "currency"
 	CollectionCountry                      = "country"
 	CollectionProject                      = "project"

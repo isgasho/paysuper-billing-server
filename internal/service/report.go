@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -11,6 +12,8 @@ import (
 
 const (
 	reportErrorNotFound = "not found"
+
+	orderFailedNotificationQueryFieldMask = "is_notifications_sent.%s"
 )
 
 func (s *Service) FindAllOrders(
@@ -69,8 +72,8 @@ func (s *Service) FindAllOrders(
 			query["payment_method._id"] = bson.M{"$in": paymentMethod}
 		}
 
-		if len(req.Status) > 0 {
-			query["status"] = bson.M{"$in": req.Status}
+		if len(req.PrivateStatus) > 0 {
+			query["private_status"] = bson.M{"$in": req.PrivateStatus}
 		}
 
 		if req.Account != "" {
@@ -103,6 +106,11 @@ func (s *Service) FindAllOrders(
 		}
 		if len(prjDates) > 0 {
 			query["created_at"] = prjDates
+		}
+
+		if req.StatusNotificationFailedFor != "" {
+			field := fmt.Sprintf(orderFailedNotificationQueryFieldMask, req.StatusNotificationFailedFor)
+			query[field] = false
 		}
 	}
 

@@ -331,7 +331,6 @@ func (suite *RefundTestSuite) SetupTest() {
 	suite.service = NewBillingService(
 		db,
 		cfg,
-		make(chan bool, 1),
 		mock.NewGeoIpServiceTestOk(),
 		mock.NewRepositoryServiceOk(),
 		mock.NewTaxServiceOkMock(),
@@ -395,7 +394,7 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_Ok() {
 	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(rsp.Id)).One(&order)
 	assert.NotNil(suite.T(), order)
 
-	order.Status = constant.OrderStatusPaymentSystemComplete
+	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
 	order.PaymentMethod.Params.Handler = "mock_ok"
 	order.Tax = &billing.OrderTax{
 		Type:     taxTypeVat,
@@ -403,7 +402,7 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_Ok() {
 		Amount:   10,
 		Currency: "RUB",
 	}
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = suite.service.updateOrder(order)
 
 	req2 := &grpc.CreateRefundRequest{
 		OrderId:   rsp.Uuid,
@@ -469,9 +468,9 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_AmountLess_Error() {
 	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(rsp.Id)).One(&order)
 	assert.NotNil(suite.T(), order)
 
-	order.Status = constant.OrderStatusPaymentSystemComplete
+	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
 	order.PaymentMethod.Params.Handler = "mock_ok"
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = suite.service.updateOrder(order)
 
 	req2 := &grpc.CreateRefundRequest{
 		OrderId:   order.Uuid,
@@ -540,9 +539,9 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_PaymentSystemNotExists_Err
 	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(rsp.Id)).One(&order)
 	assert.NotNil(suite.T(), order)
 
-	order.Status = constant.OrderStatusPaymentSystemComplete
+	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
 	order.PaymentMethod.Params.Handler = "not_exist_payment_system"
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = suite.service.updateOrder(order)
 
 	req2 := &grpc.CreateRefundRequest{
 		OrderId:   rsp.Uuid,
@@ -600,9 +599,9 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_PaymentSystemReturnError_E
 	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(rsp.Id)).One(&order)
 	assert.NotNil(suite.T(), order)
 
-	order.Status = constant.OrderStatusPaymentSystemComplete
+	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
 	order.PaymentMethod.Params.Handler = "mock_error"
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = suite.service.updateOrder(order)
 
 	req2 := &grpc.CreateRefundRequest{
 		OrderId:   rsp.Uuid,
@@ -736,8 +735,8 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_WasRefunded_Error() {
 	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(rsp.Id)).One(&order)
 	assert.NotNil(suite.T(), order)
 
-	order.Status = constant.OrderStatusRefund
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	order.PrivateStatus = constant.OrderStatusRefund
+	err = suite.service.updateOrder(order)
 
 	req2 := &grpc.CreateRefundRequest{
 		OrderId:   rsp.Uuid,
@@ -794,9 +793,9 @@ func (suite *RefundTestSuite) TestRefund_ListRefunds_Ok() {
 	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(rsp.Id)).One(&order)
 	assert.NotNil(suite.T(), order)
 
-	order.Status = constant.OrderStatusProjectComplete
+	order.PrivateStatus = constant.OrderStatusProjectComplete
 	order.PaymentMethod.Params.Handler = "mock_ok"
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = suite.service.updateOrder(order)
 
 	req2 := &grpc.CreateRefundRequest{
 		OrderId:   rsp.Uuid,
@@ -878,9 +877,9 @@ func (suite *RefundTestSuite) TestRefund_ListRefunds_Limit_Ok() {
 	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(rsp.Id)).One(&order)
 	assert.NotNil(suite.T(), order)
 
-	order.Status = constant.OrderStatusProjectComplete
+	order.PrivateStatus = constant.OrderStatusProjectComplete
 	order.PaymentMethod.Params.Handler = "mock_ok"
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = suite.service.updateOrder(order)
 
 	req2 := &grpc.CreateRefundRequest{
 		OrderId:   rsp.Uuid,
@@ -974,9 +973,9 @@ func (suite *RefundTestSuite) TestRefund_GetRefund_Ok() {
 	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(rsp.Id)).One(&order)
 	assert.NotNil(suite.T(), order)
 
-	order.Status = constant.OrderStatusProjectComplete
+	order.PrivateStatus = constant.OrderStatusProjectComplete
 	order.PaymentMethod.Params.Handler = "mock_ok"
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = suite.service.updateOrder(order)
 
 	req2 := &grpc.CreateRefundRequest{
 		OrderId:   rsp.Uuid,
@@ -1058,7 +1057,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(rsp.Id)).One(&order)
 	assert.NotNil(suite.T(), order)
 
-	order.Status = constant.OrderStatusPaymentSystemComplete
+	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
 	order.PaymentMethod.Params.Handler = "mock_ok"
 	order.Tax = &billing.OrderTax{
 		Type:     taxTypeVat,
@@ -1066,7 +1065,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 		Amount:   10,
 		Currency: "RUB",
 	}
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = suite.service.updateOrder(order)
 
 	req2 := &grpc.CreateRefundRequest{
 		OrderId:   rsp.Uuid,
@@ -1081,7 +1080,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 	assert.Empty(suite.T(), rsp2.Message)
 
 	order.PaymentMethod.Params.Handler = pkg.PaymentSystemHandlerCardPay
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = suite.service.updateOrder(order)
 
 	refundReq := &billing.CardPayRefundCallback{
 		MerchantOrder: &billing.CardPayMerchantOrder{
@@ -1174,7 +1173,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnmarshalError() 
 	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(rsp.Id)).One(&order)
 	assert.NotNil(suite.T(), order)
 
-	order.Status = constant.OrderStatusPaymentSystemComplete
+	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
 	order.PaymentMethod.Params.Handler = "mock_ok"
 	order.Tax = &billing.OrderTax{
 		Type:     taxTypeVat,
@@ -1182,7 +1181,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnmarshalError() 
 		Amount:   10,
 		Currency: "RUB",
 	}
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = suite.service.updateOrder(order)
 
 	req2 := &grpc.CreateRefundRequest{
 		OrderId:   rsp.Uuid,
@@ -1197,7 +1196,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnmarshalError() 
 	assert.Empty(suite.T(), rsp2.Message)
 
 	order.PaymentMethod.Params.Handler = pkg.PaymentSystemHandlerCardPay
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = suite.service.updateOrder(order)
 
 	refundReq := `{"some_field": "some_value"}`
 
@@ -1258,7 +1257,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnknownHandler_Er
 	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(rsp.Id)).One(&order)
 	assert.NotNil(suite.T(), order)
 
-	order.Status = constant.OrderStatusPaymentSystemComplete
+	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
 	order.PaymentMethod.Params.Handler = "mock_ok"
 	order.Tax = &billing.OrderTax{
 		Type:     taxTypeVat,
@@ -1266,7 +1265,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnknownHandler_Er
 		Amount:   10,
 		Currency: "RUB",
 	}
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = suite.service.updateOrder(order)
 
 	req2 := &grpc.CreateRefundRequest{
 		OrderId:   rsp.Uuid,
@@ -1281,7 +1280,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnknownHandler_Er
 	assert.Empty(suite.T(), rsp2.Message)
 
 	order.PaymentMethod.Params.Handler = pkg.PaymentSystemHandlerCardPay
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = suite.service.updateOrder(order)
 
 	refundReq := &billing.CardPayRefundCallback{
 		MerchantOrder: &billing.CardPayMerchantOrder{
@@ -1369,7 +1368,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_RefundNotFound_Er
 	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(rsp.Id)).One(&order)
 	assert.NotNil(suite.T(), order)
 
-	order.Status = constant.OrderStatusPaymentSystemComplete
+	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
 	order.PaymentMethod.Params.Handler = "mock_ok"
 	order.Tax = &billing.OrderTax{
 		Type:     taxTypeVat,
@@ -1377,7 +1376,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_RefundNotFound_Er
 		Amount:   10,
 		Currency: "RUB",
 	}
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = suite.service.updateOrder(order)
 
 	req2 := &grpc.CreateRefundRequest{
 		OrderId:   rsp.Uuid,
@@ -1392,7 +1391,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_RefundNotFound_Er
 	assert.Empty(suite.T(), rsp2.Message)
 
 	order.PaymentMethod.Params.Handler = pkg.PaymentSystemHandlerCardPay
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = suite.service.updateOrder(order)
 
 	refundReq := &billing.CardPayRefundCallback{
 		MerchantOrder: &billing.CardPayMerchantOrder{
@@ -1480,7 +1479,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderNotFound_Err
 	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(rsp.Id)).One(&order)
 	assert.NotNil(suite.T(), order)
 
-	order.Status = constant.OrderStatusPaymentSystemComplete
+	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
 	order.PaymentMethod.Params.Handler = "mock_ok"
 	order.Tax = &billing.OrderTax{
 		Type:     taxTypeVat,
@@ -1488,7 +1487,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderNotFound_Err
 		Amount:   10,
 		Currency: "RUB",
 	}
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = suite.service.updateOrder(order)
 
 	req2 := &grpc.CreateRefundRequest{
 		OrderId:   rsp.Uuid,
@@ -1503,7 +1502,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderNotFound_Err
 	assert.Empty(suite.T(), rsp2.Message)
 
 	order.PaymentMethod.Params.Handler = pkg.PaymentSystemHandlerCardPay
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = suite.service.updateOrder(order)
 
 	var refund *billing.Refund
 	err = suite.service.db.Collection(pkg.CollectionRefund).FindId(bson.ObjectIdHex(rsp2.Item.Id)).One(&refund)
@@ -1598,7 +1597,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnknownPaymentSys
 	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(rsp.Id)).One(&order)
 	assert.NotNil(suite.T(), order)
 
-	order.Status = constant.OrderStatusPaymentSystemComplete
+	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
 	order.PaymentMethod.Params.Handler = "mock_ok"
 	order.Tax = &billing.OrderTax{
 		Type:     taxTypeVat,
@@ -1606,7 +1605,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnknownPaymentSys
 		Amount:   10,
 		Currency: "RUB",
 	}
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = suite.service.updateOrder(order)
 
 	req2 := &grpc.CreateRefundRequest{
 		OrderId:   rsp.Uuid,
@@ -1621,7 +1620,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnknownPaymentSys
 	assert.Empty(suite.T(), rsp2.Message)
 
 	order.PaymentMethod.Params.Handler = "fake_payment_system_handler"
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = suite.service.updateOrder(order)
 
 	refundReq := &billing.CardPayRefundCallback{
 		MerchantOrder: &billing.CardPayMerchantOrder{
@@ -1709,7 +1708,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_ProcessRefundErro
 	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(rsp.Id)).One(&order)
 	assert.NotNil(suite.T(), order)
 
-	order.Status = constant.OrderStatusPaymentSystemComplete
+	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
 	order.PaymentMethod.Params.Handler = "mock_ok"
 	order.Tax = &billing.OrderTax{
 		Type:     taxTypeVat,
@@ -1717,7 +1716,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_ProcessRefundErro
 		Amount:   10,
 		Currency: "RUB",
 	}
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = suite.service.updateOrder(order)
 
 	req2 := &grpc.CreateRefundRequest{
 		OrderId:   rsp.Uuid,
@@ -1732,7 +1731,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_ProcessRefundErro
 	assert.Empty(suite.T(), rsp2.Message)
 
 	order.PaymentMethod.Params.Handler = pkg.PaymentSystemHandlerCardPay
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = suite.service.updateOrder(order)
 
 	refundReq := &billing.CardPayRefundCallback{
 		MerchantOrder: &billing.CardPayMerchantOrder{
@@ -1820,7 +1819,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_TemporaryStatus_O
 	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(rsp.Id)).One(&order)
 	assert.NotNil(suite.T(), order)
 
-	order.Status = constant.OrderStatusPaymentSystemComplete
+	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
 	order.PaymentMethod.Params.Handler = "mock_ok"
 	order.Tax = &billing.OrderTax{
 		Type:     taxTypeVat,
@@ -1828,7 +1827,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_TemporaryStatus_O
 		Amount:   10,
 		Currency: "RUB",
 	}
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = suite.service.updateOrder(order)
 
 	req2 := &grpc.CreateRefundRequest{
 		OrderId:   rsp.Uuid,
@@ -1843,7 +1842,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_TemporaryStatus_O
 	assert.Empty(suite.T(), rsp2.Message)
 
 	order.PaymentMethod.Params.Handler = pkg.PaymentSystemHandlerCardPay
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = suite.service.updateOrder(order)
 
 	refundReq := &billing.CardPayRefundCallback{
 		MerchantOrder: &billing.CardPayMerchantOrder{
@@ -1936,7 +1935,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(rsp.Id)).One(&order)
 	assert.NotNil(suite.T(), order)
 
-	order.Status = constant.OrderStatusPaymentSystemComplete
+	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
 	order.PaymentMethod.Params.Handler = "mock_ok"
 	order.Tax = &billing.OrderTax{
 		Type:     taxTypeVat,
@@ -1944,7 +1943,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 		Amount:   10,
 		Currency: "RUB",
 	}
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = suite.service.updateOrder(order)
 
 	req2 := &grpc.CreateRefundRequest{
 		OrderId:   rsp.Uuid,
@@ -1959,7 +1958,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 	assert.Empty(suite.T(), rsp2.Message)
 
 	order.PaymentMethod.Params.Handler = pkg.PaymentSystemHandlerCardPay
-	err = suite.service.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = suite.service.updateOrder(order)
 
 	refundReq := &billing.CardPayRefundCallback{
 		MerchantOrder: &billing.CardPayMerchantOrder{
@@ -2005,5 +2004,5 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 	assert.Empty(suite.T(), rsp3.Error)
 
 	err = suite.service.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(rsp.Id)).One(&order)
-	assert.Equal(suite.T(), int32(constant.OrderStatusRefund), order.Status)
+	assert.Equal(suite.T(), int32(constant.OrderStatusRefund), order.PrivateStatus)
 }

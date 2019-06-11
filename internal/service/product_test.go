@@ -40,9 +40,9 @@ func Test_Product(t *testing.T) {
 
 func (suite *ProductTestSuite) SetupTest() {
 	cfg, err := config.NewConfig()
-	cfg.AccountingCurrency = "RUB"
-
 	assert.NoError(suite.T(), err, "Config load failed")
+
+	cfg.AccountingCurrency = "RUB"
 
 	settings := database.Connection{
 		Host:     cfg.MongoHost,
@@ -86,7 +86,6 @@ func (suite *ProductTestSuite) SetupTest() {
 	suite.service = NewBillingService(
 		db,
 		cfg,
-		make(chan bool, 1),
 		mock.NewGeoIpServiceTestOk(),
 		mock.NewRepositoryServiceOk(),
 		mock.NewTaxServiceOkMock(),

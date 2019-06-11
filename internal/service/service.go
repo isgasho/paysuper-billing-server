@@ -27,9 +27,9 @@ import (
 )
 
 const (
-	errorNotFound                   = "[PAYONE_BILLING] %s not found"
-	errorQueryMask                  = "[PAYONE_BILLING] Query from collection \"%s\" failed"
-	errorAccountingCurrencyNotFound = "[PAYONE_BILLING] Accounting currency not found"
+	errorNotFound                   = "%s not found"
+	errorQueryMask                  = "Query from collection \"%s\" failed"
+	errorAccountingCurrencyNotFound = "Accounting currency not found"
 
 	errorBbNotFoundMessage = "not found"
 
@@ -70,7 +70,6 @@ type Service struct {
 	db               *database.Source
 	mx               sync.Mutex
 	cfg              *config.Config
-	exitCh           chan bool
 	ctx              context.Context
 	geo              proto.GeoIpService
 	rep              repository.RepositoryService
@@ -96,6 +95,9 @@ type Service struct {
 
 	rebuild      bool
 	rebuildError error
+
+	wg               sync.WaitGroup
+	exitCacheRebuild chan bool
 }
 
 type Cacher interface {
@@ -106,7 +108,6 @@ type Cacher interface {
 func NewBillingService(
 	db *database.Source,
 	cfg *config.Config,
-	exitCh chan bool,
 	geo proto.GeoIpService,
 	rep repository.RepositoryService,
 	tax tax_service.TaxService,
@@ -114,14 +115,15 @@ func NewBillingService(
 	redis *redis.Client,
 ) *Service {
 	return &Service{
-		db:     db,
-		cfg:    cfg,
-		exitCh: exitCh,
-		geo:    geo,
-		rep:    rep,
-		tax:    tax,
-		broker: broker,
-		redis:  redis,
+		db:               db,
+		cfg:              cfg,
+		geo:              geo,
+		rep:              rep,
+		tax:              tax,
+		broker:           broker,
+		redis:            redis,
+		wg:               sync.WaitGroup{},
+		exitCacheRebuild: make(chan bool, 1),
 	}
 }
 
@@ -146,12 +148,21 @@ func (s *Service) Init() (err error) {
 		return errors.New(errorAccountingCurrencyNotFound)
 	}
 
+	s.wg.Add(1)
 	go s.reBuildCache()
 
 	return
 }
 
+func (s *Service) Shutdown() {
+	zap.S().Info("Shutting down GRPC serivce...")
+	s.exitCacheRebuild <- true
+	s.wg.Wait()
+}
+
 func (s *Service) reBuildCache() {
+	defer s.wg.Done()
+
 	var err error
 	var key string
 
@@ -189,8 +200,9 @@ func (s *Service) reBuildCache() {
 			s.mx.Lock()
 			s.systemFeesCache = make(map[string]map[string]map[string]*billing.SystemFees)
 			s.mx.Unlock()
-		case <-s.exitCh:
+		case <-s.exitCacheRebuild:
 			s.rebuild = false
+			zap.S().Info("Cache rebuilding stopped")
 			return
 		}
 
@@ -243,10 +255,10 @@ func (s *Service) RebuildCache(ctx context.Context, req *grpc.EmptyRequest, res 
 }
 
 func (s *Service) UpdateOrder(ctx context.Context, req *billing.Order, rsp *grpc.EmptyResponse) error {
-	err := s.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(req.Id), req)
+	err := s.updateOrder(req)
 
 	if err != nil {
-		s.logError("Update order failed", []interface{}{"error", err.Error(), "order", req})
+		return err
 	}
 
 	return nil
