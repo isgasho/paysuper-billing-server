@@ -80,37 +80,7 @@ func (app *Application) Init() {
 		micro.WrapHandler(metrics.NewHandlerWrapper()),
 		micro.AfterStop(func() error {
 			app.logger.Info("Micro service stopped")
-
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-
-			if err := app.httpServer.Shutdown(ctx); err != nil {
-				app.logger.Error("Http server shutdown failed", zap.Error(err))
-			}
-			app.logger.Info("Http server stopped")
-
-			if app.svc != nil {
-				app.svc.Shutdown()
-				app.logger.Info("GRPC service stopped")
-			} else {
-				app.logger.Error("GRPC service not initialized")
-			}
-
-			app.database.Close()
-			app.logger.Info("Database connection closed")
-
-			if err := app.redis.Close(); err != nil {
-				zap.L().Error("Redis connection close failed", zap.Error(err))
-			} else {
-				zap.L().Info("Redis connection closed")
-			}
-
-			if err := app.logger.Sync(); err != nil {
-				app.logger.Error("Logger sync failed", zap.Error(err))
-			} else {
-				app.logger.Info("Logger synced")
-			}
-
+			app.Stop()
 			return nil
 		}),
 	}
@@ -234,4 +204,36 @@ func (app *Application) Run() {
 
 func (c *appHealthCheck) Status() (interface{}, error) {
 	return "ok", nil
+}
+
+func (app *Application) Stop() {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := app.httpServer.Shutdown(ctx); err != nil {
+		app.logger.Error("Http server shutdown failed", zap.Error(err))
+	}
+	app.logger.Info("Http server stopped")
+
+	if app.svc != nil {
+		app.svc.Shutdown()
+		app.logger.Info("GRPC service stopped")
+	} else {
+		app.logger.Error("GRPC service not initialized")
+	}
+
+	app.database.Close()
+	app.logger.Info("Database connection closed")
+
+	if err := app.redis.Close(); err != nil {
+		zap.L().Error("Redis connection close failed", zap.Error(err))
+	} else {
+		zap.L().Info("Redis connection closed")
+	}
+
+	if err := app.logger.Sync(); err != nil {
+		app.logger.Error("Logger sync failed", zap.Error(err))
+	} else {
+		app.logger.Info("Logger synced")
+	}
 }
