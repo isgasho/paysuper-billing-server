@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -303,7 +302,7 @@ func (h *cardPay) CreatePayment(requisites map[string]string) (url string, err e
 	req, err := http.NewRequest(cardPayPaths[action].method, qUrl, bytes.NewBuffer(b))
 	if err != nil {
 		zap.L().Error(
-			fmt.Sprintf("[PAYONE_BILLING] %s", "CardPay create payment failed"),
+			"CardPay create payment failed",
 			zap.Error(err),
 			zap.Any("request", cpOrder),
 		)
@@ -320,7 +319,7 @@ func (h *cardPay) CreatePayment(requisites map[string]string) (url string, err e
 
 	if err != nil {
 		zap.L().Error(
-			fmt.Sprintf("[PAYONE_BILLING] %s", "CardPay create payment failed"),
+			"CardPay create payment failed",
 			zap.Error(err),
 			zap.Any("request", cpOrder),
 		)

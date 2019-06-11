@@ -1149,7 +1149,7 @@ func (v *OrderCreateRequestProcessor) processProject() error {
 	project, err := v.GetProjectById(v.request.ProjectId)
 
 	if err != nil {
-		zap.S().Errorw("[PAYONE_BILLING] Order create get project error", "err", err, "request", v.request)
+		zap.S().Errorw("Order create get project error", "err", err, "request", v.request)
 		return errors.New(orderErrorProjectNotFound)
 	}
 
@@ -1177,7 +1177,7 @@ func (v *OrderCreateRequestProcessor) processCurrency() error {
 	currency, err := v.GetCurrencyByCodeA3(v.request.Currency)
 
 	if err != nil {
-		zap.S().Errorw("[PAYONE_BILLING] Order create get currency error", "err", err, "request", v.request)
+		zap.S().Errorw("Order create get currency error", "err", err, "request", v.request)
 		return errors.New(orderErrorCurrencyNotFound)
 	}
 
@@ -1202,7 +1202,7 @@ func (v *OrderCreateRequestProcessor) processPayerIp() error {
 	rsp, err := v.geo.GetIpData(context.TODO(), &proto.GeoIpDataRequest{IP: v.checked.user.Ip})
 
 	if err != nil {
-		zap.S().Errorw("[PAYONE_BILLING] Order create get payer data error", "err", err, "ip", v.checked.user.Ip)
+		zap.S().Errorw("Order create get payer data error", "err", err, "ip", v.checked.user.Ip)
 		return errors.New(orderErrorPayerRegionUnknown)
 	}
 
@@ -1241,7 +1241,7 @@ func (v *OrderCreateRequestProcessor) processPaylinkProducts() error {
 
 	pid := v.request.PrivateMetadata["PaylinkId"]
 
-	logInfo := "[PAYONE_BILLING] [processPaylinkProducts] %s"
+	logInfo := "[processPaylinkProducts] %s"
 
 	currency := v.Service.accountingCurrency
 	zap.S().Infow(fmt.Sprintf(logInfo, "accountingCurrency"), "currency", currency.CodeA3, "paylink", pid)
@@ -1286,7 +1286,7 @@ func (v *OrderCreateRequestProcessor) processProjectOrderId() error {
 	err := v.db.Collection(pkg.CollectionOrder).Find(filter).One(&order)
 
 	if err != nil && err != mgo.ErrNotFound {
-		zap.S().Errorw("[PAYONE_BILLING] Order create check project order id unique", "err", err, "filter", filter)
+		zap.S().Errorw("Order create check project order id unique", "err", err, "filter", filter)
 		return errors.New(orderErrorCanNotCreate)
 	}
 
@@ -1622,7 +1622,7 @@ func (v *PaymentFormProcessor) processRenderFormPaymentMethods() ([]*billing.Pay
 
 		if err != nil {
 			zap.S().Errorw(
-				"[PAYONE_BILLING] Process payment method data failed",
+				"Process payment method data failed",
 				"error", err,
 				"order_id", v.order.Id,
 			)
@@ -1648,7 +1648,7 @@ func (v *PaymentFormProcessor) processPaymentMethodsData(pm *billing.PaymentForm
 
 		if err != nil {
 			zap.S().Errorw(
-				"[PAYONE_BILLING] Get saved cards from repository failed",
+				"Get saved cards from repository failed",
 				"error", err,
 				"token", v.order.User.Id,
 				"project_id", v.order.Project.Id,
@@ -2101,7 +2101,7 @@ func (s *Service) ProcessOrderProducts(order *billing.Order) error {
 		currency      *billing.Currency
 		itemsCurrency string
 		locale        string
-		logInfo       = "[PAYONE_BILLING] [ProcessOrderProducts] %s"
+		logInfo       = "[ProcessOrderProducts] %s"
 	)
 
 	if order.BillingAddress != nil && order.BillingAddress.Country != "" {
