@@ -80,31 +80,6 @@ func (suite *CardpayTestSuite) TearDownTest() {
 	suite.service.db.Close()
 }
 
-func (suite *CardpayTestSuite) TestCardpay_getCardBrand() {
-	order := &billing.Order{}
-	processor := &paymentProcessor{cfg: suite.cfg.PaymentSystemConfig, order: order, service: suite.service}
-	h := &cardPay{processor: processor}
-
-	_, err := h.getCardBrand("")
-	assert.Error(suite.T(), err)
-
-	b, err := h.getCardBrand("4444444444444448")
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), b, "VISA")
-
-	b, err = h.getCardBrand("5305192840153676")
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), b, "MASTERCARD")
-
-	b, err = h.getCardBrand("3582858271502131")
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), b, "JCB")
-
-	b, err = h.getCardBrand("62600094752489245 ")
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), b, "UNIONPAY")
-}
-
 func (suite *CardpayTestSuite) TestCardpay_fillPaymentDataCrypto() {
 	var (
 		name    = "Bitcoin"
@@ -184,10 +159,11 @@ func (suite *CardpayTestSuite) TestCardpay_fillPaymentDataEwallet() {
 
 func (suite *CardpayTestSuite) TestCardpay_fillPaymentDataCard() {
 	var (
-		name      = "yamoney"
+		name      = "bank_card"
 		maskedPan = "444444******4448"
 		expMonth  = "10"
 		expYear   = "2021"
+		cardBrand = "VISA"
 	)
 
 	order := &billing.Order{
@@ -196,6 +172,7 @@ func (suite *CardpayTestSuite) TestCardpay_fillPaymentDataCard() {
 		},
 		PaymentRequisites: make(map[string]string),
 	}
+	order.PaymentRequisites["card_brand"] = cardBrand
 	order.PaymentRequisites["pan"] = maskedPan
 	order.PaymentRequisites["month"] = expMonth
 	order.PaymentRequisites["year"] = expYear
@@ -227,7 +204,7 @@ func (suite *CardpayTestSuite) TestCardpay_fillPaymentDataCard() {
 	assert.NotNil(suite.T(), h.processor.order.PaymentMethod.Card)
 
 	assert.Equal(suite.T(), h.processor.order.PaymentMethodPayerAccount, maskedPan)
-	assert.Equal(suite.T(), h.processor.order.PaymentMethod.Card.Brand, "VISA")
+	assert.Equal(suite.T(), h.processor.order.PaymentMethod.Card.Brand, cardBrand)
 	assert.Equal(suite.T(), h.processor.order.PaymentMethod.Card.Masked, maskedPan)
 	assert.Equal(suite.T(), h.processor.order.PaymentMethod.Card.First6, "444444")
 	assert.Equal(suite.T(), h.processor.order.PaymentMethod.Card.Last4, "4448")

@@ -42,8 +42,6 @@ const (
 
 	cardPayDateFormat          = "2006-01-02T15:04:05Z"
 	cardPayInitiatorCardholder = "cit"
-
-	errorBankCardBrandUnknown = "unknown or unsupported credit card brand"
 )
 
 var (
@@ -363,30 +361,6 @@ func (h *cardPay) CreatePayment(requisites map[string]string) (url string, err e
 	return
 }
 
-func (h *cardPay) getCardBrand(pan string) (string, error) {
-	ccLen := len(pan)
-	ccDigits := digits{}
-
-	for i := 0; i < 6; i++ {
-		if i < ccLen {
-			ccDigits[i], _ = strconv.Atoi(pan[:i+1])
-		}
-	}
-
-	switch {
-	case ccDigits.At(2) == 62:
-		return "UNIONPAY", nil
-	case ccDigits.At(4) >= 3528 && ccDigits.At(4) <= 3589:
-		return "JCB", nil
-	case ccDigits.At(2) >= 51 && ccDigits.At(2) <= 55:
-		return "MASTERCARD", nil
-	case ccDigits.At(1) == 4:
-		return "VISA", nil
-	default:
-		return "", errors.New(errorBankCardBrandUnknown)
-	}
-}
-
 func (h *cardPay) ProcessPayment(message proto.Message, raw, signature string) (err error) {
 	req := message.(*billing.CardPayPaymentCallback)
 	order := h.processor.order
@@ -499,7 +473,7 @@ func (h *cardPay) fillPaymentDataCard(req *billing.CardPayPaymentCallback) error
 		first6 = string(pan[0:6])
 		last4 = string(pan[len(pan)-4:])
 	}
-	cardBrand, _ := h.getCardBrand(pan)
+	cardBrand, ok := order.PaymentRequisites["card_brand"]
 
 	month, ok := order.PaymentRequisites["month"]
 	if !ok {
