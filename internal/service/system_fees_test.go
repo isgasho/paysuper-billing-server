@@ -126,7 +126,6 @@ func (suite *SystemFeesTestSuite) SetupTest() {
 	suite.service = NewBillingService(
 		db,
 		cfg,
-		make(chan bool, 1),
 		mock.NewGeoIpServiceTestOk(),
 		mock.NewRepositoryServiceOk(),
 		mock.NewTaxServiceOkMock(),
@@ -223,9 +222,9 @@ func (suite *SystemFeesTestSuite) SetupTest() {
 }
 
 func (suite *SystemFeesTestSuite) TearDownTest() {
-	/*if err := suite.service.db.Drop(); err != nil {
+	if err := suite.service.db.Drop(); err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
-	}*/
+	}
 
 	suite.service.db.Close()
 }

@@ -343,7 +343,6 @@ func (suite *ReportTestSuite) SetupTest() {
 	suite.service = NewBillingService(
 		db,
 		cfg,
-		make(chan bool, 1),
 		mock.NewGeoIpServiceTestOk(),
 		mock.NewRepositoryServiceOk(),
 		mock.NewTaxServiceOkMock(),
@@ -588,24 +587,24 @@ func (suite *ReportTestSuite) TestReport_FindByStatus() {
 	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
 	assert.NoError(suite.T(), err, "Unable to create order")
 
-	oRsp.Status = constant.OrderStatusPaymentSystemRejectOnCreate
+	oRsp.PrivateStatus = constant.OrderStatusPaymentSystemRejectOnCreate
 	err = suite.service.updateOrder(oRsp)
 	assert.NoError(suite.T(), err)
 
-	req := &grpc.ListOrdersRequest{Status: []int32{constant.OrderStatusPaymentSystemCreate}}
+	req := &grpc.ListOrdersRequest{PrivateStatus: []int32{constant.OrderStatusPaymentSystemCreate}}
 	rsp := &billing.OrderPaginate{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
 
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(0), rsp.Count)
 
-	req = &grpc.ListOrdersRequest{Status: []int32{constant.OrderStatusPaymentSystemRejectOnCreate}}
+	req = &grpc.ListOrdersRequest{PrivateStatus: []int32{constant.OrderStatusPaymentSystemRejectOnCreate}}
 	rsp = &billing.OrderPaginate{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp)
 
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(1), rsp.Count)
-	assert.Equal(suite.T(), oRsp.Status, rsp.Items[0].Status)
+	assert.Equal(suite.T(), oRsp.PrivateStatus, rsp.Items[0].PrivateStatus)
 }
 
 func (suite *ReportTestSuite) TestReport_FindByAccount() {

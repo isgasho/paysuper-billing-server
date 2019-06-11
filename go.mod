@@ -30,6 +30,7 @@ require (
 	github.com/ttacon/libphonenumber v1.0.1
 	github.com/yuin/gopher-lua v0.0.0-20190514113301-1cd887cd7036 // indirect
 	go.uber.org/zap v1.9.1
+	golang.org/x/crypto v0.0.0-20190325154230-a5d413f7728c
 	golang.org/x/exp/errors v0.0.0-20190123073158-f1c91bc264ca
 	golang.org/x/net v0.0.0-20190327214358-63eda1eb0650
 	google.golang.org/grpc v1.19.1

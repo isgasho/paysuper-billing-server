@@ -96,7 +96,6 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 	suite.service = NewBillingService(
 		db,
 		cfg,
-		make(chan bool, 1),
 		mock.NewGeoIpServiceTestOk(),
 		mock.NewRepositoryServiceOk(),
 		mock.NewTaxServiceOkMock(),
@@ -468,7 +467,7 @@ func (suite *BillingServiceTestSuite) TearDownTest() {
 func (suite *BillingServiceTestSuite) TestNewBillingService() {
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	service := NewBillingService(suite.db, suite.cfg, suite.exCh, nil, nil, nil, nil, nil, suite.cache)
+	service := NewBillingService(suite.db, suite.cfg, nil, nil, nil, nil, nil, suite.cache)
 
 	err := service.Init()
 	assert.Nil(suite.T(), err)
@@ -481,7 +480,7 @@ func (suite *BillingServiceTestSuite) TestBillingService_AccountingCurrencyInitE
 
 	cfg.AccountingCurrency = "AUD"
 	suite.cache = NewCacheRedis(mock.NewTestRedis())
-	service := NewBillingService(suite.db, cfg, suite.exCh, nil, nil, nil, nil, nil, suite.cache)
+	service := NewBillingService(suite.db, cfg, nil, nil, nil, nil, nil, suite.cache)
 
 	err = service.Init()
 	assert.Error(suite.T(), err)
@@ -490,7 +489,7 @@ func (suite *BillingServiceTestSuite) TestBillingService_AccountingCurrencyInitE
 func (suite *BillingServiceTestSuite) TestBillingService_IsProductionEnvironment() {
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	service := NewBillingService(suite.db, suite.cfg, suite.exCh, nil, nil, nil, nil, nil, suite.cache)
+	service := NewBillingService(suite.db, suite.cfg, nil, nil, nil, nil, nil, suite.cache)
 
 	err := service.Init()
 	assert.Nil(suite.T(), err)

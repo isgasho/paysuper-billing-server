@@ -26,10 +26,10 @@ import (
 )
 
 const (
-	errorNotFound                   = "[PAYONE_BILLING] %s not found"
-	errorQueryMask                  = "[PAYONE_BILLING] Query from collection \"%s\" failed"
-	errorAccountingCurrencyNotFound = "[PAYONE_BILLING] Accounting currency not found"
-	errorInterfaceCast              = "[PAYONE_BILLING] Unable to cast interface to object %s"
+	errorNotFound                   = "%s not found"
+	errorQueryMask                  = "Query from collection \"%s\" failed"
+	errorAccountingCurrencyNotFound = "Accounting currency not found"
+	errorInterfaceCast              = "Unable to cast interface to object %s"
 
 	errorBbNotFoundMessage = "not found"
 
@@ -57,7 +57,6 @@ type Service struct {
 	db               *database.Source
 	mx               sync.Mutex
 	cfg              *config.Config
-	exitCh           chan bool
 	ctx              context.Context
 	geo              proto.GeoIpService
 	rep              repository.RepositoryService
@@ -72,6 +71,9 @@ type Service struct {
 	rebuild      bool
 	rebuildError error
 
+	wg               sync.WaitGroup
+	exitCacheRebuild chan bool
+
 	currency      *Currency
 	currencyRate  *CurrencyRate
 	commission    *Commission
@@ -85,7 +87,6 @@ type Service struct {
 func NewBillingService(
 	db *database.Source,
 	cfg *config.Config,
-	exitCh chan bool,
 	geo proto.GeoIpService,
 	rep repository.RepositoryService,
 	tax tax_service.TaxService,
@@ -93,19 +94,18 @@ func NewBillingService(
 	redis *redis.Client,
 	cache CacheInterface,
 ) *Service {
-	s := &Service{
-		db:     db,
-		cfg:    cfg,
-		exitCh: exitCh,
-		geo:    geo,
-		rep:    rep,
-		tax:    tax,
-		broker: broker,
-		redis:  redis,
-		cacher: cache,
+	return &Service{
+		db:               db,
+		cfg:              cfg,
+		geo:              geo,
+		rep:              rep,
+		tax:              tax,
+		broker:           broker,
+		redis:            redis,
+		wg:               sync.WaitGroup{},
+		exitCacheRebuild: make(chan bool, 1),
+		cacher:           cache,
 	}
-
-	return s
 }
 
 func (s *Service) Init() (err error) {
@@ -144,10 +144,10 @@ func (s *Service) logError(msg string, data []interface{}) {
 }
 
 func (s *Service) UpdateOrder(ctx context.Context, req *billing.Order, rsp *grpc.EmptyResponse) error {
-	err := s.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(req.Id), req)
+	err := s.updateOrder(req)
 
 	if err != nil {
-		s.logError("Update order failed", []interface{}{"error", err.Error(), "order", req})
+		return err
 	}
 
 	return nil

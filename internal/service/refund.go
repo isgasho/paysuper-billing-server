@@ -258,10 +258,17 @@ func (s *Service) ProcessRefundCallback(
 		refundedAmount, _ := processor.getRefundedAmount(order)
 
 		if refundedAmount == order.PaymentMethodIncomeAmount {
-			order.Status = constant.OrderStatusRefund
+			order.PrivateStatus = constant.OrderStatusRefund
 			order.UpdatedAt = ptypes.TimestampNow()
+			order.RefundedAt = ptypes.TimestampNow()
+			order.Refund = &billing.OrderNotificationRefund{
+				Amount:        refundedAmount,
+				Currency:      order.PaymentMethodIncomeCurrency.CodeA3,
+				Reason:        refund.Reason,
+				ReceiptNumber: refund.Id,
+			}
 
-			err = s.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+			err = s.updateOrder(order)
 
 			if err != nil {
 				s.logError("Update order data failed", []interface{}{"err", err.Error(), "order", order})
@@ -334,7 +341,7 @@ func (p *createRefundProcessor) processOrder() error {
 		return p.service.NewRefundError(err.Error(), pkg.ResponseStatusNotFound)
 	}
 
-	if order.Status == constant.OrderStatusRefund {
+	if order.PrivateStatus == constant.OrderStatusRefund {
 		return p.service.NewRefundError(refundErrorAlreadyRefunded, pkg.ResponseStatusBadData)
 	}
 

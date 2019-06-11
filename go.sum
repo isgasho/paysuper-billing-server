@@ -570,8 +570,6 @@ github.com/oschwald/maxminddb-golang v1.3.0 h1:oTh8IBSj10S5JNlUDg5WjJ1QdBMdeaZIk
 github.com/oschwald/maxminddb-golang v1.3.0/go.mod h1:3jhIUymTJ5VREKyIhWm66LJiQt04F0UCDdodShpjWsY=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
 github.com/patrickmn/go-cache v2.1.0+incompatible/go.mod h1:3Qf8kWWT7OJRJbdiICTKqZju1ZixQ/KpMGzzAfe6+WQ=
-github.com/paysuper/paysuper-recurring-repository v1.0.105 h1:WF/9koGHVxyz9L3P1qTVSVZd0++Zx8EouvNy4X8A79o=
-github.com/paysuper/paysuper-recurring-repository v1.0.105/go.mod h1:CKej9aphKnx9eQE6cirz1B1UhGwRBjv+nGl0NeciFxc=
 github.com/paysuper/paysuper-recurring-repository v1.0.107 h1:zBfPKIkzJDBnAfpf94kioTUlOYBk+6ofzNuGI6S2rDQ=
 github.com/paysuper/paysuper-recurring-repository v1.0.107/go.mod h1:CKej9aphKnx9eQE6cirz1B1UhGwRBjv+nGl0NeciFxc=
 github.com/paysuper/paysuper-tax-service v0.0.0-20190308105725-016a09c27fbd h1:JzUgUK7pIQvf2EQdNV01PkvRy9lZNLvc4Jq4FeAP8vI=

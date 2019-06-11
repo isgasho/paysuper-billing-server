@@ -32,6 +32,9 @@ It has these top-level messages:
 	PaymentMethodOrder
 	PaymentMethodParams
 	PaymentSystem
+	PaymentMethodCard
+	PaymentMethodWallet
+	PaymentMethodCrypto
 	OrderFee
 	OrderFeePsp
 	OrderFeePaymentSystem
@@ -59,7 +62,6 @@ It has these top-level messages:
 	SystemFeesList
 	AddSystemFeesRequest
 	GetSystemFeesRequest
-	CalculatedFeeItem
 	MerchantPaymentMethodHistory
 	CustomerIdentity
 	CustomerIpHistory
@@ -75,6 +77,8 @@ It has these top-level messages:
 	TokenSettingsReturnUrl
 	TokenSettingsItem
 	TokenSettings
+	OrderIssuer
+	OrderNotificationRefund
 */
 package billing
 

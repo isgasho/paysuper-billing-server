@@ -140,7 +140,6 @@ func (suite *TokenTestSuite) SetupTest() {
 	suite.service = NewBillingService(
 		db,
 		cfg,
-		make(chan bool, 1),
 		nil,
 		nil,
 		nil,

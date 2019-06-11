@@ -4,6 +4,8 @@ const (
 	ServiceName    = "p1paybilling"
 	ServiceVersion = "latest"
 
+	LoggerName = "PAYONE_BILLING_SERVER"
+
 	CardPayPaymentResponseStatusInProgress = "IN_PROGRESS"
 	CardPayPaymentResponseStatusPending    = "PENDING"
 	CardPayPaymentResponseStatusRefunded   = "REFUNDED"
