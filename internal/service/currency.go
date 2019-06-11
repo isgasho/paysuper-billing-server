@@ -46,12 +46,14 @@ func (h Currency) GetByCodeA3(code string) (*billing.Currency, error) {
 	var c billing.Currency
 	key := fmt.Sprintf(cacheCurrencyA3, code)
 
-	if err := h.svc.cacher.Get(key, c); err != nil {
-		if err = h.svc.db.Collection(collectionCurrency).
-			Find(bson.M{"is_active": true, "code_a3": code}).
-			One(&c); err != nil {
-			return nil, fmt.Errorf(errorNotFound, collectionCurrency)
-		}
+	if err := h.svc.cacher.Get(key, c); err == nil {
+		return &c, nil
+	}
+
+	if err := h.svc.db.Collection(collectionCurrency).
+		Find(bson.M{"is_active": true, "code_a3": code}).
+		One(&c); err != nil {
+		return nil, fmt.Errorf(errorNotFound, collectionCurrency)
 	}
 
 	_ = h.svc.cacher.Set(key, c, 0)

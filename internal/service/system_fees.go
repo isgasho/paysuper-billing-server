@@ -192,10 +192,15 @@ func newSystemFeesService(svc *Service) *SystemFee {
 
 func (h *SystemFee) Insert(fees *billing.SystemFees) error {
 	if err := h.svc.db.Collection(collectionSystemFees).Insert(fees); err != nil {
+		fmt.Println(err)
 		return err
 	}
 
-	if err := h.svc.cacher.Set(fmt.Sprintf(cacheSystemFeesMethodRegionBrand, fees.MethodId, fees.Region, fees.CardBrand), fees, 0); err != nil {
+	if err := h.svc.cacher.Set(
+		fmt.Sprintf(cacheSystemFeesMethodRegionBrand, fees.MethodId, fees.Region, fees.CardBrand),
+		fees,
+		0,
+	); err != nil {
 		return err
 	}
 
@@ -207,7 +212,10 @@ func (h *SystemFee) Update(fees *billing.SystemFees) error {
 		return err
 	}
 
-	if err := h.svc.cacher.Set(fmt.Sprintf(cacheSystemFeesMethodRegionBrand, fees.MethodId, fees.Region, fees.CardBrand), fees, 0); err != nil {
+	if err := h.svc.cacher.Set(
+		fmt.Sprintf(cacheSystemFeesMethodRegionBrand, fees.MethodId, fees.Region, fees.CardBrand),
+		fees, 0,
+	); err != nil {
 		return err
 	}
 
@@ -218,10 +226,19 @@ func (h SystemFee) Find(methodId string, region string, cardBrand string) (*bill
 	var c billing.SystemFees
 	key := fmt.Sprintf(cacheSystemFeesMethodRegionBrand, methodId, region, cardBrand)
 
-	if err := h.svc.cacher.Get(key, c); err != nil {
-		if err = h.svc.db.Collection(collectionSystemFees).Find(bson.M{"method_id": bson.ObjectIdHex(methodId), "region": region, "card_brand": cardBrand, "is_active": true}).One(&c); err != nil {
-			return nil, fmt.Errorf(errorNotFound, collectionSystemFees)
-		}
+	if err := h.svc.cacher.Get(key, c); err == nil {
+		return &c, nil
+	}
+
+	if err := h.svc.db.Collection(collectionSystemFees).
+		Find(bson.M{
+			"method_id":  bson.ObjectIdHex(methodId),
+			"region":     region,
+			"card_brand": cardBrand,
+			"is_active":  true,
+		}).
+		One(&c); err != nil {
+		return nil, fmt.Errorf(errorNotFound, collectionSystemFees)
 	}
 
 	_ = h.svc.cacher.Set(key, c, 0)

@@ -1,12 +1,14 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/stretchr/testify/assert"
+	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"testing"
@@ -102,4 +104,19 @@ func (suite *CountryTestSuite) TestCountry_GetCountryByCodeA2_NotFound() {
 
 	assert.Error(suite.T(), err)
 	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, collectionCountry))
+}
+
+func (suite *CountryTestSuite) TestCountry_Insert_Ok() {
+	assert.NoError(suite.T(), suite.service.country.Insert(&billing.Country{CodeA2: "RU"}))
+}
+
+func (suite *CountryTestSuite) TestCountry_Insert_ErrorCacheUpdate() {
+	ci := &mock.CacheInterface{}
+	ci.On("Set", "country:code_a2:AAA", mock2.Anything, mock2.Anything).
+		Return(errors.New("service unavailable"))
+	suite.service.cacher = ci
+	err := suite.service.country.Insert(&billing.Country{CodeA2: "AAA"})
+
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, "service unavailable")
 }

@@ -60,10 +60,12 @@ func (h *Merchant) GetById(id string) (*billing.Merchant, error) {
 	var c billing.Merchant
 	key := fmt.Sprintf(cacheMerchantId, id)
 
-	if err := h.svc.cacher.Get(key, c); err != nil {
-		if err = h.svc.db.Collection(collectionMerchant).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&c); err != nil {
-			return nil, fmt.Errorf(errorNotFound, collectionMerchant)
-		}
+	if err := h.svc.cacher.Get(key, c); err == nil {
+		return &c, nil
+	}
+
+	if err := h.svc.db.Collection(collectionMerchant).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&c); err != nil {
+		return nil, fmt.Errorf(errorNotFound, collectionMerchant)
 	}
 
 	_ = h.svc.cacher.Set(key, c, 0)

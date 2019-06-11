@@ -46,12 +46,14 @@ func (h Country) GetByCodeA2(code string) (*billing.Country, error) {
 	var c billing.Country
 	key := fmt.Sprintf(cacheCountryCodeA2, code)
 
-	if err := h.svc.cacher.Get(key, c); err != nil {
-		if err = h.svc.db.Collection(collectionCountry).
-			Find(bson.M{"is_active": true, "code_a2": code}).
-			One(&c); err != nil {
-			return nil, fmt.Errorf(errorNotFound, collectionCountry)
-		}
+	if err := h.svc.cacher.Get(key, c); err == nil {
+		return &c, nil
+	}
+
+	if err := h.svc.db.Collection(collectionCountry).
+		Find(bson.M{"is_active": true, "code_a2": code}).
+		One(&c); err != nil {
+		return nil, fmt.Errorf(errorNotFound, collectionCountry)
 	}
 
 	_ = h.svc.cacher.Set(key, c, 0)

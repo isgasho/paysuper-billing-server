@@ -405,12 +405,14 @@ func (h Project) GetById(id string) (*billing.Project, error) {
 	var c billing.Project
 	key := fmt.Sprintf(cacheProjectId, id)
 
-	if err := h.svc.cacher.Get(key, c); err != nil {
-		if err = h.svc.db.Collection(collectionProject).
-			Find(bson.M{"_id": bson.ObjectIdHex(id)}).
-			One(&c); err != nil {
-			return nil, fmt.Errorf(errorNotFound, collectionProject)
-		}
+	if err := h.svc.cacher.Get(key, c); err == nil {
+		return &c, nil
+	}
+
+	if err := h.svc.db.Collection(collectionProject).
+		Find(bson.M{"_id": bson.ObjectIdHex(id)}).
+		One(&c); err != nil {
+		return nil, fmt.Errorf(errorNotFound, collectionProject)
 	}
 
 	_ = h.svc.cacher.Set(key, c, 0)

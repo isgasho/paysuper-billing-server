@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"github.com/ProtocolONE/rabbitmq/pkg"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
@@ -11,6 +13,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/stretchr/testify/assert"
+	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"testing"
@@ -497,4 +500,207 @@ func (suite *SystemFeesTestSuite) TestSystemFees_GetSystemFeesForPayment() {
 	}
 	err = suite.service.GetSystemFeesForPayment(context.TODO(), req, &sf)
 	assert.EqualError(suite.T(), err, errorSystemFeeMatchedMinAmountNotFound)
+}
+
+type SystemFeeTestSuite struct {
+	suite.Suite
+	service    *Service
+	log        *zap.Logger
+	cache      CacheInterface
+	merchant   *billing.Merchant
+	pmBankCard *billing.PaymentMethod
+}
+
+func Test_SystemFee(t *testing.T) {
+	suite.Run(t, new(SystemFeeTestSuite))
+}
+
+func (suite *SystemFeeTestSuite) SetupTest() {
+	cfg, err := config.NewConfig()
+	if err != nil {
+		suite.FailNow("Config load failed", "%v", err)
+	}
+	cfg.AccountingCurrency = "RUB"
+
+	settings := database.Connection{
+		Host:     cfg.MongoHost,
+		Database: cfg.MongoDatabase,
+		User:     cfg.MongoUser,
+		Password: cfg.MongoPassword,
+	}
+
+	db, err := database.NewDatabase(settings)
+
+	if err != nil {
+		suite.FailNow("Database connection failed", "%v", err)
+	}
+
+	rub := &billing.Currency{
+		CodeInt:  643,
+		CodeA3:   "RUB",
+		Name:     &billing.Name{Ru: "Российский рубль", En: "Russian ruble"},
+		IsActive: true,
+	}
+
+	suite.log, err = zap.NewProduction()
+
+	if err != nil {
+		suite.FailNow("Logger initialization failed", "%v", err)
+	}
+
+	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
+		suite.FailNow("Insert currency test data failed", "%v", err)
+	}
+
+	redisdb := mock.NewTestRedis()
+	suite.cache = NewCacheRedis(redisdb)
+	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, suite.cache)
+
+	if err := suite.service.Init(); err != nil {
+		suite.FailNow("Billing service initialization failed", "%v", err)
+	}
+}
+
+func (suite *SystemFeeTestSuite) TearDownTest() {
+	if err := suite.service.db.Drop(); err != nil {
+		suite.FailNow("Database deletion failed", "%v", err)
+	}
+
+	suite.service.db.Close()
+}
+
+func (suite *SystemFeeTestSuite) TestSystemFee_Insert_Ok() {
+	sf := &billing.SystemFees{
+		Id:        bson.NewObjectId().Hex(),
+		MethodId:  bson.NewObjectId().Hex(),
+		Region:    bson.NewObjectId().Hex(),
+		UserId:    bson.NewObjectId().Hex(),
+		CardBrand: "test",
+	}
+	err := suite.service.systemFees.Insert(sf)
+
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *SystemFeeTestSuite) TestSystemFee_Insert_ErrorCacheUpdate() {
+	ci := &mock.CacheInterface{}
+	sf := &billing.SystemFees{
+		Id:        bson.NewObjectId().Hex(),
+		MethodId:  bson.NewObjectId().Hex(),
+		Region:    bson.NewObjectId().Hex(),
+		UserId:    bson.NewObjectId().Hex(),
+		CardBrand: "test",
+	}
+	key := fmt.Sprintf(cacheSystemFeesMethodRegionBrand, sf.MethodId, sf.Region, sf.CardBrand)
+	ci.On("Set", key, mock2.Anything, mock2.Anything).
+		Return(errors.New("service unavailable"))
+	suite.service.cacher = ci
+	err := suite.service.systemFees.Insert(sf)
+
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, "service unavailable")
+}
+
+func (suite *SystemFeeTestSuite) TestSystemFee_Update_Ok() {
+	sf := &billing.SystemFees{
+		Id:        bson.NewObjectId().Hex(),
+		MethodId:  bson.NewObjectId().Hex(),
+		Region:    bson.NewObjectId().Hex(),
+		UserId:    bson.NewObjectId().Hex(),
+		CardBrand: "test",
+	}
+	_ = suite.service.systemFees.Insert(sf)
+
+	assert.NoError(suite.T(), suite.service.systemFees.Update(sf))
+}
+
+func (suite *SystemFeeTestSuite) TestSystemFee_Update_NotFound() {
+	sf := &billing.SystemFees{
+		Id:        bson.NewObjectId().Hex(),
+		MethodId:  bson.NewObjectId().Hex(),
+		Region:    bson.NewObjectId().Hex(),
+		UserId:    bson.NewObjectId().Hex(),
+		CardBrand: "test",
+	}
+	err := suite.service.systemFees.Update(sf)
+
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, "not found")
+}
+
+func (suite *SystemFeeTestSuite) TestSystemFee_Update_ErrorCacheUpdate() {
+	ci := &mock.CacheInterface{}
+	sf := &billing.SystemFees{
+		Id:        bson.NewObjectId().Hex(),
+		MethodId:  bson.NewObjectId().Hex(),
+		Region:    bson.NewObjectId().Hex(),
+		UserId:    bson.NewObjectId().Hex(),
+		CardBrand: "test",
+	}
+	key := fmt.Sprintf(cacheSystemFeesMethodRegionBrand, sf.MethodId, sf.Region, sf.CardBrand)
+	ci.On("Set", key, mock2.Anything, mock2.Anything).
+		Return(errors.New("service unavailable"))
+	suite.service.cacher = ci
+
+	_ = suite.service.systemFees.Insert(sf)
+	err := suite.service.systemFees.Update(sf)
+
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, "service unavailable")
+}
+
+func (suite *SystemFeeTestSuite) TestSystemFee_Find_Ok() {
+	sf := &billing.SystemFees{
+		Id:        bson.NewObjectId().Hex(),
+		MethodId:  bson.NewObjectId().Hex(),
+		Region:    bson.NewObjectId().Hex(),
+		UserId:    bson.NewObjectId().Hex(),
+		CardBrand: "test",
+		IsActive:  true,
+	}
+	if err := suite.service.systemFees.Insert(sf); err != nil {
+		suite.Assert().NoError(err)
+	}
+	c, err := suite.service.systemFees.Find(sf.MethodId, sf.Region, sf.CardBrand)
+
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), c)
+	assert.Equal(suite.T(), c.Id, c.Id)
+}
+
+func (suite *SystemFeeTestSuite) TestSystemFee_Find_Ok_ByCache() {
+	ci := &mock.CacheInterface{}
+	sf := &billing.SystemFees{
+		Id:        bson.NewObjectId().Hex(),
+		MethodId:  bson.NewObjectId().Hex(),
+		Region:    bson.NewObjectId().Hex(),
+		UserId:    bson.NewObjectId().Hex(),
+		CardBrand: "test",
+	}
+	key := fmt.Sprintf(cacheSystemFeesMethodRegionBrand, sf.MethodId, sf.Region, sf.CardBrand)
+	ci.On("Get", key, mock2.Anything).
+		Return(nil)
+	suite.service.cacher = ci
+	c, err := suite.service.systemFees.Find(sf.MethodId, sf.Region, sf.CardBrand)
+
+	assert.Nil(suite.T(), err)
+	assert.IsType(suite.T(), &billing.SystemFees{}, c)
+}
+
+func (suite *SystemFeeTestSuite) TestSystemFee_Find_Error_NotFoundWithInactive() {
+	sf := &billing.SystemFees{
+		Id:        bson.NewObjectId().Hex(),
+		MethodId:  bson.NewObjectId().Hex(),
+		Region:    bson.NewObjectId().Hex(),
+		UserId:    bson.NewObjectId().Hex(),
+		CardBrand: "test",
+		IsActive:  false,
+	}
+	if err := suite.service.systemFees.Insert(sf); err != nil {
+		suite.Assert().NoError(err)
+	}
+	c, err := suite.service.systemFees.Find(sf.MethodId, sf.Region, sf.CardBrand)
+
+	assert.Error(suite.T(), err)
+	assert.Nil(suite.T(), c)
 }
