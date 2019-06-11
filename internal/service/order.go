@@ -25,6 +25,7 @@ import (
 	"github.com/streadway/amqp"
 	"github.com/ttacon/libphonenumber"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
 	"regexp"
 	"sort"
 	"strconv"
@@ -651,6 +652,31 @@ func (s *Service) PaymentCallbackProcess(
 		if pErr.Status() == pkg.StatusTemporary {
 			return nil
 		}
+	}
+
+	switch order.PaymentMethod.Params.ExternalId {
+	case constant.PaymentSystemGroupAliasBankCard:
+
+		if err := s.fillPaymentDataCard(order); err != nil {
+			return err
+		}
+		break
+
+	case constant.PaymentSystemGroupAliasQiwi,
+		constant.PaymentSystemGroupAliasWebMoney,
+		constant.PaymentSystemGroupAliasNeteller,
+		constant.PaymentSystemGroupAliasAlipay:
+
+		if err := s.fillPaymentDataEwallet(order); err != nil {
+			return err
+		}
+		break
+
+	case constant.PaymentSystemGroupAliasBitcoin:
+		if err := s.fillPaymentDataCrypto(order); err != nil {
+			return err
+		}
+		break
 	}
 
 	err = s.updateOrder(order)
@@ -2276,5 +2302,71 @@ func (s *Service) IsOrderCanBePaying(
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = order
 
+	return nil
+}
+
+func (h *Service) fillPaymentDataCard(order *billing.Order) error {
+	first6 := ""
+	last4 := ""
+	pan, ok := order.PaymentMethodTxnParams[pkg.PaymentCreateFieldPan]
+	if !ok || pan == "" {
+		pan, ok = order.PaymentRequisites["pan"]
+		if !ok {
+			pan = ""
+		}
+	}
+	order.PaymentMethodPayerAccount = pan
+	if len(pan) >= 6 {
+		first6 = string(pan[0:6])
+		last4 = string(pan[len(pan)-4:])
+	}
+	cardBrand, ok := order.PaymentRequisites["card_brand"]
+
+	month, ok := order.PaymentRequisites["month"]
+	if !ok {
+		month = ""
+	}
+	year, ok := order.PaymentRequisites["year"]
+	if !ok {
+		year = ""
+	}
+
+	order.PaymentMethod.Card = &billing.PaymentMethodCard{
+		Masked:      pan,
+		First6:      first6,
+		Last4:       last4,
+		ExpiryMonth: month,
+		ExpiryYear:  year,
+		Brand:       cardBrand,
+		Secure3D:    order.PaymentMethodTxnParams[pkg.TxnParamsFieldBankCardIs3DS] == "1",
+	}
+	b, err := json.Marshal(order.PaymentMethod.Card)
+	if err != nil {
+		return err
+	}
+	fp, err := bcrypt.GenerateFromPassword([]byte(string(b)), bcrypt.MinCost)
+	if err == nil {
+		order.PaymentMethod.Card.Fingerprint = string(fp)
+	}
+	return nil
+}
+
+func (h *Service) fillPaymentDataEwallet(order *billing.Order) error {
+	account := order.PaymentMethodTxnParams[pkg.PaymentCreateFieldEWallet]
+	order.PaymentMethodPayerAccount = account
+	order.PaymentMethod.Wallet = &billing.PaymentMethodWallet{
+		Brand:   order.PaymentMethod.Name,
+		Account: account,
+	}
+	return nil
+}
+
+func (h *Service) fillPaymentDataCrypto(order *billing.Order) error {
+	address := order.PaymentMethodTxnParams[pkg.PaymentCreateFieldCrypto]
+	order.PaymentMethodPayerAccount = address
+	order.PaymentMethod.CryptoCurrency = &billing.PaymentMethodCrypto{
+		Brand:   order.PaymentMethod.Name,
+		Address: address,
+	}
 	return nil
 }

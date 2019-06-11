@@ -4051,6 +4051,15 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Ok() {
 	assert.Equal(suite.T(), callbackRequest.GetId(), order2.Transaction)
 	assert.Equal(suite.T(), callbackRequest.GetAmount(), order2.PaymentMethodIncomeAmount)
 	assert.Equal(suite.T(), callbackRequest.GetCurrency(), order2.PaymentMethodIncomeCurrency.CodeA3)
+	assert.NotNil(suite.T(), order2.PaymentMethod.Card)
+	assert.Equal(suite.T(), order2.PaymentMethod.Card.Brand, "MASTERCARD")
+	assert.Equal(suite.T(), order2.PaymentMethod.Card.Masked, "400000******0002")
+	assert.Equal(suite.T(), order2.PaymentMethod.Card.First6, "400000")
+	assert.Equal(suite.T(), order2.PaymentMethod.Card.Last4, "0002")
+	assert.Equal(suite.T(), order2.PaymentMethod.Card.ExpiryMonth, "02")
+	assert.Equal(suite.T(), order2.PaymentMethod.Card.ExpiryYear, expireYear.Format("2006"))
+	assert.Equal(suite.T(), order2.PaymentMethod.Card.Secure3D, true)
+	assert.NotEmpty(suite.T(), order2.PaymentMethod.Card.Fingerprint)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Recurring_Ok() {
@@ -5527,4 +5536,132 @@ func (suite *OrderTestSuite) TestOrder_orderNotifyMerchant_Ok() {
 	nS = order.GetNotificationStatus(ps)
 	assert.True(suite.T(), nS)
 	assert.Equal(suite.T(), len(order.IsNotificationsSent), 1)
+}
+
+func (suite *OrderTestSuite) TestCardpay_fillPaymentDataCrypto() {
+	var (
+		name    = "Bitcoin"
+		address = "1ByR2GSfDMuFGVoUzh4a5pzgrVuoTdr8wU"
+	)
+
+	req := &billing.OrderCreateRequest{
+		ProjectId:   suite.project.Id,
+		Currency:    "RUB",
+		Amount:      100,
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+	}
+
+	order := &billing.Order{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	assert.Nil(suite.T(), err)
+
+	order.PaymentMethod = &billing.PaymentMethodOrder{
+		Name: name,
+	}
+	order.PaymentMethodTxnParams = make(map[string]string)
+	order.PaymentMethodTxnParams[pkg.PaymentCreateFieldCrypto] = address
+	order.PaymentMethodTxnParams[pkg.TxnParamsFieldCryptoTransactionId] = "7d8c131c-092c-4a5b-83ed-5137ecb9b083"
+	order.PaymentMethodTxnParams[pkg.TxnParamsFieldCryptoAmount] = "0.0001"
+	order.PaymentMethodTxnParams[pkg.TxnParamsFieldCryptoCurrency] = "BTC"
+
+	err = suite.service.fillPaymentDataCrypto(order)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), order.PaymentMethodPayerAccount, address)
+	assert.NotNil(suite.T(), order.PaymentMethod.CryptoCurrency)
+	assert.Equal(suite.T(), order.PaymentMethod.CryptoCurrency.Brand, name)
+	assert.Equal(suite.T(), order.PaymentMethod.CryptoCurrency.Address, address)
+}
+
+func (suite *OrderTestSuite) TestCardpay_fillPaymentDataEwallet() {
+	var (
+		name    = "yamoney"
+		account = "41001811131268"
+	)
+	req := &billing.OrderCreateRequest{
+		ProjectId:   suite.project.Id,
+		Currency:    "RUB",
+		Amount:      100,
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+	}
+
+	order := &billing.Order{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	assert.Nil(suite.T(), err)
+
+	order.PaymentMethod = &billing.PaymentMethodOrder{
+		Name: name,
+	}
+	order.PaymentMethodTxnParams = make(map[string]string)
+	order.PaymentMethodTxnParams[pkg.PaymentCreateFieldEWallet] = account
+
+	err = suite.service.fillPaymentDataEwallet(order)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), order.PaymentMethodPayerAccount, account)
+	assert.NotNil(suite.T(), order.PaymentMethod.Wallet)
+	assert.Equal(suite.T(), order.PaymentMethod.Wallet.Brand, name)
+	assert.Equal(suite.T(), order.PaymentMethod.Wallet.Account, account)
+}
+
+func (suite *OrderTestSuite) TestCardpay_fillPaymentDataCard() {
+	var (
+		name      = "bank_card"
+		maskedPan = "444444******4448"
+		expMonth  = "10"
+		expYear   = "2021"
+		cardBrand = "VISA"
+	)
+
+	req := &billing.OrderCreateRequest{
+		ProjectId:   suite.project.Id,
+		Currency:    "RUB",
+		Amount:      100,
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+	}
+
+	order := &billing.Order{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	assert.Nil(suite.T(), err)
+
+	order.PaymentMethod = &billing.PaymentMethodOrder{
+		Name: name,
+	}
+	order.PaymentMethodTxnParams = make(map[string]string)
+	order.PaymentMethodTxnParams[pkg.TxnParamsFieldBankCardIs3DS] = "1"
+
+	order.PaymentRequisites = make(map[string]string)
+	order.PaymentRequisites["card_brand"] = cardBrand
+	order.PaymentRequisites["pan"] = maskedPan
+	order.PaymentRequisites["month"] = expMonth
+	order.PaymentRequisites["year"] = expYear
+
+	err = suite.service.fillPaymentDataCard(order)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), order.PaymentMethodPayerAccount, maskedPan)
+	assert.NotNil(suite.T(), order.PaymentMethod.Card)
+	assert.Equal(suite.T(), order.PaymentMethod.Card.Brand, cardBrand)
+	assert.Equal(suite.T(), order.PaymentMethod.Card.Masked, maskedPan)
+	assert.Equal(suite.T(), order.PaymentMethod.Card.First6, "444444")
+	assert.Equal(suite.T(), order.PaymentMethod.Card.Last4, "4448")
+	assert.Equal(suite.T(), order.PaymentMethod.Card.ExpiryMonth, expMonth)
+	assert.Equal(suite.T(), order.PaymentMethod.Card.ExpiryYear, expYear)
+	assert.Equal(suite.T(), order.PaymentMethod.Card.Secure3D, true)
+	assert.NotEmpty(suite.T(), order.PaymentMethod.Card.Fingerprint)
 }

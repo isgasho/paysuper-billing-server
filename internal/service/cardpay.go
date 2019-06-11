@@ -14,7 +14,6 @@ import (
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"go.uber.org/zap"
-	"golang.org/x/crypto/bcrypt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -405,27 +404,18 @@ func (h *cardPay) ProcessPayment(message proto.Message, raw, signature string) (
 	switch req.PaymentMethod {
 	case constant.PaymentSystemGroupAliasBankCard:
 
-		err := h.fillPaymentDataCard(req)
-		if err != nil {
-			return err
-		}
+		order.PaymentMethodTxnParams = req.GetBankCardTxnParams()
 		break
 	case constant.PaymentSystemGroupAliasQiwi,
 		constant.PaymentSystemGroupAliasWebMoney,
 		constant.PaymentSystemGroupAliasNeteller,
 		constant.PaymentSystemGroupAliasAlipay:
 
-		err := h.fillPaymentDataEwallet(req)
-		if err != nil {
-			return err
-		}
+		order.PaymentMethodTxnParams = req.GetEWalletTxnParams()
 		break
 	case constant.PaymentSystemGroupAliasBitcoin:
 
-		err := h.fillPaymentDataCrypto(req)
-		if err != nil {
-			return err
-		}
+		order.PaymentMethodTxnParams = req.GetCryptoCurrencyTxnParams()
 		break
 	default:
 		return NewError(paymentSystemErrorRequestPaymentMethodIsInvalid, pkg.StatusErrorValidation)
@@ -452,77 +442,6 @@ func (h *cardPay) ProcessPayment(message proto.Message, raw, signature string) (
 	order.PaymentMethodIncomeCurrency = order.PaymentMethodOutcomeCurrency
 
 	return
-}
-
-func (h *cardPay) fillPaymentDataCard(req *billing.CardPayPaymentCallback) error {
-	order := h.processor.order
-	order.PaymentMethodPayerAccount = req.CardAccount.MaskedPan
-	order.PaymentMethodTxnParams = req.GetBankCardTxnParams()
-
-	first6 := ""
-	last4 := ""
-	pan, ok := order.PaymentMethodTxnParams[pkg.PaymentCreateFieldPan]
-	if !ok {
-		pan, ok = order.PaymentRequisites["pan"]
-		if !ok {
-			pan = ""
-		}
-	}
-	if len(pan) >= 6 {
-		first6 = string(pan[0:6])
-		last4 = string(pan[len(pan)-4:])
-	}
-	cardBrand, ok := order.PaymentRequisites["card_brand"]
-
-	month, ok := order.PaymentRequisites["month"]
-	if !ok {
-		month = ""
-	}
-	year, ok := order.PaymentRequisites["year"]
-	if !ok {
-		year = ""
-	}
-
-	order.PaymentMethod.Card = &billing.PaymentMethodCard{
-		Masked:      pan,
-		First6:      first6,
-		Last4:       last4,
-		ExpiryMonth: month,
-		ExpiryYear:  year,
-		Brand:       cardBrand,
-		Secure3D:    order.PaymentMethodTxnParams[pkg.TxnParamsFieldBankCardIs3DS] == "1",
-	}
-	b, err := json.Marshal(order.PaymentMethod.Card)
-	if err != nil {
-		return err
-	}
-	fp, err := bcrypt.GenerateFromPassword([]byte(string(b)), bcrypt.MinCost)
-	if err == nil {
-		order.PaymentMethod.Card.Fingerprint = string(fp)
-	}
-	return nil
-}
-
-func (h *cardPay) fillPaymentDataEwallet(req *billing.CardPayPaymentCallback) error {
-	order := h.processor.order
-	order.PaymentMethodPayerAccount = req.EwalletAccount.Id
-	order.PaymentMethodTxnParams = req.GetEWalletTxnParams()
-	order.PaymentMethod.Wallet = &billing.PaymentMethodWallet{
-		Brand:   order.PaymentMethod.Name,
-		Account: order.PaymentMethodTxnParams[pkg.PaymentCreateFieldEWallet],
-	}
-	return nil
-}
-
-func (h *cardPay) fillPaymentDataCrypto(req *billing.CardPayPaymentCallback) error {
-	order := h.processor.order
-	order.PaymentMethodPayerAccount = req.CryptocurrencyAccount.CryptoAddress
-	order.PaymentMethodTxnParams = req.GetCryptoCurrencyTxnParams()
-	order.PaymentMethod.CryptoCurrency = &billing.PaymentMethodCrypto{
-		Brand:   order.PaymentMethod.Name,
-		Address: order.PaymentMethodTxnParams[pkg.PaymentCreateFieldCrypto],
-	}
-	return nil
 }
 
 func (h *cardPay) IsRecurringCallback(request proto.Message) bool {
