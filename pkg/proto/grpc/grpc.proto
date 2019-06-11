@@ -126,6 +126,8 @@ message PaymentFormJsonDataResponse {
     string cookie = 15;
     // @inject_tag: json:"email"
     string email = 16;
+    // @inject_tag: json:"description"
+    string description = 17;
 }
 
 message PaymentNotifyRequest {

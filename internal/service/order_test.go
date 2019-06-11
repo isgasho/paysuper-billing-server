@@ -3058,6 +3058,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_Ok() {
 	assert.True(suite.T(), len(rsp.PaymentMethods) > 0)
 	assert.True(suite.T(), len(rsp.PaymentMethods[0].Id) > 0)
 	assert.Equal(suite.T(), len(rsp.Items), 0)
+	assert.Equal(suite.T(), req.Description, rsp.Description)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcessWithProducts_Ok() {

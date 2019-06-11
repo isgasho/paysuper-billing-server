@@ -440,6 +440,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 
 	rsp.Id = order.Uuid
 	rsp.Account = order.ProjectAccount
+	rsp.Description = order.Description
 	rsp.HasVat = order.Tax.Amount > 0
 	rsp.Vat = order.Tax.Amount
 	rsp.Currency = order.ProjectIncomeCurrency.CodeA3
@@ -894,6 +895,7 @@ func (s *Service) saveRecurringCard(order *billing.Order, recurringId string) {
 		ProjectId:  order.Project.Id,
 		MerchantId: order.Project.MerchantId,
 		MaskedPan:  order.PaymentMethodTxnParams[pkg.PaymentCreateFieldPan],
+		CardHolder: order.PaymentMethodTxnParams[pkg.PaymentCreateFieldHolder],
 		Expire: &entity.CardExpire{
 			Month: order.PaymentRequisites[pkg.PaymentCreateFieldMonth],
 			Year:  order.PaymentRequisites[pkg.PaymentCreateFieldYear],
@@ -1614,9 +1616,10 @@ func (v *PaymentFormProcessor) processPaymentMethodsData(pm *billing.PaymentForm
 
 			for _, v := range rsp.SavedCards {
 				d := &billing.SavedCard{
-					Id:     v.Id,
-					Pan:    v.MaskedPan,
-					Expire: &billing.CardExpire{Month: v.Expire.Month, Year: v.Expire.Year},
+					Id:         v.Id,
+					Pan:        v.MaskedPan,
+					CardHolder: v.CardHolder,
+					Expire:     &billing.CardExpire{Month: v.Expire.Month, Year: v.Expire.Year},
 				}
 
 				pm.SavedCards = append(pm.SavedCards, d)
@@ -1769,6 +1772,7 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 			order.PaymentRequisites[pkg.PaymentCreateFieldPan] = storedCard.MaskedPan
 			order.PaymentRequisites[pkg.PaymentCreateFieldMonth] = storedCard.Expire.Month
 			order.PaymentRequisites[pkg.PaymentCreateFieldYear] = storedCard.Expire.Year
+			order.PaymentRequisites[pkg.PaymentCreateFieldHolder] = storedCard.CardHolder
 			order.PaymentRequisites[pkg.PaymentCreateFieldRecurringId] = storedCard.RecurringId
 		} else {
 			validator := &bankCardValidator{
