@@ -6,6 +6,7 @@ import (
 	"github.com/go-redis/redis"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
+	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -18,6 +19,7 @@ import (
 type TokenTestSuite struct {
 	suite.Suite
 	service *Service
+	cache   CacheInterface
 
 	project             *billing.Project
 	projectWithProducts *billing.Project
@@ -53,9 +55,6 @@ func (suite *TokenTestSuite) SetupTest() {
 		IsActive: true,
 	}
 
-	err = db.Collection(pkg.CollectionCurrency).Insert(rub)
-	assert.NoError(suite.T(), err, "Insert currency test data failed")
-
 	project := &billing.Project{
 		Id:                       bson.NewObjectId().Hex(),
 		CallbackCurrency:         "RUB",
@@ -84,9 +83,6 @@ func (suite *TokenTestSuite) SetupTest() {
 		Status:                   pkg.ProjectStatusInProduction,
 		MerchantId:               bson.NewObjectId().Hex(),
 	}
-
-	err = db.Collection(pkg.CollectionProject).Insert([]interface{}{project, projectWithProducts}...)
-	assert.NoError(suite.T(), err, "Insert project test data failed")
 
 	product1 := &grpc.Product{
 		Object:          "product",
@@ -125,7 +121,7 @@ func (suite *TokenTestSuite) SetupTest() {
 		Prices: []*grpc.ProductPrice{{Currency: "USD", Amount: 1005.00}},
 	}
 
-	err = db.Collection(pkg.CollectionProduct).Insert([]interface{}{product1, product2}...)
+	err = db.Collection(collectionProduct).Insert([]interface{}{product1, product2}...)
 	assert.NoError(suite.T(), err, "Insert product test data failed")
 
 	redisClient := database.NewRedis(
@@ -135,6 +131,12 @@ func (suite *TokenTestSuite) SetupTest() {
 		},
 	)
 
+	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
+		suite.FailNow("Insert currency test data failed", "%v", err)
+	}
+
+	redisdb := mock.NewTestRedis()
+	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
 		db,
 		cfg,
@@ -143,9 +145,20 @@ func (suite *TokenTestSuite) SetupTest() {
 		nil,
 		nil,
 		redisClient,
+		suite.cache,
 	)
-	err = suite.service.Init()
-	assert.NoError(suite.T(), err, "Billing service initialization failed")
+
+	if err := suite.service.Init(); err != nil {
+		suite.FailNow("Billing service initialization failed", "%v", err)
+	}
+
+	projects := []*billing.Project{
+		project,
+		projectWithProducts,
+	}
+	if err := suite.service.project.MultipleInsert(projects); err != nil {
+		suite.FailNow("Insert project test data failed", "%v", err)
+	}
 
 	suite.project = project
 	suite.projectWithProducts = projectWithProducts
@@ -194,7 +207,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_NewCustomer_Ok() {
 	assert.NoError(suite.T(), err)
 
 	var customer *billing.Customer
-	err = suite.service.db.Collection(pkg.CollectionCustomer).FindId(bson.ObjectIdHex(rep.token.CustomerId)).One(&customer)
+	err = suite.service.db.Collection(collectionCustomer).FindId(bson.ObjectIdHex(rep.token.CustomerId)).One(&customer)
 	assert.NotNil(suite.T(), customer)
 
 	assert.Equal(suite.T(), req.User.Id, customer.ExternalId)
@@ -285,7 +298,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_ExistCustomer_Ok() {
 	assert.Equal(suite.T(), rep.token.CustomerId, rep1.token.CustomerId)
 
 	var customers []*billing.Customer
-	err = suite.service.db.Collection(pkg.CollectionCustomer).FindId(bson.ObjectIdHex(rep.token.CustomerId)).All(&customers)
+	err = suite.service.db.Collection(collectionCustomer).FindId(bson.ObjectIdHex(rep.token.CustomerId)).All(&customers)
 	assert.Len(suite.T(), customers, 1)
 
 	assert.Len(suite.T(), customers[0].Identity, 4)
@@ -354,7 +367,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_ExistCustomer_UpdateExistIden
 	assert.NoError(suite.T(), err)
 
 	var customer *billing.Customer
-	err = suite.service.db.Collection(pkg.CollectionCustomer).FindId(bson.ObjectIdHex(rep.token.CustomerId)).One(&customer)
+	err = suite.service.db.Collection(collectionCustomer).FindId(bson.ObjectIdHex(rep.token.CustomerId)).One(&customer)
 	assert.NotNil(suite.T(), customer)
 	assert.False(suite.T(), customer.Identity[1].Verified)
 
@@ -397,7 +410,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_ExistCustomer_UpdateExistIden
 	assert.Equal(suite.T(), rep.token.CustomerId, rep1.token.CustomerId)
 
 	var customers []*billing.Customer
-	err = suite.service.db.Collection(pkg.CollectionCustomer).FindId(bson.ObjectIdHex(rep.token.CustomerId)).All(&customers)
+	err = suite.service.db.Collection(collectionCustomer).FindId(bson.ObjectIdHex(rep.token.CustomerId)).All(&customers)
 	assert.Len(suite.T(), customers, 1)
 
 	assert.Len(suite.T(), customers[0].Identity, 3)

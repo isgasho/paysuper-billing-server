@@ -27,6 +27,7 @@ import (
 type ReportTestSuite struct {
 	suite.Suite
 	service *Service
+	cache   CacheInterface
 	log     *zap.Logger
 
 	currencyRub             *billing.Currency
@@ -73,34 +74,29 @@ func (suite *ReportTestSuite) SetupTest() {
 		IsActive: true,
 	}
 
-	currency := []interface{}{suite.currencyRub, suite.currencyUsd}
-
-	err = db.Collection(pkg.CollectionCurrency).Insert(currency...)
-	assert.NoError(suite.T(), err, "Insert currency test data failed")
-
-	rate := []interface{}{
-		&billing.CurrencyRate{
+	rate := []*billing.CurrencyRate{
+		{
 			CurrencyFrom: 840,
 			CurrencyTo:   643,
 			Rate:         0.015625,
 			Date:         ptypes.TimestampNow(),
 			IsActive:     true,
 		},
-		&billing.CurrencyRate{
+		{
 			CurrencyFrom: 643,
 			CurrencyTo:   840,
 			Rate:         64,
 			Date:         ptypes.TimestampNow(),
 			IsActive:     true,
 		},
-		&billing.CurrencyRate{
+		{
 			CurrencyFrom: 643,
 			CurrencyTo:   643,
 			Rate:         1,
 			Date:         ptypes.TimestampNow(),
 			IsActive:     true,
 		},
-		&billing.CurrencyRate{
+		{
 			CurrencyFrom: 643,
 			CurrencyTo:   51,
 			Rate:         1,
@@ -108,9 +104,6 @@ func (suite *ReportTestSuite) SetupTest() {
 			IsActive:     true,
 		},
 	}
-
-	err = db.Collection(pkg.CollectionCurrencyRate).Insert(rate...)
-	assert.NoError(suite.T(), err, "Insert rates test data failed")
 
 	ru := &billing.Country{
 		CodeInt:  643,
@@ -126,9 +119,6 @@ func (suite *ReportTestSuite) SetupTest() {
 		Name:     &billing.Name{Ru: "США", En: "USA"},
 		IsActive: true,
 	}
-
-	err = db.Collection(pkg.CollectionCountry).Insert([]interface{}{ru, us}...)
-	assert.NoError(suite.T(), err, "Insert country test data failed")
 
 	pmBankCard := &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
@@ -260,9 +250,6 @@ func (suite *ReportTestSuite) SetupTest() {
 		},
 	}
 
-	err = db.Collection(pkg.CollectionMerchant).Insert([]interface{}{merchant}...)
-	assert.NoError(suite.T(), err, "Insert merchant test data failed")
-
 	project := &billing.Project{
 		Id:                       bson.NewObjectId().Hex(),
 		CallbackCurrency:         suite.currencyRub.CodeA3,
@@ -290,19 +277,10 @@ func (suite *ReportTestSuite) SetupTest() {
 		Status:             pkg.ProjectStatusInProduction,
 		MerchantId:         merchant.Id,
 	}
-
-	projects := []interface{}{
+	projects := []*billing.Project{
 		project,
 		project1,
 	}
-
-	err = db.Collection(pkg.CollectionProject).Insert(projects...)
-	assert.NoError(suite.T(), err, "Insert project test data failed")
-
-	pms := []interface{}{pmBankCard, pmBitcoin1}
-
-	err = db.Collection(pkg.CollectionPaymentMethod).Insert(pms...)
-	assert.NoError(suite.T(), err, "Insert payment methods test data failed")
 
 	commissionStartDate, err := ptypes.TimestampProto(time.Now().Add(time.Minute * -10))
 	assert.NoError(suite.T(), err, "Commission start date conversion failed")
@@ -326,7 +304,7 @@ func (suite *ReportTestSuite) SetupTest() {
 		},
 	}
 
-	err = db.Collection(pkg.CollectionCommission).Insert(commissions...)
+	err = db.Collection(collectionCommission).Insert(commissions...)
 	assert.NoError(suite.T(), err, "Insert commission test data failed")
 
 	bin := &BinData{
@@ -340,7 +318,7 @@ func (suite *ReportTestSuite) SetupTest() {
 		BankCountryCodeA2: "US",
 	}
 
-	err = db.Collection(pkg.CollectionBinData).Insert(bin)
+	err = db.Collection(collectionBinData).Insert(bin)
 	assert.NoError(suite.T(), err, "Insert BIN test data failed")
 
 	suite.log, err = zap.NewProduction()
@@ -356,6 +334,12 @@ func (suite *ReportTestSuite) SetupTest() {
 		},
 	)
 
+	if err := InitTestCurrency(db, []interface{}{suite.currencyRub, suite.currencyUsd}); err != nil {
+		suite.FailNow("Insert currency test data failed", "%v", err)
+	}
+
+	redisdb := mock.NewTestRedis()
+	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
 		db,
 		cfg,
@@ -364,9 +348,34 @@ func (suite *ReportTestSuite) SetupTest() {
 		mock.NewTaxServiceOkMock(),
 		broker,
 		redisClient,
+		suite.cache,
 	)
-	err = suite.service.Init()
-	assert.NoError(suite.T(), err, "Billing service initialization failed")
+
+	if err := suite.service.Init(); err != nil {
+		suite.FailNow("Billing service initialization failed", "%v", err)
+	}
+
+	pms := []*billing.PaymentMethod{pmBankCard, pmBitcoin1}
+	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {
+		suite.FailNow("Insert payment methods test data failed", "%v", err)
+	}
+
+	if err := suite.service.merchant.Insert(merchant); err != nil {
+		suite.FailNow("Insert merchant test data failed", "%v", err)
+	}
+
+	country := []*billing.Country{ru, us}
+	if err := suite.service.country.MultipleInsert(country); err != nil {
+		suite.FailNow("Insert country test data failed", "%v", err)
+	}
+
+	if err = suite.service.currencyRate.MultipleInsert(rate); err != nil {
+		suite.FailNow("Insert rates test data failed", "%v", err)
+	}
+
+	if err := suite.service.project.MultipleInsert(projects); err != nil {
+		suite.FailNow("Insert project test data failed", "%v", err)
+	}
 
 	var productIds []string
 	names := []string{"Madalin Stunt Cars M2", "Plants vs Zombies"}

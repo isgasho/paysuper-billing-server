@@ -6,22 +6,6 @@ const (
 
 	LoggerName = "PAYONE_BILLING_SERVER"
 
-	CollectionCurrency                     = "currency"
-	CollectionCountry                      = "country"
-	CollectionProject                      = "project"
-	CollectionCurrencyRate                 = "currency_rate"
-	CollectionOrder                        = "order"
-	CollectionPaymentMethod                = "payment_method"
-	CollectionCommission                   = "commission"
-	CollectionBinData                      = "bank_bin"
-	CollectionMerchant                     = "merchant"
-	CollectionNotification                 = "notification"
-	CollectionRefund                       = "refund"
-	CollectionProduct                      = "product"
-	CollectionSystemFees                   = "system_fees"
-	CollectionMerchantPaymentMethodHistory = "payment_method_history"
-	CollectionCustomer                     = "customer"
-
 	CardPayPaymentResponseStatusInProgress = "IN_PROGRESS"
 	CardPayPaymentResponseStatusPending    = "PENDING"
 	CardPayPaymentResponseStatusRefunded   = "REFUNDED"

@@ -33,6 +33,8 @@ const (
 	tokenLetterIdxBits = uint(6)
 	tokenLetterIdxMask = uint64(1<<tokenLetterIdxBits - 1)
 	tokenLetterIdxMax  = 63 / tokenLetterIdxBits
+
+	collectionCustomer = "customer"
 )
 
 var (
@@ -77,16 +79,13 @@ func (s *Service) CreateToken(
 		return nil
 	}
 
-	project, ok := s.projectCache[req.Settings.ProjectId]
-
-	if !ok {
+	project, err := s.project.GetById(req.Settings.ProjectId)
+	if err != nil {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = projectErrorNotFound
 
 		return nil
 	}
-
-	var err error
 
 	if project.IsProductsCheckout == true {
 		if len(req.Settings.Items) <= 0 {
@@ -185,7 +184,7 @@ func (s *Service) getTokenBy(token string) (*Token, error) {
 
 func (s *Service) getCustomerById(id string) (*billing.Customer, error) {
 	var customer *billing.Customer
-	err := s.db.Collection(pkg.CollectionCustomer).FindId(bson.ObjectIdHex(id)).One(&customer)
+	err := s.db.Collection(collectionCustomer).FindId(bson.ObjectIdHex(id)).One(&customer)
 
 	if err != nil {
 		if err != mgo.ErrNotFound {
@@ -260,7 +259,7 @@ func (s *Service) findCustomer(
 		query = subQuery[0]
 	}
 
-	err := s.db.Collection(pkg.CollectionCustomer).Find(query).One(&customer)
+	err := s.db.Collection(collectionCustomer).Find(query).One(&customer)
 
 	if err != nil {
 		if err != mgo.ErrNotFound {
@@ -289,7 +288,7 @@ func (s *Service) createCustomer(
 	}
 	s.processCustomer(req, project, customer)
 
-	err := s.db.Collection(pkg.CollectionCustomer).Insert(customer)
+	err := s.db.Collection(collectionCustomer).Insert(customer)
 
 	if err != nil {
 		s.logError("Query to create new customer failed", []interface{}{"error", err.Error(), "data", customer})
@@ -305,7 +304,7 @@ func (s *Service) updateCustomer(
 	customer *billing.Customer,
 ) (*billing.Customer, error) {
 	s.processCustomer(req, project, customer)
-	err := s.db.Collection(pkg.CollectionCustomer).UpdateId(bson.ObjectIdHex(customer.Id), customer)
+	err := s.db.Collection(collectionCustomer).UpdateId(bson.ObjectIdHex(customer.Id), customer)
 
 	if err != nil {
 		s.logError("Query to update customer data failed", []interface{}{"error", err.Error(), "data", customer})
