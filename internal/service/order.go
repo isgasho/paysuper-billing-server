@@ -62,6 +62,7 @@ const (
 	orderErrorCurrencyIsRequired                       = "parameter currency in create order request is required"
 	orderErrorUnknown                                  = "unknown error. try request later"
 	orderCurrencyConvertationError                     = "unknown error in process currency conversion. try request later"
+	orderCountryPaymentRestrictedError                 = "payments from your country are not allowed"
 	orderGetSavedCardError                             = "saved card data with specified identifier not found"
 	paymentRequestIncorrect                            = "payment request has incorrect format"
 	callbackRequestIncorrect                           = "callback request has incorrect format"
@@ -79,6 +80,8 @@ const (
 	orderErrorRecurringCardNotOwnToUser                = "you can't use not own bank card for payment"
 	orderErrorPublishNotificationFailed                = "publish order notification failed"
 	orderErrorUpdateOrderDataFailed                    = "Update order data failed"
+	orderErrorNotRestricted                            = "order country not restricted"
+	orderErrorEmailRequired                            = "email is required"
 
 	orderErrorCreatePaymentRequiredFieldIdNotFound            = "required field with order identifier not found"
 	orderErrorCreatePaymentRequiredFieldPaymentMethodNotFound = "required field with payment method identifier not found"
@@ -102,8 +105,10 @@ const (
 	taxTypeVat      = "vat"
 	taxTypeSalesTax = "sales_tax"
 
-	collectionOrder   = "order"
-	collectionBinData = "bank_bin"
+	collectionOrder           = "order"
+	collectionBinData         = "bank_bin"
+	collectionNotifySales     = "notify_sales"
+	collectionNotifyNewRegion = "notify_new_region"
 )
 
 type orderCreateRequestProcessorChecked struct {
@@ -146,17 +151,17 @@ type PaymentCreateProcessor struct {
 }
 
 type BinData struct {
-	Id                bson.ObjectId `bson:"_id"`
-	CardBin           int32         `bson:"card_bin"`
-	CardBrand         string        `bson:"card_brand"`
-	CardType          string        `bson:"card_type"`
-	CardCategory      string        `bson:"card_category"`
-	BankName          string        `bson:"bank_name"`
-	BankCountryName   string        `bson:"bank_country_name"`
-	BankCountryCodeA2 string        `bson:"bank_country_code_a2"`
-	BankCountryCodeA3 string        `bson:"bank_country_code_a3"`
-	BankSite          string        `bson:"bank_site"`
-	BankPhone         string        `bson:"bank_phone"`
+	Id                 bson.ObjectId `bson:"_id"`
+	CardBin            int32         `bson:"card_bin"`
+	CardBrand          string        `bson:"card_brand"`
+	CardType           string        `bson:"card_type"`
+	CardCategory       string        `bson:"card_category"`
+	BankName           string        `bson:"bank_name"`
+	BankCountryName    string        `bson:"bank_country_name"`
+	BankCountryIsoCode string        `bson:"bank_country_code_a2"`
+	BankCountryCodeA3  string        `bson:"bank_country_code_a3"`
+	BankSite           string        `bson:"bank_site"`
+	BankPhone          string        `bson:"bank_phone"`
 }
 
 func (s *Service) OrderCreateProcess(
@@ -311,6 +316,8 @@ func (s *Service) OrderCreateProcess(
 	rsp.NotifySaleEmail = order.NotifySaleEmail
 	rsp.Issuer = order.Issuer
 	rsp.Refund = order.Refund
+	rsp.CountryRestriction = order.CountryRestriction
+	rsp.UserAddressDataRequired = order.UserAddressDataRequired
 
 	return nil
 }
@@ -420,6 +427,31 @@ func (s *Service) PaymentFormJsonDataProcess(
 		}
 	}
 
+	countryCode := order.User.Address.Country
+	if countryCode != "" {
+		country, err := s.country.GetByIsoCodeA2(countryCode)
+		if err != nil {
+			return err
+		}
+		order.CountryRestriction = &billing.CountryRestriction{
+			IsoCodeA2:       countryCode,
+			PaymentsAllowed: country.PaymentsAllowed,
+			ChangeAllowed:   country.ChangeAllowed,
+		}
+		if !country.PaymentsAllowed {
+			if country.ChangeAllowed {
+				order.UserAddressDataRequired = true
+			} else {
+				order.PrivateStatus = constant.OrderStatusPaymentSystemDeclined
+				err = s.updateOrder(order)
+				if err != nil {
+					return err
+				}
+				return errors.New(orderCountryPaymentRestrictedError)
+			}
+		}
+	}
+
 	err = s.ProcessOrderProducts(order)
 	if err != nil {
 		if pid := order.PrivateMetadata["PaylinkId"]; pid != "" {
@@ -469,6 +501,13 @@ func (s *Service) PaymentFormJsonDataProcess(
 	rsp.Items = order.Items
 	rsp.Email = order.User.Email
 
+	rsp.CountryPaymentsAllowed = true
+	rsp.CountryChangeAllowed = true
+	if order.CountryRestriction != nil {
+		rsp.CountryPaymentsAllowed = order.CountryRestriction.PaymentsAllowed
+		rsp.CountryChangeAllowed = order.CountryRestriction.ChangeAllowed
+	}
+
 	cookie, err := s.generateBrowserCookie(browserCustomer)
 
 	if err == nil {
@@ -500,6 +539,12 @@ func (s *Service) PaymentCreateProcess(
 	}
 
 	order := processor.checked.order
+
+	if !order.CountryRestriction.PaymentsAllowed {
+		rsp.Message = orderCountryPaymentRestrictedError
+		rsp.Status = pkg.ResponseStatusForbidden
+		return nil
+	}
 
 	err = s.ProcessOrderProducts(order)
 	if err != nil {
@@ -822,7 +867,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 			return nil
 		}
 
-		country = data.BankCountryCodeA2
+		country = data.BankCountryIsoCode
 		break
 	case constant.PaymentSystemGroupAliasQiwi:
 		req.Account = "+" + req.Account
@@ -893,6 +938,32 @@ func (s *Service) ProcessBillingAddress(
 		Country:    req.Country,
 		City:       req.City,
 		PostalCode: req.Zip,
+	}
+
+	country, err := s.country.GetByIsoCodeA2(req.Country)
+	if err != nil {
+		return err
+	}
+	order.CountryRestriction = &billing.CountryRestriction{
+		IsoCodeA2:       req.Country,
+		PaymentsAllowed: country.PaymentsAllowed,
+		ChangeAllowed:   country.ChangeAllowed,
+	}
+	if !country.PaymentsAllowed {
+		if country.ChangeAllowed {
+			order.UserAddressDataRequired = true
+		} else {
+			order.PrivateStatus = constant.OrderStatusPaymentSystemDeclined
+			err = s.updateOrder(order)
+			if err != nil {
+				rsp.Status = pkg.ResponseStatusSystemError
+				rsp.Message = err.Error()
+				return nil
+			}
+			rsp.Status = pkg.ResponseStatusForbidden
+			rsp.Message = orderCountryPaymentRestrictedError
+			return nil
+		}
 	}
 
 	err = s.ProcessOrderProducts(order)
@@ -1083,7 +1154,7 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 	}
 
 	if merchantPayoutCurrency != nil && v.checked.currency.CodeInt != merchantPayoutCurrency.CodeInt {
-		amnt, err := v.Service.currencyRate.Convert(v.checked.currency.CodeInt, merchantPayoutCurrency.CodeInt, amount)
+		amnt, err := v.currencyRate.Convert(v.checked.currency.CodeInt, merchantPayoutCurrency.CodeInt, amount)
 
 		if err != nil {
 			return nil, err
@@ -1137,15 +1208,41 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 			Url:      v.request.IssuerUrl,
 			Embedded: v.request.IsEmbedded,
 		},
-	}
-
-	if order.User != nil && order.User.Address != nil {
-		v.processOrderVat(order)
+		CountryRestriction: &billing.CountryRestriction{
+			IsoCodeA2:       "",
+			PaymentsAllowed: true,
+			ChangeAllowed:   true,
+		},
 	}
 
 	if order.User == nil {
 		order.User = &billing.OrderUser{
 			Object: pkg.ObjectTypeUser,
+		}
+	} else {
+		if order.User.Address != nil {
+			v.processOrderVat(order)
+
+			countryCode := order.User.Address.Country
+			if countryCode != "" {
+				country, err := v.country.GetByIsoCodeA2(countryCode)
+				if err != nil {
+					return nil, err
+				}
+				order.CountryRestriction = &billing.CountryRestriction{
+					IsoCodeA2:       countryCode,
+					PaymentsAllowed: country.PaymentsAllowed,
+					ChangeAllowed:   country.ChangeAllowed,
+				}
+				if !country.PaymentsAllowed {
+					if country.ChangeAllowed {
+						order.UserAddressDataRequired = true
+					} else {
+						order.PrivateStatus = constant.OrderStatusPaymentSystemDeclined
+						return order, nil
+					}
+				}
+			}
 		}
 	}
 
@@ -1268,7 +1365,7 @@ func (v *OrderCreateRequestProcessor) processPaylinkProducts() error {
 		return nil
 	}
 
-	orderProducts, err := v.Service.GetOrderProducts(v.checked.project.Id, v.request.Products)
+	orderProducts, err := v.GetOrderProducts(v.checked.project.Id, v.request.Products)
 	if err != nil {
 		return err
 	}
@@ -1277,7 +1374,7 @@ func (v *OrderCreateRequestProcessor) processPaylinkProducts() error {
 
 	logInfo := "[processPaylinkProducts] %s"
 
-	currency := v.Service.accountingCurrency
+	currency := v.accountingCurrency
 	zap.S().Infow(fmt.Sprintf(logInfo, "accountingCurrency"), "currency", currency.CodeA3, "paylink", pid)
 
 	merchantPayoutCurrency := v.checked.merchant.GetPayoutCurrency()
@@ -1291,12 +1388,12 @@ func (v *OrderCreateRequestProcessor) processPaylinkProducts() error {
 
 	zap.S().Infow(fmt.Sprintf(logInfo, "use currency"), "currency", currency.CodeA3, "paylink", pid)
 
-	amount, err := v.Service.GetOrderProductsAmount(orderProducts, currency.CodeA3)
+	amount, err := v.GetOrderProductsAmount(orderProducts, currency.CodeA3)
 	if err != nil {
 		return err
 	}
 
-	items, err := v.Service.GetOrderProductsItems(orderProducts, DefaultLanguage, currency.CodeA3)
+	items, err := v.GetOrderProductsItems(orderProducts, DefaultLanguage, currency.CodeA3)
 	if err != nil {
 		return err
 	}
@@ -1812,6 +1909,29 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 		updCustomerReq.User.Address = order.BillingAddress
 	}
 
+	countryCode := order.GetCountry()
+	country, err := v.service.country.GetByIsoCodeA2(countryCode)
+	if err != nil {
+		return err
+	}
+	order.CountryRestriction = &billing.CountryRestriction{
+		IsoCodeA2:       countryCode,
+		PaymentsAllowed: country.PaymentsAllowed,
+		ChangeAllowed:   country.ChangeAllowed,
+	}
+	if !country.PaymentsAllowed {
+		if country.ChangeAllowed {
+			order.UserAddressDataRequired = true
+		} else {
+			order.PrivateStatus = constant.OrderStatusPaymentSystemDeclined
+			err = v.service.updateOrder(order)
+			if err != nil {
+				return err
+			}
+			return errors.New(orderCountryPaymentRestrictedError)
+		}
+	}
+
 	if order.User.IsIdentified() == true {
 		customer, err := v.service.updateCustomerFromRequest(order, updCustomerReq, v.ip, v.acceptLanguage, v.userAgent)
 
@@ -2159,14 +2279,17 @@ func (s *Service) ProcessOrderProducts(order *billing.Order) error {
 	currency = defaultCurrency
 
 	if country != "" {
-		curr, ok := CountryToCurrency[country]
-		if ok {
-			currency, err = s.currency.GetByCodeA3(curr)
-			if err == nil {
-				zap.S().Infow(fmt.Sprintf(logInfo, "currency by country"), "currency", currency.CodeA3, "country", country, "order.Uuid", order.Uuid)
-			} else {
-				currency = defaultCurrency
-			}
+		countryData, err := s.country.GetByIsoCodeA2(country)
+		if err != nil {
+			return err
+		}
+		// todo: change here to priceGroup support instead of country's currency
+		curr := countryData.Currency
+		currency, err = s.currency.GetByCodeA3(curr)
+		if err == nil {
+			zap.S().Infow(fmt.Sprintf(logInfo, "currency by country"), "currency", currency.CodeA3, "country", country, "order.Uuid", order.Uuid)
+		} else {
+			currency = defaultCurrency
 		}
 	}
 
@@ -2375,5 +2498,136 @@ func (h *Service) fillPaymentDataCrypto(order *billing.Order) error {
 		Brand:   order.PaymentMethod.Name,
 		Address: address,
 	}
+	return nil
+}
+
+func (s *Service) SetUserNotifySales(
+	ctx context.Context,
+	req *grpc.SetUserNotifyRequest,
+	rsp *grpc.EmptyResponse,
+) error {
+
+	order, err := s.getOrderByUuid(req.OrderUuid)
+
+	if err != nil {
+		s.logError(orderErrorNotFound, []interface{}{"error", err.Error(), "request", req})
+		return errors.New(orderErrorNotFound)
+	}
+
+	if req.EnableNotification && req.Email == "" {
+		return errors.New(orderErrorEmailRequired)
+	}
+
+	order.NotifySale = req.EnableNotification
+	order.NotifySaleEmail = req.Email
+	err = s.updateOrder(order)
+	if err != nil {
+		return err
+	}
+
+	if req.EnableNotification {
+		data := &grpc.NotifyUserSales{
+			Email: req.Email,
+		}
+		err := s.db.Collection(collectionNotifySales).Insert(data)
+		if err != nil {
+			s.logError("Save email to collection failed", []interface{}{"error", err.Error(), "request", req,
+				"collection", collectionNotifySales})
+			return err
+		}
+
+		tokenReq := s.transformOrderUser2TokenRequest(order.User)
+		project, err := s.project.GetById(order.Project.Id)
+		if err != nil {
+			return err
+		}
+		customer, _ := s.findCustomer(tokenReq, project)
+		if customer != nil {
+			customer, err = s.updateCustomer(tokenReq, project, customer)
+		} else {
+			customer, err = s.createCustomer(tokenReq, project)
+		}
+		if err != nil {
+			return err
+		}
+		customer.NotifySale = req.EnableNotification
+		customer.NotifySaleEmail = req.Email
+		customer, err = s.updateCustomer(tokenReq, project, customer)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *Service) SetUserNotifyNewRegion(
+	ctx context.Context,
+	req *grpc.SetUserNotifyRequest,
+	rsp *grpc.EmptyResponse,
+) error {
+
+	order, err := s.getOrderByUuid(req.OrderUuid)
+
+	if err != nil {
+		s.logError(orderErrorNotFound, []interface{}{"error", err.Error(), "request", req})
+		return errors.New(orderErrorNotFound)
+	}
+
+	if order.CountryRestriction.PaymentsAllowed {
+		s.logError(orderErrorNotRestricted, []interface{}{"request", req})
+		return errors.New(orderErrorNotRestricted)
+	}
+
+	if req.EnableNotification && req.Email == "" {
+		return errors.New(orderErrorEmailRequired)
+	}
+
+	if order.User == nil {
+		order.User = &billing.OrderUser{}
+	}
+	order.User.NotifyNewRegion = req.EnableNotification
+	order.User.NotifyNewRegionEmail = req.Email
+	err = s.updateOrder(order)
+	if err != nil {
+		return err
+	}
+
+	if req.EnableNotification && order.CountryRestriction != nil {
+
+		data := &grpc.NotifyUserNewRegion{
+			Email:            req.Email,
+			Date:             time.Now().Format(time.RFC3339),
+			CountryIsoCodeA2: order.CountryRestriction.IsoCodeA2,
+		}
+		err := s.db.Collection(collectionNotifyNewRegion).Insert(data)
+		if err != nil {
+			s.logError("Save email to collection failed", []interface{}{"error", err.Error(), "request", req,
+				"collection", collectionNotifyNewRegion})
+			return err
+		}
+
+		tokenReq := s.transformOrderUser2TokenRequest(order.User)
+		project, err := s.project.GetById(order.Project.Id)
+		if err != nil {
+			return err
+		}
+		customer, _ := s.findCustomer(tokenReq, project)
+		if customer != nil {
+			customer, err = s.updateCustomer(tokenReq, project, customer)
+		} else {
+			customer, err = s.createCustomer(tokenReq, project)
+		}
+		if err != nil {
+			return err
+		}
+		customer.NotifyNewRegion = req.EnableNotification
+		customer.NotifyNewRegionEmail = req.Email
+		customer, err = s.updateCustomer(tokenReq, project, customer)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

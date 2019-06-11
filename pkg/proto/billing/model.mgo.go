@@ -21,7 +21,7 @@ type MgoMultiLang struct {
 
 type MgoVat struct {
 	Id          bson.ObjectId `bson:"_id" json:"id"`
-	Country     *Country      `bson:"country" json:"country"`
+	Country     string        `bson:"country" json:"country"`
 	Subdivision string        `bson:"subdivision_code" json:"subdivision_code,omitempty"`
 	Vat         float64       `bson:"vat" json:"vat"`
 	IsActive    bool          `bson:"is_active" json:"is_active"`
@@ -108,7 +108,7 @@ type MgoMerchant struct {
 	Name                      string                               `bson:"name"`
 	AlternativeName           string                               `bson:"alternative_name"`
 	Website                   string                               `bson:"website"`
-	Country                   *Country                             `bson:"country"`
+	Country                   string                               `bson:"country"`
 	State                     string                               `bson:"state"`
 	Zip                       string                               `bson:"zip"`
 	City                      string                               `bson:"city"`
@@ -266,12 +266,13 @@ type MgoOrder struct {
 	UserAddressDataRequired                 bool                     `bson:"user_address_data_required"`
 	Products                                []string                 `bson:"products"`
 	IsNotificationsSent                     map[string]bool          `bson:"is_notifications_sent"`
+	CountryRestriction                      *CountryRestriction      `bson:"country_restriction"`
 }
 
 type MgoPaymentSystem struct {
 	Id                 bson.ObjectId `bson:"_id"`
 	Name               string        `bson:"name"`
-	Country            *Country      `bson:"country"`
+	Country            string        `bson:"country"`
 	AccountingCurrency *Currency     `bson:"accounting_currency"`
 	AccountingPeriod   string        `bson:"accounting_period"`
 	IsActive           bool          `bson:"is_active"`
@@ -386,6 +387,185 @@ type MgoCustomer struct {
 	Metadata              map[string]string                `bson:"metadata"`
 	CreatedAt             time.Time                        `bson:"created_at"`
 	UpdatedAt             time.Time                        `bson:"updated_at"`
+	NotifySale            bool                             `bson:"notify_sale"`
+	NotifySaleEmail       string                           `bson:"notify_sale_email"`
+	NotifyNewRegion       bool                             `bson:"notify_new_region"`
+	NotifyNewRegionEmail  string                           `bson:"notify_new_region_email"`
+}
+
+type MgoPriceGroup struct {
+	Id        bson.ObjectId `bson:"_id"`
+	Currency  string        `bson:"currency"`
+	IsSimple  bool          `bson:"is_simple"`
+	Region    string        `bson:"region"`
+	CreatedAt time.Time     `bson:"created_at"`
+	UpdatedAt time.Time     `bson:"updated_at"`
+}
+
+type MgoCountry struct {
+	Id              bson.ObjectId `bson:"_id"`
+	IsoCodeA2       string        `bson:"iso_code_a2"`
+	Region          string        `bson:"region"`
+	Currency        string        `bson:"currency"`
+	PaymentsAllowed bool          `bson:"payments_allowed"`
+	ChangeAllowed   bool          `bson:"change_allowed"`
+	VatEnabled      bool          `bson:"vat_enabled"`
+	VatCurrency     string        `bson:"vat_currency"`
+	PriceGroupId    string        `bson:"vat_threshold"`
+	CreatedAt       time.Time     `bson:"created_at"`
+	UpdatedAt       time.Time     `bson:"updated_at"`
+}
+
+func (m *Country) GetBSON() (interface{}, error) {
+	st := &MgoCountry{
+		IsoCodeA2:       m.IsoCodeA2,
+		Region:          m.Region,
+		Currency:        m.Currency,
+		PaymentsAllowed: m.PaymentsAllowed,
+		ChangeAllowed:   m.ChangeAllowed,
+		VatEnabled:      m.VatEnabled,
+		PriceGroupId:    m.PriceGroupId,
+		VatCurrency:     m.VatCurrency,
+	}
+	if len(m.Id) <= 0 {
+		st.Id = bson.NewObjectId()
+	} else {
+		if bson.IsObjectIdHex(m.Id) == false {
+			return nil, errors.New(errorInvalidObjectId)
+		}
+
+		st.Id = bson.ObjectIdHex(m.Id)
+	}
+
+	if m.CreatedAt != nil {
+		t, err := ptypes.Timestamp(m.CreatedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.CreatedAt = t
+	} else {
+		st.CreatedAt = time.Now()
+	}
+
+	if m.UpdatedAt != nil {
+		t, err := ptypes.Timestamp(m.UpdatedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.UpdatedAt = t
+	} else {
+		st.UpdatedAt = time.Now()
+	}
+
+	return st, nil
+}
+
+func (m *Country) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoCountry)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.IsoCodeA2 = decoded.IsoCodeA2
+	m.Region = decoded.Region
+	m.Currency = decoded.Currency
+	m.PaymentsAllowed = decoded.PaymentsAllowed
+	m.ChangeAllowed = decoded.ChangeAllowed
+	m.VatEnabled = decoded.VatEnabled
+	m.PriceGroupId = decoded.PriceGroupId
+	m.VatCurrency = decoded.VatCurrency
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+
+	if err != nil {
+		return err
+	}
+
+	m.UpdatedAt, err = ptypes.TimestampProto(decoded.UpdatedAt)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *PriceGroup) GetBSON() (interface{}, error) {
+	st := &MgoPriceGroup{
+		IsSimple: m.IsSimple,
+		Region:   m.Region,
+		Currency: m.Currency,
+	}
+	if len(m.Id) <= 0 {
+		st.Id = bson.NewObjectId()
+	} else {
+		if bson.IsObjectIdHex(m.Id) == false {
+			return nil, errors.New(errorInvalidObjectId)
+		}
+
+		st.Id = bson.ObjectIdHex(m.Id)
+	}
+
+	if m.CreatedAt != nil {
+		t, err := ptypes.Timestamp(m.CreatedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.CreatedAt = t
+	} else {
+		st.CreatedAt = time.Now()
+	}
+
+	if m.UpdatedAt != nil {
+		t, err := ptypes.Timestamp(m.UpdatedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.UpdatedAt = t
+	} else {
+		st.UpdatedAt = time.Now()
+	}
+
+	return st, nil
+}
+
+func (m *PriceGroup) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoPriceGroup)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.IsSimple = decoded.IsSimple
+	m.Region = decoded.Region
+	m.Currency = decoded.Currency
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+
+	if err != nil {
+		return err
+	}
+
+	m.UpdatedAt, err = ptypes.TimestampProto(decoded.UpdatedAt)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (m *Vat) GetBSON() (interface{}, error) {
@@ -921,6 +1101,7 @@ func (m *Order) GetBSON() (interface{}, error) {
 		UserAddressDataRequired:                 m.UserAddressDataRequired,
 		Products:                                m.Products,
 		IsNotificationsSent:                     m.IsNotificationsSent,
+		CountryRestriction:                      m.CountryRestriction,
 	}
 
 	if m.PaymentMethod != nil {
@@ -1149,6 +1330,7 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.UserAddressDataRequired = decoded.UserAddressDataRequired
 	m.Products = decoded.Products
 	m.IsNotificationsSent = decoded.IsNotificationsSent
+	m.CountryRestriction = decoded.CountryRestriction
 
 	m.PaymentMethodOrderClosedAt, err = ptypes.TimestampProto(decoded.PaymentMethodOrderClosedAt)
 	if err != nil {
@@ -1891,6 +2073,10 @@ func (m *Customer) GetBSON() (interface{}, error) {
 		AddressHistory:        []*MgoCustomerAddressHistory{},
 		LocaleHistory:         []*MgoCustomerStringValueHistory{},
 		AcceptLanguageHistory: []*MgoCustomerStringValueHistory{},
+		NotifySale:            m.NotifySale,
+		NotifySaleEmail:       m.NotifySaleEmail,
+		NotifyNewRegion:       m.NotifyNewRegion,
+		NotifyNewRegionEmail:  m.NotifyNewRegionEmail,
 	}
 
 	for _, v := range m.Identity {
@@ -1989,6 +2175,10 @@ func (m *Customer) SetBSON(raw bson.Raw) error {
 	m.LocaleHistory = []*CustomerStringValueHistory{}
 	m.AcceptLanguageHistory = []*CustomerStringValueHistory{}
 	m.Metadata = decoded.Metadata
+	m.NotifySale = decoded.NotifySale
+	m.NotifySaleEmail = decoded.NotifySaleEmail
+	m.NotifyNewRegion = decoded.NotifyNewRegion
+	m.NotifyNewRegionEmail = decoded.NotifyNewRegionEmail
 
 	for _, v := range decoded.Identity {
 		identity := &CustomerIdentity{

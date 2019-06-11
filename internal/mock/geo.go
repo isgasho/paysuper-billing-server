@@ -27,24 +27,48 @@ func (s *GeoIpServiceTestOk) GetIpData(
 	in *proto.GeoIpDataRequest,
 	opts ...client.CallOption,
 ) (*proto.GeoIpDataResponse, error) {
-	data := &proto.GeoIpDataResponse{
-		Country: &proto.GeoIpCountry{
-			IsoCode: "RU",
-			Names:   map[string]string{"en": "Russia", "ru": "Россия"},
-		},
-		City: &proto.GeoIpCity{
-			Names: map[string]string{"en": "St.Petersburg", "ru": "Санкт-Петербург"},
-		},
-		Location: &proto.GeoIpLocation{
-			TimeZone: "Europe/Moscow",
-		},
-		Subdivisions: []*proto.GeoIpSubdivision{
-			{
-				GeoNameID: uint32(1),
-				IsoCode:   "SPE",
-				Names:     map[string]string{"en": "St.Petersburg", "ru": "Санкт-Петербург"},
+	var data = &proto.GeoIpDataResponse{}
+
+	if in.IP == "127.0.0.1" {
+		data = &proto.GeoIpDataResponse{
+			Country: &proto.GeoIpCountry{
+				IsoCode: "RU",
+				Names:   map[string]string{"en": "Russia", "ru": "Россия"},
 			},
-		},
+			City: &proto.GeoIpCity{
+				Names: map[string]string{"en": "St.Petersburg", "ru": "Санкт-Петербург"},
+			},
+			Location: &proto.GeoIpLocation{
+				TimeZone: "Europe/Moscow",
+			},
+			Subdivisions: []*proto.GeoIpSubdivision{
+				{
+					GeoNameID: uint32(1),
+					IsoCode:   "SPE",
+					Names:     map[string]string{"en": "St.Petersburg", "ru": "Санкт-Петербург"},
+				},
+			},
+		}
+	} else {
+		data = &proto.GeoIpDataResponse{
+			Country: &proto.GeoIpCountry{
+				IsoCode: "UA",
+				Names:   map[string]string{"en": "Ukraina", "ru": "Украина"},
+			},
+			City: &proto.GeoIpCity{
+				Names: map[string]string{"en": "Kiev", "ru": "Киев"},
+			},
+			Location: &proto.GeoIpLocation{
+				TimeZone: "Europe/Moscow",
+			},
+			Subdivisions: []*proto.GeoIpSubdivision{
+				{
+					GeoNameID: uint32(2),
+					IsoCode:   "30",
+					Names:     map[string]string{"en": "Kiev", "ru": "Киев"},
+				},
+			},
+		}
 	}
 
 	return data, nil

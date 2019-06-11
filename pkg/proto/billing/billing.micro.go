@@ -26,6 +26,7 @@ It has these top-level messages:
 	OrderBillingAddress
 	OrderUser
 	Order
+	CountryRestriction
 	OrderItem
 	OrderPaginate
 	Currency
@@ -41,7 +42,6 @@ It has these top-level messages:
 	ProjectPaymentMethod
 	CurrencyRate
 	PaymentMethod
-	Country
 	Vat
 	Commission
 	CardExpire
@@ -79,6 +79,10 @@ It has these top-level messages:
 	TokenSettings
 	OrderIssuer
 	OrderNotificationRefund
+	GetCountryRequest
+	Country
+	GetPriceGroupRequest
+	PriceGroup
 */
 package billing
 

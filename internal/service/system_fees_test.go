@@ -143,11 +143,14 @@ func (suite *SystemFeesTestSuite) SetupTest() {
 	}
 
 	country := &billing.Country{
-		CodeInt:  840,
-		CodeA2:   "US",
-		CodeA3:   "USA",
-		Name:     &billing.Name{Ru: "США", En: "USA"},
-		IsActive: true,
+		IsoCodeA2:       "US",
+		Region:          "North America",
+		Currency:        "USD",
+		PaymentsAllowed: true,
+		ChangeAllowed:   true,
+		VatEnabled:      true,
+		PriceGroupId:    "",
+		VatCurrency:     "USD",
 	}
 	if err := suite.service.country.Insert(country); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)

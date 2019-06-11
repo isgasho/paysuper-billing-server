@@ -1,8 +1,10 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
@@ -71,12 +73,26 @@ func (suite *CountryTestSuite) SetupTest() {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 
+	pg := &billing.PriceGroup{
+		Id:       bson.NewObjectId().Hex(),
+		Currency: "USD",
+		IsSimple: true,
+		Region:   "",
+	}
+	if err := suite.service.priceGroup.Insert(pg); err != nil {
+		suite.FailNow("Insert price group test data failed", "%v", err)
+	}
+
 	suite.country = &billing.Country{
-		CodeInt:  643,
-		CodeA2:   "RU",
-		CodeA3:   "RUS",
-		Name:     &billing.Name{Ru: "Россия", En: "Russia (Russian Federation)"},
-		IsActive: true,
+		Id:              bson.NewObjectId().Hex(),
+		IsoCodeA2:       "RU",
+		Region:          "Russia",
+		Currency:        "RUB",
+		PaymentsAllowed: true,
+		ChangeAllowed:   true,
+		VatEnabled:      true,
+		PriceGroupId:    pg.Id,
+		VatCurrency:     "RUB",
 	}
 	if err := suite.service.country.Insert(suite.country); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
@@ -91,23 +107,55 @@ func (suite *CountryTestSuite) TearDownTest() {
 	suite.service.db.Close()
 }
 
+func (suite *CountryTestSuite) TestCountry_TestCountry() {
+
+	req := &billing.GetCountryRequest{
+		IsoCode: "RU",
+	}
+	res := &billing.Country{}
+	err := suite.service.GetCountry(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.True(suite.T(), res.PaymentsAllowed)
+
+	req2 := &billing.Country{
+		IsoCodeA2:       res.IsoCodeA2,
+		Region:          res.Region,
+		Currency:        res.Currency,
+		PaymentsAllowed: false,
+		ChangeAllowed:   res.ChangeAllowed,
+		VatEnabled:      res.VatEnabled,
+		VatCurrency:     res.VatCurrency,
+		PriceGroupId:    res.PriceGroupId,
+	}
+
+	res2 := &billing.Country{}
+	err = suite.service.UpdateCountry(context.TODO(), req2, res2)
+	assert.NoError(suite.T(), err)
+	assert.False(suite.T(), res2.PaymentsAllowed)
+
+	res3 := &billing.Country{}
+	err = suite.service.GetCountry(context.TODO(), req, res3)
+	assert.NoError(suite.T(), err)
+	assert.False(suite.T(), res3.PaymentsAllowed)
+}
+
 func (suite *CountryTestSuite) TestCountry_GetCountryByCodeA2_Ok() {
-	c, err := suite.service.country.GetByCodeA2("RU")
+	c, err := suite.service.country.GetByIsoCodeA2("RU")
 
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), c)
-	assert.Equal(suite.T(), suite.country.CodeInt, c.CodeInt)
+	assert.Equal(suite.T(), suite.country.IsoCodeA2, c.IsoCodeA2)
 }
 
 func (suite *CountryTestSuite) TestCountry_GetCountryByCodeA2_NotFound() {
-	_, err := suite.service.country.GetByCodeA2("AAA")
+	_, err := suite.service.country.GetByIsoCodeA2("AAA")
 
 	assert.Error(suite.T(), err)
 	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, collectionCountry))
 }
 
 func (suite *CountryTestSuite) TestCountry_Insert_Ok() {
-	assert.NoError(suite.T(), suite.service.country.Insert(&billing.Country{CodeA2: "RU"}))
+	assert.NoError(suite.T(), suite.service.country.Insert(&billing.Country{IsoCodeA2: "RU"}))
 }
 
 func (suite *CountryTestSuite) TestCountry_Insert_ErrorCacheUpdate() {
@@ -115,7 +163,7 @@ func (suite *CountryTestSuite) TestCountry_Insert_ErrorCacheUpdate() {
 	ci.On("Set", "country:code_a2:AAA", mock2.Anything, mock2.Anything).
 		Return(errors.New("service unavailable"))
 	suite.service.cacher = ci
-	err := suite.service.country.Insert(&billing.Country{CodeA2: "AAA"})
+	err := suite.service.country.Insert(&billing.Country{IsoCodeA2: "AAA"})
 
 	assert.Error(suite.T(), err)
 	assert.EqualError(suite.T(), err, "service unavailable")

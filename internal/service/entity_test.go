@@ -172,11 +172,14 @@ func (suite *EntityTestSuite) SetupTest() {
 	}
 
 	country := &billing.Country{
-		CodeInt:  643,
-		CodeA2:   "RU",
-		CodeA3:   "RUS",
-		Name:     &billing.Name{Ru: "Россия", En: "Russia (Russian Federation)"},
-		IsActive: true,
+		IsoCodeA2:       "RU",
+		Region:          "Russia",
+		Currency:        "RUB",
+		PaymentsAllowed: true,
+		ChangeAllowed:   true,
+		VatEnabled:      true,
+		PriceGroupId:    "",
+		VatCurrency:     "RUB",
 	}
 
 	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -360))
@@ -188,7 +191,7 @@ func (suite *EntityTestSuite) SetupTest() {
 	merchant := &billing.Merchant{
 		Id:      bson.NewObjectId().Hex(),
 		Name:    "Unit test",
-		Country: country,
+		Country: country.IsoCodeA2,
 		Zip:     "190000",
 		City:    "St.Petersburg",
 		Contacts: &billing.MerchantContact{
@@ -242,7 +245,7 @@ func (suite *EntityTestSuite) SetupTest() {
 	merchantAgreement := &billing.Merchant{
 		Id:      bson.NewObjectId().Hex(),
 		Name:    "Unit test status Agreement",
-		Country: country,
+		Country: country.IsoCodeA2,
 		Zip:     "190000",
 		City:    "St.Petersburg",
 		Contacts: &billing.MerchantContact{
@@ -274,7 +277,7 @@ func (suite *EntityTestSuite) SetupTest() {
 	merchant1 := &billing.Merchant{
 		Id:      bson.NewObjectId().Hex(),
 		Name:    "merchant1",
-		Country: country,
+		Country: country.IsoCodeA2,
 		Zip:     "190000",
 		City:    "St.Petersburg",
 		Contacts: &billing.MerchantContact{

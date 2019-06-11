@@ -27,7 +27,6 @@ const (
 	errorSystemFeeCardBrandInvalid         = "card brand invalid or not supported"
 	errorSystemFeeNotFound                 = "system fee not found"
 	errorSystemFeeMatchedMinAmountNotFound = "system fee matched min amount not found"
-	errorSystemFeeDuplicatedActive         = "duplicated active system fee"
 	errorSystemFeeRegionInvalid            = "system fee region invalid"
 	errorSystemFeeRequiredFeeset           = "system fees require alt least one fee set in request"
 )
@@ -56,7 +55,7 @@ func (s *Service) AddSystemFees(
 ) error {
 
 	if req.Region != "" && req.Region != "EU" {
-		_, err := s.country.GetByCodeA2(req.Region)
+		_, err := s.country.GetByIsoCodeA2(req.Region)
 		if err != nil {
 			s.logError(errorSystemFeeRegionInvalid, []interface{}{"data", req})
 			return errors.New(errorSystemFeeRegionInvalid)

@@ -76,7 +76,7 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 			Name:               "CardPay",
 			AccountingCurrency: rub,
 			AccountingPeriod:   "every-day",
-			Country:            &billing.Country{},
+			Country:            "",
 			IsActive:           true,
 		},
 	}
@@ -101,7 +101,7 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 			Name:               "CardPay",
 			AccountingCurrency: rub,
 			AccountingPeriod:   "every-day",
-			Country:            &billing.Country{},
+			Country:            "",
 			IsActive:           true,
 		},
 	}

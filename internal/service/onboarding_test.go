@@ -72,11 +72,14 @@ func (suite *OnboardingTestSuite) SetupTest() {
 	}
 
 	country := &billing.Country{
-		CodeInt:  643,
-		CodeA2:   "RU",
-		CodeA3:   "RUS",
-		Name:     &billing.Name{Ru: "Россия", En: "Russia (Russian Federation)"},
-		IsActive: true,
+		IsoCodeA2:       "RU",
+		Region:          "Russia",
+		Currency:        "RUB",
+		PaymentsAllowed: true,
+		ChangeAllowed:   true,
+		VatEnabled:      true,
+		PriceGroupId:    "",
+		VatCurrency:     "RUB",
 	}
 
 	pmBankCard := &billing.PaymentMethod{
@@ -101,7 +104,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 			Name:               "CardPay",
 			AccountingCurrency: rub,
 			AccountingPeriod:   "every-day",
-			Country:            &billing.Country{},
+			Country:            "",
 			IsActive:           true,
 		},
 	}
@@ -128,7 +131,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 			Name:               "CardPay",
 			AccountingCurrency: rub,
 			AccountingPeriod:   "every-day",
-			Country:            &billing.Country{},
+			Country:            "",
 			IsActive:           true,
 		},
 	}
@@ -143,7 +146,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 			Email: "test@unit.test",
 		},
 		Name:    "Unit test",
-		Country: country,
+		Country: country.IsoCodeA2,
 		Zip:     "190000",
 		City:    "St.Petersburg",
 		Contacts: &billing.MerchantContact{
@@ -204,7 +207,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 			Email: "test_agreement@unit.test",
 		},
 		Name:    "Unit test status Agreement",
-		Country: country,
+		Country: country.IsoCodeA2,
 		Zip:     "190000",
 		City:    "St.Petersburg",
 		Contacts: &billing.MerchantContact{
@@ -240,7 +243,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 			Email: "test_merchant1@unit.test",
 		},
 		Name:    "merchant1",
-		Country: country,
+		Country: country.IsoCodeA2,
 		Zip:     "190000",
 		City:    "St.Petersburg",
 		Contacts: &billing.MerchantContact{
