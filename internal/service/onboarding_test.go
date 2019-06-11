@@ -309,7 +309,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, nil, suite.cache)
+	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache)
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)

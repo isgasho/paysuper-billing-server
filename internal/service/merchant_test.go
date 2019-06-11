@@ -66,7 +66,7 @@ func (suite *MerchantTestSuite) SetupTest() {
 
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, suite.cache)
+	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache)
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -196,7 +196,7 @@ func (suite *MerchantTestSuite) TestMerchant_GetPaymentMethodTerminalId_ErrorByG
 	_, err := suite.service.merchant.GetPaymentMethodTerminalId(suite.merchant.Id, "")
 
 	assert.Error(suite.T(), err)
-	assert.EqualError(suite.T(), err, "[PAYONE_BILLING] merchant not found")
+	assert.EqualError(suite.T(), err, "merchant not found")
 }
 
 func (suite *MerchantTestSuite) TestMerchant_GetPaymentMethodTerminalId_ErrorByTerminalId() {
@@ -212,7 +212,7 @@ func (suite *MerchantTestSuite) TestMerchant_GetPaymentMethodTerminalPassword_Er
 	_, err := suite.service.merchant.GetPaymentMethodTerminalPassword(suite.merchant.Id, "")
 
 	assert.Error(suite.T(), err)
-	assert.EqualError(suite.T(), err, "[PAYONE_BILLING] merchant not found")
+	assert.EqualError(suite.T(), err, "merchant not found")
 }
 
 func (suite *MerchantTestSuite) TestMerchant_GetPaymentMethodTerminalPassword_ErrorByTerminalId() {
@@ -228,7 +228,7 @@ func (suite *MerchantTestSuite) TestMerchant_GetPaymentMethodTerminalCallbackPas
 	_, err := suite.service.merchant.GetPaymentMethodTerminalCallbackPassword(suite.merchant.Id, "")
 
 	assert.Error(suite.T(), err)
-	assert.EqualError(suite.T(), err, "[PAYONE_BILLING] merchant not found")
+	assert.EqualError(suite.T(), err, "merchant not found")
 }
 
 func (suite *MerchantTestSuite) TestMerchant_GetPaymentMethodTerminalCallbackPassword_ErrorByTerminalId() {

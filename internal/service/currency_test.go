@@ -76,7 +76,7 @@ func (suite *CurrencyTestSuite) SetupTest() {
 
 	suite.redis = mock.NewTestRedis()
 	suite.cache = NewCacheRedis(suite.redis)
-	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil, suite.cache)
+	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache)
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)

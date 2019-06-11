@@ -224,7 +224,6 @@ func (app *Application) Stop() {
 	app.logger.Info("Http server stopped")
 
 	if app.svc != nil {
-		app.svc.Shutdown()
 		app.logger.Info("GRPC service stopped")
 	} else {
 		app.logger.Error("GRPC service not initialized")

@@ -2015,6 +2015,6 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp3.Status)
 	assert.Empty(suite.T(), rsp3.Error)
 
-	err = suite.service.db.Collection(CollectionOrder).FindId(bson.ObjectIdHex(rsp.Id)).One(&order)
+	err = suite.service.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(rsp.Id)).One(&order)
 	assert.Equal(suite.T(), int32(constant.OrderStatusRefund), order.PrivateStatus)
 }

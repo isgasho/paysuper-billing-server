@@ -965,7 +965,7 @@ func (s *Service) updateOrder(order *billing.Order) error {
 		statusChanged = originalOrder.GetPublicStatus() != ps
 	}
 
-	err := s.db.Collection(CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err := s.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
 
 	if err != nil {
 		s.logError(orderErrorUpdateOrderDataFailed, []interface{}{"error", err.Error(), "order", order})
@@ -987,7 +987,7 @@ func (s *Service) orderNotifyMerchant(order *billing.Order) {
 		})
 	}
 	order.SetNotificationStatus(order.GetPublicStatus(), err == nil)
-	err = s.db.Collection(CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = s.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
 	if err != nil {
 		s.logError(orderErrorUpdateOrderDataFailed, []interface{}{"error", err.Error(), "order", order})
 	}

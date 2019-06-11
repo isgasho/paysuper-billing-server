@@ -68,12 +68,6 @@ type Service struct {
 
 	accountingCurrency *billing.Currency
 
-	rebuild      bool
-	rebuildError error
-
-	wg               sync.WaitGroup
-	exitCacheRebuild chan bool
-
 	currency      *Currency
 	currencyRate  *CurrencyRate
 	commission    *Commission
@@ -95,16 +89,14 @@ func NewBillingService(
 	cache CacheInterface,
 ) *Service {
 	return &Service{
-		db:               db,
-		cfg:              cfg,
-		geo:              geo,
-		rep:              rep,
-		tax:              tax,
-		broker:           broker,
-		redis:            redis,
-		wg:               sync.WaitGroup{},
-		exitCacheRebuild: make(chan bool, 1),
-		cacher:           cache,
+		db:     db,
+		cfg:    cfg,
+		geo:    geo,
+		rep:    rep,
+		tax:    tax,
+		broker: broker,
+		redis:  redis,
+		cacher: cache,
 	}
 }
 
