@@ -79,6 +79,7 @@ const (
 	orderErrorRecurringCardNotOwnToUser                = "you can't use not own bank card for payment"
 	orderErrorPublishNotificationFailed                = "publish order notification failed"
 	orderErrorUpdateOrderDataFailed                    = "Update order data failed"
+	orderErrorMerchantBankingEmpty                     = "merchant banking is not found"
 
 	orderErrorCreatePaymentRequiredFieldIdNotFound            = "required field with order identifier not found"
 	orderErrorCreatePaymentRequiredFieldPaymentMethodNotFound = "required field with payment method identifier not found"
@@ -1335,17 +1336,11 @@ func (v *OrderCreateRequestProcessor) processPaymentMethod(pm *billing.PaymentMe
 	}
 
 	if v.checked.project.IsProduction() == true {
-		mpm, err := v.merchant.GetPaymentMethod(v.checked.merchant.Id, pm.Id)
-
-		if err != nil {
-			return err
+		if v.checked.merchant.Banking == nil || v.checked.merchant.Banking.Currency == nil {
+			return errors.New(orderErrorMerchantBankingEmpty)
 		}
 
-		if mpm.PaymentMethod.Id != pm.Id {
-			return errors.New(orderErrorPaymentMethodIncompatible)
-		}
-
-		if mpm.Integration == nil || mpm.Integration.Integrated == false {
+		if _, err := v.paymentMethod.GetByIdAndCurrency(pm.Id, v.checked.merchant.Banking.Currency.CodeA3); err != nil {
 			return errors.New(orderErrorPaymentMethodEmptySettings)
 		}
 	}

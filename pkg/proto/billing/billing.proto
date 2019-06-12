@@ -561,6 +561,8 @@ message PaymentMethodParams {
     string external_id = 6;
     // @inject_tag: bson:"other" structure:"other"
     map<string, string> other = 7;
+    // @inject_tag: bson:"currency_a3;omitempty"
+    string currency_code_a3 = 8;
 }
 
 message PaymentSystem {
@@ -705,6 +707,8 @@ message PaymentMethod {
     google.protobuf.Timestamp created_at = 14;
     // @inject_tag: bson:"updated_at"
     google.protobuf.Timestamp updated_at = 15;
+    // @inject_tag: bson:"params"
+    map<string,PaymentMethodParams> production_settings = 16;
 }
 
 message Country {

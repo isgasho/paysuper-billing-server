@@ -280,21 +280,32 @@ type MgoPaymentSystem struct {
 }
 
 type MgoPaymentMethod struct {
-	Id               bson.ObjectId        `bson:"_id"`
-	Name             string               `bson:"name"`
-	Group            string               `bson:"group_alias"`
-	Currency         *Currency            `bson:"currency"`
-	MinPaymentAmount float64              `bson:"min_payment_amount"`
-	MaxPaymentAmount float64              `bson:"max_payment_amount"`
-	Params           *PaymentMethodParams `bson:"params"`
-	Icon             string               `bson:"icon"`
-	IsActive         bool                 `bson:"is_active"`
-	CreatedAt        time.Time            `bson:"created_at"`
-	UpdatedAt        time.Time            `bson:"updated_at"`
-	PaymentSystem    *MgoPaymentSystem    `bson:"payment_system"`
-	Currencies       []int32              `bson:"currencies"`
-	Type             string               `bson:"type"`
-	AccountRegexp    string               `bson:"account_regexp"`
+	Id                 bson.ObjectId            `bson:"_id"`
+	Name               string                   `bson:"name"`
+	Group              string                   `bson:"group_alias"`
+	Currency           *Currency                `bson:"currency"`
+	MinPaymentAmount   float64                  `bson:"min_payment_amount"`
+	MaxPaymentAmount   float64                  `bson:"max_payment_amount"`
+	Params             *PaymentMethodParams     `bson:"params"`
+	ProductionSettings []*MgoPaymentMethodParam `bson:"production_settings"`
+	Icon               string                   `bson:"icon"`
+	IsActive           bool                     `bson:"is_active"`
+	CreatedAt          time.Time                `bson:"created_at"`
+	UpdatedAt          time.Time                `bson:"updated_at"`
+	PaymentSystem      *MgoPaymentSystem        `bson:"payment_system"`
+	Currencies         []int32                  `bson:"currencies"`
+	Type               string                   `bson:"type"`
+	AccountRegexp      string                   `bson:"account_regexp"`
+}
+
+type MgoPaymentMethodParam struct {
+	Handler          string  `bson:"handler"`
+	Terminal         string  `bson:"terminal"`
+	Password         string  `bson:"password"`
+	CallbackPassword string  `bson:"callbackPassword"`
+	ExternalId       string  `bson:"external_id"`
+	CurrencyCodeA3   string  `bson:"currency_code_a3"`
+	Other            float64 `bson:"other"`
 }
 
 type MgoNotification struct {
@@ -1247,6 +1258,18 @@ func (m *PaymentMethod) GetBSON() (interface{}, error) {
 		}
 	}
 
+	if m.ProductionSettings != nil {
+		for key, value := range m.ProductionSettings {
+			pms := &MgoPaymentMethodParam{
+				CurrencyCodeA3:   key,
+				Terminal:         value.Terminal,
+				Password:         value.Password,
+				CallbackPassword: value.CallbackPassword,
+			}
+			st.ProductionSettings = append(st.ProductionSettings, pms)
+		}
+	}
+
 	if m.CreatedAt != nil {
 		t, err := ptypes.Timestamp(m.CreatedAt)
 
@@ -1315,6 +1338,16 @@ func (m *PaymentMethod) SetBSON(raw bson.Raw) error {
 
 		if err != nil {
 			return err
+		}
+	}
+
+	if decoded.ProductionSettings != nil {
+		for _, value := range decoded.ProductionSettings {
+			m.ProductionSettings[value.CurrencyCodeA3] = &PaymentMethodParams{
+				Terminal:         value.Terminal,
+				Password:         value.Password,
+				CallbackPassword: value.CallbackPassword,
+			}
 		}
 	}
 

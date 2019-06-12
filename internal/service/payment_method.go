@@ -51,6 +51,19 @@ func (h PaymentMethod) GetById(id string) (*billing.PaymentMethod, error) {
 	return &c, nil
 }
 
+func (h PaymentMethod) GetByIdAndCurrency(id string, currencyCodeA3 string) (*billing.PaymentMethod, error) {
+	pm, err := h.GetById(id)
+	if err != nil {
+		return nil, fmt.Errorf(errorNotFound, collectionPaymentMethod)
+	}
+
+	if _, ok := pm.ProductionSettings[currencyCodeA3]; !ok {
+		return nil, fmt.Errorf(errorNotFound, collectionPaymentMethod)
+	}
+
+	return pm, nil
+}
+
 func (h PaymentMethod) GetAll() map[string]*billing.PaymentMethod {
 	var c map[string]*billing.PaymentMethod
 	key := cachePaymentMethodAll
