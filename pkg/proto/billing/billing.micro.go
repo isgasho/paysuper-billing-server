@@ -81,6 +81,7 @@ It has these top-level messages:
 	OrderNotificationRefund
 	GetCountryRequest
 	Country
+	CountriesList
 	GetPriceGroupRequest
 	PriceGroup
 */

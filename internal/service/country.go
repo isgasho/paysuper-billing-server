@@ -6,13 +6,27 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 )
 
 const (
 	cacheCountryCodeA2 = "country:code_a2:%s"
+	cacheCountryAll    = "country:all"
 
 	collectionCountry = "country"
 )
+
+func (s *Service) GetCountriesList(
+	ctx context.Context,
+	req *grpc.EmptyRequest,
+	res *billing.CountriesList,
+) error {
+	countries := s.country.GetAll()
+	for _, v := range countries.Countries {
+		res.Countries = append(res.Countries, v)
+	}
+	return nil
+}
 
 func (s *Service) GetCountry(
 	ctx context.Context,
@@ -101,6 +115,10 @@ func (h *Country) Insert(country *billing.Country) error {
 		return err
 	}
 
+	if err := h.svc.cacher.Delete(cacheCountryAll); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -114,6 +132,10 @@ func (h Country) MultipleInsert(country []*billing.Country) error {
 		return err
 	}
 
+	if err := h.svc.cacher.Delete(cacheCountryAll); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -122,7 +144,11 @@ func (h Country) Update(country *billing.Country) error {
 		return err
 	}
 
-	if err := h.svc.cacher.Set(fmt.Sprintf(cacheProjectId, country.Id), country, 0); err != nil {
+	if err := h.svc.cacher.Set(fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), country, 0); err != nil {
+		return err
+	}
+
+	if err := h.svc.cacher.Delete(cacheCountryAll); err != nil {
 		return err
 	}
 
@@ -145,4 +171,19 @@ func (h Country) GetByIsoCodeA2(code string) (*billing.Country, error) {
 
 	_ = h.svc.cacher.Set(key, c, 0)
 	return &c, nil
+}
+
+func (h Country) GetAll() *billing.CountriesList {
+	var c = &billing.CountriesList{}
+	key := cacheCountryAll
+
+	if err := h.svc.cacher.Get(key, c); err != nil {
+		err = h.svc.db.Collection(collectionCountry).Find(nil).Sort("iso_code_a2").All(&c.Countries)
+		if err != nil {
+			return nil
+		}
+		_ = h.svc.cacher.Set(key, c, 0)
+	}
+
+	return c
 }

@@ -153,6 +153,7 @@ type BillingService interface {
 	DeleteProject(ctx context.Context, in *GetProjectRequest, opts ...client.CallOption) (*ChangeProjectResponse, error)
 	CreateToken(ctx context.Context, in *TokenRequest, opts ...client.CallOption) (*TokenResponse, error)
 	CheckProjectRequestSignature(ctx context.Context, in *CheckProjectRequestSignatureRequest, opts ...client.CallOption) (*CheckProjectRequestSignatureResponse, error)
+	GetCountriesList(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*billing.CountriesList, error)
 	GetCountry(ctx context.Context, in *billing.GetCountryRequest, opts ...client.CallOption) (*billing.Country, error)
 	UpdateCountry(ctx context.Context, in *billing.Country, opts ...client.CallOption) (*billing.Country, error)
 	GetOrder(ctx context.Context, in *GetOrderRequest, opts ...client.CallOption) (*billing.Order, error)
@@ -592,6 +593,16 @@ func (c *billingService) CheckProjectRequestSignature(ctx context.Context, in *C
 	return out, nil
 }
 
+func (c *billingService) GetCountriesList(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*billing.CountriesList, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetCountriesList", in)
+	out := new(billing.CountriesList)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *billingService) GetCountry(ctx context.Context, in *billing.GetCountryRequest, opts ...client.CallOption) (*billing.Country, error) {
 	req := c.c.NewRequest(c.name, "BillingService.GetCountry", in)
 	out := new(billing.Country)
@@ -726,6 +737,7 @@ type BillingServiceHandler interface {
 	DeleteProject(context.Context, *GetProjectRequest, *ChangeProjectResponse) error
 	CreateToken(context.Context, *TokenRequest, *TokenResponse) error
 	CheckProjectRequestSignature(context.Context, *CheckProjectRequestSignatureRequest, *CheckProjectRequestSignatureResponse) error
+	GetCountriesList(context.Context, *EmptyRequest, *billing.CountriesList) error
 	GetCountry(context.Context, *billing.GetCountryRequest, *billing.Country) error
 	UpdateCountry(context.Context, *billing.Country, *billing.Country) error
 	GetOrder(context.Context, *GetOrderRequest, *billing.Order) error
@@ -780,6 +792,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		DeleteProject(ctx context.Context, in *GetProjectRequest, out *ChangeProjectResponse) error
 		CreateToken(ctx context.Context, in *TokenRequest, out *TokenResponse) error
 		CheckProjectRequestSignature(ctx context.Context, in *CheckProjectRequestSignatureRequest, out *CheckProjectRequestSignatureResponse) error
+		GetCountriesList(ctx context.Context, in *EmptyRequest, out *billing.CountriesList) error
 		GetCountry(ctx context.Context, in *billing.GetCountryRequest, out *billing.Country) error
 		UpdateCountry(ctx context.Context, in *billing.Country, out *billing.Country) error
 		GetOrder(ctx context.Context, in *GetOrderRequest, out *billing.Order) error
@@ -963,6 +976,10 @@ func (h *billingServiceHandler) CreateToken(ctx context.Context, in *TokenReques
 
 func (h *billingServiceHandler) CheckProjectRequestSignature(ctx context.Context, in *CheckProjectRequestSignatureRequest, out *CheckProjectRequestSignatureResponse) error {
 	return h.BillingServiceHandler.CheckProjectRequestSignature(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetCountriesList(ctx context.Context, in *EmptyRequest, out *billing.CountriesList) error {
+	return h.BillingServiceHandler.GetCountriesList(ctx, in, out)
 }
 
 func (h *billingServiceHandler) GetCountry(ctx context.Context, in *billing.GetCountryRequest, out *billing.Country) error {

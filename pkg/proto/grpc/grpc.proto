@@ -59,6 +59,7 @@ service BillingService {
     rpc CreateToken(TokenRequest) returns (TokenResponse) {}
     rpc CheckProjectRequestSignature(CheckProjectRequestSignatureRequest) returns (CheckProjectRequestSignatureResponse) {}
 
+    rpc GetCountriesList(EmptyRequest) returns (billing.CountriesList) {}
     rpc GetCountry(billing.GetCountryRequest) returns (billing.Country) {}
     rpc UpdateCountry(billing.Country) returns (billing.Country) {}
 
@@ -680,16 +681,23 @@ message IsOrderCanBePayingResponse {
 }
 
 message SetUserNotifyRequest {
+    // @inject_tag: validate:"required,uuid"
     string order_uuid = 1;
     // @inject_tag: query:"enable_notification"
     bool enable_notification = 2;
-    // @inject_tag: query:"email"
+    // @inject_tag: query:"email" validate:"omitempty,email"
     string email = 3;
 }
 
 message NotifyUserSales {
     //@inject_tag: bson:"email"
     string email = 1;
+    //@inject_tag: bson:"order_id"
+    string order_id = 2;
+    //@inject_tag: bson:"user_id"
+    string user_id = 3;
+    //@inject_tag: bson:"created_at"
+    string date = 4;
 }
 
 message NotifyUserNewRegion {
@@ -697,6 +705,10 @@ message NotifyUserNewRegion {
     string country_iso_code_a2 = 1;
     //@inject_tag: bson:"email"
     string email = 2;
+    //@inject_tag: bson:"order_id"
+    string order_id = 3;
+    //@inject_tag: bson:"user_id"
+    string user_id = 4;
     //@inject_tag: bson:"date"
-    string date = 3;
+    string date = 5;
 }

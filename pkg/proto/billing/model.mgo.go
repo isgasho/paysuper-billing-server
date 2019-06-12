@@ -411,7 +411,7 @@ type MgoCountry struct {
 	ChangeAllowed   bool          `bson:"change_allowed"`
 	VatEnabled      bool          `bson:"vat_enabled"`
 	VatCurrency     string        `bson:"vat_currency"`
-	PriceGroupId    string        `bson:"vat_threshold"`
+	PriceGroupId    string        `bson:"price_group_id"`
 	CreatedAt       time.Time     `bson:"created_at"`
 	UpdatedAt       time.Time     `bson:"updated_at"`
 }
