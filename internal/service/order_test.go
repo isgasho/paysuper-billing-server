@@ -141,25 +141,44 @@ func (suite *OrderTestSuite) SetupTest() {
 	}
 
 	ru := &billing.Country{
-		CodeInt:  643,
-		CodeA2:   "RU",
-		CodeA3:   "RUS",
-		Name:     &billing.Name{Ru: "Россия", En: "Russia (Russian Federation)"},
-		IsActive: true,
+		IsoCodeA2:       "RU",
+		Region:          "Russia",
+		Currency:        "RUB",
+		PaymentsAllowed: true,
+		ChangeAllowed:   true,
+		VatEnabled:      true,
+		PriceGroupId:    "",
+		VatCurrency:     "RUB",
 	}
 	us := &billing.Country{
-		CodeInt:  840,
-		CodeA2:   "US",
-		CodeA3:   "USA",
-		Name:     &billing.Name{Ru: "США", En: "USA"},
-		IsActive: true,
+		IsoCodeA2:       "US",
+		Region:          "North America",
+		Currency:        "USD",
+		PaymentsAllowed: true,
+		ChangeAllowed:   true,
+		VatEnabled:      true,
+		PriceGroupId:    "",
+		VatCurrency:     "USD",
 	}
 	by := &billing.Country{
-		CodeInt:  111,
-		CodeA2:   "BY",
-		CodeA3:   "BYR",
-		Name:     &billing.Name{Ru: "Белоруссия", En: "Belarus"},
-		IsActive: true,
+		IsoCodeA2:       "BY",
+		Region:          "CIS",
+		Currency:        "USD",
+		PaymentsAllowed: false,
+		ChangeAllowed:   false,
+		VatEnabled:      true,
+		PriceGroupId:    "",
+		VatCurrency:     "BYN",
+	}
+	ua := &billing.Country{
+		IsoCodeA2:       "UA",
+		Region:          "CIS",
+		Currency:        "UAH",
+		PaymentsAllowed: false,
+		ChangeAllowed:   true,
+		VatEnabled:      false,
+		PriceGroupId:    "",
+		VatCurrency:     "",
 	}
 
 	pmBankCard := &billing.PaymentMethod{
@@ -185,7 +204,7 @@ func (suite *OrderTestSuite) SetupTest() {
 			Name:               "CardPay",
 			AccountingCurrency: rub,
 			AccountingPeriod:   "every-day",
-			Country:            &billing.Country{},
+			Country:            "",
 			IsActive:           true,
 		},
 	}
@@ -210,7 +229,7 @@ func (suite *OrderTestSuite) SetupTest() {
 			Name:               "CardPay",
 			AccountingCurrency: rub,
 			AccountingPeriod:   "every-day",
-			Country:            &billing.Country{},
+			Country:            "",
 			IsActive:           true,
 		},
 	}
@@ -236,7 +255,7 @@ func (suite *OrderTestSuite) SetupTest() {
 			Name:               "CardPay 2",
 			AccountingCurrency: uah,
 			AccountingPeriod:   "every-day",
-			Country:            &billing.Country{},
+			Country:            "",
 			IsActive:           false,
 		},
 	}
@@ -250,7 +269,7 @@ func (suite *OrderTestSuite) SetupTest() {
 	merchant := &billing.Merchant{
 		Id:      bson.NewObjectId().Hex(),
 		Name:    "Unit test",
-		Country: ru,
+		Country: ru.IsoCodeA2,
 		Zip:     "190000",
 		City:    "St.Petersburg",
 		Contacts: &billing.MerchantContact{
@@ -343,7 +362,7 @@ func (suite *OrderTestSuite) SetupTest() {
 	merchantAgreement := &billing.Merchant{
 		Id:      bson.NewObjectId().Hex(),
 		Name:    "Unit test status Agreement",
-		Country: ru,
+		Country: ru.IsoCodeA2,
 		Zip:     "190000",
 		City:    "St.Petersburg",
 		Contacts: &billing.MerchantContact{
@@ -375,7 +394,7 @@ func (suite *OrderTestSuite) SetupTest() {
 	merchant1 := &billing.Merchant{
 		Id:      bson.NewObjectId().Hex(),
 		Name:    "merchant1",
-		Country: ru,
+		Country: ru.IsoCodeA2,
 		Zip:     "190000",
 		City:    "St.Petersburg",
 		Contacts: &billing.MerchantContact{
@@ -528,7 +547,7 @@ func (suite *OrderTestSuite) SetupTest() {
 			Name:               "CardPay",
 			AccountingCurrency: rub,
 			AccountingPeriod:   "every-day",
-			Country:            &billing.Country{},
+			Country:            "",
 			IsActive:           true,
 		},
 	}
@@ -552,7 +571,7 @@ func (suite *OrderTestSuite) SetupTest() {
 			Name:               "CardPay",
 			AccountingCurrency: rub,
 			AccountingPeriod:   "every-day",
-			Country:            &billing.Country{},
+			Country:            "",
 			IsActive:           true,
 		},
 	}
@@ -677,14 +696,14 @@ func (suite *OrderTestSuite) SetupTest() {
 	}
 
 	bin := &BinData{
-		Id:                bson.NewObjectId(),
-		CardBin:           400000,
-		CardBrand:         "MASTERCARD",
-		CardType:          "DEBIT",
-		CardCategory:      "WORLD",
-		BankName:          "ALFA BANK",
-		BankCountryName:   "UKRAINE",
-		BankCountryCodeA2: "US",
+		Id:                 bson.NewObjectId(),
+		CardBin:            400000,
+		CardBrand:          "MASTERCARD",
+		CardType:           "DEBIT",
+		CardCategory:       "WORLD",
+		BankName:           "ALFA BANK",
+		BankCountryName:    "UKRAINE",
+		BankCountryIsoCode: "US",
 	}
 
 	err = db.Collection(collectionBinData).Insert(bin)
@@ -743,7 +762,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
 	}
 
-	country := []*billing.Country{ru, us, by}
+	country := []*billing.Country{ru, us, by, ua}
 	if err := suite.service.country.MultipleInsert(country); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
@@ -3042,14 +3061,25 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_Ok() {
 		User: &billing.OrderUser{
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
+			Address: &billing.OrderBillingAddress{
+				Country: "RU",
+			},
 		},
 	}
 
 	order := &billing.Order{}
 	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
 	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), order.CountryRestriction)
+	assert.Equal(suite.T(), order.CountryRestriction.IsoCodeA2, "RU")
+	assert.True(suite.T(), order.CountryRestriction.PaymentsAllowed)
+	assert.True(suite.T(), order.CountryRestriction.ChangeAllowed)
+	assert.False(suite.T(), order.UserAddressDataRequired)
+	assert.Equal(suite.T(), order.PrivateStatus, int32(constant.OrderStatusNew))
 
-	req1 := &grpc.PaymentFormJsonDataRequest{OrderId: order.Uuid, Scheme: "https", Host: "unit.test"}
+	req1 := &grpc.PaymentFormJsonDataRequest{OrderId: order.Uuid, Scheme: "https", Host: "unit.test",
+		Ip: "94.131.198.60", // Ukrainian IP -> payments not allowed but available to change country
+	}
 	rsp := &grpc.PaymentFormJsonDataResponse{}
 	err = suite.service.PaymentFormJsonDataProcess(context.TODO(), req1, rsp)
 
@@ -3058,6 +3088,16 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_Ok() {
 	assert.True(suite.T(), len(rsp.PaymentMethods[0].Id) > 0)
 	assert.Equal(suite.T(), len(rsp.Items), 0)
 	assert.Equal(suite.T(), req.Description, rsp.Description)
+	assert.False(suite.T(), rsp.CountryPaymentsAllowed)
+	assert.True(suite.T(), rsp.CountryChangeAllowed)
+
+	order, err = suite.service.getOrderByUuid(order.Uuid)
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), order.CountryRestriction)
+	assert.Equal(suite.T(), order.CountryRestriction.IsoCodeA2, "UA")
+	assert.False(suite.T(), order.CountryRestriction.PaymentsAllowed)
+	assert.True(suite.T(), order.CountryRestriction.ChangeAllowed)
+	assert.True(suite.T(), order.UserAddressDataRequired)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcessWithProducts_Ok() {
@@ -3757,6 +3797,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_Ok() {
 	assert.NoError(suite.T(), err)
 
 	rate, err := suite.service.currencyRate.GetFromTo(order1.PaymentMethodOutcomeCurrency.CodeInt, merchant.GetPayoutCurrency().CodeInt)
+	assert.NoError(suite.T(), err)
 	pmCommission := tools.FormatAmount(order1.ProjectIncomeAmount * (commission.Fee / 100))
 
 	assert.Equal(suite.T(), pmCommission, order1.PaymentSystemFeeAmount.AmountPaymentMethodCurrency)
@@ -5658,4 +5699,269 @@ func (suite *OrderTestSuite) TestCardpay_fillPaymentDataCard() {
 	assert.Equal(suite.T(), order.PaymentMethod.Card.ExpiryYear, expYear)
 	assert.Equal(suite.T(), order.PaymentMethod.Card.Secure3D, true)
 	assert.NotEmpty(suite.T(), order.PaymentMethod.Card.Fingerprint)
+}
+
+func (suite *OrderTestSuite) TestBillingService_SetUserNotifySales_Ok() {
+
+	notifyEmail := "test@test.ru"
+
+	req := &billing.OrderCreateRequest{
+		ProjectId:     suite.project.Id,
+		PaymentMethod: suite.paymentMethod.Group,
+		Currency:      "RUB",
+		Amount:        100,
+		Account:       "unit test",
+		Description:   "unit test",
+		OrderId:       bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+	}
+
+	rsp := &billing.Order{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	assert.Nil(suite.T(), err)
+	assert.False(suite.T(), rsp.NotifySale)
+	assert.Empty(suite.T(), rsp.NotifySaleEmail)
+
+	var data = []*grpc.NotifyUserSales{}
+	err = suite.service.db.Collection(collectionNotifySales).Find(bson.M{"email": notifyEmail}).All(&data)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), len(data), 0)
+
+	req2 := &grpc.SetUserNotifyRequest{
+		OrderUuid:          rsp.Uuid,
+		Email:              notifyEmail,
+		EnableNotification: true,
+	}
+	eRes := &grpc.EmptyResponse{}
+	err = suite.service.SetUserNotifySales(context.TODO(), req2, eRes)
+	assert.Nil(suite.T(), err)
+
+	order, err := suite.service.getOrderByUuid(rsp.Uuid)
+	assert.Nil(suite.T(), err)
+	assert.True(suite.T(), order.NotifySale)
+	assert.Equal(suite.T(), order.NotifySaleEmail, notifyEmail)
+
+	err = suite.service.db.Collection(collectionNotifySales).Find(bson.M{"email": notifyEmail}).All(&data)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), len(data), 1)
+
+	customer, err := suite.service.getCustomerById(rsp.User.Id)
+	assert.NoError(suite.T(), err)
+	assert.True(suite.T(), customer.NotifySale)
+	assert.Equal(suite.T(), customer.NotifySaleEmail, notifyEmail)
+}
+
+func (suite *OrderTestSuite) TestBillingService_SetUserNotifyNewRegion_Ok() {
+
+	notifyEmail := "test@test.ru"
+
+	req := &billing.OrderCreateRequest{
+		ProjectId:     suite.project.Id,
+		PaymentMethod: suite.paymentMethod.Group,
+		Currency:      "RUB",
+		Amount:        100,
+		Account:       "unit test",
+		Description:   "unit test",
+		OrderId:       bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+	}
+
+	rsp := &billing.Order{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	assert.Nil(suite.T(), err)
+	assert.False(suite.T(), rsp.User.NotifyNewRegion)
+	assert.Empty(suite.T(), rsp.User.NotifyNewRegionEmail)
+
+	var data = []*grpc.NotifyUserNewRegion{}
+	err = suite.service.db.Collection(collectionNotifyNewRegion).Find(bson.M{"email": notifyEmail}).All(&data)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), len(data), 0)
+
+	rsp.CountryRestriction = &billing.CountryRestriction{
+		IsoCodeA2:     "RU",
+		ChangeAllowed: false,
+	}
+	err = suite.service.updateOrder(rsp)
+	assert.Nil(suite.T(), err)
+
+	req2 := &grpc.SetUserNotifyRequest{
+		OrderUuid:          rsp.Uuid,
+		Email:              notifyEmail,
+		EnableNotification: true,
+	}
+	eRes := &grpc.EmptyResponse{}
+	err = suite.service.SetUserNotifyNewRegion(context.TODO(), req2, eRes)
+	assert.Nil(suite.T(), err)
+
+	order, err := suite.service.getOrderByUuid(rsp.Uuid)
+	assert.Nil(suite.T(), err)
+	assert.True(suite.T(), order.User.NotifyNewRegion)
+	assert.Equal(suite.T(), order.User.NotifyNewRegionEmail, notifyEmail)
+
+	err = suite.service.db.Collection(collectionNotifyNewRegion).Find(bson.M{"email": notifyEmail}).All(&data)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), len(data), 1)
+
+	customer, err := suite.service.getCustomerById(rsp.User.Id)
+	assert.NoError(suite.T(), err)
+	assert.True(suite.T(), customer.NotifyNewRegion)
+	assert.Equal(suite.T(), customer.NotifyNewRegionEmail, notifyEmail)
+}
+
+func (suite *OrderTestSuite) TestBillingService_OrderCreateProcess_CountryRestrictions() {
+	req := &billing.OrderCreateRequest{
+		ProjectId:     suite.project.Id,
+		PaymentMethod: suite.paymentMethod.Group,
+		Currency:      "RUB",
+		Amount:        100,
+		Account:       "unit test",
+		Description:   "unit test",
+		User: &billing.OrderUser{
+			Email:   "test@unit.unit",
+			Ip:      "127.0.0.1",
+			Address: &billing.OrderBillingAddress{},
+		},
+	}
+	order := billing.Order{}
+
+	// payments allowed
+	req.User.Address.Country = "RU"
+	err := suite.service.OrderCreateProcess(context.TODO(), req, &order)
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), order.CountryRestriction)
+	assert.Equal(suite.T(), order.CountryRestriction.IsoCodeA2, "RU")
+	assert.True(suite.T(), order.CountryRestriction.PaymentsAllowed)
+	assert.True(suite.T(), order.CountryRestriction.ChangeAllowed)
+	assert.False(suite.T(), order.UserAddressDataRequired)
+	assert.Equal(suite.T(), order.PrivateStatus, int32(constant.OrderStatusNew))
+
+	// payments not allowed but country change allowed
+	req.User.Address.Country = "UA"
+	err = suite.service.OrderCreateProcess(context.TODO(), req, &order)
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), order.CountryRestriction)
+	assert.Equal(suite.T(), order.CountryRestriction.IsoCodeA2, "UA")
+	assert.False(suite.T(), order.CountryRestriction.PaymentsAllowed)
+	assert.True(suite.T(), order.UserAddressDataRequired)
+	assert.Equal(suite.T(), order.PrivateStatus, int32(constant.OrderStatusNew))
+
+	// payments not allowed and country change not allowed too
+	req.User.Address.Country = "BY"
+	err = suite.service.OrderCreateProcess(context.TODO(), req, &order)
+	assert.EqualError(suite.T(), err, orderCountryPaymentRestrictedError)
+}
+
+func (suite *OrderTestSuite) TestBillingService_processPaymentFormData_CountryRestrictions() {
+	req := &billing.OrderCreateRequest{
+		ProjectId:     suite.project.Id,
+		PaymentMethod: suite.paymentMethod.Group,
+		Currency:      "RUB",
+		Amount:        100,
+		Account:       "unit test",
+		Description:   "unit test",
+		User: &billing.OrderUser{
+			Email:   "test@unit.unit",
+			Ip:      "127.0.0.1",
+			Address: &billing.OrderBillingAddress{},
+		},
+	}
+	order := &billing.Order{}
+
+	// payments allowed
+	req.User.Address.Country = "RU"
+	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), order.CountryRestriction)
+	assert.Equal(suite.T(), order.CountryRestriction.IsoCodeA2, "RU")
+	assert.True(suite.T(), order.CountryRestriction.PaymentsAllowed)
+	assert.True(suite.T(), order.CountryRestriction.ChangeAllowed)
+	assert.False(suite.T(), order.UserAddressDataRequired)
+	assert.Equal(suite.T(), order.PrivateStatus, int32(constant.OrderStatusNew))
+
+	order.UserAddressDataRequired = true
+	err = suite.service.updateOrder(order)
+	assert.NoError(suite.T(), err)
+
+	// payments disallowed
+	data := map[string]string{
+		pkg.PaymentCreateFieldOrderId:         order.Uuid,
+		pkg.PaymentCreateFieldPaymentMethodId: suite.paymentMethod.Id,
+		pkg.PaymentCreateFieldEmail:           "test@unit.unit",
+		pkg.PaymentCreateFieldPan:             "4000000000000002",
+		pkg.PaymentCreateFieldCvv:             "123",
+		pkg.PaymentCreateFieldMonth:           "02",
+		pkg.PaymentCreateFieldYear:            "2100",
+		pkg.PaymentCreateFieldHolder:          "Mr. Card Holder",
+		pkg.PaymentCreateFieldUserCountry:     "UA",
+		pkg.PaymentCreateFieldUserCity:        "Kiev",
+		pkg.PaymentCreateFieldUserZip:         "02154",
+	}
+
+	processor := &PaymentCreateProcessor{service: suite.service, data: data}
+	err = processor.processPaymentFormData()
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), processor.checked.order)
+	assert.NotNil(suite.T(), processor.checked.project)
+	assert.NotNil(suite.T(), processor.checked.paymentMethod)
+	assert.Equal(suite.T(), processor.checked.order.CountryRestriction.IsoCodeA2, "UA")
+	assert.False(suite.T(), processor.checked.order.CountryRestriction.PaymentsAllowed)
+	assert.True(suite.T(), processor.checked.order.CountryRestriction.ChangeAllowed)
+}
+
+func (suite *OrderTestSuite) TestBillingService_PaymentCreateProcess_CountryRestrictions() {
+	req := &billing.OrderCreateRequest{
+		ProjectId:     suite.project.Id,
+		PaymentMethod: suite.paymentMethod.Group,
+		Currency:      "RUB",
+		Amount:        100,
+		Account:       "unit test",
+		Description:   "unit test",
+		User: &billing.OrderUser{
+			Email:   "test@unit.unit",
+			Ip:      "127.0.0.1",
+			Address: &billing.OrderBillingAddress{},
+		},
+	}
+	order := &billing.Order{}
+
+	// payments allowed
+	req.User.Address.Country = "RU"
+	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	assert.Nil(suite.T(), err)
+
+	order.UserAddressDataRequired = true
+	err = suite.service.updateOrder(order)
+	assert.NoError(suite.T(), err)
+
+	// payments disallowed
+	data := map[string]string{
+		pkg.PaymentCreateFieldOrderId:         order.Uuid,
+		pkg.PaymentCreateFieldPaymentMethodId: suite.paymentMethod.Id,
+		pkg.PaymentCreateFieldEmail:           "test@unit.unit",
+		pkg.PaymentCreateFieldPan:             "4000000000000002",
+		pkg.PaymentCreateFieldCvv:             "123",
+		pkg.PaymentCreateFieldMonth:           "02",
+		pkg.PaymentCreateFieldYear:            "2100",
+		pkg.PaymentCreateFieldHolder:          "Mr. Card Holder",
+		pkg.PaymentCreateFieldUserCountry:     "UA",
+		pkg.PaymentCreateFieldUserCity:        "Kiev",
+		pkg.PaymentCreateFieldUserZip:         "02154",
+	}
+
+	createPaymentRequest := &grpc.PaymentCreateRequest{
+		Data: data,
+	}
+
+	rsp := &grpc.PaymentCreateResponse{}
+	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusForbidden, rsp.Status)
+	assert.Equal(suite.T(), orderCountryPaymentRestrictedError, rsp.Message)
 }

@@ -72,11 +72,14 @@ func (suite *OnboardingTestSuite) SetupTest() {
 	}
 
 	country := &billing.Country{
-		CodeInt:  643,
-		CodeA2:   "RU",
-		CodeA3:   "RUS",
-		Name:     &billing.Name{Ru: "Россия", En: "Russia (Russian Federation)"},
-		IsActive: true,
+		IsoCodeA2:       "RU",
+		Region:          "Russia",
+		Currency:        "RUB",
+		PaymentsAllowed: true,
+		ChangeAllowed:   true,
+		VatEnabled:      true,
+		PriceGroupId:    "",
+		VatCurrency:     "RUB",
 	}
 
 	pmBankCard := &billing.PaymentMethod{
@@ -101,7 +104,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 			Name:               "CardPay",
 			AccountingCurrency: rub,
 			AccountingPeriod:   "every-day",
-			Country:            &billing.Country{},
+			Country:            "",
 			IsActive:           true,
 		},
 	}
@@ -128,7 +131,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 			Name:               "CardPay",
 			AccountingCurrency: rub,
 			AccountingPeriod:   "every-day",
-			Country:            &billing.Country{},
+			Country:            "",
 			IsActive:           true,
 		},
 	}
@@ -143,7 +146,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 			Email: "test@unit.test",
 		},
 		Name:    "Unit test",
-		Country: country,
+		Country: country.IsoCodeA2,
 		Zip:     "190000",
 		City:    "St.Petersburg",
 		Contacts: &billing.MerchantContact{
@@ -204,7 +207,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 			Email: "test_agreement@unit.test",
 		},
 		Name:    "Unit test status Agreement",
-		Country: country,
+		Country: country.IsoCodeA2,
 		Zip:     "190000",
 		City:    "St.Petersburg",
 		Contacts: &billing.MerchantContact{
@@ -240,7 +243,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 			Email: "test_merchant1@unit.test",
 		},
 		Name:    "merchant1",
-		Country: country,
+		Country: country.IsoCodeA2,
 		Zip:     "190000",
 		City:    "St.Petersburg",
 		Contacts: &billing.MerchantContact{
@@ -1475,7 +1478,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_Merc
 
 	assert.Nil(suite.T(), err)
 	assert.True(suite.T(), len(rsp.PaymentMethods) > 0)
-	assert.Len(suite.T(), rsp.PaymentMethods, len(suite.service.paymentMethod.GetAll()))
+	pm, err := suite.service.paymentMethod.GetAll()
+	assert.Len(suite.T(), rsp.PaymentMethods, len(pm))
 
 	for _, v := range rsp.PaymentMethods {
 		assert.True(suite.T(), v.PaymentMethod.Id != "")
@@ -1500,7 +1504,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_Exis
 
 	assert.Nil(suite.T(), err)
 	assert.True(suite.T(), len(rsp.PaymentMethods) > 0)
-	assert.Len(suite.T(), rsp.PaymentMethods, len(suite.service.paymentMethod.GetAll()))
+	pm, err := suite.service.paymentMethod.GetAll()
+	assert.Len(suite.T(), rsp.PaymentMethods, len(pm))
 
 	for _, v := range rsp.PaymentMethods {
 		if v.PaymentMethod.Id != suite.pmBankCard.Id {
@@ -1569,7 +1574,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_NewM
 
 	assert.Nil(suite.T(), err)
 	assert.True(suite.T(), len(rspListMerchantPaymentMethods.PaymentMethods) > 0)
-	assert.Len(suite.T(), rspListMerchantPaymentMethods.PaymentMethods, len(suite.service.paymentMethod.GetAll()))
+	pma, err := suite.service.paymentMethod.GetAll()
+	assert.Len(suite.T(), rspListMerchantPaymentMethods.PaymentMethods, len(pma))
 
 	for _, v := range rspListMerchantPaymentMethods.PaymentMethods {
 		assert.True(suite.T(), v.PaymentMethod.Id != "")

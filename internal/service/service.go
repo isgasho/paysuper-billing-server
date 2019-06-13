@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/ProtocolONE/geoip-service/pkg/proto"
 	"github.com/ProtocolONE/rabbitmq/pkg"
 	"github.com/centrifugal/gocent"
@@ -76,6 +75,7 @@ type Service struct {
 	merchant      *Merchant
 	paymentMethod *PaymentMethod
 	systemFees    *SystemFee
+	priceGroup    *PriceGroup
 }
 
 func NewBillingService(
@@ -109,6 +109,7 @@ func (s *Service) Init() (err error) {
 	s.country = newCountryService(s)
 	s.project = newProjectService(s)
 	s.systemFees = newSystemFeesService(s)
+	s.priceGroup = newPriceGroupService(s)
 
 	s.centrifugoClient = gocent.New(
 		gocent.Config{
@@ -132,7 +133,7 @@ func (s *Service) isProductionEnvironment() bool {
 }
 
 func (s *Service) logError(msg string, data []interface{}) {
-	zap.S().Errorw(fmt.Sprintf("[PAYSUPER_BILLING] %s", msg), data...)
+	zap.S().Errorw(msg, data...)
 }
 
 func (s *Service) UpdateOrder(ctx context.Context, req *billing.Order, rsp *grpc.EmptyResponse) error {

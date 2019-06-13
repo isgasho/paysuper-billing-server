@@ -106,18 +106,24 @@ func (suite *ReportTestSuite) SetupTest() {
 	}
 
 	ru := &billing.Country{
-		CodeInt:  643,
-		CodeA2:   "RU",
-		CodeA3:   "RUS",
-		Name:     &billing.Name{Ru: "Россия", En: "Russia (Russian Federation)"},
-		IsActive: true,
+		IsoCodeA2:       "RU",
+		Region:          "Russia",
+		Currency:        "RUB",
+		PaymentsAllowed: true,
+		ChangeAllowed:   true,
+		VatEnabled:      true,
+		PriceGroupId:    "",
+		VatCurrency:     "RUB",
 	}
 	us := &billing.Country{
-		CodeInt:  840,
-		CodeA2:   "US",
-		CodeA3:   "USA",
-		Name:     &billing.Name{Ru: "США", En: "USA"},
-		IsActive: true,
+		IsoCodeA2:       "US",
+		Region:          "North America",
+		Currency:        "USD",
+		PaymentsAllowed: true,
+		ChangeAllowed:   true,
+		VatEnabled:      true,
+		PriceGroupId:    "",
+		VatCurrency:     "USD",
 	}
 
 	pmBankCard := &billing.PaymentMethod{
@@ -143,7 +149,7 @@ func (suite *ReportTestSuite) SetupTest() {
 			Name:               "CardPay",
 			AccountingCurrency: suite.currencyRub,
 			AccountingPeriod:   "every-day",
-			Country:            &billing.Country{},
+			Country:            "",
 			IsActive:           true,
 		},
 	}
@@ -168,7 +174,7 @@ func (suite *ReportTestSuite) SetupTest() {
 			Name:               "CardPay",
 			AccountingCurrency: suite.currencyRub,
 			AccountingPeriod:   "every-day",
-			Country:            &billing.Country{},
+			Country:            "",
 			IsActive:           true,
 		},
 	}
@@ -179,7 +185,7 @@ func (suite *ReportTestSuite) SetupTest() {
 	merchant := &billing.Merchant{
 		Id:      bson.NewObjectId().Hex(),
 		Name:    "Unit test",
-		Country: ru,
+		Country: ru.IsoCodeA2,
 		Zip:     "190000",
 		City:    "St.Petersburg",
 		Contacts: &billing.MerchantContact{
@@ -308,14 +314,14 @@ func (suite *ReportTestSuite) SetupTest() {
 	assert.NoError(suite.T(), err, "Insert commission test data failed")
 
 	bin := &BinData{
-		Id:                bson.NewObjectId(),
-		CardBin:           400000,
-		CardBrand:         "MASTERCARD",
-		CardType:          "DEBIT",
-		CardCategory:      "WORLD",
-		BankName:          "ALFA BANK",
-		BankCountryName:   "UKRAINE",
-		BankCountryCodeA2: "US",
+		Id:                 bson.NewObjectId(),
+		CardBin:            400000,
+		CardBrand:          "MASTERCARD",
+		CardType:           "DEBIT",
+		CardCategory:       "WORLD",
+		BankName:           "ALFA BANK",
+		BankCountryName:    "UKRAINE",
+		BankCountryIsoCode: "US",
 	}
 
 	err = db.Collection(collectionBinData).Insert(bin)

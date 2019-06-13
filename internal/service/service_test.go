@@ -109,11 +109,14 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 	}
 
 	country := &billing.Country{
-		CodeInt:  643,
-		CodeA2:   "RU",
-		CodeA3:   "RUS",
-		Name:     &billing.Name{Ru: "Россия", En: "Russia (Russian Federation)"},
-		IsActive: true,
+		IsoCodeA2:       "RU",
+		Region:          "Russia",
+		Currency:        "RUB",
+		PaymentsAllowed: true,
+		ChangeAllowed:   true,
+		VatEnabled:      true,
+		PriceGroupId:    "",
+		VatCurrency:     "RUB",
 	}
 
 	pmBankCard := &billing.PaymentMethod{
@@ -138,7 +141,7 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 			Name:               "CardPay",
 			AccountingCurrency: rub,
 			AccountingPeriod:   "every-day",
-			Country:            &billing.Country{},
+			Country:            "",
 			IsActive:           true,
 		},
 	}
@@ -149,7 +152,7 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 	merchant := &billing.Merchant{
 		Id:      bson.NewObjectId().Hex(),
 		Name:    "Unit test",
-		Country: country,
+		Country: country.IsoCodeA2,
 		Zip:     "190000",
 		City:    "St.Petersburg",
 		Contacts: &billing.MerchantContact{

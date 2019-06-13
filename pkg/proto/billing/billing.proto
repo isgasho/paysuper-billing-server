@@ -223,7 +223,7 @@ message Merchant {
     // @inject_tag: json:"website"
     string website = 6;
     // @inject_tag: json:"country"
-    Country country = 7;
+    string country = 7;
     // @inject_tag: json:"state"
     string state = 8;
     // @inject_tag: json:"zip"
@@ -341,6 +341,10 @@ message OrderUser {
     map<string, string> metadata = 12;
     // @inject_tag: json:"-"
     string tech_email = 13;
+    //@inject_tag: json:"notify_new_region" bson:"notify_new_region"
+    bool notify_new_region = 14;
+    //@inject_tag: json:"notify_new_region_email" bson:"notify_new_region_email"
+    string notify_new_region_email = 15;
 }
 
 message Order {
@@ -474,6 +478,17 @@ message Order {
     repeated string products = 64;
     // @inject_tag: json:"-" bson:"is_notifications_sent"
     map<string, bool> is_notifications_sent = 65;
+    // @inject_tag: json:"-" bson:"country_restriction"
+    CountryRestriction country_restriction = 66;
+}
+
+message CountryRestriction {
+    //@inject_tag: json:"iso_code_a2" bson:"iso_code_a2" validate:"alpha,len=2"
+    string iso_code_a2 = 1;
+    //@inject_tag: json:"payments_allowed" bson:"payments_allowed"
+    bool payments_allowed = 2;
+    //@inject_tag: json:"change_allowed" bson:"change_allowed"
+    bool change_allowed = 3;
 }
 
 message OrderItem {
@@ -568,7 +583,7 @@ message PaymentSystem {
     string id = 1;
     string name = 2;
     // @inject_tag: bson:"country" structure:"country"
-    Country Country = 3;
+    string Country = 3;
     // @inject_tag: bson:"accounting_currency" structure:"accounting_currency"
     Currency accounting_currency = 4;
     // @inject_tag: bson:"accounting_period" structure:"accounting_period"
@@ -707,28 +722,11 @@ message PaymentMethod {
     google.protobuf.Timestamp updated_at = 15;
 }
 
-message Country {
-    // @inject_tag: bson:"code_int" json:"code_int"
-    int32 code_int = 1;
-    // @inject_tag: bson:"code_a2" json:"code_a2"
-    string code_a2 = 2;
-    // @inject_tag: bson:"code_a3" json:"code_a3"
-    string code_a3 = 3;
-    // @inject_tag: bson:"name" json:"name"
-    Name name = 4;
-    // @inject_tag: bson:"is_active" json:"is_active"
-    bool is_active = 5;
-    // @inject_tag: bson:"created_at"
-    google.protobuf.Timestamp created_at = 6;
-    // @inject_tag: bson:"updated_at"
-    google.protobuf.Timestamp updated_at = 7;
-}
-
 message Vat {
     // @inject_tag: bson:"_id"
     string id = 1;
     // @inject_tag: bson:"country"
-    Country country = 2;
+    string country = 2;
     // @inject_tag: bson:"subdivision_code"
     string subdivision = 3;
     // @inject_tag: bson:"vat"
@@ -1002,6 +1000,14 @@ message Customer {
     google.protobuf.Timestamp created_at = 20;
     // @inject_tag: json:"-"
     google.protobuf.Timestamp updated_at = 21;
+    //@inject_tag: json:"notify_sale" bson:"notify_sale"
+    bool notify_sale = 22;
+    //@inject_tag: json:"notify_sale_email" bson:"notify_sale_email"
+    string notify_sale_email = 23;
+    //@inject_tag: json:"notify_new_region" bson:"notify_new_region"
+    bool notify_new_region = 24;
+    //@inject_tag: json:"notify_new_region_email" bson:"notify_new_region_email"
+    string notify_new_region_email = 25;
 }
 
 message TokenUserEmailValue {
@@ -1102,4 +1108,58 @@ message OrderNotificationRefund {
     string receipt_number = 5;
     //@inject_tag: json:"receipt_url"
     string receipt_url = 6;
+}
+
+message GetCountryRequest {
+    //@inject_tag: validate:"required,alpha,len=2"
+    string iso_code = 1;
+}
+
+message Country {
+    //@inject_tag: json:"-" bson:"_id" validate:"omitempty,hexadecimal,len=24"
+    string id = 1;
+    //@inject_tag: json:"iso_code_a2" bson:"iso_code_a2" validate:"required,alpha,len=2"
+    string iso_code_a2 = 2;
+    //@inject_tag: json:"region" bson:"region" validate:"required"
+    string region = 3;
+    //@inject_tag: json:"currency" bson:"currency" validate:"required,alpha,len=3"
+    string currency = 4;
+    //@inject_tag: json:"payments_allowed" bson:"payments_allowed"
+    bool payments_allowed = 5;
+    //@inject_tag: json:"change_allowed" bson:"change_allowed"
+    bool change_allowed = 6;
+    //@inject_tag: json:"vat_enabled" bson:"vat_enabled"
+    bool vat_enabled = 7;
+    //@inject_tag: json:"vat_currency" bson:"vat_currency" validate:"omitempty,alpha,len=3"
+    string vat_currency = 8;
+    //@inject_tag: json:"price_group_id" bson:"price_group_id" validate:"required,hexadecimal,len=24"
+    string price_group_id = 9;
+    //@inject_tag: json:"-" bson:"created_at"
+    google.protobuf.Timestamp created_at = 10;
+    //@inject_tag: json:"-" bson:"updated_at"
+    google.protobuf.Timestamp updated_at = 11;
+}
+
+message CountriesList {
+    repeated Country countries = 1;
+}
+
+message GetPriceGroupRequest {
+    //@inject_tag: json:"id" bson:"_id" validate:"omitempty,hexadecimal,len=24"
+    string id = 1;
+}
+
+message PriceGroup {
+    //@inject_tag: json:"id" bson:"_id" validate:"required,hexadecimal,len=24"
+    string id = 1;
+    //@inject_tag: json:"currency" bson:"currency" validate:"required,alpha,len=3"
+    string currency = 2;
+    //@inject_tag: json:"is_simple" bson:"is_simple"
+    bool is_simple = 3;
+    //@inject_tag: json:"region" bson:"region" validate:"omitempty,alpha"
+    string region = 4;
+    //@inject_tag: json:"created_at" bson:"created_at"
+    google.protobuf.Timestamp created_at = 5;
+    //@inject_tag: json:"updated_at" bson:"updated_at"
+    google.protobuf.Timestamp updated_at = 6;
 }
