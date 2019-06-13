@@ -1,6 +1,6 @@
 dist: trusty
 language: go
-sudo: required
+sudo: false
 go:
 - 1.11.x
 stages:
