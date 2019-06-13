@@ -168,3 +168,44 @@ func (suite *CountryTestSuite) TestCountry_Insert_ErrorCacheUpdate() {
 	assert.Error(suite.T(), err)
 	assert.EqualError(suite.T(), err, "service unavailable")
 }
+
+func (suite *CountryTestSuite) TestCountry_GetAll_Ok() {
+	// initially cache is empty
+	c1 := &billing.CountriesList{}
+	err := suite.service.cacher.Get(cacheCountryAll, c1)
+	assert.EqualError(suite.T(), err, "redis: nil")
+
+	// filling the cache
+	c2 := &billing.CountriesList{}
+	c2, err = suite.service.country.GetAll()
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), c2)
+	assert.True(suite.T(), len(c2.Countries) > 0)
+
+	// cache is already fulfilled
+	c3 := &billing.CountriesList{}
+	err = suite.service.cacher.Get(cacheCountryAll, c3)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), c3)
+	assert.True(suite.T(), len(c3.Countries) > 0)
+
+	// saving db connection adn broke service db connection
+	db := suite.service.db
+	suite.service.db = nil
+
+	// reading from cache, not from db
+	c4 := &billing.CountriesList{}
+	c4, err = suite.service.country.GetAll()
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), c4)
+	assert.True(suite.T(), len(c4.Countries) > 0)
+
+	// restoring db connection
+	suite.service.db = db
+
+	// inserting new country must clear cacheCountryAll cache
+	assert.NoError(suite.T(), suite.service.country.Insert(&billing.Country{IsoCodeA2: "RU"}))
+	c5 := &billing.CountriesList{}
+	err = suite.service.cacher.Get(cacheCountryAll, c5)
+	assert.EqualError(suite.T(), err, "redis: nil")
+}

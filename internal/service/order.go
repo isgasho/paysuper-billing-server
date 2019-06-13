@@ -159,7 +159,6 @@ type BinData struct {
 	BankName           string        `bson:"bank_name"`
 	BankCountryName    string        `bson:"bank_country_name"`
 	BankCountryIsoCode string        `bson:"bank_country_code_a2"`
-	BankCountryCodeA3  string        `bson:"bank_country_code_a3"`
 	BankSite           string        `bson:"bank_site"`
 	BankPhone          string        `bson:"bank_phone"`
 }

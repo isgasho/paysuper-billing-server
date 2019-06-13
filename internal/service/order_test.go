@@ -5747,6 +5747,11 @@ func (suite *OrderTestSuite) TestBillingService_SetUserNotifySales_Ok() {
 	err = suite.service.db.Collection(collectionNotifySales).Find(bson.M{"email": notifyEmail}).All(&data)
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), len(data), 1)
+
+	customer, err := suite.service.getCustomerById(rsp.User.Id)
+	assert.NoError(suite.T(), err)
+	assert.True(suite.T(), customer.NotifySale)
+	assert.Equal(suite.T(), customer.NotifySaleEmail, notifyEmail)
 }
 
 func (suite *OrderTestSuite) TestBillingService_SetUserNotifyNewRegion_Ok() {
@@ -5802,6 +5807,11 @@ func (suite *OrderTestSuite) TestBillingService_SetUserNotifyNewRegion_Ok() {
 	err = suite.service.db.Collection(collectionNotifyNewRegion).Find(bson.M{"email": notifyEmail}).All(&data)
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), len(data), 1)
+
+	customer, err := suite.service.getCustomerById(rsp.User.Id)
+	assert.NoError(suite.T(), err)
+	assert.True(suite.T(), customer.NotifyNewRegion)
+	assert.Equal(suite.T(), customer.NotifyNewRegionEmail, notifyEmail)
 }
 
 func (suite *OrderTestSuite) TestBillingService_OrderCreateProcess_CountryRestrictions() {

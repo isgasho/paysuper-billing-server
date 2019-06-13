@@ -21,7 +21,10 @@ func (s *Service) GetCountriesList(
 	req *grpc.EmptyRequest,
 	res *billing.CountriesList,
 ) error {
-	countries := s.country.GetAll()
+	countries, err := s.country.GetAll()
+	if err != nil {
+		return err
+	}
 	for _, v := range countries.Countries {
 		res.Countries = append(res.Countries, v)
 	}
@@ -173,17 +176,17 @@ func (h Country) GetByIsoCodeA2(code string) (*billing.Country, error) {
 	return &c, nil
 }
 
-func (h Country) GetAll() *billing.CountriesList {
+func (h Country) GetAll() (*billing.CountriesList, error) {
 	var c = &billing.CountriesList{}
 	key := cacheCountryAll
 
 	if err := h.svc.cacher.Get(key, c); err != nil {
 		err = h.svc.db.Collection(collectionCountry).Find(nil).Sort("iso_code_a2").All(&c.Countries)
 		if err != nil {
-			return nil
+			return nil, err
 		}
 		_ = h.svc.cacher.Set(key, c, 0)
 	}
 
-	return c
+	return c, nil
 }
