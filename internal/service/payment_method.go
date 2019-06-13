@@ -1,9 +1,13 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"github.com/globalsign/mgo/bson"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 )
 
 const (
@@ -12,7 +16,62 @@ const (
 	cachePaymentMethodAll   = "payment_method:all"
 
 	collectionPaymentMethod = "payment_method"
+
+	paymentMethodErrorName          = "payment method must contain name"
+	paymentMethodErrorPaymentSystem = "payment method must contain of payment system"
 )
+
+func (s *Service) CreateOrUpdatePaymentMethod(
+	ctx context.Context,
+	req *billing.PaymentMethod,
+	rsp *grpc.ChangePaymentMethodResponse,
+) error {
+	var pm *billing.PaymentMethod
+	var err error
+
+	if req.Name == "" {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = paymentMethodErrorName
+
+		return nil
+	}
+
+	if req.PaymentSystem == nil {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = paymentMethodErrorPaymentSystem
+
+		return nil
+	}
+
+	if req.Id != "" {
+		pm, err = s.paymentMethod.GetById(req.Id)
+
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusNotFound
+			rsp.Message = err.Error()
+
+			return nil
+		}
+	}
+
+	pm.UpdatedAt = ptypes.TimestampNow()
+
+	if pm == nil {
+		pm.CreatedAt = ptypes.TimestampNow()
+		err = s.paymentMethod.Insert(req)
+	} else {
+		err = s.paymentMethod.Update(pm)
+	}
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = err.Error()
+
+		return nil
+	}
+
+	return nil
+}
 
 func newPaymentMethodService(svc *Service) *PaymentMethod {
 	s := &PaymentMethod{svc: svc}
@@ -51,7 +110,7 @@ func (h PaymentMethod) GetById(id string) (*billing.PaymentMethod, error) {
 	return &c, nil
 }
 
-func (h PaymentMethod) GetByIdAndCurrency(id string, currencyCodeA3 string) (*billing.PaymentMethod, error) {
+func (h PaymentMethod) GetByIdAndCurrency(id string, currencyCodeA3 string) (*billing.PaymentMethodParams, error) {
 	pm, err := h.GetById(id)
 	if err != nil {
 		return nil, fmt.Errorf(errorNotFound, collectionPaymentMethod)
@@ -61,7 +120,7 @@ func (h PaymentMethod) GetByIdAndCurrency(id string, currencyCodeA3 string) (*bi
 		return nil, fmt.Errorf(errorNotFound, collectionPaymentMethod)
 	}
 
-	return pm, nil
+	return pm.ProductionSettings[currencyCodeA3], nil
 }
 
 func (h PaymentMethod) GetAll() map[string]*billing.PaymentMethod {
@@ -122,6 +181,18 @@ func (h PaymentMethod) MultipleInsert(pm []*billing.PaymentMethod) error {
 
 func (h PaymentMethod) Insert(pm *billing.PaymentMethod) error {
 	if err := h.svc.db.Collection(collectionPaymentMethod).Insert(pm); err != nil {
+		return err
+	}
+
+	if err := h.svc.cacher.Delete(cachePaymentMethodAll); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h PaymentMethod) Update(pm *billing.PaymentMethod) error {
+	if err := h.svc.db.Collection(collectionPaymentMethod).UpdateId(pm.Id, pm); err != nil {
 		return err
 	}
 

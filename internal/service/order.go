@@ -556,12 +556,25 @@ func (s *Service) PaymentCreateProcess(
 	}
 
 	if processor.checked.project.IsProduction() == true {
-		merchantId := processor.GetMerchantId()
-		pmId := order.PaymentMethod.Id
+		merchant, err := s.merchant.GetById(processor.GetMerchantId())
+		if err != nil {
+			rsp.Message = err.Error()
+			rsp.Status = pkg.ResponseStatusSystemError
 
-		order.PaymentMethod.Params.Terminal, _ = s.merchant.GetPaymentMethodTerminalId(merchantId, pmId)
-		order.PaymentMethod.Params.Password, _ = s.merchant.GetPaymentMethodTerminalPassword(merchantId, pmId)
-		order.PaymentMethod.Params.CallbackPassword, _ = s.merchant.GetPaymentMethodTerminalCallbackPassword(merchantId, pmId)
+			return nil
+		}
+
+		pm, err := s.paymentMethod.GetByIdAndCurrency(order.PaymentMethod.Id, merchant.Banking.Currency.CodeA3)
+		if err != nil {
+			rsp.Message = err.Error()
+			rsp.Status = pkg.ResponseStatusSystemError
+
+			return nil
+		}
+
+		order.PaymentMethod.Params.Terminal = pm.Terminal
+		order.PaymentMethod.Params.Password = pm.Password
+		order.PaymentMethod.Params.CallbackPassword = pm.CallbackPassword
 	}
 
 	h, err := s.NewPaymentSystem(s.cfg.PaymentSystemConfig, order)
