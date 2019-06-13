@@ -101,8 +101,9 @@ func (suite *PaymentMethodTestSuite) TearDownTest() {
 }
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetAll() {
-	c := suite.service.paymentMethod.GetAll()
+	c, err := suite.service.paymentMethod.GetAll()
 
+	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), c)
 }
 
@@ -140,7 +141,8 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodByGroupAn
 }
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_Groups() {
-	pm := suite.service.paymentMethod.Groups()
+	pm, err := suite.service.paymentMethod.Groups()
+	assert.NoError(suite.T(), err)
 
 	assert.NotNil(suite.T(), pm)
 	assert.NotNil(suite.T(), pm["QIWI"])

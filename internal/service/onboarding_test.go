@@ -1478,7 +1478,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_Merc
 
 	assert.Nil(suite.T(), err)
 	assert.True(suite.T(), len(rsp.PaymentMethods) > 0)
-	assert.Len(suite.T(), rsp.PaymentMethods, len(suite.service.paymentMethod.GetAll()))
+	pm, err := suite.service.paymentMethod.GetAll()
+	assert.Len(suite.T(), rsp.PaymentMethods, len(pm))
 
 	for _, v := range rsp.PaymentMethods {
 		assert.True(suite.T(), v.PaymentMethod.Id != "")
@@ -1503,7 +1504,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_Exis
 
 	assert.Nil(suite.T(), err)
 	assert.True(suite.T(), len(rsp.PaymentMethods) > 0)
-	assert.Len(suite.T(), rsp.PaymentMethods, len(suite.service.paymentMethod.GetAll()))
+	pm, err := suite.service.paymentMethod.GetAll()
+	assert.Len(suite.T(), rsp.PaymentMethods, len(pm))
 
 	for _, v := range rsp.PaymentMethods {
 		if v.PaymentMethod.Id != suite.pmBankCard.Id {
@@ -1572,7 +1574,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_NewM
 
 	assert.Nil(suite.T(), err)
 	assert.True(suite.T(), len(rspListMerchantPaymentMethods.PaymentMethods) > 0)
-	assert.Len(suite.T(), rspListMerchantPaymentMethods.PaymentMethods, len(suite.service.paymentMethod.GetAll()))
+	pma, err := suite.service.paymentMethod.GetAll()
+	assert.Len(suite.T(), rspListMerchantPaymentMethods.PaymentMethods, len(pma))
 
 	for _, v := range rspListMerchantPaymentMethods.PaymentMethods {
 		assert.True(suite.T(), v.PaymentMethod.Id != "")

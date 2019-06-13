@@ -1670,7 +1670,11 @@ func (v *PaymentFormProcessor) processRenderFormPaymentMethods() ([]*billing.Pay
 		return projectPms, errors.New(orderErrorProjectNotFound)
 	}
 
-	for _, val := range v.service.paymentMethod.Groups() {
+	pmg, err := v.service.paymentMethod.Groups()
+	if err != nil {
+		return nil, err
+	}
+	for _, val := range pmg {
 		pm, ok := val[v.order.PaymentMethodOutcomeCurrency.CodeInt]
 
 		if !ok || pm.IsActive == false ||
