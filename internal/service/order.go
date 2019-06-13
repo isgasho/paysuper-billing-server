@@ -2489,25 +2489,24 @@ func (s *Service) SetUserNotifySales(
 		return err
 	}
 
-	tokenReq := s.transformOrderUser2TokenRequest(order.User)
-	project, err := s.project.GetById(order.Project.Id)
-	if err != nil {
-		return err
-	}
-	customer, _ := s.findCustomer(tokenReq, project)
-	if customer != nil {
-		customer, err = s.updateCustomer(tokenReq, project, customer)
-	} else {
-		customer, err = s.createCustomer(tokenReq, project)
-	}
-	if err != nil {
-		return err
-	}
-	customer.NotifySale = req.EnableNotification
-	customer.NotifySaleEmail = req.Email
-	customer, err = s.updateCustomer(tokenReq, project, customer)
-	if err != nil {
-		return err
+	if order.User.IsIdentified() == true {
+		customer, err := s.getCustomerById(order.User.Id)
+		if err != nil {
+			return err
+		}
+		project, err := s.project.GetById(order.Project.Id)
+		if err != nil {
+			return err
+		}
+
+		customer.NotifySale = req.EnableNotification
+		customer.NotifySaleEmail = req.Email
+
+		tokenReq := s.transformOrderUser2TokenRequest(order.User)
+		_, err = s.updateCustomer(tokenReq, project, customer)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -2563,25 +2562,24 @@ func (s *Service) SetUserNotifyNewRegion(
 		return err
 	}
 
-	tokenReq := s.transformOrderUser2TokenRequest(order.User)
-	project, err := s.project.GetById(order.Project.Id)
-	if err != nil {
-		return err
-	}
-	customer, _ := s.findCustomer(tokenReq, project)
-	if customer != nil {
-		customer, err = s.updateCustomer(tokenReq, project, customer)
-	} else {
-		customer, err = s.createCustomer(tokenReq, project)
-	}
-	if err != nil {
-		return err
-	}
-	customer.NotifyNewRegion = req.EnableNotification
-	customer.NotifyNewRegionEmail = req.Email
-	customer, err = s.updateCustomer(tokenReq, project, customer)
-	if err != nil {
-		return err
+	if order.User.IsIdentified() == true {
+		customer, err := s.getCustomerById(order.User.Id)
+		if err != nil {
+			return err
+		}
+		project, err := s.project.GetById(order.Project.Id)
+		if err != nil {
+			return err
+		}
+
+		customer.NotifyNewRegion = req.EnableNotification
+		customer.NotifyNewRegionEmail = req.Email
+
+		tokenReq := s.transformOrderUser2TokenRequest(order.User)
+		_, err = s.updateCustomer(tokenReq, project, customer)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
