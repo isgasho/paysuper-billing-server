@@ -10,10 +10,8 @@ This service contain all business logic for payment processing
 
 | Name                                 | Required | Default               | Description                                                                                                                         |
 |:-------------------------------------|:--------:|:----------------------|:------------------------------------------------------------------------------------------------------------------------------------|
-| MONGO_HOST                           | true     | -                     | MongoDB host including port if this needed                                                                                          |
-| MONGO_DB                             | true     | -                     | MongoDB database name                                                                                                               |
-| MONGO_USER                           | -        | ""                    | MongoDB user for access to database                                                                                                 |
-| MONGO_PASSWORD                       | -        | ""                    | MongoBD password for access to database                                                                                             |
+| MONGO_DSN                            | true     | -                     | MongoBD DSN connection string                                                                                                       |
+| MONGO_DIAL_TIMEOUT                   | -        | 10                    | MongoBD dial timeout in seconds                                                                                                     |
 | PSP_ACCOUNTING_CURRENCY              | -        | EUR                   | PaySuper accounting currency                                                                                                        |
 | METRICS_PORT                         | -        | 8086                  | Http server port for health and metrics request                                                                                     |
 | CENTRIFUGO_SECRET                    | true     | -                     | Centrifugo secret key                                                                                                               |

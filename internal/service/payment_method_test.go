@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
@@ -32,15 +32,7 @@ func (suite *PaymentMethodTestSuite) SetupTest() {
 	}
 	cfg.AccountingCurrency = "RUB"
 
-	settings := database.Connection{
-		Host:     cfg.MongoHost,
-		Database: cfg.MongoDatabase,
-		User:     cfg.MongoUser,
-		Password: cfg.MongoPassword,
-	}
-
-	db, err := database.NewDatabase(settings)
-
+	db, err := mongodb.NewDatabase()
 	if err != nil {
 		suite.FailNow("Database connection failed", "%v", err)
 	}

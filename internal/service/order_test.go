@@ -17,6 +17,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"github.com/stoewer/go-strcase"
@@ -65,15 +66,7 @@ func (suite *OrderTestSuite) SetupTest() {
 	cfg.AccountingCurrency = "RUB"
 	cfg.CardPayApiUrl = "https://sandbox.cardpay.com"
 
-	settings := database.Connection{
-		Host:     cfg.MongoHost,
-		Database: cfg.MongoDatabase,
-		User:     cfg.MongoUser,
-		Password: cfg.MongoPassword,
-	}
-
-	db, err := database.NewDatabase(settings)
-
+	db, err := mongodb.NewDatabase()
 	if err != nil {
 		suite.FailNow("Database connection failed", "%v", err)
 	}

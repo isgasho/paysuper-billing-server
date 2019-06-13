@@ -13,7 +13,7 @@ require (
 	github.com/favadi/protoc-go-inject-tag v0.0.0-20181008023834-c2c1884c833d // indirect
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
 	github.com/go-redis/redis v6.15.2+incompatible
-	github.com/golang-migrate/migrate/v4 v4.3.1 // indirect
+	github.com/golang-migrate/migrate/v4 v4.3.1
 	github.com/golang/protobuf v1.3.1
 	github.com/google/uuid v1.1.1
 	github.com/kelseyhightower/envconfig v1.3.0
@@ -21,6 +21,7 @@ require (
 	github.com/micro/go-plugins v1.0.0
 	github.com/micro/kubernetes v0.7.0
 	github.com/micro/protoc-gen-micro v0.8.0 // indirect
+	github.com/paysuper/paysuper-database-mongo v0.1.0
 	github.com/paysuper/paysuper-recurring-repository v1.0.107
 	github.com/paysuper/paysuper-tax-service v0.0.0-20190308105725-016a09c27fbd
 	github.com/prometheus/client_golang v0.9.3-0.20190127221311-3c4408c8b829
