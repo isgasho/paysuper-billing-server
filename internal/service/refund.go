@@ -23,6 +23,8 @@ const (
 	refundErrorOrderNotFound     = "information about payment for refund with specified data not found"
 
 	refundDefaultReasonMask = "Refund by order #%s"
+
+	collectionRefund = "refund"
 )
 
 type RefundError struct {
@@ -78,7 +80,7 @@ func (s *Service) CreateRefund(
 		return nil
 	}
 
-	err = s.db.Collection(pkg.CollectionRefund).UpdateId(bson.ObjectIdHex(refund.Id), refund)
+	err = s.db.Collection(collectionRefund).UpdateId(bson.ObjectIdHex(refund.Id), refund)
 
 	if err != nil {
 		s.logError("Query to update refund failed", []interface{}{"err", err.Error(), "data", refund})
@@ -103,7 +105,7 @@ func (s *Service) ListRefunds(
 	var refunds []*billing.Refund
 
 	query := bson.M{"order.uuid": req.OrderId}
-	err := s.db.Collection(pkg.CollectionRefund).Find(query).Limit(int(req.Limit)).Skip(int(req.Offset)).All(&refunds)
+	err := s.db.Collection(collectionRefund).Find(query).Limit(int(req.Limit)).Skip(int(req.Offset)).All(&refunds)
 
 	if err != nil {
 		if err != mgo.ErrNotFound {
@@ -113,7 +115,7 @@ func (s *Service) ListRefunds(
 		return nil
 	}
 
-	count, err := s.db.Collection(pkg.CollectionRefund).Find(query).Count()
+	count, err := s.db.Collection(collectionRefund).Find(query).Count()
 
 	if err != nil {
 		s.logError("Query to count refunds by order failed", []interface{}{"err", err.Error(), "query", query})
@@ -136,7 +138,7 @@ func (s *Service) GetRefund(
 	var refund *billing.Refund
 
 	query := bson.M{"_id": bson.ObjectIdHex(req.RefundId), "order.uuid": req.OrderId}
-	err := s.db.Collection(pkg.CollectionRefund).Find(query).One(&refund)
+	err := s.db.Collection(collectionRefund).Find(query).One(&refund)
 
 	if err != nil {
 		if err != mgo.ErrNotFound {
@@ -186,7 +188,7 @@ func (s *Service) ProcessRefundCallback(
 		return nil
 	}
 
-	err := s.db.Collection(pkg.CollectionRefund).FindId(bson.ObjectIdHex(refundId)).One(&refund)
+	err := s.db.Collection(collectionRefund).FindId(bson.ObjectIdHex(refundId)).One(&refund)
 
 	if err != nil || refund == nil {
 		if err != nil && err != mgo.ErrNotFound {
@@ -240,7 +242,7 @@ func (s *Service) ProcessRefundCallback(
 		}
 	}
 
-	err = s.db.Collection(pkg.CollectionRefund).UpdateId(bson.ObjectIdHex(refundId), refund)
+	err = s.db.Collection(collectionRefund).UpdateId(bson.ObjectIdHex(refundId), refund)
 
 	if err != nil {
 		s.logError("Update refund data failed", []interface{}{"err", err.Error(), "refund", refund})
@@ -256,10 +258,17 @@ func (s *Service) ProcessRefundCallback(
 		refundedAmount, _ := processor.getRefundedAmount(order)
 
 		if refundedAmount == order.PaymentMethodIncomeAmount {
-			order.Status = constant.OrderStatusRefund
+			order.PrivateStatus = constant.OrderStatusRefund
 			order.UpdatedAt = ptypes.TimestampNow()
+			order.RefundedAt = ptypes.TimestampNow()
+			order.Refund = &billing.OrderNotificationRefund{
+				Amount:        refundedAmount,
+				Currency:      order.PaymentMethodIncomeCurrency.CodeA3,
+				Reason:        refund.Reason,
+				ReceiptNumber: refund.Id,
+			}
 
-			err = s.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+			err = s.updateOrder(order)
 
 			if err != nil {
 				s.logError("Update order data failed", []interface{}{"err", err.Error(), "order", order})
@@ -315,7 +324,7 @@ func (p *createRefundProcessor) processCreateRefund() (*billing.Refund, error) {
 		refund.Reason = p.request.Reason
 	}
 
-	err = p.service.db.Collection(pkg.CollectionRefund).Insert(refund)
+	err = p.service.db.Collection(collectionRefund).Insert(refund)
 
 	if err != nil {
 		p.service.logError("Query to insert refund failed", []interface{}{"err", err.Error(), "data", refund})
@@ -332,7 +341,7 @@ func (p *createRefundProcessor) processOrder() error {
 		return p.service.NewRefundError(err.Error(), pkg.ResponseStatusNotFound)
 	}
 
-	if order.Status == constant.OrderStatusRefund {
+	if order.PrivateStatus == constant.OrderStatusRefund {
 		return p.service.NewRefundError(refundErrorAlreadyRefunded, pkg.ResponseStatusBadData)
 	}
 
@@ -375,7 +384,7 @@ func (p *createRefundProcessor) getRefundedAmount(order *billing.Order) (float64
 		{"$group": bson.M{"_id": "$order.id", "amount": bson.M{"$sum": "$amount"}}},
 	}
 
-	err := p.service.db.Collection(pkg.CollectionRefund).Pipe(query).One(&res)
+	err := p.service.db.Collection(collectionRefund).Pipe(query).One(&res)
 
 	if err != nil && !p.service.IsDbNotFoundError(err) {
 		p.service.logError("Query to calculate refunded amount by order failed", []interface{}{"err", err.Error(), "query", query})

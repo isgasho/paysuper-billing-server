@@ -6,6 +6,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
+	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/stretchr/testify/assert"
@@ -15,20 +16,21 @@ import (
 	"time"
 )
 
-type ProjectTestSuite struct {
+type EntityTestSuite struct {
 	suite.Suite
 	service *Service
 	log     *zap.Logger
+	cache   CacheInterface
 
 	projectId     string
 	paymentMethod *billing.PaymentMethod
 }
 
-func Test_Project(t *testing.T) {
-	suite.Run(t, new(ProjectTestSuite))
+func Test_Entity(t *testing.T) {
+	suite.Run(t, new(EntityTestSuite))
 }
 
-func (suite *ProjectTestSuite) SetupTest() {
+func (suite *EntityTestSuite) SetupTest() {
 	cfg, err := config.NewConfig()
 
 	if err != nil {
@@ -62,24 +64,12 @@ func (suite *ProjectTestSuite) SetupTest() {
 		IsActive: true,
 	}
 
-	err = db.Collection(pkg.CollectionCurrency).Insert(rub)
-
-	if err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
-
 	rate := &billing.CurrencyRate{
 		CurrencyFrom: 643,
 		CurrencyTo:   840,
 		Rate:         64,
 		Date:         ptypes.TimestampNow(),
 		IsActive:     true,
-	}
-
-	err = db.Collection(pkg.CollectionCurrencyRate).Insert(rate)
-
-	if err != nil {
-		suite.FailNow("Insert rates test data failed", "%v", err)
 	}
 
 	project := &billing.Project{
@@ -94,12 +84,6 @@ func (suite *ProjectTestSuite) SetupTest() {
 		IsProductsCheckout: true,
 		SecretKey:          "test project 1 secret key",
 		Status:             pkg.ProjectStatusInProduction,
-	}
-
-	err = db.Collection(pkg.CollectionProject).Insert(project)
-
-	if err != nil {
-		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 
 	pmBankCard := &billing.PaymentMethod{
@@ -148,14 +132,6 @@ func (suite *ProjectTestSuite) SetupTest() {
 		IsActive: true,
 	}
 
-	pms := []interface{}{pmBankCard, pmQiwi, pmBitcoin}
-
-	err = db.Collection(pkg.CollectionPaymentMethod).Insert(pms...)
-
-	if err != nil {
-		suite.FailNow("Insert payment methods test data failed", "%v", err)
-	}
-
 	commissionStartDate, err := ptypes.TimestampProto(time.Now().Add(time.Minute * -10))
 
 	if err != nil {
@@ -189,7 +165,7 @@ func (suite *ProjectTestSuite) SetupTest() {
 		},
 	}
 
-	err = db.Collection(pkg.CollectionCommission).Insert(commissions...)
+	err = db.Collection(collectionCommission).Insert(commissions...)
 
 	if err != nil {
 		suite.FailNow("Insert commission test data failed", "%v", err)
@@ -201,12 +177,6 @@ func (suite *ProjectTestSuite) SetupTest() {
 		CodeA3:   "RUS",
 		Name:     &billing.Name{Ru: "Россия", En: "Russia (Russian Federation)"},
 		IsActive: true,
-	}
-
-	err = db.Collection(pkg.CollectionCountry).Insert(country)
-
-	if err != nil {
-		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 
 	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -360))
@@ -334,25 +304,46 @@ func (suite *ProjectTestSuite) SetupTest() {
 		IsSigned: false,
 	}
 
-	err = db.Collection(pkg.CollectionMerchant).Insert([]interface{}{merchant, merchantAgreement, merchant1}...)
+	suite.projectId = project.Id
 
-	if err != nil {
+	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
+		suite.FailNow("Insert currency test data failed", "%v", err)
+	}
+
+	redisdb := mock.NewTestRedis()
+	suite.cache = NewCacheRedis(redisdb)
+	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache)
+
+	if err := suite.service.Init(); err != nil {
+		suite.FailNow("Billing service initialization failed", "%v", err)
+	}
+
+	pms := []*billing.PaymentMethod{pmBankCard, pmQiwi, pmBitcoin}
+	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {
+		suite.FailNow("Insert payment methods test data failed", "%v", err)
+	}
+
+	merchants := []*billing.Merchant{merchant, merchantAgreement, merchant1}
+	if err := suite.service.merchant.MultipleInsert(merchants); err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
 	}
 
-	suite.projectId = project.Id
+	if err := suite.service.project.Insert(project); err != nil {
+		suite.FailNow("Insert project test data failed", "%v", err)
+	}
 
-	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil)
-	err = suite.service.Init()
+	if err := suite.service.country.Insert(country); err != nil {
+		suite.FailNow("Insert country test data failed", "%v", err)
+	}
 
-	if err != nil {
-		suite.FailNow("Billing service initialization failed", "%v", err)
+	if err = suite.service.currencyRate.Insert(rate); err != nil {
+		suite.FailNow("Insert rates test data failed", "%v", err)
 	}
 
 	suite.paymentMethod = pmBankCard
 }
 
-func (suite *ProjectTestSuite) TearDownTest() {
+func (suite *EntityTestSuite) TearDownTest() {
 	if err := suite.service.db.Drop(); err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}
@@ -360,24 +351,8 @@ func (suite *ProjectTestSuite) TearDownTest() {
 	suite.service.db.Close()
 }
 
-func (suite *ProjectTestSuite) TestProject_GetProjectByIdOk() {
-	project, err := suite.service.GetProjectById(suite.projectId)
-
-	assert.Nil(suite.T(), err)
-	assert.NotNil(suite.T(), project)
-	assert.Equal(suite.T(), suite.projectId, project.Id)
-}
-
-func (suite *ProjectTestSuite) TestProject_GetProjectByIdError() {
-	project, err := suite.service.GetProjectById(bson.NewObjectId().Hex())
-
-	assert.Error(suite.T(), err)
-	assert.Nil(suite.T(), project)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, pkg.CollectionProject), err.Error())
-}
-
-func (suite *ProjectTestSuite) TestProject_GetGetPaymentMethodByGroupAndCurrencyOk() {
-	pm, err := suite.service.GetPaymentMethodByGroupAndCurrency(suite.paymentMethod.Group, 643)
+func (suite *EntityTestSuite) TestProject_GetPaymentMethodByGroupAndCurrency_Ok() {
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(suite.paymentMethod.Group, 643)
 
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
@@ -385,18 +360,18 @@ func (suite *ProjectTestSuite) TestProject_GetGetPaymentMethodByGroupAndCurrency
 	assert.Equal(suite.T(), suite.paymentMethod.Group, pm.Group)
 }
 
-func (suite *ProjectTestSuite) TestProject_GetGetPaymentMethodByGroupAndCurrency_GroupError() {
-	pm, err := suite.service.GetPaymentMethodByGroupAndCurrency("group_from_my_head", 643)
+func (suite *EntityTestSuite) TestProject_GetPaymentMethodByGroupAndCurrency_GroupError() {
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency("group_from_my_head", 643)
 
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), pm)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, pkg.CollectionPaymentMethod), err.Error())
+	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionPaymentMethod), err.Error())
 }
 
-func (suite *ProjectTestSuite) TestProject_GetGetPaymentMethodByGroupAndCurrency_CurrencyError() {
-	pm, err := suite.service.GetPaymentMethodByGroupAndCurrency(suite.paymentMethod.Group, 960)
+func (suite *EntityTestSuite) TestProject_GetPaymentMethodByGroupAndCurrency_CurrencyError() {
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(suite.paymentMethod.Group, 960)
 
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), pm)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, pkg.CollectionPaymentMethod), err.Error())
+	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionPaymentMethod), err.Error())
 }

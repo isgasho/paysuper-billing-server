@@ -3,14 +3,13 @@ package service
 import (
 	"context"
 	"errors"
-	"github.com/globalsign/mgo"
+	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-    "github.com/paysuper/paysuper-recurring-repository/tools"
-    "sort"
+	"github.com/paysuper/paysuper-recurring-repository/tools"
+	"sort"
 )
 
 type kv struct {
@@ -19,6 +18,10 @@ type kv struct {
 }
 
 const (
+	cacheSystemFeesMethodRegionBrand = "system_fees:method:%s:region:%s:brand:%s"
+
+	collectionSystemFees = "system_fees"
+
 	errorSystemFeeCardBrandRequired        = "card brand required for this method"
 	errorSystemFeeCardBrandNotAllowed      = "card brand not allowed for this method"
 	errorSystemFeeCardBrandInvalid         = "card brand invalid or not supported"
@@ -53,14 +56,14 @@ func (s *Service) AddSystemFees(
 ) error {
 
 	if req.Region != "" && req.Region != "EU" {
-		_, err := s.GetCountryByCodeA2(req.Region)
+		_, err := s.country.GetByCodeA2(req.Region)
 		if err != nil {
 			s.logError(errorSystemFeeRegionInvalid, []interface{}{"data", req})
 			return errors.New(errorSystemFeeRegionInvalid)
 		}
 	}
 
-	method, err := s.GetPaymentMethodById(req.MethodId)
+	method, err := s.paymentMethod.GetById(req.MethodId)
 	if err != nil {
 		s.logError("GetPaymentMethodById failed", []interface{}{"err", err.Error(), "data", req})
 		return err
@@ -87,17 +90,17 @@ func (s *Service) AddSystemFees(
 		return errors.New(errorSystemFeeRequiredFeeset)
 	}
 
-    // formatting values
+	// formatting values
 	for _, f := range req.Fees {
-        f.TransactionCost.Percent = tools.FormatAmount(f.TransactionCost.Percent)
-        f.TransactionCost.FixAmount = tools.FormatAmount(f.TransactionCost.FixAmount)
-        f.AuthorizationFee.Percent = tools.FormatAmount(f.AuthorizationFee.Percent)
-        f.AuthorizationFee.FixAmount = tools.FormatAmount(f.AuthorizationFee.FixAmount)
+		f.TransactionCost.Percent = tools.FormatAmount(f.TransactionCost.Percent)
+		f.TransactionCost.FixAmount = tools.FormatAmount(f.TransactionCost.FixAmount)
+		f.AuthorizationFee.Percent = tools.FormatAmount(f.AuthorizationFee.Percent)
+		f.AuthorizationFee.FixAmount = tools.FormatAmount(f.AuthorizationFee.FixAmount)
 
-        for c, v := range f.MinAmounts {
-            f.MinAmounts[c] = tools.FormatAmount(v)
-        }
-    }
+		for c, v := range f.MinAmounts {
+			f.MinAmounts[c] = tools.FormatAmount(v)
+		}
+	}
 
 	fees := &billing.SystemFees{
 		Id:        bson.NewObjectId().Hex(),
@@ -110,32 +113,19 @@ func (s *Service) AddSystemFees(
 		IsActive:  true,
 	}
 
-	query := bson.M{"method_id": bson.ObjectIdHex(req.MethodId), "region": req.Region, "card_brand": req.CardBrand, "is_active": true}
-	err = s.db.Collection(pkg.CollectionSystemFees).Update(query, bson.M{"$set": bson.M{"is_active": false}})
-
-	if err != nil && err != mgo.ErrNotFound {
-		s.logError("Query to disable old fees failed", []interface{}{"err", err.Error(), "query", query, "req", req})
-		return err
+	f, err := s.systemFees.Find(req.MethodId, req.Region, req.CardBrand)
+	if f != nil {
+		f.IsActive = false
+		if err := s.systemFees.Update(f); err != nil {
+			s.logError("Query to disable old fees failed", []interface{}{"err", err.Error(), "req", req})
+			return err
+		}
 	}
 
-	err = s.db.Collection(pkg.CollectionSystemFees).Insert(fees)
-
-	if err != nil {
+	if err := s.systemFees.Insert(fees); err != nil {
 		s.logError("Query to add fees failed", []interface{}{"err", err.Error(), "data", req})
 		return err
 	}
-
-	// updating a cache
-	s.mx.Lock()
-	defer s.mx.Unlock()
-
-	if _, ok := s.systemFeesCache[fees.MethodId]; !ok {
-		s.systemFeesCache[fees.MethodId] = make(map[string]map[string]*billing.SystemFees)
-	}
-	if _, ok := s.systemFeesCache[fees.MethodId][fees.Region]; !ok {
-		s.systemFeesCache[fees.MethodId][fees.Region] = make(map[string]*billing.SystemFees)
-	}
-	s.systemFeesCache[fees.MethodId][fees.Region][fees.CardBrand] = fees
 
 	return nil
 }
@@ -145,18 +135,8 @@ func (s *Service) GetSystemFeesForPayment(
 	req *billing.GetSystemFeesRequest,
 	res *billing.FeeSet,
 ) error {
-	sf, ok := s.systemFeesCache[req.MethodId]
-	if !ok {
-		return errors.New(errorSystemFeeNotFound)
-	}
-
-	sfr, ok := sf[req.Region]
-	if !ok {
-		return errors.New(errorSystemFeeNotFound)
-	}
-
-	systemFees, ok := sfr[req.CardBrand]
-	if !ok {
+	systemFees, err := s.systemFees.Find(req.MethodId, req.Region, req.CardBrand)
+	if err != nil {
 		return errors.New(errorSystemFeeNotFound)
 	}
 
@@ -196,11 +176,71 @@ func (s *Service) GetActualSystemFeesList(
 		fees  []*billing.SystemFees
 		query = bson.M{"is_active": true}
 	)
-	e := s.db.Collection(pkg.CollectionSystemFees).Find(query).All(&fees)
+	e := s.db.Collection(collectionSystemFees).Find(query).All(&fees)
 	if e != nil {
 		s.logError("Get System fees failed", []interface{}{"err", e.Error(), "query", query})
 		return e
 	}
 	res.SystemFees = fees
 	return nil
+}
+
+func newSystemFeesService(svc *Service) *SystemFee {
+	s := &SystemFee{svc: svc}
+	return s
+}
+
+func (h *SystemFee) Insert(fees *billing.SystemFees) error {
+	if err := h.svc.db.Collection(collectionSystemFees).Insert(fees); err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	if err := h.svc.cacher.Set(
+		fmt.Sprintf(cacheSystemFeesMethodRegionBrand, fees.MethodId, fees.Region, fees.CardBrand),
+		fees,
+		0,
+	); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h *SystemFee) Update(fees *billing.SystemFees) error {
+	if err := h.svc.db.Collection(collectionSystemFees).UpdateId(bson.ObjectIdHex(fees.Id), fees); err != nil {
+		return err
+	}
+
+	if err := h.svc.cacher.Set(
+		fmt.Sprintf(cacheSystemFeesMethodRegionBrand, fees.MethodId, fees.Region, fees.CardBrand),
+		fees, 0,
+	); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h SystemFee) Find(methodId string, region string, cardBrand string) (*billing.SystemFees, error) {
+	var c billing.SystemFees
+	key := fmt.Sprintf(cacheSystemFeesMethodRegionBrand, methodId, region, cardBrand)
+
+	if err := h.svc.cacher.Get(key, c); err == nil {
+		return &c, nil
+	}
+
+	if err := h.svc.db.Collection(collectionSystemFees).
+		Find(bson.M{
+			"method_id":  bson.ObjectIdHex(methodId),
+			"region":     region,
+			"card_brand": cardBrand,
+			"is_active":  true,
+		}).
+		One(&c); err != nil {
+		return nil, fmt.Errorf(errorNotFound, collectionSystemFees)
+	}
+
+	_ = h.svc.cacher.Set(key, c, 0)
+	return &c, nil
 }

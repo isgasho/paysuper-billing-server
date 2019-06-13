@@ -33,6 +33,15 @@ type CustomerTokenConfig struct {
 	CookiePrivateKey       *rsa.PrivateKey
 }
 
+// CacheRedis defines the parameters for connecting to the radish server for caching objects.
+type CacheRedis struct {
+	Address      []string `envconfig:"CACHE_REDIS_ADDRESS"`
+	Password     string   `envconfig:"CACHE_REDIS_PASSWORD"`
+	PoolSize     int      `envconfig:"CACHE_REDIS_POOL_SIZE" default:"1"`
+	MaxRetries   int      `envconfig:"CACHE_REDIS_MAX_RETRIES" default:"10"`
+	MaxRedirects int      `envconfig:"CACHE_REDIS_MAX_REDIRECTS" default:"8"`
+}
+
 type Config struct {
 	MongoHost          string `envconfig:"MONGO_HOST" required:"true"`
 	MongoDatabase      string `envconfig:"MONGO_DB" required:"true"`
@@ -53,6 +62,7 @@ type Config struct {
 	*CacheConfig
 	*PaymentSystemConfig
 	*CustomerTokenConfig
+	*CacheRedis
 }
 
 func NewConfig() (*Config, error) {

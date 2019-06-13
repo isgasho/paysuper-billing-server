@@ -2,20 +2,24 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
+	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"go.uber.org/zap"
 	"testing"
 )
 
 type ProjectCRUDTestSuite struct {
 	suite.Suite
 	service *Service
+	cache   CacheInterface
 
 	merchant *billing.Merchant
 	project  *billing.Project
@@ -40,6 +44,7 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 
 	db, err := database.NewDatabase(settings)
 	assert.NoError(suite.T(), err, "Database connection failed")
+	projectId := bson.NewObjectId().Hex()
 
 	rub := &billing.Currency{
 		CodeInt:  643,
@@ -101,12 +106,26 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		},
 	}
 
-	err = db.Collection(pkg.CollectionPaymentMethod).Insert([]interface{}{pm1, pm2}...)
-	assert.NoError(suite.T(), err, "Insert payment methods test data failed")
-
-	err = db.Collection(pkg.CollectionCurrency).Insert(rub)
-	assert.NoError(suite.T(), err, "Insert currency test data failed")
-
+	paymentMethods := map[string]*billing.MerchantPaymentMethod{
+		pm1.Id: {
+			Commission: &billing.MerchantPaymentMethodCommissions{
+				Fee:            1,
+				PerTransaction: &billing.MerchantPaymentMethodPerTransactionCommission{},
+			},
+			PaymentMethod: &billing.MerchantPaymentMethodIdentification{
+				Id: pm1.Id,
+			},
+		},
+		pm2.Id: {
+			Commission: &billing.MerchantPaymentMethodCommissions{
+				Fee:            1,
+				PerTransaction: &billing.MerchantPaymentMethodPerTransactionCommission{},
+			},
+			PaymentMethod: &billing.MerchantPaymentMethodIdentification{
+				Id: pm2.Id,
+			},
+		},
+	}
 	merchant := &billing.Merchant{
 		Id: bson.NewObjectId().Hex(),
 		User: &billing.MerchantUser{
@@ -128,14 +147,11 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		IsCommissionToUserEnabled: true,
 		Status:                    pkg.MerchantStatusDraft,
 		IsSigned:                  true,
-		PaymentMethods:            map[string]*billing.MerchantPaymentMethod{},
+		PaymentMethods:            paymentMethods,
 	}
 
-	err = db.Collection(pkg.CollectionMerchant).Insert(merchant)
-	assert.NoError(suite.T(), err, "Insert merchant test data failed")
-
 	project := &billing.Project{
-		Id:                       bson.NewObjectId().Hex(),
+		Id:                       projectId,
 		CallbackCurrency:         "RUB",
 		CallbackProtocol:         pkg.ProjectCallbackProtocolEmpty,
 		LimitsCurrency:           "RUB",
@@ -148,9 +164,6 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		Status:                   pkg.ProjectStatusInProduction,
 		MerchantId:               merchant.Id,
 	}
-
-	err = db.Collection(pkg.CollectionProject).Insert(project)
-	assert.NoError(suite.T(), err, "Insert project test data failed")
 
 	products := []interface{}{
 		&grpc.Product{
@@ -209,12 +222,33 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		},
 	}
 
-	err = db.Collection(pkg.CollectionProduct).Insert(products...)
+	err = db.Collection(collectionProduct).Insert(products...)
 	assert.NoError(suite.T(), err, "Insert product test data failed")
 
-	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil)
-	err = suite.service.Init()
-	assert.NoError(suite.T(), err, "Billing service initialization failed")
+	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
+		suite.FailNow("Insert currency test data failed", "%v", err)
+	}
+
+	redisdb := mock.NewTestRedis()
+	suite.cache = NewCacheRedis(redisdb)
+	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache)
+
+	if err := suite.service.Init(); err != nil {
+		suite.FailNow("Billing service initialization failed", "%v", err)
+	}
+
+	pms := []*billing.PaymentMethod{pm1, pm2}
+	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {
+		suite.FailNow("Insert payment methods test data failed", "%v", err)
+	}
+
+	if err := suite.service.merchant.Insert(merchant); err != nil {
+		suite.FailNow("Insert merchant test data failed", "%v", err)
+	}
+
+	if err := suite.service.project.Insert(project); err != nil {
+		suite.FailNow("Insert project test data failed", "%v", err)
+	}
 
 	suite.merchant = merchant
 	suite.project = project
@@ -274,8 +308,8 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_Ok()
 	assert.Equal(suite.T(), project.IsProductsCheckout, rsp.Item.IsProductsCheckout)
 	assert.Equal(suite.T(), project.Status, rsp.Item.Status)
 
-	cProject, ok := suite.service.projectCache[project.Id]
-	assert.True(suite.T(), ok)
+	cProject, err := suite.service.project.GetById(project.Id)
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), project.Id, cProject.Id)
 	assert.Equal(suite.T(), project.MerchantId, cProject.MerchantId)
 	assert.Equal(suite.T(), project.Name, cProject.Name)
@@ -286,11 +320,6 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_Ok()
 	assert.Equal(suite.T(), project.MaxPaymentAmount, cProject.MaxPaymentAmount)
 	assert.Equal(suite.T(), project.IsProductsCheckout, cProject.IsProductsCheckout)
 	assert.Equal(suite.T(), project.Status, cProject.Status)
-
-	pms, ok := suite.service.commissionCache[project.Id]
-	assert.True(suite.T(), ok)
-	assert.NotEmpty(suite.T(), pms)
-	assert.Equal(suite.T(), len(pms), len(suite.service.paymentMethodIdCache))
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_ExistProject_Ok() {
@@ -327,8 +356,8 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_ExistProject_Ok
 	assert.Equal(suite.T(), project.IsProductsCheckout, rsp.Item.IsProductsCheckout)
 	assert.Equal(suite.T(), project.Status, rsp.Item.Status)
 
-	cProject, ok := suite.service.projectCache[project.Id]
-	assert.True(suite.T(), ok)
+	cProject, err := suite.service.project.GetById(project.Id)
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), project.Id, cProject.Id)
 	assert.Equal(suite.T(), project.MerchantId, cProject.MerchantId)
 	assert.Equal(suite.T(), project.Name, cProject.Name)
@@ -440,30 +469,6 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_LimitCurrencyNo
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
 	assert.Equal(suite.T(), projectErrorLimitCurrencyIncorrect, rsp.Message)
 	assert.Nil(suite.T(), rsp.Item)
-}
-
-func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_MgoInsertError() {
-	suite.service.merchantCache["qwerty"] = suite.merchant
-
-	req := &billing.Project{
-		MerchantId:         "qwerty",
-		Name:               map[string]string{"en": "Unit test", "ru": "Юнит тест"},
-		CallbackCurrency:   "RUB",
-		CallbackProtocol:   pkg.ProjectCallbackProtocolEmpty,
-		LimitsCurrency:     "RUB",
-		MinPaymentAmount:   0,
-		MaxPaymentAmount:   15000,
-		IsProductsCheckout: false,
-	}
-	rsp := &grpc.ChangeProjectResponse{}
-	err := suite.service.ChangeProject(context.TODO(), req, rsp)
-
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp.Status)
-	assert.Equal(suite.T(), orderErrorUnknown, rsp.Message)
-	assert.Nil(suite.T(), rsp.Item)
-
-	delete(suite.service.merchantCache, "qwerty")
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_GetProject_Ok() {
@@ -735,8 +740,8 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_DeleteProject_Ok() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ProjectStatusDeleted, project.Status)
 
-	project1, ok := suite.service.projectCache[rsp.Item.Id]
-	assert.True(suite.T(), ok)
+	project1, err := suite.service.project.GetById(rsp.Item.Id)
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), project.Status, project1.Status)
 }
 
@@ -783,4 +788,103 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_DeleteDeletedProject_Ok() {
 	err = suite.service.DeleteProject(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+}
+
+type ProjectTestSuite struct {
+	suite.Suite
+	service *Service
+	cache   CacheInterface
+	log     *zap.Logger
+	project *billing.Project
+}
+
+func Test_Project(t *testing.T) {
+	suite.Run(t, new(ProjectTestSuite))
+}
+
+func (suite *ProjectTestSuite) SetupTest() {
+	cfg, err := config.NewConfig()
+	if err != nil {
+		suite.FailNow("Config load failed", "%v", err)
+	}
+	cfg.AccountingCurrency = "RUB"
+
+	settings := database.Connection{
+		Host:     cfg.MongoHost,
+		Database: cfg.MongoDatabase,
+		User:     cfg.MongoUser,
+		Password: cfg.MongoPassword,
+	}
+
+	db, err := database.NewDatabase(settings)
+
+	if err != nil {
+		suite.FailNow("Database connection failed", "%v", err)
+	}
+
+	rub := &billing.Currency{
+		CodeInt:  643,
+		CodeA3:   "RUB",
+		Name:     &billing.Name{Ru: "Российский рубль", En: "Russian ruble"},
+		IsActive: true,
+	}
+
+	suite.project = &billing.Project{
+		Id:                 bson.NewObjectId().Hex(),
+		MerchantId:         bson.NewObjectId().Hex(),
+		CallbackCurrency:   rub.CodeA3,
+		CallbackProtocol:   "default",
+		LimitsCurrency:     rub.CodeA3,
+		MaxPaymentAmount:   15000,
+		MinPaymentAmount:   0,
+		Name:               map[string]string{"en": "test project 1"},
+		IsProductsCheckout: true,
+		SecretKey:          "test project 1 secret key",
+		Status:             pkg.ProjectStatusInProduction,
+	}
+
+	suite.log, err = zap.NewProduction()
+
+	if err != nil {
+		suite.FailNow("Logger initialization failed", "%v", err)
+	}
+
+	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
+		suite.FailNow("Insert currency test data failed", "%v", err)
+	}
+
+	redisdb := mock.NewTestRedis()
+	suite.cache = NewCacheRedis(redisdb)
+	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache)
+
+	if err := suite.service.Init(); err != nil {
+		suite.FailNow("Billing service initialization failed", "%v", err)
+	}
+
+	if err := suite.service.project.Insert(suite.project); err != nil {
+		suite.FailNow("Insert project test data failed", "%v", err)
+	}
+}
+
+func (suite *ProjectTestSuite) TearDownTest() {
+	if err := suite.service.db.Drop(); err != nil {
+		suite.FailNow("Database deletion failed", "%v", err)
+	}
+
+	suite.service.db.Close()
+}
+
+func (suite *ProjectTestSuite) TestProject_GetProjectById_Ok() {
+	c, err := suite.service.project.GetById(suite.project.Id)
+
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), c)
+	assert.Equal(suite.T(), suite.project.Id, c.Id)
+}
+
+func (suite *ProjectTestSuite) TestProject_GetProjectById_NotFound() {
+	_, err := suite.service.project.GetById(bson.NewObjectId().Hex())
+
+	assert.Error(suite.T(), err)
+	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, collectionProject))
 }

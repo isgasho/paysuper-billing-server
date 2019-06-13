@@ -5,13 +5,14 @@ import (
 	"errors"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"gopkg.in/mgo.v2"
 )
 
 const (
+	collectionProduct = "product"
+
 	productErrorNotFound         = "products with specified SKUs not found"
 	productErrorCountNotMatch    = "request products count and products in system count not match"
 	productErrorAmountNotMatch   = "one or more products amount not match"
@@ -68,7 +69,7 @@ func (s *Service) CreateOrUpdateProduct(ctx context.Context, req *grpc.Product, 
 
 	// Prevent duplicated products (by projectId+sku)
 	dupQuery := bson.M{"project_id": bson.ObjectIdHex(req.ProjectId), "sku": req.Sku, "deleted": false}
-	found, err := s.db.Collection(pkg.CollectionProduct).Find(dupQuery).Count()
+	found, err := s.db.Collection(collectionProduct).Find(dupQuery).Count()
 	if err != nil {
 		s.logError("Query to find duplicates failed", []interface{}{"err", err.Error(), "req", req})
 		return err
@@ -82,7 +83,7 @@ func (s *Service) CreateOrUpdateProduct(ctx context.Context, req *grpc.Product, 
 		return errors.New("pair projectId+Sku already exists")
 	}
 
-	_, err = s.db.Collection(pkg.CollectionProduct).UpsertId(bson.ObjectIdHex(req.Id), req)
+	_, err = s.db.Collection(collectionProduct).UpsertId(bson.ObjectIdHex(req.Id), req)
 
 	if err != nil {
 		s.logError("Query to create/update product failed", []interface{}{"err", err.Error(), "data", req})
@@ -125,7 +126,7 @@ func (s *Service) GetProductsForOrder(ctx context.Context, req *grpc.GetProducts
 
 	found := []*grpc.Product{}
 
-	err := s.db.Collection(pkg.CollectionProduct).Find(query).All(&found)
+	err := s.db.Collection(collectionProduct).Find(query).All(&found)
 
 	if err != nil {
 		s.logError("Query to find refund by id failed", []interface{}{"err", err.Error(), "req", req})
@@ -154,7 +155,7 @@ func (s *Service) ListProducts(ctx context.Context, req *grpc.ListProductsReques
 		query["name"] = bson.M{"$elemMatch": bson.M{"value": bson.RegEx{req.Name, "i"}}}
 	}
 
-	total, err := s.db.Collection(pkg.CollectionProduct).Find(query).Count()
+	total, err := s.db.Collection(collectionProduct).Find(query).Count()
 	if err != nil {
 		s.logError("Query to find refund by id failed", []interface{}{"err", err.Error(), "req", req})
 		return err
@@ -171,7 +172,7 @@ func (s *Service) ListProducts(ctx context.Context, req *grpc.ListProductsReques
 
 	items := []*grpc.Product{}
 
-	err = s.db.Collection(pkg.CollectionProduct).Find(query).Skip(int(req.Offset)).Limit(int(req.Limit)).All(&items)
+	err = s.db.Collection(collectionProduct).Find(query).Skip(int(req.Offset)).Limit(int(req.Limit)).All(&items)
 
 	if err != nil {
 		s.logError("Query to find refund by id failed", []interface{}{"err", err.Error(), "req", req})
@@ -189,7 +190,7 @@ func (s *Service) GetProduct(ctx context.Context, req *grpc.RequestProduct, res 
 		"merchant_id": bson.ObjectIdHex(req.MerchantId),
 		"deleted":     false,
 	}
-	err := s.db.Collection(pkg.CollectionProduct).Find(query).One(&res)
+	err := s.db.Collection(collectionProduct).Find(query).One(&res)
 
 	if err != nil {
 		s.logError("Query to find refund by id failed", []interface{}{"err", err.Error(), "query", query})
@@ -212,7 +213,7 @@ func (s *Service) DeleteProduct(ctx context.Context, req *grpc.RequestProduct, r
 	product.Deleted = true
 	product.UpdatedAt = ptypes.TimestampNow()
 
-	err = s.db.Collection(pkg.CollectionProduct).UpdateId(bson.ObjectIdHex(product.Id), product)
+	err = s.db.Collection(collectionProduct).UpdateId(bson.ObjectIdHex(product.Id), product)
 
 	if err != nil {
 		s.logError("Query to delete product failed", []interface{}{"err", err.Error(), "data", req})
@@ -224,7 +225,7 @@ func (s *Service) DeleteProduct(ctx context.Context, req *grpc.RequestProduct, r
 
 func (s *Service) getProductsCountByProject(projectId string) int32 {
 	query := bson.M{"project_id": bson.ObjectIdHex(projectId), "deleted": false}
-	count, err := s.db.Collection(pkg.CollectionProduct).Find(query).Count()
+	count, err := s.db.Collection(collectionProduct).Find(query).Count()
 
 	if err != nil {
 		s.logError("Query to get project products count failed", []interface{}{"err", err.Error(), "query", query})
@@ -248,7 +249,7 @@ func (s *Service) processTokenProducts(req *grpc.TokenRequest) ([]string, error)
 		"sku":        bson.M{"$in": sku},
 		"deleted":    false,
 	}
-	err := s.db.Collection(pkg.CollectionProduct).Find(query).All(&products)
+	err := s.db.Collection(collectionProduct).Find(query).All(&products)
 
 	if err != nil && err != mgo.ErrNotFound {
 		s.logError("Query to find project products failed", []interface{}{"err", err.Error(), "query", query})

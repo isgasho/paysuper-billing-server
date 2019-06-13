@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -290,7 +289,7 @@ func (h *cardPay) CreatePayment(requisites map[string]string) (url string, err e
 		return
 	}
 
-	h.processor.order.Status = constant.OrderStatusPaymentSystemRejectOnCreate
+	h.processor.order.PrivateStatus = constant.OrderStatusPaymentSystemRejectOnCreate
 
 	b, _ := json.Marshal(cpOrder)
 
@@ -300,6 +299,14 @@ func (h *cardPay) CreatePayment(requisites map[string]string) (url string, err e
 	}
 
 	req, err := http.NewRequest(cardPayPaths[action].method, qUrl, bytes.NewBuffer(b))
+	if err != nil {
+		zap.L().Error(
+			"CardPay create payment failed",
+			zap.Error(err),
+			zap.Any("request", cpOrder),
+		)
+		return
+	}
 
 	token := h.getToken(h.processor.order.PaymentMethod.Params.ExternalId)
 	auth := strings.Title(token.TokenType) + " " + token.AccessToken
@@ -311,13 +318,14 @@ func (h *cardPay) CreatePayment(requisites map[string]string) (url string, err e
 
 	if err != nil {
 		zap.L().Error(
-			fmt.Sprintf("[PAYONE_BILLING] %s", "CardPay create payment failer"),
+			"CardPay create payment failed",
 			zap.Error(err),
 			zap.Any("request", cpOrder),
 		)
+		return
 	}
 
-	if err != nil || resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusOK {
 		return "", errors.New(paymentSystemErrorCreateRequestFailed)
 	}
 
@@ -345,7 +353,7 @@ func (h *cardPay) CreatePayment(requisites map[string]string) (url string, err e
 		return
 	}
 
-	h.processor.order.Status = constant.OrderStatusPaymentSystemCreate
+	h.processor.order.PrivateStatus = constant.OrderStatusPaymentSystemCreate
 	url = cpResponse.RedirectUrl
 
 	return
@@ -354,7 +362,7 @@ func (h *cardPay) CreatePayment(requisites map[string]string) (url string, err e
 func (h *cardPay) ProcessPayment(message proto.Message, raw, signature string) (err error) {
 	req := message.(*billing.CardPayPaymentCallback)
 	order := h.processor.order
-	order.Status = constant.OrderStatusPaymentSystemReject
+	order.PrivateStatus = constant.OrderStatusPaymentSystemReject
 
 	err = h.checkCallbackRequestSignature(raw, signature)
 
@@ -395,18 +403,18 @@ func (h *cardPay) ProcessPayment(message proto.Message, raw, signature string) (
 
 	switch req.PaymentMethod {
 	case constant.PaymentSystemGroupAliasBankCard:
-		order.PaymentMethodPayerAccount = req.CardAccount.MaskedPan
+
 		order.PaymentMethodTxnParams = req.GetBankCardTxnParams()
 		break
 	case constant.PaymentSystemGroupAliasQiwi,
 		constant.PaymentSystemGroupAliasWebMoney,
 		constant.PaymentSystemGroupAliasNeteller,
 		constant.PaymentSystemGroupAliasAlipay:
-		order.PaymentMethodPayerAccount = req.EwalletAccount.Id
+
 		order.PaymentMethodTxnParams = req.GetEWalletTxnParams()
 		break
 	case constant.PaymentSystemGroupAliasBitcoin:
-		order.PaymentMethodPayerAccount = req.CryptocurrencyAccount.CryptoAddress
+
 		order.PaymentMethodTxnParams = req.GetCryptoCurrencyTxnParams()
 		break
 	default:
@@ -415,19 +423,20 @@ func (h *cardPay) ProcessPayment(message proto.Message, raw, signature string) (
 
 	switch req.GetStatus() {
 	case pkg.CardPayPaymentResponseStatusDeclined:
-		order.Status = constant.OrderStatusPaymentSystemDeclined
+		order.PrivateStatus = constant.OrderStatusPaymentSystemDeclined
 		break
 	case pkg.CardPayPaymentResponseStatusCancelled:
-		order.Status = constant.OrderStatusPaymentSystemCanceled
+		order.PrivateStatus = constant.OrderStatusPaymentSystemCanceled
+		order.CanceledAt = ptypes.TimestampNow()
 		break
 	case pkg.CardPayPaymentResponseStatusCompleted:
-		order.Status = constant.OrderStatusPaymentSystemComplete
+		order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
 		break
 	default:
 		return NewError(paymentSystemErrorRequestTemporarySkipped, pkg.StatusTemporary)
 	}
 
-	order.PaymentMethodOrderId = req.GetId()
+	order.Transaction = req.GetId()
 	order.PaymentMethodOrderClosedAt = ts
 	order.PaymentMethodIncomeAmount = reqAmount
 	order.PaymentMethodIncomeCurrency = order.PaymentMethodOutcomeCurrency
@@ -827,7 +836,7 @@ func (h *cardPay) CreateRefund(refund *billing.Refund) error {
 			Description: refund.Reason,
 		},
 		PaymentData: &CardPayRecurringDataFiling{
-			Id: h.processor.order.PaymentMethodOrderId,
+			Id: h.processor.order.Transaction,
 		},
 		RefundData: &CardPayRefundData{
 			Amount:   refund.Amount,

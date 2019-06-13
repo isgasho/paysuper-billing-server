@@ -6,8 +6,10 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
+	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
@@ -19,6 +21,7 @@ type FinanceTestSuite struct {
 	suite.Suite
 	service *Service
 	log     *zap.Logger
+	cache   CacheInterface
 
 	project       *billing.Project
 	paymentMethod *billing.PaymentMethod
@@ -55,28 +58,12 @@ func (suite *FinanceTestSuite) SetupTest() {
 		IsActive: true,
 	}
 
-	currency := []interface{}{rub}
-
-	err = db.Collection(pkg.CollectionCurrency).Insert(currency...)
-
-	if err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
-
-	rate := []interface{}{
-		&billing.CurrencyRate{
-			CurrencyFrom: 643,
-			CurrencyTo:   840,
-			Rate:         64,
-			Date:         ptypes.TimestampNow(),
-			IsActive:     true,
-		},
-	}
-
-	err = db.Collection(pkg.CollectionCurrencyRate).Insert(rate...)
-
-	if err != nil {
-		suite.FailNow("Insert rates test data failed", "%v", err)
+	rate := &billing.CurrencyRate{
+		CurrencyFrom: 643,
+		CurrencyTo:   840,
+		Rate:         64,
+		Date:         ptypes.TimestampNow(),
+		IsActive:     true,
 	}
 
 	pmBankCard := &billing.PaymentMethod{
@@ -102,9 +89,6 @@ func (suite *FinanceTestSuite) SetupTest() {
 		Name:     &billing.Name{Ru: "Россия", En: "Russia (Russian Federation)"},
 		IsActive: true,
 	}
-
-	err = db.Collection(pkg.CollectionCountry).Insert(country)
-	assert.NoError(suite.T(), err, "Insert country test data failed")
 
 	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -360))
 	assert.NoError(suite.T(), err, "Generate merchant date failed")
@@ -163,9 +147,6 @@ func (suite *FinanceTestSuite) SetupTest() {
 		},
 	}
 
-	err = db.Collection(pkg.CollectionMerchant).Insert(merchant)
-	assert.NoError(suite.T(), err, "Insert merchant test data failed")
-
 	project := &billing.Project{
 		Id:                 bson.NewObjectId().Hex(),
 		CallbackCurrency:   rub.CodeA3,
@@ -179,9 +160,6 @@ func (suite *FinanceTestSuite) SetupTest() {
 		Status:             pkg.ProjectStatusInProduction,
 		MerchantId:         merchant.Id,
 	}
-
-	err = db.Collection(pkg.CollectionProject).Insert(project)
-	assert.NoError(suite.T(), err, "Insert project test data failed")
 
 	pmQiwi := &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
@@ -212,14 +190,6 @@ func (suite *FinanceTestSuite) SetupTest() {
 		},
 		Type:     "crypto",
 		IsActive: true,
-	}
-
-	pms := []interface{}{pmBankCard, pmQiwi, pmBitcoin}
-
-	err = db.Collection(pkg.CollectionPaymentMethod).Insert(pms...)
-
-	if err != nil {
-		suite.FailNow("Insert payment methods test data failed", "%v", err)
 	}
 
 	commissionStartDate, err := ptypes.TimestampProto(time.Now().Add(time.Minute * -10))
@@ -255,7 +225,7 @@ func (suite *FinanceTestSuite) SetupTest() {
 		},
 	}
 
-	err = db.Collection(pkg.CollectionCommission).Insert(commissions...)
+	err = db.Collection(collectionCommission).Insert(commissions...)
 
 	if err != nil {
 		suite.FailNow("Insert commission test data failed", "%v", err)
@@ -267,11 +237,37 @@ func (suite *FinanceTestSuite) SetupTest() {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
-	suite.service = NewBillingService(db, cfg, make(chan bool, 1), nil, nil, nil, nil, nil)
-	err = suite.service.Init()
+	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
+		suite.FailNow("Insert currency test data failed", "%v", err)
+	}
 
-	if err != nil {
+	redisdb := mock.NewTestRedis()
+	suite.cache = NewCacheRedis(redisdb)
+	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache)
+
+	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
+	}
+
+	pms := []*billing.PaymentMethod{pmBankCard, pmQiwi, pmBitcoin}
+	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {
+		suite.FailNow("Insert payment methods test data failed", "%v", err)
+	}
+
+	if err := suite.service.merchant.Insert(merchant); err != nil {
+		suite.FailNow("Insert merchant test data failed", "%v", err)
+	}
+
+	if err := suite.service.project.Insert(project); err != nil {
+		suite.FailNow("Insert project test data failed", "%v", err)
+	}
+
+	if err := suite.service.country.Insert(country); err != nil {
+		suite.FailNow("Insert country test data failed", "%v", err)
+	}
+
+	if err = suite.service.currencyRate.Insert(rate); err != nil {
+		suite.FailNow("Insert rates test data failed", "%v", err)
 	}
 
 	suite.project = project
@@ -287,7 +283,7 @@ func (suite *FinanceTestSuite) TearDownTest() {
 }
 
 func (suite *FinanceTestSuite) TestFinance_GetCurrencyByCodeA3Ok() {
-	c, err := suite.service.GetCurrencyByCodeA3("RUB")
+	c, err := suite.service.currency.GetByCodeA3("RUB")
 
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), c)
@@ -295,18 +291,18 @@ func (suite *FinanceTestSuite) TestFinance_GetCurrencyByCodeA3Ok() {
 }
 
 func (suite *FinanceTestSuite) TestFinance_GetCurrencyByCodeA3Error() {
-	c, err := suite.service.GetCurrencyByCodeA3("AUD")
+	c, err := suite.service.currency.GetByCodeA3("AUD")
 
 	assert.NotNil(suite.T(), err)
 	assert.Nil(suite.T(), c)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, pkg.CollectionCurrency), err.Error())
+	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionCurrency), err.Error())
 }
 
 func (suite *FinanceTestSuite) TestFinance_ConvertOk() {
 	origin := float64(1000)
 	expect := 15.63
 
-	amount, err := suite.service.Convert(643, 840, origin)
+	amount, err := suite.service.currencyRate.Convert(643, 840, origin)
 
 	assert.Nil(suite.T(), err)
 	assert.True(suite.T(), amount > 0)
@@ -314,25 +310,25 @@ func (suite *FinanceTestSuite) TestFinance_ConvertOk() {
 }
 
 func (suite *FinanceTestSuite) TestFinance_ConvertCurrencyFromError() {
-	amount, err := suite.service.Convert(980, 840, 1000)
+	amount, err := suite.service.currencyRate.Convert(980, 840, 1000)
 
 	assert.Error(suite.T(), err)
 	assert.True(suite.T(), amount == 0)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, pkg.CollectionCurrencyRate), err.Error())
+	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionCurrencyRate), err.Error())
 }
 
 func (suite *FinanceTestSuite) TestFinance_ConvertCurrencyToError() {
-	amount, err := suite.service.Convert(643, 980, 1000)
+	amount, err := suite.service.currencyRate.Convert(643, 980, 1000)
 
 	assert.Error(suite.T(), err)
 	assert.True(suite.T(), amount == 0)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, pkg.CollectionCurrencyRate), err.Error())
+	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionCurrencyRate), err.Error())
 }
 
 func (suite *FinanceTestSuite) TestFinance_CalculateCommissionOk() {
 	amount := float64(100)
 
-	commission, err := suite.service.CalculatePmCommission(suite.project.Id, suite.paymentMethod.Id, amount)
+	commission, err := suite.service.commission.CalculatePmCommission(suite.project.Id, suite.paymentMethod.Id, amount)
 
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), commission)
@@ -341,17 +337,17 @@ func (suite *FinanceTestSuite) TestFinance_CalculateCommissionOk() {
 }
 
 func (suite *FinanceTestSuite) TestFinance_CalculateCommissionProjectError() {
-	commission, err := suite.service.CalculatePmCommission(bson.NewObjectId().Hex(), suite.paymentMethod.Id, float64(100))
+	commission, err := suite.service.commission.CalculatePmCommission(bson.NewObjectId().Hex(), suite.paymentMethod.Id, float64(100))
 
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), float64(0), commission)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, pkg.CollectionCommission), err.Error())
+	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionCommission), err.Error())
 }
 
-func (suite *FinanceTestSuite) TestFinance_CalculateCommissionPaymentMethodError() {
-	commission, err := suite.service.CalculatePmCommission(suite.project.Id, bson.NewObjectId().Hex(), float64(100))
-
-	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), float64(0), commission)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, pkg.CollectionCommission), err.Error())
+func (suite *FinanceTestSuite) TestFinance_CalculateCommissionPaymentMethod_DefaultPaymentCommission() {
+	commission, err := suite.service.commission.CalculatePmCommission(suite.project.Id, bson.NewObjectId().Hex(), float64(100))
+	dCommission := suite.service.getDefaultPaymentMethodCommissions()
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), commission)
+	assert.Equal(suite.T(), tools.FormatAmount(float64(100)*(dCommission.Fee/100)), commission)
 }

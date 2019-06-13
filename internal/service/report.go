@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"github.com/globalsign/mgo/bson"
-	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"time"
@@ -11,6 +11,8 @@ import (
 
 const (
 	reportErrorNotFound = "not found"
+
+	orderFailedNotificationQueryFieldMask = "is_notifications_sent.%s"
 )
 
 func (s *Service) FindAllOrders(
@@ -69,8 +71,8 @@ func (s *Service) FindAllOrders(
 			query["payment_method._id"] = bson.M{"$in": paymentMethod}
 		}
 
-		if len(req.Status) > 0 {
-			query["status"] = bson.M{"$in": req.Status}
+		if len(req.PrivateStatus) > 0 {
+			query["private_status"] = bson.M{"$in": req.PrivateStatus}
 		}
 
 		if req.Account != "" {
@@ -104,18 +106,23 @@ func (s *Service) FindAllOrders(
 		if len(prjDates) > 0 {
 			query["created_at"] = prjDates
 		}
+
+		if req.StatusNotificationFailedFor != "" {
+			field := fmt.Sprintf(orderFailedNotificationQueryFieldMask, req.StatusNotificationFailedFor)
+			query[field] = false
+		}
 	}
 
-	co, err := s.db.Collection(pkg.CollectionOrder).Find(query).Count()
+	co, err := s.db.Collection(collectionOrder).Find(query).Count()
 
 	if err != nil {
-		s.logError("Query from table ended with error", []interface{}{"table", pkg.CollectionOrder, "error", err})
+		s.logError("Query from table ended with error", []interface{}{"table", collectionOrder, "error", err})
 		return err
 	}
 
 	var o []*billing.Order
-	if err := s.db.Collection(pkg.CollectionOrder).Find(query).Sort(req.Sort...).Limit(int(req.Limit)).Skip(int(req.Offset)).All(&o); err != nil {
-		s.logError("Query from table ended with error", []interface{}{"table", pkg.CollectionOrder, "error", err})
+	if err := s.db.Collection(collectionOrder).Find(query).Sort(req.Sort...).Limit(int(req.Limit)).Skip(int(req.Offset)).All(&o); err != nil {
+		s.logError("Query from table ended with error", []interface{}{"table", collectionOrder, "error", err})
 		return err
 	}
 
@@ -136,10 +143,10 @@ func (s *Service) GetOrder(
 		query["project.merchant_id"] = bson.ObjectIdHex(req.Merchant)
 	}
 
-	err := s.db.Collection(pkg.CollectionOrder).Find(query).One(&rsp)
+	err := s.db.Collection(collectionOrder).Find(query).One(&rsp)
 
 	if err != nil {
-		s.logError("Query from table ended with error", []interface{}{"table", pkg.CollectionOrder, "error", err, "query", query})
+		s.logError("Query from table ended with error", []interface{}{"table", collectionOrder, "error", err, "query", query})
 		return err
 	}
 

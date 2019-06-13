@@ -6,7 +6,6 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
-	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/stoewer/go-strcase"
@@ -29,6 +28,7 @@ type ProductTestSuite struct {
 	suite.Suite
 	service *Service
 	log     *zap.Logger
+	cache   CacheInterface
 
 	project    *billing.Project
 	pmBankCard *billing.PaymentMethod
@@ -40,9 +40,9 @@ func Test_Product(t *testing.T) {
 
 func (suite *ProductTestSuite) SetupTest() {
 	cfg, err := config.NewConfig()
-	cfg.AccountingCurrency = "RUB"
-
 	assert.NoError(suite.T(), err, "Config load failed")
+
+	cfg.AccountingCurrency = "RUB"
 
 	settings := database.Connection{
 		Host:     cfg.MongoHost,
@@ -69,10 +69,6 @@ func (suite *ProductTestSuite) SetupTest() {
 		IsActive: true,
 	}
 
-	currency := []interface{}{rub, usd}
-
-	err = db.Collection(pkg.CollectionCurrency).Insert(currency...)
-
 	if err != nil {
 		suite.FailNow("Insert currency test data failed", "%v", err)
 	}
@@ -83,18 +79,26 @@ func (suite *ProductTestSuite) SetupTest() {
 	broker, err := rabbitmq.NewBroker(cfg.BrokerAddress)
 	assert.NoError(suite.T(), err, "Creating RabbitMQ publisher failed")
 
+	if err := InitTestCurrency(db, []interface{}{rub, usd}); err != nil {
+		suite.FailNow("Insert currency test data failed", "%v", err)
+	}
+
+	redisdb := mock.NewTestRedis()
+	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
 		db,
 		cfg,
-		make(chan bool, 1),
 		mock.NewGeoIpServiceTestOk(),
 		mock.NewRepositoryServiceOk(),
 		mock.NewTaxServiceOkMock(),
 		broker,
 		nil,
+		suite.cache,
 	)
-	err = suite.service.Init()
-	assert.NoError(suite.T(), err, "Billing service initialization failed")
+
+	if err := suite.service.Init(); err != nil {
+		suite.FailNow("Billing service initialization failed", "%v", err)
+	}
 }
 
 func (suite *ProductTestSuite) TearDownTest() {
@@ -142,7 +146,7 @@ func (suite *ProductTestSuite) TestProduct_CRUDProduct_Ok() {
 
 	createdProductId = res.Id
 
-	// Get product OK
+	// GetById product OK
 
 	req2 := &grpc.RequestProduct{
 		Id:         createdProductId,
@@ -440,7 +444,7 @@ func (suite *ProductTestSuite) TestProduct_ListProduct_Ok() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res7.Total, int32(3))
 
-	// Get products for order
+	// GetById products for order
 
 	res8 := grpc.ListProductsResponse{}
 

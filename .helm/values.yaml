@@ -35,7 +35,12 @@ backend:
     - CUSTOMER_COOKIE_PRIVATE_KEY
     - REDIS_HOST
     - REDIS_PASSWORD
-    
+    - CACHE_REDIS_ADDRESS
+    - CACHE_REDIS_PASSWORD
+    - CACHE_REDIS_POOL_SIZE
+    - CACHE_REDIS_MAX_RETRIES
+    - CACHE_REDIS_MAX_REDIRECTS
+
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little

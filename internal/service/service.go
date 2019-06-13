@@ -23,13 +23,13 @@ import (
 	"go.uber.org/zap"
 	"strings"
 	"sync"
-	"time"
 )
 
 const (
-	errorNotFound                   = "[PAYONE_BILLING] %s not found"
-	errorQueryMask                  = "[PAYONE_BILLING] Query from collection \"%s\" failed"
-	errorAccountingCurrencyNotFound = "[PAYONE_BILLING] Accounting currency not found"
+	errorNotFound                   = "%s not found"
+	errorQueryMask                  = "Query from collection \"%s\" failed"
+	errorAccountingCurrencyNotFound = "Accounting currency not found"
+	errorInterfaceCast              = "Unable to cast interface to object %s"
 
 	errorBbNotFoundMessage = "not found"
 
@@ -53,24 +53,10 @@ const (
 	centrifugoChannel = "paysuper-billing-server"
 )
 
-var (
-	handlers = map[string]func(*Service) Cacher{
-		pkg.CollectionCurrency:      newCurrencyHandler,
-		pkg.CollectionCountry:       newCountryHandler,
-		pkg.CollectionProject:       newProjectHandler,
-		pkg.CollectionCurrencyRate:  newCurrencyRateHandler,
-		pkg.CollectionPaymentMethod: newPaymentMethodHandler,
-		pkg.CollectionCommission:    newCommissionHandler,
-		pkg.CollectionMerchant:      newMerchantHandler,
-		pkg.CollectionSystemFees:    newSystemFeeHandler,
-	}
-)
-
 type Service struct {
 	db               *database.Source
 	mx               sync.Mutex
 	cfg              *config.Config
-	exitCh           chan bool
 	ctx              context.Context
 	geo              proto.GeoIpService
 	rep              repository.RepositoryService
@@ -78,59 +64,51 @@ type Service struct {
 	broker           *rabbitmq.Broker
 	centrifugoClient *gocent.Client
 	redis            *redis.Client
+	cacher           CacheInterface
 
 	accountingCurrency *billing.Currency
 
-	currencyCache        map[string]*billing.Currency
-	countryCache         map[string]*billing.Country
-	projectCache         map[string]*billing.Project
-	currencyRateCache    map[int32]map[int32]*billing.CurrencyRate
-	paymentMethodCache   map[string]map[int32]*billing.PaymentMethod
-	paymentMethodIdCache map[string]*billing.PaymentMethod
-
-	merchantCache          map[string]*billing.Merchant
-	merchantPaymentMethods map[string]map[string]*billing.MerchantPaymentMethod
-
-	commissionCache map[string]map[string]*billing.MerchantPaymentMethodCommissions
-	systemFeesCache map[string]map[string]map[string]*billing.SystemFees
-
-	rebuild      bool
-	rebuildError error
-}
-
-type Cacher interface {
-	getAll() ([]interface{}, error)
-	setCache([]interface{})
+	currency      *Currency
+	currencyRate  *CurrencyRate
+	commission    *Commission
+	country       *Country
+	project       *Project
+	merchant      *Merchant
+	paymentMethod *PaymentMethod
+	systemFees    *SystemFee
 }
 
 func NewBillingService(
 	db *database.Source,
 	cfg *config.Config,
-	exitCh chan bool,
 	geo proto.GeoIpService,
 	rep repository.RepositoryService,
 	tax tax_service.TaxService,
 	broker *rabbitmq.Broker,
 	redis *redis.Client,
+	cache CacheInterface,
 ) *Service {
 	return &Service{
 		db:     db,
 		cfg:    cfg,
-		exitCh: exitCh,
 		geo:    geo,
 		rep:    rep,
 		tax:    tax,
 		broker: broker,
 		redis:  redis,
+		cacher: cache,
 	}
 }
 
 func (s *Service) Init() (err error) {
-	err = s.initCache()
-
-	if err != nil {
-		return
-	}
+	s.paymentMethod = newPaymentMethodService(s)
+	s.merchant = newMerchantService(s)
+	s.currency = newCurrencyService(s)
+	s.currencyRate = newCurrencyRateService(s)
+	s.commission = newCommissionService(s)
+	s.country = newCountryService(s)
+	s.project = newProjectService(s)
+	s.systemFees = newSystemFeesService(s)
 
 	s.centrifugoClient = gocent.New(
 		gocent.Config{
@@ -140,94 +118,13 @@ func (s *Service) Init() (err error) {
 		},
 	)
 
-	s.accountingCurrency, err = s.GetCurrencyByCodeA3(s.cfg.AccountingCurrency)
+	s.accountingCurrency, err = s.currency.GetByCodeA3(s.cfg.AccountingCurrency)
 
 	if err != nil {
 		return errors.New(errorAccountingCurrencyNotFound)
 	}
 
-	go s.reBuildCache()
-
 	return
-}
-
-func (s *Service) reBuildCache() {
-	var err error
-	var key string
-
-	curTicker := time.NewTicker(time.Second * time.Duration(s.cfg.CurrencyTimeout))
-	countryTicker := time.NewTicker(time.Second * time.Duration(s.cfg.CountryTimeout))
-	projectTicker := time.NewTicker(time.Second * time.Duration(s.cfg.ProjectTimeout))
-	currencyRateTicker := time.NewTicker(time.Second * time.Duration(s.cfg.CurrencyRateTimeout))
-	paymentMethodTicker := time.NewTicker(time.Second * time.Duration(s.cfg.PaymentMethodTimeout))
-	commissionTicker := time.NewTicker(time.Second * time.Duration(s.cfg.CommissionTimeout))
-	systemFeesTimer := time.NewTicker(time.Second * time.Duration(s.cfg.SystemFeesTimeout))
-
-	s.rebuild = true
-
-	for {
-		select {
-		case <-curTicker.C:
-			err = s.cache(pkg.CollectionCurrency, handlers[pkg.CollectionCurrency](s))
-			key = pkg.CollectionCurrency
-		case <-countryTicker.C:
-			err = s.cache(pkg.CollectionCountry, handlers[pkg.CollectionCountry](s))
-			key = pkg.CollectionCountry
-		case <-projectTicker.C:
-			err = s.cache(pkg.CollectionProject, handlers[pkg.CollectionProject](s))
-			key = pkg.CollectionProject
-		case <-currencyRateTicker.C:
-			err = s.cache(pkg.CollectionCurrencyRate, handlers[pkg.CollectionCurrencyRate](s))
-			key = pkg.CollectionCurrencyRate
-		case <-paymentMethodTicker.C:
-			err = s.cache(pkg.CollectionPaymentMethod, handlers[pkg.CollectionPaymentMethod](s))
-			key = pkg.CollectionPaymentMethod
-		case <-commissionTicker.C:
-			err = s.cache(pkg.CollectionCommission, handlers[pkg.CollectionCommission](s))
-			key = pkg.CollectionCommission
-		case <-systemFeesTimer.C:
-			s.mx.Lock()
-			s.systemFeesCache = make(map[string]map[string]map[string]*billing.SystemFees)
-			s.mx.Unlock()
-		case <-s.exitCh:
-			s.rebuild = false
-			return
-		}
-
-		if err != nil {
-			s.rebuild = false
-			s.rebuildError = err
-
-			zap.S().Errorw("Rebuild cache failed", "error", err, "cached_collection", key)
-		}
-	}
-}
-
-func (s *Service) cache(key string, handler Cacher) error {
-	rec, err := handler.getAll()
-
-	if err != nil {
-		return err
-	}
-
-	s.mx.Lock()
-	defer s.mx.Unlock()
-
-	handler.setCache(rec)
-
-	return nil
-}
-
-func (s *Service) initCache() error {
-	for k, handler := range handlers {
-		err := s.cache(k, handler(s))
-
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func (s *Service) isProductionEnvironment() bool {
@@ -238,22 +135,18 @@ func (s *Service) logError(msg string, data []interface{}) {
 	zap.S().Errorw(fmt.Sprintf("[PAYSUPER_BILLING] %s", msg), data...)
 }
 
-func (s *Service) RebuildCache(ctx context.Context, req *grpc.EmptyRequest, res *grpc.EmptyResponse) error {
-	return nil
-}
-
 func (s *Service) UpdateOrder(ctx context.Context, req *billing.Order, rsp *grpc.EmptyResponse) error {
-	err := s.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(req.Id), req)
+	err := s.updateOrder(req)
 
 	if err != nil {
-		s.logError("Update order failed", []interface{}{"error", err.Error(), "order", req})
+		return err
 	}
 
 	return nil
 }
 
 func (s *Service) UpdateMerchant(ctx context.Context, req *billing.Merchant, rsp *grpc.EmptyResponse) error {
-	err := s.db.Collection(pkg.CollectionMerchant).UpdateId(bson.ObjectIdHex(req.Id), req)
+	err := s.merchant.Update(req)
 
 	if err != nil {
 		s.logError("Update merchant failed", []interface{}{"error", err.Error(), "order", req})
@@ -263,7 +156,7 @@ func (s *Service) UpdateMerchant(ctx context.Context, req *billing.Merchant, rsp
 }
 
 func (s *Service) GetConvertRate(ctx context.Context, req *grpc.ConvertRateRequest, rsp *grpc.ConvertRateResponse) error {
-	rate, err := s.Convert(req.From, req.To, 1)
+	rate, err := s.currencyRate.Convert(req.From, req.To, 1)
 
 	if err != nil {
 		s.logError("Get convert rate failed", []interface{}{"error", err.Error(), "from", req.From, "to", req.To})

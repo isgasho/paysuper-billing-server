@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
@@ -12,6 +13,10 @@ import (
 )
 
 const (
+	cacheProjectId = "project:id:%s"
+
+	collectionProject = "project"
+
 	projectErrorNotFound                  = "project with specified identifier not found"
 	projectErrorNameDefaultLangRequired   = "project name in \"" + DefaultLanguage + "\" locale is required"
 	projectErrorCallbackCurrencyIncorrect = "project callback currency is incorrect"
@@ -31,7 +36,7 @@ func (s *Service) ChangeProject(
 	var project *billing.Project
 	var err error
 
-	if _, ok := s.merchantCache[req.MerchantId]; !ok {
+	if _, err := s.merchant.GetById(req.MerchantId); err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = merchantErrorNotFound
 
@@ -57,7 +62,7 @@ func (s *Service) ChangeProject(
 	}
 
 	if req.CallbackCurrency != "" {
-		if _, ok := s.currencyCache[req.CallbackCurrency]; !ok {
+		if _, err := s.currency.GetByCodeA3(req.CallbackCurrency); err != nil {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = projectErrorCallbackCurrencyIncorrect
 
@@ -66,7 +71,7 @@ func (s *Service) ChangeProject(
 	}
 
 	if req.LimitsCurrency != "" {
-		if _, ok := s.currencyCache[req.LimitsCurrency]; !ok {
+		if _, err := s.currency.GetByCodeA3(req.LimitsCurrency); err != nil {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = projectErrorLimitCurrencyIncorrect
 
@@ -97,7 +102,12 @@ func (s *Service) ChangeProject(
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = project
 
-	s.updateProjectCache(project)
+	if err := s.project.Update(project); err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = err.Error()
+
+		return nil
+	}
 
 	return nil
 }
@@ -153,7 +163,7 @@ func (s *Service) ListProjects(
 		query["status"] = bson.M{"$in": req.Statuses}
 	}
 
-	count, err := s.db.Collection(pkg.CollectionProject).Find(query).Count()
+	count, err := s.db.Collection(collectionProject).Find(query).Count()
 
 	if err != nil {
 		s.logError("Query to count projects failed", []interface{}{"err", err.Error(), "query", query})
@@ -164,7 +174,7 @@ func (s *Service) ListProjects(
 		{"$match": query},
 		{
 			"$lookup": bson.M{
-				"from":         pkg.CollectionProduct,
+				"from":         collectionProduct,
 				"localField":   "_id",
 				"foreignField": "project_id",
 				"as":           "products",
@@ -206,7 +216,7 @@ func (s *Service) ListProjects(
 		afQuery = s.mgoPipeSort(afQuery, req.Sort)
 	}
 
-	err = s.db.Collection(pkg.CollectionProject).Pipe(afQuery).All(&projects)
+	err = s.db.Collection(collectionProject).Pipe(afQuery).All(&projects)
 
 	if err != nil {
 		s.logError("Query to find projects failed", []interface{}{"err", err.Error(), "query", afQuery})
@@ -250,24 +260,21 @@ func (s *Service) DeleteProject(
 	}
 
 	project.Status = pkg.ProjectStatusDeleted
-	err = s.db.Collection(pkg.CollectionProject).UpdateId(bson.ObjectIdHex(project.Id), project)
 
-	if err != nil {
+	if err := s.project.Update(project); err != nil {
 		s.logError("Query to delete project failed", []interface{}{"err", err.Error(), "data", project})
 
 		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = orderErrorUnknown
+		rsp.Message = err.Error()
 
 		return nil
 	}
-
-	s.updateProjectCache(project)
 
 	return nil
 }
 
 func (s *Service) getProjectBy(query bson.M) (project *billing.Project, err error) {
-	err = s.db.Collection(pkg.CollectionProject).Find(query).One(&project)
+	err = s.db.Collection(collectionProject).Find(query).One(&project)
 
 	if err != nil {
 		if err != mgo.ErrNotFound {
@@ -307,21 +314,9 @@ func (s *Service) createProject(req *billing.Project) (*billing.Project, error) 
 		UpdatedAt:                ptypes.TimestampNow(),
 	}
 
-	err := s.db.Collection(pkg.CollectionProject).Insert(project)
-
-	if err != nil {
+	if err := s.project.Insert(project); err != nil {
 		s.logError("Query to create project failed", []interface{}{"err", err.Error(), "data", project})
 		return nil, errors.New(orderErrorUnknown)
-	}
-
-	// Add payment methods default commissions to created project
-	s.mx.Lock()
-	defer s.mx.Unlock()
-
-	s.commissionCache[project.Id] = make(map[string]*billing.MerchantPaymentMethodCommissions)
-
-	for k := range s.paymentMethodIdCache {
-		s.commissionCache[project.Id][k] = s.getDefaultPaymentMethodCommissions()
 	}
 
 	return project, nil
@@ -354,9 +349,7 @@ func (s *Service) updateProject(req *billing.Project, project *billing.Project) 
 	project.UrlCheckAccount = req.UrlCheckAccount
 	project.UrlProcessPayment = req.UrlProcessPayment
 
-	err := s.db.Collection(pkg.CollectionProject).UpdateId(bson.ObjectIdHex(project.Id), project)
-
-	if err != nil {
+	if err := s.project.Update(project); err != nil {
 		s.logError("Query to update project failed", []interface{}{"err", err.Error(), "data", project})
 		return errors.New(orderErrorUnknown)
 	}
@@ -366,10 +359,62 @@ func (s *Service) updateProject(req *billing.Project, project *billing.Project) 
 	return nil
 }
 
-func (s *Service) updateProjectCache(project *billing.Project) {
-	s.mx.Lock()
-	s.projectCache[project.Id] = project
-	s.mx.Unlock()
+func newProjectService(svc *Service) *Project {
+	s := &Project{svc: svc}
+	return s
+}
 
-	return
+func (h *Project) Insert(project *billing.Project) error {
+	if err := h.svc.db.Collection(collectionProject).Insert(project); err != nil {
+		return err
+	}
+
+	if err := h.svc.cacher.Set(fmt.Sprintf(cacheProjectId, project.Id), project, 0); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h *Project) MultipleInsert(projects []*billing.Project) error {
+	p := make([]interface{}, len(projects))
+	for i, v := range projects {
+		p[i] = v
+	}
+
+	if err := h.svc.db.Collection(collectionProject).Insert(p...); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h *Project) Update(project *billing.Project) error {
+	if err := h.svc.db.Collection(collectionProject).UpdateId(bson.ObjectIdHex(project.Id), project); err != nil {
+		return err
+	}
+
+	if err := h.svc.cacher.Set(fmt.Sprintf(cacheProjectId, project.Id), project, 0); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h Project) GetById(id string) (*billing.Project, error) {
+	var c billing.Project
+	key := fmt.Sprintf(cacheProjectId, id)
+
+	if err := h.svc.cacher.Get(key, c); err == nil {
+		return &c, nil
+	}
+
+	if err := h.svc.db.Collection(collectionProject).
+		Find(bson.M{"_id": bson.ObjectIdHex(id)}).
+		One(&c); err != nil {
+		return nil, fmt.Errorf(errorNotFound, collectionProject)
+	}
+
+	_ = h.svc.cacher.Set(key, c, 0)
+	return &c, nil
 }

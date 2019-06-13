@@ -25,6 +25,7 @@ import (
 	"github.com/streadway/amqp"
 	"github.com/ttacon/libphonenumber"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
 	"regexp"
 	"sort"
 	"strconv"
@@ -76,6 +77,8 @@ const (
 	orderErrorNoDescriptionInRequiredLanguage          = "no description in required language %s"
 	orderErrorProjectMerchantNotFound                  = "merchant for project with specified identifier not found"
 	orderErrorRecurringCardNotOwnToUser                = "you can't use not own bank card for payment"
+	orderErrorPublishNotificationFailed                = "publish order notification failed"
+	orderErrorUpdateOrderDataFailed                    = "Update order data failed"
 
 	orderErrorCreatePaymentRequiredFieldIdNotFound            = "required field with order identifier not found"
 	orderErrorCreatePaymentRequiredFieldPaymentMethodNotFound = "required field with payment method identifier not found"
@@ -98,6 +101,9 @@ const (
 
 	taxTypeVat      = "vat"
 	taxTypeSalesTax = "sales_tax"
+
+	collectionOrder   = "order"
+	collectionBinData = "bank_bin"
 )
 
 type orderCreateRequestProcessorChecked struct {
@@ -232,7 +238,7 @@ func (s *Service) OrderCreateProcess(
 	}
 
 	if req.PaymentMethod != "" {
-		pm, err := s.GetPaymentMethodByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
+		pm, err := s.paymentMethod.GetByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
 
 		if err != nil {
 			return errors.New(orderErrorPaymentMethodNotFound)
@@ -256,10 +262,10 @@ func (s *Service) OrderCreateProcess(
 		return err
 	}
 
-	err = s.db.Collection(pkg.CollectionOrder).Insert(order)
+	err = s.db.Collection(collectionOrder).Insert(order)
 
 	if err != nil {
-		zap.S().Errorw(fmt.Sprintf(errorQueryMask, pkg.CollectionOrder), "err", err, "inserted_data", order)
+		zap.S().Errorw(fmt.Sprintf(errorQueryMask, collectionOrder), "err", err, "inserted_data", order)
 		return errors.New(orderErrorCanNotCreate)
 	}
 
@@ -273,7 +279,7 @@ func (s *Service) OrderCreateProcess(
 	rsp.ProjectOutcomeAmount = order.ProjectOutcomeAmount
 	rsp.ProjectOutcomeCurrency = order.ProjectOutcomeCurrency
 	rsp.ProjectParams = order.ProjectParams
-	rsp.Status = order.Status
+	rsp.PrivateStatus = order.PrivateStatus
 	rsp.CreatedAt = order.CreatedAt
 	rsp.IsJsonRequest = order.IsJsonRequest
 	rsp.AmountInMerchantAccountingCurrency = order.AmountInMerchantAccountingCurrency
@@ -282,7 +288,7 @@ func (s *Service) OrderCreateProcess(
 	rsp.PaymentMethodIncomeAmount = order.PaymentMethodIncomeAmount
 	rsp.PaymentMethodIncomeCurrency = order.PaymentMethodIncomeCurrency
 	rsp.PaymentMethod = order.PaymentMethod
-	rsp.ProjectFeeAmount = order.ProjectFeeAmount
+	rsp.PlatformFee = order.PlatformFee
 	rsp.PspFeeAmount = order.PspFeeAmount
 	rsp.PaymentSystemFeeAmount = order.PaymentSystemFeeAmount
 	rsp.PaymentMethodOutcomeAmount = order.PaymentMethodOutcomeAmount
@@ -292,10 +298,19 @@ func (s *Service) OrderCreateProcess(
 	rsp.TotalPaymentAmount = order.TotalPaymentAmount
 	rsp.Products = order.Products
 	rsp.Items = order.Items
-	rsp.Amount = order.Amount
+	rsp.OrderAmount = order.OrderAmount
 	rsp.Currency = order.Currency
 	rsp.Metadata = order.Metadata
 	rsp.User = order.User
+	rsp.PrivateMetadata = order.PrivateMetadata
+	rsp.CanceledAt = order.CanceledAt
+	rsp.CancellationReason = order.CancellationReason
+	rsp.AgreementVersion = order.AgreementVersion
+	rsp.AgreementAccepted = order.AgreementAccepted
+	rsp.NotifySale = order.NotifySale
+	rsp.NotifySaleEmail = order.NotifySaleEmail
+	rsp.Issuer = order.Issuer
+	rsp.Refund = order.Refund
 
 	return nil
 }
@@ -530,11 +545,9 @@ func (s *Service) PaymentCreateProcess(
 		delete(order.PaymentRequisites, pkg.PaymentCreateFieldRecurringId)
 	}
 
-	err = s.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	err = s.updateOrder(order)
 
 	if err != nil {
-		s.logError("Update order data failed", []interface{}{"err", err.Error(), "order", order})
-
 		rsp.Message = orderErrorUnknown
 		rsp.Status = pkg.ResponseStatusSystemError
 
@@ -545,9 +558,9 @@ func (s *Service) PaymentCreateProcess(
 		merchantId := processor.GetMerchantId()
 		pmId := order.PaymentMethod.Id
 
-		order.PaymentMethod.Params.Terminal, _ = s.getMerchantPaymentMethodTerminalId(merchantId, pmId)
-		order.PaymentMethod.Params.Password, _ = s.getMerchantPaymentMethodTerminalPassword(merchantId, pmId)
-		order.PaymentMethod.Params.CallbackPassword, _ = s.getMerchantPaymentMethodTerminalCallbackPassword(merchantId, pmId)
+		order.PaymentMethod.Params.Terminal, _ = s.merchant.GetPaymentMethodTerminalId(merchantId, pmId)
+		order.PaymentMethod.Params.Password, _ = s.merchant.GetPaymentMethodTerminalPassword(merchantId, pmId)
+		order.PaymentMethod.Params.CallbackPassword, _ = s.merchant.GetPaymentMethodTerminalCallbackPassword(merchantId, pmId)
 	}
 
 	h, err := s.NewPaymentSystem(s.cfg.PaymentSystemConfig, order)
@@ -560,11 +573,9 @@ func (s *Service) PaymentCreateProcess(
 	}
 
 	url, err := h.CreatePayment(req.Data)
-	errDb := s.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	errDb := s.updateOrder(order)
 
 	if errDb != nil {
-		s.logError("Update order data failed", []interface{}{"err", errDb.Error(), "order", order})
-
 		rsp.Message = orderErrorUnknown
 		rsp.Status = pkg.ResponseStatusSystemError
 
@@ -646,11 +657,34 @@ func (s *Service) PaymentCallbackProcess(
 		}
 	}
 
-	err = s.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	switch order.PaymentMethod.Params.ExternalId {
+	case constant.PaymentSystemGroupAliasBankCard:
+
+		if err := s.fillPaymentDataCard(order); err != nil {
+			return err
+		}
+		break
+
+	case constant.PaymentSystemGroupAliasQiwi,
+		constant.PaymentSystemGroupAliasWebMoney,
+		constant.PaymentSystemGroupAliasNeteller,
+		constant.PaymentSystemGroupAliasAlipay:
+
+		if err := s.fillPaymentDataEwallet(order); err != nil {
+			return err
+		}
+		break
+
+	case constant.PaymentSystemGroupAliasBitcoin:
+		if err := s.fillPaymentDataCrypto(order); err != nil {
+			return err
+		}
+		break
+	}
+
+	err = s.updateOrder(order)
 
 	if err != nil {
-		s.logError("Update order data failed", []interface{}{"err", err.Error(), "order", order})
-
 		rsp.Error = orderErrorUnknown
 		rsp.Status = pkg.StatusErrorSystem
 
@@ -748,7 +782,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		return nil
 	}
 
-	pm, err := s.GetPaymentMethodById(req.MethodId)
+	pm, err := s.paymentMethod.GetById(req.MethodId)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusBadData
@@ -916,22 +950,57 @@ func (s *Service) saveRecurringCard(order *billing.Order, recurringId string) {
 				"request", req,
 			},
 		)
+	} else {
+		order.PaymentRequisites["saved"] = "1"
+		err = s.updateOrder(order)
+		if err != nil {
+			s.logError("Failed to update order after save recurruing card", []interface{}{
+				"err", err.Error(),
+			})
+		}
 	}
 }
 
 func (s *Service) updateOrder(order *billing.Order) error {
-	err := s.db.Collection(pkg.CollectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	originalOrder, _ := s.getOrderById(order.Id)
+
+	ps := order.GetPublicStatus()
+
+	statusChanged := false
+	if originalOrder != nil {
+		statusChanged = originalOrder.GetPublicStatus() != ps
+	}
+
+	err := s.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
 
 	if err != nil {
-		s.logError("Update order data failed", []interface{}{"error", err.Error(), "order", order})
-		return errors.New(orderErrorUnknown)
+		s.logError(orderErrorUpdateOrderDataFailed, []interface{}{"error", err.Error(), "order", order})
+		return err
+	}
+
+	if statusChanged && ps != constant.OrderPublicStatusCreated && ps != constant.OrderPublicStatusPending {
+		s.orderNotifyMerchant(order)
 	}
 
 	return nil
 }
 
+func (s *Service) orderNotifyMerchant(order *billing.Order) {
+	err := s.broker.Publish(constant.PayOneTopicNotifyPaymentName, order, amqp.Table{"x-retry-count": int32(0)})
+	if err != nil {
+		s.logError(orderErrorPublishNotificationFailed, []interface{}{
+			"err", err.Error(), "order", order, "topic", constant.PayOneTopicNotifyPaymentName,
+		})
+	}
+	order.SetNotificationStatus(order.GetPublicStatus(), err == nil)
+	err = s.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	if err != nil {
+		s.logError(orderErrorUpdateOrderDataFailed, []interface{}{"error", err.Error(), "order", order})
+	}
+}
+
 func (s *Service) getOrderById(id string) (order *billing.Order, err error) {
-	err = s.db.Collection(pkg.CollectionOrder).FindId(bson.ObjectIdHex(id)).One(&order)
+	err = s.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(id)).One(&order)
 
 	if err != nil && err != mgo.ErrNotFound {
 		s.logError("Order not found in payment create process", []interface{}{"err", err.Error(), "order_id", id})
@@ -945,7 +1014,7 @@ func (s *Service) getOrderById(id string) (order *billing.Order, err error) {
 }
 
 func (s *Service) getOrderByUuid(uuid string) (order *billing.Order, err error) {
-	err = s.db.Collection(pkg.CollectionOrder).Find(bson.M{"uuid": uuid}).One(&order)
+	err = s.db.Collection(collectionOrder).Find(bson.M{"uuid": uuid}).One(&order)
 
 	if err != nil && err != mgo.ErrNotFound {
 		s.logError("Order not found in payment create process", []interface{}{"err", err.Error(), "uuid", uuid})
@@ -989,7 +1058,7 @@ func (s *Service) getBinData(pan string) (data *BinData) {
 		return
 	}
 
-	err = s.db.Collection(pkg.CollectionBinData).Find(bson.M{"card_bin": int32(i)}).One(&data)
+	err = s.db.Collection(collectionBinData).Find(bson.M{"card_bin": int32(i)}).One(&data)
 
 	if err != nil {
 		s.logError("Query to get bank card BIN data failed", []interface{}{"error", err.Error(), "pan", pan})
@@ -1014,7 +1083,7 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 	}
 
 	if merchantPayoutCurrency != nil && v.checked.currency.CodeInt != merchantPayoutCurrency.CodeInt {
-		amnt, err := v.Service.Convert(v.checked.currency.CodeInt, merchantPayoutCurrency.CodeInt, amount)
+		amnt, err := v.Service.currencyRate.Convert(v.checked.currency.CodeInt, merchantPayoutCurrency.CodeInt, amount)
 
 		if err != nil {
 			return nil, err
@@ -1037,6 +1106,7 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 			UrlProcessPayment: v.checked.project.UrlProcessPayment,
 			CallbackProtocol:  v.checked.project.CallbackProtocol,
 			MerchantId:        v.checked.merchant.Id,
+			Status:            v.checked.project.Status,
 		},
 		Description:                        fmt.Sprintf(orderDefaultDescription, id),
 		ProjectOrderId:                     v.request.OrderId,
@@ -1046,7 +1116,7 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 		ProjectOutcomeAmount:               amount,
 		ProjectOutcomeCurrency:             v.checked.currency,
 		ProjectParams:                      v.request.Other,
-		Status:                             constant.OrderStatusNew,
+		PrivateStatus:                      constant.OrderStatusNew,
 		CreatedAt:                          ptypes.TimestampNow(),
 		IsJsonRequest:                      v.request.IsJson,
 		AmountInMerchantAccountingCurrency: merAccAmount,
@@ -1057,12 +1127,16 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 
 		Uuid:            uuid.New().String(),
 		User:            v.checked.user,
-		Amount:          amount,
+		OrderAmount:     amount,
 		Currency:        v.checked.currency.CodeA3,
 		Products:        v.checked.products,
 		Items:           v.checked.items,
 		Metadata:        v.checked.metadata,
 		PrivateMetadata: v.checked.privateMetadata,
+		Issuer: &billing.OrderIssuer{
+			Url:      v.request.IssuerUrl,
+			Embedded: v.request.IsEmbedded,
+		},
 	}
 
 	if order.User != nil && order.User.Address != nil {
@@ -1107,10 +1181,10 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 }
 
 func (v *OrderCreateRequestProcessor) processProject() error {
-	project, err := v.GetProjectById(v.request.ProjectId)
+	project, err := v.project.GetById(v.request.ProjectId)
 
 	if err != nil {
-		zap.S().Errorw("[PAYONE_BILLING] Order create get project error", "err", err, "request", v.request)
+		zap.S().Errorw("Order create get project error", "err", err, "request", v.request)
 		return errors.New(orderErrorProjectNotFound)
 	}
 
@@ -1118,9 +1192,8 @@ func (v *OrderCreateRequestProcessor) processProject() error {
 		return errors.New(orderErrorProjectInactive)
 	}
 
-	merchant, ok := v.merchantCache[project.MerchantId]
-
-	if !ok {
+	merchant, err := v.merchant.GetById(project.MerchantId)
+	if err != nil {
 		return errors.New(orderErrorProjectMerchantNotFound)
 	}
 
@@ -1135,10 +1208,10 @@ func (v *OrderCreateRequestProcessor) processProject() error {
 }
 
 func (v *OrderCreateRequestProcessor) processCurrency() error {
-	currency, err := v.GetCurrencyByCodeA3(v.request.Currency)
+	currency, err := v.currency.GetByCodeA3(v.request.Currency)
 
 	if err != nil {
-		zap.S().Errorw("[PAYONE_BILLING] Order create get currency error", "err", err, "request", v.request)
+		zap.S().Errorw("Order create get currency error", "err", err, "request", v.request)
 		return errors.New(orderErrorCurrencyNotFound)
 	}
 
@@ -1163,7 +1236,7 @@ func (v *OrderCreateRequestProcessor) processPayerIp() error {
 	rsp, err := v.geo.GetIpData(context.TODO(), &proto.GeoIpDataRequest{IP: v.checked.user.Ip})
 
 	if err != nil {
-		zap.S().Errorw("[PAYONE_BILLING] Order create get payer data error", "err", err, "ip", v.checked.user.Ip)
+		zap.S().Errorw("Order create get payer data error", "err", err, "ip", v.checked.user.Ip)
 		return errors.New(orderErrorPayerRegionUnknown)
 	}
 
@@ -1202,7 +1275,7 @@ func (v *OrderCreateRequestProcessor) processPaylinkProducts() error {
 
 	pid := v.request.PrivateMetadata["PaylinkId"]
 
-	logInfo := "[PAYONE_BILLING] [processPaylinkProducts] %s"
+	logInfo := "[processPaylinkProducts] %s"
 
 	currency := v.Service.accountingCurrency
 	zap.S().Infow(fmt.Sprintf(logInfo, "accountingCurrency"), "currency", currency.CodeA3, "paylink", pid)
@@ -1244,10 +1317,10 @@ func (v *OrderCreateRequestProcessor) processProjectOrderId() error {
 		"project_order_id": v.request.OrderId,
 	}
 
-	err := v.db.Collection(pkg.CollectionOrder).Find(filter).One(&order)
+	err := v.db.Collection(collectionOrder).Find(filter).One(&order)
 
 	if err != nil && err != mgo.ErrNotFound {
-		zap.S().Errorw("[PAYONE_BILLING] Order create check project order id unique", "err", err, "filter", filter)
+		zap.S().Errorw("Order create check project order id unique", "err", err, "filter", filter)
 		return errors.New(orderErrorCanNotCreate)
 	}
 
@@ -1268,7 +1341,7 @@ func (v *OrderCreateRequestProcessor) processPaymentMethod(pm *billing.PaymentMe
 	}
 
 	if v.checked.project.IsProduction() == true {
-		mpm, err := v.getMerchantPaymentMethod(v.checked.merchant.Id, pm.Id)
+		mpm, err := v.merchant.GetPaymentMethod(v.checked.merchant.Id, pm.Id)
 
 		if err != nil {
 			return err
@@ -1292,13 +1365,13 @@ func (v *OrderCreateRequestProcessor) processLimitAmounts() (err error) {
 	amount := v.checked.amount
 
 	if v.checked.project.LimitsCurrency != "" && v.checked.project.LimitsCurrency != v.checked.currency.CodeA3 {
-		currency, err := v.GetCurrencyByCodeA3(v.checked.project.LimitsCurrency)
+		currency, err := v.currency.GetByCodeA3(v.checked.project.LimitsCurrency)
 
 		if err != nil {
 			return err
 		}
 
-		amount, err = v.Convert(v.checked.currency.CodeInt, currency.CodeInt, amount)
+		amount, err = v.currencyRate.Convert(v.checked.currency.CodeInt, currency.CodeInt, amount)
 
 		if err != nil {
 			return err
@@ -1412,14 +1485,14 @@ func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) {
 // Calculate all possible commissions for order, i.e. payment system fee amount, PSP (P1) fee amount,
 // commission shifted from project to user and VAT
 func (v *OrderCreateRequestProcessor) processOrderCommissions(o *billing.Order) error {
-	merchant, _ := v.merchantCache[o.Project.MerchantId]
+	merchant, _ := v.merchant.GetById(o.Project.MerchantId)
 
 	mAccCur := merchant.GetPayoutCurrency()
 	pmOutCur := o.PaymentMethodOutcomeCurrency.CodeInt
 	amount := float64(0)
 
 	// calculate commissions to selected payment method
-	commission, err := v.Service.CalculatePmCommission(o.Project.Id, o.PaymentMethod.Id, o.PaymentMethodOutcomeAmount)
+	commission, err := v.Service.commission.CalculatePmCommission(o.Project.Id, o.PaymentMethod.Id, o.PaymentMethodOutcomeAmount)
 
 	if err != nil {
 		return err
@@ -1431,7 +1504,7 @@ func (v *OrderCreateRequestProcessor) processOrderCommissions(o *billing.Order) 
 	}
 
 	// convert payment system amount of fee to accounting currency of payment system
-	amount, err = v.Service.Convert(pmOutCur, o.PaymentMethod.PaymentSystem.AccountingCurrency.CodeInt, commission)
+	amount, err = v.Service.currencyRate.Convert(pmOutCur, o.PaymentMethod.PaymentSystem.AccountingCurrency.CodeInt, commission)
 
 	if err != nil {
 		return err
@@ -1441,7 +1514,7 @@ func (v *OrderCreateRequestProcessor) processOrderCommissions(o *billing.Order) 
 
 	if mAccCur != nil {
 		// convert payment system amount of fee to accounting currency of merchant
-		amount, _ = v.Service.Convert(pmOutCur, mAccCur.CodeInt, commission)
+		amount, _ = v.Service.currencyRate.Convert(pmOutCur, mAccCur.CodeInt, commission)
 		o.PaymentSystemFeeAmount.AmountMerchantCurrency = amount
 	}
 
@@ -1535,17 +1608,16 @@ func (v *OrderCreateRequestProcessor) processUserData() (err error) {
 	return
 }
 
-// Get payment methods of project for rendering in payment form
+// GetById payment methods of project for rendering in payment form
 func (v *PaymentFormProcessor) processRenderFormPaymentMethods() ([]*billing.PaymentFormPaymentMethod, error) {
 	var projectPms []*billing.PaymentFormPaymentMethod
 
-	project, ok := v.service.projectCache[v.order.Project.Id]
-
-	if !ok {
+	project, err := v.service.project.GetById(v.order.Project.Id)
+	if err != nil {
 		return projectPms, errors.New(orderErrorProjectNotFound)
 	}
 
-	for _, val := range v.service.paymentMethodCache {
+	for _, val := range v.service.paymentMethod.Groups() {
 		pm, ok := val[v.order.PaymentMethodOutcomeCurrency.CodeInt]
 
 		if !ok || pm.IsActive == false ||
@@ -1553,13 +1625,13 @@ func (v *PaymentFormProcessor) processRenderFormPaymentMethods() ([]*billing.Pay
 			continue
 		}
 
-		if v.order.Amount < pm.MinPaymentAmount ||
-			(pm.MaxPaymentAmount > 0 && v.order.Amount > pm.MaxPaymentAmount) {
+		if v.order.OrderAmount < pm.MinPaymentAmount ||
+			(pm.MaxPaymentAmount > 0 && v.order.OrderAmount > pm.MaxPaymentAmount) {
 			continue
 		}
 
 		if project.IsProduction() == true {
-			mpm, err := v.service.getMerchantPaymentMethod(v.order.Project.MerchantId, pm.Id)
+			mpm, err := v.service.merchant.GetPaymentMethod(v.order.Project.MerchantId, pm.Id)
 
 			if err != nil {
 				continue
@@ -1583,7 +1655,7 @@ func (v *PaymentFormProcessor) processRenderFormPaymentMethods() ([]*billing.Pay
 
 		if err != nil {
 			zap.S().Errorw(
-				"[PAYONE_BILLING] Process payment method data failed",
+				"Process payment method data failed",
 				"error", err,
 				"order_id", v.order.Id,
 			)
@@ -1609,7 +1681,7 @@ func (v *PaymentFormProcessor) processPaymentMethodsData(pm *billing.PaymentForm
 
 		if err != nil {
 			zap.S().Errorw(
-				"[PAYONE_BILLING] Get saved cards from repository failed",
+				"Get saved cards from repository failed",
 				"error", err,
 				"token", v.order.User.Id,
 				"project_id", v.order.Project.Id,
@@ -1692,7 +1764,7 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 		return err
 	}
 
-	pm, err := v.service.GetPaymentMethodById(v.data[pkg.PaymentCreateFieldPaymentMethodId])
+	pm, err := v.service.paymentMethod.GetById(v.data[pkg.PaymentCreateFieldPaymentMethodId])
 
 	if err != nil {
 		return errors.New(orderErrorPaymentMethodNotFound)
@@ -1843,7 +1915,7 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 func (v *PaymentCreateProcessor) processPaymentAmounts() (err error) {
 	order := v.checked.order
 
-	order.ProjectOutcomeAmount, err = v.service.Convert(
+	order.ProjectOutcomeAmount, err = v.service.currencyRate.Convert(
 		order.PaymentMethodIncomeCurrency.CodeInt,
 		order.ProjectOutcomeCurrency.CodeInt,
 		order.PaymentMethodOutcomeAmount,
@@ -1863,7 +1935,7 @@ func (v *PaymentCreateProcessor) processPaymentAmounts() (err error) {
 		return
 	}
 
-	order.AmountInPspAccountingCurrency, err = v.service.Convert(
+	order.AmountInPspAccountingCurrency, err = v.service.currencyRate.Convert(
 		order.PaymentMethodIncomeCurrency.CodeInt,
 		v.service.accountingCurrency.CodeInt,
 		order.PaymentMethodOutcomeAmount,
@@ -1883,11 +1955,11 @@ func (v *PaymentCreateProcessor) processPaymentAmounts() (err error) {
 		return
 	}
 
-	merchant, _ := v.service.merchantCache[order.Project.MerchantId]
+	merchant, _ := v.service.merchant.GetById(order.Project.MerchantId)
 	merchantPayoutCurrency := merchant.GetPayoutCurrency()
 
 	if merchantPayoutCurrency != nil {
-		order.AmountOutMerchantAccountingCurrency, err = v.service.Convert(
+		order.AmountOutMerchantAccountingCurrency, err = v.service.currencyRate.Convert(
 			order.PaymentMethodIncomeCurrency.CodeInt,
 			merchantPayoutCurrency.CodeInt,
 			order.PaymentMethodOutcomeAmount,
@@ -1908,7 +1980,7 @@ func (v *PaymentCreateProcessor) processPaymentAmounts() (err error) {
 		}
 	}
 
-	order.AmountInPaymentSystemAccountingCurrency, err = v.service.Convert(
+	order.AmountInPaymentSystemAccountingCurrency, err = v.service.currencyRate.Convert(
 		order.PaymentMethodIncomeCurrency.CodeInt,
 		order.PaymentMethod.GetAccountingCurrency().CodeInt,
 		order.PaymentMethodOutcomeAmount,
@@ -2039,7 +2111,7 @@ func (s *Service) GetOrderProductsItems(products []*grpc.Product, language strin
 }
 
 func (s *Service) ProcessOrderProducts(order *billing.Order) error {
-	project, err := s.GetProjectById(order.Project.Id)
+	project, err := s.project.GetById(order.Project.Id)
 
 	if err != nil {
 		return err
@@ -2062,7 +2134,7 @@ func (s *Service) ProcessOrderProducts(order *billing.Order) error {
 		currency      *billing.Currency
 		itemsCurrency string
 		locale        string
-		logInfo       = "[PAYONE_BILLING] [ProcessOrderProducts] %s"
+		logInfo       = "[ProcessOrderProducts] %s"
 	)
 
 	if order.BillingAddress != nil && order.BillingAddress.Country != "" {
@@ -2074,7 +2146,7 @@ func (s *Service) ProcessOrderProducts(order *billing.Order) error {
 	defaultCurrency := s.accountingCurrency
 	zap.S().Infow(fmt.Sprintf(logInfo, "accountingCurrency"), "currency", defaultCurrency.CodeA3, "order.Uuid", order.Uuid)
 
-	merchant, _ := s.merchantCache[order.Project.MerchantId]
+	merchant, _ := s.merchant.GetById(order.Project.MerchantId)
 	merchantPayoutCurrency := merchant.GetPayoutCurrency()
 
 	if merchantPayoutCurrency != nil {
@@ -2089,7 +2161,7 @@ func (s *Service) ProcessOrderProducts(order *billing.Order) error {
 	if country != "" {
 		curr, ok := CountryToCurrency[country]
 		if ok {
-			currency, err = s.GetCurrencyByCodeA3(curr)
+			currency, err = s.currency.GetByCodeA3(curr)
 			if err == nil {
 				zap.S().Infow(fmt.Sprintf(logInfo, "currency by country"), "currency", currency.CodeA3, "country", country, "order.Uuid", order.Uuid)
 			} else {
@@ -2117,7 +2189,7 @@ func (s *Service) ProcessOrderProducts(order *billing.Order) error {
 
 		itemsCurrency = defaultCurrency.CodeA3
 		// converting Amount from default currency to requested
-		amount, err = s.Convert(defaultCurrency.CodeInt, currency.CodeInt, amount)
+		amount, err = s.currencyRate.Convert(defaultCurrency.CodeInt, currency.CodeInt, amount)
 		if err != nil {
 			return err
 		}
@@ -2137,7 +2209,7 @@ func (s *Service) ProcessOrderProducts(order *billing.Order) error {
 	merAccAmount := amount
 	projectOutcomeCurrency := currency
 	if merchantPayoutCurrency != nil && currency.CodeInt != merchantPayoutCurrency.CodeInt {
-		amount, err := s.Convert(currency.CodeInt, merchantPayoutCurrency.CodeInt, amount)
+		amount, err := s.currencyRate.Convert(currency.CodeInt, merchantPayoutCurrency.CodeInt, amount)
 
 		if err != nil {
 			return err
@@ -2152,7 +2224,7 @@ func (s *Service) ProcessOrderProducts(order *billing.Order) error {
 	order.PaymentMethodOutcomeCurrency = currency
 	order.PaymentMethodIncomeCurrency = currency
 
-	order.Amount = amount
+	order.OrderAmount = amount
 	order.ProjectIncomeAmount = amount
 	order.ProjectOutcomeAmount = merAccAmount
 	order.PaymentMethodOutcomeAmount = amount
@@ -2237,5 +2309,71 @@ func (s *Service) IsOrderCanBePaying(
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = order
 
+	return nil
+}
+
+func (h *Service) fillPaymentDataCard(order *billing.Order) error {
+	first6 := ""
+	last4 := ""
+	pan, ok := order.PaymentMethodTxnParams[pkg.PaymentCreateFieldPan]
+	if !ok || pan == "" {
+		pan, ok = order.PaymentRequisites["pan"]
+		if !ok {
+			pan = ""
+		}
+	}
+	order.PaymentMethodPayerAccount = pan
+	if len(pan) >= 6 {
+		first6 = string(pan[0:6])
+		last4 = string(pan[len(pan)-4:])
+	}
+	cardBrand, ok := order.PaymentRequisites["card_brand"]
+
+	month, ok := order.PaymentRequisites["month"]
+	if !ok {
+		month = ""
+	}
+	year, ok := order.PaymentRequisites["year"]
+	if !ok {
+		year = ""
+	}
+
+	order.PaymentMethod.Card = &billing.PaymentMethodCard{
+		Masked:      pan,
+		First6:      first6,
+		Last4:       last4,
+		ExpiryMonth: month,
+		ExpiryYear:  year,
+		Brand:       cardBrand,
+		Secure3D:    order.PaymentMethodTxnParams[pkg.TxnParamsFieldBankCardIs3DS] == "1",
+	}
+	b, err := json.Marshal(order.PaymentMethod.Card)
+	if err != nil {
+		return err
+	}
+	fp, err := bcrypt.GenerateFromPassword([]byte(string(b)), bcrypt.MinCost)
+	if err == nil {
+		order.PaymentMethod.Card.Fingerprint = string(fp)
+	}
+	return nil
+}
+
+func (h *Service) fillPaymentDataEwallet(order *billing.Order) error {
+	account := order.PaymentMethodTxnParams[pkg.PaymentCreateFieldEWallet]
+	order.PaymentMethodPayerAccount = account
+	order.PaymentMethod.Wallet = &billing.PaymentMethodWallet{
+		Brand:   order.PaymentMethod.Name,
+		Account: account,
+	}
+	return nil
+}
+
+func (h *Service) fillPaymentDataCrypto(order *billing.Order) error {
+	address := order.PaymentMethodTxnParams[pkg.PaymentCreateFieldCrypto]
+	order.PaymentMethodPayerAccount = address
+	order.PaymentMethod.CryptoCurrency = &billing.PaymentMethodCrypto{
+		Brand:   order.PaymentMethod.Name,
+		Address: address,
+	}
 	return nil
 }
