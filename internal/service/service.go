@@ -12,10 +12,10 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"github.com/paysuper/paysuper-tax-service/proto"
@@ -53,7 +53,7 @@ const (
 )
 
 type Service struct {
-	db               *database.Source
+	db               *mongodb.Source
 	mx               sync.Mutex
 	cfg              *config.Config
 	ctx              context.Context
@@ -79,7 +79,7 @@ type Service struct {
 }
 
 func NewBillingService(
-	db *database.Source,
+	db *mongodb.Source,
 	cfg *config.Config,
 	geo proto.GeoIpService,
 	rep repository.RepositoryService,

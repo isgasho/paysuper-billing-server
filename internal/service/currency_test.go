@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"github.com/elliotchance/redismock"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -15,7 +15,7 @@ import (
 	"testing"
 )
 
-func InitTestCurrency(db *database.Source, country []interface{}) error {
+func InitTestCurrency(db *mongodb.Source, country []interface{}) error {
 	if err := db.Collection(collectionCurrency).Insert(country...); err != nil {
 		return err
 	}
@@ -28,7 +28,7 @@ type CurrencyTestSuite struct {
 	service *Service
 	log     *zap.Logger
 	cfg     *config.Config
-	db      *database.Source
+	db      *mongodb.Source
 	cache   CacheInterface
 	redis   *redismock.ClientMock
 }
@@ -44,15 +44,7 @@ func (suite *CurrencyTestSuite) SetupTest() {
 	}
 	cfg.AccountingCurrency = "RUB"
 
-	settings := database.Connection{
-		Host:     cfg.MongoHost,
-		Database: cfg.MongoDatabase,
-		User:     cfg.MongoUser,
-		Password: cfg.MongoPassword,
-	}
-
-	db, err := database.NewDatabase(settings)
-
+	db, err := mongodb.NewDatabase()
 	if err != nil {
 		suite.FailNow("Database connection failed", "%v", err)
 	}

@@ -93,6 +93,8 @@ const (
 
 	TechEmailDomain        = "@paysuper.com"
 	OrderInlineFormUrlMask = "%s://%s/order/%s"
+
+	MigrationSource = "file://./migrations"
 )
 
 var (
