@@ -757,7 +757,13 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		return nil
 	}
 
-	match, err := regexp.MatchString(pm.AccountRegexp, req.Account)
+	regex := pm.AccountRegexp
+
+	if pm.Params.ExternalId == constant.PaymentSystemGroupAliasBankCard {
+		regex = "^\\d{6,18}$"
+	}
+
+	match, err := regexp.MatchString(regex, req.Account)
 
 	if match == false || err != nil {
 		rsp.Status = pkg.ResponseStatusBadData
