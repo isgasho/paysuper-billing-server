@@ -25,6 +25,7 @@ It has these top-level messages:
 	OrderTax
 	OrderBillingAddress
 	OrderUser
+	OrderPaymentRoyaltyData
 	Order
 	OrderItem
 	OrderPaginate

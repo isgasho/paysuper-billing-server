@@ -266,6 +266,7 @@ type MgoOrder struct {
 	UserAddressDataRequired                 bool                     `bson:"user_address_data_required"`
 	Products                                []string                 `bson:"products"`
 	IsNotificationsSent                     map[string]bool          `bson:"is_notifications_sent"`
+	PaymentRoyaltyData                      *OrderPaymentRoyaltyData `bson:"payment_royalty_data"`
 }
 
 type MgoPaymentSystem struct {
@@ -921,6 +922,7 @@ func (m *Order) GetBSON() (interface{}, error) {
 		UserAddressDataRequired:                 m.UserAddressDataRequired,
 		Products:                                m.Products,
 		IsNotificationsSent:                     m.IsNotificationsSent,
+		PaymentRoyaltyData:                      m.PaymentRoyaltyData,
 	}
 
 	if m.PaymentMethod != nil {
@@ -1149,6 +1151,7 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.UserAddressDataRequired = decoded.UserAddressDataRequired
 	m.Products = decoded.Products
 	m.IsNotificationsSent = decoded.IsNotificationsSent
+	m.PaymentRoyaltyData = decoded.PaymentRoyaltyData
 
 	m.PaymentMethodOrderClosedAt, err = ptypes.TimestampProto(decoded.PaymentMethodOrderClosedAt)
 	if err != nil {

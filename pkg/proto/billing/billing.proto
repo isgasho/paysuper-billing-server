@@ -343,6 +343,93 @@ message OrderUser {
     string tech_email = 13;
 }
 
+message OrderPaymentRoyaltyData {
+    // @inject_tag: bson:"royalty_cur"
+    string royalty_cur = 1;
+    // @inject_tag: json:"-" bson:"ex_rate_payment_to_royalty_instant"
+    double ex_rate_payment_to_royalty_instant = 2;
+    // @inject_tag: bson:"ex_rate_payment_to_royalty_prediction"
+    double ex_rate_payment_to_royalty_prediction = 3;
+    // @inject_tag: bson:"ex_rate_payment_to_vat"
+    double ex_rate_payment_to_vat = 4;
+    // @inject_tag: bson:"vat"
+    double vat = 5;
+    // @inject_tag: bson:"gross_in_royalty_cur_prediction"
+    double gross_in_royalty_cur_prediction = 6;
+    // @inject_tag: bson:"overall_cut_rate"
+    double overall_cut_rate = 7;
+    // @inject_tag: bson:"overall_fee"
+    double overall_fee = 8;
+    // @inject_tag: bson:"overall_deduction_prediction"
+    double overall_deduction_prediction = 9;
+    // @inject_tag: json:"-" bson:"ex_rate_vat_to_royalty_instant"
+    double ex_rate_vat_to_royalty_instant = 10;
+    // @inject_tag: bson:"ex_rate_vat_to_royalty_prediction"
+    double ex_rate_vat_to_royalty_prediction = 11;
+    // @inject_tag: bson:"vat_in_royalty_cur_prediction"
+    double vat_in_royalty_cur_prediction = 12;
+    // @inject_tag: bson:"royalty_prediction"
+    double royalty_prediction = 13;
+    // @inject_tag: bson:"cost_fee_cur"
+    string cost_fee_cur = 14;
+    // @inject_tag: bson:"cost_rate_public"
+    double cost_rate_public = 15;
+    // @inject_tag: bson:"cost_fee_public"
+    double cost_fee_public = 16;
+    // @inject_tag: json:"-" bson:"ex_rate_cost_fee_to_royalty_instant"
+    double ex_rate_cost_fee_to_royalty_instant = 17;
+    // @inject_tag: bson:"ex_rate_cost_fee_to_royalty_prediction"
+    double ex_rate_cost_fee_to_royalty_prediction = 18;
+    // @inject_tag: bson:"cost_public_rate_amount_prediction"
+    double cost_public_rate_amount_prediction = 19;
+    // @inject_tag: bson:"cost_public_prediction"
+    double cost_public_prediction = 20;
+    // @inject_tag: bson:"pay_super_cut_amount_prediction"
+    double pay_super_cut_amount_prediction = 21;
+    // @inject_tag: bson:"pay_super_cut_rate_prediction"
+    double pay_super_cut_rate_prediction = 22;
+    // @inject_tag: json:"-" bson:"cost_rate"
+    double cost_rate = 23;
+    // @inject_tag: json:"-" bson:"cost_fee"
+    double cost_fee = 24;
+    // @inject_tag: json:"-" bson:"cost_prediction"
+    double cost_prediction = 25;
+    // @inject_tag: json:"-" bson:"cost_delta_prediction"
+    double cost_delta_prediction = 26;
+    // @inject_tag: json:"-" bson:"pay_super_revenue_prediction"
+    double pay_super_revenue_prediction = 27;
+    // @inject_tag: json:"-" bson:"ex_rate_payment_to_royalty_raw"
+    double ex_rate_payment_to_royalty_raw = 28;
+    // @inject_tag: bson:"ex_rate_payment_to_royalty_actual"
+    double ex_rate_payment_to_royalty_actual = 29;
+    // @inject_tag: json:"-" bson:"ex_rate_cost_fee_to_royalty_raw"
+    double ex_rate_cost_fee_to_royalty_raw = 30;
+    // @inject_tag: bson:"ex_rate_cost_fee_to_royalty_actual"
+    double ex_rate_cost_fee_to_royalty_actual = 31;
+    // @inject_tag: bson:"ex_rate_vat_to_royalty_actual"
+    double ex_rate_vat_to_royalty_actual = 32;
+    // @inject_tag: bson:"gross_in_royalty_cur"
+    double gross_in_royalty_cur = 33;
+    // @inject_tag: bson:"vat_in_royalty_cur"
+    double vat_in_royalty_cur = 34;
+    // @inject_tag: bson:"overall_deduction"
+    double overall_deduction = 35;
+    // @inject_tag: bson:"royalty"
+    double royalty = 36;
+    // @inject_tag: bson:"cost_public_rate_amount"
+    double cost_public_rate_amount = 37;
+    // @inject_tag: bson:"cost_public"
+    double cost_public = 38;
+    // @inject_tag: bson:"pay_super_cut_amount"
+    double pay_super_cut_amount = 39;
+    // @inject_tag: bson:"pay_super_cut_rate"
+    double pay_super_cut_rate = 40;
+    // @inject_tag: json:"-" bson:"cost"
+    double cost = 41;
+    // @inject_tag: json:"-" bson:"pay_super_revenue"
+    double pay_super_revenue = 42;
+}
+
 message Order {
     // @inject_tag: json:"-" bson:"_id"
     string id = 1; // unique internal order identifier in Protocol One
@@ -474,6 +561,9 @@ message Order {
     repeated string products = 64;
     // @inject_tag: json:"-" bson:"is_notifications_sent"
     map<string, bool> is_notifications_sent = 65;
+
+    // @inject_tag: json:"-"
+    OrderPaymentRoyaltyData payment_royalty_data = 66;
 }
 
 message OrderItem {
