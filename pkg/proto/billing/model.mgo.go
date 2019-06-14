@@ -413,7 +413,6 @@ type MgoCountry struct {
 	VatEnabled      bool          `bson:"vat_enabled"`
 	VatCurrency     string        `bson:"vat_currency"`
 	PriceGroupId    string        `bson:"price_group_id"`
-	Name            *Name         `bson:"name"`
 	CreatedAt       time.Time     `bson:"created_at"`
 	UpdatedAt       time.Time     `bson:"updated_at"`
 }
@@ -428,7 +427,6 @@ func (m *Country) GetBSON() (interface{}, error) {
 		VatEnabled:      m.VatEnabled,
 		PriceGroupId:    m.PriceGroupId,
 		VatCurrency:     m.VatCurrency,
-		Name:            m.Name,
 	}
 	if len(m.Id) <= 0 {
 		st.Id = bson.NewObjectId()
@@ -484,7 +482,6 @@ func (m *Country) SetBSON(raw bson.Raw) error {
 	m.VatEnabled = decoded.VatEnabled
 	m.PriceGroupId = decoded.PriceGroupId
 	m.VatCurrency = decoded.VatCurrency
-	m.Name = decoded.Name
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 
