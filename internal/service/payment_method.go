@@ -190,6 +190,48 @@ func newPaymentMethodService(svc *Service) *PaymentMethod {
 	return s
 }
 
+func (h PaymentMethod) GetAll() (map[string]*billing.PaymentMethod, error) {
+	var c paymentMethods
+	key := cachePaymentMethodAll
+
+	if err := h.svc.cacher.Get(key, c); err != nil {
+		var data []*billing.PaymentMethod
+		if err = h.svc.db.Collection(collectionPaymentMethod).Find(bson.M{}).All(&data); err != nil {
+			return nil, err
+		}
+
+		pool := make(map[string]*billing.PaymentMethod, len(data))
+		for _, v := range data {
+			pool[v.Id] = v
+		}
+		c.Methods = pool
+	}
+
+	_ = h.svc.cacher.Set(key, c, 0)
+	return c.Methods, nil
+}
+
+func (h PaymentMethod) Groups() (map[string]map[int32]*billing.PaymentMethod, error) {
+	pool, err := h.GetAll()
+	if err != nil {
+		return nil, err
+	}
+	if pool == nil {
+		return nil, nil
+	}
+
+	groups := make(map[string]map[int32]*billing.PaymentMethod, len(pool))
+	for _, r := range pool {
+		group := make(map[int32]*billing.PaymentMethod, len(r.Currencies))
+		for _, v := range r.Currencies {
+			group[v] = r
+		}
+		groups[r.Group] = group
+	}
+
+	return groups, nil
+}
+
 func (h PaymentMethod) GetByGroupAndCurrency(group string, currency int32) (*billing.PaymentMethod, error) {
 	var c billing.PaymentMethod
 	key := fmt.Sprintf(cachePaymentMethodGroup, group)
@@ -222,8 +264,6 @@ func (h PaymentMethod) GetById(id string) (*billing.PaymentMethod, error) {
 	return &c, nil
 }
 
-func (h PaymentMethod) GetAll() (map[string]*billing.PaymentMethod, error) {
-	var c paymentMethods
 func (h PaymentMethod) GetByIdAndCurrency(id string, currencyCodeA3 string) (*billing.PaymentMethodParams, error) {
 	pm, err := h.GetById(id)
 	if err != nil {
@@ -235,34 +275,6 @@ func (h PaymentMethod) GetByIdAndCurrency(id string, currencyCodeA3 string) (*bi
 	}
 
 	return pm.ProductionSettings[currencyCodeA3], nil
-}
-
-	if err := s.paymentMethod.Update(pm); err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = err.Error()
-
-		return nil
-	}
-
-func (h PaymentMethod) Groups() (map[string]map[int32]*billing.PaymentMethod, error) {
-	pool, err := h.GetAll()
-	if err != nil {
-		return nil, err
-	}
-	if pool == nil {
-		return nil, nil
-	}
-
-	groups := make(map[string]map[int32]*billing.PaymentMethod, len(pool))
-	for _, r := range pool {
-		group := make(map[int32]*billing.PaymentMethod, len(r.Currencies))
-		for _, v := range r.Currencies {
-			group[v] = r
-		}
-		groups[r.Group] = group
-	}
-
-	return groups, nil
 }
 
 func (h PaymentMethod) MultipleInsert(pm []*billing.PaymentMethod) error {
