@@ -2380,7 +2380,7 @@ func (s *Service) IsOrderCanBePaying(
 	return nil
 }
 
-func (h *Service) fillPaymentDataCard(order *billing.Order) error {
+func (s *Service) fillPaymentDataCard(order *billing.Order) error {
 	first6 := ""
 	last4 := ""
 	pan, ok := order.PaymentMethodTxnParams[pkg.PaymentCreateFieldPan]
@@ -2426,7 +2426,7 @@ func (h *Service) fillPaymentDataCard(order *billing.Order) error {
 	return nil
 }
 
-func (h *Service) fillPaymentDataEwallet(order *billing.Order) error {
+func (s *Service) fillPaymentDataEwallet(order *billing.Order) error {
 	account := order.PaymentMethodTxnParams[pkg.PaymentCreateFieldEWallet]
 	order.PaymentMethodPayerAccount = account
 	order.PaymentMethod.Wallet = &billing.PaymentMethodWallet{
@@ -2436,7 +2436,7 @@ func (h *Service) fillPaymentDataEwallet(order *billing.Order) error {
 	return nil
 }
 
-func (h *Service) fillPaymentDataCrypto(order *billing.Order) error {
+func (s *Service) fillPaymentDataCrypto(order *billing.Order) error {
 	address := order.PaymentMethodTxnParams[pkg.PaymentCreateFieldCrypto]
 	order.PaymentMethodPayerAccount = address
 	order.PaymentMethod.CryptoCurrency = &billing.PaymentMethodCrypto{

@@ -85,6 +85,7 @@ func (suite *CountryTestSuite) SetupTest() {
 		VatEnabled:      true,
 		PriceGroupId:    pg.Id,
 		VatCurrency:     "RUB",
+		Name:            &billing.Name{En: "English name", Ru: "Русское название"},
 	}
 	if err := suite.service.country.Insert(suite.country); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
