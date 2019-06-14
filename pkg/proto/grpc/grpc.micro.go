@@ -74,6 +74,9 @@ It has these top-level messages:
 	GetOrderRequest
 	IsOrderCanBePayingRequest
 	IsOrderCanBePayingResponse
+	SetUserNotifyRequest
+	NotifyUserSales
+	NotifyUserNewRegion
 */
 package grpc
 
@@ -93,7 +96,7 @@ import (
 var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
-var _ = billing.OrderPaginate{}
+var _ = billing.PriceGroup{}
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the proto package it is being compiled against.
@@ -150,9 +153,16 @@ type BillingService interface {
 	DeleteProject(ctx context.Context, in *GetProjectRequest, opts ...client.CallOption) (*ChangeProjectResponse, error)
 	CreateToken(ctx context.Context, in *TokenRequest, opts ...client.CallOption) (*TokenResponse, error)
 	CheckProjectRequestSignature(ctx context.Context, in *CheckProjectRequestSignatureRequest, opts ...client.CallOption) (*CheckProjectRequestSignatureResponse, error)
+	GetCountriesList(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*billing.CountriesList, error)
+	GetCountry(ctx context.Context, in *billing.GetCountryRequest, opts ...client.CallOption) (*billing.Country, error)
+	UpdateCountry(ctx context.Context, in *billing.Country, opts ...client.CallOption) (*billing.Country, error)
 	GetOrder(ctx context.Context, in *GetOrderRequest, opts ...client.CallOption) (*billing.Order, error)
 	FindAllOrders(ctx context.Context, in *ListOrdersRequest, opts ...client.CallOption) (*billing.OrderPaginate, error)
 	IsOrderCanBePaying(ctx context.Context, in *IsOrderCanBePayingRequest, opts ...client.CallOption) (*IsOrderCanBePayingResponse, error)
+	GetPriceGroup(ctx context.Context, in *billing.GetPriceGroupRequest, opts ...client.CallOption) (*billing.PriceGroup, error)
+	UpdatePriceGroup(ctx context.Context, in *billing.PriceGroup, opts ...client.CallOption) (*billing.PriceGroup, error)
+	SetUserNotifySales(ctx context.Context, in *SetUserNotifyRequest, opts ...client.CallOption) (*EmptyResponse, error)
+	SetUserNotifyNewRegion(ctx context.Context, in *SetUserNotifyRequest, opts ...client.CallOption) (*EmptyResponse, error)
 }
 
 type billingService struct {
@@ -583,6 +593,36 @@ func (c *billingService) CheckProjectRequestSignature(ctx context.Context, in *C
 	return out, nil
 }
 
+func (c *billingService) GetCountriesList(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*billing.CountriesList, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetCountriesList", in)
+	out := new(billing.CountriesList)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetCountry(ctx context.Context, in *billing.GetCountryRequest, opts ...client.CallOption) (*billing.Country, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetCountry", in)
+	out := new(billing.Country)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) UpdateCountry(ctx context.Context, in *billing.Country, opts ...client.CallOption) (*billing.Country, error) {
+	req := c.c.NewRequest(c.name, "BillingService.UpdateCountry", in)
+	out := new(billing.Country)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *billingService) GetOrder(ctx context.Context, in *GetOrderRequest, opts ...client.CallOption) (*billing.Order, error) {
 	req := c.c.NewRequest(c.name, "BillingService.GetOrder", in)
 	out := new(billing.Order)
@@ -606,6 +646,46 @@ func (c *billingService) FindAllOrders(ctx context.Context, in *ListOrdersReques
 func (c *billingService) IsOrderCanBePaying(ctx context.Context, in *IsOrderCanBePayingRequest, opts ...client.CallOption) (*IsOrderCanBePayingResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.IsOrderCanBePaying", in)
 	out := new(IsOrderCanBePayingResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetPriceGroup(ctx context.Context, in *billing.GetPriceGroupRequest, opts ...client.CallOption) (*billing.PriceGroup, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetPriceGroup", in)
+	out := new(billing.PriceGroup)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) UpdatePriceGroup(ctx context.Context, in *billing.PriceGroup, opts ...client.CallOption) (*billing.PriceGroup, error) {
+	req := c.c.NewRequest(c.name, "BillingService.UpdatePriceGroup", in)
+	out := new(billing.PriceGroup)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) SetUserNotifySales(ctx context.Context, in *SetUserNotifyRequest, opts ...client.CallOption) (*EmptyResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.SetUserNotifySales", in)
+	out := new(EmptyResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) SetUserNotifyNewRegion(ctx context.Context, in *SetUserNotifyRequest, opts ...client.CallOption) (*EmptyResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.SetUserNotifyNewRegion", in)
+	out := new(EmptyResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -657,9 +737,16 @@ type BillingServiceHandler interface {
 	DeleteProject(context.Context, *GetProjectRequest, *ChangeProjectResponse) error
 	CreateToken(context.Context, *TokenRequest, *TokenResponse) error
 	CheckProjectRequestSignature(context.Context, *CheckProjectRequestSignatureRequest, *CheckProjectRequestSignatureResponse) error
+	GetCountriesList(context.Context, *EmptyRequest, *billing.CountriesList) error
+	GetCountry(context.Context, *billing.GetCountryRequest, *billing.Country) error
+	UpdateCountry(context.Context, *billing.Country, *billing.Country) error
 	GetOrder(context.Context, *GetOrderRequest, *billing.Order) error
 	FindAllOrders(context.Context, *ListOrdersRequest, *billing.OrderPaginate) error
 	IsOrderCanBePaying(context.Context, *IsOrderCanBePayingRequest, *IsOrderCanBePayingResponse) error
+	GetPriceGroup(context.Context, *billing.GetPriceGroupRequest, *billing.PriceGroup) error
+	UpdatePriceGroup(context.Context, *billing.PriceGroup, *billing.PriceGroup) error
+	SetUserNotifySales(context.Context, *SetUserNotifyRequest, *EmptyResponse) error
+	SetUserNotifyNewRegion(context.Context, *SetUserNotifyRequest, *EmptyResponse) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -705,9 +792,16 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		DeleteProject(ctx context.Context, in *GetProjectRequest, out *ChangeProjectResponse) error
 		CreateToken(ctx context.Context, in *TokenRequest, out *TokenResponse) error
 		CheckProjectRequestSignature(ctx context.Context, in *CheckProjectRequestSignatureRequest, out *CheckProjectRequestSignatureResponse) error
+		GetCountriesList(ctx context.Context, in *EmptyRequest, out *billing.CountriesList) error
+		GetCountry(ctx context.Context, in *billing.GetCountryRequest, out *billing.Country) error
+		UpdateCountry(ctx context.Context, in *billing.Country, out *billing.Country) error
 		GetOrder(ctx context.Context, in *GetOrderRequest, out *billing.Order) error
 		FindAllOrders(ctx context.Context, in *ListOrdersRequest, out *billing.OrderPaginate) error
 		IsOrderCanBePaying(ctx context.Context, in *IsOrderCanBePayingRequest, out *IsOrderCanBePayingResponse) error
+		GetPriceGroup(ctx context.Context, in *billing.GetPriceGroupRequest, out *billing.PriceGroup) error
+		UpdatePriceGroup(ctx context.Context, in *billing.PriceGroup, out *billing.PriceGroup) error
+		SetUserNotifySales(ctx context.Context, in *SetUserNotifyRequest, out *EmptyResponse) error
+		SetUserNotifyNewRegion(ctx context.Context, in *SetUserNotifyRequest, out *EmptyResponse) error
 	}
 	type BillingService struct {
 		billingService
@@ -884,6 +978,18 @@ func (h *billingServiceHandler) CheckProjectRequestSignature(ctx context.Context
 	return h.BillingServiceHandler.CheckProjectRequestSignature(ctx, in, out)
 }
 
+func (h *billingServiceHandler) GetCountriesList(ctx context.Context, in *EmptyRequest, out *billing.CountriesList) error {
+	return h.BillingServiceHandler.GetCountriesList(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetCountry(ctx context.Context, in *billing.GetCountryRequest, out *billing.Country) error {
+	return h.BillingServiceHandler.GetCountry(ctx, in, out)
+}
+
+func (h *billingServiceHandler) UpdateCountry(ctx context.Context, in *billing.Country, out *billing.Country) error {
+	return h.BillingServiceHandler.UpdateCountry(ctx, in, out)
+}
+
 func (h *billingServiceHandler) GetOrder(ctx context.Context, in *GetOrderRequest, out *billing.Order) error {
 	return h.BillingServiceHandler.GetOrder(ctx, in, out)
 }
@@ -894,4 +1000,20 @@ func (h *billingServiceHandler) FindAllOrders(ctx context.Context, in *ListOrder
 
 func (h *billingServiceHandler) IsOrderCanBePaying(ctx context.Context, in *IsOrderCanBePayingRequest, out *IsOrderCanBePayingResponse) error {
 	return h.BillingServiceHandler.IsOrderCanBePaying(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetPriceGroup(ctx context.Context, in *billing.GetPriceGroupRequest, out *billing.PriceGroup) error {
+	return h.BillingServiceHandler.GetPriceGroup(ctx, in, out)
+}
+
+func (h *billingServiceHandler) UpdatePriceGroup(ctx context.Context, in *billing.PriceGroup, out *billing.PriceGroup) error {
+	return h.BillingServiceHandler.UpdatePriceGroup(ctx, in, out)
+}
+
+func (h *billingServiceHandler) SetUserNotifySales(ctx context.Context, in *SetUserNotifyRequest, out *EmptyResponse) error {
+	return h.BillingServiceHandler.SetUserNotifySales(ctx, in, out)
+}
+
+func (h *billingServiceHandler) SetUserNotifyNewRegion(ctx context.Context, in *SetUserNotifyRequest, out *EmptyResponse) error {
+	return h.BillingServiceHandler.SetUserNotifyNewRegion(ctx, in, out)
 }

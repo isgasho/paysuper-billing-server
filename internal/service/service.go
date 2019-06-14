@@ -6,17 +6,16 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/ProtocolONE/geoip-service/pkg/proto"
 	"github.com/ProtocolONE/rabbitmq/pkg"
 	"github.com/centrifugal/gocent"
 	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"github.com/paysuper/paysuper-tax-service/proto"
@@ -54,7 +53,7 @@ const (
 )
 
 type Service struct {
-	db               *database.Source
+	db               *mongodb.Source
 	mx               sync.Mutex
 	cfg              *config.Config
 	ctx              context.Context
@@ -76,10 +75,11 @@ type Service struct {
 	merchant      *Merchant
 	paymentMethod *PaymentMethod
 	systemFees    *SystemFee
+	priceGroup    *PriceGroup
 }
 
 func NewBillingService(
-	db *database.Source,
+	db *mongodb.Source,
 	cfg *config.Config,
 	geo proto.GeoIpService,
 	rep repository.RepositoryService,
@@ -109,6 +109,7 @@ func (s *Service) Init() (err error) {
 	s.country = newCountryService(s)
 	s.project = newProjectService(s)
 	s.systemFees = newSystemFeesService(s)
+	s.priceGroup = newPriceGroupService(s)
 
 	s.centrifugoClient = gocent.New(
 		gocent.Config{
@@ -132,7 +133,7 @@ func (s *Service) isProductionEnvironment() bool {
 }
 
 func (s *Service) logError(msg string, data []interface{}) {
-	zap.S().Errorw(fmt.Sprintf("[PAYSUPER_BILLING] %s", msg), data...)
+	zap.S().Errorw(msg, data...)
 }
 
 func (s *Service) UpdateOrder(ctx context.Context, req *billing.Order, rsp *grpc.EmptyResponse) error {

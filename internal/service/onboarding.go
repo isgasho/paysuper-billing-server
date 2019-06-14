@@ -209,14 +209,14 @@ func (s *Service) ChangeMerchant(
 	}
 
 	if req.Country != "" {
-		country, err := s.country.GetByCodeA2(req.Country)
+		country, err := s.country.GetByIsoCodeA2(req.Country)
 
 		if err != nil {
 			s.logError("Get country for merchant failed", []interface{}{"err", err.Error(), "request", req})
 			return errors.New(merchantErrorCountryNotFound)
 		}
 
-		merchant.Country = country
+		merchant.Country = country.IsoCodeA2
 	}
 
 	merchant.Banking = &billing.MerchantBanking{}

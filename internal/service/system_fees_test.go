@@ -8,10 +8,10 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -48,14 +48,7 @@ func (suite *SystemFeesTestSuite) SetupTest() {
 
 	cfg.AccountingCurrency = "RUB"
 
-	settings := database.Connection{
-		Host:     cfg.MongoHost,
-		Database: cfg.MongoDatabase,
-		User:     cfg.MongoUser,
-		Password: cfg.MongoPassword,
-	}
-
-	db, err := database.NewDatabase(settings)
+	db, err := mongodb.NewDatabase()
 	if err != nil {
 		suite.FailNow("Database connection failed", "%v", err)
 	}
@@ -143,11 +136,14 @@ func (suite *SystemFeesTestSuite) SetupTest() {
 	}
 
 	country := &billing.Country{
-		CodeInt:  840,
-		CodeA2:   "US",
-		CodeA3:   "USA",
-		Name:     &billing.Name{Ru: "США", En: "USA"},
-		IsActive: true,
+		IsoCodeA2:       "US",
+		Region:          "North America",
+		Currency:        "USD",
+		PaymentsAllowed: true,
+		ChangeAllowed:   true,
+		VatEnabled:      true,
+		PriceGroupId:    "",
+		VatCurrency:     "USD",
 	}
 	if err := suite.service.country.Insert(country); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
@@ -521,15 +517,7 @@ func (suite *SystemFeeTestSuite) SetupTest() {
 	}
 	cfg.AccountingCurrency = "RUB"
 
-	settings := database.Connection{
-		Host:     cfg.MongoHost,
-		Database: cfg.MongoDatabase,
-		User:     cfg.MongoUser,
-		Password: cfg.MongoPassword,
-	}
-
-	db, err := database.NewDatabase(settings)
-
+	db, err := mongodb.NewDatabase()
 	if err != nil {
 		suite.FailNow("Database connection failed", "%v", err)
 	}

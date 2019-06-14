@@ -1,0 +1,37 @@
+[
+  {
+    "createIndexes": "country",
+    "indexes": [
+      {
+        "key": {
+          "iso_code": 1
+        },
+        "name": "iso_code"
+      }
+    ]
+  },
+  {
+    "createIndexes": "price_group",
+    "indexes": [
+      {
+        "key": {
+          "currency": 1,
+          "region": 1
+        },
+        "name": "currency-region"
+      }
+    ]
+  },
+  {
+    "createIndexes": "notify_sales",
+    "indexes": [
+      {
+        "key": {
+          "email": 1
+        },
+        "name": "email",
+        "unique": true
+      }
+    ]
+  }
+]

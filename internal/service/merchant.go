@@ -85,7 +85,10 @@ func (h Merchant) GetPaymentMethod(merchantId string, method string) (*billing.M
 		}
 	}
 
-	pm := h.svc.paymentMethod.GetAll()
+	pm, err := h.svc.paymentMethod.GetAll()
+	if err != nil {
+		return nil, err
+	}
 	if len(merchantPaymentMethods) != len(pm) {
 		for k, v := range pm {
 			_, ok := merchantPaymentMethods[k]
