@@ -63,9 +63,10 @@ service BillingService {
     rpc FindAllOrders(ListOrdersRequest) returns (billing.OrderPaginate) {}
     rpc IsOrderCanBePaying(IsOrderCanBePayingRequest) returns (IsOrderCanBePayingResponse) {}
 
-    rpc CreateOrUpdatePaymentMethod(billing.PaymentMethod) returns (ChangePaymentMethodResponse) {}
-    rpc GetPaymentMethod(GetPaymentMethodRequest) returns (billing.PaymentMethod) {}
-    rpc DeletePaymentMethod(billing.PaymentMethod) returns (ChangePaymentMethodResponse) {}
+    rpc CreateOrUpdatePaymentMethod(ChangePaymentMethodRequest) returns (ChangePaymentMethodResponse) {}
+    rpc CreateOrUpdatePaymentMethodProductionSettings(ChangePaymentMethodRequest) returns (ChangePaymentMethodParamsResponse) {}
+    rpc GetPaymentMethodProductionSettings(GetPaymentMethodProductionSettingsRequest) returns (billing.PaymentMethodParams) {}
+    rpc DeletePaymentMethodProductionSettings(GetPaymentMethodProductionSettingsRequest) returns (ChangePaymentMethodParamsResponse) {}
 }
 
 message EmptyRequest {
@@ -670,12 +671,26 @@ message IsOrderCanBePayingResponse {
     billing.Order item = 3;
 }
 
-message GetPaymentMethodRequest {
-    // @inject_tag: query:"id" validate:"required,,hexadecimal,len=24"
+message GetPaymentMethodProductionSettingsRequest {
+    // @inject_tag: query:"payment_method_id" validate:"required,hexadecimal,len=24"
     string payment_method_id = 1;
+    // @inject_tag: query:"currency_a3" validate:"required,alpha,len=3"
+    string currency_a3 = 2;
+}
+
+message ChangePaymentMethodRequest {
+    // @inject_tag: query:"payment_method_id" validate:"required,hexadecimal,len=24"
+    string payment_method_id = 1;
+    // @inject_tag: query:"params" validate:"required"
+    billing.PaymentMethodParams params = 2;
 }
 
 message ChangePaymentMethodResponse {
+    int32 status = 1;
+    string message = 2;
+}
+
+message ChangePaymentMethodParamsResponse {
     int32 status = 1;
     string message = 2;
 }
