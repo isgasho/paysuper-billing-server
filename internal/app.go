@@ -9,6 +9,9 @@ import (
 	metrics "github.com/ProtocolONE/go-micro-plugins/wrapper/monitoring/prometheus"
 	"github.com/ProtocolONE/rabbitmq/pkg"
 	"github.com/go-redis/redis"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/micro/go-micro"
 	k8s "github.com/micro/kubernetes/go/micro"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
@@ -16,6 +19,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/service"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
 	taxPkg "github.com/paysuper/paysuper-tax-service/pkg"
@@ -29,7 +33,7 @@ import (
 
 type Application struct {
 	cfg        *config.Config
-	database   *database.Source
+	database   *mongodb.Source
 	redis      *redis.Client
 	service    micro.Service
 	httpServer *http.Server
@@ -49,12 +53,34 @@ func (app *Application) Init() {
 
 	cfg, err := config.NewConfig()
 
+	app.logger.Info("db migrations started")
+
 	if err != nil {
 		app.logger.Fatal("Config load failed", zap.Error(err))
 	}
 
 	app.cfg = cfg
-	app.initDatabase()
+
+	migrations, err := migrate.New(pkg.MigrationSource, app.cfg.MongoDsn)
+
+	if err != nil {
+		app.logger.Fatal("Migrations initialization failed", zap.Error(err))
+	}
+
+	err = migrations.Up()
+
+	if err != nil && err != migrate.ErrNoChange && err != migrate.ErrNilVersion {
+		app.logger.Fatal("Migrations processing failed", zap.Error(err))
+	}
+
+	app.logger.Info("db migrations applied")
+
+	db, err := mongodb.NewDatabase()
+	if err != nil {
+		app.logger.Fatal("Database connection failed", zap.Error(err))
+	}
+
+	app.database = db
 
 	app.redis = database.NewRedis(
 		&redis.Options{
@@ -144,27 +170,6 @@ func (app *Application) initLogger() {
 	zap.ReplaceGlobals(app.logger)
 }
 
-func (app *Application) initDatabase() {
-	settings := database.Connection{
-		Host:     app.cfg.MongoHost,
-		Database: app.cfg.MongoDatabase,
-		User:     app.cfg.MongoUser,
-		Password: app.cfg.MongoPassword,
-	}
-
-	db, err := database.NewDatabase(settings)
-
-	if err != nil {
-		app.logger.Fatal(
-			"Database connection failed",
-			zap.Error(err),
-			zap.String("connection_string", settings.String()),
-		)
-	}
-
-	app.database = db
-}
-
 func (app *Application) initHealth() {
 	h := health.New()
 	err := h.AddChecks([]*health.Config{
@@ -222,12 +227,6 @@ func (app *Application) Stop() {
 		app.logger.Error("Http server shutdown failed", zap.Error(err))
 	}
 	app.logger.Info("Http server stopped")
-
-	if app.svc != nil {
-		app.logger.Info("GRPC service stopped")
-	} else {
-		app.logger.Error("GRPC service not initialized")
-	}
 
 	app.database.Close()
 	app.logger.Info("Database connection closed")

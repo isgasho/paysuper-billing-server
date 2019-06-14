@@ -1,0 +1,463 @@
+[
+  {
+    "insert": "price_group",
+    "documents": [
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440829"},
+        "currency": "AED",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444082a"},
+        "currency": "USD",
+        "is_simple": false,
+        "region": "AFRICA",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444082b"},
+        "currency": "ARS",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444082c"},
+        "currency": "AUD",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444082d"},
+        "currency": "BHD",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444082e"},
+        "currency": "BRL",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444082f"},
+        "currency": "CAD",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440830"},
+        "currency": "USD",
+        "is_simple": false,
+        "region": "CAM",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440831"},
+        "currency": "USD",
+        "is_simple": false,
+        "region": "CARIB",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440832"},
+        "currency": "CHF",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440833"},
+        "currency": "USD",
+        "is_simple": false,
+        "region": "CIS",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440834"},
+        "currency": "CLP",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440835"},
+        "currency": "CNY",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440836"},
+        "currency": "COP",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440837"},
+        "currency": "CRC",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440838"},
+        "currency": "CZK",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440839"},
+        "currency": "DKK",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444083a"},
+        "currency": "USD",
+        "is_simple": false,
+        "region": "EAFRICA",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444083b"},
+        "currency": "USD",
+        "is_simple": false,
+        "region": "EASIA",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444083c"},
+        "currency": "EGP",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444083d"},
+        "currency": "EUR",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444083e"},
+        "currency": "GBP",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444083f"},
+        "currency": "HKD",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440840"},
+        "currency": "HRK",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440841"},
+        "currency": "HUF",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440842"},
+        "currency": "IDR",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440843"},
+        "currency": "ILS",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440844"},
+        "currency": "INR",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440845"},
+        "currency": "JPY",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440846"},
+        "currency": "KRW",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440847"},
+        "currency": "KZT",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-2816:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440848"},
+        "currency": "MXN",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440849"},
+        "currency": "MYR",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444084a"},
+        "currency": "USD",
+        "is_simple": false,
+        "region": "NAFRICA",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444084b"},
+        "currency": "NOK",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444084c"},
+        "currency": "NZD",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444084d"},
+        "currency": "PEN",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444084e"},
+        "currency": "PHP",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444084f"},
+        "currency": "PLN",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440850"},
+        "currency": "QAR",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440851"},
+        "currency": "RON",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440852"},
+        "currency": "RSD",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440853"},
+        "currency": "RUB",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440854"},
+        "currency": "USD",
+        "is_simple": false,
+        "region": "SAFRICA",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440855"},
+        "currency": "USD",
+        "is_simple": false,
+        "region": "SAM",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440856"},
+        "currency": "SAR",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440857"},
+        "currency": "USD",
+        "is_simple": false,
+        "region": "SASIA",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440858"},
+        "currency": "SEK",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440859"},
+        "currency": "SGD",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444085a"},
+        "currency": "THB",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444085b"},
+        "currency": "TRY",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444085c"},
+        "currency": "TWD",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444085d"},
+        "currency": "USD",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444085e"},
+        "currency": "VND",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444085f"},
+        "currency": "USD",
+        "is_simple": false,
+        "region": "WAFRICA",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440860"},
+        "currency": "USD",
+        "is_simple": false,
+        "region": "WASIA",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440861"},
+        "currency": "ZAR",
+        "is_simple": true,
+        "region": "",
+        "created_at": "2019-05-28 16:20:00.000",
+        "updated_at": "2019-05-28 16:20:00.000"
+      }
+    ]
+  }
+]

@@ -17,3 +17,4 @@ type Project Entity
 type PaymentMethod Entity
 type Merchant Entity
 type SystemFee Entity
+type PriceGroup Entity

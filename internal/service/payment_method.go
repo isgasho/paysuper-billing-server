@@ -14,6 +14,10 @@ const (
 	collectionPaymentMethod = "payment_method"
 )
 
+type paymentMethods struct {
+	Methods map[string]*billing.PaymentMethod
+}
+
 func newPaymentMethodService(svc *Service) *PaymentMethod {
 	s := &PaymentMethod{svc: svc}
 	return s
@@ -51,31 +55,34 @@ func (h PaymentMethod) GetById(id string) (*billing.PaymentMethod, error) {
 	return &c, nil
 }
 
-func (h PaymentMethod) GetAll() map[string]*billing.PaymentMethod {
-	var c map[string]*billing.PaymentMethod
+func (h PaymentMethod) GetAll() (map[string]*billing.PaymentMethod, error) {
+	var c paymentMethods
 	key := cachePaymentMethodAll
 
 	if err := h.svc.cacher.Get(key, c); err != nil {
 		var data []*billing.PaymentMethod
 		if err = h.svc.db.Collection(collectionPaymentMethod).Find(bson.M{}).All(&data); err != nil {
-			return nil
+			return nil, err
 		}
 
 		pool := make(map[string]*billing.PaymentMethod, len(data))
 		for _, v := range data {
 			pool[v.Id] = v
 		}
-		c = pool
+		c.Methods = pool
 	}
 
 	_ = h.svc.cacher.Set(key, c, 0)
-	return c
+	return c.Methods, nil
 }
 
-func (h PaymentMethod) Groups() map[string]map[int32]*billing.PaymentMethod {
-	pool := h.GetAll()
+func (h PaymentMethod) Groups() (map[string]map[int32]*billing.PaymentMethod, error) {
+	pool, err := h.GetAll()
+	if err != nil {
+		return nil, err
+	}
 	if pool == nil {
-		return nil
+		return nil, nil
 	}
 
 	groups := make(map[string]map[int32]*billing.PaymentMethod, len(pool))
@@ -87,7 +94,7 @@ func (h PaymentMethod) Groups() map[string]map[int32]*billing.PaymentMethod {
 		groups[r.Group] = group
 	}
 
-	return groups
+	return groups, nil
 }
 
 func (h PaymentMethod) MultipleInsert(pm []*billing.PaymentMethod) error {

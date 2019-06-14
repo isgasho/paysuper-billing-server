@@ -59,9 +59,19 @@ service BillingService {
     rpc CreateToken(TokenRequest) returns (TokenResponse) {}
     rpc CheckProjectRequestSignature(CheckProjectRequestSignatureRequest) returns (CheckProjectRequestSignatureResponse) {}
 
+    rpc GetCountriesList(EmptyRequest) returns (billing.CountriesList) {}
+    rpc GetCountry(billing.GetCountryRequest) returns (billing.Country) {}
+    rpc UpdateCountry(billing.Country) returns (billing.Country) {}
+
     rpc GetOrder(GetOrderRequest) returns (billing.Order) {}
     rpc FindAllOrders(ListOrdersRequest) returns (billing.OrderPaginate) {}
     rpc IsOrderCanBePaying(IsOrderCanBePayingRequest) returns (IsOrderCanBePayingResponse) {}
+
+    rpc GetPriceGroup(billing.GetPriceGroupRequest) returns (billing.PriceGroup) {}
+    rpc UpdatePriceGroup(billing.PriceGroup) returns (billing.PriceGroup) {}
+
+    rpc SetUserNotifySales(SetUserNotifyRequest) returns (EmptyResponse) {}
+    rpc SetUserNotifyNewRegion(SetUserNotifyRequest) returns (EmptyResponse) {}
 }
 
 message EmptyRequest {
@@ -128,6 +138,10 @@ message PaymentFormJsonDataResponse {
     string email = 16;
     // @inject_tag: json:"description"
     string description = 17;
+    //@inject_tag: json:"country_payments_allowed"
+    bool country_payments_allowed = 18;
+    //@inject_tag: json:"country_change_allowed"
+    bool country_change_allowed = 19;
 }
 
 message PaymentNotifyRequest {
@@ -664,4 +678,37 @@ message IsOrderCanBePayingResponse {
     int32 status = 1;
     string message = 2;
     billing.Order item = 3;
+}
+
+message SetUserNotifyRequest {
+    // @inject_tag: validate:"required,uuid"
+    string order_uuid = 1;
+    // @inject_tag: query:"enable_notification"
+    bool enable_notification = 2;
+    // @inject_tag: query:"email" validate:"omitempty,email"
+    string email = 3;
+}
+
+message NotifyUserSales {
+    //@inject_tag: bson:"email"
+    string email = 1;
+    //@inject_tag: bson:"order_id"
+    string order_id = 2;
+    //@inject_tag: bson:"user_id"
+    string user_id = 3;
+    //@inject_tag: bson:"created_at"
+    string date = 4;
+}
+
+message NotifyUserNewRegion {
+    //@inject_tag: bson:"country_iso_code_a2"
+    string country_iso_code_a2 = 1;
+    //@inject_tag: bson:"email"
+    string email = 2;
+    //@inject_tag: bson:"order_id"
+    string order_id = 3;
+    //@inject_tag: bson:"user_id"
+    string user_id = 4;
+    //@inject_tag: bson:"date"
+    string date = 5;
 }

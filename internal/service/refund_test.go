@@ -10,11 +10,11 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -42,14 +42,7 @@ func (suite *RefundTestSuite) SetupTest() {
 	assert.NoError(suite.T(), err, "Config load failed")
 	cfg.AccountingCurrency = "RUB"
 
-	settings := database.Connection{
-		Host:     cfg.MongoHost,
-		Database: cfg.MongoDatabase,
-		User:     cfg.MongoUser,
-		Password: cfg.MongoPassword,
-	}
-
-	db, err := database.NewDatabase(settings)
+	db, err := mongodb.NewDatabase()
 	assert.NoError(suite.T(), err, "Database connection failed")
 
 	suite.log, err = zap.NewProduction()
@@ -71,11 +64,14 @@ func (suite *RefundTestSuite) SetupTest() {
 	}
 
 	country := &billing.Country{
-		CodeInt:  643,
-		CodeA2:   "RU",
-		CodeA3:   "RUS",
-		Name:     &billing.Name{Ru: "Россия", En: "Russia (Russian Federation)"},
-		IsActive: true,
+		IsoCodeA2:       "RU",
+		Region:          "Russia",
+		Currency:        "RUB",
+		PaymentsAllowed: true,
+		ChangeAllowed:   true,
+		VatEnabled:      true,
+		PriceGroupId:    "",
+		VatCurrency:     "RUB",
 	}
 
 	pmBankCard := &billing.PaymentMethod{
@@ -100,7 +96,7 @@ func (suite *RefundTestSuite) SetupTest() {
 			Name:               "CardPay",
 			AccountingCurrency: rub,
 			AccountingPeriod:   "every-day",
-			Country:            &billing.Country{},
+			Country:            "",
 			IsActive:           true,
 		},
 	}
@@ -111,7 +107,7 @@ func (suite *RefundTestSuite) SetupTest() {
 	merchant := &billing.Merchant{
 		Id:      bson.NewObjectId().Hex(),
 		Name:    "Unit test",
-		Country: country,
+		Country: country.IsoCodeA2,
 		Zip:     "190000",
 		City:    "St.Petersburg",
 		Contacts: &billing.MerchantContact{
@@ -244,7 +240,7 @@ func (suite *RefundTestSuite) SetupTest() {
 	merchantAgreement := &billing.Merchant{
 		Id:      bson.NewObjectId().Hex(),
 		Name:    "Unit test status Agreement",
-		Country: country,
+		Country: country.IsoCodeA2,
 		Zip:     "190000",
 		City:    "St.Petersburg",
 		Contacts: &billing.MerchantContact{
@@ -276,7 +272,7 @@ func (suite *RefundTestSuite) SetupTest() {
 	merchant1 := &billing.Merchant{
 		Id:      bson.NewObjectId().Hex(),
 		Name:    "merchant1",
-		Country: country,
+		Country: country.IsoCodeA2,
 		Zip:     "190000",
 		City:    "St.Petersburg",
 		Contacts: &billing.MerchantContact{
