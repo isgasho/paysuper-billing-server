@@ -18,6 +18,10 @@ func newZipCodeService(svc *Service) *ZipCode {
 	return &ZipCode{svc: svc}
 }
 
+func (s *Service) FindByZipCode() error {
+
+}
+
 func (h *ZipCode) getByZipAndCountry(zip, country string) (*billing.ZipCode, error) {
 	data := new(billing.ZipCode)
 	key := fmt.Sprintf(cacheZipCodeByZipAndCountry, zip, country)
