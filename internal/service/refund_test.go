@@ -74,31 +74,31 @@ func (suite *RefundTestSuite) SetupTest() {
 		VatCurrency:     "RUB",
 	}
 
+	ps := &billing.PaymentSystem{
+		Id:                 bson.NewObjectId().Hex(),
+		Name:               "CardPay",
+		AccountingCurrency: rub,
+		AccountingPeriod:   "every-day",
+		Country:            "",
+		IsActive:           true,
+	}
 	pmBankCard := &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
 		Name:             "Bank card",
 		Group:            "BANKCARD",
 		MinPaymentAmount: 100,
 		MaxPaymentAmount: 15000,
-		Currency:         rub,
 		Currencies:       []int32{643, 840, 980},
-		Params: &billing.PaymentMethodParams{
-			Handler:          "cardpay",
-			Terminal:         "15985",
-			Password:         "A1tph4I6BD0f",
-			CallbackPassword: "0V1rJ7t4jCRv",
-			ExternalId:       "BANKCARD",
+		Handler:          "cardpay",
+		ExternalId:       "BANKCARD",
+		TestSettings: &billing.PaymentMethodParams{
+			TerminalId:     "15985",
+			Secret:         "A1tph4I6BD0f",
+			SecretCallback: "0V1rJ7t4jCRv",
 		},
-		Type:     "bank_card",
-		IsActive: true,
-		PaymentSystem: &billing.PaymentSystem{
-			Id:                 bson.NewObjectId().Hex(),
-			Name:               "CardPay",
-			AccountingCurrency: rub,
-			AccountingPeriod:   "every-day",
-			Country:            "",
-			IsActive:           true,
-		},
+		Type:            "bank_card",
+		IsActive:        true,
+		PaymentSystemId: ps.Id,
 	}
 
 	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -360))
@@ -180,10 +180,10 @@ func (suite *RefundTestSuite) SetupTest() {
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
 		Currencies:       []int32{643, 840, 980},
-		Params: &billing.PaymentMethodParams{
-			Handler:    "mock_error",
-			Terminal:   "15993",
-			ExternalId: "QIWI",
+		Handler:          "mock_error",
+		ExternalId:       "QIWI",
+		TestSettings: &billing.PaymentMethodParams{
+			TerminalId: "15993",
 		},
 		Type:     "ewallet",
 		IsActive: true,
@@ -195,10 +195,10 @@ func (suite *RefundTestSuite) SetupTest() {
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
 		Currencies:       []int32{643, 840, 980},
-		Params: &billing.PaymentMethodParams{
-			Handler:    "cardpay",
-			Terminal:   "16007",
-			ExternalId: "BITCOIN",
+		Handler:          "cardpay",
+		ExternalId:       "BITCOIN",
+		TestSettings: &billing.PaymentMethodParams{
+			TerminalId: "16007",
 		},
 		Type:     "crypto",
 		IsActive: true,
@@ -403,7 +403,7 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_Ok() {
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
-	order.PaymentMethod.Params.Handler = "mock_ok"
+	order.PaymentMethod.Handler = "mock_ok"
 	order.Tax = &billing.OrderTax{
 		Type:     taxTypeVat,
 		Rate:     20,
@@ -477,7 +477,7 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_AmountLess_Error() {
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
-	order.PaymentMethod.Params.Handler = "mock_ok"
+	order.PaymentMethod.Handler = "mock_ok"
 	err = suite.service.updateOrder(order)
 
 	req2 := &grpc.CreateRefundRequest{
@@ -548,7 +548,7 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_PaymentSystemNotExists_Err
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
-	order.PaymentMethod.Params.Handler = "not_exist_payment_system"
+	order.PaymentMethod.Handler = "not_exist_payment_system"
 	err = suite.service.updateOrder(order)
 
 	req2 := &grpc.CreateRefundRequest{
@@ -608,7 +608,7 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_PaymentSystemReturnError_E
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
-	order.PaymentMethod.Params.Handler = "mock_error"
+	order.PaymentMethod.Handler = "mock_error"
 	err = suite.service.updateOrder(order)
 
 	req2 := &grpc.CreateRefundRequest{
@@ -802,7 +802,7 @@ func (suite *RefundTestSuite) TestRefund_ListRefunds_Ok() {
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusProjectComplete
-	order.PaymentMethod.Params.Handler = "mock_ok"
+	order.PaymentMethod.Handler = "mock_ok"
 	err = suite.service.updateOrder(order)
 
 	req2 := &grpc.CreateRefundRequest{
@@ -886,7 +886,7 @@ func (suite *RefundTestSuite) TestRefund_ListRefunds_Limit_Ok() {
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusProjectComplete
-	order.PaymentMethod.Params.Handler = "mock_ok"
+	order.PaymentMethod.Handler = "mock_ok"
 	err = suite.service.updateOrder(order)
 
 	req2 := &grpc.CreateRefundRequest{
@@ -982,7 +982,7 @@ func (suite *RefundTestSuite) TestRefund_GetRefund_Ok() {
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusProjectComplete
-	order.PaymentMethod.Params.Handler = "mock_ok"
+	order.PaymentMethod.Handler = "mock_ok"
 	err = suite.service.updateOrder(order)
 
 	req2 := &grpc.CreateRefundRequest{
@@ -1066,7 +1066,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
-	order.PaymentMethod.Params.Handler = "mock_ok"
+	order.PaymentMethod.Handler = "mock_ok"
 	order.Tax = &billing.OrderTax{
 		Type:     taxTypeVat,
 		Rate:     20,
@@ -1087,7 +1087,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
 	assert.Empty(suite.T(), rsp2.Message)
 
-	order.PaymentMethod.Params.Handler = pkg.PaymentSystemHandlerCardPay
+	order.PaymentMethod.Handler = pkg.PaymentSystemHandlerCardPay
 	err = suite.service.updateOrder(order)
 
 	refundReq := &billing.CardPayRefundCallback{
@@ -1120,7 +1120,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 	assert.NoError(suite.T(), err)
 
 	hash := sha512.New()
-	hash.Write([]byte(string(b) + order.PaymentMethod.Params.CallbackPassword))
+	hash.Write([]byte(string(b) + order.PaymentMethod.Params.SecretCallback))
 
 	req3 := &grpc.CallbackRequest{
 		Handler:   pkg.PaymentSystemHandlerCardPay,
@@ -1182,7 +1182,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnmarshalError() 
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
-	order.PaymentMethod.Params.Handler = "mock_ok"
+	order.PaymentMethod.Handler = "mock_ok"
 	order.Tax = &billing.OrderTax{
 		Type:     taxTypeVat,
 		Rate:     20,
@@ -1203,13 +1203,13 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnmarshalError() 
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
 	assert.Empty(suite.T(), rsp2.Message)
 
-	order.PaymentMethod.Params.Handler = pkg.PaymentSystemHandlerCardPay
+	order.PaymentMethod.Handler = pkg.PaymentSystemHandlerCardPay
 	err = suite.service.updateOrder(order)
 
 	refundReq := `{"some_field": "some_value"}`
 
 	hash := sha512.New()
-	hash.Write([]byte(refundReq + order.PaymentMethod.Params.CallbackPassword))
+	hash.Write([]byte(refundReq + order.PaymentMethod.Params.SecretCallback))
 
 	req3 := &grpc.CallbackRequest{
 		Handler:   pkg.PaymentSystemHandlerCardPay,
@@ -1266,7 +1266,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnknownHandler_Er
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
-	order.PaymentMethod.Params.Handler = "mock_ok"
+	order.PaymentMethod.Handler = "mock_ok"
 	order.Tax = &billing.OrderTax{
 		Type:     taxTypeVat,
 		Rate:     20,
@@ -1287,7 +1287,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnknownHandler_Er
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
 	assert.Empty(suite.T(), rsp2.Message)
 
-	order.PaymentMethod.Params.Handler = pkg.PaymentSystemHandlerCardPay
+	order.PaymentMethod.Handler = pkg.PaymentSystemHandlerCardPay
 	err = suite.service.updateOrder(order)
 
 	refundReq := &billing.CardPayRefundCallback{
@@ -1320,7 +1320,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnknownHandler_Er
 	assert.NoError(suite.T(), err)
 
 	hash := sha512.New()
-	hash.Write([]byte(string(b) + order.PaymentMethod.Params.CallbackPassword))
+	hash.Write([]byte(string(b) + order.PaymentMethod.Params.SecretCallback))
 
 	req3 := &grpc.CallbackRequest{
 		Handler:   "fake_payment_system_handler",
@@ -1377,7 +1377,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_RefundNotFound_Er
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
-	order.PaymentMethod.Params.Handler = "mock_ok"
+	order.PaymentMethod.Handler = "mock_ok"
 	order.Tax = &billing.OrderTax{
 		Type:     taxTypeVat,
 		Rate:     20,
@@ -1398,7 +1398,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_RefundNotFound_Er
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
 	assert.Empty(suite.T(), rsp2.Message)
 
-	order.PaymentMethod.Params.Handler = pkg.PaymentSystemHandlerCardPay
+	order.PaymentMethod.Handler = pkg.PaymentSystemHandlerCardPay
 	err = suite.service.updateOrder(order)
 
 	refundReq := &billing.CardPayRefundCallback{
@@ -1431,7 +1431,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_RefundNotFound_Er
 	assert.NoError(suite.T(), err)
 
 	hash := sha512.New()
-	hash.Write([]byte(string(b) + order.PaymentMethod.Params.CallbackPassword))
+	hash.Write([]byte(string(b) + order.PaymentMethod.Params.SecretCallback))
 
 	req3 := &grpc.CallbackRequest{
 		Handler:   pkg.PaymentSystemHandlerCardPay,
@@ -1488,7 +1488,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderNotFound_Err
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
-	order.PaymentMethod.Params.Handler = "mock_ok"
+	order.PaymentMethod.Handler = "mock_ok"
 	order.Tax = &billing.OrderTax{
 		Type:     taxTypeVat,
 		Rate:     20,
@@ -1509,7 +1509,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderNotFound_Err
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
 	assert.Empty(suite.T(), rsp2.Message)
 
-	order.PaymentMethod.Params.Handler = pkg.PaymentSystemHandlerCardPay
+	order.PaymentMethod.Handler = pkg.PaymentSystemHandlerCardPay
 	err = suite.service.updateOrder(order)
 
 	var refund *billing.Refund
@@ -1549,7 +1549,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderNotFound_Err
 	assert.NoError(suite.T(), err)
 
 	hash := sha512.New()
-	hash.Write([]byte(string(b) + order.PaymentMethod.Params.CallbackPassword))
+	hash.Write([]byte(string(b) + order.PaymentMethod.Params.SecretCallback))
 
 	req3 := &grpc.CallbackRequest{
 		Handler:   pkg.PaymentSystemHandlerCardPay,
@@ -1606,7 +1606,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnknownPaymentSys
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
-	order.PaymentMethod.Params.Handler = "mock_ok"
+	order.PaymentMethod.Handler = "mock_ok"
 	order.Tax = &billing.OrderTax{
 		Type:     taxTypeVat,
 		Rate:     20,
@@ -1627,7 +1627,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnknownPaymentSys
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
 	assert.Empty(suite.T(), rsp2.Message)
 
-	order.PaymentMethod.Params.Handler = "fake_payment_system_handler"
+	order.PaymentMethod.Handler = "fake_payment_system_handler"
 	err = suite.service.updateOrder(order)
 
 	refundReq := &billing.CardPayRefundCallback{
@@ -1660,7 +1660,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnknownPaymentSys
 	assert.NoError(suite.T(), err)
 
 	hash := sha512.New()
-	hash.Write([]byte(string(b) + order.PaymentMethod.Params.CallbackPassword))
+	hash.Write([]byte(string(b) + order.PaymentMethod.Params.SecretCallback))
 
 	req3 := &grpc.CallbackRequest{
 		Handler:   pkg.PaymentSystemHandlerCardPay,
@@ -1717,7 +1717,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_ProcessRefundErro
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
-	order.PaymentMethod.Params.Handler = "mock_ok"
+	order.PaymentMethod.Handler = "mock_ok"
 	order.Tax = &billing.OrderTax{
 		Type:     taxTypeVat,
 		Rate:     20,
@@ -1738,7 +1738,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_ProcessRefundErro
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
 	assert.Empty(suite.T(), rsp2.Message)
 
-	order.PaymentMethod.Params.Handler = pkg.PaymentSystemHandlerCardPay
+	order.PaymentMethod.Handler = pkg.PaymentSystemHandlerCardPay
 	err = suite.service.updateOrder(order)
 
 	refundReq := &billing.CardPayRefundCallback{
@@ -1771,7 +1771,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_ProcessRefundErro
 	assert.NoError(suite.T(), err)
 
 	hash := sha512.New()
-	hash.Write([]byte(string(b) + order.PaymentMethod.Params.CallbackPassword))
+	hash.Write([]byte(string(b) + order.PaymentMethod.Params.SecretCallback))
 
 	req3 := &grpc.CallbackRequest{
 		Handler:   pkg.PaymentSystemHandlerCardPay,
@@ -1828,7 +1828,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_TemporaryStatus_O
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
-	order.PaymentMethod.Params.Handler = "mock_ok"
+	order.PaymentMethod.Handler = "mock_ok"
 	order.Tax = &billing.OrderTax{
 		Type:     taxTypeVat,
 		Rate:     20,
@@ -1849,7 +1849,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_TemporaryStatus_O
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
 	assert.Empty(suite.T(), rsp2.Message)
 
-	order.PaymentMethod.Params.Handler = pkg.PaymentSystemHandlerCardPay
+	order.PaymentMethod.Handler = pkg.PaymentSystemHandlerCardPay
 	err = suite.service.updateOrder(order)
 
 	refundReq := &billing.CardPayRefundCallback{
@@ -1882,7 +1882,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_TemporaryStatus_O
 	assert.NoError(suite.T(), err)
 
 	hash := sha512.New()
-	hash.Write([]byte(string(b) + order.PaymentMethod.Params.CallbackPassword))
+	hash.Write([]byte(string(b) + order.PaymentMethod.Params.SecretCallback))
 
 	req3 := &grpc.CallbackRequest{
 		Handler:   pkg.PaymentSystemHandlerCardPay,
@@ -1944,7 +1944,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
-	order.PaymentMethod.Params.Handler = "mock_ok"
+	order.PaymentMethod.Handler = "mock_ok"
 	order.Tax = &billing.OrderTax{
 		Type:     taxTypeVat,
 		Rate:     20,
@@ -1965,7 +1965,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
 	assert.Empty(suite.T(), rsp2.Message)
 
-	order.PaymentMethod.Params.Handler = pkg.PaymentSystemHandlerCardPay
+	order.PaymentMethod.Handler = pkg.PaymentSystemHandlerCardPay
 	err = suite.service.updateOrder(order)
 
 	refundReq := &billing.CardPayRefundCallback{
@@ -1998,7 +1998,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 	assert.NoError(suite.T(), err)
 
 	hash := sha512.New()
-	hash.Write([]byte(string(b) + order.PaymentMethod.Params.CallbackPassword))
+	hash.Write([]byte(string(b) + order.PaymentMethod.Params.SecretCallback))
 
 	req3 := &grpc.CallbackRequest{
 		Handler:   pkg.PaymentSystemHandlerCardPay,

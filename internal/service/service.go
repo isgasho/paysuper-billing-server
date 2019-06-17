@@ -76,6 +76,7 @@ type Service struct {
 	paymentMethod *PaymentMethod
 	systemFees    *SystemFee
 	priceGroup    *PriceGroup
+	paymentSystem *PaymentSystemService
 }
 
 func NewBillingService(
@@ -110,6 +111,7 @@ func (s *Service) Init() (err error) {
 	s.project = newProjectService(s)
 	s.systemFees = newSystemFeesService(s)
 	s.priceGroup = newPriceGroupService(s)
+	s.paymentSystem = newPaymentSystemService(s)
 
 	s.centrifugoClient = gocent.New(
 		gocent.Config{

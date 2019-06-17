@@ -73,8 +73,8 @@ service BillingService {
     rpc SetUserNotifySales(SetUserNotifyRequest) returns (EmptyResponse) {}
     rpc SetUserNotifyNewRegion(SetUserNotifyRequest) returns (EmptyResponse) {}
 
-    rpc CreateOrUpdatePaymentMethod(ChangePaymentMethodRequest) returns (ChangePaymentMethodResponse) {}
-    rpc CreateOrUpdatePaymentMethodProductionSettings(ChangePaymentMethodRequest) returns (ChangePaymentMethodParamsResponse) {}
+    rpc CreateOrUpdatePaymentMethod(billing.PaymentMethod) returns (ChangePaymentMethodResponse) {}
+    rpc CreateOrUpdatePaymentMethodProductionSettings(ChangePaymentMethodParamsRequest) returns (ChangePaymentMethodParamsResponse) {}
     rpc GetPaymentMethodProductionSettings(GetPaymentMethodProductionSettingsRequest) returns (billing.PaymentMethodParams) {}
     rpc DeletePaymentMethodProductionSettings(GetPaymentMethodProductionSettingsRequest) returns (ChangePaymentMethodParamsResponse) {}
 }
@@ -726,6 +726,13 @@ message GetPaymentMethodProductionSettingsRequest {
 }
 
 message ChangePaymentMethodRequest {
+    // @inject_tag: query:"payment_method_id" validate:"required,hexadecimal,len=24"
+    string payment_method_id = 1;
+    // @inject_tag: query:"params" validate:"required"
+    billing.PaymentMethod params = 2;
+}
+
+message ChangePaymentMethodParamsRequest {
     // @inject_tag: query:"payment_method_id" validate:"required,hexadecimal,len=24"
     string payment_method_id = 1;
     // @inject_tag: query:"params" validate:"required"

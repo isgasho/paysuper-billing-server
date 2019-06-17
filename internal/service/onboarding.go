@@ -603,7 +603,7 @@ func (s *Service) ListMerchantPaymentMethods(
 
 	var pms []*billing.PaymentMethod
 
-	query := bson.M{"is_active": true}
+	query := bson.M{"is_active": ``}
 
 	if req.PaymentMethodName != "" {
 		query["name"] = bson.RegEx{Pattern: ".*" + req.PaymentMethodName + ".*", Options: "i"}

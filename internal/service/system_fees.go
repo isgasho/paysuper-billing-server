@@ -191,7 +191,6 @@ func newSystemFeesService(svc *Service) *SystemFee {
 
 func (h *SystemFee) Insert(fees *billing.SystemFees) error {
 	if err := h.svc.db.Collection(collectionSystemFees).Insert(fees); err != nil {
-		fmt.Println(err)
 		return err
 	}
 

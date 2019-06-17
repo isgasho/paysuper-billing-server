@@ -267,7 +267,7 @@ func newCardPayHandler(processor *paymentProcessor) PaymentSystem {
 }
 
 func (h *cardPay) CreatePayment(requisites map[string]string) (url string, err error) {
-	if err = h.auth(h.processor.order.PaymentMethod.Params.ExternalId); err != nil {
+	if err = h.auth(h.processor.order.PaymentMethod.ExternalId); err != nil {
 		return
 	}
 
@@ -308,7 +308,7 @@ func (h *cardPay) CreatePayment(requisites map[string]string) (url string, err e
 		return
 	}
 
-	token := h.getToken(h.processor.order.PaymentMethod.Params.ExternalId)
+	token := h.getToken(h.processor.order.PaymentMethod.ExternalId)
 	auth := strings.Title(token.TokenType) + " " + token.AccessToken
 
 	req.Header.Add(HeaderContentType, MIMEApplicationJSON)
@@ -390,7 +390,7 @@ func (h *cardPay) ProcessPayment(message proto.Message, raw, signature string) (
 		return NewError(paymentSystemErrorRequestTimeFieldIsInvalid, pkg.StatusErrorValidation)
 	}
 
-	if req.PaymentMethod != h.processor.order.PaymentMethod.Params.ExternalId {
+	if req.PaymentMethod != h.processor.order.PaymentMethod.ExternalId {
 		return NewError(paymentSystemErrorRequestPaymentMethodIsInvalid, pkg.StatusErrorValidation)
 	}
 
@@ -460,8 +460,8 @@ func (h *cardPay) auth(pmKey string) error {
 
 	data := url.Values{
 		cardPayRequestFieldGrantType:    []string{cardPayGrantTypePassword},
-		cardPayRequestFieldTerminalCode: []string{h.processor.order.PaymentMethod.Params.Terminal},
-		cardPayRequestFieldPassword:     []string{h.processor.order.PaymentMethod.Params.Password},
+		cardPayRequestFieldTerminalCode: []string{h.processor.order.PaymentMethod.Params.TerminalId},
+		cardPayRequestFieldPassword:     []string{h.processor.order.PaymentMethod.Params.Secret},
 	}
 
 	qUrl, err := h.getUrl(cardPayActionAuthenticate)
@@ -512,7 +512,7 @@ func (h *cardPay) auth(pmKey string) error {
 func (h *cardPay) refresh(pmKey string) error {
 	data := url.Values{
 		cardPayRequestFieldGrantType:    []string{cardPayGrantTypeRefreshToken},
-		cardPayRequestFieldTerminalCode: []string{h.processor.order.PaymentMethod.Params.Terminal},
+		cardPayRequestFieldTerminalCode: []string{h.processor.order.PaymentMethod.Params.TerminalId},
 		cardPayRequestFieldRefreshToken: []string{cardPayTokens[pmKey].RefreshToken},
 	}
 
@@ -638,7 +638,7 @@ func (h *cardPay) getCardPayOrder(order *billing.Order, requisites map[string]st
 			Items:       items,
 		},
 		Description:   order.Description,
-		PaymentMethod: order.PaymentMethod.Params.ExternalId,
+		PaymentMethod: order.PaymentMethod.ExternalId,
 		Customer: &CardPayCustomer{
 			Ip:      order.User.Ip,
 			Account: order.User.Id,
@@ -684,7 +684,7 @@ func (h *cardPay) getCardPayOrder(order *billing.Order, requisites map[string]st
 		}
 	}
 
-	switch order.PaymentMethod.Params.ExternalId {
+	switch order.PaymentMethod.ExternalId {
 	case constant.PaymentSystemGroupAliasBankCard:
 		h.geBankCardCardPayOrder(cardPayOrder, requisites)
 		break
@@ -731,7 +731,7 @@ func (h *cardPay) getCryptoCurrencyCardPayOrder(cpo *CardPayOrder, requisites ma
 
 func (h *cardPay) checkCallbackRequestSignature(raw, signature string) error {
 	hash := sha512.New()
-	hash.Write([]byte(raw + h.processor.order.PaymentMethod.Params.CallbackPassword))
+	hash.Write([]byte(raw + h.processor.order.PaymentMethod.Params.SecretCallback))
 
 	if hex.EncodeToString(hash.Sum(nil)) != signature {
 		return NewError(paymentSystemErrorRequestSignatureIsInvalid, pkg.StatusErrorValidation)
@@ -806,7 +806,7 @@ func (t *cardPayTransport) log(reqUrl string, reqHeader http.Header, reqBody []b
 }
 
 func (h *cardPay) CreateRefund(refund *billing.Refund) error {
-	err := h.auth(h.processor.order.PaymentMethod.Params.ExternalId)
+	err := h.auth(h.processor.order.PaymentMethod.ExternalId)
 
 	if err != nil {
 		h.processor.service.logError(
@@ -873,7 +873,7 @@ func (h *cardPay) CreateRefund(refund *billing.Refund) error {
 		return errors.New(pkg.PaymentSystemErrorCreateRefundFailed)
 	}
 
-	token := h.getToken(h.processor.order.PaymentMethod.Params.ExternalId)
+	token := h.getToken(h.processor.order.PaymentMethod.ExternalId)
 	auth := strings.Title(token.TokenType) + " " + token.AccessToken
 
 	req.Header.Add(HeaderContentType, MIMEApplicationJSON)
@@ -952,7 +952,7 @@ func (h *cardPay) ProcessRefund(refund *billing.Refund, message proto.Message, r
 		return NewError(paymentSystemErrorRequestStatusIsInvalid, pkg.ResponseStatusBadData)
 	}
 
-	if req.PaymentMethod != h.processor.order.PaymentMethod.Params.ExternalId {
+	if req.PaymentMethod != h.processor.order.PaymentMethod.ExternalId {
 		return NewError(paymentSystemErrorRequestPaymentMethodIsInvalid, pkg.ResponseStatusBadData)
 	}
 

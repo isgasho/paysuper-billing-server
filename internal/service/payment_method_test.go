@@ -51,10 +51,10 @@ func (suite *PaymentMethodTestSuite) SetupTest() {
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
 		Currencies:       []int32{643, 840, 980},
-		Params: &billing.PaymentMethodParams{
-			Handler:    "cardpay",
-			Terminal:   "15993",
-			ExternalId: "QIWI",
+		Handler:          "cardpay",
+		ExternalId:       "QIWI",
+		TestSettings: &billing.PaymentMethodParams{
+			TerminalId: "15993",
 		},
 		Type:     "ewallet",
 		IsActive: true,

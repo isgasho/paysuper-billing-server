@@ -101,6 +101,15 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 
+	ps := &billing.PaymentSystem{
+		Id:                 bson.NewObjectId().Hex(),
+		Name:               "CardPay",
+		AccountingCurrency: rub,
+		AccountingPeriod:   "every-day",
+		Country:            "",
+		IsActive:           true,
+	}
+
 	country := &billing.Country{
 		IsoCodeA2:       "RU",
 		Region:          "Russia",
@@ -118,25 +127,17 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		Group:            "BANKCARD",
 		MinPaymentAmount: 100,
 		MaxPaymentAmount: 15000,
-		Currency:         rub,
 		Currencies:       []int32{643, 840, 980},
-		Params: &billing.PaymentMethodParams{
-			Handler:          "cardpay",
-			Terminal:         "15985",
-			Password:         "A1tph4I6BD0f",
-			CallbackPassword: "0V1rJ7t4jCRv",
-			ExternalId:       "BANKCARD",
+		Handler:          "cardpay",
+		ExternalId:       "BANKCARD",
+		TestSettings: &billing.PaymentMethodParams{
+			TerminalId:     "15985",
+			Secret:         "A1tph4I6BD0f",
+			SecretCallback: "0V1rJ7t4jCRv",
 		},
-		Type:     "bank_card",
-		IsActive: true,
-		PaymentSystem: &billing.PaymentSystem{
-			Id:                 bson.NewObjectId().Hex(),
-			Name:               "CardPay",
-			AccountingCurrency: rub,
-			AccountingPeriod:   "every-day",
-			Country:            "",
-			IsActive:           true,
-		},
+		Type:            "bank_card",
+		IsActive:        true,
+		PaymentSystemId: ps.Id,
 	}
 
 	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -360))
@@ -310,10 +311,10 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
 		Currencies:       []int32{643, 840, 980},
-		Params: &billing.PaymentMethodParams{
-			Handler:    "cardpay",
-			Terminal:   "15993",
-			ExternalId: "QIWI",
+		Handler:          "cardpay",
+		ExternalId:       "QIWI",
+		TestSettings: &billing.PaymentMethodParams{
+			TerminalId: "15993",
 		},
 		Type:     "ewallet",
 		IsActive: true,
@@ -325,10 +326,10 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
 		Currencies:       []int32{643, 840, 980},
-		Params: &billing.PaymentMethodParams{
-			Handler:    "cardpay",
-			Terminal:   "16007",
-			ExternalId: "BITCOIN",
+		Handler:          "cardpay",
+		ExternalId:       "BITCOIN",
+		TestSettings: &billing.PaymentMethodParams{
+			TerminalId: "16007",
 		},
 		Type:     "crypto",
 		IsActive: true,

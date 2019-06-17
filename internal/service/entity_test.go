@@ -85,10 +85,10 @@ func (suite *EntityTestSuite) SetupTest() {
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
 		Currencies:       []int32{643, 840, 980},
-		Params: &billing.PaymentMethodParams{
-			Handler:    "cardpay",
-			Terminal:   "15985",
-			ExternalId: "BANKCARD",
+		Handler:          "cardpay",
+		ExternalId:       "BANKCARD",
+		TestSettings: &billing.PaymentMethodParams{
+			TerminalId: "15985",
 		},
 		Type:     "bank_card",
 		IsActive: true,
@@ -100,10 +100,10 @@ func (suite *EntityTestSuite) SetupTest() {
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
 		Currencies:       []int32{643, 840, 980},
-		Params: &billing.PaymentMethodParams{
-			Handler:    "cardpay",
-			Terminal:   "15993",
-			ExternalId: "QIWI",
+		Handler:          "cardpay",
+		ExternalId:       "QIWI",
+		TestSettings: &billing.PaymentMethodParams{
+			TerminalId: "15993",
 		},
 		Type:     "ewallet",
 		IsActive: true,
@@ -115,10 +115,10 @@ func (suite *EntityTestSuite) SetupTest() {
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
 		Currencies:       []int32{643, 840, 980},
-		Params: &billing.PaymentMethodParams{
-			Handler:    "cardpay",
-			Terminal:   "16007",
-			ExternalId: "BITCOIN",
+		Handler:          "cardpay",
+		ExternalId:       "BITCOIN",
+		TestSettings: &billing.PaymentMethodParams{
+			TerminalId: "16007",
 		},
 		Type:     "crypto",
 		IsActive: true,

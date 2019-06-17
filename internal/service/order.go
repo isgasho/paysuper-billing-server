@@ -542,11 +542,39 @@ func (s *Service) PaymentCreateProcess(
 		return nil
 	}
 
+	merchant, err := s.merchant.GetById(processor.GetMerchantId())
+	if err != nil {
+		rsp.Message = err.Error()
+		rsp.Status = pkg.ResponseStatusSystemError
+
+		return nil
+	}
+
+	settings, err := s.paymentMethod.GetPaymentSettings(processor.checked.paymentMethod, merchant, processor.checked.project)
+	if err != nil {
+		rsp.Message = err.Error()
+		rsp.Status = pkg.ResponseStatusSystemError
+
+		return nil
+	}
+
+	ps, err := s.paymentSystem.GetById(processor.checked.paymentMethod.PaymentSystemId)
+	if err != nil {
+		rsp.Message = orderErrorPaymentSystemInactive
+		rsp.Status = pkg.ResponseStatusBadData
+
+		return nil
+	}
+
+	order.PaymentMethod.Params.TerminalId = settings.TerminalId
+	order.PaymentMethod.Params.SecretCallback = settings.SecretCallback
+	order.PaymentMethod.Params.Secret = settings.Secret
+
 	order.PaymentMethod = &billing.PaymentMethodOrder{
 		Id:            processor.checked.paymentMethod.Id,
 		Name:          processor.checked.paymentMethod.Name,
-		Params:        processor.checked.paymentMethod.Params,
-		PaymentSystem: processor.checked.paymentMethod.PaymentSystem,
+		Params:        settings,
+		PaymentSystem: ps,
 		Group:         processor.checked.paymentMethod.Group,
 	}
 
@@ -581,28 +609,6 @@ func (s *Service) PaymentCreateProcess(
 		rsp.Status = pkg.ResponseStatusSystemError
 
 		return nil
-	}
-
-	if processor.checked.project.IsProduction() == true {
-		merchant, err := s.merchant.GetById(processor.GetMerchantId())
-		if err != nil {
-			rsp.Message = err.Error()
-			rsp.Status = pkg.ResponseStatusSystemError
-
-			return nil
-		}
-
-		pm, err := s.paymentMethod.GetByIdAndCurrency(order.PaymentMethod.Id, merchant.Banking.Currency.CodeA3)
-		if err != nil {
-			rsp.Message = err.Error()
-			rsp.Status = pkg.ResponseStatusSystemError
-
-			return nil
-		}
-
-		order.PaymentMethod.Params.Terminal = pm.Terminal
-		order.PaymentMethod.Params.Password = pm.Password
-		order.PaymentMethod.Params.CallbackPassword = pm.CallbackPassword
 	}
 
 	h, err := s.NewPaymentSystem(s.cfg.PaymentSystemConfig, order)
@@ -657,7 +663,7 @@ func (s *Service) PaymentCallbackProcess(
 
 	var data protobuf.Message
 
-	switch order.PaymentMethod.Params.Handler {
+	switch order.PaymentMethod.Handler {
 	case pkg.PaymentSystemHandlerCardPay:
 		data = &billing.CardPayPaymentCallback{}
 		err := json.Unmarshal(req.Request, data)
@@ -699,7 +705,7 @@ func (s *Service) PaymentCallbackProcess(
 		}
 	}
 
-	switch order.PaymentMethod.Params.ExternalId {
+	switch order.PaymentMethod.ExternalId {
 	case constant.PaymentSystemGroupAliasBankCard:
 
 		if err := s.fillPaymentDataCard(order); err != nil {
@@ -835,7 +841,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 
 	regex := pm.AccountRegexp
 
-	if pm.Params.ExternalId == constant.PaymentSystemGroupAliasBankCard {
+	if pm.ExternalId == constant.PaymentSystemGroupAliasBankCard {
 		regex = "^\\d{6,18}$"
 	}
 
@@ -853,7 +859,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = &grpc.PaymentFormDataChangeResponseItem{}
 
-	switch pm.Params.ExternalId {
+	switch pm.ExternalId {
 	case constant.PaymentSystemGroupAliasBankCard:
 		data := s.getBinData(req.Account)
 
@@ -1228,12 +1234,22 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 		order.Project.UrlFail = v.request.UrlFail
 	}
 
+	ps, err := v.paymentSystem.GetById(v.checked.paymentMethod.PaymentSystemId)
+	if err != nil {
+		return nil, err
+	}
+
+	settings, err := v.paymentMethod.GetPaymentSettings(v.checked.paymentMethod, v.checked.merchant, v.checked.project)
+	if err != nil {
+		return nil, err
+	}
+
 	if v.checked.paymentMethod != nil {
 		order.PaymentMethod = &billing.PaymentMethodOrder{
 			Id:            v.checked.paymentMethod.Id,
 			Name:          v.checked.paymentMethod.Name,
-			Params:        v.checked.paymentMethod.Params,
-			PaymentSystem: v.checked.paymentMethod.PaymentSystem,
+			Params:        settings,
+			PaymentSystem: ps,
 			Group:         v.checked.paymentMethod.Group,
 		}
 
@@ -1403,18 +1419,8 @@ func (v *OrderCreateRequestProcessor) processPaymentMethod(pm *billing.PaymentMe
 		return errors.New(orderErrorPaymentMethodInactive)
 	}
 
-	if pm.PaymentSystem == nil || pm.PaymentSystem.IsActive == false {
-		return errors.New(orderErrorPaymentSystemInactive)
-	}
-
-	if v.checked.project.IsProduction() == true {
-		if v.checked.merchant.Banking == nil || v.checked.merchant.Banking.Currency == nil {
-			return errors.New(orderErrorMerchantBankingEmpty)
-		}
-
-		if _, err := v.paymentMethod.GetByIdAndCurrency(pm.Id, v.checked.merchant.Banking.Currency.CodeA3); err != nil {
-			return errors.New(orderErrorPaymentMethodEmptySettings)
-		}
+	if _, err := v.paymentMethod.GetPaymentSettings(pm, v.checked.merchant, v.checked.project); err != nil {
+		return errors.New(orderErrorPaymentMethodEmptySettings)
 	}
 
 	v.checked.paymentMethod = pm
@@ -1685,8 +1691,11 @@ func (v *PaymentFormProcessor) processRenderFormPaymentMethods() ([]*billing.Pay
 	for _, val := range pmg {
 		pm, ok := val[v.order.PaymentMethodOutcomeCurrency.CodeInt]
 
-		if !ok || pm.IsActive == false ||
-			pm.PaymentSystem.IsActive == false {
+		if !ok || pm.IsActive == false {
+			continue
+		}
+
+		if ps, err := v.service.paymentSystem.GetById(pm.PaymentSystemId); err != nil || ps.IsActive == false {
 			continue
 		}
 
@@ -1710,7 +1719,6 @@ func (v *PaymentFormProcessor) processRenderFormPaymentMethods() ([]*billing.Pay
 		formPm := &billing.PaymentFormPaymentMethod{
 			Id:            pm.Id,
 			Name:          pm.Name,
-			Icon:          fmt.Sprintf(orderInlineFormImagesUrlMask, v.request.Host, pm.Icon),
 			Type:          pm.Type,
 			Group:         pm.Group,
 			AccountRegexp: pm.AccountRegexp,

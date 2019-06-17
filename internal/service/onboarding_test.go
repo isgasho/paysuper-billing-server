@@ -75,31 +75,32 @@ func (suite *OnboardingTestSuite) SetupTest() {
 		VatCurrency:     "RUB",
 	}
 
+	ps := &billing.PaymentSystem{
+		Id:                 bson.NewObjectId().Hex(),
+		Name:               "CardPay",
+		AccountingCurrency: rub,
+		AccountingPeriod:   "every-day",
+		Country:            "",
+		IsActive:           true,
+	}
+
 	pmBankCard := &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
 		Name:             "Bank card",
 		Group:            "BANKCARD",
 		MinPaymentAmount: 100,
 		MaxPaymentAmount: 15000,
-		Currency:         rub,
 		Currencies:       []int32{643, 840, 980},
-		Params: &billing.PaymentMethodParams{
-			Handler:          "cardpay",
-			Terminal:         "15985",
-			Password:         "A1tph4I6BD0f",
-			CallbackPassword: "0V1rJ7t4jCRv",
-			ExternalId:       "BANKCARD",
+		Handler:          "cardpay",
+		ExternalId:       "BANKCARD",
+		TestSettings: &billing.PaymentMethodParams{
+			TerminalId:     "15985",
+			Secret:         "A1tph4I6BD0f",
+			SecretCallback: "0V1rJ7t4jCRv",
 		},
-		Type:     "bank_card",
-		IsActive: true,
-		PaymentSystem: &billing.PaymentSystem{
-			Id:                 bson.NewObjectId().Hex(),
-			Name:               "CardPay",
-			AccountingCurrency: rub,
-			AccountingPeriod:   "every-day",
-			Country:            "",
-			IsActive:           true,
-		},
+		Type:            "bank_card",
+		IsActive:        true,
+		PaymentSystemId: ps.Id,
 	}
 
 	pmQiwi := &billing.PaymentMethod{
@@ -108,25 +109,17 @@ func (suite *OnboardingTestSuite) SetupTest() {
 		Group:            "QIWI",
 		MinPaymentAmount: 100,
 		MaxPaymentAmount: 15000,
-		Currency:         rub,
 		Currencies:       []int32{643, 840, 980},
-		Params: &billing.PaymentMethodParams{
-			Handler:          "cardpay",
-			Terminal:         "15985",
-			Password:         "A1tph4I6BD0f",
-			CallbackPassword: "0V1rJ7t4jCRv",
-			ExternalId:       "QIWI",
+		Handler:          "cardpay",
+		ExternalId:       "QIWI",
+		TestSettings: &billing.PaymentMethodParams{
+			TerminalId:     "15985",
+			Secret:         "A1tph4I6BD0f",
+			SecretCallback: "0V1rJ7t4jCRv",
 		},
-		Type:     "ewallet",
-		IsActive: true,
-		PaymentSystem: &billing.PaymentSystem{
-			Id:                 bson.NewObjectId().Hex(),
-			Name:               "CardPay",
-			AccountingCurrency: rub,
-			AccountingPeriod:   "every-day",
-			Country:            "",
-			IsActive:           true,
-		},
+		Type:            "ewallet",
+		IsActive:        true,
+		PaymentSystemId: ps.Id,
 	}
 
 	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -480))

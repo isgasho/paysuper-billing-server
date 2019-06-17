@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
@@ -17,14 +18,11 @@ const (
 
 	collectionPaymentMethod = "payment_method"
 
-	paymentMethodErrorName                       = "payment method must contain name"
 	paymentMethodErrorPaymentSystem              = "payment method must contain of payment system"
-	paymentMethodErrorIncorrectCurrencyA3        = "payment method must contain currency code a3 for production settings"
-	paymentMethodErrorIncorrectTerminal          = "payment method must contain terminal settings for production settings"
-	paymentMethodErrorEmptyPassword              = "payment method must contain password for production settings"
-	paymentMethodErrorEmptyCallbackPassword      = "payment method must contain callback password for production settings"
 	paymentMethodErrorUnknownMethod              = "payment method is unknown"
 	paymentMethodErrorNotFoundProductionSettings = "payment method is not contain requesting settings"
+	paymentMethodErrorTestSettings               = "payment method is not contain settings for test"
+	paymentMethodErrorBankingSettings            = "payment method is not contain settings for test"
 )
 
 func (s *Service) CreateOrUpdatePaymentMethod(
@@ -35,14 +33,8 @@ func (s *Service) CreateOrUpdatePaymentMethod(
 	var pm *billing.PaymentMethod
 	var err error
 
-	if req.Name == "" {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = paymentMethodErrorName
-
-		return nil
-	}
-
-	if req.PaymentSystem == nil {
+	if _, err = s.paymentSystem.GetById(req.PaymentSystemId); err != nil {
+		s.logError("Invalid payment system id for update payment method", []interface{}{"err", err.Error(), "data", req})
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = paymentMethodErrorPaymentSystem
 
@@ -53,6 +45,7 @@ func (s *Service) CreateOrUpdatePaymentMethod(
 		pm, err = s.paymentMethod.GetById(req.Id)
 
 		if err != nil {
+			s.logError("Invalid id of payment method", []interface{}{"err", err.Error(), "data", req})
 			rsp.Status = pkg.ResponseStatusNotFound
 			rsp.Message = err.Error()
 
@@ -60,16 +53,44 @@ func (s *Service) CreateOrUpdatePaymentMethod(
 		}
 	}
 
-	pm.UpdatedAt = ptypes.TimestampNow()
+	if req.IsActive == true && (req.Handler == "" ||
+		req.ExternalId == "" ||
+		req.Currencies == nil ||
+		req.Type == "" ||
+		req.Group == "" ||
+		req.Name == "" ||
+		req.TestSettings == nil ||
+		req.ProductionSettings == nil) {
+		s.logError("Set all parameters of the payment method before its activation", []interface{}{"data", req})
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = paymentMethodErrorPaymentSystem
+
+		return nil
+	}
+
+	req.UpdatedAt = ptypes.TimestampNow()
 
 	if pm == nil {
-		pm.CreatedAt = ptypes.TimestampNow()
+		req.CreatedAt = ptypes.TimestampNow()
 		err = s.paymentMethod.Insert(req)
 	} else {
+		pm.Handler = req.Handler
+		pm.ExternalId = req.ExternalId
+		pm.TestSettings = req.TestSettings
+		pm.ProductionSettings = req.ProductionSettings
+		pm.Name = req.Name
+		pm.IsActive = req.IsActive
+		pm.Group = req.Group
+		pm.Type = req.Type
+		pm.Currencies = req.Currencies
+		pm.AccountRegexp = req.AccountRegexp
+		pm.MaxPaymentAmount = req.MaxPaymentAmount
+		pm.MinPaymentAmount = req.MinPaymentAmount
 		err = s.paymentMethod.Update(pm)
 	}
 
 	if err != nil {
+		s.logError("Query to insert|update project method is failed", []interface{}{"err", err.Error(), "data", req})
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = err.Error()
 
@@ -89,42 +110,16 @@ func (s *Service) CreateOrUpdatePaymentMethodProductionSettings(
 
 	pm, err = s.paymentMethod.GetById(req.PaymentMethodId)
 	if err != nil {
+		s.logError("Unable to get payment method for update production settings", []interface{}{"err", err.Error(), "data", req})
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = paymentMethodErrorUnknownMethod
 
 		return nil
 	}
 
-	if req.Params.CurrencyCodeA3 == "" || len(req.Params.CurrencyCodeA3) != 2 {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = paymentMethodErrorIncorrectCurrencyA3
-
-		return nil
-	}
-
-	if req.Params.Password == "" {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = paymentMethodErrorEmptyPassword
-
-		return nil
-	}
-
-	if req.Params.CallbackPassword == "" {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = paymentMethodErrorEmptyCallbackPassword
-
-		return nil
-	}
-
-	if req.Params.Terminal == "" {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = paymentMethodErrorIncorrectTerminal
-
-		return nil
-	}
-
-	pm.ProductionSettings[req.Params.CurrencyCodeA3] = req.Params
+	pm.ProductionSettings[req.Params.Currency] = req.Params
 	if err := s.paymentMethod.Update(pm); err != nil {
+		s.logError("Query to update production settings of project method is failed", []interface{}{"err", err.Error(), "data", req})
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = err.Error()
 
@@ -141,6 +136,7 @@ func (s *Service) GetPaymentMethodProductionSettings(
 ) error {
 	pm, err := s.paymentMethod.GetById(req.PaymentMethodId)
 	if err != nil {
+		s.logError("Query to get production settings of project method is failed", []interface{}{"err", err.Error(), "data", req})
 		return nil
 	}
 
@@ -156,6 +152,7 @@ func (s *Service) DeletePaymentMethodProductionSettings(
 ) error {
 	pm, err := s.paymentMethod.GetById(req.PaymentMethodId)
 	if err != nil {
+		s.logError("Unable to get payment method for delete production settings", []interface{}{"err", err.Error(), "data", req})
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = paymentMethodErrorUnknownMethod
 
@@ -163,6 +160,7 @@ func (s *Service) DeletePaymentMethodProductionSettings(
 	}
 
 	if _, ok := pm.ProductionSettings[req.CurrencyA3]; !ok {
+		s.logError("Unable to get production settings for currency", []interface{}{"data", req})
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = paymentMethodErrorNotFoundProductionSettings
 
@@ -172,6 +170,7 @@ func (s *Service) DeletePaymentMethodProductionSettings(
 	delete(pm.ProductionSettings, req.CurrencyA3)
 
 	if err := s.paymentMethod.Update(pm); err != nil {
+		s.logError("Query to delete production settings of project method is failed", []interface{}{"err", err.Error(), "data", req})
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = err.Error()
 
@@ -190,7 +189,7 @@ func newPaymentMethodService(svc *Service) *PaymentMethod {
 	return s
 }
 
-func (h PaymentMethod) GetAll() (map[string]*billing.PaymentMethod, error) {
+func (h *PaymentMethod) GetAll() (map[string]*billing.PaymentMethod, error) {
 	var c paymentMethods
 	key := cachePaymentMethodAll
 
@@ -211,7 +210,7 @@ func (h PaymentMethod) GetAll() (map[string]*billing.PaymentMethod, error) {
 	return c.Methods, nil
 }
 
-func (h PaymentMethod) Groups() (map[string]map[int32]*billing.PaymentMethod, error) {
+func (h *PaymentMethod) Groups() (map[string]map[int32]*billing.PaymentMethod, error) {
 	pool, err := h.GetAll()
 	if err != nil {
 		return nil, err
@@ -232,52 +231,41 @@ func (h PaymentMethod) Groups() (map[string]map[int32]*billing.PaymentMethod, er
 	return groups, nil
 }
 
-func (h PaymentMethod) GetByGroupAndCurrency(group string, currency int32) (*billing.PaymentMethod, error) {
+func (h *PaymentMethod) GetByGroupAndCurrency(group string, currency int32) (*billing.PaymentMethod, error) {
 	var c billing.PaymentMethod
 	key := fmt.Sprintf(cachePaymentMethodGroup, group)
 
-	if err := h.svc.cacher.Get(key, c); err != nil {
-		if err = h.svc.db.Collection(collectionPaymentMethod).
-			Find(bson.M{"group_alias": group, "currencies": currency}).
-			One(&c); err != nil {
-			return nil, fmt.Errorf(errorNotFound, collectionPaymentMethod)
-		}
+	if err := h.svc.cacher.Get(key, c); err == nil {
+		return &c, err
 	}
 
-	_ = h.svc.cacher.Set(key, c, 0)
-	return &c, nil
-}
-
-func (h PaymentMethod) GetById(id string) (*billing.PaymentMethod, error) {
-	var c billing.PaymentMethod
-	key := fmt.Sprintf(cachePaymentMethodId, id)
-
-	if err := h.svc.cacher.Get(key, c); err != nil {
-		if err = h.svc.db.Collection(collectionPaymentMethod).
-			Find(bson.M{"_id": bson.ObjectIdHex(id)}).
-			One(&c); err != nil {
-			return nil, fmt.Errorf(errorNotFound, collectionPaymentMethod)
-		}
-	}
-
-	_ = h.svc.cacher.Set(key, c, 0)
-	return &c, nil
-}
-
-func (h PaymentMethod) GetByIdAndCurrency(id string, currencyCodeA3 string) (*billing.PaymentMethodParams, error) {
-	pm, err := h.GetById(id)
+	err := h.svc.db.Collection(collectionPaymentMethod).Find(bson.M{"group_alias": group, "currencies": currency}).One(&c)
 	if err != nil {
 		return nil, fmt.Errorf(errorNotFound, collectionPaymentMethod)
 	}
 
-	if _, ok := pm.ProductionSettings[currencyCodeA3]; !ok {
+	_ = h.svc.cacher.Set(key, c, 0)
+	return &c, nil
+}
+
+func (h *PaymentMethod) GetById(id string) (*billing.PaymentMethod, error) {
+	var c billing.PaymentMethod
+	key := fmt.Sprintf(cachePaymentMethodId, id)
+
+	if err := h.svc.cacher.Get(key, c); err == nil {
+		return &c, nil
+	}
+
+	err := h.svc.db.Collection(collectionPaymentMethod).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&c)
+	if err != nil {
 		return nil, fmt.Errorf(errorNotFound, collectionPaymentMethod)
 	}
 
-	return pm.ProductionSettings[currencyCodeA3], nil
+	_ = h.svc.cacher.Set(key, c, 0)
+	return &c, nil
 }
 
-func (h PaymentMethod) MultipleInsert(pm []*billing.PaymentMethod) error {
+func (h *PaymentMethod) MultipleInsert(pm []*billing.PaymentMethod) error {
 	pms := make([]interface{}, len(pm))
 	for i, v := range pm {
 		pms[i] = v
@@ -294,7 +282,7 @@ func (h PaymentMethod) MultipleInsert(pm []*billing.PaymentMethod) error {
 	return nil
 }
 
-func (h PaymentMethod) Insert(pm *billing.PaymentMethod) error {
+func (h *PaymentMethod) Insert(pm *billing.PaymentMethod) error {
 	if err := h.svc.db.Collection(collectionPaymentMethod).Insert(pm); err != nil {
 		return err
 	}
@@ -306,8 +294,8 @@ func (h PaymentMethod) Insert(pm *billing.PaymentMethod) error {
 	return nil
 }
 
-func (h PaymentMethod) Update(pm *billing.PaymentMethod) error {
-	if err := h.svc.db.Collection(collectionPaymentMethod).UpdateId(pm.Id, pm); err != nil {
+func (h *PaymentMethod) Update(pm *billing.PaymentMethod) error {
+	if err := h.svc.db.Collection(collectionPaymentMethod).UpdateId(bson.ObjectIdHex(pm.Id), pm); err != nil {
 		return err
 	}
 
@@ -316,4 +304,28 @@ func (h PaymentMethod) Update(pm *billing.PaymentMethod) error {
 	}
 
 	return nil
+}
+
+func (h *PaymentMethod) GetPaymentSettings(
+	paymentMethod *billing.PaymentMethod,
+	merchant *billing.Merchant,
+	project *billing.Project,
+) (*billing.PaymentMethodParams, error) {
+	if project.IsProduction() == false {
+		if paymentMethod.TestSettings == nil {
+			return nil, errors.New(paymentMethodErrorTestSettings)
+		}
+
+		return paymentMethod.TestSettings, nil
+	}
+
+	if merchant.Banking == nil || merchant.Banking.Currency == nil {
+		return nil, errors.New(paymentMethodErrorBankingSettings)
+	}
+
+	if _, ok := paymentMethod.ProductionSettings[merchant.Banking.Currency.CodeA3]; !ok {
+		return nil, errors.New(paymentMethodErrorNotFoundProductionSettings)
+	}
+
+	return paymentMethod.ProductionSettings[merchant.Banking.Currency.CodeA3], nil
 }

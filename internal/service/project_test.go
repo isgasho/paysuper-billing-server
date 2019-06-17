@@ -46,57 +46,57 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		IsActive: true,
 	}
 
+	ps1 := &billing.PaymentSystem{
+		Id:                 bson.NewObjectId().Hex(),
+		Name:               "CardPay",
+		AccountingCurrency: rub,
+		AccountingPeriod:   "every-day",
+		Country:            "",
+		IsActive:           true,
+	}
 	pm1 := &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
 		Name:             "Bank card",
 		Group:            "BANKCARD",
 		MinPaymentAmount: 100,
 		MaxPaymentAmount: 15000,
-		Currency:         rub,
 		Currencies:       []int32{643, 840, 980},
-		Params: &billing.PaymentMethodParams{
-			Handler:          "cardpay",
-			Terminal:         "15985",
-			Password:         "A1tph4I6BD0f",
-			CallbackPassword: "0V1rJ7t4jCRv",
-			ExternalId:       "BANKCARD",
+		Handler:          "cardpay",
+		ExternalId:       "BANKCARD",
+		TestSettings: &billing.PaymentMethodParams{
+			TerminalId:     "15985",
+			Secret:         "A1tph4I6BD0f",
+			SecretCallback: "0V1rJ7t4jCRv",
 		},
-		Type:          "bank_card",
-		IsActive:      true,
-		AccountRegexp: "^(?:4[0-9]{12}(?:[0-9]{3})?|[25][1-7][0-9]{14}|6(?:011|5[0-9][0-9])[0-9]{12}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|(?:2131|1800|35\\d{3})\\d{11})$",
-		PaymentSystem: &billing.PaymentSystem{
-			Id:                 bson.NewObjectId().Hex(),
-			Name:               "CardPay",
-			AccountingCurrency: rub,
-			AccountingPeriod:   "every-day",
-			Country:            "",
-			IsActive:           true,
-		},
+		Type:            "bank_card",
+		IsActive:        true,
+		AccountRegexp:   "^(?:4[0-9]{12}(?:[0-9]{3})?|[25][1-7][0-9]{14}|6(?:011|5[0-9][0-9])[0-9]{12}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|(?:2131|1800|35\\d{3})\\d{11})$",
+		PaymentSystemId: ps1.Id,
 	}
 
+	ps2 := &billing.PaymentSystem{
+		Id:                 bson.NewObjectId().Hex(),
+		Name:               "CardPay",
+		AccountingCurrency: rub,
+		AccountingPeriod:   "every-day",
+		Country:            "",
+		IsActive:           true,
+	}
 	pm2 := &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
 		Name:             "Bitcoin",
 		Group:            "BITCOIN_1",
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
-		Currency:         rub,
 		Currencies:       []int32{643, 840, 980},
-		Params: &billing.PaymentMethodParams{
-			Handler:    "unit_test",
-			Terminal:   "16007",
-			ExternalId: "BITCOIN",
+		Handler:          "unit_test",
+		ExternalId:       "BITCOIN",
+		TestSettings: &billing.PaymentMethodParams{
+			TerminalId: "16007",
 		},
-		Type:     "crypto",
-		IsActive: true,
-		PaymentSystem: &billing.PaymentSystem{
-			Id:                 bson.NewObjectId().Hex(),
-			Name:               "CardPay",
-			AccountingCurrency: rub,
-			AccountingPeriod:   "every-day",
-			Country:            "",
-			IsActive:           true,
-		},
+		Type:            "crypto",
+		IsActive:        true,
+		PaymentSystemId: ps2.Id,
 	}
 
 	paymentMethods := map[string]*billing.MerchantPaymentMethod{
