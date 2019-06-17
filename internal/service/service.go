@@ -72,6 +72,7 @@ type Service struct {
 	project       *Project
 	merchant      *Merchant
 	paymentMethod PaymentMethodInterface
+	paymentMethod PaymentMethodInterface
 	systemFees    *SystemFee
 	priceGroup    *PriceGroup
 	paymentSystem PaymentSystemServiceInterface
@@ -108,7 +109,6 @@ func (s *Service) Init() (err error) {
 	s.commission = newCommissionService(s)
 	s.country = newCountryService(s)
 	s.project = newProjectService(s)
-	s.systemFees = newSystemFeesService(s)
 	s.priceGroup = newPriceGroupService(s)
 	s.paymentSystem = newPaymentSystemService(s)
 	s.zipCode = newZipCodeService(s)
