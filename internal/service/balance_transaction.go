@@ -126,13 +126,75 @@ func (h *btProcessor) prepareOrderData(order *billing.Order) error {
 	}
 
 	order.PaymentRoyaltyData.OverallCutRate = commission.Fee
+	order.PaymentRoyaltyData.OverallFee = commission.PerTransaction.Fee
 
-	//overallFee
-	//overallDeductionPrediction
-	//exRateVatToRoyaltyInstant
-	//exRateVatToRoyaltyPrediction
-	//vatInRoyaltyCurPrediction
-	//royaltyPrediction
+	if commission.PerTransaction.Currency != order.PaymentRoyaltyData.RoyaltyCur {
+		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
+			From:       commission.PerTransaction.Currency,
+			To:         order.PaymentRoyaltyData.RoyaltyCur,
+			MerchantId: order.GetMerchantId(),
+			RateType:   curPkg.RateTypePaysuper,
+			Amount:     commission.PerTransaction.Fee,
+		}
+		rsp, err := h.curService.ExchangeCurrencyCurrentForMerchant(context.Background(), req)
+
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorGrpcServiceCallFailed,
+				zap.Error(err),
+				zap.String(errorFieldService, "CurrencyRatesService"),
+				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
+				zap.Any(errorFieldRequest, req),
+			)
+
+			return err
+		}
+
+		order.PaymentRoyaltyData.OverallFee = rsp.ExchangedAmount
+	}
+
+	order.PaymentRoyaltyData.OverallDeductionPrediction = order.PaymentRoyaltyData.GrossInRoyaltyCurPrediction*order.PaymentRoyaltyData.OverallCutRate + order.PaymentRoyaltyData.OverallFee
+
+	req = &currencies.GetRateCurrentForMerchantRequest{
+		From:       order.Tax.Currency,
+		To:         order.PaymentRoyaltyData.RoyaltyCur,
+		MerchantId: order.Project.MerchantId,
+		RateType:   curPkg.RateTypeStock,
+	}
+	rsp, err = h.curService.GetRateCurrentForMerchant(h.ctx, req)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorGrpcServiceCallFailed,
+			zap.Error(err),
+			zap.String(errorFieldService, "CurrencyRatesService"),
+			zap.String(errorFieldMethod, "GetRateCurrentForMerchant"),
+			zap.Any(errorFieldRequest, req),
+		)
+
+		return err
+	}
+
+	order.PaymentRoyaltyData.ExRateVatToRoyaltyInstant = rsp.Rate
+
+	req.RateType = curPkg.RateTypePaysuper
+	rsp, err = h.curService.GetRateCurrentForMerchant(h.ctx, req)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorGrpcServiceCallFailed,
+			zap.Error(err),
+			zap.String(errorFieldService, "CurrencyRatesService"),
+			zap.String(errorFieldMethod, "GetRateCurrentForMerchant"),
+			zap.Any(errorFieldRequest, req),
+		)
+
+		return err
+	}
+
+	order.PaymentRoyaltyData.ExRateVatToRoyaltyPrediction = rsp.Rate
+	order.PaymentRoyaltyData.VatInRoyaltyCurPrediction = order.PaymentRoyaltyData.Vat * order.PaymentRoyaltyData.ExRateVatToRoyaltyPrediction
+	royaltyPrediction = order.PaymentRoyaltyData.GrossInRoyaltyCurPrediction - order.PaymentRoyaltyData.VatInRoyaltyCurPrediction - order.PaymentRoyaltyData.OverallDeductionPrediction
 	//costFeeCur
 	//costRatePublic
 	//costFeePublic
