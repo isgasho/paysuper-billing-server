@@ -78,6 +78,7 @@ It has these top-level messages:
 	NotifyUserSales
 	NotifyUserNewRegion
 	FindByZipCodeRequest
+	FindByZipCodeResponse
 */
 package grpc
 
@@ -97,7 +98,7 @@ import (
 var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
-var _ = billing.ZipCode{}
+var _ = billing.PriceGroup{}
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the proto package it is being compiled against.
@@ -164,7 +165,7 @@ type BillingService interface {
 	UpdatePriceGroup(ctx context.Context, in *billing.PriceGroup, opts ...client.CallOption) (*billing.PriceGroup, error)
 	SetUserNotifySales(ctx context.Context, in *SetUserNotifyRequest, opts ...client.CallOption) (*EmptyResponse, error)
 	SetUserNotifyNewRegion(ctx context.Context, in *SetUserNotifyRequest, opts ...client.CallOption) (*EmptyResponse, error)
-	FindByZipCode(ctx context.Context, in *FindByZipCodeRequest, opts ...client.CallOption) (*billing.ZipCode, error)
+	FindByZipCode(ctx context.Context, in *FindByZipCodeRequest, opts ...client.CallOption) (*FindByZipCodeResponse, error)
 }
 
 type billingService struct {
@@ -695,9 +696,9 @@ func (c *billingService) SetUserNotifyNewRegion(ctx context.Context, in *SetUser
 	return out, nil
 }
 
-func (c *billingService) FindByZipCode(ctx context.Context, in *FindByZipCodeRequest, opts ...client.CallOption) (*billing.ZipCode, error) {
+func (c *billingService) FindByZipCode(ctx context.Context, in *FindByZipCodeRequest, opts ...client.CallOption) (*FindByZipCodeResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.FindByZipCode", in)
-	out := new(billing.ZipCode)
+	out := new(FindByZipCodeResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -759,7 +760,7 @@ type BillingServiceHandler interface {
 	UpdatePriceGroup(context.Context, *billing.PriceGroup, *billing.PriceGroup) error
 	SetUserNotifySales(context.Context, *SetUserNotifyRequest, *EmptyResponse) error
 	SetUserNotifyNewRegion(context.Context, *SetUserNotifyRequest, *EmptyResponse) error
-	FindByZipCode(context.Context, *FindByZipCodeRequest, *billing.ZipCode) error
+	FindByZipCode(context.Context, *FindByZipCodeRequest, *FindByZipCodeResponse) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -815,7 +816,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		UpdatePriceGroup(ctx context.Context, in *billing.PriceGroup, out *billing.PriceGroup) error
 		SetUserNotifySales(ctx context.Context, in *SetUserNotifyRequest, out *EmptyResponse) error
 		SetUserNotifyNewRegion(ctx context.Context, in *SetUserNotifyRequest, out *EmptyResponse) error
-		FindByZipCode(ctx context.Context, in *FindByZipCodeRequest, out *billing.ZipCode) error
+		FindByZipCode(ctx context.Context, in *FindByZipCodeRequest, out *FindByZipCodeResponse) error
 	}
 	type BillingService struct {
 		billingService
@@ -1032,6 +1033,6 @@ func (h *billingServiceHandler) SetUserNotifyNewRegion(ctx context.Context, in *
 	return h.BillingServiceHandler.SetUserNotifyNewRegion(ctx, in, out)
 }
 
-func (h *billingServiceHandler) FindByZipCode(ctx context.Context, in *FindByZipCodeRequest, out *billing.ZipCode) error {
+func (h *billingServiceHandler) FindByZipCode(ctx context.Context, in *FindByZipCodeRequest, out *FindByZipCodeResponse) error {
 	return h.BillingServiceHandler.FindByZipCode(ctx, in, out)
 }

@@ -15,8 +15,6 @@ import (
 const (
 	cacheZipCodeByZipAndCountry = "zip_code:zip_country:%s_%s"
 	collectionZipCode           = "zip_code"
-
-	errorZipNotFound = "data by specified zip and country not found"
 )
 
 func newZipCodeService(svc *Service) *ZipCode {
@@ -26,16 +24,33 @@ func newZipCodeService(svc *Service) *ZipCode {
 func (s *Service) FindByZipCode(
 	ctx context.Context,
 	req *grpc.FindByZipCodeRequest,
-	rsp *billing.ZipCode,
+	rsp *grpc.FindByZipCodeResponse,
 ) error {
 	if req.Country != CountryCodeUSA {
-		return errors.New(errorZipNotFound)
+		return nil
 	}
 
-	data := new(billing.ZipCode)
+	var data []*billing.ZipCode
 
 	query := bson.M{"zip": bson.RegEx{Pattern: req.Zip}, "country": req.Country}
-	err := s.db.Collection(collectionZipCode).Find(query).One(&data)
+	count, err := s.db.Collection(collectionZipCode).Find(query).Count()
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatadaseQueryFailed,
+			zap.Error(err),
+			zap.String("collection", collectionZipCode),
+			zap.Any("query", query),
+		)
+
+		return errors.New(orderErrorUnknown)
+	}
+
+	if count <= 0 {
+		return nil
+	}
+
+	err = s.db.Collection(collectionZipCode).Find(query).Limit(int(req.Limit)).Skip(int(req.Offset)).All(&data)
 
 	if err != nil {
 		if err != mgo.ErrNotFound {
@@ -47,13 +62,11 @@ func (s *Service) FindByZipCode(
 			)
 		}
 
-		return errors.New(errorZipNotFound)
+		return errors.New(orderErrorUnknown)
 	}
 
-	rsp.Zip = data.Zip
-	rsp.Country = data.Country
-	rsp.State = data.State
-	rsp.City = data.City
+	rsp.Count = int32(count)
+	rsp.Items = data
 
 	return nil
 }

@@ -114,24 +114,33 @@ func (suite *ZipCodeTestSuite) TestZipCode_FindByZipCode_Ok() {
 		Zip:     "98",
 		Country: "US",
 	}
-	rsp := &billing.ZipCode{}
+	rsp := &grpc.FindByZipCodeResponse{}
 	err := suite.service.FindByZipCode(context.Background(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.NotEmpty(suite.T(), rsp.Zip)
-	assert.NotEmpty(suite.T(), rsp.Country)
-	assert.NotEmpty(suite.T(), rsp.City)
+	assert.Equal(suite.T(), int32(1), rsp.Count)
+	assert.Len(suite.T(), rsp.Items, 1)
 }
 
-func (suite *ZipCodeTestSuite) TestZipCode_FindByZipCode_NotFound_Error() {
+func (suite *ZipCodeTestSuite) TestZipCode_FindByZipCode_NotUSA_Ok() {
 	req := &grpc.FindByZipCodeRequest{
 		Zip:     "99",
 		Country: "RU",
 	}
-	rsp := &billing.ZipCode{}
+	rsp := &grpc.FindByZipCodeResponse{}
 	err := suite.service.FindByZipCode(context.Background(), req, rsp)
-	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), errorZipNotFound, err.Error())
-	assert.Empty(suite.T(), rsp.Zip)
-	assert.Empty(suite.T(), rsp.Country)
-	assert.Empty(suite.T(), rsp.City)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), int32(0), rsp.Count)
+	assert.Empty(suite.T(), rsp.Items)
+}
+
+func (suite *ZipCodeTestSuite) TestZipCode_FindByZipCode_USANotFound_Ok() {
+	req := &grpc.FindByZipCodeRequest{
+		Zip:     "99",
+		Country: "US",
+	}
+	rsp := &grpc.FindByZipCodeResponse{}
+	err := suite.service.FindByZipCode(context.Background(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), int32(0), rsp.Count)
+	assert.Empty(suite.T(), rsp.Items)
 }

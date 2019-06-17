@@ -73,7 +73,7 @@ service BillingService {
     rpc SetUserNotifySales(SetUserNotifyRequest) returns (EmptyResponse) {}
     rpc SetUserNotifyNewRegion(SetUserNotifyRequest) returns (EmptyResponse) {}
 
-    rpc FindByZipCode(FindByZipCodeRequest) returns (billing.ZipCode) {}
+    rpc FindByZipCode(FindByZipCodeRequest) returns (FindByZipCodeResponse) {}
 }
 
 message EmptyRequest {
@@ -718,4 +718,14 @@ message FindByZipCodeRequest {
     string country = 1;
     // @inject_tag: query:"zip" validate:"required,gte=2"
     string zip = 2;
+    // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
+    int32 limit = 3;
+    // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
+    int32 offset = 4;
+}
+
+
+message FindByZipCodeResponse {
+    int32 count = 1;
+    repeated billing.ZipCode items = 2;
 }
