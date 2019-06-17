@@ -194,7 +194,7 @@ func (h *btProcessor) prepareOrderData(order *billing.Order) error {
 
 	order.PaymentRoyaltyData.ExRateVatToRoyaltyPrediction = rsp.Rate
 	order.PaymentRoyaltyData.VatInRoyaltyCurPrediction = order.PaymentRoyaltyData.Vat * order.PaymentRoyaltyData.ExRateVatToRoyaltyPrediction
-	royaltyPrediction = order.PaymentRoyaltyData.GrossInRoyaltyCurPrediction - order.PaymentRoyaltyData.VatInRoyaltyCurPrediction - order.PaymentRoyaltyData.OverallDeductionPrediction
+	//royaltyPrediction = order.PaymentRoyaltyData.GrossInRoyaltyCurPrediction - order.PaymentRoyaltyData.VatInRoyaltyCurPrediction - order.PaymentRoyaltyData.OverallDeductionPrediction
 	//costFeeCur
 	//costRatePublic
 	//costFeePublic
