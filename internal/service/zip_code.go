@@ -28,6 +28,10 @@ func (s *Service) FindByZipCode(
 	req *grpc.FindByZipCodeRequest,
 	rsp *billing.ZipCode,
 ) error {
+	if req.Country != CountryCodeUSA {
+		return errors.New(errorZipNotFound)
+	}
+
 	data := new(billing.ZipCode)
 
 	query := bson.M{"zip": bson.RegEx{Pattern: req.Zip}, "country": req.Country}
