@@ -462,7 +462,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 	}
 
 	expire := time.Now().Add(time.Minute * 30).Unix()
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": order.Id, "exp": expire})
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": order.Uuid, "exp": expire})
 
 	rsp.Id = order.Uuid
 	rsp.Account = order.ProjectAccount
@@ -1002,13 +1002,20 @@ func (s *Service) saveRecurringCard(order *billing.Order, recurringId string) {
 }
 
 func (s *Service) updateOrder(order *billing.Order) error {
-	originalOrder, _ := s.getOrderById(order.Id)
 
 	ps := order.GetPublicStatus()
 
+	zap.S().Debug("[updateOrder] updating order", "order_id", order.Id, "status", ps)
+
+	originalOrder, _ := s.getOrderById(order.Id)
+
 	statusChanged := false
 	if originalOrder != nil {
-		statusChanged = originalOrder.GetPublicStatus() != ps
+		ops := originalOrder.GetPublicStatus()
+		zap.S().Debug("[updateOrder] no original order status", "order_id", order.Id, "status", ops)
+		statusChanged = ops != ps
+	} else {
+		zap.S().Debug("[updateOrder] no original order found", "order_id", order.Id)
 	}
 
 	err := s.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
@@ -1018,7 +1025,10 @@ func (s *Service) updateOrder(order *billing.Order) error {
 		return err
 	}
 
+	zap.S().Debug("[updateOrder] updating order success", "order_id", order.Id, "status_changed", statusChanged)
+
 	if statusChanged && ps != constant.OrderPublicStatusCreated && ps != constant.OrderPublicStatusPending {
+		zap.S().Debug("[updateOrder] notify merchant", "order_id", order.Id)
 		s.orderNotifyMerchant(order)
 	}
 
@@ -1026,16 +1036,24 @@ func (s *Service) updateOrder(order *billing.Order) error {
 }
 
 func (s *Service) orderNotifyMerchant(order *billing.Order) {
+	zap.S().Debug("[orderNotifyMerchant] try to send notify merchant to rmq", "order_id", order.Id, "status", order.GetPublicStatus())
+
 	err := s.broker.Publish(constant.PayOneTopicNotifyPaymentName, order, amqp.Table{"x-retry-count": int32(0)})
 	if err != nil {
+		zap.S().Debug("[orderNotifyMerchant] send notify merchant to rmq failed", "order_id", order.Id)
 		s.logError(orderErrorPublishNotificationFailed, []interface{}{
 			"err", err.Error(), "order", order, "topic", constant.PayOneTopicNotifyPaymentName,
 		})
+	} else {
+		zap.S().Debug("[orderNotifyMerchant] send notify merchant to rmq failed", "order_id", order.Id)
 	}
 	order.SetNotificationStatus(order.GetPublicStatus(), err == nil)
 	err = s.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
 	if err != nil {
+		zap.S().Debug("[orderNotifyMerchant] notification status update failed", "order_id", order.Id)
 		s.logError(orderErrorUpdateOrderDataFailed, []interface{}{"error", err.Error(), "order", order})
+	} else {
+		zap.S().Debug("[orderNotifyMerchant] notification status updated succesfully", "order_id", order.Id)
 	}
 }
 
@@ -2380,7 +2398,7 @@ func (s *Service) IsOrderCanBePaying(
 	return nil
 }
 
-func (h *Service) fillPaymentDataCard(order *billing.Order) error {
+func (s *Service) fillPaymentDataCard(order *billing.Order) error {
 	first6 := ""
 	last4 := ""
 	pan, ok := order.PaymentMethodTxnParams[pkg.PaymentCreateFieldPan]
@@ -2426,7 +2444,7 @@ func (h *Service) fillPaymentDataCard(order *billing.Order) error {
 	return nil
 }
 
-func (h *Service) fillPaymentDataEwallet(order *billing.Order) error {
+func (s *Service) fillPaymentDataEwallet(order *billing.Order) error {
 	account := order.PaymentMethodTxnParams[pkg.PaymentCreateFieldEWallet]
 	order.PaymentMethodPayerAccount = account
 	order.PaymentMethod.Wallet = &billing.PaymentMethodWallet{
@@ -2436,7 +2454,7 @@ func (h *Service) fillPaymentDataEwallet(order *billing.Order) error {
 	return nil
 }
 
-func (h *Service) fillPaymentDataCrypto(order *billing.Order) error {
+func (s *Service) fillPaymentDataCrypto(order *billing.Order) error {
 	address := order.PaymentMethodTxnParams[pkg.PaymentCreateFieldCrypto]
 	order.PaymentMethodPayerAccount = address
 	order.PaymentMethod.CryptoCurrency = &billing.PaymentMethodCrypto{

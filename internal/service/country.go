@@ -25,9 +25,9 @@ func (s *Service) GetCountriesList(
 	if err != nil {
 		return err
 	}
-	for _, v := range countries.Countries {
-		res.Countries = append(res.Countries, v)
-	}
+
+	res.Countries = countries.Countries
+
 	return nil
 }
 

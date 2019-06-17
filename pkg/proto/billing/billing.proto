@@ -1226,9 +1226,9 @@ message Country {
     //@inject_tag: json:"price_group_id" bson:"price_group_id" validate:"required,hexadecimal,len=24"
     string price_group_id = 9;
     //@inject_tag: json:"-" bson:"created_at"
-    google.protobuf.Timestamp created_at = 10;
+    google.protobuf.Timestamp created_at = 11;
     //@inject_tag: json:"-" bson:"updated_at"
-    google.protobuf.Timestamp updated_at = 11;
+    google.protobuf.Timestamp updated_at = 12;
 }
 
 message CountriesList {
