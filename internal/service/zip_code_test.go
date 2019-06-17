@@ -1,11 +1,13 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -105,4 +107,31 @@ func (suite *ZipCodeTestSuite) TestZipCode_NotFound_Error() {
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionZipCode), err.Error())
 	assert.Nil(suite.T(), zipCode)
+}
+
+func (suite *ZipCodeTestSuite) TestZipCode_FindByZipCode_Ok() {
+	req := &grpc.FindByZipCodeRequest{
+		Zip:     "98",
+		Country: "US",
+	}
+	rsp := &billing.ZipCode{}
+	err := suite.service.FindByZipCode(context.Background(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.NotEmpty(suite.T(), rsp.Zip)
+	assert.NotEmpty(suite.T(), rsp.Country)
+	assert.NotEmpty(suite.T(), rsp.City)
+}
+
+func (suite *ZipCodeTestSuite) TestZipCode_FindByZipCode_NotFound_Error() {
+	req := &grpc.FindByZipCodeRequest{
+		Zip:     "99",
+		Country: "RU",
+	}
+	rsp := &billing.ZipCode{}
+	err := suite.service.FindByZipCode(context.Background(), req, rsp)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), errorZipNotFound, err.Error())
+	assert.Empty(suite.T(), rsp.Zip)
+	assert.Empty(suite.T(), rsp.Country)
+	assert.Empty(suite.T(), rsp.City)
 }

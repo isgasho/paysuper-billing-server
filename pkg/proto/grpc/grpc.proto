@@ -72,6 +72,8 @@ service BillingService {
 
     rpc SetUserNotifySales(SetUserNotifyRequest) returns (EmptyResponse) {}
     rpc SetUserNotifyNewRegion(SetUserNotifyRequest) returns (EmptyResponse) {}
+
+    rpc FindByZipCode(FindByZipCodeRequest) returns (billing.ZipCode) {}
 }
 
 message EmptyRequest {
@@ -709,4 +711,11 @@ message NotifyUserNewRegion {
     string user_id = 4;
     //@inject_tag: bson:"date"
     string date = 5;
+}
+
+message FindByZipCodeRequest {
+    // @inject_tag: query:"country" validate:"required,len=2"
+    string country = 1;
+    // @inject_tag: query:"zip" validate:"required,gte=2"
+    string zip = 2;
 }
