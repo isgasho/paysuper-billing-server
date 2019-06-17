@@ -19,3 +19,18 @@ type Merchant Entity
 type PriceGroup Entity
 type PaymentSystemService Entity
 type ZipCode Entity
+type PaymentChannelCostSystem Entity
+type PaymentChannelCostMerchant Entity
+type MoneyBackCostSystem Entity
+type MoneyBackCostMerchant Entity
+type PayoutCostSystem Entity
+
+type kvIntFloat struct {
+	Key   int
+	Value float64
+}
+
+type kvIntInt struct {
+	Key   int
+	Value int32
+}
