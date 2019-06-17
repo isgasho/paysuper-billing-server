@@ -462,7 +462,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 	}
 
 	expire := time.Now().Add(time.Minute * 30).Unix()
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": order.Id, "exp": expire})
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": order.Uuid, "exp": expire})
 
 	rsp.Id = order.Uuid
 	rsp.Account = order.ProjectAccount
