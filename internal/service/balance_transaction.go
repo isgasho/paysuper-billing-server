@@ -15,6 +15,8 @@ const (
 	errorFieldService = "service"
 	errorFieldMethod  = "method"
 	errorFieldRequest = "request"
+
+	errorCommissionNotFound = "Commission by merchant and payment method not found"
 )
 
 type BalanceTransaction struct {
@@ -90,6 +92,123 @@ func (h *btProcessor) prepareOrderData(order *billing.Order) error {
 	}
 
 	order.PaymentRoyaltyData.ExRatePaymentToRoyaltyPrediction = rsp.Rate
+
+	req.RateType = curPkg.RateTypeCentralbanks
+	rsp, err = h.curService.GetRateCurrentForMerchant(context.Background(), req)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorGrpcServiceCallFailed,
+			zap.Error(err),
+			zap.String(errorFieldService, "CurrencyRatesService"),
+			zap.String(errorFieldMethod, "GetRateCurrentForMerchant"),
+			zap.Any(errorFieldRequest, req),
+		)
+
+		return err
+	}
+
+	order.PaymentRoyaltyData.ExRatePaymentToVat = rsp.Rate
+	order.PaymentRoyaltyData.Vat = order.Tax.Amount * order.PaymentRoyaltyData.ExRatePaymentToVat
+	order.PaymentRoyaltyData.GrossInRoyaltyCurPrediction = order.TotalPaymentAmount * order.PaymentRoyaltyData.ExRatePaymentToRoyaltyPrediction
+
+	commission, err := h.commission.GetByProjectIdAndMethod(order.GetProjectId(), order.GetPaymentMethodId())
+
+	if err != nil {
+		zap.L().Error(
+			errorCommissionNotFound,
+			zap.Error(err),
+			zap.String("project_id", order.GetProjectId()),
+			zap.String("payment_method", order.GetPaymentMethodId()),
+		)
+
+		return err
+	}
+
+	order.PaymentRoyaltyData.OverallCutRate = commission.Fee
+	order.PaymentRoyaltyData.OverallFee = commission.PerTransaction.Fee
+
+	if commission.PerTransaction.Currency != order.PaymentRoyaltyData.RoyaltyCur {
+		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
+			From:       commission.PerTransaction.Currency,
+			To:         order.PaymentRoyaltyData.RoyaltyCur,
+			MerchantId: order.GetMerchantId(),
+			RateType:   curPkg.RateTypePaysuper,
+			Amount:     commission.PerTransaction.Fee,
+		}
+		rsp, err := h.curService.ExchangeCurrencyCurrentForMerchant(context.Background(), req)
+
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorGrpcServiceCallFailed,
+				zap.Error(err),
+				zap.String(errorFieldService, "CurrencyRatesService"),
+				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
+				zap.Any(errorFieldRequest, req),
+			)
+
+			return err
+		}
+
+		order.PaymentRoyaltyData.OverallFee = rsp.ExchangedAmount
+	}
+
+	order.PaymentRoyaltyData.OverallDeductionPrediction = order.PaymentRoyaltyData.GrossInRoyaltyCurPrediction*order.PaymentRoyaltyData.OverallCutRate + order.PaymentRoyaltyData.OverallFee
+
+	req = &currencies.GetRateCurrentForMerchantRequest{
+		From:       order.Tax.Currency,
+		To:         order.PaymentRoyaltyData.RoyaltyCur,
+		MerchantId: order.Project.MerchantId,
+		RateType:   curPkg.RateTypeStock,
+	}
+	rsp, err = h.curService.GetRateCurrentForMerchant(h.ctx, req)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorGrpcServiceCallFailed,
+			zap.Error(err),
+			zap.String(errorFieldService, "CurrencyRatesService"),
+			zap.String(errorFieldMethod, "GetRateCurrentForMerchant"),
+			zap.Any(errorFieldRequest, req),
+		)
+
+		return err
+	}
+
+	order.PaymentRoyaltyData.ExRateVatToRoyaltyInstant = rsp.Rate
+
+	req.RateType = curPkg.RateTypePaysuper
+	rsp, err = h.curService.GetRateCurrentForMerchant(h.ctx, req)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorGrpcServiceCallFailed,
+			zap.Error(err),
+			zap.String(errorFieldService, "CurrencyRatesService"),
+			zap.String(errorFieldMethod, "GetRateCurrentForMerchant"),
+			zap.Any(errorFieldRequest, req),
+		)
+
+		return err
+	}
+
+	order.PaymentRoyaltyData.ExRateVatToRoyaltyPrediction = rsp.Rate
+	order.PaymentRoyaltyData.VatInRoyaltyCurPrediction = order.PaymentRoyaltyData.Vat * order.PaymentRoyaltyData.ExRateVatToRoyaltyPrediction
+	royaltyPrediction = order.PaymentRoyaltyData.GrossInRoyaltyCurPrediction - order.PaymentRoyaltyData.VatInRoyaltyCurPrediction - order.PaymentRoyaltyData.OverallDeductionPrediction
+	//costFeeCur
+	//costRatePublic
+	//costFeePublic
+	//exRateCostFeeToRoyaltyInstant
+	//exRateCostFeeToRoyaltyPrediction
+	//costPublicRateAmountPrediction
+	//costPublicPrediction
+	//paySuperCutAmountPrediction
+	//paySuperCutRatePrediction
+	//costRate
+	//costFee
+	//costPrediction
+	//costDeltaPrediction
+	//paySuperRevenuePrediction
 
 	return nil
 }
