@@ -15,6 +15,8 @@ const (
 	errorFieldService = "service"
 	errorFieldMethod  = "method"
 	errorFieldRequest = "request"
+
+	errorCommissionNotFound = "Commission by merchant and payment method not found"
 )
 
 type BalanceTransaction struct {
@@ -90,6 +92,61 @@ func (h *btProcessor) prepareOrderData(order *billing.Order) error {
 	}
 
 	order.PaymentRoyaltyData.ExRatePaymentToRoyaltyPrediction = rsp.Rate
+
+	req.RateType = curPkg.RateTypeCentralbanks
+	rsp, err = h.curService.GetRateCurrentForMerchant(context.Background(), req)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorGrpcServiceCallFailed,
+			zap.Error(err),
+			zap.String(errorFieldService, "CurrencyRatesService"),
+			zap.String(errorFieldMethod, "GetRateCurrentForMerchant"),
+			zap.Any(errorFieldRequest, req),
+		)
+
+		return err
+	}
+
+	order.PaymentRoyaltyData.ExRatePaymentToVat = rsp.Rate
+	order.PaymentRoyaltyData.Vat = order.Tax.Amount * order.PaymentRoyaltyData.ExRatePaymentToVat
+	order.PaymentRoyaltyData.GrossInRoyaltyCurPrediction = order.TotalPaymentAmount * order.PaymentRoyaltyData.ExRatePaymentToRoyaltyPrediction
+
+	commission, err := h.commission.GetByProjectIdAndMethod(order.GetProjectId(), order.GetPaymentMethodId())
+
+	if err != nil {
+		zap.L().Error(
+			errorCommissionNotFound,
+			zap.Error(err),
+			zap.String("project_id", order.GetProjectId()),
+			zap.String("payment_method", order.GetPaymentMethodId()),
+		)
+
+		return err
+	}
+
+	order.PaymentRoyaltyData.OverallCutRate = commission.Fee
+
+	//overallFee
+	//overallDeductionPrediction
+	//exRateVatToRoyaltyInstant
+	//exRateVatToRoyaltyPrediction
+	//vatInRoyaltyCurPrediction
+	//royaltyPrediction
+	//costFeeCur
+	//costRatePublic
+	//costFeePublic
+	//exRateCostFeeToRoyaltyInstant
+	//exRateCostFeeToRoyaltyPrediction
+	//costPublicRateAmountPrediction
+	//costPublicPrediction
+	//paySuperCutAmountPrediction
+	//paySuperCutRatePrediction
+	//costRate
+	//costFee
+	//costPrediction
+	//costDeltaPrediction
+	//paySuperRevenuePrediction
 
 	return nil
 }
