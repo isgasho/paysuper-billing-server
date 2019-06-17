@@ -417,6 +417,14 @@ type MgoCountry struct {
 	UpdatedAt       time.Time     `bson:"updated_at"`
 }
 
+type MgoZipCode struct {
+	Zip       string        `bson:"zip"`
+	Country   string        `bson:"country"`
+	City      string        `bson:"city"`
+	State     *ZipCodeState `bson:"state"`
+	CreatedAt time.Time     `bson:"created_at"`
+}
+
 func (m *Country) GetBSON() (interface{}, error) {
 	st := &MgoCountry{
 		IsoCodeA2:       m.IsoCodeA2,
@@ -2232,6 +2240,47 @@ func (m *Customer) SetBSON(raw bson.Raw) error {
 	}
 
 	m.UpdatedAt, err = ptypes.TimestampProto(decoded.UpdatedAt)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ZipCode) GetBSON() (interface{}, error) {
+	st := &MgoZipCode{
+		Zip:     m.Zip,
+		Country: m.Country,
+		City:    m.City,
+		State:   m.State,
+	}
+
+	t, err := ptypes.Timestamp(m.CreatedAt)
+
+	if err != nil {
+		return nil, err
+	}
+
+	st.CreatedAt = t
+
+	return st, nil
+}
+
+func (m *ZipCode) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoZipCode)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Zip = decoded.Zip
+	m.Country = decoded.Country
+	m.City = decoded.City
+	m.State = decoded.State
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 
 	if err != nil {
 		return err

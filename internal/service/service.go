@@ -27,12 +27,10 @@ import (
 const (
 	errorNotFound                   = "%s not found"
 	errorQueryMask                  = "Query from collection \"%s\" failed"
-	errorAccountingCurrencyNotFound = "Accounting currency not found"
-	errorInterfaceCast              = "Unable to cast interface to object %s"
+	errorAccountingCurrencyNotFound = "accounting currency not found"
+	errorInterfaceCast              = "unable to cast interface to object %s"
 
 	errorBbNotFoundMessage = "not found"
-
-	environmentProd = "prod"
 
 	HeaderContentType   = "Content-Type"
 	HeaderAuthorization = "Authorization"
@@ -76,6 +74,7 @@ type Service struct {
 	paymentMethod *PaymentMethod
 	systemFees    *SystemFee
 	priceGroup    *PriceGroup
+	zipCode       *ZipCode
 }
 
 func NewBillingService(
@@ -110,6 +109,7 @@ func (s *Service) Init() (err error) {
 	s.project = newProjectService(s)
 	s.systemFees = newSystemFeesService(s)
 	s.priceGroup = newPriceGroupService(s)
+	s.zipCode = newZipCodeService(s)
 
 	s.centrifugoClient = gocent.New(
 		gocent.Config{
@@ -126,10 +126,6 @@ func (s *Service) Init() (err error) {
 	}
 
 	return
-}
-
-func (s *Service) isProductionEnvironment() bool {
-	return s.cfg.Environment == environmentProd
 }
 
 func (s *Service) logError(msg string, data []interface{}) {

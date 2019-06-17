@@ -422,9 +422,7 @@ message ProcessBillingAddressRequest {
     string order_id = 1;
     // @inject_tag: validate:"required,len=2"
     string country = 2;
-    // @inject_tag: validate:"required"
-    string city = 3;
-    // @inject_tag: validate:"required"
+    // @inject_tag: validate:"omitempty,zip"
     string zip = 4;
 }
 

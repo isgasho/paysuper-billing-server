@@ -489,9 +489,6 @@ func (suite *BillingServiceTestSuite) TestBillingService_IsProductionEnvironment
 
 	err := service.Init()
 	assert.Nil(suite.T(), err)
-
-	isProd := service.isProductionEnvironment()
-	assert.False(suite.T(), isProd)
 }
 
 func (suite *BillingServiceTestSuite) TestBillingService_CheckProjectRequestSignature_Ok() {

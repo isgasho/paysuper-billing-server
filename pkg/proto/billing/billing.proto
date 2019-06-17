@@ -1254,3 +1254,18 @@ message PriceGroup {
     //@inject_tag: json:"updated_at" bson:"updated_at"
     google.protobuf.Timestamp updated_at = 6;
 }
+
+message ZipCodeState {
+    //@inject_tag: bson:"code"
+    string code = 1;
+    //@inject_tag: bson:"name"
+    string name = 2;
+}
+
+message ZipCode {
+    string zip = 1;
+    string country = 2;
+    string city = 3;
+    ZipCodeState state = 4;
+    google.protobuf.Timestamp created_at = 5;
+}

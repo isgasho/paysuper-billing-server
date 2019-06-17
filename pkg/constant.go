@@ -29,6 +29,7 @@ const (
 	PaymentCreateFieldStoredCardId    = "stored_card_id"
 	PaymentCreateFieldUserCountry     = "country"
 	PaymentCreateFieldUserCity        = "city"
+	PaymentCreateFieldUserState       = "state"
 	PaymentCreateFieldUserZip         = "zip"
 
 	TxnParamsFieldBankCardEmissionCountry = "emission_country"
@@ -114,6 +115,8 @@ const (
 
 	BalanceTransactionStatusPending   = "pending"
 	BalanceTransactionStatusAvailable = "available"
+
+	ErrorDatadaseQueryFailed = "Query to database collection failed"
 )
 
 var (

@@ -87,7 +87,6 @@ const (
 	orderErrorCreatePaymentRequiredFieldPaymentMethodNotFound = "required field with payment method identifier not found"
 	orderErrorCreatePaymentRequiredFieldEmailNotFound         = "required field \"email\" not found"
 	orderErrorCreatePaymentRequiredFieldUserCountryNotFound   = "user country is required"
-	orderErrorCreatePaymentRequiredFieldUserCityNotFound      = "user city is required"
 	orderErrorCreatePaymentRequiredFieldUserZipNotFound       = "user zip is required"
 
 	paymentCreateBankCardFieldBrand         = "card_brand"
@@ -908,6 +907,28 @@ func (s *Service) ProcessBillingAddress(
 	req *grpc.ProcessBillingAddressRequest,
 	rsp *grpc.ProcessBillingAddressResponse,
 ) error {
+	var err error
+
+	zip := new(billing.ZipCode)
+
+	if req.Country == CountryCodeUSA {
+		if req.Zip == "" {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = orderErrorCreatePaymentRequiredFieldUserZipNotFound
+
+			return nil
+		}
+
+		zip, err = s.zipCode.getByZipAndCountry(req.Zip, req.Country)
+
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = err.Error()
+
+			return nil
+		}
+	}
+
 	order, err := s.getOrderByUuidToForm(req.OrderId)
 
 	if err != nil {
@@ -918,9 +939,13 @@ func (s *Service) ProcessBillingAddress(
 	}
 
 	order.BillingAddress = &billing.OrderBillingAddress{
-		Country:    req.Country,
-		City:       req.City,
-		PostalCode: req.Zip,
+		Country: req.Country,
+	}
+
+	if zip != nil {
+		order.BillingAddress.PostalCode = zip.Zip
+		order.BillingAddress.City = zip.City
+		order.BillingAddress.State = zip.State.Code
 	}
 
 	restricted, err := s.applyCountryRestriction(order, req.Country)
@@ -1522,6 +1547,7 @@ func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) {
 	if order.BillingAddress != nil {
 		req.UserData.Country = order.BillingAddress.Country
 		req.UserData.City = order.BillingAddress.City
+		req.UserData.State = order.BillingAddress.State
 	}
 
 	if order.User.Address.Country == CountryCodeUSA {
@@ -1807,19 +1833,27 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 	}
 
 	if order.UserAddressDataRequired == true {
-		if _, ok := v.data[pkg.PaymentCreateFieldUserCountry]; !ok ||
-			v.data[pkg.PaymentCreateFieldUserCountry] == "" {
+		country, ok := v.data[pkg.PaymentCreateFieldUserCountry]
+
+		if !ok || country == "" {
 			return errors.New(orderErrorCreatePaymentRequiredFieldUserCountryNotFound)
 		}
 
-		if _, ok := v.data[pkg.PaymentCreateFieldUserCity]; !ok ||
-			v.data[pkg.PaymentCreateFieldUserCity] == "" {
-			return errors.New(orderErrorCreatePaymentRequiredFieldUserCityNotFound)
-		}
+		if country == CountryCodeUSA {
+			zip, ok := v.data[pkg.PaymentCreateFieldUserZip]
 
-		if _, ok := v.data[pkg.PaymentCreateFieldUserZip]; !ok ||
-			v.data[pkg.PaymentCreateFieldUserZip] == "" {
-			return errors.New(orderErrorCreatePaymentRequiredFieldUserZipNotFound)
+			if !ok || zip == "" {
+				return errors.New(orderErrorCreatePaymentRequiredFieldUserZipNotFound)
+			}
+
+			zipData, err := v.service.zipCode.getByZipAndCountry(zip, country)
+
+			if err != nil {
+				return err
+			}
+
+			v.data[pkg.PaymentCreateFieldUserCity] = zipData.City
+			v.data[pkg.PaymentCreateFieldUserState] = zipData.State.Code
 		}
 	}
 
@@ -1875,12 +1909,18 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 			order.BillingAddress.Country = v.data[pkg.PaymentCreateFieldUserCountry]
 		}
 
-		if order.BillingAddress.City != v.data[pkg.PaymentCreateFieldUserCity] {
-			order.BillingAddress.City = v.data[pkg.PaymentCreateFieldUserCity]
-		}
+		if order.BillingAddress.Country == CountryCodeUSA {
+			if order.BillingAddress.City != v.data[pkg.PaymentCreateFieldUserCity] {
+				order.BillingAddress.City = v.data[pkg.PaymentCreateFieldUserCity]
+			}
 
-		if order.BillingAddress.PostalCode != v.data[pkg.PaymentCreateFieldUserZip] {
-			order.BillingAddress.PostalCode = v.data[pkg.PaymentCreateFieldUserZip]
+			if order.BillingAddress.PostalCode != v.data[pkg.PaymentCreateFieldUserZip] {
+				order.BillingAddress.PostalCode = v.data[pkg.PaymentCreateFieldUserZip]
+			}
+
+			if order.BillingAddress.State != v.data[pkg.PaymentCreateFieldUserState] {
+				order.BillingAddress.State = v.data[pkg.PaymentCreateFieldUserState]
+			}
 		}
 
 		processor.processOrderVat(order)

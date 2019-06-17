@@ -705,6 +705,23 @@ func (suite *OrderTestSuite) SetupTest() {
 		suite.FailNow("Insert BIN test data failed", "%v", err)
 	}
 
+	zipCode := &billing.ZipCode{
+		Zip:     "98001",
+		Country: "US",
+		City:    "Washington",
+		State: &billing.ZipCodeState{
+			Code: "NJ",
+			Name: "New Jersey",
+		},
+		CreatedAt: ptypes.TimestampNow(),
+	}
+
+	err = db.Collection(collectionZipCode).Insert(zipCode)
+
+	if err != nil {
+		suite.FailNow("Insert zip codes test data failed", "%v", err)
+	}
+
 	suite.log, err = zap.NewProduction()
 
 	if err != nil {
@@ -4663,7 +4680,6 @@ func (suite *OrderTestSuite) TestOrder_OrderReCalculateAmounts_Ok() {
 	req1 := &grpc.ProcessBillingAddressRequest{
 		OrderId: rsp.Uuid,
 		Country: "US",
-		City:    "Washington",
 		Zip:     "98001",
 	}
 	rsp1 := &grpc.ProcessBillingAddressResponse{}
@@ -4710,7 +4726,6 @@ func (suite *OrderTestSuite) TestOrder_OrderReCalculateAmounts_OrderNotFound_Err
 	req1 := &grpc.ProcessBillingAddressRequest{
 		OrderId: uuid.New().String(),
 		Country: "US",
-		City:    "Washington",
 		Zip:     "98001",
 	}
 	rsp1 := &grpc.ProcessBillingAddressResponse{}
@@ -4835,66 +4850,6 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequi
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.RedirectUrl)
 	assert.Equal(suite.T(), orderErrorCreatePaymentRequiredFieldUserCountryNotFound, rsp1.Message)
-
-	order1, err := suite.service.getOrderByUuid(rsp.Uuid)
-	assert.NoError(suite.T(), err)
-	assert.NotNil(suite.T(), order1)
-
-	assert.Equal(suite.T(), order.Tax.Amount, order1.Tax.Amount)
-	assert.Equal(suite.T(), order.TotalPaymentAmount, order1.TotalPaymentAmount)
-	assert.Nil(suite.T(), order1.BillingAddress)
-}
-
-func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequired_CityFieldNotFound_Ok() {
-	req := &billing.OrderCreateRequest{
-		ProjectId:   suite.project.Id,
-		Currency:    "RUB",
-		Amount:      100,
-		Account:     "unit test",
-		Description: "unit test",
-		OrderId:     bson.NewObjectId().Hex(),
-		User: &billing.OrderUser{
-			Email: "test@unit.unit",
-			Ip:    "127.0.0.1",
-		},
-	}
-
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-	assert.Nil(suite.T(), err)
-
-	order, err := suite.service.getOrderByUuid(rsp.Uuid)
-	assert.NoError(suite.T(), err)
-	assert.NotNil(suite.T(), order)
-	assert.Nil(suite.T(), order.BillingAddress)
-
-	order.UserAddressDataRequired = true
-	err = suite.service.updateOrder(order)
-	assert.NoError(suite.T(), err)
-
-	expireYear := time.Now().AddDate(1, 0, 0)
-
-	req1 := &grpc.PaymentCreateRequest{
-		Data: map[string]string{
-			pkg.PaymentCreateFieldOrderId:         rsp.Uuid,
-			pkg.PaymentCreateFieldPaymentMethodId: suite.paymentMethod.Id,
-			pkg.PaymentCreateFieldEmail:           "test@unit.unit",
-			pkg.PaymentCreateFieldPan:             "4000000000000002",
-			pkg.PaymentCreateFieldCvv:             "123",
-			pkg.PaymentCreateFieldMonth:           "02",
-			pkg.PaymentCreateFieldYear:            expireYear.Format("2006"),
-			pkg.PaymentCreateFieldHolder:          "Mr. Card Holder",
-			pkg.PaymentCreateFieldUserCountry:     "US",
-		},
-	}
-
-	rsp1 := &grpc.PaymentCreateResponse{}
-	err = suite.service.PaymentCreateProcess(context.TODO(), req1, rsp1)
-
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
-	assert.Empty(suite.T(), rsp1.RedirectUrl)
-	assert.Equal(suite.T(), orderErrorCreatePaymentRequiredFieldUserCityNotFound, rsp1.Message)
 
 	order1, err := suite.service.getOrderByUuid(rsp.Uuid)
 	assert.NoError(suite.T(), err)
@@ -5358,8 +5313,7 @@ func (suite *OrderTestSuite) TestOrder_CreatePayment_ChangeCustomerData_Ok() {
 			pkg.PaymentCreateFieldYear:            expireYear.Format("2006"),
 			pkg.PaymentCreateFieldHolder:          "MR. CARD HOLDER",
 			pkg.PaymentCreateFieldUserCountry:     "US",
-			pkg.PaymentCreateFieldUserCity:        "Washington",
-			pkg.PaymentCreateFieldUserZip:         "123456",
+			pkg.PaymentCreateFieldUserZip:         "98001",
 		},
 		Ip:             "127.0.0.3",
 		AcceptLanguage: "fr-CA",
@@ -5718,7 +5672,7 @@ func (suite *OrderTestSuite) TestBillingService_SetUserNotifySales_Ok() {
 	assert.False(suite.T(), rsp.NotifySale)
 	assert.Empty(suite.T(), rsp.NotifySaleEmail)
 
-	var data = []*grpc.NotifyUserSales{}
+	var data []*grpc.NotifyUserSales
 	err = suite.service.db.Collection(collectionNotifySales).Find(bson.M{"email": notifyEmail}).All(&data)
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), len(data), 0)
@@ -5771,7 +5725,7 @@ func (suite *OrderTestSuite) TestBillingService_SetUserNotifyNewRegion_Ok() {
 	assert.False(suite.T(), rsp.User.NotifyNewRegion)
 	assert.Empty(suite.T(), rsp.User.NotifyNewRegionEmail)
 
-	var data = []*grpc.NotifyUserNewRegion{}
+	var data []*grpc.NotifyUserNewRegion
 	err = suite.service.db.Collection(collectionNotifyNewRegion).Find(bson.M{"email": notifyEmail}).All(&data)
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), len(data), 0)
@@ -5957,4 +5911,127 @@ func (suite *OrderTestSuite) TestBillingService_PaymentCreateProcess_CountryRest
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusForbidden, rsp.Status)
 	assert.Equal(suite.T(), orderCountryPaymentRestrictedError, rsp.Message)
+}
+
+func (suite *OrderTestSuite) TestOrder_ProcessBillingAddress_USAZipIsEmpty_Error() {
+	req := &billing.OrderCreateRequest{
+		ProjectId:   suite.project.Id,
+		Currency:    "RUB",
+		Amount:      100,
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+	}
+
+	rsp := &billing.Order{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	assert.Nil(suite.T(), err)
+	assert.True(suite.T(), len(rsp.Id) > 0)
+
+	order, err := suite.service.getOrderByUuid(rsp.Uuid)
+	assert.NoError(suite.T(), err)
+	assert.Nil(suite.T(), order.BillingAddress)
+
+	req1 := &grpc.ProcessBillingAddressRequest{
+		OrderId: rsp.Uuid,
+		Country: "US",
+	}
+	rsp1 := &grpc.ProcessBillingAddressResponse{}
+	err = suite.service.ProcessBillingAddress(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
+	assert.Equal(suite.T(), orderErrorCreatePaymentRequiredFieldUserZipNotFound, rsp1.Message)
+	assert.Nil(suite.T(), rsp1.Item)
+}
+
+func (suite *OrderTestSuite) TestOrder_ProcessBillingAddress_USAZipNotFound_Error() {
+	req := &billing.OrderCreateRequest{
+		ProjectId:   suite.project.Id,
+		Currency:    "RUB",
+		Amount:      100,
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+	}
+
+	rsp := &billing.Order{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	assert.Nil(suite.T(), err)
+	assert.True(suite.T(), len(rsp.Id) > 0)
+
+	order, err := suite.service.getOrderByUuid(rsp.Uuid)
+	assert.NoError(suite.T(), err)
+	assert.Nil(suite.T(), order.BillingAddress)
+
+	req1 := &grpc.ProcessBillingAddressRequest{
+		OrderId: rsp.Uuid,
+		Country: "US",
+		Zip:     "98002",
+	}
+	rsp1 := &grpc.ProcessBillingAddressResponse{}
+	err = suite.service.ProcessBillingAddress(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
+	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionZipCode), rsp1.Message)
+	assert.Nil(suite.T(), rsp1.Item)
+}
+
+func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequired_USAZipNotFound_Error() {
+	req := &billing.OrderCreateRequest{
+		ProjectId:   suite.project.Id,
+		Currency:    "RUB",
+		Amount:      100,
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+	}
+
+	rsp := &billing.Order{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	assert.Nil(suite.T(), err)
+
+	order, err := suite.service.getOrderByUuid(rsp.Uuid)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), order)
+	assert.Nil(suite.T(), order.BillingAddress)
+
+	order.UserAddressDataRequired = true
+	err = suite.service.updateOrder(order)
+	assert.NoError(suite.T(), err)
+
+	expireYear := time.Now().AddDate(1, 0, 0)
+
+	req1 := &grpc.PaymentCreateRequest{
+		Data: map[string]string{
+			pkg.PaymentCreateFieldOrderId:         rsp.Uuid,
+			pkg.PaymentCreateFieldPaymentMethodId: suite.paymentMethod.Id,
+			pkg.PaymentCreateFieldEmail:           "test@unit.unit",
+			pkg.PaymentCreateFieldPan:             "4000000000000002",
+			pkg.PaymentCreateFieldCvv:             "123",
+			pkg.PaymentCreateFieldMonth:           "02",
+			pkg.PaymentCreateFieldYear:            expireYear.Format("2006"),
+			pkg.PaymentCreateFieldHolder:          "Mr. Card Holder",
+			pkg.PaymentCreateFieldUserCountry:     "US",
+			pkg.PaymentCreateFieldUserZip:         "98002",
+		},
+	}
+
+	rsp1 := &grpc.PaymentCreateResponse{}
+	err = suite.service.PaymentCreateProcess(context.TODO(), req1, rsp1)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
+	assert.Empty(suite.T(), rsp1.RedirectUrl)
+	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionZipCode), rsp1.Message)
 }

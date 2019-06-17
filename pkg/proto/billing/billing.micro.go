@@ -85,6 +85,8 @@ It has these top-level messages:
 	CountriesList
 	GetPriceGroupRequest
 	PriceGroup
+	ZipCodeState
+	ZipCode
 */
 package billing
 
