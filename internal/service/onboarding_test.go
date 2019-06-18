@@ -82,6 +82,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 		AccountingPeriod:   "every-day",
 		Country:            "",
 		IsActive:           true,
+		Handler:            "cardpay",
 	}
 
 	pmBankCard := &billing.PaymentMethod{
@@ -91,7 +92,6 @@ func (suite *OnboardingTestSuite) SetupTest() {
 		MinPaymentAmount: 100,
 		MaxPaymentAmount: 15000,
 		Currencies:       []int32{643, 840, 980},
-		Handler:          "cardpay",
 		ExternalId:       "BANKCARD",
 		TestSettings: &billing.PaymentMethodParams{
 			TerminalId:     "15985",
@@ -110,7 +110,6 @@ func (suite *OnboardingTestSuite) SetupTest() {
 		MinPaymentAmount: 100,
 		MaxPaymentAmount: 15000,
 		Currencies:       []int32{643, 840, 980},
-		Handler:          "cardpay",
 		ExternalId:       "QIWI",
 		TestSettings: &billing.PaymentMethodParams{
 			TerminalId:     "15985",

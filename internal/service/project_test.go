@@ -53,6 +53,7 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		AccountingPeriod:   "every-day",
 		Country:            "",
 		IsActive:           true,
+		Handler:            "cardpay",
 	}
 	pm1 := &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
@@ -61,7 +62,6 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		MinPaymentAmount: 100,
 		MaxPaymentAmount: 15000,
 		Currencies:       []int32{643, 840, 980},
-		Handler:          "cardpay",
 		ExternalId:       "BANKCARD",
 		TestSettings: &billing.PaymentMethodParams{
 			TerminalId:     "15985",
@@ -81,6 +81,7 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		AccountingPeriod:   "every-day",
 		Country:            "",
 		IsActive:           true,
+		Handler:            "cardpay",
 	}
 	pm2 := &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
@@ -89,7 +90,6 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
 		Currencies:       []int32{643, 840, 980},
-		Handler:          "unit_test",
 		ExternalId:       "BITCOIN",
 		TestSettings: &billing.PaymentMethodParams{
 			TerminalId: "16007",

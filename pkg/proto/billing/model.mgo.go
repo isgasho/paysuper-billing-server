@@ -188,18 +188,18 @@ type MgoOrderProject struct {
 }
 
 type MgoOrderPaymentMethod struct {
-	Id             bson.ObjectId        `bson:"_id"`
-	Name           string               `bson:"name"`
-	Handler        string               `bson:"handler"`
-	ExternalId     string               `bson:"external_id"`
-	Params         *PaymentMethodParams `bson:"params"`
-	PaymentSystem  *PaymentSystem       `bson:"payment_system"`
-	Group          string               `bson:"group_alias"`
-	Saved          bool                 `bson:"saved"`
-	Fee            *OrderFee            `bson:"fee"`
-	Card           *PaymentMethodCard   `bson:"card;omitempty"`
-	Wallet         *PaymentMethodWallet `bson:"wallet;omitempty"`
-	CryptoCurrency *PaymentMethodCrypto `bson:"crypto_currency;omitempty"`
+	Id              bson.ObjectId        `bson:"_id"`
+	Name            string               `bson:"name"`
+	Handler         string               `bson:"handler"`
+	ExternalId      string               `bson:"external_id"`
+	Params          *PaymentMethodParams `bson:"params"`
+	PaymentSystemId bson.ObjectId        `bson:"payment_system_id"`
+	Group           string               `bson:"group_alias"`
+	Saved           bool                 `bson:"saved"`
+	Fee             *OrderFee            `bson:"fee"`
+	Card            *PaymentMethodCard   `bson:"card;omitempty"`
+	Wallet          *PaymentMethodWallet `bson:"wallet;omitempty"`
+	CryptoCurrency  *PaymentMethodCrypto `bson:"crypto_currency;omitempty"`
 }
 
 type MgoOrder struct {
@@ -275,6 +275,7 @@ type MgoOrder struct {
 type MgoPaymentSystem struct {
 	Id                 bson.ObjectId `bson:"_id"`
 	Name               string        `bson:"name"`
+	Handler            string        `bson:"handler"`
 	Country            string        `bson:"country"`
 	AccountingCurrency *Currency     `bson:"accounting_currency"`
 	AccountingPeriod   string        `bson:"accounting_period"`
@@ -1126,15 +1127,14 @@ func (m *Order) GetBSON() (interface{}, error) {
 
 	if m.PaymentMethod != nil {
 		st.PaymentMethod = &MgoOrderPaymentMethod{
-			Id:            bson.ObjectIdHex(m.PaymentMethod.Id),
-			Name:          m.PaymentMethod.Name,
-			Handler:       m.PaymentMethod.Handler,
-			ExternalId:    m.PaymentMethod.ExternalId,
-			Params:        m.PaymentMethod.Params,
-			PaymentSystem: m.PaymentMethod.PaymentSystem,
-			Group:         m.PaymentMethod.Group,
-			Saved:         m.PaymentMethod.Saved,
-			Fee:           m.PaymentMethod.Fee,
+			Id:              bson.ObjectIdHex(m.PaymentMethod.Id),
+			Name:            m.PaymentMethod.Name,
+			ExternalId:      m.PaymentMethod.ExternalId,
+			Params:          m.PaymentMethod.Params,
+			PaymentSystemId: bson.ObjectIdHex(m.PaymentMethod.PaymentSystemId),
+			Group:           m.PaymentMethod.Group,
+			Saved:           m.PaymentMethod.Saved,
+			Fee:             m.PaymentMethod.Fee,
 		}
 
 		if m.PaymentMethod.Card != nil {
@@ -1279,15 +1279,14 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.Tax = decoded.Tax
 	if decoded.PaymentMethod != nil {
 		m.PaymentMethod = &PaymentMethodOrder{
-			Id:            decoded.PaymentMethod.Id.Hex(),
-			Name:          decoded.PaymentMethod.Name,
-			Handler:       decoded.PaymentMethod.Handler,
-			ExternalId:    decoded.PaymentMethod.ExternalId,
-			Params:        decoded.PaymentMethod.Params,
-			PaymentSystem: decoded.PaymentMethod.PaymentSystem,
-			Group:         decoded.PaymentMethod.Group,
-			Saved:         decoded.PaymentMethod.Saved,
-			Fee:           decoded.PaymentMethod.Fee,
+			Id:              decoded.PaymentMethod.Id.Hex(),
+			Name:            decoded.PaymentMethod.Name,
+			ExternalId:      decoded.PaymentMethod.ExternalId,
+			Params:          decoded.PaymentMethod.Params,
+			PaymentSystemId: decoded.PaymentMethod.PaymentSystemId.Hex(),
+			Group:           decoded.PaymentMethod.Group,
+			Saved:           decoded.PaymentMethod.Saved,
+			Fee:             decoded.PaymentMethod.Fee,
 		}
 		if decoded.PaymentMethod.Card != nil {
 			m.PaymentMethod.Card = decoded.PaymentMethod.Card
@@ -1399,7 +1398,6 @@ func (m *PaymentMethod) GetBSON() (interface{}, error) {
 		Name:             m.Name,
 		Group:            m.Group,
 		ExternalId:       m.ExternalId,
-		Handler:          m.Handler,
 		TestSettings:     m.TestSettings,
 		MinPaymentAmount: m.MinPaymentAmount,
 		MaxPaymentAmount: m.MaxPaymentAmount,
@@ -1454,6 +1452,14 @@ func (m *PaymentMethod) GetBSON() (interface{}, error) {
 		st.UpdatedAt = time.Now()
 	}
 
+	if m.PaymentSystemId != "" {
+		if bson.IsObjectIdHex(m.PaymentSystemId) == false {
+			return nil, errors.New(errorInvalidObjectId)
+		}
+
+		st.PaymentSystemId = bson.ObjectIdHex(m.PaymentSystemId)
+	}
+
 	return st, nil
 }
 
@@ -1469,7 +1475,6 @@ func (m *PaymentMethod) SetBSON(raw bson.Raw) error {
 	m.Name = decoded.Name
 	m.Group = decoded.Group
 	m.ExternalId = decoded.ExternalId
-	m.Handler = decoded.Handler
 	m.Currencies = decoded.Currencies
 	m.MinPaymentAmount = decoded.MinPaymentAmount
 	m.MaxPaymentAmount = decoded.MaxPaymentAmount
@@ -1477,16 +1482,18 @@ func (m *PaymentMethod) SetBSON(raw bson.Raw) error {
 	m.Type = decoded.Type
 	m.AccountRegexp = decoded.AccountRegexp
 	m.IsActive = decoded.IsActive
+	m.PaymentSystemId = decoded.PaymentSystemId.Hex()
 
 	if decoded.ProductionSettings != nil {
+		pmp := make(map[string]*PaymentMethodParams, len(decoded.ProductionSettings))
 		for _, value := range decoded.ProductionSettings {
-			m.ProductionSettings[value.Currency] = &PaymentMethodParams{
+			pmp[value.Currency] = &PaymentMethodParams{
 				TerminalId:     value.TerminalId,
 				Secret:         value.Secret,
 				SecretCallback: value.SecretCallback,
 			}
 		}
-		fmt.Println(m.ProductionSettings)
+		m.ProductionSettings = pmp
 	}
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
@@ -1511,6 +1518,7 @@ func (m *PaymentSystem) GetBSON() (interface{}, error) {
 		AccountingCurrency: m.AccountingCurrency,
 		AccountingPeriod:   m.AccountingPeriod,
 		IsActive:           m.IsActive,
+		Handler:            m.Handler,
 	}
 
 	if len(m.Id) <= 0 {
@@ -1564,6 +1572,7 @@ func (m *PaymentSystem) SetBSON(raw bson.Raw) error {
 	m.AccountingCurrency = decoded.AccountingCurrency
 	m.AccountingPeriod = decoded.AccountingPeriod
 	m.IsActive = decoded.IsActive
+	m.Handler = decoded.Handler
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 

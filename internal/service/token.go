@@ -15,6 +15,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"go.uber.org/zap"
 	"math/rand"
 	"net"
 	"strings"
@@ -263,7 +264,7 @@ func (s *Service) findCustomer(
 
 	if err != nil {
 		if err != mgo.ErrNotFound {
-			s.logError("Query to find customer failed", []interface{}{"err", err.Error(), "query", query})
+			zap.S().Errorf("Query to find customer failed", "err", err.Error(), "query", query)
 			return nil, errors.New(orderErrorUnknown)
 		}
 
@@ -291,7 +292,7 @@ func (s *Service) createCustomer(
 	err := s.db.Collection(collectionCustomer).Insert(customer)
 
 	if err != nil {
-		s.logError("Query to create new customer failed", []interface{}{"error", err.Error(), "data", customer})
+		zap.S().Errorf("Query to create new customer failed", "err", err.Error(), "data", customer)
 		return nil, errors.New(orderErrorUnknown)
 	}
 
@@ -307,7 +308,7 @@ func (s *Service) updateCustomer(
 	err := s.db.Collection(collectionCustomer).UpdateId(bson.ObjectIdHex(customer.Id), customer)
 
 	if err != nil {
-		s.logError("Query to update customer data failed", []interface{}{"error", err.Error(), "data", customer})
+		zap.S().Errorf("Query to update customer data failed", "err", err.Error(), "data", customer)
 		return nil, errors.New(orderErrorUnknown)
 	}
 
@@ -588,7 +589,7 @@ func (s *Service) updateCustomerFromRequestLocale(
 	_, err := s.updateCustomerFromRequest(order, tokenReq, ip, acceptLanguage, userAgent)
 
 	if err != nil {
-		s.logError("Update customer data by request failed", []interface{}{"error", err})
+		zap.S().Errorf("Update customer data by request failed", "err", err.Error())
 	}
 }
 
@@ -596,7 +597,7 @@ func (s *Service) generateBrowserCookie(customer *BrowserCookieCustomer) (string
 	b, err := json.Marshal(customer)
 
 	if err != nil {
-		s.logError("Customer cookie generation failed", []interface{}{"error", err})
+		zap.S().Errorf("Customer cookie generation failed", "err", err.Error())
 		return "", err
 	}
 
@@ -604,7 +605,7 @@ func (s *Service) generateBrowserCookie(customer *BrowserCookieCustomer) (string
 	cookie, err := rsa.EncryptOAEP(hash, cryptoRand.Reader, s.cfg.CookiePublicKey, b, nil)
 
 	if err != nil {
-		s.logError("Customer cookie generation failed", []interface{}{"error", err})
+		zap.S().Errorf("Customer cookie generation failed", "err", err.Error())
 		return "", err
 	}
 
@@ -615,7 +616,7 @@ func (s *Service) decryptBrowserCookie(cookie string) (*BrowserCookieCustomer, e
 	bCookie, err := base64.StdEncoding.DecodeString(cookie)
 
 	if err != nil {
-		s.logError("Customer cookie base64 decode failed", []interface{}{"error", err})
+		zap.S().Errorf("Customer cookie base64 decode failed", "err", err.Error())
 		return nil, err
 	}
 
@@ -623,7 +624,7 @@ func (s *Service) decryptBrowserCookie(cookie string) (*BrowserCookieCustomer, e
 	res, err := rsa.DecryptOAEP(hash, cryptoRand.Reader, s.cfg.CookiePrivateKey, bCookie, nil)
 
 	if err != nil {
-		s.logError("Customer cookie decrypt failed", []interface{}{"error", err})
+		zap.S().Errorf("Customer cookie decrypt failed", "err", err.Error())
 		return nil, err
 	}
 
@@ -631,7 +632,7 @@ func (s *Service) decryptBrowserCookie(cookie string) (*BrowserCookieCustomer, e
 	err = json.Unmarshal(res, &customer)
 
 	if err != nil {
-		s.logError("Customer cookie decrypt failed", []interface{}{"error", err})
+		zap.S().Errorf("Customer cookie decrypt failed", "err", err.Error())
 		return nil, err
 	}
 

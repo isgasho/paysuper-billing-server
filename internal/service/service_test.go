@@ -128,7 +128,6 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		MinPaymentAmount: 100,
 		MaxPaymentAmount: 15000,
 		Currencies:       []int32{643, 840, 980},
-		Handler:          "cardpay",
 		ExternalId:       "BANKCARD",
 		TestSettings: &billing.PaymentMethodParams{
 			TerminalId:     "15985",
@@ -311,13 +310,13 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
 		Currencies:       []int32{643, 840, 980},
-		Handler:          "cardpay",
 		ExternalId:       "QIWI",
 		TestSettings: &billing.PaymentMethodParams{
 			TerminalId: "15993",
 		},
-		Type:     "ewallet",
-		IsActive: true,
+		Type:            "ewallet",
+		IsActive:        true,
+		PaymentSystemId: ps.Id,
 	}
 	pmBitcoin := &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
@@ -326,13 +325,13 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
 		Currencies:       []int32{643, 840, 980},
-		Handler:          "cardpay",
 		ExternalId:       "BITCOIN",
 		TestSettings: &billing.PaymentMethodParams{
 			TerminalId: "16007",
 		},
-		Type:     "crypto",
-		IsActive: true,
+		Type:            "crypto",
+		IsActive:        true,
+		PaymentSystemId: ps.Id,
 	}
 
 	commissionStartDate, err := ptypes.TimestampProto(time.Now().Add(time.Minute * -10))

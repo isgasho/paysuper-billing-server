@@ -636,26 +636,24 @@ message PaymentMethodOrder {
     string id = 1;
     // @inject_tag: json:"title" bson:"name"
     string name = 2;
-    // @inject_tag: bson:"handler" json:"handler"
-    string handler = 3;
     // @inject_tag: bson:"external_id" json:"external_id"
-    string external_id = 4;
+    string external_id = 3;
     // @inject_tag: bson:"params"
-    PaymentMethodParams params = 5;
-    // @inject_tag: bson:"payment_system"
-    PaymentSystem payment_system = 6;
+    PaymentMethodParams params = 4;
+    // @inject_tag: bson:"payment_system_id" json:"payment_system_id"
+    string payment_system_id = 5;
     // @inject_tag: json:"type" bson:"group_alias"
-    string group = 7;
+    string group = 6;
     // @inject_tag: json:"saved" bson:"saved"
-    bool saved = 8;
+    bool saved = 7;
     //@inject_tag: json:"fee" bson:"fee"
-    OrderFee fee = 9;
+    OrderFee fee = 8;
     //@inject_tag: json:"card;omitempty" bson:"card;omitempty"
-    PaymentMethodCard card = 10;
+    PaymentMethodCard card = 9;
     //@inject_tag: json:"wallet;omitempty" bson:"wallet;omitempty"
-    PaymentMethodWallet wallet = 11;
+    PaymentMethodWallet wallet = 10;
     //@inject_tag: json:"crypto_currency;omitempty" bson:"crypto_currency;omitempty"
-    PaymentMethodCrypto crypto_currency = 12;
+    PaymentMethodCrypto crypto_currency = 11;
 }
 
 message PaymentMethodParams {
@@ -685,6 +683,8 @@ message PaymentSystem {
     google.protobuf.Timestamp created_at = 7;
     // @inject_tag: bson:"updated_at" structure:"updated_at,timestamp"
     google.protobuf.Timestamp updated_at = 8;
+    // @inject_tag: bson:"handler" json:"handler" validate:"omitempty,alphanumeric"
+    string handler = 9;
 }
 
 message PaymentMethodCard {
@@ -787,8 +787,6 @@ message PaymentMethod {
     string name = 2;
     // @inject_tag: bson:"group_alias" json:"group_alias" validate:"omitempty,alphanumeric"
     string group = 3;
-    // @inject_tag: bson:"handler" json:"handler" validate:"omitempty,alphanumeric"
-    string handler = 4;
     // @inject_tag: bson:"external_id" json:"external_id" validate:"omitempty,alphanumeric"
     string external_id = 5;
     // @inject_tag: bson:"currencies" json:"group_alias" validate:"omitempty,numeric,dive,gte=0"

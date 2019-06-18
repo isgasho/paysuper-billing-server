@@ -43,7 +43,15 @@ func (suite *PaymentMethodTestSuite) SetupTest() {
 		Name:     &billing.Name{Ru: "Российский рубль", En: "Russian ruble"},
 		IsActive: true,
 	}
-
+	ps := &billing.PaymentSystem{
+		Id:                 bson.NewObjectId().Hex(),
+		Name:               "CardPay",
+		AccountingCurrency: rub,
+		AccountingPeriod:   "every-day",
+		Country:            "",
+		IsActive:           true,
+		Handler:            "cardpay",
+	}
 	suite.pmQiwi = &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
 		Name:             "Qiwi",
@@ -51,13 +59,13 @@ func (suite *PaymentMethodTestSuite) SetupTest() {
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
 		Currencies:       []int32{643, 840, 980},
-		Handler:          "cardpay",
 		ExternalId:       "QIWI",
 		TestSettings: &billing.PaymentMethodParams{
 			TerminalId: "15993",
 		},
-		Type:     "ewallet",
-		IsActive: true,
+		Type:            "ewallet",
+		IsActive:        true,
+		PaymentSystemId: ps.Id,
 	}
 
 	suite.log, err = zap.NewProduction()
@@ -81,6 +89,10 @@ func (suite *PaymentMethodTestSuite) SetupTest() {
 	pms := []*billing.PaymentMethod{suite.pmQiwi}
 	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {
 		suite.FailNow("Insert payment methods test data failed", "%v", err)
+	}
+
+	if err := suite.service.paymentSystem.Insert(ps); err != nil {
+		suite.FailNow("Insert payment system test data failed", "%v", err)
 	}
 }
 

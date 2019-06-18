@@ -63,7 +63,15 @@ func (suite *EntityTestSuite) SetupTest() {
 		Date:         ptypes.TimestampNow(),
 		IsActive:     true,
 	}
-
+	ps1 := &billing.PaymentSystem{
+		Id:                 bson.NewObjectId().Hex(),
+		Name:               "CardPay",
+		AccountingCurrency: rub,
+		AccountingPeriod:   "every-day",
+		Country:            "",
+		IsActive:           true,
+		Handler:            "cardpay",
+	}
 	project := &billing.Project{
 		Id:                 bson.NewObjectId().Hex(),
 		MerchantId:         bson.NewObjectId().Hex(),
@@ -85,13 +93,14 @@ func (suite *EntityTestSuite) SetupTest() {
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
 		Currencies:       []int32{643, 840, 980},
-		Handler:          "cardpay",
 		ExternalId:       "BANKCARD",
-		TestSettings: &billing.PaymentMethodParams{
-			TerminalId: "15985",
-		},
-		Type:     "bank_card",
-		IsActive: true,
+		ProductionSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				TerminalId: "15985",
+			}},
+		Type:            "bank_card",
+		IsActive:        true,
+		PaymentSystemId: ps1.Id,
 	}
 	pmQiwi := &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
@@ -100,13 +109,14 @@ func (suite *EntityTestSuite) SetupTest() {
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
 		Currencies:       []int32{643, 840, 980},
-		Handler:          "cardpay",
 		ExternalId:       "QIWI",
-		TestSettings: &billing.PaymentMethodParams{
-			TerminalId: "15993",
-		},
-		Type:     "ewallet",
-		IsActive: true,
+		ProductionSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				TerminalId: "15993",
+			}},
+		Type:            "ewallet",
+		IsActive:        true,
+		PaymentSystemId: ps1.Id,
 	}
 	pmBitcoin := &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
@@ -115,13 +125,14 @@ func (suite *EntityTestSuite) SetupTest() {
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
 		Currencies:       []int32{643, 840, 980},
-		Handler:          "cardpay",
 		ExternalId:       "BITCOIN",
-		TestSettings: &billing.PaymentMethodParams{
-			TerminalId: "16007",
-		},
-		Type:     "crypto",
-		IsActive: true,
+		ProductionSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				TerminalId: "16007",
+			}},
+		Type:            "crypto",
+		IsActive:        true,
+		PaymentSystemId: ps1.Id,
 	}
 
 	commissionStartDate, err := ptypes.TimestampProto(time.Now().Add(time.Minute * -10))
@@ -333,6 +344,10 @@ func (suite *EntityTestSuite) SetupTest() {
 
 	if err = suite.service.currencyRate.Insert(rate); err != nil {
 		suite.FailNow("Insert rates test data failed", "%v", err)
+	}
+
+	if err := suite.service.paymentSystem.Insert(ps1); err != nil {
+		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 
 	suite.paymentMethod = pmBankCard

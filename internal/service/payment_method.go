@@ -9,6 +9,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"go.uber.org/zap"
 )
 
 const (
@@ -34,7 +35,7 @@ func (s *Service) CreateOrUpdatePaymentMethod(
 	var err error
 
 	if _, err = s.paymentSystem.GetById(req.PaymentSystemId); err != nil {
-		s.logError("Invalid payment system id for update payment method", []interface{}{"err", err.Error(), "data", req})
+		zap.S().Errorf("Invalid payment system id for update payment method", "err", err.Error(), "data", req)
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = paymentMethodErrorPaymentSystem
 
@@ -45,7 +46,7 @@ func (s *Service) CreateOrUpdatePaymentMethod(
 		pm, err = s.paymentMethod.GetById(req.Id)
 
 		if err != nil {
-			s.logError("Invalid id of payment method", []interface{}{"err", err.Error(), "data", req})
+			zap.S().Errorf("Invalid id of payment method", "err", err.Error(), "data", req)
 			rsp.Status = pkg.ResponseStatusNotFound
 			rsp.Message = err.Error()
 
@@ -53,15 +54,8 @@ func (s *Service) CreateOrUpdatePaymentMethod(
 		}
 	}
 
-	if req.IsActive == true && (req.Handler == "" ||
-		req.ExternalId == "" ||
-		req.Currencies == nil ||
-		req.Type == "" ||
-		req.Group == "" ||
-		req.Name == "" ||
-		req.TestSettings == nil ||
-		req.ProductionSettings == nil) {
-		s.logError("Set all parameters of the payment method before its activation", []interface{}{"data", req})
+	if req.IsActive == true && req.IsValid() {
+		zap.S().Errorf("Set all parameters of the payment method before its activation", "data", req)
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = paymentMethodErrorPaymentSystem
 
@@ -74,7 +68,6 @@ func (s *Service) CreateOrUpdatePaymentMethod(
 		req.CreatedAt = ptypes.TimestampNow()
 		err = s.paymentMethod.Insert(req)
 	} else {
-		pm.Handler = req.Handler
 		pm.ExternalId = req.ExternalId
 		pm.TestSettings = req.TestSettings
 		pm.ProductionSettings = req.ProductionSettings
@@ -90,7 +83,7 @@ func (s *Service) CreateOrUpdatePaymentMethod(
 	}
 
 	if err != nil {
-		s.logError("Query to insert|update project method is failed", []interface{}{"err", err.Error(), "data", req})
+		zap.S().Errorf("Query to insert|update project method is failed", "err", err.Error(), "data", req)
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = err.Error()
 
@@ -110,16 +103,16 @@ func (s *Service) CreateOrUpdatePaymentMethodProductionSettings(
 
 	pm, err = s.paymentMethod.GetById(req.PaymentMethodId)
 	if err != nil {
-		s.logError("Unable to get payment method for update production settings", []interface{}{"err", err.Error(), "data", req})
+		zap.S().Errorf("Unable to get payment method for update production settings", "err", err.Error(), "data", req)
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = paymentMethodErrorUnknownMethod
 
 		return nil
 	}
 
-	pm.ProductionSettings[req.Params.Currency] = req.Params
+	pm.ProductionSettings = req.Params.ProductionSettings
 	if err := s.paymentMethod.Update(pm); err != nil {
-		s.logError("Query to update production settings of project method is failed", []interface{}{"err", err.Error(), "data", req})
+		zap.S().Errorf("Query to update production settings of project method is failed", "err", err.Error(), "data", req)
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = err.Error()
 
@@ -136,7 +129,7 @@ func (s *Service) GetPaymentMethodProductionSettings(
 ) error {
 	pm, err := s.paymentMethod.GetById(req.PaymentMethodId)
 	if err != nil {
-		s.logError("Query to get production settings of project method is failed", []interface{}{"err", err.Error(), "data", req})
+		zap.S().Errorf("Query to get production settings of project method is failed", "err", err.Error(), "data", req)
 		return nil
 	}
 
@@ -152,7 +145,7 @@ func (s *Service) DeletePaymentMethodProductionSettings(
 ) error {
 	pm, err := s.paymentMethod.GetById(req.PaymentMethodId)
 	if err != nil {
-		s.logError("Unable to get payment method for delete production settings", []interface{}{"err", err.Error(), "data", req})
+		zap.S().Errorf("Unable to get payment method for delete production settings", "err", err.Error(), "data", req)
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = paymentMethodErrorUnknownMethod
 
@@ -160,7 +153,7 @@ func (s *Service) DeletePaymentMethodProductionSettings(
 	}
 
 	if _, ok := pm.ProductionSettings[req.CurrencyA3]; !ok {
-		s.logError("Unable to get production settings for currency", []interface{}{"data", req})
+		zap.S().Errorf("Unable to get production settings for currency", "data", req)
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = paymentMethodErrorNotFoundProductionSettings
 
@@ -170,7 +163,7 @@ func (s *Service) DeletePaymentMethodProductionSettings(
 	delete(pm.ProductionSettings, req.CurrencyA3)
 
 	if err := s.paymentMethod.Update(pm); err != nil {
-		s.logError("Query to delete production settings of project method is failed", []interface{}{"err", err.Error(), "data", req})
+		zap.S().Errorf("Query to delete production settings of project method is failed", "err", err.Error(), "data", req)
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = err.Error()
 
@@ -319,7 +312,7 @@ func (h *PaymentMethod) GetPaymentSettings(
 		return paymentMethod.TestSettings, nil
 	}
 
-	if merchant.Banking == nil || merchant.Banking.Currency == nil {
+	if merchant == nil || merchant.Banking == nil || merchant.Banking.Currency == nil {
 		return nil, errors.New(paymentMethodErrorBankingSettings)
 	}
 

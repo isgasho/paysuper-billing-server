@@ -71,7 +71,12 @@ func (s *Service) NewPaymentSystem(
 	cfg *config.PaymentSystemConfig,
 	order *billing.Order,
 ) (PaymentSystem, error) {
-	h, ok := paymentSystemHandlers[order.PaymentMethod.Handler]
+	ps, err := s.paymentSystem.GetById(order.PaymentMethod.PaymentSystemId)
+	if err != nil {
+		return nil, err
+	}
+
+	h, ok := paymentSystemHandlers[ps.Handler]
 
 	if !ok {
 		return nil, errors.New(paymentSystemErrorHandlerNotFound)
@@ -144,6 +149,19 @@ func (h *PaymentSystemService) Insert(ps *billing.PaymentSystem) error {
 	}
 
 	if err := h.svc.cacher.Set(fmt.Sprintf(cachePaymentSystem, ps.Id), ps, 0); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h PaymentSystemService) MultipleInsert(ps []*billing.PaymentSystem) error {
+	c := make([]interface{}, len(ps))
+	for i, v := range ps {
+		c[i] = v
+	}
+
+	if err := h.svc.db.Collection(collectionPaymentSystem).Insert(c...); err != nil {
 		return err
 	}
 

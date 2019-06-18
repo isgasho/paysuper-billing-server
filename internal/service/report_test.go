@@ -135,12 +135,16 @@ func (suite *ReportTestSuite) SetupTest() {
 		MinPaymentAmount: 100,
 		MaxPaymentAmount: 15000,
 		Currencies:       []int32{643, 840, 980},
-		Handler:          "cardpay",
 		ExternalId:       "BANKCARD",
+		ProductionSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				TerminalId:     "15985",
+				Secret:         "A1tph4I6BD0f",
+				SecretCallback: "0V1rJ7t4jCRv",
+			}},
 		TestSettings: &billing.PaymentMethodParams{
-			TerminalId:     "15985",
-			Secret:         "A1tph4I6BD0f",
-			SecretCallback: "0V1rJ7t4jCRv",
+			TerminalId: "15985",
+			Currency:   "RUB",
 		},
 		Type:            "bank_card",
 		IsActive:        true,
@@ -163,14 +167,20 @@ func (suite *ReportTestSuite) SetupTest() {
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
 		Currencies:       []int32{643, 840, 980},
-		Handler:          "unit_test",
 		ExternalId:       "BITCOIN",
+		Type:             "crypto",
+		IsActive:         true,
+		PaymentSystemId:  ps2.Id,
+		ProductionSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				TerminalId:     "15985",
+				Secret:         "A1tph4I6BD0f",
+				SecretCallback: "0V1rJ7t4jCRv",
+			}},
 		TestSettings: &billing.PaymentMethodParams{
-			TerminalId: "16007",
+			TerminalId: "15985",
+			Currency:   "RUB",
 		},
-		Type:            "crypto",
-		IsActive:        true,
-		PaymentSystemId: ps2.Id,
 	}
 
 	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -360))
@@ -333,6 +343,10 @@ func (suite *ReportTestSuite) SetupTest() {
 	}
 
 	if err := suite.service.project.MultipleInsert(projects); err != nil {
+		suite.FailNow("Insert project test data failed", "%v", err)
+	}
+
+	if err := suite.service.paymentSystem.Insert(ps1); err != nil {
 		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 
@@ -874,9 +888,9 @@ func (suite *ReportTestSuite) TestReport_FindByQuickSearch_PaymentMethodName() {
 	assert.NoError(suite.T(), err, "Unable to create order")
 
 	oRsp.PaymentMethod = &billing.PaymentMethodOrder{
-		Id:            bson.NewObjectId().Hex(),
-		Name:          "payment_method",
-		PaymentSystem: &billing.PaymentSystem{},
+		Id:              bson.NewObjectId().Hex(),
+		Name:            "payment_method",
+		PaymentSystemId: bson.NewObjectId().Hex(),
 	}
 	err = suite.service.updateOrder(oRsp)
 	assert.NoError(suite.T(), err)

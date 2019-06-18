@@ -63,10 +63,6 @@ func (m *Merchant) IsDeleted() bool {
 	return m.Status == pkg.MerchantStatusDeleted
 }
 
-func (m *PaymentMethodOrder) GetAccountingCurrency() *Currency {
-	return m.PaymentSystem.AccountingCurrency
-}
-
 func (m *Order) HasEndedStatus() bool {
 	return m.PrivateStatus == constant.OrderStatusPaymentSystemReject || m.PrivateStatus == constant.OrderStatusProjectComplete ||
 		m.PrivateStatus == constant.OrderStatusProjectReject || m.PrivateStatus == constant.OrderStatusRefund ||
@@ -183,4 +179,14 @@ func (m *Order) GetNotificationStatus(key string) bool {
 		return false
 	}
 	return val
+}
+
+func (m *PaymentMethod) IsValid() bool {
+	return m.ExternalId != "" &&
+		m.Currencies != nil &&
+		m.Type != "" &&
+		m.Group != "" &&
+		m.Name != "" &&
+		m.TestSettings != nil &&
+		m.ProductionSettings != nil
 }
