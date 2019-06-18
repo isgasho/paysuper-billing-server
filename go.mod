@@ -21,6 +21,7 @@ require (
 	github.com/micro/go-plugins v1.0.0
 	github.com/micro/kubernetes v0.7.0
 	github.com/micro/protoc-gen-micro v0.8.0 // indirect
+	github.com/paysuper/paysuper-currencies v0.0.0-20190524103445-940bc8855c5c
 	github.com/paysuper/paysuper-database-mongo v0.1.0
 	github.com/paysuper/paysuper-recurring-repository v1.0.107
 	github.com/paysuper/paysuper-tax-service v0.0.0-20190308105725-016a09c27fbd
@@ -36,7 +37,6 @@ require (
 	golang.org/x/exp/errors v0.0.0-20190123073158-f1c91bc264ca
 	golang.org/x/net v0.0.0-20190424112056-4829fb13d2c6
 	google.golang.org/grpc v1.20.1
-	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/go-playground/validator.v9 v9.26.0
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce
 )

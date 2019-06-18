@@ -29,6 +29,7 @@ const (
 	PaymentCreateFieldStoredCardId    = "stored_card_id"
 	PaymentCreateFieldUserCountry     = "country"
 	PaymentCreateFieldUserCity        = "city"
+	PaymentCreateFieldUserState       = "state"
 	PaymentCreateFieldUserZip         = "zip"
 
 	TxnParamsFieldBankCardEmissionCountry = "emission_country"
@@ -95,6 +96,27 @@ const (
 	OrderInlineFormUrlMask = "%s://%s/order/%s"
 
 	MigrationSource = "file://./migrations"
+
+	ErrorGrpcServiceCallFailed = "gRPC call failed"
+
+	ObjectTypeBalanceTransaction = "balance_transaction"
+
+	BalanceTransactionTypePayment                = "payment"
+	BalanceTransactionTypePsMarkupPaymentFx      = "ps_markup_payment_fx"
+	BalanceTransactionTypeMethodFee              = "method_fee"
+	BalanceTransactionTypePsMarkupMethodFee      = "ps_markup_method_fee"
+	BalanceTransactionTypeMethodFixedFee         = "method_fixed_fee"
+	BalanceTransactionTypePsMarkupMethodFixedFee = "ps_markup_method_fixed_fee"
+	BalanceTransactionTypePsFee                  = "ps_fee"
+	BalanceTransactionTypePsFixedFee             = "ps_fixed_fee"
+	BalanceTransactionTypePsMarkupFixedFeeFx     = "ps_markup_fixed_fee_fx"
+	BalanceTransactionTypeTaxFee                 = "tax_fee"
+	BalanceTransactionTypePsTaxFxFee             = "ps_tax_fx_fee"
+
+	BalanceTransactionStatusPending   = "pending"
+	BalanceTransactionStatusAvailable = "available"
+
+	ErrorDatadaseQueryFailed = "Query to database collection failed"
 )
 
 var (

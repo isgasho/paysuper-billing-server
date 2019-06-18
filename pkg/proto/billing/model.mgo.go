@@ -268,6 +268,7 @@ type MgoOrder struct {
 	UserAddressDataRequired                 bool                     `bson:"user_address_data_required"`
 	Products                                []string                 `bson:"products"`
 	IsNotificationsSent                     map[string]bool          `bson:"is_notifications_sent"`
+	PaymentRoyaltyData                      *OrderPaymentRoyaltyData `bson:"payment_royalty_data"`
 	CountryRestriction                      *CountryRestriction      `bson:"country_restriction"`
 }
 
@@ -424,6 +425,14 @@ type MgoCountry struct {
 	PriceGroupId    string        `bson:"price_group_id"`
 	CreatedAt       time.Time     `bson:"created_at"`
 	UpdatedAt       time.Time     `bson:"updated_at"`
+}
+
+type MgoZipCode struct {
+	Zip       string        `bson:"zip"`
+	Country   string        `bson:"country"`
+	City      string        `bson:"city"`
+	State     *ZipCodeState `bson:"state"`
+	CreatedAt time.Time     `bson:"created_at"`
 }
 
 func (m *Country) GetBSON() (interface{}, error) {
@@ -1112,6 +1121,7 @@ func (m *Order) GetBSON() (interface{}, error) {
 		Products:                                m.Products,
 		IsNotificationsSent:                     m.IsNotificationsSent,
 		CountryRestriction:                      m.CountryRestriction,
+		PaymentRoyaltyData:                      m.PaymentRoyaltyData,
 	}
 
 	if m.PaymentMethod != nil {
@@ -1345,6 +1355,7 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.Products = decoded.Products
 	m.IsNotificationsSent = decoded.IsNotificationsSent
 	m.CountryRestriction = decoded.CountryRestriction
+	m.PaymentRoyaltyData = decoded.PaymentRoyaltyData
 
 	m.PaymentMethodOrderClosedAt, err = ptypes.TimestampProto(decoded.PaymentMethodOrderClosedAt)
 	if err != nil {
@@ -2207,6 +2218,47 @@ func (m *Customer) SetBSON(raw bson.Raw) error {
 	}
 
 	m.UpdatedAt, err = ptypes.TimestampProto(decoded.UpdatedAt)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ZipCode) GetBSON() (interface{}, error) {
+	st := &MgoZipCode{
+		Zip:     m.Zip,
+		Country: m.Country,
+		City:    m.City,
+		State:   m.State,
+	}
+
+	t, err := ptypes.Timestamp(m.CreatedAt)
+
+	if err != nil {
+		return nil, err
+	}
+
+	st.CreatedAt = t
+
+	return st, nil
+}
+
+func (m *ZipCode) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoZipCode)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Zip = decoded.Zip
+	m.Country = decoded.Country
+	m.City = decoded.City
+	m.State = decoded.State
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 
 	if err != nil {
 		return err

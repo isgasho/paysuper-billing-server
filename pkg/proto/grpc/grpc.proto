@@ -77,6 +77,8 @@ service BillingService {
     rpc CreateOrUpdatePaymentMethodProductionSettings(ChangePaymentMethodParamsRequest) returns (ChangePaymentMethodParamsResponse) {}
     rpc GetPaymentMethodProductionSettings(GetPaymentMethodProductionSettingsRequest) returns (billing.PaymentMethodParams) {}
     rpc DeletePaymentMethodProductionSettings(GetPaymentMethodProductionSettingsRequest) returns (ChangePaymentMethodParamsResponse) {}
+
+    rpc FindByZipCode(FindByZipCodeRequest) returns (FindByZipCodeResponse) {}
 }
 
 message EmptyRequest {
@@ -427,9 +429,7 @@ message ProcessBillingAddressRequest {
     string order_id = 1;
     // @inject_tag: validate:"required,len=2"
     string country = 2;
-    // @inject_tag: validate:"required"
-    string city = 3;
-    // @inject_tag: validate:"required"
+    // @inject_tag: validate:"omitempty,zip_usa"
     string zip = 4;
 }
 
@@ -747,4 +747,22 @@ message ChangePaymentMethodResponse {
 message ChangePaymentMethodParamsResponse {
     int32 status = 1;
     string message = 2;
+}
+
+
+message FindByZipCodeRequest {
+    // @inject_tag: query:"country" validate:"required,len=2"
+    string country = 1;
+    // @inject_tag: query:"zip" validate:"required,gte=2"
+    string zip = 2;
+    // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
+    int32 limit = 3;
+    // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
+    int32 offset = 4;
+}
+
+
+message FindByZipCodeResponse {
+    int32 count = 1;
+    repeated billing.ZipCode items = 2;
 }
