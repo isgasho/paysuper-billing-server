@@ -120,6 +120,13 @@ func (h *paymentProcessor) httpHeadersToString(headers map[string][]string) stri
 	return out
 }
 
+type PaymentSystemServiceInterface interface {
+	GetById(string) (*billing.PaymentSystem, error)
+	Insert(*billing.PaymentSystem) error
+	MultipleInsert([]*billing.PaymentSystem) error
+	Update(*billing.PaymentSystem) error
+}
+
 func newPaymentSystemService(svc *Service) *PaymentSystemService {
 	s := &PaymentSystemService{svc: svc}
 	return s

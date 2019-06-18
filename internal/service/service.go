@@ -71,10 +71,10 @@ type Service struct {
 	country       *Country
 	project       *Project
 	merchant      *Merchant
-	paymentMethod *PaymentMethod
+	paymentMethod PaymentMethodInterface
 	systemFees    *SystemFee
 	priceGroup    *PriceGroup
-	paymentSystem *PaymentSystemService
+	paymentSystem PaymentSystemServiceInterface
 	zipCode       *ZipCode
 }
 

@@ -54,7 +54,7 @@ func (s *Service) CreateOrUpdatePaymentMethod(
 		}
 	}
 
-	if req.IsActive == true && req.IsValid() {
+	if req.IsActive == true && req.IsValid() == false {
 		zap.S().Errorf("Set all parameters of the payment method before its activation", "data", req)
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = paymentMethodErrorPaymentSystem
@@ -90,6 +90,8 @@ func (s *Service) CreateOrUpdatePaymentMethod(
 		return nil
 	}
 
+	rsp.Status = pkg.ResponseStatusOk
+
 	return nil
 }
 
@@ -118,6 +120,8 @@ func (s *Service) CreateOrUpdatePaymentMethodProductionSettings(
 
 		return nil
 	}
+
+	rsp.Status = pkg.ResponseStatusOk
 
 	return nil
 }
@@ -170,7 +174,20 @@ func (s *Service) DeletePaymentMethodProductionSettings(
 		return nil
 	}
 
+	rsp.Status = pkg.ResponseStatusOk
+
 	return nil
+}
+
+type PaymentMethodInterface interface {
+	GetAll() (map[string]*billing.PaymentMethod, error)
+	Groups() (map[string]map[int32]*billing.PaymentMethod, error)
+	GetByGroupAndCurrency(string, int32) (*billing.PaymentMethod, error)
+	GetById(string) (*billing.PaymentMethod, error)
+	MultipleInsert([]*billing.PaymentMethod) error
+	Insert(*billing.PaymentMethod) error
+	Update(*billing.PaymentMethod) error
+	GetPaymentSettings(*billing.PaymentMethod, *billing.Merchant, *billing.Project) (*billing.PaymentMethodParams, error)
 }
 
 type paymentMethods struct {
@@ -284,6 +301,10 @@ func (h *PaymentMethod) Insert(pm *billing.PaymentMethod) error {
 		return err
 	}
 
+	if err := h.svc.cacher.Set(fmt.Sprintf(cachePaymentMethodId, pm.Id), pm, 0); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -293,6 +314,10 @@ func (h *PaymentMethod) Update(pm *billing.PaymentMethod) error {
 	}
 
 	if err := h.svc.cacher.Delete(cachePaymentMethodAll); err != nil {
+		return err
+	}
+
+	if err := h.svc.cacher.Set(fmt.Sprintf(cachePaymentMethodId, pm.Id), pm, 0); err != nil {
 		return err
 	}
 
