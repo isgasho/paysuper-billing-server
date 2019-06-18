@@ -66,3 +66,11 @@ func (p *Product) GetLocalizedLongDescription(lang string) (string, error) {
 	}
 	return v, nil
 }
+
+func (r *ResponseErrorMessage) Error() string {
+	return r.Message
+}
+
+func (r *ResponseError) Error() string {
+	return r.Message.Message
+}

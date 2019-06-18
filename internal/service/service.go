@@ -82,6 +82,23 @@ type Service struct {
 	payoutCostSystem           *PayoutCostSystem
 }
 
+func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {
+	return &grpc.ResponseError{
+		Status:  status,
+		Message: message,
+	}
+}
+
+func newBillingServerErrorMsg(code, msg string, details ...string) *grpc.ResponseErrorMessage {
+	var det string
+	if len(details) > 0 && details[0] != "" {
+		det = details[0]
+	} else {
+		det = ""
+	}
+	return &grpc.ResponseErrorMessage{Code: code, Message: msg, Details: det}
+}
+
 func NewBillingService(
 	db *mongodb.Source,
 	cfg *config.Config,
@@ -256,7 +273,7 @@ func (s *Service) CheckProjectRequestSignature(
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = err.Error()
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
 
 		return nil
 	}

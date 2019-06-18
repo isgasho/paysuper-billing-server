@@ -177,11 +177,11 @@ func (suite *MerchantTestSuite) TestMerchant_GetPaymentMethod_Ok() {
 	assert.IsType(suite.T(), &billing.MerchantPaymentMethod{}, pm)
 }
 
-func (suite *MerchantTestSuite) TestMerchant_GetPaymentMethod_ErrorByMethodNotAllowed() {
+func (suite *MerchantTestSuite) TestMerchant_GetPaymentMethod_ErrorByMerchantNotFound() {
 	_, err := suite.service.merchant.GetPaymentMethod(bson.NewObjectId().Hex(), "")
 
 	assert.Error(suite.T(), err)
-	assert.EqualError(suite.T(), err, orderErrorPaymentMethodNotAllowed)
+	assert.EqualError(suite.T(), err, "merchant not found")
 }
 
 func (suite *MerchantTestSuite) TestMerchant_GetPaymentMethodTerminalId_ErrorByGetPaymentMethod() {
@@ -197,7 +197,7 @@ func (suite *MerchantTestSuite) TestMerchant_GetPaymentMethodTerminalId_ErrorByT
 	_, err := suite.service.merchant.GetPaymentMethodTerminalId(suite.merchant.Id, suite.pmBankCard.Id)
 
 	assert.Error(suite.T(), err)
-	assert.EqualError(suite.T(), err, orderErrorPaymentMethodEmptySettings)
+	assert.EqualError(suite.T(), err, orderErrorPaymentMethodEmptySettings.Error())
 }
 
 func (suite *MerchantTestSuite) TestMerchant_GetPaymentMethodTerminalPassword_ErrorByGetPaymentMethod() {
@@ -213,7 +213,7 @@ func (suite *MerchantTestSuite) TestMerchant_GetPaymentMethodTerminalPassword_Er
 	_, err := suite.service.merchant.GetPaymentMethodTerminalPassword(suite.merchant.Id, suite.pmBankCard.Id)
 
 	assert.Error(suite.T(), err)
-	assert.EqualError(suite.T(), err, orderErrorPaymentMethodEmptySettings)
+	assert.EqualError(suite.T(), err, orderErrorPaymentMethodEmptySettings.Error())
 }
 
 func (suite *MerchantTestSuite) TestMerchant_GetPaymentMethodTerminalCallbackPassword_ErrorByGetPaymentMethod() {
@@ -229,5 +229,5 @@ func (suite *MerchantTestSuite) TestMerchant_GetPaymentMethodTerminalCallbackPas
 	_, err := suite.service.merchant.GetPaymentMethodTerminalCallbackPassword(suite.merchant.Id, suite.pmBankCard.Id)
 
 	assert.Error(suite.T(), err)
-	assert.EqualError(suite.T(), err, orderErrorPaymentMethodEmptySettings)
+	assert.EqualError(suite.T(), err, orderErrorPaymentMethodEmptySettings.Error())
 }
