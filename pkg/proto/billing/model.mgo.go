@@ -232,7 +232,7 @@ type MgoOrder struct {
 	BillingAddress                          *OrderBillingAddress     `bson:"billing_address"`
 	Tax                                     *OrderTax                `bson:"tax"`
 	PaymentMethod                           *MgoOrderPaymentMethod   `bson:"payment_method"`
-	Items                                   []*OrderItem             `bson:"items"`
+	Items                                   []*MgoOrderItem          `bson:"items"`
 	Refund                                  *OrderNotificationRefund `bson:"refund"`
 	Metadata                                map[string]string        `bson:"metadata"`
 	PrivateMetadata                         map[string]string        `bson:"private_metadata"`
@@ -268,6 +268,21 @@ type MgoOrder struct {
 	IsNotificationsSent                     map[string]bool          `bson:"is_notifications_sent"`
 	PaymentRoyaltyData                      *OrderPaymentRoyaltyData `bson:"payment_royalty_data"`
 	CountryRestriction                      *CountryRestriction      `bson:"country_restriction"`
+}
+
+type MgoOrderItem struct {
+	Id          bson.ObjectId     `bson:"_id"`
+	Object      string            `bson:"object"`
+	Sku         string            `bson:"sku"`
+	Name        string            `bson:"name"`
+	Description string            `bson:"description"`
+	Amount      float64           `bson:"amount"`
+	Currency    string            `bson:"currency"`
+	Images      []string          `bson:"images"`
+	Url         string            `bson:"url"`
+	Metadata    map[string]string `bson:"metadata"`
+	CreatedAt   time.Time         `bson:"created_at"`
+	UpdatedAt   time.Time         `bson:"updated_at"`
 }
 
 type MgoPaymentSystem struct {
@@ -1067,7 +1082,7 @@ func (m *Order) GetBSON() (interface{}, error) {
 		PlatformFee:        m.PlatformFee,
 		BillingAddress:     m.BillingAddress,
 		Tax:                m.Tax,
-		Items:              m.Items,
+		Items:              []*MgoOrderItem{},
 		Refund:             m.Refund,
 		Metadata:           m.Metadata,
 		PrivateMetadata:    m.PrivateMetadata,
@@ -1112,6 +1127,33 @@ func (m *Order) GetBSON() (interface{}, error) {
 		IsNotificationsSent:                     m.IsNotificationsSent,
 		CountryRestriction:                      m.CountryRestriction,
 		PaymentRoyaltyData:                      m.PaymentRoyaltyData,
+	}
+
+	for _, v := range m.Items {
+		item := &MgoOrderItem{
+			Object:      v.Object,
+			Sku:         v.Sku,
+			Name:        v.Name,
+			Description: v.Description,
+			Amount:      v.Amount,
+			Currency:    v.Currency,
+			Images:      v.Images,
+			Url:         v.Url,
+			Metadata:    v.Metadata,
+		}
+
+		if len(v.Id) <= 0 {
+			item.Id = bson.NewObjectId()
+		} else {
+			if bson.IsObjectIdHex(v.Id) == false {
+				return nil, errors.New(errorInvalidObjectId)
+			}
+			item.Id = bson.ObjectIdHex(v.Id)
+		}
+
+		item.CreatedAt, _ = ptypes.Timestamp(v.CreatedAt)
+		item.CreatedAt, _ = ptypes.Timestamp(v.UpdatedAt)
+		st.Items = append(st.Items, item)
 	}
 
 	if m.PaymentMethod != nil {
@@ -1285,7 +1327,7 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 			m.PaymentMethod.CryptoCurrency = decoded.PaymentMethod.CryptoCurrency
 		}
 	}
-	m.Items = decoded.Items
+	m.Items = []*OrderItem{}
 	m.Refund = decoded.Refund
 	m.Metadata = decoded.Metadata
 	m.PrivateMetadata = decoded.PrivateMetadata
@@ -1301,6 +1343,24 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 		UrlProcessPayment: decoded.Project.UrlProcessPayment,
 		CallbackProtocol:  decoded.Project.CallbackProtocol,
 		Status:            decoded.Project.Status,
+	}
+
+	for _, v := range decoded.Items {
+		item := &OrderItem{
+			Id:          v.Id.Hex(),
+			Object:      v.Object,
+			Sku:         v.Sku,
+			Name:        v.Name,
+			Description: v.Description,
+			Amount:      v.Amount,
+			Currency:    v.Currency,
+			Images:      v.Images,
+			Url:         v.Url,
+			Metadata:    v.Metadata,
+		}
+		item.CreatedAt, _ = ptypes.TimestampProto(v.CreatedAt)
+		item.UpdatedAt, _ = ptypes.TimestampProto(v.UpdatedAt)
+		m.Items = append(m.Items, item)
 	}
 
 	if decoded.Project != nil {
