@@ -53,6 +53,7 @@ func (s *Service) GetMoneyBackCostMerchant(
 	res.PaymentStage = val.PaymentStage
 	res.Percent = val.Percent
 	res.FixAmount = val.FixAmount
+	res.FixAmountCurrency = val.FixAmountCurrency
 	res.IsPaidByMerchant = val.IsPaidByMerchant
 	res.CreatedAt = val.CreatedAt
 	res.UpdatedAt = val.UpdatedAt
@@ -122,6 +123,7 @@ func (s *Service) SetMoneyBackCostMerchant(
 	res.PaymentStage = req.PaymentStage
 	res.Percent = req.Percent
 	res.FixAmount = req.FixAmount
+	res.FixAmountCurrency = req.FixAmountCurrency
 	res.IsPaidByMerchant = req.IsPaidByMerchant
 	res.CreatedAt = req.CreatedAt
 	res.UpdatedAt = req.UpdatedAt

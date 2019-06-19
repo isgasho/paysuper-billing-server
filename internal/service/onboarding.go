@@ -773,7 +773,7 @@ func (s *Service) mapMerchantData(rsp *billing.Merchant, merchant *billing.Merch
 	rsp.MinPayoutAmount = merchant.MinPayoutAmount
 	rsp.RollingReserveThreshold = merchant.RollingReserveThreshold
 	rsp.RollingReserveDays = merchant.RollingReserveDays
-	rsp.TotalTransactionsChargebackBlock = merchant.TotalTransactionsChargebackBlock
+	rsp.RollingReserveChargebackTransactionsThreshold = merchant.RollingReserveChargebackTransactionsThreshold
 	rsp.ItemMinCostAmount = merchant.ItemMinCostAmount
 	rsp.ItemMinCostCurrency = merchant.ItemMinCostCurrency
 }

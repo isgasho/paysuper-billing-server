@@ -282,8 +282,8 @@ message Merchant {
     double rolling_reserve_threshold = 36;
     // @inject_tag: json:"rolling_reserve_days" bson:"rolling_reserve_days" validate:"numeric,gte=0"
     int32 rolling_reserve_days = 37;
-    // @inject_tag: json:"total_transactions_chargeback_block" bson:"total_transactions_chargeback_block" validate:"numeric,gte=0,lte=100"
-    double total_transactions_chargeback_block = 38;
+    // @inject_tag: json:"rolling_reserve_chargeback_transactions_threshold" bson:"rolling_reserve_chargeback_transactions_threshold" validate:"numeric,gte=0,lte=100"
+    double rolling_reserve_chargeback_transactions_threshold = 38;
     // @inject_tag: json:"item_min_cost_amount" bson:"item_min_cost_amount" validate:"numeric,gte=0"
     double item_min_cost_amount = 39;
     //@inject_tag: json:"item_min_cost_currency" bson:"item_min_cost_currency" validate:"required,alpha,len=3"
@@ -1372,14 +1372,16 @@ message MoneyBackCostMerchant {
     double percent = 10;
     // @inject_tag: json:"fix_amount" bson:"fix_amount" validate:"numeric,gte=0"
     double fix_amount = 11;
+    // @inject_tag: json:"fix_amount_currency" bson:"fix_amount_currency" validate:"required,alpha,len=3"
+    string fix_amount_currency = 12;
     // @inject_tag: json:"is_paid_by_merchant" bson:"is_paid_by_merchant"
-    bool is_paid_by_merchant = 12;
+    bool is_paid_by_merchant = 13;
     //@inject_tag: json:"created_at" bson:"created_at"
-    google.protobuf.Timestamp created_at = 13;
+    google.protobuf.Timestamp created_at = 14;
     //@inject_tag: json:"updated_at" bson:"updated_at"
-    google.protobuf.Timestamp updated_at = 14;
+    google.protobuf.Timestamp updated_at = 15;
     // @inject_tag: json:"is_active" bson:"is_active"
-    bool is_active = 15;
+    bool is_active = 16;
 }
 
 message MoneyBackCostMerchantRequest {

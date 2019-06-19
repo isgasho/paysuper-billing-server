@@ -79,44 +79,44 @@ type MgoMerchantPaymentMethod struct {
 }
 
 type MgoMerchant struct {
-	Id                               bson.ObjectId                        `bson:"_id"`
-	User                             *MerchantUser                        `bson:"user"`
-	Name                             string                               `bson:"name"`
-	AlternativeName                  string                               `bson:"alternative_name"`
-	Website                          string                               `bson:"website"`
-	Country                          string                               `bson:"country"`
-	State                            string                               `bson:"state"`
-	Zip                              string                               `bson:"zip"`
-	City                             string                               `bson:"city"`
-	Address                          string                               `bson:"address"`
-	AddressAdditional                string                               `bson:"address_additional"`
-	RegistrationNumber               string                               `bson:"registration_number"`
-	TaxId                            string                               `bson:"tax_id"`
-	Contacts                         *MerchantContact                     `bson:"contacts"`
-	Banking                          *MerchantBanking                     `bson:"banking"`
-	Status                           int32                                `bson:"status"`
-	CreatedAt                        time.Time                            `bson:"created_at"`
-	UpdatedAt                        time.Time                            `bson:"updated_at"`
-	FirstPaymentAt                   time.Time                            `bson:"first_payment_at"`
-	IsVatEnabled                     bool                                 `bson:"is_vat_enabled"`
-	IsCommissionToUserEnabled        bool                                 `bson:"is_commission_to_user_enabled"`
-	HasMerchantSignature             bool                                 `bson:"has_merchant_signature"`
-	HasPspSignature                  bool                                 `bson:"has_psp_signature"`
-	LastPayout                       *MgoMerchantLastPayout               `bson:"last_payout"`
-	IsSigned                         bool                                 `bson:"is_signed"`
-	PaymentMethods                   map[string]*MgoMerchantPaymentMethod `bson:"payment_methods"`
-	AgreementType                    int32                                `bson:"agreement_type"`
-	AgreementSentViaMail             bool                                 `bson:"agreement_sent_via_mail"`
-	MailTrackingLink                 string                               `bson:"mail_tracking_link"`
-	S3AgreementName                  string                               `bson:"s3_agreement_name"`
-	PayoutCostAmount                 float64                              `bson:"payout_cost_amount"`
-	PayoutCostCurrency               string                               `bson:"payout_cost_currency"`
-	MinPayoutAmount                  float64                              `bson:"min_payout_amount"`
-	RollingReserveThreshold          float64                              `bson:"rolling_reserve_amount"`
-	RollingReserveDays               int32                                `bson:"rolling_reserve_days"`
-	TotalTransactionsChargebackBlock float64                              `bson:"total_transactions_chargeback_block"`
-	ItemMinCostAmount                float64                              `bson:"item_min_cost_amount"`
-	ItemMinCostCurrency              string                               `bson:"item_min_cost_currency"`
+	Id                                            bson.ObjectId                        `bson:"_id"`
+	User                                          *MerchantUser                        `bson:"user"`
+	Name                                          string                               `bson:"name"`
+	AlternativeName                               string                               `bson:"alternative_name"`
+	Website                                       string                               `bson:"website"`
+	Country                                       string                               `bson:"country"`
+	State                                         string                               `bson:"state"`
+	Zip                                           string                               `bson:"zip"`
+	City                                          string                               `bson:"city"`
+	Address                                       string                               `bson:"address"`
+	AddressAdditional                             string                               `bson:"address_additional"`
+	RegistrationNumber                            string                               `bson:"registration_number"`
+	TaxId                                         string                               `bson:"tax_id"`
+	Contacts                                      *MerchantContact                     `bson:"contacts"`
+	Banking                                       *MerchantBanking                     `bson:"banking"`
+	Status                                        int32                                `bson:"status"`
+	CreatedAt                                     time.Time                            `bson:"created_at"`
+	UpdatedAt                                     time.Time                            `bson:"updated_at"`
+	FirstPaymentAt                                time.Time                            `bson:"first_payment_at"`
+	IsVatEnabled                                  bool                                 `bson:"is_vat_enabled"`
+	IsCommissionToUserEnabled                     bool                                 `bson:"is_commission_to_user_enabled"`
+	HasMerchantSignature                          bool                                 `bson:"has_merchant_signature"`
+	HasPspSignature                               bool                                 `bson:"has_psp_signature"`
+	LastPayout                                    *MgoMerchantLastPayout               `bson:"last_payout"`
+	IsSigned                                      bool                                 `bson:"is_signed"`
+	PaymentMethods                                map[string]*MgoMerchantPaymentMethod `bson:"payment_methods"`
+	AgreementType                                 int32                                `bson:"agreement_type"`
+	AgreementSentViaMail                          bool                                 `bson:"agreement_sent_via_mail"`
+	MailTrackingLink                              string                               `bson:"mail_tracking_link"`
+	S3AgreementName                               string                               `bson:"s3_agreement_name"`
+	PayoutCostAmount                              float64                              `bson:"payout_cost_amount"`
+	PayoutCostCurrency                            string                               `bson:"payout_cost_currency"`
+	MinPayoutAmount                               float64                              `bson:"min_payout_amount"`
+	RollingReserveThreshold                       float64                              `bson:"rolling_reserve_amount"`
+	RollingReserveDays                            int32                                `bson:"rolling_reserve_days"`
+	RollingReserveChargebackTransactionsThreshold float64                              `bson:"rolling_reserve_chargeback_transactions_threshold"`
+	ItemMinCostAmount                             float64                              `bson:"item_min_cost_amount"`
+	ItemMinCostCurrency                           string                               `bson:"item_min_cost_currency"`
 }
 
 type MgoCurrencyRate struct {
@@ -492,21 +492,22 @@ type MgoMoneyBackCostSystem struct {
 }
 
 type MgoMoneyBackCostMerchant struct {
-	Id               bson.ObjectId `bson:"_id"`
-	MerchantId       bson.ObjectId `bson:"merchant_id"`
-	Name             string        `bson:"name"`
-	PayoutCurrency   string        `bson:"payout_currency"`
-	UndoReason       string        `bson:"undo_reason"`
-	Region           string        `bson:"region"`
-	Country          string        `bson:"country"`
-	DaysFrom         int32         `bson:"days_from"`
-	PaymentStage     int32         `bson:"payment_stage"`
-	Percent          float64       `bson:"percent"`
-	FixAmount        float64       `bson:"fix_amount"`
-	IsPaidByMerchant bool          `bson:"is_paid_by_merchant"`
-	CreatedAt        time.Time     `bson:"created_at"`
-	UpdatedAt        time.Time     `bson:"updated_at"`
-	IsActive         bool          `bson:"is_active"`
+	Id                bson.ObjectId `bson:"_id"`
+	MerchantId        bson.ObjectId `bson:"merchant_id"`
+	Name              string        `bson:"name"`
+	PayoutCurrency    string        `bson:"payout_currency"`
+	UndoReason        string        `bson:"undo_reason"`
+	Region            string        `bson:"region"`
+	Country           string        `bson:"country"`
+	DaysFrom          int32         `bson:"days_from"`
+	PaymentStage      int32         `bson:"payment_stage"`
+	Percent           float64       `bson:"percent"`
+	FixAmount         float64       `bson:"fix_amount"`
+	FixAmountCurrency string        `bson:"fix_amount_currency"`
+	IsPaidByMerchant  bool          `bson:"is_paid_by_merchant"`
+	CreatedAt         time.Time     `bson:"created_at"`
+	UpdatedAt         time.Time     `bson:"updated_at"`
+	IsActive          bool          `bson:"is_active"`
 }
 
 func (m *Country) GetBSON() (interface{}, error) {
@@ -1610,38 +1611,38 @@ func (m *PaymentSystem) SetBSON(raw bson.Raw) error {
 
 func (m *Merchant) GetBSON() (interface{}, error) {
 	st := &MgoMerchant{
-		User:                             m.User,
-		Name:                             m.Name,
-		AlternativeName:                  m.AlternativeName,
-		Website:                          m.Website,
-		Country:                          m.Country,
-		State:                            m.State,
-		Zip:                              m.Zip,
-		City:                             m.City,
-		Address:                          m.Address,
-		AddressAdditional:                m.AddressAdditional,
-		RegistrationNumber:               m.RegistrationNumber,
-		TaxId:                            m.TaxId,
-		Contacts:                         m.Contacts,
-		Banking:                          m.Banking,
-		Status:                           m.Status,
-		IsVatEnabled:                     m.IsVatEnabled,
-		IsCommissionToUserEnabled:        m.IsCommissionToUserEnabled,
-		HasMerchantSignature:             m.HasMerchantSignature,
-		HasPspSignature:                  m.HasPspSignature,
-		IsSigned:                         m.IsSigned,
-		AgreementType:                    m.AgreementType,
-		AgreementSentViaMail:             m.AgreementSentViaMail,
-		MailTrackingLink:                 m.MailTrackingLink,
-		S3AgreementName:                  m.S3AgreementName,
-		PayoutCostAmount:                 m.PayoutCostAmount,
-		PayoutCostCurrency:               m.PayoutCostCurrency,
-		MinPayoutAmount:                  m.MinPayoutAmount,
-		RollingReserveThreshold:          m.RollingReserveThreshold,
-		RollingReserveDays:               m.RollingReserveDays,
-		TotalTransactionsChargebackBlock: m.TotalTransactionsChargebackBlock,
-		ItemMinCostAmount:                m.ItemMinCostAmount,
-		ItemMinCostCurrency:              m.ItemMinCostCurrency,
+		User:                      m.User,
+		Name:                      m.Name,
+		AlternativeName:           m.AlternativeName,
+		Website:                   m.Website,
+		Country:                   m.Country,
+		State:                     m.State,
+		Zip:                       m.Zip,
+		City:                      m.City,
+		Address:                   m.Address,
+		AddressAdditional:         m.AddressAdditional,
+		RegistrationNumber:        m.RegistrationNumber,
+		TaxId:                     m.TaxId,
+		Contacts:                  m.Contacts,
+		Banking:                   m.Banking,
+		Status:                    m.Status,
+		IsVatEnabled:              m.IsVatEnabled,
+		IsCommissionToUserEnabled: m.IsCommissionToUserEnabled,
+		HasMerchantSignature:      m.HasMerchantSignature,
+		HasPspSignature:           m.HasPspSignature,
+		IsSigned:                  m.IsSigned,
+		AgreementType:             m.AgreementType,
+		AgreementSentViaMail:      m.AgreementSentViaMail,
+		MailTrackingLink:          m.MailTrackingLink,
+		S3AgreementName:           m.S3AgreementName,
+		PayoutCostAmount:          m.PayoutCostAmount,
+		PayoutCostCurrency:        m.PayoutCostCurrency,
+		MinPayoutAmount:           m.MinPayoutAmount,
+		RollingReserveThreshold:   m.RollingReserveThreshold,
+		RollingReserveDays:        m.RollingReserveDays,
+		RollingReserveChargebackTransactionsThreshold: m.RollingReserveChargebackTransactionsThreshold,
+		ItemMinCostAmount:   m.ItemMinCostAmount,
+		ItemMinCostCurrency: m.ItemMinCostCurrency,
 	}
 
 	if len(m.Id) <= 0 {
@@ -1759,7 +1760,7 @@ func (m *Merchant) SetBSON(raw bson.Raw) error {
 	m.MinPayoutAmount = decoded.MinPayoutAmount
 	m.RollingReserveThreshold = decoded.RollingReserveThreshold
 	m.RollingReserveDays = decoded.RollingReserveDays
-	m.TotalTransactionsChargebackBlock = decoded.TotalTransactionsChargebackBlock
+	m.RollingReserveChargebackTransactionsThreshold = decoded.RollingReserveChargebackTransactionsThreshold
 	m.ItemMinCostAmount = decoded.ItemMinCostAmount
 	m.ItemMinCostCurrency = decoded.ItemMinCostCurrency
 
@@ -2497,18 +2498,19 @@ func (m *MoneyBackCostSystem) SetBSON(raw bson.Raw) error {
 
 func (m *MoneyBackCostMerchant) GetBSON() (interface{}, error) {
 	st := &MgoMoneyBackCostMerchant{
-		MerchantId:       bson.ObjectIdHex(m.MerchantId),
-		Name:             m.Name,
-		PayoutCurrency:   m.PayoutCurrency,
-		UndoReason:       m.UndoReason,
-		Region:           m.Region,
-		Country:          m.Country,
-		DaysFrom:         m.DaysFrom,
-		PaymentStage:     m.PaymentStage,
-		Percent:          m.Percent,
-		FixAmount:        m.FixAmount,
-		IsPaidByMerchant: m.IsPaidByMerchant,
-		IsActive:         m.IsActive,
+		MerchantId:        bson.ObjectIdHex(m.MerchantId),
+		Name:              m.Name,
+		PayoutCurrency:    m.PayoutCurrency,
+		UndoReason:        m.UndoReason,
+		Region:            m.Region,
+		Country:           m.Country,
+		DaysFrom:          m.DaysFrom,
+		PaymentStage:      m.PaymentStage,
+		Percent:           m.Percent,
+		FixAmount:         m.FixAmount,
+		FixAmountCurrency: m.FixAmountCurrency,
+		IsPaidByMerchant:  m.IsPaidByMerchant,
+		IsActive:          m.IsActive,
 	}
 	if len(m.Id) <= 0 {
 		st.Id = bson.NewObjectId()
@@ -2559,6 +2561,7 @@ func (m *MoneyBackCostMerchant) SetBSON(raw bson.Raw) error {
 	m.PaymentStage = decoded.PaymentStage
 	m.Percent = decoded.Percent
 	m.FixAmount = decoded.FixAmount
+	m.FixAmountCurrency = decoded.FixAmountCurrency
 	m.IsPaidByMerchant = decoded.IsPaidByMerchant
 	m.IsActive = decoded.IsActive
 
