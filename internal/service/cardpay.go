@@ -403,18 +403,15 @@ func (h *cardPay) ProcessPayment(message proto.Message, raw, signature string) (
 
 	switch req.PaymentMethod {
 	case constant.PaymentSystemGroupAliasBankCard:
-
 		order.PaymentMethodTxnParams = req.GetBankCardTxnParams()
 		break
 	case constant.PaymentSystemGroupAliasQiwi,
 		constant.PaymentSystemGroupAliasWebMoney,
 		constant.PaymentSystemGroupAliasNeteller,
 		constant.PaymentSystemGroupAliasAlipay:
-
 		order.PaymentMethodTxnParams = req.GetEWalletTxnParams()
 		break
 	case constant.PaymentSystemGroupAliasBitcoin:
-
 		order.PaymentMethodTxnParams = req.GetCryptoCurrencyTxnParams()
 		break
 	default:
