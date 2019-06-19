@@ -585,27 +585,27 @@ message CountryRestriction {
 message OrderItem {
     //@inject_tag: validate:"required,hexadecimal,len=24" json:"id" bson:"_id"
     string id = 1;
-    //@inject_tag: validate:"required" json:"object"
+    //@inject_tag: validate:"required" json:"object" bson:"object"
     string object = 2;
     //@inject_tag: validate:"required" json:"sku" bson:"sku"
     string sku = 3;
-    //@inject_tag: validate:"required" json:"name"
+    //@inject_tag: validate:"required" json:"name" bson:"name"
     string name = 4;
-    //@inject_tag: validate:"required" json:"description"
+    //@inject_tag: validate:"required" json:"description" bson:"description"
     string description = 5;
-    // @inject_tag: validate:"required,numeric,gt=0" json:"amount"
+    // @inject_tag: validate:"required,numeric,gt=0" json:"amount" bson:"amount"
     double amount = 6;
-    //@inject_tag: validate:"required,alpha,len=3" json:"currency"
+    //@inject_tag: validate:"required,alpha,len=3" json:"currency" bson:"currency"
     string currency = 7;
-    //@inject_tag: validate:"dive,omitempty,uri" json:"images"
+    //@inject_tag: validate:"dive,omitempty,uri" json:"images" bson:"images"
     repeated string images = 8;
-    //@inject_tag: validate:"omitempty,url" json:"url"
+    //@inject_tag: validate:"omitempty,url" json:"url" bson:"url"
     string url = 9;
-    //@inject_tag: json:"metadata"
+    //@inject_tag: json:"metadata" bson:"metadata"
     map<string, string> metadata = 10;
-    //@inject_tag: json:"created_at"
+    //@inject_tag: json:"created_at" bson:"created_at"
     google.protobuf.Timestamp created_at = 11;
-    //@inject_tag: json:"updated_at"
+    //@inject_tag: json:"updated_at" bson:"updated_at"
     google.protobuf.Timestamp updated_at = 12;
 }
 
@@ -648,11 +648,11 @@ message PaymentMethodOrder {
     bool saved = 7;
     //@inject_tag: json:"fee" bson:"fee"
     OrderFee fee = 8;
-    //@inject_tag: json:"card;omitempty" bson:"card;omitempty"
+    //@inject_tag: json:"card" bson:"card"
     PaymentMethodCard card = 9;
-    //@inject_tag: json:"wallet;omitempty" bson:"wallet;omitempty"
+    //@inject_tag: json:"wallet" bson:"wallet"
     PaymentMethodWallet wallet = 10;
-    //@inject_tag: json:"crypto_currency;omitempty" bson:"crypto_currency;omitempty"
+    //@inject_tag: json:"crypto_currency" bson:"crypto_currency"
     PaymentMethodCrypto crypto_currency = 11;
 }
 
