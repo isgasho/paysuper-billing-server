@@ -97,7 +97,7 @@ func (s *Service) CreateOrUpdatePaymentMethod(
 
 func (s *Service) CreateOrUpdatePaymentMethodProductionSettings(
 	ctx context.Context,
-	req *grpc.ChangePaymentMethodRequest,
+	req *grpc.ChangePaymentMethodParamsRequest,
 	rsp *grpc.ChangePaymentMethodParamsResponse,
 ) error {
 	var pm *billing.PaymentMethod
@@ -112,7 +112,16 @@ func (s *Service) CreateOrUpdatePaymentMethodProductionSettings(
 		return nil
 	}
 
-	pm.ProductionSettings = req.Params.ProductionSettings
+	if pm.ProductionSettings == nil {
+		pm.ProductionSettings = map[string]*billing.PaymentMethodParams{}
+	}
+
+	pm.ProductionSettings[req.Params.Currency] = &billing.PaymentMethodParams{
+		Currency:       req.Params.Currency,
+		Secret:         req.Params.Secret,
+		SecretCallback: req.Params.SecretCallback,
+		TerminalId:     req.Params.TerminalId,
+	}
 	if err := s.paymentMethod.Update(pm); err != nil {
 		zap.S().Errorf("Query to update production settings of project method is failed", "err", err.Error(), "data", req)
 		rsp.Status = pkg.ResponseStatusSystemError

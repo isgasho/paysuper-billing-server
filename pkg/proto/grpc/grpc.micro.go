@@ -92,6 +92,8 @@ type BillingService interface {
 	GetPaymentMethodProductionSettings(ctx context.Context, in *GetPaymentMethodProductionSettingsRequest, opts ...client.CallOption) (*billing.PaymentMethodParams, error)
 	DeletePaymentMethodProductionSettings(ctx context.Context, in *GetPaymentMethodProductionSettingsRequest, opts ...client.CallOption) (*ChangePaymentMethodParamsResponse, error)
 	FindByZipCode(ctx context.Context, in *FindByZipCodeRequest, opts ...client.CallOption) (*FindByZipCodeResponse, error)
+	GetCurrencyList(ctx context.Context, in *GetCurrencyListRequest, opts ...client.CallOption) (*billing.CurrencyList, error)
+	GetCurrency(ctx context.Context, in *billing.GetCurrencyRequest, opts ...client.CallOption) (*billing.Currency, error)
 }
 
 type billingService struct {
@@ -672,6 +674,26 @@ func (c *billingService) FindByZipCode(ctx context.Context, in *FindByZipCodeReq
 	return out, nil
 }
 
+func (c *billingService) GetCurrencyList(ctx context.Context, in *GetCurrencyListRequest, opts ...client.CallOption) (*billing.CurrencyList, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetCurrencyList", in)
+	out := new(billing.CurrencyList)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetCurrency(ctx context.Context, in *billing.GetCurrencyRequest, opts ...client.CallOption) (*billing.Currency, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetCurrency", in)
+	out := new(billing.Currency)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for BillingService service
 
 type BillingServiceHandler interface {
@@ -731,6 +753,8 @@ type BillingServiceHandler interface {
 	GetPaymentMethodProductionSettings(context.Context, *GetPaymentMethodProductionSettingsRequest, *billing.PaymentMethodParams) error
 	DeletePaymentMethodProductionSettings(context.Context, *GetPaymentMethodProductionSettingsRequest, *ChangePaymentMethodParamsResponse) error
 	FindByZipCode(context.Context, *FindByZipCodeRequest, *FindByZipCodeResponse) error
+	GetCurrencyList(context.Context, *GetCurrencyListRequest, *billing.CurrencyList) error
+	GetCurrency(context.Context, *billing.GetCurrencyRequest, *billing.Currency) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -791,6 +815,8 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetPaymentMethodProductionSettings(ctx context.Context, in *GetPaymentMethodProductionSettingsRequest, out *billing.PaymentMethodParams) error
 		DeletePaymentMethodProductionSettings(ctx context.Context, in *GetPaymentMethodProductionSettingsRequest, out *ChangePaymentMethodParamsResponse) error
 		FindByZipCode(ctx context.Context, in *FindByZipCodeRequest, out *FindByZipCodeResponse) error
+		GetCurrencyList(ctx context.Context, in *GetCurrencyListRequest, out *billing.CurrencyList) error
+		GetCurrency(ctx context.Context, in *billing.GetCurrencyRequest, out *billing.Currency) error
 	}
 	type BillingService struct {
 		billingService
@@ -1025,4 +1051,12 @@ func (h *billingServiceHandler) DeletePaymentMethodProductionSettings(ctx contex
 
 func (h *billingServiceHandler) FindByZipCode(ctx context.Context, in *FindByZipCodeRequest, out *FindByZipCodeResponse) error {
 	return h.BillingServiceHandler.FindByZipCode(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetCurrencyList(ctx context.Context, in *GetCurrencyListRequest, out *billing.CurrencyList) error {
+	return h.BillingServiceHandler.GetCurrencyList(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetCurrency(ctx context.Context, in *billing.GetCurrencyRequest, out *billing.Currency) error {
+	return h.BillingServiceHandler.GetCurrency(ctx, in, out)
 }
