@@ -33,10 +33,6 @@ type BalanceTransaction struct {
 	AvailableOn time.Time     `bson:"available_on"`
 }
 
-func (s *Service) CreateBalanceTransaction(ctx context.Context) error {
-
-}
-
 type btProcessor struct {
 	*Service
 	curService currencies.CurrencyratesService

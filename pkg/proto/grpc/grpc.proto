@@ -79,12 +79,11 @@ service BillingService {
     rpc DeletePaymentMethodProductionSettings(GetPaymentMethodProductionSettingsRequest) returns (ChangePaymentMethodParamsResponse) {}
 
     rpc FindByZipCode(FindByZipCodeRequest) returns (FindByZipCodeResponse) {}
+    rpc CreateAccountingEntry(CreateAccountingEntryRequest) returns (CreateAccountingEntryRequest) {}
 }
 
-message EmptyRequest {
-}
-message EmptyResponse {
-}
+message EmptyRequest {}
+message EmptyResponse {}
 
 message PaymentCreateRequest {
     map<string, string> data = 1;
@@ -765,4 +764,23 @@ message FindByZipCodeRequest {
 message FindByZipCodeResponse {
     int32 count = 1;
     repeated billing.ZipCode items = 2;
+}
+
+message CreateAccountingEntryRequest {
+    // @inject_tag: validate:"required"
+    string type = 1;
+    // @inject_tag: validate:"omitempty,hexadecimal,len=24"
+    string source = 2;
+    // @inject_tag: validate:"required,numeric"
+    double amount = 3;
+    // @inject_tag: validate:"required,alpha,len=3"
+    string currency = 4;
+    // @inject_tag: query:"limit" validate:"required,oneof=pending available"
+    string status = 5;
+    // @inject_tag: validate:"required,numeric,gt=0"
+    int64 date = 6;
+}
+
+message CreateAccountingEntryResponse {
+    billing.AccountingEntry item = 1;
 }

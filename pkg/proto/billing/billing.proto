@@ -1268,3 +1268,17 @@ message ZipCode {
     ZipCodeState state = 4;
     google.protobuf.Timestamp created_at = 5;
 }
+
+message AccountingEntry {
+    string id = 1;
+    string object = 2;
+    string type = 3;
+    string source = 4;
+    string merchant_id = 5;
+    double amount = 6;
+    string currency = 7;
+    string reason = 8;
+    string status = 9;
+    google.protobuf.Timestamp created_at = 10;
+    google.protobuf.Timestamp available_on = 11;
+}
