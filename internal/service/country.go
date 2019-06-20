@@ -173,7 +173,10 @@ func (h Country) GetByIsoCodeA2(code string) (*billing.Country, error) {
 		return nil, fmt.Errorf(errorNotFound, collectionCountry)
 	}
 
-	_ = h.svc.cacher.Set(key, c, 0)
+	if err := h.svc.cacher.Set(key, c, 0); err != nil {
+		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", key, "data", c)
+	}
+
 	return &c, nil
 }
 
@@ -181,12 +184,17 @@ func (h Country) GetAll() (*billing.CountriesList, error) {
 	var c = &billing.CountriesList{}
 	key := cacheCountryAll
 
-	if err := h.svc.cacher.Get(key, c); err != nil {
-		err = h.svc.db.Collection(collectionCountry).Find(nil).Sort("iso_code_a2").All(&c.Countries)
-		if err != nil {
-			return nil, err
-		}
-		_ = h.svc.cacher.Set(key, c, 0)
+	if err := h.svc.cacher.Get(key, c); err == nil {
+		return c, nil
+	}
+
+	err := h.svc.db.Collection(collectionCountry).Find(nil).Sort("iso_code_a2").All(&c.Countries)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := h.svc.cacher.Set(key, c, 0); err != nil {
+		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", key, "data", c)
 	}
 
 	return c, nil

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"go.uber.org/zap"
 )
 
 const (
@@ -68,7 +69,10 @@ func (h *Merchant) GetById(id string) (*billing.Merchant, error) {
 		return nil, fmt.Errorf(errorNotFound, collectionMerchant)
 	}
 
-	_ = h.svc.cacher.Set(key, c, 0)
+	if err := h.svc.cacher.Set(key, c, 0); err != nil {
+		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", key, "data", c)
+	}
+
 	return &c, nil
 }
 

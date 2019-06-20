@@ -225,7 +225,10 @@ func (h *PaymentMethod) GetAll() (map[string]*billing.PaymentMethod, error) {
 		c.Methods = pool
 	}
 
-	_ = h.svc.cacher.Set(key, c, 0)
+	if err := h.svc.cacher.Set(key, c, 0); err != nil {
+		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", key, "data", c)
+	}
+
 	return c.Methods, nil
 }
 
@@ -263,7 +266,10 @@ func (h *PaymentMethod) GetByGroupAndCurrency(group string, currency int32) (*bi
 		return nil, fmt.Errorf(errorNotFound, collectionPaymentMethod)
 	}
 
-	_ = h.svc.cacher.Set(key, c, 0)
+	if err := h.svc.cacher.Set(key, c, 0); err != nil {
+		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", key, "data", c)
+	}
+
 	return &c, nil
 }
 
@@ -280,7 +286,10 @@ func (h *PaymentMethod) GetById(id string) (*billing.PaymentMethod, error) {
 		return nil, fmt.Errorf(errorNotFound, collectionPaymentMethod)
 	}
 
-	_ = h.svc.cacher.Set(key, c, 0)
+	if err := h.svc.cacher.Set(key, c, 0); err != nil {
+		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", key, "data", c)
+	}
+
 	return &c, nil
 }
 

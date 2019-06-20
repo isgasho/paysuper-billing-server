@@ -126,7 +126,10 @@ func (h Currency) GetByCodeInt(code int) (*billing.Currency, error) {
 		return nil, fmt.Errorf(errorNotFound, collectionCurrency)
 	}
 
-	_ = h.svc.cacher.Set(key, c, 0)
+	if err := h.svc.cacher.Set(key, c, 0); err != nil {
+		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", key, "data", c)
+	}
+
 	return &c, nil
 }
 

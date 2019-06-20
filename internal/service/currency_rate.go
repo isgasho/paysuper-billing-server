@@ -5,6 +5,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
+	"go.uber.org/zap"
 )
 
 const (
@@ -57,7 +58,10 @@ func (h *CurrencyRate) GetFromTo(from int32, to int32) (*billing.CurrencyRate, e
 		return nil, fmt.Errorf(errorNotFound, collectionCurrencyRate)
 	}
 
-	_ = h.svc.cacher.Set(key, c, 0)
+	if err := h.svc.cacher.Set(key, c, 0); err != nil {
+		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", key, "data", c)
+	}
+
 	return &c, nil
 }
 
