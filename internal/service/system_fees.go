@@ -176,11 +176,13 @@ func (s *Service) GetActualSystemFeesList(
 		fees  []*billing.SystemFees
 		query = bson.M{"is_active": true}
 	)
-	e := s.db.Collection(collectionSystemFees).Find(query).All(&fees)
-	if e != nil {
-		zap.S().Errorf("Get System fees failed", "err", e.Error(), "query", query)
-		return e
+
+	err := s.db.Collection(collectionSystemFees).Find(query).All(&fees)
+	if err != nil {
+		zap.S().Errorf("Get System fees failed", "err", err.Error(), "query", query)
+		return err
 	}
+
 	res.SystemFees = fees
 	return nil
 }
@@ -195,11 +197,12 @@ func (h *SystemFee) Insert(fees *billing.SystemFees) error {
 		return err
 	}
 
-	if err := h.svc.cacher.Set(
+	err := h.svc.cacher.Set(
 		fmt.Sprintf(cacheSystemFeesMethodRegionBrand, fees.MethodId, fees.Region, fees.CardBrand),
 		fees,
 		0,
-	); err != nil {
+	)
+	if err != nil {
 		return err
 	}
 
@@ -211,10 +214,11 @@ func (h *SystemFee) Update(fees *billing.SystemFees) error {
 		return err
 	}
 
-	if err := h.svc.cacher.Set(
+	err := h.svc.cacher.Set(
 		fmt.Sprintf(cacheSystemFeesMethodRegionBrand, fees.MethodId, fees.Region, fees.CardBrand),
 		fees, 0,
-	); err != nil {
+	)
+	if err != nil {
 		return err
 	}
 
@@ -229,14 +233,15 @@ func (h SystemFee) Find(methodId string, region string, cardBrand string) (*bill
 		return &c, nil
 	}
 
-	if err := h.svc.db.Collection(collectionSystemFees).
+	err := h.svc.db.Collection(collectionSystemFees).
 		Find(bson.M{
 			"method_id":  bson.ObjectIdHex(methodId),
 			"region":     region,
 			"card_brand": cardBrand,
 			"is_active":  true,
 		}).
-		One(&c); err != nil {
+		One(&c)
+	if err != nil {
 		return nil, fmt.Errorf(errorNotFound, collectionSystemFees)
 	}
 

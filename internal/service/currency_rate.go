@@ -52,13 +52,15 @@ func (h *CurrencyRate) GetFromTo(from int32, to int32) (*billing.CurrencyRate, e
 		return &c, nil
 	}
 
-	if err := h.svc.db.Collection(collectionCurrencyRate).
+	err := h.svc.db.Collection(collectionCurrencyRate).
 		Find(bson.M{"is_active": true, "currency_from": from, "currency_to": to}).
-		One(&c); err != nil {
+		One(&c)
+	if err != nil {
 		return nil, fmt.Errorf(errorNotFound, collectionCurrencyRate)
 	}
 
-	if err := h.svc.cacher.Set(key, c, 0); err != nil {
+	err = h.svc.cacher.Set(key, c, 0)
+	if err != nil {
 		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", key, "data", c)
 	}
 

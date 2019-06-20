@@ -111,15 +111,18 @@ func newCountryService(svc *Service) *Country {
 }
 
 func (h *Country) Insert(country *billing.Country) error {
-	if err := h.svc.db.Collection(collectionCountry).Insert(country); err != nil {
+	err := h.svc.db.Collection(collectionCountry).Insert(country)
+	if err != nil {
 		return err
 	}
 
-	if err := h.svc.cacher.Set(fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), country, 0); err != nil {
+	err = h.svc.cacher.Set(fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), country, 0)
+	if err != nil {
 		return err
 	}
 
-	if err := h.svc.cacher.Delete(cacheCountryAll); err != nil {
+	err = h.svc.cacher.Delete(cacheCountryAll)
+	if err != nil {
 		return err
 	}
 
@@ -132,11 +135,13 @@ func (h Country) MultipleInsert(country []*billing.Country) error {
 		c[i] = v
 	}
 
-	if err := h.svc.db.Collection(collectionCountry).Insert(c...); err != nil {
+	err := h.svc.db.Collection(collectionCountry).Insert(c...)
+	if err != nil {
 		return err
 	}
 
-	if err := h.svc.cacher.Delete(cacheCountryAll); err != nil {
+	err = h.svc.cacher.Delete(cacheCountryAll)
+	if err != nil {
 		return err
 	}
 
@@ -144,15 +149,18 @@ func (h Country) MultipleInsert(country []*billing.Country) error {
 }
 
 func (h Country) Update(country *billing.Country) error {
-	if err := h.svc.db.Collection(collectionCountry).UpdateId(bson.ObjectIdHex(country.Id), country); err != nil {
+	err := h.svc.db.Collection(collectionCountry).UpdateId(bson.ObjectIdHex(country.Id), country)
+	if err != nil {
 		return err
 	}
 
-	if err := h.svc.cacher.Set(fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), country, 0); err != nil {
+	err = h.svc.cacher.Set(fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), country, 0)
+	if err != nil {
 		return err
 	}
 
-	if err := h.svc.cacher.Delete(cacheCountryAll); err != nil {
+	err = h.svc.cacher.Delete(cacheCountryAll)
+	if err != nil {
 		return err
 	}
 
@@ -167,13 +175,15 @@ func (h Country) GetByIsoCodeA2(code string) (*billing.Country, error) {
 		return &c, nil
 	}
 
-	if err := h.svc.db.Collection(collectionCountry).
+	err := h.svc.db.Collection(collectionCountry).
 		Find(bson.M{"iso_code_a2": code}).
-		One(&c); err != nil {
+		One(&c)
+	if err != nil {
 		return nil, fmt.Errorf(errorNotFound, collectionCountry)
 	}
 
-	if err := h.svc.cacher.Set(key, c, 0); err != nil {
+	err = h.svc.cacher.Set(key, c, 0)
+	if err != nil {
 		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", key, "data", c)
 	}
 
@@ -193,7 +203,8 @@ func (h Country) GetAll() (*billing.CountriesList, error) {
 		return nil, err
 	}
 
-	if err := h.svc.cacher.Set(key, c, 0); err != nil {
+	err = h.svc.cacher.Set(key, c, 0)
+	if err != nil {
 		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", key, "data", c)
 	}
 

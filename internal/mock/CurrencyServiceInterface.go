@@ -10,13 +10,13 @@ type CurrencyServiceInterface struct {
 	mock.Mock
 }
 
-// GetAll provides a mock function with given fields: _a0, _a1
-func (_m *CurrencyServiceInterface) GetAll(_a0 int, _a1 int) ([]*billing.Currency, error) {
-	ret := _m.Called(_a0, _a1)
+// GetAll provides a mock function with given fields:
+func (_m *CurrencyServiceInterface) GetAll() ([]*billing.Currency, error) {
+	ret := _m.Called()
 
 	var r0 []*billing.Currency
-	if rf, ok := ret.Get(0).(func(int, int) []*billing.Currency); ok {
-		r0 = rf(_a0, _a1)
+	if rf, ok := ret.Get(0).(func() []*billing.Currency); ok {
+		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*billing.Currency)
@@ -24,8 +24,8 @@ func (_m *CurrencyServiceInterface) GetAll(_a0 int, _a1 int) ([]*billing.Currenc
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(int, int) error); ok {
-		r1 = rf(_a0, _a1)
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
 	} else {
 		r1 = ret.Error(1)
 	}

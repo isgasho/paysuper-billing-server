@@ -214,7 +214,9 @@ func (h *PaymentMethod) GetAll() (map[string]*billing.PaymentMethod, error) {
 
 	if err := h.svc.cacher.Get(key, c); err != nil {
 		var data []*billing.PaymentMethod
-		if err = h.svc.db.Collection(collectionPaymentMethod).Find(bson.M{}).All(&data); err != nil {
+
+		err = h.svc.db.Collection(collectionPaymentMethod).Find(bson.M{}).All(&data)
+		if err != nil {
 			return nil, err
 		}
 
@@ -261,7 +263,9 @@ func (h *PaymentMethod) GetByGroupAndCurrency(group string, currency int32) (*bi
 		return &c, err
 	}
 
-	err := h.svc.db.Collection(collectionPaymentMethod).Find(bson.M{"group_alias": group, "currencies": currency}).One(&c)
+	err := h.svc.db.Collection(collectionPaymentMethod).
+		Find(bson.M{"group_alias": group, "currencies": currency}).
+		One(&c)
 	if err != nil {
 		return nil, fmt.Errorf(errorNotFound, collectionPaymentMethod)
 	}
@@ -281,7 +285,9 @@ func (h *PaymentMethod) GetById(id string) (*billing.PaymentMethod, error) {
 		return &c, nil
 	}
 
-	err := h.svc.db.Collection(collectionPaymentMethod).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&c)
+	err := h.svc.db.Collection(collectionPaymentMethod).
+		Find(bson.M{"_id": bson.ObjectIdHex(id)}).
+		One(&c)
 	if err != nil {
 		return nil, fmt.Errorf(errorNotFound, collectionPaymentMethod)
 	}
@@ -327,7 +333,8 @@ func (h *PaymentMethod) Insert(pm *billing.PaymentMethod) error {
 }
 
 func (h *PaymentMethod) Update(pm *billing.PaymentMethod) error {
-	if err := h.svc.db.Collection(collectionPaymentMethod).UpdateId(bson.ObjectIdHex(pm.Id), pm); err != nil {
+	err := h.svc.db.Collection(collectionPaymentMethod).UpdateId(bson.ObjectIdHex(pm.Id), pm)
+	if err != nil {
 		return err
 	}
 

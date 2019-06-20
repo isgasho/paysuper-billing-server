@@ -157,36 +157,26 @@ func (suite *CurrencyTestSuite) TestCurrency_GetByCodeInt_NotFound() {
 }
 
 func (suite *CurrencyTestSuite) TestPaymentMethod_GetCurrencyList_Ok() {
-	req := &grpc.GetCurrencyListRequest{
-		Limit:  10,
-		Offset: 0,
-	}
 	rsp := &billing.CurrencyList{}
 	currency := &mock.CurrencyServiceInterface{}
 
-	currency.On("GetAll", int(req.Offset), int(req.Limit)).
-		Return([]*billing.Currency{suite.currency}, nil)
+	currency.On("GetAll").Return([]*billing.Currency{suite.currency}, nil)
 	suite.service.currency = currency
 
-	err := suite.service.GetCurrencyList(context.TODO(), req, rsp)
+	err := suite.service.GetCurrencyList(context.TODO(), &grpc.EmptyRequest{}, rsp)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), rsp.Currency)
 	assert.Len(suite.T(), rsp.Currency, 1)
 }
 
 func (suite *CurrencyTestSuite) TestPaymentMethod_GetCurrencyList_ErrorService() {
-	req := &grpc.GetCurrencyListRequest{
-		Limit:  10,
-		Offset: 0,
-	}
 	rsp := &billing.CurrencyList{}
 	currency := &mock.CurrencyServiceInterface{}
 
-	currency.On("GetAll", int(req.Offset), int(req.Limit)).
-		Return(nil, errors.New("not found"))
+	currency.On("GetAll").Return(nil, errors.New("not found"))
 	suite.service.currency = currency
 
-	err := suite.service.GetCurrencyList(context.TODO(), req, rsp)
+	err := suite.service.GetCurrencyList(context.TODO(), &grpc.EmptyRequest{}, rsp)
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), rsp.Currency)
 }

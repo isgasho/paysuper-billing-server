@@ -43,7 +43,7 @@ type BillingService interface {
 	UpdateOrder(ctx context.Context, in *billing.Order, opts ...client.CallOption) (*EmptyResponse, error)
 	UpdateMerchant(ctx context.Context, in *billing.Merchant, opts ...client.CallOption) (*EmptyResponse, error)
 	GetConvertRate(ctx context.Context, in *ConvertRateRequest, opts ...client.CallOption) (*ConvertRateResponse, error)
-	GetMerchantBy(ctx context.Context, in *GetMerchantByRequest, opts ...client.CallOption) (*MerchantGetMerchantResponse, error)
+	GetMerchantBy(ctx context.Context, in *GetMerchantByRequest, opts ...client.CallOption) (*GetMerchantResponse, error)
 	ListMerchants(ctx context.Context, in *MerchantListingRequest, opts ...client.CallOption) (*MerchantListingResponse, error)
 	ChangeMerchant(ctx context.Context, in *OnboardingRequest, opts ...client.CallOption) (*billing.Merchant, error)
 	ChangeMerchantStatus(ctx context.Context, in *MerchantChangeStatusRequest, opts ...client.CallOption) (*billing.Merchant, error)
@@ -92,7 +92,7 @@ type BillingService interface {
 	GetPaymentMethodProductionSettings(ctx context.Context, in *GetPaymentMethodProductionSettingsRequest, opts ...client.CallOption) (*billing.PaymentMethodParams, error)
 	DeletePaymentMethodProductionSettings(ctx context.Context, in *GetPaymentMethodProductionSettingsRequest, opts ...client.CallOption) (*ChangePaymentMethodParamsResponse, error)
 	FindByZipCode(ctx context.Context, in *FindByZipCodeRequest, opts ...client.CallOption) (*FindByZipCodeResponse, error)
-	GetCurrencyList(ctx context.Context, in *GetCurrencyListRequest, opts ...client.CallOption) (*billing.CurrencyList, error)
+	GetCurrencyList(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*billing.CurrencyList, error)
 	GetCurrency(ctx context.Context, in *billing.GetCurrencyRequest, opts ...client.CallOption) (*billing.Currency, error)
 }
 
@@ -184,9 +184,9 @@ func (c *billingService) GetConvertRate(ctx context.Context, in *ConvertRateRequ
 	return out, nil
 }
 
-func (c *billingService) GetMerchantBy(ctx context.Context, in *GetMerchantByRequest, opts ...client.CallOption) (*MerchantGetMerchantResponse, error) {
+func (c *billingService) GetMerchantBy(ctx context.Context, in *GetMerchantByRequest, opts ...client.CallOption) (*GetMerchantResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.GetMerchantBy", in)
-	out := new(MerchantGetMerchantResponse)
+	out := new(GetMerchantResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -674,7 +674,7 @@ func (c *billingService) FindByZipCode(ctx context.Context, in *FindByZipCodeReq
 	return out, nil
 }
 
-func (c *billingService) GetCurrencyList(ctx context.Context, in *GetCurrencyListRequest, opts ...client.CallOption) (*billing.CurrencyList, error) {
+func (c *billingService) GetCurrencyList(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*billing.CurrencyList, error) {
 	req := c.c.NewRequest(c.name, "BillingService.GetCurrencyList", in)
 	out := new(billing.CurrencyList)
 	err := c.c.Call(ctx, req, out, opts...)
@@ -704,7 +704,7 @@ type BillingServiceHandler interface {
 	UpdateOrder(context.Context, *billing.Order, *EmptyResponse) error
 	UpdateMerchant(context.Context, *billing.Merchant, *EmptyResponse) error
 	GetConvertRate(context.Context, *ConvertRateRequest, *ConvertRateResponse) error
-	GetMerchantBy(context.Context, *GetMerchantByRequest, *MerchantGetMerchantResponse) error
+	GetMerchantBy(context.Context, *GetMerchantByRequest, *GetMerchantResponse) error
 	ListMerchants(context.Context, *MerchantListingRequest, *MerchantListingResponse) error
 	ChangeMerchant(context.Context, *OnboardingRequest, *billing.Merchant) error
 	ChangeMerchantStatus(context.Context, *MerchantChangeStatusRequest, *billing.Merchant) error
@@ -753,7 +753,7 @@ type BillingServiceHandler interface {
 	GetPaymentMethodProductionSettings(context.Context, *GetPaymentMethodProductionSettingsRequest, *billing.PaymentMethodParams) error
 	DeletePaymentMethodProductionSettings(context.Context, *GetPaymentMethodProductionSettingsRequest, *ChangePaymentMethodParamsResponse) error
 	FindByZipCode(context.Context, *FindByZipCodeRequest, *FindByZipCodeResponse) error
-	GetCurrencyList(context.Context, *GetCurrencyListRequest, *billing.CurrencyList) error
+	GetCurrencyList(context.Context, *EmptyRequest, *billing.CurrencyList) error
 	GetCurrency(context.Context, *billing.GetCurrencyRequest, *billing.Currency) error
 }
 
@@ -766,7 +766,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		UpdateOrder(ctx context.Context, in *billing.Order, out *EmptyResponse) error
 		UpdateMerchant(ctx context.Context, in *billing.Merchant, out *EmptyResponse) error
 		GetConvertRate(ctx context.Context, in *ConvertRateRequest, out *ConvertRateResponse) error
-		GetMerchantBy(ctx context.Context, in *GetMerchantByRequest, out *MerchantGetMerchantResponse) error
+		GetMerchantBy(ctx context.Context, in *GetMerchantByRequest, out *GetMerchantResponse) error
 		ListMerchants(ctx context.Context, in *MerchantListingRequest, out *MerchantListingResponse) error
 		ChangeMerchant(ctx context.Context, in *OnboardingRequest, out *billing.Merchant) error
 		ChangeMerchantStatus(ctx context.Context, in *MerchantChangeStatusRequest, out *billing.Merchant) error
@@ -815,7 +815,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetPaymentMethodProductionSettings(ctx context.Context, in *GetPaymentMethodProductionSettingsRequest, out *billing.PaymentMethodParams) error
 		DeletePaymentMethodProductionSettings(ctx context.Context, in *GetPaymentMethodProductionSettingsRequest, out *ChangePaymentMethodParamsResponse) error
 		FindByZipCode(ctx context.Context, in *FindByZipCodeRequest, out *FindByZipCodeResponse) error
-		GetCurrencyList(ctx context.Context, in *GetCurrencyListRequest, out *billing.CurrencyList) error
+		GetCurrencyList(ctx context.Context, in *EmptyRequest, out *billing.CurrencyList) error
 		GetCurrency(ctx context.Context, in *billing.GetCurrencyRequest, out *billing.Currency) error
 	}
 	type BillingService struct {
@@ -857,7 +857,7 @@ func (h *billingServiceHandler) GetConvertRate(ctx context.Context, in *ConvertR
 	return h.BillingServiceHandler.GetConvertRate(ctx, in, out)
 }
 
-func (h *billingServiceHandler) GetMerchantBy(ctx context.Context, in *GetMerchantByRequest, out *MerchantGetMerchantResponse) error {
+func (h *billingServiceHandler) GetMerchantBy(ctx context.Context, in *GetMerchantByRequest, out *GetMerchantResponse) error {
 	return h.BillingServiceHandler.GetMerchantBy(ctx, in, out)
 }
 
@@ -1053,7 +1053,7 @@ func (h *billingServiceHandler) FindByZipCode(ctx context.Context, in *FindByZip
 	return h.BillingServiceHandler.FindByZipCode(ctx, in, out)
 }
 
-func (h *billingServiceHandler) GetCurrencyList(ctx context.Context, in *GetCurrencyListRequest, out *billing.CurrencyList) error {
+func (h *billingServiceHandler) GetCurrencyList(ctx context.Context, in *EmptyRequest, out *billing.CurrencyList) error {
 	return h.BillingServiceHandler.GetCurrencyList(ctx, in, out)
 }
 
