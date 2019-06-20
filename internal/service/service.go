@@ -72,10 +72,14 @@ type Service struct {
 	project       *Project
 	merchant      *Merchant
 	paymentMethod PaymentMethodInterface
-	systemFees    *SystemFee
 	priceGroup    *PriceGroup
 	paymentSystem PaymentSystemServiceInterface
 	zipCode       *ZipCode
+	paymentChannelCostSystem   *PaymentChannelCostSystem
+	paymentChannelCostMerchant *PaymentChannelCostMerchant
+	moneyBackCostSystem        *MoneyBackCostSystem
+	moneyBackCostMerchant      *MoneyBackCostMerchant
+	payoutCostSystem           *PayoutCostSystem
 }
 
 func NewBillingService(
@@ -108,10 +112,14 @@ func (s *Service) Init() (err error) {
 	s.commission = newCommissionService(s)
 	s.country = newCountryService(s)
 	s.project = newProjectService(s)
-	s.systemFees = newSystemFeesService(s)
 	s.priceGroup = newPriceGroupService(s)
 	s.paymentSystem = newPaymentSystemService(s)
 	s.zipCode = newZipCodeService(s)
+	s.paymentChannelCostSystem = newPaymentChannelCostSystemService(s)
+	s.paymentChannelCostMerchant = newPaymentChannelCostMerchantService(s)
+	s.moneyBackCostSystem = newMoneyBackCostSystemService(s)
+	s.moneyBackCostMerchant = newMoneyBackCostMerchantService(s)
+	s.payoutCostSystem = newPayoutCostSystemService(s)
 
 	s.centrifugoClient = gocent.New(
 		gocent.Config{
