@@ -2,6 +2,8 @@ package service
 
 import (
 	"errors"
+	"fmt"
+	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -29,6 +31,9 @@ const (
 
 	defaultHttpClientTimeout = 10
 	defaultResponseBodyLimit = 512
+
+	cachePaymentSystem      = "payment_system:id:%s"
+	collectionPaymentSystem = "payment_system"
 )
 
 var paymentSystemHandlers = map[string]func(*paymentProcessor) PaymentSystem{
@@ -66,7 +71,12 @@ func (s *Service) NewPaymentSystem(
 	cfg *config.PaymentSystemConfig,
 	order *billing.Order,
 ) (PaymentSystem, error) {
-	h, ok := paymentSystemHandlers[order.PaymentMethod.Params.Handler]
+	ps, err := s.paymentSystem.GetById(order.PaymentMethod.PaymentSystemId)
+	if err != nil {
+		return nil, err
+	}
+
+	h, ok := paymentSystemHandlers[ps.Handler]
 
 	if !ok {
 		return nil, errors.New(paymentSystemErrorHandlerNotFound)
@@ -108,4 +118,71 @@ func (h *paymentProcessor) httpHeadersToString(headers map[string][]string) stri
 	}
 
 	return out
+}
+
+type PaymentSystemServiceInterface interface {
+	GetById(string) (*billing.PaymentSystem, error)
+	Insert(*billing.PaymentSystem) error
+	MultipleInsert([]*billing.PaymentSystem) error
+	Update(*billing.PaymentSystem) error
+}
+
+func newPaymentSystemService(svc *Service) *PaymentSystemService {
+	s := &PaymentSystemService{svc: svc}
+	return s
+}
+
+func (h PaymentSystemService) GetById(id string) (*billing.PaymentSystem, error) {
+	var c billing.PaymentSystem
+	key := fmt.Sprintf(cachePaymentSystem, id)
+
+	if err := h.svc.cacher.Get(key, c); err == nil {
+		return &c, nil
+	}
+
+	if err := h.svc.db.Collection(collectionPaymentSystem).
+		Find(bson.M{"_id": bson.ObjectIdHex(id), "is_active": true}).
+		One(&c); err != nil {
+		return nil, fmt.Errorf(errorNotFound, collectionPaymentSystem)
+	}
+
+	_ = h.svc.cacher.Set(key, c, 0)
+	return &c, nil
+}
+
+func (h *PaymentSystemService) Insert(ps *billing.PaymentSystem) error {
+	if err := h.svc.db.Collection(collectionPaymentSystem).Insert(ps); err != nil {
+		return err
+	}
+
+	if err := h.svc.cacher.Set(fmt.Sprintf(cachePaymentSystem, ps.Id), ps, 0); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h PaymentSystemService) MultipleInsert(ps []*billing.PaymentSystem) error {
+	c := make([]interface{}, len(ps))
+	for i, v := range ps {
+		c[i] = v
+	}
+
+	if err := h.svc.db.Collection(collectionPaymentSystem).Insert(c...); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h *PaymentSystemService) Update(ps *billing.PaymentSystem) error {
+	if err := h.svc.db.Collection(collectionPaymentSystem).UpdateId(bson.ObjectIdHex(ps.Id), ps); err != nil {
+		return err
+	}
+
+	if err := h.svc.cacher.Set(fmt.Sprintf(cachePaymentSystem, ps.Id), ps, 0); err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"go.uber.org/zap"
 )
 
 const (
@@ -64,7 +65,7 @@ func (s *Service) UpdatePriceGroup(
 	}
 
 	if err != nil {
-		s.logError("create/update price group failed", []interface{}{"err", err.Error(), "data", req})
+		zap.S().Errorf("create/update price group failed", "err", err.Error(), "data", req)
 		return err
 	}
 

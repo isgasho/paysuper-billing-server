@@ -82,6 +82,7 @@ const (
 	orderErrorUpdateOrderDataFailed                    = "Update order data failed"
 	orderErrorNotRestricted                            = "order country not restricted"
 	orderErrorEmailRequired                            = "email is required"
+	orderErrorMerchantBankingEmpty                     = "merchant banking is not found"
 
 	orderErrorCreatePaymentRequiredFieldIdNotFound            = "required field with order identifier not found"
 	orderErrorCreatePaymentRequiredFieldPaymentMethodNotFound = "required field with payment method identifier not found"
@@ -242,7 +243,6 @@ func (s *Service) OrderCreateProcess(
 
 	if req.PaymentMethod != "" {
 		pm, err := s.paymentMethod.GetByGroupAndCurrency(req.PaymentMethod, processor.checked.currency.CodeInt)
-
 		if err != nil {
 			return errors.New(orderErrorPaymentMethodNotFound)
 		}
@@ -381,7 +381,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 					customer, err := s.processCustomerData(browserCustomer.CustomerId, order, req, browserCustomer, loc)
 
 					if err != nil {
-						s.logError("Customer by identifier in browser cookie not processed", []interface{}{"error", err.Error()})
+						zap.S().Errorf("Customer by identifier in browser cookie not processed", "err", err.Error())
 					}
 
 					if customer != nil {
@@ -529,6 +529,7 @@ func (s *Service) PaymentCreateProcess(
 	}
 
 	err = s.ProcessOrderProducts(order)
+
 	if err != nil {
 		if pid := order.PrivateMetadata["PaylinkId"]; pid != "" {
 			s.notifyPaylinkError(pid, err, req, order)
@@ -540,13 +541,41 @@ func (s *Service) PaymentCreateProcess(
 		return nil
 	}
 
-	order.PaymentMethod = &billing.PaymentMethodOrder{
-		Id:            processor.checked.paymentMethod.Id,
-		Name:          processor.checked.paymentMethod.Name,
-		Params:        processor.checked.paymentMethod.Params,
-		PaymentSystem: processor.checked.paymentMethod.PaymentSystem,
-		Group:         processor.checked.paymentMethod.Group,
+	merchant, err := s.merchant.GetById(processor.GetMerchantId())
+	if err != nil {
+		rsp.Message = err.Error()
+		rsp.Status = pkg.ResponseStatusSystemError
+
+		return nil
 	}
+
+	settings, err := s.paymentMethod.GetPaymentSettings(processor.checked.paymentMethod, merchant, processor.checked.project)
+	if err != nil {
+		rsp.Message = err.Error()
+		rsp.Status = pkg.ResponseStatusSystemError
+
+		return nil
+	}
+
+	ps, err := s.paymentSystem.GetById(processor.checked.paymentMethod.PaymentSystemId)
+	if err != nil {
+		rsp.Message = orderErrorPaymentSystemInactive
+		rsp.Status = pkg.ResponseStatusBadData
+
+		return nil
+	}
+
+	order.PaymentMethod = &billing.PaymentMethodOrder{
+		Id:              processor.checked.paymentMethod.Id,
+		Name:            processor.checked.paymentMethod.Name,
+		Params:          settings,
+		PaymentSystemId: ps.Id,
+		Group:           processor.checked.paymentMethod.Group,
+		ExternalId:      processor.checked.paymentMethod.ExternalId,
+	}
+	order.PaymentMethod.Params.TerminalId = settings.TerminalId
+	order.PaymentMethod.Params.SecretCallback = settings.SecretCallback
+	order.PaymentMethod.Params.Secret = settings.Secret
 
 	commissionProcessor := &OrderCreateRequestProcessor{Service: s}
 	err = commissionProcessor.processOrderCommissions(order)
@@ -581,15 +610,6 @@ func (s *Service) PaymentCreateProcess(
 		return nil
 	}
 
-	if processor.checked.project.IsProduction() == true {
-		merchantId := processor.GetMerchantId()
-		pmId := order.PaymentMethod.Id
-
-		order.PaymentMethod.Params.Terminal, _ = s.merchant.GetPaymentMethodTerminalId(merchantId, pmId)
-		order.PaymentMethod.Params.Password, _ = s.merchant.GetPaymentMethodTerminalPassword(merchantId, pmId)
-		order.PaymentMethod.Params.CallbackPassword, _ = s.merchant.GetPaymentMethodTerminalCallbackPassword(merchantId, pmId)
-	}
-
 	h, err := s.NewPaymentSystem(s.cfg.PaymentSystemConfig, order)
 
 	if err != nil {
@@ -610,7 +630,7 @@ func (s *Service) PaymentCreateProcess(
 	}
 
 	if err != nil {
-		s.logError("Order create in payment system failed", []interface{}{"err", err.Error(), "order", order})
+		zap.S().Errorf("Order create in payment system failed", "err", err.Error(), "order", order)
 
 		rsp.Message = err.Error()
 		rsp.Status = pkg.ResponseStatusBadData
@@ -642,7 +662,12 @@ func (s *Service) PaymentCallbackProcess(
 
 	var data protobuf.Message
 
-	switch order.PaymentMethod.Params.Handler {
+	ps, err := s.paymentSystem.GetById(order.PaymentMethod.PaymentSystemId)
+	if err != nil {
+		return errors.New(orderErrorPaymentSystemInactive)
+	}
+
+	switch ps.Handler {
 	case pkg.PaymentSystemHandlerCardPay:
 		data = &billing.CardPayPaymentCallback{}
 		err := json.Unmarshal(req.Request, data)
@@ -684,7 +709,7 @@ func (s *Service) PaymentCallbackProcess(
 		}
 	}
 
-	switch order.PaymentMethod.Params.ExternalId {
+	switch order.PaymentMethod.ExternalId {
 	case constant.PaymentSystemGroupAliasBankCard:
 
 		if err := s.fillPaymentDataCard(order); err != nil {
@@ -726,7 +751,7 @@ func (s *Service) PaymentCallbackProcess(
 		err = s.broker.Publish(constant.PayOneTopicNotifyPaymentName, order, amqp.Table{"x-retry-count": int32(0)})
 
 		if err != nil {
-			s.logError("Publish notify message to queue failed", []interface{}{"err", err.Error(), "order", order})
+			zap.S().Errorf("Publish notify message to queue failed", "err", err.Error(), "order", order)
 		}
 
 		rsp.Status = pkg.StatusOK
@@ -820,7 +845,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 
 	regex := pm.AccountRegexp
 
-	if pm.Params.ExternalId == constant.PaymentSystemGroupAliasBankCard {
+	if pm.ExternalId == constant.PaymentSystemGroupAliasBankCard {
 		regex = "^\\d{6,18}$"
 	}
 
@@ -838,7 +863,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = &grpc.PaymentFormDataChangeResponseItem{}
 
-	switch pm.Params.ExternalId {
+	switch pm.ExternalId {
 	case constant.PaymentSystemGroupAliasBankCard:
 		data := s.getBinData(req.Account)
 
@@ -1019,9 +1044,7 @@ func (s *Service) saveRecurringCard(order *billing.Order, recurringId string) {
 		order.PaymentRequisites["saved"] = "1"
 		err = s.updateOrder(order)
 		if err != nil {
-			s.logError("Failed to update order after save recurruing card", []interface{}{
-				"err", err.Error(),
-			})
+			zap.S().Errorf("Failed to update order after save recurruing card", "err", err.Error())
 		}
 	}
 }
@@ -1086,7 +1109,7 @@ func (s *Service) getOrderById(id string) (order *billing.Order, err error) {
 	err = s.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(id)).One(&order)
 
 	if err != nil && err != mgo.ErrNotFound {
-		s.logError("Order not found in payment create process", []interface{}{"err", err.Error(), "order_id", id})
+		zap.S().Errorf("Order not found in payment create process", "err", err.Error(), "order_id", id)
 	}
 
 	if order == nil {
@@ -1100,7 +1123,7 @@ func (s *Service) getOrderByUuid(uuid string) (order *billing.Order, err error) 
 	err = s.db.Collection(collectionOrder).Find(bson.M{"uuid": uuid}).One(&order)
 
 	if err != nil && err != mgo.ErrNotFound {
-		s.logError("Order not found in payment create process", []interface{}{"err", err.Error(), "uuid", uuid})
+		zap.S().Errorf("Order not found in payment create process", "err", err.Error(), "uuid", uuid)
 	}
 
 	if order == nil {
@@ -1130,21 +1153,21 @@ func (s *Service) getOrderByUuidToForm(uuid string) (*billing.Order, error) {
 
 func (s *Service) getBinData(pan string) (data *BinData) {
 	if len(pan) < 6 {
-		s.logError("Incorrect PAN to get BIN data", []interface{}{"pan", pan})
+		zap.S().Errorf("Incorrect PAN to get BIN data", "pan", pan)
 		return
 	}
 
 	i, err := strconv.ParseInt(pan[:6], 10, 32)
 
 	if err != nil {
-		s.logError("Parse PAN to int failed", []interface{}{"error", err.Error(), "pan", pan})
+		zap.S().Errorf("Parse PAN to int failed", "error", err.Error(), "pan", pan)
 		return
 	}
 
 	err = s.db.Collection(collectionBinData).Find(bson.M{"card_bin": int32(i)}).One(&data)
 
 	if err != nil {
-		s.logError("Query to get bank card BIN data failed", []interface{}{"error", err.Error(), "pan", pan})
+		zap.S().Errorf("Query to get bank card BIN data failed", "error", err.Error(), "pan", pan)
 		return
 	}
 
@@ -1258,12 +1281,22 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 	}
 
 	if v.checked.paymentMethod != nil {
+		ps, err := v.paymentSystem.GetById(v.checked.paymentMethod.PaymentSystemId)
+		if err != nil {
+			return nil, err
+		}
+
+		settings, err := v.paymentMethod.GetPaymentSettings(v.checked.paymentMethod, v.checked.merchant, v.checked.project)
+		if err != nil {
+			return nil, err
+		}
+
 		order.PaymentMethod = &billing.PaymentMethodOrder{
-			Id:            v.checked.paymentMethod.Id,
-			Name:          v.checked.paymentMethod.Name,
-			Params:        v.checked.paymentMethod.Params,
-			PaymentSystem: v.checked.paymentMethod.PaymentSystem,
-			Group:         v.checked.paymentMethod.Group,
+			Id:              v.checked.paymentMethod.Id,
+			Name:            v.checked.paymentMethod.Name,
+			Params:          settings,
+			PaymentSystemId: ps.Id,
+			Group:           v.checked.paymentMethod.Group,
 		}
 
 		if err := v.processOrderCommissions(order); err != nil {
@@ -1432,24 +1465,12 @@ func (v *OrderCreateRequestProcessor) processPaymentMethod(pm *billing.PaymentMe
 		return errors.New(orderErrorPaymentMethodInactive)
 	}
 
-	if pm.PaymentSystem == nil || pm.PaymentSystem.IsActive == false {
+	if _, err := v.paymentSystem.GetById(pm.PaymentSystemId); err != nil {
 		return errors.New(orderErrorPaymentSystemInactive)
 	}
 
-	if v.checked.project.IsProduction() == true {
-		mpm, err := v.merchant.GetPaymentMethod(v.checked.merchant.Id, pm.Id)
-
-		if err != nil {
-			return err
-		}
-
-		if mpm.PaymentMethod.Id != pm.Id {
-			return errors.New(orderErrorPaymentMethodIncompatible)
-		}
-
-		if mpm.Integration == nil || mpm.Integration.Integrated == false {
-			return errors.New(orderErrorPaymentMethodEmptySettings)
-		}
+	if _, err := v.paymentMethod.GetPaymentSettings(pm, v.checked.merchant, v.checked.project); err != nil {
+		return errors.New(orderErrorPaymentMethodEmptySettings)
 	}
 
 	v.checked.paymentMethod = pm
@@ -1600,8 +1621,13 @@ func (v *OrderCreateRequestProcessor) processOrderCommissions(o *billing.Order) 
 		AmountPaymentMethodCurrency: tools.FormatAmount(commission),
 	}
 
+	ps, err := v.paymentSystem.GetById(o.PaymentMethod.PaymentSystemId)
+	if err != nil {
+		return err
+	}
+
 	// convert payment system amount of fee to accounting currency of payment system
-	amount, err = v.Service.currencyRate.Convert(pmOutCur, o.PaymentMethod.PaymentSystem.AccountingCurrency.CodeInt, commission)
+	amount, err = v.Service.currencyRate.Convert(pmOutCur, ps.AccountingCurrency.CodeInt, commission)
 
 	if err != nil {
 		return err
@@ -1721,8 +1747,11 @@ func (v *PaymentFormProcessor) processRenderFormPaymentMethods() ([]*billing.Pay
 	for _, val := range pmg {
 		pm, ok := val[v.order.PaymentMethodOutcomeCurrency.CodeInt]
 
-		if !ok || pm.IsActive == false ||
-			pm.PaymentSystem.IsActive == false {
+		if !ok || pm.IsActive == false {
+			continue
+		}
+
+		if ps, err := v.service.paymentSystem.GetById(pm.PaymentSystemId); err != nil || ps.IsActive == false {
 			continue
 		}
 
@@ -1746,7 +1775,6 @@ func (v *PaymentFormProcessor) processRenderFormPaymentMethods() ([]*billing.Pay
 		formPm := &billing.PaymentFormPaymentMethod{
 			Id:            pm.Id,
 			Name:          pm.Name,
-			Icon:          fmt.Sprintf(orderInlineFormImagesUrlMask, v.request.Host, pm.Icon),
 			Type:          pm.Type,
 			Group:         pm.Group,
 			AccountRegexp: pm.AccountRegexp,
@@ -2103,9 +2131,25 @@ func (v *PaymentCreateProcessor) processPaymentAmounts() (err error) {
 		}
 	}
 
+	ps, err := v.service.paymentSystem.GetById(order.PaymentMethod.PaymentSystemId)
+	if err != nil {
+		v.service.logError(
+			"Resolve payment system failed",
+			[]interface{}{
+				"error", err.Error(),
+				"from", order.PaymentMethodIncomeCurrency.CodeInt,
+				"ps", order.PaymentMethod.PaymentSystemId,
+				"order_id", order.Id,
+			},
+		)
+
+		return
+	}
+	to := ps.AccountingCurrency.CodeInt
+
 	order.AmountInPaymentSystemAccountingCurrency, err = v.service.currencyRate.Convert(
 		order.PaymentMethodIncomeCurrency.CodeInt,
-		order.PaymentMethod.GetAccountingCurrency().CodeInt,
+		to,
 		order.PaymentMethodOutcomeAmount,
 	)
 
@@ -2115,7 +2159,7 @@ func (v *PaymentCreateProcessor) processPaymentAmounts() (err error) {
 			[]interface{}{
 				"error", err.Error(),
 				"from", order.PaymentMethodIncomeCurrency.CodeInt,
-				"to", order.PaymentMethod.GetAccountingCurrency().CodeInt,
+				"to", to,
 				"order_id", order.Id,
 			},
 		)
@@ -2372,9 +2416,14 @@ func (s *Service) notifyPaylinkError(PaylinkId string, err error, req interface{
 	}
 	sErr := s.sendCentrifugoMessage(msg)
 	if sErr != nil {
-		s.logError("Cannot send centrifugo message about Paylink Error", []interface{}{
-			"error", sErr.Error(), "PaylinkId", PaylinkId, "originalError", err.Error(), "request", req, "order", order,
-		})
+		zap.S().Errorf(
+			"Cannot send centrifugo message about Paylink Error",
+			"error", sErr.Error(),
+			"PaylinkId", PaylinkId,
+			"originalError", err.Error(),
+			"request", req,
+			"order", order,
+		)
 	}
 }
 
@@ -2542,8 +2591,13 @@ func (s *Service) SetUserNotifySales(
 	}
 	err = s.db.Collection(collectionNotifySales).Insert(data)
 	if err != nil {
-		s.logError("Save email to collection failed", []interface{}{"error", err.Error(), "request", req,
-			"collection", collectionNotifySales})
+
+		zap.S().Errorf(
+			"Save email to collection failed",
+			"error", err.Error(),
+			"request", req,
+			"collection", collectionNotifySales,
+		)
 		return err
 	}
 
@@ -2615,8 +2669,12 @@ func (s *Service) SetUserNotifyNewRegion(
 	}
 	err = s.db.Collection(collectionNotifyNewRegion).Insert(data)
 	if err != nil {
-		s.logError("Save email to collection failed", []interface{}{"error", err.Error(), "request", req,
-			"collection", collectionNotifyNewRegion})
+		zap.S().Errorf(
+			"Save email to collection failed",
+			"error", err.Error(),
+			"request", req,
+			"collection", collectionNotifyNewRegion,
+		)
 		return err
 	}
 

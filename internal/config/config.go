@@ -24,8 +24,8 @@ type CustomerTokenConfig struct {
 
 // CacheRedis defines the parameters for connecting to the radish server for caching objects.
 type CacheRedis struct {
-	Address      []string `envconfig:"CACHE_REDIS_ADDRESS"`
-	Password     string   `envconfig:"CACHE_REDIS_PASSWORD"`
+	Address      []string `envconfig:"CACHE_REDIS_ADDRESS" required:"true"`
+	Password     string   `envconfig:"CACHE_REDIS_PASSWORD" required:"false"`
 	PoolSize     int      `envconfig:"CACHE_REDIS_POOL_SIZE" default:"1"`
 	MaxRetries   int      `envconfig:"CACHE_REDIS_MAX_RETRIES" default:"10"`
 	MaxRedirects int      `envconfig:"CACHE_REDIS_MAX_REDIRECTS" default:"8"`

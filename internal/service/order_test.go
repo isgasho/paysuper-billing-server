@@ -89,12 +89,6 @@ func (suite *OrderTestSuite) SetupTest() {
 		Name:     &billing.Name{Ru: "Украинская гривна", En: "Ukrainian Hryvnia"},
 		IsActive: true,
 	}
-	eur := &billing.Currency{
-		CodeInt:  978,
-		CodeA3:   "EUR",
-		Name:     &billing.Name{Ru: "Евро", En: "Euro"},
-		IsActive: true,
-	}
 	amd := &billing.Currency{
 		CodeInt:  51,
 		CodeA3:   "AMD",
@@ -174,32 +168,50 @@ func (suite *OrderTestSuite) SetupTest() {
 		VatCurrency:     "",
 	}
 
+	ps1 := &billing.PaymentSystem{
+		Id:                 bson.NewObjectId().Hex(),
+		Name:               "CardPay",
+		AccountingCurrency: rub,
+		AccountingPeriod:   "every-day",
+		Country:            "",
+		IsActive:           true,
+		Handler:            "cardpay",
+	}
+
 	pmBankCard := &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
 		Name:             "Bank card",
 		Group:            "BANKCARD",
 		MinPaymentAmount: 100,
 		MaxPaymentAmount: 15000,
-		Currency:         rub,
 		Currencies:       []int32{643, 840, 980},
-		Params: &billing.PaymentMethodParams{
-			Handler:          "cardpay",
-			Terminal:         "15985",
-			Password:         "A1tph4I6BD0f",
-			CallbackPassword: "0V1rJ7t4jCRv",
-			ExternalId:       "BANKCARD",
+		ExternalId:       "BANKCARD",
+		ProductionSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				TerminalId:     "15985",
+				Secret:         "A1tph4I6BD0f",
+				SecretCallback: "0V1rJ7t4jCRv",
+			}},
+		TestSettings: &billing.PaymentMethodParams{
+			TerminalId:     "15985",
+			Secret:         "A1tph4I6BD0f",
+			SecretCallback: "0V1rJ7t4jCRv",
+			Currency:       "RUB",
 		},
-		Type:          "bank_card",
-		IsActive:      true,
-		AccountRegexp: "^(?:4[0-9]{12}(?:[0-9]{3})?|[25][1-7][0-9]{14}|6(?:011|5[0-9][0-9])[0-9]{12}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|(?:2131|1800|35\\d{3})\\d{11})$",
-		PaymentSystem: &billing.PaymentSystem{
-			Id:                 bson.NewObjectId().Hex(),
-			Name:               "CardPay",
-			AccountingCurrency: rub,
-			AccountingPeriod:   "every-day",
-			Country:            "",
-			IsActive:           true,
-		},
+		Type:            "bank_card",
+		IsActive:        true,
+		AccountRegexp:   "^(?:4[0-9]{12}(?:[0-9]{3})?|[25][1-7][0-9]{14}|6(?:011|5[0-9][0-9])[0-9]{12}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|(?:2131|1800|35\\d{3})\\d{11})$",
+		PaymentSystemId: ps1.Id,
+	}
+
+	ps2 := &billing.PaymentSystem{
+		Id:                 bson.NewObjectId().Hex(),
+		Name:               "CardPay",
+		AccountingCurrency: rub,
+		AccountingPeriod:   "every-day",
+		Country:            "",
+		IsActive:           true,
+		Handler:            "cardpay2",
 	}
 
 	pmBitcoin1 := &billing.PaymentMethod{
@@ -208,23 +220,29 @@ func (suite *OrderTestSuite) SetupTest() {
 		Group:            "BITCOIN_1",
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
-		Currency:         rub,
 		Currencies:       []int32{643, 840, 980},
-		Params: &billing.PaymentMethodParams{
-			Handler:    "unit_test",
-			Terminal:   "16007",
-			ExternalId: "BITCOIN",
+		ExternalId:       "BITCOIN",
+		ProductionSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				TerminalId: "16007",
+			}},
+		TestSettings: &billing.PaymentMethodParams{
+			TerminalId: "16007",
+			Currency:   "RUB",
 		},
-		Type:     "crypto",
-		IsActive: true,
-		PaymentSystem: &billing.PaymentSystem{
-			Id:                 bson.NewObjectId().Hex(),
-			Name:               "CardPay",
-			AccountingCurrency: rub,
-			AccountingPeriod:   "every-day",
-			Country:            "",
-			IsActive:           true,
-		},
+		Type:            "crypto",
+		IsActive:        true,
+		PaymentSystemId: ps2.Id,
+	}
+
+	ps3 := &billing.PaymentSystem{
+		Id:                 bson.NewObjectId().Hex(),
+		Name:               "CardPay 2",
+		AccountingCurrency: uah,
+		AccountingPeriod:   "every-day",
+		Country:            "",
+		IsActive:           false,
+		Handler:            "cardpay",
 	}
 
 	pmQiwi := &billing.PaymentMethod{
@@ -233,24 +251,20 @@ func (suite *OrderTestSuite) SetupTest() {
 		Group:            "QIWI",
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
-		Currency:         rub,
 		Currencies:       []int32{643, 840, 980},
-		Params: &billing.PaymentMethodParams{
-			Handler:    "cardpay",
-			Terminal:   "15993",
-			ExternalId: "QIWI",
+		ExternalId:       "QIWI",
+		ProductionSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				TerminalId: "15993",
+			}},
+		TestSettings: &billing.PaymentMethodParams{
+			TerminalId: "15993",
+			Currency:   "RUB",
 		},
-		Type:          "ewallet",
-		IsActive:      true,
-		AccountRegexp: "^\\d{1,15}",
-		PaymentSystem: &billing.PaymentSystem{
-			Id:                 bson.NewObjectId().Hex(),
-			Name:               "CardPay 2",
-			AccountingCurrency: uah,
-			AccountingPeriod:   "every-day",
-			Country:            "",
-			IsActive:           false,
-		},
+		Type:            "ewallet",
+		IsActive:        true,
+		AccountRegexp:   "^\\d{1,15}",
+		PaymentSystemId: ps3.Id,
 	}
 
 	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -360))
@@ -520,53 +534,66 @@ func (suite *OrderTestSuite) SetupTest() {
 		projectUahLimitCurrency,
 	}
 
+	ps4 := &billing.PaymentSystem{
+		Id:                 bson.NewObjectId().Hex(),
+		Name:               "CardPay",
+		AccountingCurrency: rub,
+		AccountingPeriod:   "every-day",
+		Country:            "",
+		IsActive:           true,
+		Handler:            "cardpay",
+	}
+
 	pmWebMoney := &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
 		Name:             "WebMoney",
 		Group:            "WEBMONEY",
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
-		Currency:         rub,
 		Currencies:       []int32{643, 840, 980},
-		Params: &billing.PaymentMethodParams{
-			Handler:    "cardpay",
-			Terminal:   "15985",
-			ExternalId: "WEBMONEY",
+		ExternalId:       "WEBMONEY",
+		ProductionSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				TerminalId: "15985",
+			}},
+		TestSettings: &billing.PaymentMethodParams{
+			TerminalId: "15985",
+			Currency:   "RUB",
 		},
-		Type:     "ewallet",
-		IsActive: true,
-		PaymentSystem: &billing.PaymentSystem{
-			Id:                 bson.NewObjectId().Hex(),
-			Name:               "CardPay",
-			AccountingCurrency: rub,
-			AccountingPeriod:   "every-day",
-			Country:            "",
-			IsActive:           true,
-		},
+		Type:            "ewallet",
+		IsActive:        true,
+		PaymentSystemId: ps4.Id,
 	}
+
+	ps5 := &billing.PaymentSystem{
+		Id:                 bson.NewObjectId().Hex(),
+		Name:               "CardPay",
+		AccountingCurrency: rub,
+		AccountingPeriod:   "every-day",
+		Country:            "",
+		IsActive:           true,
+		Handler:            "cardpay",
+	}
+
 	pmWebMoneyWME := &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
 		Name:             "WebMoney WME",
 		Group:            "WEBMONEY_WME",
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
-		Currency:         eur,
 		Currencies:       []int32{978},
-		Params: &billing.PaymentMethodParams{
-			Handler:    "cardpay",
-			Terminal:   "15985",
-			ExternalId: "WEBMONEY",
+		ExternalId:       "WEBMONEY",
+		ProductionSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				TerminalId: "15985",
+			}},
+		TestSettings: &billing.PaymentMethodParams{
+			TerminalId: "15985",
+			Currency:   "RUB",
 		},
-		Type:     "ewallet",
-		IsActive: true,
-		PaymentSystem: &billing.PaymentSystem{
-			Id:                 bson.NewObjectId().Hex(),
-			Name:               "CardPay",
-			AccountingCurrency: rub,
-			AccountingPeriod:   "every-day",
-			Country:            "",
-			IsActive:           true,
-		},
+		Type:            "ewallet",
+		IsActive:        true,
+		PaymentSystemId: ps5.Id,
 	}
 	pmBitcoin := &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
@@ -574,15 +601,19 @@ func (suite *OrderTestSuite) SetupTest() {
 		Group:            "BITCOIN",
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
-		Currency:         rub,
 		Currencies:       []int32{643, 840, 980},
-		Params: &billing.PaymentMethodParams{
-			Handler:    "cardpay",
-			Terminal:   "16007",
-			ExternalId: "BITCOIN",
+		ExternalId:       "BITCOIN",
+		ProductionSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				TerminalId: "16007",
+			}},
+		TestSettings: &billing.PaymentMethodParams{
+			TerminalId: "16007",
+			Currency:   "RUB",
 		},
-		Type:     "crypto",
-		IsActive: false,
+		Type:            "crypto",
+		IsActive:        false,
+		PaymentSystemId: ps5.Id,
 	}
 
 	commissionStartDate, err := ptypes.TimestampProto(time.Now().Add(time.Minute * -10))
@@ -787,6 +818,11 @@ func (suite *OrderTestSuite) SetupTest() {
 
 	currency := []*billing.Currency{rub, usd, uah, amd}
 	if err := suite.service.currency.MultipleInsert(currency); err != nil {
+		suite.FailNow("Insert currency test data failed", "%v", err)
+	}
+
+	ps := []*billing.PaymentSystem{ps1, ps2, ps3, ps4, ps5}
+	if err := suite.service.paymentSystem.MultipleInsert(ps); err != nil {
 		suite.FailNow("Insert currency test data failed", "%v", err)
 	}
 
@@ -2250,11 +2286,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessOrderCommissions_Ok() {
 		PaymentMethodIncomeAmount:          req.Amount,
 		PaymentMethodIncomeCurrency:        processor.checked.currency,
 		PaymentMethod: &billing.PaymentMethodOrder{
-			Id:            processor.checked.paymentMethod.Id,
-			Name:          processor.checked.paymentMethod.Name,
-			Params:        processor.checked.paymentMethod.Params,
-			PaymentSystem: processor.checked.paymentMethod.PaymentSystem,
-			Group:         processor.checked.paymentMethod.Group,
+			PaymentSystemId: suite.paymentMethod.PaymentSystemId,
 		},
 	}
 
@@ -2345,11 +2377,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessOrderCommissions_VatNotFound_Error
 		PaymentMethodIncomeAmount:          req.Amount,
 		PaymentMethodIncomeCurrency:        processor.checked.currency,
 		PaymentMethod: &billing.PaymentMethodOrder{
-			Id:            processor.checked.paymentMethod.Id,
-			Name:          processor.checked.paymentMethod.Name,
-			Params:        processor.checked.paymentMethod.Params,
-			PaymentSystem: processor.checked.paymentMethod.PaymentSystem,
-			Group:         processor.checked.paymentMethod.Group,
+			PaymentSystemId: suite.paymentMethod.PaymentSystemId,
 		},
 	}
 
@@ -2420,11 +2448,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessOrderCommissions_PaymentSystemAcco
 		PaymentMethodIncomeAmount:          req.Amount,
 		PaymentMethodIncomeCurrency:        processor.checked.currency,
 		PaymentMethod: &billing.PaymentMethodOrder{
-			Id:            suite.paymentMethodWithInactivePaymentSystem.Id,
-			Name:          suite.paymentMethodWithInactivePaymentSystem.Name,
-			Params:        suite.paymentMethodWithInactivePaymentSystem.Params,
-			PaymentSystem: suite.paymentMethodWithInactivePaymentSystem.PaymentSystem,
-			Group:         suite.paymentMethodWithInactivePaymentSystem.Group,
+			PaymentSystemId: suite.paymentMethod.PaymentSystemId,
 		},
 	}
 
@@ -2432,11 +2456,11 @@ func (suite *OrderTestSuite) TestOrder_ProcessOrderCommissions_PaymentSystemAcco
 	assert.Nil(suite.T(), order.PspFeeAmount)
 	assert.Nil(suite.T(), order.PaymentSystemFeeAmount)
 
-	processor.checked.paymentMethod = suite.paymentMethodWithInactivePaymentSystem
+	order.PaymentMethod.PaymentSystemId = suite.paymentMethodWithInactivePaymentSystem.Id
 
 	err = processor.processOrderCommissions(order)
 	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionCurrencyRate), err.Error())
+	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionPaymentSystem), err.Error())
 }
 
 func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_Ok() {
@@ -2926,8 +2950,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethodsData_SavedCards_Ok()
 
 	pm := &billing.PaymentFormPaymentMethod{
 		Id:            suite.paymentMethod.Id,
-		Name:          suite.paymentMethod.Id,
-		Icon:          suite.paymentMethod.Name,
+		Name:          suite.paymentMethod.Name,
 		Type:          suite.paymentMethod.Type,
 		Group:         suite.paymentMethod.Group,
 		AccountRegexp: suite.paymentMethod.AccountRegexp,
@@ -2966,8 +2989,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethodsData_EmptySavedCards
 
 	pm := &billing.PaymentFormPaymentMethod{
 		Id:            suite.paymentMethod.Id,
-		Name:          suite.paymentMethod.Id,
-		Icon:          suite.paymentMethod.Name,
+		Name:          suite.paymentMethod.Name,
 		Type:          suite.paymentMethod.Type,
 		Group:         suite.paymentMethod.Group,
 		AccountRegexp: suite.paymentMethod.AccountRegexp,
@@ -3006,8 +3028,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethodsData_NotBankCard_Ok(
 
 	pm := &billing.PaymentFormPaymentMethod{
 		Id:            suite.paymentMethod.Id,
-		Name:          suite.paymentMethodWithInactivePaymentSystem.Id,
-		Icon:          suite.paymentMethodWithInactivePaymentSystem.Name,
+		Name:          suite.paymentMethodWithInactivePaymentSystem.Name,
 		Type:          suite.paymentMethodWithInactivePaymentSystem.Type,
 		Group:         suite.paymentMethodWithInactivePaymentSystem.Group,
 		AccountRegexp: suite.paymentMethodWithInactivePaymentSystem.AccountRegexp,
@@ -3046,8 +3067,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethodsData_GetSavedCards_E
 
 	pm := &billing.PaymentFormPaymentMethod{
 		Id:            suite.paymentMethod.Id,
-		Name:          suite.paymentMethod.Id,
-		Icon:          suite.paymentMethod.Name,
+		Name:          suite.paymentMethod.Name,
 		Type:          suite.paymentMethod.Type,
 		Group:         suite.paymentMethod.Group,
 		AccountRegexp: suite.paymentMethod.AccountRegexp,
@@ -3710,7 +3730,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_ChangePaymentSyste
 
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), check)
-	assert.Equal(suite.T(), terminal, check.PaymentMethod.Params.Terminal)
+	assert.Equal(suite.T(), terminal, check.PaymentMethod.Params.TerminalId)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_ChangeProjectAccount_Ok() {
@@ -4033,7 +4053,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Ok() {
 	suite.NotNil(suite.T(), order1)
 
 	callbackRequest := &billing.CardPayPaymentCallback{
-		PaymentMethod: suite.paymentMethod.Params.ExternalId,
+		PaymentMethod: suite.paymentMethod.ExternalId,
 		CallbackTime:  time.Now().Format("2006-01-02T15:04:05Z"),
 		MerchantOrder: &billing.CardPayMerchantOrder{
 			Id:          order.Id,
@@ -4074,7 +4094,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Ok() {
 	assert.Nil(suite.T(), err)
 
 	hash := sha512.New()
-	hash.Write([]byte(string(buf) + order1.PaymentMethod.Params.CallbackPassword))
+	hash.Write([]byte(string(buf) + order1.PaymentMethod.Params.SecretCallback))
 
 	callbackData := &grpc.PaymentNotifyRequest{
 		OrderId:   order.Id,
@@ -4153,7 +4173,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Recurring_Ok() {
 	suite.NotNil(suite.T(), order1)
 
 	callbackRequest := &billing.CardPayPaymentCallback{
-		PaymentMethod: suite.paymentMethod.Params.ExternalId,
+		PaymentMethod: suite.paymentMethod.ExternalId,
 		CallbackTime:  time.Now().Format("2006-01-02T15:04:05Z"),
 		MerchantOrder: &billing.CardPayMerchantOrder{
 			Id:          order.Id,
@@ -4197,7 +4217,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Recurring_Ok() {
 	assert.Nil(suite.T(), err)
 
 	hash := sha512.New()
-	hash.Write([]byte(string(buf) + order1.PaymentMethod.Params.CallbackPassword))
+	hash.Write([]byte(string(buf) + order1.PaymentMethod.Params.SecretCallback))
 
 	callbackData := &grpc.PaymentNotifyRequest{
 		OrderId:   order.Id,

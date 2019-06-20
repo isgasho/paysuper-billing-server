@@ -636,37 +636,35 @@ message PaymentMethodOrder {
     string id = 1;
     // @inject_tag: json:"title" bson:"name"
     string name = 2;
+    // @inject_tag: bson:"external_id" json:"external_id"
+    string external_id = 3;
     // @inject_tag: bson:"params"
-    PaymentMethodParams params = 3;
-    // @inject_tag: bson:"payment_system"
-    PaymentSystem payment_system = 4;
+    PaymentMethodParams params = 4;
+    // @inject_tag: bson:"payment_system_id" json:"payment_system_id"
+    string payment_system_id = 5;
     // @inject_tag: json:"type" bson:"group_alias"
-    string group = 5;
+    string group = 6;
     // @inject_tag: json:"saved" bson:"saved"
-    bool saved = 6;
+    bool saved = 7;
     //@inject_tag: json:"fee" bson:"fee"
-    OrderFee fee = 7;
+    OrderFee fee = 8;
     //@inject_tag: json:"card" bson:"card"
-    PaymentMethodCard card = 8;
+    PaymentMethodCard card = 9;
     //@inject_tag: json:"wallet" bson:"wallet"
-    PaymentMethodWallet wallet = 9;
+    PaymentMethodWallet wallet = 10;
     //@inject_tag: json:"crypto_currency" bson:"crypto_currency"
-    PaymentMethodCrypto crypto_currency = 10;
+    PaymentMethodCrypto crypto_currency = 11;
 }
 
 message PaymentMethodParams {
-    // @inject_tag: bson:"handler" structure:"handler"
-    string handler = 1;
-    // @inject_tag: bson:"terminal" structure:"terminal"
-    string terminal = 2;
-    // @inject_tag: bson:"password"
-    string password = 3;
-    // @inject_tag: bson:"callback_password"
-    string callback_password = 5;
-    // @inject_tag: bson:"external_id" structure:"external_id"
-    string external_id = 6;
-    // @inject_tag: bson:"other" structure:"other"
-    map<string, string> other = 7;
+    // @inject_tag: bson:"currency" json:"currency" validate:"required,alpha,len=3"
+    string currency = 1;
+    // @inject_tag: bson:"terminal_id" json:"currency" validate:"omitempty,alphanumeric"
+    string terminal_id = 2;
+    // @inject_tag: bson:"secret" json:"secret" validate:"omitempty"
+    string secret = 3;
+    // @inject_tag: bson:"secret_callback" json:"secret_callback" validate:"omitempty"
+    string secret_callback = 5;
 }
 
 message PaymentSystem {
@@ -685,6 +683,8 @@ message PaymentSystem {
     google.protobuf.Timestamp created_at = 7;
     // @inject_tag: bson:"updated_at" structure:"updated_at,timestamp"
     google.protobuf.Timestamp updated_at = 8;
+    // @inject_tag: bson:"handler" json:"handler" validate:"omitempty,alphanumeric"
+    string handler = 9;
 }
 
 message PaymentMethodCard {
@@ -781,36 +781,36 @@ message CurrencyRate {
 }
 
 message PaymentMethod {
-    // @inject_tag: bson:"_id"
+    // @inject_tag: bson:"_id" json:"id" validate:"omitempty,hexadecimal,len=24"
     string id = 1;
-    // @inject_tag: bson:"name"
+    // @inject_tag: bson:"name" json:"name" validate:"required,omitempty,alphanumeric"
     string name = 2;
-    // @inject_tag: bson:"group_alias"
+    // @inject_tag: bson:"group_alias" json:"group_alias" validate:"omitempty,alphanumeric"
     string group = 3;
-    // @inject_tag: bson:"currency"
-    Currency currency = 4;
-    // @inject_tag: bson:"currencies"
-    repeated int32 currencies = 5;
-    // @inject_tag: bson:"min_payment_amount"
-    double min_payment_amount = 6;
-    // @inject_tag: bson:"max_payment_amount"
-    double max_payment_amount = 7;
-    // @inject_tag: bson:"params"
-    PaymentMethodParams params = 8;
-    // @inject_tag: bson:"icon"
-    string Icon = 9;
-    // @inject_tag: bson:"payment_system"
-    PaymentSystem payment_system = 10;
-    // @inject_tag: bson:"type"
-    string type = 11;
-    // @inject_tag: bson:"account_regexp"
-    string account_regexp = 12;
-    // @inject_tag: bson:"is_active"
-    bool is_active = 13;
-    // @inject_tag: bson:"created_at"
-    google.protobuf.Timestamp created_at = 14;
-    // @inject_tag: bson:"updated_at"
-    google.protobuf.Timestamp updated_at = 15;
+    // @inject_tag: bson:"external_id" json:"external_id" validate:"omitempty,alphanumeric"
+    string external_id = 5;
+    // @inject_tag: bson:"currencies" json:"group_alias" validate:"omitempty,numeric,dive,gte=0"
+    repeated int32 currencies = 6;
+    // @inject_tag: bson:"min_payment_amount" json:"min_payment_amount" validate:"omitempty,numeric,gte=0"
+    double min_payment_amount = 7;
+    // @inject_tag: bson:"max_payment_amount" json:"max_payment_amount" validate:"omitempty,numeric,gte=0"
+    double max_payment_amount = 8;
+    // @inject_tag: bson:"type" json:"type" validate:"omitempty,alpha,gte=0"
+    string type = 9;
+    // @inject_tag: bson:"account_regexp" json:"account_regexp" validate:"omitempty"
+    string account_regexp = 10;
+    // @inject_tag: bson:"is_active" json:"is_active" validate:"omitempty"
+    bool is_active = 11;
+    // @inject_tag: bson:"payment_system" json:"max_payment_amount" validate:"required,hexadecimal,len=24"
+    string payment_system_id = 12;
+    // @inject_tag: bson:"params" json:"max_payment_amount" validate:"omitempty,numeric,gte=0"
+    PaymentMethodParams test_settings = 13;
+    // @inject_tag: bson:"params" json:"max_payment_amount" validate:"omitempty,numeric,gte=0"
+    map<string,PaymentMethodParams> production_settings = 14;
+    // @inject_tag: bson:"created_at" json:"max_payment_amount" validate:"omitempty"
+    google.protobuf.Timestamp created_at = 15;
+    // @inject_tag: bson:"updated_at" json:"max_payment_amount" validate:"omitempty"
+    google.protobuf.Timestamp updated_at = 16;
 }
 
 message Vat {
@@ -868,15 +868,14 @@ message SavedCard {
 message PaymentFormPaymentMethod {
     string id = 1;
     string name = 2;
-    string icon = 3;
-    string type = 4;
+    string type = 3;
     // @inject_tag: json:"group_alias"
-    string group = 5;
-    string account_regexp = 6;
+    string group = 4;
+    string account_regexp = 5;
     // @inject_tag: json:"has_saved_cards"
-    bool has_saved_cards = 12;
+    bool has_saved_cards = 6;
     // @inject_tag: json:"saved_cards,omitempty"
-    repeated SavedCard saved_cards = 13;
+    repeated SavedCard saved_cards = 7;
 }
 
 message MerchantPaymentMethodPerTransactionCommission {

@@ -6,6 +6,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"go.uber.org/zap"
 	"time"
 )
 
@@ -116,13 +117,13 @@ func (s *Service) FindAllOrders(
 	co, err := s.db.Collection(collectionOrder).Find(query).Count()
 
 	if err != nil {
-		s.logError("Query from table ended with error", []interface{}{"table", collectionOrder, "error", err})
+		zap.S().Errorf("Query from table ended with error", "err", err.Error(), "table", collectionOrder)
 		return err
 	}
 
 	var o []*billing.Order
 	if err := s.db.Collection(collectionOrder).Find(query).Sort(req.Sort...).Limit(int(req.Limit)).Skip(int(req.Offset)).All(&o); err != nil {
-		s.logError("Query from table ended with error", []interface{}{"table", collectionOrder, "error", err})
+		zap.S().Errorf("Query from table ended with error", "err", err.Error(), "table", collectionOrder)
 		return err
 	}
 
@@ -146,7 +147,7 @@ func (s *Service) GetOrder(
 	err := s.db.Collection(collectionOrder).Find(query).One(&rsp)
 
 	if err != nil {
-		s.logError("Query from table ended with error", []interface{}{"table", collectionOrder, "error", err, "query", query})
+		zap.S().Errorf("Query from table ended with error", "err", err.Error(), "table", collectionOrder)
 		return err
 	}
 

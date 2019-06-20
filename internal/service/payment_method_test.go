@@ -1,13 +1,18 @@
 package service
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/stretchr/testify/assert"
+	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"testing"
@@ -43,7 +48,15 @@ func (suite *PaymentMethodTestSuite) SetupTest() {
 		Name:     &billing.Name{Ru: "Российский рубль", En: "Russian ruble"},
 		IsActive: true,
 	}
-
+	ps := &billing.PaymentSystem{
+		Id:                 bson.NewObjectId().Hex(),
+		Name:               "CardPay",
+		AccountingCurrency: rub,
+		AccountingPeriod:   "every-day",
+		Country:            "",
+		IsActive:           true,
+		Handler:            "cardpay",
+	}
 	suite.pmQiwi = &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
 		Name:             "Qiwi",
@@ -51,13 +64,13 @@ func (suite *PaymentMethodTestSuite) SetupTest() {
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
 		Currencies:       []int32{643, 840, 980},
-		Params: &billing.PaymentMethodParams{
-			Handler:    "cardpay",
-			Terminal:   "15993",
-			ExternalId: "QIWI",
+		ExternalId:       "QIWI",
+		TestSettings: &billing.PaymentMethodParams{
+			TerminalId: "15993",
 		},
-		Type:     "ewallet",
-		IsActive: true,
+		Type:            "ewallet",
+		IsActive:        true,
+		PaymentSystemId: ps.Id,
 	}
 
 	suite.log, err = zap.NewProduction()
@@ -82,6 +95,10 @@ func (suite *PaymentMethodTestSuite) SetupTest() {
 	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {
 		suite.FailNow("Insert payment methods test data failed", "%v", err)
 	}
+
+	if err := suite.service.paymentSystem.Insert(ps); err != nil {
+		suite.FailNow("Insert payment system test data failed", "%v", err)
+	}
 }
 
 func (suite *PaymentMethodTestSuite) TearDownTest() {
@@ -99,7 +116,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetAll() {
 	assert.NotNil(suite.T(), c)
 }
 
-func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodById_Ok() {
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetById_Ok() {
 	pm, err := suite.service.paymentMethod.GetById(suite.pmQiwi.Id)
 
 	assert.Nil(suite.T(), err)
@@ -107,14 +124,14 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodById_Ok()
 	assert.Equal(suite.T(), suite.pmQiwi.Id, pm.Id)
 }
 
-func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodById_NotFound() {
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetById_NotFound() {
 	_, err := suite.service.paymentMethod.GetById(bson.NewObjectId().Hex())
 
 	assert.Error(suite.T(), err)
 	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, collectionPaymentMethod))
 }
 
-func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodByGroupAndCurrency_Ok() {
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetByGroupAndCurrency_Ok() {
 	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(suite.pmQiwi.Group, 643)
 
 	assert.Nil(suite.T(), err)
@@ -122,7 +139,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodByGroupAn
 	assert.Equal(suite.T(), suite.pmQiwi.Id, pm.Id)
 }
 
-func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodByGroupAndCurrency_NotFound() {
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetByGroupAndCurrency_NotFound() {
 	_, err := suite.service.paymentMethod.GetByGroupAndCurrency("unknown", 643)
 	assert.Error(suite.T(), err)
 	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, collectionPaymentMethod))
@@ -140,4 +157,468 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_Groups() {
 	assert.NotNil(suite.T(), pm["QIWI"])
 	assert.NotNil(suite.T(), pm["QIWI"][643])
 	assert.Equal(suite.T(), suite.pmQiwi.Id, pm["QIWI"][643].Id)
+}
+
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_Insert_Ok() {
+	id := bson.NewObjectId().Hex()
+	assert.NoError(suite.T(), suite.service.paymentMethod.Insert(&billing.PaymentMethod{
+		Id:              id,
+		PaymentSystemId: id,
+	}))
+}
+
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_Insert_ErrorCacheUpdate() {
+	id := bson.NewObjectId().Hex()
+	ci := &mock.CacheInterface{}
+	ci.On("Delete", "payment_method:all").Return(nil)
+	ci.On("Set", "payment_method:id:"+id, mock2.Anything, mock2.Anything).
+		Return(errors.New("service unavailable"))
+	suite.service.cacher = ci
+	err := suite.service.paymentMethod.Insert(&billing.PaymentMethod{Id: id, PaymentSystemId: id})
+
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, "service unavailable")
+}
+
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_Update_Ok() {
+	assert.NoError(suite.T(), suite.service.paymentMethod.Update(&billing.PaymentMethod{
+		Id:              suite.pmQiwi.Id,
+		PaymentSystemId: suite.pmQiwi.Id,
+	}))
+}
+
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_NotFound() {
+	id := bson.NewObjectId().Hex()
+	err := suite.service.paymentMethod.Update(&billing.PaymentMethod{Id: id, PaymentSystemId: id})
+
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, "not found")
+}
+
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_Update_ErrorCacheUpdate() {
+	id := bson.NewObjectId().Hex()
+	ci := &mock.CacheInterface{}
+	ci.On("Delete", "payment_method:all").Return(nil)
+	ci.On("Set", "payment_method:id:"+id, mock2.Anything, mock2.Anything).
+		Return(errors.New("service unavailable"))
+	suite.service.cacher = ci
+	_ = suite.service.paymentMethod.Insert(&billing.PaymentMethod{Id: id, PaymentSystemId: id})
+	err := suite.service.paymentMethod.Update(&billing.PaymentMethod{Id: id, PaymentSystemId: id})
+
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, "service unavailable")
+}
+
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_ErrorNoTestSettings() {
+	method := &billing.PaymentMethod{}
+	merchant := &billing.Merchant{}
+	project := &billing.Project{}
+	_, err := suite.service.paymentMethod.GetPaymentSettings(method, merchant, project)
+
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, paymentMethodErrorTestSettings)
+}
+
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_OkTestSettings() {
+	method := &billing.PaymentMethod{
+		TestSettings: &billing.PaymentMethodParams{Secret: "unit_test"},
+	}
+	merchant := &billing.Merchant{}
+	project := &billing.Project{}
+	settings, err := suite.service.paymentMethod.GetPaymentSettings(method, merchant, project)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), method.TestSettings.Secret, settings.Secret)
+}
+
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_ErrorMerchantBanking() {
+	method := &billing.PaymentMethod{}
+	merchant := &billing.Merchant{}
+	project := &billing.Project{
+		Status: pkg.ProjectStatusInProduction,
+	}
+	_, err := suite.service.paymentMethod.GetPaymentSettings(method, merchant, project)
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, paymentMethodErrorBankingSettings)
+
+	merchant.Banking = nil
+	_, err = suite.service.paymentMethod.GetPaymentSettings(method, merchant, project)
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, paymentMethodErrorBankingSettings)
+
+	merchant.Banking = &billing.MerchantBanking{Currency: nil}
+	_, err = suite.service.paymentMethod.GetPaymentSettings(method, merchant, project)
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, paymentMethodErrorBankingSettings)
+}
+
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_ErrorNoPaymentCurrency() {
+	method := &billing.PaymentMethod{
+		ProductionSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {Currency: "RUB"},
+		},
+	}
+	merchant := &billing.Merchant{
+		Banking: &billing.MerchantBanking{
+			Currency: &billing.Currency{CodeA3: "EUR"},
+		},
+	}
+	project := &billing.Project{
+		Status: pkg.ProjectStatusInProduction,
+	}
+	_, err := suite.service.paymentMethod.GetPaymentSettings(method, merchant, project)
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, paymentMethodErrorNotFoundProductionSettings)
+}
+
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_Ok() {
+	method := &billing.PaymentMethod{
+		ProductionSettings: map[string]*billing.PaymentMethodParams{
+			"EUR": {Secret: "unit_test"},
+		},
+	}
+	merchant := &billing.Merchant{
+		Banking: &billing.MerchantBanking{
+			Currency: &billing.Currency{CodeA3: "EUR"},
+		},
+	}
+	project := &billing.Project{
+		Status: pkg.ProjectStatusInProduction,
+	}
+	settings, err := suite.service.paymentMethod.GetPaymentSettings(method, merchant, project)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), method.ProductionSettings["EUR"].Secret, settings.Secret)
+}
+
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMethod_ErrorPaymentSystem() {
+	req := &billing.PaymentMethod{
+		PaymentSystemId: bson.NewObjectId().Hex(),
+	}
+	rsp := &grpc.ChangePaymentMethodResponse{}
+	paymentSystem := &mock.PaymentSystemServiceInterface{}
+
+	paymentSystem.On("GetById", req.PaymentSystemId).Return(nil, errors.New("not found"))
+	suite.service.paymentSystem = paymentSystem
+
+	err := suite.service.CreateOrUpdatePaymentMethod(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), paymentMethodErrorPaymentSystem, rsp.Message)
+}
+
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMethod_ErrorInvalidId() {
+	req := &billing.PaymentMethod{
+		Id:              bson.NewObjectId().Hex(),
+		PaymentSystemId: bson.NewObjectId().Hex(),
+	}
+	rsp := &grpc.ChangePaymentMethodResponse{}
+	paymentSystem := &mock.PaymentSystemServiceInterface{}
+
+	paymentSystem.On("GetById", req.PaymentSystemId).Return(&billing.PaymentSystem{}, nil)
+	suite.service.paymentSystem = paymentSystem
+
+	err := suite.service.CreateOrUpdatePaymentMethod(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, rsp.Status)
+	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionPaymentMethod), rsp.Message)
+}
+
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMethod_ErrorActivate() {
+	req := &billing.PaymentMethod{
+		PaymentSystemId: bson.NewObjectId().Hex(),
+		IsActive:        true,
+	}
+	rsp := &grpc.ChangePaymentMethodResponse{}
+	paymentSystem := &mock.PaymentSystemServiceInterface{}
+
+	paymentSystem.On("GetById", req.PaymentSystemId).Return(&billing.PaymentSystem{}, nil)
+	suite.service.paymentSystem = paymentSystem
+
+	err := suite.service.CreateOrUpdatePaymentMethod(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), paymentMethodErrorPaymentSystem, rsp.Message)
+
+	req.ExternalId = "externalId"
+	err = suite.service.CreateOrUpdatePaymentMethod(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), paymentMethodErrorPaymentSystem, rsp.Message)
+
+	req.Currencies = []int32{1}
+	err = suite.service.CreateOrUpdatePaymentMethod(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), paymentMethodErrorPaymentSystem, rsp.Message)
+
+	req.Type = "type"
+	err = suite.service.CreateOrUpdatePaymentMethod(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), paymentMethodErrorPaymentSystem, rsp.Message)
+
+	req.Group = "group"
+	err = suite.service.CreateOrUpdatePaymentMethod(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), paymentMethodErrorPaymentSystem, rsp.Message)
+
+	req.Name = "name"
+	err = suite.service.CreateOrUpdatePaymentMethod(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), paymentMethodErrorPaymentSystem, rsp.Message)
+
+	req.TestSettings = &billing.PaymentMethodParams{}
+	err = suite.service.CreateOrUpdatePaymentMethod(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), paymentMethodErrorPaymentSystem, rsp.Message)
+
+	req.ExternalId = ""
+	req.ProductionSettings = map[string]*billing.PaymentMethodParams{"RUB": {Currency: "RUB"}}
+	err = suite.service.CreateOrUpdatePaymentMethod(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), paymentMethodErrorPaymentSystem, rsp.Message)
+}
+
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMethod_OkWithActivate() {
+	req := &billing.PaymentMethod{
+		PaymentSystemId:    bson.NewObjectId().Hex(),
+		IsActive:           true,
+		ExternalId:         "externalId",
+		Currencies:         []int32{1},
+		Type:               "type",
+		Group:              "group",
+		Name:               "name",
+		TestSettings:       &billing.PaymentMethodParams{},
+		ProductionSettings: map[string]*billing.PaymentMethodParams{"RUB": {Currency: "RUB"}},
+	}
+	rsp := &grpc.ChangePaymentMethodResponse{}
+	paymentSystem := &mock.PaymentSystemServiceInterface{}
+
+	paymentSystem.On("GetById", req.PaymentSystemId).Return(&billing.PaymentSystem{}, nil)
+	suite.service.paymentSystem = paymentSystem
+
+	err := suite.service.CreateOrUpdatePaymentMethod(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+}
+
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMethod_OkWithoutActivate() {
+	req := &billing.PaymentMethod{
+		PaymentSystemId: bson.NewObjectId().Hex(),
+	}
+	rsp := &grpc.ChangePaymentMethodResponse{}
+	paymentSystem := &mock.PaymentSystemServiceInterface{}
+
+	paymentSystem.On("GetById", req.PaymentSystemId).Return(&billing.PaymentSystem{}, nil)
+	suite.service.paymentSystem = paymentSystem
+
+	err := suite.service.CreateOrUpdatePaymentMethod(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+}
+
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMethodProductionSettings_ErrorPaymentMethod() {
+	req := &grpc.ChangePaymentMethodParamsRequest{
+		PaymentMethodId: bson.NewObjectId().Hex(),
+		Params:          &billing.PaymentMethodParams{},
+	}
+	rsp := &grpc.ChangePaymentMethodParamsResponse{}
+	method := &mock.PaymentMethodInterface{}
+
+	method.On("GetById", req.PaymentMethodId).Return(nil, errors.New("not found"))
+	suite.service.paymentMethod = method
+
+	err := suite.service.CreateOrUpdatePaymentMethodProductionSettings(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, rsp.Status)
+	assert.Equal(suite.T(), paymentMethodErrorUnknownMethod, rsp.Message)
+}
+
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMethodProductionSettings_ErrorUpdate() {
+	req := &grpc.ChangePaymentMethodParamsRequest{
+		PaymentMethodId: bson.NewObjectId().Hex(),
+		Params: &billing.PaymentMethodParams{
+			Currency:       "RUB",
+			TerminalId:     "ID",
+			Secret:         "unit_test",
+			SecretCallback: "unit_test_callback",
+		},
+	}
+	rsp := &grpc.ChangePaymentMethodParamsResponse{}
+	method := &mock.PaymentMethodInterface{}
+
+	method.On("GetById", req.PaymentMethodId).Return(&billing.PaymentMethod{}, nil)
+	method.On("Update", mock2.Anything).Return(errors.New("not found"))
+	suite.service.paymentMethod = method
+
+	err := suite.service.CreateOrUpdatePaymentMethodProductionSettings(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp.Status)
+	assert.Equal(suite.T(), "not found", rsp.Message)
+}
+
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMethodProductionSettings_Ok() {
+	req := &grpc.ChangePaymentMethodParamsRequest{
+		PaymentMethodId: bson.NewObjectId().Hex(),
+		Params: &billing.PaymentMethodParams{
+			Currency:       "RUB",
+			TerminalId:     "ID",
+			Secret:         "unit_test",
+			SecretCallback: "unit_test_callback",
+		},
+	}
+	rsp := &grpc.ChangePaymentMethodParamsResponse{}
+	method := &mock.PaymentMethodInterface{}
+
+	method.On("GetById", req.PaymentMethodId).Return(&billing.PaymentMethod{}, nil)
+	method.On("Update", mock2.Anything).Return(nil)
+	suite.service.paymentMethod = method
+
+	err := suite.service.CreateOrUpdatePaymentMethodProductionSettings(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+}
+
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodProductionSettings_EmptyByPaymentMethod() {
+	req := &grpc.GetPaymentMethodProductionSettingsRequest{
+		PaymentMethodId: bson.NewObjectId().Hex(),
+	}
+	rsp := &billing.PaymentMethodParams{}
+	method := &mock.PaymentMethodInterface{}
+
+	method.On("GetById", req.PaymentMethodId).Return(nil, errors.New("not found"))
+	suite.service.paymentMethod = method
+
+	err := suite.service.GetPaymentMethodProductionSettings(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "", rsp.Currency)
+	assert.Equal(suite.T(), "", rsp.Secret)
+	assert.Equal(suite.T(), "", rsp.SecretCallback)
+	assert.Equal(suite.T(), "", rsp.TerminalId)
+}
+
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodProductionSettings_EmptyBySettings() {
+	req := &grpc.GetPaymentMethodProductionSettingsRequest{
+		PaymentMethodId: bson.NewObjectId().Hex(),
+		CurrencyA3:      "RUB",
+	}
+	rsp := &billing.PaymentMethodParams{}
+	method := &mock.PaymentMethodInterface{}
+
+	method.On("GetById", req.PaymentMethodId).Return(&billing.PaymentMethod{
+		ProductionSettings: map[string]*billing.PaymentMethodParams{
+			"EUR": {Secret: "unit_test"},
+		},
+	}, nil)
+	suite.service.paymentMethod = method
+
+	err := suite.service.GetPaymentMethodProductionSettings(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "", rsp.Currency)
+	assert.Equal(suite.T(), "", rsp.Secret)
+	assert.Equal(suite.T(), "", rsp.SecretCallback)
+	assert.Equal(suite.T(), "", rsp.TerminalId)
+}
+
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodProductionSettings_Ok() {
+	req := &grpc.GetPaymentMethodProductionSettingsRequest{
+		PaymentMethodId: bson.NewObjectId().Hex(),
+		CurrencyA3:      "RUB",
+	}
+	rsp := &billing.PaymentMethodParams{}
+	method := &mock.PaymentMethodInterface{}
+
+	method.On("GetById", req.PaymentMethodId).Return(&billing.PaymentMethod{
+		ProductionSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {Currency: "RUB", Secret: "unit_test"},
+		},
+	}, nil)
+	suite.service.paymentMethod = method
+
+	err := suite.service.GetPaymentMethodProductionSettings(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodProductionSettings_ErrorByPaymentMethod() {
+	req := &grpc.GetPaymentMethodProductionSettingsRequest{
+		PaymentMethodId: bson.NewObjectId().Hex(),
+	}
+	rsp := &grpc.ChangePaymentMethodParamsResponse{}
+	method := &mock.PaymentMethodInterface{}
+
+	method.On("GetById", req.PaymentMethodId).Return(nil, errors.New("not found"))
+	suite.service.paymentMethod = method
+
+	err := suite.service.DeletePaymentMethodProductionSettings(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, rsp.Status)
+	assert.Equal(suite.T(), paymentMethodErrorUnknownMethod, rsp.Message)
+}
+
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodProductionSettings_ErrorNoSettings() {
+	req := &grpc.GetPaymentMethodProductionSettingsRequest{
+		PaymentMethodId: bson.NewObjectId().Hex(),
+		CurrencyA3:      "EUR",
+	}
+	rsp := &grpc.ChangePaymentMethodParamsResponse{}
+	method := &mock.PaymentMethodInterface{}
+
+	method.On("GetById", req.PaymentMethodId).Return(&billing.PaymentMethod{
+		ProductionSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {Currency: "RUB", Secret: "unit_test"},
+		},
+	}, nil)
+	suite.service.paymentMethod = method
+
+	err := suite.service.DeletePaymentMethodProductionSettings(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, rsp.Status)
+	assert.Equal(suite.T(), paymentMethodErrorNotFoundProductionSettings, rsp.Message)
+}
+
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodProductionSettings_ErrorUpdate() {
+	req := &grpc.GetPaymentMethodProductionSettingsRequest{
+		PaymentMethodId: bson.NewObjectId().Hex(),
+		CurrencyA3:      "RUB",
+	}
+	rsp := &grpc.ChangePaymentMethodParamsResponse{}
+	method := &mock.PaymentMethodInterface{}
+
+	method.On("GetById", req.PaymentMethodId).Return(&billing.PaymentMethod{
+		ProductionSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {Currency: "RUB", Secret: "unit_test"},
+		},
+	}, nil)
+	method.On("Update", mock2.Anything).Return(errors.New("service unavailable"))
+	suite.service.paymentMethod = method
+
+	err := suite.service.DeletePaymentMethodProductionSettings(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp.Status)
+	assert.Equal(suite.T(), "service unavailable", rsp.Message)
+}
+
+func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodProductionSettings_Ok() {
+	req := &grpc.GetPaymentMethodProductionSettingsRequest{
+		PaymentMethodId: bson.NewObjectId().Hex(),
+		CurrencyA3:      "RUB",
+	}
+	rsp := &grpc.ChangePaymentMethodParamsResponse{}
+	method := &mock.PaymentMethodInterface{}
+
+	method.On("GetById", req.PaymentMethodId).Return(&billing.PaymentMethod{
+		ProductionSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {Currency: "RUB", Secret: "unit_test"},
+		},
+	}, nil)
+	method.On("Update", mock2.Anything).Return(nil)
+	suite.service.paymentMethod = method
+
+	err := suite.service.DeletePaymentMethodProductionSettings(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 }

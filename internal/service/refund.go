@@ -13,6 +13,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
+	"go.uber.org/zap"
 )
 
 const (
@@ -83,7 +84,7 @@ func (s *Service) CreateRefund(
 	err = s.db.Collection(collectionRefund).UpdateId(bson.ObjectIdHex(refund.Id), refund)
 
 	if err != nil {
-		s.logError("Query to update refund failed", []interface{}{"err", err.Error(), "data", refund})
+		zap.S().Errorf("Query to update refund failed", "err", err.Error(), "data", refund)
 
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = orderErrorUnknown
@@ -109,7 +110,7 @@ func (s *Service) ListRefunds(
 
 	if err != nil {
 		if err != mgo.ErrNotFound {
-			s.logError("Query to find refunds by order failed", []interface{}{"err", err.Error(), "query", query})
+			zap.S().Errorf("Query to find refunds by order failed", "err", err.Error(), "query", query)
 		}
 
 		return nil
@@ -118,7 +119,7 @@ func (s *Service) ListRefunds(
 	count, err := s.db.Collection(collectionRefund).Find(query).Count()
 
 	if err != nil {
-		s.logError("Query to count refunds by order failed", []interface{}{"err", err.Error(), "query", query})
+		zap.S().Errorf("Query to count refunds by order failed", "err", err.Error(), "query", query)
 		return nil
 	}
 
@@ -142,7 +143,7 @@ func (s *Service) GetRefund(
 
 	if err != nil {
 		if err != mgo.ErrNotFound {
-			s.logError("Query to find refund by id failed", []interface{}{"err", err.Error(), "query", query})
+			zap.S().Errorf("Query to find refund by id failed", "err", err.Error(), "query", query)
 		}
 
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -192,7 +193,7 @@ func (s *Service) ProcessRefundCallback(
 
 	if err != nil || refund == nil {
 		if err != nil && err != mgo.ErrNotFound {
-			s.logError("Query to find refund by id failed", []interface{}{"err", err.Error(), "id", refundId})
+			zap.S().Errorf("Query to find refund by id failed", "err", err.Error(), "id", refundId)
 		}
 
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -245,7 +246,7 @@ func (s *Service) ProcessRefundCallback(
 	err = s.db.Collection(collectionRefund).UpdateId(bson.ObjectIdHex(refundId), refund)
 
 	if err != nil {
-		s.logError("Update refund data failed", []interface{}{"err", err.Error(), "refund", refund})
+		zap.S().Errorf("Update refund data failed", "err", err.Error(), "refund", refund)
 
 		rsp.Error = orderErrorUnknown
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -271,7 +272,7 @@ func (s *Service) ProcessRefundCallback(
 			err = s.updateOrder(order)
 
 			if err != nil {
-				s.logError("Update order data failed", []interface{}{"err", err.Error(), "order", order})
+				zap.S().Errorf("Update order data failed", "err", err.Error(), "order", order)
 			}
 		}
 

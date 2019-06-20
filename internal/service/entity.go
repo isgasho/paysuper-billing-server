@@ -18,4 +18,5 @@ type PaymentMethod Entity
 type Merchant Entity
 type SystemFee Entity
 type PriceGroup Entity
+type PaymentSystemService Entity
 type ZipCode Entity
