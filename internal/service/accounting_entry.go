@@ -8,23 +8,24 @@ import (
 )
 
 var (
-	availableAccountingEntry = map[string]func() ([]*billing.AccountingEntry, error){
-		pkg.AccountingEntryTypePayment:                (accountingEntry{}).payment,
-		pkg.AccountingEntryTypePsMarkupPaymentFx:      (accountingEntry{}).psMarkupPaymentFx,
-		pkg.AccountingEntryTypeMethodFee:              (accountingEntry{}).methodFee,
-		pkg.AccountingEntryTypePsMarkupMethodFee:      (accountingEntry{}).psMarkupMethodFee,
-		pkg.AccountingEntryTypeMethodFixedFee:         (accountingEntry{}).methodFixedFee,
-		pkg.AccountingEntryTypePsMarkupMethodFixedFee: (accountingEntry{}).psMarkupMethodFixedFee,
-		pkg.AccountingEntryTypePsFee:                  (accountingEntry{}).psFee,
-		pkg.AccountingEntryTypePsFixedFee:             (accountingEntry{}).psFixedFee,
-		pkg.AccountingEntryTypePsMarkupFixedFeeFx:     (accountingEntry{}).psMarkupFixedFeeFx,
-		pkg.AccountingEntryTypeTaxFee:                 (accountingEntry{}).taxFee,
-		pkg.AccountingEntryTypePsTaxFxFee:             (accountingEntry{}).psTaxFxFee,
+	availableAccountingEntry = map[string]func(h *accountingEntry) error{
+		pkg.AccountingEntryTypePayment:                func(h *accountingEntry) error { return h.payment() },
+		pkg.AccountingEntryTypePsMarkupPaymentFx:      func(h *accountingEntry) error { return h.psMarkupPaymentFx() },
+		pkg.AccountingEntryTypeMethodFee:              func(h *accountingEntry) error { return h.methodFee() },
+		pkg.AccountingEntryTypePsMarkupMethodFee:      func(h *accountingEntry) error { return h.psMarkupMethodFee() },
+		pkg.AccountingEntryTypeMethodFixedFee:         func(h *accountingEntry) error { return h.methodFixedFee() },
+		pkg.AccountingEntryTypePsMarkupMethodFixedFee: func(h *accountingEntry) error { return h.psMarkupMethodFixedFee() },
+		pkg.AccountingEntryTypePsFee:                  func(h *accountingEntry) error { return h.psFee() },
+		pkg.AccountingEntryTypePsFixedFee:             func(h *accountingEntry) error { return h.psFixedFee() },
+		pkg.AccountingEntryTypePsMarkupFixedFeeFx:     func(h *accountingEntry) error { return h.psMarkupFixedFeeFx() },
+		pkg.AccountingEntryTypeTaxFee:                 func(h *accountingEntry) error { return h.taxFee() },
+		pkg.AccountingEntryTypePsTaxFxFee:             func(h *accountingEntry) error { return h.psTaxFxFee() },
 	}
 )
 
 type accountingEntry struct {
-	order *billing.Order
+	order             *billing.Order
+	accountingEntries []*billing.AccountingEntry
 }
 
 func (s *Service) CreateAccountingEntry(
@@ -32,49 +33,61 @@ func (s *Service) CreateAccountingEntry(
 	req *grpc.CreateAccountingEntryRequest,
 	rsp *grpc.CreateAccountingEntryRequest,
 ) error {
+	fn, ok := availableAccountingEntry[req.Type]
 
+	if !ok {
+		//вернуть ошибку
+	}
+
+	err := fn
+
+	if err != nil {
+		//вернуть ошибку
+	}
+
+	return nil
 }
 
-func (h *accountingEntry) payment() ([]*billing.AccountingEntry, error) {
-	return nil, nil
+func (h *accountingEntry) payment() error {
+	return nil
 }
 
-func (h *accountingEntry) psMarkupPaymentFx() ([]*billing.AccountingEntry, error) {
-	return nil, nil
+func (h *accountingEntry) psMarkupPaymentFx() error {
+	return nil
 }
 
-func (h *accountingEntry) methodFee() ([]*billing.AccountingEntry, error) {
-	return nil, nil
+func (h *accountingEntry) methodFee() error {
+	return nil
 }
 
-func (h *accountingEntry) psMarkupMethodFee() ([]*billing.AccountingEntry, error) {
-	return nil, nil
+func (h *accountingEntry) psMarkupMethodFee() error {
+	return nil
 }
 
-func (h *accountingEntry) methodFixedFee() ([]*billing.AccountingEntry, error) {
-	return nil, nil
+func (h *accountingEntry) methodFixedFee() error {
+	return nil
 }
 
-func (h *accountingEntry) psMarkupMethodFixedFee() ([]*billing.AccountingEntry, error) {
-	return nil, nil
+func (h *accountingEntry) psMarkupMethodFixedFee() error {
+	return nil
 }
 
-func (h *accountingEntry) psFee() ([]*billing.AccountingEntry, error) {
-	return nil, nil
+func (h *accountingEntry) psFee() error {
+	return nil
 }
 
-func (h *accountingEntry) psFixedFee() ([]*billing.AccountingEntry, error) {
-	return nil, nil
+func (h *accountingEntry) psFixedFee() error {
+	return nil
 }
 
-func (h *accountingEntry) psMarkupFixedFeeFx() ([]*billing.AccountingEntry, error) {
-	return nil, nil
+func (h *accountingEntry) psMarkupFixedFeeFx() error {
+	return nil
 }
 
-func (h *accountingEntry) taxFee() ([]*billing.AccountingEntry, error) {
-	return nil, nil
+func (h *accountingEntry) taxFee() error {
+	return nil
 }
 
-func (h *accountingEntry) psTaxFxFee() ([]*billing.AccountingEntry, error) {
-	return nil, nil
+func (h *accountingEntry) psTaxFxFee() error {
+	return nil
 }
