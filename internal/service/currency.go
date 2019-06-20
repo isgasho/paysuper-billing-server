@@ -40,12 +40,12 @@ func (s *Service) GetCurrency(
 ) error {
 	var err error
 
-	if req.Int != 0 {
-		res, err = s.currency.GetByCodeInt(int(req.Int))
+	if req.CurrencyInt != 0 {
+		res, err = s.currency.GetByCodeInt(int(req.CurrencyInt))
 	}
 
-	if req.A3 != "" {
-		res, err = s.currency.GetByCodeA3(req.A3)
+	if req.CurrencyCode != "" {
+		res, err = s.currency.GetByCodeA3(req.CurrencyCode)
 	}
 
 	if err != nil {

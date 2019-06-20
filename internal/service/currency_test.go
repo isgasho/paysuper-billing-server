@@ -182,7 +182,7 @@ func (suite *CurrencyTestSuite) TestPaymentMethod_GetCurrencyList_ErrorService()
 }
 
 func (suite *CurrencyTestSuite) TestPaymentMethod_GetCurrency_ByInt_Ok() {
-	req := &billing.GetCurrencyRequest{Int: suite.currency.CodeInt}
+	req := &billing.GetCurrencyRequest{CurrencyInt: suite.currency.CodeInt}
 	rsp := &billing.Currency{}
 	currency := &mock.CurrencyServiceInterface{}
 
@@ -195,7 +195,7 @@ func (suite *CurrencyTestSuite) TestPaymentMethod_GetCurrency_ByInt_Ok() {
 }
 
 func (suite *CurrencyTestSuite) TestPaymentMethod_GetCurrency_ByInt_ErrorNotFound() {
-	req := &billing.GetCurrencyRequest{Int: suite.currency.CodeInt}
+	req := &billing.GetCurrencyRequest{CurrencyInt: suite.currency.CodeInt}
 	rsp := &billing.Currency{}
 	currency := &mock.CurrencyServiceInterface{}
 
@@ -207,7 +207,7 @@ func (suite *CurrencyTestSuite) TestPaymentMethod_GetCurrency_ByInt_ErrorNotFoun
 }
 
 func (suite *CurrencyTestSuite) TestPaymentMethod_GetCurrency_ByA3_Ok() {
-	req := &billing.GetCurrencyRequest{A3: suite.currency.CodeA3}
+	req := &billing.GetCurrencyRequest{CurrencyCode: suite.currency.CodeA3}
 	rsp := &billing.Currency{}
 	currency := &mock.CurrencyServiceInterface{}
 
@@ -220,7 +220,7 @@ func (suite *CurrencyTestSuite) TestPaymentMethod_GetCurrency_ByA3_Ok() {
 }
 
 func (suite *CurrencyTestSuite) TestPaymentMethod_GetCurrency_ByA3_ErrorNotFound() {
-	req := &billing.GetCurrencyRequest{A3: suite.currency.CodeA3}
+	req := &billing.GetCurrencyRequest{CurrencyCode: suite.currency.CodeA3}
 	rsp := &billing.Currency{}
 	currency := &mock.CurrencyServiceInterface{}
 
