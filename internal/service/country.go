@@ -11,11 +11,18 @@ import (
 )
 
 const (
-	cacheCountryCodeA2 = "country:code_a2:%s"
-	cacheCountryAll    = "country:all"
+	cacheCountryCodeA2  = "country:code_a2:%s"
+	cacheCountryAll     = "country:all"
+	cacheCountryRegions = "country:all"
 
 	collectionCountry = "country"
+
+	errorRegionNotExists = "region not exists"
 )
+
+type countryRegions struct {
+	Regions map[string]bool
+}
 
 func (s *Service) GetCountriesList(
 	ctx context.Context,
@@ -122,6 +129,9 @@ func (h *Country) Insert(country *billing.Country) error {
 	if err := h.svc.cacher.Delete(cacheCountryAll); err != nil {
 		return err
 	}
+	if err := h.svc.cacher.Delete(cacheCountryRegions); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -139,6 +149,9 @@ func (h Country) MultipleInsert(country []*billing.Country) error {
 	if err := h.svc.cacher.Delete(cacheCountryAll); err != nil {
 		return err
 	}
+	if err := h.svc.cacher.Delete(cacheCountryRegions); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -153,6 +166,9 @@ func (h Country) Update(country *billing.Country) error {
 	}
 
 	if err := h.svc.cacher.Delete(cacheCountryAll); err != nil {
+		return err
+	}
+	if err := h.svc.cacher.Delete(cacheCountryRegions); err != nil {
 		return err
 	}
 
@@ -190,4 +206,23 @@ func (h Country) GetAll() (*billing.CountriesList, error) {
 	}
 
 	return c, nil
+}
+
+func (h Country) IsRegionExists(region string) (bool, error) {
+	var c = &countryRegions{}
+	key := cacheCountryRegions
+	if err := h.svc.cacher.Get(key, c); err != nil {
+		countries, err := h.GetAll()
+		if err != nil {
+			return false, err
+		}
+		c.Regions = make(map[string]bool)
+		for _, country := range countries.Countries {
+			c.Regions[country.Region] = true
+		}
+		_ = h.svc.cacher.Set(key, c, 0)
+	}
+
+	_, ok := c.Regions[region]
+	return ok, nil
 }

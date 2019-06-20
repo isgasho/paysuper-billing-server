@@ -56,13 +56,6 @@ It has these top-level messages:
 	RefundPayerData
 	RefundOrder
 	Refund
-	SystemFee
-	MinAmount
-	FeeSet
-	SystemFees
-	SystemFeesList
-	AddSystemFeesRequest
-	GetSystemFeesRequest
 	MerchantPaymentMethodHistory
 	CustomerIdentity
 	CustomerIpHistory
@@ -87,6 +80,22 @@ It has these top-level messages:
 	PriceGroup
 	ZipCodeState
 	ZipCode
+	PaymentChannelCostSystem
+	PaymentChannelCostSystemRequest
+	PaymentChannelCostSystemList
+	PaymentChannelCostMerchant
+	PaymentChannelCostMerchantRequest
+	PaymentChannelCostMerchantList
+	PaymentChannelCostMerchantListRequest
+	MoneyBackCostSystem
+	MoneyBackCostSystemRequest
+	MoneyBackCostSystemList
+	MoneyBackCostMerchant
+	MoneyBackCostMerchantRequest
+	PaymentCostDeleteRequest
+	MoneyBackCostMerchantList
+	MoneyBackCostMerchantListRequest
+	PayoutCostSystem
 	AccountingEntry
 */
 package billing

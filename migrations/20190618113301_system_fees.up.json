@@ -1,0 +1,119 @@
+[
+  {
+    "create": "payment_channel_cost_system"
+  },
+  {
+    "create": "payment_channel_cost_merchant"
+  },
+  {
+    "create": "money_back_cost_system"
+  },
+  {
+    "create": "money_back_cost_merchant"
+  },
+  {
+    "create": "payout_cost_system"
+  },
+  {
+    "createIndexes": "payment_channel_cost_system",
+    "indexes": [
+      {
+        "key": {
+          "name": 1,
+          "region": 1,
+          "country": 1
+        },
+        "name": "nrc",
+        "unique": true
+      },
+      {
+        "key": {
+          "is_active": 1
+        },
+        "name": "is_active"
+      }
+    ]
+  },
+  {
+    "createIndexes": "payment_channel_cost_merchant",
+    "indexes": [
+      {
+        "key": {
+          "merchant_id": 1,
+          "name": 1,
+          "payout_currency": 1,
+          "min_amount": 1,
+          "region": 1,
+          "country": 1
+        },
+        "name": "mnpmrc",
+        "unique": true
+      },
+      {
+        "key": {
+          "merchant_id": 1,
+          "name": 1,
+          "payout_currency": 1,
+          "region": 1,
+          "country": 1
+        },
+        "name": "mnprc"
+      },
+      {
+        "key": {
+          "is_active": 1
+        },
+        "name": "is_active"
+      }
+    ]
+  },
+  {
+    "createIndexes": "money_back_cost_system",
+    "indexes": [
+      {
+        "key": {
+          "name": 1,
+          "payout_currency": 1,
+          "undo_reason": 1,
+          "region": 1,
+          "country": 1,
+          "days_from": 1,
+          "payment_stage": 1
+        },
+        "name": "npurcdp",
+        "unique": true
+      },
+      {
+        "key": {
+          "is_active": 1
+        },
+        "name": "is_active"
+      }
+    ]
+  },
+  {
+    "createIndexes": "money_back_cost_merchant",
+    "indexes": [
+      {
+        "key": {
+          "merchant_id": 1,
+          "name": 1,
+          "payout_currency": 1,
+          "undo_reason": 1,
+          "region": 1,
+          "country": 1,
+          "days_from": 1,
+          "payment_stage": 1
+        },
+        "name": "mnpurcdp",
+        "unique": true
+      },
+      {
+        "key": {
+          "is_active": 1
+        },
+        "name": "is_active"
+      }
+    ]
+  }
+]

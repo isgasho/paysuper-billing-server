@@ -768,6 +768,14 @@ func (s *Service) mapMerchantData(rsp *billing.Merchant, merchant *billing.Merch
 	rsp.AgreementType = merchant.AgreementType
 	rsp.AgreementSentViaMail = merchant.AgreementSentViaMail
 	rsp.MailTrackingLink = merchant.MailTrackingLink
+	rsp.PayoutCostAmount = merchant.PayoutCostAmount
+	rsp.PayoutCostCurrency = merchant.PayoutCostCurrency
+	rsp.MinPayoutAmount = merchant.MinPayoutAmount
+	rsp.RollingReserveThreshold = merchant.RollingReserveThreshold
+	rsp.RollingReserveDays = merchant.RollingReserveDays
+	rsp.RollingReserveChargebackTransactionsThreshold = merchant.RollingReserveChargebackTransactionsThreshold
+	rsp.ItemMinCostAmount = merchant.ItemMinCostAmount
+	rsp.ItemMinCostCurrency = merchant.ItemMinCostCurrency
 }
 
 func (s *Service) addNotification(
