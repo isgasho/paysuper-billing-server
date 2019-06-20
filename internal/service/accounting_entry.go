@@ -25,7 +25,7 @@ var (
 
 type accountingEntry struct {
 	order             *billing.Order
-	accountingEntries []*billing.AccountingEntry
+	accountingEntries []interface{}
 }
 
 func (s *Service) CreateAccountingEntry(
