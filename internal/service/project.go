@@ -10,6 +10,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"go.uber.org/zap"
 )
 
 const (
@@ -166,7 +167,7 @@ func (s *Service) ListProjects(
 	count, err := s.db.Collection(collectionProject).Find(query).Count()
 
 	if err != nil {
-		s.logError("Query to count projects failed", []interface{}{"err", err.Error(), "query", query})
+		zap.S().Errorf("Query to count projects failed", "err", err.Error(), "query", query)
 		return errors.New(orderErrorUnknown)
 	}
 
@@ -219,7 +220,7 @@ func (s *Service) ListProjects(
 	err = s.db.Collection(collectionProject).Pipe(afQuery).All(&projects)
 
 	if err != nil {
-		s.logError("Query to find projects failed", []interface{}{"err", err.Error(), "query", afQuery})
+		zap.S().Errorf("Query to find projects failed", "err", err.Error(), "query", afQuery)
 		return errors.New(orderErrorUnknown)
 	}
 
@@ -262,7 +263,7 @@ func (s *Service) DeleteProject(
 	project.Status = pkg.ProjectStatusDeleted
 
 	if err := s.project.Update(project); err != nil {
-		s.logError("Query to delete project failed", []interface{}{"err", err.Error(), "data", project})
+		zap.S().Errorf("Query to delete project failed", "err", err.Error(), "data", project)
 
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = err.Error()
@@ -278,7 +279,7 @@ func (s *Service) getProjectBy(query bson.M) (project *billing.Project, err erro
 
 	if err != nil {
 		if err != mgo.ErrNotFound {
-			s.logError("Query to find project failed", []interface{}{"err", err.Error(), "query", query})
+			zap.S().Errorf("Query to find project failed", "err", err.Error(), "query", query)
 		}
 
 		return project, errProjectNotFound
@@ -315,7 +316,7 @@ func (s *Service) createProject(req *billing.Project) (*billing.Project, error) 
 	}
 
 	if err := s.project.Insert(project); err != nil {
-		s.logError("Query to create project failed", []interface{}{"err", err.Error(), "data", project})
+		zap.S().Errorf("Query to create project failed", "err", err.Error(), "data", project)
 		return nil, errors.New(orderErrorUnknown)
 	}
 
@@ -350,7 +351,7 @@ func (s *Service) updateProject(req *billing.Project, project *billing.Project) 
 	project.UrlProcessPayment = req.UrlProcessPayment
 
 	if err := s.project.Update(project); err != nil {
-		s.logError("Query to update project failed", []interface{}{"err", err.Error(), "data", project})
+		zap.S().Errorf("Query to update project failed", "err", err.Error(), "data", project)
 		return errors.New(orderErrorUnknown)
 	}
 

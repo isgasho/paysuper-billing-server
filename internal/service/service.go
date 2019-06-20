@@ -71,9 +71,10 @@ type Service struct {
 	country       *Country
 	project       *Project
 	merchant      *Merchant
-	paymentMethod *PaymentMethod
+	paymentMethod PaymentMethodInterface
 	systemFees    *SystemFee
 	priceGroup    *PriceGroup
+	paymentSystem PaymentSystemServiceInterface
 	zipCode       *ZipCode
 }
 
@@ -109,6 +110,7 @@ func (s *Service) Init() (err error) {
 	s.project = newProjectService(s)
 	s.systemFees = newSystemFeesService(s)
 	s.priceGroup = newPriceGroupService(s)
+	s.paymentSystem = newPaymentSystemService(s)
 	s.zipCode = newZipCodeService(s)
 
 	s.centrifugoClient = gocent.New(
@@ -146,7 +148,7 @@ func (s *Service) UpdateMerchant(ctx context.Context, req *billing.Merchant, rsp
 	err := s.merchant.Update(req)
 
 	if err != nil {
-		s.logError("Update merchant failed", []interface{}{"error", err.Error(), "order", req})
+		zap.S().Errorf("Update merchant failed", "err", err.Error(), "order", req)
 	}
 
 	return nil
@@ -156,7 +158,7 @@ func (s *Service) GetConvertRate(ctx context.Context, req *grpc.ConvertRateReque
 	rate, err := s.currencyRate.Convert(req.From, req.To, 1)
 
 	if err != nil {
-		s.logError("Get convert rate failed", []interface{}{"error", err.Error(), "from", req.From, "to", req.To})
+		zap.S().Errorf("Get convert rate failed", "err", err.Error(), "from", req.From, "to", req.To)
 	} else {
 		rsp.Rate = rate
 	}

@@ -116,7 +116,47 @@ const (
 	BalanceTransactionStatusPending   = "pending"
 	BalanceTransactionStatusAvailable = "available"
 
-	ErrorDatadaseQueryFailed = "Query to database collection failed"
+	ErrorDatabaseQueryFailed = "Query to database collection failed"
+
+	CardPayDeclineCodeSystemMalfunction                = "01"
+	CardPayDeclineCodeCancelledByCustomer              = "02"
+	CardPayDeclineCodeDeclinedByAntiFraud              = "03"
+	CardPayDeclineCodeDeclinedBy3DSecure               = "04"
+	CardPayDeclineCodeOnly3DSecureTransactionsAllowed  = "05"
+	CardPayDeclineCode3DSecureAvailabilityIsUnknown    = "06"
+	CardPayDeclineCodeLimitReached                     = "07"
+	CardPayDeclineCodeRequestedOperationIsNotSupported = "08"
+	CardPayDeclineCodeDeclinedByBankWithoutReason      = "10"
+	CardPayDeclineCodeCommonDeclineByBank              = "11"
+	CardPayDeclineCodeInsufficientFunds                = "13"
+	CardPayDeclineCodeCardLimitReached                 = "14"
+	CardPayDeclineCodeIncorrectCardData                = "15"
+	CardPayDeclineCodeDeclinedByBankAntiFraud          = "16"
+	CardPayDeclineCodeBanksMalfunction                 = "17"
+	CardPayDeclineCodeConnectionProblem                = "18"
+	CardPayDeclineCodeNoPaymentWasReceived             = "21"
+	CardPayDeclineCodeWrongPaymentWasReceived          = "22"
+	CardPayDeclineCodeConfirmationsPaymentTimeout      = "23"
+
+	PaySuperDeclineCodeSystemMalfunction                = "ps000001"
+	PaySuperDeclineCodeCancelledByCustomer              = "ps000002"
+	PaySuperDeclineCodeDeclinedByAntiFraud              = "ps000003"
+	PaySuperDeclineCodeDeclinedBy3DSecure               = "ps000004"
+	PaySuperDeclineCodeOnly3DSecureTransactionsAllowed  = "ps000005"
+	PaySuperDeclineCode3DSecureAvailabilityIsUnknown    = "ps000006"
+	PaySuperDeclineCodeLimitReached                     = "ps000007"
+	PaySuperDeclineCodeRequestedOperationIsNotSupported = "ps000008"
+	PaySuperDeclineCodeDeclinedByBankWithoutReason      = "ps000009"
+	PaySuperDeclineCodeCommonDeclineByBank              = "ps000010"
+	PaySuperDeclineCodeInsufficientFunds                = "ps000011"
+	PaySuperDeclineCodeCardLimitReached                 = "ps000012"
+	PaySuperDeclineCodeIncorrectCardData                = "ps000013"
+	PaySuperDeclineCodeDeclinedByBankAntiFraud          = "ps000014"
+	PaySuperDeclineCodeBanksMalfunction                 = "ps000015"
+	PaySuperDeclineCodeConnectionProblem                = "ps000016"
+	PaySuperDeclineCodeNoPaymentWasReceived             = "ps000017"
+	PaySuperDeclineCodeWrongPaymentWasReceived          = "ps000018"
+	PaySuperDeclineCodeConfirmationsPaymentTimeout      = "ps000019"
 )
 
 var (
@@ -143,5 +183,27 @@ var (
 		372:  "EE",
 		82:   "KR",
 		996:  "KG",
+	}
+
+	DeclineCodeMap = map[string]string{
+		CardPayDeclineCodeSystemMalfunction:                PaySuperDeclineCodeSystemMalfunction,
+		CardPayDeclineCodeCancelledByCustomer:              PaySuperDeclineCodeCancelledByCustomer,
+		CardPayDeclineCodeDeclinedByAntiFraud:              PaySuperDeclineCodeDeclinedByAntiFraud,
+		CardPayDeclineCodeDeclinedBy3DSecure:               PaySuperDeclineCodeDeclinedBy3DSecure,
+		CardPayDeclineCodeOnly3DSecureTransactionsAllowed:  PaySuperDeclineCodeOnly3DSecureTransactionsAllowed,
+		CardPayDeclineCode3DSecureAvailabilityIsUnknown:    PaySuperDeclineCode3DSecureAvailabilityIsUnknown,
+		CardPayDeclineCodeLimitReached:                     PaySuperDeclineCodeLimitReached,
+		CardPayDeclineCodeRequestedOperationIsNotSupported: PaySuperDeclineCodeRequestedOperationIsNotSupported,
+		CardPayDeclineCodeDeclinedByBankWithoutReason:      PaySuperDeclineCodeDeclinedByBankWithoutReason,
+		CardPayDeclineCodeCommonDeclineByBank:              PaySuperDeclineCodeCommonDeclineByBank,
+		CardPayDeclineCodeInsufficientFunds:                PaySuperDeclineCodeInsufficientFunds,
+		CardPayDeclineCodeCardLimitReached:                 PaySuperDeclineCodeCardLimitReached,
+		CardPayDeclineCodeIncorrectCardData:                PaySuperDeclineCodeIncorrectCardData,
+		CardPayDeclineCodeDeclinedByBankAntiFraud:          PaySuperDeclineCodeDeclinedByBankAntiFraud,
+		CardPayDeclineCodeBanksMalfunction:                 PaySuperDeclineCodeBanksMalfunction,
+		CardPayDeclineCodeConnectionProblem:                PaySuperDeclineCodeConnectionProblem,
+		CardPayDeclineCodeNoPaymentWasReceived:             PaySuperDeclineCodeNoPaymentWasReceived,
+		CardPayDeclineCodeWrongPaymentWasReceived:          PaySuperDeclineCodeWrongPaymentWasReceived,
+		CardPayDeclineCodeConfirmationsPaymentTimeout:      PaySuperDeclineCodeConfirmationsPaymentTimeout,
 	}
 )

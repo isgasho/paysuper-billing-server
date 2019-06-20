@@ -7,6 +7,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"go.uber.org/zap"
 )
 
 const (
@@ -86,7 +87,7 @@ func (s *Service) UpdateCountry(
 
 	err = s.country.Update(update)
 	if err != nil {
-		s.logError("update country failed", []interface{}{"err", err.Error(), "data", update})
+		zap.S().Errorf("update country failed", "err", err.Error(), "data", update)
 		return err
 	}
 

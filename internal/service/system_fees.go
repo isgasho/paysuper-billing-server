@@ -9,6 +9,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
+	"go.uber.org/zap"
 	"sort"
 )
 
@@ -64,22 +65,22 @@ func (s *Service) AddSystemFees(
 
 	method, err := s.paymentMethod.GetById(req.MethodId)
 	if err != nil {
-		s.logError("GetPaymentMethodById failed", []interface{}{"err", err.Error(), "data", req})
+		zap.S().Errorf("GetPaymentMethodById failed", "err", err.Error(), "data", req)
 		return err
 	}
 
 	if method.IsBankCard() == true {
 		if req.CardBrand == "" {
-			s.logError(errorSystemFeeCardBrandRequired, []interface{}{"data", req})
+			zap.S().Errorf(errorSystemFeeCardBrandRequired, "data", req)
 			return errors.New(errorSystemFeeCardBrandRequired)
 		}
 		if !contains(CardBrands, req.CardBrand) {
-			s.logError(errorSystemFeeCardBrandInvalid, []interface{}{"data", req})
+			zap.S().Errorf(errorSystemFeeCardBrandInvalid, "data", req)
 			return errors.New(errorSystemFeeCardBrandInvalid)
 		}
 	} else {
 		if req.CardBrand != "" {
-			s.logError(errorSystemFeeCardBrandNotAllowed, []interface{}{"data", req})
+			zap.S().Errorf(errorSystemFeeCardBrandNotAllowed, "data", req)
 			return errors.New(errorSystemFeeCardBrandNotAllowed)
 		}
 	}
@@ -116,13 +117,13 @@ func (s *Service) AddSystemFees(
 	if f != nil {
 		f.IsActive = false
 		if err := s.systemFees.Update(f); err != nil {
-			s.logError("Query to disable old fees failed", []interface{}{"err", err.Error(), "req", req})
+			zap.S().Errorf("Query to disable old fees failed", "err", err.Error(), "req", req)
 			return err
 		}
 	}
 
 	if err := s.systemFees.Insert(fees); err != nil {
-		s.logError("Query to add fees failed", []interface{}{"err", err.Error(), "data", req})
+		zap.S().Errorf("Query to add fees failed", "err", err.Error(), "req", req)
 		return err
 	}
 
@@ -177,7 +178,7 @@ func (s *Service) GetActualSystemFeesList(
 	)
 	e := s.db.Collection(collectionSystemFees).Find(query).All(&fees)
 	if e != nil {
-		s.logError("Get System fees failed", []interface{}{"err", e.Error(), "query", query})
+		zap.S().Errorf("Get System fees failed", "err", e.Error(), "query", query)
 		return e
 	}
 	res.SystemFees = fees
@@ -191,7 +192,6 @@ func newSystemFeesService(svc *Service) *SystemFee {
 
 func (h *SystemFee) Insert(fees *billing.SystemFees) error {
 	if err := h.svc.db.Collection(collectionSystemFees).Insert(fees); err != nil {
-		fmt.Println(err)
 		return err
 	}
 

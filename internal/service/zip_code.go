@@ -37,7 +37,7 @@ func (s *Service) FindByZipCode(
 
 	if err != nil {
 		zap.L().Error(
-			pkg.ErrorDatadaseQueryFailed,
+			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionZipCode),
 			zap.Any("query", query),
@@ -55,7 +55,7 @@ func (s *Service) FindByZipCode(
 	if err != nil {
 		if err != mgo.ErrNotFound {
 			zap.L().Error(
-				pkg.ErrorDatadaseQueryFailed,
+				pkg.ErrorDatabaseQueryFailed,
 				zap.Error(err),
 				zap.String("collection", collectionZipCode),
 				zap.Any("query", query),
@@ -87,7 +87,7 @@ func (h *ZipCode) getByZipAndCountry(zip, country string) (*billing.ZipCode, err
 	if err != nil {
 		if err != mgo.ErrNotFound {
 			zap.L().Error(
-				pkg.ErrorDatadaseQueryFailed,
+				pkg.ErrorDatabaseQueryFailed,
 				zap.Error(err),
 				zap.String("collection", collectionZipCode),
 				zap.Any("query", query),

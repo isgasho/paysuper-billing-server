@@ -72,15 +72,12 @@ func (suite *SystemFeesTestSuite) SetupTest() {
 		Group:            "BANKCARD",
 		MinPaymentAmount: 100,
 		MaxPaymentAmount: 15000,
-		Currency:         rub,
 		Currencies:       []int32{643, 840, 980},
-		Params:           &billing.PaymentMethodParams{},
+		TestSettings:     &billing.PaymentMethodParams{},
 		Type:             "bank_card",
 		IsActive:         true,
 		AccountRegexp:    "^(?:4[0-9]{12}(?:[0-9]{3})?|[25][1-7][0-9]{14}|6(?:011|5[0-9][0-9])[0-9]{12}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|(?:2131|1800|35\\d{3})\\d{11})$",
-		PaymentSystem: &billing.PaymentSystem{
-			Id: bson.NewObjectId().Hex(),
-		},
+		PaymentSystemId:  bson.NewObjectId().Hex(),
 	}
 
 	pmWebMoney := &billing.PaymentMethod{
@@ -89,14 +86,11 @@ func (suite *SystemFeesTestSuite) SetupTest() {
 		Group:            "WEBMONEY",
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
-		Currency:         rub,
 		Currencies:       []int32{643, 840, 980},
-		Params:           &billing.PaymentMethodParams{},
+		TestSettings:     &billing.PaymentMethodParams{},
 		Type:             "ewallet",
 		IsActive:         true,
-		PaymentSystem: &billing.PaymentSystem{
-			Id: bson.NewObjectId().Hex(),
-		},
+		PaymentSystemId:  bson.NewObjectId().Hex(),
 	}
 
 	pms := []*billing.PaymentMethod{pmBankCard, pmWebMoney}

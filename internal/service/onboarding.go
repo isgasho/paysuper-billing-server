@@ -9,6 +9,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"go.uber.org/zap"
 	"time"
 )
 
@@ -137,7 +138,7 @@ func (s *Service) ListMerchants(
 	count, err := s.db.Collection(collectionMerchant).Find(query).Count()
 
 	if err != nil {
-		s.logError("Query to count merchants failed", []interface{}{"err", err.Error(), "query", query})
+		zap.S().Errorf("Query to count merchants failed", "err", err.Error(), "query", query)
 		return errors.New(merchantErrorUnknown)
 	}
 
@@ -145,7 +146,7 @@ func (s *Service) ListMerchants(
 		Skip(int(req.Offset)).All(&merchants)
 
 	if err != nil {
-		s.logError("Query to find merchants failed", []interface{}{"err", err.Error(), "query", query})
+		zap.S().Errorf("Query to find merchants failed", "err", err.Error(), "query", query)
 		return errors.New(merchantErrorUnknown)
 	}
 
@@ -212,7 +213,7 @@ func (s *Service) ChangeMerchant(
 		country, err := s.country.GetByIsoCodeA2(req.Country)
 
 		if err != nil {
-			s.logError("Get country for merchant failed", []interface{}{"err", err.Error(), "request", req})
+			zap.S().Errorf("Get country for merchant failed", "err", err.Error(), "request", req)
 			return errors.New(merchantErrorCountryNotFound)
 		}
 
@@ -225,7 +226,7 @@ func (s *Service) ChangeMerchant(
 		currency, err := s.currency.GetByCodeA3(req.Banking.Currency)
 
 		if err != nil {
-			s.logError("Get currency for merchant failed", []interface{}{"err", err.Error(), "request", req})
+			zap.S().Errorf("Get currency for merchant failed", "err", err.Error(), "request", req)
 			return errors.New(merchantErrorCurrencyNotFound)
 		}
 
@@ -257,7 +258,7 @@ func (s *Service) ChangeMerchant(
 	}
 
 	if err != nil {
-		s.logError("Query to change merchant data failed", []interface{}{"err", err.Error(), "data", merchant})
+		zap.S().Errorf("Query to change merchant data failed", "err", err.Error(), "data", merchant)
 		return errors.New(merchantErrorUnknown)
 	}
 
@@ -317,7 +318,7 @@ func (s *Service) ChangeMerchantStatus(
 	}
 
 	if err := s.merchant.Update(merchant); err != nil {
-		s.logError("Query to change merchant data failed", []interface{}{"err", err.Error(), "data", rsp})
+		zap.S().Errorf("Query to change merchant data failed", "err", err.Error(), "data", rsp)
 		return errors.New(merchantErrorUnknown)
 	}
 
@@ -352,7 +353,7 @@ func (s *Service) ChangeMerchantData(
 		_, err = s.addNotification(NotificationStatusChangeTitles[merchant.Status], "", merchant.Id, "", nStatuses)
 
 		if err != nil {
-			s.logError("Add notification failed", []interface{}{"err", err.Error(), "data", merchant})
+			zap.S().Errorf("Add notification failed", "err", err.Error(), "data", merchant)
 		}
 
 		merchant.Status = pkg.MerchantStatusAgreementRequested
@@ -370,7 +371,7 @@ func (s *Service) ChangeMerchantData(
 	}
 
 	if err := s.merchant.Update(merchant); err != nil {
-		s.logError("Query to change merchant data failed", []interface{}{"err", err.Error(), "data", merchant})
+		zap.S().Errorf("Query to change merchant data failed", "err", err.Error(), "data", merchant)
 		return errors.New(merchantErrorUnknown)
 	}
 
@@ -397,7 +398,7 @@ func (s *Service) SetMerchantS3Agreement(
 	merchant.S3AgreementName = req.S3AgreementName
 
 	if err := s.merchant.Update(merchant); err != nil {
-		s.logError("Query to change merchant data failed", []interface{}{"err", err.Error(), "data", merchant})
+		zap.S().Errorf("Query to change merchant data failed", "err", err.Error(), "data", merchant)
 		return errors.New(merchantErrorUnknown)
 	}
 
@@ -487,7 +488,7 @@ func (s *Service) ListNotifications(
 	count, err := s.db.Collection(collectionNotification).Find(query).Count()
 
 	if err != nil {
-		s.logError("Query to count merchant notifications failed", []interface{}{"err", err.Error(), "query", query})
+		zap.S().Errorf("Query to count merchant notifications failed", "err", err.Error(), "query", query)
 		return errors.New(orderErrorUnknown)
 	}
 
@@ -496,7 +497,7 @@ func (s *Service) ListNotifications(
 
 	if err != nil {
 		if err != mgo.ErrNotFound {
-			s.logError("Query to find notifications failed", []interface{}{"err", err.Error(), "query", query})
+			zap.S().Errorf("Query to find notifications failed", "err", err.Error(), "query", query)
 			return errors.New(orderErrorUnknown)
 		}
 
@@ -529,7 +530,7 @@ func (s *Service) MarkNotificationAsRead(
 	err = s.db.Collection(collectionNotification).UpdateId(bson.ObjectIdHex(notification.Id), notification)
 
 	if err != nil {
-		s.logError("Update notification failed", []interface{}{"err", err.Error(), "query", notification})
+		zap.S().Errorf("Update notification failed", "err", err.Error(), "query", notification)
 		return errors.New(merchantErrorUnknown)
 	}
 
@@ -612,7 +613,7 @@ func (s *Service) ListMerchantPaymentMethods(
 	err = s.db.Collection(collectionPaymentMethod).Find(query).Sort(req.Sort...).All(&pms)
 
 	if err != nil {
-		s.logError("Query to find payment methods failed", []interface{}{"error", err.Error(), "query", query})
+		zap.S().Errorf("Query to find payment methods failed", "err", err.Error(), "query", query)
 		return nil
 	}
 
@@ -700,7 +701,7 @@ func (s *Service) ChangeMerchantPaymentMethod(
 	}
 	err = s.db.Collection(collectionMerchantPaymentMethodHistory).Insert(history)
 	if err != nil {
-		s.logError("Query to update merchant payment methods history", []interface{}{"error", err.Error(), "query", merchant})
+		zap.S().Errorf("Query to update merchant payment methods history", "err", err.Error(), "data", merchant)
 
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = orderErrorUnknown
@@ -709,7 +710,7 @@ func (s *Service) ChangeMerchantPaymentMethod(
 	}
 
 	if err := s.merchant.Update(merchant); err != nil {
-		s.logError("Query to update merchant payment methods failed", []interface{}{"error", err.Error(), "query", merchant})
+		zap.S().Errorf("Query to update merchant payment methods failed", "err", err.Error(), "data", merchant)
 
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = orderErrorUnknown
@@ -727,7 +728,7 @@ func (s *Service) getMerchantBy(query bson.M) (merchant *billing.Merchant, err e
 	err = s.db.Collection(collectionMerchant).Find(query).One(&merchant)
 
 	if err != nil && err != mgo.ErrNotFound {
-		s.logError("Query to find merchant by id failed", []interface{}{"err", err.Error(), "query", query})
+		zap.S().Errorf("Query to find merchant by id failed", "err", err.Error(), "query", query)
 
 		return merchant, errors.New(merchantErrorUnknown)
 	}
@@ -796,7 +797,7 @@ func (s *Service) addNotification(
 	err := s.db.Collection(collectionNotification).Insert(notification)
 
 	if err != nil {
-		s.logError("Query to insert notification failed", []interface{}{"err", err.Error(), "query", notification})
+		zap.S().Errorf("Query to insert notification failed", "err", err.Error(), "query", notification)
 		return nil, errors.New(merchantErrorUnknown)
 	}
 
@@ -814,7 +815,7 @@ func (s *Service) getNotificationById(
 
 	if err != nil {
 		if err != mgo.ErrNotFound {
-			s.logError("Query to find notification by id failed", []interface{}{"err", err.Error(), "query", query})
+			zap.S().Errorf("Query to find notification by id failed", "err", err.Error(), "query", query)
 		}
 
 		return notification, errors.New(notificationErrorNotFound)

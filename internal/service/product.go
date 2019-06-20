@@ -7,6 +7,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"go.uber.org/zap"
 	"gopkg.in/mgo.v2"
 )
 
@@ -33,17 +34,17 @@ func (s *Service) CreateOrUpdateProduct(ctx context.Context, req *grpc.Product, 
 	} else {
 		err = s.GetProduct(ctx, &grpc.RequestProduct{Id: req.Id, MerchantId: req.MerchantId}, product)
 		if err != nil {
-			s.logError("Product that requested to change is not found", []interface{}{"err", err.Error(), "data", req})
+			zap.S().Errorf("Product that requested to change is not found", "err", err.Error(), "data", req)
 			return err
 		}
 
 		if req.MerchantId != product.MerchantId {
-			s.logError("MerchantId mismatch", []interface{}{"data", req})
+			zap.S().Errorf("MerchantId mismatch", "data", req)
 			return errors.New("merchantId mismatch")
 		}
 
 		if req.ProjectId != product.ProjectId {
-			s.logError("ProjectId mismatch", []interface{}{"data", req})
+			zap.S().Errorf("ProjectId mismatch", "data", req)
 			return errors.New("projectId mismatch")
 		}
 
@@ -53,17 +54,17 @@ func (s *Service) CreateOrUpdateProduct(ctx context.Context, req *grpc.Product, 
 	req.Deleted = false
 
 	if !req.IsPricesContainDefaultCurrency() {
-		s.logError("No price in default currency", []interface{}{"data", req})
+		zap.S().Errorf("No price in default currency", "data", req)
 		return errors.New("no price in default currency")
 	}
 
 	if _, err := req.GetLocalizedName(DefaultLanguage); err != nil {
-		s.logError("No name in default language", []interface{}{"data", req})
+		zap.S().Errorf("No name in default language", "data", req)
 		return err
 	}
 
 	if _, err := req.GetLocalizedDescription(DefaultLanguage); err != nil {
-		s.logError("No description in default language", []interface{}{"data", req})
+		zap.S().Errorf("No description in default language", "data", req)
 		return err
 	}
 
@@ -71,7 +72,7 @@ func (s *Service) CreateOrUpdateProduct(ctx context.Context, req *grpc.Product, 
 	dupQuery := bson.M{"project_id": bson.ObjectIdHex(req.ProjectId), "sku": req.Sku, "deleted": false}
 	found, err := s.db.Collection(collectionProduct).Find(dupQuery).Count()
 	if err != nil {
-		s.logError("Query to find duplicates failed", []interface{}{"err", err.Error(), "req", req})
+		zap.S().Errorf("Query to find duplicates failed", "err", err.Error(), "data", req)
 		return err
 	}
 	allowed := 1
@@ -79,14 +80,14 @@ func (s *Service) CreateOrUpdateProduct(ctx context.Context, req *grpc.Product, 
 		allowed = 0
 	}
 	if found > allowed {
-		s.logError("Pair projectId+Sku already exists", []interface{}{"data", req})
+		zap.S().Errorf("Pair projectId+Sku already exists", "data", req)
 		return errors.New("pair projectId+Sku already exists")
 	}
 
 	_, err = s.db.Collection(collectionProduct).UpsertId(bson.ObjectIdHex(req.Id), req)
 
 	if err != nil {
-		s.logError("Query to create/update product failed", []interface{}{"err", err.Error(), "data", req})
+		zap.S().Errorf("Query to create/update product failed", "err", err.Error(), "data", req)
 		return err
 	}
 
@@ -114,7 +115,7 @@ func (s *Service) CreateOrUpdateProduct(ctx context.Context, req *grpc.Product, 
 
 func (s *Service) GetProductsForOrder(ctx context.Context, req *grpc.GetProductsForOrderRequest, res *grpc.ListProductsResponse) error {
 	if len(req.Ids) == 0 {
-		s.logError("Ids list is empty", []interface{}{"data", req})
+		zap.S().Errorf("Ids list is empty", "data", req)
 		return errors.New("ids list is empty")
 	}
 	query := bson.M{"enabled": true, "deleted": false, "project_id": bson.ObjectIdHex(req.ProjectId)}
@@ -129,7 +130,7 @@ func (s *Service) GetProductsForOrder(ctx context.Context, req *grpc.GetProducts
 	err := s.db.Collection(collectionProduct).Find(query).All(&found)
 
 	if err != nil {
-		s.logError("Query to find refund by id failed", []interface{}{"err", err.Error(), "req", req})
+		zap.S().Errorf("Query to find refund by id failed", "err", err.Error(), "data", req)
 		return err
 	}
 
@@ -157,7 +158,7 @@ func (s *Service) ListProducts(ctx context.Context, req *grpc.ListProductsReques
 
 	total, err := s.db.Collection(collectionProduct).Find(query).Count()
 	if err != nil {
-		s.logError("Query to find refund by id failed", []interface{}{"err", err.Error(), "req", req})
+		zap.S().Errorf("Query to find refund by id failed", "err", err.Error(), "data", req)
 		return err
 	}
 
@@ -175,7 +176,7 @@ func (s *Service) ListProducts(ctx context.Context, req *grpc.ListProductsReques
 	err = s.db.Collection(collectionProduct).Find(query).Skip(int(req.Offset)).Limit(int(req.Limit)).All(&items)
 
 	if err != nil {
-		s.logError("Query to find refund by id failed", []interface{}{"err", err.Error(), "req", req})
+		zap.S().Errorf("Query to find refund by id failed", "err", err.Error(), "data", req)
 		return err
 	}
 
@@ -193,7 +194,7 @@ func (s *Service) GetProduct(ctx context.Context, req *grpc.RequestProduct, res 
 	err := s.db.Collection(collectionProduct).Find(query).One(&res)
 
 	if err != nil {
-		s.logError("Query to find refund by id failed", []interface{}{"err", err.Error(), "query", query})
+		zap.S().Errorf("Query to find refund by id failed", "err", err.Error(), "data", req)
 		return err
 	}
 
@@ -206,7 +207,7 @@ func (s *Service) DeleteProduct(ctx context.Context, req *grpc.RequestProduct, r
 
 	err := s.GetProduct(ctx, &grpc.RequestProduct{Id: req.Id, MerchantId: req.MerchantId}, product)
 	if err != nil {
-		s.logError("Product that requested to delete is not found", []interface{}{"err", err.Error(), "data", req})
+		zap.S().Errorf("Product that requested to delete is not found", "err", err.Error(), "data", req)
 		return err
 	}
 
@@ -216,7 +217,7 @@ func (s *Service) DeleteProduct(ctx context.Context, req *grpc.RequestProduct, r
 	err = s.db.Collection(collectionProduct).UpdateId(bson.ObjectIdHex(product.Id), product)
 
 	if err != nil {
-		s.logError("Query to delete product failed", []interface{}{"err", err.Error(), "data", req})
+		zap.S().Errorf("Query to delete product failed", "err", err.Error(), "data", req)
 		return err
 	}
 
@@ -228,7 +229,7 @@ func (s *Service) getProductsCountByProject(projectId string) int32 {
 	count, err := s.db.Collection(collectionProduct).Find(query).Count()
 
 	if err != nil {
-		s.logError("Query to get project products count failed", []interface{}{"err", err.Error(), "query", query})
+		zap.S().Errorf("Query to get project products count failed", "err", err.Error(), "query", query)
 	}
 
 	return int32(count)
@@ -252,7 +253,7 @@ func (s *Service) processTokenProducts(req *grpc.TokenRequest) ([]string, error)
 	err := s.db.Collection(collectionProduct).Find(query).All(&products)
 
 	if err != nil && err != mgo.ErrNotFound {
-		s.logError("Query to find project products failed", []interface{}{"err", err.Error(), "query", query})
+		zap.S().Errorf("Query to find project products failed", "err", err.Error(), "query", query)
 		return nil, errors.New(orderErrorUnknown)
 	}
 

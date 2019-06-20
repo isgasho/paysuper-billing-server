@@ -73,6 +73,11 @@ service BillingService {
     rpc SetUserNotifySales(SetUserNotifyRequest) returns (EmptyResponse) {}
     rpc SetUserNotifyNewRegion(SetUserNotifyRequest) returns (EmptyResponse) {}
 
+    rpc CreateOrUpdatePaymentMethod(billing.PaymentMethod) returns (ChangePaymentMethodResponse) {}
+    rpc CreateOrUpdatePaymentMethodProductionSettings(ChangePaymentMethodParamsRequest) returns (ChangePaymentMethodParamsResponse) {}
+    rpc GetPaymentMethodProductionSettings(GetPaymentMethodProductionSettingsRequest) returns (billing.PaymentMethodParams) {}
+    rpc DeletePaymentMethodProductionSettings(GetPaymentMethodProductionSettingsRequest) returns (ChangePaymentMethodParamsResponse) {}
+
     rpc FindByZipCode(FindByZipCodeRequest) returns (FindByZipCodeResponse) {}
 }
 
@@ -712,6 +717,38 @@ message NotifyUserNewRegion {
     //@inject_tag: bson:"date"
     string date = 5;
 }
+
+message GetPaymentMethodProductionSettingsRequest {
+    // @inject_tag: query:"payment_method_id" validate:"required,hexadecimal,len=24"
+    string payment_method_id = 1;
+    // @inject_tag: query:"currency_a3" validate:"required,alpha,len=3"
+    string currency_a3 = 2;
+}
+
+message ChangePaymentMethodRequest {
+    // @inject_tag: query:"payment_method_id" validate:"required,hexadecimal,len=24"
+    string payment_method_id = 1;
+    // @inject_tag: query:"params" validate:"required"
+    billing.PaymentMethod params = 2;
+}
+
+message ChangePaymentMethodParamsRequest {
+    // @inject_tag: query:"payment_method_id" validate:"required,hexadecimal,len=24"
+    string payment_method_id = 1;
+    // @inject_tag: query:"params" validate:"required"
+    billing.PaymentMethodParams params = 2;
+}
+
+message ChangePaymentMethodResponse {
+    int32 status = 1;
+    string message = 2;
+}
+
+message ChangePaymentMethodParamsResponse {
+    int32 status = 1;
+    string message = 2;
+}
+
 
 message FindByZipCodeRequest {
     // @inject_tag: query:"country" validate:"required,len=2"
