@@ -422,8 +422,9 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMeth
 }
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMethodProductionSettings_ErrorPaymentMethod() {
-	req := &grpc.ChangePaymentMethodRequest{
+	req := &grpc.ChangePaymentMethodParamsRequest{
 		PaymentMethodId: bson.NewObjectId().Hex(),
+		Params:          &billing.PaymentMethodParams{},
 	}
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
 	method := &mock.PaymentMethodInterface{}
@@ -438,10 +439,13 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMeth
 }
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMethodProductionSettings_ErrorUpdate() {
-	req := &grpc.ChangePaymentMethodRequest{
+	req := &grpc.ChangePaymentMethodParamsRequest{
 		PaymentMethodId: bson.NewObjectId().Hex(),
-		Params: &billing.PaymentMethod{
-			ProductionSettings: map[string]*billing.PaymentMethodParams{"RUB": {Secret: "unit_test"}},
+		Params: &billing.PaymentMethodParams{
+			Currency:       "RUB",
+			TerminalId:     "ID",
+			Secret:         "unit_test",
+			SecretCallback: "unit_test_callback",
 		},
 	}
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
@@ -458,10 +462,13 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMeth
 }
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMethodProductionSettings_Ok() {
-	req := &grpc.ChangePaymentMethodRequest{
+	req := &grpc.ChangePaymentMethodParamsRequest{
 		PaymentMethodId: bson.NewObjectId().Hex(),
-		Params: &billing.PaymentMethod{
-			ProductionSettings: map[string]*billing.PaymentMethodParams{"RUB": {Secret: "unit_test"}},
+		Params: &billing.PaymentMethodParams{
+			Currency:       "RUB",
+			TerminalId:     "ID",
+			Secret:         "unit_test",
+			SecretCallback: "unit_test_callback",
 		},
 	}
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
