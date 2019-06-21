@@ -322,15 +322,20 @@ func (h *accountingEntry) psMarkupMethodFee() error {
 		}
 	}
 
+	userCountry := h.order.GetUserCountry()
+	country, err := h.country.GetByIsoCodeA2(userCountry)
+
+	if err != nil {
+		return err
+	}
+
 	req := &billing.PaymentChannelCostMerchantRequest{
 		MerchantId:     h.order.GetMerchantId(),
 		Name:           name,
 		PayoutCurrency: h.order.RoyaltyData.MerchantRoyaltyCurrency,
-		Amount:         h.order.TotalPaymentAmount,
-		// @inject_tag: json:"region" bson:"region" validate:"required,alpha"
-		//Region string `protobuf:"bytes,5,opt,name=region,proto3" json:"region" bson:"region" validate:"required,alpha"`
-		// @inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
-		//Country
+		Amount:         h.order.RoyaltyData.AmountInRoyaltyCurrency,
+		Region:         country.Region,
+		Country:        h.order.GetUserCountry(),
 	}
 	h.getPaymentChannelCostMerchant(req)
 

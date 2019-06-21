@@ -75,3 +75,11 @@ func (m *Order) GetBankCardBrand() (string, error) {
 
 	return val, nil
 }
+
+func (m *Order) GetUserCountry() string {
+	if m.BillingAddress != nil && m.BillingAddress.Country != "" {
+		return m.BillingAddress.Country
+	}
+
+	return m.User.Address.Country
+}
