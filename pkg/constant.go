@@ -157,6 +157,12 @@ const (
 	PaySuperDeclineCodeNoPaymentWasReceived             = "ps000017"
 	PaySuperDeclineCodeWrongPaymentWasReceived          = "ps000018"
 	PaySuperDeclineCodeConfirmationsPaymentTimeout      = "ps000019"
+
+	PaymentCreateBankCardFieldBrand         = "card_brand"
+	PaymentCreateBankCardFieldType          = "card_type"
+	PaymentCreateBankCardFieldCategory      = "card_category"
+	PaymentCreateBankCardFieldIssuerName    = "bank_issuer_name"
+	PaymentCreateBankCardFieldIssuerCountry = "bank_issuer_country"
 )
 
 var (

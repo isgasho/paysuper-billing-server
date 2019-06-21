@@ -91,12 +91,6 @@ const (
 	orderErrorCreatePaymentRequiredFieldUserCountryNotFound   = "user country is required"
 	orderErrorCreatePaymentRequiredFieldUserZipNotFound       = "user zip is required"
 
-	paymentCreateBankCardFieldBrand         = "card_brand"
-	paymentCreateBankCardFieldType          = "card_type"
-	paymentCreateBankCardFieldCategory      = "card_category"
-	paymentCreateBankCardFieldIssuerName    = "bank_issuer_name"
-	paymentCreateBankCardFieldIssuerCountry = "bank_issuer_country"
-
 	orderDefaultDescription      = "Payment by order # %s"
 	orderInlineFormImagesUrlMask = "//%s%s"
 
@@ -2035,11 +2029,11 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 		bin := v.service.getBinData(order.PaymentRequisites[pkg.PaymentCreateFieldPan])
 
 		if bin != nil {
-			order.PaymentRequisites[paymentCreateBankCardFieldBrand] = bin.CardBrand
-			order.PaymentRequisites[paymentCreateBankCardFieldType] = bin.CardType
-			order.PaymentRequisites[paymentCreateBankCardFieldCategory] = bin.CardCategory
-			order.PaymentRequisites[paymentCreateBankCardFieldIssuerName] = bin.BankName
-			order.PaymentRequisites[paymentCreateBankCardFieldIssuerCountry] = bin.BankCountryName
+			order.PaymentRequisites[pkg.PaymentCreateBankCardFieldBrand] = bin.CardBrand
+			order.PaymentRequisites[pkg.PaymentCreateBankCardFieldType] = bin.CardType
+			order.PaymentRequisites[pkg.PaymentCreateBankCardFieldCategory] = bin.CardCategory
+			order.PaymentRequisites[pkg.PaymentCreateBankCardFieldIssuerName] = bin.BankName
+			order.PaymentRequisites[pkg.PaymentCreateBankCardFieldIssuerCountry] = bin.BankCountryName
 		}
 	} else {
 		account := ""

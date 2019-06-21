@@ -1,8 +1,13 @@
 package billing
 
 import (
+	"errors"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
+)
+
+const (
+	orderBankCardBrandNotFound = "brand for bank card not found"
 )
 
 func (m *Order) GetMerchantId() string {
@@ -55,4 +60,18 @@ func (m *Order) GetPublicDeclineCode() string {
 
 func (m *Order) GetMerchantRoyaltyCurrency() string {
 	return m.RoyaltyData.MerchantRoyaltyCurrency
+}
+
+func (m *Order) GetPaymentMethodName() string {
+	return m.PaymentMethod.Name
+}
+
+func (m *Order) GetBankCardBrand() (string, error) {
+	val, ok := m.PaymentRequisites[pkg.PaymentCreateBankCardFieldBrand]
+
+	if !ok {
+		return "", errors.New(orderBankCardBrandNotFound)
+	}
+
+	return val, nil
 }

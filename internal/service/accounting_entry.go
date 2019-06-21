@@ -305,6 +305,35 @@ func (h *accountingEntry) methodFee() error {
 }
 
 func (h *accountingEntry) psMarkupMethodFee() error {
+	if h.order == nil {
+		//вернуть ошибку
+		return nil
+	}
+
+	var err error
+
+	name := h.order.GetPaymentMethodName()
+
+	if h.order.PaymentMethod.IsBankCard() == true {
+		name, err = h.order.GetBankCardBrand()
+
+		if err != nil {
+			return err
+		}
+	}
+
+	req := &billing.PaymentChannelCostMerchantRequest{
+		MerchantId:     h.order.GetMerchantId(),
+		Name:           name,
+		PayoutCurrency: h.order.RoyaltyData.MerchantRoyaltyCurrency,
+		Amount:         h.order.TotalPaymentAmount,
+		// @inject_tag: json:"region" bson:"region" validate:"required,alpha"
+		//Region string `protobuf:"bytes,5,opt,name=region,proto3" json:"region" bson:"region" validate:"required,alpha"`
+		// @inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
+		//Country
+	}
+	h.getPaymentChannelCostMerchant(req)
+
 	return nil
 }
 
