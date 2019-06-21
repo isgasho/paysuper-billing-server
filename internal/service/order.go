@@ -1250,6 +1250,12 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 		},
 	}
 
+	if merchantPayoutCurrency != nil {
+		order.RoyaltyData = &billing.RoyaltyData{
+			MerchantRoyaltyCurrency: v.checked.merchant.GetPayoutCurrency().CodeA3,
+		}
+	}
+
 	if order.User == nil {
 		order.User = &billing.OrderUser{
 			Object: pkg.ObjectTypeUser,

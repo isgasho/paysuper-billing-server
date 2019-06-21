@@ -52,3 +52,7 @@ func (m *Order) GetPublicDeclineCode() string {
 
 	return code
 }
+
+func (m *Order) GetMerchantRoyaltyCurrency() string {
+	return m.RoyaltyData.MerchantRoyaltyCurrency
+}

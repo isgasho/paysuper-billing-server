@@ -15,6 +15,7 @@ import (
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"go.uber.org/zap"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -729,6 +730,8 @@ func (h *cardPay) getCryptoCurrencyCardPayOrder(cpo *CardPayOrder, requisites ma
 func (h *cardPay) checkCallbackRequestSignature(raw, signature string) error {
 	hash := sha512.New()
 	hash.Write([]byte(raw + h.processor.order.PaymentMethod.Params.SecretCallback))
+
+	log.Println(hex.EncodeToString(hash.Sum(nil)))
 
 	if hex.EncodeToString(hash.Sum(nil)) != signature {
 		return NewError(paymentSystemErrorRequestSignatureIsInvalid, pkg.StatusErrorValidation)

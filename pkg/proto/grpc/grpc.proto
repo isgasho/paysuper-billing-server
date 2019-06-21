@@ -786,15 +786,17 @@ message CreateAccountingEntryRequest {
     // @inject_tag: validate:"required"
     string type = 1;
     // @inject_tag: validate:"omitempty,hexadecimal,len=24"
-    string source = 2;
+    string order_id = 2;
+    // @inject_tag: validate:"omitempty,hexadecimal,len=24"
+    string merchant_id = 3;
     // @inject_tag: validate:"required,numeric"
-    double amount = 3;
+    double amount = 4;
     // @inject_tag: validate:"required,alpha,len=3"
-    string currency = 4;
+    string currency = 5;
     // @inject_tag: query:"limit" validate:"required,oneof=pending available"
-    string status = 5;
+    string status = 6;
     // @inject_tag: validate:"required,numeric,gt=0"
-    int64 date = 6;
+    int64 date = 7;
 }
 
 message CreateAccountingEntryResponse {

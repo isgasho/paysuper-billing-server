@@ -1,6 +1,6 @@
 package service
 
-import (
+/*import (
 	"context"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -12,10 +12,6 @@ import (
 )
 
 const (
-	errorFieldService = "service"
-	errorFieldMethod  = "method"
-	errorFieldRequest = "request"
-
 	errorCommissionNotFound = "Commission by merchant and payment method not found"
 )
 
@@ -378,4 +374,4 @@ func (h *btProcessor) taxFee() (transactions []*BalanceTransaction) {
 
 func (h *btProcessor) psTaxFxFee() {
 
-}
+}*/

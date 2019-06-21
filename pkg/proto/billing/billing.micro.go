@@ -25,7 +25,7 @@ It has these top-level messages:
 	OrderTax
 	OrderBillingAddress
 	OrderUser
-	OrderPaymentRoyaltyData
+	RoyaltyData
 	Order
 	CountryRestriction
 	OrderItem
@@ -96,6 +96,7 @@ It has these top-level messages:
 	MoneyBackCostMerchantList
 	MoneyBackCostMerchantListRequest
 	PayoutCostSystem
+	AccountingEntrySource
 	AccountingEntry
 */
 package billing
