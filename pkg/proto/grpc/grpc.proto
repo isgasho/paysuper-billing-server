@@ -703,9 +703,9 @@ message IsOrderCanBePayingResponse {
 message SetUserNotifyRequest {
     // @inject_tag: validate:"required,uuid"
     string order_uuid = 1;
-    // @inject_tag: query:"enable_notification"
+    // @inject_tag: query:"enable_notification" form:"enable_notification" json:"enable_notification"
     bool enable_notification = 2;
-    // @inject_tag: query:"email" validate:"omitempty,email"
+    // @inject_tag: query:"email" form:"email" json:"email" validate:"omitempty,email"
     string email = 3;
 }
 

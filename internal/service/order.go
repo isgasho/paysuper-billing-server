@@ -26,6 +26,7 @@ import (
 	"github.com/ttacon/libphonenumber"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
+	"log"
 	"regexp"
 	"sort"
 	"strconv"
@@ -933,8 +934,7 @@ func (s *Service) ProcessBillingAddress(
 	rsp *grpc.ProcessBillingAddressResponse,
 ) error {
 	var err error
-
-	zip := new(billing.ZipCode)
+	var zip *billing.ZipCode
 
 	if req.Country == CountryCodeUSA {
 		if req.Zip == "" {
@@ -968,6 +968,7 @@ func (s *Service) ProcessBillingAddress(
 	}
 
 	if zip != nil {
+		log.Println(zip)
 		order.BillingAddress.PostalCode = zip.Zip
 		order.BillingAddress.City = zip.City
 		order.BillingAddress.State = zip.State.Code
