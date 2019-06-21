@@ -47,10 +47,6 @@ service BillingService {
     rpc DeleteProduct (RequestProduct) returns (EmptyResponse) {}
     rpc GetProductsForOrder (GetProductsForOrderRequest) returns (ListProductsResponse) {}
 
-    rpc AddSystemFees (billing.AddSystemFeesRequest) returns (EmptyResponse) {}
-    rpc GetSystemFeesForPayment (billing.GetSystemFeesRequest) returns (billing.FeeSet) {}
-    rpc GetActualSystemFeesList (EmptyRequest) returns (billing.SystemFeesList) {}
-
     rpc ChangeProject (billing.Project) returns (ChangeProjectResponse) {}
     rpc GetProject (GetProjectRequest) returns (ChangeProjectResponse) {}
     rpc ListProjects (ListProjectsRequest) returns (ListProjectsResponse) {}
@@ -78,16 +74,35 @@ service BillingService {
     rpc GetPaymentMethodProductionSettings (GetPaymentMethodProductionSettingsRequest) returns (billing.PaymentMethodParams) {}
     rpc DeletePaymentMethodProductionSettings (GetPaymentMethodProductionSettingsRequest) returns (ChangePaymentMethodParamsResponse) {}
 
-    rpc FindByZipCode (FindByZipCodeRequest) returns (FindByZipCodeResponse) {}
-
     rpc GetCurrencyList (EmptyRequest) returns (billing.CurrencyList) {}
     rpc GetCurrency (billing.GetCurrencyRequest) returns (billing.Currency) {}
 }
+    rpc FindByZipCode(FindByZipCodeRequest) returns (FindByZipCodeResponse) {}
 
-message EmptyRequest {
+    rpc GetAllPaymentChannelCostSystem(EmptyRequest) returns (billing.PaymentChannelCostSystemList) {}
+    rpc GetPaymentChannelCostSystem(billing.PaymentChannelCostSystemRequest) returns (billing.PaymentChannelCostSystem) {}
+    rpc SetPaymentChannelCostSystem(billing.PaymentChannelCostSystem) returns (billing.PaymentChannelCostSystem) {}
+    rpc DeletePaymentChannelCostSystem(billing.PaymentCostDeleteRequest) returns (EmptyResponse) {}
+
+    rpc GetAllPaymentChannelCostMerchant(billing.PaymentChannelCostMerchantListRequest) returns (billing.PaymentChannelCostMerchantList) {}
+    rpc GetPaymentChannelCostMerchant(billing.PaymentChannelCostMerchantRequest) returns (billing.PaymentChannelCostMerchant) {}
+    rpc SetPaymentChannelCostMerchant(billing.PaymentChannelCostMerchant) returns (billing.PaymentChannelCostMerchant) {}
+    rpc DeletePaymentChannelCostMerchant(billing.PaymentCostDeleteRequest) returns (EmptyResponse) {}
+
+    rpc GetAllMoneyBackCostSystem(EmptyRequest) returns (billing.MoneyBackCostSystemList) {}
+    rpc GetMoneyBackCostSystem(billing.MoneyBackCostSystemRequest) returns (billing.MoneyBackCostSystem) {}
+    rpc SetMoneyBackCostSystem(billing.MoneyBackCostSystem) returns (billing.MoneyBackCostSystem) {}
+    rpc DeleteMoneyBackCostSystem(billing.PaymentCostDeleteRequest) returns (EmptyResponse) {}
+
+    rpc GetAllMoneyBackCostMerchant(billing.MoneyBackCostMerchantListRequest) returns (billing.MoneyBackCostMerchantList) {}
+    rpc GetMoneyBackCostMerchant(billing.MoneyBackCostMerchantRequest) returns (billing.MoneyBackCostMerchant) {}
+    rpc SetMoneyBackCostMerchant(billing.MoneyBackCostMerchant) returns (billing.MoneyBackCostMerchant) {}
+    rpc DeleteMoneyBackCostMerchant(billing.PaymentCostDeleteRequest) returns (EmptyResponse) {}
+    rpc CreateAccountingEntry(CreateAccountingEntryRequest) returns (CreateAccountingEntryRequest) {}
 }
-message EmptyResponse {
-}
+
+message EmptyRequest {}
+message EmptyResponse {}
 
 message PaymentCreateRequest {
     map<string, string> data = 1;
@@ -691,9 +706,9 @@ message IsOrderCanBePayingResponse {
 message SetUserNotifyRequest {
     // @inject_tag: validate:"required,uuid"
     string order_uuid = 1;
-    // @inject_tag: query:"enable_notification"
+    // @inject_tag: query:"enable_notification" form:"enable_notification" json:"enable_notification"
     bool enable_notification = 2;
-    // @inject_tag: query:"email" validate:"omitempty,email"
+    // @inject_tag: query:"email" form:"email" json:"email" validate:"omitempty,email"
     string email = 3;
 }
 
@@ -766,4 +781,23 @@ message FindByZipCodeRequest {
 message FindByZipCodeResponse {
     int32 count = 1;
     repeated billing.ZipCode items = 2;
+}
+
+message CreateAccountingEntryRequest {
+    // @inject_tag: validate:"required"
+    string type = 1;
+    // @inject_tag: validate:"omitempty,hexadecimal,len=24"
+    string source = 2;
+    // @inject_tag: validate:"required,numeric"
+    double amount = 3;
+    // @inject_tag: validate:"required,alpha,len=3"
+    string currency = 4;
+    // @inject_tag: query:"limit" validate:"required,oneof=pending available"
+    string status = 5;
+    // @inject_tag: validate:"required,numeric,gt=0"
+    int64 date = 6;
+}
+
+message CreateAccountingEntryResponse {
+    billing.AccountingEntry item = 1;
 }

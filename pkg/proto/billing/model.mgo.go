@@ -29,30 +29,6 @@ type MgoVat struct {
 	UpdatedAt   time.Time     `bson:"updated_at" json:"updated_at,omitempty"`
 }
 
-type MgoSystemFee struct {
-	Percent         float64 `bson:"percent"`
-	PercentCurrency string  `bson:"percent_currency"`
-	FixAmount       float64 `bson:"fix_amount"`
-	FixCurrency     string  `bson:"fix_currency"`
-}
-
-type MgoFeeSet struct {
-	MinAmounts       []*MinAmount  `bson:"min_amounts"`
-	TransactionCost  *MgoSystemFee `bson:"transaction_cost"`
-	AuthorizationFee *MgoSystemFee `bson:"authorization_fee"`
-}
-
-type MgoSystemFees struct {
-	Id        bson.ObjectId `bson:"_id"`
-	MethodId  bson.ObjectId `bson:"method_id"`
-	Region    string        `bson:"region"`
-	CardBrand string        `bson:"card_brand"`
-	Fees      []*MgoFeeSet  `bson:"fees"`
-	UserId    bson.ObjectId `bson:"user_id"`
-	CreatedAt time.Time     `bson:"created_at"`
-	IsActive  bool          `bson:"is_active"`
-}
-
 type MgoProject struct {
 	Id                       bson.ObjectId   `bson:"_id"`
 	MerchantId               bson.ObjectId   `bson:"merchant_id"`
@@ -103,36 +79,44 @@ type MgoMerchantPaymentMethod struct {
 }
 
 type MgoMerchant struct {
-	Id                        bson.ObjectId                        `bson:"_id"`
-	User                      *MerchantUser                        `bson:"user"`
-	Name                      string                               `bson:"name"`
-	AlternativeName           string                               `bson:"alternative_name"`
-	Website                   string                               `bson:"website"`
-	Country                   string                               `bson:"country"`
-	State                     string                               `bson:"state"`
-	Zip                       string                               `bson:"zip"`
-	City                      string                               `bson:"city"`
-	Address                   string                               `bson:"address"`
-	AddressAdditional         string                               `bson:"address_additional"`
-	RegistrationNumber        string                               `bson:"registration_number"`
-	TaxId                     string                               `bson:"tax_id"`
-	Contacts                  *MerchantContact                     `bson:"contacts"`
-	Banking                   *MerchantBanking                     `bson:"banking"`
-	Status                    int32                                `bson:"status"`
-	CreatedAt                 time.Time                            `bson:"created_at"`
-	UpdatedAt                 time.Time                            `bson:"updated_at"`
-	FirstPaymentAt            time.Time                            `bson:"first_payment_at"`
-	IsVatEnabled              bool                                 `bson:"is_vat_enabled"`
-	IsCommissionToUserEnabled bool                                 `bson:"is_commission_to_user_enabled"`
-	HasMerchantSignature      bool                                 `bson:"has_merchant_signature"`
-	HasPspSignature           bool                                 `bson:"has_psp_signature"`
-	LastPayout                *MgoMerchantLastPayout               `bson:"last_payout"`
-	IsSigned                  bool                                 `bson:"is_signed"`
-	PaymentMethods            map[string]*MgoMerchantPaymentMethod `bson:"payment_methods"`
-	AgreementType             int32                                `bson:"agreement_type"`
-	AgreementSentViaMail      bool                                 `bson:"agreement_sent_via_mail"`
-	MailTrackingLink          string                               `bson:"mail_tracking_link"`
-	S3AgreementName           string                               `bson:"s3_agreement_name"`
+	Id                                            bson.ObjectId                        `bson:"_id"`
+	User                                          *MerchantUser                        `bson:"user"`
+	Name                                          string                               `bson:"name"`
+	AlternativeName                               string                               `bson:"alternative_name"`
+	Website                                       string                               `bson:"website"`
+	Country                                       string                               `bson:"country"`
+	State                                         string                               `bson:"state"`
+	Zip                                           string                               `bson:"zip"`
+	City                                          string                               `bson:"city"`
+	Address                                       string                               `bson:"address"`
+	AddressAdditional                             string                               `bson:"address_additional"`
+	RegistrationNumber                            string                               `bson:"registration_number"`
+	TaxId                                         string                               `bson:"tax_id"`
+	Contacts                                      *MerchantContact                     `bson:"contacts"`
+	Banking                                       *MerchantBanking                     `bson:"banking"`
+	Status                                        int32                                `bson:"status"`
+	CreatedAt                                     time.Time                            `bson:"created_at"`
+	UpdatedAt                                     time.Time                            `bson:"updated_at"`
+	FirstPaymentAt                                time.Time                            `bson:"first_payment_at"`
+	IsVatEnabled                                  bool                                 `bson:"is_vat_enabled"`
+	IsCommissionToUserEnabled                     bool                                 `bson:"is_commission_to_user_enabled"`
+	HasMerchantSignature                          bool                                 `bson:"has_merchant_signature"`
+	HasPspSignature                               bool                                 `bson:"has_psp_signature"`
+	LastPayout                                    *MgoMerchantLastPayout               `bson:"last_payout"`
+	IsSigned                                      bool                                 `bson:"is_signed"`
+	PaymentMethods                                map[string]*MgoMerchantPaymentMethod `bson:"payment_methods"`
+	AgreementType                                 int32                                `bson:"agreement_type"`
+	AgreementSentViaMail                          bool                                 `bson:"agreement_sent_via_mail"`
+	MailTrackingLink                              string                               `bson:"mail_tracking_link"`
+	S3AgreementName                               string                               `bson:"s3_agreement_name"`
+	PayoutCostAmount                              float64                              `bson:"payout_cost_amount"`
+	PayoutCostCurrency                            string                               `bson:"payout_cost_currency"`
+	MinPayoutAmount                               float64                              `bson:"min_payout_amount"`
+	RollingReserveThreshold                       float64                              `bson:"rolling_reserve_amount"`
+	RollingReserveDays                            int32                                `bson:"rolling_reserve_days"`
+	RollingReserveChargebackTransactionsThreshold float64                              `bson:"rolling_reserve_chargeback_transactions_threshold"`
+	ItemMinCostAmount                             float64                              `bson:"item_min_cost_amount"`
+	ItemMinCostCurrency                           string                               `bson:"item_min_cost_currency"`
 }
 
 type MgoCurrencyRate struct {
@@ -443,12 +427,87 @@ type MgoCountry struct {
 	UpdatedAt       time.Time     `bson:"updated_at"`
 }
 
+type MgoPayoutCostSystem struct {
+	Id                    bson.ObjectId `bson:"_id"`
+	IntrabankCostAmount   float64       `bson:"intrabank_cost_amount"`
+	IntrabankCostCurrency string        `bson:"intrabank_cost_currency"`
+	InterbankCostAmount   float64       `bson:"interbank_cost_amount"`
+	InterbankCostCurrency string        ` bson:"interbank_cost_currency"`
+	IsActive              bool          ` bson:"is_active"`
+	CreatedAt             time.Time     `bson:"created_at"`
+}
+
 type MgoZipCode struct {
 	Zip       string        `bson:"zip"`
 	Country   string        `bson:"country"`
 	City      string        `bson:"city"`
 	State     *ZipCodeState `bson:"state"`
 	CreatedAt time.Time     `bson:"created_at"`
+}
+
+type MgoPaymentChannelCostSystem struct {
+	Id        bson.ObjectId `bson:"_id"`
+	Name      string        `bson:"name"`
+	Region    string        `bson:"region"`
+	Country   string        `bson:"country"`
+	Percent   float64       `bson:"percent"`
+	FixAmount float64       `bson:"fix_amount"`
+	CreatedAt time.Time     `bson:"created_at"`
+	UpdatedAt time.Time     `bson:"updated_at"`
+	IsActive  bool          `bson:"is_active"`
+}
+
+type MgoPaymentChannelCostMerchant struct {
+	Id                 bson.ObjectId `bson:"_id"`
+	MerchantId         bson.ObjectId `bson:"merchant_id"`
+	Name               string        `bson:"name"`
+	PayoutCurrency     string        `bson:"payout_currency"`
+	MinAmount          float64       `bson:"min_amount"`
+	Region             string        `bson:"region"`
+	Country            string        `bson:"country"`
+	MethodPercent      float64       `bson:"method_percent"`
+	MethodFixAmount    float64       `bson:"method_fix_amount"`
+	PsPercent          float64       `bson:"ps_percent"`
+	PsFixedFee         float64       `bson:"ps_fixed_fee"`
+	PsFixedFeeCurrency string        `bson:"ps_fixed_fee_currency"`
+	CreatedAt          time.Time     `bson:"created_at"`
+	UpdatedAt          time.Time     `bson:"updated_at"`
+	IsActive           bool          `bson:"is_active"`
+}
+
+type MgoMoneyBackCostSystem struct {
+	Id             bson.ObjectId `bson:"_id"`
+	Name           string        `bson:"name"`
+	PayoutCurrency string        `bson:"payout_currency"`
+	UndoReason     string        `bson:"undo_reason"`
+	Region         string        `bson:"region"`
+	Country        string        `bson:"country"`
+	DaysFrom       int32         `bson:"days_from"`
+	PaymentStage   int32         `bson:"payment_stage"`
+	Percent        float64       `bson:"percent"`
+	FixAmount      float64       `bson:"fix_amount"`
+	CreatedAt      time.Time     `bson:"created_at"`
+	UpdatedAt      time.Time     `bson:"updated_at"`
+	IsActive       bool          `bson:"is_active"`
+}
+
+type MgoMoneyBackCostMerchant struct {
+	Id                bson.ObjectId `bson:"_id"`
+	MerchantId        bson.ObjectId `bson:"merchant_id"`
+	Name              string        `bson:"name"`
+	PayoutCurrency    string        `bson:"payout_currency"`
+	UndoReason        string        `bson:"undo_reason"`
+	Region            string        `bson:"region"`
+	Country           string        `bson:"country"`
+	DaysFrom          int32         `bson:"days_from"`
+	PaymentStage      int32         `bson:"payment_stage"`
+	Percent           float64       `bson:"percent"`
+	FixAmount         float64       `bson:"fix_amount"`
+	FixAmountCurrency string        `bson:"fix_amount_currency"`
+	IsPaidByMerchant  bool          `bson:"is_paid_by_merchant"`
+	CreatedAt         time.Time     `bson:"created_at"`
+	UpdatedAt         time.Time     `bson:"updated_at"`
+	IsActive          bool          `bson:"is_active"`
 }
 
 func (m *Country) GetBSON() (interface{}, error) {
@@ -674,105 +733,6 @@ func (m *Vat) SetBSON(raw bson.Raw) error {
 		return err
 	}
 
-	return nil
-}
-
-func (m *SystemFees) GetBSON() (interface{}, error) {
-	st := &MgoSystemFees{
-		Id:        bson.ObjectIdHex(m.Id),
-		MethodId:  bson.ObjectIdHex(m.MethodId),
-		Region:    m.Region,
-		CardBrand: m.CardBrand,
-		IsActive:  m.IsActive,
-		UserId:    bson.ObjectIdHex(m.UserId),
-	}
-
-	for _, f := range m.Fees {
-		fs := &MgoFeeSet{}
-
-		for c, a := range f.MinAmounts {
-			fs.MinAmounts = append(fs.MinAmounts, &MinAmount{Amount: a, Currency: c})
-		}
-
-		fs.TransactionCost = &MgoSystemFee{
-			Percent:         f.TransactionCost.Percent,
-			PercentCurrency: f.TransactionCost.PercentCurrency,
-			FixAmount:       f.TransactionCost.FixAmount,
-			FixCurrency:     f.TransactionCost.FixCurrency,
-		}
-
-		fs.AuthorizationFee = &MgoSystemFee{
-			Percent:         f.AuthorizationFee.Percent,
-			PercentCurrency: f.AuthorizationFee.PercentCurrency,
-			FixAmount:       f.AuthorizationFee.FixAmount,
-			FixCurrency:     f.AuthorizationFee.FixCurrency,
-		}
-
-		st.Fees = append(st.Fees, fs)
-	}
-
-	if m.CreatedAt != nil {
-		t, err := ptypes.Timestamp(m.CreatedAt)
-
-		if err != nil {
-			return nil, err
-		}
-
-		st.CreatedAt = t
-	} else {
-		st.CreatedAt = time.Now()
-	}
-
-	return st, nil
-}
-
-func (m *SystemFees) SetBSON(raw bson.Raw) error {
-	decoded := new(MgoSystemFees)
-	err := raw.Unmarshal(decoded)
-
-	if err != nil {
-		return err
-	}
-
-	m.Id = decoded.Id.Hex()
-	m.MethodId = decoded.MethodId.Hex()
-	m.Region = decoded.Region
-	m.CardBrand = decoded.CardBrand
-	m.IsActive = decoded.IsActive
-
-	m.Fees = []*FeeSet{}
-
-	for _, f := range decoded.Fees {
-
-		fs := &FeeSet{}
-
-		fs.MinAmounts = make(map[string]float64)
-		for _, i := range f.MinAmounts {
-			fs.MinAmounts[i.Currency] = i.Amount
-		}
-
-		fs.TransactionCost = &SystemFee{
-			Percent:         f.TransactionCost.Percent,
-			PercentCurrency: f.TransactionCost.PercentCurrency,
-			FixAmount:       f.TransactionCost.FixAmount,
-			FixCurrency:     f.TransactionCost.FixCurrency,
-		}
-
-		fs.AuthorizationFee = &SystemFee{
-			Percent:         f.AuthorizationFee.Percent,
-			PercentCurrency: f.AuthorizationFee.PercentCurrency,
-			FixAmount:       f.AuthorizationFee.FixAmount,
-			FixCurrency:     f.AuthorizationFee.FixCurrency,
-		}
-
-		m.Fees = append(m.Fees, fs)
-	}
-
-	m.UserId = decoded.UserId.Hex()
-	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -1675,6 +1635,14 @@ func (m *Merchant) GetBSON() (interface{}, error) {
 		AgreementSentViaMail:      m.AgreementSentViaMail,
 		MailTrackingLink:          m.MailTrackingLink,
 		S3AgreementName:           m.S3AgreementName,
+		PayoutCostAmount:          m.PayoutCostAmount,
+		PayoutCostCurrency:        m.PayoutCostCurrency,
+		MinPayoutAmount:           m.MinPayoutAmount,
+		RollingReserveThreshold:   m.RollingReserveThreshold,
+		RollingReserveDays:        m.RollingReserveDays,
+		RollingReserveChargebackTransactionsThreshold: m.RollingReserveChargebackTransactionsThreshold,
+		ItemMinCostAmount:   m.ItemMinCostAmount,
+		ItemMinCostCurrency: m.ItemMinCostCurrency,
 	}
 
 	if len(m.Id) <= 0 {
@@ -1787,6 +1755,14 @@ func (m *Merchant) SetBSON(raw bson.Raw) error {
 	m.AgreementSentViaMail = decoded.AgreementSentViaMail
 	m.MailTrackingLink = decoded.MailTrackingLink
 	m.S3AgreementName = decoded.S3AgreementName
+	m.PayoutCostAmount = decoded.PayoutCostAmount
+	m.PayoutCostCurrency = decoded.PayoutCostCurrency
+	m.MinPayoutAmount = decoded.MinPayoutAmount
+	m.RollingReserveThreshold = decoded.RollingReserveThreshold
+	m.RollingReserveDays = decoded.RollingReserveDays
+	m.RollingReserveChargebackTransactionsThreshold = decoded.RollingReserveChargebackTransactionsThreshold
+	m.ItemMinCostAmount = decoded.ItemMinCostAmount
+	m.ItemMinCostCurrency = decoded.ItemMinCostCurrency
 
 	m.FirstPaymentAt, err = ptypes.TimestampProto(decoded.FirstPaymentAt)
 
@@ -2295,6 +2271,313 @@ func (m *Customer) SetBSON(raw bson.Raw) error {
 	return nil
 }
 
+func (m *PaymentChannelCostSystem) GetBSON() (interface{}, error) {
+	st := &MgoPaymentChannelCostSystem{
+		Name:      m.Name,
+		Region:    m.Region,
+		Country:   m.Country,
+		Percent:   m.Percent,
+		FixAmount: m.FixAmount,
+		IsActive:  m.IsActive,
+	}
+	if len(m.Id) <= 0 {
+		st.Id = bson.NewObjectId()
+	} else {
+		if bson.IsObjectIdHex(m.Id) == false {
+			return nil, errors.New(errorInvalidObjectId)
+		}
+		st.Id = bson.ObjectIdHex(m.Id)
+	}
+
+	if m.CreatedAt != nil {
+		t, err := ptypes.Timestamp(m.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+		st.CreatedAt = t
+	} else {
+		st.CreatedAt = time.Now()
+	}
+
+	if m.UpdatedAt != nil {
+		t, err := ptypes.Timestamp(m.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		st.UpdatedAt = t
+	} else {
+		st.UpdatedAt = time.Now()
+	}
+	return st, nil
+}
+
+func (m *PaymentChannelCostSystem) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoPaymentChannelCostSystem)
+	err := raw.Unmarshal(decoded)
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.Name = decoded.Name
+	m.Region = decoded.Region
+	m.Country = decoded.Country
+	m.Percent = decoded.Percent
+	m.FixAmount = decoded.FixAmount
+	m.IsActive = decoded.IsActive
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	m.UpdatedAt, err = ptypes.TimestampProto(decoded.UpdatedAt)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *PaymentChannelCostMerchant) GetBSON() (interface{}, error) {
+	st := &MgoPaymentChannelCostMerchant{
+		MerchantId:         bson.ObjectIdHex(m.MerchantId),
+		Name:               m.Name,
+		PayoutCurrency:     m.PayoutCurrency,
+		MinAmount:          m.MinAmount,
+		Region:             m.Region,
+		Country:            m.Country,
+		MethodPercent:      m.MethodPercent,
+		MethodFixAmount:    m.MethodFixAmount,
+		PsPercent:          m.PsPercent,
+		PsFixedFee:         m.PsFixedFee,
+		PsFixedFeeCurrency: m.PsFixedFeeCurrency,
+		IsActive:           m.IsActive,
+	}
+
+	if len(m.Id) <= 0 {
+		st.Id = bson.NewObjectId()
+	} else {
+		if bson.IsObjectIdHex(m.Id) == false {
+			return nil, errors.New(errorInvalidObjectId)
+		}
+		st.Id = bson.ObjectIdHex(m.Id)
+	}
+
+	if m.CreatedAt != nil {
+		t, err := ptypes.Timestamp(m.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+		st.CreatedAt = t
+	} else {
+		st.CreatedAt = time.Now()
+	}
+
+	if m.UpdatedAt != nil {
+		t, err := ptypes.Timestamp(m.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		st.UpdatedAt = t
+	} else {
+		st.UpdatedAt = time.Now()
+	}
+	return st, nil
+}
+
+func (m *PaymentChannelCostMerchant) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoPaymentChannelCostMerchant)
+	err := raw.Unmarshal(decoded)
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.MerchantId = decoded.MerchantId.Hex()
+	m.Name = decoded.Name
+	m.PayoutCurrency = decoded.PayoutCurrency
+	m.MinAmount = decoded.MinAmount
+	m.Region = decoded.Region
+	m.Country = decoded.Country
+	m.MethodPercent = decoded.MethodPercent
+	m.MethodFixAmount = decoded.MethodFixAmount
+	m.PsPercent = decoded.PsPercent
+	m.PsFixedFee = decoded.PsFixedFee
+	m.PsFixedFeeCurrency = decoded.PsFixedFeeCurrency
+	m.IsActive = decoded.IsActive
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	m.UpdatedAt, err = ptypes.TimestampProto(decoded.UpdatedAt)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *MoneyBackCostSystem) GetBSON() (interface{}, error) {
+	st := &MgoMoneyBackCostSystem{
+		Name:           m.Name,
+		PayoutCurrency: m.PayoutCurrency,
+		UndoReason:     m.UndoReason,
+		Region:         m.Region,
+		Country:        m.Country,
+		DaysFrom:       m.DaysFrom,
+		PaymentStage:   m.PaymentStage,
+		Percent:        m.Percent,
+		FixAmount:      m.FixAmount,
+		IsActive:       m.IsActive,
+	}
+	if len(m.Id) <= 0 {
+		st.Id = bson.NewObjectId()
+	} else {
+		if bson.IsObjectIdHex(m.Id) == false {
+			return nil, errors.New(errorInvalidObjectId)
+		}
+		st.Id = bson.ObjectIdHex(m.Id)
+	}
+
+	if m.CreatedAt != nil {
+		t, err := ptypes.Timestamp(m.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+		st.CreatedAt = t
+	} else {
+		st.CreatedAt = time.Now()
+	}
+
+	if m.UpdatedAt != nil {
+		t, err := ptypes.Timestamp(m.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		st.UpdatedAt = t
+	} else {
+		st.UpdatedAt = time.Now()
+	}
+	return st, nil
+}
+
+func (m *MoneyBackCostSystem) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoMoneyBackCostSystem)
+	err := raw.Unmarshal(decoded)
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.Name = decoded.Name
+	m.PayoutCurrency = decoded.PayoutCurrency
+	m.UndoReason = decoded.UndoReason
+	m.Region = decoded.Region
+	m.Country = decoded.Country
+	m.DaysFrom = decoded.DaysFrom
+	m.PaymentStage = decoded.PaymentStage
+	m.Percent = decoded.Percent
+	m.FixAmount = decoded.FixAmount
+	m.IsActive = decoded.IsActive
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	m.UpdatedAt, err = ptypes.TimestampProto(decoded.UpdatedAt)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *MoneyBackCostMerchant) GetBSON() (interface{}, error) {
+	st := &MgoMoneyBackCostMerchant{
+		MerchantId:        bson.ObjectIdHex(m.MerchantId),
+		Name:              m.Name,
+		PayoutCurrency:    m.PayoutCurrency,
+		UndoReason:        m.UndoReason,
+		Region:            m.Region,
+		Country:           m.Country,
+		DaysFrom:          m.DaysFrom,
+		PaymentStage:      m.PaymentStage,
+		Percent:           m.Percent,
+		FixAmount:         m.FixAmount,
+		FixAmountCurrency: m.FixAmountCurrency,
+		IsPaidByMerchant:  m.IsPaidByMerchant,
+		IsActive:          m.IsActive,
+	}
+	if len(m.Id) <= 0 {
+		st.Id = bson.NewObjectId()
+	} else {
+		if bson.IsObjectIdHex(m.Id) == false {
+			return nil, errors.New(errorInvalidObjectId)
+		}
+		st.Id = bson.ObjectIdHex(m.Id)
+	}
+
+	if m.CreatedAt != nil {
+		t, err := ptypes.Timestamp(m.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+		st.CreatedAt = t
+	} else {
+		st.CreatedAt = time.Now()
+	}
+
+	if m.UpdatedAt != nil {
+		t, err := ptypes.Timestamp(m.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		st.UpdatedAt = t
+	} else {
+		st.UpdatedAt = time.Now()
+	}
+	return st, nil
+}
+
+func (m *MoneyBackCostMerchant) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoMoneyBackCostMerchant)
+	err := raw.Unmarshal(decoded)
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.MerchantId = decoded.MerchantId.Hex()
+	m.Name = decoded.Name
+	m.PayoutCurrency = decoded.PayoutCurrency
+	m.UndoReason = decoded.UndoReason
+	m.Region = decoded.Region
+	m.Country = decoded.Country
+	m.DaysFrom = decoded.DaysFrom
+	m.PaymentStage = decoded.PaymentStage
+	m.Percent = decoded.Percent
+	m.FixAmount = decoded.FixAmount
+	m.FixAmountCurrency = decoded.FixAmountCurrency
+	m.IsPaidByMerchant = decoded.IsPaidByMerchant
+	m.IsActive = decoded.IsActive
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	m.UpdatedAt, err = ptypes.TimestampProto(decoded.UpdatedAt)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (m *ZipCode) GetBSON() (interface{}, error) {
 	st := &MgoZipCode{
 		Zip:     m.Zip,
@@ -2329,6 +2612,57 @@ func (m *ZipCode) SetBSON(raw bson.Raw) error {
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *PayoutCostSystem) GetBSON() (interface{}, error) {
+	st := &MgoPayoutCostSystem{
+		IntrabankCostAmount:   m.IntrabankCostAmount,
+		IntrabankCostCurrency: m.IntrabankCostCurrency,
+		InterbankCostAmount:   m.InterbankCostAmount,
+		InterbankCostCurrency: m.InterbankCostCurrency,
+		IsActive:              m.IsActive,
+	}
+
+	if len(m.Id) <= 0 {
+		st.Id = bson.NewObjectId()
+	} else {
+		if bson.IsObjectIdHex(m.Id) == false {
+			return nil, errors.New(errorInvalidObjectId)
+		}
+		st.Id = bson.ObjectIdHex(m.Id)
+	}
+
+	t, err := ptypes.Timestamp(m.CreatedAt)
+
+	if err != nil {
+		return nil, err
+	}
+
+	st.CreatedAt = t
+
+	return st, nil
+}
+
+func (m *PayoutCostSystem) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoPayoutCostSystem)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+	m.Id = decoded.Id.Hex()
+	m.IntrabankCostAmount = decoded.IntrabankCostAmount
+	m.IntrabankCostCurrency = decoded.IntrabankCostCurrency
+	m.InterbankCostAmount = decoded.InterbankCostAmount
+	m.InterbankCostCurrency = decoded.InterbankCostCurrency
+	m.IsActive = decoded.IsActive
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {
 		return err
 	}
