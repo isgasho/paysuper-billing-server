@@ -1,0 +1,75 @@
+[
+  {
+    "drop": "payment_system"
+  },
+  {
+    "create": "payment_system"
+  },
+  {
+    "insert": "payment_system",
+    "documents": [
+      {
+        "_id": {
+          "$oid": "5be2d0b4b0b30d0007383ce5"
+        },
+        "name": "CardPay",
+        "handler": "cardpay",
+        "country": {
+          "code_int": {
+            "$numberInt": "196"
+          },
+          "code_a2": "CY",
+          "code_a3": "CYP",
+          "name": {
+            "en": "Cyprus",
+            "ru": "Кипр"
+          },
+          "is_active": true,
+          "created_at": {
+            "$date": {
+              "$numberLong": "1540841032401"
+            }
+          },
+          "updated_at": {
+            "$date": {
+              "$numberLong": "1540841032401"
+            }
+          }
+        },
+        "accounting_currency": {
+          "code_int": {
+            "$numberInt": "978"
+          },
+          "code_a3": "EUR",
+          "name": {
+            "en": "Euro",
+            "ru": "Евро"
+          },
+          "is_active": true,
+          "created_at": {
+            "$date": {
+              "$numberLong": "1540841032400"
+            }
+          },
+          "updated_at": {
+            "$date": {
+              "$numberLong": "1540841032400"
+            }
+          }
+        },
+        "accounting_period": "2week",
+        "is_active": true,
+        "created_at": {
+          "$date": {
+            "$numberLong": "1541591220798"
+          }
+        },
+        "updated_at": {
+          "$date": {
+            "$numberLong": "1541591220798"
+          }
+        }
+      }
+    ]
+  }
+]
