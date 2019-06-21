@@ -76,7 +76,7 @@ service BillingService {
 
     rpc GetCurrencyList (EmptyRequest) returns (billing.CurrencyList) {}
     rpc GetCurrency (billing.GetCurrencyRequest) returns (billing.Currency) {}
-}
+
     rpc FindByZipCode(FindByZipCodeRequest) returns (FindByZipCodeResponse) {}
 
     rpc GetAllPaymentChannelCostSystem(EmptyRequest) returns (billing.PaymentChannelCostSystemList) {}
