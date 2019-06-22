@@ -337,7 +337,11 @@ func (h *accountingEntry) psMarkupMethodFee() error {
 		Region:         country.Region,
 		Country:        h.order.GetUserCountry(),
 	}
-	h.getPaymentChannelCostMerchant(req)
+	_, err = h.getPaymentChannelCostMerchant(req)
+
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
