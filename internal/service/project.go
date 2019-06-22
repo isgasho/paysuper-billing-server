@@ -103,13 +103,6 @@ func (s *Service) ChangeProject(
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = project
 
-	if err := s.project.Update(project); err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = err.Error()
-
-		return nil
-	}
-
 	return nil
 }
 
