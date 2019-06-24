@@ -13,11 +13,14 @@ import (
 
 const (
 	collectionProduct = "product"
+)
 
-	productErrorNotFound         = "products with specified SKUs not found"
-	productErrorCountNotMatch    = "request products count and products in system count not match"
-	productErrorAmountNotMatch   = "one or more products amount not match"
-	productErrorCurrencyNotMatch = "one or more products currency not match"
+var (
+	productErrorUnknown          = newBillingServerErrorMsg("pd000001", "unknown error with product")
+	productErrorNotFound         = newBillingServerErrorMsg("pd000002", "products with specified SKUs not found")
+	productErrorCountNotMatch    = newBillingServerErrorMsg("pd000003", "request products count and products in system count not match")
+	productErrorAmountNotMatch   = newBillingServerErrorMsg("pd000004", "one or more products amount not match")
+	productErrorCurrencyNotMatch = newBillingServerErrorMsg("pd000005", "one or more products currency not match")
 )
 
 func (s *Service) CreateOrUpdateProduct(ctx context.Context, req *grpc.Product, res *grpc.Product) error {
@@ -254,15 +257,15 @@ func (s *Service) processTokenProducts(req *grpc.TokenRequest) ([]string, error)
 
 	if err != nil && err != mgo.ErrNotFound {
 		zap.S().Errorf("Query to find project products failed", "err", err.Error(), "query", query)
-		return nil, errors.New(orderErrorUnknown)
+		return nil, productErrorUnknown
 	}
 
 	if len(products) <= 0 {
-		return nil, errors.New(productErrorNotFound)
+		return nil, productErrorNotFound
 	}
 
 	if len(sku) != len(products) {
-		return nil, errors.New(productErrorCountNotMatch)
+		return nil, productErrorCountNotMatch
 	}
 
 	var productsIds []string
@@ -288,11 +291,11 @@ func (s *Service) processTokenProducts(req *grpc.TokenRequest) ([]string, error)
 		}
 
 		if matchAmount == false {
-			return nil, errors.New(productErrorAmountNotMatch)
+			return nil, productErrorAmountNotMatch
 		}
 
 		if matchCurrency == false && v.DefaultCurrency != item.Currency {
-			return nil, errors.New(productErrorCurrencyNotMatch)
+			return nil, productErrorCurrencyNotMatch
 		}
 
 		productsIds = append(productsIds, v.Id)

@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -43,7 +42,7 @@ func (s *Service) FindByZipCode(
 			zap.Any("query", query),
 		)
 
-		return errors.New(orderErrorUnknown)
+		return orderErrorUnknown
 	}
 
 	if count <= 0 {
@@ -62,7 +61,7 @@ func (s *Service) FindByZipCode(
 			)
 		}
 
-		return errors.New(orderErrorUnknown)
+		return orderErrorUnknown
 	}
 
 	rsp.Count = int32(count)

@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -17,21 +16,19 @@ import (
 )
 
 const (
-	refundErrorNotAllowed        = "create refund for order not allowed"
-	refundErrorAlreadyRefunded   = "amount by order was fully refunded"
-	refundErrorPaymentAmountLess = "refund unavailable, because payment amount less than total refunds amount"
-	refundErrorNotFound          = "refund with specified data not found"
-	refundErrorOrderNotFound     = "information about payment for refund with specified data not found"
-
 	refundDefaultReasonMask = "Refund by order #%s"
 
 	collectionRefund = "refund"
 )
 
-type RefundError struct {
-	err    string
-	status int32
-}
+var (
+	refundErrorUnknown           = newBillingServerErrorMsg("rf000001", "refund can't be create. try request later")
+	refundErrorNotAllowed        = newBillingServerErrorMsg("rf000002", "create refund for order not allowed")
+	refundErrorAlreadyRefunded   = newBillingServerErrorMsg("rf000003", "amount by order was fully refunded")
+	refundErrorPaymentAmountLess = newBillingServerErrorMsg("rf000004", "refund unavailable, because payment amount less than total refunds amount")
+	refundErrorNotFound          = newBillingServerErrorMsg("rf000005", "refund with specified data not found")
+	refundErrorOrderNotFound     = newBillingServerErrorMsg("rf000006", "information about payment for refund with specified data not found")
+)
 
 type createRefundChecked struct {
 	order *billing.Order
@@ -57,8 +54,8 @@ func (s *Service) CreateRefund(
 	refund, err := processor.processCreateRefund()
 
 	if err != nil {
-		rsp.Status = err.(*RefundError).status
-		rsp.Message = err.(*RefundError).err
+		rsp.Status = err.(*grpc.ResponseError).Status
+		rsp.Message = err.(*grpc.ResponseError).Message
 
 		return nil
 	}
@@ -67,7 +64,7 @@ func (s *Service) CreateRefund(
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = err.Error()
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
 
 		return nil
 	}
@@ -75,8 +72,9 @@ func (s *Service) CreateRefund(
 	err = h.CreateRefund(refund)
 
 	if err != nil {
+		zap.S().Errorf("create refund failed", "err", err.Error())
 		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = err.Error()
+		rsp.Message = refundErrorUnknown
 
 		return nil
 	}
@@ -197,7 +195,7 @@ func (s *Service) ProcessRefundCallback(
 		}
 
 		rsp.Status = pkg.ResponseStatusNotFound
-		rsp.Error = refundErrorNotFound
+		rsp.Error = refundErrorNotFound.Error()
 
 		return nil
 	}
@@ -206,7 +204,7 @@ func (s *Service) ProcessRefundCallback(
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
-		rsp.Error = refundErrorOrderNotFound
+		rsp.Error = refundErrorOrderNotFound.Error()
 
 		return nil
 	}
@@ -215,7 +213,7 @@ func (s *Service) ProcessRefundCallback(
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Error = orderErrorUnknown
+		rsp.Error = orderErrorUnknown.Error()
 
 		return nil
 	}
@@ -234,7 +232,7 @@ func (s *Service) ProcessRefundCallback(
 		)
 
 		rsp.Error = pErr.Error()
-		rsp.Status = pErr.(*Error).Status()
+		rsp.Status = pErr.(*grpc.ResponseError).Status
 
 		if rsp.Status == pkg.ResponseStatusTemporary {
 			rsp.Status = pkg.ResponseStatusOk
@@ -248,7 +246,7 @@ func (s *Service) ProcessRefundCallback(
 	if err != nil {
 		zap.S().Errorf("Update refund data failed", "err", err.Error(), "refund", refund)
 
-		rsp.Error = orderErrorUnknown
+		rsp.Error = orderErrorUnknown.Error()
 		rsp.Status = pkg.ResponseStatusSystemError
 
 		return nil
@@ -329,7 +327,7 @@ func (p *createRefundProcessor) processCreateRefund() (*billing.Refund, error) {
 
 	if err != nil {
 		p.service.logError("Query to insert refund failed", []interface{}{"err", err.Error(), "data", refund})
-		return nil, p.service.NewRefundError(orderErrorUnknown, pkg.ResponseStatusBadData)
+		return nil, newBillingServerResponseError(pkg.ResponseStatusBadData, orderErrorUnknown)
 	}
 
 	return refund, nil
@@ -339,15 +337,15 @@ func (p *createRefundProcessor) processOrder() error {
 	order, err := p.service.getOrderByUuid(p.request.OrderId)
 
 	if err != nil {
-		return p.service.NewRefundError(err.Error(), pkg.ResponseStatusNotFound)
+		return newBillingServerResponseError(pkg.ResponseStatusNotFound, refundErrorNotFound)
 	}
 
 	if order.PrivateStatus == constant.OrderStatusRefund {
-		return p.service.NewRefundError(refundErrorAlreadyRefunded, pkg.ResponseStatusBadData)
+		return newBillingServerResponseError(pkg.ResponseStatusBadData, refundErrorAlreadyRefunded)
 	}
 
 	if order.RefundAllowed() == false {
-		return p.service.NewRefundError(refundErrorNotAllowed, pkg.ResponseStatusBadData)
+		return newBillingServerResponseError(pkg.ResponseStatusBadData, refundErrorNotAllowed)
 	}
 
 	p.checked.order = order
@@ -359,11 +357,11 @@ func (p *createRefundProcessor) processRefundsByOrder() error {
 	refundedAmount, err := p.getRefundedAmount(p.checked.order)
 
 	if err != nil {
-		return p.service.NewRefundError(err.Error(), pkg.ResponseStatusBadData)
+		return newBillingServerResponseError(pkg.ResponseStatusBadData, refundErrorUnknown)
 	}
 
 	if p.checked.order.PaymentMethodIncomeAmount < (refundedAmount + p.request.Amount) {
-		return p.service.NewRefundError(refundErrorPaymentAmountLess, pkg.ResponseStatusBadData)
+		return newBillingServerResponseError(pkg.ResponseStatusBadData, refundErrorPaymentAmountLess)
 	}
 
 	return nil
@@ -389,36 +387,8 @@ func (p *createRefundProcessor) getRefundedAmount(order *billing.Order) (float64
 
 	if err != nil && !p.service.IsDbNotFoundError(err) {
 		p.service.logError("Query to calculate refunded amount by order failed", []interface{}{"err", err.Error(), "query", query})
-		return 0, errors.New(orderErrorUnknown)
+		return 0, refundErrorUnknown
 	}
 
 	return res.Amount, nil
-}
-
-func (s *Service) getRefundById(id string) (*billing.Refund, error) {
-	var refund *billing.Refund
-
-	err := s.db.Collection(collectionRefund).FindId(bson.ObjectIdHex(id)).One(&refund)
-
-	if err != nil {
-		if err != mgo.ErrNotFound {
-			zap.S().Errorf("Query to find refund by id failed", "err", err.Error(), "id", id)
-		}
-
-		return nil, err
-	}
-
-	return refund, nil
-}
-
-func (s *Service) NewRefundError(text string, status int32) error {
-	return &RefundError{err: text, status: status}
-}
-
-func (e *RefundError) Error() string {
-	return e.err
-}
-
-func (e *RefundError) Status() int32 {
-	return e.status
 }
