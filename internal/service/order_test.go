@@ -918,7 +918,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessProject_NotFound() {
 
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), processor.checked.project)
-	assert.Equal(suite.T(), orderErrorProjectNotFound, err.Error())
+	assert.Equal(suite.T(), orderErrorProjectNotFound, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessProject_InactiveProject() {
@@ -936,7 +936,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessProject_InactiveProject() {
 
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), processor.checked.project)
-	assert.Equal(suite.T(), orderErrorProjectInactive, err.Error())
+	assert.Equal(suite.T(), orderErrorProjectInactive, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessCurrency_Ok() {
@@ -972,7 +972,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessCurrency_Error() {
 
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), processor.checked.currency)
-	assert.Equal(suite.T(), orderErrorCurrencyNotFound, err.Error())
+	assert.Equal(suite.T(), orderErrorCurrencyNotFound, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessPayerData_EmptyEmailAndPhone_Ok() {
@@ -1075,7 +1075,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPayerData_Error() {
 
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), processor.checked.user.Address)
-	assert.Equal(suite.T(), orderErrorPayerRegionUnknown, err.Error())
+	assert.Equal(suite.T(), orderErrorPayerRegionUnknown, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ValidateProductsForOrder_Ok() {
@@ -1086,7 +1086,7 @@ func (suite *OrderTestSuite) TestOrder_ValidateProductsForOrder_Ok() {
 func (suite *OrderTestSuite) TestOrder_ValidateProductsForOrder_AnotherProject_Fail() {
 	_, err := suite.service.GetOrderProducts(suite.project.Id, suite.productIds)
 	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), orderErrorProductsInvalid, err.Error())
+	assert.Equal(suite.T(), orderErrorProductsInvalid, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ValidateProductsForOrder_OneProductIsInactive_Fail() {
@@ -1120,7 +1120,7 @@ func (suite *OrderTestSuite) TestOrder_ValidateProductsForOrder_OneProductIsInac
 		products := []string{suite.productIds[0], inactiveProd.Id}
 		_, err := suite.service.GetOrderProducts(suite.projectFixedAmount.Id, products)
 		assert.Error(suite.T(), err)
-		assert.Equal(suite.T(), orderErrorProductsInvalid, err.Error())
+		assert.Equal(suite.T(), orderErrorProductsInvalid, err)
 	}
 }
 
@@ -1128,13 +1128,13 @@ func (suite *OrderTestSuite) TestOrder_ValidateProductsForOrder_SomeProductsIsNo
 	products := []string{suite.productIds[0], bson.NewObjectId().Hex()}
 	_, err := suite.service.GetOrderProducts(suite.projectFixedAmount.Id, products)
 	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), orderErrorProductsInvalid, err.Error())
+	assert.Equal(suite.T(), orderErrorProductsInvalid, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ValidateProductsForOrder_EmptyProducts_Fail() {
 	_, err := suite.service.GetOrderProducts(suite.projectFixedAmount.Id, []string{})
 	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), orderErrorProductsEmpty, err.Error())
+	assert.Equal(suite.T(), orderErrorProductsEmpty, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_Ok() {
@@ -1150,7 +1150,7 @@ func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_Ok() {
 func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_EmptyProducts_Fail() {
 	_, err := suite.service.GetOrderProductsAmount([]*grpc.Product{}, suite.merchantDefaultCurrency)
 	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), orderErrorProductsEmpty, err.Error())
+	assert.Equal(suite.T(), orderErrorProductsEmpty, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_DifferentCurrencies_Fail() {
@@ -1210,7 +1210,7 @@ func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_DifferentCurrencie
 
 	_, err := suite.service.GetOrderProductsAmount(p, "RUB")
 	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), orderErrorNoProductsCommonCurrency, err.Error())
+	assert.Equal(suite.T(), orderErrorNoProductsCommonCurrency, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_DifferentCurrenciesWithFallback_Fail() {
@@ -1270,7 +1270,7 @@ func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_DifferentCurrencie
 
 	_, err := suite.service.GetOrderProductsAmount(p, "RUB")
 	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), orderErrorNoProductsCommonCurrency, err.Error())
+	assert.Equal(suite.T(), orderErrorNoProductsCommonCurrency, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_GetOrderProductsItems_Ok() {
@@ -1286,7 +1286,7 @@ func (suite *OrderTestSuite) TestOrder_GetOrderProductsItems_Ok() {
 func (suite *OrderTestSuite) TestOrder_GetOrderProductsItems_EmptyProducts_Fail() {
 	_, err := suite.service.GetOrderProductsItems([]*grpc.Product{}, DefaultLanguage, suite.merchantDefaultCurrency)
 	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), orderErrorProductsEmpty, err.Error())
+	assert.Equal(suite.T(), orderErrorProductsEmpty, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_GetOrderProductsItems_DifferentCurrencies_Fail() {
@@ -1346,7 +1346,7 @@ func (suite *OrderTestSuite) TestOrder_GetOrderProductsItems_DifferentCurrencies
 
 	_, err := suite.service.GetOrderProductsItems(p, DefaultLanguage, "EUR")
 	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), fmt.Sprintf("no price in currency %s", "EUR"), err.Error())
+	assert.Equal(suite.T(), orderErrorProductsPrice, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_GetOrderProductsItems_ProductHasNoDescInSelectedLanguageButFallback_Fail() {
@@ -1471,7 +1471,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessProjectOrderId_Duplicate_Error() {
 
 	err = processor.processProjectOrderId()
 	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), orderErrorProjectOrderIdIsDuplicate, err.Error())
+	assert.Equal(suite.T(), orderErrorProjectOrderIdIsDuplicate, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethod_Ok() {
@@ -1524,7 +1524,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethod_PaymentMethodInactiv
 	err = processor.processPaymentMethod(pm)
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), processor.checked.paymentMethod)
-	assert.Equal(suite.T(), orderErrorPaymentMethodInactive, err.Error())
+	assert.Equal(suite.T(), orderErrorPaymentMethodInactive, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethod_PaymentSystemInactive_Error() {
@@ -1549,7 +1549,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethod_PaymentSystemInactiv
 	err = processor.processPaymentMethod(pm)
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), processor.checked.paymentMethod)
-	assert.Equal(suite.T(), orderErrorPaymentSystemInactive, err.Error())
+	assert.Equal(suite.T(), orderErrorPaymentSystemInactive, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_Ok() {
@@ -1647,7 +1647,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_ProjectMinAmount_Erro
 
 	err = processor.processLimitAmounts()
 	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), orderErrorAmountLowerThanMinAllowed, err.Error())
+	assert.Equal(suite.T(), orderErrorAmountLowerThanMinAllowed, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_ProjectMaxAmount_Error() {
@@ -1681,7 +1681,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_ProjectMaxAmount_Erro
 
 	err = processor.processLimitAmounts()
 	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), orderErrorAmountGreaterThanMaxAllowed, err.Error())
+	assert.Equal(suite.T(), orderErrorAmountGreaterThanMaxAllowed, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_PaymentMethodMinAmount_Error() {
@@ -1715,7 +1715,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_PaymentMethodMinAmoun
 
 	err = processor.processLimitAmounts()
 	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), orderErrorAmountLowerThanMinAllowedPaymentMethod, err.Error())
+	assert.Equal(suite.T(), orderErrorAmountLowerThanMinAllowedPaymentMethod, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_PaymentMethodMaxAmount_Error() {
@@ -1749,7 +1749,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_PaymentMethodMaxAmoun
 
 	err = processor.processLimitAmounts()
 	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), orderErrorAmountGreaterThanMaxAllowedPaymentMethod, err.Error())
+	assert.Equal(suite.T(), orderErrorAmountGreaterThanMaxAllowedPaymentMethod, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessSignature_Form_Ok() {
@@ -1886,7 +1886,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessSignature_Error() {
 
 	err = processor.processSignature()
 	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), orderErrorSignatureInvalid, err.Error())
+	assert.Equal(suite.T(), orderErrorSignatureInvalid, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_PrepareOrder_Ok() {
@@ -2056,7 +2056,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_UrlVerify_Error() {
 	order, err := processor.prepareOrder()
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), order)
-	assert.Equal(suite.T(), orderErrorDynamicNotifyUrlsNotAllowed, err.Error())
+	assert.Equal(suite.T(), orderErrorDynamicNotifyUrlsNotAllowed, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_PrepareOrder_UrlRedirect_Error() {
@@ -2108,7 +2108,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_UrlRedirect_Error() {
 	order, err := processor.prepareOrder()
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), order)
-	assert.Equal(suite.T(), orderErrorDynamicRedirectUrlsNotAllowed, err.Error())
+	assert.Equal(suite.T(), orderErrorDynamicRedirectUrlsNotAllowed, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_PrepareOrder_Convert_Error() {
@@ -2478,14 +2478,15 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_Ok() {
 		},
 	}
 
-	rsp := &billing.Order{}
+	rsp := &grpc.OrderCreateProcessResponse{}
 	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
 
 	assert.Nil(suite.T(), err)
-	assert.True(suite.T(), len(rsp.Id) > 0)
-	assert.NotNil(suite.T(), rsp.Project)
-	assert.NotNil(suite.T(), rsp.PaymentMethod)
-	assert.NotNil(suite.T(), rsp.PaymentSystemFeeAmount)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
+	assert.True(suite.T(), len(rsp.Item.Id) > 0)
+	assert.NotNil(suite.T(), rsp.Item.Project)
+	assert.NotNil(suite.T(), rsp.Item.PaymentMethod)
+	assert.NotNil(suite.T(), rsp.Item.PaymentSystemFeeAmount)
 }
 
 func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_ProjectInactive_Error() {
@@ -2503,16 +2504,14 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_ProjectInactive_Error(
 		},
 	}
 
-	rsp := &billing.Order{}
+	rsp := &grpc.OrderCreateProcessResponse{}
 	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
 
-	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), orderErrorProjectInactive, err.Error())
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusBadData)
+	assert.Equal(suite.T(), orderErrorProjectInactive, rsp.Message)
 
-	assert.Len(suite.T(), rsp.Id, 0)
-	assert.Nil(suite.T(), rsp.Project)
-	assert.Nil(suite.T(), rsp.PaymentMethod)
-	assert.Nil(suite.T(), rsp.PaymentSystemFeeAmount)
+	assert.Nil(suite.T(), rsp.Item)
 }
 
 func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_SignatureInvalid_Error() {
@@ -2543,16 +2542,14 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_SignatureInvalid_Error
 
 	req.Signature = hex.EncodeToString(h.Sum(nil))
 
-	rsp := &billing.Order{}
+	rsp := &grpc.OrderCreateProcessResponse{}
 	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
 
-	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), orderErrorSignatureInvalid, err.Error())
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusBadData)
+	assert.Equal(suite.T(), orderErrorSignatureInvalid, rsp.Message)
 
-	assert.Len(suite.T(), rsp.Id, 0)
-	assert.Nil(suite.T(), rsp.Project)
-	assert.Nil(suite.T(), rsp.PaymentMethod)
-	assert.Nil(suite.T(), rsp.PaymentSystemFeeAmount)
+	assert.Nil(suite.T(), rsp.Item)
 }
 
 func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_CurrencyInvalid_Error() {
@@ -2570,16 +2567,12 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_CurrencyInvalid_Error(
 		},
 	}
 
-	rsp := &billing.Order{}
+	rsp := &grpc.OrderCreateProcessResponse{}
 	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
 
-	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), orderErrorCurrencyNotFound, err.Error())
-
-	assert.Len(suite.T(), rsp.Id, 0)
-	assert.Nil(suite.T(), rsp.Project)
-	assert.Nil(suite.T(), rsp.PaymentMethod)
-	assert.Nil(suite.T(), rsp.PaymentSystemFeeAmount)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusBadData)
+	assert.Equal(suite.T(), orderErrorCurrencyNotFound, rsp.Message)
 }
 
 func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_CurrencyEmpty_Error() {
@@ -2596,16 +2589,14 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_CurrencyEmpty_Error() 
 		},
 	}
 
-	rsp := &billing.Order{}
+	rsp := &grpc.OrderCreateProcessResponse{}
 	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
 
-	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), orderErrorCurrencyIsRequired, err.Error())
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusBadData)
+	assert.Equal(suite.T(), orderErrorCurrencyIsRequired, rsp.Message)
 
-	assert.Len(suite.T(), rsp.Id, 0)
-	assert.Nil(suite.T(), rsp.Project)
-	assert.Nil(suite.T(), rsp.PaymentMethod)
-	assert.Nil(suite.T(), rsp.PaymentSystemFeeAmount)
+	assert.Nil(suite.T(), rsp.Item)
 }
 
 func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_DuplicateProjectOrderId_Error() {
@@ -2682,16 +2673,15 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_DuplicateProjectOrderI
 	err := suite.service.db.Collection(collectionOrder).Insert(order)
 	assert.Nil(suite.T(), err)
 
-	rsp := &billing.Order{}
+	rsp := &grpc.OrderCreateProcessResponse{}
 	err = suite.service.OrderCreateProcess(context.TODO(), req, rsp)
 
-	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), orderErrorProjectOrderIdIsDuplicate, err.Error())
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusBadData)
+	assert.Equal(suite.T(), orderErrorProjectOrderIdIsDuplicate, rsp.Message)
 
-	assert.Len(suite.T(), rsp.Id, 0)
-	assert.Nil(suite.T(), rsp.Project)
-	assert.Nil(suite.T(), rsp.PaymentMethod)
-	assert.Nil(suite.T(), rsp.PaymentSystemFeeAmount)
+	assert.Nil(suite.T(), rsp.Item)
+	assert.Equal(suite.T(), orderErrorProjectOrderIdIsDuplicate, rsp.Message)
 }
 
 func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_PaymentMethodInvalid_Error() {
@@ -2709,16 +2699,12 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_PaymentMethodInvalid_E
 		},
 	}
 
-	rsp := &billing.Order{}
+	rsp := &grpc.OrderCreateProcessResponse{}
 	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
 
-	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), orderErrorPaymentMethodInactive, err.Error())
-
-	assert.Len(suite.T(), rsp.Id, 0)
-	assert.Nil(suite.T(), rsp.Project)
-	assert.Nil(suite.T(), rsp.PaymentMethod)
-	assert.Nil(suite.T(), rsp.PaymentSystemFeeAmount)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusBadData)
+	assert.Equal(suite.T(), orderErrorPaymentMethodInactive, rsp.Message)
 }
 
 func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_AmountInvalid_Error() {
@@ -2735,16 +2721,14 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_AmountInvalid_Error() 
 		},
 	}
 
-	rsp := &billing.Order{}
+	rsp := &grpc.OrderCreateProcessResponse{}
 	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
 
-	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), orderErrorAmountLowerThanMinAllowed, err.Error())
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusBadData)
+	assert.Equal(suite.T(), orderErrorAmountLowerThanMinAllowed, rsp.Message)
 
-	assert.Len(suite.T(), rsp.Id, 0)
-	assert.Nil(suite.T(), rsp.Project)
-	assert.Nil(suite.T(), rsp.PaymentMethod)
-	assert.Nil(suite.T(), rsp.PaymentSystemFeeAmount)
+	assert.Nil(suite.T(), rsp.Item)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessRenderFormPaymentMethods_DevEnvironment_Ok() {
@@ -2762,10 +2746,12 @@ func (suite *OrderTestSuite) TestOrder_ProcessRenderFormPaymentMethods_DevEnviro
 		},
 	}
 
-	order := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	rsp := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
 
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
+	order := rsp.Item
 	assert.True(suite.T(), len(order.Id) > 0)
 
 	processor := &PaymentFormProcessor{
@@ -2799,10 +2785,12 @@ func (suite *OrderTestSuite) TestOrder_ProcessRenderFormPaymentMethods_ProdEnvir
 		},
 	}
 
-	order := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	rsp := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
 
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
+	order := rsp.Item
 	assert.True(suite.T(), len(order.Id) > 0)
 
 	processor := &PaymentFormProcessor{
@@ -2835,10 +2823,12 @@ func (suite *OrderTestSuite) TestOrder_ProcessRenderFormPaymentMethods_ProjectNo
 		},
 	}
 
-	order := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	rsp := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
 
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
+	order := rsp.Item
 	assert.True(suite.T(), len(order.Id) > 0)
 
 	order.Project.Id = bson.NewObjectId().Hex()
@@ -2848,7 +2838,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessRenderFormPaymentMethods_ProjectNo
 
 	assert.Error(suite.T(), err)
 	assert.Len(suite.T(), pms, 0)
-	assert.Equal(suite.T(), orderErrorProjectNotFound, err.Error())
+	assert.Equal(suite.T(), orderErrorProjectNotFound, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessRenderFormPaymentMethods_ProjectNotHavePaymentMethods_Error() {
@@ -2866,10 +2856,12 @@ func (suite *OrderTestSuite) TestOrder_ProcessRenderFormPaymentMethods_ProjectNo
 		},
 	}
 
-	order := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	rsp := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
 
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
+	order := rsp.Item
 	assert.True(suite.T(), len(order.Id) > 0)
 
 	order.Project.Id = suite.projectWithoutPaymentMethods.Id
@@ -2887,7 +2879,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessRenderFormPaymentMethods_ProjectNo
 
 	assert.Error(suite.T(), err)
 	assert.Len(suite.T(), pms, 0)
-	assert.Equal(suite.T(), orderErrorPaymentMethodNotAllowed, err.Error())
+	assert.Equal(suite.T(), orderErrorPaymentMethodNotAllowed, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessRenderFormPaymentMethods_EmptyPaymentMethods_Error() {
@@ -2904,10 +2896,12 @@ func (suite *OrderTestSuite) TestOrder_ProcessRenderFormPaymentMethods_EmptyPaym
 		},
 	}
 
-	order := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	rsp := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
 
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
+	order := rsp.Item
 	assert.True(suite.T(), len(order.Id) > 0)
 
 	order.Project.Id = suite.projectEmptyPaymentMethodTerminal.Id
@@ -2924,7 +2918,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessRenderFormPaymentMethods_EmptyPaym
 
 	assert.Error(suite.T(), err)
 	assert.Len(suite.T(), pms, 0)
-	assert.Equal(suite.T(), orderErrorPaymentMethodNotAllowed, err.Error())
+	assert.Equal(suite.T(), orderErrorPaymentMethodNotAllowed, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethodsData_SavedCards_Ok() {
@@ -2942,9 +2936,12 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethodsData_SavedCards_Ok()
 		},
 	}
 
-	order := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	rsp := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
+	order := rsp.Item
 
 	processor := &PaymentFormProcessor{service: suite.service, order: order}
 
@@ -2981,9 +2978,12 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethodsData_EmptySavedCards
 
 	suite.service.rep = mock.NewRepositoryServiceEmpty()
 
-	order := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	rsp := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
+	order := rsp.Item
 
 	processor := &PaymentFormProcessor{service: suite.service, order: order}
 
@@ -3020,9 +3020,12 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethodsData_NotBankCard_Ok(
 
 	suite.service.rep = mock.NewRepositoryServiceEmpty()
 
-	order := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	rsp := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
+	order := rsp.Item
 
 	processor := &PaymentFormProcessor{service: suite.service, order: order}
 
@@ -3059,9 +3062,12 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethodsData_GetSavedCards_E
 
 	suite.service.rep = mock.NewRepositoryServiceError()
 
-	order := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	rsp := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
+	order := rsp.Item
 
 	processor := &PaymentFormProcessor{service: suite.service, order: order}
 
@@ -3097,9 +3103,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_Ok() {
 		},
 	}
 
-	order := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	order := rsp1.Item
 	assert.NotNil(suite.T(), order.CountryRestriction)
 	assert.Equal(suite.T(), order.CountryRestriction.IsoCodeA2, "RU")
 	assert.True(suite.T(), order.CountryRestriction.PaymentsAllowed)
@@ -3146,9 +3155,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcessWithProducts_Ok
 		Products: suite.productIds,
 	}
 
-	order := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	order := rsp1.Item
 
 	req1 := &grpc.PaymentFormJsonDataRequest{OrderId: order.Uuid, Scheme: "https", Host: "unit.test"}
 	rsp := &grpc.PaymentFormJsonDataResponse{}
@@ -3174,9 +3186,12 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_BankCard_Ok() {
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	rsp := rsp1.Item
 
 	data := map[string]string{
 		pkg.PaymentCreateFieldOrderId:         rsp.Uuid,
@@ -3217,9 +3232,12 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_Bitcoin_Ok() {
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	rsp := rsp1.Item
 
 	data := map[string]string{
 		pkg.PaymentCreateFieldOrderId:         rsp.Uuid,
@@ -3251,9 +3269,11 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_OrderIdEmpty_Error
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
 
 	data := map[string]string{
 		pkg.PaymentCreateFieldPaymentMethodId: suite.pmBitcoin1.Id,
@@ -3268,7 +3288,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_OrderIdEmpty_Error
 	assert.Nil(suite.T(), processor.checked.order)
 	assert.Nil(suite.T(), processor.checked.project)
 	assert.Nil(suite.T(), processor.checked.paymentMethod)
-	assert.Equal(suite.T(), orderErrorCreatePaymentRequiredFieldIdNotFound, err.Error())
+	assert.Equal(suite.T(), orderErrorCreatePaymentRequiredFieldIdNotFound, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_PaymentMethodEmpty_Error() {
@@ -3285,9 +3305,12 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_PaymentMethodEmpty
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	rsp := rsp1.Item
 
 	data := map[string]string{
 		pkg.PaymentCreateFieldOrderId: rsp.Id,
@@ -3302,7 +3325,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_PaymentMethodEmpty
 	assert.Nil(suite.T(), processor.checked.order)
 	assert.Nil(suite.T(), processor.checked.project)
 	assert.Nil(suite.T(), processor.checked.paymentMethod)
-	assert.Equal(suite.T(), orderErrorCreatePaymentRequiredFieldPaymentMethodNotFound, err.Error())
+	assert.Equal(suite.T(), orderErrorCreatePaymentRequiredFieldPaymentMethodNotFound, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_EmailEmpty_Error() {
@@ -3319,9 +3342,12 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_EmailEmpty_Error()
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	rsp := rsp1.Item
 
 	data := map[string]string{
 		pkg.PaymentCreateFieldOrderId:         rsp.Uuid,
@@ -3336,7 +3362,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_EmailEmpty_Error()
 	assert.Nil(suite.T(), processor.checked.order)
 	assert.Nil(suite.T(), processor.checked.project)
 	assert.Nil(suite.T(), processor.checked.paymentMethod)
-	assert.Equal(suite.T(), orderErrorCreatePaymentRequiredFieldEmailNotFound, err.Error())
+	assert.Equal(suite.T(), orderErrorCreatePaymentRequiredFieldEmailNotFound, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_OrderNotFound_Error() {
@@ -3353,9 +3379,11 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_OrderNotFound_Erro
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
 
 	data := map[string]string{
 		pkg.PaymentCreateFieldOrderId:         bson.NewObjectId().Hex(),
@@ -3371,7 +3399,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_OrderNotFound_Erro
 	assert.Nil(suite.T(), processor.checked.order)
 	assert.Nil(suite.T(), processor.checked.project)
 	assert.Nil(suite.T(), processor.checked.paymentMethod)
-	assert.Equal(suite.T(), orderErrorNotFound, err.Error())
+	assert.Equal(suite.T(), orderErrorNotFound, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_OrderHasEndedStatus_Error() {
@@ -3388,9 +3416,12 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_OrderHasEndedStatu
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	rsp := rsp1.Item
 
 	rsp.PrivateStatus = constant.OrderStatusProjectComplete
 	err = suite.service.updateOrder(rsp)
@@ -3409,7 +3440,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_OrderHasEndedStatu
 	assert.Nil(suite.T(), processor.checked.order)
 	assert.Nil(suite.T(), processor.checked.project)
 	assert.Nil(suite.T(), processor.checked.paymentMethod)
-	assert.Equal(suite.T(), orderErrorOrderAlreadyComplete, err.Error())
+	assert.Equal(suite.T(), orderErrorOrderAlreadyComplete, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_ProjectProcess_Error() {
@@ -3426,9 +3457,12 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_ProjectProcess_Err
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	rsp := rsp1.Item
 
 	rsp.Project.Id = suite.inactiveProject.Id
 	err = suite.service.updateOrder(rsp)
@@ -3447,7 +3481,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_ProjectProcess_Err
 	assert.Nil(suite.T(), processor.checked.order)
 	assert.Nil(suite.T(), processor.checked.project)
 	assert.Nil(suite.T(), processor.checked.paymentMethod)
-	assert.Equal(suite.T(), orderErrorProjectInactive, err.Error())
+	assert.Equal(suite.T(), orderErrorProjectInactive, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_PaymentMethodNotFound_Error() {
@@ -3464,9 +3498,12 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_PaymentMethodNotFo
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	rsp := rsp1.Item
 
 	data := map[string]string{
 		pkg.PaymentCreateFieldOrderId:         rsp.Uuid,
@@ -3482,7 +3519,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_PaymentMethodNotFo
 	assert.Nil(suite.T(), processor.checked.order)
 	assert.Nil(suite.T(), processor.checked.project)
 	assert.Nil(suite.T(), processor.checked.paymentMethod)
-	assert.Equal(suite.T(), orderErrorPaymentMethodNotFound, err.Error())
+	assert.Equal(suite.T(), orderErrorPaymentMethodNotFound, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_PaymentMethodProcess_Error() {
@@ -3499,9 +3536,12 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_PaymentMethodProce
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	rsp := rsp1.Item
 
 	data := map[string]string{
 		pkg.PaymentCreateFieldOrderId:         rsp.Uuid,
@@ -3517,7 +3557,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_PaymentMethodProce
 	assert.Nil(suite.T(), processor.checked.order)
 	assert.Nil(suite.T(), processor.checked.project)
 	assert.Nil(suite.T(), processor.checked.paymentMethod)
-	assert.Equal(suite.T(), orderErrorPaymentMethodInactive, err.Error())
+	assert.Equal(suite.T(), orderErrorPaymentMethodInactive, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_AmountLimitProcess_Error() {
@@ -3534,9 +3574,12 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_AmountLimitProcess
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	rsp := rsp1.Item
 
 	rsp.ProjectIncomeAmount = 10
 	err = suite.service.updateOrder(rsp)
@@ -3555,7 +3598,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_AmountLimitProcess
 	assert.Nil(suite.T(), processor.checked.order)
 	assert.Nil(suite.T(), processor.checked.project)
 	assert.Nil(suite.T(), processor.checked.paymentMethod)
-	assert.Equal(suite.T(), orderErrorAmountLowerThanMinAllowed, err.Error())
+	assert.Equal(suite.T(), orderErrorAmountLowerThanMinAllowed, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_BankCardNumberInvalid_Error() {
@@ -3572,9 +3615,12 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_BankCardNumberInva
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	rsp := rsp1.Item
 
 	data := map[string]string{
 		pkg.PaymentCreateFieldOrderId:         rsp.Uuid,
@@ -3594,7 +3640,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_BankCardNumberInva
 	assert.Nil(suite.T(), processor.checked.order)
 	assert.Nil(suite.T(), processor.checked.project)
 	assert.Nil(suite.T(), processor.checked.paymentMethod)
-	assert.Equal(suite.T(), bankCardPanIsInvalid, err.Error())
+	assert.Equal(suite.T(), "validation failed", err.Error())
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_GetBinData_Error() {
@@ -3611,9 +3657,12 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_GetBinData_Error()
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	rsp := rsp1.Item
 
 	data := map[string]string{
 		pkg.PaymentCreateFieldOrderId:         rsp.Uuid,
@@ -3658,9 +3707,12 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_AccountEmpty_Error
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	rsp := rsp1.Item
 
 	data := map[string]string{
 		pkg.PaymentCreateFieldOrderId:         rsp.Uuid,
@@ -3676,7 +3728,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_AccountEmpty_Error
 	assert.Nil(suite.T(), processor.checked.order)
 	assert.Nil(suite.T(), processor.checked.project)
 	assert.Nil(suite.T(), processor.checked.paymentMethod)
-	assert.Equal(suite.T(), paymentSystemErrorEWalletIdentifierIsInvalid, err.Error())
+	assert.Equal(suite.T(), paymentSystemErrorEWalletIdentifierIsInvalid, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_ChangePaymentSystemTerminal_Ok() {
@@ -3693,9 +3745,12 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_ChangePaymentSyste
 		},
 	}
 
-	order := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	order := rsp1.Item
 
 	expireYear := time.Now().AddDate(1, 0, 0)
 
@@ -3718,7 +3773,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_ChangePaymentSyste
 
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
-	assert.Len(suite.T(), rsp.Message, 0)
+	assert.Nil(suite.T(), rsp.Message)
 	assert.True(suite.T(), len(rsp.RedirectUrl) > 0)
 	assert.True(suite.T(), rsp.NeedRedirect)
 
@@ -3746,9 +3801,12 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_ChangeProjectAccou
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	rsp := rsp1.Item
 	assert.Equal(suite.T(), "", rsp.ProjectAccount)
 
 	data := map[string]string{
@@ -3786,9 +3844,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_Ok() {
 		},
 	}
 
-	order := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	order := rsp1.Item
 
 	expireYear := time.Now().AddDate(1, 0, 0)
 
@@ -3812,7 +3873,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_Ok() {
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 	assert.True(suite.T(), len(rsp.RedirectUrl) > 0)
-	assert.Len(suite.T(), rsp.Message, 0)
+	assert.Nil(suite.T(), rsp.Message)
 	assert.True(suite.T(), rsp.NeedRedirect)
 
 	var order1 *billing.Order
@@ -3851,9 +3912,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_ProcessValidation_Er
 		},
 	}
 
-	order := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	order := rsp1.Item
 
 	createPaymentRequest := &grpc.PaymentCreateRequest{
 		Data: map[string]string{
@@ -3873,8 +3937,9 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_ProcessValidation_Er
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
 	assert.Len(suite.T(), rsp.RedirectUrl, 0)
-	assert.True(suite.T(), len(rsp.Message) > 0)
-	assert.Equal(suite.T(), bankCardExpireYearIsRequired, rsp.Message)
+	assert.True(suite.T(), len(rsp.Message.Message) > 0)
+	assert.Equal(suite.T(), "validation failed", rsp.Message.Message)
+	assert.Equal(suite.T(), bankCardExpireYearIsRequired, rsp.Message.Details)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_ChangeTerminalData_Ok() {
@@ -3891,9 +3956,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_ChangeTerminalData_O
 		},
 	}
 
-	order := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	order := rsp1.Item
 
 	expireYear := time.Now().AddDate(1, 0, 0)
 
@@ -3917,7 +3985,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_ChangeTerminalData_O
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 	assert.True(suite.T(), len(rsp.RedirectUrl) > 0)
-	assert.Len(suite.T(), rsp.Message, 0)
+	assert.Nil(suite.T(), rsp.Message)
 	assert.True(suite.T(), rsp.NeedRedirect)
 }
 
@@ -3935,9 +4003,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_CreatePaymentSystemH
 		},
 	}
 
-	order := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	order := rsp1.Item
 
 	createPaymentRequest := &grpc.PaymentCreateRequest{
 		Data: map[string]string{
@@ -3954,8 +4025,8 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_CreatePaymentSystemH
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp.Status)
 	assert.Len(suite.T(), rsp.RedirectUrl, 0)
-	assert.True(suite.T(), len(rsp.Message) > 0)
-	assert.Equal(suite.T(), paymentSystemErrorHandlerNotFound, rsp.Message)
+	assert.True(suite.T(), len(rsp.Message.Message) > 0)
+	assert.Equal(suite.T(), paymentSystemErrorHandlerNotFound.Error(), rsp.Message.Message)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_FormInputTimeExpired_Error() {
@@ -3972,9 +4043,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_FormInputTimeExpired
 		},
 	}
 
-	rsp1 := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req1, rsp1)
-	assert.NoError(suite.T(), err)
+	rsp := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req1, rsp)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
+	rsp1 := rsp.Item
 
 	var order *billing.Order
 	err = suite.service.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(rsp1.Id)).One(&order)
@@ -4022,9 +4096,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Ok() {
 		},
 	}
 
-	order := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	order := rsp1.Item
 
 	expireYear := time.Now().AddDate(1, 0, 0)
 
@@ -4142,9 +4219,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Recurring_Ok() {
 		Products: suite.productIds,
 	}
 
-	order := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	order := rsp1.Item
 
 	expireYear := time.Now().AddDate(1, 0, 0)
 
@@ -4255,9 +4335,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormLanguageChanged_Ok() {
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 	assert.True(suite.T(), len(rsp.Id) > 0)
 
 	req1 := &grpc.PaymentFormUserChangeLangRequest{
@@ -4290,9 +4373,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormLanguageChanged_OrderNotFound_
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 	assert.True(suite.T(), len(rsp.Id) > 0)
 
 	req1 := &grpc.PaymentFormUserChangeLangRequest{
@@ -4321,9 +4407,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormLanguageChanged_NoChanges_Ok()
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 	assert.True(suite.T(), len(rsp.Id) > 0)
 
 	req2 := &grpc.PaymentFormJsonDataRequest{
@@ -4364,9 +4453,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_BankCard
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 	assert.True(suite.T(), len(rsp.Id) > 0)
 
 	req1 := &grpc.PaymentFormUserChangePaymentAccountRequest{
@@ -4400,9 +4492,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_Qiwi_Ok(
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 	assert.True(suite.T(), len(rsp.Id) > 0)
 
 	req1 := &grpc.PaymentFormUserChangePaymentAccountRequest{
@@ -4436,9 +4531,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_OrderNot
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 	assert.True(suite.T(), len(rsp.Id) > 0)
 
 	req1 := &grpc.PaymentFormUserChangePaymentAccountRequest{
@@ -4467,9 +4565,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_PaymentM
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 	assert.True(suite.T(), len(rsp.Id) > 0)
 
 	req1 := &grpc.PaymentFormUserChangePaymentAccountRequest{
@@ -4498,9 +4599,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_AccountI
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 	assert.True(suite.T(), len(rsp.Id) > 0)
 
 	req1 := &grpc.PaymentFormUserChangePaymentAccountRequest{
@@ -4529,9 +4633,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_BinDataN
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 	assert.True(suite.T(), len(rsp.Id) > 0)
 
 	req1 := &grpc.PaymentFormUserChangePaymentAccountRequest{
@@ -4560,9 +4667,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_QiwiAcco
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 	assert.True(suite.T(), len(rsp.Id) > 0)
 
 	req1 := &grpc.PaymentFormUserChangePaymentAccountRequest{
@@ -4591,9 +4701,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_QiwiAcco
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 	assert.True(suite.T(), len(rsp.Id) > 0)
 
 	req1 := &grpc.PaymentFormUserChangePaymentAccountRequest{
@@ -4622,9 +4735,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_Bitcoin_
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 	assert.True(suite.T(), len(rsp.Id) > 0)
 
 	req1 := &grpc.PaymentFormUserChangePaymentAccountRequest{
@@ -4655,9 +4771,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_NoChange
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 	assert.True(suite.T(), len(rsp.Id) > 0)
 
 	req1 := &grpc.PaymentFormUserChangePaymentAccountRequest{
@@ -4688,9 +4807,12 @@ func (suite *OrderTestSuite) TestOrder_OrderReCalculateAmounts_Ok() {
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 	assert.True(suite.T(), len(rsp.Id) > 0)
 
 	order, err := suite.service.getOrderByUuid(rsp.Uuid)
@@ -4738,9 +4860,12 @@ func (suite *OrderTestSuite) TestOrder_OrderReCalculateAmounts_OrderNotFound_Err
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 	assert.True(suite.T(), len(rsp.Id) > 0)
 
 	req1 := &grpc.ProcessBillingAddressRequest{
@@ -4769,9 +4894,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequi
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	order, err := suite.service.getOrderByUuid(rsp.Uuid)
 	assert.NoError(suite.T(), err)
@@ -4807,7 +4935,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequi
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 	assert.True(suite.T(), len(rsp1.RedirectUrl) > 0)
-	assert.Len(suite.T(), rsp1.Message, 0)
+	assert.Nil(suite.T(), rsp1.Message)
 
 	order1, err := suite.service.getOrderByUuid(rsp.Uuid)
 	assert.NoError(suite.T(), err)
@@ -4835,9 +4963,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequi
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	order, err := suite.service.getOrderByUuid(rsp.Uuid)
 	assert.NoError(suite.T(), err)
@@ -4894,9 +5025,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequi
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	order, err := suite.service.getOrderByUuid(rsp.Uuid)
 	assert.NoError(suite.T(), err)
@@ -4985,9 +5119,12 @@ func (suite *OrderTestSuite) TestOrder_CreateOrderByToken_Ok() {
 		Token: rsp.Token,
 	}
 
-	rsp1 := &billing.Order{}
-	err = suite.service.OrderCreateProcess(context.TODO(), req1, rsp1)
-	assert.NoError(suite.T(), err)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err = suite.service.OrderCreateProcess(context.TODO(), req1, rsp0)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp1 := rsp0.Item
 	assert.NotEmpty(suite.T(), rsp1.Id)
 	assert.Equal(suite.T(), req.Settings.ProjectId, rsp1.Project.Id)
 	assert.Equal(suite.T(), req.Settings.Currency, rsp1.ProjectIncomeCurrency.CodeA3)
@@ -5002,7 +5139,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_UuidNotFound_E
 	rsp := &grpc.PaymentFormJsonDataResponse{}
 	err := suite.service.PaymentFormJsonDataProcess(context.TODO(), req, rsp)
 	assert.NotNil(suite.T(), err)
-	assert.Equal(suite.T(), orderErrorNotFound, err.Error())
+	assert.Equal(suite.T(), orderErrorNotFound, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_NewCookie_Ok() {
@@ -5015,9 +5152,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_NewCookie_Ok()
 		OrderId:     bson.NewObjectId().Hex(),
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	req1 := &grpc.PaymentFormJsonDataRequest{
 		OrderId: rsp.Uuid,
@@ -5045,9 +5185,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_ExistCookie_Ok
 		OrderId:     bson.NewObjectId().Hex(),
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	req1 := &grpc.TokenRequest{
 		User: &billing.TokenUser{
@@ -5128,9 +5271,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_NotOwnBankCard_Error
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	order, err := suite.service.getOrderByUuid(rsp.Uuid)
 	assert.NoError(suite.T(), err)
@@ -5167,9 +5313,12 @@ func (suite *OrderTestSuite) TestOrder_IsOrderCanBePaying_Ok() {
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	req1 := &grpc.IsOrderCanBePayingRequest{
 		OrderId:   rsp.Uuid,
@@ -5198,9 +5347,12 @@ func (suite *OrderTestSuite) TestOrder_IsOrderCanBePaying_IncorrectProject_Error
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	req1 := &grpc.IsOrderCanBePayingRequest{
 		OrderId:   rsp.Uuid,
@@ -5227,9 +5379,12 @@ func (suite *OrderTestSuite) TestOrder_IsOrderCanBePaying_HasEndedStatus_Error()
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	rsp.PrivateStatus = constant.OrderStatusProjectComplete
 	err = suite.service.updateOrder(rsp)
@@ -5259,9 +5414,12 @@ func (suite *OrderTestSuite) TestOrder_CreatePayment_ChangeCustomerData_Ok() {
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	customer1, err := suite.service.getCustomerById(rsp.User.Id)
 	assert.NoError(suite.T(), err)
@@ -5518,9 +5676,12 @@ func (suite *OrderTestSuite) TestOrder_orderNotifyMerchant_Ok() {
 		},
 	}
 
-	order := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	order := rsp0.Item
 
 	ps := order.GetPublicStatus()
 	assert.Equal(suite.T(), ps, constant.OrderPublicStatusCreated)
@@ -5559,9 +5720,12 @@ func (suite *OrderTestSuite) TestCardpay_fillPaymentDataCrypto() {
 		},
 	}
 
-	order := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	order := rsp0.Item
 
 	order.PaymentMethod = &billing.PaymentMethodOrder{
 		Name: name,
@@ -5598,9 +5762,12 @@ func (suite *OrderTestSuite) TestCardpay_fillPaymentDataEwallet() {
 		},
 	}
 
-	order := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	order := rsp0.Item
 
 	order.PaymentMethod = &billing.PaymentMethodOrder{
 		Name: name,
@@ -5638,9 +5805,12 @@ func (suite *OrderTestSuite) TestCardpay_fillPaymentDataCard() {
 		},
 	}
 
-	order := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	order := rsp0.Item
 
 	order.PaymentMethod = &billing.PaymentMethodOrder{
 		Name: name,
@@ -5686,9 +5856,12 @@ func (suite *OrderTestSuite) TestBillingService_SetUserNotifySales_Ok() {
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 	assert.False(suite.T(), rsp.NotifySale)
 	assert.Empty(suite.T(), rsp.NotifySaleEmail)
 
@@ -5739,9 +5912,12 @@ func (suite *OrderTestSuite) TestBillingService_SetUserNotifyNewRegion_Ok() {
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 	assert.False(suite.T(), rsp.User.NotifyNewRegion)
 	assert.Empty(suite.T(), rsp.User.NotifyNewRegionEmail)
 
@@ -5795,12 +5971,15 @@ func (suite *OrderTestSuite) TestBillingService_OrderCreateProcess_CountryRestri
 			Address: &billing.OrderBillingAddress{},
 		},
 	}
-	order := billing.Order{}
 
 	// payments allowed
 	req.User.Address.Country = "RU"
-	err := suite.service.OrderCreateProcess(context.TODO(), req, &order)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	order := rsp0.Item
 	assert.NotNil(suite.T(), order.CountryRestriction)
 	assert.Equal(suite.T(), order.CountryRestriction.IsoCodeA2, "RU")
 	assert.True(suite.T(), order.CountryRestriction.PaymentsAllowed)
@@ -5810,8 +5989,10 @@ func (suite *OrderTestSuite) TestBillingService_OrderCreateProcess_CountryRestri
 
 	// payments not allowed but country change allowed
 	req.User.Address.Country = "UA"
-	err = suite.service.OrderCreateProcess(context.TODO(), req, &order)
+	err = suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	order = rsp0.Item
 	assert.NotNil(suite.T(), order.CountryRestriction)
 	assert.Equal(suite.T(), order.CountryRestriction.IsoCodeA2, "UA")
 	assert.False(suite.T(), order.CountryRestriction.PaymentsAllowed)
@@ -5820,8 +6001,10 @@ func (suite *OrderTestSuite) TestBillingService_OrderCreateProcess_CountryRestri
 
 	// payments not allowed and country change not allowed too
 	req.User.Address.Country = "BY"
-	err = suite.service.OrderCreateProcess(context.TODO(), req, &order)
-	assert.EqualError(suite.T(), err, orderCountryPaymentRestrictedError)
+	err = suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusBadData)
+	assert.Equal(suite.T(), orderCountryPaymentRestrictedError, rsp0.Message)
 }
 
 func (suite *OrderTestSuite) TestBillingService_processPaymentFormData_CountryRestrictions() {
@@ -5842,8 +6025,12 @@ func (suite *OrderTestSuite) TestBillingService_processPaymentFormData_CountryRe
 
 	// payments allowed
 	req.User.Address.Country = "RU"
-	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	order = rsp0.Item
 	assert.NotNil(suite.T(), order.CountryRestriction)
 	assert.Equal(suite.T(), order.CountryRestriction.IsoCodeA2, "RU")
 	assert.True(suite.T(), order.CountryRestriction.PaymentsAllowed)
@@ -5899,8 +6086,11 @@ func (suite *OrderTestSuite) TestBillingService_PaymentCreateProcess_CountryRest
 
 	// payments allowed
 	req.User.Address.Country = "RU"
-	err := suite.service.OrderCreateProcess(context.TODO(), req, order)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	order = rsp0.Item
 
 	order.UserAddressDataRequired = true
 	err = suite.service.updateOrder(order)
@@ -5947,9 +6137,11 @@ func (suite *OrderTestSuite) TestOrder_ProcessBillingAddress_USAZipIsEmpty_Error
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 	assert.True(suite.T(), len(rsp.Id) > 0)
 
 	order, err := suite.service.getOrderByUuid(rsp.Uuid)
@@ -5982,9 +6174,11 @@ func (suite *OrderTestSuite) TestOrder_ProcessBillingAddress_USAZipNotFound_Erro
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 	assert.True(suite.T(), len(rsp.Id) > 0)
 
 	order, err := suite.service.getOrderByUuid(rsp.Uuid)
@@ -6000,7 +6194,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessBillingAddress_USAZipNotFound_Erro
 	err = suite.service.ProcessBillingAddress(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionZipCode), rsp1.Message)
+	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionZipCode), rsp1.Message.Message)
 	assert.Nil(suite.T(), rsp1.Item)
 }
 
@@ -6018,9 +6212,11 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequi
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	order, err := suite.service.getOrderByUuid(rsp.Uuid)
 	assert.NoError(suite.T(), err)
@@ -6053,5 +6249,5 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequi
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.RedirectUrl)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionZipCode), rsp1.Message)
+	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionZipCode), rsp1.Message.Message)
 }

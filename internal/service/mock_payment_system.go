@@ -85,5 +85,5 @@ func (m *PaymentSystemMockError) ProcessRefund(
 	raw,
 	signature string,
 ) (err error) {
-	return NewError(paymentSystemErrorRefundRequestAmountOrCurrencyIsInvalid, pkg.ResponseStatusBadData)
+	return newBillingServerResponseError(pkg.ResponseStatusBadData, paymentSystemErrorRefundRequestAmountOrCurrencyIsInvalid)
 }

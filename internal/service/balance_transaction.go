@@ -44,7 +44,7 @@ func (h *btProcessor) prepareOrderData(order *billing.Order) error {
 
 	if err != nil {
 		zap.L().Error(
-			merchantErrorNotFound,
+			merchantErrorNotFound.Error(),
 			zap.Error(err),
 			zap.String("merchant_id", order.GetMerchantId()),
 		)
