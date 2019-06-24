@@ -1339,8 +1339,7 @@ func (h *accountingEntry) psReverseTaxFeeDelta() error {
 
 func (h *accountingEntry) chargeback() error {
 	if h.order == nil {
-		//вернуть ошибку
-		return nil
+		return accountingEntryErrorOrderNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -1382,12 +1381,11 @@ func (h *accountingEntry) chargeback() error {
 			zap.Any(errorFieldRequest, req),
 		)
 
-		return err
+		return accountingEntryErrorExchangeFailed
 	}
 
 	entry.Amount = rsp.ExchangedAmount
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -1395,7 +1393,7 @@ func (h *accountingEntry) chargeback() error {
 
 func (h *accountingEntry) psMarkupChargebackFx() error {
 	if h.order == nil {
-		return nil
+		return accountingEntryErrorOrderNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -1435,7 +1433,7 @@ func (h *accountingEntry) psMarkupChargebackFx() error {
 			zap.Any(errorFieldRequest, req),
 		)
 
-		return err
+		return accountingEntryErrorGetExchangeRateFailed
 	}
 
 	req1 := &currencies.GetRateCurrentCommonRequest{
@@ -1454,12 +1452,11 @@ func (h *accountingEntry) psMarkupChargebackFx() error {
 			zap.Any(errorFieldRequest, req),
 		)
 
-		return err
+		return accountingEntryErrorGetExchangeRateFailed
 	}
 
 	entry.Amount = rsp.Rate - rsp1.Rate
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -1467,7 +1464,7 @@ func (h *accountingEntry) psMarkupChargebackFx() error {
 
 func (h *accountingEntry) chargebackFee() error {
 	if h.order == nil {
-		return nil
+		return accountingEntryErrorOrderNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -1495,13 +1492,20 @@ func (h *accountingEntry) chargebackFee() error {
 	cost, err := h.getMoneyBackCostMerchant()
 
 	if err != nil {
-		return err
+		zap.L().Error(
+			accountingEntryErrorTextCommissionNotFound,
+			zap.Error(err),
+			zap.String("project", h.order.GetProjectId()),
+			zap.String("payment_method", h.order.GetPaymentMethodId()),
+		)
+
+		return accountingEntryErrorCommissionNotFound
 	}
 
 	h.order.RoyaltyData.ChargebackPercentCommissionInRoyaltyCurrency = h.order.TotalPaymentAmount * cost.Percent
+
 	entry.Amount = h.order.RoyaltyData.ChargebackPercentCommissionInRoyaltyCurrency
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -1509,7 +1513,7 @@ func (h *accountingEntry) chargebackFee() error {
 
 func (h *accountingEntry) psMarkupChargebackFee() error {
 	if h.order == nil {
-		return nil
+		return accountingEntryErrorOrderNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -1535,12 +1539,18 @@ func (h *accountingEntry) psMarkupChargebackFee() error {
 	cost, err := h.getMoneyBackCostSystem()
 
 	if err != nil {
-		return err
+		zap.L().Error(
+			accountingEntryErrorTextCommissionNotFound,
+			zap.Error(err),
+			zap.String("project", h.order.GetProjectId()),
+			zap.String("payment_method", h.order.GetPaymentMethodId()),
+		)
+
+		return accountingEntryErrorCommissionNotFound
 	}
 
 	entry.Amount = h.order.RoyaltyData.ChargebackPercentCommissionInRoyaltyCurrency - (h.order.TotalPaymentAmount * cost.Percent)
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -1548,7 +1558,7 @@ func (h *accountingEntry) psMarkupChargebackFee() error {
 
 func (h *accountingEntry) chargebackFixedFee() error {
 	if h.order == nil {
-		return nil
+		return accountingEntryErrorOrderNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -1574,7 +1584,14 @@ func (h *accountingEntry) chargebackFixedFee() error {
 	cost, err := h.getMoneyBackCostMerchant()
 
 	if err != nil {
-		return err
+		zap.L().Error(
+			accountingEntryErrorTextCommissionNotFound,
+			zap.Error(err),
+			zap.String("project", h.order.GetProjectId()),
+			zap.String("payment_method", h.order.GetPaymentMethodId()),
+		)
+
+		return accountingEntryErrorCommissionNotFound
 	}
 
 	h.order.RoyaltyData.ChargebackFixedCommissionInRoyaltyCurrency = cost.FixAmount
@@ -1598,7 +1615,7 @@ func (h *accountingEntry) chargebackFixedFee() error {
 				zap.Any(errorFieldRequest, req),
 			)
 
-			return err
+			return accountingEntryErrorExchangeFailed
 		}
 
 		h.order.RoyaltyData.ChargebackFixedCommissionInRoyaltyCurrency = rsp.ExchangedAmount
@@ -1606,7 +1623,6 @@ func (h *accountingEntry) chargebackFixedFee() error {
 
 	entry.Amount = h.order.RoyaltyData.ChargebackFixedCommissionInRoyaltyCurrency
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -1614,7 +1630,7 @@ func (h *accountingEntry) chargebackFixedFee() error {
 
 func (h *accountingEntry) psMarkupChargebackFixedFee() error {
 	if h.order == nil {
-		return nil
+		return accountingEntryErrorOrderNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -1640,7 +1656,14 @@ func (h *accountingEntry) psMarkupChargebackFixedFee() error {
 	cost, err := h.getMoneyBackCostSystem()
 
 	if err != nil {
-		return err
+		zap.L().Error(
+			accountingEntryErrorTextCommissionNotFound,
+			zap.Error(err),
+			zap.String("project", h.order.GetProjectId()),
+			zap.String("payment_method", h.order.GetPaymentMethodId()),
+		)
+
+		return accountingEntryErrorCommissionNotFound
 	}
 
 	amount := cost.FixAmount
