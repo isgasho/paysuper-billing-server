@@ -22,6 +22,16 @@ const (
 	errorFieldRequest = "request"
 )
 
+const (
+	accountingEntryErrorCodeOrderNotFound    = "ae00001"
+	accountingEntryErrorCodeRefundNotFound   = "ae00002"
+	accountingEntryErrorCodeMerchantNotFound = "ae00003"
+
+	accountingEntryErrorTextOrderNotFound    = "Order not found for creating accounting entry"
+	accountingEntryErrorTextRefundNotFound   = "Refund not found for creating accounting entry"
+	accountingEntryErrorTextMerchantNotFound = "Merchant not found for creating accounting entry"
+)
+
 var (
 	availableAccountingEntry = map[string]func(h *accountingEntry) error{
 		pkg.AccountingEntryTypePayment:                    func(h *accountingEntry) error { return h.payment() },
@@ -52,6 +62,17 @@ var (
 		pkg.AccountingEntryTypePsMarkupChargebackFixedFee: func(h *accountingEntry) error { return h.psMarkupChargebackFixedFee() },
 		pkg.AccountingEntryTypeRefundFailure:              func(h *accountingEntry) error { return h.refundFailure() },
 		pkg.AccountingEntryTypeChargebackFailure:          func(h *accountingEntry) error { return h.chargebackFailure() },
+		pkg.AccountingEntryTypePsAdjustment:               func(h *accountingEntry) error { return h.createEntry(pkg.AccountingEntryTypePsAdjustment) },
+		pkg.AccountingEntryTypeAdjustment:                 func(h *accountingEntry) error { return h.createEntry(pkg.AccountingEntryTypeAdjustment) },
+		pkg.AccountingEntryTypeReserved:                   func(h *accountingEntry) error { return h.createEntry(pkg.AccountingEntryTypeReserved) },
+		pkg.AccountingEntryTypePayout:                     func(h *accountingEntry) error { return h.createEntry(pkg.AccountingEntryTypePayout) },
+		pkg.AccountingEntryTypeTaxPayout:                  func(h *accountingEntry) error { return h.createEntry(pkg.AccountingEntryTypeTaxPayout) },
+		pkg.AccountingEntryTypePayoutFee:                  func(h *accountingEntry) error { return h.createEntry(pkg.AccountingEntryTypePayoutFee) },
+		pkg.AccountingEntryTypePayoutTaxFee:               func(h *accountingEntry) error { return h.createEntry(pkg.AccountingEntryTypePayoutTaxFee) },
+		pkg.AccountingEntryTypePsMarkupPayoutFee:          func(h *accountingEntry) error { return h.createEntry(pkg.AccountingEntryTypePsMarkupPayoutFee) },
+		pkg.AccountingEntryTypePayoutFailure:              func(h *accountingEntry) error { return h.createEntry(pkg.AccountingEntryTypePayoutFailure) },
+		pkg.AccountingEntryTypeTaxPayoutFailure:           func(h *accountingEntry) error { return h.createEntry(pkg.AccountingEntryTypeTaxPayoutFailure) },
+		pkg.AccountingEntryTypePayoutCancel:               func(h *accountingEntry) error { return h.createEntry(pkg.AccountingEntryTypePayoutCancel) },
 	}
 )
 
@@ -72,18 +93,7 @@ func (s *Service) CreateAccountingEntry(
 	req *grpc.CreateAccountingEntryRequest,
 	rsp *grpc.CreateAccountingEntryRequest,
 ) error {
-	fn, ok := availableAccountingEntry[req.Type]
-
-	if !ok {
-		//вернуть ошибку
-		return nil
-	}
-
-	handler := &accountingEntry{
-		Service: s,
-		req:     req,
-		ctx:     ctx,
-	}
+	handler := &accountingEntry{Service: s, req: req, ctx: ctx}
 
 	if req.OrderId != "" && bson.IsObjectIdHex(req.OrderId) == true {
 		order, err := s.getOrderById(req.OrderId)
@@ -127,6 +137,13 @@ func (s *Service) CreateAccountingEntry(
 
 	if handler.order != nil && handler.order.RoyaltyData == nil {
 		handler.order.RoyaltyData = &billing.RoyaltyData{}
+	}
+
+	fn, ok := availableAccountingEntry[req.Type]
+
+	if !ok {
+		//вернуть ошибку
+		return nil
 	}
 
 	err := fn(handler)
@@ -739,34 +756,9 @@ func (h *accountingEntry) psTaxFxFee() error {
 			Type: collectionOrder,
 		},
 		MerchantId: h.order.GetMerchantId(),
-		Amount:     h.req.Amount,
-		Currency:   h.req.Currency,
-		Status:     h.req.Status,
 	}
-
-	if h.req.Date == 0 {
-		entry.CreatedAt = ptypes.TimestampNow()
-	} else {
-		t := time.Unix(h.req.Date, 0)
-		entry.CreatedAt, _ = ptypes.TimestampProto(t)
-	}
-
-	h.accountingEntries = append(
-		h.accountingEntries,
-		&billing.AccountingEntry{
-			Id:     bson.NewObjectId().Hex(),
-			Object: pkg.ObjectTypeBalanceTransaction,
-			Type:   pkg.AccountingEntryTypePsTaxFxFee,
-			Source: &billing.AccountingEntrySource{
-				Id:   h.order.Id,
-				Type: collectionOrder,
-			},
-			MerchantId: h.order.GetMerchantId(),
-			Amount:     h.req.Amount,
-			Currency:   h.req.Currency,
-			Status:     h.req.Status,
-		},
-	)
+	h.mapRequestToEntry(entry)
+	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
 }
@@ -1633,24 +1625,18 @@ func (h *accountingEntry) refundFailure() error {
 		return nil
 	}
 
-	h.accountingEntries = append(
-		h.accountingEntries,
-		&billing.AccountingEntry{
-			Id:     bson.NewObjectId().Hex(),
-			Object: pkg.ObjectTypeBalanceTransaction,
-			Type:   pkg.AccountingEntryTypeRefundFailure,
-			Source: &billing.AccountingEntrySource{
-				Id:   h.refund.Id,
-				Type: collectionRefund,
-			},
-			MerchantId: h.order.GetMerchantId(),
-			Amount:     h.req.Amount,
-			Currency:   h.req.Currency,
-			Reason:     h.req.Reason,
-			Status:     pkg.BalanceTransactionStatusPending,
-			CreatedAt:  ptypes.TimestampNow(),
+	entry := &billing.AccountingEntry{
+		Id:     bson.NewObjectId().Hex(),
+		Object: pkg.ObjectTypeBalanceTransaction,
+		Type:   pkg.AccountingEntryTypeRefundFailure,
+		Source: &billing.AccountingEntrySource{
+			Id:   h.refund.Id,
+			Type: collectionRefund,
 		},
-	)
+		MerchantId: h.order.GetMerchantId(),
+	}
+	h.mapRequestToEntry(entry)
+	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
 }
@@ -1660,24 +1646,39 @@ func (h *accountingEntry) chargebackFailure() error {
 		return nil
 	}
 
-	h.accountingEntries = append(
-		h.accountingEntries,
-		&billing.AccountingEntry{
-			Id:     bson.NewObjectId().Hex(),
-			Object: pkg.ObjectTypeBalanceTransaction,
-			Type:   pkg.AccountingEntryTypeChargebackFailure,
-			Source: &billing.AccountingEntrySource{
-				Id:   h.order.Id,
-				Type: collectionOrder,
-			},
-			MerchantId: h.order.GetMerchantId(),
-			Amount:     h.req.Amount,
-			Currency:   h.req.Currency,
-			Reason:     h.req.Reason,
-			Status:     pkg.BalanceTransactionStatusPending,
-			CreatedAt:  ptypes.TimestampNow(),
+	entry := &billing.AccountingEntry{
+		Id:     bson.NewObjectId().Hex(),
+		Object: pkg.ObjectTypeBalanceTransaction,
+		Type:   pkg.AccountingEntryTypeChargebackFailure,
+		Source: &billing.AccountingEntrySource{
+			Id:   h.order.Id,
+			Type: collectionOrder,
 		},
-	)
+		MerchantId: h.order.GetMerchantId(),
+	}
+	h.mapRequestToEntry(entry)
+	h.accountingEntries = append(h.accountingEntries, entry)
+
+	return nil
+}
+
+func (h *accountingEntry) createEntry(entryType string) error {
+	if h.merchant == nil {
+		return nil
+	}
+
+	entry := &billing.AccountingEntry{
+		Id:     bson.NewObjectId().Hex(),
+		Object: pkg.ObjectTypeBalanceTransaction,
+		Type:   entryType,
+		Source: &billing.AccountingEntrySource{
+			Id:   h.merchant.Id,
+			Type: collectionMerchant,
+		},
+		MerchantId: h.merchant.Id,
+	}
+	h.mapRequestToEntry(entry)
+	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
 }
