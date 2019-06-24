@@ -15,21 +15,25 @@ import (
 )
 
 const (
-	errorAccountingEntryCommissionNotFound = "Commission to merchant and payment method not found"
-
 	errorFieldService = "service"
 	errorFieldMethod  = "method"
 	errorFieldRequest = "request"
-)
 
-const (
-	accountingEntryErrorCodeOrderNotFound    = "ae00001"
-	accountingEntryErrorCodeRefundNotFound   = "ae00002"
-	accountingEntryErrorCodeMerchantNotFound = "ae00003"
+	accountingEntryErrorCodeOrderNotFound         = "ae00001"
+	accountingEntryErrorCodeRefundNotFound        = "ae00002"
+	accountingEntryErrorCodeMerchantNotFound      = "ae00003"
+	accountingEntryErrorCodeUnknown               = "ae00004"
+	accountingEntryErrorCodeCommissionNotFound    = "ae00005"
+	accountingEntryErrorCodeExchangeFailed        = "ae00006"
+	accountingEntryErrorCodeGetExchangeRateFailed = "ae00007"
 
-	accountingEntryErrorTextOrderNotFound    = "Order not found for creating accounting entry"
-	accountingEntryErrorTextRefundNotFound   = "Refund not found for creating accounting entry"
-	accountingEntryErrorTextMerchantNotFound = "Merchant not found for creating accounting entry"
+	accountingEntryErrorTextOrderNotFound         = "Order not found for creating accounting entry"
+	accountingEntryErrorTextRefundNotFound        = "Refund not found for creating accounting entry"
+	accountingEntryErrorTextMerchantNotFound      = "Merchant not found for creating accounting entry"
+	accountingEntryErrorTextUnknown               = "unknown error. try request later"
+	accountingEntryErrorTextCommissionNotFound    = "Commission to merchant and payment method not found"
+	accountingEntryErrorTextExchangeFailed        = "Currency exchange failed"
+	accountingEntryErrorTextGetExchangeRateFailed = "Get exchange rate for currencies pair failed"
 )
 
 var (
@@ -74,6 +78,14 @@ var (
 		pkg.AccountingEntryTypeTaxPayoutFailure:           func(h *accountingEntry) error { return h.createEntry(pkg.AccountingEntryTypeTaxPayoutFailure) },
 		pkg.AccountingEntryTypePayoutCancel:               func(h *accountingEntry) error { return h.createEntry(pkg.AccountingEntryTypePayoutCancel) },
 	}
+
+	accountingEntryErrorOrderNotFound         = newBillingServerErrorMsg(accountingEntryErrorCodeOrderNotFound, accountingEntryErrorTextOrderNotFound)
+	accountingEntryErrorRefundNotFound        = newBillingServerErrorMsg(accountingEntryErrorCodeRefundNotFound, accountingEntryErrorTextRefundNotFound)
+	accountingEntryErrorMerchantNotFound      = newBillingServerErrorMsg(accountingEntryErrorCodeMerchantNotFound, accountingEntryErrorTextMerchantNotFound)
+	accountingEntryErrorCommissionNotFound    = newBillingServerErrorMsg(accountingEntryErrorCodeCommissionNotFound, accountingEntryErrorTextCommissionNotFound)
+	accountingEntryErrorExchangeFailed        = newBillingServerErrorMsg(accountingEntryErrorCodeExchangeFailed, accountingEntryErrorTextExchangeFailed)
+	accountingEntryErrorGetExchangeRateFailed = newBillingServerErrorMsg(accountingEntryErrorCodeGetExchangeRateFailed, accountingEntryErrorTextGetExchangeRateFailed)
+	accountingEntryErrorUnknown               = newBillingServerErrorMsg(accountingEntryErrorCodeUnknown, accountingEntryErrorTextUnknown)
 )
 
 type accountingEntry struct {
@@ -157,8 +169,7 @@ func (s *Service) CreateAccountingEntry(
 
 func (h *accountingEntry) payment() error {
 	if h.order == nil {
-		//вернуть ошибку
-		return nil
+		return accountingEntryErrorOrderNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -200,7 +211,7 @@ func (h *accountingEntry) payment() error {
 			zap.Any(errorFieldRequest, req),
 		)
 
-		return err
+		return accountingEntryErrorExchangeFailed
 	}
 
 	h.order.RoyaltyData.AmountInRoyaltyCurrency = rsp.ExchangedAmount
@@ -214,8 +225,7 @@ func (h *accountingEntry) payment() error {
 
 func (h *accountingEntry) psMarkupPaymentFx() error {
 	if h.order == nil {
-		//вернуть ошибку
-		return nil
+		return accountingEntryErrorOrderNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -255,7 +265,7 @@ func (h *accountingEntry) psMarkupPaymentFx() error {
 			zap.Any(errorFieldRequest, req),
 		)
 
-		return err
+		return accountingEntryErrorGetExchangeRateFailed
 	}
 
 	req1 := &currencies.GetRateCurrentCommonRequest{
@@ -274,7 +284,7 @@ func (h *accountingEntry) psMarkupPaymentFx() error {
 			zap.Any(errorFieldRequest, req),
 		)
 
-		return err
+		return accountingEntryErrorGetExchangeRateFailed
 	}
 
 	entry.Amount = rsp1.Rate - rsp.Rate
@@ -287,8 +297,7 @@ func (h *accountingEntry) psMarkupPaymentFx() error {
 
 func (h *accountingEntry) methodFee() error {
 	if h.order == nil {
-		//вернуть ошибку
-		return nil
+		return accountingEntryErrorOrderNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -315,13 +324,13 @@ func (h *accountingEntry) methodFee() error {
 
 	if err != nil {
 		zap.L().Error(
-			errorAccountingEntryCommissionNotFound,
+			accountingEntryErrorTextCommissionNotFound,
 			zap.Error(err),
 			zap.String("project", h.order.GetProjectId()),
 			zap.String("payment_method", h.order.GetPaymentMethodId()),
 		)
 
-		return err
+		return accountingEntryErrorCommissionNotFound
 	}
 
 	h.order.RoyaltyData.MerchantPercentCommissionInRoyaltyCurrency = h.order.RoyaltyData.AmountInRoyaltyCurrency * commission.Fee
@@ -337,8 +346,7 @@ func (h *accountingEntry) methodFee() error {
 
 func (h *accountingEntry) psMarkupMethodFee() error {
 	if h.order == nil {
-		//вернуть ошибку
-		return nil
+		return accountingEntryErrorOrderNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -364,7 +372,14 @@ func (h *accountingEntry) psMarkupMethodFee() error {
 	cost, err := h.getPaymentChannelCostMerchant()
 
 	if err != nil {
-		return err
+		zap.L().Error(
+			accountingEntryErrorTextCommissionNotFound,
+			zap.Error(err),
+			zap.String("project", h.order.GetProjectId()),
+			zap.String("payment_method", h.order.GetPaymentMethodId()),
+		)
+
+		return accountingEntryErrorCommissionNotFound
 	}
 
 	entry.Amount = h.order.RoyaltyData.MerchantPercentCommissionInRoyaltyCurrency - (h.order.RoyaltyData.AmountInRoyaltyCurrency * cost.MethodPercent)
@@ -377,8 +392,7 @@ func (h *accountingEntry) psMarkupMethodFee() error {
 
 func (h *accountingEntry) methodFixedFee() error {
 	if h.order == nil {
-		//вернуть ошибку
-		return nil
+		return accountingEntryErrorOrderNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -405,13 +419,13 @@ func (h *accountingEntry) methodFixedFee() error {
 
 	if err != nil {
 		zap.L().Error(
-			errorAccountingEntryCommissionNotFound,
+			accountingEntryErrorTextCommissionNotFound,
 			zap.Error(err),
 			zap.String("project", h.order.GetProjectId()),
 			zap.String("payment_method", h.order.GetPaymentMethodId()),
 		)
 
-		return err
+		return accountingEntryErrorCommissionNotFound
 	}
 
 	h.order.RoyaltyData.MerchantFixedCommissionInRoyaltyCurrency = commission.PerTransaction.Fee
@@ -435,7 +449,7 @@ func (h *accountingEntry) methodFixedFee() error {
 				zap.Any(errorFieldRequest, req),
 			)
 
-			return err
+			return accountingEntryErrorExchangeFailed
 		}
 
 		h.order.RoyaltyData.MerchantFixedCommissionInRoyaltyCurrency = rsp.ExchangedAmount
@@ -453,8 +467,7 @@ func (h *accountingEntry) methodFixedFee() error {
 
 func (h *accountingEntry) psMarkupMethodFixedFee() error {
 	if h.order == nil {
-		//вернуть ошибку
-		return nil
+		return accountingEntryErrorOrderNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -480,7 +493,14 @@ func (h *accountingEntry) psMarkupMethodFixedFee() error {
 	cost, err := h.getPaymentChannelCostMerchant()
 
 	if err != nil {
-		return err
+		zap.L().Error(
+			accountingEntryErrorTextCommissionNotFound,
+			zap.Error(err),
+			zap.String("project", h.order.GetProjectId()),
+			zap.String("payment_method", h.order.GetPaymentMethodId()),
+		)
+
+		return accountingEntryErrorCommissionNotFound
 	}
 
 	entry.Amount = h.order.RoyaltyData.MerchantFixedCommissionInRoyaltyCurrency - cost.MethodFixAmount
@@ -493,8 +513,7 @@ func (h *accountingEntry) psMarkupMethodFixedFee() error {
 
 func (h *accountingEntry) psFee() error {
 	if h.order == nil {
-		//вернуть ошибку
-		return nil
+		return accountingEntryErrorOrderNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -520,7 +539,14 @@ func (h *accountingEntry) psFee() error {
 	cost, err := h.getPaymentChannelCostMerchant()
 
 	if err != nil {
-		return err
+		zap.L().Error(
+			accountingEntryErrorTextCommissionNotFound,
+			zap.Error(err),
+			zap.String("project", h.order.GetProjectId()),
+			zap.String("payment_method", h.order.GetPaymentMethodId()),
+		)
+
+		return accountingEntryErrorCommissionNotFound
 	}
 
 	amount := h.order.RoyaltyData.AmountInRoyaltyCurrency * cost.PsPercent
@@ -534,8 +560,7 @@ func (h *accountingEntry) psFee() error {
 
 func (h *accountingEntry) psFixedFee() error {
 	if h.order == nil {
-		//вернуть ошибку
-		return nil
+		return accountingEntryErrorOrderNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -561,7 +586,14 @@ func (h *accountingEntry) psFixedFee() error {
 	cost, err := h.getPaymentChannelCostMerchant()
 
 	if err != nil {
-		return err
+		zap.L().Error(
+			accountingEntryErrorTextCommissionNotFound,
+			zap.Error(err),
+			zap.String("project", h.order.GetProjectId()),
+			zap.String("payment_method", h.order.GetPaymentMethodId()),
+		)
+
+		return accountingEntryErrorCommissionNotFound
 	}
 
 	amount := cost.PsFixedFee
@@ -586,7 +618,7 @@ func (h *accountingEntry) psFixedFee() error {
 				zap.Any(errorFieldRequest, req),
 			)
 
-			return err
+			return accountingEntryErrorExchangeFailed
 		}
 
 		amount = rsp.ExchangedAmount
@@ -602,8 +634,7 @@ func (h *accountingEntry) psFixedFee() error {
 
 func (h *accountingEntry) psMarkupFixedFeeFx() error {
 	if h.order == nil {
-		//вернуть ошибку
-		return nil
+		return accountingEntryErrorOrderNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -629,7 +660,14 @@ func (h *accountingEntry) psMarkupFixedFeeFx() error {
 	cost, err := h.getPaymentChannelCostMerchant()
 
 	if err != nil {
-		return err
+		zap.L().Error(
+			accountingEntryErrorTextCommissionNotFound,
+			zap.Error(err),
+			zap.String("project", h.order.GetProjectId()),
+			zap.String("payment_method", h.order.GetPaymentMethodId()),
+		)
+
+		return accountingEntryErrorCommissionNotFound
 	}
 
 	req := &currencies.GetRateCurrentForMerchantRequest{
@@ -649,7 +687,7 @@ func (h *accountingEntry) psMarkupFixedFeeFx() error {
 			zap.Any(errorFieldRequest, req),
 		)
 
-		return err
+		return accountingEntryErrorGetExchangeRateFailed
 	}
 
 	req1 := &currencies.GetRateCurrentCommonRequest{
@@ -668,12 +706,11 @@ func (h *accountingEntry) psMarkupFixedFeeFx() error {
 			zap.Any(errorFieldRequest, req),
 		)
 
-		return err
+		return accountingEntryErrorGetExchangeRateFailed
 	}
 
 	entry.Amount = rsp.Rate - rsp1.Rate
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -681,8 +718,7 @@ func (h *accountingEntry) psMarkupFixedFeeFx() error {
 
 func (h *accountingEntry) taxFee() error {
 	if h.order == nil {
-		//вернуть ошибку
-		return nil
+		return accountingEntryErrorOrderNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -726,7 +762,7 @@ func (h *accountingEntry) taxFee() error {
 				zap.Any(errorFieldRequest, req),
 			)
 
-			return err
+			return accountingEntryErrorExchangeFailed
 		}
 
 		amount = rsp.ExchangedAmount
@@ -743,8 +779,7 @@ func (h *accountingEntry) taxFee() error {
 
 func (h *accountingEntry) psTaxFxFee() error {
 	if h.order == nil {
-		//вернуть ошибку
-		return nil
+		return accountingEntryErrorOrderNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -765,8 +800,7 @@ func (h *accountingEntry) psTaxFxFee() error {
 
 func (h *accountingEntry) refundEntry() error {
 	if h.refund == nil {
-		//вернуть ошибку
-		return nil
+		return accountingEntryErrorRefundNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -808,14 +842,13 @@ func (h *accountingEntry) refundEntry() error {
 			zap.Any(errorFieldRequest, req),
 		)
 
-		return err
+		return accountingEntryErrorExchangeFailed
 	}
 
 	h.order.RoyaltyData.RefundTotalAmountInRoyaltyCurrency += rsp.ExchangedAmount
 
 	entry.Amount = rsp.ExchangedAmount
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -823,8 +856,7 @@ func (h *accountingEntry) refundEntry() error {
 
 func (h *accountingEntry) refundFee() error {
 	if h.refund == nil {
-		//вернуть ошибку
-		return nil
+		return accountingEntryErrorRefundNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -850,12 +882,18 @@ func (h *accountingEntry) refundFee() error {
 	cost, err := h.getMoneyBackCostMerchant()
 
 	if err != nil {
-		return err
+		zap.L().Error(
+			accountingEntryErrorTextCommissionNotFound,
+			zap.Error(err),
+			zap.String("project", h.order.GetProjectId()),
+			zap.String("payment_method", h.order.GetPaymentMethodId()),
+		)
+
+		return accountingEntryErrorCommissionNotFound
 	}
 
 	entry.Amount = h.refund.Amount * cost.Percent
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -863,8 +901,7 @@ func (h *accountingEntry) refundFee() error {
 
 func (h *accountingEntry) refundFixedFee() error {
 	if h.refund == nil {
-		//вернуть ошибку
-		return nil
+		return accountingEntryErrorRefundNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -890,7 +927,14 @@ func (h *accountingEntry) refundFixedFee() error {
 	cost, err := h.getMoneyBackCostMerchant()
 
 	if err != nil {
-		return err
+		zap.L().Error(
+			accountingEntryErrorTextCommissionNotFound,
+			zap.Error(err),
+			zap.String("project", h.order.GetProjectId()),
+			zap.String("payment_method", h.order.GetPaymentMethodId()),
+		)
+
+		return accountingEntryErrorCommissionNotFound
 	}
 
 	amount := cost.FixAmount
@@ -914,7 +958,7 @@ func (h *accountingEntry) refundFixedFee() error {
 				zap.Any(errorFieldRequest, req),
 			)
 
-			return err
+			return accountingEntryErrorExchangeFailed
 		}
 
 		amount = rsp.ExchangedAmount
@@ -922,7 +966,6 @@ func (h *accountingEntry) refundFixedFee() error {
 
 	entry.Amount = amount
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -930,8 +973,7 @@ func (h *accountingEntry) refundFixedFee() error {
 
 func (h *accountingEntry) psMarkupRefundFx() error {
 	if h.refund == nil {
-		//вернуть ошибку
-		return nil
+		return accountingEntryErrorRefundNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -971,7 +1013,7 @@ func (h *accountingEntry) psMarkupRefundFx() error {
 			zap.Any(errorFieldRequest, req),
 		)
 
-		return err
+		return accountingEntryErrorGetExchangeRateFailed
 	}
 
 	req1 := &currencies.GetRateCurrentCommonRequest{
@@ -990,12 +1032,11 @@ func (h *accountingEntry) psMarkupRefundFx() error {
 			zap.Any(errorFieldRequest, req),
 		)
 
-		return err
+		return accountingEntryErrorGetExchangeRateFailed
 	}
 
 	entry.Amount = rsp.Rate - rsp1.Rate
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -1003,8 +1044,7 @@ func (h *accountingEntry) psMarkupRefundFx() error {
 
 func (h *accountingEntry) refundBody() error {
 	if h.refund == nil {
-		//вернуть ошибку
-		return nil
+		return accountingEntryErrorRefundNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -1048,7 +1088,7 @@ func (h *accountingEntry) refundBody() error {
 				zap.Any(errorFieldRequest, req),
 			)
 
-			return err
+			return accountingEntryErrorExchangeFailed
 		}
 
 		refundAmount = rsp.ExchangedAmount
@@ -1075,7 +1115,7 @@ func (h *accountingEntry) refundBody() error {
 				zap.Any(errorFieldRequest, req),
 			)
 
-			return err
+			return accountingEntryErrorExchangeFailed
 		}
 
 		taxAmount = rsp.ExchangedAmount
@@ -1091,8 +1131,7 @@ func (h *accountingEntry) refundBody() error {
 
 func (h *accountingEntry) reverseTaxFee() error {
 	if h.refund == nil {
-		//вернуть ошибку
-		return nil
+		return accountingEntryErrorRefundNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -1136,16 +1175,16 @@ func (h *accountingEntry) reverseTaxFee() error {
 				zap.Any(errorFieldRequest, req),
 			)
 
-			return err
+			return accountingEntryErrorExchangeFailed
 		}
 
 		amount = rsp.ExchangedAmount
 	}
 
 	h.order.RoyaltyData.RefundTaxAmountInRoyaltyCurrency = amount
+
 	entry.Amount = amount
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -1153,8 +1192,7 @@ func (h *accountingEntry) reverseTaxFee() error {
 
 func (h *accountingEntry) psMarkupReverseTaxFee() error {
 	if h.refund == nil {
-		//вернуть ошибку
-		return nil
+		return accountingEntryErrorRefundNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -1194,7 +1232,7 @@ func (h *accountingEntry) psMarkupReverseTaxFee() error {
 			zap.Any(errorFieldRequest, req),
 		)
 
-		return err
+		return accountingEntryErrorGetExchangeRateFailed
 	}
 
 	req1 := &currencies.GetRateCurrentCommonRequest{
@@ -1213,12 +1251,11 @@ func (h *accountingEntry) psMarkupReverseTaxFee() error {
 			zap.Any(errorFieldRequest, req),
 		)
 
-		return err
+		return accountingEntryErrorGetExchangeRateFailed
 	}
 
 	entry.Amount = rsp.Rate - rsp1.Rate
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -1226,8 +1263,7 @@ func (h *accountingEntry) psMarkupReverseTaxFee() error {
 
 func (h *accountingEntry) reverseTaxFeeDelta() error {
 	if h.refund == nil {
-		//вернуть ошибку
-		return nil
+		return accountingEntryErrorRefundNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -1258,7 +1294,6 @@ func (h *accountingEntry) reverseTaxFeeDelta() error {
 
 	entry.Amount = amount
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -1266,8 +1301,7 @@ func (h *accountingEntry) reverseTaxFeeDelta() error {
 
 func (h *accountingEntry) psReverseTaxFeeDelta() error {
 	if h.refund == nil {
-		//вернуть ошибку
-		return nil
+		return accountingEntryErrorRefundNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -1298,7 +1332,6 @@ func (h *accountingEntry) psReverseTaxFeeDelta() error {
 
 	entry.Amount = math.Abs(amount)
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
