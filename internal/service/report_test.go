@@ -142,9 +142,11 @@ func (suite *ReportTestSuite) SetupTest() {
 				Secret:         "A1tph4I6BD0f",
 				SecretCallback: "0V1rJ7t4jCRv",
 			}},
-		TestSettings: &billing.PaymentMethodParams{
-			TerminalId: "15985",
-			Currency:   "RUB",
+		TestSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				Currency:   "RUB",
+				TerminalId: "15985",
+			},
 		},
 		Type:            "bank_card",
 		IsActive:        true,
@@ -177,9 +179,11 @@ func (suite *ReportTestSuite) SetupTest() {
 				Secret:         "A1tph4I6BD0f",
 				SecretCallback: "0V1rJ7t4jCRv",
 			}},
-		TestSettings: &billing.PaymentMethodParams{
-			TerminalId: "15985",
-			Currency:   "RUB",
+		TestSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				Currency:   "RUB",
+				TerminalId: "15985",
+			},
 		},
 	}
 

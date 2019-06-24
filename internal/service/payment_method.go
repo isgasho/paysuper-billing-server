@@ -22,8 +22,8 @@ const (
 	paymentMethodErrorPaymentSystem              = "payment method must contain of payment system"
 	paymentMethodErrorUnknownMethod              = "payment method is unknown"
 	paymentMethodErrorNotFoundProductionSettings = "payment method is not contain requesting settings"
-	paymentMethodErrorTestSettings               = "payment method is not contain settings for test"
-	paymentMethodErrorBankingSettings            = "payment method is not contain settings for test"
+	paymentMethodErrorSettings                   = "payment method is not contain settings for test"
+	paymentMethodErrorBankingSettings            = "merchant dont have banking settings"
 )
 
 func (s *Service) CreateOrUpdatePaymentMethod(
@@ -137,7 +137,7 @@ func (s *Service) CreateOrUpdatePaymentMethodProductionSettings(
 
 func (s *Service) GetPaymentMethodProductionSettings(
 	ctx context.Context,
-	req *grpc.GetPaymentMethodProductionSettingsRequest,
+	req *grpc.GetPaymentMethodSettingsRequest,
 	rsp *billing.PaymentMethodParams,
 ) error {
 	pm, err := s.paymentMethod.GetById(req.PaymentMethodId)
@@ -153,7 +153,7 @@ func (s *Service) GetPaymentMethodProductionSettings(
 
 func (s *Service) DeletePaymentMethodProductionSettings(
 	ctx context.Context,
-	req *grpc.GetPaymentMethodProductionSettingsRequest,
+	req *grpc.GetPaymentMethodSettingsRequest,
 	rsp *grpc.ChangePaymentMethodParamsResponse,
 ) error {
 	pm, err := s.paymentMethod.GetById(req.PaymentMethodId)
@@ -174,6 +174,99 @@ func (s *Service) DeletePaymentMethodProductionSettings(
 	}
 
 	delete(pm.ProductionSettings, req.CurrencyA3)
+
+	if err := s.paymentMethod.Update(pm); err != nil {
+		zap.S().Errorf("Query to delete production settings of project method is failed", "err", err.Error(), "data", req)
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = err.Error()
+
+		return nil
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
+
+	return nil
+}
+
+func (s *Service) CreateOrUpdatePaymentMethodTestSettings(
+	ctx context.Context,
+	req *grpc.ChangePaymentMethodParamsRequest,
+	rsp *grpc.ChangePaymentMethodParamsResponse,
+) error {
+	var pm *billing.PaymentMethod
+	var err error
+
+	pm, err = s.paymentMethod.GetById(req.PaymentMethodId)
+	if err != nil {
+		zap.S().Errorf("Unable to get payment method for update production settings", "err", err.Error(), "data", req)
+		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Message = paymentMethodErrorUnknownMethod
+
+		return nil
+	}
+
+	if pm.TestSettings == nil {
+		pm.TestSettings = map[string]*billing.PaymentMethodParams{}
+	}
+
+	pm.TestSettings[req.Params.Currency] = &billing.PaymentMethodParams{
+		Currency:       req.Params.Currency,
+		Secret:         req.Params.Secret,
+		SecretCallback: req.Params.SecretCallback,
+		TerminalId:     req.Params.TerminalId,
+	}
+	if err := s.paymentMethod.Update(pm); err != nil {
+		zap.S().Errorf("Query to update production settings of project method is failed", "err", err.Error(), "data", req)
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = err.Error()
+
+		return nil
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
+
+	return nil
+}
+
+func (s *Service) GetPaymentMethodTestSettings(
+	ctx context.Context,
+	req *grpc.GetPaymentMethodSettingsRequest,
+	rsp *billing.PaymentMethodParams,
+) error {
+	pm, err := s.paymentMethod.GetById(req.PaymentMethodId)
+	if err != nil {
+		zap.S().Errorf("Query to get production settings of project method is failed", "err", err.Error(), "data", req)
+		return nil
+	}
+
+	rsp, _ = pm.TestSettings[req.CurrencyA3]
+
+	return nil
+}
+
+func (s *Service) DeletePaymentMethodTestSettings(
+	ctx context.Context,
+	req *grpc.GetPaymentMethodSettingsRequest,
+	rsp *grpc.ChangePaymentMethodParamsResponse,
+) error {
+	pm, err := s.paymentMethod.GetById(req.PaymentMethodId)
+	if err != nil {
+		zap.S().Errorf("Unable to get payment method for delete production settings", "err", err.Error(), "data", req)
+		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Message = paymentMethodErrorUnknownMethod
+
+		return nil
+	}
+
+	if _, ok := pm.TestSettings[req.CurrencyA3]; !ok {
+		zap.S().Errorf("Unable to get production settings for currency", "data", req)
+		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Message = paymentMethodErrorNotFoundProductionSettings
+
+		return nil
+	}
+
+	delete(pm.TestSettings, req.CurrencyA3)
 
 	if err := s.paymentMethod.Update(pm); err != nil {
 		zap.S().Errorf("Query to delete production settings of project method is failed", "err", err.Error(), "data", req)
@@ -338,21 +431,23 @@ func (h *PaymentMethod) GetPaymentSettings(
 	merchant *billing.Merchant,
 	project *billing.Project,
 ) (*billing.PaymentMethodParams, error) {
-	if project.IsProduction() == false {
-		if paymentMethod.TestSettings == nil {
-			return nil, errors.New(paymentMethodErrorTestSettings)
-		}
-
-		return paymentMethod.TestSettings, nil
-	}
-
 	if merchant == nil || merchant.Banking == nil || merchant.Banking.Currency == nil {
 		return nil, errors.New(paymentMethodErrorBankingSettings)
 	}
 
-	if _, ok := paymentMethod.ProductionSettings[merchant.Banking.Currency.CodeA3]; !ok {
+	settings := paymentMethod.TestSettings
+
+	if project.IsProduction() == true {
+		settings = paymentMethod.ProductionSettings
+	}
+
+	if settings == nil {
+		return nil, errors.New(paymentMethodErrorSettings)
+	}
+
+	if _, ok := settings[merchant.Banking.Currency.CodeA3]; !ok {
 		return nil, errors.New(paymentMethodErrorNotFoundProductionSettings)
 	}
 
-	return paymentMethod.ProductionSettings[merchant.Banking.Currency.CodeA3], nil
+	return settings[merchant.Banking.Currency.CodeA3], nil
 }

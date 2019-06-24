@@ -192,11 +192,13 @@ func (suite *OrderTestSuite) SetupTest() {
 				Secret:         "A1tph4I6BD0f",
 				SecretCallback: "0V1rJ7t4jCRv",
 			}},
-		TestSettings: &billing.PaymentMethodParams{
-			TerminalId:     "15985",
-			Secret:         "A1tph4I6BD0f",
-			SecretCallback: "0V1rJ7t4jCRv",
-			Currency:       "RUB",
+		TestSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				Currency:       "RUB",
+				TerminalId:     "15985",
+				Secret:         "A1tph4I6BD0f",
+				SecretCallback: "0V1rJ7t4jCRv",
+			},
 		},
 		Type:            "bank_card",
 		IsActive:        true,
@@ -226,9 +228,11 @@ func (suite *OrderTestSuite) SetupTest() {
 			"RUB": {
 				TerminalId: "16007",
 			}},
-		TestSettings: &billing.PaymentMethodParams{
-			TerminalId: "16007",
-			Currency:   "RUB",
+		TestSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				Currency:   "RUB",
+				TerminalId: "16007",
+			},
 		},
 		Type:            "crypto",
 		IsActive:        true,
@@ -257,9 +261,11 @@ func (suite *OrderTestSuite) SetupTest() {
 			"RUB": {
 				TerminalId: "15993",
 			}},
-		TestSettings: &billing.PaymentMethodParams{
-			TerminalId: "15993",
-			Currency:   "RUB",
+		TestSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				Currency:   "RUB",
+				TerminalId: "15993",
+			},
 		},
 		Type:            "ewallet",
 		IsActive:        true,
@@ -556,9 +562,11 @@ func (suite *OrderTestSuite) SetupTest() {
 			"RUB": {
 				TerminalId: "15985",
 			}},
-		TestSettings: &billing.PaymentMethodParams{
-			TerminalId: "15985",
-			Currency:   "RUB",
+		TestSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				Currency:   "RUB",
+				TerminalId: "15985",
+			},
 		},
 		Type:            "ewallet",
 		IsActive:        true,
@@ -587,9 +595,11 @@ func (suite *OrderTestSuite) SetupTest() {
 			"RUB": {
 				TerminalId: "15985",
 			}},
-		TestSettings: &billing.PaymentMethodParams{
-			TerminalId: "15985",
-			Currency:   "RUB",
+		TestSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				Currency:   "RUB",
+				TerminalId: "15985",
+			},
 		},
 		Type:            "ewallet",
 		IsActive:        true,
@@ -607,9 +617,13 @@ func (suite *OrderTestSuite) SetupTest() {
 			"RUB": {
 				TerminalId: "16007",
 			}},
-		TestSettings: &billing.PaymentMethodParams{
-			TerminalId: "16007",
-			Currency:   "RUB",
+		TestSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				Currency:       "RUB",
+				TerminalId:     "16007",
+				Secret:         "A1tph4I6BD0f",
+				SecretCallback: "0V1rJ7t4jCRv",
+			},
 		},
 		Type:            "crypto",
 		IsActive:        false,
