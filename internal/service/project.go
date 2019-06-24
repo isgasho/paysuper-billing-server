@@ -103,13 +103,6 @@ func (s *Service) ChangeProject(
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = project
 
-	if err := s.project.Update(project); err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = err.Error()
-
-		return nil
-	}
-
 	return nil
 }
 
@@ -310,6 +303,10 @@ func (s *Service) createProject(req *billing.Project) (*billing.Project, error) 
 		UrlProcessPayment:        req.UrlProcessPayment,
 		UrlRedirectFail:          req.UrlRedirectFail,
 		UrlRedirectSuccess:       req.UrlRedirectSuccess,
+		UrlChargebackPayment:     req.UrlChargebackPayment,
+		UrlCancelPayment:         req.UrlCancelPayment,
+		UrlFraudPayment:          req.UrlFraudPayment,
+		UrlRefundPayment:         req.UrlRefundPayment,
 		Status:                   pkg.ProjectStatusDraft,
 		CreatedAt:                ptypes.TimestampNow(),
 		UpdatedAt:                ptypes.TimestampNow(),
@@ -349,6 +346,10 @@ func (s *Service) updateProject(req *billing.Project, project *billing.Project) 
 	project.CallbackProtocol = req.CallbackProtocol
 	project.UrlCheckAccount = req.UrlCheckAccount
 	project.UrlProcessPayment = req.UrlProcessPayment
+	project.UrlChargebackPayment = req.UrlChargebackPayment
+	project.UrlCancelPayment = req.UrlCancelPayment
+	project.UrlFraudPayment = req.UrlFraudPayment
+	project.UrlRefundPayment = req.UrlRefundPayment
 
 	if err := s.project.Update(project); err != nil {
 		zap.S().Errorf("Query to update project failed", "err", err.Error(), "data", project)
