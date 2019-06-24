@@ -42,7 +42,6 @@ const (
 	orderErrorPaymentMethodNotAllowed                  = "payment method not available for project"
 	orderErrorPaymentMethodNotFound                    = "payment method with specified identifier not found"
 	orderErrorPaymentMethodInactive                    = "payment method with specified identifier is inactive"
-	orderErrorPaymentMethodIncompatible                = "payment method setting for project incompatible with main settings"
 	orderErrorPaymentMethodEmptySettings               = "payment method setting for project is empty"
 	orderErrorPaymentSystemInactive                    = "payment system for specified payment method is inactive"
 	orderErrorPayerRegionUnknown                       = "payer region can't be found"
@@ -83,7 +82,6 @@ const (
 	orderErrorUpdateOrderDataFailed                    = "Update order data failed"
 	orderErrorNotRestricted                            = "order country not restricted"
 	orderErrorEmailRequired                            = "email is required"
-	orderErrorMerchantBankingEmpty                     = "merchant banking is not found"
 
 	orderErrorCreatePaymentRequiredFieldIdNotFound            = "required field with order identifier not found"
 	orderErrorCreatePaymentRequiredFieldPaymentMethodNotFound = "required field with payment method identifier not found"
@@ -91,8 +89,7 @@ const (
 	orderErrorCreatePaymentRequiredFieldUserCountryNotFound   = "user country is required"
 	orderErrorCreatePaymentRequiredFieldUserZipNotFound       = "user zip is required"
 
-	orderDefaultDescription      = "Payment by order # %s"
-	orderInlineFormImagesUrlMask = "//%s%s"
+	orderDefaultDescription = "Payment by order # %s"
 
 	defaultExpireDateToFormInput = 30
 	cookieCounterUpdateTime      = 1800
@@ -1243,12 +1240,6 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 			PaymentsAllowed: true,
 			ChangeAllowed:   true,
 		},
-	}
-
-	if merchantPayoutCurrency != nil {
-		order.RoyaltyData = &billing.RoyaltyData{
-			MerchantRoyaltyCurrency: v.checked.merchant.GetPayoutCurrency().CodeA3,
-		}
 	}
 
 	if order.User == nil {

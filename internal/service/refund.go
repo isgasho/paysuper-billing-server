@@ -395,6 +395,22 @@ func (p *createRefundProcessor) getRefundedAmount(order *billing.Order) (float64
 	return res.Amount, nil
 }
 
+func (s *Service) getRefundById(id string) (*billing.Refund, error) {
+	var refund *billing.Refund
+
+	err := s.db.Collection(collectionRefund).FindId(bson.ObjectIdHex(id)).One(&refund)
+
+	if err != nil {
+		if err != mgo.ErrNotFound {
+			zap.S().Errorf("Query to find refund by id failed", "err", err.Error(), "id", id)
+		}
+
+		return nil, err
+	}
+
+	return refund, nil
+}
+
 func (s *Service) NewRefundError(text string, status int32) error {
 	return &RefundError{err: text, status: status}
 }

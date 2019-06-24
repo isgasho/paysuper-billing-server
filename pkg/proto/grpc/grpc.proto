@@ -788,15 +788,18 @@ message CreateAccountingEntryRequest {
     // @inject_tag: validate:"omitempty,hexadecimal,len=24"
     string order_id = 2;
     // @inject_tag: validate:"omitempty,hexadecimal,len=24"
-    string merchant_id = 3;
+    string refund_id = 3;
+    // @inject_tag: validate:"omitempty,hexadecimal,len=24"
+    string merchant_id = 4;
     // @inject_tag: validate:"required,numeric"
-    double amount = 4;
+    double amount = 5;
     // @inject_tag: validate:"required,alpha,len=3"
-    string currency = 5;
+    string currency = 6;
     // @inject_tag: query:"limit" validate:"required,oneof=pending available"
-    string status = 6;
-    // @inject_tag: validate:"required,numeric,gt=0"
-    int64 date = 7;
+    string status = 7;
+    // @inject_tag: validate:"omitempty,numeric,gt=0"
+    int64 date = 8;
+    string reason = 9;
 }
 
 message CreateAccountingEntryResponse {

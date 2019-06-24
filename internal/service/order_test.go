@@ -3197,7 +3197,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_BankCard_Ok() {
 	assert.NotNil(suite.T(), processor.checked.project)
 	assert.NotNil(suite.T(), processor.checked.paymentMethod)
 
-	bankBrand, ok := processor.checked.order.PaymentRequisites[paymentCreateBankCardFieldBrand]
+	bankBrand, ok := processor.checked.order.PaymentRequisites[pkg.PaymentCreateBankCardFieldBrand]
 
 	assert.True(suite.T(), ok)
 	assert.True(suite.T(), len(bankBrand) > 0)
@@ -3636,7 +3636,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_GetBinData_Error()
 	assert.NotNil(suite.T(), processor.checked.project)
 	assert.NotNil(suite.T(), processor.checked.paymentMethod)
 
-	bankBrand, ok := processor.checked.order.PaymentRequisites[paymentCreateBankCardFieldBrand]
+	bankBrand, ok := processor.checked.order.PaymentRequisites[pkg.PaymentCreateBankCardFieldBrand]
 
 	assert.False(suite.T(), ok)
 	assert.Len(suite.T(), bankBrand, 0)

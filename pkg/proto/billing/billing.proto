@@ -364,11 +364,15 @@ message OrderUser {
 }
 
 message RoyaltyData {
-    string merchant_royalty_currency = 1;
-    double amount_in_royalty_currency = 2;
-    double merchant_percent_commission_in_royalty_currency = 3;
-    double merchant_fixed_commission_in_royalty_currency = 4;
-    double merchant_total_commission_in_royalty_currency = 5;
+    double amount_in_royalty_currency = 1;
+    double merchant_percent_commission_in_royalty_currency = 2;
+    double merchant_fixed_commission_in_royalty_currency = 3;
+    double merchant_total_commission_in_royalty_currency = 4;
+    double refund_total_amount_in_royalty_currency = 5;
+    double payment_tax_amount_in_royalty_currency = 6;
+    double refund_tax_amount_in_royalty_currency = 7;
+    double chargeback_percent_commission_in_royalty_currency = 8;
+    double chargeback_fixed_commission_in_royalty_currency = 9;
 }
 
 message Order {

@@ -59,7 +59,7 @@ func (m *Order) GetPublicDeclineCode() string {
 }
 
 func (m *Order) GetMerchantRoyaltyCurrency() string {
-	return m.RoyaltyData.MerchantRoyaltyCurrency
+	return m.PaymentMethod.Params.Currency
 }
 
 func (m *Order) GetPaymentMethodName() string {
@@ -82,4 +82,12 @@ func (m *Order) GetUserCountry() string {
 	}
 
 	return m.User.Address.Country
+}
+
+func (m *Order) GetCostPaymentMethodName() (string, error) {
+	if m.PaymentMethod.IsBankCard() == false {
+		return m.GetPaymentMethodName(), nil
+	}
+
+	return m.GetBankCardBrand()
 }
