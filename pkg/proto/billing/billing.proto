@@ -1221,12 +1221,14 @@ message PaymentChannelCostSystem {
     double percent = 5;
     // @inject_tag: json:"fix_amount" bson:"fix_amount" validate:"numeric,gte=0"
     double fix_amount = 6;
+    //@inject_tag: json:"fix_amount_currency" bson:"fix_amount_currency" validate:"required,alpha,len=3"
+    string fix_amount_currency = 7;
     //@inject_tag: json:"created_at" bson:"created_at"
-    google.protobuf.Timestamp created_at = 7;
+    google.protobuf.Timestamp created_at = 8;
     //@inject_tag: json:"updated_at" bson:"updated_at"
-    google.protobuf.Timestamp updated_at = 8;
+    google.protobuf.Timestamp updated_at = 9;
     // @inject_tag: json:"is_active" bson:"is_active"
-    bool is_active = 9;
+    bool is_active = 10;
 }
 
 message PaymentChannelCostSystemRequest {

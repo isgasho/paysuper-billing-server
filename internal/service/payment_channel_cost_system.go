@@ -47,6 +47,7 @@ func (s *Service) GetPaymentChannelCostSystem(
 	res.Country = val.Country
 	res.Percent = val.Percent
 	res.FixAmount = val.FixAmount
+	res.FixAmountCurrency = val.FixAmountCurrency
 	res.CreatedAt = val.CreatedAt
 	res.UpdatedAt = val.UpdatedAt
 	res.IsActive = val.IsActive
@@ -99,6 +100,7 @@ func (s *Service) SetPaymentChannelCostSystem(
 	res.Country = req.Country
 	res.Percent = req.Percent
 	res.FixAmount = req.FixAmount
+	res.FixAmountCurrency = req.FixAmountCurrency
 	res.CreatedAt = req.CreatedAt
 	res.UpdatedAt = req.UpdatedAt
 	res.IsActive = true
