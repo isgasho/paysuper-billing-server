@@ -26,6 +26,7 @@ const (
 	accountingEntryErrorCodeCommissionNotFound    = "ae00005"
 	accountingEntryErrorCodeExchangeFailed        = "ae00006"
 	accountingEntryErrorCodeGetExchangeRateFailed = "ae00007"
+	accountingEntryErrorCodeUnknownEntry          = "ae00008"
 
 	accountingEntryErrorTextOrderNotFound         = "Order not found for creating accounting entry"
 	accountingEntryErrorTextRefundNotFound        = "Refund not found for creating accounting entry"
@@ -34,6 +35,9 @@ const (
 	accountingEntryErrorTextCommissionNotFound    = "Commission to merchant and payment method not found"
 	accountingEntryErrorTextExchangeFailed        = "Currency exchange failed"
 	accountingEntryErrorTextGetExchangeRateFailed = "Get exchange rate for currencies pair failed"
+	accountingEntryErrorTextUnknownEntry          = "Unknown accounting entry type"
+
+	collectionAccountingEntry = "accounting_entry"
 )
 
 var (
@@ -85,13 +89,47 @@ var (
 	accountingEntryErrorCommissionNotFound    = newBillingServerErrorMsg(accountingEntryErrorCodeCommissionNotFound, accountingEntryErrorTextCommissionNotFound)
 	accountingEntryErrorExchangeFailed        = newBillingServerErrorMsg(accountingEntryErrorCodeExchangeFailed, accountingEntryErrorTextExchangeFailed)
 	accountingEntryErrorGetExchangeRateFailed = newBillingServerErrorMsg(accountingEntryErrorCodeGetExchangeRateFailed, accountingEntryErrorTextGetExchangeRateFailed)
+	accountingEntryErrorUnknownEntry          = newBillingServerErrorMsg(accountingEntryErrorCodeUnknownEntry, accountingEntryErrorTextUnknownEntry)
 	accountingEntryErrorUnknown               = newBillingServerErrorMsg(accountingEntryErrorCodeUnknown, accountingEntryErrorTextUnknown)
+
+	onPaymentAccountingEntries = []string{
+		pkg.AccountingEntryTypePayment,
+		pkg.AccountingEntryTypePsMarkupPaymentFx,
+		pkg.AccountingEntryTypeMethodFee,
+		pkg.AccountingEntryTypePsMarkupMethodFee,
+		pkg.AccountingEntryTypeMethodFixedFee,
+		pkg.AccountingEntryTypePsMarkupMethodFixedFee,
+		pkg.AccountingEntryTypePsFee,
+		pkg.AccountingEntryTypePsFixedFee,
+		pkg.AccountingEntryTypePsMarkupFixedFeeFx,
+		pkg.AccountingEntryTypeTaxFee,
+	}
+
+	onRefundAccountingEntries = []string{
+		pkg.AccountingEntryTypeRefund,
+		pkg.AccountingEntryTypeRefundFee,
+		pkg.AccountingEntryTypeRefundFixedFee,
+		pkg.AccountingEntryTypePsMarkupRefundFx,
+		pkg.AccountingEntryTypeRefundBody,
+		pkg.AccountingEntryTypeReverseTaxFee,
+		pkg.AccountingEntryTypePsMarkupReverseTaxFee,
+		pkg.AccountingEntryTypeReverseTaxFeeDelta,
+		pkg.AccountingEntryTypePsReverseTaxFeeDelta,
+	}
+
+	onChargebackAccountingEntries = []string{
+		pkg.AccountingEntryTypeChargeback,
+		pkg.AccountingEntryTypePsMarkupChargebackFx,
+		pkg.AccountingEntryTypeChargebackFee,
+		pkg.AccountingEntryTypePsMarkupChargebackFee,
+		pkg.AccountingEntryTypeChargebackFixedFee,
+		pkg.AccountingEntryTypePsMarkupChargebackFixedFee,
+	}
 )
 
 type accountingEntry struct {
 	*Service
-	curService currencies.CurrencyratesService
-	ctx        context.Context
+	ctx context.Context
 
 	order             *billing.Order
 	refund            *billing.Refund
@@ -103,7 +141,7 @@ type accountingEntry struct {
 func (s *Service) CreateAccountingEntry(
 	ctx context.Context,
 	req *grpc.CreateAccountingEntryRequest,
-	rsp *grpc.CreateAccountingEntryRequest,
+	rsp *grpc.CreateAccountingEntryResponse,
 ) error {
 	handler := &accountingEntry{Service: s, req: req, ctx: ctx}
 
@@ -111,7 +149,9 @@ func (s *Service) CreateAccountingEntry(
 		order, err := s.getOrderById(req.OrderId)
 
 		if err != nil {
-			//вернуть ошибку
+			rsp.Status = pkg.ResponseStatusNotFound
+			rsp.Message = accountingEntryErrorOrderNotFound
+
 			return nil
 		}
 
@@ -122,14 +162,18 @@ func (s *Service) CreateAccountingEntry(
 		refund, err := s.getRefundById(req.RefundId)
 
 		if err != nil {
-			//вернуть ошибку
+			rsp.Status = pkg.ResponseStatusNotFound
+			rsp.Message = accountingEntryErrorRefundNotFound
+
 			return nil
 		}
 
 		order, err := s.getOrderById(refund.Order.Id)
 
 		if err != nil {
-			//вернуть ошибку
+			rsp.Status = pkg.ResponseStatusNotFound
+			rsp.Message = accountingEntryErrorOrderNotFound
+
 			return nil
 		}
 
@@ -141,7 +185,10 @@ func (s *Service) CreateAccountingEntry(
 		merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.OrderId)})
 
 		if err != nil {
-			//вернуть ошибку
+			rsp.Status = pkg.ResponseStatusNotFound
+			rsp.Message = accountingEntryErrorMerchantNotFound
+
+			return nil
 		}
 
 		handler.merchant = merchant
@@ -154,14 +201,107 @@ func (s *Service) CreateAccountingEntry(
 	fn, ok := availableAccountingEntry[req.Type]
 
 	if !ok {
-		//вернуть ошибку
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = accountingEntryErrorUnknownEntry
+
 		return nil
 	}
 
 	err := fn(handler)
 
 	if err != nil {
-		//вернуть ошибку
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
+
+		return nil
+	}
+
+	if handler.order != nil {
+		err = s.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(handler.order.Id), handler.order)
+
+		if err != nil {
+			zap.L().Error(
+				"Order update failed",
+				zap.Error(err),
+				zap.Any("data", handler.order),
+			)
+
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = accountingEntryErrorUnknown
+
+			return nil
+		}
+	}
+
+	err = s.db.Collection(collectionAccountingEntry).Insert(handler.accountingEntries...)
+
+	if err != nil {
+		zap.L().Error(
+			"Accounting entries insert failed",
+			zap.Error(err),
+			zap.Any("accounting_entries", handler.accountingEntries),
+		)
+
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = accountingEntryErrorUnknown
+
+		return nil
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
+	rsp.Item = handler.accountingEntries[0].(*billing.AccountingEntry)
+
+	return nil
+}
+
+func (s *Service) onPaymentNotify(ctx context.Context, order *billing.Order) error {
+	if order.RoyaltyData == nil {
+		order.RoyaltyData = &billing.RoyaltyData{}
+	}
+
+	handler := &accountingEntry{
+		Service: s,
+		order:   order,
+		ctx:     ctx,
+	}
+
+	return s.processEvent(handler, onPaymentAccountingEntries)
+}
+
+func (s *Service) onRefundNotify(ctx context.Context, refund *billing.Refund, order *billing.Order) error {
+	handler := &accountingEntry{
+		Service: s,
+		refund:  refund,
+		order:   order,
+		ctx:     ctx,
+	}
+
+	return s.processEvent(handler, onRefundAccountingEntries)
+}
+
+func (s *Service) onChargebackNotify(ctx context.Context, order *billing.Order) error {
+	handler := &accountingEntry{
+		Service: s,
+		order:   order,
+		ctx:     ctx,
+	}
+
+	return s.processEvent(handler, onChargebackAccountingEntries)
+}
+
+func (s *Service) processEvent(handler *accountingEntry, list []string) error {
+	for _, v := range list {
+		fn, ok := availableAccountingEntry[v]
+
+		if !ok {
+			return accountingEntryErrorUnknownEntry
+		}
+
+		err := fn(handler)
+
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -438,7 +578,7 @@ func (h *accountingEntry) methodFixedFee() error {
 			RateType:   curPkg.RateTypePaysuper,
 			Amount:     commission.PerTransaction.Fee,
 		}
-		rsp, err := h.curService.ExchangeCurrencyCurrentForMerchant(context.Background(), req)
+		rsp, err := h.curService.ExchangeCurrencyCurrentForMerchant(h.ctx, req)
 
 		if err != nil {
 			zap.L().Error(
@@ -505,7 +645,6 @@ func (h *accountingEntry) psMarkupMethodFixedFee() error {
 
 	entry.Amount = h.order.RoyaltyData.MerchantFixedCommissionInRoyaltyCurrency - cost.MethodFixAmount
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -751,7 +890,7 @@ func (h *accountingEntry) taxFee() error {
 			RateType:   curPkg.RateTypePaysuper,
 			Amount:     amount,
 		}
-		rsp, err := h.curService.ExchangeCurrencyCurrentForMerchant(context.Background(), req)
+		rsp, err := h.curService.ExchangeCurrencyCurrentForMerchant(h.ctx, req)
 
 		if err != nil {
 			zap.L().Error(
@@ -1678,7 +1817,7 @@ func (h *accountingEntry) psMarkupChargebackFixedFee() error {
 
 func (h *accountingEntry) refundFailure() error {
 	if h.refund == nil {
-		return nil
+		return accountingEntryErrorRefundNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -1699,7 +1838,7 @@ func (h *accountingEntry) refundFailure() error {
 
 func (h *accountingEntry) chargebackFailure() error {
 	if h.order == nil {
-		return nil
+		return accountingEntryErrorOrderNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -1720,7 +1859,7 @@ func (h *accountingEntry) chargebackFailure() error {
 
 func (h *accountingEntry) createEntry(entryType string) error {
 	if h.merchant == nil {
-		return nil
+		return accountingEntryErrorMerchantNotFound
 	}
 
 	entry := &billing.AccountingEntry{

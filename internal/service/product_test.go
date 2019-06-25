@@ -87,6 +87,7 @@ func (suite *ProductTestSuite) SetupTest() {
 		broker,
 		nil,
 		suite.cache,
+		nil,
 	)
 
 	if err := suite.service.Init(); err != nil {

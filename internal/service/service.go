@@ -15,6 +15,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
@@ -62,6 +63,7 @@ type Service struct {
 	centrifugoClient *gocent.Client
 	redis            *redis.Client
 	cacher           CacheInterface
+	curService       currencies.CurrencyratesService
 
 	accountingCurrency *billing.Currency
 
@@ -108,16 +110,18 @@ func NewBillingService(
 	broker *rabbitmq.Broker,
 	redis *redis.Client,
 	cache CacheInterface,
+	curService currencies.CurrencyratesService,
 ) *Service {
 	return &Service{
-		db:     db,
-		cfg:    cfg,
-		geo:    geo,
-		rep:    rep,
-		tax:    tax,
-		broker: broker,
-		redis:  redis,
-		cacher: cache,
+		db:         db,
+		cfg:        cfg,
+		geo:        geo,
+		rep:        rep,
+		tax:        tax,
+		broker:     broker,
+		redis:      redis,
+		cacher:     cache,
+		curService: curService,
 	}
 }
 

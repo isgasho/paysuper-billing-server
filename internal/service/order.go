@@ -26,7 +26,6 @@ import (
 	"github.com/ttacon/libphonenumber"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
-	"log"
 	"regexp"
 	"sort"
 	"strconv"
@@ -705,27 +704,32 @@ func (s *Service) PaymentCallbackProcess(
 
 	switch order.PaymentMethod.ExternalId {
 	case constant.PaymentSystemGroupAliasBankCard:
-
 		if err := s.fillPaymentDataCard(order); err != nil {
 			return err
 		}
 		break
-
 	case constant.PaymentSystemGroupAliasQiwi,
 		constant.PaymentSystemGroupAliasWebMoney,
 		constant.PaymentSystemGroupAliasNeteller,
 		constant.PaymentSystemGroupAliasAlipay:
-
 		if err := s.fillPaymentDataEwallet(order); err != nil {
 			return err
 		}
 		break
-
 	case constant.PaymentSystemGroupAliasBitcoin:
 		if err := s.fillPaymentDataCrypto(order); err != nil {
 			return err
 		}
 		break
+	}
+
+	err = s.onPaymentNotify(ctx, order)
+
+	if err != nil {
+		rsp.Error = err.(*grpc.ResponseErrorMessage).Message
+		rsp.Status = pkg.StatusErrorSystem
+
+		return nil
 	}
 
 	err = s.updateOrder(order)
@@ -961,7 +965,6 @@ func (s *Service) ProcessBillingAddress(
 	}
 
 	if zip != nil {
-		log.Println(zip)
 		order.BillingAddress.PostalCode = zip.Zip
 		order.BillingAddress.City = zip.City
 		order.BillingAddress.State = zip.State.Code

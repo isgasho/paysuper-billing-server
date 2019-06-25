@@ -95,7 +95,7 @@ service BillingService {
     rpc GetMoneyBackCostMerchant(billing.MoneyBackCostMerchantRequest) returns (billing.MoneyBackCostMerchant) {}
     rpc SetMoneyBackCostMerchant(billing.MoneyBackCostMerchant) returns (billing.MoneyBackCostMerchant) {}
     rpc DeleteMoneyBackCostMerchant(billing.PaymentCostDeleteRequest) returns (EmptyResponse) {}
-    rpc CreateAccountingEntry(CreateAccountingEntryRequest) returns (CreateAccountingEntryRequest) {}
+    rpc CreateAccountingEntry(CreateAccountingEntryRequest) returns (CreateAccountingEntryResponse) {}
 }
 
 message EmptyRequest {}
@@ -818,7 +818,7 @@ message ResponseErrorMessage {
     string code = 1;
     //@inject_tag: json:"message"
     string message = 2;
-    //@inject_tag: json:"details;omitempty"
+    //@inject_tag: json:"details,omitempty"
     string details = 3;
 }
 
@@ -843,5 +843,7 @@ message CreateAccountingEntryRequest {
 }
 
 message CreateAccountingEntryResponse {
-    billing.AccountingEntry item = 1;
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.AccountingEntry item = 3;
 }

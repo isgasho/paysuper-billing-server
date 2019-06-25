@@ -196,7 +196,7 @@ type BillingService interface {
 	GetMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchantRequest, opts ...client.CallOption) (*billing.MoneyBackCostMerchant, error)
 	SetMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchant, opts ...client.CallOption) (*billing.MoneyBackCostMerchant, error)
 	DeleteMoneyBackCostMerchant(ctx context.Context, in *billing.PaymentCostDeleteRequest, opts ...client.CallOption) (*EmptyResponse, error)
-	CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, opts ...client.CallOption) (*CreateAccountingEntryRequest, error)
+	CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, opts ...client.CallOption) (*CreateAccountingEntryResponse, error)
 }
 
 type billingService struct {
@@ -907,9 +907,9 @@ func (c *billingService) DeleteMoneyBackCostMerchant(ctx context.Context, in *bi
 	return out, nil
 }
 
-func (c *billingService) CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, opts ...client.CallOption) (*CreateAccountingEntryRequest, error) {
+func (c *billingService) CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, opts ...client.CallOption) (*CreateAccountingEntryResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.CreateAccountingEntry", in)
-	out := new(CreateAccountingEntryRequest)
+	out := new(CreateAccountingEntryResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -989,7 +989,7 @@ type BillingServiceHandler interface {
 	GetMoneyBackCostMerchant(context.Context, *billing.MoneyBackCostMerchantRequest, *billing.MoneyBackCostMerchant) error
 	SetMoneyBackCostMerchant(context.Context, *billing.MoneyBackCostMerchant, *billing.MoneyBackCostMerchant) error
 	DeleteMoneyBackCostMerchant(context.Context, *billing.PaymentCostDeleteRequest, *EmptyResponse) error
-	CreateAccountingEntry(context.Context, *CreateAccountingEntryRequest, *CreateAccountingEntryRequest) error
+	CreateAccountingEntry(context.Context, *CreateAccountingEntryRequest, *CreateAccountingEntryResponse) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -1063,7 +1063,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchantRequest, out *billing.MoneyBackCostMerchant) error
 		SetMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchant, out *billing.MoneyBackCostMerchant) error
 		DeleteMoneyBackCostMerchant(ctx context.Context, in *billing.PaymentCostDeleteRequest, out *EmptyResponse) error
-		CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, out *CreateAccountingEntryRequest) error
+		CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, out *CreateAccountingEntryResponse) error
 	}
 	type BillingService struct {
 		billingService
@@ -1352,6 +1352,6 @@ func (h *billingServiceHandler) DeleteMoneyBackCostMerchant(ctx context.Context,
 	return h.BillingServiceHandler.DeleteMoneyBackCostMerchant(ctx, in, out)
 }
 
-func (h *billingServiceHandler) CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, out *CreateAccountingEntryRequest) error {
+func (h *billingServiceHandler) CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, out *CreateAccountingEntryResponse) error {
 	return h.BillingServiceHandler.CreateAccountingEntry(ctx, in, out)
 }

@@ -19,6 +19,8 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/service"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	curPkg "github.com/paysuper/paysuper-currencies/pkg"
+	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
@@ -123,6 +125,7 @@ func (app *Application) Init() {
 	geoService := proto.NewGeoIpService(geoip.ServiceName, app.service.Client())
 	repService := repository.NewRepositoryService(constant.PayOneRepositoryServiceName, app.service.Client())
 	taxService := tax_service.NewTaxService(taxPkg.ServiceName, app.service.Client())
+	curService := currencies.NewCurrencyratesService(curPkg.ServiceName, app.service.Client())
 
 	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
 		Addrs:        cfg.CacheRedis.Address,
@@ -141,6 +144,7 @@ func (app *Application) Init() {
 		broker,
 		app.redis,
 		service.NewCacheRedis(redisdb),
+		curService,
 	)
 
 	if err := app.svc.Init(); err != nil {

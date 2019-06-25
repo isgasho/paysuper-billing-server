@@ -191,12 +191,18 @@ func (suite *OrderTestSuite) SetupTest() {
 				TerminalId:     "15985",
 				Secret:         "A1tph4I6BD0f",
 				SecretCallback: "0V1rJ7t4jCRv",
-			}},
+			},
+			"USD": {
+				TerminalId:     "15985",
+				Secret:         "A1tph4I6BD0f",
+				SecretCallback: "0V1rJ7t4jCRv",
+			},
+		},
 		TestSettings: &billing.PaymentMethodParams{
 			TerminalId:     "15985",
 			Secret:         "A1tph4I6BD0f",
 			SecretCallback: "0V1rJ7t4jCRv",
-			Currency:       "RUB",
+			Currency:       "USD",
 		},
 		Type:            "bank_card",
 		IsActive:        true,
@@ -293,7 +299,7 @@ func (suite *OrderTestSuite) SetupTest() {
 			},
 		},
 		Banking: &billing.MerchantBanking{
-			Currency: rub,
+			Currency: usd,
 			Name:     "Bank name",
 		},
 		IsVatEnabled:              true,
@@ -616,109 +622,6 @@ func (suite *OrderTestSuite) SetupTest() {
 		PaymentSystemId: ps5.Id,
 	}
 
-	commissionStartDate, err := ptypes.TimestampProto(time.Now().Add(time.Minute * -10))
-
-	if err != nil {
-		suite.FailNow("Commission start date conversion failed", "%v", err)
-	}
-
-	commissions := []interface{}{
-		&billing.Commission{
-			PaymentMethodId:         pmBankCard.Id,
-			ProjectId:               project.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   1,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmQiwi.Id,
-			ProjectId:               project.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   2,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmBitcoin.Id,
-			ProjectId:               project.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   3,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmWebMoney.Id,
-			ProjectId:               project.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   3,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmBitcoin1.Id,
-			ProjectId:               project.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   3,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmBankCard.Id,
-			ProjectId:               projectIncorrectPaymentMethodId.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   1,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmQiwi.Id,
-			ProjectId:               projectIncorrectPaymentMethodId.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   2,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmBitcoin.Id,
-			ProjectId:               projectIncorrectPaymentMethodId.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   3,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmBankCard.Id,
-			ProjectId:               projectEmptyPaymentMethodTerminal.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   1,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmQiwi.Id,
-			ProjectId:               projectEmptyPaymentMethodTerminal.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   2,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmBitcoin.Id,
-			ProjectId:               projectEmptyPaymentMethodTerminal.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   3,
-			StartDate:               commissionStartDate,
-		},
-	}
-
-	err = db.Collection(collectionCommission).Insert(commissions...)
-
-	if err != nil {
-		suite.FailNow("Insert commission test data failed", "%v", err)
-	}
-
 	bin := &BinData{
 		Id:                 bson.NewObjectId(),
 		CardBin:            400000,
@@ -787,6 +690,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		broker,
 		redisClient,
 		suite.cache,
+		mock.NewCurrencyServiceMockOk(),
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -858,6 +762,78 @@ func (suite *OrderTestSuite) SetupTest() {
 		assert.NoError(suite.T(), suite.service.CreateOrUpdateProduct(context.TODO(), req, &prod))
 
 		productIds = append(productIds, prod.Id)
+	}
+
+	sysCost := &billing.PaymentChannelCostSystem{
+		Id:        bson.NewObjectId().Hex(),
+		Name:      "MASTERCARD",
+		Region:    "CIS",
+		Country:   "AZ",
+		Percent:   1.5,
+		FixAmount: 5,
+	}
+
+	sysCost1 := &billing.PaymentChannelCostSystem{
+		Name:      "MASTERCARD",
+		Region:    "CIS",
+		Country:   "",
+		Percent:   2.2,
+		FixAmount: 0,
+	}
+
+	err = suite.service.paymentChannelCostSystem.MultipleInsert([]*billing.PaymentChannelCostSystem{sysCost, sysCost1})
+
+	if err != nil {
+		suite.FailNow("Insert PaymentChannelCostSystem test data failed", "%v", err)
+	}
+
+	merCost := &billing.PaymentChannelCostMerchant{
+		Id:                 bson.NewObjectId().Hex(),
+		MerchantId:         project.GetMerchantId(),
+		Name:               "MASTERCARD",
+		PayoutCurrency:     "USD",
+		MinAmount:          0.75,
+		Region:             "CIS",
+		Country:            "AZ",
+		MethodPercent:      1.5,
+		MethodFixAmount:    0.01,
+		PsPercent:          3,
+		PsFixedFee:         0.01,
+		PsFixedFeeCurrency: "EUR",
+	}
+
+	merCost1 := &billing.PaymentChannelCostMerchant{
+		MerchantId:         project.GetMerchantId(),
+		Name:               "MASTERCARD",
+		PayoutCurrency:     "USD",
+		MinAmount:          5,
+		Region:             "CIS",
+		Country:            "AZ",
+		MethodPercent:      2.5,
+		MethodFixAmount:    2,
+		PsPercent:          5,
+		PsFixedFee:         0.05,
+		PsFixedFeeCurrency: "EUR",
+	}
+
+	merCost2 := &billing.PaymentChannelCostMerchant{
+		MerchantId:         project.GetMerchantId(),
+		Name:               "MASTERCARD",
+		PayoutCurrency:     "USD",
+		MinAmount:          0,
+		Region:             "CIS",
+		Country:            "",
+		MethodPercent:      2.2,
+		MethodFixAmount:    0,
+		PsPercent:          5,
+		PsFixedFee:         0.05,
+		PsFixedFeeCurrency: "EUR",
+	}
+
+	err = suite.service.paymentChannelCostMerchant.MultipleInsert([]*billing.PaymentChannelCostMerchant{merCost, merCost1, merCost2})
+
+	if err != nil {
+		suite.FailNow("Insert PaymentChannelCostMerchant test data failed", "%v", err)
 	}
 
 	suite.project = project
@@ -4181,7 +4157,6 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Ok() {
 
 	callbackResponse := &grpc.PaymentNotifyResponse{}
 	err = suite.service.PaymentCallbackProcess(context.TODO(), callbackData, callbackResponse)
-
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), pkg.StatusOK, callbackResponse.Status)
 

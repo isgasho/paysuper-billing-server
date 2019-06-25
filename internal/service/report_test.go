@@ -318,6 +318,7 @@ func (suite *ReportTestSuite) SetupTest() {
 		broker,
 		redisClient,
 		suite.cache,
+		nil,
 	)
 
 	if err := suite.service.Init(); err != nil {
