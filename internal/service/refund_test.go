@@ -398,9 +398,11 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_Ok() {
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	expireYear := time.Now().AddDate(1, 0, 0)
 
@@ -471,9 +473,11 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_AmountLess_Error() {
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	expireYear := time.Now().AddDate(1, 0, 0)
 
@@ -543,9 +547,11 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_PaymentSystemNotExists_Err
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	expireYear := time.Now().AddDate(1, 0, 0)
 
@@ -586,7 +592,7 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_PaymentSystemNotExists_Err
 	err = suite.service.CreateRefund(context.TODO(), req2, rsp2)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp2.Status)
-	assert.Equal(suite.T(), paymentSystemErrorHandlerNotFound, rsp2.Message)
+	assert.Equal(suite.T(), paymentSystemErrorHandlerNotFound.Error(), rsp2.Message.Message)
 	assert.Empty(suite.T(), rsp2.Item)
 }
 
@@ -605,9 +611,11 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_PaymentSystemReturnError_E
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	expireYear := time.Now().AddDate(1, 0, 0)
 
@@ -648,7 +656,7 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_PaymentSystemReturnError_E
 	err = suite.service.CreateRefund(context.TODO(), req2, rsp2)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp2.Status)
-	assert.Equal(suite.T(), pkg.PaymentSystemErrorCreateRefundFailed, rsp2.Message)
+	assert.Equal(suite.T(), pkg.PaymentSystemErrorCreateRefundFailed, rsp2.Message.Message)
 	assert.Empty(suite.T(), rsp2.Item)
 }
 
@@ -667,10 +675,9 @@ func (suite *RefundTestSuite) TestRefund_CreateRefundProcessor_ProcessOrder_Orde
 	err := processor.processOrder()
 	assert.Error(suite.T(), err)
 
-	err1, ok := err.(*RefundError)
+	err1, ok := err.(*grpc.ResponseError)
 	assert.True(suite.T(), ok)
-	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, err1.status)
-	assert.Equal(suite.T(), orderErrorNotFound, err1.err)
+	assert.Equal(suite.T(), newBillingServerResponseError(pkg.ResponseStatusNotFound, refundErrorNotFound), err1)
 }
 
 func (suite *RefundTestSuite) TestRefund_CreateRefund_RefundNotAllowed_Error() {
@@ -688,9 +695,11 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_RefundNotAllowed_Error() {
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	expireYear := time.Now().AddDate(1, 0, 0)
 
@@ -743,9 +752,11 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_WasRefunded_Error() {
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	expireYear := time.Now().AddDate(1, 0, 0)
 
@@ -801,9 +812,11 @@ func (suite *RefundTestSuite) TestRefund_ListRefunds_Ok() {
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	expireYear := time.Now().AddDate(1, 0, 0)
 
@@ -884,9 +897,11 @@ func (suite *RefundTestSuite) TestRefund_ListRefunds_Limit_Ok() {
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	expireYear := time.Now().AddDate(1, 0, 0)
 
@@ -979,9 +994,11 @@ func (suite *RefundTestSuite) TestRefund_GetRefund_Ok() {
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	expireYear := time.Now().AddDate(1, 0, 0)
 
@@ -1062,9 +1079,11 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	expireYear := time.Now().AddDate(1, 0, 0)
 
@@ -1176,9 +1195,11 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnmarshalError() 
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	expireYear := time.Now().AddDate(1, 0, 0)
 
@@ -1258,9 +1279,11 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnknownHandler_Er
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	expireYear := time.Now().AddDate(1, 0, 0)
 
@@ -1367,9 +1390,11 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_RefundNotFound_Er
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	expireYear := time.Now().AddDate(1, 0, 0)
 
@@ -1458,7 +1483,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_RefundNotFound_Er
 	err = suite.service.ProcessRefundCallback(context.TODO(), req3, rsp3)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, rsp3.Status)
-	assert.Equal(suite.T(), refundErrorNotFound, rsp3.Error)
+	assert.Equal(suite.T(), refundErrorNotFound.Error(), rsp3.Error)
 }
 
 func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderNotFound_Error() {
@@ -1476,9 +1501,11 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderNotFound_Err
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	expireYear := time.Now().AddDate(1, 0, 0)
 
@@ -1574,7 +1601,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderNotFound_Err
 	err = suite.service.ProcessRefundCallback(context.TODO(), req3, rsp3)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, rsp3.Status)
-	assert.Equal(suite.T(), refundErrorOrderNotFound, rsp3.Error)
+	assert.Equal(suite.T(), refundErrorOrderNotFound.Error(), rsp3.Error)
 }
 
 func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnknownPaymentSystemHandler_Error() {
@@ -1592,9 +1619,11 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnknownPaymentSys
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	expireYear := time.Now().AddDate(1, 0, 0)
 
@@ -1686,7 +1715,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnknownPaymentSys
 	err = suite.service.ProcessRefundCallback(context.TODO(), req3, rsp3)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp3.Status)
-	assert.Equal(suite.T(), orderErrorUnknown, rsp3.Error)
+	assert.Equal(suite.T(), orderErrorUnknown.Error(), rsp3.Error)
 }
 
 func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_ProcessRefundError() {
@@ -1704,9 +1733,11 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_ProcessRefundErro
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	expireYear := time.Now().AddDate(1, 0, 0)
 
@@ -1798,7 +1829,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_ProcessRefundErro
 	err = suite.service.ProcessRefundCallback(context.TODO(), req3, rsp3)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp3.Status)
-	assert.Equal(suite.T(), paymentSystemErrorRefundRequestAmountOrCurrencyIsInvalid, rsp3.Error)
+	assert.Equal(suite.T(), paymentSystemErrorRefundRequestAmountOrCurrencyIsInvalid.Error(), rsp3.Error)
 }
 
 func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_TemporaryStatus_Ok() {
@@ -1816,9 +1847,11 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_TemporaryStatus_O
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	expireYear := time.Now().AddDate(1, 0, 0)
 
@@ -1910,7 +1943,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_TemporaryStatus_O
 	err = suite.service.ProcessRefundCallback(context.TODO(), req3, rsp3)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp3.Status)
-	assert.Equal(suite.T(), paymentSystemErrorRequestTemporarySkipped, rsp3.Error)
+	assert.Equal(suite.T(), paymentSystemErrorRequestTemporarySkipped.Error(), rsp3.Error)
 
 	var refund *billing.Refund
 	err = suite.service.db.Collection(collectionRefund).FindId(bson.ObjectIdHex(rsp2.Item.Id)).One(&refund)
@@ -1933,9 +1966,11 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 		},
 	}
 
-	rsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
 
 	expireYear := time.Now().AddDate(1, 0, 0)
 

@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -17,16 +16,15 @@ const (
 	cacheProjectId = "project:id:%s"
 
 	collectionProject = "project"
-
-	projectErrorNotFound                  = "project with specified identifier not found"
-	projectErrorNameDefaultLangRequired   = "project name in \"" + DefaultLanguage + "\" locale is required"
-	projectErrorCallbackCurrencyIncorrect = "project callback currency is incorrect"
-	projectErrorLimitCurrencyIncorrect    = "project limit currency is incorrect"
-	projectErrorLimitCurrencyRequired     = "project limit currency can't be empty if you send min or max payment amount"
 )
 
 var (
-	errProjectNotFound = errors.New(projectErrorNotFound)
+	projectErrorUnknown                   = newBillingServerErrorMsg("pr000001", "project unknown error")
+	projectErrorNotFound                  = newBillingServerErrorMsg("pr000002", "project with specified identifier not found")
+	projectErrorNameDefaultLangRequired   = newBillingServerErrorMsg("pr000003", "project name in \""+DefaultLanguage+"\" locale is required")
+	projectErrorCallbackCurrencyIncorrect = newBillingServerErrorMsg("pr000004", "project callback currency is incorrect")
+	projectErrorLimitCurrencyIncorrect    = newBillingServerErrorMsg("pr000005", "project limit currency is incorrect")
+	projectErrorLimitCurrencyRequired     = newBillingServerErrorMsg("pr000006", "project limit currency can't be empty if you send min or max payment amount")
 )
 
 func (s *Service) ChangeProject(
@@ -49,7 +47,7 @@ func (s *Service) ChangeProject(
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusNotFound
-			rsp.Message = err.Error()
+			rsp.Message = projectErrorNotFound
 
 			return nil
 		}
@@ -95,20 +93,14 @@ func (s *Service) ChangeProject(
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = err.Error()
+		zap.S().Errorw("create or update project error", "err", err, "req", "req")
+		rsp.Message = projectErrorUnknown
 
 		return nil
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = project
-
-	if err := s.project.Update(project); err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = err.Error()
-
-		return nil
-	}
 
 	return nil
 }
@@ -168,7 +160,7 @@ func (s *Service) ListProjects(
 
 	if err != nil {
 		zap.S().Errorf("Query to count projects failed", "err", err.Error(), "query", query)
-		return errors.New(orderErrorUnknown)
+		return projectErrorUnknown
 	}
 
 	afQuery := []bson.M{
@@ -221,7 +213,7 @@ func (s *Service) ListProjects(
 
 	if err != nil {
 		zap.S().Errorf("Query to find projects failed", "err", err.Error(), "query", afQuery)
-		return errors.New(orderErrorUnknown)
+		return projectErrorUnknown
 	}
 
 	rsp.Count = int32(count)
@@ -266,7 +258,7 @@ func (s *Service) DeleteProject(
 		zap.S().Errorf("Query to delete project failed", "err", err.Error(), "data", project)
 
 		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = err.Error()
+		rsp.Message = projectErrorUnknown
 
 		return nil
 	}
@@ -282,7 +274,7 @@ func (s *Service) getProjectBy(query bson.M) (project *billing.Project, err erro
 			zap.S().Errorf("Query to find project failed", "err", err.Error(), "query", query)
 		}
 
-		return project, errProjectNotFound
+		return project, projectErrorNotFound
 	}
 
 	return
@@ -310,6 +302,10 @@ func (s *Service) createProject(req *billing.Project) (*billing.Project, error) 
 		UrlProcessPayment:        req.UrlProcessPayment,
 		UrlRedirectFail:          req.UrlRedirectFail,
 		UrlRedirectSuccess:       req.UrlRedirectSuccess,
+		UrlChargebackPayment:     req.UrlChargebackPayment,
+		UrlCancelPayment:         req.UrlCancelPayment,
+		UrlFraudPayment:          req.UrlFraudPayment,
+		UrlRefundPayment:         req.UrlRefundPayment,
 		Status:                   pkg.ProjectStatusDraft,
 		CreatedAt:                ptypes.TimestampNow(),
 		UpdatedAt:                ptypes.TimestampNow(),
@@ -317,7 +313,7 @@ func (s *Service) createProject(req *billing.Project) (*billing.Project, error) 
 
 	if err := s.project.Insert(project); err != nil {
 		zap.S().Errorf("Query to create project failed", "err", err.Error(), "data", project)
-		return nil, errors.New(orderErrorUnknown)
+		return nil, projectErrorUnknown
 	}
 
 	return project, nil
@@ -349,10 +345,14 @@ func (s *Service) updateProject(req *billing.Project, project *billing.Project) 
 	project.CallbackProtocol = req.CallbackProtocol
 	project.UrlCheckAccount = req.UrlCheckAccount
 	project.UrlProcessPayment = req.UrlProcessPayment
+	project.UrlChargebackPayment = req.UrlChargebackPayment
+	project.UrlCancelPayment = req.UrlCancelPayment
+	project.UrlFraudPayment = req.UrlFraudPayment
+	project.UrlRefundPayment = req.UrlRefundPayment
 
 	if err := s.project.Update(project); err != nil {
 		zap.S().Errorf("Query to update project failed", "err", err.Error(), "data", project)
-		return errors.New(orderErrorUnknown)
+		return projectErrorUnknown
 	}
 
 	project.ProductsCount = s.getProductsCountByProject(project.Id)

@@ -11,6 +11,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"go.uber.org/zap"
@@ -326,7 +327,7 @@ func (h *cardPay) CreatePayment(requisites map[string]string) (url string, err e
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return "", errors.New(paymentSystemErrorCreateRequestFailed)
+		return "", paymentSystemErrorCreateRequestFailed
 	}
 
 	if b, err = ioutil.ReadAll(resp.Body); err != nil {
@@ -342,7 +343,7 @@ func (h *cardPay) CreatePayment(requisites map[string]string) (url string, err e
 		}
 
 		if cpRsp.IsSuccessStatus() == false {
-			return "", errors.New(paymentSystemErrorRecurringFailed)
+			return "", paymentSystemErrorRecurringFailed
 		}
 	}
 
@@ -371,34 +372,34 @@ func (h *cardPay) ProcessPayment(message proto.Message, raw, signature string) (
 	}
 
 	if !req.IsPaymentAllowedStatus() {
-		return NewError(paymentSystemErrorRequestStatusIsInvalid, pkg.StatusErrorValidation)
+		return newBillingServerResponseError(pkg.StatusErrorValidation, paymentSystemErrorRequestStatusIsInvalid)
 	}
 
 	if req.IsRecurring() && (req.RecurringData.Filing == nil || req.RecurringData.Filing.Id == "") {
-		return NewError(paymentSystemErrorRequestRecurringIdFieldIsInvalid, pkg.StatusErrorValidation)
+		return newBillingServerResponseError(pkg.StatusErrorValidation, paymentSystemErrorRequestRecurringIdFieldIsInvalid)
 	}
 
 	t, err := time.Parse(cardPayDateFormat, req.CallbackTime)
 
 	if err != nil {
-		return NewError(paymentSystemErrorRequestTimeFieldIsInvalid, pkg.StatusErrorValidation)
+		return newBillingServerResponseError(pkg.StatusErrorValidation, paymentSystemErrorRequestTimeFieldIsInvalid)
 	}
 
 	ts, err := ptypes.TimestampProto(t)
 
 	if err != nil {
-		return NewError(paymentSystemErrorRequestTimeFieldIsInvalid, pkg.StatusErrorValidation)
+		return newBillingServerResponseError(pkg.StatusErrorValidation, paymentSystemErrorRequestTimeFieldIsInvalid)
 	}
 
 	if req.PaymentMethod != h.processor.order.PaymentMethod.ExternalId {
-		return NewError(paymentSystemErrorRequestPaymentMethodIsInvalid, pkg.StatusErrorValidation)
+		return newBillingServerResponseError(pkg.StatusErrorValidation, paymentSystemErrorRequestPaymentMethodIsInvalid)
 	}
 
 	reqAmount := req.GetAmount()
 
 	if reqAmount != order.TotalPaymentAmount ||
 		req.GetCurrency() != order.PaymentMethodOutcomeCurrency.CodeA3 {
-		return NewError(paymentSystemErrorRequestAmountOrCurrencyIsInvalid, pkg.StatusErrorValidation)
+		return newBillingServerResponseError(pkg.StatusErrorValidation, paymentSystemErrorRequestAmountOrCurrencyIsInvalid)
 	}
 
 	switch req.PaymentMethod {
@@ -415,7 +416,7 @@ func (h *cardPay) ProcessPayment(message proto.Message, raw, signature string) (
 		order.PaymentMethodTxnParams = req.GetCryptoCurrencyTxnParams()
 		break
 	default:
-		return NewError(paymentSystemErrorRequestPaymentMethodIsInvalid, pkg.StatusErrorValidation)
+		return newBillingServerResponseError(pkg.StatusErrorValidation, paymentSystemErrorRequestPaymentMethodIsInvalid)
 	}
 
 	switch req.GetStatus() {
@@ -430,7 +431,7 @@ func (h *cardPay) ProcessPayment(message proto.Message, raw, signature string) (
 		order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
 		break
 	default:
-		return NewError(paymentSystemErrorRequestTemporarySkipped, pkg.StatusTemporary)
+		return newBillingServerResponseError(pkg.StatusTemporary, paymentSystemErrorRequestTemporarySkipped)
 	}
 
 	order.Transaction = req.GetId()
@@ -490,7 +491,7 @@ func (h *cardPay) auth(pmKey string) error {
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		return errors.New(paymentSystemErrorAuthenticateFailed)
+		return paymentSystemErrorAuthenticateFailed
 	}
 
 	b, err := ioutil.ReadAll(resp.Body)
@@ -542,7 +543,7 @@ func (h *cardPay) refresh(pmKey string) error {
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		return errors.New(paymentSystemErrorAuthenticateFailed)
+		return paymentSystemErrorAuthenticateFailed
 	}
 
 	b, err := ioutil.ReadAll(resp.Body)
@@ -695,7 +696,7 @@ func (h *cardPay) getCardPayOrder(order *billing.Order, requisites map[string]st
 		h.getCryptoCurrencyCardPayOrder(cardPayOrder, requisites)
 		break
 	default:
-		return nil, errors.New(paymentSystemErrorUnknownPaymentMethod)
+		return nil, paymentSystemErrorUnknownPaymentMethod
 	}
 
 	return cardPayOrder, nil
@@ -731,7 +732,7 @@ func (h *cardPay) checkCallbackRequestSignature(raw, signature string) error {
 	hash.Write([]byte(raw + h.processor.order.PaymentMethod.Params.SecretCallback))
 
 	if hex.EncodeToString(hash.Sum(nil)) != signature {
-		return NewError(paymentSystemErrorRequestSignatureIsInvalid, pkg.StatusErrorValidation)
+		return newBillingServerResponseError(pkg.StatusErrorValidation, paymentSystemErrorRequestSignatureIsInvalid)
 	}
 
 	return nil
@@ -942,19 +943,20 @@ func (h *cardPay) ProcessRefund(refund *billing.Refund, message proto.Message, r
 	err = h.checkCallbackRequestSignature(raw, signature)
 
 	if err != nil {
-		return NewError(err.Error(), pkg.ResponseStatusBadData)
+		err.(*grpc.ResponseError).Status = pkg.ResponseStatusBadData
+		return err
 	}
 
 	if !req.IsRefundAllowedStatus() {
-		return NewError(paymentSystemErrorRequestStatusIsInvalid, pkg.ResponseStatusBadData)
+		return newBillingServerResponseError(pkg.ResponseStatusBadData, paymentSystemErrorRequestStatusIsInvalid)
 	}
 
 	if req.PaymentMethod != h.processor.order.PaymentMethod.ExternalId {
-		return NewError(paymentSystemErrorRequestPaymentMethodIsInvalid, pkg.ResponseStatusBadData)
+		return newBillingServerResponseError(pkg.ResponseStatusBadData, paymentSystemErrorRequestPaymentMethodIsInvalid)
 	}
 
 	if req.RefundData.Amount != refund.Amount || req.RefundData.Currency != refund.Currency.CodeA3 {
-		return NewError(paymentSystemErrorRefundRequestAmountOrCurrencyIsInvalid, pkg.ResponseStatusBadData)
+		return newBillingServerResponseError(pkg.ResponseStatusBadData, paymentSystemErrorRefundRequestAmountOrCurrencyIsInvalid)
 	}
 
 	switch req.RefundData.Status {
@@ -968,7 +970,7 @@ func (h *cardPay) ProcessRefund(refund *billing.Refund, message proto.Message, r
 		refund.Status = pkg.RefundStatusCompleted
 		break
 	default:
-		return NewError(paymentSystemErrorRequestTemporarySkipped, pkg.ResponseStatusTemporary)
+		return newBillingServerResponseError(pkg.ResponseStatusTemporary, paymentSystemErrorRequestTemporarySkipped)
 	}
 
 	refund.ExternalId = req.RefundData.Id

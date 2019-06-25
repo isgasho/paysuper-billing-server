@@ -1,7 +1,6 @@
 package service
 
 import (
-	"errors"
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -84,7 +83,7 @@ func (h *Merchant) GetById(id string) (*billing.Merchant, error) {
 func (h Merchant) GetPaymentMethod(merchantId string, method string) (*billing.MerchantPaymentMethod, error) {
 	m, err := h.GetById(merchantId)
 	if err != nil {
-		return nil, errors.New(orderErrorPaymentMethodNotAllowed)
+		return nil, err
 	}
 
 	merchantPaymentMethods := make(map[string]*billing.MerchantPaymentMethod)
@@ -139,7 +138,7 @@ func (h Merchant) GetPaymentMethodTerminalId(merchantId, pmId string) (string, e
 	}
 
 	if pm.Integration == nil || pm.Integration.TerminalId == "" {
-		return "", errors.New(orderErrorPaymentMethodEmptySettings)
+		return "", orderErrorPaymentMethodEmptySettings
 	}
 
 	return pm.Integration.TerminalId, nil
@@ -153,7 +152,7 @@ func (h Merchant) GetPaymentMethodTerminalPassword(merchantId, pmId string) (str
 	}
 
 	if pm.Integration == nil || pm.Integration.TerminalPassword == "" {
-		return "", errors.New(orderErrorPaymentMethodEmptySettings)
+		return "", orderErrorPaymentMethodEmptySettings
 	}
 
 	return pm.Integration.TerminalPassword, nil
@@ -167,7 +166,7 @@ func (h Merchant) GetPaymentMethodTerminalCallbackPassword(merchantId, pmId stri
 	}
 
 	if pm.Integration == nil || pm.Integration.TerminalCallbackPassword == "" {
-		return "", errors.New(orderErrorPaymentMethodEmptySettings)
+		return "", orderErrorPaymentMethodEmptySettings
 	}
 
 	return pm.Integration.TerminalCallbackPassword, nil
