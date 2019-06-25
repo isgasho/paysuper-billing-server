@@ -231,7 +231,11 @@ func (suite *OrderTestSuite) SetupTest() {
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
 			"RUB": {
 				TerminalId: "16007",
-			}},
+			},
+			"USD": {
+				TerminalId: "16007",
+			},
+		},
 		TestSettings: &billing.PaymentMethodParams{
 			TerminalId: "16007",
 			Currency:   "RUB",
@@ -262,7 +266,11 @@ func (suite *OrderTestSuite) SetupTest() {
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
 			"RUB": {
 				TerminalId: "15993",
-			}},
+			},
+			"USD": {
+				TerminalId: "16007",
+			},
+		},
 		TestSettings: &billing.PaymentMethodParams{
 			TerminalId: "15993",
 			Currency:   "RUB",
@@ -561,7 +569,11 @@ func (suite *OrderTestSuite) SetupTest() {
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
 			"RUB": {
 				TerminalId: "15985",
-			}},
+			},
+			"USD": {
+				TerminalId: "15985",
+			},
+		},
 		TestSettings: &billing.PaymentMethodParams{
 			TerminalId: "15985",
 			Currency:   "RUB",
@@ -592,7 +604,11 @@ func (suite *OrderTestSuite) SetupTest() {
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
 			"RUB": {
 				TerminalId: "15985",
-			}},
+			},
+			"USD": {
+				TerminalId: "15985",
+			},
+		},
 		TestSettings: &billing.PaymentMethodParams{
 			TerminalId: "15985",
 			Currency:   "RUB",
@@ -612,7 +628,11 @@ func (suite *OrderTestSuite) SetupTest() {
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
 			"RUB": {
 				TerminalId: "16007",
-			}},
+			},
+			"USD": {
+				TerminalId: "16007",
+			},
+		},
 		TestSettings: &billing.PaymentMethodParams{
 			TerminalId: "16007",
 			Currency:   "RUB",
@@ -807,8 +827,8 @@ func (suite *OrderTestSuite) SetupTest() {
 		Name:               "MASTERCARD",
 		PayoutCurrency:     "USD",
 		MinAmount:          5,
-		Region:             "CIS",
-		Country:            "AZ",
+		Region:             "Russia",
+		Country:            "RU",
 		MethodPercent:      2.5,
 		MethodFixAmount:    2,
 		PsPercent:          5,
@@ -1977,10 +1997,6 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_PaymentMethod_Ok() {
 	assert.Equal(suite.T(), processor.checked.paymentMethod.Id, order.PaymentMethod.Id)
 
 	assert.NotNil(suite.T(), order.PaymentSystemFeeAmount)
-	assert.True(suite.T(), order.PaymentSystemFeeAmount.AmountMerchantCurrency > 0)
-	assert.True(suite.T(), order.PaymentSystemFeeAmount.AmountPaymentSystemCurrency > 0)
-	assert.True(suite.T(), order.PaymentSystemFeeAmount.AmountPaymentMethodCurrency > 0)
-
 	assert.True(suite.T(), order.Tax.Amount > 0)
 	assert.NotEmpty(suite.T(), order.Tax.Currency)
 }
@@ -6225,4 +6241,248 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequi
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.RedirectUrl)
 	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionZipCode), rsp1.Message.Message)
+}
+
+func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_AccountingEntries_Ok() {
+	req := &billing.OrderCreateRequest{
+		ProjectId:   suite.projectFixedAmount.Id,
+		Currency:    "RUB",
+		Amount:      100,
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		Products:    suite.productIds,
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+	}
+
+	rsp := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
+
+	req1 := &grpc.PaymentCreateRequest{
+		Data: map[string]string{
+			pkg.PaymentCreateFieldOrderId:         rsp.Item.Uuid,
+			pkg.PaymentCreateFieldPaymentMethodId: suite.paymentMethod.Id,
+			pkg.PaymentCreateFieldEmail:           "test@unit.unit",
+			pkg.PaymentCreateFieldPan:             "4000000000000002",
+			pkg.PaymentCreateFieldCvv:             "123",
+			pkg.PaymentCreateFieldMonth:           "02",
+			pkg.PaymentCreateFieldYear:            time.Now().AddDate(1, 0, 0).Format("2006"),
+			pkg.PaymentCreateFieldHolder:          "MR. CARD HOLDER",
+		},
+		Ip: "127.0.0.1",
+	}
+
+	rsp1 := &grpc.PaymentCreateResponse{}
+	err = suite.service.PaymentCreateProcess(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+
+	var order *billing.Order
+	err = suite.service.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(rsp.Item.Id)).One(&order)
+	assert.NotNil(suite.T(), order)
+	assert.IsType(suite.T(), &billing.Order{}, order)
+
+	callbackRequest := &billing.CardPayPaymentCallback{
+		PaymentMethod: suite.paymentMethod.ExternalId,
+		CallbackTime:  time.Now().Format("2006-01-02T15:04:05Z"),
+		MerchantOrder: &billing.CardPayMerchantOrder{
+			Id:          rsp.Item.Id,
+			Description: rsp.Item.Description,
+			Items: []*billing.CardPayItem{
+				{
+					Name:        order.Items[0].Name,
+					Description: order.Items[0].Name,
+					Count:       1,
+					Price:       order.Items[0].Amount,
+				},
+			},
+		},
+		CardAccount: &billing.CallbackCardPayBankCardAccount{
+			Holder:             order.PaymentRequisites[pkg.PaymentCreateFieldHolder],
+			IssuingCountryCode: "RU",
+			MaskedPan:          order.PaymentRequisites[pkg.PaymentCreateFieldPan],
+			Token:              bson.NewObjectId().Hex(),
+		},
+		Customer: &billing.CardPayCustomer{
+			Email:  rsp.Item.User.Email,
+			Ip:     rsp.Item.User.Ip,
+			Id:     rsp.Item.ProjectAccount,
+			Locale: "Europe/Moscow",
+		},
+		PaymentData: &billing.CallbackCardPayPaymentData{
+			Id:          bson.NewObjectId().Hex(),
+			Amount:      order.TotalPaymentAmount,
+			Currency:    order.Currency,
+			Description: order.Description,
+			Is_3D:       true,
+			Rrn:         bson.NewObjectId().Hex(),
+			Status:      pkg.CardPayPaymentResponseStatusCompleted,
+		},
+	}
+
+	buf, err := json.Marshal(callbackRequest)
+	assert.NoError(suite.T(), err)
+
+	hash := sha512.New()
+	hash.Write([]byte(string(buf) + order.PaymentMethod.Params.SecretCallback))
+
+	callbackData := &grpc.PaymentNotifyRequest{
+		OrderId:   order.Id,
+		Request:   buf,
+		Signature: hex.EncodeToString(hash.Sum(nil)),
+	}
+
+	callbackResponse := &grpc.PaymentNotifyResponse{}
+	err = suite.service.PaymentCallbackProcess(context.TODO(), callbackData, callbackResponse)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.StatusOK, callbackResponse.Status)
+
+	err = suite.service.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(order.Id)).One(&order)
+	assert.NotNil(suite.T(), order)
+	assert.IsType(suite.T(), &billing.Order{}, order)
+	assert.Equal(suite.T(), int32(constant.OrderStatusPaymentSystemComplete), order.PrivateStatus)
+
+	var accountingEntries []*billing.AccountingEntry
+	err = suite.service.db.Collection(collectionAccountingEntry).
+		Find(bson.M{"source.id": bson.ObjectIdHex(order.Id), "source.type": collectionOrder}).All(&accountingEntries)
+	assert.NoError(suite.T(), err)
+	assert.NotEmpty(suite.T(), accountingEntries)
+	assert.Len(suite.T(), accountingEntries, len(onPaymentAccountingEntries))
+
+	onPaymentEntries := make(map[string]bool)
+
+	for _, v := range onPaymentAccountingEntries {
+		onPaymentEntries[v] = true
+	}
+
+	for _, v := range accountingEntries {
+		_, ok := onPaymentEntries[v.Type]
+		assert.True(suite.T(), ok)
+	}
+
+	assert.NotZero(suite.T(), order.RoyaltyData.AmountInRoyaltyCurrency)
+	assert.NotZero(suite.T(), order.RoyaltyData.MerchantPercentCommissionInRoyaltyCurrency)
+	assert.NotZero(suite.T(), order.RoyaltyData.MerchantFixedCommissionInRoyaltyCurrency)
+	assert.NotZero(suite.T(), order.RoyaltyData.MerchantTotalCommissionInRoyaltyCurrency)
+	assert.NotZero(suite.T(), order.RoyaltyData.PaymentTaxAmountInRoyaltyCurrency)
+}
+
+func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Error() {
+	req := &billing.OrderCreateRequest{
+		ProjectId:   suite.projectFixedAmount.Id,
+		Currency:    "RUB",
+		Amount:      100,
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		Products:    suite.productIds,
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+	}
+
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	order := rsp1.Item
+
+	expireYear := time.Now().AddDate(1, 0, 0)
+
+	createPaymentRequest := &grpc.PaymentCreateRequest{
+		Data: map[string]string{
+			pkg.PaymentCreateFieldOrderId:         order.Uuid,
+			pkg.PaymentCreateFieldPaymentMethodId: suite.paymentMethod.Id,
+			pkg.PaymentCreateFieldEmail:           "test@unit.unit",
+			pkg.PaymentCreateFieldPan:             "4000000000000002",
+			pkg.PaymentCreateFieldCvv:             "123",
+			pkg.PaymentCreateFieldMonth:           "02",
+			pkg.PaymentCreateFieldYear:            expireYear.Format("2006"),
+			pkg.PaymentCreateFieldHolder:          "Mr. Card Holder",
+		},
+		Ip: "127.0.0.1",
+	}
+
+	rsp := &grpc.PaymentCreateResponse{}
+	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+
+	var order1 *billing.Order
+	err = suite.service.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(order.Id)).One(&order1)
+	suite.NotNil(suite.T(), order1)
+
+	callbackRequest := &billing.CardPayPaymentCallback{
+		PaymentMethod: suite.paymentMethod.ExternalId,
+		CallbackTime:  time.Now().Format("2006-01-02T15:04:05Z"),
+		MerchantOrder: &billing.CardPayMerchantOrder{
+			Id:          order.Id,
+			Description: order.Description,
+			Items: []*billing.CardPayItem{
+				{
+					Name:        order.Items[0].Name,
+					Description: order.Items[0].Name,
+					Count:       1,
+					Price:       order.Items[0].Amount,
+				},
+			},
+		},
+		CardAccount: &billing.CallbackCardPayBankCardAccount{
+			Holder:             order.PaymentRequisites[pkg.PaymentCreateFieldHolder],
+			IssuingCountryCode: "RU",
+			MaskedPan:          order.PaymentRequisites[pkg.PaymentCreateFieldPan],
+			Token:              bson.NewObjectId().Hex(),
+		},
+		Customer: &billing.CardPayCustomer{
+			Email:  order.User.Email,
+			Ip:     order.User.Ip,
+			Id:     order.ProjectAccount,
+			Locale: "Europe/Moscow",
+		},
+		PaymentData: &billing.CallbackCardPayPaymentData{
+			Id:          bson.NewObjectId().Hex(),
+			Amount:      123,
+			Currency:    order1.PaymentMethodOutcomeCurrency.CodeA3,
+			Description: order.Description,
+			Is_3D:       true,
+			Rrn:         bson.NewObjectId().Hex(),
+			Status:      pkg.CardPayPaymentResponseStatusCompleted,
+		},
+	}
+
+	buf, err := json.Marshal(callbackRequest)
+	assert.Nil(suite.T(), err)
+
+	hash := sha512.New()
+	hash.Write([]byte(string(buf) + order1.PaymentMethod.Params.SecretCallback))
+
+	callbackData := &grpc.PaymentNotifyRequest{
+		OrderId:   order.Id,
+		Request:   buf,
+		Signature: hex.EncodeToString(hash.Sum(nil)),
+	}
+
+	callbackResponse := &grpc.PaymentNotifyResponse{}
+	err = suite.service.PaymentCallbackProcess(context.TODO(), callbackData, callbackResponse)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.StatusErrorValidation, callbackResponse.Status)
+
+	var accountingEntries []*billing.AccountingEntry
+	err = suite.service.db.Collection(collectionAccountingEntry).
+		Find(bson.M{"source.id": bson.ObjectIdHex(order.Id), "source.type": collectionOrder}).All(&accountingEntries)
+	assert.NoError(suite.T(), err)
+	assert.Empty(suite.T(), accountingEntries)
+
+	order, err = suite.service.getOrderById(order.Id)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), order)
+	assert.Nil(suite.T(), order.RoyaltyData)
 }

@@ -723,15 +723,6 @@ func (s *Service) PaymentCallbackProcess(
 		break
 	}
 
-	err = s.onPaymentNotify(ctx, order)
-
-	if err != nil {
-		rsp.Error = err.(*grpc.ResponseErrorMessage).Message
-		rsp.Status = pkg.StatusErrorSystem
-
-		return nil
-	}
-
 	err = s.updateOrder(order)
 
 	if err != nil {
@@ -742,6 +733,15 @@ func (s *Service) PaymentCallbackProcess(
 	}
 
 	if pErr == nil {
+		err = s.onPaymentNotify(ctx, order)
+
+		if err != nil {
+			rsp.Error = err.(*grpc.ResponseErrorMessage).Message
+			rsp.Status = pkg.StatusErrorSystem
+
+			return nil
+		}
+
 		if h.IsRecurringCallback(data) {
 			s.saveRecurringCard(order, h.GetRecurringId(data))
 		}

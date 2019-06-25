@@ -253,6 +253,15 @@ func (s *Service) ProcessRefundCallback(
 	}
 
 	if pErr == nil {
+		err = s.onRefundNotify(ctx, refund, order)
+
+		if err != nil {
+			rsp.Error = err.(*grpc.ResponseErrorMessage).Message
+			rsp.Status = pkg.ResponseStatusSystemError
+
+			return nil
+		}
+
 		processor := &createRefundProcessor{service: s}
 		refundedAmount, _ := processor.getRefundedAmount(order)
 

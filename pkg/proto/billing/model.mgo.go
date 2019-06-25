@@ -510,6 +510,25 @@ type MgoMoneyBackCostMerchant struct {
 	IsActive          bool          `bson:"is_active"`
 }
 
+type MgoAccountingEntrySource struct {
+	Id   bson.ObjectId `bson:"id"`
+	Type string        `bson:"type"`
+}
+
+type MgoAccountingEntry struct {
+	Id          bson.ObjectId             `bson:"_id"`
+	Object      string                    `bson:"object"`
+	Type        string                    `bson:"type"`
+	Source      *MgoAccountingEntrySource `bson:"source"`
+	MerchantId  bson.ObjectId             `bson:"merchant_id"`
+	Amount      float64                   `bson:"amount"`
+	Currency    string                    `bson:"currency"`
+	Reason      string                    `bson:"reason"`
+	Status      string                    `bson:"status"`
+	CreatedAt   time.Time                 `bson:"created_at"`
+	AvailableOn time.Time                 `bson:"available_on"`
+}
+
 func (m *Country) GetBSON() (interface{}, error) {
 	st := &MgoCountry{
 		IsoCodeA2:       m.IsoCodeA2,
@@ -2663,6 +2682,83 @@ func (m *PayoutCostSystem) SetBSON(raw bson.Raw) error {
 	m.IsActive = decoded.IsActive
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *AccountingEntry) GetBSON() (interface{}, error) {
+	st := &MgoAccountingEntry{
+		Id:     bson.ObjectIdHex(m.Id),
+		Object: m.Object,
+		Type:   m.Type,
+		Source: &MgoAccountingEntrySource{
+			Id:   bson.ObjectIdHex(m.Source.Id),
+			Type: m.Source.Type,
+		},
+		MerchantId: bson.ObjectIdHex(m.MerchantId),
+		Amount:     m.Amount,
+		Currency:   m.Currency,
+		Reason:     m.Reason,
+		Status:     m.Status,
+	}
+
+	if m.CreatedAt != nil {
+		t, err := ptypes.Timestamp(m.CreatedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.CreatedAt = t
+	} else {
+		st.CreatedAt = time.Now()
+	}
+
+	if m.AvailableOn != nil {
+		t, err := ptypes.Timestamp(m.AvailableOn)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.AvailableOn = t
+	}
+
+	return st, nil
+}
+
+func (m *AccountingEntry) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoAccountingEntry)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.Object = decoded.Object
+	m.Type = decoded.Type
+	m.Source = &AccountingEntrySource{
+		Id:   decoded.Source.Id.Hex(),
+		Type: decoded.Source.Type,
+	}
+	m.MerchantId = decoded.MerchantId.Hex()
+	m.Amount = decoded.Amount
+	m.Currency = decoded.Currency
+	m.Reason = decoded.Reason
+	m.Status = decoded.Status
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+
+	if err != nil {
+		return err
+	}
+
+	m.AvailableOn, err = ptypes.TimestampProto(decoded.AvailableOn)
+
 	if err != nil {
 		return err
 	}

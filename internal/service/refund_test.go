@@ -339,7 +339,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		broker,
 		nil,
 		suite.cache,
-		nil,
+		mock.NewCurrencyServiceMockOk(),
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -370,6 +370,164 @@ func (suite *RefundTestSuite) SetupTest() {
 
 	if err := suite.service.paymentSystem.MultipleInsert([]*billing.PaymentSystem{suite.paySys, psErr}); err != nil {
 		suite.FailNow("Insert payment system test data failed", "%v", err)
+	}
+
+	sysCost := &billing.MoneyBackCostSystem{
+		Name:           "VISA",
+		PayoutCurrency: "USD",
+		UndoReason:     "chargeback",
+		Region:         "CIS",
+		Country:        "AZ",
+		DaysFrom:       0,
+		PaymentStage:   1,
+		Percent:        3,
+		FixAmount:      5,
+	}
+
+	sysCost1 := &billing.MoneyBackCostSystem{
+		Name:           "VISA",
+		PayoutCurrency: "USD",
+		UndoReason:     "chargeback",
+		Region:         "CIS",
+		Country:        "AZ",
+		DaysFrom:       30,
+		PaymentStage:   1,
+		Percent:        10,
+		FixAmount:      15,
+	}
+
+	sysCost2 := &billing.MoneyBackCostSystem{
+		Name:           "VISA",
+		PayoutCurrency: "USD",
+		UndoReason:     "chargeback",
+		Region:         "CIS",
+		Country:        "",
+		DaysFrom:       0,
+		PaymentStage:   1,
+		Percent:        2,
+		FixAmount:      3,
+	}
+
+	err = suite.service.moneyBackCostSystem.MultipleInsert([]*billing.MoneyBackCostSystem{sysCost, sysCost1, sysCost2})
+
+	if err != nil {
+		suite.FailNow("Insert MoneyBackCostSystem test data failed", "%v", err)
+	}
+
+	merCost := &billing.MoneyBackCostMerchant{
+		Id:                bson.NewObjectId().Hex(),
+		MerchantId:        project.GetMerchantId(),
+		Name:              "VISA",
+		PayoutCurrency:    "USD",
+		UndoReason:        "chargeback",
+		Region:            "CIS",
+		Country:           "AZ",
+		DaysFrom:          0,
+		PaymentStage:      1,
+		Percent:           3,
+		FixAmount:         5,
+		FixAmountCurrency: "USD",
+		IsPaidByMerchant:  true,
+	}
+
+	merCost1 := &billing.MoneyBackCostMerchant{
+		Id:                bson.NewObjectId().Hex(),
+		MerchantId:        project.GetMerchantId(),
+		Name:              "VISA",
+		PayoutCurrency:    "USD",
+		UndoReason:        "chargeback",
+		Region:            "Russia",
+		Country:           "RU",
+		DaysFrom:          30,
+		PaymentStage:      1,
+		Percent:           10,
+		FixAmount:         15,
+		FixAmountCurrency: "USD",
+		IsPaidByMerchant:  true,
+	}
+
+	merCost2 := &billing.MoneyBackCostMerchant{
+		Id:                bson.NewObjectId().Hex(),
+		MerchantId:        project.GetMerchantId(),
+		Name:              "VISA",
+		PayoutCurrency:    "USD",
+		UndoReason:        "chargeback",
+		Region:            "CIS",
+		Country:           "",
+		DaysFrom:          0,
+		PaymentStage:      1,
+		Percent:           2,
+		FixAmount:         3,
+		FixAmountCurrency: "USD",
+		IsPaidByMerchant:  true,
+	}
+	merCost3 := &billing.MoneyBackCostMerchant{
+		Id:                bson.NewObjectId().Hex(),
+		MerchantId:        project.GetMerchantId(),
+		Name:              "VISA",
+		PayoutCurrency:    "USD",
+		UndoReason:        "refund",
+		Region:            "CIS",
+		Country:           "AZ",
+		DaysFrom:          0,
+		PaymentStage:      1,
+		Percent:           3,
+		FixAmount:         5,
+		FixAmountCurrency: "USD",
+		IsPaidByMerchant:  true,
+	}
+	merCost4 := &billing.MoneyBackCostMerchant{
+		Id:                bson.NewObjectId().Hex(),
+		MerchantId:        project.GetMerchantId(),
+		Name:              "VISA",
+		PayoutCurrency:    "USD",
+		UndoReason:        "refund",
+		Region:            "Russia",
+		Country:           "RU",
+		DaysFrom:          30,
+		PaymentStage:      1,
+		Percent:           10,
+		FixAmount:         15,
+		FixAmountCurrency: "USD",
+		IsPaidByMerchant:  true,
+	}
+	merCost5 := &billing.MoneyBackCostMerchant{
+		Id:                bson.NewObjectId().Hex(),
+		MerchantId:        project.GetMerchantId(),
+		Name:              "VISA",
+		PayoutCurrency:    "USD",
+		UndoReason:        "refund",
+		Region:            "CIS",
+		Country:           "",
+		DaysFrom:          0,
+		PaymentStage:      1,
+		Percent:           2,
+		FixAmount:         3,
+		FixAmountCurrency: "USD",
+		IsPaidByMerchant:  true,
+	}
+
+	err = suite.service.moneyBackCostMerchant.MultipleInsert([]*billing.MoneyBackCostMerchant{merCost, merCost1, merCost2, merCost3, merCost4, merCost5})
+
+	if err != nil {
+		suite.FailNow("Insert MoneyBackCostMerchant test data failed", "%v", err)
+	}
+
+	bin := &BinData{
+		Id:                 bson.NewObjectId(),
+		CardBin:            400000,
+		CardBrand:          "VISA",
+		CardType:           "DEBIT",
+		CardCategory:       "WORLD",
+		BankName:           "ALFA BANK",
+		BankCountryName:    "UKRAINE",
+		BankCountryIsoCode: "US",
+	}
+
+	err = db.Collection(collectionBinData).Insert(bin)
+
+	if err != nil {
+		suite.FailNow("Insert BIN test data failed", "%v", err)
 	}
 
 	suite.project = project
@@ -1116,6 +1274,8 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 		Amount:   10,
 		Currency: "RUB",
 	}
+	order.RoyaltyData = &billing.RoyaltyData{}
+	order.PaymentMethod.Params.Currency = "USD"
 	err = suite.service.updateOrder(order)
 
 	req2 := &grpc.CreateRefundRequest{
@@ -1179,6 +1339,31 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 	err = suite.service.db.Collection(collectionRefund).FindId(bson.ObjectIdHex(rsp2.Item.Id)).One(&refund)
 	assert.NotNil(suite.T(), refund)
 	assert.Equal(suite.T(), pkg.RefundStatusCompleted, refund.Status)
+
+	var accountingEntries []*billing.AccountingEntry
+	err = suite.service.db.Collection(collectionAccountingEntry).
+		Find(bson.M{"source.id": bson.ObjectIdHex(rsp2.Item.Id), "source.type": collectionRefund}).All(&accountingEntries)
+	assert.NoError(suite.T(), err)
+	assert.NotEmpty(suite.T(), accountingEntries)
+	assert.Len(suite.T(), accountingEntries, 8)
+
+	onRefundEntries := make(map[string]bool)
+
+	for _, v := range onRefundAccountingEntries {
+		onRefundEntries[v] = true
+	}
+
+	for _, v := range accountingEntries {
+		_, ok := onRefundEntries[v.Type]
+		assert.True(suite.T(), ok)
+	}
+
+	order, err = suite.service.getOrderById(rsp2.Item.Order.Id)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), order)
+
+	assert.NotZero(suite.T(), order.RoyaltyData.RefundTotalAmountInRoyaltyCurrency)
+	assert.NotZero(suite.T(), order.RoyaltyData.RefundTaxAmountInRoyaltyCurrency)
 }
 
 func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnmarshalError() {
@@ -1770,6 +1955,8 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_ProcessRefundErro
 		Amount:   10,
 		Currency: "RUB",
 	}
+	order.RoyaltyData = &billing.RoyaltyData{}
+	order.PaymentMethod.Params.Currency = "USD"
 	err = suite.service.updateOrder(order)
 
 	req2 := &grpc.CreateRefundRequest{
@@ -1831,6 +2018,19 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_ProcessRefundErro
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp3.Status)
 	assert.Equal(suite.T(), paymentSystemErrorRefundRequestAmountOrCurrencyIsInvalid.Error(), rsp3.Error)
+
+	var accountingEntries []*billing.AccountingEntry
+	err = suite.service.db.Collection(collectionAccountingEntry).
+		Find(bson.M{"source.id": bson.ObjectIdHex(rsp2.Item.Id), "source.type": collectionRefund}).All(&accountingEntries)
+	assert.NoError(suite.T(), err)
+	assert.Empty(suite.T(), accountingEntries)
+
+	order, err = suite.service.getOrderById(rsp2.Item.Order.Id)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), order)
+
+	assert.Zero(suite.T(), order.RoyaltyData.RefundTotalAmountInRoyaltyCurrency)
+	assert.Zero(suite.T(), order.RoyaltyData.RefundTaxAmountInRoyaltyCurrency)
 }
 
 func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_TemporaryStatus_Ok() {
@@ -2003,6 +2203,8 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 		Amount:   10,
 		Currency: "RUB",
 	}
+	order.RoyaltyData = &billing.RoyaltyData{}
+	order.PaymentMethod.Params.Currency = "USD"
 	err = suite.service.updateOrder(order)
 
 	req2 := &grpc.CreateRefundRequest{

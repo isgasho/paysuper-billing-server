@@ -216,32 +216,9 @@ func (s *Service) CreateAccountingEntry(
 		return nil
 	}
 
-	if handler.order != nil {
-		err = s.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(handler.order.Id), handler.order)
-
-		if err != nil {
-			zap.L().Error(
-				"Order update failed",
-				zap.Error(err),
-				zap.Any("data", handler.order),
-			)
-
-			rsp.Status = pkg.ResponseStatusSystemError
-			rsp.Message = accountingEntryErrorUnknown
-
-			return nil
-		}
-	}
-
-	err = s.db.Collection(collectionAccountingEntry).Insert(handler.accountingEntries...)
+	err = handler.saveAccountingEntries()
 
 	if err != nil {
-		zap.L().Error(
-			"Accounting entries insert failed",
-			zap.Error(err),
-			zap.Any("accounting_entries", handler.accountingEntries),
-		)
-
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = accountingEntryErrorUnknown
 
@@ -302,6 +279,36 @@ func (s *Service) processEvent(handler *accountingEntry, list []string) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	return handler.saveAccountingEntries()
+}
+
+func (h *accountingEntry) saveAccountingEntries() error {
+	if h.order != nil {
+		err := h.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(h.order.Id), h.order)
+
+		if err != nil {
+			zap.L().Error(
+				"Order update failed",
+				zap.Error(err),
+				zap.Any("data", h.order),
+			)
+
+			return err
+		}
+	}
+
+	err := h.db.Collection(collectionAccountingEntry).Insert(h.accountingEntries...)
+
+	if err != nil {
+		zap.L().Error(
+			"Accounting entries insert failed",
+			zap.Error(err),
+			zap.Any("accounting_entries", h.accountingEntries),
+		)
+
+		return err
 	}
 
 	return nil
@@ -478,7 +485,6 @@ func (h *accountingEntry) methodFee() error {
 
 	entry.Amount = h.order.RoyaltyData.MerchantPercentCommissionInRoyaltyCurrency
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -1018,7 +1024,7 @@ func (h *accountingEntry) refundFee() error {
 		return nil
 	}
 
-	cost, err := h.getMoneyBackCostMerchant()
+	cost, err := h.getMoneyBackCostMerchant(pkg.AccountingEntryTypeRefund)
 
 	if err != nil {
 		zap.L().Error(
@@ -1063,7 +1069,7 @@ func (h *accountingEntry) refundFixedFee() error {
 		return nil
 	}
 
-	cost, err := h.getMoneyBackCostMerchant()
+	cost, err := h.getMoneyBackCostMerchant(pkg.AccountingEntryTypeRefund)
 
 	if err != nil {
 		zap.L().Error(
@@ -1628,7 +1634,7 @@ func (h *accountingEntry) chargebackFee() error {
 		return nil
 	}
 
-	cost, err := h.getMoneyBackCostMerchant()
+	cost, err := h.getMoneyBackCostMerchant(pkg.AccountingEntryTypeChargeback)
 
 	if err != nil {
 		zap.L().Error(
@@ -1675,7 +1681,7 @@ func (h *accountingEntry) psMarkupChargebackFee() error {
 		return nil
 	}
 
-	cost, err := h.getMoneyBackCostSystem()
+	cost, err := h.getMoneyBackCostSystem(pkg.AccountingEntryTypeChargeback)
 
 	if err != nil {
 		zap.L().Error(
@@ -1720,7 +1726,7 @@ func (h *accountingEntry) chargebackFixedFee() error {
 		return nil
 	}
 
-	cost, err := h.getMoneyBackCostMerchant()
+	cost, err := h.getMoneyBackCostMerchant(pkg.AccountingEntryTypeChargeback)
 
 	if err != nil {
 		zap.L().Error(
@@ -1792,7 +1798,7 @@ func (h *accountingEntry) psMarkupChargebackFixedFee() error {
 		return nil
 	}
 
-	cost, err := h.getMoneyBackCostSystem()
+	cost, err := h.getMoneyBackCostSystem(pkg.AccountingEntryTypeChargeback)
 
 	if err != nil {
 		zap.L().Error(
@@ -1913,7 +1919,7 @@ func (h *accountingEntry) getPaymentChannelCostMerchant() (*billing.PaymentChann
 	return h.Service.getPaymentChannelCostMerchant(req)
 }
 
-func (h *accountingEntry) getMoneyBackCostMerchant() (*billing.MoneyBackCostMerchant, error) {
+func (h *accountingEntry) getMoneyBackCostMerchant(reason string) (*billing.MoneyBackCostMerchant, error) {
 	name, err := h.order.GetCostPaymentMethodName()
 
 	if err != nil {
@@ -1938,7 +1944,7 @@ func (h *accountingEntry) getMoneyBackCostMerchant() (*billing.MoneyBackCostMerc
 		MerchantId:     h.order.GetMerchantId(),
 		Name:           name,
 		PayoutCurrency: h.order.GetMerchantRoyaltyCurrency(),
-		UndoReason:     h.refund.Reason,
+		UndoReason:     reason,
 		Region:         country.Region,
 		Country:        userCountry,
 		PaymentStage:   1,
@@ -1947,7 +1953,7 @@ func (h *accountingEntry) getMoneyBackCostMerchant() (*billing.MoneyBackCostMerc
 	return h.Service.getMoneyBackCostMerchant(data)
 }
 
-func (h *accountingEntry) getMoneyBackCostSystem() (*billing.MoneyBackCostSystem, error) {
+func (h *accountingEntry) getMoneyBackCostSystem(reason string) (*billing.MoneyBackCostSystem, error) {
 	name, err := h.order.GetCostPaymentMethodName()
 
 	if err != nil {
@@ -1975,6 +1981,7 @@ func (h *accountingEntry) getMoneyBackCostSystem() (*billing.MoneyBackCostSystem
 		Country:        userCountry,
 		PaymentStage:   1,
 		Days:           int32(refundAt.Sub(paymentAt).Hours() / 24),
+		UndoReason:     reason,
 	}
 	return h.Service.getMoneyBackCostSystem(data)
 }
