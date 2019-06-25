@@ -1,7 +1,6 @@
 package service
 
 import (
-	"errors"
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/proto"
@@ -14,21 +13,6 @@ const (
 	paymentSystemHandlerMockOk    = "mock_ok"
 	paymentSystemHandlerMockError = "mock_error"
 
-	paymentSystemErrorHandlerNotFound                        = "handler for specified payment system not found"
-	paymentSystemErrorAuthenticateFailed                     = "authentication failed"
-	paymentSystemErrorUnknownPaymentMethod                   = "unknown payment method"
-	paymentSystemErrorCreateRequestFailed                    = "order can't be create. try request later"
-	paymentSystemErrorEWalletIdentifierIsInvalid             = "wallet identifier is invalid"
-	paymentSystemErrorRequestSignatureIsInvalid              = "request signature is invalid"
-	paymentSystemErrorRequestTimeFieldIsInvalid              = "time field in request is invalid"
-	paymentSystemErrorRequestRecurringIdFieldIsInvalid       = "recurring id field in request is invalid"
-	paymentSystemErrorRequestStatusIsInvalid                 = "status is invalid"
-	paymentSystemErrorRequestPaymentMethodIsInvalid          = "payment method from request not match with value in order"
-	paymentSystemErrorRequestAmountOrCurrencyIsInvalid       = "amount or currency from request not match with value in order"
-	paymentSystemErrorRefundRequestAmountOrCurrencyIsInvalid = "amount or currency from request not match with value in refund"
-	paymentSystemErrorRequestTemporarySkipped                = "notification skipped with temporary status"
-	paymentSystemErrorRecurringFailed                        = "recurring payment failed"
-
 	defaultHttpClientTimeout = 10
 	defaultResponseBodyLimit = 512
 
@@ -36,16 +20,28 @@ const (
 	collectionPaymentSystem = "payment_system"
 )
 
-var paymentSystemHandlers = map[string]func(*paymentProcessor) PaymentSystem{
-	pkg.PaymentSystemHandlerCardPay: newCardPayHandler,
-	paymentSystemHandlerMockOk:      NewPaymentSystemMockOk,
-	paymentSystemHandlerMockError:   NewPaymentSystemMockError,
-}
+var (
+	paymentSystemErrorHandlerNotFound                        = newBillingServerErrorMsg("ph000001", "handler for specified payment system not found")
+	paymentSystemErrorAuthenticateFailed                     = newBillingServerErrorMsg("ph000001", "authentication failed")
+	paymentSystemErrorUnknownPaymentMethod                   = newBillingServerErrorMsg("ph000001", "unknown payment method")
+	paymentSystemErrorCreateRequestFailed                    = newBillingServerErrorMsg("ph000001", "order can't be create. try request later")
+	paymentSystemErrorEWalletIdentifierIsInvalid             = newBillingServerErrorMsg("ph000001", "wallet identifier is invalid")
+	paymentSystemErrorRequestSignatureIsInvalid              = newBillingServerErrorMsg("ph000001", "request signature is invalid")
+	paymentSystemErrorRequestTimeFieldIsInvalid              = newBillingServerErrorMsg("ph000001", "time field in request is invalid")
+	paymentSystemErrorRequestRecurringIdFieldIsInvalid       = newBillingServerErrorMsg("ph000001", "recurring id field in request is invalid")
+	paymentSystemErrorRequestStatusIsInvalid                 = newBillingServerErrorMsg("ph000001", "status is invalid")
+	paymentSystemErrorRequestPaymentMethodIsInvalid          = newBillingServerErrorMsg("ph000001", "payment method from request not match with value in order")
+	paymentSystemErrorRequestAmountOrCurrencyIsInvalid       = newBillingServerErrorMsg("ph000001", "amount or currency from request not match with value in order")
+	paymentSystemErrorRefundRequestAmountOrCurrencyIsInvalid = newBillingServerErrorMsg("ph000001", "amount or currency from request not match with value in refund")
+	paymentSystemErrorRequestTemporarySkipped                = newBillingServerErrorMsg("ph000001", "notification skipped with temporary status")
+	paymentSystemErrorRecurringFailed                        = newBillingServerErrorMsg("ph000001", "recurring payment failed")
 
-type Error struct {
-	err    string
-	status int32
-}
+	paymentSystemHandlers = map[string]func(*paymentProcessor) PaymentSystem{
+		pkg.PaymentSystemHandlerCardPay: newCardPayHandler,
+		paymentSystemHandlerMockOk:      NewPaymentSystemMockOk,
+		paymentSystemHandlerMockError:   NewPaymentSystemMockError,
+	}
+)
 
 type Path struct {
 	path   string
@@ -79,24 +75,12 @@ func (s *Service) NewPaymentSystem(
 	h, ok := paymentSystemHandlers[ps.Handler]
 
 	if !ok {
-		return nil, errors.New(paymentSystemErrorHandlerNotFound)
+		return nil, paymentSystemErrorHandlerNotFound
 	}
 
 	processor := &paymentProcessor{cfg: cfg, order: order, service: s}
 
 	return h(processor), nil
-}
-
-func NewError(text string, status int32) error {
-	return &Error{err: text, status: status}
-}
-
-func (e *Error) Error() string {
-	return e.err
-}
-
-func (e *Error) Status() int32 {
-	return e.status
 }
 
 func (h *paymentProcessor) cutBytes(body []byte, limit int) string {

@@ -54,6 +54,10 @@ It has these top-level messages:
 	GetMerchantByRequest
 	ChangeMerchantDataRequest
 	ChangeMerchantDataResponse
+	ChangeMerchantResponse
+	ChangeMerchantStatusResponse
+	CreateNotificationResponse
+	OrderCreateProcessResponse
 	SetMerchantS3AgreementRequest
 	Product
 	ProductPrice
@@ -84,6 +88,8 @@ It has these top-level messages:
 	ChangePaymentMethodParamsResponse
 	FindByZipCodeRequest
 	FindByZipCodeResponse
+	ResponseError
+	ResponseErrorMessage
 	CreateAccountingEntryRequest
 	CreateAccountingEntryResponse
 */
@@ -121,7 +127,7 @@ var _ server.Option
 // Client API for BillingService service
 
 type BillingService interface {
-	OrderCreateProcess(ctx context.Context, in *billing.OrderCreateRequest, opts ...client.CallOption) (*billing.Order, error)
+	OrderCreateProcess(ctx context.Context, in *billing.OrderCreateRequest, opts ...client.CallOption) (*OrderCreateProcessResponse, error)
 	PaymentFormJsonDataProcess(ctx context.Context, in *PaymentFormJsonDataRequest, opts ...client.CallOption) (*PaymentFormJsonDataResponse, error)
 	PaymentCreateProcess(ctx context.Context, in *PaymentCreateRequest, opts ...client.CallOption) (*PaymentCreateResponse, error)
 	PaymentCallbackProcess(ctx context.Context, in *PaymentNotifyRequest, opts ...client.CallOption) (*PaymentNotifyResponse, error)
@@ -130,11 +136,11 @@ type BillingService interface {
 	GetConvertRate(ctx context.Context, in *ConvertRateRequest, opts ...client.CallOption) (*ConvertRateResponse, error)
 	GetMerchantBy(ctx context.Context, in *GetMerchantByRequest, opts ...client.CallOption) (*MerchantGetMerchantResponse, error)
 	ListMerchants(ctx context.Context, in *MerchantListingRequest, opts ...client.CallOption) (*MerchantListingResponse, error)
-	ChangeMerchant(ctx context.Context, in *OnboardingRequest, opts ...client.CallOption) (*billing.Merchant, error)
-	ChangeMerchantStatus(ctx context.Context, in *MerchantChangeStatusRequest, opts ...client.CallOption) (*billing.Merchant, error)
+	ChangeMerchant(ctx context.Context, in *OnboardingRequest, opts ...client.CallOption) (*ChangeMerchantResponse, error)
+	ChangeMerchantStatus(ctx context.Context, in *MerchantChangeStatusRequest, opts ...client.CallOption) (*ChangeMerchantStatusResponse, error)
 	ChangeMerchantData(ctx context.Context, in *ChangeMerchantDataRequest, opts ...client.CallOption) (*ChangeMerchantDataResponse, error)
 	SetMerchantS3Agreement(ctx context.Context, in *SetMerchantS3AgreementRequest, opts ...client.CallOption) (*ChangeMerchantDataResponse, error)
-	CreateNotification(ctx context.Context, in *NotificationRequest, opts ...client.CallOption) (*billing.Notification, error)
+	CreateNotification(ctx context.Context, in *NotificationRequest, opts ...client.CallOption) (*CreateNotificationResponse, error)
 	GetNotification(ctx context.Context, in *GetNotificationRequest, opts ...client.CallOption) (*billing.Notification, error)
 	ListNotifications(ctx context.Context, in *ListingNotificationRequest, opts ...client.CallOption) (*Notifications, error)
 	MarkNotificationAsRead(ctx context.Context, in *GetNotificationRequest, opts ...client.CallOption) (*billing.Notification, error)
@@ -211,9 +217,9 @@ func NewBillingService(name string, c client.Client) BillingService {
 	}
 }
 
-func (c *billingService) OrderCreateProcess(ctx context.Context, in *billing.OrderCreateRequest, opts ...client.CallOption) (*billing.Order, error) {
+func (c *billingService) OrderCreateProcess(ctx context.Context, in *billing.OrderCreateRequest, opts ...client.CallOption) (*OrderCreateProcessResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.OrderCreateProcess", in)
-	out := new(billing.Order)
+	out := new(OrderCreateProcessResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -301,9 +307,9 @@ func (c *billingService) ListMerchants(ctx context.Context, in *MerchantListingR
 	return out, nil
 }
 
-func (c *billingService) ChangeMerchant(ctx context.Context, in *OnboardingRequest, opts ...client.CallOption) (*billing.Merchant, error) {
+func (c *billingService) ChangeMerchant(ctx context.Context, in *OnboardingRequest, opts ...client.CallOption) (*ChangeMerchantResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.ChangeMerchant", in)
-	out := new(billing.Merchant)
+	out := new(ChangeMerchantResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -311,9 +317,9 @@ func (c *billingService) ChangeMerchant(ctx context.Context, in *OnboardingReque
 	return out, nil
 }
 
-func (c *billingService) ChangeMerchantStatus(ctx context.Context, in *MerchantChangeStatusRequest, opts ...client.CallOption) (*billing.Merchant, error) {
+func (c *billingService) ChangeMerchantStatus(ctx context.Context, in *MerchantChangeStatusRequest, opts ...client.CallOption) (*ChangeMerchantStatusResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.ChangeMerchantStatus", in)
-	out := new(billing.Merchant)
+	out := new(ChangeMerchantStatusResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -341,9 +347,9 @@ func (c *billingService) SetMerchantS3Agreement(ctx context.Context, in *SetMerc
 	return out, nil
 }
 
-func (c *billingService) CreateNotification(ctx context.Context, in *NotificationRequest, opts ...client.CallOption) (*billing.Notification, error) {
+func (c *billingService) CreateNotification(ctx context.Context, in *NotificationRequest, opts ...client.CallOption) (*CreateNotificationResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.CreateNotification", in)
-	out := new(billing.Notification)
+	out := new(CreateNotificationResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -914,7 +920,7 @@ func (c *billingService) CreateAccountingEntry(ctx context.Context, in *CreateAc
 // Server API for BillingService service
 
 type BillingServiceHandler interface {
-	OrderCreateProcess(context.Context, *billing.OrderCreateRequest, *billing.Order) error
+	OrderCreateProcess(context.Context, *billing.OrderCreateRequest, *OrderCreateProcessResponse) error
 	PaymentFormJsonDataProcess(context.Context, *PaymentFormJsonDataRequest, *PaymentFormJsonDataResponse) error
 	PaymentCreateProcess(context.Context, *PaymentCreateRequest, *PaymentCreateResponse) error
 	PaymentCallbackProcess(context.Context, *PaymentNotifyRequest, *PaymentNotifyResponse) error
@@ -923,11 +929,11 @@ type BillingServiceHandler interface {
 	GetConvertRate(context.Context, *ConvertRateRequest, *ConvertRateResponse) error
 	GetMerchantBy(context.Context, *GetMerchantByRequest, *MerchantGetMerchantResponse) error
 	ListMerchants(context.Context, *MerchantListingRequest, *MerchantListingResponse) error
-	ChangeMerchant(context.Context, *OnboardingRequest, *billing.Merchant) error
-	ChangeMerchantStatus(context.Context, *MerchantChangeStatusRequest, *billing.Merchant) error
+	ChangeMerchant(context.Context, *OnboardingRequest, *ChangeMerchantResponse) error
+	ChangeMerchantStatus(context.Context, *MerchantChangeStatusRequest, *ChangeMerchantStatusResponse) error
 	ChangeMerchantData(context.Context, *ChangeMerchantDataRequest, *ChangeMerchantDataResponse) error
 	SetMerchantS3Agreement(context.Context, *SetMerchantS3AgreementRequest, *ChangeMerchantDataResponse) error
-	CreateNotification(context.Context, *NotificationRequest, *billing.Notification) error
+	CreateNotification(context.Context, *NotificationRequest, *CreateNotificationResponse) error
 	GetNotification(context.Context, *GetNotificationRequest, *billing.Notification) error
 	ListNotifications(context.Context, *ListingNotificationRequest, *Notifications) error
 	MarkNotificationAsRead(context.Context, *GetNotificationRequest, *billing.Notification) error
@@ -988,7 +994,7 @@ type BillingServiceHandler interface {
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
 	type billingService interface {
-		OrderCreateProcess(ctx context.Context, in *billing.OrderCreateRequest, out *billing.Order) error
+		OrderCreateProcess(ctx context.Context, in *billing.OrderCreateRequest, out *OrderCreateProcessResponse) error
 		PaymentFormJsonDataProcess(ctx context.Context, in *PaymentFormJsonDataRequest, out *PaymentFormJsonDataResponse) error
 		PaymentCreateProcess(ctx context.Context, in *PaymentCreateRequest, out *PaymentCreateResponse) error
 		PaymentCallbackProcess(ctx context.Context, in *PaymentNotifyRequest, out *PaymentNotifyResponse) error
@@ -997,11 +1003,11 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetConvertRate(ctx context.Context, in *ConvertRateRequest, out *ConvertRateResponse) error
 		GetMerchantBy(ctx context.Context, in *GetMerchantByRequest, out *MerchantGetMerchantResponse) error
 		ListMerchants(ctx context.Context, in *MerchantListingRequest, out *MerchantListingResponse) error
-		ChangeMerchant(ctx context.Context, in *OnboardingRequest, out *billing.Merchant) error
-		ChangeMerchantStatus(ctx context.Context, in *MerchantChangeStatusRequest, out *billing.Merchant) error
+		ChangeMerchant(ctx context.Context, in *OnboardingRequest, out *ChangeMerchantResponse) error
+		ChangeMerchantStatus(ctx context.Context, in *MerchantChangeStatusRequest, out *ChangeMerchantStatusResponse) error
 		ChangeMerchantData(ctx context.Context, in *ChangeMerchantDataRequest, out *ChangeMerchantDataResponse) error
 		SetMerchantS3Agreement(ctx context.Context, in *SetMerchantS3AgreementRequest, out *ChangeMerchantDataResponse) error
-		CreateNotification(ctx context.Context, in *NotificationRequest, out *billing.Notification) error
+		CreateNotification(ctx context.Context, in *NotificationRequest, out *CreateNotificationResponse) error
 		GetNotification(ctx context.Context, in *GetNotificationRequest, out *billing.Notification) error
 		ListNotifications(ctx context.Context, in *ListingNotificationRequest, out *Notifications) error
 		MarkNotificationAsRead(ctx context.Context, in *GetNotificationRequest, out *billing.Notification) error
@@ -1070,7 +1076,7 @@ type billingServiceHandler struct {
 	BillingServiceHandler
 }
 
-func (h *billingServiceHandler) OrderCreateProcess(ctx context.Context, in *billing.OrderCreateRequest, out *billing.Order) error {
+func (h *billingServiceHandler) OrderCreateProcess(ctx context.Context, in *billing.OrderCreateRequest, out *OrderCreateProcessResponse) error {
 	return h.BillingServiceHandler.OrderCreateProcess(ctx, in, out)
 }
 
@@ -1106,11 +1112,11 @@ func (h *billingServiceHandler) ListMerchants(ctx context.Context, in *MerchantL
 	return h.BillingServiceHandler.ListMerchants(ctx, in, out)
 }
 
-func (h *billingServiceHandler) ChangeMerchant(ctx context.Context, in *OnboardingRequest, out *billing.Merchant) error {
+func (h *billingServiceHandler) ChangeMerchant(ctx context.Context, in *OnboardingRequest, out *ChangeMerchantResponse) error {
 	return h.BillingServiceHandler.ChangeMerchant(ctx, in, out)
 }
 
-func (h *billingServiceHandler) ChangeMerchantStatus(ctx context.Context, in *MerchantChangeStatusRequest, out *billing.Merchant) error {
+func (h *billingServiceHandler) ChangeMerchantStatus(ctx context.Context, in *MerchantChangeStatusRequest, out *ChangeMerchantStatusResponse) error {
 	return h.BillingServiceHandler.ChangeMerchantStatus(ctx, in, out)
 }
 
@@ -1122,7 +1128,7 @@ func (h *billingServiceHandler) SetMerchantS3Agreement(ctx context.Context, in *
 	return h.BillingServiceHandler.SetMerchantS3Agreement(ctx, in, out)
 }
 
-func (h *billingServiceHandler) CreateNotification(ctx context.Context, in *NotificationRequest, out *billing.Notification) error {
+func (h *billingServiceHandler) CreateNotification(ctx context.Context, in *NotificationRequest, out *CreateNotificationResponse) error {
 	return h.BillingServiceHandler.CreateNotification(ctx, in, out)
 }
 

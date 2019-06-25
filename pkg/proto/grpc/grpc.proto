@@ -7,7 +7,7 @@ import "google/protobuf/timestamp.proto";
 import "billing/billing.proto";
 
 service BillingService {
-    rpc OrderCreateProcess (billing.OrderCreateRequest) returns (billing.Order) {}
+    rpc OrderCreateProcess (billing.OrderCreateRequest) returns (OrderCreateProcessResponse) {}
     rpc PaymentFormJsonDataProcess (PaymentFormJsonDataRequest) returns (PaymentFormJsonDataResponse) {}
     rpc PaymentCreateProcess (PaymentCreateRequest) returns (PaymentCreateResponse) {}
     rpc PaymentCallbackProcess (PaymentNotifyRequest) returns (PaymentNotifyResponse) {}
@@ -18,12 +18,12 @@ service BillingService {
 
     rpc GetMerchantBy (GetMerchantByRequest) returns (MerchantGetMerchantResponse) {}
     rpc ListMerchants (MerchantListingRequest) returns (MerchantListingResponse) {}
-    rpc ChangeMerchant (OnboardingRequest) returns (billing.Merchant) {}
-    rpc ChangeMerchantStatus (MerchantChangeStatusRequest) returns (billing.Merchant) {}
+    rpc ChangeMerchant (OnboardingRequest) returns (ChangeMerchantResponse) {}
+    rpc ChangeMerchantStatus (MerchantChangeStatusRequest) returns (ChangeMerchantStatusResponse) {}
     rpc ChangeMerchantData (ChangeMerchantDataRequest) returns (ChangeMerchantDataResponse) {}
     rpc SetMerchantS3Agreement (SetMerchantS3AgreementRequest) returns (ChangeMerchantDataResponse) {}
 
-    rpc CreateNotification (NotificationRequest) returns (billing.Notification) {}
+    rpc CreateNotification (NotificationRequest) returns (CreateNotificationResponse) {}
     rpc GetNotification (GetNotificationRequest) returns (billing.Notification) {}
     rpc ListNotifications (ListingNotificationRequest) returns (Notifications) {}
     rpc MarkNotificationAsRead (GetNotificationRequest) returns (billing.Notification) {}
@@ -110,7 +110,7 @@ message PaymentCreateRequest {
 
 message PaymentCreateResponse {
     int32 status = 1;
-    string message = 2;
+    ResponseErrorMessage message = 2;
     string redirect_url = 3;
     bool need_redirect = 4;
 }
@@ -302,7 +302,7 @@ message GetMerchantPaymentMethodRequest {
 
 message GetMerchantPaymentMethodResponse {
     int32 status = 1;
-    string message = 2;
+    ResponseErrorMessage message = 2;
     billing.MerchantPaymentMethod item = 3;
 }
 
@@ -332,13 +332,13 @@ message MerchantPaymentMethodRequest {
 
 message MerchantPaymentMethodResponse {
     int32 status = 1;
-    string message = 2;
+    ResponseErrorMessage message = 2;
     billing.MerchantPaymentMethod item = 3;
 }
 
 message MerchantGetMerchantResponse {
     int32 status = 1;
-    string message = 2;
+    ResponseErrorMessage message = 2;
     billing.Merchant item = 3;
 }
 
@@ -358,7 +358,7 @@ message CreateRefundRequest {
 
 message CreateRefundResponse {
     int32 status = 1;
-    string message = 2;
+    ResponseErrorMessage message = 2;
     billing.Refund item = 3;
 }
 
@@ -436,7 +436,7 @@ message PaymentFormDataChangeResponseItem {
 
 message PaymentFormDataChangeResponse {
     int32 status = 1;
-    string message = 2;
+    ResponseErrorMessage message = 2;
     PaymentFormDataChangeResponseItem item = 3;
 }
 
@@ -462,7 +462,7 @@ message ProcessBillingAddressResponseItem {
 
 message ProcessBillingAddressResponse {
     int32 status = 1;
-    string message = 2;
+    ResponseErrorMessage message = 2;
     ProcessBillingAddressResponseItem item = 3;
 }
 
@@ -484,8 +484,32 @@ message ChangeMerchantDataRequest {
 
 message ChangeMerchantDataResponse {
     int32 status = 1;
-    string message = 2;
+    ResponseErrorMessage message = 2;
     billing.Merchant item = 3;
+}
+
+message ChangeMerchantResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.Merchant item = 3;
+}
+
+message ChangeMerchantStatusResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.Merchant item = 3;
+}
+
+message CreateNotificationResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.Notification item = 3;
+}
+
+message OrderCreateProcessResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.Order item = 3;
 }
 
 message SetMerchantS3AgreementRequest {
@@ -591,7 +615,7 @@ message I18NTextSearchable {
 
 message ChangeProjectResponse {
     int32 status = 1;
-    string message = 2;
+    ResponseErrorMessage message = 2;
     billing.Project item = 3;
 }
 
@@ -633,7 +657,7 @@ message TokenRequest {
 
 message TokenResponse {
     int32 status = 1;
-    string message = 2;
+    ResponseErrorMessage message = 2;
     string token = 3;
 }
 
@@ -645,7 +669,7 @@ message CheckProjectRequestSignatureRequest {
 
 message CheckProjectRequestSignatureResponse {
     int32 status = 1;
-    string message = 2;
+    ResponseErrorMessage message = 2;
 }
 
 message ListOrdersRequest {
@@ -697,7 +721,7 @@ message IsOrderCanBePayingRequest {
 
 message IsOrderCanBePayingResponse {
     int32 status = 1;
-    string message = 2;
+    ResponseErrorMessage message = 2;
     billing.Order item = 3;
 }
 
@@ -781,6 +805,22 @@ message FindByZipCodeRequest {
 message FindByZipCodeResponse {
     int32 count = 1;
     repeated billing.ZipCode items = 2;
+}
+
+message ResponseError {
+    //@inject_tag: json:"status"
+    int32 status = 1;
+    //@inject_tag: json:"message"
+    ResponseErrorMessage message = 2;
+}
+
+message ResponseErrorMessage {
+    //@inject_tag: json:"code"
+    string code = 1;
+    //@inject_tag: json:"message"
+    string message = 2;
+    //@inject_tag: json:"details;omitempty"
+    string details = 3;
 }
 
 message CreateAccountingEntryRequest {

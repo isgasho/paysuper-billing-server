@@ -7,7 +7,6 @@ import (
 	"crypto/sha512"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -23,12 +22,6 @@ import (
 )
 
 const (
-	customerNotFound                 = "customer by specified data not found"
-	tokenErrorNotFound               = "token not found"
-	tokenErrorUserIdentityRequired   = "request must contain one or more parameters with user information"
-	tokenErrorSettingsItemsRequired  = "field settings.items required and can't be empty"
-	tokenErrorSettingsAmountRequired = "field settings.amount required and must be greater than 0"
-
 	tokenStorageMask   = "paysuper:token:%s"
 	tokenLetterBytes   = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	tokenLetterIdxBits = uint(6)
@@ -39,7 +32,12 @@ const (
 )
 
 var (
-	customerErrNotFound = errors.New(customerNotFound)
+	tokenErrorUnknown                = newBillingServerErrorMsg("tk000001", "unknown token error")
+	customerNotFound                 = newBillingServerErrorMsg("tk000002", "customer by specified data not found")
+	tokenErrorNotFound               = newBillingServerErrorMsg("tk000003", "token not found")
+	tokenErrorUserIdentityRequired   = newBillingServerErrorMsg("tk000004", "request must contain one or more parameters with user information")
+	tokenErrorSettingsItemsRequired  = newBillingServerErrorMsg("tk000005", "field settings.items required and can't be empty")
+	tokenErrorSettingsAmountRequired = newBillingServerErrorMsg("tk000006", "field settings.amount required and must be greater than 0")
 
 	tokenRandSource = rand.NewSource(time.Now().UnixNano())
 )
@@ -96,14 +94,16 @@ func (s *Service) CreateToken(
 			return nil
 		}
 
-		req.Settings.ProductsIds, err = s.processTokenProducts(req)
+		pids, err := s.processTokenProducts(req)
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = err.Error()
+			rsp.Message = err.(*grpc.ResponseErrorMessage)
 
 			return nil
 		}
+
+		req.Settings.ProductsIds = pids
 	} else {
 		if req.Settings.Amount <= 0 {
 			rsp.Status = pkg.ResponseStatusBadData
@@ -115,9 +115,9 @@ func (s *Service) CreateToken(
 
 	customer, err := s.findCustomer(req, project)
 
-	if err != nil && err != customerErrNotFound {
+	if err != nil && err != customerNotFound {
 		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = err.Error()
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
 
 		return nil
 	}
@@ -130,7 +130,7 @@ func (s *Service) CreateToken(
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = err.Error()
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
 
 		return nil
 	}
@@ -139,7 +139,7 @@ func (s *Service) CreateToken(
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = err.Error()
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
 
 		return nil
 	}
@@ -189,10 +189,10 @@ func (s *Service) getCustomerById(id string) (*billing.Customer, error) {
 
 	if err != nil {
 		if err != mgo.ErrNotFound {
-			return nil, errors.New(orderErrorUnknown)
+			return nil, orderErrorUnknown
 		}
 
-		return nil, errors.New(customerNotFound)
+		return nil, customerNotFound
 	}
 
 	return customer, nil
@@ -250,8 +250,8 @@ func (s *Service) findCustomer(
 	query := make(bson.M)
 	customer := new(billing.Customer)
 
-	if len(subQuery) <= 0 {
-		return nil, customerErrNotFound
+	if subQuery == nil || len(subQuery) <= 0 {
+		return nil, customerNotFound
 	}
 
 	if len(subQuery) > 1 {
@@ -265,10 +265,10 @@ func (s *Service) findCustomer(
 	if err != nil {
 		if err != mgo.ErrNotFound {
 			zap.S().Errorf("Query to find customer failed", "err", err.Error(), "query", query)
-			return nil, errors.New(orderErrorUnknown)
+			return nil, orderErrorUnknown
 		}
 
-		return nil, customerErrNotFound
+		return nil, customerNotFound
 	}
 
 	return customer, nil
@@ -293,7 +293,7 @@ func (s *Service) createCustomer(
 
 	if err != nil {
 		zap.S().Errorf("Query to create new customer failed", "err", err.Error(), "data", customer)
-		return nil, errors.New(orderErrorUnknown)
+		return nil, tokenErrorUnknown
 	}
 
 	return customer, nil
@@ -309,7 +309,7 @@ func (s *Service) updateCustomer(
 
 	if err != nil {
 		zap.S().Errorf("Query to update customer data failed", "err", err.Error(), "data", customer)
-		return nil, errors.New(orderErrorUnknown)
+		return nil, tokenErrorUnknown
 	}
 
 	return customer, nil
@@ -505,14 +505,14 @@ func (r *tokenRepository) getToken(token string) error {
 
 	if err != nil {
 		r.service.logError("Get customer token from Redis failed", []interface{}{"error", err.Error()})
-		return errors.New(tokenErrorNotFound)
+		return tokenErrorNotFound
 	}
 
 	err = json.Unmarshal(data, &r.token)
 
 	if err != nil {
 		r.service.logError("Unmarshal customer token failed", []interface{}{"error", err.Error()})
-		return errors.New(tokenErrorNotFound)
+		return tokenErrorNotFound
 	}
 
 	return nil
@@ -523,7 +523,7 @@ func (r *tokenRepository) setToken(token string) error {
 
 	if err != nil {
 		r.service.logError("Marshal customer token failed", []interface{}{"error", err.Error()})
-		return errors.New(orderErrorUnknown)
+		return tokenErrorUnknown
 	}
 
 	return r.service.redis.Set(r.getKey(token), b, r.service.cfg.GetCustomerTokenExpire()).Err()

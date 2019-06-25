@@ -415,9 +415,11 @@ func (suite *ReportTestSuite) TestReport_FindById() {
 		Currency:  suite.currencyRub.CodeA3,
 		Amount:    100,
 	}
-	oRsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), oReq, rsp0)
 	assert.NoError(suite.T(), err, "Unable to create order")
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	oRsp := rsp0.Item
 
 	req := &grpc.ListOrdersRequest{Id: uuid.New().String()}
 	rsp := &billing.OrderPaginate{}
@@ -441,9 +443,11 @@ func (suite *ReportTestSuite) TestReport_FindByMerchantId() {
 		Currency:  suite.currencyRub.CodeA3,
 		Amount:    100,
 	}
-	oRsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), oReq, rsp0)
 	assert.NoError(suite.T(), err, "Unable to create order")
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	oRsp := rsp0.Item
 
 	merchantId = bson.NewObjectId().Hex()
 	oRsp.Project.MerchantId = merchantId
@@ -472,9 +476,11 @@ func (suite *ReportTestSuite) TestReport_FindByProject() {
 		Currency:  suite.currencyRub.CodeA3,
 		Amount:    100,
 	}
-	oRsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), oReq, rsp0)
 	assert.NoError(suite.T(), err, "Unable to create order")
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	oRsp := rsp0.Item
 
 	req := &grpc.ListOrdersRequest{Project: []string{bson.NewObjectId().Hex()}}
 	rsp := &billing.OrderPaginate{}
@@ -503,9 +509,11 @@ func (suite *ReportTestSuite) TestReport_FindByCountry() {
 		},
 		Amount: 100,
 	}
-	oRsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), oReq, rsp0)
 	assert.NoError(suite.T(), err, "Unable to create order")
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	oRsp := rsp0.Item
 
 	req := &grpc.ListOrdersRequest{Country: []string{"USA"}}
 	rsp := &billing.OrderPaginate{}
@@ -531,17 +539,17 @@ func (suite *ReportTestSuite) TestReport_FindByPaymentMethod() {
 		PaymentMethod: suite.pmBankCard.Group,
 	}
 	pm, err := suite.service.paymentMethod.GetById(suite.pmBankCard.Id)
-	if err != nil {
-		assert.FailNow(suite.T(), err.Error())
-	}
+	assert.NoError(suite.T(), err)
 	pm.ProductionSettings = map[string]*billing.PaymentMethodParams{
 		suite.currencyRub.CodeA3: {Secret: "test", Currency: "RUB"},
 	}
 	err = suite.service.paymentMethod.Update(pm)
 
-	oRsp := &billing.Order{}
-	err = suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err = suite.service.OrderCreateProcess(context.TODO(), oReq, rsp0)
 	assert.NoError(suite.T(), err, "Unable to create order")
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	oRsp := rsp0.Item
 
 	req := &grpc.ListOrdersRequest{PaymentMethod: []string{bson.NewObjectId().Hex()}}
 	rsp := &billing.OrderPaginate{}
@@ -566,9 +574,10 @@ func (suite *ReportTestSuite) TestReport_FindByPaymentMethod_ErrorOnEmptyPayment
 		Amount:        100,
 		PaymentMethod: suite.pmBankCard.Group,
 	}
-	oRsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), oReq, rsp0)
 	assert.NoError(suite.T(), err, "Unable to create order")
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
 }
 
 func (suite *ReportTestSuite) TestReport_FindByStatus() {
@@ -577,9 +586,11 @@ func (suite *ReportTestSuite) TestReport_FindByStatus() {
 		Currency:  suite.currencyRub.CodeA3,
 		Amount:    100,
 	}
-	oRsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), oReq, rsp0)
 	assert.NoError(suite.T(), err, "Unable to create order")
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	oRsp := rsp0.Item
 
 	oRsp.PrivateStatus = constant.OrderStatusPaymentSystemRejectOnCreate
 	err = suite.service.updateOrder(oRsp)
@@ -608,9 +619,11 @@ func (suite *ReportTestSuite) TestReport_FindByAccount() {
 		Amount:    100,
 		Account:   "account",
 	}
-	oRsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), oReq, rsp0)
 	assert.NoError(suite.T(), err, "Unable to create order")
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	oRsp := rsp0.Item
 
 	req := &grpc.ListOrdersRequest{Account: "unexists"}
 	rsp := &billing.OrderPaginate{}
@@ -634,9 +647,11 @@ func (suite *ReportTestSuite) TestReport_FindByPmDateFrom() {
 		Currency:  suite.currencyRub.CodeA3,
 		Amount:    100,
 	}
-	oRsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), oReq, rsp0)
 	assert.NoError(suite.T(), err, "Unable to create order")
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	oRsp := rsp0.Item
 
 	t := time.Now()
 	oRsp.PaymentMethodOrderClosedAt = &timestamp.Timestamp{Seconds: t.Unix()}
@@ -665,9 +680,11 @@ func (suite *ReportTestSuite) TestReport_FindByPmDateTo() {
 		Currency:  suite.currencyRub.CodeA3,
 		Amount:    100,
 	}
-	oRsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), oReq, rsp0)
 	assert.NoError(suite.T(), err, "Unable to create order")
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	oRsp := rsp0.Item
 
 	t := time.Now()
 	oRsp.PaymentMethodOrderClosedAt = &timestamp.Timestamp{Seconds: t.Unix()}
@@ -696,9 +713,11 @@ func (suite *ReportTestSuite) TestReport_FindByProjectDateFrom() {
 		Currency:  suite.currencyRub.CodeA3,
 		Amount:    100,
 	}
-	oRsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), oReq, rsp0)
 	assert.NoError(suite.T(), err, "Unable to create order")
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	oRsp := rsp0.Item
 
 	t := time.Now()
 	oRsp.CreatedAt = &timestamp.Timestamp{Seconds: t.Unix()}
@@ -727,9 +746,11 @@ func (suite *ReportTestSuite) TestReport_FindByProjectDateTo() {
 		Currency:  suite.currencyRub.CodeA3,
 		Amount:    100,
 	}
-	oRsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), oReq, rsp0)
 	assert.NoError(suite.T(), err, "Unable to create order")
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	oRsp := rsp0.Item
 
 	t := time.Now()
 	oRsp.CreatedAt = &timestamp.Timestamp{Seconds: t.Unix()}
@@ -758,9 +779,11 @@ func (suite *ReportTestSuite) TestReport_FindByQuickSearch_Id() {
 		Currency:  suite.currencyRub.CodeA3,
 		Amount:    100,
 	}
-	oRsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), oReq, rsp0)
 	assert.NoError(suite.T(), err, "Unable to create order")
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	oRsp := rsp0.Item
 
 	req := &grpc.ListOrdersRequest{QuickSearch: uuid.New().String()}
 	rsp := &billing.OrderPaginate{}
@@ -784,9 +807,11 @@ func (suite *ReportTestSuite) TestReport_FindByQuickSearch_ProjectOrderId() {
 		Currency:  suite.currencyRub.CodeA3,
 		Amount:    100,
 	}
-	oRsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), oReq, rsp0)
 	assert.NoError(suite.T(), err, "Unable to create order")
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	oRsp := rsp0.Item
 
 	oRsp.ProjectOrderId = "project_order_id"
 	err = suite.service.updateOrder(oRsp)
@@ -814,9 +839,11 @@ func (suite *ReportTestSuite) TestReport_FindByQuickSearch_UserExternalId() {
 		Currency:  suite.currencyRub.CodeA3,
 		Amount:    100,
 	}
-	oRsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), oReq, rsp0)
 	assert.NoError(suite.T(), err, "Unable to create order")
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	oRsp := rsp0.Item
 
 	oRsp.User.ExternalId = "user_id"
 	err = suite.service.updateOrder(oRsp)
@@ -844,9 +871,11 @@ func (suite *ReportTestSuite) TestReport_FindByQuickSearch_ProjectName() {
 		Currency:  suite.currencyRub.CodeA3,
 		Amount:    100,
 	}
-	oRsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), oReq, rsp0)
 	assert.NoError(suite.T(), err, "Unable to create order")
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	oRsp := rsp0.Item
 
 	oRsp.Project.Name["en"] = "project_name_english"
 	oRsp.Project.Name["ru"] = "project_name_русский"
@@ -883,9 +912,11 @@ func (suite *ReportTestSuite) TestReport_FindByQuickSearch_PaymentMethodName() {
 		Currency:  suite.currencyRub.CodeA3,
 		Amount:    100,
 	}
-	oRsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), oReq, rsp0)
 	assert.NoError(suite.T(), err, "Unable to create order")
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	oRsp := rsp0.Item
 
 	oRsp.PaymentMethod = &billing.PaymentMethodOrder{
 		Id:              bson.NewObjectId().Hex(),
@@ -926,9 +957,11 @@ func (suite *ReportTestSuite) TestReport_GetOrder_ReturnOrder() {
 		Currency:  suite.currencyRub.CodeA3,
 		Amount:    100,
 	}
-	oRsp := &billing.Order{}
-	err := suite.service.OrderCreateProcess(context.TODO(), oReq, oRsp)
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), oReq, rsp0)
 	assert.NoError(suite.T(), err, "Unable to create order")
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	oRsp := rsp0.Item
 
 	merchantId = bson.NewObjectId().Hex()
 	oRsp.Project.MerchantId = merchantId
