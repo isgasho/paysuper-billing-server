@@ -859,6 +859,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		return nil
 	}
 
+	brand := ""
 	country := ""
 
 	rsp.Status = pkg.ResponseStatusOk
@@ -875,6 +876,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 			return nil
 		}
 
+		brand = data.CardBrand
 		country = data.BankCountryIsoCode
 		break
 	case constant.PaymentSystemGroupAliasQiwi:
@@ -924,6 +926,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		City:    order.User.Address.City,
 		Zip:     order.User.Address.PostalCode,
 	}
+	rsp.Item.Brand = brand
 
 	return nil
 }

@@ -431,6 +431,7 @@ message PaymentFormDataChangeResponseItem {
     bool user_address_data_required = 1;
     // @inject_tag: json:"user_ip_data"
     UserIpData user_ip_data = 2;
+    string brand = 3;
 }
 
 message PaymentFormDataChangeResponse {
