@@ -291,7 +291,7 @@ type MgoPaymentMethod struct {
 	Handler            string                   `bson:"handler"`
 	MinPaymentAmount   float64                  `bson:"min_payment_amount"`
 	MaxPaymentAmount   float64                  `bson:"max_payment_amount"`
-	TestSettings       *PaymentMethodParams     `bson:"test_settings"`
+	TestSettings       []*MgoPaymentMethodParam `bson:"test_settings"`
 	ProductionSettings []*MgoPaymentMethodParam `bson:"production_settings"`
 	IsActive           bool                     `bson:"is_active"`
 	CreatedAt          time.Time                `bson:"created_at"`
@@ -1426,7 +1426,6 @@ func (m *PaymentMethod) GetBSON() (interface{}, error) {
 		Name:             m.Name,
 		Group:            m.Group,
 		ExternalId:       m.ExternalId,
-		TestSettings:     m.TestSettings,
 		MinPaymentAmount: m.MinPaymentAmount,
 		MaxPaymentAmount: m.MaxPaymentAmount,
 		Currencies:       m.Currencies,
@@ -1443,6 +1442,17 @@ func (m *PaymentMethod) GetBSON() (interface{}, error) {
 		}
 
 		st.Id = bson.ObjectIdHex(m.Id)
+	}
+
+	if m.TestSettings != nil {
+		for key, value := range m.TestSettings {
+			st.TestSettings = append(st.TestSettings, &MgoPaymentMethodParam{
+				Currency:       key,
+				TerminalId:     value.TerminalId,
+				Secret:         value.Secret,
+				SecretCallback: value.SecretCallback,
+			})
+		}
 	}
 
 	if m.ProductionSettings != nil {
@@ -1506,11 +1516,22 @@ func (m *PaymentMethod) SetBSON(raw bson.Raw) error {
 	m.Currencies = decoded.Currencies
 	m.MinPaymentAmount = decoded.MinPaymentAmount
 	m.MaxPaymentAmount = decoded.MaxPaymentAmount
-	m.TestSettings = decoded.TestSettings
 	m.Type = decoded.Type
 	m.AccountRegexp = decoded.AccountRegexp
 	m.IsActive = decoded.IsActive
 	m.PaymentSystemId = decoded.PaymentSystemId.Hex()
+
+	if decoded.TestSettings != nil {
+		pmp := make(map[string]*PaymentMethodParams, len(decoded.TestSettings))
+		for _, value := range decoded.TestSettings {
+			pmp[value.Currency] = &PaymentMethodParams{
+				TerminalId:     value.TerminalId,
+				Secret:         value.Secret,
+				SecretCallback: value.SecretCallback,
+			}
+		}
+		m.TestSettings = pmp
+	}
 
 	if decoded.ProductionSettings != nil {
 		pmp := make(map[string]*PaymentMethodParams, len(decoded.ProductionSettings))

@@ -69,10 +69,13 @@ service BillingService {
     rpc SetUserNotifySales (SetUserNotifyRequest) returns (EmptyResponse) {}
     rpc SetUserNotifyNewRegion (SetUserNotifyRequest) returns (EmptyResponse) {}
 
-    rpc CreateOrUpdatePaymentMethod (billing.PaymentMethod) returns (ChangePaymentMethodResponse) {}
-    rpc CreateOrUpdatePaymentMethodProductionSettings (ChangePaymentMethodParamsRequest) returns (ChangePaymentMethodParamsResponse) {}
-    rpc GetPaymentMethodProductionSettings (GetPaymentMethodProductionSettingsRequest) returns (billing.PaymentMethodParams) {}
-    rpc DeletePaymentMethodProductionSettings (GetPaymentMethodProductionSettingsRequest) returns (ChangePaymentMethodParamsResponse) {}
+    rpc CreateOrUpdatePaymentMethod(billing.PaymentMethod) returns (ChangePaymentMethodResponse) {}
+    rpc CreateOrUpdatePaymentMethodProductionSettings(ChangePaymentMethodParamsRequest) returns (ChangePaymentMethodParamsResponse) {}
+    rpc GetPaymentMethodProductionSettings(GetPaymentMethodSettingsRequest) returns (billing.PaymentMethodParams) {}
+    rpc DeletePaymentMethodProductionSettings(GetPaymentMethodSettingsRequest) returns (ChangePaymentMethodParamsResponse) {}
+    rpc CreateOrUpdatePaymentMethodTestSettings(ChangePaymentMethodParamsRequest) returns (ChangePaymentMethodParamsResponse) {}
+    rpc GetPaymentMethodTestSettings(GetPaymentMethodSettingsRequest) returns (billing.PaymentMethodParams) {}
+    rpc DeletePaymentMethodTestSettings(GetPaymentMethodSettingsRequest) returns (ChangePaymentMethodParamsResponse) {}
 
     rpc GetCurrencyList (EmptyRequest) returns (billing.CurrencyList) {}
     rpc GetCurrency (billing.GetCurrencyRequest) returns (billing.Currency) {}
@@ -761,7 +764,7 @@ message NotifyUserNewRegion {
     string date = 5;
 }
 
-message GetPaymentMethodProductionSettingsRequest {
+message GetPaymentMethodSettingsRequest {
     // @inject_tag: query:"payment_method_id" validate:"required,hexadecimal,len=24"
     string payment_method_id = 1;
     // @inject_tag: query:"currency_a3" validate:"required,alpha,len=3"

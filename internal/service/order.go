@@ -1739,11 +1739,6 @@ func (v *OrderCreateRequestProcessor) processUserData() (err error) {
 func (v *PaymentFormProcessor) processRenderFormPaymentMethods() ([]*billing.PaymentFormPaymentMethod, error) {
 	var projectPms []*billing.PaymentFormPaymentMethod
 
-	project, err := v.service.project.GetById(v.order.Project.Id)
-	if err != nil {
-		return projectPms, orderErrorProjectNotFound
-	}
-
 	pmg, err := v.service.paymentMethod.Groups()
 	if err != nil {
 		return nil, err
@@ -1762,18 +1757,6 @@ func (v *PaymentFormProcessor) processRenderFormPaymentMethods() ([]*billing.Pay
 		if v.order.OrderAmount < pm.MinPaymentAmount ||
 			(pm.MaxPaymentAmount > 0 && v.order.OrderAmount > pm.MaxPaymentAmount) {
 			continue
-		}
-
-		if project.IsProduction() == true {
-			mpm, err := v.service.merchant.GetPaymentMethod(v.order.Project.MerchantId, pm.Id)
-
-			if err != nil {
-				continue
-			}
-
-			if mpm.Integration == nil || mpm.Integration.Integrated == false {
-				continue
-			}
 		}
 
 		formPm := &billing.PaymentFormPaymentMethod{
