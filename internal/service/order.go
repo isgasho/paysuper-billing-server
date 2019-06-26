@@ -1765,18 +1765,6 @@ func (v *PaymentFormProcessor) processRenderFormPaymentMethods() ([]*billing.Pay
 			continue
 		}
 
-		if project.IsProduction() == true {
-			mpm, err := v.service.merchant.GetPaymentMethod(v.order.Project.MerchantId, pm.Id)
-
-			if err != nil {
-				continue
-			}
-
-			if mpm.Integration == nil || mpm.Integration.Integrated == false {
-				continue
-			}
-		}
-
 		formPm := &billing.PaymentFormPaymentMethod{
 			Id:            pm.Id,
 			Name:          pm.Name,
