@@ -856,6 +856,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		return nil
 	}
 
+	brand := ""
 	country := ""
 
 	rsp.Status = pkg.ResponseStatusOk
@@ -872,6 +873,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 			return nil
 		}
 
+		brand = data.CardBrand
 		country = data.BankCountryIsoCode
 		break
 	case constant.PaymentSystemGroupAliasQiwi:
@@ -921,6 +923,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		City:    order.User.Address.City,
 		Zip:     order.User.Address.PostalCode,
 	}
+	rsp.Item.Brand = brand
 
 	return nil
 }
@@ -1201,18 +1204,22 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 	order := &billing.Order{
 		Id: id,
 		Project: &billing.ProjectOrder{
-			Id:                v.checked.project.Id,
-			Name:              v.checked.project.Name,
-			UrlSuccess:        v.checked.project.UrlRedirectSuccess,
-			UrlFail:           v.checked.project.UrlRedirectFail,
-			SendNotifyEmail:   v.checked.project.SendNotifyEmail,
-			NotifyEmails:      v.checked.project.NotifyEmails,
-			SecretKey:         v.checked.project.SecretKey,
-			UrlCheckAccount:   v.checked.project.UrlCheckAccount,
-			UrlProcessPayment: v.checked.project.UrlProcessPayment,
-			CallbackProtocol:  v.checked.project.CallbackProtocol,
-			MerchantId:        v.checked.merchant.Id,
-			Status:            v.checked.project.Status,
+			Id:                   v.checked.project.Id,
+			Name:                 v.checked.project.Name,
+			UrlSuccess:           v.checked.project.UrlRedirectSuccess,
+			UrlFail:              v.checked.project.UrlRedirectFail,
+			SendNotifyEmail:      v.checked.project.SendNotifyEmail,
+			NotifyEmails:         v.checked.project.NotifyEmails,
+			SecretKey:            v.checked.project.SecretKey,
+			UrlCheckAccount:      v.checked.project.UrlCheckAccount,
+			UrlProcessPayment:    v.checked.project.UrlProcessPayment,
+			UrlChargebackPayment: v.checked.project.UrlChargebackPayment,
+			UrlCancelPayment:     v.checked.project.UrlCancelPayment,
+			UrlRefundPayment:     v.checked.project.UrlRefundPayment,
+			UrlFraudPayment:      v.checked.project.UrlFraudPayment,
+			CallbackProtocol:     v.checked.project.CallbackProtocol,
+			MerchantId:           v.checked.merchant.Id,
+			Status:               v.checked.project.Status,
 		},
 		Description:                        fmt.Sprintf(orderDefaultDescription, id),
 		ProjectOrderId:                     v.request.OrderId,
