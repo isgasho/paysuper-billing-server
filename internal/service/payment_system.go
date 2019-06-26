@@ -23,19 +23,19 @@ const (
 
 var (
 	paymentSystemErrorHandlerNotFound                        = newBillingServerErrorMsg("ph000001", "handler for specified payment system not found")
-	paymentSystemErrorAuthenticateFailed                     = newBillingServerErrorMsg("ph000001", "authentication failed")
-	paymentSystemErrorUnknownPaymentMethod                   = newBillingServerErrorMsg("ph000001", "unknown payment method")
-	paymentSystemErrorCreateRequestFailed                    = newBillingServerErrorMsg("ph000001", "order can't be create. try request later")
-	paymentSystemErrorEWalletIdentifierIsInvalid             = newBillingServerErrorMsg("ph000001", "wallet identifier is invalid")
-	paymentSystemErrorRequestSignatureIsInvalid              = newBillingServerErrorMsg("ph000001", "request signature is invalid")
-	paymentSystemErrorRequestTimeFieldIsInvalid              = newBillingServerErrorMsg("ph000001", "time field in request is invalid")
-	paymentSystemErrorRequestRecurringIdFieldIsInvalid       = newBillingServerErrorMsg("ph000001", "recurring id field in request is invalid")
-	paymentSystemErrorRequestStatusIsInvalid                 = newBillingServerErrorMsg("ph000001", "status is invalid")
-	paymentSystemErrorRequestPaymentMethodIsInvalid          = newBillingServerErrorMsg("ph000001", "payment method from request not match with value in order")
-	paymentSystemErrorRequestAmountOrCurrencyIsInvalid       = newBillingServerErrorMsg("ph000001", "amount or currency from request not match with value in order")
-	paymentSystemErrorRefundRequestAmountOrCurrencyIsInvalid = newBillingServerErrorMsg("ph000001", "amount or currency from request not match with value in refund")
-	paymentSystemErrorRequestTemporarySkipped                = newBillingServerErrorMsg("ph000001", "notification skipped with temporary status")
-	paymentSystemErrorRecurringFailed                        = newBillingServerErrorMsg("ph000001", "recurring payment failed")
+	paymentSystemErrorAuthenticateFailed                     = newBillingServerErrorMsg("ph000002", "authentication failed")
+	paymentSystemErrorUnknownPaymentMethod                   = newBillingServerErrorMsg("ph000003", "unknown payment method")
+	paymentSystemErrorCreateRequestFailed                    = newBillingServerErrorMsg("ph000004", "order can't be create. try request later")
+	paymentSystemErrorEWalletIdentifierIsInvalid             = newBillingServerErrorMsg("ph000005", "wallet identifier is invalid")
+	paymentSystemErrorRequestSignatureIsInvalid              = newBillingServerErrorMsg("ph000006", "request signature is invalid")
+	paymentSystemErrorRequestTimeFieldIsInvalid              = newBillingServerErrorMsg("ph000007", "time field in request is invalid")
+	paymentSystemErrorRequestRecurringIdFieldIsInvalid       = newBillingServerErrorMsg("ph000008", "recurring id field in request is invalid")
+	paymentSystemErrorRequestStatusIsInvalid                 = newBillingServerErrorMsg("ph000009", "status is invalid")
+	paymentSystemErrorRequestPaymentMethodIsInvalid          = newBillingServerErrorMsg("ph000010", "payment method from request not match with value in order")
+	paymentSystemErrorRequestAmountOrCurrencyIsInvalid       = newBillingServerErrorMsg("ph000011", "amount or currency from request not match with value in order")
+	paymentSystemErrorRefundRequestAmountOrCurrencyIsInvalid = newBillingServerErrorMsg("ph000012", "amount or currency from request not match with value in refund")
+	paymentSystemErrorRequestTemporarySkipped                = newBillingServerErrorMsg("ph000013", "notification skipped with temporary status")
+	paymentSystemErrorRecurringFailed                        = newBillingServerErrorMsg("ph000014", "recurring payment failed")
 
 	paymentSystemHandlers = map[string]func(*paymentProcessor) PaymentSystem{
 		pkg.PaymentSystemHandlerCardPay: newCardPayHandler,
