@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"go.uber.org/zap"
 )
 
 const (
@@ -19,11 +20,13 @@ func newMerchantService(svc *Service) *Merchant {
 }
 
 func (h *Merchant) Update(merchant *billing.Merchant) error {
-	if err := h.svc.db.Collection(collectionMerchant).UpdateId(bson.ObjectIdHex(merchant.Id), merchant); err != nil {
+	err := h.svc.db.Collection(collectionMerchant).UpdateId(bson.ObjectIdHex(merchant.Id), merchant)
+	if err != nil {
 		return err
 	}
 
-	if err := h.svc.cacher.Set(fmt.Sprintf(cacheMerchantId, merchant.Id), merchant, 0); err != nil {
+	err = h.svc.cacher.Set(fmt.Sprintf(cacheMerchantId, merchant.Id), merchant, 0)
+	if err != nil {
 		return err
 	}
 
@@ -31,11 +34,13 @@ func (h *Merchant) Update(merchant *billing.Merchant) error {
 }
 
 func (h *Merchant) Insert(merchant *billing.Merchant) error {
-	if err := h.svc.db.Collection(collectionMerchant).Insert(merchant); err != nil {
+	err := h.svc.db.Collection(collectionMerchant).Insert(merchant)
+	if err != nil {
 		return err
 	}
 
-	if err := h.svc.cacher.Set(fmt.Sprintf(cacheMerchantId, merchant.Id), merchant, 0); err != nil {
+	err = h.svc.cacher.Set(fmt.Sprintf(cacheMerchantId, merchant.Id), merchant, 0)
+	if err != nil {
 		return err
 	}
 
@@ -63,11 +68,15 @@ func (h *Merchant) GetById(id string) (*billing.Merchant, error) {
 		return &c, nil
 	}
 
-	if err := h.svc.db.Collection(collectionMerchant).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&c); err != nil {
+	err := h.svc.db.Collection(collectionMerchant).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&c)
+	if err != nil {
 		return nil, fmt.Errorf(errorNotFound, collectionMerchant)
 	}
 
-	_ = h.svc.cacher.Set(key, c, 0)
+	if err := h.svc.cacher.Set(key, c, 0); err != nil {
+		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", key, "data", c)
+	}
+
 	return &c, nil
 }
 

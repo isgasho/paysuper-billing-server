@@ -67,7 +67,7 @@ type Service struct {
 
 	accountingCurrency *billing.Currency
 
-	currency                   *Currency
+	currency                   CurrencyServiceInterface
 	currencyRate               *CurrencyRate
 	commission                 *Commission
 	country                    *Country

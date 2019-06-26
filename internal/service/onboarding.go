@@ -45,7 +45,7 @@ var (
 func (s *Service) GetMerchantBy(
 	ctx context.Context,
 	req *grpc.GetMerchantByRequest,
-	rsp *grpc.MerchantGetMerchantResponse,
+	rsp *grpc.GetMerchantResponse,
 ) error {
 	if req.MerchantId == "" && req.UserId == "" {
 		rsp.Status = pkg.ResponseStatusBadData

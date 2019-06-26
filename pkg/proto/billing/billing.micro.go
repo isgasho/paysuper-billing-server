@@ -80,6 +80,8 @@ It has these top-level messages:
 	PriceGroup
 	ZipCodeState
 	ZipCode
+	CurrencyList
+	GetCurrencyRequest
 	PaymentChannelCostSystem
 	PaymentChannelCostSystemRequest
 	PaymentChannelCostSystemList
@@ -98,6 +100,8 @@ It has these top-level messages:
 	PayoutCostSystem
 	AccountingEntrySource
 	AccountingEntry
+	RoyaltyReportDetails
+	RoyaltyReport
 */
 package billing
 

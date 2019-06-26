@@ -1134,6 +1134,17 @@ message ZipCode {
     google.protobuf.Timestamp created_at = 5;
 }
 
+message CurrencyList {
+    repeated Currency currency = 1;
+}
+
+message GetCurrencyRequest {
+    //@inject_tag: validate:"omitempty,numeric,gt=0"
+    int32 currency_int = 1;
+    //@inject_tag: validate:"omitempty,alpha"
+    string currency_code = 2;
+}
+
 message PaymentChannelCostSystem {
     //@inject_tag: json:"id" bson:"_id" validate:"omitempty,hexadecimal,len=24"
     string id = 1;
@@ -1379,4 +1390,20 @@ message AccountingEntry {
     string status = 9;
     google.protobuf.Timestamp created_at = 10;
     google.protobuf.Timestamp available_on = 11;
+}
+
+message RoyaltyReportDetails {
+    double gross_amount = 1;
+    int64 transactions_count = 2;
+    double fee_amount = 3;
+    double vat_amount = 4;
+}
+
+message RoyaltyReport {
+    string id = 1;
+    google.protobuf.Timestamp created_at = 2;
+    string payout_id = 3;
+    google.protobuf.Timestamp payout_date = 4;
+    string status = 5;
+    double amount = 6;
 }
