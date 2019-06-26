@@ -24,12 +24,14 @@
           "$numberInt": "15000"
         },
         "external_id": "BANKCARD",
-        "test_settings": {
-          "currency": "EUR",
-          "terminal_id": "15985",
-          "secret": "A1tph4I6BD0f",
-          "secret_callback": "0V1rJ7t4jCRv"
-        },
+        "test_settings": [
+          {
+            "currency": "EUR",
+            "terminal_id": "15985",
+            "secret": "A1tph4I6BD0f",
+            "secret_callback": "0V1rJ7t4jCRv"
+          }
+        ],
         "is_active": true,
         "created_at": {
           "$date": {
@@ -74,12 +76,14 @@
           "$numberInt": "15000"
         },
         "external_id": "QIWI",
-        "test_settings": {
-          "currency": "EUR",
-          "terminal_id": "15993",
-          "secret": "voV48QC12Yxi",
-          "secret_callback": "39vtl1AKyHG2"
-        },
+        "test_settings": [
+          {
+            "currency": "EUR",
+            "terminal_id": "15993",
+            "secret": "voV48QC12Yxi",
+            "secret_callback": "39vtl1AKyHG2"
+          }
+        ],
         "is_active": true,
         "created_at": {
           "$date": {
@@ -121,12 +125,14 @@
           "$numberInt": "15000"
         },
         "external_id": "WEBMONEY",
-        "test_settings": {
-          "currency": "EUR",
-          "terminal_id": "15989",
-          "secret": "9gExLa231FJc",
-          "secret_callback": "Tafb6Jr5O8W4"
-        },
+        "test_settings": [
+          {
+            "currency": "EUR",
+            "terminal_id": "15989",
+            "secret": "9gExLa231FJc",
+            "secret_callback": "Tafb6Jr5O8W4"
+          }
+        ],
         "is_active": true,
         "created_at": {
           "$date": {
@@ -171,12 +177,14 @@
           "$numberInt": "15000"
         },
         "external_id": "NETELLER",
-        "test_settings": {
-          "currency": "EUR",
-          "terminal_id": "15997",
-          "secret": "gUl03nf9LSI8",
-          "secret_callback": "A8meZ1w09bKL"
-        },
+        "test_settings": [
+          {
+            "currency": "EUR",
+            "terminal_id": "15997",
+            "secret": "gUl03nf9LSI8",
+            "secret_callback": "A8meZ1w09bKL"
+          }
+        ],
         "is_active": true,
         "created_at": {
           "$date": {
@@ -221,12 +229,14 @@
           "$numberInt": "15000"
         },
         "external_id": "ALIPAY",
-        "test_settings": {
-          "currency": "EUR",
-          "terminal_id": "16001",
-          "secret": "5wpTa194lCXE",
-          "secret_callback": "7A4jBwrJz9C2"
-        },
+        "test_settings": [
+          {
+            "currency": "EUR",
+            "terminal_id": "16001",
+            "secret": "5wpTa194lCXE",
+            "secret_callback": "7A4jBwrJz9C2"
+          }
+        ],
         "is_active": true,
         "created_at": {
           "$date": {
@@ -271,12 +281,14 @@
           "$numberInt": "15000"
         },
         "external_id": "BITCOIN",
-        "test_settings": {
-          "currency": "EUR",
-          "terminal_id": "16007",
-          "secret": "QP86y7gzRVq4",
-          "secret_callback": "2p6iVH08YngW"
-        },
+        "test_settings": [
+          {
+            "currency": "EUR",
+            "terminal_id": "16007",
+            "secret": "QP86y7gzRVq4",
+            "secret_callback": "2p6iVH08YngW"
+          }
+        ],
         "is_active": true,
         "created_at": {
           "$date": {
