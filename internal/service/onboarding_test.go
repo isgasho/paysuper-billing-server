@@ -603,7 +603,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantById_MerchantId_Ok()
 		MerchantId: suite.merchant.Id,
 	}
 
-	rsp := &grpc.MerchantGetMerchantResponse{}
+	rsp := &grpc.GetMerchantResponse{}
 	err := suite.service.GetMerchantBy(context.TODO(), req, rsp)
 
 	assert.Nil(suite.T(), err)
@@ -619,7 +619,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantById_UserId_Ok() {
 		UserId: suite.merchant.User.Id,
 	}
 
-	rsp := &grpc.MerchantGetMerchantResponse{}
+	rsp := &grpc.GetMerchantResponse{}
 	err := suite.service.GetMerchantBy(context.TODO(), req, rsp)
 
 	assert.Nil(suite.T(), err)
@@ -635,7 +635,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantById_Error() {
 		MerchantId: bson.NewObjectId().Hex(),
 	}
 
-	rsp := &grpc.MerchantGetMerchantResponse{}
+	rsp := &grpc.GetMerchantResponse{}
 	err := suite.service.GetMerchantBy(context.TODO(), req, rsp)
 
 	assert.Nil(suite.T(), err)
@@ -646,7 +646,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantById_Error() {
 
 func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantBy_IncorrectRequest_Error() {
 	req := &grpc.GetMerchantByRequest{}
-	rsp := &grpc.MerchantGetMerchantResponse{}
+	rsp := &grpc.GetMerchantResponse{}
 	err := suite.service.GetMerchantBy(context.TODO(), req, rsp)
 
 	assert.Nil(suite.T(), err)

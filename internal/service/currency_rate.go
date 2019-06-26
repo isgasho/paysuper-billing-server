@@ -5,6 +5,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
+	"go.uber.org/zap"
 )
 
 const (
@@ -51,13 +52,18 @@ func (h *CurrencyRate) GetFromTo(from int32, to int32) (*billing.CurrencyRate, e
 		return &c, nil
 	}
 
-	if err := h.svc.db.Collection(collectionCurrencyRate).
+	err := h.svc.db.Collection(collectionCurrencyRate).
 		Find(bson.M{"is_active": true, "currency_from": from, "currency_to": to}).
-		One(&c); err != nil {
+		One(&c)
+	if err != nil {
 		return nil, fmt.Errorf(errorNotFound, collectionCurrencyRate)
 	}
 
-	_ = h.svc.cacher.Set(key, c, 0)
+	err = h.svc.cacher.Set(key, c, 0)
+	if err != nil {
+		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", key, "data", c)
+	}
+
 	return &c, nil
 }
 

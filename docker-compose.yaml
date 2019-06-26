@@ -31,6 +31,13 @@ services:
     volumes:
       - payone-billing-service-redis:/data/redis
 
+  payone-billing-service-redis-cluster:
+    image: grokzen/redis-cluster
+    container_name: payone-billing-service-redis-cluster
+    restart: always
+    networks:
+      - p1devnet
+
 volumes:
   payone-billing-service-redis:
     external: true

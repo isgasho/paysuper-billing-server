@@ -7,6 +7,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"go.uber.org/zap"
 )
 
 const (
@@ -124,13 +125,17 @@ func (h PaymentSystemService) GetById(id string) (*billing.PaymentSystem, error)
 		return &c, nil
 	}
 
-	if err := h.svc.db.Collection(collectionPaymentSystem).
+	err := h.svc.db.Collection(collectionPaymentSystem).
 		Find(bson.M{"_id": bson.ObjectIdHex(id), "is_active": true}).
-		One(&c); err != nil {
+		One(&c)
+	if err != nil {
 		return nil, fmt.Errorf(errorNotFound, collectionPaymentSystem)
 	}
 
-	_ = h.svc.cacher.Set(key, c, 0)
+	if err := h.svc.cacher.Set(key, c, 0); err != nil {
+		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", key, "data", c)
+	}
+
 	return &c, nil
 }
 
@@ -139,7 +144,8 @@ func (h *PaymentSystemService) Insert(ps *billing.PaymentSystem) error {
 		return err
 	}
 
-	if err := h.svc.cacher.Set(fmt.Sprintf(cachePaymentSystem, ps.Id), ps, 0); err != nil {
+	err := h.svc.cacher.Set(fmt.Sprintf(cachePaymentSystem, ps.Id), ps, 0)
+	if err != nil {
 		return err
 	}
 
@@ -160,7 +166,8 @@ func (h PaymentSystemService) MultipleInsert(ps []*billing.PaymentSystem) error 
 }
 
 func (h *PaymentSystemService) Update(ps *billing.PaymentSystem) error {
-	if err := h.svc.db.Collection(collectionPaymentSystem).UpdateId(bson.ObjectIdHex(ps.Id), ps); err != nil {
+	err := h.svc.db.Collection(collectionPaymentSystem).UpdateId(bson.ObjectIdHex(ps.Id), ps)
+	if err != nil {
 		return err
 	}
 

@@ -307,7 +307,9 @@ func (h *PaymentMethod) GetAll() (map[string]*billing.PaymentMethod, error) {
 
 	if err := h.svc.cacher.Get(key, c); err != nil {
 		var data []*billing.PaymentMethod
-		if err = h.svc.db.Collection(collectionPaymentMethod).Find(bson.M{}).All(&data); err != nil {
+
+		err = h.svc.db.Collection(collectionPaymentMethod).Find(bson.M{}).All(&data)
+		if err != nil {
 			return nil, err
 		}
 
@@ -318,7 +320,10 @@ func (h *PaymentMethod) GetAll() (map[string]*billing.PaymentMethod, error) {
 		c.Methods = pool
 	}
 
-	_ = h.svc.cacher.Set(key, c, 0)
+	if err := h.svc.cacher.Set(key, c, 0); err != nil {
+		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", key, "data", c)
+	}
+
 	return c.Methods, nil
 }
 
@@ -351,12 +356,17 @@ func (h *PaymentMethod) GetByGroupAndCurrency(group string, currency int32) (*bi
 		return &c, err
 	}
 
-	err := h.svc.db.Collection(collectionPaymentMethod).Find(bson.M{"group_alias": group, "currencies": currency}).One(&c)
+	err := h.svc.db.Collection(collectionPaymentMethod).
+		Find(bson.M{"group_alias": group, "currencies": currency}).
+		One(&c)
 	if err != nil {
 		return nil, fmt.Errorf(errorNotFound, collectionPaymentMethod)
 	}
 
-	_ = h.svc.cacher.Set(key, c, 0)
+	if err := h.svc.cacher.Set(key, c, 0); err != nil {
+		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", key, "data", c)
+	}
+
 	return &c, nil
 }
 
@@ -368,12 +378,17 @@ func (h *PaymentMethod) GetById(id string) (*billing.PaymentMethod, error) {
 		return &c, nil
 	}
 
-	err := h.svc.db.Collection(collectionPaymentMethod).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&c)
+	err := h.svc.db.Collection(collectionPaymentMethod).
+		Find(bson.M{"_id": bson.ObjectIdHex(id)}).
+		One(&c)
 	if err != nil {
 		return nil, fmt.Errorf(errorNotFound, collectionPaymentMethod)
 	}
 
-	_ = h.svc.cacher.Set(key, c, 0)
+	if err := h.svc.cacher.Set(key, c, 0); err != nil {
+		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", key, "data", c)
+	}
+
 	return &c, nil
 }
 
@@ -411,7 +426,8 @@ func (h *PaymentMethod) Insert(pm *billing.PaymentMethod) error {
 }
 
 func (h *PaymentMethod) Update(pm *billing.PaymentMethod) error {
-	if err := h.svc.db.Collection(collectionPaymentMethod).UpdateId(bson.ObjectIdHex(pm.Id), pm); err != nil {
+	err := h.svc.db.Collection(collectionPaymentMethod).UpdateId(bson.ObjectIdHex(pm.Id), pm)
+	if err != nil {
 		return err
 	}
 
