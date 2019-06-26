@@ -1740,11 +1740,6 @@ func (v *OrderCreateRequestProcessor) processUserData() (err error) {
 func (v *PaymentFormProcessor) processRenderFormPaymentMethods() ([]*billing.PaymentFormPaymentMethod, error) {
 	var projectPms []*billing.PaymentFormPaymentMethod
 
-	project, err := v.service.project.GetById(v.order.Project.Id)
-	if err != nil {
-		return projectPms, orderErrorProjectNotFound
-	}
-
 	pmg, err := v.service.paymentMethod.Groups()
 	if err != nil {
 		return nil, err
