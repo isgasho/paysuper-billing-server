@@ -110,9 +110,9 @@ var (
 	orderErrorCreatePaymentRequiredFieldUserZipNotFound       = newBillingServerErrorMsg("fm000046", "user zip is required")
 	orderErrorOrderAlreadyComplete                            = newBillingServerErrorMsg("fm000047", "order with specified identifier payed early")
 	orderErrorSignatureInvalid                                = newBillingServerErrorMsg("fm000048", "request signature is invalid")
-	orderErrorProductsPrice                                   = newBillingServerErrorMsg("fm000048", "can't get product price")
 	orderErrorValidationFailed                                = newBillingServerErrorMsg("fm000049", "validation failed")
 	orderErrorZipCodeNotFound                                 = newBillingServerErrorMsg("fm000050", "zip_code not found")
+	orderErrorProductsPrice                                   = newBillingServerErrorMsg("fm000051", "can't get product price")
 )
 
 type orderCreateRequestProcessorChecked struct {
