@@ -110,7 +110,6 @@ var (
 	orderErrorCreatePaymentRequiredFieldUserZipNotFound       = newBillingServerErrorMsg("fm000046", "user zip is required")
 	orderErrorOrderAlreadyComplete                            = newBillingServerErrorMsg("fm000047", "order with specified identifier payed early")
 	orderErrorSignatureInvalid                                = newBillingServerErrorMsg("fm000048", "request signature is invalid")
-	orderErrorValidationFailed                                = newBillingServerErrorMsg("fm000049", "validation failed")
 	orderErrorZipCodeNotFound                                 = newBillingServerErrorMsg("fm000050", "zip_code not found")
 	orderErrorProductsPrice                                   = newBillingServerErrorMsg("fm000051", "can't get product price")
 )
@@ -2016,7 +2015,7 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 			}
 
 			if err := validator.Validate(); err != nil {
-				return newBillingServerErrorMsg(orderErrorValidationFailed.Code, orderErrorValidationFailed.Message, err.Error())
+				return err
 			}
 
 			order.PaymentRequisites[pkg.PaymentCreateFieldPan] = tools.MaskBankCardNumber(v.data[pkg.PaymentCreateFieldPan])

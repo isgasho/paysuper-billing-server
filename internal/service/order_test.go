@@ -3640,7 +3640,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_BankCardNumberInva
 	assert.Nil(suite.T(), processor.checked.order)
 	assert.Nil(suite.T(), processor.checked.project)
 	assert.Nil(suite.T(), processor.checked.paymentMethod)
-	assert.Equal(suite.T(), "validation failed", err.Error())
+	assert.Equal(suite.T(), bankCardPanIsInvalid, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_GetBinData_Error() {
@@ -3938,8 +3938,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_ProcessValidation_Er
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
 	assert.Len(suite.T(), rsp.RedirectUrl, 0)
 	assert.True(suite.T(), len(rsp.Message.Message) > 0)
-	assert.Equal(suite.T(), "validation failed", rsp.Message.Message)
-	assert.Equal(suite.T(), bankCardExpireYearIsRequired, rsp.Message.Details)
+	assert.Equal(suite.T(), bankCardExpireYearIsRequired, rsp.Message)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_ChangeTerminalData_Ok() {
