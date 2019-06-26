@@ -1208,6 +1208,17 @@ message ZipCode {
     google.protobuf.Timestamp created_at = 5;
 }
 
+message CurrencyList {
+    repeated Currency currency = 1;
+}
+
+message GetCurrencyRequest {
+    //@inject_tag: validate:"omitempty,numeric,gt=0"
+    int32 currency_int = 1;
+    //@inject_tag: validate:"omitempty,alpha"
+    string currency_code = 2;
+}
+
 message PaymentChannelCostSystem {
     //@inject_tag: json:"id" bson:"_id" validate:"omitempty,hexadecimal,len=24"
     string id = 1;

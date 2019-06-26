@@ -416,6 +416,9 @@ func (h Project) GetById(id string) (*billing.Project, error) {
 		return nil, fmt.Errorf(errorNotFound, collectionProject)
 	}
 
-	_ = h.svc.cacher.Set(key, c, 0)
+	if err := h.svc.cacher.Set(key, c, 0); err != nil {
+		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", key, "data", c)
+	}
+
 	return &c, nil
 }
