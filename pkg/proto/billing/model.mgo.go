@@ -181,9 +181,9 @@ type MgoOrderPaymentMethod struct {
 	Group           string               `bson:"group_alias"`
 	Saved           bool                 `bson:"saved"`
 	Fee             *OrderFee            `bson:"fee"`
-	Card            *PaymentMethodCard   `bson:"card;omitempty"`
-	Wallet          *PaymentMethodWallet `bson:"wallet;omitempty"`
-	CryptoCurrency  *PaymentMethodCrypto `bson:"crypto_currency;omitempty"`
+	Card            *PaymentMethodCard   `bson:"card,omitempty"`
+	Wallet          *PaymentMethodWallet `bson:"wallet,omitempty"`
+	CryptoCurrency  *PaymentMethodCrypto `bson:"crypto_currency,omitempty"`
 }
 
 type MgoOrder struct {
