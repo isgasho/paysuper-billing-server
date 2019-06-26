@@ -46,6 +46,8 @@ type Config struct {
 
 	MicroRegistry string `envconfig:"MICRO_REGISTRY" required:"false"`
 
+	RoyaltyReportPeriod int64 `envconfig:"ROYALTY_REPORT_PERIOD" default:"604800"`
+
 	*PaymentSystemConfig
 	*CustomerTokenConfig
 	*CacheRedis

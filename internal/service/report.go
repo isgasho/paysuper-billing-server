@@ -153,3 +153,8 @@ func (s *Service) GetOrder(
 
 	return nil
 }
+
+func (s *Service) CreateRoyaltyReport() error {
+
+	return nil
+}

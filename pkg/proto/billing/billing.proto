@@ -364,14 +364,23 @@ message OrderUser {
 }
 
 message RoyaltyData {
+    // @inject_tag: bson:"amount_in_royalty_currency"
     double amount_in_royalty_currency = 1;
+    // @inject_tag: bson:"merchant_percent_commission_in_royalty_currency"
     double merchant_percent_commission_in_royalty_currency = 2;
+    // @inject_tag: bson:"merchant_fixed_commission_in_royalty_currency"
     double merchant_fixed_commission_in_royalty_currency = 3;
+    // @inject_tag: bson:"merchant_total_commission_in_royalty_currency"
     double merchant_total_commission_in_royalty_currency = 4;
+    // @inject_tag: bson:"refund_total_amount_in_royalty_currency"
     double refund_total_amount_in_royalty_currency = 5;
+    // @inject_tag: bson:"payment_tax_amount_in_royalty_currency"
     double payment_tax_amount_in_royalty_currency = 6;
+    // @inject_tag: bson:"refund_tax_amount_in_royalty_currency"
     double refund_tax_amount_in_royalty_currency = 7;
+    // @inject_tag: bson:"chargeback_percent_commission_in_royalty_currency"
     double chargeback_percent_commission_in_royalty_currency = 8;
+    // @inject_tag: bson:"chargeback_fixed_commission_in_royalty_currency"
     double chargeback_fixed_commission_in_royalty_currency = 9;
 }
 
