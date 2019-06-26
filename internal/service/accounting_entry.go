@@ -182,7 +182,7 @@ func (s *Service) CreateAccountingEntry(
 	}
 
 	if req.MerchantId != "" && bson.IsObjectIdHex(req.MerchantId) == true {
-		merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.OrderId)})
+		merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusNotFound
@@ -207,16 +207,8 @@ func (s *Service) CreateAccountingEntry(
 		return nil
 	}
 
-	err := fn(handler)
-
-	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
-
-		return nil
-	}
-
-	err = handler.saveAccountingEntries()
+	_ = fn(handler)
+	err := handler.saveAccountingEntries()
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -253,17 +245,13 @@ func (s *Service) onRefundNotify(ctx context.Context, refund *billing.Refund, or
 		ctx:     ctx,
 	}
 
-	return s.processEvent(handler, onRefundAccountingEntries)
-}
+	entries := onRefundAccountingEntries
 
-func (s *Service) onChargebackNotify(ctx context.Context, order *billing.Order) error {
-	handler := &accountingEntry{
-		Service: s,
-		order:   order,
-		ctx:     ctx,
+	if refund.IsChargeback == true {
+		entries = onChargebackAccountingEntries
 	}
 
-	return s.processEvent(handler, onChargebackAccountingEntries)
+	return s.processEvent(handler, entries)
 }
 
 func (s *Service) processEvent(handler *accountingEntry, list []string) error {
@@ -969,7 +957,7 @@ func (h *accountingEntry) refundEntry() error {
 	}
 
 	req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
-		From:       h.refund.Currency.CodeA3,
+		From:       h.refund.Currency,
 		To:         h.order.GetMerchantRoyaltyCurrency(),
 		MerchantId: h.order.GetMerchantId(),
 		RateType:   curPkg.RateTypePaysuper,
@@ -1142,7 +1130,7 @@ func (h *accountingEntry) psMarkupRefundFx() error {
 	}
 
 	req := &currencies.GetRateCurrentForMerchantRequest{
-		From:       h.refund.Currency.CodeA3,
+		From:       h.refund.Currency,
 		To:         h.order.GetMerchantRoyaltyCurrency(),
 		MerchantId: h.order.Project.MerchantId,
 		RateType:   curPkg.RateTypePaysuper,
@@ -1162,7 +1150,7 @@ func (h *accountingEntry) psMarkupRefundFx() error {
 	}
 
 	req1 := &currencies.GetRateCurrentCommonRequest{
-		From:     h.refund.Currency.CodeA3,
+		From:     h.refund.Currency,
 		To:       h.order.GetMerchantRoyaltyCurrency(),
 		RateType: curPkg.RateTypePaysuper,
 	}
@@ -1214,7 +1202,7 @@ func (h *accountingEntry) refundBody() error {
 
 	refundAmount := h.refund.Amount
 
-	if h.refund.Currency.CodeA3 != h.order.GetMerchantRoyaltyCurrency() {
+	if h.refund.Currency != h.order.GetMerchantRoyaltyCurrency() {
 		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
 			From:       h.order.Tax.Currency,
 			To:         h.order.GetMerchantRoyaltyCurrency(),
@@ -1361,7 +1349,7 @@ func (h *accountingEntry) psMarkupReverseTaxFee() error {
 	}
 
 	req := &currencies.GetRateCurrentForMerchantRequest{
-		From:       h.refund.Currency.CodeA3,
+		From:       h.refund.Currency,
 		To:         h.order.GetMerchantRoyaltyCurrency(),
 		MerchantId: h.order.Project.MerchantId,
 		RateType:   curPkg.RateTypePaysuper,
@@ -1381,7 +1369,7 @@ func (h *accountingEntry) psMarkupReverseTaxFee() error {
 	}
 
 	req1 := &currencies.GetRateCurrentCommonRequest{
-		From:     h.refund.Currency.CodeA3,
+		From:     h.refund.Currency,
 		To:       h.order.GetMerchantRoyaltyCurrency(),
 		RateType: curPkg.RateTypePaysuper,
 	}
@@ -1483,8 +1471,8 @@ func (h *accountingEntry) psReverseTaxFeeDelta() error {
 }
 
 func (h *accountingEntry) chargeback() error {
-	if h.order == nil {
-		return accountingEntryErrorOrderNotFound
+	if h.refund == nil {
+		return accountingEntryErrorRefundNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -1492,8 +1480,8 @@ func (h *accountingEntry) chargeback() error {
 		Object: pkg.ObjectTypeBalanceTransaction,
 		Type:   pkg.AccountingEntryTypeChargeback,
 		Source: &billing.AccountingEntrySource{
-			Id:   h.order.Id,
-			Type: collectionOrder,
+			Id:   h.refund.Id,
+			Type: collectionRefund,
 		},
 		MerchantId: h.order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusPending,
@@ -1537,8 +1525,8 @@ func (h *accountingEntry) chargeback() error {
 }
 
 func (h *accountingEntry) psMarkupChargebackFx() error {
-	if h.order == nil {
-		return accountingEntryErrorOrderNotFound
+	if h.refund == nil {
+		return accountingEntryErrorRefundNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -1546,8 +1534,8 @@ func (h *accountingEntry) psMarkupChargebackFx() error {
 		Object: pkg.ObjectTypeBalanceTransaction,
 		Type:   pkg.AccountingEntryTypePsMarkupChargebackFx,
 		Source: &billing.AccountingEntrySource{
-			Id:   h.order.Id,
-			Type: collectionOrder,
+			Id:   h.refund.Id,
+			Type: collectionRefund,
 		},
 		MerchantId: h.order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusPending,
@@ -1608,8 +1596,8 @@ func (h *accountingEntry) psMarkupChargebackFx() error {
 }
 
 func (h *accountingEntry) chargebackFee() error {
-	if h.order == nil {
-		return accountingEntryErrorOrderNotFound
+	if h.refund == nil {
+		return accountingEntryErrorRefundNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -1617,8 +1605,8 @@ func (h *accountingEntry) chargebackFee() error {
 		Object: pkg.ObjectTypeBalanceTransaction,
 		Type:   pkg.AccountingEntryTypeChargebackFee,
 		Source: &billing.AccountingEntrySource{
-			Id:   h.order.Id,
-			Type: collectionOrder,
+			Id:   h.refund.Id,
+			Type: collectionRefund,
 		},
 		MerchantId: h.order.GetMerchantId(),
 		Amount:     h.order.RoyaltyData.ChargebackPercentCommissionInRoyaltyCurrency,
@@ -1657,8 +1645,8 @@ func (h *accountingEntry) chargebackFee() error {
 }
 
 func (h *accountingEntry) psMarkupChargebackFee() error {
-	if h.order == nil {
-		return accountingEntryErrorOrderNotFound
+	if h.refund == nil {
+		return accountingEntryErrorRefundNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -1666,8 +1654,8 @@ func (h *accountingEntry) psMarkupChargebackFee() error {
 		Object: pkg.ObjectTypeBalanceTransaction,
 		Type:   pkg.AccountingEntryTypePsMarkupChargebackFee,
 		Source: &billing.AccountingEntrySource{
-			Id:   h.order.Id,
-			Type: collectionOrder,
+			Id:   h.refund.Id,
+			Type: collectionRefund,
 		},
 		MerchantId: h.order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusPending,
@@ -1702,8 +1690,8 @@ func (h *accountingEntry) psMarkupChargebackFee() error {
 }
 
 func (h *accountingEntry) chargebackFixedFee() error {
-	if h.order == nil {
-		return accountingEntryErrorOrderNotFound
+	if h.refund == nil {
+		return accountingEntryErrorRefundNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -1711,8 +1699,8 @@ func (h *accountingEntry) chargebackFixedFee() error {
 		Object: pkg.ObjectTypeBalanceTransaction,
 		Type:   pkg.AccountingEntryTypeChargebackFixedFee,
 		Source: &billing.AccountingEntrySource{
-			Id:   h.order.Id,
-			Type: collectionOrder,
+			Id:   h.refund.Id,
+			Type: collectionRefund,
 		},
 		MerchantId: h.order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusPending,
@@ -1774,8 +1762,8 @@ func (h *accountingEntry) chargebackFixedFee() error {
 }
 
 func (h *accountingEntry) psMarkupChargebackFixedFee() error {
-	if h.order == nil {
-		return accountingEntryErrorOrderNotFound
+	if h.refund == nil {
+		return accountingEntryErrorRefundNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -1783,8 +1771,8 @@ func (h *accountingEntry) psMarkupChargebackFixedFee() error {
 		Object: pkg.ObjectTypeBalanceTransaction,
 		Type:   pkg.AccountingEntryTypePsMarkupChargebackFixedFee,
 		Source: &billing.AccountingEntrySource{
-			Id:   h.order.Id,
-			Type: collectionOrder,
+			Id:   h.refund.Id,
+			Type: collectionRefund,
 		},
 		MerchantId: h.order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusPending,
@@ -1843,8 +1831,8 @@ func (h *accountingEntry) refundFailure() error {
 }
 
 func (h *accountingEntry) chargebackFailure() error {
-	if h.order == nil {
-		return accountingEntryErrorOrderNotFound
+	if h.refund == nil {
+		return accountingEntryErrorRefundNotFound
 	}
 
 	entry := &billing.AccountingEntry{
@@ -1852,8 +1840,8 @@ func (h *accountingEntry) chargebackFailure() error {
 		Object: pkg.ObjectTypeBalanceTransaction,
 		Type:   pkg.AccountingEntryTypeChargebackFailure,
 		Source: &billing.AccountingEntrySource{
-			Id:   h.order.Id,
-			Type: collectionOrder,
+			Id:   h.refund.Id,
+			Type: collectionRefund,
 		},
 		MerchantId: h.order.GetMerchantId(),
 	}
@@ -1933,12 +1921,8 @@ func (h *accountingEntry) getMoneyBackCostMerchant(reason string) (*billing.Mone
 		return nil, err
 	}
 
-	paymentAt, err := ptypes.Timestamp(h.order.PaymentMethodOrderClosedAt)
-	refundAt, err := ptypes.Timestamp(h.refund.CreatedAt)
-
-	if err != nil {
-		return nil, err
-	}
+	paymentAt, _ := ptypes.Timestamp(h.order.PaymentMethodOrderClosedAt)
+	refundAt, _ := ptypes.Timestamp(h.refund.CreatedAt)
 
 	data := &billing.MoneyBackCostMerchantRequest{
 		MerchantId:     h.order.GetMerchantId(),
@@ -1967,12 +1951,8 @@ func (h *accountingEntry) getMoneyBackCostSystem(reason string) (*billing.MoneyB
 		return nil, err
 	}
 
-	paymentAt, err := ptypes.Timestamp(h.order.PaymentMethodOrderClosedAt)
-	refundAt, err := ptypes.Timestamp(h.refund.CreatedAt)
-
-	if err != nil {
-		return nil, err
-	}
+	paymentAt, _ := ptypes.Timestamp(h.order.PaymentMethodOrderClosedAt)
+	refundAt, _ := ptypes.Timestamp(h.refund.CreatedAt)
 
 	data := &billing.MoneyBackCostSystemRequest{
 		Name:           name,

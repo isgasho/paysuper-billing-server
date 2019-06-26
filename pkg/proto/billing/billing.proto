@@ -876,12 +876,13 @@ message Refund {
     double amount = 4;
     string creatorId = 5;
     string reason = 6;
-    Currency currency = 7;
+    string currency = 7;
     int32 status = 8;
     google.protobuf.Timestamp created_at = 9;
     google.protobuf.Timestamp updated_at = 10;
     RefundPayerData payer_data = 11;
     float sales_tax = 12;
+    bool is_chargeback = 13;
 }
 
 message MerchantPaymentMethodHistory {

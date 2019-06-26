@@ -265,13 +265,18 @@ func (s *Service) ProcessRefundCallback(
 		processor := &createRefundProcessor{service: s}
 		refundedAmount, _ := processor.getRefundedAmount(order)
 
-		if refundedAmount == order.PaymentMethodIncomeAmount {
-			order.PrivateStatus = constant.OrderStatusRefund
+		if refundedAmount == order.TotalPaymentAmount {
+			if refund.IsChargeback == true {
+				order.PrivateStatus = constant.OrderStatusChargeback
+			} else {
+				order.PrivateStatus = constant.OrderStatusRefund
+			}
+
 			order.UpdatedAt = ptypes.TimestampNow()
 			order.RefundedAt = ptypes.TimestampNow()
 			order.Refund = &billing.OrderNotificationRefund{
 				Amount:        refundedAmount,
-				Currency:      order.PaymentMethodIncomeCurrency.CodeA3,
+				Currency:      order.Currency,
 				Reason:        refund.Reason,
 				ReceiptNumber: refund.Id,
 			}
@@ -313,7 +318,7 @@ func (p *createRefundProcessor) processCreateRefund() (*billing.Refund, error) {
 		Amount:    p.request.Amount,
 		CreatorId: p.request.CreatorId,
 		Reason:    fmt.Sprintf(refundDefaultReasonMask, p.checked.order.Id),
-		Currency:  p.checked.order.PaymentMethodIncomeCurrency,
+		Currency:  p.checked.order.Currency,
 		Status:    pkg.RefundStatusCreated,
 		CreatedAt: ptypes.TimestampNow(),
 		UpdatedAt: ptypes.TimestampNow(),
@@ -322,6 +327,12 @@ func (p *createRefundProcessor) processCreateRefund() (*billing.Refund, error) {
 			Zip:     order.User.Address.PostalCode,
 			State:   order.User.Address.State,
 		},
+		IsChargeback: p.request.IsChargeback,
+	}
+
+	if refund.IsChargeback == true {
+		refund.Amount = p.checked.order.TotalPaymentAmount
+		refund.IsChargeback = p.request.IsChargeback
 	}
 
 	if order.Tax != nil {
@@ -369,7 +380,7 @@ func (p *createRefundProcessor) processRefundsByOrder() error {
 		return newBillingServerResponseError(pkg.ResponseStatusBadData, refundErrorUnknown)
 	}
 
-	if p.checked.order.PaymentMethodIncomeAmount < (refundedAmount + p.request.Amount) {
+	if p.checked.order.TotalPaymentAmount < (refundedAmount + p.request.Amount) {
 		return newBillingServerResponseError(pkg.ResponseStatusBadData, refundErrorPaymentAmountLess)
 	}
 

@@ -354,6 +354,7 @@ message CreateRefundRequest {
     double amount = 2;
     string creator_id = 3;
     string reason = 4;
+    bool is_chargeback = 5;
 }
 
 message CreateRefundResponse {

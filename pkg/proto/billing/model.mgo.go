@@ -328,17 +328,18 @@ type MgoRefundOrder struct {
 }
 
 type MgoRefund struct {
-	Id         bson.ObjectId    `bson:"_id"`
-	Order      *MgoRefundOrder  `bson:"order"`
-	ExternalId string           `bson:"external_id"`
-	Amount     float64          `bson:"amount"`
-	CreatorId  bson.ObjectId    `bson:"creator_id"`
-	Currency   *Currency        `bson:"currency"`
-	Status     int32            `bson:"status"`
-	CreatedAt  time.Time        `bson:"created_at"`
-	UpdatedAt  time.Time        `bson:"updated_at"`
-	PayerData  *RefundPayerData `bson:"payer_data"`
-	SalesTax   float32          `bson:"sales_tax"`
+	Id           bson.ObjectId    `bson:"_id"`
+	Order        *MgoRefundOrder  `bson:"order"`
+	ExternalId   string           `bson:"external_id"`
+	Amount       float64          `bson:"amount"`
+	CreatorId    bson.ObjectId    `bson:"creator_id"`
+	Currency     string           `bson:"currency"`
+	Status       int32            `bson:"status"`
+	CreatedAt    time.Time        `bson:"created_at"`
+	UpdatedAt    time.Time        `bson:"updated_at"`
+	PayerData    *RefundPayerData `bson:"payer_data"`
+	SalesTax     float32          `bson:"sales_tax"`
+	IsChargeback bool             `bson:"is_chargeback"`
 }
 
 type MgoMerchantPaymentMethodHistory struct {
@@ -1920,13 +1921,14 @@ func (m *Refund) GetBSON() (interface{}, error) {
 			Id:   bson.ObjectIdHex(m.Order.Id),
 			Uuid: m.Order.Uuid,
 		},
-		ExternalId: m.ExternalId,
-		Amount:     m.Amount,
-		CreatorId:  bson.ObjectIdHex(m.CreatorId),
-		Currency:   m.Currency,
-		Status:     m.Status,
-		PayerData:  m.PayerData,
-		SalesTax:   m.SalesTax,
+		ExternalId:   m.ExternalId,
+		Amount:       m.Amount,
+		CreatorId:    bson.ObjectIdHex(m.CreatorId),
+		Currency:     m.Currency,
+		Status:       m.Status,
+		PayerData:    m.PayerData,
+		SalesTax:     m.SalesTax,
+		IsChargeback: m.IsChargeback,
 	}
 
 	if len(m.Id) <= 0 {
@@ -1986,6 +1988,7 @@ func (m *Refund) SetBSON(raw bson.Raw) error {
 	m.Status = decoded.Status
 	m.PayerData = decoded.PayerData
 	m.SalesTax = decoded.SalesTax
+	m.IsChargeback = decoded.IsChargeback
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 

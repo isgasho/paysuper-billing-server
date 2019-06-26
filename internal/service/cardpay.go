@@ -838,7 +838,7 @@ func (h *cardPay) CreateRefund(refund *billing.Refund) error {
 		},
 		RefundData: &CardPayRefundData{
 			Amount:   refund.Amount,
-			Currency: refund.Currency.CodeA3,
+			Currency: refund.Currency,
 		},
 	}
 
@@ -955,7 +955,7 @@ func (h *cardPay) ProcessRefund(refund *billing.Refund, message proto.Message, r
 		return newBillingServerResponseError(pkg.ResponseStatusBadData, paymentSystemErrorRequestPaymentMethodIsInvalid)
 	}
 
-	if req.RefundData.Amount != refund.Amount || req.RefundData.Currency != refund.Currency.CodeA3 {
+	if req.RefundData.Amount != refund.Amount || req.RefundData.Currency != refund.Currency {
 		return newBillingServerResponseError(pkg.ResponseStatusBadData, paymentSystemErrorRefundRequestAmountOrCurrencyIsInvalid)
 	}
 

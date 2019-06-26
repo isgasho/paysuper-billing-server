@@ -29,7 +29,7 @@ func (m *Refund) MarshalJSON() ([]byte, error) {
 			Amount:     m.Amount,
 			CreatorId:  m.CreatorId,
 			Reason:     m.Reason,
-			Currency:   m.Currency.CodeA3,
+			Currency:   m.Currency,
 			Status:     m.Status,
 			CreatedAt:  m.CreatedAt,
 			UpdatedAt:  m.UpdatedAt,

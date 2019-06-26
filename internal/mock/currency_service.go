@@ -13,6 +13,10 @@ const (
 	SomeError = "some error"
 )
 
+var (
+	MerchantIdMock = bson.NewObjectId().Hex()
+)
+
 type CurrencyServiceMockOk struct{}
 type CurrencyServiceMockError struct{}
 
@@ -89,7 +93,7 @@ func (s *CurrencyServiceMockOk) ExchangeCurrencyCurrentForMerchant(
 	opts ...client.CallOption,
 ) (*currencies.ExchangeCurrencyResponse, error) {
 	return &currencies.ExchangeCurrencyResponse{
-		ExchangedAmount: 10,
+		ExchangedAmount: 77,
 		ExchangeRate:    0.25,
 		Correction:      2,
 		OriginalRate:    0.5,
@@ -213,6 +217,10 @@ func (s *CurrencyServiceMockError) GetRateCurrentForMerchant(
 	in *currencies.GetRateCurrentForMerchantRequest,
 	opts ...client.CallOption,
 ) (*currencies.RateData, error) {
+	if in.MerchantId == MerchantIdMock {
+		return &currencies.RateData{Rate: 10}, nil
+	}
+
 	return nil, errors.New(SomeError)
 }
 
