@@ -38,6 +38,11 @@ backend:
     - CACHE_REDIS_POOL_SIZE
     - CACHE_REDIS_MAX_RETRIES
     - CACHE_REDIS_MAX_REDIRECTS
+    - SMTP_HOST
+    - SMTP_PORT
+    - SMTP_USER
+    - SMTP_PASSWORD
+    - EMAIL_NOTIFICATION_SENDER
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious

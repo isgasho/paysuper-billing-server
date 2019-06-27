@@ -21,6 +21,7 @@ import (
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"github.com/paysuper/paysuper-tax-service/proto"
 	"go.uber.org/zap"
+	"gopkg.in/gomail.v2"
 	"strings"
 	"sync"
 )
@@ -64,6 +65,7 @@ type Service struct {
 	redis            *redis.Client
 	cacher           CacheInterface
 	curService       currencies.CurrencyratesService
+	smtpCl           gomail.SendCloser
 
 	accountingCurrency *billing.Currency
 
@@ -111,6 +113,7 @@ func NewBillingService(
 	redis *redis.Client,
 	cache CacheInterface,
 	curService currencies.CurrencyratesService,
+	smtpCl gomail.SendCloser,
 ) *Service {
 	return &Service{
 		db:         db,
@@ -122,6 +125,7 @@ func NewBillingService(
 		redis:      redis,
 		cacher:     cache,
 		curService: curService,
+		smtpCl:     smtpCl,
 	}
 }
 

@@ -191,6 +191,21 @@ const (
 	PaymentCreateBankCardFieldCategory      = "card_category"
 	PaymentCreateBankCardFieldIssuerName    = "bank_issuer_name"
 	PaymentCreateBankCardFieldIssuerCountry = "bank_issuer_country"
+
+	RoyaltyReportStatusNew               = "new"
+	RoyaltyReportStatusPending           = "pending"
+	RoyaltyReportStatusSkipped           = "skipped"
+	RoyaltyReportStatusAccepted          = "accepted"
+	RoyaltyReportStatusCanceled          = "canceled"
+	RoyaltyReportStatusDispute           = "dispute"
+	RoyaltyReportStatusReadyForInvoice   = "ready_for_invoice"
+	RoyaltyReportStatusPaymentInProgress = "payment_in_progress"
+	RoyaltyReportStatusPaymentDone       = "payment_done"
+	RoyaltyReportStatusPaymentError      = "payment_error"
+
+	EmailRoyaltyReportSubject = "New royalty report"
+	EmailRoyaltyReportMessage = "<h1>New royalty report wait for merchant owner approve</h1>"
+	EmailContentType          = "text/html"
 )
 
 var (

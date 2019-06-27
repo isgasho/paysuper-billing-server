@@ -27,6 +27,11 @@ This service contain all business logic for payment processing
 | CUSTOMER_COOKIE_PRIVATE_KEY          | true     | -                     | Base64 encoded RSA private key - used for decrypt customer browser cookies content. Minimal length of RSA private key must be 4096  |
 | REDIS_HOST                           | -        | 127.0.0.1:6379        | Redis server host                                                                                                                   |
 | REDIS_PASSWORD                       | -        | ""                    | Password to access to Redis server                                                                                                  |
+| SMTP_HOST                            | true     | -                     | SMTP server address                                                                                                                 |
+| SMTP_PORT                            | true     | -                     | SMTP server port                                                                                                                    |
+| SMTP_USER                            | true     | -                     | User account to authorize on SMTP server                                                                                            |
+| SMTP_PASSWORD                        | true     | -                     | Password to authorize user on SMTP server                                                                                           |
+| CENTRIFUGO_MERCHANT_CHANNEL          | -        | paysuper:merchant#%s  | Centrifugo channel name to send notifications to merchant                                                                           |
 
 ## Docker Deployment
 

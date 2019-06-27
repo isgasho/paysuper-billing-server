@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"crypto/tls"
 	"github.com/InVisionApp/go-health"
 	"github.com/InVisionApp/go-health/handlers"
 	"github.com/ProtocolONE/geoip-service/pkg"
@@ -28,6 +29,7 @@ import (
 	"github.com/paysuper/paysuper-tax-service/proto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
+	"gopkg.in/gomail.v2"
 	"log"
 	"net/http"
 	"time"
@@ -135,6 +137,25 @@ func (app *Application) Init() {
 		PoolSize:     cfg.CacheRedis.PoolSize,
 	})
 
+	d := gomail.NewDialer(app.cfg.SmtpHost, app.cfg.SmtpPort, app.cfg.SmtpUser, app.cfg.SmtpPassword)
+	d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+	smtpCl, err := d.Dial()
+
+	if err != nil {
+		zap.L().Fatal(
+			"Connection to SMTP server failed",
+			zap.Error(err),
+			zap.Int("port", app.cfg.SmtpPort),
+			zap.String("user", app.cfg.SmtpUser),
+		)
+	}
+
+	zap.L().Info(
+		"SMTP server connection started",
+		zap.String("host", app.cfg.SmtpHost),
+		zap.Int("port", app.cfg.SmtpPort),
+	)
+
 	app.svc = service.NewBillingService(
 		app.database,
 		app.cfg,
@@ -145,6 +166,7 @@ func (app *Application) Init() {
 		app.redis,
 		service.NewCacheRedis(redisdb),
 		curService,
+		smtpCl,
 	)
 
 	if err := app.svc.Init(); err != nil {

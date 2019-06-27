@@ -468,7 +468,7 @@ func (h *accountingEntry) methodFee() error {
 		return accountingEntryErrorCommissionNotFound
 	}
 
-	h.order.RoyaltyData.MerchantPercentCommissionInRoyaltyCurrency = h.order.RoyaltyData.AmountInRoyaltyCurrency * commission.Fee
+	h.order.RoyaltyData.MerchantPercentCommissionInRoyaltyCurrency = h.order.RoyaltyData.AmountInRoyaltyCurrency * (commission.Fee / 100)
 	h.order.RoyaltyData.MerchantTotalCommissionInRoyaltyCurrency = h.order.RoyaltyData.MerchantPercentCommissionInRoyaltyCurrency
 
 	entry.Amount = h.order.RoyaltyData.MerchantPercentCommissionInRoyaltyCurrency

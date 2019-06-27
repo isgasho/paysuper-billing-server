@@ -16,6 +16,7 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.3.1
 	github.com/golang/protobuf v1.3.1
 	github.com/google/uuid v1.1.1
+	github.com/jinzhu/now v1.0.1
 	github.com/kelseyhightower/envconfig v1.3.0
 	github.com/micro/go-micro v1.0.0
 	github.com/micro/go-plugins v1.0.0
@@ -38,5 +39,6 @@ require (
 	golang.org/x/net v0.0.0-20190424112056-4829fb13d2c6
 	google.golang.org/grpc v1.20.1
 	gopkg.in/go-playground/validator.v9 v9.26.0
+	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce
 )

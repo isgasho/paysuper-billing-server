@@ -99,6 +99,7 @@ service BillingService {
     rpc SetMoneyBackCostMerchant(billing.MoneyBackCostMerchant) returns (billing.MoneyBackCostMerchant) {}
     rpc DeleteMoneyBackCostMerchant(billing.PaymentCostDeleteRequest) returns (EmptyResponse) {}
     rpc CreateAccountingEntry(CreateAccountingEntryRequest) returns (CreateAccountingEntryResponse) {}
+    rpc CreateRoyaltyReport(CreateRoyaltyReportRequest) returns (CreateRoyaltyReportRequest) {}
 }
 
 message EmptyRequest {}
@@ -849,4 +850,8 @@ message CreateAccountingEntryResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     billing.AccountingEntry item = 3;
+}
+
+message CreateRoyaltyReportRequest {
+    repeated string merchants = 1;
 }

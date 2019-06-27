@@ -190,3 +190,11 @@ func (m *PaymentMethod) IsValid() bool {
 		m.TestSettings != nil &&
 		m.ProductionSettings != nil
 }
+
+func (m *Merchant) HasAuthorizedEmail() bool {
+	return m.Contacts != nil && m.Contacts.Authorized != nil && m.Contacts.Authorized.Email != ""
+}
+
+func (m *Merchant) GetAuthorizedEmail() string {
+	return m.Contacts.Authorized.Email
+}

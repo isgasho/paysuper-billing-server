@@ -1402,17 +1402,32 @@ message AccountingEntry {
 }
 
 message RoyaltyReportDetails {
+    //@inject_tag: bson:"gross_amount"
     double gross_amount = 1;
+    //@inject_tag: bson:"transactions_count"
     int64 transactions_count = 2;
+    //@inject_tag: bson:"fee_amount"
     double fee_amount = 3;
+    //@inject_tag: bson:"vat_amount"
     double vat_amount = 4;
+    //@inject_tag: bson:"payout_amount"
+    double payout_amount = 5;
+    //@inject_tag: bson:"currency"
+    string currency = 6;
 }
 
 message RoyaltyReport {
     string id = 1;
-    google.protobuf.Timestamp created_at = 2;
-    string payout_id = 3;
-    google.protobuf.Timestamp payout_date = 4;
-    string status = 5;
-    double amount = 6;
+    string merchant_id = 2;
+    google.protobuf.Timestamp created_at = 3;
+    google.protobuf.Timestamp updated_at = 4;
+    string payout_id = 5;
+    google.protobuf.Timestamp payout_date = 6;
+    string status = 7;
+    bool deleted = 8;
+    google.protobuf.Timestamp period_from = 9;
+    google.protobuf.Timestamp period_to = 10;
+    google.protobuf.Timestamp accept_expire_at = 11;
+    google.protobuf.Timestamp accepted_at = 12;
+    RoyaltyReportDetails amounts = 13;
 }

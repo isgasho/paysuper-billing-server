@@ -93,7 +93,7 @@ func (s *CurrencyServiceMockOk) ExchangeCurrencyCurrentForMerchant(
 	opts ...client.CallOption,
 ) (*currencies.ExchangeCurrencyResponse, error) {
 	return &currencies.ExchangeCurrencyResponse{
-		ExchangedAmount: 77,
+		ExchangedAmount: 30,
 		ExchangeRate:    0.25,
 		Correction:      2,
 		OriginalRate:    0.5,

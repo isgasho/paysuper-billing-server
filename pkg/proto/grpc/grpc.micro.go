@@ -92,6 +92,7 @@ It has these top-level messages:
 	ResponseErrorMessage
 	CreateAccountingEntryRequest
 	CreateAccountingEntryResponse
+	CreateRoyaltyReportRequest
 */
 package grpc
 
@@ -199,6 +200,7 @@ type BillingService interface {
 	SetMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchant, opts ...client.CallOption) (*billing.MoneyBackCostMerchant, error)
 	DeleteMoneyBackCostMerchant(ctx context.Context, in *billing.PaymentCostDeleteRequest, opts ...client.CallOption) (*EmptyResponse, error)
 	CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, opts ...client.CallOption) (*CreateAccountingEntryResponse, error)
+	CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, opts ...client.CallOption) (*CreateRoyaltyReportRequest, error)
 }
 
 type billingService struct {
@@ -939,6 +941,16 @@ func (c *billingService) CreateAccountingEntry(ctx context.Context, in *CreateAc
 	return out, nil
 }
 
+func (c *billingService) CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, opts ...client.CallOption) (*CreateRoyaltyReportRequest, error) {
+	req := c.c.NewRequest(c.name, "BillingService.CreateRoyaltyReport", in)
+	out := new(CreateRoyaltyReportRequest)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for BillingService service
 
 type BillingServiceHandler interface {
@@ -1014,6 +1026,7 @@ type BillingServiceHandler interface {
 	SetMoneyBackCostMerchant(context.Context, *billing.MoneyBackCostMerchant, *billing.MoneyBackCostMerchant) error
 	DeleteMoneyBackCostMerchant(context.Context, *billing.PaymentCostDeleteRequest, *EmptyResponse) error
 	CreateAccountingEntry(context.Context, *CreateAccountingEntryRequest, *CreateAccountingEntryResponse) error
+	CreateRoyaltyReport(context.Context, *CreateRoyaltyReportRequest, *CreateRoyaltyReportRequest) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -1090,6 +1103,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		SetMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchant, out *billing.MoneyBackCostMerchant) error
 		DeleteMoneyBackCostMerchant(ctx context.Context, in *billing.PaymentCostDeleteRequest, out *EmptyResponse) error
 		CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, out *CreateAccountingEntryResponse) error
+		CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, out *CreateRoyaltyReportRequest) error
 	}
 	type BillingService struct {
 		billingService
@@ -1388,4 +1402,8 @@ func (h *billingServiceHandler) DeleteMoneyBackCostMerchant(ctx context.Context,
 
 func (h *billingServiceHandler) CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, out *CreateAccountingEntryResponse) error {
 	return h.BillingServiceHandler.CreateAccountingEntry(ctx, in, out)
+}
+
+func (h *billingServiceHandler) CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, out *CreateRoyaltyReportRequest) error {
+	return h.BillingServiceHandler.CreateRoyaltyReport(ctx, in, out)
 }
