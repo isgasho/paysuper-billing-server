@@ -13,6 +13,13 @@
           "billing_address.country": 1
         },
         "name": "country"
+      },
+      {
+        "key": {
+          "order_id": 1,
+          "transaction_type": 1
+        },
+        "name": "order_id_transaction_type"
       }
     ]
   },

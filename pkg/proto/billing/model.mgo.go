@@ -591,6 +591,7 @@ type MgoRoyaltyReportOrder struct {
 
 type MgoVatTransaction struct {
 	Id                         bson.ObjectId        `bson:"_id"`
+	OrderId                    bson.ObjectId        `bson:"order_id"`
 	TransactionId              string               `bson:"transaction_id"`
 	TransactionType            string               `bson:"transaction_type"`
 	TransactionAmount          float64              `bson:"transaction_amount"`
@@ -606,13 +607,14 @@ type MgoVatTransaction struct {
 	BillingAddress             *OrderBillingAddress `bson:"billing_address"`
 	UserId                     bson.ObjectId        `bson:"user_id"`
 	PaymentMethod              string               `bson:"payment_method"`
+	IsSettled                  bool                 `bson:"is_settled"`
 	DateTime                   time.Time            `bson:"date_time"`
 	InitialTransactionDateTime time.Time            `bson:"initial_transaction_date_time"`
 }
 
 type MgoVatReport struct {
 	Id                bson.ObjectId `bson:"_id"`
-	CountryIsoCodeA2  string        `bson:"country_iso_code_a2"`
+	Country           string        `bson:"country"`
 	VatRate           float64       `bson:"vat_rate"`
 	Currency          string        `bson:"currency"`
 	TransactionsCount int32         `bson:"transactions_count"`
@@ -2873,6 +2875,7 @@ func (m *VatTransaction) GetBSON() (interface{}, error) {
 		BillingAddressCriteria: m.BillingAddressCriteria,
 		BillingAddress:         m.BillingAddress,
 		PaymentMethod:          m.PaymentMethod,
+		IsSettled:              m.IsSettled,
 	}
 
 	if len(m.Id) <= 0 {
@@ -2882,6 +2885,15 @@ func (m *VatTransaction) GetBSON() (interface{}, error) {
 			return nil, errors.New(errorInvalidObjectId)
 		}
 		st.Id = bson.ObjectIdHex(m.Id)
+	}
+
+	if len(m.OrderId) <= 0 {
+		return nil, errors.New(errorInvalidObjectId)
+	} else {
+		if bson.IsObjectIdHex(m.OrderId) == false {
+			return nil, errors.New(errorInvalidObjectId)
+		}
+		st.Id = bson.ObjectIdHex(m.OrderId)
 	}
 
 	if len(m.UserId) <= 0 {
@@ -2916,6 +2928,7 @@ func (m *VatTransaction) SetBSON(raw bson.Raw) error {
 		return err
 	}
 	m.Id = decoded.Id.Hex()
+	m.OrderId = decoded.OrderId.Hex()
 	m.TransactionId = decoded.TransactionId
 	m.TransactionType = decoded.TransactionType
 	m.TransactionAmount = decoded.TransactionAmount
@@ -2931,6 +2944,7 @@ func (m *VatTransaction) SetBSON(raw bson.Raw) error {
 	m.BillingAddress = decoded.BillingAddress
 	m.UserId = decoded.UserId.Hex()
 	m.PaymentMethod = decoded.PaymentMethod
+	m.IsSettled = decoded.IsSettled
 
 	m.DateTime, err = ptypes.TimestampProto(decoded.DateTime)
 	if err != nil {
@@ -2947,7 +2961,7 @@ func (m *VatTransaction) SetBSON(raw bson.Raw) error {
 
 func (m *VatReport) GetBSON() (interface{}, error) {
 	st := &MgoVatReport{
-		CountryIsoCodeA2:  m.CountryIsoCodeA2,
+		Country:           m.Country,
 		VatRate:           m.VatRate,
 		Currency:          m.Currency,
 		TransactionsCount: m.TransactionsCount,
@@ -2997,7 +3011,7 @@ func (m *VatReport) SetBSON(raw bson.Raw) error {
 		return err
 	}
 	m.Id = decoded.Id.Hex()
-	m.CountryIsoCodeA2 = decoded.CountryIsoCodeA2
+	m.Country = decoded.Country
 	m.VatRate = decoded.VatRate
 	m.Currency = decoded.Currency
 	m.TransactionsCount = decoded.TransactionsCount

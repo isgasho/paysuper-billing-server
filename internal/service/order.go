@@ -743,10 +743,14 @@ func (s *Service) PaymentCallbackProcess(
 			s.saveRecurringCard(order, h.GetRecurringId(data))
 		}
 
-		err = s.broker.Publish(constant.PayOneTopicNotifyPaymentName, order, amqp.Table{"x-retry-count": int32(0)})
+		if order.PrivateStatus == constant.OrderStatusPaymentSystemComplete {
+			err := s.createVatTransaction(order)
+			if err != nil {
+				rsp.Error = err.Error()
+				rsp.Status = pkg.StatusErrorSystem
 
-		if err != nil {
-			zap.S().Errorf("Publish notify message to queue failed", "err", err.Error(), "order", order)
+				return nil
+			}
 		}
 
 		rsp.Status = pkg.StatusOK

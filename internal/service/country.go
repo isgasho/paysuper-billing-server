@@ -12,10 +12,11 @@ import (
 )
 
 const (
-	cacheCountryCodeA2           = "country:code_a2:%s"
-	cacheCountryAll              = "country:all"
-	cacheCountryRegions          = "country:regions"
-	cacheCountriesWithVatEnabled = "country:with_vat"
+	cacheCountryCodeA2              = "country:code_a2:%s"
+	cacheCountryAll                 = "country:all"
+	cacheCountryRegions             = "country:regions"
+	cacheCountriesWithVatEnabled    = "country:with_vat"
+	cacheCountriesWithVatEnabledKey = "country:with_vat_key"
 
 	collectionCountry = "country"
 )
@@ -27,6 +28,10 @@ var (
 
 type countryRegions struct {
 	Regions map[string]bool
+}
+
+type countryWithVat struct {
+	Countries map[string]bool
 }
 
 func (s *Service) GetCountriesList(
@@ -275,7 +280,7 @@ func (h Country) GetCountriesWithVatEnabled() (*billing.CountriesList, error) {
 	}
 
 	if err := h.svc.db.Collection(collectionCountry).
-		Find(bson.M{"vat_enabled": true}).
+		Find(bson.M{"vat_enabled": true, "iso_code_a2": bson.M{"$ne": "US"}}).
 		Sort("iso_code_a2").
 		All(&c.Countries); err != nil {
 		return nil, fmt.Errorf(errorNotFound, collectionCountry)
@@ -314,7 +319,7 @@ func (h Country) IsRegionExists(region string) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		c.Regions = make(map[string]bool)
+		c.Regions = make(map[string]bool, len(countries.Countries))
 		for _, country := range countries.Countries {
 			c.Regions[country.Region] = true
 		}
@@ -322,5 +327,24 @@ func (h Country) IsRegionExists(region string) (bool, error) {
 	}
 
 	_, ok := c.Regions[region]
+	return ok, nil
+}
+
+func (h Country) IsCountryVatEnabled(iso_code_a2 string) (bool, error) {
+	var c = &countryWithVat{}
+	key := cacheCountriesWithVatEnabledKey
+	if err := h.svc.cacher.Get(key, c); err != nil {
+		countries, err := h.GetCountriesWithVatEnabled()
+		if err != nil {
+			return false, err
+		}
+		c.Countries = make(map[string]bool, len(countries.Countries))
+		for _, country := range countries.Countries {
+			c.Countries[country.IsoCodeA2] = true
+		}
+		_ = h.svc.cacher.Set(key, c, 0)
+	}
+
+	_, ok := c.Countries[iso_code_a2]
 	return ok, nil
 }

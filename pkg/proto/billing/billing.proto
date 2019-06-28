@@ -1490,27 +1490,29 @@ message RoyaltyReportOrder {
 message VatTransaction {
     //@inject_tag: json:"id" bson:"_id" validate:"omitempty,hexadecimal,len=24"
     string id = 1;
+    //@inject_tag: json:"order_id" bson:"order_id" validate:"required,hexadecimal,len=24"
+    string order_id = 2;
     //@inject_tag: json:"transaction_id" bson:"transaction_id" validate:"required"
-    string transaction_id = 2;
+    string transaction_id = 3;
     //@inject_tag: json:"transaction_type" bson:"transaction_type" validate:"required,oneof=payment refund chargeback"
-    string transaction_type = 3;
+    string transaction_type = 4;
     // @inject_tag: json:"transaction_amount" bson:"transaction_amount" validate:"numeric,gte=0"
-    double transaction_amount = 4;
+    double transaction_amount = 5;
     //@inject_tag: json:"transaction_currency" bson:"transaction_currency" validate:"required,alpha,len=3"
-    string transaction_currency = 5;
+    string transaction_currency = 6;
     // @inject_tag: json:"vat_amount" bson:"vat_amount" validate:"numeric,gte=0"
-    double vat_amount = 6;
+    double vat_amount = 7;
     //@inject_tag: json:"vat_currency" bson:"vat_currency" validate:"required,alpha,len=3"
-    string vat_currency = 7;
+    string vat_currency = 8;
     // @inject_tag: json:"fees_amount" bson:"fees_amount" validate:"numeric,gte=0"
     double fees_amount = 9;
     //@inject_tag: json:"fees_currency" bson:"fees_currency" validate:"required,alpha,len=3"
     string fees_currency = 10;
-    // @inject_tag: json:"local_transaction_amount" bson:"local_transaction_amount" validate:"numeric,gte=0"
+    // @inject_tag: json:"local_transaction_amount" bson:"local_transaction_amount" validate:"omitempty,numeric,gte=0"
     double local_transaction_amount = 11;
-    // @inject_tag: json:"local_vat_amount" bson:"local_vat_amount" validate:"numeric,gte=0"
+    // @inject_tag: json:"local_vat_amount" bson:"local_vat_amount" validate:"omitempty,numeric,gte=0"
     double local_vat_amount = 12;
-    // @inject_tag: json:"local_fees_amount" bson:"local_fees_amount" validate:"numeric,gte=0"
+    // @inject_tag: json:"local_fees_amount" bson:"local_fees_amount" validate:"omitempty,numeric,gte=0"
     double local_fees_amount = 13;
     //@inject_tag: json:"billing_address_criteria" bson:"billing_address_criteria" validate:"required,oneof=ip bin language customer form"
     string billing_address_criteria = 14;
@@ -1520,17 +1522,19 @@ message VatTransaction {
     string user_id = 16;
     //@inject_tag: json:"payment_method" bson:"payment_method" validate:"required"
     string payment_method = 17;
+    //@inject_tag: json:"is_settled" bson:"is_settled"
+    bool is_settled = 18;
     //@inject_tag: json:"date_time" bson:"date_time"
-    google.protobuf.Timestamp date_time = 18;
+    google.protobuf.Timestamp date_time = 19;
     //@inject_tag: json:"date_time" bson:"initial_transaction_date_time"
-    google.protobuf.Timestamp initial_transaction_date_time = 19;
+    google.protobuf.Timestamp initial_transaction_date_time = 20;
 }
 
 message VatReport {
     //@inject_tag: json:"id" bson:"_id" validate:"omitempty,hexadecimal,len=24"
     string id = 1;
-    //@inject_tag: json:"country_iso_code_a2" bson:"country_iso_code_a2" validate:"required,alpha,len=2"
-    string country_iso_code_a2 = 2;
+    //@inject_tag: json:"country" bson:"country" validate:"required,alpha,len=2"
+    string country = 2;
     // @inject_tag: json:"vat_rate" bson:"vat_rate" validate:"numeric,gte=0,lte=100"
     double vat_rate = 3;
     //@inject_tag: json:"currency" bson:"currency" validate:"required,alpha,len=3"

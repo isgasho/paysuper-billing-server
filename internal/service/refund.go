@@ -286,6 +286,11 @@ func (s *Service) ProcessRefundCallback(
 			if err != nil {
 				zap.S().Errorf("Update order data failed", "err", err.Error(), "order", order)
 			}
+
+			err = s.createVatTransaction(order)
+			if err != nil {
+				zap.S().Errorf("create vat transaction refund failed", "err", err.Error(), "order", order)
+			}
 		}
 
 		rsp.Status = pkg.ResponseStatusOk
