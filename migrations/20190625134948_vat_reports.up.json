@@ -1,0 +1,31 @@
+[
+  {
+    "create": "vat_transactions"
+  },
+  {
+    "create": "vat_reports"
+  },
+  {
+    "createIndexes": "vat_transactions",
+    "indexes": [
+      {
+        "key": {
+          "billing_address.country": 1
+        },
+        "name": "country"
+      }
+    ]
+  },
+  {
+    "createIndexes": "vat_reports",
+    "indexes": [
+      {
+        "key": {
+          "country": 1,
+          "status": 1
+        },
+        "name": "country_status"
+      }
+    ]
+  }
+]

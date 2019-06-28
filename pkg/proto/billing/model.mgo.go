@@ -154,7 +154,7 @@ type MgoCommissionBilling struct {
 }
 
 type MgoOrderProject struct {
-	Id                   bson.ObjectId   `bson:"_id" `
+	Id                   bson.ObjectId   `bson:"_id"`
 	MerchantId           bson.ObjectId   `bson:"merchant_id"`
 	Name                 []*MgoMultiLang `bson:"name"`
 	UrlSuccess           string          `bson:"url_success"`
@@ -451,8 +451,8 @@ type MgoPayoutCostSystem struct {
 	IntrabankCostAmount   float64       `bson:"intrabank_cost_amount"`
 	IntrabankCostCurrency string        `bson:"intrabank_cost_currency"`
 	InterbankCostAmount   float64       `bson:"interbank_cost_amount"`
-	InterbankCostCurrency string        ` bson:"interbank_cost_currency"`
-	IsActive              bool          ` bson:"is_active"`
+	InterbankCostCurrency string        `bson:"interbank_cost_currency"`
+	IsActive              bool          `bson:"is_active"`
 	CreatedAt             time.Time     `bson:"created_at"`
 }
 
@@ -587,6 +587,44 @@ type MgoRoyaltyReportOrder struct {
 	Amount         float64              `bson:"total_payment_amount"`
 	Vat            *OrderTax            `bson:"tax"`
 	Commission     *RoyaltyData         `bson:"payment_royalty_data"`
+}
+
+type MgoVatTransaction struct {
+	Id                         bson.ObjectId        `bson:"_id"`
+	TransactionId              string               `bson:"transaction_id"`
+	TransactionType            string               `bson:"transaction_type"`
+	TransactionAmount          float64              `bson:"transaction_amount"`
+	TransactionCurrency        string               `bson:"transaction_currency"`
+	VatAmount                  float64              `bson:"vat_amount"`
+	VatCurrency                string               `bson:"vat_currency"`
+	FeesAmount                 float64              `bson:"fees_amount"`
+	FeesCurrency               string               `bson:"fees_currency"`
+	LocalTransactionAmount     float64              `bson:"local_transaction_amount,omitempty"`
+	LocalVatAmount             float64              `bson:"local_vat_amount,omitempty"`
+	LocalFeesAmount            float64              `bson:"local_fees_amount,omitempty"`
+	BillingAddressCriteria     string               `bson:"billing_address_criteria"`
+	BillingAddress             *OrderBillingAddress `bson:"billing_address"`
+	UserId                     bson.ObjectId        `bson:"user_id"`
+	PaymentMethod              string               `bson:"payment_method"`
+	DateTime                   time.Time            `bson:"date_time"`
+	InitialTransactionDateTime time.Time            `bson:"initial_transaction_date_time"`
+}
+
+type MgoVatReport struct {
+	Id                bson.ObjectId `bson:"_id"`
+	CountryIsoCodeA2  string        `bson:"country_iso_code_a2"`
+	VatRate           float64       `bson:"vat_rate"`
+	Currency          string        `bson:"currency"`
+	TransactionsCount int32         `bson:"transactions_count"`
+	GrossRevenue      float64       `bson:"gross_revenue"`
+	VatAmount         float64       `bson:"vat_amount"`
+	FeesAmount        float64       `bson:"fees_amount"`
+	DeductionAmount   float64       `bson:"deduction_amount"`
+	CorrectionAmount  float64       `bson:"correction_amount"`
+	Status            string        `bson:"status"`
+	ReportDateFrom    time.Time     `bson:"report_date_from"`
+	ReportDateTo      time.Time     `bson:"report_date_to"`
+	PayUntilDate      time.Time     `bson:"pay_until_date"`
 }
 
 func (m *Country) GetBSON() (interface{}, error) {
@@ -2812,6 +2850,175 @@ func (m *PayoutCostSystem) SetBSON(raw bson.Raw) error {
 	m.IsActive = decoded.IsActive
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *VatTransaction) GetBSON() (interface{}, error) {
+	st := &MgoVatTransaction{
+		TransactionId:          m.TransactionId,
+		TransactionType:        m.TransactionType,
+		TransactionAmount:      m.TransactionAmount,
+		TransactionCurrency:    m.TransactionCurrency,
+		VatAmount:              m.VatAmount,
+		VatCurrency:            m.VatCurrency,
+		FeesAmount:             m.FeesAmount,
+		FeesCurrency:           m.FeesCurrency,
+		LocalTransactionAmount: m.LocalTransactionAmount,
+		LocalVatAmount:         m.LocalVatAmount,
+		LocalFeesAmount:        m.LocalFeesAmount,
+		BillingAddressCriteria: m.BillingAddressCriteria,
+		BillingAddress:         m.BillingAddress,
+		PaymentMethod:          m.PaymentMethod,
+	}
+
+	if len(m.Id) <= 0 {
+		st.Id = bson.NewObjectId()
+	} else {
+		if bson.IsObjectIdHex(m.Id) == false {
+			return nil, errors.New(errorInvalidObjectId)
+		}
+		st.Id = bson.ObjectIdHex(m.Id)
+	}
+
+	if len(m.UserId) <= 0 {
+		return nil, errors.New(errorInvalidObjectId)
+	} else {
+		if bson.IsObjectIdHex(m.UserId) == false {
+			return nil, errors.New(errorInvalidObjectId)
+		}
+		st.Id = bson.ObjectIdHex(m.UserId)
+	}
+
+	t, err := ptypes.Timestamp(m.DateTime)
+	if err != nil {
+		return nil, err
+	}
+	st.DateTime = t
+
+	t, err = ptypes.Timestamp(m.InitialTransactionDateTime)
+	if err != nil {
+		return nil, err
+	}
+	st.InitialTransactionDateTime = t
+
+	return st, nil
+}
+
+func (m *VatTransaction) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoVatTransaction)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+	m.Id = decoded.Id.Hex()
+	m.TransactionId = decoded.TransactionId
+	m.TransactionType = decoded.TransactionType
+	m.TransactionAmount = decoded.TransactionAmount
+	m.TransactionCurrency = decoded.TransactionCurrency
+	m.VatAmount = decoded.VatAmount
+	m.VatCurrency = decoded.VatCurrency
+	m.FeesAmount = decoded.FeesAmount
+	m.FeesCurrency = decoded.FeesCurrency
+	m.LocalTransactionAmount = decoded.LocalTransactionAmount
+	m.LocalVatAmount = decoded.LocalVatAmount
+	m.LocalFeesAmount = decoded.LocalFeesAmount
+	m.BillingAddressCriteria = decoded.BillingAddressCriteria
+	m.BillingAddress = decoded.BillingAddress
+	m.UserId = decoded.UserId.Hex()
+	m.PaymentMethod = decoded.PaymentMethod
+
+	m.DateTime, err = ptypes.TimestampProto(decoded.DateTime)
+	if err != nil {
+		return err
+	}
+
+	m.InitialTransactionDateTime, err = ptypes.TimestampProto(decoded.InitialTransactionDateTime)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *VatReport) GetBSON() (interface{}, error) {
+	st := &MgoVatReport{
+		CountryIsoCodeA2:  m.CountryIsoCodeA2,
+		VatRate:           m.VatRate,
+		Currency:          m.Currency,
+		TransactionsCount: m.TransactionsCount,
+		GrossRevenue:      m.GrossRevenue,
+		VatAmount:         m.VatAmount,
+		FeesAmount:        m.FeesAmount,
+		DeductionAmount:   m.DeductionAmount,
+		CorrectionAmount:  m.CorrectionAmount,
+		Status:            m.Status,
+	}
+
+	if len(m.Id) <= 0 {
+		st.Id = bson.NewObjectId()
+	} else {
+		if bson.IsObjectIdHex(m.Id) == false {
+			return nil, errors.New(errorInvalidObjectId)
+		}
+		st.Id = bson.ObjectIdHex(m.Id)
+	}
+
+	t, err := ptypes.Timestamp(m.ReportDateFrom)
+	if err != nil {
+		return nil, err
+	}
+	st.ReportDateFrom = t
+
+	t, err = ptypes.Timestamp(m.ReportDateTo)
+	if err != nil {
+		return nil, err
+	}
+	st.ReportDateTo = t
+
+	t, err = ptypes.Timestamp(m.PayUntilDate)
+	if err != nil {
+		return nil, err
+	}
+	st.PayUntilDate = t
+
+	return st, nil
+}
+
+func (m *VatReport) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoVatReport)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+	m.Id = decoded.Id.Hex()
+	m.CountryIsoCodeA2 = decoded.CountryIsoCodeA2
+	m.VatRate = decoded.VatRate
+	m.Currency = decoded.Currency
+	m.TransactionsCount = decoded.TransactionsCount
+	m.GrossRevenue = decoded.GrossRevenue
+	m.VatAmount = decoded.VatAmount
+	m.FeesAmount = decoded.FeesAmount
+	m.DeductionAmount = decoded.DeductionAmount
+	m.CorrectionAmount = decoded.CorrectionAmount
+	m.Status = decoded.Status
+
+	m.ReportDateFrom, err = ptypes.TimestampProto(decoded.ReportDateFrom)
+	if err != nil {
+		return err
+	}
+
+	m.ReportDateTo, err = ptypes.TimestampProto(decoded.ReportDateTo)
+	if err != nil {
+		return err
+	}
+
+	m.PayUntilDate, err = ptypes.TimestampProto(decoded.PayUntilDate)
 	if err != nil {
 		return err
 	}
