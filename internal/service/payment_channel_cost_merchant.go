@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
@@ -25,40 +26,35 @@ const (
 func (s *Service) GetAllPaymentChannelCostMerchant(
 	ctx context.Context,
 	req *billing.PaymentChannelCostMerchantListRequest,
-	res *billing.PaymentChannelCostMerchantList,
+	res *grpc.PaymentChannelCostMerchantListResponse,
 ) error {
 	val, err := s.paymentChannelCostMerchant.GetAllForMerchant(req.MerchantId)
 	if err != nil {
-		return err
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorPaymentChannelMerchantGetAll
+		return nil
 	}
-	res.Items = val.Items
+
+	res.Status = pkg.ResponseStatusOk
+	res.Item = val
+
 	return nil
 }
 
 func (s *Service) GetPaymentChannelCostMerchant(
 	ctx context.Context,
 	req *billing.PaymentChannelCostMerchantRequest,
-	res *billing.PaymentChannelCostMerchant,
+	res *grpc.PaymentChannelCostMerchantResponse,
 ) error {
 	val, err := s.getPaymentChannelCostMerchant(req)
 	if err != nil {
-		return err
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorPaymentChannelMerchantGet
+		return nil
 	}
-	res.Id = val.Id
-	res.MerchantId = val.MerchantId
-	res.Name = val.Name
-	res.PayoutCurrency = val.PayoutCurrency
-	res.MinAmount = val.MinAmount
-	res.Region = val.Region
-	res.Country = val.Country
-	res.MethodPercent = val.MethodPercent
-	res.MethodFixAmount = val.MethodFixAmount
-	res.PsPercent = val.PsPercent
-	res.PsFixedFee = val.PsFixedFee
-	res.PsFixedFeeCurrency = val.PsFixedFeeCurrency
-	res.CreatedAt = val.CreatedAt
-	res.UpdatedAt = val.UpdatedAt
-	res.IsActive = val.IsActive
+
+	res.Status = pkg.ResponseStatusOk
+	res.Item = val
 
 	return nil
 }
@@ -66,38 +62,45 @@ func (s *Service) GetPaymentChannelCostMerchant(
 func (s *Service) SetPaymentChannelCostMerchant(
 	ctx context.Context,
 	req *billing.PaymentChannelCostMerchant,
-	res *billing.PaymentChannelCostMerchant,
+	res *grpc.PaymentChannelCostMerchantResponse,
 ) error {
 
 	var err error
 
 	if _, err := s.merchant.GetById(req.MerchantId); err != nil {
-		return err
+		res.Status = pkg.ResponseStatusNotFound
+		res.Message = merchantErrorNotFound
+		return nil
 	}
 
 	if req.Country != "" {
 		country, err := s.country.GetByIsoCodeA2(req.Country)
 		if err != nil {
-			return err
+			res.Status = pkg.ResponseStatusNotFound
+			res.Message = errorCountryNotFound
+			return nil
 		}
 		req.Region = country.Region
 	} else {
 		exists, err := s.country.IsRegionExists(req.Region)
-		if err != nil {
-			return err
-		}
-		if !exists {
-			return errors.New(errorRegionNotExists)
+		if err != nil || !exists {
+			res.Status = pkg.ResponseStatusNotFound
+			res.Message = errorCountryRegionNotExists
+			return nil
 		}
 	}
 
 	// todo: 1. check for supported PayoutCurrency after integrations with currencies service
 	// todo: 2. check for supported PsFixedFeeCurrency after integrations with currencies service
 
+	req.IsActive = true
+
 	if req.Id != "" {
 		val, err := s.paymentChannelCostMerchant.GetById(req.Id)
 		if err != nil {
-			return err
+			res.Status = pkg.ResponseStatusSystemError
+			res.Message = errorPaymentChannelMerchantGet
+			return nil
 		}
 		req.Id = val.Id
 		req.MerchantId = val.MerchantId
@@ -108,24 +111,13 @@ func (s *Service) SetPaymentChannelCostMerchant(
 		err = s.paymentChannelCostMerchant.Insert(req)
 	}
 	if err != nil {
-		return err
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorPaymentChannelMerchantSetFailed
+		return nil
 	}
 
-	res.Id = req.Id
-	res.MerchantId = req.MerchantId
-	res.Name = req.Name
-	res.PayoutCurrency = req.PayoutCurrency
-	res.MinAmount = req.MinAmount
-	res.Region = req.Region
-	res.Country = req.Country
-	res.MethodPercent = req.MethodPercent
-	res.MethodFixAmount = req.MethodFixAmount
-	res.PsPercent = req.PsPercent
-	res.PsFixedFee = req.PsFixedFee
-	res.PsFixedFeeCurrency = req.PsFixedFeeCurrency
-	res.CreatedAt = req.CreatedAt
-	res.UpdatedAt = req.UpdatedAt
-	res.IsActive = true
+	res.Status = pkg.ResponseStatusOk
+	res.Item = req
 
 	return nil
 }
@@ -133,16 +125,22 @@ func (s *Service) SetPaymentChannelCostMerchant(
 func (s *Service) DeletePaymentChannelCostMerchant(
 	ctx context.Context,
 	req *billing.PaymentCostDeleteRequest,
-	res *grpc.EmptyResponse,
+	res *grpc.ResponseError,
 ) error {
 	pc, err := s.paymentChannelCostMerchant.GetById(req.Id)
 	if err != nil {
-		return err
+		res.Status = pkg.ResponseStatusNotFound
+		res.Message = errorPaymentChannelMerchantGet
+		return nil
 	}
 	err = s.paymentChannelCostMerchant.Delete(pc)
 	if err != nil {
-		return err
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorPaymentChannelMerchantDelete
+		return nil
 	}
+
+	res.Status = pkg.ResponseStatusOk
 	return nil
 }
 
