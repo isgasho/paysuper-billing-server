@@ -124,8 +124,8 @@ func (s *Service) getVatTransactions(
 
 	query := bson.M{
 		"date_time": bson.M{
-			"$gte": s.eod(from),
-			"$lte": s.eod(to),
+			"$gte": bod(from),
+			"$lte": eod(to),
 		},
 	}
 
