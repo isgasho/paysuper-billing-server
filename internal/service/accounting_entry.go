@@ -315,9 +315,12 @@ func (h *accountingEntry) payment() error {
 			Id:   h.order.Id,
 			Type: collectionOrder,
 		},
-		MerchantId: h.order.GetMerchantId(),
-		Status:     pkg.BalanceTransactionStatusPending,
-		CreatedAt:  ptypes.TimestampNow(),
+		MerchantId:       h.order.GetMerchantId(),
+		Status:           pkg.BalanceTransactionStatusPending,
+		CreatedAt:        ptypes.TimestampNow(),
+		Country:          h.order.GetCountry(),
+		OriginalAmount:   h.order.TotalPaymentAmount,
+		OriginalCurrency: h.order.Currency,
 	}
 
 	if h.req != nil {
@@ -374,6 +377,7 @@ func (h *accountingEntry) psMarkupPaymentFx() error {
 		MerchantId: h.order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusPending,
 		CreatedAt:  ptypes.TimestampNow(),
+		Country:    h.order.GetCountry(),
 	}
 
 	if h.req != nil {
@@ -424,6 +428,8 @@ func (h *accountingEntry) psMarkupPaymentFx() error {
 
 	entry.Amount = rsp1.Rate - rsp.Rate
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
+	entry.OriginalAmount = entry.Amount
+	entry.OriginalCurrency = entry.Currency
 
 	h.accountingEntries = append(h.accountingEntries, entry)
 
@@ -446,6 +452,7 @@ func (h *accountingEntry) methodFee() error {
 		MerchantId: h.order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusPending,
 		CreatedAt:  ptypes.TimestampNow(),
+		Country:    h.order.GetCountry(),
 	}
 
 	if h.req != nil {
@@ -473,6 +480,8 @@ func (h *accountingEntry) methodFee() error {
 
 	entry.Amount = h.order.RoyaltyData.MerchantPercentCommissionInRoyaltyCurrency
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
+	entry.OriginalAmount = entry.Amount
+	entry.OriginalCurrency = entry.Currency
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -494,6 +503,7 @@ func (h *accountingEntry) psMarkupMethodFee() error {
 		MerchantId: h.order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusPending,
 		CreatedAt:  ptypes.TimestampNow(),
+		Country:    h.order.GetCountry(),
 	}
 
 	if h.req != nil {
@@ -518,6 +528,8 @@ func (h *accountingEntry) psMarkupMethodFee() error {
 
 	entry.Amount = h.order.RoyaltyData.MerchantPercentCommissionInRoyaltyCurrency - (h.order.RoyaltyData.AmountInRoyaltyCurrency * cost.MethodPercent)
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
+	entry.OriginalAmount = entry.Amount
+	entry.OriginalCurrency = entry.Currency
 
 	h.accountingEntries = append(h.accountingEntries, entry)
 
@@ -540,6 +552,7 @@ func (h *accountingEntry) methodFixedFee() error {
 		MerchantId: h.order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusPending,
 		CreatedAt:  ptypes.TimestampNow(),
+		Country:    h.order.GetCountry(),
 	}
 
 	if h.req != nil {
@@ -593,6 +606,8 @@ func (h *accountingEntry) methodFixedFee() error {
 
 	entry.Amount = h.order.RoyaltyData.MerchantFixedCommissionInRoyaltyCurrency
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
+	entry.OriginalAmount = entry.Amount
+	entry.OriginalCurrency = entry.Currency
 
 	h.accountingEntries = append(h.accountingEntries, entry)
 
@@ -615,6 +630,7 @@ func (h *accountingEntry) psMarkupMethodFixedFee() error {
 		MerchantId: h.order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusPending,
 		CreatedAt:  ptypes.TimestampNow(),
+		Country:    h.order.GetCountry(),
 	}
 
 	if h.req != nil {
@@ -639,6 +655,8 @@ func (h *accountingEntry) psMarkupMethodFixedFee() error {
 
 	entry.Amount = h.order.RoyaltyData.MerchantFixedCommissionInRoyaltyCurrency - cost.MethodFixAmount
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
+	entry.OriginalAmount = entry.Amount
+	entry.OriginalCurrency = entry.Currency
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -660,6 +678,7 @@ func (h *accountingEntry) psFee() error {
 		MerchantId: h.order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusPending,
 		CreatedAt:  ptypes.TimestampNow(),
+		Country:    h.order.GetCountry(),
 	}
 
 	if h.req != nil {
@@ -686,6 +705,8 @@ func (h *accountingEntry) psFee() error {
 
 	entry.Amount = h.order.RoyaltyData.MerchantTotalCommissionInRoyaltyCurrency - amount
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
+	entry.OriginalAmount = entry.Amount
+	entry.OriginalCurrency = entry.Currency
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -707,6 +728,7 @@ func (h *accountingEntry) psFixedFee() error {
 		MerchantId: h.order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusPending,
 		CreatedAt:  ptypes.TimestampNow(),
+		Country:    h.order.GetCountry(),
 	}
 
 	if h.req != nil {
@@ -730,6 +752,9 @@ func (h *accountingEntry) psFixedFee() error {
 	}
 
 	amount := cost.PsFixedFee
+
+	entry.OriginalAmount = amount
+	entry.OriginalCurrency = h.order.Currency
 
 	if cost.PsFixedFeeCurrency != h.order.GetMerchantRoyaltyCurrency() {
 		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
@@ -781,6 +806,7 @@ func (h *accountingEntry) psMarkupFixedFeeFx() error {
 		MerchantId: h.order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusPending,
 		CreatedAt:  ptypes.TimestampNow(),
+		Country:    h.order.GetCountry(),
 	}
 
 	if h.req != nil {
@@ -844,6 +870,8 @@ func (h *accountingEntry) psMarkupFixedFeeFx() error {
 
 	entry.Amount = rsp.Rate - rsp1.Rate
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
+	entry.OriginalAmount = entry.Amount
+	entry.OriginalCurrency = entry.Currency
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -862,9 +890,12 @@ func (h *accountingEntry) taxFee() error {
 			Id:   h.order.Id,
 			Type: collectionOrder,
 		},
-		MerchantId: h.order.GetMerchantId(),
-		Status:     pkg.BalanceTransactionStatusPending,
-		CreatedAt:  ptypes.TimestampNow(),
+		MerchantId:       h.order.GetMerchantId(),
+		Status:           pkg.BalanceTransactionStatusPending,
+		CreatedAt:        ptypes.TimestampNow(),
+		Country:          h.order.GetCountry(),
+		OriginalAmount:   h.order.Tax.Amount,
+		OriginalCurrency: h.order.Tax.Currency,
 	}
 
 	if h.req != nil {
@@ -924,6 +955,7 @@ func (h *accountingEntry) psTaxFxFee() error {
 			Type: collectionOrder,
 		},
 		MerchantId: h.order.GetMerchantId(),
+		Country:    h.order.GetCountry(),
 	}
 	h.mapRequestToEntry(entry)
 	h.accountingEntries = append(h.accountingEntries, entry)
@@ -944,9 +976,12 @@ func (h *accountingEntry) refundEntry() error {
 			Id:   h.refund.Id,
 			Type: collectionRefund,
 		},
-		MerchantId: h.order.GetMerchantId(),
-		Status:     pkg.BalanceTransactionStatusPending,
-		CreatedAt:  ptypes.TimestampNow(),
+		MerchantId:       h.order.GetMerchantId(),
+		Status:           pkg.BalanceTransactionStatusPending,
+		CreatedAt:        ptypes.TimestampNow(),
+		Country:          h.order.GetCountry(),
+		OriginalAmount:   h.refund.Amount,
+		OriginalCurrency: h.refund.Currency,
 	}
 
 	if h.req != nil {
@@ -1003,10 +1038,13 @@ func (h *accountingEntry) refundFee() error {
 		MerchantId: h.order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusPending,
 		CreatedAt:  ptypes.TimestampNow(),
+		Country:    h.order.GetCountry(),
 	}
 
 	if h.req != nil {
 		h.mapRequestToEntry(entry)
+		entry.OriginalAmount = entry.Amount
+		entry.OriginalCurrency = entry.Currency
 		h.accountingEntries = append(h.accountingEntries, entry)
 
 		return nil
@@ -1027,6 +1065,8 @@ func (h *accountingEntry) refundFee() error {
 
 	entry.Amount = h.refund.Amount * cost.Percent
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
+	entry.OriginalAmount = entry.Amount
+	entry.OriginalCurrency = entry.Currency
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -1048,10 +1088,13 @@ func (h *accountingEntry) refundFixedFee() error {
 		MerchantId: h.order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusPending,
 		CreatedAt:  ptypes.TimestampNow(),
+		Country:    h.order.GetCountry(),
 	}
 
 	if h.req != nil {
 		h.mapRequestToEntry(entry)
+		entry.OriginalAmount = entry.Amount
+		entry.OriginalCurrency = entry.Currency
 		h.accountingEntries = append(h.accountingEntries, entry)
 
 		return nil
@@ -1099,6 +1142,8 @@ func (h *accountingEntry) refundFixedFee() error {
 
 	entry.Amount = amount
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
+	entry.OriginalAmount = entry.Amount
+	entry.OriginalCurrency = entry.Currency
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -1120,6 +1165,7 @@ func (h *accountingEntry) psMarkupRefundFx() error {
 		MerchantId: h.order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusPending,
 		CreatedAt:  ptypes.TimestampNow(),
+		Country:    h.order.GetCountry(),
 	}
 
 	if h.req != nil {
@@ -1170,6 +1216,8 @@ func (h *accountingEntry) psMarkupRefundFx() error {
 
 	entry.Amount = rsp.Rate - rsp1.Rate
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
+	entry.OriginalAmount = entry.Amount
+	entry.OriginalCurrency = entry.Currency
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -1191,6 +1239,7 @@ func (h *accountingEntry) refundBody() error {
 		MerchantId: h.order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusPending,
 		CreatedAt:  ptypes.TimestampNow(),
+		Country:    h.order.GetCountry(),
 	}
 
 	if h.req != nil {
@@ -1256,6 +1305,8 @@ func (h *accountingEntry) refundBody() error {
 
 	entry.Amount = refundAmount - taxAmount
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
+	entry.OriginalAmount = entry.Amount
+	entry.OriginalCurrency = entry.Currency
 
 	h.accountingEntries = append(h.accountingEntries, entry)
 
@@ -1275,9 +1326,12 @@ func (h *accountingEntry) reverseTaxFee() error {
 			Id:   h.refund.Id,
 			Type: collectionRefund,
 		},
-		MerchantId: h.order.GetMerchantId(),
-		Status:     pkg.BalanceTransactionStatusPending,
-		CreatedAt:  ptypes.TimestampNow(),
+		MerchantId:       h.order.GetMerchantId(),
+		Status:           pkg.BalanceTransactionStatusPending,
+		CreatedAt:        ptypes.TimestampNow(),
+		Country:          h.order.GetCountry(),
+		OriginalAmount:   h.order.Tax.Amount,
+		OriginalCurrency: h.order.Tax.Currency,
 	}
 
 	if h.req != nil {
@@ -1339,6 +1393,7 @@ func (h *accountingEntry) psMarkupReverseTaxFee() error {
 		MerchantId: h.order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusPending,
 		CreatedAt:  ptypes.TimestampNow(),
+		Country:    h.order.GetCountry(),
 	}
 
 	if h.req != nil {
@@ -1389,6 +1444,8 @@ func (h *accountingEntry) psMarkupReverseTaxFee() error {
 
 	entry.Amount = rsp.Rate - rsp1.Rate
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
+	entry.OriginalAmount = entry.Amount
+	entry.OriginalCurrency = entry.Currency
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -1410,6 +1467,7 @@ func (h *accountingEntry) reverseTaxFeeDelta() error {
 		MerchantId: h.order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusPending,
 		CreatedAt:  ptypes.TimestampNow(),
+		Country:    h.order.GetCountry(),
 	}
 
 	if h.req != nil {
@@ -1427,6 +1485,8 @@ func (h *accountingEntry) reverseTaxFeeDelta() error {
 
 	entry.Amount = amount
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
+	entry.OriginalAmount = entry.Amount
+	entry.OriginalCurrency = entry.Currency
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -1448,6 +1508,7 @@ func (h *accountingEntry) psReverseTaxFeeDelta() error {
 		MerchantId: h.order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusPending,
 		CreatedAt:  ptypes.TimestampNow(),
+		Country:    h.order.GetCountry(),
 	}
 
 	if h.req != nil {
@@ -1465,6 +1526,8 @@ func (h *accountingEntry) psReverseTaxFeeDelta() error {
 
 	entry.Amount = math.Abs(amount)
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
+	entry.OriginalAmount = entry.Amount
+	entry.OriginalCurrency = entry.Currency
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -1483,9 +1546,12 @@ func (h *accountingEntry) chargeback() error {
 			Id:   h.refund.Id,
 			Type: collectionRefund,
 		},
-		MerchantId: h.order.GetMerchantId(),
-		Status:     pkg.BalanceTransactionStatusPending,
-		CreatedAt:  ptypes.TimestampNow(),
+		MerchantId:       h.order.GetMerchantId(),
+		Status:           pkg.BalanceTransactionStatusPending,
+		CreatedAt:        ptypes.TimestampNow(),
+		Country:          h.order.GetCountry(),
+		OriginalAmount:   h.order.TotalPaymentAmount,
+		OriginalCurrency: h.order.Currency,
 	}
 
 	if h.req != nil {
@@ -1540,6 +1606,7 @@ func (h *accountingEntry) psMarkupChargebackFx() error {
 		MerchantId: h.order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusPending,
 		CreatedAt:  ptypes.TimestampNow(),
+		Country:    h.order.GetCountry(),
 	}
 
 	if h.req != nil {
@@ -1590,6 +1657,8 @@ func (h *accountingEntry) psMarkupChargebackFx() error {
 
 	entry.Amount = rsp.Rate - rsp1.Rate
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
+	entry.OriginalAmount = entry.Amount
+	entry.OriginalCurrency = entry.Currency
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -1613,6 +1682,7 @@ func (h *accountingEntry) chargebackFee() error {
 		Currency:   h.order.GetMerchantRoyaltyCurrency(),
 		Status:     pkg.BalanceTransactionStatusPending,
 		CreatedAt:  ptypes.TimestampNow(),
+		Country:    h.order.GetCountry(),
 	}
 
 	if h.req != nil {
@@ -1639,6 +1709,8 @@ func (h *accountingEntry) chargebackFee() error {
 
 	entry.Amount = h.order.RoyaltyData.ChargebackPercentCommissionInRoyaltyCurrency
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
+	entry.OriginalAmount = entry.Amount
+	entry.OriginalCurrency = entry.Currency
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -1660,6 +1732,7 @@ func (h *accountingEntry) psMarkupChargebackFee() error {
 		MerchantId: h.order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusPending,
 		CreatedAt:  ptypes.TimestampNow(),
+		Country:    h.order.GetCountry(),
 	}
 
 	if h.req != nil {
@@ -1684,6 +1757,8 @@ func (h *accountingEntry) psMarkupChargebackFee() error {
 
 	entry.Amount = h.order.RoyaltyData.ChargebackPercentCommissionInRoyaltyCurrency - (h.order.TotalPaymentAmount * cost.Percent)
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
+	entry.OriginalAmount = entry.Amount
+	entry.OriginalCurrency = entry.Currency
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -1705,6 +1780,7 @@ func (h *accountingEntry) chargebackFixedFee() error {
 		MerchantId: h.order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusPending,
 		CreatedAt:  ptypes.TimestampNow(),
+		Country:    h.order.GetCountry(),
 	}
 
 	if h.req != nil {
@@ -1757,6 +1833,8 @@ func (h *accountingEntry) chargebackFixedFee() error {
 	entry.Amount = h.order.RoyaltyData.ChargebackFixedCommissionInRoyaltyCurrency
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
 	h.accountingEntries = append(h.accountingEntries, entry)
+	entry.OriginalAmount = entry.Amount
+	entry.OriginalCurrency = entry.Currency
 
 	return nil
 }
@@ -1777,6 +1855,7 @@ func (h *accountingEntry) psMarkupChargebackFixedFee() error {
 		MerchantId: h.order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusPending,
 		CreatedAt:  ptypes.TimestampNow(),
+		Country:    h.order.GetCountry(),
 	}
 
 	if h.req != nil {
@@ -1803,7 +1882,8 @@ func (h *accountingEntry) psMarkupChargebackFixedFee() error {
 
 	entry.Amount = h.order.RoyaltyData.ChargebackFixedCommissionInRoyaltyCurrency - amount
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-
+	entry.OriginalAmount = entry.Amount
+	entry.OriginalCurrency = entry.Currency
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil
@@ -1823,6 +1903,7 @@ func (h *accountingEntry) refundFailure() error {
 			Type: collectionRefund,
 		},
 		MerchantId: h.order.GetMerchantId(),
+		Country:    h.order.GetCountry(),
 	}
 	h.mapRequestToEntry(entry)
 	h.accountingEntries = append(h.accountingEntries, entry)
@@ -1844,6 +1925,7 @@ func (h *accountingEntry) chargebackFailure() error {
 			Type: collectionRefund,
 		},
 		MerchantId: h.order.GetMerchantId(),
+		Country:    h.order.GetCountry(),
 	}
 	h.mapRequestToEntry(entry)
 	h.accountingEntries = append(h.accountingEntries, entry)
@@ -1877,6 +1959,9 @@ func (h *accountingEntry) mapRequestToEntry(entry *billing.AccountingEntry) {
 	entry.Currency = h.req.Currency
 	entry.Reason = h.req.Reason
 	entry.Status = h.req.Status
+
+	entry.OriginalAmount = entry.Amount
+	entry.OriginalCurrency = entry.Currency
 
 	t := time.Unix(h.req.Date, 0)
 	entry.CreatedAt, _ = ptypes.TimestampProto(t)

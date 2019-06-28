@@ -1423,8 +1423,11 @@ message AccountingEntry {
     string currency = 7;
     string reason = 8;
     string status = 9;
-    google.protobuf.Timestamp created_at = 10;
-    google.protobuf.Timestamp available_on = 11;
+    string country = 10;
+    double original_amount = 11;
+    string original_currency = 12;
+    google.protobuf.Timestamp created_at = 13;
+    google.protobuf.Timestamp available_on = 14;
 }
 
 message RoyaltyReportDetails {

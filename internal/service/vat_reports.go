@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"errors"
 	"github.com/globalsign/mgo/bson"
+	"github.com/jinzhu/now"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"time"
@@ -148,4 +150,55 @@ func (s *Service) getVatTransactions(
 	}
 
 	return transactions, nil
+}
+
+func (s *Service) getLastVatReportTime(countryCode string) (from, to time.Time, err error) {
+	country, err := s.country.GetByIsoCodeA2(countryCode)
+	if err != nil {
+		return
+	}
+
+	if !country.VatEnabled {
+		err = errors.New("Vat not enabled for country")
+		return
+	}
+
+	switch country.VatPeriodMonth {
+	case 1:
+		from = now.BeginningOfMonth()
+		to = now.EndOfMonth()
+		return
+	case 2:
+		from = now.BeginningOfMonth()
+		to = now.EndOfMonth()
+
+		if from.Month()%2 == 0 {
+			from = from.AddDate(0, -1, 0)
+		} else {
+			to = to.AddDate(0, 1, 0)
+		}
+		return
+	case 3:
+		from = now.BeginningOfQuarter()
+		to = now.EndOfQuarter()
+		return
+	}
+
+	err = errors.New("Vat period not configured for country")
+	return
+}
+
+func (s *Service) getPreviousVatReportTime(countryCode string) (from, to time.Time, err error) {
+	from, to, err = s.getLastVatReportTime(countryCode)
+	if err != nil {
+		return
+	}
+	country, err := s.country.GetByIsoCodeA2(countryCode)
+	if err != nil {
+		return
+	}
+
+	from = from.AddDate(0, -1*int(country.VatPeriodMonth), 0)
+	to = to.AddDate(0, -1*int(country.VatPeriodMonth), 0)
+	return
 }

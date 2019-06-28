@@ -536,17 +536,20 @@ type MgoAccountingEntrySource struct {
 }
 
 type MgoAccountingEntry struct {
-	Id          bson.ObjectId             `bson:"_id"`
-	Object      string                    `bson:"object"`
-	Type        string                    `bson:"type"`
-	Source      *MgoAccountingEntrySource `bson:"source"`
-	MerchantId  bson.ObjectId             `bson:"merchant_id"`
-	Amount      float64                   `bson:"amount"`
-	Currency    string                    `bson:"currency"`
-	Reason      string                    `bson:"reason"`
-	Status      string                    `bson:"status"`
-	CreatedAt   time.Time                 `bson:"created_at"`
-	AvailableOn time.Time                 `bson:"available_on"`
+	Id               bson.ObjectId             `bson:"_id"`
+	Object           string                    `bson:"object"`
+	Type             string                    `bson:"type"`
+	Source           *MgoAccountingEntrySource `bson:"source"`
+	MerchantId       bson.ObjectId             `bson:"merchant_id"`
+	Amount           float64                   `bson:"amount"`
+	Currency         string                    `bson:"currency"`
+	Reason           string                    `bson:"reason"`
+	Status           string                    `bson:"status"`
+	Country          string                    `bson:"country"`
+	OriginalAmount   float64                   `bson:"original_amount"`
+	OriginalCurrency string                    `bson:"original_currency"`
+	CreatedAt        time.Time                 `bson:"created_at"`
+	AvailableOn      time.Time                 `bson:"available_on"`
 }
 
 type MgoRoyaltyReport struct {
@@ -3049,11 +3052,14 @@ func (m *AccountingEntry) GetBSON() (interface{}, error) {
 			Id:   bson.ObjectIdHex(m.Source.Id),
 			Type: m.Source.Type,
 		},
-		MerchantId: bson.ObjectIdHex(m.MerchantId),
-		Amount:     m.Amount,
-		Currency:   m.Currency,
-		Reason:     m.Reason,
-		Status:     m.Status,
+		MerchantId:       bson.ObjectIdHex(m.MerchantId),
+		Amount:           m.Amount,
+		Currency:         m.Currency,
+		OriginalAmount:   m.OriginalAmount,
+		OriginalCurrency: m.OriginalCurrency,
+		Country:          m.Country,
+		Reason:           m.Reason,
+		Status:           m.Status,
 	}
 
 	if m.CreatedAt != nil {
@@ -3099,6 +3105,9 @@ func (m *AccountingEntry) SetBSON(raw bson.Raw) error {
 	m.MerchantId = decoded.MerchantId.Hex()
 	m.Amount = decoded.Amount
 	m.Currency = decoded.Currency
+	m.OriginalAmount = decoded.OriginalAmount
+	m.OriginalCurrency = decoded.OriginalCurrency
+	m.Country = decoded.Country
 	m.Reason = decoded.Reason
 	m.Status = decoded.Status
 
