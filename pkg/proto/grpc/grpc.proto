@@ -99,7 +99,12 @@ service BillingService {
     rpc SetMoneyBackCostMerchant(billing.MoneyBackCostMerchant) returns (billing.MoneyBackCostMerchant) {}
     rpc DeleteMoneyBackCostMerchant(billing.PaymentCostDeleteRequest) returns (EmptyResponse) {}
     rpc CreateAccountingEntry(CreateAccountingEntryRequest) returns (CreateAccountingEntryResponse) {}
+
     rpc CreateRoyaltyReport(CreateRoyaltyReportRequest) returns (CreateRoyaltyReportRequest) {}
+    ///////
+    rpc ListRoyaltyReports(ListRoyaltyReportsRequest) returns (ListRoyaltyReportsResponse) {}
+    rpc ChangeRoyaltyReportStatus(CreateRoyaltyReportRequest) returns (CreateRoyaltyReportRequest) {}
+    rpc ListRoyaltyReportOrders(CreateRoyaltyReportRequest) returns (CreateRoyaltyReportRequest) {}
 }
 
 message EmptyRequest {}
@@ -839,7 +844,7 @@ message CreateAccountingEntryRequest {
     double amount = 5;
     // @inject_tag: validate:"required,alpha,len=3"
     string currency = 6;
-    // @inject_tag: query:"limit" validate:"required,oneof=pending available"
+    // @inject_tag: validate:"required,oneof=pending available"
     string status = 7;
     // @inject_tag: validate:"omitempty,numeric,gt=0"
     int64 date = 8;
@@ -854,4 +859,24 @@ message CreateAccountingEntryResponse {
 
 message CreateRoyaltyReportRequest {
     repeated string merchants = 1;
+}
+
+message ListRoyaltyReportsRequest {
+    // @inject_tag: query:"id" validate:"omitempty,hexadecimal,len=24"
+    string id = 1;
+    // @inject_tag: query:"period_from" validate:"omitempty,numeric,gt=0"
+    int64 period_from = 2;
+    // @inject_tag: query:"period_to" validate:"omitempty,numeric,gt=0"
+    int64 period_to = 3;
+    // @inject_tag: query:"merchant_id" validate:"omitempty,hexadecimal,len=24"
+    string merchant_id = 4;
+    // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
+    int32 limit = 5;
+    // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
+    int32 offset = 6;
+}
+
+message ListRoyaltyReportsResponse {
+    int32 count = 1;
+    repeated billing.RoyaltyReport items = 2;
 }

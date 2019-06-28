@@ -107,6 +107,47 @@ func (s *Service) CreateRoyaltyReport(
 	return nil
 }
 
+func (s *Service) ListRoyaltyReports() error {
+	return nil
+}
+
+func (s *Service) ChangeRoyaltyReportStatus() error {
+	return nil
+}
+
+func (s *Service) ListRoyaltyReportOrders(
+	ctx context.Context,
+	req *grpc.ListRoyaltyReportsRequest,
+	rsp *grpc.ListRoyaltyReportsResponse,
+) error {
+	query := make(bson.M)
+
+	if req.Id != "" {
+		query["_id"] = bson.ObjectIdHex(req.Id)
+	}
+
+	if req.MerchantId != "" {
+		query["merchant_id"] = bson.ObjectIdHex(req.MerchantId)
+	}
+
+	if req.PeriodFrom != 0 {
+		query["period_from"] = bson.M{"$gte": time.Unix(req.PeriodFrom, 0)}
+	}
+
+	if req.PeriodTo != 0 {
+		query["period_to"] = bson.M{"$gte": time.Unix(req.PeriodFrom, 0)}
+	}
+
+	count, err := s.db.Collection(collectionRoyaltyReport).Find(query).Count()
+
+	if err != nil {
+		zap.S().Errorf("Query from table ended with error", "err", err.Error(), "table", collectionOrder)
+		return err
+	}
+
+	return nil
+}
+
 func (s *Service) getRoyaltyReportMerchantsByPeriod(from, to time.Time) []*RoyaltyReportMerchant {
 	var merchants []*RoyaltyReportMerchant
 
@@ -258,8 +299,8 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(merchantId bson.ObjectId) (
 	return report, nil
 }
 
-func (h *royaltyHandler) sendRoyaltyReportNotification(report *billing.RoyaltyReport) error {
-	merchant, err := h.merchant.GetById(report.MerchantId)
+func (s *Service) sendRoyaltyReportNotification(report *billing.RoyaltyReport) error {
+	merchant, err := s.merchant.GetById(report.MerchantId)
 
 	if err != nil {
 		zap.L().Error("Merchant not found", zap.Error(err), zap.String("merchant_id", report.MerchantId))
@@ -271,12 +312,11 @@ func (h *royaltyHandler) sendRoyaltyReportNotification(report *billing.RoyaltyRe
 		m.SetHeader("Subject", pkg.EmailRoyaltyReportSubject)
 		m.SetBody(pkg.EmailContentType, pkg.EmailRoyaltyReportMessage)
 
-		err = h.smtpCl.Send(h.cfg.EmailNotificationSender, []string{merchant.GetAuthorizedEmail()}, m)
+		err = s.smtpCl.Send(s.cfg.EmailNotificationSender, []string{merchant.GetAuthorizedEmail()}, m)
 
 		if err != nil {
-			h.errors[merchant.Id] = err
 			zap.L().Error(
-				"Send merchant notification about new royalty report failed",
+				"[SMTP] Send merchant notification about new royalty report failed",
 				zap.Error(err),
 				zap.String("merchant_id", merchant.Id),
 				zap.String("royalty_report_id", report.Id),
@@ -291,5 +331,18 @@ func (h *royaltyHandler) sendRoyaltyReportNotification(report *billing.RoyaltyRe
 		return err
 	}
 
-	return h.centrifugoClient.Publish(context.Background(), fmt.Sprintf(h.cfg.CentrifugoMerchantChannel, report.MerchantId), b)
+	err = s.centrifugoClient.Publish(context.Background(), fmt.Sprintf(s.cfg.CentrifugoMerchantChannel, report.MerchantId), b)
+
+	if err != nil {
+		zap.L().Error(
+			"[Centrifugo] Send merchant notification about new royalty report failed",
+			zap.Error(err),
+			zap.String("merchant_id", merchant.Id),
+			zap.String("royalty_report_id", report.Id),
+		)
+
+		return err
+	}
+
+	return nil
 }

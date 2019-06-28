@@ -93,6 +93,8 @@ It has these top-level messages:
 	CreateAccountingEntryRequest
 	CreateAccountingEntryResponse
 	CreateRoyaltyReportRequest
+	ListRoyaltyReportsRequest
+	ListRoyaltyReportsResponse
 */
 package grpc
 
@@ -201,6 +203,10 @@ type BillingService interface {
 	DeleteMoneyBackCostMerchant(ctx context.Context, in *billing.PaymentCostDeleteRequest, opts ...client.CallOption) (*EmptyResponse, error)
 	CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, opts ...client.CallOption) (*CreateAccountingEntryResponse, error)
 	CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, opts ...client.CallOption) (*CreateRoyaltyReportRequest, error)
+	// /////
+	ListRoyaltyReports(ctx context.Context, in *ListRoyaltyReportsRequest, opts ...client.CallOption) (*ListRoyaltyReportsResponse, error)
+	ChangeRoyaltyReportStatus(ctx context.Context, in *CreateRoyaltyReportRequest, opts ...client.CallOption) (*CreateRoyaltyReportRequest, error)
+	ListRoyaltyReportOrders(ctx context.Context, in *CreateRoyaltyReportRequest, opts ...client.CallOption) (*CreateRoyaltyReportRequest, error)
 }
 
 type billingService struct {
@@ -951,6 +957,36 @@ func (c *billingService) CreateRoyaltyReport(ctx context.Context, in *CreateRoya
 	return out, nil
 }
 
+func (c *billingService) ListRoyaltyReports(ctx context.Context, in *ListRoyaltyReportsRequest, opts ...client.CallOption) (*ListRoyaltyReportsResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.ListRoyaltyReports", in)
+	out := new(ListRoyaltyReportsResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) ChangeRoyaltyReportStatus(ctx context.Context, in *CreateRoyaltyReportRequest, opts ...client.CallOption) (*CreateRoyaltyReportRequest, error) {
+	req := c.c.NewRequest(c.name, "BillingService.ChangeRoyaltyReportStatus", in)
+	out := new(CreateRoyaltyReportRequest)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) ListRoyaltyReportOrders(ctx context.Context, in *CreateRoyaltyReportRequest, opts ...client.CallOption) (*CreateRoyaltyReportRequest, error) {
+	req := c.c.NewRequest(c.name, "BillingService.ListRoyaltyReportOrders", in)
+	out := new(CreateRoyaltyReportRequest)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for BillingService service
 
 type BillingServiceHandler interface {
@@ -1027,6 +1063,10 @@ type BillingServiceHandler interface {
 	DeleteMoneyBackCostMerchant(context.Context, *billing.PaymentCostDeleteRequest, *EmptyResponse) error
 	CreateAccountingEntry(context.Context, *CreateAccountingEntryRequest, *CreateAccountingEntryResponse) error
 	CreateRoyaltyReport(context.Context, *CreateRoyaltyReportRequest, *CreateRoyaltyReportRequest) error
+	// /////
+	ListRoyaltyReports(context.Context, *ListRoyaltyReportsRequest, *ListRoyaltyReportsResponse) error
+	ChangeRoyaltyReportStatus(context.Context, *CreateRoyaltyReportRequest, *CreateRoyaltyReportRequest) error
+	ListRoyaltyReportOrders(context.Context, *CreateRoyaltyReportRequest, *CreateRoyaltyReportRequest) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -1104,6 +1144,9 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		DeleteMoneyBackCostMerchant(ctx context.Context, in *billing.PaymentCostDeleteRequest, out *EmptyResponse) error
 		CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, out *CreateAccountingEntryResponse) error
 		CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, out *CreateRoyaltyReportRequest) error
+		ListRoyaltyReports(ctx context.Context, in *ListRoyaltyReportsRequest, out *ListRoyaltyReportsResponse) error
+		ChangeRoyaltyReportStatus(ctx context.Context, in *CreateRoyaltyReportRequest, out *CreateRoyaltyReportRequest) error
+		ListRoyaltyReportOrders(ctx context.Context, in *CreateRoyaltyReportRequest, out *CreateRoyaltyReportRequest) error
 	}
 	type BillingService struct {
 		billingService
@@ -1406,4 +1449,16 @@ func (h *billingServiceHandler) CreateAccountingEntry(ctx context.Context, in *C
 
 func (h *billingServiceHandler) CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, out *CreateRoyaltyReportRequest) error {
 	return h.BillingServiceHandler.CreateRoyaltyReport(ctx, in, out)
+}
+
+func (h *billingServiceHandler) ListRoyaltyReports(ctx context.Context, in *ListRoyaltyReportsRequest, out *ListRoyaltyReportsResponse) error {
+	return h.BillingServiceHandler.ListRoyaltyReports(ctx, in, out)
+}
+
+func (h *billingServiceHandler) ChangeRoyaltyReportStatus(ctx context.Context, in *CreateRoyaltyReportRequest, out *CreateRoyaltyReportRequest) error {
+	return h.BillingServiceHandler.ChangeRoyaltyReportStatus(ctx, in, out)
+}
+
+func (h *billingServiceHandler) ListRoyaltyReportOrders(ctx context.Context, in *CreateRoyaltyReportRequest, out *CreateRoyaltyReportRequest) error {
+	return h.BillingServiceHandler.ListRoyaltyReportOrders(ctx, in, out)
 }
