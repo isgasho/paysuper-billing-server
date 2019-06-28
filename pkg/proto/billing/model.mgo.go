@@ -181,9 +181,9 @@ type MgoOrderPaymentMethod struct {
 	Group           string               `bson:"group_alias"`
 	Saved           bool                 `bson:"saved"`
 	Fee             *OrderFee            `bson:"fee"`
-	Card            *PaymentMethodCard   `bson:"card;omitempty"`
-	Wallet          *PaymentMethodWallet `bson:"wallet;omitempty"`
-	CryptoCurrency  *PaymentMethodCrypto `bson:"crypto_currency;omitempty"`
+	Card            *PaymentMethodCard   `bson:"card,omitempty"`
+	Wallet          *PaymentMethodWallet `bson:"wallet,omitempty"`
+	CryptoCurrency  *PaymentMethodCrypto `bson:"crypto_currency,omitempty"`
 }
 
 type MgoOrder struct {
@@ -291,7 +291,7 @@ type MgoPaymentMethod struct {
 	Handler            string                   `bson:"handler"`
 	MinPaymentAmount   float64                  `bson:"min_payment_amount"`
 	MaxPaymentAmount   float64                  `bson:"max_payment_amount"`
-	TestSettings       *PaymentMethodParams     `bson:"test_settings"`
+	TestSettings       []*MgoPaymentMethodParam `bson:"test_settings"`
 	ProductionSettings []*MgoPaymentMethodParam `bson:"production_settings"`
 	IsActive           bool                     `bson:"is_active"`
 	CreatedAt          time.Time                `bson:"created_at"`
@@ -447,15 +447,16 @@ type MgoZipCode struct {
 }
 
 type MgoPaymentChannelCostSystem struct {
-	Id        bson.ObjectId `bson:"_id"`
-	Name      string        `bson:"name"`
-	Region    string        `bson:"region"`
-	Country   string        `bson:"country"`
-	Percent   float64       `bson:"percent"`
-	FixAmount float64       `bson:"fix_amount"`
-	CreatedAt time.Time     `bson:"created_at"`
-	UpdatedAt time.Time     `bson:"updated_at"`
-	IsActive  bool          `bson:"is_active"`
+	Id                bson.ObjectId `bson:"_id"`
+	Name              string        `bson:"name"`
+	Region            string        `bson:"region"`
+	Country           string        `bson:"country"`
+	Percent           float64       `bson:"percent"`
+	FixAmount         float64       `bson:"fix_amount"`
+	FixAmountCurrency string        `bson:"fix_amount_currency"`
+	CreatedAt         time.Time     `bson:"created_at"`
+	UpdatedAt         time.Time     `bson:"updated_at"`
+	IsActive          bool          `bson:"is_active"`
 }
 
 type MgoPaymentChannelCostMerchant struct {
@@ -1446,7 +1447,6 @@ func (m *PaymentMethod) GetBSON() (interface{}, error) {
 		Name:             m.Name,
 		Group:            m.Group,
 		ExternalId:       m.ExternalId,
-		TestSettings:     m.TestSettings,
 		MinPaymentAmount: m.MinPaymentAmount,
 		MaxPaymentAmount: m.MaxPaymentAmount,
 		Currencies:       m.Currencies,
@@ -1463,6 +1463,17 @@ func (m *PaymentMethod) GetBSON() (interface{}, error) {
 		}
 
 		st.Id = bson.ObjectIdHex(m.Id)
+	}
+
+	if m.TestSettings != nil {
+		for key, value := range m.TestSettings {
+			st.TestSettings = append(st.TestSettings, &MgoPaymentMethodParam{
+				Currency:       key,
+				TerminalId:     value.TerminalId,
+				Secret:         value.Secret,
+				SecretCallback: value.SecretCallback,
+			})
+		}
 	}
 
 	if m.ProductionSettings != nil {
@@ -1526,11 +1537,22 @@ func (m *PaymentMethod) SetBSON(raw bson.Raw) error {
 	m.Currencies = decoded.Currencies
 	m.MinPaymentAmount = decoded.MinPaymentAmount
 	m.MaxPaymentAmount = decoded.MaxPaymentAmount
-	m.TestSettings = decoded.TestSettings
 	m.Type = decoded.Type
 	m.AccountRegexp = decoded.AccountRegexp
 	m.IsActive = decoded.IsActive
 	m.PaymentSystemId = decoded.PaymentSystemId.Hex()
+
+	if decoded.TestSettings != nil {
+		pmp := make(map[string]*PaymentMethodParams, len(decoded.TestSettings))
+		for _, value := range decoded.TestSettings {
+			pmp[value.Currency] = &PaymentMethodParams{
+				TerminalId:     value.TerminalId,
+				Secret:         value.Secret,
+				SecretCallback: value.SecretCallback,
+			}
+		}
+		m.TestSettings = pmp
+	}
 
 	if decoded.ProductionSettings != nil {
 		pmp := make(map[string]*PaymentMethodParams, len(decoded.ProductionSettings))
@@ -2303,12 +2325,13 @@ func (m *Customer) SetBSON(raw bson.Raw) error {
 
 func (m *PaymentChannelCostSystem) GetBSON() (interface{}, error) {
 	st := &MgoPaymentChannelCostSystem{
-		Name:      m.Name,
-		Region:    m.Region,
-		Country:   m.Country,
-		Percent:   m.Percent,
-		FixAmount: m.FixAmount,
-		IsActive:  m.IsActive,
+		Name:              m.Name,
+		Region:            m.Region,
+		Country:           m.Country,
+		Percent:           m.Percent,
+		FixAmount:         m.FixAmount,
+		FixAmountCurrency: m.FixAmountCurrency,
+		IsActive:          m.IsActive,
 	}
 	if len(m.Id) <= 0 {
 		st.Id = bson.NewObjectId()
@@ -2354,6 +2377,7 @@ func (m *PaymentChannelCostSystem) SetBSON(raw bson.Raw) error {
 	m.Country = decoded.Country
 	m.Percent = decoded.Percent
 	m.FixAmount = decoded.FixAmount
+	m.FixAmountCurrency = decoded.FixAmountCurrency
 	m.IsActive = decoded.IsActive
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)

@@ -63,10 +63,13 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		MaxPaymentAmount: 15000,
 		Currencies:       []int32{643, 840, 980},
 		ExternalId:       "BANKCARD",
-		TestSettings: &billing.PaymentMethodParams{
-			TerminalId:     "15985",
-			Secret:         "A1tph4I6BD0f",
-			SecretCallback: "0V1rJ7t4jCRv",
+		TestSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				Currency:       "RUB",
+				TerminalId:     "15985",
+				Secret:         "A1tph4I6BD0f",
+				SecretCallback: "0V1rJ7t4jCRv",
+			},
 		},
 		Type:            "bank_card",
 		IsActive:        true,
@@ -91,8 +94,11 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		MaxPaymentAmount: 0,
 		Currencies:       []int32{643, 840, 980},
 		ExternalId:       "BITCOIN",
-		TestSettings: &billing.PaymentMethodParams{
-			TerminalId: "16007",
+		TestSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				Currency:   "RUB",
+				TerminalId: "16007",
+			},
 		},
 		Type:            "crypto",
 		IsActive:        true,
@@ -224,7 +230,7 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache, nil)
+	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache, nil, nil)
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -840,7 +846,7 @@ func (suite *ProjectTestSuite) SetupTest() {
 
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache, nil)
+	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache, nil, nil)
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)

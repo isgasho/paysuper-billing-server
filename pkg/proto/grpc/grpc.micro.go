@@ -81,7 +81,7 @@ It has these top-level messages:
 	SetUserNotifyRequest
 	NotifyUserSales
 	NotifyUserNewRegion
-	GetPaymentMethodProductionSettingsRequest
+	GetPaymentMethodSettingsRequest
 	ChangePaymentMethodRequest
 	ChangePaymentMethodParamsRequest
 	ChangePaymentMethodResponse
@@ -180,8 +180,11 @@ type BillingService interface {
 	SetUserNotifyNewRegion(ctx context.Context, in *SetUserNotifyRequest, opts ...client.CallOption) (*EmptyResponse, error)
 	CreateOrUpdatePaymentMethod(ctx context.Context, in *billing.PaymentMethod, opts ...client.CallOption) (*ChangePaymentMethodResponse, error)
 	CreateOrUpdatePaymentMethodProductionSettings(ctx context.Context, in *ChangePaymentMethodParamsRequest, opts ...client.CallOption) (*ChangePaymentMethodParamsResponse, error)
-	GetPaymentMethodProductionSettings(ctx context.Context, in *GetPaymentMethodProductionSettingsRequest, opts ...client.CallOption) (*billing.PaymentMethodParams, error)
-	DeletePaymentMethodProductionSettings(ctx context.Context, in *GetPaymentMethodProductionSettingsRequest, opts ...client.CallOption) (*ChangePaymentMethodParamsResponse, error)
+	GetPaymentMethodProductionSettings(ctx context.Context, in *GetPaymentMethodSettingsRequest, opts ...client.CallOption) (*billing.PaymentMethodParams, error)
+	DeletePaymentMethodProductionSettings(ctx context.Context, in *GetPaymentMethodSettingsRequest, opts ...client.CallOption) (*ChangePaymentMethodParamsResponse, error)
+	CreateOrUpdatePaymentMethodTestSettings(ctx context.Context, in *ChangePaymentMethodParamsRequest, opts ...client.CallOption) (*ChangePaymentMethodParamsResponse, error)
+	GetPaymentMethodTestSettings(ctx context.Context, in *GetPaymentMethodSettingsRequest, opts ...client.CallOption) (*billing.PaymentMethodParams, error)
+	DeletePaymentMethodTestSettings(ctx context.Context, in *GetPaymentMethodSettingsRequest, opts ...client.CallOption) (*ChangePaymentMethodParamsResponse, error)
 	GetCurrencyList(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*billing.CurrencyList, error)
 	GetCurrency(ctx context.Context, in *billing.GetCurrencyRequest, opts ...client.CallOption) (*billing.Currency, error)
 	FindByZipCode(ctx context.Context, in *FindByZipCodeRequest, opts ...client.CallOption) (*FindByZipCodeResponse, error)
@@ -727,7 +730,7 @@ func (c *billingService) CreateOrUpdatePaymentMethodProductionSettings(ctx conte
 	return out, nil
 }
 
-func (c *billingService) GetPaymentMethodProductionSettings(ctx context.Context, in *GetPaymentMethodProductionSettingsRequest, opts ...client.CallOption) (*billing.PaymentMethodParams, error) {
+func (c *billingService) GetPaymentMethodProductionSettings(ctx context.Context, in *GetPaymentMethodSettingsRequest, opts ...client.CallOption) (*billing.PaymentMethodParams, error) {
 	req := c.c.NewRequest(c.name, "BillingService.GetPaymentMethodProductionSettings", in)
 	out := new(billing.PaymentMethodParams)
 	err := c.c.Call(ctx, req, out, opts...)
@@ -737,8 +740,38 @@ func (c *billingService) GetPaymentMethodProductionSettings(ctx context.Context,
 	return out, nil
 }
 
-func (c *billingService) DeletePaymentMethodProductionSettings(ctx context.Context, in *GetPaymentMethodProductionSettingsRequest, opts ...client.CallOption) (*ChangePaymentMethodParamsResponse, error) {
+func (c *billingService) DeletePaymentMethodProductionSettings(ctx context.Context, in *GetPaymentMethodSettingsRequest, opts ...client.CallOption) (*ChangePaymentMethodParamsResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.DeletePaymentMethodProductionSettings", in)
+	out := new(ChangePaymentMethodParamsResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) CreateOrUpdatePaymentMethodTestSettings(ctx context.Context, in *ChangePaymentMethodParamsRequest, opts ...client.CallOption) (*ChangePaymentMethodParamsResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.CreateOrUpdatePaymentMethodTestSettings", in)
+	out := new(ChangePaymentMethodParamsResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetPaymentMethodTestSettings(ctx context.Context, in *GetPaymentMethodSettingsRequest, opts ...client.CallOption) (*billing.PaymentMethodParams, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetPaymentMethodTestSettings", in)
+	out := new(billing.PaymentMethodParams)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) DeletePaymentMethodTestSettings(ctx context.Context, in *GetPaymentMethodSettingsRequest, opts ...client.CallOption) (*ChangePaymentMethodParamsResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.DeletePaymentMethodTestSettings", in)
 	out := new(ChangePaymentMethodParamsResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
@@ -1040,8 +1073,11 @@ type BillingServiceHandler interface {
 	SetUserNotifyNewRegion(context.Context, *SetUserNotifyRequest, *EmptyResponse) error
 	CreateOrUpdatePaymentMethod(context.Context, *billing.PaymentMethod, *ChangePaymentMethodResponse) error
 	CreateOrUpdatePaymentMethodProductionSettings(context.Context, *ChangePaymentMethodParamsRequest, *ChangePaymentMethodParamsResponse) error
-	GetPaymentMethodProductionSettings(context.Context, *GetPaymentMethodProductionSettingsRequest, *billing.PaymentMethodParams) error
-	DeletePaymentMethodProductionSettings(context.Context, *GetPaymentMethodProductionSettingsRequest, *ChangePaymentMethodParamsResponse) error
+	GetPaymentMethodProductionSettings(context.Context, *GetPaymentMethodSettingsRequest, *billing.PaymentMethodParams) error
+	DeletePaymentMethodProductionSettings(context.Context, *GetPaymentMethodSettingsRequest, *ChangePaymentMethodParamsResponse) error
+	CreateOrUpdatePaymentMethodTestSettings(context.Context, *ChangePaymentMethodParamsRequest, *ChangePaymentMethodParamsResponse) error
+	GetPaymentMethodTestSettings(context.Context, *GetPaymentMethodSettingsRequest, *billing.PaymentMethodParams) error
+	DeletePaymentMethodTestSettings(context.Context, *GetPaymentMethodSettingsRequest, *ChangePaymentMethodParamsResponse) error
 	GetCurrencyList(context.Context, *EmptyRequest, *billing.CurrencyList) error
 	GetCurrency(context.Context, *billing.GetCurrencyRequest, *billing.Currency) error
 	FindByZipCode(context.Context, *FindByZipCodeRequest, *FindByZipCodeResponse) error
@@ -1121,8 +1157,11 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		SetUserNotifyNewRegion(ctx context.Context, in *SetUserNotifyRequest, out *EmptyResponse) error
 		CreateOrUpdatePaymentMethod(ctx context.Context, in *billing.PaymentMethod, out *ChangePaymentMethodResponse) error
 		CreateOrUpdatePaymentMethodProductionSettings(ctx context.Context, in *ChangePaymentMethodParamsRequest, out *ChangePaymentMethodParamsResponse) error
-		GetPaymentMethodProductionSettings(ctx context.Context, in *GetPaymentMethodProductionSettingsRequest, out *billing.PaymentMethodParams) error
-		DeletePaymentMethodProductionSettings(ctx context.Context, in *GetPaymentMethodProductionSettingsRequest, out *ChangePaymentMethodParamsResponse) error
+		GetPaymentMethodProductionSettings(ctx context.Context, in *GetPaymentMethodSettingsRequest, out *billing.PaymentMethodParams) error
+		DeletePaymentMethodProductionSettings(ctx context.Context, in *GetPaymentMethodSettingsRequest, out *ChangePaymentMethodParamsResponse) error
+		CreateOrUpdatePaymentMethodTestSettings(ctx context.Context, in *ChangePaymentMethodParamsRequest, out *ChangePaymentMethodParamsResponse) error
+		GetPaymentMethodTestSettings(ctx context.Context, in *GetPaymentMethodSettingsRequest, out *billing.PaymentMethodParams) error
+		DeletePaymentMethodTestSettings(ctx context.Context, in *GetPaymentMethodSettingsRequest, out *ChangePaymentMethodParamsResponse) error
 		GetCurrencyList(ctx context.Context, in *EmptyRequest, out *billing.CurrencyList) error
 		GetCurrency(ctx context.Context, in *billing.GetCurrencyRequest, out *billing.Currency) error
 		FindByZipCode(ctx context.Context, in *FindByZipCodeRequest, out *FindByZipCodeResponse) error
@@ -1359,12 +1398,24 @@ func (h *billingServiceHandler) CreateOrUpdatePaymentMethodProductionSettings(ct
 	return h.BillingServiceHandler.CreateOrUpdatePaymentMethodProductionSettings(ctx, in, out)
 }
 
-func (h *billingServiceHandler) GetPaymentMethodProductionSettings(ctx context.Context, in *GetPaymentMethodProductionSettingsRequest, out *billing.PaymentMethodParams) error {
+func (h *billingServiceHandler) GetPaymentMethodProductionSettings(ctx context.Context, in *GetPaymentMethodSettingsRequest, out *billing.PaymentMethodParams) error {
 	return h.BillingServiceHandler.GetPaymentMethodProductionSettings(ctx, in, out)
 }
 
-func (h *billingServiceHandler) DeletePaymentMethodProductionSettings(ctx context.Context, in *GetPaymentMethodProductionSettingsRequest, out *ChangePaymentMethodParamsResponse) error {
+func (h *billingServiceHandler) DeletePaymentMethodProductionSettings(ctx context.Context, in *GetPaymentMethodSettingsRequest, out *ChangePaymentMethodParamsResponse) error {
 	return h.BillingServiceHandler.DeletePaymentMethodProductionSettings(ctx, in, out)
+}
+
+func (h *billingServiceHandler) CreateOrUpdatePaymentMethodTestSettings(ctx context.Context, in *ChangePaymentMethodParamsRequest, out *ChangePaymentMethodParamsResponse) error {
+	return h.BillingServiceHandler.CreateOrUpdatePaymentMethodTestSettings(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetPaymentMethodTestSettings(ctx context.Context, in *GetPaymentMethodSettingsRequest, out *billing.PaymentMethodParams) error {
+	return h.BillingServiceHandler.GetPaymentMethodTestSettings(ctx, in, out)
+}
+
+func (h *billingServiceHandler) DeletePaymentMethodTestSettings(ctx context.Context, in *GetPaymentMethodSettingsRequest, out *ChangePaymentMethodParamsResponse) error {
+	return h.BillingServiceHandler.DeletePaymentMethodTestSettings(ctx, in, out)
 }
 
 func (h *billingServiceHandler) GetCurrencyList(ctx context.Context, in *EmptyRequest, out *billing.CurrencyList) error {

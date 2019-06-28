@@ -88,6 +88,7 @@ func (suite *ProductTestSuite) SetupTest() {
 		nil,
 		suite.cache,
 		nil,
+		nil,
 	)
 
 	if err := suite.service.Init(); err != nil {

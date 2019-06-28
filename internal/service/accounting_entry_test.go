@@ -88,10 +88,12 @@ func (suite *AccountingEntryTestSuite) SetupTest() {
 		MaxPaymentAmount: 15000,
 		Currencies:       []int32{643, 840, 980},
 		ExternalId:       "BANKCARD",
-		TestSettings: &billing.PaymentMethodParams{
-			TerminalId:     "15985",
-			Secret:         "A1tph4I6BD0f",
-			SecretCallback: "0V1rJ7t4jCRv",
+		TestSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				TerminalId:     "15985",
+				Secret:         "A1tph4I6BD0f",
+				SecretCallback: "0V1rJ7t4jCRv",
+			},
 		},
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
 			"RUB": {
@@ -195,6 +197,7 @@ func (suite *AccountingEntryTestSuite) SetupTest() {
 		nil,
 		cache,
 		mock.NewCurrencyServiceMockOk(),
+		nil,
 	)
 
 	if err := suite.service.Init(); err != nil {

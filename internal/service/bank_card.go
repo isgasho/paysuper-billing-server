@@ -1,21 +1,20 @@
 package service
 
 import (
-	"errors"
 	"strconv"
 	"time"
 )
 
-const (
-	bankCardPanIsRequired         = "bank card number is required"
-	bankCardCvvIsRequired         = "bank card CVV number is required"
-	bankCardExpireMonthIsRequired = "bank card expire month is required"
-	bankCardExpireYearIsRequired  = "bank card expire year is required"
-	bankCardHolderIsRequired      = "bank card holder name is required"
-	bankCardMonthIsInvalid        = "invalid month of card expiration"
-	bankCardIsExpired             = "bank card is expired"
-	bankCardCvvIsInvalid          = "bank card CVV is invalid"
-	bankCardPanIsInvalid          = "bank card number is invalid"
+var (
+	bankCardPanIsRequired         = newBillingServerErrorMsg("bc000001", "bank card number is required")
+	bankCardCvvIsRequired         = newBillingServerErrorMsg("bc000002", "bank card CVV number is required")
+	bankCardExpireMonthIsRequired = newBillingServerErrorMsg("bc000003", "bank card expire month is required")
+	bankCardExpireYearIsRequired  = newBillingServerErrorMsg("bc000004", "bank card expire year is required")
+	bankCardHolderIsRequired      = newBillingServerErrorMsg("bc000005", "bank card holder name is required")
+	bankCardMonthIsInvalid        = newBillingServerErrorMsg("bc000006", "invalid month of card expiration")
+	bankCardIsExpired             = newBillingServerErrorMsg("bc000007", "bank card is expired")
+	bankCardCvvIsInvalid          = newBillingServerErrorMsg("bc000008", "bank card CVV is invalid")
+	bankCardPanIsInvalid          = newBillingServerErrorMsg("bc000009", "bank card number is invalid")
 )
 
 type bankCardValidator struct {
@@ -28,23 +27,23 @@ type bankCardValidator struct {
 
 func (v *bankCardValidator) Validate() error {
 	if len(v.Pan) <= 0 {
-		return errors.New(bankCardPanIsRequired)
+		return bankCardPanIsRequired
 	}
 
 	if len(v.Cvv) <= 0 {
-		return errors.New(bankCardCvvIsRequired)
+		return bankCardCvvIsRequired
 	}
 
 	if len(v.Month) <= 0 {
-		return errors.New(bankCardExpireMonthIsRequired)
+		return bankCardExpireMonthIsRequired
 	}
 
 	if len(v.Year) <= 0 {
-		return errors.New(bankCardExpireYearIsRequired)
+		return bankCardExpireYearIsRequired
 	}
 
 	if len(v.Holder) <= 0 {
-		return errors.New(bankCardHolderIsRequired)
+		return bankCardHolderIsRequired
 	}
 
 	if err := v.validateExpire(); err != nil {
@@ -52,15 +51,15 @@ func (v *bankCardValidator) Validate() error {
 	}
 
 	if len(v.Cvv) < 3 || len(v.Cvv) > 4 {
-		return errors.New(bankCardCvvIsInvalid)
+		return bankCardCvvIsInvalid
 	}
 
 	if len(v.Pan) < 13 {
-		return errors.New(bankCardPanIsInvalid)
+		return bankCardPanIsInvalid
 	}
 
 	if ok := v.validateNumber(); !ok {
-		return errors.New(bankCardPanIsInvalid)
+		return bankCardPanIsInvalid
 	}
 
 	return nil
@@ -79,17 +78,17 @@ func (v *bankCardValidator) validateExpire() error {
 	month, _ = strconv.Atoi(v.Month)
 
 	if month < 1 || month > 12 {
-		return errors.New(bankCardMonthIsInvalid)
+		return bankCardMonthIsInvalid
 	}
 
 	tn := time.Now().UTC()
 
 	if year < tn.Year() {
-		return errors.New(bankCardIsExpired)
+		return bankCardIsExpired
 	}
 
 	if year == tn.Year() && month < int(tn.Month()) {
-		return errors.New(bankCardIsExpired)
+		return bankCardIsExpired
 	}
 
 	return nil

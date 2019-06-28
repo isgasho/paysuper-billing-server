@@ -20,7 +20,6 @@ require (
 	github.com/kelseyhightower/envconfig v1.3.0
 	github.com/micro/go-micro v1.0.0
 	github.com/micro/go-plugins v1.0.0
-	github.com/micro/kubernetes v0.7.0
 	github.com/micro/protoc-gen-micro v0.8.0 // indirect
 	github.com/paysuper/paysuper-currencies v0.0.0-20190524103445-940bc8855c5c
 	github.com/paysuper/paysuper-database-mongo v0.1.0

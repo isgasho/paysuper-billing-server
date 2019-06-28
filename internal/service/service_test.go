@@ -96,6 +96,7 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		nil,
 		NewCacheRedis(redisdb),
 		nil,
+		nil,
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -130,10 +131,13 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		MaxPaymentAmount: 15000,
 		Currencies:       []int32{643, 840, 980},
 		ExternalId:       "BANKCARD",
-		TestSettings: &billing.PaymentMethodParams{
-			TerminalId:     "15985",
-			Secret:         "A1tph4I6BD0f",
-			SecretCallback: "0V1rJ7t4jCRv",
+		TestSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				Currency:       "RUB",
+				TerminalId:     "15985",
+				Secret:         "A1tph4I6BD0f",
+				SecretCallback: "0V1rJ7t4jCRv",
+			},
 		},
 		Type:            "bank_card",
 		IsActive:        true,
@@ -312,8 +316,11 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		MaxPaymentAmount: 0,
 		Currencies:       []int32{643, 840, 980},
 		ExternalId:       "QIWI",
-		TestSettings: &billing.PaymentMethodParams{
-			TerminalId: "15993",
+		TestSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				Currency:   "RUB",
+				TerminalId: "15993",
+			},
 		},
 		Type:            "ewallet",
 		IsActive:        true,
@@ -327,8 +334,11 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		MaxPaymentAmount: 0,
 		Currencies:       []int32{643, 840, 980},
 		ExternalId:       "BITCOIN",
-		TestSettings: &billing.PaymentMethodParams{
-			TerminalId: "16007",
+		TestSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				Currency:   "RUB",
+				TerminalId: "16007",
+			},
 		},
 		Type:            "crypto",
 		IsActive:        true,
@@ -464,7 +474,7 @@ func (suite *BillingServiceTestSuite) TearDownTest() {
 func (suite *BillingServiceTestSuite) TestNewBillingService() {
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	service := NewBillingService(suite.db, suite.cfg, nil, nil, nil, nil, nil, suite.cache, nil)
+	service := NewBillingService(suite.db, suite.cfg, nil, nil, nil, nil, nil, suite.cache, nil, nil)
 
 	err := service.Init()
 	assert.Nil(suite.T(), err)
@@ -477,7 +487,7 @@ func (suite *BillingServiceTestSuite) TestBillingService_AccountingCurrencyInitE
 
 	cfg.AccountingCurrency = "AUD"
 	suite.cache = NewCacheRedis(mock.NewTestRedis())
-	service := NewBillingService(suite.db, cfg, nil, nil, nil, nil, nil, suite.cache, nil)
+	service := NewBillingService(suite.db, cfg, nil, nil, nil, nil, nil, suite.cache, nil, nil)
 
 	err = service.Init()
 	assert.Error(suite.T(), err)
@@ -486,7 +496,7 @@ func (suite *BillingServiceTestSuite) TestBillingService_AccountingCurrencyInitE
 func (suite *BillingServiceTestSuite) TestBillingService_IsProductionEnvironment() {
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	service := NewBillingService(suite.db, suite.cfg, nil, nil, nil, nil, nil, suite.cache, nil)
+	service := NewBillingService(suite.db, suite.cfg, nil, nil, nil, nil, nil, suite.cache, nil, nil)
 
 	err := service.Init()
 	assert.Nil(suite.T(), err)

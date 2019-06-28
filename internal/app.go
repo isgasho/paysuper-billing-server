@@ -14,7 +14,6 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/micro/go-micro"
-	k8s "github.com/micro/kubernetes/go/micro"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/service"
@@ -114,14 +113,9 @@ func (app *Application) Init() {
 		}),
 	}
 
-	if app.cfg.MicroRegistry == constant.RegistryKubernetes {
-		app.service = k8s.NewService(options...)
-		app.logger.Info("Initialize k8s service")
-	} else {
-		app.service = micro.NewService(options...)
-		app.logger.Info("Initialize micro service")
-	}
+	app.logger.Info("Initialize micro service")
 
+	app.service = micro.NewService(options...)
 	app.service.Init()
 
 	geoService := proto.NewGeoIpService(geoip.ServiceName, app.service.Client())

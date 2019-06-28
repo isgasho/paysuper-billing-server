@@ -141,6 +141,7 @@ func (suite *TokenTestSuite) SetupTest() {
 		redisClient,
 		suite.cache,
 		nil,
+		nil,
 	)
 
 	if err := suite.service.Init(); err != nil {

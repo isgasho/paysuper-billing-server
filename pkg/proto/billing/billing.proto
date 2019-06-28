@@ -609,7 +609,7 @@ message PaymentMethodOrder {
 message PaymentMethodParams {
     // @inject_tag: bson:"currency" json:"currency" validate:"required,alpha,len=3"
     string currency = 1;
-    // @inject_tag: bson:"terminal_id" json:"currency" validate:"omitempty,alphanumeric"
+    // @inject_tag: bson:"terminal_id" json:"currency" validate:"omitempty,alphanum"
     string terminal_id = 2;
     // @inject_tag: bson:"secret" json:"secret" validate:"omitempty"
     string secret = 3;
@@ -633,7 +633,7 @@ message PaymentSystem {
     google.protobuf.Timestamp created_at = 7;
     // @inject_tag: bson:"updated_at" structure:"updated_at,timestamp"
     google.protobuf.Timestamp updated_at = 8;
-    // @inject_tag: bson:"handler" json:"handler" validate:"omitempty,alphanumeric"
+    // @inject_tag: bson:"handler" json:"handler" validate:"omitempty,alphanum"
     string handler = 9;
 }
 
@@ -733,11 +733,11 @@ message CurrencyRate {
 message PaymentMethod {
     // @inject_tag: bson:"_id" json:"id" validate:"omitempty,hexadecimal,len=24"
     string id = 1;
-    // @inject_tag: bson:"name" json:"name" validate:"required,omitempty,alphanumeric"
+    // @inject_tag: bson:"name" json:"name" validate:"required,omitempty,alphanum"
     string name = 2;
-    // @inject_tag: bson:"group_alias" json:"group_alias" validate:"omitempty,alphanumeric"
+    // @inject_tag: bson:"group_alias" json:"group_alias" validate:"omitempty,alphanum"
     string group = 3;
-    // @inject_tag: bson:"external_id" json:"external_id" validate:"omitempty,alphanumeric"
+    // @inject_tag: bson:"external_id" json:"external_id" validate:"omitempty,alphanum"
     string external_id = 5;
     // @inject_tag: bson:"currencies" json:"currencies" validate:"omitempty,numeric,dive,gte=0"
     repeated int32 currencies = 6;
@@ -754,7 +754,7 @@ message PaymentMethod {
     // @inject_tag: bson:"payment_system_id" json:"payment_system_id" validate:"required,hexadecimal,len=24"
     string payment_system_id = 12;
     // @inject_tag: bson:"test_settings" json:"test_settings" validate:"omitempty"
-    PaymentMethodParams test_settings = 13;
+    map<string,PaymentMethodParams>  test_settings = 13;
     // @inject_tag: bson:"production_settings" json:"production_settings" validate:"omitempty"
     map<string,PaymentMethodParams> production_settings = 14;
     // @inject_tag: bson:"created_at" json:"max_payment_amount" validate:"omitempty"

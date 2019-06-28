@@ -1,0 +1,430 @@
+[
+  {
+    "drop": "payment_method"
+  },
+  {
+    "create": "payment_method"
+  },
+  {
+    "insert": "payment_method",
+    "documents": [
+      {
+        "_id": {
+          "$oid": "5be2d0b4b0b30d0007383ce6"
+        },
+        "payment_system_id": {
+          "$oid": "5be2d0b4b0b30d0007383ce5"
+        },
+        "name": "Bank card",
+        "group_alias": "BANKCARD",
+        "min_payment_amount": {
+          "$numberDouble": "0.01"
+        },
+        "max_payment_amount": {
+          "$numberInt": "15000"
+        },
+        "external_id": "BANKCARD",
+        "test_settings": [
+          {
+            "currency": "USD",
+            "terminal_id": "15985",
+            "secret": "A1tph4I6BD0f",
+            "secret_callback": "0V1rJ7t4jCRv"
+          },
+          {
+            "currency": "EUR",
+            "terminal_id": "15985",
+            "secret": "A1tph4I6BD0f",
+            "secret_callback": "0V1rJ7t4jCRv"
+          },
+          {
+            "currency": "RUB",
+            "terminal_id": "15985",
+            "secret": "A1tph4I6BD0f",
+            "secret_callback": "0V1rJ7t4jCRv"
+          },
+          {
+            "currency": "GBP",
+            "terminal_id": "15985",
+            "secret": "A1tph4I6BD0f",
+            "secret_callback": "0V1rJ7t4jCRv"
+          }
+        ],
+        "is_active": true,
+        "created_at": {
+          "$date": {
+            "$numberLong": "1541591220825"
+          }
+        },
+        "updated_at": {
+          "$date": {
+            "$numberLong": "1541591220825"
+          }
+        },
+        "currencies": [
+          {
+            "$numberInt": "978"
+          },
+          {
+            "$numberInt": "826"
+          },
+          {
+            "$numberInt": "643"
+          },
+          {
+            "$numberInt": "840"
+          }
+        ],
+        "type": "bank_card",
+        "account_regexp": "^(?:4[0-9]{12}(?:[0-9]{3})?|[25][1-7][0-9]{14}|6(?:011|5[0-9][0-9])[0-9]{12}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|(?:2131|1800|35\\d{3})\\d{11})$"
+      },
+      {
+        "_id": {
+          "$oid": "5bf67ebd46452d00062c7cc0"
+        },
+        "payment_system_id": {
+          "$oid": "5be2d0b4b0b30d0007383ce5"
+        },
+        "name": "Qiwi",
+        "group_alias": "QIWI",
+        "min_payment_amount": {
+          "$numberDouble": "0.01"
+        },
+        "max_payment_amount": {
+          "$numberInt": "15000"
+        },
+        "external_id": "QIWI",
+        "test_settings": [
+          {
+            "currency": "USD",
+            "terminal_id": "15993",
+            "secret": "voV48QC12Yxi",
+            "secret_callback": "39vtl1AKyHG2"
+          },
+          {
+            "currency": "EUR",
+            "terminal_id": "15993",
+            "secret": "voV48QC12Yxi",
+            "secret_callback": "39vtl1AKyHG2"
+          },
+          {
+            "currency": "RUB",
+            "terminal_id": "15993",
+            "secret": "voV48QC12Yxi",
+            "secret_callback": "39vtl1AKyHG2"
+          },
+          {
+            "currency": "GBP",
+            "terminal_id": "15993",
+            "secret": "voV48QC12Yxi",
+            "secret_callback": "39vtl1AKyHG2"
+          }
+        ],
+        "is_active": true,
+        "created_at": {
+          "$date": {
+            "$numberLong": "1542880957414"
+          }
+        },
+        "updated_at": {
+          "$date": {
+            "$numberLong": "1542880957414"
+          }
+        },
+        "currencies": [
+          {
+            "$numberInt": "978"
+          },
+          {
+            "$numberInt": "826"
+          },
+          {
+            "$numberInt": "840"
+          }
+        ],
+        "type": "ewallet",
+        "account_regexp": "^\\d{1,15}"
+      },
+      {
+        "_id": {
+          "$oid": "5bf67ebd46452d00062c7cc1"
+        },
+        "payment_system_id": {
+          "$oid": "5be2d0b4b0b30d0007383ce5"
+        },
+        "name": "WebMoney",
+        "group_alias": "WEBMONEY",
+        "min_payment_amount": {
+          "$numberDouble": "0.01"
+        },
+        "max_payment_amount": {
+          "$numberInt": "15000"
+        },
+        "external_id": "WEBMONEY",
+        "test_settings": [
+          {
+            "currency": "USD",
+            "terminal_id": "15989",
+            "secret": "9gExLa231FJc",
+            "secret_callback": "Tafb6Jr5O8W4"
+          },
+          {
+            "currency": "EUR",
+            "terminal_id": "15989",
+            "secret": "9gExLa231FJc",
+            "secret_callback": "Tafb6Jr5O8W4"
+          },
+          {
+            "currency": "RUB",
+            "terminal_id": "15989",
+            "secret": "9gExLa231FJc",
+            "secret_callback": "Tafb6Jr5O8W4"
+          },
+          {
+            "currency": "GBP",
+            "terminal_id": "15989",
+            "secret": "9gExLa231FJc",
+            "secret_callback": "Tafb6Jr5O8W4"
+          }
+        ],
+        "is_active": true,
+        "created_at": {
+          "$date": {
+            "$numberLong": "1542880957414"
+          }
+        },
+        "updated_at": {
+          "$date": {
+            "$numberLong": "1542880957414"
+          }
+        },
+        "currencies": [
+          {
+            "$numberInt": "978"
+          },
+          {
+            "$numberInt": "826"
+          },
+          {
+            "$numberInt": "643"
+          },
+          {
+            "$numberInt": "840"
+          }
+        ],
+        "type": "ewallet",
+        "account_regexp": "^[ZERB][0-9]{12}$"
+      },
+      {
+        "_id": {
+          "$oid": "5bf67ebd46452d00062c7cc2"
+        },
+        "payment_system_id": {
+          "$oid": "5be2d0b4b0b30d0007383ce5"
+        },
+        "name": "Neteller",
+        "group_alias": "NETELLER",
+        "min_payment_amount": {
+          "$numberDouble": "0.01"
+        },
+        "max_payment_amount": {
+          "$numberInt": "15000"
+        },
+        "external_id": "NETELLER",
+        "test_settings": [
+          {
+            "currency": "USD",
+            "terminal_id": "15997",
+            "secret": "gUl03nf9LSI8",
+            "secret_callback": "A8meZ1w09bKL"
+          },
+          {
+            "currency": "EUR",
+            "terminal_id": "15997",
+            "secret": "gUl03nf9LSI8",
+            "secret_callback": "A8meZ1w09bKL"
+          },
+          {
+            "currency": "RUB",
+            "terminal_id": "15997",
+            "secret": "gUl03nf9LSI8",
+            "secret_callback": "A8meZ1w09bKL"
+          },
+          {
+            "currency": "GBP",
+            "terminal_id": "15997",
+            "secret": "gUl03nf9LSI8",
+            "secret_callback": "A8meZ1w09bKL"
+          }
+        ],
+        "is_active": true,
+        "created_at": {
+          "$date": {
+            "$numberLong": "1542880957414"
+          }
+        },
+        "updated_at": {
+          "$date": {
+            "$numberLong": "1542880957414"
+          }
+        },
+        "currencies": [
+          {
+            "$numberInt": "978"
+          },
+          {
+            "$numberInt": "826"
+          },
+          {
+            "$numberInt": "643"
+          },
+          {
+            "$numberInt": "840"
+          }
+        ],
+        "type": "ewallet",
+        "account_regexp": "^([a-zA-Z0-9_.+-])+\\@(([a-zA-Z0-9-])+\\.)+([a-zA-Z0-9]{2,4})+$"
+      },
+      {
+        "_id": {
+          "$oid": "5bf67ebd46452d00062c7cc3"
+        },
+        "payment_system_id": {
+          "$oid": "5be2d0b4b0b30d0007383ce5"
+        },
+        "name": "Alipay",
+        "group_alias": "ALIPAY",
+        "min_payment_amount": {
+          "$numberDouble": "0.01"
+        },
+        "max_payment_amount": {
+          "$numberInt": "15000"
+        },
+        "external_id": "ALIPAY",
+        "test_settings": [
+          {
+            "currency": "USD",
+            "terminal_id": "16001",
+            "secret": "5wpTa194lCXE",
+            "secret_callback": "7A4jBwrJz9C2"
+          },
+          {
+            "currency": "EUR",
+            "terminal_id": "16001",
+            "secret": "5wpTa194lCXE",
+            "secret_callback": "7A4jBwrJz9C2"
+          },
+          {
+            "currency": "RUB",
+            "terminal_id": "16001",
+            "secret": "5wpTa194lCXE",
+            "secret_callback": "7A4jBwrJz9C2"
+          },
+          {
+            "currency": "GBP",
+            "terminal_id": "16001",
+            "secret": "5wpTa194lCXE",
+            "secret_callback": "7A4jBwrJz9C2"
+          }
+        ],
+        "is_active": true,
+        "created_at": {
+          "$date": {
+            "$numberLong": "1542880957467"
+          }
+        },
+        "updated_at": {
+          "$date": {
+            "$numberLong": "1542880957467"
+          }
+        },
+        "currencies": [
+          {
+            "$numberInt": "978"
+          },
+          {
+            "$numberInt": "826"
+          },
+          {
+            "$numberInt": "643"
+          },
+          {
+            "$numberInt": "840"
+          }
+        ],
+        "type": "ewallet",
+        "account_regexp": "^.*$"
+      },
+      {
+        "_id": {
+          "$oid": "5bf67ebd46452d00062c7cc4"
+        },
+        "payment_system_id": {
+          "$oid": "5be2d0b4b0b30d0007383ce5"
+        },
+        "name": "Bitcoin",
+        "group_alias": "BITCOIN",
+        "min_payment_amount": {
+          "$numberDouble": "0.01"
+        },
+        "max_payment_amount": {
+          "$numberInt": "15000"
+        },
+        "external_id": "BITCOIN",
+        "test_settings": [
+          {
+            "currency": "USD",
+            "terminal_id": "16007",
+            "secret": "QP86y7gzRVq4",
+            "secret_callback": "2p6iVH08YngW"
+          },
+          {
+            "currency": "EUR",
+            "terminal_id": "16007",
+            "secret": "QP86y7gzRVq4",
+            "secret_callback": "2p6iVH08YngW"
+          },
+          {
+            "currency": "RUB",
+            "terminal_id": "16007",
+            "secret": "QP86y7gzRVq4",
+            "secret_callback": "2p6iVH08YngW"
+          },
+          {
+            "currency": "GBP",
+            "terminal_id": "16007",
+            "secret": "QP86y7gzRVq4",
+            "secret_callback": "2p6iVH08YngW"
+          }
+        ],
+        "is_active": true,
+        "created_at": {
+          "$date": {
+            "$numberLong": "1542880957467"
+          }
+        },
+        "updated_at": {
+          "$date": {
+            "$numberLong": "1542880957467"
+          }
+        },
+        "currencies": [
+          {
+            "$numberInt": "978"
+          },
+          {
+            "$numberInt": "826"
+          },
+          {
+            "$numberInt": "643"
+          },
+          {
+            "$numberInt": "840"
+          }
+        ],
+        "type": "crypto",
+        "account_regexp": "^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$"
+      }
+    ]
+  }
+]

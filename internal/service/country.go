@@ -13,7 +13,7 @@ import (
 const (
 	cacheCountryCodeA2  = "country:code_a2:%s"
 	cacheCountryAll     = "country:all"
-	cacheCountryRegions = "country:all"
+	cacheCountryRegions = "country:regions"
 
 	collectionCountry = "country"
 
