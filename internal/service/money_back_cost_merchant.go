@@ -21,6 +21,13 @@ const (
 	collectionMoneyBackCostMerchant = "money_back_cost_merchant"
 )
 
+var (
+	errorMoneybackMerchantGetAll    = newBillingServerErrorMsg("mbs000001", "can't get list of money back setting for merchant")
+	errorMoneybackMerchantGet       = newBillingServerErrorMsg("mbs000002", "can't get money back setting for merchant")
+	errorMoneybackMerchantSetFailed = newBillingServerErrorMsg("mbs000003", "can't set money back setting for merchant")
+	errorMoneybackMerchantDelete    = newBillingServerErrorMsg("mbs000004", "can't delete money back setting for merchant")
+)
+
 func (s *Service) GetAllMoneyBackCostMerchant(
 	ctx context.Context,
 	req *billing.MoneyBackCostMerchantListRequest,

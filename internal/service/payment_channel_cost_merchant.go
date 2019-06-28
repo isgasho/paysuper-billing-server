@@ -23,6 +23,13 @@ const (
 	errorCostMatchedToAmountNotFound = "cost matched to amount not found"
 )
 
+var (
+	errorPaymentChannelMerchantGetAll    = newBillingServerErrorMsg("pcm000001", "can't get list of payment channel setting for merchant")
+	errorPaymentChannelMerchantGet       = newBillingServerErrorMsg("pcm000002", "can't get payment channel setting for merchant")
+	errorPaymentChannelMerchantSetFailed = newBillingServerErrorMsg("pcm000003", "can't set payment channel setting for merchant")
+	errorPaymentChannelMerchantDelete    = newBillingServerErrorMsg("pcm000004", "can't delete payment channel setting for merchant")
+)
+
 func (s *Service) GetAllPaymentChannelCostMerchant(
 	ctx context.Context,
 	req *billing.PaymentChannelCostMerchantListRequest,

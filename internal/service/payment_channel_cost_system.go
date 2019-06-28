@@ -19,6 +19,13 @@ const (
 	collectionPaymentChannelCostSystem = "payment_channel_cost_system"
 )
 
+var (
+	errorPaymentChannelSystemGetAll    = newBillingServerErrorMsg("pcs000001", "can't get list of payment channel setting for system")
+	errorPaymentChannelSystemGet       = newBillingServerErrorMsg("pcs000002", "can't get payment channel setting for system")
+	errorPaymentChannelSystemSetFailed = newBillingServerErrorMsg("pcs000003", "can't set payment channel setting for system")
+	errorPaymentChannelSystemDelete    = newBillingServerErrorMsg("pcs000004", "can't delete payment channel setting for system")
+)
+
 func (s *Service) GetAllPaymentChannelCostSystem(
 	ctx context.Context,
 	req *grpc.EmptyRequest,
