@@ -138,7 +138,7 @@ func (s *Service) ListRoyaltyReportOrders(
 		query["period_to"] = bson.M{"$gte": time.Unix(req.PeriodFrom, 0)}
 	}
 
-	count, err := s.db.Collection(collectionRoyaltyReport).Find(query).Count()
+	_, err := s.db.Collection(collectionRoyaltyReport).Find(query).Count()
 
 	if err != nil {
 		zap.S().Errorf("Query from table ended with error", "err", err.Error(), "table", collectionOrder)
