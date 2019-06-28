@@ -9,6 +9,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"sort"
 )
@@ -97,8 +98,16 @@ func (s *Service) SetPaymentChannelCostMerchant(
 		}
 	}
 
-	// todo: 1. check for supported PayoutCurrency after integrations with currencies service
-	// todo: 2. check for supported PsFixedFeeCurrency after integrations with currencies service
+	sCurr, err := s.curService.GetSettlementCurrencies(ctx, &currencies.EmptyRequest{})
+	if err != nil {
+		return err
+	}
+	if !contains(sCurr.Currencies, req.PayoutCurrency) {
+		return errors.New("currency not supported")
+	}
+	if !contains(sCurr.Currencies, req.PsFixedFeeCurrency) {
+		return errors.New("currency not supported")
+	}
 
 	req.IsActive = true
 

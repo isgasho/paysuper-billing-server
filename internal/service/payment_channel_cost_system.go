@@ -8,6 +8,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 )
 
@@ -93,6 +94,14 @@ func (s *Service) SetPaymentChannelCostSystem(
 	}
 
 	req.IsActive = true
+
+	sCurr, err := s.curService.GetSettlementCurrencies(ctx, &currencies.EmptyRequest{})
+	if err != nil {
+		return err
+	}
+	if !contains(sCurr.Currencies, req.FixAmountCurrency) {
+		return errors.New("currency not supported")
+	}
 
 	if val == nil {
 		req.Id = bson.NewObjectId().Hex()
