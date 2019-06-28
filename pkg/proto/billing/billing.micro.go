@@ -74,6 +74,7 @@ It has these top-level messages:
 	OrderIssuer
 	OrderNotificationRefund
 	GetCountryRequest
+	CountryVatThreshold
 	Country
 	CountriesList
 	GetPriceGroupRequest

@@ -1,0 +1,1075 @@
+[
+  {
+    "createIndexes": "country",
+    "indexes": [
+      {
+        "key": {
+          "vat_enabled": 1
+        },
+        "name": "vat_enabled"
+      }
+    ]
+  },
+  {
+    "update": "country",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$currentDate": {
+            "created_at": true,
+            "updated_at": true
+          },
+          "$set": {
+            "vat_rate": 0,
+            "vat_threshold": {
+              "year": 0,
+              "world": 0
+            },
+            "vat_period_month": 0,
+            "vat_deadline_days": 0,
+            "vat_store_years": 0,
+            "vat_currency_rates_policy": "",
+            "vat_currency_rates_source": ""
+          }
+        },
+        "multi": true
+      },
+      {
+        "q": {
+          "iso_code_a2": "AU"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 10,
+            "vat_threshold": {
+              "year": 75000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 28,
+            "vat_store_years": 5,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbau"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CA"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 9.975,
+            "vat_threshold": {
+              "year": 30000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 28,
+            "vat_store_years": 6,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbca"
+
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "KR"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 10,
+            "vat_period_month": 0,
+            "vat_deadline_days": 0,
+            "vat_store_years": 10
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "RU"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 20,
+            "vat_period_month": 3,
+            "vat_deadline_days": 25,
+            "vat_store_years": 5,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbrf"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TR"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 18,
+            "vat_period_month": 1,
+            "vat_deadline_days": 0,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "on-day",
+            "vat_currency_rates_source": "cbtr"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AT"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 20,
+            "vat_threshold": {
+              "year": 10000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbeu"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BE"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 21,
+            "vat_threshold": {
+              "year": 10000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbeu"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BG"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 20,
+            "vat_threshold": {
+              "year": 10000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbeu"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GB"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 20,
+            "vat_threshold": {
+              "year": 10000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbeu"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "HU"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 27,
+            "vat_threshold": {
+              "year": 10000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbeu"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "DE"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 19,
+            "vat_threshold": {
+              "year": 10000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbeu"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GR"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 24,
+            "vat_threshold": {
+              "year": 10000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbeu"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "DK"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 25,
+            "vat_threshold": {
+              "year": 10000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbeu"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "IE"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 23,
+            "vat_threshold": {
+              "year": 10000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbeu"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "ES"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 21,
+            "vat_threshold": {
+              "year": 10000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbeu"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "IT"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 22,
+            "vat_threshold": {
+              "year": 10000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbeu"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CY"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 19,
+            "vat_threshold": {
+              "year": 15600,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 10,
+            "vat_store_years": 6,
+            "vat_currency_rates_policy": "on-day",
+            "vat_currency_rates_source": "cedcy"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "LV"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 21,
+            "vat_threshold": {
+              "year": 10000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbeu"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "LT"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 21,
+            "vat_threshold": {
+              "year": 10000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbeu"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "LU"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 17,
+            "vat_threshold": {
+              "year": 10000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbeu"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MT"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 18,
+            "vat_threshold": {
+              "year": 10000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbeu"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "NL"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 21,
+            "vat_threshold": {
+              "year": 10000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbeu"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "PL"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 23,
+            "vat_threshold": {
+              "year": 10000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbeu"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "PT"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 23,
+            "vat_threshold": {
+              "year": 10000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbeu"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "RO"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 19,
+            "vat_threshold": {
+              "year": 10000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbeu"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SK"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 20,
+            "vat_threshold": {
+              "year": 10000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbeu"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SI"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 22,
+            "vat_threshold": {
+              "year": 10000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbeu"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "FI"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 24,
+            "vat_threshold": {
+              "year": 10000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbeu"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "FR"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 20,
+            "vat_threshold": {
+              "year": 10000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbeu"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "HR"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 25,
+            "vat_threshold": {
+              "year": 10000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbeu"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CZ"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 21,
+            "vat_threshold": {
+              "year": 10000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbeu"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SE"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 25,
+            "vat_threshold": {
+              "year": 10000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbeu"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "EE"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 20,
+            "vat_threshold": {
+              "year": 10000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbeu"
+          }
+        }
+      },
+
+
+
+      {
+        "q": {
+          "iso_code_a2": "IS"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 24,
+            "vat_threshold": {
+              "year": 2000000,
+              "world": 0
+            },
+            "vat_period_month": 2,
+            "vat_deadline_days": 5,
+            "vat_store_years": 7,
+            "vat_currency_rates_source": "cbis"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "NZ"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 15,
+            "vat_threshold": {
+              "year": 60000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 28,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbnz"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "NO"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 25,
+            "vat_threshold": {
+              "year": 50000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "on-day",
+            "vat_currency_rates_source": "noc"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SG"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 7,
+            "vat_threshold": {
+              "year": 100000,
+              "world": 1000000
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 28,
+            "vat_store_years": 5
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "JP"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 8,
+            "vat_threshold": {
+              "year": 10000000,
+              "world": 0
+            },
+            "vat_period_month": 12,
+            "vat_deadline_days": 0,
+            "vat_store_years": 10,
+            "vat_currency_rates_source": "cbjp"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "LI"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 7.7,
+            "vat_threshold": {
+              "year": 0,
+              "world": 100000
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 60,
+            "vat_store_years": 5,
+            "vat_currency_rates_policy": "mid-month",
+            "vat_currency_rates_source": "fta"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CH"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 7.7,
+            "vat_threshold": {
+              "year": 0,
+              "world": 100000
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 60,
+            "vat_store_years": 5,
+            "vat_currency_rates_policy": "mid-month",
+            "vat_currency_rates_source": "fta"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AR"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 21,
+            "vat_period_month": 0,
+            "vat_deadline_days": 0,
+            "vat_store_years": 10,
+            "vat_currency_rates_source": "cbar"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BY"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 20,
+            "vat_period_month": 3,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "last-day",
+            "vat_currency_rates_source": "cbby"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AE"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 5,
+            "vat_threshold": {
+              "year": 375000,
+              "world": 0
+            },
+            "vat_period_month": 3,
+            "vat_deadline_days": 28,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "on-day",
+            "vat_currency_rates_source": "cbuae"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SA"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 5,
+            "vat_period_month": 3,
+            "vat_deadline_days": 28,
+            "vat_store_years": 6,
+            "vat_currency_rates_policy": "on-day",
+            "vat_currency_rates_source": "sama"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "RS"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 20,
+            "vat_period_month": 3,
+            "vat_deadline_days": 15,
+            "vat_store_years": 10,
+            "vat_currency_rates_source": "cbrs"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TW"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 5,
+            "vat_threshold": {
+              "year": 480000,
+              "world": 0
+            },
+            "vat_period_month": 2,
+            "vat_deadline_days": 15,
+            "vat_store_years": 10,
+            "vat_currency_rates_source": "cbtw"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "ZA"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 15,
+            "vat_threshold": {
+              "year": 1000000,
+              "world": 0
+            },
+            "vat_period_month": 2,
+            "vat_deadline_days": 10,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "on-day",
+            "vat_currency_rates_source": "cbeu"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AM"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 20,
+            "vat_threshold": {
+              "year": 115000000,
+              "world": 0
+            },
+            "vat_period_month": 1,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "on-day",
+            "vat_currency_rates_source": "cbam"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BH"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 5,
+            "vat_period_month": 3,
+            "vat_deadline_days": 28,
+            "vat_store_years": 5,
+            "vat_currency_rates_policy": "on-day",
+            "vat_currency_rates_source": "cbbh"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "EG"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 14,
+            "vat_threshold": {
+              "year": 500000,
+              "world": 0
+            },
+            "vat_period_month": 1,
+            "vat_deadline_days": 59,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "on-day",
+            "vat_currency_rates_source": "cbeg"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "IN"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 18,
+            "vat_period_month": 1,
+            "vat_deadline_days": 2,
+            "vat_store_years": 10,
+            "vat_currency_rates_source": "cbin"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TZ"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 18,
+            "vat_period_month": 1,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_source": "cbtz"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "UY"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 22,
+            "vat_period_month": 1,
+            "vat_deadline_days": 15,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "on-day",
+            "vat_currency_rates_source": "cbuy"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AL"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 20,
+            "vat_period_month": 1,
+            "vat_deadline_days": 14,
+            "vat_store_years": 10,
+            "vat_currency_rates_policy": "on-day",
+            "vat_currency_rates_source": "cbal"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BR"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 17,
+            "vat_period_month": 1,
+            "vat_deadline_days": 0,
+            "vat_store_years": 5,
+            "vat_currency_rates_source": "cbbr"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GH"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 12.5,
+            "vat_threshold": {
+              "year": 200000,
+              "world": 0
+            },
+            "vat_period_month": 1,
+            "vat_deadline_days": 0,
+            "vat_store_years": 3,
+            "vat_currency_rates_source": "cbgh"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "KE"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 16,
+            "vat_threshold": {
+              "year": 5000000,
+              "world": 0
+            },
+            "vat_period_month": 1,
+            "vat_deadline_days": 20,
+            "vat_store_years": 10,
+            "vat_currency_rates_source": "cbke"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CO"
+        },
+        "u": {
+          "$set": {
+            "vat_rate": 19,
+            "vat_period_month": 2,
+            "vat_deadline_days": 14,
+            "vat_store_years": 10,
+            "vat_currency_rates_source": "cbco"
+          }
+        }
+      }
+    ]
+  }
+]

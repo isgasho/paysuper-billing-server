@@ -7,13 +7,15 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"go.uber.org/zap"
 )
 
 const (
-	cacheCountryCodeA2  = "country:code_a2:%s"
-	cacheCountryAll     = "country:all"
-	cacheCountryRegions = "country:regions"
+	cacheCountryCodeA2           = "country:code_a2:%s"
+	cacheCountryAll              = "country:all"
+	cacheCountryRegions          = "country:regions"
+	cacheCountriesWithVatEnabled = "country:with_vat"
 
 	collectionCountry = "country"
 )
@@ -59,6 +61,13 @@ func (s *Service) GetCountry(
 	res.VatEnabled = country.VatEnabled
 	res.VatCurrency = country.VatCurrency
 	res.PriceGroupId = country.PriceGroupId
+	res.VatRate = country.VatRate
+	res.VatThreshold = country.VatThreshold
+	res.VatPeriodMonth = country.VatPeriodMonth
+	res.VatDeadlineDays = country.VatDeadlineDays
+	res.VatStoreYears = country.VatStoreYears
+	res.VatCurrencyRatesPolicy = country.VatCurrencyRatesPolicy
+	res.VatCurrencyRatesSource = country.VatCurrencyRatesSource
 	res.CreatedAt = country.CreatedAt
 	res.UpdatedAt = country.UpdatedAt
 
@@ -81,18 +90,36 @@ func (s *Service) UpdateCountry(
 		return err
 	}
 
+	var threshold *billing.CountryVatThreshold
+
+	if req.VatThreshold != nil {
+		threshold = req.VatThreshold
+	} else {
+		threshold = &billing.CountryVatThreshold{
+			Year:  0,
+			World: 0,
+		}
+	}
+
 	update := &billing.Country{
-		Id:              country.Id,
-		IsoCodeA2:       country.IsoCodeA2,
-		Region:          req.Region,
-		Currency:        req.Currency,
-		PaymentsAllowed: req.PaymentsAllowed,
-		ChangeAllowed:   req.ChangeAllowed,
-		VatEnabled:      req.VatEnabled,
-		VatCurrency:     req.VatCurrency,
-		PriceGroupId:    pg.Id,
-		CreatedAt:       country.CreatedAt,
-		UpdatedAt:       ptypes.TimestampNow(),
+		Id:                     country.Id,
+		IsoCodeA2:              country.IsoCodeA2,
+		Region:                 req.Region,
+		Currency:               req.Currency,
+		PaymentsAllowed:        req.PaymentsAllowed,
+		ChangeAllowed:          req.ChangeAllowed,
+		VatEnabled:             req.VatEnabled,
+		VatCurrency:            req.VatCurrency,
+		PriceGroupId:           pg.Id,
+		VatRate:                req.VatRate,
+		VatThreshold:           threshold,
+		VatPeriodMonth:         req.VatPeriodMonth,
+		VatDeadlineDays:        req.VatDeadlineDays,
+		VatStoreYears:          req.VatStoreYears,
+		VatCurrencyRatesPolicy: req.VatCurrencyRatesPolicy,
+		VatCurrencyRatesSource: req.VatCurrencyRatesSource,
+		CreatedAt:              country.CreatedAt,
+		UpdatedAt:              ptypes.TimestampNow(),
 	}
 
 	err = s.country.Update(update)
@@ -109,6 +136,13 @@ func (s *Service) UpdateCountry(
 	res.VatEnabled = update.VatEnabled
 	res.VatCurrency = update.VatCurrency
 	res.PriceGroupId = update.PriceGroupId
+	res.VatRate = update.VatRate
+	res.VatThreshold = update.VatThreshold
+	res.VatPeriodMonth = update.VatPeriodMonth
+	res.VatDeadlineDays = update.VatDeadlineDays
+	res.VatStoreYears = update.VatStoreYears
+	res.VatCurrencyRatesPolicy = update.VatCurrencyRatesPolicy
+	res.VatCurrencyRatesSource = update.VatCurrencyRatesSource
 	res.CreatedAt = update.CreatedAt
 	res.UpdatedAt = update.UpdatedAt
 
@@ -145,6 +179,15 @@ func (h *Country) Insert(country *billing.Country) error {
 func (h Country) MultipleInsert(country []*billing.Country) error {
 	c := make([]interface{}, len(country))
 	for i, v := range country {
+		v.VatRate = tools.FormatAmount(v.VatRate)
+		if v.VatThreshold == nil {
+			v.VatThreshold = &billing.CountryVatThreshold{
+				Year:  0,
+				World: 0,
+			}
+		}
+		v.VatThreshold.Year = tools.FormatAmount(v.VatThreshold.Year)
+		v.VatThreshold.World = tools.FormatAmount(v.VatThreshold.World)
 		c[i] = v
 	}
 
@@ -160,11 +203,21 @@ func (h Country) MultipleInsert(country []*billing.Country) error {
 	if err := h.svc.cacher.Delete(cacheCountryRegions); err != nil {
 		return err
 	}
+	if err := h.svc.cacher.Delete(cacheCountriesWithVatEnabled); err != nil {
+		return err
+	}
+	if err := h.svc.cacher.Delete(cacheCountriesWithVatEnabled); err != nil {
+		return err
+	}
 
 	return nil
 }
 
 func (h Country) Update(country *billing.Country) error {
+	country.VatRate = tools.FormatAmount(country.VatRate)
+	country.VatThreshold.Year = tools.FormatAmount(country.VatThreshold.Year)
+	country.VatThreshold.World = tools.FormatAmount(country.VatThreshold.World)
+
 	err := h.svc.db.Collection(collectionCountry).UpdateId(bson.ObjectIdHex(country.Id), country)
 	if err != nil {
 		return err
@@ -180,6 +233,9 @@ func (h Country) Update(country *billing.Country) error {
 		return err
 	}
 	if err := h.svc.cacher.Delete(cacheCountryRegions); err != nil {
+		return err
+	}
+	if err := h.svc.cacher.Delete(cacheCountriesWithVatEnabled); err != nil {
 		return err
 	}
 
@@ -207,6 +263,26 @@ func (h Country) GetByIsoCodeA2(code string) (*billing.Country, error) {
 	}
 
 	return &c, nil
+}
+
+func (h Country) GetCountriesWithVatEnabled() (*billing.CountriesList, error) {
+	var c = &billing.CountriesList{}
+	key := cacheCountriesWithVatEnabled
+
+	err := h.svc.cacher.Get(key, c)
+	if err == nil {
+		return c, nil
+	}
+
+	if err := h.svc.db.Collection(collectionCountry).
+		Find(bson.M{"vat_enabled": true}).
+		Sort("iso_code_a2").
+		All(&c.Countries); err != nil {
+		return nil, fmt.Errorf(errorNotFound, collectionCountry)
+	}
+
+	_ = h.svc.cacher.Set(key, c, 0)
+	return c, nil
 }
 
 func (h Country) GetAll() (*billing.CountriesList, error) {
