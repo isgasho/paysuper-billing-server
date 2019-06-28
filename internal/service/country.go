@@ -16,8 +16,11 @@ const (
 	cacheCountryRegions = "country:regions"
 
 	collectionCountry = "country"
+)
 
-	errorRegionNotExists = "region not exists"
+var (
+	errorCountryNotFound        = newBillingServerErrorMsg("co000001", "country not found")
+	errorCountryRegionNotExists = newBillingServerErrorMsg("co000002", "region not exists")
 )
 
 type countryRegions struct {
