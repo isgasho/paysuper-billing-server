@@ -567,7 +567,6 @@ github.com/micro/grpc-go v0.0.0-20180913204047-2c703400301b/go.mod h1://clyXyptX
 github.com/micro/h2c v1.0.0/go.mod h1:54sOOQW/GRlHhH43vKwOhUb+kHaXhVxR0d3CJhn9alE=
 github.com/micro/hipchat v0.0.0-20160328000638-4c67119ac956/go.mod h1:9LPnmAqs2JarMBCqn4eUNkATVCsGQFphxNoQEi28uLU=
 github.com/micro/kubernetes v0.2.0/go.mod h1:YMCRhiXTTNCND35/YcgACDFd1tOTmrDFAEqsvkID6pw=
-github.com/micro/kubernetes v0.7.0 h1:urpV6XiEOqQVh/ZWIwCizAz5yhPOd6aEkIumJeyWCHQ=
 github.com/micro/kubernetes v0.7.0/go.mod h1:tfIj7hfrfZ7pIuknY0V36hABp7uPuLHJEV9LYhBPmNw=
 github.com/micro/mdns v0.0.0-20181201230301-9c3770d4057a/go.mod h1:SQG6o/94RinohLuB5noHSevg2Iqg2wXLDUn4lj2LWWo=
 github.com/micro/mdns v0.1.0 h1:fuLybUsfynbigJmCot/54i+gwe0hpc/vtCMvWt2WfDI=

@@ -44,8 +44,6 @@ type Config struct {
 	CentrifugoURL    string `envconfig:"CENTRIFUGO_URL" required:"false" default:"http://127.0.0.1:8000"`
 	BrokerAddress    string `envconfig:"BROKER_ADDRESS" default:"amqp://127.0.0.1:5672"`
 
-	MicroRegistry string `envconfig:"MICRO_REGISTRY" required:"false"`
-
 	*PaymentSystemConfig
 	*CustomerTokenConfig
 	*CacheRedis
