@@ -12,11 +12,10 @@ import (
 )
 
 const (
-	cacheCountryCodeA2              = "country:code_a2:%s"
-	cacheCountryAll                 = "country:all"
-	cacheCountryRegions             = "country:regions"
-	cacheCountriesWithVatEnabled    = "country:with_vat"
-	cacheCountriesWithVatEnabledKey = "country:with_vat_key"
+	cacheCountryCodeA2           = "country:code_a2:%s"
+	cacheCountryAll              = "country:all"
+	cacheCountryRegions          = "country:regions"
+	cacheCountriesWithVatEnabled = "country:with_vat"
 
 	collectionCountry = "country"
 )
@@ -177,6 +176,9 @@ func (h *Country) Insert(country *billing.Country) error {
 	if err := h.svc.cacher.Delete(cacheCountryRegions); err != nil {
 		return err
 	}
+	if err := h.svc.cacher.Delete(cacheCountriesWithVatEnabled); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -206,9 +208,6 @@ func (h Country) MultipleInsert(country []*billing.Country) error {
 		return err
 	}
 	if err := h.svc.cacher.Delete(cacheCountryRegions); err != nil {
-		return err
-	}
-	if err := h.svc.cacher.Delete(cacheCountriesWithVatEnabled); err != nil {
 		return err
 	}
 	if err := h.svc.cacher.Delete(cacheCountriesWithVatEnabled); err != nil {
@@ -332,7 +331,7 @@ func (h Country) IsRegionExists(region string) (bool, error) {
 
 func (h Country) IsCountryVatEnabled(iso_code_a2 string) (bool, error) {
 	var c = &countryWithVat{}
-	key := cacheCountriesWithVatEnabledKey
+	key := cacheCountriesWithVatEnabled
 	if err := h.svc.cacher.Get(key, c); err != nil {
 		countries, err := h.GetCountriesWithVatEnabled()
 		if err != nil {

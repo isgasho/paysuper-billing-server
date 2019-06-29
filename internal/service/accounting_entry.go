@@ -1372,6 +1372,8 @@ func (h *accountingEntry) reverseTaxFee() error {
 
 	entry.Amount = amount
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
+	entry.OriginalAmount = entry.Amount
+	entry.OriginalCurrency = entry.Currency
 	h.accountingEntries = append(h.accountingEntries, entry)
 
 	return nil

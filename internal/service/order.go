@@ -744,13 +744,13 @@ func (s *Service) PaymentCallbackProcess(
 		}
 
 		if order.PrivateStatus == constant.OrderStatusPaymentSystemComplete {
-			err := s.createVatTransaction(order)
+			/*err := s.createVatTransaction(order)
 			if err != nil {
 				rsp.Error = err.Error()
 				rsp.Status = pkg.StatusErrorSystem
 
 				return nil
-			}
+			}*/
 		}
 
 		rsp.Status = pkg.StatusOK

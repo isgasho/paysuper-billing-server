@@ -106,6 +106,8 @@ It has these top-level messages:
 	RoyaltyReport
 	RoyaltyReportChanges
 	RoyaltyReportOrder
+	VatTransaction
+	VatReport
 */
 package billing
 

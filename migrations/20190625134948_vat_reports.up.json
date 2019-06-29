@@ -1,6 +1,12 @@
 [
   {
+    "drop": "vat_transactions"
+  },
+  {
     "create": "vat_transactions"
+  },
+  {
+    "drop": "vat_reports"
   },
   {
     "create": "vat_reports"
