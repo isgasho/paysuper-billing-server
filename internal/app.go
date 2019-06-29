@@ -56,13 +56,13 @@ func (app *Application) Init() {
 
 	cfg, err := config.NewConfig()
 
-	app.logger.Info("db migrations started")
-
 	if err != nil {
 		app.logger.Fatal("Config load failed", zap.Error(err))
 	}
 
 	app.cfg = cfg
+
+	app.logger.Info("db migrations started")
 
 	migrations, err := migrate.New(pkg.MigrationSource, app.cfg.MongoDsn)
 

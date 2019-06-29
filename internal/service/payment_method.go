@@ -465,5 +465,8 @@ func (h *PaymentMethod) GetPaymentSettings(
 		return nil, errors.New(paymentMethodErrorNotFoundProductionSettings)
 	}
 
-	return settings[merchant.Banking.Currency.CodeA3], nil
+	result := settings[merchant.Banking.Currency.CodeA3]
+	result.Currency = merchant.Banking.Currency.CodeA3
+
+	return result, nil
 }

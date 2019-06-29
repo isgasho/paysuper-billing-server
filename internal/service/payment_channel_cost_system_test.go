@@ -60,7 +60,18 @@ func (suite *PaymentChannelCostSystemTestSuite) SetupTest() {
 
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache, nil, nil)
+	suite.service = NewBillingService(
+		db,
+		cfg,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		suite.cache,
+		mock.NewCurrencyServiceMockOk(),
+		nil,
+	)
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -149,11 +160,12 @@ func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_Grp
 
 func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_GrpcSet_Ok() {
 	req := &billing.PaymentChannelCostSystem{
-		Name:      "VISA",
-		Region:    "CIS",
-		Country:   "AZ",
-		Percent:   1.7,
-		FixAmount: 4,
+		Name:              "VISA",
+		Region:            "CIS",
+		Country:           "AZ",
+		Percent:           1.7,
+		FixAmount:         4,
+		FixAmountCurrency: "USD",
 	}
 
 	res := billing.PaymentChannelCostSystem{}
@@ -165,11 +177,12 @@ func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_Grp
 	assert.Equal(suite.T(), res.Id, suite.paymentChannelCostSystemId)
 
 	req2 := &billing.PaymentChannelCostSystem{
-		Name:      "MASTERCARD",
-		Region:    "US",
-		Country:   "",
-		Percent:   2.2,
-		FixAmount: 1,
+		Name:              "MASTERCARD",
+		Region:            "US",
+		Country:           "",
+		Percent:           2.2,
+		FixAmount:         1,
+		FixAmountCurrency: "USD",
 	}
 
 	res2 := billing.PaymentChannelCostSystem{}

@@ -169,7 +169,7 @@ func (s *CurrencyServiceMockOk) GetSettlementCurrencies(
 	in *currencies.EmptyRequest,
 	opts ...client.CallOption,
 ) (*currencies.CurrenciesList, error) {
-	return &currencies.CurrenciesList{}, nil
+	return &currencies.CurrenciesList{Currencies: []string{"USD", "EUR"}}, nil
 }
 
 func (s *CurrencyServiceMockOk) GetPriceCurrencies(

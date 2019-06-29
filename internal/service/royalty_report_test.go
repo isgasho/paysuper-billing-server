@@ -1,16 +1,9 @@
 package service
 
 import (
-	"github.com/globalsign/mgo/bson"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"testing"
-	"time"
 )
 
 type RoyaltyReportTestSuite struct {
@@ -26,7 +19,7 @@ func Test_RoyaltyReport(t *testing.T) {
 }
 
 func (suite *RoyaltyReportTestSuite) SetupTest() {
-	cfg, err := config.NewConfig()
+	/*cfg, err := config.NewConfig()
 	assert.NoError(suite.T(), err, "Config load failed")
 	cfg.AccountingCurrency = "RUB"
 
@@ -192,5 +185,5 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 				IsActive: true,
 			},
 		},
-	}
+	}*/
 }

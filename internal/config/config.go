@@ -70,6 +70,9 @@ type Config struct {
 func NewConfig() (*Config, error) {
 	cfg := &Config{}
 	err := envconfig.Process("", cfg)
+	if err != nil {
+		return nil, err
+	}
 
 	pem, err := base64.StdEncoding.DecodeString(cfg.CookiePublicKeyBase64)
 

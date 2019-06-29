@@ -685,6 +685,93 @@ func (suite *OrderTestSuite) SetupTest() {
 		suite.FailNow("Insert zip codes test data failed", "%v", err)
 	}
 
+	commissionStartDate, err := ptypes.TimestampProto(time.Now().Add(time.Minute * -10))
+
+	if err != nil {
+		suite.FailNow("Commission start date conversion failed", "%v", err)
+	}
+
+	commissions := []interface{}{
+		&billing.Commission{
+			PaymentMethodId:         pmBankCard.Id,
+			ProjectId:               project.Id,
+			PaymentMethodCommission: 1,
+			PspCommission:           2,
+			TotalCommissionToUser:   1,
+			StartDate:               commissionStartDate,
+		},
+		&billing.Commission{
+			PaymentMethodId:         pmQiwi.Id,
+			ProjectId:               project.Id,
+			PaymentMethodCommission: 1,
+			PspCommission:           2,
+			TotalCommissionToUser:   2,
+			StartDate:               commissionStartDate,
+		},
+		&billing.Commission{
+			PaymentMethodId:         pmBitcoin.Id,
+			ProjectId:               project.Id,
+			PaymentMethodCommission: 1,
+			PspCommission:           2,
+			TotalCommissionToUser:   3,
+			StartDate:               commissionStartDate,
+		},
+		&billing.Commission{
+			PaymentMethodId:         pmBankCard.Id,
+			ProjectId:               projectFixedAmount.Id,
+			PaymentMethodCommission: 1,
+			PspCommission:           2,
+			TotalCommissionToUser:   1,
+			StartDate:               commissionStartDate,
+		},
+		&billing.Commission{
+			PaymentMethodId:         pmQiwi.Id,
+			ProjectId:               projectFixedAmount.Id,
+			PaymentMethodCommission: 1,
+			PspCommission:           2,
+			TotalCommissionToUser:   2,
+			StartDate:               commissionStartDate,
+		},
+		&billing.Commission{
+			PaymentMethodId:         pmBitcoin.Id,
+			ProjectId:               projectFixedAmount.Id,
+			PaymentMethodCommission: 1,
+			PspCommission:           2,
+			TotalCommissionToUser:   3,
+			StartDate:               commissionStartDate,
+		},
+		&billing.Commission{
+			PaymentMethodId:         pmBankCard.Id,
+			ProjectId:               projectUahLimitCurrency.Id,
+			PaymentMethodCommission: 1,
+			PspCommission:           2,
+			TotalCommissionToUser:   1,
+			StartDate:               commissionStartDate,
+		},
+		&billing.Commission{
+			PaymentMethodId:         pmQiwi.Id,
+			ProjectId:               projectUahLimitCurrency.Id,
+			PaymentMethodCommission: 1,
+			PspCommission:           2,
+			TotalCommissionToUser:   2,
+			StartDate:               commissionStartDate,
+		},
+		&billing.Commission{
+			PaymentMethodId:         pmBitcoin.Id,
+			ProjectId:               projectUahLimitCurrency.Id,
+			PaymentMethodCommission: 1,
+			PspCommission:           2,
+			TotalCommissionToUser:   3,
+			StartDate:               commissionStartDate,
+		},
+	}
+
+	err = db.Collection(collectionCommission).Insert(commissions...)
+
+	if err != nil {
+		suite.FailNow("Insert commission test data failed", "%v", err)
+	}
+
 	suite.log, err = zap.NewProduction()
 
 	if err != nil {
