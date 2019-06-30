@@ -82,26 +82,27 @@ service BillingService {
 
     rpc FindByZipCode(FindByZipCodeRequest) returns (FindByZipCodeResponse) {}
 
-    rpc GetAllPaymentChannelCostSystem(EmptyRequest) returns (billing.PaymentChannelCostSystemList) {}
-    rpc GetPaymentChannelCostSystem(billing.PaymentChannelCostSystemRequest) returns (billing.PaymentChannelCostSystem) {}
-    rpc SetPaymentChannelCostSystem(billing.PaymentChannelCostSystem) returns (billing.PaymentChannelCostSystem) {}
-    rpc DeletePaymentChannelCostSystem(billing.PaymentCostDeleteRequest) returns (EmptyResponse) {}
+    rpc GetAllPaymentChannelCostSystem(EmptyRequest) returns (PaymentChannelCostSystemListResponse) {}
+    rpc GetPaymentChannelCostSystem(billing.PaymentChannelCostSystemRequest) returns (PaymentChannelCostSystemResponse) {}
+    rpc SetPaymentChannelCostSystem(billing.PaymentChannelCostSystem) returns (PaymentChannelCostSystemResponse) {}
+    rpc DeletePaymentChannelCostSystem(billing.PaymentCostDeleteRequest) returns (ResponseError) {}
 
-    rpc GetAllPaymentChannelCostMerchant(billing.PaymentChannelCostMerchantListRequest) returns (billing.PaymentChannelCostMerchantList) {}
-    rpc GetPaymentChannelCostMerchant(billing.PaymentChannelCostMerchantRequest) returns (billing.PaymentChannelCostMerchant) {}
-    rpc SetPaymentChannelCostMerchant(billing.PaymentChannelCostMerchant) returns (billing.PaymentChannelCostMerchant) {}
-    rpc DeletePaymentChannelCostMerchant(billing.PaymentCostDeleteRequest) returns (EmptyResponse) {}
+    rpc GetAllPaymentChannelCostMerchant(billing.PaymentChannelCostMerchantListRequest) returns (PaymentChannelCostMerchantListResponse) {}
+    rpc GetPaymentChannelCostMerchant(billing.PaymentChannelCostMerchantRequest) returns (PaymentChannelCostMerchantResponse) {}
+    rpc SetPaymentChannelCostMerchant(billing.PaymentChannelCostMerchant) returns (PaymentChannelCostMerchantResponse) {}
+    rpc DeletePaymentChannelCostMerchant(billing.PaymentCostDeleteRequest) returns (ResponseError) {}
 
-    rpc GetAllMoneyBackCostSystem(EmptyRequest) returns (billing.MoneyBackCostSystemList) {}
-    rpc GetMoneyBackCostSystem(billing.MoneyBackCostSystemRequest) returns (billing.MoneyBackCostSystem) {}
-    rpc SetMoneyBackCostSystem(billing.MoneyBackCostSystem) returns (billing.MoneyBackCostSystem) {}
-    rpc DeleteMoneyBackCostSystem(billing.PaymentCostDeleteRequest) returns (EmptyResponse) {}
+    rpc GetAllMoneyBackCostSystem(EmptyRequest) returns (MoneyBackCostSystemListResponse) {}
+    rpc GetMoneyBackCostSystem(billing.MoneyBackCostSystemRequest) returns (MoneyBackCostSystemResponse) {}
+    rpc SetMoneyBackCostSystem(billing.MoneyBackCostSystem) returns (MoneyBackCostSystemResponse) {}
+    rpc DeleteMoneyBackCostSystem(billing.PaymentCostDeleteRequest) returns (ResponseError) {}
 
-    rpc GetAllMoneyBackCostMerchant(billing.MoneyBackCostMerchantListRequest) returns (billing.MoneyBackCostMerchantList) {}
-    rpc GetMoneyBackCostMerchant(billing.MoneyBackCostMerchantRequest) returns (billing.MoneyBackCostMerchant) {}
-    rpc SetMoneyBackCostMerchant(billing.MoneyBackCostMerchant) returns (billing.MoneyBackCostMerchant) {}
-    rpc DeleteMoneyBackCostMerchant(billing.PaymentCostDeleteRequest) returns (EmptyResponse) {}
-    rpc CreateAccountingEntry(CreateAccountingEntryRequest) returns (CreateAccountingEntryResponse) {}
+    rpc GetAllMoneyBackCostMerchant(billing.MoneyBackCostMerchantListRequest) returns (MoneyBackCostMerchantListResponse) {}
+    rpc GetMoneyBackCostMerchant(billing.MoneyBackCostMerchantRequest) returns (MoneyBackCostMerchantResponse) {}
+    rpc SetMoneyBackCostMerchant(billing.MoneyBackCostMerchant) returns (MoneyBackCostMerchantResponse) {}
+    rpc DeleteMoneyBackCostMerchant(billing.PaymentCostDeleteRequest) returns (ResponseError) {}
+
+    rpc CreateAccountingEntry(CreateAccountingEntryRequest) returns (CreateAccountingEntryRequest) {}
 
     rpc CreateRoyaltyReport(CreateRoyaltyReportRequest) returns (CreateRoyaltyReportRequest) {}
     rpc ListRoyaltyReports(ListRoyaltyReportsRequest) returns (ListRoyaltyReportsResponse) {}
@@ -905,4 +906,76 @@ message ChangeRoyaltyReportStatusRequest {
     billing.RoyaltyReportCorrection correction = 3;
     string ip = 4;
     string source = 5;
+}
+
+message PaymentChannelCostSystemListResponse {
+    //@inject_tag: json:"status"
+    int32 status = 1;
+    //@inject_tag: json:"message"
+    ResponseErrorMessage message = 2;
+    //@inject_tag: json:"item"
+    billing.PaymentChannelCostSystemList item = 3;
+}
+
+message PaymentChannelCostSystemResponse {
+    //@inject_tag: json:"status"
+    int32 status = 1;
+    //@inject_tag: json:"message"
+    ResponseErrorMessage message = 2;
+    //@inject_tag: json:"item"
+    billing.PaymentChannelCostSystem item = 3;
+}
+
+message PaymentChannelCostMerchantListResponse {
+    //@inject_tag: json:"status"
+    int32 status = 1;
+    //@inject_tag: json:"message"
+    ResponseErrorMessage message = 2;
+    //@inject_tag: json:"item"
+    billing.PaymentChannelCostMerchantList item = 3;
+}
+
+message PaymentChannelCostMerchantResponse {
+    //@inject_tag: json:"status"
+    int32 status = 1;
+    //@inject_tag: json:"message"
+    ResponseErrorMessage message = 2;
+    //@inject_tag: json:"item"
+    billing.PaymentChannelCostMerchant item = 3;
+}
+
+message MoneyBackCostSystemListResponse {
+    //@inject_tag: json:"status"
+    int32 status = 1;
+    //@inject_tag: json:"message"
+    ResponseErrorMessage message = 2;
+    //@inject_tag: json:"item"
+    billing.MoneyBackCostSystemList item = 3;
+}
+
+message MoneyBackCostSystemResponse {
+    //@inject_tag: json:"status"
+    int32 status = 1;
+    //@inject_tag: json:"message"
+    ResponseErrorMessage message = 2;
+    //@inject_tag: json:"item"
+    billing.MoneyBackCostSystem item = 3;
+}
+
+message MoneyBackCostMerchantListResponse {
+    //@inject_tag: json:"status"
+    int32 status = 1;
+    //@inject_tag: json:"message"
+    ResponseErrorMessage message = 2;
+    //@inject_tag: json:"item"
+    billing.MoneyBackCostMerchantList item = 3;
+}
+
+message MoneyBackCostMerchantResponse {
+    //@inject_tag: json:"status"
+    int32 status = 1;
+    //@inject_tag: json:"message"
+    ResponseErrorMessage message = 2;
+    //@inject_tag: json:"item"
+    billing.MoneyBackCostMerchant item = 3;
 }

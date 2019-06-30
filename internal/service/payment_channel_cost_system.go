@@ -2,10 +2,10 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
@@ -19,38 +19,45 @@ const (
 	collectionPaymentChannelCostSystem = "payment_channel_cost_system"
 )
 
+var (
+	errorPaymentChannelSystemGetAll    = newBillingServerErrorMsg("pcs000001", "can't get list of payment channel setting for system")
+	errorPaymentChannelSystemGet       = newBillingServerErrorMsg("pcs000002", "can't get payment channel setting for system")
+	errorPaymentChannelSystemSetFailed = newBillingServerErrorMsg("pcs000003", "can't set payment channel setting for system")
+	errorPaymentChannelSystemDelete    = newBillingServerErrorMsg("pcs000004", "can't delete payment channel setting for system")
+)
+
 func (s *Service) GetAllPaymentChannelCostSystem(
 	ctx context.Context,
 	req *grpc.EmptyRequest,
-	res *billing.PaymentChannelCostSystemList,
+	res *grpc.PaymentChannelCostSystemListResponse,
 ) error {
 	val, err := s.paymentChannelCostSystem.GetAll()
 	if err != nil {
-		return err
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorPaymentChannelSystemGetAll
+		return nil
 	}
-	res.Items = val.Items
+
+	res.Status = pkg.ResponseStatusOk
+	res.Item = val
+
 	return nil
 }
 
 func (s *Service) GetPaymentChannelCostSystem(
 	ctx context.Context,
 	req *billing.PaymentChannelCostSystemRequest,
-	res *billing.PaymentChannelCostSystem,
+	res *grpc.PaymentChannelCostSystemResponse,
 ) error {
 	val, err := s.paymentChannelCostSystem.Get(req.Name, req.Region, req.Country)
 	if err != nil {
-		return err
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorPaymentChannelSystemGet
+		return nil
 	}
-	res.Id = val.Id
-	res.Name = val.Name
-	res.Region = val.Region
-	res.Country = val.Country
-	res.Percent = val.Percent
-	res.FixAmount = val.FixAmount
-	res.FixAmountCurrency = val.FixAmountCurrency
-	res.CreatedAt = val.CreatedAt
-	res.UpdatedAt = val.UpdatedAt
-	res.IsActive = val.IsActive
+
+	res.Status = pkg.ResponseStatusOk
+	res.Item = val
 
 	return nil
 }
@@ -58,29 +65,34 @@ func (s *Service) GetPaymentChannelCostSystem(
 func (s *Service) SetPaymentChannelCostSystem(
 	ctx context.Context,
 	req *billing.PaymentChannelCostSystem,
-	res *billing.PaymentChannelCostSystem,
+	res *grpc.PaymentChannelCostSystemResponse,
 ) error {
 
 	val, err := s.paymentChannelCostSystem.Get(req.Name, req.Region, req.Country)
 	if err != nil && err.Error() != fmt.Sprintf(errorNotFound, collectionPaymentChannelCostSystem) {
-		return err
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorPaymentChannelSystemGet
+		return nil
 	}
 
 	if req.Country != "" {
 		country, err := s.country.GetByIsoCodeA2(req.Country)
 		if err != nil {
-			return err
+			res.Status = pkg.ResponseStatusNotFound
+			res.Message = errorCountryNotFound
+			return nil
 		}
 		req.Region = country.Region
 	} else {
 		exists, err := s.country.IsRegionExists(req.Region)
-		if err != nil {
-			return err
-		}
-		if !exists {
-			return errors.New(errorRegionNotExists)
+		if err != nil || !exists {
+			res.Status = pkg.ResponseStatusNotFound
+			res.Message = errorCountryRegionNotExists
+			return nil
 		}
 	}
+
+	req.IsActive = true
 
 	if val == nil {
 		req.Id = bson.NewObjectId().Hex()
@@ -91,19 +103,13 @@ func (s *Service) SetPaymentChannelCostSystem(
 		err = s.paymentChannelCostSystem.Update(req)
 	}
 	if err != nil {
-		return err
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorPaymentChannelSystemSetFailed
+		return nil
 	}
 
-	res.Id = req.Id
-	res.Name = req.Name
-	res.Region = req.Region
-	res.Country = req.Country
-	res.Percent = req.Percent
-	res.FixAmount = req.FixAmount
-	res.FixAmountCurrency = req.FixAmountCurrency
-	res.CreatedAt = req.CreatedAt
-	res.UpdatedAt = req.UpdatedAt
-	res.IsActive = true
+	res.Status = pkg.ResponseStatusOk
+	res.Item = req
 
 	return nil
 }
@@ -111,17 +117,22 @@ func (s *Service) SetPaymentChannelCostSystem(
 func (s *Service) DeletePaymentChannelCostSystem(
 	ctx context.Context,
 	req *billing.PaymentCostDeleteRequest,
-	res *grpc.EmptyResponse,
+	res *grpc.ResponseError,
 ) error {
 	pc, err := s.paymentChannelCostSystem.GetById(req.Id)
 	if err != nil {
-		return err
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorPaymentChannelSystemGet
+		return nil
 	}
 	err = s.paymentChannelCostSystem.Delete(pc)
 	if err != nil {
-		return err
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorPaymentChannelSystemDelete
+		return nil
 	}
 
+	res.Status = pkg.ResponseStatusOk
 	return nil
 }
 

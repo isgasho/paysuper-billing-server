@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
@@ -20,44 +21,45 @@ const (
 	collectionMoneyBackCostMerchant = "money_back_cost_merchant"
 )
 
+var (
+	errorMoneybackMerchantGetAll    = newBillingServerErrorMsg("mbs000001", "can't get list of money back setting for merchant")
+	errorMoneybackMerchantGet       = newBillingServerErrorMsg("mbs000002", "can't get money back setting for merchant")
+	errorMoneybackMerchantSetFailed = newBillingServerErrorMsg("mbs000003", "can't set money back setting for merchant")
+	errorMoneybackMerchantDelete    = newBillingServerErrorMsg("mbs000004", "can't delete money back setting for merchant")
+)
+
 func (s *Service) GetAllMoneyBackCostMerchant(
 	ctx context.Context,
 	req *billing.MoneyBackCostMerchantListRequest,
-	res *billing.MoneyBackCostMerchantList,
+	res *grpc.MoneyBackCostMerchantListResponse,
 ) error {
 	val, err := s.moneyBackCostMerchant.GetAllForMerchant(req.MerchantId)
 	if err != nil {
-		return err
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorMoneybackMerchantGetAll
+		return nil
 	}
-	res.Items = val.Items
+
+	res.Status = pkg.ResponseStatusOk
+	res.Item = val
+
 	return nil
 }
 
 func (s *Service) GetMoneyBackCostMerchant(
 	ctx context.Context,
 	req *billing.MoneyBackCostMerchantRequest,
-	res *billing.MoneyBackCostMerchant,
+	res *grpc.MoneyBackCostMerchantResponse,
 ) error {
 	val, err := s.getMoneyBackCostMerchant(req)
 	if err != nil {
-		return err
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorMoneybackMerchantGet
+		return nil
 	}
-	res.Id = val.Id
-	res.MerchantId = val.MerchantId
-	res.Name = val.Name
-	res.PayoutCurrency = val.PayoutCurrency
-	res.UndoReason = val.UndoReason
-	res.Region = val.Region
-	res.Country = val.Country
-	res.DaysFrom = val.DaysFrom
-	res.PaymentStage = val.PaymentStage
-	res.Percent = val.Percent
-	res.FixAmount = val.FixAmount
-	res.FixAmountCurrency = val.FixAmountCurrency
-	res.IsPaidByMerchant = val.IsPaidByMerchant
-	res.CreatedAt = val.CreatedAt
-	res.UpdatedAt = val.UpdatedAt
-	res.IsActive = val.IsActive
+
+	res.Status = pkg.ResponseStatusOk
+	res.Item = val
 
 	return nil
 }
@@ -65,39 +67,45 @@ func (s *Service) GetMoneyBackCostMerchant(
 func (s *Service) SetMoneyBackCostMerchant(
 	ctx context.Context,
 	req *billing.MoneyBackCostMerchant,
-	res *billing.MoneyBackCostMerchant,
+	res *grpc.MoneyBackCostMerchantResponse,
 ) error {
 
 	var err error
 
 	if _, err := s.merchant.GetById(req.MerchantId); err != nil {
-		return err
+		res.Status = pkg.ResponseStatusNotFound
+		res.Message = merchantErrorNotFound
+		return nil
 	}
 
 	if req.Country != "" {
 		country, err := s.country.GetByIsoCodeA2(req.Country)
 		if err != nil {
-			return err
+			res.Status = pkg.ResponseStatusNotFound
+			res.Message = errorCountryNotFound
+			return nil
 		}
 		req.Region = country.Region
 	} else {
 		exists, err := s.country.IsRegionExists(req.Region)
-		if err != nil {
-			return err
-		}
-		if !exists {
-			return errors.New(errorRegionNotExists)
+		if err != nil || !exists {
+			res.Status = pkg.ResponseStatusNotFound
+			res.Message = errorCountryRegionNotExists
+			return nil
 		}
 	}
 
 	// todo: check fo valid payout currency after integrations with currencies service
 
 	req.UpdatedAt = ptypes.TimestampNow()
+	req.IsActive = true
 
 	if req.Id != "" {
 		val, err := s.moneyBackCostMerchant.GetById(req.Id)
 		if err != nil {
-			return err
+			res.Status = pkg.ResponseStatusNotFound
+			res.Message = errorMoneybackMerchantGet
+			return nil
 		}
 		req.Id = val.Id
 		req.MerchantId = val.MerchantId
@@ -109,25 +117,13 @@ func (s *Service) SetMoneyBackCostMerchant(
 		err = s.moneyBackCostMerchant.Insert(req)
 	}
 	if err != nil {
-		return err
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorMoneybackMerchantSetFailed
+		return nil
 	}
 
-	res.Id = req.Id
-	res.MerchantId = req.MerchantId
-	res.Name = req.Name
-	res.PayoutCurrency = req.PayoutCurrency
-	res.UndoReason = req.UndoReason
-	res.Region = req.Region
-	res.Country = req.Country
-	res.DaysFrom = req.DaysFrom
-	res.PaymentStage = req.PaymentStage
-	res.Percent = req.Percent
-	res.FixAmount = req.FixAmount
-	res.FixAmountCurrency = req.FixAmountCurrency
-	res.IsPaidByMerchant = req.IsPaidByMerchant
-	res.CreatedAt = req.CreatedAt
-	res.UpdatedAt = req.UpdatedAt
-	res.IsActive = true
+	res.Status = pkg.ResponseStatusOk
+	res.Item = req
 
 	return nil
 }
@@ -135,16 +131,22 @@ func (s *Service) SetMoneyBackCostMerchant(
 func (s *Service) DeleteMoneyBackCostMerchant(
 	ctx context.Context,
 	req *billing.PaymentCostDeleteRequest,
-	res *grpc.EmptyResponse,
+	res *grpc.ResponseError,
 ) error {
 	pc, err := s.moneyBackCostMerchant.GetById(req.Id)
 	if err != nil {
-		return err
+		res.Status = pkg.ResponseStatusNotFound
+		res.Message = errorMoneybackMerchantDelete
+		return nil
 	}
 	err = s.moneyBackCostMerchant.Delete(pc)
 	if err != nil {
-		return err
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorMoneybackMerchantDelete
+		return nil
 	}
+
+	res.Status = pkg.ResponseStatusOk
 	return nil
 }
 
