@@ -25,6 +25,7 @@ type PaymentChannelCostMerchant Entity
 type MoneyBackCostSystem Entity
 type MoneyBackCostMerchant Entity
 type PayoutCostSystem Entity
+type Turnover Entity
 
 type kvIntFloat struct {
 	Key   int

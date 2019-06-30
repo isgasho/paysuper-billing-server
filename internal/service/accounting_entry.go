@@ -9,6 +9,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	curPkg "github.com/paysuper/paysuper-currencies/pkg"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
+	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"go.uber.org/zap"
 	"math"
 	"time"
@@ -272,6 +273,55 @@ func (s *Service) processEvent(handler *accountingEntry, list []string) error {
 	return handler.saveAccountingEntries()
 }
 
+func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
+	if entry.OriginalAmount == 0 && entry.OriginalCurrency == "" {
+		entry.OriginalAmount = entry.Amount
+		entry.OriginalCurrency = entry.Currency
+	}
+	if entry.LocalAmount == 0 && entry.LocalCurrency == "" && entry.Country != "" {
+		country, err := h.country.GetByIsoCodeA2(entry.Country)
+		if err != nil {
+			return err
+		}
+		if country.Currency == entry.OriginalCurrency {
+			entry.LocalAmount = entry.OriginalAmount
+			entry.LocalCurrency = country.Currency
+		} else {
+			req := &currencies.ExchangeCurrencyCurrentCommonRequest{
+				From:     entry.OriginalCurrency,
+				To:       country.Currency,
+				RateType: curPkg.RateTypeOxr,
+				Amount:   entry.OriginalAmount,
+			}
+
+			rsp, err := h.curService.ExchangeCurrencyCurrentCommon(h.ctx, req)
+
+			if err != nil {
+				zap.L().Error(
+					pkg.ErrorGrpcServiceCallFailed,
+					zap.Error(err),
+					zap.String(errorFieldService, "CurrencyRatesService"),
+					zap.String(errorFieldMethod, "ExchangeCurrencyCurrentCommon"),
+					zap.Any(errorFieldRequest, req),
+				)
+
+				return accountingEntryErrorExchangeFailed
+			} else {
+				entry.LocalAmount = rsp.ExchangedAmount
+				entry.LocalCurrency = country.Currency
+			}
+		}
+	}
+
+	entry.Amount = tools.FormatAmount(entry.Amount)
+	entry.OriginalAmount = tools.FormatAmount(entry.OriginalAmount)
+	entry.LocalAmount = tools.FormatAmount(entry.LocalAmount)
+
+	h.accountingEntries = append(h.accountingEntries, entry)
+
+	return nil
+}
+
 func (h *accountingEntry) saveAccountingEntries() error {
 	if h.order != nil {
 		err := h.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(h.order.Id), h.order)
@@ -325,7 +375,9 @@ func (h *accountingEntry) payment() error {
 
 	if h.req != nil {
 		h.mapRequestToEntry(entry)
-		h.accountingEntries = append(h.accountingEntries, entry)
+		if err := h.addEntry(entry); err != nil {
+			return err
+		}
 
 		return nil
 	}
@@ -356,7 +408,9 @@ func (h *accountingEntry) payment() error {
 
 	entry.Amount = rsp.ExchangedAmount
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	h.accountingEntries = append(h.accountingEntries, entry)
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -382,7 +436,9 @@ func (h *accountingEntry) psMarkupPaymentFx() error {
 
 	if h.req != nil {
 		h.mapRequestToEntry(entry)
-		h.accountingEntries = append(h.accountingEntries, entry)
+		if err := h.addEntry(entry); err != nil {
+			return err
+		}
 
 		return nil
 	}
@@ -428,10 +484,9 @@ func (h *accountingEntry) psMarkupPaymentFx() error {
 
 	entry.Amount = rsp1.Rate - rsp.Rate
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	entry.OriginalAmount = entry.Amount
-	entry.OriginalCurrency = entry.Currency
-
-	h.accountingEntries = append(h.accountingEntries, entry)
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -457,7 +512,9 @@ func (h *accountingEntry) methodFee() error {
 
 	if h.req != nil {
 		h.mapRequestToEntry(entry)
-		h.accountingEntries = append(h.accountingEntries, entry)
+		if err := h.addEntry(entry); err != nil {
+			return err
+		}
 
 		return nil
 	}
@@ -480,9 +537,9 @@ func (h *accountingEntry) methodFee() error {
 
 	entry.Amount = h.order.RoyaltyData.MerchantPercentCommissionInRoyaltyCurrency
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	entry.OriginalAmount = entry.Amount
-	entry.OriginalCurrency = entry.Currency
-	h.accountingEntries = append(h.accountingEntries, entry)
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -508,7 +565,9 @@ func (h *accountingEntry) psMarkupMethodFee() error {
 
 	if h.req != nil {
 		h.mapRequestToEntry(entry)
-		h.accountingEntries = append(h.accountingEntries, entry)
+		if err := h.addEntry(entry); err != nil {
+			return err
+		}
 
 		return nil
 	}
@@ -528,10 +587,9 @@ func (h *accountingEntry) psMarkupMethodFee() error {
 
 	entry.Amount = h.order.RoyaltyData.MerchantPercentCommissionInRoyaltyCurrency - (h.order.RoyaltyData.AmountInRoyaltyCurrency * cost.MethodPercent)
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	entry.OriginalAmount = entry.Amount
-	entry.OriginalCurrency = entry.Currency
-
-	h.accountingEntries = append(h.accountingEntries, entry)
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -557,7 +615,9 @@ func (h *accountingEntry) methodFixedFee() error {
 
 	if h.req != nil {
 		h.mapRequestToEntry(entry)
-		h.accountingEntries = append(h.accountingEntries, entry)
+		if err := h.addEntry(entry); err != nil {
+			return err
+		}
 
 		return nil
 	}
@@ -606,10 +666,9 @@ func (h *accountingEntry) methodFixedFee() error {
 
 	entry.Amount = h.order.RoyaltyData.MerchantFixedCommissionInRoyaltyCurrency
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	entry.OriginalAmount = entry.Amount
-	entry.OriginalCurrency = entry.Currency
-
-	h.accountingEntries = append(h.accountingEntries, entry)
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -635,7 +694,9 @@ func (h *accountingEntry) psMarkupMethodFixedFee() error {
 
 	if h.req != nil {
 		h.mapRequestToEntry(entry)
-		h.accountingEntries = append(h.accountingEntries, entry)
+		if err := h.addEntry(entry); err != nil {
+			return err
+		}
 
 		return nil
 	}
@@ -655,9 +716,9 @@ func (h *accountingEntry) psMarkupMethodFixedFee() error {
 
 	entry.Amount = h.order.RoyaltyData.MerchantFixedCommissionInRoyaltyCurrency - cost.MethodFixAmount
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	entry.OriginalAmount = entry.Amount
-	entry.OriginalCurrency = entry.Currency
-	h.accountingEntries = append(h.accountingEntries, entry)
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -683,7 +744,9 @@ func (h *accountingEntry) psFee() error {
 
 	if h.req != nil {
 		h.mapRequestToEntry(entry)
-		h.accountingEntries = append(h.accountingEntries, entry)
+		if err := h.addEntry(entry); err != nil {
+			return err
+		}
 
 		return nil
 	}
@@ -705,9 +768,9 @@ func (h *accountingEntry) psFee() error {
 
 	entry.Amount = h.order.RoyaltyData.MerchantTotalCommissionInRoyaltyCurrency - amount
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	entry.OriginalAmount = entry.Amount
-	entry.OriginalCurrency = entry.Currency
-	h.accountingEntries = append(h.accountingEntries, entry)
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -733,7 +796,9 @@ func (h *accountingEntry) psFixedFee() error {
 
 	if h.req != nil {
 		h.mapRequestToEntry(entry)
-		h.accountingEntries = append(h.accountingEntries, entry)
+		if err := h.addEntry(entry); err != nil {
+			return err
+		}
 
 		return nil
 	}
@@ -785,7 +850,9 @@ func (h *accountingEntry) psFixedFee() error {
 	entry.Amount = amount
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
 
-	h.accountingEntries = append(h.accountingEntries, entry)
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -811,7 +878,9 @@ func (h *accountingEntry) psMarkupFixedFeeFx() error {
 
 	if h.req != nil {
 		h.mapRequestToEntry(entry)
-		h.accountingEntries = append(h.accountingEntries, entry)
+		if err := h.addEntry(entry); err != nil {
+			return err
+		}
 
 		return nil
 	}
@@ -870,9 +939,9 @@ func (h *accountingEntry) psMarkupFixedFeeFx() error {
 
 	entry.Amount = rsp.Rate - rsp1.Rate
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	entry.OriginalAmount = entry.Amount
-	entry.OriginalCurrency = entry.Currency
-	h.accountingEntries = append(h.accountingEntries, entry)
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -900,7 +969,9 @@ func (h *accountingEntry) taxFee() error {
 
 	if h.req != nil {
 		h.mapRequestToEntry(entry)
-		h.accountingEntries = append(h.accountingEntries, entry)
+		if err := h.addEntry(entry); err != nil {
+			return err
+		}
 
 		return nil
 	}
@@ -936,7 +1007,9 @@ func (h *accountingEntry) taxFee() error {
 
 	entry.Amount = amount
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	h.accountingEntries = append(h.accountingEntries, entry)
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -958,7 +1031,9 @@ func (h *accountingEntry) psTaxFxFee() error {
 		Country:    h.order.GetCountry(),
 	}
 	h.mapRequestToEntry(entry)
-	h.accountingEntries = append(h.accountingEntries, entry)
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -986,7 +1061,9 @@ func (h *accountingEntry) refundEntry() error {
 
 	if h.req != nil {
 		h.mapRequestToEntry(entry)
-		h.accountingEntries = append(h.accountingEntries, entry)
+		if err := h.addEntry(entry); err != nil {
+			return err
+		}
 
 		return nil
 	}
@@ -1017,7 +1094,9 @@ func (h *accountingEntry) refundEntry() error {
 
 	entry.Amount = rsp.ExchangedAmount
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	h.accountingEntries = append(h.accountingEntries, entry)
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -1043,9 +1122,9 @@ func (h *accountingEntry) refundFee() error {
 
 	if h.req != nil {
 		h.mapRequestToEntry(entry)
-		entry.OriginalAmount = entry.Amount
-		entry.OriginalCurrency = entry.Currency
-		h.accountingEntries = append(h.accountingEntries, entry)
+		if err := h.addEntry(entry); err != nil {
+			return err
+		}
 
 		return nil
 	}
@@ -1065,9 +1144,9 @@ func (h *accountingEntry) refundFee() error {
 
 	entry.Amount = h.refund.Amount * cost.Percent
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	entry.OriginalAmount = entry.Amount
-	entry.OriginalCurrency = entry.Currency
-	h.accountingEntries = append(h.accountingEntries, entry)
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -1093,9 +1172,9 @@ func (h *accountingEntry) refundFixedFee() error {
 
 	if h.req != nil {
 		h.mapRequestToEntry(entry)
-		entry.OriginalAmount = entry.Amount
-		entry.OriginalCurrency = entry.Currency
-		h.accountingEntries = append(h.accountingEntries, entry)
+		if err := h.addEntry(entry); err != nil {
+			return err
+		}
 
 		return nil
 	}
@@ -1142,9 +1221,9 @@ func (h *accountingEntry) refundFixedFee() error {
 
 	entry.Amount = amount
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	entry.OriginalAmount = entry.Amount
-	entry.OriginalCurrency = entry.Currency
-	h.accountingEntries = append(h.accountingEntries, entry)
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -1170,7 +1249,9 @@ func (h *accountingEntry) psMarkupRefundFx() error {
 
 	if h.req != nil {
 		h.mapRequestToEntry(entry)
-		h.accountingEntries = append(h.accountingEntries, entry)
+		if err := h.addEntry(entry); err != nil {
+			return err
+		}
 
 		return nil
 	}
@@ -1216,9 +1297,9 @@ func (h *accountingEntry) psMarkupRefundFx() error {
 
 	entry.Amount = rsp.Rate - rsp1.Rate
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	entry.OriginalAmount = entry.Amount
-	entry.OriginalCurrency = entry.Currency
-	h.accountingEntries = append(h.accountingEntries, entry)
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -1244,7 +1325,9 @@ func (h *accountingEntry) refundBody() error {
 
 	if h.req != nil {
 		h.mapRequestToEntry(entry)
-		h.accountingEntries = append(h.accountingEntries, entry)
+		if err := h.addEntry(entry); err != nil {
+			return err
+		}
 
 		return nil
 	}
@@ -1305,10 +1388,9 @@ func (h *accountingEntry) refundBody() error {
 
 	entry.Amount = refundAmount - taxAmount
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	entry.OriginalAmount = entry.Amount
-	entry.OriginalCurrency = entry.Currency
-
-	h.accountingEntries = append(h.accountingEntries, entry)
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -1336,7 +1418,9 @@ func (h *accountingEntry) reverseTaxFee() error {
 
 	if h.req != nil {
 		h.mapRequestToEntry(entry)
-		h.accountingEntries = append(h.accountingEntries, entry)
+		if err := h.addEntry(entry); err != nil {
+			return err
+		}
 
 		return nil
 	}
@@ -1372,9 +1456,9 @@ func (h *accountingEntry) reverseTaxFee() error {
 
 	entry.Amount = amount
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	entry.OriginalAmount = entry.Amount
-	entry.OriginalCurrency = entry.Currency
-	h.accountingEntries = append(h.accountingEntries, entry)
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -1400,7 +1484,9 @@ func (h *accountingEntry) psMarkupReverseTaxFee() error {
 
 	if h.req != nil {
 		h.mapRequestToEntry(entry)
-		h.accountingEntries = append(h.accountingEntries, entry)
+		if err := h.addEntry(entry); err != nil {
+			return err
+		}
 
 		return nil
 	}
@@ -1446,9 +1532,9 @@ func (h *accountingEntry) psMarkupReverseTaxFee() error {
 
 	entry.Amount = rsp.Rate - rsp1.Rate
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	entry.OriginalAmount = entry.Amount
-	entry.OriginalCurrency = entry.Currency
-	h.accountingEntries = append(h.accountingEntries, entry)
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -1474,7 +1560,9 @@ func (h *accountingEntry) reverseTaxFeeDelta() error {
 
 	if h.req != nil {
 		h.mapRequestToEntry(entry)
-		h.accountingEntries = append(h.accountingEntries, entry)
+		if err := h.addEntry(entry); err != nil {
+			return err
+		}
 
 		return nil
 	}
@@ -1487,9 +1575,9 @@ func (h *accountingEntry) reverseTaxFeeDelta() error {
 
 	entry.Amount = amount
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	entry.OriginalAmount = entry.Amount
-	entry.OriginalCurrency = entry.Currency
-	h.accountingEntries = append(h.accountingEntries, entry)
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -1515,7 +1603,9 @@ func (h *accountingEntry) psReverseTaxFeeDelta() error {
 
 	if h.req != nil {
 		h.mapRequestToEntry(entry)
-		h.accountingEntries = append(h.accountingEntries, entry)
+		if err := h.addEntry(entry); err != nil {
+			return err
+		}
 
 		return nil
 	}
@@ -1528,9 +1618,9 @@ func (h *accountingEntry) psReverseTaxFeeDelta() error {
 
 	entry.Amount = math.Abs(amount)
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	entry.OriginalAmount = entry.Amount
-	entry.OriginalCurrency = entry.Currency
-	h.accountingEntries = append(h.accountingEntries, entry)
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -1558,7 +1648,9 @@ func (h *accountingEntry) chargeback() error {
 
 	if h.req != nil {
 		h.mapRequestToEntry(entry)
-		h.accountingEntries = append(h.accountingEntries, entry)
+		if err := h.addEntry(entry); err != nil {
+			return err
+		}
 
 		return nil
 	}
@@ -1587,7 +1679,9 @@ func (h *accountingEntry) chargeback() error {
 
 	entry.Amount = rsp.ExchangedAmount
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	h.accountingEntries = append(h.accountingEntries, entry)
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -1613,7 +1707,9 @@ func (h *accountingEntry) psMarkupChargebackFx() error {
 
 	if h.req != nil {
 		h.mapRequestToEntry(entry)
-		h.accountingEntries = append(h.accountingEntries, entry)
+		if err := h.addEntry(entry); err != nil {
+			return err
+		}
 
 		return nil
 	}
@@ -1659,9 +1755,9 @@ func (h *accountingEntry) psMarkupChargebackFx() error {
 
 	entry.Amount = rsp.Rate - rsp1.Rate
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	entry.OriginalAmount = entry.Amount
-	entry.OriginalCurrency = entry.Currency
-	h.accountingEntries = append(h.accountingEntries, entry)
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -1689,7 +1785,9 @@ func (h *accountingEntry) chargebackFee() error {
 
 	if h.req != nil {
 		h.mapRequestToEntry(entry)
-		h.accountingEntries = append(h.accountingEntries, entry)
+		if err := h.addEntry(entry); err != nil {
+			return err
+		}
 
 		return nil
 	}
@@ -1711,9 +1809,9 @@ func (h *accountingEntry) chargebackFee() error {
 
 	entry.Amount = h.order.RoyaltyData.ChargebackPercentCommissionInRoyaltyCurrency
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	entry.OriginalAmount = entry.Amount
-	entry.OriginalCurrency = entry.Currency
-	h.accountingEntries = append(h.accountingEntries, entry)
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -1739,7 +1837,9 @@ func (h *accountingEntry) psMarkupChargebackFee() error {
 
 	if h.req != nil {
 		h.mapRequestToEntry(entry)
-		h.accountingEntries = append(h.accountingEntries, entry)
+		if err := h.addEntry(entry); err != nil {
+			return err
+		}
 
 		return nil
 	}
@@ -1759,9 +1859,9 @@ func (h *accountingEntry) psMarkupChargebackFee() error {
 
 	entry.Amount = h.order.RoyaltyData.ChargebackPercentCommissionInRoyaltyCurrency - (h.order.TotalPaymentAmount * cost.Percent)
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	entry.OriginalAmount = entry.Amount
-	entry.OriginalCurrency = entry.Currency
-	h.accountingEntries = append(h.accountingEntries, entry)
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -1787,7 +1887,9 @@ func (h *accountingEntry) chargebackFixedFee() error {
 
 	if h.req != nil {
 		h.mapRequestToEntry(entry)
-		h.accountingEntries = append(h.accountingEntries, entry)
+		if err := h.addEntry(entry); err != nil {
+			return err
+		}
 
 		return nil
 	}
@@ -1834,10 +1936,9 @@ func (h *accountingEntry) chargebackFixedFee() error {
 
 	entry.Amount = h.order.RoyaltyData.ChargebackFixedCommissionInRoyaltyCurrency
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	h.accountingEntries = append(h.accountingEntries, entry)
-	entry.OriginalAmount = entry.Amount
-	entry.OriginalCurrency = entry.Currency
-
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -1862,7 +1963,9 @@ func (h *accountingEntry) psMarkupChargebackFixedFee() error {
 
 	if h.req != nil {
 		h.mapRequestToEntry(entry)
-		h.accountingEntries = append(h.accountingEntries, entry)
+		if err := h.addEntry(entry); err != nil {
+			return err
+		}
 
 		return nil
 	}
@@ -1884,9 +1987,9 @@ func (h *accountingEntry) psMarkupChargebackFixedFee() error {
 
 	entry.Amount = h.order.RoyaltyData.ChargebackFixedCommissionInRoyaltyCurrency - amount
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	entry.OriginalAmount = entry.Amount
-	entry.OriginalCurrency = entry.Currency
-	h.accountingEntries = append(h.accountingEntries, entry)
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -1908,7 +2011,9 @@ func (h *accountingEntry) refundFailure() error {
 		Country:    h.order.GetCountry(),
 	}
 	h.mapRequestToEntry(entry)
-	h.accountingEntries = append(h.accountingEntries, entry)
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -1930,7 +2035,9 @@ func (h *accountingEntry) chargebackFailure() error {
 		Country:    h.order.GetCountry(),
 	}
 	h.mapRequestToEntry(entry)
-	h.accountingEntries = append(h.accountingEntries, entry)
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -1951,7 +2058,9 @@ func (h *accountingEntry) createEntry(entryType string) error {
 		MerchantId: h.merchant.Id,
 	}
 	h.mapRequestToEntry(entry)
-	h.accountingEntries = append(h.accountingEntries, entry)
+	if err := h.addEntry(entry); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -1962,8 +2071,10 @@ func (h *accountingEntry) mapRequestToEntry(entry *billing.AccountingEntry) {
 	entry.Reason = h.req.Reason
 	entry.Status = h.req.Status
 
-	entry.OriginalAmount = entry.Amount
-	entry.OriginalCurrency = entry.Currency
+	entry.OriginalAmount = entry.OriginalAmount
+	entry.OriginalCurrency = entry.OriginalCurrency
+	entry.LocalAmount = entry.LocalAmount
+	entry.LocalCurrency = entry.LocalCurrency
 
 	t := time.Unix(h.req.Date, 0)
 	entry.CreatedAt, _ = ptypes.TimestampProto(t)
@@ -2003,7 +2114,6 @@ func (h *accountingEntry) getMoneyBackCostMerchant(reason string) (*billing.Mone
 
 	userCountry := h.order.GetUserCountry()
 	country, err := h.country.GetByIsoCodeA2(userCountry)
-
 	if err != nil {
 		return nil, err
 	}
@@ -2033,7 +2143,6 @@ func (h *accountingEntry) getMoneyBackCostSystem(reason string) (*billing.MoneyB
 
 	userCountry := h.order.GetUserCountry()
 	country, err := h.country.GetByIsoCodeA2(userCountry)
-
 	if err != nil {
 		return nil, err
 	}

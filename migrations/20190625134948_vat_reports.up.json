@@ -1,5 +1,11 @@
 [
   {
+    "drop": "annual_turnovers"
+  },
+  {
+    "create": "annual_turnovers"
+  },
+  {
     "drop": "vat_transactions"
   },
   {

@@ -108,6 +108,7 @@ It has these top-level messages:
 	RoyaltyReportOrder
 	VatTransaction
 	VatReport
+	AnnualTurnover
 */
 package billing
 

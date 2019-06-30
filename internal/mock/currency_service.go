@@ -105,6 +105,22 @@ func (s *CurrencyServiceMockOk) ExchangeCurrencyByDateCommon(
 	in *currencies.ExchangeCurrencyByDateCommonRequest,
 	opts ...client.CallOption,
 ) (*currencies.ExchangeCurrencyResponse, error) {
+	if in.From == "TRY" && in.To == "EUR" {
+		return &currencies.ExchangeCurrencyResponse{
+			ExchangedAmount: in.Amount * 6,
+		}, nil
+	}
+	if in.From == "TRY" && in.To == "RUB" {
+		return &currencies.ExchangeCurrencyResponse{
+			ExchangedAmount: in.Amount * 10,
+		}, nil
+	}
+	if in.From == "EUR" && in.To == "RUB" {
+		return &currencies.ExchangeCurrencyResponse{
+			ExchangedAmount: in.Amount * 70,
+		}, nil
+	}
+
 	return &currencies.ExchangeCurrencyResponse{}, nil
 }
 

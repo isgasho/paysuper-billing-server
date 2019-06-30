@@ -548,6 +548,8 @@ type MgoAccountingEntry struct {
 	Country          string                    `bson:"country"`
 	OriginalAmount   float64                   `bson:"original_amount"`
 	OriginalCurrency string                    `bson:"original_currency"`
+	LocalAmount      float64                   `bson:"local_amount"`
+	LocalCurrency    string                    `bson:"local_currency"`
 	CreatedAt        time.Time                 `bson:"created_at"`
 	AvailableOn      time.Time                 `bson:"available_on"`
 }
@@ -616,20 +618,22 @@ type MgoVatTransaction struct {
 }
 
 type MgoVatReport struct {
-	Id                bson.ObjectId `bson:"_id"`
-	Country           string        `bson:"country"`
-	VatRate           float64       `bson:"vat_rate"`
-	Currency          string        `bson:"currency"`
-	TransactionsCount int32         `bson:"transactions_count"`
-	GrossRevenue      float64       `bson:"gross_revenue"`
-	VatAmount         float64       `bson:"vat_amount"`
-	FeesAmount        float64       `bson:"fees_amount"`
-	DeductionAmount   float64       `bson:"deduction_amount"`
-	CorrectionAmount  float64       `bson:"correction_amount"`
-	Status            string        `bson:"status"`
-	ReportDateFrom    time.Time     `bson:"report_date_from"`
-	ReportDateTo      time.Time     `bson:"report_date_to"`
-	PayUntilDate      time.Time     `bson:"pay_until_date"`
+	Id                  bson.ObjectId `bson:"_id"`
+	Country             string        `bson:"country"`
+	VatRate             float64       `bson:"vat_rate"`
+	Currency            string        `bson:"currency"`
+	TransactionsCount   int32         `bson:"transactions_count"`
+	GrossRevenue        float64       `bson:"gross_revenue"`
+	VatAmount           float64       `bson:"vat_amount"`
+	FeesAmount          float64       `bson:"fees_amount"`
+	DeductionAmount     float64       `bson:"deduction_amount"`
+	CorrectionAmount    float64       `bson:"correction_amount"`
+	Status              string        `bson:"status"`
+	LocalAnnualTurnover float64       `bson:"local_annual_turnover"`
+	WorldAnnualTurnover float64       `bson:"world_annual_turnover"`
+	ReportDateFrom      time.Time     `bson:"report_date_from"`
+	ReportDateTo        time.Time     `bson:"report_date_to"`
+	PayUntilDate        time.Time     `bson:"pay_until_date"`
 }
 
 func (m *Country) GetBSON() (interface{}, error) {
@@ -2964,16 +2968,18 @@ func (m *VatTransaction) SetBSON(raw bson.Raw) error {
 
 func (m *VatReport) GetBSON() (interface{}, error) {
 	st := &MgoVatReport{
-		Country:           m.Country,
-		VatRate:           m.VatRate,
-		Currency:          m.Currency,
-		TransactionsCount: m.TransactionsCount,
-		GrossRevenue:      m.GrossRevenue,
-		VatAmount:         m.VatAmount,
-		FeesAmount:        m.FeesAmount,
-		DeductionAmount:   m.DeductionAmount,
-		CorrectionAmount:  m.CorrectionAmount,
-		Status:            m.Status,
+		Country:             m.Country,
+		VatRate:             m.VatRate,
+		Currency:            m.Currency,
+		TransactionsCount:   m.TransactionsCount,
+		GrossRevenue:        m.GrossRevenue,
+		VatAmount:           m.VatAmount,
+		FeesAmount:          m.FeesAmount,
+		DeductionAmount:     m.DeductionAmount,
+		CorrectionAmount:    m.CorrectionAmount,
+		LocalAnnualTurnover: m.LocalAnnualTurnover,
+		WorldAnnualTurnover: m.WorldAnnualTurnover,
+		Status:              m.Status,
 	}
 
 	if len(m.Id) <= 0 {
@@ -3023,6 +3029,8 @@ func (m *VatReport) SetBSON(raw bson.Raw) error {
 	m.FeesAmount = decoded.FeesAmount
 	m.DeductionAmount = decoded.DeductionAmount
 	m.CorrectionAmount = decoded.CorrectionAmount
+	m.LocalAnnualTurnover = decoded.LocalAnnualTurnover
+	m.WorldAnnualTurnover = decoded.WorldAnnualTurnover
 	m.Status = decoded.Status
 
 	m.ReportDateFrom, err = ptypes.TimestampProto(decoded.ReportDateFrom)
@@ -3057,6 +3065,8 @@ func (m *AccountingEntry) GetBSON() (interface{}, error) {
 		Currency:         m.Currency,
 		OriginalAmount:   m.OriginalAmount,
 		OriginalCurrency: m.OriginalCurrency,
+		LocalAmount:      m.LocalAmount,
+		LocalCurrency:    m.LocalCurrency,
 		Country:          m.Country,
 		Reason:           m.Reason,
 		Status:           m.Status,
@@ -3107,6 +3117,8 @@ func (m *AccountingEntry) SetBSON(raw bson.Raw) error {
 	m.Currency = decoded.Currency
 	m.OriginalAmount = decoded.OriginalAmount
 	m.OriginalCurrency = decoded.OriginalCurrency
+	m.LocalAmount = decoded.LocalAmount
+	m.LocalCurrency = decoded.LocalCurrency
 	m.Country = decoded.Country
 	m.Reason = decoded.Reason
 	m.Status = decoded.Status

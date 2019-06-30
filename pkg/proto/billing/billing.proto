@@ -1426,8 +1426,10 @@ message AccountingEntry {
     string country = 10;
     double original_amount = 11;
     string original_currency = 12;
-    google.protobuf.Timestamp created_at = 13;
-    google.protobuf.Timestamp available_on = 14;
+    double local_amount = 13;
+    string local_currency = 14;
+    google.protobuf.Timestamp created_at = 15;
+    google.protobuf.Timestamp available_on = 16;
 }
 
 message RoyaltyReportDetails {
@@ -1556,10 +1558,25 @@ message VatReport {
     double correction_amount = 10;
     //@inject_tag: json:"status" bson:"status" validate:"required,alpha,oneof=threshold expired pending need_to_pay paid overdue canceled"
     string status = 11;
+    // @inject_tag: json:"local_annual_turnover" bson:"local_annual_turnover" validate:"numeric,gte=0"
+    double local_annual_turnover = 12;
+    // @inject_tag: json:"world_annual_turnover" bson:"world_annual_turnover" validate:"numeric,gte=0"
+    double world_annual_turnover = 13;
     //@inject_tag: json:"report_date_from" bson:"report_date_from"
-    google.protobuf.Timestamp report_date_from = 12;
+    google.protobuf.Timestamp report_date_from = 14;
     //@inject_tag: json:"report_date_to" bson:"report_date_to"
-    google.protobuf.Timestamp report_date_to = 13;
+    google.protobuf.Timestamp report_date_to = 15;
     //@inject_tag: json:"pay_until_date" bson:"pay_until_date"
-    google.protobuf.Timestamp pay_until_date = 14;
+    google.protobuf.Timestamp pay_until_date = 16;
+}
+
+message AnnualTurnover {
+    //@inject_tag: json:"year" bson:"year" validate:"required,numeric,gte=2019"
+    int32 year = 1;
+    //@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
+    string country = 2;
+    // @inject_tag: json:"amount" bson:"amount" validate:"numeric,gte=0"
+    double amount = 3;
+    //@inject_tag: json:"currency" bson:"currency" validate:"required,alpha,len=3"
+    string currency = 4;
 }

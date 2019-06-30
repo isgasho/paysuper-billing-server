@@ -2,19 +2,20 @@ package service
 
 import (
 	"context"
-	"errors"
-	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/jinzhu/now"
-	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	"go.uber.org/zap"
 	"time"
 )
 
 const (
 	collectionVatTransactions = "vat_transactions"
+)
+
+var (
+	errorVatReportNotEnabledForCountry          = newBillingServerErrorMsg("vr000001", "vat not enabled for country")
+	errorVatReportPeriodNotConfiguredForCountry = newBillingServerErrorMsg("vr000002", "vat period not configured for country")
 )
 
 func (s *Service) GetVatReportsDashboard(
@@ -43,6 +44,7 @@ func (s *Service) GetVatReportTransactions(
 
 func (s *Service) createVatTransaction(order *billing.Order) error {
 	country, err := s.country.GetByIsoCodeA2(order.GetCountry())
+	// todo return country-not-found error here after merge with master
 	if err != nil {
 		return err
 	}
@@ -157,12 +159,13 @@ func (s *Service) getVatTransactions(
 
 func (s *Service) getLastVatReportTime(countryCode string) (from, to time.Time, err error) {
 	country, err := s.country.GetByIsoCodeA2(countryCode)
+	// todo return country-not-found error here after merge with master
 	if err != nil {
 		return
 	}
 
 	if !country.VatEnabled {
-		err = errors.New("Vat not enabled for country")
+		err = errorVatReportNotEnabledForCountry
 		return
 	}
 
@@ -187,21 +190,22 @@ func (s *Service) getLastVatReportTime(countryCode string) (from, to time.Time, 
 		return
 	}
 
-	err = errors.New("Vat period not configured for country")
+	err = errorVatReportPeriodNotConfiguredForCountry
 	return
 }
 
-func (s *Service) getPreviousVatReportTime(countryCode string) (from, to time.Time, err error) {
+func (s *Service) getPreviousVatReportTime(countryCode string, count int) (from, to time.Time, err error) {
 	from, to, err = s.getLastVatReportTime(countryCode)
 	if err != nil {
 		return
 	}
 	country, err := s.country.GetByIsoCodeA2(countryCode)
+	// todo return country-not-found error here after merge with master
 	if err != nil {
 		return
 	}
 
-	from = from.AddDate(0, -1*int(country.VatPeriodMonth), 0)
-	to = to.AddDate(0, -1*int(country.VatPeriodMonth), 0)
+	from = from.AddDate(0, -1*int(country.VatPeriodMonth)*count, 0)
+	to = to.AddDate(0, -1*int(country.VatPeriodMonth)*count, 0)
 	return
 }

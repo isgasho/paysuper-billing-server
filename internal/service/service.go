@@ -84,6 +84,7 @@ type Service struct {
 	moneyBackCostSystem        *MoneyBackCostSystem
 	moneyBackCostMerchant      *MoneyBackCostMerchant
 	payoutCostSystem           *PayoutCostSystem
+	turnover                   *Turnover
 }
 
 func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {
@@ -145,6 +146,7 @@ func (s *Service) Init() (err error) {
 	s.moneyBackCostSystem = newMoneyBackCostSystemService(s)
 	s.moneyBackCostMerchant = newMoneyBackCostMerchantService(s)
 	s.payoutCostSystem = newPayoutCostSystemService(s)
+	s.turnover = newTurnoverService(s)
 
 	s.centrifugoClient = gocent.New(
 		gocent.Config{

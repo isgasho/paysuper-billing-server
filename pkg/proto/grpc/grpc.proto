@@ -113,6 +113,8 @@ service BillingService {
     rpc GetVatReportsDashboard (EmptyRequest) returns (VatReportsResponse) {}
     rpc GetVatReportsForCountry (VatReportsRequest) returns (VatReportsResponse) {}
     rpc GetVatReportTransactions (VatTransactionsRequest) returns (VatTransactionsResponse) {}
+
+    rpc CalcAnnualTurnovers(EmptyRequest) returns (EmptyResponse) {}
 }
 
 message EmptyRequest {}
