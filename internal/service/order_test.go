@@ -136,6 +136,16 @@ func (suite *OrderTestSuite) SetupTest() {
 		VatEnabled:      true,
 		PriceGroupId:    "",
 		VatCurrency:     "RUB",
+		VatRate:         20,
+		VatThreshold: &billing.CountryVatThreshold{
+			Year:  0,
+			World: 0,
+		},
+		VatPeriodMonth:         3,
+		VatDeadlineDays:        25,
+		VatStoreYears:          5,
+		VatCurrencyRatesPolicy: "last-day",
+		VatCurrencyRatesSource: "cbrf",
 	}
 	us := &billing.Country{
 		IsoCodeA2:       "US",
@@ -146,6 +156,16 @@ func (suite *OrderTestSuite) SetupTest() {
 		VatEnabled:      true,
 		PriceGroupId:    "",
 		VatCurrency:     "USD",
+		VatRate:         0,
+		VatThreshold: &billing.CountryVatThreshold{
+			Year:  0,
+			World: 0,
+		},
+		VatPeriodMonth:         0,
+		VatDeadlineDays:        0,
+		VatStoreYears:          0,
+		VatCurrencyRatesPolicy: "",
+		VatCurrencyRatesSource: "",
 	}
 	by := &billing.Country{
 		IsoCodeA2:       "BY",
@@ -156,6 +176,16 @@ func (suite *OrderTestSuite) SetupTest() {
 		VatEnabled:      true,
 		PriceGroupId:    "",
 		VatCurrency:     "BYN",
+		VatRate:         20,
+		VatThreshold: &billing.CountryVatThreshold{
+			Year:  0,
+			World: 0,
+		},
+		VatPeriodMonth:         3,
+		VatDeadlineDays:        25,
+		VatStoreYears:          5,
+		VatCurrencyRatesPolicy: "last-day",
+		VatCurrencyRatesSource: "cbrf",
 	}
 	ua := &billing.Country{
 		IsoCodeA2:       "UA",
@@ -166,6 +196,16 @@ func (suite *OrderTestSuite) SetupTest() {
 		VatEnabled:      false,
 		PriceGroupId:    "",
 		VatCurrency:     "",
+		VatRate:         20,
+		VatThreshold: &billing.CountryVatThreshold{
+			Year:  0,
+			World: 0,
+		},
+		VatPeriodMonth:         3,
+		VatDeadlineDays:        25,
+		VatStoreYears:          5,
+		VatCurrencyRatesPolicy: "last-day",
+		VatCurrencyRatesSource: "cbrf",
 	}
 
 	ps1 := &billing.PaymentSystem{
@@ -2245,10 +2285,12 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_Convert_Error() {
 		IsActive: true,
 	}
 
+	suite.service.curService = mock.NewCurrencyServiceMockError()
+
 	order, err := processor.prepareOrder()
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), order)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionCurrencyRate), err.Error())
+	assert.Equal(suite.T(), orderErrorConvertionCurrency, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_PrepareOrder_Commission_Error() {
@@ -3860,18 +3902,10 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_Ok() {
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), commission)
 
-	merchant, err := suite.service.merchant.GetById(order1.Project.MerchantId)
-	assert.NoError(suite.T(), err)
-
-	rate, err := suite.service.currencyRate.GetFromTo(order1.PaymentMethodOutcomeCurrency.CodeInt, merchant.GetPayoutCurrency().CodeInt)
-	assert.NoError(suite.T(), err)
 	pmCommission := tools.FormatAmount(order1.ProjectIncomeAmount * (commission.Fee / 100))
 
 	assert.Equal(suite.T(), pmCommission, order1.PaymentSystemFeeAmount.AmountPaymentMethodCurrency)
 	assert.Equal(suite.T(), pmCommission, order1.PaymentSystemFeeAmount.AmountPaymentSystemCurrency)
-
-	pmCommission1 := tools.FormatAmount(pmCommission / rate.Rate)
-	assert.Equal(suite.T(), pmCommission1, order1.PaymentSystemFeeAmount.AmountMerchantCurrency)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_ProcessValidation_Error() {
@@ -6232,7 +6266,6 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_AccountingEntries_
 	req := &billing.OrderCreateRequest{
 		ProjectId:   suite.projectFixedAmount.Id,
 		Currency:    "RUB",
-		Amount:      100,
 		Account:     "unit test",
 		Description: "unit test",
 		OrderId:     bson.NewObjectId().Hex(),
@@ -6355,6 +6388,34 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_AccountingEntries_
 	assert.NotZero(suite.T(), order.RoyaltyData.MerchantFixedCommissionInRoyaltyCurrency)
 	assert.NotZero(suite.T(), order.RoyaltyData.MerchantTotalCommissionInRoyaltyCurrency)
 	assert.NotZero(suite.T(), order.RoyaltyData.PaymentTaxAmountInRoyaltyCurrency)
+
+	n, err := suite.service.db.Collection(collectionVatTransactions).Count()
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), n, 1)
+
+	from, to, err := suite.service.getLastVatReportTime(order.GetCountry())
+	assert.NoError(suite.T(), err)
+
+	vts, err := suite.service.getVatTransactions(from, to, order.GetCountry())
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), len(vts), 1)
+
+	vt := vts[0]
+
+	assert.Equal(suite.T(), vt.OrderId, order.Id)
+	assert.Equal(suite.T(), vt.UserId, order.User.Id)
+	assert.Equal(suite.T(), vt.TransactionType, VatTransactionTypePayment)
+	assert.Equal(suite.T(), vt.TransactionAmount, order.TotalPaymentAmount)
+	assert.Equal(suite.T(), vt.TransactionCurrency, order.Currency)
+	assert.Equal(suite.T(), vt.VatAmount, order.Tax.Amount)
+	assert.Equal(suite.T(), vt.VatCurrency, order.Tax.Currency)
+	assert.Equal(suite.T(), vt.Country, order.GetCountry())
+	assert.Equal(suite.T(), vt.LocalCurrency, vt.TransactionCurrency)
+	assert.Equal(suite.T(), vt.LocalCurrency, order.Currency)
+	assert.Equal(suite.T(), vt.LocalTransactionAmount, order.TotalPaymentAmount)
+	assert.Equal(suite.T(), vt.LocalCurrency, order.Tax.Currency)
+	assert.Equal(suite.T(), vt.LocalVatAmount, order.Tax.Amount)
+	assert.False(suite.T(), vt.IsDeduction)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Error() {

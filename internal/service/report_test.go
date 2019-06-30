@@ -322,7 +322,7 @@ func (suite *ReportTestSuite) SetupTest() {
 		broker,
 		redisClient,
 		suite.cache,
-		nil,
+		mock.NewCurrencyServiceMockOk(),
 		nil,
 	)
 

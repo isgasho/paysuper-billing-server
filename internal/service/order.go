@@ -17,6 +17,8 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	curPkg "github.com/paysuper/paysuper-currencies/pkg"
+	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/entity"
 	repo "github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
@@ -68,7 +70,7 @@ var (
 	orderErrorPaymentMethodNotAllowed                         = newBillingServerErrorMsg("fm000005", "payment method not available for project")
 	orderErrorPaymentMethodNotFound                           = newBillingServerErrorMsg("fm000006", "payment method with specified identifier not found")
 	orderErrorPaymentMethodInactive                           = newBillingServerErrorMsg("fm000007", "payment method with specified identifier is inactive")
-	orderErrorCurrencyRateNotFound                            = newBillingServerErrorMsg("fm000008", "currency_rate not found")
+	orderErrorConvertionCurrency                              = newBillingServerErrorMsg("fm000008", "currency convertion error")
 	orderErrorPaymentMethodEmptySettings                      = newBillingServerErrorMsg("fm000009", "payment method setting for project is empty")
 	orderErrorPaymentSystemInactive                           = newBillingServerErrorMsg("fm000010", "payment system for specified payment method is inactive")
 	orderErrorPayerRegionUnknown                              = newBillingServerErrorMsg("fm000011", "payer region can't be found")
@@ -576,6 +578,9 @@ func (s *Service) PaymentCreateProcess(
 		return nil
 	}
 
+	p1 := &OrderCreateRequestProcessor{Service: s}
+	p1.processOrderVat(order)
+
 	err = processor.processPaymentAmounts()
 
 	if err != nil {
@@ -741,16 +746,6 @@ func (s *Service) PaymentCallbackProcess(
 
 		if h.IsRecurringCallback(data) {
 			s.saveRecurringCard(order, h.GetRecurringId(data))
-		}
-
-		if order.PrivateStatus == constant.OrderStatusPaymentSystemComplete {
-			/*err := s.createVatTransaction(order)
-			if err != nil {
-				rsp.Error = err.Error()
-				rsp.Status = pkg.StatusErrorSystem
-
-				return nil
-			}*/
 		}
 
 		rsp.Status = pkg.StatusOK
@@ -1193,13 +1188,28 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 	}
 
 	if merchantPayoutCurrency != nil && v.checked.currency.CodeInt != merchantPayoutCurrency.CodeInt {
-		amnt, err := v.currencyRate.Convert(v.checked.currency.CodeInt, merchantPayoutCurrency.CodeInt, amount)
-
-		if err != nil {
-			return nil, err
+		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
+			From:       v.checked.currency.CodeA3,
+			To:         merchantPayoutCurrency.CodeA3,
+			MerchantId: v.checked.merchant.Id,
+			RateType:   curPkg.RateTypeOxr,
+			Amount:     amount,
 		}
 
-		merAccAmount = amnt
+		rsp, err := v.curService.ExchangeCurrencyCurrentForMerchant(context.TODO(), req)
+
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorGrpcServiceCallFailed,
+				zap.Error(err),
+				zap.String(errorFieldService, "CurrencyRatesService"),
+				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
+			)
+
+			return nil, orderErrorConvertionCurrency
+		}
+
+		merAccAmount = rsp.ExchangedAmount
 	}
 
 	order := &billing.Order{
@@ -1496,11 +1506,28 @@ func (v *OrderCreateRequestProcessor) processLimitAmounts() (err error) {
 			return newBillingServerErrorMsg("fm000000", err.Error())
 		}
 
-		amount, err = v.currencyRate.Convert(v.checked.currency.CodeInt, currency.CodeInt, amount)
+		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
+			From:       v.checked.currency.CodeA3,
+			To:         currency.CodeA3,
+			MerchantId: v.checked.merchant.Id,
+			RateType:   curPkg.RateTypeOxr,
+			Amount:     amount,
+		}
+
+		rsp, err := v.curService.ExchangeCurrencyCurrentForMerchant(context.TODO(), req)
 
 		if err != nil {
-			return newBillingServerErrorMsg("fm000000", err.Error())
+			zap.L().Error(
+				pkg.ErrorGrpcServiceCallFailed,
+				zap.Error(err),
+				zap.String(errorFieldService, "CurrencyRatesService"),
+				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
+			)
+
+			return orderErrorConvertionCurrency
 		}
+
+		amount = rsp.ExchangedAmount
 	}
 
 	if amount < v.checked.project.MinPaymentAmount {
@@ -1614,8 +1641,6 @@ func (v *OrderCreateRequestProcessor) processOrderCommissions(o *billing.Order) 
 	merchant, _ := v.merchant.GetById(o.Project.MerchantId)
 
 	mAccCur := merchant.GetPayoutCurrency()
-	pmOutCur := o.PaymentMethodOutcomeCurrency.CodeInt
-	amount := float64(0)
 
 	// calculate commissions to selected payment method
 	commission, err := v.Service.commission.CalculatePmCommission(o.Project.Id, o.PaymentMethod.Id, o.PaymentMethodOutcomeAmount)
@@ -1629,25 +1654,61 @@ func (v *OrderCreateRequestProcessor) processOrderCommissions(o *billing.Order) 
 		AmountPaymentMethodCurrency: tools.FormatAmount(commission),
 	}
 
-	ps, err := v.paymentSystem.GetById(o.PaymentMethod.PaymentSystemId)
+	ps, err := v.Service.paymentSystem.GetById(o.PaymentMethod.PaymentSystemId)
 	if err != nil {
 		return err
 	}
 
 	// convert payment system amount of fee to accounting currency of payment system
-	amount, err = v.Service.currencyRate.Convert(pmOutCur, ps.AccountingCurrency.CodeInt, commission)
+	o.PaymentSystemFeeAmount.AmountPaymentSystemCurrency = commission
+	if o.PaymentMethodOutcomeCurrency.CodeA3 != ps.AccountingCurrency.CodeA3 {
+		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
+			From:       o.PaymentMethodOutcomeCurrency.CodeA3,
+			To:         ps.AccountingCurrency.CodeA3,
+			MerchantId: merchant.Id,
+			RateType:   curPkg.RateTypeOxr,
+			Amount:     commission,
+		}
+		rsp, err := v.curService.ExchangeCurrencyCurrentForMerchant(context.TODO(), req)
 
-	if err != nil {
-		zap.S().Errorw("currency convert error", "from", pmOutCur, "to", ps.AccountingCurrency.CodeInt, "amount", commission)
-		return orderErrorCurrencyRateNotFound
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorGrpcServiceCallFailed,
+				zap.Error(err),
+				zap.String(errorFieldService, "CurrencyRatesService"),
+				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
+			)
+
+			return orderErrorConvertionCurrency
+		}
+		o.PaymentSystemFeeAmount.AmountPaymentSystemCurrency = rsp.ExchangedAmount
 	}
 
-	o.PaymentSystemFeeAmount.AmountPaymentSystemCurrency = amount
-
 	if mAccCur != nil {
+		o.PaymentSystemFeeAmount.AmountMerchantCurrency = commission
 		// convert payment system amount of fee to accounting currency of merchant
-		amount, _ = v.Service.currencyRate.Convert(pmOutCur, mAccCur.CodeInt, commission)
-		o.PaymentSystemFeeAmount.AmountMerchantCurrency = amount
+		if o.PaymentMethodOutcomeCurrency.CodeA3 != mAccCur.CodeA3 {
+			req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
+				From:       o.PaymentMethodOutcomeCurrency.CodeA3,
+				To:         mAccCur.CodeA3,
+				MerchantId: merchant.Id,
+				RateType:   curPkg.RateTypeOxr,
+				Amount:     commission,
+			}
+			rsp, err := v.curService.ExchangeCurrencyCurrentForMerchant(context.TODO(), req)
+
+			if err != nil {
+				zap.L().Error(
+					pkg.ErrorGrpcServiceCallFailed,
+					zap.Error(err),
+					zap.String(errorFieldService, "CurrencyRatesService"),
+					zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
+				)
+
+				return orderErrorConvertionCurrency
+			}
+			o.PaymentSystemFeeAmount.AmountMerchantCurrency = rsp.ExchangedAmount
+		}
 	}
 
 	return nil
@@ -2057,68 +2118,85 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 func (v *PaymentCreateProcessor) processPaymentAmounts() (err error) {
 	order := v.checked.order
 
-	order.ProjectOutcomeAmount, err = v.service.currencyRate.Convert(
-		order.PaymentMethodIncomeCurrency.CodeInt,
-		order.ProjectOutcomeCurrency.CodeInt,
-		order.PaymentMethodOutcomeAmount,
-	)
+	order.ProjectOutcomeAmount = order.PaymentMethodOutcomeAmount
+	if order.PaymentMethodIncomeCurrency.CodeA3 != order.ProjectOutcomeCurrency.CodeA3 {
+		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
+			From:       order.PaymentMethodIncomeCurrency.CodeA3,
+			To:         order.ProjectOutcomeCurrency.CodeA3,
+			MerchantId: order.GetMerchantId(),
+			RateType:   curPkg.RateTypeOxr,
+			Amount:     order.PaymentMethodOutcomeAmount,
+		}
 
-	if err != nil {
-		v.service.logError(
-			"Convert to project outcome currency failed",
-			[]interface{}{
-				"error", err.Error(),
-				"from", order.PaymentMethodIncomeCurrency.CodeInt,
-				"to", order.ProjectOutcomeCurrency.CodeInt,
-				"order_id", order.Id,
-			},
-		)
+		rsp, err := v.service.curService.ExchangeCurrencyCurrentForMerchant(context.TODO(), req)
 
-		return
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorGrpcServiceCallFailed,
+				zap.Error(err),
+				zap.String(errorFieldService, "CurrencyRatesService"),
+				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
+			)
+
+			return orderErrorConvertionCurrency
+		}
+		order.ProjectOutcomeAmount = rsp.ExchangedAmount
 	}
 
-	order.AmountInPspAccountingCurrency, err = v.service.currencyRate.Convert(
-		order.PaymentMethodIncomeCurrency.CodeInt,
-		v.service.accountingCurrency.CodeInt,
-		order.PaymentMethodOutcomeAmount,
-	)
+	order.AmountInPspAccountingCurrency = order.PaymentMethodOutcomeAmount
+	if order.PaymentMethodIncomeCurrency.CodeA3 != v.service.accountingCurrency.CodeA3 {
+		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
+			From:       order.PaymentMethodIncomeCurrency.CodeA3,
+			To:         v.service.accountingCurrency.CodeA3,
+			MerchantId: order.GetMerchantId(),
+			RateType:   curPkg.RateTypeOxr,
+			Amount:     order.PaymentMethodOutcomeAmount,
+		}
 
-	if err != nil {
-		v.service.logError(
-			"Convert to PSP accounting currency failed",
-			[]interface{}{
-				"error", err.Error(),
-				"from", order.PaymentMethodIncomeCurrency.CodeInt,
-				"to", v.service.accountingCurrency.CodeInt,
-				"order_id", order.Id,
-			},
-		)
+		rsp, err := v.service.curService.ExchangeCurrencyCurrentForMerchant(context.TODO(), req)
 
-		return
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorGrpcServiceCallFailed,
+				zap.Error(err),
+				zap.String(errorFieldService, "CurrencyRatesService"),
+				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
+			)
+
+			return orderErrorConvertionCurrency
+		}
+		order.AmountInPspAccountingCurrency = rsp.ExchangedAmount
 	}
 
 	merchant, _ := v.service.merchant.GetById(order.Project.MerchantId)
 	merchantPayoutCurrency := merchant.GetPayoutCurrency()
 
 	if merchantPayoutCurrency != nil {
-		order.AmountOutMerchantAccountingCurrency, err = v.service.currencyRate.Convert(
-			order.PaymentMethodIncomeCurrency.CodeInt,
-			merchantPayoutCurrency.CodeInt,
-			order.PaymentMethodOutcomeAmount,
-		)
 
-		if err != nil {
-			v.service.logError(
-				"Convert to merchant accounting currency failed",
-				[]interface{}{
-					"error", err.Error(),
-					"from", order.PaymentMethodIncomeCurrency.CodeInt,
-					"to", merchantPayoutCurrency.CodeInt,
-					"order_id", order.Id,
-				},
-			)
+		order.AmountOutMerchantAccountingCurrency = order.PaymentMethodOutcomeAmount
+		if order.PaymentMethodIncomeCurrency.CodeA3 != merchantPayoutCurrency.CodeA3 {
 
-			return
+			req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
+				From:       order.PaymentMethodIncomeCurrency.CodeA3,
+				To:         merchantPayoutCurrency.CodeA3,
+				MerchantId: order.GetMerchantId(),
+				RateType:   curPkg.RateTypeOxr,
+				Amount:     order.PaymentMethodOutcomeAmount,
+			}
+
+			rsp, err := v.service.curService.ExchangeCurrencyCurrentForMerchant(context.TODO(), req)
+
+			if err != nil {
+				zap.L().Error(
+					pkg.ErrorGrpcServiceCallFailed,
+					zap.Error(err),
+					zap.String(errorFieldService, "CurrencyRatesService"),
+					zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
+				)
+
+				return orderErrorConvertionCurrency
+			}
+			order.AmountOutMerchantAccountingCurrency = rsp.ExchangedAmount
 		}
 	}
 
@@ -2136,24 +2214,31 @@ func (v *PaymentCreateProcessor) processPaymentAmounts() (err error) {
 
 		return
 	}
-	to := ps.AccountingCurrency.CodeInt
 
-	order.AmountInPaymentSystemAccountingCurrency, err = v.service.currencyRate.Convert(
-		order.PaymentMethodIncomeCurrency.CodeInt,
-		to,
-		order.PaymentMethodOutcomeAmount,
-	)
+	order.AmountInPaymentSystemAccountingCurrency = order.PaymentMethodOutcomeAmount
+	if order.PaymentMethodIncomeCurrency.CodeA3 != ps.AccountingCurrency.CodeA3 {
 
-	if err != nil {
-		v.service.logError(
-			"Convert to payment system accounting currency failed",
-			[]interface{}{
-				"error", err.Error(),
-				"from", order.PaymentMethodIncomeCurrency.CodeInt,
-				"to", to,
-				"order_id", order.Id,
-			},
-		)
+		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
+			From:       order.PaymentMethodIncomeCurrency.CodeA3,
+			To:         ps.AccountingCurrency.CodeA3,
+			MerchantId: order.GetMerchantId(),
+			RateType:   curPkg.RateTypeOxr,
+			Amount:     order.PaymentMethodOutcomeAmount,
+		}
+
+		rsp, err := v.service.curService.ExchangeCurrencyCurrentForMerchant(context.TODO(), req)
+
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorGrpcServiceCallFailed,
+				zap.Error(err),
+				zap.String(errorFieldService, "CurrencyRatesService"),
+				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
+			)
+
+			return orderErrorConvertionCurrency
+		}
+		order.AmountInPaymentSystemAccountingCurrency = rsp.ExchangedAmount
 	}
 
 	return
@@ -2199,7 +2284,7 @@ func (s *Service) GetOrderProductsAmount(products []*grpc.Product, currency stri
 		sum += amount
 	}
 
-	totalAmount := float64(tools.FormatAmount(sum))
+	totalAmount := tools.FormatAmount(sum)
 
 	return totalAmount, nil
 }
@@ -2335,8 +2420,10 @@ func (s *Service) ProcessOrderProducts(order *billing.Order) error {
 
 	itemsCurrency = currency.CodeA3
 
+	amount := float64(0)
+
 	// try to get order Amount in requested currency
-	amount, err := s.GetOrderProductsAmount(orderProducts, currency.CodeA3)
+	amount, err = s.GetOrderProductsAmount(orderProducts, currency.CodeA3)
 	if err != nil {
 		if currency.CodeA3 == defaultCurrency.CodeA3 {
 			return err
@@ -2350,11 +2437,27 @@ func (s *Service) ProcessOrderProducts(order *billing.Order) error {
 
 		itemsCurrency = defaultCurrency.CodeA3
 		// converting Amount from default currency to requested
-		amount, err = s.currencyRate.Convert(defaultCurrency.CodeInt, currency.CodeInt, amount)
-		if err != nil {
-			zap.S().Errorw("currency convert error", "from", defaultCurrency.CodeInt, "to", currency.CodeInt, "amount", amount)
-			return orderErrorUnknown
+		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
+			From:       defaultCurrency.CodeA3,
+			To:         currency.CodeA3,
+			MerchantId: order.GetMerchantId(),
+			RateType:   curPkg.RateTypeOxr,
+			Amount:     amount,
 		}
+
+		rsp, err := s.curService.ExchangeCurrencyCurrentForMerchant(context.TODO(), req)
+
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorGrpcServiceCallFailed,
+				zap.Error(err),
+				zap.String(errorFieldService, "CurrencyRatesService"),
+				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
+			)
+
+			return orderErrorConvertionCurrency
+		}
+		amount = rsp.ExchangedAmount
 	}
 
 	if order.User != nil && order.User.Locale != "" {
@@ -2371,14 +2474,32 @@ func (s *Service) ProcessOrderProducts(order *billing.Order) error {
 	merAccAmount := amount
 	projectOutcomeCurrency := currency
 	if merchantPayoutCurrency != nil && currency.CodeInt != merchantPayoutCurrency.CodeInt {
-		amount, err := s.currencyRate.Convert(currency.CodeInt, merchantPayoutCurrency.CodeInt, amount)
-		if err != nil {
-			zap.S().Errorw("currency convert error", "from", currency.CodeInt, "to", merchantPayoutCurrency.CodeInt, "amount", amount)
-			return orderErrorUnknown
+		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
+			From:       currency.CodeA3,
+			To:         merchantPayoutCurrency.CodeA3,
+			MerchantId: order.GetMerchantId(),
+			RateType:   curPkg.RateTypeOxr,
+			Amount:     amount,
 		}
-		merAccAmount = amount
+
+		rsp, err := s.curService.ExchangeCurrencyCurrentForMerchant(context.TODO(), req)
+
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorGrpcServiceCallFailed,
+				zap.Error(err),
+				zap.String(errorFieldService, "CurrencyRatesService"),
+				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
+			)
+
+			return orderErrorConvertionCurrency
+		}
+		merAccAmount = rsp.ExchangedAmount
 		projectOutcomeCurrency = merchantPayoutCurrency
 	}
+
+	amount = tools.FormatAmount(amount)
+	merAccAmount = tools.FormatAmount(merAccAmount)
 
 	order.Currency = currency.CodeA3
 	order.ProjectOutcomeCurrency = projectOutcomeCurrency
@@ -2387,6 +2508,7 @@ func (s *Service) ProcessOrderProducts(order *billing.Order) error {
 	order.PaymentMethodIncomeCurrency = currency
 
 	order.OrderAmount = amount
+	order.TotalPaymentAmount = amount
 	order.ProjectIncomeAmount = amount
 	order.ProjectOutcomeAmount = merAccAmount
 	order.PaymentMethodOutcomeAmount = amount

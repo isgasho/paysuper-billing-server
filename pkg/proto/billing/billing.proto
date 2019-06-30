@@ -1519,20 +1519,22 @@ message VatTransaction {
     double local_vat_amount = 12;
     // @inject_tag: json:"local_fees_amount" bson:"local_fees_amount" validate:"omitempty,numeric,gte=0"
     double local_fees_amount = 13;
+    //@inject_tag: json:"local_currency" bson:"local_currency" validate:"required,alpha,len=3"
+    string local_currency = 14;
     //@inject_tag: json:"billing_address_criteria" bson:"billing_address_criteria" validate:"required,oneof=ip bin language customer form"
-    string billing_address_criteria = 14;
+    string billing_address_criteria = 15;
     //@inject_tag: json:"billing_address" bson:"billing_address" validate:"required,dive"
-    OrderBillingAddress billing_address = 15;
+    OrderBillingAddress billing_address = 16;
     //@inject_tag: json:"user_id" bson:"user_id" validate:"omitempty,hexadecimal,len=24"
-    string user_id = 16;
+    string user_id = 17;
     //@inject_tag: json:"payment_method" bson:"payment_method" validate:"required"
-    string payment_method = 17;
-    //@inject_tag: json:"is_settled" bson:"is_settled"
-    bool is_settled = 18;
+    string payment_method = 18;
+    //@inject_tag: json:"is_deduction" bson:"is_deduction"
+    bool is_deduction = 19;
+    //@inject_tag: json:"country" bson:"country" validate:"required,alpha,len=2"
+    string country = 20;
     //@inject_tag: json:"date_time" bson:"date_time"
-    google.protobuf.Timestamp date_time = 19;
-    //@inject_tag: json:"date_time" bson:"initial_transaction_date_time"
-    google.protobuf.Timestamp initial_transaction_date_time = 20;
+    google.protobuf.Timestamp date_time = 21;
 }
 
 message VatReport {
@@ -1558,8 +1560,8 @@ message VatReport {
     double correction_amount = 10;
     //@inject_tag: json:"status" bson:"status" validate:"required,alpha,oneof=threshold expired pending need_to_pay paid overdue canceled"
     string status = 11;
-    // @inject_tag: json:"local_annual_turnover" bson:"local_annual_turnover" validate:"numeric,gte=0"
-    double local_annual_turnover = 12;
+    // @inject_tag: json:"country_annual_turnover" bson:"country_annual_turnover" validate:"numeric,gte=0"
+    double country_annual_turnover = 12;
     // @inject_tag: json:"world_annual_turnover" bson:"world_annual_turnover" validate:"numeric,gte=0"
     double world_annual_turnover = 13;
     //@inject_tag: json:"report_date_from" bson:"report_date_from"

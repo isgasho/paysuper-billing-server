@@ -73,6 +73,16 @@ func (suite *RefundTestSuite) SetupTest() {
 		VatEnabled:      true,
 		PriceGroupId:    "",
 		VatCurrency:     "RUB",
+		VatRate:         20,
+		VatThreshold: &billing.CountryVatThreshold{
+			Year:  0,
+			World: 0,
+		},
+		VatPeriodMonth:         3,
+		VatDeadlineDays:        25,
+		VatStoreYears:          5,
+		VatCurrencyRatesPolicy: "last-day",
+		VatCurrencyRatesSource: "cbrf",
 	}
 
 	suite.paySys = &billing.PaymentSystem{
@@ -1279,7 +1289,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 	order.Tax = &billing.OrderTax{
 		Type:     taxTypeVat,
 		Rate:     20,
-		Amount:   10,
+		Amount:   20,
 		Currency: "RUB",
 	}
 	order.RoyaltyData = &billing.RoyaltyData{}
@@ -2325,7 +2335,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Chargeback_Ok() {
 	order.Tax = &billing.OrderTax{
 		Type:     taxTypeVat,
 		Rate:     20,
-		Amount:   10,
+		Amount:   20,
 		Currency: "RUB",
 	}
 	order.RoyaltyData = &billing.RoyaltyData{}

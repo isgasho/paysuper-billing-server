@@ -1760,6 +1760,7 @@ func (suite *AccountingEntryTestSuite) createOrder() *billing.Order {
 	rsp1 := &grpc.PaymentCreateResponse{}
 	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
 	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
 
 	var order *billing.Order
 	err = suite.service.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(rsp.Id)).One(&order)

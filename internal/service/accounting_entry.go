@@ -28,6 +28,7 @@ const (
 	accountingEntryErrorCodeExchangeFailed        = "ae00006"
 	accountingEntryErrorCodeGetExchangeRateFailed = "ae00007"
 	accountingEntryErrorCodeUnknownEntry          = "ae00008"
+	accountingEntryErrorCodeVatCurrencyConflict   = "ae00009"
 
 	accountingEntryErrorTextOrderNotFound         = "Order not found for creating accounting entry"
 	accountingEntryErrorTextRefundNotFound        = "Refund not found for creating accounting entry"
@@ -37,6 +38,7 @@ const (
 	accountingEntryErrorTextExchangeFailed        = "Currency exchange failed"
 	accountingEntryErrorTextGetExchangeRateFailed = "Get exchange rate for currencies pair failed"
 	accountingEntryErrorTextUnknownEntry          = "Unknown accounting entry type"
+	accountingEntryErrorTextVatCurrencyConflict   = "vat transaction currency conflict"
 
 	collectionAccountingEntry = "accounting_entry"
 )
@@ -92,6 +94,7 @@ var (
 	accountingEntryErrorGetExchangeRateFailed = newBillingServerErrorMsg(accountingEntryErrorCodeGetExchangeRateFailed, accountingEntryErrorTextGetExchangeRateFailed)
 	accountingEntryErrorUnknownEntry          = newBillingServerErrorMsg(accountingEntryErrorCodeUnknownEntry, accountingEntryErrorTextUnknownEntry)
 	accountingEntryErrorUnknown               = newBillingServerErrorMsg(accountingEntryErrorCodeUnknown, accountingEntryErrorTextUnknown)
+	accountingEntryErrorVatCurrencyConflict   = newBillingServerErrorMsg(accountingEntryErrorCodeVatCurrencyConflict, accountingEntryErrorTextVatCurrencyConflict)
 
 	onPaymentAccountingEntries = []string{
 		pkg.AccountingEntryTypePayment,
@@ -125,8 +128,46 @@ var (
 		pkg.AccountingEntryTypePsMarkupChargebackFee,
 		pkg.AccountingEntryTypeChargebackFixedFee,
 		pkg.AccountingEntryTypePsMarkupChargebackFixedFee,
+		pkg.AccountingEntryTypeReverseTaxFee,
+		pkg.AccountingEntryTypePsMarkupReverseTaxFee,
+		pkg.AccountingEntryTypeReverseTaxFeeDelta,
+		pkg.AccountingEntryTypePsReverseTaxFeeDelta,
+	}
+
+	vatAmountAccountingEntries = []string{
+		pkg.AccountingEntryTypePayment,
+		pkg.AccountingEntryTypeRefund,
+		pkg.AccountingEntryTypeChargeback,
+	}
+
+	vatTaxAccountingEntries = []string{
+		pkg.AccountingEntryTypeTaxFee,
+		pkg.AccountingEntryTypeReverseTaxFee,
+		pkg.AccountingEntryTypeReverseTaxFeeDelta,
+	}
+
+	vatFeesAccountingEntries = []string{
+		pkg.AccountingEntryTypeMethodFee,
+		pkg.AccountingEntryTypeMethodFixedFee,
+		pkg.AccountingEntryTypePsFee,
+		pkg.AccountingEntryTypePsFixedFee,
+		pkg.AccountingEntryTypeRefundFee,
+		pkg.AccountingEntryTypeRefundFixedFee,
+		pkg.AccountingEntryTypeChargebackFee,
+		pkg.AccountingEntryTypeChargebackFixedFee,
+	}
+
+	vatAccountingEntries = map[string][]string{
+		"amounts": vatAmountAccountingEntries,
+		"fees":    vatFeesAccountingEntries,
+		"taxes":   vatTaxAccountingEntries,
 	}
 )
+
+type vatAmount struct {
+	Currency string
+	Amount   float64
+}
 
 type accountingEntry struct {
 	*Service
@@ -218,6 +259,15 @@ func (s *Service) CreateAccountingEntry(
 		return nil
 	}
 
+	err = handler.updateVatTransaction()
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = accountingEntryErrorUnknown
+
+		return nil
+	}
+
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = handler.accountingEntries[0].(*billing.AccountingEntry)
 
@@ -270,7 +320,12 @@ func (s *Service) processEvent(handler *accountingEntry, list []string) error {
 		}
 	}
 
-	return handler.saveAccountingEntries()
+	err := handler.saveAccountingEntries()
+	if err != nil {
+		return err
+	}
+
+	return handler.createVatTransaction()
 }
 
 func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
@@ -585,7 +640,7 @@ func (h *accountingEntry) psMarkupMethodFee() error {
 		return accountingEntryErrorCommissionNotFound
 	}
 
-	entry.Amount = h.order.RoyaltyData.MerchantPercentCommissionInRoyaltyCurrency - (h.order.RoyaltyData.AmountInRoyaltyCurrency * cost.MethodPercent)
+	entry.Amount = h.order.RoyaltyData.MerchantPercentCommissionInRoyaltyCurrency - (h.order.RoyaltyData.AmountInRoyaltyCurrency * (cost.MethodPercent / 100))
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
 	if err := h.addEntry(entry); err != nil {
 		return err
@@ -764,7 +819,7 @@ func (h *accountingEntry) psFee() error {
 		return accountingEntryErrorCommissionNotFound
 	}
 
-	amount := h.order.RoyaltyData.AmountInRoyaltyCurrency * cost.PsPercent
+	amount := h.order.RoyaltyData.AmountInRoyaltyCurrency * (cost.PsPercent / 100)
 
 	entry.Amount = h.order.RoyaltyData.MerchantTotalCommissionInRoyaltyCurrency - amount
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
@@ -1142,7 +1197,7 @@ func (h *accountingEntry) refundFee() error {
 		return accountingEntryErrorCommissionNotFound
 	}
 
-	entry.Amount = h.refund.Amount * cost.Percent
+	entry.Amount = h.refund.Amount * (cost.Percent / 100)
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
 	if err := h.addEntry(entry); err != nil {
 		return err
@@ -1424,7 +1479,8 @@ func (h *accountingEntry) reverseTaxFee() error {
 
 		return nil
 	}
-
+	// todo: брать для расчета налог пропорционально соотнешению суммы рефанда к сумме платежа
+	// мы при частичном рефанде возвращаем _ВСЕ_ налоги с платежа? Подозреваю тут какую-то дичь
 	amount := h.order.Tax.Amount
 
 	if h.order.Tax.Currency != h.order.GetMerchantRoyaltyCurrency() {
@@ -1805,7 +1861,37 @@ func (h *accountingEntry) chargebackFee() error {
 		return accountingEntryErrorCommissionNotFound
 	}
 
-	h.order.RoyaltyData.ChargebackPercentCommissionInRoyaltyCurrency = h.order.TotalPaymentAmount * cost.Percent
+	chargebackFee := h.order.TotalPaymentAmount * (cost.Percent / 100)
+	entry.OriginalAmount = chargebackFee
+	entry.OriginalCurrency = h.order.Currency
+
+	h.order.RoyaltyData.ChargebackPercentCommissionInRoyaltyCurrency = chargebackFee
+
+	if h.order.GetMerchantRoyaltyCurrency() != h.order.Currency {
+		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
+			From:       h.order.Currency,
+			To:         h.order.GetMerchantRoyaltyCurrency(),
+			MerchantId: h.order.GetMerchantId(),
+			RateType:   curPkg.RateTypePaysuper,
+			Amount:     chargebackFee,
+		}
+
+		rsp, err := h.curService.ExchangeCurrencyCurrentForMerchant(h.ctx, req)
+
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorGrpcServiceCallFailed,
+				zap.Error(err),
+				zap.String(errorFieldService, "CurrencyRatesService"),
+				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
+				zap.Any(errorFieldRequest, req),
+			)
+
+			return accountingEntryErrorExchangeFailed
+		}
+
+		h.order.RoyaltyData.ChargebackPercentCommissionInRoyaltyCurrency = rsp.ExchangedAmount
+	}
 
 	entry.Amount = h.order.RoyaltyData.ChargebackPercentCommissionInRoyaltyCurrency
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
@@ -1857,7 +1943,34 @@ func (h *accountingEntry) psMarkupChargebackFee() error {
 		return accountingEntryErrorCommissionNotFound
 	}
 
-	entry.Amount = h.order.RoyaltyData.ChargebackPercentCommissionInRoyaltyCurrency - (h.order.TotalPaymentAmount * cost.Percent)
+	chargebackFee := h.order.TotalPaymentAmount * (cost.Percent / 100)
+	if h.order.GetMerchantRoyaltyCurrency() != h.order.Currency {
+		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
+			From:       h.order.Currency,
+			To:         h.order.GetMerchantRoyaltyCurrency(),
+			MerchantId: h.order.GetMerchantId(),
+			RateType:   curPkg.RateTypePaysuper,
+			Amount:     chargebackFee,
+		}
+
+		rsp, err := h.curService.ExchangeCurrencyCurrentForMerchant(h.ctx, req)
+
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorGrpcServiceCallFailed,
+				zap.Error(err),
+				zap.String(errorFieldService, "CurrencyRatesService"),
+				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
+				zap.Any(errorFieldRequest, req),
+			)
+
+			return accountingEntryErrorExchangeFailed
+		}
+
+		chargebackFee = rsp.ExchangedAmount
+	}
+
+	entry.Amount = h.order.RoyaltyData.ChargebackPercentCommissionInRoyaltyCurrency - chargebackFee
 	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
 	if err := h.addEntry(entry); err != nil {
 		return err
@@ -2087,7 +2200,7 @@ func (h *accountingEntry) getPaymentChannelCostMerchant() (*billing.PaymentChann
 		return nil, err
 	}
 
-	userCountry := h.order.GetUserCountry()
+	userCountry := h.order.GetCountry()
 	country, err := h.country.GetByIsoCodeA2(userCountry)
 
 	if err != nil {
@@ -2100,7 +2213,7 @@ func (h *accountingEntry) getPaymentChannelCostMerchant() (*billing.PaymentChann
 		PayoutCurrency: h.order.GetMerchantRoyaltyCurrency(),
 		Amount:         h.order.RoyaltyData.AmountInRoyaltyCurrency,
 		Region:         country.Region,
-		Country:        h.order.GetUserCountry(),
+		Country:        h.order.GetCountry(),
 	}
 	return h.Service.getPaymentChannelCostMerchant(req)
 }
@@ -2112,7 +2225,7 @@ func (h *accountingEntry) getMoneyBackCostMerchant(reason string) (*billing.Mone
 		return nil, err
 	}
 
-	userCountry := h.order.GetUserCountry()
+	userCountry := h.order.GetCountry()
 	country, err := h.country.GetByIsoCodeA2(userCountry)
 	if err != nil {
 		return nil, err
@@ -2141,7 +2254,7 @@ func (h *accountingEntry) getMoneyBackCostSystem(reason string) (*billing.MoneyB
 		return nil, err
 	}
 
-	userCountry := h.order.GetUserCountry()
+	userCountry := h.order.GetCountry()
 	country, err := h.country.GetByIsoCodeA2(userCountry)
 	if err != nil {
 		return nil, err
@@ -2160,4 +2273,194 @@ func (h *accountingEntry) getMoneyBackCostSystem(reason string) (*billing.MoneyB
 		UndoReason:     reason,
 	}
 	return h.Service.getMoneyBackCostSystem(data)
+}
+
+func (h *accountingEntry) createVatTransaction() error {
+	order := h.order
+
+	if order == nil {
+		return nil
+	}
+
+	country, err := h.Service.country.GetByIsoCodeA2(order.GetCountry())
+	// todo return country-not-found error here after merge with master
+	if err != nil {
+		return err
+	}
+
+	if !country.VatEnabled {
+		return nil
+	}
+
+	t := &billing.VatTransaction{
+		Id:                     bson.NewObjectId().Hex(),
+		OrderId:                order.Id,
+		TransactionId:          order.Transaction,
+		BillingAddressCriteria: "user", // todo?
+		UserId:                 order.User.Id,
+		PaymentMethod:          order.PaymentMethod.Name,
+		BillingAddress:         order.User.Address,
+		Country:                country.IsoCodeA2,
+		LocalCurrency:          country.Currency,
+	}
+	if order.BillingAddress != nil {
+		t.BillingAddressCriteria = "form"
+		t.BillingAddress = order.BillingAddress
+	}
+
+	multiplier := float64(1)
+
+	if h.refund != nil {
+		multiplier = float64(-1)
+
+		if h.refund.IsChargeback {
+			t.TransactionType = VatTransactionTypeChargeback
+		} else {
+			t.TransactionType = VatTransactionTypeRefund
+		}
+		t.DateTime = h.refund.UpdatedAt
+
+		orderPaidAt, err := ptypes.Timestamp(order.PaymentMethodOrderClosedAt)
+		if err != nil {
+			return err
+		}
+
+		from, _, err := h.Service.getLastVatReportTime(country.IsoCodeA2)
+		if err != nil {
+			return err
+		}
+
+		t.IsDeduction = orderPaidAt.Unix() < from.Unix()
+
+	} else {
+		t.TransactionType = VatTransactionTypePayment
+		t.DateTime = order.PaymentMethodOrderClosedAt
+	}
+
+	vatAmounts := make(map[string]*vatAmount, len(vatAccountingEntries))
+	for key := range vatAccountingEntries {
+		vatAmounts[key] = &vatAmount{}
+	}
+
+	for _, e := range h.accountingEntries {
+		entry := e.(*billing.AccountingEntry)
+
+		for key, entriesTypes := range vatAccountingEntries {
+			if contains(entriesTypes, entry.Type) {
+				amount := entry.OriginalAmount
+				currency := entry.OriginalCurrency
+				if key == "fees" {
+					amount = entry.Amount
+					currency = entry.Currency
+				}
+
+				if vatAmounts[key].Currency != "" && vatAmounts[key].Currency != currency {
+					return accountingEntryErrorVatCurrencyConflict
+				}
+
+				vatAmounts[key].Amount += amount
+				vatAmounts[key].Currency = currency
+			}
+		}
+	}
+
+	t.TransactionAmount = tools.FormatAmount(vatAmounts["amounts"].Amount * multiplier)
+	t.TransactionCurrency = vatAmounts["amounts"].Currency
+
+	t.VatAmount = tools.FormatAmount(vatAmounts["taxes"].Amount * multiplier)
+	t.VatCurrency = vatAmounts["taxes"].Currency
+
+	t.FeesAmount = tools.FormatAmount(vatAmounts["fees"].Amount * multiplier)
+	t.FeesCurrency = vatAmounts["fees"].Currency
+
+	if t.TransactionCurrency == country.Currency {
+		t.LocalTransactionAmount = t.TransactionAmount
+	} else {
+		req := &currencies.ExchangeCurrencyCurrentCommonRequest{
+			From:     t.TransactionCurrency,
+			To:       country.Currency,
+			RateType: curPkg.RateTypeOxr,
+			Amount:   t.TransactionAmount,
+		}
+
+		rsp, err := h.Service.curService.ExchangeCurrencyCurrentCommon(h.ctx, req)
+
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorGrpcServiceCallFailed,
+				zap.Error(err),
+				zap.String(errorFieldService, "CurrencyRatesService"),
+				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentCommon"),
+				zap.Any(errorFieldRequest, req),
+			)
+
+			return accountingEntryErrorGetExchangeRateFailed
+		} else {
+			t.LocalTransactionAmount = tools.FormatAmount(rsp.ExchangedAmount)
+		}
+	}
+
+	if t.VatCurrency == country.Currency {
+		t.LocalVatAmount = t.VatAmount
+	} else {
+		req := &currencies.ExchangeCurrencyCurrentCommonRequest{
+			From:     t.VatCurrency,
+			To:       country.Currency,
+			RateType: curPkg.RateTypeOxr,
+			Amount:   t.VatAmount,
+		}
+
+		rsp, err := h.Service.curService.ExchangeCurrencyCurrentCommon(h.ctx, req)
+
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorGrpcServiceCallFailed,
+				zap.Error(err),
+				zap.String(errorFieldService, "CurrencyRatesService"),
+				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentCommon"),
+				zap.Any(errorFieldRequest, req),
+			)
+
+			return accountingEntryErrorGetExchangeRateFailed
+		} else {
+			t.LocalVatAmount = tools.FormatAmount(rsp.ExchangedAmount)
+		}
+	}
+
+	if t.FeesCurrency == country.Currency {
+		t.LocalFeesAmount = t.FeesAmount
+	} else {
+		req := &currencies.ExchangeCurrencyCurrentCommonRequest{
+			From:     t.FeesCurrency,
+			To:       country.Currency,
+			RateType: curPkg.RateTypeOxr,
+			Amount:   t.FeesAmount,
+		}
+
+		rsp, err := h.Service.curService.ExchangeCurrencyCurrentCommon(h.ctx, req)
+
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorGrpcServiceCallFailed,
+				zap.Error(err),
+				zap.String(errorFieldService, "CurrencyRatesService"),
+				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentCommon"),
+				zap.Any(errorFieldRequest, req),
+			)
+
+			return accountingEntryErrorGetExchangeRateFailed
+		} else {
+			t.LocalFeesAmount = tools.FormatAmount(rsp.ExchangedAmount)
+		}
+	}
+
+	err = h.Service.db.Collection(collectionVatTransactions).Insert(t)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (h *accountingEntry) updateVatTransaction() error {
+	return nil
 }

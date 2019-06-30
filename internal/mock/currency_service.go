@@ -79,6 +79,23 @@ func (s *CurrencyServiceMockOk) ExchangeCurrencyCurrentCommon(
 	in *currencies.ExchangeCurrencyCurrentCommonRequest,
 	opts ...client.CallOption,
 ) (*currencies.ExchangeCurrencyResponse, error) {
+	if in.From == "USD" && in.To == "RUB" {
+		return &currencies.ExchangeCurrencyResponse{
+			ExchangedAmount: in.Amount * 65,
+			ExchangeRate:    65,
+			Correction:      0,
+			OriginalRate:    65,
+		}, nil
+	}
+	if in.From == "RUB" && in.To == "USD" {
+		return &currencies.ExchangeCurrencyResponse{
+			ExchangedAmount: in.Amount * 0.0153846153846154,
+			ExchangeRate:    0.0153846153846154,
+			Correction:      0,
+			OriginalRate:    0.0153846153846154,
+		}, nil
+	}
+
 	return &currencies.ExchangeCurrencyResponse{
 		ExchangedAmount: 10,
 		ExchangeRate:    0.25,
@@ -92,6 +109,23 @@ func (s *CurrencyServiceMockOk) ExchangeCurrencyCurrentForMerchant(
 	in *currencies.ExchangeCurrencyCurrentForMerchantRequest,
 	opts ...client.CallOption,
 ) (*currencies.ExchangeCurrencyResponse, error) {
+	if in.From == "USD" && in.To == "RUB" {
+		return &currencies.ExchangeCurrencyResponse{
+			ExchangedAmount: in.Amount * 65,
+			ExchangeRate:    65,
+			Correction:      0,
+			OriginalRate:    65,
+		}, nil
+	}
+	if in.From == "RUB" && in.To == "USD" {
+		res := &currencies.ExchangeCurrencyResponse{
+			ExchangedAmount: in.Amount * 0.0153846153846154,
+			ExchangeRate:    0.0153846153846154,
+			Correction:      0,
+			OriginalRate:    0.0153846153846154,
+		}
+		return res, nil
+	}
 	return &currencies.ExchangeCurrencyResponse{
 		ExchangedAmount: 30,
 		ExchangeRate:    0.25,
