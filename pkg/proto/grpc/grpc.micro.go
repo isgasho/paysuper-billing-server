@@ -95,6 +95,8 @@ It has these top-level messages:
 	CreateRoyaltyReportRequest
 	ListRoyaltyReportsRequest
 	ListRoyaltyReportsResponse
+	ListRoyaltyReportOrdersRequest
+	ListRoyaltyReportOrdersResponse
 */
 package grpc
 
@@ -209,7 +211,7 @@ type BillingService interface {
 	// /////
 	ListRoyaltyReports(ctx context.Context, in *ListRoyaltyReportsRequest, opts ...client.CallOption) (*ListRoyaltyReportsResponse, error)
 	ChangeRoyaltyReportStatus(ctx context.Context, in *CreateRoyaltyReportRequest, opts ...client.CallOption) (*CreateRoyaltyReportRequest, error)
-	ListRoyaltyReportOrders(ctx context.Context, in *CreateRoyaltyReportRequest, opts ...client.CallOption) (*CreateRoyaltyReportRequest, error)
+	ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, opts ...client.CallOption) (*ListRoyaltyReportOrdersResponse, error)
 }
 
 type billingService struct {
@@ -1010,9 +1012,9 @@ func (c *billingService) ChangeRoyaltyReportStatus(ctx context.Context, in *Crea
 	return out, nil
 }
 
-func (c *billingService) ListRoyaltyReportOrders(ctx context.Context, in *CreateRoyaltyReportRequest, opts ...client.CallOption) (*CreateRoyaltyReportRequest, error) {
+func (c *billingService) ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, opts ...client.CallOption) (*ListRoyaltyReportOrdersResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.ListRoyaltyReportOrders", in)
-	out := new(CreateRoyaltyReportRequest)
+	out := new(ListRoyaltyReportOrdersResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1102,7 +1104,7 @@ type BillingServiceHandler interface {
 	// /////
 	ListRoyaltyReports(context.Context, *ListRoyaltyReportsRequest, *ListRoyaltyReportsResponse) error
 	ChangeRoyaltyReportStatus(context.Context, *CreateRoyaltyReportRequest, *CreateRoyaltyReportRequest) error
-	ListRoyaltyReportOrders(context.Context, *CreateRoyaltyReportRequest, *CreateRoyaltyReportRequest) error
+	ListRoyaltyReportOrders(context.Context, *ListRoyaltyReportOrdersRequest, *ListRoyaltyReportOrdersResponse) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -1185,7 +1187,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, out *CreateRoyaltyReportRequest) error
 		ListRoyaltyReports(ctx context.Context, in *ListRoyaltyReportsRequest, out *ListRoyaltyReportsResponse) error
 		ChangeRoyaltyReportStatus(ctx context.Context, in *CreateRoyaltyReportRequest, out *CreateRoyaltyReportRequest) error
-		ListRoyaltyReportOrders(ctx context.Context, in *CreateRoyaltyReportRequest, out *CreateRoyaltyReportRequest) error
+		ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, out *ListRoyaltyReportOrdersResponse) error
 	}
 	type BillingService struct {
 		billingService
@@ -1510,6 +1512,6 @@ func (h *billingServiceHandler) ChangeRoyaltyReportStatus(ctx context.Context, i
 	return h.BillingServiceHandler.ChangeRoyaltyReportStatus(ctx, in, out)
 }
 
-func (h *billingServiceHandler) ListRoyaltyReportOrders(ctx context.Context, in *CreateRoyaltyReportRequest, out *CreateRoyaltyReportRequest) error {
+func (h *billingServiceHandler) ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, out *ListRoyaltyReportOrdersResponse) error {
 	return h.BillingServiceHandler.ListRoyaltyReportOrders(ctx, in, out)
 }

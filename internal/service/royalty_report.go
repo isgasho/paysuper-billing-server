@@ -1,10 +1,14 @@
 package service
 
+//1) крон для формирования - 1 раз в неделю
+//2) крон для проверки не пропущена ли дата - каждый день
+
 import (
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/jinzhu/now"
@@ -15,7 +19,6 @@ import (
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"go.uber.org/zap"
 	"gopkg.in/gomail.v2"
-	"gopkg.in/mgo.v2"
 	"sync"
 	"time"
 )
@@ -107,20 +110,12 @@ func (s *Service) CreateRoyaltyReport(
 	return nil
 }
 
-func (s *Service) ListRoyaltyReports() error {
-	return nil
-}
-
-func (s *Service) ChangeRoyaltyReportStatus() error {
-	return nil
-}
-
-func (s *Service) ListRoyaltyReportOrders(
+func (s *Service) ListRoyaltyReports(
 	ctx context.Context,
 	req *grpc.ListRoyaltyReportsRequest,
 	rsp *grpc.ListRoyaltyReportsResponse,
 ) error {
-	query := make(bson.M)
+	query := bson.M{"deleted": false}
 
 	if req.Id != "" {
 		query["_id"] = bson.ObjectIdHex(req.Id)
@@ -138,12 +133,95 @@ func (s *Service) ListRoyaltyReportOrders(
 		query["period_to"] = bson.M{"$gte": time.Unix(req.PeriodFrom, 0)}
 	}
 
-	_, err := s.db.Collection(collectionRoyaltyReport).Find(query).Count()
+	count, err := s.db.Collection(collectionRoyaltyReport).Find(query).Count()
 
 	if err != nil {
-		zap.S().Errorf("Query from table ended with error", "err", err.Error(), "table", collectionOrder)
-		return err
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(errorFieldCollection, collectionRoyaltyReport),
+			zap.Any(errorFieldQuery, query),
+		)
+
+		return nil
 	}
+
+	err = s.db.Collection(collectionRoyaltyReport).Find(query).Limit(int(req.Limit)).Skip(int(req.Offset)).All(&rsp.Items)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(errorFieldCollection, collectionRoyaltyReport),
+			zap.Any(errorFieldQuery, query),
+		)
+
+		return nil
+	}
+
+	rsp.Count = int32(count)
+
+	return nil
+}
+
+func (s *Service) ChangeRoyaltyReportStatus(
+	ctx context.Context,
+	req *grpc.CreateRoyaltyReportRequest,
+	rsp *grpc.CreateRoyaltyReportRequest,
+) error {
+	return nil
+}
+
+func (s *Service) ListRoyaltyReportOrders(
+	ctx context.Context,
+	req *grpc.ListRoyaltyReportOrdersRequest,
+	rsp *grpc.ListRoyaltyReportOrdersResponse,
+) error {
+	hexReportId := bson.ObjectIdHex(req.ReportId)
+	count, err := s.db.Collection(collectionRoyaltyReport).FindId(hexReportId).Count()
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(errorFieldCollection, collectionRoyaltyReport),
+		)
+	}
+
+	if count != 1 {
+		return nil
+	}
+
+	query := bson.M{"royalty_report_id": bson.ObjectIdHex(req.ReportId)}
+	count, err = s.db.Collection(collectionOrder).Find(query).Count()
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(errorFieldCollection, collectionOrder),
+			zap.Any(errorFieldQuery, query),
+		)
+	}
+
+	if count <= 0 {
+		return nil
+	}
+
+	err = s.db.Collection(collectionOrder).Find(query).Limit(int(req.Limit)).Skip(int(req.Offset)).All(&rsp.Items)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(errorFieldCollection, collectionOrder),
+			zap.Any(errorFieldQuery, query),
+		)
+
+		return nil
+	}
+
+	rsp.Count = int32(count)
 
 	return nil
 }
@@ -168,8 +246,8 @@ func (s *Service) getRoyaltyReportMerchantsByPeriod(from, to time.Time) []*Royal
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String("collection", collectionOrder),
-			zap.Any("query", query),
+			zap.String(errorFieldCollection, collectionOrder),
+			zap.Any(errorFieldQuery, query),
 		)
 	}
 
@@ -184,7 +262,7 @@ func (h *royaltyHandler) processMerchantRoyaltyReport(merchantId bson.ObjectId) 
 		"period_to":   bson.M{"$lte": h.to},
 	}
 	update := bson.M{"deleted": true}
-	err := h.db.Collection(collectionRoyaltyReport).Update(query, update)
+	_, err := h.db.Collection(collectionRoyaltyReport).UpdateAll(query, update)
 
 	if err != nil && err != mgo.ErrNotFound {
 		zap.L().Error(
@@ -204,7 +282,22 @@ func (h *royaltyHandler) processMerchantRoyaltyReport(merchantId bson.ObjectId) 
 		return err
 	}
 
-	return h.sendRoyaltyReportNotification(report)
+	update = bson.M{"royalty_report_id": bson.ObjectIdHex(report.Id)}
+	_, err = h.db.Collection(collectionOrder).UpdateAll(query, update)
+
+	if err != nil && err != mgo.ErrNotFound {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(errorFieldCollection, collectionOrder),
+			zap.Any(errorFieldQuery, query),
+			zap.Any("update", update),
+		)
+
+		return err
+	}
+
+	return nil
 }
 
 func (h *royaltyHandler) createMerchantRoyaltyReport(merchantId bson.ObjectId) (*billing.RoyaltyReport, error) {

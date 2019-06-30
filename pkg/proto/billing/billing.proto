@@ -1431,3 +1431,14 @@ message RoyaltyReport {
     google.protobuf.Timestamp accepted_at = 12;
     RoyaltyReportDetails amounts = 13;
 }
+
+message RoyaltyReportOrder {
+    int64 date = 1;
+    string country = 2;
+    string payment_id = 3;
+    string method = 4;
+    double amount = 5;
+    double vat = 6;
+    double commission = 7;
+    double payout = 8;
+}
