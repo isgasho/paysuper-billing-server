@@ -1416,6 +1416,12 @@ message RoyaltyReportDetails {
     string currency = 6;
 }
 
+message RoyaltyReportCorrection {
+    // @inject_tag: validate:"omitempty,numeric,gt=0"
+    double amount = 1;
+    string reason = 2;
+}
+
 message RoyaltyReport {
     string id = 1;
     string merchant_id = 2;
@@ -1430,6 +1436,17 @@ message RoyaltyReport {
     google.protobuf.Timestamp accept_expire_at = 11;
     google.protobuf.Timestamp accepted_at = 12;
     RoyaltyReportDetails amounts = 13;
+    RoyaltyReportCorrection correction = 14;
+}
+
+message RoyaltyReportChanges {
+    string id = 1;
+    string source = 2;
+    bytes ip = 3;
+    RoyaltyReport before = 4;
+    RoyaltyReport after = 5;
+    string hash = 6;
+    google.protobuf.Timestamp created_at = 7;
 }
 
 message RoyaltyReportOrder {

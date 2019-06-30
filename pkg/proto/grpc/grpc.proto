@@ -104,9 +104,8 @@ service BillingService {
     rpc CreateAccountingEntry(CreateAccountingEntryRequest) returns (CreateAccountingEntryResponse) {}
 
     rpc CreateRoyaltyReport(CreateRoyaltyReportRequest) returns (CreateRoyaltyReportRequest) {}
-    ///////
     rpc ListRoyaltyReports(ListRoyaltyReportsRequest) returns (ListRoyaltyReportsResponse) {}
-    rpc ChangeRoyaltyReportStatus(CreateRoyaltyReportRequest) returns (CreateRoyaltyReportRequest) {}
+    rpc ChangeRoyaltyReportStatus(ChangeRoyaltyReportStatusRequest) returns (ResponseError) {}
     rpc ListRoyaltyReportOrders(ListRoyaltyReportOrdersRequest) returns (ListRoyaltyReportOrdersResponse) {}
 }
 
@@ -896,4 +895,14 @@ message ListRoyaltyReportOrdersRequest {
 message ListRoyaltyReportOrdersResponse {
     int32 count = 1;
     repeated billing.RoyaltyReportOrder items = 2;
+}
+
+message ChangeRoyaltyReportStatusRequest {
+    // @inject_tag: query:"report_id" validate:"required,hexadecimal,len=24"
+    string report_id = 1;
+    // @inject_tag: validate:"required,oneof=pending skipped accepted canceled dispute ready_for_invoice payment_in_progress payment_done payment_error"
+    string status = 2;
+    billing.RoyaltyReportCorrection correction = 3;
+    string ip = 4;
+    string source = 5;
 }

@@ -206,6 +206,8 @@ const (
 	EmailRoyaltyReportSubject = "New royalty report"
 	EmailRoyaltyReportMessage = "<h1>New royalty report wait for merchant owner approve</h1>"
 	EmailContentType          = "text/html"
+
+	RoyaltyReportChngeSourceAuto = "auto"
 )
 
 var (

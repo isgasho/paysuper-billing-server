@@ -68,17 +68,20 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 		MaxPaymentAmount: 15000,
 		Currencies:       []int32{643, 840, 980},
 		ExternalId:       "BANKCARD",
-		TestSettings: &billing.PaymentMethodParams{
-			TerminalId:     "15985",
-			Secret:         "A1tph4I6BD0f",
-			SecretCallback: "0V1rJ7t4jCRv",
+		TestSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				TerminalId:     "15985",
+				Secret:         "A1tph4I6BD0f",
+				SecretCallback: "0V1rJ7t4jCRv",
+			},
 		},
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
 			"RUB": {
 				TerminalId:     "15985",
 				Secret:         "A1tph4I6BD0f",
 				SecretCallback: "0V1rJ7t4jCRv",
-			}},
+			},
+		},
 		Type:            "bank_card",
 		IsActive:        true,
 		PaymentSystemId: paymentSystem.Id,
@@ -141,6 +144,59 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 		},
 	}
 	merchant1 := &billing.Merchant{
+		Id:      bson.NewObjectId().Hex(),
+		Name:    "Unit test",
+		Country: country.IsoCodeA2,
+		Zip:     "190000",
+		City:    "St.Petersburg",
+		Contacts: &billing.MerchantContact{
+			Authorized: &billing.MerchantContactAuthorized{
+				Name:     "Unit Test",
+				Email:    "test@unit.test",
+				Phone:    "123456789",
+				Position: "Unit Test",
+			},
+			Technical: &billing.MerchantContactTechnical{
+				Name:  "Unit Test",
+				Email: "test@unit.test",
+				Phone: "123456789",
+			},
+		},
+		Banking: &billing.MerchantBanking{
+			Currency: rub,
+			Name:     "Bank name",
+		},
+		IsVatEnabled:              false,
+		IsCommissionToUserEnabled: false,
+		Status:                    pkg.MerchantStatusDraft,
+		LastPayout: &billing.MerchantLastPayout{
+			Date:   date,
+			Amount: 999999,
+		},
+		IsSigned: true,
+		PaymentMethods: map[string]*billing.MerchantPaymentMethod{
+			pmBankCard.Id: {
+				PaymentMethod: &billing.MerchantPaymentMethodIdentification{
+					Id:   pmBankCard.Id,
+					Name: pmBankCard.Name,
+				},
+				Commission: &billing.MerchantPaymentMethodCommissions{
+					Fee: 2.5,
+					PerTransaction: &billing.MerchantPaymentMethodPerTransactionCommission{
+						Fee:      30,
+						Currency: rub.CodeA3,
+					},
+				},
+				Integration: &billing.MerchantPaymentMethodIntegration{
+					TerminalId:       "1234567890",
+					TerminalPassword: "0987654321",
+					Integrated:       true,
+				},
+				IsActive: true,
+			},
+		},
+	}
+	merchant2 := &billing.Merchant{
 		Id:      bson.NewObjectId().Hex(),
 		Name:    "Unit test",
 		Country: country.IsoCodeA2,

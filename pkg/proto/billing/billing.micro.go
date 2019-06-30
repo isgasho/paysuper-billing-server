@@ -101,7 +101,9 @@ It has these top-level messages:
 	AccountingEntrySource
 	AccountingEntry
 	RoyaltyReportDetails
+	RoyaltyReportCorrection
 	RoyaltyReport
+	RoyaltyReportChanges
 	RoyaltyReportOrder
 */
 package billing

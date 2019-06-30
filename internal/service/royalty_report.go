@@ -2,9 +2,12 @@ package service
 
 //1) крон для формирования - 1 раз в неделю
 //2) крон для проверки не пропущена ли дата - каждый день
+//3) метод для получения токена центрифуги для мерчанта
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -19,6 +22,7 @@ import (
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"go.uber.org/zap"
 	"gopkg.in/gomail.v2"
+	"net"
 	"sync"
 	"time"
 )
@@ -27,9 +31,19 @@ const (
 	errorFieldCollection = "service"
 	errorFieldQuery      = "method"
 
-	collectionRoyaltyReport = "royalty_report"
+	collectionRoyaltyReport        = "royalty_report"
+	collectionRoyaltyReportChanges = "royalty_report_changes"
 
-	royaltyReportErrorNoTransactions = "no transactions for the period"
+	royaltyReportErrorCodeReportNotFound                  = "rr00001"
+	royaltyReportErrorCodeReportStatusChangeDenied        = "rr00002"
+	royaltyReportErrorCodeReportDisputeCorrectionRequired = "rr00003"
+	royaltyReportErrorCodeUnknown                         = "rr00004"
+
+	royaltyReportErrorNoTransactions                      = "no transactions for the period"
+	royaltyReportErrorTextReportNotFound                  = "royalty report with specified identifier not found"
+	royaltyReportErrorTextReportStatusChangeDenied        = "change royalty report to new status denied"
+	royaltyReportErrorTextReportDisputeCorrectionRequired = "for change royalty report status to dispute fields with correction amount and correction reason is required"
+	royaltyReportErrorTextUnknown                         = "unknown error. try request later"
 )
 
 var (
@@ -51,6 +65,11 @@ var (
 		pkg.AccountingEntryTypePayout:             true,
 		pkg.AccountingEntryTypePayoutFee:          true,
 	}
+
+	royaltyReportErrorReportNotFound                  = newBillingServerErrorMsg(royaltyReportErrorCodeReportNotFound, royaltyReportErrorTextReportNotFound)
+	royaltyReportErrorReportStatusChangeDenied        = newBillingServerErrorMsg(royaltyReportErrorCodeReportStatusChangeDenied, royaltyReportErrorTextReportStatusChangeDenied)
+	royaltyReportErrorReportDisputeCorrectionRequired = newBillingServerErrorMsg(royaltyReportErrorCodeReportDisputeCorrectionRequired, royaltyReportErrorTextReportDisputeCorrectionRequired)
+	royaltyReportEntryErrorUnknown                    = newBillingServerErrorMsg(royaltyReportErrorCodeUnknown, royaltyReportErrorTextUnknown)
 )
 
 type RoyaltyReportMerchant struct {
@@ -78,7 +97,19 @@ func (s *Service) CreateRoyaltyReport(
 	to := now.Monday().In(loc).Add(time.Duration(18) * time.Hour)
 	from := to.Add(-time.Duration(s.cfg.RoyaltyReportPeriod) * time.Second).In(loc)
 
-	merchants := s.getRoyaltyReportMerchantsByPeriod(from, to)
+	var merchants []*RoyaltyReportMerchant
+
+	if len(req.Merchants) > 0 {
+		for _, v := range req.Merchants {
+			if bson.IsObjectIdHex(v) == false {
+				continue
+			}
+
+			merchants = append(merchants, &RoyaltyReportMerchant{Id: bson.ObjectIdHex(v)})
+		}
+	} else {
+		merchants = s.getRoyaltyReportMerchantsByPeriod(from, to)
+	}
 
 	if len(merchants) <= 0 {
 		return errors.New(royaltyReportErrorNoTransactions)
@@ -146,6 +177,10 @@ func (s *Service) ListRoyaltyReports(
 		return nil
 	}
 
+	if count <= 0 {
+		return nil
+	}
+
 	err = s.db.Collection(collectionRoyaltyReport).Find(query).Limit(int(req.Limit)).Skip(int(req.Offset)).All(&rsp.Items)
 
 	if err != nil {
@@ -166,9 +201,68 @@ func (s *Service) ListRoyaltyReports(
 
 func (s *Service) ChangeRoyaltyReportStatus(
 	ctx context.Context,
-	req *grpc.CreateRoyaltyReportRequest,
-	rsp *grpc.CreateRoyaltyReportRequest,
+	req *grpc.ChangeRoyaltyReportStatusRequest,
+	rsp *grpc.ResponseError,
 ) error {
+	var reportOld *billing.RoyaltyReport
+	err := s.db.Collection(collectionRoyaltyReport).FindId(bson.ObjectIdHex(req.ReportId)).One(&reportOld)
+
+	if err != nil {
+		if err != mgo.ErrNotFound {
+			zap.L().Error(
+				pkg.ErrorDatabaseQueryFailed,
+				zap.Error(err),
+				zap.String(errorFieldCollection, collectionRoyaltyReport),
+			)
+		}
+
+		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Message = royaltyReportErrorReportNotFound
+
+		return nil
+	}
+
+	if reportOld.ChangesAvailable(req.Status) == false {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = royaltyReportErrorReportStatusChangeDenied
+
+		return nil
+	}
+
+	if req.Status == pkg.RoyaltyReportStatusDispute && req.Correction == nil && req.Correction.Reason == "" &&
+		req.Correction.Amount <= 0 {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = royaltyReportErrorReportDisputeCorrectionRequired
+
+		return nil
+	}
+
+	reportNew := reportOld
+	reportNew.Status = req.Status
+	reportNew.Correction = req.Correction
+
+	s.onRoyaltyReportChange(reportOld, reportNew, req.Ip, req.Source)
+	err = s.db.Collection(collectionRoyaltyReport).Update(bson.ObjectIdHex(reportNew.Id), reportNew)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(errorFieldCollection, collectionRoyaltyReport),
+		)
+
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = royaltyReportEntryErrorUnknown
+
+		return nil
+	}
+
+	if req.Status == pkg.RoyaltyReportStatusPending {
+		s.sendRoyaltyReportNotification(reportNew)
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
+
 	return nil
 }
 
@@ -252,6 +346,46 @@ func (s *Service) getRoyaltyReportMerchantsByPeriod(from, to time.Time) []*Royal
 	}
 
 	return merchants
+}
+
+func (s *Service) onRoyaltyReportChange(reportOld, reportNew *billing.RoyaltyReport, ip, source string) {
+	change := &billing.RoyaltyReportChanges{
+		Id:     bson.NewObjectId().Hex(),
+		Source: source,
+		After:  reportNew,
+	}
+
+	if ip != "" {
+		change.Ip = net.ParseIP(ip)
+	}
+
+	if reportOld != nil {
+		change.Before = reportOld
+	}
+
+	b, err := json.Marshal(reportNew)
+
+	if err != nil {
+		zap.L().Error("Royalty report changes log hash make failed", zap.Error(err))
+	} else {
+		hash := md5.New()
+		hash.Write(b)
+
+		change.Hash = hex.EncodeToString(hash.Sum(nil))
+	}
+
+	err = s.db.Collection(collectionRoyaltyReportChanges).Insert(change)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(errorFieldCollection, collectionRoyaltyReportChanges),
+			zap.Any(errorFieldQuery, "insert"),
+		)
+	}
+
+	return
 }
 
 func (h *royaltyHandler) processMerchantRoyaltyReport(merchantId bson.ObjectId) error {
@@ -389,15 +523,17 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(merchantId bson.ObjectId) (
 		return nil, err
 	}
 
+	h.onRoyaltyReportChange(nil, report, "", pkg.RoyaltyReportChngeSourceAuto)
+
 	return report, nil
 }
 
-func (s *Service) sendRoyaltyReportNotification(report *billing.RoyaltyReport) error {
+func (s *Service) sendRoyaltyReportNotification(report *billing.RoyaltyReport) {
 	merchant, err := s.merchant.GetById(report.MerchantId)
 
 	if err != nil {
 		zap.L().Error("Merchant not found", zap.Error(err), zap.String("merchant_id", report.MerchantId))
-		return err
+		return
 	}
 
 	if merchant.HasAuthorizedEmail() == true {
@@ -421,7 +557,7 @@ func (s *Service) sendRoyaltyReportNotification(report *billing.RoyaltyReport) e
 	b, err := json.Marshal(msg)
 
 	if err != nil {
-		return err
+		return
 	}
 
 	err = s.centrifugoClient.Publish(context.Background(), fmt.Sprintf(s.cfg.CentrifugoMerchantChannel, report.MerchantId), b)
@@ -434,8 +570,8 @@ func (s *Service) sendRoyaltyReportNotification(report *billing.RoyaltyReport) e
 			zap.String("royalty_report_id", report.Id),
 		)
 
-		return err
+		return
 	}
 
-	return nil
+	return
 }

@@ -97,6 +97,7 @@ It has these top-level messages:
 	ListRoyaltyReportsResponse
 	ListRoyaltyReportOrdersRequest
 	ListRoyaltyReportOrdersResponse
+	ChangeRoyaltyReportStatusRequest
 */
 package grpc
 
@@ -208,9 +209,8 @@ type BillingService interface {
 	DeleteMoneyBackCostMerchant(ctx context.Context, in *billing.PaymentCostDeleteRequest, opts ...client.CallOption) (*EmptyResponse, error)
 	CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, opts ...client.CallOption) (*CreateAccountingEntryResponse, error)
 	CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, opts ...client.CallOption) (*CreateRoyaltyReportRequest, error)
-	// /////
 	ListRoyaltyReports(ctx context.Context, in *ListRoyaltyReportsRequest, opts ...client.CallOption) (*ListRoyaltyReportsResponse, error)
-	ChangeRoyaltyReportStatus(ctx context.Context, in *CreateRoyaltyReportRequest, opts ...client.CallOption) (*CreateRoyaltyReportRequest, error)
+	ChangeRoyaltyReportStatus(ctx context.Context, in *ChangeRoyaltyReportStatusRequest, opts ...client.CallOption) (*ResponseError, error)
 	ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, opts ...client.CallOption) (*ListRoyaltyReportOrdersResponse, error)
 }
 
@@ -1002,9 +1002,9 @@ func (c *billingService) ListRoyaltyReports(ctx context.Context, in *ListRoyalty
 	return out, nil
 }
 
-func (c *billingService) ChangeRoyaltyReportStatus(ctx context.Context, in *CreateRoyaltyReportRequest, opts ...client.CallOption) (*CreateRoyaltyReportRequest, error) {
+func (c *billingService) ChangeRoyaltyReportStatus(ctx context.Context, in *ChangeRoyaltyReportStatusRequest, opts ...client.CallOption) (*ResponseError, error) {
 	req := c.c.NewRequest(c.name, "BillingService.ChangeRoyaltyReportStatus", in)
-	out := new(CreateRoyaltyReportRequest)
+	out := new(ResponseError)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1101,9 +1101,8 @@ type BillingServiceHandler interface {
 	DeleteMoneyBackCostMerchant(context.Context, *billing.PaymentCostDeleteRequest, *EmptyResponse) error
 	CreateAccountingEntry(context.Context, *CreateAccountingEntryRequest, *CreateAccountingEntryResponse) error
 	CreateRoyaltyReport(context.Context, *CreateRoyaltyReportRequest, *CreateRoyaltyReportRequest) error
-	// /////
 	ListRoyaltyReports(context.Context, *ListRoyaltyReportsRequest, *ListRoyaltyReportsResponse) error
-	ChangeRoyaltyReportStatus(context.Context, *CreateRoyaltyReportRequest, *CreateRoyaltyReportRequest) error
+	ChangeRoyaltyReportStatus(context.Context, *ChangeRoyaltyReportStatusRequest, *ResponseError) error
 	ListRoyaltyReportOrders(context.Context, *ListRoyaltyReportOrdersRequest, *ListRoyaltyReportOrdersResponse) error
 }
 
@@ -1186,7 +1185,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, out *CreateAccountingEntryResponse) error
 		CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, out *CreateRoyaltyReportRequest) error
 		ListRoyaltyReports(ctx context.Context, in *ListRoyaltyReportsRequest, out *ListRoyaltyReportsResponse) error
-		ChangeRoyaltyReportStatus(ctx context.Context, in *CreateRoyaltyReportRequest, out *CreateRoyaltyReportRequest) error
+		ChangeRoyaltyReportStatus(ctx context.Context, in *ChangeRoyaltyReportStatusRequest, out *ResponseError) error
 		ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, out *ListRoyaltyReportOrdersResponse) error
 	}
 	type BillingService struct {
@@ -1508,7 +1507,7 @@ func (h *billingServiceHandler) ListRoyaltyReports(ctx context.Context, in *List
 	return h.BillingServiceHandler.ListRoyaltyReports(ctx, in, out)
 }
 
-func (h *billingServiceHandler) ChangeRoyaltyReportStatus(ctx context.Context, in *CreateRoyaltyReportRequest, out *CreateRoyaltyReportRequest) error {
+func (h *billingServiceHandler) ChangeRoyaltyReportStatus(ctx context.Context, in *ChangeRoyaltyReportStatusRequest, out *ResponseError) error {
 	return h.BillingServiceHandler.ChangeRoyaltyReportStatus(ctx, in, out)
 }
 
