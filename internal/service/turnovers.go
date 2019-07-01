@@ -71,9 +71,8 @@ func (s *Service) calcAnnualTurnover(ctx context.Context, countryCode string) er
 
 	if countryCode != "" {
 		country, err := s.country.GetByIsoCodeA2(countryCode)
-		// todo return country-not-found error here after merge with master
 		if err != nil {
-			return err
+			return errorCountryNotFound
 		}
 		targetCurrency = country.Currency
 		currencyPolicy = country.VatCurrencyRatesPolicy

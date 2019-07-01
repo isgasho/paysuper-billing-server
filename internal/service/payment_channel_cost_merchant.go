@@ -29,6 +29,7 @@ var (
 	errorPaymentChannelMerchantGet       = newBillingServerErrorMsg("pcm000002", "can't get payment channel setting for merchant")
 	errorPaymentChannelMerchantSetFailed = newBillingServerErrorMsg("pcm000003", "can't set payment channel setting for merchant")
 	errorPaymentChannelMerchantDelete    = newBillingServerErrorMsg("pcm000004", "can't delete payment channel setting for merchant")
+	errorPaymentChannelMerchantCurrency  = newBillingServerErrorMsg("pcm000005", "currency not supported")
 )
 
 func (s *Service) GetAllPaymentChannelCostMerchant(
@@ -103,10 +104,10 @@ func (s *Service) SetPaymentChannelCostMerchant(
 		return err
 	}
 	if !contains(sCurr.Currencies, req.PayoutCurrency) {
-		return errors.New("currency not supported")
+		return errorPaymentChannelMerchantCurrency
 	}
 	if !contains(sCurr.Currencies, req.PsFixedFeeCurrency) {
-		return errors.New("currency not supported")
+		return errorPaymentChannelMerchantCurrency
 	}
 
 	req.IsActive = true

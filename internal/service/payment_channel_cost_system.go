@@ -25,6 +25,7 @@ var (
 	errorPaymentChannelSystemGet       = newBillingServerErrorMsg("pcs000002", "can't get payment channel setting for system")
 	errorPaymentChannelSystemSetFailed = newBillingServerErrorMsg("pcs000003", "can't set payment channel setting for system")
 	errorPaymentChannelSystemDelete    = newBillingServerErrorMsg("pcs000004", "can't delete payment channel setting for system")
+	errorPaymentChannelSystemCurrency  = newBillingServerErrorMsg("pcs000005", "currency not supported")
 )
 
 func (s *Service) GetAllPaymentChannelCostSystem(
@@ -100,7 +101,7 @@ func (s *Service) SetPaymentChannelCostSystem(
 		return err
 	}
 	if !contains(sCurr.Currencies, req.FixAmountCurrency) {
-		return errors.New("currency not supported")
+		return errorPaymentChannelSystemCurrency
 	}
 
 	if val == nil {

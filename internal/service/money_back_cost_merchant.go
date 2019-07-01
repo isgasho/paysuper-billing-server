@@ -27,6 +27,7 @@ var (
 	errorMoneybackMerchantGet       = newBillingServerErrorMsg("mbm000002", "can't get money back setting for merchant")
 	errorMoneybackMerchantSetFailed = newBillingServerErrorMsg("mbm000003", "can't set money back setting for merchant")
 	errorMoneybackMerchantDelete    = newBillingServerErrorMsg("mbm000004", "can't delete money back setting for merchant")
+	errorMoneybackMerchantCurrency  = newBillingServerErrorMsg("mbm000005", "currency not supported")
 )
 
 func (s *Service) GetAllMoneyBackCostMerchant(
@@ -101,10 +102,10 @@ func (s *Service) SetMoneyBackCostMerchant(
 		return err
 	}
 	if !contains(sCurr.Currencies, req.PayoutCurrency) {
-		return errors.New("currency not supported")
+		return errorMoneybackMerchantCurrency
 	}
 	if !contains(sCurr.Currencies, req.FixAmountCurrency) {
-		return errors.New("currency not supported")
+		return errorMoneybackMerchantCurrency
 	}
 
 	req.UpdatedAt = ptypes.TimestampNow()

@@ -1479,9 +1479,11 @@ func (h *accountingEntry) reverseTaxFee() error {
 
 		return nil
 	}
-	// todo: брать для расчета налог пропорционально соотнешению суммы рефанда к сумме платежа
-	// мы при частичном рефанде возвращаем _ВСЕ_ налоги с платежа? Подозреваю тут какую-то дичь
-	amount := h.order.Tax.Amount
+
+	// берем для расчета налог пропорционально соотнешению суммы рефанда к сумме платежа
+	rate := h.refund.Amount / h.order.TotalPaymentAmount
+
+	amount := h.order.Tax.Amount * rate
 
 	if h.order.Tax.Currency != h.order.GetMerchantRoyaltyCurrency() {
 		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
@@ -2283,9 +2285,8 @@ func (h *accountingEntry) createVatTransaction() error {
 	}
 
 	country, err := h.Service.country.GetByIsoCodeA2(order.GetCountry())
-	// todo return country-not-found error here after merge with master
 	if err != nil {
-		return err
+		return errorCountryNotFound
 	}
 
 	if !country.VatEnabled {

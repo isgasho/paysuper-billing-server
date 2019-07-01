@@ -2417,7 +2417,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Chargeback_Ok() {
 		Find(bson.M{"source.id": bson.ObjectIdHex(rsp2.Item.Id), "source.type": collectionRefund}).All(&accountingEntries)
 	assert.NoError(suite.T(), err)
 	assert.NotEmpty(suite.T(), accountingEntries)
-	assert.Len(suite.T(), accountingEntries, len(onChargebackAccountingEntries))
+	assert.Len(suite.T(), accountingEntries, len(onChargebackAccountingEntries)-1)
 
 	onChargebackEntries := make(map[string]bool)
 

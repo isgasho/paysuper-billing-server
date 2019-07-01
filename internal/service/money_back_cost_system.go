@@ -29,6 +29,7 @@ var (
 	errorMoneybackSystemGet       = newBillingServerErrorMsg("mbs000002", "can't get money back setting for system")
 	errorMoneybackSystemSetFailed = newBillingServerErrorMsg("mbs000003", "can't set money back setting for system")
 	errorMoneybackSystemDelete    = newBillingServerErrorMsg("mbs000004", "can't delete money back setting for system")
+	errorMoneybackSystemCurrency  = newBillingServerErrorMsg("mbs000005", "currency not supported")
 )
 
 type moneyBackCostSystems struct {
@@ -101,7 +102,7 @@ func (s *Service) SetMoneyBackCostSystem(
 		return err
 	}
 	if !contains(sCurr.Currencies, req.PayoutCurrency) {
-		return errors.New("currency not supported")
+		return errorMoneybackSystemCurrency
 	}
 
 	req.UpdatedAt = ptypes.TimestampNow()

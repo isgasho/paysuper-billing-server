@@ -74,9 +74,8 @@ func (s *Service) getVatTransactions(
 
 func (s *Service) getLastVatReportTime(countryCode string) (from, to time.Time, err error) {
 	country, err := s.country.GetByIsoCodeA2(countryCode)
-	// todo return country-not-found error here after merge with master
 	if err != nil {
-		return
+		return from, to, errorCountryNotFound
 	}
 
 	if !country.VatEnabled {
@@ -115,9 +114,8 @@ func (s *Service) getPreviousVatReportTime(countryCode string, count int) (from,
 		return
 	}
 	country, err := s.country.GetByIsoCodeA2(countryCode)
-	// todo return country-not-found error here after merge with master
 	if err != nil {
-		return
+		return from, to, errorCountryNotFound
 	}
 
 	from = from.AddDate(0, -1*int(country.VatPeriodMonth)*count, 0)
