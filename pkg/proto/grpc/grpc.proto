@@ -14,7 +14,6 @@ service BillingService {
 
     rpc UpdateOrder (billing.Order) returns (EmptyResponse) {}
     rpc UpdateMerchant (billing.Merchant) returns (EmptyResponse) {}
-    rpc GetConvertRate (ConvertRateRequest) returns (ConvertRateResponse) {}
 
     rpc GetMerchantBy (GetMerchantByRequest) returns (GetMerchantResponse) {}
     rpc ListMerchants (MerchantListingRequest) returns (MerchantListingResponse) {}
@@ -194,15 +193,6 @@ message PaymentNotifyRequest {
 message PaymentNotifyResponse {
     int32 status = 1;
     string error = 2;
-}
-
-message ConvertRateRequest {
-    int32 from = 1;
-    int32 to = 2;
-}
-
-message ConvertRateResponse {
-    double rate = 1;
 }
 
 message OnboardingBanking {

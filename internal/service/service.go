@@ -70,7 +70,6 @@ type Service struct {
 	accountingCurrency *billing.Currency
 
 	currency                   CurrencyServiceInterface
-	currencyRate               *CurrencyRate
 	commission                 *Commission
 	country                    *Country
 	project                    *Project
@@ -134,7 +133,6 @@ func (s *Service) Init() (err error) {
 	s.paymentMethod = newPaymentMethodService(s)
 	s.merchant = newMerchantService(s)
 	s.currency = newCurrencyService(s)
-	s.currencyRate = newCurrencyRateService(s)
 	s.commission = newCommissionService(s)
 	s.country = newCountryService(s)
 	s.project = newProjectService(s)
@@ -184,18 +182,6 @@ func (s *Service) UpdateMerchant(ctx context.Context, req *billing.Merchant, rsp
 
 	if err != nil {
 		zap.S().Errorf("Update merchant failed", "err", err.Error(), "order", req)
-	}
-
-	return nil
-}
-
-func (s *Service) GetConvertRate(ctx context.Context, req *grpc.ConvertRateRequest, rsp *grpc.ConvertRateResponse) error {
-	rate, err := s.currencyRate.Convert(req.From, req.To, 1)
-
-	if err != nil {
-		zap.S().Errorf("Get convert rate failed", "err", err.Error(), "from", req.From, "to", req.To)
-	} else {
-		rsp.Rate = rate
 	}
 
 	return nil

@@ -17,8 +17,6 @@ It has these top-level messages:
 	PaymentFormJsonDataResponse
 	PaymentNotifyRequest
 	PaymentNotifyResponse
-	ConvertRateRequest
-	ConvertRateResponse
 	OnboardingBanking
 	OnboardingRequest
 	FindByIdRequest
@@ -147,7 +145,6 @@ type BillingService interface {
 	PaymentCallbackProcess(ctx context.Context, in *PaymentNotifyRequest, opts ...client.CallOption) (*PaymentNotifyResponse, error)
 	UpdateOrder(ctx context.Context, in *billing.Order, opts ...client.CallOption) (*EmptyResponse, error)
 	UpdateMerchant(ctx context.Context, in *billing.Merchant, opts ...client.CallOption) (*EmptyResponse, error)
-	GetConvertRate(ctx context.Context, in *ConvertRateRequest, opts ...client.CallOption) (*ConvertRateResponse, error)
 	GetMerchantBy(ctx context.Context, in *GetMerchantByRequest, opts ...client.CallOption) (*GetMerchantResponse, error)
 	ListMerchants(ctx context.Context, in *MerchantListingRequest, opts ...client.CallOption) (*MerchantListingResponse, error)
 	ChangeMerchant(ctx context.Context, in *OnboardingRequest, opts ...client.CallOption) (*ChangeMerchantResponse, error)
@@ -294,16 +291,6 @@ func (c *billingService) UpdateOrder(ctx context.Context, in *billing.Order, opt
 func (c *billingService) UpdateMerchant(ctx context.Context, in *billing.Merchant, opts ...client.CallOption) (*EmptyResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.UpdateMerchant", in)
 	out := new(EmptyResponse)
-	err := c.c.Call(ctx, req, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *billingService) GetConvertRate(ctx context.Context, in *ConvertRateRequest, opts ...client.CallOption) (*ConvertRateResponse, error) {
-	req := c.c.NewRequest(c.name, "BillingService.GetConvertRate", in)
-	out := new(ConvertRateResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1050,7 +1037,6 @@ type BillingServiceHandler interface {
 	PaymentCallbackProcess(context.Context, *PaymentNotifyRequest, *PaymentNotifyResponse) error
 	UpdateOrder(context.Context, *billing.Order, *EmptyResponse) error
 	UpdateMerchant(context.Context, *billing.Merchant, *EmptyResponse) error
-	GetConvertRate(context.Context, *ConvertRateRequest, *ConvertRateResponse) error
 	GetMerchantBy(context.Context, *GetMerchantByRequest, *GetMerchantResponse) error
 	ListMerchants(context.Context, *MerchantListingRequest, *MerchantListingResponse) error
 	ChangeMerchant(context.Context, *OnboardingRequest, *ChangeMerchantResponse) error
@@ -1134,7 +1120,6 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		PaymentCallbackProcess(ctx context.Context, in *PaymentNotifyRequest, out *PaymentNotifyResponse) error
 		UpdateOrder(ctx context.Context, in *billing.Order, out *EmptyResponse) error
 		UpdateMerchant(ctx context.Context, in *billing.Merchant, out *EmptyResponse) error
-		GetConvertRate(ctx context.Context, in *ConvertRateRequest, out *ConvertRateResponse) error
 		GetMerchantBy(ctx context.Context, in *GetMerchantByRequest, out *GetMerchantResponse) error
 		ListMerchants(ctx context.Context, in *MerchantListingRequest, out *MerchantListingResponse) error
 		ChangeMerchant(ctx context.Context, in *OnboardingRequest, out *ChangeMerchantResponse) error
@@ -1242,10 +1227,6 @@ func (h *billingServiceHandler) UpdateOrder(ctx context.Context, in *billing.Ord
 
 func (h *billingServiceHandler) UpdateMerchant(ctx context.Context, in *billing.Merchant, out *EmptyResponse) error {
 	return h.BillingServiceHandler.UpdateMerchant(ctx, in, out)
-}
-
-func (h *billingServiceHandler) GetConvertRate(ctx context.Context, in *ConvertRateRequest, out *ConvertRateResponse) error {
-	return h.BillingServiceHandler.GetConvertRate(ctx, in, out)
 }
 
 func (h *billingServiceHandler) GetMerchantBy(ctx context.Context, in *GetMerchantByRequest, out *GetMerchantResponse) error {

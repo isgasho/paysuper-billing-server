@@ -11,7 +11,6 @@ type Entity struct {
 }
 
 type Currency Entity
-type CurrencyRate Entity
 type Commission Entity
 type Country Entity
 type Project Entity

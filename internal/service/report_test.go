@@ -68,37 +68,6 @@ func (suite *ReportTestSuite) SetupTest() {
 		IsActive: true,
 	}
 
-	rate := []*billing.CurrencyRate{
-		{
-			CurrencyFrom: 840,
-			CurrencyTo:   643,
-			Rate:         0.015625,
-			Date:         ptypes.TimestampNow(),
-			IsActive:     true,
-		},
-		{
-			CurrencyFrom: 643,
-			CurrencyTo:   840,
-			Rate:         64,
-			Date:         ptypes.TimestampNow(),
-			IsActive:     true,
-		},
-		{
-			CurrencyFrom: 643,
-			CurrencyTo:   643,
-			Rate:         1,
-			Date:         ptypes.TimestampNow(),
-			IsActive:     true,
-		},
-		{
-			CurrencyFrom: 643,
-			CurrencyTo:   51,
-			Rate:         1,
-			Date:         ptypes.TimestampNow(),
-			IsActive:     true,
-		},
-	}
-
 	ru := &billing.Country{
 		IsoCodeA2:       "RU",
 		Region:          "Russia",
@@ -342,10 +311,6 @@ func (suite *ReportTestSuite) SetupTest() {
 	country := []*billing.Country{ru, us}
 	if err := suite.service.country.MultipleInsert(country); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
-	}
-
-	if err = suite.service.currencyRate.MultipleInsert(rate); err != nil {
-		suite.FailNow("Insert rates test data failed", "%v", err)
 	}
 
 	if err := suite.service.project.MultipleInsert(projects); err != nil {

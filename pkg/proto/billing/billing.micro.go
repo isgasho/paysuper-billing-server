@@ -41,7 +41,6 @@ It has these top-level messages:
 	OrderFeePsp
 	OrderFeePaymentSystem
 	ProjectPaymentMethod
-	CurrencyRate
 	PaymentMethod
 	Vat
 	Commission

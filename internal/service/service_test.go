@@ -242,72 +242,6 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		Status:             pkg.ProjectStatusInProduction,
 	}
 
-	rate := []*billing.CurrencyRate{
-		{
-			CurrencyFrom: 980,
-			CurrencyTo:   643,
-			Rate:         0.411128442,
-			Date:         ptypes.TimestampNow(),
-			IsActive:     true,
-		},
-		{
-			CurrencyFrom: 980,
-			CurrencyTo:   980,
-			Rate:         27.13085922,
-			Date:         ptypes.TimestampNow(),
-			IsActive:     true,
-		},
-		{
-			CurrencyFrom: 980,
-			CurrencyTo:   978,
-			Rate:         30.96446748,
-			Date:         ptypes.TimestampNow(),
-			IsActive:     true,
-		},
-		{
-			CurrencyFrom: 840,
-			CurrencyTo:   980,
-			Rate:         0.034680066,
-			Date:         ptypes.TimestampNow(),
-			IsActive:     true,
-		},
-		{
-			CurrencyFrom: 840,
-			CurrencyTo:   643,
-			Rate:         0.01469893,
-			Date:         ptypes.TimestampNow(),
-			IsActive:     true,
-		},
-		{
-			CurrencyFrom: 840,
-			CurrencyTo:   840,
-			Rate:         1.00000000,
-			Date:         ptypes.TimestampNow(),
-			IsActive:     true,
-		},
-		{
-			CurrencyFrom: 643,
-			CurrencyTo:   840,
-			Rate:         64.01146400,
-			Date:         ptypes.TimestampNow(),
-			IsActive:     true,
-		},
-		{
-			CurrencyFrom: 643,
-			CurrencyTo:   643,
-			Rate:         1,
-			Date:         ptypes.TimestampNow(),
-			IsActive:     true,
-		},
-		{
-			CurrencyFrom: 643,
-			CurrencyTo:   980,
-			Rate:         2.2885792,
-			Date:         ptypes.TimestampNow(),
-			IsActive:     true,
-		},
-	}
-
 	pmQiwi := &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
 		Name:             "Qiwi",
@@ -449,10 +383,6 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 
 	if err := suite.service.country.Insert(country); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
-	}
-
-	if err = suite.service.currencyRate.MultipleInsert(rate); err != nil {
-		suite.FailNow("Insert rates test data failed", "%v", err)
 	}
 
 	if err := suite.service.project.MultipleInsert(projects); err != nil {

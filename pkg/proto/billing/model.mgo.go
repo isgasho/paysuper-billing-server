@@ -2,7 +2,6 @@ package billing
 
 import (
 	"errors"
-	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
@@ -12,7 +11,6 @@ import (
 
 const (
 	errorInvalidObjectId = "invalid bson object id"
-	errorRequiredField   = "field \"%s\" is required to convert object %s"
 )
 
 type MgoMultiLang struct {
@@ -118,16 +116,6 @@ type MgoMerchant struct {
 	RollingReserveChargebackTransactionsThreshold float64                              `bson:"rolling_reserve_chargeback_transactions_threshold"`
 	ItemMinCostAmount                             float64                              `bson:"item_min_cost_amount"`
 	ItemMinCostCurrency                           string                               `bson:"item_min_cost_currency"`
-}
-
-type MgoCurrencyRate struct {
-	Id           bson.ObjectId `bson:"_id"`
-	CurrencyFrom int32         `bson:"currency_from"`
-	CurrencyTo   int32         `bson:"currency_to"`
-	Rate         float64       `bson:"rate"`
-	Date         time.Time     `bson:"date"`
-	IsActive     bool          `bson:"is_active"`
-	CreatedAt    time.Time     `bson:"created_at"`
 }
 
 type MgoCommission struct {
@@ -1008,76 +996,6 @@ func (m *Project) SetBSON(raw bson.Raw) error {
 	}
 
 	return nil
-}
-
-func (m *CurrencyRate) GetBSON() (interface{}, error) {
-	st := &MgoCurrencyRate{
-		CurrencyFrom: m.CurrencyFrom,
-		CurrencyTo:   m.CurrencyTo,
-		Rate:         m.Rate,
-		IsActive:     m.IsActive,
-	}
-
-	if len(m.Id) <= 0 {
-		st.Id = bson.NewObjectId()
-	} else {
-		if bson.IsObjectIdHex(m.Id) == false {
-			return nil, errors.New(errorInvalidObjectId)
-		}
-
-		st.Id = bson.ObjectIdHex(m.Id)
-	}
-
-	if m.Date == nil {
-		return nil, fmt.Errorf(errorRequiredField, "Date", "CurrencyRate")
-	}
-
-	t, err := ptypes.Timestamp(m.Date)
-
-	if err != nil {
-		return nil, err
-	}
-
-	st.Date = t
-
-	if m.CreatedAt != nil {
-		t, err := ptypes.Timestamp(m.CreatedAt)
-
-		if err != nil {
-			return nil, err
-		}
-
-		st.CreatedAt = t
-	} else {
-		st.CreatedAt = time.Now()
-	}
-
-	return st, nil
-}
-
-func (m *CurrencyRate) SetBSON(raw bson.Raw) error {
-	decoded := new(MgoCurrencyRate)
-	err := raw.Unmarshal(decoded)
-
-	if err != nil {
-		return err
-	}
-
-	m.Id = decoded.Id.Hex()
-	m.CurrencyFrom = decoded.CurrencyFrom
-	m.CurrencyTo = decoded.CurrencyTo
-	m.Rate = decoded.Rate
-	m.IsActive = decoded.IsActive
-
-	m.Date, err = ptypes.TimestampProto(decoded.Date)
-
-	if err != nil {
-		return err
-	}
-
-	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
-
-	return err
 }
 
 func (m *Commission) GetBSON() (interface{}, error) {

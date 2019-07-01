@@ -50,14 +50,6 @@ func (suite *FinanceTestSuite) SetupTest() {
 		IsActive: true,
 	}
 
-	rate := &billing.CurrencyRate{
-		CurrencyFrom: 643,
-		CurrencyTo:   840,
-		Rate:         64,
-		Date:         ptypes.TimestampNow(),
-		IsActive:     true,
-	}
-
 	ps1 := &billing.PaymentSystem{
 		Id:                 bson.NewObjectId().Hex(),
 		Name:               "CardPay",
@@ -273,10 +265,6 @@ func (suite *FinanceTestSuite) SetupTest() {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 
-	if err = suite.service.currencyRate.Insert(rate); err != nil {
-		suite.FailNow("Insert rates test data failed", "%v", err)
-	}
-
 	if err := suite.service.paymentSystem.Insert(ps1); err != nil {
 		suite.FailNow("Insert project test data failed", "%v", err)
 	}
@@ -307,33 +295,6 @@ func (suite *FinanceTestSuite) TestFinance_GetCurrencyByCodeA3Error() {
 	assert.NotNil(suite.T(), err)
 	assert.Nil(suite.T(), c)
 	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionCurrency), err.Error())
-}
-
-func (suite *FinanceTestSuite) TestFinance_ConvertOk() {
-	origin := float64(1000)
-	expect := 15.63
-
-	amount, err := suite.service.currencyRate.Convert(643, 840, origin)
-
-	assert.Nil(suite.T(), err)
-	assert.True(suite.T(), amount > 0)
-	assert.Equal(suite.T(), expect, amount)
-}
-
-func (suite *FinanceTestSuite) TestFinance_ConvertCurrencyFromError() {
-	amount, err := suite.service.currencyRate.Convert(980, 840, 1000)
-
-	assert.Error(suite.T(), err)
-	assert.True(suite.T(), amount == 0)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionCurrencyRate), err.Error())
-}
-
-func (suite *FinanceTestSuite) TestFinance_ConvertCurrencyToError() {
-	amount, err := suite.service.currencyRate.Convert(643, 980, 1000)
-
-	assert.Error(suite.T(), err)
-	assert.True(suite.T(), amount == 0)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionCurrencyRate), err.Error())
 }
 
 func (suite *FinanceTestSuite) TestFinance_CalculateCommissionOk() {

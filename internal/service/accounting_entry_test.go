@@ -58,14 +58,6 @@ func (suite *AccountingEntryTestSuite) SetupTest() {
 		IsActive: true,
 	}
 
-	rate := &billing.CurrencyRate{
-		CurrencyFrom: 643,
-		CurrencyTo:   643,
-		Rate:         1,
-		Date:         ptypes.TimestampNow(),
-		IsActive:     true,
-	}
-
 	country := &billing.Country{
 		IsoCodeA2:       "RU",
 		Region:          "Russia",
@@ -226,10 +218,6 @@ func (suite *AccountingEntryTestSuite) SetupTest() {
 
 	if err := suite.service.country.Insert(country); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
-	}
-
-	if err = suite.service.currencyRate.Insert(rate); err != nil {
-		suite.FailNow("Insert rates test data failed", "%v", err)
 	}
 
 	if err := suite.service.paymentSystem.MultipleInsert([]*billing.PaymentSystem{paymentSystem}); err != nil {
