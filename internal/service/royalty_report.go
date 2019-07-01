@@ -550,7 +550,7 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(merchantId bson.ObjectId) (
 			FeeAmount:         feeAmount,
 			VatAmount:         taxFeeAmount,
 			PayoutAmount:      tools.FormatAmount(grossAmount - feeAmount - taxFeeAmount),
-			Currency:          merchant.GetPayoutCurrency().CodeA3,
+			Currency:          merchant.GetPayoutCurrency(),
 		},
 		Status:         pkg.RoyaltyReportStatusNew,
 		CreatedAt:      ptypes.TimestampNow(),

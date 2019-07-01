@@ -30,7 +30,6 @@ It has these top-level messages:
 	CountryRestriction
 	OrderItem
 	OrderPaginate
-	Currency
 	PaymentMethodOrder
 	PaymentMethodParams
 	PaymentSystem
@@ -80,8 +79,6 @@ It has these top-level messages:
 	PriceGroup
 	ZipCodeState
 	ZipCode
-	CurrencyList
-	GetCurrencyRequest
 	PaymentChannelCostSystem
 	PaymentChannelCostSystemRequest
 	PaymentChannelCostSystemList

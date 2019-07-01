@@ -33,9 +33,9 @@ func (m *Merchant) ChangesAllowed() bool {
 	return m.Status == pkg.MerchantStatusDraft
 }
 
-func (m *Merchant) GetPayoutCurrency() *Currency {
+func (m *Merchant) GetPayoutCurrency() string {
 	if m.Banking == nil {
-		return nil
+		return ""
 	}
 
 	return m.Banking.Currency

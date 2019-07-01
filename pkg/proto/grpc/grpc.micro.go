@@ -193,8 +193,6 @@ type BillingService interface {
 	CreateOrUpdatePaymentMethodTestSettings(ctx context.Context, in *ChangePaymentMethodParamsRequest, opts ...client.CallOption) (*ChangePaymentMethodParamsResponse, error)
 	GetPaymentMethodTestSettings(ctx context.Context, in *GetPaymentMethodSettingsRequest, opts ...client.CallOption) (*billing.PaymentMethodParams, error)
 	DeletePaymentMethodTestSettings(ctx context.Context, in *GetPaymentMethodSettingsRequest, opts ...client.CallOption) (*ChangePaymentMethodParamsResponse, error)
-	GetCurrencyList(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*billing.CurrencyList, error)
-	GetCurrency(ctx context.Context, in *billing.GetCurrencyRequest, opts ...client.CallOption) (*billing.Currency, error)
 	FindByZipCode(ctx context.Context, in *FindByZipCodeRequest, opts ...client.CallOption) (*FindByZipCodeResponse, error)
 	GetAllPaymentChannelCostSystem(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*PaymentChannelCostSystemListResponse, error)
 	GetPaymentChannelCostSystem(ctx context.Context, in *billing.PaymentChannelCostSystemRequest, opts ...client.CallOption) (*PaymentChannelCostSystemResponse, error)
@@ -778,26 +776,6 @@ func (c *billingService) DeletePaymentMethodTestSettings(ctx context.Context, in
 	return out, nil
 }
 
-func (c *billingService) GetCurrencyList(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*billing.CurrencyList, error) {
-	req := c.c.NewRequest(c.name, "BillingService.GetCurrencyList", in)
-	out := new(billing.CurrencyList)
-	err := c.c.Call(ctx, req, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *billingService) GetCurrency(ctx context.Context, in *billing.GetCurrencyRequest, opts ...client.CallOption) (*billing.Currency, error) {
-	req := c.c.NewRequest(c.name, "BillingService.GetCurrency", in)
-	out := new(billing.Currency)
-	err := c.c.Call(ctx, req, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *billingService) FindByZipCode(ctx context.Context, in *FindByZipCodeRequest, opts ...client.CallOption) (*FindByZipCodeResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.FindByZipCode", in)
 	out := new(FindByZipCodeResponse)
@@ -1085,8 +1063,6 @@ type BillingServiceHandler interface {
 	CreateOrUpdatePaymentMethodTestSettings(context.Context, *ChangePaymentMethodParamsRequest, *ChangePaymentMethodParamsResponse) error
 	GetPaymentMethodTestSettings(context.Context, *GetPaymentMethodSettingsRequest, *billing.PaymentMethodParams) error
 	DeletePaymentMethodTestSettings(context.Context, *GetPaymentMethodSettingsRequest, *ChangePaymentMethodParamsResponse) error
-	GetCurrencyList(context.Context, *EmptyRequest, *billing.CurrencyList) error
-	GetCurrency(context.Context, *billing.GetCurrencyRequest, *billing.Currency) error
 	FindByZipCode(context.Context, *FindByZipCodeRequest, *FindByZipCodeResponse) error
 	GetAllPaymentChannelCostSystem(context.Context, *EmptyRequest, *PaymentChannelCostSystemListResponse) error
 	GetPaymentChannelCostSystem(context.Context, *billing.PaymentChannelCostSystemRequest, *PaymentChannelCostSystemResponse) error
@@ -1168,8 +1144,6 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		CreateOrUpdatePaymentMethodTestSettings(ctx context.Context, in *ChangePaymentMethodParamsRequest, out *ChangePaymentMethodParamsResponse) error
 		GetPaymentMethodTestSettings(ctx context.Context, in *GetPaymentMethodSettingsRequest, out *billing.PaymentMethodParams) error
 		DeletePaymentMethodTestSettings(ctx context.Context, in *GetPaymentMethodSettingsRequest, out *ChangePaymentMethodParamsResponse) error
-		GetCurrencyList(ctx context.Context, in *EmptyRequest, out *billing.CurrencyList) error
-		GetCurrency(ctx context.Context, in *billing.GetCurrencyRequest, out *billing.Currency) error
 		FindByZipCode(ctx context.Context, in *FindByZipCodeRequest, out *FindByZipCodeResponse) error
 		GetAllPaymentChannelCostSystem(ctx context.Context, in *EmptyRequest, out *PaymentChannelCostSystemListResponse) error
 		GetPaymentChannelCostSystem(ctx context.Context, in *billing.PaymentChannelCostSystemRequest, out *PaymentChannelCostSystemResponse) error
@@ -1419,14 +1393,6 @@ func (h *billingServiceHandler) GetPaymentMethodTestSettings(ctx context.Context
 
 func (h *billingServiceHandler) DeletePaymentMethodTestSettings(ctx context.Context, in *GetPaymentMethodSettingsRequest, out *ChangePaymentMethodParamsResponse) error {
 	return h.BillingServiceHandler.DeletePaymentMethodTestSettings(ctx, in, out)
-}
-
-func (h *billingServiceHandler) GetCurrencyList(ctx context.Context, in *EmptyRequest, out *billing.CurrencyList) error {
-	return h.BillingServiceHandler.GetCurrencyList(ctx, in, out)
-}
-
-func (h *billingServiceHandler) GetCurrency(ctx context.Context, in *billing.GetCurrencyRequest, out *billing.Currency) error {
-	return h.BillingServiceHandler.GetCurrency(ctx, in, out)
 }
 
 func (h *billingServiceHandler) FindByZipCode(ctx context.Context, in *FindByZipCodeRequest, out *FindByZipCodeResponse) error {

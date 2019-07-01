@@ -283,8 +283,8 @@ func (s *Service) DeletePaymentMethodTestSettings(
 
 type PaymentMethodInterface interface {
 	GetAll() (map[string]*billing.PaymentMethod, error)
-	Groups() (map[string]map[int32]*billing.PaymentMethod, error)
-	GetByGroupAndCurrency(string, int32) (*billing.PaymentMethod, error)
+	Groups() (map[string]map[string]*billing.PaymentMethod, error)
+	GetByGroupAndCurrency(string, string) (*billing.PaymentMethod, error)
 	GetById(string) (*billing.PaymentMethod, error)
 	MultipleInsert([]*billing.PaymentMethod) error
 	Insert(*billing.PaymentMethod) error
@@ -327,7 +327,7 @@ func (h *PaymentMethod) GetAll() (map[string]*billing.PaymentMethod, error) {
 	return c.Methods, nil
 }
 
-func (h *PaymentMethod) Groups() (map[string]map[int32]*billing.PaymentMethod, error) {
+func (h *PaymentMethod) Groups() (map[string]map[string]*billing.PaymentMethod, error) {
 	pool, err := h.GetAll()
 	if err != nil {
 		return nil, err
@@ -336,9 +336,9 @@ func (h *PaymentMethod) Groups() (map[string]map[int32]*billing.PaymentMethod, e
 		return nil, nil
 	}
 
-	groups := make(map[string]map[int32]*billing.PaymentMethod, len(pool))
+	groups := make(map[string]map[string]*billing.PaymentMethod, len(pool))
 	for _, r := range pool {
-		group := make(map[int32]*billing.PaymentMethod, len(r.Currencies))
+		group := make(map[string]*billing.PaymentMethod, len(r.Currencies))
 		for _, v := range r.Currencies {
 			group[v] = r
 		}
@@ -348,7 +348,7 @@ func (h *PaymentMethod) Groups() (map[string]map[int32]*billing.PaymentMethod, e
 	return groups, nil
 }
 
-func (h *PaymentMethod) GetByGroupAndCurrency(group string, currency int32) (*billing.PaymentMethod, error) {
+func (h *PaymentMethod) GetByGroupAndCurrency(group string, currency string) (*billing.PaymentMethod, error) {
 	var c billing.PaymentMethod
 	key := fmt.Sprintf(cachePaymentMethodGroup, group)
 
@@ -447,7 +447,7 @@ func (h *PaymentMethod) GetPaymentSettings(
 	merchant *billing.Merchant,
 	project *billing.Project,
 ) (*billing.PaymentMethodParams, error) {
-	if merchant == nil || merchant.Banking == nil || merchant.Banking.Currency == nil {
+	if merchant == nil || merchant.Banking == nil || merchant.Banking.Currency == "" {
 		return nil, errors.New(paymentMethodErrorBankingSettings)
 	}
 
@@ -461,12 +461,12 @@ func (h *PaymentMethod) GetPaymentSettings(
 		return nil, errors.New(paymentMethodErrorSettings)
 	}
 
-	if _, ok := settings[merchant.Banking.Currency.CodeA3]; !ok {
+	if _, ok := settings[merchant.Banking.Currency]; !ok {
 		return nil, errors.New(paymentMethodErrorNotFoundProductionSettings)
 	}
 
-	result := settings[merchant.Banking.Currency.CodeA3]
-	result.Currency = merchant.Banking.Currency.CodeA3
+	result := settings[merchant.Banking.Currency]
+	result.Currency = merchant.Banking.Currency
 
 	return result, nil
 }

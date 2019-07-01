@@ -224,15 +224,15 @@ type MgoOrder struct {
 	ProjectOrderId                          string                      `bson:"project_order_id"`
 	ProjectAccount                          string                      `bson:"project_account"`
 	ProjectIncomeAmount                     float64                     `bson:"project_income_amount"`
-	ProjectIncomeCurrency                   *Currency                   `bson:"project_income_currency"`
+	ProjectIncomeCurrency                   string                   `bson:"project_income_currency"`
 	ProjectOutcomeAmount                    float64                     `bson:"project_outcome_amount"`
-	ProjectOutcomeCurrency                  *Currency                   `bson:"project_outcome_currency"`
+	ProjectOutcomeCurrency                  string                   `bson:"project_outcome_currency"`
 	ProjectLastRequestedAt                  time.Time                   `bson:"project_last_requested_at"`
 	ProjectParams                           map[string]string           `bson:"project_params"`
 	PaymentMethodOutcomeAmount              float64                     `bson:"pm_outcome_amount"`
-	PaymentMethodOutcomeCurrency            *Currency                   `bson:"pm_outcome_currency"`
+	PaymentMethodOutcomeCurrency            string                   `bson:"pm_outcome_currency"`
 	PaymentMethodIncomeAmount               float64                     `bson:"pm_income_amount"`
-	PaymentMethodIncomeCurrency             *Currency                   `bson:"pm_income_currency"`
+	PaymentMethodIncomeCurrency             string                   `bson:"pm_income_currency"`
 	PaymentMethodOrderClosedAt              time.Time                   `bson:"pm_order_close_date"`
 	IsJsonRequest                           bool                        `bson:"created_by_json"`
 	OrderAmount                             float64                     `bson:"private_amount"`
@@ -275,7 +275,7 @@ type MgoPaymentSystem struct {
 	Name               string        `bson:"name"`
 	Handler            string        `bson:"handler"`
 	Country            string        `bson:"country"`
-	AccountingCurrency *Currency     `bson:"accounting_currency"`
+	AccountingCurrency string        `bson:"accounting_currency"`
 	AccountingPeriod   string        `bson:"accounting_period"`
 	IsActive           bool          `bson:"is_active"`
 	CreatedAt          time.Time     `bson:"created_at"`
@@ -296,7 +296,7 @@ type MgoPaymentMethod struct {
 	CreatedAt          time.Time                `bson:"created_at"`
 	UpdatedAt          time.Time                `bson:"updated_at"`
 	PaymentSystemId    bson.ObjectId            `bson:"payment_system_id"`
-	Currencies         []int32                  `bson:"currencies"`
+	Currencies         []string                 `bson:"currencies"`
 	Type               string                   `bson:"type"`
 	AccountRegexp      string                   `bson:"account_regexp"`
 }

@@ -53,23 +53,20 @@ const (
 )
 
 type Service struct {
-	db               *mongodb.Source
-	mx               sync.Mutex
-	cfg              *config.Config
-	ctx              context.Context
-	geo              proto.GeoIpService
-	rep              repository.RepositoryService
-	tax              tax_service.TaxService
-	broker           *rabbitmq.Broker
-	centrifugoClient *gocent.Client
-	redis            *redis.Client
-	cacher           CacheInterface
-	curService       currencies.CurrencyratesService
-	smtpCl           gomail.SendCloser
-
-	accountingCurrency *billing.Currency
-
-	currency                   CurrencyServiceInterface
+	db                         *mongodb.Source
+	mx                         sync.Mutex
+	cfg                        *config.Config
+	ctx                        context.Context
+	geo                        proto.GeoIpService
+	rep                        repository.RepositoryService
+	tax                        tax_service.TaxService
+	broker                     *rabbitmq.Broker
+	centrifugoClient           *gocent.Client
+	redis                      *redis.Client
+	cacher                     CacheInterface
+	curService                 currencies.CurrencyratesService
+	smtpCl                     gomail.SendCloser
+	supportedCurrencies        []string
 	commission                 *Commission
 	country                    *Country
 	project                    *Project
@@ -132,7 +129,6 @@ func NewBillingService(
 func (s *Service) Init() (err error) {
 	s.paymentMethod = newPaymentMethodService(s)
 	s.merchant = newMerchantService(s)
-	s.currency = newCurrencyService(s)
 	s.commission = newCommissionService(s)
 	s.country = newCountryService(s)
 	s.project = newProjectService(s)
@@ -154,11 +150,23 @@ func (s *Service) Init() (err error) {
 		},
 	)
 
-	s.accountingCurrency, err = s.currency.GetByCodeA3(s.cfg.AccountingCurrency)
-
-	if err != nil {
+	if s.cfg.AccountingCurrency == "" {
 		return errors.New(errorAccountingCurrencyNotFound)
 	}
+
+	sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currencies.EmptyRequest{})
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorGrpcServiceCallFailed,
+			zap.Error(err),
+			zap.String(errorFieldService, "CurrencyRatesService"),
+			zap.String(errorFieldMethod, "GetSupportedCurrencies"),
+		)
+
+		return err
+	}
+
+	s.supportedCurrencies = sCurr.Currencies
 
 	return
 }

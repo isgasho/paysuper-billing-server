@@ -184,7 +184,7 @@ message MerchantContactAuthorized {
 
 message MerchantBanking {
     // @inject_tag: json:"currency"
-    Currency currency = 1;
+    string currency = 1;
     // @inject_tag: json:"name"
     string name = 2;
     // @inject_tag: json:"address"
@@ -465,11 +465,11 @@ message Order {
     // @inject_tag: json:"-" bson:"project_income_amount"
     double project_income_amount = 39; // order amount received from project
     // @inject_tag: json:"-" bson:"project_income_currency"
-    Currency project_income_currency = 40; // order currency received from project
+    string project_income_currency = 40; // order currency received from project
     // @inject_tag: json:"-" bson:"project_outcome_amount"
     double project_outcome_amount = 41; // order amount send to project in notification request
     // @inject_tag: json:"-" bson:"project_outcome_currency"
-    Currency project_outcome_currency = 42; // order currency send to project in notification request
+    string project_outcome_currency = 42; // order currency send to project in notification request
     // @inject_tag: json:"-" bson:"project_last_requested_at"
     google.protobuf.Timestamp project_last_requested_at = 43; // date of last notification request to project
     // @inject_tag: json:"-" bson:"project_params"
@@ -477,11 +477,11 @@ message Order {
     // @inject_tag: json:"-" bson:"pm_outcome_amount"
     double payment_method_outcome_amount = 45; // order amount send to payment system
     // @inject_tag: json:"-" bson:"pm_outcome_currency"
-    Currency payment_method_outcome_currency = 46; // order currency send to payment system
+    string payment_method_outcome_currency = 46; // order currency send to payment system
     // @inject_tag: json:"-" bson:"pm_income_amount"
     double payment_method_income_amount = 47; // order amount received from payment system in notification request
     // @inject_tag: json:"-" bson:"pm_income_currency"
-    Currency payment_method_income_currency = 48; // order currency received from payment system in notification request
+    string payment_method_income_currency = 48; // order currency received from payment system in notification request
     // @inject_tag: json:"-" bson:"pm_order_close_date"
     google.protobuf.Timestamp payment_method_order_closed_at = 49; // date of ended payment operation in payment system
     // @inject_tag: json:"-" bson:"created_by_json"
@@ -569,21 +569,6 @@ message OrderPaginate {
     repeated Order items = 2; // array of selected orders
 }
 
-message Currency {
-    // @inject_tag: bson:"code_int"
-    int32 code_int = 1;
-    // @inject_tag: bson:"code_a3"
-    string code_a3 = 2;
-    // @inject_tag: bson:"name"
-    Name name = 4;
-    // @inject_tag: bson:"is_active"
-    bool is_active = 5;
-    // @inject_tag: bson:"created_at"
-    google.protobuf.Timestamp created_at = 6;
-    // @inject_tag: bson:"updated_at"
-    google.protobuf.Timestamp updated_at = 7;
-}
-
 message PaymentMethodOrder {
     // @inject_tag: json:"-" bson:"_id"
     string id = 1;
@@ -629,7 +614,7 @@ message PaymentSystem {
     // @inject_tag: bson:"country" structure:"country"
     string Country = 3;
     // @inject_tag: bson:"accounting_currency" structure:"accounting_currency"
-    Currency accounting_currency = 4;
+    string accounting_currency = 4;
     // @inject_tag: bson:"accounting_period" structure:"accounting_period"
     string accounting_period = 5;
     // @inject_tag: bson:"is_active" structure:"is_active"
@@ -728,7 +713,7 @@ message PaymentMethod {
     // @inject_tag: bson:"external_id" json:"external_id" validate:"omitempty,alphanum"
     string external_id = 5;
     // @inject_tag: bson:"currencies" json:"currencies" validate:"omitempty,numeric,dive,gte=0"
-    repeated int32 currencies = 6;
+    repeated string currencies = 6;
     // @inject_tag: bson:"min_payment_amount" json:"min_payment_amount" validate:"omitempty,numeric,gte=0"
     double min_payment_amount = 7;
     // @inject_tag: bson:"max_payment_amount" json:"max_payment_amount" validate:"omitempty,numeric,gte=0"
@@ -1150,17 +1135,6 @@ message ZipCode {
     string city = 3;
     ZipCodeState state = 4;
     google.protobuf.Timestamp created_at = 5;
-}
-
-message CurrencyList {
-    repeated Currency currency = 1;
-}
-
-message GetCurrencyRequest {
-    //@inject_tag: validate:"omitempty,numeric,gt=0"
-    int32 currency_int = 1;
-    //@inject_tag: validate:"omitempty,alpha"
-    string currency_code = 2;
 }
 
 message PaymentChannelCostSystem {

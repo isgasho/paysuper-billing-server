@@ -42,13 +42,6 @@ func (suite *TokenTestSuite) SetupTest() {
 	db, err := mongodb.NewDatabase()
 	assert.NoError(suite.T(), err, "Database connection failed")
 
-	rub := &billing.Currency{
-		CodeInt:  643,
-		CodeA3:   "RUB",
-		Name:     &billing.Name{Ru: "Российский рубль", En: "Russian ruble"},
-		IsActive: true,
-	}
-
 	project := &billing.Project{
 		Id:                       bson.NewObjectId().Hex(),
 		CallbackCurrency:         "RUB",
@@ -125,10 +118,6 @@ func (suite *TokenTestSuite) SetupTest() {
 		},
 	)
 
-	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
-
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
@@ -140,7 +129,7 @@ func (suite *TokenTestSuite) SetupTest() {
 		nil,
 		redisClient,
 		suite.cache,
-		nil,
+		mock.NewCurrencyServiceMockOk(),
 		nil,
 	)
 

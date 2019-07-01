@@ -211,7 +211,9 @@ func (s *CurrencyServiceMockOk) GetSupportedCurrencies(
 	in *currencies.EmptyRequest,
 	opts ...client.CallOption,
 ) (*currencies.CurrenciesList, error) {
-	return &currencies.CurrenciesList{}, nil
+	return &currencies.CurrenciesList{
+		Currencies: []string{"USD", "EUR", "RUB", "GBP"},
+	}, nil
 }
 
 func (s *CurrencyServiceMockOk) GetSettlementCurrencies(

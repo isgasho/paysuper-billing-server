@@ -45,19 +45,6 @@ func (suite *AccountingEntryTestSuite) SetupTest() {
 	suite.log, err = zap.NewProduction()
 	assert.NoError(suite.T(), err, "Logger initialization failed")
 
-	rub := &billing.Currency{
-		CodeInt:  643,
-		CodeA3:   "RUB",
-		Name:     &billing.Name{Ru: "Российский рубль", En: "Russian ruble"},
-		IsActive: true,
-	}
-	usd := &billing.Currency{
-		CodeInt:  840,
-		CodeA3:   "USD",
-		Name:     &billing.Name{Ru: "Доллар США", En: "US Dollar"},
-		IsActive: true,
-	}
-
 	country := &billing.Country{
 		IsoCodeA2:       "RU",
 		Region:          "Russia",
@@ -72,7 +59,7 @@ func (suite *AccountingEntryTestSuite) SetupTest() {
 	paymentSystem := &billing.PaymentSystem{
 		Id:                 bson.NewObjectId().Hex(),
 		Name:               "CardPay",
-		AccountingCurrency: rub,
+		AccountingCurrency: "RUB",
 		AccountingPeriod:   "every-day",
 		Country:            "",
 		IsActive:           true,
@@ -84,7 +71,7 @@ func (suite *AccountingEntryTestSuite) SetupTest() {
 		Group:            "BANKCARD",
 		MinPaymentAmount: 100,
 		MaxPaymentAmount: 15000,
-		Currencies:       []int32{643, 840, 980},
+		Currencies:       []string{"RUB", "USD", "EUR"},
 		ExternalId:       "BANKCARD",
 		TestSettings: map[string]*billing.PaymentMethodParams{
 			"RUB": {
@@ -127,7 +114,7 @@ func (suite *AccountingEntryTestSuite) SetupTest() {
 			},
 		},
 		Banking: &billing.MerchantBanking{
-			Currency: rub,
+			Currency: "RUB",
 			Name:     "Bank name",
 		},
 		IsVatEnabled:              false,
@@ -148,7 +135,7 @@ func (suite *AccountingEntryTestSuite) SetupTest() {
 					Fee: 2.5,
 					PerTransaction: &billing.MerchantPaymentMethodPerTransactionCommission{
 						Fee:      30,
-						Currency: usd.CodeA3,
+						Currency: "USD",
 					},
 				},
 				Integration: &billing.MerchantPaymentMethodIntegration{
@@ -163,9 +150,9 @@ func (suite *AccountingEntryTestSuite) SetupTest() {
 
 	project := &billing.Project{
 		Id:                       bson.NewObjectId().Hex(),
-		CallbackCurrency:         rub.CodeA3,
+		CallbackCurrency:         "RUB",
 		CallbackProtocol:         "default",
-		LimitsCurrency:           rub.CodeA3,
+		LimitsCurrency:           "RUB",
 		MaxPaymentAmount:         15000,
 		MinPaymentAmount:         1,
 		Name:                     map[string]string{"en": "test project 1"},
@@ -178,10 +165,6 @@ func (suite *AccountingEntryTestSuite) SetupTest() {
 
 	broker, err := rabbitmq.NewBroker(cfg.BrokerAddress)
 	assert.NoError(suite.T(), err, "Creating RabbitMQ publisher failed")
-
-	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
 
 	redisdb := mock.NewTestRedis()
 	cache := NewCacheRedis(redisdb)
@@ -648,8 +631,8 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Payment_OrderNotSet_E
 }
 
 func (suite *AccountingEntryTestSuite) TestAccountingEntry_Payment_ExchangeCurrencyCurrentForMerchantRequest_Error() {
-	suite.service.curService = mock.NewCurrencyServiceMockError()
 	handler := &accountingEntry{Service: suite.service, order: suite.createOrder(), ctx: context.TODO()}
+	suite.service.curService = mock.NewCurrencyServiceMockError()
 	err := handler.payment()
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), accountingEntryErrorExchangeFailed, err)
@@ -663,8 +646,8 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_PsMarkupPaymentFx_Ord
 }
 
 func (suite *AccountingEntryTestSuite) TestAccountingEntry_PsMarkupPaymentFx_GetRateCurrentForMerchant_Error() {
-	suite.service.curService = mock.NewCurrencyServiceMockError()
 	handler := &accountingEntry{Service: suite.service, order: suite.createOrder(), ctx: context.TODO()}
+	suite.service.curService = mock.NewCurrencyServiceMockError()
 	err := handler.psMarkupPaymentFx()
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), accountingEntryErrorGetExchangeRateFailed, err)
@@ -867,11 +850,11 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_TaxFee_OrderNotSet_Er
 }
 
 func (suite *AccountingEntryTestSuite) TestAccountingEntry_TaxFee_ExchangeCurrencyCurrentForMerchantRequest_Error() {
-	suite.service.curService = mock.NewCurrencyServiceMockError()
 	order := suite.createOrder()
 	order.Tax.Currency = "USD"
 	order.RoyaltyData = &billing.RoyaltyData{}
 	handler := &accountingEntry{Service: suite.service, order: order, ctx: context.TODO()}
+	suite.service.curService = mock.NewCurrencyServiceMockError()
 	err := handler.taxFee()
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), accountingEntryErrorExchangeFailed, err)
