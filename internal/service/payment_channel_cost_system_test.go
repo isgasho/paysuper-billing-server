@@ -7,6 +7,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
@@ -144,18 +145,20 @@ func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_Grp
 		Country: "AZ",
 	}
 
-	res := &billing.PaymentChannelCostSystem{}
+	res := &grpc.PaymentChannelCostSystemResponse{}
 
 	err := suite.service.GetPaymentChannelCostSystem(context.TODO(), req, res)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Country, "AZ")
-	assert.Equal(suite.T(), res.FixAmount, float64(5))
+	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), res.Item.Country, "AZ")
+	assert.Equal(suite.T(), res.Item.FixAmount, float64(5))
 
 	req.Country = ""
 	err = suite.service.GetPaymentChannelCostSystem(context.TODO(), req, res)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Country, "")
-	assert.Equal(suite.T(), res.FixAmount, float64(0))
+	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), res.Item.Country, "")
+	assert.Equal(suite.T(), res.Item.FixAmount, float64(0))
 }
 
 func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_GrpcSet_Ok() {
@@ -168,13 +171,14 @@ func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_Grp
 		FixAmountCurrency: "USD",
 	}
 
-	res := billing.PaymentChannelCostSystem{}
+	res := grpc.PaymentChannelCostSystemResponse{}
 
 	err := suite.service.SetPaymentChannelCostSystem(context.TODO(), req, &res)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Country, "AZ")
-	assert.Equal(suite.T(), res.FixAmount, float64(4))
-	assert.Equal(suite.T(), res.Id, suite.paymentChannelCostSystemId)
+	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), res.Item.Country, "AZ")
+	assert.Equal(suite.T(), res.Item.FixAmount, float64(4))
+	assert.Equal(suite.T(), res.Item.Id, suite.paymentChannelCostSystemId)
 
 	req2 := &billing.PaymentChannelCostSystem{
 		Name:              "MASTERCARD",
@@ -185,13 +189,14 @@ func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_Grp
 		FixAmountCurrency: "USD",
 	}
 
-	res2 := billing.PaymentChannelCostSystem{}
+	res2 := grpc.PaymentChannelCostSystemResponse{}
 	err = suite.service.SetPaymentChannelCostSystem(context.TODO(), req2, &res2)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res2.Country, "")
-	assert.Equal(suite.T(), res2.Region, "US")
-	assert.Equal(suite.T(), res2.FixAmount, float64(1))
-	assert.NotEqual(suite.T(), res2.Id, suite.paymentChannelCostSystemId)
+	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), res2.Item.Country, "")
+	assert.Equal(suite.T(), res2.Item.Region, "US")
+	assert.Equal(suite.T(), res2.Item.FixAmount, float64(1))
+	assert.NotEqual(suite.T(), res2.Item.Id, suite.paymentChannelCostSystemId)
 }
 
 func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_Insert_Ok() {
@@ -254,16 +259,21 @@ func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_Del
 	req := &billing.PaymentCostDeleteRequest{
 		Id: suite.paymentChannelCostSystemId,
 	}
-	assert.NoError(suite.T(), suite.service.DeletePaymentChannelCostSystem(context.TODO(), req, &grpc.EmptyResponse{}))
 
-	_, err := suite.service.paymentChannelCostSystem.GetById(suite.paymentChannelCostSystemId)
+	res := &grpc.ResponseError{}
+	err := suite.service.DeletePaymentChannelCostSystem(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
+
+	_, err = suite.service.paymentChannelCostSystem.GetById(suite.paymentChannelCostSystemId)
 	assert.EqualError(suite.T(), err, fmt.Sprintf(errorNotFound, collectionPaymentChannelCostSystem))
 }
 
 func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_GetAllPaymentChannelCostSystem_Ok() {
-	res := &billing.PaymentChannelCostSystemList{}
+	res := &grpc.PaymentChannelCostSystemListResponse{}
 	err := suite.service.GetAllPaymentChannelCostSystem(context.TODO(), &grpc.EmptyRequest{}, res)
 
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), len(res.Items), 2)
+	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), len(res.Item.Items), 2)
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
@@ -22,6 +23,13 @@ const (
 	errorDaysMatchedNotFound = "days matched not found"
 )
 
+var (
+	errorMoneybackSystemGetAll    = newBillingServerErrorMsg("mbs000001", "can't get list of money back setting for system")
+	errorMoneybackSystemGet       = newBillingServerErrorMsg("mbs000002", "can't get money back setting for system")
+	errorMoneybackSystemSetFailed = newBillingServerErrorMsg("mbs000003", "can't set money back setting for system")
+	errorMoneybackSystemDelete    = newBillingServerErrorMsg("mbs000004", "can't delete money back setting for system")
+)
+
 type moneyBackCostSystems struct {
 	Items []*billing.MoneyBackCostSystem
 }
@@ -29,38 +37,35 @@ type moneyBackCostSystems struct {
 func (s *Service) GetAllMoneyBackCostSystem(
 	ctx context.Context,
 	req *grpc.EmptyRequest,
-	res *billing.MoneyBackCostSystemList,
+	res *grpc.MoneyBackCostSystemListResponse,
 ) error {
 	val, err := s.moneyBackCostSystem.GetAll()
 	if err != nil {
-		return err
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorMoneybackSystemGetAll
+		return nil
 	}
-	res.Items = val.Items
+
+	res.Status = pkg.ResponseStatusOk
+	res.Item = val
+
 	return nil
 }
 
 func (s *Service) GetMoneyBackCostSystem(
 	ctx context.Context,
 	req *billing.MoneyBackCostSystemRequest,
-	res *billing.MoneyBackCostSystem,
+	res *grpc.MoneyBackCostSystemResponse,
 ) error {
 	val, err := s.getMoneyBackCostSystem(req)
 	if err != nil {
-		return err
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorMoneybackSystemGet
+		return nil
 	}
-	res.Id = val.Id
-	res.Name = val.Name
-	res.PayoutCurrency = val.PayoutCurrency
-	res.UndoReason = val.UndoReason
-	res.Region = val.Region
-	res.Country = val.Country
-	res.DaysFrom = val.DaysFrom
-	res.PaymentStage = val.PaymentStage
-	res.Percent = val.Percent
-	res.FixAmount = val.FixAmount
-	res.CreatedAt = val.CreatedAt
-	res.UpdatedAt = val.UpdatedAt
-	res.IsActive = val.IsActive
+
+	res.Status = pkg.ResponseStatusOk
+	res.Item = val
 
 	return nil
 }
@@ -68,7 +73,7 @@ func (s *Service) GetMoneyBackCostSystem(
 func (s *Service) SetMoneyBackCostSystem(
 	ctx context.Context,
 	req *billing.MoneyBackCostSystem,
-	res *billing.MoneyBackCostSystem,
+	res *grpc.MoneyBackCostSystemResponse,
 ) error {
 
 	var err error
@@ -76,27 +81,31 @@ func (s *Service) SetMoneyBackCostSystem(
 	if req.Country != "" {
 		country, err := s.country.GetByIsoCodeA2(req.Country)
 		if err != nil {
-			return err
+			res.Status = pkg.ResponseStatusNotFound
+			res.Message = errorCountryNotFound
+			return nil
 		}
 		req.Region = country.Region
 	} else {
 		exists, err := s.country.IsRegionExists(req.Region)
-		if err != nil {
-			return err
-		}
-		if !exists {
-			return errors.New(errorRegionNotExists)
+		if err != nil || !exists {
+			res.Status = pkg.ResponseStatusNotFound
+			res.Message = errorCountryRegionNotExists
+			return nil
 		}
 	}
 
 	// todo: check fo valid payout currency after integrations with currencies service
 
 	req.UpdatedAt = ptypes.TimestampNow()
+	req.IsActive = true
 
 	if req.Id != "" {
 		val, err := s.moneyBackCostSystem.GetById(req.Id)
 		if err != nil {
-			return err
+			res.Status = pkg.ResponseStatusNotFound
+			res.Message = errorMoneybackSystemDelete
+			return nil
 		}
 		req.Id = val.Id
 		req.CreatedAt = val.CreatedAt
@@ -107,22 +116,13 @@ func (s *Service) SetMoneyBackCostSystem(
 		err = s.moneyBackCostSystem.Insert(req)
 	}
 	if err != nil {
-		return err
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorMoneybackSystemSetFailed
+		return nil
 	}
 
-	res.Id = req.Id
-	res.Name = req.Name
-	res.PayoutCurrency = req.PayoutCurrency
-	res.UndoReason = req.UndoReason
-	res.Region = req.Region
-	res.Country = req.Country
-	res.DaysFrom = req.DaysFrom
-	res.PaymentStage = req.PaymentStage
-	res.Percent = req.Percent
-	res.FixAmount = req.FixAmount
-	res.CreatedAt = req.CreatedAt
-	res.UpdatedAt = req.UpdatedAt
-	res.IsActive = true
+	res.Status = pkg.ResponseStatusOk
+	res.Item = req
 
 	return nil
 }
@@ -130,7 +130,7 @@ func (s *Service) SetMoneyBackCostSystem(
 func (s *Service) DeleteMoneyBackCostSystem(
 	ctx context.Context,
 	req *billing.PaymentCostDeleteRequest,
-	res *grpc.EmptyResponse,
+	res *grpc.ResponseError,
 ) error {
 	pc, err := s.moneyBackCostSystem.GetById(req.Id)
 	if err != nil {
@@ -140,6 +140,7 @@ func (s *Service) DeleteMoneyBackCostSystem(
 	if err != nil {
 		return err
 	}
+	res.Status = pkg.ResponseStatusOk
 	return nil
 }
 

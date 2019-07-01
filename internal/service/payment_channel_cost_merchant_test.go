@@ -7,6 +7,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
@@ -207,19 +208,21 @@ func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant
 		Amount:         10,
 	}
 
-	res := &billing.PaymentChannelCostMerchant{}
+	res := &grpc.PaymentChannelCostMerchantResponse{}
 
 	err := suite.service.GetPaymentChannelCostMerchant(context.TODO(), req, res)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Country, "AZ")
-	assert.Equal(suite.T(), res.MethodFixAmount, float64(2))
-	assert.Equal(suite.T(), res.MinAmount, float64(5))
+	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), res.Item.Country, "AZ")
+	assert.Equal(suite.T(), res.Item.MethodFixAmount, float64(2))
+	assert.Equal(suite.T(), res.Item.MinAmount, float64(5))
 
 	req.Country = ""
 	err = suite.service.GetPaymentChannelCostMerchant(context.TODO(), req, res)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Country, "")
-	assert.Equal(suite.T(), res.MethodFixAmount, float64(0))
+	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), res.Item.Country, "")
+	assert.Equal(suite.T(), res.Item.MethodFixAmount, float64(0))
 }
 
 func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant_GrpcSet_Ok() {
@@ -238,13 +241,14 @@ func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant
 		PsFixedFeeCurrency: "EUR",
 	}
 
-	res := billing.PaymentChannelCostMerchant{}
+	res := grpc.PaymentChannelCostMerchantResponse{}
 
 	err := suite.service.SetPaymentChannelCostMerchant(context.TODO(), req, &res)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Country, "AZ")
-	assert.Equal(suite.T(), res.MethodFixAmount, float64(1.01))
-	assert.Equal(suite.T(), res.Id, suite.paymentChannelCostMerchantId)
+	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), res.Item.Country, "AZ")
+	assert.Equal(suite.T(), res.Item.MethodFixAmount, float64(1.01))
+	assert.Equal(suite.T(), res.Item.Id, suite.paymentChannelCostMerchantId)
 }
 
 func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant_Insert_Ok() {
@@ -344,9 +348,13 @@ func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant
 	req := &billing.PaymentCostDeleteRequest{
 		Id: suite.paymentChannelCostMerchantId,
 	}
-	assert.NoError(suite.T(), suite.service.DeletePaymentChannelCostMerchant(context.TODO(), req, &grpc.EmptyResponse{}))
 
-	_, err := suite.service.paymentChannelCostMerchant.GetById(suite.paymentChannelCostMerchantId)
+	res := &grpc.ResponseError{}
+	err := suite.service.DeletePaymentChannelCostMerchant(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
+
+	_, err = suite.service.paymentChannelCostMerchant.GetById(suite.paymentChannelCostMerchantId)
 	assert.EqualError(suite.T(), err, fmt.Sprintf(errorNotFound, collectionPaymentChannelCostMerchant))
 }
 
@@ -354,9 +362,10 @@ func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant
 	req := &billing.PaymentChannelCostMerchantListRequest{
 		MerchantId: suite.merchantId,
 	}
-	res := &billing.PaymentChannelCostMerchantList{}
+	res := &grpc.PaymentChannelCostMerchantListResponse{}
 	err := suite.service.GetAllPaymentChannelCostMerchant(context.TODO(), req, res)
 
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), len(res.Items), 3)
+	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), len(res.Item.Items), 3)
 }

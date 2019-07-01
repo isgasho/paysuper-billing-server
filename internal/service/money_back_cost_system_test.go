@@ -7,6 +7,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
@@ -170,20 +171,22 @@ func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_GrpcGet_Ok() 
 		PaymentStage:   1,
 	}
 
-	res := &billing.MoneyBackCostSystem{}
+	res := &grpc.MoneyBackCostSystemResponse{}
 
 	err := suite.service.GetMoneyBackCostSystem(context.TODO(), req, res)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Country, "AZ")
-	assert.Equal(suite.T(), res.FixAmount, float64(5))
-	assert.Equal(suite.T(), res.Percent, float64(3))
+	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), res.Item.Country, "AZ")
+	assert.Equal(suite.T(), res.Item.FixAmount, float64(5))
+	assert.Equal(suite.T(), res.Item.Percent, float64(3))
 
 	req.Country = ""
 	err = suite.service.GetMoneyBackCostSystem(context.TODO(), req, res)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Country, "")
-	assert.Equal(suite.T(), res.FixAmount, float64(3))
-	assert.Equal(suite.T(), res.Percent, float64(2))
+	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), res.Item.Country, "")
+	assert.Equal(suite.T(), res.Item.FixAmount, float64(3))
+	assert.Equal(suite.T(), res.Item.Percent, float64(2))
 }
 
 func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_GrpcSet_Ok() {
@@ -200,13 +203,14 @@ func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_GrpcSet_Ok() 
 		FixAmount:      7.5,
 	}
 
-	res := billing.MoneyBackCostSystem{}
+	res := grpc.MoneyBackCostSystemResponse{}
 
 	err := suite.service.SetMoneyBackCostSystem(context.TODO(), req, &res)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Country, "AZ")
-	assert.Equal(suite.T(), res.FixAmount, float64(7.5))
-	assert.Equal(suite.T(), res.Id, suite.moneyBackCostSystemId)
+	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), res.Item.Country, "AZ")
+	assert.Equal(suite.T(), res.Item.FixAmount, float64(7.5))
+	assert.Equal(suite.T(), res.Item.Id, suite.moneyBackCostSystemId)
 }
 
 func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_Insert_Ok() {
@@ -308,16 +312,21 @@ func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_Delete_Ok() {
 	req := &billing.PaymentCostDeleteRequest{
 		Id: suite.moneyBackCostSystemId,
 	}
-	assert.NoError(suite.T(), suite.service.DeleteMoneyBackCostSystem(context.TODO(), req, &grpc.EmptyResponse{}))
 
-	_, err := suite.service.moneyBackCostSystem.GetById(suite.moneyBackCostSystemId)
+	res := &grpc.ResponseError{}
+	err := suite.service.DeleteMoneyBackCostSystem(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
+
+	_, err = suite.service.moneyBackCostSystem.GetById(suite.moneyBackCostSystemId)
 	assert.EqualError(suite.T(), err, fmt.Sprintf(errorNotFound, collectionMoneyBackCostSystem))
 }
 
 func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_GetAllMoneyBackCostSystem_Ok() {
-	res := &billing.MoneyBackCostSystemList{}
+	res := &grpc.MoneyBackCostSystemListResponse{}
 	err := suite.service.GetAllMoneyBackCostSystem(context.TODO(), &grpc.EmptyRequest{}, res)
 
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), len(res.Items), 3)
+	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), len(res.Item.Items), 3)
 }

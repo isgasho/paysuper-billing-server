@@ -97,6 +97,14 @@ It has these top-level messages:
 	ListRoyaltyReportsResponse
 	ListRoyaltyReportOrdersRequest
 	ListRoyaltyReportOrdersResponse
+	PaymentChannelCostSystemListResponse
+	PaymentChannelCostSystemResponse
+	PaymentChannelCostMerchantListResponse
+	PaymentChannelCostMerchantResponse
+	MoneyBackCostSystemListResponse
+	MoneyBackCostSystemResponse
+	MoneyBackCostMerchantListResponse
+	MoneyBackCostMerchantResponse
 */
 package grpc
 
@@ -190,22 +198,22 @@ type BillingService interface {
 	GetCurrencyList(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*billing.CurrencyList, error)
 	GetCurrency(ctx context.Context, in *billing.GetCurrencyRequest, opts ...client.CallOption) (*billing.Currency, error)
 	FindByZipCode(ctx context.Context, in *FindByZipCodeRequest, opts ...client.CallOption) (*FindByZipCodeResponse, error)
-	GetAllPaymentChannelCostSystem(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*billing.PaymentChannelCostSystemList, error)
-	GetPaymentChannelCostSystem(ctx context.Context, in *billing.PaymentChannelCostSystemRequest, opts ...client.CallOption) (*billing.PaymentChannelCostSystem, error)
-	SetPaymentChannelCostSystem(ctx context.Context, in *billing.PaymentChannelCostSystem, opts ...client.CallOption) (*billing.PaymentChannelCostSystem, error)
-	DeletePaymentChannelCostSystem(ctx context.Context, in *billing.PaymentCostDeleteRequest, opts ...client.CallOption) (*EmptyResponse, error)
-	GetAllPaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentChannelCostMerchantListRequest, opts ...client.CallOption) (*billing.PaymentChannelCostMerchantList, error)
-	GetPaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentChannelCostMerchantRequest, opts ...client.CallOption) (*billing.PaymentChannelCostMerchant, error)
-	SetPaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentChannelCostMerchant, opts ...client.CallOption) (*billing.PaymentChannelCostMerchant, error)
-	DeletePaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentCostDeleteRequest, opts ...client.CallOption) (*EmptyResponse, error)
-	GetAllMoneyBackCostSystem(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*billing.MoneyBackCostSystemList, error)
-	GetMoneyBackCostSystem(ctx context.Context, in *billing.MoneyBackCostSystemRequest, opts ...client.CallOption) (*billing.MoneyBackCostSystem, error)
-	SetMoneyBackCostSystem(ctx context.Context, in *billing.MoneyBackCostSystem, opts ...client.CallOption) (*billing.MoneyBackCostSystem, error)
-	DeleteMoneyBackCostSystem(ctx context.Context, in *billing.PaymentCostDeleteRequest, opts ...client.CallOption) (*EmptyResponse, error)
-	GetAllMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchantListRequest, opts ...client.CallOption) (*billing.MoneyBackCostMerchantList, error)
-	GetMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchantRequest, opts ...client.CallOption) (*billing.MoneyBackCostMerchant, error)
-	SetMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchant, opts ...client.CallOption) (*billing.MoneyBackCostMerchant, error)
-	DeleteMoneyBackCostMerchant(ctx context.Context, in *billing.PaymentCostDeleteRequest, opts ...client.CallOption) (*EmptyResponse, error)
+	GetAllPaymentChannelCostSystem(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*PaymentChannelCostSystemListResponse, error)
+	GetPaymentChannelCostSystem(ctx context.Context, in *billing.PaymentChannelCostSystemRequest, opts ...client.CallOption) (*PaymentChannelCostSystemResponse, error)
+	SetPaymentChannelCostSystem(ctx context.Context, in *billing.PaymentChannelCostSystem, opts ...client.CallOption) (*PaymentChannelCostSystemResponse, error)
+	DeletePaymentChannelCostSystem(ctx context.Context, in *billing.PaymentCostDeleteRequest, opts ...client.CallOption) (*ResponseError, error)
+	GetAllPaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentChannelCostMerchantListRequest, opts ...client.CallOption) (*PaymentChannelCostMerchantListResponse, error)
+	GetPaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentChannelCostMerchantRequest, opts ...client.CallOption) (*PaymentChannelCostMerchantResponse, error)
+	SetPaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentChannelCostMerchant, opts ...client.CallOption) (*PaymentChannelCostMerchantResponse, error)
+	DeletePaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentCostDeleteRequest, opts ...client.CallOption) (*ResponseError, error)
+	GetAllMoneyBackCostSystem(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*MoneyBackCostSystemListResponse, error)
+	GetMoneyBackCostSystem(ctx context.Context, in *billing.MoneyBackCostSystemRequest, opts ...client.CallOption) (*MoneyBackCostSystemResponse, error)
+	SetMoneyBackCostSystem(ctx context.Context, in *billing.MoneyBackCostSystem, opts ...client.CallOption) (*MoneyBackCostSystemResponse, error)
+	DeleteMoneyBackCostSystem(ctx context.Context, in *billing.PaymentCostDeleteRequest, opts ...client.CallOption) (*ResponseError, error)
+	GetAllMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchantListRequest, opts ...client.CallOption) (*MoneyBackCostMerchantListResponse, error)
+	GetMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchantRequest, opts ...client.CallOption) (*MoneyBackCostMerchantResponse, error)
+	SetMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchant, opts ...client.CallOption) (*MoneyBackCostMerchantResponse, error)
+	DeleteMoneyBackCostMerchant(ctx context.Context, in *billing.PaymentCostDeleteRequest, opts ...client.CallOption) (*ResponseError, error)
 	CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, opts ...client.CallOption) (*CreateAccountingEntryResponse, error)
 	CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, opts ...client.CallOption) (*CreateRoyaltyReportRequest, error)
 	// /////
@@ -812,9 +820,9 @@ func (c *billingService) FindByZipCode(ctx context.Context, in *FindByZipCodeReq
 	return out, nil
 }
 
-func (c *billingService) GetAllPaymentChannelCostSystem(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*billing.PaymentChannelCostSystemList, error) {
+func (c *billingService) GetAllPaymentChannelCostSystem(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*PaymentChannelCostSystemListResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.GetAllPaymentChannelCostSystem", in)
-	out := new(billing.PaymentChannelCostSystemList)
+	out := new(PaymentChannelCostSystemListResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -822,9 +830,9 @@ func (c *billingService) GetAllPaymentChannelCostSystem(ctx context.Context, in 
 	return out, nil
 }
 
-func (c *billingService) GetPaymentChannelCostSystem(ctx context.Context, in *billing.PaymentChannelCostSystemRequest, opts ...client.CallOption) (*billing.PaymentChannelCostSystem, error) {
+func (c *billingService) GetPaymentChannelCostSystem(ctx context.Context, in *billing.PaymentChannelCostSystemRequest, opts ...client.CallOption) (*PaymentChannelCostSystemResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.GetPaymentChannelCostSystem", in)
-	out := new(billing.PaymentChannelCostSystem)
+	out := new(PaymentChannelCostSystemResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -832,9 +840,9 @@ func (c *billingService) GetPaymentChannelCostSystem(ctx context.Context, in *bi
 	return out, nil
 }
 
-func (c *billingService) SetPaymentChannelCostSystem(ctx context.Context, in *billing.PaymentChannelCostSystem, opts ...client.CallOption) (*billing.PaymentChannelCostSystem, error) {
+func (c *billingService) SetPaymentChannelCostSystem(ctx context.Context, in *billing.PaymentChannelCostSystem, opts ...client.CallOption) (*PaymentChannelCostSystemResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.SetPaymentChannelCostSystem", in)
-	out := new(billing.PaymentChannelCostSystem)
+	out := new(PaymentChannelCostSystemResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -842,9 +850,9 @@ func (c *billingService) SetPaymentChannelCostSystem(ctx context.Context, in *bi
 	return out, nil
 }
 
-func (c *billingService) DeletePaymentChannelCostSystem(ctx context.Context, in *billing.PaymentCostDeleteRequest, opts ...client.CallOption) (*EmptyResponse, error) {
+func (c *billingService) DeletePaymentChannelCostSystem(ctx context.Context, in *billing.PaymentCostDeleteRequest, opts ...client.CallOption) (*ResponseError, error) {
 	req := c.c.NewRequest(c.name, "BillingService.DeletePaymentChannelCostSystem", in)
-	out := new(EmptyResponse)
+	out := new(ResponseError)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -852,9 +860,9 @@ func (c *billingService) DeletePaymentChannelCostSystem(ctx context.Context, in 
 	return out, nil
 }
 
-func (c *billingService) GetAllPaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentChannelCostMerchantListRequest, opts ...client.CallOption) (*billing.PaymentChannelCostMerchantList, error) {
+func (c *billingService) GetAllPaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentChannelCostMerchantListRequest, opts ...client.CallOption) (*PaymentChannelCostMerchantListResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.GetAllPaymentChannelCostMerchant", in)
-	out := new(billing.PaymentChannelCostMerchantList)
+	out := new(PaymentChannelCostMerchantListResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -862,9 +870,9 @@ func (c *billingService) GetAllPaymentChannelCostMerchant(ctx context.Context, i
 	return out, nil
 }
 
-func (c *billingService) GetPaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentChannelCostMerchantRequest, opts ...client.CallOption) (*billing.PaymentChannelCostMerchant, error) {
+func (c *billingService) GetPaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentChannelCostMerchantRequest, opts ...client.CallOption) (*PaymentChannelCostMerchantResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.GetPaymentChannelCostMerchant", in)
-	out := new(billing.PaymentChannelCostMerchant)
+	out := new(PaymentChannelCostMerchantResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -872,9 +880,9 @@ func (c *billingService) GetPaymentChannelCostMerchant(ctx context.Context, in *
 	return out, nil
 }
 
-func (c *billingService) SetPaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentChannelCostMerchant, opts ...client.CallOption) (*billing.PaymentChannelCostMerchant, error) {
+func (c *billingService) SetPaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentChannelCostMerchant, opts ...client.CallOption) (*PaymentChannelCostMerchantResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.SetPaymentChannelCostMerchant", in)
-	out := new(billing.PaymentChannelCostMerchant)
+	out := new(PaymentChannelCostMerchantResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -882,9 +890,9 @@ func (c *billingService) SetPaymentChannelCostMerchant(ctx context.Context, in *
 	return out, nil
 }
 
-func (c *billingService) DeletePaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentCostDeleteRequest, opts ...client.CallOption) (*EmptyResponse, error) {
+func (c *billingService) DeletePaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentCostDeleteRequest, opts ...client.CallOption) (*ResponseError, error) {
 	req := c.c.NewRequest(c.name, "BillingService.DeletePaymentChannelCostMerchant", in)
-	out := new(EmptyResponse)
+	out := new(ResponseError)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -892,9 +900,9 @@ func (c *billingService) DeletePaymentChannelCostMerchant(ctx context.Context, i
 	return out, nil
 }
 
-func (c *billingService) GetAllMoneyBackCostSystem(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*billing.MoneyBackCostSystemList, error) {
+func (c *billingService) GetAllMoneyBackCostSystem(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*MoneyBackCostSystemListResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.GetAllMoneyBackCostSystem", in)
-	out := new(billing.MoneyBackCostSystemList)
+	out := new(MoneyBackCostSystemListResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -902,9 +910,9 @@ func (c *billingService) GetAllMoneyBackCostSystem(ctx context.Context, in *Empt
 	return out, nil
 }
 
-func (c *billingService) GetMoneyBackCostSystem(ctx context.Context, in *billing.MoneyBackCostSystemRequest, opts ...client.CallOption) (*billing.MoneyBackCostSystem, error) {
+func (c *billingService) GetMoneyBackCostSystem(ctx context.Context, in *billing.MoneyBackCostSystemRequest, opts ...client.CallOption) (*MoneyBackCostSystemResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.GetMoneyBackCostSystem", in)
-	out := new(billing.MoneyBackCostSystem)
+	out := new(MoneyBackCostSystemResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -912,9 +920,9 @@ func (c *billingService) GetMoneyBackCostSystem(ctx context.Context, in *billing
 	return out, nil
 }
 
-func (c *billingService) SetMoneyBackCostSystem(ctx context.Context, in *billing.MoneyBackCostSystem, opts ...client.CallOption) (*billing.MoneyBackCostSystem, error) {
+func (c *billingService) SetMoneyBackCostSystem(ctx context.Context, in *billing.MoneyBackCostSystem, opts ...client.CallOption) (*MoneyBackCostSystemResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.SetMoneyBackCostSystem", in)
-	out := new(billing.MoneyBackCostSystem)
+	out := new(MoneyBackCostSystemResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -922,9 +930,9 @@ func (c *billingService) SetMoneyBackCostSystem(ctx context.Context, in *billing
 	return out, nil
 }
 
-func (c *billingService) DeleteMoneyBackCostSystem(ctx context.Context, in *billing.PaymentCostDeleteRequest, opts ...client.CallOption) (*EmptyResponse, error) {
+func (c *billingService) DeleteMoneyBackCostSystem(ctx context.Context, in *billing.PaymentCostDeleteRequest, opts ...client.CallOption) (*ResponseError, error) {
 	req := c.c.NewRequest(c.name, "BillingService.DeleteMoneyBackCostSystem", in)
-	out := new(EmptyResponse)
+	out := new(ResponseError)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -932,9 +940,9 @@ func (c *billingService) DeleteMoneyBackCostSystem(ctx context.Context, in *bill
 	return out, nil
 }
 
-func (c *billingService) GetAllMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchantListRequest, opts ...client.CallOption) (*billing.MoneyBackCostMerchantList, error) {
+func (c *billingService) GetAllMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchantListRequest, opts ...client.CallOption) (*MoneyBackCostMerchantListResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.GetAllMoneyBackCostMerchant", in)
-	out := new(billing.MoneyBackCostMerchantList)
+	out := new(MoneyBackCostMerchantListResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -942,9 +950,9 @@ func (c *billingService) GetAllMoneyBackCostMerchant(ctx context.Context, in *bi
 	return out, nil
 }
 
-func (c *billingService) GetMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchantRequest, opts ...client.CallOption) (*billing.MoneyBackCostMerchant, error) {
+func (c *billingService) GetMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchantRequest, opts ...client.CallOption) (*MoneyBackCostMerchantResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.GetMoneyBackCostMerchant", in)
-	out := new(billing.MoneyBackCostMerchant)
+	out := new(MoneyBackCostMerchantResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -952,9 +960,9 @@ func (c *billingService) GetMoneyBackCostMerchant(ctx context.Context, in *billi
 	return out, nil
 }
 
-func (c *billingService) SetMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchant, opts ...client.CallOption) (*billing.MoneyBackCostMerchant, error) {
+func (c *billingService) SetMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchant, opts ...client.CallOption) (*MoneyBackCostMerchantResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.SetMoneyBackCostMerchant", in)
-	out := new(billing.MoneyBackCostMerchant)
+	out := new(MoneyBackCostMerchantResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -962,9 +970,9 @@ func (c *billingService) SetMoneyBackCostMerchant(ctx context.Context, in *billi
 	return out, nil
 }
 
-func (c *billingService) DeleteMoneyBackCostMerchant(ctx context.Context, in *billing.PaymentCostDeleteRequest, opts ...client.CallOption) (*EmptyResponse, error) {
+func (c *billingService) DeleteMoneyBackCostMerchant(ctx context.Context, in *billing.PaymentCostDeleteRequest, opts ...client.CallOption) (*ResponseError, error) {
 	req := c.c.NewRequest(c.name, "BillingService.DeleteMoneyBackCostMerchant", in)
-	out := new(EmptyResponse)
+	out := new(ResponseError)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1083,22 +1091,22 @@ type BillingServiceHandler interface {
 	GetCurrencyList(context.Context, *EmptyRequest, *billing.CurrencyList) error
 	GetCurrency(context.Context, *billing.GetCurrencyRequest, *billing.Currency) error
 	FindByZipCode(context.Context, *FindByZipCodeRequest, *FindByZipCodeResponse) error
-	GetAllPaymentChannelCostSystem(context.Context, *EmptyRequest, *billing.PaymentChannelCostSystemList) error
-	GetPaymentChannelCostSystem(context.Context, *billing.PaymentChannelCostSystemRequest, *billing.PaymentChannelCostSystem) error
-	SetPaymentChannelCostSystem(context.Context, *billing.PaymentChannelCostSystem, *billing.PaymentChannelCostSystem) error
-	DeletePaymentChannelCostSystem(context.Context, *billing.PaymentCostDeleteRequest, *EmptyResponse) error
-	GetAllPaymentChannelCostMerchant(context.Context, *billing.PaymentChannelCostMerchantListRequest, *billing.PaymentChannelCostMerchantList) error
-	GetPaymentChannelCostMerchant(context.Context, *billing.PaymentChannelCostMerchantRequest, *billing.PaymentChannelCostMerchant) error
-	SetPaymentChannelCostMerchant(context.Context, *billing.PaymentChannelCostMerchant, *billing.PaymentChannelCostMerchant) error
-	DeletePaymentChannelCostMerchant(context.Context, *billing.PaymentCostDeleteRequest, *EmptyResponse) error
-	GetAllMoneyBackCostSystem(context.Context, *EmptyRequest, *billing.MoneyBackCostSystemList) error
-	GetMoneyBackCostSystem(context.Context, *billing.MoneyBackCostSystemRequest, *billing.MoneyBackCostSystem) error
-	SetMoneyBackCostSystem(context.Context, *billing.MoneyBackCostSystem, *billing.MoneyBackCostSystem) error
-	DeleteMoneyBackCostSystem(context.Context, *billing.PaymentCostDeleteRequest, *EmptyResponse) error
-	GetAllMoneyBackCostMerchant(context.Context, *billing.MoneyBackCostMerchantListRequest, *billing.MoneyBackCostMerchantList) error
-	GetMoneyBackCostMerchant(context.Context, *billing.MoneyBackCostMerchantRequest, *billing.MoneyBackCostMerchant) error
-	SetMoneyBackCostMerchant(context.Context, *billing.MoneyBackCostMerchant, *billing.MoneyBackCostMerchant) error
-	DeleteMoneyBackCostMerchant(context.Context, *billing.PaymentCostDeleteRequest, *EmptyResponse) error
+	GetAllPaymentChannelCostSystem(context.Context, *EmptyRequest, *PaymentChannelCostSystemListResponse) error
+	GetPaymentChannelCostSystem(context.Context, *billing.PaymentChannelCostSystemRequest, *PaymentChannelCostSystemResponse) error
+	SetPaymentChannelCostSystem(context.Context, *billing.PaymentChannelCostSystem, *PaymentChannelCostSystemResponse) error
+	DeletePaymentChannelCostSystem(context.Context, *billing.PaymentCostDeleteRequest, *ResponseError) error
+	GetAllPaymentChannelCostMerchant(context.Context, *billing.PaymentChannelCostMerchantListRequest, *PaymentChannelCostMerchantListResponse) error
+	GetPaymentChannelCostMerchant(context.Context, *billing.PaymentChannelCostMerchantRequest, *PaymentChannelCostMerchantResponse) error
+	SetPaymentChannelCostMerchant(context.Context, *billing.PaymentChannelCostMerchant, *PaymentChannelCostMerchantResponse) error
+	DeletePaymentChannelCostMerchant(context.Context, *billing.PaymentCostDeleteRequest, *ResponseError) error
+	GetAllMoneyBackCostSystem(context.Context, *EmptyRequest, *MoneyBackCostSystemListResponse) error
+	GetMoneyBackCostSystem(context.Context, *billing.MoneyBackCostSystemRequest, *MoneyBackCostSystemResponse) error
+	SetMoneyBackCostSystem(context.Context, *billing.MoneyBackCostSystem, *MoneyBackCostSystemResponse) error
+	DeleteMoneyBackCostSystem(context.Context, *billing.PaymentCostDeleteRequest, *ResponseError) error
+	GetAllMoneyBackCostMerchant(context.Context, *billing.MoneyBackCostMerchantListRequest, *MoneyBackCostMerchantListResponse) error
+	GetMoneyBackCostMerchant(context.Context, *billing.MoneyBackCostMerchantRequest, *MoneyBackCostMerchantResponse) error
+	SetMoneyBackCostMerchant(context.Context, *billing.MoneyBackCostMerchant, *MoneyBackCostMerchantResponse) error
+	DeleteMoneyBackCostMerchant(context.Context, *billing.PaymentCostDeleteRequest, *ResponseError) error
 	CreateAccountingEntry(context.Context, *CreateAccountingEntryRequest, *CreateAccountingEntryResponse) error
 	CreateRoyaltyReport(context.Context, *CreateRoyaltyReportRequest, *CreateRoyaltyReportRequest) error
 	// /////
@@ -1167,22 +1175,22 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetCurrencyList(ctx context.Context, in *EmptyRequest, out *billing.CurrencyList) error
 		GetCurrency(ctx context.Context, in *billing.GetCurrencyRequest, out *billing.Currency) error
 		FindByZipCode(ctx context.Context, in *FindByZipCodeRequest, out *FindByZipCodeResponse) error
-		GetAllPaymentChannelCostSystem(ctx context.Context, in *EmptyRequest, out *billing.PaymentChannelCostSystemList) error
-		GetPaymentChannelCostSystem(ctx context.Context, in *billing.PaymentChannelCostSystemRequest, out *billing.PaymentChannelCostSystem) error
-		SetPaymentChannelCostSystem(ctx context.Context, in *billing.PaymentChannelCostSystem, out *billing.PaymentChannelCostSystem) error
-		DeletePaymentChannelCostSystem(ctx context.Context, in *billing.PaymentCostDeleteRequest, out *EmptyResponse) error
-		GetAllPaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentChannelCostMerchantListRequest, out *billing.PaymentChannelCostMerchantList) error
-		GetPaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentChannelCostMerchantRequest, out *billing.PaymentChannelCostMerchant) error
-		SetPaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentChannelCostMerchant, out *billing.PaymentChannelCostMerchant) error
-		DeletePaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentCostDeleteRequest, out *EmptyResponse) error
-		GetAllMoneyBackCostSystem(ctx context.Context, in *EmptyRequest, out *billing.MoneyBackCostSystemList) error
-		GetMoneyBackCostSystem(ctx context.Context, in *billing.MoneyBackCostSystemRequest, out *billing.MoneyBackCostSystem) error
-		SetMoneyBackCostSystem(ctx context.Context, in *billing.MoneyBackCostSystem, out *billing.MoneyBackCostSystem) error
-		DeleteMoneyBackCostSystem(ctx context.Context, in *billing.PaymentCostDeleteRequest, out *EmptyResponse) error
-		GetAllMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchantListRequest, out *billing.MoneyBackCostMerchantList) error
-		GetMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchantRequest, out *billing.MoneyBackCostMerchant) error
-		SetMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchant, out *billing.MoneyBackCostMerchant) error
-		DeleteMoneyBackCostMerchant(ctx context.Context, in *billing.PaymentCostDeleteRequest, out *EmptyResponse) error
+		GetAllPaymentChannelCostSystem(ctx context.Context, in *EmptyRequest, out *PaymentChannelCostSystemListResponse) error
+		GetPaymentChannelCostSystem(ctx context.Context, in *billing.PaymentChannelCostSystemRequest, out *PaymentChannelCostSystemResponse) error
+		SetPaymentChannelCostSystem(ctx context.Context, in *billing.PaymentChannelCostSystem, out *PaymentChannelCostSystemResponse) error
+		DeletePaymentChannelCostSystem(ctx context.Context, in *billing.PaymentCostDeleteRequest, out *ResponseError) error
+		GetAllPaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentChannelCostMerchantListRequest, out *PaymentChannelCostMerchantListResponse) error
+		GetPaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentChannelCostMerchantRequest, out *PaymentChannelCostMerchantResponse) error
+		SetPaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentChannelCostMerchant, out *PaymentChannelCostMerchantResponse) error
+		DeletePaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentCostDeleteRequest, out *ResponseError) error
+		GetAllMoneyBackCostSystem(ctx context.Context, in *EmptyRequest, out *MoneyBackCostSystemListResponse) error
+		GetMoneyBackCostSystem(ctx context.Context, in *billing.MoneyBackCostSystemRequest, out *MoneyBackCostSystemResponse) error
+		SetMoneyBackCostSystem(ctx context.Context, in *billing.MoneyBackCostSystem, out *MoneyBackCostSystemResponse) error
+		DeleteMoneyBackCostSystem(ctx context.Context, in *billing.PaymentCostDeleteRequest, out *ResponseError) error
+		GetAllMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchantListRequest, out *MoneyBackCostMerchantListResponse) error
+		GetMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchantRequest, out *MoneyBackCostMerchantResponse) error
+		SetMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchant, out *MoneyBackCostMerchantResponse) error
+		DeleteMoneyBackCostMerchant(ctx context.Context, in *billing.PaymentCostDeleteRequest, out *ResponseError) error
 		CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, out *CreateAccountingEntryResponse) error
 		CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, out *CreateRoyaltyReportRequest) error
 		ListRoyaltyReports(ctx context.Context, in *ListRoyaltyReportsRequest, out *ListRoyaltyReportsResponse) error
@@ -1432,67 +1440,67 @@ func (h *billingServiceHandler) FindByZipCode(ctx context.Context, in *FindByZip
 	return h.BillingServiceHandler.FindByZipCode(ctx, in, out)
 }
 
-func (h *billingServiceHandler) GetAllPaymentChannelCostSystem(ctx context.Context, in *EmptyRequest, out *billing.PaymentChannelCostSystemList) error {
+func (h *billingServiceHandler) GetAllPaymentChannelCostSystem(ctx context.Context, in *EmptyRequest, out *PaymentChannelCostSystemListResponse) error {
 	return h.BillingServiceHandler.GetAllPaymentChannelCostSystem(ctx, in, out)
 }
 
-func (h *billingServiceHandler) GetPaymentChannelCostSystem(ctx context.Context, in *billing.PaymentChannelCostSystemRequest, out *billing.PaymentChannelCostSystem) error {
+func (h *billingServiceHandler) GetPaymentChannelCostSystem(ctx context.Context, in *billing.PaymentChannelCostSystemRequest, out *PaymentChannelCostSystemResponse) error {
 	return h.BillingServiceHandler.GetPaymentChannelCostSystem(ctx, in, out)
 }
 
-func (h *billingServiceHandler) SetPaymentChannelCostSystem(ctx context.Context, in *billing.PaymentChannelCostSystem, out *billing.PaymentChannelCostSystem) error {
+func (h *billingServiceHandler) SetPaymentChannelCostSystem(ctx context.Context, in *billing.PaymentChannelCostSystem, out *PaymentChannelCostSystemResponse) error {
 	return h.BillingServiceHandler.SetPaymentChannelCostSystem(ctx, in, out)
 }
 
-func (h *billingServiceHandler) DeletePaymentChannelCostSystem(ctx context.Context, in *billing.PaymentCostDeleteRequest, out *EmptyResponse) error {
+func (h *billingServiceHandler) DeletePaymentChannelCostSystem(ctx context.Context, in *billing.PaymentCostDeleteRequest, out *ResponseError) error {
 	return h.BillingServiceHandler.DeletePaymentChannelCostSystem(ctx, in, out)
 }
 
-func (h *billingServiceHandler) GetAllPaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentChannelCostMerchantListRequest, out *billing.PaymentChannelCostMerchantList) error {
+func (h *billingServiceHandler) GetAllPaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentChannelCostMerchantListRequest, out *PaymentChannelCostMerchantListResponse) error {
 	return h.BillingServiceHandler.GetAllPaymentChannelCostMerchant(ctx, in, out)
 }
 
-func (h *billingServiceHandler) GetPaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentChannelCostMerchantRequest, out *billing.PaymentChannelCostMerchant) error {
+func (h *billingServiceHandler) GetPaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentChannelCostMerchantRequest, out *PaymentChannelCostMerchantResponse) error {
 	return h.BillingServiceHandler.GetPaymentChannelCostMerchant(ctx, in, out)
 }
 
-func (h *billingServiceHandler) SetPaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentChannelCostMerchant, out *billing.PaymentChannelCostMerchant) error {
+func (h *billingServiceHandler) SetPaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentChannelCostMerchant, out *PaymentChannelCostMerchantResponse) error {
 	return h.BillingServiceHandler.SetPaymentChannelCostMerchant(ctx, in, out)
 }
 
-func (h *billingServiceHandler) DeletePaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentCostDeleteRequest, out *EmptyResponse) error {
+func (h *billingServiceHandler) DeletePaymentChannelCostMerchant(ctx context.Context, in *billing.PaymentCostDeleteRequest, out *ResponseError) error {
 	return h.BillingServiceHandler.DeletePaymentChannelCostMerchant(ctx, in, out)
 }
 
-func (h *billingServiceHandler) GetAllMoneyBackCostSystem(ctx context.Context, in *EmptyRequest, out *billing.MoneyBackCostSystemList) error {
+func (h *billingServiceHandler) GetAllMoneyBackCostSystem(ctx context.Context, in *EmptyRequest, out *MoneyBackCostSystemListResponse) error {
 	return h.BillingServiceHandler.GetAllMoneyBackCostSystem(ctx, in, out)
 }
 
-func (h *billingServiceHandler) GetMoneyBackCostSystem(ctx context.Context, in *billing.MoneyBackCostSystemRequest, out *billing.MoneyBackCostSystem) error {
+func (h *billingServiceHandler) GetMoneyBackCostSystem(ctx context.Context, in *billing.MoneyBackCostSystemRequest, out *MoneyBackCostSystemResponse) error {
 	return h.BillingServiceHandler.GetMoneyBackCostSystem(ctx, in, out)
 }
 
-func (h *billingServiceHandler) SetMoneyBackCostSystem(ctx context.Context, in *billing.MoneyBackCostSystem, out *billing.MoneyBackCostSystem) error {
+func (h *billingServiceHandler) SetMoneyBackCostSystem(ctx context.Context, in *billing.MoneyBackCostSystem, out *MoneyBackCostSystemResponse) error {
 	return h.BillingServiceHandler.SetMoneyBackCostSystem(ctx, in, out)
 }
 
-func (h *billingServiceHandler) DeleteMoneyBackCostSystem(ctx context.Context, in *billing.PaymentCostDeleteRequest, out *EmptyResponse) error {
+func (h *billingServiceHandler) DeleteMoneyBackCostSystem(ctx context.Context, in *billing.PaymentCostDeleteRequest, out *ResponseError) error {
 	return h.BillingServiceHandler.DeleteMoneyBackCostSystem(ctx, in, out)
 }
 
-func (h *billingServiceHandler) GetAllMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchantListRequest, out *billing.MoneyBackCostMerchantList) error {
+func (h *billingServiceHandler) GetAllMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchantListRequest, out *MoneyBackCostMerchantListResponse) error {
 	return h.BillingServiceHandler.GetAllMoneyBackCostMerchant(ctx, in, out)
 }
 
-func (h *billingServiceHandler) GetMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchantRequest, out *billing.MoneyBackCostMerchant) error {
+func (h *billingServiceHandler) GetMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchantRequest, out *MoneyBackCostMerchantResponse) error {
 	return h.BillingServiceHandler.GetMoneyBackCostMerchant(ctx, in, out)
 }
 
-func (h *billingServiceHandler) SetMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchant, out *billing.MoneyBackCostMerchant) error {
+func (h *billingServiceHandler) SetMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchant, out *MoneyBackCostMerchantResponse) error {
 	return h.BillingServiceHandler.SetMoneyBackCostMerchant(ctx, in, out)
 }
 
-func (h *billingServiceHandler) DeleteMoneyBackCostMerchant(ctx context.Context, in *billing.PaymentCostDeleteRequest, out *EmptyResponse) error {
+func (h *billingServiceHandler) DeleteMoneyBackCostMerchant(ctx context.Context, in *billing.PaymentCostDeleteRequest, out *ResponseError) error {
 	return h.BillingServiceHandler.DeleteMoneyBackCostMerchant(ctx, in, out)
 }
 
