@@ -109,6 +109,8 @@ service BillingService {
     rpc GetVatReportsDashboard (EmptyRequest) returns (VatReportsResponse) {}
     rpc GetVatReportsForCountry (VatReportsRequest) returns (VatReportsResponse) {}
     rpc GetVatReportTransactions (VatTransactionsRequest) returns (VatTransactionsResponse) {}
+    rpc ProcessVatReports (ProcessVatReportsRequest) returns (EmptyResponse) {}
+    rpc UpdateVatReportStatus (UpdateVatReportStatusRequest) returns (ResponseError) {}
 
     rpc CalcAnnualTurnovers(EmptyRequest) returns (EmptyResponse) {}
 }
@@ -1028,4 +1030,15 @@ message VatReportsResponse {
     ResponseErrorMessage message = 2;
     // @inject_tag: json:"data"
     VatReportsPaginate data = 3;
+}
+
+message ProcessVatReportsRequest {
+    google.protobuf.Timestamp date = 1;
+}
+
+message UpdateVatReportStatusRequest {
+    //@inject_tag: json:"id" bson:"_id" validate:"hexadecimal,len=24"
+    string id = 1;
+    //@inject_tag: json:"status" bson:"status" validate:"required,alpha,oneof=paid canceled"
+    string status = 2;
 }

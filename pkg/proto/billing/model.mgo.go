@@ -583,27 +583,28 @@ type MgoRoyaltyReportOrder struct {
 }
 
 type MgoVatTransaction struct {
-	Id                     bson.ObjectId        `bson:"_id"`
-	OrderId                bson.ObjectId        `bson:"order_id"`
-	TransactionId          string               `bson:"transaction_id"`
-	TransactionType        string               `bson:"transaction_type"`
-	TransactionAmount      float64              `bson:"transaction_amount"`
-	TransactionCurrency    string               `bson:"transaction_currency"`
-	VatAmount              float64              `bson:"vat_amount"`
-	VatCurrency            string               `bson:"vat_currency"`
-	FeesAmount             float64              `bson:"fees_amount"`
-	FeesCurrency           string               `bson:"fees_currency"`
-	LocalTransactionAmount float64              `bson:"local_transaction_amount"`
-	LocalVatAmount         float64              `bson:"local_vat_amount"`
-	LocalFeesAmount        float64              `bson:"local_fees_amount"`
-	LocalCurrency          string               `bson:"local_currency"`
-	BillingAddressCriteria string               `bson:"billing_address_criteria"`
-	BillingAddress         *OrderBillingAddress `bson:"billing_address"`
-	UserId                 bson.ObjectId        `bson:"user_id"`
-	PaymentMethod          string               `bson:"payment_method"`
-	IsDeduction            bool                 `bson:"is_deduction"`
-	Country                string               `bson:"country"`
-	DateTime               time.Time            `bson:"date_time"`
+	Id                      bson.ObjectId        `bson:"_id"`
+	OrderId                 bson.ObjectId        `bson:"order_id"`
+	TransactionId           string               `bson:"transaction_id"`
+	TransactionType         string               `bson:"transaction_type"`
+	TransactionAmount       float64              `bson:"transaction_amount"`
+	TransactionCurrency     string               `bson:"transaction_currency"`
+	VatAmount               float64              `bson:"vat_amount"`
+	VatCurrency             string               `bson:"vat_currency"`
+	FeesAmount              float64              `bson:"fees_amount"`
+	FeesCurrency            string               `bson:"fees_currency"`
+	LocalTransactionAmount  float64              `bson:"local_transaction_amount"`
+	LocalVatAmount          float64              `bson:"local_vat_amount"`
+	LocalFeesAmount         float64              `bson:"local_fees_amount"`
+	LocalCurrency           string               `bson:"local_currency"`
+	LocalAmountsApproximate bool                 `bson:"local_amounts_approximate"`
+	BillingAddressCriteria  string               `bson:"billing_address_criteria"`
+	BillingAddress          *OrderBillingAddress `bson:"billing_address"`
+	UserId                  bson.ObjectId        `bson:"user_id"`
+	PaymentMethod           string               `bson:"payment_method"`
+	IsDeduction             bool                 `bson:"is_deduction"`
+	Country                 string               `bson:"country"`
+	DateTime                time.Time            `bson:"date_time"`
 }
 
 type MgoVatReport struct {
@@ -620,8 +621,9 @@ type MgoVatReport struct {
 	Status                string        `bson:"status"`
 	CountryAnnualTurnover float64       `bson:"country_annual_turnover"`
 	WorldAnnualTurnover   float64       `bson:"world_annual_turnover"`
-	ReportDateFrom        time.Time     `bson:"report_date_from"`
-	ReportDateTo          time.Time     `bson:"report_date_to"`
+	AmountsApproximate    bool          `bson:"amounts_approximate"`
+	DateFrom              time.Time     `bson:"date_from"`
+	DateTo                time.Time     `bson:"date_to"`
 	PayUntilDate          time.Time     `bson:"pay_until_date"`
 }
 
@@ -2787,23 +2789,24 @@ func (m *PayoutCostSystem) SetBSON(raw bson.Raw) error {
 
 func (m *VatTransaction) GetBSON() (interface{}, error) {
 	st := &MgoVatTransaction{
-		TransactionId:          m.TransactionId,
-		TransactionType:        m.TransactionType,
-		TransactionAmount:      m.TransactionAmount,
-		TransactionCurrency:    m.TransactionCurrency,
-		VatAmount:              m.VatAmount,
-		VatCurrency:            m.VatCurrency,
-		FeesAmount:             m.FeesAmount,
-		FeesCurrency:           m.FeesCurrency,
-		LocalTransactionAmount: m.LocalTransactionAmount,
-		LocalVatAmount:         m.LocalVatAmount,
-		LocalFeesAmount:        m.LocalFeesAmount,
-		LocalCurrency:          m.LocalCurrency,
-		BillingAddressCriteria: m.BillingAddressCriteria,
-		BillingAddress:         m.BillingAddress,
-		PaymentMethod:          m.PaymentMethod,
-		IsDeduction:            m.IsDeduction,
-		Country:                m.Country,
+		TransactionId:           m.TransactionId,
+		TransactionType:         m.TransactionType,
+		TransactionAmount:       m.TransactionAmount,
+		TransactionCurrency:     m.TransactionCurrency,
+		VatAmount:               m.VatAmount,
+		VatCurrency:             m.VatCurrency,
+		FeesAmount:              m.FeesAmount,
+		FeesCurrency:            m.FeesCurrency,
+		LocalTransactionAmount:  m.LocalTransactionAmount,
+		LocalVatAmount:          m.LocalVatAmount,
+		LocalFeesAmount:         m.LocalFeesAmount,
+		LocalCurrency:           m.LocalCurrency,
+		LocalAmountsApproximate: m.LocalAmountsApproximate,
+		BillingAddressCriteria:  m.BillingAddressCriteria,
+		BillingAddress:          m.BillingAddress,
+		PaymentMethod:           m.PaymentMethod,
+		IsDeduction:             m.IsDeduction,
+		Country:                 m.Country,
 	}
 
 	if st.Country == "" && st.BillingAddress != nil {
@@ -2867,6 +2870,7 @@ func (m *VatTransaction) SetBSON(raw bson.Raw) error {
 	m.LocalVatAmount = decoded.LocalVatAmount
 	m.LocalFeesAmount = decoded.LocalFeesAmount
 	m.LocalCurrency = decoded.LocalCurrency
+	m.LocalAmountsApproximate = decoded.LocalAmountsApproximate
 	m.BillingAddressCriteria = decoded.BillingAddressCriteria
 	m.BillingAddress = decoded.BillingAddress
 	m.UserId = decoded.UserId.Hex()
@@ -2895,6 +2899,7 @@ func (m *VatReport) GetBSON() (interface{}, error) {
 		CorrectionAmount:      m.CorrectionAmount,
 		CountryAnnualTurnover: m.CountryAnnualTurnover,
 		WorldAnnualTurnover:   m.WorldAnnualTurnover,
+		AmountsApproximate:    m.AmountsApproximate,
 		Status:                m.Status,
 	}
 
@@ -2907,17 +2912,17 @@ func (m *VatReport) GetBSON() (interface{}, error) {
 		st.Id = bson.ObjectIdHex(m.Id)
 	}
 
-	t, err := ptypes.Timestamp(m.ReportDateFrom)
+	t, err := ptypes.Timestamp(m.DateFrom)
 	if err != nil {
 		return nil, err
 	}
-	st.ReportDateFrom = t
+	st.DateFrom = t
 
-	t, err = ptypes.Timestamp(m.ReportDateTo)
+	t, err = ptypes.Timestamp(m.DateTo)
 	if err != nil {
 		return nil, err
 	}
-	st.ReportDateTo = t
+	st.DateTo = t
 
 	t, err = ptypes.Timestamp(m.PayUntilDate)
 	if err != nil {
@@ -2947,14 +2952,15 @@ func (m *VatReport) SetBSON(raw bson.Raw) error {
 	m.CorrectionAmount = decoded.CorrectionAmount
 	m.CountryAnnualTurnover = decoded.CountryAnnualTurnover
 	m.WorldAnnualTurnover = decoded.WorldAnnualTurnover
+	m.AmountsApproximate = decoded.AmountsApproximate
 	m.Status = decoded.Status
 
-	m.ReportDateFrom, err = ptypes.TimestampProto(decoded.ReportDateFrom)
+	m.DateFrom, err = ptypes.TimestampProto(decoded.DateFrom)
 	if err != nil {
 		return err
 	}
 
-	m.ReportDateTo, err = ptypes.TimestampProto(decoded.ReportDateTo)
+	m.DateTo, err = ptypes.TimestampProto(decoded.DateTo)
 	if err != nil {
 		return err
 	}

@@ -203,6 +203,9 @@ const (
 	EmailContentType          = "text/html"
 
 	RoyaltyReportChangeSourceAuto = "auto"
+
+	EmailVatReportSubject = "Vat report status changed"
+	EmailVatReportMessage = "Vat report for %s country changed his status to %s"
 )
 
 var (

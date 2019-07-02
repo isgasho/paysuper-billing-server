@@ -33,6 +33,8 @@ This service contain all business logic for payment processing
 | SMTP_PASSWORD                        | true     | -                     | Password to authorize user on SMTP server                                                                                           |
 | EMAIL_NOTIFICATION_SENDER            | true     | -                     | Sender email for using to send alert notifications to users                                                                         |
 | CENTRIFUGO_MERCHANT_CHANNEL          | -        | paysuper:merchant#%s  | Centrifugo channel name to send notifications to merchant                                                                           |
+| CENTRIFUGO_FINANCIER_CHANNEL         | -        | paysuper:financier    | Centrifugo channel name to send notifications to financier                                                                          |
+|EMAIL_NOTIFICATION_FINANCIER_RECIPIENT| true     |                       | Email of financier, to get vat reports notification                                                                                 |
 
 ## Docker Deployment
 

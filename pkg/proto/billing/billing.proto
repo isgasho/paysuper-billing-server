@@ -1478,20 +1478,22 @@ message VatTransaction {
     double local_fees_amount = 13;
     //@inject_tag: json:"local_currency" bson:"local_currency" validate:"required,alpha,len=3"
     string local_currency = 14;
+    //@inject_tag: json:"local_amounts_approximate" bson:"local_amounts_alocal_amounts_approximatepproximated" validate:"required,alpha,len=3"
+    bool local_amounts_approximate = 15;
     //@inject_tag: json:"billing_address_criteria" bson:"billing_address_criteria" validate:"required,oneof=ip bin language customer form"
-    string billing_address_criteria = 15;
+    string billing_address_criteria = 16;
     //@inject_tag: json:"billing_address" bson:"billing_address" validate:"required,dive"
-    OrderBillingAddress billing_address = 16;
+    OrderBillingAddress billing_address = 17;
     //@inject_tag: json:"user_id" bson:"user_id" validate:"omitempty,hexadecimal,len=24"
-    string user_id = 17;
+    string user_id = 18;
     //@inject_tag: json:"payment_method" bson:"payment_method" validate:"required"
-    string payment_method = 18;
+    string payment_method = 19;
     //@inject_tag: json:"is_deduction" bson:"is_deduction"
-    bool is_deduction = 19;
+    bool is_deduction = 20;
     //@inject_tag: json:"country" bson:"country" validate:"required,alpha,len=2"
-    string country = 20;
+    string country = 21;
     //@inject_tag: json:"date_time" bson:"date_time"
-    google.protobuf.Timestamp date_time = 21;
+    google.protobuf.Timestamp date_time = 22;
 }
 
 message VatReport {
@@ -1521,12 +1523,14 @@ message VatReport {
     double country_annual_turnover = 12;
     // @inject_tag: json:"world_annual_turnover" bson:"world_annual_turnover" validate:"numeric,gte=0"
     double world_annual_turnover = 13;
-    //@inject_tag: json:"report_date_from" bson:"report_date_from"
-    google.protobuf.Timestamp report_date_from = 14;
-    //@inject_tag: json:"report_date_to" bson:"report_date_to"
-    google.protobuf.Timestamp report_date_to = 15;
+    //@inject_tag: json:"amounts_approximate" bson:"amounts_approximate"
+    bool amounts_approximate = 14;
+    //@inject_tag: json:"date_from" bson:"date_from"
+    google.protobuf.Timestamp date_from = 15;
+    //@inject_tag: json:"date_to" bson:"date_to"
+    google.protobuf.Timestamp date_to = 16;
     //@inject_tag: json:"pay_until_date" bson:"pay_until_date"
-    google.protobuf.Timestamp pay_until_date = 16;
+    google.protobuf.Timestamp pay_until_date = 17;
 }
 
 message AnnualTurnover {

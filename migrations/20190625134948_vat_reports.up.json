@@ -22,9 +22,18 @@
     "indexes": [
       {
         "key": {
-          "billing_address.country": 1
+          "date_time": 1,
+          "country": 1
         },
-        "name": "country"
+        "name": "date_country"
+      },
+      {
+        "key": {
+          "date_time": 1,
+          "country": 1,
+          "is_deduction": 1
+        },
+        "name": "date_country_deduction"
       },
       {
         "key": {
@@ -41,9 +50,17 @@
       {
         "key": {
           "country": 1,
+          "date_from": 1,
+          "date_to": 1,
           "status": 1
         },
-        "name": "country_status"
+        "name": "country_date_status"
+      },
+      {
+        "key": {
+          "status": 1
+        },
+        "name": "status"
       }
     ]
   }

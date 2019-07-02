@@ -176,18 +176,15 @@ func (suite *VatReportsTestSuite) TearDownTest() {
 }
 
 func (suite *VatReportsTestSuite) TestVatReports_getLastVatReportTime() {
-	_, _, err := suite.service.getLastVatReportTime("")
+	_, _, err := suite.service.getLastVatReportTime(0)
 	assert.Error(suite.T(), err)
 
-	_, _, err = suite.service.getLastVatReportTime("AD")
-	assert.Error(suite.T(), err)
-
-	from, to, err := suite.service.getLastVatReportTime("RU")
+	from, to, err := suite.service.getLastVatReportTime(int32(3))
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), from, now.BeginningOfQuarter())
 	assert.Equal(suite.T(), to, now.EndOfQuarter())
 
-	from, to, err = suite.service.getLastVatReportTime("TR")
+	from, to, err = suite.service.getLastVatReportTime(int32(1))
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), from, now.BeginningOfMonth())
 	assert.Equal(suite.T(), to, now.EndOfMonth())
@@ -201,7 +198,7 @@ func (suite *VatReportsTestSuite) TestVatReports_getLastVatReportTime() {
 		toRef = toRef.AddDate(0, 1, 0)
 	}
 
-	from, to, err = suite.service.getLastVatReportTime("CO")
+	from, to, err = suite.service.getLastVatReportTime(int32(2))
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), from, fromRef)
 	assert.Equal(suite.T(), to, toRef)
@@ -209,90 +206,58 @@ func (suite *VatReportsTestSuite) TestVatReports_getLastVatReportTime() {
 	assert.Equal(suite.T(), toRef.Month()%2, time.Month(0))
 }
 
-func (suite *VatReportsTestSuite) TestVatReports_getPreviousVatReportTime() {
-	from, to, err := suite.service.getLastVatReportTime("RU")
+func (suite *VatReportsTestSuite) TestVatReports_getVatReportTimeForDate() {
+
+	t, err := time.Parse(time.RFC3339, "2019-06-29T11:45:26.371Z")
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), from, now.BeginningOfQuarter())
-	assert.Equal(suite.T(), to, now.EndOfQuarter())
 
-	fromPrev, toPrev, errPrev := suite.service.getPreviousVatReportTime("RU", 0)
-	assert.NoError(suite.T(), errPrev)
-	assert.Equal(suite.T(), fromPrev, now.BeginningOfQuarter())
-	assert.Equal(suite.T(), toPrev, now.EndOfQuarter())
-
-	fromRef := now.BeginningOfQuarter().AddDate(0, -3, 0)
-	toRef := now.EndOfQuarter().AddDate(0, -3, 0)
-	fromPrev, toPrev, errPrev = suite.service.getPreviousVatReportTime("RU", 1)
-	assert.NoError(suite.T(), errPrev)
-	assert.NotEqual(suite.T(), fromPrev, now.BeginningOfQuarter())
-	assert.NotEqual(suite.T(), toPrev, now.EndOfQuarter())
-	assert.Equal(suite.T(), fromPrev, fromRef)
-	assert.Equal(suite.T(), toPrev, toRef)
-
-	countryCode := "RU"
-	country, err := suite.service.country.GetByIsoCodeA2(countryCode)
+	from, to, err := suite.service.getVatReportTimeForDate(int32(3), t)
 	assert.NoError(suite.T(), err)
-	period := country.VatPeriodMonth
-	assert.Equal(suite.T(), period, int32(3))
-	count := 0
-	for count <= 14 {
-		shift := -1 * count * int(period)
-		fromRef = now.BeginningOfQuarter().AddDate(0, shift, 0)
-		toRef = now.EndOfQuarter().AddDate(0, shift, 0)
-		fromPrev, toPrev, errPrev = suite.service.getPreviousVatReportTime(countryCode, count)
-		assert.NoError(suite.T(), errPrev)
-		assert.Equal(suite.T(), fromPrev, fromRef)
-		assert.Equal(suite.T(), toPrev, toRef)
-		count++
-	}
-	begin := now.BeginningOfQuarter().AddDate(0, -1*(3*14), 0)
-	assert.Equal(suite.T(), fromPrev.Year(), begin.Year())
-	assert.Equal(suite.T(), fromPrev.Month(), begin.Month())
+	assert.Equal(suite.T(), from.Format(time.RFC3339), "2019-04-01T00:00:00Z")
+	assert.Equal(suite.T(), to.Format(time.RFC3339), "2019-06-30T23:59:59Z")
 
-	countryCode = "TR"
-	country, err = suite.service.country.GetByIsoCodeA2(countryCode)
+	from, to, err = suite.service.getVatReportTimeForDate(int32(1), t)
 	assert.NoError(suite.T(), err)
-	period = country.VatPeriodMonth
-	assert.Equal(suite.T(), period, int32(1))
-	count = 0
-	for count <= 14 {
-		shift := -1 * count * int(period)
-		fromRef = now.BeginningOfMonth().AddDate(0, shift, 0)
-		toRef = now.EndOfMonth().AddDate(0, shift, 0)
-		fromPrev, toPrev, errPrev = suite.service.getPreviousVatReportTime(countryCode, count)
-		assert.NoError(suite.T(), errPrev)
-		assert.Equal(suite.T(), fromPrev, fromRef)
-		assert.Equal(suite.T(), toPrev, toRef)
-		count++
-	}
-	begin = now.BeginningOfMonth().AddDate(0, -1*14, 0)
-	assert.Equal(suite.T(), fromPrev.Year(), begin.Year())
-	assert.Equal(suite.T(), fromPrev.Month(), begin.Month())
+	assert.Equal(suite.T(), from.Format(time.RFC3339), "2019-06-01T00:00:00Z")
+	assert.Equal(suite.T(), to.Format(time.RFC3339), "2019-06-30T23:59:59Z")
 
-	countryCode = "CO"
-	country, err = suite.service.country.GetByIsoCodeA2(countryCode)
+	from, to, err = suite.service.getVatReportTimeForDate(int32(2), t)
 	assert.NoError(suite.T(), err)
-	period = country.VatPeriodMonth
-	assert.Equal(suite.T(), period, int32(2))
-	count = 0
-	for count <= 14 {
-		shift := -1 * count * int(period)
-		fromRef = now.BeginningOfMonth()
-		toRef = now.EndOfMonth()
-		if fromRef.Month()%2 == 0 {
-			fromRef = fromRef.AddDate(0, -1, 0)
-		} else {
-			toRef = toRef.AddDate(0, 1, 0)
-		}
-		fromRef = fromRef.AddDate(0, shift, 0)
-		toRef = toRef.AddDate(0, shift, 0)
-		fromPrev, toPrev, errPrev = suite.service.getPreviousVatReportTime(countryCode, count)
-		assert.NoError(suite.T(), errPrev)
-		assert.Equal(suite.T(), fromPrev, fromRef)
-		assert.Equal(suite.T(), toPrev, toRef)
-		count++
-	}
-	begin = now.BeginningOfMonth().AddDate(0, -1*(2*14)+(int((now.BeginningOfMonth()).Month()%2)-1), 0)
-	assert.Equal(suite.T(), fromPrev.Year(), begin.Year())
-	assert.Equal(suite.T(), fromPrev.Month(), begin.Month())
+	assert.Equal(suite.T(), from.Format(time.RFC3339), "2019-05-01T00:00:00Z")
+	assert.Equal(suite.T(), to.Format(time.RFC3339), "2019-06-30T23:59:59Z")
+
+	t, err = time.Parse(time.RFC3339, "2019-05-29T11:45:26.371Z")
+	assert.NoError(suite.T(), err)
+	from, to, err = suite.service.getVatReportTimeForDate(int32(2), t)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), from.Format(time.RFC3339), "2019-05-01T00:00:00Z")
+	assert.Equal(suite.T(), to.Format(time.RFC3339), "2019-06-30T23:59:59Z")
+
+	t, err = time.Parse(time.RFC3339, "2019-07-29T11:45:26.371Z")
+	assert.NoError(suite.T(), err)
+	from, to, err = suite.service.getVatReportTimeForDate(int32(2), t)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), from.Format(time.RFC3339), "2019-07-01T00:00:00Z")
+	assert.Equal(suite.T(), to.Format(time.RFC3339), "2019-08-31T23:59:59Z")
+
+	t, err = time.Parse(time.RFC3339, "2019-08-29T11:45:26.371Z")
+	assert.NoError(suite.T(), err)
+	from, to, err = suite.service.getVatReportTimeForDate(int32(2), t)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), from.Format(time.RFC3339), "2019-07-01T00:00:00Z")
+	assert.Equal(suite.T(), to.Format(time.RFC3339), "2019-08-31T23:59:59Z")
+
+	t, err = time.Parse(time.RFC3339, "2019-04-01T00:00:00Z")
+	assert.NoError(suite.T(), err)
+	from, to, err = suite.service.getVatReportTimeForDate(int32(3), t)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), from.Format(time.RFC3339), "2019-04-01T00:00:00Z")
+	assert.Equal(suite.T(), to.Format(time.RFC3339), "2019-06-30T23:59:59Z")
+
+	t, err = time.Parse(time.RFC3339, "2019-06-30T23:59:59Z")
+	assert.NoError(suite.T(), err)
+	from, to, err = suite.service.getVatReportTimeForDate(int32(3), t)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), from.Format(time.RFC3339), "2019-04-01T00:00:00Z")
+	assert.Equal(suite.T(), to.Format(time.RFC3339), "2019-06-30T23:59:59Z")
 }

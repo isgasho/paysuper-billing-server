@@ -2294,15 +2294,16 @@ func (h *accountingEntry) createVatTransaction() error {
 	}
 
 	t := &billing.VatTransaction{
-		Id:                     bson.NewObjectId().Hex(),
-		OrderId:                order.Id,
-		TransactionId:          order.Transaction,
-		BillingAddressCriteria: "user", // todo?
-		UserId:                 order.User.Id,
-		PaymentMethod:          order.PaymentMethod.Name,
-		BillingAddress:         order.User.Address,
-		Country:                country.IsoCodeA2,
-		LocalCurrency:          country.Currency,
+		Id:                      bson.NewObjectId().Hex(),
+		OrderId:                 order.Id,
+		TransactionId:           order.Transaction,
+		BillingAddressCriteria:  "user", // todo?
+		UserId:                  order.User.Id,
+		PaymentMethod:           order.PaymentMethod.Name,
+		BillingAddress:          order.User.Address,
+		Country:                 country.IsoCodeA2,
+		LocalCurrency:           country.Currency,
+		LocalAmountsApproximate: country.VatCurrencyRatesPolicy != VatCurrencyRatesPolicyOnDay,
 	}
 	if order.BillingAddress != nil {
 		t.BillingAddressCriteria = "form"
@@ -2326,7 +2327,7 @@ func (h *accountingEntry) createVatTransaction() error {
 			return err
 		}
 
-		from, _, err := h.Service.getLastVatReportTime(country.IsoCodeA2)
+		from, _, err := h.Service.getLastVatReportTime(country.VatPeriodMonth)
 		if err != nil {
 			return err
 		}
@@ -2371,7 +2372,7 @@ func (h *accountingEntry) createVatTransaction() error {
 	t.VatAmount = tools.FormatAmount(vatAmounts["taxes"].Amount * multiplier)
 	t.VatCurrency = vatAmounts["taxes"].Currency
 
-	t.FeesAmount = tools.FormatAmount(vatAmounts["fees"].Amount * multiplier)
+	t.FeesAmount = tools.FormatAmount(vatAmounts["fees"].Amount) // we newer returns fees?
 	t.FeesCurrency = vatAmounts["fees"].Currency
 
 	if t.TransactionCurrency == country.Currency {
@@ -2455,11 +2456,7 @@ func (h *accountingEntry) createVatTransaction() error {
 		}
 	}
 
-	err = h.Service.db.Collection(collectionVatTransactions).Insert(t)
-	if err != nil {
-		return err
-	}
-	return nil
+	return h.Service.addVatTransaction(t)
 }
 
 func (h *accountingEntry) updateVatTransaction() error {

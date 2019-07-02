@@ -6303,7 +6303,10 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_AccountingEntries_
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), n, 1)
 
-	from, to, err := suite.service.getLastVatReportTime(order.GetCountry())
+	country, err := suite.service.country.GetByIsoCodeA2(order.GetCountry())
+	assert.NoError(suite.T(), err)
+
+	from, to, err := suite.service.getLastVatReportTime(country.VatPeriodMonth)
 	assert.NoError(suite.T(), err)
 
 	vts, err := suite.service.getVatTransactions(from, to, order.GetCountry())

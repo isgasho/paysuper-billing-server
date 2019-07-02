@@ -757,7 +757,7 @@
             "vat_period_month": 3,
             "vat_deadline_days": 60,
             "vat_store_years": 5,
-            "vat_currency_rates_policy": "mid-month",
+            "vat_currency_rates_policy": "avg-month",
             "vat_currency_rates_source": "fta"
           }
         }
@@ -776,7 +776,7 @@
             "vat_period_month": 3,
             "vat_deadline_days": 60,
             "vat_store_years": 5,
-            "vat_currency_rates_policy": "mid-month",
+            "vat_currency_rates_policy": "avg-month",
             "vat_currency_rates_source": "fta"
           }
         }

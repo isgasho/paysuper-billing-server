@@ -144,7 +144,7 @@ func (suite *TurnoversTestSuite) TestTurnovers_getTurnover_Empty() {
 	country, err := suite.service.country.GetByIsoCodeA2(countryCode)
 	assert.NoError(suite.T(), err)
 
-	from, to, err := suite.service.getLastVatReportTime(countryCode)
+	from, to, err := suite.service.getLastVatReportTime(int32(3))
 	assert.NoError(suite.T(), err)
 
 	amount, err := suite.service.getTurnover(context.TODO(), from, to, countryCode, country.VatCurrency, country.VatCurrencyRatesPolicy, curPkg.RateTypeCentralbanks)
@@ -172,7 +172,7 @@ func (suite *TurnoversTestSuite) TestTurnovers_getTurnover() {
 	country, err := suite.service.country.GetByIsoCodeA2(countryCode)
 	assert.NoError(suite.T(), err)
 
-	from, to, err := suite.service.getLastVatReportTime(countryCode)
+	from, to, err := suite.service.getLastVatReportTime(int32(3))
 	assert.NoError(suite.T(), err)
 
 	amount, err := suite.service.getTurnover(context.TODO(), from, to, countryCode, country.VatCurrency, country.VatCurrencyRatesPolicy, curPkg.RateTypeCentralbanks)
@@ -310,10 +310,10 @@ func (suite *TurnoversTestSuite) getTurnoverReference(from, to time.Time, countr
 	}
 
 	switch currencyPolicy {
-	case "on-day":
+	case VatCurrencyRatesPolicyOnDay:
 		query = append(query, bson.M{"$group": bson.M{"_id": "$local_currency", "amount": bson.M{"$sum": "$local_amount"}}})
 		break
-	case "last-day":
+	case VatCurrencyRatesPolicyLastDay:
 		query = append(query, bson.M{"$group": bson.M{"_id": "$original_currency", "amount": bson.M{"$sum": "$original_amount"}}})
 		break
 	default:
@@ -328,7 +328,7 @@ func (suite *TurnoversTestSuite) getTurnoverReference(from, to time.Time, countr
 		if err == mgo.ErrNotFound {
 			return 0
 		}
-		return -1
+		assert.NoError(suite.T(), err)
 	}
 
 	amount := float64(0)

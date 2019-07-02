@@ -17,11 +17,6 @@ import (
 	"time"
 )
 
-type turnoverQueryResItem struct {
-	Id     string  `bson:"_id"`
-	Amount float64 `bson:"amount"`
-}
-
 const (
 	collectionAnnualTurnovers = "annual_turnovers"
 	cacheTurnoverKey          = "turnover:country:%s:year:%d"
@@ -35,6 +30,11 @@ var (
 		pkg.AccountingEntryTypePayment,
 	}
 )
+
+type turnoverQueryResItem struct {
+	Id     string  `bson:"_id"`
+	Amount float64 `bson:"amount"`
+}
 
 func (s *Service) CalcAnnualTurnovers(ctx context.Context, req *grpc.EmptyRequest, res *grpc.EmptyResponse) error {
 	countries, err := s.country.GetCountriesWithVatEnabled()
@@ -66,6 +66,7 @@ func (s *Service) calcAnnualTurnover(ctx context.Context, countryCode string) er
 		from           = now.BeginningOfYear()
 		to             = now.EndOfDay()
 		amount         = float64(0)
+		VatPeriodMonth = int32(0)
 		err            error
 	)
 
@@ -75,16 +76,17 @@ func (s *Service) calcAnnualTurnover(ctx context.Context, countryCode string) er
 			return errorCountryNotFound
 		}
 		targetCurrency = country.Currency
+		VatPeriodMonth = country.VatPeriodMonth
 		currencyPolicy = country.VatCurrencyRatesPolicy
 		ratesSource = curPkg.RateTypeCentralbanks
 	}
 
 	switch currencyPolicy {
-	case "on-day":
+	case VatCurrencyRatesPolicyOnDay:
 		amount, err = s.getTurnover(ctx, from, to, countryCode, targetCurrency, currencyPolicy, ratesSource)
 		break
-	case "last-day":
-		from, to, err = s.getLastVatReportTime(countryCode)
+	case VatCurrencyRatesPolicyLastDay:
+		from, to, err = s.getLastVatReportTime(VatPeriodMonth)
 		if err != nil {
 			return err
 		}
@@ -96,7 +98,7 @@ func (s *Service) calcAnnualTurnover(ctx context.Context, countryCode string) er
 			}
 			amount += amnt
 			count++
-			from, to, err = s.getPreviousVatReportTime(countryCode, count)
+			from, to, err = s.getVatReportTimeForDate(VatPeriodMonth, from.AddDate(0, 0, -1))
 			if err != nil {
 				return err
 			}
@@ -147,10 +149,10 @@ func (s *Service) getTurnover(ctx context.Context, from, to time.Time, countryCo
 	}
 
 	switch currencyPolicy {
-	case "on-day":
+	case VatCurrencyRatesPolicyOnDay:
 		query = append(query, bson.M{"$group": bson.M{"_id": "$local_currency", "amount": bson.M{"$sum": "$local_amount"}}})
 		break
-	case "last-day":
+	case VatCurrencyRatesPolicyLastDay:
 		query = append(query, bson.M{"$group": bson.M{"_id": "$original_currency", "amount": bson.M{"$sum": "$original_amount"}}})
 		break
 	default:
