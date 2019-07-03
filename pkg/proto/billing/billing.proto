@@ -288,6 +288,7 @@ message Merchant {
     double item_min_cost_amount = 39;
     //@inject_tag: json:"item_min_cost_currency" bson:"item_min_cost_currency" validate:"required,alpha,len=3"
     string item_min_cost_currency = 40;
+    string centrifugo_token = 41;
 }
 
 message SystemNotificationStatuses {

@@ -612,6 +612,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantById_MerchantId_Ok()
 	assert.Equal(suite.T(), suite.merchant.Id, rsp.Item.Id)
 	assert.Equal(suite.T(), suite.merchant.Website, rsp.Item.Website)
 	assert.Equal(suite.T(), suite.merchant.Name, rsp.Item.Name)
+	assert.NotEmpty(suite.T(), rsp.Item.CentrifugoToken)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantById_UserId_Ok() {
