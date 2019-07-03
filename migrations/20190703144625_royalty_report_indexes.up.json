@@ -1,5 +1,8 @@
 [
   {
+    "create": "accounting_entry"
+  },
+  {
     "create": "royalty_report"
   },
   {
