@@ -20,6 +20,17 @@ type JsonRefund struct {
 	SalesTax   float32              `json:"sales_tax"`
 }
 
+type JsonRoyaltyReportOrder struct {
+	Date         int64   `json:"date"`
+	Country      string  `json:"country"`
+	PaymentId    string  `json:"payment_id"`
+	Method       string  `json:"method"`
+	Amount       float64 `json:"amount"`
+	Vat          float64 `json:"vat"`
+	Commission   float64 `json:"commission"`
+	PayoutAmount float64 `json:"payout_amount"`
+}
+
 func (m *Refund) MarshalJSON() ([]byte, error) {
 	return json.Marshal(
 		&JsonRefund{

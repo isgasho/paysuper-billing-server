@@ -102,11 +102,11 @@ service BillingService {
     rpc SetMoneyBackCostMerchant(billing.MoneyBackCostMerchant) returns (MoneyBackCostMerchantResponse) {}
     rpc DeleteMoneyBackCostMerchant(billing.PaymentCostDeleteRequest) returns (ResponseError) {}
 
-    rpc CreateAccountingEntry(CreateAccountingEntryRequest) returns (CreateAccountingEntryRequest) {}
+    rpc CreateAccountingEntry(CreateAccountingEntryRequest) returns (CreateAccountingEntryResponse) {}
 
     rpc CreateRoyaltyReport(CreateRoyaltyReportRequest) returns (CreateRoyaltyReportRequest) {}
     rpc ListRoyaltyReports(ListRoyaltyReportsRequest) returns (ListRoyaltyReportsResponse) {}
-    rpc ChangeRoyaltyReportStatus(ChangeRoyaltyReportStatusRequest) returns (ResponseError) {}
+    rpc ChangeRoyaltyReport(ChangeRoyaltyReportRequest) returns (ResponseError) {}
     rpc ListRoyaltyReportOrders(ListRoyaltyReportOrdersRequest) returns (ListRoyaltyReportOrdersResponse) {}
 }
 
@@ -898,14 +898,16 @@ message ListRoyaltyReportOrdersResponse {
     repeated billing.RoyaltyReportOrder items = 2;
 }
 
-message ChangeRoyaltyReportStatusRequest {
-    // @inject_tag: query:"report_id" validate:"required,hexadecimal,len=24"
+message ChangeRoyaltyReportRequest {
+    // @inject_tag: validate:"required,hexadecimal,len=24"
     string report_id = 1;
-    // @inject_tag: validate:"required,oneof=pending skipped accepted canceled dispute ready_for_invoice payment_in_progress payment_done payment_error"
+    // @inject_tag: validate:"omitempty,oneof=pending skipped accepted canceled dispute ready_for_invoice payment_in_progress payment_done payment_error"
     string status = 2;
-    billing.RoyaltyReportCorrection correction = 3;
-    string ip = 4;
-    string source = 5;
+    // @inject_tag: validate:"omitempty,hexadecimal,len=24"
+    string payout_id = 3;
+    billing.RoyaltyReportCorrection correction = 4;
+    string ip = 5;
+    string source = 6;
 }
 
 message PaymentChannelCostSystemListResponse {

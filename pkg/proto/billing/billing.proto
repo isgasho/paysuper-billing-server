@@ -521,6 +521,8 @@ message Order {
 
     // @inject_tag: json:"-"
     RoyaltyData royalty_data = 67;
+    // @inject_tag: json:"-"
+    string royalty_report_id = 68;
 }
 
 message CountryRestriction {
@@ -754,9 +756,9 @@ message PaymentMethod {
     // @inject_tag: bson:"payment_system_id" json:"payment_system_id" validate:"required,hexadecimal,len=24"
     string payment_system_id = 12;
     // @inject_tag: bson:"test_settings" json:"test_settings" validate:"omitempty"
-    map<string,PaymentMethodParams>  test_settings = 13;
+    map<string, PaymentMethodParams> test_settings = 13;
     // @inject_tag: bson:"production_settings" json:"production_settings" validate:"omitempty"
-    map<string,PaymentMethodParams> production_settings = 14;
+    map<string, PaymentMethodParams> production_settings = 14;
     // @inject_tag: bson:"created_at" json:"max_payment_amount" validate:"omitempty"
     google.protobuf.Timestamp created_at = 15;
     // @inject_tag: bson:"updated_at" json:"max_payment_amount" validate:"omitempty"
@@ -1441,21 +1443,21 @@ message RoyaltyReport {
 
 message RoyaltyReportChanges {
     string id = 1;
-    string source = 2;
-    bytes ip = 3;
-    RoyaltyReport before = 4;
-    RoyaltyReport after = 5;
-    string hash = 6;
-    google.protobuf.Timestamp created_at = 7;
+    string royalty_report_id = 2;
+    string source = 3;
+    string ip = 4;
+    RoyaltyReport before = 5;
+    RoyaltyReport after = 6;
+    string hash = 7;
+    google.protobuf.Timestamp created_at = 8;
 }
 
 message RoyaltyReportOrder {
     int64 date = 1;
     string country = 2;
-    string payment_id = 3;
-    string method = 4;
-    double amount = 5;
-    double vat = 6;
-    double commission = 7;
-    double payout = 8;
+    string payment_id = 4;
+    string method = 5;
+    double amount = 6;
+    double vat = 7;
+    double commission = 8;
 }

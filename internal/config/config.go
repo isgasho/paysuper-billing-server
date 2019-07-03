@@ -55,7 +55,7 @@ type Config struct {
 
 	RoyaltyReportPeriod        int64  `envconfig:"ROYALTY_REPORT_PERIOD" default:"604800"`
 	RoyaltyReportTimeZone      string `envconfig:"ROYALTY_REPORT_TIMEZONE" default:"Europe/Moscow"`
-	RoyaltyReportAcceptTimeout int    `envconfig:"ROYALTY_REPORT_TIMEZONE" default:"432000"`
+	RoyaltyReportAcceptTimeout int64  `envconfig:"ROYALTY_REPORT_TIMEZONE" default:"432000"`
 
 	CentrifugoMerchantChannel string `envconfig:"CENTRIFUGO_MERCHANT_CHANNEL" default:"paysuper:merchant#%s"`
 
@@ -70,6 +70,10 @@ type Config struct {
 func NewConfig() (*Config, error) {
 	cfg := &Config{}
 	err := envconfig.Process("", cfg)
+
+	if err != nil {
+		return nil, err
+	}
 
 	pem, err := base64.StdEncoding.DecodeString(cfg.CookiePublicKeyBase64)
 

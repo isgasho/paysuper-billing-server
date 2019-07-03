@@ -22,7 +22,6 @@ import (
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"go.uber.org/zap"
 	"gopkg.in/gomail.v2"
-	"net"
 	"sync"
 	"time"
 )
@@ -78,9 +77,8 @@ type RoyaltyReportMerchant struct {
 
 type royaltyHandler struct {
 	*Service
-	from   time.Time
-	to     time.Time
-	errors map[string]error
+	from time.Time
+	to   time.Time
 }
 
 func (s *Service) CreateRoyaltyReport(
@@ -122,7 +120,6 @@ func (s *Service) CreateRoyaltyReport(
 		Service: s,
 		from:    from,
 		to:      to,
-		errors:  make(map[string]error),
 	}
 
 	for _, v := range merchants {
@@ -131,12 +128,12 @@ func (s *Service) CreateRoyaltyReport(
 
 			if err != nil {
 				rsp.Merchants = append(rsp.Merchants, merchantId.Hex())
-				handler.errors[merchantId.Hex()] = err
 			}
 
 			wg.Done()
 		}(v.Id)
 	}
+	wg.Wait()
 
 	return nil
 }
@@ -199,13 +196,13 @@ func (s *Service) ListRoyaltyReports(
 	return nil
 }
 
-func (s *Service) ChangeRoyaltyReportStatus(
+func (s *Service) ChangeRoyaltyReport(
 	ctx context.Context,
-	req *grpc.ChangeRoyaltyReportStatusRequest,
+	req *grpc.ChangeRoyaltyReportRequest,
 	rsp *grpc.ResponseError,
 ) error {
-	var reportOld *billing.RoyaltyReport
-	err := s.db.Collection(collectionRoyaltyReport).FindId(bson.ObjectIdHex(req.ReportId)).One(&reportOld)
+	var report *billing.RoyaltyReport
+	err := s.db.Collection(collectionRoyaltyReport).FindId(bson.ObjectIdHex(req.ReportId)).One(&report)
 
 	if err != nil {
 		if err != mgo.ErrNotFound {
@@ -222,27 +219,48 @@ func (s *Service) ChangeRoyaltyReportStatus(
 		return nil
 	}
 
-	if reportOld.ChangesAvailable(req.Status) == false {
+	if req.Status != "" && report.ChangesAvailable(req.Status) == false {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = royaltyReportErrorReportStatusChangeDenied
 
 		return nil
 	}
 
-	if req.Status == pkg.RoyaltyReportStatusDispute && req.Correction == nil && req.Correction.Reason == "" &&
-		req.Correction.Amount <= 0 {
+	if req.Status == pkg.RoyaltyReportStatusDispute && (req.Correction == nil || req.Correction.Reason == "" ||
+		req.Correction.Amount <= 0) {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = royaltyReportErrorReportDisputeCorrectionRequired
 
 		return nil
 	}
 
-	reportNew := reportOld
-	reportNew.Status = req.Status
-	reportNew.Correction = req.Correction
+	reportOld := &billing.RoyaltyReport{
+		Id:             report.Id,
+		MerchantId:     report.MerchantId,
+		CreatedAt:      report.CreatedAt,
+		UpdatedAt:      report.UpdatedAt,
+		PayoutId:       report.PayoutId,
+		PayoutDate:     report.PayoutDate,
+		Status:         report.Status,
+		Deleted:        report.Deleted,
+		PeriodFrom:     report.PeriodFrom,
+		PeriodTo:       report.PeriodTo,
+		AcceptExpireAt: report.AcceptExpireAt,
+		AcceptedAt:     report.AcceptedAt,
+		Amounts:        report.Amounts,
+		Correction:     report.Correction,
+	}
 
-	s.onRoyaltyReportChange(reportOld, reportNew, req.Ip, req.Source)
-	err = s.db.Collection(collectionRoyaltyReport).Update(bson.ObjectIdHex(reportNew.Id), reportNew)
+	report.Status = req.Status
+	report.Correction = req.Correction
+	report.UpdatedAt = ptypes.TimestampNow()
+
+	if req.Status == pkg.RoyaltyReportStatusAccepted {
+		report.AcceptedAt = ptypes.TimestampNow()
+	}
+
+	s.onRoyaltyReportChange(reportOld, report, req.Ip, req.Source)
+	err = s.db.Collection(collectionRoyaltyReport).UpdateId(bson.ObjectIdHex(report.Id), report)
 
 	if err != nil {
 		zap.L().Error(
@@ -258,7 +276,7 @@ func (s *Service) ChangeRoyaltyReportStatus(
 	}
 
 	if req.Status == pkg.RoyaltyReportStatusPending {
-		s.sendRoyaltyReportNotification(reportNew)
+		s.sendRoyaltyReportNotification(report)
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
@@ -286,7 +304,7 @@ func (s *Service) ListRoyaltyReportOrders(
 		return nil
 	}
 
-	query := bson.M{"royalty_report_id": bson.ObjectIdHex(req.ReportId)}
+	query := bson.M{"royalty_report_id": req.ReportId}
 	count, err = s.db.Collection(collectionOrder).Find(query).Count()
 
 	if err != nil {
@@ -350,31 +368,21 @@ func (s *Service) getRoyaltyReportMerchantsByPeriod(from, to time.Time) []*Royal
 
 func (s *Service) onRoyaltyReportChange(reportOld, reportNew *billing.RoyaltyReport, ip, source string) {
 	change := &billing.RoyaltyReportChanges{
-		Id:     bson.NewObjectId().Hex(),
-		Source: source,
-		After:  reportNew,
+		Id:              bson.NewObjectId().Hex(),
+		RoyaltyReportId: reportNew.Id,
+		Source:          source,
+		Before:          reportOld,
+		After:           reportNew,
+		Ip:              ip,
 	}
 
-	if ip != "" {
-		change.Ip = net.ParseIP(ip)
-	}
+	b, _ := json.Marshal(reportNew)
+	hash := md5.New()
+	hash.Write(b)
 
-	if reportOld != nil {
-		change.Before = reportOld
-	}
+	change.Hash = hex.EncodeToString(hash.Sum(nil))
 
-	b, err := json.Marshal(reportNew)
-
-	if err != nil {
-		zap.L().Error("Royalty report changes log hash make failed", zap.Error(err))
-	} else {
-		hash := md5.New()
-		hash.Write(b)
-
-		change.Hash = hex.EncodeToString(hash.Sum(nil))
-	}
-
-	err = s.db.Collection(collectionRoyaltyReportChanges).Insert(change)
+	err := s.db.Collection(collectionRoyaltyReportChanges).Insert(change)
 
 	if err != nil {
 		zap.L().Error(
@@ -395,7 +403,7 @@ func (h *royaltyHandler) processMerchantRoyaltyReport(merchantId bson.ObjectId) 
 		"period_from": bson.M{"$gte": h.from},
 		"period_to":   bson.M{"$lte": h.to},
 	}
-	update := bson.M{"deleted": true}
+	update := bson.M{"$set": bson.M{"deleted": true}}
 	_, err := h.db.Collection(collectionRoyaltyReport).UpdateAll(query, update)
 
 	if err != nil && err != mgo.ErrNotFound {
@@ -416,7 +424,12 @@ func (h *royaltyHandler) processMerchantRoyaltyReport(merchantId bson.ObjectId) 
 		return err
 	}
 
-	update = bson.M{"royalty_report_id": bson.ObjectIdHex(report.Id)}
+	query = bson.M{
+		"project.merchant_id": merchantId,
+		"pm_order_close_date": bson.M{"$gte": h.from, "$lte": h.to},
+		"status":              constant.OrderPublicStatusProcessed,
+	}
+	update = bson.M{"$set": bson.M{"royalty_report_id": report.Id}}
 	_, err = h.db.Collection(collectionOrder).UpdateAll(query, update)
 
 	if err != nil && err != mgo.ErrNotFound {
@@ -508,7 +521,7 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(merchantId bson.ObjectId) (
 
 	report.PeriodFrom, _ = ptypes.TimestampProto(h.from)
 	report.PeriodTo, _ = ptypes.TimestampProto(h.to)
-	report.AcceptExpireAt, _ = ptypes.TimestampProto(time.Now().AddDate(0, 0, h.cfg.RoyaltyReportAcceptTimeout))
+	report.AcceptExpireAt, _ = ptypes.TimestampProto(time.Now().Add(time.Duration(h.cfg.RoyaltyReportAcceptTimeout) * time.Second))
 
 	err = h.db.Collection(collectionRoyaltyReport).Insert(report)
 
@@ -523,7 +536,7 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(merchantId bson.ObjectId) (
 		return nil, err
 	}
 
-	h.onRoyaltyReportChange(nil, report, "", pkg.RoyaltyReportChngeSourceAuto)
+	h.onRoyaltyReportChange(nil, report, "", pkg.RoyaltyReportChangeSourceAuto)
 
 	return report, nil
 }
@@ -554,11 +567,7 @@ func (s *Service) sendRoyaltyReportNotification(report *billing.RoyaltyReport) {
 	}
 
 	msg := map[string]interface{}{"id": report.Id, "code": "rr00001", "message": pkg.EmailRoyaltyReportMessage}
-	b, err := json.Marshal(msg)
-
-	if err != nil {
-		return
-	}
+	b, _ := json.Marshal(msg)
 
 	err = s.centrifugoClient.Publish(context.Background(), fmt.Sprintf(s.cfg.CentrifugoMerchantChannel, report.MerchantId), b)
 
