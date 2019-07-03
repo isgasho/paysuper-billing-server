@@ -137,6 +137,10 @@ func (s *Service) CreateRoyaltyReport(
 	return nil
 }
 
+func (s *Service) ActualizeSkippedRoyaltyReports() error {
+	return nil
+}
+
 func (s *Service) ListRoyaltyReports(
 	ctx context.Context,
 	req *grpc.ListRoyaltyReportsRequest,
