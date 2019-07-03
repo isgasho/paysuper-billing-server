@@ -3274,8 +3274,8 @@ func (m *PaymentMethodOrder) GetCryptoCurrency() *PaymentMethodCrypto {
 type PaymentMethodParams struct {
 	// @inject_tag: bson:"currency" json:"currency" validate:"required,alpha,len=3"
 	Currency string `protobuf:"bytes,1,opt,name=currency,proto3" json:"currency" bson:"currency" validate:"required,alpha,len=3"`
-	// @inject_tag: bson:"terminal_id" json:"currency" validate:"omitempty,alphanum"
-	TerminalId string `protobuf:"bytes,2,opt,name=terminal_id,json=terminalId,proto3" json:"currency" bson:"terminal_id" validate:"omitempty,alphanum"`
+	// @inject_tag: bson:"terminal_id" json:"terminal_id" validate:"omitempty,alphanum"
+	TerminalId string `protobuf:"bytes,2,opt,name=terminal_id,json=terminalId,proto3" json:"terminal_id" bson:"terminal_id" validate:"omitempty,alphanum"`
 	// @inject_tag: bson:"secret" json:"secret" validate:"omitempty"
 	Secret string `protobuf:"bytes,3,opt,name=secret,proto3" json:"secret" bson:"secret" validate:"omitempty"`
 	// @inject_tag: bson:"secret_callback" json:"secret_callback" validate:"omitempty"
