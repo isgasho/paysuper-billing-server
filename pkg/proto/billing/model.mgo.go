@@ -548,6 +548,7 @@ type MgoRoyaltyReport struct {
 	AcceptedAt     time.Time                `bson:"accepted_at"`
 	Amounts        *RoyaltyReportDetails    `bson:"amounts"`
 	Correction     *RoyaltyReportCorrection `bson:"correction"`
+	IsAutoAccepted bool                     `bson:"is_auto_accepted"`
 }
 
 type MgoRoyaltyReportChanges struct {
@@ -2846,13 +2847,14 @@ func (m *AccountingEntry) SetBSON(raw bson.Raw) error {
 
 func (m *RoyaltyReport) GetBSON() (interface{}, error) {
 	st := &MgoRoyaltyReport{
-		Id:         bson.ObjectIdHex(m.Id),
-		MerchantId: bson.ObjectIdHex(m.MerchantId),
-		Status:     m.Status,
-		Deleted:    m.Deleted,
-		Amounts:    m.Amounts,
-		Correction: m.Correction,
-		PayoutId:   m.PayoutId,
+		Id:             bson.ObjectIdHex(m.Id),
+		MerchantId:     bson.ObjectIdHex(m.MerchantId),
+		Status:         m.Status,
+		Deleted:        m.Deleted,
+		Amounts:        m.Amounts,
+		Correction:     m.Correction,
+		PayoutId:       m.PayoutId,
+		IsAutoAccepted: m.IsAutoAccepted,
 	}
 
 	if m.PayoutDate != nil {
@@ -2939,6 +2941,7 @@ func (m *RoyaltyReport) SetBSON(raw bson.Raw) error {
 	m.Amounts = decoded.Amounts
 	m.Correction = decoded.Correction
 	m.PayoutId = decoded.PayoutId
+	m.IsAutoAccepted = decoded.IsAutoAccepted
 	m.PayoutDate, err = ptypes.TimestampProto(decoded.PayoutDate)
 
 	if err != nil {

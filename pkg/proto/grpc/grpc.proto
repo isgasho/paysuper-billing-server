@@ -108,6 +108,7 @@ service BillingService {
     rpc ListRoyaltyReports(ListRoyaltyReportsRequest) returns (ListRoyaltyReportsResponse) {}
     rpc ChangeRoyaltyReport(ChangeRoyaltyReportRequest) returns (ResponseError) {}
     rpc ListRoyaltyReportOrders(ListRoyaltyReportOrdersRequest) returns (ListRoyaltyReportOrdersResponse) {}
+    rpc AutoAcceptRoyaltyReports(EmptyRequest) returns (EmptyResponse) {}
 }
 
 message EmptyRequest {}

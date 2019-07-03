@@ -220,6 +220,7 @@ type BillingService interface {
 	ListRoyaltyReports(ctx context.Context, in *ListRoyaltyReportsRequest, opts ...client.CallOption) (*ListRoyaltyReportsResponse, error)
 	ChangeRoyaltyReport(ctx context.Context, in *ChangeRoyaltyReportRequest, opts ...client.CallOption) (*ResponseError, error)
 	ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, opts ...client.CallOption) (*ListRoyaltyReportOrdersResponse, error)
+	AutoAcceptRoyaltyReports(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*EmptyResponse, error)
 }
 
 type billingService struct {
@@ -1030,6 +1031,16 @@ func (c *billingService) ListRoyaltyReportOrders(ctx context.Context, in *ListRo
 	return out, nil
 }
 
+func (c *billingService) AutoAcceptRoyaltyReports(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*EmptyResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.AutoAcceptRoyaltyReports", in)
+	out := new(EmptyResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for BillingService service
 
 type BillingServiceHandler interface {
@@ -1112,6 +1123,7 @@ type BillingServiceHandler interface {
 	ListRoyaltyReports(context.Context, *ListRoyaltyReportsRequest, *ListRoyaltyReportsResponse) error
 	ChangeRoyaltyReport(context.Context, *ChangeRoyaltyReportRequest, *ResponseError) error
 	ListRoyaltyReportOrders(context.Context, *ListRoyaltyReportOrdersRequest, *ListRoyaltyReportOrdersResponse) error
+	AutoAcceptRoyaltyReports(context.Context, *EmptyRequest, *EmptyResponse) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -1195,6 +1207,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		ListRoyaltyReports(ctx context.Context, in *ListRoyaltyReportsRequest, out *ListRoyaltyReportsResponse) error
 		ChangeRoyaltyReport(ctx context.Context, in *ChangeRoyaltyReportRequest, out *ResponseError) error
 		ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, out *ListRoyaltyReportOrdersResponse) error
+		AutoAcceptRoyaltyReports(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error
 	}
 	type BillingService struct {
 		billingService
@@ -1521,4 +1534,8 @@ func (h *billingServiceHandler) ChangeRoyaltyReport(ctx context.Context, in *Cha
 
 func (h *billingServiceHandler) ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, out *ListRoyaltyReportOrdersResponse) error {
 	return h.BillingServiceHandler.ListRoyaltyReportOrders(ctx, in, out)
+}
+
+func (h *billingServiceHandler) AutoAcceptRoyaltyReports(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error {
+	return h.BillingServiceHandler.AutoAcceptRoyaltyReports(ctx, in, out)
 }

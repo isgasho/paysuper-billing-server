@@ -1223,223 +1223,6 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_Chang
 	assert.Equal(suite.T(), royaltyReportErrorReportStatusChangeDenied, rsp1.Message)
 }
 
-func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_ChangeNotAllowed_PaymentDone_Error() {
-	suite.createOrder(suite.project)
-	req := &grpc.CreateRoyaltyReportRequest{}
-	rsp := &grpc.CreateRoyaltyReportRequest{}
-	err := suite.service.CreateRoyaltyReport(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
-	assert.Empty(suite.T(), rsp.Merchants)
-
-	report := new(billing.RoyaltyReport)
-	err = suite.service.db.Collection(collectionRoyaltyReport).Find(bson.M{}).One(&report)
-	assert.NoError(suite.T(), err)
-	assert.NotNil(suite.T(), report)
-	assert.Equal(suite.T(), pkg.RoyaltyReportStatusNew, report.Status)
-
-	report.Status = pkg.RoyaltyReportStatusPaymentDone
-	err = suite.service.db.Collection(collectionRoyaltyReport).UpdateId(bson.ObjectIdHex(report.Id), report)
-	assert.NoError(suite.T(), err)
-
-	req1 := &grpc.ChangeRoyaltyReportRequest{
-		ReportId: report.Id,
-		Status:   pkg.RoyaltyReportStatusAccepted,
-		Ip:       "127.0.0.1",
-		Source:   "user",
-	}
-	rsp1 := &grpc.ResponseError{}
-	err = suite.service.ChangeRoyaltyReport(context.TODO(), req1, rsp1)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
-	assert.Equal(suite.T(), royaltyReportErrorReportStatusChangeDenied, rsp1.Message)
-}
-
-func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_ChangeNotAllowed_Pending_Error() {
-	suite.createOrder(suite.project)
-	req := &grpc.CreateRoyaltyReportRequest{}
-	rsp := &grpc.CreateRoyaltyReportRequest{}
-	err := suite.service.CreateRoyaltyReport(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
-	assert.Empty(suite.T(), rsp.Merchants)
-
-	report := new(billing.RoyaltyReport)
-	err = suite.service.db.Collection(collectionRoyaltyReport).Find(bson.M{}).One(&report)
-	assert.NoError(suite.T(), err)
-	assert.NotNil(suite.T(), report)
-	assert.Equal(suite.T(), pkg.RoyaltyReportStatusNew, report.Status)
-
-	report.Status = pkg.RoyaltyReportStatusPending
-	err = suite.service.db.Collection(collectionRoyaltyReport).UpdateId(bson.ObjectIdHex(report.Id), report)
-	assert.NoError(suite.T(), err)
-
-	req1 := &grpc.ChangeRoyaltyReportRequest{
-		ReportId: report.Id,
-		Status:   pkg.RoyaltyReportStatusPaymentDone,
-		Ip:       "127.0.0.1",
-		Source:   "user",
-	}
-	rsp1 := &grpc.ResponseError{}
-	err = suite.service.ChangeRoyaltyReport(context.TODO(), req1, rsp1)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
-	assert.Equal(suite.T(), royaltyReportErrorReportStatusChangeDenied, rsp1.Message)
-}
-
-func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_ChangeNotAllowed_Accepted_Error() {
-	suite.createOrder(suite.project)
-	req := &grpc.CreateRoyaltyReportRequest{}
-	rsp := &grpc.CreateRoyaltyReportRequest{}
-	err := suite.service.CreateRoyaltyReport(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
-	assert.Empty(suite.T(), rsp.Merchants)
-
-	report := new(billing.RoyaltyReport)
-	err = suite.service.db.Collection(collectionRoyaltyReport).Find(bson.M{}).One(&report)
-	assert.NoError(suite.T(), err)
-	assert.NotNil(suite.T(), report)
-	assert.Equal(suite.T(), pkg.RoyaltyReportStatusNew, report.Status)
-
-	report.Status = pkg.RoyaltyReportStatusAccepted
-	err = suite.service.db.Collection(collectionRoyaltyReport).UpdateId(bson.ObjectIdHex(report.Id), report)
-	assert.NoError(suite.T(), err)
-
-	req1 := &grpc.ChangeRoyaltyReportRequest{
-		ReportId: report.Id,
-		Status:   pkg.RoyaltyReportStatusPaymentDone,
-		Ip:       "127.0.0.1",
-		Source:   "user",
-	}
-	rsp1 := &grpc.ResponseError{}
-	err = suite.service.ChangeRoyaltyReport(context.TODO(), req1, rsp1)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
-	assert.Equal(suite.T(), royaltyReportErrorReportStatusChangeDenied, rsp1.Message)
-}
-
-func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_ChangeNotAllowed_Canceled_Error() {
-	suite.createOrder(suite.project)
-	req := &grpc.CreateRoyaltyReportRequest{}
-	rsp := &grpc.CreateRoyaltyReportRequest{}
-	err := suite.service.CreateRoyaltyReport(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
-	assert.Empty(suite.T(), rsp.Merchants)
-
-	report := new(billing.RoyaltyReport)
-	err = suite.service.db.Collection(collectionRoyaltyReport).Find(bson.M{}).One(&report)
-	assert.NoError(suite.T(), err)
-	assert.NotNil(suite.T(), report)
-	assert.Equal(suite.T(), pkg.RoyaltyReportStatusNew, report.Status)
-
-	report.Status = pkg.RoyaltyReportStatusCanceled
-	err = suite.service.db.Collection(collectionRoyaltyReport).UpdateId(bson.ObjectIdHex(report.Id), report)
-	assert.NoError(suite.T(), err)
-
-	req1 := &grpc.ChangeRoyaltyReportRequest{
-		ReportId: report.Id,
-		Status:   pkg.RoyaltyReportStatusPaymentDone,
-		Ip:       "127.0.0.1",
-		Source:   "user",
-	}
-	rsp1 := &grpc.ResponseError{}
-	err = suite.service.ChangeRoyaltyReport(context.TODO(), req1, rsp1)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
-	assert.Equal(suite.T(), royaltyReportErrorReportStatusChangeDenied, rsp1.Message)
-}
-
-func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_ChangeNotAllowed_Dispute_Error() {
-	suite.createOrder(suite.project)
-	req := &grpc.CreateRoyaltyReportRequest{}
-	rsp := &grpc.CreateRoyaltyReportRequest{}
-	err := suite.service.CreateRoyaltyReport(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
-	assert.Empty(suite.T(), rsp.Merchants)
-
-	report := new(billing.RoyaltyReport)
-	err = suite.service.db.Collection(collectionRoyaltyReport).Find(bson.M{}).One(&report)
-	assert.NoError(suite.T(), err)
-	assert.NotNil(suite.T(), report)
-	assert.Equal(suite.T(), pkg.RoyaltyReportStatusNew, report.Status)
-
-	report.Status = pkg.RoyaltyReportStatusDispute
-	err = suite.service.db.Collection(collectionRoyaltyReport).UpdateId(bson.ObjectIdHex(report.Id), report)
-	assert.NoError(suite.T(), err)
-
-	req1 := &grpc.ChangeRoyaltyReportRequest{
-		ReportId: report.Id,
-		Status:   pkg.RoyaltyReportStatusPaymentDone,
-		Ip:       "127.0.0.1",
-		Source:   "user",
-	}
-	rsp1 := &grpc.ResponseError{}
-	err = suite.service.ChangeRoyaltyReport(context.TODO(), req1, rsp1)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
-	assert.Equal(suite.T(), royaltyReportErrorReportStatusChangeDenied, rsp1.Message)
-}
-
-func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_ReadyForInvoice_Error() {
-	suite.createOrder(suite.project)
-	req := &grpc.CreateRoyaltyReportRequest{}
-	rsp := &grpc.CreateRoyaltyReportRequest{}
-	err := suite.service.CreateRoyaltyReport(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
-	assert.Empty(suite.T(), rsp.Merchants)
-
-	report := new(billing.RoyaltyReport)
-	err = suite.service.db.Collection(collectionRoyaltyReport).Find(bson.M{}).One(&report)
-	assert.NoError(suite.T(), err)
-	assert.NotNil(suite.T(), report)
-	assert.Equal(suite.T(), pkg.RoyaltyReportStatusNew, report.Status)
-
-	report.Status = pkg.RoyaltyReportStatusReadyForInvoice
-	err = suite.service.db.Collection(collectionRoyaltyReport).UpdateId(bson.ObjectIdHex(report.Id), report)
-	assert.NoError(suite.T(), err)
-
-	req1 := &grpc.ChangeRoyaltyReportRequest{
-		ReportId: report.Id,
-		Status:   pkg.RoyaltyReportStatusNew,
-		Ip:       "127.0.0.1",
-		Source:   "user",
-	}
-	rsp1 := &grpc.ResponseError{}
-	err = suite.service.ChangeRoyaltyReport(context.TODO(), req1, rsp1)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
-	assert.Equal(suite.T(), royaltyReportErrorReportStatusChangeDenied, rsp1.Message)
-}
-
-func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_PaymentInProgress_Error() {
-	suite.createOrder(suite.project)
-	req := &grpc.CreateRoyaltyReportRequest{}
-	rsp := &grpc.CreateRoyaltyReportRequest{}
-	err := suite.service.CreateRoyaltyReport(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
-	assert.Empty(suite.T(), rsp.Merchants)
-
-	report := new(billing.RoyaltyReport)
-	err = suite.service.db.Collection(collectionRoyaltyReport).Find(bson.M{}).One(&report)
-	assert.NoError(suite.T(), err)
-	assert.NotNil(suite.T(), report)
-	assert.Equal(suite.T(), pkg.RoyaltyReportStatusNew, report.Status)
-
-	report.Status = pkg.RoyaltyReportStatusPaymentInProgress
-	err = suite.service.db.Collection(collectionRoyaltyReport).UpdateId(bson.ObjectIdHex(report.Id), report)
-	assert.NoError(suite.T(), err)
-
-	req1 := &grpc.ChangeRoyaltyReportRequest{
-		ReportId: report.Id,
-		Status:   pkg.RoyaltyReportStatusNew,
-		Ip:       "127.0.0.1",
-		Source:   "user",
-	}
-	rsp1 := &grpc.ResponseError{}
-	err = suite.service.ChangeRoyaltyReport(context.TODO(), req1, rsp1)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
-	assert.Equal(suite.T(), royaltyReportErrorReportStatusChangeDenied, rsp1.Message)
-}
-
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_StatusPaymentError_Error() {
 	suite.createOrder(suite.project)
 	req := &grpc.CreateRoyaltyReportRequest{}
@@ -1625,6 +1408,53 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_SendRoyaltyReportNotifica
 
 	messages := recorded.All()
 	assert.Equal(suite.T(), "[Centrifugo] Send merchant notification about new royalty report failed", messages[0].Message)
+}
+
+func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_AutoAcceptRoyaltyReports_Ok() {
+	projects := []*billing.Project{suite.project, suite.project1, suite.project2}
+
+	for _, v := range projects {
+		for i := 0; i < 10; i++ {
+			suite.createOrder(v)
+		}
+	}
+
+	req := &grpc.CreateRoyaltyReportRequest{}
+	rsp := &grpc.CreateRoyaltyReportRequest{}
+	err := suite.service.CreateRoyaltyReport(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Empty(suite.T(), rsp.Merchants)
+
+	_, err = suite.service.db.Collection(collectionRoyaltyReport).
+		UpdateAll(
+			bson.M{"merchant_id": bson.ObjectIdHex(suite.project.GetMerchantId())},
+			bson.M{
+				"$set": bson.M{
+					"accept_expire_at": time.Now().Add(-time.Duration(336) * time.Hour),
+					"status":           pkg.RoyaltyReportStatusPending,
+				},
+			},
+		)
+	assert.NoError(suite.T(), err)
+
+	req1 := &grpc.EmptyRequest{}
+	rsp1 := &grpc.EmptyResponse{}
+	err = suite.service.AutoAcceptRoyaltyReports(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+
+	var reports []*billing.RoyaltyReport
+	err = suite.service.db.Collection(collectionRoyaltyReport).Find(bson.M{}).All(&reports)
+	assert.NoError(suite.T(), err)
+
+	for _, v := range reports {
+		if v.MerchantId == suite.project.GetMerchantId() {
+			assert.True(suite.T(), v.IsAutoAccepted)
+			assert.Equal(suite.T(), pkg.RoyaltyReportStatusAccepted, v.Status)
+		} else {
+			assert.False(suite.T(), v.IsAutoAccepted)
+			assert.Equal(suite.T(), pkg.RoyaltyReportStatusNew, v.Status)
+		}
+	}
 }
 
 func (suite *RoyaltyReportTestSuite) createOrder(project *billing.Project) *billing.Order {

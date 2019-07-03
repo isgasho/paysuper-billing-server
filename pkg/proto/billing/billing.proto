@@ -1440,6 +1440,7 @@ message RoyaltyReport {
     google.protobuf.Timestamp accepted_at = 12;
     RoyaltyReportDetails amounts = 13;
     RoyaltyReportCorrection correction = 14;
+    bool is_auto_accepted = 15;
 }
 
 message RoyaltyReportChanges {

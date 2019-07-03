@@ -137,7 +137,39 @@ func (s *Service) CreateRoyaltyReport(
 	return nil
 }
 
-func (s *Service) ActualizeSkippedRoyaltyReports() error {
+func (s *Service) AutoAcceptRoyaltyReports(
+	ctx context.Context,
+	req *grpc.EmptyRequest,
+	rsp *grpc.EmptyResponse,
+) error {
+	tNow := time.Now()
+	query := bson.M{
+		"accept_expire_at": bson.M{"$lte": tNow},
+		"status":           pkg.RoyaltyReportStatusPending,
+		"deleted":          false,
+	}
+	set := bson.M{
+		"$set": bson.M{
+			"status":           pkg.RoyaltyReportStatusAccepted,
+			"accepted_at":      tNow,
+			"is_auto_accepted": true,
+			"updated_at":       tNow,
+		},
+	}
+	_, err := s.db.Collection(collectionRoyaltyReport).UpdateAll(query, set)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(errorFieldCollection, collectionRoyaltyReport),
+			zap.Any(errorFieldQuery, query),
+			zap.Any("set", set),
+		)
+
+		return err
+	}
+
 	return nil
 }
 
@@ -252,6 +284,7 @@ func (s *Service) ChangeRoyaltyReport(
 		AcceptedAt:     report.AcceptedAt,
 		Amounts:        report.Amounts,
 		Correction:     report.Correction,
+		IsAutoAccepted: report.IsAutoAccepted,
 	}
 
 	report.Status = req.Status
@@ -518,8 +551,9 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(merchantId bson.ObjectId) (
 			PayoutAmount:      tools.FormatAmount(grossAmount - feeAmount - taxFeeAmount),
 			Currency:          merchant.GetPayoutCurrency().CodeA3,
 		},
-		Status:    pkg.RoyaltyReportStatusNew,
-		CreatedAt: ptypes.TimestampNow(),
+		Status:         pkg.RoyaltyReportStatusNew,
+		CreatedAt:      ptypes.TimestampNow(),
+		IsAutoAccepted: false,
 	}
 
 	report.PeriodFrom, _ = ptypes.TimestampProto(h.from)

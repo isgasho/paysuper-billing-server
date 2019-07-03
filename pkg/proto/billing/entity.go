@@ -200,7 +200,7 @@ func (m *Merchant) GetAuthorizedEmail() string {
 }
 
 func (m *RoyaltyReport) ChangesAvailable(newStatus string) bool {
-	if m.Status == pkg.RoyaltyReportStatusSkipped || m.Status == pkg.RoyaltyReportStatusPaymentDone {
+	if m.Status == pkg.RoyaltyReportStatusAccepted {
 		return false
 	}
 
@@ -208,12 +208,8 @@ func (m *RoyaltyReport) ChangesAvailable(newStatus string) bool {
 		return false
 	}
 
-	if m.Status == pkg.RoyaltyReportStatusPending && newStatus != pkg.RoyaltyReportStatusSkipped &&
-		newStatus != pkg.RoyaltyReportStatusAccepted && newStatus != pkg.RoyaltyReportStatusDispute {
-		return false
-	}
-
-	if m.Status == pkg.RoyaltyReportStatusAccepted && newStatus != pkg.RoyaltyReportStatusReadyForInvoice {
+	if m.Status == pkg.RoyaltyReportStatusPending && newStatus != pkg.RoyaltyReportStatusAccepted &&
+		newStatus != pkg.RoyaltyReportStatusDispute {
 		return false
 	}
 
@@ -222,20 +218,6 @@ func (m *RoyaltyReport) ChangesAvailable(newStatus string) bool {
 	}
 
 	if m.Status == pkg.RoyaltyReportStatusDispute && newStatus != pkg.RoyaltyReportStatusPending {
-		return false
-	}
-
-	if m.Status == pkg.RoyaltyReportStatusReadyForInvoice && newStatus != pkg.RoyaltyReportStatusPaymentInProgress {
-		return false
-	}
-
-	if m.Status == pkg.RoyaltyReportStatusPaymentInProgress && newStatus != pkg.RoyaltyReportStatusPaymentDone &&
-		newStatus != pkg.RoyaltyReportStatusPaymentError {
-		return false
-	}
-
-	if m.Status == pkg.RoyaltyReportStatusPaymentError && newStatus != pkg.RoyaltyReportStatusPaymentInProgress &&
-		newStatus != pkg.RoyaltyReportStatusSkipped {
 		return false
 	}
 
