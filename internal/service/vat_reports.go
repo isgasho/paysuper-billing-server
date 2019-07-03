@@ -22,22 +22,6 @@ import (
 const (
 	collectionVatTransactions = "vat_transactions"
 	collectionVatReports      = "vat_reports"
-
-	VatTransactionTypePayment    = "payment"
-	VatTransactionTypeRefund     = "refund"
-	VatTransactionTypeChargeback = "chargeback"
-
-	VatCurrencyRatesPolicyOnDay    = "on-day"
-	VatCurrencyRatesPolicyLastDay  = "last-day"
-	VatCurrencyRatesPolicyAvgMonth = "avg-month"
-
-	VatReportStatusThreshold = "threshold"
-	VatReportStatusExpired   = "expired"
-	VatReportStatusPending   = "pending"
-	VatReportStatusNeedToPay = "need_to_pay"
-	VatReportStatusPaid      = "paid"
-	VatReportStatusOverdue   = "overdue"
-	VatReportStatusCanceled  = "canceled"
 )
 
 var (
@@ -48,28 +32,31 @@ var (
 	errorVatReportTransactionsInconsistent      = newBillingServerErrorMsg("vr000005", "vat transactions inconsistent")
 	errorVatReportStatusChangeNotAllowed        = newBillingServerErrorMsg("vr000006", "vat report status change not allowed")
 	errorVatReportStatusChangeFailed            = newBillingServerErrorMsg("vr000007", "vat report status change failed")
+	errorVatReportQueryError                    = newBillingServerErrorMsg("vr000008", "vat report db query error")
+	errorVatReportNotFound                      = newBillingServerErrorMsg("vr000009", "vat report not found")
+	errorVatReportInternal                      = newBillingServerErrorMsg("vr000010", "vat report internal error")
 
 	VatReportOnStatusNotifyToCentrifugo = []string{
-		VatReportStatusNeedToPay,
-		VatReportStatusPaid,
-		VatReportStatusOverdue,
-		VatReportStatusCanceled,
+		pkg.VatReportStatusNeedToPay,
+		pkg.VatReportStatusPaid,
+		pkg.VatReportStatusOverdue,
+		pkg.VatReportStatusCanceled,
 	}
 
 	VatReportOnStatusNotifyToEmail = []string{
-		VatReportStatusNeedToPay,
-		VatReportStatusOverdue,
-		VatReportStatusCanceled,
+		pkg.VatReportStatusNeedToPay,
+		pkg.VatReportStatusOverdue,
+		pkg.VatReportStatusCanceled,
 	}
 
 	VatReportStatusAllowManualChangeFrom = []string{
-		VatReportStatusNeedToPay,
-		VatReportStatusOverdue,
+		pkg.VatReportStatusNeedToPay,
+		pkg.VatReportStatusOverdue,
 	}
 
 	VatReportStatusAllowManualChangeTo = []string{
-		VatReportStatusPaid,
-		VatReportStatusCanceled,
+		pkg.VatReportStatusPaid,
+		pkg.VatReportStatusCanceled,
 	}
 )
 
@@ -120,6 +107,38 @@ func (s *Service) GetVatReportsDashboard(
 	req *grpc.EmptyRequest,
 	res *grpc.VatReportsResponse,
 ) error {
+
+	res.Status = pkg.ResponseStatusOk
+
+	query := bson.M{
+		"status": bson.M{"$in": []string{pkg.VatReportStatusThreshold, pkg.VatReportStatusNeedToPay, pkg.VatReportStatusOverdue}},
+	}
+
+	sort := []string{"country", "status"}
+	var reports []*billing.VatReport
+	err := s.db.Collection(collectionVatReports).Find(query).Sort(sort...).All(&reports)
+	if err != nil {
+		if err == mgo.ErrNotFound {
+			res.Status = pkg.ResponseStatusNotFound
+			res.Message = errorVatReportNotFound
+			return nil
+		}
+
+		zap.L().Error(
+			errorVatReportQueryError.Message,
+			zap.Error(err),
+		)
+
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorVatReportQueryError
+		return nil
+	}
+
+	res.Data = &grpc.VatReportsPaginate{
+		Count: int32(len(reports)),
+		Items: reports,
+	}
+
 	return nil
 }
 
@@ -128,6 +147,48 @@ func (s *Service) GetVatReportsForCountry(
 	req *grpc.VatReportsRequest,
 	res *grpc.VatReportsResponse,
 ) error {
+
+	res.Status = pkg.ResponseStatusOk
+
+	query := bson.M{
+		"country": req.Country,
+	}
+
+	sort := req.Sort
+	if len(sort) == 0 {
+		sort = []string{"-date_from"}
+	}
+
+	var reports []*billing.VatReport
+	err := s.db.Collection(collectionVatReports).
+		Find(query).
+		Sort(sort...).
+		Limit(int(req.Limit)).
+		Skip(int(req.Offset)).
+		All(&reports)
+
+	if err != nil {
+		if err == mgo.ErrNotFound {
+			res.Status = pkg.ResponseStatusNotFound
+			res.Message = errorVatReportNotFound
+			return nil
+		}
+
+		zap.L().Error(
+			errorVatReportQueryError.Message,
+			zap.Error(err),
+		)
+
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorVatReportQueryError
+		return nil
+	}
+
+	res.Data = &grpc.VatReportsPaginate{
+		Count: int32(len(reports)),
+		Items: reports,
+	}
+
 	return nil
 }
 
@@ -136,6 +197,54 @@ func (s *Service) GetVatReportTransactions(
 	req *grpc.VatTransactionsRequest,
 	res *grpc.VatTransactionsResponse,
 ) error {
+	res.Status = pkg.ResponseStatusOk
+
+	query := bson.M{
+		"_id": bson.ObjectIdHex(req.VatReportId),
+	}
+
+	var vr *billing.VatReport
+	err := s.db.Collection(collectionVatReports).Find(query).One(&vr)
+	if err != nil {
+		if err == mgo.ErrNotFound {
+			res.Status = pkg.ResponseStatusNotFound
+			res.Message = errorVatReportNotFound
+			return nil
+		}
+
+		zap.L().Error(
+			errorVatReportQueryError.Message,
+			zap.Error(err),
+		)
+
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorVatReportQueryError
+		return nil
+	}
+
+	from, err := ptypes.Timestamp(vr.DateFrom)
+	if err != nil {
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorVatReportInternal
+		return nil
+	}
+	to, err := ptypes.Timestamp(vr.DateTo)
+	if err != nil {
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorVatReportInternal
+		return nil
+	}
+
+	vts, err := s.getVatTransactions(from, to, vr.Country, int(req.Limit), int(req.Offset))
+	if err != nil {
+		return err
+	}
+
+	res.Data = &grpc.VatTransactionsPaginate{
+		Count: int32(len(vts)),
+		Items: vts,
+	}
+
 	return nil
 }
 
@@ -171,7 +280,7 @@ func (s *Service) UpdateVatReportStatus(
 	res *grpc.ResponseError,
 ) error {
 
-	res.Status = pkg.StatusOK
+	res.Status = pkg.ResponseStatusOk
 
 	query := bson.M{
 		"_id": bson.ObjectIdHex(req.Id),
@@ -180,7 +289,20 @@ func (s *Service) UpdateVatReportStatus(
 	var vr *billing.VatReport
 	err := s.db.Collection(collectionVatReports).Find(query).One(&vr)
 	if err != nil {
-		return err
+		if err == mgo.ErrNotFound {
+			res.Status = pkg.ResponseStatusNotFound
+			res.Message = errorVatReportNotFound
+			return nil
+		}
+
+		zap.L().Error(
+			errorVatReportQueryError.Message,
+			zap.Error(err),
+		)
+
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorVatReportQueryError
+		return nil
 	}
 
 	if !contains(VatReportStatusAllowManualChangeFrom, vr.Status) {
@@ -199,7 +321,7 @@ func (s *Service) UpdateVatReportStatus(
 
 	err = s.updateVatReport(vr)
 	if err != nil {
-		res.Status = pkg.StatusErrorSystem
+		res.Status = pkg.ResponseStatusSystemError
 		res.Message = errorVatReportStatusChangeFailed
 		return nil
 	}
@@ -207,16 +329,15 @@ func (s *Service) UpdateVatReportStatus(
 	return nil
 }
 
-func (s *Service) addVatTransaction(vt *billing.VatTransaction) error {
+func (s *Service) insertVatTransaction(vt *billing.VatTransaction) error {
 	return s.db.Collection(collectionVatTransactions).Insert(vt)
 }
 
 func (s *Service) updateVatTransaction(vt *billing.VatTransaction) error {
-	_, err := s.db.Collection(collectionVatTransactions).UpsertId(bson.ObjectIdHex(vt.Id), vt)
-	return err
+	return s.db.Collection(collectionVatTransactions).UpdateId(bson.ObjectIdHex(vt.Id), vt)
 }
 
-func (s *Service) getVatTransactions(from, to time.Time, country string) ([]*billing.VatTransaction, error) {
+func (s *Service) getVatTransactions(from, to time.Time, country string, pagination ...int) ([]*billing.VatTransaction, error) {
 	query := bson.M{
 		"date_time": bson.M{
 			"$gte": bod(from),
@@ -226,7 +347,18 @@ func (s *Service) getVatTransactions(from, to time.Time, country string) ([]*bil
 	}
 
 	var transactions []*billing.VatTransaction
-	err := s.db.Collection(collectionVatTransactions).Find(query).Sort("date_time").All(&transactions)
+	dbRequest := s.db.Collection(collectionVatTransactions).Find(query).Sort("date_time")
+
+	if pagination != nil {
+		if val := pagination[0]; val > 0 {
+			dbRequest.Limit(val)
+		}
+		if val := pagination[1]; val > 0 {
+			dbRequest.Skip(val)
+		}
+	}
+
+	err := dbRequest.All(&transactions)
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +366,7 @@ func (s *Service) getVatTransactions(from, to time.Time, country string) ([]*bil
 	return transactions, nil
 }
 
-func (s *Service) addVatReport(vr *billing.VatReport) error {
+func (s *Service) insertVatReport(vr *billing.VatReport) error {
 	return s.db.Collection(collectionVatReports).Insert(vr)
 }
 
@@ -327,7 +459,7 @@ func (h *vatReportProcessor) ProcessVatReportsStatus() error {
 	currentUnixTime := time.Now().Unix()
 
 	query := bson.M{
-		"status": bson.M{"$in": []string{VatReportStatusThreshold, VatReportStatusNeedToPay}},
+		"status": bson.M{"$in": []string{pkg.VatReportStatusThreshold, pkg.VatReportStatusNeedToPay}},
 	}
 
 	var reports []*billing.VatReport
@@ -350,13 +482,13 @@ func (h *vatReportProcessor) ProcessVatReportsStatus() error {
 			continue
 		}
 
-		if report.Status == VatReportStatusNeedToPay {
+		if report.Status == pkg.VatReportStatusNeedToPay {
 			reportDeadline, err := ptypes.Timestamp(report.PayUntilDate)
 			if err != nil {
 				return err
 			}
 			if currentUnixTime >= reportDeadline.Unix() {
-				report.Status = VatReportStatusOverdue
+				report.Status = pkg.VatReportStatusOverdue
 				return h.Service.updateVatReport(report)
 			}
 		}
@@ -365,9 +497,9 @@ func (h *vatReportProcessor) ProcessVatReportsStatus() error {
 			(country.VatThreshold.World > 0 && report.WorldAnnualTurnover >= country.VatThreshold.World)
 
 		if thresholdExceeded {
-			report.Status = VatReportStatusNeedToPay
+			report.Status = pkg.VatReportStatusNeedToPay
 		} else {
-			report.Status = VatReportStatusExpired
+			report.Status = pkg.VatReportStatusExpired
 		}
 		return h.Service.updateVatReport(report)
 	}
@@ -416,7 +548,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 		Country:          country.IsoCodeA2,
 		VatRate:          country.VatRate,
 		Currency:         country.Currency,
-		Status:           VatReportStatusThreshold,
+		Status:           pkg.VatReportStatusThreshold,
 		CorrectionAmount: 0,
 	}
 
@@ -509,7 +641,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 		"country":   report.Country,
 		"date_from": report.DateFrom,
 		"date_to":   report.DateTo,
-		"status":    VatReportStatusThreshold,
+		"status":    pkg.VatReportStatusThreshold,
 	}
 
 	var vr *billing.VatReport
@@ -517,7 +649,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 
 	if err == mgo.ErrNotFound {
 		report.Id = bson.NewObjectId().Hex()
-		return h.Service.addVatReport(report)
+		return h.Service.insertVatReport(report)
 	}
 
 	if err != nil {
@@ -534,11 +666,11 @@ func (h *vatReportProcessor) processVatTransactionsForPeriod(country *billing.Co
 		return errorVatReportNotEnabledForCountry
 	}
 
-	if country.VatCurrencyRatesPolicy == VatCurrencyRatesPolicyOnDay {
+	if country.VatCurrencyRatesPolicy == pkg.VatCurrencyRatesPolicyOnDay {
 		return nil
 	}
 
-	if country.VatCurrencyRatesPolicy == VatCurrencyRatesPolicyAvgMonth {
+	if country.VatCurrencyRatesPolicy == pkg.VatCurrencyRatesPolicyAvgMonth {
 		return errorVatReportRatesPolicyNotImplemented
 	}
 

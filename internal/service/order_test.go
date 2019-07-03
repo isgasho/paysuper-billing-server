@@ -6317,7 +6317,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_AccountingEntries_
 
 	assert.Equal(suite.T(), vt.OrderId, order.Id)
 	assert.Equal(suite.T(), vt.UserId, order.User.Id)
-	assert.Equal(suite.T(), vt.TransactionType, VatTransactionTypePayment)
+	assert.Equal(suite.T(), vt.TransactionType, pkg.VatTransactionTypePayment)
 	assert.Equal(suite.T(), vt.TransactionAmount, order.TotalPaymentAmount)
 	assert.Equal(suite.T(), vt.TransactionCurrency, order.Currency)
 	assert.Equal(suite.T(), vt.VatAmount, order.Tax.Amount)

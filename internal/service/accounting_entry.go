@@ -2303,7 +2303,7 @@ func (h *accountingEntry) createVatTransaction() error {
 		BillingAddress:          order.User.Address,
 		Country:                 country.IsoCodeA2,
 		LocalCurrency:           country.Currency,
-		LocalAmountsApproximate: country.VatCurrencyRatesPolicy != VatCurrencyRatesPolicyOnDay,
+		LocalAmountsApproximate: country.VatCurrencyRatesPolicy != pkg.VatCurrencyRatesPolicyOnDay,
 	}
 	if order.BillingAddress != nil {
 		t.BillingAddressCriteria = "form"
@@ -2316,9 +2316,9 @@ func (h *accountingEntry) createVatTransaction() error {
 		multiplier = float64(-1)
 
 		if h.refund.IsChargeback {
-			t.TransactionType = VatTransactionTypeChargeback
+			t.TransactionType = pkg.VatTransactionTypeChargeback
 		} else {
-			t.TransactionType = VatTransactionTypeRefund
+			t.TransactionType = pkg.VatTransactionTypeRefund
 		}
 		t.DateTime = h.refund.UpdatedAt
 
@@ -2335,7 +2335,7 @@ func (h *accountingEntry) createVatTransaction() error {
 		t.IsDeduction = orderPaidAt.Unix() < from.Unix()
 
 	} else {
-		t.TransactionType = VatTransactionTypePayment
+		t.TransactionType = pkg.VatTransactionTypePayment
 		t.DateTime = order.PaymentMethodOrderClosedAt
 	}
 
@@ -2456,7 +2456,7 @@ func (h *accountingEntry) createVatTransaction() error {
 		}
 	}
 
-	return h.Service.addVatTransaction(t)
+	return h.Service.insertVatTransaction(t)
 }
 
 func (h *accountingEntry) updateVatTransaction() error {

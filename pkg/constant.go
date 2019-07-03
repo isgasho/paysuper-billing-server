@@ -206,6 +206,22 @@ const (
 
 	EmailVatReportSubject = "Vat report status changed"
 	EmailVatReportMessage = "Vat report for %s country changed his status to %s"
+
+	VatTransactionTypePayment    = "payment"
+	VatTransactionTypeRefund     = "refund"
+	VatTransactionTypeChargeback = "chargeback"
+
+	VatCurrencyRatesPolicyOnDay    = "on-day"
+	VatCurrencyRatesPolicyLastDay  = "last-day"
+	VatCurrencyRatesPolicyAvgMonth = "avg-month"
+
+	VatReportStatusThreshold = "threshold"
+	VatReportStatusExpired   = "expired"
+	VatReportStatusPending   = "pending"
+	VatReportStatusNeedToPay = "need_to_pay"
+	VatReportStatusPaid      = "paid"
+	VatReportStatusOverdue   = "overdue"
+	VatReportStatusCanceled  = "canceled"
 )
 
 var (

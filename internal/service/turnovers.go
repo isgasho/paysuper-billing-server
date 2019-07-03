@@ -82,10 +82,10 @@ func (s *Service) calcAnnualTurnover(ctx context.Context, countryCode string) er
 	}
 
 	switch currencyPolicy {
-	case VatCurrencyRatesPolicyOnDay:
+	case pkg.VatCurrencyRatesPolicyOnDay:
 		amount, err = s.getTurnover(ctx, from, to, countryCode, targetCurrency, currencyPolicy, ratesSource)
 		break
-	case VatCurrencyRatesPolicyLastDay:
+	case pkg.VatCurrencyRatesPolicyLastDay:
 		from, to, err = s.getLastVatReportTime(VatPeriodMonth)
 		if err != nil {
 			return err
@@ -149,10 +149,10 @@ func (s *Service) getTurnover(ctx context.Context, from, to time.Time, countryCo
 	}
 
 	switch currencyPolicy {
-	case VatCurrencyRatesPolicyOnDay:
+	case pkg.VatCurrencyRatesPolicyOnDay:
 		query = append(query, bson.M{"$group": bson.M{"_id": "$local_currency", "amount": bson.M{"$sum": "$local_amount"}}})
 		break
-	case VatCurrencyRatesPolicyLastDay:
+	case pkg.VatCurrencyRatesPolicyLastDay:
 		query = append(query, bson.M{"$group": bson.M{"_id": "$original_currency", "amount": bson.M{"$sum": "$original_amount"}}})
 		break
 	default:

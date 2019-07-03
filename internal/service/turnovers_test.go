@@ -310,10 +310,10 @@ func (suite *TurnoversTestSuite) getTurnoverReference(from, to time.Time, countr
 	}
 
 	switch currencyPolicy {
-	case VatCurrencyRatesPolicyOnDay:
+	case pkg.VatCurrencyRatesPolicyOnDay:
 		query = append(query, bson.M{"$group": bson.M{"_id": "$local_currency", "amount": bson.M{"$sum": "$local_amount"}}})
 		break
-	case VatCurrencyRatesPolicyLastDay:
+	case pkg.VatCurrencyRatesPolicyLastDay:
 		query = append(query, bson.M{"$group": bson.M{"_id": "$original_currency", "amount": bson.M{"$sum": "$original_amount"}}})
 		break
 	default:
