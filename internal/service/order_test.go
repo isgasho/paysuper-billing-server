@@ -733,18 +733,40 @@ func (suite *OrderTestSuite) SetupTest() {
 		suite.FailNow("Insert commission test data failed", "%v", err)
 	}
 
-	bin := &BinData{
-		Id:                 bson.NewObjectId(),
-		CardBin:            400000,
-		CardBrand:          "MASTERCARD",
-		CardType:           "DEBIT",
-		CardCategory:       "WORLD",
-		BankName:           "ALFA BANK",
-		BankCountryName:    "UKRAINE",
-		BankCountryIsoCode: "US",
+	bin := []interface{}{
+		&BinData{
+			Id:                 bson.NewObjectId(),
+			CardBin:            400000,
+			CardBrand:          "MASTERCARD",
+			CardType:           "DEBIT",
+			CardCategory:       "WORLD",
+			BankName:           "ALFA BANK",
+			BankCountryName:    "USA",
+			BankCountryIsoCode: "US",
+		},
+		&BinData{
+			Id:                 bson.NewObjectId(),
+			CardBin:            400001,
+			CardBrand:          "MASTERCARD",
+			CardType:           "DEBIT",
+			CardCategory:       "WORLD",
+			BankName:           "ALFA BANK",
+			BankCountryName:    "UKRAINE",
+			BankCountryIsoCode: "UA",
+		},
+		&BinData{
+			Id:                 bson.NewObjectId(),
+			CardBin:            400002,
+			CardBrand:          "MASTERCARD",
+			CardType:           "DEBIT",
+			CardCategory:       "WORLD",
+			BankName:           "ALFA BANK",
+			BankCountryName:    "BELARUS",
+			BankCountryIsoCode: "BY",
+		},
 	}
 
-	err = db.Collection(collectionBinData).Insert(bin)
+	err = db.Collection(collectionBinData).Insert(bin...)
 
 	if err != nil {
 		suite.FailNow("Insert BIN test data failed", "%v", err)
@@ -3017,8 +3039,11 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_Ok() {
 	assert.False(suite.T(), order.UserAddressDataRequired)
 	assert.Equal(suite.T(), order.PrivateStatus, int32(constant.OrderStatusNew))
 
-	req1 := &grpc.PaymentFormJsonDataRequest{OrderId: order.Uuid, Scheme: "https", Host: "unit.test",
-		Ip: "94.131.198.60", // Ukrainian IP -> payments not allowed but available to change country
+	req1 := &grpc.PaymentFormJsonDataRequest{
+		OrderId: order.Uuid,
+		Scheme:  "https",
+		Host:    "unit.test",
+		Ip:      "94.131.198.60", // Ukrainian IP -> payments not allowed but available to change country
 	}
 	rsp := &grpc.PaymentFormJsonDataResponse{}
 	err = suite.service.PaymentFormJsonDataProcess(context.TODO(), req1, rsp)
@@ -4404,7 +4429,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_Qiwi_Ok(
 	req1 := &grpc.PaymentFormUserChangePaymentAccountRequest{
 		OrderId:  rsp.Uuid,
 		MethodId: suite.paymentMethodWithInactivePaymentSystem.Id,
-		Account:  "375444190039",
+		Account:  "380444190039",
 	}
 	rsp1 := &grpc.PaymentFormDataChangeResponse{}
 	err = suite.service.PaymentFormPaymentAccountChanged(context.TODO(), req1, rsp1)
@@ -4413,7 +4438,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_Qiwi_Ok(
 	assert.Empty(suite.T(), rsp1.Message)
 	assert.NotNil(suite.T(), rsp1.Item)
 	assert.True(suite.T(), rsp1.Item.UserAddressDataRequired)
-	assert.Equal(suite.T(), "BY", rsp1.Item.UserIpData.Country)
+	assert.Equal(suite.T(), "UA", rsp1.Item.UserIpData.Country)
 	assert.Equal(suite.T(), rsp.User.Address.PostalCode, rsp1.Item.UserIpData.Zip)
 	assert.Equal(suite.T(), rsp.User.Address.City, rsp1.Item.UserIpData.City)
 	assert.Empty(suite.T(), rsp1.Item.Brand)
@@ -6152,4 +6177,94 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequi
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.RedirectUrl)
 	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionZipCode), rsp1.Message.Message)
+}
+
+func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_CountryRestricted_ChangeAllowed_Error() {
+	req := &billing.OrderCreateRequest{
+		ProjectId:   suite.project.Id,
+		Currency:    "RUB",
+		Amount:      100,
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+	}
+
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
+	assert.True(suite.T(), len(rsp.Id) > 0)
+
+	req1 := &grpc.PaymentFormUserChangePaymentAccountRequest{
+		OrderId:  rsp.Uuid,
+		MethodId: suite.paymentMethod.Id,
+		Account:  "4000010000000002",
+	}
+	rsp1 := &grpc.PaymentFormDataChangeResponse{}
+	err = suite.service.PaymentFormPaymentAccountChanged(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.Empty(suite.T(), rsp1.Message)
+	assert.NotNil(suite.T(), rsp1.Item)
+	assert.True(suite.T(), rsp1.Item.UserAddressDataRequired)
+	assert.Equal(suite.T(), "UA", rsp1.Item.UserIpData.Country)
+	assert.Equal(suite.T(), "MASTERCARD", rsp1.Item.Brand)
+	assert.True(suite.T(), rsp1.Item.CountryChangeAllowed)
+	assert.False(suite.T(), rsp1.Item.CountryPaymentsAllowed)
+
+	order, err := suite.service.getOrderByUuid(rsp.Uuid)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), order)
+	assert.Equal(suite.T(), "UA", order.User.Address.Country)
+}
+
+func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_CountryRestricted_ChangeNotAllowed_Error() {
+	req := &billing.OrderCreateRequest{
+		ProjectId:   suite.project.Id,
+		Currency:    "RUB",
+		Amount:      100,
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+	}
+
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
+	assert.True(suite.T(), len(rsp.Id) > 0)
+
+	req1 := &grpc.PaymentFormUserChangePaymentAccountRequest{
+		OrderId:  rsp.Uuid,
+		MethodId: suite.paymentMethod.Id,
+		Account:  "4000020000000002",
+	}
+	rsp1 := &grpc.PaymentFormDataChangeResponse{}
+	err = suite.service.PaymentFormPaymentAccountChanged(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusForbidden, rsp1.Status)
+	assert.Equal(suite.T(), orderCountryPaymentRestrictedError, rsp1.Message)
+
+	order, err := suite.service.getOrderByUuid(rsp.Uuid)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), order)
+
+	assert.NotNil(suite.T(), order.CountryRestriction)
+	assert.Equal(suite.T(), order.CountryRestriction.IsoCodeA2, "BY")
+	assert.False(suite.T(), order.CountryRestriction.PaymentsAllowed)
+	assert.False(suite.T(), order.CountryRestriction.ChangeAllowed)
+	assert.True(suite.T(), order.UserAddressDataRequired)
+	assert.Equal(suite.T(), "BY", order.User.Address.Country)
 }

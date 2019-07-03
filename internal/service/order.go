@@ -912,6 +912,22 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		return nil
 	}
 
+	restricted, err := s.applyCountryRestriction(order, country)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = orderErrorUnknown
+
+		return nil
+	}
+
+	if restricted == true {
+		rsp.Status = pkg.ResponseStatusForbidden
+		rsp.Message = orderCountryPaymentRestrictedError
+
+		return nil
+	}
+
 	rsp.Item.UserAddressDataRequired = true
 	rsp.Item.UserIpData = &grpc.UserIpData{
 		Country: order.User.Address.Country,
@@ -919,6 +935,14 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		Zip:     order.User.Address.PostalCode,
 	}
 	rsp.Item.Brand = brand
+
+	if order.CountryRestriction != nil {
+		rsp.Item.CountryPaymentsAllowed = order.CountryRestriction.PaymentsAllowed
+		rsp.Item.CountryChangeAllowed = order.CountryRestriction.ChangeAllowed
+	} else {
+		rsp.Item.CountryPaymentsAllowed = true
+		rsp.Item.CountryChangeAllowed = true
+	}
 
 	return nil
 }
