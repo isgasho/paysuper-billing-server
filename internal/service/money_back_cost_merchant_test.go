@@ -62,7 +62,18 @@ func (suite *MoneyBackCostMerchantTestSuite) SetupTest() {
 
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache, nil, nil)
+	suite.service = NewBillingService(
+		db,
+		cfg,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		suite.cache,
+		mock.NewCurrencyServiceMockOk(),
+		nil,
+	)
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -222,17 +233,18 @@ func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_GrpcGet_O
 
 func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_GrpcSet_Ok() {
 	req := &billing.MoneyBackCostMerchant{
-		Id:             suite.moneyBackCostMerchantId,
-		MerchantId:     suite.merchantId,
-		Name:           "VISA",
-		PayoutCurrency: "USD",
-		UndoReason:     "chargeback",
-		Region:         "CIS",
-		Country:        "AZ",
-		DaysFrom:       0,
-		PaymentStage:   1,
-		Percent:        3.33,
-		FixAmount:      7.5,
+		Id:                suite.moneyBackCostMerchantId,
+		MerchantId:        suite.merchantId,
+		Name:              "VISA",
+		PayoutCurrency:    "USD",
+		UndoReason:        "chargeback",
+		Region:            "CIS",
+		Country:           "AZ",
+		DaysFrom:          0,
+		PaymentStage:      1,
+		Percent:           3.33,
+		FixAmount:         7.5,
+		FixAmountCurrency: "USD",
 	}
 
 	res := grpc.MoneyBackCostMerchantResponse{}

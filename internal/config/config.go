@@ -70,6 +70,9 @@ type Config struct {
 func NewConfig() (*Config, error) {
 	cfg := &Config{}
 	err := envconfig.Process("", cfg)
+	if err != nil {
+		return nil, err
+	}
 
 	if err != nil {
 		return nil, err

@@ -51,6 +51,12 @@ func (suite *AccountingEntryTestSuite) SetupTest() {
 		Name:     &billing.Name{Ru: "Российский рубль", En: "Russian ruble"},
 		IsActive: true,
 	}
+	usd := &billing.Currency{
+		CodeInt:  840,
+		CodeA3:   "USD",
+		Name:     &billing.Name{Ru: "Доллар США", En: "US Dollar"},
+		IsActive: true,
+	}
 
 	rate := &billing.CurrencyRate{
 		CurrencyFrom: 643,
@@ -150,7 +156,7 @@ func (suite *AccountingEntryTestSuite) SetupTest() {
 					Fee: 2.5,
 					PerTransaction: &billing.MerchantPaymentMethodPerTransactionCommission{
 						Fee:      30,
-						Currency: rub.CodeA3,
+						Currency: usd.CodeA3,
 					},
 				},
 				Integration: &billing.MerchantPaymentMethodIntegration{
@@ -874,7 +880,10 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_TaxFee_OrderNotSet_Er
 
 func (suite *AccountingEntryTestSuite) TestAccountingEntry_TaxFee_ExchangeCurrencyCurrentForMerchantRequest_Error() {
 	suite.service.curService = mock.NewCurrencyServiceMockError()
-	handler := &accountingEntry{Service: suite.service, order: suite.createOrder(), ctx: context.TODO()}
+	order := suite.createOrder()
+	order.Tax.Currency = "USD"
+	order.RoyaltyData = &billing.RoyaltyData{}
+	handler := &accountingEntry{Service: suite.service, order: order, ctx: context.TODO()}
 	err := handler.taxFee()
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), accountingEntryErrorExchangeFailed, err)
@@ -1067,6 +1076,9 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_RefundBody_ExchangeCu
 	order := suite.createOrder()
 	refund := suite.createRefund(order)
 
+	order.Tax.Currency = "USD"
+	order.RoyaltyData = &billing.RoyaltyData{}
+
 	handler := &accountingEntry{
 		Service: suite.service,
 		order:   order,
@@ -1110,6 +1122,9 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_ReverseTaxFee_RefundN
 func (suite *AccountingEntryTestSuite) TestAccountingEntry_ReverseTaxFee_ExchangeCurrencyCurrentForMerchantRequest_Error() {
 	order := suite.createOrder()
 	refund := suite.createRefund(order)
+
+	order.Tax.Currency = "USD"
+	order.RoyaltyData = &billing.RoyaltyData{}
 
 	handler := &accountingEntry{
 		Service: suite.service,
