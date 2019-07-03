@@ -611,7 +611,7 @@ message PaymentMethodOrder {
 message PaymentMethodParams {
     // @inject_tag: bson:"currency" json:"currency" validate:"required,alpha,len=3"
     string currency = 1;
-    // @inject_tag: bson:"terminal_id" json:"currency" validate:"omitempty,alphanum"
+    // @inject_tag: bson:"terminal_id" json:"terminal_id" validate:"omitempty,alphanum"
     string terminal_id = 2;
     // @inject_tag: bson:"secret" json:"secret" validate:"omitempty"
     string secret = 3;

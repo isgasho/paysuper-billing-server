@@ -14,6 +14,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/micro/go-micro"
+	"github.com/micro/go-plugins/selector/static"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/service"
@@ -31,6 +32,7 @@ import (
 	"gopkg.in/gomail.v2"
 	"log"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -111,6 +113,11 @@ func (app *Application) Init() {
 			app.Stop()
 			return nil
 		}),
+	}
+
+	if os.Getenv("MICRO_SELECTOR") == "static" {
+		log.Println("Use micro selector `static`")
+		options = append(options, micro.Selector(static.NewSelector()))
 	}
 
 	app.logger.Info("Initialize micro service")
