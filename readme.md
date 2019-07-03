@@ -31,6 +31,7 @@ This service contain all business logic for payment processing
 | SMTP_PORT                            | true     | -                     | SMTP server port                                                                                                                    |
 | SMTP_USER                            | true     | -                     | User account to authorize on SMTP server                                                                                            |
 | SMTP_PASSWORD                        | true     | -                     | Password to authorize user on SMTP server                                                                                           |
+| EMAIL_NOTIFICATION_SENDER            | true     | -                     | Sender email for using to send alert notifications to users                                                                         |
 | CENTRIFUGO_MERCHANT_CHANNEL          | -        | paysuper:merchant#%s  | Centrifugo channel name to send notifications to merchant                                                                           |
 
 ## Docker Deployment
