@@ -224,15 +224,15 @@ type MgoOrder struct {
 	ProjectOrderId                          string                      `bson:"project_order_id"`
 	ProjectAccount                          string                      `bson:"project_account"`
 	ProjectIncomeAmount                     float64                     `bson:"project_income_amount"`
-	ProjectIncomeCurrency                   string                   `bson:"project_income_currency"`
+	ProjectIncomeCurrency                   string                      `bson:"project_income_currency"`
 	ProjectOutcomeAmount                    float64                     `bson:"project_outcome_amount"`
-	ProjectOutcomeCurrency                  string                   `bson:"project_outcome_currency"`
+	ProjectOutcomeCurrency                  string                      `bson:"project_outcome_currency"`
 	ProjectLastRequestedAt                  time.Time                   `bson:"project_last_requested_at"`
 	ProjectParams                           map[string]string           `bson:"project_params"`
 	PaymentMethodOutcomeAmount              float64                     `bson:"pm_outcome_amount"`
-	PaymentMethodOutcomeCurrency            string                   `bson:"pm_outcome_currency"`
+	PaymentMethodOutcomeCurrency            string                      `bson:"pm_outcome_currency"`
 	PaymentMethodIncomeAmount               float64                     `bson:"pm_income_amount"`
-	PaymentMethodIncomeCurrency             string                   `bson:"pm_income_currency"`
+	PaymentMethodIncomeCurrency             string                      `bson:"pm_income_currency"`
 	PaymentMethodOrderClosedAt              time.Time                   `bson:"pm_order_close_date"`
 	IsJsonRequest                           bool                        `bson:"created_by_json"`
 	OrderAmount                             float64                     `bson:"private_amount"`
@@ -466,21 +466,22 @@ type MgoPaymentChannelCostSystem struct {
 }
 
 type MgoPaymentChannelCostMerchant struct {
-	Id                 bson.ObjectId `bson:"_id"`
-	MerchantId         bson.ObjectId `bson:"merchant_id"`
-	Name               string        `bson:"name"`
-	PayoutCurrency     string        `bson:"payout_currency"`
-	MinAmount          float64       `bson:"min_amount"`
-	Region             string        `bson:"region"`
-	Country            string        `bson:"country"`
-	MethodPercent      float64       `bson:"method_percent"`
-	MethodFixAmount    float64       `bson:"method_fix_amount"`
-	PsPercent          float64       `bson:"ps_percent"`
-	PsFixedFee         float64       `bson:"ps_fixed_fee"`
-	PsFixedFeeCurrency string        `bson:"ps_fixed_fee_currency"`
-	CreatedAt          time.Time     `bson:"created_at"`
-	UpdatedAt          time.Time     `bson:"updated_at"`
-	IsActive           bool          `bson:"is_active"`
+	Id                      bson.ObjectId `bson:"_id"`
+	MerchantId              bson.ObjectId `bson:"merchant_id"`
+	Name                    string        `bson:"name"`
+	PayoutCurrency          string        `bson:"payout_currency"`
+	MinAmount               float64       `bson:"min_amount"`
+	Region                  string        `bson:"region"`
+	Country                 string        `bson:"country"`
+	MethodPercent           float64       `bson:"method_percent"`
+	MethodFixAmount         float64       `bson:"method_fix_amount"`
+	MethodFixAmountCurrency string        `bson:"method_fix_amount_currency"`
+	PsPercent               float64       `bson:"ps_percent"`
+	PsFixedFee              float64       `bson:"ps_fixed_fee"`
+	PsFixedFeeCurrency      string        `bson:"ps_fixed_fee_currency"`
+	CreatedAt               time.Time     `bson:"created_at"`
+	UpdatedAt               time.Time     `bson:"updated_at"`
+	IsActive                bool          `bson:"is_active"`
 }
 
 type MgoMoneyBackCostSystem struct {
@@ -2458,18 +2459,19 @@ func (m *PaymentChannelCostSystem) SetBSON(raw bson.Raw) error {
 
 func (m *PaymentChannelCostMerchant) GetBSON() (interface{}, error) {
 	st := &MgoPaymentChannelCostMerchant{
-		MerchantId:         bson.ObjectIdHex(m.MerchantId),
-		Name:               m.Name,
-		PayoutCurrency:     m.PayoutCurrency,
-		MinAmount:          m.MinAmount,
-		Region:             m.Region,
-		Country:            m.Country,
-		MethodPercent:      m.MethodPercent,
-		MethodFixAmount:    m.MethodFixAmount,
-		PsPercent:          m.PsPercent,
-		PsFixedFee:         m.PsFixedFee,
-		PsFixedFeeCurrency: m.PsFixedFeeCurrency,
-		IsActive:           m.IsActive,
+		MerchantId:              bson.ObjectIdHex(m.MerchantId),
+		Name:                    m.Name,
+		PayoutCurrency:          m.PayoutCurrency,
+		MinAmount:               m.MinAmount,
+		Region:                  m.Region,
+		Country:                 m.Country,
+		MethodPercent:           m.MethodPercent,
+		MethodFixAmount:         m.MethodFixAmount,
+		MethodFixAmountCurrency: m.MethodFixAmountCurrency,
+		PsPercent:               m.PsPercent,
+		PsFixedFee:              m.PsFixedFee,
+		PsFixedFeeCurrency:      m.PsFixedFeeCurrency,
+		IsActive:                m.IsActive,
 	}
 
 	if len(m.Id) <= 0 {
@@ -2519,6 +2521,7 @@ func (m *PaymentChannelCostMerchant) SetBSON(raw bson.Raw) error {
 	m.Country = decoded.Country
 	m.MethodPercent = decoded.MethodPercent
 	m.MethodFixAmount = decoded.MethodFixAmount
+	m.MethodFixAmountCurrency = decoded.MethodFixAmountCurrency
 	m.PsPercent = decoded.PsPercent
 	m.PsFixedFee = decoded.PsFixedFee
 	m.PsFixedFeeCurrency = decoded.PsFixedFeeCurrency

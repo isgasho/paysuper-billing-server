@@ -1,8 +1,13 @@
 package service
 
 import (
+	"math"
 	"sync"
 	"time"
+)
+
+const (
+	precision = 10
 )
 
 type Entity struct {
@@ -55,4 +60,9 @@ func contains(s []string, e string) bool {
 		}
 	}
 	return false
+}
+
+func toPrecise(val float64) float64 {
+	p := math.Pow(10, precision)
+	return math.Round(val*p) / p
 }

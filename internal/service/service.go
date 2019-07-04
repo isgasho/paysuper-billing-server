@@ -140,7 +140,7 @@ func (s *Service) Init() (err error) {
 	s.moneyBackCostSystem = newMoneyBackCostSystemService(s)
 	s.moneyBackCostMerchant = newMoneyBackCostMerchantService(s)
 	s.payoutCostSystem = newPayoutCostSystemService(s)
-	s.turnover = newTurnoverService(s)
+	// s.turnover = newTurnoverService(s)
 
 	s.centrifugoClient = gocent.New(
 		gocent.Config{

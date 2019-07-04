@@ -161,9 +161,8 @@ func (m *Order) GetNotificationStatus(key string) bool {
 }
 
 func (m *Order) GetCostPaymentMethodName() (string, error) {
-	if m.PaymentMethod.IsBankCard() == false {
-		return m.GetPaymentMethodName(), nil
+	if m.PaymentMethod.IsBankCard() {
+		return m.GetBankCardBrand()
 	}
-
-	return m.GetBankCardBrand()
+	return m.GetPaymentMethodName(), nil
 }

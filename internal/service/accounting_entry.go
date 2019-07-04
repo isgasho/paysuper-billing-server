@@ -9,10 +9,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	curPkg "github.com/paysuper/paysuper-currencies/pkg"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
-	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"go.uber.org/zap"
-	"math"
-	"time"
 )
 
 const (
@@ -41,10 +38,42 @@ const (
 	accountingEntryErrorTextVatCurrencyConflict   = "vat transaction currency conflict"
 
 	collectionAccountingEntry = "accounting_entry"
+
+	accountingEventTypePayment    = "payment"
+	accountingEventTypeRefund     = "refund"
+	accountingEventTypeChageback  = "chargeback"
+	accountingEventTypeSettlement = "settlement"
 )
 
 var (
-	availableAccountingEntry = map[string]func(h *accountingEntry) error{
+	availableAccountingEntry = map[string]bool{
+		pkg.AccountingEntryTypeRealGrossRevenue:                    true,
+		pkg.AccountingEntryTypeRealTaxFee:                          true,
+		pkg.AccountingEntryTypeCentralBankTaxFee:                   true,
+		pkg.AccountingEntryTypePsGrossRevenueFx:                    true,
+		pkg.AccountingEntryTypePsGrossRevenueFxTaxFee:              true,
+		pkg.AccountingEntryTypePsGrossRevenueFxProfit:              true,
+		pkg.AccountingEntryTypeMerchantGrossRevenue:                true,
+		pkg.AccountingEntryTypeMerchantTaxFeeCostValue:             true,
+		pkg.AccountingEntryTypeMerchantTaxFeeCentralBankFx:         true,
+		pkg.AccountingEntryTypeMerchantTaxFee:                      true,
+		pkg.AccountingEntryTypePsMethodFee:                         true,
+		pkg.AccountingEntryTypeMerchantMethodFee:                   true,
+		pkg.AccountingEntryTypeMerchantMethodFeeCostValue:          true,
+		pkg.AccountingEntryTypePsMarkupMerchantMethodFee:           true,
+		pkg.AccountingEntryTypeMerchantMethodFixedFee:              true,
+		pkg.AccountingEntryTypeRealMerchantMethodFixedFee:          true,
+		pkg.AccountingEntryTypeMarkupMerchantMethodFixedFeeFx:      true,
+		pkg.AccountingEntryTypeRealMerchantMethodFixedFeeCostValue: true,
+		pkg.AccountingEntryTypePsMethodFixedFeeProfit:              true,
+		pkg.AccountingEntryTypeMerchantPsFixedFee:                  true,
+		pkg.AccountingEntryTypeRealMerchantPsFixedFee:              true,
+		pkg.AccountingEntryTypeMarkupMerchantPsFixedFee:            true,
+		pkg.AccountingEntryTypePsMethodProfit:                      true,
+		pkg.AccountingEntryTypeMerchantNetRevenue:                  true,
+	}
+
+	/*availableAccountingEntry = map[string]func(h *accountingEntry) error{
 		pkg.AccountingEntryTypePayment:                    func(h *accountingEntry) error { return h.payment() },
 		pkg.AccountingEntryTypePsMarkupPaymentFx:          func(h *accountingEntry) error { return h.psMarkupPaymentFx() },
 		pkg.AccountingEntryTypeMethodFee:                  func(h *accountingEntry) error { return h.methodFee() },
@@ -84,7 +113,7 @@ var (
 		pkg.AccountingEntryTypePayoutFailure:              func(h *accountingEntry) error { return h.createEntry(pkg.AccountingEntryTypePayoutFailure) },
 		pkg.AccountingEntryTypeTaxPayoutFailure:           func(h *accountingEntry) error { return h.createEntry(pkg.AccountingEntryTypeTaxPayoutFailure) },
 		pkg.AccountingEntryTypePayoutCancel:               func(h *accountingEntry) error { return h.createEntry(pkg.AccountingEntryTypePayoutCancel) },
-	}
+	}*/
 
 	accountingEntryErrorOrderNotFound         = newBillingServerErrorMsg(accountingEntryErrorCodeOrderNotFound, accountingEntryErrorTextOrderNotFound)
 	accountingEntryErrorRefundNotFound        = newBillingServerErrorMsg(accountingEntryErrorCodeRefundNotFound, accountingEntryErrorTextRefundNotFound)
@@ -95,73 +124,73 @@ var (
 	accountingEntryErrorUnknownEntry          = newBillingServerErrorMsg(accountingEntryErrorCodeUnknownEntry, accountingEntryErrorTextUnknownEntry)
 	accountingEntryErrorUnknown               = newBillingServerErrorMsg(accountingEntryErrorCodeUnknown, accountingEntryErrorTextUnknown)
 	accountingEntryErrorVatCurrencyConflict   = newBillingServerErrorMsg(accountingEntryErrorCodeVatCurrencyConflict, accountingEntryErrorTextVatCurrencyConflict)
+	/*
+		onPaymentAccountingEntries = []string{
+			pkg.AccountingEntryTypePayment,
+			pkg.AccountingEntryTypePsMarkupPaymentFx,
+			pkg.AccountingEntryTypeMethodFee,
+			pkg.AccountingEntryTypePsMarkupMethodFee,
+			pkg.AccountingEntryTypeMethodFixedFee,
+			pkg.AccountingEntryTypePsMarkupMethodFixedFee,
+			pkg.AccountingEntryTypePsFee,
+			pkg.AccountingEntryTypePsFixedFee,
+			pkg.AccountingEntryTypePsMarkupFixedFeeFx,
+			pkg.AccountingEntryTypeTaxFee,
+		}
 
-	onPaymentAccountingEntries = []string{
-		pkg.AccountingEntryTypePayment,
-		pkg.AccountingEntryTypePsMarkupPaymentFx,
-		pkg.AccountingEntryTypeMethodFee,
-		pkg.AccountingEntryTypePsMarkupMethodFee,
-		pkg.AccountingEntryTypeMethodFixedFee,
-		pkg.AccountingEntryTypePsMarkupMethodFixedFee,
-		pkg.AccountingEntryTypePsFee,
-		pkg.AccountingEntryTypePsFixedFee,
-		pkg.AccountingEntryTypePsMarkupFixedFeeFx,
-		pkg.AccountingEntryTypeTaxFee,
-	}
+		onRefundAccountingEntries = []string{
+			pkg.AccountingEntryTypeRefund,
+			pkg.AccountingEntryTypeRefundFee,
+			pkg.AccountingEntryTypeRefundFixedFee,
+			pkg.AccountingEntryTypePsMarkupRefundFx,
+			pkg.AccountingEntryTypeRefundBody,
+			pkg.AccountingEntryTypeReverseTaxFee,
+			pkg.AccountingEntryTypePsMarkupReverseTaxFee,
+			pkg.AccountingEntryTypeReverseTaxFeeDelta,
+			pkg.AccountingEntryTypePsReverseTaxFeeDelta,
+		}
 
-	onRefundAccountingEntries = []string{
-		pkg.AccountingEntryTypeRefund,
-		pkg.AccountingEntryTypeRefundFee,
-		pkg.AccountingEntryTypeRefundFixedFee,
-		pkg.AccountingEntryTypePsMarkupRefundFx,
-		pkg.AccountingEntryTypeRefundBody,
-		pkg.AccountingEntryTypeReverseTaxFee,
-		pkg.AccountingEntryTypePsMarkupReverseTaxFee,
-		pkg.AccountingEntryTypeReverseTaxFeeDelta,
-		pkg.AccountingEntryTypePsReverseTaxFeeDelta,
-	}
+		onChargebackAccountingEntries = []string{
+			pkg.AccountingEntryTypeChargeback,
+			pkg.AccountingEntryTypePsMarkupChargebackFx,
+			pkg.AccountingEntryTypeChargebackFee,
+			pkg.AccountingEntryTypePsMarkupChargebackFee,
+			pkg.AccountingEntryTypeChargebackFixedFee,
+			pkg.AccountingEntryTypePsMarkupChargebackFixedFee,
+			pkg.AccountingEntryTypeReverseTaxFee,
+			pkg.AccountingEntryTypePsMarkupReverseTaxFee,
+			pkg.AccountingEntryTypeReverseTaxFeeDelta,
+			pkg.AccountingEntryTypePsReverseTaxFeeDelta,
+		}
 
-	onChargebackAccountingEntries = []string{
-		pkg.AccountingEntryTypeChargeback,
-		pkg.AccountingEntryTypePsMarkupChargebackFx,
-		pkg.AccountingEntryTypeChargebackFee,
-		pkg.AccountingEntryTypePsMarkupChargebackFee,
-		pkg.AccountingEntryTypeChargebackFixedFee,
-		pkg.AccountingEntryTypePsMarkupChargebackFixedFee,
-		pkg.AccountingEntryTypeReverseTaxFee,
-		pkg.AccountingEntryTypePsMarkupReverseTaxFee,
-		pkg.AccountingEntryTypeReverseTaxFeeDelta,
-		pkg.AccountingEntryTypePsReverseTaxFeeDelta,
-	}
+		vatAmountAccountingEntries = []string{
+			pkg.AccountingEntryTypePayment,
+			pkg.AccountingEntryTypeRefund,
+			pkg.AccountingEntryTypeChargeback,
+		}
 
-	vatAmountAccountingEntries = []string{
-		pkg.AccountingEntryTypePayment,
-		pkg.AccountingEntryTypeRefund,
-		pkg.AccountingEntryTypeChargeback,
-	}
+		vatTaxAccountingEntries = []string{
+			pkg.AccountingEntryTypeTaxFee,
+			pkg.AccountingEntryTypeReverseTaxFee,
+			pkg.AccountingEntryTypeReverseTaxFeeDelta,
+		}
 
-	vatTaxAccountingEntries = []string{
-		pkg.AccountingEntryTypeTaxFee,
-		pkg.AccountingEntryTypeReverseTaxFee,
-		pkg.AccountingEntryTypeReverseTaxFeeDelta,
-	}
+		vatFeesAccountingEntries = []string{
+			pkg.AccountingEntryTypeMethodFee,
+			pkg.AccountingEntryTypeMethodFixedFee,
+			pkg.AccountingEntryTypePsFee,
+			pkg.AccountingEntryTypePsFixedFee,
+			pkg.AccountingEntryTypeRefundFee,
+			pkg.AccountingEntryTypeRefundFixedFee,
+			pkg.AccountingEntryTypeChargebackFee,
+			pkg.AccountingEntryTypeChargebackFixedFee,
+		}
 
-	vatFeesAccountingEntries = []string{
-		pkg.AccountingEntryTypeMethodFee,
-		pkg.AccountingEntryTypeMethodFixedFee,
-		pkg.AccountingEntryTypePsFee,
-		pkg.AccountingEntryTypePsFixedFee,
-		pkg.AccountingEntryTypeRefundFee,
-		pkg.AccountingEntryTypeRefundFixedFee,
-		pkg.AccountingEntryTypeChargebackFee,
-		pkg.AccountingEntryTypeChargebackFixedFee,
-	}
-
-	vatAccountingEntries = map[string][]string{
-		"amounts": vatAmountAccountingEntries,
-		"fees":    vatFeesAccountingEntries,
-		"taxes":   vatTaxAccountingEntries,
-	}
+		vatAccountingEntries = map[string][]string{
+			"amounts": vatAmountAccountingEntries,
+			"fees":    vatFeesAccountingEntries,
+			"taxes":   vatTaxAccountingEntries,
+		}*/
 )
 
 type vatAmount struct {
@@ -176,6 +205,7 @@ type accountingEntry struct {
 	order             *billing.Order
 	refund            *billing.Refund
 	merchant          *billing.Merchant
+	country           *billing.Country
 	accountingEntries []interface{}
 	req               *grpc.CreateAccountingEntryRequest
 }
@@ -240,33 +270,36 @@ func (s *Service) CreateAccountingEntry(
 		handler.order.RoyaltyData = &billing.RoyaltyData{}
 	}
 
-	fn, ok := availableAccountingEntry[req.Type]
+	// todo: refactor here
 
-	if !ok {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = accountingEntryErrorUnknownEntry
+	/*
+		fn, ok := availableAccountingEntry[req.Type]
 
-		return nil
-	}
+		if !ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = accountingEntryErrorUnknownEntry
 
-	_ = fn(handler)
-	err := handler.saveAccountingEntries()
+			return nil
+		}
 
-	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = accountingEntryErrorUnknown
+		_ = fn(handler)
+		err := handler.saveAccountingEntries()
 
-		return nil
-	}
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = accountingEntryErrorUnknown
 
-	err = handler.updateVatTransaction()
+			return nil
+		}
 
-	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = accountingEntryErrorUnknown
+		err = handler.updateVatTransaction()
 
-		return nil
-	}
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = accountingEntryErrorUnknown
+
+			return nil
+		}*/
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = handler.accountingEntries[0].(*billing.AccountingEntry)
@@ -279,53 +312,393 @@ func (s *Service) onPaymentNotify(ctx context.Context, order *billing.Order) err
 		order.RoyaltyData = &billing.RoyaltyData{}
 	}
 
+	country, err := s.country.GetByIsoCodeA2(order.GetCountry())
+	if err != nil {
+		return err
+	}
+
 	handler := &accountingEntry{
 		Service: s,
 		order:   order,
 		ctx:     ctx,
+		country: country,
 	}
 
-	return s.processEvent(handler, onPaymentAccountingEntries)
+	return s.processEvent(handler, accountingEventTypePayment)
 }
 
 func (s *Service) onRefundNotify(ctx context.Context, refund *billing.Refund, order *billing.Order) error {
+
+	country, err := s.country.GetByIsoCodeA2(order.GetCountry())
+	if err != nil {
+		return err
+	}
+
 	handler := &accountingEntry{
 		Service: s,
 		refund:  refund,
 		order:   order,
 		ctx:     ctx,
+		country: country,
 	}
-
-	entries := onRefundAccountingEntries
 
 	if refund.IsChargeback == true {
-		entries = onChargebackAccountingEntries
+		return s.processEvent(handler, accountingEventTypeChageback)
 	}
 
-	return s.processEvent(handler, entries)
+	return s.processEvent(handler, accountingEventTypeRefund)
 }
 
-func (s *Service) processEvent(handler *accountingEntry, list []string) error {
-	for _, v := range list {
-		fn, ok := availableAccountingEntry[v]
+func (s *Service) processEvent(handler *accountingEntry, eventType string) error {
 
-		if !ok {
-			return accountingEntryErrorUnknownEntry
-		}
+	var err error
 
-		err := fn(handler)
+	switch eventType {
+	case accountingEventTypePayment:
+		err = handler.processPaymentEvent()
+		break
 
-		if err != nil {
-			return err
-		}
+	case accountingEventTypeRefund:
+		// err = handler.processRefundEvent()
+		break
+
+	case accountingEventTypeChageback:
+		// err = handler.processChargebackEvent()
+		break
+
+	case accountingEventTypeSettlement:
+		// err = handler.processSettlementEvent()
+		break
+
+	default:
+		return accountingEntryErrorUnknown
 	}
 
-	err := handler.saveAccountingEntries()
+	if err != nil {
+		return err
+	}
+
+	err = handler.saveAccountingEntries()
 	if err != nil {
 		return err
 	}
 
 	return handler.createVatTransaction()
+}
+
+func (h *accountingEntry) processPaymentEvent() error {
+	var (
+		amount float64
+		err    error
+	)
+
+	// 1. realGrossRevenue
+	realGrossRevenue := h.newEntry(pkg.AccountingEntryTypeRealGrossRevenue)
+	realGrossRevenue.Amount, err = h.GetExchangePsCurrentCommon(h.order.Currency, h.order.TotalPaymentAmount)
+	if err != nil {
+		return err
+	}
+	realGrossRevenue.OriginalAmount = h.order.TotalPaymentAmount
+	realGrossRevenue.OriginalCurrency = h.order.Currency
+	if err = h.addEntry(realGrossRevenue); err != nil {
+		return err
+	}
+
+	// 2. realTaxFee
+	realTaxFee := h.newEntry(pkg.AccountingEntryTypeRealTaxFee)
+	realTaxFee.Amount, err = h.GetExchangePsCurrentCommon(h.order.Tax.Currency, h.order.Tax.Amount)
+	if err != nil {
+		return err
+	}
+	realTaxFee.OriginalAmount = h.order.Tax.Amount
+	realTaxFee.OriginalCurrency = h.order.Tax.Currency
+	if err = h.addEntry(realTaxFee); err != nil {
+		return err
+	}
+
+	// 3. centralBankTaxFee
+	centralBankTaxFee := h.newEntry(pkg.AccountingEntryTypeCentralBankTaxFee)
+	centralBankTaxFee.Amount = 0
+	if err = h.addEntry(centralBankTaxFee); err != nil {
+		return err
+	}
+
+	// 4. psGrossRevenueFx
+	psGrossRevenueFx := h.newEntry(pkg.AccountingEntryTypePsGrossRevenueFx)
+	amount, err = h.GetExchangePsCurrentMerchant(h.order.Currency, h.order.TotalPaymentAmount)
+	if err != nil {
+		return err
+	}
+	psGrossRevenueFx.Amount = amount - realGrossRevenue.Amount
+	if err = h.addEntry(psGrossRevenueFx); err != nil {
+		return err
+	}
+
+	// 5. psGrossRevenueFxTaxFee
+	psGrossRevenueFxTaxFee := h.newEntry(pkg.AccountingEntryTypePsGrossRevenueFxTaxFee)
+	psGrossRevenueFxTaxFee.Amount = psGrossRevenueFx.Amount * h.country.VatRate
+	if err = h.addEntry(psGrossRevenueFxTaxFee); err != nil {
+		return err
+	}
+
+	// 6. psGrossRevenueFxProfit
+	psGrossRevenueFxProfit := h.newEntry(pkg.AccountingEntryTypePsGrossRevenueFxProfit)
+	psGrossRevenueFxProfit.Amount = psGrossRevenueFx.Amount - psGrossRevenueFxTaxFee.Amount
+	if err = h.addEntry(psGrossRevenueFxProfit); err != nil {
+		return err
+	}
+
+	// 7. merchantGrossRevenue
+	merchantGrossRevenue := h.newEntry(pkg.AccountingEntryTypeMerchantGrossRevenue)
+	merchantGrossRevenue.Amount = realGrossRevenue.Amount - psGrossRevenueFx.Amount
+	if err = h.addEntry(merchantGrossRevenue); err != nil {
+		return err
+	}
+
+	// 8. merchantTaxFeeCostValue
+	merchantTaxFeeCostValue := h.newEntry(pkg.AccountingEntryTypeMerchantTaxFeeCostValue)
+	merchantTaxFeeCostValue.Amount = merchantGrossRevenue.Amount * h.country.VatRate
+	if err = h.addEntry(merchantTaxFeeCostValue); err != nil {
+		return err
+	}
+
+	// 9. merchantTaxFeeCentralBankFx
+	merchantTaxFeeCentralBankFx := h.newEntry(pkg.AccountingEntryTypeMerchantTaxFeeCentralBankFx)
+	amount, err = h.GetExchangeCbCurrentMerchant(h.order.Tax.Currency, h.order.Tax.Amount)
+	if err != nil {
+		return err
+	}
+	amount, err = h.GetExchangeStockCurrentCommon(h.country.VatCurrency, amount)
+	if err != nil {
+		return err
+	}
+	merchantTaxFeeCentralBankFx.Amount = amount - merchantTaxFeeCostValue.Amount
+	if err = h.addEntry(merchantTaxFeeCentralBankFx); err != nil {
+		return err
+	}
+
+	// 10. merchantTaxFee
+	merchantTaxFee := h.newEntry(pkg.AccountingEntryTypeMerchantTaxFee)
+	merchantTaxFee.Amount = merchantTaxFeeCostValue.Amount + merchantTaxFeeCentralBankFx.Amount
+	if err = h.addEntry(merchantTaxFee); err != nil {
+		return err
+	}
+
+	paymentChannelCostMerchant, err := h.getPaymentChannelCostMerchant(realGrossRevenue.Amount)
+	if err != nil {
+		return err
+	}
+
+	paymentChannelCostSystem, err := h.getPaymentChannelCostSystem()
+	if err != nil {
+		return err
+	}
+
+	// 11. psMethodFee
+	psMethodFee := h.newEntry(pkg.AccountingEntryTypePsMethodFee)
+	psMethodFee.Amount = merchantGrossRevenue.Amount * paymentChannelCostMerchant.PsPercent
+	if err = h.addEntry(psMethodFee); err != nil {
+		return err
+	}
+
+	// 12. merchantMethodFee
+	merchantMethodFee := h.newEntry(pkg.AccountingEntryTypeMerchantMethodFee)
+	merchantMethodFee.Amount = merchantGrossRevenue.Amount * paymentChannelCostMerchant.MethodPercent
+	if err = h.addEntry(merchantMethodFee); err != nil {
+		return err
+	}
+
+	// 13. merchantMethodFeeCostValue
+	merchantMethodFeeCostValue := h.newEntry(pkg.AccountingEntryTypeMerchantMethodFeeCostValue)
+	merchantMethodFeeCostValue.Amount = realGrossRevenue.Amount * paymentChannelCostSystem.Percent
+	if err = h.addEntry(merchantMethodFeeCostValue); err != nil {
+		return err
+	}
+
+	// 14. psMarkupMerchantMethodFee
+	psMarkupMerchantMethodFee := h.newEntry(pkg.AccountingEntryTypeMerchantMethodFeeCostValue)
+	psMarkupMerchantMethodFee.Amount = merchantMethodFee.Amount - merchantMethodFeeCostValue.Amount
+	if err = h.addEntry(psMarkupMerchantMethodFee); err != nil {
+		return err
+	}
+
+	// 15. merchantMethodFixedFee
+	merchantMethodFixedFee := h.newEntry(pkg.AccountingEntryTypeMerchantMethodFixedFee)
+	merchantMethodFixedFee.Amount, err = h.GetExchangePsCurrentMerchant(paymentChannelCostMerchant.MethodFixAmountCurrency, paymentChannelCostMerchant.MethodFixAmount)
+	if err = h.addEntry(merchantMethodFixedFee); err != nil {
+		return err
+	}
+
+	// 16. realMerchantMethodFixedFee
+	realMerchantMethodFixedFee := h.newEntry(pkg.AccountingEntryTypeRealMerchantMethodFixedFee)
+	realMerchantMethodFixedFee.Amount, err = h.GetExchangePsCurrentCommon(paymentChannelCostMerchant.MethodFixAmountCurrency, paymentChannelCostMerchant.MethodFixAmount)
+	if err = h.addEntry(realMerchantMethodFixedFee); err != nil {
+		return err
+	}
+
+	// 17. psMarkupMerchantMethodFee
+	markupMerchantMethodFixedFeeFx := h.newEntry(pkg.AccountingEntryTypeMarkupMerchantMethodFixedFeeFx)
+	markupMerchantMethodFixedFeeFx.Amount = merchantMethodFixedFee.Amount - realMerchantMethodFixedFee.Amount
+	if err = h.addEntry(markupMerchantMethodFixedFeeFx); err != nil {
+		return err
+	}
+
+	// 18. realMerchantMethodFixedFeeCostValue
+	realMerchantMethodFixedFeeCostValue := h.newEntry(pkg.AccountingEntryTypeRealMerchantMethodFixedFeeCostValue)
+	realMerchantMethodFixedFeeCostValue.Amount, err = h.GetExchangePsCurrentCommon(paymentChannelCostSystem.FixAmountCurrency, paymentChannelCostSystem.FixAmount)
+	if err != nil {
+		return err
+	}
+	if err = h.addEntry(realMerchantMethodFixedFeeCostValue); err != nil {
+		return err
+	}
+
+	// 19. psMarkupMerchantMethodFee
+	psMethodFixedFeeProfit := h.newEntry(pkg.AccountingEntryTypePsMethodFixedFeeProfit)
+	psMethodFixedFeeProfit.Amount = realMerchantMethodFixedFee.Amount - realMerchantMethodFixedFeeCostValue.Amount
+	if err = h.addEntry(psMethodFixedFeeProfit); err != nil {
+		return err
+	}
+
+	// 20. merchantPsFixedFee
+	merchantPsFixedFee := h.newEntry(pkg.AccountingEntryTypeMerchantPsFixedFee)
+	merchantPsFixedFee.Amount, err = h.GetExchangePsCurrentMerchant(paymentChannelCostMerchant.PsFixedFeeCurrency, paymentChannelCostMerchant.PsFixedFee)
+	if err != nil {
+		return err
+	}
+	if err = h.addEntry(merchantPsFixedFee); err != nil {
+		return err
+	}
+
+	// 21. realMerchantPsFixedFee
+	realMerchantPsFixedFee := h.newEntry(pkg.AccountingEntryTypeRealMerchantPsFixedFee)
+	realMerchantPsFixedFee.Amount, err = h.GetExchangePsCurrentCommon(paymentChannelCostMerchant.PsFixedFeeCurrency, paymentChannelCostMerchant.PsFixedFee)
+	if err != nil {
+		return err
+	}
+	if err = h.addEntry(realMerchantPsFixedFee); err != nil {
+		return err
+	}
+
+	// 22. psMarkupMerchantMethodFee
+	markupMerchantPsFixedFee := h.newEntry(pkg.AccountingEntryTypeMarkupMerchantPsFixedFee)
+	markupMerchantPsFixedFee.Amount = merchantPsFixedFee.Amount - realMerchantPsFixedFee.Amount
+	if err = h.addEntry(markupMerchantPsFixedFee); err != nil {
+		return err
+	}
+
+	// 23. psMethodProfit
+	psMethodProfit := h.newEntry(pkg.AccountingEntryTypePsMethodProfit)
+	psMethodProfit.Amount = psMethodFee.Amount - merchantMethodFeeCostValue.Amount - realMerchantMethodFixedFeeCostValue.Amount + merchantPsFixedFee.Amount
+	if err = h.addEntry(psMethodProfit); err != nil {
+		return err
+	}
+
+	// 24. merchantNetRevenue
+	merchantNetRevenue := h.newEntry(pkg.AccountingEntryTypeMerchantNetRevenue)
+	merchantNetRevenue.Amount = realGrossRevenue.Amount - merchantTaxFee.Amount - psMethodFee.Amount - merchantPsFixedFee.Amount
+	if err = h.addEntry(merchantNetRevenue); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h *accountingEntry) GetExchangePsCurrentCommon(from string, amount float64) (float64, error) {
+	to := h.order.GetMerchantRoyaltyCurrency()
+
+	if to == from {
+		return amount, nil
+	}
+	return h.GetExchangeCurrentCommon(&currencies.ExchangeCurrencyCurrentCommonRequest{
+		From:     from,
+		To:       to,
+		RateType: curPkg.RateTypePaysuper,
+		Amount:   amount,
+	})
+}
+
+func (h *accountingEntry) GetExchangeStockCurrentCommon(from string, amount float64) (float64, error) {
+	to := h.order.GetMerchantRoyaltyCurrency()
+
+	if to == from {
+		return amount, nil
+	}
+	return h.GetExchangeCurrentCommon(&currencies.ExchangeCurrencyCurrentCommonRequest{
+		From:     from,
+		To:       to,
+		RateType: curPkg.RateTypeStock,
+		Amount:   amount,
+	})
+}
+
+func (h *accountingEntry) GetExchangePsCurrentMerchant(from string, amount float64) (float64, error) {
+	to := h.order.GetMerchantRoyaltyCurrency()
+
+	if to == from {
+		return amount, nil
+	}
+
+	return h.GetExchangeCurrentMerchant(&currencies.ExchangeCurrencyCurrentForMerchantRequest{
+		From:       from,
+		To:         to,
+		RateType:   curPkg.RateTypePaysuper,
+		MerchantId: h.order.GetMerchantId(),
+		Amount:     amount,
+	})
+}
+
+func (h *accountingEntry) GetExchangeCbCurrentMerchant(from string, amount float64) (float64, error) {
+	to := h.country.VatCurrency
+
+	if to == from {
+		return amount, nil
+	}
+
+	return h.GetExchangeCurrentMerchant(&currencies.ExchangeCurrencyCurrentForMerchantRequest{
+		From:       from,
+		To:         to,
+		RateType:   curPkg.RateTypeCentralbanks,
+		MerchantId: h.order.GetMerchantId(),
+		Amount:     amount,
+	})
+}
+
+func (h *accountingEntry) GetExchangeCurrentMerchant(req *currencies.ExchangeCurrencyCurrentForMerchantRequest) (float64, error) {
+
+	rsp, err := h.curService.ExchangeCurrencyCurrentForMerchant(h.ctx, req)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorGrpcServiceCallFailed,
+			zap.Error(err),
+			zap.String(errorFieldService, "CurrencyRatesService"),
+			zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchantRequest"),
+			zap.Any(errorFieldRequest, req),
+		)
+
+		return 0, accountingEntryErrorExchangeFailed
+	}
+
+	return rsp.ExchangedAmount, nil
+}
+
+func (h *accountingEntry) GetExchangeCurrentCommon(req *currencies.ExchangeCurrencyCurrentCommonRequest) (float64, error) {
+	rsp, err := h.curService.ExchangeCurrencyCurrentCommon(h.ctx, req)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorGrpcServiceCallFailed,
+			zap.Error(err),
+			zap.String(errorFieldService, "CurrencyRatesService"),
+			zap.String(errorFieldMethod, "ExchangeCurrencyCurrentCommon"),
+			zap.Any(errorFieldRequest, req),
+		)
+
+		return 0, accountingEntryErrorExchangeFailed
+	}
+
+	return rsp.ExchangedAmount, nil
 }
 
 func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
@@ -334,17 +707,13 @@ func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
 		entry.OriginalCurrency = entry.Currency
 	}
 	if entry.LocalAmount == 0 && entry.LocalCurrency == "" && entry.Country != "" {
-		country, err := h.country.GetByIsoCodeA2(entry.Country)
-		if err != nil {
-			return err
-		}
-		if country.Currency == entry.OriginalCurrency {
+		if h.country.Currency == entry.OriginalCurrency {
 			entry.LocalAmount = entry.OriginalAmount
-			entry.LocalCurrency = country.Currency
+			entry.LocalCurrency = h.country.Currency
 		} else {
 			req := &currencies.ExchangeCurrencyCurrentCommonRequest{
 				From:     entry.OriginalCurrency,
-				To:       country.Currency,
+				To:       h.country.Currency,
 				RateType: curPkg.RateTypeOxr,
 				Amount:   entry.OriginalAmount,
 			}
@@ -363,14 +732,14 @@ func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
 				return accountingEntryErrorExchangeFailed
 			} else {
 				entry.LocalAmount = rsp.ExchangedAmount
-				entry.LocalCurrency = country.Currency
+				entry.LocalCurrency = h.country.Currency
 			}
 		}
 	}
 
-	entry.Amount = tools.FormatAmount(entry.Amount)
-	entry.OriginalAmount = tools.FormatAmount(entry.OriginalAmount)
-	entry.LocalAmount = tools.FormatAmount(entry.LocalAmount)
+	entry.Amount = toPrecise(entry.Amount)
+	entry.OriginalAmount = toPrecise(entry.OriginalAmount)
+	entry.LocalAmount = toPrecise(entry.LocalAmount)
 
 	h.accountingEntries = append(h.accountingEntries, entry)
 
@@ -407,1757 +776,35 @@ func (h *accountingEntry) saveAccountingEntries() error {
 	return nil
 }
 
-func (h *accountingEntry) payment() error {
-	if h.order == nil {
-		return accountingEntryErrorOrderNotFound
-	}
+func (h *accountingEntry) newEntry(entryType string) *billing.AccountingEntry {
 
-	entry := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
-		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypePayment,
-		Source: &billing.AccountingEntrySource{
+	var source *billing.AccountingEntrySource
+	if h.refund != nil {
+		source = &billing.AccountingEntrySource{
+			Id:   h.refund.Id,
+			Type: collectionRefund,
+		}
+	} else {
+		source = &billing.AccountingEntrySource{
 			Id:   h.order.Id,
 			Type: collectionOrder,
-		},
-		MerchantId:       h.order.GetMerchantId(),
-		Status:           pkg.BalanceTransactionStatusPending,
-		CreatedAt:        ptypes.TimestampNow(),
-		Country:          h.order.GetCountry(),
-		OriginalAmount:   h.order.TotalPaymentAmount,
-		OriginalCurrency: h.order.Currency,
-	}
-
-	if h.req != nil {
-		h.mapRequestToEntry(entry)
-		if err := h.addEntry(entry); err != nil {
-			return err
 		}
-
-		return nil
 	}
 
-	req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
-		From:       h.order.Currency,
-		To:         h.order.GetMerchantRoyaltyCurrency(),
-		MerchantId: h.order.GetMerchantId(),
-		RateType:   curPkg.RateTypePaysuper,
-		Amount:     h.order.TotalPaymentAmount,
-	}
-
-	rsp, err := h.curService.ExchangeCurrencyCurrentForMerchant(h.ctx, req)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorGrpcServiceCallFailed,
-			zap.Error(err),
-			zap.String(errorFieldService, "CurrencyRatesService"),
-			zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
-			zap.Any(errorFieldRequest, req),
-		)
-
-		return accountingEntryErrorExchangeFailed
-	}
-
-	h.order.RoyaltyData.AmountInRoyaltyCurrency = rsp.ExchangedAmount
-
-	entry.Amount = rsp.ExchangedAmount
-	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	if err := h.addEntry(entry); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *accountingEntry) psMarkupPaymentFx() error {
-	if h.order == nil {
-		return accountingEntryErrorOrderNotFound
-	}
-
-	entry := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
-		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypePsMarkupPaymentFx,
-		Source: &billing.AccountingEntrySource{
-			Id:   h.order.Id,
-			Type: collectionOrder,
-		},
+	return &billing.AccountingEntry{
+		Id:         bson.NewObjectId().Hex(),
+		Object:     pkg.ObjectTypeBalanceTransaction,
+		Type:       entryType,
+		Source:     source,
 		MerchantId: h.order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusPending,
 		CreatedAt:  ptypes.TimestampNow(),
-		Country:    h.order.GetCountry(),
-	}
-
-	if h.req != nil {
-		h.mapRequestToEntry(entry)
-		if err := h.addEntry(entry); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	req := &currencies.GetRateCurrentForMerchantRequest{
-		From:       h.order.Currency,
-		To:         h.order.GetMerchantRoyaltyCurrency(),
-		MerchantId: h.order.Project.MerchantId,
-		RateType:   curPkg.RateTypePaysuper,
-	}
-	rsp, err := h.curService.GetRateCurrentForMerchant(h.ctx, req)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorGrpcServiceCallFailed,
-			zap.Error(err),
-			zap.String(errorFieldService, "CurrencyRatesService"),
-			zap.String(errorFieldMethod, "GetRateCurrentForMerchant"),
-			zap.Any(errorFieldRequest, req),
-		)
-
-		return accountingEntryErrorGetExchangeRateFailed
-	}
-
-	req1 := &currencies.GetRateCurrentCommonRequest{
-		From:     h.order.Currency,
-		To:       h.order.GetMerchantRoyaltyCurrency(),
-		RateType: curPkg.RateTypePaysuper,
-	}
-	rsp1, err := h.curService.GetRateCurrentCommon(h.ctx, req1)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorGrpcServiceCallFailed,
-			zap.Error(err),
-			zap.String(errorFieldService, "CurrencyRatesService"),
-			zap.String(errorFieldMethod, "GetRateCurrentCommon"),
-			zap.Any(errorFieldRequest, req),
-		)
-
-		return accountingEntryErrorGetExchangeRateFailed
-	}
-
-	entry.Amount = rsp1.Rate - rsp.Rate
-	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	if err := h.addEntry(entry); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *accountingEntry) methodFee() error {
-	if h.order == nil {
-		return accountingEntryErrorOrderNotFound
-	}
-
-	entry := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
-		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypeMethodFee,
-		Source: &billing.AccountingEntrySource{
-			Id:   h.order.Id,
-			Type: collectionOrder,
-		},
-		MerchantId: h.order.GetMerchantId(),
-		Status:     pkg.BalanceTransactionStatusPending,
-		CreatedAt:  ptypes.TimestampNow(),
-		Country:    h.order.GetCountry(),
-	}
-
-	if h.req != nil {
-		h.mapRequestToEntry(entry)
-		if err := h.addEntry(entry); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	commission, err := h.commission.GetByProjectIdAndMethod(h.order.GetProjectId(), h.order.GetPaymentMethodId())
-
-	if err != nil {
-		zap.L().Error(
-			accountingEntryErrorTextCommissionNotFound,
-			zap.Error(err),
-			zap.String("project", h.order.GetProjectId()),
-			zap.String("payment_method", h.order.GetPaymentMethodId()),
-		)
-
-		return accountingEntryErrorCommissionNotFound
-	}
-
-	h.order.RoyaltyData.MerchantPercentCommissionInRoyaltyCurrency = h.order.RoyaltyData.AmountInRoyaltyCurrency * (commission.Fee / 100)
-	h.order.RoyaltyData.MerchantTotalCommissionInRoyaltyCurrency = h.order.RoyaltyData.MerchantPercentCommissionInRoyaltyCurrency
-
-	entry.Amount = h.order.RoyaltyData.MerchantPercentCommissionInRoyaltyCurrency
-	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	if err := h.addEntry(entry); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *accountingEntry) psMarkupMethodFee() error {
-	if h.order == nil {
-		return accountingEntryErrorOrderNotFound
-	}
-
-	entry := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
-		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypePsMarkupMethodFee,
-		Source: &billing.AccountingEntrySource{
-			Id:   h.order.Id,
-			Type: collectionOrder,
-		},
-		MerchantId: h.order.GetMerchantId(),
-		Status:     pkg.BalanceTransactionStatusPending,
-		CreatedAt:  ptypes.TimestampNow(),
-		Country:    h.order.GetCountry(),
-	}
-
-	if h.req != nil {
-		h.mapRequestToEntry(entry)
-		if err := h.addEntry(entry); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	cost, err := h.getPaymentChannelCostMerchant()
-
-	if err != nil {
-		zap.L().Error(
-			accountingEntryErrorTextCommissionNotFound,
-			zap.Error(err),
-			zap.String("project", h.order.GetProjectId()),
-			zap.String("payment_method", h.order.GetPaymentMethodId()),
-		)
-
-		return accountingEntryErrorCommissionNotFound
-	}
-
-	entry.Amount = h.order.RoyaltyData.MerchantPercentCommissionInRoyaltyCurrency - (h.order.RoyaltyData.AmountInRoyaltyCurrency * (cost.MethodPercent / 100))
-	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	if err := h.addEntry(entry); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *accountingEntry) methodFixedFee() error {
-	if h.order == nil {
-		return accountingEntryErrorOrderNotFound
-	}
-
-	entry := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
-		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypeMethodFixedFee,
-		Source: &billing.AccountingEntrySource{
-			Id:   h.order.Id,
-			Type: collectionOrder,
-		},
-		MerchantId: h.order.GetMerchantId(),
-		Status:     pkg.BalanceTransactionStatusPending,
-		CreatedAt:  ptypes.TimestampNow(),
-		Country:    h.order.GetCountry(),
-	}
-
-	if h.req != nil {
-		h.mapRequestToEntry(entry)
-		if err := h.addEntry(entry); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	commission, err := h.commission.GetByProjectIdAndMethod(h.order.GetProjectId(), h.order.GetPaymentMethodId())
-
-	if err != nil {
-		zap.L().Error(
-			accountingEntryErrorTextCommissionNotFound,
-			zap.Error(err),
-			zap.String("project", h.order.GetProjectId()),
-			zap.String("payment_method", h.order.GetPaymentMethodId()),
-		)
-
-		return accountingEntryErrorCommissionNotFound
-	}
-
-	h.order.RoyaltyData.MerchantFixedCommissionInRoyaltyCurrency = commission.PerTransaction.Fee
-
-	if commission.PerTransaction.Currency != h.order.GetMerchantRoyaltyCurrency() {
-		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
-			From:       commission.PerTransaction.Currency,
-			To:         h.order.GetMerchantRoyaltyCurrency(),
-			MerchantId: h.order.GetMerchantId(),
-			RateType:   curPkg.RateTypePaysuper,
-			Amount:     commission.PerTransaction.Fee,
-		}
-		rsp, err := h.curService.ExchangeCurrencyCurrentForMerchant(h.ctx, req)
-
-		if err != nil {
-			zap.L().Error(
-				pkg.ErrorGrpcServiceCallFailed,
-				zap.Error(err),
-				zap.String(errorFieldService, "CurrencyRatesService"),
-				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
-				zap.Any(errorFieldRequest, req),
-			)
-
-			return accountingEntryErrorExchangeFailed
-		}
-
-		h.order.RoyaltyData.MerchantFixedCommissionInRoyaltyCurrency = rsp.ExchangedAmount
-	}
-
-	h.order.RoyaltyData.MerchantTotalCommissionInRoyaltyCurrency += h.order.RoyaltyData.MerchantFixedCommissionInRoyaltyCurrency
-
-	entry.Amount = h.order.RoyaltyData.MerchantFixedCommissionInRoyaltyCurrency
-	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	if err := h.addEntry(entry); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *accountingEntry) psMarkupMethodFixedFee() error {
-	if h.order == nil {
-		return accountingEntryErrorOrderNotFound
-	}
-
-	entry := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
-		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypePsMarkupMethodFixedFee,
-		Source: &billing.AccountingEntrySource{
-			Id:   h.order.Id,
-			Type: collectionOrder,
-		},
-		MerchantId: h.order.GetMerchantId(),
-		Status:     pkg.BalanceTransactionStatusPending,
-		CreatedAt:  ptypes.TimestampNow(),
-		Country:    h.order.GetCountry(),
-	}
-
-	if h.req != nil {
-		h.mapRequestToEntry(entry)
-		if err := h.addEntry(entry); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	cost, err := h.getPaymentChannelCostMerchant()
-
-	if err != nil {
-		zap.L().Error(
-			accountingEntryErrorTextCommissionNotFound,
-			zap.Error(err),
-			zap.String("project", h.order.GetProjectId()),
-			zap.String("payment_method", h.order.GetPaymentMethodId()),
-		)
-
-		return accountingEntryErrorCommissionNotFound
-	}
-
-	entry.Amount = h.order.RoyaltyData.MerchantFixedCommissionInRoyaltyCurrency - cost.MethodFixAmount
-	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	if err := h.addEntry(entry); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *accountingEntry) psFee() error {
-	if h.order == nil {
-		return accountingEntryErrorOrderNotFound
-	}
-
-	entry := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
-		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypePsFee,
-		Source: &billing.AccountingEntrySource{
-			Id:   h.order.Id,
-			Type: collectionOrder,
-		},
-		MerchantId: h.order.GetMerchantId(),
-		Status:     pkg.BalanceTransactionStatusPending,
-		CreatedAt:  ptypes.TimestampNow(),
-		Country:    h.order.GetCountry(),
-	}
-
-	if h.req != nil {
-		h.mapRequestToEntry(entry)
-		if err := h.addEntry(entry); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	cost, err := h.getPaymentChannelCostMerchant()
-
-	if err != nil {
-		zap.L().Error(
-			accountingEntryErrorTextCommissionNotFound,
-			zap.Error(err),
-			zap.String("project", h.order.GetProjectId()),
-			zap.String("payment_method", h.order.GetPaymentMethodId()),
-		)
-
-		return accountingEntryErrorCommissionNotFound
-	}
-
-	amount := h.order.RoyaltyData.AmountInRoyaltyCurrency * (cost.PsPercent / 100)
-
-	entry.Amount = h.order.RoyaltyData.MerchantTotalCommissionInRoyaltyCurrency - amount
-	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	if err := h.addEntry(entry); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *accountingEntry) psFixedFee() error {
-	if h.order == nil {
-		return accountingEntryErrorOrderNotFound
-	}
-
-	entry := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
-		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypePsFixedFee,
-		Source: &billing.AccountingEntrySource{
-			Id:   h.order.Id,
-			Type: collectionOrder,
-		},
-		MerchantId: h.order.GetMerchantId(),
-		Status:     pkg.BalanceTransactionStatusPending,
-		CreatedAt:  ptypes.TimestampNow(),
-		Country:    h.order.GetCountry(),
-	}
-
-	if h.req != nil {
-		h.mapRequestToEntry(entry)
-		if err := h.addEntry(entry); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	cost, err := h.getPaymentChannelCostMerchant()
-
-	if err != nil {
-		zap.L().Error(
-			accountingEntryErrorTextCommissionNotFound,
-			zap.Error(err),
-			zap.String("project", h.order.GetProjectId()),
-			zap.String("payment_method", h.order.GetPaymentMethodId()),
-		)
-
-		return accountingEntryErrorCommissionNotFound
-	}
-
-	amount := cost.PsFixedFee
-
-	entry.OriginalAmount = amount
-	entry.OriginalCurrency = h.order.Currency
-
-	if cost.PsFixedFeeCurrency != h.order.GetMerchantRoyaltyCurrency() {
-		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
-			From:       h.order.Currency,
-			To:         h.order.GetMerchantRoyaltyCurrency(),
-			MerchantId: h.order.GetMerchantId(),
-			RateType:   curPkg.RateTypePaysuper,
-			Amount:     amount,
-		}
-
-		rsp, err := h.curService.ExchangeCurrencyCurrentForMerchant(h.ctx, req)
-
-		if err != nil {
-			zap.L().Error(
-				pkg.ErrorGrpcServiceCallFailed,
-				zap.Error(err),
-				zap.String(errorFieldService, "CurrencyRatesService"),
-				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
-				zap.Any(errorFieldRequest, req),
-			)
-
-			return accountingEntryErrorExchangeFailed
-		}
-
-		amount = rsp.ExchangedAmount
-	}
-
-	entry.Amount = amount
-	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-
-	if err := h.addEntry(entry); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *accountingEntry) psMarkupFixedFeeFx() error {
-	if h.order == nil {
-		return accountingEntryErrorOrderNotFound
-	}
-
-	entry := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
-		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypePsMarkupFixedFeeFx,
-		Source: &billing.AccountingEntrySource{
-			Id:   h.order.Id,
-			Type: collectionOrder,
-		},
-		MerchantId: h.order.GetMerchantId(),
-		Status:     pkg.BalanceTransactionStatusPending,
-		CreatedAt:  ptypes.TimestampNow(),
-		Country:    h.order.GetCountry(),
-	}
-
-	if h.req != nil {
-		h.mapRequestToEntry(entry)
-		if err := h.addEntry(entry); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	cost, err := h.getPaymentChannelCostMerchant()
-
-	if err != nil {
-		zap.L().Error(
-			accountingEntryErrorTextCommissionNotFound,
-			zap.Error(err),
-			zap.String("project", h.order.GetProjectId()),
-			zap.String("payment_method", h.order.GetPaymentMethodId()),
-		)
-
-		return accountingEntryErrorCommissionNotFound
-	}
-
-	req := &currencies.GetRateCurrentForMerchantRequest{
-		From:       cost.PsFixedFeeCurrency,
-		To:         h.order.GetMerchantRoyaltyCurrency(),
-		MerchantId: h.order.Project.MerchantId,
-		RateType:   curPkg.RateTypePaysuper,
-	}
-	rsp, err := h.curService.GetRateCurrentForMerchant(h.ctx, req)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorGrpcServiceCallFailed,
-			zap.Error(err),
-			zap.String(errorFieldService, "CurrencyRatesService"),
-			zap.String(errorFieldMethod, "GetRateCurrentForMerchant"),
-			zap.Any(errorFieldRequest, req),
-		)
-
-		return accountingEntryErrorGetExchangeRateFailed
-	}
-
-	req1 := &currencies.GetRateCurrentCommonRequest{
-		From:     cost.PsFixedFeeCurrency,
-		To:       h.order.GetMerchantRoyaltyCurrency(),
-		RateType: curPkg.RateTypePaysuper,
-	}
-	rsp1, err := h.curService.GetRateCurrentCommon(h.ctx, req1)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorGrpcServiceCallFailed,
-			zap.Error(err),
-			zap.String(errorFieldService, "CurrencyRatesService"),
-			zap.String(errorFieldMethod, "GetRateCurrentCommon"),
-			zap.Any(errorFieldRequest, req),
-		)
-
-		return accountingEntryErrorGetExchangeRateFailed
-	}
-
-	entry.Amount = rsp.Rate - rsp1.Rate
-	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	if err := h.addEntry(entry); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *accountingEntry) taxFee() error {
-	if h.order == nil {
-		return accountingEntryErrorOrderNotFound
-	}
-
-	entry := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
-		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypeTaxFee,
-		Source: &billing.AccountingEntrySource{
-			Id:   h.order.Id,
-			Type: collectionOrder,
-		},
-		MerchantId:       h.order.GetMerchantId(),
-		Status:           pkg.BalanceTransactionStatusPending,
-		CreatedAt:        ptypes.TimestampNow(),
-		Country:          h.order.GetCountry(),
-		OriginalAmount:   h.order.Tax.Amount,
-		OriginalCurrency: h.order.Tax.Currency,
-	}
-
-	if h.req != nil {
-		h.mapRequestToEntry(entry)
-		if err := h.addEntry(entry); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	amount := h.order.Tax.Amount
-
-	if h.order.Tax.Currency != h.order.GetMerchantRoyaltyCurrency() {
-		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
-			From:       h.order.Tax.Currency,
-			To:         h.order.GetMerchantRoyaltyCurrency(),
-			MerchantId: h.order.GetMerchantId(),
-			RateType:   curPkg.RateTypePaysuper,
-			Amount:     amount,
-		}
-		rsp, err := h.curService.ExchangeCurrencyCurrentForMerchant(h.ctx, req)
-
-		if err != nil {
-			zap.L().Error(
-				pkg.ErrorGrpcServiceCallFailed,
-				zap.Error(err),
-				zap.String(errorFieldService, "CurrencyRatesService"),
-				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
-				zap.Any(errorFieldRequest, req),
-			)
-
-			return accountingEntryErrorExchangeFailed
-		}
-
-		amount = rsp.ExchangedAmount
-	}
-
-	h.order.RoyaltyData.PaymentTaxAmountInRoyaltyCurrency = amount
-
-	entry.Amount = amount
-	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	if err := h.addEntry(entry); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *accountingEntry) psTaxFxFee() error {
-	if h.order == nil {
-		return accountingEntryErrorOrderNotFound
-	}
-
-	entry := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
-		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypePsTaxFxFee,
-		Source: &billing.AccountingEntrySource{
-			Id:   h.order.Id,
-			Type: collectionOrder,
-		},
-		MerchantId: h.order.GetMerchantId(),
-		Country:    h.order.GetCountry(),
-	}
-	h.mapRequestToEntry(entry)
-	if err := h.addEntry(entry); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *accountingEntry) refundEntry() error {
-	if h.refund == nil {
-		return accountingEntryErrorRefundNotFound
-	}
-
-	entry := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
-		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypeRefund,
-		Source: &billing.AccountingEntrySource{
-			Id:   h.refund.Id,
-			Type: collectionRefund,
-		},
-		MerchantId:       h.order.GetMerchantId(),
-		Status:           pkg.BalanceTransactionStatusPending,
-		CreatedAt:        ptypes.TimestampNow(),
-		Country:          h.order.GetCountry(),
-		OriginalAmount:   h.refund.Amount,
-		OriginalCurrency: h.refund.Currency,
-	}
-
-	if h.req != nil {
-		h.mapRequestToEntry(entry)
-		if err := h.addEntry(entry); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
-		From:       h.refund.Currency,
-		To:         h.order.GetMerchantRoyaltyCurrency(),
-		MerchantId: h.order.GetMerchantId(),
-		RateType:   curPkg.RateTypePaysuper,
-		Amount:     h.refund.Amount,
-	}
-
-	rsp, err := h.curService.ExchangeCurrencyCurrentForMerchant(h.ctx, req)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorGrpcServiceCallFailed,
-			zap.Error(err),
-			zap.String(errorFieldService, "CurrencyRatesService"),
-			zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
-			zap.Any(errorFieldRequest, req),
-		)
-
-		return accountingEntryErrorExchangeFailed
-	}
-
-	h.order.RoyaltyData.RefundTotalAmountInRoyaltyCurrency += rsp.ExchangedAmount
-
-	entry.Amount = rsp.ExchangedAmount
-	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	if err := h.addEntry(entry); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *accountingEntry) refundFee() error {
-	if h.refund == nil {
-		return accountingEntryErrorRefundNotFound
-	}
-
-	entry := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
-		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypeRefundFee,
-		Source: &billing.AccountingEntrySource{
-			Id:   h.refund.Id,
-			Type: collectionRefund,
-		},
-		MerchantId: h.order.GetMerchantId(),
-		Status:     pkg.BalanceTransactionStatusPending,
-		CreatedAt:  ptypes.TimestampNow(),
-		Country:    h.order.GetCountry(),
-	}
-
-	if h.req != nil {
-		h.mapRequestToEntry(entry)
-		if err := h.addEntry(entry); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	cost, err := h.getMoneyBackCostMerchant(pkg.AccountingEntryTypeRefund)
-
-	if err != nil {
-		zap.L().Error(
-			accountingEntryErrorTextCommissionNotFound,
-			zap.Error(err),
-			zap.String("project", h.order.GetProjectId()),
-			zap.String("payment_method", h.order.GetPaymentMethodId()),
-		)
-
-		return accountingEntryErrorCommissionNotFound
-	}
-
-	entry.Amount = h.refund.Amount * (cost.Percent / 100)
-	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	if err := h.addEntry(entry); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *accountingEntry) refundFixedFee() error {
-	if h.refund == nil {
-		return accountingEntryErrorRefundNotFound
-	}
-
-	entry := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
-		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypeRefundFixedFee,
-		Source: &billing.AccountingEntrySource{
-			Id:   h.refund.Id,
-			Type: collectionRefund,
-		},
-		MerchantId: h.order.GetMerchantId(),
-		Status:     pkg.BalanceTransactionStatusPending,
-		CreatedAt:  ptypes.TimestampNow(),
-		Country:    h.order.GetCountry(),
-	}
-
-	if h.req != nil {
-		h.mapRequestToEntry(entry)
-		if err := h.addEntry(entry); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	cost, err := h.getMoneyBackCostMerchant(pkg.AccountingEntryTypeRefund)
-
-	if err != nil {
-		zap.L().Error(
-			accountingEntryErrorTextCommissionNotFound,
-			zap.Error(err),
-			zap.String("project", h.order.GetProjectId()),
-			zap.String("payment_method", h.order.GetPaymentMethodId()),
-		)
-
-		return accountingEntryErrorCommissionNotFound
-	}
-
-	amount := cost.FixAmount
-
-	if cost.FixAmountCurrency != h.order.GetMerchantRoyaltyCurrency() {
-		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
-			From:       cost.FixAmountCurrency,
-			To:         h.order.GetMerchantRoyaltyCurrency(),
-			MerchantId: h.order.GetMerchantId(),
-			RateType:   curPkg.RateTypePaysuper,
-			Amount:     amount,
-		}
-		rsp, err := h.curService.ExchangeCurrencyCurrentForMerchant(h.ctx, req)
-
-		if err != nil {
-			zap.L().Error(
-				pkg.ErrorGrpcServiceCallFailed,
-				zap.Error(err),
-				zap.String(errorFieldService, "CurrencyRatesService"),
-				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
-				zap.Any(errorFieldRequest, req),
-			)
-
-			return accountingEntryErrorExchangeFailed
-		}
-
-		amount = rsp.ExchangedAmount
-	}
-
-	entry.Amount = amount
-	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	if err := h.addEntry(entry); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *accountingEntry) psMarkupRefundFx() error {
-	if h.refund == nil {
-		return accountingEntryErrorRefundNotFound
-	}
-
-	entry := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
-		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypePsMarkupRefundFx,
-		Source: &billing.AccountingEntrySource{
-			Id:   h.refund.Id,
-			Type: collectionRefund,
-		},
-		MerchantId: h.order.GetMerchantId(),
-		Status:     pkg.BalanceTransactionStatusPending,
-		CreatedAt:  ptypes.TimestampNow(),
-		Country:    h.order.GetCountry(),
-	}
-
-	if h.req != nil {
-		h.mapRequestToEntry(entry)
-		if err := h.addEntry(entry); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	req := &currencies.GetRateCurrentForMerchantRequest{
-		From:       h.refund.Currency,
-		To:         h.order.GetMerchantRoyaltyCurrency(),
-		MerchantId: h.order.Project.MerchantId,
-		RateType:   curPkg.RateTypePaysuper,
-	}
-	rsp, err := h.curService.GetRateCurrentForMerchant(h.ctx, req)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorGrpcServiceCallFailed,
-			zap.Error(err),
-			zap.String(errorFieldService, "CurrencyRatesService"),
-			zap.String(errorFieldMethod, "GetRateCurrentForMerchant"),
-			zap.Any(errorFieldRequest, req),
-		)
-
-		return accountingEntryErrorGetExchangeRateFailed
-	}
-
-	req1 := &currencies.GetRateCurrentCommonRequest{
-		From:     h.refund.Currency,
-		To:       h.order.GetMerchantRoyaltyCurrency(),
-		RateType: curPkg.RateTypePaysuper,
-	}
-	rsp1, err := h.curService.GetRateCurrentCommon(h.ctx, req1)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorGrpcServiceCallFailed,
-			zap.Error(err),
-			zap.String(errorFieldService, "CurrencyRatesService"),
-			zap.String(errorFieldMethod, "GetRateCurrentCommon"),
-			zap.Any(errorFieldRequest, req),
-		)
-
-		return accountingEntryErrorGetExchangeRateFailed
-	}
-
-	entry.Amount = rsp.Rate - rsp1.Rate
-	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	if err := h.addEntry(entry); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *accountingEntry) refundBody() error {
-	if h.refund == nil {
-		return accountingEntryErrorRefundNotFound
-	}
-
-	entry := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
-		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypeRefundBody,
-		Source: &billing.AccountingEntrySource{
-			Id:   h.refund.Id,
-			Type: collectionRefund,
-		},
-		MerchantId: h.order.GetMerchantId(),
-		Status:     pkg.BalanceTransactionStatusPending,
-		CreatedAt:  ptypes.TimestampNow(),
-		Country:    h.order.GetCountry(),
-	}
-
-	if h.req != nil {
-		h.mapRequestToEntry(entry)
-		if err := h.addEntry(entry); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	refundAmount := h.refund.Amount
-
-	if h.refund.Currency != h.order.GetMerchantRoyaltyCurrency() {
-		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
-			From:       h.order.Tax.Currency,
-			To:         h.order.GetMerchantRoyaltyCurrency(),
-			MerchantId: h.order.GetMerchantId(),
-			RateType:   curPkg.RateTypePaysuper,
-			Amount:     refundAmount,
-		}
-		rsp, err := h.curService.ExchangeCurrencyCurrentForMerchant(h.ctx, req)
-
-		if err != nil {
-			zap.L().Error(
-				pkg.ErrorGrpcServiceCallFailed,
-				zap.Error(err),
-				zap.String(errorFieldService, "CurrencyRatesService"),
-				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
-				zap.Any(errorFieldRequest, req),
-			)
-
-			return accountingEntryErrorExchangeFailed
-		}
-
-		refundAmount = rsp.ExchangedAmount
-	}
-
-	taxAmount := h.order.Tax.Amount
-
-	if h.order.Tax.Currency != h.order.GetMerchantRoyaltyCurrency() {
-		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
-			From:       h.order.Tax.Currency,
-			To:         h.order.GetMerchantRoyaltyCurrency(),
-			MerchantId: h.order.GetMerchantId(),
-			RateType:   curPkg.RateTypePaysuper,
-			Amount:     taxAmount,
-		}
-		rsp, err := h.curService.ExchangeCurrencyCurrentForMerchant(h.ctx, req)
-
-		if err != nil {
-			zap.L().Error(
-				pkg.ErrorGrpcServiceCallFailed,
-				zap.Error(err),
-				zap.String(errorFieldService, "CurrencyRatesService"),
-				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
-				zap.Any(errorFieldRequest, req),
-			)
-
-			return accountingEntryErrorExchangeFailed
-		}
-
-		taxAmount = rsp.ExchangedAmount
-	}
-
-	entry.Amount = refundAmount - taxAmount
-	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	if err := h.addEntry(entry); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *accountingEntry) reverseTaxFee() error {
-	if h.refund == nil {
-		return accountingEntryErrorRefundNotFound
-	}
-
-	entry := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
-		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypeReverseTaxFee,
-		Source: &billing.AccountingEntrySource{
-			Id:   h.refund.Id,
-			Type: collectionRefund,
-		},
-		MerchantId:       h.order.GetMerchantId(),
-		Status:           pkg.BalanceTransactionStatusPending,
-		CreatedAt:        ptypes.TimestampNow(),
-		Country:          h.order.GetCountry(),
-		OriginalAmount:   h.order.Tax.Amount,
-		OriginalCurrency: h.order.Tax.Currency,
-	}
-
-	if h.req != nil {
-		h.mapRequestToEntry(entry)
-		if err := h.addEntry(entry); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	// берем для расчета налог пропорционально соотнешению суммы рефанда к сумме платежа
-	rate := h.refund.Amount / h.order.TotalPaymentAmount
-
-	amount := h.order.Tax.Amount * rate
-
-	if h.order.Tax.Currency != h.order.GetMerchantRoyaltyCurrency() {
-		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
-			From:       h.order.Tax.Currency,
-			To:         h.order.GetMerchantRoyaltyCurrency(),
-			MerchantId: h.order.GetMerchantId(),
-			RateType:   curPkg.RateTypePaysuper,
-			Amount:     amount,
-		}
-		rsp, err := h.curService.ExchangeCurrencyCurrentForMerchant(h.ctx, req)
-
-		if err != nil {
-			zap.L().Error(
-				pkg.ErrorGrpcServiceCallFailed,
-				zap.Error(err),
-				zap.String(errorFieldService, "CurrencyRatesService"),
-				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
-				zap.Any(errorFieldRequest, req),
-			)
-
-			return accountingEntryErrorExchangeFailed
-		}
-
-		amount = rsp.ExchangedAmount
-	}
-
-	h.order.RoyaltyData.RefundTaxAmountInRoyaltyCurrency = amount
-
-	entry.Amount = amount
-	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	if err := h.addEntry(entry); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *accountingEntry) psMarkupReverseTaxFee() error {
-	if h.refund == nil {
-		return accountingEntryErrorRefundNotFound
-	}
-
-	entry := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
-		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypePsMarkupReverseTaxFee,
-		Source: &billing.AccountingEntrySource{
-			Id:   h.refund.Id,
-			Type: collectionRefund,
-		},
-		MerchantId: h.order.GetMerchantId(),
-		Status:     pkg.BalanceTransactionStatusPending,
-		CreatedAt:  ptypes.TimestampNow(),
-		Country:    h.order.GetCountry(),
-	}
-
-	if h.req != nil {
-		h.mapRequestToEntry(entry)
-		if err := h.addEntry(entry); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	req := &currencies.GetRateCurrentForMerchantRequest{
-		From:       h.refund.Currency,
-		To:         h.order.GetMerchantRoyaltyCurrency(),
-		MerchantId: h.order.Project.MerchantId,
-		RateType:   curPkg.RateTypePaysuper,
-	}
-	rsp, err := h.curService.GetRateCurrentForMerchant(h.ctx, req)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorGrpcServiceCallFailed,
-			zap.Error(err),
-			zap.String(errorFieldService, "CurrencyRatesService"),
-			zap.String(errorFieldMethod, "GetRateCurrentForMerchant"),
-			zap.Any(errorFieldRequest, req),
-		)
-
-		return accountingEntryErrorGetExchangeRateFailed
-	}
-
-	req1 := &currencies.GetRateCurrentCommonRequest{
-		From:     h.refund.Currency,
-		To:       h.order.GetMerchantRoyaltyCurrency(),
-		RateType: curPkg.RateTypePaysuper,
-	}
-	rsp1, err := h.curService.GetRateCurrentCommon(h.ctx, req1)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorGrpcServiceCallFailed,
-			zap.Error(err),
-			zap.String(errorFieldService, "CurrencyRatesService"),
-			zap.String(errorFieldMethod, "GetRateCurrentCommon"),
-			zap.Any(errorFieldRequest, req),
-		)
-
-		return accountingEntryErrorGetExchangeRateFailed
-	}
-
-	entry.Amount = rsp.Rate - rsp1.Rate
-	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	if err := h.addEntry(entry); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *accountingEntry) reverseTaxFeeDelta() error {
-	if h.refund == nil {
-		return accountingEntryErrorRefundNotFound
-	}
-
-	entry := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
-		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypeReverseTaxFeeDelta,
-		Source: &billing.AccountingEntrySource{
-			Id:   h.refund.Id,
-			Type: collectionRefund,
-		},
-		MerchantId: h.order.GetMerchantId(),
-		Status:     pkg.BalanceTransactionStatusPending,
-		CreatedAt:  ptypes.TimestampNow(),
-		Country:    h.order.GetCountry(),
-	}
-
-	if h.req != nil {
-		h.mapRequestToEntry(entry)
-		if err := h.addEntry(entry); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	amount := h.order.RoyaltyData.PaymentTaxAmountInRoyaltyCurrency - h.order.RoyaltyData.RefundTaxAmountInRoyaltyCurrency
-
-	if amount <= 0 {
-		return nil
-	}
-
-	entry.Amount = amount
-	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	if err := h.addEntry(entry); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *accountingEntry) psReverseTaxFeeDelta() error {
-	if h.refund == nil {
-		return accountingEntryErrorRefundNotFound
-	}
-
-	entry := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
-		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypePsReverseTaxFeeDelta,
-		Source: &billing.AccountingEntrySource{
-			Id:   h.refund.Id,
-			Type: collectionRefund,
-		},
-		MerchantId: h.order.GetMerchantId(),
-		Status:     pkg.BalanceTransactionStatusPending,
-		CreatedAt:  ptypes.TimestampNow(),
-		Country:    h.order.GetCountry(),
-	}
-
-	if h.req != nil {
-		h.mapRequestToEntry(entry)
-		if err := h.addEntry(entry); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	amount := h.order.RoyaltyData.PaymentTaxAmountInRoyaltyCurrency - h.order.RoyaltyData.RefundTaxAmountInRoyaltyCurrency
-
-	if amount > 0 {
-		return nil
-	}
-
-	entry.Amount = math.Abs(amount)
-	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	if err := h.addEntry(entry); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *accountingEntry) chargeback() error {
-	if h.refund == nil {
-		return accountingEntryErrorRefundNotFound
-	}
-
-	entry := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
-		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypeChargeback,
-		Source: &billing.AccountingEntrySource{
-			Id:   h.refund.Id,
-			Type: collectionRefund,
-		},
-		MerchantId:       h.order.GetMerchantId(),
-		Status:           pkg.BalanceTransactionStatusPending,
-		CreatedAt:        ptypes.TimestampNow(),
-		Country:          h.order.GetCountry(),
-		OriginalAmount:   h.order.TotalPaymentAmount,
-		OriginalCurrency: h.order.Currency,
-	}
-
-	if h.req != nil {
-		h.mapRequestToEntry(entry)
-		if err := h.addEntry(entry); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
-		From:       h.order.Currency,
-		To:         h.order.GetMerchantRoyaltyCurrency(),
-		MerchantId: h.order.GetMerchantId(),
-		RateType:   curPkg.RateTypePaysuper,
-		Amount:     h.order.TotalPaymentAmount,
-	}
-
-	rsp, err := h.curService.ExchangeCurrencyCurrentForMerchant(h.ctx, req)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorGrpcServiceCallFailed,
-			zap.Error(err),
-			zap.String(errorFieldService, "CurrencyRatesService"),
-			zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
-			zap.Any(errorFieldRequest, req),
-		)
-
-		return accountingEntryErrorExchangeFailed
-	}
-
-	entry.Amount = rsp.ExchangedAmount
-	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	if err := h.addEntry(entry); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *accountingEntry) psMarkupChargebackFx() error {
-	if h.refund == nil {
-		return accountingEntryErrorRefundNotFound
-	}
-
-	entry := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
-		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypePsMarkupChargebackFx,
-		Source: &billing.AccountingEntrySource{
-			Id:   h.refund.Id,
-			Type: collectionRefund,
-		},
-		MerchantId: h.order.GetMerchantId(),
-		Status:     pkg.BalanceTransactionStatusPending,
-		CreatedAt:  ptypes.TimestampNow(),
-		Country:    h.order.GetCountry(),
-	}
-
-	if h.req != nil {
-		h.mapRequestToEntry(entry)
-		if err := h.addEntry(entry); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	req := &currencies.GetRateCurrentForMerchantRequest{
-		From:       h.order.Currency,
-		To:         h.order.GetMerchantRoyaltyCurrency(),
-		MerchantId: h.order.GetMerchantId(),
-		RateType:   curPkg.RateTypePaysuper,
-	}
-	rsp, err := h.curService.GetRateCurrentForMerchant(h.ctx, req)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorGrpcServiceCallFailed,
-			zap.Error(err),
-			zap.String(errorFieldService, "CurrencyRatesService"),
-			zap.String(errorFieldMethod, "GetRateCurrentForMerchant"),
-			zap.Any(errorFieldRequest, req),
-		)
-
-		return accountingEntryErrorGetExchangeRateFailed
-	}
-
-	req1 := &currencies.GetRateCurrentCommonRequest{
-		From:     h.order.Currency,
-		To:       h.order.GetMerchantRoyaltyCurrency(),
-		RateType: curPkg.RateTypePaysuper,
-	}
-	rsp1, err := h.curService.GetRateCurrentCommon(h.ctx, req1)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorGrpcServiceCallFailed,
-			zap.Error(err),
-			zap.String(errorFieldService, "CurrencyRatesService"),
-			zap.String(errorFieldMethod, "GetRateCurrentCommonRequest"),
-			zap.Any(errorFieldRequest, req),
-		)
-
-		return accountingEntryErrorGetExchangeRateFailed
-	}
-
-	entry.Amount = rsp.Rate - rsp1.Rate
-	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	if err := h.addEntry(entry); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *accountingEntry) chargebackFee() error {
-	if h.refund == nil {
-		return accountingEntryErrorRefundNotFound
-	}
-
-	entry := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
-		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypeChargebackFee,
-		Source: &billing.AccountingEntrySource{
-			Id:   h.refund.Id,
-			Type: collectionRefund,
-		},
-		MerchantId: h.order.GetMerchantId(),
-		Amount:     h.order.RoyaltyData.ChargebackPercentCommissionInRoyaltyCurrency,
+		Country:    h.country.IsoCodeA2,
 		Currency:   h.order.GetMerchantRoyaltyCurrency(),
-		Status:     pkg.BalanceTransactionStatusPending,
-		CreatedAt:  ptypes.TimestampNow(),
-		Country:    h.order.GetCountry(),
 	}
-
-	if h.req != nil {
-		h.mapRequestToEntry(entry)
-		if err := h.addEntry(entry); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	cost, err := h.getMoneyBackCostMerchant(pkg.AccountingEntryTypeChargeback)
-
-	if err != nil {
-		zap.L().Error(
-			accountingEntryErrorTextCommissionNotFound,
-			zap.Error(err),
-			zap.String("project", h.order.GetProjectId()),
-			zap.String("payment_method", h.order.GetPaymentMethodId()),
-		)
-
-		return accountingEntryErrorCommissionNotFound
-	}
-
-	chargebackFee := h.order.TotalPaymentAmount * (cost.Percent / 100)
-	entry.OriginalAmount = chargebackFee
-	entry.OriginalCurrency = h.order.Currency
-
-	h.order.RoyaltyData.ChargebackPercentCommissionInRoyaltyCurrency = chargebackFee
-
-	if h.order.GetMerchantRoyaltyCurrency() != h.order.Currency {
-		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
-			From:       h.order.Currency,
-			To:         h.order.GetMerchantRoyaltyCurrency(),
-			MerchantId: h.order.GetMerchantId(),
-			RateType:   curPkg.RateTypePaysuper,
-			Amount:     chargebackFee,
-		}
-
-		rsp, err := h.curService.ExchangeCurrencyCurrentForMerchant(h.ctx, req)
-
-		if err != nil {
-			zap.L().Error(
-				pkg.ErrorGrpcServiceCallFailed,
-				zap.Error(err),
-				zap.String(errorFieldService, "CurrencyRatesService"),
-				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
-				zap.Any(errorFieldRequest, req),
-			)
-
-			return accountingEntryErrorExchangeFailed
-		}
-
-		h.order.RoyaltyData.ChargebackPercentCommissionInRoyaltyCurrency = rsp.ExchangedAmount
-	}
-
-	entry.Amount = h.order.RoyaltyData.ChargebackPercentCommissionInRoyaltyCurrency
-	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	if err := h.addEntry(entry); err != nil {
-		return err
-	}
-
-	return nil
 }
 
-func (h *accountingEntry) psMarkupChargebackFee() error {
-	if h.refund == nil {
-		return accountingEntryErrorRefundNotFound
-	}
-
-	entry := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
-		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypePsMarkupChargebackFee,
-		Source: &billing.AccountingEntrySource{
-			Id:   h.refund.Id,
-			Type: collectionRefund,
-		},
-		MerchantId: h.order.GetMerchantId(),
-		Status:     pkg.BalanceTransactionStatusPending,
-		CreatedAt:  ptypes.TimestampNow(),
-		Country:    h.order.GetCountry(),
-	}
-
-	if h.req != nil {
-		h.mapRequestToEntry(entry)
-		if err := h.addEntry(entry); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	cost, err := h.getMoneyBackCostSystem(pkg.AccountingEntryTypeChargeback)
-
-	if err != nil {
-		zap.L().Error(
-			accountingEntryErrorTextCommissionNotFound,
-			zap.Error(err),
-			zap.String("project", h.order.GetProjectId()),
-			zap.String("payment_method", h.order.GetPaymentMethodId()),
-		)
-
-		return accountingEntryErrorCommissionNotFound
-	}
-
-	chargebackFee := h.order.TotalPaymentAmount * (cost.Percent / 100)
-	if h.order.GetMerchantRoyaltyCurrency() != h.order.Currency {
-		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
-			From:       h.order.Currency,
-			To:         h.order.GetMerchantRoyaltyCurrency(),
-			MerchantId: h.order.GetMerchantId(),
-			RateType:   curPkg.RateTypePaysuper,
-			Amount:     chargebackFee,
-		}
-
-		rsp, err := h.curService.ExchangeCurrencyCurrentForMerchant(h.ctx, req)
-
-		if err != nil {
-			zap.L().Error(
-				pkg.ErrorGrpcServiceCallFailed,
-				zap.Error(err),
-				zap.String(errorFieldService, "CurrencyRatesService"),
-				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
-				zap.Any(errorFieldRequest, req),
-			)
-
-			return accountingEntryErrorExchangeFailed
-		}
-
-		chargebackFee = rsp.ExchangedAmount
-	}
-
-	entry.Amount = h.order.RoyaltyData.ChargebackPercentCommissionInRoyaltyCurrency - chargebackFee
-	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	if err := h.addEntry(entry); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *accountingEntry) chargebackFixedFee() error {
-	if h.refund == nil {
-		return accountingEntryErrorRefundNotFound
-	}
-
-	entry := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
-		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypeChargebackFixedFee,
-		Source: &billing.AccountingEntrySource{
-			Id:   h.refund.Id,
-			Type: collectionRefund,
-		},
-		MerchantId: h.order.GetMerchantId(),
-		Status:     pkg.BalanceTransactionStatusPending,
-		CreatedAt:  ptypes.TimestampNow(),
-		Country:    h.order.GetCountry(),
-	}
-
-	if h.req != nil {
-		h.mapRequestToEntry(entry)
-		if err := h.addEntry(entry); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	cost, err := h.getMoneyBackCostMerchant(pkg.AccountingEntryTypeChargeback)
-
-	if err != nil {
-		zap.L().Error(
-			accountingEntryErrorTextCommissionNotFound,
-			zap.Error(err),
-			zap.String("project", h.order.GetProjectId()),
-			zap.String("payment_method", h.order.GetPaymentMethodId()),
-		)
-
-		return accountingEntryErrorCommissionNotFound
-	}
-
-	h.order.RoyaltyData.ChargebackFixedCommissionInRoyaltyCurrency = cost.FixAmount
-
-	if h.order.GetMerchantRoyaltyCurrency() != cost.FixAmountCurrency {
-		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
-			From:       cost.FixAmountCurrency,
-			To:         h.order.GetMerchantRoyaltyCurrency(),
-			MerchantId: h.order.GetMerchantId(),
-			RateType:   curPkg.RateTypePaysuper,
-			Amount:     cost.FixAmount,
-		}
-		rsp, err := h.curService.ExchangeCurrencyCurrentForMerchant(h.ctx, req)
-
-		if err != nil {
-			zap.L().Error(
-				pkg.ErrorGrpcServiceCallFailed,
-				zap.Error(err),
-				zap.String(errorFieldService, "CurrencyRatesService"),
-				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
-				zap.Any(errorFieldRequest, req),
-			)
-
-			return accountingEntryErrorExchangeFailed
-		}
-
-		h.order.RoyaltyData.ChargebackFixedCommissionInRoyaltyCurrency = rsp.ExchangedAmount
-	}
-
-	entry.Amount = h.order.RoyaltyData.ChargebackFixedCommissionInRoyaltyCurrency
-	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	if err := h.addEntry(entry); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (h *accountingEntry) psMarkupChargebackFixedFee() error {
-	if h.refund == nil {
-		return accountingEntryErrorRefundNotFound
-	}
-
-	entry := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
-		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypePsMarkupChargebackFixedFee,
-		Source: &billing.AccountingEntrySource{
-			Id:   h.refund.Id,
-			Type: collectionRefund,
-		},
-		MerchantId: h.order.GetMerchantId(),
-		Status:     pkg.BalanceTransactionStatusPending,
-		CreatedAt:  ptypes.TimestampNow(),
-		Country:    h.order.GetCountry(),
-	}
-
-	if h.req != nil {
-		h.mapRequestToEntry(entry)
-		if err := h.addEntry(entry); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	cost, err := h.getMoneyBackCostSystem(pkg.AccountingEntryTypeChargeback)
-
-	if err != nil {
-		zap.L().Error(
-			accountingEntryErrorTextCommissionNotFound,
-			zap.Error(err),
-			zap.String("project", h.order.GetProjectId()),
-			zap.String("payment_method", h.order.GetPaymentMethodId()),
-		)
-
-		return accountingEntryErrorCommissionNotFound
-	}
-
-	amount := cost.FixAmount
-
-	entry.Amount = h.order.RoyaltyData.ChargebackFixedCommissionInRoyaltyCurrency - amount
-	entry.Currency = h.order.GetMerchantRoyaltyCurrency()
-	if err := h.addEntry(entry); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *accountingEntry) refundFailure() error {
-	if h.refund == nil {
-		return accountingEntryErrorRefundNotFound
-	}
-
-	entry := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
-		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypeRefundFailure,
-		Source: &billing.AccountingEntrySource{
-			Id:   h.refund.Id,
-			Type: collectionRefund,
-		},
-		MerchantId: h.order.GetMerchantId(),
-		Country:    h.order.GetCountry(),
-	}
-	h.mapRequestToEntry(entry)
-	if err := h.addEntry(entry); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *accountingEntry) chargebackFailure() error {
-	if h.refund == nil {
-		return accountingEntryErrorRefundNotFound
-	}
-
-	entry := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
-		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypeChargebackFailure,
-		Source: &billing.AccountingEntrySource{
-			Id:   h.refund.Id,
-			Type: collectionRefund,
-		},
-		MerchantId: h.order.GetMerchantId(),
-		Country:    h.order.GetCountry(),
-	}
-	h.mapRequestToEntry(entry)
-	if err := h.addEntry(entry); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *accountingEntry) createEntry(entryType string) error {
+/*func (h *accountingEntry) createEntry(entryType string) error {
 	if h.merchant == nil {
 		return accountingEntryErrorMerchantNotFound
 	}
@@ -2193,18 +840,31 @@ func (h *accountingEntry) mapRequestToEntry(entry *billing.AccountingEntry) {
 
 	t := time.Unix(h.req.Date, 0)
 	entry.CreatedAt, _ = ptypes.TimestampProto(t)
-}
+}*/
 
-func (h *accountingEntry) getPaymentChannelCostMerchant() (*billing.PaymentChannelCostMerchant, error) {
+func (h *accountingEntry) getPaymentChannelCostSystem() (*billing.PaymentChannelCostSystem, error) {
 	name, err := h.order.GetCostPaymentMethodName()
-
 	if err != nil {
 		return nil, err
 	}
 
-	userCountry := h.order.GetCountry()
-	country, err := h.country.GetByIsoCodeA2(userCountry)
+	cost, err := h.Service.paymentChannelCostSystem.Get(name, h.country.Region, h.country.IsoCodeA2)
 
+	if err != nil {
+		zap.L().Error(
+			accountingEntryErrorTextCommissionNotFound,
+			zap.Error(err),
+			zap.String("project", h.order.GetProjectId()),
+			zap.String("payment_method", h.order.GetPaymentMethodId()),
+		)
+
+		return nil, accountingEntryErrorCommissionNotFound
+	}
+	return cost, nil
+}
+
+func (h *accountingEntry) getPaymentChannelCostMerchant(amount float64) (*billing.PaymentChannelCostMerchant, error) {
+	name, err := h.order.GetCostPaymentMethodName()
 	if err != nil {
 		return nil, err
 	}
@@ -2213,22 +873,28 @@ func (h *accountingEntry) getPaymentChannelCostMerchant() (*billing.PaymentChann
 		MerchantId:     h.order.GetMerchantId(),
 		Name:           name,
 		PayoutCurrency: h.order.GetMerchantRoyaltyCurrency(),
-		Amount:         h.order.RoyaltyData.AmountInRoyaltyCurrency,
-		Region:         country.Region,
-		Country:        h.order.GetCountry(),
+		Amount:         amount,
+		Region:         h.country.Region,
+		Country:        h.country.IsoCodeA2,
 	}
-	return h.Service.getPaymentChannelCostMerchant(req)
+	cost, err := h.Service.getPaymentChannelCostMerchant(req)
+
+	if err != nil {
+		zap.L().Error(
+			accountingEntryErrorTextCommissionNotFound,
+			zap.Error(err),
+			zap.String("project", h.order.GetProjectId()),
+			zap.String("payment_method", h.order.GetPaymentMethodId()),
+		)
+
+		return nil, accountingEntryErrorCommissionNotFound
+	}
+	return cost, nil
 }
 
 func (h *accountingEntry) getMoneyBackCostMerchant(reason string) (*billing.MoneyBackCostMerchant, error) {
 	name, err := h.order.GetCostPaymentMethodName()
 
-	if err != nil {
-		return nil, err
-	}
-
-	userCountry := h.order.GetCountry()
-	country, err := h.country.GetByIsoCodeA2(userCountry)
 	if err != nil {
 		return nil, err
 	}
@@ -2241,8 +907,8 @@ func (h *accountingEntry) getMoneyBackCostMerchant(reason string) (*billing.Mone
 		Name:           name,
 		PayoutCurrency: h.order.GetMerchantRoyaltyCurrency(),
 		UndoReason:     reason,
-		Region:         country.Region,
-		Country:        userCountry,
+		Region:         h.country.Region,
+		Country:        h.country.IsoCodeA2,
 		PaymentStage:   1,
 		Days:           int32(refundAt.Sub(paymentAt).Hours() / 24),
 	}
@@ -2256,20 +922,14 @@ func (h *accountingEntry) getMoneyBackCostSystem(reason string) (*billing.MoneyB
 		return nil, err
 	}
 
-	userCountry := h.order.GetCountry()
-	country, err := h.country.GetByIsoCodeA2(userCountry)
-	if err != nil {
-		return nil, err
-	}
-
 	paymentAt, _ := ptypes.Timestamp(h.order.PaymentMethodOrderClosedAt)
 	refundAt, _ := ptypes.Timestamp(h.refund.CreatedAt)
 
 	data := &billing.MoneyBackCostSystemRequest{
 		Name:           name,
 		PayoutCurrency: h.order.GetMerchantRoyaltyCurrency(),
-		Region:         country.Region,
-		Country:        userCountry,
+		Region:         h.country.Region,
+		Country:        h.country.IsoCodeA2,
 		PaymentStage:   1,
 		Days:           int32(refundAt.Sub(paymentAt).Hours() / 24),
 		UndoReason:     reason,
@@ -2278,185 +938,187 @@ func (h *accountingEntry) getMoneyBackCostSystem(reason string) (*billing.MoneyB
 }
 
 func (h *accountingEntry) createVatTransaction() error {
-	order := h.order
+	/*	order := h.order
 
-	if order == nil {
-		return nil
-	}
+		if order == nil {
+			return nil
+		}
 
-	country, err := h.Service.country.GetByIsoCodeA2(order.GetCountry())
-	if err != nil {
-		return errorCountryNotFound
-	}
+		country, err := h.Service.country.GetByIsoCodeA2(order.GetCountry())
+		if err != nil {
+			return errorCountryNotFound
+		}
 
-	if !country.VatEnabled {
-		return nil
-	}
+		if !country.VatEnabled {
+			return nil
+		}
 
-	t := &billing.VatTransaction{
-		Id:                      bson.NewObjectId().Hex(),
-		OrderId:                 order.Id,
-		TransactionId:           order.Transaction,
-		BillingAddressCriteria:  "user", // todo?
-		UserId:                  order.User.Id,
-		PaymentMethod:           order.PaymentMethod.Name,
-		BillingAddress:          order.User.Address,
-		Country:                 country.IsoCodeA2,
-		LocalCurrency:           country.Currency,
-		LocalAmountsApproximate: country.VatCurrencyRatesPolicy != pkg.VatCurrencyRatesPolicyOnDay,
-	}
-	if order.BillingAddress != nil {
-		t.BillingAddressCriteria = "form"
-		t.BillingAddress = order.BillingAddress
-	}
+		t := &billing.VatTransaction{
+			Id:                      bson.NewObjectId().Hex(),
+			OrderId:                 order.Id,
+			TransactionId:           order.Transaction,
+			BillingAddressCriteria:  "user", // todo?
+			UserId:                  order.User.Id,
+			PaymentMethod:           order.PaymentMethod.Name,
+			BillingAddress:          order.User.Address,
+			Country:                 country.IsoCodeA2,
+			LocalCurrency:           country.Currency,
+			LocalAmountsApproximate: country.VatCurrencyRatesPolicy != pkg.VatCurrencyRatesPolicyOnDay,
+		}
+		if order.BillingAddress != nil {
+			t.BillingAddressCriteria = "form"
+			t.BillingAddress = order.BillingAddress
+		}
 
-	multiplier := float64(1)
+		multiplier := float64(1)
 
-	if h.refund != nil {
-		multiplier = float64(-1)
+		if h.refund != nil {
+			multiplier = float64(-1)
 
-		if h.refund.IsChargeback {
-			t.TransactionType = pkg.VatTransactionTypeChargeback
+			if h.refund.IsChargeback {
+				t.TransactionType = pkg.VatTransactionTypeChargeback
+			} else {
+				t.TransactionType = pkg.VatTransactionTypeRefund
+			}
+			t.DateTime = h.refund.UpdatedAt
+
+			orderPaidAt, err := ptypes.Timestamp(order.PaymentMethodOrderClosedAt)
+			if err != nil {
+				return err
+			}
+
+			from, _, err := h.Service.getLastVatReportTime(country.VatPeriodMonth)
+			if err != nil {
+				return err
+			}
+
+			t.IsDeduction = orderPaidAt.Unix() < from.Unix()
+
 		} else {
-			t.TransactionType = pkg.VatTransactionTypeRefund
-		}
-		t.DateTime = h.refund.UpdatedAt
-
-		orderPaidAt, err := ptypes.Timestamp(order.PaymentMethodOrderClosedAt)
-		if err != nil {
-			return err
+			t.TransactionType = pkg.VatTransactionTypePayment
+			t.DateTime = order.PaymentMethodOrderClosedAt
 		}
 
-		from, _, err := h.Service.getLastVatReportTime(country.VatPeriodMonth)
-		if err != nil {
-			return err
+		vatAmounts := make(map[string]*vatAmount, len(vatAccountingEntries))
+		for key := range vatAccountingEntries {
+			vatAmounts[key] = &vatAmount{}
 		}
 
-		t.IsDeduction = orderPaidAt.Unix() < from.Unix()
+		for _, e := range h.accountingEntries {
+			entry := e.(*billing.AccountingEntry)
 
-	} else {
-		t.TransactionType = pkg.VatTransactionTypePayment
-		t.DateTime = order.PaymentMethodOrderClosedAt
-	}
+			for key, entriesTypes := range vatAccountingEntries {
+				if contains(entriesTypes, entry.Type) {
+					amount := entry.OriginalAmount
+					currency := entry.OriginalCurrency
+					if key == "fees" {
+						amount = entry.Amount
+						currency = entry.Currency
+					}
 
-	vatAmounts := make(map[string]*vatAmount, len(vatAccountingEntries))
-	for key := range vatAccountingEntries {
-		vatAmounts[key] = &vatAmount{}
-	}
+					if vatAmounts[key].Currency != "" && vatAmounts[key].Currency != currency {
+						return accountingEntryErrorVatCurrencyConflict
+					}
 
-	for _, e := range h.accountingEntries {
-		entry := e.(*billing.AccountingEntry)
-
-		for key, entriesTypes := range vatAccountingEntries {
-			if contains(entriesTypes, entry.Type) {
-				amount := entry.OriginalAmount
-				currency := entry.OriginalCurrency
-				if key == "fees" {
-					amount = entry.Amount
-					currency = entry.Currency
+					vatAmounts[key].Amount += amount
+					vatAmounts[key].Currency = currency
 				}
-
-				if vatAmounts[key].Currency != "" && vatAmounts[key].Currency != currency {
-					return accountingEntryErrorVatCurrencyConflict
-				}
-
-				vatAmounts[key].Amount += amount
-				vatAmounts[key].Currency = currency
 			}
 		}
-	}
 
-	t.TransactionAmount = tools.FormatAmount(vatAmounts["amounts"].Amount * multiplier)
-	t.TransactionCurrency = vatAmounts["amounts"].Currency
+		t.TransactionAmount = toPrecise(vatAmounts["amounts"].Amount * multiplier)
+		t.TransactionCurrency = vatAmounts["amounts"].Currency
 
-	t.VatAmount = tools.FormatAmount(vatAmounts["taxes"].Amount * multiplier)
-	t.VatCurrency = vatAmounts["taxes"].Currency
+		t.VatAmount = toPrecise(vatAmounts["taxes"].Amount * multiplier)
+		t.VatCurrency = vatAmounts["taxes"].Currency
 
-	t.FeesAmount = tools.FormatAmount(vatAmounts["fees"].Amount) // we newer returns fees?
-	t.FeesCurrency = vatAmounts["fees"].Currency
+		t.FeesAmount = toPrecise(vatAmounts["fees"].Amount) // we newer returns fees?
+		t.FeesCurrency = vatAmounts["fees"].Currency
 
-	if t.TransactionCurrency == country.Currency {
-		t.LocalTransactionAmount = t.TransactionAmount
-	} else {
-		req := &currencies.ExchangeCurrencyCurrentCommonRequest{
-			From:     t.TransactionCurrency,
-			To:       country.Currency,
-			RateType: curPkg.RateTypeOxr,
-			Amount:   t.TransactionAmount,
-		}
-
-		rsp, err := h.Service.curService.ExchangeCurrencyCurrentCommon(h.ctx, req)
-
-		if err != nil {
-			zap.L().Error(
-				pkg.ErrorGrpcServiceCallFailed,
-				zap.Error(err),
-				zap.String(errorFieldService, "CurrencyRatesService"),
-				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentCommon"),
-				zap.Any(errorFieldRequest, req),
-			)
-
-			return accountingEntryErrorGetExchangeRateFailed
+		if t.TransactionCurrency == country.Currency {
+			t.LocalTransactionAmount = t.TransactionAmount
 		} else {
-			t.LocalTransactionAmount = tools.FormatAmount(rsp.ExchangedAmount)
+			req := &currencies.ExchangeCurrencyCurrentCommonRequest{
+				From:     t.TransactionCurrency,
+				To:       country.Currency,
+				RateType: curPkg.RateTypeOxr,
+				Amount:   t.TransactionAmount,
+			}
+
+			rsp, err := h.Service.curService.ExchangeCurrencyCurrentCommon(h.ctx, req)
+
+			if err != nil {
+				zap.L().Error(
+					pkg.ErrorGrpcServiceCallFailed,
+					zap.Error(err),
+					zap.String(errorFieldService, "CurrencyRatesService"),
+					zap.String(errorFieldMethod, "ExchangeCurrencyCurrentCommon"),
+					zap.Any(errorFieldRequest, req),
+				)
+
+				return accountingEntryErrorGetExchangeRateFailed
+			} else {
+				t.LocalTransactionAmount = toPrecise(rsp.ExchangedAmount)
+			}
 		}
-	}
 
-	if t.VatCurrency == country.Currency {
-		t.LocalVatAmount = t.VatAmount
-	} else {
-		req := &currencies.ExchangeCurrencyCurrentCommonRequest{
-			From:     t.VatCurrency,
-			To:       country.Currency,
-			RateType: curPkg.RateTypeOxr,
-			Amount:   t.VatAmount,
-		}
-
-		rsp, err := h.Service.curService.ExchangeCurrencyCurrentCommon(h.ctx, req)
-
-		if err != nil {
-			zap.L().Error(
-				pkg.ErrorGrpcServiceCallFailed,
-				zap.Error(err),
-				zap.String(errorFieldService, "CurrencyRatesService"),
-				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentCommon"),
-				zap.Any(errorFieldRequest, req),
-			)
-
-			return accountingEntryErrorGetExchangeRateFailed
+		if t.VatCurrency == country.Currency {
+			t.LocalVatAmount = t.VatAmount
 		} else {
-			t.LocalVatAmount = tools.FormatAmount(rsp.ExchangedAmount)
+			req := &currencies.ExchangeCurrencyCurrentCommonRequest{
+				From:     t.VatCurrency,
+				To:       country.Currency,
+				RateType: curPkg.RateTypeOxr,
+				Amount:   t.VatAmount,
+			}
+
+			rsp, err := h.Service.curService.ExchangeCurrencyCurrentCommon(h.ctx, req)
+
+			if err != nil {
+				zap.L().Error(
+					pkg.ErrorGrpcServiceCallFailed,
+					zap.Error(err),
+					zap.String(errorFieldService, "CurrencyRatesService"),
+					zap.String(errorFieldMethod, "ExchangeCurrencyCurrentCommon"),
+					zap.Any(errorFieldRequest, req),
+				)
+
+				return accountingEntryErrorGetExchangeRateFailed
+			} else {
+				t.LocalVatAmount = toPrecise(rsp.ExchangedAmount)
+			}
 		}
-	}
 
-	if t.FeesCurrency == country.Currency {
-		t.LocalFeesAmount = t.FeesAmount
-	} else {
-		req := &currencies.ExchangeCurrencyCurrentCommonRequest{
-			From:     t.FeesCurrency,
-			To:       country.Currency,
-			RateType: curPkg.RateTypeOxr,
-			Amount:   t.FeesAmount,
-		}
-
-		rsp, err := h.Service.curService.ExchangeCurrencyCurrentCommon(h.ctx, req)
-
-		if err != nil {
-			zap.L().Error(
-				pkg.ErrorGrpcServiceCallFailed,
-				zap.Error(err),
-				zap.String(errorFieldService, "CurrencyRatesService"),
-				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentCommon"),
-				zap.Any(errorFieldRequest, req),
-			)
-
-			return accountingEntryErrorGetExchangeRateFailed
+		if t.FeesCurrency == country.Currency {
+			t.LocalFeesAmount = t.FeesAmount
 		} else {
-			t.LocalFeesAmount = tools.FormatAmount(rsp.ExchangedAmount)
-		}
-	}
+			req := &currencies.ExchangeCurrencyCurrentCommonRequest{
+				From:     t.FeesCurrency,
+				To:       country.Currency,
+				RateType: curPkg.RateTypeOxr,
+				Amount:   t.FeesAmount,
+			}
 
-	return h.Service.insertVatTransaction(t)
+			rsp, err := h.Service.curService.ExchangeCurrencyCurrentCommon(h.ctx, req)
+
+			if err != nil {
+				zap.L().Error(
+					pkg.ErrorGrpcServiceCallFailed,
+					zap.Error(err),
+					zap.String(errorFieldService, "CurrencyRatesService"),
+					zap.String(errorFieldMethod, "ExchangeCurrencyCurrentCommon"),
+					zap.Any(errorFieldRequest, req),
+				)
+
+				return accountingEntryErrorGetExchangeRateFailed
+			} else {
+				t.LocalFeesAmount = toPrecise(rsp.ExchangedAmount)
+			}
+		}
+
+		return h.Service.insertVatTransaction(t)
+	*/
+	return nil
 }
 
 func (h *accountingEntry) updateVatTransaction() error {

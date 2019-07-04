@@ -115,6 +115,11 @@ func (s *Service) SetPaymentChannelCostMerchant(
 		res.Message = errorPaymentChannelMerchantCurrency
 		return nil
 	}
+	if !contains(sCurr.Currencies, req.MethodFixAmountCurrency) {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorPaymentChannelMerchantCurrency
+		return nil
+	}
 
 	req.IsActive = true
 
