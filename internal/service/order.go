@@ -903,15 +903,6 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 	order.User.Address.Country = country
 	order.UserAddressDataRequired = true
 
-	err = s.updateOrder(order)
-
-	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
-
-		return nil
-	}
-
 	restricted, err := s.applyCountryRestriction(order, country)
 
 	if err != nil {
@@ -924,6 +915,15 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 	if restricted == true {
 		rsp.Status = pkg.ResponseStatusForbidden
 		rsp.Message = orderCountryPaymentRestrictedError
+
+		return nil
+	}
+
+	err = s.updateOrder(order)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
 
 		return nil
 	}
