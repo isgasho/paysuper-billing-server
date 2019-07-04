@@ -8,6 +8,8 @@ import (
 	"github.com/globalsign/mgo/bson"
 	protobuf "github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/google/uuid"
+	"github.com/jinzhu/copier"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -241,6 +243,15 @@ func (s *Service) ProcessRefundCallback(
 		}
 	}
 
+	if pErr == nil {
+		err = s.createOrderByRefund(order, refund)
+
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Error = err.Error()
+		}
+	}
+
 	err = s.db.Collection(collectionRefund).UpdateId(bson.ObjectIdHex(refundId), refund)
 
 	if err != nil {
@@ -275,6 +286,57 @@ func (s *Service) ProcessRefundCallback(
 		}
 
 		rsp.Status = pkg.ResponseStatusOk
+	}
+
+	return nil
+}
+
+func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refund) error {
+	refundOrder := new(billing.Order)
+	err := copier.Copy(&refundOrder, &order)
+
+	if err != nil {
+		zap.L().Error(
+			"Copy order to new structure order by refund failed",
+			zap.Error(err),
+			zap.Any("refund", refund),
+		)
+
+		return refundErrorUnknown
+	}
+
+	refundOrder.Id = bson.NewObjectId().Hex()
+	refundOrder.Uuid = uuid.New().String()
+	refundOrder.PrivateStatus = constant.OrderStatusRefund
+	refundOrder.Status = constant.OrderPublicStatusRefunded
+	refundOrder.UpdatedAt = ptypes.TimestampNow()
+	refundOrder.RefundedAt = ptypes.TimestampNow()
+	refundOrder.TotalPaymentAmount = refund.Amount
+	refundOrder.OrderAmount = refund.Amount
+	refundOrder.Refund = &billing.OrderNotificationRefund{
+		Amount:        refund.Amount,
+		Currency:      refund.Currency.CodeA3,
+		Reason:        refund.Reason,
+		ReceiptNumber: refund.Id,
+	}
+	refundOrder.ParentId = order.Id
+	refundOrder.ProjectIncomeAmount = refund.Amount
+	refundOrder.ProjectOutcomeAmount = refund.Amount
+	refundOrder.PaymentMethodOutcomeAmount = refund.Amount
+	refundOrder.PaymentMethodIncomeAmount = refund.Amount
+	refundOrder.PaymentMethodOrderClosedAt = ptypes.TimestampNow()
+
+	err = s.db.Collection(collectionOrder).Insert(refundOrder)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String("collection", collectionOrder),
+			zap.Any("query", refundOrder),
+		)
+
+		return refundErrorUnknown
 	}
 
 	return nil

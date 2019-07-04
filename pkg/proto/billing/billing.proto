@@ -587,6 +587,9 @@ message Order {
 
     // @inject_tag: json:"-"
     OrderPaymentRoyaltyData payment_royalty_data = 67;
+
+    // @inject_tag: json:"-"
+    string parent_id = 68;
 }
 
 message CountryRestriction {

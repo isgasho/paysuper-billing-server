@@ -254,6 +254,7 @@ type MgoOrder struct {
 	IsNotificationsSent                     map[string]bool          `bson:"is_notifications_sent"`
 	PaymentRoyaltyData                      *OrderPaymentRoyaltyData `bson:"payment_royalty_data"`
 	CountryRestriction                      *CountryRestriction      `bson:"country_restriction"`
+	ParentId                                string                   `bson:"parent_id"`
 }
 
 type MgoOrderItem struct {
@@ -1103,6 +1104,7 @@ func (m *Order) GetBSON() (interface{}, error) {
 		IsNotificationsSent:                     m.IsNotificationsSent,
 		CountryRestriction:                      m.CountryRestriction,
 		PaymentRoyaltyData:                      m.PaymentRoyaltyData,
+		ParentId:                                m.ParentId,
 	}
 
 	for _, v := range m.Items {
@@ -1384,6 +1386,7 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.IsNotificationsSent = decoded.IsNotificationsSent
 	m.CountryRestriction = decoded.CountryRestriction
 	m.PaymentRoyaltyData = decoded.PaymentRoyaltyData
+	m.ParentId = decoded.ParentId
 
 	m.PaymentMethodOrderClosedAt, err = ptypes.TimestampProto(decoded.PaymentMethodOrderClosedAt)
 	if err != nil {
