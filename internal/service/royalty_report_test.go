@@ -894,7 +894,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_CreateRoyaltyReport_Unkno
 	rsp := &grpc.CreateRoyaltyReportRequest{}
 	err := suite.service.CreateRoyaltyReport(context.TODO(), req, rsp)
 	assert.Error(suite.T(), err)
-	assert.EqualError(suite.T(), err, "unknown time zone "+suite.service.cfg.RoyaltyReportTimeZone)
+	assert.EqualError(suite.T(), err, royaltyReportErrorTimezoneIncorrect)
 
 	var reports []*billing.RoyaltyReport
 	err = suite.service.db.Collection(collectionRoyaltyReport).Find(bson.M{}).All(&reports)

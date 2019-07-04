@@ -38,6 +38,7 @@ const (
 	royaltyReportErrorCodeUnknown                         = "rr00004"
 
 	royaltyReportErrorNoTransactions                      = "no transactions for the period"
+	royaltyReportErrorTimezoneIncorrect                   = "incorrect time zone"
 	royaltyReportErrorTextReportNotFound                  = "royalty report with specified identifier not found"
 	royaltyReportErrorTextReportStatusChangeDenied        = "change royalty report to new status denied"
 	royaltyReportErrorTextReportDisputeCorrectionRequired = "for change royalty report status to dispute fields with correction amount and correction reason is required"
@@ -88,7 +89,7 @@ func (s *Service) CreateRoyaltyReport(
 	loc, err := time.LoadLocation(s.cfg.RoyaltyReportTimeZone)
 
 	if err != nil {
-		return err
+		return errors.New(royaltyReportErrorTimezoneIncorrect)
 	}
 
 	to := now.Monday().In(loc).Add(time.Duration(18) * time.Hour)
