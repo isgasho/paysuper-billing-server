@@ -54,20 +54,7 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 	db, err := mongodb.NewDatabase()
 	assert.NoError(suite.T(), err, "Database connection failed")
 
-	rub := &billing.Currency{
-		CodeInt:  643,
-		CodeA3:   "RUB",
-		Name:     &billing.Name{Ru: "Российский рубль", En: "Russian ruble"},
-		IsActive: true,
-	}
-
-	rate := &billing.CurrencyRate{
-		CurrencyFrom: 643,
-		CurrencyTo:   643,
-		Rate:         1,
-		Date:         ptypes.TimestampNow(),
-		IsActive:     true,
-	}
+	rub := "RUB"
 
 	country := &billing.Country{
 		IsoCodeA2:       "RU",
@@ -95,7 +82,7 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 		Group:            "BANKCARD",
 		MinPaymentAmount: 100,
 		MaxPaymentAmount: 15000,
-		Currencies:       []int32{643, 840, 980},
+		Currencies:       []string{"RUB", "USD", "EUR"},
 		ExternalId:       "BANKCARD",
 		TestSettings: map[string]*billing.PaymentMethodParams{
 			"RUB": {
@@ -160,7 +147,7 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 					Fee: 2.5,
 					PerTransaction: &billing.MerchantPaymentMethodPerTransactionCommission{
 						Fee:      30,
-						Currency: rub.CodeA3,
+						Currency: rub,
 					},
 				},
 				Integration: &billing.MerchantPaymentMethodIntegration{
@@ -213,7 +200,7 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 					Fee: 2.5,
 					PerTransaction: &billing.MerchantPaymentMethodPerTransactionCommission{
 						Fee:      30,
-						Currency: rub.CodeA3,
+						Currency: rub,
 					},
 				},
 				Integration: &billing.MerchantPaymentMethodIntegration{
@@ -266,7 +253,7 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 					Fee: 2.5,
 					PerTransaction: &billing.MerchantPaymentMethodPerTransactionCommission{
 						Fee:      30,
-						Currency: rub.CodeA3,
+						Currency: rub,
 					},
 				},
 				Integration: &billing.MerchantPaymentMethodIntegration{
@@ -283,12 +270,6 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 
 	if err != nil {
 		suite.FailNow("Creating RabbitMQ publisher failed", "%v", err)
-	}
-
-	err = InitTestCurrency(db, []interface{}{rub})
-
-	if err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
 	}
 
 	suite.httpClient = mock.NewClientStatusOk()
@@ -341,9 +322,9 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 
 	project := &billing.Project{
 		Id:                       bson.NewObjectId().Hex(),
-		CallbackCurrency:         rub.CodeA3,
+		CallbackCurrency:         rub,
 		CallbackProtocol:         "default",
-		LimitsCurrency:           rub.CodeA3,
+		LimitsCurrency:           rub,
 		MaxPaymentAmount:         15000,
 		MinPaymentAmount:         1,
 		Name:                     map[string]string{"en": "test project 1"},
@@ -355,9 +336,9 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 	}
 	project1 := &billing.Project{
 		Id:                       bson.NewObjectId().Hex(),
-		CallbackCurrency:         rub.CodeA3,
+		CallbackCurrency:         rub,
 		CallbackProtocol:         "default",
-		LimitsCurrency:           rub.CodeA3,
+		LimitsCurrency:           rub,
 		MaxPaymentAmount:         15000,
 		MinPaymentAmount:         1,
 		Name:                     map[string]string{"en": "test project 1"},
@@ -369,9 +350,9 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 	}
 	project2 := &billing.Project{
 		Id:                       bson.NewObjectId().Hex(),
-		CallbackCurrency:         rub.CodeA3,
+		CallbackCurrency:         rub,
 		CallbackProtocol:         "default",
-		LimitsCurrency:           rub.CodeA3,
+		LimitsCurrency:           rub,
 		MaxPaymentAmount:         15000,
 		MinPaymentAmount:         1,
 		Name:                     map[string]string{"en": "test project 1"},
@@ -692,10 +673,6 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 
 	if err != nil {
 		suite.FailNow("Insert PaymentChannelCostMerchant test data failed", "%v", err)
-	}
-
-	if err = suite.service.currencyRate.Insert(rate); err != nil {
-		suite.FailNow("Insert rates test data failed", "%v", err)
 	}
 
 	bin := &BinData{
