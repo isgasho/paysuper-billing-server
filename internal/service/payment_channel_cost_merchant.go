@@ -101,13 +101,19 @@ func (s *Service) SetPaymentChannelCostMerchant(
 
 	sCurr, err := s.curService.GetSettlementCurrencies(ctx, &currencies.EmptyRequest{})
 	if err != nil {
-		return err
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorPaymentChannelMerchantCurrency
+		return nil
 	}
 	if !contains(sCurr.Currencies, req.PayoutCurrency) {
-		return errorPaymentChannelMerchantCurrency
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorPaymentChannelMerchantCurrency
+		return nil
 	}
 	if !contains(sCurr.Currencies, req.PsFixedFeeCurrency) {
-		return errorPaymentChannelMerchantCurrency
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorPaymentChannelMerchantCurrency
+		return nil
 	}
 
 	req.IsActive = true

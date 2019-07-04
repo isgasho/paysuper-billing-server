@@ -99,10 +99,14 @@ func (s *Service) SetMoneyBackCostSystem(
 
 	sCurr, err := s.curService.GetSettlementCurrencies(ctx, &currencies.EmptyRequest{})
 	if err != nil {
-		return err
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorMoneybackSystemCurrency
+		return nil
 	}
 	if !contains(sCurr.Currencies, req.PayoutCurrency) {
-		return errorMoneybackSystemCurrency
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorMoneybackSystemCurrency
+		return nil
 	}
 
 	req.UpdatedAt = ptypes.TimestampNow()

@@ -98,10 +98,14 @@ func (s *Service) SetPaymentChannelCostSystem(
 
 	sCurr, err := s.curService.GetSettlementCurrencies(ctx, &currencies.EmptyRequest{})
 	if err != nil {
-		return err
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorPaymentChannelSystemCurrency
+		return nil
 	}
 	if !contains(sCurr.Currencies, req.FixAmountCurrency) {
-		return errorPaymentChannelSystemCurrency
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorPaymentChannelSystemCurrency
+		return nil
 	}
 
 	if val == nil {
