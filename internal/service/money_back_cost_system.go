@@ -59,7 +59,7 @@ func (s *Service) GetMoneyBackCostSystem(
 ) error {
 	val, err := s.getMoneyBackCostSystem(req)
 	if err != nil {
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = pkg.ResponseStatusNotFound
 		res.Message = errorMoneybackSystemGet
 		return nil
 	}
@@ -134,11 +134,15 @@ func (s *Service) DeleteMoneyBackCostSystem(
 ) error {
 	pc, err := s.moneyBackCostSystem.GetById(req.Id)
 	if err != nil {
-		return err
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorMoneybackSystemDelete
+		return nil
 	}
 	err = s.moneyBackCostSystem.Delete(pc)
 	if err != nil {
-		return err
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorMoneybackSystemDelete
+		return nil
 	}
 	res.Status = pkg.ResponseStatusOk
 	return nil

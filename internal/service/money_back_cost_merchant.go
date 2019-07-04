@@ -22,10 +22,10 @@ const (
 )
 
 var (
-	errorMoneybackMerchantGetAll    = newBillingServerErrorMsg("mbs000001", "can't get list of money back setting for merchant")
-	errorMoneybackMerchantGet       = newBillingServerErrorMsg("mbs000002", "can't get money back setting for merchant")
-	errorMoneybackMerchantSetFailed = newBillingServerErrorMsg("mbs000003", "can't set money back setting for merchant")
-	errorMoneybackMerchantDelete    = newBillingServerErrorMsg("mbs000004", "can't delete money back setting for merchant")
+	errorMoneybackMerchantGetAll    = newBillingServerErrorMsg("mbm000001", "can't get list of money back setting for merchant")
+	errorMoneybackMerchantGet       = newBillingServerErrorMsg("mbm000002", "can't get money back setting for merchant")
+	errorMoneybackMerchantSetFailed = newBillingServerErrorMsg("mbm000003", "can't set money back setting for merchant")
+	errorMoneybackMerchantDelete    = newBillingServerErrorMsg("mbm000004", "can't delete money back setting for merchant")
 )
 
 func (s *Service) GetAllMoneyBackCostMerchant(
@@ -53,7 +53,7 @@ func (s *Service) GetMoneyBackCostMerchant(
 ) error {
 	val, err := s.getMoneyBackCostMerchant(req)
 	if err != nil {
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = pkg.ResponseStatusNotFound
 		res.Message = errorMoneybackMerchantGet
 		return nil
 	}
@@ -135,7 +135,7 @@ func (s *Service) DeleteMoneyBackCostMerchant(
 ) error {
 	pc, err := s.moneyBackCostMerchant.GetById(req.Id)
 	if err != nil {
-		res.Status = pkg.ResponseStatusNotFound
+		res.Status = pkg.ResponseStatusSystemError
 		res.Message = errorMoneybackMerchantDelete
 		return nil
 	}
