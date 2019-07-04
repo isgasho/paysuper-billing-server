@@ -1126,16 +1126,8 @@ func (m *Order) GetBSON() (interface{}, error) {
 		BillingAddress:     m.BillingAddress,
 		Tax:                m.Tax,
 		Items:              []*MgoOrderItem{},
-		Refund: &MgoOrderNotificationRefund{
-			Amount:        m.Refund.Amount,
-			Currency:      m.Refund.Currency,
-			Reason:        m.Refund.Reason,
-			Code:          m.Refund.Code,
-			ReceiptNumber: m.Refund.ReceiptNumber,
-			ReceiptUrl:    m.Refund.ReceiptUrl,
-		},
-		Metadata:        m.Metadata,
-		PrivateMetadata: m.PrivateMetadata,
+		Metadata:           m.Metadata,
+		PrivateMetadata:    m.PrivateMetadata,
 		Project: &MgoOrderProject{
 			Id:                   bson.ObjectIdHex(m.Project.Id),
 			MerchantId:           bson.ObjectIdHex(m.Project.MerchantId),
@@ -1182,6 +1174,17 @@ func (m *Order) GetBSON() (interface{}, error) {
 		CountryRestriction:                      m.CountryRestriction,
 		RoyaltyData:                             m.RoyaltyData,
 		RoyaltyReportId:                         m.RoyaltyReportId,
+	}
+
+	if m.Refund != nil {
+		st.Refund = &MgoOrderNotificationRefund{
+			Amount:        m.Refund.Amount,
+			Currency:      m.Refund.Currency,
+			Reason:        m.Refund.Reason,
+			Code:          m.Refund.Code,
+			ReceiptNumber: m.Refund.ReceiptNumber,
+			ReceiptUrl:    m.Refund.ReceiptUrl,
+		}
 	}
 
 	for _, v := range m.Items {
