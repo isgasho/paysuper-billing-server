@@ -51,7 +51,7 @@ func (s *Service) GetPaymentChannelCostSystem(
 ) error {
 	val, err := s.paymentChannelCostSystem.Get(req.Name, req.Region, req.Country)
 	if err != nil {
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = pkg.ResponseStatusNotFound
 		res.Message = errorPaymentChannelSystemGet
 		return nil
 	}
@@ -122,7 +122,7 @@ func (s *Service) DeletePaymentChannelCostSystem(
 	pc, err := s.paymentChannelCostSystem.GetById(req.Id)
 	if err != nil {
 		res.Status = pkg.ResponseStatusSystemError
-		res.Message = errorPaymentChannelSystemGet
+		res.Message = errorPaymentChannelSystemDelete
 		return nil
 	}
 	err = s.paymentChannelCostSystem.Delete(pc)
