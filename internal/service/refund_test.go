@@ -1189,7 +1189,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 	assert.Equal(suite.T(), pkg.RefundStatusCompleted, refund.Status)
 
 	refundOrder := new(billing.Order)
-	err = suite.service.db.Collection(collectionOrder).Find(bson.M{"refund.receiptnumber": refund.Id}).One(&refundOrder)
+	err = suite.service.db.Collection(collectionOrder).Find(bson.M{"refund.receipt_number": refund.Id}).One(&refundOrder)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), refundOrder)
 	assert.Equal(suite.T(), rsp.Id, refundOrder.ParentId)
