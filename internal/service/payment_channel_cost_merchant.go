@@ -106,7 +106,7 @@ func (s *Service) SetPaymentChannelCostMerchant(
 		val, err := s.paymentChannelCostMerchant.GetById(req.Id)
 		if err != nil {
 			res.Status = pkg.ResponseStatusSystemError
-			res.Message = errorPaymentChannelMerchantGet
+			res.Message = errorPaymentChannelMerchantSetFailed
 			return nil
 		}
 		req.Id = val.Id
