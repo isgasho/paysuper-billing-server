@@ -104,7 +104,7 @@ func (s *Service) SetMoneyBackCostMerchant(
 		val, err := s.moneyBackCostMerchant.GetById(req.Id)
 		if err != nil {
 			res.Status = pkg.ResponseStatusNotFound
-			res.Message = errorMoneybackMerchantGet
+			res.Message = errorMoneybackMerchantSetFailed
 			return nil
 		}
 		req.Id = val.Id
