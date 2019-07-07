@@ -104,6 +104,7 @@ const (
 	AccountingEntryTypeRealGrossRevenue                    = "real_gross_revenue"
 	AccountingEntryTypeRealTaxFee                          = "real_tax_fee"
 	AccountingEntryTypeCentralBankTaxFee                   = "central_bank_tax_fee"
+	AccountingEntryTypeRealTaxFeeTotal                     = "real_tax_fee_total"
 	AccountingEntryTypePsGrossRevenueFx                    = "ps_gross_revenue_fx"
 	AccountingEntryTypePsGrossRevenueFxTaxFee              = "ps_gross_revenue_fx_tax_fee"
 	AccountingEntryTypePsGrossRevenueFxProfit              = "ps_gross_revenue_fx_profit"
@@ -125,6 +126,7 @@ const (
 	AccountingEntryTypeMarkupMerchantPsFixedFee            = "markup_merchant_ps_fixed_fee"
 	AccountingEntryTypePsMethodProfit                      = "ps_method_profit"
 	AccountingEntryTypeMerchantNetRevenue                  = "merchant_net_revenue"
+	AccountingEntryTypePsProfitTotal                       = "ps_profit_total"
 
 	AccountingEntryTypeRealRefund                      = "real_refund"
 	AccountingEntryTypeRealRefundFee                   = "real_refund_fee"

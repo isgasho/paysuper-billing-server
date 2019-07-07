@@ -1483,7 +1483,7 @@ func (v *OrderCreateRequestProcessor) processPaymentMethod(pm *billing.PaymentMe
 		return orderErrorPaymentSystemInactive
 	}
 
-	if _, err := v.paymentMethod.GetPaymentSettings(pm, v.checked.merchant, v.checked.project); err != nil {
+	if _, err := v.Service.paymentMethod.GetPaymentSettings(pm, v.checked.merchant, v.checked.project); err != nil {
 		return orderErrorPaymentMethodEmptySettings
 	}
 
@@ -1621,9 +1621,17 @@ func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) {
 		req.UserData.State = rsp.Rate.State
 	}
 
-	order.Tax.Rate = tools.FormatAmount(float64(rsp.Rate.Rate))
-	order.Tax.Amount = tools.FormatAmount(order.PaymentMethodOutcomeAmount * float64(rsp.Rate.Rate))
-	order.TotalPaymentAmount = tools.FormatAmount(order.TotalPaymentAmount + float64(order.Tax.Amount))
+	// converting directly from float32 to float64 adds some new digits at the and of value
+	// this is strong and precision conversion throught string
+	// todo: get float64 value form tax service
+	order.Tax.Rate, err = strconv.ParseFloat(fmt.Sprintf("%f", rsp.Rate.Rate), 64)
+	if err != nil {
+		v.logError("Tax service error", []interface{}{"error", err.Error(), "request", req})
+		return
+	}
+
+	order.Tax.Amount = tools.FormatAmount(order.PaymentMethodOutcomeAmount * order.Tax.Rate)
+	order.TotalPaymentAmount = tools.FormatAmount(order.TotalPaymentAmount + order.Tax.Amount)
 
 	return
 }

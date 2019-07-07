@@ -18,44 +18,47 @@ const (
 	errorFieldMethod  = "method"
 	errorFieldRequest = "request"
 
-	accountingEntryErrorCodeOrderNotFound      = "ae00001"
-	accountingEntryErrorCodeRefundNotFound     = "ae00002"
-	accountingEntryErrorCodeMerchantNotFound   = "ae00003"
-	accountingEntryErrorCodeUnknown            = "ae00004"
-	accountingEntryErrorCodeCommissionNotFound = "ae00005"
-	accountingEntryErrorCodeExchangeFailed     = "ae00006"
-	accountingEntryErrorCodeUnknownEntry       = "ae00007"
+	accountingEntryErrorCodeOrderNotFound            = "ae00001"
+	accountingEntryErrorCodeRefundNotFound           = "ae00002"
+	accountingEntryErrorCodeMerchantNotFound         = "ae00003"
+	accountingEntryErrorCodeUnknown                  = "ae00004"
+	accountingEntryErrorCodeCommissionNotFound       = "ae00005"
+	accountingEntryErrorCodeExchangeFailed           = "ae00006"
+	accountingEntryErrorCodeUnknownEntry             = "ae00007"
+	accountingEntryErrorCodeRefundExceedsOrderAmount = "ae00008"
 
-	accountingEntryErrorTextOrderNotFound      = "order not found for creating accounting entry"
-	accountingEntryErrorTextRefundNotFound     = "refund not found for creating accounting entry"
-	accountingEntryErrorTextMerchantNotFound   = "merchant not found for creating accounting entry"
-	accountingEntryErrorTextUnknown            = "unknown error. try request later"
-	accountingEntryErrorTextCommissionNotFound = "commission to merchant and payment method not found"
-	accountingEntryErrorTextExchangeFailed     = "currency exchange failed"
-	accountingEntryErrorTextUnknownEntry       = "unknown accounting entry type"
+	accountingEntryErrorTextOrderNotFound            = "order not found for creating accounting entry"
+	accountingEntryErrorTextRefundNotFound           = "refund not found for creating accounting entry"
+	accountingEntryErrorTextMerchantNotFound         = "merchant not found for creating accounting entry"
+	accountingEntryErrorTextUnknown                  = "unknown error. try request later"
+	accountingEntryErrorTextCommissionNotFound       = "commission to merchant and payment method not found"
+	accountingEntryErrorTextExchangeFailed           = "currency exchange failed"
+	accountingEntryErrorTextUnknownEntry             = "unknown accounting entry type"
+	accountingEntryErrorTextRefundExceedsOrderAmount = "refund exceeds order amount"
 
 	collectionAccountingEntry = "accounting_entry"
 
 	accountingEventTypePayment          = "payment"
 	accountingEventTypeRefund           = "refund"
-	accountingEventTypeChageback        = "chargeback"
 	accountingEventTypeSettlement       = "settlement"
 	accountingEventTypeManualCorrection = "manual-correction"
 )
 
 var (
-	accountingEntryErrorOrderNotFound      = newBillingServerErrorMsg(accountingEntryErrorCodeOrderNotFound, accountingEntryErrorTextOrderNotFound)
-	accountingEntryErrorRefundNotFound     = newBillingServerErrorMsg(accountingEntryErrorCodeRefundNotFound, accountingEntryErrorTextRefundNotFound)
-	accountingEntryErrorMerchantNotFound   = newBillingServerErrorMsg(accountingEntryErrorCodeMerchantNotFound, accountingEntryErrorTextMerchantNotFound)
-	accountingEntryErrorCommissionNotFound = newBillingServerErrorMsg(accountingEntryErrorCodeCommissionNotFound, accountingEntryErrorTextCommissionNotFound)
-	accountingEntryErrorExchangeFailed     = newBillingServerErrorMsg(accountingEntryErrorCodeExchangeFailed, accountingEntryErrorTextExchangeFailed)
-	accountingEntryErrorUnknownEntry       = newBillingServerErrorMsg(accountingEntryErrorCodeUnknownEntry, accountingEntryErrorTextUnknownEntry)
-	accountingEntryErrorUnknown            = newBillingServerErrorMsg(accountingEntryErrorCodeUnknown, accountingEntryErrorTextUnknown)
+	accountingEntryErrorOrderNotFound            = newBillingServerErrorMsg(accountingEntryErrorCodeOrderNotFound, accountingEntryErrorTextOrderNotFound)
+	accountingEntryErrorRefundNotFound           = newBillingServerErrorMsg(accountingEntryErrorCodeRefundNotFound, accountingEntryErrorTextRefundNotFound)
+	accountingEntryErrorMerchantNotFound         = newBillingServerErrorMsg(accountingEntryErrorCodeMerchantNotFound, accountingEntryErrorTextMerchantNotFound)
+	accountingEntryErrorCommissionNotFound       = newBillingServerErrorMsg(accountingEntryErrorCodeCommissionNotFound, accountingEntryErrorTextCommissionNotFound)
+	accountingEntryErrorExchangeFailed           = newBillingServerErrorMsg(accountingEntryErrorCodeExchangeFailed, accountingEntryErrorTextExchangeFailed)
+	accountingEntryErrorUnknownEntry             = newBillingServerErrorMsg(accountingEntryErrorCodeUnknownEntry, accountingEntryErrorTextUnknownEntry)
+	accountingEntryErrorUnknown                  = newBillingServerErrorMsg(accountingEntryErrorCodeUnknown, accountingEntryErrorTextUnknown)
+	accountingEntryErrorRefundExceedsOrderAmount = newBillingServerErrorMsg(accountingEntryErrorCodeRefundExceedsOrderAmount, accountingEntryErrorTextRefundExceedsOrderAmount)
 
 	availableAccountingEntries = map[string]bool{
 		pkg.AccountingEntryTypeRealGrossRevenue:                    true,
 		pkg.AccountingEntryTypePsGrossRevenueFx:                    true,
 		pkg.AccountingEntryTypeRealTaxFee:                          true,
+		pkg.AccountingEntryTypeRealTaxFeeTotal:                     true,
 		pkg.AccountingEntryTypeCentralBankTaxFee:                   true,
 		pkg.AccountingEntryTypePsGrossRevenueFxTaxFee:              true,
 		pkg.AccountingEntryTypePsGrossRevenueFxProfit:              true,
@@ -77,6 +80,7 @@ var (
 		pkg.AccountingEntryTypeMarkupMerchantPsFixedFee:            true,
 		pkg.AccountingEntryTypePsMethodProfit:                      true,
 		pkg.AccountingEntryTypeMerchantNetRevenue:                  true,
+		pkg.AccountingEntryTypePsProfitTotal:                       true,
 		pkg.AccountingEntryTypeRealRefund:                          true,
 		pkg.AccountingEntryTypeRealRefundFee:                       true,
 		pkg.AccountingEntryTypeRealRefundFixedFee:                  true,
@@ -223,10 +227,6 @@ func (s *Service) onRefundNotify(ctx context.Context, refund *billing.Refund, or
 		country: country,
 	}
 
-	if refund.IsChargeback == true {
-		return s.processEvent(handler, accountingEventTypeChageback)
-	}
-
 	return s.processEvent(handler, accountingEventTypeRefund)
 }
 
@@ -335,7 +335,14 @@ func (h *accountingEntry) processPaymentEvent() error {
 		return err
 	}
 
-	// 4. psGrossRevenueFx
+	// 4. realTaxFeeTotal
+	realTaxFeeTotal := h.newEntry(pkg.AccountingEntryTypeRealTaxFeeTotal)
+	realTaxFeeTotal.Amount = realTaxFee.Amount + centralBankTaxFee.Amount
+	if err = h.addEntry(realTaxFeeTotal); err != nil {
+		return err
+	}
+
+	// 5. psGrossRevenueFx
 	psGrossRevenueFx := h.newEntry(pkg.AccountingEntryTypePsGrossRevenueFx)
 	amount, err = h.GetExchangePsCurrentMerchant(h.order.Currency, h.order.TotalPaymentAmount)
 	if err != nil {
@@ -346,37 +353,37 @@ func (h *accountingEntry) processPaymentEvent() error {
 		return err
 	}
 
-	// 5. psGrossRevenueFxTaxFee
+	// 6. psGrossRevenueFxTaxFee
 	psGrossRevenueFxTaxFee := h.newEntry(pkg.AccountingEntryTypePsGrossRevenueFxTaxFee)
-	psGrossRevenueFxTaxFee.Amount = psGrossRevenueFx.Amount * h.country.VatRate
+	psGrossRevenueFxTaxFee.Amount = psGrossRevenueFx.Amount * h.order.Tax.Rate
 	if err = h.addEntry(psGrossRevenueFxTaxFee); err != nil {
 		return err
 	}
 
-	// 6. psGrossRevenueFxProfit
+	// 7. psGrossRevenueFxProfit
 	psGrossRevenueFxProfit := h.newEntry(pkg.AccountingEntryTypePsGrossRevenueFxProfit)
 	psGrossRevenueFxProfit.Amount = psGrossRevenueFx.Amount - psGrossRevenueFxTaxFee.Amount
 	if err = h.addEntry(psGrossRevenueFxProfit); err != nil {
 		return err
 	}
 
-	// 7. merchantGrossRevenue
+	// 8. merchantGrossRevenue
 	merchantGrossRevenue := h.newEntry(pkg.AccountingEntryTypeMerchantGrossRevenue)
 	merchantGrossRevenue.Amount = realGrossRevenue.Amount - psGrossRevenueFx.Amount
 	if err = h.addEntry(merchantGrossRevenue); err != nil {
 		return err
 	}
 
-	// 8. merchantTaxFeeCostValue
+	// 9. merchantTaxFeeCostValue
 	merchantTaxFeeCostValue := h.newEntry(pkg.AccountingEntryTypeMerchantTaxFeeCostValue)
-	merchantTaxFeeCostValue.Amount = merchantGrossRevenue.Amount * h.country.VatRate
+	merchantTaxFeeCostValue.Amount = merchantGrossRevenue.Amount * h.order.Tax.Rate
 	if err = h.addEntry(merchantTaxFeeCostValue); err != nil {
 		return err
 	}
 
-	// 9. merchantTaxFeeCentralBankFx
+	// 10. merchantTaxFeeCentralBankFx
 	merchantTaxFeeCentralBankFx := h.newEntry(pkg.AccountingEntryTypeMerchantTaxFeeCentralBankFx)
-	amount, err = h.GetExchangeCbCurrentMerchant(h.order.Tax.Currency, h.order.Tax.Amount)
+	amount, err = h.GetExchangeCbCurrentCommon(h.order.GetMerchantRoyaltyCurrency(), merchantTaxFeeCostValue.Amount)
 	if err != nil {
 		return err
 	}
@@ -389,7 +396,7 @@ func (h *accountingEntry) processPaymentEvent() error {
 		return err
 	}
 
-	// 10. merchantTaxFee
+	// 11. merchantTaxFee
 	merchantTaxFee := h.newEntry(pkg.AccountingEntryTypeMerchantTaxFee)
 	merchantTaxFee.Amount = merchantTaxFeeCostValue.Amount + merchantTaxFeeCentralBankFx.Amount
 	if err = h.addEntry(merchantTaxFee); err != nil {
@@ -406,56 +413,56 @@ func (h *accountingEntry) processPaymentEvent() error {
 		return err
 	}
 
-	// 11. psMethodFee
+	// 12. psMethodFee
 	psMethodFee := h.newEntry(pkg.AccountingEntryTypePsMethodFee)
 	psMethodFee.Amount = merchantGrossRevenue.Amount * paymentChannelCostMerchant.PsPercent
 	if err = h.addEntry(psMethodFee); err != nil {
 		return err
 	}
 
-	// 12. merchantMethodFee
+	// 13. merchantMethodFee
 	merchantMethodFee := h.newEntry(pkg.AccountingEntryTypeMerchantMethodFee)
 	merchantMethodFee.Amount = merchantGrossRevenue.Amount * paymentChannelCostMerchant.MethodPercent
 	if err = h.addEntry(merchantMethodFee); err != nil {
 		return err
 	}
 
-	// 13. merchantMethodFeeCostValue
+	// 14. merchantMethodFeeCostValue
 	merchantMethodFeeCostValue := h.newEntry(pkg.AccountingEntryTypeMerchantMethodFeeCostValue)
 	merchantMethodFeeCostValue.Amount = realGrossRevenue.Amount * paymentChannelCostSystem.Percent
 	if err = h.addEntry(merchantMethodFeeCostValue); err != nil {
 		return err
 	}
 
-	// 14. psMarkupMerchantMethodFee
-	psMarkupMerchantMethodFee := h.newEntry(pkg.AccountingEntryTypeMerchantMethodFeeCostValue)
+	// 15. psMarkupMerchantMethodFee
+	psMarkupMerchantMethodFee := h.newEntry(pkg.AccountingEntryTypePsMarkupMerchantMethodFee)
 	psMarkupMerchantMethodFee.Amount = merchantMethodFee.Amount - merchantMethodFeeCostValue.Amount
 	if err = h.addEntry(psMarkupMerchantMethodFee); err != nil {
 		return err
 	}
 
-	// 15. merchantMethodFixedFee
+	// 16. merchantMethodFixedFee
 	merchantMethodFixedFee := h.newEntry(pkg.AccountingEntryTypeMerchantMethodFixedFee)
 	merchantMethodFixedFee.Amount, err = h.GetExchangePsCurrentMerchant(paymentChannelCostMerchant.MethodFixAmountCurrency, paymentChannelCostMerchant.MethodFixAmount)
 	if err = h.addEntry(merchantMethodFixedFee); err != nil {
 		return err
 	}
 
-	// 16. realMerchantMethodFixedFee
+	// 17. realMerchantMethodFixedFee
 	realMerchantMethodFixedFee := h.newEntry(pkg.AccountingEntryTypeRealMerchantMethodFixedFee)
 	realMerchantMethodFixedFee.Amount, err = h.GetExchangePsCurrentCommon(paymentChannelCostMerchant.MethodFixAmountCurrency, paymentChannelCostMerchant.MethodFixAmount)
 	if err = h.addEntry(realMerchantMethodFixedFee); err != nil {
 		return err
 	}
 
-	// 17. psMarkupMerchantMethodFee
+	// 18. markupMerchantMethodFixedFeeFx
 	markupMerchantMethodFixedFeeFx := h.newEntry(pkg.AccountingEntryTypeMarkupMerchantMethodFixedFeeFx)
 	markupMerchantMethodFixedFeeFx.Amount = merchantMethodFixedFee.Amount - realMerchantMethodFixedFee.Amount
 	if err = h.addEntry(markupMerchantMethodFixedFeeFx); err != nil {
 		return err
 	}
 
-	// 18. realMerchantMethodFixedFeeCostValue
+	// 19. realMerchantMethodFixedFeeCostValue
 	realMerchantMethodFixedFeeCostValue := h.newEntry(pkg.AccountingEntryTypeRealMerchantMethodFixedFeeCostValue)
 	realMerchantMethodFixedFeeCostValue.Amount, err = h.GetExchangePsCurrentCommon(paymentChannelCostSystem.FixAmountCurrency, paymentChannelCostSystem.FixAmount)
 	if err != nil {
@@ -465,14 +472,14 @@ func (h *accountingEntry) processPaymentEvent() error {
 		return err
 	}
 
-	// 19. psMarkupMerchantMethodFee
+	// 20. psMethodFixedFeeProfit
 	psMethodFixedFeeProfit := h.newEntry(pkg.AccountingEntryTypePsMethodFixedFeeProfit)
 	psMethodFixedFeeProfit.Amount = realMerchantMethodFixedFee.Amount - realMerchantMethodFixedFeeCostValue.Amount
 	if err = h.addEntry(psMethodFixedFeeProfit); err != nil {
 		return err
 	}
 
-	// 20. merchantPsFixedFee
+	// 21. merchantPsFixedFee
 	merchantPsFixedFee := h.newEntry(pkg.AccountingEntryTypeMerchantPsFixedFee)
 	merchantPsFixedFee.Amount, err = h.GetExchangePsCurrentMerchant(paymentChannelCostMerchant.PsFixedFeeCurrency, paymentChannelCostMerchant.PsFixedFee)
 	if err != nil {
@@ -482,7 +489,7 @@ func (h *accountingEntry) processPaymentEvent() error {
 		return err
 	}
 
-	// 21. realMerchantPsFixedFee
+	// 22. realMerchantPsFixedFee
 	realMerchantPsFixedFee := h.newEntry(pkg.AccountingEntryTypeRealMerchantPsFixedFee)
 	realMerchantPsFixedFee.Amount, err = h.GetExchangePsCurrentCommon(paymentChannelCostMerchant.PsFixedFeeCurrency, paymentChannelCostMerchant.PsFixedFee)
 	if err != nil {
@@ -492,24 +499,31 @@ func (h *accountingEntry) processPaymentEvent() error {
 		return err
 	}
 
-	// 22. psMarkupMerchantMethodFee
+	// 23. markupMerchantPsFixedFee
 	markupMerchantPsFixedFee := h.newEntry(pkg.AccountingEntryTypeMarkupMerchantPsFixedFee)
 	markupMerchantPsFixedFee.Amount = merchantPsFixedFee.Amount - realMerchantPsFixedFee.Amount
 	if err = h.addEntry(markupMerchantPsFixedFee); err != nil {
 		return err
 	}
 
-	// 23. psMethodProfit
+	// 24. psMethodProfit
 	psMethodProfit := h.newEntry(pkg.AccountingEntryTypePsMethodProfit)
 	psMethodProfit.Amount = psMethodFee.Amount - merchantMethodFeeCostValue.Amount - realMerchantMethodFixedFeeCostValue.Amount + merchantPsFixedFee.Amount
 	if err = h.addEntry(psMethodProfit); err != nil {
 		return err
 	}
 
-	// 24. merchantNetRevenue
+	// 25. merchantNetRevenue
 	merchantNetRevenue := h.newEntry(pkg.AccountingEntryTypeMerchantNetRevenue)
-	merchantNetRevenue.Amount = realGrossRevenue.Amount - merchantTaxFee.Amount - psMethodFee.Amount - merchantPsFixedFee.Amount
+	merchantNetRevenue.Amount = merchantGrossRevenue.Amount - merchantTaxFee.Amount - psMethodFee.Amount - merchantPsFixedFee.Amount
 	if err = h.addEntry(merchantNetRevenue); err != nil {
+		return err
+	}
+
+	// 26. psProfitTotal
+	psProfitTotal := h.newEntry(pkg.AccountingEntryTypePsProfitTotal)
+	psProfitTotal.Amount = psMethodProfit.Amount + psGrossRevenueFxProfit.Amount - centralBankTaxFee.Amount
+	if err = h.addEntry(psProfitTotal); err != nil {
 		return err
 	}
 
@@ -521,8 +535,11 @@ func (h *accountingEntry) processRefundEvent() error {
 		err error
 	)
 
-	// todo: reversal ?
-	reason := "refund"
+	// info: reversal rates are applied after the transaction has been physically processed by the payment method
+	// bur refund is the return of payment _before_ of the transaction was physically processed by the payment method.
+	// Now, at this moment we can't determine that it is a refund or reversal
+	// But we will be able to determine it after getting a settlement from Cardpay
+	reason := "reversal"
 	if h.refund.IsChargeback {
 		reason = "chargeback"
 	}
@@ -537,10 +554,14 @@ func (h *accountingEntry) processRefundEvent() error {
 	}
 
 	partialRefundCorrection := h.refund.Amount / h.order.TotalPaymentAmount
+	if partialRefundCorrection > 1 {
+		return accountingEntryErrorRefundExceedsOrderAmount
+	}
+	// todo: check for past partial returns for a given order?
 
 	// 1. realRefund
 	realRefund := h.newEntry(pkg.AccountingEntryTypeRealRefund)
-	realRefund.Amount, err = h.GetExchangePsCurrentCommon(h.refund.Currency, h.refund.Amount*partialRefundCorrection)
+	realRefund.Amount, err = h.GetExchangePsCurrentCommon(h.refund.Currency, h.refund.Amount)
 	if err != nil {
 		return err
 	}
@@ -566,7 +587,7 @@ func (h *accountingEntry) processRefundEvent() error {
 
 	// 4. merchantRefund
 	merchantRefund := h.newEntry(pkg.AccountingEntryTypeMerchantRefund)
-	merchantRefund.Amount, err = h.GetExchangePsCurrentMerchant(h.refund.Currency, h.refund.Amount*partialRefundCorrection)
+	merchantRefund.Amount, err = h.GetExchangePsCurrentMerchant(h.refund.Currency, h.refund.Amount)
 	if err != nil {
 		return err
 	}
@@ -641,10 +662,10 @@ func (h *accountingEntry) processRefundEvent() error {
 	query := bson.M{
 		"object":      pkg.ObjectTypeBalanceTransaction,
 		"type":        pkg.AccountingEntryTypeMerchantTaxFee,
-		"source.id":   h.order.Id,
+		"source.id":   bson.ObjectIdHex(h.order.Id),
 		"source.type": collectionOrder,
 	}
-	err = h.Service.db.Collection(collectionOrder).Find(query).One(&merchantTaxFee)
+	err = h.Service.db.Collection(collectionAccountingEntry).Find(query).One(&merchantTaxFee)
 	if err != nil {
 		return err
 	}
@@ -659,8 +680,7 @@ func (h *accountingEntry) processRefundEvent() error {
 	reverseTaxFeeDelta := h.newEntry(pkg.AccountingEntryTypeReverseTaxFeeDelta)
 	psReverseTaxFeeDelta := h.newEntry(pkg.AccountingEntryTypePsReverseTaxFeeDelta)
 
-	// todo что такое merchant_refund_gross и reverse_original_merchant_tax_fee? В таблице эти параметры не описаны
-	amount := reverseTaxFee.Amount - (merchantRefund.Amount * h.country.VatRate)
+	amount := reverseTaxFee.Amount - (merchantRefund.Amount * h.order.Tax.Rate)
 	if amount < 0 {
 		psReverseTaxFeeDelta.Amount = -1 * amount
 	} else {
@@ -683,7 +703,7 @@ func (h *accountingEntry) processRefundEvent() error {
 
 	// 16. merchantReverseRevenue
 	merchantReverseRevenue := h.newEntry(pkg.AccountingEntryTypeMerchantReverseRevenue)
-	merchantReverseRevenue.Amount = merchantRefund.Amount + merchantRefundFee.Amount + merchantRefundFixedFee.Amount + merchantReverseTaxFee.Amount
+	merchantReverseRevenue.Amount = merchantRefund.Amount + merchantRefundFee.Amount + merchantRefundFixedFee.Amount - merchantReverseTaxFee.Amount
 	if err = h.addEntry(merchantReverseRevenue); err != nil {
 		return err
 	}
@@ -742,19 +762,18 @@ func (h *accountingEntry) GetExchangePsCurrentMerchant(from string, amount float
 	})
 }
 
-func (h *accountingEntry) GetExchangeCbCurrentMerchant(from string, amount float64) (float64, error) {
+func (h *accountingEntry) GetExchangeCbCurrentCommon(from string, amount float64) (float64, error) {
 	to := h.country.VatCurrency
 
 	if to == from {
 		return amount, nil
 	}
 
-	return h.GetExchangeCurrentMerchant(&currencies.ExchangeCurrencyCurrentForMerchantRequest{
-		From:       from,
-		To:         to,
-		RateType:   curPkg.RateTypeCentralbanks,
-		MerchantId: h.order.GetMerchantId(),
-		Amount:     amount,
+	return h.GetExchangeCurrentCommon(&currencies.ExchangeCurrencyCurrentCommonRequest{
+		From:     from,
+		To:       to,
+		RateType: curPkg.RateTypeCentralbanks,
+		Amount:   amount,
 	})
 }
 

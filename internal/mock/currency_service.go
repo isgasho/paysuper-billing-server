@@ -6,12 +6,26 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/micro/go-micro/client"
+	curPkg "github.com/paysuper/paysuper-currencies/pkg"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
+	"math"
 )
 
 const (
-	SomeError = "some error"
+	SomeError          = "some error"
+	precision          = 10
+	eurPriceinRub      = float64(72)
+	eurPriceInRubCb    = float64(72.5)
+	eurPriceInRubStock = float64(71)
+	usdPriceInRub      = float64(65)
+	usdPriceInRubCb    = float64(65.5)
+	usdPriceInRubStock = float64(64)
 )
+
+func toPrecise(val float64) float64 {
+	p := math.Pow(10, precision)
+	return math.Round(val*p) / p
+}
 
 var (
 	MerchantIdMock = bson.NewObjectId().Hex()
@@ -79,20 +93,127 @@ func (s *CurrencyServiceMockOk) ExchangeCurrencyCurrentCommon(
 	in *currencies.ExchangeCurrencyCurrentCommonRequest,
 	opts ...client.CallOption,
 ) (*currencies.ExchangeCurrencyResponse, error) {
-	if in.From == "USD" && in.To == "RUB" {
+	if in.From == "EUR" && in.To == "RUB" {
 		return &currencies.ExchangeCurrencyResponse{
-			ExchangedAmount: in.Amount * 65,
-			ExchangeRate:    65,
+			ExchangedAmount: toPrecise(in.Amount * eurPriceinRub),
+			ExchangeRate:    eurPriceinRub,
 			Correction:      0,
-			OriginalRate:    65,
+			OriginalRate:    eurPriceinRub,
+		}, nil
+	}
+	if in.From == "RUB" && in.To == "EUR" {
+		return &currencies.ExchangeCurrencyResponse{
+			ExchangedAmount: toPrecise(in.Amount / eurPriceinRub),
+			ExchangeRate:    toPrecise(1 / eurPriceinRub),
+			Correction:      0,
+			OriginalRate:    toPrecise(1 / eurPriceinRub),
+		}, nil
+	}
+
+	if in.From == "USD" && in.To == "EUR" {
+		if in.RateType == curPkg.RateTypeStock {
+			return &currencies.ExchangeCurrencyResponse{
+				ExchangedAmount: toPrecise(in.Amount * (usdPriceInRubStock / eurPriceInRubStock)),
+				ExchangeRate:    toPrecise(usdPriceInRubStock / eurPriceInRubStock),
+				Correction:      0,
+				OriginalRate:    toPrecise(usdPriceInRubStock / eurPriceInRubStock),
+			}, nil
+		}
+
+		if in.RateType == curPkg.RateTypeCentralbanks {
+			return &currencies.ExchangeCurrencyResponse{
+				ExchangedAmount: toPrecise(in.Amount * (usdPriceInRubCb / eurPriceInRubCb)),
+				ExchangeRate:    toPrecise(usdPriceInRubCb / eurPriceInRubCb),
+				Correction:      0,
+				OriginalRate:    toPrecise(usdPriceInRubCb / eurPriceInRubCb),
+			}, nil
+		}
+
+		return &currencies.ExchangeCurrencyResponse{
+			ExchangedAmount: toPrecise(in.Amount * (usdPriceInRub / eurPriceinRub)),
+			ExchangeRate:    toPrecise(usdPriceInRub / eurPriceinRub),
+			Correction:      0,
+			OriginalRate:    toPrecise(usdPriceInRub / eurPriceinRub),
+		}, nil
+	}
+	if in.From == "EUR" && in.To == "USD" {
+
+		if in.RateType == curPkg.RateTypeStock {
+			return &currencies.ExchangeCurrencyResponse{
+				ExchangedAmount: toPrecise(in.Amount * (eurPriceInRubStock / usdPriceInRubStock)),
+				ExchangeRate:    toPrecise(eurPriceInRubStock / usdPriceInRubStock),
+				Correction:      0,
+				OriginalRate:    toPrecise(eurPriceInRubStock / usdPriceInRubStock),
+			}, nil
+		}
+
+		if in.RateType == curPkg.RateTypeCentralbanks {
+			return &currencies.ExchangeCurrencyResponse{
+				ExchangedAmount: toPrecise(in.Amount * (eurPriceInRubCb / usdPriceInRubCb)),
+				ExchangeRate:    toPrecise(eurPriceInRubCb / usdPriceInRubCb),
+				Correction:      0,
+				OriginalRate:    toPrecise(eurPriceInRubCb / usdPriceInRubCb),
+			}, nil
+		}
+
+		return &currencies.ExchangeCurrencyResponse{
+			ExchangedAmount: toPrecise(in.Amount * (eurPriceinRub / usdPriceInRub)),
+			ExchangeRate:    toPrecise(eurPriceinRub / usdPriceInRub),
+			Correction:      0,
+			OriginalRate:    toPrecise(eurPriceinRub / usdPriceInRub),
+		}, nil
+	}
+	if in.From == "USD" && in.To == "RUB" {
+		if in.RateType == curPkg.RateTypeStock {
+			return &currencies.ExchangeCurrencyResponse{
+				ExchangedAmount: toPrecise(in.Amount * usdPriceInRubStock),
+				ExchangeRate:    toPrecise(usdPriceInRubStock),
+				Correction:      0,
+				OriginalRate:    toPrecise(usdPriceInRubStock),
+			}, nil
+		}
+
+		if in.RateType == curPkg.RateTypeCentralbanks {
+			return &currencies.ExchangeCurrencyResponse{
+				ExchangedAmount: toPrecise(in.Amount * usdPriceInRubCb),
+				ExchangeRate:    toPrecise(usdPriceInRubCb),
+				Correction:      0,
+				OriginalRate:    toPrecise(usdPriceInRubCb),
+			}, nil
+		}
+
+		return &currencies.ExchangeCurrencyResponse{
+			ExchangedAmount: toPrecise(in.Amount * usdPriceInRub),
+			ExchangeRate:    usdPriceInRub,
+			Correction:      0,
+			OriginalRate:    usdPriceInRub,
 		}, nil
 	}
 	if in.From == "RUB" && in.To == "USD" {
+		if in.RateType == curPkg.RateTypeStock {
+			return &currencies.ExchangeCurrencyResponse{
+				ExchangedAmount: toPrecise(in.Amount / usdPriceInRubStock),
+				ExchangeRate:    toPrecise(1 / usdPriceInRubStock),
+				Correction:      0,
+				OriginalRate:    toPrecise(1 / usdPriceInRubStock),
+			}, nil
+		}
+
+		if in.RateType == curPkg.RateTypeCentralbanks {
+			a := in.Amount / usdPriceInRubCb
+			return &currencies.ExchangeCurrencyResponse{
+				ExchangedAmount: toPrecise(a),
+				ExchangeRate:    toPrecise(1 / usdPriceInRubCb),
+				Correction:      0,
+				OriginalRate:    toPrecise(1 / usdPriceInRubCb),
+			}, nil
+		}
+
 		return &currencies.ExchangeCurrencyResponse{
-			ExchangedAmount: in.Amount * 0.0153846153846154,
-			ExchangeRate:    0.0153846153846154,
+			ExchangedAmount: toPrecise(in.Amount / usdPriceInRub),
+			ExchangeRate:    toPrecise(1 / usdPriceInRub),
 			Correction:      0,
-			OriginalRate:    0.0153846153846154,
+			OriginalRate:    toPrecise(1 / usdPriceInRub),
 		}, nil
 	}
 
@@ -109,25 +230,77 @@ func (s *CurrencyServiceMockOk) ExchangeCurrencyCurrentForMerchant(
 	in *currencies.ExchangeCurrencyCurrentForMerchantRequest,
 	opts ...client.CallOption,
 ) (*currencies.ExchangeCurrencyResponse, error) {
-	if in.From == "USD" && in.To == "RUB" {
+	if in.From == "EUR" && in.To == "RUB" {
 		return &currencies.ExchangeCurrencyResponse{
-			ExchangedAmount: in.Amount * 65,
-			ExchangeRate:    65,
+			ExchangedAmount: toPrecise(in.Amount * eurPriceinRub * 1.02),
+			ExchangeRate:    toPrecise(eurPriceinRub * 1.02),
 			Correction:      0,
-			OriginalRate:    65,
+			OriginalRate:    toPrecise(eurPriceinRub * 1.02),
+		}, nil
+	}
+	if in.From == "RUB" && in.To == "EUR" {
+		return &currencies.ExchangeCurrencyResponse{
+			ExchangedAmount: toPrecise(in.Amount / eurPriceinRub * 1.02),
+			ExchangeRate:    toPrecise((1 / eurPriceinRub) * 1.02),
+			Correction:      0,
+			OriginalRate:    toPrecise((1 / eurPriceinRub) * 1.02),
+		}, nil
+	}
+	if in.From == "USD" && in.To == "EUR" {
+		return &currencies.ExchangeCurrencyResponse{
+			ExchangedAmount: toPrecise(in.Amount * (usdPriceInRub / eurPriceinRub) * 0.98),
+			ExchangeRate:    toPrecise((usdPriceInRub / eurPriceinRub) * 0.98),
+			Correction:      0,
+			OriginalRate:    toPrecise((usdPriceInRub / eurPriceinRub) * 0.98),
+		}, nil
+	}
+	if in.From == "EUR" && in.To == "USD" {
+		return &currencies.ExchangeCurrencyResponse{
+			ExchangedAmount: toPrecise(in.Amount * (eurPriceinRub / usdPriceInRub) * 1.02),
+			ExchangeRate:    toPrecise((eurPriceinRub / usdPriceInRub) * 1.02),
+			Correction:      0,
+			OriginalRate:    toPrecise((eurPriceinRub / usdPriceInRub) * 1.02),
+		}, nil
+	}
+
+	if in.From == "USD" && in.To == "RUB" {
+		if in.RateType == curPkg.RateTypeCentralbanks {
+			return &currencies.ExchangeCurrencyResponse{
+				ExchangedAmount: toPrecise(in.Amount * usdPriceInRubCb * 0.98),
+				ExchangeRate:    toPrecise(usdPriceInRubCb * 0.98),
+				Correction:      0,
+				OriginalRate:    toPrecise(usdPriceInRubCb * 0.98),
+			}, nil
+		}
+
+		return &currencies.ExchangeCurrencyResponse{
+			ExchangedAmount: toPrecise(in.Amount * usdPriceInRub * 0.98),
+			ExchangeRate:    toPrecise(usdPriceInRub * 0.98),
+			Correction:      0,
+			OriginalRate:    toPrecise(usdPriceInRub * 0.98),
 		}, nil
 	}
 	if in.From == "RUB" && in.To == "USD" {
-		res := &currencies.ExchangeCurrencyResponse{
-			ExchangedAmount: in.Amount * 0.0153846153846154,
-			ExchangeRate:    0.0153846153846154,
-			Correction:      0,
-			OriginalRate:    0.0153846153846154,
+		if in.RateType == curPkg.RateTypeCentralbanks {
+			a := (in.Amount / usdPriceInRubCb) * 1.02
+			return &currencies.ExchangeCurrencyResponse{
+				ExchangedAmount: toPrecise(a),
+				ExchangeRate:    toPrecise(1 / usdPriceInRubCb * 1.02),
+				Correction:      0,
+				OriginalRate:    toPrecise(1 / usdPriceInRubCb * 1.02),
+			}, nil
 		}
-		return res, nil
+		a := (in.Amount / usdPriceInRub) * 1.02
+		return &currencies.ExchangeCurrencyResponse{
+			ExchangedAmount: toPrecise(a),
+			ExchangeRate:    toPrecise(1 / usdPriceInRub * 1.02),
+			Correction:      0,
+			OriginalRate:    toPrecise(1 / usdPriceInRub * 1.02),
+		}, nil
 	}
+
 	return &currencies.ExchangeCurrencyResponse{
-		ExchangedAmount: 30,
+		ExchangedAmount: 10,
 		ExchangeRate:    0.25,
 		Correction:      2,
 		OriginalRate:    0.5,

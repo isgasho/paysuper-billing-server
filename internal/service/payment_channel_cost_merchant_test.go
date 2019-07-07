@@ -216,18 +216,19 @@ func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant
 
 func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant_GrpcSet_Ok() {
 	req := &billing.PaymentChannelCostMerchant{
-		Id:                 suite.paymentChannelCostMerchantId,
-		MerchantId:         suite.merchantId,
-		Name:               "VISA",
-		PayoutCurrency:     "USD",
-		MinAmount:          1.75,
-		Region:             "CIS",
-		Country:            "AZ",
-		MethodPercent:      2.5,
-		MethodFixAmount:    1.01,
-		PsPercent:          2,
-		PsFixedFee:         0.01,
-		PsFixedFeeCurrency: "EUR",
+		Id:                      suite.paymentChannelCostMerchantId,
+		MerchantId:              suite.merchantId,
+		Name:                    "VISA",
+		PayoutCurrency:          "USD",
+		MinAmount:               1.75,
+		Region:                  "CIS",
+		Country:                 "AZ",
+		MethodPercent:           2.5,
+		MethodFixAmount:         1.01,
+		MethodFixAmountCurrency: "USD",
+		PsPercent:               2,
+		PsFixedFee:              0.01,
+		PsFixedFeeCurrency:      "EUR",
 	}
 
 	res := grpc.PaymentChannelCostMerchantResponse{}

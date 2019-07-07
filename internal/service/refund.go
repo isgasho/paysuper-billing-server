@@ -256,7 +256,7 @@ func (s *Service) ProcessRefundCallback(
 		err = s.onRefundNotify(ctx, refund, order)
 
 		if err != nil {
-			rsp.Error = err.(*grpc.ResponseErrorMessage).Message
+			rsp.Error = err.Error()
 			rsp.Status = pkg.ResponseStatusSystemError
 
 			return nil

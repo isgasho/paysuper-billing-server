@@ -939,6 +939,56 @@ func (suite *OrderTestSuite) SetupTest() {
 	suite.productIds = productIds
 	suite.merchantDefaultCurrency = "USD"
 
+	paymentSysCost1 := &billing.PaymentChannelCostSystem{
+		Name:              "MASTERCARD",
+		Region:            "Russia",
+		Country:           "RU",
+		Percent:           0.015,
+		FixAmount:         0.01,
+		FixAmountCurrency: "USD",
+	}
+
+	err = suite.service.paymentChannelCostSystem.MultipleInsert([]*billing.PaymentChannelCostSystem{paymentSysCost1})
+
+	if err != nil {
+		suite.FailNow("Insert PaymentChannelCostSystem test data failed", "%v", err)
+	}
+
+	paymentMerCost1 := &billing.PaymentChannelCostMerchant{
+		MerchantId:              projectFixedAmount.GetMerchantId(),
+		Name:                    "MASTERCARD",
+		PayoutCurrency:          "USD",
+		MinAmount:               0.75,
+		Region:                  "Russia",
+		Country:                 "RU",
+		MethodPercent:           0.025,
+		MethodFixAmount:         0.01,
+		MethodFixAmountCurrency: "EUR",
+		PsPercent:               0.05,
+		PsFixedFee:              0.05,
+		PsFixedFeeCurrency:      "EUR",
+	}
+	paymentMerCost2 := &billing.PaymentChannelCostMerchant{
+		MerchantId:              mock.MerchantIdMock,
+		Name:                    "MASTERCARD",
+		PayoutCurrency:          "USD",
+		MinAmount:               5,
+		Region:                  "Russia",
+		Country:                 "RU",
+		MethodPercent:           0.025,
+		MethodFixAmount:         0.02,
+		MethodFixAmountCurrency: "EUR",
+		PsPercent:               0.05,
+		PsFixedFee:              0.05,
+		PsFixedFeeCurrency:      "EUR",
+	}
+
+	err = suite.service.paymentChannelCostMerchant.MultipleInsert([]*billing.PaymentChannelCostMerchant{paymentMerCost1, paymentMerCost2})
+
+	if err != nil {
+		suite.FailNow("Insert PaymentChannelCostMerchant test data failed", "%v", err)
+	}
+
 }
 
 func (suite *OrderTestSuite) TearDownTest() {
@@ -6280,55 +6330,38 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_AccountingEntries_
 		Find(bson.M{"source.id": bson.ObjectIdHex(order.Id), "source.type": collectionOrder}).All(&accountingEntries)
 	assert.NoError(suite.T(), err)
 	assert.NotEmpty(suite.T(), accountingEntries)
-	/*assert.Len(suite.T(), accountingEntries, len(onPaymentAccountingEntries))
+	/*
+		n, err := suite.service.db.Collection(collectionVatTransactions).Count()
+		assert.NoError(suite.T(), err)
+		assert.Equal(suite.T(), n, 1)
 
-	onPaymentEntries := make(map[string]bool)
+		country, err := suite.service.country.GetByIsoCodeA2(order.GetCountry())
+		assert.NoError(suite.T(), err)
 
-	for _, v := range onPaymentAccountingEntries {
-		onPaymentEntries[v] = true
-	}
+		from, to, err := suite.service.getLastVatReportTime(country.VatPeriodMonth)
+		assert.NoError(suite.T(), err)
 
-	for _, v := range accountingEntries {
-		_, ok := onPaymentEntries[v.Type]
-		assert.True(suite.T(), ok)
-	}
+		vts, err := suite.service.getVatTransactions(from, to, order.GetCountry())
+		assert.NoError(suite.T(), err)
+		assert.Equal(suite.T(), len(vts), 1)
 
-	assert.NotZero(suite.T(), order.RoyaltyData.AmountInRoyaltyCurrency)
-	assert.NotZero(suite.T(), order.RoyaltyData.MerchantPercentCommissionInRoyaltyCurrency)
-	assert.NotZero(suite.T(), order.RoyaltyData.MerchantFixedCommissionInRoyaltyCurrency)
-	assert.NotZero(suite.T(), order.RoyaltyData.MerchantTotalCommissionInRoyaltyCurrency)
-	assert.NotZero(suite.T(), order.RoyaltyData.PaymentTaxAmountInRoyaltyCurrency)
+		vt := vts[0]
 
-	n, err := suite.service.db.Collection(collectionVatTransactions).Count()
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 1)
-
-	country, err := suite.service.country.GetByIsoCodeA2(order.GetCountry())
-	assert.NoError(suite.T(), err)
-
-	from, to, err := suite.service.getLastVatReportTime(country.VatPeriodMonth)
-	assert.NoError(suite.T(), err)
-
-	vts, err := suite.service.getVatTransactions(from, to, order.GetCountry())
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), len(vts), 1)
-
-	vt := vts[0]
-
-	assert.Equal(suite.T(), vt.OrderId, order.Id)
-	assert.Equal(suite.T(), vt.UserId, order.User.Id)
-	assert.Equal(suite.T(), vt.TransactionType, pkg.VatTransactionTypePayment)
-	assert.Equal(suite.T(), vt.TransactionAmount, order.TotalPaymentAmount)
-	assert.Equal(suite.T(), vt.TransactionCurrency, order.Currency)
-	assert.Equal(suite.T(), vt.VatAmount, order.Tax.Amount)
-	assert.Equal(suite.T(), vt.VatCurrency, order.Tax.Currency)
-	assert.Equal(suite.T(), vt.Country, order.GetCountry())
-	assert.Equal(suite.T(), vt.LocalCurrency, vt.TransactionCurrency)
-	assert.Equal(suite.T(), vt.LocalCurrency, order.Currency)
-	assert.Equal(suite.T(), vt.LocalTransactionAmount, order.TotalPaymentAmount)
-	assert.Equal(suite.T(), vt.LocalCurrency, order.Tax.Currency)
-	assert.Equal(suite.T(), vt.LocalVatAmount, order.Tax.Amount)
-	assert.False(suite.T(), vt.IsDeduction)*/
+		assert.Equal(suite.T(), vt.OrderId, order.Id)
+		assert.Equal(suite.T(), vt.UserId, order.User.Id)
+		assert.Equal(suite.T(), vt.TransactionType, pkg.VatTransactionTypePayment)
+		assert.Equal(suite.T(), vt.TransactionAmount, order.TotalPaymentAmount)
+		assert.Equal(suite.T(), vt.TransactionCurrency, order.Currency)
+		assert.Equal(suite.T(), vt.VatAmount, order.Tax.Amount)
+		assert.Equal(suite.T(), vt.VatCurrency, order.Tax.Currency)
+		assert.Equal(suite.T(), vt.Country, order.GetCountry())
+		assert.Equal(suite.T(), vt.LocalCurrency, vt.TransactionCurrency)
+		assert.Equal(suite.T(), vt.LocalCurrency, order.Currency)
+		assert.Equal(suite.T(), vt.LocalTransactionAmount, order.TotalPaymentAmount)
+		assert.Equal(suite.T(), vt.LocalCurrency, order.Tax.Currency)
+		assert.Equal(suite.T(), vt.LocalVatAmount, order.Tax.Amount)
+		assert.False(suite.T(), vt.IsDeduction)
+	*/
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Error() {
