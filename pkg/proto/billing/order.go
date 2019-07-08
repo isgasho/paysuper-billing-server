@@ -10,6 +10,7 @@ import (
 
 const (
 	orderBankCardBrandNotFound = "brand for bank card not found"
+	orderPaymentMethodNotSet   = "payment method not set"
 )
 
 func (m *Order) GetMerchantId() string {
@@ -161,6 +162,9 @@ func (m *Order) GetNotificationStatus(key string) bool {
 }
 
 func (m *Order) GetCostPaymentMethodName() (string, error) {
+	if m.PaymentMethod == nil {
+		return "", errors.New(orderPaymentMethodNotSet)
+	}
 	if m.PaymentMethod.IsBankCard() {
 		return m.GetBankCardBrand()
 	}

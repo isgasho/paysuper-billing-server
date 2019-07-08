@@ -67,7 +67,6 @@ type Service struct {
 	curService                 currencies.CurrencyratesService
 	smtpCl                     gomail.SendCloser
 	supportedCurrencies        []string
-	commission                 *Commission
 	country                    *Country
 	project                    *Project
 	merchant                   *Merchant
@@ -129,7 +128,6 @@ func NewBillingService(
 func (s *Service) Init() (err error) {
 	s.paymentMethod = newPaymentMethodService(s)
 	s.merchant = newMerchantService(s)
-	s.commission = newCommissionService(s)
 	s.country = newCountryService(s)
 	s.project = newProjectService(s)
 	s.priceGroup = newPriceGroupService(s)

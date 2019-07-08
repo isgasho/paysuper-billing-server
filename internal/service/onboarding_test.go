@@ -264,21 +264,6 @@ func (suite *OnboardingTestSuite) SetupTest() {
 		MerchantId:               merchant.Id,
 	}
 
-	commissionStartDate, err := ptypes.TimestampProto(time.Now().Add(time.Minute * -10))
-	assert.NoError(suite.T(), err, "Commission start date conversion failed")
-
-	commission := &billing.Commission{
-		PaymentMethodId:         pmBankCard.Id,
-		ProjectId:               project.Id,
-		PaymentMethodCommission: 1,
-		PspCommission:           2,
-		TotalCommissionToUser:   1,
-		StartDate:               commissionStartDate,
-	}
-
-	err = db.Collection(collectionCommission).Insert(commission)
-	assert.NoError(suite.T(), err, "Insert commission test data failed")
-
 	suite.log, err = zap.NewProduction()
 	assert.NoError(suite.T(), err, "Logger initialization failed")
 
@@ -1692,12 +1677,6 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_Upda
 
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rspMerchantPaymentMethodAdd.Status)
-
-	comm, err := suite.service.commission.GetByProjectIdAndMethod(suite.project.Id, suite.pmQiwi.Id)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), reqMerchantPaymentMethodAdd.Commission.Fee, comm.Fee)
-	assert.Equal(suite.T(), reqMerchantPaymentMethodAdd.Commission.PerTransaction.Fee, comm.PerTransaction.Fee)
-	assert.Equal(suite.T(), reqMerchantPaymentMethodAdd.Commission.PerTransaction.Currency, comm.PerTransaction.Currency)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_PaymentMethodsIsEmpty_Ok() {

@@ -1639,36 +1639,63 @@ func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) {
 // Calculate all possible commissions for order, i.e. payment system fee amount, PSP (P1) fee amount,
 // commission shifted from project to user and VAT
 func (v *OrderCreateRequestProcessor) processOrderCommissions(o *billing.Order) error {
+	o.PaymentSystemFeeAmount = &billing.OrderFeePaymentSystem{}
+
 	merchant, _ := v.merchant.GetById(o.Project.MerchantId)
+	countryData, err := v.country.GetByIsoCodeA2(o.GetCountry())
+	if err != nil {
+		zap.S().Errorw("Country not found", "country", o.GetCountry())
+		return orderErrorUnknown
+	}
 
 	mAccCur := merchant.GetPayoutCurrency()
 
 	// calculate commissions to selected payment method
-	commission, err := v.Service.commission.CalculatePmCommission(o.Project.Id, o.PaymentMethod.Id, o.PaymentMethodOutcomeAmount)
+
+	name, err := o.GetCostPaymentMethodName()
+	if err != nil {
+		zap.L().Warn(
+			"cannot get cost payment method name",
+			zap.Error(err),
+			zap.String("project", o.GetProjectId()),
+		)
+		return nil
+	}
+
+	req := &billing.PaymentChannelCostMerchantRequest{
+		MerchantId:     o.Project.MerchantId,
+		Name:           name,
+		PayoutCurrency: merchant.Banking.Currency,
+		Amount:         o.PaymentMethodOutcomeAmount,
+		Region:         countryData.Region,
+		Country:        countryData.IsoCodeA2,
+	}
+	cost, err := v.getPaymentChannelCostMerchant(req)
 
 	if err != nil {
+		zap.L().Error(
+			"payment channel cost merchant not found",
+			zap.Error(err),
+			zap.String("project", o.GetProjectId()),
+			zap.String("payment_method", name),
+		)
+
 		return orderErrorUnknown
 	}
 
+	methodPercent := o.PaymentMethodOutcomeAmount * cost.MethodPercent
+	methodFix := cost.MethodFixAmount
+
 	// save information about payment system commission
-	o.PaymentSystemFeeAmount = &billing.OrderFeePaymentSystem{
-		AmountPaymentMethodCurrency: tools.FormatAmount(commission),
-	}
+	o.PaymentSystemFeeAmount.AmountPaymentMethodCurrency = tools.FormatAmount(methodPercent + methodFix)
 
-	ps, err := v.Service.paymentSystem.GetById(o.PaymentMethod.PaymentSystemId)
-	if err != nil {
-		return err
-	}
-
-	// convert payment system amount of fee to accounting currency of payment system
-	o.PaymentSystemFeeAmount.AmountPaymentSystemCurrency = commission
-	if o.PaymentMethodOutcomeCurrency != ps.AccountingCurrency {
+	if o.PaymentMethodOutcomeCurrency != cost.MethodFixAmountCurrency {
 		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
-			From:       o.PaymentMethodOutcomeCurrency,
-			To:         ps.AccountingCurrency,
+			From:       cost.MethodFixAmountCurrency,
+			To:         o.PaymentMethodOutcomeCurrency,
 			MerchantId: merchant.Id,
 			RateType:   curPkg.RateTypeOxr,
-			Amount:     commission,
+			Amount:     methodFix,
 		}
 		rsp, err := v.curService.ExchangeCurrencyCurrentForMerchant(context.TODO(), req)
 
@@ -1682,19 +1709,50 @@ func (v *OrderCreateRequestProcessor) processOrderCommissions(o *billing.Order) 
 
 			return orderErrorConvertionCurrency
 		}
-		o.PaymentSystemFeeAmount.AmountPaymentSystemCurrency = rsp.ExchangedAmount
+
+		o.PaymentSystemFeeAmount.AmountPaymentMethodCurrency = tools.FormatAmount(methodPercent + rsp.ExchangedAmount)
+	}
+
+	ps, err := v.Service.paymentSystem.GetById(o.PaymentMethod.PaymentSystemId)
+	if err != nil {
+		return err
+	}
+
+	// convert payment system amount of fee to accounting currency of payment system
+	o.PaymentSystemFeeAmount.AmountPaymentSystemCurrency = tools.FormatAmount(methodPercent + methodFix)
+	if cost.MethodFixAmountCurrency != ps.AccountingCurrency {
+		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
+			From:       cost.MethodFixAmountCurrency,
+			To:         ps.AccountingCurrency,
+			MerchantId: merchant.Id,
+			RateType:   curPkg.RateTypeOxr,
+			Amount:     methodFix,
+		}
+		rsp, err := v.curService.ExchangeCurrencyCurrentForMerchant(context.TODO(), req)
+
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorGrpcServiceCallFailed,
+				zap.Error(err),
+				zap.String(errorFieldService, "CurrencyRatesService"),
+				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
+			)
+
+			return orderErrorConvertionCurrency
+		}
+		o.PaymentSystemFeeAmount.AmountPaymentSystemCurrency = tools.FormatAmount(methodPercent + rsp.ExchangedAmount)
 	}
 
 	if mAccCur != "" {
-		o.PaymentSystemFeeAmount.AmountMerchantCurrency = commission
+		o.PaymentSystemFeeAmount.AmountMerchantCurrency = tools.FormatAmount(methodPercent + methodFix)
 		// convert payment system amount of fee to accounting currency of merchant
-		if o.PaymentMethodOutcomeCurrency != mAccCur {
+		if cost.MethodFixAmountCurrency != mAccCur {
 			req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
-				From:       o.PaymentMethodOutcomeCurrency,
+				From:       cost.MethodFixAmountCurrency,
 				To:         mAccCur,
 				MerchantId: merchant.Id,
 				RateType:   curPkg.RateTypeOxr,
-				Amount:     commission,
+				Amount:     methodFix,
 			}
 			rsp, err := v.curService.ExchangeCurrencyCurrentForMerchant(context.TODO(), req)
 
@@ -1708,7 +1766,7 @@ func (v *OrderCreateRequestProcessor) processOrderCommissions(o *billing.Order) 
 
 				return orderErrorConvertionCurrency
 			}
-			o.PaymentSystemFeeAmount.AmountMerchantCurrency = rsp.ExchangedAmount
+			o.PaymentSystemFeeAmount.AmountMerchantCurrency = tools.FormatAmount(methodPercent + rsp.ExchangedAmount)
 		}
 	}
 

@@ -214,31 +214,6 @@ func (suite *ReportTestSuite) SetupTest() {
 		project1,
 	}
 
-	commissionStartDate, err := ptypes.TimestampProto(time.Now().Add(time.Minute * -10))
-	assert.NoError(suite.T(), err, "Commission start date conversion failed")
-
-	commissions := []interface{}{
-		&billing.Commission{
-			PaymentMethodId:         pmBankCard.Id,
-			ProjectId:               project.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   1,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmBitcoin1.Id,
-			ProjectId:               project.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   3,
-			StartDate:               commissionStartDate,
-		},
-	}
-
-	err = db.Collection(collectionCommission).Insert(commissions...)
-	assert.NoError(suite.T(), err, "Insert commission test data failed")
-
 	bin := &BinData{
 		Id:                 bson.NewObjectId(),
 		CardBin:            400000,
@@ -494,6 +469,13 @@ func (suite *ReportTestSuite) TestReport_FindByPaymentMethod() {
 		Currency:      "RUB",
 		Amount:        100,
 		PaymentMethod: suite.pmBankCard.Group,
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+			Address: &billing.OrderBillingAddress{
+				Country: "RU",
+			},
+		},
 	}
 	pm, err := suite.service.paymentMethod.GetById(suite.pmBankCard.Id)
 	assert.NoError(suite.T(), err)
@@ -530,6 +512,13 @@ func (suite *ReportTestSuite) TestReport_FindByPaymentMethod_ErrorOnEmptyPayment
 		Currency:      "RUB",
 		Amount:        100,
 		PaymentMethod: suite.pmBankCard.Group,
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+			Address: &billing.OrderBillingAddress{
+				Country: "RU",
+			},
+		},
 	}
 	rsp0 := &grpc.OrderCreateProcessResponse{}
 	err := suite.service.OrderCreateProcess(context.TODO(), oReq, rsp0)

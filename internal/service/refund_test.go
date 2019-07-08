@@ -227,39 +227,6 @@ func (suite *RefundTestSuite) SetupTest() {
 		PaymentSystemId: suite.paySys.Id,
 	}
 
-	commissionStartDate, err := ptypes.TimestampProto(time.Now().Add(time.Minute * -10))
-	assert.NoError(suite.T(), err, "Commission start date conversion failed")
-
-	commissions := []interface{}{
-		&billing.Commission{
-			PaymentMethodId:         pmBankCard.Id,
-			ProjectId:               project.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   1,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmQiwi.Id,
-			ProjectId:               project.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   2,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmBitcoin.Id,
-			ProjectId:               project.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   3,
-			StartDate:               commissionStartDate,
-		},
-	}
-
-	err = db.Collection(collectionCommission).Insert(commissions...)
-	assert.NoError(suite.T(), err, "Insert commission test data failed")
-
 	merchantAgreement := &billing.Merchant{
 		Id:      bson.NewObjectId().Hex(),
 		Name:    "Unit test status Agreement",
@@ -369,7 +336,79 @@ func (suite *RefundTestSuite) SetupTest() {
 		suite.FailNow("Insert payment system test data failed", "%v", err)
 	}
 
-	sysCost := &billing.MoneyBackCostSystem{
+	sysCost := &billing.PaymentChannelCostSystem{
+		Id:        bson.NewObjectId().Hex(),
+		Name:      "MASTERCARD",
+		Region:    "CIS",
+		Country:   "AZ",
+		Percent:   1.5,
+		FixAmount: 5,
+	}
+
+	sysCost1 := &billing.PaymentChannelCostSystem{
+		Name:      "MASTERCARD",
+		Region:    "CIS",
+		Country:   "",
+		Percent:   2.2,
+		FixAmount: 0,
+	}
+
+	err = suite.service.paymentChannelCostSystem.MultipleInsert([]*billing.PaymentChannelCostSystem{sysCost, sysCost1})
+
+	if err != nil {
+		suite.FailNow("Insert PaymentChannelCostSystem test data failed", "%v", err)
+	}
+
+	merCost := &billing.PaymentChannelCostMerchant{
+		Id:                 bson.NewObjectId().Hex(),
+		MerchantId:         project.GetMerchantId(),
+		Name:               "VISA",
+		PayoutCurrency:     "RUB",
+		MinAmount:          0.75,
+		Region:             "Russia",
+		Country:            "RU",
+		MethodPercent:      1.5,
+		MethodFixAmount:    0.01,
+		PsPercent:          3,
+		PsFixedFee:         0.01,
+		PsFixedFeeCurrency: "EUR",
+	}
+
+	merCost1 := &billing.PaymentChannelCostMerchant{
+		MerchantId:         project.GetMerchantId(),
+		Name:               "MASTERCARD",
+		PayoutCurrency:     "USD",
+		MinAmount:          5,
+		Region:             "Russia",
+		Country:            "RU",
+		MethodPercent:      2.5,
+		MethodFixAmount:    2,
+		PsPercent:          5,
+		PsFixedFee:         0.05,
+		PsFixedFeeCurrency: "EUR",
+	}
+
+	merCost2 := &billing.PaymentChannelCostMerchant{
+		MerchantId:         project.GetMerchantId(),
+		Name:               "MASTERCARD",
+		PayoutCurrency:     "USD",
+		MinAmount:          0,
+		Region:             "CIS",
+		Country:            "",
+		MethodPercent:      2.2,
+		MethodFixAmount:    0,
+		PsPercent:          5,
+		PsFixedFee:         0.05,
+		PsFixedFeeCurrency: "EUR",
+	}
+
+	err = suite.service.paymentChannelCostMerchant.MultipleInsert([]*billing.PaymentChannelCostMerchant{merCost, merCost1, merCost2})
+
+	if err != nil {
+		suite.FailNow("Insert PaymentChannelCostMerchant test data failed", "%v", err)
+	}
+
+	mbSysCost := &billing.MoneyBackCostSystem{
 		Name:           "VISA",
 		PayoutCurrency: "USD",
 		UndoReason:     "chargeback",
@@ -381,7 +420,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		FixAmount:      5,
 	}
 
-	sysCost1 := &billing.MoneyBackCostSystem{
+	mbSysCost1 := &billing.MoneyBackCostSystem{
 		Name:           "VISA",
 		PayoutCurrency: "USD",
 		UndoReason:     "chargeback",
@@ -393,7 +432,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		FixAmount:      15,
 	}
 
-	sysCost2 := &billing.MoneyBackCostSystem{
+	mbSysCost2 := &billing.MoneyBackCostSystem{
 		Name:           "VISA",
 		PayoutCurrency: "USD",
 		UndoReason:     "chargeback",
@@ -405,7 +444,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		FixAmount:      15,
 	}
 
-	sysCost3 := &billing.MoneyBackCostSystem{
+	mbSysCost3 := &billing.MoneyBackCostSystem{
 		Name:           "VISA",
 		PayoutCurrency: "USD",
 		UndoReason:     "reversal",
@@ -417,13 +456,13 @@ func (suite *RefundTestSuite) SetupTest() {
 		FixAmount:      15,
 	}
 
-	err = suite.service.moneyBackCostSystem.MultipleInsert([]*billing.MoneyBackCostSystem{sysCost, sysCost1, sysCost2, sysCost3})
+	err = suite.service.moneyBackCostSystem.MultipleInsert([]*billing.MoneyBackCostSystem{mbSysCost, mbSysCost1, mbSysCost2, mbSysCost3})
 
 	if err != nil {
 		suite.FailNow("Insert MoneyBackCostSystem test data failed", "%v", err)
 	}
 
-	merCost := &billing.MoneyBackCostMerchant{
+	mbMerCost := &billing.MoneyBackCostMerchant{
 		Id:                bson.NewObjectId().Hex(),
 		MerchantId:        project.GetMerchantId(),
 		Name:              "VISA",
@@ -439,7 +478,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		IsPaidByMerchant:  true,
 	}
 
-	merCost1 := &billing.MoneyBackCostMerchant{
+	mbMerCost1 := &billing.MoneyBackCostMerchant{
 		Id:                bson.NewObjectId().Hex(),
 		MerchantId:        project.GetMerchantId(),
 		Name:              "VISA",
@@ -455,7 +494,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		IsPaidByMerchant:  true,
 	}
 
-	merCost2 := &billing.MoneyBackCostMerchant{
+	mbMerCost2 := &billing.MoneyBackCostMerchant{
 		Id:                bson.NewObjectId().Hex(),
 		MerchantId:        project.GetMerchantId(),
 		Name:              "VISA",
@@ -470,7 +509,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		FixAmountCurrency: "USD",
 		IsPaidByMerchant:  true,
 	}
-	merCost3 := &billing.MoneyBackCostMerchant{
+	mbMerCost3 := &billing.MoneyBackCostMerchant{
 		Id:                bson.NewObjectId().Hex(),
 		MerchantId:        project.GetMerchantId(),
 		Name:              "VISA",
@@ -485,7 +524,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		FixAmountCurrency: "USD",
 		IsPaidByMerchant:  true,
 	}
-	merCost4 := &billing.MoneyBackCostMerchant{
+	mbMerCost4 := &billing.MoneyBackCostMerchant{
 		Id:                bson.NewObjectId().Hex(),
 		MerchantId:        project.GetMerchantId(),
 		Name:              "VISA",
@@ -500,7 +539,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		FixAmountCurrency: "USD",
 		IsPaidByMerchant:  true,
 	}
-	merCost5 := &billing.MoneyBackCostMerchant{
+	mbMerCost5 := &billing.MoneyBackCostMerchant{
 		Id:                bson.NewObjectId().Hex(),
 		MerchantId:        project.GetMerchantId(),
 		Name:              "VISA",
@@ -516,7 +555,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		IsPaidByMerchant:  true,
 	}
 
-	err = suite.service.moneyBackCostMerchant.MultipleInsert([]*billing.MoneyBackCostMerchant{merCost, merCost1, merCost2, merCost3, merCost4, merCost5})
+	err = suite.service.moneyBackCostMerchant.MultipleInsert([]*billing.MoneyBackCostMerchant{mbMerCost, mbMerCost1, mbMerCost2, mbMerCost3, mbMerCost4, mbMerCost5})
 
 	if err != nil {
 		suite.FailNow("Insert MoneyBackCostMerchant test data failed", "%v", err)

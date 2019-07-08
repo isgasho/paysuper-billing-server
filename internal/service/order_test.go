@@ -669,93 +669,6 @@ func (suite *OrderTestSuite) SetupTest() {
 		suite.FailNow("Insert zip codes test data failed", "%v", err)
 	}
 
-	commissionStartDate, err := ptypes.TimestampProto(time.Now().Add(time.Minute * -10))
-
-	if err != nil {
-		suite.FailNow("Commission start date conversion failed", "%v", err)
-	}
-
-	commissions := []interface{}{
-		&billing.Commission{
-			PaymentMethodId:         pmBankCard.Id,
-			ProjectId:               project.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   1,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmQiwi.Id,
-			ProjectId:               project.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   2,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmBitcoin.Id,
-			ProjectId:               project.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   3,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmBankCard.Id,
-			ProjectId:               projectFixedAmount.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   1,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmQiwi.Id,
-			ProjectId:               projectFixedAmount.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   2,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmBitcoin.Id,
-			ProjectId:               projectFixedAmount.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   3,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmBankCard.Id,
-			ProjectId:               projectUahLimitCurrency.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   1,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmQiwi.Id,
-			ProjectId:               projectUahLimitCurrency.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   2,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmBitcoin.Id,
-			ProjectId:               projectUahLimitCurrency.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   3,
-			StartDate:               commissionStartDate,
-		},
-	}
-
-	err = db.Collection(collectionCommission).Insert(commissions...)
-
-	if err != nil {
-		suite.FailNow("Insert commission test data failed", "%v", err)
-	}
-
 	suite.log, err = zap.NewProduction()
 
 	if err != nil {
@@ -918,7 +831,35 @@ func (suite *OrderTestSuite) SetupTest() {
 		PsFixedFeeCurrency: "EUR",
 	}
 
-	err = suite.service.paymentChannelCostMerchant.MultipleInsert([]*billing.PaymentChannelCostMerchant{merCost, merCost1, merCost2})
+	merCost3 := &billing.PaymentChannelCostMerchant{
+		MerchantId:         project.GetMerchantId(),
+		Name:               "Bitcoin",
+		PayoutCurrency:     "USD",
+		MinAmount:          5,
+		Region:             "Russia",
+		Country:            "RU",
+		MethodPercent:      2.5,
+		MethodFixAmount:    2,
+		PsPercent:          5,
+		PsFixedFee:         0.05,
+		PsFixedFeeCurrency: "EUR",
+	}
+
+	merCost4 := &billing.PaymentChannelCostMerchant{
+		MerchantId:         project.GetMerchantId(),
+		Name:               "MASTERCARD",
+		PayoutCurrency:     "USD",
+		MinAmount:          5,
+		Region:             "North America",
+		Country:            "US",
+		MethodPercent:      2.5,
+		MethodFixAmount:    2,
+		PsPercent:          5,
+		PsFixedFee:         0.05,
+		PsFixedFeeCurrency: "EUR",
+	}
+
+	err = suite.service.paymentChannelCostMerchant.MultipleInsert([]*billing.PaymentChannelCostMerchant{merCost, merCost1, merCost2, merCost3, merCost4})
 
 	if err != nil {
 		suite.FailNow("Insert PaymentChannelCostMerchant test data failed", "%v", err)
@@ -2381,6 +2322,13 @@ func (suite *OrderTestSuite) TestOrder_ProcessOrderCommissions_Ok() {
 			CallbackProtocol:  processor.checked.project.CallbackProtocol,
 			MerchantId:        processor.checked.project.MerchantId,
 		},
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+			Address: &billing.OrderBillingAddress{
+				Country: "RU",
+			},
+		},
 		Description:                        fmt.Sprintf(orderDefaultDescription, id),
 		ProjectOrderId:                     req.OrderId,
 		ProjectAccount:                     req.Account,
@@ -2398,6 +2346,11 @@ func (suite *OrderTestSuite) TestOrder_ProcessOrderCommissions_Ok() {
 		PaymentMethodIncomeCurrency:        processor.checked.currency,
 		PaymentMethod: &billing.PaymentMethodOrder{
 			PaymentSystemId: suite.paymentMethod.PaymentSystemId,
+			Group:           suite.paymentMethod.Group,
+			Name:            suite.paymentMethod.Name,
+		},
+		PaymentRequisites: map[string]string{
+			pkg.PaymentCreateBankCardFieldBrand: "MASTERCARD",
 		},
 	}
 
@@ -2571,7 +2524,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessOrderCommissions_PaymentSystemAcco
 
 	err = processor.processOrderCommissions(order)
 	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionPaymentSystem), err.Error())
+	assert.Equal(suite.T(), orderErrorUnknown.Error(), err.Error())
 }
 
 func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_Ok() {
@@ -3857,15 +3810,6 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_Ok() {
 	var order1 *billing.Order
 	err = suite.service.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(order.Id)).One(&order1)
 	assert.NotNil(suite.T(), order1)
-
-	commission, err := suite.service.commission.GetByProjectIdAndMethod(order1.Project.Id, order1.PaymentMethod.Id)
-	assert.Nil(suite.T(), err)
-	assert.NotNil(suite.T(), commission)
-
-	pmCommission := tools.FormatAmount(order1.ProjectIncomeAmount * (commission.Fee / 100))
-
-	assert.Equal(suite.T(), pmCommission, order1.PaymentSystemFeeAmount.AmountPaymentMethodCurrency)
-	assert.Equal(suite.T(), pmCommission, order1.PaymentSystemFeeAmount.AmountPaymentSystemCurrency)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_ProcessValidation_Error() {

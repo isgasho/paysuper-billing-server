@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
@@ -9,7 +8,6 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
-	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
@@ -184,45 +182,6 @@ func (suite *FinanceTestSuite) SetupTest() {
 		PaymentSystemId: ps1.Id,
 	}
 
-	commissionStartDate, err := ptypes.TimestampProto(time.Now().Add(time.Minute * -10))
-
-	if err != nil {
-		suite.FailNow("Commission start date conversion failed", "%v", err)
-	}
-
-	commissions := []interface{}{
-		&billing.Commission{
-			PaymentMethodId:         pmBankCard.Id,
-			ProjectId:               project.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   1,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmQiwi.Id,
-			ProjectId:               project.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   2,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmBitcoin.Id,
-			ProjectId:               project.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   3,
-			StartDate:               commissionStartDate,
-		},
-	}
-
-	err = db.Collection(collectionCommission).Insert(commissions...)
-
-	if err != nil {
-		suite.FailNow("Insert commission test data failed", "%v", err)
-	}
-
 	suite.log, err = zap.NewProduction()
 
 	if err != nil {
@@ -279,31 +238,4 @@ func (suite *FinanceTestSuite) TearDownTest() {
 	}
 
 	suite.service.db.Close()
-}
-
-func (suite *FinanceTestSuite) TestFinance_CalculateCommissionOk() {
-	amount := float64(100)
-
-	commission, err := suite.service.commission.CalculatePmCommission(suite.project.Id, suite.paymentMethod.Id, amount)
-
-	assert.Nil(suite.T(), err)
-	assert.NotNil(suite.T(), commission)
-	assert.True(suite.T(), commission > 0)
-	assert.Equal(suite.T(), float64(2.5), commission)
-}
-
-func (suite *FinanceTestSuite) TestFinance_CalculateCommissionProjectError() {
-	commission, err := suite.service.commission.CalculatePmCommission(bson.NewObjectId().Hex(), suite.paymentMethod.Id, float64(100))
-
-	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), float64(0), commission)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionCommission), err.Error())
-}
-
-func (suite *FinanceTestSuite) TestFinance_CalculateCommissionPaymentMethod_DefaultPaymentCommission() {
-	commission, err := suite.service.commission.CalculatePmCommission(suite.project.Id, bson.NewObjectId().Hex(), float64(100))
-	dCommission := suite.service.getDefaultPaymentMethodCommissions()
-	assert.NoError(suite.T(), err)
-	assert.NotNil(suite.T(), commission)
-	assert.Equal(suite.T(), tools.FormatAmount(float64(100)*(dCommission.Fee/100)), commission)
 }
