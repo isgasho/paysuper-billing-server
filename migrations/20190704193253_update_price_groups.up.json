@@ -11,8 +11,8 @@
         "currency":"AED",
         "inflation_rate":{"$numberDouble":"0.718997"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf444082a"},
@@ -20,8 +20,8 @@
         "currency":"USD",
         "inflation_rate":{"$numberDouble":"0.6"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf444082b"},
@@ -29,8 +29,8 @@
         "currency":"ARS",
         "inflation_rate":{"$numberDouble":"0.262378"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf444082c"},
@@ -38,8 +38,8 @@
         "currency":"AUD",
         "inflation_rate":{"$numberInt":"1"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf444082d"},
@@ -47,8 +47,8 @@
         "currency":"BHD",
         "inflation_rate":{"$numberInt":"1"},
         "fraction":{"$numberDouble":"0.95"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf444082e"},
@@ -56,8 +56,8 @@
         "currency":"BRL",
         "inflation_rate":{"$numberDouble":"0.496872"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf444082f"},
@@ -65,8 +65,8 @@
         "currency":"CAD",
         "inflation_rate":{"$numberDouble":"0.886567"},
         "fraction":{"$numberDouble":"0.5"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440830"},
@@ -74,8 +74,8 @@
         "currency":"USD",
         "inflation_rate":{"$numberDouble":"0.6"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440831"},
@@ -83,8 +83,8 @@
         "currency":"USD",
         "inflation_rate":{"$numberInt":"1"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440832"},
@@ -92,8 +92,8 @@
         "currency":"CHF",
         "inflation_rate":{"$numberDouble":"1.025"},
         "fraction":{"$numberDouble":"0.05"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440833"},
@@ -101,8 +101,8 @@
         "currency":"USD",
         "inflation_rate":{"$numberDouble":"0.5"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440834"},
@@ -110,8 +110,8 @@
         "currency":"CLP",
         "inflation_rate":{"$numberDouble":"0.559109"},
         "fraction":{"$numberInt":"0"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440835"},
@@ -119,8 +119,8 @@
         "currency":"CNY",
         "inflation_rate":{"$numberDouble":"0.465973"},
         "fraction":{"$numberInt":"0"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440836"},
@@ -128,8 +128,8 @@
         "currency":"COP",
         "inflation_rate":{"$numberDouble":"0.419219"},
         "fraction":{"$numberInt":"0"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440837"},
@@ -137,8 +137,8 @@
         "currency":"CRC",
         "inflation_rate":{"$numberDouble":"0.721442"},
         "fraction":{"$numberInt":"0"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440838"},
@@ -146,8 +146,8 @@
         "currency":"CZK",
         "inflation_rate":{"$numberDouble":"0.447378"},
         "fraction":{"$numberDouble":"0.05"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440839"},
@@ -155,8 +155,8 @@
         "currency":"DKK",
         "inflation_rate":{"$numberInt":"1"},
         "fraction":{"$numberDouble":"0.05"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf444083a"},
@@ -164,8 +164,8 @@
         "currency":"USD",
         "inflation_rate":{"$numberDouble":"0.6"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf444083b"},
@@ -173,8 +173,8 @@
         "currency":"USD",
         "inflation_rate":{"$numberDouble":"0.339736"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf444083c"},
@@ -182,8 +182,8 @@
         "currency":"EGP",
         "inflation_rate":{"$numberDouble":"0.431338"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf444083d"},
@@ -191,8 +191,8 @@
         "currency":"EUR",
         "inflation_rate":{"$numberInt":"1"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf444083e"},
@@ -200,8 +200,8 @@
         "currency":"GBP",
         "inflation_rate":{"$numberInt":"1"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf444083f"},
@@ -209,8 +209,8 @@
         "currency":"HKD",
         "inflation_rate":{"$numberDouble":"0.558586"},
         "fraction":{"$numberInt":"0"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440840"},
@@ -218,8 +218,8 @@
         "currency":"HRK",
         "inflation_rate":{"$numberDouble":"0.738587"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440841"},
@@ -227,8 +227,8 @@
         "currency":"HUF",
         "inflation_rate":{"$numberDouble":"0.703967"},
         "fraction":{"$numberInt":"0"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440842"},
@@ -236,8 +236,8 @@
         "currency":"IDR",
         "inflation_rate":{"$numberDouble":"0.339644"},
         "fraction":{"$numberInt":"0"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440843"},
@@ -245,8 +245,8 @@
         "currency":"ILS",
         "inflation_rate":{"$numberDouble":"1.045"},
         "fraction":{"$numberDouble":"0.05"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440844"},
@@ -254,8 +254,8 @@
         "currency":"INR",
         "inflation_rate":{"$numberDouble":"0.329939"},
         "fraction":{"$numberInt":"0"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440845"},
@@ -263,8 +263,8 @@
         "currency":"JPY",
         "inflation_rate":{"$numberDouble":"0.954022"},
         "fraction":{"$numberInt":"0"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440846"},
@@ -272,8 +272,8 @@
         "currency":"KRW",
         "inflation_rate":{"$numberDouble":"0.900014"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440847"},
@@ -281,7 +281,7 @@
         "currency":"KZT",
         "inflation_rate":{"$numberDouble":"0.346923"},
         "fraction":{"$numberInt":"0"},
-        "created_at": "2019-07-04 19:38:49.000",
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
         "updated_at": "2019-05-2816:20:00.000"
       },
       {
@@ -290,8 +290,8 @@
         "currency":"MXN",
         "inflation_rate":{"$numberDouble":"0.488399"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440849"},
@@ -299,8 +299,8 @@
         "currency":"MYR",
         "inflation_rate":{"$numberDouble":"0.425568"},
         "fraction":{"$numberDouble":"0.5"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf444084a"},
@@ -308,8 +308,8 @@
         "currency":"USD",
         "inflation_rate":{"$numberDouble":"0.339736"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf444084b"},
@@ -317,8 +317,8 @@
         "currency":"NOK",
         "inflation_rate":{"$numberDouble":"0.82658"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf444084c"},
@@ -326,8 +326,8 @@
         "currency":"NZD",
         "inflation_rate":{"$numberDouble":"0.83186"},
         "fraction":{"$numberDouble":"0.5"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf444084d"},
@@ -335,8 +335,8 @@
         "currency":"PEN",
         "inflation_rate":{"$numberDouble":"0.54636"},
         "fraction":{"$numberDouble":"0.05"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf444084e"},
@@ -344,8 +344,8 @@
         "currency":"PHP",
         "inflation_rate":{"$numberDouble":"0.429275"},
         "fraction":{"$numberDouble":"0.95"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf444084f"},
@@ -353,8 +353,8 @@
         "currency":"PLN",
         "inflation_rate":{"$numberDouble":"0.964214"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440850"},
@@ -362,8 +362,8 @@
         "currency":"QAR",
         "inflation_rate":{"$numberDouble":"0.549372"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440851"},
@@ -371,8 +371,8 @@
         "currency":"RON",
         "inflation_rate":{"$numberDouble":"0.480883"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440852"},
@@ -380,8 +380,8 @@
         "currency":"RSD",
         "inflation_rate":{"$numberDouble":"0.301246"},
         "fraction":{"$numberInt":"0"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440853"},
@@ -389,8 +389,8 @@
         "currency":"RUB",
         "inflation_rate":{"$numberDouble":"0.295666"},
         "fraction":{"$numberInt":"0"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440854"},
@@ -398,8 +398,8 @@
         "currency":"USD",
         "inflation_rate":{"$numberDouble":"0.6"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440855"},
@@ -407,8 +407,8 @@
         "currency":"USD",
         "inflation_rate":{"$numberDouble":"0.5"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440856"},
@@ -416,8 +416,8 @@
         "currency":"SAR",
         "inflation_rate":{"$numberDouble":"0.426298"},
         "fraction":{"$numberDouble":"0.05"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440857"},
@@ -425,8 +425,8 @@
         "currency":"USD",
         "inflation_rate":{"$numberDouble":"0.339736"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440858"},
@@ -434,8 +434,8 @@
         "currency":"SEK",
         "inflation_rate":{"$numberInt":"1"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440859"},
@@ -443,8 +443,8 @@
         "currency":"SGD",
         "inflation_rate":{"$numberDouble":"0.650715"},
         "fraction":{"$numberDouble":"0.05"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf444085a"},
@@ -452,8 +452,8 @@
         "currency":"THB",
         "inflation_rate":{"$numberDouble":"0.416174"},
         "fraction":{"$numberInt":"0"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf444085b"},
@@ -461,8 +461,8 @@
         "currency":"TRY",
         "inflation_rate":{"$numberDouble":"0.277342"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf444085c"},
@@ -470,8 +470,8 @@
         "currency":"TWD",
         "inflation_rate":{"$numberDouble":"0.487811"},
         "fraction":{"$numberInt":"0"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf444085d"},
@@ -479,8 +479,8 @@
         "currency":"USD",
         "inflation_rate":{"$numberInt":"1"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf444085e"},
@@ -488,8 +488,8 @@
         "currency":"VND",
         "inflation_rate":{"$numberDouble":"0.377754"},
         "fraction":{"$numberInt":"0"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf444085f"},
@@ -497,8 +497,8 @@
         "currency":"USD",
         "inflation_rate":{"$numberDouble":"0.6"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440860"},
@@ -506,8 +506,8 @@
         "currency":"USD",
         "inflation_rate":{"$numberInt":"1"},
         "fraction":{"$numberDouble":"0.09"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       },
       {
         "_id": {"$oid": "5ced34d689fce60bf4440861"},
@@ -515,8 +515,8 @@
         "currency":"ZAR",
         "inflation_rate":{"$numberDouble":"0.423392"},
         "fraction":{"$numberInt":"0"},
-        "created_at": "2019-07-04 19:38:49.000",
-        "updated_at": "2019-07-04 19:38:49.000"
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
       }
     ]
   }
