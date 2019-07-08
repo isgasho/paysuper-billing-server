@@ -670,6 +670,8 @@ message PaymentMethodOrder {
     PaymentMethodWallet wallet = 10;
     //@inject_tag: json:"crypto_currency" bson:"crypto_currency"
     PaymentMethodCrypto crypto_currency = 11;
+    // @inject_tag: json:"type" bson:"group_alias"
+    string handler = 12;
 }
 
 message PaymentMethodParams {
