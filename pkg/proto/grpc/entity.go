@@ -44,7 +44,7 @@ func (p *Product) GetPriceInCurrency(currency string) (float64, error) {
 }
 
 func (p *Product) GetLocalizedName(lang string) (string, error) {
-	v, ok := p.Description[lang]
+	v, ok := p.Name[lang]
 	if !ok {
 		return "", errors.New(fmt.Sprintf(productNoNameInLanguage, lang))
 	}

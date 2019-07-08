@@ -1183,14 +1183,16 @@ message PriceGroup {
     string id = 1;
     //@inject_tag: json:"currency" bson:"currency" validate:"required,alpha,len=3"
     string currency = 2;
-    //@inject_tag: json:"is_simple" bson:"is_simple"
-    bool is_simple = 3;
     //@inject_tag: json:"region" bson:"region" validate:"omitempty,alpha"
-    string region = 4;
+    string region = 3;
+    //@inject_tag: validate:"required,numeric,gte=0" bson:"inflation_rate" json:"-"
+    double inflation_rate = 4;
+    //@inject_tag: validate:"required,numeric" bson:"fraction" json:"-"
+    double fraction = 5;
     //@inject_tag: json:"created_at" bson:"created_at"
-    google.protobuf.Timestamp created_at = 5;
+    google.protobuf.Timestamp created_at = 6;
     //@inject_tag: json:"updated_at" bson:"updated_at"
-    google.protobuf.Timestamp updated_at = 6;
+    google.protobuf.Timestamp updated_at = 7;
 }
 
 message ZipCodeState {
@@ -1459,4 +1461,31 @@ message AccountingEntry {
     string status = 9;
     google.protobuf.Timestamp created_at = 10;
     google.protobuf.Timestamp available_on = 11;
+}
+
+message PriceGroupRecommendedPrice {
+    // @inject_tag: json:"region"
+    string region = 1;
+    // @inject_tag: json:"currency"
+    string currency = 2;
+    // @inject_tag: json:"amount"
+    double amount = 3;
+}
+
+message PriceTable {
+    //@inject_tag: json:"id" bson:"_id" validate:"omitempty,hexadecimal,len=24"
+    string id = 1;
+    // @inject_tag: json:"currencies"
+    map<string, PriceTableCurrency> currencies = 2;
+    // @inject_tag: json:"from"
+    double from = 3;
+    // @inject_tag: json:"to"
+    double to = 4;
+}
+
+message PriceTableCurrency {
+    // @inject_tag: json:"from"
+    double from = 1;
+    // @inject_tag: json:"to"
+    double to = 2;
 }

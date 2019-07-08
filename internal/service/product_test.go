@@ -2,17 +2,19 @@ package service
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"github.com/ProtocolONE/rabbitmq/pkg"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
-	"github.com/stoewer/go-strcase"
 	"github.com/stretchr/testify/assert"
+	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
-	"strconv"
+	"gopkg.in/mgo.v2/bson"
 	"testing"
 )
 
@@ -32,6 +34,7 @@ type ProductTestSuite struct {
 
 	project    *billing.Project
 	pmBankCard *billing.PaymentMethod
+	product    *grpc.Product
 }
 
 func Test_Product(t *testing.T) {
@@ -92,6 +95,21 @@ func (suite *ProductTestSuite) SetupTest() {
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
+
+	suite.product = &grpc.Product{
+		Object:          "product",
+		Sku:             "ru_double_yeti",
+		Name:            map[string]string{"en": initialName},
+		DefaultCurrency: "USD",
+		Enabled:         true,
+		Description:     map[string]string{"en": "blah-blah-blah"},
+		MerchantId:      bson.NewObjectId().Hex(),
+		ProjectId:       bson.NewObjectId().Hex(),
+		Prices: []*grpc.ProductPrice{{
+			Currency: "USD",
+			Amount:   1005.00,
+		}},
+	}
 }
 
 func (suite *ProductTestSuite) TearDownTest() {
@@ -102,350 +120,528 @@ func (suite *ProductTestSuite) TearDownTest() {
 	suite.service.db.Close()
 }
 
-func (suite *ProductTestSuite) TestProduct_CRUDProduct_Ok() {
+func (suite *ProductTestSuite) TestProduct_GetProduct_Ok() {
+	id := bson.NewObjectId().Hex()
+	merchantId := bson.NewObjectId().Hex()
 
-	// Create product OK
+	ps := &mock.ProductServiceInterface{}
+	ps.On("GetById", mock2.Anything).Return(&grpc.Product{MerchantId: merchantId}, nil)
+	suite.service.productService = ps
 
-	req := &grpc.Product{
-		Object:          "product",
-		Type:            "simple_product",
-		Sku:             "ru_double_yeti",
-		Name:            map[string]string{"en": initialName},
-		DefaultCurrency: "USD",
-		Enabled:         true,
-		Description:     map[string]string{"en": "blah-blah-blah"},
-		LongDescription: map[string]string{"en": "Super game steam keys"},
-		Url:             "http://test.ru/dffdsfsfs",
-		Images:          []string{"/home/image.jpg"},
-		MerchantId:      merchantId,
-		ProjectId:       projectId,
-		Metadata: map[string]string{
-			"SomeKey": "SomeValue",
-		},
+	req := &grpc.RequestProduct{
+		Id:         id,
+		MerchantId: merchantId,
 	}
-
-	req.Prices = append(req.Prices, &grpc.ProductPrice{
-		Currency: "USD",
-		Amount:   1005.00,
-	})
-
 	res := grpc.Product{}
-
-	err := suite.service.CreateOrUpdateProduct(context.TODO(), req, &res)
-
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Name["en"], initialName)
-	assert.Equal(suite.T(), len(res.Prices), 1)
-
-	createdProductId = res.Id
-
-	// GetById product OK
-
-	req2 := &grpc.RequestProduct{
-		Id:         createdProductId,
-		MerchantId: merchantId,
-	}
-
-	res2 := grpc.Product{}
-
-	err = suite.service.GetProduct(context.TODO(), req2, &res2)
+	err := suite.service.GetProduct(context.TODO(), req, &res)
 
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res2.Name["en"], initialName)
-	assert.Equal(suite.T(), len(res2.Prices), 1)
-
-	// Update product OK
-
-	req3 := &grpc.Product{
-		Id:              createdProductId,
-		Object:          "product",
-		Type:            "simple_product",
-		Sku:             "ru_double_yeti_rel",
-		Name:            map[string]string{"en": newName},
-		DefaultCurrency: "USD",
-		Enabled:         true,
-		Description:     map[string]string{"en": "Yet another cool game"},
-		LongDescription: map[string]string{"en": "Super game steam keys"},
-		Url:             "http://mygame.ru/duoble_yeti",
-		Images:          []string{"/home/image.jpg"},
-		MerchantId:      merchantId,
-		ProjectId:       projectId,
-		Metadata: map[string]string{
-			"SomeKey": "SomeValue",
-		},
-	}
-
-	req3.Prices = append(req3.Prices, &grpc.ProductPrice{
-		Currency: "USD",
-		Amount:   1010.23,
-	})
-	req3.Prices = append(req3.Prices, &grpc.ProductPrice{
-		Currency: "RUB",
-		Amount:   65010.23,
-	})
-
-	res3 := grpc.Product{}
-
-	err = suite.service.CreateOrUpdateProduct(context.TODO(), req3, &res3)
-
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res3.Name["en"], newName)
-	assert.Equal(suite.T(), len(res3.Prices), 2)
-
-	// Attempt to create yet another active product with the same projectId+Sku
-
-	req31 := &grpc.Product{
-		Object:          "product",
-		Type:            "simple_product",
-		Sku:             "ru_double_yeti_rel",
-		Name:            map[string]string{"en": initialName},
-		DefaultCurrency: "USD",
-		Enabled:         true,
-		Description:     map[string]string{"en": "blah-blah-blah"},
-		LongDescription: map[string]string{"en": "Super game steam keys"},
-		Url:             "http://test.ru/dffdsfsfs",
-		Images:          []string{"/home/image.jpg"},
-		MerchantId:      merchantId,
-		ProjectId:       projectId,
-		Metadata: map[string]string{
-			"SomeKey": "SomeValue",
-		},
-	}
-
-	req31.Prices = append(req31.Prices, &grpc.ProductPrice{
-		Currency: "USD",
-		Amount:   1005.00,
-	})
-
-	res31 := grpc.Product{}
-
-	err = suite.service.CreateOrUpdateProduct(context.TODO(), req31, &res31)
-
-	assert.Error(suite.T(), err)
-
-	// Delete product Ok
-
-	req4 := &grpc.RequestProduct{
-		Id:         createdProductId,
-		MerchantId: merchantId,
-	}
-
-	err = suite.service.DeleteProduct(context.TODO(), req4, &grpc.EmptyResponse{})
-
-	assert.NoError(suite.T(), err)
-
-	// Product not found after deletion
-
-	req5 := &grpc.RequestProduct{
-		Id:         createdProductId,
-		MerchantId: merchantId,
-	}
-	err = suite.service.GetProduct(context.TODO(), req5, &grpc.Product{})
-
-	assert.Error(suite.T(), err)
-
-	// Product cant be updated after deletion
-
-	req6 := &grpc.Product{
-		Id:              createdProductId,
-		Object:          "product",
-		Type:            "simple_product",
-		Sku:             "ru_double_yeti_rel",
-		Name:            map[string]string{"en": newName},
-		DefaultCurrency: "USD",
-		Enabled:         true,
-		Description:     map[string]string{"en": "One another cool game"},
-		LongDescription: map[string]string{"en": "Ultra game steam keys"},
-		Url:             "http://mygame.ru/duoble_yeti",
-		Images:          []string{"/home/image.jpg"},
-		MerchantId:      merchantId,
-		ProjectId:       projectId,
-		Metadata: map[string]string{
-			"SomeKey": "SomeValue",
-		},
-	}
-
-	req6.Prices = append(req6.Prices, &grpc.ProductPrice{
-		Currency: "USD",
-		Amount:   1010.23,
-	})
-	req6.Prices = append(req6.Prices, &grpc.ProductPrice{
-		Currency: "RUB",
-		Amount:   65010.23,
-	})
-
-	err = suite.service.CreateOrUpdateProduct(context.TODO(), req6, &grpc.Product{})
-
-	assert.Error(suite.T(), err)
-
-	// But now we CAN create another product with the same projectId+Sku
-
-	req7 := &grpc.Product{
-		Object:          "product",
-		Type:            "simple_product",
-		Sku:             "ru_double_yeti",
-		Name:            map[string]string{"en": initialName},
-		DefaultCurrency: "USD",
-		Enabled:         true,
-		Description:     map[string]string{"en": "blah-blah-blah"},
-		LongDescription: map[string]string{"en": "Super game steam keys"},
-		Url:             "http://test.ru/dffdsfsfs",
-		Images:          []string{"/home/image.jpg"},
-		MerchantId:      merchantId,
-		ProjectId:       projectId,
-		Metadata: map[string]string{
-			"SomeKey": "SomeValue",
-		},
-	}
-
-	req7.Prices = append(req7.Prices, &grpc.ProductPrice{
-		Currency: "USD",
-		Amount:   1005.00,
-	})
-
-	res7 := grpc.Product{}
-
-	err = suite.service.CreateOrUpdateProduct(context.TODO(), req7, &res7)
-
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res7.Name["en"], initialName)
-	assert.Equal(suite.T(), len(res7.Prices), 1)
 }
 
-func (suite *ProductTestSuite) TestProduct_ListProduct_Ok() {
+func (suite *ProductTestSuite) TestProduct_GetProduct_Error_NotFound() {
+	id := bson.NewObjectId().Hex()
+	merchantId := bson.NewObjectId().Hex()
 
-	names := []string{"Madalin Stunt Cars M2", "Plants vs Zombies", "Bubble Hunter", "Deer Hunter",
-		"Madalin Cars Multiplayer", "Scary Maze"}
+	ps := &mock.ProductServiceInterface{}
+	ps.On("GetById", mock2.Anything).Return(nil, errors.New("not found"))
+	suite.service.productService = ps
 
-	for i, n := range names {
-		req := &grpc.Product{
-			Object:          "product",
-			Type:            "simple_product",
-			Sku:             "ru_" + strconv.Itoa(i) + "_" + strcase.SnakeCase(n),
-			Name:            map[string]string{"en": n},
-			DefaultCurrency: "USD",
-			Enabled:         true,
-			Description:     map[string]string{"en": n + " description"},
-			MerchantId:      merchantId,
-			ProjectId:       projectId,
-		}
-
-		req.Prices = append(req.Prices, &grpc.ProductPrice{
-			Currency: "USD",
-			Amount:   123.00 * float64(i+1),
-		})
-
-		assert.NoError(suite.T(), suite.service.CreateOrUpdateProduct(context.TODO(), req, &grpc.Product{}))
+	req := &grpc.RequestProduct{
+		Id:         id,
+		MerchantId: merchantId,
 	}
+	res := grpc.Product{}
+	err := suite.service.GetProduct(context.TODO(), req, &res)
 
-	// get all (first 2 will be shown and total number will be Limit)
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, productErrorNotFound.Message)
+}
 
+func (suite *ProductTestSuite) TestProduct_GetProduct_Error_Merchant() {
+	id := bson.NewObjectId().Hex()
+	merchantId := bson.NewObjectId().Hex()
+
+	ps := &mock.ProductServiceInterface{}
+	ps.On("GetById", mock2.Anything).Return(&grpc.Product{MerchantId: merchantId}, nil)
+	suite.service.productService = ps
+
+	req := &grpc.RequestProduct{
+		Id:         id,
+		MerchantId: bson.NewObjectId().Hex(),
+	}
+	res := grpc.Product{}
+	err := suite.service.GetProduct(context.TODO(), req, &res)
+
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, productErrorMerchantNotEqual.Message)
+}
+
+func (suite *ProductTestSuite) TestProduct_CreateOrUpdateProduct_Ok_New() {
+
+	res := grpc.Product{}
+	err := suite.service.CreateOrUpdateProduct(context.TODO(), suite.product, &res)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), initialName, res.Name["en"])
+	assert.Equal(suite.T(), 1, len(res.Prices))
+}
+
+func (suite *ProductTestSuite) TestProduct_CreateOrUpdateProduct_Ok_Exists() {
+	ps := &mock.ProductServiceInterface{}
+	ps.On("GetById", mock2.Anything).Return(&grpc.Product{MerchantId: suite.product.MerchantId, ProjectId: suite.product.ProjectId}, nil)
+	ps.On("CountByProjectSku", mock2.Anything, mock2.Anything).Return(0, nil)
+	ps.On("Upsert", mock2.Anything).Return(nil)
+	suite.service.productService = ps
+
+	res := grpc.Product{}
+	suite.product.Id = bson.NewObjectId().Hex()
+	err := suite.service.CreateOrUpdateProduct(context.TODO(), suite.product, &res)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), initialName, res.Name["en"])
+	assert.Equal(suite.T(), 1, len(res.Prices))
+}
+
+func (suite *ProductTestSuite) TestProduct_CreateOrUpdateProduct_Error_NotFound() {
+	ps := &mock.ProductServiceInterface{}
+	ps.On("GetById", mock2.Anything).Return(nil, errors.New(""))
+	ps.On("CountByProjectSku", mock2.Anything, mock2.Anything).Return(0, nil)
+	ps.On("Upsert", mock2.Anything).Return(nil)
+	suite.service.productService = ps
+
+	res := grpc.Product{}
+	suite.product.Id = bson.NewObjectId().Hex()
+	err := suite.service.CreateOrUpdateProduct(context.TODO(), suite.product, &res)
+
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, productErrorNotFound.Message)
+}
+
+func (suite *ProductTestSuite) TestProduct_CreateOrUpdateProduct_Error_MerchantNotEqual() {
+	ps := &mock.ProductServiceInterface{}
+	ps.On("GetById", mock2.Anything).Return(&grpc.Product{MerchantId: bson.NewObjectId().Hex()}, nil)
+	ps.On("CountByProjectSku", mock2.Anything, mock2.Anything).Return(0, nil)
+	ps.On("Upsert", mock2.Anything).Return(nil)
+	suite.service.productService = ps
+
+	res := grpc.Product{}
+	suite.product.Id = bson.NewObjectId().Hex()
+	err := suite.service.CreateOrUpdateProduct(context.TODO(), suite.product, &res)
+
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, productErrorMerchantNotEqual.Message)
+}
+
+func (suite *ProductTestSuite) TestProduct_CreateOrUpdateProduct_Error_ProjectNotEqual() {
+	ps := &mock.ProductServiceInterface{}
+	ps.On("GetById", mock2.Anything).Return(&grpc.Product{MerchantId: suite.product.MerchantId, ProjectId: bson.NewObjectId().Hex()}, nil)
+	ps.On("CountByProjectSku", mock2.Anything, mock2.Anything).Return(0, nil)
+	ps.On("Upsert", mock2.Anything).Return(nil)
+	suite.service.productService = ps
+
+	res := grpc.Product{}
+	suite.product.Id = bson.NewObjectId().Hex()
+	err := suite.service.CreateOrUpdateProduct(context.TODO(), suite.product, &res)
+
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, productErrorProjectNotEqual.Message)
+}
+
+func (suite *ProductTestSuite) TestProduct_CreateOrUpdateProduct_Error_DefaultCurrency() {
+	ps := &mock.ProductServiceInterface{}
+	ps.On("GetById", mock2.Anything).Return(&grpc.Product{}, nil)
+	ps.On("CountByProjectSku", mock2.Anything, mock2.Anything).Return(0, nil)
+	ps.On("Upsert", mock2.Anything).Return(nil)
+	suite.service.productService = ps
+
+	res := grpc.Product{}
+	suite.product.DefaultCurrency = ""
+	err := suite.service.CreateOrUpdateProduct(context.TODO(), suite.product, &res)
+
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, productErrorPriceDefaultCurrency.Message)
+}
+
+func (suite *ProductTestSuite) TestProduct_CreateOrUpdateProduct_Error_LocalizedName() {
+	ps := &mock.ProductServiceInterface{}
+	ps.On("GetById", mock2.Anything).Return(&grpc.Product{}, nil)
+	ps.On("CountByProjectSku", mock2.Anything, mock2.Anything).Return(0, nil)
+	ps.On("Upsert", mock2.Anything).Return(nil)
+	suite.service.productService = ps
+
+	res := grpc.Product{}
+	suite.product.Name = map[string]string{"AZ": "test"}
+	fmt.Println(suite.product.Name)
+	err := suite.service.CreateOrUpdateProduct(context.TODO(), suite.product, &res)
+
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, productErrorNameDefaultLanguage.Message)
+}
+
+func (suite *ProductTestSuite) TestProduct_CreateOrUpdateProduct_Error_LocalizedDescription() {
+	ps := &mock.ProductServiceInterface{}
+	ps.On("GetById", mock2.Anything).Return(&grpc.Product{}, nil)
+	ps.On("CountByProjectSku", mock2.Anything, mock2.Anything).Return(0, nil)
+	ps.On("Upsert", mock2.Anything).Return(nil)
+	suite.service.productService = ps
+
+	res := grpc.Product{}
+	suite.product.Description = map[string]string{"AZ": "test"}
+	err := suite.service.CreateOrUpdateProduct(context.TODO(), suite.product, &res)
+
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, productErrorDescriptionDefaultLanguage.Message)
+}
+
+func (suite *ProductTestSuite) TestProduct_CreateOrUpdateProduct_Error_Duplicates() {
+	ps := &mock.ProductServiceInterface{}
+	ps.On("GetById", mock2.Anything).Return(&grpc.Product{}, nil)
+	ps.On("CountByProjectSku", mock2.Anything, mock2.Anything).Return(1, nil)
+	ps.On("Upsert", mock2.Anything).Return(nil)
+	suite.service.productService = ps
+
+	res := grpc.Product{}
+	err := suite.service.CreateOrUpdateProduct(context.TODO(), suite.product, &res)
+
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, productErrorProjectAndSkuAlreadyExists.Message)
+}
+
+func (suite *ProductTestSuite) TestProduct_CreateOrUpdateProduct_Error_CountByProjectSku() {
+	ps := &mock.ProductServiceInterface{}
+	ps.On("GetById", mock2.Anything).Return(&grpc.Product{}, nil)
+	ps.On("CountByProjectSku", mock2.Anything, mock2.Anything).Return(0, errors.New(""))
+	ps.On("Upsert", mock2.Anything).Return(nil)
+	suite.service.productService = ps
+
+	res := grpc.Product{}
+	err := suite.service.CreateOrUpdateProduct(context.TODO(), suite.product, &res)
+
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, productErrorUnknown.Message)
+}
+
+func (suite *ProductTestSuite) TestProduct_CreateOrUpdateProduct_Error_Upsert() {
+	ps := &mock.ProductServiceInterface{}
+	ps.On("GetById", mock2.Anything).Return(&grpc.Product{}, nil)
+	ps.On("CountByProjectSku", mock2.Anything, mock2.Anything).Return(0, nil)
+	ps.On("Upsert", mock2.Anything).Return(errors.New(""))
+	suite.service.productService = ps
+
+	res := grpc.Product{}
+	err := suite.service.CreateOrUpdateProduct(context.TODO(), suite.product, &res)
+
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, productErrorUpsert.Message)
+}
+
+func (suite *ProductTestSuite) TestProduct_DeleteProduct_Error_NotFound() {
+	ps := &mock.ProductServiceInterface{}
+	ps.On("GetById", mock2.Anything).Return(nil, errors.New(""))
+	ps.On("Upsert", mock2.Anything).Return(nil)
+	suite.service.productService = ps
+
+	req := grpc.RequestProduct{}
+	res := grpc.EmptyResponse{}
+	err := suite.service.DeleteProduct(context.TODO(), &req, &res)
+
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, productErrorNotFound.Message)
+}
+
+func (suite *ProductTestSuite) TestProduct_DeleteProduct_Error_MerchantNotEqual() {
+	ps := &mock.ProductServiceInterface{}
+	ps.On("GetById", mock2.Anything).Return(&grpc.Product{}, nil)
+	ps.On("Upsert", mock2.Anything).Return(nil)
+	suite.service.productService = ps
+
+	req := grpc.RequestProduct{MerchantId: bson.NewObjectId().Hex()}
+	res := grpc.EmptyResponse{}
+	err := suite.service.DeleteProduct(context.TODO(), &req, &res)
+
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, productErrorMerchantNotEqual.Message)
+}
+
+func (suite *ProductTestSuite) TestProduct_DeleteProduct_Error_Upsert() {
+	ps := &mock.ProductServiceInterface{}
+	ps.On("GetById", mock2.Anything).Return(&grpc.Product{}, nil)
+	ps.On("Upsert", mock2.Anything).Return(errors.New(""))
+	suite.service.productService = ps
+
+	req := grpc.RequestProduct{}
+	res := grpc.EmptyResponse{}
+	err := suite.service.DeleteProduct(context.TODO(), &req, &res)
+
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, productErrorDelete.Message)
+}
+
+func (suite *ProductTestSuite) TestProduct_DeleteProduct_Ok() {
+	ps := &mock.ProductServiceInterface{}
+	ps.On("GetById", mock2.Anything).Return(&grpc.Product{}, nil)
+	ps.On("Upsert", mock2.Anything).Return(nil)
+	suite.service.productService = ps
+
+	req := grpc.RequestProduct{}
+	res := grpc.EmptyResponse{}
+	err := suite.service.DeleteProduct(context.TODO(), &req, &res)
+
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *ProductTestSuite) TestProduct_ListProducts_Error() {
+	ps := &mock.ProductServiceInterface{}
+	ps.On("List", mock2.Anything, mock2.Anything, mock2.Anything, mock2.Anything, mock2.Anything, mock2.Anything).Return(int32(0), nil, errors.New(""))
+	suite.service.productService = ps
+
+	req := grpc.ListProductsRequest{}
 	res := grpc.ListProductsResponse{}
+	err := suite.service.ListProducts(context.TODO(), &req, &res)
 
-	err := suite.service.ListProducts(context.TODO(), &grpc.ListProductsRequest{
-		MerchantId: merchantId,
-		Limit:      2,
-	}, &res)
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, productErrorList.Message)
+}
+
+func (suite *ProductTestSuite) TestProduct_ListProducts_Ok() {
+	ps := &mock.ProductServiceInterface{}
+	ps.On("List", mock2.Anything, mock2.Anything, mock2.Anything, mock2.Anything, mock2.Anything, mock2.Anything).Return(int32(1), []*grpc.Product{}, nil)
+	suite.service.productService = ps
+
+	req := grpc.ListProductsRequest{}
+	res := grpc.ListProductsResponse{}
+	err := suite.service.ListProducts(context.TODO(), &req, &res)
 
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Total, int32(6))
-	assert.Equal(suite.T(), res.Limit, int32(2))
-	assert.Equal(suite.T(), len(res.Products), 2)
+}
 
-	ids := []string{
-		res.Products[0].Id,
-		res.Products[1].Id,
+func (suite *ProductTestSuite) TestProduct_GetProductPrices_Error_NotFound() {
+	ps := &mock.ProductServiceInterface{}
+	ps.On("GetById", mock2.Anything).Return(nil, errors.New(""))
+	suite.service.productService = ps
+
+	req := grpc.RequestProduct{}
+	res := grpc.ProductPricesResponse{}
+	err := suite.service.GetProductPrices(context.TODO(), &req, &res)
+
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, productErrorNotFound.Message)
+}
+
+func (suite *ProductTestSuite) TestProduct_GetProductPrices_Ok() {
+	ps := &mock.ProductServiceInterface{}
+	ps.On("GetById", mock2.Anything).Return(&grpc.Product{}, nil)
+	suite.service.productService = ps
+
+	req := grpc.RequestProduct{}
+	res := grpc.ProductPricesResponse{}
+	err := suite.service.GetProductPrices(context.TODO(), &req, &res)
+
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *ProductTestSuite) TestProduct_UpdateProductPrices_Error_EmptyPrices() {
+	req := grpc.UpdateProductPricesRequest{}
+	res := grpc.ResponseError{}
+	err := suite.service.UpdateProductPrices(context.TODO(), &req, &res)
+
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, productErrorListPrices.Message)
+}
+
+func (suite *ProductTestSuite) TestProduct_UpdateProductPrices_Error_NotFound() {
+	ps := &mock.ProductServiceInterface{}
+	ps.On("GetById", mock2.Anything).Return(nil, errors.New(""))
+	suite.service.productService = ps
+
+	req := grpc.UpdateProductPricesRequest{Prices: []*grpc.ProductPrice{{Currency: "RUB"}}}
+	res := grpc.ResponseError{}
+	err := suite.service.UpdateProductPrices(context.TODO(), &req, &res)
+
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, productErrorNotFound.Message)
+}
+
+func (suite *ProductTestSuite) TestProduct_UpdateProductPrices_Error_DefaultCurrency() {
+	ps := &mock.ProductServiceInterface{}
+	ps.On("GetById", mock2.Anything).Return(&grpc.Product{DefaultCurrency: "USD"}, nil)
+	ps.On("Upsert", mock2.Anything).Return(nil)
+	suite.service.productService = ps
+
+	req := grpc.UpdateProductPricesRequest{Prices: []*grpc.ProductPrice{{Currency: "RUB"}}}
+	res := grpc.ResponseError{}
+	err := suite.service.UpdateProductPrices(context.TODO(), &req, &res)
+
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, productErrorPriceDefaultCurrency.Message)
+}
+
+func (suite *ProductTestSuite) TestProduct_UpdateProductPrices_Error_Upsert() {
+	ps := &mock.ProductServiceInterface{}
+	ps.On("GetById", mock2.Anything).Return(&grpc.Product{DefaultCurrency: "USD"}, nil)
+	ps.On("Upsert", mock2.Anything).Return(errors.New(""))
+	suite.service.productService = ps
+
+	req := grpc.UpdateProductPricesRequest{Prices: []*grpc.ProductPrice{{Currency: "USD"}}}
+	res := grpc.ResponseError{}
+	err := suite.service.UpdateProductPrices(context.TODO(), &req, &res)
+
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, productErrorPricesUpdate.Message)
+}
+
+func (suite *ProductTestSuite) TestProduct_UpdateProductPrices_Ok() {
+	ps := &mock.ProductServiceInterface{}
+	ps.On("GetById", mock2.Anything).Return(&grpc.Product{DefaultCurrency: "USD"}, nil)
+	ps.On("Upsert", mock2.Anything).Return(nil)
+	suite.service.productService = ps
+
+	req := grpc.UpdateProductPricesRequest{Prices: []*grpc.ProductPrice{{Currency: "USD"}}}
+	res := grpc.ResponseError{}
+	err := suite.service.UpdateProductPrices(context.TODO(), &req, &res)
+
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *ProductTestSuite) TestProduct_Upsert_Ok() {
+	err := suite.service.productService.Upsert(&grpc.Product{
+		Id:         bson.NewObjectId().Hex(),
+		ProjectId:  bson.NewObjectId().Hex(),
+		MerchantId: bson.NewObjectId().Hex(),
+	})
+
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *ProductTestSuite) TestProduct_GetById_Ok() {
+	suite.product.Id = bson.NewObjectId().Hex()
+	if err := suite.service.productService.Upsert(suite.product); err != nil {
+		suite.Assert().NoError(err)
 	}
-
-	// get all with offset
-
-	res2 := grpc.ListProductsResponse{}
-
-	err = suite.service.ListProducts(context.TODO(), &grpc.ListProductsRequest{
-		MerchantId: merchantId,
-		Limit:      2,
-		Offset:     1,
-	}, &res2)
+	c, err := suite.service.productService.GetById(suite.product.Id)
 
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Products[1], res2.Products[0])
+	assert.NotNil(suite.T(), c)
+	assert.Equal(suite.T(), suite.product.Id, c.Id)
+}
 
-	// search by part of name
-
-	res3 := grpc.ListProductsResponse{}
-
-	err = suite.service.ListProducts(context.TODO(), &grpc.ListProductsRequest{
-		MerchantId: merchantId,
-		Limit:      2,
-		Name:       "cAr",
-	}, &res3)
-
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res3.Total, int32(3))
-
-	// search by name with space
-
-	res4 := grpc.ListProductsResponse{}
-
-	err = suite.service.ListProducts(context.TODO(), &grpc.ListProductsRequest{
-		MerchantId: merchantId,
-		Limit:      2,
-		Name:       "Cars M",
-	}, &res4)
+func (suite *ProductTestSuite) TestProduct_GetById_Ok_ByCache() {
+	ci := &mock.CacheInterface{}
+	ci.On("Get", "product:id:"+suite.product.Id, mock2.Anything).
+		Return(nil)
+	suite.service.cacher = ci
+	c, err := suite.service.productService.GetById(suite.product.Id)
 
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res4.Total, int32(2))
+	assert.IsType(suite.T(), &grpc.Product{}, c)
+}
 
-	// search by sku
+func (suite *ProductTestSuite) TestProduct_GetById_Error_NotFound() {
+	_, err := suite.service.productService.GetById(bson.NewObjectId().Hex())
 
-	res5 := grpc.ListProductsResponse{}
+	assert.Error(suite.T(), err)
+}
 
-	err = suite.service.ListProducts(context.TODO(), &grpc.ListProductsRequest{
-		MerchantId: merchantId,
-		Limit:      2,
-		Sku:        "_cars_",
-	}, &res5)
-
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res5.Total, int32(2))
-
-	// search both by name and sku
-
-	res6 := grpc.ListProductsResponse{}
-
-	err = suite.service.ListProducts(context.TODO(), &grpc.ListProductsRequest{
-		MerchantId: merchantId,
-		Limit:      2,
-		Name:       "cAr",
-		Sku:        "ru_0_",
-	}, &res6)
+func (suite *ProductTestSuite) TestProduct_CountByProjectSku_Ok() {
+	suite.product.Id = bson.NewObjectId().Hex()
+	if err := suite.service.productService.Upsert(suite.product); err != nil {
+		suite.Assert().NoError(err)
+	}
+	c, err := suite.service.productService.CountByProjectSku(suite.product.ProjectId, suite.product.Sku)
 
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res6.Total, int32(1))
+	assert.Equal(suite.T(), 1, c)
+}
 
-	// search both by name and project_id
-
-	res7 := grpc.ListProductsResponse{}
-
-	err = suite.service.ListProducts(context.TODO(), &grpc.ListProductsRequest{
-		MerchantId: merchantId,
-		Limit:      2,
-		Name:       "cAr",
-		ProjectId:  projectId,
-	}, &res7)
+func (suite *ProductTestSuite) TestProduct_CountByProjectSku_NotMatch_Sku() {
+	suite.product.Id = bson.NewObjectId().Hex()
+	if err := suite.service.productService.Upsert(suite.product); err != nil {
+		suite.Assert().NoError(err)
+	}
+	c, err := suite.service.productService.CountByProjectSku(suite.product.ProjectId, "")
 
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res7.Total, int32(3))
+	assert.Equal(suite.T(), 0, c)
+}
 
-	// GetById products for order
-
-	res8 := grpc.ListProductsResponse{}
-
-	err = suite.service.GetProductsForOrder(context.TODO(), &grpc.GetProductsForOrderRequest{
-		ProjectId: projectId,
-		Ids:       ids,
-	}, &res8)
+func (suite *ProductTestSuite) TestProduct_CountByProjectSku_NotMatch_Project() {
+	suite.product.Id = bson.NewObjectId().Hex()
+	if err := suite.service.productService.Upsert(suite.product); err != nil {
+		suite.Assert().NoError(err)
+	}
+	c, err := suite.service.productService.CountByProjectSku(bson.NewObjectId().Hex(), suite.product.Sku)
 
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res8.Total, int32(2))
+	assert.Equal(suite.T(), 0, c)
+}
+
+func (suite *ProductTestSuite) TestProduct_List_Ok() {
+	suite.product.Id = bson.NewObjectId().Hex()
+	if err := suite.service.productService.Upsert(suite.product); err != nil {
+		suite.Assert().NoError(err)
+	}
+	count, list, err := suite.service.productService.List(suite.product.MerchantId, "", "", "", int32(0), int32(10))
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), int32(1), count)
+	assert.Equal(suite.T(), suite.product.MerchantId, list[0].MerchantId)
+}
+
+func (suite *ProductTestSuite) TestProduct_List_Ok_Project() {
+	suite.product.Id = bson.NewObjectId().Hex()
+	if err := suite.service.productService.Upsert(suite.product); err != nil {
+		suite.Assert().NoError(err)
+	}
+	count, list, err := suite.service.productService.List(suite.product.MerchantId, suite.product.ProjectId, "", "", int32(0), int32(10))
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), int32(1), count)
+	assert.Equal(suite.T(), suite.product.MerchantId, list[0].MerchantId)
+	assert.Equal(suite.T(), suite.product.ProjectId, list[0].ProjectId)
+}
+
+func (suite *ProductTestSuite) TestProduct_List_Ok_Sku() {
+	suite.product.Id = bson.NewObjectId().Hex()
+	if err := suite.service.productService.Upsert(suite.product); err != nil {
+		suite.Assert().NoError(err)
+	}
+	count, list, err := suite.service.productService.List(suite.product.MerchantId, "", suite.product.Sku, "", int32(0), int32(10))
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), int32(1), count)
+	assert.Equal(suite.T(), suite.product.MerchantId, list[0].MerchantId)
+	assert.Equal(suite.T(), suite.product.Sku, list[0].Sku)
+}
+
+func (suite *ProductTestSuite) TestProduct_List_Ok_Name() {
+	suite.product.Id = bson.NewObjectId().Hex()
+	if err := suite.service.productService.Upsert(suite.product); err != nil {
+		suite.Assert().NoError(err)
+	}
+	count, list, err := suite.service.productService.List(suite.product.MerchantId, "", "", suite.product.Name["en"], int32(0), int32(10))
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), int32(1), count)
+	assert.Equal(suite.T(), suite.product.MerchantId, list[0].MerchantId)
+	assert.Equal(suite.T(), suite.product.Name, list[0].Name)
+}
+
+func (suite *ProductTestSuite) TestProduct_List_Error_Empty() {
+	suite.product.Id = bson.NewObjectId().Hex()
+	if err := suite.service.productService.Upsert(suite.product); err != nil {
+		suite.Assert().NoError(err)
+	}
+	_, _, err := suite.service.productService.List(bson.NewObjectId().Hex(), "", "", "", int32(0), int32(10))
+
+	assert.Error(suite.T(), err)
+}
+
+func (suite *ProductTestSuite) TestProduct_List_Error_Offset() {
+	suite.product.Id = bson.NewObjectId().Hex()
+	if err := suite.service.productService.Upsert(suite.product); err != nil {
+		suite.Assert().NoError(err)
+	}
+	_, _, err := suite.service.productService.List(suite.product.MerchantId, "", "", "", int32(5), int32(10))
+
+	assert.Error(suite.T(), err)
 }

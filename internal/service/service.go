@@ -68,11 +68,11 @@ type Service struct {
 	currency                   CurrencyServiceInterface
 	currencyRate               *CurrencyRate
 	commission                 *Commission
-	country                    *Country
+	country                    CountryServiceInterface
 	project                    *Project
 	merchant                   *Merchant
 	paymentMethod              PaymentMethodInterface
-	priceGroup                 *PriceGroup
+	priceGroup                 PriceGroupServiceInterface
 	paymentSystem              PaymentSystemServiceInterface
 	zipCode                    *ZipCode
 	paymentChannelCostSystem   *PaymentChannelCostSystem
@@ -80,6 +80,8 @@ type Service struct {
 	moneyBackCostSystem        *MoneyBackCostSystem
 	moneyBackCostMerchant      *MoneyBackCostMerchant
 	payoutCostSystem           *PayoutCostSystem
+	priceTable                 PriceTableServiceInterface
+	productService             ProductServiceInterface
 }
 
 func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {
@@ -137,6 +139,8 @@ func (s *Service) Init() (err error) {
 	s.moneyBackCostSystem = newMoneyBackCostSystemService(s)
 	s.moneyBackCostMerchant = newMoneyBackCostMerchantService(s)
 	s.payoutCostSystem = newPayoutCostSystemService(s)
+	s.priceTable = newPriceTableService(s)
+	s.productService = newProductService(s)
 
 	s.centrifugoClient = gocent.New(
 		gocent.Config{
