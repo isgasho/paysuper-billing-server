@@ -18,24 +18,6 @@ const (
 	errorFieldMethod  = "method"
 	errorFieldRequest = "request"
 
-	accountingEntryErrorCodeOrderNotFound            = "ae00001"
-	accountingEntryErrorCodeRefundNotFound           = "ae00002"
-	accountingEntryErrorCodeMerchantNotFound         = "ae00003"
-	accountingEntryErrorCodeUnknown                  = "ae00004"
-	accountingEntryErrorCodeCommissionNotFound       = "ae00005"
-	accountingEntryErrorCodeExchangeFailed           = "ae00006"
-	accountingEntryErrorCodeUnknownEntry             = "ae00007"
-	accountingEntryErrorCodeRefundExceedsOrderAmount = "ae00008"
-
-	accountingEntryErrorTextOrderNotFound            = "order not found for creating accounting entry"
-	accountingEntryErrorTextRefundNotFound           = "refund not found for creating accounting entry"
-	accountingEntryErrorTextMerchantNotFound         = "merchant not found for creating accounting entry"
-	accountingEntryErrorTextUnknown                  = "unknown error. try request later"
-	accountingEntryErrorTextCommissionNotFound       = "commission to merchant and payment method not found"
-	accountingEntryErrorTextExchangeFailed           = "currency exchange failed"
-	accountingEntryErrorTextUnknownEntry             = "unknown accounting entry type"
-	accountingEntryErrorTextRefundExceedsOrderAmount = "refund exceeds order amount"
-
 	collectionAccountingEntry = "accounting_entry"
 
 	accountingEventTypePayment          = "payment"
@@ -45,14 +27,16 @@ const (
 )
 
 var (
-	accountingEntryErrorOrderNotFound            = newBillingServerErrorMsg(accountingEntryErrorCodeOrderNotFound, accountingEntryErrorTextOrderNotFound)
-	accountingEntryErrorRefundNotFound           = newBillingServerErrorMsg(accountingEntryErrorCodeRefundNotFound, accountingEntryErrorTextRefundNotFound)
-	accountingEntryErrorMerchantNotFound         = newBillingServerErrorMsg(accountingEntryErrorCodeMerchantNotFound, accountingEntryErrorTextMerchantNotFound)
-	accountingEntryErrorCommissionNotFound       = newBillingServerErrorMsg(accountingEntryErrorCodeCommissionNotFound, accountingEntryErrorTextCommissionNotFound)
-	accountingEntryErrorExchangeFailed           = newBillingServerErrorMsg(accountingEntryErrorCodeExchangeFailed, accountingEntryErrorTextExchangeFailed)
-	accountingEntryErrorUnknownEntry             = newBillingServerErrorMsg(accountingEntryErrorCodeUnknownEntry, accountingEntryErrorTextUnknownEntry)
-	accountingEntryErrorUnknown                  = newBillingServerErrorMsg(accountingEntryErrorCodeUnknown, accountingEntryErrorTextUnknown)
-	accountingEntryErrorRefundExceedsOrderAmount = newBillingServerErrorMsg(accountingEntryErrorCodeRefundExceedsOrderAmount, accountingEntryErrorTextRefundExceedsOrderAmount)
+	accountingEntryErrorOrderNotFound            = newBillingServerErrorMsg("ae00001", "order not found for creating accounting entry")
+	accountingEntryErrorRefundNotFound           = newBillingServerErrorMsg("ae00002", "refund not found for creating accounting entry")
+	accountingEntryErrorMerchantNotFound         = newBillingServerErrorMsg("ae00003", "merchant not found for creating accounting entry")
+	accountingEntryErrorCommissionNotFound       = newBillingServerErrorMsg("ae00004", "commission to merchant and payment method not found")
+	accountingEntryErrorExchangeFailed           = newBillingServerErrorMsg("ae00005", "currency exchange failed")
+	accountingEntryErrorUnknownEntry             = newBillingServerErrorMsg("ae00006", "unknown accounting entry type")
+	accountingEntryErrorUnknown                  = newBillingServerErrorMsg("ae00007", "unknown error. try request later")
+	accountingEntryErrorRefundExceedsOrderAmount = newBillingServerErrorMsg("ae00008", "refund exceeds order amount")
+	accountingEntryErrorCountryNotFound          = newBillingServerErrorMsg("ae00009", "country not found")
+	accountingEntryUnknownEvent                  = newBillingServerErrorMsg("ae00010", "accounting unknown event")
 
 	availableAccountingEntries = map[string]bool{
 		pkg.AccountingEntryTypeRealGrossRevenue:                    true,
@@ -123,7 +107,16 @@ func (s *Service) CreateAccountingEntry(
 	req *grpc.CreateAccountingEntryRequest,
 	rsp *grpc.CreateAccountingEntryResponse,
 ) error {
+	if _, ok := availableAccountingEntries[req.Type]; !ok {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = accountingEntryErrorUnknownEntry
+
+		return nil
+	}
+
 	handler := &accountingEntry{Service: s, req: req, ctx: ctx}
+
+	countryCode := ""
 
 	if req.OrderId != "" && bson.IsObjectIdHex(req.OrderId) == true {
 		order, err := s.getOrderById(req.OrderId)
@@ -136,6 +129,7 @@ func (s *Service) CreateAccountingEntry(
 		}
 
 		handler.order = order
+		countryCode = order.GetCountry()
 	}
 
 	if req.RefundId != "" && bson.IsObjectIdHex(req.RefundId) == true {
@@ -159,6 +153,7 @@ func (s *Service) CreateAccountingEntry(
 
 		handler.order = order
 		handler.refund = refund
+		countryCode = order.GetCountry()
 	}
 
 	if req.MerchantId != "" && bson.IsObjectIdHex(req.MerchantId) == true {
@@ -172,13 +167,24 @@ func (s *Service) CreateAccountingEntry(
 		}
 
 		handler.merchant = merchant
+		countryCode = merchant.Country
 	}
 
-	if handler.order != nil && handler.order.RoyaltyData == nil {
-		handler.order.RoyaltyData = &billing.RoyaltyData{}
+	if countryCode == "" {
+		countryCode = req.Country
 	}
 
-	err := s.processEvent(handler, accountingEventTypeManualCorrection)
+	country, err := s.country.GetByIsoCodeA2(countryCode)
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = accountingEntryErrorCountryNotFound
+
+		return nil
+	}
+
+	handler.country = country
+
+	err = s.processEvent(handler, accountingEventTypeManualCorrection)
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = accountingEntryErrorUnknown
@@ -258,7 +264,7 @@ func (s *Service) processEvent(handler *accountingEntry, eventType string) error
 		break
 
 	default:
-		return accountingEntryErrorUnknown
+		return accountingEntryUnknownEvent
 	}
 
 	if err != nil {
@@ -292,6 +298,15 @@ func (h *accountingEntry) processManualCorrectionEvent() error {
 	t := time.Unix(h.req.Date, 0)
 	entry.CreatedAt, err = ptypes.TimestampProto(t)
 	if err != nil {
+		return err
+	}
+
+	if h.merchant != nil {
+		entry.Source.Type = collectionMerchant
+		entry.Source.Id = h.merchant.Id
+	}
+
+	if err = h.addEntry(entry); err != nil {
 		return err
 	}
 
@@ -931,7 +946,7 @@ func (h *accountingEntry) getPaymentChannelCostSystem() (*billing.PaymentChannel
 
 	if err != nil {
 		zap.L().Error(
-			accountingEntryErrorTextCommissionNotFound,
+			accountingEntryErrorCommissionNotFound.Message,
 			zap.Error(err),
 			zap.String("project", h.order.GetProjectId()),
 			zap.String("payment_method", h.order.GetPaymentMethodId()),
@@ -960,7 +975,7 @@ func (h *accountingEntry) getPaymentChannelCostMerchant(amount float64) (*billin
 
 	if err != nil {
 		zap.L().Error(
-			accountingEntryErrorTextCommissionNotFound,
+			accountingEntryErrorCommissionNotFound.Message,
 			zap.Error(err),
 			zap.String("project", h.order.GetProjectId()),
 			zap.String("payment_method", h.order.GetPaymentMethodId()),

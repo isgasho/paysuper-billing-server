@@ -847,7 +847,10 @@ message CreateAccountingEntryRequest {
     string status = 7;
     // @inject_tag: validate:"omitempty,numeric,gt=0"
     int64 date = 8;
-    string reason = 9;
+    //@inject_tag: json:"country" validate:"required,alpha,len=2"
+    string country = 9;
+    //@inject_tag: json:"reason"
+    string reason = 10;
 }
 
 message CreateAccountingEntryResponse {

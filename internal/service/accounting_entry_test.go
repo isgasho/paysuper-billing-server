@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	rabbitmq "github.com/ProtocolONE/rabbitmq/pkg"
+	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
 	"github.com/golang/protobuf/ptypes"
@@ -1361,6 +1362,214 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_USD
 	controlRealRefund := refundControlResults["merchant_reverse_revenue"] + refundControlResults["merchant_reverse_tax_fee"] -
 		refundControlResults["merchant_refund_fixed_fee"] - refundControlResults["merchant_refund_fee"] - refundControlResults["ps_merchant_refund_fx"]
 	assert.Equal(suite.T(), refundControlResults["real_refund"], toPrecise(controlRealRefund))
+}
+
+func (suite *AccountingEntryTestSuite) TestAccountingEntry_CreateAccountingEntry_Ok() {
+	orderAmount := float64(650)
+	orderCountry := "FI"
+	orderCurrency := "RUB"
+
+	order := suite.helperCreateAndPayOrder(orderAmount, orderCurrency, orderCountry)
+	assert.NotNil(suite.T(), order)
+
+	suite.paymentSystem.Handler = "mock_ok"
+	err := suite.service.paymentSystem.Update(suite.paymentSystem)
+	assert.NoError(suite.T(), err)
+
+	refund := suite.helperMakeRefund(order, order.TotalPaymentAmount, true)
+	assert.NotNil(suite.T(), refund)
+
+	req := &grpc.CreateAccountingEntryRequest{
+		Type:       pkg.AccountingEntryTypeRealGrossRevenue,
+		OrderId:    order.Id,
+		RefundId:   refund.Id,
+		MerchantId: order.GetMerchantId(),
+		Amount:     10,
+		Currency:   "RUB",
+		Status:     pkg.BalanceTransactionStatusAvailable,
+		Date:       time.Now().Unix(),
+		Reason:     "unit test",
+	}
+	rsp := &grpc.CreateAccountingEntryResponse{}
+	err = suite.service.CreateAccountingEntry(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotNil(suite.T(), rsp.Item)
+
+	var accountingEntry *billing.AccountingEntry
+	err = suite.service.db.Collection(collectionAccountingEntry).FindId(bson.ObjectIdHex(rsp.Item.Id)).One(&accountingEntry)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), accountingEntry)
+
+	assert.Equal(suite.T(), req.Type, accountingEntry.Type)
+	assert.Equal(suite.T(), req.MerchantId, accountingEntry.Source.Id)
+	assert.Equal(suite.T(), collectionMerchant, accountingEntry.Source.Type)
+	assert.Equal(suite.T(), req.Amount, accountingEntry.Amount)
+	assert.Equal(suite.T(), req.Currency, accountingEntry.Currency)
+	assert.Equal(suite.T(), req.Status, accountingEntry.Status)
+	assert.Equal(suite.T(), req.Reason, accountingEntry.Reason)
+
+	t, err := ptypes.Timestamp(accountingEntry.CreatedAt)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), req.Date, t.Unix())
+}
+
+func (suite *AccountingEntryTestSuite) TestAccountingEntry_CreateAccountingEntry_MerchantNotFound_Error() {
+	orderAmount := float64(650)
+	orderCountry := "FI"
+	orderCurrency := "RUB"
+
+	order := suite.helperCreateAndPayOrder(orderAmount, orderCurrency, orderCountry)
+	assert.NotNil(suite.T(), order)
+
+	suite.paymentSystem.Handler = "mock_ok"
+	err := suite.service.paymentSystem.Update(suite.paymentSystem)
+	assert.NoError(suite.T(), err)
+
+	refund := suite.helperMakeRefund(order, order.TotalPaymentAmount, true)
+	assert.NotNil(suite.T(), refund)
+
+	req := &grpc.CreateAccountingEntryRequest{
+		Type:       pkg.AccountingEntryTypeRealGrossRevenue,
+		OrderId:    order.Id,
+		RefundId:   refund.Id,
+		MerchantId: bson.NewObjectId().Hex(),
+		Amount:     10,
+		Currency:   "RUB",
+		Status:     pkg.BalanceTransactionStatusAvailable,
+		Date:       time.Now().Unix(),
+		Reason:     "unit test",
+	}
+
+	rsp := &grpc.CreateAccountingEntryResponse{}
+	err = suite.service.CreateAccountingEntry(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, rsp.Status)
+	assert.Equal(suite.T(), accountingEntryErrorMerchantNotFound, rsp.Message)
+	assert.Nil(suite.T(), rsp.Item)
+
+	var accountingEntry *billing.AccountingEntry
+	err = suite.service.db.Collection(collectionAccountingEntry).
+		Find(bson.M{"source.id": req.MerchantId, "source.type": collectionMerchant}).One(&accountingEntry)
+	assert.Error(suite.T(), mgo.ErrNotFound, err)
+}
+
+func (suite *AccountingEntryTestSuite) TestAccountingEntry_CreateAccountingEntry_OrderNotFound_Error() {
+	req := &grpc.CreateAccountingEntryRequest{
+		Type:     pkg.AccountingEntryTypeRealGrossRevenue,
+		OrderId:  bson.NewObjectId().Hex(),
+		Amount:   10,
+		Currency: "RUB",
+		Status:   pkg.BalanceTransactionStatusAvailable,
+		Date:     time.Now().Unix(),
+		Reason:   "unit test",
+	}
+	rsp := &grpc.CreateAccountingEntryResponse{}
+	err := suite.service.CreateAccountingEntry(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, rsp.Status)
+	assert.Equal(suite.T(), accountingEntryErrorOrderNotFound, rsp.Message)
+	assert.Nil(suite.T(), rsp.Item)
+
+	var accountingEntry *billing.AccountingEntry
+	err = suite.service.db.Collection(collectionAccountingEntry).
+		Find(bson.M{"source.id": req.OrderId, "source.type": collectionOrder}).One(&accountingEntry)
+	assert.Error(suite.T(), mgo.ErrNotFound, err)
+}
+
+func (suite *AccountingEntryTestSuite) TestAccountingEntry_CreateAccountingEntry_RefundNotFound_Error() {
+	req := &grpc.CreateAccountingEntryRequest{
+		Type:     pkg.AccountingEntryTypeRealGrossRevenue,
+		RefundId: bson.NewObjectId().Hex(),
+		Amount:   10,
+		Currency: "RUB",
+		Status:   pkg.BalanceTransactionStatusAvailable,
+		Date:     time.Now().Unix(),
+		Reason:   "unit test",
+	}
+	rsp := &grpc.CreateAccountingEntryResponse{}
+	err := suite.service.CreateAccountingEntry(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, rsp.Status)
+	assert.Equal(suite.T(), accountingEntryErrorRefundNotFound, rsp.Message)
+	assert.Nil(suite.T(), rsp.Item)
+
+	var accountingEntry *billing.AccountingEntry
+	err = suite.service.db.Collection(collectionAccountingEntry).
+		Find(bson.M{"source.id": req.RefundId, "source.type": collectionRefund}).One(&accountingEntry)
+	assert.Error(suite.T(), mgo.ErrNotFound, err)
+}
+
+func (suite *AccountingEntryTestSuite) TestAccountingEntry_CreateAccountingEntry_Refund_OrderNotFound_Error() {
+	orderAmount := float64(650)
+	orderCountry := "FI"
+	orderCurrency := "RUB"
+
+	order := suite.helperCreateAndPayOrder(orderAmount, orderCurrency, orderCountry)
+	assert.NotNil(suite.T(), order)
+
+	suite.paymentSystem.Handler = "mock_ok"
+	err := suite.service.paymentSystem.Update(suite.paymentSystem)
+	assert.NoError(suite.T(), err)
+
+	refund := suite.helperMakeRefund(order, order.TotalPaymentAmount, true)
+	assert.NotNil(suite.T(), refund)
+
+	refund.Order.Id = bson.NewObjectId().Hex()
+	err = suite.service.db.Collection(collectionRefund).UpdateId(bson.ObjectIdHex(refund.Id), refund)
+	assert.NoError(suite.T(), err)
+
+	req := &grpc.CreateAccountingEntryRequest{
+		Type:     pkg.AccountingEntryTypeRealGrossRevenue,
+		RefundId: refund.Id,
+		Amount:   10,
+		Currency: "RUB",
+		Status:   pkg.BalanceTransactionStatusAvailable,
+		Date:     time.Now().Unix(),
+		Reason:   "unit test",
+	}
+	rsp := &grpc.CreateAccountingEntryResponse{}
+	err = suite.service.CreateAccountingEntry(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, rsp.Status)
+	assert.Equal(suite.T(), accountingEntryErrorOrderNotFound, rsp.Message)
+	assert.Nil(suite.T(), rsp.Item)
+
+	var accountingEntry *billing.AccountingEntry
+	err = suite.service.db.Collection(collectionAccountingEntry).
+		Find(bson.M{"source.id": req.RefundId, "source.type": collectionRefund}).One(&accountingEntry)
+	assert.Error(suite.T(), mgo.ErrNotFound, err)
+}
+
+func (suite *AccountingEntryTestSuite) TestAccountingEntry_CreateAccountingEntry_EntryNotExist_Error() {
+	orderAmount := float64(650)
+	orderCountry := "FI"
+	orderCurrency := "RUB"
+
+	order := suite.helperCreateAndPayOrder(orderAmount, orderCurrency, orderCountry)
+	assert.NotNil(suite.T(), order)
+
+	req := &grpc.CreateAccountingEntryRequest{
+		Type:     "not_exist_accounting_entry_name",
+		OrderId:  order.Id,
+		Amount:   10,
+		Currency: "RUB",
+		Status:   pkg.BalanceTransactionStatusAvailable,
+		Date:     time.Now().Unix(),
+		Reason:   "unit test",
+	}
+	rsp := &grpc.CreateAccountingEntryResponse{}
+	err := suite.service.CreateAccountingEntry(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), accountingEntryErrorUnknownEntry, rsp.Message)
+	assert.Nil(suite.T(), rsp.Item)
+
+	var accountingEntry *billing.AccountingEntry
+	err = suite.service.db.Collection(collectionAccountingEntry).
+		Find(bson.M{"source.id": req.OrderId, "source.type": collectionOrder}).One(&accountingEntry)
+	assert.Error(suite.T(), mgo.ErrNotFound, err)
 }
 
 func (suite *AccountingEntryTestSuite) helperCreateAndPayOrder(amount float64, currency, country string) *billing.Order {
