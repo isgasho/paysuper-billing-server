@@ -264,6 +264,7 @@ type MgoOrder struct {
 	PaymentRoyaltyData                      *OrderPaymentRoyaltyData    `bson:"payment_royalty_data"`
 	CountryRestriction                      *CountryRestriction         `bson:"country_restriction"`
 	ParentId                                string                      `bson:"parent_id"`
+	ParentPaymentAt                         time.Time                   `bson:"parent_payment_at"`
 }
 
 type MgoOrderItem struct {
@@ -1268,6 +1269,16 @@ func (m *Order) GetBSON() (interface{}, error) {
 		st.RefundedAt = t
 	}
 
+	if m.ParentPaymentAt != nil {
+		t, err := ptypes.Timestamp(m.ParentPaymentAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.ParentPaymentAt = t
+	}
+
 	return st, nil
 }
 
@@ -1417,6 +1428,12 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.ParentId = decoded.ParentId
 
 	m.PaymentMethodOrderClosedAt, err = ptypes.TimestampProto(decoded.PaymentMethodOrderClosedAt)
+	if err != nil {
+		return err
+	}
+
+	m.ParentPaymentAt, err = ptypes.TimestampProto(decoded.ParentPaymentAt)
+
 	if err != nil {
 		return err
 	}

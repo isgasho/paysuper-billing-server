@@ -590,6 +590,8 @@ message Order {
 
     // @inject_tag: json:"-"
     string parent_id = 68;
+    // @inject_tag: json:"-"
+    google.protobuf.Timestamp parent_payment_at = 69;
 }
 
 message CountryRestriction {

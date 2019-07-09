@@ -14,6 +14,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
+	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"go.uber.org/zap"
 )
 
@@ -320,11 +321,17 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 		ReceiptNumber: refund.Id,
 	}
 	refundOrder.ParentId = order.Id
+	refundOrder.ParentPaymentAt = refundOrder.PaymentMethodOrderClosedAt
 	refundOrder.ProjectIncomeAmount = refund.Amount
 	refundOrder.ProjectOutcomeAmount = refund.Amount
 	refundOrder.PaymentMethodOutcomeAmount = refund.Amount
 	refundOrder.PaymentMethodIncomeAmount = refund.Amount
 	refundOrder.PaymentMethodOrderClosedAt = ptypes.TimestampNow()
+
+	if refundOrder.OrderAmount != order.OrderAmount {
+		refundOrder.Tax.Amount = tools.FormatAmount(refundOrder.OrderAmount * float64(refundOrder.Tax.Rate))
+		refundOrder.TotalPaymentAmount = tools.FormatAmount(refundOrder.OrderAmount + float64(order.Tax.Amount))
+	}
 
 	err = s.db.Collection(collectionOrder).Insert(refundOrder)
 
