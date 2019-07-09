@@ -73,6 +73,8 @@ message OrderCreateRequest {
 
     // @inject_tag: json:"order" validate:"omitempty,uuid"
     string psp_order_uuid = 31;
+
+    OrderType type = 32;
 }
 
 message Project {
@@ -473,6 +475,16 @@ message Order {
     string type = 53;
     // @inject_tag: json:"-"
     bool is_vat_deduction = 54;
+    // @inject_tag: json:"-" bson:"key_products" validate:"omitempty,gte=1,dive,hexadecimal,len=24"
+    repeated string key_products = 68;
+
+    // @inject_tag: json:"type" bson:"type"
+    OrderType type = 69;
+}
+
+enum OrderType {
+    Product = 0;
+    Key = 1;
 }
 
 message CountryRestriction {
