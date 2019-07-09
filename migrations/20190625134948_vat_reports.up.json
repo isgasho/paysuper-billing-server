@@ -1,18 +1,10 @@
 [
   {
-    "drop": "annual_turnovers"
-  },
-  {
     "create": "annual_turnovers"
   },
-  {
-    "drop": "vat_transactions"
-  },
+
   {
     "create": "vat_transactions"
-  },
-  {
-    "drop": "vat_reports"
   },
   {
     "create": "vat_reports"

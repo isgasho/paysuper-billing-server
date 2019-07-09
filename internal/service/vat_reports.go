@@ -256,9 +256,7 @@ func (s *Service) ProcessVatReports(
 	res *grpc.EmptyResponse,
 ) error {
 
-	return nil
-
-	/*err := s.CalcAnnualTurnovers(ctx, &grpc.EmptyRequest{}, &grpc.EmptyResponse{})
+	err := s.CalcAnnualTurnovers(ctx, &grpc.EmptyRequest{}, &grpc.EmptyResponse{})
 	if err != nil {
 		return err
 	}
@@ -267,15 +265,19 @@ func (s *Service) ProcessVatReports(
 	if err != nil {
 		return err
 	}
-	err = handler.ProcessVatTransactions()
-	if err != nil {
-		return err
-	}
+	// todo: использовать проводки вместо налоговых транзакций
+	/*
+		err = handler.ProcessVatTransactions()
+		if err != nil {
+			return err
+		}
+	*/
 	err = handler.ProcessVatReports()
 	if err != nil {
 		return err
 	}
-	return handler.ProcessVatReportsStatus()*/
+
+	return handler.ProcessVatReportsStatus()
 }
 
 func (s *Service) UpdateVatReportStatus(
@@ -285,50 +287,50 @@ func (s *Service) UpdateVatReportStatus(
 ) error {
 
 	res.Status = pkg.ResponseStatusOk
-	/*
-		query := bson.M{
-			"_id": bson.ObjectIdHex(req.Id),
-		}
 
-		var vr *billing.VatReport
-		err := s.db.Collection(collectionVatReports).Find(query).One(&vr)
-		if err != nil {
-			if err == mgo.ErrNotFound {
-				res.Status = pkg.ResponseStatusNotFound
-				res.Message = errorVatReportNotFound
-				return nil
-			}
+	query := bson.M{
+		"_id": bson.ObjectIdHex(req.Id),
+	}
 
-			zap.L().Error(
-				errorVatReportQueryError.Message,
-				zap.Error(err),
-			)
-
-			res.Status = pkg.ResponseStatusSystemError
-			res.Message = errorVatReportQueryError
+	var vr *billing.VatReport
+	err := s.db.Collection(collectionVatReports).Find(query).One(&vr)
+	if err != nil {
+		if err == mgo.ErrNotFound {
+			res.Status = pkg.ResponseStatusNotFound
+			res.Message = errorVatReportNotFound
 			return nil
 		}
 
-		if !contains(VatReportStatusAllowManualChangeFrom, vr.Status) {
-			res.Status = pkg.StatusErrorValidation
-			res.Message = errorVatReportStatusChangeNotAllowed
-			return nil
-		}
+		zap.L().Error(
+			errorVatReportQueryError.Message,
+			zap.Error(err),
+		)
 
-		if !contains(VatReportStatusAllowManualChangeTo, req.Status) {
-			res.Status = pkg.StatusErrorValidation
-			res.Message = errorVatReportStatusChangeNotAllowed
-			return nil
-		}
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorVatReportQueryError
+		return nil
+	}
 
-		vr.Status = req.Status
+	if !contains(VatReportStatusAllowManualChangeFrom, vr.Status) {
+		res.Status = pkg.StatusErrorValidation
+		res.Message = errorVatReportStatusChangeNotAllowed
+		return nil
+	}
 
-		err = s.updateVatReport(vr)
-		if err != nil {
-			res.Status = pkg.ResponseStatusSystemError
-			res.Message = errorVatReportStatusChangeFailed
-			return nil
-		}*/
+	if !contains(VatReportStatusAllowManualChangeTo, req.Status) {
+		res.Status = pkg.StatusErrorValidation
+		res.Message = errorVatReportStatusChangeNotAllowed
+		return nil
+	}
+
+	vr.Status = req.Status
+
+	err = s.updateVatReport(vr)
+	if err != nil {
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorVatReportStatusChangeFailed
+		return nil
+	}
 
 	return nil
 }
@@ -637,6 +639,8 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 		},
 	}
 
+	// todo: использовать проводки вместо налоговых транзакций
+
 	var res []*vatReportQueryResItem
 	err = h.Service.db.Collection(collectionVatTransactions).Pipe(query).All(&res)
 
@@ -652,6 +656,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 	}
 
 	matchQuery["deduction"] = true
+	// todo: использовать проводки вместо налоговых транзакций
 	err = h.Service.db.Collection(collectionVatTransactions).Pipe(query).All(&res)
 
 	localCurrenciesCount = len(res)
@@ -672,6 +677,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 	}
 
 	var vr *billing.VatReport
+	// todo: использовать проводки вместо налоговых транзакций
 	err = h.Service.db.Collection(collectionVatTransactions).Find(selector).One(&vr)
 
 	if err == mgo.ErrNotFound {
