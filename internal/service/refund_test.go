@@ -1320,7 +1320,6 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 		Amount:   20,
 		Currency: "RUB",
 	}
-	order.RoyaltyData = &billing.RoyaltyData{}
 	order.PaymentMethod.Params.Currency = "USD"
 	order.PaymentMethodOrderClosedAt = ptypes.TimestampNow()
 	err = suite.service.updateOrder(order)
@@ -2002,7 +2001,6 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_ProcessRefundErro
 		Amount:   10,
 		Currency: "RUB",
 	}
-	order.RoyaltyData = &billing.RoyaltyData{}
 	order.PaymentMethod.Params.Currency = "USD"
 	err = suite.service.updateOrder(order)
 
@@ -2075,9 +2073,6 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_ProcessRefundErro
 	order, err = suite.service.getOrderById(rsp2.Item.Order.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), order)
-
-	assert.Zero(suite.T(), order.RoyaltyData.RefundTotalAmountInRoyaltyCurrency)
-	assert.Zero(suite.T(), order.RoyaltyData.RefundTaxAmountInRoyaltyCurrency)
 }
 
 func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_TemporaryStatus_Ok() {
@@ -2250,7 +2245,6 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 		Amount:   10,
 		Currency: "RUB",
 	}
-	order.RoyaltyData = &billing.RoyaltyData{}
 	order.PaymentMethod.Params.Currency = "USD"
 	err = suite.service.updateOrder(order)
 
@@ -2385,7 +2379,6 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Chargeback_Ok() {
 		Amount:   20,
 		Currency: "RUB",
 	}
-	order.RoyaltyData = &billing.RoyaltyData{}
 	order.PaymentMethod.Params.Currency = "USD"
 	err = suite.service.updateOrder(order)
 

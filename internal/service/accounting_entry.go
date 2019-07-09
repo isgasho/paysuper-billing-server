@@ -199,9 +199,6 @@ func (s *Service) CreateAccountingEntry(
 }
 
 func (s *Service) onPaymentNotify(ctx context.Context, order *billing.Order) error {
-	if order.RoyaltyData == nil {
-		order.RoyaltyData = &billing.RoyaltyData{}
-	}
 
 	country, err := s.country.GetByIsoCodeA2(order.GetCountry())
 	if err != nil {

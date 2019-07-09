@@ -6420,5 +6420,4 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Error() {
 	order, err = suite.service.getOrderById(order.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), order)
-	assert.Nil(suite.T(), order.RoyaltyData)
 }

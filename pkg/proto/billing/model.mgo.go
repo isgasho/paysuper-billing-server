@@ -250,7 +250,6 @@ type MgoOrder struct {
 	UserAddressDataRequired                 bool                        `bson:"user_address_data_required"`
 	Products                                []string                    `bson:"products"`
 	IsNotificationsSent                     map[string]bool             `bson:"is_notifications_sent"`
-	RoyaltyData                             *RoyaltyData                `bson:"payment_royalty_data"`
 	CountryRestriction                      *CountryRestriction         `bson:"country_restriction"`
 	RoyaltyReportId                         string                      `bson:"royalty_report_id"`
 }
@@ -580,7 +579,7 @@ type MgoRoyaltyReportOrder struct {
 	Method         *PaymentMethodOrder  `bson:"payment_method"`
 	Amount         float64              `bson:"total_payment_amount"`
 	Vat            *OrderTax            `bson:"tax"`
-	Commission     *RoyaltyData         `bson:"payment_royalty_data"`
+	Commission     float64              `bson:"commission"`
 }
 
 type MgoVatTransaction struct {
@@ -1161,7 +1160,6 @@ func (m *Order) GetBSON() (interface{}, error) {
 		Products:                                m.Products,
 		IsNotificationsSent:                     m.IsNotificationsSent,
 		CountryRestriction:                      m.CountryRestriction,
-		RoyaltyData:                             m.RoyaltyData,
 		RoyaltyReportId:                         m.RoyaltyReportId,
 	}
 
@@ -1464,7 +1462,6 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.Products = decoded.Products
 	m.IsNotificationsSent = decoded.IsNotificationsSent
 	m.CountryRestriction = decoded.CountryRestriction
-	m.RoyaltyData = decoded.RoyaltyData
 	m.RoyaltyReportId = decoded.RoyaltyReportId
 
 	m.PaymentMethodOrderClosedAt, err = ptypes.TimestampProto(decoded.PaymentMethodOrderClosedAt)
@@ -3344,7 +3341,7 @@ func (m *RoyaltyReportOrder) SetBSON(raw bson.Raw) error {
 	m.Method = decoded.Method.Name
 	m.Amount = tools.FormatAmount(decoded.Amount)
 	m.Vat = tools.FormatAmount(decoded.Vat.Amount)
-	m.Commission = tools.FormatAmount(decoded.Commission.MerchantTotalCommissionInRoyaltyCurrency)
+	m.Commission = tools.FormatAmount(decoded.Commission)
 	m.Date = decoded.Date.Unix()
 
 	return nil

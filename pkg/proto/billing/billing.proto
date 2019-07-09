@@ -364,27 +364,6 @@ message OrderUser {
     string notify_new_region_email = 15;
 }
 
-message RoyaltyData {
-    // @inject_tag: bson:"amount_in_royalty_currency"
-    double amount_in_royalty_currency = 1;
-    // @inject_tag: bson:"merchant_percent_commission_in_royalty_currency"
-    double merchant_percent_commission_in_royalty_currency = 2;
-    // @inject_tag: bson:"merchant_fixed_commission_in_royalty_currency"
-    double merchant_fixed_commission_in_royalty_currency = 3;
-    // @inject_tag: bson:"merchant_total_commission_in_royalty_currency"
-    double merchant_total_commission_in_royalty_currency = 4;
-    // @inject_tag: bson:"refund_total_amount_in_royalty_currency"
-    double refund_total_amount_in_royalty_currency = 5;
-    // @inject_tag: bson:"payment_tax_amount_in_royalty_currency"
-    double payment_tax_amount_in_royalty_currency = 6;
-    // @inject_tag: bson:"refund_tax_amount_in_royalty_currency"
-    double refund_tax_amount_in_royalty_currency = 7;
-    // @inject_tag: bson:"chargeback_percent_commission_in_royalty_currency"
-    double chargeback_percent_commission_in_royalty_currency = 8;
-    // @inject_tag: bson:"chargeback_fixed_commission_in_royalty_currency"
-    double chargeback_fixed_commission_in_royalty_currency = 9;
-}
-
 message Order {
     // @inject_tag: json:"-" bson:"_id"
     string id = 1; // unique internal order identifier in Protocol One
@@ -516,12 +495,8 @@ message Order {
     repeated string products = 64;
     // @inject_tag: json:"-" bson:"is_notifications_sent"
     map<string, bool> is_notifications_sent = 65;
-
     // @inject_tag: json:"-" bson:"country_restriction"
     CountryRestriction country_restriction = 66;
-
-    // @inject_tag: json:"-"
-    RoyaltyData royalty_data = 67;
     // @inject_tag: json:"-"
     string royalty_report_id = 68;
 }

@@ -25,7 +25,6 @@ It has these top-level messages:
 	OrderTax
 	OrderBillingAddress
 	OrderUser
-	RoyaltyData
 	Order
 	CountryRestriction
 	OrderItem
