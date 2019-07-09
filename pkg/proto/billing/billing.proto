@@ -478,13 +478,13 @@ message Order {
     // @inject_tag: json:"-" bson:"key_products" validate:"omitempty,gte=1,dive,hexadecimal,len=24"
     repeated string key_products = 68;
 
-    // @inject_tag: json:"type" bson:"type"
+    // @inject_tag: json:"type"
     OrderType type = 69;
 }
 
 enum OrderType {
-    Product = 0;
-    Key = 1;
+    product = 0;
+    key = 1;
 }
 
 message CountryRestriction {
