@@ -367,7 +367,7 @@ func (h *accountingEntry) processPaymentEvent() error {
 
 	// 6. psGrossRevenueFxTaxFee
 	psGrossRevenueFxTaxFee := h.newEntry(pkg.AccountingEntryTypePsGrossRevenueFxTaxFee)
-	psGrossRevenueFxTaxFee.Amount = psGrossRevenueFx.Amount * h.order.Tax.Rate
+	psGrossRevenueFxTaxFee.Amount = psGrossRevenueFx.Amount / (1 + h.order.Tax.Rate) * h.order.Tax.Rate
 	if err = h.addEntry(psGrossRevenueFxTaxFee); err != nil {
 		return err
 	}
@@ -388,7 +388,7 @@ func (h *accountingEntry) processPaymentEvent() error {
 
 	// 9. merchantTaxFeeCostValue
 	merchantTaxFeeCostValue := h.newEntry(pkg.AccountingEntryTypeMerchantTaxFeeCostValue)
-	merchantTaxFeeCostValue.Amount = merchantGrossRevenue.Amount * h.order.Tax.Rate
+	merchantTaxFeeCostValue.Amount = merchantGrossRevenue.Amount / (1 + h.order.Tax.Rate) * h.order.Tax.Rate
 	if err = h.addEntry(merchantTaxFeeCostValue); err != nil {
 		return err
 	}
@@ -569,7 +569,7 @@ func (h *accountingEntry) processRefundEvent() error {
 	if partialRefundCorrection > 1 {
 		return accountingEntryErrorRefundExceedsOrderAmount
 	}
-	// todo: check for past partial returns for a given order?
+	// todo: check for past partial refunds for a given order?
 
 	// 1. realRefund
 	realRefund := h.newEntry(pkg.AccountingEntryTypeRealRefund)
@@ -683,6 +683,10 @@ func (h *accountingEntry) processRefundEvent() error {
 	}
 	reverseTaxFee := h.newEntry(pkg.AccountingEntryTypeReverseTaxFee)
 	reverseTaxFee.Amount = merchantTaxFee.Amount * partialRefundCorrection
+	reverseTaxFee.OriginalAmount = merchantTaxFee.OriginalAmount * partialRefundCorrection
+	reverseTaxFee.OriginalCurrency = merchantTaxFee.OriginalCurrency
+	reverseTaxFee.LocalAmount = merchantTaxFee.LocalAmount * partialRefundCorrection
+	reverseTaxFee.LocalCurrency = merchantTaxFee.LocalCurrency
 	if err = h.addEntry(reverseTaxFee); err != nil {
 		return err
 	}
@@ -692,7 +696,7 @@ func (h *accountingEntry) processRefundEvent() error {
 	reverseTaxFeeDelta := h.newEntry(pkg.AccountingEntryTypeReverseTaxFeeDelta)
 	psReverseTaxFeeDelta := h.newEntry(pkg.AccountingEntryTypePsReverseTaxFeeDelta)
 
-	amount := reverseTaxFee.Amount - (merchantRefund.Amount * h.order.Tax.Rate)
+	amount := reverseTaxFee.Amount - (merchantRefund.Amount / (1 + h.order.Tax.Rate) * h.order.Tax.Rate)
 	if amount < 0 {
 		psReverseTaxFeeDelta.Amount = -1 * amount
 	} else {
@@ -843,7 +847,7 @@ func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
 			req := &currencies.ExchangeCurrencyCurrentCommonRequest{
 				From:     entry.OriginalCurrency,
 				To:       h.country.Currency,
-				RateType: curPkg.RateTypeOxr,
+				RateType: curPkg.RateTypeCentralbanks,
 				Amount:   entry.OriginalAmount,
 			}
 
