@@ -71,7 +71,7 @@ func (s *Service) SetPaymentChannelCostSystem(
 	val, err := s.paymentChannelCostSystem.Get(req.Name, req.Region, req.Country)
 	if err != nil && err.Error() != fmt.Sprintf(errorNotFound, collectionPaymentChannelCostSystem) {
 		res.Status = pkg.ResponseStatusSystemError
-		res.Message = errorPaymentChannelSystemGet
+		res.Message = errorPaymentChannelSystemSetFailed
 		return nil
 	}
 

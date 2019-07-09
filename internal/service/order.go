@@ -26,7 +26,6 @@ import (
 	"github.com/ttacon/libphonenumber"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
-	"log"
 	"regexp"
 	"sort"
 	"strconv"
@@ -564,10 +563,8 @@ func (s *Service) PaymentCreateProcess(
 		PaymentSystemId: ps.Id,
 		Group:           processor.checked.paymentMethod.Group,
 		ExternalId:      processor.checked.paymentMethod.ExternalId,
+		Handler:         ps.Handler,
 	}
-	order.PaymentMethod.Params.TerminalId = settings.TerminalId
-	order.PaymentMethod.Params.SecretCallback = settings.SecretCallback
-	order.PaymentMethod.Params.Secret = settings.Secret
 
 	commissionProcessor := &OrderCreateRequestProcessor{Service: s}
 	err = commissionProcessor.processOrderCommissions(order)
@@ -963,7 +960,6 @@ func (s *Service) ProcessBillingAddress(
 	}
 
 	if zip != nil {
-		log.Println(zip)
 		order.BillingAddress.PostalCode = zip.Zip
 		order.BillingAddress.City = zip.City
 		order.BillingAddress.State = zip.State.Code
@@ -1488,13 +1484,13 @@ func (v *OrderCreateRequestProcessor) processLimitAmounts() (err error) {
 		currency, err := v.currency.GetByCodeA3(v.checked.project.LimitsCurrency)
 
 		if err != nil {
-			return err
+			return newBillingServerErrorMsg("fm000000", err.Error())
 		}
 
 		amount, err = v.currencyRate.Convert(v.checked.currency.CodeInt, currency.CodeInt, amount)
 
 		if err != nil {
-			return err
+			return newBillingServerErrorMsg("fm000000", err.Error())
 		}
 	}
 
