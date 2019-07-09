@@ -1224,6 +1224,7 @@ func (m *Order) GetBSON() (interface{}, error) {
 			Group:           m.PaymentMethod.Group,
 			Saved:           m.PaymentMethod.Saved,
 			Fee:             m.PaymentMethod.Fee,
+			Handler:         m.PaymentMethod.Handler,
 		}
 
 		if m.PaymentMethod.Card != nil {
@@ -1618,6 +1619,7 @@ func (m *PaymentMethod) SetBSON(raw bson.Raw) error {
 		pmp := make(map[string]*PaymentMethodParams, len(decoded.TestSettings))
 		for _, value := range decoded.TestSettings {
 			pmp[value.Currency] = &PaymentMethodParams{
+				Currency:       value.Currency,
 				TerminalId:     value.TerminalId,
 				Secret:         value.Secret,
 				SecretCallback: value.SecretCallback,
@@ -1630,6 +1632,7 @@ func (m *PaymentMethod) SetBSON(raw bson.Raw) error {
 		pmp := make(map[string]*PaymentMethodParams, len(decoded.ProductionSettings))
 		for _, value := range decoded.ProductionSettings {
 			pmp[value.Currency] = &PaymentMethodParams{
+				Currency:       value.Currency,
 				TerminalId:     value.TerminalId,
 				Secret:         value.Secret,
 				SecretCallback: value.SecretCallback,

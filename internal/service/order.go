@@ -563,10 +563,8 @@ func (s *Service) PaymentCreateProcess(
 		PaymentSystemId: ps.Id,
 		Group:           processor.checked.paymentMethod.Group,
 		ExternalId:      processor.checked.paymentMethod.ExternalId,
+		Handler:         ps.Handler,
 	}
-	order.PaymentMethod.Params.TerminalId = settings.TerminalId
-	order.PaymentMethod.Params.SecretCallback = settings.SecretCallback
-	order.PaymentMethod.Params.Secret = settings.Secret
 
 	commissionProcessor := &OrderCreateRequestProcessor{Service: s}
 	err = commissionProcessor.processOrderCommissions(order)
@@ -1491,13 +1489,13 @@ func (v *OrderCreateRequestProcessor) processLimitAmounts() (err error) {
 		currency, err := v.currency.GetByCodeA3(v.checked.project.LimitsCurrency)
 
 		if err != nil {
-			return err
+			return newBillingServerErrorMsg("fm000000", err.Error())
 		}
 
 		amount, err = v.currencyRate.Convert(v.checked.currency.CodeInt, currency.CodeInt, amount)
 
 		if err != nil {
-			return err
+			return newBillingServerErrorMsg("fm000000", err.Error())
 		}
 	}
 
