@@ -65,7 +65,6 @@ func (s *Service) GetCountry(
 	res.VatEnabled = country.VatEnabled
 	res.VatCurrency = country.VatCurrency
 	res.PriceGroupId = country.PriceGroupId
-	res.VatRate = country.VatRate
 	res.VatThreshold = country.VatThreshold
 	res.VatPeriodMonth = country.VatPeriodMonth
 	res.VatDeadlineDays = country.VatDeadlineDays
@@ -115,7 +114,6 @@ func (s *Service) UpdateCountry(
 		VatEnabled:             req.VatEnabled,
 		VatCurrency:            req.VatCurrency,
 		PriceGroupId:           pg.Id,
-		VatRate:                req.VatRate,
 		VatThreshold:           threshold,
 		VatPeriodMonth:         req.VatPeriodMonth,
 		VatDeadlineDays:        req.VatDeadlineDays,
@@ -140,7 +138,6 @@ func (s *Service) UpdateCountry(
 	res.VatEnabled = update.VatEnabled
 	res.VatCurrency = update.VatCurrency
 	res.PriceGroupId = update.PriceGroupId
-	res.VatRate = update.VatRate
 	res.VatThreshold = update.VatThreshold
 	res.VatPeriodMonth = update.VatPeriodMonth
 	res.VatDeadlineDays = update.VatDeadlineDays
@@ -186,7 +183,6 @@ func (h *Country) Insert(country *billing.Country) error {
 func (h Country) MultipleInsert(country []*billing.Country) error {
 	c := make([]interface{}, len(country))
 	for i, v := range country {
-		v.VatRate = tools.FormatAmount(v.VatRate)
 		if v.VatThreshold == nil {
 			v.VatThreshold = &billing.CountryVatThreshold{
 				Year:  0,
@@ -218,7 +214,6 @@ func (h Country) MultipleInsert(country []*billing.Country) error {
 }
 
 func (h Country) Update(country *billing.Country) error {
-	country.VatRate = tools.FormatAmount(country.VatRate)
 	country.VatThreshold.Year = tools.FormatAmount(country.VatThreshold.Year)
 	country.VatThreshold.World = tools.FormatAmount(country.VatThreshold.World)
 

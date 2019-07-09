@@ -80,7 +80,6 @@ func (suite *OrderTestSuite) SetupTest() {
 		VatEnabled:      true,
 		PriceGroupId:    "",
 		VatCurrency:     "RUB",
-		VatRate:         20,
 		VatThreshold: &billing.CountryVatThreshold{
 			Year:  0,
 			World: 0,
@@ -100,7 +99,6 @@ func (suite *OrderTestSuite) SetupTest() {
 		VatEnabled:      true,
 		PriceGroupId:    "",
 		VatCurrency:     "USD",
-		VatRate:         0,
 		VatThreshold: &billing.CountryVatThreshold{
 			Year:  0,
 			World: 0,
@@ -120,7 +118,6 @@ func (suite *OrderTestSuite) SetupTest() {
 		VatEnabled:      true,
 		PriceGroupId:    "",
 		VatCurrency:     "BYN",
-		VatRate:         20,
 		VatThreshold: &billing.CountryVatThreshold{
 			Year:  0,
 			World: 0,
@@ -140,7 +137,6 @@ func (suite *OrderTestSuite) SetupTest() {
 		VatEnabled:      false,
 		PriceGroupId:    "",
 		VatCurrency:     "",
-		VatRate:         20,
 		VatThreshold: &billing.CountryVatThreshold{
 			Year:  0,
 			World: 0,

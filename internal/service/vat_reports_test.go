@@ -83,7 +83,6 @@ func (suite *VatReportsTestSuite) SetupTest() {
 		VatEnabled:      true,
 		PriceGroupId:    pg.Id,
 		VatCurrency:     "RUB",
-		VatRate:         20,
 		VatThreshold: &billing.CountryVatThreshold{
 			Year:  0,
 			World: 0,
@@ -105,7 +104,6 @@ func (suite *VatReportsTestSuite) SetupTest() {
 		VatEnabled:      true,
 		PriceGroupId:    pg.Id,
 		VatCurrency:     "TRY",
-		VatRate:         20,
 		VatThreshold: &billing.CountryVatThreshold{
 			Year:  0,
 			World: 0,
@@ -127,7 +125,6 @@ func (suite *VatReportsTestSuite) SetupTest() {
 		VatEnabled:      false,
 		PriceGroupId:    pg.Id,
 		VatCurrency:     "EUR",
-		VatRate:         0,
 		VatThreshold: &billing.CountryVatThreshold{
 			Year:  0,
 			World: 0,
@@ -149,7 +146,6 @@ func (suite *VatReportsTestSuite) SetupTest() {
 		VatEnabled:      true,
 		PriceGroupId:    pg.Id,
 		VatCurrency:     "COP",
-		VatRate:         0,
 		VatThreshold: &billing.CountryVatThreshold{
 			Year:  0,
 			World: 0,

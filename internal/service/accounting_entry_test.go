@@ -64,7 +64,6 @@ func (suite *AccountingEntryTestSuite) SetupTest() {
 		VatEnabled:      true,
 		PriceGroupId:    "",
 		VatCurrency:     "RUB",
-		VatRate:         0.20,
 		VatThreshold: &billing.CountryVatThreshold{
 			Year:  0,
 			World: 0,
@@ -85,7 +84,6 @@ func (suite *AccountingEntryTestSuite) SetupTest() {
 		VatEnabled:      true,
 		PriceGroupId:    "",
 		VatCurrency:     "USD",
-		VatRate:         0.20,
 		VatThreshold: &billing.CountryVatThreshold{
 			Year:  0,
 			World: 0,
@@ -106,7 +104,6 @@ func (suite *AccountingEntryTestSuite) SetupTest() {
 		VatEnabled:      true,
 		PriceGroupId:    "",
 		VatCurrency:     "EUR",
-		VatRate:         0.20,
 		VatThreshold: &billing.CountryVatThreshold{
 			Year:  0,
 			World: 0,

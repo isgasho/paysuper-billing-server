@@ -58,7 +58,6 @@ func (suite *RefundTestSuite) SetupTest() {
 		VatEnabled:      true,
 		PriceGroupId:    "",
 		VatCurrency:     "RUB",
-		VatRate:         20,
 		VatThreshold: &billing.CountryVatThreshold{
 			Year:  0,
 			World: 0,

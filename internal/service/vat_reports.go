@@ -14,8 +14,10 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	curPkg "github.com/paysuper/paysuper-currencies/pkg"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
+	tax_service "github.com/paysuper/paysuper-tax-service/proto"
 	"go.uber.org/zap"
 	"gopkg.in/gomail.v2"
+	"strconv"
 	"time"
 )
 
@@ -547,9 +549,31 @@ func (h *vatReportProcessor) ProcessVatTransactions() error {
 
 func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country) error {
 
+	req := &tax_service.GetRateRequest{
+		IpData: &tax_service.GeoIdentity{
+			Country: country.IsoCodeA2,
+		},
+		UserData: &tax_service.GeoIdentity{},
+	}
+
+	rsp, err := h.Service.tax.GetRate(h.ctx, req)
+	if err != nil {
+		zap.L().Error("tax service get rate error", zap.Error(err))
+		return err
+	}
+
+	// converting directly from float32 to float64 adds some new digits at the and of value
+	// this is strong and precision conversion through string
+	// todo: get float64 value form tax service
+	rate, err := strconv.ParseFloat(fmt.Sprintf("%f", rsp.Rate.Rate), 64)
+	if err != nil {
+		zap.L().Error("tax service get rate error", zap.Error(err))
+		return err
+	}
+
 	report := &billing.VatReport{
 		Country:          country.IsoCodeA2,
-		VatRate:          country.VatRate,
+		VatRate:          rate,
 		Currency:         country.Currency,
 		Status:           pkg.VatReportStatusThreshold,
 		CorrectionAmount: 0,

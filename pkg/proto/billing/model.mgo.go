@@ -422,7 +422,6 @@ type MgoCountry struct {
 	VatEnabled             bool                 `bson:"vat_enabled"`
 	VatCurrency            string               `bson:"vat_currency"`
 	PriceGroupId           string               `bson:"price_group_id"`
-	VatRate                float64              `bson:"vat_rate"`
 	VatThreshold           *CountryVatThreshold `bson:"vat_threshold"`
 	VatPeriodMonth         int32                `bson:"vat_period_month"`
 	VatDeadlineDays        int32                `bson:"vat_deadline_days"`
@@ -637,7 +636,6 @@ func (m *Country) GetBSON() (interface{}, error) {
 		VatEnabled:             m.VatEnabled,
 		PriceGroupId:           m.PriceGroupId,
 		VatCurrency:            m.VatCurrency,
-		VatRate:                m.VatRate,
 		VatThreshold:           m.VatThreshold,
 		VatPeriodMonth:         m.VatPeriodMonth,
 		VatStoreYears:          m.VatStoreYears,
@@ -698,7 +696,6 @@ func (m *Country) SetBSON(raw bson.Raw) error {
 	m.VatEnabled = decoded.VatEnabled
 	m.PriceGroupId = decoded.PriceGroupId
 	m.VatCurrency = decoded.VatCurrency
-	m.VatRate = decoded.VatRate
 	m.VatThreshold = decoded.VatThreshold
 	m.VatPeriodMonth = decoded.VatPeriodMonth
 	m.VatDeadlineDays = decoded.VatDeadlineDays

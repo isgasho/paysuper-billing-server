@@ -85,7 +85,6 @@ func (suite *CountryTestSuite) SetupTest() {
 		VatEnabled:      true,
 		PriceGroupId:    pg.Id,
 		VatCurrency:     "RUB",
-		VatRate:         20,
 		VatThreshold: &billing.CountryVatThreshold{
 			Year:  0,
 			World: 0,

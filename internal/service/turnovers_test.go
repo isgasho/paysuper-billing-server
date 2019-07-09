@@ -90,7 +90,6 @@ func (suite *TurnoversTestSuite) SetupTest() {
 		VatEnabled:      true,
 		PriceGroupId:    pg.Id,
 		VatCurrency:     "RUB",
-		VatRate:         20,
 		VatThreshold: &billing.CountryVatThreshold{
 			Year:  0,
 			World: 0,
@@ -112,7 +111,6 @@ func (suite *TurnoversTestSuite) SetupTest() {
 		VatEnabled:      true,
 		PriceGroupId:    pg.Id,
 		VatCurrency:     "TRY",
-		VatRate:         20,
 		VatThreshold: &billing.CountryVatThreshold{
 			Year:  0,
 			World: 0,
