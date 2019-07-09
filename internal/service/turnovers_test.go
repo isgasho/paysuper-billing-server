@@ -247,17 +247,21 @@ func (suite *TurnoversTestSuite) TestTurnovers_CalcAnnualTurnovers() {
 }
 
 func (suite *TurnoversTestSuite) fillAccountingEntries(countryCode string, daysMultiplier int) {
+	country, err := suite.service.country.GetByIsoCodeA2(countryCode)
+	assert.NoError(suite.T(), err)
+
 	handler := &accountingEntry{
 		Service:  suite.service,
 		ctx:      context.TODO(),
 		order:    nil,
 		refund:   nil,
 		merchant: nil,
+		country:  country,
 		req:      &grpc.CreateAccountingEntryRequest{},
 	}
 
 	currs := []string{"RUB", "USD"}
-	types := []string{pkg.AccountingEntryTypePayment, pkg.AccountingEntryTypeTaxFee}
+	types := []string{pkg.AccountingEntryTypeRealGrossRevenue, pkg.AccountingEntryTypeRealTaxFee}
 
 	timeNow := time.Now()
 
@@ -288,7 +292,7 @@ func (suite *TurnoversTestSuite) fillAccountingEntries(countryCode string, daysM
 		count++
 	}
 
-	err := handler.saveAccountingEntries()
+	err = handler.saveAccountingEntries()
 	assert.NoError(suite.T(), err)
 }
 

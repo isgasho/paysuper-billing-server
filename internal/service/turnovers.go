@@ -27,7 +27,7 @@ var (
 	errorTurnoversExchangeFailed                  = newBillingServerErrorMsg("to000002", "currency exchange failed")
 
 	accountingEntriesForTurnover = []string{
-		pkg.AccountingEntryTypePayment,
+		pkg.AccountingEntryTypeRealGrossRevenue,
 	}
 )
 
@@ -172,8 +172,8 @@ func (s *Service) getTurnover(ctx context.Context, from, to time.Time, countryCo
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String(errorFieldCollection, collectionRoyaltyReport),
-			zap.Any(errorFieldQuery, query),
+			zap.String("collection", collectionAccountingEntry),
+			zap.Any("query", query),
 		)
 		return
 	}

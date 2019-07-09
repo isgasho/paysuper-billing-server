@@ -197,7 +197,7 @@ func (s *Service) GetVatReportTransactions(
 	req *grpc.VatTransactionsRequest,
 	res *grpc.VatTransactionsResponse,
 ) error {
-	res.Status = pkg.ResponseStatusOk
+	/*res.Status = pkg.ResponseStatusOk
 
 	query := bson.M{
 		"_id": bson.ObjectIdHex(req.VatReportId),
@@ -243,7 +243,7 @@ func (s *Service) GetVatReportTransactions(
 	res.Data = &grpc.VatTransactionsPaginate{
 		Count: int32(len(vts)),
 		Items: vts,
-	}
+	}*/
 
 	return nil
 }
@@ -254,7 +254,9 @@ func (s *Service) ProcessVatReports(
 	res *grpc.EmptyResponse,
 ) error {
 
-	err := s.CalcAnnualTurnovers(ctx, &grpc.EmptyRequest{}, &grpc.EmptyResponse{})
+	return nil
+
+	/*err := s.CalcAnnualTurnovers(ctx, &grpc.EmptyRequest{}, &grpc.EmptyResponse{})
 	if err != nil {
 		return err
 	}
@@ -271,7 +273,7 @@ func (s *Service) ProcessVatReports(
 	if err != nil {
 		return err
 	}
-	return handler.ProcessVatReportsStatus()
+	return handler.ProcessVatReportsStatus()*/
 }
 
 func (s *Service) UpdateVatReportStatus(
@@ -281,54 +283,55 @@ func (s *Service) UpdateVatReportStatus(
 ) error {
 
 	res.Status = pkg.ResponseStatusOk
+	/*
+		query := bson.M{
+			"_id": bson.ObjectIdHex(req.Id),
+		}
 
-	query := bson.M{
-		"_id": bson.ObjectIdHex(req.Id),
-	}
+		var vr *billing.VatReport
+		err := s.db.Collection(collectionVatReports).Find(query).One(&vr)
+		if err != nil {
+			if err == mgo.ErrNotFound {
+				res.Status = pkg.ResponseStatusNotFound
+				res.Message = errorVatReportNotFound
+				return nil
+			}
 
-	var vr *billing.VatReport
-	err := s.db.Collection(collectionVatReports).Find(query).One(&vr)
-	if err != nil {
-		if err == mgo.ErrNotFound {
-			res.Status = pkg.ResponseStatusNotFound
-			res.Message = errorVatReportNotFound
+			zap.L().Error(
+				errorVatReportQueryError.Message,
+				zap.Error(err),
+			)
+
+			res.Status = pkg.ResponseStatusSystemError
+			res.Message = errorVatReportQueryError
 			return nil
 		}
 
-		zap.L().Error(
-			errorVatReportQueryError.Message,
-			zap.Error(err),
-		)
+		if !contains(VatReportStatusAllowManualChangeFrom, vr.Status) {
+			res.Status = pkg.StatusErrorValidation
+			res.Message = errorVatReportStatusChangeNotAllowed
+			return nil
+		}
 
-		res.Status = pkg.ResponseStatusSystemError
-		res.Message = errorVatReportQueryError
-		return nil
-	}
+		if !contains(VatReportStatusAllowManualChangeTo, req.Status) {
+			res.Status = pkg.StatusErrorValidation
+			res.Message = errorVatReportStatusChangeNotAllowed
+			return nil
+		}
 
-	if !contains(VatReportStatusAllowManualChangeFrom, vr.Status) {
-		res.Status = pkg.StatusErrorValidation
-		res.Message = errorVatReportStatusChangeNotAllowed
-		return nil
-	}
+		vr.Status = req.Status
 
-	if !contains(VatReportStatusAllowManualChangeTo, req.Status) {
-		res.Status = pkg.StatusErrorValidation
-		res.Message = errorVatReportStatusChangeNotAllowed
-		return nil
-	}
-
-	vr.Status = req.Status
-
-	err = s.updateVatReport(vr)
-	if err != nil {
-		res.Status = pkg.ResponseStatusSystemError
-		res.Message = errorVatReportStatusChangeFailed
-		return nil
-	}
+		err = s.updateVatReport(vr)
+		if err != nil {
+			res.Status = pkg.ResponseStatusSystemError
+			res.Message = errorVatReportStatusChangeFailed
+			return nil
+		}*/
 
 	return nil
 }
 
+/*
 func (s *Service) insertVatTransaction(vt *billing.VatTransaction) error {
 	return s.db.Collection(collectionVatTransactions).Insert(vt)
 }
@@ -365,7 +368,7 @@ func (s *Service) getVatTransactions(from, to time.Time, country string, paginat
 
 	return transactions, nil
 }
-
+*/
 func (s *Service) insertVatReport(vr *billing.VatReport) error {
 	return s.db.Collection(collectionVatReports).Insert(vr)
 }
@@ -662,7 +665,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 }
 
 func (h *vatReportProcessor) processVatTransactionsForPeriod(country *billing.Country) error {
-	if !country.VatEnabled {
+	/*if !country.VatEnabled {
 		return errorVatReportNotEnabledForCountry
 	}
 
@@ -718,7 +721,7 @@ func (h *vatReportProcessor) processVatTransactionsForPeriod(country *billing.Co
 		if err != nil {
 			return err
 		}
-	}
+	}*/
 
 	return nil
 }
