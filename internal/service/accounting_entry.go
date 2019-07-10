@@ -9,6 +9,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	curPkg "github.com/paysuper/paysuper-currencies/pkg"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
+	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"go.uber.org/zap"
 	"time"
 )
@@ -84,11 +85,6 @@ var (
 		pkg.AccountingEntryTypePsRefundProfit:                      true,
 	}
 )
-
-/*type vatAmount struct {
-	Currency string
-	Amount   float64
-}*/
 
 type accountingEntry struct {
 	*Service
@@ -237,18 +233,13 @@ func (s *Service) processEvent(handler *accountingEntry, eventType string) error
 
 	var err error
 
-	createVatTransaction := false
-	updateVatTransaction := false
-
 	switch eventType {
 	case accountingEventTypePayment:
 		err = handler.processPaymentEvent()
-		createVatTransaction = true
 		break
 
 	case accountingEventTypeRefund:
 		err = handler.processRefundEvent()
-		createVatTransaction = true
 		break
 
 	case accountingEventTypeManualCorrection:
@@ -257,7 +248,6 @@ func (s *Service) processEvent(handler *accountingEntry, eventType string) error
 
 	case accountingEventTypeSettlement:
 		// err = handler.processSettlementEvent()
-		updateVatTransaction = true
 		break
 
 	default:
@@ -268,19 +258,7 @@ func (s *Service) processEvent(handler *accountingEntry, eventType string) error
 		return err
 	}
 
-	err = handler.saveAccountingEntries()
-	if err != nil {
-		return err
-	}
-
-	if createVatTransaction {
-		return handler.createVatTransaction()
-	}
-
-	if updateVatTransaction {
-		return handler.updateVatTransaction()
-	}
-	return nil
+	return handler.saveAccountingEntries()
 }
 
 func (h *accountingEntry) processManualCorrectionEvent() error {
@@ -348,11 +326,12 @@ func (h *accountingEntry) processPaymentEvent() error {
 	}
 
 	// 4. realTaxFeeTotal
-	realTaxFeeTotal := h.newEntry(pkg.AccountingEntryTypeRealTaxFeeTotal)
+	// calculated in order_view
+	/*realTaxFeeTotal := h.newEntry(pkg.AccountingEntryTypeRealTaxFeeTotal)
 	realTaxFeeTotal.Amount = realTaxFee.Amount + centralBankTaxFee.Amount
 	if err = h.addEntry(realTaxFeeTotal); err != nil {
 		return err
-	}
+	}*/
 
 	// 5. psGrossRevenueFx
 	psGrossRevenueFx := h.newEntry(pkg.AccountingEntryTypePsGrossRevenueFx)
@@ -373,18 +352,20 @@ func (h *accountingEntry) processPaymentEvent() error {
 	}
 
 	// 7. psGrossRevenueFxProfit
-	psGrossRevenueFxProfit := h.newEntry(pkg.AccountingEntryTypePsGrossRevenueFxProfit)
+	// calculated in order_view
+	/*psGrossRevenueFxProfit := h.newEntry(pkg.AccountingEntryTypePsGrossRevenueFxProfit)
 	psGrossRevenueFxProfit.Amount = psGrossRevenueFx.Amount - psGrossRevenueFxTaxFee.Amount
 	if err = h.addEntry(psGrossRevenueFxProfit); err != nil {
 		return err
-	}
+	}*/
 
 	// 8. merchantGrossRevenue
 	merchantGrossRevenue := h.newEntry(pkg.AccountingEntryTypeMerchantGrossRevenue)
 	merchantGrossRevenue.Amount = realGrossRevenue.Amount - psGrossRevenueFx.Amount
-	if err = h.addEntry(merchantGrossRevenue); err != nil {
+	// not store in DB - calculated in order_view
+	/*if err = h.addEntry(merchantGrossRevenue); err != nil {
 		return err
-	}
+	}*/
 
 	// 9. merchantTaxFeeCostValue
 	merchantTaxFeeCostValue := h.newEntry(pkg.AccountingEntryTypeMerchantTaxFeeCostValue)
@@ -409,6 +390,7 @@ func (h *accountingEntry) processPaymentEvent() error {
 	}
 
 	// 11. merchantTaxFee
+	// store to DB for future refund accounting - also calculated in order_view
 	merchantTaxFee := h.newEntry(pkg.AccountingEntryTypeMerchantTaxFee)
 	merchantTaxFee.Amount = merchantTaxFeeCostValue.Amount + merchantTaxFeeCentralBankFx.Amount
 	if err = h.addEntry(merchantTaxFee); err != nil {
@@ -447,11 +429,12 @@ func (h *accountingEntry) processPaymentEvent() error {
 	}
 
 	// 15. psMarkupMerchantMethodFee
-	psMarkupMerchantMethodFee := h.newEntry(pkg.AccountingEntryTypePsMarkupMerchantMethodFee)
+	// calculated in order_view
+	/*psMarkupMerchantMethodFee := h.newEntry(pkg.AccountingEntryTypePsMarkupMerchantMethodFee)
 	psMarkupMerchantMethodFee.Amount = merchantMethodFee.Amount - merchantMethodFeeCostValue.Amount
 	if err = h.addEntry(psMarkupMerchantMethodFee); err != nil {
 		return err
-	}
+	}*/
 
 	// 16. merchantMethodFixedFee
 	merchantMethodFixedFee := h.newEntry(pkg.AccountingEntryTypeMerchantMethodFixedFee)
@@ -468,11 +451,12 @@ func (h *accountingEntry) processPaymentEvent() error {
 	}
 
 	// 18. markupMerchantMethodFixedFeeFx
-	markupMerchantMethodFixedFeeFx := h.newEntry(pkg.AccountingEntryTypeMarkupMerchantMethodFixedFeeFx)
+	// calculated in order_view
+	/*markupMerchantMethodFixedFeeFx := h.newEntry(pkg.AccountingEntryTypeMarkupMerchantMethodFixedFeeFx)
 	markupMerchantMethodFixedFeeFx.Amount = merchantMethodFixedFee.Amount - realMerchantMethodFixedFee.Amount
 	if err = h.addEntry(markupMerchantMethodFixedFeeFx); err != nil {
 		return err
-	}
+	}*/
 
 	// 19. realMerchantMethodFixedFeeCostValue
 	realMerchantMethodFixedFeeCostValue := h.newEntry(pkg.AccountingEntryTypeRealMerchantMethodFixedFeeCostValue)
@@ -485,11 +469,12 @@ func (h *accountingEntry) processPaymentEvent() error {
 	}
 
 	// 20. psMethodFixedFeeProfit
-	psMethodFixedFeeProfit := h.newEntry(pkg.AccountingEntryTypePsMethodFixedFeeProfit)
+	// calculated in order_view
+	/*psMethodFixedFeeProfit := h.newEntry(pkg.AccountingEntryTypePsMethodFixedFeeProfit)
 	psMethodFixedFeeProfit.Amount = realMerchantMethodFixedFee.Amount - realMerchantMethodFixedFeeCostValue.Amount
 	if err = h.addEntry(psMethodFixedFeeProfit); err != nil {
 		return err
-	}
+	}*/
 
 	// 21. merchantPsFixedFee
 	merchantPsFixedFee := h.newEntry(pkg.AccountingEntryTypeMerchantPsFixedFee)
@@ -512,32 +497,36 @@ func (h *accountingEntry) processPaymentEvent() error {
 	}
 
 	// 23. markupMerchantPsFixedFee
-	markupMerchantPsFixedFee := h.newEntry(pkg.AccountingEntryTypeMarkupMerchantPsFixedFee)
+	// calculated in order_view
+	/*markupMerchantPsFixedFee := h.newEntry(pkg.AccountingEntryTypeMarkupMerchantPsFixedFee)
 	markupMerchantPsFixedFee.Amount = merchantPsFixedFee.Amount - realMerchantPsFixedFee.Amount
 	if err = h.addEntry(markupMerchantPsFixedFee); err != nil {
 		return err
-	}
+	}*/
 
 	// 24. psMethodProfit
-	psMethodProfit := h.newEntry(pkg.AccountingEntryTypePsMethodProfit)
+	// calculated in order_view
+	/*psMethodProfit := h.newEntry(pkg.AccountingEntryTypePsMethodProfit)
 	psMethodProfit.Amount = psMethodFee.Amount - merchantMethodFeeCostValue.Amount - realMerchantMethodFixedFeeCostValue.Amount + merchantPsFixedFee.Amount
 	if err = h.addEntry(psMethodProfit); err != nil {
 		return err
-	}
+	}*/
 
 	// 25. merchantNetRevenue
-	merchantNetRevenue := h.newEntry(pkg.AccountingEntryTypeMerchantNetRevenue)
+	// calculated in order_view
+	/*merchantNetRevenue := h.newEntry(pkg.AccountingEntryTypeMerchantNetRevenue)
 	merchantNetRevenue.Amount = merchantGrossRevenue.Amount - merchantTaxFee.Amount - psMethodFee.Amount - merchantPsFixedFee.Amount
 	if err = h.addEntry(merchantNetRevenue); err != nil {
 		return err
-	}
+	}*/
 
 	// 26. psProfitTotal
-	psProfitTotal := h.newEntry(pkg.AccountingEntryTypePsProfitTotal)
+	// calculated in order_view
+	/*psProfitTotal := h.newEntry(pkg.AccountingEntryTypePsProfitTotal)
 	psProfitTotal.Amount = psMethodProfit.Amount + psGrossRevenueFxProfit.Amount - centralBankTaxFee.Amount
 	if err = h.addEntry(psProfitTotal); err != nil {
 		return err
-	}
+	}*/
 
 	return nil
 }
@@ -608,11 +597,12 @@ func (h *accountingEntry) processRefundEvent() error {
 	}
 
 	// 5. psMerchantRefundFx
-	psMerchantRefundFx := h.newEntry(pkg.AccountingEntryTypePsMerchantRefundFx)
+	// calculated in order_view
+	/*psMerchantRefundFx := h.newEntry(pkg.AccountingEntryTypePsMerchantRefundFx)
 	psMerchantRefundFx.Amount = merchantRefund.Amount - realRefund.Amount
 	if err = h.addEntry(psMerchantRefundFx); err != nil {
 		return err
-	}
+	}*/
 
 	// 6. merchantRefundFee
 	merchantRefundFee := h.newEntry(pkg.AccountingEntryTypeMerchantRefundFee)
@@ -624,15 +614,18 @@ func (h *accountingEntry) processRefundEvent() error {
 	}
 
 	// 7. psMarkupMerchantRefundFee
-	psMarkupMerchantRefundFee := h.newEntry(pkg.AccountingEntryTypePsMarkupMerchantRefundFee)
+	// calculated in order_view
+	/*psMarkupMerchantRefundFee := h.newEntry(pkg.AccountingEntryTypePsMarkupMerchantRefundFee)
 	psMarkupMerchantRefundFee.Amount = merchantRefundFee.Amount - realRefundFee.Amount
 	if err = h.addEntry(psMarkupMerchantRefundFee); err != nil {
 		return err
-	}
+	}*/
 
 	merchantRefundFixedFeeCostValue := h.newEntry(pkg.AccountingEntryTypeMerchantRefundFixedFeeCostValue)
 	merchantRefundFixedFee := h.newEntry(pkg.AccountingEntryTypeMerchantRefundFixedFee)
-	psMerchantRefundFixedFeeFx := h.newEntry(pkg.AccountingEntryTypePsMerchantRefundFixedFeeFx)
+
+	// calculated in order_view
+	// psMerchantRefundFixedFeeFx := h.newEntry(pkg.AccountingEntryTypePsMerchantRefundFixedFeeFx)
 
 	if moneyBackCostMerchant.IsPaidByMerchant {
 
@@ -649,7 +642,8 @@ func (h *accountingEntry) processRefundEvent() error {
 		}
 
 		// 10. psMerchantRefundFixedFeeFx
-		psMerchantRefundFixedFeeFx.Amount = merchantRefundFixedFee.Amount - merchantRefundFixedFeeCostValue.Amount
+		// calculated in order_view
+		// psMerchantRefundFixedFeeFx.Amount = merchantRefundFixedFee.Amount - merchantRefundFixedFeeCostValue.Amount
 	}
 
 	if err = h.addEntry(merchantRefundFixedFeeCostValue); err != nil {
@@ -658,16 +652,18 @@ func (h *accountingEntry) processRefundEvent() error {
 	if err = h.addEntry(merchantRefundFixedFee); err != nil {
 		return err
 	}
-	if err = h.addEntry(psMerchantRefundFixedFeeFx); err != nil {
+	// calculated in order_view
+	/*if err = h.addEntry(psMerchantRefundFixedFeeFx); err != nil {
 		return err
-	}
+	}*/
 
 	// 11. psMerchantRefundFixedFeeProfit
-	psMerchantRefundFixedFeeProfit := h.newEntry(pkg.AccountingEntryTypePsMerchantRefundFixedFeeProfit)
+	// calculated in order_view
+	/*psMerchantRefundFixedFeeProfit := h.newEntry(pkg.AccountingEntryTypePsMerchantRefundFixedFeeProfit)
 	psMerchantRefundFixedFeeProfit.Amount = merchantRefundFixedFee.Amount - realRefundFixedFee.Amount
 	if err = h.addEntry(psMerchantRefundFixedFeeProfit); err != nil {
 		return err
-	}
+	}*/
 
 	// 12. reverseTaxFee
 	merchantTaxFee := h.newEntry("")
@@ -711,25 +707,28 @@ func (h *accountingEntry) processRefundEvent() error {
 	}
 
 	// 15. merchantReverseTaxFee
-	merchantReverseTaxFee := h.newEntry(pkg.AccountingEntryTypeMerchantReverseTaxFee)
+	// calculated in order_view
+	/*merchantReverseTaxFee := h.newEntry(pkg.AccountingEntryTypeMerchantReverseTaxFee)
 	merchantReverseTaxFee.Amount = reverseTaxFee.Amount + reverseTaxFeeDelta.Amount
 	if err = h.addEntry(merchantReverseTaxFee); err != nil {
 		return err
-	}
+	}*/
 
 	// 16. merchantReverseRevenue
-	merchantReverseRevenue := h.newEntry(pkg.AccountingEntryTypeMerchantReverseRevenue)
+	// calculated in order_view
+	/*merchantReverseRevenue := h.newEntry(pkg.AccountingEntryTypeMerchantReverseRevenue)
 	merchantReverseRevenue.Amount = merchantRefund.Amount + merchantRefundFee.Amount + merchantRefundFixedFee.Amount - merchantReverseTaxFee.Amount
 	if err = h.addEntry(merchantReverseRevenue); err != nil {
 		return err
-	}
+	}*/
 
 	// 17. psRefundProfit
-	psRefundProfit := h.newEntry(pkg.AccountingEntryTypePsRefundProfit)
+	// calculated in order_view
+	/*psRefundProfit := h.newEntry(pkg.AccountingEntryTypePsRefundProfit)
 	psRefundProfit.Amount = psReverseTaxFeeDelta.Amount + psMerchantRefundFixedFeeProfit.Amount + psMarkupMerchantRefundFee.Amount
 	if err = h.addEntry(psRefundProfit); err != nil {
 		return err
-	}
+	}*/
 
 	return nil
 }
@@ -870,9 +869,9 @@ func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
 		}
 	}
 
-	entry.Amount = toPrecise(entry.Amount)
-	entry.OriginalAmount = toPrecise(entry.OriginalAmount)
-	entry.LocalAmount = toPrecise(entry.LocalAmount)
+	entry.Amount = tools.ToPrecise(entry.Amount)
+	entry.OriginalAmount = tools.ToPrecise(entry.OriginalAmount)
+	entry.LocalAmount = tools.ToPrecise(entry.LocalAmount)
 
 	h.accountingEntries = append(h.accountingEntries, entry)
 
@@ -1030,192 +1029,4 @@ func (h *accountingEntry) getMoneyBackCostSystem(reason string) (*billing.MoneyB
 		UndoReason:     reason,
 	}
 	return h.Service.getMoneyBackCostSystem(data)
-}
-
-func (h *accountingEntry) createVatTransaction() error {
-	/*	order := h.order
-
-		if order == nil {
-			return nil
-		}
-
-		country, err := h.Service.country.GetByIsoCodeA2(order.GetCountry())
-		if err != nil {
-			return errorCountryNotFound
-		}
-
-		if !country.VatEnabled {
-			return nil
-		}
-
-		t := &billing.VatTransaction{
-			Id:                      bson.NewObjectId().Hex(),
-			OrderId:                 order.Id,
-			TransactionId:           order.Transaction,
-			BillingAddressCriteria:  "user", // todo?
-			UserId:                  order.User.Id,
-			PaymentMethod:           order.PaymentMethod.Name,
-			BillingAddress:          order.User.Address,
-			Country:                 country.IsoCodeA2,
-			LocalCurrency:           country.Currency,
-			LocalAmountsApproximate: country.VatCurrencyRatesPolicy != pkg.VatCurrencyRatesPolicyOnDay,
-		}
-		if order.BillingAddress != nil {
-			t.BillingAddressCriteria = "form"
-			t.BillingAddress = order.BillingAddress
-		}
-
-		multiplier := float64(1)
-
-		if h.refund != nil {
-			multiplier = float64(-1)
-
-			if h.refund.IsChargeback {
-				t.TransactionType = pkg.VatTransactionTypeChargeback
-			} else {
-				t.TransactionType = pkg.VatTransactionTypeRefund
-			}
-			t.DateTime = h.refund.UpdatedAt
-
-			orderPaidAt, err := ptypes.Timestamp(order.PaymentMethodOrderClosedAt)
-			if err != nil {
-				return err
-			}
-
-			from, _, err := h.Service.getLastVatReportTime(country.VatPeriodMonth)
-			if err != nil {
-				return err
-			}
-
-			t.IsDeduction = orderPaidAt.Unix() < from.Unix()
-
-		} else {
-			t.TransactionType = pkg.VatTransactionTypePayment
-			t.DateTime = order.PaymentMethodOrderClosedAt
-		}
-
-		vatAmounts := make(map[string]*vatAmount, len(vatAccountingEntries))
-		for key := range vatAccountingEntries {
-			vatAmounts[key] = &vatAmount{}
-		}
-
-		for _, e := range h.accountingEntries {
-			entry := e.(*billing.AccountingEntry)
-
-			for key, entriesTypes := range vatAccountingEntries {
-				if contains(entriesTypes, entry.Type) {
-					amount := entry.OriginalAmount
-					currency := entry.OriginalCurrency
-					if key == "fees" {
-						amount = entry.Amount
-						currency = entry.Currency
-					}
-
-					if vatAmounts[key].Currency != "" && vatAmounts[key].Currency != currency {
-						return accountingEntryErrorVatCurrencyConflict
-					}
-
-					vatAmounts[key].Amount += amount
-					vatAmounts[key].Currency = currency
-				}
-			}
-		}
-
-		t.TransactionAmount = toPrecise(vatAmounts["amounts"].Amount * multiplier)
-		t.TransactionCurrency = vatAmounts["amounts"].Currency
-
-		t.VatAmount = toPrecise(vatAmounts["taxes"].Amount * multiplier)
-		t.VatCurrency = vatAmounts["taxes"].Currency
-
-		t.FeesAmount = toPrecise(vatAmounts["fees"].Amount) // we newer returns fees?
-		t.FeesCurrency = vatAmounts["fees"].Currency
-
-		if t.TransactionCurrency == country.Currency {
-			t.LocalTransactionAmount = t.TransactionAmount
-		} else {
-			req := &currencies.ExchangeCurrencyCurrentCommonRequest{
-				From:     t.TransactionCurrency,
-				To:       country.Currency,
-				RateType: curPkg.RateTypeOxr,
-				Amount:   t.TransactionAmount,
-			}
-
-			rsp, err := h.Service.curService.ExchangeCurrencyCurrentCommon(h.ctx, req)
-
-			if err != nil {
-				zap.L().Error(
-					pkg.ErrorGrpcServiceCallFailed,
-					zap.Error(err),
-					zap.String(errorFieldService, "CurrencyRatesService"),
-					zap.String(errorFieldMethod, "ExchangeCurrencyCurrentCommon"),
-					zap.Any(errorFieldRequest, req),
-				)
-
-				return accountingEntryErrorGetExchangeRateFailed
-			} else {
-				t.LocalTransactionAmount = toPrecise(rsp.ExchangedAmount)
-			}
-		}
-
-		if t.VatCurrency == country.Currency {
-			t.LocalVatAmount = t.VatAmount
-		} else {
-			req := &currencies.ExchangeCurrencyCurrentCommonRequest{
-				From:     t.VatCurrency,
-				To:       country.Currency,
-				RateType: curPkg.RateTypeOxr,
-				Amount:   t.VatAmount,
-			}
-
-			rsp, err := h.Service.curService.ExchangeCurrencyCurrentCommon(h.ctx, req)
-
-			if err != nil {
-				zap.L().Error(
-					pkg.ErrorGrpcServiceCallFailed,
-					zap.Error(err),
-					zap.String(errorFieldService, "CurrencyRatesService"),
-					zap.String(errorFieldMethod, "ExchangeCurrencyCurrentCommon"),
-					zap.Any(errorFieldRequest, req),
-				)
-
-				return accountingEntryErrorGetExchangeRateFailed
-			} else {
-				t.LocalVatAmount = toPrecise(rsp.ExchangedAmount)
-			}
-		}
-
-		if t.FeesCurrency == country.Currency {
-			t.LocalFeesAmount = t.FeesAmount
-		} else {
-			req := &currencies.ExchangeCurrencyCurrentCommonRequest{
-				From:     t.FeesCurrency,
-				To:       country.Currency,
-				RateType: curPkg.RateTypeOxr,
-				Amount:   t.FeesAmount,
-			}
-
-			rsp, err := h.Service.curService.ExchangeCurrencyCurrentCommon(h.ctx, req)
-
-			if err != nil {
-				zap.L().Error(
-					pkg.ErrorGrpcServiceCallFailed,
-					zap.Error(err),
-					zap.String(errorFieldService, "CurrencyRatesService"),
-					zap.String(errorFieldMethod, "ExchangeCurrencyCurrentCommon"),
-					zap.Any(errorFieldRequest, req),
-				)
-
-				return accountingEntryErrorGetExchangeRateFailed
-			} else {
-				t.LocalFeesAmount = toPrecise(rsp.ExchangedAmount)
-			}
-		}
-
-		return h.Service.insertVatTransaction(t)
-	*/
-	return nil
-}
-
-func (h *accountingEntry) updateVatTransaction() error {
-	return nil
 }

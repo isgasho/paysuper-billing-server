@@ -23,7 +23,7 @@ require (
 	github.com/micro/protoc-gen-micro v0.8.0 // indirect
 	github.com/paysuper/paysuper-currencies v0.0.0-20190524103445-940bc8855c5c
 	github.com/paysuper/paysuper-database-mongo v0.1.0
-	github.com/paysuper/paysuper-recurring-repository v1.0.107
+	github.com/paysuper/paysuper-recurring-repository v1.0.110
 	github.com/paysuper/paysuper-tax-service v0.0.0-20190308105725-016a09c27fbd
 	github.com/prometheus/client_golang v0.9.3-0.20190127221311-3c4408c8b829
 	github.com/stoewer/go-strcase v1.0.2

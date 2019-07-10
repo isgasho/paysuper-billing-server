@@ -626,6 +626,107 @@ type MgoVatReport struct {
 	PayUntilDate          time.Time     `bson:"pay_until_date"`
 }
 
+type MgoOrderViewPrivate struct {
+	Id                                         bson.ObjectId          `bson:"_id"`
+	Uuid                                       string                 `bson:"uuid"`
+	Project                                    *MgoOrderProject       `bson:"project"`
+	CreatedAt                                  time.Time              `bson:"created_at"`
+	Transaction                                string                 `bson:"pm_order_id"`
+	PaymentMethod                              *MgoOrderPaymentMethod `bson:"payment_method"`
+	Country                                    string                 `bson:"country"`
+	Locale                                     string                 `bson:"locale"`
+	ClosedAt                                   time.Time              `bson:"pm_order_close_date"`
+	CanceledAt                                 time.Time              `bson:"canceled_at"`
+	User                                       *OrderUser             `bson:"user"`
+	BillingAddress                             *OrderBillingAddress   `bson:"billing_address"`
+	Type                                       string                 `bson:"type"`
+	IsDeduction                                bool                   `bson:"is_deduction"`
+	PaymentGrossRevenueLocal                   *OrderViewMoney        `bson:"payment_gross_revenue_local"`
+	PaymentGrossRevenueOrigin                  *OrderViewMoney        `bson:"payment_gross_revenue_origin"`
+	PaymentGrossRevenue                        *OrderViewMoney        `bson:"payment_gross_revenue"`
+	PaymentTaxFee                              *OrderViewMoney        `bson:"payment_tax_fee"`
+	PaymentTaxFeeLocal                         *OrderViewMoney        `bson:"payment_tax_fee_local"`
+	PaymentTaxFeeOrigin                        *OrderViewMoney        `bson:"payment_tax_fee_origin"`
+	PaymentTaxFeeCurrencyExchangeFee           *OrderViewMoney        `bson:"payment_tax_fee_currency_exchange_fee"`
+	PaymentTaxFeeTotal                         *OrderViewMoney        `bson:"payment_tax_fee_total"`
+	PaymentGrossRevenueFx                      *OrderViewMoney        `bson:"payment_gross_revenue_fx"`
+	PaymentGrossRevenueFxTaxFee                *OrderViewMoney        `bson:"payment_gross_revenue_fx_tax_fee"`
+	PaymentGrossRevenueFxProfit                *OrderViewMoney        `bson:"payment_gross_revenue_fx_profit"`
+	GrossRevenue                               *OrderViewMoney        `bson:"gross_revenue"`
+	TaxFee                                     *OrderViewMoney        `bson:"tax_fee"`
+	TaxFeeCurrencyExchangeFee                  *OrderViewMoney        `bson:"tax_fee_currency_exchange_fee"`
+	TaxFeeTotal                                *OrderViewMoney        `bson:"tax_fee_total"`
+	MethodFeeTotal                             *OrderViewMoney        `bson:"method_fee_total"`
+	MethodFeeTariff                            *OrderViewMoney        `bson:"method_fee_tariff"`
+	PaysuperMethodFeeTariffSelfCost            *OrderViewMoney        `bson:"paysuper_method_fee_tariff_self_cost"`
+	PaysuperMethodFeeProfit                    *OrderViewMoney        `bson:"paysuper_method_fee_profit"`
+	MethodFixedFeeTariff                       *OrderViewMoney        `bson:"method_fixed_fee_tariff"`
+	PaysuperMethodFixedFeeTariffFxProfit       *OrderViewMoney        `bson:"paysuper_method_fixed_fee_tariff_fx_profit"`
+	PaysuperMethodFixedFeeTariffSelfCost       *OrderViewMoney        `bson:"paysuper_method_fixed_fee_tariff_self_cost"`
+	PaysuperMethodFixedFeeTariffTotalProfit    *OrderViewMoney        `bson:"paysuper_method_fixed_fee_tariff_total_profit"`
+	PaysuperFixedFee                           *OrderViewMoney        `bson:"paysuper_fixed_fee"`
+	PaysuperFixedFeeFxProfit                   *OrderViewMoney        `bson:"paysuper_fixed_fee_fx_profit"`
+	FeesTotal                                  *OrderViewMoney        `bson:"fees_total"`
+	NetRevenue                                 *OrderViewMoney        `bson:"net_revenue"`
+	PaysuperMethodTotalProfit                  *OrderViewMoney        `bson:"paysuper_method_total_profit"`
+	PaysuperTotalProfit                        *OrderViewMoney        `bson:"paysuper_total_profit"`
+	PaymentRefundGrossRevenueLocal             *OrderViewMoney        `bson:"payment_refund_gross_revenue_local"`
+	PaymentRefundGrossRevenueOrigin            *OrderViewMoney        `bson:"payment_refund_gross_revenue_origin"`
+	PaymentRefundGrossRevenue                  *OrderViewMoney        `bson:"payment_refund_gross_revenue"`
+	PaymentRefundFeeTariff                     *OrderViewMoney        `bson:"payment_refund_fee_tariff"`
+	MethodRefundFixedFeeTariff                 *OrderViewMoney        `bson:"method_refund_fixed_fee_tariff"`
+	RefundGrossRevenue                         *OrderViewMoney        `bson:"refund_gross_revenue"`
+	RefundGrossRevenueFx                       *OrderViewMoney        `bson:"refund_gross_revenue_fx"`
+	MethodRefundFeeTariff                      *OrderViewMoney        `bson:"method_refund_fee_tariff"`
+	PaysuperMethodRefundFeeTariffProfit        *OrderViewMoney        `bson:"paysuper_method_refund_fee_tariff_profit"`
+	PaysuperMethodRefundFixedFeeTariffSelfCost *OrderViewMoney        `bson:"paysuper_method_refund_fixed_fee_tariff_self_cost"`
+	MerchantRefundFixedFeeTariff               *OrderViewMoney        `bson:"merchant_refund_fixed_fee_tariff"`
+	PaysuperMethodRefundFixedFeeTariffProfit   *OrderViewMoney        `bson:"paysuper_method_refund_fixed_fee_tariff_profit"`
+	RefundTaxFee                               *OrderViewMoney        `bson:"refund_tax_fee"`
+	RefundTaxFeeCurrencyExchangeFee            *OrderViewMoney        `bson:"refund_tax_fee_currency_exchange_fee"`
+	PaysuperRefundTaxFeeCurrencyExchangeFee    *OrderViewMoney        `bson:"paysuper_refund_tax_fee_currency_exchange_fee"`
+	PaysuperRefundTaxFeeTotalLocal             *OrderViewMoney        `bson:"paysuper_refund_tax_fee_total_local"`
+	PaysuperRefundTaxFeeTotalOrigin            *OrderViewMoney        `bson:"paysuper_refund_tax_fee_total_origin"`
+	PaysuperRefundTaxFeeTotal                  *OrderViewMoney        `bson:"paysuper_refund_tax_fee_total"`
+	RefundTaxFeeTotal                          *OrderViewMoney        `bson:"refund_tax_fee_total"`
+	RefundReverseRevenue                       *OrderViewMoney        `bson:"refund_reverse_revenue"`
+	RefundFeesTotal                            *OrderViewMoney        `bson:"refund_fees_total"`
+	PaysuperRefundTotalProfit                  *OrderViewMoney        `bson:"paysuper_refund_total_profit"`
+}
+
+type MgoOrderViewPublic struct {
+	Id                           bson.ObjectId          `bson:"_id"`
+	Uuid                         string                 `bson:"uuid"`
+	Project                      *MgoOrderProject       `bson:"project"`
+	CreatedAt                    time.Time              `bson:"created_at"`
+	Transaction                  string                 `bson:"pm_order_id"`
+	PaymentMethod                *MgoOrderPaymentMethod `bson:"payment_method"`
+	Country                      string                 `bson:"country"`
+	Locale                       string                 `bson:"locale"`
+	ClosedAt                     time.Time              `bson:"pm_order_close_date"`
+	CanceledAt                   time.Time              `bson:"canceled_at"`
+	User                         *OrderUser             `bson:"user"`
+	BillingAddress               *OrderBillingAddress   `bson:"billing_address"`
+	Type                         string                 `bson:"type"`
+	GrossRevenue                 *OrderViewMoney        `bson:"gross_revenue"`
+	TaxFee                       *OrderViewMoney        `bson:"tax_fee"`
+	TaxFeeCurrencyExchangeFee    *OrderViewMoney        `bson:"tax_fee_currency_exchange_fee"`
+	TaxFeeTotal                  *OrderViewMoney        `bson:"tax_fee_total"`
+	MethodFeeTotal               *OrderViewMoney        `bson:"method_fee_total"`
+	MethodFeeTariff              *OrderViewMoney        `bson:"method_fee_tariff"`
+	MethodFixedFeeTariff         *OrderViewMoney        `bson:"method_fixed_fee_tariff"`
+	PaysuperFixedFee             *OrderViewMoney        `bson:"paysuper_fixed_fee"`
+	FeesTotal                    *OrderViewMoney        `bson:"fees_total"`
+	NetRevenue                   *OrderViewMoney        `bson:"net_revenue"`
+	RefundGrossRevenue           *OrderViewMoney        `bson:"refund_gross_revenue"`
+	MethodRefundFeeTariff        *OrderViewMoney        `bson:"method_refund_fee_tariff"`
+	MerchantRefundFixedFeeTariff *OrderViewMoney        `bson:"merchant_refund_fixed_fee_tariff"`
+	RefundTaxFee                 *OrderViewMoney        `bson:"refund_tax_fee"`
+	RefundTaxFeeTotal            *OrderViewMoney        `bson:"refund_tax_fee_total"`
+	RefundReverseRevenue         *OrderViewMoney        `bson:"refund_reverse_revenue"`
+	RefundFeesTotal              *OrderViewMoney        `bson:"refund_fees_total"`
+}
+
 func (m *Country) GetBSON() (interface{}, error) {
 	st := &MgoCountry{
 		IsoCodeA2:              m.IsoCodeA2,
@@ -1351,27 +1452,7 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.PlatformFee = decoded.PlatformFee
 	m.BillingAddress = decoded.BillingAddress
 	m.Tax = decoded.Tax
-	if decoded.PaymentMethod != nil {
-		m.PaymentMethod = &PaymentMethodOrder{
-			Id:              decoded.PaymentMethod.Id.Hex(),
-			Name:            decoded.PaymentMethod.Name,
-			ExternalId:      decoded.PaymentMethod.ExternalId,
-			Params:          decoded.PaymentMethod.Params,
-			PaymentSystemId: decoded.PaymentMethod.PaymentSystemId.Hex(),
-			Group:           decoded.PaymentMethod.Group,
-			Saved:           decoded.PaymentMethod.Saved,
-			Fee:             decoded.PaymentMethod.Fee,
-		}
-		if decoded.PaymentMethod.Card != nil {
-			m.PaymentMethod.Card = decoded.PaymentMethod.Card
-		}
-		if decoded.PaymentMethod.Wallet != nil {
-			m.PaymentMethod.Wallet = decoded.PaymentMethod.Wallet
-		}
-		if decoded.PaymentMethod.CryptoCurrency != nil {
-			m.PaymentMethod.CryptoCurrency = decoded.PaymentMethod.CryptoCurrency
-		}
-	}
+	m.PaymentMethod = getPaymentMethodOrder(decoded.PaymentMethod)
 	m.Items = []*OrderItem{}
 	if decoded.Refund != nil {
 		m.Refund = &OrderNotificationRefund{
@@ -1385,23 +1466,7 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	}
 	m.Metadata = decoded.Metadata
 	m.PrivateMetadata = decoded.PrivateMetadata
-	m.Project = &ProjectOrder{
-		Id:                   decoded.Project.Id.Hex(),
-		MerchantId:           decoded.Project.MerchantId.Hex(),
-		UrlSuccess:           decoded.Project.UrlSuccess,
-		UrlFail:              decoded.Project.UrlFail,
-		NotifyEmails:         decoded.Project.NotifyEmails,
-		SendNotifyEmail:      decoded.Project.SendNotifyEmail,
-		SecretKey:            decoded.Project.SecretKey,
-		UrlCheckAccount:      decoded.Project.UrlCheckAccount,
-		UrlProcessPayment:    decoded.Project.UrlProcessPayment,
-		UrlChargebackPayment: decoded.Project.UrlChargebackPayment,
-		UrlCancelPayment:     decoded.Project.UrlCancelPayment,
-		UrlRefundPayment:     decoded.Project.UrlRefundPayment,
-		UrlFraudPayment:      decoded.Project.UrlFraudPayment,
-		CallbackProtocol:     decoded.Project.CallbackProtocol,
-		Status:               decoded.Project.Status,
-	}
+	m.Project = getOrderProject(decoded.Project)
 
 	for _, v := range decoded.Items {
 		item := &OrderItem{
@@ -3342,4 +3407,207 @@ func (m *RoyaltyReportOrder) SetBSON(raw bson.Raw) error {
 	m.Date = decoded.Date.Unix()
 
 	return nil
+}
+
+func (m *OrderViewPrivate) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoOrderViewPrivate)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.Uuid = decoded.Uuid
+	m.Transaction = decoded.Transaction
+	m.BillingAddress = decoded.BillingAddress
+	m.User = decoded.User
+	m.Country = decoded.Country
+	m.Locale = decoded.Locale
+	m.Type = decoded.Type
+	m.IsDeduction = decoded.IsDeduction
+	m.PaymentGrossRevenueLocal = getOrderViewMoney(decoded.PaymentGrossRevenueLocal)
+	m.PaymentGrossRevenueOrigin = getOrderViewMoney(decoded.PaymentGrossRevenueOrigin)
+	m.PaymentGrossRevenue = getOrderViewMoney(decoded.PaymentGrossRevenue)
+	m.PaymentTaxFee = getOrderViewMoney(decoded.PaymentTaxFee)
+	m.PaymentTaxFeeLocal = getOrderViewMoney(decoded.PaymentTaxFeeLocal)
+	m.PaymentTaxFeeOrigin = getOrderViewMoney(decoded.PaymentTaxFeeOrigin)
+	m.PaymentTaxFeeCurrencyExchangeFee = getOrderViewMoney(decoded.PaymentTaxFeeCurrencyExchangeFee)
+	m.PaymentTaxFeeTotal = getOrderViewMoney(decoded.PaymentTaxFeeTotal)
+	m.PaymentGrossRevenueFx = getOrderViewMoney(decoded.PaymentGrossRevenueFx)
+	m.PaymentGrossRevenueFxTaxFee = getOrderViewMoney(decoded.PaymentGrossRevenueFxTaxFee)
+	m.PaymentGrossRevenueFxProfit = getOrderViewMoney(decoded.PaymentGrossRevenueFxProfit)
+	m.GrossRevenue = getOrderViewMoney(decoded.GrossRevenue)
+	m.TaxFee = getOrderViewMoney(decoded.TaxFee)
+	m.TaxFeeCurrencyExchangeFee = getOrderViewMoney(decoded.TaxFeeCurrencyExchangeFee)
+	m.TaxFeeTotal = getOrderViewMoney(decoded.TaxFeeTotal)
+	m.MethodFeeTotal = getOrderViewMoney(decoded.MethodFeeTotal)
+	m.MethodFeeTariff = getOrderViewMoney(decoded.MethodFeeTariff)
+	m.PaysuperMethodFeeTariffSelfCost = getOrderViewMoney(decoded.PaysuperMethodFeeTariffSelfCost)
+	m.PaysuperMethodFeeProfit = getOrderViewMoney(decoded.PaysuperMethodFeeProfit)
+	m.MethodFixedFeeTariff = getOrderViewMoney(decoded.MethodFixedFeeTariff)
+	m.PaysuperMethodFixedFeeTariffFxProfit = getOrderViewMoney(decoded.PaysuperMethodFixedFeeTariffFxProfit)
+	m.PaysuperMethodFixedFeeTariffSelfCost = getOrderViewMoney(decoded.PaysuperMethodFixedFeeTariffSelfCost)
+	m.PaysuperMethodFixedFeeTariffTotalProfit = getOrderViewMoney(decoded.PaysuperMethodFixedFeeTariffTotalProfit)
+	m.PaysuperFixedFee = getOrderViewMoney(decoded.PaysuperFixedFee)
+	m.PaysuperFixedFeeFxProfit = getOrderViewMoney(decoded.PaysuperFixedFeeFxProfit)
+	m.FeesTotal = getOrderViewMoney(decoded.FeesTotal)
+	m.NetRevenue = getOrderViewMoney(decoded.NetRevenue)
+	m.PaysuperMethodTotalProfit = getOrderViewMoney(decoded.PaysuperMethodTotalProfit)
+	m.PaysuperTotalProfit = getOrderViewMoney(decoded.PaysuperTotalProfit)
+	m.PaymentRefundGrossRevenueLocal = getOrderViewMoney(decoded.PaymentRefundGrossRevenueLocal)
+	m.PaymentRefundGrossRevenueOrigin = getOrderViewMoney(decoded.PaymentRefundGrossRevenueOrigin)
+	m.PaymentRefundGrossRevenue = getOrderViewMoney(decoded.PaymentRefundGrossRevenue)
+	m.PaymentRefundFeeTariff = getOrderViewMoney(decoded.PaymentRefundFeeTariff)
+	m.MethodRefundFixedFeeTariff = getOrderViewMoney(decoded.MethodRefundFixedFeeTariff)
+	m.RefundGrossRevenue = getOrderViewMoney(decoded.RefundGrossRevenue)
+	m.RefundGrossRevenueFx = getOrderViewMoney(decoded.RefundGrossRevenueFx)
+	m.MethodRefundFeeTariff = getOrderViewMoney(decoded.MethodRefundFeeTariff)
+	m.PaysuperMethodRefundFeeTariffProfit = getOrderViewMoney(decoded.PaysuperMethodRefundFeeTariffProfit)
+	m.PaysuperMethodRefundFixedFeeTariffSelfCost = getOrderViewMoney(decoded.PaysuperMethodRefundFixedFeeTariffSelfCost)
+	m.MerchantRefundFixedFeeTariff = getOrderViewMoney(decoded.MerchantRefundFixedFeeTariff)
+	m.PaysuperMethodRefundFixedFeeTariffProfit = getOrderViewMoney(decoded.PaysuperMethodRefundFixedFeeTariffProfit)
+	m.RefundTaxFee = getOrderViewMoney(decoded.RefundTaxFee)
+	m.RefundTaxFeeCurrencyExchangeFee = getOrderViewMoney(decoded.RefundTaxFeeCurrencyExchangeFee)
+	m.PaysuperRefundTaxFeeCurrencyExchangeFee = getOrderViewMoney(decoded.PaysuperRefundTaxFeeCurrencyExchangeFee)
+	m.PaysuperRefundTaxFeeTotalLocal = getOrderViewMoney(decoded.PaysuperRefundTaxFeeTotalLocal)
+	m.PaysuperRefundTaxFeeTotalOrigin = getOrderViewMoney(decoded.PaysuperRefundTaxFeeTotalOrigin)
+	m.PaysuperRefundTaxFeeTotal = getOrderViewMoney(decoded.PaysuperRefundTaxFeeTotal)
+	m.RefundTaxFeeTotal = getOrderViewMoney(decoded.RefundTaxFeeTotal)
+	m.RefundReverseRevenue = getOrderViewMoney(decoded.RefundReverseRevenue)
+	m.RefundFeesTotal = getOrderViewMoney(decoded.RefundFeesTotal)
+	m.PaysuperRefundTotalProfit = getOrderViewMoney(decoded.PaysuperRefundTotalProfit)
+	m.PaymentMethod = getPaymentMethodOrder(decoded.PaymentMethod)
+	m.Project = getOrderProject(decoded.Project)
+
+	m.ClosedAt, err = ptypes.TimestampProto(decoded.ClosedAt)
+	if err != nil {
+		return err
+	}
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	m.CanceledAt, err = ptypes.TimestampProto(decoded.CanceledAt)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *OrderViewPublic) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoOrderViewPublic)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.Uuid = decoded.Uuid
+	m.Transaction = decoded.Transaction
+	m.BillingAddress = decoded.BillingAddress
+	m.User = decoded.User
+	m.Country = decoded.Country
+	m.Locale = decoded.Locale
+	m.Type = decoded.Type
+	m.GrossRevenue = getOrderViewMoney(decoded.GrossRevenue)
+	m.TaxFee = getOrderViewMoney(decoded.TaxFee)
+	m.TaxFeeCurrencyExchangeFee = getOrderViewMoney(decoded.TaxFeeCurrencyExchangeFee)
+	m.TaxFeeTotal = getOrderViewMoney(decoded.TaxFeeTotal)
+	m.MethodFeeTotal = getOrderViewMoney(decoded.MethodFeeTotal)
+	m.MethodFeeTariff = getOrderViewMoney(decoded.MethodFeeTariff)
+	m.MethodFixedFeeTariff = getOrderViewMoney(decoded.MethodFixedFeeTariff)
+	m.PaysuperFixedFee = getOrderViewMoney(decoded.PaysuperFixedFee)
+	m.FeesTotal = getOrderViewMoney(decoded.FeesTotal)
+	m.NetRevenue = getOrderViewMoney(decoded.NetRevenue)
+	m.RefundGrossRevenue = getOrderViewMoney(decoded.RefundGrossRevenue)
+	m.MethodRefundFeeTariff = getOrderViewMoney(decoded.MethodRefundFeeTariff)
+	m.MerchantRefundFixedFeeTariff = getOrderViewMoney(decoded.MerchantRefundFixedFeeTariff)
+	m.RefundTaxFee = getOrderViewMoney(decoded.RefundTaxFee)
+	m.RefundTaxFeeTotal = getOrderViewMoney(decoded.RefundTaxFeeTotal)
+	m.RefundReverseRevenue = getOrderViewMoney(decoded.RefundReverseRevenue)
+	m.RefundFeesTotal = getOrderViewMoney(decoded.RefundFeesTotal)
+	m.PaymentMethod = getPaymentMethodOrder(decoded.PaymentMethod)
+	m.Project = getOrderProject(decoded.Project)
+
+	m.ClosedAt, err = ptypes.TimestampProto(decoded.ClosedAt)
+	if err != nil {
+		return err
+	}
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	m.CanceledAt, err = ptypes.TimestampProto(decoded.CanceledAt)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func getPaymentMethodOrder(in *MgoOrderPaymentMethod) *PaymentMethodOrder {
+	if in == nil {
+		return nil
+	}
+
+	result := &PaymentMethodOrder{
+		Id:              in.Id.Hex(),
+		Name:            in.Name,
+		ExternalId:      in.ExternalId,
+		Params:          in.Params,
+		PaymentSystemId: in.PaymentSystemId.Hex(),
+		Group:           in.Group,
+		Saved:           in.Saved,
+		Fee:             in.Fee,
+	}
+
+	if in.Card != nil {
+		result.Card = in.Card
+	}
+	if in.Wallet != nil {
+		result.Wallet = in.Wallet
+	}
+	if in.CryptoCurrency != nil {
+		result.CryptoCurrency = in.CryptoCurrency
+	}
+
+	return result
+}
+
+func getOrderProject(in *MgoOrderProject) *ProjectOrder {
+	return &ProjectOrder{
+		Id:                   in.Id.Hex(),
+		MerchantId:           in.MerchantId.Hex(),
+		UrlSuccess:           in.UrlSuccess,
+		UrlFail:              in.UrlFail,
+		NotifyEmails:         in.NotifyEmails,
+		SendNotifyEmail:      in.SendNotifyEmail,
+		SecretKey:            in.SecretKey,
+		UrlCheckAccount:      in.UrlCheckAccount,
+		UrlProcessPayment:    in.UrlProcessPayment,
+		UrlChargebackPayment: in.UrlChargebackPayment,
+		UrlCancelPayment:     in.UrlCancelPayment,
+		UrlRefundPayment:     in.UrlRefundPayment,
+		UrlFraudPayment:      in.UrlFraudPayment,
+		CallbackProtocol:     in.CallbackProtocol,
+		Status:               in.Status,
+	}
+}
+
+func getOrderViewMoney(in *OrderViewMoney) *OrderViewMoney {
+	if in == nil {
+		return &OrderViewMoney{}
+	}
+
+	return &OrderViewMoney{
+		Amount:   tools.ToPrecise(in.Amount),
+		Currency: in.Currency,
+	}
 }

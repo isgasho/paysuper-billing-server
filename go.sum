@@ -536,6 +536,7 @@ github.com/micro/go-bot v0.1.0/go.mod h1:wodQnZJedhANtriMfhCJa07WK6UnZE2QFNNRlmL
 github.com/micro/go-config v0.13.3/go.mod h1:fVecLls1kW+EJsrlkJYqUmVoJa1epSHhsPMDXppELx0=
 github.com/micro/go-config v0.14.0/go.mod h1:ijvLjvxxfDdlH5vO36ZBrzMVGpiGysuwFotX9F84cag=
 github.com/micro/go-grpc v0.6.0/go.mod h1:m8NMevmhL63muB3I1AnI8uf7YaW4YVjNIDW8PpQPRg8=
+github.com/micro/go-grpc v0.8.0/go.mod h1:m8NMevmhL63muB3I1AnI8uf7YaW4YVjNIDW8PpQPRg8=
 github.com/micro/go-grpc v0.9.0/go.mod h1:0oVU9jFs55Pcu4J5+ZI9c4MKgQBm0UWWSiPZyUdQPJo=
 github.com/micro/go-grpc v0.11.0 h1:MS2o39ylM8wnO9n1isDilbMQBg3hfAxVbOTyToWXHqY=
 github.com/micro/go-grpc v0.11.0/go.mod h1:h3kBu5jC0+8t8TxKazW5MODo08PiQo0N9GNy2RTfLwA=
@@ -564,11 +565,13 @@ github.com/micro/go-rcache v0.1.0/go.mod h1:INzyZjXO5M+PmN2A33YxD4TaOY61xjFIM4Cf
 github.com/micro/go-rcache v0.2.0/go.mod h1:EoiTwbY2ubQ6lc3ScV+SnmKbelDzeFezDxPDvF8XDxw=
 github.com/micro/go-rcache v0.2.1 h1:hx24BZuhW4UVCyLE8p6fDrUetXrYDlOYSn5DSmqcjms=
 github.com/micro/go-rcache v0.2.1/go.mod h1:aPCNY3RbjBdyd6ShLENl4MDSgpAiWIU4LyNLE9+TOEo=
+github.com/micro/go-web v0.5.2/go.mod h1:eog0dmtXtWSygHG6lS7/LlNF7QxHnB3ucZSTHUH5Heg=
 github.com/micro/go-web v0.6.0/go.mod h1:d7+RTjvq5mvsIq55hq1/84kbYBbvJKrcUcBxBbQR5Nc=
 github.com/micro/grpc-go v0.0.0-20180913204047-2c703400301b/go.mod h1://clyXyptX/KfdauimE3DJIvC/TKOioMd9rb5blDZmI=
 github.com/micro/h2c v1.0.0/go.mod h1:54sOOQW/GRlHhH43vKwOhUb+kHaXhVxR0d3CJhn9alE=
 github.com/micro/hipchat v0.0.0-20160328000638-4c67119ac956/go.mod h1:9LPnmAqs2JarMBCqn4eUNkATVCsGQFphxNoQEi28uLU=
 github.com/micro/kubernetes v0.2.0/go.mod h1:YMCRhiXTTNCND35/YcgACDFd1tOTmrDFAEqsvkID6pw=
+github.com/micro/kubernetes v0.3.0/go.mod h1:YMCRhiXTTNCND35/YcgACDFd1tOTmrDFAEqsvkID6pw=
 github.com/micro/kubernetes v0.7.0/go.mod h1:tfIj7hfrfZ7pIuknY0V36hABp7uPuLHJEV9LYhBPmNw=
 github.com/micro/mdns v0.0.0-20181201230301-9c3770d4057a/go.mod h1:SQG6o/94RinohLuB5noHSevg2Iqg2wXLDUn4lj2LWWo=
 github.com/micro/mdns v0.1.0 h1:fuLybUsfynbigJmCot/54i+gwe0hpc/vtCMvWt2WfDI=
@@ -669,6 +672,10 @@ github.com/paysuper/paysuper-database-mongo v0.1.0/go.mod h1:IZu996j//Qoq+uzzCBL
 github.com/paysuper/paysuper-recurring-repository v1.0.104/go.mod h1:FyZzueaAoG6apdmfjz7BQd5QMgV3KRIGgFhRXHEIpro=
 github.com/paysuper/paysuper-recurring-repository v1.0.107 h1:zBfPKIkzJDBnAfpf94kioTUlOYBk+6ofzNuGI6S2rDQ=
 github.com/paysuper/paysuper-recurring-repository v1.0.107/go.mod h1:CKej9aphKnx9eQE6cirz1B1UhGwRBjv+nGl0NeciFxc=
+github.com/paysuper/paysuper-recurring-repository v1.0.109 h1:g+A5egxRGtNFGu/je+7p37DWxZuVOiRcgtxFqhj4bDA=
+github.com/paysuper/paysuper-recurring-repository v1.0.109/go.mod h1:e+FqC261cfpCeQw19TydhzyS09A+GN8qaBh1zp1Gn/g=
+github.com/paysuper/paysuper-recurring-repository v1.0.110 h1:FyslXnd1lOEF7VVCoyzgeBo1eC88Pr6vGXj/9vyDbgI=
+github.com/paysuper/paysuper-recurring-repository v1.0.110/go.mod h1:e+FqC261cfpCeQw19TydhzyS09A+GN8qaBh1zp1Gn/g=
 github.com/paysuper/paysuper-tax-service v0.0.0-20190308105725-016a09c27fbd h1:JzUgUK7pIQvf2EQdNV01PkvRy9lZNLvc4Jq4FeAP8vI=
 github.com/paysuper/paysuper-tax-service v0.0.0-20190308105725-016a09c27fbd/go.mod h1:XT/Z0e+14Acndypfqp6f4Luo+WLX9omZAEzUYF9UTCE=
 github.com/pborman/uuid v1.2.0/go.mod h1:X/NO0urCmaxf9VXbdlT7C2Yzkj2IKimNn4k+gtPdI/k=

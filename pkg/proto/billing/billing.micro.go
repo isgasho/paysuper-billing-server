@@ -104,6 +104,9 @@ It has these top-level messages:
 	VatTransaction
 	VatReport
 	AnnualTurnover
+	OrderViewMoney
+	OrderViewPublic
+	OrderViewPrivate
 */
 package billing
 
