@@ -22,6 +22,10 @@ const (
 	collectionPriceTable = "price_table"
 )
 
+var (
+	priceGroupErrorNotFound = newBillingServerErrorMsg("pg000001", "price group not found")
+)
+
 func (s *Service) GetPriceGroup(
 	ctx context.Context,
 	req *billing.GetPriceGroupRequest,

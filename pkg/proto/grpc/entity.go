@@ -3,6 +3,7 @@ package grpc
 import (
 	"errors"
 	"fmt"
+	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 )
 
 var (
@@ -30,17 +31,21 @@ func (m *MerchantPaymentMethodRequest) HasIntegration() bool {
 }
 
 func (p *Product) IsPricesContainDefaultCurrency() bool {
-	_, err := p.GetPriceInCurrency(p.DefaultCurrency)
+	_, err := p.GetPriceInCurrency(&billing.PriceGroup{Currency: p.DefaultCurrency})
 	return err == nil
 }
 
-func (p *Product) GetPriceInCurrency(currency string) (float64, error) {
+func (p *Product) GetPriceInCurrency(group *billing.PriceGroup) (float64, error) {
 	for _, price := range p.Prices {
-		if price.Currency == currency {
+		if group.Region != "" && price.Region == group.Region {
+			return price.Amount, nil
+		}
+
+		if group.Region == "" && price.Region == group.Currency {
 			return price.Amount, nil
 		}
 	}
-	return 0, errors.New(fmt.Sprintf(productNoPriceInCurrency, currency))
+	return 0, errors.New(fmt.Sprintf(productNoPriceInCurrency, group.Region))
 }
 
 func (p *Product) GetLocalizedName(lang string) (string, error) {

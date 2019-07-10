@@ -1,8 +1,5 @@
 [
   {
-    "drop": "price_table"
-  },
-  {
     "insert": "price_table",
     "documents": [
       {

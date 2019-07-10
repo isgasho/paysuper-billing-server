@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/ProtocolONE/rabbitmq/pkg"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
@@ -52,6 +51,10 @@ func (suite *ProductTestSuite) SetupTest() {
 		suite.FailNow("Database connection failed", "%v", err)
 	}
 
+	if err != nil {
+		suite.FailNow("Insert currency test data failed", "%v", err)
+	}
+
 	rub := &billing.Currency{
 		CodeInt:  643,
 		CodeA3:   "RUB",
@@ -65,8 +68,15 @@ func (suite *ProductTestSuite) SetupTest() {
 		IsActive: true,
 	}
 
-	if err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
+	pgRub := &billing.PriceGroup{
+		Id:       bson.NewObjectId().Hex(),
+		Region:   "RUB",
+		Currency: "RUB",
+	}
+	pgUsd := &billing.PriceGroup{
+		Id:       bson.NewObjectId().Hex(),
+		Region:   "USD",
+		Currency: "USD",
 	}
 
 	suite.log, err = zap.NewProduction()
@@ -96,6 +106,11 @@ func (suite *ProductTestSuite) SetupTest() {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 
+	pgs := []*billing.PriceGroup{pgRub, pgUsd}
+	if err := suite.service.priceGroup.MultipleInsert(pgs); err != nil {
+		suite.FailNow("Insert price group test data failed", "%v", err)
+	}
+
 	suite.product = &grpc.Product{
 		Object:          "product",
 		Sku:             "ru_double_yeti",
@@ -107,6 +122,7 @@ func (suite *ProductTestSuite) SetupTest() {
 		ProjectId:       bson.NewObjectId().Hex(),
 		Prices: []*grpc.ProductPrice{{
 			Currency: "USD",
+			Region:   "USD",
 			Amount:   1005.00,
 		}},
 	}
@@ -271,7 +287,6 @@ func (suite *ProductTestSuite) TestProduct_CreateOrUpdateProduct_Error_Localized
 
 	res := grpc.Product{}
 	suite.product.Name = map[string]string{"AZ": "test"}
-	fmt.Println(suite.product.Name)
 	err := suite.service.CreateOrUpdateProduct(context.TODO(), suite.product, &res)
 
 	assert.Error(suite.T(), err)
@@ -478,11 +493,11 @@ func (suite *ProductTestSuite) TestProduct_UpdateProductPrices_Error_DefaultCurr
 
 func (suite *ProductTestSuite) TestProduct_UpdateProductPrices_Error_Upsert() {
 	ps := &mock.ProductServiceInterface{}
-	ps.On("GetById", mock2.Anything).Return(&grpc.Product{DefaultCurrency: "USD"}, nil)
+	ps.On("GetById", mock2.Anything).Return(&grpc.Product{DefaultCurrency: "RUB"}, nil)
 	ps.On("Upsert", mock2.Anything).Return(errors.New(""))
 	suite.service.productService = ps
 
-	req := grpc.UpdateProductPricesRequest{Prices: []*grpc.ProductPrice{{Currency: "USD"}}}
+	req := grpc.UpdateProductPricesRequest{Prices: []*grpc.ProductPrice{{Currency: "RUB", Region: "RUB"}}}
 	res := grpc.ResponseError{}
 	err := suite.service.UpdateProductPrices(context.TODO(), &req, &res)
 
@@ -492,11 +507,11 @@ func (suite *ProductTestSuite) TestProduct_UpdateProductPrices_Error_Upsert() {
 
 func (suite *ProductTestSuite) TestProduct_UpdateProductPrices_Ok() {
 	ps := &mock.ProductServiceInterface{}
-	ps.On("GetById", mock2.Anything).Return(&grpc.Product{DefaultCurrency: "USD"}, nil)
+	ps.On("GetById", mock2.Anything).Return(&grpc.Product{DefaultCurrency: "RUB"}, nil)
 	ps.On("Upsert", mock2.Anything).Return(nil)
 	suite.service.productService = ps
 
-	req := grpc.UpdateProductPricesRequest{Prices: []*grpc.ProductPrice{{Currency: "USD"}}}
+	req := grpc.UpdateProductPricesRequest{Prices: []*grpc.ProductPrice{{Currency: "RUB", Region: "RUB"}}}
 	res := grpc.ResponseError{}
 	err := suite.service.UpdateProductPrices(context.TODO(), &req, &res)
 

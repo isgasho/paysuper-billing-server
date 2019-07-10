@@ -73,7 +73,7 @@ func (s *Service) CreateOrUpdateProduct(ctx context.Context, req *grpc.Product, 
 	req.Deleted = false
 
 	if !req.IsPricesContainDefaultCurrency() {
-		zap.S().Errorf("No price in default currency", "data", req)
+		zap.S().Errorf(productErrorPriceDefaultCurrency.Message, "data", req)
 		return productErrorPriceDefaultCurrency
 	}
 
@@ -148,6 +148,8 @@ func (s *Service) GetProductsForOrder(ctx context.Context, req *grpc.GetProducts
 		if p.Enabled != true || p.ProjectId != req.ProjectId {
 			continue
 		}
+
+		found = append(found, p)
 	}
 
 	res.Limit = int32(len(found))
@@ -246,7 +248,7 @@ func (s *Service) UpdateProductPrices(ctx context.Context, req *grpc.UpdateProdu
 	product.Prices = req.Prices
 
 	if !product.IsPricesContainDefaultCurrency() {
-		zap.S().Errorf("No price in default currency", "data", req)
+		zap.S().Errorf(productErrorPriceDefaultCurrency.Message, "data", req)
 		return productErrorPriceDefaultCurrency
 	}
 
