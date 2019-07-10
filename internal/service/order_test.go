@@ -2501,6 +2501,7 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_Ok() {
 	assert.NotNil(suite.T(), rsp.Item.Project)
 	assert.NotNil(suite.T(), rsp.Item.PaymentMethod)
 	assert.NotNil(suite.T(), rsp.Item.PaymentSystemFeeAmount)
+	assert.Equal(suite.T(), pkg.OrderTypeOrder, rsp.Item.Type)
 }
 
 func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_ProjectInactive_Error() {

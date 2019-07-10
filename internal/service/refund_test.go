@@ -1197,6 +1197,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 	assert.Equal(suite.T(), constant.OrderPublicStatusRefunded, refundOrder.Status)
 	assert.EqualValues(suite.T(), refund.Amount, refundOrder.OrderAmount)
 	assert.Equal(suite.T(), refund.Currency.CodeA3, refundOrder.Currency)
+	assert.Equal(suite.T(), pkg.OrderTypeRefund, refundOrder.Type)
 }
 
 func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnmarshalError() {

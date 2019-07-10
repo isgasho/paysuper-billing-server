@@ -265,6 +265,7 @@ type MgoOrder struct {
 	CountryRestriction                      *CountryRestriction         `bson:"country_restriction"`
 	ParentId                                string                      `bson:"parent_id"`
 	ParentPaymentAt                         time.Time                   `bson:"parent_payment_at"`
+	Type                                    string                      `bson:"type"`
 }
 
 type MgoOrderItem struct {
@@ -1114,6 +1115,7 @@ func (m *Order) GetBSON() (interface{}, error) {
 		CountryRestriction:                      m.CountryRestriction,
 		PaymentRoyaltyData:                      m.PaymentRoyaltyData,
 		ParentId:                                m.ParentId,
+		Type:                                    m.Type,
 	}
 
 	if m.Refund != nil {
@@ -1427,6 +1429,7 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.CountryRestriction = decoded.CountryRestriction
 	m.PaymentRoyaltyData = decoded.PaymentRoyaltyData
 	m.ParentId = decoded.ParentId
+	m.Type = decoded.Type
 
 	m.PaymentMethodOrderClosedAt, err = ptypes.TimestampProto(decoded.PaymentMethodOrderClosedAt)
 	if err != nil {

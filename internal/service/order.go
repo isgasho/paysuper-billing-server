@@ -1194,7 +1194,8 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 	}
 
 	order := &billing.Order{
-		Id: id,
+		Id:   id,
+		Type: pkg.OrderTypeOrder,
 		Project: &billing.ProjectOrder{
 			Id:                   v.checked.project.Id,
 			Name:                 v.checked.project.Name,

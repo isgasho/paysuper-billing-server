@@ -308,12 +308,11 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 
 	refundOrder.Id = bson.NewObjectId().Hex()
 	refundOrder.Uuid = uuid.New().String()
+	refundOrder.Type = pkg.OrderTypeRefund
 	refundOrder.PrivateStatus = constant.OrderStatusRefund
 	refundOrder.Status = constant.OrderPublicStatusRefunded
 	refundOrder.UpdatedAt = ptypes.TimestampNow()
 	refundOrder.RefundedAt = ptypes.TimestampNow()
-	refundOrder.TotalPaymentAmount = refund.Amount
-	refundOrder.OrderAmount = refund.Amount
 	refundOrder.Refund = &billing.OrderNotificationRefund{
 		Amount:        refund.Amount,
 		Currency:      refund.Currency.CodeA3,
@@ -327,11 +326,10 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 	refundOrder.PaymentMethodOutcomeAmount = refund.Amount
 	refundOrder.PaymentMethodIncomeAmount = refund.Amount
 	refundOrder.PaymentMethodOrderClosedAt = ptypes.TimestampNow()
+	refundOrder.OrderAmount = refund.Amount
+	refundOrder.TotalPaymentAmount = refund.Amount
 
-	if refundOrder.OrderAmount != order.OrderAmount {
-		refundOrder.Tax.Amount = tools.FormatAmount(refundOrder.OrderAmount * float64(refundOrder.Tax.Rate))
-		refundOrder.TotalPaymentAmount = tools.FormatAmount(refundOrder.OrderAmount + float64(order.Tax.Amount))
-	}
+	refundOrder.Tax.Amount = tools.FormatAmount(refundOrder.OrderAmount / (1 + float64(refundOrder.Tax.Rate)) * float64(refundOrder.Tax.Rate))
 
 	err = s.db.Collection(collectionOrder).Insert(refundOrder)
 
