@@ -375,7 +375,7 @@ func (h *cardPay) ProcessPayment(message proto.Message, raw, signature string) (
 		return newBillingServerResponseError(pkg.StatusErrorValidation, paymentSystemErrorRequestStatusIsInvalid)
 	}
 
-	if req.IsRecurring() && (req.RecurringData.Filing == nil || req.RecurringData.Filing.Id == "") {
+	if req.IsRecurring() && req.IsSuccess() && (req.RecurringData.Filing == nil || req.RecurringData.Filing.Id == "") {
 		return newBillingServerResponseError(pkg.StatusErrorValidation, paymentSystemErrorRequestRecurringIdFieldIsInvalid)
 	}
 
