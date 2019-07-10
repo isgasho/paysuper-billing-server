@@ -2566,6 +2566,58 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_SignatureInvalid_Error
 	assert.Nil(suite.T(), rsp.Item)
 }
 
+func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_Error_CheckoutWithoutAmount() {
+	suite.project.IsProductsCheckout = true
+	assert.NoError(suite.T(), suite.service.project.Update(suite.project))
+
+	req := &billing.OrderCreateRequest{
+		ProjectId:     suite.project.Id,
+		PaymentMethod: suite.paymentMethod.Group,
+		Currency:      "USD",
+		Amount:        100,
+		Account:       "unit test",
+		Description:   "unit test",
+		OrderId:       bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+	}
+
+	rsp := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusBadData)
+	assert.Equal(suite.T(), orderErrorCheckoutWithoutProducts, rsp.Message)
+}
+
+func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_Error_CheckoutWithoutProducts() {
+	suite.project.IsProductsCheckout = false
+	assert.NoError(suite.T(), suite.service.project.Update(suite.project))
+
+	req := &billing.OrderCreateRequest{
+		ProjectId:     suite.project.Id,
+		PaymentMethod: suite.paymentMethod.Group,
+		Currency:      "USD",
+		Products:      []string{"item"},
+		Account:       "unit test",
+		Description:   "unit test",
+		OrderId:       bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+	}
+
+	rsp := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusBadData)
+	assert.Equal(suite.T(), orderErrorCheckoutWithoutAmount, rsp.Message)
+}
+
 func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_CurrencyInvalid_Error() {
 	req := &billing.OrderCreateRequest{
 		ProjectId:     suite.project.Id,
@@ -2605,7 +2657,7 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_CurrencyEmpty_Error() 
 
 	rsp := &grpc.OrderCreateProcessResponse{}
 	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-
+	fmt.Println(rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusBadData)
 	assert.Equal(suite.T(), orderErrorCurrencyIsRequired, rsp.Message)
@@ -3045,7 +3097,6 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcessWithProducts_Ok
 		ProjectId:     suite.projectFixedAmount.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",
-		Amount:        100,
 		Account:       "unit test",
 		Description:   "unit test",
 		OrderId:       bson.NewObjectId().Hex(),
@@ -3985,7 +4036,6 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Ok() {
 	req := &billing.OrderCreateRequest{
 		ProjectId:   suite.projectFixedAmount.Id,
 		Currency:    "RUB",
-		Amount:      100,
 		Account:     "unit test",
 		Description: "unit test",
 		OrderId:     bson.NewObjectId().Hex(),
@@ -4108,7 +4158,6 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Recurring_Ok() {
 	req := &billing.OrderCreateRequest{
 		ProjectId:   suite.projectFixedAmount.Id,
 		Currency:    "RUB",
-		Amount:      100,
 		Account:     "unit test",
 		Description: "unit test",
 		OrderId:     bson.NewObjectId().Hex(),
