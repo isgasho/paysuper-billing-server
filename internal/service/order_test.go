@@ -2657,7 +2657,7 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_CurrencyEmpty_Error() 
 
 	rsp := &grpc.OrderCreateProcessResponse{}
 	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-	fmt.Println(rsp)
+
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusBadData)
 	assert.Equal(suite.T(), orderErrorCurrencyIsRequired, rsp.Message)
