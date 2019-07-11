@@ -84,66 +84,6 @@ type Service struct {
 	turnover                   *Turnover
 }
 
-func (s *Service) CreateOrUpdateKeyProduct(context.Context, *grpc.CreateOrUpdateKeyProductRequest, *grpc.KeyProduct) error {
-	panic("implement me")
-}
-
-func (s *Service) GetKeyProducts(context.Context, *grpc.ListKeyProductsRequest, *grpc.ListKeyProductsResponse) error {
-	panic("implement me")
-}
-
-func (s *Service) GetKeyProduct(context.Context, *grpc.RequestKeyProduct, *grpc.KeyProduct) error {
-	panic("implement me")
-}
-
-func (s *Service) DeleteKeyProduct(context.Context, *grpc.RequestKeyProduct, *grpc.EmptyResponse) error {
-	panic("implement me")
-}
-
-func (s *Service) PublishKeyProduct(context.Context, *grpc.PublishKeyProductRequest, *grpc.KeyProduct) error {
-	panic("implement me")
-}
-
-func (s *Service) GetKeyProductsForOrder(context.Context, *grpc.GetKeyProductsForOrderRequest, *grpc.ListKeyProductsResponse) error {
-	panic("implement me")
-}
-
-func (s *Service) GetPlatforms(context.Context, *grpc.ListPlatformsRequest, *grpc.ListPlatformsResponse) error {
-	panic("implement me")
-}
-
-func (s *Service) UpdatePlatformPrices(context.Context, *grpc.AddOrUpdatePlatformPricesRequest, *grpc.PlatformPrice) error {
-	panic("implement me")
-}
-
-func (s *Service) DeletePlatformFromProduct(context.Context, *grpc.RemovePlatformRequest, *grpc.EmptyResponse) error {
-	panic("implement me")
-}
-
-func (s *Service) GetAvailableKeysCount(context.Context, *grpc.GetPlatformKeyCountRequest, *grpc.GetPlatformKeyCountResponse) error {
-	panic("implement me")
-}
-
-func (s *Service) UploadKeysFile(context.Context, *grpc.PlatformKeysFileRequest, *grpc.PlatformKeysFileResponse) error {
-	panic("implement me")
-}
-
-func (s *Service) GetKeyByID(context.Context, *grpc.KeyForOrderRequest, *grpc.Key) error {
-	panic("implement me")
-}
-
-func (s *Service) ReserveKeyForOrder(context.Context, *grpc.PlatformKeyReserveRequest, *grpc.PlatformKeyReserveResponse) error {
-	panic("implement me")
-}
-
-func (s *Service) FinishRedeemKeyForOrder(context.Context, *grpc.KeyForOrderRequest, *grpc.Key) error {
-	panic("implement me")
-}
-
-func (s *Service) CancelRedeemKeyForOrder(context.Context, *grpc.KeyForOrderRequest, *grpc.EmptyResponse) error {
-	panic("implement me")
-}
-
 func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {
 	return &grpc.ResponseError{
 		Status:  status,
