@@ -232,6 +232,10 @@ const (
 	PaySuperDeclineCodeWrongPaymentWasReceived          = "ps000018"
 	PaySuperDeclineCodeConfirmationsPaymentTimeout      = "ps000019"
 
+	OrderTypeOrder      = "order"
+	OrderTypeRefund     = "refund"
+	OrderTypeChagreback = "chagreback"
+
 	PaymentCreateBankCardFieldBrand         = "card_brand"
 	PaymentCreateBankCardFieldType          = "card_type"
 	PaymentCreateBankCardFieldCategory      = "card_category"

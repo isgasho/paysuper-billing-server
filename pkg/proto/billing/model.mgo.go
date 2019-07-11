@@ -252,6 +252,9 @@ type MgoOrder struct {
 	IsNotificationsSent                     map[string]bool             `bson:"is_notifications_sent"`
 	CountryRestriction                      *CountryRestriction         `bson:"country_restriction"`
 	RoyaltyReportId                         string                      `bson:"royalty_report_id"`
+	ParentId                                string                      `bson:"parent_id"`
+	ParentPaymentAt                         time.Time                   `bson:"parent_payment_at"`
+	Type                                    string                      `bson:"type"`
 }
 
 type MgoOrderItem struct {
@@ -1259,6 +1262,8 @@ func (m *Order) GetBSON() (interface{}, error) {
 		IsNotificationsSent:                     m.IsNotificationsSent,
 		CountryRestriction:                      m.CountryRestriction,
 		RoyaltyReportId:                         m.RoyaltyReportId,
+		ParentId:                                m.ParentId,
+		Type:                                    m.Type,
 	}
 
 	if m.Refund != nil {
@@ -1415,6 +1420,16 @@ func (m *Order) GetBSON() (interface{}, error) {
 		st.RefundedAt = t
 	}
 
+	if m.ParentPaymentAt != nil {
+		t, err := ptypes.Timestamp(m.ParentPaymentAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.ParentPaymentAt = t
+	}
+
 	return st, nil
 }
 
@@ -1525,8 +1540,16 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.IsNotificationsSent = decoded.IsNotificationsSent
 	m.CountryRestriction = decoded.CountryRestriction
 	m.RoyaltyReportId = decoded.RoyaltyReportId
+	m.ParentId = decoded.ParentId
+	m.Type = decoded.Type
 
 	m.PaymentMethodOrderClosedAt, err = ptypes.TimestampProto(decoded.PaymentMethodOrderClosedAt)
+	if err != nil {
+		return err
+	}
+
+	m.ParentPaymentAt, err = ptypes.TimestampProto(decoded.ParentPaymentAt)
+
 	if err != nil {
 		return err
 	}

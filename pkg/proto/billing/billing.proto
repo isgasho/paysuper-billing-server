@@ -498,7 +498,14 @@ message Order {
     // @inject_tag: json:"-" bson:"country_restriction"
     CountryRestriction country_restriction = 66;
     // @inject_tag: json:"-"
-    string royalty_report_id = 68;
+    string royalty_report_id = 67;
+
+    // @inject_tag: json:"-"
+    string parent_id = 68;
+    // @inject_tag: json:"-"
+    google.protobuf.Timestamp parent_payment_at = 69;
+    // @inject_tag: json:"-"
+    string type = 70;
 }
 
 message CountryRestriction {

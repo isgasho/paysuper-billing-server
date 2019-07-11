@@ -16,6 +16,7 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.3.1
 	github.com/golang/protobuf v1.3.1
 	github.com/google/uuid v1.1.1
+	github.com/jinzhu/copier v0.0.0-20190625015134-976e0346caa8
 	github.com/jinzhu/now v1.0.1
 	github.com/kelseyhightower/envconfig v1.3.0
 	github.com/micro/go-micro v1.0.0
