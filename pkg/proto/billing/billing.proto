@@ -417,96 +417,62 @@ message Order {
     string currency = 25;
     //@inject_tag: json:"user" bson:"user"
     OrderUser user = 26;
-    // @inject_tag: json:"payout" bson:"payout"
-    OrderFee payout = 27;
-    // @inject_tag: json:"platform_fee" bson:"project_fee_amount"
-    OrderFee platform_fee = 28; // fee is charged with the project for the operation
     //@inject_tag: json:"billing_address" bson:"billing_address"
-    OrderBillingAddress billing_address = 29; // user billing address entered in payment form
+    OrderBillingAddress billing_address = 27; // user billing address entered in payment form
     //@inject_tag: json:"tax" bson:"tax"
-    OrderTax tax = 30;
+    OrderTax tax = 28;
     // @inject_tag: json:"method" bson:"payment_method"
-    PaymentMethodOrder payment_method = 31; // payment method unique identifier
+    PaymentMethodOrder payment_method = 29; // payment method unique identifier
     // @inject_tag: json:"items" bson:"items" validate="omitempty,gte=1,dive"
-    repeated OrderItem items = 32;
+    repeated OrderItem items = 30;
     //@inject_tag: json:"refund" bson:"refund" validate:"omitempty,dive"
-    OrderNotificationRefund refund = 33;
+    OrderNotificationRefund refund = 31;
     // @inject_tag: json:"metadata" bson:"metadata"
-    map<string, string> metadata = 34;
+    map<string, string> metadata = 32;
     // @inject_tag: json:"-" bson:"private_metadata"
-    map<string, string> private_metadata = 35;
+    map<string, string> private_metadata = 33;
     // @inject_tag: json:"-" bson:"project"
-    ProjectOrder project = 36; // object described main entities of project in Protocol One payment solution
+    ProjectOrder project = 34; // object described main entities of project in Protocol One payment solution
     // @inject_tag: json:"-" bson:"project_order_id"
-    string project_order_id = 37; // unique order identifier in project. if was send in create order process
+    string project_order_id = 35; // unique order identifier in project. if was send in create order process
     // @inject_tag: json:"-" bson:"project_account"
-    string project_account = 38; // user unique account in project
-    // @inject_tag: json:"-" bson:"project_income_amount"
-    double project_income_amount = 39; // order amount received from project
-    // @inject_tag: json:"-" bson:"project_income_currency"
-    string project_income_currency = 40; // order currency received from project
-    // @inject_tag: json:"-" bson:"project_outcome_amount"
-    double project_outcome_amount = 41; // order amount send to project in notification request
-    // @inject_tag: json:"-" bson:"project_outcome_currency"
-    string project_outcome_currency = 42; // order currency send to project in notification request
+    string project_account = 36; // user unique account in project
     // @inject_tag: json:"-" bson:"project_last_requested_at"
-    google.protobuf.Timestamp project_last_requested_at = 43; // date of last notification request to project
+    google.protobuf.Timestamp project_last_requested_at = 37; // date of last notification request to project
     // @inject_tag: json:"-" bson:"project_params"
-    map<string, string> project_params = 44; // any project params which received from project in request of create of order
-    // @inject_tag: json:"-" bson:"pm_outcome_amount"
-    double payment_method_outcome_amount = 45; // order amount send to payment system
-    // @inject_tag: json:"-" bson:"pm_outcome_currency"
-    string payment_method_outcome_currency = 46; // order currency send to payment system
-    // @inject_tag: json:"-" bson:"pm_income_amount"
-    double payment_method_income_amount = 47; // order amount received from payment system in notification request
-    // @inject_tag: json:"-" bson:"pm_income_currency"
-    string payment_method_income_currency = 48; // order currency received from payment system in notification request
+    map<string, string> project_params = 38; // any project params which received from project in request of create of order
     // @inject_tag: json:"-" bson:"pm_order_close_date"
-    google.protobuf.Timestamp payment_method_order_closed_at = 49; // date of ended payment operation in payment system
+    google.protobuf.Timestamp payment_method_order_closed_at = 39; // date of ended payment operation in payment system
     // @inject_tag: json:"-" bson:"created_by_json"
-    bool is_json_request = 50; // is order create by json request
+    bool is_json_request = 40; // is order create by json request
     // @inject_tag: json:"-" bson:"private_amount" validate:"required,numeric,gt=0"
-    double order_amount = 51;
-    // @inject_tag: json:"-" bson:"amount_psp_ac"
-    double amount_in_psp_accounting_currency = 52; // operation amount in accounting currency of PSP
-    // @inject_tag: json:"-" bson:"amount_in_merchant_ac"
-    double amount_in_merchant_accounting_currency = 53; // received from project operation amount in project owner (merchant) accounting currency
-    // @inject_tag: json:"-" bson:"amount_out_merchant_ac"
-    double amount_out_merchant_accounting_currency = 54; // received from payment system operation amount in project owner (merchant) accounting currency
-    // @inject_tag: json:"-" bson:"amount_ps_ac"
-    double amount_in_payment_system_accounting_currency = 55; // operation amount in payment system accounting currency
+    double order_amount = 41;
     // @inject_tag: json:"-" bson:"pm_account"
-    string payment_method_payer_account = 56; // account of payer in payment system
+    string payment_method_payer_account = 42; // account of payer in payment system
     // @inject_tag: json:"-" bson:"pm_txn_params"
-    map<string, string> payment_method_txn_params = 57; // any params received in request of payment system about payment
+    map<string, string> payment_method_txn_params = 43; // any params received in request of payment system about payment
     // @inject_tag: json:"-" bson:"payment_requisites"
-    map<string, string> payment_requisites = 58;
-    // @inject_tag: json:"-" bson:"psp_fee_amount"
-    OrderFeePsp psp_fee_amount = 59; // PSP (P1) fee amount
-    // @inject_tag: json:"-" bson:"to_payer_fee_amount"
-    OrderFee to_payer_fee_amount = 60; // value of fee which added to payer amount
-    // @inject_tag: json:"-" bson:"ps_fee_amount"
-    OrderFeePaymentSystem payment_system_fee_amount = 61; // payment system fee for payment operation
+    map<string, string> payment_requisites = 44;
     // @inject_tag: json:"-" bson:"expire_date_to_form_input"
-    google.protobuf.Timestamp expire_date_to_form_input = 62;
+    google.protobuf.Timestamp expire_date_to_form_input = 45;
     // @inject_tag: json:"-" bson:"user_address_data_required"
-    bool user_address_data_required = 63;
+    bool user_address_data_required = 46;
     // @inject_tag: json:"-" bson:"products" validate:"omitempty,gte=1,dive,hexadecimal,len=24"
-    repeated string products = 64;
+    repeated string products = 47;
     // @inject_tag: json:"-" bson:"is_notifications_sent"
-    map<string, bool> is_notifications_sent = 65;
+    map<string, bool> is_notifications_sent = 48;
     // @inject_tag: json:"-" bson:"country_restriction"
-    CountryRestriction country_restriction = 66;
+    CountryRestriction country_restriction = 49;
     // @inject_tag: json:"-"
-    string royalty_report_id = 67;
+    string royalty_report_id = 50;
     // @inject_tag: json:"-"
-    string parent_id = 68;
+    string parent_id = 51;
     // @inject_tag: json:"-"
-    google.protobuf.Timestamp parent_payment_at = 69;
+    google.protobuf.Timestamp parent_payment_at = 52;
     // @inject_tag: json:"-"
-    string type = 70;
+    string type = 53;
     // @inject_tag: json:"-"
-    bool is_vat_deduction = 71;
+    bool is_vat_deduction = 54;
 }
 
 message CountryRestriction {
@@ -567,16 +533,14 @@ message PaymentMethodOrder {
     string group = 6;
     // @inject_tag: json:"saved" bson:"saved"
     bool saved = 7;
-    //@inject_tag: json:"fee" bson:"fee"
-    OrderFee fee = 8;
     //@inject_tag: json:"card" bson:"card"
-    PaymentMethodCard card = 9;
+    PaymentMethodCard card = 8;
     //@inject_tag: json:"wallet" bson:"wallet"
-    PaymentMethodWallet wallet = 10;
+    PaymentMethodWallet wallet = 9;
     //@inject_tag: json:"crypto_currency" bson:"crypto_currency"
-    PaymentMethodCrypto crypto_currency = 11;
+    PaymentMethodCrypto crypto_currency = 10;
     // @inject_tag: json:"type" bson:"group_alias"
-    string handler = 12;
+    string handler = 11;
 }
 
 message PaymentMethodParams {
@@ -641,36 +605,6 @@ message PaymentMethodCrypto {
     string brand = 1;
     //@inject_tag: json:"address" bson:"address"
     string address = 2;
-}
-
-message OrderFee {
-    // @inject_tag: json:"-" bson:"amount_payment_method_currency" validate:"required,numeric,gte=0"
-    double AmountPaymentMethodCurrency = 1; // amount of fee of payment system in payment currency
-    // @inject_tag: json:"amount" bson:"amount_merchant_currency" validate:"required,numeric,gte=0"
-    double AmountMerchantCurrency = 2; // amount of fee of payment system in accounting currency of merchant
-    // @inject_tag: json:"currency" bson:"merchant_currency" validate:"required,alpha,len=3"
-    string merchant_currency_a3 = 3;
-    // @inject_tag: json:"effective_rate" bson:"effective_rate_merchant_currency"
-    double effective_rate_merchant_currency = 4;
-}
-
-message OrderFeePsp {
-    // @inject_tag: bson:"amount_payment_method_currency" structure:"amount_payment_method_currency"
-    double AmountPaymentMethodCurrency = 1; // amount of fee of payment system in payment currency
-    // @inject_tag: bson:"amount_merchant_currency" structure:"amount_merchant_currency"
-    double AmountMerchantCurrency = 2; // amount of fee of payment system in accounting currency of merchant
-    // @inject_tag: bson:"amount_psp_currency" structure:"amount_psp_currency"
-    double AmountPspCurrency = 3; // amount of fee of PSP (P1) in PSP (P1) accounting currencies
-}
-
-// Contain information about payment system commission in other currencies
-message OrderFeePaymentSystem {
-    // @inject_tag: bson:"amount_payment_method_currency" structure:"amount_payment_method_currency"
-    double AmountPaymentMethodCurrency = 1; // amount of fee of payment system in payment currency
-    // @inject_tag: bson:"amount_merchant_currency" structure:"amount_merchant_currency"
-    double AmountMerchantCurrency = 2; // amount of fee of payment system in accounting currency of merchant
-    // @inject_tag: bson:"amount_payment_system_currency" structure:"amount_payment_system_currency"
-    double AmountPaymentSystemCurrency = 3; // amount of fee of payment system in accounting currency of payment system
 }
 
 message ProjectPaymentMethod {

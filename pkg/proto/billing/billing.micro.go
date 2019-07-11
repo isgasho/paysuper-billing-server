@@ -35,9 +35,6 @@ It has these top-level messages:
 	PaymentMethodCard
 	PaymentMethodWallet
 	PaymentMethodCrypto
-	OrderFee
-	OrderFeePsp
-	OrderFeePaymentSystem
 	ProjectPaymentMethod
 	PaymentMethod
 	Vat

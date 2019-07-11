@@ -398,7 +398,7 @@ func (h *cardPay) ProcessPayment(message proto.Message, raw, signature string) (
 	reqAmount := req.GetAmount()
 
 	if reqAmount != order.TotalPaymentAmount ||
-		req.GetCurrency() != order.PaymentMethodOutcomeCurrency {
+		req.GetCurrency() != order.Currency {
 		return newBillingServerResponseError(pkg.StatusErrorValidation, paymentSystemErrorRequestAmountOrCurrencyIsInvalid)
 	}
 
@@ -436,8 +436,6 @@ func (h *cardPay) ProcessPayment(message proto.Message, raw, signature string) (
 
 	order.Transaction = req.GetId()
 	order.PaymentMethodOrderClosedAt = ts
-	order.PaymentMethodIncomeAmount = reqAmount
-	order.PaymentMethodIncomeCurrency = order.PaymentMethodOutcomeCurrency
 
 	return
 }
@@ -663,7 +661,7 @@ func (h *cardPay) getCardPayOrder(order *billing.Order, requisites map[string]st
 	if order.PaymentMethod.IsBankCard() && (okStoreData && storeData == "1") ||
 		(okRecurringId && recurringId != "") {
 		cardPayOrder.RecurringData = &CardPayRecurringData{
-			Currency:  order.PaymentMethodOutcomeCurrency,
+			Currency:  order.Currency,
 			Amount:    order.TotalPaymentAmount,
 			Initiator: cardPayInitiatorCardholder,
 		}
@@ -677,7 +675,7 @@ func (h *cardPay) getCardPayOrder(order *billing.Order, requisites map[string]st
 		}
 	} else {
 		cardPayOrder.PaymentData = &CardPayPaymentData{
-			Currency: order.PaymentMethodOutcomeCurrency,
+			Currency: order.Currency,
 			Amount:   order.TotalPaymentAmount,
 		}
 	}

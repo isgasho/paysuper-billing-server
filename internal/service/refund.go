@@ -371,16 +371,12 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 	refundOrder.ParentId = order.Id
 	refundOrder.IsVatDeduction = isVatDeduction
 	refundOrder.ParentPaymentAt = refundOrder.PaymentMethodOrderClosedAt
-	// todo: remove unused amounts
-	refundOrder.ProjectIncomeAmount = refund.Amount
-	refundOrder.ProjectOutcomeAmount = refund.Amount
-	refundOrder.PaymentMethodOutcomeAmount = refund.Amount
-	refundOrder.PaymentMethodIncomeAmount = refund.Amount
 	refundOrder.PaymentMethodOrderClosedAt = ptypes.TimestampNow()
-	refundOrder.OrderAmount = refund.Amount
+
 	refundOrder.TotalPaymentAmount = refund.Amount
 
-	refundOrder.Tax.Amount = tools.FormatAmount(refundOrder.OrderAmount / (1 + float64(refundOrder.Tax.Rate)) * float64(refundOrder.Tax.Rate))
+	refundOrder.OrderAmount = tools.FormatAmount(refund.Amount / (1 + float64(refundOrder.Tax.Rate)) * float64(refundOrder.Tax.Rate))
+	refundOrder.Tax.Amount = tools.FormatAmount(refundOrder.TotalPaymentAmount - refundOrder.OrderAmount)
 
 	err = s.db.Collection(collectionOrder).Insert(refundOrder)
 
