@@ -138,7 +138,7 @@ func (s *Service) CreateOrUpdatePaymentMethodProductionSettings(
 func (s *Service) GetPaymentMethodProductionSettings(
 	ctx context.Context,
 	req *grpc.GetPaymentMethodSettingsRequest,
-	rsp *billing.PaymentMethodParams,
+	rsp *grpc.GetPaymentMethodSettingsResponse,
 ) error {
 	pm, err := s.paymentMethod.GetById(req.PaymentMethodId)
 	if err != nil {
@@ -146,7 +146,14 @@ func (s *Service) GetPaymentMethodProductionSettings(
 		return nil
 	}
 
-	rsp, _ = pm.ProductionSettings[req.CurrencyA3]
+	for key, param := range pm.ProductionSettings {
+		rsp.Params = append(rsp.Params, &billing.PaymentMethodParams{
+			Currency:       key,
+			TerminalId:     param.TerminalId,
+			Secret:         param.Secret,
+			SecretCallback: param.SecretCallback,
+		})
+	}
 
 	return nil
 }
@@ -231,7 +238,7 @@ func (s *Service) CreateOrUpdatePaymentMethodTestSettings(
 func (s *Service) GetPaymentMethodTestSettings(
 	ctx context.Context,
 	req *grpc.GetPaymentMethodSettingsRequest,
-	rsp *billing.PaymentMethodParams,
+	rsp *grpc.GetPaymentMethodSettingsResponse,
 ) error {
 	pm, err := s.paymentMethod.GetById(req.PaymentMethodId)
 	if err != nil {
@@ -239,7 +246,14 @@ func (s *Service) GetPaymentMethodTestSettings(
 		return nil
 	}
 
-	rsp, _ = pm.TestSettings[req.CurrencyA3]
+	for key, param := range pm.TestSettings {
+		rsp.Params = append(rsp.Params, &billing.PaymentMethodParams{
+			Currency:       key,
+			TerminalId:     param.TerminalId,
+			Secret:         param.Secret,
+			SecretCallback: param.SecretCallback,
+		})
+	}
 
 	return nil
 }
