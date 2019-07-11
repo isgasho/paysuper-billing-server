@@ -258,6 +258,12 @@ message CreateOrUpdateKeyProductRequest {
     string default_currency = 9;
     //@inject_tag: validate:"hexadecimal,len=24" json:"merchant_id"
     string merchant_id = 10;
+    //@inject_tag: validate:"omitempty,hexadecimal,len=24"
+    string id = 11;
+    //@inject_tag: validate:"omitempty" json:"object"
+    string object = 12;
+    //@inject_tag: validate:"omitempty" json:"metadata"
+    map<string, string> metadata = 13;
 }
 
 message PublishKeyProductRequest {
@@ -737,7 +743,7 @@ message KeyProduct {
     string merchant_id = 2;
     //@inject_tag: validate:"required,hexadecimal,len=24" json:"project_id" bson:"project_id"
     string project_id = 3;
-    //@inject_tag: validate:"required" json:"object"
+    //@inject_tag: validate:"omitempty" json:"object"
     string object = 4;
     //@inject_tag: validate:"required" json:"type"
     string type = 5;
@@ -769,6 +775,8 @@ message KeyProduct {
     bool deleted = 18;
     //@inject_tag: json:"published_at"
     google.protobuf.Timestamp published_at = 19;
+    //@inject_tag: json:"is_published"
+    bool is_published = 20;
 }
 
 message PlatformPrice {
