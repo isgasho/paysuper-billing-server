@@ -1562,15 +1562,7 @@ func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) {
 		req.UserData.State = rsp.Rate.State
 	}
 
-	// converting directly from float32 to float64 adds some new digits at the and of value
-	// this is strong and precision conversion throught string
-	// todo: get float64 value form tax service
-	order.Tax.Rate, err = strconv.ParseFloat(fmt.Sprintf("%f", rsp.Rate.Rate), 64)
-	if err != nil {
-		v.logError("Tax service error", []interface{}{"error", err.Error(), "request", req})
-		return
-	}
-
+	order.Tax.Rate = rsp.Rate.Rate
 	order.Tax.Amount = tools.FormatAmount(order.OrderAmount * order.Tax.Rate)
 	order.TotalPaymentAmount = tools.FormatAmount(order.OrderAmount + order.Tax.Amount)
 
