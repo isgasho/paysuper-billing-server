@@ -106,7 +106,7 @@ func (s *Service) ListRefunds(
 ) error {
 	var refunds []*billing.Refund
 
-	query := bson.M{"order.uuid": req.OrderId}
+	query := bson.M{"original_order.uuid": req.OrderId}
 	err := s.db.Collection(collectionRefund).Find(query).Limit(int(req.Limit)).Skip(int(req.Offset)).All(&refunds)
 
 	if err != nil {
@@ -139,7 +139,7 @@ func (s *Service) GetRefund(
 ) error {
 	var refund *billing.Refund
 
-	query := bson.M{"_id": bson.ObjectIdHex(req.RefundId), "order.uuid": req.OrderId}
+	query := bson.M{"_id": bson.ObjectIdHex(req.RefundId), "original_order.uuid": req.OrderId}
 	err := s.db.Collection(collectionRefund).Find(query).One(&refund)
 
 	if err != nil {
@@ -203,7 +203,7 @@ func (s *Service) ProcessRefundCallback(
 		return nil
 	}
 
-	order, err := s.getOrderById(refund.Order.Id)
+	order, err := s.getOrderById(refund.OriginalOrder.Id)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -245,7 +245,7 @@ func (s *Service) ProcessRefundCallback(
 	}
 
 	if pErr == nil {
-		err = s.createOrderByRefund(order, refund)
+		refund.CreatedOrderId, err = s.createOrderByRefund(order, refund)
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusSystemError
@@ -306,7 +306,7 @@ func (s *Service) ProcessRefundCallback(
 	return nil
 }
 
-func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refund) error {
+func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refund) (string, error) {
 	refundOrder := new(billing.Order)
 	err := copier.Copy(&refundOrder, &order)
 
@@ -317,7 +317,41 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 			zap.Any("refund", refund),
 		)
 
-		return refundErrorUnknown
+		return "", refundErrorUnknown
+	}
+
+	country, err := s.country.GetByIsoCodeA2(order.GetCountry())
+	if err != nil {
+		zap.L().Error(
+			"country not found",
+			zap.Error(err),
+		)
+		return "", refundErrorUnknown
+	}
+
+	isVatDeduction := false
+
+	if country.VatEnabled {
+		from, _, err := s.getLastVatReportTime(country.VatPeriodMonth)
+		if err != nil {
+			zap.L().Error(
+				"cannot get last vat report time",
+				zap.Error(err),
+			)
+			return "", refundErrorUnknown
+		}
+		orderPaydAt, err := ptypes.Timestamp(order.PaymentMethodOrderClosedAt)
+		if err != nil {
+			zap.L().Error(
+				"cannot get convert PaymentMethodOrderClosedAt date to time",
+				zap.Error(err),
+			)
+			return "", refundErrorUnknown
+		}
+
+		if orderPaydAt.Unix() < from.Unix() {
+			isVatDeduction = true
+		}
 	}
 
 	refundOrder.Id = bson.NewObjectId().Hex()
@@ -327,6 +361,7 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 	refundOrder.Status = constant.OrderPublicStatusRefunded
 	refundOrder.UpdatedAt = ptypes.TimestampNow()
 	refundOrder.RefundedAt = ptypes.TimestampNow()
+	refundOrder.PaymentMethodOrderClosedAt = ptypes.TimestampNow()
 	refundOrder.Refund = &billing.OrderNotificationRefund{
 		Amount:        refund.Amount,
 		Currency:      refund.Currency,
@@ -334,7 +369,9 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 		ReceiptNumber: refund.Id,
 	}
 	refundOrder.ParentId = order.Id
+	refundOrder.IsVatDeduction = isVatDeduction
 	refundOrder.ParentPaymentAt = refundOrder.PaymentMethodOrderClosedAt
+	// todo: remove unused amounts
 	refundOrder.ProjectIncomeAmount = refund.Amount
 	refundOrder.ProjectOutcomeAmount = refund.Amount
 	refundOrder.PaymentMethodOutcomeAmount = refund.Amount
@@ -355,10 +392,10 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 			zap.Any("query", refundOrder),
 		)
 
-		return refundErrorUnknown
+		return "", refundErrorUnknown
 	}
 
-	return nil
+	return refundOrder.Id, nil
 }
 
 func (p *createRefundProcessor) processCreateRefund() (*billing.Refund, error) {
@@ -378,7 +415,7 @@ func (p *createRefundProcessor) processCreateRefund() (*billing.Refund, error) {
 
 	refund := &billing.Refund{
 		Id: bson.NewObjectId().Hex(),
-		Order: &billing.RefundOrder{
+		OriginalOrder: &billing.RefundOrder{
 			Id:   order.Id,
 			Uuid: order.Uuid,
 		},
@@ -463,8 +500,8 @@ func (p *createRefundProcessor) getRefundedAmount(order *billing.Order) (float64
 	query := []bson.M{
 		{
 			"$match": bson.M{
-				"status":   bson.M{"$nin": []int32{pkg.RefundStatusRejected}},
-				"order.id": bson.ObjectIdHex(order.Id),
+				"status":            bson.M{"$nin": []int32{pkg.RefundStatusRejected}},
+				"original_order.id": bson.ObjectIdHex(order.Id),
 			},
 		},
 		{"$group": bson.M{"_id": "$order.id", "amount": bson.M{"$sum": "$amount"}}},

@@ -1252,7 +1252,7 @@ func (suite *RefundTestSuite) TestRefund_GetRefund_Ok() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp3.Status)
 	assert.Empty(suite.T(), rsp3.Message)
-	assert.Equal(suite.T(), req3.OrderId, rsp3.Item.Order.Uuid)
+	assert.Equal(suite.T(), req3.OrderId, rsp3.Item.OriginalOrder.Uuid)
 	assert.Equal(suite.T(), req3.RefundId, rsp3.Item.Id)
 }
 
@@ -1326,7 +1326,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 	ae := &billing.AccountingEntry{
 		Id:     bson.NewObjectId().Hex(),
 		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypeMerchantTaxFee,
+		Type:   pkg.AccountingEntryTypeMerchantTaxFeeCostValue,
 		Source: &billing.AccountingEntrySource{
 			Id:   order.Id,
 			Type: collectionOrder,
@@ -1338,7 +1338,22 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 		Currency:   order.GetMerchantRoyaltyCurrency(),
 	}
 
-	accountingEntries := []interface{}{ae}
+	ae2 := &billing.AccountingEntry{
+		Id:     bson.NewObjectId().Hex(),
+		Object: pkg.ObjectTypeBalanceTransaction,
+		Type:   pkg.AccountingEntryTypeMerchantTaxFeeCentralBankFx,
+		Source: &billing.AccountingEntrySource{
+			Id:   order.Id,
+			Type: collectionOrder,
+		},
+		MerchantId: order.GetMerchantId(),
+		Status:     pkg.BalanceTransactionStatusPending,
+		CreatedAt:  ptypes.TimestampNow(),
+		Country:    order.GetCountry(),
+		Currency:   order.GetMerchantRoyaltyCurrency(),
+	}
+
+	accountingEntries := []interface{}{ae, ae2}
 	err = suite.service.db.Collection(collectionAccountingEntry).Insert(accountingEntries...)
 	assert.NoError(suite.T(), err)
 
@@ -1406,7 +1421,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 	assert.False(suite.T(), refund.IsChargeback)
 
 	err = suite.service.db.Collection(collectionAccountingEntry).
-		Find(bson.M{"source.id": bson.ObjectIdHex(rsp2.Item.Id), "source.type": collectionRefund}).All(&accountingEntries)
+		Find(bson.M{"source.id": bson.ObjectIdHex(refund.CreatedOrderId), "source.type": collectionRefund}).All(&accountingEntries)
 	assert.NoError(suite.T(), err)
 	assert.NotEmpty(suite.T(), accountingEntries)
 
@@ -1799,7 +1814,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderNotFound_Err
 	err = suite.service.db.Collection(collectionRefund).FindId(bson.ObjectIdHex(rsp2.Item.Id)).One(&refund)
 	assert.NotNil(suite.T(), refund)
 
-	refund.Order = &billing.RefundOrder{Id: bson.NewObjectId().Hex(), Uuid: uuid.New().String()}
+	refund.OriginalOrder = &billing.RefundOrder{Id: bson.NewObjectId().Hex(), Uuid: uuid.New().String()}
 	err = suite.service.db.Collection(collectionRefund).UpdateId(bson.ObjectIdHex(refund.Id), refund)
 
 	refundReq := &billing.CardPayRefundCallback{
@@ -2080,7 +2095,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_ProcessRefundErro
 	assert.NoError(suite.T(), err)
 	assert.Empty(suite.T(), accountingEntries)
 
-	order, err = suite.service.getOrderById(rsp2.Item.Order.Id)
+	order, err = suite.service.getOrderById(rsp2.Item.OriginalOrder.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), order)
 }
@@ -2261,7 +2276,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 	ae := &billing.AccountingEntry{
 		Id:     bson.NewObjectId().Hex(),
 		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypeMerchantTaxFee,
+		Type:   pkg.AccountingEntryTypeMerchantTaxFeeCostValue,
 		Source: &billing.AccountingEntrySource{
 			Id:   order.Id,
 			Type: collectionOrder,
@@ -2273,7 +2288,22 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 		Currency:   order.GetMerchantRoyaltyCurrency(),
 	}
 
-	accountingEntries := []interface{}{ae}
+	ae2 := &billing.AccountingEntry{
+		Id:     bson.NewObjectId().Hex(),
+		Object: pkg.ObjectTypeBalanceTransaction,
+		Type:   pkg.AccountingEntryTypeMerchantTaxFeeCentralBankFx,
+		Source: &billing.AccountingEntrySource{
+			Id:   order.Id,
+			Type: collectionOrder,
+		},
+		MerchantId: order.GetMerchantId(),
+		Status:     pkg.BalanceTransactionStatusPending,
+		CreatedAt:  ptypes.TimestampNow(),
+		Country:    order.GetCountry(),
+		Currency:   order.GetMerchantRoyaltyCurrency(),
+	}
+
+	accountingEntries := []interface{}{ae, ae2}
 	err = suite.service.db.Collection(collectionAccountingEntry).Insert(accountingEntries...)
 	assert.NoError(suite.T(), err)
 
@@ -2395,7 +2425,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Chargeback_Ok() {
 	ae := &billing.AccountingEntry{
 		Id:     bson.NewObjectId().Hex(),
 		Object: pkg.ObjectTypeBalanceTransaction,
-		Type:   pkg.AccountingEntryTypeMerchantTaxFee,
+		Type:   pkg.AccountingEntryTypeMerchantTaxFeeCostValue,
 		Source: &billing.AccountingEntrySource{
 			Id:   order.Id,
 			Type: collectionOrder,
@@ -2407,7 +2437,22 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Chargeback_Ok() {
 		Currency:   order.GetMerchantRoyaltyCurrency(),
 	}
 
-	accountingEntries := []interface{}{ae}
+	ae2 := &billing.AccountingEntry{
+		Id:     bson.NewObjectId().Hex(),
+		Object: pkg.ObjectTypeBalanceTransaction,
+		Type:   pkg.AccountingEntryTypeMerchantTaxFeeCentralBankFx,
+		Source: &billing.AccountingEntrySource{
+			Id:   order.Id,
+			Type: collectionOrder,
+		},
+		MerchantId: order.GetMerchantId(),
+		Status:     pkg.BalanceTransactionStatusPending,
+		CreatedAt:  ptypes.TimestampNow(),
+		Country:    order.GetCountry(),
+		Currency:   order.GetMerchantRoyaltyCurrency(),
+	}
+
+	accountingEntries := []interface{}{ae, ae2}
 	err = suite.service.db.Collection(collectionAccountingEntry).Insert(accountingEntries...)
 	assert.NoError(suite.T(), err)
 
@@ -2475,14 +2520,14 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Chargeback_Ok() {
 	assert.Equal(suite.T(), pkg.RefundStatusCompleted, refund.Status)
 	assert.True(suite.T(), refund.IsChargeback)
 
-	order, err = suite.service.getOrderById(rsp2.Item.Order.Id)
+	order, err = suite.service.getOrderById(rsp2.Item.OriginalOrder.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), order)
 	assert.EqualValues(suite.T(), constant.OrderStatusChargeback, order.PrivateStatus)
 	assert.Equal(suite.T(), refund.Amount, order.TotalPaymentAmount)
 
 	err = suite.service.db.Collection(collectionAccountingEntry).
-		Find(bson.M{"source.id": bson.ObjectIdHex(rsp2.Item.Id), "source.type": collectionRefund}).All(&accountingEntries)
+		Find(bson.M{"source.id": bson.ObjectIdHex(refund.CreatedOrderId), "source.type": collectionRefund}).All(&accountingEntries)
 	assert.NoError(suite.T(), err)
 	assert.NotEmpty(suite.T(), accountingEntries)
 }

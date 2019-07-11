@@ -138,7 +138,7 @@ func (s *Service) CreateAccountingEntry(
 			return nil
 		}
 
-		order, err := s.getOrderById(refund.Order.Id)
+		order, err := s.getOrderById(refund.OriginalOrder.Id)
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusNotFound
@@ -390,12 +390,12 @@ func (h *accountingEntry) processPaymentEvent() error {
 	}
 
 	// 11. merchantTaxFee
-	// store to DB for future refund accounting - also calculated in order_view
-	merchantTaxFee := h.newEntry(pkg.AccountingEntryTypeMerchantTaxFee)
+	// calculated in order_view
+	/*merchantTaxFee := h.newEntry(pkg.AccountingEntryTypeMerchantTaxFee)
 	merchantTaxFee.Amount = merchantTaxFeeCostValue.Amount + merchantTaxFeeCentralBankFx.Amount
 	if err = h.addEntry(merchantTaxFee); err != nil {
 		return err
-	}
+	}*/
 
 	paymentChannelCostMerchant, err := h.getPaymentChannelCostMerchant(realGrossRevenue.Amount)
 	if err != nil {
@@ -666,23 +666,31 @@ func (h *accountingEntry) processRefundEvent() error {
 	}*/
 
 	// 12. reverseTaxFee
-	merchantTaxFee := h.newEntry("")
+	merchantTaxFeeCostValue := h.newEntry("")
 	query := bson.M{
 		"object":      pkg.ObjectTypeBalanceTransaction,
-		"type":        pkg.AccountingEntryTypeMerchantTaxFee,
+		"type":        pkg.AccountingEntryTypeMerchantTaxFeeCostValue,
 		"source.id":   bson.ObjectIdHex(h.order.Id),
 		"source.type": collectionOrder,
 	}
-	err = h.Service.db.Collection(collectionAccountingEntry).Find(query).One(&merchantTaxFee)
+	err = h.Service.db.Collection(collectionAccountingEntry).Find(query).One(&merchantTaxFeeCostValue)
 	if err != nil {
 		return err
 	}
+
+	merchantTaxFeeCentralBankFx := h.newEntry("")
+	query["type"] = pkg.AccountingEntryTypeMerchantTaxFeeCentralBankFx
+	err = h.Service.db.Collection(collectionAccountingEntry).Find(query).One(&merchantTaxFeeCentralBankFx)
+	if err != nil {
+		return err
+	}
+
 	reverseTaxFee := h.newEntry(pkg.AccountingEntryTypeReverseTaxFee)
-	reverseTaxFee.Amount = merchantTaxFee.Amount * partialRefundCorrection
-	reverseTaxFee.OriginalAmount = merchantTaxFee.OriginalAmount * partialRefundCorrection
-	reverseTaxFee.OriginalCurrency = merchantTaxFee.OriginalCurrency
-	reverseTaxFee.LocalAmount = merchantTaxFee.LocalAmount * partialRefundCorrection
-	reverseTaxFee.LocalCurrency = merchantTaxFee.LocalCurrency
+	reverseTaxFee.Amount = (merchantTaxFeeCostValue.Amount + merchantTaxFeeCentralBankFx.Amount) * partialRefundCorrection
+	reverseTaxFee.OriginalAmount = (merchantTaxFeeCostValue.OriginalAmount + merchantTaxFeeCentralBankFx.Amount) * partialRefundCorrection
+	reverseTaxFee.OriginalCurrency = merchantTaxFeeCostValue.OriginalCurrency
+	reverseTaxFee.LocalAmount = (merchantTaxFeeCostValue.LocalAmount + merchantTaxFeeCentralBankFx.Amount) * partialRefundCorrection
+	reverseTaxFee.LocalCurrency = merchantTaxFeeCostValue.LocalCurrency
 	if err = h.addEntry(reverseTaxFee); err != nil {
 		return err
 	}
@@ -913,7 +921,7 @@ func (h *accountingEntry) newEntry(entryType string) *billing.AccountingEntry {
 	var source *billing.AccountingEntrySource
 	if h.refund != nil {
 		source = &billing.AccountingEntrySource{
-			Id:   h.refund.Id,
+			Id:   h.refund.CreatedOrderId,
 			Type: collectionRefund,
 		}
 	} else {

@@ -499,13 +499,14 @@ message Order {
     CountryRestriction country_restriction = 66;
     // @inject_tag: json:"-"
     string royalty_report_id = 67;
-
     // @inject_tag: json:"-"
     string parent_id = 68;
     // @inject_tag: json:"-"
     google.protobuf.Timestamp parent_payment_at = 69;
     // @inject_tag: json:"-"
     string type = 70;
+    // @inject_tag: json:"-"
+    bool is_vat_deduction = 71;
 }
 
 message CountryRestriction {
@@ -835,7 +836,7 @@ message RefundOrder {
 
 message Refund {
     string id = 1;
-    RefundOrder order = 2;
+    RefundOrder original_order = 2;
     string external_id = 3;
     double amount = 4;
     string creatorId = 5;
@@ -847,6 +848,7 @@ message Refund {
     RefundPayerData payer_data = 11;
     float sales_tax = 12;
     bool is_chargeback = 13;
+    string created_order_id = 14;
 }
 
 message MerchantPaymentMethodHistory {
@@ -1621,8 +1623,8 @@ message OrderViewPrivate {
     OrderBillingAddress billing_address = 12;
     // @inject_tag: json:"type" bson:"type"
     string type = 13;
-    // @inject_tag: json:"is_deduction" bson:"is_deduction"
-    bool is_deduction = 14;
+    // @inject_tag: json:"is_vat_deduction" bson:"is_vat_deduction"
+    bool is_vat_deduction = 14;
     // @inject_tag: json:"payment_gross_revenue_local" bson:"payment_gross_revenue_local"
     OrderViewMoney payment_gross_revenue_local = 15;
     // @inject_tag: json:"payment_gross_revenue_origin" bson:"payment_gross_revenue_origin"

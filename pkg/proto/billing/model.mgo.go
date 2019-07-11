@@ -255,6 +255,7 @@ type MgoOrder struct {
 	ParentId                                string                      `bson:"parent_id"`
 	ParentPaymentAt                         time.Time                   `bson:"parent_payment_at"`
 	Type                                    string                      `bson:"type"`
+	IsVatDeduction                          bool                        `bson:"is_vat_deduction"`
 }
 
 type MgoOrderItem struct {
@@ -329,18 +330,19 @@ type MgoRefundOrder struct {
 }
 
 type MgoRefund struct {
-	Id           bson.ObjectId    `bson:"_id"`
-	Order        *MgoRefundOrder  `bson:"order"`
-	ExternalId   string           `bson:"external_id"`
-	Amount       float64          `bson:"amount"`
-	CreatorId    bson.ObjectId    `bson:"creator_id"`
-	Currency     string           `bson:"currency"`
-	Status       int32            `bson:"status"`
-	CreatedAt    time.Time        `bson:"created_at"`
-	UpdatedAt    time.Time        `bson:"updated_at"`
-	PayerData    *RefundPayerData `bson:"payer_data"`
-	SalesTax     float32          `bson:"sales_tax"`
-	IsChargeback bool             `bson:"is_chargeback"`
+	Id             bson.ObjectId    `bson:"_id"`
+	OriginalOrder  *MgoRefundOrder  `bson:"original_order"`
+	ExternalId     string           `bson:"external_id"`
+	Amount         float64          `bson:"amount"`
+	CreatorId      bson.ObjectId    `bson:"creator_id"`
+	Currency       string           `bson:"currency"`
+	Status         int32            `bson:"status"`
+	CreatedAt      time.Time        `bson:"created_at"`
+	UpdatedAt      time.Time        `bson:"updated_at"`
+	PayerData      *RefundPayerData `bson:"payer_data"`
+	SalesTax       float32          `bson:"sales_tax"`
+	IsChargeback   bool             `bson:"is_chargeback"`
+	CreatedOrderId bson.ObjectId    `bson:"created_order_id,omitempty"`
 }
 
 type MgoMerchantPaymentMethodHistory struct {
@@ -584,31 +586,6 @@ type MgoRoyaltyReportOrder struct {
 	Commission     float64              `bson:"commission"`
 }
 
-type MgoVatTransaction struct {
-	Id                      bson.ObjectId        `bson:"_id"`
-	OrderId                 bson.ObjectId        `bson:"order_id"`
-	TransactionId           string               `bson:"transaction_id"`
-	TransactionType         string               `bson:"transaction_type"`
-	TransactionAmount       float64              `bson:"transaction_amount"`
-	TransactionCurrency     string               `bson:"transaction_currency"`
-	VatAmount               float64              `bson:"vat_amount"`
-	VatCurrency             string               `bson:"vat_currency"`
-	FeesAmount              float64              `bson:"fees_amount"`
-	FeesCurrency            string               `bson:"fees_currency"`
-	LocalTransactionAmount  float64              `bson:"local_transaction_amount"`
-	LocalVatAmount          float64              `bson:"local_vat_amount"`
-	LocalFeesAmount         float64              `bson:"local_fees_amount"`
-	LocalCurrency           string               `bson:"local_currency"`
-	LocalAmountsApproximate bool                 `bson:"local_amounts_approximate"`
-	BillingAddressCriteria  string               `bson:"billing_address_criteria"`
-	BillingAddress          *OrderBillingAddress `bson:"billing_address"`
-	UserId                  bson.ObjectId        `bson:"user_id"`
-	PaymentMethod           string               `bson:"payment_method"`
-	IsDeduction             bool                 `bson:"is_deduction"`
-	Country                 string               `bson:"country"`
-	DateTime                time.Time            `bson:"date_time"`
-}
-
 type MgoVatReport struct {
 	Id                    bson.ObjectId `bson:"_id"`
 	Country               string        `bson:"country"`
@@ -643,7 +620,7 @@ type MgoOrderViewPrivate struct {
 	User                                       *OrderUser             `bson:"user"`
 	BillingAddress                             *OrderBillingAddress   `bson:"billing_address"`
 	Type                                       string                 `bson:"type"`
-	IsDeduction                                bool                   `bson:"is_deduction"`
+	IsVatDeduction                             bool                   `bson:"is_vat_deduction"`
 	PaymentGrossRevenueLocal                   *OrderViewMoney        `bson:"payment_gross_revenue_local"`
 	PaymentGrossRevenueOrigin                  *OrderViewMoney        `bson:"payment_gross_revenue_origin"`
 	PaymentGrossRevenue                        *OrderViewMoney        `bson:"payment_gross_revenue"`
@@ -1264,6 +1241,7 @@ func (m *Order) GetBSON() (interface{}, error) {
 		RoyaltyReportId:                         m.RoyaltyReportId,
 		ParentId:                                m.ParentId,
 		Type:                                    m.Type,
+		IsVatDeduction:                          m.IsVatDeduction,
 	}
 
 	if m.Refund != nil {
@@ -1542,6 +1520,7 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.RoyaltyReportId = decoded.RoyaltyReportId
 	m.ParentId = decoded.ParentId
 	m.Type = decoded.Type
+	m.IsVatDeduction = decoded.IsVatDeduction
 
 	m.PaymentMethodOrderClosedAt, err = ptypes.TimestampProto(decoded.PaymentMethodOrderClosedAt)
 	if err != nil {
@@ -2093,9 +2072,9 @@ func (m *Notification) SetBSON(raw bson.Raw) error {
 
 func (m *Refund) GetBSON() (interface{}, error) {
 	st := &MgoRefund{
-		Order: &MgoRefundOrder{
-			Id:   bson.ObjectIdHex(m.Order.Id),
-			Uuid: m.Order.Uuid,
+		OriginalOrder: &MgoRefundOrder{
+			Id:   bson.ObjectIdHex(m.OriginalOrder.Id),
+			Uuid: m.OriginalOrder.Uuid,
 		},
 		ExternalId:   m.ExternalId,
 		Amount:       m.Amount,
@@ -2115,6 +2094,14 @@ func (m *Refund) GetBSON() (interface{}, error) {
 		}
 
 		st.Id = bson.ObjectIdHex(m.Id)
+	}
+
+	if m.CreatedOrderId != "" {
+		if bson.IsObjectIdHex(m.CreatedOrderId) == false {
+			return nil, errors.New(errorInvalidObjectId)
+		}
+
+		st.CreatedOrderId = bson.ObjectIdHex(m.CreatedOrderId)
 	}
 
 	if m.CreatedAt != nil {
@@ -2153,9 +2140,9 @@ func (m *Refund) SetBSON(raw bson.Raw) error {
 	}
 
 	m.Id = decoded.Id.Hex()
-	m.Order = &RefundOrder{
-		Id:   decoded.Order.Id.Hex(),
-		Uuid: decoded.Order.Uuid,
+	m.OriginalOrder = &RefundOrder{
+		Id:   decoded.OriginalOrder.Id.Hex(),
+		Uuid: decoded.OriginalOrder.Uuid,
 	}
 	m.ExternalId = decoded.ExternalId
 	m.Amount = decoded.Amount
@@ -2165,6 +2152,7 @@ func (m *Refund) SetBSON(raw bson.Raw) error {
 	m.PayerData = decoded.PayerData
 	m.SalesTax = decoded.SalesTax
 	m.IsChargeback = decoded.IsChargeback
+	m.CreatedOrderId = decoded.CreatedOrderId.Hex()
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 
@@ -2872,105 +2860,6 @@ func (m *PayoutCostSystem) SetBSON(raw bson.Raw) error {
 	return nil
 }
 
-func (m *VatTransaction) GetBSON() (interface{}, error) {
-	st := &MgoVatTransaction{
-		TransactionId:           m.TransactionId,
-		TransactionType:         m.TransactionType,
-		TransactionAmount:       m.TransactionAmount,
-		TransactionCurrency:     m.TransactionCurrency,
-		VatAmount:               m.VatAmount,
-		VatCurrency:             m.VatCurrency,
-		FeesAmount:              m.FeesAmount,
-		FeesCurrency:            m.FeesCurrency,
-		LocalTransactionAmount:  m.LocalTransactionAmount,
-		LocalVatAmount:          m.LocalVatAmount,
-		LocalFeesAmount:         m.LocalFeesAmount,
-		LocalCurrency:           m.LocalCurrency,
-		LocalAmountsApproximate: m.LocalAmountsApproximate,
-		BillingAddressCriteria:  m.BillingAddressCriteria,
-		BillingAddress:          m.BillingAddress,
-		PaymentMethod:           m.PaymentMethod,
-		IsDeduction:             m.IsDeduction,
-		Country:                 m.Country,
-	}
-
-	if st.Country == "" && st.BillingAddress != nil {
-		st.Country = st.BillingAddress.Country
-	}
-
-	if len(m.Id) <= 0 {
-		st.Id = bson.NewObjectId()
-	} else {
-		if bson.IsObjectIdHex(m.Id) == false {
-			return nil, errors.New(errorInvalidObjectId)
-		}
-		st.Id = bson.ObjectIdHex(m.Id)
-	}
-
-	if len(m.OrderId) <= 0 {
-		return nil, errors.New(errorInvalidObjectId)
-	} else {
-		if bson.IsObjectIdHex(m.OrderId) == false {
-			return nil, errors.New(errorInvalidObjectId)
-		}
-		st.OrderId = bson.ObjectIdHex(m.OrderId)
-	}
-
-	if len(m.UserId) <= 0 {
-		return nil, errors.New(errorInvalidObjectId)
-	} else {
-		if bson.IsObjectIdHex(m.UserId) == false {
-			return nil, errors.New(errorInvalidObjectId)
-		}
-		st.UserId = bson.ObjectIdHex(m.UserId)
-	}
-
-	t, err := ptypes.Timestamp(m.DateTime)
-	if err != nil {
-		return nil, err
-	}
-	st.DateTime = t
-
-	return st, nil
-}
-
-func (m *VatTransaction) SetBSON(raw bson.Raw) error {
-	decoded := new(MgoVatTransaction)
-	err := raw.Unmarshal(decoded)
-
-	if err != nil {
-		return err
-	}
-	m.Id = decoded.Id.Hex()
-	m.OrderId = decoded.OrderId.Hex()
-	m.TransactionId = decoded.TransactionId
-	m.TransactionType = decoded.TransactionType
-	m.TransactionAmount = decoded.TransactionAmount
-	m.TransactionCurrency = decoded.TransactionCurrency
-	m.VatAmount = decoded.VatAmount
-	m.VatCurrency = decoded.VatCurrency
-	m.FeesAmount = decoded.FeesAmount
-	m.FeesCurrency = decoded.FeesCurrency
-	m.LocalTransactionAmount = decoded.LocalTransactionAmount
-	m.LocalVatAmount = decoded.LocalVatAmount
-	m.LocalFeesAmount = decoded.LocalFeesAmount
-	m.LocalCurrency = decoded.LocalCurrency
-	m.LocalAmountsApproximate = decoded.LocalAmountsApproximate
-	m.BillingAddressCriteria = decoded.BillingAddressCriteria
-	m.BillingAddress = decoded.BillingAddress
-	m.UserId = decoded.UserId.Hex()
-	m.PaymentMethod = decoded.PaymentMethod
-	m.IsDeduction = decoded.IsDeduction
-	m.Country = decoded.Country
-
-	m.DateTime, err = ptypes.TimestampProto(decoded.DateTime)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (m *VatReport) GetBSON() (interface{}, error) {
 	st := &MgoVatReport{
 		Country:               m.Country,
@@ -3448,7 +3337,7 @@ func (m *OrderViewPrivate) SetBSON(raw bson.Raw) error {
 	m.Country = decoded.Country
 	m.Locale = decoded.Locale
 	m.Type = decoded.Type
-	m.IsDeduction = decoded.IsDeduction
+	m.IsVatDeduction = decoded.IsVatDeduction
 	m.PaymentGrossRevenueLocal = getOrderViewMoney(decoded.PaymentGrossRevenueLocal)
 	m.PaymentGrossRevenueOrigin = getOrderViewMoney(decoded.PaymentGrossRevenueOrigin)
 	m.PaymentGrossRevenue = getOrderViewMoney(decoded.PaymentGrossRevenue)
