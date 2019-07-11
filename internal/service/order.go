@@ -301,7 +301,7 @@ func (s *Service) OrderCreateProcess(
 	err = s.db.Collection(collectionOrder).Insert(order)
 
 	if err != nil {
-		zap.S().Errorw(fmt.Sprintf(errorQueryMask, collectionOrder), "err", err, "inserted_data", order)
+		zap.S().Errorw(fmt.Sprintf(errorQueryMask, collectionOrder), "err", err.Error(), "inserted_data", order)
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = orderErrorCanNotCreate
 		return nil
@@ -1194,7 +1194,8 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 	}
 
 	order := &billing.Order{
-		Id: id,
+		Id:   id,
+		Type: pkg.OrderTypeOrder,
 		Project: &billing.ProjectOrder{
 			Id:                   v.checked.project.Id,
 			Name:                 v.checked.project.Name,

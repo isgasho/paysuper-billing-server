@@ -157,6 +157,10 @@ const (
 	PaySuperDeclineCodeNoPaymentWasReceived             = "ps000017"
 	PaySuperDeclineCodeWrongPaymentWasReceived          = "ps000018"
 	PaySuperDeclineCodeConfirmationsPaymentTimeout      = "ps000019"
+
+	OrderTypeOrder      = "order"
+	OrderTypeRefund     = "refund"
+	OrderTypeChagreback = "chagreback"
 )
 
 var (

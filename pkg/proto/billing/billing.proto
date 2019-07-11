@@ -587,6 +587,13 @@ message Order {
 
     // @inject_tag: json:"-"
     OrderPaymentRoyaltyData payment_royalty_data = 67;
+
+    // @inject_tag: json:"-"
+    string parent_id = 68;
+    // @inject_tag: json:"-"
+    google.protobuf.Timestamp parent_payment_at = 69;
+    // @inject_tag: json:"-"
+    string type = 70;
 }
 
 message CountryRestriction {

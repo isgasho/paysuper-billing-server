@@ -20,6 +20,7 @@ message CardPayItem {
 }
 
 message CardPayMerchantOrder {
+    //// @inject_tag: validate:"required,hexadecimal,len=24"
     string id = 1;
     string description = 2;
     repeated CardPayItem items = 3;
@@ -119,7 +120,7 @@ message CardPayRefundCallbackRefundData {
 }
 
 message CardPayRefundCallbackPaymentData {
-    // @inject_tag: validate:"required,hexadecimal,len=24"
+    // @inject_tag: validate:"required"
     string id = 1;
     // @inject_tag: validate:"numeric,gte=0"
     double remaining_amount = 2;
