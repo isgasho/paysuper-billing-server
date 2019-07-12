@@ -111,6 +111,8 @@ var (
 	orderErrorSignatureInvalid                                = newBillingServerErrorMsg("fm000048", "request signature is invalid")
 	orderErrorZipCodeNotFound                                 = newBillingServerErrorMsg("fm000050", "zip_code not found")
 	orderErrorProductsPrice                                   = newBillingServerErrorMsg("fm000051", "can't get product price")
+	orderErrorCheckoutWithoutProducts                         = newBillingServerErrorMsg("fm000052", "order products not specified")
+	orderErrorCheckoutWithoutAmount                           = newBillingServerErrorMsg("fm000053", "order amount not specified")
 )
 
 type orderCreateRequestProcessorChecked struct {
@@ -209,6 +211,18 @@ func (s *Service) OrderCreateProcess(
 		}
 	}
 
+	if processor.checked.project.IsProductsCheckout == true && req.Amount > float64(0) {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = orderErrorCheckoutWithoutProducts
+		return nil
+	}
+
+	if processor.checked.project.IsProductsCheckout == false && req.Products != nil {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = orderErrorCheckoutWithoutAmount
+		return nil
+	}
+
 	if req.User != nil {
 		err := processor.processUserData()
 
@@ -281,10 +295,12 @@ func (s *Service) OrderCreateProcess(
 		}
 	}
 
-	if err := processor.processLimitAmounts(); err != nil {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
-		return nil
+	if processor.checked.project.IsProductsCheckout == false {
+		if err := processor.processLimitAmounts(); err != nil {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			return nil
+		}
 	}
 
 	processor.processMetadata()
