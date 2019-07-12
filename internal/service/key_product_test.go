@@ -135,7 +135,7 @@ func (suite *KeyProductTestSuite) GetKeyProduct_Test() {
 	shouldBe.NotNil(product.UpdatedAt)
 	shouldBe.NotNil(product.CreatedAt)
 	shouldBe.Nil(product.PublishedAt)
-	shouldBe.False(product.IsPublished)
+	shouldBe.False(product.Enabled)
 
 	err = suite.service.GetKeyProduct(context.TODO(), &grpc.RequestKeyProduct{Id: res.Id, MerchantId: ""}, &product)
 	shouldBe.NotNil(err)
@@ -185,7 +185,7 @@ func (suite *KeyProductTestSuite) CreateOrUpdateKeyProduct_Test() {
 	shouldBe.NotNil(res.UpdatedAt)
 	shouldBe.NotNil(res.CreatedAt)
 	shouldBe.Nil(res.PublishedAt)
-	shouldBe.False(res.IsPublished)
+	shouldBe.False(res.Enabled)
 	shouldBe.NotEmpty(res.Id)
 
 	req.Id = res.Id
@@ -210,5 +210,250 @@ func (suite *KeyProductTestSuite) CreateOrUpdateKeyProduct_Test() {
 	req.MerchantId = res.MerchantId
 	req.ProjectId = bson.NewObjectId().Hex()
 	err = suite.service.CreateOrUpdateKeyProduct(context.TODO(), req, &res2)
+	shouldBe.NotNil(err)
+}
+
+func (suite *KeyProductTestSuite) GetKeyProducts_Test() {
+	shouldBe := require.New(suite.T())
+
+	req := &grpc.ListKeyProductsRequest{
+		MerchantId: merchantId,
+		ProjectId:  projectId,
+	}
+	res := &grpc.ListKeyProductsResponse{}
+	err := suite.service.GetKeyProducts(context.TODO(), req, res)
+	shouldBe.Nil(err)
+	shouldBe.Equal(0, res.Count)
+	shouldBe.Equal(0, res.Offset)
+	shouldBe.Equal(0, len(res.Products))
+
+	for i := 0; i < 10; i++ {
+		suite.createKeyProduct()
+	}
+
+	err = suite.service.GetKeyProducts(context.TODO(), req, res)
+	shouldBe.Nil(err)
+	shouldBe.Equal(10, res.Count)
+	shouldBe.Equal(0, res.Offset)
+	shouldBe.Equal(10, len(res.Products))
+
+	req.Offset = 9
+	err = suite.service.GetKeyProducts(context.TODO(), req, res)
+	shouldBe.Nil(err)
+	shouldBe.Equal(10, res.Count)
+	shouldBe.Equal(1, len(res.Products))
+
+	req.Offset = 0
+	req.Limit = 2
+	err = suite.service.GetKeyProducts(context.TODO(), req, res)
+	shouldBe.Nil(err)
+	shouldBe.Equal(10, res.Count)
+	shouldBe.Equal(2, len(res.Products))
+
+	req.Offset = 0
+	req.Limit = 0
+	req.Sku = "some sku"
+	req.Name = "some name"
+	err = suite.service.GetKeyProducts(context.TODO(), req, res)
+	shouldBe.Nil(err)
+
+}
+
+func (suite *KeyProductTestSuite) getKeyProduct(id string) *grpc.KeyProduct {
+	suite.T().Helper()
+
+	res := &grpc.KeyProduct{}
+	err := suite.service.GetKeyProduct(context.TODO(), &grpc.RequestKeyProduct{MerchantId: merchantId, Id: id}, res)
+	assert.Nil(suite.T(), err)
+	return res
+}
+
+func (suite *KeyProductTestSuite) createKeyProduct() *grpc.KeyProduct {
+	suite.T().Helper()
+
+	req := &grpc.CreateOrUpdateKeyProductRequest{
+		Object:          "product",
+		Sku:             bson.NewObjectId().Hex(),
+		Name:            map[string]string{"en": initialName},
+		DefaultCurrency: "USD",
+		Enabled:         true,
+		Description:     map[string]string{"en": "blah-blah-blah"},
+		LongDescription: map[string]string{"en": "Super game steam keys"},
+		Url:             "http://test.ru/dffdsfsfs",
+		Images:          []string{"/home/image.jpg"},
+		MerchantId:      merchantId,
+		ProjectId:       projectId,
+		Metadata: map[string]string{
+			"SomeKey": "SomeValue",
+		},
+	}
+
+	res := &grpc.KeyProduct{}
+	err := suite.service.CreateOrUpdateKeyProduct(context.TODO(), req, res)
+	assert.Nil(suite.T(), err)
+	return res
+}
+
+func (suite *KeyProductTestSuite) UpdatePlatformPrices_Test() {
+	shouldBe := require.New(suite.T())
+	product := suite.createKeyProduct()
+	req := &grpc.AddOrUpdatePlatformPricesRequest{
+		MerchantId:   merchantId,
+		KeyProductId: product.Id,
+		Platform: &grpc.PlatformPrice{
+			Id: "steam",
+			Prices: []*grpc.ProductPrice{
+				{Currency: "RUB", Amount: 66.66},
+			},
+		},
+	}
+	res := &grpc.PlatformPrice{}
+	err := suite.service.UpdatePlatformPrices(context.TODO(), req, res)
+	shouldBe.Nil(err)
+
+	shouldBe.Equal(1, len(res.Prices))
+	shouldBe.Equal(66.66, res.Prices[0].Amount)
+	shouldBe.Equal("RUB", res.Prices[0].Currency)
+
+	req = &grpc.AddOrUpdatePlatformPricesRequest{
+		MerchantId:   merchantId,
+		KeyProductId: product.Id,
+		Platform: &grpc.PlatformPrice{
+			Id: "steam",
+			Prices: []*grpc.ProductPrice{
+				{Currency: "EUR", Amount: 77.77},
+			},
+		},
+	}
+	res = &grpc.PlatformPrice{}
+	err = suite.service.UpdatePlatformPrices(context.TODO(), req, res)
+	shouldBe.Nil(err)
+
+	shouldBe.Equal(1, len(res.Prices))
+	shouldBe.Equal(77.77, res.Prices[0].Amount)
+	shouldBe.Equal("EUR", res.Prices[0].Currency)
+
+	req = &grpc.AddOrUpdatePlatformPricesRequest{
+		MerchantId:   merchantId,
+		KeyProductId: product.Id,
+		Platform: &grpc.PlatformPrice{
+			Id: "gog",
+			Prices: []*grpc.ProductPrice{
+				{Currency: "RUB", Amount: 33.33},
+			},
+		},
+	}
+	res = &grpc.PlatformPrice{}
+	err = suite.service.UpdatePlatformPrices(context.TODO(), req, res)
+	shouldBe.Nil(err)
+	shouldBe.Equal(1, len(res.Prices))
+
+	req = &grpc.AddOrUpdatePlatformPricesRequest{
+		MerchantId:   merchantId,
+		KeyProductId: product.Id,
+		Platform: &grpc.PlatformPrice{
+			Id:            "best_store_ever",
+			EulaUrl:       "http://www.example.com",
+			ActivationUrl: "http://www.example.com",
+			Prices: []*grpc.ProductPrice{
+				{Currency: "RUB", Amount: 0.01},
+			},
+		},
+	}
+	res = &grpc.PlatformPrice{}
+	err = suite.service.UpdatePlatformPrices(context.TODO(), req, res)
+	shouldBe.NotNil(err)
+
+	req = &grpc.AddOrUpdatePlatformPricesRequest{
+		MerchantId:   merchantId,
+		KeyProductId: product.Id,
+		Platform: &grpc.PlatformPrice{
+			Id:            "best_store_ever",
+			Name:          "The Best Store EVER",
+			ActivationUrl: "http://www.example.com",
+			Prices: []*grpc.ProductPrice{
+				{Currency: "RUB", Amount: 0.01},
+			},
+		},
+	}
+	res = &grpc.PlatformPrice{}
+	err = suite.service.UpdatePlatformPrices(context.TODO(), req, res)
+	shouldBe.NotNil(err)
+
+	req = &grpc.AddOrUpdatePlatformPricesRequest{
+		MerchantId:   merchantId,
+		KeyProductId: product.Id,
+		Platform: &grpc.PlatformPrice{
+			Id:      "best_store_ever",
+			Name:    "The Best Store EVER",
+			EulaUrl: "http://www.example.com",
+			Prices: []*grpc.ProductPrice{
+				{Currency: "RUB", Amount: 0.01},
+			},
+		},
+	}
+	res = &grpc.PlatformPrice{}
+	err = suite.service.UpdatePlatformPrices(context.TODO(), req, res)
+	shouldBe.NotNil(err)
+
+	req = &grpc.AddOrUpdatePlatformPricesRequest{
+		MerchantId:   merchantId,
+		KeyProductId: product.Id,
+		Platform: &grpc.PlatformPrice{
+			Id:            "best_store_ever",
+			Name:          "The Best Store EVER",
+			EulaUrl:       "http://www.example.com",
+			ActivationUrl: "http://www.example.com",
+			Prices: []*grpc.ProductPrice{
+				{Currency: "RUB", Amount: 0.01},
+			},
+		},
+	}
+	res = &grpc.PlatformPrice{}
+	err = suite.service.UpdatePlatformPrices(context.TODO(), req, res)
+	shouldBe.Nil(err)
+	shouldBe.Equal(1, len(res.Prices))
+
+	req = &grpc.AddOrUpdatePlatformPricesRequest{
+		MerchantId:   merchantId,
+		KeyProductId: product.Id,
+		Platform: &grpc.PlatformPrice{
+			Id:            "best_store_ever_another",
+			Name:          "The Best Store EVER",
+			EulaUrl:       "http://www.example.com",
+			ActivationUrl: "http://www.example.com",
+			Prices: []*grpc.ProductPrice{
+				{Currency: "RUB", Amount: 0.01},
+			},
+		},
+	}
+	res = &grpc.PlatformPrice{}
+	err = suite.service.UpdatePlatformPrices(context.TODO(), req, res)
+	shouldBe.NotNil(err)
+}
+
+func (suite *KeyProductTestSuite) PublishKeyProduct_Test() {
+	shouldBe := require.New(suite.T())
+
+	product := suite.createKeyProduct()
+	req := &grpc.PublishKeyProductRequest{
+		KeyProductId: product.Id,
+		MerchantId:   merchantId,
+	}
+	res := &grpc.KeyProduct{}
+	err := suite.service.PublishKeyProduct(context.TODO(), req, res)
+	shouldBe.Nil(err)
+	shouldBe.True(res.Enabled)
+	shouldBe.NotNil(res.PublishedAt)
+}
+
+func (suite *KeyProductTestSuite) DeleteKeyProduct_Test() {
+	shouldBe := require.New(suite.T())
+	product := suite.createKeyProduct()
+
+	err := suite.service.DeleteKeyProduct(context.TODO(), &grpc.RequestKeyProduct{Id: product.Id, MerchantId: merchantId}, &grpc.EmptyResponse{})
+	shouldBe.Nil(err)
+
+	err = suite.service.DeleteKeyProduct(context.TODO(), &grpc.RequestKeyProduct{Id: product.Id, MerchantId: merchantId}, &grpc.EmptyResponse{})
 	shouldBe.NotNil(err)
 }

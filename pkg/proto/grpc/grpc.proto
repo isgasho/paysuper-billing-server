@@ -775,23 +775,26 @@ message KeyProduct {
     bool deleted = 18;
     //@inject_tag: json:"published_at"
     google.protobuf.Timestamp published_at = 19;
-    //@inject_tag: json:"is_published"
-    bool is_published = 20;
 }
 
 message PlatformPrice {
     //@inject_tag: validate:"required" json:"id"
     string id = 1;
-    //@inject_tag: validate:"required" json:"name"
+    //@inject_tag: json:"name"
     string name = 2;
     //@inject_tag: validate:"required,min=1,dive" json:"prices"
     repeated ProductPrice prices = 3;
+    //@inject_tag: validate:"url" json:"eula_url"
+    string eula_url = 4;
+    //@inject_tag: validate:"url" json:"activation_url"
+    string activation_url = 5;
+
 }
 
 message Platform {
     //@inject_tag: validate:"required" json:"id"
     string id = 1;
-    //@inject_tag: validate:"required" json:"name"
+    //@inject_tag: json:"name"
     string name = 2;
 }
 
