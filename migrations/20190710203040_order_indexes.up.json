@@ -1,0 +1,36 @@
+[
+  {
+    "createIndexes": "order",
+    "indexes": [
+      {
+        "key": {
+          "pm_order_close_date": 1
+        },
+        "name": "order_close_date"
+      }
+    ]
+  },
+  {
+    "createIndexes": "order",
+    "indexes": [
+      {
+        "key": {
+          "user.address.country": 1,
+          "billing_address.country": 1
+        },
+        "name": "country"
+      }
+    ]
+  },
+  {
+    "createIndexes": "order",
+    "indexes": [
+      {
+        "key": {
+          "type": 1
+        },
+        "name": "order_type"
+      }
+    ]
+  }
+]

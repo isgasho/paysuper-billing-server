@@ -274,7 +274,12 @@ func (h Country) GetCountriesWithVatEnabled() (*billing.CountriesList, error) {
 	}
 
 	if err := h.svc.db.Collection(collectionCountry).
-		Find(bson.M{"vat_enabled": true, "iso_code_a2": bson.M{"$ne": "US"}}).
+		Find(bson.M{
+			"vat_enabled":               true,
+			"iso_code_a2":               bson.M{"$ne": "US"},
+			"vat_currency_rates_policy": bson.M{"$ne": ""},
+			"vat_period_month":          bson.M{"$gt": 0},
+		}).
 		Sort("iso_code_a2").
 		All(&c.Countries); err != nil {
 		return nil, fmt.Errorf(errorNotFound, collectionCountry)

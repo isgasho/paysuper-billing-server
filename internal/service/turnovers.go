@@ -20,6 +20,9 @@ import (
 const (
 	collectionAnnualTurnovers = "annual_turnovers"
 	cacheTurnoverKey          = "turnover:country:%s:year:%d"
+
+	errorCannotCalculateTurnoverCountry = "can not calculate turnover for country"
+	errorCannotCalculateTurnoverWorld   = "can not calculate turnover for world"
 )
 
 var (
@@ -44,13 +47,20 @@ func (s *Service) CalcAnnualTurnovers(ctx context.Context, req *grpc.EmptyReques
 	for _, country := range countries.Countries {
 		err = s.calcAnnualTurnover(ctx, country.IsoCodeA2)
 		if err != nil {
-			return err
+			zap.L().Error(
+				errorCannotCalculateTurnoverCountry,
+				zap.Error(err),
+				zap.String("country", country.IsoCodeA2),
+			)
 		}
 	}
 
 	err = s.calcAnnualTurnover(ctx, "")
 	if err != nil {
-		return err
+		zap.L().Error(
+			errorCannotCalculateTurnoverWorld,
+			zap.Error(err),
+		)
 	}
 
 	return nil

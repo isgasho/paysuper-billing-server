@@ -250,6 +250,7 @@ func (s *Service) ProcessRefundCallback(
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusSystemError
 			rsp.Error = err.Error()
+			return nil
 		}
 	}
 

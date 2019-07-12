@@ -591,14 +591,15 @@ type MgoVatReport struct {
 type MgoOrderViewPrivate struct {
 	Id                                         bson.ObjectId          `bson:"_id"`
 	Uuid                                       string                 `bson:"uuid"`
+	TotalPaymentAmount                         float64                `bson:"total_payment_amount"`
+	Currency                                   string                 `bson:"currency"`
 	Project                                    *MgoOrderProject       `bson:"project"`
 	CreatedAt                                  time.Time              `bson:"created_at"`
 	Transaction                                string                 `bson:"pm_order_id"`
 	PaymentMethod                              *MgoOrderPaymentMethod `bson:"payment_method"`
 	Country                                    string                 `bson:"country"`
 	Locale                                     string                 `bson:"locale"`
-	ClosedAt                                   time.Time              `bson:"pm_order_close_date"`
-	CanceledAt                                 time.Time              `bson:"canceled_at"`
+	TransactionDate                            time.Time              `bson:"pm_order_close_date"`
 	User                                       *OrderUser             `bson:"user"`
 	BillingAddress                             *OrderBillingAddress   `bson:"billing_address"`
 	Type                                       string                 `bson:"type"`
@@ -635,6 +636,9 @@ type MgoOrderViewPrivate struct {
 	PaymentRefundGrossRevenueLocal             *OrderViewMoney        `bson:"payment_refund_gross_revenue_local"`
 	PaymentRefundGrossRevenueOrigin            *OrderViewMoney        `bson:"payment_refund_gross_revenue_origin"`
 	PaymentRefundGrossRevenue                  *OrderViewMoney        `bson:"payment_refund_gross_revenue"`
+	PaymentRefundTaxFee                        *OrderViewMoney        `bson:"payment_refund_tax_fee"`
+	PaymentRefundTaxFeeLocal                   *OrderViewMoney        `bson:"payment_refund_tax_fee_local"`
+	PaymentRefundTaxFeeOrigin                  *OrderViewMoney        `bson:"payment_refund_tax_fee_origin"`
 	PaymentRefundFeeTariff                     *OrderViewMoney        `bson:"payment_refund_fee_tariff"`
 	MethodRefundFixedFeeTariff                 *OrderViewMoney        `bson:"method_refund_fixed_fee_tariff"`
 	RefundGrossRevenue                         *OrderViewMoney        `bson:"refund_gross_revenue"`
@@ -647,9 +651,6 @@ type MgoOrderViewPrivate struct {
 	RefundTaxFee                               *OrderViewMoney        `bson:"refund_tax_fee"`
 	RefundTaxFeeCurrencyExchangeFee            *OrderViewMoney        `bson:"refund_tax_fee_currency_exchange_fee"`
 	PaysuperRefundTaxFeeCurrencyExchangeFee    *OrderViewMoney        `bson:"paysuper_refund_tax_fee_currency_exchange_fee"`
-	PaysuperRefundTaxFeeTotalLocal             *OrderViewMoney        `bson:"paysuper_refund_tax_fee_total_local"`
-	PaysuperRefundTaxFeeTotalOrigin            *OrderViewMoney        `bson:"paysuper_refund_tax_fee_total_origin"`
-	PaysuperRefundTaxFeeTotal                  *OrderViewMoney        `bson:"paysuper_refund_tax_fee_total"`
 	RefundTaxFeeTotal                          *OrderViewMoney        `bson:"refund_tax_fee_total"`
 	RefundReverseRevenue                       *OrderViewMoney        `bson:"refund_reverse_revenue"`
 	RefundFeesTotal                            *OrderViewMoney        `bson:"refund_fees_total"`
@@ -657,36 +658,38 @@ type MgoOrderViewPrivate struct {
 }
 
 type MgoOrderViewPublic struct {
-	Id                           bson.ObjectId          `bson:"_id"`
-	Uuid                         string                 `bson:"uuid"`
-	Project                      *MgoOrderProject       `bson:"project"`
-	CreatedAt                    time.Time              `bson:"created_at"`
-	Transaction                  string                 `bson:"pm_order_id"`
-	PaymentMethod                *MgoOrderPaymentMethod `bson:"payment_method"`
-	Country                      string                 `bson:"country"`
-	Locale                       string                 `bson:"locale"`
-	ClosedAt                     time.Time              `bson:"pm_order_close_date"`
-	CanceledAt                   time.Time              `bson:"canceled_at"`
-	User                         *OrderUser             `bson:"user"`
-	BillingAddress               *OrderBillingAddress   `bson:"billing_address"`
-	Type                         string                 `bson:"type"`
-	GrossRevenue                 *OrderViewMoney        `bson:"gross_revenue"`
-	TaxFee                       *OrderViewMoney        `bson:"tax_fee"`
-	TaxFeeCurrencyExchangeFee    *OrderViewMoney        `bson:"tax_fee_currency_exchange_fee"`
-	TaxFeeTotal                  *OrderViewMoney        `bson:"tax_fee_total"`
-	MethodFeeTotal               *OrderViewMoney        `bson:"method_fee_total"`
-	MethodFeeTariff              *OrderViewMoney        `bson:"method_fee_tariff"`
-	MethodFixedFeeTariff         *OrderViewMoney        `bson:"method_fixed_fee_tariff"`
-	PaysuperFixedFee             *OrderViewMoney        `bson:"paysuper_fixed_fee"`
-	FeesTotal                    *OrderViewMoney        `bson:"fees_total"`
-	NetRevenue                   *OrderViewMoney        `bson:"net_revenue"`
-	RefundGrossRevenue           *OrderViewMoney        `bson:"refund_gross_revenue"`
-	MethodRefundFeeTariff        *OrderViewMoney        `bson:"method_refund_fee_tariff"`
-	MerchantRefundFixedFeeTariff *OrderViewMoney        `bson:"merchant_refund_fixed_fee_tariff"`
-	RefundTaxFee                 *OrderViewMoney        `bson:"refund_tax_fee"`
-	RefundTaxFeeTotal            *OrderViewMoney        `bson:"refund_tax_fee_total"`
-	RefundReverseRevenue         *OrderViewMoney        `bson:"refund_reverse_revenue"`
-	RefundFeesTotal              *OrderViewMoney        `bson:"refund_fees_total"`
+	Id                                      bson.ObjectId          `bson:"_id"`
+	Uuid                                    string                 `bson:"uuid"`
+	TotalPaymentAmount                      float64                `bson:"total_payment_amount"`
+	Currency                                string                 `bson:"currency"`
+	Project                                 *MgoOrderProject       `bson:"project"`
+	CreatedAt                               time.Time              `bson:"created_at"`
+	Transaction                             string                 `bson:"pm_order_id"`
+	PaymentMethod                           *MgoOrderPaymentMethod `bson:"payment_method"`
+	Country                                 string                 `bson:"country"`
+	Locale                                  string                 `bson:"locale"`
+	TransactionDate                         time.Time              `bson:"pm_order_close_date"`
+	User                                    *OrderUser             `bson:"user"`
+	BillingAddress                          *OrderBillingAddress   `bson:"billing_address"`
+	Type                                    string                 `bson:"type"`
+	IsVatDeduction                          bool                   `bson:"is_vat_deduction"`
+	GrossRevenue                            *OrderViewMoney        `bson:"gross_revenue"`
+	TaxFee                                  *OrderViewMoney        `bson:"tax_fee"`
+	TaxFeeCurrencyExchangeFee               *OrderViewMoney        `bson:"tax_fee_currency_exchange_fee"`
+	TaxFeeTotal                             *OrderViewMoney        `bson:"tax_fee_total"`
+	MethodFeeTotal                          *OrderViewMoney        `bson:"method_fee_total"`
+	MethodFeeTariff                         *OrderViewMoney        `bson:"method_fee_tariff"`
+	MethodFixedFeeTariff                    *OrderViewMoney        `bson:"method_fixed_fee_tariff"`
+	PaysuperFixedFee                        *OrderViewMoney        `bson:"paysuper_fixed_fee"`
+	FeesTotal                               *OrderViewMoney        `bson:"fees_total"`
+	NetRevenue                              *OrderViewMoney        `bson:"net_revenue"`
+	RefundGrossRevenue                      *OrderViewMoney        `bson:"refund_gross_revenue"`
+	MethodRefundFeeTariff                   *OrderViewMoney        `bson:"method_refund_fee_tariff"`
+	MerchantRefundFixedFeeTariff            *OrderViewMoney        `bson:"merchant_refund_fixed_fee_tariff"`
+	RefundTaxFee                            *OrderViewMoney        `bson:"refund_tax_fee"`
+	RefundTaxFeeCurrencyExchangeFee         *OrderViewMoney        `bson:"refund_tax_fee_currency_exchange_fee"`
+	PaysuperRefundTaxFeeCurrencyExchangeFee *OrderViewMoney        `bson:"paysuper_refund_tax_fee_currency_exchange_fee"`
+	RefundReverseRevenue                    *OrderViewMoney        `bson:"refund_reverse_revenue"`
 }
 
 func (m *Country) GetBSON() (interface{}, error) {
@@ -3278,13 +3281,18 @@ func (m *OrderViewPrivate) SetBSON(raw bson.Raw) error {
 
 	m.Id = decoded.Id.Hex()
 	m.Uuid = decoded.Uuid
+	m.TotalPaymentAmount = decoded.TotalPaymentAmount
+	m.Currency = decoded.Currency
+	m.Project = getOrderProject(decoded.Project)
 	m.Transaction = decoded.Transaction
-	m.BillingAddress = decoded.BillingAddress
-	m.User = decoded.User
+	m.PaymentMethod = getPaymentMethodOrder(decoded.PaymentMethod)
 	m.Country = decoded.Country
 	m.Locale = decoded.Locale
+	m.User = decoded.User
+	m.BillingAddress = decoded.BillingAddress
 	m.Type = decoded.Type
 	m.IsVatDeduction = decoded.IsVatDeduction
+
 	m.PaymentGrossRevenueLocal = getOrderViewMoney(decoded.PaymentGrossRevenueLocal)
 	m.PaymentGrossRevenueOrigin = getOrderViewMoney(decoded.PaymentGrossRevenueOrigin)
 	m.PaymentGrossRevenue = getOrderViewMoney(decoded.PaymentGrossRevenue)
@@ -3317,6 +3325,9 @@ func (m *OrderViewPrivate) SetBSON(raw bson.Raw) error {
 	m.PaymentRefundGrossRevenueLocal = getOrderViewMoney(decoded.PaymentRefundGrossRevenueLocal)
 	m.PaymentRefundGrossRevenueOrigin = getOrderViewMoney(decoded.PaymentRefundGrossRevenueOrigin)
 	m.PaymentRefundGrossRevenue = getOrderViewMoney(decoded.PaymentRefundGrossRevenue)
+	m.PaymentRefundTaxFee = getOrderViewMoney(decoded.PaymentRefundTaxFee)
+	m.PaymentRefundTaxFeeLocal = getOrderViewMoney(decoded.PaymentRefundTaxFeeLocal)
+	m.PaymentRefundTaxFeeOrigin = getOrderViewMoney(decoded.PaymentRefundTaxFeeOrigin)
 	m.PaymentRefundFeeTariff = getOrderViewMoney(decoded.PaymentRefundFeeTariff)
 	m.MethodRefundFixedFeeTariff = getOrderViewMoney(decoded.MethodRefundFixedFeeTariff)
 	m.RefundGrossRevenue = getOrderViewMoney(decoded.RefundGrossRevenue)
@@ -3329,27 +3340,17 @@ func (m *OrderViewPrivate) SetBSON(raw bson.Raw) error {
 	m.RefundTaxFee = getOrderViewMoney(decoded.RefundTaxFee)
 	m.RefundTaxFeeCurrencyExchangeFee = getOrderViewMoney(decoded.RefundTaxFeeCurrencyExchangeFee)
 	m.PaysuperRefundTaxFeeCurrencyExchangeFee = getOrderViewMoney(decoded.PaysuperRefundTaxFeeCurrencyExchangeFee)
-	m.PaysuperRefundTaxFeeTotalLocal = getOrderViewMoney(decoded.PaysuperRefundTaxFeeTotalLocal)
-	m.PaysuperRefundTaxFeeTotalOrigin = getOrderViewMoney(decoded.PaysuperRefundTaxFeeTotalOrigin)
-	m.PaysuperRefundTaxFeeTotal = getOrderViewMoney(decoded.PaysuperRefundTaxFeeTotal)
 	m.RefundTaxFeeTotal = getOrderViewMoney(decoded.RefundTaxFeeTotal)
 	m.RefundReverseRevenue = getOrderViewMoney(decoded.RefundReverseRevenue)
 	m.RefundFeesTotal = getOrderViewMoney(decoded.RefundFeesTotal)
 	m.PaysuperRefundTotalProfit = getOrderViewMoney(decoded.PaysuperRefundTotalProfit)
-	m.PaymentMethod = getPaymentMethodOrder(decoded.PaymentMethod)
-	m.Project = getOrderProject(decoded.Project)
-
-	m.ClosedAt, err = ptypes.TimestampProto(decoded.ClosedAt)
-	if err != nil {
-		return err
-	}
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {
 		return err
 	}
 
-	m.CanceledAt, err = ptypes.TimestampProto(decoded.CanceledAt)
+	m.TransactionDate, err = ptypes.TimestampProto(decoded.TransactionDate)
 	if err != nil {
 		return err
 	}
@@ -3367,12 +3368,18 @@ func (m *OrderViewPublic) SetBSON(raw bson.Raw) error {
 
 	m.Id = decoded.Id.Hex()
 	m.Uuid = decoded.Uuid
+	m.TotalPaymentAmount = decoded.TotalPaymentAmount
+	m.Currency = decoded.Currency
+	m.Project = getOrderProject(decoded.Project)
 	m.Transaction = decoded.Transaction
-	m.BillingAddress = decoded.BillingAddress
-	m.User = decoded.User
+	m.PaymentMethod = getPaymentMethodOrder(decoded.PaymentMethod)
 	m.Country = decoded.Country
 	m.Locale = decoded.Locale
+	m.User = decoded.User
+	m.BillingAddress = decoded.BillingAddress
 	m.Type = decoded.Type
+	m.IsVatDeduction = decoded.IsVatDeduction
+
 	m.GrossRevenue = getOrderViewMoney(decoded.GrossRevenue)
 	m.TaxFee = getOrderViewMoney(decoded.TaxFee)
 	m.TaxFeeCurrencyExchangeFee = getOrderViewMoney(decoded.TaxFeeCurrencyExchangeFee)
@@ -3387,23 +3394,16 @@ func (m *OrderViewPublic) SetBSON(raw bson.Raw) error {
 	m.MethodRefundFeeTariff = getOrderViewMoney(decoded.MethodRefundFeeTariff)
 	m.MerchantRefundFixedFeeTariff = getOrderViewMoney(decoded.MerchantRefundFixedFeeTariff)
 	m.RefundTaxFee = getOrderViewMoney(decoded.RefundTaxFee)
-	m.RefundTaxFeeTotal = getOrderViewMoney(decoded.RefundTaxFeeTotal)
+	m.RefundTaxFeeCurrencyExchangeFee = getOrderViewMoney(decoded.RefundTaxFeeCurrencyExchangeFee)
+	m.PaysuperRefundTaxFeeCurrencyExchangeFee = getOrderViewMoney(decoded.PaysuperRefundTaxFeeCurrencyExchangeFee)
 	m.RefundReverseRevenue = getOrderViewMoney(decoded.RefundReverseRevenue)
-	m.RefundFeesTotal = getOrderViewMoney(decoded.RefundFeesTotal)
-	m.PaymentMethod = getPaymentMethodOrder(decoded.PaymentMethod)
-	m.Project = getOrderProject(decoded.Project)
-
-	m.ClosedAt, err = ptypes.TimestampProto(decoded.ClosedAt)
-	if err != nil {
-		return err
-	}
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {
 		return err
 	}
 
-	m.CanceledAt, err = ptypes.TimestampProto(decoded.CanceledAt)
+	m.TransactionDate, err = ptypes.TimestampProto(decoded.TransactionDate)
 	if err != nil {
 		return err
 	}

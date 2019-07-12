@@ -129,6 +129,7 @@ const (
 	AccountingEntryTypePsProfitTotal                       = "ps_profit_total"
 
 	AccountingEntryTypeRealRefund                      = "real_refund"
+	AccountingEntryTypeRealRefundTaxFee                = "real_refund_tax_fee"
 	AccountingEntryTypeRealRefundFee                   = "real_refund_fee"
 	AccountingEntryTypeRealRefundFixedFee              = "real_refund_fixed_fee"
 	AccountingEntryTypeMerchantRefund                  = "merchant_refund"
@@ -255,10 +256,6 @@ const (
 
 	EmailVatReportSubject = "Vat report status changed"
 	EmailVatReportMessage = "Vat report for %s country changed his status to %s"
-
-	VatTransactionTypePayment    = "payment"
-	VatTransactionTypeRefund     = "refund"
-	VatTransactionTypeChargeback = "chargeback"
 
 	VatCurrencyRatesPolicyOnDay    = "on-day"
 	VatCurrencyRatesPolicyLastDay  = "last-day"

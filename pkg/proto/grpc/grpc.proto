@@ -1003,7 +1003,7 @@ message VatTransactionsPaginate {
     // @inject_tag: json:"count"
     int32 count = 1; // total count of selected transactions
     // @inject_tag: json:"items"
-    repeated billing.VatTransaction items = 2; // array of selected transactions
+    repeated billing.OrderViewPrivate items = 2; // array of selected transactions
 }
 
 message VatTransactionsResponse {

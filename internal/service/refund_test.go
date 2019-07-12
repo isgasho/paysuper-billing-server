@@ -1353,7 +1353,22 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 		Currency:   order.GetMerchantRoyaltyCurrency(),
 	}
 
-	accountingEntries := []interface{}{ae, ae2}
+	ae3 := &billing.AccountingEntry{
+		Id:     bson.NewObjectId().Hex(),
+		Object: pkg.ObjectTypeBalanceTransaction,
+		Type:   pkg.AccountingEntryTypeRealTaxFee,
+		Source: &billing.AccountingEntrySource{
+			Id:   order.Id,
+			Type: collectionOrder,
+		},
+		MerchantId: order.GetMerchantId(),
+		Status:     pkg.BalanceTransactionStatusPending,
+		CreatedAt:  ptypes.TimestampNow(),
+		Country:    order.GetCountry(),
+		Currency:   order.GetMerchantRoyaltyCurrency(),
+	}
+
+	accountingEntries := []interface{}{ae, ae2, ae3}
 	err = suite.service.db.Collection(collectionAccountingEntry).Insert(accountingEntries...)
 	assert.NoError(suite.T(), err)
 
@@ -2303,7 +2318,22 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 		Currency:   order.GetMerchantRoyaltyCurrency(),
 	}
 
-	accountingEntries := []interface{}{ae, ae2}
+	ae3 := &billing.AccountingEntry{
+		Id:     bson.NewObjectId().Hex(),
+		Object: pkg.ObjectTypeBalanceTransaction,
+		Type:   pkg.AccountingEntryTypeRealTaxFee,
+		Source: &billing.AccountingEntrySource{
+			Id:   order.Id,
+			Type: collectionOrder,
+		},
+		MerchantId: order.GetMerchantId(),
+		Status:     pkg.BalanceTransactionStatusPending,
+		CreatedAt:  ptypes.TimestampNow(),
+		Country:    order.GetCountry(),
+		Currency:   order.GetMerchantRoyaltyCurrency(),
+	}
+
+	accountingEntries := []interface{}{ae, ae2, ae3}
 	err = suite.service.db.Collection(collectionAccountingEntry).Insert(accountingEntries...)
 	assert.NoError(suite.T(), err)
 
@@ -2452,7 +2482,22 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Chargeback_Ok() {
 		Currency:   order.GetMerchantRoyaltyCurrency(),
 	}
 
-	accountingEntries := []interface{}{ae, ae2}
+	ae3 := &billing.AccountingEntry{
+		Id:     bson.NewObjectId().Hex(),
+		Object: pkg.ObjectTypeBalanceTransaction,
+		Type:   pkg.AccountingEntryTypeRealTaxFee,
+		Source: &billing.AccountingEntrySource{
+			Id:   order.Id,
+			Type: collectionOrder,
+		},
+		MerchantId: order.GetMerchantId(),
+		Status:     pkg.BalanceTransactionStatusPending,
+		CreatedAt:  ptypes.TimestampNow(),
+		Country:    order.GetCountry(),
+		Currency:   order.GetMerchantRoyaltyCurrency(),
+	}
+
+	accountingEntries := []interface{}{ae, ae2, ae3}
 	err = suite.service.db.Collection(collectionAccountingEntry).Insert(accountingEntries...)
 	assert.NoError(suite.T(), err)
 

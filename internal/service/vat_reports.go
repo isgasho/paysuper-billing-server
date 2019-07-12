@@ -21,8 +21,7 @@ import (
 )
 
 const (
-	collectionVatTransactions = "vat_transactions"
-	collectionVatReports      = "vat_reports"
+	collectionVatReports = "vat_reports"
 )
 
 var (
@@ -30,7 +29,6 @@ var (
 	errorVatReportPeriodNotConfiguredForCountry = newBillingServerErrorMsg("vr000002", "vat period not configured for country")
 	errorVatReportRatesPolicyNotImplemented     = newBillingServerErrorMsg("vr000003", "selected currency rates policy not implemented yet")
 	errorVatReportCurrencyExchangeFailed        = newBillingServerErrorMsg("vr000004", "currency exchange failed")
-	errorVatReportTransactionsInconsistent      = newBillingServerErrorMsg("vr000005", "vat transactions inconsistent")
 	errorVatReportStatusChangeNotAllowed        = newBillingServerErrorMsg("vr000006", "vat report status change not allowed")
 	errorVatReportStatusChangeFailed            = newBillingServerErrorMsg("vr000007", "vat report status change failed")
 	errorVatReportQueryError                    = newBillingServerErrorMsg("vr000008", "vat report db query error")
@@ -59,14 +57,22 @@ var (
 		pkg.VatReportStatusPaid,
 		pkg.VatReportStatusCanceled,
 	}
+
+	AccountingEntriesLocalAmountsUpdate = []string{
+		pkg.AccountingEntryTypeRealGrossRevenue,
+		pkg.AccountingEntryTypeRealTaxFee,
+		pkg.AccountingEntryTypeRealRefund,
+		pkg.AccountingEntryTypeRealRefundTaxFee,
+	}
 )
 
 type vatReportQueryResItem struct {
-	Id           string  `bson:"_id"`
-	Count        int32   `bson:"count"`
-	GrossRevenue float64 `bson:"gross_revenue"`
-	VatAmount    float64 `bson:"vat_amount"`
-	FeesAmount   float64 `bson:"fees_amount"`
+	Id                             string  `bson:"_id"`
+	Count                          int32   `bson:"count"`
+	PaymentGrossRevenueLocal       float64 `bson:"payment_gross_revenue_local"`
+	PaymentTaxFeeLocal             float64 `bson:"payment_tax_fee_local"`
+	PaymentRefundGrossRevenueLocal float64 `bson:"payment_refund_gross_revenue_local"`
+	PaymentRefundTaxFeeLocal       float64 `bson:"payment_refund_tax_fee_local"`
 }
 
 type vatReportProcessor struct {
@@ -198,7 +204,7 @@ func (s *Service) GetVatReportTransactions(
 	req *grpc.VatTransactionsRequest,
 	res *grpc.VatTransactionsResponse,
 ) error {
-	/*res.Status = pkg.ResponseStatusOk
+	res.Status = pkg.ResponseStatusOk
 
 	query := bson.M{
 		"_id": bson.ObjectIdHex(req.VatReportId),
@@ -236,7 +242,7 @@ func (s *Service) GetVatReportTransactions(
 		return nil
 	}
 
-	vts, err := s.getVatTransactions(from, to, vr.Country, int(req.Limit), int(req.Offset))
+	vts, err := s.getTransactionsForVatReport(from, to, vr.Country, int(req.Limit), int(req.Offset))
 	if err != nil {
 		return err
 	}
@@ -244,7 +250,7 @@ func (s *Service) GetVatReportTransactions(
 	res.Data = &grpc.VatTransactionsPaginate{
 		Count: int32(len(vts)),
 		Items: vts,
-	}*/
+	}
 
 	return nil
 }
@@ -264,13 +270,12 @@ func (s *Service) ProcessVatReports(
 	if err != nil {
 		return err
 	}
-	// todo: использовать проводки вместо налоговых транзакций
-	/*
-		err = handler.ProcessVatTransactions()
-		if err != nil {
-			return err
-		}
-	*/
+
+	err = handler.ProcessAccountingEntries()
+	if err != nil {
+		return err
+	}
+
 	err = handler.ProcessVatReports()
 	if err != nil {
 		return err
@@ -334,44 +339,6 @@ func (s *Service) UpdateVatReportStatus(
 	return nil
 }
 
-/*
-func (s *Service) insertVatTransaction(vt *billing.VatTransaction) error {
-	return s.db.Collection(collectionVatTransactions).Insert(vt)
-}
-
-func (s *Service) updateVatTransaction(vt *billing.VatTransaction) error {
-	return s.db.Collection(collectionVatTransactions).UpdateId(bson.ObjectIdHex(vt.Id), vt)
-}
-
-func (s *Service) getVatTransactions(from, to time.Time, country string, pagination ...int) ([]*billing.VatTransaction, error) {
-	query := bson.M{
-		"date_time": bson.M{
-			"$gte": bod(from),
-			"$lte": eod(to),
-		},
-		"country": country,
-	}
-
-	var transactions []*billing.VatTransaction
-	dbRequest := s.db.Collection(collectionVatTransactions).Find(query).Sort("date_time")
-
-	if pagination != nil {
-		if val := pagination[0]; val > 0 {
-			dbRequest.Limit(val)
-		}
-		if val := pagination[1]; val > 0 {
-			dbRequest.Skip(val)
-		}
-	}
-
-	err := dbRequest.All(&transactions)
-	if err != nil {
-		return nil, err
-	}
-
-	return transactions, nil
-}
-*/
 func (s *Service) insertVatReport(vr *billing.VatReport) error {
 	return s.db.Collection(collectionVatReports).Insert(vr)
 }
@@ -523,9 +490,6 @@ func (h *vatReportProcessor) getCountry(countryCode string) *billing.Country {
 
 func (h *vatReportProcessor) ProcessVatReports() error {
 	for _, c := range h.countries {
-		if c.IsoCodeA2 == "US" {
-			continue
-		}
 		err := h.processVatReportForPeriod(c)
 		if err != nil {
 			return err
@@ -535,12 +499,9 @@ func (h *vatReportProcessor) ProcessVatReports() error {
 	return nil
 }
 
-func (h *vatReportProcessor) ProcessVatTransactions() error {
+func (h *vatReportProcessor) ProcessAccountingEntries() error {
 	for _, c := range h.countries {
-		if c.IsoCodeA2 == "US" {
-			continue
-		}
-		err := h.processVatTransactionsForPeriod(c)
+		err := h.processAccountingEntriesForPeriod(c)
 		if err != nil {
 			return err
 		}
@@ -592,9 +553,16 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 
 	countryTurnover, err := h.Service.turnover.Get(country.IsoCodeA2, from.Year())
 	if err != nil {
-		return err
+		zap.L().Error(
+			"turnover not found",
+			zap.Error(err),
+			zap.String("country", country.IsoCodeA2),
+			zap.Any("year", from.Year()),
+		)
+		return nil
+	} else {
+		report.CountryAnnualTurnover = countryTurnover.Amount
 	}
-	report.CountryAnnualTurnover = countryTurnover.Amount
 
 	worldTurnover, err := h.Service.turnover.Get("", from.Year())
 	if err != nil {
@@ -610,56 +578,67 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 	report.AmountsApproximate = h.date.Unix() < to.Unix()
 
 	matchQuery := bson.M{
-		"date_time": bson.M{
+		"pm_order_close_date": bson.M{
 			"$gte": bod(from),
 			"$lte": eod(to),
 		},
-		"country":      country.IsoCodeA2,
-		"is_deduction": false,
+		"country":          country.IsoCodeA2,
+		"is_vat_deduction": false,
 	}
 
 	query := []bson.M{
 		{
 			"$match": &matchQuery,
+		},
+		{
 			"$group": bson.M{
-				"_id":           "$local_currency",
-				"count":         bson.M{"$sum": 1},
-				"gross_revenue": bson.M{"$sum": "$local_transaction_amount"},
-				"vat_amount":    bson.M{"$sum": "$local_vat_amount"},
-				"fees_amount":   bson.M{"$sum": "$local_fees_amount"},
+				"_id":                                "$country",
+				"count":                              bson.M{"$sum": 1},
+				"payment_gross_revenue_local":        bson.M{"$sum": "$payment_gross_revenue_local.amount"},
+				"payment_tax_fee_local":              bson.M{"$sum": "$payment_tax_fee_local.amount"},
+				"payment_refund_gross_revenue_local": bson.M{"$sum": "$payment_refund_gross_revenue_local.amount"},
+				"payment_refund_tax_fee_local":       bson.M{"$sum": "$payment_refund_tax_fee_local.amount"},
 			},
 		},
 	}
 
-	// todo: использовать проводки вместо налоговых транзакций
-
 	var res []*vatReportQueryResItem
-	err = h.Service.db.Collection(collectionVatTransactions).Pipe(query).All(&res)
-
-	localCurrenciesCount := len(res)
-	if localCurrenciesCount > 1 {
-		return errorVatReportTransactionsInconsistent
+	err = h.Service.db.Collection(collectionOrderView).Pipe(query).All(&res)
+	if err != nil && err != mgo.ErrNotFound {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String("collection", collectionOrderView),
+			zap.Any("query", query),
+		)
+		return err
 	}
-	if localCurrenciesCount == 1 {
+
+	if len(res) == 1 {
 		report.TransactionsCount = res[0].Count
-		report.GrossRevenue = res[0].GrossRevenue
-		report.VatAmount = res[0].VatAmount
-		report.FeesAmount = res[0].FeesAmount
+		report.GrossRevenue = res[0].PaymentGrossRevenueLocal - res[0].PaymentRefundGrossRevenueLocal
+		report.VatAmount = res[0].PaymentTaxFeeLocal - res[0].PaymentRefundTaxFeeLocal
+		// report.FeesAmount = res[0].FeesAmount
 	}
 
-	matchQuery["deduction"] = true
-	// todo: использовать проводки вместо налоговых транзакций
-	err = h.Service.db.Collection(collectionVatTransactions).Pipe(query).All(&res)
-
-	localCurrenciesCount = len(res)
-	if localCurrenciesCount > 1 {
-		return errorVatReportTransactionsInconsistent
+	matchQuery["is_vat_deduction"] = true
+	err = h.Service.db.Collection(collectionOrderView).Pipe(query).All(&res)
+	if err != nil && err != mgo.ErrNotFound {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String("collection", collectionAccountingEntry),
+			zap.Any("query", query),
+		)
+		return err
 	}
-	if localCurrenciesCount == 1 {
-		report.DeductionAmount = res[0].VatAmount
+
+	if len(res) == 1 {
+		report.TransactionsCount += res[0].Count
+		report.DeductionAmount = res[0].PaymentRefundTaxFeeLocal
 	}
 
-	// todo: нужно ли считать в общем TransactionsCount те транзакции, которые идут в deduction?
+	// todo: посчитать fees отдельным запросом!
 
 	selector := bson.M{
 		"country":   report.Country,
@@ -669,8 +648,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 	}
 
 	var vr *billing.VatReport
-	// todo: использовать проводки вместо налоговых транзакций
-	err = h.Service.db.Collection(collectionVatTransactions).Find(selector).One(&vr)
+	err = h.Service.db.Collection(collectionVatReports).Find(selector).One(&vr)
 
 	if err == mgo.ErrNotFound {
 		report.Id = bson.NewObjectId().Hex()
@@ -686,8 +664,8 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 
 }
 
-func (h *vatReportProcessor) processVatTransactionsForPeriod(country *billing.Country) error {
-	/*if !country.VatEnabled {
+func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.Country) error {
+	if !country.VatEnabled {
 		return errorVatReportNotEnabledForCountry
 	}
 
@@ -696,54 +674,68 @@ func (h *vatReportProcessor) processVatTransactionsForPeriod(country *billing.Co
 	}
 
 	if country.VatCurrencyRatesPolicy == pkg.VatCurrencyRatesPolicyAvgMonth {
-		return errorVatReportRatesPolicyNotImplemented
+		zap.L().Error(
+			errorVatReportRatesPolicyNotImplemented.Message,
+		)
+		return nil
 	}
 
 	from, to, err := h.Service.getVatReportTimeForDate(country.VatPeriodMonth, h.date)
 	if err != nil {
-		return err
-	}
-
-	vts, err := h.Service.getVatTransactions(from, to, country.IsoCodeA2)
-	if err != nil {
-		return err
-	}
-
-	if len(vts) == 0 {
+		zap.L().Error(
+			"cannot get vat report time for date",
+			zap.Error(err),
+			zap.String("country", country.IsoCodeA2),
+			zap.Any("date", h.date),
+		)
 		return nil
 	}
 
-	isLastDay := h.date.Unix() == to.Unix()
+	query := bson.M{
+		"created_at": bson.M{
+			"$gte": bod(from),
+			"$lte": eod(to),
+		},
+		"country": country.IsoCodeA2,
+		"type":    bson.M{"$in": AccountingEntriesLocalAmountsUpdate},
+	}
 
-	for _, vt := range vts {
-		if vt.LocalCurrency != vt.TransactionCurrency {
-			vt.TransactionAmount, err = h.exchangeAmount(vt.TransactionCurrency, vt.LocalCurrency, vt.TransactionAmount)
+	aes := []*billing.AccountingEntry{}
+
+	err = h.Service.db.Collection(collectionAccountingEntry).Find(query).All(&aes)
+	if err != nil && err != mgo.ErrNotFound {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String("collection", collectionAccountingEntry),
+			zap.Any("query", query),
+		)
+		return err
+	}
+
+	if len(aes) == 0 {
+		return nil
+	}
+
+	for _, ae := range aes {
+		if ae.LocalCurrency != ae.OriginalCurrency {
+			ae.LocalAmount, err = h.exchangeAmount(ae.OriginalCurrency, ae.LocalCurrency, ae.OriginalAmount)
 			if err != nil {
 				return err
 			}
 		}
-		if vt.LocalCurrency != vt.VatCurrency {
-			vt.VatAmount, err = h.exchangeAmount(vt.VatCurrency, vt.LocalCurrency, vt.VatAmount)
-			if err != nil {
-				return err
-			}
-		}
-		if vt.LocalCurrency != vt.FeesCurrency {
-			vt.FeesAmount, err = h.exchangeAmount(vt.FeesCurrency, vt.LocalCurrency, vt.FeesAmount)
-			if err != nil {
-				return err
-			}
-		}
 
-		if isLastDay {
-			vt.LocalAmountsApproximate = false
-		}
-
-		err = h.Service.updateVatTransaction(vt)
-		if err != nil {
+		err = h.Service.db.Collection(collectionAccountingEntry).UpdateId(bson.ObjectIdHex(ae.Id), ae)
+		if err != nil && err != mgo.ErrNotFound {
+			zap.L().Error(
+				pkg.ErrorDatabaseQueryFailed,
+				zap.Error(err),
+				zap.String("collection", collectionAccountingEntry),
+				zap.Any("entry", ae),
+			)
 			return err
 		}
-	}*/
+	}
 
 	return nil
 }
@@ -752,7 +744,7 @@ func (h *vatReportProcessor) exchangeAmount(from, to string, amount float64) (fl
 	req := &currencies.ExchangeCurrencyByDateCommonRequest{
 		From:     from,
 		To:       to,
-		RateType: curPkg.RateTypeOxr,
+		RateType: curPkg.RateTypeCentralbanks,
 		Amount:   amount,
 		Datetime: h.ts,
 	}

@@ -949,6 +949,144 @@
                     }
                   ]
                 },
+                "type": "real_refund_tax_fee"
+              }
+            },
+            {
+              "$project": {
+                "amount": "$local_amount",
+                "currency": "$local_currency",
+                "_id": 0
+              }
+            }
+          ],
+          "as": "payment_refund_tax_fee_local"
+        }
+      },
+      {
+        "$unwind": {
+          "path": "$payment_refund_tax_fee_local",
+          "preserveNullAndEmptyArrays": true
+        }
+      },
+      {
+        "$lookup": {
+          "from": "accounting_entry",
+          "let": {
+            "order_id": "$_id",
+            "object_type": "$type"
+          },
+          "pipeline": [
+            {
+              "$match": {
+                "$expr": {
+                  "$and": [
+                    {
+                      "$eq": [
+                        "$source.id",
+                        "$$order_id"
+                      ]
+                    },
+                    {
+                      "$eq": [
+                        "$source.type",
+                        "$$object_type"
+                      ]
+                    }
+                  ]
+                },
+                "type": "real_refund_tax_fee"
+              }
+            },
+            {
+              "$project": {
+                "amount": "$original_amount",
+                "currency": "$original_currency",
+                "_id": 0
+              }
+            }
+          ],
+          "as": "payment_refund_tax_fee_origin"
+        }
+      },
+      {
+        "$unwind": {
+          "path": "$payment_refund_tax_fee_origin",
+          "preserveNullAndEmptyArrays": true
+        }
+      },
+      {
+        "$lookup": {
+          "from": "accounting_entry",
+          "let": {
+            "order_id": "$_id",
+            "object_type": "$type"
+          },
+          "pipeline": [
+            {
+              "$match": {
+                "$expr": {
+                  "$and": [
+                    {
+                      "$eq": [
+                        "$source.id",
+                        "$$order_id"
+                      ]
+                    },
+                    {
+                      "$eq": [
+                        "$source.type",
+                        "$$object_type"
+                      ]
+                    }
+                  ]
+                },
+                "type": "real_refund_tax_fee"
+              }
+            },
+            {
+              "$project": {
+                "amount": 1,
+                "currency": 1,
+                "_id": 0
+              }
+            }
+          ],
+          "as": "payment_refund_tax_fee"
+        }
+      },
+      {
+        "$unwind": {
+          "path": "$payment_refund_tax_fee",
+          "preserveNullAndEmptyArrays": true
+        }
+      },
+      {
+        "$lookup": {
+          "from": "accounting_entry",
+          "let": {
+            "order_id": "$_id",
+            "object_type": "$type"
+          },
+          "pipeline": [
+            {
+              "$match": {
+                "$expr": {
+                  "$and": [
+                    {
+                      "$eq": [
+                        "$source.id",
+                        "$$order_id"
+                      ]
+                    },
+                    {
+                      "$eq": [
+                        "$source.type",
+                        "$$object_type"
+                      ]
+                    }
+                  ]
+                },
                 "type": "real_refund_fee"
               }
             },
@@ -1582,192 +1720,6 @@
       {
         "$unwind": {
           "path": "$fees_total",
-          "preserveNullAndEmptyArrays": true
-        }
-      },
-      {
-        "$lookup": {
-          "from": "accounting_entry",
-          "let": {
-            "order_id": "$_id",
-            "object_type": "$type"
-          },
-          "pipeline": [
-            {
-              "$match": {
-                "$expr": {
-                  "$and": [
-                    {
-                      "$eq": [
-                        "$source.id",
-                        "$$order_id"
-                      ]
-                    },
-                    {
-                      "$eq": [
-                        "$source.type",
-                        "$$object_type"
-                      ]
-                    }
-                  ]
-                },
-                "type": {
-                  "$in": [
-                    "reverse_tax_fee",
-                    "reverse_tax_fee_delta"
-                  ]
-                }
-              }
-            },
-            {
-              "$group": {
-                "_id": "$local_currency",
-                "amount": {
-                  "$sum": "$local_amount"
-                },
-                "currency": {
-                  "$first": "$local_currency"
-                }
-              }
-            },
-            {
-              "$project": {
-                "amount": 1,
-                "currency": 1,
-                "_id": 0
-              }
-            }
-          ],
-          "as": "paysuper_refund_tax_fee_total_local"
-        }
-      },
-      {
-        "$unwind": {
-          "path": "$paysuper_refund_tax_fee_total_local",
-          "preserveNullAndEmptyArrays": true
-        }
-      },
-      {
-        "$lookup": {
-          "from": "accounting_entry",
-          "let": {
-            "order_id": "$_id",
-            "object_type": "$type"
-          },
-          "pipeline": [
-            {
-              "$match": {
-                "$expr": {
-                  "$and": [
-                    {
-                      "$eq": [
-                        "$source.id",
-                        "$$order_id"
-                      ]
-                    },
-                    {
-                      "$eq": [
-                        "$source.type",
-                        "$$object_type"
-                      ]
-                    }
-                  ]
-                },
-                "type": {
-                  "$in": [
-                    "reverse_tax_fee",
-                    "reverse_tax_fee_delta"
-                  ]
-                }
-              }
-            },
-            {
-              "$group": {
-                "_id": "$original_currency",
-                "amount": {
-                  "$sum": "$original_amount"
-                },
-                "currency": {
-                  "$first": "$original_currency"
-                }
-              }
-            },
-            {
-              "$project": {
-                "amount": 1,
-                "currency": 1,
-                "_id": 0
-              }
-            }
-          ],
-          "as": "paysuper_refund_tax_fee_total_origin"
-        }
-      },
-      {
-        "$unwind": {
-          "path": "$paysuper_refund_tax_fee_total_origin",
-          "preserveNullAndEmptyArrays": true
-        }
-      },
-      {
-        "$lookup": {
-          "from": "accounting_entry",
-          "let": {
-            "order_id": "$_id",
-            "object_type": "$type"
-          },
-          "pipeline": [
-            {
-              "$match": {
-                "$expr": {
-                  "$and": [
-                    {
-                      "$eq": [
-                        "$source.id",
-                        "$$order_id"
-                      ]
-                    },
-                    {
-                      "$eq": [
-                        "$source.type",
-                        "$$object_type"
-                      ]
-                    }
-                  ]
-                },
-                "type": {
-                  "$in": [
-                    "reverse_tax_fee",
-                    "reverse_tax_fee_delta"
-                  ]
-                }
-              }
-            },
-            {
-              "$group": {
-                "_id": "$currency",
-                "amount": {
-                  "$sum": "$amount"
-                },
-                "currency": {
-                  "$first": "$currency"
-                }
-              }
-            },
-            {
-              "$project": {
-                "amount": 1,
-                "currency": 1,
-                "_id": 0
-              }
-            }
-          ],
-          "as": "paysuper_refund_tax_fee_total"
-        }
-      },
-      {
-        "$unwind": {
-          "path": "$paysuper_refund_tax_fee_total",
           "preserveNullAndEmptyArrays": true
         }
       },
@@ -2967,7 +2919,8 @@
           "project": 1,
           "created_at": 1,
           "pm_order_close_date": 1,
-          "canceled_at": 1,
+          "total_payment_amount": 1,
+          "currency": 1,
           "user": 1,
           "billing_address": 1,
           "payment_method": 1,
@@ -3029,6 +2982,9 @@
           "payment_refund_gross_revenue_local": 1,
           "payment_refund_gross_revenue_origin": 1,
           "payment_refund_gross_revenue": 1,
+          "payment_refund_tax_fee": 1,
+          "payment_refund_tax_fee_local": 1,
+          "payment_refund_tax_fee_origin": 1,
           "payment_refund_fee_tariff": 1,
           "method_refund_fixed_fee_tariff": 1,
           "refund_gross_revenue": 1,
@@ -3041,9 +2997,6 @@
           "refund_tax_fee": 1,
           "refund_tax_fee_currency_exchange_fee": 1,
           "paysuper_refund_tax_fee_currency_exchange_fee": 1,
-          "paysuper_refund_tax_fee_total_local": 1,
-          "paysuper_refund_tax_fee_total_origin": 1,
-          "paysuper_refund_tax_fee_total": 1,
           "refund_tax_fee_total": 1,
           "refund_reverse_revenue": 1,
           "refund_fees_total": 1,

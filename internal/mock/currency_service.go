@@ -12,13 +12,17 @@ import (
 )
 
 const (
-	SomeError          = "some error"
-	eurPriceinRub      = float64(72)
-	eurPriceInRubCb    = float64(72.5)
-	eurPriceInRubStock = float64(71)
-	usdPriceInRub      = float64(65)
-	usdPriceInRubCb    = float64(65.5)
-	usdPriceInRubStock = float64(64)
+	SomeError = "some error"
+
+	eurPriceinRub         = float64(72)
+	eurPriceInRubCb       = float64(72.5)
+	eurPriceInRubCbOnDate = float64(70)
+	eurPriceInRubStock    = float64(71)
+
+	usdPriceInRub         = float64(65)
+	usdPriceInRubCb       = float64(65.5)
+	usdPriceInRubCbOnDate = float64(63)
+	usdPriceInRubStock    = float64(64)
 )
 
 var (
@@ -318,10 +322,34 @@ func (s *CurrencyServiceMockOk) ExchangeCurrencyByDateCommon(
 	}
 	if in.From == "EUR" && in.To == "RUB" {
 		return &currencies.ExchangeCurrencyResponse{
-			ExchangedAmount: in.Amount * 70,
+			ExchangedAmount: in.Amount * eurPriceInRubCbOnDate,
 		}, nil
 	}
-
+	if in.From == "RUB" && in.To == "EUR" {
+		return &currencies.ExchangeCurrencyResponse{
+			ExchangedAmount: in.Amount * (1 / eurPriceInRubCbOnDate),
+		}, nil
+	}
+	if in.From == "USD" && in.To == "RUB" {
+		return &currencies.ExchangeCurrencyResponse{
+			ExchangedAmount: in.Amount * usdPriceInRubCbOnDate,
+		}, nil
+	}
+	if in.From == "RUB" && in.To == "USD" {
+		return &currencies.ExchangeCurrencyResponse{
+			ExchangedAmount: in.Amount * (1 / usdPriceInRubCbOnDate),
+		}, nil
+	}
+	if in.From == "USD" && in.To == "EUR" {
+		return &currencies.ExchangeCurrencyResponse{
+			ExchangedAmount: in.Amount * (usdPriceInRubCbOnDate / eurPriceInRubCbOnDate),
+		}, nil
+	}
+	if in.From == "EUR" && in.To == "USD" {
+		return &currencies.ExchangeCurrencyResponse{
+			ExchangedAmount: in.Amount * (eurPriceInRubCbOnDate / usdPriceInRubCbOnDate),
+		}, nil
+	}
 	return &currencies.ExchangeCurrencyResponse{}, nil
 }
 

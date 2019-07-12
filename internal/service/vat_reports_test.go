@@ -1,11 +1,19 @@
 package service
 
 import (
-	"github.com/globalsign/mgo/bson"
+	"context"
+	rabbitmq "github.com/ProtocolONE/rabbitmq/pkg"
+	"github.com/go-redis/redis"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/jinzhu/now"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
+	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -19,7 +27,10 @@ type VatReportsTestSuite struct {
 	service *Service
 	log     *zap.Logger
 	cache   CacheInterface
-	country *billing.Country
+
+	projectFixedAmount *billing.Project
+	paymentMethod      *billing.PaymentMethod
+	paymentSystem      *billing.PaymentSystem
 }
 
 func Test_VatReports(t *testing.T) {
@@ -32,6 +43,17 @@ func (suite *VatReportsTestSuite) SetupTest() {
 		suite.FailNow("Config load failed", "%v", err)
 	}
 	cfg.AccountingCurrency = "RUB"
+	cfg.CardPayApiUrl = "https://sandbox.cardpay.com"
+
+	m, err := migrate.New(
+		"file://../../migrations/tests",
+		cfg.MongoDsn)
+	assert.NoError(suite.T(), err, "Migrate init failed")
+
+	err = m.Up()
+	if err != nil && err.Error() != "no change" {
+		suite.FailNow("Migrations failed", "%v", err)
+	}
 
 	db, err := mongodb.NewDatabase()
 	if err != nil {
@@ -44,6 +66,19 @@ func (suite *VatReportsTestSuite) SetupTest() {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
+	broker, err := rabbitmq.NewBroker(cfg.BrokerAddress)
+
+	if err != nil {
+		suite.FailNow("Creating RabbitMQ publisher failed", "%v", err)
+	}
+
+	redisClient := database.NewRedis(
+		&redis.Options{
+			Addr:     cfg.RedisHost,
+			Password: cfg.RedisPassword,
+		},
+	)
+
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
@@ -52,8 +87,8 @@ func (suite *VatReportsTestSuite) SetupTest() {
 		mock.NewGeoIpServiceTestOk(),
 		mock.NewRepositoryServiceOk(),
 		mock.NewTaxServiceOkMock(),
-		nil,
-		nil,
+		broker,
+		redisClient,
 		suite.cache,
 		mock.NewCurrencyServiceMockOk(),
 		nil,
@@ -63,104 +98,7 @@ func (suite *VatReportsTestSuite) SetupTest() {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 
-	pg := &billing.PriceGroup{
-		Id:       bson.NewObjectId().Hex(),
-		Currency: "USD",
-		IsSimple: true,
-		Region:   "",
-	}
-	if err := suite.service.priceGroup.Insert(pg); err != nil {
-		suite.FailNow("Insert price group test data failed", "%v", err)
-	}
-
-	countryRu := &billing.Country{
-		Id:              bson.NewObjectId().Hex(),
-		IsoCodeA2:       "RU",
-		Region:          "Russia",
-		Currency:        "RUB",
-		PaymentsAllowed: true,
-		ChangeAllowed:   true,
-		VatEnabled:      true,
-		PriceGroupId:    pg.Id,
-		VatCurrency:     "RUB",
-		VatThreshold: &billing.CountryVatThreshold{
-			Year:  0,
-			World: 0,
-		},
-		VatPeriodMonth:         3,
-		VatDeadlineDays:        25,
-		VatStoreYears:          5,
-		VatCurrencyRatesPolicy: "last-day",
-		VatCurrencyRatesSource: "cbrf",
-	}
-
-	countryTr := &billing.Country{
-		Id:              bson.NewObjectId().Hex(),
-		IsoCodeA2:       "TR",
-		Region:          "West Asia",
-		Currency:        "TRY",
-		PaymentsAllowed: true,
-		ChangeAllowed:   true,
-		VatEnabled:      true,
-		PriceGroupId:    pg.Id,
-		VatCurrency:     "TRY",
-		VatThreshold: &billing.CountryVatThreshold{
-			Year:  0,
-			World: 0,
-		},
-		VatPeriodMonth:         1,
-		VatDeadlineDays:        0,
-		VatStoreYears:          10,
-		VatCurrencyRatesPolicy: "on-day",
-		VatCurrencyRatesSource: "cbtr",
-	}
-
-	countryAd := &billing.Country{
-		Id:              bson.NewObjectId().Hex(),
-		IsoCodeA2:       "AD",
-		Region:          "South Europe",
-		Currency:        "EUR",
-		PaymentsAllowed: true,
-		ChangeAllowed:   true,
-		VatEnabled:      false,
-		PriceGroupId:    pg.Id,
-		VatCurrency:     "EUR",
-		VatThreshold: &billing.CountryVatThreshold{
-			Year:  0,
-			World: 0,
-		},
-		VatPeriodMonth:         0,
-		VatDeadlineDays:        0,
-		VatStoreYears:          0,
-		VatCurrencyRatesPolicy: "",
-		VatCurrencyRatesSource: "",
-	}
-
-	countryCo := &billing.Country{
-		Id:              bson.NewObjectId().Hex(),
-		IsoCodeA2:       "CO",
-		Region:          "South America",
-		Currency:        "COP",
-		PaymentsAllowed: false,
-		ChangeAllowed:   true,
-		VatEnabled:      true,
-		PriceGroupId:    pg.Id,
-		VatCurrency:     "COP",
-		VatThreshold: &billing.CountryVatThreshold{
-			Year:  0,
-			World: 0,
-		},
-		VatPeriodMonth:         2,
-		VatDeadlineDays:        14,
-		VatStoreYears:          10,
-		VatCurrencyRatesPolicy: "on-day",
-		VatCurrencyRatesSource: "cbco",
-	}
-
-	countries := []*billing.Country{countryRu, countryTr, countryAd, countryCo}
-	if err := suite.service.country.MultipleInsert(countries); err != nil {
-		suite.FailNow("Insert country test data failed", "%v", err)
-	}
+	_, suite.projectFixedAmount, suite.paymentMethod, suite.paymentSystem = helperCreateEntitiesForTests(suite.Suite, suite.service)
 }
 
 func (suite *VatReportsTestSuite) TearDownTest() {
@@ -256,4 +194,45 @@ func (suite *VatReportsTestSuite) TestVatReports_getVatReportTimeForDate() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), from.Format(time.RFC3339), "2019-04-01T00:00:00Z")
 	assert.Equal(suite.T(), to.Format(time.RFC3339), "2019-06-30T23:59:59Z")
+}
+
+func (suite *VatReportsTestSuite) TestVatReports_ProcessVatReports() {
+
+	amounts := []float64{100, 10}
+	currencies := []string{"RUB", "USD"}
+	countries := []string{"RU", "FI"}
+	orders := []*billing.Order{}
+
+	count := 0
+	for count < 10 {
+		order := helperCreateAndPayOrder(
+			suite.Suite,
+			suite.service,
+			amounts[count%2],
+			currencies[count%2],
+			countries[count%2],
+			suite.projectFixedAmount,
+			suite.paymentMethod,
+		)
+		assert.NotNil(suite.T(), order)
+		orders = append(orders, order)
+
+		count++
+	}
+
+	suite.paymentSystem.Handler = "mock_ok"
+	err := suite.service.paymentSystem.Update(suite.paymentSystem)
+	assert.NoError(suite.T(), err)
+
+	for _, order := range orders {
+		refund := helperMakeRefund(suite.Suite, suite.service, order, order.TotalPaymentAmount*0.5, false)
+		assert.NotNil(suite.T(), refund)
+	}
+
+	req := &grpc.ProcessVatReportsRequest{
+		Date: ptypes.TimestampNow(),
+	}
+
+	err = suite.service.ProcessVatReports(context.TODO(), req, &grpc.EmptyResponse{})
+	assert.NoError(suite.T(), err)
 }

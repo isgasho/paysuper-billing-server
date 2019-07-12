@@ -67,6 +67,7 @@ var (
 		pkg.AccountingEntryTypeMerchantNetRevenue:                  true,
 		pkg.AccountingEntryTypePsProfitTotal:                       true,
 		pkg.AccountingEntryTypeRealRefund:                          true,
+		pkg.AccountingEntryTypeRealRefundTaxFee:                    true,
 		pkg.AccountingEntryTypeRealRefundFee:                       true,
 		pkg.AccountingEntryTypeRealRefundFixedFee:                  true,
 		pkg.AccountingEntryTypeMerchantRefund:                      true,
@@ -560,6 +561,11 @@ func (h *accountingEntry) processRefundEvent() error {
 	}
 	// todo: check for past partial refunds for a given order?
 
+	orderRefund, err := h.Service.getOrderById(h.refund.CreatedOrderId)
+	if err != nil {
+		return err
+	}
+
 	// 1. realRefund
 	realRefund := h.newEntry(pkg.AccountingEntryTypeRealRefund)
 	realRefund.Amount, err = h.GetExchangePsCurrentCommon(h.refund.Currency, h.refund.Amount)
@@ -572,21 +578,50 @@ func (h *accountingEntry) processRefundEvent() error {
 		return err
 	}
 
-	// 2. realRefundFee
+	// 2. realRefundTaxFee
+	realTaxFee := h.newEntry("")
+	query := bson.M{
+		"object":      pkg.ObjectTypeBalanceTransaction,
+		"type":        pkg.AccountingEntryTypeRealTaxFee,
+		"source.id":   bson.ObjectIdHex(h.order.Id),
+		"source.type": collectionOrder,
+	}
+	err = h.Service.db.Collection(collectionAccountingEntry).Find(query).One(&realTaxFee)
+	if err != nil {
+		return err
+	}
+	realRefundTaxFee := h.newEntry(pkg.AccountingEntryTypeRealRefundTaxFee)
+	realRefundTaxFee.Amount = realTaxFee.Amount * partialRefundCorrection
+	realRefundTaxFee.Currency = realTaxFee.Currency
+	realRefundTaxFee.OriginalAmount = realTaxFee.OriginalAmount * partialRefundCorrection
+	realRefundTaxFee.OriginalCurrency = realTaxFee.OriginalCurrency
+
+	// fills with original values, if not deduction, to substract the same vat amount that was added on payment
+	// otherwise local values will be automatically re-calculated with exchange rates for current vat period
+	if !orderRefund.IsVatDeduction {
+		realRefundTaxFee.LocalAmount = realTaxFee.LocalAmount * partialRefundCorrection
+		realRefundTaxFee.LocalCurrency = realTaxFee.LocalCurrency
+	}
+
+	if err = h.addEntry(realRefundTaxFee); err != nil {
+		return err
+	}
+
+	// 3. realRefundFee
 	realRefundFee := h.newEntry(pkg.AccountingEntryTypeRealRefundFee)
 	realRefundFee.Amount = realRefund.Amount * moneyBackCostSystem.Percent
 	if err = h.addEntry(realRefundFee); err != nil {
 		return err
 	}
 
-	// 3. realRefundFixedFee
+	// 4. realRefundFixedFee
 	realRefundFixedFee := h.newEntry(pkg.AccountingEntryTypeRealRefundFixedFee)
 	realRefundFixedFee.Amount, err = h.GetExchangePsCurrentCommon(moneyBackCostSystem.PayoutCurrency, moneyBackCostSystem.FixAmount)
 	if err = h.addEntry(realRefundFixedFee); err != nil {
 		return err
 	}
 
-	// 4. merchantRefund
+	// 5. merchantRefund
 	merchantRefund := h.newEntry(pkg.AccountingEntryTypeMerchantRefund)
 	merchantRefund.Amount, err = h.GetExchangePsCurrentMerchant(h.refund.Currency, h.refund.Amount)
 	if err != nil {
@@ -596,7 +631,7 @@ func (h *accountingEntry) processRefundEvent() error {
 		return err
 	}
 
-	// 5. psMerchantRefundFx
+	// 6. psMerchantRefundFx
 	// calculated in order_view
 	/*psMerchantRefundFx := h.newEntry(pkg.AccountingEntryTypePsMerchantRefundFx)
 	psMerchantRefundFx.Amount = merchantRefund.Amount - realRefund.Amount
@@ -604,7 +639,7 @@ func (h *accountingEntry) processRefundEvent() error {
 		return err
 	}*/
 
-	// 6. merchantRefundFee
+	// 7. merchantRefundFee
 	merchantRefundFee := h.newEntry(pkg.AccountingEntryTypeMerchantRefundFee)
 	if moneyBackCostMerchant.IsPaidByMerchant {
 		merchantRefundFee.Amount = merchantRefund.Amount * moneyBackCostMerchant.Percent
@@ -613,7 +648,7 @@ func (h *accountingEntry) processRefundEvent() error {
 		return err
 	}
 
-	// 7. psMarkupMerchantRefundFee
+	// 8. psMarkupMerchantRefundFee
 	// calculated in order_view
 	/*psMarkupMerchantRefundFee := h.newEntry(pkg.AccountingEntryTypePsMarkupMerchantRefundFee)
 	psMarkupMerchantRefundFee.Amount = merchantRefundFee.Amount - realRefundFee.Amount
@@ -629,19 +664,19 @@ func (h *accountingEntry) processRefundEvent() error {
 
 	if moneyBackCostMerchant.IsPaidByMerchant {
 
-		// 8. merchantRefundFixedFeeCostValue
+		// 9. merchantRefundFixedFeeCostValue
 		merchantRefundFixedFeeCostValue.Amount, err = h.GetExchangePsCurrentCommon(moneyBackCostMerchant.FixAmountCurrency, moneyBackCostMerchant.FixAmount)
 		if err != nil {
 			return err
 		}
 
-		// 9. merchantRefundFixedFee
+		// 10. merchantRefundFixedFee
 		merchantRefundFixedFee.Amount, err = h.GetExchangePsCurrentMerchant(moneyBackCostMerchant.FixAmountCurrency, moneyBackCostMerchant.FixAmount)
 		if err != nil {
 			return err
 		}
 
-		// 10. psMerchantRefundFixedFeeFx
+		// 11. psMerchantRefundFixedFeeFx
 		// calculated in order_view
 		// psMerchantRefundFixedFeeFx.Amount = merchantRefundFixedFee.Amount - merchantRefundFixedFeeCostValue.Amount
 	}
@@ -657,7 +692,7 @@ func (h *accountingEntry) processRefundEvent() error {
 		return err
 	}*/
 
-	// 11. psMerchantRefundFixedFeeProfit
+	// 12. psMerchantRefundFixedFeeProfit
 	// calculated in order_view
 	/*psMerchantRefundFixedFeeProfit := h.newEntry(pkg.AccountingEntryTypePsMerchantRefundFixedFeeProfit)
 	psMerchantRefundFixedFeeProfit.Amount = merchantRefundFixedFee.Amount - realRefundFixedFee.Amount
@@ -665,14 +700,9 @@ func (h *accountingEntry) processRefundEvent() error {
 		return err
 	}*/
 
-	// 12. reverseTaxFee
+	// 13. reverseTaxFee
 	merchantTaxFeeCostValue := h.newEntry("")
-	query := bson.M{
-		"object":      pkg.ObjectTypeBalanceTransaction,
-		"type":        pkg.AccountingEntryTypeMerchantTaxFeeCostValue,
-		"source.id":   bson.ObjectIdHex(h.order.Id),
-		"source.type": collectionOrder,
-	}
+	query["type"] = pkg.AccountingEntryTypeMerchantTaxFeeCostValue
 	err = h.Service.db.Collection(collectionAccountingEntry).Find(query).One(&merchantTaxFeeCostValue)
 	if err != nil {
 		return err
@@ -695,8 +725,8 @@ func (h *accountingEntry) processRefundEvent() error {
 		return err
 	}
 
-	// 13. reverseTaxFeeDelta
-	// 14. psReverseTaxFeeDelta
+	// 14. reverseTaxFeeDelta
+	// 15. psReverseTaxFeeDelta
 	reverseTaxFeeDelta := h.newEntry(pkg.AccountingEntryTypeReverseTaxFeeDelta)
 	psReverseTaxFeeDelta := h.newEntry(pkg.AccountingEntryTypePsReverseTaxFeeDelta)
 
@@ -714,7 +744,7 @@ func (h *accountingEntry) processRefundEvent() error {
 		return err
 	}
 
-	// 15. merchantReverseTaxFee
+	// 16. merchantReverseTaxFee
 	// calculated in order_view
 	/*merchantReverseTaxFee := h.newEntry(pkg.AccountingEntryTypeMerchantReverseTaxFee)
 	merchantReverseTaxFee.Amount = reverseTaxFee.Amount + reverseTaxFeeDelta.Amount
@@ -722,15 +752,19 @@ func (h *accountingEntry) processRefundEvent() error {
 		return err
 	}*/
 
-	// 16. merchantReverseRevenue
+	// 17. merchantReverseRevenue
 	// calculated in order_view
 	/*merchantReverseRevenue := h.newEntry(pkg.AccountingEntryTypeMerchantReverseRevenue)
-	merchantReverseRevenue.Amount = merchantRefund.Amount + merchantRefundFee.Amount + merchantRefundFixedFee.Amount - merchantReverseTaxFee.Amount
+	merchantReverseRevenue.Amount = merchantRefund.Amount +
+		merchantRefundFee.Amount +
+		merchantRefundFixedFee.Amount +
+		reverseTaxFeeDelta.Amount -
+		reverseTaxFee.Amount
 	if err = h.addEntry(merchantReverseRevenue); err != nil {
 		return err
 	}*/
 
-	// 17. psRefundProfit
+	// 18. psRefundProfit
 	// calculated in order_view
 	/*psRefundProfit := h.newEntry(pkg.AccountingEntryTypePsRefundProfit)
 	psRefundProfit.Amount = psReverseTaxFeeDelta.Amount + psMerchantRefundFixedFeeProfit.Amount + psMarkupMerchantRefundFee.Amount
