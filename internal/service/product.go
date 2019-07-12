@@ -57,6 +57,11 @@ func (s *Service) CreateOrUpdateProduct(ctx context.Context, req *grpc.Product, 
 			return productErrorNotFound
 		}
 
+		if req.Sku != "" && req.Sku != product.Sku {
+			zap.S().Errorf("SKU mismatch", "data", req)
+			return errors.New("SKU mismatch")
+		}
+
 		if req.MerchantId != product.MerchantId {
 			zap.S().Errorf("MerchantId mismatch", "data", req)
 			return productErrorMerchantNotEqual
