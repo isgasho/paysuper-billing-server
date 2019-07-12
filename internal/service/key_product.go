@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -11,6 +10,20 @@ import (
 
 const (
 	collectionKeyProduct = "key_product"
+)
+
+var (
+	keyProductMerchantMismatch = newBillingServerErrorMsg("kp000001", "merchant id mismatch")
+	keyProductProjectMismatch  = newBillingServerErrorMsg("kp000002", "project id mismatch")
+	keyProductSkuMismatch      = newBillingServerErrorMsg("kp000003", "sku mismatch")
+	keyProductNameNotProvided  = newBillingServerErrorMsg("kp000004", "name must be set")
+	keyProductDescriptionNotProvided  = newBillingServerErrorMsg("kp000005", "description must be set")
+	keyProductDuplicate  = newBillingServerErrorMsg("kp000006", "sku+project id already exist")
+	keyProductIdsIsEmpty  = newBillingServerErrorMsg("kp000007", "ids is empty")
+	keyProductAlreadyHasPlatform  = newBillingServerErrorMsg("kp000008", "product already has user defined platform")
+	keyProductActivationUrlEmpty  = newBillingServerErrorMsg("kp000009", "activation url must be set")
+	keyProductEulaEmpty  = newBillingServerErrorMsg("kp000010", "eula url must be set")
+	keyProductPlatformName  = newBillingServerErrorMsg("kp000011", "platform name must be set")
 )
 
 var availablePlatforms = map[string]grpc.Platform{
@@ -46,28 +59,28 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 
 		if req.Sku != "" && req.Sku != res.Sku {
 			zap.S().Errorf("SKU mismatch", "data", req)
-			return errors.New("SKU mismatch")
+			return keyProductSkuMismatch
 		}
 
 		if req.MerchantId != res.MerchantId {
 			zap.S().Errorf("MerchantId mismatch", "data", req)
-			return errors.New("merchantId mismatch")
+			return keyProductMerchantMismatch
 		}
 
 		if req.ProjectId != res.ProjectId {
 			zap.S().Errorf("ProjectId mismatch", "data", req)
-			return errors.New("projectId mismatch")
+			return keyProductProjectMismatch
 		}
 	}
 
 	if _, ok := req.Name[DefaultLanguage]; !ok {
 		zap.S().Errorf("No name in default language", "data", req)
-		return errors.New("No name in default language")
+		return keyProductNameNotProvided
 	}
 
 	if _, ok := req.Description[DefaultLanguage]; !ok {
 		zap.S().Errorf("No description in default language", "data", req)
-		return errors.New("No description in default language")
+		return keyProductDescriptionNotProvided
 	}
 
 	// Prevent duplicated key products (by projectId+sku)
@@ -84,7 +97,7 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 
 	if found > allowed {
 		zap.S().Errorf("Pair projectId+Sku already exists", "data", req)
-		return errors.New("pair projectId+Sku already exists")
+		return keyProductDuplicate
 	}
 
 	res.Object = req.Object
@@ -208,7 +221,7 @@ func (s *Service) PublishKeyProduct(ctx context.Context, req *grpc.PublishKeyPro
 func (s *Service) GetKeyProductsForOrder(ctx context.Context, req *grpc.GetKeyProductsForOrderRequest, res *grpc.ListKeyProductsResponse) error {
 	if len(req.Ids) == 0 {
 		zap.S().Errorf("Ids list is empty", "data", req)
-		return errors.New("ids list is empty")
+		return keyProductIdsIsEmpty
 	}
 	query := bson.M{"enabled": true, "deleted": false, "project_id": bson.ObjectIdHex(req.ProjectId)}
 	var items = []bson.ObjectId{}
@@ -263,24 +276,24 @@ func (s *Service) UpdatePlatformPrices(ctx context.Context, req *grpc.AddOrUpdat
 
 	if !isAvailable && productHasUserPlatform && found == false {
 		zap.S().Errorf("Product already has user defined platform", "data", req)
-		return errors.New("product already has user defined platform")
+		return keyProductAlreadyHasPlatform
 	}
 
 	if found == false {
 		if isAvailable == false {
 			if res.ActivationUrl == "" {
 				zap.S().Errorf("Activation url must be set", "err", err.Error(), "data", req)
-				return errors.New("activation url must be set")
+				return keyProductActivationUrlEmpty
 			}
 
 			if res.EulaUrl == "" {
 				zap.S().Errorf("Eula url must be set", "err", err.Error(), "data", req)
-				return errors.New("eula url must be set")
+				return keyProductEulaEmpty
 			}
 
 			if res.Name == "" {
 				zap.S().Errorf("Name must be set", "err", err.Error(), "data", req)
-				return errors.New("name must be set")
+				return keyProductPlatformName
 			}
 
 			res.ActivationUrl = req.Platform.ActivationUrl
