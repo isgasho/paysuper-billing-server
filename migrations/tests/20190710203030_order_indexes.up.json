@@ -4,9 +4,10 @@
     "indexes": [
       {
         "key": {
-          "pm_order_close_date": 1
+          "pm_order_close_date": 1,
+          "country_code": 1
         },
-        "name": "order_close_date"
+        "name": "close_date_country_idx"
       }
     ]
   },
@@ -15,10 +16,10 @@
     "indexes": [
       {
         "key": {
-          "user.address.country": 1,
-          "billing_address.country": 1
+          "country_code": 1
+
         },
-        "name": "country"
+        "name": "country_code"
       }
     ]
   },

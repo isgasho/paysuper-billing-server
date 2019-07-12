@@ -93,6 +93,7 @@ type accountingEntry struct {
 
 	order             *billing.Order
 	refund            *billing.Refund
+	refundOrder       *billing.Order
 	merchant          *billing.Merchant
 	country           *billing.Country
 	accountingEntries []interface{}
@@ -148,8 +149,14 @@ func (s *Service) CreateAccountingEntry(
 			return nil
 		}
 
+		refundOrder, err := s.getOrderById(refund.CreatedOrderId)
+		if err != nil {
+			return err
+		}
+
 		handler.order = order
 		handler.refund = refund
+		handler.refundOrder = refundOrder
 		countryCode = order.GetCountry()
 	}
 
@@ -219,12 +226,18 @@ func (s *Service) onRefundNotify(ctx context.Context, refund *billing.Refund, or
 		return err
 	}
 
+	refundOrder, err := s.getOrderById(refund.CreatedOrderId)
+	if err != nil {
+		return err
+	}
+
 	handler := &accountingEntry{
-		Service: s,
-		refund:  refund,
-		order:   order,
-		ctx:     ctx,
-		country: country,
+		Service:     s,
+		refund:      refund,
+		order:       order,
+		refundOrder: refundOrder,
+		ctx:         ctx,
+		country:     country,
 	}
 
 	return s.processEvent(handler, accountingEventTypeRefund)
@@ -561,11 +574,6 @@ func (h *accountingEntry) processRefundEvent() error {
 	}
 	// todo: check for past partial refunds for a given order?
 
-	orderRefund, err := h.Service.getOrderById(h.refund.CreatedOrderId)
-	if err != nil {
-		return err
-	}
-
 	// 1. realRefund
 	realRefund := h.newEntry(pkg.AccountingEntryTypeRealRefund)
 	realRefund.Amount, err = h.GetExchangePsCurrentCommon(h.refund.Currency, h.refund.Amount)
@@ -598,7 +606,7 @@ func (h *accountingEntry) processRefundEvent() error {
 
 	// fills with original values, if not deduction, to substract the same vat amount that was added on payment
 	// otherwise local values will be automatically re-calculated with exchange rates for current vat period
-	if !orderRefund.IsVatDeduction {
+	if !h.refundOrder.IsVatDeduction {
 		realRefundTaxFee.LocalAmount = realTaxFee.LocalAmount * partialRefundCorrection
 		realRefundTaxFee.LocalCurrency = realTaxFee.LocalCurrency
 	}
@@ -947,18 +955,46 @@ func (h *accountingEntry) saveAccountingEntries() error {
 		return err
 	}
 
-	return nil
+	ids := []bson.ObjectId{}
+	if h.order != nil {
+		ids = append(ids, bson.ObjectIdHex(h.order.Id))
+	}
+
+	if h.refund != nil && h.refundOrder != nil {
+		ids = append(ids, bson.ObjectIdHex(h.refundOrder.Id))
+
+	}
+
+	if len(ids) == 0 {
+		return nil
+	}
+
+	matchQuery := bson.M{
+		"$match": bson.M{
+			"_id": bson.M{"$in": ids},
+		},
+	}
+
+	return h.Service.updateOrderView(matchQuery)
+
 }
 
 func (h *accountingEntry) newEntry(entryType string) *billing.AccountingEntry {
 
-	var source *billing.AccountingEntrySource
+	var (
+		createdTime = ptypes.TimestampNow()
+		source      *billing.AccountingEntrySource
+	)
 	if h.refund != nil {
+		if h.refundOrder != nil {
+			createdTime = h.refundOrder.PaymentMethodOrderClosedAt
+		}
 		source = &billing.AccountingEntrySource{
 			Id:   h.refund.CreatedOrderId,
 			Type: collectionRefund,
 		}
 	} else {
+		createdTime = h.order.PaymentMethodOrderClosedAt
 		source = &billing.AccountingEntrySource{
 			Id:   h.order.Id,
 			Type: collectionOrder,
@@ -972,7 +1008,7 @@ func (h *accountingEntry) newEntry(entryType string) *billing.AccountingEntry {
 		Source:     source,
 		MerchantId: h.order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusPending,
-		CreatedAt:  ptypes.TimestampNow(),
+		CreatedAt:  createdTime,
 		Country:    h.country.IsoCodeA2,
 		Currency:   h.order.GetMerchantRoyaltyCurrency(),
 	}

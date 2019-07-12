@@ -14,6 +14,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	curPkg "github.com/paysuper/paysuper-currencies/pkg"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
+	"github.com/paysuper/paysuper-recurring-repository/tools"
 	tax_service "github.com/paysuper/paysuper-tax-service/proto"
 	"go.uber.org/zap"
 	"gopkg.in/gomail.v2"
@@ -22,18 +23,24 @@ import (
 
 const (
 	collectionVatReports = "vat_reports"
+
+	errorMsgVatReportCentrifugoNotificationFailed = "[Centrifugo] Send financier notification about vat report status change failed"
+	errorMsgVatReportSMTPNotificationFailed       = "[SMTP] Send financier notification about vat report status change failed"
+	errorMsgVatReportTaxServiceGetRateFailed      = "tax service get rate error"
+	errorMsgVatReportTurnoverNotFound             = "turnover not found"
+	errorMsgVatReportRatesPolicyNotImplemented    = "selected currency rates policy not implemented yet"
+	errorMsgVatReportCantGetTimeForDate           = "cannot get vat report time for date"
 )
 
 var (
 	errorVatReportNotEnabledForCountry          = newBillingServerErrorMsg("vr000001", "vat not enabled for country")
 	errorVatReportPeriodNotConfiguredForCountry = newBillingServerErrorMsg("vr000002", "vat period not configured for country")
-	errorVatReportRatesPolicyNotImplemented     = newBillingServerErrorMsg("vr000003", "selected currency rates policy not implemented yet")
-	errorVatReportCurrencyExchangeFailed        = newBillingServerErrorMsg("vr000004", "currency exchange failed")
-	errorVatReportStatusChangeNotAllowed        = newBillingServerErrorMsg("vr000006", "vat report status change not allowed")
-	errorVatReportStatusChangeFailed            = newBillingServerErrorMsg("vr000007", "vat report status change failed")
-	errorVatReportQueryError                    = newBillingServerErrorMsg("vr000008", "vat report db query error")
-	errorVatReportNotFound                      = newBillingServerErrorMsg("vr000009", "vat report not found")
-	errorVatReportInternal                      = newBillingServerErrorMsg("vr000010", "vat report internal error")
+	errorVatReportCurrencyExchangeFailed        = newBillingServerErrorMsg("vr000003", "currency exchange failed")
+	errorVatReportStatusChangeNotAllowed        = newBillingServerErrorMsg("vr000004", "vat report status change not allowed")
+	errorVatReportStatusChangeFailed            = newBillingServerErrorMsg("vr000005", "vat report status change failed")
+	errorVatReportQueryError                    = newBillingServerErrorMsg("vr000006", "vat report db query error")
+	errorVatReportNotFound                      = newBillingServerErrorMsg("vr000007", "vat report not found")
+	errorVatReportInternal                      = newBillingServerErrorMsg("vr000008", "vat report internal error")
 
 	VatReportOnStatusNotifyToCentrifugo = []string{
 		pkg.VatReportStatusNeedToPay,
@@ -73,14 +80,23 @@ type vatReportQueryResItem struct {
 	PaymentTaxFeeLocal             float64 `bson:"payment_tax_fee_local"`
 	PaymentRefundGrossRevenueLocal float64 `bson:"payment_refund_gross_revenue_local"`
 	PaymentRefundTaxFeeLocal       float64 `bson:"payment_refund_tax_fee_local"`
+	PaymentFeesTotal               float64 `bson:"fees_total"`
+	PaymentRefundFeesTotal         float64 `bson:"refund_fees_total"`
+}
+
+type orderViewUpdateParams struct {
+	updateTimeFrom time.Time
+	updateTimeTo   time.Time
+	country        string
 }
 
 type vatReportProcessor struct {
 	*Service
-	ctx       context.Context
-	date      time.Time
-	ts        *timestamp.Timestamp
-	countries []*billing.Country
+	ctx                   context.Context
+	date                  time.Time
+	ts                    *timestamp.Timestamp
+	countries             []*billing.Country
+	orderViewUpdateParams []*orderViewUpdateParams
 }
 
 func NewVatReportProcessor(s *Service, ctx context.Context, date *timestamp.Timestamp) (*vatReportProcessor, error) {
@@ -132,8 +148,10 @@ func (s *Service) GetVatReportsDashboard(
 		}
 
 		zap.L().Error(
-			errorVatReportQueryError.Message,
+			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
+			zap.String("collection", collectionVatReports),
+			zap.Any("query", query),
 		)
 
 		res.Status = pkg.ResponseStatusSystemError
@@ -182,8 +200,10 @@ func (s *Service) GetVatReportsForCountry(
 		}
 
 		zap.L().Error(
-			errorVatReportQueryError.Message,
+			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
+			zap.String("collection", collectionVatReports),
+			zap.Any("query", query),
 		)
 
 		res.Status = pkg.ResponseStatusSystemError
@@ -220,8 +240,10 @@ func (s *Service) GetVatReportTransactions(
 		}
 
 		zap.L().Error(
-			errorVatReportQueryError.Message,
+			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
+			zap.String("collection", collectionVatReports),
+			zap.Any("query", query),
 		)
 
 		res.Status = pkg.ResponseStatusSystemError
@@ -276,6 +298,11 @@ func (s *Service) ProcessVatReports(
 		return err
 	}
 
+	err = handler.UpdateOrderView()
+	if err != nil {
+		return err
+	}
+
 	err = handler.ProcessVatReports()
 	if err != nil {
 		return err
@@ -306,8 +333,10 @@ func (s *Service) UpdateVatReportStatus(
 		}
 
 		zap.L().Error(
-			errorVatReportQueryError.Message,
+			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
+			zap.String("collection", collectionVatReports),
+			zap.Any("query", query),
 		)
 
 		res.Status = pkg.ResponseStatusSystemError
@@ -358,7 +387,7 @@ func (s *Service) updateVatReport(vr *billing.VatReport) error {
 
 		if err != nil {
 			zap.L().Error(
-				"[Centrifugo] Send financier notification about vat report status change failed",
+				errorMsgVatReportCentrifugoNotificationFailed,
 				zap.Error(err),
 				zap.Any("vat_report", vr),
 			)
@@ -379,7 +408,7 @@ func (s *Service) updateVatReport(vr *billing.VatReport) error {
 
 		if err != nil {
 			zap.L().Error(
-				"[SMTP] Send financier notification about vat report status change failed",
+				errorMsgVatReportSMTPNotificationFailed,
 				zap.Error(err),
 				zap.Any("vat_report", vr),
 			)
@@ -509,6 +538,30 @@ func (h *vatReportProcessor) ProcessAccountingEntries() error {
 	return nil
 }
 
+func (h *vatReportProcessor) UpdateOrderView() error {
+	if len(h.orderViewUpdateParams) == 0 {
+		return nil
+	}
+
+	for _, updateData := range h.orderViewUpdateParams {
+		matchQuery := bson.M{
+			"$match": bson.M{
+				"pm_order_close_date": bson.M{
+					"$gte": updateData.updateTimeFrom,
+					"$lte": updateData.updateTimeTo,
+				},
+				"country_code": updateData.country,
+			},
+		}
+		err := h.Service.updateOrderView(matchQuery)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country) error {
 
 	req := &tax_service.GetRateRequest{
@@ -520,7 +573,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 
 	rsp, err := h.Service.tax.GetRate(h.ctx, req)
 	if err != nil {
-		zap.L().Error("tax service get rate error", zap.Error(err))
+		zap.L().Error(errorMsgVatReportTaxServiceGetRateFailed, zap.Error(err))
 		return err
 	}
 
@@ -554,15 +607,14 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 	countryTurnover, err := h.Service.turnover.Get(country.IsoCodeA2, from.Year())
 	if err != nil {
 		zap.L().Error(
-			"turnover not found",
+			errorMsgVatReportTurnoverNotFound,
 			zap.Error(err),
 			zap.String("country", country.IsoCodeA2),
 			zap.Any("year", from.Year()),
 		)
 		return nil
-	} else {
-		report.CountryAnnualTurnover = countryTurnover.Amount
 	}
+	report.CountryAnnualTurnover = tools.FormatAmount(countryTurnover.Amount)
 
 	worldTurnover, err := h.Service.turnover.Get("", from.Year())
 	if err != nil {
@@ -575,14 +627,19 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 			return err
 		}
 	}
-	report.AmountsApproximate = h.date.Unix() < to.Unix()
+
+	report.WorldAnnualTurnover = tools.FormatAmount(report.WorldAnnualTurnover)
+
+	isLastDayOfPeriod := h.date.Unix() == to.Unix()
+	isCurrencyRatesPolicyOnDay := country.VatCurrencyRatesPolicy == pkg.VatCurrencyRatesPolicyOnDay
+	report.AmountsApproximate = !(isCurrencyRatesPolicyOnDay || (!isCurrencyRatesPolicyOnDay && isLastDayOfPeriod))
 
 	matchQuery := bson.M{
 		"pm_order_close_date": bson.M{
 			"$gte": bod(from),
 			"$lte": eod(to),
 		},
-		"country":          country.IsoCodeA2,
+		"country_code":     country.IsoCodeA2,
 		"is_vat_deduction": false,
 	}
 
@@ -598,6 +655,8 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 				"payment_tax_fee_local":              bson.M{"$sum": "$payment_tax_fee_local.amount"},
 				"payment_refund_gross_revenue_local": bson.M{"$sum": "$payment_refund_gross_revenue_local.amount"},
 				"payment_refund_tax_fee_local":       bson.M{"$sum": "$payment_refund_tax_fee_local.amount"},
+				"fees_total":                         bson.M{"$sum": "$fees_total_local.amount"},
+				"refund_fees_total":                  bson.M{"$sum": "$refund_fees_total_local.amount"},
 			},
 		},
 	}
@@ -616,9 +675,9 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 
 	if len(res) == 1 {
 		report.TransactionsCount = res[0].Count
-		report.GrossRevenue = res[0].PaymentGrossRevenueLocal - res[0].PaymentRefundGrossRevenueLocal
-		report.VatAmount = res[0].PaymentTaxFeeLocal - res[0].PaymentRefundTaxFeeLocal
-		// report.FeesAmount = res[0].FeesAmount
+		report.GrossRevenue = tools.FormatAmount(res[0].PaymentGrossRevenueLocal - res[0].PaymentRefundGrossRevenueLocal)
+		report.VatAmount = tools.FormatAmount(res[0].PaymentTaxFeeLocal - res[0].PaymentRefundTaxFeeLocal)
+		report.FeesAmount = res[0].PaymentFeesTotal + res[0].PaymentRefundFeesTotal
 	}
 
 	matchQuery["is_vat_deduction"] = true
@@ -627,7 +686,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String("collection", collectionAccountingEntry),
+			zap.String("collection", collectionOrderView),
 			zap.Any("query", query),
 		)
 		return err
@@ -635,10 +694,13 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 
 	if len(res) == 1 {
 		report.TransactionsCount += res[0].Count
-		report.DeductionAmount = res[0].PaymentRefundTaxFeeLocal
+		report.DeductionAmount = tools.FormatAmount(res[0].PaymentRefundTaxFeeLocal)
+		report.FeesAmount += res[0].PaymentFeesTotal + res[0].PaymentRefundFeesTotal
 	}
 
-	// todo: посчитать fees отдельным запросом!
+	report.FeesAmount = tools.FormatAmount(report.FeesAmount)
+
+	// todo: implement calculation of correction amount after CP settlements support
 
 	selector := bson.M{
 		"country":   report.Country,
@@ -675,7 +737,7 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.
 
 	if country.VatCurrencyRatesPolicy == pkg.VatCurrencyRatesPolicyAvgMonth {
 		zap.L().Error(
-			errorVatReportRatesPolicyNotImplemented.Message,
+			errorMsgVatReportRatesPolicyNotImplemented,
 		)
 		return nil
 	}
@@ -683,10 +745,10 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.
 	from, to, err := h.Service.getVatReportTimeForDate(country.VatPeriodMonth, h.date)
 	if err != nil {
 		zap.L().Error(
-			"cannot get vat report time for date",
+			errorMsgVatReportCantGetTimeForDate,
 			zap.Error(err),
 			zap.String("country", country.IsoCodeA2),
-			zap.Any("date", h.date),
+			zap.Time("date", h.date),
 		)
 		return nil
 	}
@@ -717,12 +779,40 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.
 		return nil
 	}
 
+	var (
+		hasChanges = false
+		updateData = &orderViewUpdateParams{
+			updateTimeFrom: time.Now(),
+			country:        country.IsoCodeA2,
+		}
+	)
+
 	for _, ae := range aes {
+		amount := ae.LocalAmount
 		if ae.LocalCurrency != ae.OriginalCurrency {
-			ae.LocalAmount, err = h.exchangeAmount(ae.OriginalCurrency, ae.LocalCurrency, ae.OriginalAmount)
+			amount, err = h.exchangeAmount(ae.OriginalCurrency, ae.LocalCurrency, ae.OriginalAmount)
 			if err != nil {
 				return err
 			}
+		}
+
+		if amount == ae.LocalAmount {
+			continue
+		}
+
+		hasChanges = true
+
+		timeFrom, err := ptypes.Timestamp(ae.CreatedAt)
+		if err != nil {
+			return err
+		}
+
+		if timeFrom.Before(updateData.updateTimeFrom) {
+			updateData.updateTimeFrom = timeFrom
+		}
+
+		if timeFrom.After(updateData.updateTimeTo) {
+			updateData.updateTimeTo = timeFrom
 		}
 
 		err = h.Service.db.Collection(collectionAccountingEntry).UpdateId(bson.ObjectIdHex(ae.Id), ae)
@@ -735,6 +825,10 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.
 			)
 			return err
 		}
+	}
+
+	if hasChanges {
+		h.orderViewUpdateParams = append(h.orderViewUpdateParams, updateData)
 	}
 
 	return nil

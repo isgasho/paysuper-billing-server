@@ -238,6 +238,7 @@ type MgoOrder struct {
 	ParentPaymentAt            time.Time                   `bson:"parent_payment_at"`
 	Type                       string                      `bson:"type"`
 	IsVatDeduction             bool                        `bson:"is_vat_deduction"`
+	CountryCode                string                      `bson:"country_code"`
 }
 
 type MgoOrderItem struct {
@@ -1210,6 +1211,7 @@ func (m *Order) GetBSON() (interface{}, error) {
 		ParentId:                  m.ParentId,
 		Type:                      m.Type,
 		IsVatDeduction:            m.IsVatDeduction,
+		CountryCode:               m.GetCountry(),
 	}
 
 	if m.Refund != nil {
@@ -1471,6 +1473,7 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.ParentId = decoded.ParentId
 	m.Type = decoded.Type
 	m.IsVatDeduction = decoded.IsVatDeduction
+	m.CountryCode = decoded.CountryCode
 
 	m.PaymentMethodOrderClosedAt, err = ptypes.TimestampProto(decoded.PaymentMethodOrderClosedAt)
 	if err != nil {

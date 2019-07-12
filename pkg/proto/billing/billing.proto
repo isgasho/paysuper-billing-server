@@ -473,6 +473,8 @@ message Order {
     string type = 53;
     // @inject_tag: json:"-"
     bool is_vat_deduction = 54;
+    //@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
+    string country_code = 55;
 }
 
 message CountryRestriction {

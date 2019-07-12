@@ -12,6 +12,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
@@ -201,10 +202,11 @@ func (suite *VatReportsTestSuite) TestVatReports_ProcessVatReports() {
 	amounts := []float64{100, 10}
 	currencies := []string{"RUB", "USD"}
 	countries := []string{"RU", "FI"}
-	orders := []*billing.Order{}
+	var orders []*billing.Order
+	numberOfOrders := 30
 
 	count := 0
-	for count < 10 {
+	for count < numberOfOrders {
 		order := helperCreateAndPayOrder(
 			suite.Suite,
 			suite.service,
@@ -232,7 +234,48 @@ func (suite *VatReportsTestSuite) TestVatReports_ProcessVatReports() {
 	req := &grpc.ProcessVatReportsRequest{
 		Date: ptypes.TimestampNow(),
 	}
-
 	err = suite.service.ProcessVatReports(context.TODO(), req, &grpc.EmptyResponse{})
+	assert.NoError(suite.T(), err)
+
+	repRes := grpc.VatReportsResponse{}
+
+	err = suite.service.GetVatReportsForCountry(context.TODO(), &grpc.VatReportsRequest{Country: "RU"}, &repRes)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), repRes.Status, pkg.ResponseStatusOk)
+	assert.NotNil(suite.T(), repRes.Data)
+	assert.Equal(suite.T(), repRes.Data.Count, int32(1))
+
+	report := repRes.Data.Items[0]
+	assert.NotNil(suite.T(), report)
+	assert.Equal(suite.T(), report.Country, "RU")
+	assert.Equal(suite.T(), report.Currency, "RUB")
+	assert.Equal(suite.T(), report.TransactionsCount, int32(numberOfOrders))
+	assert.Equal(suite.T(), report.GrossRevenue, float64(900))
+	assert.Equal(suite.T(), report.VatAmount, float64(150))
+	assert.Equal(suite.T(), report.FeesAmount, float64(144.39))
+	assert.Equal(suite.T(), report.DeductionAmount, float64(0))
+	assert.Equal(suite.T(), report.CountryAnnualTurnover, float64(1800))
+	assert.Equal(suite.T(), report.WorldAnnualTurnover, float64(13183.80))
+	assert.Equal(suite.T(), report.Status, pkg.VatReportStatusThreshold)
+
+	err = suite.service.GetVatReportsForCountry(context.TODO(), &grpc.VatReportsRequest{Country: "FI"}, &repRes)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), repRes.Status, pkg.ResponseStatusOk)
+	assert.NotNil(suite.T(), repRes.Data)
+	assert.Equal(suite.T(), repRes.Data.Count, int32(1))
+
+	report = repRes.Data.Items[0]
+	assert.NotNil(suite.T(), report)
+	assert.Equal(suite.T(), report.Country, "FI")
+	assert.Equal(suite.T(), report.Currency, "EUR")
+	assert.Equal(suite.T(), report.TransactionsCount, int32(numberOfOrders))
+	assert.Equal(suite.T(), report.GrossRevenue, float64(81.32))
+	assert.Equal(suite.T(), report.VatAmount, float64(13.56))
+	assert.Equal(suite.T(), report.FeesAmount, float64(8.9))
+	assert.Equal(suite.T(), report.DeductionAmount, float64(0))
+	assert.Equal(suite.T(), report.CountryAnnualTurnover, float64(162))
+	assert.Equal(suite.T(), report.WorldAnnualTurnover, float64(188.34))
+	assert.Equal(suite.T(), report.Status, pkg.VatReportStatusThreshold)
+
 	assert.NoError(suite.T(), err)
 }

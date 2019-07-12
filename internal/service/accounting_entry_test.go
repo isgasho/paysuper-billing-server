@@ -1099,7 +1099,6 @@ func (suite *AccountingEntryTestSuite) helperGetAccountingEntries(orderId, colle
 }
 
 func (suite *AccountingEntryTestSuite) helperCheckOrderView(orderId, orderCurrency, royaltyCurrency, vatCurrency string, orderControlResults map[string]float64) {
-
 	orderView, err := suite.service.getOrderFromViewPrivate(orderId)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), orderView)

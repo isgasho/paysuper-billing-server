@@ -1,6 +1,7 @@
 package service
 
 import (
+	"go.uber.org/zap"
 	"sync"
 	"time"
 )
@@ -55,4 +56,13 @@ func contains(s []string, e string) bool {
 		}
 	}
 	return false
+}
+
+func timeTrack(start time.Time, name string) {
+	elapsed := time.Since(start)
+	zap.L().Info(
+		"function execution time",
+		zap.String("name", name),
+		zap.Duration("time", elapsed),
+	)
 }
