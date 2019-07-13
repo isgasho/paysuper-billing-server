@@ -46,6 +46,8 @@ service BillingService {
     rpc GetProduct (RequestProduct) returns (Product) {}
     rpc DeleteProduct (RequestProduct) returns (EmptyResponse) {}
     rpc GetProductsForOrder (GetProductsForOrderRequest) returns (ListProductsResponse) {}
+    rpc GetProductPrices (RequestProduct) returns (ProductPricesResponse) {}
+    rpc UpdateProductPrices (UpdateProductPricesRequest) returns (ResponseError) {}
 
     rpc ChangeProject (billing.Project) returns (ChangeProjectResponse) {}
     rpc GetProject (GetProjectRequest) returns (ChangeProjectResponse) {}
@@ -65,6 +67,10 @@ service BillingService {
 
     rpc GetPriceGroup (billing.GetPriceGroupRequest) returns (billing.PriceGroup) {}
     rpc UpdatePriceGroup (billing.PriceGroup) returns (billing.PriceGroup) {}
+    rpc GetPriceGroupByCountry (PriceGroupByCountryRequest) returns (billing.PriceGroup) {}
+    rpc GetPriceGroupCurrencies (EmptyRequest) returns (PriceGroupCurrenciesResponse) {}
+    rpc GetPriceGroupCurrencyByRegion (PriceGroupByRegionRequest) returns (PriceGroupCurrenciesResponse) {}
+    rpc GetPriceGroupRecommendedPrice (PriceGroupRecommendedPriceRequest) returns (PriceGroupRecommendedPriceResponse) {}
 
     rpc SetUserNotifySales (SetUserNotifyRequest) returns (EmptyResponse) {}
     rpc SetUserNotifyNewRegion (SetUserNotifyRequest) returns (EmptyResponse) {}
@@ -563,7 +569,6 @@ message Product {
     map<string, string> metadata = 17;
     //@inject_tag: json:"-" bson:"deleted"
     bool deleted = 18;
-
 }
 
 message ProductPrice {
@@ -571,6 +576,8 @@ message ProductPrice {
     double amount = 1;
     //@inject_tag: validate:"required,alpha,len=3" json:"currency"
     string currency = 2;
+    //@inject_tag: validate:"omitempty,alpha" json:"region"
+    string region = 3;
 }
 
 message ListProductsRequest {
@@ -922,4 +929,55 @@ message MoneyBackCostMerchantResponse {
     ResponseErrorMessage message = 2;
     //@inject_tag: json:"item"
     billing.MoneyBackCostMerchant item = 3;
+}
+
+message PriceGroupByCountryRequest {
+    //@inject_tag: validate:"required,alpha,len=2"
+    string country = 1;
+}
+
+message PriceGroupCurrenciesResponse {
+    //@inject_tag: json:"regions"
+    repeated PriceGroupRegions region = 1;
+}
+
+message PriceGroupRegions {
+    //@inject_tag: json:"currency"
+    string currency = 1;
+    //@inject_tag: json:"regions"
+    repeated PriceGroupRegion regions = 2;
+}
+
+message PriceGroupRegion {
+    //@inject_tag: json:"region"
+    string region = 1;
+    //@inject_tag: json:"country"
+    repeated string country = 2;
+}
+
+message PriceGroupByRegionRequest {
+    //@inject_tag: validate:"required,alpha"
+    string region = 1;
+}
+
+message PriceGroupRecommendedPriceRequest {
+    // @inject_tag: validate:"required,numeric,gte=0"
+    double amount = 1;
+}
+
+message PriceGroupRecommendedPriceResponse {
+    // @inject_tag: json:"recommended_price"
+    repeated billing.PriceGroupRecommendedPrice recommended_price = 1;
+}
+
+message ProductPricesResponse {
+    // @inject_tag: json:"product_price"
+    repeated ProductPrice product_price = 1;
+}
+
+message UpdateProductPricesRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24" json:"product_id"
+    string product_id = 1;
+    //@inject_tag: validate:"required,min=1,dive" json:"prices"
+    repeated ProductPrice prices = 2;
 }

@@ -558,7 +558,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_ProjectIsProductCheckout_Prod
 	err := suite.service.CreateToken(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
-	assert.Equal(suite.T(), productErrorNotFound, rsp.Message)
+	assert.Equal(suite.T(), productErrorNotFoundBySku, rsp.Message)
 	assert.Empty(suite.T(), rsp.Token)
 }
 

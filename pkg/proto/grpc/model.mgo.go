@@ -154,6 +154,7 @@ func (p *Product) GetBSON() (interface{}, error) {
 	for _, price := range p.Prices {
 		st.Prices = append(st.Prices, &ProductPrice{
 			Currency: price.Currency,
+			Region:   price.Region,
 			Amount:   tools.FormatAmount(price.Amount),
 		})
 	}

@@ -127,6 +127,22 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 	}
 
+	pgRub := &billing.PriceGroup{
+		Id:       bson.NewObjectId().Hex(),
+		Region:   "RUB",
+		Currency: "RUB",
+	}
+	pgUsd := &billing.PriceGroup{
+		Id:       bson.NewObjectId().Hex(),
+		Region:   "USD",
+		Currency: "USD",
+	}
+	pgCis := &billing.PriceGroup{
+		Id:       bson.NewObjectId().Hex(),
+		Region:   "CIS",
+		Currency: "USD",
+	}
+
 	ru := &billing.Country{
 		IsoCodeA2:       "RU",
 		Region:          "Russia",
@@ -134,7 +150,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		PaymentsAllowed: true,
 		ChangeAllowed:   true,
 		VatEnabled:      true,
-		PriceGroupId:    "",
+		PriceGroupId:    pgRub.Id,
 		VatCurrency:     "RUB",
 	}
 	us := &billing.Country{
@@ -144,7 +160,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		PaymentsAllowed: true,
 		ChangeAllowed:   true,
 		VatEnabled:      true,
-		PriceGroupId:    "",
+		PriceGroupId:    pgUsd.Id,
 		VatCurrency:     "USD",
 	}
 	by := &billing.Country{
@@ -154,7 +170,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		PaymentsAllowed: false,
 		ChangeAllowed:   false,
 		VatEnabled:      true,
-		PriceGroupId:    "",
+		PriceGroupId:    pgCis.Id,
 		VatCurrency:     "BYN",
 	}
 	ua := &billing.Country{
@@ -164,7 +180,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		PaymentsAllowed: false,
 		ChangeAllowed:   true,
 		VatEnabled:      false,
-		PriceGroupId:    "",
+		PriceGroupId:    pgCis.Id,
 		VatCurrency:     "",
 	}
 
@@ -840,6 +856,11 @@ func (suite *OrderTestSuite) SetupTest() {
 		suite.FailNow("Insert currency test data failed", "%v", err)
 	}
 
+	pgs := []*billing.PriceGroup{pgRub, pgUsd, pgCis}
+	if err := suite.service.priceGroup.MultipleInsert(pgs); err != nil {
+		suite.FailNow("Insert price group test data failed", "%v", err)
+	}
+
 	var productIds []string
 	names := []string{"Madalin Stunt Cars M2", "Plants vs Zombies"}
 
@@ -860,10 +881,12 @@ func (suite *OrderTestSuite) SetupTest() {
 
 		req.Prices = append(req.Prices, &grpc.ProductPrice{
 			Currency: "USD",
+			Region:   "USD",
 			Amount:   baseAmount,
 		})
 		req.Prices = append(req.Prices, &grpc.ProductPrice{
 			Currency: "RUB",
+			Region:   "RUB",
 			Amount:   baseAmount * 65.13,
 		})
 
@@ -1120,10 +1143,12 @@ func (suite *OrderTestSuite) TestOrder_ValidateProductsForOrder_OneProductIsInac
 		Prices: []*grpc.ProductPrice{
 			{
 				Currency: "USD",
+				Region:   "USD",
 				Amount:   baseAmount,
 			},
 			{
 				Currency: "RUB",
+				Region:   "RUB",
 				Amount:   baseAmount * 65.13,
 			},
 		},
@@ -1155,14 +1180,14 @@ func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_Ok() {
 	p, err := suite.service.GetOrderProducts(suite.projectFixedAmount.Id, suite.productIds)
 	assert.Nil(suite.T(), err)
 
-	amount, err := suite.service.GetOrderProductsAmount(p, suite.merchantDefaultCurrency)
+	amount, err := suite.service.GetOrderProductsAmount(p, &billing.PriceGroup{Currency: suite.merchantDefaultCurrency})
 
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), amount, float64(111))
 }
 
 func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_EmptyProducts_Fail() {
-	_, err := suite.service.GetOrderProductsAmount([]*grpc.Product{}, suite.merchantDefaultCurrency)
+	_, err := suite.service.GetOrderProductsAmount([]*grpc.Product{}, &billing.PriceGroup{Currency: suite.merchantDefaultCurrency})
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), orderErrorProductsEmpty, err)
 }
@@ -1183,10 +1208,12 @@ func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_DifferentCurrencie
 		Prices: []*grpc.ProductPrice{
 			{
 				Currency: "USD",
+				Region:   "USD",
 				Amount:   baseAmount1,
 			},
 			{
 				Currency: "RUB",
+				Region:   "RUB",
 				Amount:   baseAmount1 * 0.89,
 			},
 		},
@@ -1209,10 +1236,12 @@ func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_DifferentCurrencie
 		Prices: []*grpc.ProductPrice{
 			{
 				Currency: "USD",
+				Region:   "USD",
 				Amount:   baseAmount2,
 			},
 			{
 				Currency: "EUR",
+				Region:   "EUR",
 				Amount:   baseAmount2 * 0.89,
 			},
 		},
@@ -1222,7 +1251,7 @@ func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_DifferentCurrencie
 
 	p := []*grpc.Product{&prod1, &prod2}
 
-	_, err := suite.service.GetOrderProductsAmount(p, "RUB")
+	_, err := suite.service.GetOrderProductsAmount(p, &billing.PriceGroup{Currency: "RUB"})
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), orderErrorNoProductsCommonCurrency, err)
 }
@@ -1243,10 +1272,12 @@ func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_DifferentCurrencie
 		Prices: []*grpc.ProductPrice{
 			{
 				Currency: "EUR",
+				Region:   "EUR",
 				Amount:   baseAmount1,
 			},
 			{
 				Currency: "UAH",
+				Region:   "UAH",
 				Amount:   baseAmount1 * 30.21,
 			},
 		},
@@ -1269,10 +1300,12 @@ func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_DifferentCurrencie
 		Prices: []*grpc.ProductPrice{
 			{
 				Currency: "EUR",
+				Region:   "EUR",
 				Amount:   baseAmount2,
 			},
 			{
 				Currency: "UAH",
+				Region:   "UAH",
 				Amount:   baseAmount2 * 30.21,
 			},
 		},
@@ -1282,7 +1315,7 @@ func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_DifferentCurrencie
 
 	p := []*grpc.Product{&prod1, &prod2}
 
-	_, err := suite.service.GetOrderProductsAmount(p, "RUB")
+	_, err := suite.service.GetOrderProductsAmount(p, &billing.PriceGroup{Currency: "RUB"})
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), orderErrorNoProductsCommonCurrency, err)
 }
@@ -1291,14 +1324,14 @@ func (suite *OrderTestSuite) TestOrder_GetOrderProductsItems_Ok() {
 	p, err := suite.service.GetOrderProducts(suite.projectFixedAmount.Id, suite.productIds)
 	assert.Nil(suite.T(), err)
 
-	items, err := suite.service.GetOrderProductsItems(p, DefaultLanguage, suite.merchantDefaultCurrency)
+	items, err := suite.service.GetOrderProductsItems(p, DefaultLanguage, &billing.PriceGroup{Currency: suite.merchantDefaultCurrency})
 
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), len(items), 2)
 }
 
 func (suite *OrderTestSuite) TestOrder_GetOrderProductsItems_EmptyProducts_Fail() {
-	_, err := suite.service.GetOrderProductsItems([]*grpc.Product{}, DefaultLanguage, suite.merchantDefaultCurrency)
+	_, err := suite.service.GetOrderProductsItems([]*grpc.Product{}, DefaultLanguage, &billing.PriceGroup{Currency: suite.merchantDefaultCurrency})
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), orderErrorProductsEmpty, err)
 }
@@ -1319,10 +1352,12 @@ func (suite *OrderTestSuite) TestOrder_GetOrderProductsItems_DifferentCurrencies
 		Prices: []*grpc.ProductPrice{
 			{
 				Currency: "USD",
+				Region:   "USD",
 				Amount:   baseAmount1,
 			},
 			{
 				Currency: "RUB",
+				Region:   "RUB",
 				Amount:   baseAmount1 * 0.89,
 			},
 		},
@@ -1345,10 +1380,12 @@ func (suite *OrderTestSuite) TestOrder_GetOrderProductsItems_DifferentCurrencies
 		Prices: []*grpc.ProductPrice{
 			{
 				Currency: "USD",
+				Region:   "USD",
 				Amount:   baseAmount2,
 			},
 			{
 				Currency: "EUR",
+				Region:   "EUR",
 				Amount:   baseAmount2 * 0.89,
 			},
 		},
@@ -1358,7 +1395,7 @@ func (suite *OrderTestSuite) TestOrder_GetOrderProductsItems_DifferentCurrencies
 
 	p := []*grpc.Product{&prod1, &prod2}
 
-	_, err := suite.service.GetOrderProductsItems(p, DefaultLanguage, "EUR")
+	_, err := suite.service.GetOrderProductsItems(p, DefaultLanguage, &billing.PriceGroup{Currency: "EUR"})
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), orderErrorProductsPrice, err)
 }
@@ -1379,10 +1416,12 @@ func (suite *OrderTestSuite) TestOrder_GetOrderProductsItems_ProductHasNoDescInS
 		Prices: []*grpc.ProductPrice{
 			{
 				Currency: "USD",
+				Region:   "USD",
 				Amount:   baseAmount1,
 			},
 			{
 				Currency: "RUB",
+				Region:   "RUB",
 				Amount:   baseAmount1 * 0.89,
 			},
 		},
@@ -1392,7 +1431,7 @@ func (suite *OrderTestSuite) TestOrder_GetOrderProductsItems_ProductHasNoDescInS
 
 	p := []*grpc.Product{&prod1}
 
-	items, err := suite.service.GetOrderProductsItems(p, "ru", suite.merchantDefaultCurrency)
+	items, err := suite.service.GetOrderProductsItems(p, "ru", &billing.PriceGroup{Currency: suite.merchantDefaultCurrency})
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), len(items), 1)
 }

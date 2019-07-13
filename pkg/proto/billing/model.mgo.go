@@ -417,12 +417,13 @@ type MgoCustomer struct {
 }
 
 type MgoPriceGroup struct {
-	Id        bson.ObjectId `bson:"_id"`
-	Currency  string        `bson:"currency"`
-	IsSimple  bool          `bson:"is_simple"`
-	Region    string        `bson:"region"`
-	CreatedAt time.Time     `bson:"created_at"`
-	UpdatedAt time.Time     `bson:"updated_at"`
+	Id            bson.ObjectId `bson:"_id"`
+	Currency      string        `bson:"currency"`
+	Region        string        `bson:"region"`
+	InflationRate float64       `bson:"inflation_rate"`
+	Fraction      float64       `bson:"fraction"`
+	CreatedAt     time.Time     `bson:"created_at"`
+	UpdatedAt     time.Time     `bson:"updated_at"`
 }
 
 type MgoCountry struct {
@@ -523,6 +524,19 @@ type MgoMoneyBackCostMerchant struct {
 	IsActive          bool          `bson:"is_active"`
 }
 
+type MgoPriceTable struct {
+	Id         bson.ObjectId            `bson:"_id"`
+	Currencies []*MgoPriceTableCurrency `bson:"currencies"`
+	From       float64                  `bson:"from"`
+	To         float64                  `bson:"to"`
+}
+
+type MgoPriceTableCurrency struct {
+	Currency string  `bson:"currency"`
+	From     float64 `bson:"from"`
+	To       float64 `bson:"to"`
+}
+
 func (m *Country) GetBSON() (interface{}, error) {
 	st := &MgoCountry{
 		IsoCodeA2:       m.IsoCodeA2,
@@ -606,9 +620,10 @@ func (m *Country) SetBSON(raw bson.Raw) error {
 
 func (m *PriceGroup) GetBSON() (interface{}, error) {
 	st := &MgoPriceGroup{
-		IsSimple: m.IsSimple,
-		Region:   m.Region,
-		Currency: m.Currency,
+		Region:        m.Region,
+		Currency:      m.Currency,
+		InflationRate: m.InflationRate,
+		Fraction:      m.Fraction,
 	}
 	if len(m.Id) <= 0 {
 		st.Id = bson.NewObjectId()
@@ -656,9 +671,10 @@ func (m *PriceGroup) SetBSON(raw bson.Raw) error {
 	}
 
 	m.Id = decoded.Id.Hex()
-	m.IsSimple = decoded.IsSimple
 	m.Region = decoded.Region
 	m.Currency = decoded.Currency
+	m.InflationRate = decoded.InflationRate
+	m.Fraction = decoded.Fraction
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 
@@ -2751,6 +2767,50 @@ func (m *PayoutCostSystem) SetBSON(raw bson.Raw) error {
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *PriceTable) GetBSON() (interface{}, error) {
+	st := &MgoPriceTable{
+		Id:   bson.ObjectIdHex(m.Id),
+		From: m.From,
+		To:   m.To,
+	}
+
+	if len(m.Currencies) > 0 {
+		for k, v := range m.Currencies {
+			st.Currencies = append(st.Currencies, &MgoPriceTableCurrency{Currency: k, From: v.From, To: v.To})
+		}
+	}
+
+	return st, nil
+}
+
+func (m *PriceTable) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoPriceTable)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.From = decoded.From
+	m.To = decoded.To
+
+	currencyLen := len(decoded.Currencies)
+
+	if currencyLen > 0 {
+		m.Currencies = make(map[string]*PriceTableCurrency, currencyLen)
+
+		for _, v := range decoded.Currencies {
+			m.Currencies[v.Currency] = &PriceTableCurrency{
+				From: v.From,
+				To:   v.To,
+			}
+		}
 	}
 
 	return nil
