@@ -1198,9 +1198,9 @@ message PriceGroup {
     double inflation_rate = 4;
     //@inject_tag: validate:"required,numeric" bson:"fraction" json:"-"
     double fraction = 5;
-    //@inject_tag: json:"created_at" bson:"created_at"
+    //@inject_tag: json:"-" bson:"created_at"
     google.protobuf.Timestamp created_at = 6;
-    //@inject_tag: json:"updated_at" bson:"updated_at"
+    //@inject_tag: json:"-" bson:"updated_at"
     google.protobuf.Timestamp updated_at = 7;
 }
 

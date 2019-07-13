@@ -6925,10 +6925,10 @@ type PriceGroup struct {
 	InflationRate float64 `protobuf:"fixed64,4,opt,name=inflation_rate,json=inflationRate,proto3" json:"-" validate:"required,numeric,gte=0" bson:"inflation_rate"`
 	//@inject_tag: validate:"required,numeric" bson:"fraction" json:"-"
 	Fraction float64 `protobuf:"fixed64,5,opt,name=fraction,proto3" json:"-" validate:"required,numeric" bson:"fraction"`
-	//@inject_tag: json:"created_at" bson:"created_at"
-	CreatedAt *timestamp.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at" bson:"created_at"`
-	//@inject_tag: json:"updated_at" bson:"updated_at"
-	UpdatedAt            *timestamp.Timestamp `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at" bson:"updated_at"`
+	//@inject_tag: json:"-" bson:"created_at"
+	CreatedAt *timestamp.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"-" bson:"created_at"`
+	//@inject_tag: json:"-" bson:"updated_at"
+	UpdatedAt            *timestamp.Timestamp `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"-" bson:"updated_at"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte               `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32                `json:"-" bson:"-" structure:"-" validate:"-"`

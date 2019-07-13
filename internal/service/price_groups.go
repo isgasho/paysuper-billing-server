@@ -106,12 +106,14 @@ func (s *Service) GetPriceGroupByCountry(
 		return err
 	}
 
-	res, err = s.priceGroup.GetById(country.PriceGroupId)
+	group, err := s.priceGroup.GetById(country.PriceGroupId)
 
 	if err != nil {
 		zap.S().Errorw("Price group not found", "error", err, "price_group_id", country.PriceGroupId)
 		return err
 	}
+
+	*res = *group
 
 	return nil
 }
@@ -160,7 +162,8 @@ func (s *Service) GetPriceGroupCurrencyByRegion(
 	}
 
 	regions := []*billing.PriceGroup{region}
-	res.Region = s.priceGroup.MakeCurrencyList(regions, countries)
+	list := s.priceGroup.MakeCurrencyList(regions, countries)
+	res.Region = list
 
 	return nil
 }
