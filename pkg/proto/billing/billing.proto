@@ -587,6 +587,13 @@ message Order {
 
     // @inject_tag: json:"-"
     OrderPaymentRoyaltyData payment_royalty_data = 67;
+
+    // @inject_tag: json:"-"
+    string parent_id = 68;
+    // @inject_tag: json:"-"
+    google.protobuf.Timestamp parent_payment_at = 69;
+    // @inject_tag: json:"-"
+    string type = 70;
 }
 
 message CountryRestriction {
@@ -670,6 +677,8 @@ message PaymentMethodOrder {
     PaymentMethodWallet wallet = 10;
     //@inject_tag: json:"crypto_currency" bson:"crypto_currency"
     PaymentMethodCrypto crypto_currency = 11;
+    // @inject_tag: json:"type" bson:"group_alias"
+    string handler = 12;
 }
 
 message PaymentMethodParams {

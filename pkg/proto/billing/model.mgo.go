@@ -263,6 +263,9 @@ type MgoOrder struct {
 	IsNotificationsSent                     map[string]bool             `bson:"is_notifications_sent"`
 	PaymentRoyaltyData                      *OrderPaymentRoyaltyData    `bson:"payment_royalty_data"`
 	CountryRestriction                      *CountryRestriction         `bson:"country_restriction"`
+	ParentId                                string                      `bson:"parent_id"`
+	ParentPaymentAt                         time.Time                   `bson:"parent_payment_at"`
+	Type                                    string                      `bson:"type"`
 }
 
 type MgoOrderItem struct {
@@ -1127,6 +1130,8 @@ func (m *Order) GetBSON() (interface{}, error) {
 		IsNotificationsSent:                     m.IsNotificationsSent,
 		CountryRestriction:                      m.CountryRestriction,
 		PaymentRoyaltyData:                      m.PaymentRoyaltyData,
+		ParentId:                                m.ParentId,
+		Type:                                    m.Type,
 	}
 
 	if m.Refund != nil {
@@ -1177,6 +1182,7 @@ func (m *Order) GetBSON() (interface{}, error) {
 			Group:           m.PaymentMethod.Group,
 			Saved:           m.PaymentMethod.Saved,
 			Fee:             m.PaymentMethod.Fee,
+			Handler:         m.PaymentMethod.Handler,
 		}
 
 		if m.PaymentMethod.Card != nil {
@@ -1280,6 +1286,16 @@ func (m *Order) GetBSON() (interface{}, error) {
 		}
 
 		st.RefundedAt = t
+	}
+
+	if m.ParentPaymentAt != nil {
+		t, err := ptypes.Timestamp(m.ParentPaymentAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.ParentPaymentAt = t
 	}
 
 	return st, nil
@@ -1428,8 +1444,16 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.IsNotificationsSent = decoded.IsNotificationsSent
 	m.CountryRestriction = decoded.CountryRestriction
 	m.PaymentRoyaltyData = decoded.PaymentRoyaltyData
+	m.ParentId = decoded.ParentId
+	m.Type = decoded.Type
 
 	m.PaymentMethodOrderClosedAt, err = ptypes.TimestampProto(decoded.PaymentMethodOrderClosedAt)
+	if err != nil {
+		return err
+	}
+
+	m.ParentPaymentAt, err = ptypes.TimestampProto(decoded.ParentPaymentAt)
+
 	if err != nil {
 		return err
 	}
@@ -1570,6 +1594,7 @@ func (m *PaymentMethod) SetBSON(raw bson.Raw) error {
 		pmp := make(map[string]*PaymentMethodParams, len(decoded.TestSettings))
 		for _, value := range decoded.TestSettings {
 			pmp[value.Currency] = &PaymentMethodParams{
+				Currency:       value.Currency,
 				TerminalId:     value.TerminalId,
 				Secret:         value.Secret,
 				SecretCallback: value.SecretCallback,
@@ -1582,6 +1607,7 @@ func (m *PaymentMethod) SetBSON(raw bson.Raw) error {
 		pmp := make(map[string]*PaymentMethodParams, len(decoded.ProductionSettings))
 		for _, value := range decoded.ProductionSettings {
 			pmp[value.Currency] = &PaymentMethodParams{
+				Currency:       value.Currency,
 				TerminalId:     value.TerminalId,
 				Secret:         value.Secret,
 				SecretCallback: value.SecretCallback,

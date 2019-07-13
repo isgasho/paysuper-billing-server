@@ -1187,6 +1187,17 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 	err = suite.service.db.Collection(collectionRefund).FindId(bson.ObjectIdHex(rsp2.Item.Id)).One(&refund)
 	assert.NotNil(suite.T(), refund)
 	assert.Equal(suite.T(), pkg.RefundStatusCompleted, refund.Status)
+
+	refundOrder := new(billing.Order)
+	err = suite.service.db.Collection(collectionOrder).Find(bson.M{"refund.receipt_number": refund.Id}).One(&refundOrder)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), refundOrder)
+	assert.Equal(suite.T(), rsp.Id, refundOrder.ParentId)
+	assert.EqualValues(suite.T(), constant.OrderStatusRefund, refundOrder.PrivateStatus)
+	assert.Equal(suite.T(), constant.OrderPublicStatusRefunded, refundOrder.Status)
+	assert.EqualValues(suite.T(), refund.Amount, refundOrder.OrderAmount)
+	assert.Equal(suite.T(), refund.Currency.CodeA3, refundOrder.Currency)
+	assert.Equal(suite.T(), pkg.OrderTypeRefund, refundOrder.Type)
 }
 
 func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnmarshalError() {

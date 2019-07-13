@@ -104,7 +104,7 @@ func (s *Service) SetMoneyBackCostSystem(
 		val, err := s.moneyBackCostSystem.GetById(req.Id)
 		if err != nil {
 			res.Status = pkg.ResponseStatusNotFound
-			res.Message = errorMoneybackSystemDelete
+			res.Message = errorMoneybackSystemSetFailed
 			return nil
 		}
 		req.Id = val.Id

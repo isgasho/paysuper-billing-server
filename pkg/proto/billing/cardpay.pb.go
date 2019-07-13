@@ -34,7 +34,7 @@ func (m *CardPayAddress) Reset()         { *m = CardPayAddress{} }
 func (m *CardPayAddress) String() string { return proto.CompactTextString(m) }
 func (*CardPayAddress) ProtoMessage()    {}
 func (*CardPayAddress) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cardpay_8f41f6a56ecf9396, []int{0}
+	return fileDescriptor_cardpay_6ad9c4c76440d24d, []int{0}
 }
 func (m *CardPayAddress) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CardPayAddress.Unmarshal(m, b)
@@ -110,7 +110,7 @@ func (m *CardPayItem) Reset()         { *m = CardPayItem{} }
 func (m *CardPayItem) String() string { return proto.CompactTextString(m) }
 func (*CardPayItem) ProtoMessage()    {}
 func (*CardPayItem) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cardpay_8f41f6a56ecf9396, []int{1}
+	return fileDescriptor_cardpay_6ad9c4c76440d24d, []int{1}
 }
 func (m *CardPayItem) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CardPayItem.Unmarshal(m, b)
@@ -159,6 +159,7 @@ func (m *CardPayItem) GetPrice() float64 {
 }
 
 type CardPayMerchantOrder struct {
+	// // @inject_tag: validate:"required,hexadecimal,len=24"
 	Id                   string          `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Description          string          `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
 	Items                []*CardPayItem  `protobuf:"bytes,3,rep,name=items,proto3" json:"items,omitempty"`
@@ -172,7 +173,7 @@ func (m *CardPayMerchantOrder) Reset()         { *m = CardPayMerchantOrder{} }
 func (m *CardPayMerchantOrder) String() string { return proto.CompactTextString(m) }
 func (*CardPayMerchantOrder) ProtoMessage()    {}
 func (*CardPayMerchantOrder) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cardpay_8f41f6a56ecf9396, []int{2}
+	return fileDescriptor_cardpay_6ad9c4c76440d24d, []int{2}
 }
 func (m *CardPayMerchantOrder) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CardPayMerchantOrder.Unmarshal(m, b)
@@ -234,7 +235,7 @@ func (m *CallbackCardPayBankCardAccount) Reset()         { *m = CallbackCardPayB
 func (m *CallbackCardPayBankCardAccount) String() string { return proto.CompactTextString(m) }
 func (*CallbackCardPayBankCardAccount) ProtoMessage()    {}
 func (*CallbackCardPayBankCardAccount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cardpay_8f41f6a56ecf9396, []int{3}
+	return fileDescriptor_cardpay_6ad9c4c76440d24d, []int{3}
 }
 func (m *CallbackCardPayBankCardAccount) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CallbackCardPayBankCardAccount.Unmarshal(m, b)
@@ -296,7 +297,7 @@ func (m *CallbackCardPayCryptoCurrencyAccount) Reset()         { *m = CallbackCa
 func (m *CallbackCardPayCryptoCurrencyAccount) String() string { return proto.CompactTextString(m) }
 func (*CallbackCardPayCryptoCurrencyAccount) ProtoMessage()    {}
 func (*CallbackCardPayCryptoCurrencyAccount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cardpay_8f41f6a56ecf9396, []int{4}
+	return fileDescriptor_cardpay_6ad9c4c76440d24d, []int{4}
 }
 func (m *CallbackCardPayCryptoCurrencyAccount) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CallbackCardPayCryptoCurrencyAccount.Unmarshal(m, b)
@@ -358,7 +359,7 @@ func (m *CardPayCustomer) Reset()         { *m = CardPayCustomer{} }
 func (m *CardPayCustomer) String() string { return proto.CompactTextString(m) }
 func (*CardPayCustomer) ProtoMessage()    {}
 func (*CardPayCustomer) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cardpay_8f41f6a56ecf9396, []int{5}
+	return fileDescriptor_cardpay_6ad9c4c76440d24d, []int{5}
 }
 func (m *CardPayCustomer) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CardPayCustomer.Unmarshal(m, b)
@@ -417,7 +418,7 @@ func (m *CardPayEWalletAccount) Reset()         { *m = CardPayEWalletAccount{} }
 func (m *CardPayEWalletAccount) String() string { return proto.CompactTextString(m) }
 func (*CardPayEWalletAccount) ProtoMessage()    {}
 func (*CardPayEWalletAccount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cardpay_8f41f6a56ecf9396, []int{6}
+	return fileDescriptor_cardpay_6ad9c4c76440d24d, []int{6}
 }
 func (m *CardPayEWalletAccount) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CardPayEWalletAccount.Unmarshal(m, b)
@@ -466,7 +467,7 @@ func (m *CallbackCardPayPaymentData) Reset()         { *m = CallbackCardPayPayme
 func (m *CallbackCardPayPaymentData) String() string { return proto.CompactTextString(m) }
 func (*CallbackCardPayPaymentData) ProtoMessage()    {}
 func (*CallbackCardPayPaymentData) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cardpay_8f41f6a56ecf9396, []int{7}
+	return fileDescriptor_cardpay_6ad9c4c76440d24d, []int{7}
 }
 func (m *CallbackCardPayPaymentData) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CallbackCardPayPaymentData.Unmarshal(m, b)
@@ -581,7 +582,7 @@ func (m *CardPayCallbackRecurringDataFilling) Reset()         { *m = CardPayCall
 func (m *CardPayCallbackRecurringDataFilling) String() string { return proto.CompactTextString(m) }
 func (*CardPayCallbackRecurringDataFilling) ProtoMessage()    {}
 func (*CardPayCallbackRecurringDataFilling) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cardpay_8f41f6a56ecf9396, []int{8}
+	return fileDescriptor_cardpay_6ad9c4c76440d24d, []int{8}
 }
 func (m *CardPayCallbackRecurringDataFilling) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CardPayCallbackRecurringDataFilling.Unmarshal(m, b)
@@ -631,7 +632,7 @@ func (m *CardPayCallbackRecurringData) Reset()         { *m = CardPayCallbackRec
 func (m *CardPayCallbackRecurringData) String() string { return proto.CompactTextString(m) }
 func (*CardPayCallbackRecurringData) ProtoMessage()    {}
 func (*CardPayCallbackRecurringData) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cardpay_8f41f6a56ecf9396, []int{9}
+	return fileDescriptor_cardpay_6ad9c4c76440d24d, []int{9}
 }
 func (m *CardPayCallbackRecurringData) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CardPayCallbackRecurringData.Unmarshal(m, b)
@@ -763,7 +764,7 @@ func (m *CardPayPaymentCallback) Reset()         { *m = CardPayPaymentCallback{}
 func (m *CardPayPaymentCallback) String() string { return proto.CompactTextString(m) }
 func (*CardPayPaymentCallback) ProtoMessage()    {}
 func (*CardPayPaymentCallback) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cardpay_8f41f6a56ecf9396, []int{10}
+	return fileDescriptor_cardpay_6ad9c4c76440d24d, []int{10}
 }
 func (m *CardPayPaymentCallback) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CardPayPaymentCallback.Unmarshal(m, b)
@@ -871,7 +872,7 @@ func (m *CardPayRefundCallbackRefundData) Reset()         { *m = CardPayRefundCa
 func (m *CardPayRefundCallbackRefundData) String() string { return proto.CompactTextString(m) }
 func (*CardPayRefundCallbackRefundData) ProtoMessage()    {}
 func (*CardPayRefundCallbackRefundData) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cardpay_8f41f6a56ecf9396, []int{11}
+	return fileDescriptor_cardpay_6ad9c4c76440d24d, []int{11}
 }
 func (m *CardPayRefundCallbackRefundData) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CardPayRefundCallbackRefundData.Unmarshal(m, b)
@@ -962,8 +963,8 @@ func (m *CardPayRefundCallbackRefundData) GetRrn() string {
 }
 
 type CardPayRefundCallbackPaymentData struct {
-	// @inject_tag: validate:"required,hexadecimal,len=24"
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty" validate:"required,hexadecimal,len=24"`
+	// @inject_tag: validate:"required"
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty" validate:"required"`
 	// @inject_tag: validate:"numeric,gte=0"
 	RemainingAmount      float64  `protobuf:"fixed64,2,opt,name=remaining_amount,json=remainingAmount,proto3" json:"remaining_amount,omitempty" validate:"numeric,gte=0"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -975,7 +976,7 @@ func (m *CardPayRefundCallbackPaymentData) Reset()         { *m = CardPayRefundC
 func (m *CardPayRefundCallbackPaymentData) String() string { return proto.CompactTextString(m) }
 func (*CardPayRefundCallbackPaymentData) ProtoMessage()    {}
 func (*CardPayRefundCallbackPaymentData) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cardpay_8f41f6a56ecf9396, []int{12}
+	return fileDescriptor_cardpay_6ad9c4c76440d24d, []int{12}
 }
 func (m *CardPayRefundCallbackPaymentData) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CardPayRefundCallbackPaymentData.Unmarshal(m, b)
@@ -1033,7 +1034,7 @@ func (m *CardPayRefundCallback) Reset()         { *m = CardPayRefundCallback{} }
 func (m *CardPayRefundCallback) String() string { return proto.CompactTextString(m) }
 func (*CardPayRefundCallback) ProtoMessage()    {}
 func (*CardPayRefundCallback) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cardpay_8f41f6a56ecf9396, []int{13}
+	return fileDescriptor_cardpay_6ad9c4c76440d24d, []int{13}
 }
 func (m *CardPayRefundCallback) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CardPayRefundCallback.Unmarshal(m, b)
@@ -1126,9 +1127,9 @@ func init() {
 	proto.RegisterType((*CardPayRefundCallback)(nil), "billing.CardPayRefundCallback")
 }
 
-func init() { proto.RegisterFile("billing/cardpay.proto", fileDescriptor_cardpay_8f41f6a56ecf9396) }
+func init() { proto.RegisterFile("billing/cardpay.proto", fileDescriptor_cardpay_6ad9c4c76440d24d) }
 
-var fileDescriptor_cardpay_8f41f6a56ecf9396 = []byte{
+var fileDescriptor_cardpay_6ad9c4c76440d24d = []byte{
 	// 1120 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xec, 0x57, 0xcb, 0x6e, 0x24, 0x35,
 	0x17, 0x56, 0xdf, 0xbb, 0x4f, 0xa5, 0x3b, 0x51, 0x4d, 0xd2, 0x7f, 0x69, 0x7e, 0x66, 0x08, 0x15,

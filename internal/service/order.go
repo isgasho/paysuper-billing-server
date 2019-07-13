@@ -26,7 +26,6 @@ import (
 	"github.com/ttacon/libphonenumber"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
-	"log"
 	"regexp"
 	"sort"
 	"strconv"
@@ -112,6 +111,8 @@ var (
 	orderErrorSignatureInvalid                                = newBillingServerErrorMsg("fm000048", "request signature is invalid")
 	orderErrorZipCodeNotFound                                 = newBillingServerErrorMsg("fm000050", "zip_code not found")
 	orderErrorProductsPrice                                   = newBillingServerErrorMsg("fm000051", "can't get product price")
+	orderErrorCheckoutWithoutProducts                         = newBillingServerErrorMsg("fm000052", "order products not specified")
+	orderErrorCheckoutWithoutAmount                           = newBillingServerErrorMsg("fm000053", "order amount not specified")
 )
 
 type orderCreateRequestProcessorChecked struct {
@@ -210,6 +211,18 @@ func (s *Service) OrderCreateProcess(
 		}
 	}
 
+	if processor.checked.project.IsProductsCheckout == true && req.Amount > float64(0) {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = orderErrorCheckoutWithoutProducts
+		return nil
+	}
+
+	if processor.checked.project.IsProductsCheckout == false && req.Products != nil {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = orderErrorCheckoutWithoutAmount
+		return nil
+	}
+
 	if req.User != nil {
 		err := processor.processUserData()
 
@@ -282,10 +295,12 @@ func (s *Service) OrderCreateProcess(
 		}
 	}
 
-	if err := processor.processLimitAmounts(); err != nil {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
-		return nil
+	if processor.checked.project.IsProductsCheckout == false {
+		if err := processor.processLimitAmounts(); err != nil {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			return nil
+		}
 	}
 
 	processor.processMetadata()
@@ -302,7 +317,7 @@ func (s *Service) OrderCreateProcess(
 	err = s.db.Collection(collectionOrder).Insert(order)
 
 	if err != nil {
-		zap.S().Errorw(fmt.Sprintf(errorQueryMask, collectionOrder), "err", err, "inserted_data", order)
+		zap.S().Errorw(fmt.Sprintf(errorQueryMask, collectionOrder), "err", err.Error(), "inserted_data", order)
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = orderErrorCanNotCreate
 		return nil
@@ -564,10 +579,8 @@ func (s *Service) PaymentCreateProcess(
 		PaymentSystemId: ps.Id,
 		Group:           processor.checked.paymentMethod.Group,
 		ExternalId:      processor.checked.paymentMethod.ExternalId,
+		Handler:         ps.Handler,
 	}
-	order.PaymentMethod.Params.TerminalId = settings.TerminalId
-	order.PaymentMethod.Params.SecretCallback = settings.SecretCallback
-	order.PaymentMethod.Params.Secret = settings.Secret
 
 	commissionProcessor := &OrderCreateRequestProcessor{Service: s}
 	err = commissionProcessor.processOrderCommissions(order)
@@ -963,7 +976,6 @@ func (s *Service) ProcessBillingAddress(
 	}
 
 	if zip != nil {
-		log.Println(zip)
 		order.BillingAddress.PostalCode = zip.Zip
 		order.BillingAddress.City = zip.City
 		order.BillingAddress.State = zip.State.Code
@@ -1198,7 +1210,8 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 	}
 
 	order := &billing.Order{
-		Id: id,
+		Id:   id,
+		Type: pkg.OrderTypeOrder,
 		Project: &billing.ProjectOrder{
 			Id:                   v.checked.project.Id,
 			Name:                 v.checked.project.Name,
@@ -1506,13 +1519,13 @@ func (v *OrderCreateRequestProcessor) processLimitAmounts() (err error) {
 		currency, err := v.currency.GetByCodeA3(v.checked.project.LimitsCurrency)
 
 		if err != nil {
-			return err
+			return newBillingServerErrorMsg("fm000000", err.Error())
 		}
 
 		amount, err = v.currencyRate.Convert(v.checked.currency.CodeInt, currency.CodeInt, amount)
 
 		if err != nil {
-			return err
+			return newBillingServerErrorMsg("fm000000", err.Error())
 		}
 	}
 
