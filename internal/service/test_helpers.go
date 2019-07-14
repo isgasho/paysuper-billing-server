@@ -181,7 +181,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 
 	ps := []*billing.PaymentSystem{paymentSystem}
 	if err := service.paymentSystem.MultipleInsert(ps); err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
+		suite.FailNow("Insert payment system test data failed", "%v", err)
 	}
 
 	sysCost := &billing.MoneyBackCostSystem{

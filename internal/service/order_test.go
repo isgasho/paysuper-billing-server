@@ -39,6 +39,7 @@ type OrderTestSuite struct {
 
 	project                                *billing.Project
 	projectFixedAmount                     *billing.Project
+	projectWithProducts                    *billing.Project
 	inactiveProject                        *billing.Project
 	projectWithoutPaymentMethods           *billing.Project
 	projectIncorrectPaymentMethodId        *billing.Project
@@ -70,6 +71,22 @@ func (suite *OrderTestSuite) SetupTest() {
 		suite.FailNow("Database connection failed", "%v", err)
 	}
 
+	pgRub := &billing.PriceGroup{
+		Id:       bson.NewObjectId().Hex(),
+		Region:   "RUB",
+		Currency: "RUB",
+	}
+	pgUsd := &billing.PriceGroup{
+		Id:       bson.NewObjectId().Hex(),
+		Region:   "USD",
+		Currency: "USD",
+	}
+	pgCis := &billing.PriceGroup{
+		Id:       bson.NewObjectId().Hex(),
+		Region:   "CIS",
+		Currency: "USD",
+	}
+
 	ru := &billing.Country{
 		IsoCodeA2:       "RU",
 		Region:          "Russia",
@@ -77,7 +94,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		PaymentsAllowed: true,
 		ChangeAllowed:   true,
 		VatEnabled:      true,
-		PriceGroupId:    "",
+		PriceGroupId:    pgRub.Id,
 		VatCurrency:     "RUB",
 		VatThreshold: &billing.CountryVatThreshold{
 			Year:  0,
@@ -96,7 +113,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		PaymentsAllowed: true,
 		ChangeAllowed:   true,
 		VatEnabled:      true,
-		PriceGroupId:    "",
+		PriceGroupId:    pgUsd.Id,
 		VatCurrency:     "USD",
 		VatThreshold: &billing.CountryVatThreshold{
 			Year:  0,
@@ -115,7 +132,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		PaymentsAllowed: false,
 		ChangeAllowed:   false,
 		VatEnabled:      true,
-		PriceGroupId:    "",
+		PriceGroupId:    pgCis.Id,
 		VatCurrency:     "BYN",
 		VatThreshold: &billing.CountryVatThreshold{
 			Year:  0,
@@ -134,7 +151,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		PaymentsAllowed: false,
 		ChangeAllowed:   true,
 		VatEnabled:      false,
-		PriceGroupId:    "",
+		PriceGroupId:    pgCis.Id,
 		VatCurrency:     "",
 		VatThreshold: &billing.CountryVatThreshold{
 			Year:  0,
@@ -449,6 +466,20 @@ func (suite *OrderTestSuite) SetupTest() {
 		MaxPaymentAmount:         15000,
 		MinPaymentAmount:         1,
 		Name:                     map[string]string{"en": "test project 1"},
+		IsProductsCheckout:       false,
+		AllowDynamicRedirectUrls: true,
+		SecretKey:                "test project 1 secret key",
+		Status:                   pkg.ProjectStatusDraft,
+		MerchantId:               merchant.Id,
+	}
+	projectWithProducts := &billing.Project{
+		Id:                       bson.NewObjectId().Hex(),
+		CallbackCurrency:         "RUB",
+		CallbackProtocol:         "default",
+		LimitsCurrency:           "USD",
+		MaxPaymentAmount:         15000,
+		MinPaymentAmount:         1,
+		Name:                     map[string]string{"en": "test project 1"},
 		IsProductsCheckout:       true,
 		AllowDynamicRedirectUrls: true,
 		SecretKey:                "test project 1 secret key",
@@ -523,6 +554,7 @@ func (suite *OrderTestSuite) SetupTest() {
 	projects := []*billing.Project{
 		project,
 		projectFixedAmount,
+		projectWithProducts,
 		inactiveProject,
 		projectWithoutPaymentMethods,
 		projectIncorrectPaymentMethodId,
@@ -723,7 +755,12 @@ func (suite *OrderTestSuite) SetupTest() {
 
 	ps := []*billing.PaymentSystem{ps1, ps2, ps3, ps4, ps5}
 	if err := suite.service.paymentSystem.MultipleInsert(ps); err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
+		suite.FailNow("Insert payment system test data failed", "%v", err)
+	}
+
+	pgs := []*billing.PriceGroup{pgRub, pgUsd, pgCis}
+	if err := suite.service.priceGroup.MultipleInsert(pgs); err != nil {
+		suite.FailNow("Insert price group test data failed", "%v", err)
 	}
 
 	var productIds []string
@@ -738,18 +775,20 @@ func (suite *OrderTestSuite) SetupTest() {
 			DefaultCurrency: "USD",
 			Enabled:         true,
 			Description:     map[string]string{"en": n + " description"},
-			MerchantId:      projectFixedAmount.MerchantId,
-			ProjectId:       projectFixedAmount.Id,
+			MerchantId:      projectWithProducts.MerchantId,
+			ProjectId:       projectWithProducts.Id,
 		}
 
 		baseAmount := 37.00 * float64(i+1) // base amount in product's default currency
 
 		req.Prices = append(req.Prices, &grpc.ProductPrice{
 			Currency: "USD",
+			Region:   "USD",
 			Amount:   baseAmount,
 		})
 		req.Prices = append(req.Prices, &grpc.ProductPrice{
 			Currency: "RUB",
+			Region:   "RUB",
 			Amount:   baseAmount * 65.13,
 		})
 
@@ -862,6 +901,7 @@ func (suite *OrderTestSuite) SetupTest() {
 
 	suite.project = project
 	suite.projectFixedAmount = projectFixedAmount
+	suite.projectWithProducts = projectWithProducts
 	suite.inactiveProject = inactiveProject
 	suite.projectWithoutPaymentMethods = projectWithoutPaymentMethods
 	suite.projectIncorrectPaymentMethodId = projectIncorrectPaymentMethodId
@@ -1132,7 +1172,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPayerData_Error() {
 }
 
 func (suite *OrderTestSuite) TestOrder_ValidateProductsForOrder_Ok() {
-	_, err := suite.service.GetOrderProducts(suite.projectFixedAmount.Id, suite.productIds)
+	_, err := suite.service.GetOrderProducts(suite.projectWithProducts.Id, suite.productIds)
 	assert.Nil(suite.T(), err)
 }
 
@@ -1159,10 +1199,12 @@ func (suite *OrderTestSuite) TestOrder_ValidateProductsForOrder_OneProductIsInac
 		Prices: []*grpc.ProductPrice{
 			{
 				Currency: "USD",
+				Region:   "USD",
 				Amount:   baseAmount,
 			},
 			{
 				Currency: "RUB",
+				Region:   "RUB",
 				Amount:   baseAmount * 65.13,
 			},
 		},
@@ -1191,17 +1233,17 @@ func (suite *OrderTestSuite) TestOrder_ValidateProductsForOrder_EmptyProducts_Fa
 }
 
 func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_Ok() {
-	p, err := suite.service.GetOrderProducts(suite.projectFixedAmount.Id, suite.productIds)
+	p, err := suite.service.GetOrderProducts(suite.projectWithProducts.Id, suite.productIds)
 	assert.Nil(suite.T(), err)
 
-	amount, err := suite.service.GetOrderProductsAmount(p, suite.merchantDefaultCurrency)
+	amount, err := suite.service.GetOrderProductsAmount(p, &billing.PriceGroup{Currency: suite.merchantDefaultCurrency})
 
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), amount, float64(111))
 }
 
 func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_EmptyProducts_Fail() {
-	_, err := suite.service.GetOrderProductsAmount([]*grpc.Product{}, suite.merchantDefaultCurrency)
+	_, err := suite.service.GetOrderProductsAmount([]*grpc.Product{}, &billing.PriceGroup{Currency: suite.merchantDefaultCurrency})
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), orderErrorProductsEmpty, err)
 }
@@ -1222,10 +1264,12 @@ func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_DifferentCurrencie
 		Prices: []*grpc.ProductPrice{
 			{
 				Currency: "USD",
+				Region:   "USD",
 				Amount:   baseAmount1,
 			},
 			{
 				Currency: "RUB",
+				Region:   "RUB",
 				Amount:   baseAmount1 * 0.89,
 			},
 		},
@@ -1248,10 +1292,12 @@ func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_DifferentCurrencie
 		Prices: []*grpc.ProductPrice{
 			{
 				Currency: "USD",
+				Region:   "USD",
 				Amount:   baseAmount2,
 			},
 			{
 				Currency: "EUR",
+				Region:   "EUR",
 				Amount:   baseAmount2 * 0.89,
 			},
 		},
@@ -1261,7 +1307,7 @@ func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_DifferentCurrencie
 
 	p := []*grpc.Product{&prod1, &prod2}
 
-	_, err := suite.service.GetOrderProductsAmount(p, "RUB")
+	_, err := suite.service.GetOrderProductsAmount(p, &billing.PriceGroup{Currency: "RUB"})
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), orderErrorNoProductsCommonCurrency, err)
 }
@@ -1282,10 +1328,12 @@ func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_DifferentCurrencie
 		Prices: []*grpc.ProductPrice{
 			{
 				Currency: "EUR",
+				Region:   "EUR",
 				Amount:   baseAmount1,
 			},
 			{
 				Currency: "UAH",
+				Region:   "UAH",
 				Amount:   baseAmount1 * 30.21,
 			},
 		},
@@ -1308,10 +1356,12 @@ func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_DifferentCurrencie
 		Prices: []*grpc.ProductPrice{
 			{
 				Currency: "EUR",
+				Region:   "EUR",
 				Amount:   baseAmount2,
 			},
 			{
 				Currency: "UAH",
+				Region:   "UAH",
 				Amount:   baseAmount2 * 30.21,
 			},
 		},
@@ -1321,23 +1371,23 @@ func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_DifferentCurrencie
 
 	p := []*grpc.Product{&prod1, &prod2}
 
-	_, err := suite.service.GetOrderProductsAmount(p, "RUB")
+	_, err := suite.service.GetOrderProductsAmount(p, &billing.PriceGroup{Currency: "RUB"})
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), orderErrorNoProductsCommonCurrency, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_GetOrderProductsItems_Ok() {
-	p, err := suite.service.GetOrderProducts(suite.projectFixedAmount.Id, suite.productIds)
+	p, err := suite.service.GetOrderProducts(suite.projectWithProducts.Id, suite.productIds)
 	assert.Nil(suite.T(), err)
 
-	items, err := suite.service.GetOrderProductsItems(p, DefaultLanguage, suite.merchantDefaultCurrency)
+	items, err := suite.service.GetOrderProductsItems(p, DefaultLanguage, &billing.PriceGroup{Currency: suite.merchantDefaultCurrency})
 
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), len(items), 2)
 }
 
 func (suite *OrderTestSuite) TestOrder_GetOrderProductsItems_EmptyProducts_Fail() {
-	_, err := suite.service.GetOrderProductsItems([]*grpc.Product{}, DefaultLanguage, suite.merchantDefaultCurrency)
+	_, err := suite.service.GetOrderProductsItems([]*grpc.Product{}, DefaultLanguage, &billing.PriceGroup{Currency: suite.merchantDefaultCurrency})
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), orderErrorProductsEmpty, err)
 }
@@ -1358,10 +1408,12 @@ func (suite *OrderTestSuite) TestOrder_GetOrderProductsItems_DifferentCurrencies
 		Prices: []*grpc.ProductPrice{
 			{
 				Currency: "USD",
+				Region:   "USD",
 				Amount:   baseAmount1,
 			},
 			{
 				Currency: "RUB",
+				Region:   "RUB",
 				Amount:   baseAmount1 * 0.89,
 			},
 		},
@@ -1384,10 +1436,12 @@ func (suite *OrderTestSuite) TestOrder_GetOrderProductsItems_DifferentCurrencies
 		Prices: []*grpc.ProductPrice{
 			{
 				Currency: "USD",
+				Region:   "USD",
 				Amount:   baseAmount2,
 			},
 			{
 				Currency: "EUR",
+				Region:   "EUR",
 				Amount:   baseAmount2 * 0.89,
 			},
 		},
@@ -1397,7 +1451,7 @@ func (suite *OrderTestSuite) TestOrder_GetOrderProductsItems_DifferentCurrencies
 
 	p := []*grpc.Product{&prod1, &prod2}
 
-	_, err := suite.service.GetOrderProductsItems(p, DefaultLanguage, "EUR")
+	_, err := suite.service.GetOrderProductsItems(p, DefaultLanguage, &billing.PriceGroup{Currency: "EUR"})
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), orderErrorProductsPrice, err)
 }
@@ -1418,10 +1472,12 @@ func (suite *OrderTestSuite) TestOrder_GetOrderProductsItems_ProductHasNoDescInS
 		Prices: []*grpc.ProductPrice{
 			{
 				Currency: "USD",
+				Region:   "USD",
 				Amount:   baseAmount1,
 			},
 			{
 				Currency: "RUB",
+				Region:   "RUB",
 				Amount:   baseAmount1 * 0.89,
 			},
 		},
@@ -1431,7 +1487,7 @@ func (suite *OrderTestSuite) TestOrder_GetOrderProductsItems_ProductHasNoDescInS
 
 	p := []*grpc.Product{&prod1}
 
-	items, err := suite.service.GetOrderProductsItems(p, "ru", suite.merchantDefaultCurrency)
+	items, err := suite.service.GetOrderProductsItems(p, "ru", &billing.PriceGroup{Currency: suite.merchantDefaultCurrency})
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), len(items), 1)
 }
@@ -1936,7 +1992,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessSignature_Error() {
 
 func (suite *OrderTestSuite) TestOrder_PrepareOrder_Ok() {
 	req := &billing.OrderCreateRequest{
-		ProjectId:   suite.projectFixedAmount.Id,
+		ProjectId:   suite.projectWithProducts.Id,
 		Currency:    "RUB",
 		Amount:      100,
 		Account:     "unit test",
@@ -1990,7 +2046,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_Ok() {
 
 func (suite *OrderTestSuite) TestOrder_PrepareOrder_PaymentMethod_Ok() {
 	req := &billing.OrderCreateRequest{
-		ProjectId:     suite.projectFixedAmount.Id,
+		ProjectId:     suite.projectWithProducts.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",
 		Amount:        100,
@@ -2051,7 +2107,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_PaymentMethod_Ok() {
 
 func (suite *OrderTestSuite) TestOrder_PrepareOrder_UrlVerify_Error() {
 	req := &billing.OrderCreateRequest{
-		ProjectId:   suite.projectFixedAmount.Id,
+		ProjectId:   suite.projectWithProducts.Id,
 		Currency:    "RUB",
 		Amount:      100,
 		Account:     "unit test",
@@ -2101,7 +2157,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_UrlVerify_Error() {
 
 func (suite *OrderTestSuite) TestOrder_PrepareOrder_UrlRedirect_Error() {
 	req := &billing.OrderCreateRequest{
-		ProjectId:   suite.projectFixedAmount.Id,
+		ProjectId:   suite.projectWithProducts.Id,
 		Currency:    "RUB",
 		Amount:      100,
 		Account:     "unit test",
@@ -2238,6 +2294,58 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_SignatureInvalid_Error
 	assert.Equal(suite.T(), orderErrorSignatureInvalid, rsp.Message)
 
 	assert.Nil(suite.T(), rsp.Item)
+}
+
+func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_Error_CheckoutWithoutAmount() {
+	suite.project.IsProductsCheckout = true
+	assert.NoError(suite.T(), suite.service.project.Update(suite.project))
+
+	req := &billing.OrderCreateRequest{
+		ProjectId:     suite.project.Id,
+		PaymentMethod: suite.paymentMethod.Group,
+		Currency:      "USD",
+		Amount:        100,
+		Account:       "unit test",
+		Description:   "unit test",
+		OrderId:       bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+	}
+
+	rsp := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusBadData)
+	assert.Equal(suite.T(), orderErrorCheckoutWithoutProducts, rsp.Message)
+}
+
+func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_Error_CheckoutWithoutProducts() {
+	suite.project.IsProductsCheckout = false
+	assert.NoError(suite.T(), suite.service.project.Update(suite.project))
+
+	req := &billing.OrderCreateRequest{
+		ProjectId:     suite.project.Id,
+		PaymentMethod: suite.paymentMethod.Group,
+		Currency:      "USD",
+		Products:      []string{"item"},
+		Account:       "unit test",
+		Description:   "unit test",
+		OrderId:       bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+	}
+
+	rsp := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusBadData)
+	assert.Equal(suite.T(), orderErrorCheckoutWithoutAmount, rsp.Message)
 }
 
 func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_CurrencyInvalid_Error() {
@@ -2686,10 +2794,9 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_Ok() {
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcessWithProducts_Ok() {
 	req := &billing.OrderCreateRequest{
-		ProjectId:     suite.projectFixedAmount.Id,
+		ProjectId:     suite.projectWithProducts.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",
-		Amount:        100,
 		Account:       "unit test",
 		Description:   "unit test",
 		OrderId:       bson.NewObjectId().Hex(),
@@ -3610,9 +3717,8 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_FormInputTimeExpired
 
 func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Ok() {
 	req := &billing.OrderCreateRequest{
-		ProjectId:   suite.projectFixedAmount.Id,
+		ProjectId:   suite.projectWithProducts.Id,
 		Currency:    "RUB",
-		Amount:      100,
 		Account:     "unit test",
 		Description: "unit test",
 		OrderId:     bson.NewObjectId().Hex(),
@@ -3730,9 +3836,8 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Ok() {
 
 func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Recurring_Ok() {
 	req := &billing.OrderCreateRequest{
-		ProjectId:   suite.projectFixedAmount.Id,
+		ProjectId:   suite.projectWithProducts.Id,
 		Currency:    "RUB",
-		Amount:      100,
 		Account:     "unit test",
 		Description: "unit test",
 		OrderId:     bson.NewObjectId().Hex(),
@@ -5778,7 +5883,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequi
 
 func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_AccountingEntries_Ok() {
 	req := &billing.OrderCreateRequest{
-		ProjectId:   suite.projectFixedAmount.Id,
+		ProjectId:   suite.projectWithProducts.Id,
 		Currency:    "RUB",
 		Account:     "unit test",
 		Description: "unit test",
@@ -5884,38 +5989,6 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_AccountingEntries_
 		Find(bson.M{"source.id": bson.ObjectIdHex(order.Id), "source.type": collectionOrder}).All(&accountingEntries)
 	assert.NoError(suite.T(), err)
 	assert.NotEmpty(suite.T(), accountingEntries)
-	/*
-		n, err := suite.service.db.Collection(collectionVatTransactions).Count()
-		assert.NoError(suite.T(), err)
-		assert.Equal(suite.T(), n, 1)
-
-		country, err := suite.service.country.GetByIsoCodeA2(order.GetCountry())
-		assert.NoError(suite.T(), err)
-
-		from, to, err := suite.service.getLastVatReportTime(country.VatPeriodMonth)
-		assert.NoError(suite.T(), err)
-
-		vts, err := suite.service.getVatTransactions(from, to, order.GetCountry())
-		assert.NoError(suite.T(), err)
-		assert.Equal(suite.T(), len(vts), 1)
-
-		vt := vts[0]
-
-		assert.Equal(suite.T(), vt.OrderId, order.Id)
-		assert.Equal(suite.T(), vt.UserId, order.User.Id)
-		assert.Equal(suite.T(), vt.TransactionType, pkg.VatTransactionTypePayment)
-		assert.Equal(suite.T(), vt.TransactionAmount, order.TotalPaymentAmount)
-		assert.Equal(suite.T(), vt.TransactionCurrency, order.Currency)
-		assert.Equal(suite.T(), vt.VatAmount, order.Tax.Amount)
-		assert.Equal(suite.T(), vt.VatCurrency, order.Tax.Currency)
-		assert.Equal(suite.T(), vt.Country, order.GetCountry())
-		assert.Equal(suite.T(), vt.LocalCurrency, vt.TransactionCurrency)
-		assert.Equal(suite.T(), vt.LocalCurrency, order.Currency)
-		assert.Equal(suite.T(), vt.LocalTransactionAmount, order.TotalPaymentAmount)
-		assert.Equal(suite.T(), vt.LocalCurrency, order.Tax.Currency)
-		assert.Equal(suite.T(), vt.LocalVatAmount, order.Tax.Amount)
-		assert.False(suite.T(), vt.IsDeduction)
-	*/
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Error() {
@@ -5926,7 +5999,6 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Error() {
 		Account:     "unit test",
 		Description: "unit test",
 		OrderId:     bson.NewObjectId().Hex(),
-		Products:    suite.productIds,
 		User: &billing.OrderUser{
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
@@ -5972,14 +6044,6 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Error() {
 		MerchantOrder: &billing.CardPayMerchantOrder{
 			Id:          order.Id,
 			Description: order.Description,
-			Items: []*billing.CardPayItem{
-				{
-					Name:        order.Items[0].Name,
-					Description: order.Items[0].Name,
-					Count:       1,
-					Price:       order.Items[0].Amount,
-				},
-			},
 		},
 		CardAccount: &billing.CallbackCardPayBankCardAccount{
 			Holder:             order.PaymentRequisites[pkg.PaymentCreateFieldHolder],

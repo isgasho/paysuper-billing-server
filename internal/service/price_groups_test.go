@@ -8,6 +8,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
@@ -70,7 +71,6 @@ func (suite *PriceGroupTestSuite) SetupTest() {
 	suite.priceGroup = &billing.PriceGroup{
 		Id:       suite.priceGroupId,
 		Currency: "USD",
-		IsSimple: true,
 		Region:   "",
 	}
 	if err := suite.service.priceGroup.Insert(suite.priceGroup); err != nil {
@@ -86,64 +86,81 @@ func (suite *PriceGroupTestSuite) TearDownTest() {
 	suite.service.db.Close()
 }
 
-func (suite *PriceGroupTestSuite) TestPriceGroup_TestPriceGroup() {
-
+func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroup_Error_NotFound() {
 	pgId := bson.NewObjectId().Hex()
-
 	pgReq := &billing.GetPriceGroupRequest{
 		Id: pgId,
 	}
 	pg := &billing.PriceGroup{}
 	err := suite.service.GetPriceGroup(context.TODO(), pgReq, pg)
 	assert.EqualError(suite.T(), err, "price_group not found")
+}
 
+func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroup_Ok() {
+	id := bson.NewObjectId().Hex()
+	err := suite.service.priceGroup.Insert(&billing.PriceGroup{Id: id, Currency: "USD"})
+
+	pgReq := &billing.GetPriceGroupRequest{
+		Id: id,
+	}
+	pg2 := billing.PriceGroup{}
+	err = suite.service.GetPriceGroup(context.TODO(), pgReq, &pg2)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "USD", pg2.Currency)
+}
+
+func (suite *PriceGroupTestSuite) TestPriceGroup_UpdatePriceGroup_Error_NotFound() {
 	pgRes := &billing.PriceGroup{}
-
-	pg = &billing.PriceGroup{
-		Id:       pgId,
+	pg := &billing.PriceGroup{
+		Id:       bson.NewObjectId().Hex(),
 		Currency: "USD",
-		IsSimple: true,
 		Region:   "",
 	}
-	err = suite.service.UpdatePriceGroup(context.TODO(), pg, pgRes)
+	err := suite.service.UpdatePriceGroup(context.TODO(), pg, pgRes)
+	assert.EqualError(suite.T(), err, fmt.Sprintf(errorNotFound, collectionPriceGroup))
+}
+
+func (suite *PriceGroupTestSuite) TestPriceGroup_UpdatePriceGroup_Ok() {
+	pgRes := &billing.PriceGroup{}
+	pg := &billing.PriceGroup{
+		Id:       bson.NewObjectId().Hex(),
+		Currency: "USD",
+		Region:   "",
+	}
+	err := suite.service.UpdatePriceGroup(context.TODO(), pg, pgRes)
 	assert.EqualError(suite.T(), err, fmt.Sprintf(errorNotFound, collectionPriceGroup))
 
 	pg.Id = pgRes.Id
 	err = suite.service.UpdatePriceGroup(context.TODO(), pg, pgRes)
 	assert.NoError(suite.T(), err)
-
-	pgReq = &billing.GetPriceGroupRequest{
-		Id: pgRes.Id,
-	}
-	pg2 := billing.PriceGroup{}
-	err = suite.service.GetPriceGroup(context.TODO(), pgReq, &pg2)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pg2.Currency, "USD")
-
-	pg = &billing.PriceGroup{
-		Id:       pgRes.Id,
-		Currency: "EUR",
-		IsSimple: false,
-		Region:   "AFRICA",
-	}
-	err = suite.service.UpdatePriceGroup(context.TODO(), pg, pgRes)
-	assert.NoError(suite.T(), err)
-
-	err = suite.service.GetPriceGroup(context.TODO(), pgReq, &pg2)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pg2.Currency, "EUR")
 }
 
-func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupByCodeA2_Ok() {
-	c, err := suite.service.priceGroup.GetById(suite.priceGroupId)
+func (suite *PriceGroupTestSuite) TestPriceGroup_GetById_Ok() {
+	c, err := suite.service.priceGroup.GetById(suite.priceGroup.Id)
 
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), c)
 	assert.Equal(suite.T(), suite.priceGroup.Id, c.Id)
 }
 
-func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupByCodeA2_NotFound() {
+func (suite *PriceGroupTestSuite) TestPriceGroup_GetById_NotFound() {
 	_, err := suite.service.priceGroup.GetById(bson.NewObjectId().Hex())
+
+	assert.Error(suite.T(), err)
+	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, collectionPriceGroup))
+}
+
+func (suite *PriceGroupTestSuite) TestPriceGroup_GetByRegion_Ok() {
+	c, err := suite.service.priceGroup.GetByRegion(suite.priceGroup.Region)
+
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), c)
+	assert.Equal(suite.T(), suite.priceGroup.Id, c.Id)
+	assert.Equal(suite.T(), suite.priceGroup.Region, c.Region)
+}
+
+func (suite *PriceGroupTestSuite) TestPriceGroup_GetByRegion_NotFound() {
+	_, err := suite.service.priceGroup.GetByRegion(bson.NewObjectId().Hex())
 
 	assert.Error(suite.T(), err)
 	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, collectionPriceGroup))
@@ -158,7 +175,6 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_Insert_ErrorCacheUpdate() {
 	pg := &billing.PriceGroup{
 		Id:       bson.NewObjectId().Hex(),
 		Currency: "USD",
-		IsSimple: true,
 		Region:   "",
 	}
 	key := fmt.Sprintf(cachePriceGroupId, pg.Id)
@@ -169,4 +185,288 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_Insert_ErrorCacheUpdate() {
 
 	assert.Error(suite.T(), err)
 	assert.EqualError(suite.T(), err, "service unavailable")
+}
+
+func (suite *PriceGroupTestSuite) TestPriceGroup_CalculatePriceWithFraction_Ok_0_5() {
+	price := suite.service.priceGroup.CalculatePriceWithFraction(0.5, 0.12)
+	assert.Equal(suite.T(), 0.5, price)
+
+	price = suite.service.priceGroup.CalculatePriceWithFraction(0.5, 0.98)
+	assert.Equal(suite.T(), float64(1), price)
+
+	price = suite.service.priceGroup.CalculatePriceWithFraction(0.5, 2.5)
+	assert.Equal(suite.T(), 2.5, price)
+}
+
+func (suite *PriceGroupTestSuite) TestPriceGroup_CalculatePriceWithFraction_Ok_0_05() {
+	price := suite.service.priceGroup.CalculatePriceWithFraction(0.05, 1.01)
+	assert.Equal(suite.T(), 1.05, price)
+
+	price = suite.service.priceGroup.CalculatePriceWithFraction(0.05, 2.98)
+	assert.Equal(suite.T(), float64(3), price)
+
+	price = suite.service.priceGroup.CalculatePriceWithFraction(0.05, 2.05)
+	assert.Equal(suite.T(), 2.05, price)
+}
+
+func (suite *PriceGroupTestSuite) TestPriceGroup_CalculatePriceWithFraction_Ok_0_95() {
+	price := suite.service.priceGroup.CalculatePriceWithFraction(0.95, 1.01)
+	assert.Equal(suite.T(), 1.95, price)
+
+	price = suite.service.priceGroup.CalculatePriceWithFraction(0.95, 2.96)
+	assert.Equal(suite.T(), 3.95, price)
+
+	price = suite.service.priceGroup.CalculatePriceWithFraction(0.95, 3.95)
+	assert.Equal(suite.T(), 3.95, price)
+}
+
+func (suite *PriceGroupTestSuite) TestPriceGroup_CalculatePriceWithFraction_Ok_0_09() {
+	price := suite.service.priceGroup.CalculatePriceWithFraction(0.09, 1.01)
+	assert.Equal(suite.T(), 1.09, price)
+
+	price = suite.service.priceGroup.CalculatePriceWithFraction(0.09, 2.95)
+	assert.Equal(suite.T(), 2.99, price)
+
+	price = suite.service.priceGroup.CalculatePriceWithFraction(0.09, 3.99)
+	assert.Equal(suite.T(), 3.99, price)
+}
+
+func (suite *PriceGroupTestSuite) TestPriceGroup_CalculatePriceWithFraction_Ok_0() {
+	price := suite.service.priceGroup.CalculatePriceWithFraction(0, 1.21)
+	assert.Equal(suite.T(), float64(2), price)
+
+	price = suite.service.priceGroup.CalculatePriceWithFraction(0, 2)
+	assert.Equal(suite.T(), float64(2), price)
+}
+
+func (suite *PriceGroupTestSuite) TestPriceGroup_getRecommendedPriceForRegion_Error_NotFound() {
+	pt := &billing.PriceTable{}
+	pg := &billing.PriceGroup{}
+	_, err := suite.service.priceGroup.GetRecommendedPriceForRegion(pt, pg, 1.5)
+	assert.EqualError(suite.T(), err, "currency in price table not found")
+}
+
+func (suite *PriceGroupTestSuite) TestPriceGroup_getRecommendedPriceForRegion_Ok() {
+	pt := &billing.PriceTable{
+		From: 0,
+		To:   2,
+		Currencies: map[string]*billing.PriceTableCurrency{
+			"RUB": {
+				From: 4,
+				To:   6,
+			},
+		},
+	}
+	pg := &billing.PriceGroup{
+		Currency: "RUB",
+		Fraction: 0,
+	}
+	price, err := suite.service.priceGroup.GetRecommendedPriceForRegion(pt, pg, 1.5)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), float64(5), price)
+}
+
+func (suite *PriceGroupTestSuite) TestPriceGroup_MakeCurrencyList_Ok() {
+	id := bson.NewObjectId().Hex()
+	c := &billing.CountriesList{
+		Countries: []*billing.Country{{
+			PriceGroupId: id,
+			IsoCodeA2:    "RU",
+		}},
+	}
+	pg := []*billing.PriceGroup{{
+		Id:       id,
+		Currency: "RUB",
+		Region:   "RUB",
+	}}
+	list := suite.service.priceGroup.MakeCurrencyList(pg, c)
+	assert.NotEmpty(suite.T(), list)
+	assert.Equal(suite.T(), "RUB", list[0].Currency)
+	assert.NotEmpty(suite.T(), list[0].Regions)
+	assert.Equal(suite.T(), "RUB", list[0].Regions[0].Region)
+	assert.NotEmpty(suite.T(), list[0].Regions[0].Country)
+	assert.Equal(suite.T(), "RU", list[0].Regions[0].Country[0])
+}
+
+func (suite *PriceGroupTestSuite) TestPriceGroup_MakeCurrencyList_Ok_WithoutCountries() {
+	id := bson.NewObjectId().Hex()
+	c := &billing.CountriesList{
+		Countries: []*billing.Country{{}},
+	}
+	pg := []*billing.PriceGroup{{
+		Id:       id,
+		Currency: "RUB",
+		Region:   "RUB",
+	}}
+	list := suite.service.priceGroup.MakeCurrencyList(pg, c)
+	assert.NotEmpty(suite.T(), list)
+	assert.Equal(suite.T(), "RUB", list[0].Currency)
+	assert.NotEmpty(suite.T(), list[0].Regions)
+	assert.Equal(suite.T(), "RUB", list[0].Regions[0].Region)
+	assert.Empty(suite.T(), list[0].Regions[0].Country)
+}
+
+func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupByCountry_Error_CountryNotFound() {
+	req := &grpc.PriceGroupByCountryRequest{}
+	res := billing.PriceGroup{}
+	err := suite.service.GetPriceGroupByCountry(context.TODO(), req, &res)
+	assert.EqualError(suite.T(), err, "country not found")
+}
+
+func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupByCountry_Error_PriceGroupNotFound() {
+	country := &billing.Country{
+		Id:        bson.NewObjectId().Hex(),
+		IsoCodeA2: "RU",
+	}
+	if err := suite.service.country.Insert(country); err != nil {
+		suite.FailNow("Insert country test data failed", "%v", err)
+	}
+
+	pg := &mock.PriceGroupServiceInterface{}
+	pg.On("GetById", mock2.Anything).Return(nil, errors.New("price group not found"))
+	suite.service.priceGroup = pg
+
+	req := &grpc.PriceGroupByCountryRequest{
+		Country: "RU",
+	}
+	res := billing.PriceGroup{}
+	err := suite.service.GetPriceGroupByCountry(context.TODO(), req, &res)
+	assert.EqualError(suite.T(), err, "price group not found")
+}
+
+func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupByCountry_Ok() {
+	country := &billing.Country{
+		Id:        bson.NewObjectId().Hex(),
+		IsoCodeA2: "RU",
+	}
+	if err := suite.service.country.Insert(country); err != nil {
+		suite.FailNow("Insert country test data failed", "%v", err)
+	}
+
+	pg := &mock.PriceGroupServiceInterface{}
+	pg.On("GetById", mock2.Anything).Return(&billing.PriceGroup{}, nil)
+	suite.service.priceGroup = pg
+
+	req := &grpc.PriceGroupByCountryRequest{
+		Country: "RU",
+	}
+	res := billing.PriceGroup{}
+	err := suite.service.GetPriceGroupByCountry(context.TODO(), req, &res)
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencies_Error_NonePriceGroups() {
+	pg := &mock.PriceGroupServiceInterface{}
+	pg.On("GetAll").Return(nil, errors.New("price group not exists"))
+	suite.service.priceGroup = pg
+
+	req := &grpc.EmptyRequest{}
+	res := grpc.PriceGroupCurrenciesResponse{}
+	err := suite.service.GetPriceGroupCurrencies(context.TODO(), req, &res)
+	assert.EqualError(suite.T(), err, "price group not exists")
+}
+
+/*func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencies_Error_NoneCountries() {
+	cs := &mock.CountryServiceInterface{}
+	cs.On("GetAll").Return(nil, errors.New("countries not exists"))
+	suite.service.country = cs
+
+	req := &grpc.EmptyRequest{}
+	res := grpc.PriceGroupCurrenciesResponse{}
+	err := suite.service.GetPriceGroupCurrencies(context.TODO(), req, &res)
+	assert.EqualError(suite.T(), err, "countries not exists")
+}*/
+
+func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencies_Ok() {
+	req := &grpc.EmptyRequest{}
+	res := grpc.PriceGroupCurrenciesResponse{}
+	err := suite.service.GetPriceGroupCurrencies(context.TODO(), req, &res)
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencyByRegion_Error_NonePriceGroup() {
+	pg := &mock.PriceGroupServiceInterface{}
+	pg.On("GetByRegion", mock2.Anything).Return(nil, errors.New("price group not exists"))
+	suite.service.priceGroup = pg
+
+	req := &grpc.PriceGroupByRegionRequest{}
+	res := grpc.PriceGroupCurrenciesResponse{}
+	err := suite.service.GetPriceGroupCurrencyByRegion(context.TODO(), req, &res)
+	assert.EqualError(suite.T(), err, "price group not exists")
+}
+
+/*func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencyByRegion_Error_NoneCountries() {
+	cs := &mock.CountryServiceInterface{}
+	cs.On("GetAll").Return(nil, errors.New("countries not exists"))
+	suite.service.country = cs
+
+	req := &grpc.PriceGroupByRegionRequest{}
+	res := grpc.PriceGroupCurrenciesResponse{}
+	err := suite.service.GetPriceGroupCurrencyByRegion(context.TODO(), req, &res)
+	assert.EqualError(suite.T(), err, "countries not exists")
+}
+*/
+func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencyByRegion_Ok() {
+	req := &grpc.PriceGroupByRegionRequest{}
+	res := grpc.PriceGroupCurrenciesResponse{}
+	err := suite.service.GetPriceGroupCurrencyByRegion(context.TODO(), req, &res)
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupRecommendedPrice_Error_NonePriceGroups() {
+	pg := &mock.PriceGroupServiceInterface{}
+	pg.On("GetAll").Return(nil, errors.New("price group not exists"))
+	suite.service.priceGroup = pg
+
+	req := &grpc.PriceGroupRecommendedPriceRequest{}
+	res := grpc.PriceGroupRecommendedPriceResponse{}
+	err := suite.service.GetPriceGroupRecommendedPrice(context.TODO(), req, &res)
+	assert.EqualError(suite.T(), err, "price group not exists")
+}
+
+func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupRecommendedPrice_Error_NonePriceTable() {
+	pg := &mock.PriceTableServiceInterface{}
+	pg.On("GetByAmount", mock2.Anything).Return(nil, errors.New("price table not exists"))
+	suite.service.priceTable = pg
+
+	req := &grpc.PriceGroupRecommendedPriceRequest{}
+	res := grpc.PriceGroupRecommendedPriceResponse{}
+	err := suite.service.GetPriceGroupRecommendedPrice(context.TODO(), req, &res)
+	assert.EqualError(suite.T(), err, "price table not exists")
+}
+
+func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupRecommendedPrice_Error_RecommendedPrice() {
+	pg := &mock.PriceGroupServiceInterface{}
+	pt := &mock.PriceTableServiceInterface{}
+	pg.On("GetAll").Return([]*billing.PriceGroup{{
+		Region:   "RUB",
+		Currency: "RUB",
+	}}, nil)
+	pg.On("GetRecommendedPriceForRegion", mock2.Anything, mock2.Anything, mock2.Anything).Return(float64(0), errors.New("unable to get price"))
+	pt.On("GetByAmount", mock2.Anything).Return(&billing.PriceTable{}, nil)
+	suite.service.priceGroup = pg
+	suite.service.priceTable = pt
+
+	req := &grpc.PriceGroupRecommendedPriceRequest{Amount: float64(10)}
+	res := grpc.PriceGroupRecommendedPriceResponse{}
+	err := suite.service.GetPriceGroupRecommendedPrice(context.TODO(), req, &res)
+	assert.EqualError(suite.T(), err, "unable to get price")
+}
+
+func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupRecommendedPrice_Ok() {
+	pt := &mock.PriceTableServiceInterface{}
+	pt.On("GetByAmount", mock2.Anything).Return(&billing.PriceTable{
+		From: float64(0),
+		To:   float64(20),
+		Currencies: map[string]*billing.PriceTableCurrency{
+			"USD": {From: float64(0), To: float64(20)},
+		},
+	}, nil)
+	suite.service.priceTable = pt
+
+	req := &grpc.PriceGroupRecommendedPriceRequest{Amount: float64(10)}
+	res := grpc.PriceGroupRecommendedPriceResponse{}
+	err := suite.service.GetPriceGroupRecommendedPrice(context.TODO(), req, &res)
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), res.RecommendedPrice, 1)
 }

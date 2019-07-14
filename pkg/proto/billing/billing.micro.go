@@ -104,6 +104,9 @@ It has these top-level messages:
 	OrderViewMoney
 	OrderViewPublic
 	OrderViewPrivate
+	PriceGroupRecommendedPrice
+	PriceTable
+	PriceTableCurrency
 */
 package billing
 

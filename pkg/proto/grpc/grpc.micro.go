@@ -105,6 +105,15 @@ It has these top-level messages:
 	MoneyBackCostSystemResponse
 	MoneyBackCostMerchantListResponse
 	MoneyBackCostMerchantResponse
+	PriceGroupByCountryRequest
+	PriceGroupCurrenciesResponse
+	PriceGroupRegions
+	PriceGroupRegion
+	PriceGroupByRegionRequest
+	PriceGroupRecommendedPriceRequest
+	PriceGroupRecommendedPriceResponse
+	ProductPricesResponse
+	UpdateProductPricesRequest
 	VatTransactionsRequest
 	VatTransactionsPaginate
 	VatTransactionsResponse
@@ -179,6 +188,8 @@ type BillingService interface {
 	GetProduct(ctx context.Context, in *RequestProduct, opts ...client.CallOption) (*Product, error)
 	DeleteProduct(ctx context.Context, in *RequestProduct, opts ...client.CallOption) (*EmptyResponse, error)
 	GetProductsForOrder(ctx context.Context, in *GetProductsForOrderRequest, opts ...client.CallOption) (*ListProductsResponse, error)
+	GetProductPrices(ctx context.Context, in *RequestProduct, opts ...client.CallOption) (*ProductPricesResponse, error)
+	UpdateProductPrices(ctx context.Context, in *UpdateProductPricesRequest, opts ...client.CallOption) (*ResponseError, error)
 	ChangeProject(ctx context.Context, in *billing.Project, opts ...client.CallOption) (*ChangeProjectResponse, error)
 	GetProject(ctx context.Context, in *GetProjectRequest, opts ...client.CallOption) (*ChangeProjectResponse, error)
 	ListProjects(ctx context.Context, in *ListProjectsRequest, opts ...client.CallOption) (*ListProjectsResponse, error)
@@ -193,6 +204,10 @@ type BillingService interface {
 	IsOrderCanBePaying(ctx context.Context, in *IsOrderCanBePayingRequest, opts ...client.CallOption) (*IsOrderCanBePayingResponse, error)
 	GetPriceGroup(ctx context.Context, in *billing.GetPriceGroupRequest, opts ...client.CallOption) (*billing.PriceGroup, error)
 	UpdatePriceGroup(ctx context.Context, in *billing.PriceGroup, opts ...client.CallOption) (*billing.PriceGroup, error)
+	GetPriceGroupByCountry(ctx context.Context, in *PriceGroupByCountryRequest, opts ...client.CallOption) (*billing.PriceGroup, error)
+	GetPriceGroupCurrencies(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*PriceGroupCurrenciesResponse, error)
+	GetPriceGroupCurrencyByRegion(ctx context.Context, in *PriceGroupByRegionRequest, opts ...client.CallOption) (*PriceGroupCurrenciesResponse, error)
+	GetPriceGroupRecommendedPrice(ctx context.Context, in *PriceGroupRecommendedPriceRequest, opts ...client.CallOption) (*PriceGroupRecommendedPriceResponse, error)
 	SetUserNotifySales(ctx context.Context, in *SetUserNotifyRequest, opts ...client.CallOption) (*EmptyResponse, error)
 	SetUserNotifyNewRegion(ctx context.Context, in *SetUserNotifyRequest, opts ...client.CallOption) (*EmptyResponse, error)
 	CreateOrUpdatePaymentMethod(ctx context.Context, in *billing.PaymentMethod, opts ...client.CallOption) (*ChangePaymentMethodResponse, error)
@@ -561,6 +576,26 @@ func (c *billingService) GetProductsForOrder(ctx context.Context, in *GetProduct
 	return out, nil
 }
 
+func (c *billingService) GetProductPrices(ctx context.Context, in *RequestProduct, opts ...client.CallOption) (*ProductPricesResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetProductPrices", in)
+	out := new(ProductPricesResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) UpdateProductPrices(ctx context.Context, in *UpdateProductPricesRequest, opts ...client.CallOption) (*ResponseError, error) {
+	req := c.c.NewRequest(c.name, "BillingService.UpdateProductPrices", in)
+	out := new(ResponseError)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *billingService) ChangeProject(ctx context.Context, in *billing.Project, opts ...client.CallOption) (*ChangeProjectResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.ChangeProject", in)
 	out := new(ChangeProjectResponse)
@@ -694,6 +729,46 @@ func (c *billingService) GetPriceGroup(ctx context.Context, in *billing.GetPrice
 func (c *billingService) UpdatePriceGroup(ctx context.Context, in *billing.PriceGroup, opts ...client.CallOption) (*billing.PriceGroup, error) {
 	req := c.c.NewRequest(c.name, "BillingService.UpdatePriceGroup", in)
 	out := new(billing.PriceGroup)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetPriceGroupByCountry(ctx context.Context, in *PriceGroupByCountryRequest, opts ...client.CallOption) (*billing.PriceGroup, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetPriceGroupByCountry", in)
+	out := new(billing.PriceGroup)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetPriceGroupCurrencies(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*PriceGroupCurrenciesResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetPriceGroupCurrencies", in)
+	out := new(PriceGroupCurrenciesResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetPriceGroupCurrencyByRegion(ctx context.Context, in *PriceGroupByRegionRequest, opts ...client.CallOption) (*PriceGroupCurrenciesResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetPriceGroupCurrencyByRegion", in)
+	out := new(PriceGroupCurrenciesResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetPriceGroupRecommendedPrice(ctx context.Context, in *PriceGroupRecommendedPriceRequest, opts ...client.CallOption) (*PriceGroupRecommendedPriceResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetPriceGroupRecommendedPrice", in)
+	out := new(PriceGroupRecommendedPriceResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1115,6 +1190,8 @@ type BillingServiceHandler interface {
 	GetProduct(context.Context, *RequestProduct, *Product) error
 	DeleteProduct(context.Context, *RequestProduct, *EmptyResponse) error
 	GetProductsForOrder(context.Context, *GetProductsForOrderRequest, *ListProductsResponse) error
+	GetProductPrices(context.Context, *RequestProduct, *ProductPricesResponse) error
+	UpdateProductPrices(context.Context, *UpdateProductPricesRequest, *ResponseError) error
 	ChangeProject(context.Context, *billing.Project, *ChangeProjectResponse) error
 	GetProject(context.Context, *GetProjectRequest, *ChangeProjectResponse) error
 	ListProjects(context.Context, *ListProjectsRequest, *ListProjectsResponse) error
@@ -1129,6 +1206,10 @@ type BillingServiceHandler interface {
 	IsOrderCanBePaying(context.Context, *IsOrderCanBePayingRequest, *IsOrderCanBePayingResponse) error
 	GetPriceGroup(context.Context, *billing.GetPriceGroupRequest, *billing.PriceGroup) error
 	UpdatePriceGroup(context.Context, *billing.PriceGroup, *billing.PriceGroup) error
+	GetPriceGroupByCountry(context.Context, *PriceGroupByCountryRequest, *billing.PriceGroup) error
+	GetPriceGroupCurrencies(context.Context, *EmptyRequest, *PriceGroupCurrenciesResponse) error
+	GetPriceGroupCurrencyByRegion(context.Context, *PriceGroupByRegionRequest, *PriceGroupCurrenciesResponse) error
+	GetPriceGroupRecommendedPrice(context.Context, *PriceGroupRecommendedPriceRequest, *PriceGroupRecommendedPriceResponse) error
 	SetUserNotifySales(context.Context, *SetUserNotifyRequest, *EmptyResponse) error
 	SetUserNotifyNewRegion(context.Context, *SetUserNotifyRequest, *EmptyResponse) error
 	CreateOrUpdatePaymentMethod(context.Context, *billing.PaymentMethod, *ChangePaymentMethodResponse) error
@@ -1202,6 +1283,8 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetProduct(ctx context.Context, in *RequestProduct, out *Product) error
 		DeleteProduct(ctx context.Context, in *RequestProduct, out *EmptyResponse) error
 		GetProductsForOrder(ctx context.Context, in *GetProductsForOrderRequest, out *ListProductsResponse) error
+		GetProductPrices(ctx context.Context, in *RequestProduct, out *ProductPricesResponse) error
+		UpdateProductPrices(ctx context.Context, in *UpdateProductPricesRequest, out *ResponseError) error
 		ChangeProject(ctx context.Context, in *billing.Project, out *ChangeProjectResponse) error
 		GetProject(ctx context.Context, in *GetProjectRequest, out *ChangeProjectResponse) error
 		ListProjects(ctx context.Context, in *ListProjectsRequest, out *ListProjectsResponse) error
@@ -1216,6 +1299,10 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		IsOrderCanBePaying(ctx context.Context, in *IsOrderCanBePayingRequest, out *IsOrderCanBePayingResponse) error
 		GetPriceGroup(ctx context.Context, in *billing.GetPriceGroupRequest, out *billing.PriceGroup) error
 		UpdatePriceGroup(ctx context.Context, in *billing.PriceGroup, out *billing.PriceGroup) error
+		GetPriceGroupByCountry(ctx context.Context, in *PriceGroupByCountryRequest, out *billing.PriceGroup) error
+		GetPriceGroupCurrencies(ctx context.Context, in *EmptyRequest, out *PriceGroupCurrenciesResponse) error
+		GetPriceGroupCurrencyByRegion(ctx context.Context, in *PriceGroupByRegionRequest, out *PriceGroupCurrenciesResponse) error
+		GetPriceGroupRecommendedPrice(ctx context.Context, in *PriceGroupRecommendedPriceRequest, out *PriceGroupRecommendedPriceResponse) error
 		SetUserNotifySales(ctx context.Context, in *SetUserNotifyRequest, out *EmptyResponse) error
 		SetUserNotifyNewRegion(ctx context.Context, in *SetUserNotifyRequest, out *EmptyResponse) error
 		CreateOrUpdatePaymentMethod(ctx context.Context, in *billing.PaymentMethod, out *ChangePaymentMethodResponse) error
@@ -1390,6 +1477,14 @@ func (h *billingServiceHandler) GetProductsForOrder(ctx context.Context, in *Get
 	return h.BillingServiceHandler.GetProductsForOrder(ctx, in, out)
 }
 
+func (h *billingServiceHandler) GetProductPrices(ctx context.Context, in *RequestProduct, out *ProductPricesResponse) error {
+	return h.BillingServiceHandler.GetProductPrices(ctx, in, out)
+}
+
+func (h *billingServiceHandler) UpdateProductPrices(ctx context.Context, in *UpdateProductPricesRequest, out *ResponseError) error {
+	return h.BillingServiceHandler.UpdateProductPrices(ctx, in, out)
+}
+
 func (h *billingServiceHandler) ChangeProject(ctx context.Context, in *billing.Project, out *ChangeProjectResponse) error {
 	return h.BillingServiceHandler.ChangeProject(ctx, in, out)
 }
@@ -1444,6 +1539,22 @@ func (h *billingServiceHandler) GetPriceGroup(ctx context.Context, in *billing.G
 
 func (h *billingServiceHandler) UpdatePriceGroup(ctx context.Context, in *billing.PriceGroup, out *billing.PriceGroup) error {
 	return h.BillingServiceHandler.UpdatePriceGroup(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetPriceGroupByCountry(ctx context.Context, in *PriceGroupByCountryRequest, out *billing.PriceGroup) error {
+	return h.BillingServiceHandler.GetPriceGroupByCountry(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetPriceGroupCurrencies(ctx context.Context, in *EmptyRequest, out *PriceGroupCurrenciesResponse) error {
+	return h.BillingServiceHandler.GetPriceGroupCurrencies(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetPriceGroupCurrencyByRegion(ctx context.Context, in *PriceGroupByRegionRequest, out *PriceGroupCurrenciesResponse) error {
+	return h.BillingServiceHandler.GetPriceGroupCurrencyByRegion(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetPriceGroupRecommendedPrice(ctx context.Context, in *PriceGroupRecommendedPriceRequest, out *PriceGroupRecommendedPriceResponse) error {
+	return h.BillingServiceHandler.GetPriceGroupRecommendedPrice(ctx, in, out)
 }
 
 func (h *billingServiceHandler) SetUserNotifySales(ctx context.Context, in *SetUserNotifyRequest, out *EmptyResponse) error {

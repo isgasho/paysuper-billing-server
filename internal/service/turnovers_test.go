@@ -73,7 +73,6 @@ func (suite *TurnoversTestSuite) SetupTest() {
 	pg := &billing.PriceGroup{
 		Id:       bson.NewObjectId().Hex(),
 		Currency: "USD",
-		IsSimple: true,
 		Region:   "",
 	}
 	if err := suite.service.priceGroup.Insert(pg); err != nil {

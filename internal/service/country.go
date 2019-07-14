@@ -150,6 +150,16 @@ func (s *Service) UpdateCountry(
 	return nil
 }
 
+type CountryServiceInterface interface {
+	Insert(*billing.Country) error
+	MultipleInsert([]*billing.Country) error
+	Update(*billing.Country) error
+	GetByIsoCodeA2(string) (*billing.Country, error)
+	GetAll() (*billing.CountriesList, error)
+	IsRegionExists(string) (bool, error)
+	GetCountriesWithVatEnabled() (*billing.CountriesList, error)
+}
+
 func newCountryService(svc *Service) *Country {
 	s := &Country{svc: svc}
 	return s

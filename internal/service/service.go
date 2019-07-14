@@ -67,11 +67,11 @@ type Service struct {
 	curService                 currencies.CurrencyratesService
 	smtpCl                     gomail.SendCloser
 	supportedCurrencies        []string
-	country                    *Country
+	country                    CountryServiceInterface
 	project                    *Project
 	merchant                   *Merchant
 	paymentMethod              PaymentMethodInterface
-	priceGroup                 *PriceGroup
+	priceGroup                 PriceGroupServiceInterface
 	paymentSystem              PaymentSystemServiceInterface
 	zipCode                    *ZipCode
 	paymentChannelCostSystem   *PaymentChannelCostSystem
@@ -79,6 +79,8 @@ type Service struct {
 	moneyBackCostSystem        *MoneyBackCostSystem
 	moneyBackCostMerchant      *MoneyBackCostMerchant
 	payoutCostSystem           *PayoutCostSystem
+	priceTable                 PriceTableServiceInterface
+	productService             ProductServiceInterface
 	turnover                   *Turnover
 }
 
@@ -138,6 +140,8 @@ func (s *Service) Init() (err error) {
 	s.moneyBackCostSystem = newMoneyBackCostSystemService(s)
 	s.moneyBackCostMerchant = newMoneyBackCostMerchantService(s)
 	s.payoutCostSystem = newPayoutCostSystemService(s)
+	s.priceTable = newPriceTableService(s)
+	s.productService = newProductService(s)
 	s.turnover = newTurnoverService(s)
 
 	s.centrifugoClient = gocent.New(

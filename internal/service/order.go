@@ -112,6 +112,8 @@ var (
 	orderErrorSignatureInvalid                                = newBillingServerErrorMsg("fm000048", "request signature is invalid")
 	orderErrorZipCodeNotFound                                 = newBillingServerErrorMsg("fm000050", "zip_code not found")
 	orderErrorProductsPrice                                   = newBillingServerErrorMsg("fm000051", "can't get product price")
+	orderErrorCheckoutWithoutProducts                         = newBillingServerErrorMsg("fm000052", "order products not specified")
+	orderErrorCheckoutWithoutAmount                           = newBillingServerErrorMsg("fm000053", "order amount not specified")
 )
 
 type orderCreateRequestProcessorChecked struct {
@@ -210,6 +212,18 @@ func (s *Service) OrderCreateProcess(
 		}
 	}
 
+	if processor.checked.project.IsProductsCheckout == true && req.Amount > float64(0) {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = orderErrorCheckoutWithoutProducts
+		return nil
+	}
+
+	if processor.checked.project.IsProductsCheckout == false && req.Products != nil {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = orderErrorCheckoutWithoutAmount
+		return nil
+	}
+
 	if req.User != nil {
 		err := processor.processUserData()
 
@@ -282,10 +296,12 @@ func (s *Service) OrderCreateProcess(
 		}
 	}
 
-	if err := processor.processLimitAmounts(); err != nil {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
-		return nil
+	if processor.checked.project.IsProductsCheckout == false {
+		if err := processor.processLimitAmounts(); err != nil {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			return nil
+		}
 	}
 
 	processor.processMetadata()
@@ -1376,12 +1392,30 @@ func (v *OrderCreateRequestProcessor) processPaylinkProducts() error {
 
 	zap.S().Infow(fmt.Sprintf(logInfo, "use currency"), "currency", currency, "paylink", pid)
 
-	amount, err := v.GetOrderProductsAmount(orderProducts, currency)
+	priceGroup, err := v.priceGroup.GetByRegion(currency)
+
+	if v.checked.merchant.Country != "" {
+		country, err := v.country.GetByIsoCodeA2(v.checked.merchant.Country)
+
+		if err != nil {
+			zap.S().Errorw("Country not found", "country", v.checked.merchant.Country)
+			return errorCountryNotFound
+		}
+
+		priceGroup, err = v.priceGroup.GetById(country.PriceGroupId)
+	}
+
+	if err != nil {
+		zap.S().Errorw("Price group not found", "currency", currency)
+		return priceGroupErrorNotFound
+	}
+
+	amount, err := v.GetOrderProductsAmount(orderProducts, priceGroup)
 	if err != nil {
 		return err
 	}
 
-	items, err := v.GetOrderProductsItems(orderProducts, DefaultLanguage, currency)
+	items, err := v.GetOrderProductsItems(orderProducts, DefaultLanguage, priceGroup)
 	if err != nil {
 		return err
 	}
@@ -1993,7 +2027,7 @@ func (s *Service) GetOrderProducts(projectId string, productIds []string) ([]*gr
 	return result.Products, nil
 }
 
-func (s *Service) GetOrderProductsAmount(products []*grpc.Product, currency string) (float64, error) {
+func (s *Service) GetOrderProductsAmount(products []*grpc.Product, group *billing.PriceGroup) (float64, error) {
 	if len(products) == 0 {
 		return 0, orderErrorProductsEmpty
 	}
@@ -2001,7 +2035,7 @@ func (s *Service) GetOrderProductsAmount(products []*grpc.Product, currency stri
 	sum := float64(0)
 
 	for _, p := range products {
-		amount, err := p.GetPriceInCurrency(currency)
+		amount, err := p.GetPriceInCurrency(group)
 
 		if err != nil {
 			return 0, orderErrorNoProductsCommonCurrency
@@ -2015,7 +2049,7 @@ func (s *Service) GetOrderProductsAmount(products []*grpc.Product, currency stri
 	return totalAmount, nil
 }
 
-func (s *Service) GetOrderProductsItems(products []*grpc.Product, language string, currency string) ([]*billing.OrderItem, error) {
+func (s *Service) GetOrderProductsItems(products []*grpc.Product, language string, group *billing.PriceGroup) ([]*billing.OrderItem, error) {
 	var result []*billing.OrderItem
 
 	if len(products) == 0 {
@@ -2032,7 +2066,7 @@ func (s *Service) GetOrderProductsItems(products []*grpc.Product, language strin
 			err         error
 		)
 
-		amount, err = p.GetPriceInCurrency(currency)
+		amount, err = p.GetPriceInCurrency(group)
 		if err != nil {
 			return nil, orderErrorProductsPrice
 		}
@@ -2071,7 +2105,7 @@ func (s *Service) GetOrderProductsItems(products []*grpc.Product, language strin
 			Url:         p.Url,
 			Metadata:    p.Metadata,
 			Amount:      amount,
-			Currency:    currency,
+			Currency:    group.Currency,
 		}
 		result = append(result, item)
 	}
@@ -2098,11 +2132,11 @@ func (s *Service) ProcessOrderProducts(order *billing.Order) error {
 	}
 
 	var (
-		country       string
-		currency      string
-		itemsCurrency string
-		locale        string
-		logInfo       = "[ProcessOrderProducts] %s"
+		country    string
+		currency   string
+		priceGroup *billing.PriceGroup
+		locale     string
+		logInfo    = "[ProcessOrderProducts] %s"
 	)
 
 	if order.BillingAddress != nil && order.BillingAddress.Country != "" {
@@ -2124,7 +2158,14 @@ func (s *Service) ProcessOrderProducts(order *billing.Order) error {
 		zap.S().Infow(fmt.Sprintf(logInfo, "no merchant payout currency set"))
 	}
 
+	defaultPriceGroup, err := s.priceGroup.GetByRegion(defaultCurrency)
+	if err != nil {
+		zap.S().Errorw("Price group not found", "currency", currency)
+		return orderErrorUnknown
+	}
+
 	currency = defaultCurrency
+	priceGroup = defaultPriceGroup
 
 	if country != "" {
 		countryData, err := s.country.GetByIsoCodeA2(country)
@@ -2132,31 +2173,32 @@ func (s *Service) ProcessOrderProducts(order *billing.Order) error {
 			zap.S().Errorw("Country not found", "country", country)
 			return orderErrorUnknown
 		}
-		// todo: change here to priceGroup support instead of country's currency
-		currency = countryData.Currency
-		zap.S().Infow(fmt.Sprintf(logInfo, "currency by country"), "currency", currency, "country", country, "order.Uuid", order.Uuid)
+
+		priceGroup, err = s.priceGroup.GetById(countryData.PriceGroupId)
+		if err != nil {
+			zap.S().Errorw("Price group not found", "countryData", countryData)
+			return orderErrorUnknown
+		}
+
+		currency = priceGroup.Currency
 	}
 
 	zap.S().Infow(fmt.Sprintf(logInfo, "try to use detected currency for order amount"), "currency", currency, "order.Uuid", order.Uuid)
 
-	itemsCurrency = currency
-
-	amount := float64(0)
-
 	// try to get order Amount in requested currency
-	amount, err = s.GetOrderProductsAmount(orderProducts, currency)
+	amount, err := s.GetOrderProductsAmount(orderProducts, priceGroup)
 	if err != nil {
-		if currency == defaultCurrency {
+		if priceGroup.Id == defaultPriceGroup.Id {
 			return err
 		}
 		// try to get order Amount in default currency, if it differs from requested one
-		amount, err = s.GetOrderProductsAmount(orderProducts, defaultCurrency)
+		amount, err = s.GetOrderProductsAmount(orderProducts, defaultPriceGroup)
 		if err != nil {
 			return err
 		}
 		zap.S().Infow(fmt.Sprintf(logInfo, "try to use default currency for order amount"), "currency", defaultCurrency, "order.Uuid", order.Uuid)
 
-		itemsCurrency = defaultCurrency
+		priceGroup = defaultPriceGroup
 		// converting Amount from default currency to requested
 		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
 			From:       defaultCurrency,
@@ -2187,7 +2229,7 @@ func (s *Service) ProcessOrderProducts(order *billing.Order) error {
 		locale = DefaultLanguage
 	}
 
-	items, err := s.GetOrderProductsItems(orderProducts, locale, itemsCurrency)
+	items, err := s.GetOrderProductsItems(orderProducts, locale, priceGroup)
 	if err != nil {
 		return err
 	}

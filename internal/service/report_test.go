@@ -58,6 +58,17 @@ func (suite *ReportTestSuite) SetupTest() {
 	suite.currencyRub = "RUB"
 	suite.currencyUsd = "USD"
 
+	pgRub := &billing.PriceGroup{
+		Id:       bson.NewObjectId().Hex(),
+		Region:   "RUB",
+		Currency: "RUB",
+	}
+	pgUsd := &billing.PriceGroup{
+		Id:       bson.NewObjectId().Hex(),
+		Region:   "USD",
+		Currency: "USD",
+	}
+
 	ru := &billing.Country{
 		IsoCodeA2:       "RU",
 		Region:          "Russia",
@@ -65,7 +76,7 @@ func (suite *ReportTestSuite) SetupTest() {
 		PaymentsAllowed: true,
 		ChangeAllowed:   true,
 		VatEnabled:      true,
-		PriceGroupId:    "",
+		PriceGroupId:    pgRub.Id,
 		VatCurrency:     "RUB",
 	}
 	us := &billing.Country{
@@ -75,7 +86,7 @@ func (suite *ReportTestSuite) SetupTest() {
 		PaymentsAllowed: true,
 		ChangeAllowed:   true,
 		VatEnabled:      true,
-		PriceGroupId:    "",
+		PriceGroupId:    pgUsd.Id,
 		VatCurrency:     "USD",
 	}
 
@@ -282,6 +293,11 @@ func (suite *ReportTestSuite) SetupTest() {
 		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 
+	pgs := []*billing.PriceGroup{pgRub, pgUsd}
+	if err := suite.service.priceGroup.MultipleInsert(pgs); err != nil {
+		suite.FailNow("Insert price group test data failed", "%v", err)
+	}
+
 	var productIds []string
 	names := []string{"Madalin Stunt Cars M2", "Plants vs Zombies"}
 
@@ -302,10 +318,12 @@ func (suite *ReportTestSuite) SetupTest() {
 
 		req.Prices = append(req.Prices, &grpc.ProductPrice{
 			Currency: "USD",
+			Region:   "USD",
 			Amount:   baseAmount,
 		})
 		req.Prices = append(req.Prices, &grpc.ProductPrice{
 			Currency: "RUB",
+			Region:   "RUB",
 			Amount:   baseAmount * 65.13,
 		})
 
