@@ -274,6 +274,7 @@ func (s *Service) ProcessRefundCallback(
 			order.PrivateStatus = constant.OrderStatusRefund
 			order.UpdatedAt = ptypes.TimestampNow()
 			order.RefundedAt = ptypes.TimestampNow()
+			order.Refunded = true
 			order.Refund = &billing.OrderNotificationRefund{
 				Amount:        refundedAmount,
 				Currency:      order.PaymentMethodIncomeCurrency.CodeA3,
@@ -315,6 +316,7 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 	refundOrder.Status = constant.OrderPublicStatusRefunded
 	refundOrder.UpdatedAt = ptypes.TimestampNow()
 	refundOrder.RefundedAt = ptypes.TimestampNow()
+	refundOrder.Refunded = true
 	refundOrder.Refund = &billing.OrderNotificationRefund{
 		Amount:        refund.Amount,
 		Currency:      refund.Currency.CodeA3,
