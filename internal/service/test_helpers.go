@@ -71,66 +71,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		PaymentSystemId: paymentSystem.Id,
 	}
 
-	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -360))
-
-	if err != nil {
-		suite.FailNow("Generate merchant date failed", "%v", err)
-	}
-
-	merchant := &billing.Merchant{
-		Id:      bson.NewObjectId().Hex(),
-		Name:    "Unit test",
-		Country: "RU",
-		Zip:     "190000",
-		City:    "St.Petersburg",
-		Contacts: &billing.MerchantContact{
-			Authorized: &billing.MerchantContactAuthorized{
-				Name:     "Unit Test",
-				Email:    "test@unit.test",
-				Phone:    "123456789",
-				Position: "Unit Test",
-			},
-			Technical: &billing.MerchantContactTechnical{
-				Name:  "Unit Test",
-				Email: "test@unit.test",
-				Phone: "123456789",
-			},
-		},
-		Banking: &billing.MerchantBanking{
-			Currency: "USD",
-			Name:     "Bank name",
-		},
-		IsVatEnabled:              true,
-		IsCommissionToUserEnabled: true,
-		Status:                    pkg.MerchantStatusDraft,
-		LastPayout: &billing.MerchantLastPayout{
-			Date:   date,
-			Amount: 999999,
-		},
-		IsSigned: true,
-		PaymentMethods: map[string]*billing.MerchantPaymentMethod{
-			pmBankCard.Id: {
-				PaymentMethod: &billing.MerchantPaymentMethodIdentification{
-					Id:   pmBankCard.Id,
-					Name: pmBankCard.Name,
-				},
-				Commission: &billing.MerchantPaymentMethodCommissions{
-					Fee: 2.5,
-					PerTransaction: &billing.MerchantPaymentMethodPerTransactionCommission{
-						Fee:      30,
-						Currency: "RUB",
-					},
-				},
-				Integration: &billing.MerchantPaymentMethodIntegration{
-					TerminalId:               "15985",
-					TerminalPassword:         "A1tph4I6BD0f",
-					TerminalCallbackPassword: "0V1rJ7t4jCRv",
-					Integrated:               true,
-				},
-				IsActive: true,
-			},
-		},
-	}
+	merchant := helperCreateMerchant(suite, service, "USD", "RU", pmBankCard)
 
 	projectFixedAmount := &billing.Project{
 		Id:                       bson.NewObjectId().Hex(),
@@ -158,7 +99,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		BankCountryIsoCode: "US",
 	}
 
-	err = service.db.Collection(collectionBinData).Insert(bin)
+	err := service.db.Collection(collectionBinData).Insert(bin)
 
 	if err != nil {
 		suite.FailNow("Insert BIN test data failed", "%v", err)
@@ -167,11 +108,6 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 	pms := []*billing.PaymentMethod{pmBankCard}
 	if err := service.paymentMethod.MultipleInsert(pms); err != nil {
 		suite.FailNow("Insert payment methods test data failed", "%v", err)
-	}
-
-	merchants := []*billing.Merchant{merchant}
-	if err := service.merchant.MultipleInsert(merchants); err != nil {
-		suite.FailNow("Insert merchant test data failed", "%v", err)
 	}
 
 	projects := []*billing.Project{projectFixedAmount}
@@ -286,140 +222,6 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		suite.FailNow("Insert MoneyBackCostSystem test data failed", "%v", err)
 	}
 
-	merCost1 := &billing.MoneyBackCostMerchant{
-		Id:                bson.NewObjectId().Hex(),
-		MerchantId:        projectFixedAmount.GetMerchantId(),
-		Name:              "MASTERCARD",
-		PayoutCurrency:    "USD",
-		UndoReason:        "reversal",
-		Region:            "Russia",
-		Country:           "RU",
-		DaysFrom:          0,
-		PaymentStage:      1,
-		Percent:           0.2,
-		FixAmount:         0.15,
-		FixAmountCurrency: "EUR",
-		IsPaidByMerchant:  false,
-	}
-
-	merCost2 := &billing.MoneyBackCostMerchant{
-		Id:                bson.NewObjectId().Hex(),
-		MerchantId:        projectFixedAmount.GetMerchantId(),
-		Name:              "MASTERCARD",
-		PayoutCurrency:    "RUB",
-		UndoReason:        "reversal",
-		Region:            "Russia",
-		Country:           "RU",
-		DaysFrom:          0,
-		PaymentStage:      1,
-		Percent:           0.2,
-		FixAmount:         0.15,
-		FixAmountCurrency: "EUR",
-		IsPaidByMerchant:  false,
-	}
-
-	merCost3 := &billing.MoneyBackCostMerchant{
-		Id:                bson.NewObjectId().Hex(),
-		MerchantId:        projectFixedAmount.GetMerchantId(),
-		Name:              "MASTERCARD",
-		PayoutCurrency:    "USD",
-		UndoReason:        "reversal",
-		Region:            "North America",
-		Country:           "US",
-		DaysFrom:          0,
-		PaymentStage:      1,
-		Percent:           0.2,
-		FixAmount:         0.15,
-		FixAmountCurrency: "EUR",
-		IsPaidByMerchant:  false,
-	}
-
-	merCost4 := &billing.MoneyBackCostMerchant{
-		Id:                bson.NewObjectId().Hex(),
-		MerchantId:        projectFixedAmount.GetMerchantId(),
-		Name:              "MASTERCARD",
-		PayoutCurrency:    "USD",
-		UndoReason:        "reversal",
-		Region:            "EU",
-		Country:           "FI",
-		DaysFrom:          0,
-		PaymentStage:      1,
-		Percent:           0.2,
-		FixAmount:         0.15,
-		FixAmountCurrency: "EUR",
-		IsPaidByMerchant:  false,
-	}
-
-	merCost5 := &billing.MoneyBackCostMerchant{
-		Id:                bson.NewObjectId().Hex(),
-		MerchantId:        projectFixedAmount.GetMerchantId(),
-		Name:              "MASTERCARD",
-		PayoutCurrency:    "USD",
-		UndoReason:        "chargeback",
-		Region:            "Russia",
-		Country:           "RU",
-		DaysFrom:          0,
-		PaymentStage:      1,
-		Percent:           0.2,
-		FixAmount:         0.15,
-		FixAmountCurrency: "EUR",
-		IsPaidByMerchant:  true,
-	}
-
-	merCost6 := &billing.MoneyBackCostMerchant{
-		Id:                bson.NewObjectId().Hex(),
-		MerchantId:        projectFixedAmount.GetMerchantId(),
-		Name:              "MASTERCARD",
-		PayoutCurrency:    "RUB",
-		UndoReason:        "chargeback",
-		Region:            "Russia",
-		Country:           "RU",
-		DaysFrom:          0,
-		PaymentStage:      1,
-		Percent:           0.2,
-		FixAmount:         0.15,
-		FixAmountCurrency: "EUR",
-		IsPaidByMerchant:  true,
-	}
-
-	merCost7 := &billing.MoneyBackCostMerchant{
-		Id:                bson.NewObjectId().Hex(),
-		MerchantId:        projectFixedAmount.GetMerchantId(),
-		Name:              "MASTERCARD",
-		PayoutCurrency:    "USD",
-		UndoReason:        "chargeback",
-		Region:            "North America",
-		Country:           "US",
-		DaysFrom:          0,
-		PaymentStage:      1,
-		Percent:           0.2,
-		FixAmount:         0.15,
-		FixAmountCurrency: "EUR",
-		IsPaidByMerchant:  true,
-	}
-
-	merCost8 := &billing.MoneyBackCostMerchant{
-		Id:                bson.NewObjectId().Hex(),
-		MerchantId:        projectFixedAmount.GetMerchantId(),
-		Name:              "MASTERCARD",
-		PayoutCurrency:    "USD",
-		UndoReason:        "chargeback",
-		Region:            "EU",
-		Country:           "FI",
-		DaysFrom:          0,
-		PaymentStage:      1,
-		Percent:           0.2,
-		FixAmount:         0.15,
-		FixAmountCurrency: "EUR",
-		IsPaidByMerchant:  true,
-	}
-
-	err = service.moneyBackCostMerchant.MultipleInsert([]*billing.MoneyBackCostMerchant{merCost1, merCost2, merCost3, merCost4, merCost5, merCost6, merCost7, merCost8})
-
-	if err != nil {
-		suite.FailNow("Insert MoneyBackCostMerchant test data failed", "%v", err)
-	}
-
 	paymentSysCost1 := &billing.PaymentChannelCostSystem{
 		Name:              "MASTERCARD",
 		Region:            "Russia",
@@ -451,8 +253,210 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		suite.FailNow("Insert PaymentChannelCostSystem test data failed", "%v", err)
 	}
 
+	return merchant, projectFixedAmount, pmBankCard, paymentSystem
+}
+
+func helperCreateMerchant(suite suite.Suite, service *Service, currency, country string, paymentMethod *billing.PaymentMethod) *billing.Merchant {
+	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -360))
+
+	if err != nil {
+		suite.FailNow("Generate merchant date failed", "%v", err)
+	}
+
+	merchant := &billing.Merchant{
+		Id:      bson.NewObjectId().Hex(),
+		Name:    "Unit test",
+		Country: country,
+		Contacts: &billing.MerchantContact{
+			Authorized: &billing.MerchantContactAuthorized{
+				Name:     "Unit Test",
+				Email:    "test@unit.test",
+				Phone:    "123456789",
+				Position: "Unit Test",
+			},
+			Technical: &billing.MerchantContactTechnical{
+				Name:  "Unit Test",
+				Email: "test@unit.test",
+				Phone: "123456789",
+			},
+		},
+		Banking: &billing.MerchantBanking{
+			Currency: currency,
+			Name:     "Bank name",
+		},
+		IsVatEnabled:              true,
+		IsCommissionToUserEnabled: true,
+		Status:                    pkg.MerchantStatusDraft,
+		LastPayout: &billing.MerchantLastPayout{
+			Date:   date,
+			Amount: 999999,
+		},
+		IsSigned: true,
+		PaymentMethods: map[string]*billing.MerchantPaymentMethod{
+			paymentMethod.Id: {
+				PaymentMethod: &billing.MerchantPaymentMethodIdentification{
+					Id:   paymentMethod.Id,
+					Name: paymentMethod.Name,
+				},
+				Commission: &billing.MerchantPaymentMethodCommissions{
+					Fee: 2.5,
+					PerTransaction: &billing.MerchantPaymentMethodPerTransactionCommission{
+						Fee:      30,
+						Currency: "RUB",
+					},
+				},
+				Integration: &billing.MerchantPaymentMethodIntegration{
+					TerminalId:               "15985",
+					TerminalPassword:         "A1tph4I6BD0f",
+					TerminalCallbackPassword: "0V1rJ7t4jCRv",
+					Integrated:               true,
+				},
+				IsActive: true,
+			},
+		},
+	}
+
+	merchants := []*billing.Merchant{merchant}
+	if err := service.merchant.MultipleInsert(merchants); err != nil {
+		suite.FailNow("Insert merchant test data failed", "%v", err)
+	}
+
+	merCost1 := &billing.MoneyBackCostMerchant{
+		Id:                bson.NewObjectId().Hex(),
+		MerchantId:        merchant.Id,
+		Name:              "MASTERCARD",
+		PayoutCurrency:    "USD",
+		UndoReason:        "reversal",
+		Region:            "Russia",
+		Country:           "RU",
+		DaysFrom:          0,
+		PaymentStage:      1,
+		Percent:           0.2,
+		FixAmount:         0.15,
+		FixAmountCurrency: "EUR",
+		IsPaidByMerchant:  false,
+	}
+
+	merCost2 := &billing.MoneyBackCostMerchant{
+		Id:                bson.NewObjectId().Hex(),
+		MerchantId:        merchant.Id,
+		Name:              "MASTERCARD",
+		PayoutCurrency:    "RUB",
+		UndoReason:        "reversal",
+		Region:            "Russia",
+		Country:           "RU",
+		DaysFrom:          0,
+		PaymentStage:      1,
+		Percent:           0.2,
+		FixAmount:         0.15,
+		FixAmountCurrency: "EUR",
+		IsPaidByMerchant:  false,
+	}
+
+	merCost3 := &billing.MoneyBackCostMerchant{
+		Id:                bson.NewObjectId().Hex(),
+		MerchantId:        merchant.Id,
+		Name:              "MASTERCARD",
+		PayoutCurrency:    "USD",
+		UndoReason:        "reversal",
+		Region:            "North America",
+		Country:           "US",
+		DaysFrom:          0,
+		PaymentStage:      1,
+		Percent:           0.2,
+		FixAmount:         0.15,
+		FixAmountCurrency: "EUR",
+		IsPaidByMerchant:  false,
+	}
+
+	merCost4 := &billing.MoneyBackCostMerchant{
+		Id:                bson.NewObjectId().Hex(),
+		MerchantId:        merchant.Id,
+		Name:              "MASTERCARD",
+		PayoutCurrency:    "USD",
+		UndoReason:        "reversal",
+		Region:            "EU",
+		Country:           "FI",
+		DaysFrom:          0,
+		PaymentStage:      1,
+		Percent:           0.2,
+		FixAmount:         0.15,
+		FixAmountCurrency: "EUR",
+		IsPaidByMerchant:  false,
+	}
+
+	merCost5 := &billing.MoneyBackCostMerchant{
+		Id:                bson.NewObjectId().Hex(),
+		MerchantId:        merchant.Id,
+		Name:              "MASTERCARD",
+		PayoutCurrency:    "USD",
+		UndoReason:        "chargeback",
+		Region:            "Russia",
+		Country:           "RU",
+		DaysFrom:          0,
+		PaymentStage:      1,
+		Percent:           0.2,
+		FixAmount:         0.15,
+		FixAmountCurrency: "EUR",
+		IsPaidByMerchant:  true,
+	}
+
+	merCost6 := &billing.MoneyBackCostMerchant{
+		Id:                bson.NewObjectId().Hex(),
+		MerchantId:        merchant.Id,
+		Name:              "MASTERCARD",
+		PayoutCurrency:    "RUB",
+		UndoReason:        "chargeback",
+		Region:            "Russia",
+		Country:           "RU",
+		DaysFrom:          0,
+		PaymentStage:      1,
+		Percent:           0.2,
+		FixAmount:         0.15,
+		FixAmountCurrency: "EUR",
+		IsPaidByMerchant:  true,
+	}
+
+	merCost7 := &billing.MoneyBackCostMerchant{
+		Id:                bson.NewObjectId().Hex(),
+		MerchantId:        merchant.Id,
+		Name:              "MASTERCARD",
+		PayoutCurrency:    "USD",
+		UndoReason:        "chargeback",
+		Region:            "North America",
+		Country:           "US",
+		DaysFrom:          0,
+		PaymentStage:      1,
+		Percent:           0.2,
+		FixAmount:         0.15,
+		FixAmountCurrency: "EUR",
+		IsPaidByMerchant:  true,
+	}
+
+	merCost8 := &billing.MoneyBackCostMerchant{
+		Id:                bson.NewObjectId().Hex(),
+		MerchantId:        merchant.Id,
+		Name:              "MASTERCARD",
+		PayoutCurrency:    "USD",
+		UndoReason:        "chargeback",
+		Region:            "EU",
+		Country:           "FI",
+		DaysFrom:          0,
+		PaymentStage:      1,
+		Percent:           0.2,
+		FixAmount:         0.15,
+		FixAmountCurrency: "EUR",
+		IsPaidByMerchant:  true,
+	}
+
+	err = service.moneyBackCostMerchant.MultipleInsert([]*billing.MoneyBackCostMerchant{merCost1, merCost2, merCost3, merCost4, merCost5, merCost6, merCost7, merCost8})
+
+	if err != nil {
+		suite.FailNow("Insert MoneyBackCostMerchant test data failed", "%v", err)
+	}
+
 	paymentMerCost1 := &billing.PaymentChannelCostMerchant{
-		MerchantId:              projectFixedAmount.GetMerchantId(),
+		MerchantId:              merchant.Id,
 		Name:                    "MASTERCARD",
 		PayoutCurrency:          "USD",
 		MinAmount:               0,
@@ -466,7 +470,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		PsFixedFeeCurrency:      "EUR",
 	}
 	paymentMerCost2 := &billing.PaymentChannelCostMerchant{
-		MerchantId:              projectFixedAmount.GetMerchantId(),
+		MerchantId:              merchant.Id,
 		Name:                    "MASTERCARD",
 		PayoutCurrency:          "RUB",
 		MinAmount:               0,
@@ -480,7 +484,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		PsFixedFeeCurrency:      "EUR",
 	}
 	paymentMerCost3 := &billing.PaymentChannelCostMerchant{
-		MerchantId:              projectFixedAmount.GetMerchantId(),
+		MerchantId:              merchant.Id,
 		Name:                    "MASTERCARD",
 		PayoutCurrency:          "USD",
 		MinAmount:               0,
@@ -494,7 +498,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		PsFixedFeeCurrency:      "EUR",
 	}
 	paymentMerCost4 := &billing.PaymentChannelCostMerchant{
-		MerchantId:              projectFixedAmount.GetMerchantId(),
+		MerchantId:              merchant.Id,
 		Name:                    "MASTERCARD",
 		PayoutCurrency:          "USD",
 		MinAmount:               0,
@@ -514,7 +518,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		suite.FailNow("Insert PaymentChannelCostMerchant test data failed", "%v", err)
 	}
 
-	return merchant, projectFixedAmount, pmBankCard, paymentSystem
+	return merchant
 }
 
 func helperCreateAndPayOrder(suite suite.Suite, service *Service, amount float64, currency, country string, project *billing.Project, paymentMethod *billing.PaymentMethod) *billing.Order {

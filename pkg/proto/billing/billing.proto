@@ -463,8 +463,8 @@ message Order {
     map<string, bool> is_notifications_sent = 48;
     // @inject_tag: json:"-" bson:"country_restriction"
     CountryRestriction country_restriction = 49;
-    // @inject_tag: json:"-"
-    string royalty_report_id = 50;
+    //@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
+    string country_code = 50;
     // @inject_tag: json:"-"
     string parent_id = 51;
     // @inject_tag: json:"-"
@@ -473,8 +473,6 @@ message Order {
     string type = 53;
     // @inject_tag: json:"-"
     bool is_vat_deduction = 54;
-    //@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
-    string country_code = 55;
 }
 
 message CountryRestriction {
@@ -1315,7 +1313,7 @@ message RoyaltyReportDetails {
     //@inject_tag: bson:"gross_amount"
     double gross_amount = 1;
     //@inject_tag: bson:"transactions_count"
-    int64 transactions_count = 2;
+    int32 transactions_count = 2;
     //@inject_tag: bson:"fee_amount"
     double fee_amount = 3;
     //@inject_tag: bson:"vat_amount"
@@ -1488,56 +1486,64 @@ message OrderViewPublic {
     string transaction = 7; // unique order id in payment system
     // @inject_tag: json:"payment_method" bson:"payment_method"
     PaymentMethodOrder payment_method = 8;
-    // @inject_tag: json:"country" bson:"country"
-    string country = 9;
+    // @inject_tag: json:"country_code" bson:"country_code"
+    string country_code = 9;
+    // @inject_tag: json:"merchant_id" bson:"merchant_id"
+    string merchant_id = 10;
     // @inject_tag: json:"locale" bson:"locale"
-    string locale = 10;
+    string locale = 11;
+    // @inject_tag: json:"status" bson:"status"
+    string status = 12;
     // @inject_tag: json:"transaction_date" bson:"pm_order_close_date"
-    google.protobuf.Timestamp transaction_date = 11;
+    google.protobuf.Timestamp transaction_date = 13;
     // @inject_tag: json:"user" bson:"user"
-    OrderUser user = 12;
+    OrderUser user = 14;
     // @inject_tag: json:"billing_address" bson:"billing_address"
-    OrderBillingAddress billing_address = 13;
+    OrderBillingAddress billing_address = 15;
     // @inject_tag: json:"type" bson:"type"
-    string type = 14;
+    string type = 16;
     // @inject_tag: json:"is_vat_deduction" bson:"is_vat_deduction"
-    bool is_vat_deduction = 15;
+    bool is_vat_deduction = 17;
     // @inject_tag: json:"gross_revenue" bson:"gross_revenue"
-    OrderViewMoney gross_revenue = 16;
+    OrderViewMoney gross_revenue = 18;
     // @inject_tag: json:"tax_fee" bson:"tax_fee"
-    OrderViewMoney tax_fee = 17;
+    OrderViewMoney tax_fee = 19;
     // @inject_tag: json:"tax_fee_currency_exchange_fee" bson:"tax_fee_currency_exchange_fee"
-    OrderViewMoney tax_fee_currency_exchange_fee = 18;
+    OrderViewMoney tax_fee_currency_exchange_fee = 20;
     // @inject_tag: json:"tax_fee_total" bson:"tax_fee_total"
-    OrderViewMoney tax_fee_total = 19;
+    OrderViewMoney tax_fee_total = 21;
     // @inject_tag: json:"method_fee_total" bson:"method_fee_total"
-    OrderViewMoney method_fee_total = 20;
+    OrderViewMoney method_fee_total = 22;
     // @inject_tag: json:"method_fee_tariff" bson:"method_fee_tariff"
-    OrderViewMoney method_fee_tariff = 21;
+    OrderViewMoney method_fee_tariff = 23;
     // @inject_tag: json:"method_fixed_fee_tariff" bson:"method_fixed_fee_tariff"
-    OrderViewMoney method_fixed_fee_tariff = 22;
+    OrderViewMoney method_fixed_fee_tariff = 24;
     // @inject_tag: json:"paysuper_fixed_fee" bson:"paysuper_fixed_fee"
-    OrderViewMoney paysuper_fixed_fee = 23;
+    OrderViewMoney paysuper_fixed_fee = 25;
     // @inject_tag: json:"fees_total" bson:"fees_total"
-    OrderViewMoney fees_total = 24;
+    OrderViewMoney fees_total = 26;
+    // @inject_tag: json:"fees_total_local" bson:"fees_total_local"
+    OrderViewMoney fees_total_local = 27;
     // @inject_tag: json:"net_revenue" bson:"net_revenue"
-    OrderViewMoney net_revenue = 25;
+    OrderViewMoney net_revenue = 28;
     // @inject_tag: json:"refund_gross_revenue" bson:"refund_gross_revenue"
-    OrderViewMoney refund_gross_revenue = 26;
+    OrderViewMoney refund_gross_revenue = 29;
     // @inject_tag: json:"method_refund_fee_tariff" bson:"method_refund_fee_tariff"
-    OrderViewMoney method_refund_fee_tariff = 27;
+    OrderViewMoney method_refund_fee_tariff = 30;
     // @inject_tag: json:"merchant_refund_fixed_fee_tariff" bson:"merchant_refund_fixed_fee_tariff"
-    OrderViewMoney merchant_refund_fixed_fee_tariff = 28;
+    OrderViewMoney merchant_refund_fixed_fee_tariff = 31;
     // @inject_tag: json:"refund_tax_fee" bson:"refund_tax_fee"
-    OrderViewMoney refund_tax_fee = 29;
+    OrderViewMoney refund_tax_fee = 32;
     // @inject_tag: json:"refund_tax_fee_currency_exchange_fee" bson:"refund_tax_fee_currency_exchange_fee"
-    OrderViewMoney refund_tax_fee_currency_exchange_fee = 30;
+    OrderViewMoney refund_tax_fee_currency_exchange_fee = 33;
     // @inject_tag: json:"paysuper_refund_tax_fee_currency_exchange_fee" bson:"paysuper_refund_tax_fee_currency_exchange_fee"
-    OrderViewMoney paysuper_refund_tax_fee_currency_exchange_fee = 31;
+    OrderViewMoney paysuper_refund_tax_fee_currency_exchange_fee = 34;
     // @inject_tag: json:"refund_reverse_revenue" bson:"refund_reverse_revenue"
-    OrderViewMoney refund_reverse_revenue = 32;
+    OrderViewMoney refund_reverse_revenue = 35;
     // @inject_tag: json:"refund_fees_total" bson:"refund_fees_total"
-    OrderViewMoney refund_fees_total = 33;
+    OrderViewMoney refund_fees_total = 36;
+    // @inject_tag: json:"refund_fees_total_local" bson:"refund_fees_total_local"
+    OrderViewMoney refund_fees_total_local = 37;
 }
 
 message OrderViewPrivate {
@@ -1557,122 +1563,130 @@ message OrderViewPrivate {
     string transaction = 7; // unique order id in payment system
     // @inject_tag: json:"payment_method" bson:"payment_method"
     PaymentMethodOrder payment_method = 8;
-    // @inject_tag: json:"country" bson:"country"
-    string country = 9;
+    // @inject_tag: json:"country_code" bson:"country_code"
+    string country_code = 9;
+    // @inject_tag: json:"merchant_id" bson:"merchant_id"
+    string merchant_id = 10;
     // @inject_tag: json:"locale" bson:"locale"
-    string locale = 10;
+    string locale = 11;
+    // @inject_tag: json:"status" bson:"status"
+    string status = 12;
     // @inject_tag: json:"transaction_date" bson:"pm_order_close_date"
-    google.protobuf.Timestamp transaction_date = 11;
+    google.protobuf.Timestamp transaction_date = 13;
     // @inject_tag: json:"user" bson:"user"
-    OrderUser user = 12;
+    OrderUser user = 14;
     // @inject_tag: json:"billing_address" bson:"billing_address"
-    OrderBillingAddress billing_address = 13;
+    OrderBillingAddress billing_address = 15;
     // @inject_tag: json:"type" bson:"type"
-    string type = 14;
+    string type = 16;
     // @inject_tag: json:"is_vat_deduction" bson:"is_vat_deduction"
-    bool is_vat_deduction = 15;
+    bool is_vat_deduction = 17;
     // @inject_tag: json:"payment_gross_revenue_local" bson:"payment_gross_revenue_local"
-    OrderViewMoney payment_gross_revenue_local = 16;
+    OrderViewMoney payment_gross_revenue_local = 18;
     // @inject_tag: json:"payment_gross_revenue_origin" bson:"payment_gross_revenue_origin"
-    OrderViewMoney payment_gross_revenue_origin = 17;
+    OrderViewMoney payment_gross_revenue_origin = 19;
     // @inject_tag: json:"payment_gross_revenue" bson:"payment_gross_revenue"
-    OrderViewMoney payment_gross_revenue = 18;
+    OrderViewMoney payment_gross_revenue = 20;
     // @inject_tag: json:"payment_tax_fee" bson:"payment_tax_fee"
-    OrderViewMoney payment_tax_fee = 19;
+    OrderViewMoney payment_tax_fee = 21;
     // @inject_tag: json:"payment_tax_fee_local" bson:"payment_tax_fee_local"
-    OrderViewMoney payment_tax_fee_local = 20;
+    OrderViewMoney payment_tax_fee_local = 22;
     // @inject_tag: json:"payment_tax_fee_origin" bson:"payment_tax_fee_origin"
-    OrderViewMoney payment_tax_fee_origin = 21;
+    OrderViewMoney payment_tax_fee_origin = 23;
     // @inject_tag: json:"payment_tax_fee_currency_exchange_fee" bson:"payment_tax_fee_currency_exchange_fee"
-    OrderViewMoney payment_tax_fee_currency_exchange_fee = 22;
+    OrderViewMoney payment_tax_fee_currency_exchange_fee = 24;
     // @inject_tag: json:"payment_tax_fee_total" bson:"payment_tax_fee_total"
-    OrderViewMoney payment_tax_fee_total = 23;
+    OrderViewMoney payment_tax_fee_total = 25;
     // @inject_tag: json:"payment_gross_revenue_fx" bson:"payment_gross_revenue_fx"
-    OrderViewMoney payment_gross_revenue_fx = 24;
+    OrderViewMoney payment_gross_revenue_fx = 26;
     // @inject_tag: json:"payment_gross_revenue_fx_tax_fee" bson:"payment_gross_revenue_fx_tax_fee"
-    OrderViewMoney payment_gross_revenue_fx_tax_fee = 25;
+    OrderViewMoney payment_gross_revenue_fx_tax_fee = 27;
     // @inject_tag: json:"payment_gross_revenue_fx_profit" bson:"payment_gross_revenue_fx_profit"
-    OrderViewMoney payment_gross_revenue_fx_profit = 26;
+    OrderViewMoney payment_gross_revenue_fx_profit = 28;
     // @inject_tag: json:"gross_revenue" bson:"gross_revenue"
-    OrderViewMoney gross_revenue = 27;
+    OrderViewMoney gross_revenue = 29;
     // @inject_tag: json:"tax_fee" bson:"tax_fee"
-    OrderViewMoney tax_fee = 28;
+    OrderViewMoney tax_fee = 30;
     // @inject_tag: json:"tax_fee_currency_exchange_fee" bson:"tax_fee_currency_exchange_fee"
-    OrderViewMoney tax_fee_currency_exchange_fee = 29;
+    OrderViewMoney tax_fee_currency_exchange_fee = 31;
     // @inject_tag: json:"tax_fee_total" bson:"tax_fee_total"
-    OrderViewMoney tax_fee_total = 30;
+    OrderViewMoney tax_fee_total = 32;
     // @inject_tag: json:"method_fee_total" bson:"method_fee_total"
-    OrderViewMoney method_fee_total = 31;
+    OrderViewMoney method_fee_total = 33;
     // @inject_tag: json:"method_fee_tariff" bson:"method_fee_tariff"
-    OrderViewMoney method_fee_tariff = 32;
+    OrderViewMoney method_fee_tariff = 34;
     // @inject_tag: json:"paysuper_method_fee_tariff_self_cost" bson:"paysuper_method_fee_tariff_self_cost"
-    OrderViewMoney paysuper_method_fee_tariff_self_cost = 33;
+    OrderViewMoney paysuper_method_fee_tariff_self_cost = 35;
     // @inject_tag: json:"paysuper_method_fee_profit" bson:"paysuper_method_fee_profit"
-    OrderViewMoney paysuper_method_fee_profit = 34;
+    OrderViewMoney paysuper_method_fee_profit = 36;
     // @inject_tag: json:"method_fixed_fee_tariff" bson:"method_fixed_fee_tariff"
-    OrderViewMoney method_fixed_fee_tariff = 35;
+    OrderViewMoney method_fixed_fee_tariff = 37;
     // @inject_tag: json:"paysuper_method_fixed_fee_tariff_fx_profit" bson:"paysuper_method_fixed_fee_tariff_fx_profit"
-    OrderViewMoney paysuper_method_fixed_fee_tariff_fx_profit = 36;
+    OrderViewMoney paysuper_method_fixed_fee_tariff_fx_profit = 38;
     // @inject_tag: json:"paysuper_method_fixed_fee_tariff_self_cost" bson:"paysuper_method_fixed_fee_tariff_self_cost"
-    OrderViewMoney paysuper_method_fixed_fee_tariff_self_cost = 37;
+    OrderViewMoney paysuper_method_fixed_fee_tariff_self_cost = 39;
     // @inject_tag: json:"paysuper_method_fixed_fee_tariff_total_profit" bson:"paysuper_method_fixed_fee_tariff_total_profit"
-    OrderViewMoney paysuper_method_fixed_fee_tariff_total_profit = 38;
+    OrderViewMoney paysuper_method_fixed_fee_tariff_total_profit = 40;
     // @inject_tag: json:"paysuper_fixed_fee" bson:"paysuper_fixed_fee"
-    OrderViewMoney paysuper_fixed_fee = 39;
+    OrderViewMoney paysuper_fixed_fee = 41;
     // @inject_tag: json:"paysuper_fixed_fee_fx_profit" bson:"paysuper_fixed_fee_fx_profit"
-    OrderViewMoney paysuper_fixed_fee_fx_profit = 40;
+    OrderViewMoney paysuper_fixed_fee_fx_profit = 42;
     // @inject_tag: json:"fees_total" bson:"fees_total"
-    OrderViewMoney fees_total = 41;
+    OrderViewMoney fees_total = 43;
+    // @inject_tag: json:"fees_total_local" bson:"fees_total_local"
+    OrderViewMoney fees_total_local = 44;
     // @inject_tag: json:"net_revenue" bson:"net_revenue"
-    OrderViewMoney net_revenue = 42;
+    OrderViewMoney net_revenue = 45;
     // @inject_tag: json:"paysuper_method_total_profit" bson:"paysuper_method_total_profit"
-    OrderViewMoney paysuper_method_total_profit = 43;
+    OrderViewMoney paysuper_method_total_profit = 46;
     // @inject_tag: json:"paysuper_total_profit" bson:"paysuper_total_profit"
-    OrderViewMoney paysuper_total_profit = 44;
+    OrderViewMoney paysuper_total_profit = 47;
     // @inject_tag: json:"payment_refund_gross_revenue_local" bson:"payment_refund_gross_revenue_local"
-    OrderViewMoney payment_refund_gross_revenue_local = 45;
+    OrderViewMoney payment_refund_gross_revenue_local = 48;
     // @inject_tag: json:"payment_refund_gross_revenue_origin" bson:"payment_refund_gross_revenue_origin"
-    OrderViewMoney payment_refund_gross_revenue_origin = 46;
+    OrderViewMoney payment_refund_gross_revenue_origin = 49;
     // @inject_tag: json:"payment_refund_gross_revenue" bson:"payment_refund_gross_revenue"
-    OrderViewMoney payment_refund_gross_revenue = 47;
+    OrderViewMoney payment_refund_gross_revenue = 50;
     // @inject_tag: json:"payment_refund_tax_fee" bson:"payment_refund_tax_fee"
-    OrderViewMoney payment_refund_tax_fee = 48;
+    OrderViewMoney payment_refund_tax_fee = 51;
     // @inject_tag: json:"payment_refund_tax_fee_local" bson:"payment_refund_tax_fee_local"
-    OrderViewMoney payment_refund_tax_fee_local = 49;
+    OrderViewMoney payment_refund_tax_fee_local = 52;
     // @inject_tag: json:"payment_refund_tax_fee_origin" bson:"payment_refund_tax_fee_origin"
-    OrderViewMoney payment_refund_tax_fee_origin = 50;
+    OrderViewMoney payment_refund_tax_fee_origin = 53;
     // @inject_tag: json:"payment_refund_fee_tariff" bson:"payment_refund_fee_tariff"
-    OrderViewMoney payment_refund_fee_tariff = 51;
+    OrderViewMoney payment_refund_fee_tariff = 54;
     // @inject_tag: json:"method_refund_fixed_fee_tariff" bson:"method_refund_fixed_fee_tariff"
-    OrderViewMoney method_refund_fixed_fee_tariff = 52;
+    OrderViewMoney method_refund_fixed_fee_tariff = 55;
     // @inject_tag: json:"refund_gross_revenue" bson:"refund_gross_revenue"
-    OrderViewMoney refund_gross_revenue = 53;
+    OrderViewMoney refund_gross_revenue = 56;
     // @inject_tag: json:"refund_gross_revenue_fx" bson:"refund_gross_revenue_fx"
-    OrderViewMoney refund_gross_revenue_fx = 54;
+    OrderViewMoney refund_gross_revenue_fx = 57;
     // @inject_tag: json:"method_refund_fee_tariff" bson:"method_refund_fee_tariff"
-    OrderViewMoney method_refund_fee_tariff = 55;
+    OrderViewMoney method_refund_fee_tariff = 58;
     // @inject_tag: json:"paysuper_method_refund_fee_tariff_profit" bson:"paysuper_method_refund_fee_tariff_profit"
-    OrderViewMoney paysuper_method_refund_fee_tariff_profit = 56;
+    OrderViewMoney paysuper_method_refund_fee_tariff_profit = 59;
     // @inject_tag: json:"paysuper_method_refund_fixed_fee_tariff_self_cost" bson:"paysuper_method_refund_fixed_fee_tariff_self_cost"
-    OrderViewMoney paysuper_method_refund_fixed_fee_tariff_self_cost = 57;
+    OrderViewMoney paysuper_method_refund_fixed_fee_tariff_self_cost = 60;
     // @inject_tag: json:"merchant_refund_fixed_fee_tariff" bson:"merchant_refund_fixed_fee_tariff"
-    OrderViewMoney merchant_refund_fixed_fee_tariff = 58;
+    OrderViewMoney merchant_refund_fixed_fee_tariff = 61;
     // @inject_tag: json:"paysuper_method_refund_fixed_fee_tariff_profit" bson:"paysuper_method_refund_fixed_fee_tariff_profit"
-    OrderViewMoney paysuper_method_refund_fixed_fee_tariff_profit = 59;
+    OrderViewMoney paysuper_method_refund_fixed_fee_tariff_profit = 62;
     // @inject_tag: json:"refund_tax_fee" bson:"refund_tax_fee"
-    OrderViewMoney refund_tax_fee = 60;
+    OrderViewMoney refund_tax_fee = 63;
     // @inject_tag: json:"refund_tax_fee_currency_exchange_fee" bson:"refund_tax_fee_currency_exchange_fee"
-    OrderViewMoney refund_tax_fee_currency_exchange_fee = 61;
+    OrderViewMoney refund_tax_fee_currency_exchange_fee = 64;
     // @inject_tag: json:"paysuper_refund_tax_fee_currency_exchange_fee" bson:"paysuper_refund_tax_fee_currency_exchange_fee"
-    OrderViewMoney paysuper_refund_tax_fee_currency_exchange_fee = 62;
+    OrderViewMoney paysuper_refund_tax_fee_currency_exchange_fee = 65;
     // @inject_tag: json:"refund_tax_fee_total" bson:"refund_tax_fee_total"
-    OrderViewMoney refund_tax_fee_total = 63;
+    OrderViewMoney refund_tax_fee_total = 66;
     // @inject_tag: json:"refund_reverse_revenue" bson:"refund_reverse_revenue"
-    OrderViewMoney refund_reverse_revenue = 64;
+    OrderViewMoney refund_reverse_revenue = 67;
     // @inject_tag: json:"refund_fees_total" bson:"refund_fees_total"
-    OrderViewMoney refund_fees_total = 65;
+    OrderViewMoney refund_fees_total = 68;
+    // @inject_tag: json:"refund_fees_total_local" bson:"refund_fees_total_local"
+    OrderViewMoney refund_fees_total_local = 69;
     // @inject_tag: json:"paysuper_refund_total_profit" bson:"paysuper_refund_total_profit"
-    OrderViewMoney paysuper_refund_total_profit = 66;
+    OrderViewMoney paysuper_refund_total_profit = 70;
 }
 
 message PriceGroupRecommendedPrice {

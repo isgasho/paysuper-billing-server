@@ -95,7 +95,6 @@ It has these top-level messages:
 	ListRoyaltyReportsRequest
 	ListRoyaltyReportsResponse
 	ListRoyaltyReportOrdersRequest
-	ListRoyaltyReportOrdersResponse
 	ChangeRoyaltyReportRequest
 	PaymentChannelCostSystemListResponse
 	PaymentChannelCostSystemResponse
@@ -115,8 +114,8 @@ It has these top-level messages:
 	ProductPricesResponse
 	UpdateProductPricesRequest
 	VatTransactionsRequest
-	VatTransactionsPaginate
-	VatTransactionsResponse
+	TransactionsPaginate
+	TransactionsResponse
 	VatReportsRequest
 	VatReportsPaginate
 	VatReportsResponse
@@ -238,11 +237,11 @@ type BillingService interface {
 	CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, opts ...client.CallOption) (*CreateRoyaltyReportRequest, error)
 	ListRoyaltyReports(ctx context.Context, in *ListRoyaltyReportsRequest, opts ...client.CallOption) (*ListRoyaltyReportsResponse, error)
 	ChangeRoyaltyReport(ctx context.Context, in *ChangeRoyaltyReportRequest, opts ...client.CallOption) (*ResponseError, error)
-	ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, opts ...client.CallOption) (*ListRoyaltyReportOrdersResponse, error)
+	ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, opts ...client.CallOption) (*TransactionsResponse, error)
 	AutoAcceptRoyaltyReports(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*EmptyResponse, error)
 	GetVatReportsDashboard(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*VatReportsResponse, error)
 	GetVatReportsForCountry(ctx context.Context, in *VatReportsRequest, opts ...client.CallOption) (*VatReportsResponse, error)
-	GetVatReportTransactions(ctx context.Context, in *VatTransactionsRequest, opts ...client.CallOption) (*VatTransactionsResponse, error)
+	GetVatReportTransactions(ctx context.Context, in *VatTransactionsRequest, opts ...client.CallOption) (*TransactionsResponse, error)
 	ProcessVatReports(ctx context.Context, in *ProcessVatReportsRequest, opts ...client.CallOption) (*EmptyResponse, error)
 	UpdateVatReportStatus(ctx context.Context, in *UpdateVatReportStatusRequest, opts ...client.CallOption) (*ResponseError, error)
 	CalcAnnualTurnovers(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*EmptyResponse, error)
@@ -1076,9 +1075,9 @@ func (c *billingService) ChangeRoyaltyReport(ctx context.Context, in *ChangeRoya
 	return out, nil
 }
 
-func (c *billingService) ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, opts ...client.CallOption) (*ListRoyaltyReportOrdersResponse, error) {
+func (c *billingService) ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, opts ...client.CallOption) (*TransactionsResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.ListRoyaltyReportOrders", in)
-	out := new(ListRoyaltyReportOrdersResponse)
+	out := new(TransactionsResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1116,9 +1115,9 @@ func (c *billingService) GetVatReportsForCountry(ctx context.Context, in *VatRep
 	return out, nil
 }
 
-func (c *billingService) GetVatReportTransactions(ctx context.Context, in *VatTransactionsRequest, opts ...client.CallOption) (*VatTransactionsResponse, error) {
+func (c *billingService) GetVatReportTransactions(ctx context.Context, in *VatTransactionsRequest, opts ...client.CallOption) (*TransactionsResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.GetVatReportTransactions", in)
-	out := new(VatTransactionsResponse)
+	out := new(TransactionsResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1240,11 +1239,11 @@ type BillingServiceHandler interface {
 	CreateRoyaltyReport(context.Context, *CreateRoyaltyReportRequest, *CreateRoyaltyReportRequest) error
 	ListRoyaltyReports(context.Context, *ListRoyaltyReportsRequest, *ListRoyaltyReportsResponse) error
 	ChangeRoyaltyReport(context.Context, *ChangeRoyaltyReportRequest, *ResponseError) error
-	ListRoyaltyReportOrders(context.Context, *ListRoyaltyReportOrdersRequest, *ListRoyaltyReportOrdersResponse) error
+	ListRoyaltyReportOrders(context.Context, *ListRoyaltyReportOrdersRequest, *TransactionsResponse) error
 	AutoAcceptRoyaltyReports(context.Context, *EmptyRequest, *EmptyResponse) error
 	GetVatReportsDashboard(context.Context, *EmptyRequest, *VatReportsResponse) error
 	GetVatReportsForCountry(context.Context, *VatReportsRequest, *VatReportsResponse) error
-	GetVatReportTransactions(context.Context, *VatTransactionsRequest, *VatTransactionsResponse) error
+	GetVatReportTransactions(context.Context, *VatTransactionsRequest, *TransactionsResponse) error
 	ProcessVatReports(context.Context, *ProcessVatReportsRequest, *EmptyResponse) error
 	UpdateVatReportStatus(context.Context, *UpdateVatReportStatusRequest, *ResponseError) error
 	CalcAnnualTurnovers(context.Context, *EmptyRequest, *EmptyResponse) error
@@ -1333,11 +1332,11 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, out *CreateRoyaltyReportRequest) error
 		ListRoyaltyReports(ctx context.Context, in *ListRoyaltyReportsRequest, out *ListRoyaltyReportsResponse) error
 		ChangeRoyaltyReport(ctx context.Context, in *ChangeRoyaltyReportRequest, out *ResponseError) error
-		ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, out *ListRoyaltyReportOrdersResponse) error
+		ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, out *TransactionsResponse) error
 		AutoAcceptRoyaltyReports(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error
 		GetVatReportsDashboard(ctx context.Context, in *EmptyRequest, out *VatReportsResponse) error
 		GetVatReportsForCountry(ctx context.Context, in *VatReportsRequest, out *VatReportsResponse) error
-		GetVatReportTransactions(ctx context.Context, in *VatTransactionsRequest, out *VatTransactionsResponse) error
+		GetVatReportTransactions(ctx context.Context, in *VatTransactionsRequest, out *TransactionsResponse) error
 		ProcessVatReports(ctx context.Context, in *ProcessVatReportsRequest, out *EmptyResponse) error
 		UpdateVatReportStatus(ctx context.Context, in *UpdateVatReportStatusRequest, out *ResponseError) error
 		CalcAnnualTurnovers(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error
@@ -1677,7 +1676,7 @@ func (h *billingServiceHandler) ChangeRoyaltyReport(ctx context.Context, in *Cha
 	return h.BillingServiceHandler.ChangeRoyaltyReport(ctx, in, out)
 }
 
-func (h *billingServiceHandler) ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, out *ListRoyaltyReportOrdersResponse) error {
+func (h *billingServiceHandler) ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, out *TransactionsResponse) error {
 	return h.BillingServiceHandler.ListRoyaltyReportOrders(ctx, in, out)
 }
 
@@ -1693,7 +1692,7 @@ func (h *billingServiceHandler) GetVatReportsForCountry(ctx context.Context, in 
 	return h.BillingServiceHandler.GetVatReportsForCountry(ctx, in, out)
 }
 
-func (h *billingServiceHandler) GetVatReportTransactions(ctx context.Context, in *VatTransactionsRequest, out *VatTransactionsResponse) error {
+func (h *billingServiceHandler) GetVatReportTransactions(ctx context.Context, in *VatTransactionsRequest, out *TransactionsResponse) error {
 	return h.BillingServiceHandler.GetVatReportTransactions(ctx, in, out)
 }
 

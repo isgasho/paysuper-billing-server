@@ -222,7 +222,7 @@ func (s *Service) GetVatReportsForCountry(
 func (s *Service) GetVatReportTransactions(
 	ctx context.Context,
 	req *grpc.VatTransactionsRequest,
-	res *grpc.VatTransactionsResponse,
+	res *grpc.TransactionsResponse,
 ) error {
 	res.Status = pkg.ResponseStatusOk
 
@@ -264,12 +264,20 @@ func (s *Service) GetVatReportTransactions(
 		return nil
 	}
 
-	vts, err := s.getTransactionsForVatReport(from, to, vr.Country, int(req.Limit), int(req.Offset))
+	match := bson.M{
+		"pm_order_close_date": bson.M{
+			"$gte": bod(from),
+			"$lte": eod(to),
+		},
+		"country_code": vr.Country,
+	}
+
+	vts, err := s.getTransactionsPublic(match, int(req.Limit), int(req.Offset))
 	if err != nil {
 		return err
 	}
 
-	res.Data = &grpc.VatTransactionsPaginate{
+	res.Data = &grpc.TransactionsPaginate{
 		Count: int32(len(vts)),
 		Items: vts,
 	}

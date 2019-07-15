@@ -46,30 +46,25 @@ const (
 )
 
 var (
-	grossAmountDebitEntities = map[string]bool{
-		pkg.AccountingEntryTypePayment:           true,
-		pkg.AccountingEntryTypeRefundFailure:     true,
-		pkg.AccountingEntryTypeChargebackFailure: true,
-		pkg.AccountingEntryTypePayoutFailure:     true,
-		pkg.AccountingEntryTypePayoutCancel:      true,
-		pkg.AccountingEntryTypeAdjustment:        true,
-	}
-
-	grossAmountCreditEntities = map[string]bool{
-		pkg.AccountingEntryTypeRefundBody:         true,
-		pkg.AccountingEntryTypeReverseTaxFeeDelta: true,
-		pkg.AccountingEntryTypeChargeback:         true,
-		pkg.AccountingEntryTypeChargebackFee:      true,
-		pkg.AccountingEntryTypeChargebackFixedFee: true,
-		pkg.AccountingEntryTypePayout:             true,
-		pkg.AccountingEntryTypePayoutFee:          true,
-	}
-
 	royaltyReportErrorReportNotFound                  = newBillingServerErrorMsg(royaltyReportErrorCodeReportNotFound, royaltyReportErrorTextReportNotFound)
 	royaltyReportErrorReportStatusChangeDenied        = newBillingServerErrorMsg(royaltyReportErrorCodeReportStatusChangeDenied, royaltyReportErrorTextReportStatusChangeDenied)
 	royaltyReportErrorReportDisputeCorrectionRequired = newBillingServerErrorMsg(royaltyReportErrorCodeReportDisputeCorrectionRequired, royaltyReportErrorTextReportDisputeCorrectionRequired)
 	royaltyReportEntryErrorUnknown                    = newBillingServerErrorMsg(royaltyReportErrorCodeUnknown, royaltyReportErrorTextUnknown)
 )
+
+type royaltyReportQueryResItem struct {
+	Id                   string  `bson:"_id"`
+	Count                int32   `bson:"count"`
+	GrossRevenue         float64 `bson:"merchant_gross_revenue"`
+	RefundGrossRevenue   float64 `bson:"refund_gross_revenue"`
+	NetRevenue           float64 `bson:"net_revenue"`
+	RefundReverseRevenue float64 `bson:"refund_reverse_revenue"`
+	Payout               float64 `bson:"merchant_payout"`
+	FeesTotal            float64 `bson:"fees_total"`
+	RefundReesTotal      float64 `bson:"refund_fees_total"`
+	TaxFeeTotal          float64 `bson:"tax_fee_total"`
+	RefundTaxFeeTotal    float64 `bson:"refund_tax_fee_total"`
+}
 
 type RoyaltyReportMerchant struct {
 	Id bson.ObjectId `bson:"_id"`
@@ -324,53 +319,52 @@ func (s *Service) ChangeRoyaltyReport(
 func (s *Service) ListRoyaltyReportOrders(
 	ctx context.Context,
 	req *grpc.ListRoyaltyReportOrdersRequest,
-	rsp *grpc.ListRoyaltyReportOrdersResponse,
+	res *grpc.TransactionsResponse,
 ) error {
-	hexReportId := bson.ObjectIdHex(req.ReportId)
-	count, err := s.db.Collection(collectionRoyaltyReport).FindId(hexReportId).Count()
 
+	res.Status = pkg.ResponseStatusOk
+
+	var report *billing.RoyaltyReport
+	err := s.db.Collection(collectionRoyaltyReport).FindId(bson.ObjectIdHex(req.ReportId)).One(&report)
 	if err != nil {
+		if err == mgo.ErrNotFound {
+			res.Status = pkg.ResponseStatusNotFound
+			res.Message = royaltyReportErrorReportNotFound
+			return nil
+		}
+
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String(errorFieldCollection, collectionRoyaltyReport),
+			zap.String("collection", collectionRoyaltyReport),
+			zap.Any("report_id", req.ReportId),
 		)
-	}
 
-	if count != 1 {
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = royaltyReportEntryErrorUnknown
 		return nil
 	}
 
-	query := bson.M{"royalty_report_id": req.ReportId}
-	count, err = s.db.Collection(collectionOrder).Find(query).Count()
+	from, _ := ptypes.Timestamp(report.PeriodFrom)
+	to, _ := ptypes.Timestamp(report.PeriodTo)
 
+	println(report.MerchantId, from.Format(time.RFC3339), from.Format(time.RFC3339), constant.OrderPublicStatusProcessed)
+
+	match := bson.M{
+		"merchant_id":         bson.ObjectIdHex(report.MerchantId),
+		"pm_order_close_date": bson.M{"$gte": from, "$lte": to},
+		"status":              constant.OrderPublicStatusProcessed,
+	}
+
+	ts, err := s.getTransactionsPublic(match, int(req.Limit), int(req.Offset))
 	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(errorFieldCollection, collectionOrder),
-			zap.Any(errorFieldQuery, query),
-		)
+		return err
 	}
 
-	if count <= 0 {
-		return nil
+	res.Data = &grpc.TransactionsPaginate{
+		Count: int32(len(ts)),
+		Items: ts,
 	}
-
-	err = s.db.Collection(collectionOrder).Find(query).Limit(int(req.Limit)).Skip(int(req.Offset)).All(&rsp.Items)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(errorFieldCollection, collectionOrder),
-			zap.Any(errorFieldQuery, query),
-		)
-
-		return nil
-	}
-
-	rsp.Count = int32(count)
 
 	return nil
 }
@@ -455,29 +449,9 @@ func (h *royaltyHandler) processMerchantRoyaltyReport(merchantId bson.ObjectId) 
 		return err
 	}
 
-	report, err := h.createMerchantRoyaltyReport(merchantId)
+	_, err = h.createMerchantRoyaltyReport(merchantId)
 
 	if err != nil {
-		return err
-	}
-
-	query = bson.M{
-		"project.merchant_id": merchantId,
-		"pm_order_close_date": bson.M{"$gte": h.from, "$lte": h.to},
-		"status":              constant.OrderPublicStatusProcessed,
-	}
-	update = bson.M{"$set": bson.M{"royalty_report_id": report.Id}}
-	_, err = h.db.Collection(collectionOrder).UpdateAll(query, update)
-
-	if err != nil && err != mgo.ErrNotFound {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(errorFieldCollection, collectionOrder),
-			zap.Any(errorFieldQuery, query),
-			zap.Any("update", update),
-		)
-
 		return err
 	}
 
@@ -492,66 +466,64 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(merchantId bson.ObjectId) (
 		return nil, err
 	}
 
-	var entries []*billing.AccountingEntry
+	matchQuery := bson.M{
+		"pm_order_close_date": bson.M{
+			"$gte": h.from,
+			"$lte": h.to,
+		},
+		"merchant_id": merchantId,
+	}
 
-	query := bson.M{"merchant_id": merchantId, "created_at": bson.M{"$gte": h.from, "$lte": h.to}}
-	err = h.db.Collection(collectionAccountingEntry).Find(query).All(&entries)
+	query := []bson.M{
+		{
+			"$match": &matchQuery,
+		},
+		{
+			"$group": bson.M{
+				"_id":                    "$merchant_id",
+				"count":                  bson.M{"$sum": 1},
+				"merchant_gross_revenue": bson.M{"$sum": "$gross_revenue.amount"},
+				"refund_gross_revenue":   bson.M{"$sum": "$refund_gross_revenue.amount"},
+				"net_revenue":            bson.M{"$sum": "$net_revenue.amount"},
+				"refund_reverse_revenue": bson.M{"$sum": "$refund_reverse_revenue.amount"},
+				"fees_total":             bson.M{"$sum": "$fees_total.amount"},
+				"refund_fees_total":      bson.M{"$sum": "$refund_fees_total.amount"},
+				"tax_fee_total":          bson.M{"$sum": "$tax_fee_total.amount"},
+				"refund_tax_fee_total":   bson.M{"$sum": "$refund_tax_fee_total.amount"},
+				// todo: UNDONE calculate payouts amount (after cardpay settlement reports will be implemented)
+			},
+		},
+	}
 
-	if err != nil {
-		if err != mgo.ErrNotFound {
-			zap.L().Error(
-				pkg.ErrorDatabaseQueryFailed,
-				zap.Error(err),
-				zap.String(errorFieldCollection, collectionRoyaltyReport),
-				zap.Any(errorFieldQuery, query),
-			)
-		}
-
+	var res []*royaltyReportQueryResItem
+	err = h.Service.db.Collection(collectionOrderView).Pipe(query).All(&res)
+	if err != nil && err != mgo.ErrNotFound {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String("collection", collectionOrderView),
+			zap.Any("query", query),
+		)
 		return nil, err
 	}
 
-	var grossDebitAmount, grossCreditAmount, feeAmount, taxFeeAmount float64
-	var transactionsCount int64
-
-	for _, v := range entries {
-		if _, ok := grossAmountDebitEntities[v.Type]; ok {
-			if v.Type == pkg.AccountingEntryTypePayment {
-				transactionsCount++
-			}
-
-			grossDebitAmount += v.Amount
-			continue
-		}
-
-		if _, ok := grossAmountCreditEntities[v.Type]; ok {
-			grossCreditAmount += v.Amount
-			continue
-		}
-
-		if v.Type == pkg.AccountingEntryTypeMethodFee || v.Type == pkg.AccountingEntryTypeMethodFixedFee {
-			feeAmount += v.Amount
-			continue
-		}
-
-		if v.Type == pkg.AccountingEntryTypeTaxFee {
-			taxFeeAmount += v.Amount
-		}
+	amounts := &billing.RoyaltyReportDetails{
+		Currency: merchant.GetPayoutCurrency(),
 	}
 
-	grossAmount := grossDebitAmount - grossCreditAmount
+	if len(res) == 1 {
+		amounts.TransactionsCount = res[0].Count
+		amounts.GrossAmount = tools.FormatAmount(res[0].GrossRevenue - res[0].RefundGrossRevenue)
+		amounts.PayoutAmount = tools.FormatAmount(res[0].NetRevenue - res[0].RefundReverseRevenue - res[0].Payout)
+		amounts.VatAmount = tools.FormatAmount(res[0].FeesTotal + res[0].RefundReesTotal)
+		amounts.FeeAmount = res[0].TaxFeeTotal + res[0].RefundTaxFeeTotal
+	}
 
 	report := &billing.RoyaltyReport{
-		Id:         bson.NewObjectId().Hex(),
-		MerchantId: merchantId.Hex(),
-		Deleted:    false,
-		Amounts: &billing.RoyaltyReportDetails{
-			GrossAmount:       tools.FormatAmount(grossAmount),
-			TransactionsCount: transactionsCount,
-			FeeAmount:         feeAmount,
-			VatAmount:         taxFeeAmount,
-			PayoutAmount:      tools.FormatAmount(grossAmount - feeAmount - taxFeeAmount),
-			Currency:          merchant.GetPayoutCurrency(),
-		},
+		Id:             bson.NewObjectId().Hex(),
+		MerchantId:     merchantId.Hex(),
+		Deleted:        false,
+		Amounts:        amounts,
 		Status:         pkg.RoyaltyReportStatusNew,
 		CreatedAt:      ptypes.TimestampNow(),
 		IsAutoAccepted: false,

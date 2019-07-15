@@ -233,7 +233,6 @@ type MgoOrder struct {
 	Products                   []string                    `bson:"products"`
 	IsNotificationsSent        map[string]bool             `bson:"is_notifications_sent"`
 	CountryRestriction         *CountryRestriction         `bson:"country_restriction"`
-	RoyaltyReportId            string                      `bson:"royalty_report_id"`
 	ParentId                   string                      `bson:"parent_id"`
 	ParentPaymentAt            time.Time                   `bson:"parent_payment_at"`
 	Type                       string                      `bson:"type"`
@@ -612,8 +611,10 @@ type MgoOrderViewPrivate struct {
 	CreatedAt                                  time.Time              `bson:"created_at"`
 	Transaction                                string                 `bson:"pm_order_id"`
 	PaymentMethod                              *MgoOrderPaymentMethod `bson:"payment_method"`
-	Country                                    string                 `bson:"country"`
+	CountryCode                                string                 `bson:"country_code"`
+	MerchantId                                 bson.ObjectId          `bson:"merchant_id"`
 	Locale                                     string                 `bson:"locale"`
+	Status                                     string                 `bson:"Status"`
 	TransactionDate                            time.Time              `bson:"pm_order_close_date"`
 	User                                       *OrderUser             `bson:"user"`
 	BillingAddress                             *OrderBillingAddress   `bson:"billing_address"`
@@ -645,6 +646,7 @@ type MgoOrderViewPrivate struct {
 	PaysuperFixedFee                           *OrderViewMoney        `bson:"paysuper_fixed_fee"`
 	PaysuperFixedFeeFxProfit                   *OrderViewMoney        `bson:"paysuper_fixed_fee_fx_profit"`
 	FeesTotal                                  *OrderViewMoney        `bson:"fees_total"`
+	FeesTotalLocal                             *OrderViewMoney        `bson:"fees_total_local"`
 	NetRevenue                                 *OrderViewMoney        `bson:"net_revenue"`
 	PaysuperMethodTotalProfit                  *OrderViewMoney        `bson:"paysuper_method_total_profit"`
 	PaysuperTotalProfit                        *OrderViewMoney        `bson:"paysuper_total_profit"`
@@ -669,6 +671,7 @@ type MgoOrderViewPrivate struct {
 	RefundTaxFeeTotal                          *OrderViewMoney        `bson:"refund_tax_fee_total"`
 	RefundReverseRevenue                       *OrderViewMoney        `bson:"refund_reverse_revenue"`
 	RefundFeesTotal                            *OrderViewMoney        `bson:"refund_fees_total"`
+	RefundFeesTotalLocal                       *OrderViewMoney        `bson:"refund_fees_total_local"`
 	PaysuperRefundTotalProfit                  *OrderViewMoney        `bson:"paysuper_refund_total_profit"`
 }
 
@@ -681,8 +684,10 @@ type MgoOrderViewPublic struct {
 	CreatedAt                               time.Time              `bson:"created_at"`
 	Transaction                             string                 `bson:"pm_order_id"`
 	PaymentMethod                           *MgoOrderPaymentMethod `bson:"payment_method"`
-	Country                                 string                 `bson:"country"`
+	CountryCode                             string                 `bson:"country_code"`
+	MerchantId                              bson.ObjectId          `bson:"merchant_id"`
 	Locale                                  string                 `bson:"locale"`
+	Status                                  string                 `bson:"Status"`
 	TransactionDate                         time.Time              `bson:"pm_order_close_date"`
 	User                                    *OrderUser             `bson:"user"`
 	BillingAddress                          *OrderBillingAddress   `bson:"billing_address"`
@@ -697,6 +702,7 @@ type MgoOrderViewPublic struct {
 	MethodFixedFeeTariff                    *OrderViewMoney        `bson:"method_fixed_fee_tariff"`
 	PaysuperFixedFee                        *OrderViewMoney        `bson:"paysuper_fixed_fee"`
 	FeesTotal                               *OrderViewMoney        `bson:"fees_total"`
+	FeesTotalLocal                          *OrderViewMoney        `bson:"fees_total_local"`
 	NetRevenue                              *OrderViewMoney        `bson:"net_revenue"`
 	RefundGrossRevenue                      *OrderViewMoney        `bson:"refund_gross_revenue"`
 	MethodRefundFeeTariff                   *OrderViewMoney        `bson:"method_refund_fee_tariff"`
@@ -705,6 +711,8 @@ type MgoOrderViewPublic struct {
 	RefundTaxFeeCurrencyExchangeFee         *OrderViewMoney        `bson:"refund_tax_fee_currency_exchange_fee"`
 	PaysuperRefundTaxFeeCurrencyExchangeFee *OrderViewMoney        `bson:"paysuper_refund_tax_fee_currency_exchange_fee"`
 	RefundReverseRevenue                    *OrderViewMoney        `bson:"refund_reverse_revenue"`
+	RefundFeesTotal                         *OrderViewMoney        `bson:"refund_fees_total"`
+	RefundFeesTotalLocal                    *OrderViewMoney        `bson:"refund_fees_total_local"`
 }
 
 func (m *Country) GetBSON() (interface{}, error) {
@@ -1223,7 +1231,6 @@ func (m *Order) GetBSON() (interface{}, error) {
 		Products:                  m.Products,
 		IsNotificationsSent:       m.IsNotificationsSent,
 		CountryRestriction:        m.CountryRestriction,
-		RoyaltyReportId:           m.RoyaltyReportId,
 		ParentId:                  m.ParentId,
 		Type:                      m.Type,
 		IsVatDeduction:            m.IsVatDeduction,
@@ -1485,7 +1492,6 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.Products = decoded.Products
 	m.IsNotificationsSent = decoded.IsNotificationsSent
 	m.CountryRestriction = decoded.CountryRestriction
-	m.RoyaltyReportId = decoded.RoyaltyReportId
 	m.ParentId = decoded.ParentId
 	m.Type = decoded.Type
 	m.IsVatDeduction = decoded.IsVatDeduction
@@ -3349,8 +3355,10 @@ func (m *OrderViewPrivate) SetBSON(raw bson.Raw) error {
 	m.Project = getOrderProject(decoded.Project)
 	m.Transaction = decoded.Transaction
 	m.PaymentMethod = getPaymentMethodOrder(decoded.PaymentMethod)
-	m.Country = decoded.Country
+	m.CountryCode = decoded.CountryCode
+	m.MerchantId = decoded.MerchantId.Hex()
 	m.Locale = decoded.Locale
+	m.Status = decoded.Status
 	m.User = decoded.User
 	m.BillingAddress = decoded.BillingAddress
 	m.Type = decoded.Type
@@ -3382,6 +3390,7 @@ func (m *OrderViewPrivate) SetBSON(raw bson.Raw) error {
 	m.PaysuperFixedFee = getOrderViewMoney(decoded.PaysuperFixedFee)
 	m.PaysuperFixedFeeFxProfit = getOrderViewMoney(decoded.PaysuperFixedFeeFxProfit)
 	m.FeesTotal = getOrderViewMoney(decoded.FeesTotal)
+	m.FeesTotalLocal = getOrderViewMoney(decoded.FeesTotalLocal)
 	m.NetRevenue = getOrderViewMoney(decoded.NetRevenue)
 	m.PaysuperMethodTotalProfit = getOrderViewMoney(decoded.PaysuperMethodTotalProfit)
 	m.PaysuperTotalProfit = getOrderViewMoney(decoded.PaysuperTotalProfit)
@@ -3406,6 +3415,7 @@ func (m *OrderViewPrivate) SetBSON(raw bson.Raw) error {
 	m.RefundTaxFeeTotal = getOrderViewMoney(decoded.RefundTaxFeeTotal)
 	m.RefundReverseRevenue = getOrderViewMoney(decoded.RefundReverseRevenue)
 	m.RefundFeesTotal = getOrderViewMoney(decoded.RefundFeesTotal)
+	m.RefundFeesTotalLocal = getOrderViewMoney(decoded.RefundFeesTotalLocal)
 	m.PaysuperRefundTotalProfit = getOrderViewMoney(decoded.PaysuperRefundTotalProfit)
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
@@ -3436,8 +3446,10 @@ func (m *OrderViewPublic) SetBSON(raw bson.Raw) error {
 	m.Project = getOrderProject(decoded.Project)
 	m.Transaction = decoded.Transaction
 	m.PaymentMethod = getPaymentMethodOrder(decoded.PaymentMethod)
-	m.Country = decoded.Country
+	m.CountryCode = decoded.CountryCode
+	m.MerchantId = decoded.MerchantId.Hex()
 	m.Locale = decoded.Locale
+	m.Status = decoded.Status
 	m.User = decoded.User
 	m.BillingAddress = decoded.BillingAddress
 	m.Type = decoded.Type
@@ -3452,6 +3464,7 @@ func (m *OrderViewPublic) SetBSON(raw bson.Raw) error {
 	m.MethodFixedFeeTariff = getOrderViewMoney(decoded.MethodFixedFeeTariff)
 	m.PaysuperFixedFee = getOrderViewMoney(decoded.PaysuperFixedFee)
 	m.FeesTotal = getOrderViewMoney(decoded.FeesTotal)
+	m.FeesTotalLocal = getOrderViewMoney(decoded.FeesTotalLocal)
 	m.NetRevenue = getOrderViewMoney(decoded.NetRevenue)
 	m.RefundGrossRevenue = getOrderViewMoney(decoded.RefundGrossRevenue)
 	m.MethodRefundFeeTariff = getOrderViewMoney(decoded.MethodRefundFeeTariff)
@@ -3460,6 +3473,8 @@ func (m *OrderViewPublic) SetBSON(raw bson.Raw) error {
 	m.RefundTaxFeeCurrencyExchangeFee = getOrderViewMoney(decoded.RefundTaxFeeCurrencyExchangeFee)
 	m.PaysuperRefundTaxFeeCurrencyExchangeFee = getOrderViewMoney(decoded.PaysuperRefundTaxFeeCurrencyExchangeFee)
 	m.RefundReverseRevenue = getOrderViewMoney(decoded.RefundReverseRevenue)
+	m.RefundFeesTotal = getOrderViewMoney(decoded.RefundFeesTotal)
+	m.RefundFeesTotalLocal = getOrderViewMoney(decoded.RefundFeesTotalLocal)
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {

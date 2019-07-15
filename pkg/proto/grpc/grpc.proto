@@ -109,12 +109,12 @@ service BillingService {
     rpc CreateRoyaltyReport(CreateRoyaltyReportRequest) returns (CreateRoyaltyReportRequest) {}
     rpc ListRoyaltyReports(ListRoyaltyReportsRequest) returns (ListRoyaltyReportsResponse) {}
     rpc ChangeRoyaltyReport(ChangeRoyaltyReportRequest) returns (ResponseError) {}
-    rpc ListRoyaltyReportOrders(ListRoyaltyReportOrdersRequest) returns (ListRoyaltyReportOrdersResponse) {}
+    rpc ListRoyaltyReportOrders(ListRoyaltyReportOrdersRequest) returns (TransactionsResponse) {}
     rpc AutoAcceptRoyaltyReports(EmptyRequest) returns (EmptyResponse) {}
 
     rpc GetVatReportsDashboard (EmptyRequest) returns (VatReportsResponse) {}
     rpc GetVatReportsForCountry (VatReportsRequest) returns (VatReportsResponse) {}
-    rpc GetVatReportTransactions (VatTransactionsRequest) returns (VatTransactionsResponse) {}
+    rpc GetVatReportTransactions (VatTransactionsRequest) returns (TransactionsResponse) {}
     rpc ProcessVatReports (ProcessVatReportsRequest) returns (EmptyResponse) {}
     rpc UpdateVatReportStatus (UpdateVatReportStatusRequest) returns (ResponseError) {}
 
@@ -904,11 +904,6 @@ message ListRoyaltyReportOrdersRequest {
     int32 offset = 6;
 }
 
-message ListRoyaltyReportOrdersResponse {
-    int32 count = 1;
-    repeated billing.RoyaltyReportOrder items = 2;
-}
-
 message ChangeRoyaltyReportRequest {
     // @inject_tag: validate:"required,hexadecimal,len=24"
     string report_id = 1;
@@ -1057,19 +1052,19 @@ message VatTransactionsRequest {
     repeated string sort = 4;
 }
 
-message VatTransactionsPaginate {
+message TransactionsPaginate {
     // @inject_tag: json:"count"
     int32 count = 1; // total count of selected transactions
     // @inject_tag: json:"items"
-    repeated billing.OrderViewPrivate items = 2; // array of selected transactions
+    repeated billing.OrderViewPublic items = 2; // array of selected transactions
 }
 
-message VatTransactionsResponse {
+message TransactionsResponse {
     int32 status = 1;
     // @inject_tag: json:"message,omitempty"
     ResponseErrorMessage message = 2;
     // @inject_tag: json:"data"
-    VatTransactionsPaginate data = 3;
+    TransactionsPaginate data = 3;
 }
 
 message VatReportsRequest {

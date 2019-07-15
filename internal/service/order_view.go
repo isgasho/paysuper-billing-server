@@ -37,18 +37,32 @@ func (s *Service) getOrderFromViewPrivate(id string) (*billing.OrderViewPrivate,
 	return result, nil
 }
 
-func (s *Service) getTransactionsForVatReport(from, to time.Time, country string, pagination ...int) ([]*billing.OrderViewPrivate, error) {
-	result := []*billing.OrderViewPrivate{}
+func (s *Service) getTransactionsPublic(match bson.M, pagination ...int) ([]*billing.OrderViewPublic, error) {
+	result := []*billing.OrderViewPublic{}
 
-	query := bson.M{
-		"pm_order_close_date": bson.M{
-			"$gte": bod(from),
-			"$lte": eod(to),
-		},
-		"country_code": country,
+	dbRequest := s.db.Collection(collectionOrderView).Find(match).Sort("created_at")
+
+	if pagination != nil {
+		if val := pagination[0]; val > 0 {
+			dbRequest.Limit(val)
+		}
+		if val := pagination[1]; val > 0 {
+			dbRequest.Skip(val)
+		}
 	}
 
-	dbRequest := s.db.Collection(collectionOrderView).Find(query).Sort("date_time")
+	err := dbRequest.All(&result)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (s *Service) getTransactionsPrivate(match bson.M, pagination ...int) ([]*billing.OrderViewPrivate, error) {
+	result := []*billing.OrderViewPrivate{}
+
+	dbRequest := s.db.Collection(collectionOrderView).Find(match).Sort("created_at")
 
 	if pagination != nil {
 		if val := pagination[0]; val > 0 {
@@ -3008,6 +3022,8 @@ func (s *Service) updateOrderView(match bson.M) error {
 				"billing_address":      1,
 				"payment_method":       1,
 				"country_code":         1,
+				"merchant_id":          "$project.merchant_id",
+				"status":               1,
 				"locale": bson.M{
 					"$cond": list{
 						bson.M{
@@ -3018,6 +3034,7 @@ func (s *Service) updateOrderView(match bson.M) error {
 					},
 				},
 				"type":                                              1,
+				"royalty_report_id":                                 1,
 				"is_vat_deduction":                                  1,
 				"payment_gross_revenue_local":                       1,
 				"payment_gross_revenue_origin":                      1,
