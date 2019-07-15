@@ -68,6 +68,7 @@ var (
 	AccountingEntriesLocalAmountsUpdate = []string{
 		pkg.AccountingEntryTypeRealGrossRevenue,
 		pkg.AccountingEntryTypeRealTaxFee,
+		pkg.AccountingEntryTypeCentralBankTaxFee,
 		pkg.AccountingEntryTypeRealRefund,
 		pkg.AccountingEntryTypeRealRefundTaxFee,
 	}
@@ -770,7 +771,19 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.
 		return nil
 	}
 
+	var aeRealTaxFee = &billing.AccountingEntry{}
 	for _, ae := range aes {
+		if ae.Type != pkg.AccountingEntryTypeRealTaxFee {
+			continue
+		}
+		aeRealTaxFee = ae
+		break
+	}
+
+	for _, ae := range aes {
+		if ae.Type == pkg.AccountingEntryTypeRealTaxFee {
+			continue
+		}
 		amount := ae.LocalAmount
 		if ae.LocalCurrency != ae.OriginalCurrency {
 			amount, err = h.exchangeAmount(ae.OriginalCurrency, ae.LocalCurrency, ae.OriginalAmount)
@@ -778,7 +791,9 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.
 				return err
 			}
 		}
-
+		if ae.Type == pkg.AccountingEntryTypeCentralBankTaxFee {
+			ae.LocalAmount = ae.LocalAmount - aeRealTaxFee.LocalAmount
+		}
 		if amount == ae.LocalAmount {
 			continue
 		}
