@@ -278,15 +278,17 @@ func (s *Service) ProcessRefundCallback(
 		processor := &createRefundProcessor{service: s}
 		refundedAmount, _ := processor.getRefundedAmount(order)
 
+		zap.S().Errorf("debug", "refunded_amount", refundedAmount, "order_total_amount", order.TotalPaymentAmount)
+
 		if refundedAmount == order.TotalPaymentAmount {
 			if refund.IsChargeback == true {
 				order.PrivateStatus = constant.OrderStatusChargeback
 			} else {
 				order.PrivateStatus = constant.OrderStatusRefund
 			}
-
 			order.UpdatedAt = ptypes.TimestampNow()
 			order.RefundedAt = ptypes.TimestampNow()
+			order.Refunded = true
 			order.Refund = &billing.OrderNotificationRefund{
 				Amount:        refundedAmount,
 				Currency:      order.Currency,
@@ -362,6 +364,7 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 	refundOrder.Status = constant.OrderPublicStatusRefunded
 	refundOrder.UpdatedAt = ptypes.TimestampNow()
 	refundOrder.RefundedAt = ptypes.TimestampNow()
+	refundOrder.Refunded = true
 	refundOrder.PaymentMethodOrderClosedAt = ptypes.TimestampNow()
 	refundOrder.Refund = &billing.OrderNotificationRefund{
 		Amount:        refund.Amount,

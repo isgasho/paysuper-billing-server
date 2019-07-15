@@ -728,6 +728,7 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_AmountLess_Error() {
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
 	assert.Equal(suite.T(), pkg.RefundStatusInProgress, rsp2.Item.Status)
 
+	req2.Amount = order.TotalPaymentAmount
 	rsp3 := &grpc.CreateRefundResponse{}
 	err = suite.service.CreateRefund(context.TODO(), req2, rsp3)
 	assert.NoError(suite.T(), err)

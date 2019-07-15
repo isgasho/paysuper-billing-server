@@ -95,13 +95,13 @@ func (app *Application) Init() {
 	)
 
 	if err != nil {
-		app.logger.Fatal("Connection to Redis failed", zap.Error(err), zap.String("broker_address", app.cfg.BrokerAddress))
+		app.logger.Fatal("Connection to Redis failed", zap.Error(err))
 	}
 
 	broker, err := rabbitmq.NewBroker(app.cfg.BrokerAddress)
 
 	if err != nil {
-		app.logger.Fatal("Creating RabbitMQ publisher failed", zap.Error(err), zap.String("broker_address", app.cfg.BrokerAddress))
+		app.logger.Fatal("Creating RabbitMQ publisher failed", zap.Error(err))
 	}
 
 	options := []micro.Option{

@@ -1,6 +1,6 @@
 package service
 
-// helpers, that used in accounting_entry_test, royalty_report_test and vat_reports_test
+// helpers, that used in accounting_entry_test, royalty_report_test, vat_reports_test and order_view_test
 
 import (
 	"context"
