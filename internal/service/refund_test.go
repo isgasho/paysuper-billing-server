@@ -514,8 +514,6 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_AmountLess_Error() {
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
 	err = suite.service.updateOrder(order)
 
-	//order.PaymentMethod.Params.Handler = ""
-
 	req2 := &grpc.CreateRefundRequest{
 		OrderId:   order.Uuid,
 		Amount:    50,
@@ -533,6 +531,7 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_AmountLess_Error() {
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
 	assert.Equal(suite.T(), pkg.RefundStatusInProgress, rsp2.Item.Status)
 
+	req2.Amount = order.TotalPaymentAmount
 	rsp3 := &grpc.CreateRefundResponse{}
 	err = suite.service.CreateRefund(context.TODO(), req2, rsp3)
 	assert.NoError(suite.T(), err)
@@ -2026,7 +2025,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 
 	req2 := &grpc.CreateRefundRequest{
 		OrderId:   rsp.Uuid,
-		Amount:    100,
+		Amount:    order.TotalPaymentAmount,
 		CreatorId: bson.NewObjectId().Hex(),
 		Reason:    "unit test",
 	}
@@ -2048,7 +2047,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 			RemainingAmount: 0,
 		},
 		RefundData: &billing.CardPayRefundCallbackRefundData{
-			Amount:   100,
+			Amount:   order.TotalPaymentAmount,
 			Created:  time.Now().Format(cardPayDateFormat),
 			Id:       bson.NewObjectId().Hex(),
 			Currency: rsp2.Item.Currency.CodeA3,

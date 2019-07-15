@@ -427,7 +427,7 @@ func (p *createRefundProcessor) processRefundsByOrder() error {
 		return newBillingServerResponseError(pkg.ResponseStatusBadData, refundErrorUnknown)
 	}
 
-	if p.checked.order.PaymentMethodIncomeAmount < (refundedAmount + p.request.Amount) {
+	if p.checked.order.TotalPaymentAmount < (refundedAmount + p.request.Amount) {
 		return newBillingServerResponseError(pkg.ResponseStatusBadData, refundErrorPaymentAmountLess)
 	}
 
