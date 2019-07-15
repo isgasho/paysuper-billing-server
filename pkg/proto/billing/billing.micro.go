@@ -107,6 +107,7 @@ It has these top-level messages:
 	PriceGroupRecommendedPrice
 	PriceTable
 	PriceTableCurrency
+	Id
 */
 package billing
 

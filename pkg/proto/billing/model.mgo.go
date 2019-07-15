@@ -13,6 +13,10 @@ const (
 	errorInvalidObjectId = "invalid bson object id"
 )
 
+type MgoId struct {
+	Id bson.ObjectId `bson:"_id"`
+}
+
 type MgoMultiLang struct {
 	Lang  string `bson:"lang"`
 	Value string `bson:"value"`
@@ -3546,4 +3550,25 @@ func getOrderViewMoney(in *OrderViewMoney) *OrderViewMoney {
 		Amount:   tools.ToPrecise(in.Amount),
 		Currency: in.Currency,
 	}
+}
+
+func (m *Id) GetBSON() (interface{}, error) {
+	st := &MgoId{}
+	if bson.IsObjectIdHex(m.Id) == false {
+		return nil, errors.New(errorInvalidObjectId)
+	}
+	st.Id = bson.ObjectIdHex(m.Id)
+	return st, nil
+}
+
+func (m *Id) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoId)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	return nil
 }

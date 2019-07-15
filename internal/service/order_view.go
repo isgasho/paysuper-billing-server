@@ -81,9 +81,71 @@ func (s *Service) getTransactionsPrivate(match bson.M, pagination ...int) ([]*bi
 	return result, nil
 }
 
-func (s *Service) updateOrderView(match bson.M) error {
+// emulate update batching, because aggregarion pipeline, ended with $merge,
+// does not return any documents in result,
+// so, this query cannot be iterated with driver's BatchSize() and Next() methods
+func (s *Service) updateOrderView(ids []string) error {
+	batchSize := s.cfg.OrderViewUpdateBatchSize
+	count := len(ids)
+	if count == 0 {
+		var orderIds []*billing.Id
+		err := s.db.Collection(collectionOrder).Find(nil).All(&orderIds)
+		if err != nil {
+			return err
+		}
+		for _, id := range orderIds {
+			ids = append(ids, id.Id)
+		}
+		count = len(ids)
+	}
+
+	if count > 0 && count <= batchSize {
+		matchQuery := s.getUpdateOrderViewMatchQuery(ids)
+		return s.doUpdateOrderView(matchQuery)
+	}
+
+	var batches [][]string
+
+	for batchSize < len(ids) {
+		ids, batches = ids[batchSize:], append(batches, ids[0:batchSize:batchSize])
+	}
+	batches = append(batches, ids)
+	for _, batch_ids := range batches {
+		matchQuery := s.getUpdateOrderViewMatchQuery(batch_ids)
+		err := s.doUpdateOrderView(matchQuery)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *Service) getUpdateOrderViewMatchQuery(ids []string) bson.M {
+	idsHex := []bson.ObjectId{}
+	for _, id := range ids {
+		idsHex = append(idsHex, bson.ObjectIdHex(id))
+	}
+
+	if len(idsHex) == 1 {
+		return bson.M{
+			"$match": bson.M{
+				"_id": idsHex[0],
+			},
+		}
+	}
+
+	return bson.M{
+		"$match": bson.M{
+			"_id": bson.M{"$in": idsHex},
+		},
+	}
+}
+
+func (s *Service) doUpdateOrderView(match bson.M) error {
 	defer timeTrack(time.Now(), "updateOrderView")
 	orderViewQuery := []bson.M{
+		match,
 		{
 			"$lookup": bson.M{
 				"from": "accounting_entry",
@@ -3105,13 +3167,7 @@ func (s *Service) updateOrderView(match bson.M) error {
 		},
 	}
 
-	query := []bson.M{}
-	if match != nil {
-		query = append(query, match)
-	}
-	query = append(query, orderViewQuery...)
-
-	err := s.db.Collection(collectionOrder).Pipe(query).Iter().Err()
+	err := s.db.Collection(collectionOrder).Pipe(orderViewQuery).Iter().Err()
 	if err != nil {
 		zap.L().Error(
 			errorOrderViewUpdateQuery,

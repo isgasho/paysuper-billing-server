@@ -64,6 +64,8 @@ type Config struct {
 
 	EmailNotificationFinancierRecipient string `envconfig:"EMAIL_NOTIFICATION_FINANCIER_RECIPIENT" required:"true"`
 
+	OrderViewUpdateBatchSize int `envconfig:"ORDER_VIEW_UPDATE_BATCH_SIZE" default:"200"`
+
 	*PaymentSystemConfig
 	*CustomerTokenConfig
 	*CacheRedis
@@ -73,10 +75,6 @@ type Config struct {
 func NewConfig() (*Config, error) {
 	cfg := &Config{}
 	err := envconfig.Process("", cfg)
-	if err != nil {
-		return nil, err
-	}
-
 	if err != nil {
 		return nil, err
 	}

@@ -178,7 +178,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_CreateRoyaltyReport_AllMe
 			suite.createOrder(v)
 		}
 	}
-	err := suite.service.updateOrderView(nil)
+	err := suite.service.updateOrderView([]string{})
 	assert.NoError(suite.T(), err)
 
 	req := &grpc.CreateRoyaltyReportRequest{}
@@ -241,7 +241,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_CreateRoyaltyReport_Selec
 			suite.createOrder(v)
 		}
 	}
-	err := suite.service.updateOrderView(nil)
+	err := suite.service.updateOrderView([]string{})
 	assert.NoError(suite.T(), err)
 
 	req := &grpc.CreateRoyaltyReportRequest{
@@ -350,7 +350,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_Ok() {
 			suite.createOrder(v)
 		}
 	}
-	err := suite.service.updateOrderView(nil)
+	err := suite.service.updateOrderView([]string{})
 	assert.NoError(suite.T(), err)
 
 	req := &grpc.CreateRoyaltyReportRequest{}
@@ -388,7 +388,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindBy
 			suite.createOrder(v)
 		}
 	}
-	err := suite.service.updateOrderView(nil)
+	err := suite.service.updateOrderView([]string{})
 	assert.NoError(suite.T(), err)
 
 	req := &grpc.CreateRoyaltyReportRequest{}
@@ -427,7 +427,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindBy
 			suite.createOrder(v)
 		}
 	}
-	err := suite.service.updateOrderView(nil)
+	err := suite.service.updateOrderView([]string{})
 	assert.NoError(suite.T(), err)
 
 	req := &grpc.CreateRoyaltyReportRequest{}
@@ -475,7 +475,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindBy
 			suite.createOrder(v)
 		}
 	}
-	err := suite.service.updateOrderView(nil)
+	err := suite.service.updateOrderView([]string{})
 	assert.NoError(suite.T(), err)
 
 	req := &grpc.CreateRoyaltyReportRequest{}
@@ -526,7 +526,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindBy
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_Ok() {
 	suite.createOrder(suite.project)
-	err := suite.service.updateOrderView(nil)
+	err := suite.service.updateOrderView([]string{})
 	assert.NoError(suite.T(), err)
 
 	req := &grpc.CreateRoyaltyReportRequest{}
@@ -579,7 +579,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_Ok() 
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_Accepted_Ok() {
 	suite.createOrder(suite.project)
-	err := suite.service.updateOrderView(nil)
+	err := suite.service.updateOrderView([]string{})
 	assert.NoError(suite.T(), err)
 
 	req := &grpc.CreateRoyaltyReportRequest{}
@@ -652,7 +652,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_Repor
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_ChangeNotAllowed_Error() {
 	suite.createOrder(suite.project)
-	err := suite.service.updateOrderView(nil)
+	err := suite.service.updateOrderView([]string{})
 	assert.NoError(suite.T(), err)
 
 	req := &grpc.CreateRoyaltyReportRequest{}
@@ -682,7 +682,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_Chang
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_StatusPaymentError_Error() {
 	suite.createOrder(suite.project)
-	err := suite.service.updateOrderView(nil)
+	err := suite.service.updateOrderView([]string{})
 	assert.NoError(suite.T(), err)
 
 	req := &grpc.CreateRoyaltyReportRequest{}
@@ -718,7 +718,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReportOrders_O
 	for i := 0; i < 10; i++ {
 		suite.createOrder(suite.project)
 	}
-	err := suite.service.updateOrderView(nil)
+	err := suite.service.updateOrderView([]string{})
 	assert.NoError(suite.T(), err)
 
 	req := &grpc.CreateRoyaltyReportRequest{}
@@ -761,7 +761,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReportOrders_R
 }
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReportOrders_OrdersNotFound_Error() {
-	err := suite.service.updateOrderView(nil)
+	err := suite.service.updateOrderView([]string{})
 	assert.NoError(suite.T(), err)
 
 	req := &grpc.CreateRoyaltyReportRequest{}
@@ -790,7 +790,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_SendRoyaltyReportNotifica
 	for i := 0; i < 10; i++ {
 		suite.createOrder(suite.project)
 	}
-	err := suite.service.updateOrderView(nil)
+	err := suite.service.updateOrderView([]string{})
 	assert.NoError(suite.T(), err)
 
 	req := &grpc.CreateRoyaltyReportRequest{}
@@ -822,7 +822,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_SendRoyaltyReportNotifica
 	for i := 0; i < 10; i++ {
 		suite.createOrder(suite.project)
 	}
-	err := suite.service.updateOrderView(nil)
+	err := suite.service.updateOrderView([]string{})
 	assert.NoError(suite.T(), err)
 
 	req := &grpc.CreateRoyaltyReportRequest{}
@@ -864,7 +864,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_AutoAcceptRoyaltyReports_
 			suite.createOrder(v)
 		}
 	}
-	err := suite.service.updateOrderView(nil)
+	err := suite.service.updateOrderView([]string{})
 	assert.NoError(suite.T(), err)
 
 	req := &grpc.CreateRoyaltyReportRequest{}

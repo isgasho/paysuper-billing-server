@@ -955,13 +955,13 @@ func (h *accountingEntry) saveAccountingEntries() error {
 		return err
 	}
 
-	ids := []bson.ObjectId{}
+	var ids []string
 	if h.order != nil {
-		ids = append(ids, bson.ObjectIdHex(h.order.Id))
+		ids = append(ids, h.order.Id)
 	}
 
 	if h.refund != nil && h.refundOrder != nil {
-		ids = append(ids, bson.ObjectIdHex(h.refundOrder.Id))
+		ids = append(ids, h.refundOrder.Id)
 
 	}
 
@@ -969,13 +969,7 @@ func (h *accountingEntry) saveAccountingEntries() error {
 		return nil
 	}
 
-	matchQuery := bson.M{
-		"$match": bson.M{
-			"_id": bson.M{"$in": ids},
-		},
-	}
-
-	return h.Service.updateOrderView(matchQuery)
+	return h.Service.updateOrderView(ids)
 
 }
 

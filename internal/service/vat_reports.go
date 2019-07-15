@@ -84,19 +84,13 @@ type vatReportQueryResItem struct {
 	PaymentRefundFeesTotal         float64 `bson:"refund_fees_total"`
 }
 
-type orderViewUpdateParams struct {
-	updateTimeFrom time.Time
-	updateTimeTo   time.Time
-	country        string
-}
-
 type vatReportProcessor struct {
 	*Service
-	ctx                   context.Context
-	date                  time.Time
-	ts                    *timestamp.Timestamp
-	countries             []*billing.Country
-	orderViewUpdateParams []*orderViewUpdateParams
+	ctx                context.Context
+	date               time.Time
+	ts                 *timestamp.Timestamp
+	countries          []*billing.Country
+	orderViewUpdateIds []string
 }
 
 func NewVatReportProcessor(s *Service, ctx context.Context, date *timestamp.Timestamp) (*vatReportProcessor, error) {
@@ -547,24 +541,13 @@ func (h *vatReportProcessor) ProcessAccountingEntries() error {
 }
 
 func (h *vatReportProcessor) UpdateOrderView() error {
-	if len(h.orderViewUpdateParams) == 0 {
+	if len(h.orderViewUpdateIds) == 0 {
 		return nil
 	}
 
-	for _, updateData := range h.orderViewUpdateParams {
-		matchQuery := bson.M{
-			"$match": bson.M{
-				"pm_order_close_date": bson.M{
-					"$gte": updateData.updateTimeFrom,
-					"$lte": updateData.updateTimeTo,
-				},
-				"country_code": updateData.country,
-			},
-		}
-		err := h.Service.updateOrderView(matchQuery)
-		if err != nil {
-			return err
-		}
+	err := h.Service.updateOrderView(h.orderViewUpdateIds)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -787,14 +770,6 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.
 		return nil
 	}
 
-	var (
-		hasChanges = false
-		updateData = &orderViewUpdateParams{
-			updateTimeFrom: time.Now(),
-			country:        country.IsoCodeA2,
-		}
-	)
-
 	for _, ae := range aes {
 		amount := ae.LocalAmount
 		if ae.LocalCurrency != ae.OriginalCurrency {
@@ -808,20 +783,7 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.
 			continue
 		}
 
-		hasChanges = true
-
-		timeFrom, err := ptypes.Timestamp(ae.CreatedAt)
-		if err != nil {
-			return err
-		}
-
-		if timeFrom.Before(updateData.updateTimeFrom) {
-			updateData.updateTimeFrom = timeFrom
-		}
-
-		if timeFrom.After(updateData.updateTimeTo) {
-			updateData.updateTimeTo = timeFrom
-		}
+		h.orderViewUpdateIds = append(h.orderViewUpdateIds, ae.Source.Id)
 
 		err = h.Service.db.Collection(collectionAccountingEntry).UpdateId(bson.ObjectIdHex(ae.Id), ae)
 		if err != nil && err != mgo.ErrNotFound {
@@ -833,10 +795,6 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.
 			)
 			return err
 		}
-	}
-
-	if hasChanges {
-		h.orderViewUpdateParams = append(h.orderViewUpdateParams, updateData)
 	}
 
 	return nil
