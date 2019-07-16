@@ -116,6 +116,7 @@ It has these top-level messages:
 	UserProfileCompanyMonetization
 	UserProfileCompanyPlatforms
 	UserProfileCompany
+	UserProfileEmail
 	UserProfile
 	GetUserProfileRequest
 	GetUserProfileResponse

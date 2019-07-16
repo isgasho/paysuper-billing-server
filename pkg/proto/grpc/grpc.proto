@@ -1053,23 +1053,32 @@ message UserProfileCompany {
     UserProfileCompanyPlatforms platforms = 7;
 }
 
+message UserProfileEmail {
+    //@inject_tag: validate:"required,email"
+    string email = 1;
+    bool confirmed = 2;
+    google.protobuf.Timestamp confirmed_at = 3;
+}
+
 message UserProfile {
     //@inject_tag: json:"-"
     string id = 1;
     //@inject_tag: json:"-" validate:"required,hexadecimal,len=24"
     string user_id = 2;
+    //@inject_tag: json:"-"
+    UserProfileEmail email = 3;
     //@inject_tag: json:"personal"
-    UserProfilePersonal personal = 3;
+    UserProfilePersonal personal = 4;
     //@inject_tag: json:"help"
-    UserProfileHelp help = 4;
+    UserProfileHelp help = 5;
     //@inject_tag: json:"company"
-    UserProfileCompany company = 5;
+    UserProfileCompany company = 6;
     //@inject_tag: json:"last_step"
-    string last_step = 6;
+    string last_step = 7;
     // @inject_tag: json:"created_at"
-    google.protobuf.Timestamp created_at = 7;
+    google.protobuf.Timestamp created_at = 8;
     // @inject_tag: json:"updated_at"
-    google.protobuf.Timestamp updated_at = 8;
+    google.protobuf.Timestamp updated_at = 9;
 }
 
 message GetUserProfileRequest {

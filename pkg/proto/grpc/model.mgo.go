@@ -36,6 +36,7 @@ type MgoProduct struct {
 type MgoUserProfile struct {
 	Id        bson.ObjectId        `bson:"_id"`
 	UserId    string               `bson:"user_id"`
+	Email     *UserProfileEmail    `bson:"email"`
 	Personal  *UserProfilePersonal `bson:"personal"`
 	Help      *UserProfileHelp     `bson:"help"`
 	Company   *UserProfileCompany  `bson:"company"`
@@ -177,6 +178,7 @@ func (m *UserProfile) GetBSON() (interface{}, error) {
 	st := &MgoUserProfile{
 		Id:       bson.ObjectIdHex(m.Id),
 		UserId:   m.UserId,
+		Email:    m.Email,
 		Personal: m.Personal,
 		Help:     m.Help,
 		Company:  m.Company,
@@ -220,6 +222,7 @@ func (m *UserProfile) SetBSON(raw bson.Raw) error {
 
 	m.Id = decoded.Id.Hex()
 	m.UserId = decoded.UserId
+	m.Email = decoded.Email
 	m.Personal = decoded.Personal
 	m.Help = decoded.Help
 	m.Company = decoded.Company
