@@ -268,8 +268,6 @@ func (s *Service) ProcessRefundCallback(
 		processor := &createRefundProcessor{service: s}
 		refundedAmount, _ := processor.getRefundedAmount(order)
 
-		zap.S().Errorf("debug", "refunded_amount", refundedAmount, "order_total_amount", order.TotalPaymentAmount)
-
 		if refundedAmount == order.TotalPaymentAmount {
 			order.PrivateStatus = constant.OrderStatusRefund
 			order.UpdatedAt = ptypes.TimestampNow()
