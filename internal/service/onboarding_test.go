@@ -2672,3 +2672,163 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_UserNotifi
 	assert.Equal(suite.T(), int32(0), rsp2.Count)
 	assert.Empty(suite.T(), rsp2.Items)
 }
+
+func (suite *OnboardingTestSuite) TestOnboarding_CreateOrUpdateOnboardingProfile_NewProfile_Ok() {
+	req := &grpc.PrimaryOnboarding{
+		UserId: bson.NewObjectId().Hex(),
+		Personal: &grpc.PrimaryOnboardingPersonal{
+			FirstName: "Unit test",
+			LastName:  "Unit Test",
+			Position:  "test",
+		},
+		Help: &grpc.PrimaryOnboardingHelp{
+			ProductPromotionAndDevelopment: false,
+			ReleasedGamePromotion:          true,
+			InternationalSales:             true,
+			Other:                          false,
+		},
+		LastStep: "step2",
+	}
+	rsp := &grpc.GetPrimaryOnboardingResponse{}
+
+	profile := suite.service.getOnboardingProfileByUser(req.UserId)
+	assert.Nil(suite.T(), profile)
+
+	err := suite.service.CreateOrUpdateOnboardingProfile(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotNil(suite.T(), rsp.Item)
+	assert.IsType(suite.T(), &grpc.PrimaryOnboarding{}, rsp.Item)
+
+	profile = suite.service.getOnboardingProfileByUser(req.UserId)
+	assert.NotNil(suite.T(), rsp.Item)
+	assert.IsType(suite.T(), &grpc.PrimaryOnboarding{}, rsp.Item)
+
+	assert.Equal(suite.T(), profile.UserId, rsp.Item.UserId)
+	assert.Equal(suite.T(), profile.LastStep, rsp.Item.LastStep)
+	assert.Equal(suite.T(), profile.Personal, rsp.Item.Personal)
+	assert.Equal(suite.T(), profile.Help, rsp.Item.Help)
+}
+
+func (suite *OnboardingTestSuite) TestOnboarding_CreateOrUpdateOnboardingProfile_ExistProfile_Ok() {
+	req := &grpc.PrimaryOnboarding{
+		UserId:   bson.NewObjectId().Hex(),
+		LastStep: "step1",
+	}
+	rsp := &grpc.GetPrimaryOnboardingResponse{}
+
+	err := suite.service.CreateOrUpdateOnboardingProfile(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotNil(suite.T(), rsp.Item)
+	assert.IsType(suite.T(), &grpc.PrimaryOnboarding{}, rsp.Item)
+
+	req1 := &grpc.PrimaryOnboarding{
+		UserId: req.UserId,
+		Personal: &grpc.PrimaryOnboardingPersonal{
+			FirstName: "test",
+			LastName:  "test",
+			Position:  "unit",
+		},
+		Help: &grpc.PrimaryOnboardingHelp{
+			ProductPromotionAndDevelopment: true,
+			ReleasedGamePromotion:          true,
+			InternationalSales:             true,
+			Other:                          true,
+		},
+		Company: &grpc.PrimaryOnboardingCompany{
+			CompanyName:       "company name",
+			Website:           "http://127.0.0.1",
+			AnnualIncome:      &grpc.RangeInt{From: 10, To: 100000},
+			NumberOfEmployees: &grpc.RangeInt{From: 10, To: 50},
+			KindOfActivity:    "test",
+			Monetization: &grpc.PrimaryOnboardingCompanyMonetization{
+				PaidSubscription:  true,
+				InGameAdvertising: true,
+				InGamePurchases:   true,
+				PremiumAccess:     true,
+				Other:             true,
+			},
+			Platforms: &grpc.PrimaryOnboardingCompanyPlatforms{
+				PcMac:        true,
+				GameConsole:  true,
+				MobileDevice: true,
+				WebBrowser:   true,
+			},
+		},
+	}
+
+	rsp1 := &grpc.GetPrimaryOnboardingResponse{}
+	err = suite.service.CreateOrUpdateOnboardingProfile(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotNil(suite.T(), rsp.Item)
+
+	assert.Equal(suite.T(), rsp.Item.UserId, rsp1.Item.UserId)
+	assert.NotEqual(suite.T(), rsp.Item.Personal, rsp1.Item.Personal)
+	assert.NotEqual(suite.T(), rsp.Item.Help, rsp1.Item.Help)
+	assert.NotEqual(suite.T(), rsp.Item.Company, rsp1.Item.Company)
+
+	profile := suite.service.getOnboardingProfileByUser(req.UserId)
+	assert.NotNil(suite.T(), profile)
+
+	assert.Equal(suite.T(), profile.UserId, rsp1.Item.UserId)
+	assert.Equal(suite.T(), profile.LastStep, rsp1.Item.LastStep)
+	assert.Equal(suite.T(), profile.Personal, rsp1.Item.Personal)
+	assert.Equal(suite.T(), profile.Help, rsp1.Item.Help)
+	assert.Equal(suite.T(), profile.Company, rsp1.Item.Company)
+}
+
+func (suite *OnboardingTestSuite) TestOnboarding_GetOnboardingProfile_Ok() {
+	req := &grpc.PrimaryOnboarding{
+		UserId: bson.NewObjectId().Hex(),
+		Personal: &grpc.PrimaryOnboardingPersonal{
+			FirstName: "Unit test",
+			LastName:  "Unit Test",
+			Position:  "test",
+		},
+		Help: &grpc.PrimaryOnboardingHelp{
+			ProductPromotionAndDevelopment: false,
+			ReleasedGamePromotion:          true,
+			InternationalSales:             true,
+			Other:                          false,
+		},
+		LastStep: "step2",
+	}
+	rsp := &grpc.GetPrimaryOnboardingResponse{}
+
+	err := suite.service.CreateOrUpdateOnboardingProfile(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotNil(suite.T(), rsp.Item)
+	assert.IsType(suite.T(), &grpc.PrimaryOnboarding{}, rsp.Item)
+
+	req1 := &grpc.GetPrimaryOnboardingRequest{UserId: req.UserId}
+	rsp1 := &grpc.GetPrimaryOnboardingResponse{}
+	err = suite.service.GetOnboardingProfile(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.Empty(suite.T(), rsp1.Message)
+	assert.NotNil(suite.T(), rsp1.Item)
+
+	assert.Equal(suite.T(), rsp.Item.Id, rsp1.Item.Id)
+	assert.Equal(suite.T(), rsp.Item.UserId, rsp1.Item.UserId)
+	assert.Equal(suite.T(), rsp.Item.Personal, rsp1.Item.Personal)
+	assert.Equal(suite.T(), rsp.Item.Help, rsp1.Item.Help)
+	assert.Equal(suite.T(), rsp.Item.Company, rsp1.Item.Company)
+	assert.Equal(suite.T(), rsp.Item.LastStep, rsp1.Item.LastStep)
+}
+
+func (suite *OnboardingTestSuite) TestOnboarding_GetOnboardingProfile_NotFound_Error() {
+	req := &grpc.GetPrimaryOnboardingRequest{UserId: bson.NewObjectId().Hex()}
+	rsp := &grpc.GetPrimaryOnboardingResponse{}
+	err := suite.service.GetOnboardingProfile(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, rsp.Status)
+	assert.Equal(suite.T(), onboardingProfileErrorNotFound, rsp.Message)
+	assert.Nil(suite.T(), rsp.Item)
+}

@@ -33,6 +33,17 @@ type MgoProduct struct {
 	ProjectId       bson.ObjectId         `bson:"project_id" json:"project_id"`
 }
 
+type MgoPrimaryOnboarding struct {
+	Id        bson.ObjectId              `bson:"_id"`
+	UserId    string                     `bson:"user_id"`
+	Personal  *PrimaryOnboardingPersonal `bson:"personal"`
+	Help      *PrimaryOnboardingHelp     `bson:"help"`
+	Company   *PrimaryOnboardingCompany  `bson:"company"`
+	LastStep  string                     `bson:"last_step"`
+	CreatedAt time.Time                  `bson:"created_at"`
+	UpdatedAt time.Time                  `bson:"updated_at"`
+}
+
 func (p *Product) SetBSON(raw bson.Raw) error {
 	decoded := new(MgoProduct)
 	err := raw.Unmarshal(decoded)
@@ -160,4 +171,71 @@ func (p *Product) GetBSON() (interface{}, error) {
 	}
 
 	return st, nil
+}
+
+func (m *PrimaryOnboarding) GetBSON() (interface{}, error) {
+	st := &MgoPrimaryOnboarding{
+		Id:       bson.ObjectIdHex(m.Id),
+		UserId:   m.UserId,
+		Personal: m.Personal,
+		Help:     m.Help,
+		Company:  m.Company,
+		LastStep: m.LastStep,
+	}
+
+	if m.CreatedAt != nil {
+		t, err := ptypes.Timestamp(m.CreatedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.CreatedAt = t
+	} else {
+		st.CreatedAt = time.Now()
+	}
+
+	if m.UpdatedAt != nil {
+		t, err := ptypes.Timestamp(m.UpdatedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.UpdatedAt = t
+	} else {
+		st.UpdatedAt = time.Now()
+	}
+
+	return st, nil
+}
+
+func (m *PrimaryOnboarding) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoPrimaryOnboarding)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.UserId = decoded.UserId
+	m.Personal = decoded.Personal
+	m.Help = decoded.Help
+	m.Company = decoded.Company
+	m.LastStep = decoded.LastStep
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+
+	if err != nil {
+		return err
+	}
+
+	m.UpdatedAt, err = ptypes.TimestampProto(decoded.UpdatedAt)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

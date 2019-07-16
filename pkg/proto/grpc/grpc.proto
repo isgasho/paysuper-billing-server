@@ -109,6 +109,9 @@ service BillingService {
     rpc DeleteMoneyBackCostMerchant(billing.PaymentCostDeleteRequest) returns (ResponseError) {}
 
     rpc CreateAccountingEntry(CreateAccountingEntryRequest) returns (CreateAccountingEntryRequest) {}
+
+    rpc GetOnboardingProfile(GetPrimaryOnboardingRequest) returns (GetPrimaryOnboardingResponse) {}
+    rpc CreateOrUpdateOnboardingProfile(PrimaryOnboarding) returns (GetPrimaryOnboardingResponse) {}
 }
 
 message EmptyRequest {}
@@ -980,4 +983,102 @@ message UpdateProductPricesRequest {
     string product_id = 1;
     //@inject_tag: validate:"required,min=1,dive" json:"prices"
     repeated ProductPrice prices = 2;
+}
+
+message RangeInt {
+    int32 from = 1;
+    int32 to = 2;
+}
+
+message PrimaryOnboardingPersonal {
+    //@inject_tag: json:"first_name"
+    string first_name = 1;
+    //@inject_tag: json:"last_name"
+    string last_name = 2;
+    //@inject_tag: json:"position"
+    string position = 3;
+}
+
+message PrimaryOnboardingHelp {
+    //@inject_tag: json:"product_promotion_and_development"
+    bool product_promotion_and_development = 1;
+    //@inject_tag: json:"released_game_promotion"
+    bool released_game_promotion = 2;
+    //@inject_tag: json:"international_sales"
+    bool international_sales = 3;
+    //@inject_tag: json:"other"
+    bool other = 4;
+}
+
+message PrimaryOnboardingCompanyMonetization {
+    //@inject_tag: json:"paid_subscription"
+    bool paid_subscription = 1;
+    //@inject_tag: json:"in_game_advertising"
+    bool in_game_advertising = 2;
+    //@inject_tag: json:"in_game_purchases"
+    bool in_game_purchases = 3;
+    //@inject_tag: json:"premium_access"
+    bool premium_access = 4;
+    //@inject_tag: json:"other"
+    bool other = 5;
+}
+
+message PrimaryOnboardingCompanyPlatforms {
+    //@inject_tag: json:"pc_mac"
+    bool pc_mac = 1;
+    //@inject_tag: json:"game_console"
+    bool game_console = 2;
+    //@inject_tag: json:"mobile_device"
+    bool mobile_device = 3;
+    //@inject_tag: json:"web_browser"
+    bool web_browser = 4;
+    //@inject_tag: json:"other"
+    bool other = 5;
+}
+
+message PrimaryOnboardingCompany {
+    //@inject_tag: json:"company_name"
+    string company_name = 1;
+    //@inject_tag: json:"website" validate:"omitempty,url"
+    string website = 2;
+    //@inject_tag: json:"annual_income"
+    RangeInt annual_income = 3;
+    //@inject_tag: json:"number_of_employees"
+    RangeInt number_of_employees = 4;
+    //@inject_tag: json:"kind_of_activity" validate:"omitempty,oneof=develop_and_publish_your_games publish_games_of_other_companies publish_your_games_through_other_publishers other"
+    string kind_of_activity = 5;
+    //@inject_tag: json:"monetization"
+    PrimaryOnboardingCompanyMonetization monetization = 6;
+    //@inject_tag: json:"platforms"
+    PrimaryOnboardingCompanyPlatforms platforms = 7;
+}
+
+message PrimaryOnboarding {
+    //@inject_tag: json:"-"
+    string id = 1;
+    //@inject_tag: json:"-" validate:"required,hexadecimal,len=24"
+    string user_id = 2;
+    //@inject_tag: json:"personal"
+    PrimaryOnboardingPersonal personal = 3;
+    //@inject_tag: json:"help"
+    PrimaryOnboardingHelp help = 4;
+    //@inject_tag: json:"company"
+    PrimaryOnboardingCompany company = 5;
+    //@inject_tag: json:"last_step"
+    string last_step = 6;
+    // @inject_tag: json:"created_at"
+    google.protobuf.Timestamp created_at = 7;
+    // @inject_tag: json:"updated_at"
+    google.protobuf.Timestamp updated_at = 8;
+}
+
+message GetPrimaryOnboardingRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string user_id = 1;
+}
+
+message GetPrimaryOnboardingResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    PrimaryOnboarding item = 3;
 }
