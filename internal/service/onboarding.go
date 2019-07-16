@@ -14,7 +14,7 @@ import (
 
 const (
 	collectionNotification      = "notification"
-	collectionOnboardingProfile = "onboarding_profile"
+	collectionOnboardingProfile = "user_profile"
 )
 
 var (
@@ -851,10 +851,10 @@ func (s *Service) mapNotificationData(rsp *billing.Notification, notification *b
 	rsp.UpdatedAt = notification.UpdatedAt
 }
 
-func (s *Service) CreateOrUpdateOnboardingProfile(
+func (s *Service) CreateOrUpdateUserProfile(
 	ctx context.Context,
-	req *grpc.PrimaryOnboarding,
-	rsp *grpc.GetPrimaryOnboardingResponse,
+	req *grpc.UserProfile,
+	rsp *grpc.GetUserProfileResponse,
 ) error {
 	var err error
 
@@ -884,10 +884,10 @@ func (s *Service) CreateOrUpdateOnboardingProfile(
 	return nil
 }
 
-func (s *Service) GetOnboardingProfile(
+func (s *Service) GetUserProfile(
 	ctx context.Context,
-	req *grpc.GetPrimaryOnboardingRequest,
-	rsp *grpc.GetPrimaryOnboardingResponse,
+	req *grpc.GetUserProfileRequest,
+	rsp *grpc.GetUserProfileResponse,
 ) error {
 	profile := s.getOnboardingProfileByUser(req.UserId)
 
@@ -904,7 +904,7 @@ func (s *Service) GetOnboardingProfile(
 	return nil
 }
 
-func (s *Service) getOnboardingProfileByUser(userId string) (profile *grpc.PrimaryOnboarding) {
+func (s *Service) getOnboardingProfileByUser(userId string) (profile *grpc.UserProfile) {
 	query := bson.M{"user_id": userId}
 	err := s.db.Collection(collectionOnboardingProfile).Find(query).One(&profile)
 
@@ -921,11 +921,11 @@ func (s *Service) getOnboardingProfileByUser(userId string) (profile *grpc.Prima
 }
 
 func (s *Service) updateOnboardingProfile(
-	profile, profileReq *grpc.PrimaryOnboarding,
-) (*grpc.PrimaryOnboarding, error) {
+	profile, profileReq *grpc.UserProfile,
+) (*grpc.UserProfile, error) {
 	if profileReq.HasPersonChanges(profile) == true {
 		if profile.Personal == nil {
-			profile.Personal = &grpc.PrimaryOnboardingPersonal{}
+			profile.Personal = &grpc.UserProfilePersonal{}
 		}
 
 		if profile.Personal.FirstName != profileReq.Personal.FirstName {
@@ -943,7 +943,7 @@ func (s *Service) updateOnboardingProfile(
 
 	if profileReq.HasHelpChanges(profile) == true {
 		if profile.Help == nil {
-			profile.Help = &grpc.PrimaryOnboardingHelp{}
+			profile.Help = &grpc.UserProfileHelp{}
 		}
 
 		if profile.Help.ProductPromotionAndDevelopment != profileReq.Help.ProductPromotionAndDevelopment {
@@ -965,7 +965,7 @@ func (s *Service) updateOnboardingProfile(
 
 	if profileReq.HasCompanyChanges(profile) == true {
 		if profile.Company == nil {
-			profile.Company = &grpc.PrimaryOnboardingCompany{}
+			profile.Company = &grpc.UserProfileCompany{}
 		}
 
 		if profile.Company.CompanyName != profileReq.Company.CompanyName {
@@ -1010,7 +1010,7 @@ func (s *Service) updateOnboardingProfile(
 
 		if profileReq.HasCompanyMonetizationChanges(profile) == true {
 			if profile.Company.Monetization == nil {
-				profile.Company.Monetization = &grpc.PrimaryOnboardingCompanyMonetization{}
+				profile.Company.Monetization = &grpc.UserProfileCompanyMonetization{}
 			}
 
 			if profile.Company.Monetization.PaidSubscription != profileReq.Company.Monetization.PaidSubscription {
@@ -1036,7 +1036,7 @@ func (s *Service) updateOnboardingProfile(
 
 		if profileReq.HasCompanyPlatformsChanges(profile) == true {
 			if profile.Company.Platforms == nil {
-				profile.Company.Platforms = &grpc.PrimaryOnboardingCompanyPlatforms{}
+				profile.Company.Platforms = &grpc.UserProfileCompanyPlatforms{}
 			}
 
 			if profile.Company.Platforms.PcMac != profileReq.Company.Platforms.PcMac {

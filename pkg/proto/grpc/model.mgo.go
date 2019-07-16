@@ -33,15 +33,15 @@ type MgoProduct struct {
 	ProjectId       bson.ObjectId         `bson:"project_id" json:"project_id"`
 }
 
-type MgoPrimaryOnboarding struct {
-	Id        bson.ObjectId              `bson:"_id"`
-	UserId    string                     `bson:"user_id"`
-	Personal  *PrimaryOnboardingPersonal `bson:"personal"`
-	Help      *PrimaryOnboardingHelp     `bson:"help"`
-	Company   *PrimaryOnboardingCompany  `bson:"company"`
-	LastStep  string                     `bson:"last_step"`
-	CreatedAt time.Time                  `bson:"created_at"`
-	UpdatedAt time.Time                  `bson:"updated_at"`
+type MgoUserProfile struct {
+	Id        bson.ObjectId        `bson:"_id"`
+	UserId    string               `bson:"user_id"`
+	Personal  *UserProfilePersonal `bson:"personal"`
+	Help      *UserProfileHelp     `bson:"help"`
+	Company   *UserProfileCompany  `bson:"company"`
+	LastStep  string               `bson:"last_step"`
+	CreatedAt time.Time            `bson:"created_at"`
+	UpdatedAt time.Time            `bson:"updated_at"`
 }
 
 func (p *Product) SetBSON(raw bson.Raw) error {
@@ -173,8 +173,8 @@ func (p *Product) GetBSON() (interface{}, error) {
 	return st, nil
 }
 
-func (m *PrimaryOnboarding) GetBSON() (interface{}, error) {
-	st := &MgoPrimaryOnboarding{
+func (m *UserProfile) GetBSON() (interface{}, error) {
+	st := &MgoUserProfile{
 		Id:       bson.ObjectIdHex(m.Id),
 		UserId:   m.UserId,
 		Personal: m.Personal,
@@ -210,8 +210,8 @@ func (m *PrimaryOnboarding) GetBSON() (interface{}, error) {
 	return st, nil
 }
 
-func (m *PrimaryOnboarding) SetBSON(raw bson.Raw) error {
-	decoded := new(MgoPrimaryOnboarding)
+func (m *UserProfile) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoUserProfile)
 	err := raw.Unmarshal(decoded)
 
 	if err != nil {

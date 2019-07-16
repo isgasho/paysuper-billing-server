@@ -110,8 +110,8 @@ service BillingService {
 
     rpc CreateAccountingEntry(CreateAccountingEntryRequest) returns (CreateAccountingEntryRequest) {}
 
-    rpc GetOnboardingProfile(GetPrimaryOnboardingRequest) returns (GetPrimaryOnboardingResponse) {}
-    rpc CreateOrUpdateOnboardingProfile(PrimaryOnboarding) returns (GetPrimaryOnboardingResponse) {}
+    rpc GetUserProfile(GetUserProfileRequest) returns (GetUserProfileResponse) {}
+    rpc CreateOrUpdateUserProfile(UserProfile) returns (GetUserProfileResponse) {}
 }
 
 message EmptyRequest {}
@@ -990,7 +990,7 @@ message RangeInt {
     int32 to = 2;
 }
 
-message PrimaryOnboardingPersonal {
+message UserProfilePersonal {
     //@inject_tag: json:"first_name"
     string first_name = 1;
     //@inject_tag: json:"last_name"
@@ -999,7 +999,7 @@ message PrimaryOnboardingPersonal {
     string position = 3;
 }
 
-message PrimaryOnboardingHelp {
+message UserProfileHelp {
     //@inject_tag: json:"product_promotion_and_development"
     bool product_promotion_and_development = 1;
     //@inject_tag: json:"released_game_promotion"
@@ -1010,7 +1010,7 @@ message PrimaryOnboardingHelp {
     bool other = 4;
 }
 
-message PrimaryOnboardingCompanyMonetization {
+message UserProfileCompanyMonetization {
     //@inject_tag: json:"paid_subscription"
     bool paid_subscription = 1;
     //@inject_tag: json:"in_game_advertising"
@@ -1023,7 +1023,7 @@ message PrimaryOnboardingCompanyMonetization {
     bool other = 5;
 }
 
-message PrimaryOnboardingCompanyPlatforms {
+message UserProfileCompanyPlatforms {
     //@inject_tag: json:"pc_mac"
     bool pc_mac = 1;
     //@inject_tag: json:"game_console"
@@ -1036,7 +1036,7 @@ message PrimaryOnboardingCompanyPlatforms {
     bool other = 5;
 }
 
-message PrimaryOnboardingCompany {
+message UserProfileCompany {
     //@inject_tag: json:"company_name"
     string company_name = 1;
     //@inject_tag: json:"website" validate:"omitempty,url"
@@ -1048,22 +1048,22 @@ message PrimaryOnboardingCompany {
     //@inject_tag: json:"kind_of_activity" validate:"omitempty,oneof=develop_and_publish_your_games publish_games_of_other_companies publish_your_games_through_other_publishers other"
     string kind_of_activity = 5;
     //@inject_tag: json:"monetization"
-    PrimaryOnboardingCompanyMonetization monetization = 6;
+    UserProfileCompanyMonetization monetization = 6;
     //@inject_tag: json:"platforms"
-    PrimaryOnboardingCompanyPlatforms platforms = 7;
+    UserProfileCompanyPlatforms platforms = 7;
 }
 
-message PrimaryOnboarding {
+message UserProfile {
     //@inject_tag: json:"-"
     string id = 1;
     //@inject_tag: json:"-" validate:"required,hexadecimal,len=24"
     string user_id = 2;
     //@inject_tag: json:"personal"
-    PrimaryOnboardingPersonal personal = 3;
+    UserProfilePersonal personal = 3;
     //@inject_tag: json:"help"
-    PrimaryOnboardingHelp help = 4;
+    UserProfileHelp help = 4;
     //@inject_tag: json:"company"
-    PrimaryOnboardingCompany company = 5;
+    UserProfileCompany company = 5;
     //@inject_tag: json:"last_step"
     string last_step = 6;
     // @inject_tag: json:"created_at"
@@ -1072,13 +1072,13 @@ message PrimaryOnboarding {
     google.protobuf.Timestamp updated_at = 8;
 }
 
-message GetPrimaryOnboardingRequest {
+message GetUserProfileRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string user_id = 1;
 }
 
-message GetPrimaryOnboardingResponse {
+message GetUserProfileResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
-    PrimaryOnboarding item = 3;
+    UserProfile item = 3;
 }

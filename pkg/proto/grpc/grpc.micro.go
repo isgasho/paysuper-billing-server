@@ -111,14 +111,14 @@ It has these top-level messages:
 	ProductPricesResponse
 	UpdateProductPricesRequest
 	RangeInt
-	PrimaryOnboardingPersonal
-	PrimaryOnboardingHelp
-	PrimaryOnboardingCompanyMonetization
-	PrimaryOnboardingCompanyPlatforms
-	PrimaryOnboardingCompany
-	PrimaryOnboarding
-	GetPrimaryOnboardingRequest
-	GetPrimaryOnboardingResponse
+	UserProfilePersonal
+	UserProfileHelp
+	UserProfileCompanyMonetization
+	UserProfileCompanyPlatforms
+	UserProfileCompany
+	UserProfile
+	GetUserProfileRequest
+	GetUserProfileResponse
 */
 package grpc
 
@@ -235,8 +235,8 @@ type BillingService interface {
 	SetMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchant, opts ...client.CallOption) (*MoneyBackCostMerchantResponse, error)
 	DeleteMoneyBackCostMerchant(ctx context.Context, in *billing.PaymentCostDeleteRequest, opts ...client.CallOption) (*ResponseError, error)
 	CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, opts ...client.CallOption) (*CreateAccountingEntryRequest, error)
-	GetOnboardingProfile(ctx context.Context, in *GetPrimaryOnboardingRequest, opts ...client.CallOption) (*GetPrimaryOnboardingResponse, error)
-	CreateOrUpdateOnboardingProfile(ctx context.Context, in *PrimaryOnboarding, opts ...client.CallOption) (*GetPrimaryOnboardingResponse, error)
+	GetUserProfile(ctx context.Context, in *GetUserProfileRequest, opts ...client.CallOption) (*GetUserProfileResponse, error)
+	CreateOrUpdateUserProfile(ctx context.Context, in *UserProfile, opts ...client.CallOption) (*GetUserProfileResponse, error)
 }
 
 type billingService struct {
@@ -1067,9 +1067,9 @@ func (c *billingService) CreateAccountingEntry(ctx context.Context, in *CreateAc
 	return out, nil
 }
 
-func (c *billingService) GetOnboardingProfile(ctx context.Context, in *GetPrimaryOnboardingRequest, opts ...client.CallOption) (*GetPrimaryOnboardingResponse, error) {
-	req := c.c.NewRequest(c.name, "BillingService.GetOnboardingProfile", in)
-	out := new(GetPrimaryOnboardingResponse)
+func (c *billingService) GetUserProfile(ctx context.Context, in *GetUserProfileRequest, opts ...client.CallOption) (*GetUserProfileResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetUserProfile", in)
+	out := new(GetUserProfileResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1077,9 +1077,9 @@ func (c *billingService) GetOnboardingProfile(ctx context.Context, in *GetPrimar
 	return out, nil
 }
 
-func (c *billingService) CreateOrUpdateOnboardingProfile(ctx context.Context, in *PrimaryOnboarding, opts ...client.CallOption) (*GetPrimaryOnboardingResponse, error) {
-	req := c.c.NewRequest(c.name, "BillingService.CreateOrUpdateOnboardingProfile", in)
-	out := new(GetPrimaryOnboardingResponse)
+func (c *billingService) CreateOrUpdateUserProfile(ctx context.Context, in *UserProfile, opts ...client.CallOption) (*GetUserProfileResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.CreateOrUpdateUserProfile", in)
+	out := new(GetUserProfileResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1171,8 +1171,8 @@ type BillingServiceHandler interface {
 	SetMoneyBackCostMerchant(context.Context, *billing.MoneyBackCostMerchant, *MoneyBackCostMerchantResponse) error
 	DeleteMoneyBackCostMerchant(context.Context, *billing.PaymentCostDeleteRequest, *ResponseError) error
 	CreateAccountingEntry(context.Context, *CreateAccountingEntryRequest, *CreateAccountingEntryRequest) error
-	GetOnboardingProfile(context.Context, *GetPrimaryOnboardingRequest, *GetPrimaryOnboardingResponse) error
-	CreateOrUpdateOnboardingProfile(context.Context, *PrimaryOnboarding, *GetPrimaryOnboardingResponse) error
+	GetUserProfile(context.Context, *GetUserProfileRequest, *GetUserProfileResponse) error
+	CreateOrUpdateUserProfile(context.Context, *UserProfile, *GetUserProfileResponse) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -1258,8 +1258,8 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		SetMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchant, out *MoneyBackCostMerchantResponse) error
 		DeleteMoneyBackCostMerchant(ctx context.Context, in *billing.PaymentCostDeleteRequest, out *ResponseError) error
 		CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, out *CreateAccountingEntryRequest) error
-		GetOnboardingProfile(ctx context.Context, in *GetPrimaryOnboardingRequest, out *GetPrimaryOnboardingResponse) error
-		CreateOrUpdateOnboardingProfile(ctx context.Context, in *PrimaryOnboarding, out *GetPrimaryOnboardingResponse) error
+		GetUserProfile(ctx context.Context, in *GetUserProfileRequest, out *GetUserProfileResponse) error
+		CreateOrUpdateUserProfile(ctx context.Context, in *UserProfile, out *GetUserProfileResponse) error
 	}
 	type BillingService struct {
 		billingService
@@ -1596,10 +1596,10 @@ func (h *billingServiceHandler) CreateAccountingEntry(ctx context.Context, in *C
 	return h.BillingServiceHandler.CreateAccountingEntry(ctx, in, out)
 }
 
-func (h *billingServiceHandler) GetOnboardingProfile(ctx context.Context, in *GetPrimaryOnboardingRequest, out *GetPrimaryOnboardingResponse) error {
-	return h.BillingServiceHandler.GetOnboardingProfile(ctx, in, out)
+func (h *billingServiceHandler) GetUserProfile(ctx context.Context, in *GetUserProfileRequest, out *GetUserProfileResponse) error {
+	return h.BillingServiceHandler.GetUserProfile(ctx, in, out)
 }
 
-func (h *billingServiceHandler) CreateOrUpdateOnboardingProfile(ctx context.Context, in *PrimaryOnboarding, out *GetPrimaryOnboardingResponse) error {
-	return h.BillingServiceHandler.CreateOrUpdateOnboardingProfile(ctx, in, out)
+func (h *billingServiceHandler) CreateOrUpdateUserProfile(ctx context.Context, in *UserProfile, out *GetUserProfileResponse) error {
+	return h.BillingServiceHandler.CreateOrUpdateUserProfile(ctx, in, out)
 }
