@@ -44,6 +44,9 @@ type Config struct {
 	CentrifugoURL    string `envconfig:"CENTRIFUGO_URL" required:"false" default:"http://127.0.0.1:8000"`
 	BrokerAddress    string `envconfig:"BROKER_ADDRESS" default:"amqp://127.0.0.1:5672"`
 
+	CentrifugoUserChannel     string `envconfig:"CENTRIFUGO_USER_CHANNEL" default:"paysuper:user#%s"`
+	EmailConfirmTokenLifetime int64  `envconfig:"EMAIL_CONFIRM_TOKEN_LIFETIME" default:"86400"`
+
 	*PaymentSystemConfig
 	*CustomerTokenConfig
 	*CacheRedis
@@ -86,4 +89,8 @@ func (cfg *Config) GetCustomerTokenLength() int {
 
 func (cfg *Config) GetCustomerTokenExpire() time.Duration {
 	return time.Second * time.Duration(cfg.CustomerTokenConfig.LifeTime)
+}
+
+func (cfg *Config) GetEmailConfirmTokenLifetime() time.Duration {
+	return time.Second * time.Duration(cfg.EmailConfirmTokenLifetime)
 }

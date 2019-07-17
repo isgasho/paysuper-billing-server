@@ -60,7 +60,7 @@ type Service struct {
 	tax              tax_service.TaxService
 	broker           *rabbitmq.Broker
 	centrifugoClient *gocent.Client
-	redis            *redis.Client
+	redis            redis.Cmdable
 	cacher           CacheInterface
 
 	accountingCurrency *billing.Currency
@@ -108,7 +108,7 @@ func NewBillingService(
 	rep repository.RepositoryService,
 	tax tax_service.TaxService,
 	broker *rabbitmq.Broker,
-	redis *redis.Client,
+	redis redis.Cmdable,
 	cache CacheInterface,
 ) *Service {
 	return &Service{

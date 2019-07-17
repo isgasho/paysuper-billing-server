@@ -75,47 +75,51 @@ service BillingService {
     rpc SetUserNotifySales (SetUserNotifyRequest) returns (EmptyResponse) {}
     rpc SetUserNotifyNewRegion (SetUserNotifyRequest) returns (EmptyResponse) {}
 
-    rpc CreateOrUpdatePaymentMethod(billing.PaymentMethod) returns (ChangePaymentMethodResponse) {}
-    rpc CreateOrUpdatePaymentMethodProductionSettings(ChangePaymentMethodParamsRequest) returns (ChangePaymentMethodParamsResponse) {}
-    rpc GetPaymentMethodProductionSettings(GetPaymentMethodSettingsRequest) returns (GetPaymentMethodSettingsResponse) {}
-    rpc DeletePaymentMethodProductionSettings(GetPaymentMethodSettingsRequest) returns (ChangePaymentMethodParamsResponse) {}
-    rpc CreateOrUpdatePaymentMethodTestSettings(ChangePaymentMethodParamsRequest) returns (ChangePaymentMethodParamsResponse) {}
-    rpc GetPaymentMethodTestSettings(GetPaymentMethodSettingsRequest) returns (GetPaymentMethodSettingsResponse) {}
-    rpc DeletePaymentMethodTestSettings(GetPaymentMethodSettingsRequest) returns (ChangePaymentMethodParamsResponse) {}
+    rpc CreateOrUpdatePaymentMethod (billing.PaymentMethod) returns (ChangePaymentMethodResponse) {}
+    rpc CreateOrUpdatePaymentMethodProductionSettings (ChangePaymentMethodParamsRequest) returns (ChangePaymentMethodParamsResponse) {}
+    rpc GetPaymentMethodProductionSettings (GetPaymentMethodSettingsRequest) returns (GetPaymentMethodSettingsResponse) {}
+    rpc DeletePaymentMethodProductionSettings (GetPaymentMethodSettingsRequest) returns (ChangePaymentMethodParamsResponse) {}
+    rpc CreateOrUpdatePaymentMethodTestSettings (ChangePaymentMethodParamsRequest) returns (ChangePaymentMethodParamsResponse) {}
+    rpc GetPaymentMethodTestSettings (GetPaymentMethodSettingsRequest) returns (GetPaymentMethodSettingsResponse) {}
+    rpc DeletePaymentMethodTestSettings (GetPaymentMethodSettingsRequest) returns (ChangePaymentMethodParamsResponse) {}
 
     rpc GetCurrencyList (EmptyRequest) returns (billing.CurrencyList) {}
     rpc GetCurrency (billing.GetCurrencyRequest) returns (billing.Currency) {}
 
-    rpc FindByZipCode(FindByZipCodeRequest) returns (FindByZipCodeResponse) {}
+    rpc FindByZipCode (FindByZipCodeRequest) returns (FindByZipCodeResponse) {}
 
-    rpc GetAllPaymentChannelCostSystem(EmptyRequest) returns (PaymentChannelCostSystemListResponse) {}
-    rpc GetPaymentChannelCostSystem(billing.PaymentChannelCostSystemRequest) returns (PaymentChannelCostSystemResponse) {}
-    rpc SetPaymentChannelCostSystem(billing.PaymentChannelCostSystem) returns (PaymentChannelCostSystemResponse) {}
-    rpc DeletePaymentChannelCostSystem(billing.PaymentCostDeleteRequest) returns (ResponseError) {}
+    rpc GetAllPaymentChannelCostSystem (EmptyRequest) returns (PaymentChannelCostSystemListResponse) {}
+    rpc GetPaymentChannelCostSystem (billing.PaymentChannelCostSystemRequest) returns (PaymentChannelCostSystemResponse) {}
+    rpc SetPaymentChannelCostSystem (billing.PaymentChannelCostSystem) returns (PaymentChannelCostSystemResponse) {}
+    rpc DeletePaymentChannelCostSystem (billing.PaymentCostDeleteRequest) returns (ResponseError) {}
 
-    rpc GetAllPaymentChannelCostMerchant(billing.PaymentChannelCostMerchantListRequest) returns (PaymentChannelCostMerchantListResponse) {}
-    rpc GetPaymentChannelCostMerchant(billing.PaymentChannelCostMerchantRequest) returns (PaymentChannelCostMerchantResponse) {}
-    rpc SetPaymentChannelCostMerchant(billing.PaymentChannelCostMerchant) returns (PaymentChannelCostMerchantResponse) {}
-    rpc DeletePaymentChannelCostMerchant(billing.PaymentCostDeleteRequest) returns (ResponseError) {}
+    rpc GetAllPaymentChannelCostMerchant (billing.PaymentChannelCostMerchantListRequest) returns (PaymentChannelCostMerchantListResponse) {}
+    rpc GetPaymentChannelCostMerchant (billing.PaymentChannelCostMerchantRequest) returns (PaymentChannelCostMerchantResponse) {}
+    rpc SetPaymentChannelCostMerchant (billing.PaymentChannelCostMerchant) returns (PaymentChannelCostMerchantResponse) {}
+    rpc DeletePaymentChannelCostMerchant (billing.PaymentCostDeleteRequest) returns (ResponseError) {}
 
-    rpc GetAllMoneyBackCostSystem(EmptyRequest) returns (MoneyBackCostSystemListResponse) {}
-    rpc GetMoneyBackCostSystem(billing.MoneyBackCostSystemRequest) returns (MoneyBackCostSystemResponse) {}
-    rpc SetMoneyBackCostSystem(billing.MoneyBackCostSystem) returns (MoneyBackCostSystemResponse) {}
-    rpc DeleteMoneyBackCostSystem(billing.PaymentCostDeleteRequest) returns (ResponseError) {}
+    rpc GetAllMoneyBackCostSystem (EmptyRequest) returns (MoneyBackCostSystemListResponse) {}
+    rpc GetMoneyBackCostSystem (billing.MoneyBackCostSystemRequest) returns (MoneyBackCostSystemResponse) {}
+    rpc SetMoneyBackCostSystem (billing.MoneyBackCostSystem) returns (MoneyBackCostSystemResponse) {}
+    rpc DeleteMoneyBackCostSystem (billing.PaymentCostDeleteRequest) returns (ResponseError) {}
 
-    rpc GetAllMoneyBackCostMerchant(billing.MoneyBackCostMerchantListRequest) returns (MoneyBackCostMerchantListResponse) {}
-    rpc GetMoneyBackCostMerchant(billing.MoneyBackCostMerchantRequest) returns (MoneyBackCostMerchantResponse) {}
-    rpc SetMoneyBackCostMerchant(billing.MoneyBackCostMerchant) returns (MoneyBackCostMerchantResponse) {}
-    rpc DeleteMoneyBackCostMerchant(billing.PaymentCostDeleteRequest) returns (ResponseError) {}
+    rpc GetAllMoneyBackCostMerchant (billing.MoneyBackCostMerchantListRequest) returns (MoneyBackCostMerchantListResponse) {}
+    rpc GetMoneyBackCostMerchant (billing.MoneyBackCostMerchantRequest) returns (MoneyBackCostMerchantResponse) {}
+    rpc SetMoneyBackCostMerchant (billing.MoneyBackCostMerchant) returns (MoneyBackCostMerchantResponse) {}
+    rpc DeleteMoneyBackCostMerchant (billing.PaymentCostDeleteRequest) returns (ResponseError) {}
 
-    rpc CreateAccountingEntry(CreateAccountingEntryRequest) returns (CreateAccountingEntryRequest) {}
+    rpc CreateAccountingEntry (CreateAccountingEntryRequest) returns (CreateAccountingEntryRequest) {}
 
-    rpc GetUserProfile(GetUserProfileRequest) returns (GetUserProfileResponse) {}
-    rpc CreateOrUpdateUserProfile(UserProfile) returns (GetUserProfileResponse) {}
+    rpc GetUserProfile (GetUserProfileRequest) returns (GetUserProfileResponse) {}
+    rpc CreateOrUpdateUserProfile (UserProfile) returns (GetUserProfileResponse) {}
+    rpc SendConfirmEmailToUser (SendConfirmEmailToUserRequest) returns (GetUserProfileResponse) {}
+    rpc ConfirmUserEmail (ConfirmUserEmailRequest) returns (CheckProjectRequestSignatureResponse) {}
 }
 
-message EmptyRequest {}
-message EmptyResponse {}
+message EmptyRequest {
+}
+message EmptyResponse {
+}
 
 message PaymentCreateRequest {
     map<string, string> data = 1;
@@ -1058,10 +1062,12 @@ message UserProfileEmail {
     string email = 1;
     bool confirmed = 2;
     google.protobuf.Timestamp confirmed_at = 3;
+    //@inject_tag: json:"-" bson:"-"
+    string confirmation_url = 4;
 }
 
 message UserProfile {
-    //@inject_tag: json:"-"
+    //@inject_tag: json:"id"
     string id = 1;
     //@inject_tag: json:"-" validate:"required,hexadecimal,len=24"
     string user_id = 2;
@@ -1075,10 +1081,12 @@ message UserProfile {
     UserProfileCompany company = 6;
     //@inject_tag: json:"last_step" bson:"last_step"
     string last_step = 7;
+    //@inject_tag: json:"centrifugo_token" bson:"centrifugo_token"
+    string centrifugo_token = 8;
     // @inject_tag: json:"created_at"
-    google.protobuf.Timestamp created_at = 8;
+    google.protobuf.Timestamp created_at = 9;
     // @inject_tag: json:"updated_at"
-    google.protobuf.Timestamp updated_at = 9;
+    google.protobuf.Timestamp updated_at = 10;
 }
 
 message GetUserProfileRequest {
@@ -1090,4 +1098,15 @@ message GetUserProfileResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     UserProfile item = 3;
+}
+
+message ConfirmUserEmailRequest {
+    string Token = 1;
+}
+
+message SendConfirmEmailToUserRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string user_id = 1;
+    //@inject_tag: validate:"required,url"
+    string host = 2;
 }

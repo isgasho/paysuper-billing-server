@@ -671,6 +671,10 @@ github.com/paysuper/paysuper-recurring-repository v1.0.107 h1:zBfPKIkzJDBnAfpf94
 github.com/paysuper/paysuper-recurring-repository v1.0.107/go.mod h1:CKej9aphKnx9eQE6cirz1B1UhGwRBjv+nGl0NeciFxc=
 github.com/paysuper/paysuper-tax-service v0.0.0-20190308105725-016a09c27fbd h1:JzUgUK7pIQvf2EQdNV01PkvRy9lZNLvc4Jq4FeAP8vI=
 github.com/paysuper/paysuper-tax-service v0.0.0-20190308105725-016a09c27fbd/go.mod h1:XT/Z0e+14Acndypfqp6f4Luo+WLX9omZAEzUYF9UTCE=
+github.com/paysuper/postmark-sender v0.0.0-20190717145214-4f057fbfe540 h1:MKhAEyqtD9kobNQ28/CWT3ihUneTe0PMiMOBOID7dOs=
+github.com/paysuper/postmark-sender v0.0.0-20190717145214-4f057fbfe540/go.mod h1:AF1nfW2EDcCJNO4be2eEJ9EqvyVALW+K4VLR3Bh7xJ0=
+github.com/paysuper/postmark-sender v0.0.0-20190717145430-0ee69ff28c8a h1:bkzqXZtLjBYM1b79dFp9pYf/zAQDPoTSn3L6Zdhe90Q=
+github.com/paysuper/postmark-sender v0.0.0-20190717145430-0ee69ff28c8a/go.mod h1:AF1nfW2EDcCJNO4be2eEJ9EqvyVALW+K4VLR3Bh7xJ0=
 github.com/pborman/uuid v1.2.0/go.mod h1:X/NO0urCmaxf9VXbdlT7C2Yzkj2IKimNn4k+gtPdI/k=
 github.com/pelletier/go-buffruneio v0.2.0/go.mod h1:JkE26KsDizTr40EUHkXVtNPvgGtbSNq5BcowyYOWdKo=
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
