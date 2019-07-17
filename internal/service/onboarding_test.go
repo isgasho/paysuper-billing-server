@@ -2676,6 +2676,9 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_UserNotifi
 func (suite *OnboardingTestSuite) TestOnboarding_CreateOrUpdateUserProfile_NewProfile_Ok() {
 	req := &grpc.UserProfile{
 		UserId: bson.NewObjectId().Hex(),
+		Email: &grpc.UserProfileEmail{
+			Email: "test@unit.test",
+		},
 		Personal: &grpc.UserProfilePersonal{
 			FirstName: "Unit test",
 			LastName:  "Unit Test",
@@ -2713,7 +2716,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_CreateOrUpdateUserProfile_NewPr
 
 func (suite *OnboardingTestSuite) TestOnboarding_CreateOrUpdateOnboardingProfile_ExistProfile_Ok() {
 	req := &grpc.UserProfile{
-		UserId:   bson.NewObjectId().Hex(),
+		UserId: bson.NewObjectId().Hex(),
+		Email: &grpc.UserProfileEmail{
+			Email: "test@unit.test",
+		},
 		LastStep: "step1",
 	}
 	rsp := &grpc.GetUserProfileResponse{}
@@ -2785,6 +2791,9 @@ func (suite *OnboardingTestSuite) TestOnboarding_CreateOrUpdateOnboardingProfile
 func (suite *OnboardingTestSuite) TestOnboarding_GetOnboardingProfile_Ok() {
 	req := &grpc.UserProfile{
 		UserId: bson.NewObjectId().Hex(),
+		Email: &grpc.UserProfileEmail{
+			Email: "test@unit.test",
+		},
 		Personal: &grpc.UserProfilePersonal{
 			FirstName: "Unit test",
 			LastName:  "Unit Test",

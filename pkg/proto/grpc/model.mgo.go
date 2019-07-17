@@ -33,10 +33,16 @@ type MgoProduct struct {
 	ProjectId       bson.ObjectId         `bson:"project_id" json:"project_id"`
 }
 
+type MgoUserProfileEmail struct {
+	Email       string    `bson:"email"`
+	Confirmed   bool      `bson:"confirmed"`
+	ConfirmedAt time.Time `bson:"confirmed_at"`
+}
+
 type MgoUserProfile struct {
 	Id        bson.ObjectId        `bson:"_id"`
 	UserId    string               `bson:"user_id"`
-	Email     *UserProfileEmail    `bson:"email"`
+	Email     *MgoUserProfileEmail `bson:"email"`
 	Personal  *UserProfilePersonal `bson:"personal"`
 	Help      *UserProfileHelp     `bson:"help"`
 	Company   *UserProfileCompany  `bson:"company"`
@@ -176,9 +182,12 @@ func (p *Product) GetBSON() (interface{}, error) {
 
 func (m *UserProfile) GetBSON() (interface{}, error) {
 	st := &MgoUserProfile{
-		Id:       bson.ObjectIdHex(m.Id),
-		UserId:   m.UserId,
-		Email:    m.Email,
+		Id:     bson.ObjectIdHex(m.Id),
+		UserId: m.UserId,
+		Email: &MgoUserProfileEmail{
+			Email:     m.Email.Email,
+			Confirmed: m.Email.Confirmed,
+		},
 		Personal: m.Personal,
 		Help:     m.Help,
 		Company:  m.Company,
@@ -209,6 +218,16 @@ func (m *UserProfile) GetBSON() (interface{}, error) {
 		st.UpdatedAt = time.Now()
 	}
 
+	if m.Email.ConfirmedAt != nil {
+		t, err := ptypes.Timestamp(m.Email.ConfirmedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.Email.ConfirmedAt = t
+	}
+
 	return st, nil
 }
 
@@ -222,7 +241,10 @@ func (m *UserProfile) SetBSON(raw bson.Raw) error {
 
 	m.Id = decoded.Id.Hex()
 	m.UserId = decoded.UserId
-	m.Email = decoded.Email
+	m.Email = &UserProfileEmail{
+		Email:     decoded.Email.Email,
+		Confirmed: decoded.Email.Confirmed,
+	}
 	m.Personal = decoded.Personal
 	m.Help = decoded.Help
 	m.Company = decoded.Company
@@ -235,6 +257,12 @@ func (m *UserProfile) SetBSON(raw bson.Raw) error {
 	}
 
 	m.UpdatedAt, err = ptypes.TimestampProto(decoded.UpdatedAt)
+
+	if err != nil {
+		return err
+	}
+
+	m.Email.ConfirmedAt, err = ptypes.TimestampProto(decoded.Email.ConfirmedAt)
 
 	if err != nil {
 		return err
