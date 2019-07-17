@@ -58,7 +58,7 @@ type Service struct {
 	geo              proto.GeoIpService
 	rep              repository.RepositoryService
 	tax              tax_service.TaxService
-	broker           *rabbitmq.Broker
+	broker           rabbitmq.BrokerInterface
 	centrifugoClient *gocent.Client
 	redis            redis.Cmdable
 	cacher           CacheInterface
@@ -107,7 +107,7 @@ func NewBillingService(
 	geo proto.GeoIpService,
 	rep repository.RepositoryService,
 	tax tax_service.TaxService,
-	broker *rabbitmq.Broker,
+	broker rabbitmq.BrokerInterface,
 	redis redis.Cmdable,
 	cache CacheInterface,
 ) *Service {

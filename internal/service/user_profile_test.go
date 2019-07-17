@@ -17,6 +17,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"go.uber.org/zap/zaptest/observer"
 	"testing"
 )
 
@@ -402,6 +404,10 @@ func (suite *UserProfileTestSuite) TestUserProfile_SendConfirmEmailToUser_SaveTo
 	redisCl, ok := suite.service.redis.(*redismock.ClientMock)
 	assert.True(suite.T(), ok)
 
+	core, recorded := observer.New(zapcore.ErrorLevel)
+	logger := zap.New(core)
+	zap.ReplaceGlobals(logger)
+
 	redisCl.On("Set").
 		Return(redis.NewStatusResult("", errors.New("server not available")))
 
@@ -414,4 +420,55 @@ func (suite *UserProfileTestSuite) TestUserProfile_SendConfirmEmailToUser_SaveTo
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp1.Status)
 	assert.Equal(suite.T(), userProfileErrorUnknown, rsp1.Message)
+
+	messages := recorded.All()
+	assert.Equal(suite.T(), "Save confirm email token to Redis failed", messages[0].Message)
+}
+
+func (suite *UserProfileTestSuite) TestUserProfile_SendConfirmEmailToUser_RabbitMqPublishError() {
+	req := &grpc.UserProfile{
+		UserId: bson.NewObjectId().Hex(),
+		Email: &grpc.UserProfileEmail{
+			Email: "test@unit.test",
+		},
+		Personal: &grpc.UserProfilePersonal{
+			FirstName: "Unit test",
+			LastName:  "Unit Test",
+			Position:  "test",
+		},
+		Help: &grpc.UserProfileHelp{
+			ProductPromotionAndDevelopment: false,
+			ReleasedGamePromotion:          true,
+			InternationalSales:             true,
+			Other:                          false,
+		},
+		LastStep: "step2",
+	}
+	rsp := &grpc.GetUserProfileResponse{}
+
+	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotNil(suite.T(), rsp.Item)
+
+	req1 := &grpc.SendConfirmEmailToUserRequest{
+		UserId: req.UserId,
+		Host:   "http://localhost",
+	}
+	rsp1 := &grpc.GetUserProfileResponse{}
+
+	core, recorded := observer.New(zapcore.ErrorLevel)
+	logger := zap.New(core)
+	zap.ReplaceGlobals(logger)
+
+	suite.service.broker = mock.NewBrokerMockError()
+
+	err = suite.service.SendConfirmEmailToUser(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp1.Status)
+	assert.Equal(suite.T(), userProfileErrorUnknown, rsp1.Message)
+
+	messages := recorded.All()
+	assert.Equal(suite.T(), "Publication message to user email confirmation to queue failed", messages[0].Message)
 }
