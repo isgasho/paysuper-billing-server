@@ -991,65 +991,65 @@ message RangeInt {
 }
 
 message UserProfilePersonal {
-    //@inject_tag: json:"first_name"
+    //@inject_tag: json:"first_name" bson:"first_name"
     string first_name = 1;
-    //@inject_tag: json:"last_name"
+    //@inject_tag: json:"last_name" bson:"last_name"
     string last_name = 2;
-    //@inject_tag: json:"position"
+    //@inject_tag: json:"position" bson:"position"
     string position = 3;
 }
 
 message UserProfileHelp {
-    //@inject_tag: json:"product_promotion_and_development"
+    //@inject_tag: json:"product_promotion_and_development" bson:"product_promotion_and_development"
     bool product_promotion_and_development = 1;
-    //@inject_tag: json:"released_game_promotion"
+    //@inject_tag: json:"released_game_promotion" bson:"released_game_promotion"
     bool released_game_promotion = 2;
-    //@inject_tag: json:"international_sales"
+    //@inject_tag: json:"international_sales" bson:"international_sales"
     bool international_sales = 3;
-    //@inject_tag: json:"other"
+    //@inject_tag: json:"other" bson:"other"
     bool other = 4;
 }
 
 message UserProfileCompanyMonetization {
-    //@inject_tag: json:"paid_subscription"
+    //@inject_tag: json:"paid_subscription" bson:"paid_subscription"
     bool paid_subscription = 1;
-    //@inject_tag: json:"in_game_advertising"
+    //@inject_tag: json:"in_game_advertising" bson:"in_game_advertising"
     bool in_game_advertising = 2;
-    //@inject_tag: json:"in_game_purchases"
+    //@inject_tag: json:"in_game_purchases" bson:"in_game_purchases"
     bool in_game_purchases = 3;
-    //@inject_tag: json:"premium_access"
+    //@inject_tag: json:"premium_access" bson:"premium_access"
     bool premium_access = 4;
-    //@inject_tag: json:"other"
+    //@inject_tag: json:"other" bson:"other"
     bool other = 5;
 }
 
 message UserProfileCompanyPlatforms {
-    //@inject_tag: json:"pc_mac"
+    //@inject_tag: json:"pc_mac" bson:"pc_mac"
     bool pc_mac = 1;
-    //@inject_tag: json:"game_console"
+    //@inject_tag: json:"game_console" bson:"game_console"
     bool game_console = 2;
-    //@inject_tag: json:"mobile_device"
+    //@inject_tag: json:"mobile_device" bson:"mobile_device"
     bool mobile_device = 3;
-    //@inject_tag: json:"web_browser"
+    //@inject_tag: json:"web_browser" bson:"web_browser"
     bool web_browser = 4;
-    //@inject_tag: json:"other"
+    //@inject_tag: json:"other" bson:"other"
     bool other = 5;
 }
 
 message UserProfileCompany {
-    //@inject_tag: json:"company_name"
+    //@inject_tag: json:"company_name" bson:"company_name"
     string company_name = 1;
-    //@inject_tag: json:"website" validate:"omitempty,url"
+    //@inject_tag: json:"website" validate:"omitempty,url" bson:"website"
     string website = 2;
-    //@inject_tag: json:"annual_income"
+    //@inject_tag: json:"annual_income" bson:"annual_income"
     RangeInt annual_income = 3;
-    //@inject_tag: json:"number_of_employees"
+    //@inject_tag: json:"number_of_employees" bson:"number_of_employees"
     RangeInt number_of_employees = 4;
-    //@inject_tag: json:"kind_of_activity" validate:"omitempty,oneof=develop_and_publish_your_games publish_games_of_other_companies publish_your_games_through_other_publishers other"
+    //@inject_tag: json:"kind_of_activity" validate:"omitempty,oneof=develop_and_publish_your_games publish_games_of_other_companies publish_your_games_through_other_publishers other" bson:"kind_of_activity"
     string kind_of_activity = 5;
-    //@inject_tag: json:"monetization"
+    //@inject_tag: json:"monetization" bson:"monetization"
     UserProfileCompanyMonetization monetization = 6;
-    //@inject_tag: json:"platforms"
+    //@inject_tag: json:"platforms" bson:"platforms"
     UserProfileCompanyPlatforms platforms = 7;
 }
 
@@ -1073,7 +1073,7 @@ message UserProfile {
     UserProfileHelp help = 5;
     //@inject_tag: json:"company"
     UserProfileCompany company = 6;
-    //@inject_tag: json:"last_step"
+    //@inject_tag: json:"last_step" bson:"last_step"
     string last_step = 7;
     // @inject_tag: json:"created_at"
     google.protobuf.Timestamp created_at = 8;
