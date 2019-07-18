@@ -1041,9 +1041,9 @@ message UserProfileCompany {
     string company_name = 1;
     //@inject_tag: json:"website" validate:"required,url" bson:"website"
     string website = 2;
-    //@inject_tag: json:"annual_income" bson:"annual_income" validate:"required,annual_income"
+    //@inject_tag: json:"annual_income" bson:"annual_income" validate:"required"
     RangeInt annual_income = 3;
-    //@inject_tag: json:"number_of_employees" bson:"number_of_employees" validate:"required,number_of_employees"
+    //@inject_tag: json:"number_of_employees" bson:"number_of_employees" validate:"required"
     RangeInt number_of_employees = 4;
     //@inject_tag: json:"kind_of_activity" validate:"omitempty,oneof=develop_and_publish_your_games publish_games_of_other_companies publish_your_games_through_other_publishers other" bson:"kind_of_activity"
     string kind_of_activity = 5;
