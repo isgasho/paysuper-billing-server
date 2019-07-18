@@ -127,6 +127,7 @@ func (s *Service) GetVatReportsDashboard(
 ) error {
 
 	res.Status = pkg.ResponseStatusOk
+	res.Data = &grpc.VatReportsPaginate{}
 
 	query := bson.M{
 		"status": bson.M{"$in": []string{pkg.VatReportStatusThreshold, pkg.VatReportStatusNeedToPay, pkg.VatReportStatusOverdue}},
@@ -169,6 +170,7 @@ func (s *Service) GetVatReportsForCountry(
 ) error {
 
 	res.Status = pkg.ResponseStatusOk
+	res.Data = &grpc.VatReportsPaginate{}
 
 	query := bson.M{
 		"country": req.Country,

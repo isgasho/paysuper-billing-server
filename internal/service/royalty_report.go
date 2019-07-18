@@ -174,6 +174,9 @@ func (s *Service) ListRoyaltyReports(
 	req *grpc.ListRoyaltyReportsRequest,
 	rsp *grpc.ListRoyaltyReportsResponse,
 ) error {
+	rsp.Status = pkg.ResponseStatusOk
+	rsp.Data = &grpc.RoyaltyReportsPaginate{}
+
 	query := bson.M{"deleted": false}
 
 	if req.Id != "" {
@@ -202,6 +205,9 @@ func (s *Service) ListRoyaltyReports(
 			zap.Any(errorFieldQuery, query),
 		)
 
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = royaltyReportEntryErrorUnknown
+
 		return nil
 	}
 
@@ -209,7 +215,7 @@ func (s *Service) ListRoyaltyReports(
 		return nil
 	}
 
-	err = s.db.Collection(collectionRoyaltyReport).Find(query).Limit(int(req.Limit)).Skip(int(req.Offset)).All(&rsp.Items)
+	err = s.db.Collection(collectionRoyaltyReport).Find(query).Limit(int(req.Limit)).Skip(int(req.Offset)).All(&rsp.Data.Items)
 
 	if err != nil {
 		zap.L().Error(
@@ -219,10 +225,13 @@ func (s *Service) ListRoyaltyReports(
 			zap.Any(errorFieldQuery, query),
 		)
 
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = royaltyReportEntryErrorUnknown
+
 		return nil
 	}
 
-	rsp.Count = int32(count)
+	rsp.Data.Count = int32(count)
 
 	return nil
 }

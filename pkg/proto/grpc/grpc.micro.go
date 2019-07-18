@@ -93,6 +93,7 @@ It has these top-level messages:
 	CreateAccountingEntryResponse
 	CreateRoyaltyReportRequest
 	ListRoyaltyReportsRequest
+	RoyaltyReportsPaginate
 	ListRoyaltyReportsResponse
 	ListRoyaltyReportOrdersRequest
 	ChangeRoyaltyReportRequest
