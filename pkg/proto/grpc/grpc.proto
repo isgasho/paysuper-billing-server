@@ -1037,7 +1037,7 @@ message UserProfileCompanyPlatforms {
 }
 
 message UserProfileCompany {
-    //@inject_tag: json:"company_name" bson:"company_name" validate:"required,company_name"
+    //@inject_tag: json:"company_name" bson:"company_name" validate:"required,company_name,max=60"
     string company_name = 1;
     //@inject_tag: json:"website" validate:"required,url" bson:"website"
     string website = 2;
