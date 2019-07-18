@@ -332,16 +332,16 @@ func (s *Service) ConfirmUserEmail(
 	req *grpc.ConfirmUserEmailRequest,
 	rsp *grpc.CheckProjectRequestSignatureResponse,
 ) error {
-	profileId, err := s.getUserEmailConfirmationToken(req.Token)
+	userId, err := s.getUserEmailConfirmationToken(req.Token)
 
-	if err != nil || profileId == "" {
+	if err != nil || userId == "" {
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = userProfileEmailConfirmationTokenNotFound
 
 		return nil
 	}
 
-	profile := s.getOnboardingProfileByUser(profileId)
+	profile := s.getOnboardingProfileByUser(userId)
 
 	if profile == nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -376,7 +376,7 @@ func (s *Service) setUserEmailConfirmationToken(host string, profile *grpc.UserP
 	hash.Write(b)
 
 	token := strings.ToUpper(hex.EncodeToString(hash.Sum(nil)))
-	err := s.redis.Set(s.getConfirmEmailStorageKey(token), profile.Id, s.cfg.GetEmailConfirmTokenLifetime()).Err()
+	err := s.redis.Set(s.getConfirmEmailStorageKey(token), profile.UserId, s.cfg.GetEmailConfirmTokenLifetime()).Err()
 
 	if err != nil {
 		zap.L().Error(

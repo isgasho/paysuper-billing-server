@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"github.com/centrifugal/gocent"
 	"github.com/elliotchance/redismock"
 	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
@@ -19,6 +20,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
 	rabbitmq "gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
+	"net/url"
 	"testing"
 )
 
@@ -92,6 +94,14 @@ func (suite *UserProfileTestSuite) SetupTest() {
 	if err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
+
+	suite.service.centrifugoClient = gocent.New(
+		gocent.Config{
+			Addr:       cfg.CentrifugoURL,
+			Key:        cfg.CentrifugoSecret,
+			HTTPClient: mock.NewClientStatusOk(),
+		},
+	)
 }
 
 func (suite *UserProfileTestSuite) TearDownTest() {
@@ -471,4 +481,199 @@ func (suite *UserProfileTestSuite) TestUserProfile_SendConfirmEmailToUser_Rabbit
 
 	messages := recorded.All()
 	assert.Equal(suite.T(), "Publication message to user email confirmation to queue failed", messages[0].Message)
+}
+
+func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_Ok() {
+	req := &grpc.UserProfile{
+		UserId: bson.NewObjectId().Hex(),
+		Email: &grpc.UserProfileEmail{
+			Email: "test@unit.test",
+		},
+		Personal: &grpc.UserProfilePersonal{
+			FirstName: "Unit test",
+			LastName:  "Unit Test",
+			Position:  "test",
+		},
+		Help: &grpc.UserProfileHelp{
+			ProductPromotionAndDevelopment: false,
+			ReleasedGamePromotion:          true,
+			InternationalSales:             true,
+			Other:                          false,
+		},
+		LastStep: "step2",
+	}
+	rsp := &grpc.GetUserProfileResponse{}
+
+	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotNil(suite.T(), rsp.Item)
+
+	req1 := &grpc.SendConfirmEmailToUserRequest{
+		UserId: req.UserId,
+		Host:   "http://localhost",
+	}
+	rsp1 := &grpc.GetUserProfileResponse{}
+	err = suite.service.SendConfirmEmailToUser(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.Empty(suite.T(), rsp1.Message)
+
+	u, err := url.ParseRequestURI(rsp1.Item.Email.ConfirmationUrl)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), u)
+	assert.NotEmpty(suite.T(), u.RawQuery)
+
+	p, err := url.ParseQuery(u.RawQuery)
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), p, 1)
+	assert.Contains(suite.T(), p, "token")
+
+	req2 := &grpc.ConfirmUserEmailRequest{Token: p["token"][0]}
+	rsp2 := &grpc.CheckProjectRequestSignatureResponse{}
+	err = suite.service.ConfirmUserEmail(context.TODO(), req2, rsp2)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
+	assert.Empty(suite.T(), rsp2.Message)
+
+	profile := suite.service.getOnboardingProfileByUser(req.UserId)
+	assert.NotNil(suite.T(), profile)
+	assert.True(suite.T(), profile.Email.Confirmed)
+	assert.NotNil(suite.T(), profile.Email.ConfirmedAt)
+}
+
+func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_TokenNotFound_Error() {
+	req := &grpc.ConfirmUserEmailRequest{Token: bson.NewObjectId().Hex()}
+	rsp := &grpc.CheckProjectRequestSignatureResponse{}
+	err := suite.service.ConfirmUserEmail(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, rsp.Status)
+	assert.Equal(suite.T(), userProfileEmailConfirmationTokenNotFound, rsp.Message)
+}
+
+func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_UserNotFound_Error() {
+	req := &grpc.UserProfile{
+		UserId: bson.NewObjectId().Hex(),
+		Email: &grpc.UserProfileEmail{
+			Email: "test@unit.test",
+		},
+		Personal: &grpc.UserProfilePersonal{
+			FirstName: "Unit test",
+			LastName:  "Unit Test",
+			Position:  "test",
+		},
+		Help: &grpc.UserProfileHelp{
+			ProductPromotionAndDevelopment: false,
+			ReleasedGamePromotion:          true,
+			InternationalSales:             true,
+			Other:                          false,
+		},
+		LastStep: "step2",
+	}
+	rsp := &grpc.GetUserProfileResponse{}
+
+	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotNil(suite.T(), rsp.Item)
+
+	req1 := &grpc.SendConfirmEmailToUserRequest{
+		UserId: req.UserId,
+		Host:   "http://localhost",
+	}
+	rsp1 := &grpc.GetUserProfileResponse{}
+	err = suite.service.SendConfirmEmailToUser(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.Empty(suite.T(), rsp1.Message)
+
+	u, err := url.ParseRequestURI(rsp1.Item.Email.ConfirmationUrl)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), u)
+	assert.NotEmpty(suite.T(), u.RawQuery)
+
+	p, err := url.ParseQuery(u.RawQuery)
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), p, 1)
+	assert.Contains(suite.T(), p, "token")
+
+	token := p["token"][0]
+	err = suite.service.redis.Set(
+		suite.service.getConfirmEmailStorageKey(token),
+		bson.NewObjectId().Hex(),
+		suite.service.cfg.GetEmailConfirmTokenLifetime(),
+	).Err()
+	assert.NoError(suite.T(), err)
+
+	req2 := &grpc.ConfirmUserEmailRequest{Token: token}
+	rsp2 := &grpc.CheckProjectRequestSignatureResponse{}
+	err = suite.service.ConfirmUserEmail(context.TODO(), req2, rsp2)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp2.Status)
+	assert.Equal(suite.T(), userProfileErrorUnknown, rsp2.Message)
+}
+
+func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_EmailConfirmedSuccessfully_Error() {
+	req := &grpc.UserProfile{
+		UserId: bson.NewObjectId().Hex(),
+		Email: &grpc.UserProfileEmail{
+			Email: "test@unit.test",
+		},
+		Personal: &grpc.UserProfilePersonal{
+			FirstName: "Unit test",
+			LastName:  "Unit Test",
+			Position:  "test",
+		},
+		Help: &grpc.UserProfileHelp{
+			ProductPromotionAndDevelopment: false,
+			ReleasedGamePromotion:          true,
+			InternationalSales:             true,
+			Other:                          false,
+		},
+		LastStep: "step2",
+	}
+	rsp := &grpc.GetUserProfileResponse{}
+
+	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotNil(suite.T(), rsp.Item)
+
+	req1 := &grpc.SendConfirmEmailToUserRequest{
+		UserId: req.UserId,
+		Host:   "http://localhost",
+	}
+	rsp1 := &grpc.GetUserProfileResponse{}
+	err = suite.service.SendConfirmEmailToUser(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.Empty(suite.T(), rsp1.Message)
+
+	u, err := url.ParseRequestURI(rsp1.Item.Email.ConfirmationUrl)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), u)
+	assert.NotEmpty(suite.T(), u.RawQuery)
+
+	p, err := url.ParseQuery(u.RawQuery)
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), p, 1)
+	assert.Contains(suite.T(), p, "token")
+
+	suite.service.centrifugoClient = gocent.New(
+		gocent.Config{
+			Addr:       suite.service.cfg.CentrifugoURL,
+			Key:        suite.service.cfg.CentrifugoSecret,
+			HTTPClient: mock.NewClientStatusError(),
+		},
+	)
+
+	req2 := &grpc.ConfirmUserEmailRequest{Token: p["token"][0]}
+	rsp2 := &grpc.CheckProjectRequestSignatureResponse{}
+	err = suite.service.ConfirmUserEmail(context.TODO(), req2, rsp2)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp2.Status)
+	assert.Equal(suite.T(), userProfileErrorUnknown, rsp2.Message)
 }
