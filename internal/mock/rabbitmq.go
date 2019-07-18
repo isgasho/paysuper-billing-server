@@ -2,9 +2,9 @@ package mock
 
 import (
 	"errors"
-	rabbitmq "github.com/ProtocolONE/rabbitmq/pkg"
 	"github.com/gogo/protobuf/proto"
 	"github.com/streadway/amqp"
+	rabbitmq "gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
 )
 
 const (

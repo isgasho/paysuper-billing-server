@@ -4,7 +4,6 @@ require (
 	github.com/InVisionApp/go-health v2.1.0+incompatible
 	github.com/ProtocolONE/geoip-service v0.0.0-20190130072841-bf3b3b79a742
 	github.com/ProtocolONE/go-micro-plugins v0.3.0
-	github.com/ProtocolONE/rabbitmq v1.0.1
 	github.com/alicebob/gopher-json v0.0.0-20180125190556-5a6b3ba71ee6 // indirect
 	github.com/alicebob/miniredis v2.5.0+incompatible
 	github.com/centrifugal/gocent v2.0.2+incompatible
@@ -43,6 +42,7 @@ require (
 	golang.org/x/sys v0.0.0-20190712062909-fae7ac547cb7 // indirect
 	golang.org/x/tools v0.0.0-20190717194535-128ec6dfca09 // indirect
 	google.golang.org/grpc v1.20.1
+	gopkg.in/ProtocolONE/rabbitmq.v1 v1.0.0-20190717204657-122ea04f4340
 	gopkg.in/go-playground/validator.v9 v9.26.0
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce
 )

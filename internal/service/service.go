@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/ProtocolONE/geoip-service/pkg/proto"
-	"github.com/ProtocolONE/rabbitmq/pkg"
 	"github.com/centrifugal/gocent"
 	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
@@ -20,6 +19,7 @@ import (
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"github.com/paysuper/paysuper-tax-service/proto"
 	"go.uber.org/zap"
+	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
 	"strings"
 	"sync"
 )
