@@ -367,8 +367,8 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_Ok() {
 	rsp1 := &grpc.ListRoyaltyReportsResponse{}
 	err = suite.service.ListRoyaltyReports(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.EqualValues(suite.T(), 3, rsp1.Count)
-	assert.Len(suite.T(), rsp1.Items, int(rsp1.Count))
+	assert.EqualValues(suite.T(), 3, rsp1.Data.Count)
+	assert.Len(suite.T(), rsp1.Data.Items, int(rsp1.Data.Count))
 }
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_NotFound() {
@@ -376,8 +376,8 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_NotFou
 	rsp := &grpc.ListRoyaltyReportsResponse{}
 	err := suite.service.ListRoyaltyReports(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.EqualValues(suite.T(), 0, rsp.Count)
-	assert.Empty(suite.T(), rsp.Items)
+	assert.EqualValues(suite.T(), 0, rsp.Data.Count)
+	assert.Empty(suite.T(), rsp.Data.Items)
 }
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindById_Ok() {
@@ -406,8 +406,8 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindBy
 	rsp1 := &grpc.ListRoyaltyReportsResponse{}
 	err = suite.service.ListRoyaltyReports(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.EqualValues(suite.T(), 1, rsp1.Count)
-	assert.Len(suite.T(), rsp1.Items, int(rsp1.Count))
+	assert.EqualValues(suite.T(), 1, rsp1.Data.Count)
+	assert.Len(suite.T(), rsp1.Data.Items, int(rsp1.Data.Count))
 }
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindById_NotFound() {
@@ -415,8 +415,8 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindBy
 	rsp := &grpc.ListRoyaltyReportsResponse{}
 	err := suite.service.ListRoyaltyReports(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.EqualValues(suite.T(), 0, rsp.Count)
-	assert.Len(suite.T(), rsp.Items, int(rsp.Count))
+	assert.EqualValues(suite.T(), 0, rsp.Data.Count)
+	assert.Len(suite.T(), rsp.Data.Items, int(rsp.Data.Count))
 }
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindByMerchantId_Ok() {
@@ -454,8 +454,8 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindBy
 	rsp1 := &grpc.ListRoyaltyReportsResponse{}
 	err = suite.service.ListRoyaltyReports(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.EqualValues(suite.T(), 2, rsp1.Count)
-	assert.Len(suite.T(), rsp1.Items, int(rsp1.Count))
+	assert.EqualValues(suite.T(), 2, rsp1.Data.Count)
+	assert.Len(suite.T(), rsp1.Data.Items, int(rsp1.Data.Count))
 }
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindByMerchantId_NotFound() {
@@ -463,8 +463,8 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindBy
 	rsp := &grpc.ListRoyaltyReportsResponse{}
 	err := suite.service.ListRoyaltyReports(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.EqualValues(suite.T(), 0, rsp.Count)
-	assert.Empty(suite.T(), rsp.Items)
+	assert.EqualValues(suite.T(), 0, rsp.Data.Count)
+	assert.Empty(suite.T(), rsp.Data.Items)
 }
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindByPeriod_Ok() {
@@ -508,8 +508,8 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindBy
 	rsp1 := &grpc.ListRoyaltyReportsResponse{}
 	err = suite.service.ListRoyaltyReports(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.EqualValues(suite.T(), 3, rsp1.Count)
-	assert.Len(suite.T(), rsp1.Items, int(rsp1.Count))
+	assert.EqualValues(suite.T(), 3, rsp1.Data.Count)
+	assert.Len(suite.T(), rsp1.Data.Items, int(rsp1.Data.Count))
 }
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindByPeriod_NotFound() {
@@ -520,8 +520,8 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindBy
 	rsp := &grpc.ListRoyaltyReportsResponse{}
 	err := suite.service.ListRoyaltyReports(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.EqualValues(suite.T(), 0, rsp.Count)
-	assert.Empty(suite.T(), rsp.Items)
+	assert.EqualValues(suite.T(), 0, rsp.Data.Count)
+	assert.Empty(suite.T(), rsp.Data.Items)
 }
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_Ok() {
