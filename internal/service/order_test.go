@@ -3116,12 +3116,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_Ok() {
 	err = suite.service.PaymentFormJsonDataProcess(context.TODO(), req1, rsp)
 
 	assert.Nil(suite.T(), err)
-	assert.True(suite.T(), len(rsp.PaymentMethods) > 0)
-	assert.True(suite.T(), len(rsp.PaymentMethods[0].Id) > 0)
-	assert.Equal(suite.T(), len(rsp.Items), 0)
-	assert.Equal(suite.T(), req.Description, rsp.Description)
-	assert.False(suite.T(), rsp.CountryPaymentsAllowed)
-	assert.True(suite.T(), rsp.CountryChangeAllowed)
+	assert.True(suite.T(), len(rsp.Item.PaymentMethods) > 0)
+	assert.True(suite.T(), len(rsp.Item.PaymentMethods[0].Id) > 0)
+	assert.Equal(suite.T(), len(rsp.Item.Items), 0)
+	assert.Equal(suite.T(), req.Description, rsp.Item.Description)
+	assert.False(suite.T(), rsp.Item.CountryPaymentsAllowed)
+	assert.True(suite.T(), rsp.Item.CountryChangeAllowed)
 
 	order, err = suite.service.getOrderByUuid(order.Uuid)
 	assert.Nil(suite.T(), err)
@@ -3159,9 +3159,9 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcessWithProducts_Ok
 	err = suite.service.PaymentFormJsonDataProcess(context.TODO(), req1, rsp)
 
 	assert.Nil(suite.T(), err)
-	assert.True(suite.T(), len(rsp.PaymentMethods) > 0)
-	assert.True(suite.T(), len(rsp.PaymentMethods[0].Id) > 0)
-	assert.Equal(suite.T(), len(rsp.Items), 2)
+	assert.True(suite.T(), len(rsp.Item.PaymentMethods) > 0)
+	assert.True(suite.T(), len(rsp.Item.PaymentMethods[0].Id) > 0)
+	assert.Equal(suite.T(), len(rsp.Item.Items), 2)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_BankCard_Ok() {
@@ -5129,8 +5129,8 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_UuidNotFound_E
 	}
 	rsp := &grpc.PaymentFormJsonDataResponse{}
 	err := suite.service.PaymentFormJsonDataProcess(context.TODO(), req, rsp)
-	assert.NotNil(suite.T(), err)
-	assert.Equal(suite.T(), orderErrorNotFound, err)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), orderErrorNotFound, rsp.Message)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_NewCookie_Ok() {
@@ -5158,9 +5158,9 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_NewCookie_Ok()
 	rsp1 := &grpc.PaymentFormJsonDataResponse{}
 	err = suite.service.PaymentFormJsonDataProcess(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.NotEmpty(suite.T(), rsp1.Cookie)
+	assert.NotEmpty(suite.T(), rsp1.Item.Cookie)
 
-	browserCustomer, err := suite.service.decryptBrowserCookie(rsp1.Cookie)
+	browserCustomer, err := suite.service.decryptBrowserCookie(rsp1.Item.Cookie)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), browserCustomer)
 	assert.Empty(suite.T(), browserCustomer.CustomerId)
@@ -5239,9 +5239,9 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_ExistCookie_Ok
 	rsp2 := &grpc.PaymentFormJsonDataResponse{}
 	err = suite.service.PaymentFormJsonDataProcess(context.TODO(), req2, rsp2)
 	assert.NoError(suite.T(), err)
-	assert.NotEmpty(suite.T(), rsp2.Cookie)
+	assert.NotEmpty(suite.T(), rsp2.Item.Cookie)
 
-	browserCustomer, err = suite.service.decryptBrowserCookie(rsp2.Cookie)
+	browserCustomer, err = suite.service.decryptBrowserCookie(rsp2.Item.Cookie)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), browserCustomer)
 	assert.NotEmpty(suite.T(), browserCustomer.CustomerId)
