@@ -1108,5 +1108,5 @@ message SendConfirmEmailToUserRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string user_id = 1;
     //@inject_tag: validate:"required,url"
-    string host = 2;
+    string url = 2;
 }

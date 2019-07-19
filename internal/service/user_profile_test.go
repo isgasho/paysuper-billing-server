@@ -316,7 +316,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_SendConfirmEmailToUser_Ok() {
 
 	req1 := &grpc.SendConfirmEmailToUserRequest{
 		UserId: req.UserId,
-		Host:   "http://localhost",
+		Url:    "http://localhost",
 	}
 	rsp1 := &grpc.GetUserProfileResponse{}
 	err = suite.service.SendConfirmEmailToUser(context.TODO(), req1, rsp1)
@@ -324,13 +324,13 @@ func (suite *UserProfileTestSuite) TestUserProfile_SendConfirmEmailToUser_Ok() {
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)
 	assert.NotEmpty(suite.T(), rsp1.Item.Email.ConfirmationUrl)
-	assert.Regexp(suite.T(), req1.Host, rsp1.Item.Email.ConfirmationUrl)
+	assert.Regexp(suite.T(), req1.Url, rsp1.Item.Email.ConfirmationUrl)
 }
 
 func (suite *UserProfileTestSuite) TestUserProfile_SendConfirmEmailToUser_UserNotFound_Error() {
 	req := &grpc.SendConfirmEmailToUserRequest{
 		UserId: bson.NewObjectId().Hex(),
-		Host:   "http://localhost",
+		Url:    "http://localhost",
 	}
 	rsp := &grpc.GetUserProfileResponse{}
 	err := suite.service.SendConfirmEmailToUser(context.TODO(), req, rsp)
@@ -375,7 +375,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_SendConfirmEmailToUser_EmailA
 
 	req1 := &grpc.SendConfirmEmailToUserRequest{
 		UserId: req.UserId,
-		Host:   "http://localhost",
+		Url:    "http://localhost",
 	}
 	rsp1 := &grpc.GetUserProfileResponse{}
 	err = suite.service.SendConfirmEmailToUser(context.TODO(), req1, rsp1)
@@ -423,7 +423,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_SendConfirmEmailToUser_SaveTo
 
 	req1 := &grpc.SendConfirmEmailToUserRequest{
 		UserId: req.UserId,
-		Host:   "http://localhost",
+		Url:    "http://localhost",
 	}
 	rsp1 := &grpc.GetUserProfileResponse{}
 	err = suite.service.SendConfirmEmailToUser(context.TODO(), req1, rsp1)
@@ -464,7 +464,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_SendConfirmEmailToUser_Rabbit
 
 	req1 := &grpc.SendConfirmEmailToUserRequest{
 		UserId: req.UserId,
-		Host:   "http://localhost",
+		Url:    "http://localhost",
 	}
 	rsp1 := &grpc.GetUserProfileResponse{}
 
@@ -512,7 +512,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_Ok() {
 
 	req1 := &grpc.SendConfirmEmailToUserRequest{
 		UserId: req.UserId,
-		Host:   "http://localhost",
+		Url:    "http://localhost",
 	}
 	rsp1 := &grpc.GetUserProfileResponse{}
 	err = suite.service.SendConfirmEmailToUser(context.TODO(), req1, rsp1)
@@ -581,7 +581,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_UserNotFound
 
 	req1 := &grpc.SendConfirmEmailToUserRequest{
 		UserId: req.UserId,
-		Host:   "http://localhost",
+		Url:    "http://localhost",
 	}
 	rsp1 := &grpc.GetUserProfileResponse{}
 	err = suite.service.SendConfirmEmailToUser(context.TODO(), req1, rsp1)
@@ -644,7 +644,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_EmailConfirm
 
 	req1 := &grpc.SendConfirmEmailToUserRequest{
 		UserId: req.UserId,
-		Host:   "http://localhost",
+		Url:    "http://localhost",
 	}
 	rsp1 := &grpc.GetUserProfileResponse{}
 	err = suite.service.SendConfirmEmailToUser(context.TODO(), req1, rsp1)

@@ -22,7 +22,6 @@ import (
 const (
 	collectionUserProfile        = "user_profile"
 	userEmailConfirmTokenStorage = "email_confirm:token:%s"
-	userEmailConfirmUrlMask      = "%s/confirm?token=%s"
 )
 
 var (
@@ -303,7 +302,7 @@ func (s *Service) SendConfirmEmailToUser(
 		return nil
 	}
 
-	profile.Email.ConfirmationUrl, err = s.setUserEmailConfirmationToken(req.Host, profile)
+	profile.Email.ConfirmationUrl, err = s.setUserEmailConfirmationToken(req.Url, profile)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -364,7 +363,7 @@ func (s *Service) ConfirmUserEmail(
 	return nil
 }
 
-func (s *Service) setUserEmailConfirmationToken(host string, profile *grpc.UserProfile) (string, error) {
+func (s *Service) setUserEmailConfirmationToken(url string, profile *grpc.UserProfile) (string, error) {
 	stToken := &EmailConfirmToken{
 		Token:     s.getTokenString(s.cfg.Length),
 		ProfileId: profile.Id,
@@ -388,7 +387,7 @@ func (s *Service) setUserEmailConfirmationToken(host string, profile *grpc.UserP
 		return "", err
 	}
 
-	return fmt.Sprintf(userEmailConfirmUrlMask, host, token), nil
+	return url + "?token=" + token, nil
 }
 
 func (s *Service) getUserEmailConfirmationToken(token string) (string, error) {
