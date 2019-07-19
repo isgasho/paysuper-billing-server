@@ -126,15 +126,13 @@ func (app *Application) Init() {
 	repService := repository.NewRepositoryService(constant.PayOneRepositoryServiceName, app.service.Client())
 	taxService := tax_service.NewTaxService(taxPkg.ServiceName, app.service.Client())
 
-	/*redisdb := redis.NewClusterClient(&redis.ClusterOptions{
+	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
 		Addrs:        cfg.CacheRedis.Address,
 		Password:     cfg.CacheRedis.Password,
 		MaxRetries:   cfg.CacheRedis.MaxRetries,
 		MaxRedirects: cfg.CacheRedis.MaxRedirects,
 		PoolSize:     cfg.CacheRedis.PoolSize,
-	})*/
-
-	redisdb := mock.NewTestRedis()
+	})
 
 	app.svc = service.NewBillingService(
 		app.database,
