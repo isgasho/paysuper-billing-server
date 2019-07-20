@@ -24,6 +24,10 @@ import (
 const (
 	collectionVatReports = "vat_reports"
 
+	VatPeriodEvery1Month = 1
+	VatPeriodEvery2Month = 2
+	VatPeriodEvery3Month = 3
+
 	errorMsgVatReportCentrifugoNotificationFailed = "[Centrifugo] Send financier notification about vat report status change failed"
 	errorMsgVatReportSMTPNotificationFailed       = "[SMTP] Send financier notification about vat report status change failed"
 	errorMsgVatReportTaxServiceGetRateFailed      = "tax service get rate error"
@@ -127,7 +131,6 @@ func (s *Service) GetVatReportsDashboard(
 ) error {
 
 	res.Status = pkg.ResponseStatusOk
-	res.Data = &grpc.VatReportsPaginate{}
 
 	query := bson.M{
 		"status": bson.M{"$in": []string{pkg.VatReportStatusThreshold, pkg.VatReportStatusNeedToPay, pkg.VatReportStatusOverdue}},
@@ -170,7 +173,6 @@ func (s *Service) GetVatReportsForCountry(
 ) error {
 
 	res.Status = pkg.ResponseStatusOk
-	res.Data = &grpc.VatReportsPaginate{}
 
 	query := bson.M{
 		"country": req.Country,
@@ -431,11 +433,11 @@ func (s *Service) getVatReportTime(VatPeriodMonth int32, date time.Time) (from, 
 	}
 
 	switch VatPeriodMonth {
-	case 1:
+	case VatPeriodEvery1Month:
 		from = nowTime.BeginningOfMonth()
 		to = nowTime.EndOfMonth()
 		return
-	case 2:
+	case VatPeriodEvery2Month:
 		from = nowTime.BeginningOfMonth()
 		to = nowTime.EndOfMonth()
 		if from.Month()%2 == 0 {
@@ -444,7 +446,7 @@ func (s *Service) getVatReportTime(VatPeriodMonth int32, date time.Time) (from, 
 			to = now.New(to.AddDate(0, 0, 1)).EndOfMonth()
 		}
 		return
-	case 3:
+	case VatPeriodEvery3Month:
 		from = nowTime.BeginningOfQuarter()
 		to = nowTime.EndOfQuarter()
 		return
@@ -472,6 +474,7 @@ func (h *vatReportProcessor) ProcessVatReportsStatus() error {
 	var reports []*billing.VatReport
 	err := h.Service.db.Collection(collectionVatReports).Find(query).All(&reports)
 	if err != nil {
+		zap.S().Errorf(pkg.ErrorDatabaseQueryFailed, "err", err.Error(), "collection", collectionVatReports, "query", query)
 		return err
 	}
 	for _, report := range reports {

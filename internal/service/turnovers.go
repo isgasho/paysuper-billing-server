@@ -236,11 +236,14 @@ func newTurnoverService(svc *Service) *Turnover {
 func (h *Turnover) Insert(turnover *billing.AnnualTurnover) error {
 	_, err := h.svc.db.Collection(collectionAnnualTurnovers).Upsert(bson.M{"year": turnover.Year, "country": turnover.Country}, turnover)
 	if err != nil {
+		zap.S().Errorf(pkg.ErrorDatabaseQueryFailed, "err", err.Error(), "collection", collectionAnnualTurnovers, "turnover", turnover)
 		return err
 	}
 
-	err = h.svc.cacher.Set(fmt.Sprintf(cacheTurnoverKey, turnover.Country, turnover.Year), turnover, 0)
+	key := fmt.Sprintf(cacheTurnoverKey, turnover.Country, turnover.Year)
+	err = h.svc.cacher.Set(key, turnover, 0)
 	if err != nil {
+		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", key, "data", turnover)
 		return err
 	}
 	return nil
@@ -262,6 +265,7 @@ func (h *Turnover) Get(country string, year int) (*billing.AnnualTurnover, error
 		Find(bson.M{"country": country, "year": year}).
 		One(&c)
 	if err != nil {
+		zap.S().Errorf(pkg.ErrorDatabaseQueryFailed, "err", err.Error(), "collection", collectionAnnualTurnovers)
 		return nil, fmt.Errorf(errorNotFound, collectionAnnualTurnovers)
 	}
 

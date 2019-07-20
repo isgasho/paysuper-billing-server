@@ -175,7 +175,6 @@ func (s *Service) ListRoyaltyReports(
 	rsp *grpc.ListRoyaltyReportsResponse,
 ) error {
 	rsp.Status = pkg.ResponseStatusOk
-	rsp.Data = &grpc.RoyaltyReportsPaginate{}
 
 	query := bson.M{"deleted": false}
 
@@ -212,10 +211,12 @@ func (s *Service) ListRoyaltyReports(
 	}
 
 	if count <= 0 {
+		rsp.Data = &grpc.RoyaltyReportsPaginate{}
 		return nil
 	}
 
-	err = s.db.Collection(collectionRoyaltyReport).Find(query).Limit(int(req.Limit)).Skip(int(req.Offset)).All(&rsp.Data.Items)
+	var reports []*billing.RoyaltyReport
+	err = s.db.Collection(collectionRoyaltyReport).Find(query).Limit(int(req.Limit)).Skip(int(req.Offset)).All(&reports)
 
 	if err != nil {
 		zap.L().Error(
@@ -231,7 +232,10 @@ func (s *Service) ListRoyaltyReports(
 		return nil
 	}
 
-	rsp.Data.Count = int32(count)
+	rsp.Data = &grpc.RoyaltyReportsPaginate{
+		Count: int32(count),
+		Items: reports,
+	}
 
 	return nil
 }
@@ -356,8 +360,6 @@ func (s *Service) ListRoyaltyReportOrders(
 
 	from, _ := ptypes.Timestamp(report.PeriodFrom)
 	to, _ := ptypes.Timestamp(report.PeriodTo)
-
-	println(report.MerchantId, from.Format(time.RFC3339), from.Format(time.RFC3339), constant.OrderPublicStatusProcessed)
 
 	match := bson.M{
 		"merchant_id":         bson.ObjectIdHex(report.MerchantId),

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
@@ -292,10 +293,14 @@ func (h Country) GetCountriesWithVatEnabled() (*billing.CountriesList, error) {
 		}).
 		Sort("iso_code_a2").
 		All(&c.Countries); err != nil {
+		zap.S().Errorf(pkg.ErrorDatabaseQueryFailed, "err", err.Error(), "collection", collectionCountry)
 		return nil, fmt.Errorf(errorNotFound, collectionCountry)
 	}
 
-	_ = h.svc.cacher.Set(key, c, 0)
+	err = h.svc.cacher.Set(key, c, 0)
+	if err != nil {
+		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", key, "data", c)
+	}
 	return c, nil
 }
 

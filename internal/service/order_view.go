@@ -2,6 +2,7 @@ package service
 
 import (
 	"github.com/globalsign/mgo/bson"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"go.uber.org/zap"
 	"time"
@@ -21,6 +22,7 @@ func (s *Service) getOrderFromViewPublic(id string) (*billing.OrderViewPublic, e
 		Find(bson.M{"_id": bson.ObjectIdHex(id)}).
 		One(&result)
 	if err != nil {
+		zap.S().Errorf(pkg.ErrorDatabaseQueryFailed, "err", err.Error(), "collection", collectionOrderView, "id", id)
 		return nil, err
 	}
 	return result, nil
@@ -32,49 +34,42 @@ func (s *Service) getOrderFromViewPrivate(id string) (*billing.OrderViewPrivate,
 		Find(bson.M{"_id": bson.ObjectIdHex(id)}).
 		One(&result)
 	if err != nil {
+		zap.S().Errorf(pkg.ErrorDatabaseQueryFailed, "err", err.Error(), "collection", collectionOrderView, "id", id)
 		return nil, err
 	}
 	return result, nil
 }
 
-func (s *Service) getTransactionsPublic(match bson.M, pagination ...int) ([]*billing.OrderViewPublic, error) {
+func (s *Service) getTransactionsPublic(match bson.M, limit, offset int) ([]*billing.OrderViewPublic, error) {
 	result := []*billing.OrderViewPublic{}
 
-	dbRequest := s.db.Collection(collectionOrderView).Find(match).Sort("created_at")
+	err := s.db.Collection(collectionOrderView).
+		Find(match).
+		Sort("created_at").
+		Limit(limit).
+		Skip(offset).
+		All(&result)
 
-	if pagination != nil {
-		if val := pagination[0]; val > 0 {
-			dbRequest.Limit(val)
-		}
-		if val := pagination[1]; val > 0 {
-			dbRequest.Skip(val)
-		}
-	}
-
-	err := dbRequest.All(&result)
 	if err != nil {
+		zap.S().Errorf(pkg.ErrorDatabaseQueryFailed, "err", err.Error(), "collection", collectionOrderView, "match", match, "limit", limit, "offset", offset)
 		return nil, err
 	}
 
 	return result, nil
 }
 
-func (s *Service) getTransactionsPrivate(match bson.M, pagination ...int) ([]*billing.OrderViewPrivate, error) {
+func (s *Service) getTransactionsPrivate(match bson.M, limit, offset int) ([]*billing.OrderViewPrivate, error) {
 	result := []*billing.OrderViewPrivate{}
 
-	dbRequest := s.db.Collection(collectionOrderView).Find(match).Sort("created_at")
+	err := s.db.Collection(collectionOrderView).
+		Find(match).
+		Sort("created_at").
+		Limit(limit).
+		Skip(offset).
+		All(&result)
 
-	if pagination != nil {
-		if val := pagination[0]; val > 0 {
-			dbRequest.Limit(val)
-		}
-		if val := pagination[1]; val > 0 {
-			dbRequest.Skip(val)
-		}
-	}
-
-	err := dbRequest.All(&result)
 	if err != nil {
+		zap.S().Errorf(pkg.ErrorDatabaseQueryFailed, "err", err.Error(), "collection", collectionOrderView, "match", match, "limit", limit, "offset", offset)
 		return nil, err
 	}
 
@@ -91,6 +86,7 @@ func (s *Service) updateOrderView(ids []string) error {
 		var orderIds []*billing.Id
 		err := s.db.Collection(collectionOrder).Find(nil).All(&orderIds)
 		if err != nil {
+			zap.S().Errorf(pkg.ErrorDatabaseQueryFailed, "err", err.Error(), "collection", collectionOrder)
 			return err
 		}
 		for _, id := range orderIds {
@@ -110,8 +106,8 @@ func (s *Service) updateOrderView(ids []string) error {
 		ids, batches = ids[batchSize:], append(batches, ids[0:batchSize:batchSize])
 	}
 	batches = append(batches, ids)
-	for _, batch_ids := range batches {
-		matchQuery := s.getUpdateOrderViewMatchQuery(batch_ids)
+	for _, batchIds := range batches {
+		matchQuery := s.getUpdateOrderViewMatchQuery(batchIds)
 		err := s.doUpdateOrderView(matchQuery)
 		if err != nil {
 			return err

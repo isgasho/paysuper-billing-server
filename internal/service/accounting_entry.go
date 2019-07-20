@@ -341,11 +341,6 @@ func (h *accountingEntry) processPaymentEvent() error {
 
 	// 4. realTaxFeeTotal
 	// calculated in order_view
-	/*realTaxFeeTotal := h.newEntry(pkg.AccountingEntryTypeRealTaxFeeTotal)
-	realTaxFeeTotal.Amount = realTaxFee.Amount + centralBankTaxFee.Amount
-	if err = h.addEntry(realTaxFeeTotal); err != nil {
-		return err
-	}*/
 
 	// 5. psGrossRevenueFx
 	psGrossRevenueFx := h.newEntry(pkg.AccountingEntryTypePsGrossRevenueFx)
@@ -367,19 +362,11 @@ func (h *accountingEntry) processPaymentEvent() error {
 
 	// 7. psGrossRevenueFxProfit
 	// calculated in order_view
-	/*psGrossRevenueFxProfit := h.newEntry(pkg.AccountingEntryTypePsGrossRevenueFxProfit)
-	psGrossRevenueFxProfit.Amount = psGrossRevenueFx.Amount - psGrossRevenueFxTaxFee.Amount
-	if err = h.addEntry(psGrossRevenueFxProfit); err != nil {
-		return err
-	}*/
 
 	// 8. merchantGrossRevenue
 	merchantGrossRevenue := h.newEntry(pkg.AccountingEntryTypeMerchantGrossRevenue)
 	merchantGrossRevenue.Amount = realGrossRevenue.Amount - psGrossRevenueFx.Amount
-	// not store in DB - calculated in order_view
-	/*if err = h.addEntry(merchantGrossRevenue); err != nil {
-		return err
-	}*/
+	// not store in DB - calculated in order_view, but used further in the method code
 
 	// 9. merchantTaxFeeCostValue
 	merchantTaxFeeCostValue := h.newEntry(pkg.AccountingEntryTypeMerchantTaxFeeCostValue)
@@ -405,11 +392,6 @@ func (h *accountingEntry) processPaymentEvent() error {
 
 	// 11. merchantTaxFee
 	// calculated in order_view
-	/*merchantTaxFee := h.newEntry(pkg.AccountingEntryTypeMerchantTaxFee)
-	merchantTaxFee.Amount = merchantTaxFeeCostValue.Amount + merchantTaxFeeCentralBankFx.Amount
-	if err = h.addEntry(merchantTaxFee); err != nil {
-		return err
-	}*/
 
 	paymentChannelCostMerchant, err := h.getPaymentChannelCostMerchant(realGrossRevenue.Amount)
 	if err != nil {
@@ -444,11 +426,6 @@ func (h *accountingEntry) processPaymentEvent() error {
 
 	// 15. psMarkupMerchantMethodFee
 	// calculated in order_view
-	/*psMarkupMerchantMethodFee := h.newEntry(pkg.AccountingEntryTypePsMarkupMerchantMethodFee)
-	psMarkupMerchantMethodFee.Amount = merchantMethodFee.Amount - merchantMethodFeeCostValue.Amount
-	if err = h.addEntry(psMarkupMerchantMethodFee); err != nil {
-		return err
-	}*/
 
 	// 16. merchantMethodFixedFee
 	merchantMethodFixedFee := h.newEntry(pkg.AccountingEntryTypeMerchantMethodFixedFee)
@@ -466,11 +443,6 @@ func (h *accountingEntry) processPaymentEvent() error {
 
 	// 18. markupMerchantMethodFixedFeeFx
 	// calculated in order_view
-	/*markupMerchantMethodFixedFeeFx := h.newEntry(pkg.AccountingEntryTypeMarkupMerchantMethodFixedFeeFx)
-	markupMerchantMethodFixedFeeFx.Amount = merchantMethodFixedFee.Amount - realMerchantMethodFixedFee.Amount
-	if err = h.addEntry(markupMerchantMethodFixedFeeFx); err != nil {
-		return err
-	}*/
 
 	// 19. realMerchantMethodFixedFeeCostValue
 	realMerchantMethodFixedFeeCostValue := h.newEntry(pkg.AccountingEntryTypeRealMerchantMethodFixedFeeCostValue)
@@ -484,11 +456,6 @@ func (h *accountingEntry) processPaymentEvent() error {
 
 	// 20. psMethodFixedFeeProfit
 	// calculated in order_view
-	/*psMethodFixedFeeProfit := h.newEntry(pkg.AccountingEntryTypePsMethodFixedFeeProfit)
-	psMethodFixedFeeProfit.Amount = realMerchantMethodFixedFee.Amount - realMerchantMethodFixedFeeCostValue.Amount
-	if err = h.addEntry(psMethodFixedFeeProfit); err != nil {
-		return err
-	}*/
 
 	// 21. merchantPsFixedFee
 	merchantPsFixedFee := h.newEntry(pkg.AccountingEntryTypeMerchantPsFixedFee)
@@ -512,35 +479,15 @@ func (h *accountingEntry) processPaymentEvent() error {
 
 	// 23. markupMerchantPsFixedFee
 	// calculated in order_view
-	/*markupMerchantPsFixedFee := h.newEntry(pkg.AccountingEntryTypeMarkupMerchantPsFixedFee)
-	markupMerchantPsFixedFee.Amount = merchantPsFixedFee.Amount - realMerchantPsFixedFee.Amount
-	if err = h.addEntry(markupMerchantPsFixedFee); err != nil {
-		return err
-	}*/
 
 	// 24. psMethodProfit
 	// calculated in order_view
-	/*psMethodProfit := h.newEntry(pkg.AccountingEntryTypePsMethodProfit)
-	psMethodProfit.Amount = psMethodFee.Amount - merchantMethodFeeCostValue.Amount - realMerchantMethodFixedFeeCostValue.Amount + merchantPsFixedFee.Amount
-	if err = h.addEntry(psMethodProfit); err != nil {
-		return err
-	}*/
 
 	// 25. merchantNetRevenue
 	// calculated in order_view
-	/*merchantNetRevenue := h.newEntry(pkg.AccountingEntryTypeMerchantNetRevenue)
-	merchantNetRevenue.Amount = merchantGrossRevenue.Amount - merchantTaxFee.Amount - psMethodFee.Amount - merchantPsFixedFee.Amount
-	if err = h.addEntry(merchantNetRevenue); err != nil {
-		return err
-	}*/
 
 	// 26. psProfitTotal
 	// calculated in order_view
-	/*psProfitTotal := h.newEntry(pkg.AccountingEntryTypePsProfitTotal)
-	psProfitTotal.Amount = psMethodProfit.Amount + psGrossRevenueFxProfit.Amount - centralBankTaxFee.Amount
-	if err = h.addEntry(psProfitTotal); err != nil {
-		return err
-	}*/
 
 	return nil
 }
@@ -641,11 +588,6 @@ func (h *accountingEntry) processRefundEvent() error {
 
 	// 6. psMerchantRefundFx
 	// calculated in order_view
-	/*psMerchantRefundFx := h.newEntry(pkg.AccountingEntryTypePsMerchantRefundFx)
-	psMerchantRefundFx.Amount = merchantRefund.Amount - realRefund.Amount
-	if err = h.addEntry(psMerchantRefundFx); err != nil {
-		return err
-	}*/
 
 	// 7. merchantRefundFee
 	merchantRefundFee := h.newEntry(pkg.AccountingEntryTypeMerchantRefundFee)
@@ -658,17 +600,9 @@ func (h *accountingEntry) processRefundEvent() error {
 
 	// 8. psMarkupMerchantRefundFee
 	// calculated in order_view
-	/*psMarkupMerchantRefundFee := h.newEntry(pkg.AccountingEntryTypePsMarkupMerchantRefundFee)
-	psMarkupMerchantRefundFee.Amount = merchantRefundFee.Amount - realRefundFee.Amount
-	if err = h.addEntry(psMarkupMerchantRefundFee); err != nil {
-		return err
-	}*/
 
 	merchantRefundFixedFeeCostValue := h.newEntry(pkg.AccountingEntryTypeMerchantRefundFixedFeeCostValue)
 	merchantRefundFixedFee := h.newEntry(pkg.AccountingEntryTypeMerchantRefundFixedFee)
-
-	// calculated in order_view
-	// psMerchantRefundFixedFeeFx := h.newEntry(pkg.AccountingEntryTypePsMerchantRefundFixedFeeFx)
 
 	if moneyBackCostMerchant.IsPaidByMerchant {
 
@@ -686,7 +620,6 @@ func (h *accountingEntry) processRefundEvent() error {
 
 		// 11. psMerchantRefundFixedFeeFx
 		// calculated in order_view
-		// psMerchantRefundFixedFeeFx.Amount = merchantRefundFixedFee.Amount - merchantRefundFixedFeeCostValue.Amount
 	}
 
 	if err = h.addEntry(merchantRefundFixedFeeCostValue); err != nil {
@@ -695,18 +628,9 @@ func (h *accountingEntry) processRefundEvent() error {
 	if err = h.addEntry(merchantRefundFixedFee); err != nil {
 		return err
 	}
-	// calculated in order_view
-	/*if err = h.addEntry(psMerchantRefundFixedFeeFx); err != nil {
-		return err
-	}*/
 
 	// 12. psMerchantRefundFixedFeeProfit
 	// calculated in order_view
-	/*psMerchantRefundFixedFeeProfit := h.newEntry(pkg.AccountingEntryTypePsMerchantRefundFixedFeeProfit)
-	psMerchantRefundFixedFeeProfit.Amount = merchantRefundFixedFee.Amount - realRefundFixedFee.Amount
-	if err = h.addEntry(psMerchantRefundFixedFeeProfit); err != nil {
-		return err
-	}*/
 
 	// 13. reverseTaxFee
 	merchantTaxFeeCostValue := h.newEntry("")
@@ -754,31 +678,12 @@ func (h *accountingEntry) processRefundEvent() error {
 
 	// 16. merchantReverseTaxFee
 	// calculated in order_view
-	/*merchantReverseTaxFee := h.newEntry(pkg.AccountingEntryTypeMerchantReverseTaxFee)
-	merchantReverseTaxFee.Amount = reverseTaxFee.Amount + reverseTaxFeeDelta.Amount
-	if err = h.addEntry(merchantReverseTaxFee); err != nil {
-		return err
-	}*/
 
 	// 17. merchantReverseRevenue
 	// calculated in order_view
-	/*merchantReverseRevenue := h.newEntry(pkg.AccountingEntryTypeMerchantReverseRevenue)
-	merchantReverseRevenue.Amount = merchantRefund.Amount +
-		merchantRefundFee.Amount +
-		merchantRefundFixedFee.Amount +
-		reverseTaxFeeDelta.Amount -
-		reverseTaxFee.Amount
-	if err = h.addEntry(merchantReverseRevenue); err != nil {
-		return err
-	}*/
 
 	// 18. psRefundProfit
 	// calculated in order_view
-	/*psRefundProfit := h.newEntry(pkg.AccountingEntryTypePsRefundProfit)
-	psRefundProfit.Amount = psReverseTaxFeeDelta.Amount + psMerchantRefundFixedFeeProfit.Amount + psMarkupMerchantRefundFee.Amount
-	if err = h.addEntry(psRefundProfit); err != nil {
-		return err
-	}*/
 
 	return nil
 }
