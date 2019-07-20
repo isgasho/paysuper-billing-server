@@ -14,6 +14,7 @@ It has these top-level messages:
 	PaymentCreateResponse
 	PaymentFormJsonDataRequest
 	PaymentFormJsonDataProject
+	PaymentFormJsonData
 	PaymentFormJsonDataResponse
 	PaymentNotifyRequest
 	PaymentNotifyResponse

@@ -159,7 +159,7 @@ message PaymentFormJsonDataProject {
     string url_fail = 3; // url to redirect user after failed payment. may be NULL if not set in project settings
 }
 
-message PaymentFormJsonDataResponse {
+message PaymentFormJsonData {
     string id = 1; // order unique identifier
     // @inject_tag: json:"account,omitempty"
     string account = 2; // user account, may be null
@@ -190,6 +190,15 @@ message PaymentFormJsonDataResponse {
     bool country_payments_allowed = 18;
     //@inject_tag: json:"country_change_allowed"
     bool country_change_allowed = 19;
+}
+
+message PaymentFormJsonDataResponse {
+    //@inject_tag: json:"status"
+    int32 status = 1;
+    //@inject_tag: json:"message"
+    ResponseErrorMessage message = 2;
+    //@inject_tag: json:"item"
+    PaymentFormJsonData item = 3;
 }
 
 message PaymentNotifyRequest {

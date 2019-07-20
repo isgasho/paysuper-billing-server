@@ -334,9 +334,18 @@ func (s *Service) PaymentFormJsonDataProcess(
 	req *grpc.PaymentFormJsonDataRequest,
 	rsp *grpc.PaymentFormJsonDataResponse,
 ) error {
+
+	rsp.Status = pkg.ResponseStatusOk
+	rsp.Item = &grpc.PaymentFormJsonData{}
+
 	order, err := s.getOrderByUuid(req.OrderId)
 
 	if err != nil {
+		if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			return nil
+		}
 		return err
 	}
 
@@ -355,6 +364,11 @@ func (s *Service) PaymentFormJsonDataProcess(
 		err = p1.processPayerIp()
 
 		if err != nil {
+			if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+				rsp.Status = pkg.ResponseStatusSystemError
+				rsp.Message = err.(*grpc.ResponseErrorMessage)
+				return nil
+			}
 			return err
 		}
 	}
@@ -422,8 +436,8 @@ func (s *Service) PaymentFormJsonDataProcess(
 	if (order.User.Address != nil && ctr != order.User.Address.Country) || loc != order.User.Locale {
 		order.UserAddressDataRequired = true
 
-		rsp.UserAddressDataRequired = order.UserAddressDataRequired
-		rsp.UserIpData = &grpc.UserIpData{
+		rsp.Item.UserAddressDataRequired = order.UserAddressDataRequired
+		rsp.Item.UserIpData = &grpc.UserIpData{
 			Country: order.User.Address.Country,
 			City:    order.User.Address.City,
 			Zip:     order.User.Address.PostalCode,
@@ -436,16 +450,28 @@ func (s *Service) PaymentFormJsonDataProcess(
 
 	restricted, err := s.applyCountryRestriction(order, order.GetCountry())
 	if err != nil {
+		if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			return nil
+		}
 		return err
 	}
 	if restricted {
-		return orderCountryPaymentRestrictedError
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = orderCountryPaymentRestrictedError
+		return nil
 	}
 
 	err = s.ProcessOrderProducts(order)
 	if err != nil {
 		if pid := order.PrivateMetadata["PaylinkId"]; pid != "" {
 			s.notifyPaylinkError(pid, err, req, order)
+		}
+		if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			return nil
 		}
 		return err
 	}
@@ -454,12 +480,22 @@ func (s *Service) PaymentFormJsonDataProcess(
 	err = s.updateOrder(order)
 
 	if err != nil {
+		if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			return nil
+		}
 		return err
 	}
 
 	pms, err := p.processRenderFormPaymentMethods()
 
 	if err != nil {
+		if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			return nil
+		}
 		return err
 	}
 
@@ -472,37 +508,37 @@ func (s *Service) PaymentFormJsonDataProcess(
 	expire := time.Now().Add(time.Minute * 30).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": order.Uuid, "exp": expire})
 
-	rsp.Id = order.Uuid
-	rsp.Account = order.ProjectAccount
-	rsp.Description = order.Description
-	rsp.HasVat = order.Tax.Amount > 0
-	rsp.Vat = order.Tax.Amount
-	rsp.Currency = order.Currency
-	rsp.Project = &grpc.PaymentFormJsonDataProject{
+	rsp.Item.Id = order.Uuid
+	rsp.Item.Account = order.ProjectAccount
+	rsp.Item.Description = order.Description
+	rsp.Item.HasVat = order.Tax.Amount > 0
+	rsp.Item.Vat = order.Tax.Amount
+	rsp.Item.Currency = order.Currency
+	rsp.Item.Project = &grpc.PaymentFormJsonDataProject{
 		Name:       projectName,
 		UrlSuccess: order.Project.UrlSuccess,
 		UrlFail:    order.Project.UrlFail,
 	}
-	rsp.PaymentMethods = pms
-	rsp.Token, _ = token.SignedString([]byte(s.cfg.CentrifugoSecret))
-	rsp.InlineFormRedirectUrl = fmt.Sprintf(pkg.OrderInlineFormUrlMask, req.Scheme, req.Host, rsp.Id)
-	rsp.Amount = order.OrderAmount
-	rsp.TotalAmount = order.TotalPaymentAmount
-	rsp.Items = order.Items
-	rsp.Email = order.User.Email
+	rsp.Item.PaymentMethods = pms
+	rsp.Item.Token, _ = token.SignedString([]byte(s.cfg.CentrifugoSecret))
+	rsp.Item.InlineFormRedirectUrl = fmt.Sprintf(pkg.OrderInlineFormUrlMask, req.Scheme, req.Host, rsp.Item.Id)
+	rsp.Item.Amount = order.OrderAmount
+	rsp.Item.TotalAmount = order.TotalPaymentAmount
+	rsp.Item.Items = order.Items
+	rsp.Item.Email = order.User.Email
 
 	if order.CountryRestriction != nil {
-		rsp.CountryPaymentsAllowed = order.CountryRestriction.PaymentsAllowed
-		rsp.CountryChangeAllowed = order.CountryRestriction.ChangeAllowed
+		rsp.Item.CountryPaymentsAllowed = order.CountryRestriction.PaymentsAllowed
+		rsp.Item.CountryChangeAllowed = order.CountryRestriction.ChangeAllowed
 	} else {
-		rsp.CountryPaymentsAllowed = true
-		rsp.CountryChangeAllowed = true
+		rsp.Item.CountryPaymentsAllowed = true
+		rsp.Item.CountryChangeAllowed = true
 	}
 
 	cookie, err := s.generateBrowserCookie(browserCustomer)
 
 	if err == nil {
-		rsp.Cookie = cookie
+		rsp.Item.Cookie = cookie
 	}
 
 	return nil
