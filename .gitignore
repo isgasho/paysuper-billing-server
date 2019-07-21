@@ -1,1 +1,2 @@
 /.idea/
+/migrations/000_create_currencies.up.json

@@ -240,14 +240,14 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_CalculatePriceWithFraction_Ok_0
 	assert.Equal(suite.T(), float64(2), price)
 }
 
-func (suite *PriceGroupTestSuite) TestPriceGroup_getRecommendedPriceForRegion_Error_NotFound() {
+func (suite *PriceGroupTestSuite) TestPriceGroup_GetRecommendedPriceForRegion_Error_NotFound() {
 	pt := &billing.PriceTable{}
 	pg := &billing.PriceGroup{}
 	_, err := suite.service.priceGroup.GetRecommendedPriceForRegion(pt, pg, 1.5)
 	assert.EqualError(suite.T(), err, "currency in price table not found")
 }
 
-func (suite *PriceGroupTestSuite) TestPriceGroup_getRecommendedPriceForRegion_Ok() {
+func (suite *PriceGroupTestSuite) TestPriceGroup_GetRecommendedPriceForRegion_Ok() {
 	pt := &billing.PriceTable{
 		From: 0,
 		To:   2,
@@ -259,12 +259,55 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_getRecommendedPriceForRegion_Ok
 		},
 	}
 	pg := &billing.PriceGroup{
+		Region:   "RUB",
 		Currency: "RUB",
 		Fraction: 0,
 	}
-	price, err := suite.service.priceGroup.GetRecommendedPriceForRegion(pt, pg, 1.5)
+	price, err := suite.service.priceGroup.GetRecommendedPriceForRegion(pt, pg, 1)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), float64(5), price)
+}
+
+func (suite *PriceGroupTestSuite) TestPriceGroup_GetRecommendedPriceForRegion_Ok_ByTo() {
+	pt := &billing.PriceTable{
+		From: 10.99,
+		To:   11.99,
+		Currencies: map[string]*billing.PriceTableCurrency{
+			"EUR": {
+				From: 10.99,
+				To:   11.99,
+			},
+		},
+	}
+	pg := &billing.PriceGroup{
+		Region:   "EUR",
+		Currency: "EUR",
+		Fraction: 0.09,
+	}
+	price, err := suite.service.priceGroup.GetRecommendedPriceForRegion(pt, pg, 11.99)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), float64(11.99), price)
+}
+
+func (suite *PriceGroupTestSuite) TestPriceGroup_GetRecommendedPriceForRegion_Ok_ByFrom() {
+	pt := &billing.PriceTable{
+		From: 10.99,
+		To:   11.99,
+		Currencies: map[string]*billing.PriceTableCurrency{
+			"EUR": {
+				From: 10.99,
+				To:   11.99,
+			},
+		},
+	}
+	pg := &billing.PriceGroup{
+		Region:   "EUR",
+		Currency: "EUR",
+		Fraction: 0.09,
+	}
+	price, err := suite.service.priceGroup.GetRecommendedPriceForRegion(pt, pg, 10.99)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), float64(10.99), price)
 }
 
 func (suite *PriceGroupTestSuite) TestPriceGroup_MakeCurrencyList_Ok() {
@@ -428,6 +471,7 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupRecommendedPrice_E
 func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupRecommendedPrice_Error_NonePriceTable() {
 	pg := &mock.PriceTableServiceInterface{}
 	pg.On("GetByAmount", mock2.Anything).Return(nil, errors.New("price table not exists"))
+	pg.On("GetLatest", mock2.Anything).Return(nil, errors.New("price table not exists"))
 	suite.service.priceTable = pg
 
 	req := &grpc.PriceGroupRecommendedPriceRequest{}
