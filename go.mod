@@ -27,7 +27,7 @@ require (
 	github.com/paysuper/paysuper-currencies v0.0.0-20190524103445-940bc8855c5c
 	github.com/paysuper/paysuper-database-mongo v0.1.0
 	github.com/paysuper/paysuper-recurring-repository v1.0.110
-	github.com/paysuper/paysuper-tax-service v0.0.0-20190709140206-bef6637696c0
+	github.com/paysuper/paysuper-tax-service v0.0.0-20190722140034-a37f835eaad7
 	github.com/prometheus/client_golang v0.9.3-0.20190127221311-3c4408c8b829
 	github.com/stoewer/go-strcase v1.0.2
 	github.com/streadway/amqp v0.0.0-20181205114330-a314942b2fd9
