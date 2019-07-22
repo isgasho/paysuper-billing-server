@@ -15,6 +15,7 @@ import (
 const (
 	collectionNotification      = "notification"
 	collectionOnboardingProfile = "user_profile"
+	collectionOPageReview       = "page_review"
 )
 
 var (
@@ -1081,4 +1082,49 @@ func (s *Service) updateOnboardingProfile(
 	}
 
 	return profile, nil
+}
+
+func (s *Service) CreatePageReview(
+	ctx context.Context,
+	req *grpc.CreatePageReviewRequest,
+	rsp *grpc.CheckProjectRequestSignatureResponse,
+) error {
+	profile := s.getOnboardingProfileByUser(req.UserId)
+
+	if profile == nil {
+		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Message = onboardingProfileErrorNotFound
+
+		return nil
+	}
+
+	review := &grpc.PageReview{
+		Id: bson.NewObjectId().Hex(),
+		User: &grpc.PageReviewUser{
+			UserId:   req.UserId,
+			Personal: profile.Personal,
+		},
+		Review:    req.Review,
+		CreatedAt: ptypes.TimestampNow(),
+	}
+
+	err := s.db.Collection(collectionOPageReview).Insert(review)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String("collection", collectionOPageReview),
+			zap.Any("data", review),
+		)
+
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = onboardingProfileErrorUnknown
+
+		return nil
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
+
+	return nil
 }

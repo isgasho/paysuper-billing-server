@@ -51,6 +51,15 @@ type MgoUserProfile struct {
 	UpdatedAt time.Time            `bson:"updated_at"`
 }
 
+type MgoPageReview struct {
+	Id        bson.ObjectId   `bson:"_id"`
+	User      *PageReviewUser `bson:"user"`
+	Review    string          `bson:"review"`
+	IsRead    bool            `bson:"is_read"`
+	CreatedAt time.Time       `bson:"created_at"`
+	UpdatedAt time.Time       `bson:"updated_at"`
+}
+
 func (p *Product) SetBSON(raw bson.Raw) error {
 	decoded := new(MgoProduct)
 	err := raw.Unmarshal(decoded)
@@ -263,6 +272,68 @@ func (m *UserProfile) SetBSON(raw bson.Raw) error {
 	}
 
 	m.Email.ConfirmedAt, err = ptypes.TimestampProto(decoded.Email.ConfirmedAt)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *PageReview) GetBSON() (interface{}, error) {
+	st := &MgoPageReview{
+		Id:     bson.ObjectIdHex(m.Id),
+		User:   m.User,
+		Review: m.Review,
+		IsRead: m.IsRead,
+	}
+
+	if m.CreatedAt != nil {
+		t, err := ptypes.Timestamp(m.CreatedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.CreatedAt = t
+	} else {
+		st.CreatedAt = time.Now()
+	}
+
+	if m.UpdatedAt != nil {
+		t, err := ptypes.Timestamp(m.UpdatedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.UpdatedAt = t
+	} else {
+		st.UpdatedAt = time.Now()
+	}
+
+	return st, nil
+}
+
+func (m *PageReview) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoPageReview)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.User = decoded.User
+	m.Review = decoded.Review
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+
+	if err != nil {
+		return err
+	}
+
+	m.UpdatedAt, err = ptypes.TimestampProto(decoded.UpdatedAt)
 
 	if err != nil {
 		return err

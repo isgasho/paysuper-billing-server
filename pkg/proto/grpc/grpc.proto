@@ -112,6 +112,8 @@ service BillingService {
 
     rpc GetUserProfile(GetUserProfileRequest) returns (GetUserProfileResponse) {}
     rpc CreateOrUpdateUserProfile(UserProfile) returns (GetUserProfileResponse) {}
+
+    rpc CreatePageReview(CreatePageReviewRequest) returns (CheckProjectRequestSignatureResponse) {}
 }
 
 message EmptyRequest {}
@@ -1099,4 +1101,29 @@ message GetUserProfileResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     UserProfile item = 3;
+}
+
+message PageReview {
+    string id = 1;
+    PageReviewUser user = 2;
+    string review = 3;
+    bool is_read = 4;
+    // @inject_tag: json:"created_at"
+    google.protobuf.Timestamp created_at = 8;
+    // @inject_tag: json:"updated_at"
+    google.protobuf.Timestamp updated_at = 9;
+}
+
+message PageReviewUser {
+    //@inject_tag: json:"user_id" bson:"user_id"
+    string user_id = 1;
+    //@inject_tag: json:"personal" bson:"personal"
+    UserProfilePersonal personal = 2;
+}
+
+message CreatePageReviewRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string user_id = 2;
+    //@inject_tag: validate:"required,max=500"
+    string review = 3;
 }
