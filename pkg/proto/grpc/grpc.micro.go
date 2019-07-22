@@ -121,7 +121,6 @@ It has these top-level messages:
 	GetUserProfileRequest
 	GetUserProfileResponse
 	ConfirmUserEmailRequest
-	SendConfirmEmailToUserRequest
 */
 package grpc
 
@@ -240,7 +239,6 @@ type BillingService interface {
 	CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, opts ...client.CallOption) (*CreateAccountingEntryRequest, error)
 	GetUserProfile(ctx context.Context, in *GetUserProfileRequest, opts ...client.CallOption) (*GetUserProfileResponse, error)
 	CreateOrUpdateUserProfile(ctx context.Context, in *UserProfile, opts ...client.CallOption) (*GetUserProfileResponse, error)
-	SendConfirmEmailToUser(ctx context.Context, in *SendConfirmEmailToUserRequest, opts ...client.CallOption) (*GetUserProfileResponse, error)
 	ConfirmUserEmail(ctx context.Context, in *ConfirmUserEmailRequest, opts ...client.CallOption) (*CheckProjectRequestSignatureResponse, error)
 }
 
@@ -1092,16 +1090,6 @@ func (c *billingService) CreateOrUpdateUserProfile(ctx context.Context, in *User
 	return out, nil
 }
 
-func (c *billingService) SendConfirmEmailToUser(ctx context.Context, in *SendConfirmEmailToUserRequest, opts ...client.CallOption) (*GetUserProfileResponse, error) {
-	req := c.c.NewRequest(c.name, "BillingService.SendConfirmEmailToUser", in)
-	out := new(GetUserProfileResponse)
-	err := c.c.Call(ctx, req, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *billingService) ConfirmUserEmail(ctx context.Context, in *ConfirmUserEmailRequest, opts ...client.CallOption) (*CheckProjectRequestSignatureResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.ConfirmUserEmail", in)
 	out := new(CheckProjectRequestSignatureResponse)
@@ -1198,7 +1186,6 @@ type BillingServiceHandler interface {
 	CreateAccountingEntry(context.Context, *CreateAccountingEntryRequest, *CreateAccountingEntryRequest) error
 	GetUserProfile(context.Context, *GetUserProfileRequest, *GetUserProfileResponse) error
 	CreateOrUpdateUserProfile(context.Context, *UserProfile, *GetUserProfileResponse) error
-	SendConfirmEmailToUser(context.Context, *SendConfirmEmailToUserRequest, *GetUserProfileResponse) error
 	ConfirmUserEmail(context.Context, *ConfirmUserEmailRequest, *CheckProjectRequestSignatureResponse) error
 }
 
@@ -1287,7 +1274,6 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, out *CreateAccountingEntryRequest) error
 		GetUserProfile(ctx context.Context, in *GetUserProfileRequest, out *GetUserProfileResponse) error
 		CreateOrUpdateUserProfile(ctx context.Context, in *UserProfile, out *GetUserProfileResponse) error
-		SendConfirmEmailToUser(ctx context.Context, in *SendConfirmEmailToUserRequest, out *GetUserProfileResponse) error
 		ConfirmUserEmail(ctx context.Context, in *ConfirmUserEmailRequest, out *CheckProjectRequestSignatureResponse) error
 	}
 	type BillingService struct {
@@ -1631,10 +1617,6 @@ func (h *billingServiceHandler) GetUserProfile(ctx context.Context, in *GetUserP
 
 func (h *billingServiceHandler) CreateOrUpdateUserProfile(ctx context.Context, in *UserProfile, out *GetUserProfileResponse) error {
 	return h.BillingServiceHandler.CreateOrUpdateUserProfile(ctx, in, out)
-}
-
-func (h *billingServiceHandler) SendConfirmEmailToUser(ctx context.Context, in *SendConfirmEmailToUserRequest, out *GetUserProfileResponse) error {
-	return h.BillingServiceHandler.SendConfirmEmailToUser(ctx, in, out)
 }
 
 func (h *billingServiceHandler) ConfirmUserEmail(ctx context.Context, in *ConfirmUserEmailRequest, out *CheckProjectRequestSignatureResponse) error {

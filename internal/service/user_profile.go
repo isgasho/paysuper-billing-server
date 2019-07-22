@@ -27,8 +27,7 @@ const (
 var (
 	userProfileErrorNotFound                  = newBillingServerErrorMsg("op000001", "user profile not found")
 	userProfileErrorUnknown                   = newBillingServerErrorMsg("op000002", "unknown error. try request later")
-	userProfileEmailConfirmed                 = newBillingServerErrorMsg("op000003", "user email already confirmed")
-	userProfileEmailConfirmationTokenNotFound = newBillingServerErrorMsg("op000004", "user email confirmation token not found")
+	userProfileEmailConfirmationTokenNotFound = newBillingServerErrorMsg("op000003", "user email confirmation token not found")
 )
 
 type EmailConfirmToken struct {
@@ -47,12 +46,7 @@ func (s *Service) CreateOrUpdateUserProfile(
 	profile := s.getOnboardingProfileByUser(req.UserId)
 
 	if profile == nil {
-		profile = req
-		profile.Id = bson.NewObjectId().Hex()
-		profile.CreatedAt = ptypes.TimestampNow()
-		profile.UpdatedAt = ptypes.TimestampNow()
-
-		err = s.db.Collection(collectionUserProfile).Insert(profile)
+		profile, err = s.insertUserProfile(req)
 	} else {
 		profile, err = s.updateOnboardingProfile(profile, req)
 	}
@@ -108,6 +102,40 @@ func (s *Service) getOnboardingProfileByUser(userId string) (profile *grpc.UserP
 	}
 
 	return profile
+}
+
+func (s *Service) insertUserProfile(profileReq *grpc.UserProfile) (*grpc.UserProfile, error) {
+	profile := profileReq
+	profile.Id = bson.NewObjectId().Hex()
+	profile.CreatedAt = ptypes.TimestampNow()
+	profile.UpdatedAt = ptypes.TimestampNow()
+
+	err := s.db.Collection(collectionUserProfile).Insert(profile)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String("collection", collectionUserProfile),
+			zap.Any("profile", profile),
+		)
+
+		return nil, err
+	}
+
+	profile.Email.ConfirmationUrl, err = s.setUserEmailConfirmationToken(s.cfg.EmailConfirmUrl, profile)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.sendUserEmailConfirmationToken(profile)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return profile, nil
 }
 
 func (s *Service) updateOnboardingProfile(
@@ -277,53 +305,6 @@ func (s *Service) getUserCentrifugoToken(profile *grpc.UserProfile) {
 	expire := time.Now().Add(time.Minute * 30).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": profile.Id, "exp": expire})
 	profile.CentrifugoToken, _ = token.SignedString([]byte(s.cfg.CentrifugoSecret))
-}
-
-func (s *Service) SendConfirmEmailToUser(
-	ctx context.Context,
-	req *grpc.SendConfirmEmailToUserRequest,
-	rsp *grpc.GetUserProfileResponse,
-) error {
-	var err error
-
-	profile := s.getOnboardingProfileByUser(req.UserId)
-
-	if profile == nil {
-		rsp.Status = pkg.ResponseStatusNotFound
-		rsp.Message = userProfileErrorNotFound
-
-		return nil
-	}
-
-	if profile.IsEmailVerified() == true {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = userProfileEmailConfirmed
-
-		return nil
-	}
-
-	profile.Email.ConfirmationUrl, err = s.setUserEmailConfirmationToken(req.Url, profile)
-
-	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = userProfileErrorUnknown
-
-		return nil
-	}
-
-	err = s.sendUserEmailConfirmationToken(profile)
-
-	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = userProfileErrorUnknown
-
-		return nil
-	}
-
-	rsp.Status = pkg.ResponseStatusOk
-	rsp.Item = profile
-
-	return nil
 }
 
 func (s *Service) ConfirmUserEmail(
