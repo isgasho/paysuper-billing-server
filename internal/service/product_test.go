@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"github.com/ProtocolONE/rabbitmq/pkg"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -13,6 +12,7 @@ import (
 	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
+	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
 	"gopkg.in/mgo.v2/bson"
 	"testing"
 )

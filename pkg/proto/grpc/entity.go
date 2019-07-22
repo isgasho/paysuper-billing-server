@@ -107,3 +107,7 @@ func (m *UserProfile) HasCompanyMonetizationChanges(profile *UserProfile) bool {
 func (m *UserProfile) HasCompanyPlatformsChanges(profile *UserProfile) bool {
 	return m.Company.Platforms != nil && profile.Company.Platforms != m.Company.Platforms
 }
+
+func (m *UserProfile) IsEmailVerified() bool {
+	return m.Email.Confirmed == true
+}

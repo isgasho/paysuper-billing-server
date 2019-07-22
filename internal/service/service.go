@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/ProtocolONE/geoip-service/pkg/proto"
-	"github.com/ProtocolONE/rabbitmq/pkg"
 	"github.com/centrifugal/gocent"
 	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
@@ -20,6 +19,7 @@ import (
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"github.com/paysuper/paysuper-tax-service/proto"
 	"go.uber.org/zap"
+	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
 	"strings"
 	"sync"
 )
@@ -58,9 +58,9 @@ type Service struct {
 	geo              proto.GeoIpService
 	rep              repository.RepositoryService
 	tax              tax_service.TaxService
-	broker           *rabbitmq.Broker
+	broker           rabbitmq.BrokerInterface
 	centrifugoClient *gocent.Client
-	redis            *redis.Client
+	redis            redis.Cmdable
 	cacher           CacheInterface
 
 	accountingCurrency *billing.Currency
@@ -107,8 +107,8 @@ func NewBillingService(
 	geo proto.GeoIpService,
 	rep repository.RepositoryService,
 	tax tax_service.TaxService,
-	broker *rabbitmq.Broker,
-	redis *redis.Client,
+	broker rabbitmq.BrokerInterface,
+	redis redis.Cmdable,
 	cache CacheInterface,
 ) *Service {
 	return &Service{
