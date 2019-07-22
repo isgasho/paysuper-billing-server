@@ -52,12 +52,12 @@ type MgoUserProfile struct {
 }
 
 type MgoPageReview struct {
-	Id        bson.ObjectId   `bson:"_id"`
-	User      *PageReviewUser `bson:"user"`
-	Review    string          `bson:"review"`
-	IsRead    bool            `bson:"is_read"`
-	CreatedAt time.Time       `bson:"created_at"`
-	UpdatedAt time.Time       `bson:"updated_at"`
+	Id        bson.ObjectId `bson:"_id"`
+	UserId    string        `bson:"user_id"`
+	Review    string        `bson:"review"`
+	IsRead    bool          `bson:"is_read"`
+	CreatedAt time.Time     `bson:"created_at"`
+	UpdatedAt time.Time     `bson:"updated_at"`
 }
 
 func (p *Product) SetBSON(raw bson.Raw) error {
@@ -283,7 +283,7 @@ func (m *UserProfile) SetBSON(raw bson.Raw) error {
 func (m *PageReview) GetBSON() (interface{}, error) {
 	st := &MgoPageReview{
 		Id:     bson.ObjectIdHex(m.Id),
-		User:   m.User,
+		UserId: m.UserId,
 		Review: m.Review,
 		IsRead: m.IsRead,
 	}
@@ -324,7 +324,7 @@ func (m *PageReview) SetBSON(raw bson.Raw) error {
 	}
 
 	m.Id = decoded.Id.Hex()
-	m.User = decoded.User
+	m.UserId = decoded.UserId
 	m.Review = decoded.Review
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)

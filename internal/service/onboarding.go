@@ -1099,11 +1099,8 @@ func (s *Service) CreatePageReview(
 	}
 
 	review := &grpc.PageReview{
-		Id: bson.NewObjectId().Hex(),
-		User: &grpc.PageReviewUser{
-			UserId:   req.UserId,
-			Personal: profile.Personal,
-		},
+		Id:        bson.NewObjectId().Hex(),
+		UserId:    req.UserId,
 		Review:    req.Review,
 		CreatedAt: ptypes.TimestampNow(),
 	}

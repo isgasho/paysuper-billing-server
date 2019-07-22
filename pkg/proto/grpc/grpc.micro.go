@@ -122,7 +122,6 @@ It has these top-level messages:
 	GetUserProfileRequest
 	GetUserProfileResponse
 	PageReview
-	PageReviewUser
 	CreatePageReviewRequest
 */
 package grpc
