@@ -55,6 +55,7 @@ type MgoPageReview struct {
 	Id        bson.ObjectId `bson:"_id"`
 	UserId    string        `bson:"user_id"`
 	Review    string        `bson:"review"`
+	PageId    string        `bson:"page_id"`
 	IsRead    bool          `bson:"is_read"`
 	CreatedAt time.Time     `bson:"created_at"`
 	UpdatedAt time.Time     `bson:"updated_at"`
@@ -285,6 +286,7 @@ func (m *PageReview) GetBSON() (interface{}, error) {
 		Id:     bson.ObjectIdHex(m.Id),
 		UserId: m.UserId,
 		Review: m.Review,
+		PageId: m.PageId,
 		IsRead: m.IsRead,
 	}
 
@@ -326,6 +328,7 @@ func (m *PageReview) SetBSON(raw bson.Raw) error {
 	m.Id = decoded.Id.Hex()
 	m.UserId = decoded.UserId
 	m.Review = decoded.Review
+	m.PageId = decoded.PageId
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 

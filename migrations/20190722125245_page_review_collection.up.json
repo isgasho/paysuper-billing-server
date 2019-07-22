@@ -7,9 +7,13 @@
     "indexes": [
       {
         "key": {
-          "user_id": 1
+          "user_id": 1,
+          "page_id": 1
         },
-        "name": "idx_page_review_user_id"
+        "name": "idx_page_review_user_id_page_id",
+        "partialFilterExpression": {
+          "user_id": 1
+        }
       }
     ]
   }
