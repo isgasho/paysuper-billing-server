@@ -290,6 +290,7 @@ func (s *Service) ProcessVatReports(
 	res *grpc.EmptyResponse,
 ) error {
 
+	zap.L().Info("calc annual turnovers")
 	err := s.CalcAnnualTurnovers(ctx, &grpc.EmptyRequest{}, &grpc.EmptyResponse{})
 	if err != nil {
 		return err
@@ -300,21 +301,25 @@ func (s *Service) ProcessVatReports(
 		return err
 	}
 
+	zap.L().Info("process accounting entries")
 	err = handler.ProcessAccountingEntries()
 	if err != nil {
 		return err
 	}
 
+	zap.L().Info("updating order view")
 	err = handler.UpdateOrderView()
 	if err != nil {
 		return err
 	}
 
+	zap.L().Info("processing vat reports")
 	err = handler.ProcessVatReports()
 	if err != nil {
 		return err
 	}
 
+	zap.L().Info("updating vat reports status")
 	return handler.ProcessVatReportsStatus()
 }
 

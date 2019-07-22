@@ -19,6 +19,8 @@ require (
 	github.com/jinzhu/copier v0.0.0-20190625015134-976e0346caa8
 	github.com/jinzhu/now v1.0.1
 	github.com/kelseyhightower/envconfig v1.3.0
+	github.com/micro/cli v0.1.0
+	github.com/micro/go-config v0.14.0
 	github.com/micro/go-micro v1.0.0
 	github.com/micro/go-plugins v1.0.0
 	github.com/micro/protoc-gen-micro v0.8.0 // indirect

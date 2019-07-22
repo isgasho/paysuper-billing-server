@@ -97,7 +97,8 @@ const (
 
 	MigrationSource = "file://./migrations"
 
-	ErrorGrpcServiceCallFailed = "gRPC call failed"
+	ErrorGrpcServiceCallFailed       = "gRPC call failed"
+	ErrorVatReportDateCantBeInFuture = "vat report date cant be in future"
 
 	ObjectTypeBalanceTransaction = "balance_transaction"
 
