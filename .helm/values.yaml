@@ -42,7 +42,9 @@ backend:
     - SMTP_PORT
     - SMTP_USER
     - SMTP_PASSWORD
+    - EMAIL_NOTIFICATION_FINANCIER_RECIPIENT 
     - EMAIL_NOTIFICATION_SENDER
+    - ORDER_VIEW_UPDATE_BATCH_SIZE
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
