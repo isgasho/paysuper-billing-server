@@ -21,7 +21,7 @@ import (
 
 const (
 	collectionUserProfile        = "user_profile"
-	collectionOPageReview        = "page_review"
+	collectionOPageReview        = "feedback"
 	userEmailConfirmTokenStorage = "email_confirm:token:%s"
 )
 
