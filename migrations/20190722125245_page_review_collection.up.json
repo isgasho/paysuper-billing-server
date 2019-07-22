@@ -1,0 +1,16 @@
+[
+  {
+    "create": "page_review"
+  },
+  {
+    "createIndexes": "page_review",
+    "indexes": [
+      {
+        "key": {
+          "user_id": 1
+        },
+        "name": "idx_page_review_user_id"
+      }
+    ]
+  }
+]
