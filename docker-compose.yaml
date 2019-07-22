@@ -35,8 +35,13 @@ services:
     image: grokzen/redis-cluster
     container_name: payone-billing-service-redis-cluster
     restart: always
+    environment:
+      IP: "0.0.0.0"
     networks:
       - p1devnet
+    ports:
+      - '7000-7007:7000-7007'
+      - '5000-5002:5000-5002'
 
 volumes:
   payone-billing-service-redis:

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
@@ -79,6 +80,10 @@ func (s *Service) GetMerchantBy(
 
 		return nil
 	}
+
+	expire := time.Now().Add(time.Hour * 3).Unix()
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": merchant.Id, "exp": expire})
+	merchant.CentrifugoToken, _ = token.SignedString([]byte(s.cfg.CentrifugoSecret))
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = merchant
@@ -238,16 +243,14 @@ func (s *Service) ChangeMerchant(
 	merchant.Banking = &billing.MerchantBanking{}
 
 	if req.Banking != nil && req.Banking.Currency != "" {
-		currency, err := s.currency.GetByCodeA3(req.Banking.Currency)
-
-		if err != nil {
-			zap.S().Errorf("Get currency for merchant failed", "err", err.Error(), "request", req)
+		if !contains(s.supportedCurrencies, req.Banking.Currency) {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = merchantErrorCurrencyNotFound
+
 			return nil
 		}
 
-		merchant.Banking.Currency = currency
+		merchant.Banking.Currency = req.Banking.Currency
 	}
 
 	merchant.Name = req.Name
@@ -710,7 +713,7 @@ func (s *Service) ChangeMerchantPaymentMethod(
 	req.Integration.Integrated = req.HasIntegration()
 
 	if req.HasPerTransactionCurrency() {
-		if _, err := s.currency.GetByCodeA3(req.GetPerTransactionCurrency()); err != nil {
+		if !contains(s.supportedCurrencies, req.GetPerTransactionCurrency()) {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = orderErrorCurrencyNotFound
 

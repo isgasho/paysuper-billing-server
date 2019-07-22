@@ -1,0 +1,81 @@
+[
+  {
+    "create": "accounting_entry"
+  },
+  {
+    "create": "royalty_report"
+  },
+  {
+    "createIndexes": "royalty_report",
+    "indexes": [
+      {
+        "key": {
+          "deleted": 1
+        },
+        "name": "idx_deleted_royalty_report"
+      },
+      {
+        "key": {
+          "merchant_id": 1,
+          "deleted": 1
+        },
+        "name": "idx_deleted_merchant_id_royalty_report"
+      },
+      {
+        "key": {
+          "deleted": 1,
+          "period_from": 1,
+          "period_to": 1
+        },
+        "name": "idx_deleted_period_from_period_to_royalty_report"
+      },
+      {
+        "key": {
+          "deleted": 1,
+          "period_from": 1,
+          "period_to": 1,
+          "merchant_id": 1
+        },
+        "name": "idx_deleted_period_from_period_to_merchant_id_royalty_report"
+      }
+    ]
+  },
+  {
+    "createIndexes": "order",
+    "indexes": [
+      {
+        "key": {
+          "royalty_report_id": 1
+        },
+        "name": "idx_royalty_report_id_order"
+      },
+      {
+        "key": {
+          "pm_order_close_date": 1,
+          "status": 1
+        },
+        "name": "idx_pm_order_close_date_status_order"
+      },
+      {
+        "key": {
+          "project.merchant_id": 1,
+          "pm_order_close_date": 1,
+          "status": 1
+        },
+        "name": "idx_project_merchant_id_pm_order_close_date_status_order"
+      }
+    ]
+  },
+  {
+    "createIndexes": "accounting_entry",
+    "indexes": [
+      {
+        "key": {
+          "merchant_id": 1,
+          "created_at": 1
+        },
+        "name": "idx_merchant_id_created_at_accounting_entry"
+      }
+    ]
+  }
+]

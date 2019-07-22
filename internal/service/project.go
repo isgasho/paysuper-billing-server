@@ -61,7 +61,7 @@ func (s *Service) ChangeProject(
 	}
 
 	if req.CallbackCurrency != "" {
-		if _, err := s.currency.GetByCodeA3(req.CallbackCurrency); err != nil {
+		if !contains(s.supportedCurrencies, req.CallbackCurrency) {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = projectErrorCallbackCurrencyIncorrect
 
@@ -70,7 +70,7 @@ func (s *Service) ChangeProject(
 	}
 
 	if req.LimitsCurrency != "" {
-		if _, err := s.currency.GetByCodeA3(req.LimitsCurrency); err != nil {
+		if !contains(s.supportedCurrencies, req.LimitsCurrency) {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = projectErrorLimitCurrencyIncorrect
 

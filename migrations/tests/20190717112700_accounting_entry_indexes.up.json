@@ -1,0 +1,27 @@
+[
+  {
+    "createIndexes": "accounting_entry",
+    "indexes": [
+      {
+        "key": {
+          "country": 1
+        },
+        "name": "country"
+      }
+    ]
+  },
+  {
+    "createIndexes": "accounting_entry",
+    "indexes": [
+      {
+        "key": {
+          "type": 1,
+          "source.type": 1
+        },
+        "name": "entry_types"
+      }
+    ]
+  }
+]
+
+

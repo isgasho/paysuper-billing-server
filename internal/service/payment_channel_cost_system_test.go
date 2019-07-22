@@ -42,26 +42,26 @@ func (suite *PaymentChannelCostSystemTestSuite) SetupTest() {
 		suite.FailNow("Database connection failed", "%v", err)
 	}
 
-	rub := &billing.Currency{
-		CodeInt:  643,
-		CodeA3:   "RUB",
-		Name:     &billing.Name{Ru: "Российский рубль", En: "Russian ruble"},
-		IsActive: true,
-	}
-
 	suite.log, err = zap.NewProduction()
 
 	if err != nil {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
-	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
-
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache)
+	suite.service = NewBillingService(
+		db,
+		cfg,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		suite.cache,
+		mock.NewCurrencyServiceMockOk(),
+		nil,
+	)
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -152,11 +152,12 @@ func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_Grp
 
 func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_GrpcSet_Ok() {
 	req := &billing.PaymentChannelCostSystem{
-		Name:      "VISA",
-		Region:    "CIS",
-		Country:   "AZ",
-		Percent:   1.7,
-		FixAmount: 4,
+		Name:              "VISA",
+		Region:            "CIS",
+		Country:           "AZ",
+		Percent:           1.7,
+		FixAmount:         4,
+		FixAmountCurrency: "USD",
 	}
 
 	res := grpc.PaymentChannelCostSystemResponse{}
@@ -169,11 +170,12 @@ func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_Grp
 	assert.Equal(suite.T(), res.Item.Id, suite.paymentChannelCostSystemId)
 
 	req2 := &billing.PaymentChannelCostSystem{
-		Name:      "MASTERCARD",
-		Region:    "US",
-		Country:   "",
-		Percent:   2.2,
-		FixAmount: 1,
+		Name:              "MASTERCARD",
+		Region:            "US",
+		Country:           "",
+		Percent:           2.2,
+		FixAmount:         1,
+		FixAmountCurrency: "USD",
 	}
 
 	res2 := grpc.PaymentChannelCostSystemResponse{}

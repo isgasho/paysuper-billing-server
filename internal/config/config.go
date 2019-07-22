@@ -31,6 +31,13 @@ type CacheRedis struct {
 	MaxRedirects int      `envconfig:"CACHE_REDIS_MAX_REDIRECTS" default:"8"`
 }
 
+type Smtp struct {
+	SmtpHost     string `envconfig:"SMTP_HOST" required:"true"`
+	SmtpPort     int    `envconfig:"SMTP_PORT" default:"587"`
+	SmtpUser     string `envconfig:"SMTP_USER" required:"true"`
+	SmtpPassword string `envconfig:"SMTP_PASSWORD" required:"true"`
+}
+
 type Config struct {
 	MongoDsn           string `envconfig:"MONGO_DSN" required:"true"`
 	MongoDialTimeout   string `envconfig:"MONGO_DIAL_TIMEOUT" required:"false" default:"10"`
@@ -44,14 +51,33 @@ type Config struct {
 	CentrifugoURL    string `envconfig:"CENTRIFUGO_URL" required:"false" default:"http://127.0.0.1:8000"`
 	BrokerAddress    string `envconfig:"BROKER_ADDRESS" default:"amqp://127.0.0.1:5672"`
 
+	MicroRegistry string `envconfig:"MICRO_REGISTRY" required:"false"`
+
+	RoyaltyReportPeriod        int64  `envconfig:"ROYALTY_REPORT_PERIOD" default:"604800"`
+	RoyaltyReportTimeZone      string `envconfig:"ROYALTY_REPORT_TIMEZONE" default:"Europe/Moscow"`
+	RoyaltyReportAcceptTimeout int64  `envconfig:"ROYALTY_REPORT_TIMEZONE" default:"432000"`
+
+	CentrifugoMerchantChannel  string `envconfig:"CENTRIFUGO_MERCHANT_CHANNEL" default:"paysuper:merchant#%s"`
+	CentrifugoFinancierChannel string `envconfig:"CENTRIFUGO_FINANCIER_CHANNEL" default:"paysuper:financier"`
+
+	EmailNotificationSender string `envconfig:"EMAIL_NOTIFICATION_SENDER" required:"true"`
+
+	EmailNotificationFinancierRecipient string `envconfig:"EMAIL_NOTIFICATION_FINANCIER_RECIPIENT" required:"true"`
+
+	OrderViewUpdateBatchSize int `envconfig:"ORDER_VIEW_UPDATE_BATCH_SIZE" default:"200"`
+
 	*PaymentSystemConfig
 	*CustomerTokenConfig
 	*CacheRedis
+	*Smtp
 }
 
 func NewConfig() (*Config, error) {
 	cfg := &Config{}
 	err := envconfig.Process("", cfg)
+	if err != nil {
+		return nil, err
+	}
 
 	pem, err := base64.StdEncoding.DecodeString(cfg.CookiePublicKeyBase64)
 

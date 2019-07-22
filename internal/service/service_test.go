@@ -62,29 +62,6 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		suite.FailNow("Creating RabbitMQ publisher failed", "%v", err)
 	}
 
-	rub := &billing.Currency{
-		CodeInt:  643,
-		CodeA3:   "RUB",
-		Name:     &billing.Name{Ru: "Российский рубль", En: "Russian ruble"},
-		IsActive: true,
-	}
-
-	usd := &billing.Currency{
-		CodeInt:  840,
-		CodeA3:   "USD",
-		Name:     &billing.Name{Ru: "Доллар США", En: "US Dollar"},
-		IsActive: true,
-	}
-	uah := &billing.Currency{
-		CodeInt:  980,
-		CodeA3:   "UAH",
-		Name:     &billing.Name{Ru: "Украинская гривна", En: "Ukrainian Hryvnia"},
-		IsActive: true,
-	}
-	if err := InitTestCurrency(db, []interface{}{rub, usd, uah}); err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
-
 	redisdb := mock.NewTestRedis()
 	suite.service = NewBillingService(
 		db,
@@ -95,6 +72,8 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		broker,
 		nil,
 		NewCacheRedis(redisdb),
+		mock.NewCurrencyServiceMockOk(),
+		nil,
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -104,7 +83,7 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 	ps := &billing.PaymentSystem{
 		Id:                 bson.NewObjectId().Hex(),
 		Name:               "CardPay",
-		AccountingCurrency: rub,
+		AccountingCurrency: "RUB",
 		AccountingPeriod:   "every-day",
 		Country:            "",
 		IsActive:           true,
@@ -127,7 +106,7 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		Group:            "BANKCARD",
 		MinPaymentAmount: 100,
 		MaxPaymentAmount: 15000,
-		Currencies:       []int32{643, 840, 980},
+		Currencies:       []string{"RUB", "USD", "EUR"},
 		ExternalId:       "BANKCARD",
 		TestSettings: map[string]*billing.PaymentMethodParams{
 			"RUB": {
@@ -165,7 +144,7 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 			},
 		},
 		Banking: &billing.MerchantBanking{
-			Currency: rub,
+			Currency: "RUB",
 			Name:     "Bank name",
 		},
 		IsVatEnabled:              true,
@@ -186,7 +165,7 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 					Fee: 2.5,
 					PerTransaction: &billing.MerchantPaymentMethodPerTransactionCommission{
 						Fee:      30,
-						Currency: rub.CodeA3,
+						Currency: "RUB",
 					},
 				},
 				Integration: &billing.MerchantPaymentMethodIntegration{
@@ -201,9 +180,9 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 
 	projectDefault := &billing.Project{
 		Id:                       bson.NewObjectId().Hex(),
-		CallbackCurrency:         rub.CodeA3,
+		CallbackCurrency:         "RUB",
 		CallbackProtocol:         "default",
-		LimitsCurrency:           rub.CodeA3,
+		LimitsCurrency:           "RUB",
 		MaxPaymentAmount:         15000,
 		MinPaymentAmount:         1,
 		Name:                     map[string]string{"en": "test project 1"},
@@ -216,9 +195,9 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 	projectXsolla := &billing.Project{
 		Id:                 bson.NewObjectId().Hex(),
 		MerchantId:         bson.NewObjectId().Hex(),
-		CallbackCurrency:   rub.CodeA3,
+		CallbackCurrency:   "RUB",
 		CallbackProtocol:   "xsolla",
-		LimitsCurrency:     rub.CodeA3,
+		LimitsCurrency:     "RUB",
 		MaxPaymentAmount:   15000,
 		MinPaymentAmount:   0,
 		Name:               map[string]string{"en": "test project 2"},
@@ -229,9 +208,9 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 	projectCardpay := &billing.Project{
 		Id:                 bson.NewObjectId().Hex(),
 		MerchantId:         bson.NewObjectId().Hex(),
-		CallbackCurrency:   rub.CodeA3,
+		CallbackCurrency:   "RUB",
 		CallbackProtocol:   "cardpay",
-		LimitsCurrency:     rub.CodeA3,
+		LimitsCurrency:     "RUB",
 		MaxPaymentAmount:   15000,
 		MinPaymentAmount:   0,
 		Name:               map[string]string{"en": "test project 3"},
@@ -240,79 +219,13 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		Status:             pkg.ProjectStatusInProduction,
 	}
 
-	rate := []*billing.CurrencyRate{
-		{
-			CurrencyFrom: 980,
-			CurrencyTo:   643,
-			Rate:         0.411128442,
-			Date:         ptypes.TimestampNow(),
-			IsActive:     true,
-		},
-		{
-			CurrencyFrom: 980,
-			CurrencyTo:   980,
-			Rate:         27.13085922,
-			Date:         ptypes.TimestampNow(),
-			IsActive:     true,
-		},
-		{
-			CurrencyFrom: 980,
-			CurrencyTo:   978,
-			Rate:         30.96446748,
-			Date:         ptypes.TimestampNow(),
-			IsActive:     true,
-		},
-		{
-			CurrencyFrom: 840,
-			CurrencyTo:   980,
-			Rate:         0.034680066,
-			Date:         ptypes.TimestampNow(),
-			IsActive:     true,
-		},
-		{
-			CurrencyFrom: 840,
-			CurrencyTo:   643,
-			Rate:         0.01469893,
-			Date:         ptypes.TimestampNow(),
-			IsActive:     true,
-		},
-		{
-			CurrencyFrom: 840,
-			CurrencyTo:   840,
-			Rate:         1.00000000,
-			Date:         ptypes.TimestampNow(),
-			IsActive:     true,
-		},
-		{
-			CurrencyFrom: 643,
-			CurrencyTo:   840,
-			Rate:         64.01146400,
-			Date:         ptypes.TimestampNow(),
-			IsActive:     true,
-		},
-		{
-			CurrencyFrom: 643,
-			CurrencyTo:   643,
-			Rate:         1,
-			Date:         ptypes.TimestampNow(),
-			IsActive:     true,
-		},
-		{
-			CurrencyFrom: 643,
-			CurrencyTo:   980,
-			Rate:         2.2885792,
-			Date:         ptypes.TimestampNow(),
-			IsActive:     true,
-		},
-	}
-
 	pmQiwi := &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
 		Name:             "Qiwi",
 		Group:            "QIWI",
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
-		Currencies:       []int32{643, 840, 980},
+		Currencies:       []string{"RUB", "USD", "EUR"},
 		ExternalId:       "QIWI",
 		TestSettings: map[string]*billing.PaymentMethodParams{
 			"RUB": {
@@ -330,7 +243,7 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		Group:            "BITCOIN",
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
-		Currencies:       []int32{643, 840, 980},
+		Currencies:       []string{"RUB", "USD", "EUR"},
 		ExternalId:       "BITCOIN",
 		TestSettings: map[string]*billing.PaymentMethodParams{
 			"RUB": {
@@ -341,93 +254,6 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		Type:            "crypto",
 		IsActive:        true,
 		PaymentSystemId: ps.Id,
-	}
-
-	commissionStartDate, err := ptypes.TimestampProto(time.Now().Add(time.Minute * -10))
-
-	if err != nil {
-		suite.FailNow("Commission start date conversion failed", "%v", err)
-	}
-
-	commissions := []interface{}{
-		&billing.Commission{
-			PaymentMethodId:         pmBankCard.Id,
-			ProjectId:               projectDefault.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   1,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmQiwi.Id,
-			ProjectId:               projectDefault.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   2,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmBitcoin.Id,
-			ProjectId:               projectDefault.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   3,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmBankCard.Id,
-			ProjectId:               projectXsolla.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   1,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmQiwi.Id,
-			ProjectId:               projectXsolla.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   2,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmBitcoin.Id,
-			ProjectId:               projectXsolla.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   3,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmBankCard.Id,
-			ProjectId:               projectCardpay.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   1,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmQiwi.Id,
-			ProjectId:               projectCardpay.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   2,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmBitcoin.Id,
-			ProjectId:               projectCardpay.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   3,
-			StartDate:               commissionStartDate,
-		},
-	}
-
-	err = suite.db.Collection(collectionCommission).Insert(commissions...)
-
-	if err != nil {
-		suite.FailNow("Insert commission test data failed", "%v", err)
 	}
 
 	projects := []*billing.Project{
@@ -449,10 +275,6 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 
-	if err = suite.service.currencyRate.MultipleInsert(rate); err != nil {
-		suite.FailNow("Insert rates test data failed", "%v", err)
-	}
-
 	if err := suite.service.project.MultipleInsert(projects); err != nil {
 		suite.FailNow("Insert project test data failed", "%v", err)
 	}
@@ -472,7 +294,18 @@ func (suite *BillingServiceTestSuite) TearDownTest() {
 func (suite *BillingServiceTestSuite) TestNewBillingService() {
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	service := NewBillingService(suite.db, suite.cfg, nil, nil, nil, nil, nil, suite.cache)
+	service := NewBillingService(
+		suite.db,
+		suite.cfg,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		suite.cache,
+		mock.NewCurrencyServiceMockOk(),
+		nil,
+	)
 
 	err := service.Init()
 	assert.Nil(suite.T(), err)
@@ -485,7 +318,18 @@ func (suite *BillingServiceTestSuite) TestBillingService_AccountingCurrencyInitE
 
 	cfg.AccountingCurrency = "AUD"
 	suite.cache = NewCacheRedis(mock.NewTestRedis())
-	service := NewBillingService(suite.db, cfg, nil, nil, nil, nil, nil, suite.cache)
+	service := NewBillingService(
+		suite.db,
+		cfg,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		suite.cache,
+		mock.NewCurrencyServiceMockError(),
+		nil,
+	)
 
 	err = service.Init()
 	assert.Error(suite.T(), err)
@@ -494,7 +338,18 @@ func (suite *BillingServiceTestSuite) TestBillingService_AccountingCurrencyInitE
 func (suite *BillingServiceTestSuite) TestBillingService_IsProductionEnvironment() {
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	service := NewBillingService(suite.db, suite.cfg, nil, nil, nil, nil, nil, suite.cache)
+	service := NewBillingService(
+		suite.db,
+		suite.cfg,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		suite.cache,
+		mock.NewCurrencyServiceMockOk(),
+		nil,
+	)
 
 	err := service.Init()
 	assert.Nil(suite.T(), err)

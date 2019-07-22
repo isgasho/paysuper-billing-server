@@ -15,11 +15,13 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"github.com/paysuper/paysuper-tax-service/proto"
 	"go.uber.org/zap"
+	"gopkg.in/gomail.v2"
 	"strings"
 	"sync"
 )
@@ -51,23 +53,20 @@ const (
 )
 
 type Service struct {
-	db               *mongodb.Source
-	mx               sync.Mutex
-	cfg              *config.Config
-	ctx              context.Context
-	geo              proto.GeoIpService
-	rep              repository.RepositoryService
-	tax              tax_service.TaxService
-	broker           *rabbitmq.Broker
-	centrifugoClient *gocent.Client
-	redis            *redis.Client
-	cacher           CacheInterface
-
-	accountingCurrency *billing.Currency
-
-	currency                   CurrencyServiceInterface
-	currencyRate               *CurrencyRate
-	commission                 *Commission
+	db                         *mongodb.Source
+	mx                         sync.Mutex
+	cfg                        *config.Config
+	ctx                        context.Context
+	geo                        proto.GeoIpService
+	rep                        repository.RepositoryService
+	tax                        tax_service.TaxService
+	broker                     *rabbitmq.Broker
+	centrifugoClient           *gocent.Client
+	redis                      *redis.Client
+	cacher                     CacheInterface
+	curService                 currencies.CurrencyratesService
+	smtpCl                     gomail.SendCloser
+	supportedCurrencies        []string
 	country                    CountryServiceInterface
 	project                    *Project
 	merchant                   *Merchant
@@ -82,6 +81,7 @@ type Service struct {
 	payoutCostSystem           *PayoutCostSystem
 	priceTable                 PriceTableServiceInterface
 	productService             ProductServiceInterface
+	turnover                   *Turnover
 }
 
 func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {
@@ -110,25 +110,26 @@ func NewBillingService(
 	broker *rabbitmq.Broker,
 	redis *redis.Client,
 	cache CacheInterface,
+	curService currencies.CurrencyratesService,
+	smtpCl gomail.SendCloser,
 ) *Service {
 	return &Service{
-		db:     db,
-		cfg:    cfg,
-		geo:    geo,
-		rep:    rep,
-		tax:    tax,
-		broker: broker,
-		redis:  redis,
-		cacher: cache,
+		db:         db,
+		cfg:        cfg,
+		geo:        geo,
+		rep:        rep,
+		tax:        tax,
+		broker:     broker,
+		redis:      redis,
+		cacher:     cache,
+		curService: curService,
+		smtpCl:     smtpCl,
 	}
 }
 
 func (s *Service) Init() (err error) {
 	s.paymentMethod = newPaymentMethodService(s)
 	s.merchant = newMerchantService(s)
-	s.currency = newCurrencyService(s)
-	s.currencyRate = newCurrencyRateService(s)
-	s.commission = newCommissionService(s)
 	s.country = newCountryService(s)
 	s.project = newProjectService(s)
 	s.priceGroup = newPriceGroupService(s)
@@ -141,6 +142,7 @@ func (s *Service) Init() (err error) {
 	s.payoutCostSystem = newPayoutCostSystemService(s)
 	s.priceTable = newPriceTableService(s)
 	s.productService = newProductService(s)
+	s.turnover = newTurnoverService(s)
 
 	s.centrifugoClient = gocent.New(
 		gocent.Config{
@@ -150,11 +152,23 @@ func (s *Service) Init() (err error) {
 		},
 	)
 
-	s.accountingCurrency, err = s.currency.GetByCodeA3(s.cfg.AccountingCurrency)
-
-	if err != nil {
+	if s.cfg.AccountingCurrency == "" {
 		return errors.New(errorAccountingCurrencyNotFound)
 	}
+
+	sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currencies.EmptyRequest{})
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorGrpcServiceCallFailed,
+			zap.Error(err),
+			zap.String(errorFieldService, "CurrencyRatesService"),
+			zap.String(errorFieldMethod, "GetSupportedCurrencies"),
+		)
+
+		return err
+	}
+
+	s.supportedCurrencies = sCurr.Currencies
 
 	return
 }
@@ -178,18 +192,6 @@ func (s *Service) UpdateMerchant(ctx context.Context, req *billing.Merchant, rsp
 
 	if err != nil {
 		zap.S().Errorf("Update merchant failed", "err", err.Error(), "order", req)
-	}
-
-	return nil
-}
-
-func (s *Service) GetConvertRate(ctx context.Context, req *grpc.ConvertRateRequest, rsp *grpc.ConvertRateResponse) error {
-	rate, err := s.currencyRate.Convert(req.From, req.To, 1)
-
-	if err != nil {
-		zap.S().Errorf("Get convert rate failed", "err", err.Error(), "from", req.From, "to", req.To)
-	} else {
-		rsp.Rate = rate
 	}
 
 	return nil

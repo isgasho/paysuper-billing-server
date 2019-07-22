@@ -31,8 +31,8 @@ type ReportTestSuite struct {
 	cache   CacheInterface
 	log     *zap.Logger
 
-	currencyRub             *billing.Currency
-	currencyUsd             *billing.Currency
+	currencyRub             string
+	currencyUsd             string
 	project                 *billing.Project
 	project1                *billing.Project
 	pmBankCard              *billing.PaymentMethod
@@ -55,49 +55,8 @@ func (suite *ReportTestSuite) SetupTest() {
 	db, err := mongodb.NewDatabase()
 	assert.NoError(suite.T(), err, "Database connection failed")
 
-	suite.currencyRub = &billing.Currency{
-		CodeInt:  643,
-		CodeA3:   "RUB",
-		Name:     &billing.Name{Ru: "Российский рубль", En: "Russian ruble"},
-		IsActive: true,
-	}
-	suite.currencyUsd = &billing.Currency{
-		CodeInt:  840,
-		CodeA3:   "USD",
-		Name:     &billing.Name{Ru: "Доллар США", En: "US Dollar"},
-		IsActive: true,
-	}
-
-	rate := []*billing.CurrencyRate{
-		{
-			CurrencyFrom: 840,
-			CurrencyTo:   643,
-			Rate:         0.015625,
-			Date:         ptypes.TimestampNow(),
-			IsActive:     true,
-		},
-		{
-			CurrencyFrom: 643,
-			CurrencyTo:   840,
-			Rate:         64,
-			Date:         ptypes.TimestampNow(),
-			IsActive:     true,
-		},
-		{
-			CurrencyFrom: 643,
-			CurrencyTo:   643,
-			Rate:         1,
-			Date:         ptypes.TimestampNow(),
-			IsActive:     true,
-		},
-		{
-			CurrencyFrom: 643,
-			CurrencyTo:   51,
-			Rate:         1,
-			Date:         ptypes.TimestampNow(),
-			IsActive:     true,
-		},
-	}
+	suite.currencyRub = "RUB"
+	suite.currencyUsd = "USD"
 
 	pgRub := &billing.PriceGroup{
 		Id:       bson.NewObjectId().Hex(),
@@ -145,7 +104,7 @@ func (suite *ReportTestSuite) SetupTest() {
 		Group:            "BANKCARD",
 		MinPaymentAmount: 100,
 		MaxPaymentAmount: 15000,
-		Currencies:       []int32{643, 840, 980},
+		Currencies:       []string{"RUB", "USD", "EUR"},
 		ExternalId:       "BANKCARD",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
 			"RUB": {
@@ -179,7 +138,7 @@ func (suite *ReportTestSuite) SetupTest() {
 		Group:            "BITCOIN_1",
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
-		Currencies:       []int32{643, 840, 980},
+		Currencies:       []string{"RUB", "USD", "EUR"},
 		ExternalId:       "BITCOIN",
 		Type:             "crypto",
 		IsActive:         true,
@@ -236,9 +195,9 @@ func (suite *ReportTestSuite) SetupTest() {
 
 	project := &billing.Project{
 		Id:                       bson.NewObjectId().Hex(),
-		CallbackCurrency:         suite.currencyRub.CodeA3,
+		CallbackCurrency:         "RUB",
 		CallbackProtocol:         "default",
-		LimitsCurrency:           suite.currencyUsd.CodeA3,
+		LimitsCurrency:           "USD",
 		MaxPaymentAmount:         15000,
 		MinPaymentAmount:         1,
 		Name:                     map[string]string{"en": "test project 1"},
@@ -250,9 +209,9 @@ func (suite *ReportTestSuite) SetupTest() {
 	}
 	project1 := &billing.Project{
 		Id:                 bson.NewObjectId().Hex(),
-		CallbackCurrency:   suite.currencyRub.CodeA3,
+		CallbackCurrency:   "RUB",
 		CallbackProtocol:   "default",
-		LimitsCurrency:     suite.currencyRub.CodeA3,
+		LimitsCurrency:     "RUB",
 		MaxPaymentAmount:   15000,
 		MinPaymentAmount:   0,
 		Name:               map[string]string{"en": "project incorrect payment method id"},
@@ -265,31 +224,6 @@ func (suite *ReportTestSuite) SetupTest() {
 		project,
 		project1,
 	}
-
-	commissionStartDate, err := ptypes.TimestampProto(time.Now().Add(time.Minute * -10))
-	assert.NoError(suite.T(), err, "Commission start date conversion failed")
-
-	commissions := []interface{}{
-		&billing.Commission{
-			PaymentMethodId:         pmBankCard.Id,
-			ProjectId:               project.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   1,
-			StartDate:               commissionStartDate,
-		},
-		&billing.Commission{
-			PaymentMethodId:         pmBitcoin1.Id,
-			ProjectId:               project.Id,
-			PaymentMethodCommission: 1,
-			PspCommission:           2,
-			TotalCommissionToUser:   3,
-			StartDate:               commissionStartDate,
-		},
-	}
-
-	err = db.Collection(collectionCommission).Insert(commissions...)
-	assert.NoError(suite.T(), err, "Insert commission test data failed")
 
 	bin := &BinData{
 		Id:                 bson.NewObjectId(),
@@ -318,10 +252,6 @@ func (suite *ReportTestSuite) SetupTest() {
 		},
 	)
 
-	if err := InitTestCurrency(db, []interface{}{suite.currencyRub, suite.currencyUsd}); err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
-
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
@@ -333,6 +263,8 @@ func (suite *ReportTestSuite) SetupTest() {
 		broker,
 		redisClient,
 		suite.cache,
+		mock.NewCurrencyServiceMockOk(),
+		nil,
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -351,10 +283,6 @@ func (suite *ReportTestSuite) SetupTest() {
 	country := []*billing.Country{ru, us}
 	if err := suite.service.country.MultipleInsert(country); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
-	}
-
-	if err = suite.service.currencyRate.MultipleInsert(rate); err != nil {
-		suite.FailNow("Insert rates test data failed", "%v", err)
 	}
 
 	if err := suite.service.project.MultipleInsert(projects); err != nil {
@@ -434,7 +362,7 @@ func (suite *ReportTestSuite) TestReport_ReturnEmptyList() {
 func (suite *ReportTestSuite) TestReport_FindById() {
 	oReq := &billing.OrderCreateRequest{
 		ProjectId: suite.project.Id,
-		Currency:  suite.currencyRub.CodeA3,
+		Currency:  "RUB",
 		Amount:    100,
 	}
 	rsp0 := &grpc.OrderCreateProcessResponse{}
@@ -462,7 +390,7 @@ func (suite *ReportTestSuite) TestReport_FindById() {
 func (suite *ReportTestSuite) TestReport_FindByMerchantId() {
 	oReq := &billing.OrderCreateRequest{
 		ProjectId: suite.project.Id,
-		Currency:  suite.currencyRub.CodeA3,
+		Currency:  "RUB",
 		Amount:    100,
 	}
 	rsp0 := &grpc.OrderCreateProcessResponse{}
@@ -495,7 +423,7 @@ func (suite *ReportTestSuite) TestReport_FindByMerchantId() {
 func (suite *ReportTestSuite) TestReport_FindByProject() {
 	oReq := &billing.OrderCreateRequest{
 		ProjectId: suite.project.Id,
-		Currency:  suite.currencyRub.CodeA3,
+		Currency:  "RUB",
 		Amount:    100,
 	}
 	rsp0 := &grpc.OrderCreateProcessResponse{}
@@ -523,7 +451,7 @@ func (suite *ReportTestSuite) TestReport_FindByProject() {
 func (suite *ReportTestSuite) TestReport_FindByCountry() {
 	oReq := &billing.OrderCreateRequest{
 		ProjectId: suite.project.Id,
-		Currency:  suite.currencyRub.CodeA3,
+		Currency:  "RUB",
 		User: &billing.OrderUser{
 			Address: &billing.OrderBillingAddress{
 				Country: "RU",
@@ -556,14 +484,21 @@ func (suite *ReportTestSuite) TestReport_FindByCountry() {
 func (suite *ReportTestSuite) TestReport_FindByPaymentMethod() {
 	oReq := &billing.OrderCreateRequest{
 		ProjectId:     suite.project.Id,
-		Currency:      suite.currencyRub.CodeA3,
+		Currency:      "RUB",
 		Amount:        100,
 		PaymentMethod: suite.pmBankCard.Group,
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+			Address: &billing.OrderBillingAddress{
+				Country: "RU",
+			},
+		},
 	}
 	pm, err := suite.service.paymentMethod.GetById(suite.pmBankCard.Id)
 	assert.NoError(suite.T(), err)
 	pm.ProductionSettings = map[string]*billing.PaymentMethodParams{
-		suite.currencyRub.CodeA3: {Secret: "test", Currency: "RUB"},
+		suite.currencyRub: {Secret: "test", Currency: "RUB"},
 	}
 	err = suite.service.paymentMethod.Update(pm)
 
@@ -592,9 +527,16 @@ func (suite *ReportTestSuite) TestReport_FindByPaymentMethod() {
 func (suite *ReportTestSuite) TestReport_FindByPaymentMethod_ErrorOnEmptyPaymentProductionSettings() {
 	oReq := &billing.OrderCreateRequest{
 		ProjectId:     suite.project.Id,
-		Currency:      suite.currencyRub.CodeA3,
+		Currency:      "RUB",
 		Amount:        100,
 		PaymentMethod: suite.pmBankCard.Group,
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+			Address: &billing.OrderBillingAddress{
+				Country: "RU",
+			},
+		},
 	}
 	rsp0 := &grpc.OrderCreateProcessResponse{}
 	err := suite.service.OrderCreateProcess(context.TODO(), oReq, rsp0)
@@ -605,7 +547,7 @@ func (suite *ReportTestSuite) TestReport_FindByPaymentMethod_ErrorOnEmptyPayment
 func (suite *ReportTestSuite) TestReport_FindByStatus() {
 	oReq := &billing.OrderCreateRequest{
 		ProjectId: suite.project.Id,
-		Currency:  suite.currencyRub.CodeA3,
+		Currency:  "RUB",
 		Amount:    100,
 	}
 	rsp0 := &grpc.OrderCreateProcessResponse{}
@@ -637,7 +579,7 @@ func (suite *ReportTestSuite) TestReport_FindByStatus() {
 func (suite *ReportTestSuite) TestReport_FindByAccount() {
 	oReq := &billing.OrderCreateRequest{
 		ProjectId: suite.project.Id,
-		Currency:  suite.currencyRub.CodeA3,
+		Currency:  "RUB",
 		Amount:    100,
 		Account:   "account",
 	}
@@ -666,7 +608,7 @@ func (suite *ReportTestSuite) TestReport_FindByAccount() {
 func (suite *ReportTestSuite) TestReport_FindByPmDateFrom() {
 	oReq := &billing.OrderCreateRequest{
 		ProjectId: suite.project.Id,
-		Currency:  suite.currencyRub.CodeA3,
+		Currency:  "RUB",
 		Amount:    100,
 	}
 	rsp0 := &grpc.OrderCreateProcessResponse{}
@@ -699,7 +641,7 @@ func (suite *ReportTestSuite) TestReport_FindByPmDateFrom() {
 func (suite *ReportTestSuite) TestReport_FindByPmDateTo() {
 	oReq := &billing.OrderCreateRequest{
 		ProjectId: suite.project.Id,
-		Currency:  suite.currencyRub.CodeA3,
+		Currency:  "RUB",
 		Amount:    100,
 	}
 	rsp0 := &grpc.OrderCreateProcessResponse{}
@@ -732,7 +674,7 @@ func (suite *ReportTestSuite) TestReport_FindByPmDateTo() {
 func (suite *ReportTestSuite) TestReport_FindByProjectDateFrom() {
 	oReq := &billing.OrderCreateRequest{
 		ProjectId: suite.project.Id,
-		Currency:  suite.currencyRub.CodeA3,
+		Currency:  "RUB",
 		Amount:    100,
 	}
 	rsp0 := &grpc.OrderCreateProcessResponse{}
@@ -765,7 +707,7 @@ func (suite *ReportTestSuite) TestReport_FindByProjectDateFrom() {
 func (suite *ReportTestSuite) TestReport_FindByProjectDateTo() {
 	oReq := &billing.OrderCreateRequest{
 		ProjectId: suite.project.Id,
-		Currency:  suite.currencyRub.CodeA3,
+		Currency:  "RUB",
 		Amount:    100,
 	}
 	rsp0 := &grpc.OrderCreateProcessResponse{}
@@ -798,7 +740,7 @@ func (suite *ReportTestSuite) TestReport_FindByProjectDateTo() {
 func (suite *ReportTestSuite) TestReport_FindByQuickSearch_Id() {
 	oReq := &billing.OrderCreateRequest{
 		ProjectId: suite.project.Id,
-		Currency:  suite.currencyRub.CodeA3,
+		Currency:  "RUB",
 		Amount:    100,
 	}
 	rsp0 := &grpc.OrderCreateProcessResponse{}
@@ -826,7 +768,7 @@ func (suite *ReportTestSuite) TestReport_FindByQuickSearch_Id() {
 func (suite *ReportTestSuite) TestReport_FindByQuickSearch_ProjectOrderId() {
 	oReq := &billing.OrderCreateRequest{
 		ProjectId: suite.project.Id,
-		Currency:  suite.currencyRub.CodeA3,
+		Currency:  "RUB",
 		Amount:    100,
 	}
 	rsp0 := &grpc.OrderCreateProcessResponse{}
@@ -858,7 +800,7 @@ func (suite *ReportTestSuite) TestReport_FindByQuickSearch_ProjectOrderId() {
 func (suite *ReportTestSuite) TestReport_FindByQuickSearch_UserExternalId() {
 	oReq := &billing.OrderCreateRequest{
 		ProjectId: suite.project.Id,
-		Currency:  suite.currencyRub.CodeA3,
+		Currency:  "RUB",
 		Amount:    100,
 	}
 	rsp0 := &grpc.OrderCreateProcessResponse{}
@@ -890,7 +832,7 @@ func (suite *ReportTestSuite) TestReport_FindByQuickSearch_UserExternalId() {
 func (suite *ReportTestSuite) TestReport_FindByQuickSearch_ProjectName() {
 	oReq := &billing.OrderCreateRequest{
 		ProjectId: suite.project.Id,
-		Currency:  suite.currencyRub.CodeA3,
+		Currency:  "RUB",
 		Amount:    100,
 	}
 	rsp0 := &grpc.OrderCreateProcessResponse{}
@@ -931,7 +873,7 @@ func (suite *ReportTestSuite) TestReport_FindByQuickSearch_ProjectName() {
 func (suite *ReportTestSuite) TestReport_FindByQuickSearch_PaymentMethodName() {
 	oReq := &billing.OrderCreateRequest{
 		ProjectId: suite.project.Id,
-		Currency:  suite.currencyRub.CodeA3,
+		Currency:  "RUB",
 		Amount:    100,
 	}
 	rsp0 := &grpc.OrderCreateProcessResponse{}
@@ -976,7 +918,7 @@ func (suite *ReportTestSuite) TestReport_GetOrder_ReturnError_NotFound() {
 func (suite *ReportTestSuite) TestReport_GetOrder_ReturnOrder() {
 	oReq := &billing.OrderCreateRequest{
 		ProjectId: suite.project.Id,
-		Currency:  suite.currencyRub.CodeA3,
+		Currency:  "RUB",
 		Amount:    100,
 	}
 	rsp0 := &grpc.OrderCreateProcessResponse{}

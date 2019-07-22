@@ -106,7 +106,7 @@ func (s *Service) ListRefunds(
 ) error {
 	var refunds []*billing.Refund
 
-	query := bson.M{"order.uuid": req.OrderId}
+	query := bson.M{"original_order.uuid": req.OrderId}
 	err := s.db.Collection(collectionRefund).Find(query).Limit(int(req.Limit)).Skip(int(req.Offset)).All(&refunds)
 
 	if err != nil {
@@ -139,7 +139,7 @@ func (s *Service) GetRefund(
 ) error {
 	var refund *billing.Refund
 
-	query := bson.M{"_id": bson.ObjectIdHex(req.RefundId), "order.uuid": req.OrderId}
+	query := bson.M{"_id": bson.ObjectIdHex(req.RefundId), "original_order.uuid": req.OrderId}
 	err := s.db.Collection(collectionRefund).Find(query).One(&refund)
 
 	if err != nil {
@@ -203,7 +203,7 @@ func (s *Service) ProcessRefundCallback(
 		return nil
 	}
 
-	order, err := s.getOrderById(refund.Order.Id)
+	order, err := s.getOrderById(refund.OriginalOrder.Id)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -245,11 +245,12 @@ func (s *Service) ProcessRefundCallback(
 	}
 
 	if pErr == nil {
-		err = s.createOrderByRefund(order, refund)
+		refund.CreatedOrderId, err = s.createOrderByRefund(order, refund)
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusSystemError
 			rsp.Error = err.Error()
+			return nil
 		}
 	}
 
@@ -265,17 +266,30 @@ func (s *Service) ProcessRefundCallback(
 	}
 
 	if pErr == nil {
+		err = s.onRefundNotify(ctx, refund, order)
+
+		if err != nil {
+			rsp.Error = err.Error()
+			rsp.Status = pkg.ResponseStatusSystemError
+
+			return nil
+		}
+
 		processor := &createRefundProcessor{service: s}
 		refundedAmount, _ := processor.getRefundedAmount(order)
 
 		if refundedAmount == order.TotalPaymentAmount {
-			order.PrivateStatus = constant.OrderStatusRefund
+			if refund.IsChargeback == true {
+				order.PrivateStatus = constant.OrderStatusChargeback
+			} else {
+				order.PrivateStatus = constant.OrderStatusRefund
+			}
 			order.UpdatedAt = ptypes.TimestampNow()
 			order.RefundedAt = ptypes.TimestampNow()
 			order.Refunded = true
 			order.Refund = &billing.OrderNotificationRefund{
 				Amount:        refundedAmount,
-				Currency:      order.PaymentMethodIncomeCurrency.CodeA3,
+				Currency:      order.Currency,
 				Reason:        refund.Reason,
 				ReceiptNumber: refund.Id,
 			}
@@ -293,7 +307,7 @@ func (s *Service) ProcessRefundCallback(
 	return nil
 }
 
-func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refund) error {
+func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refund) (string, error) {
 	refundOrder := new(billing.Order)
 	err := copier.Copy(&refundOrder, &order)
 
@@ -304,7 +318,41 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 			zap.Any("refund", refund),
 		)
 
-		return refundErrorUnknown
+		return "", refundErrorUnknown
+	}
+
+	country, err := s.country.GetByIsoCodeA2(order.GetCountry())
+	if err != nil {
+		zap.L().Error(
+			"country not found",
+			zap.Error(err),
+		)
+		return "", refundErrorUnknown
+	}
+
+	isVatDeduction := false
+
+	if country.VatEnabled {
+		from, _, err := s.getLastVatReportTime(country.VatPeriodMonth)
+		if err != nil {
+			zap.L().Error(
+				"cannot get last vat report time",
+				zap.Error(err),
+			)
+			return "", refundErrorUnknown
+		}
+		orderPaydAt, err := ptypes.Timestamp(order.PaymentMethodOrderClosedAt)
+		if err != nil {
+			zap.L().Error(
+				"cannot get convert PaymentMethodOrderClosedAt date to time",
+				zap.Error(err),
+			)
+			return "", refundErrorUnknown
+		}
+
+		if orderPaydAt.Unix() < from.Unix() {
+			isVatDeduction = true
+		}
 	}
 
 	refundOrder.Id = bson.NewObjectId().Hex()
@@ -315,23 +363,22 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 	refundOrder.UpdatedAt = ptypes.TimestampNow()
 	refundOrder.RefundedAt = ptypes.TimestampNow()
 	refundOrder.Refunded = true
+	refundOrder.PaymentMethodOrderClosedAt = ptypes.TimestampNow()
 	refundOrder.Refund = &billing.OrderNotificationRefund{
 		Amount:        refund.Amount,
-		Currency:      refund.Currency.CodeA3,
+		Currency:      refund.Currency,
 		Reason:        refund.Reason,
 		ReceiptNumber: refund.Id,
 	}
 	refundOrder.ParentId = order.Id
+	refundOrder.IsVatDeduction = isVatDeduction
 	refundOrder.ParentPaymentAt = refundOrder.PaymentMethodOrderClosedAt
-	refundOrder.ProjectIncomeAmount = refund.Amount
-	refundOrder.ProjectOutcomeAmount = refund.Amount
-	refundOrder.PaymentMethodOutcomeAmount = refund.Amount
-	refundOrder.PaymentMethodIncomeAmount = refund.Amount
 	refundOrder.PaymentMethodOrderClosedAt = ptypes.TimestampNow()
-	refundOrder.OrderAmount = refund.Amount
+
 	refundOrder.TotalPaymentAmount = refund.Amount
 
-	refundOrder.Tax.Amount = tools.FormatAmount(refundOrder.OrderAmount / (1 + float64(refundOrder.Tax.Rate)) * float64(refundOrder.Tax.Rate))
+	refundOrder.OrderAmount = tools.FormatAmount(refund.Amount / (1 + float64(refundOrder.Tax.Rate)) * float64(refundOrder.Tax.Rate))
+	refundOrder.Tax.Amount = tools.FormatAmount(refundOrder.TotalPaymentAmount - refundOrder.OrderAmount)
 
 	err = s.db.Collection(collectionOrder).Insert(refundOrder)
 
@@ -343,10 +390,10 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 			zap.Any("query", refundOrder),
 		)
 
-		return refundErrorUnknown
+		return "", refundErrorUnknown
 	}
 
-	return nil
+	return refundOrder.Id, nil
 }
 
 func (p *createRefundProcessor) processCreateRefund() (*billing.Refund, error) {
@@ -366,14 +413,14 @@ func (p *createRefundProcessor) processCreateRefund() (*billing.Refund, error) {
 
 	refund := &billing.Refund{
 		Id: bson.NewObjectId().Hex(),
-		Order: &billing.RefundOrder{
+		OriginalOrder: &billing.RefundOrder{
 			Id:   order.Id,
 			Uuid: order.Uuid,
 		},
 		Amount:    p.request.Amount,
 		CreatorId: p.request.CreatorId,
 		Reason:    fmt.Sprintf(refundDefaultReasonMask, p.checked.order.Id),
-		Currency:  p.checked.order.PaymentMethodIncomeCurrency,
+		Currency:  p.checked.order.Currency,
 		Status:    pkg.RefundStatusCreated,
 		CreatedAt: ptypes.TimestampNow(),
 		UpdatedAt: ptypes.TimestampNow(),
@@ -382,6 +429,12 @@ func (p *createRefundProcessor) processCreateRefund() (*billing.Refund, error) {
 			Zip:     order.User.Address.PostalCode,
 			State:   order.User.Address.State,
 		},
+		IsChargeback: p.request.IsChargeback,
+	}
+
+	if refund.IsChargeback == true {
+		refund.Amount = p.checked.order.TotalPaymentAmount
+		refund.IsChargeback = p.request.IsChargeback
 	}
 
 	if order.Tax != nil {
@@ -445,8 +498,8 @@ func (p *createRefundProcessor) getRefundedAmount(order *billing.Order) (float64
 	query := []bson.M{
 		{
 			"$match": bson.M{
-				"status":   bson.M{"$nin": []int32{pkg.RefundStatusRejected}},
-				"order.id": bson.ObjectIdHex(order.Id),
+				"status":            bson.M{"$nin": []int32{pkg.RefundStatusRejected}},
+				"original_order.id": bson.ObjectIdHex(order.Id),
 			},
 		},
 		{"$group": bson.M{"_id": "$order.id", "amount": bson.M{"$sum": "$amount"}}},
@@ -460,4 +513,20 @@ func (p *createRefundProcessor) getRefundedAmount(order *billing.Order) (float64
 	}
 
 	return res.Amount, nil
+}
+
+func (s *Service) getRefundById(id string) (*billing.Refund, error) {
+	var refund *billing.Refund
+
+	err := s.db.Collection(collectionRefund).FindId(bson.ObjectIdHex(id)).One(&refund)
+
+	if err != nil {
+		if err != mgo.ErrNotFound {
+			zap.S().Errorf("Query to find refund by id failed", "err", err.Error(), "id", id)
+		}
+
+		return nil, err
+	}
+
+	return refund, nil
 }

@@ -17,14 +17,17 @@ require (
 	github.com/golang/protobuf v1.3.1
 	github.com/google/uuid v1.1.1
 	github.com/jinzhu/copier v0.0.0-20190625015134-976e0346caa8
+	github.com/jinzhu/now v1.0.1
 	github.com/kelseyhightower/envconfig v1.3.0
+	github.com/micro/cli v0.1.0
+	github.com/micro/go-config v0.14.0
 	github.com/micro/go-micro v1.0.0
 	github.com/micro/go-plugins v1.0.0
 	github.com/micro/protoc-gen-micro v0.8.0 // indirect
 	github.com/paysuper/paysuper-currencies v0.0.0-20190524103445-940bc8855c5c
 	github.com/paysuper/paysuper-database-mongo v0.1.0
-	github.com/paysuper/paysuper-recurring-repository v1.0.107
-	github.com/paysuper/paysuper-tax-service v0.0.0-20190308105725-016a09c27fbd
+	github.com/paysuper/paysuper-recurring-repository v1.0.110
+	github.com/paysuper/paysuper-tax-service v0.0.0-20190722140034-a37f835eaad7
 	github.com/prometheus/client_golang v0.9.3-0.20190127221311-3c4408c8b829
 	github.com/stoewer/go-strcase v1.0.2
 	github.com/streadway/amqp v0.0.0-20181205114330-a314942b2fd9
@@ -38,5 +41,6 @@ require (
 	golang.org/x/net v0.0.0-20190424112056-4829fb13d2c6
 	google.golang.org/grpc v1.20.1
 	gopkg.in/go-playground/validator.v9 v9.26.0
+	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce
 )

@@ -49,21 +49,6 @@ func (suite *OnboardingTestSuite) SetupTest() {
 	db, err := mongodb.NewDatabase()
 	assert.NoError(suite.T(), err, "Database connection failed")
 
-	rub := &billing.Currency{
-		CodeInt:  643,
-		CodeA3:   "RUB",
-		Name:     &billing.Name{Ru: "Российский рубль", En: "Russian ruble"},
-		IsActive: true,
-	}
-
-	rate := &billing.CurrencyRate{
-		CurrencyFrom: 643,
-		CurrencyTo:   840,
-		Rate:         64,
-		Date:         ptypes.TimestampNow(),
-		IsActive:     true,
-	}
-
 	country := &billing.Country{
 		IsoCodeA2:       "RU",
 		Region:          "Russia",
@@ -78,7 +63,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 	ps := &billing.PaymentSystem{
 		Id:                 bson.NewObjectId().Hex(),
 		Name:               "CardPay",
-		AccountingCurrency: rub,
+		AccountingCurrency: "RUB",
 		AccountingPeriod:   "every-day",
 		Country:            "",
 		IsActive:           true,
@@ -91,7 +76,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 		Group:            "BANKCARD",
 		MinPaymentAmount: 100,
 		MaxPaymentAmount: 15000,
-		Currencies:       []int32{643, 840, 980},
+		Currencies:       []string{"RUB", "USD", "EUR"},
 		ExternalId:       "BANKCARD",
 		TestSettings: map[string]*billing.PaymentMethodParams{
 			"RUB": {
@@ -112,7 +97,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 		Group:            "QIWI",
 		MinPaymentAmount: 100,
 		MaxPaymentAmount: 15000,
-		Currencies:       []int32{643, 840, 980},
+		Currencies:       []string{"RUB", "USD", "EUR"},
 		ExternalId:       "QIWI",
 		TestSettings: map[string]*billing.PaymentMethodParams{
 			"RUB": {
@@ -154,7 +139,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 			},
 		},
 		Banking: &billing.MerchantBanking{
-			Currency: rub,
+			Currency: "RUB",
 			Name:     "Bank name",
 		},
 		IsVatEnabled:              true,
@@ -175,7 +160,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 					Fee: 2.5,
 					PerTransaction: &billing.MerchantPaymentMethodPerTransactionCommission{
 						Fee:      30,
-						Currency: rub.CodeA3,
+						Currency: "RUB",
 					},
 				},
 				Integration: &billing.MerchantPaymentMethodIntegration{
@@ -215,7 +200,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 			},
 		},
 		Banking: &billing.MerchantBanking{
-			Currency: rub,
+			Currency: "RUB",
 			Name:     "Bank name",
 		},
 		IsVatEnabled:              true,
@@ -251,7 +236,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 			},
 		},
 		Banking: &billing.MerchantBanking{
-			Currency: rub,
+			Currency: "RUB",
 			Name:     "Bank name",
 		},
 		IsVatEnabled:              true,
@@ -266,9 +251,9 @@ func (suite *OnboardingTestSuite) SetupTest() {
 
 	project := &billing.Project{
 		Id:                       bson.NewObjectId().Hex(),
-		CallbackCurrency:         rub.CodeA3,
+		CallbackCurrency:         "RUB",
 		CallbackProtocol:         "default",
-		LimitsCurrency:           rub.CodeA3,
+		LimitsCurrency:           "RUB",
 		MaxPaymentAmount:         15000,
 		MinPaymentAmount:         1,
 		Name:                     map[string]string{"en": "test project 1"},
@@ -279,31 +264,23 @@ func (suite *OnboardingTestSuite) SetupTest() {
 		MerchantId:               merchant.Id,
 	}
 
-	commissionStartDate, err := ptypes.TimestampProto(time.Now().Add(time.Minute * -10))
-	assert.NoError(suite.T(), err, "Commission start date conversion failed")
-
-	commission := &billing.Commission{
-		PaymentMethodId:         pmBankCard.Id,
-		ProjectId:               project.Id,
-		PaymentMethodCommission: 1,
-		PspCommission:           2,
-		TotalCommissionToUser:   1,
-		StartDate:               commissionStartDate,
-	}
-
-	err = db.Collection(collectionCommission).Insert(commission)
-	assert.NoError(suite.T(), err, "Insert commission test data failed")
-
 	suite.log, err = zap.NewProduction()
 	assert.NoError(suite.T(), err, "Logger initialization failed")
 
-	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
-
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache)
+	suite.service = NewBillingService(
+		db,
+		cfg,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		suite.cache,
+		mock.NewCurrencyServiceMockOk(),
+		nil,
+	)
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -325,10 +302,6 @@ func (suite *OnboardingTestSuite) SetupTest() {
 
 	if err := suite.service.country.Insert(country); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
-	}
-
-	if err = suite.service.currencyRate.Insert(rate); err != nil {
-		suite.FailNow("Insert rates test data failed", "%v", err)
 	}
 
 	suite.merchant = merchant
@@ -591,6 +564,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_CreateMerchant_C
 	}
 
 	cmres := &grpc.ChangeMerchantResponse{}
+
+	suite.service.curService = mock.NewCurrencyServiceMockError()
+	suite.service.supportedCurrencies = []string{}
+
 	err := suite.service.ChangeMerchant(context.TODO(), req, cmres)
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), cmres.Status, pkg.ResponseStatusBadData)
@@ -612,6 +589,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantById_MerchantId_Ok()
 	assert.Equal(suite.T(), suite.merchant.Id, rsp.Item.Id)
 	assert.Equal(suite.T(), suite.merchant.Website, rsp.Item.Website)
 	assert.Equal(suite.T(), suite.merchant.Name, rsp.Item.Name)
+	assert.NotEmpty(suite.T(), rsp.Item.CentrifugoToken)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantById_UserId_Ok() {
@@ -1699,12 +1677,6 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_Upda
 
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rspMerchantPaymentMethodAdd.Status)
-
-	comm, err := suite.service.commission.GetByProjectIdAndMethod(suite.project.Id, suite.pmQiwi.Id)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), reqMerchantPaymentMethodAdd.Commission.Fee, comm.Fee)
-	assert.Equal(suite.T(), reqMerchantPaymentMethodAdd.Commission.PerTransaction.Fee, comm.PerTransaction.Fee)
-	assert.Equal(suite.T(), reqMerchantPaymentMethodAdd.Commission.PerTransaction.Currency, comm.PerTransaction.Currency)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_PaymentMethodsIsEmpty_Ok() {
@@ -1906,6 +1878,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantPaymentMethod_Cur
 		IsActive: true,
 	}
 	rsp := &grpc.MerchantPaymentMethodResponse{}
+
+	suite.service.curService = mock.NewCurrencyServiceMockError()
+	suite.service.supportedCurrencies = []string{}
+
 	err := suite.service.ChangeMerchantPaymentMethod(context.TODO(), req, rsp)
 
 	assert.Nil(suite.T(), err)

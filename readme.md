@@ -27,6 +27,14 @@ This service contain all business logic for payment processing
 | CUSTOMER_COOKIE_PRIVATE_KEY          | true     | -                     | Base64 encoded RSA private key - used for decrypt customer browser cookies content. Minimal length of RSA private key must be 4096  |
 | REDIS_HOST                           | -        | 127.0.0.1:6379        | Redis server host                                                                                                                   |
 | REDIS_PASSWORD                       | -        | ""                    | Password to access to Redis server                                                                                                  |
+| SMTP_HOST                            | true     | -                     | SMTP server address                                                                                                                 |
+| SMTP_PORT                            | true     | -                     | SMTP server port                                                                                                                    |
+| SMTP_USER                            | true     | -                     | User account to authorize on SMTP server                                                                                            |
+| SMTP_PASSWORD                        | true     | -                     | Password to authorize user on SMTP server                                                                                           |
+| EMAIL_NOTIFICATION_SENDER            | true     | -                     | Sender email for using to send alert notifications to users                                                                         |
+| CENTRIFUGO_MERCHANT_CHANNEL          | -        | paysuper:merchant#%s  | Centrifugo channel name to send notifications to merchant                                                                           |
+| CENTRIFUGO_FINANCIER_CHANNEL         | -        | paysuper:financier    | Centrifugo channel name to send notifications to financier                                                                          |
+|EMAIL_NOTIFICATION_FINANCIER_RECIPIENT| true     |                       | Email of financier, to get vat reports notification                                                                                 |
 
 ## Docker Deployment
 
@@ -34,6 +42,28 @@ This service contain all business logic for payment processing
 docker build -f Dockerfile -t paysuper_billing_service .
 docker run -d -e "MONGO_HOST=127.0.0.1:27017" -e "MONGO_DB="paysuper" ... e="CACHE_PROJECT_PAYMENT_METHOD_TIMEOUT=600" paysuper_billing_service
 ```
+
+## Starting the app
+
+This application can be started in 2 modes:
+
+* as microservice, to maintain rates requests from other components of system. This mode does not requests any rates
+* as console app, to run the tasks, that passed as command line argument
+
+Console mode can be used with cron schedule.
+
+To start app in console mode you must set `-task` flag in command line to one of these values:
+
+- `vat_reports` - to update vat reports data. This task must be run every day, at the end of day.
+- `royalty_reports` - to build royalty reports for merchants. This task must be run once on a week.
+- `royalty_reports_accept` - to auto-accept toyalty reports. This task must be run daily.
+
+Notice: for `vat-reports` task you may pass an report date (from past only!) for that you need get an report. 
+Date passed as `date` parameter, in YYYY-MM-DD format 
+
+Example: `$ paysuper-billing-server.exe -task=vat_reports -date="2018-12-31"` runs VAT reports calculation for last day of December, 2018.
+
+To run application as microservice simply don't pass any flags to command line :)  
 
 ## Architecture
 

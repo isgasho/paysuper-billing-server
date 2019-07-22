@@ -25,23 +25,17 @@ It has these top-level messages:
 	OrderTax
 	OrderBillingAddress
 	OrderUser
-	OrderPaymentRoyaltyData
 	Order
 	CountryRestriction
 	OrderItem
 	OrderPaginate
-	Currency
 	PaymentMethodOrder
 	PaymentMethodParams
 	PaymentSystem
 	PaymentMethodCard
 	PaymentMethodWallet
 	PaymentMethodCrypto
-	OrderFee
-	OrderFeePsp
-	OrderFeePaymentSystem
 	ProjectPaymentMethod
-	CurrencyRate
 	PaymentMethod
 	Vat
 	Commission
@@ -74,14 +68,13 @@ It has these top-level messages:
 	OrderIssuer
 	OrderNotificationRefund
 	GetCountryRequest
+	CountryVatThreshold
 	Country
 	CountriesList
 	GetPriceGroupRequest
 	PriceGroup
 	ZipCodeState
 	ZipCode
-	CurrencyList
-	GetCurrencyRequest
 	PaymentChannelCostSystem
 	PaymentChannelCostSystemRequest
 	PaymentChannelCostSystemList
@@ -98,10 +91,23 @@ It has these top-level messages:
 	MoneyBackCostMerchantList
 	MoneyBackCostMerchantListRequest
 	PayoutCostSystem
+	AccountingEntrySource
 	AccountingEntry
+	RoyaltyReportDetails
+	RoyaltyReportCorrection
+	RoyaltyReport
+	RoyaltyReportChanges
+	RoyaltyReportOrder
+	VatTransaction
+	VatReport
+	AnnualTurnover
+	OrderViewMoney
+	OrderViewPublic
+	OrderViewPrivate
 	PriceGroupRecommendedPrice
 	PriceTable
 	PriceTableCurrency
+	Id
 */
 package billing
 

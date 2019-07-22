@@ -9,6 +9,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"sort"
 )
@@ -28,6 +29,7 @@ var (
 	errorMoneybackSystemGet       = newBillingServerErrorMsg("mbs000002", "can't get money back setting for system")
 	errorMoneybackSystemSetFailed = newBillingServerErrorMsg("mbs000003", "can't set money back setting for system")
 	errorMoneybackSystemDelete    = newBillingServerErrorMsg("mbs000004", "can't delete money back setting for system")
+	errorMoneybackSystemCurrency  = newBillingServerErrorMsg("mbs000005", "currency not supported")
 )
 
 type moneyBackCostSystems struct {
@@ -95,7 +97,17 @@ func (s *Service) SetMoneyBackCostSystem(
 		}
 	}
 
-	// todo: check fo valid payout currency after integrations with currencies service
+	sCurr, err := s.curService.GetSettlementCurrencies(ctx, &currencies.EmptyRequest{})
+	if err != nil {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorMoneybackSystemCurrency
+		return nil
+	}
+	if !contains(sCurr.Currencies, req.PayoutCurrency) {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorMoneybackSystemCurrency
+		return nil
+	}
 
 	req.UpdatedAt = ptypes.TimestampNow()
 	req.IsActive = true
