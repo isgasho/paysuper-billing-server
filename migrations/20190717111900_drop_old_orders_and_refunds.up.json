@@ -4,5 +4,11 @@
   },
   {
     "create": "order"
+  },
+  {
+    "drop": "refund"
+  },
+  {
+    "create": "refund"
   }
 ]
