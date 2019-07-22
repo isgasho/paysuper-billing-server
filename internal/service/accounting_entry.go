@@ -38,6 +38,8 @@ var (
 	accountingEntryErrorRefundExceedsOrderAmount = newBillingServerErrorMsg("ae00008", "refund exceeds order amount")
 	accountingEntryErrorCountryNotFound          = newBillingServerErrorMsg("ae00009", "country not found")
 	accountingEntryUnknownEvent                  = newBillingServerErrorMsg("ae00010", "accounting unknown event")
+	accountingEntryErrorUnknownSourceType        = newBillingServerErrorMsg("ae00011", "unknown accounting entry source type")
+	accountingEntryErrorInvalidSourceId          = newBillingServerErrorMsg("ae00012", "accounting entry invalid source id")
 
 	availableAccountingEntries = map[string]bool{
 		pkg.AccountingEntryTypeRealGrossRevenue:                    true,
@@ -84,6 +86,12 @@ var (
 		pkg.AccountingEntryTypeMerchantReverseTaxFee:               true,
 		pkg.AccountingEntryTypeMerchantReverseRevenue:              true,
 		pkg.AccountingEntryTypePsRefundProfit:                      true,
+	}
+
+	availableAccountingEntriesSourceTypes = map[string]bool{
+		collectionOrder:    true,
+		collectionRefund:   true,
+		collectionMerchant: true,
 	}
 )
 
@@ -787,6 +795,14 @@ func (h *accountingEntry) GetExchangeCurrentCommon(req *currencies.ExchangeCurre
 func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
 	if _, ok := availableAccountingEntries[entry.Type]; !ok {
 		return accountingEntryErrorUnknownEntry
+	}
+
+	if _, ok := availableAccountingEntriesSourceTypes[entry.Source.Type]; !ok {
+		return accountingEntryErrorUnknownSourceType
+	}
+
+	if entry.Source.Id == "" {
+		return accountingEntryErrorInvalidSourceId
 	}
 
 	if entry.OriginalAmount == 0 && entry.OriginalCurrency == "" {
