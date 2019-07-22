@@ -739,15 +739,3 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreatePageReview_Ok() {
 		assert.NotEmpty(suite.T(), v.PageId)
 	}
 }
-
-func (suite *UserProfileTestSuite) TestUserProfile_CreatePageReview_UserNotFound_Error() {
-	req := &grpc.CreatePageReviewRequest{
-		UserId: bson.NewObjectId().Hex(),
-		Review: "review 1",
-	}
-	rsp := &grpc.CheckProjectRequestSignatureResponse{}
-	err := suite.service.CreatePageReview(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, rsp.Status)
-	assert.Equal(suite.T(), userProfileErrorNotFound, rsp.Message)
-}

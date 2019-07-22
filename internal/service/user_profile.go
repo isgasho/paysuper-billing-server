@@ -465,15 +465,6 @@ func (s *Service) CreatePageReview(
 	req *grpc.CreatePageReviewRequest,
 	rsp *grpc.CheckProjectRequestSignatureResponse,
 ) error {
-	profile := s.getOnboardingProfileByUser(req.UserId)
-
-	if profile == nil {
-		rsp.Status = pkg.ResponseStatusNotFound
-		rsp.Message = userProfileErrorNotFound
-
-		return nil
-	}
-
 	review := &grpc.PageReview{
 		Id:        bson.NewObjectId().Hex(),
 		UserId:    req.UserId,
