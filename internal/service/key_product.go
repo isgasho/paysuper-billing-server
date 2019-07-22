@@ -4,8 +4,10 @@ import (
 	"context"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"go.uber.org/zap"
+	"gopkg.in/mgo.v2"
 )
 
 const (
@@ -27,6 +29,8 @@ var (
 	keyProductRetrieveError          = newBillingServerErrorMsg("kp000012", "query to retrieve key product failed")
 	keyProductErrorUpsert            = newBillingServerErrorMsg("kp000013", "query to insert/update key product failed")
 	keyProductErrorDelete            = newBillingServerErrorMsg("kp000014", "query to remove key product failed")
+	keyProductMerchantNotFound       = newBillingServerErrorMsg("kp000015", "merchant not found")
+	keyProductMerchantDbError        = newBillingServerErrorMsg("kp000016", "can't retrieve data from db for merchant")
 )
 
 var availablePlatforms = map[string]grpc.Platform{
@@ -123,7 +127,30 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 	return nil
 }
 
+func (s *Service) checkMerchantExist(id string) (bool, error) {
+	var c billing.Merchant
+	err := s.db.Collection(collectionMerchant).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&c)
+
+	if err == mgo.ErrNotFound {
+		return false, nil
+	}
+
+	if err != nil {
+		return false, keyProductMerchantDbError
+	}
+
+	return true, nil
+}
+
 func (s *Service) GetKeyProducts(ctx context.Context, req *grpc.ListKeyProductsRequest, res *grpc.ListKeyProductsResponse) error {
+	if exist, err := s.checkMerchantExist(req.MerchantId); exist == false || err != nil {
+		if err != nil {
+			return err
+		}
+
+		return keyProductMerchantNotFound
+	}
+
 	query := bson.M{"merchant_id": bson.ObjectIdHex(req.MerchantId), "deleted": false}
 
 	if req.ProjectId != "" {
@@ -165,6 +192,14 @@ func (s *Service) GetKeyProducts(ctx context.Context, req *grpc.ListKeyProductsR
 }
 
 func (s *Service) GetKeyProduct(ctx context.Context, req *grpc.RequestKeyProduct, res *grpc.KeyProduct) error {
+	if exist, err := s.checkMerchantExist(req.MerchantId); exist == false || err != nil {
+		if err != nil {
+			return err
+		}
+
+		return keyProductMerchantNotFound
+	}
+
 	query := bson.M{
 		"_id":         bson.ObjectIdHex(req.Id),
 		"merchant_id": bson.ObjectIdHex(req.MerchantId),
