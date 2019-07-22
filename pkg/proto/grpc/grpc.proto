@@ -260,17 +260,15 @@ message CreateOrUpdateKeyProductRequest {
     string merchant_id = 10;
     //@inject_tag: validate:"omitempty,hexadecimal,len=24"
     string id = 11;
-    //@inject_tag: validate:"omitempty" json:"object"
+    //@inject_tag: json:"object"
     string object = 12;
-    //@inject_tag: validate:"omitempty" json:"metadata"
+    //@inject_tag: json:"metadata"
     map<string, string> metadata = 13;
 }
 
 message PublishKeyProductRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string key_product_id = 1;
-    //@inject_tag: validate:"hexadecimal,len=24"
-    string merchant_id = 2;
 }
 
 message ListPlatformsRequest {
@@ -737,48 +735,46 @@ message SetMerchantS3AgreementRequest {
 }
 
 message KeyProduct {
-    //@inject_tag: validate:"omitempty,hexadecimal,len=24" json:"id" bson:"_id"
+    //@inject_tag: validate:"omitempty,hexadecimal,len=24" json:"id"
     string id = 1;
-    //@inject_tag: validate:"required,hexadecimal,len=24" json:"-" bson:"merchant_id"
+    //@inject_tag: validate:"required,hexadecimal,len=24" json:"-"
     string merchant_id = 2;
-    //@inject_tag: validate:"required,hexadecimal,len=24" json:"project_id" bson:"project_id"
+    //@inject_tag: validate:"required,hexadecimal,len=24" json:"project_id"
     string project_id = 3;
     //@inject_tag: validate:"omitempty" json:"object"
     string object = 4;
-    //@inject_tag: validate:"required" json:"type"
-    string type = 5;
-    //@inject_tag: validate:"required" json:"sku" bson:"sku"
-    string sku = 6;
+    //@inject_tag: validate:"required" json:"sku"
+    string sku = 5;
     //@inject_tag: validate:"required" json:"name"
-    map<string, string> name = 7;
+    map<string, string> name = 6;
     //@inject_tag: validate:"required,alpha,len=3" json:"default_currency"
-    string default_currency = 8;
+    string default_currency = 7;
     //@inject_tag: validate:"required" json:"enabled"
-    bool enabled = 9;
+    bool enabled = 8;
     //@inject_tag: validate:"required,min=1,dive" json:"platforms"
-    repeated PlatformPrice platforms = 10;
+    repeated PlatformPrice platforms = 9;
     //@inject_tag: validate:"required" json:"description"
-    map<string, string> description = 11;
+    map<string, string> description = 10;
     //@inject_tag: validate:"omitempty" json:"long_description"
-    map<string, string> long_description = 12;
+    map<string, string> long_description = 11;
     //@inject_tag: json:"created_at"
-    google.protobuf.Timestamp created_at = 13;
+    google.protobuf.Timestamp created_at = 12;
     //@inject_tag: json:"updated_at"
-    google.protobuf.Timestamp updated_at = 14;
+    google.protobuf.Timestamp updated_at = 13;
     //@inject_tag: validate:"dive,omitempty,uri" json:"images"
-    repeated string images = 15;
+    repeated string images = 14;
     //@inject_tag: validate:"omitempty,url" json:"url"
-    string url = 16;
+    string url = 15;
     //@inject_tag: json:"metadata"
-    map<string, string> metadata = 17;
-    //@inject_tag: json:"-" bson:"deleted"
-    bool deleted = 18;
+    map<string, string> metadata = 16;
+    //@inject_tag: json:"-"
+    bool deleted = 17;
     //@inject_tag: json:"published_at"
-    google.protobuf.Timestamp published_at = 19;
+    google.protobuf.Timestamp published_at = 18;
 }
 
 message PlatformPrice {
-    //@inject_tag: validate:"required" json:"id"
+    //@inject_tag: validate:"required,hexadecimal,len=24" json:"id"
     string id = 1;
     //@inject_tag: json:"name"
     string name = 2;
@@ -788,11 +784,10 @@ message PlatformPrice {
     string eula_url = 4;
     //@inject_tag: validate:"url" json:"activation_url"
     string activation_url = 5;
-
 }
 
 message Platform {
-    //@inject_tag: validate:"required" json:"id"
+    //@inject_tag: validate:"required,hexadecimal,len=24" json:"id"
     string id = 1;
     //@inject_tag: json:"name"
     string name = 2;

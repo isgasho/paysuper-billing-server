@@ -13,17 +13,20 @@ const (
 )
 
 var (
-	keyProductMerchantMismatch = newBillingServerErrorMsg("kp000001", "merchant id mismatch")
-	keyProductProjectMismatch  = newBillingServerErrorMsg("kp000002", "project id mismatch")
-	keyProductSkuMismatch      = newBillingServerErrorMsg("kp000003", "sku mismatch")
-	keyProductNameNotProvided  = newBillingServerErrorMsg("kp000004", "name must be set")
-	keyProductDescriptionNotProvided  = newBillingServerErrorMsg("kp000005", "description must be set")
-	keyProductDuplicate  = newBillingServerErrorMsg("kp000006", "sku+project id already exist")
-	keyProductIdsIsEmpty  = newBillingServerErrorMsg("kp000007", "ids is empty")
-	keyProductAlreadyHasPlatform  = newBillingServerErrorMsg("kp000008", "product already has user defined platform")
-	keyProductActivationUrlEmpty  = newBillingServerErrorMsg("kp000009", "activation url must be set")
-	keyProductEulaEmpty  = newBillingServerErrorMsg("kp000010", "eula url must be set")
-	keyProductPlatformName  = newBillingServerErrorMsg("kp000011", "platform name must be set")
+	keyProductMerchantMismatch       = newBillingServerErrorMsg("kp000001", "merchant id mismatch")
+	keyProductProjectMismatch        = newBillingServerErrorMsg("kp000002", "project id mismatch")
+	keyProductSkuMismatch            = newBillingServerErrorMsg("kp000003", "sku mismatch")
+	keyProductNameNotProvided        = newBillingServerErrorMsg("kp000004", "name must be set")
+	keyProductDescriptionNotProvided = newBillingServerErrorMsg("kp000005", "description must be set")
+	keyProductDuplicate              = newBillingServerErrorMsg("kp000006", "sku+project id already exist")
+	keyProductIdsIsEmpty             = newBillingServerErrorMsg("kp000007", "ids is empty")
+	keyProductAlreadyHasPlatform     = newBillingServerErrorMsg("kp000008", "product already has user defined platform")
+	keyProductActivationUrlEmpty     = newBillingServerErrorMsg("kp000009", "activation url must be set")
+	keyProductEulaEmpty              = newBillingServerErrorMsg("kp000010", "eula url must be set")
+	keyProductPlatformName           = newBillingServerErrorMsg("kp000011", "platform name must be set")
+	keyProductRetrieveError          = newBillingServerErrorMsg("kp000012", "query to retrieve key product failed")
+	keyProductErrorUpsert            = newBillingServerErrorMsg("kp000013", "query to insert/update key product failed")
+	keyProductErrorDelete            = newBillingServerErrorMsg("kp000014", "query to remove key product failed")
 )
 
 var availablePlatforms = map[string]grpc.Platform{
@@ -88,7 +91,7 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 	found, err := s.db.Collection(collectionKeyProduct).Find(dupQuery).Count()
 	if err != nil {
 		zap.S().Errorf("Query to find duplicates failed", "err", err.Error(), "data", req)
-		return err
+		return keyProductRetrieveError
 	}
 	allowed := 1
 	if isNew {
@@ -114,7 +117,7 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 
 	if err != nil {
 		zap.S().Errorf("Query to create/update product failed", "err", err.Error(), "data", req)
-		return err
+		return keyProductErrorUpsert
 	}
 
 	return nil
@@ -137,7 +140,7 @@ func (s *Service) GetKeyProducts(ctx context.Context, req *grpc.ListKeyProductsR
 	total, err := s.db.Collection(collectionKeyProduct).Find(query).Count()
 	if err != nil {
 		zap.S().Errorf("Query to find key products by id failed", "err", err.Error(), "data", req)
-		return err
+		return keyProductRetrieveError
 	}
 
 	items := []*grpc.KeyProduct{}
@@ -154,7 +157,7 @@ func (s *Service) GetKeyProducts(ctx context.Context, req *grpc.ListKeyProductsR
 
 	if err != nil {
 		zap.S().Errorf("Query to find key products by id failed", "err", err.Error(), "data", req)
-		return err
+		return keyProductRetrieveError
 	}
 	res.Products = items
 
@@ -171,7 +174,7 @@ func (s *Service) GetKeyProduct(ctx context.Context, req *grpc.RequestKeyProduct
 
 	if err != nil {
 		zap.S().Errorf("Query to find key product by id failed", "err", err.Error(), "data", req)
-		return err
+		return keyProductRetrieveError
 	}
 
 	return nil
@@ -183,7 +186,7 @@ func (s *Service) DeleteKeyProduct(ctx context.Context, req *grpc.RequestKeyProd
 	err := s.GetKeyProduct(ctx, &grpc.RequestKeyProduct{Id: req.Id, MerchantId: req.MerchantId}, product)
 	if err != nil {
 		zap.S().Errorf("Error during getting key product", "err", err.Error(), "data", req)
-		return err
+		return keyProductRetrieveError
 	}
 
 	product.Deleted = true
@@ -193,7 +196,7 @@ func (s *Service) DeleteKeyProduct(ctx context.Context, req *grpc.RequestKeyProd
 
 	if err != nil {
 		zap.S().Errorf("Query to delete key product failed", "err", err.Error(), "data", req)
-		return err
+		return keyProductErrorDelete
 	}
 
 	return nil
@@ -203,7 +206,7 @@ func (s *Service) PublishKeyProduct(ctx context.Context, req *grpc.PublishKeyPro
 	err := s.GetKeyProduct(ctx, &grpc.RequestKeyProduct{Id: req.KeyProductId, MerchantId: req.MerchantId}, res)
 	if err != nil {
 		zap.S().Errorf("Error during getting key product", "err", err.Error(), "data", req)
-		return err
+		return keyProductRetrieveError
 	}
 
 	res.UpdatedAt = ptypes.TimestampNow()
@@ -212,7 +215,7 @@ func (s *Service) PublishKeyProduct(ctx context.Context, req *grpc.PublishKeyPro
 
 	if err := s.db.Collection(collectionKeyProduct).UpdateId(bson.ObjectIdHex(res.Id), res); err != nil {
 		zap.S().Errorf("Query to update product failed", "err", err.Error(), "data", req)
-		return err
+		return keyProductErrorUpsert
 	}
 
 	return nil
@@ -236,7 +239,7 @@ func (s *Service) GetKeyProductsForOrder(ctx context.Context, req *grpc.GetKeyPr
 
 	if err != nil {
 		zap.S().Errorf("Query to find key products for order is failed", "err", err.Error(), "data", req)
-		return err
+		return keyProductRetrieveError
 	}
 
 	res.Limit = int32(len(found))
@@ -305,7 +308,7 @@ func (s *Service) UpdatePlatformPrices(ctx context.Context, req *grpc.AddOrUpdat
 
 	if err := s.db.Collection(collectionKeyProduct).UpdateId(bson.ObjectIdHex(req.KeyProductId), res); err != nil {
 		zap.S().Errorf("Query to update product failed", "err", err.Error(), "data", req)
-		return err
+		return keyProductErrorUpsert
 	}
 
 	return nil
@@ -316,7 +319,7 @@ func (s *Service) DeletePlatformFromProduct(ctx context.Context, req *grpc.Remov
 	err := s.GetKeyProduct(ctx, &grpc.RequestKeyProduct{Id: req.KeyProductId, MerchantId: req.MerchantId}, product)
 	if err != nil {
 		zap.S().Errorf("Error during getting key product", "err", err.Error(), "data", req)
-		return err
+		return keyProductRetrieveError
 	}
 
 	for i, platform := range product.Platforms {
@@ -331,7 +334,7 @@ func (s *Service) DeletePlatformFromProduct(ctx context.Context, req *grpc.Remov
 
 	if err := s.db.Collection(collectionKeyProduct).UpdateId(bson.ObjectIdHex(req.KeyProductId), res); err != nil {
 		zap.S().Errorf("Query to update product failed", "err", err.Error(), "data", req)
-		return err
+		return keyProductErrorUpsert
 	}
 
 	return nil
