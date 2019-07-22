@@ -7,7 +7,6 @@ import (
 	"github.com/elliotchance/redismock"
 	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -19,7 +18,6 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
-	rabbitmq "gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
 	"net/url"
 	"testing"
 )
@@ -79,15 +77,9 @@ func (suite *UserProfileTestSuite) SetupTest() {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
-	broker, err := rabbitmq.NewBroker(cfg.BrokerAddress)
-
-	if err != nil {
-		suite.FailNow("Creating RabbitMQ publisher failed", "%v", err)
-	}
-
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, nil, nil, nil, broker, mock.NewTestRedis(), suite.cache)
+	suite.service = NewBillingService(db, cfg, nil, nil, nil, mock.NewBrokerMockOk(), mock.NewTestRedis(), suite.cache)
 
 	err = suite.service.Init()
 
@@ -149,9 +141,18 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 
 	assert.Equal(suite.T(), profile.UserId, rsp.Item.UserId)
 	assert.Equal(suite.T(), profile.LastStep, rsp.Item.LastStep)
-	assert.Equal(suite.T(), profile.Personal, rsp.Item.Personal)
-	assert.Equal(suite.T(), profile.Help, rsp.Item.Help)
+	assert.Equal(suite.T(), profile.Personal.LastName, rsp.Item.Personal.LastName)
+	assert.Equal(suite.T(), profile.Personal.FirstName, rsp.Item.Personal.FirstName)
+	assert.Equal(suite.T(), profile.Personal.Position, rsp.Item.Personal.Position)
+	assert.Equal(suite.T(), profile.Help.Other, rsp.Item.Help.Other)
+	assert.Equal(suite.T(), profile.Help.InternationalSales, rsp.Item.Help.InternationalSales)
+	assert.Equal(suite.T(), profile.Help.ReleasedGamePromotion, rsp.Item.Help.ReleasedGamePromotion)
+	assert.Equal(suite.T(), profile.Help.ProductPromotionAndDevelopment, rsp.Item.Help.ProductPromotionAndDevelopment)
 	assert.NotEmpty(suite.T(), rsp.Item.CentrifugoToken)
+
+	b, ok := suite.service.broker.(*mock.BrokerMockOk)
+	assert.True(suite.T(), ok)
+	assert.True(suite.T(), b.IsSent)
 }
 
 func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateOnboardingProfile_ExistProfile_Ok() {
@@ -171,6 +172,12 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateOnboardingProfi
 	assert.NotNil(suite.T(), rsp.Item)
 	assert.IsType(suite.T(), &grpc.UserProfile{}, rsp.Item)
 	assert.NotEmpty(suite.T(), rsp.Item.CentrifugoToken)
+
+	b, ok := suite.service.broker.(*mock.BrokerMockOk)
+	assert.True(suite.T(), ok)
+	assert.True(suite.T(), b.IsSent)
+
+	b.IsSent = false
 
 	req1 := &grpc.UserProfile{
 		UserId: req.UserId,
@@ -229,6 +236,90 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateOnboardingProfi
 	assert.Equal(suite.T(), profile.Personal, rsp1.Item.Personal)
 	assert.Equal(suite.T(), profile.Help, rsp1.Item.Help)
 	assert.Equal(suite.T(), profile.Company, rsp1.Item.Company)
+
+	assert.False(suite.T(), b.IsSent)
+}
+
+func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_NewProfile_SetUserEmailConfirmationToken_Error() {
+	req := &grpc.UserProfile{
+		UserId: bson.NewObjectId().Hex(),
+		Email: &grpc.UserProfileEmail{
+			Email: "test@unit.test",
+		},
+		Personal: &grpc.UserProfilePersonal{
+			FirstName: "Unit test",
+			LastName:  "Unit Test",
+			Position:  "test",
+		},
+		Help: &grpc.UserProfileHelp{
+			ProductPromotionAndDevelopment: false,
+			ReleasedGamePromotion:          true,
+			InternationalSales:             true,
+			Other:                          false,
+		},
+		LastStep: "step2",
+	}
+	rsp := &grpc.GetUserProfileResponse{}
+
+	profile := suite.service.getOnboardingProfileByUser(req.UserId)
+	assert.Nil(suite.T(), profile)
+
+	redisCl, ok := suite.service.redis.(*redismock.ClientMock)
+	assert.True(suite.T(), ok)
+
+	core, recorded := observer.New(zapcore.ErrorLevel)
+	logger := zap.New(core)
+	zap.ReplaceGlobals(logger)
+
+	redisCl.On("Set").
+		Return(redis.NewStatusResult("", errors.New("server not available")))
+
+	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp.Status)
+	assert.Equal(suite.T(), userProfileErrorUnknown, rsp.Message)
+
+	messages := recorded.All()
+	assert.Equal(suite.T(), "Save confirm email token to Redis failed", messages[0].Message)
+}
+
+func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_NewProfile_SendUserEmailConfirmationToken_Error() {
+	req := &grpc.UserProfile{
+		UserId: bson.NewObjectId().Hex(),
+		Email: &grpc.UserProfileEmail{
+			Email: "test@unit.test",
+		},
+		Personal: &grpc.UserProfilePersonal{
+			FirstName: "Unit test",
+			LastName:  "Unit Test",
+			Position:  "test",
+		},
+		Help: &grpc.UserProfileHelp{
+			ProductPromotionAndDevelopment: false,
+			ReleasedGamePromotion:          true,
+			InternationalSales:             true,
+			Other:                          false,
+		},
+		LastStep: "step2",
+	}
+	rsp := &grpc.GetUserProfileResponse{}
+
+	profile := suite.service.getOnboardingProfileByUser(req.UserId)
+	assert.Nil(suite.T(), profile)
+
+	suite.service.broker = mock.NewBrokerMockError()
+
+	core, recorded := observer.New(zapcore.ErrorLevel)
+	logger := zap.New(core)
+	zap.ReplaceGlobals(logger)
+
+	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp.Status)
+	assert.Equal(suite.T(), userProfileErrorUnknown, rsp.Message)
+
+	messages := recorded.All()
+	assert.Equal(suite.T(), "Publication message to user email confirmation to queue failed", messages[0].Message)
 }
 
 func (suite *UserProfileTestSuite) TestUserProfile_GetOnboardingProfile_Ok() {
@@ -271,8 +362,13 @@ func (suite *UserProfileTestSuite) TestUserProfile_GetOnboardingProfile_Ok() {
 
 	assert.Equal(suite.T(), rsp.Item.Id, rsp1.Item.Id)
 	assert.Equal(suite.T(), rsp.Item.UserId, rsp1.Item.UserId)
-	assert.Equal(suite.T(), rsp.Item.Personal, rsp1.Item.Personal)
-	assert.Equal(suite.T(), rsp.Item.Help, rsp1.Item.Help)
+	assert.Equal(suite.T(), rsp.Item.Personal.LastName, rsp1.Item.Personal.LastName)
+	assert.Equal(suite.T(), rsp.Item.Personal.FirstName, rsp1.Item.Personal.FirstName)
+	assert.Equal(suite.T(), rsp.Item.Personal.Position, rsp1.Item.Personal.Position)
+	assert.Equal(suite.T(), rsp.Item.Help.Other, rsp1.Item.Help.Other)
+	assert.Equal(suite.T(), rsp.Item.Help.InternationalSales, rsp1.Item.Help.InternationalSales)
+	assert.Equal(suite.T(), rsp.Item.Help.ReleasedGamePromotion, rsp1.Item.Help.ReleasedGamePromotion)
+	assert.Equal(suite.T(), rsp.Item.Help.ProductPromotionAndDevelopment, rsp1.Item.Help.ProductPromotionAndDevelopment)
 	assert.Equal(suite.T(), rsp.Item.Company, rsp1.Item.Company)
 	assert.Equal(suite.T(), rsp.Item.LastStep, rsp1.Item.LastStep)
 }
@@ -285,202 +381,6 @@ func (suite *UserProfileTestSuite) TestUserProfile_GetOnboardingProfile_NotFound
 	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, rsp.Status)
 	assert.Equal(suite.T(), userProfileErrorNotFound, rsp.Message)
 	assert.Nil(suite.T(), rsp.Item)
-}
-
-func (suite *UserProfileTestSuite) TestUserProfile_SendConfirmEmailToUser_Ok() {
-	req := &grpc.UserProfile{
-		UserId: bson.NewObjectId().Hex(),
-		Email: &grpc.UserProfileEmail{
-			Email: "test@unit.test",
-		},
-		Personal: &grpc.UserProfilePersonal{
-			FirstName: "Unit test",
-			LastName:  "Unit Test",
-			Position:  "test",
-		},
-		Help: &grpc.UserProfileHelp{
-			ProductPromotionAndDevelopment: false,
-			ReleasedGamePromotion:          true,
-			InternationalSales:             true,
-			Other:                          false,
-		},
-		LastStep: "step2",
-	}
-	rsp := &grpc.GetUserProfileResponse{}
-
-	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
-	assert.Empty(suite.T(), rsp.Message)
-	assert.NotNil(suite.T(), rsp.Item)
-
-	req1 := &grpc.SendConfirmEmailToUserRequest{
-		UserId: req.UserId,
-		Url:    "http://localhost",
-	}
-	rsp1 := &grpc.GetUserProfileResponse{}
-	err = suite.service.SendConfirmEmailToUser(context.TODO(), req1, rsp1)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
-	assert.Empty(suite.T(), rsp1.Message)
-	assert.NotEmpty(suite.T(), rsp1.Item.Email.ConfirmationUrl)
-	assert.Regexp(suite.T(), req1.Url, rsp1.Item.Email.ConfirmationUrl)
-}
-
-func (suite *UserProfileTestSuite) TestUserProfile_SendConfirmEmailToUser_UserNotFound_Error() {
-	req := &grpc.SendConfirmEmailToUserRequest{
-		UserId: bson.NewObjectId().Hex(),
-		Url:    "http://localhost",
-	}
-	rsp := &grpc.GetUserProfileResponse{}
-	err := suite.service.SendConfirmEmailToUser(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, rsp.Status)
-	assert.Equal(suite.T(), userProfileErrorNotFound, rsp.Message)
-	assert.Nil(suite.T(), rsp.Item)
-}
-
-func (suite *UserProfileTestSuite) TestUserProfile_SendConfirmEmailToUser_EmailAlreadyVerified_Error() {
-	req := &grpc.UserProfile{
-		UserId: bson.NewObjectId().Hex(),
-		Email: &grpc.UserProfileEmail{
-			Email: "test@unit.test",
-		},
-		Personal: &grpc.UserProfilePersonal{
-			FirstName: "Unit test",
-			LastName:  "Unit Test",
-			Position:  "test",
-		},
-		Help: &grpc.UserProfileHelp{
-			ProductPromotionAndDevelopment: false,
-			ReleasedGamePromotion:          true,
-			InternationalSales:             true,
-			Other:                          false,
-		},
-		LastStep: "step2",
-	}
-	rsp := &grpc.GetUserProfileResponse{}
-
-	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
-	assert.Empty(suite.T(), rsp.Message)
-	assert.NotNil(suite.T(), rsp.Item)
-
-	rsp.Item.Email.Confirmed = true
-	rsp.Item.Email.ConfirmedAt = ptypes.TimestampNow()
-
-	err = suite.service.db.Collection(collectionUserProfile).UpdateId(bson.ObjectIdHex(rsp.Item.Id), rsp.Item)
-	assert.NoError(suite.T(), err)
-
-	req1 := &grpc.SendConfirmEmailToUserRequest{
-		UserId: req.UserId,
-		Url:    "http://localhost",
-	}
-	rsp1 := &grpc.GetUserProfileResponse{}
-	err = suite.service.SendConfirmEmailToUser(context.TODO(), req1, rsp1)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
-	assert.Equal(suite.T(), userProfileEmailConfirmed, rsp1.Message)
-}
-
-func (suite *UserProfileTestSuite) TestUserProfile_SendConfirmEmailToUser_SaveTokenError() {
-	req := &grpc.UserProfile{
-		UserId: bson.NewObjectId().Hex(),
-		Email: &grpc.UserProfileEmail{
-			Email: "test@unit.test",
-		},
-		Personal: &grpc.UserProfilePersonal{
-			FirstName: "Unit test",
-			LastName:  "Unit Test",
-			Position:  "test",
-		},
-		Help: &grpc.UserProfileHelp{
-			ProductPromotionAndDevelopment: false,
-			ReleasedGamePromotion:          true,
-			InternationalSales:             true,
-			Other:                          false,
-		},
-		LastStep: "step2",
-	}
-	rsp := &grpc.GetUserProfileResponse{}
-
-	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
-	assert.Empty(suite.T(), rsp.Message)
-	assert.NotNil(suite.T(), rsp.Item)
-
-	redisCl, ok := suite.service.redis.(*redismock.ClientMock)
-	assert.True(suite.T(), ok)
-
-	core, recorded := observer.New(zapcore.ErrorLevel)
-	logger := zap.New(core)
-	zap.ReplaceGlobals(logger)
-
-	redisCl.On("Set").
-		Return(redis.NewStatusResult("", errors.New("server not available")))
-
-	req1 := &grpc.SendConfirmEmailToUserRequest{
-		UserId: req.UserId,
-		Url:    "http://localhost",
-	}
-	rsp1 := &grpc.GetUserProfileResponse{}
-	err = suite.service.SendConfirmEmailToUser(context.TODO(), req1, rsp1)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp1.Status)
-	assert.Equal(suite.T(), userProfileErrorUnknown, rsp1.Message)
-
-	messages := recorded.All()
-	assert.Equal(suite.T(), "Save confirm email token to Redis failed", messages[0].Message)
-}
-
-func (suite *UserProfileTestSuite) TestUserProfile_SendConfirmEmailToUser_RabbitMqPublishError() {
-	req := &grpc.UserProfile{
-		UserId: bson.NewObjectId().Hex(),
-		Email: &grpc.UserProfileEmail{
-			Email: "test@unit.test",
-		},
-		Personal: &grpc.UserProfilePersonal{
-			FirstName: "Unit test",
-			LastName:  "Unit Test",
-			Position:  "test",
-		},
-		Help: &grpc.UserProfileHelp{
-			ProductPromotionAndDevelopment: false,
-			ReleasedGamePromotion:          true,
-			InternationalSales:             true,
-			Other:                          false,
-		},
-		LastStep: "step2",
-	}
-	rsp := &grpc.GetUserProfileResponse{}
-
-	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
-	assert.Empty(suite.T(), rsp.Message)
-	assert.NotNil(suite.T(), rsp.Item)
-
-	req1 := &grpc.SendConfirmEmailToUserRequest{
-		UserId: req.UserId,
-		Url:    "http://localhost",
-	}
-	rsp1 := &grpc.GetUserProfileResponse{}
-
-	core, recorded := observer.New(zapcore.ErrorLevel)
-	logger := zap.New(core)
-	zap.ReplaceGlobals(logger)
-
-	suite.service.broker = mock.NewBrokerMockError()
-
-	err = suite.service.SendConfirmEmailToUser(context.TODO(), req1, rsp1)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp1.Status)
-	assert.Equal(suite.T(), userProfileErrorUnknown, rsp1.Message)
-
-	messages := recorded.All()
-	assert.Equal(suite.T(), "Publication message to user email confirmation to queue failed", messages[0].Message)
 }
 
 func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_Ok() {
@@ -510,17 +410,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_Ok() {
 	assert.Empty(suite.T(), rsp.Message)
 	assert.NotNil(suite.T(), rsp.Item)
 
-	req1 := &grpc.SendConfirmEmailToUserRequest{
-		UserId: req.UserId,
-		Url:    "http://localhost",
-	}
-	rsp1 := &grpc.GetUserProfileResponse{}
-	err = suite.service.SendConfirmEmailToUser(context.TODO(), req1, rsp1)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
-	assert.Empty(suite.T(), rsp1.Message)
-
-	u, err := url.ParseRequestURI(rsp1.Item.Email.ConfirmationUrl)
+	u, err := url.ParseRequestURI(rsp.Item.Email.ConfirmationUrl)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), u)
 	assert.NotEmpty(suite.T(), u.RawQuery)
@@ -579,17 +469,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_UserNotFound
 	assert.Empty(suite.T(), rsp.Message)
 	assert.NotNil(suite.T(), rsp.Item)
 
-	req1 := &grpc.SendConfirmEmailToUserRequest{
-		UserId: req.UserId,
-		Url:    "http://localhost",
-	}
-	rsp1 := &grpc.GetUserProfileResponse{}
-	err = suite.service.SendConfirmEmailToUser(context.TODO(), req1, rsp1)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
-	assert.Empty(suite.T(), rsp1.Message)
-
-	u, err := url.ParseRequestURI(rsp1.Item.Email.ConfirmationUrl)
+	u, err := url.ParseRequestURI(rsp.Item.Email.ConfirmationUrl)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), u)
 	assert.NotEmpty(suite.T(), u.RawQuery)
@@ -642,17 +522,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_EmailConfirm
 	assert.Empty(suite.T(), rsp.Message)
 	assert.NotNil(suite.T(), rsp.Item)
 
-	req1 := &grpc.SendConfirmEmailToUserRequest{
-		UserId: req.UserId,
-		Url:    "http://localhost",
-	}
-	rsp1 := &grpc.GetUserProfileResponse{}
-	err = suite.service.SendConfirmEmailToUser(context.TODO(), req1, rsp1)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
-	assert.Empty(suite.T(), rsp1.Message)
-
-	u, err := url.ParseRequestURI(rsp1.Item.Email.ConfirmationUrl)
+	u, err := url.ParseRequestURI(rsp.Item.Email.ConfirmationUrl)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), u)
 	assert.NotEmpty(suite.T(), u.RawQuery)

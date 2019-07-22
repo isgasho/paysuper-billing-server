@@ -112,7 +112,6 @@ service BillingService {
 
     rpc GetUserProfile (GetUserProfileRequest) returns (GetUserProfileResponse) {}
     rpc CreateOrUpdateUserProfile (UserProfile) returns (GetUserProfileResponse) {}
-    rpc SendConfirmEmailToUser (SendConfirmEmailToUserRequest) returns (GetUserProfileResponse) {}
     rpc ConfirmUserEmail (ConfirmUserEmailRequest) returns (CheckProjectRequestSignatureResponse) {}
 
     rpc CreatePageReview(CreatePageReviewRequest) returns (CheckProjectRequestSignatureResponse) {}
@@ -1133,11 +1132,4 @@ message CreatePageReviewRequest {
 
 message ConfirmUserEmailRequest {
     string Token = 1;
-}
-
-message SendConfirmEmailToUserRequest {
-    //@inject_tag: validate:"required,hexadecimal,len=24"
-    string user_id = 1;
-    //@inject_tag: validate:"required,url"
-    string url = 2;
 }
