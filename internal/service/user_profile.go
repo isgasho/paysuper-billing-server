@@ -387,7 +387,13 @@ func (s *Service) getUserEmailConfirmationToken(token string) (string, error) {
 }
 
 func (s *Service) sendUserEmailConfirmationToken(profile *grpc.UserProfile) error {
-	err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, profile, amqp.Table{})
+	payload := &postmarkSdrPkg.Payload{
+		TemplateAlias: s.cfg.EmailConfirmTemplate,
+		TemplateModel: map[string]string{"url": profile.Email.ConfirmationUrl},
+		To:            profile.Email.Email,
+	}
+
+	err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 
 	if err != nil {
 		zap.L().Error(
