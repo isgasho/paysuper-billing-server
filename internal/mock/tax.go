@@ -24,7 +24,7 @@ func (m *TaxServiceOkMock) GetRate(
 			Country: "RU",
 			State:   "SPE",
 			City:    "St.Petersburg",
-			Rate:    20,
+			Rate:    0.20,
 		},
 		UserDataPriority: false,
 	}
@@ -37,7 +37,7 @@ func (m *TaxServiceOkMock) GetRate(
 				Country: "US",
 				State:   "NY",
 				City:    "Washington",
-				Rate:    15,
+				Rate:    0.15,
 			},
 			UserDataPriority: true,
 		}

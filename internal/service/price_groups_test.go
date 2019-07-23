@@ -42,26 +42,25 @@ func (suite *PriceGroupTestSuite) SetupTest() {
 		suite.FailNow("Database connection failed", "%v", err)
 	}
 
-	rub := &billing.Currency{
-		CodeInt:  643,
-		CodeA3:   "RUB",
-		Name:     &billing.Name{Ru: "Российский рубль", En: "Russian ruble"},
-		IsActive: true,
-	}
-
 	suite.log, err = zap.NewProduction()
 
 	if err != nil {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
-
-	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
-
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache)
+	suite.service = NewBillingService(
+		db,
+		cfg,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		suite.cache,
+		mock.NewCurrencyServiceMockOk(),
+		nil,
+	)
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -410,7 +409,7 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencies_Error_N
 	assert.EqualError(suite.T(), err, "price group not exists")
 }
 
-func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencies_Error_NoneCountries() {
+/*func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencies_Error_NoneCountries() {
 	cs := &mock.CountryServiceInterface{}
 	cs.On("GetAll").Return(nil, errors.New("countries not exists"))
 	suite.service.country = cs
@@ -419,7 +418,7 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencies_Error_N
 	res := grpc.PriceGroupCurrenciesResponse{}
 	err := suite.service.GetPriceGroupCurrencies(context.TODO(), req, &res)
 	assert.EqualError(suite.T(), err, "countries not exists")
-}
+}*/
 
 func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencies_Ok() {
 	req := &grpc.EmptyRequest{}
@@ -439,7 +438,7 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencyByRegion_E
 	assert.EqualError(suite.T(), err, "price group not exists")
 }
 
-func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencyByRegion_Error_NoneCountries() {
+/*func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencyByRegion_Error_NoneCountries() {
 	cs := &mock.CountryServiceInterface{}
 	cs.On("GetAll").Return(nil, errors.New("countries not exists"))
 	suite.service.country = cs
@@ -449,7 +448,7 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencyByRegion_E
 	err := suite.service.GetPriceGroupCurrencyByRegion(context.TODO(), req, &res)
 	assert.EqualError(suite.T(), err, "countries not exists")
 }
-
+*/
 func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencyByRegion_Ok() {
 	req := &grpc.PriceGroupByRegionRequest{}
 	res := grpc.PriceGroupCurrenciesResponse{}

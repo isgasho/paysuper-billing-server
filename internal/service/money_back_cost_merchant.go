@@ -9,6 +9,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"sort"
 )
@@ -26,6 +27,7 @@ var (
 	errorMoneybackMerchantGet       = newBillingServerErrorMsg("mbm000002", "can't get money back setting for merchant")
 	errorMoneybackMerchantSetFailed = newBillingServerErrorMsg("mbm000003", "can't set money back setting for merchant")
 	errorMoneybackMerchantDelete    = newBillingServerErrorMsg("mbm000004", "can't delete money back setting for merchant")
+	errorMoneybackMerchantCurrency  = newBillingServerErrorMsg("mbm000005", "currency not supported")
 )
 
 func (s *Service) GetAllMoneyBackCostMerchant(
@@ -95,7 +97,22 @@ func (s *Service) SetMoneyBackCostMerchant(
 		}
 	}
 
-	// todo: check fo valid payout currency after integrations with currencies service
+	sCurr, err := s.curService.GetSettlementCurrencies(ctx, &currencies.EmptyRequest{})
+	if err != nil {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorMoneybackMerchantCurrency
+		return nil
+	}
+	if !contains(sCurr.Currencies, req.PayoutCurrency) {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorMoneybackMerchantCurrency
+		return nil
+	}
+	if !contains(sCurr.Currencies, req.FixAmountCurrency) {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorMoneybackMerchantCurrency
+		return nil
+	}
 
 	req.UpdatedAt = ptypes.TimestampNow()
 	req.IsActive = true
@@ -240,29 +257,29 @@ func (h MoneyBackCostMerchant) Update(obj *billing.MoneyBackCostMerchant) error 
 }
 
 func (h MoneyBackCostMerchant) Get(
-	merchant_id string,
+	merchantId string,
 	name string,
-	payout_currency string,
-	undo_reason string,
+	payoutCurrency string,
+	undoReason string,
 	region string,
 	country string,
-	payment_stage int32,
+	paymentStage int32,
 ) (*billing.MoneyBackCostMerchantList, error) {
 	var c billing.MoneyBackCostMerchantList
-	key := fmt.Sprintf(cacheMoneyBackCostMerchantKey, merchant_id, name, payout_currency, undo_reason, region, country, payment_stage)
+	key := fmt.Sprintf(cacheMoneyBackCostMerchantKey, merchantId, name, payoutCurrency, undoReason, region, country, paymentStage)
 
 	if err := h.svc.cacher.Get(key, c); err == nil {
 		return &c, nil
 	}
 
 	query := bson.M{
-		"merchant_id":     bson.ObjectIdHex(merchant_id),
-		"name":            name,
-		"payout_currency": payout_currency,
-		"undo_reason":     undo_reason,
+		"merchant_id":     bson.ObjectIdHex(merchantId),
+		"name":            bson.RegEx{Pattern: "^" + name + "$", Options: "i"},
+		"payout_currency": payoutCurrency,
+		"undo_reason":     undoReason,
 		"region":          region,
 		"country":         country,
-		"payment_stage":   payment_stage,
+		"payment_stage":   paymentStage,
 		"is_active":       true,
 	}
 

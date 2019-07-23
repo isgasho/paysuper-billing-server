@@ -59,7 +59,7 @@ func (s *Service) CreateOrUpdateUserProfile(
 		return nil
 	}
 
-	s.getUserCentrifugoToken(profile)
+	s.setUserCentrifugoToken(profile)
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = profile
@@ -81,7 +81,7 @@ func (s *Service) GetUserProfile(
 		return nil
 	}
 
-	s.getUserCentrifugoToken(profile)
+	s.setUserCentrifugoToken(profile)
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = profile
@@ -302,7 +302,7 @@ func (s *Service) updateOnboardingProfile(
 	return profile, nil
 }
 
-func (s *Service) getUserCentrifugoToken(profile *grpc.UserProfile) {
+func (s *Service) setUserCentrifugoToken(profile *grpc.UserProfile) {
 	expire := time.Now().Add(time.Minute * 30).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": profile.Id, "exp": expire})
 	profile.CentrifugoToken, _ = token.SignedString([]byte(s.cfg.CentrifugoSecret))

@@ -9,6 +9,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"sort"
 )
@@ -28,6 +29,7 @@ var (
 	errorPaymentChannelMerchantGet       = newBillingServerErrorMsg("pcm000002", "can't get payment channel setting for merchant")
 	errorPaymentChannelMerchantSetFailed = newBillingServerErrorMsg("pcm000003", "can't set payment channel setting for merchant")
 	errorPaymentChannelMerchantDelete    = newBillingServerErrorMsg("pcm000004", "can't delete payment channel setting for merchant")
+	errorPaymentChannelMerchantCurrency  = newBillingServerErrorMsg("pcm000005", "currency not supported")
 )
 
 func (s *Service) GetAllPaymentChannelCostMerchant(
@@ -97,8 +99,27 @@ func (s *Service) SetPaymentChannelCostMerchant(
 		}
 	}
 
-	// todo: 1. check for supported PayoutCurrency after integrations with currencies service
-	// todo: 2. check for supported PsFixedFeeCurrency after integrations with currencies service
+	sCurr, err := s.curService.GetSettlementCurrencies(ctx, &currencies.EmptyRequest{})
+	if err != nil {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorPaymentChannelMerchantCurrency
+		return nil
+	}
+	if !contains(sCurr.Currencies, req.PayoutCurrency) {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorPaymentChannelMerchantCurrency
+		return nil
+	}
+	if !contains(sCurr.Currencies, req.PsFixedFeeCurrency) {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorPaymentChannelMerchantCurrency
+		return nil
+	}
+	if !contains(sCurr.Currencies, req.MethodFixAmountCurrency) {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorPaymentChannelMerchantCurrency
+		return nil
+	}
 
 	req.IsActive = true
 
@@ -272,18 +293,24 @@ func (h PaymentChannelCostMerchant) GetById(id string) (*billing.PaymentChannelC
 	return &c, nil
 }
 
-func (h PaymentChannelCostMerchant) Get(merchant_id string, name string, payout_currency string, region string, country string) (*billing.PaymentChannelCostMerchantList, error) {
+func (h PaymentChannelCostMerchant) Get(
+	merchantId string,
+	name string,
+	payoutCurrency string,
+	region string,
+	country string,
+) (*billing.PaymentChannelCostMerchantList, error) {
 	var c billing.PaymentChannelCostMerchantList
-	key := fmt.Sprintf(cachePaymentChannelCostMerchantKey, merchant_id, name, payout_currency, region, country)
+	key := fmt.Sprintf(cachePaymentChannelCostMerchantKey, merchantId, name, payoutCurrency, region, country)
 
 	if err := h.svc.cacher.Get(key, c); err == nil {
 		return &c, nil
 	}
 
 	query := bson.M{
-		"merchant_id":     bson.ObjectIdHex(merchant_id),
-		"name":            name,
-		"payout_currency": payout_currency,
+		"merchant_id":     bson.ObjectIdHex(merchantId),
+		"name":            bson.RegEx{Pattern: "^" + name + "$", Options: "i"},
+		"payout_currency": payoutCurrency,
 		"region":          region,
 		"country":         country,
 		"is_active":       true,

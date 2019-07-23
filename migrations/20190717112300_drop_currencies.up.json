@@ -1,0 +1,32 @@
+[
+  {
+    "drop": "currency"
+  },
+  {
+    "update": "payment_method",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$currentDate": {
+            "updated_at": true
+          },
+          "$set": {
+            "currencies": ["EUR", "GBP", "RUB", "USD"]
+          }
+        },
+        "multi": true
+      },
+      {
+        "q": {
+          "name": "Qiwi"
+        },
+        "u": {
+          "$set": {
+            "currencies": ["EUR", "GBP", "USD"]
+          }
+        }
+      }
+    ]
+  }
+]

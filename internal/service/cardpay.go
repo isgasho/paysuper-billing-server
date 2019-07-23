@@ -398,7 +398,7 @@ func (h *cardPay) ProcessPayment(message proto.Message, raw, signature string) (
 	reqAmount := req.GetAmount()
 
 	if reqAmount != order.TotalPaymentAmount ||
-		req.GetCurrency() != order.PaymentMethodOutcomeCurrency.CodeA3 {
+		req.GetCurrency() != order.Currency {
 		return newBillingServerResponseError(pkg.StatusErrorValidation, paymentSystemErrorRequestAmountOrCurrencyIsInvalid)
 	}
 
@@ -436,8 +436,6 @@ func (h *cardPay) ProcessPayment(message proto.Message, raw, signature string) (
 
 	order.Transaction = req.GetId()
 	order.PaymentMethodOrderClosedAt = ts
-	order.PaymentMethodIncomeAmount = reqAmount
-	order.PaymentMethodIncomeCurrency = order.PaymentMethodOutcomeCurrency
 
 	return
 }
@@ -663,7 +661,7 @@ func (h *cardPay) getCardPayOrder(order *billing.Order, requisites map[string]st
 	if order.PaymentMethod.IsBankCard() && (okStoreData && storeData == "1") ||
 		(okRecurringId && recurringId != "") {
 		cardPayOrder.RecurringData = &CardPayRecurringData{
-			Currency:  order.PaymentMethodOutcomeCurrency.CodeA3,
+			Currency:  order.Currency,
 			Amount:    order.TotalPaymentAmount,
 			Initiator: cardPayInitiatorCardholder,
 		}
@@ -677,7 +675,7 @@ func (h *cardPay) getCardPayOrder(order *billing.Order, requisites map[string]st
 		}
 	} else {
 		cardPayOrder.PaymentData = &CardPayPaymentData{
-			Currency: order.PaymentMethodOutcomeCurrency.CodeA3,
+			Currency: order.Currency,
 			Amount:   order.TotalPaymentAmount,
 		}
 	}
@@ -838,7 +836,7 @@ func (h *cardPay) CreateRefund(refund *billing.Refund) error {
 		},
 		RefundData: &CardPayRefundData{
 			Amount:   refund.Amount,
-			Currency: refund.Currency.CodeA3,
+			Currency: refund.Currency,
 		},
 	}
 
@@ -955,7 +953,7 @@ func (h *cardPay) ProcessRefund(refund *billing.Refund, message proto.Message, r
 		return newBillingServerResponseError(pkg.ResponseStatusBadData, paymentSystemErrorRequestPaymentMethodIsInvalid)
 	}
 
-	if req.RefundData.Amount != refund.Amount || req.RefundData.Currency != refund.Currency.CodeA3 {
+	if req.RefundData.Amount != refund.Amount || req.RefundData.Currency != refund.Currency {
 		return newBillingServerResponseError(pkg.ResponseStatusBadData, paymentSystemErrorRefundRequestAmountOrCurrencyIsInvalid)
 	}
 

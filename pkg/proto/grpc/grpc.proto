@@ -14,7 +14,6 @@ service BillingService {
 
     rpc UpdateOrder (billing.Order) returns (EmptyResponse) {}
     rpc UpdateMerchant (billing.Merchant) returns (EmptyResponse) {}
-    rpc GetConvertRate (ConvertRateRequest) returns (ConvertRateResponse) {}
 
     rpc GetMerchantBy (GetMerchantByRequest) returns (GetMerchantResponse) {}
     rpc ListMerchants (MerchantListingRequest) returns (MerchantListingResponse) {}
@@ -83,38 +82,48 @@ service BillingService {
     rpc GetPaymentMethodTestSettings (GetPaymentMethodSettingsRequest) returns (GetPaymentMethodSettingsResponse) {}
     rpc DeletePaymentMethodTestSettings (GetPaymentMethodSettingsRequest) returns (ChangePaymentMethodParamsResponse) {}
 
-    rpc GetCurrencyList (EmptyRequest) returns (billing.CurrencyList) {}
-    rpc GetCurrency (billing.GetCurrencyRequest) returns (billing.Currency) {}
-
     rpc FindByZipCode (FindByZipCodeRequest) returns (FindByZipCodeResponse) {}
 
-    rpc GetAllPaymentChannelCostSystem (EmptyRequest) returns (PaymentChannelCostSystemListResponse) {}
-    rpc GetPaymentChannelCostSystem (billing.PaymentChannelCostSystemRequest) returns (PaymentChannelCostSystemResponse) {}
-    rpc SetPaymentChannelCostSystem (billing.PaymentChannelCostSystem) returns (PaymentChannelCostSystemResponse) {}
-    rpc DeletePaymentChannelCostSystem (billing.PaymentCostDeleteRequest) returns (ResponseError) {}
+    rpc GetAllPaymentChannelCostSystem(EmptyRequest) returns (PaymentChannelCostSystemListResponse) {}
+    rpc GetPaymentChannelCostSystem(billing.PaymentChannelCostSystemRequest) returns (PaymentChannelCostSystemResponse) {}
+    rpc SetPaymentChannelCostSystem(billing.PaymentChannelCostSystem) returns (PaymentChannelCostSystemResponse) {}
+    rpc DeletePaymentChannelCostSystem(billing.PaymentCostDeleteRequest) returns (ResponseError) {}
 
-    rpc GetAllPaymentChannelCostMerchant (billing.PaymentChannelCostMerchantListRequest) returns (PaymentChannelCostMerchantListResponse) {}
-    rpc GetPaymentChannelCostMerchant (billing.PaymentChannelCostMerchantRequest) returns (PaymentChannelCostMerchantResponse) {}
-    rpc SetPaymentChannelCostMerchant (billing.PaymentChannelCostMerchant) returns (PaymentChannelCostMerchantResponse) {}
-    rpc DeletePaymentChannelCostMerchant (billing.PaymentCostDeleteRequest) returns (ResponseError) {}
+    rpc GetAllPaymentChannelCostMerchant(billing.PaymentChannelCostMerchantListRequest) returns (PaymentChannelCostMerchantListResponse) {}
+    rpc GetPaymentChannelCostMerchant(billing.PaymentChannelCostMerchantRequest) returns (PaymentChannelCostMerchantResponse) {}
+    rpc SetPaymentChannelCostMerchant(billing.PaymentChannelCostMerchant) returns (PaymentChannelCostMerchantResponse) {}
+    rpc DeletePaymentChannelCostMerchant(billing.PaymentCostDeleteRequest) returns (ResponseError) {}
 
-    rpc GetAllMoneyBackCostSystem (EmptyRequest) returns (MoneyBackCostSystemListResponse) {}
-    rpc GetMoneyBackCostSystem (billing.MoneyBackCostSystemRequest) returns (MoneyBackCostSystemResponse) {}
-    rpc SetMoneyBackCostSystem (billing.MoneyBackCostSystem) returns (MoneyBackCostSystemResponse) {}
-    rpc DeleteMoneyBackCostSystem (billing.PaymentCostDeleteRequest) returns (ResponseError) {}
+    rpc GetAllMoneyBackCostSystem(EmptyRequest) returns (MoneyBackCostSystemListResponse) {}
+    rpc GetMoneyBackCostSystem(billing.MoneyBackCostSystemRequest) returns (MoneyBackCostSystemResponse) {}
+    rpc SetMoneyBackCostSystem(billing.MoneyBackCostSystem) returns (MoneyBackCostSystemResponse) {}
+    rpc DeleteMoneyBackCostSystem(billing.PaymentCostDeleteRequest) returns (ResponseError) {}
 
-    rpc GetAllMoneyBackCostMerchant (billing.MoneyBackCostMerchantListRequest) returns (MoneyBackCostMerchantListResponse) {}
-    rpc GetMoneyBackCostMerchant (billing.MoneyBackCostMerchantRequest) returns (MoneyBackCostMerchantResponse) {}
-    rpc SetMoneyBackCostMerchant (billing.MoneyBackCostMerchant) returns (MoneyBackCostMerchantResponse) {}
-    rpc DeleteMoneyBackCostMerchant (billing.PaymentCostDeleteRequest) returns (ResponseError) {}
+    rpc GetAllMoneyBackCostMerchant(billing.MoneyBackCostMerchantListRequest) returns (MoneyBackCostMerchantListResponse) {}
+    rpc GetMoneyBackCostMerchant(billing.MoneyBackCostMerchantRequest) returns (MoneyBackCostMerchantResponse) {}
+    rpc SetMoneyBackCostMerchant(billing.MoneyBackCostMerchant) returns (MoneyBackCostMerchantResponse) {}
+    rpc DeleteMoneyBackCostMerchant(billing.PaymentCostDeleteRequest) returns (ResponseError) {}
 
-    rpc CreateAccountingEntry (CreateAccountingEntryRequest) returns (CreateAccountingEntryRequest) {}
+    rpc CreateAccountingEntry(CreateAccountingEntryRequest) returns (CreateAccountingEntryResponse) {}
 
     rpc GetUserProfile (GetUserProfileRequest) returns (GetUserProfileResponse) {}
     rpc CreateOrUpdateUserProfile (UserProfile) returns (GetUserProfileResponse) {}
     rpc ConfirmUserEmail (ConfirmUserEmailRequest) returns (CheckProjectRequestSignatureResponse) {}
-
     rpc CreatePageReview(CreatePageReviewRequest) returns (CheckProjectRequestSignatureResponse) {}
+
+    rpc CreateRoyaltyReport(CreateRoyaltyReportRequest) returns (CreateRoyaltyReportRequest) {}
+    rpc ListRoyaltyReports(ListRoyaltyReportsRequest) returns (ListRoyaltyReportsResponse) {}
+    rpc ChangeRoyaltyReport(ChangeRoyaltyReportRequest) returns (ResponseError) {}
+    rpc ListRoyaltyReportOrders(ListRoyaltyReportOrdersRequest) returns (TransactionsResponse) {}
+    rpc AutoAcceptRoyaltyReports(EmptyRequest) returns (EmptyResponse) {}
+
+    rpc GetVatReportsDashboard (EmptyRequest) returns (VatReportsResponse) {}
+    rpc GetVatReportsForCountry (VatReportsRequest) returns (VatReportsResponse) {}
+    rpc GetVatReportTransactions (VatTransactionsRequest) returns (TransactionsResponse) {}
+    rpc ProcessVatReports (ProcessVatReportsRequest) returns (EmptyResponse) {}
+    rpc UpdateVatReportStatus (UpdateVatReportStatusRequest) returns (ResponseError) {}
+
+    rpc CalcAnnualTurnovers(EmptyRequest) returns (EmptyResponse) {}
 }
 
 message EmptyRequest {}
@@ -203,15 +212,6 @@ message PaymentNotifyRequest {
 message PaymentNotifyResponse {
     int32 status = 1;
     string error = 2;
-}
-
-message ConvertRateRequest {
-    int32 from = 1;
-    int32 to = 2;
-}
-
-message ConvertRateResponse {
-    double rate = 1;
 }
 
 message OnboardingBanking {
@@ -382,6 +382,7 @@ message CreateRefundRequest {
     double amount = 2;
     string creator_id = 3;
     string reason = 4;
+    bool is_chargeback = 5;
 }
 
 message CreateRefundResponse {
@@ -851,7 +852,7 @@ message ResponseErrorMessage {
     string code = 1;
     //@inject_tag: json:"message"
     string message = 2;
-    //@inject_tag: json:"details;omitempty"
+    //@inject_tag: json:"details,omitempty"
     string details = 3;
 }
 
@@ -859,19 +860,84 @@ message CreateAccountingEntryRequest {
     // @inject_tag: validate:"required"
     string type = 1;
     // @inject_tag: validate:"omitempty,hexadecimal,len=24"
-    string source = 2;
+    string order_id = 2;
+    // @inject_tag: validate:"omitempty,hexadecimal,len=24"
+    string refund_id = 3;
+    // @inject_tag: validate:"omitempty,hexadecimal,len=24"
+    string merchant_id = 4;
     // @inject_tag: validate:"required,numeric"
-    double amount = 3;
+    double amount = 5;
     // @inject_tag: validate:"required,alpha,len=3"
-    string currency = 4;
-    // @inject_tag: query:"limit" validate:"required,oneof=pending available"
-    string status = 5;
-    // @inject_tag: validate:"required,numeric,gt=0"
-    int64 date = 6;
+    string currency = 6;
+    // @inject_tag: validate:"required,oneof=pending available"
+    string status = 7;
+    // @inject_tag: validate:"omitempty,numeric,gt=0"
+    int64 date = 8;
+    //@inject_tag: json:"country" validate:"required,alpha,len=2"
+    string country = 9;
+    //@inject_tag: json:"reason"
+    string reason = 10;
 }
 
 message CreateAccountingEntryResponse {
-    billing.AccountingEntry item = 1;
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.AccountingEntry item = 3;
+}
+
+message CreateRoyaltyReportRequest {
+    repeated string merchants = 1;
+}
+
+message ListRoyaltyReportsRequest {
+    // @inject_tag: query:"id" validate:"omitempty,hexadecimal,len=24"
+    string id = 1;
+    // @inject_tag: query:"period_from" validate:"omitempty,numeric,gt=0"
+    int64 period_from = 2;
+    // @inject_tag: query:"period_to" validate:"omitempty,numeric,gt=0"
+    int64 period_to = 3;
+    // @inject_tag: query:"merchant_id" validate:"omitempty,hexadecimal,len=24"
+    string merchant_id = 4;
+    // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
+    int32 limit = 5;
+    // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
+    int32 offset = 6;
+}
+
+message RoyaltyReportsPaginate {
+    // @inject_tag: json:"count"
+    int32 count = 1; // total count of selected orders
+    // @inject_tag: json:"items"
+    repeated billing.RoyaltyReport items = 2; // array of selected orders
+}
+
+message ListRoyaltyReportsResponse {
+    int32 status = 1;
+    // @inject_tag: json:"message,omitempty"
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"data"
+    RoyaltyReportsPaginate data = 3;
+}
+
+message ListRoyaltyReportOrdersRequest {
+    // @inject_tag: query:"report_id" validate:"required,hexadecimal,len=24"
+    string report_id = 1;
+    // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
+    int32 limit = 5;
+    // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
+    int32 offset = 6;
+}
+
+message ChangeRoyaltyReportRequest {
+    // @inject_tag: validate:"required,hexadecimal,len=24"
+    string report_id = 1;
+    // @inject_tag: validate:"omitempty,oneof=pending skipped accepted canceled dispute ready_for_invoice payment_in_progress payment_done payment_error"
+    string status = 2;
+    // @inject_tag: validate:"omitempty,hexadecimal,len=24"
+    string payout_id = 3;
+    billing.RoyaltyReportCorrection correction = 4;
+    string ip = 5;
+    string source = 6;
 }
 
 message PaymentChannelCostSystemListResponse {
@@ -1133,4 +1199,68 @@ message CreatePageReviewRequest {
 message ConfirmUserEmailRequest {
     //@inject_tag: validate:"required"
     string token = 1;
+}
+
+
+message VatTransactionsRequest {
+    //@inject_tag: json:"vat_report_id" validate:"required,hexadecimal,len=24"
+    string vat_report_id = 1;
+    // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
+    int32 limit = 2;
+    // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
+    int32 offset = 3;
+    // @inject_tag: query:"sort[]"
+    repeated string sort = 4;
+}
+
+message TransactionsPaginate {
+    // @inject_tag: json:"count"
+    int32 count = 1; // total count of selected transactions
+    // @inject_tag: json:"items"
+    repeated billing.OrderViewPublic items = 2; // array of selected transactions
+}
+
+message TransactionsResponse {
+    int32 status = 1;
+    // @inject_tag: json:"message,omitempty"
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"data"
+    TransactionsPaginate data = 3;
+}
+
+message VatReportsRequest {
+    //@inject_tag: json:"country" query:"country" validate:"required,alpha,len=2"
+    string country = 1;
+    // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
+    int32 limit = 2;
+    // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
+    int32 offset = 3;
+    // @inject_tag: query:"sort[]"
+    repeated string sort = 4;
+}
+
+message VatReportsPaginate {
+    // @inject_tag: json:"count"
+    int32 count = 1; // total count of selected orders
+    // @inject_tag: json:"items"
+    repeated billing.VatReport items = 2; // array of selected orders
+}
+
+message VatReportsResponse {
+    int32 status = 1;
+    // @inject_tag: json:"message,omitempty"
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"data"
+    VatReportsPaginate data = 3;
+}
+
+message ProcessVatReportsRequest {
+    google.protobuf.Timestamp date = 1;
+}
+
+message UpdateVatReportStatusRequest {
+    //@inject_tag: json:"id" bson:"_id" validate:"hexadecimal,len=24"
+    string id = 1;
+    //@inject_tag: json:"status" bson:"status" validate:"required,alpha,oneof=paid canceled"
+    string status = 2;
 }

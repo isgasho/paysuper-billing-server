@@ -1,0 +1,523 @@
+[
+  {
+    "drop": "price_group"
+  },
+  {
+    "insert": "price_group",
+    "documents": [
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440829"},
+        "region":"AED",
+        "currency":"AED",
+        "inflation_rate":{"$numberDouble":"0.718997"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444082a"},
+        "region":"AFRICA",
+        "currency":"USD",
+        "inflation_rate":{"$numberDouble":"0.6"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444082b"},
+        "region":"ARS",
+        "currency":"ARS",
+        "inflation_rate":{"$numberDouble":"0.262378"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444082c"},
+        "region":"AUD",
+        "currency":"AUD",
+        "inflation_rate":{"$numberInt":"1"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444082d"},
+        "region":"BHD",
+        "currency":"BHD",
+        "inflation_rate":{"$numberInt":"1"},
+        "fraction":{"$numberDouble":"0.95"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444082e"},
+        "region":"BRL",
+        "currency":"BRL",
+        "inflation_rate":{"$numberDouble":"0.496872"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444082f"},
+        "region":"CAD",
+        "currency":"CAD",
+        "inflation_rate":{"$numberDouble":"0.886567"},
+        "fraction":{"$numberDouble":"0.5"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440830"},
+        "region":"CAM",
+        "currency":"USD",
+        "inflation_rate":{"$numberDouble":"0.6"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440831"},
+        "region":"CARIB",
+        "currency":"USD",
+        "inflation_rate":{"$numberInt":"1"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440832"},
+        "region":"CHF",
+        "currency":"CHF",
+        "inflation_rate":{"$numberDouble":"1.025"},
+        "fraction":{"$numberDouble":"0.05"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440833"},
+        "region":"CIS",
+        "currency":"USD",
+        "inflation_rate":{"$numberDouble":"0.5"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440834"},
+        "region":"CLP",
+        "currency":"CLP",
+        "inflation_rate":{"$numberDouble":"0.559109"},
+        "fraction":{"$numberInt":"0"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440835"},
+        "region":"CNY",
+        "currency":"CNY",
+        "inflation_rate":{"$numberDouble":"0.465973"},
+        "fraction":{"$numberInt":"0"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440836"},
+        "region":"COP",
+        "currency":"COP",
+        "inflation_rate":{"$numberDouble":"0.419219"},
+        "fraction":{"$numberInt":"0"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440837"},
+        "region":"CRC",
+        "currency":"CRC",
+        "inflation_rate":{"$numberDouble":"0.721442"},
+        "fraction":{"$numberInt":"0"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440838"},
+        "region":"CZK",
+        "currency":"CZK",
+        "inflation_rate":{"$numberDouble":"0.447378"},
+        "fraction":{"$numberDouble":"0.05"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440839"},
+        "region":"DKK",
+        "currency":"DKK",
+        "inflation_rate":{"$numberInt":"1"},
+        "fraction":{"$numberDouble":"0.05"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444083a"},
+        "region":"EAFRICA",
+        "currency":"USD",
+        "inflation_rate":{"$numberDouble":"0.6"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444083b"},
+        "region":"EASIA",
+        "currency":"USD",
+        "inflation_rate":{"$numberDouble":"0.339736"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444083c"},
+        "region":"EGP",
+        "currency":"EGP",
+        "inflation_rate":{"$numberDouble":"0.431338"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444083d"},
+        "region":"EUR",
+        "currency":"EUR",
+        "inflation_rate":{"$numberInt":"1"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444083e"},
+        "region":"GBP",
+        "currency":"GBP",
+        "inflation_rate":{"$numberInt":"1"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444083f"},
+        "region":"HKD",
+        "currency":"HKD",
+        "inflation_rate":{"$numberDouble":"0.558586"},
+        "fraction":{"$numberInt":"0"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440840"},
+        "region":"HRK",
+        "currency":"HRK",
+        "inflation_rate":{"$numberDouble":"0.738587"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440841"},
+        "region":"HUF",
+        "currency":"HUF",
+        "inflation_rate":{"$numberDouble":"0.703967"},
+        "fraction":{"$numberInt":"0"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440842"},
+        "region":"IDR",
+        "currency":"IDR",
+        "inflation_rate":{"$numberDouble":"0.339644"},
+        "fraction":{"$numberInt":"0"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440843"},
+        "region":"ILS",
+        "currency":"ILS",
+        "inflation_rate":{"$numberDouble":"1.045"},
+        "fraction":{"$numberDouble":"0.05"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440844"},
+        "region":"INR",
+        "currency":"INR",
+        "inflation_rate":{"$numberDouble":"0.329939"},
+        "fraction":{"$numberInt":"0"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440845"},
+        "region":"JPY",
+        "currency":"JPY",
+        "inflation_rate":{"$numberDouble":"0.954022"},
+        "fraction":{"$numberInt":"0"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440846"},
+        "region":"KRW",
+        "currency":"KRW",
+        "inflation_rate":{"$numberDouble":"0.900014"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440847"},
+        "region":"KZT",
+        "currency":"KZT",
+        "inflation_rate":{"$numberDouble":"0.346923"},
+        "fraction":{"$numberInt":"0"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": "2019-05-2816:20:00.000"
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440848"},
+        "region":"MXN",
+        "currency":"MXN",
+        "inflation_rate":{"$numberDouble":"0.488399"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440849"},
+        "region":"MYR",
+        "currency":"MYR",
+        "inflation_rate":{"$numberDouble":"0.425568"},
+        "fraction":{"$numberDouble":"0.5"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444084a"},
+        "region":"NAFRICA",
+        "currency":"USD",
+        "inflation_rate":{"$numberDouble":"0.339736"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444084b"},
+        "region":"NOK",
+        "currency":"NOK",
+        "inflation_rate":{"$numberDouble":"0.82658"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444084c"},
+        "region":"NZD",
+        "currency":"NZD",
+        "inflation_rate":{"$numberDouble":"0.83186"},
+        "fraction":{"$numberDouble":"0.5"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444084d"},
+        "region":"PEN",
+        "currency":"PEN",
+        "inflation_rate":{"$numberDouble":"0.54636"},
+        "fraction":{"$numberDouble":"0.05"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444084e"},
+        "region":"PHP",
+        "currency":"PHP",
+        "inflation_rate":{"$numberDouble":"0.429275"},
+        "fraction":{"$numberDouble":"0.95"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444084f"},
+        "region":"PLN",
+        "currency":"PLN",
+        "inflation_rate":{"$numberDouble":"0.964214"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440850"},
+        "region":"QAR",
+        "currency":"QAR",
+        "inflation_rate":{"$numberDouble":"0.549372"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440851"},
+        "region":"RON",
+        "currency":"RON",
+        "inflation_rate":{"$numberDouble":"0.480883"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440852"},
+        "region":"RSD",
+        "currency":"RSD",
+        "inflation_rate":{"$numberDouble":"0.301246"},
+        "fraction":{"$numberInt":"0"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440853"},
+        "region":"RUB",
+        "currency":"RUB",
+        "inflation_rate":{"$numberDouble":"0.295666"},
+        "fraction":{"$numberInt":"0"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440854"},
+        "region":"SAFRICA",
+        "currency":"USD",
+        "inflation_rate":{"$numberDouble":"0.6"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440855"},
+        "region":"SAM",
+        "currency":"USD",
+        "inflation_rate":{"$numberDouble":"0.5"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440856"},
+        "region":"SAR",
+        "currency":"SAR",
+        "inflation_rate":{"$numberDouble":"0.426298"},
+        "fraction":{"$numberDouble":"0.05"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440857"},
+        "region":"SASIA",
+        "currency":"USD",
+        "inflation_rate":{"$numberDouble":"0.339736"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440858"},
+        "region":"SEK",
+        "currency":"SEK",
+        "inflation_rate":{"$numberInt":"1"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440859"},
+        "region":"SGD",
+        "currency":"SGD",
+        "inflation_rate":{"$numberDouble":"0.650715"},
+        "fraction":{"$numberDouble":"0.05"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444085a"},
+        "region":"THB",
+        "currency":"THB",
+        "inflation_rate":{"$numberDouble":"0.416174"},
+        "fraction":{"$numberInt":"0"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444085b"},
+        "region":"TRY",
+        "currency":"TRY",
+        "inflation_rate":{"$numberDouble":"0.277342"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444085c"},
+        "region":"TWD",
+        "currency":"TWD",
+        "inflation_rate":{"$numberDouble":"0.487811"},
+        "fraction":{"$numberInt":"0"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444085d"},
+        "region":"USD",
+        "currency":"USD",
+        "inflation_rate":{"$numberInt":"1"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444085e"},
+        "region":"VND",
+        "currency":"VND",
+        "inflation_rate":{"$numberDouble":"0.377754"},
+        "fraction":{"$numberInt":"0"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf444085f"},
+        "region":"WAFRICA",
+        "currency":"USD",
+        "inflation_rate":{"$numberDouble":"0.6"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440860"},
+        "region":"WASIA",
+        "currency":"USD",
+        "inflation_rate":{"$numberInt":"1"},
+        "fraction":{"$numberDouble":"0.09"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      },
+      {
+        "_id": {"$oid": "5ced34d689fce60bf4440861"},
+        "region":"ZAR",
+        "currency":"ZAR",
+        "inflation_rate":{"$numberDouble":"0.423392"},
+        "fraction":{"$numberInt":"0"},
+        "created_at": {"$date":{"$numberLong":"1562258329000"}},
+        "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+      }
+    ]
+  }
+]
