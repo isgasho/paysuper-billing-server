@@ -25,6 +25,6 @@ func (s *Service) FinishRedeemKeyForOrder(context.Context, *grpc.KeyForOrderRequ
 	panic("implement me")
 }
 
-func (s *Service) CancelRedeemKeyForOrder(context.Context, *grpc.KeyForOrderRequest, *grpc.EmptyResponse) error {
+func (s *Service) CancelRedeemKeyForOrder(context.Context, *grpc.KeyForOrderRequest, *grpc.EmptyResponseWithStatus) error {
 	panic("implement me")
 }
