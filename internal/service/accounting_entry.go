@@ -810,13 +810,14 @@ func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
 		entry.OriginalCurrency = entry.Currency
 	}
 	if entry.LocalAmount == 0 && entry.LocalCurrency == "" && entry.Country != "" {
-		if h.country.Currency == entry.OriginalCurrency {
+		entry.LocalCurrency = h.country.Currency
+
+		if entry.LocalCurrency == entry.OriginalCurrency {
 			entry.LocalAmount = entry.OriginalAmount
-			entry.LocalCurrency = h.country.Currency
 		} else {
 			req := &currencies.ExchangeCurrencyCurrentCommonRequest{
 				From:     entry.OriginalCurrency,
-				To:       h.country.Currency,
+				To:       entry.LocalCurrency,
 				RateType: curPkg.RateTypeCentralbanks,
 				Amount:   entry.OriginalAmount,
 			}
@@ -835,7 +836,6 @@ func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
 				return accountingEntryErrorExchangeFailed
 			} else {
 				entry.LocalAmount = rsp.ExchangedAmount
-				entry.LocalCurrency = h.country.Currency
 			}
 		}
 	}
