@@ -215,9 +215,12 @@ message PaymentNotifyResponse {
 message OnboardingBanking {
     //@inject_tag: validate:"omitempty,len=3"
     string currency = 1;
+    //@inject_tag: validate:"required,company_name,max=60"
     string name = 2;
     string address = 3;
+    //@inject_tag: validate:"omitempty,bank_account_number"
     string account_number = 4;
+    //@inject_tag: validate:"omitempty,swift"
     string swift = 5;
     string details = 6;
 }

@@ -689,6 +689,8 @@ github.com/paysuper/paysuper-recurring-repository v1.0.109 h1:g+A5egxRGtNFGu/je+
 github.com/paysuper/paysuper-recurring-repository v1.0.109/go.mod h1:e+FqC261cfpCeQw19TydhzyS09A+GN8qaBh1zp1Gn/g=
 github.com/paysuper/paysuper-recurring-repository v1.0.110 h1:FyslXnd1lOEF7VVCoyzgeBo1eC88Pr6vGXj/9vyDbgI=
 github.com/paysuper/paysuper-recurring-repository v1.0.110/go.mod h1:e+FqC261cfpCeQw19TydhzyS09A+GN8qaBh1zp1Gn/g=
+github.com/paysuper/paysuper-recurring-repository v1.0.111 h1:YSg8Rvp7p1Nd0baEaG+XpcFCtnUE9rlYR1HdS1toZqQ=
+github.com/paysuper/paysuper-recurring-repository v1.0.111/go.mod h1:4XX2FeDCMGxAHBO/Pn9mE8JJiPaYaNxXhQnZL91ec0Y=
 github.com/paysuper/paysuper-tax-service v0.0.0-20190308105725-016a09c27fbd h1:JzUgUK7pIQvf2EQdNV01PkvRy9lZNLvc4Jq4FeAP8vI=
 github.com/paysuper/paysuper-tax-service v0.0.0-20190308105725-016a09c27fbd/go.mod h1:XT/Z0e+14Acndypfqp6f4Luo+WLX9omZAEzUYF9UTCE=
 github.com/paysuper/paysuper-tax-service v0.0.0-20190709140206-bef6637696c0 h1:ezJIYbDMCVTkz3hKLwyNkF5KZu85OyBrTQI9pp9miic=

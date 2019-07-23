@@ -46,6 +46,11 @@ var (
 	}
 )
 
+type MerchantIdentity struct {
+	Id   string
+	User *billing.MerchantUser
+}
+
 func (s *Service) GetMerchantBy(
 	ctx context.Context,
 	req *grpc.GetMerchantByRequest,
@@ -170,54 +175,12 @@ func (s *Service) ChangeMerchant(
 	req *grpc.OnboardingRequest,
 	rsp *grpc.ChangeMerchantResponse,
 ) error {
-	var merchant *billing.Merchant
-	var err error
-	var isNew bool
+	merchant, err := s.getMerchantByIdentity(&MerchantIdentity{Id: req.Id, User: req.User})
 
-	rsp.Status = pkg.ResponseStatusOk
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
 
-	if req.Id == "" && (req.User == nil || req.User.Id == "") {
-		isNew = true
-	} else {
-		query := make(bson.M)
-
-		if req.Id != "" && req.User != nil && req.User.Id != "" {
-			query["$or"] = []bson.M{{"_id": bson.ObjectIdHex(req.Id)}, {"user.id": req.User.Id}}
-		} else {
-			if req.Id != "" {
-				query["_id"] = bson.ObjectIdHex(req.Id)
-			}
-
-			if req.User != nil && req.User.Id != "" {
-				query["user.id"] = req.User.Id
-			}
-		}
-
-		merchant, err = s.getMerchantBy(query)
-
-		if err != nil {
-			if err != merchantErrorNotFound {
-				rsp.Status = pkg.ResponseStatusBadData
-				rsp.Message = err.(*grpc.ResponseErrorMessage)
-				return nil
-			}
-
-			isNew = true
-		}
-	}
-
-	if isNew {
-		merchant = &billing.Merchant{
-			Id:        bson.NewObjectId().Hex(),
-			User:      req.User,
-			Status:    pkg.MerchantStatusDraft,
-			CreatedAt: ptypes.TimestampNow(),
-		}
-	}
-
-	if merchant == nil {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = merchantErrorUnknown
 		return nil
 	}
 
@@ -231,9 +194,15 @@ func (s *Service) ChangeMerchant(
 		country, err := s.country.GetByIsoCodeA2(req.Country)
 
 		if err != nil {
-			zap.S().Errorf("Get country for merchant failed", "err", err.Error(), "request", req)
+			zap.L().Error(
+				"Get country for merchant failed",
+				zap.Error(err),
+				zap.Any("request", req),
+			)
+
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = merchantErrorCountryNotFound
+
 			return nil
 		}
 
@@ -1084,4 +1053,43 @@ func (s *Service) updateOnboardingProfile(
 	}
 
 	return profile, nil
+}
+
+func (s *Service) getMerchantByIdentity(identity *MerchantIdentity) (*billing.Merchant, error) {
+	merchant := &billing.Merchant{
+		Id:        bson.NewObjectId().Hex(),
+		User:      identity.User,
+		Status:    pkg.MerchantStatusDraft,
+		CreatedAt: ptypes.TimestampNow(),
+	}
+
+	if identity.Id == "" && (identity.User == nil || identity.User.Id == "") {
+		return merchant, nil
+	}
+
+	query := bson.M{}
+
+	if identity.Id != "" && identity.User != nil && identity.User.Id != "" {
+		query["$or"] = []bson.M{{"_id": bson.ObjectIdHex(identity.Id)}, {"user.id": identity.User.Id}}
+	} else {
+		if identity.Id != "" {
+			query["_id"] = bson.ObjectIdHex(identity.Id)
+		}
+
+		if identity.User != nil && identity.User.Id != "" {
+			query["user.id"] = identity.User.Id
+		}
+	}
+
+	m, err := s.getMerchantBy(query)
+
+	if err == nil {
+		return m, nil
+	}
+
+	if err != merchantErrorNotFound {
+		return nil, err
+	}
+
+	return merchant, nil
 }
