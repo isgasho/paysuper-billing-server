@@ -1444,7 +1444,7 @@
       },
       {
         "iso_code_a2": "MO",
-        "region": "EastAsia",
+        "region": "East Asia",
         "currency": "MOP",
         "payments_allowed": true,
         "change_allowed": true,
@@ -1804,7 +1804,7 @@
       },
       {
         "iso_code_a2": "BV",
-        "region": "Sout America",
+        "region": "South America",
         "currency": "NOK",
         "payments_allowed": true,
         "change_allowed": true,
