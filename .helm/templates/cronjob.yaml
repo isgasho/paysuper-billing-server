@@ -24,6 +24,14 @@ spec:
             command: ["/application/bin/paysuper_billing_service"]
             args: ["-task=vat_reports"]
             env:
+            - name: MICRO_SERVER_ADDRESS
+              value: "0.0.0.0:{{ $deployment.port }}"
+            - name: MICRO_REGISTRY
+              value: "mdns"
+            - name: MICRO_SELECTOR
+              value: "static"
+            - name: METRICS_PORT
+              value: "{{ $deployment.healthPort }}"   
             {{- range .Values.backend.env }}
             - name: {{ . }}
               valueFrom:
@@ -57,6 +65,14 @@ spec:
             command: ["/application/bin/paysuper_billing_service"]
             args: ["-task=royalty_reports"]
             env:
+            - name: MICRO_SERVER_ADDRESS
+              value: "0.0.0.0:{{ $deployment.port }}"
+            - name: MICRO_REGISTRY
+              value: "mdns"
+            - name: MICRO_SELECTOR
+              value: "static"
+            - name: METRICS_PORT
+              value: "{{ $deployment.healthPort }}"   
             {{- range .Values.backend.env }}
             - name: {{ . }}
               valueFrom:
@@ -90,6 +106,14 @@ spec:
             command: ["/application/bin/paysuper_billing_service"]
             args: ["-task=royalty_reports_accept"]
             env:
+            - name: MICRO_SERVER_ADDRESS
+              value: "0.0.0.0:{{ $deployment.port }}"
+            - name: MICRO_REGISTRY
+              value: "mdns"
+            - name: MICRO_SELECTOR
+              value: "static"
+            - name: METRICS_PORT
+              value: "{{ $deployment.healthPort }}"            
             {{- range .Values.backend.env }}
             - name: {{ . }}
               valueFrom:
