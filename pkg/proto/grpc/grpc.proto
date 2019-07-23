@@ -126,11 +126,11 @@ service BillingService {
 
     rpc CalcAnnualTurnovers(EmptyRequest) returns (EmptyResponse) {}
 
-    rpc CreateOrUpdateKeyProduct (CreateOrUpdateKeyProductRequest) returns (KeyProduct) {}
+    rpc CreateOrUpdateKeyProduct (CreateOrUpdateKeyProductRequest) returns (KeyProductResponse) {}
     rpc GetKeyProducts(ListKeyProductsRequest) returns (ListKeyProductsResponse) {}
-    rpc GetKeyProduct (RequestKeyProduct) returns (KeyProduct) {}
-    rpc DeleteKeyProduct (RequestKeyProduct) returns (EmptyResponse) {}
-    rpc PublishKeyProduct(PublishKeyProductRequest) returns (KeyProduct) {}
+    rpc GetKeyProduct (RequestKeyProduct) returns (KeyProductResponse) {}
+    rpc DeleteKeyProduct (RequestKeyProduct) returns (EmptyResponseWithStatus) {}
+    rpc PublishKeyProduct(PublishKeyProductRequest) returns (KeyProductResponse) {}
     rpc GetKeyProductsForOrder (GetKeyProductsForOrderRequest) returns (ListKeyProductsResponse) {}
 
     rpc GetPlatforms(ListPlatformsRequest) returns (ListPlatformsResponse) {}
@@ -139,14 +139,19 @@ service BillingService {
 
     rpc GetAvailableKeysCount(GetPlatformKeyCountRequest) returns (GetPlatformKeyCountResponse) {}
     rpc UploadKeysFile(PlatformKeysFileRequest) returns (PlatformKeysFileResponse) {}
-    rpc GetKeyByID(KeyForOrderRequest) returns (Key) {}
+    rpc GetKeyByID(KeyForOrderRequest) returns (GetKeyForOrderRequestResponse) {}
     rpc ReserveKeyForOrder(PlatformKeyReserveRequest) returns (PlatformKeyReserveResponse) {}
-    rpc FinishRedeemKeyForOrder(KeyForOrderRequest) returns (Key) {}
-    rpc CancelRedeemKeyForOrder(KeyForOrderRequest) returns (EmptyResponse) {}
+    rpc FinishRedeemKeyForOrder(KeyForOrderRequest) returns (GetKeyForOrderRequestResponse) {}
+    rpc CancelRedeemKeyForOrder(KeyForOrderRequest) returns (EmptyResponseWithStatus) {}
 }
 
 message EmptyRequest {}
 message EmptyResponse {}
+
+message EmptyResponseWithStatus {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+}
 
 message Key {
     //@inject_tag: json:"id" bson:"_id"
@@ -168,7 +173,9 @@ message Key {
 }
 
 message GetPlatformKeyCountResponse {
-    int32 count = 1;
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    int32 count = 3;
 }
 
 message KeyForOrderRequest {
@@ -176,9 +183,16 @@ message KeyForOrderRequest {
     string key_id = 1;
 }
 
+message GetKeyForOrderRequestResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    Key key = 3;
+}
+
 message PlatformKeyReserveResponse {
-    //@inject_tag: validate:"required,hexadecimal,len=24"
-    string key_id = 1;
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    string key_id = 3;
 }
 
 message PlatformKeyReserveRequest {
@@ -195,8 +209,10 @@ message PlatformKeyReserveRequest {
 }
 
 message PlatformKeysFileResponse {
-    int32 keys_processed = 1;
-    int32 total_count = 2;
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    int32 keys_processed = 3;
+    int32 total_count = 4;
 }
 
 message PlatformKeysFileRequest {
@@ -235,6 +251,12 @@ message AddOrUpdatePlatformPricesRequest {
     string merchant_id = 2;
     //@inject_tag: validate:"required,dive"
     PlatformPrice platform = 3;
+}
+
+message KeyProductResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    KeyProduct product = 3;
 }
 
 message CreateOrUpdateKeyProductRequest {
@@ -290,14 +312,16 @@ message ListPlatformsResponse {
 }
 
 message ListKeyProductsResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
     // @inject_tag: json:"limit"
-    int32 limit = 1;
+    int32 limit = 3;
     // @inject_tag: json:"offset"
-    int32 offset = 2;
+    int32 offset = 4;
     // @inject_tag: json:"count"
-    int32 count = 3;
+    int32 count = 5;
     // @inject_tag: json:"products"
-    repeated KeyProduct products = 5;
+    repeated KeyProduct products = 6;
 }
 
 message ListKeyProductsRequest {
