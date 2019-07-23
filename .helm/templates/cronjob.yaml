@@ -3,7 +3,7 @@
 apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
-  name: "{{ .Release.Name }}-vat_reports"
+  name: "{{ .Release.Name }}-vat-reports"
   labels:
     app: {{ .Chart.Name }}
     chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
@@ -19,7 +19,7 @@ spec:
       template:
         spec:
           containers:
-          - name: "{{ .Release.Name }}-vat_reports"
+          - name: "{{ .Release.Name }}-vat-reports"
             image: {{ $deployment.image }}:{{ $deployment.imageTag }}
             command: ["/application/bin/paysuper_billing_service"]
             args: ["-task=vat_reports"]
@@ -36,7 +36,7 @@ spec:
 apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
-  name: "{{ .Release.Name }}-royalty_reports"
+  name: "{{ .Release.Name }}-royalty-reports"
   labels:
     app: {{ .Chart.Name }}
     chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
@@ -52,7 +52,7 @@ spec:
       template:
         spec:
           containers:
-          - name: "{{ .Release.Name }}-royalty_reports"
+          - name: "{{ .Release.Name }}-royalty-reports"
             image: {{ $deployment.image }}:{{ $deployment.imageTag }}
             command: ["/application/bin/paysuper_billing_service"]
             args: ["-task=royalty_reports"]
@@ -69,7 +69,7 @@ spec:
 apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
-  name: "{{ .Release.Name }}-royalty_reports_accept"
+  name: "{{ .Release.Name }}-royalty-reports-accept"
   labels:
     app: {{ .Chart.Name }}
     chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
@@ -85,7 +85,7 @@ spec:
       template:
         spec:
           containers:
-          - name: "{{ .Release.Name }}-royalty_reports_accept"
+          - name: "{{ .Release.Name }}-royalty-reports-accept"
             image: {{ $deployment.image }}:{{ $deployment.imageTag }}
             command: ["/application/bin/paysuper_billing_service"]
             args: ["-task=royalty_reports_accept"]
