@@ -186,10 +186,10 @@ func (s *Service) OrderCreateProcess(
 		err := processor.processCustomerToken()
 
 		if err != nil {
-			zap.S().Error("err", err.Error())
-			if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+			zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 				rsp.Status = pkg.ResponseStatusBadData
-				rsp.Message = err.(*grpc.ResponseErrorMessage)
+				rsp.Message = e
 				return nil
 			}
 			return err
@@ -203,10 +203,10 @@ func (s *Service) OrderCreateProcess(
 	}
 
 	if err := processor.processProject(); err != nil {
-		zap.S().Error("err", err.Error())
-		if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			rsp.Message = e
 			return nil
 		}
 		return err
@@ -214,10 +214,10 @@ func (s *Service) OrderCreateProcess(
 
 	if req.Signature != "" || processor.checked.project.SignatureRequired == true {
 		if err := processor.processSignature(); err != nil {
-			zap.S().Error("err", err.Error())
-			if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+			zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 				rsp.Status = pkg.ResponseStatusBadData
-				rsp.Message = err.(*grpc.ResponseErrorMessage)
+				rsp.Message = e
 				return nil
 			}
 			return err
@@ -240,10 +240,10 @@ func (s *Service) OrderCreateProcess(
 		err := processor.processUserData()
 
 		if err != nil {
-			zap.S().Error("err", err.Error())
-			if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+			zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 				rsp.Status = pkg.ResponseStatusBadData
-				rsp.Message = err.(*grpc.ResponseErrorMessage)
+				rsp.Message = e
 				return nil
 			}
 			return err
@@ -254,10 +254,10 @@ func (s *Service) OrderCreateProcess(
 		err := processor.processPayerIp()
 
 		if err != nil {
-			zap.S().Error("err", err.Error())
-			if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+			zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 				rsp.Status = pkg.ResponseStatusBadData
-				rsp.Message = err.(*grpc.ResponseErrorMessage)
+				rsp.Message = e
 				return nil
 			}
 			return err
@@ -269,10 +269,10 @@ func (s *Service) OrderCreateProcess(
 			if pid := req.PrivateMetadata["PaylinkId"]; pid != "" {
 				s.notifyPaylinkError(pid, err, req, nil)
 			}
-			zap.S().Error("err", err.Error())
-			if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+			zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 				rsp.Status = pkg.ResponseStatusBadData
-				rsp.Message = err.(*grpc.ResponseErrorMessage)
+				rsp.Message = e
 				return nil
 			}
 			return err
@@ -280,10 +280,10 @@ func (s *Service) OrderCreateProcess(
 	} else {
 		if req.Currency != "" {
 			if err := processor.processCurrency(); err != nil {
-				zap.S().Error("err", err.Error())
-				if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+				zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+				if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 					rsp.Status = pkg.ResponseStatusBadData
-					rsp.Message = err.(*grpc.ResponseErrorMessage)
+					rsp.Message = e
 					return nil
 				}
 				return err
@@ -303,10 +303,10 @@ func (s *Service) OrderCreateProcess(
 
 	if req.OrderId != "" {
 		if err := processor.processProjectOrderId(); err != nil {
-			zap.S().Error("err", err.Error())
-			if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+			zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 				rsp.Status = pkg.ResponseStatusBadData
-				rsp.Message = err.(*grpc.ResponseErrorMessage)
+				rsp.Message = e
 				return nil
 			}
 			return err
@@ -322,10 +322,10 @@ func (s *Service) OrderCreateProcess(
 		}
 
 		if err := processor.processPaymentMethod(pm); err != nil {
-			zap.S().Error("err", err.Error())
-			if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+			zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 				rsp.Status = pkg.ResponseStatusBadData
-				rsp.Message = err.(*grpc.ResponseErrorMessage)
+				rsp.Message = e
 				return nil
 			}
 			return err
@@ -334,10 +334,10 @@ func (s *Service) OrderCreateProcess(
 
 	if processor.checked.project.IsProductsCheckout == false {
 		if err := processor.processLimitAmounts(); err != nil {
-			zap.S().Error("err", err.Error())
-			if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+			zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 				rsp.Status = pkg.ResponseStatusBadData
-				rsp.Message = err.(*grpc.ResponseErrorMessage)
+				rsp.Message = e
 				return nil
 			}
 			return err
@@ -350,11 +350,11 @@ func (s *Service) OrderCreateProcess(
 	order, err := processor.prepareOrder()
 
 	if err != nil {
-		zap.S().Error("err", err.Error())
-		zap.S().Error("err", err.Error())
-		if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			rsp.Message = e
 			return nil
 		}
 		return err
@@ -386,10 +386,10 @@ func (s *Service) PaymentFormJsonDataProcess(
 	order, err := s.getOrderByUuid(req.OrderId)
 
 	if err != nil {
-		zap.S().Error("err", err.Error())
-		if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusSystemError
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			rsp.Message = e
 			return nil
 		}
 		return err
@@ -410,10 +410,10 @@ func (s *Service) PaymentFormJsonDataProcess(
 		err = p1.processPayerIp()
 
 		if err != nil {
-			zap.S().Error("err", err.Error())
-			if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+			zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 				rsp.Status = pkg.ResponseStatusSystemError
-				rsp.Message = err.(*grpc.ResponseErrorMessage)
+				rsp.Message = e
 				return nil
 			}
 			return err
@@ -497,10 +497,10 @@ func (s *Service) PaymentFormJsonDataProcess(
 
 	restricted, err := s.applyCountryRestriction(order, order.GetCountry())
 	if err != nil {
-		zap.S().Error("err", err.Error())
-		if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusSystemError
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			rsp.Message = e
 			return nil
 		}
 		return err
@@ -516,10 +516,10 @@ func (s *Service) PaymentFormJsonDataProcess(
 		if pid := order.PrivateMetadata["PaylinkId"]; pid != "" {
 			s.notifyPaylinkError(pid, err, req, order)
 		}
-		zap.S().Error("err", err.Error())
-		if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusSystemError
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			rsp.Message = e
 			return nil
 		}
 		return err
@@ -529,10 +529,10 @@ func (s *Service) PaymentFormJsonDataProcess(
 	err = s.updateOrder(order)
 
 	if err != nil {
-		zap.S().Error("err", err.Error())
-		if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusSystemError
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			rsp.Message = e
 			return nil
 		}
 		return err
@@ -541,10 +541,10 @@ func (s *Service) PaymentFormJsonDataProcess(
 	pms, err := p.processRenderFormPaymentMethods()
 
 	if err != nil {
-		zap.S().Error("err", err.Error())
-		if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusSystemError
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			rsp.Message = e
 			return nil
 		}
 		return err
@@ -609,10 +609,10 @@ func (s *Service) PaymentCreateProcess(
 	}
 	err := processor.processPaymentFormData()
 	if err != nil {
-		zap.S().Error("err", err.Error())
-		if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			rsp.Message = e
 			return nil
 		}
 		return err
@@ -633,10 +633,10 @@ func (s *Service) PaymentCreateProcess(
 			s.notifyPaylinkError(pid, err, req, order)
 		}
 
-		zap.S().Error("err", err.Error())
-		if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			rsp.Message = e
 			return nil
 		}
 		return err
@@ -644,10 +644,10 @@ func (s *Service) PaymentCreateProcess(
 
 	merchant, err := s.merchant.GetById(processor.GetMerchantId())
 	if err != nil {
-		zap.S().Error("err", err.Error())
-		if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusSystemError
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			rsp.Message = e
 			return nil
 		}
 		return err
@@ -655,10 +655,10 @@ func (s *Service) PaymentCreateProcess(
 
 	settings, err := s.paymentMethod.GetPaymentSettings(processor.checked.paymentMethod, merchant, processor.checked.project)
 	if err != nil {
-		zap.S().Error("err", err.Error())
-		if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusSystemError
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			rsp.Message = e
 			return nil
 		}
 		return err
@@ -702,10 +702,10 @@ func (s *Service) PaymentCreateProcess(
 	h, err := s.NewPaymentSystem(s.cfg.PaymentSystemConfig, order)
 
 	if err != nil {
-		zap.S().Error("err", err.Error())
-		if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusSystemError
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			rsp.Message = e
 			return nil
 		}
 		return err
@@ -725,10 +725,10 @@ func (s *Service) PaymentCreateProcess(
 	if err != nil {
 		zap.S().Errorf("Order create in payment system failed", "err", err.Error(), "order", order)
 
-		zap.S().Error("err", err.Error())
-		if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusSystemError
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			rsp.Message = e
 			return nil
 		}
 		return err
@@ -829,10 +829,10 @@ func (s *Service) PaymentCallbackProcess(
 	err = s.updateOrder(order)
 
 	if err != nil {
-		zap.S().Error("err", err.Error())
-		if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.StatusErrorSystem
-			rsp.Error = err.(*grpc.ResponseErrorMessage).Message
+			rsp.Error = e.Message
 			return nil
 		}
 		return err
@@ -842,10 +842,10 @@ func (s *Service) PaymentCallbackProcess(
 		err = s.onPaymentNotify(ctx, order)
 
 		if err != nil {
-			zap.S().Error("err", err.Error())
-			if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+			zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 				rsp.Status = pkg.StatusErrorSystem
-				rsp.Error = err.(*grpc.ResponseErrorMessage).Message
+				rsp.Error = e.Message
 				return nil
 			}
 			return err
@@ -869,10 +869,10 @@ func (s *Service) PaymentFormLanguageChanged(
 	order, err := s.getOrderByUuidToForm(req.OrderId)
 
 	if err != nil {
-		zap.S().Error("err", err.Error())
-		if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			rsp.Message = e
 			return nil
 		}
 		return err
@@ -899,10 +899,10 @@ func (s *Service) PaymentFormLanguageChanged(
 		if pid := order.PrivateMetadata["PaylinkId"]; pid != "" {
 			s.notifyPaylinkError(pid, err, req, order)
 		}
-		zap.S().Error("err", err.Error())
-		if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			rsp.Message = e
 			return nil
 		}
 		return err
@@ -911,10 +911,10 @@ func (s *Service) PaymentFormLanguageChanged(
 	err = s.updateOrder(order)
 
 	if err != nil {
-		zap.S().Error("err", err.Error())
-		if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusSystemError
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			rsp.Message = e
 			return nil
 		}
 		return err
@@ -938,10 +938,10 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 	order, err := s.getOrderByUuidToForm(req.OrderId)
 
 	if err != nil {
-		zap.S().Error("err", err.Error())
-		if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			rsp.Message = e
 			return nil
 		}
 		return err
@@ -1026,10 +1026,10 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 	err = s.updateOrder(order)
 
 	if err != nil {
-		zap.S().Error("err", err.Error())
-		if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusSystemError
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			rsp.Message = e
 			return nil
 		}
 		return err
@@ -1075,10 +1075,10 @@ func (s *Service) ProcessBillingAddress(
 	order, err := s.getOrderByUuidToForm(req.OrderId)
 
 	if err != nil {
-		zap.S().Error("err", err.Error())
-		if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			rsp.Message = e
 			return nil
 		}
 		return err
@@ -1120,10 +1120,10 @@ func (s *Service) ProcessBillingAddress(
 	err = s.updateOrder(order)
 
 	if err != nil {
-		zap.S().Error("err", err.Error())
-		if _, ok := err.(*grpc.ResponseErrorMessage); ok {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusSystemError
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			rsp.Message = e
 			return nil
 		}
 		return err
@@ -2477,9 +2477,9 @@ func (s *Service) IsOrderCanBePaying(
 	rsp.Status = pkg.ResponseStatusBadData
 
 	if err != nil {
-		zap.S().Error("err", err.Error())
-		if _, ok := err.(*grpc.ResponseErrorMessage); ok {
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Message = e
 			return nil
 		}
 		return err

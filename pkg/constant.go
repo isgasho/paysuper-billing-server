@@ -99,6 +99,7 @@ const (
 
 	ErrorGrpcServiceCallFailed       = "gRPC call failed"
 	ErrorVatReportDateCantBeInFuture = "vat report date cant be in future"
+	MethodFinishedWithError          = "method finished with error"
 
 	ObjectTypeBalanceTransaction = "balance_transaction"
 

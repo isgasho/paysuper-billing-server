@@ -66,10 +66,13 @@ func (s *Service) CreateRefund(
 	h, err := s.NewPaymentSystem(s.cfg.PaymentSystemConfig, processor.checked.order)
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
-
-		return nil
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
 	}
 
 	err = h.CreateRefund(refund)
