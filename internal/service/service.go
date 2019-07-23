@@ -278,10 +278,13 @@ func (s *Service) CheckProjectRequestSignature(
 	err := p.processProject()
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
-
-		return nil
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
 	}
 
 	hashString := req.Body + p.checked.project.SecretKey

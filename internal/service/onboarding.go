@@ -71,14 +71,18 @@ func (s *Service) GetMerchantBy(
 	merchant, err := s.getMerchantBy(query)
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusNotFound
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusNotFound
+			rsp.Message = e
 
-		if err != merchantErrorNotFound {
-			rsp.Status = pkg.ResponseStatusBadData
+			if err != merchantErrorNotFound {
+				rsp.Status = pkg.ResponseStatusBadData
+			}
+
+			return nil
 		}
-
-		return nil
+		return err
 	}
 
 	expire := time.Now().Add(time.Hour * 3).Unix()
@@ -197,9 +201,13 @@ func (s *Service) ChangeMerchant(
 
 		if err != nil {
 			if err != merchantErrorNotFound {
-				rsp.Status = pkg.ResponseStatusBadData
-				rsp.Message = err.(*grpc.ResponseErrorMessage)
-				return nil
+				zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+				if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+					rsp.Status = pkg.ResponseStatusBadData
+					rsp.Message = e
+					return nil
+				}
+				return err
 			}
 
 			isNew = true
@@ -298,9 +306,13 @@ func (s *Service) ChangeMerchantStatus(
 	merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
-		return nil
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
 	}
 
 	if req.Status == pkg.MerchantStatusAgreementRequested && merchant.Status != pkg.MerchantStatusDraft {
@@ -347,9 +359,13 @@ func (s *Service) ChangeMerchantStatus(
 		_, err := s.addNotification(title, req.Message, merchant.Id, "", nStatuses)
 
 		if err != nil {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
-			return nil
+			zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+				rsp.Status = pkg.ResponseStatusBadData
+				rsp.Message = e
+				return nil
+			}
+			return err
 		}
 	}
 
@@ -374,10 +390,13 @@ func (s *Service) ChangeMerchantData(
 	merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusNotFound
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
-
-		return nil
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusNotFound
+			rsp.Message = e
+			return nil
+		}
+		return err
 	}
 
 	if req.AgreementType > 0 && merchant.AgreementType != req.AgreementType {
@@ -457,9 +476,13 @@ func (s *Service) CreateNotification(
 	_, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
-		return nil
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
 	}
 
 	if req.UserId == "" || bson.IsObjectIdHex(req.UserId) == false {
@@ -477,9 +500,13 @@ func (s *Service) CreateNotification(
 	n, err := s.addNotification(req.Title, req.Message, req.MerchantId, req.UserId, nil)
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
-		return nil
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
 	}
 
 	rsp.Item = n
@@ -697,10 +724,13 @@ func (s *Service) ChangeMerchantPaymentMethod(
 	merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
-
-		return nil
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
 	}
 
 	pm, e := s.paymentMethod.GetById(req.PaymentMethod.Id)
