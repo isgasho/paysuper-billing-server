@@ -56,6 +56,29 @@ func (_m *CountryServiceInterface) GetByIsoCodeA2(_a0 string) (*billing.Country,
 	return r0, r1
 }
 
+// GetCountriesWithVatEnabled provides a mock function with given fields:
+func (_m *CountryServiceInterface) GetCountriesWithVatEnabled() (*billing.CountriesList, error) {
+	ret := _m.Called()
+
+	var r0 *billing.CountriesList
+	if rf, ok := ret.Get(0).(func() *billing.CountriesList); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*billing.CountriesList)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // Insert provides a mock function with given fields: _a0
 func (_m *CountryServiceInterface) Insert(_a0 *billing.Country) error {
 	ret := _m.Called(_a0)

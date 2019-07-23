@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
@@ -67,15 +68,23 @@ func (s *Service) GetMerchantBy(
 	merchant, err := s.getMerchantBy(query)
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusNotFound
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusNotFound
+			rsp.Message = e
 
-		if err != merchantErrorNotFound {
-			rsp.Status = pkg.ResponseStatusBadData
+			if err != merchantErrorNotFound {
+				rsp.Status = pkg.ResponseStatusBadData
+			}
+
+			return nil
 		}
-
-		return nil
+		return err
 	}
+
+	expire := time.Now().Add(time.Hour * 3).Unix()
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": merchant.Id, "exp": expire})
+	merchant.CentrifugoToken, _ = token.SignedString([]byte(s.cfg.CentrifugoSecret))
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = merchant
@@ -189,9 +198,13 @@ func (s *Service) ChangeMerchant(
 
 		if err != nil {
 			if err != merchantErrorNotFound {
-				rsp.Status = pkg.ResponseStatusBadData
-				rsp.Message = err.(*grpc.ResponseErrorMessage)
-				return nil
+				zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+				if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+					rsp.Status = pkg.ResponseStatusBadData
+					rsp.Message = e
+					return nil
+				}
+				return err
 			}
 
 			isNew = true
@@ -235,16 +248,14 @@ func (s *Service) ChangeMerchant(
 	merchant.Banking = &billing.MerchantBanking{}
 
 	if req.Banking != nil && req.Banking.Currency != "" {
-		currency, err := s.currency.GetByCodeA3(req.Banking.Currency)
-
-		if err != nil {
-			zap.S().Errorf("Get currency for merchant failed", "err", err.Error(), "request", req)
+		if !contains(s.supportedCurrencies, req.Banking.Currency) {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = merchantErrorCurrencyNotFound
+
 			return nil
 		}
 
-		merchant.Banking.Currency = currency
+		merchant.Banking.Currency = req.Banking.Currency
 	}
 
 	merchant.Name = req.Name
@@ -292,9 +303,13 @@ func (s *Service) ChangeMerchantStatus(
 	merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
-		return nil
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
 	}
 
 	if req.Status == pkg.MerchantStatusAgreementRequested && merchant.Status != pkg.MerchantStatusDraft {
@@ -341,9 +356,13 @@ func (s *Service) ChangeMerchantStatus(
 		_, err := s.addNotification(title, req.Message, merchant.Id, "", nStatuses)
 
 		if err != nil {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
-			return nil
+			zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+				rsp.Status = pkg.ResponseStatusBadData
+				rsp.Message = e
+				return nil
+			}
+			return err
 		}
 	}
 
@@ -368,10 +387,13 @@ func (s *Service) ChangeMerchantData(
 	merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusNotFound
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
-
-		return nil
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusNotFound
+			rsp.Message = e
+			return nil
+		}
+		return err
 	}
 
 	if req.AgreementType > 0 && merchant.AgreementType != req.AgreementType {
@@ -451,9 +473,13 @@ func (s *Service) CreateNotification(
 	_, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
-		return nil
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
 	}
 
 	if req.UserId == "" || bson.IsObjectIdHex(req.UserId) == false {
@@ -471,9 +497,13 @@ func (s *Service) CreateNotification(
 	n, err := s.addNotification(req.Title, req.Message, req.MerchantId, req.UserId, nil)
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
-		return nil
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
 	}
 
 	rsp.Item = n
@@ -691,10 +721,13 @@ func (s *Service) ChangeMerchantPaymentMethod(
 	merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
-
-		return nil
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
 	}
 
 	pm, e := s.paymentMethod.GetById(req.PaymentMethod.Id)
@@ -707,7 +740,7 @@ func (s *Service) ChangeMerchantPaymentMethod(
 	req.Integration.Integrated = req.HasIntegration()
 
 	if req.HasPerTransactionCurrency() {
-		if _, err := s.currency.GetByCodeA3(req.GetPerTransactionCurrency()); err != nil {
+		if !contains(s.supportedCurrencies, req.GetPerTransactionCurrency()) {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = orderErrorCurrencyNotFound
 

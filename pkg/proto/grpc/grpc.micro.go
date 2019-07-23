@@ -14,11 +14,10 @@ It has these top-level messages:
 	PaymentCreateResponse
 	PaymentFormJsonDataRequest
 	PaymentFormJsonDataProject
+	PaymentFormJsonData
 	PaymentFormJsonDataResponse
 	PaymentNotifyRequest
 	PaymentNotifyResponse
-	ConvertRateRequest
-	ConvertRateResponse
 	OnboardingBanking
 	OnboardingRequest
 	FindByIdRequest
@@ -93,6 +92,12 @@ It has these top-level messages:
 	ResponseErrorMessage
 	CreateAccountingEntryRequest
 	CreateAccountingEntryResponse
+	CreateRoyaltyReportRequest
+	ListRoyaltyReportsRequest
+	RoyaltyReportsPaginate
+	ListRoyaltyReportsResponse
+	ListRoyaltyReportOrdersRequest
+	ChangeRoyaltyReportRequest
 	PaymentChannelCostSystemListResponse
 	PaymentChannelCostSystemResponse
 	PaymentChannelCostMerchantListResponse
@@ -121,6 +126,14 @@ It has these top-level messages:
 	GetUserProfileRequest
 	GetUserProfileResponse
 	ConfirmUserEmailRequest
+	VatTransactionsRequest
+	TransactionsPaginate
+	TransactionsResponse
+	VatReportsRequest
+	VatReportsPaginate
+	VatReportsResponse
+	ProcessVatReportsRequest
+	UpdateVatReportStatusRequest
 */
 package grpc
 
@@ -162,7 +175,6 @@ type BillingService interface {
 	PaymentCallbackProcess(ctx context.Context, in *PaymentNotifyRequest, opts ...client.CallOption) (*PaymentNotifyResponse, error)
 	UpdateOrder(ctx context.Context, in *billing.Order, opts ...client.CallOption) (*EmptyResponse, error)
 	UpdateMerchant(ctx context.Context, in *billing.Merchant, opts ...client.CallOption) (*EmptyResponse, error)
-	GetConvertRate(ctx context.Context, in *ConvertRateRequest, opts ...client.CallOption) (*ConvertRateResponse, error)
 	GetMerchantBy(ctx context.Context, in *GetMerchantByRequest, opts ...client.CallOption) (*GetMerchantResponse, error)
 	ListMerchants(ctx context.Context, in *MerchantListingRequest, opts ...client.CallOption) (*MerchantListingResponse, error)
 	ChangeMerchant(ctx context.Context, in *OnboardingRequest, opts ...client.CallOption) (*ChangeMerchantResponse, error)
@@ -217,8 +229,6 @@ type BillingService interface {
 	CreateOrUpdatePaymentMethodTestSettings(ctx context.Context, in *ChangePaymentMethodParamsRequest, opts ...client.CallOption) (*ChangePaymentMethodParamsResponse, error)
 	GetPaymentMethodTestSettings(ctx context.Context, in *GetPaymentMethodSettingsRequest, opts ...client.CallOption) (*GetPaymentMethodSettingsResponse, error)
 	DeletePaymentMethodTestSettings(ctx context.Context, in *GetPaymentMethodSettingsRequest, opts ...client.CallOption) (*ChangePaymentMethodParamsResponse, error)
-	GetCurrencyList(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*billing.CurrencyList, error)
-	GetCurrency(ctx context.Context, in *billing.GetCurrencyRequest, opts ...client.CallOption) (*billing.Currency, error)
 	FindByZipCode(ctx context.Context, in *FindByZipCodeRequest, opts ...client.CallOption) (*FindByZipCodeResponse, error)
 	GetAllPaymentChannelCostSystem(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*PaymentChannelCostSystemListResponse, error)
 	GetPaymentChannelCostSystem(ctx context.Context, in *billing.PaymentChannelCostSystemRequest, opts ...client.CallOption) (*PaymentChannelCostSystemResponse, error)
@@ -236,10 +246,21 @@ type BillingService interface {
 	GetMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchantRequest, opts ...client.CallOption) (*MoneyBackCostMerchantResponse, error)
 	SetMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchant, opts ...client.CallOption) (*MoneyBackCostMerchantResponse, error)
 	DeleteMoneyBackCostMerchant(ctx context.Context, in *billing.PaymentCostDeleteRequest, opts ...client.CallOption) (*ResponseError, error)
-	CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, opts ...client.CallOption) (*CreateAccountingEntryRequest, error)
+	CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, opts ...client.CallOption) (*CreateAccountingEntryResponse, error)
 	GetUserProfile(ctx context.Context, in *GetUserProfileRequest, opts ...client.CallOption) (*GetUserProfileResponse, error)
 	CreateOrUpdateUserProfile(ctx context.Context, in *UserProfile, opts ...client.CallOption) (*GetUserProfileResponse, error)
 	ConfirmUserEmail(ctx context.Context, in *ConfirmUserEmailRequest, opts ...client.CallOption) (*CheckProjectRequestSignatureResponse, error)
+	CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, opts ...client.CallOption) (*CreateRoyaltyReportRequest, error)
+	ListRoyaltyReports(ctx context.Context, in *ListRoyaltyReportsRequest, opts ...client.CallOption) (*ListRoyaltyReportsResponse, error)
+	ChangeRoyaltyReport(ctx context.Context, in *ChangeRoyaltyReportRequest, opts ...client.CallOption) (*ResponseError, error)
+	ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, opts ...client.CallOption) (*TransactionsResponse, error)
+	AutoAcceptRoyaltyReports(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*EmptyResponse, error)
+	GetVatReportsDashboard(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*VatReportsResponse, error)
+	GetVatReportsForCountry(ctx context.Context, in *VatReportsRequest, opts ...client.CallOption) (*VatReportsResponse, error)
+	GetVatReportTransactions(ctx context.Context, in *VatTransactionsRequest, opts ...client.CallOption) (*TransactionsResponse, error)
+	ProcessVatReports(ctx context.Context, in *ProcessVatReportsRequest, opts ...client.CallOption) (*EmptyResponse, error)
+	UpdateVatReportStatus(ctx context.Context, in *UpdateVatReportStatusRequest, opts ...client.CallOption) (*ResponseError, error)
+	CalcAnnualTurnovers(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*EmptyResponse, error)
 }
 
 type billingService struct {
@@ -313,16 +334,6 @@ func (c *billingService) UpdateOrder(ctx context.Context, in *billing.Order, opt
 func (c *billingService) UpdateMerchant(ctx context.Context, in *billing.Merchant, opts ...client.CallOption) (*EmptyResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.UpdateMerchant", in)
 	out := new(EmptyResponse)
-	err := c.c.Call(ctx, req, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *billingService) GetConvertRate(ctx context.Context, in *ConvertRateRequest, opts ...client.CallOption) (*ConvertRateResponse, error) {
-	req := c.c.NewRequest(c.name, "BillingService.GetConvertRate", in)
-	out := new(ConvertRateResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -870,26 +881,6 @@ func (c *billingService) DeletePaymentMethodTestSettings(ctx context.Context, in
 	return out, nil
 }
 
-func (c *billingService) GetCurrencyList(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*billing.CurrencyList, error) {
-	req := c.c.NewRequest(c.name, "BillingService.GetCurrencyList", in)
-	out := new(billing.CurrencyList)
-	err := c.c.Call(ctx, req, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *billingService) GetCurrency(ctx context.Context, in *billing.GetCurrencyRequest, opts ...client.CallOption) (*billing.Currency, error) {
-	req := c.c.NewRequest(c.name, "BillingService.GetCurrency", in)
-	out := new(billing.Currency)
-	err := c.c.Call(ctx, req, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *billingService) FindByZipCode(ctx context.Context, in *FindByZipCodeRequest, opts ...client.CallOption) (*FindByZipCodeResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.FindByZipCode", in)
 	out := new(FindByZipCodeResponse)
@@ -1060,9 +1051,9 @@ func (c *billingService) DeleteMoneyBackCostMerchant(ctx context.Context, in *bi
 	return out, nil
 }
 
-func (c *billingService) CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, opts ...client.CallOption) (*CreateAccountingEntryRequest, error) {
+func (c *billingService) CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, opts ...client.CallOption) (*CreateAccountingEntryResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.CreateAccountingEntry", in)
-	out := new(CreateAccountingEntryRequest)
+	out := new(CreateAccountingEntryResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1100,6 +1091,116 @@ func (c *billingService) ConfirmUserEmail(ctx context.Context, in *ConfirmUserEm
 	return out, nil
 }
 
+func (c *billingService) CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, opts ...client.CallOption) (*CreateRoyaltyReportRequest, error) {
+	req := c.c.NewRequest(c.name, "BillingService.CreateRoyaltyReport", in)
+	out := new(CreateRoyaltyReportRequest)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) ListRoyaltyReports(ctx context.Context, in *ListRoyaltyReportsRequest, opts ...client.CallOption) (*ListRoyaltyReportsResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.ListRoyaltyReports", in)
+	out := new(ListRoyaltyReportsResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) ChangeRoyaltyReport(ctx context.Context, in *ChangeRoyaltyReportRequest, opts ...client.CallOption) (*ResponseError, error) {
+	req := c.c.NewRequest(c.name, "BillingService.ChangeRoyaltyReport", in)
+	out := new(ResponseError)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, opts ...client.CallOption) (*TransactionsResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.ListRoyaltyReportOrders", in)
+	out := new(TransactionsResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) AutoAcceptRoyaltyReports(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*EmptyResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.AutoAcceptRoyaltyReports", in)
+	out := new(EmptyResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetVatReportsDashboard(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*VatReportsResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetVatReportsDashboard", in)
+	out := new(VatReportsResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetVatReportsForCountry(ctx context.Context, in *VatReportsRequest, opts ...client.CallOption) (*VatReportsResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetVatReportsForCountry", in)
+	out := new(VatReportsResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetVatReportTransactions(ctx context.Context, in *VatTransactionsRequest, opts ...client.CallOption) (*TransactionsResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetVatReportTransactions", in)
+	out := new(TransactionsResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) ProcessVatReports(ctx context.Context, in *ProcessVatReportsRequest, opts ...client.CallOption) (*EmptyResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.ProcessVatReports", in)
+	out := new(EmptyResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) UpdateVatReportStatus(ctx context.Context, in *UpdateVatReportStatusRequest, opts ...client.CallOption) (*ResponseError, error) {
+	req := c.c.NewRequest(c.name, "BillingService.UpdateVatReportStatus", in)
+	out := new(ResponseError)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) CalcAnnualTurnovers(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*EmptyResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.CalcAnnualTurnovers", in)
+	out := new(EmptyResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for BillingService service
 
 type BillingServiceHandler interface {
@@ -1109,7 +1210,6 @@ type BillingServiceHandler interface {
 	PaymentCallbackProcess(context.Context, *PaymentNotifyRequest, *PaymentNotifyResponse) error
 	UpdateOrder(context.Context, *billing.Order, *EmptyResponse) error
 	UpdateMerchant(context.Context, *billing.Merchant, *EmptyResponse) error
-	GetConvertRate(context.Context, *ConvertRateRequest, *ConvertRateResponse) error
 	GetMerchantBy(context.Context, *GetMerchantByRequest, *GetMerchantResponse) error
 	ListMerchants(context.Context, *MerchantListingRequest, *MerchantListingResponse) error
 	ChangeMerchant(context.Context, *OnboardingRequest, *ChangeMerchantResponse) error
@@ -1164,8 +1264,6 @@ type BillingServiceHandler interface {
 	CreateOrUpdatePaymentMethodTestSettings(context.Context, *ChangePaymentMethodParamsRequest, *ChangePaymentMethodParamsResponse) error
 	GetPaymentMethodTestSettings(context.Context, *GetPaymentMethodSettingsRequest, *GetPaymentMethodSettingsResponse) error
 	DeletePaymentMethodTestSettings(context.Context, *GetPaymentMethodSettingsRequest, *ChangePaymentMethodParamsResponse) error
-	GetCurrencyList(context.Context, *EmptyRequest, *billing.CurrencyList) error
-	GetCurrency(context.Context, *billing.GetCurrencyRequest, *billing.Currency) error
 	FindByZipCode(context.Context, *FindByZipCodeRequest, *FindByZipCodeResponse) error
 	GetAllPaymentChannelCostSystem(context.Context, *EmptyRequest, *PaymentChannelCostSystemListResponse) error
 	GetPaymentChannelCostSystem(context.Context, *billing.PaymentChannelCostSystemRequest, *PaymentChannelCostSystemResponse) error
@@ -1183,10 +1281,21 @@ type BillingServiceHandler interface {
 	GetMoneyBackCostMerchant(context.Context, *billing.MoneyBackCostMerchantRequest, *MoneyBackCostMerchantResponse) error
 	SetMoneyBackCostMerchant(context.Context, *billing.MoneyBackCostMerchant, *MoneyBackCostMerchantResponse) error
 	DeleteMoneyBackCostMerchant(context.Context, *billing.PaymentCostDeleteRequest, *ResponseError) error
-	CreateAccountingEntry(context.Context, *CreateAccountingEntryRequest, *CreateAccountingEntryRequest) error
+	CreateAccountingEntry(context.Context, *CreateAccountingEntryRequest, *CreateAccountingEntryResponse) error
 	GetUserProfile(context.Context, *GetUserProfileRequest, *GetUserProfileResponse) error
 	CreateOrUpdateUserProfile(context.Context, *UserProfile, *GetUserProfileResponse) error
 	ConfirmUserEmail(context.Context, *ConfirmUserEmailRequest, *CheckProjectRequestSignatureResponse) error
+	CreateRoyaltyReport(context.Context, *CreateRoyaltyReportRequest, *CreateRoyaltyReportRequest) error
+	ListRoyaltyReports(context.Context, *ListRoyaltyReportsRequest, *ListRoyaltyReportsResponse) error
+	ChangeRoyaltyReport(context.Context, *ChangeRoyaltyReportRequest, *ResponseError) error
+	ListRoyaltyReportOrders(context.Context, *ListRoyaltyReportOrdersRequest, *TransactionsResponse) error
+	AutoAcceptRoyaltyReports(context.Context, *EmptyRequest, *EmptyResponse) error
+	GetVatReportsDashboard(context.Context, *EmptyRequest, *VatReportsResponse) error
+	GetVatReportsForCountry(context.Context, *VatReportsRequest, *VatReportsResponse) error
+	GetVatReportTransactions(context.Context, *VatTransactionsRequest, *TransactionsResponse) error
+	ProcessVatReports(context.Context, *ProcessVatReportsRequest, *EmptyResponse) error
+	UpdateVatReportStatus(context.Context, *UpdateVatReportStatusRequest, *ResponseError) error
+	CalcAnnualTurnovers(context.Context, *EmptyRequest, *EmptyResponse) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -1197,7 +1306,6 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		PaymentCallbackProcess(ctx context.Context, in *PaymentNotifyRequest, out *PaymentNotifyResponse) error
 		UpdateOrder(ctx context.Context, in *billing.Order, out *EmptyResponse) error
 		UpdateMerchant(ctx context.Context, in *billing.Merchant, out *EmptyResponse) error
-		GetConvertRate(ctx context.Context, in *ConvertRateRequest, out *ConvertRateResponse) error
 		GetMerchantBy(ctx context.Context, in *GetMerchantByRequest, out *GetMerchantResponse) error
 		ListMerchants(ctx context.Context, in *MerchantListingRequest, out *MerchantListingResponse) error
 		ChangeMerchant(ctx context.Context, in *OnboardingRequest, out *ChangeMerchantResponse) error
@@ -1252,8 +1360,6 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		CreateOrUpdatePaymentMethodTestSettings(ctx context.Context, in *ChangePaymentMethodParamsRequest, out *ChangePaymentMethodParamsResponse) error
 		GetPaymentMethodTestSettings(ctx context.Context, in *GetPaymentMethodSettingsRequest, out *GetPaymentMethodSettingsResponse) error
 		DeletePaymentMethodTestSettings(ctx context.Context, in *GetPaymentMethodSettingsRequest, out *ChangePaymentMethodParamsResponse) error
-		GetCurrencyList(ctx context.Context, in *EmptyRequest, out *billing.CurrencyList) error
-		GetCurrency(ctx context.Context, in *billing.GetCurrencyRequest, out *billing.Currency) error
 		FindByZipCode(ctx context.Context, in *FindByZipCodeRequest, out *FindByZipCodeResponse) error
 		GetAllPaymentChannelCostSystem(ctx context.Context, in *EmptyRequest, out *PaymentChannelCostSystemListResponse) error
 		GetPaymentChannelCostSystem(ctx context.Context, in *billing.PaymentChannelCostSystemRequest, out *PaymentChannelCostSystemResponse) error
@@ -1271,10 +1377,21 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchantRequest, out *MoneyBackCostMerchantResponse) error
 		SetMoneyBackCostMerchant(ctx context.Context, in *billing.MoneyBackCostMerchant, out *MoneyBackCostMerchantResponse) error
 		DeleteMoneyBackCostMerchant(ctx context.Context, in *billing.PaymentCostDeleteRequest, out *ResponseError) error
-		CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, out *CreateAccountingEntryRequest) error
+		CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, out *CreateAccountingEntryResponse) error
 		GetUserProfile(ctx context.Context, in *GetUserProfileRequest, out *GetUserProfileResponse) error
 		CreateOrUpdateUserProfile(ctx context.Context, in *UserProfile, out *GetUserProfileResponse) error
 		ConfirmUserEmail(ctx context.Context, in *ConfirmUserEmailRequest, out *CheckProjectRequestSignatureResponse) error
+		CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, out *CreateRoyaltyReportRequest) error
+		ListRoyaltyReports(ctx context.Context, in *ListRoyaltyReportsRequest, out *ListRoyaltyReportsResponse) error
+		ChangeRoyaltyReport(ctx context.Context, in *ChangeRoyaltyReportRequest, out *ResponseError) error
+		ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, out *TransactionsResponse) error
+		AutoAcceptRoyaltyReports(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error
+		GetVatReportsDashboard(ctx context.Context, in *EmptyRequest, out *VatReportsResponse) error
+		GetVatReportsForCountry(ctx context.Context, in *VatReportsRequest, out *VatReportsResponse) error
+		GetVatReportTransactions(ctx context.Context, in *VatTransactionsRequest, out *TransactionsResponse) error
+		ProcessVatReports(ctx context.Context, in *ProcessVatReportsRequest, out *EmptyResponse) error
+		UpdateVatReportStatus(ctx context.Context, in *UpdateVatReportStatusRequest, out *ResponseError) error
+		CalcAnnualTurnovers(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error
 	}
 	type BillingService struct {
 		billingService
@@ -1309,10 +1426,6 @@ func (h *billingServiceHandler) UpdateOrder(ctx context.Context, in *billing.Ord
 
 func (h *billingServiceHandler) UpdateMerchant(ctx context.Context, in *billing.Merchant, out *EmptyResponse) error {
 	return h.BillingServiceHandler.UpdateMerchant(ctx, in, out)
-}
-
-func (h *billingServiceHandler) GetConvertRate(ctx context.Context, in *ConvertRateRequest, out *ConvertRateResponse) error {
-	return h.BillingServiceHandler.GetConvertRate(ctx, in, out)
 }
 
 func (h *billingServiceHandler) GetMerchantBy(ctx context.Context, in *GetMerchantByRequest, out *GetMerchantResponse) error {
@@ -1531,14 +1644,6 @@ func (h *billingServiceHandler) DeletePaymentMethodTestSettings(ctx context.Cont
 	return h.BillingServiceHandler.DeletePaymentMethodTestSettings(ctx, in, out)
 }
 
-func (h *billingServiceHandler) GetCurrencyList(ctx context.Context, in *EmptyRequest, out *billing.CurrencyList) error {
-	return h.BillingServiceHandler.GetCurrencyList(ctx, in, out)
-}
-
-func (h *billingServiceHandler) GetCurrency(ctx context.Context, in *billing.GetCurrencyRequest, out *billing.Currency) error {
-	return h.BillingServiceHandler.GetCurrency(ctx, in, out)
-}
-
 func (h *billingServiceHandler) FindByZipCode(ctx context.Context, in *FindByZipCodeRequest, out *FindByZipCodeResponse) error {
 	return h.BillingServiceHandler.FindByZipCode(ctx, in, out)
 }
@@ -1607,7 +1712,7 @@ func (h *billingServiceHandler) DeleteMoneyBackCostMerchant(ctx context.Context,
 	return h.BillingServiceHandler.DeleteMoneyBackCostMerchant(ctx, in, out)
 }
 
-func (h *billingServiceHandler) CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, out *CreateAccountingEntryRequest) error {
+func (h *billingServiceHandler) CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, out *CreateAccountingEntryResponse) error {
 	return h.BillingServiceHandler.CreateAccountingEntry(ctx, in, out)
 }
 
@@ -1621,4 +1726,48 @@ func (h *billingServiceHandler) CreateOrUpdateUserProfile(ctx context.Context, i
 
 func (h *billingServiceHandler) ConfirmUserEmail(ctx context.Context, in *ConfirmUserEmailRequest, out *CheckProjectRequestSignatureResponse) error {
 	return h.BillingServiceHandler.ConfirmUserEmail(ctx, in, out)
+}
+
+func (h *billingServiceHandler) CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, out *CreateRoyaltyReportRequest) error {
+	return h.BillingServiceHandler.CreateRoyaltyReport(ctx, in, out)
+}
+
+func (h *billingServiceHandler) ListRoyaltyReports(ctx context.Context, in *ListRoyaltyReportsRequest, out *ListRoyaltyReportsResponse) error {
+	return h.BillingServiceHandler.ListRoyaltyReports(ctx, in, out)
+}
+
+func (h *billingServiceHandler) ChangeRoyaltyReport(ctx context.Context, in *ChangeRoyaltyReportRequest, out *ResponseError) error {
+	return h.BillingServiceHandler.ChangeRoyaltyReport(ctx, in, out)
+}
+
+func (h *billingServiceHandler) ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, out *TransactionsResponse) error {
+	return h.BillingServiceHandler.ListRoyaltyReportOrders(ctx, in, out)
+}
+
+func (h *billingServiceHandler) AutoAcceptRoyaltyReports(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error {
+	return h.BillingServiceHandler.AutoAcceptRoyaltyReports(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetVatReportsDashboard(ctx context.Context, in *EmptyRequest, out *VatReportsResponse) error {
+	return h.BillingServiceHandler.GetVatReportsDashboard(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetVatReportsForCountry(ctx context.Context, in *VatReportsRequest, out *VatReportsResponse) error {
+	return h.BillingServiceHandler.GetVatReportsForCountry(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetVatReportTransactions(ctx context.Context, in *VatTransactionsRequest, out *TransactionsResponse) error {
+	return h.BillingServiceHandler.GetVatReportTransactions(ctx, in, out)
+}
+
+func (h *billingServiceHandler) ProcessVatReports(ctx context.Context, in *ProcessVatReportsRequest, out *EmptyResponse) error {
+	return h.BillingServiceHandler.ProcessVatReports(ctx, in, out)
+}
+
+func (h *billingServiceHandler) UpdateVatReportStatus(ctx context.Context, in *UpdateVatReportStatusRequest, out *ResponseError) error {
+	return h.BillingServiceHandler.UpdateVatReportStatus(ctx, in, out)
+}
+
+func (h *billingServiceHandler) CalcAnnualTurnovers(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error {
+	return h.BillingServiceHandler.CalcAnnualTurnovers(ctx, in, out)
 }

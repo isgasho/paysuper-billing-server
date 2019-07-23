@@ -58,19 +58,6 @@ func (suite *UserProfileTestSuite) SetupTest() {
 		suite.FailNow("Database connection failed", "%v", err)
 	}
 
-	rub := &billing.Currency{
-		CodeInt:  643,
-		CodeA3:   "RUB",
-		Name:     &billing.Name{Ru: "Российский рубль", En: "Russian ruble"},
-		IsActive: true,
-	}
-
-	err = InitTestCurrency(db, []interface{}{rub})
-
-	if err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
-
 	suite.log, err = zap.NewProduction()
 
 	if err != nil {
@@ -79,7 +66,18 @@ func (suite *UserProfileTestSuite) SetupTest() {
 
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, nil, nil, nil, mock.NewBrokerMockOk(), mock.NewTestRedis(), suite.cache)
+	suite.service = NewBillingService(
+		db,
+		cfg,
+		mock.NewGeoIpServiceTestOk(),
+		mock.NewRepositoryServiceOk(),
+		mock.NewTaxServiceOkMock(),
+		mock.NewBrokerMockOk(),
+		mock.NewTestRedis(),
+		suite.cache,
+		mock.NewCurrencyServiceMockOk(),
+		mock.NewSmtpSenderMockOk(),
+	)
 
 	err = suite.service.Init()
 

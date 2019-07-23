@@ -2,6 +2,8 @@ package internal
 
 import (
 	"context"
+	"crypto/tls"
+	"errors"
 	"github.com/InVisionApp/go-health"
 	"github.com/InVisionApp/go-health/handlers"
 	"github.com/ProtocolONE/geoip-service/pkg"
@@ -11,6 +13,11 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/micro/cli"
+	goConfig "github.com/micro/go-config"
+	"github.com/micro/go-config/source"
+	"github.com/micro/go-config/source/microcli"
 	"github.com/micro/go-micro"
 	"github.com/micro/go-plugins/selector/static"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
@@ -18,6 +25,8 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/service"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	curPkg "github.com/paysuper/paysuper-currencies/pkg"
+	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
@@ -26,6 +35,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
+	"gopkg.in/gomail.v2"
 	"log"
 	"net/http"
 	"os"
@@ -41,6 +51,7 @@ type Application struct {
 	router     *http.ServeMux
 	logger     *zap.Logger
 	svc        *service.Service
+	CliArgs    goConfig.Config
 }
 
 type appHealthCheck struct{}
@@ -54,13 +65,13 @@ func (app *Application) Init() {
 
 	cfg, err := config.NewConfig()
 
-	app.logger.Info("db migrations started")
-
 	if err != nil {
 		app.logger.Fatal("Config load failed", zap.Error(err))
 	}
 
 	app.cfg = cfg
+
+	app.logger.Info("db migrations started")
 
 	migrations, err := migrate.New(pkg.MigrationSource, app.cfg.MongoDsn)
 
@@ -109,6 +120,18 @@ func (app *Application) Init() {
 			app.Stop()
 			return nil
 		}),
+		micro.Flags(
+			cli.StringFlag{
+				Name:  "task",
+				Value: "",
+				Usage: "running task",
+			},
+			cli.StringFlag{
+				Name:  "date",
+				Value: "",
+				Usage: "task context date, i.e. 2006-01-02T15:04:05Z07:00",
+			},
+		),
 	}
 
 	if os.Getenv("MICRO_SELECTOR") == "static" {
@@ -119,11 +142,27 @@ func (app *Application) Init() {
 	app.logger.Info("Initialize micro service")
 
 	app.service = micro.NewService(options...)
-	app.service.Init()
+
+	var clisrc source.Source
+
+	app.service.Init(
+		micro.Action(func(c *cli.Context) {
+			clisrc = microcli.NewSource(
+				microcli.Context(c),
+			)
+		}),
+	)
+
+	app.CliArgs = goConfig.NewConfig()
+	err = app.CliArgs.Load(clisrc)
+	if err != nil {
+		app.logger.Fatal("Cli args load failed", zap.Error(err))
+	}
 
 	geoService := proto.NewGeoIpService(geoip.ServiceName, app.service.Client())
 	repService := repository.NewRepositoryService(constant.PayOneRepositoryServiceName, app.service.Client())
 	taxService := tax_service.NewTaxService(taxPkg.ServiceName, app.service.Client())
+	curService := currencies.NewCurrencyratesService(curPkg.ServiceName, app.service.Client())
 
 	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
 		Addrs:        cfg.CacheRedis.Address,
@@ -132,6 +171,25 @@ func (app *Application) Init() {
 		MaxRedirects: cfg.CacheRedis.MaxRedirects,
 		PoolSize:     cfg.CacheRedis.PoolSize,
 	})
+
+	d := gomail.NewDialer(app.cfg.SmtpHost, app.cfg.SmtpPort, app.cfg.SmtpUser, app.cfg.SmtpPassword)
+	d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+	smtpCl, err := d.Dial()
+
+	if err != nil {
+		zap.L().Fatal(
+			"Connection to SMTP server failed",
+			zap.Error(err),
+			zap.Int("port", app.cfg.SmtpPort),
+			zap.String("user", app.cfg.SmtpUser),
+		)
+	}
+
+	zap.L().Info(
+		"SMTP server connection started",
+		zap.String("host", app.cfg.SmtpHost),
+		zap.Int("port", app.cfg.SmtpPort),
+	)
 
 	app.svc = service.NewBillingService(
 		app.database,
@@ -142,6 +200,8 @@ func (app *Application) Init() {
 		broker,
 		app.redis,
 		service.NewCacheRedis(redisdb),
+		curService,
+		smtpCl,
 	)
 
 	if err := app.svc.Init(); err != nil {
@@ -243,4 +303,33 @@ func (app *Application) Stop() {
 	} else {
 		app.logger.Info("Logger synced")
 	}
+}
+
+func (app *Application) TaskProcessVatReports(date string) error {
+	zap.L().Info("Start to processing vat reports")
+	req := &grpc.ProcessVatReportsRequest{
+		Date: ptypes.TimestampNow(),
+	}
+	if date != "" {
+		date, err := time.Parse("2006-01-02", date)
+		if err != nil {
+			return err
+		}
+		if date.After(time.Now()) {
+			return errors.New(pkg.ErrorVatReportDateCantBeInFuture)
+		}
+		req.Date, err = ptypes.TimestampProto(date)
+		if err != nil {
+			return err
+		}
+	}
+	return app.svc.ProcessVatReports(context.TODO(), req, &grpc.EmptyResponse{})
+}
+
+func (app *Application) TaskCreateRoyaltyReport() error {
+	return app.svc.CreateRoyaltyReport(context.TODO(), &grpc.CreateRoyaltyReportRequest{}, &grpc.CreateRoyaltyReportRequest{})
+}
+
+func (app *Application) TaskAutoAcceptRoyaltyReports() error {
+	return app.svc.AutoAcceptRoyaltyReports(context.TODO(), &grpc.EmptyRequest{}, &grpc.EmptyResponse{})
 }

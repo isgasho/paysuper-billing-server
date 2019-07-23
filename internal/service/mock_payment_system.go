@@ -2,10 +2,10 @@ package service
 
 import (
 	"errors"
+	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/proto"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"gopkg.in/mgo.v2/bson"
 )
 
 type PaymentSystemMockOk struct {

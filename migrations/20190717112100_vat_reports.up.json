@@ -1,0 +1,28 @@
+[
+  {
+    "create": "annual_turnovers"
+  },
+  {
+    "create": "vat_reports"
+  },
+  {
+    "createIndexes": "vat_reports",
+    "indexes": [
+      {
+        "key": {
+          "country": 1,
+          "date_from": 1,
+          "date_to": 1,
+          "status": 1
+        },
+        "name": "country_date_status"
+      },
+      {
+        "key": {
+          "status": 1
+        },
+        "name": "status"
+      }
+    ]
+  }
+]

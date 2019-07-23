@@ -20,6 +20,8 @@ const (
 
 	collectionPriceGroup = "price_group"
 	collectionPriceTable = "price_table"
+
+	defaultRecommendedCurrency = "USD"
 )
 
 var (
@@ -180,7 +182,7 @@ func (s *Service) GetPriceGroupRecommendedPrice(
 		return err
 	}
 
-	priceTable, err := s.priceTable.GetByAmount(req.Amount)
+	priceTable, err := s.findPriceTableByAmount(req.Amount)
 
 	if err != nil {
 		zap.S().Errorw("Unable to get price table for amount", "err", err, "req", req)
@@ -203,6 +205,22 @@ func (s *Service) GetPriceGroupRecommendedPrice(
 	}
 
 	return nil
+}
+
+func (s *Service) findPriceTableByAmount(amount float64) (*billing.PriceTable, error) {
+	priceTable, _ := s.priceTable.GetByAmount(amount)
+
+	if priceTable != nil {
+		return priceTable, nil
+	}
+
+	priceTable, err := s.priceTable.GetLatest()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return s.priceTable.InterpolateByAmount(priceTable, amount), nil
 }
 
 type PriceGroupServiceInterface interface {
@@ -341,6 +359,10 @@ func (h *PriceGroup) MakeCurrencyList(regions []*billing.PriceGroup, countries *
 	curr := map[string]*grpc.PriceGroupRegions{}
 
 	for _, region := range regions {
+		if region.Region == defaultRecommendedCurrency {
+			continue
+		}
+
 		if curr[region.Currency] == nil {
 			curr[region.Currency] = &grpc.PriceGroupRegions{
 				Currency: region.Currency,
@@ -373,17 +395,24 @@ func (h *PriceGroup) MakeCurrencyList(regions []*billing.PriceGroup, countries *
 }
 
 func (h *PriceGroup) GetRecommendedPriceForRegion(pt *billing.PriceTable, region *billing.PriceGroup, amount float64) (float64, error) {
-	ratio := (pt.To - amount) / (pt.To - pt.From)
 	local, ok := pt.Currencies[region.Currency]
 
 	if ok != true {
 		return 0, errors.New("currency in price table not found")
 	}
 
-	price := local.From + (local.To-local.From)*ratio
-	price = h.CalculatePriceWithFraction(region.Fraction, price)
+	ratio := (pt.To - amount) / (pt.To - pt.From)
 
-	return price, nil
+	if ratio == 0 {
+		ratio = 1
+	} else if ratio == 1 {
+		ratio = 0
+	}
+
+	price := local.From + (local.To-local.From)*ratio
+	priceFrac := h.CalculatePriceWithFraction(region.Fraction, price)
+
+	return priceFrac, nil
 }
 
 func (h *PriceGroup) CalculatePriceWithFraction(fraction float64, price float64) float64 {
@@ -407,14 +436,13 @@ func (h *PriceGroup) CalculatePriceWithFraction(fraction float64, price float64)
 	}
 
 	if fraction == 0.09 {
-		i2, _ := math.Modf(math.Ceil(frac*100) / 10)
-		f2 := ((i2 + 0.9) * 10) / 100
-
-		return i + f2
+		i2, _ := math.Modf(frac * 10)
+		p, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", i+(i2/10)+fraction), 64)
+		return p
 	}
 
-	if fraction == 0 && frac > 0 {
-		i += 1
+	if fraction == 0 {
+		i = math.Ceil(price)
 	}
 
 	return i

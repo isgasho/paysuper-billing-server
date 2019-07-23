@@ -34,11 +34,11 @@ func (_m *PaymentMethodInterface) GetAll() (map[string]*billing.PaymentMethod, e
 }
 
 // GetByGroupAndCurrency provides a mock function with given fields: _a0, _a1
-func (_m *PaymentMethodInterface) GetByGroupAndCurrency(_a0 string, _a1 int32) (*billing.PaymentMethod, error) {
+func (_m *PaymentMethodInterface) GetByGroupAndCurrency(_a0 string, _a1 string) (*billing.PaymentMethod, error) {
 	ret := _m.Called(_a0, _a1)
 
 	var r0 *billing.PaymentMethod
-	if rf, ok := ret.Get(0).(func(string, int32) *billing.PaymentMethod); ok {
+	if rf, ok := ret.Get(0).(func(string, string) *billing.PaymentMethod); ok {
 		r0 = rf(_a0, _a1)
 	} else {
 		if ret.Get(0) != nil {
@@ -47,7 +47,7 @@ func (_m *PaymentMethodInterface) GetByGroupAndCurrency(_a0 string, _a1 int32) (
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, int32) error); ok {
+	if rf, ok := ret.Get(1).(func(string, string) error); ok {
 		r1 = rf(_a0, _a1)
 	} else {
 		r1 = ret.Error(1)
@@ -103,15 +103,15 @@ func (_m *PaymentMethodInterface) GetPaymentSettings(_a0 *billing.PaymentMethod,
 }
 
 // Groups provides a mock function with given fields:
-func (_m *PaymentMethodInterface) Groups() (map[string]map[int32]*billing.PaymentMethod, error) {
+func (_m *PaymentMethodInterface) Groups() (map[string]map[string]*billing.PaymentMethod, error) {
 	ret := _m.Called()
 
-	var r0 map[string]map[int32]*billing.PaymentMethod
-	if rf, ok := ret.Get(0).(func() map[string]map[int32]*billing.PaymentMethod); ok {
+	var r0 map[string]map[string]*billing.PaymentMethod
+	if rf, ok := ret.Get(0).(func() map[string]map[string]*billing.PaymentMethod); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(map[string]map[int32]*billing.PaymentMethod)
+			r0 = ret.Get(0).(map[string]map[string]*billing.PaymentMethod)
 		}
 	}
 

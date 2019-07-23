@@ -8,6 +8,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 )
 
@@ -24,6 +25,7 @@ var (
 	errorPaymentChannelSystemGet       = newBillingServerErrorMsg("pcs000002", "can't get payment channel setting for system")
 	errorPaymentChannelSystemSetFailed = newBillingServerErrorMsg("pcs000003", "can't set payment channel setting for system")
 	errorPaymentChannelSystemDelete    = newBillingServerErrorMsg("pcs000004", "can't delete payment channel setting for system")
+	errorPaymentChannelSystemCurrency  = newBillingServerErrorMsg("pcs000005", "currency not supported")
 )
 
 func (s *Service) GetAllPaymentChannelCostSystem(
@@ -93,6 +95,18 @@ func (s *Service) SetPaymentChannelCostSystem(
 	}
 
 	req.IsActive = true
+
+	sCurr, err := s.curService.GetSettlementCurrencies(ctx, &currencies.EmptyRequest{})
+	if err != nil {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorPaymentChannelSystemCurrency
+		return nil
+	}
+	if !contains(sCurr.Currencies, req.FixAmountCurrency) {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorPaymentChannelSystemCurrency
+		return nil
+	}
 
 	if val == nil {
 		req.Id = bson.NewObjectId().Hex()

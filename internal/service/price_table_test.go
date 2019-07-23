@@ -35,26 +35,26 @@ func (suite *PriceTableTestSuite) SetupTest() {
 		suite.FailNow("Database connection failed", "%v", err)
 	}
 
-	rub := &billing.Currency{
-		CodeInt:  643,
-		CodeA3:   "RUB",
-		Name:     &billing.Name{Ru: "Российский рубль", En: "Russian ruble"},
-		IsActive: true,
-	}
-
 	suite.log, err = zap.NewProduction()
 
 	if err != nil {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
-	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
-
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache)
+	suite.service = NewBillingService(
+		db,
+		cfg,
+		mock.NewGeoIpServiceTestOk(),
+		mock.NewRepositoryServiceOk(),
+		mock.NewTaxServiceOkMock(),
+		nil,
+		nil,
+		suite.cache,
+		mock.NewCurrencyServiceMockOk(),
+		nil,
+	)
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -85,22 +85,37 @@ func (suite *PriceTableTestSuite) TestPriceTable_Insert_Ok() {
 	assert.NoError(suite.T(), suite.service.priceTable.Insert(&billing.PriceTable{Id: bson.NewObjectId().Hex()}))
 }
 
-func (suite *PriceTableTestSuite) TestPriceTable_getPriceTableForAmount_Ok_HasRange() {
+func (suite *PriceTableTestSuite) TestPriceTable_GetByAmount_Ok() {
 	price, err := suite.service.priceTable.GetByAmount(2)
 	assert.NoError(suite.T(), err)
 	assert.True(suite.T(), price.From <= 2)
 	assert.True(suite.T(), price.To >= 2)
 }
 
-func (suite *PriceTableTestSuite) TestPriceTable_getPriceTableForAmount_Ok_Interpolate() {
-	price, err := suite.service.priceTable.GetByAmount(10)
-	assert.NoError(suite.T(), err)
-	assert.True(suite.T(), price.From <= 10)
-	assert.True(suite.T(), price.To >= 10)
+func (suite *PriceTableTestSuite) TestPriceTable_GetByAmount_Error_NotFound() {
+	_, err := suite.service.priceTable.GetByAmount(1000)
+	assert.Error(suite.T(), err)
 }
 
-func (suite *PriceTableTestSuite) TestPriceTable_getPriceTableForAmount_Error_NotFound() {
-	_ = suite.service.db.Drop()
-	_, err := suite.service.priceTable.GetByAmount(10)
+func (suite *PriceTableTestSuite) TestPriceTable_GetLatest_Ok() {
+	price, err := suite.service.priceTable.GetLatest()
+	assert.NoError(suite.T(), err)
+
+	_, err = suite.service.priceTable.GetByAmount(price.To + 1)
 	assert.Error(suite.T(), err)
+}
+
+func (suite *PriceTableTestSuite) TestPriceTable_InterpolateByAmount_Ok() {
+	price := &billing.PriceTable{
+		From: 10,
+		To:   20,
+		Currencies: map[string]*billing.PriceTableCurrency{
+			"RUB": {From: 100, To: 150},
+		},
+	}
+	priceInterpolated := suite.service.priceTable.InterpolateByAmount(price, 25)
+	assert.Equal(suite.T(), float64(20), priceInterpolated.From)
+	assert.Equal(suite.T(), float64(30), priceInterpolated.To)
+	assert.Equal(suite.T(), float64(150), priceInterpolated.Currencies["RUB"].From)
+	assert.Equal(suite.T(), float64(200), priceInterpolated.Currencies["RUB"].To)
 }

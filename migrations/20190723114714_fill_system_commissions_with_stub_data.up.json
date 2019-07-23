@@ -1,0 +1,238 @@
+[
+  {
+    "insert": "payment_channel_cost_system",
+    "documents": [
+      {
+        "name": "MASTERCARD",
+        "region": "Russia",
+        "country": "RU",
+        "percent": 0.03,
+        "fix_amount": 0.50,
+        "fix_amount_currency": "RUB",
+        "is_active": true
+      },
+      {
+        "name": "MASTERCARD",
+        "region": "North America",
+        "country": "US",
+        "percent": 0.02,
+        "fix_amount": 0.01,
+        "fix_amount_currency": "USD",
+        "is_active": true
+      },
+      {
+        "name": "MASTERCARD",
+        "region": "EU",
+        "country": "FI",
+        "percent": 0.02,
+        "fix_amount": 0.01,
+        "fix_amount_currency": "EUR",
+        "is_active": true
+      },
+      {
+        "name": "VISA",
+        "region": "Russia",
+        "country": "RU",
+        "percent": 0.015,
+        "fix_amount": 0.25,
+        "fix_amount_currency": "RUB",
+        "is_active": true
+      },
+      {
+        "name": "VISA",
+        "region": "North America",
+        "country": "US",
+        "percent": 0.01,
+        "fix_amount": 0.005,
+        "fix_amount_currency": "USD",
+        "is_active": true
+      },
+      {
+        "name": "VISA",
+        "region": "EU",
+        "country": "FI",
+        "percent": 0.01,
+        "fix_amount": 0.005,
+        "fix_amount_currency": "EUR",
+        "is_active": true
+      }
+    ]
+  },
+  {
+    "update": "payment_channel_cost_system",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$currentDate": {
+            "created_at": true,
+            "updated_at": true
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "insert": "money_back_cost_system",
+    "documents": [
+      {
+        "name": "MASTERCARD",
+        "payout_currency": "USD",
+        "undo_reason": "reversal",
+        "region": "Russia",
+        "country": "RU",
+        "days_from": 0,
+        "payment_stage": 1,
+        "percent": 0.1,
+        "fix_amount": 0.15,
+        "is_active": true
+      },
+      {
+        "name": "MASTERCARD",
+        "payout_currency": "USD",
+        "undo_reason": "reversal",
+        "region": "North America",
+        "country": "US",
+        "days_from": 0,
+        "payment_stage": 1,
+        "percent": 0.1,
+        "fix_amount": 0.15,
+        "is_active": true
+      },
+      {
+        "name": "MASTERCARD",
+        "payout_currency": "USD",
+        "undo_reason": "reversal",
+        "region": "EU",
+        "country": "FI",
+        "days_from": 0,
+        "payment_stage": 1,
+        "percent": 0.1,
+        "is_active": true
+      },
+      {
+        "name": "MASTERCARD",
+        "payout_currency": "USD",
+        "undo_reason": "chargeback",
+        "region": "Russia",
+        "country": "RU",
+        "days_from": 0,
+        "payment_stage": 1,
+        "percent": 0.1,
+        "fix_amount": 0.15,
+        "is_active": true
+      },
+      {
+        "name": "MASTERCARD",
+        "payout_currency": "USD",
+        "undo_reason": "chargeback",
+        "region": "North America",
+        "country": "US",
+        "days_from": 0,
+        "payment_stage": 1,
+        "percent": 0.1,
+        "fix_amount": 0.15,
+        "is_active": true
+      },
+      {
+        "name": "MASTERCARD",
+        "payout_currency": "USD",
+        "undo_reason": "chargeback",
+        "region": "EU",
+        "country": "FI",
+        "days_from": 0,
+        "payment_stage": 1,
+        "percent": 0.1,
+        "fix_amount": 0.15,
+        "is_active": true
+      },
+      {
+        "name": "VISA",
+        "payout_currency": "USD",
+        "undo_reason": "reversal",
+        "region": "Russia",
+        "country": "RU",
+        "days_from": 0,
+        "payment_stage": 1,
+        "percent": 0.1,
+        "fix_amount": 0.15,
+        "is_active": true
+      },
+      {
+        "name": "VISA",
+        "payout_currency": "USD",
+        "undo_reason": "reversal",
+        "region": "North America",
+        "country": "US",
+        "days_from": 0,
+        "payment_stage": 1,
+        "percent": 0.1,
+        "fix_amount": 0.15,
+        "is_active": true
+      },
+      {
+        "name": "VISA",
+        "payout_currency": "USD",
+        "undo_reason": "reversal",
+        "region": "EU",
+        "country": "FI",
+        "days_from": 0,
+        "payment_stage": 1,
+        "percent": 0.1,
+        "is_active": true
+      },
+      {
+        "name": "VISA",
+        "payout_currency": "USD",
+        "undo_reason": "chargeback",
+        "region": "Russia",
+        "country": "RU",
+        "days_from": 0,
+        "payment_stage": 1,
+        "percent": 0.1,
+        "fix_amount": 0.15,
+        "is_active": true
+      },
+      {
+        "name": "VISA",
+        "payout_currency": "USD",
+        "undo_reason": "chargeback",
+        "region": "North America",
+        "country": "US",
+        "days_from": 0,
+        "payment_stage": 1,
+        "percent": 0.1,
+        "fix_amount": 0.15,
+        "is_active": true
+      },
+      {
+        "name": "VISA",
+        "payout_currency": "USD",
+        "undo_reason": "chargeback",
+        "region": "EU",
+        "country": "FI",
+        "days_from": 0,
+        "payment_stage": 1,
+        "percent": 0.1,
+        "fix_amount": 0.15,
+        "is_active": true
+      }
+    ]
+  },
+  {
+    "update": "money_back_cost_system",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$currentDate": {
+            "created_at": true,
+            "updated_at": true
+          }
+        },
+        "multi": true
+      }
+    ]
+  }
+]
