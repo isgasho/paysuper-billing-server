@@ -144,7 +144,7 @@ func (suite *TurnoversTestSuite) TestTurnovers_getTurnover_Empty() {
 	from, to, err := suite.service.getLastVatReportTime(int32(3))
 	assert.NoError(suite.T(), err)
 
-	amount, err := suite.service.getTurnover(context.TODO(), from, to, countryCode, country.VatCurrency, country.VatCurrencyRatesPolicy, curPkg.RateTypeCentralbanks)
+	amount, err := suite.service.getTurnover(context.TODO(), from, to, countryCode, country.VatCurrency, country.VatCurrencyRatesPolicy, curPkg.RateTypeCentralbanks, "")
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), amount, float64(0))
 }
@@ -172,19 +172,19 @@ func (suite *TurnoversTestSuite) TestTurnovers_getTurnover() {
 	from, to, err := suite.service.getLastVatReportTime(int32(3))
 	assert.NoError(suite.T(), err)
 
-	amount, err := suite.service.getTurnover(context.TODO(), from, to, countryCode, country.VatCurrency, country.VatCurrencyRatesPolicy, curPkg.RateTypeCentralbanks)
+	amount, err := suite.service.getTurnover(context.TODO(), from, to, countryCode, country.VatCurrency, country.VatCurrencyRatesPolicy, curPkg.RateTypeCentralbanks, "")
 	assert.NoError(suite.T(), err)
 	ref1 := suite.getTurnoverReference(from, to, countryCode, country.VatCurrency, country.VatCurrencyRatesPolicy)
 	assert.Equal(suite.T(), amount, ref1)
 
-	worldAmount, err := suite.service.getTurnover(context.TODO(), now.BeginningOfYear(), time.Now(), "", "RUB", "on-day", curPkg.RateTypeOxr)
+	worldAmount, err := suite.service.getTurnover(context.TODO(), now.BeginningOfYear(), time.Now(), "", "RUB", "on-day", curPkg.RateTypeOxr, "")
 	assert.NoError(suite.T(), err)
 	ref2 := suite.getTurnoverReference(now.BeginningOfYear(), time.Now(), "", "RUB", "on-day")
 	assert.Equal(suite.T(), worldAmount, ref2)
 	assert.True(suite.T(), ref2 > ref1)
 
 	suite.fillAccountingEntries("TR", 10)
-	worldAmount, err = suite.service.getTurnover(context.TODO(), now.BeginningOfYear(), time.Now(), "", "RUB", "on-day", curPkg.RateTypeOxr)
+	worldAmount, err = suite.service.getTurnover(context.TODO(), now.BeginningOfYear(), time.Now(), "", "RUB", "on-day", curPkg.RateTypeOxr, "")
 	assert.NoError(suite.T(), err)
 	ref3 := suite.getTurnoverReference(now.BeginningOfYear(), time.Now(), "", "RUB", "on-day")
 	assert.Equal(suite.T(), worldAmount, ref3)
@@ -232,7 +232,7 @@ func (suite *TurnoversTestSuite) TestTurnovers_CalcAnnualTurnovers() {
 	assert.Equal(suite.T(), at.Country, "")
 	assert.Equal(suite.T(), at.Currency, "EUR")
 
-	worldAmount, err := suite.service.getTurnover(context.TODO(), now.BeginningOfYear(), time.Now(), "", "EUR", "on-day", curPkg.RateTypeOxr)
+	worldAmount, err := suite.service.getTurnover(context.TODO(), now.BeginningOfYear(), time.Now(), "", "EUR", "on-day", curPkg.RateTypeOxr, "")
 	assert.Equal(suite.T(), at.Amount, worldAmount)
 
 	countries, err := suite.service.country.GetCountriesWithVatEnabled()

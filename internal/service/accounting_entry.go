@@ -751,6 +751,7 @@ func (h *accountingEntry) GetExchangeCbCurrentCommon(from string, amount float64
 		From:     from,
 		To:       to,
 		RateType: curPkg.RateTypeCentralbanks,
+		Source:   h.country.VatCurrencyRatesSource,
 		Amount:   amount,
 	})
 }
@@ -819,6 +820,7 @@ func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
 				From:     entry.OriginalCurrency,
 				To:       entry.LocalCurrency,
 				RateType: curPkg.RateTypeCentralbanks,
+				Source:   h.country.VatCurrencyRatesSource,
 				Amount:   entry.OriginalAmount,
 			}
 

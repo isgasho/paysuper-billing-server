@@ -70,7 +70,8 @@ func (s *Service) calcAnnualTurnover(ctx context.Context, countryCode string) er
 
 	var (
 		targetCurrency = "EUR"
-		ratesSource    = curPkg.RateTypeOxr
+		ratesType      = curPkg.RateTypeOxr
+		ratesSource    = ""
 		currencyPolicy = "on-day"
 		year           = now.BeginningOfYear()
 		from           = now.BeginningOfYear()
@@ -88,12 +89,13 @@ func (s *Service) calcAnnualTurnover(ctx context.Context, countryCode string) er
 		targetCurrency = country.Currency
 		VatPeriodMonth = country.VatPeriodMonth
 		currencyPolicy = country.VatCurrencyRatesPolicy
-		ratesSource = curPkg.RateTypeCentralbanks
+		ratesType = curPkg.RateTypeCentralbanks
+		ratesSource = country.VatCurrencyRatesSource
 	}
 
 	switch currencyPolicy {
 	case pkg.VatCurrencyRatesPolicyOnDay:
-		amount, err = s.getTurnover(ctx, from, to, countryCode, targetCurrency, currencyPolicy, ratesSource)
+		amount, err = s.getTurnover(ctx, from, to, countryCode, targetCurrency, currencyPolicy, ratesType, ratesSource)
 		break
 	case pkg.VatCurrencyRatesPolicyLastDay:
 		from, to, err = s.getLastVatReportTime(VatPeriodMonth)
@@ -102,7 +104,7 @@ func (s *Service) calcAnnualTurnover(ctx context.Context, countryCode string) er
 		}
 		count := 0
 		for from.Unix() >= year.Unix() {
-			amnt, err := s.getTurnover(ctx, from, to, countryCode, targetCurrency, currencyPolicy, ratesSource)
+			amnt, err := s.getTurnover(ctx, from, to, countryCode, targetCurrency, currencyPolicy, ratesType, ratesSource)
 			if err != nil {
 				return err
 			}
@@ -140,7 +142,7 @@ func (s *Service) calcAnnualTurnover(ctx context.Context, countryCode string) er
 
 }
 
-func (s *Service) getTurnover(ctx context.Context, from, to time.Time, countryCode, targetCurrency, currencyPolicy, ratesSource string) (amount float64, err error) {
+func (s *Service) getTurnover(ctx context.Context, from, to time.Time, countryCode, targetCurrency, currencyPolicy, ratesType, ratesSource string) (amount float64, err error) {
 
 	matchQuery := bson.M{
 		"created_at": bson.M{"$gte": from, "$lte": to},
@@ -203,7 +205,8 @@ func (s *Service) getTurnover(ctx context.Context, from, to time.Time, countryCo
 		req := &currencies.ExchangeCurrencyByDateCommonRequest{
 			From:     v.Id,
 			To:       targetCurrency,
-			RateType: ratesSource,
+			RateType: ratesType,
+			Source:   ratesSource,
 			Amount:   v.Amount,
 			Datetime: toTimestamp,
 		}

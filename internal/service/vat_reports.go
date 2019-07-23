@@ -624,7 +624,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 	}
 	report.WorldAnnualTurnover = worldTurnover.Amount
 	if worldTurnover.Currency != country.Currency {
-		report.WorldAnnualTurnover, err = h.exchangeAmount(worldTurnover.Currency, country.Currency, worldTurnover.Amount)
+		report.WorldAnnualTurnover, err = h.exchangeAmount(worldTurnover.Currency, country.Currency, worldTurnover.Amount, country.VatCurrencyRatesSource)
 		if err != nil {
 			return err
 		}
@@ -796,7 +796,7 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.
 		}
 		amount := ae.LocalAmount
 		if ae.LocalCurrency != ae.OriginalCurrency {
-			amount, err = h.exchangeAmount(ae.OriginalCurrency, ae.LocalCurrency, ae.OriginalAmount)
+			amount, err = h.exchangeAmount(ae.OriginalCurrency, ae.LocalCurrency, ae.OriginalAmount, country.VatCurrencyRatesSource)
 			if err != nil {
 				return err
 			}
@@ -825,11 +825,12 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.
 	return nil
 }
 
-func (h *vatReportProcessor) exchangeAmount(from, to string, amount float64) (float64, error) {
+func (h *vatReportProcessor) exchangeAmount(from, to string, amount float64, source string) (float64, error) {
 	req := &currencies.ExchangeCurrencyByDateCommonRequest{
 		From:     from,
 		To:       to,
 		RateType: curPkg.RateTypeCentralbanks,
+		Source:   source,
 		Amount:   amount,
 		Datetime: h.ts,
 	}
