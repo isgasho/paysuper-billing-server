@@ -1,0 +1,100 @@
+{{- $deployment := .Values.backend -}}
+{{- $deploymentName := printf "%s-%s" .Release.Name $deployment.name }}
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: "{{ .Release.Name }}-vat_reports"
+  labels:
+    app: {{ .Chart.Name }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    role: {{ $deployment.role }}
+  annotations: 
+    released: {{ .Release.Time }} 
+spec:
+  schedule: 59 23 * * *
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: "{{ .Release.Name }}-vat_reports"
+            image: {{ $deployment.image }}:{{ $deployment.imageTag }}
+            command: ["/application/bin/paysuper_billing_service"]
+            args: ["-task=vat_reports"]
+            env:
+            {{- range .Values.backend.env }}
+            - name: {{ . }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $deploymentName }}-env
+                  key: {{ . }}
+            {{- end }}
+          restartPolicy: OnFailure 
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: "{{ .Release.Name }}-royalty_reports"
+  labels:
+    app: {{ .Chart.Name }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    role: {{ $deployment.role }}
+  annotations: 
+    released: {{ .Release.Time }} 
+spec:
+  schedule: 0 8 * * 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: "{{ .Release.Name }}-royalty_reports"
+            image: {{ $deployment.image }}:{{ $deployment.imageTag }}
+            command: ["/application/bin/paysuper_billing_service"]
+            args: ["-task=royalty_reports"]
+            env:
+            {{- range .Values.backend.env }}
+            - name: {{ . }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $deploymentName }}-env
+                  key: {{ . }}
+            {{- end }}
+          restartPolicy: OnFailure 
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: "{{ .Release.Name }}-royalty_reports_accept"
+  labels:
+    app: {{ .Chart.Name }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    role: {{ $deployment.role }}
+  annotations: 
+    released: {{ .Release.Time }} 
+spec:
+  schedule: 59 23 * * *
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: "{{ .Release.Name }}-royalty_reports_accept"
+            image: {{ $deployment.image }}:{{ $deployment.imageTag }}
+            command: ["/application/bin/paysuper_billing_service"]
+            args: ["-task=royalty_reports_accept"]
+            env:
+            {{- range .Values.backend.env }}
+            - name: {{ . }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $deploymentName }}-env
+                  key: {{ . }}
+            {{- end }}
+          restartPolicy: OnFailure 
