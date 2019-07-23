@@ -13,7 +13,7 @@ func (s *Service) UploadKeysFile(context.Context, *grpc.PlatformKeysFileRequest,
 	panic("implement me")
 }
 
-func (s *Service) GetKeyByID(context.Context, *grpc.KeyForOrderRequest, *grpc.Key) error {
+func (s *Service) GetKeyByID(context.Context, *grpc.KeyForOrderRequest, *grpc.GetKeyForOrderRequestResponse) error {
 	panic("implement me")
 }
 
@@ -21,7 +21,7 @@ func (s *Service) ReserveKeyForOrder(context.Context, *grpc.PlatformKeyReserveRe
 	panic("implement me")
 }
 
-func (s *Service) FinishRedeemKeyForOrder(context.Context, *grpc.KeyForOrderRequest, *grpc.Key) error {
+func (s *Service) FinishRedeemKeyForOrder(context.Context, *grpc.KeyForOrderRequest, *grpc.GetKeyForOrderRequestResponse) error {
 	panic("implement me")
 }
 
