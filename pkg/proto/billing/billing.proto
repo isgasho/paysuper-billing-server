@@ -1060,7 +1060,7 @@ message PaymentChannelCostSystem {
     string id = 1;
     //@inject_tag: json:"name" bson:"name" validate:"required,alpha"
     string name = 2;
-    //@inject_tag: json:"region" bson:"region" validate:"required,alpha"
+    //@inject_tag: json:"region" bson:"region" validate:"required"
     string region = 3;
     //@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
     string country = 4;
@@ -1081,7 +1081,7 @@ message PaymentChannelCostSystem {
 message PaymentChannelCostSystemRequest {
     //@inject_tag: json:"name" bson:"name" validate:"required,alpha"
     string name = 1;
-    //@inject_tag: json:"region" bson:"region" validate:"required,alpha"
+    //@inject_tag: json:"region" bson:"region" validate:"required"
     string region = 2;
     //@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
     string country = 3;
@@ -1102,7 +1102,7 @@ message PaymentChannelCostMerchant {
     string payout_currency = 4;
     // @inject_tag: json:"min_amount" bson:"min_amount" validate:"required,numeric,gte=0"
     double min_amount = 5;
-    //@inject_tag: json:"region" bson:"region" validate:"required,alpha"
+    //@inject_tag: json:"region" bson:"region" validate:"required"
     string region = 6;
     //@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
     string country = 7;
@@ -1135,7 +1135,7 @@ message PaymentChannelCostMerchantRequest {
     string payout_currency = 3;
     // @inject_tag: json:"amount" bson:"amount" validate:"required,numeric,gte=0"
     double amount = 4;
-    //@inject_tag: json:"region" bson:"region" validate:"required,alpha"
+    //@inject_tag: json:"region" bson:"region" validate:"required"
     string region = 5;
     //@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
     string country = 6;
@@ -1159,7 +1159,7 @@ message MoneyBackCostSystem {
     string payout_currency = 3;
     //@inject_tag: json:"undo_reason" bson:"undo_reason" validate:"required,alpha,oneof=refund reversal chargeback"
     string undo_reason = 4;
-    //@inject_tag: json:"region" bson:"region" validate:"required,alpha"
+    //@inject_tag: json:"region" bson:"region" validate:"required"
     string region = 5;
     //@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
     string country = 6;
@@ -1186,7 +1186,7 @@ message MoneyBackCostSystemRequest {
     string payout_currency = 2;
     //@inject_tag: json:"undo_reason" bson:"undo_reason" validate:"required,alpha,oneof=refund reversal chargeback"
     string undo_reason = 3;
-    //@inject_tag: json:"region" bson:"region" validate:"required,alpha"
+    //@inject_tag: json:"region" bson:"region" validate:"required"
     string region = 4;
     //@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
     string country = 5;
@@ -1211,7 +1211,7 @@ message MoneyBackCostMerchant {
     string payout_currency = 4;
     //@inject_tag: json:"undo_reason" bson:"undo_reason" validate:"required,alpha,oneof=refund reversal chargeback"
     string undo_reason = 5;
-    //@inject_tag: json:"region" bson:"region" validate:"required,alpha"
+    //@inject_tag: json:"region" bson:"region" validate:"required"
     string region = 6;
     //@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
     string country = 7;
@@ -1244,7 +1244,7 @@ message MoneyBackCostMerchantRequest {
     string payout_currency = 3;
     //@inject_tag: json:"undo_reason" bson:"undo_reason" validate:"required,alpha,oneof=refund reversal chargeback"
     string undo_reason = 4;
-    //@inject_tag: json:"region" bson:"region" validate:"required,alpha"
+    //@inject_tag: json:"region" bson:"region" validate:"required"
     string region = 5;
     //@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
     string country = 6;
