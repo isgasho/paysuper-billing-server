@@ -6335,8 +6335,8 @@ type PaymentChannelCostSystem struct {
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" bson:"_id" validate:"omitempty,hexadecimal,len=24"`
 	//@inject_tag: json:"name" bson:"name" validate:"required,alpha"
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name" bson:"name" validate:"required,alpha"`
-	//@inject_tag: json:"region" bson:"region" validate:"required,alpha"
-	Region string `protobuf:"bytes,3,opt,name=region,proto3" json:"region" bson:"region" validate:"required,alpha"`
+	//@inject_tag: json:"region" bson:"region" validate:"required"
+	Region string `protobuf:"bytes,3,opt,name=region,proto3" json:"region" bson:"region" validate:"required"`
 	//@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
 	Country string `protobuf:"bytes,4,opt,name=country,proto3" json:"country" bson:"country" validate:"omitempty,alpha,len=2"`
 	// @inject_tag: json:"percent" bson:"percent" validate:"numeric,gte=0,lte=1"
@@ -6454,8 +6454,8 @@ func (m *PaymentChannelCostSystem) GetIsActive() bool {
 type PaymentChannelCostSystemRequest struct {
 	//@inject_tag: json:"name" bson:"name" validate:"required,alpha"
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name" bson:"name" validate:"required,alpha"`
-	//@inject_tag: json:"region" bson:"region" validate:"required,alpha"
-	Region string `protobuf:"bytes,2,opt,name=region,proto3" json:"region" bson:"region" validate:"required,alpha"`
+	//@inject_tag: json:"region" bson:"region" validate:"required"
+	Region string `protobuf:"bytes,2,opt,name=region,proto3" json:"region" bson:"region" validate:"required"`
 	//@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
 	Country              string   `protobuf:"bytes,3,opt,name=country,proto3" json:"country" bson:"country" validate:"omitempty,alpha,len=2"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -6559,8 +6559,8 @@ type PaymentChannelCostMerchant struct {
 	PayoutCurrency string `protobuf:"bytes,4,opt,name=payout_currency,json=payoutCurrency,proto3" json:"payout_currency" bson:"payout_currency" validate:"required,alpha,len=3"`
 	// @inject_tag: json:"min_amount" bson:"min_amount" validate:"required,numeric,gte=0"
 	MinAmount float64 `protobuf:"fixed64,5,opt,name=min_amount,json=minAmount,proto3" json:"min_amount" bson:"min_amount" validate:"required,numeric,gte=0"`
-	//@inject_tag: json:"region" bson:"region" validate:"required,alpha"
-	Region string `protobuf:"bytes,6,opt,name=region,proto3" json:"region" bson:"region" validate:"required,alpha"`
+	//@inject_tag: json:"region" bson:"region" validate:"required"
+	Region string `protobuf:"bytes,6,opt,name=region,proto3" json:"region" bson:"region" validate:"required"`
 	//@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
 	Country string `protobuf:"bytes,7,opt,name=country,proto3" json:"country" bson:"country" validate:"omitempty,alpha,len=2"`
 	// @inject_tag: json:"method_percent" bson:"method_percent" validate:"numeric,gte=0,lte=11"
@@ -6732,8 +6732,8 @@ type PaymentChannelCostMerchantRequest struct {
 	PayoutCurrency string `protobuf:"bytes,3,opt,name=payout_currency,json=payoutCurrency,proto3" json:"payout_currency" bson:"payout_currency" validate:"required,alpha,len=3"`
 	// @inject_tag: json:"amount" bson:"amount" validate:"required,numeric,gte=0"
 	Amount float64 `protobuf:"fixed64,4,opt,name=amount,proto3" json:"amount" bson:"amount" validate:"required,numeric,gte=0"`
-	//@inject_tag: json:"region" bson:"region" validate:"required,alpha"
-	Region string `protobuf:"bytes,5,opt,name=region,proto3" json:"region" bson:"region" validate:"required,alpha"`
+	//@inject_tag: json:"region" bson:"region" validate:"required"
+	Region string `protobuf:"bytes,5,opt,name=region,proto3" json:"region" bson:"region" validate:"required"`
 	//@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
 	Country              string   `protobuf:"bytes,6,opt,name=country,proto3" json:"country" bson:"country" validate:"omitempty,alpha,len=2"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -6896,8 +6896,8 @@ type MoneyBackCostSystem struct {
 	PayoutCurrency string `protobuf:"bytes,3,opt,name=payout_currency,json=payoutCurrency,proto3" json:"payout_currency" bson:"payout_currency" validate:"required,alpha,len=3"`
 	//@inject_tag: json:"undo_reason" bson:"undo_reason" validate:"required,alpha,oneof=refund reversal chargeback"
 	UndoReason string `protobuf:"bytes,4,opt,name=undo_reason,json=undoReason,proto3" json:"undo_reason" bson:"undo_reason" validate:"required,alpha,oneof=refund reversal chargeback"`
-	//@inject_tag: json:"region" bson:"region" validate:"required,alpha"
-	Region string `protobuf:"bytes,5,opt,name=region,proto3" json:"region" bson:"region" validate:"required,alpha"`
+	//@inject_tag: json:"region" bson:"region" validate:"required"
+	Region string `protobuf:"bytes,5,opt,name=region,proto3" json:"region" bson:"region" validate:"required"`
 	//@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
 	Country string `protobuf:"bytes,6,opt,name=country,proto3" json:"country" bson:"country" validate:"omitempty,alpha,len=2"`
 	// @inject_tag: json:"days_from" bson:"days_from" validate:"numeric,gte=0"
@@ -7042,8 +7042,8 @@ type MoneyBackCostSystemRequest struct {
 	PayoutCurrency string `protobuf:"bytes,2,opt,name=payout_currency,json=payoutCurrency,proto3" json:"payout_currency" bson:"payout_currency" validate:"required,alpha,len=3"`
 	//@inject_tag: json:"undo_reason" bson:"undo_reason" validate:"required,alpha,oneof=refund reversal chargeback"
 	UndoReason string `protobuf:"bytes,3,opt,name=undo_reason,json=undoReason,proto3" json:"undo_reason" bson:"undo_reason" validate:"required,alpha,oneof=refund reversal chargeback"`
-	//@inject_tag: json:"region" bson:"region" validate:"required,alpha"
-	Region string `protobuf:"bytes,4,opt,name=region,proto3" json:"region" bson:"region" validate:"required,alpha"`
+	//@inject_tag: json:"region" bson:"region" validate:"required"
+	Region string `protobuf:"bytes,4,opt,name=region,proto3" json:"region" bson:"region" validate:"required"`
 	//@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
 	Country string `protobuf:"bytes,5,opt,name=country,proto3" json:"country" bson:"country" validate:"omitempty,alpha,len=2"`
 	// @inject_tag: json:"days" bson:"days" validate:"required,numeric,gte=0"
@@ -7179,8 +7179,8 @@ type MoneyBackCostMerchant struct {
 	PayoutCurrency string `protobuf:"bytes,4,opt,name=payout_currency,json=payoutCurrency,proto3" json:"payout_currency" bson:"payout_currency" validate:"required,alpha,len=3"`
 	//@inject_tag: json:"undo_reason" bson:"undo_reason" validate:"required,alpha,oneof=refund reversal chargeback"
 	UndoReason string `protobuf:"bytes,5,opt,name=undo_reason,json=undoReason,proto3" json:"undo_reason" bson:"undo_reason" validate:"required,alpha,oneof=refund reversal chargeback"`
-	//@inject_tag: json:"region" bson:"region" validate:"required,alpha"
-	Region string `protobuf:"bytes,6,opt,name=region,proto3" json:"region" bson:"region" validate:"required,alpha"`
+	//@inject_tag: json:"region" bson:"region" validate:"required"
+	Region string `protobuf:"bytes,6,opt,name=region,proto3" json:"region" bson:"region" validate:"required"`
 	//@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
 	Country string `protobuf:"bytes,7,opt,name=country,proto3" json:"country" bson:"country" validate:"omitempty,alpha,len=2"`
 	// @inject_tag: json:"days_from" bson:"days_from" validate:"numeric,gte=0"
@@ -7352,8 +7352,8 @@ type MoneyBackCostMerchantRequest struct {
 	PayoutCurrency string `protobuf:"bytes,3,opt,name=payout_currency,json=payoutCurrency,proto3" json:"payout_currency" bson:"payout_currency" validate:"required,alpha,len=3"`
 	//@inject_tag: json:"undo_reason" bson:"undo_reason" validate:"required,alpha,oneof=refund reversal chargeback"
 	UndoReason string `protobuf:"bytes,4,opt,name=undo_reason,json=undoReason,proto3" json:"undo_reason" bson:"undo_reason" validate:"required,alpha,oneof=refund reversal chargeback"`
-	//@inject_tag: json:"region" bson:"region" validate:"required,alpha"
-	Region string `protobuf:"bytes,5,opt,name=region,proto3" json:"region" bson:"region" validate:"required,alpha"`
+	//@inject_tag: json:"region" bson:"region" validate:"required"
+	Region string `protobuf:"bytes,5,opt,name=region,proto3" json:"region" bson:"region" validate:"required"`
 	//@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
 	Country string `protobuf:"bytes,6,opt,name=country,proto3" json:"country" bson:"country" validate:"omitempty,alpha,len=2"`
 	// @inject_tag: json:"days" bson:"days" validate:"required,numeric,gte=0"
