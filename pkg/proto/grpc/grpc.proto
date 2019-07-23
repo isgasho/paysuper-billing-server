@@ -1101,5 +1101,5 @@ message GetUserProfileResponse {
 
 message ConfirmUserEmailRequest {
     //@inject_tag: validate:"required"
-    string Token = 1;
+    string token = 1;
 }
