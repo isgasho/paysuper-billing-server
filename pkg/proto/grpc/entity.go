@@ -109,5 +109,5 @@ func (m *UserProfile) HasCompanyPlatformsChanges(profile *UserProfile) bool {
 }
 
 func (m *UserProfile) IsEmailVerified() bool {
-	return m.Email.Confirmed == true
+	return m.Email.Confirmed
 }

@@ -58,7 +58,14 @@ func (s *Service) CreateOrUpdateUserProfile(
 		return nil
 	}
 
-	s.setUserCentrifugoToken(profile)
+	err = s.setUserCentrifugoToken(profile)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = userProfileErrorUnknown
+
+		return nil
+	}
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = profile
@@ -80,7 +87,14 @@ func (s *Service) GetUserProfile(
 		return nil
 	}
 
-	s.setUserCentrifugoToken(profile)
+	err := s.setUserCentrifugoToken(profile)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = userProfileErrorUnknown
+
+		return nil
+	}
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = profile
@@ -301,10 +315,24 @@ func (s *Service) updateOnboardingProfile(
 	return profile, nil
 }
 
-func (s *Service) setUserCentrifugoToken(profile *grpc.UserProfile) {
+func (s *Service) setUserCentrifugoToken(profile *grpc.UserProfile) error {
 	expire := time.Now().Add(time.Minute * 30).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": profile.Id, "exp": expire})
-	profile.CentrifugoToken, _ = token.SignedString([]byte(s.cfg.CentrifugoSecret))
+	centrifugoToken, err := token.SignedString([]byte(s.cfg.CentrifugoSecret))
+
+	if err != nil {
+		zap.L().Error(
+			"Signing centrifugo token string failed",
+			zap.Error(err),
+			zap.Any("profile", profile),
+		)
+
+		return err
+	}
+
+	profile.CentrifugoToken = centrifugoToken
+
+	return nil
 }
 
 func (s *Service) ConfirmUserEmail(
@@ -428,11 +456,10 @@ func (s *Service) emailConfirmedSuccessfully(ctx context.Context, profile *grpc.
 		return err
 	}
 
-	msg := map[string]interface{}{"code": "op000005", "message": "user email confirmed successfully"}
-	b, _ := json.Marshal(msg)
+	msg := []byte(`{"code": "op000005", "message": "user email confirmed successfully"}`)
 
 	ch := fmt.Sprintf(s.cfg.CentrifugoUserChannel, profile.Id)
-	err = s.centrifugoClient.Publish(ctx, ch, b)
+	err = s.centrifugoClient.Publish(ctx, ch, msg)
 
 	if err != nil {
 		zap.L().Error(
