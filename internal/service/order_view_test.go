@@ -39,6 +39,7 @@ func (suite *OrderViewTestSuite) SetupTest() {
 	}
 	cfg.AccountingCurrency = "RUB"
 	cfg.CardPayApiUrl = "https://sandbox.cardpay.com"
+	cfg.OrderViewUpdateBatchSize = 20
 
 	m, err := migrate.New(
 		"file://../../migrations/tests",
