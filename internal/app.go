@@ -287,10 +287,12 @@ func (app *Application) Stop() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := app.httpServer.Shutdown(ctx); err != nil {
-		app.logger.Error("Http server shutdown failed", zap.Error(err))
+	if app.httpServer != nil {
+		if err := app.httpServer.Shutdown(ctx); err != nil {
+			app.logger.Error("Http server shutdown failed", zap.Error(err))
+		}
+		app.logger.Info("Http server stopped")
 	}
-	app.logger.Info("Http server stopped")
 
 	app.database.Close()
 	app.logger.Info("Database connection closed")

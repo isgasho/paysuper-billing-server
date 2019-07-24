@@ -320,7 +320,14 @@ func (s *Service) ProcessVatReports(
 	}
 
 	zap.S().Info("updating vat reports status")
-	return handler.ProcessVatReportsStatus()
+	err = handler.ProcessVatReportsStatus()
+	if err != nil {
+		return err
+	}
+
+	zap.S().Info("processing vat reports finished successfully")
+
+	return nil
 }
 
 func (s *Service) UpdateVatReportStatus(
@@ -566,6 +573,18 @@ func (h *vatReportProcessor) UpdateOrderView() error {
 
 func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country) error {
 
+	from, to, err := h.Service.getVatReportTimeForDate(country.VatPeriodMonth, h.date)
+	if err != nil {
+		zap.S().Warnw("generating vat report failed", "country", country.IsoCodeA2, "err", err.Error())
+		return err
+	}
+
+	zap.S().Infow("generating vat report",
+		"country", country.IsoCodeA2,
+		"from", from.Format(time.RFC3339),
+		"to", to.Format(time.RFC3339),
+	)
+
 	req := &tax_service.GetRateRequest{
 		IpData: &tax_service.GeoIdentity{
 			Country: country.IsoCodeA2,
@@ -589,10 +608,6 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 		CorrectionAmount: 0,
 	}
 
-	from, to, err := h.Service.getVatReportTimeForDate(country.VatPeriodMonth, h.date)
-	if err != nil {
-		return err
-	}
 	report.DateFrom, err = ptypes.TimestampProto(from)
 	if err != nil {
 		return err
@@ -608,11 +623,11 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 
 	countryTurnover, err := h.Service.turnover.Get(country.IsoCodeA2, from.Year())
 	if err != nil {
-		zap.S().Error(
+		zap.S().Warn(
 			errorMsgVatReportTurnoverNotFound,
-			zap.Error(err),
 			zap.String("country", country.IsoCodeA2),
 			zap.Any("year", from.Year()),
+			zap.Error(err),
 		)
 		return nil
 	}
@@ -738,8 +753,10 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.
 	}
 
 	if country.VatCurrencyRatesPolicy == pkg.VatCurrencyRatesPolicyAvgMonth {
-		zap.S().Error(
+		zap.S().Warnf(
 			errorMsgVatReportRatesPolicyNotImplemented,
+			"country", country.IsoCodeA2,
+			"policy", pkg.VatCurrencyRatesPolicyAvgMonth,
 		)
 		return nil
 	}

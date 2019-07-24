@@ -47,20 +47,18 @@ func (s *Service) CalcAnnualTurnovers(ctx context.Context, req *grpc.EmptyReques
 	for _, country := range countries.Countries {
 		err = s.calcAnnualTurnover(ctx, country.IsoCodeA2)
 		if err != nil {
-			zap.S().Error(
-				errorCannotCalculateTurnoverCountry,
-				zap.Error(err),
-				zap.String("country", country.IsoCodeA2),
-			)
+			if err != errorTurnoversCurrencyRatesPolicyNotSupported {
+				zap.S().Errorf(errorCannotCalculateTurnoverCountry, "country", country.IsoCodeA2, err.Error())
+				return err
+			}
+			zap.S().Warnf(errorCannotCalculateTurnoverCountry, "country", country.IsoCodeA2, err.Error())
 		}
 	}
 
 	err = s.calcAnnualTurnover(ctx, "")
 	if err != nil {
-		zap.S().Error(
-			errorCannotCalculateTurnoverWorld,
-			zap.Error(err),
-		)
+		zap.S().Error(errorCannotCalculateTurnoverWorld, err.Error())
+		return err
 	}
 
 	return nil
