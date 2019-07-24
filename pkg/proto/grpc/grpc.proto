@@ -277,7 +277,7 @@ message CreateOrUpdateKeyProductRequest {
     repeated string images = 6;
     //@inject_tag: validate:"omitempty,url" json:"url"
     string url = 7;
-    //@inject_tag: validate:"required" json:"enabled"
+    //@inject_tag: json:"enabled"
     bool enabled = 8;
     //@inject_tag: validate:"required,alpha,len=3" json:"default_currency"
     string default_currency = 9;
@@ -780,7 +780,7 @@ message KeyProduct {
     map<string, string> name = 6;
     //@inject_tag: validate:"required,alpha,len=3" json:"default_currency"
     string default_currency = 7;
-    //@inject_tag: validate:"required" json:"enabled"
+    //@inject_tag: json:"enabled"
     bool enabled = 8;
     //@inject_tag: validate:"required,min=1,dive" json:"platforms"
     repeated PlatformPrice platforms = 9;

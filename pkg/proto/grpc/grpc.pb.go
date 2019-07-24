@@ -943,8 +943,8 @@ type CreateOrUpdateKeyProductRequest struct {
 	Images []string `protobuf:"bytes,6,rep,name=images,proto3" json:"images" validate:"dive,omitempty,uri"`
 	//@inject_tag: validate:"omitempty,url" json:"url"
 	Url string `protobuf:"bytes,7,opt,name=url,proto3" json:"url" validate:"omitempty,url"`
-	//@inject_tag: validate:"required" json:"enabled"
-	Enabled bool `protobuf:"varint,8,opt,name=enabled,proto3" json:"enabled" validate:"required"`
+	//@inject_tag: json:"enabled"
+	Enabled bool `protobuf:"varint,8,opt,name=enabled,proto3" json:"enabled"`
 	//@inject_tag: validate:"required,alpha,len=3" json:"default_currency"
 	DefaultCurrency string `protobuf:"bytes,9,opt,name=default_currency,json=defaultCurrency,proto3" json:"default_currency" validate:"required,alpha,len=3"`
 	//@inject_tag: validate:"hexadecimal,len=24" json:"merchant_id"
@@ -4565,8 +4565,8 @@ type KeyProduct struct {
 	Name map[string]string `protobuf:"bytes,6,rep,name=name,proto3" json:"name" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3" validate:"required"`
 	//@inject_tag: validate:"required,alpha,len=3" json:"default_currency"
 	DefaultCurrency string `protobuf:"bytes,7,opt,name=default_currency,json=defaultCurrency,proto3" json:"default_currency" validate:"required,alpha,len=3"`
-	//@inject_tag: validate:"required" json:"enabled"
-	Enabled bool `protobuf:"varint,8,opt,name=enabled,proto3" json:"enabled" validate:"required"`
+	//@inject_tag: json:"enabled"
+	Enabled bool `protobuf:"varint,8,opt,name=enabled,proto3" json:"enabled"`
 	//@inject_tag: validate:"required,min=1,dive" json:"platforms"
 	Platforms []*PlatformPrice `protobuf:"bytes,9,rep,name=platforms,proto3" json:"platforms" validate:"required,min=1,dive"`
 	//@inject_tag: validate:"required" json:"description"
