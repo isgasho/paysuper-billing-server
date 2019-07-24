@@ -81,6 +81,8 @@ func (s *Service) CreateRoyaltyReport(
 	req *grpc.CreateRoyaltyReportRequest,
 	rsp *grpc.CreateRoyaltyReportRequest,
 ) error {
+	zap.S().Info("start royalty reports processing")
+
 	loc, err := time.LoadLocation(s.cfg.RoyaltyReportTimeZone)
 
 	if err != nil {
@@ -106,7 +108,8 @@ func (s *Service) CreateRoyaltyReport(
 	}
 
 	if len(merchants) <= 0 {
-		return errors.New(royaltyReportErrorNoTransactions)
+		zap.S().Info(royaltyReportErrorNoTransactions)
+		return nil
 	}
 
 	var wg sync.WaitGroup
@@ -130,6 +133,8 @@ func (s *Service) CreateRoyaltyReport(
 		}(v.Id)
 	}
 	wg.Wait()
+
+	zap.S().Info("royalty reports processing finished successfully")
 
 	return nil
 }
@@ -440,6 +445,8 @@ func (s *Service) onRoyaltyReportChange(reportOld, reportNew *billing.RoyaltyRep
 }
 
 func (h *royaltyHandler) processMerchantRoyaltyReport(merchantId bson.ObjectId) error {
+	zap.S().Infow("generating royalty report for merchant", "merchantId", merchantId.Hex())
+
 	//If the report isn't generated the first time, then mark the previous report as deleted
 	query := bson.M{
 		"merchant_id": merchantId,
@@ -466,6 +473,8 @@ func (h *royaltyHandler) processMerchantRoyaltyReport(merchantId bson.ObjectId) 
 	if err != nil {
 		return err
 	}
+
+	zap.S().Infow("generating royalty report for merchant finished", "merchantId", merchantId.Hex())
 
 	return nil
 }
