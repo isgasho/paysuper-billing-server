@@ -303,8 +303,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_CreateRoyaltyReport_Empty
 	}
 	rsp := &grpc.CreateRoyaltyReportRequest{}
 	err := suite.service.CreateRoyaltyReport(context.TODO(), req, rsp)
-	assert.Error(suite.T(), err)
-	assert.EqualError(suite.T(), err, royaltyReportErrorNoTransactions)
+	assert.NoError(suite.T(), err)
 
 	var reports []*billing.RoyaltyReport
 	err = suite.service.db.Collection(collectionRoyaltyReport).Find(bson.M{}).All(&reports)
@@ -767,8 +766,12 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReportOrders_O
 	req := &grpc.CreateRoyaltyReportRequest{}
 	rsp := &grpc.CreateRoyaltyReportRequest{}
 	err = suite.service.CreateRoyaltyReport(context.TODO(), req, rsp)
-	assert.EqualError(suite.T(), err, royaltyReportErrorNoTransactions)
+	assert.NoError(suite.T(), err)
 
+	var reports []*billing.RoyaltyReport
+	err = suite.service.db.Collection(collectionRoyaltyReport).Find(bson.M{}).All(&reports)
+	assert.NoError(suite.T(), err)
+	assert.Empty(suite.T(), reports)
 }
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_SendRoyaltyReportNotification_MerchantNotFound_Error() {
