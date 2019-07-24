@@ -46,18 +46,14 @@ func (s *Service) CreateOrUpdateUserProfile(
 	profile := s.getOnboardingProfileByUser(req.UserId)
 
 	if profile == nil {
-		profile, err = s.insertUserProfile(req)
+		profile = req
+		profile.Id = bson.NewObjectId().Hex()
+		profile.CreatedAt = ptypes.TimestampNow()
 	} else {
-		profile, err = s.updateOnboardingProfile(profile, req)
+		profile = s.updateOnboardingProfile(profile, req)
 	}
 
-	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = userProfileErrorUnknown
-
-		return nil
-	}
-
+	profile.UpdatedAt = ptypes.TimestampNow()
 	profile.CentrifugoToken, err = s.getUserCentrifugoToken(profile)
 
 	if err != nil {
@@ -65,6 +61,42 @@ func (s *Service) CreateOrUpdateUserProfile(
 		rsp.Message = userProfileErrorUnknown
 
 		return nil
+	}
+
+	_, err = s.db.Collection(collectionUserProfile).UpsertId(bson.ObjectIdHex(profile.Id), profile)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionUserProfile),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, profile),
+		)
+
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = userProfileErrorUnknown
+
+		return nil
+	}
+
+	if profile.NeedConfirmEmail() {
+		profile.Email.ConfirmationUrl, err = s.setUserEmailConfirmationToken(profile)
+
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = userProfileErrorUnknown
+
+			return nil
+		}
+
+		err = s.sendUserEmailConfirmationToken(profile)
+
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = userProfileErrorUnknown
+
+			return nil
+		}
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
@@ -120,42 +152,7 @@ func (s *Service) getOnboardingProfileByUser(userId string) (profile *grpc.UserP
 	return profile
 }
 
-func (s *Service) insertUserProfile(profileReq *grpc.UserProfile) (*grpc.UserProfile, error) {
-	profileReq.Id = bson.NewObjectId().Hex()
-	profileReq.CreatedAt = ptypes.TimestampNow()
-	profileReq.UpdatedAt = ptypes.TimestampNow()
-
-	err := s.db.Collection(collectionUserProfile).Insert(profileReq)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String("collection", collectionUserProfile),
-			zap.Any("profile", profileReq),
-		)
-
-		return nil, err
-	}
-
-	profileReq.Email.ConfirmationUrl, err = s.setUserEmailConfirmationToken(profileReq)
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = s.sendUserEmailConfirmationToken(profileReq)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return profileReq, nil
-}
-
-func (s *Service) updateOnboardingProfile(
-	profile, profileReq *grpc.UserProfile,
-) (*grpc.UserProfile, error) {
+func (s *Service) updateOnboardingProfile(profile, profileReq *grpc.UserProfile) *grpc.UserProfile {
 	if profileReq.HasPersonChanges(profile) {
 		if profile.Personal == nil {
 			profile.Personal = &grpc.UserProfilePersonal{}
@@ -298,22 +295,7 @@ func (s *Service) updateOnboardingProfile(
 		profile.LastStep = profileReq.LastStep
 	}
 
-	profile.UpdatedAt = ptypes.TimestampNow()
-
-	err := s.db.Collection(collectionUserProfile).UpdateId(bson.ObjectIdHex(profile.Id), profile)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String("collection", collectionUserProfile),
-			zap.Any("profile", profile),
-		)
-
-		return nil, err
-	}
-
-	return profile, nil
+	return profile
 }
 
 func (s *Service) getUserCentrifugoToken(profile *grpc.UserProfile) (string, error) {
@@ -425,7 +407,6 @@ func (s *Service) sendUserEmailConfirmationToken(profile *grpc.UserProfile) erro
 	payload := &postmarkSdrPkg.Payload{
 		TemplateAlias: s.cfg.EmailConfirmTemplate,
 		TemplateModel: map[string]string{
-			"empty_url":   "#",
 			"confirm_url": profile.Email.ConfirmationUrl,
 		},
 		To: profile.Email.Email,
@@ -438,6 +419,22 @@ func (s *Service) sendUserEmailConfirmationToken(profile *grpc.UserProfile) erro
 			"Publication message to user email confirmation to queue failed",
 			zap.Error(err),
 			zap.Any("profile", profile),
+		)
+
+		return err
+	}
+
+	query := bson.M{"_id": bson.ObjectIdHex(profile.Id)}
+	set := bson.M{"$set": bson.M{"email.is_confirmation_email_sent": true}}
+	err = s.db.Collection(collectionUserProfile).Update(query, set)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionUserProfile),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			zap.Any(pkg.ErrorDatabaseFieldSet, set),
 		)
 
 		return err

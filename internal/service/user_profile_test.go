@@ -135,7 +135,84 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	assert.NotEmpty(suite.T(), rsp.Item.Id)
 	assert.NotEmpty(suite.T(), rsp.Item.CreatedAt)
 	assert.NotEmpty(suite.T(), rsp.Item.UpdatedAt)
-	assert.NotEmpty(suite.T(), rsp.Item.Email.ConfirmationUrl)
+
+	profile = suite.service.getOnboardingProfileByUser(req.UserId)
+	assert.NotNil(suite.T(), rsp.Item)
+	assert.IsType(suite.T(), &grpc.UserProfile{}, rsp.Item)
+
+	assert.Equal(suite.T(), profile.UserId, rsp.Item.UserId)
+	assert.Equal(suite.T(), profile.LastStep, rsp.Item.LastStep)
+	assert.Equal(suite.T(), profile.Personal.LastName, rsp.Item.Personal.LastName)
+	assert.Equal(suite.T(), profile.Personal.FirstName, rsp.Item.Personal.FirstName)
+	assert.Equal(suite.T(), profile.Personal.Position, rsp.Item.Personal.Position)
+	assert.Equal(suite.T(), profile.Help.Other, rsp.Item.Help.Other)
+	assert.Equal(suite.T(), profile.Help.InternationalSales, rsp.Item.Help.InternationalSales)
+	assert.Equal(suite.T(), profile.Help.ReleasedGamePromotion, rsp.Item.Help.ReleasedGamePromotion)
+	assert.Equal(suite.T(), profile.Help.ProductPromotionAndDevelopment, rsp.Item.Help.ProductPromotionAndDevelopment)
+	assert.NotEmpty(suite.T(), rsp.Item.CentrifugoToken)
+
+	b, ok := suite.service.broker.(*mock.BrokerMockOk)
+	assert.True(suite.T(), ok)
+	assert.False(suite.T(), b.IsSent)
+}
+
+func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_ChangeProfileWithSendConfirmEmail_Ok() {
+	req := &grpc.UserProfile{
+		UserId: bson.NewObjectId().Hex(),
+		Email: &grpc.UserProfileEmail{
+			Email: "test@unit.test",
+		},
+		Personal: &grpc.UserProfilePersonal{
+			FirstName: "Unit test",
+			LastName:  "Unit Test",
+			Position:  "test",
+		},
+		Help: &grpc.UserProfileHelp{
+			ProductPromotionAndDevelopment: false,
+			ReleasedGamePromotion:          true,
+			InternationalSales:             true,
+			Other:                          false,
+		},
+		LastStep: "step2",
+	}
+	rsp := &grpc.GetUserProfileResponse{}
+
+	profile := suite.service.getOnboardingProfileByUser(req.UserId)
+	assert.Nil(suite.T(), profile)
+
+	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotNil(suite.T(), rsp.Item)
+	assert.IsType(suite.T(), &grpc.UserProfile{}, rsp.Item)
+	assert.NotEmpty(suite.T(), rsp.Item.Id)
+	assert.NotEmpty(suite.T(), rsp.Item.CreatedAt)
+	assert.NotEmpty(suite.T(), rsp.Item.UpdatedAt)
+
+	req = &grpc.UserProfile{
+		UserId: req.UserId,
+		Email:  req.Email,
+		Company: &grpc.UserProfileCompany{
+			CompanyName:       "Unit test",
+			Website:           "http://localhost",
+			AnnualIncome:      &grpc.RangeInt{From: 10, To: 100},
+			NumberOfEmployees: &grpc.RangeInt{From: 10, To: 100},
+			KindOfActivity:    "develop_and_publish_your_games",
+			Monetization: &grpc.UserProfileCompanyMonetization{
+				PaidSubscription: true,
+			},
+			Platforms: &grpc.UserProfileCompanyPlatforms{
+				WebBrowser: true,
+			},
+		},
+		LastStep: "step3",
+	}
+	err = suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotNil(suite.T(), rsp.Item)
 
 	profile = suite.service.getOnboardingProfileByUser(req.UserId)
 	assert.NotNil(suite.T(), rsp.Item)
@@ -163,7 +240,31 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateOnboardingProfi
 		Email: &grpc.UserProfileEmail{
 			Email: "test@unit.test",
 		},
-		LastStep: "step1",
+		Personal: &grpc.UserProfilePersonal{
+			FirstName: "Unit test",
+			LastName:  "Unit Test",
+			Position:  "test",
+		},
+		Help: &grpc.UserProfileHelp{
+			ProductPromotionAndDevelopment: false,
+			ReleasedGamePromotion:          true,
+			InternationalSales:             true,
+			Other:                          false,
+		},
+		Company: &grpc.UserProfileCompany{
+			CompanyName:       "Unit test",
+			Website:           "http://localhost",
+			AnnualIncome:      &grpc.RangeInt{From: 10, To: 100},
+			NumberOfEmployees: &grpc.RangeInt{From: 10, To: 100},
+			KindOfActivity:    "develop_and_publish_your_games",
+			Monetization: &grpc.UserProfileCompanyMonetization{
+				PaidSubscription: true,
+			},
+			Platforms: &grpc.UserProfileCompanyPlatforms{
+				WebBrowser: true,
+			},
+		},
+		LastStep: "step3",
 	}
 	rsp := &grpc.GetUserProfileResponse{}
 
@@ -259,7 +360,20 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 			InternationalSales:             true,
 			Other:                          false,
 		},
-		LastStep: "step2",
+		Company: &grpc.UserProfileCompany{
+			CompanyName:       "Unit test",
+			Website:           "http://localhost",
+			AnnualIncome:      &grpc.RangeInt{From: 10, To: 100},
+			NumberOfEmployees: &grpc.RangeInt{From: 10, To: 100},
+			KindOfActivity:    "develop_and_publish_your_games",
+			Monetization: &grpc.UserProfileCompanyMonetization{
+				PaidSubscription: true,
+			},
+			Platforms: &grpc.UserProfileCompanyPlatforms{
+				WebBrowser: true,
+			},
+		},
+		LastStep: "step3",
 	}
 	rsp := &grpc.GetUserProfileResponse{}
 
@@ -302,7 +416,20 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 			InternationalSales:             true,
 			Other:                          false,
 		},
-		LastStep: "step2",
+		Company: &grpc.UserProfileCompany{
+			CompanyName:       "Unit test",
+			Website:           "http://localhost",
+			AnnualIncome:      &grpc.RangeInt{From: 10, To: 100},
+			NumberOfEmployees: &grpc.RangeInt{From: 10, To: 100},
+			KindOfActivity:    "develop_and_publish_your_games",
+			Monetization: &grpc.UserProfileCompanyMonetization{
+				PaidSubscription: true,
+			},
+			Platforms: &grpc.UserProfileCompanyPlatforms{
+				WebBrowser: true,
+			},
+		},
+		LastStep: "step3",
 	}
 	rsp := &grpc.GetUserProfileResponse{}
 
@@ -402,7 +529,20 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_Ok() {
 			InternationalSales:             true,
 			Other:                          false,
 		},
-		LastStep: "step2",
+		Company: &grpc.UserProfileCompany{
+			CompanyName:       "Unit test",
+			Website:           "http://localhost",
+			AnnualIncome:      &grpc.RangeInt{From: 10, To: 100},
+			NumberOfEmployees: &grpc.RangeInt{From: 10, To: 100},
+			KindOfActivity:    "develop_and_publish_your_games",
+			Monetization: &grpc.UserProfileCompanyMonetization{
+				PaidSubscription: true,
+			},
+			Platforms: &grpc.UserProfileCompanyPlatforms{
+				WebBrowser: true,
+			},
+		},
+		LastStep: "step3",
 	}
 	rsp := &grpc.GetUserProfileResponse{}
 
@@ -461,7 +601,20 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_UserNotFound
 			InternationalSales:             true,
 			Other:                          false,
 		},
-		LastStep: "step2",
+		Company: &grpc.UserProfileCompany{
+			CompanyName:       "Unit test",
+			Website:           "http://localhost",
+			AnnualIncome:      &grpc.RangeInt{From: 10, To: 100},
+			NumberOfEmployees: &grpc.RangeInt{From: 10, To: 100},
+			KindOfActivity:    "develop_and_publish_your_games",
+			Monetization: &grpc.UserProfileCompanyMonetization{
+				PaidSubscription: true,
+			},
+			Platforms: &grpc.UserProfileCompanyPlatforms{
+				WebBrowser: true,
+			},
+		},
+		LastStep: "step3",
 	}
 	rsp := &grpc.GetUserProfileResponse{}
 
@@ -514,7 +667,20 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_EmailConfirm
 			InternationalSales:             true,
 			Other:                          false,
 		},
-		LastStep: "step2",
+		Company: &grpc.UserProfileCompany{
+			CompanyName:       "Unit test",
+			Website:           "http://localhost",
+			AnnualIncome:      &grpc.RangeInt{From: 10, To: 100},
+			NumberOfEmployees: &grpc.RangeInt{From: 10, To: 100},
+			KindOfActivity:    "develop_and_publish_your_games",
+			Monetization: &grpc.UserProfileCompanyMonetization{
+				PaidSubscription: true,
+			},
+			Platforms: &grpc.UserProfileCompanyPlatforms{
+				WebBrowser: true,
+			},
+		},
+		LastStep: "step3",
 	}
 	rsp := &grpc.GetUserProfileResponse{}
 
