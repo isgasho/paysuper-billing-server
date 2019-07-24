@@ -601,11 +601,14 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 	rate := rsp.Rate.Rate
 
 	report := &billing.VatReport{
+		Id:               bson.NewObjectId().Hex(),
 		Country:          country.IsoCodeA2,
 		VatRate:          rate,
 		Currency:         country.Currency,
 		Status:           pkg.VatReportStatusThreshold,
 		CorrectionAmount: 0,
+		CreatedAt:        ptypes.TimestampNow(),
+		UpdatedAt:        ptypes.TimestampNow(),
 	}
 
 	report.DateFrom, err = ptypes.TimestampProto(from)
@@ -721,8 +724,8 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 
 	selector := bson.M{
 		"country":   report.Country,
-		"date_from": report.DateFrom,
-		"date_to":   report.DateTo,
+		"date_from": from,
+		"date_to":   to,
 		"status":    pkg.VatReportStatusThreshold,
 	}
 
@@ -730,7 +733,6 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 	err = h.Service.db.Collection(collectionVatReports).Find(selector).One(&vr)
 
 	if err == mgo.ErrNotFound {
-		report.Id = bson.NewObjectId().Hex()
 		return h.Service.insertVatReport(report)
 	}
 
@@ -739,6 +741,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 	}
 
 	report.Id = vr.Id
+	report.CreatedAt = vr.CreatedAt
 	return h.Service.updateVatReport(report)
 
 }

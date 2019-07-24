@@ -604,6 +604,8 @@ type MgoVatReport struct {
 	DateFrom              time.Time     `bson:"date_from"`
 	DateTo                time.Time     `bson:"date_to"`
 	PayUntilDate          time.Time     `bson:"pay_until_date"`
+	CreatedAt             time.Time     `bson:"created_at"`
+	UpdatedAt             time.Time     `bson:"updated_at"`
 }
 
 type MgoOrderViewPrivate struct {
@@ -2909,23 +2911,32 @@ func (m *VatReport) GetBSON() (interface{}, error) {
 		st.Id = bson.ObjectIdHex(m.Id)
 	}
 
-	t, err := ptypes.Timestamp(m.DateFrom)
-	if err != nil {
-		return nil, err
-	}
-	st.DateFrom = t
+	var err error
 
-	t, err = ptypes.Timestamp(m.DateTo)
+	st.DateFrom, err = ptypes.Timestamp(m.DateFrom)
 	if err != nil {
 		return nil, err
 	}
-	st.DateTo = t
 
-	t, err = ptypes.Timestamp(m.PayUntilDate)
+	st.DateTo, err = ptypes.Timestamp(m.DateTo)
 	if err != nil {
 		return nil, err
 	}
-	st.PayUntilDate = t
+
+	st.PayUntilDate, err = ptypes.Timestamp(m.PayUntilDate)
+	if err != nil {
+		return nil, err
+	}
+
+	st.CreatedAt, err = ptypes.Timestamp(m.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	st.UpdatedAt, err = ptypes.Timestamp(m.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
 
 	return st, nil
 }
@@ -2963,6 +2974,16 @@ func (m *VatReport) SetBSON(raw bson.Raw) error {
 	}
 
 	m.PayUntilDate, err = ptypes.TimestampProto(decoded.PayUntilDate)
+	if err != nil {
+		return err
+	}
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	m.UpdatedAt, err = ptypes.TimestampProto(decoded.UpdatedAt)
 	if err != nil {
 		return err
 	}

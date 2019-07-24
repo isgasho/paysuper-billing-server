@@ -1451,6 +1451,10 @@ message VatReport {
     google.protobuf.Timestamp date_to = 16;
     //@inject_tag: json:"pay_until_date" bson:"pay_until_date"
     google.protobuf.Timestamp pay_until_date = 17;
+    //@inject_tag: json:"created_at" bson:"created_at"
+    google.protobuf.Timestamp created_at = 18;
+    //@inject_tag: json:"updated_at" bson:"updated_at"
+    google.protobuf.Timestamp updated_at = 19;
 }
 
 message AnnualTurnover {
