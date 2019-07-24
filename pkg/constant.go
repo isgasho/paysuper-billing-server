@@ -193,7 +193,10 @@ const (
 	BalanceTransactionStatusPending   = "pending"
 	BalanceTransactionStatusAvailable = "available"
 
-	ErrorDatabaseQueryFailed = "Query to database collection failed"
+	ErrorDatabaseQueryFailed     = "Query to database collection failed"
+	ErrorDatabaseFieldCollection = "collection"
+	ErrorDatabaseFieldQuery      = "query"
+	ErrorDatabaseFieldSet        = "set"
 
 	CardPayDeclineCodeSystemMalfunction                = "01"
 	CardPayDeclineCodeCancelledByCustomer              = "02"

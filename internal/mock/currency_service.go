@@ -12,8 +12,6 @@ import (
 )
 
 const (
-	SomeError = "some error"
-
 	eurPriceinRub         = float64(72)
 	eurPriceInRubCb       = float64(72.5)
 	eurPriceInRubCbOnDate = float64(70)

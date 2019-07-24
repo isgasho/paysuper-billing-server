@@ -125,6 +125,7 @@ It has these top-level messages:
 	UserProfile
 	GetUserProfileRequest
 	GetUserProfileResponse
+	ConfirmUserEmailRequest
 	VatTransactionsRequest
 	TransactionsPaginate
 	TransactionsResponse
@@ -248,6 +249,7 @@ type BillingService interface {
 	CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, opts ...client.CallOption) (*CreateAccountingEntryResponse, error)
 	GetUserProfile(ctx context.Context, in *GetUserProfileRequest, opts ...client.CallOption) (*GetUserProfileResponse, error)
 	CreateOrUpdateUserProfile(ctx context.Context, in *UserProfile, opts ...client.CallOption) (*GetUserProfileResponse, error)
+	ConfirmUserEmail(ctx context.Context, in *ConfirmUserEmailRequest, opts ...client.CallOption) (*CheckProjectRequestSignatureResponse, error)
 	CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, opts ...client.CallOption) (*CreateRoyaltyReportRequest, error)
 	ListRoyaltyReports(ctx context.Context, in *ListRoyaltyReportsRequest, opts ...client.CallOption) (*ListRoyaltyReportsResponse, error)
 	ChangeRoyaltyReport(ctx context.Context, in *ChangeRoyaltyReportRequest, opts ...client.CallOption) (*ResponseError, error)
@@ -1079,6 +1081,16 @@ func (c *billingService) CreateOrUpdateUserProfile(ctx context.Context, in *User
 	return out, nil
 }
 
+func (c *billingService) ConfirmUserEmail(ctx context.Context, in *ConfirmUserEmailRequest, opts ...client.CallOption) (*CheckProjectRequestSignatureResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.ConfirmUserEmail", in)
+	out := new(CheckProjectRequestSignatureResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *billingService) CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, opts ...client.CallOption) (*CreateRoyaltyReportRequest, error) {
 	req := c.c.NewRequest(c.name, "BillingService.CreateRoyaltyReport", in)
 	out := new(CreateRoyaltyReportRequest)
@@ -1272,6 +1284,7 @@ type BillingServiceHandler interface {
 	CreateAccountingEntry(context.Context, *CreateAccountingEntryRequest, *CreateAccountingEntryResponse) error
 	GetUserProfile(context.Context, *GetUserProfileRequest, *GetUserProfileResponse) error
 	CreateOrUpdateUserProfile(context.Context, *UserProfile, *GetUserProfileResponse) error
+	ConfirmUserEmail(context.Context, *ConfirmUserEmailRequest, *CheckProjectRequestSignatureResponse) error
 	CreateRoyaltyReport(context.Context, *CreateRoyaltyReportRequest, *CreateRoyaltyReportRequest) error
 	ListRoyaltyReports(context.Context, *ListRoyaltyReportsRequest, *ListRoyaltyReportsResponse) error
 	ChangeRoyaltyReport(context.Context, *ChangeRoyaltyReportRequest, *ResponseError) error
@@ -1367,6 +1380,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, out *CreateAccountingEntryResponse) error
 		GetUserProfile(ctx context.Context, in *GetUserProfileRequest, out *GetUserProfileResponse) error
 		CreateOrUpdateUserProfile(ctx context.Context, in *UserProfile, out *GetUserProfileResponse) error
+		ConfirmUserEmail(ctx context.Context, in *ConfirmUserEmailRequest, out *CheckProjectRequestSignatureResponse) error
 		CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, out *CreateRoyaltyReportRequest) error
 		ListRoyaltyReports(ctx context.Context, in *ListRoyaltyReportsRequest, out *ListRoyaltyReportsResponse) error
 		ChangeRoyaltyReport(ctx context.Context, in *ChangeRoyaltyReportRequest, out *ResponseError) error
@@ -1708,6 +1722,10 @@ func (h *billingServiceHandler) GetUserProfile(ctx context.Context, in *GetUserP
 
 func (h *billingServiceHandler) CreateOrUpdateUserProfile(ctx context.Context, in *UserProfile, out *GetUserProfileResponse) error {
 	return h.BillingServiceHandler.CreateOrUpdateUserProfile(ctx, in, out)
+}
+
+func (h *billingServiceHandler) ConfirmUserEmail(ctx context.Context, in *ConfirmUserEmailRequest, out *CheckProjectRequestSignatureResponse) error {
+	return h.BillingServiceHandler.ConfirmUserEmail(ctx, in, out)
 }
 
 func (h *billingServiceHandler) CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, out *CreateRoyaltyReportRequest) error {

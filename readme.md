@@ -34,7 +34,9 @@ This service contain all business logic for payment processing
 | EMAIL_NOTIFICATION_SENDER            | true     | -                     | Sender email for using to send alert notifications to users                                                                         |
 | CENTRIFUGO_MERCHANT_CHANNEL          | -        | paysuper:merchant#%s  | Centrifugo channel name to send notifications to merchant                                                                           |
 | CENTRIFUGO_FINANCIER_CHANNEL         | -        | paysuper:financier    | Centrifugo channel name to send notifications to financier                                                                          |
-|EMAIL_NOTIFICATION_FINANCIER_RECIPIENT| true     |                       | Email of financier, to get vat reports notification                                                                                 |
+| EMAIL_NOTIFICATION_FINANCIER_RECIPIENT| true     |                       | Email of financier, to get vat reports notification                                                                                 |
+| EMAIL_CONFIRM_URL                    | -        | https://paysupermgmt.tst.protocol.one/confirm_email | Url to use in template of confirmation email                                                                                        |
+| EMAIL_CONFIRM_TEMPLATE               | -        | sidmal_test_email_confirm                           | Confirmation email template name                                                                                                    |
 
 ## Docker Deployment
 

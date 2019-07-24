@@ -107,3 +107,34 @@ func (m *UserProfile) HasCompanyMonetizationChanges(profile *UserProfile) bool {
 func (m *UserProfile) HasCompanyPlatformsChanges(profile *UserProfile) bool {
 	return m.Company.Platforms != nil && profile.Company.Platforms != m.Company.Platforms
 }
+
+func (m *UserProfile) IsEmailVerified() bool {
+	return m.Email.Confirmed
+}
+
+func (m *UserProfile) IsPersonalComplete() bool {
+	return m.Personal != nil && m.Personal.FirstName != "" && m.Personal.LastName != "" && m.Personal.Position != ""
+}
+
+func (m *UserProfile) IsHelpCompleted() bool {
+	return m.Help != nil && (m.Help.ProductPromotionAndDevelopment || m.Help.ReleasedGamePromotion || m.Help.InternationalSales || m.Help.Other)
+}
+
+func (m *UserProfile) IsCompanyCompleted() bool {
+	return m.Company != nil && m.Company.CompanyName != "" && m.Company.Website != "" &&
+		m.Company.AnnualIncome != nil && m.Company.NumberOfEmployees != nil && m.Company.KindOfActivity != "" &&
+		m.Company.Monetization != nil && m.Company.Monetization.IsComplete() && m.Company.Platforms != nil &&
+		m.Company.Platforms.IsComplete()
+}
+
+func (m *UserProfile) NeedConfirmEmail() bool {
+	return m.IsPersonalComplete() && m.IsHelpCompleted() && m.IsCompanyCompleted() && !m.Email.IsConfirmationEmailSent
+}
+
+func (m *UserProfileCompanyMonetization) IsComplete() bool {
+	return m.PaidSubscription || m.InGameAdvertising || m.InGamePurchases || m.PremiumAccess || m.Other
+}
+
+func (m *UserProfileCompanyPlatforms) IsComplete() bool {
+	return m.PcMac || m.GameConsole || m.MobileDevice || m.WebBrowser || m.Other
+}

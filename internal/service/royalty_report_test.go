@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	rabbitmq "github.com/ProtocolONE/rabbitmq/pkg"
 	"github.com/centrifugal/gocent"
 	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
@@ -23,6 +22,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
+	rabbitmq "gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
 	"net/http"
 	"testing"
 	"time"
