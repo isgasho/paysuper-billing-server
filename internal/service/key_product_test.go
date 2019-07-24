@@ -41,19 +41,16 @@ func (suite *KeyProductTestSuite) SetupTest() {
 		suite.FailNow("Database connection failed", "%v", err)
 	}
 
-	rub := &billing.Currency{
-		CodeInt:  643,
-		CodeA3:   "RUB",
-		Name:     &billing.Name{Ru: "Российский рубль", En: "Russian ruble"},
-		IsActive: true,
+	pgRub := &billing.PriceGroup{
+		Id:       bson.NewObjectId().Hex(),
+		Region:   "RUB",
+		Currency: "RUB",
 	}
-	usd := &billing.Currency{
-		CodeInt:  840,
-		CodeA3:   "USD",
-		Name:     &billing.Name{Ru: "Доллар США", En: "US Dollar"},
-		IsActive: true,
+	pgUsd := &billing.PriceGroup{
+		Id:       bson.NewObjectId().Hex(),
+		Region:   "USD",
+		Currency: "USD",
 	}
-
 	if err != nil {
 		suite.FailNow("Insert currency test data failed", "%v", err)
 	}
@@ -64,8 +61,9 @@ func (suite *KeyProductTestSuite) SetupTest() {
 	broker, err := rabbitmq.NewBroker(cfg.BrokerAddress)
 	assert.NoError(suite.T(), err, "Creating RabbitMQ publisher failed")
 
-	if err := InitTestCurrency(db, []interface{}{rub, usd}); err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
+	pgs := []*billing.PriceGroup{pgRub, pgUsd}
+	if err := suite.service.priceGroup.MultipleInsert(pgs); err != nil {
+		suite.FailNow("Insert price group test data failed", "%v", err)
 	}
 
 	redisdb := mock.NewTestRedis()
@@ -79,6 +77,8 @@ func (suite *KeyProductTestSuite) SetupTest() {
 		broker,
 		nil,
 		suite.cache,
+		mock.NewCurrencyServiceMockOk(),
+		nil,
 	)
 
 	if err := suite.service.Init(); err != nil {
