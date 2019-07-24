@@ -376,12 +376,23 @@ func (s *Service) setUserEmailConfirmationToken(url string, profile *grpc.UserPr
 		CreatedAt: time.Now(),
 	}
 
-	b, _ := json.Marshal(stToken)
+	b, err := json.Marshal(stToken)
+
+	if err != nil {
+		zap.L().Error(
+			"Confirm email token marshaling failed",
+			zap.Error(err),
+			zap.Any("profile", profile),
+		)
+
+		return "", err
+	}
+
 	hash := sha512.New()
 	hash.Write(b)
 
 	token := strings.ToUpper(hex.EncodeToString(hash.Sum(nil)))
-	err := s.redis.Set(s.getConfirmEmailStorageKey(token), profile.UserId, s.cfg.GetEmailConfirmTokenLifetime()).Err()
+	err = s.redis.Set(s.getConfirmEmailStorageKey(token), profile.UserId, s.cfg.GetEmailConfirmTokenLifetime()).Err()
 
 	if err != nil {
 		zap.L().Error(
