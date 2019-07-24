@@ -479,7 +479,7 @@ message Order {
     repeated string key_products = 68;
 
     // @inject_tag: json:"type"
-    OrderType type = 69;
+    OrderType product_type = 69;
 }
 
 enum OrderType {
