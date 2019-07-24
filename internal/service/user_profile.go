@@ -58,7 +58,7 @@ func (s *Service) CreateOrUpdateUserProfile(
 		return nil
 	}
 
-	err = s.setUserCentrifugoToken(profile)
+	profile.CentrifugoToken, err = s.getUserCentrifugoToken(profile)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -87,7 +87,7 @@ func (s *Service) GetUserProfile(
 		return nil
 	}
 
-	err := s.setUserCentrifugoToken(profile)
+	centrifugoToken, err := s.getUserCentrifugoToken(profile)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -95,6 +95,8 @@ func (s *Service) GetUserProfile(
 
 		return nil
 	}
+
+	profile.CentrifugoToken = centrifugoToken
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = profile
@@ -315,7 +317,7 @@ func (s *Service) updateOnboardingProfile(
 	return profile, nil
 }
 
-func (s *Service) setUserCentrifugoToken(profile *grpc.UserProfile) error {
+func (s *Service) getUserCentrifugoToken(profile *grpc.UserProfile) (string, error) {
 	expire := time.Now().Add(time.Minute * 30).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": profile.Id, "exp": expire})
 	centrifugoToken, err := token.SignedString([]byte(s.cfg.CentrifugoSecret))
@@ -326,13 +328,9 @@ func (s *Service) setUserCentrifugoToken(profile *grpc.UserProfile) error {
 			zap.Error(err),
 			zap.Any("profile", profile),
 		)
-
-		return err
 	}
 
-	profile.CentrifugoToken = centrifugoToken
-
-	return nil
+	return centrifugoToken, err
 }
 
 func (s *Service) ConfirmUserEmail(
