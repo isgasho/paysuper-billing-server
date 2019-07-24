@@ -158,7 +158,7 @@ func (s *Service) Init() (err error) {
 
 	sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currencies.EmptyRequest{})
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorGrpcServiceCallFailed,
 			zap.Error(err),
 			zap.String(errorFieldService, "CurrencyRatesService"),

@@ -146,7 +146,7 @@ func (s *Service) GetVatReportsDashboard(
 			return nil
 		}
 
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionVatReports),
@@ -198,7 +198,7 @@ func (s *Service) GetVatReportsForCountry(
 			return nil
 		}
 
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionVatReports),
@@ -238,7 +238,7 @@ func (s *Service) GetVatReportTransactions(
 			return nil
 		}
 
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionVatReports),
@@ -290,7 +290,7 @@ func (s *Service) ProcessVatReports(
 	res *grpc.EmptyResponse,
 ) error {
 
-	zap.L().Info("calc annual turnovers")
+	zap.S().Info("calc annual turnovers")
 	err := s.CalcAnnualTurnovers(ctx, &grpc.EmptyRequest{}, &grpc.EmptyResponse{})
 	if err != nil {
 		return err
@@ -301,25 +301,25 @@ func (s *Service) ProcessVatReports(
 		return err
 	}
 
-	zap.L().Info("process accounting entries")
+	zap.S().Info("process accounting entries")
 	err = handler.ProcessAccountingEntries()
 	if err != nil {
 		return err
 	}
 
-	zap.L().Info("updating order view")
+	zap.S().Info("updating order view")
 	err = handler.UpdateOrderView()
 	if err != nil {
 		return err
 	}
 
-	zap.L().Info("processing vat reports")
+	zap.S().Info("processing vat reports")
 	err = handler.ProcessVatReports()
 	if err != nil {
 		return err
 	}
 
-	zap.L().Info("updating vat reports status")
+	zap.S().Info("updating vat reports status")
 	return handler.ProcessVatReportsStatus()
 }
 
@@ -344,7 +344,7 @@ func (s *Service) UpdateVatReportStatus(
 			return nil
 		}
 
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionVatReports),
@@ -398,7 +398,7 @@ func (s *Service) updateVatReport(vr *billing.VatReport) error {
 		err = s.centrifugoClient.Publish(context.Background(), s.cfg.CentrifugoFinancierChannel, b)
 
 		if err != nil {
-			zap.L().Error(
+			zap.S().Error(
 				errorMsgVatReportCentrifugoNotificationFailed,
 				zap.Error(err),
 				zap.Any("vat_report", vr),
@@ -419,7 +419,7 @@ func (s *Service) updateVatReport(vr *billing.VatReport) error {
 		err = s.smtpCl.Send(s.cfg.EmailNotificationSender, []string{s.cfg.EmailNotificationFinancierRecipient}, m)
 
 		if err != nil {
-			zap.L().Error(
+			zap.S().Error(
 				errorMsgVatReportSMTPNotificationFailed,
 				zap.Error(err),
 				zap.Any("vat_report", vr),
@@ -575,7 +575,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 
 	rsp, err := h.Service.tax.GetRate(h.ctx, req)
 	if err != nil {
-		zap.L().Error(errorMsgVatReportTaxServiceGetRateFailed, zap.Error(err))
+		zap.S().Error(errorMsgVatReportTaxServiceGetRateFailed, zap.Error(err))
 		return err
 	}
 
@@ -608,7 +608,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 
 	countryTurnover, err := h.Service.turnover.Get(country.IsoCodeA2, from.Year())
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			errorMsgVatReportTurnoverNotFound,
 			zap.Error(err),
 			zap.String("country", country.IsoCodeA2),
@@ -666,7 +666,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 	var res []*vatReportQueryResItem
 	err = h.Service.db.Collection(collectionOrderView).Pipe(query).All(&res)
 	if err != nil && err != mgo.ErrNotFound {
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionOrderView),
@@ -685,7 +685,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 	matchQuery["is_vat_deduction"] = true
 	err = h.Service.db.Collection(collectionOrderView).Pipe(query).All(&res)
 	if err != nil && err != mgo.ErrNotFound {
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionOrderView),
@@ -738,7 +738,7 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.
 	}
 
 	if country.VatCurrencyRatesPolicy == pkg.VatCurrencyRatesPolicyAvgMonth {
-		zap.L().Error(
+		zap.S().Error(
 			errorMsgVatReportRatesPolicyNotImplemented,
 		)
 		return nil
@@ -746,7 +746,7 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.
 
 	from, to, err := h.Service.getVatReportTimeForDate(country.VatPeriodMonth, h.date)
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			errorMsgVatReportCantGetTimeForDate,
 			zap.Error(err),
 			zap.String("country", country.IsoCodeA2),
@@ -768,7 +768,7 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.
 
 	err = h.Service.db.Collection(collectionAccountingEntry).Find(query).All(&aes)
 	if err != nil && err != mgo.ErrNotFound {
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionAccountingEntry),
@@ -812,7 +812,7 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.
 
 		err = h.Service.db.Collection(collectionAccountingEntry).UpdateId(bson.ObjectIdHex(ae.Id), ae)
 		if err != nil && err != mgo.ErrNotFound {
-			zap.L().Error(
+			zap.S().Error(
 				pkg.ErrorDatabaseQueryFailed,
 				zap.Error(err),
 				zap.String("collection", collectionAccountingEntry),
@@ -838,7 +838,7 @@ func (h *vatReportProcessor) exchangeAmount(from, to string, amount float64, sou
 	rsp, err := h.Service.curService.ExchangeCurrencyByDateCommon(h.ctx, req)
 
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorGrpcServiceCallFailed,
 			zap.Error(err),
 			zap.String(errorFieldService, "CurrencyRatesService"),

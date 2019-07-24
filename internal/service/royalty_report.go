@@ -156,7 +156,7 @@ func (s *Service) AutoAcceptRoyaltyReports(
 	_, err := s.db.Collection(collectionRoyaltyReport).UpdateAll(query, set)
 
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String(errorFieldCollection, collectionRoyaltyReport),
@@ -198,7 +198,7 @@ func (s *Service) ListRoyaltyReports(
 	count, err := s.db.Collection(collectionRoyaltyReport).Find(query).Count()
 
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String(errorFieldCollection, collectionRoyaltyReport),
@@ -220,7 +220,7 @@ func (s *Service) ListRoyaltyReports(
 	err = s.db.Collection(collectionRoyaltyReport).Find(query).Limit(int(req.Limit)).Skip(int(req.Offset)).All(&reports)
 
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String(errorFieldCollection, collectionRoyaltyReport),
@@ -251,7 +251,7 @@ func (s *Service) ChangeRoyaltyReport(
 
 	if err != nil {
 		if err != mgo.ErrNotFound {
-			zap.L().Error(
+			zap.S().Error(
 				pkg.ErrorDatabaseQueryFailed,
 				zap.Error(err),
 				zap.String(errorFieldCollection, collectionRoyaltyReport),
@@ -309,7 +309,7 @@ func (s *Service) ChangeRoyaltyReport(
 	err = s.db.Collection(collectionRoyaltyReport).UpdateId(bson.ObjectIdHex(report.Id), report)
 
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String(errorFieldCollection, collectionRoyaltyReport),
@@ -347,7 +347,7 @@ func (s *Service) ListRoyaltyReportOrders(
 			return nil
 		}
 
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionRoyaltyReport),
@@ -398,7 +398,7 @@ func (s *Service) getRoyaltyReportMerchantsByPeriod(from, to time.Time) []*Royal
 	err := s.db.Collection(collectionOrder).Pipe(query).All(&merchants)
 
 	if err != nil && err != mgo.ErrNotFound {
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String(errorFieldCollection, collectionOrder),
@@ -428,7 +428,7 @@ func (s *Service) onRoyaltyReportChange(reportOld, reportNew *billing.RoyaltyRep
 	err := s.db.Collection(collectionRoyaltyReportChanges).Insert(change)
 
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String(errorFieldCollection, collectionRoyaltyReportChanges),
@@ -450,7 +450,7 @@ func (h *royaltyHandler) processMerchantRoyaltyReport(merchantId bson.ObjectId) 
 	_, err := h.db.Collection(collectionRoyaltyReport).UpdateAll(query, update)
 
 	if err != nil && err != mgo.ErrNotFound {
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String(errorFieldCollection, collectionRoyaltyReport),
@@ -474,7 +474,7 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(merchantId bson.ObjectId) (
 	merchant, err := h.merchant.GetById(merchantId.Hex())
 
 	if err != nil {
-		zap.L().Error("Merchant not found", zap.Error(err), zap.String("merchant_id", merchantId.Hex()))
+		zap.S().Error("Merchant not found", zap.Error(err), zap.String("merchant_id", merchantId.Hex()))
 		return nil, err
 	}
 
@@ -510,7 +510,7 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(merchantId bson.ObjectId) (
 	var res []*royaltyReportQueryResItem
 	err = h.Service.db.Collection(collectionOrderView).Pipe(query).All(&res)
 	if err != nil && err != mgo.ErrNotFound {
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionOrderView),
@@ -548,7 +548,7 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(merchantId bson.ObjectId) (
 	err = h.db.Collection(collectionRoyaltyReport).Insert(report)
 
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String(errorFieldCollection, collectionRoyaltyReport),
@@ -567,7 +567,7 @@ func (s *Service) sendRoyaltyReportNotification(report *billing.RoyaltyReport) {
 	merchant, err := s.merchant.GetById(report.MerchantId)
 
 	if err != nil {
-		zap.L().Error("Merchant not found", zap.Error(err), zap.String("merchant_id", report.MerchantId))
+		zap.S().Error("Merchant not found", zap.Error(err), zap.String("merchant_id", report.MerchantId))
 		return
 	}
 
@@ -579,7 +579,7 @@ func (s *Service) sendRoyaltyReportNotification(report *billing.RoyaltyReport) {
 		err = s.smtpCl.Send(s.cfg.EmailNotificationSender, []string{merchant.GetAuthorizedEmail()}, m)
 
 		if err != nil {
-			zap.L().Error(
+			zap.S().Error(
 				"[SMTP] Send merchant notification about new royalty report failed",
 				zap.Error(err),
 				zap.String("merchant_id", merchant.Id),
@@ -594,7 +594,7 @@ func (s *Service) sendRoyaltyReportNotification(report *billing.RoyaltyReport) {
 	err = s.centrifugoClient.Publish(context.Background(), fmt.Sprintf(s.cfg.CentrifugoMerchantChannel, report.MerchantId), b)
 
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			"[Centrifugo] Send merchant notification about new royalty report failed",
 			zap.Error(err),
 			zap.String("merchant_id", merchant.Id),

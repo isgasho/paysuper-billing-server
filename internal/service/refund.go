@@ -315,7 +315,7 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 	err := copier.Copy(&refundOrder, &order)
 
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			"Copy order to new structure order by refund failed",
 			zap.Error(err),
 			zap.Any("refund", refund),
@@ -326,7 +326,7 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 
 	country, err := s.country.GetByIsoCodeA2(order.GetCountry())
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			"country not found",
 			zap.Error(err),
 		)
@@ -338,7 +338,7 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 	if country.VatEnabled {
 		from, _, err := s.getLastVatReportTime(country.VatPeriodMonth)
 		if err != nil {
-			zap.L().Error(
+			zap.S().Error(
 				"cannot get last vat report time",
 				zap.Error(err),
 			)
@@ -346,7 +346,7 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 		}
 		orderPaydAt, err := ptypes.Timestamp(order.PaymentMethodOrderClosedAt)
 		if err != nil {
-			zap.L().Error(
+			zap.S().Error(
 				"cannot get convert PaymentMethodOrderClosedAt date to time",
 				zap.Error(err),
 			)
@@ -386,7 +386,7 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 	err = s.db.Collection(collectionOrder).Insert(refundOrder)
 
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionOrder),

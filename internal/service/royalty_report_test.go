@@ -783,7 +783,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_SendRoyaltyReportNotifica
 	assert.True(suite.T(), recorded.Len() == 1)
 
 	messages := recorded.All()
-	assert.Equal(suite.T(), "Merchant not found", messages[0].Message)
+	assert.Contains(suite.T(), messages[0].Message, "Merchant not found")
 }
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_SendRoyaltyReportNotification_EmailSendError() {
@@ -815,7 +815,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_SendRoyaltyReportNotifica
 	assert.True(suite.T(), recorded.Len() == 1)
 
 	messages := recorded.All()
-	assert.Equal(suite.T(), "[SMTP] Send merchant notification about new royalty report failed", messages[0].Message)
+	assert.Contains(suite.T(), messages[0].Message, "[SMTP] Send merchant notification about new royalty report failed")
 }
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_SendRoyaltyReportNotification_CentrifugoSendError() {
@@ -853,7 +853,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_SendRoyaltyReportNotifica
 	assert.True(suite.T(), recorded.Len() == 1)
 
 	messages := recorded.All()
-	assert.Equal(suite.T(), "[Centrifugo] Send merchant notification about new royalty report failed", messages[0].Message)
+	assert.Contains(suite.T(), messages[0].Message, "[Centrifugo] Send merchant notification about new royalty report failed")
 }
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_AutoAcceptRoyaltyReports_Ok() {

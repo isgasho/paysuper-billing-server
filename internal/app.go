@@ -180,7 +180,7 @@ func (app *Application) Init() {
 	smtpCl, err := d.Dial()
 
 	if err != nil {
-		zap.L().Fatal(
+		zap.S().Fatal(
 			"Connection to SMTP server failed",
 			zap.Error(err),
 			zap.Int("port", app.cfg.SmtpPort),
@@ -188,7 +188,7 @@ func (app *Application) Init() {
 		)
 	}
 
-	zap.L().Info(
+	zap.S().Info(
 		"SMTP server connection started",
 		zap.String("host", app.cfg.SmtpHost),
 		zap.Int("port", app.cfg.SmtpPort),
@@ -296,9 +296,9 @@ func (app *Application) Stop() {
 	app.logger.Info("Database connection closed")
 
 	if err := app.redis.Close(); err != nil {
-		zap.L().Error("Redis connection close failed", zap.Error(err))
+		zap.S().Error("Redis connection close failed", zap.Error(err))
 	} else {
-		zap.L().Info("Redis connection closed")
+		zap.S().Info("Redis connection closed")
 	}
 
 	if err := app.logger.Sync(); err != nil {
@@ -309,7 +309,7 @@ func (app *Application) Stop() {
 }
 
 func (app *Application) TaskProcessVatReports(date string) error {
-	zap.L().Info("Start to processing vat reports")
+	zap.S().Info("Start to processing vat reports")
 	req := &grpc.ProcessVatReportsRequest{
 		Date: ptypes.TimestampNow(),
 	}

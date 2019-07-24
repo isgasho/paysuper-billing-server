@@ -1618,7 +1618,7 @@ func (v *OrderCreateRequestProcessor) processLimitAmounts() (err error) {
 		rsp, err := v.curService.ExchangeCurrencyCurrentForMerchant(context.TODO(), req)
 
 		if err != nil {
-			zap.L().Error(
+			zap.S().Error(
 				pkg.ErrorGrpcServiceCallFailed,
 				zap.Error(err),
 				zap.String(errorFieldService, "CurrencyRatesService"),
@@ -2349,7 +2349,7 @@ func (s *Service) ProcessOrderProducts(order *billing.Order) error {
 		rsp, err := s.curService.ExchangeCurrencyCurrentForMerchant(context.TODO(), req)
 
 		if err != nil {
-			zap.L().Error(
+			zap.S().Error(
 				pkg.ErrorGrpcServiceCallFailed,
 				zap.Error(err),
 				zap.String(errorFieldService, "CurrencyRatesService"),
@@ -2385,7 +2385,7 @@ func (s *Service) ProcessOrderProducts(order *billing.Order) error {
 		rsp, err := s.curService.ExchangeCurrencyCurrentForMerchant(context.TODO(), req)
 
 		if err != nil {
-			zap.L().Error(
+			zap.S().Error(
 				pkg.ErrorGrpcServiceCallFailed,
 				zap.Error(err),
 				zap.String(errorFieldService, "CurrencyRatesService"),

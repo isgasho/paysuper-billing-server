@@ -396,7 +396,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	assert.Equal(suite.T(), userProfileErrorUnknown, rsp.Message)
 
 	messages := recorded.All()
-	assert.Equal(suite.T(), "Save confirm email token to Redis failed", messages[0].Message)
+	assert.Contains(suite.T(), messages[0].Message, "Save confirm email token to Redis failed")
 }
 
 func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_NewProfile_SendUserEmailConfirmationToken_Error() {
@@ -448,7 +448,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	assert.Equal(suite.T(), userProfileErrorUnknown, rsp.Message)
 
 	messages := recorded.All()
-	assert.Equal(suite.T(), "Publication message to user email confirmation to queue failed", messages[0].Message)
+	assert.Contains(suite.T(), messages[0].Message, "Publication message to user email confirmation to queue failed")
 }
 
 func (suite *UserProfileTestSuite) TestUserProfile_GetOnboardingProfile_Ok() {

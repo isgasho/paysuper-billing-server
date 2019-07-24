@@ -761,7 +761,7 @@ func (h *accountingEntry) GetExchangeCurrentMerchant(req *currencies.ExchangeCur
 	rsp, err := h.curService.ExchangeCurrencyCurrentForMerchant(h.ctx, req)
 
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorGrpcServiceCallFailed,
 			zap.Error(err),
 			zap.String(errorFieldService, "CurrencyRatesService"),
@@ -779,7 +779,7 @@ func (h *accountingEntry) GetExchangeCurrentCommon(req *currencies.ExchangeCurre
 	rsp, err := h.curService.ExchangeCurrencyCurrentCommon(h.ctx, req)
 
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorGrpcServiceCallFailed,
 			zap.Error(err),
 			zap.String(errorFieldService, "CurrencyRatesService"),
@@ -827,7 +827,7 @@ func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
 			rsp, err := h.curService.ExchangeCurrencyCurrentCommon(h.ctx, req)
 
 			if err != nil {
-				zap.L().Error(
+				zap.S().Error(
 					pkg.ErrorGrpcServiceCallFailed,
 					zap.Error(err),
 					zap.String(errorFieldService, "CurrencyRatesService"),
@@ -856,7 +856,7 @@ func (h *accountingEntry) saveAccountingEntries() error {
 		err := h.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(h.order.Id), h.order)
 
 		if err != nil {
-			zap.L().Error(
+			zap.S().Error(
 				"Order update failed",
 				zap.Error(err),
 				zap.Any("data", h.order),
@@ -869,7 +869,7 @@ func (h *accountingEntry) saveAccountingEntries() error {
 	err := h.db.Collection(collectionAccountingEntry).Insert(h.accountingEntries...)
 
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			"Accounting entries insert failed",
 			zap.Error(err),
 			zap.Any("accounting_entries", h.accountingEntries),
@@ -940,7 +940,7 @@ func (h *accountingEntry) getPaymentChannelCostSystem() (*billing.PaymentChannel
 	cost, err := h.Service.paymentChannelCostSystem.Get(name, h.country.Region, h.country.IsoCodeA2)
 
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			accountingEntryErrorCommissionNotFound.Message,
 			zap.Error(err),
 			zap.String("project", h.order.GetProjectId()),
@@ -969,7 +969,7 @@ func (h *accountingEntry) getPaymentChannelCostMerchant(amount float64) (*billin
 	cost, err := h.Service.getPaymentChannelCostMerchant(req)
 
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			accountingEntryErrorCommissionNotFound.Message,
 			zap.Error(err),
 			zap.String("project", h.order.GetProjectId()),

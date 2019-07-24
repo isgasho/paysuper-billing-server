@@ -67,7 +67,7 @@ func (s *Service) CreateOrUpdateUserProfile(
 	_, err = s.db.Collection(collectionUserProfile).UpsertId(bson.ObjectIdHex(profile.Id), profile)
 
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String(pkg.ErrorDatabaseFieldCollection, collectionUserProfile),
@@ -142,7 +142,7 @@ func (s *Service) getOnboardingProfileByUser(userId string) (profile *grpc.UserP
 	err := s.db.Collection(collectionUserProfile).Find(query).One(&profile)
 
 	if err != nil && err != mgo.ErrNotFound {
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionUserProfile),
@@ -305,7 +305,7 @@ func (s *Service) getUserCentrifugoToken(profile *grpc.UserProfile) (string, err
 	centrifugoToken, err := token.SignedString([]byte(s.cfg.CentrifugoSecret))
 
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			"Signing centrifugo token string failed",
 			zap.Error(err),
 			zap.Any("profile", profile),
@@ -362,7 +362,7 @@ func (s *Service) setUserEmailConfirmationToken(profile *grpc.UserProfile) (stri
 	b, err := json.Marshal(stToken)
 
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			"Confirm email token marshaling failed",
 			zap.Error(err),
 			zap.Any("profile", profile),
@@ -378,7 +378,7 @@ func (s *Service) setUserEmailConfirmationToken(profile *grpc.UserProfile) (stri
 	err = s.redis.Set(s.getConfirmEmailStorageKey(token), profile.UserId, s.cfg.GetEmailConfirmTokenLifetime()).Err()
 
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			"Save confirm email token to Redis failed",
 			zap.Error(err),
 			zap.Any("profile", profile),
@@ -394,7 +394,7 @@ func (s *Service) getUserEmailConfirmationToken(token string) (string, error) {
 	data, err := s.redis.Get(s.getConfirmEmailStorageKey(token)).Result()
 
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			"Getting user email confirmation token failed",
 			zap.Error(err),
 			zap.String("token", token),
@@ -416,7 +416,7 @@ func (s *Service) sendUserEmailConfirmationToken(profile *grpc.UserProfile) erro
 	err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			"Publication message to user email confirmation to queue failed",
 			zap.Error(err),
 			zap.Any("profile", profile),
@@ -430,7 +430,7 @@ func (s *Service) sendUserEmailConfirmationToken(profile *grpc.UserProfile) erro
 	err = s.db.Collection(collectionUserProfile).Update(query, set)
 
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String(pkg.ErrorDatabaseFieldCollection, collectionUserProfile),
@@ -455,7 +455,7 @@ func (s *Service) emailConfirmedSuccessfully(ctx context.Context, profile *grpc.
 	err := s.db.Collection(collectionUserProfile).UpdateId(bson.ObjectIdHex(profile.Id), profile)
 
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionUserProfile),
@@ -471,7 +471,7 @@ func (s *Service) emailConfirmedSuccessfully(ctx context.Context, profile *grpc.
 	err = s.centrifugoClient.Publish(ctx, ch, msg)
 
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			"Send message to centrifugo failed",
 			zap.Error(err),
 			zap.String("channel", ch),
@@ -498,7 +498,7 @@ func (s *Service) CreatePageReview(
 	err := s.db.Collection(collectionOPageReview).Insert(review)
 
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionOPageReview),
