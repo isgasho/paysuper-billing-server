@@ -1064,7 +1064,9 @@ message UpdateProductPricesRequest {
 }
 
 message RangeInt {
+    //@inject_tag: json:"from"
     int32 from = 1;
+    //@inject_tag: json:"to"
     int32 to = 2;
 }
 
@@ -1138,6 +1140,8 @@ message UserProfileEmail {
     google.protobuf.Timestamp confirmed_at = 3;
     //@inject_tag: json:"-" bson:"-"
     string confirmation_url = 4;
+    //@inject_tag: json:"-" bson:"is_confirmation_email_sent"
+    bool is_confirmation_email_sent = 5;
 }
 
 message UserProfile {

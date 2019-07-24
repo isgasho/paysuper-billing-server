@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/kelseyhightower/envconfig"
+	"net/url"
 	"time"
 )
 
@@ -54,7 +55,7 @@ type Config struct {
 	CentrifugoUserChannel     string `envconfig:"CENTRIFUGO_USER_CHANNEL" default:"paysuper:user#%s"`
 	EmailConfirmTokenLifetime int64  `envconfig:"EMAIL_CONFIRM_TOKEN_LIFETIME" default:"86400"`
 	EmailConfirmUrl           string `envconfig:"EMAIL_CONFIRM_URL" default:"https://paysupermgmt.tst.protocol.one/confirm_email"`
-	EmailConfirmTemplate      string `envconfig:"EMAIL_CONFIRM_TEMPLATE" default:"sidmal_test_email_confirm"`
+	EmailConfirmTemplate      string `envconfig:"EMAIL_CONFIRM_TEMPLATE" default:"p1_verify_letter"`
 
 	MicroRegistry string `envconfig:"MICRO_REGISTRY" required:"false"`
 
@@ -75,6 +76,8 @@ type Config struct {
 	*CustomerTokenConfig
 	*CacheRedis
 	*Smtp
+
+	EmailConfirmUrlParsed *url.URL
 }
 
 func NewConfig() (*Config, error) {
@@ -108,6 +111,12 @@ func NewConfig() (*Config, error) {
 		return nil, err
 	}
 
+	cfg.EmailConfirmUrlParsed, err = url.Parse(cfg.EmailConfirmUrl)
+
+	if err != nil {
+		return nil, err
+	}
+
 	return cfg, err
 }
 
@@ -121,4 +130,16 @@ func (cfg *Config) GetCustomerTokenExpire() time.Duration {
 
 func (cfg *Config) GetEmailConfirmTokenLifetime() time.Duration {
 	return time.Second * time.Duration(cfg.EmailConfirmTokenLifetime)
+}
+
+func (cfg *Config) GetUserConfirmEmailUrl(params map[string]string) string {
+	query := cfg.EmailConfirmUrlParsed.Query()
+
+	for k, v := range params {
+		query.Set(k, v)
+	}
+
+	cfg.EmailConfirmUrlParsed.RawQuery = query.Encode()
+
+	return cfg.EmailConfirmUrlParsed.String()
 }

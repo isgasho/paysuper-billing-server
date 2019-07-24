@@ -84,6 +84,7 @@ func (s *Service) CreateRoyaltyReport(
 	loc, err := time.LoadLocation(s.cfg.RoyaltyReportTimeZone)
 
 	if err != nil {
+		zap.S().Errorf(royaltyReportErrorTimezoneIncorrect, "err", err)
 		return errors.New(royaltyReportErrorTimezoneIncorrect)
 	}
 

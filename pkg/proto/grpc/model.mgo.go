@@ -34,9 +34,10 @@ type MgoProduct struct {
 }
 
 type MgoUserProfileEmail struct {
-	Email       string    `bson:"email"`
-	Confirmed   bool      `bson:"confirmed"`
-	ConfirmedAt time.Time `bson:"confirmed_at"`
+	Email                   string    `bson:"email"`
+	Confirmed               bool      `bson:"confirmed"`
+	ConfirmedAt             time.Time `bson:"confirmed_at"`
+	IsConfirmationEmailSent bool      `bson:"is_confirmation_email_sent"`
 }
 
 type MgoUserProfile struct {
@@ -195,8 +196,9 @@ func (m *UserProfile) GetBSON() (interface{}, error) {
 		Id:     bson.ObjectIdHex(m.Id),
 		UserId: m.UserId,
 		Email: &MgoUserProfileEmail{
-			Email:     m.Email.Email,
-			Confirmed: m.Email.Confirmed,
+			Email:                   m.Email.Email,
+			Confirmed:               m.Email.Confirmed,
+			IsConfirmationEmailSent: m.Email.IsConfirmationEmailSent,
 		},
 		Personal: m.Personal,
 		Help:     m.Help,
@@ -252,8 +254,9 @@ func (m *UserProfile) SetBSON(raw bson.Raw) error {
 	m.Id = decoded.Id.Hex()
 	m.UserId = decoded.UserId
 	m.Email = &UserProfileEmail{
-		Email:     decoded.Email.Email,
-		Confirmed: decoded.Email.Confirmed,
+		Email:                   decoded.Email.Email,
+		Confirmed:               decoded.Email.Confirmed,
+		IsConfirmationEmailSent: decoded.Email.IsConfirmationEmailSent,
 	}
 	m.Personal = decoded.Personal
 	m.Help = decoded.Help

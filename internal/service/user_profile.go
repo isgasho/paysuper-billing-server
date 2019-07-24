@@ -47,10 +47,15 @@ func (s *Service) CreateOrUpdateUserProfile(
 	profile := s.getOnboardingProfileByUser(req.UserId)
 
 	if profile == nil {
-		profile, err = s.insertUserProfile(req)
+		profile = req
+		profile.Id = bson.NewObjectId().Hex()
+		profile.CreatedAt = ptypes.TimestampNow()
 	} else {
-		profile, err = s.updateOnboardingProfile(profile, req)
+		profile = s.updateOnboardingProfile(profile, req)
 	}
+
+	profile.UpdatedAt = ptypes.TimestampNow()
+	profile.CentrifugoToken, err = s.getUserCentrifugoToken(profile)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -59,7 +64,41 @@ func (s *Service) CreateOrUpdateUserProfile(
 		return nil
 	}
 
-	s.setUserCentrifugoToken(profile)
+	_, err = s.db.Collection(collectionUserProfile).UpsertId(bson.ObjectIdHex(profile.Id), profile)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionUserProfile),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, profile),
+		)
+
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = userProfileErrorUnknown
+
+		return nil
+	}
+
+	if profile.NeedConfirmEmail() {
+		profile.Email.ConfirmationUrl, err = s.setUserEmailConfirmationToken(profile)
+
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = userProfileErrorUnknown
+
+			return nil
+		}
+
+		err = s.sendUserEmailConfirmationToken(profile)
+
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = userProfileErrorUnknown
+
+			return nil
+		}
+	}
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = profile
@@ -81,7 +120,16 @@ func (s *Service) GetUserProfile(
 		return nil
 	}
 
-	s.setUserCentrifugoToken(profile)
+	centrifugoToken, err := s.getUserCentrifugoToken(profile)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = userProfileErrorUnknown
+
+		return nil
+	}
+
+	profile.CentrifugoToken = centrifugoToken
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = profile
@@ -105,44 +153,8 @@ func (s *Service) getOnboardingProfileByUser(userId string) (profile *grpc.UserP
 	return profile
 }
 
-func (s *Service) insertUserProfile(profileReq *grpc.UserProfile) (*grpc.UserProfile, error) {
-	profile := profileReq
-	profile.Id = bson.NewObjectId().Hex()
-	profile.CreatedAt = ptypes.TimestampNow()
-	profile.UpdatedAt = ptypes.TimestampNow()
-
-	err := s.db.Collection(collectionUserProfile).Insert(profile)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String("collection", collectionUserProfile),
-			zap.Any("profile", profile),
-		)
-
-		return nil, err
-	}
-
-	profile.Email.ConfirmationUrl, err = s.setUserEmailConfirmationToken(s.cfg.EmailConfirmUrl, profile)
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = s.sendUserEmailConfirmationToken(profile)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return profile, nil
-}
-
-func (s *Service) updateOnboardingProfile(
-	profile, profileReq *grpc.UserProfile,
-) (*grpc.UserProfile, error) {
-	if profileReq.HasPersonChanges(profile) == true {
+func (s *Service) updateOnboardingProfile(profile, profileReq *grpc.UserProfile) *grpc.UserProfile {
+	if profileReq.HasPersonChanges(profile) {
 		if profile.Personal == nil {
 			profile.Personal = &grpc.UserProfilePersonal{}
 		}
@@ -160,7 +172,7 @@ func (s *Service) updateOnboardingProfile(
 		}
 	}
 
-	if profileReq.HasHelpChanges(profile) == true {
+	if profileReq.HasHelpChanges(profile) {
 		if profile.Help == nil {
 			profile.Help = &grpc.UserProfileHelp{}
 		}
@@ -182,7 +194,7 @@ func (s *Service) updateOnboardingProfile(
 		}
 	}
 
-	if profileReq.HasCompanyChanges(profile) == true {
+	if profileReq.HasCompanyChanges(profile) {
 		if profile.Company == nil {
 			profile.Company = &grpc.UserProfileCompany{}
 		}
@@ -195,7 +207,7 @@ func (s *Service) updateOnboardingProfile(
 			profile.Company.Website = profileReq.Company.Website
 		}
 
-		if profileReq.HasCompanyAnnualIncomeChanges(profile) == true {
+		if profileReq.HasCompanyAnnualIncomeChanges(profile) {
 			if profile.Company.AnnualIncome == nil {
 				profile.Company.AnnualIncome = &grpc.RangeInt{}
 			}
@@ -209,7 +221,7 @@ func (s *Service) updateOnboardingProfile(
 			}
 		}
 
-		if profileReq.HasCompanyNumberOfEmployeesChanges(profile) == true {
+		if profileReq.HasCompanyNumberOfEmployeesChanges(profile) {
 			if profile.Company.NumberOfEmployees == nil {
 				profile.Company.NumberOfEmployees = &grpc.RangeInt{}
 			}
@@ -227,7 +239,7 @@ func (s *Service) updateOnboardingProfile(
 			profile.Company.KindOfActivity = profileReq.Company.KindOfActivity
 		}
 
-		if profileReq.HasCompanyMonetizationChanges(profile) == true {
+		if profileReq.HasCompanyMonetizationChanges(profile) {
 			if profile.Company.Monetization == nil {
 				profile.Company.Monetization = &grpc.UserProfileCompanyMonetization{}
 			}
@@ -253,7 +265,7 @@ func (s *Service) updateOnboardingProfile(
 			}
 		}
 
-		if profileReq.HasCompanyPlatformsChanges(profile) == true {
+		if profileReq.HasCompanyPlatformsChanges(profile) {
 			if profile.Company.Platforms == nil {
 				profile.Company.Platforms = &grpc.UserProfileCompanyPlatforms{}
 			}
@@ -284,28 +296,23 @@ func (s *Service) updateOnboardingProfile(
 		profile.LastStep = profileReq.LastStep
 	}
 
-	profile.UpdatedAt = ptypes.TimestampNow()
+	return profile
+}
 
-	err := s.db.Collection(collectionUserProfile).UpdateId(bson.ObjectIdHex(profile.Id), profile)
+func (s *Service) getUserCentrifugoToken(profile *grpc.UserProfile) (string, error) {
+	expire := time.Now().Add(time.Minute * 30).Unix()
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": profile.Id, "exp": expire})
+	centrifugoToken, err := token.SignedString([]byte(s.cfg.CentrifugoSecret))
 
 	if err != nil {
 		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
+			"Signing centrifugo token string failed",
 			zap.Error(err),
-			zap.String("collection", collectionUserProfile),
 			zap.Any("profile", profile),
 		)
-
-		return nil, err
 	}
 
-	return profile, nil
-}
-
-func (s *Service) setUserCentrifugoToken(profile *grpc.UserProfile) {
-	expire := time.Now().Add(time.Minute * 30).Unix()
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": profile.Id, "exp": expire})
-	profile.CentrifugoToken, _ = token.SignedString([]byte(s.cfg.CentrifugoSecret))
+	return centrifugoToken, err
 }
 
 func (s *Service) ConfirmUserEmail(
@@ -345,19 +352,30 @@ func (s *Service) ConfirmUserEmail(
 	return nil
 }
 
-func (s *Service) setUserEmailConfirmationToken(url string, profile *grpc.UserProfile) (string, error) {
+func (s *Service) setUserEmailConfirmationToken(profile *grpc.UserProfile) (string, error) {
 	stToken := &EmailConfirmToken{
 		Token:     s.getTokenString(s.cfg.Length),
 		ProfileId: profile.Id,
 		CreatedAt: time.Now(),
 	}
 
-	b, _ := json.Marshal(stToken)
+	b, err := json.Marshal(stToken)
+
+	if err != nil {
+		zap.L().Error(
+			"Confirm email token marshaling failed",
+			zap.Error(err),
+			zap.Any("profile", profile),
+		)
+
+		return "", err
+	}
+
 	hash := sha512.New()
 	hash.Write(b)
 
 	token := strings.ToUpper(hex.EncodeToString(hash.Sum(nil)))
-	err := s.redis.Set(s.getConfirmEmailStorageKey(token), profile.UserId, s.cfg.GetEmailConfirmTokenLifetime()).Err()
+	err = s.redis.Set(s.getConfirmEmailStorageKey(token), profile.UserId, s.cfg.GetEmailConfirmTokenLifetime()).Err()
 
 	if err != nil {
 		zap.L().Error(
@@ -369,7 +387,7 @@ func (s *Service) setUserEmailConfirmationToken(url string, profile *grpc.UserPr
 		return "", err
 	}
 
-	return url + "?token=" + token, nil
+	return s.cfg.GetUserConfirmEmailUrl(map[string]string{"token": token}), nil
 }
 
 func (s *Service) getUserEmailConfirmationToken(token string) (string, error) {
@@ -389,8 +407,10 @@ func (s *Service) getUserEmailConfirmationToken(token string) (string, error) {
 func (s *Service) sendUserEmailConfirmationToken(profile *grpc.UserProfile) error {
 	payload := &postmarkSdrPkg.Payload{
 		TemplateAlias: s.cfg.EmailConfirmTemplate,
-		TemplateModel: map[string]string{"url": profile.Email.ConfirmationUrl},
-		To:            profile.Email.Email,
+		TemplateModel: map[string]string{
+			"confirm_url": profile.Email.ConfirmationUrl,
+		},
+		To: profile.Email.Email,
 	}
 
 	err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
@@ -400,6 +420,22 @@ func (s *Service) sendUserEmailConfirmationToken(profile *grpc.UserProfile) erro
 			"Publication message to user email confirmation to queue failed",
 			zap.Error(err),
 			zap.Any("profile", profile),
+		)
+
+		return err
+	}
+
+	query := bson.M{"_id": bson.ObjectIdHex(profile.Id)}
+	set := bson.M{"$set": bson.M{"email.is_confirmation_email_sent": true}}
+	err = s.db.Collection(collectionUserProfile).Update(query, set)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionUserProfile),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			zap.Any(pkg.ErrorDatabaseFieldSet, set),
 		)
 
 		return err
@@ -429,11 +465,10 @@ func (s *Service) emailConfirmedSuccessfully(ctx context.Context, profile *grpc.
 		return err
 	}
 
-	msg := map[string]interface{}{"code": "op000005", "message": "user email confirmed successfully"}
-	b, _ := json.Marshal(msg)
+	msg := []byte(`{"code": "op000005", "message": "user email confirmed successfully"}`)
 
 	ch := fmt.Sprintf(s.cfg.CentrifugoUserChannel, profile.Id)
-	err = s.centrifugoClient.Publish(ctx, ch, b)
+	err = s.centrifugoClient.Publish(ctx, ch, msg)
 
 	if err != nil {
 		zap.L().Error(
