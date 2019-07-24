@@ -715,3 +715,65 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_EmailConfirm
 	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp2.Status)
 	assert.Equal(suite.T(), userProfileErrorUnknown, rsp2.Message)
 }
+
+func (suite *UserProfileTestSuite) TestUserProfile_CreatePageReview_Ok() {
+	req := &grpc.UserProfile{
+		UserId: bson.NewObjectId().Hex(),
+		Email: &grpc.UserProfileEmail{
+			Email: "test@unit.test",
+		},
+		Personal: &grpc.UserProfilePersonal{
+			FirstName: "Unit test",
+			LastName:  "Unit Test",
+			Position:  "test",
+		},
+		Help: &grpc.UserProfileHelp{
+			ProductPromotionAndDevelopment: false,
+			ReleasedGamePromotion:          true,
+			InternationalSales:             true,
+			Other:                          false,
+		},
+		LastStep: "step2",
+	}
+	rsp := &grpc.GetUserProfileResponse{}
+
+	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotNil(suite.T(), rsp.Item)
+
+	req1 := &grpc.CreatePageReviewRequest{
+		UserId: req.UserId,
+		Review: "review 1",
+		PageId: "primary_onboarding",
+	}
+	rsp1 := &grpc.CheckProjectRequestSignatureResponse{}
+	err = suite.service.CreatePageReview(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+
+	req1.Review = "review 2"
+	err = suite.service.CreatePageReview(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+
+	req1.Review = "review 3"
+	err = suite.service.CreatePageReview(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+
+	var reviews []*grpc.PageReview
+	err = suite.service.db.Collection(collectionOPageReview).Find(bson.M{}).All(&reviews)
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), reviews, 3)
+
+	for _, v := range reviews {
+		assert.NotEmpty(suite.T(), v.UserId)
+		assert.NotEmpty(suite.T(), v.Review)
+		assert.NotEmpty(suite.T(), v.PageId)
+	}
+}

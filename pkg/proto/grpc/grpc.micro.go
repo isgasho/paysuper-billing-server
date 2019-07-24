@@ -125,6 +125,8 @@ It has these top-level messages:
 	UserProfile
 	GetUserProfileRequest
 	GetUserProfileResponse
+	PageReview
+	CreatePageReviewRequest
 	ConfirmUserEmailRequest
 	VatTransactionsRequest
 	TransactionsPaginate
@@ -250,6 +252,7 @@ type BillingService interface {
 	GetUserProfile(ctx context.Context, in *GetUserProfileRequest, opts ...client.CallOption) (*GetUserProfileResponse, error)
 	CreateOrUpdateUserProfile(ctx context.Context, in *UserProfile, opts ...client.CallOption) (*GetUserProfileResponse, error)
 	ConfirmUserEmail(ctx context.Context, in *ConfirmUserEmailRequest, opts ...client.CallOption) (*CheckProjectRequestSignatureResponse, error)
+	CreatePageReview(ctx context.Context, in *CreatePageReviewRequest, opts ...client.CallOption) (*CheckProjectRequestSignatureResponse, error)
 	CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, opts ...client.CallOption) (*CreateRoyaltyReportRequest, error)
 	ListRoyaltyReports(ctx context.Context, in *ListRoyaltyReportsRequest, opts ...client.CallOption) (*ListRoyaltyReportsResponse, error)
 	ChangeRoyaltyReport(ctx context.Context, in *ChangeRoyaltyReportRequest, opts ...client.CallOption) (*ResponseError, error)
@@ -1091,6 +1094,16 @@ func (c *billingService) ConfirmUserEmail(ctx context.Context, in *ConfirmUserEm
 	return out, nil
 }
 
+func (c *billingService) CreatePageReview(ctx context.Context, in *CreatePageReviewRequest, opts ...client.CallOption) (*CheckProjectRequestSignatureResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.CreatePageReview", in)
+	out := new(CheckProjectRequestSignatureResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *billingService) CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, opts ...client.CallOption) (*CreateRoyaltyReportRequest, error) {
 	req := c.c.NewRequest(c.name, "BillingService.CreateRoyaltyReport", in)
 	out := new(CreateRoyaltyReportRequest)
@@ -1285,6 +1298,7 @@ type BillingServiceHandler interface {
 	GetUserProfile(context.Context, *GetUserProfileRequest, *GetUserProfileResponse) error
 	CreateOrUpdateUserProfile(context.Context, *UserProfile, *GetUserProfileResponse) error
 	ConfirmUserEmail(context.Context, *ConfirmUserEmailRequest, *CheckProjectRequestSignatureResponse) error
+	CreatePageReview(context.Context, *CreatePageReviewRequest, *CheckProjectRequestSignatureResponse) error
 	CreateRoyaltyReport(context.Context, *CreateRoyaltyReportRequest, *CreateRoyaltyReportRequest) error
 	ListRoyaltyReports(context.Context, *ListRoyaltyReportsRequest, *ListRoyaltyReportsResponse) error
 	ChangeRoyaltyReport(context.Context, *ChangeRoyaltyReportRequest, *ResponseError) error
@@ -1381,6 +1395,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetUserProfile(ctx context.Context, in *GetUserProfileRequest, out *GetUserProfileResponse) error
 		CreateOrUpdateUserProfile(ctx context.Context, in *UserProfile, out *GetUserProfileResponse) error
 		ConfirmUserEmail(ctx context.Context, in *ConfirmUserEmailRequest, out *CheckProjectRequestSignatureResponse) error
+		CreatePageReview(ctx context.Context, in *CreatePageReviewRequest, out *CheckProjectRequestSignatureResponse) error
 		CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, out *CreateRoyaltyReportRequest) error
 		ListRoyaltyReports(ctx context.Context, in *ListRoyaltyReportsRequest, out *ListRoyaltyReportsResponse) error
 		ChangeRoyaltyReport(ctx context.Context, in *ChangeRoyaltyReportRequest, out *ResponseError) error
@@ -1726,6 +1741,10 @@ func (h *billingServiceHandler) CreateOrUpdateUserProfile(ctx context.Context, i
 
 func (h *billingServiceHandler) ConfirmUserEmail(ctx context.Context, in *ConfirmUserEmailRequest, out *CheckProjectRequestSignatureResponse) error {
 	return h.BillingServiceHandler.ConfirmUserEmail(ctx, in, out)
+}
+
+func (h *billingServiceHandler) CreatePageReview(ctx context.Context, in *CreatePageReviewRequest, out *CheckProjectRequestSignatureResponse) error {
+	return h.BillingServiceHandler.CreatePageReview(ctx, in, out)
 }
 
 func (h *billingServiceHandler) CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, out *CreateRoyaltyReportRequest) error {

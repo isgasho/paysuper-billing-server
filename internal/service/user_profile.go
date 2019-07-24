@@ -21,6 +21,7 @@ import (
 
 const (
 	collectionUserProfile        = "user_profile"
+	collectionOPageReview        = "feedback"
 	userEmailConfirmTokenStorage = "email_confirm:token:%s"
 )
 
@@ -479,4 +480,38 @@ func (s *Service) emailConfirmedSuccessfully(ctx context.Context, profile *grpc.
 	}
 
 	return err
+}
+
+func (s *Service) CreatePageReview(
+	ctx context.Context,
+	req *grpc.CreatePageReviewRequest,
+	rsp *grpc.CheckProjectRequestSignatureResponse,
+) error {
+	review := &grpc.PageReview{
+		Id:        bson.NewObjectId().Hex(),
+		UserId:    req.UserId,
+		Review:    req.Review,
+		PageId:    req.PageId,
+		CreatedAt: ptypes.TimestampNow(),
+	}
+
+	err := s.db.Collection(collectionOPageReview).Insert(review)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String("collection", collectionOPageReview),
+			zap.Any("data", review),
+		)
+
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = userProfileErrorUnknown
+
+		return nil
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
+
+	return nil
 }
