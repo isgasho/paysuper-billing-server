@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/kelseyhightower/envconfig"
+	"net/url"
 	"time"
 )
 
@@ -75,6 +76,8 @@ type Config struct {
 	*CustomerTokenConfig
 	*CacheRedis
 	*Smtp
+
+	EmailConfirmUrlParsed *url.URL
 }
 
 func NewConfig() (*Config, error) {
@@ -108,6 +111,12 @@ func NewConfig() (*Config, error) {
 		return nil, err
 	}
 
+	cfg.EmailConfirmUrlParsed, err = url.Parse(cfg.EmailConfirmUrl)
+
+	if err != nil {
+		return nil, err
+	}
+
 	return cfg, err
 }
 
@@ -121,4 +130,16 @@ func (cfg *Config) GetCustomerTokenExpire() time.Duration {
 
 func (cfg *Config) GetEmailConfirmTokenLifetime() time.Duration {
 	return time.Second * time.Duration(cfg.EmailConfirmTokenLifetime)
+}
+
+func (cfg *Config) GetUserConfirmEmailUrl(params map[string]string) string {
+	query := cfg.EmailConfirmUrlParsed.Query()
+
+	for k, v := range params {
+		query.Set(k, v)
+	}
+
+	cfg.EmailConfirmUrlParsed.RawQuery = query.Encode()
+
+	return cfg.EmailConfirmUrlParsed.String()
 }

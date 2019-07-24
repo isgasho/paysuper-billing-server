@@ -138,7 +138,7 @@ func (s *Service) insertUserProfile(profileReq *grpc.UserProfile) (*grpc.UserPro
 		return nil, err
 	}
 
-	profileReq.Email.ConfirmationUrl, err = s.setUserEmailConfirmationToken(s.cfg.EmailConfirmUrl, profileReq)
+	profileReq.Email.ConfirmationUrl, err = s.setUserEmailConfirmationToken(profileReq)
 
 	if err != nil {
 		return nil, err
@@ -369,7 +369,7 @@ func (s *Service) ConfirmUserEmail(
 	return nil
 }
 
-func (s *Service) setUserEmailConfirmationToken(url string, profile *grpc.UserProfile) (string, error) {
+func (s *Service) setUserEmailConfirmationToken(profile *grpc.UserProfile) (string, error) {
 	stToken := &EmailConfirmToken{
 		Token:     s.getTokenString(s.cfg.Length),
 		ProfileId: profile.Id,
@@ -404,7 +404,7 @@ func (s *Service) setUserEmailConfirmationToken(url string, profile *grpc.UserPr
 		return "", err
 	}
 
-	return url + "?token=" + token, nil
+	return s.cfg.GetUserConfirmEmailUrl(map[string]string{"token": token}), nil
 }
 
 func (s *Service) getUserEmailConfirmationToken(token string) (string, error) {
