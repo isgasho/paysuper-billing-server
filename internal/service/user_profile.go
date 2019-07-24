@@ -121,37 +121,36 @@ func (s *Service) getOnboardingProfileByUser(userId string) (profile *grpc.UserP
 }
 
 func (s *Service) insertUserProfile(profileReq *grpc.UserProfile) (*grpc.UserProfile, error) {
-	profile := profileReq
-	profile.Id = bson.NewObjectId().Hex()
-	profile.CreatedAt = ptypes.TimestampNow()
-	profile.UpdatedAt = ptypes.TimestampNow()
+	profileReq.Id = bson.NewObjectId().Hex()
+	profileReq.CreatedAt = ptypes.TimestampNow()
+	profileReq.UpdatedAt = ptypes.TimestampNow()
 
-	err := s.db.Collection(collectionUserProfile).Insert(profile)
+	err := s.db.Collection(collectionUserProfile).Insert(profileReq)
 
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionUserProfile),
-			zap.Any("profile", profile),
+			zap.Any("profile", profileReq),
 		)
 
 		return nil, err
 	}
 
-	profile.Email.ConfirmationUrl, err = s.setUserEmailConfirmationToken(s.cfg.EmailConfirmUrl, profile)
+	profileReq.Email.ConfirmationUrl, err = s.setUserEmailConfirmationToken(s.cfg.EmailConfirmUrl, profileReq)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.sendUserEmailConfirmationToken(profile)
+	err = s.sendUserEmailConfirmationToken(profileReq)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return profile, nil
+	return profileReq, nil
 }
 
 func (s *Service) updateOnboardingProfile(

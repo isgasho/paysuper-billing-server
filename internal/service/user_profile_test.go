@@ -132,6 +132,10 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	assert.Empty(suite.T(), rsp.Message)
 	assert.NotNil(suite.T(), rsp.Item)
 	assert.IsType(suite.T(), &grpc.UserProfile{}, rsp.Item)
+	assert.NotEmpty(suite.T(), rsp.Item.Id)
+	assert.NotEmpty(suite.T(), rsp.Item.CreatedAt)
+	assert.NotEmpty(suite.T(), rsp.Item.UpdatedAt)
+	assert.NotEmpty(suite.T(), rsp.Item.Email.ConfirmationUrl)
 
 	profile = suite.service.getOnboardingProfileByUser(req.UserId)
 	assert.NotNil(suite.T(), rsp.Item)
