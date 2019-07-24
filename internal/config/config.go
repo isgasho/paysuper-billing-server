@@ -55,7 +55,7 @@ type Config struct {
 	CentrifugoUserChannel     string `envconfig:"CENTRIFUGO_USER_CHANNEL" default:"paysuper:user#%s"`
 	EmailConfirmTokenLifetime int64  `envconfig:"EMAIL_CONFIRM_TOKEN_LIFETIME" default:"86400"`
 	EmailConfirmUrl           string `envconfig:"EMAIL_CONFIRM_URL" default:"https://paysupermgmt.tst.protocol.one/confirm_email"`
-	EmailConfirmTemplate      string `envconfig:"EMAIL_CONFIRM_TEMPLATE" default:"sidmal_test_email_confirm"`
+	EmailConfirmTemplate      string `envconfig:"EMAIL_CONFIRM_TEMPLATE" default:"p1_verify_letter"`
 
 	MicroRegistry string `envconfig:"MICRO_REGISTRY" required:"false"`
 

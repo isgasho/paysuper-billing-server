@@ -156,7 +156,7 @@ func (s *Service) insertUserProfile(profileReq *grpc.UserProfile) (*grpc.UserPro
 func (s *Service) updateOnboardingProfile(
 	profile, profileReq *grpc.UserProfile,
 ) (*grpc.UserProfile, error) {
-	if profileReq.HasPersonChanges(profile) == true {
+	if profileReq.HasPersonChanges(profile) {
 		if profile.Personal == nil {
 			profile.Personal = &grpc.UserProfilePersonal{}
 		}
@@ -174,7 +174,7 @@ func (s *Service) updateOnboardingProfile(
 		}
 	}
 
-	if profileReq.HasHelpChanges(profile) == true {
+	if profileReq.HasHelpChanges(profile) {
 		if profile.Help == nil {
 			profile.Help = &grpc.UserProfileHelp{}
 		}
@@ -196,7 +196,7 @@ func (s *Service) updateOnboardingProfile(
 		}
 	}
 
-	if profileReq.HasCompanyChanges(profile) == true {
+	if profileReq.HasCompanyChanges(profile) {
 		if profile.Company == nil {
 			profile.Company = &grpc.UserProfileCompany{}
 		}
@@ -209,7 +209,7 @@ func (s *Service) updateOnboardingProfile(
 			profile.Company.Website = profileReq.Company.Website
 		}
 
-		if profileReq.HasCompanyAnnualIncomeChanges(profile) == true {
+		if profileReq.HasCompanyAnnualIncomeChanges(profile) {
 			if profile.Company.AnnualIncome == nil {
 				profile.Company.AnnualIncome = &grpc.RangeInt{}
 			}
@@ -223,7 +223,7 @@ func (s *Service) updateOnboardingProfile(
 			}
 		}
 
-		if profileReq.HasCompanyNumberOfEmployeesChanges(profile) == true {
+		if profileReq.HasCompanyNumberOfEmployeesChanges(profile) {
 			if profile.Company.NumberOfEmployees == nil {
 				profile.Company.NumberOfEmployees = &grpc.RangeInt{}
 			}
@@ -241,7 +241,7 @@ func (s *Service) updateOnboardingProfile(
 			profile.Company.KindOfActivity = profileReq.Company.KindOfActivity
 		}
 
-		if profileReq.HasCompanyMonetizationChanges(profile) == true {
+		if profileReq.HasCompanyMonetizationChanges(profile) {
 			if profile.Company.Monetization == nil {
 				profile.Company.Monetization = &grpc.UserProfileCompanyMonetization{}
 			}
@@ -267,7 +267,7 @@ func (s *Service) updateOnboardingProfile(
 			}
 		}
 
-		if profileReq.HasCompanyPlatformsChanges(profile) == true {
+		if profileReq.HasCompanyPlatformsChanges(profile) {
 			if profile.Company.Platforms == nil {
 				profile.Company.Platforms = &grpc.UserProfileCompanyPlatforms{}
 			}
@@ -424,8 +424,11 @@ func (s *Service) getUserEmailConfirmationToken(token string) (string, error) {
 func (s *Service) sendUserEmailConfirmationToken(profile *grpc.UserProfile) error {
 	payload := &postmarkSdrPkg.Payload{
 		TemplateAlias: s.cfg.EmailConfirmTemplate,
-		TemplateModel: map[string]string{"url": profile.Email.ConfirmationUrl},
-		To:            profile.Email.Email,
+		TemplateModel: map[string]string{
+			"empty_url":   "#",
+			"confirm_url": profile.Email.ConfirmationUrl,
+		},
+		To: profile.Email.Email,
 	}
 
 	err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
