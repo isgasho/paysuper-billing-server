@@ -650,6 +650,69 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_UserNotFound
 	assert.Equal(suite.T(), userProfileErrorUnknown, rsp2.Message)
 }
 
+func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_EmailAlreadyConfirmed_Error() {
+	req := &grpc.UserProfile{
+		UserId: bson.NewObjectId().Hex(),
+		Email: &grpc.UserProfileEmail{
+			Email: "test@unit.test",
+		},
+		Personal: &grpc.UserProfilePersonal{
+			FirstName: "Unit test",
+			LastName:  "Unit Test",
+			Position:  "test",
+		},
+		Help: &grpc.UserProfileHelp{
+			ProductPromotionAndDevelopment: false,
+			ReleasedGamePromotion:          true,
+			InternationalSales:             true,
+			Other:                          false,
+		},
+		Company: &grpc.UserProfileCompany{
+			CompanyName:       "Unit test",
+			Website:           "http://localhost",
+			AnnualIncome:      &grpc.RangeInt{From: 10, To: 100},
+			NumberOfEmployees: &grpc.RangeInt{From: 10, To: 100},
+			KindOfActivity:    "develop_and_publish_your_games",
+			Monetization: &grpc.UserProfileCompanyMonetization{
+				PaidSubscription: true,
+			},
+			Platforms: &grpc.UserProfileCompanyPlatforms{
+				WebBrowser: true,
+			},
+		},
+		LastStep: "step3",
+	}
+	rsp := &grpc.GetUserProfileResponse{}
+
+	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotNil(suite.T(), rsp.Item)
+
+	u, err := url.ParseRequestURI(rsp.Item.Email.ConfirmationUrl)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), u)
+	assert.NotEmpty(suite.T(), u.RawQuery)
+
+	p, err := url.ParseQuery(u.RawQuery)
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), p, 1)
+	assert.Contains(suite.T(), p, "token")
+
+	req2 := &grpc.ConfirmUserEmailRequest{Token: p["token"][0]}
+	rsp2 := &grpc.CheckProjectRequestSignatureResponse{}
+	err = suite.service.ConfirmUserEmail(context.TODO(), req2, rsp2)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
+	assert.Empty(suite.T(), rsp2.Message)
+
+	err = suite.service.ConfirmUserEmail(context.TODO(), req2, rsp2)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp2.Status)
+	assert.Equal(suite.T(), userProfileEmailAlreadyConfirmed, rsp2.Message)
+}
+
 func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_EmailConfirmedSuccessfully_Error() {
 	req := &grpc.UserProfile{
 		UserId: bson.NewObjectId().Hex(),
