@@ -29,7 +29,6 @@ var (
 	userProfileErrorNotFound                  = newBillingServerErrorMsg("op000001", "user profile not found")
 	userProfileErrorUnknown                   = newBillingServerErrorMsg("op000002", "unknown error. try request later")
 	userProfileEmailConfirmationTokenNotFound = newBillingServerErrorMsg("op000003", "user email confirmation token not found")
-	userProfileEmailAlreadyConfirmed          = newBillingServerErrorMsg("op000004", "user email already confirmed")
 )
 
 type EmailConfirmToken struct {
@@ -339,9 +338,10 @@ func (s *Service) ConfirmUserEmail(
 		return nil
 	}
 
+	rsp.Status = pkg.ResponseStatusOk
+
 	if profile.IsEmailVerified() {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = userProfileEmailAlreadyConfirmed
+		rsp.Status = pkg.ResponseStatusOk
 
 		return nil
 	}
@@ -354,8 +354,6 @@ func (s *Service) ConfirmUserEmail(
 
 		return nil
 	}
-
-	rsp.Status = pkg.ResponseStatusOk
 
 	return nil
 }

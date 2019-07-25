@@ -709,8 +709,8 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_EmailAlready
 
 	err = suite.service.ConfirmUserEmail(context.TODO(), req2, rsp2)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp2.Status)
-	assert.Equal(suite.T(), userProfileEmailAlreadyConfirmed, rsp2.Message)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
+	assert.Empty(suite.T(), rsp2.Message)
 }
 
 func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_EmailConfirmedSuccessfully_Error() {
