@@ -475,7 +475,7 @@ func (s *Service) emailConfirmedSuccessfully(ctx context.Context, profile *grpc.
 			"Send message to centrifugo failed",
 			zap.Error(err),
 			zap.String("channel", ch),
-			zap.Any("message", msg),
+			zap.ByteString("message", msg),
 		)
 	}
 
