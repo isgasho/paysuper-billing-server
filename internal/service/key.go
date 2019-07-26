@@ -15,27 +15,23 @@ import (
 const collectionKey = "key"
 
 var (
-	KeyFileProcessFailed = newBillingServerErrorMsg("ks000001", "failed to process file")
-	KeyDbError           = newBillingServerErrorMsg("ks000002", "failed to retrieve data from db")
-	KeyNotFound          = newBillingServerErrorMsg("ks000003", "key not found")
-	KeyFailedToInsert    = newBillingServerErrorMsg("ks000004", "failed to insert key")
+	keyFileProcessFailed = newBillingServerErrorMsg("ks000001", "failed to process file")
+	keyDbError           = newBillingServerErrorMsg("ks000002", "failed to retrieve data from db")
+	keyNotFound          = newBillingServerErrorMsg("ks000003", "key not found")
+	keyFailedToInsert    = newBillingServerErrorMsg("ks000004", "failed to insert key")
+	keyErrorCanceled     = newBillingServerErrorMsg("ks000005", "unable to cancel key")
+	keyErrorFinish       = newBillingServerErrorMsg("ks000006", "unable to finish key")
+	keyErrorReserve      = newBillingServerErrorMsg("ks000007", "unable to reserve key")
 )
 
 func (s *Service) UploadKeysFile(ctx context.Context, req *grpc.PlatformKeysFileRequest, res *grpc.PlatformKeysFileResponse) error {
 	scanner := bufio.NewScanner(bytes.NewReader(req.File))
-
-	// Get total available count of keys
-	query := bson.M{
-		"key_product_id": bson.ObjectIdHex(req.KeyProductId),
-		"platform_id":    bson.ObjectIdHex(req.PlatformId),
-		"order_id":       bson.ObjectIdHex(""),
-	}
-	count, err := s.db.Collection(collectionKey).Find(query).Count()
+	count, err := s.keyService.CountKeysByProductPlatform(req.KeyProductId, req.PlatformId)
 
 	if err != nil {
-		zap.S().Errorf(KeyDbError.Message, "err", err.Error(), "query", query)
+		zap.S().Errorf(keyDbError.Message, "err", err.Error(), "keyProductId", req.KeyProductId, "platformId", req.PlatformId)
 		res.Status = pkg.ResponseStatusSystemError
-		res.Message = KeyDbError
+		res.Message = keyDbError
 		return nil
 	}
 
@@ -43,45 +39,26 @@ func (s *Service) UploadKeysFile(ctx context.Context, req *grpc.PlatformKeysFile
 
 	// Process key by line
 	for scanner.Scan() {
-		code := scanner.Text()
-
-		// Check code is unique for platform
-		err := s.db.Collection(collectionKey).
-			Find(bson.M{
-				"code":        code,
-				"platform_id": bson.ObjectIdHex(req.PlatformId),
-			}).
-			One(&grpc.Key{})
-
-		if err == nil {
-			continue
-		}
-
-		if err != mgo.ErrNotFound {
-			res.Status = pkg.ResponseStatusSystemError
-			res.Message = KeyDbError
-			return nil
-		}
-
 		key := &grpc.Key{
 			Id:           bson.NewObjectId().Hex(),
-			Code:         code,
+			Code:         scanner.Text(),
 			KeyProductId: req.KeyProductId,
 			PlatformId:   req.PlatformId,
 		}
 
-		if err = s.db.Collection(collectionKey).Insert(key); err != nil {
-			zap.S().Errorf(KeyFailedToInsert.Message, "err", err.Error(), "key", key)
-		} else {
-			res.TotalCount++
-			res.KeysProcessed++
+		if err := s.keyService.Insert(key); err != nil {
+			zap.S().Errorf(keyFailedToInsert.Message, "err", err, "key", key)
+			continue
 		}
+
+		res.TotalCount++
+		res.KeysProcessed++
 	}
 
 	// tell about errors
-	if err := scanner.Err(); err != nil {
-		zap.S().Errorf(KeyFileProcessFailed.Message, "err", err.Error())
-		res.Message = KeyFileProcessFailed
+	if err = scanner.Err(); err != nil {
+		zap.S().Errorf(keyFileProcessFailed.Message, "err", err.Error())
+		res.Message = keyFileProcessFailed
 		res.Status = pkg.ResponseStatusBadData
 		return nil
 	}
@@ -90,18 +67,12 @@ func (s *Service) UploadKeysFile(ctx context.Context, req *grpc.PlatformKeysFile
 }
 
 func (s *Service) GetAvailableKeysCount(ctx context.Context, req *grpc.GetPlatformKeyCountRequest, res *grpc.GetPlatformKeyCountResponse) error {
-	// Get total available count of keys
-	query := bson.M{
-		"key_product_id": bson.ObjectIdHex(req.KeyProductId),
-		"platform_id":    bson.ObjectIdHex(req.PlatformId),
-		"order_id":       bson.ObjectIdHex(""),
-	}
-	count, err := s.db.Collection(collectionKey).Find(query).Count()
+	count, err := s.keyService.CountKeysByProductPlatform(req.KeyProductId, req.PlatformId)
 
 	if err != nil {
-		zap.S().Errorf(KeyDbError.Message, "err", err.Error(), "query", query)
+		zap.S().Errorf(keyDbError.Message, "err", err.Error(), "keyProductId", req.KeyProductId, "platformId", req.PlatformId)
 		res.Status = pkg.ResponseStatusSystemError
-		res.Message = KeyDbError
+		res.Message = keyDbError
 		return nil
 	}
 
@@ -110,102 +81,12 @@ func (s *Service) GetAvailableKeysCount(ctx context.Context, req *grpc.GetPlatfo
 }
 
 func (s *Service) GetKeyByID(ctx context.Context, req *grpc.KeyForOrderRequest, res *grpc.GetKeyForOrderRequestResponse) error {
-	query := bson.M{
-		"_id": bson.ObjectIdHex(req.KeyId),
-	}
+	key, err := s.keyService.GetById(req.KeyId)
 
-	var err *grpc.ResponseErrorMessage
-	if res.Key, res.Message = s.getKeyBy(query); err != nil {
-		if err == KeyNotFound {
-			res.Status = pkg.ResponseStatusNotFound
-			return nil
-		}
-
-		res.Message = KeyDbError
-		return nil
-	}
-
-	return nil
-}
-
-func (s *Service) getKeyBy(query bson.M) (*grpc.Key, *grpc.ResponseErrorMessage) {
-	key := &grpc.Key{}
-
-	if err := s.db.Collection(collectionKey).Find(query).One(key); err != nil {
-		zap.S().Errorf(KeyDbError.Message, "err", err.Error(), "key", key)
-		if err == mgo.ErrNotFound {
-			return nil, KeyNotFound
-		}
-		return nil, KeyDbError
-	}
-
-	return key, nil
-}
-
-func (s *Service) ReserveKeyForOrder(ctx context.Context, req *grpc.PlatformKeyReserveRequest, res *grpc.PlatformKeyReserveResponse) error {
-	query := bson.M{
-		"key_product_id": bson.ObjectIdHex(req.KeyProductId),
-		"platform_id":    bson.ObjectIdHex(req.PlatformId),
-		"order_id":       bson.ObjectIdHex(""),
-	}
-
-	duration := time.Second * time.Duration(req.Ttl)
-
-	change := mgo.Change{
-		Update: bson.M{
-			"reserved_to": time.Now().UTC().Add(duration),
-			"order_id":    req.OrderId,
-		},
-	}
-
-	key := &grpc.Key{}
-
-	// Reserving first available key
-	if info, err := s.db.Collection(collectionKey).Find(query).Limit(1).Apply(change, key); err != nil || info.Updated == 0 {
-		if err != mgo.ErrNotFound {
-			zap.S().Errorf(KeyDbError.Message, "err", err, "key", key, "change", change)
-			res.Status = pkg.ResponseStatusSystemError
-			res.Message = KeyDbError
-			return nil
-		}
-
-		zap.S().Errorf(KeyNotFound.Message, "err", err, "key", key, "change", change)
+	if err != nil {
+		zap.S().Errorf(keyNotFound.Message, "err", err.Error(), "keyId", req.KeyId)
 		res.Status = pkg.ResponseStatusNotFound
-		res.Message = KeyNotFound
-		return nil
-	}
-
-	res.KeyId = key.Id
-
-	return nil
-}
-
-func (s *Service) FinishRedeemKeyForOrder(ctx context.Context, req *grpc.KeyForOrderRequest, res *grpc.GetKeyForOrderRequestResponse) error {
-	query := bson.M{
-		"_id": bson.ObjectIdHex(req.KeyId),
-	}
-
-	change := mgo.Change{
-		Update: bson.M{
-			"reserved_to": "",
-			"redeemed_at": time.Now().UTC(),
-		},
-	}
-
-	key := &grpc.Key{}
-
-	// Reserving first available key
-	if info, err := s.db.Collection(collectionKey).Find(query).Limit(1).Apply(change, key); err != nil || info.Updated == 0 {
-		if err != mgo.ErrNotFound {
-			zap.S().Errorf(KeyDbError.Message, "err", err, "key", key, "change", change)
-			res.Status = pkg.ResponseStatusSystemError
-			res.Message = KeyDbError
-			return nil
-		}
-
-		zap.S().Errorf(KeyNotFound.Message, "err", err, "key", key, "change", change)
-		res.Status = pkg.ResponseStatusNotFound
-		res.Message = KeyNotFound
+		res.Message = keyNotFound
 		return nil
 	}
 
@@ -214,11 +95,98 @@ func (s *Service) FinishRedeemKeyForOrder(ctx context.Context, req *grpc.KeyForO
 	return nil
 }
 
-func (s *Service) CancelRedeemKeyForOrder(ctx context.Context, req *grpc.KeyForOrderRequest, res *grpc.EmptyResponseWithStatus) error {
-	query := bson.M{
-		"_id": bson.ObjectIdHex(req.KeyId),
+func (s *Service) ReserveKeyForOrder(ctx context.Context, req *grpc.PlatformKeyReserveRequest, res *grpc.PlatformKeyReserveResponse) error {
+	key, err := s.keyService.ReserveKey(req.KeyProductId, req.PlatformId, req.OrderId, req.Ttl)
+
+	if err != nil {
+		zap.S().Errorf(
+			keyErrorReserve.Message,
+			"err", err,
+			"keyProductId", req.KeyProductId,
+			"platformId", req.PlatformId,
+			"orderId", req.OrderId,
+			"ttl", req.Ttl,
+		)
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = keyErrorReserve
 	}
 
+	res.KeyId = key.Id
+
+	return nil
+}
+
+func (s *Service) FinishRedeemKeyForOrder(ctx context.Context, req *grpc.KeyForOrderRequest, res *grpc.GetKeyForOrderRequestResponse) error {
+	key, err := s.keyService.FinishRedeemById(req.KeyId)
+
+	if err != nil {
+		zap.S().Errorf(keyErrorFinish.Message, "err", err, "keyId", req.KeyId)
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = keyErrorFinish
+	}
+
+	res.Key = key
+
+	return nil
+}
+
+func (s *Service) CancelRedeemKeyForOrder(ctx context.Context, req *grpc.KeyForOrderRequest, res *grpc.EmptyResponseWithStatus) error {
+	if err := s.keyService.CancelById(req.KeyId); err != nil {
+		zap.S().Errorf(keyErrorCanceled.Message, "err", err, "keyId", req.KeyId)
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = keyErrorCanceled
+	}
+
+	return nil
+}
+
+type KeyServiceInterface interface {
+	Insert(*grpc.Key) error
+	CountKeysByProductPlatform(string, string) (int, error)
+	GetById(string) (*grpc.Key, error)
+	CancelById(string) error
+	FinishRedeemById(string) (*grpc.Key, error)
+	ReserveKey(string, string, string, int32) (*grpc.Key, error)
+}
+
+func newKeyService(svc *Service) *Key {
+	s := &Key{svc: svc}
+	return s
+}
+
+func (h *Key) Insert(key *grpc.Key) error {
+	err := h.svc.db.Collection(collectionPriceGroup).Insert(key)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h *Key) CountKeysByProductPlatform(keyProductId string, platformId string) (int, error) {
+	query := bson.M{
+		"key_product_id": bson.ObjectIdHex(keyProductId),
+		"platform_id":    bson.ObjectIdHex(platformId),
+		"order_id":       bson.ObjectIdHex(""),
+	}
+
+	return h.svc.db.Collection(collectionKey).Find(query).Count()
+}
+
+func (h *Key) GetById(id string) (*grpc.Key, error) {
+	key := &grpc.Key{}
+	err := h.svc.db.Collection(collectionKey).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(key)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return key, nil
+}
+
+func (h *Key) CancelById(id string) error {
+	query := bson.M{"_id": bson.ObjectIdHex(id)}
 	change := mgo.Change{
 		Update: bson.M{
 			"reserved_to": "",
@@ -226,22 +194,66 @@ func (s *Service) CancelRedeemKeyForOrder(ctx context.Context, req *grpc.KeyForO
 		},
 	}
 
-	key := &grpc.Key{}
+	info, err := h.svc.db.Collection(collectionKey).Find(query).Limit(1).Apply(change, &grpc.Key{})
 
-	// Reserving first available key
-	if info, err := s.db.Collection(collectionKey).Find(query).Limit(1).Apply(change, key); err != nil || info.Updated == 0 {
-		if err != mgo.ErrNotFound {
-			zap.S().Errorf(KeyDbError.Message, "err", err, "key", key, "change", change)
-			res.Status = pkg.ResponseStatusSystemError
-			res.Message = KeyDbError
-			return nil
-		}
+	if err != nil {
+		return err
+	}
 
-		zap.S().Errorf(KeyNotFound.Message, "err", err, "key", key, "change", change)
-		res.Status = pkg.ResponseStatusNotFound
-		res.Message = KeyNotFound
-		return nil
+	if info.Updated == 0 {
+		return keyNotFound
 	}
 
 	return nil
+}
+
+func (h *Key) FinishRedeemById(id string) (*grpc.Key, error) {
+	key := &grpc.Key{}
+	query := bson.M{"_id": bson.ObjectIdHex(id)}
+	change := mgo.Change{
+		Update: bson.M{
+			"reserved_to": "",
+			"redeemed_at": time.Now().UTC(),
+		},
+	}
+
+	info, err := h.svc.db.Collection(collectionKey).Find(query).Limit(1).Apply(change, key)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if info.Updated == 0 {
+		return nil, keyNotFound
+	}
+
+	return key, nil
+}
+
+func (h *Key) ReserveKey(keyProductId string, platformId string, orderId string, ttl int32) (*grpc.Key, error) {
+	key := &grpc.Key{}
+	duration := time.Second * time.Duration(ttl)
+	query := bson.M{
+		"key_product_id": bson.ObjectIdHex(keyProductId),
+		"platform_id":    bson.ObjectIdHex(platformId),
+		"order_id":       bson.ObjectIdHex(""),
+	}
+	change := mgo.Change{
+		Update: bson.M{
+			"reserved_to": time.Now().UTC().Add(duration),
+			"order_id":    bson.ObjectIdHex(orderId),
+		},
+	}
+
+	info, err := h.svc.db.Collection(collectionKey).Find(query).Limit(1).Apply(change, key)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if info.Updated == 0 {
+		return nil, keyNotFound
+	}
+
+	return key, nil
 }

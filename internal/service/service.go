@@ -82,6 +82,7 @@ type Service struct {
 	priceTable                 PriceTableServiceInterface
 	productService             ProductServiceInterface
 	turnover                   *Turnover
+	keyService                 KeyServiceInterface
 }
 
 func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {
@@ -143,6 +144,7 @@ func (s *Service) Init() (err error) {
 	s.priceTable = newPriceTableService(s)
 	s.productService = newProductService(s)
 	s.turnover = newTurnoverService(s)
+	s.keyService = newKeyService(s)
 
 	s.centrifugoClient = gocent.New(
 		gocent.Config{

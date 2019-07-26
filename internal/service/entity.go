@@ -28,6 +28,7 @@ type PayoutCostSystem Entity
 type PriceTable Entity
 type Product Entity
 type Turnover Entity
+type Key Entity
 
 type kvIntFloat struct {
 	Key   int
