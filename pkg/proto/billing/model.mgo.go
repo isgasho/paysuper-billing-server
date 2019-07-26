@@ -22,16 +22,6 @@ type MgoMultiLang struct {
 	Value string `bson:"value"`
 }
 
-type MgoVat struct {
-	Id          bson.ObjectId `bson:"_id" json:"id"`
-	Country     string        `bson:"country" json:"country"`
-	Subdivision string        `bson:"subdivision_code" json:"subdivision_code,omitempty"`
-	Vat         float64       `bson:"vat" json:"vat"`
-	IsActive    bool          `bson:"is_active" json:"is_active"`
-	CreatedAt   time.Time     `bson:"created_at" json:"created_at"`
-	UpdatedAt   time.Time     `bson:"updated_at" json:"updated_at,omitempty"`
-}
-
 type MgoProject struct {
 	Id                       bson.ObjectId   `bson:"_id"`
 	MerchantId               bson.ObjectId   `bson:"merchant_id"`
@@ -870,80 +860,6 @@ func (m *PriceGroup) SetBSON(raw bson.Raw) error {
 	m.Currency = decoded.Currency
 	m.InflationRate = decoded.InflationRate
 	m.Fraction = decoded.Fraction
-
-	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
-
-	if err != nil {
-		return err
-	}
-
-	m.UpdatedAt, err = ptypes.TimestampProto(decoded.UpdatedAt)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *Vat) GetBSON() (interface{}, error) {
-	st := &MgoVat{
-		Country:     m.Country,
-		Subdivision: m.Subdivision,
-		Vat:         m.Vat,
-		IsActive:    m.IsActive,
-	}
-
-	if len(m.Id) <= 0 {
-		st.Id = bson.NewObjectId()
-	} else {
-		if bson.IsObjectIdHex(m.Id) == false {
-			return nil, errors.New(errorInvalidObjectId)
-		}
-
-		st.Id = bson.ObjectIdHex(m.Id)
-	}
-
-	if m.CreatedAt != nil {
-		t, err := ptypes.Timestamp(m.CreatedAt)
-
-		if err != nil {
-			return nil, err
-		}
-
-		st.CreatedAt = t
-	} else {
-		st.CreatedAt = time.Now()
-	}
-
-	if m.UpdatedAt != nil {
-		t, err := ptypes.Timestamp(m.UpdatedAt)
-
-		if err != nil {
-			return nil, err
-		}
-
-		st.UpdatedAt = t
-	} else {
-		st.UpdatedAt = time.Now()
-	}
-
-	return st, nil
-}
-
-func (m *Vat) SetBSON(raw bson.Raw) error {
-	decoded := new(MgoVat)
-	err := raw.Unmarshal(decoded)
-
-	if err != nil {
-		return err
-	}
-
-	m.Id = decoded.Id.Hex()
-	m.Country = decoded.Country
-	m.Subdivision = decoded.Subdivision
-	m.Vat = decoded.Vat
-	m.IsActive = decoded.IsActive
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 
