@@ -33,7 +33,7 @@ func (s *Service) UploadKeysFile(ctx context.Context, req *grpc.PlatformKeysFile
 	count, err := s.db.Collection(collectionKey).Find(query).Count()
 
 	if err != nil {
-		zap.S().Error(KeyDbError.Message, err)
+		zap.S().Errorf(KeyDbError.Message, "err", err.Error(), "query", query)
 		res.Status = pkg.ResponseStatusSystemError
 		res.Message = KeyDbError
 		return nil
@@ -71,7 +71,7 @@ func (s *Service) UploadKeysFile(ctx context.Context, req *grpc.PlatformKeysFile
 		}
 
 		if err = s.db.Collection(collectionKey).Insert(key); err != nil {
-			zap.S().Error(KeyFailedToInsert.Message, err)
+			zap.S().Errorf(KeyFailedToInsert.Message, "err", err.Error(), "key", key)
 		} else {
 			res.TotalCount++
 			res.KeysProcessed++
@@ -80,7 +80,7 @@ func (s *Service) UploadKeysFile(ctx context.Context, req *grpc.PlatformKeysFile
 
 	// tell about errors
 	if err := scanner.Err(); err != nil {
-		zap.S().Error(KeyFileProcessFailed.Message, err)
+		zap.S().Errorf(KeyFileProcessFailed.Message, "err", err.Error())
 		res.Message = KeyFileProcessFailed
 		res.Status = pkg.ResponseStatusBadData
 		return nil
@@ -99,7 +99,7 @@ func (s *Service) GetAvailableKeysCount(ctx context.Context, req *grpc.GetPlatfo
 	count, err := s.db.Collection(collectionKey).Find(query).Count()
 
 	if err != nil {
-		zap.S().Error(KeyDbError.Message, err)
+		zap.S().Errorf(KeyDbError.Message, "err", err.Error(), "query", query)
 		res.Status = pkg.ResponseStatusSystemError
 		res.Message = KeyDbError
 		return nil
@@ -132,7 +132,7 @@ func (s *Service) getKeyBy(query bson.M) (*grpc.Key, *grpc.ResponseErrorMessage)
 	key := &grpc.Key{}
 
 	if err := s.db.Collection(collectionKey).Find(query).One(key); err != nil {
-		zap.S().Error(KeyNotFound.Message, err)
+		zap.S().Errorf(KeyDbError.Message, "err", err.Error(), "key", key)
 		if err == mgo.ErrNotFound {
 			return nil, KeyNotFound
 		}
@@ -156,7 +156,6 @@ func (s *Service) ReserveKeyForOrder(ctx context.Context, req *grpc.PlatformKeyR
 			"reserved_to": time.Now().UTC().Add(duration),
 			"order_id":    req.OrderId,
 		},
-		ReturnNew: false,
 	}
 
 	key := &grpc.Key{}
@@ -164,13 +163,13 @@ func (s *Service) ReserveKeyForOrder(ctx context.Context, req *grpc.PlatformKeyR
 	// Reserving first available key
 	if info, err := s.db.Collection(collectionKey).Find(query).Limit(1).Apply(change, key); err != nil || info.Updated == 0 {
 		if err != mgo.ErrNotFound {
-			zap.S().Error(KeyDbError.Message, err)
+			zap.S().Errorf(KeyDbError.Message, "err", err, "key", key, "change", change)
 			res.Status = pkg.ResponseStatusSystemError
 			res.Message = KeyDbError
 			return nil
 		}
 
-		zap.S().Error(KeyNotFound.Message, err)
+		zap.S().Errorf(KeyNotFound.Message, "err", err, "key", key, "change", change)
 		res.Status = pkg.ResponseStatusNotFound
 		res.Message = KeyNotFound
 		return nil
@@ -191,7 +190,6 @@ func (s *Service) FinishRedeemKeyForOrder(ctx context.Context, req *grpc.KeyForO
 			"reserved_to": "",
 			"redeemed_at": time.Now().UTC(),
 		},
-		ReturnNew: false,
 	}
 
 	key := &grpc.Key{}
@@ -199,13 +197,13 @@ func (s *Service) FinishRedeemKeyForOrder(ctx context.Context, req *grpc.KeyForO
 	// Reserving first available key
 	if info, err := s.db.Collection(collectionKey).Find(query).Limit(1).Apply(change, key); err != nil || info.Updated == 0 {
 		if err != mgo.ErrNotFound {
-			zap.S().Error(KeyDbError.Message, err)
+			zap.S().Errorf(KeyDbError.Message, "err", err, "key", key, "change", change)
 			res.Status = pkg.ResponseStatusSystemError
 			res.Message = KeyDbError
 			return nil
 		}
 
-		zap.S().Error(KeyNotFound.Message, err)
+		zap.S().Errorf(KeyNotFound.Message, "err", err, "key", key, "change", change)
 		res.Status = pkg.ResponseStatusNotFound
 		res.Message = KeyNotFound
 		return nil
@@ -233,13 +231,13 @@ func (s *Service) CancelRedeemKeyForOrder(ctx context.Context, req *grpc.KeyForO
 	// Reserving first available key
 	if info, err := s.db.Collection(collectionKey).Find(query).Limit(1).Apply(change, key); err != nil || info.Updated == 0 {
 		if err != mgo.ErrNotFound {
-			zap.S().Error(KeyDbError.Message, err)
+			zap.S().Errorf(KeyDbError.Message, "err", err, "key", key, "change", change)
 			res.Status = pkg.ResponseStatusSystemError
 			res.Message = KeyDbError
 			return nil
 		}
 
-		zap.S().Error(KeyNotFound.Message, err)
+		zap.S().Errorf(KeyNotFound.Message, "err", err, "key", key, "change", change)
 		res.Status = pkg.ResponseStatusNotFound
 		res.Message = KeyNotFound
 		return nil
