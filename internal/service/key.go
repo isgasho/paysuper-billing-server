@@ -14,24 +14,14 @@ import (
 
 const collectionKey = "key"
 
-var (
-	keyFileProcessFailed = newBillingServerErrorMsg("ks000001", "failed to process file")
-	keyDbError           = newBillingServerErrorMsg("ks000002", "failed to retrieve data from db")
-	keyNotFound          = newBillingServerErrorMsg("ks000003", "key not found")
-	keyFailedToInsert    = newBillingServerErrorMsg("ks000004", "failed to insert key")
-	keyErrorCanceled     = newBillingServerErrorMsg("ks000005", "unable to cancel key")
-	keyErrorFinish       = newBillingServerErrorMsg("ks000006", "unable to finish key")
-	keyErrorReserve      = newBillingServerErrorMsg("ks000007", "unable to reserve key")
-)
-
 func (s *Service) UploadKeysFile(ctx context.Context, req *grpc.PlatformKeysFileRequest, res *grpc.PlatformKeysFileResponse) error {
 	scanner := bufio.NewScanner(bytes.NewReader(req.File))
-	count, err := s.keyService.CountKeysByProductPlatform(req.KeyProductId, req.PlatformId)
+	count, err := s.keyRepository.CountKeysByProductPlatform(req.KeyProductId, req.PlatformId)
 
 	if err != nil {
-		zap.S().Errorf(keyDbError.Message, "err", err.Error(), "keyProductId", req.KeyProductId, "platformId", req.PlatformId)
+		zap.S().Errorf(pkg.KeyErrorNotFound.Message, "err", err.Error(), "keyProductId", req.KeyProductId, "platformId", req.PlatformId)
 		res.Status = pkg.ResponseStatusSystemError
-		res.Message = keyDbError
+		res.Message = pkg.KeyErrorNotFound
 		return nil
 	}
 
@@ -46,8 +36,8 @@ func (s *Service) UploadKeysFile(ctx context.Context, req *grpc.PlatformKeysFile
 			PlatformId:   req.PlatformId,
 		}
 
-		if err := s.keyService.Insert(key); err != nil {
-			zap.S().Errorf(keyFailedToInsert.Message, "err", err, "key", key)
+		if err := s.keyRepository.Insert(key); err != nil {
+			zap.S().Errorf(pkg.KeyErrorFailedToInsert.Message, "err", err, "key", key)
 			continue
 		}
 
@@ -57,8 +47,8 @@ func (s *Service) UploadKeysFile(ctx context.Context, req *grpc.PlatformKeysFile
 
 	// tell about errors
 	if err = scanner.Err(); err != nil {
-		zap.S().Errorf(keyFileProcessFailed.Message, "err", err.Error())
-		res.Message = keyFileProcessFailed
+		zap.S().Errorf(pkg.KeyErrorFileProcess.Message, "err", err.Error())
+		res.Message = pkg.KeyErrorFileProcess
 		res.Status = pkg.ResponseStatusBadData
 		return nil
 	}
@@ -67,12 +57,12 @@ func (s *Service) UploadKeysFile(ctx context.Context, req *grpc.PlatformKeysFile
 }
 
 func (s *Service) GetAvailableKeysCount(ctx context.Context, req *grpc.GetPlatformKeyCountRequest, res *grpc.GetPlatformKeyCountResponse) error {
-	count, err := s.keyService.CountKeysByProductPlatform(req.KeyProductId, req.PlatformId)
+	count, err := s.keyRepository.CountKeysByProductPlatform(req.KeyProductId, req.PlatformId)
 
 	if err != nil {
-		zap.S().Errorf(keyDbError.Message, "err", err.Error(), "keyProductId", req.KeyProductId, "platformId", req.PlatformId)
+		zap.S().Errorf(pkg.KeyErrorNotFound.Message, "err", err.Error(), "keyProductId", req.KeyProductId, "platformId", req.PlatformId)
 		res.Status = pkg.ResponseStatusSystemError
-		res.Message = keyDbError
+		res.Message = pkg.KeyErrorNotFound
 		return nil
 	}
 
@@ -81,12 +71,12 @@ func (s *Service) GetAvailableKeysCount(ctx context.Context, req *grpc.GetPlatfo
 }
 
 func (s *Service) GetKeyByID(ctx context.Context, req *grpc.KeyForOrderRequest, res *grpc.GetKeyForOrderRequestResponse) error {
-	key, err := s.keyService.GetById(req.KeyId)
+	key, err := s.keyRepository.GetById(req.KeyId)
 
 	if err != nil {
-		zap.S().Errorf(keyNotFound.Message, "err", err.Error(), "keyId", req.KeyId)
+		zap.S().Errorf(pkg.KeyErrorNotFound.Message, "err", err.Error(), "keyId", req.KeyId)
 		res.Status = pkg.ResponseStatusNotFound
-		res.Message = keyNotFound
+		res.Message = pkg.KeyErrorNotFound
 		return nil
 	}
 
@@ -96,11 +86,11 @@ func (s *Service) GetKeyByID(ctx context.Context, req *grpc.KeyForOrderRequest, 
 }
 
 func (s *Service) ReserveKeyForOrder(ctx context.Context, req *grpc.PlatformKeyReserveRequest, res *grpc.PlatformKeyReserveResponse) error {
-	key, err := s.keyService.ReserveKey(req.KeyProductId, req.PlatformId, req.OrderId, req.Ttl)
+	key, err := s.keyRepository.ReserveKey(req.KeyProductId, req.PlatformId, req.OrderId, req.Ttl)
 
 	if err != nil {
 		zap.S().Errorf(
-			keyErrorReserve.Message,
+			pkg.KeyErrorReserve.Message,
 			"err", err,
 			"keyProductId", req.KeyProductId,
 			"platformId", req.PlatformId,
@@ -108,7 +98,7 @@ func (s *Service) ReserveKeyForOrder(ctx context.Context, req *grpc.PlatformKeyR
 			"ttl", req.Ttl,
 		)
 		res.Status = pkg.ResponseStatusSystemError
-		res.Message = keyErrorReserve
+		res.Message = pkg.KeyErrorReserve
 	}
 
 	res.KeyId = key.Id
@@ -117,12 +107,12 @@ func (s *Service) ReserveKeyForOrder(ctx context.Context, req *grpc.PlatformKeyR
 }
 
 func (s *Service) FinishRedeemKeyForOrder(ctx context.Context, req *grpc.KeyForOrderRequest, res *grpc.GetKeyForOrderRequestResponse) error {
-	key, err := s.keyService.FinishRedeemById(req.KeyId)
+	key, err := s.keyRepository.FinishRedeemById(req.KeyId)
 
 	if err != nil {
-		zap.S().Errorf(keyErrorFinish.Message, "err", err, "keyId", req.KeyId)
+		zap.S().Errorf(pkg.KeyErrorFinish.Message, "err", err, "keyId", req.KeyId)
 		res.Status = pkg.ResponseStatusSystemError
-		res.Message = keyErrorFinish
+		res.Message = pkg.KeyErrorFinish
 	}
 
 	res.Key = key
@@ -131,16 +121,16 @@ func (s *Service) FinishRedeemKeyForOrder(ctx context.Context, req *grpc.KeyForO
 }
 
 func (s *Service) CancelRedeemKeyForOrder(ctx context.Context, req *grpc.KeyForOrderRequest, res *grpc.EmptyResponseWithStatus) error {
-	if err := s.keyService.CancelById(req.KeyId); err != nil {
-		zap.S().Errorf(keyErrorCanceled.Message, "err", err, "keyId", req.KeyId)
+	if err := s.keyRepository.CancelById(req.KeyId); err != nil {
+		zap.S().Errorf(pkg.KeyErrorCanceled.Message, "err", err, "keyId", req.KeyId)
 		res.Status = pkg.ResponseStatusSystemError
-		res.Message = keyErrorCanceled
+		res.Message = pkg.KeyErrorCanceled
 	}
 
 	return nil
 }
 
-type KeyServiceInterface interface {
+type KeyRepositoryInterface interface {
 	Insert(*grpc.Key) error
 	CountKeysByProductPlatform(string, string) (int, error)
 	GetById(string) (*grpc.Key, error)
@@ -149,7 +139,7 @@ type KeyServiceInterface interface {
 	ReserveKey(string, string, string, int32) (*grpc.Key, error)
 }
 
-func newKeyService(svc *Service) *Key {
+func newKeyRepository(svc *Service) *Key {
 	s := &Key{svc: svc}
 	return s
 }
@@ -201,7 +191,7 @@ func (h *Key) CancelById(id string) error {
 	}
 
 	if info.Updated == 0 {
-		return keyNotFound
+		return pkg.KeyErrorNotFound
 	}
 
 	return nil
@@ -224,7 +214,7 @@ func (h *Key) FinishRedeemById(id string) (*grpc.Key, error) {
 	}
 
 	if info.Updated == 0 {
-		return nil, keyNotFound
+		return nil, pkg.KeyErrorNotFound
 	}
 
 	return key, nil
@@ -252,7 +242,7 @@ func (h *Key) ReserveKey(keyProductId string, platformId string, orderId string,
 	}
 
 	if info.Updated == 0 {
-		return nil, keyNotFound
+		return nil, pkg.KeyErrorNotFound
 	}
 
 	return key, nil
