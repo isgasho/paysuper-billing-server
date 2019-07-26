@@ -18,6 +18,7 @@ var (
 	KeyFileProcessFailed = newBillingServerErrorMsg("ks000001", "failed to process file")
 	KeyDbError           = newBillingServerErrorMsg("ks000002", "failed to retrieve data from db")
 	KeyNotFound          = newBillingServerErrorMsg("ks000003", "key not found")
+	KeyFailedToInsert    = newBillingServerErrorMsg("ks000004", "failed to insert key")
 )
 
 func (s *Service) UploadKeysFile(ctx context.Context, req *grpc.PlatformKeysFileRequest, res *grpc.PlatformKeysFileResponse) error {
@@ -32,7 +33,7 @@ func (s *Service) UploadKeysFile(ctx context.Context, req *grpc.PlatformKeysFile
 	count, err := s.db.Collection(collectionKey).Find(query).Count()
 
 	if err != nil {
-		zap.S().Error("err", err)
+		zap.S().Error(KeyDbError.Message, err)
 		res.Status = pkg.ResponseStatusSystemError
 		res.Message = KeyDbError
 		return nil
@@ -70,7 +71,7 @@ func (s *Service) UploadKeysFile(ctx context.Context, req *grpc.PlatformKeysFile
 		}
 
 		if err = s.db.Collection(collectionKey).Insert(key); err != nil {
-			zap.S().Error("err", err)
+			zap.S().Error(KeyFailedToInsert.Message, err)
 		} else {
 			res.TotalCount++
 			res.KeysProcessed++
@@ -79,7 +80,7 @@ func (s *Service) UploadKeysFile(ctx context.Context, req *grpc.PlatformKeysFile
 
 	// tell about errors
 	if err := scanner.Err(); err != nil {
-		zap.S().Error("err", err)
+		zap.S().Error(KeyFileProcessFailed.Message, err)
 		res.Message = KeyFileProcessFailed
 		res.Status = pkg.ResponseStatusBadData
 		return nil
@@ -98,7 +99,7 @@ func (s *Service) GetAvailableKeysCount(ctx context.Context, req *grpc.GetPlatfo
 	count, err := s.db.Collection(collectionKey).Find(query).Count()
 
 	if err != nil {
-		zap.S().Error("err", err)
+		zap.S().Error(KeyDbError.Message, err)
 		res.Status = pkg.ResponseStatusSystemError
 		res.Message = KeyDbError
 		return nil
@@ -131,7 +132,7 @@ func (s *Service) getKeyBy(query bson.M) (*grpc.Key, *grpc.ResponseErrorMessage)
 	key := &grpc.Key{}
 
 	if err := s.db.Collection(collectionKey).Find(query).One(key); err != nil {
-		zap.S().Error("err", err)
+		zap.S().Error(KeyNotFound.Message, err)
 		if err == mgo.ErrNotFound {
 			return nil, KeyNotFound
 		}
@@ -163,13 +164,13 @@ func (s *Service) ReserveKeyForOrder(ctx context.Context, req *grpc.PlatformKeyR
 	// Reserving first available key
 	if info, err := s.db.Collection(collectionKey).Find(query).Limit(1).Apply(change, key); err != nil || info.Updated == 0 {
 		if err != mgo.ErrNotFound {
-			zap.S().Error("err", err)
+			zap.S().Error(KeyDbError.Message, err)
 			res.Status = pkg.ResponseStatusSystemError
 			res.Message = KeyDbError
 			return nil
 		}
 
-		zap.S().Error("err", err)
+		zap.S().Error(KeyNotFound.Message, err)
 		res.Status = pkg.ResponseStatusNotFound
 		res.Message = KeyNotFound
 		return nil
@@ -198,13 +199,13 @@ func (s *Service) FinishRedeemKeyForOrder(ctx context.Context, req *grpc.KeyForO
 	// Reserving first available key
 	if info, err := s.db.Collection(collectionKey).Find(query).Limit(1).Apply(change, key); err != nil || info.Updated == 0 {
 		if err != mgo.ErrNotFound {
-			zap.S().Error("err", err)
+			zap.S().Error(KeyDbError.Message, err)
 			res.Status = pkg.ResponseStatusSystemError
 			res.Message = KeyDbError
 			return nil
 		}
 
-		zap.S().Error("err", err)
+		zap.S().Error(KeyNotFound.Message, err)
 		res.Status = pkg.ResponseStatusNotFound
 		res.Message = KeyNotFound
 		return nil
@@ -232,13 +233,13 @@ func (s *Service) CancelRedeemKeyForOrder(ctx context.Context, req *grpc.KeyForO
 	// Reserving first available key
 	if info, err := s.db.Collection(collectionKey).Find(query).Limit(1).Apply(change, key); err != nil || info.Updated == 0 {
 		if err != mgo.ErrNotFound {
-			zap.S().Error("err", err)
+			zap.S().Error(KeyDbError.Message, err)
 			res.Status = pkg.ResponseStatusSystemError
 			res.Message = KeyDbError
 			return nil
 		}
 
-		zap.S().Error("err", err)
+		zap.S().Error(KeyNotFound.Message, err)
 		res.Status = pkg.ResponseStatusNotFound
 		res.Message = KeyNotFound
 		return nil
