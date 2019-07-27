@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
@@ -16,8 +15,9 @@ import (
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	tax_service "github.com/paysuper/paysuper-tax-service/proto"
+	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
+	"github.com/streadway/amqp"
 	"go.uber.org/zap"
-	"gopkg.in/gomail.v2"
 	"time"
 )
 
@@ -29,7 +29,6 @@ const (
 	VatPeriodEvery3Month = 3
 
 	errorMsgVatReportCentrifugoNotificationFailed = "[Centrifugo] Send financier notification about vat report status change failed"
-	errorMsgVatReportSMTPNotificationFailed       = "[SMTP] Send financier notification about vat report status change failed"
 	errorMsgVatReportTaxServiceGetRateFailed      = "tax service get rate error"
 	errorMsgVatReportTurnoverNotFound             = "turnover not found"
 	errorMsgVatReportRatesPolicyNotImplemented    = "selected currency rates policy not implemented yet"
@@ -416,20 +415,22 @@ func (s *Service) updateVatReport(vr *billing.VatReport) error {
 	}
 
 	if contains(VatReportOnStatusNotifyToEmail, vr.Status) {
-		m := gomail.NewMessage()
-		m.SetHeader("Subject", pkg.EmailVatReportSubject)
+		payload := &postmarkSdrPkg.Payload{
+			TemplateAlias: s.cfg.EmailVatReportTemplate,
+			TemplateModel: map[string]string{
+				"country": vr.Country,
+				"status":  vr.Status,
+			},
+			To: s.cfg.EmailNotificationFinancierRecipient,
+		}
 
-		message := fmt.Sprintf(pkg.EmailVatReportMessage, vr.Country, vr.Status)
-
-		m.SetBody(pkg.EmailContentType, message)
-
-		err = s.smtpCl.Send(s.cfg.EmailNotificationSender, []string{s.cfg.EmailNotificationFinancierRecipient}, m)
+		err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 
 		if err != nil {
 			zap.S().Error(
-				errorMsgVatReportSMTPNotificationFailed,
+				"Publication message about vat report status change to queue failed",
 				zap.Error(err),
-				zap.Any("vat_report", vr),
+				zap.Any("report", vr),
 			)
 		}
 	}

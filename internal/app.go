@@ -2,7 +2,6 @@ package internal
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"github.com/InVisionApp/go-health"
 	"github.com/InVisionApp/go-health/handlers"
@@ -22,6 +21,7 @@ import (
 	"github.com/micro/go-plugins/selector/static"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
+	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/internal/service"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -35,7 +35,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
-	"gopkg.in/gomail.v2"
 	"log"
 	"net/http"
 	"os"
@@ -164,32 +163,15 @@ func (app *Application) Init() {
 	taxService := tax_service.NewTaxService(taxPkg.ServiceName, app.service.Client())
 	curService := currencies.NewCurrencyratesService(curPkg.ServiceName, app.service.Client())
 
-	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
+	/*redisdb := redis.NewClusterClient(&redis.ClusterOptions{
 		Addrs:        cfg.CacheRedis.Address,
 		Password:     cfg.CacheRedis.Password,
 		MaxRetries:   cfg.CacheRedis.MaxRetries,
 		MaxRedirects: cfg.CacheRedis.MaxRedirects,
 		PoolSize:     cfg.CacheRedis.PoolSize,
-	})
+	})*/
 
-	d := gomail.NewDialer(app.cfg.SmtpHost, app.cfg.SmtpPort, app.cfg.SmtpUser, app.cfg.SmtpPassword)
-	d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
-	smtpCl, err := d.Dial()
-
-	if err != nil {
-		zap.S().Fatal(
-			"Connection to SMTP server failed",
-			zap.Error(err),
-			zap.Int("port", app.cfg.SmtpPort),
-			zap.String("user", app.cfg.SmtpUser),
-		)
-	}
-
-	zap.S().Info(
-		"SMTP server connection started",
-		zap.String("host", app.cfg.SmtpHost),
-		zap.Int("port", app.cfg.SmtpPort),
-	)
+	redisdb := mock.NewTestRedis()
 
 	app.svc = service.NewBillingService(
 		app.database,
@@ -201,7 +183,6 @@ func (app *Application) Init() {
 		app.redis,
 		service.NewCacheRedis(redisdb),
 		curService,
-		smtpCl,
 	)
 
 	if err := app.svc.Init(); err != nil {

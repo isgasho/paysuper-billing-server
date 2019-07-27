@@ -18,11 +18,8 @@ import (
 )
 
 var (
-	createdProductId string
-	initialName      = "Double Yeti"
-	newName          = "Double Yeti Reload"
-	merchantId       = "5bdc35de5d1e1100019fb7db"
-	projectId        = "5bdc39a95d1e1100019fb7df"
+	initialName = "Double Yeti"
+	merchantId  = "5bdc35de5d1e1100019fb7db"
 )
 
 type ProductTestSuite struct {
@@ -80,7 +77,6 @@ func (suite *ProductTestSuite) SetupTest() {
 		nil,
 		suite.cache,
 		mock.NewCurrencyServiceMockOk(),
-		nil,
 	)
 
 	if err := suite.service.Init(); err != nil {

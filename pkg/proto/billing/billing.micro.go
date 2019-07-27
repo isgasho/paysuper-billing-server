@@ -96,7 +96,6 @@ It has these top-level messages:
 	RoyaltyReportCorrection
 	RoyaltyReport
 	RoyaltyReportChanges
-	RoyaltyReportOrder
 	VatTransaction
 	VatReport
 	AnnualTurnover

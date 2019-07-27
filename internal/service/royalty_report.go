@@ -19,8 +19,9 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
+	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
+	"github.com/streadway/amqp"
 	"go.uber.org/zap"
-	"gopkg.in/gomail.v2"
 	"sync"
 	"time"
 )
@@ -32,24 +33,16 @@ const (
 	collectionRoyaltyReport        = "royalty_report"
 	collectionRoyaltyReportChanges = "royalty_report_changes"
 
-	royaltyReportErrorCodeReportNotFound                  = "rr00001"
-	royaltyReportErrorCodeReportStatusChangeDenied        = "rr00002"
-	royaltyReportErrorCodeReportDisputeCorrectionRequired = "rr00003"
-	royaltyReportErrorCodeUnknown                         = "rr00004"
-
-	royaltyReportErrorNoTransactions                      = "no transactions for the period"
-	royaltyReportErrorTimezoneIncorrect                   = "incorrect time zone"
-	royaltyReportErrorTextReportNotFound                  = "royalty report with specified identifier not found"
-	royaltyReportErrorTextReportStatusChangeDenied        = "change royalty report to new status denied"
-	royaltyReportErrorTextReportDisputeCorrectionRequired = "for change royalty report status to dispute fields with correction amount and correction reason is required"
-	royaltyReportErrorTextUnknown                         = "unknown error. try request later"
+	royaltyReportErrorNoTransactions    = "no transactions for the period"
+	royaltyReportErrorTimezoneIncorrect = "incorrect time zone"
+	royaltyReportErrorAlreadyExists     = "report for this merchant and period already exists"
 )
 
 var (
-	royaltyReportErrorReportNotFound                  = newBillingServerErrorMsg(royaltyReportErrorCodeReportNotFound, royaltyReportErrorTextReportNotFound)
-	royaltyReportErrorReportStatusChangeDenied        = newBillingServerErrorMsg(royaltyReportErrorCodeReportStatusChangeDenied, royaltyReportErrorTextReportStatusChangeDenied)
-	royaltyReportErrorReportDisputeCorrectionRequired = newBillingServerErrorMsg(royaltyReportErrorCodeReportDisputeCorrectionRequired, royaltyReportErrorTextReportDisputeCorrectionRequired)
-	royaltyReportEntryErrorUnknown                    = newBillingServerErrorMsg(royaltyReportErrorCodeUnknown, royaltyReportErrorTextUnknown)
+	royaltyReportErrorReportNotFound                  = newBillingServerErrorMsg("rr00001", "royalty report with specified identifier not found")
+	royaltyReportErrorReportStatusChangeDenied        = newBillingServerErrorMsg("rr00002", "change royalty report to new status denied")
+	royaltyReportErrorReportDisputeCorrectionRequired = newBillingServerErrorMsg("rr00003", "for change royalty report status to dispute fields with correction amount and correction reason is required")
+	royaltyReportEntryErrorUnknown                    = newBillingServerErrorMsg("rr00004", "unknown error. try request later")
 )
 
 type royaltyReportQueryResItem struct {
@@ -123,7 +116,7 @@ func (s *Service) CreateRoyaltyReport(
 
 	for _, v := range merchants {
 		go func(merchantId bson.ObjectId) {
-			err := handler.processMerchantRoyaltyReport(merchantId)
+			err := handler.createMerchantRoyaltyReport(merchantId)
 
 			if err != nil {
 				rsp.Merchants = append(rsp.Merchants, merchantId.Hex())
@@ -148,30 +141,38 @@ func (s *Service) AutoAcceptRoyaltyReports(
 	query := bson.M{
 		"accept_expire_at": bson.M{"$lte": tNow},
 		"status":           pkg.RoyaltyReportStatusPending,
-		"deleted":          false,
 	}
-	set := bson.M{
-		"$set": bson.M{
-			"status":           pkg.RoyaltyReportStatusAccepted,
-			"accepted_at":      tNow,
-			"is_auto_accepted": true,
-			"updated_at":       tNow,
-		},
-	}
-	_, err := s.db.Collection(collectionRoyaltyReport).UpdateAll(query, set)
 
-	if err != nil {
+	var reports []*billing.RoyaltyReport
+	err := s.db.Collection(collectionRoyaltyReport).Find(query).All(&reports)
+	if err != nil && err != mgo.ErrNotFound {
 		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String(errorFieldCollection, collectionRoyaltyReport),
 			zap.Any(errorFieldQuery, query),
-			zap.Any("set", set),
 		)
-
 		return err
 	}
 
+	for _, report := range reports {
+		report.Status = pkg.RoyaltyReportStatusAccepted
+		report.AcceptedAt = ptypes.TimestampNow()
+		report.UpdatedAt = ptypes.TimestampNow()
+
+		err = s.db.Collection(collectionRoyaltyReport).UpdateId(bson.ObjectIdHex(report.Id), report)
+
+		if err != nil {
+			zap.S().Error(
+				pkg.ErrorDatabaseQueryFailed,
+				zap.Error(err),
+				zap.String(errorFieldCollection, collectionRoyaltyReport),
+			)
+			return err
+		}
+
+		s.onRoyaltyReportChange(report, "", pkg.RoyaltyReportChangeSourceAuto)
+	}
 	return nil
 }
 
@@ -182,7 +183,7 @@ func (s *Service) ListRoyaltyReports(
 ) error {
 	rsp.Status = pkg.ResponseStatusOk
 
-	query := bson.M{"deleted": false}
+	query := bson.M{}
 
 	if req.Id != "" {
 		query["_id"] = bson.ObjectIdHex(req.Id)
@@ -246,6 +247,65 @@ func (s *Service) ListRoyaltyReports(
 	return nil
 }
 
+func (s *Service) MerchantAcceptRoyaltyReport(
+	ctx context.Context,
+	req *grpc.MerchantAcceptRoyaltyReportRequest,
+	rsp *grpc.ResponseError,
+) error {
+	var report *billing.RoyaltyReport
+	err := s.db.Collection(collectionRoyaltyReport).FindId(bson.ObjectIdHex(req.ReportId)).One(&report)
+
+	if err != nil {
+		if err != mgo.ErrNotFound {
+			zap.S().Error(
+				pkg.ErrorDatabaseQueryFailed,
+				zap.Error(err),
+				zap.String(errorFieldCollection, collectionRoyaltyReport),
+			)
+		}
+
+		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Message = royaltyReportErrorReportNotFound
+
+		return nil
+	}
+
+	if report.Status != pkg.RoyaltyReportStatusPending {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = royaltyReportErrorReportStatusChangeDenied
+	}
+
+	if req.IsAccepted == true {
+		report.Status = pkg.RoyaltyReportStatusAccepted
+		report.AcceptedAt = ptypes.TimestampNow()
+	} else {
+		report.Status = pkg.RoyaltyReportStatusDispute
+	}
+
+	report.UpdatedAt = ptypes.TimestampNow()
+
+	err = s.db.Collection(collectionRoyaltyReport).UpdateId(bson.ObjectIdHex(report.Id), report)
+
+	if err != nil {
+		zap.S().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(errorFieldCollection, collectionRoyaltyReport),
+		)
+
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = royaltyReportEntryErrorUnknown
+
+		return nil
+	}
+
+	s.onRoyaltyReportChange(report, req.Ip, pkg.RoyaltyReportChangeSourceMerchant)
+
+	rsp.Status = pkg.ResponseStatusOk
+
+	return nil
+}
+
 func (s *Service) ChangeRoyaltyReport(
 	ctx context.Context,
 	req *grpc.ChangeRoyaltyReportRequest,
@@ -284,24 +344,6 @@ func (s *Service) ChangeRoyaltyReport(
 		return nil
 	}
 
-	reportOld := &billing.RoyaltyReport{
-		Id:             report.Id,
-		MerchantId:     report.MerchantId,
-		CreatedAt:      report.CreatedAt,
-		UpdatedAt:      report.UpdatedAt,
-		PayoutId:       report.PayoutId,
-		PayoutDate:     report.PayoutDate,
-		Status:         report.Status,
-		Deleted:        report.Deleted,
-		PeriodFrom:     report.PeriodFrom,
-		PeriodTo:       report.PeriodTo,
-		AcceptExpireAt: report.AcceptExpireAt,
-		AcceptedAt:     report.AcceptedAt,
-		Amounts:        report.Amounts,
-		Correction:     report.Correction,
-		IsAutoAccepted: report.IsAutoAccepted,
-	}
-
 	report.Status = req.Status
 	report.Correction = req.Correction
 	report.UpdatedAt = ptypes.TimestampNow()
@@ -310,7 +352,7 @@ func (s *Service) ChangeRoyaltyReport(
 		report.AcceptedAt = ptypes.TimestampNow()
 	}
 
-	s.onRoyaltyReportChange(reportOld, report, req.Ip, req.Source)
+	s.onRoyaltyReportChange(report, req.Ip, pkg.RoyaltyReportChangeSourceAdmin)
 	err = s.db.Collection(collectionRoyaltyReport).UpdateId(bson.ObjectIdHex(report.Id), report)
 
 	if err != nil {
@@ -414,13 +456,11 @@ func (s *Service) getRoyaltyReportMerchantsByPeriod(from, to time.Time) []*Royal
 	return merchants
 }
 
-func (s *Service) onRoyaltyReportChange(reportOld, reportNew *billing.RoyaltyReport, ip, source string) {
+func (s *Service) onRoyaltyReportChange(reportNew *billing.RoyaltyReport, ip, source string) {
 	change := &billing.RoyaltyReportChanges{
 		Id:              bson.NewObjectId().Hex(),
 		RoyaltyReportId: reportNew.Id,
 		Source:          source,
-		Before:          reportOld,
-		After:           reportNew,
 		Ip:              ip,
 	}
 
@@ -444,47 +484,31 @@ func (s *Service) onRoyaltyReportChange(reportOld, reportNew *billing.RoyaltyRep
 	return
 }
 
-func (h *royaltyHandler) processMerchantRoyaltyReport(merchantId bson.ObjectId) error {
+func (h *royaltyHandler) createMerchantRoyaltyReport(merchantId bson.ObjectId) error {
 	zap.S().Infow("generating royalty report for merchant", "merchantId", merchantId.Hex())
 
-	//If the report isn't generated the first time, then mark the previous report as deleted
-	query := bson.M{
-		"merchant_id": merchantId,
-		"period_from": bson.M{"$gte": h.from},
-		"period_to":   bson.M{"$lte": h.to},
-	}
-	update := bson.M{"$set": bson.M{"deleted": true}}
-	_, err := h.db.Collection(collectionRoyaltyReport).UpdateAll(query, update)
-
-	if err != nil && err != mgo.ErrNotFound {
-		zap.S().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(errorFieldCollection, collectionRoyaltyReport),
-			zap.Any(errorFieldQuery, query),
-			zap.Any("update", update),
-		)
-
-		return err
-	}
-
-	_, err = h.createMerchantRoyaltyReport(merchantId)
-
-	if err != nil {
-		return err
-	}
-
-	zap.S().Infow("generating royalty report for merchant finished", "merchantId", merchantId.Hex())
-
-	return nil
-}
-
-func (h *royaltyHandler) createMerchantRoyaltyReport(merchantId bson.ObjectId) (*billing.RoyaltyReport, error) {
 	merchant, err := h.merchant.GetById(merchantId.Hex())
 
 	if err != nil {
 		zap.S().Error("Merchant not found", zap.Error(err), zap.String("merchant_id", merchantId.Hex()))
-		return nil, err
+		return err
+	}
+
+	// If the report already exists - this is error!
+	checkQuery := bson.M{
+		"merchant_id": merchantId,
+		"period_from": bson.M{"$gte": h.from},
+		"period_to":   bson.M{"$lte": h.to},
+	}
+	var previous *billing.RoyaltyReport
+	err = h.db.Collection(collectionRoyaltyReport).Find(checkQuery).One(&previous)
+	if err != nil && err != mgo.ErrNotFound {
+		return err
+	}
+
+	if previous != nil {
+		zap.S().Errorw("Merchant not found", "merchant_id", merchantId.Hex, "from", h.from, "to", h.to)
+		return errors.New(royaltyReportErrorAlreadyExists)
 	}
 
 	matchQuery := bson.M{
@@ -525,7 +549,7 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(merchantId bson.ObjectId) (
 			zap.String("collection", collectionOrderView),
 			zap.Any("query", query),
 		)
-		return nil, err
+		return err
 	}
 
 	amounts := &billing.RoyaltyReportDetails{
@@ -541,13 +565,15 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(merchantId bson.ObjectId) (
 	}
 
 	report := &billing.RoyaltyReport{
-		Id:             bson.NewObjectId().Hex(),
-		MerchantId:     merchantId.Hex(),
-		Deleted:        false,
-		Amounts:        amounts,
-		Status:         pkg.RoyaltyReportStatusNew,
-		CreatedAt:      ptypes.TimestampNow(),
-		IsAutoAccepted: false,
+		Id:         bson.NewObjectId().Hex(),
+		MerchantId: merchantId.Hex(),
+		Amounts:    amounts,
+		Status:     pkg.RoyaltyReportStatusNew,
+		CreatedAt:  ptypes.TimestampNow(),
+	}
+
+	if amounts.PayoutAmount >= merchant.MinPayoutAmount {
+		report.Status = pkg.RoyaltyReportStatusPending
 	}
 
 	report.PeriodFrom, _ = ptypes.TimestampProto(h.from)
@@ -564,12 +590,14 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(merchantId bson.ObjectId) (
 			zap.Any(errorFieldQuery, report),
 		)
 
-		return nil, err
+		return err
 	}
 
-	h.onRoyaltyReportChange(nil, report, "", pkg.RoyaltyReportChangeSourceAuto)
+	h.Service.sendRoyaltyReportNotification(report)
 
-	return report, nil
+	zap.S().Infow("generating royalty report for merchant finished", "merchantId", merchantId.Hex())
+
+	return nil
 }
 
 func (s *Service) sendRoyaltyReportNotification(report *billing.RoyaltyReport) {
@@ -581,18 +609,22 @@ func (s *Service) sendRoyaltyReportNotification(report *billing.RoyaltyReport) {
 	}
 
 	if merchant.HasAuthorizedEmail() == true {
-		m := gomail.NewMessage()
-		m.SetHeader("Subject", pkg.EmailRoyaltyReportSubject)
-		m.SetBody(pkg.EmailContentType, pkg.EmailRoyaltyReportMessage)
+		payload := &postmarkSdrPkg.Payload{
+			TemplateAlias: s.cfg.EmailNewRoyaltyReportTemplate,
+			TemplateModel: map[string]string{
+				"merchant_id":       merchant.Id,
+				"royalty_report_id": report.Id,
+			},
+			To: merchant.GetAuthorizedEmail(),
+		}
 
-		err = s.smtpCl.Send(s.cfg.EmailNotificationSender, []string{merchant.GetAuthorizedEmail()}, m)
+		err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 
 		if err != nil {
 			zap.S().Error(
-				"[SMTP] Send merchant notification about new royalty report failed",
+				"Publication message about merchant new royalty report to queue failed",
 				zap.Error(err),
-				zap.String("merchant_id", merchant.Id),
-				zap.String("royalty_report_id", report.Id),
+				zap.Any("report", report),
 			)
 		}
 	}

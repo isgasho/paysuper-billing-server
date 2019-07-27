@@ -115,6 +115,7 @@ service BillingService {
     rpc ListRoyaltyReports(ListRoyaltyReportsRequest) returns (ListRoyaltyReportsResponse) {}
     rpc ChangeRoyaltyReport(ChangeRoyaltyReportRequest) returns (ResponseError) {}
     rpc ListRoyaltyReportOrders(ListRoyaltyReportOrdersRequest) returns (TransactionsResponse) {}
+    rpc MerchantAcceptRoyaltyReport(MerchantAcceptRoyaltyReportRequest) returns (ResponseError) {}
     rpc AutoAcceptRoyaltyReports(EmptyRequest) returns (EmptyResponse) {}
 
     rpc GetVatReportsDashboard (EmptyRequest) returns (VatReportsResponse) {}
@@ -937,7 +938,13 @@ message ChangeRoyaltyReportRequest {
     string payout_id = 3;
     billing.RoyaltyReportCorrection correction = 4;
     string ip = 5;
-    string source = 6;
+}
+
+message MerchantAcceptRoyaltyReportRequest {
+    // @inject_tag: validate:"required,hexadecimal,len=24"
+    string report_id = 1;
+    bool is_accepted = 2;
+    string ip = 3;
 }
 
 message PaymentChannelCostSystemListResponse {
