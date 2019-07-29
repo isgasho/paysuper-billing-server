@@ -21,7 +21,6 @@ import (
 	"github.com/micro/go-plugins/selector/static"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
-	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/internal/service"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -163,15 +162,13 @@ func (app *Application) Init() {
 	taxService := tax_service.NewTaxService(taxPkg.ServiceName, app.service.Client())
 	curService := currencies.NewCurrencyratesService(curPkg.ServiceName, app.service.Client())
 
-	/*redisdb := redis.NewClusterClient(&redis.ClusterOptions{
+	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
 		Addrs:        cfg.CacheRedis.Address,
 		Password:     cfg.CacheRedis.Password,
 		MaxRetries:   cfg.CacheRedis.MaxRetries,
 		MaxRedirects: cfg.CacheRedis.MaxRedirects,
 		PoolSize:     cfg.CacheRedis.PoolSize,
-	})*/
-
-	redisdb := mock.NewTestRedis()
+	})
 
 	app.svc = service.NewBillingService(
 		app.database,
