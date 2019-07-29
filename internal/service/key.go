@@ -71,6 +71,8 @@ func (s *Service) GetAvailableKeysCount(ctx context.Context, req *grpc.GetPlatfo
 	}
 
 	res.Count = int32(count)
+	res.Status = pkg.ResponseStatusOk
+
 	return nil
 }
 

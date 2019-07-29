@@ -71,8 +71,8 @@ func (suite *KeyTestSuite) SetupTest() {
 
 	idx := mgo.Index{
 		Unique: true,
-		Name:   "udx_key_platform_product_code",
-		Key:    []string{"platform_id", "key_product_id", "code"},
+		Name:   "udx_key_platform_code",
+		Key:    []string{"platform_id", "code"},
 	}
 	_ = suite.service.db.Collection(collectionKey).EnsureIndex(idx)
 }
