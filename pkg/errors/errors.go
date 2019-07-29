@@ -1,14 +1,16 @@
-package pkg
+package errors
 
 import "github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 
 func newBillingServerErrorMsg(code, msg string, details ...string) *grpc.ResponseErrorMessage {
 	var det string
+
 	if len(details) > 0 && details[0] != "" {
 		det = details[0]
 	} else {
 		det = ""
 	}
+
 	return &grpc.ResponseErrorMessage{Code: code, Message: msg, Details: det}
 }
 

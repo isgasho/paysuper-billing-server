@@ -51,17 +51,6 @@ type MgoUserProfile struct {
 	UpdatedAt time.Time            `bson:"updated_at"`
 }
 
-type MgoKey struct {
-	Id           bson.ObjectId `bson:"_id"`
-	Code         string        `bson:"code"`
-	KeyProductId bson.ObjectId `bson:"key_product_id"`
-	PlatformId   bson.ObjectId `bson:"platform_id"`
-	OrderId      bson.ObjectId `bson:"order_id"`
-	CreatedAt    time.Time     `bson:"created_at"`
-	ReservedTo   time.Time     `bson:"reserved_to"`
-	RedeemedAt   time.Time     `bson:"redeemed_at"`
-}
-
 func (p *Product) SetBSON(raw bson.Raw) error {
 	decoded := new(MgoProduct)
 	err := raw.Unmarshal(decoded)
@@ -280,67 +269,4 @@ func (m *UserProfile) SetBSON(raw bson.Raw) error {
 	}
 
 	return nil
-}
-
-func (k *Key) SetBSON(raw bson.Raw) error {
-	decoded := new(MgoKey)
-	err := raw.Unmarshal(decoded)
-
-	if err != nil {
-		return err
-	}
-
-	k.Id = decoded.Id.Hex()
-	k.Code = decoded.Code
-	k.KeyProductId = decoded.KeyProductId.Hex()
-	k.OrderId = decoded.OrderId.Hex()
-	k.PlatformId = decoded.PlatformId.Hex()
-
-	if k.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt); err != nil {
-		return err
-	}
-
-	if k.RedeemedAt, err = ptypes.TimestampProto(decoded.RedeemedAt); err != nil {
-		return err
-	}
-
-	if k.ReservedTo, err = ptypes.TimestampProto(decoded.ReservedTo); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *Key) GetBSON() (interface{}, error) {
-	st := &MgoKey{
-		Id:           bson.ObjectIdHex(m.Id),
-		PlatformId:   bson.ObjectIdHex(m.PlatformId),
-		OrderId:      bson.ObjectIdHex(m.OrderId),
-		KeyProductId: bson.ObjectIdHex(m.KeyProductId),
-		Code:         m.Code,
-	}
-
-	var err error
-
-	if m.RedeemedAt != nil {
-		if st.RedeemedAt, err = ptypes.Timestamp(m.RedeemedAt); err != nil {
-			return nil, err
-		}
-	}
-
-	if m.ReservedTo != nil {
-		if st.ReservedTo, err = ptypes.Timestamp(m.ReservedTo); err != nil {
-			return nil, err
-		}
-	}
-
-	if m.CreatedAt != nil {
-		if st.CreatedAt, err = ptypes.Timestamp(m.CreatedAt); err != nil {
-			return nil, err
-		}
-	} else {
-		st.CreatedAt = time.Now()
-	}
-
-	return st, nil
 }

@@ -141,7 +141,7 @@ type BillingService interface {
 	GetKeyByID(ctx context.Context, in *KeyForOrderRequest, opts ...client.CallOption) (*GetKeyForOrderRequestResponse, error)
 	ReserveKeyForOrder(ctx context.Context, in *PlatformKeyReserveRequest, opts ...client.CallOption) (*PlatformKeyReserveResponse, error)
 	FinishRedeemKeyForOrder(ctx context.Context, in *KeyForOrderRequest, opts ...client.CallOption) (*GetKeyForOrderRequestResponse, error)
-	CancelRedeemKeyForOrder(ctx context.Context, in *KeyForOrderRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
+	CancelRedeemKeyForOrder(ctx context.Context, in *KeyForOrderRequest, opts ...client.CallOption) (*GetKeyForOrderRequestResponse, error)
 }
 
 type billingService struct {
@@ -1212,9 +1212,9 @@ func (c *billingService) FinishRedeemKeyForOrder(ctx context.Context, in *KeyFor
 	return out, nil
 }
 
-func (c *billingService) CancelRedeemKeyForOrder(ctx context.Context, in *KeyForOrderRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error) {
+func (c *billingService) CancelRedeemKeyForOrder(ctx context.Context, in *KeyForOrderRequest, opts ...client.CallOption) (*GetKeyForOrderRequestResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.CancelRedeemKeyForOrder", in)
-	out := new(EmptyResponseWithStatus)
+	out := new(GetKeyForOrderRequestResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1330,7 +1330,7 @@ type BillingServiceHandler interface {
 	GetKeyByID(context.Context, *KeyForOrderRequest, *GetKeyForOrderRequestResponse) error
 	ReserveKeyForOrder(context.Context, *PlatformKeyReserveRequest, *PlatformKeyReserveResponse) error
 	FinishRedeemKeyForOrder(context.Context, *KeyForOrderRequest, *GetKeyForOrderRequestResponse) error
-	CancelRedeemKeyForOrder(context.Context, *KeyForOrderRequest, *EmptyResponseWithStatus) error
+	CancelRedeemKeyForOrder(context.Context, *KeyForOrderRequest, *GetKeyForOrderRequestResponse) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -1440,7 +1440,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetKeyByID(ctx context.Context, in *KeyForOrderRequest, out *GetKeyForOrderRequestResponse) error
 		ReserveKeyForOrder(ctx context.Context, in *PlatformKeyReserveRequest, out *PlatformKeyReserveResponse) error
 		FinishRedeemKeyForOrder(ctx context.Context, in *KeyForOrderRequest, out *GetKeyForOrderRequestResponse) error
-		CancelRedeemKeyForOrder(ctx context.Context, in *KeyForOrderRequest, out *EmptyResponseWithStatus) error
+		CancelRedeemKeyForOrder(ctx context.Context, in *KeyForOrderRequest, out *GetKeyForOrderRequestResponse) error
 	}
 	type BillingService struct {
 		billingService
@@ -1873,6 +1873,6 @@ func (h *billingServiceHandler) FinishRedeemKeyForOrder(ctx context.Context, in 
 	return h.BillingServiceHandler.FinishRedeemKeyForOrder(ctx, in, out)
 }
 
-func (h *billingServiceHandler) CancelRedeemKeyForOrder(ctx context.Context, in *KeyForOrderRequest, out *EmptyResponseWithStatus) error {
+func (h *billingServiceHandler) CancelRedeemKeyForOrder(ctx context.Context, in *KeyForOrderRequest, out *GetKeyForOrderRequestResponse) error {
 	return h.BillingServiceHandler.CancelRedeemKeyForOrder(ctx, in, out)
 }

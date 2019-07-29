@@ -7,6 +7,8 @@ import (
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg"
+	"github.com/paysuper/paysuper-billing-server/pkg/errors"
+	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"go.uber.org/zap"
 	"time"
@@ -19,9 +21,9 @@ func (s *Service) UploadKeysFile(ctx context.Context, req *grpc.PlatformKeysFile
 	count, err := s.keyRepository.CountKeysByProductPlatform(req.KeyProductId, req.PlatformId)
 
 	if err != nil {
-		zap.S().Errorf(pkg.KeyErrorNotFound.Message, "err", err.Error(), "keyProductId", req.KeyProductId, "platformId", req.PlatformId)
-		res.Status = pkg.ResponseStatusSystemError
-		res.Message = pkg.KeyErrorNotFound
+		zap.S().Errorf(errors.KeyErrorNotFound.Message, "err", err.Error(), "keyProductId", req.KeyProductId, "platformId", req.PlatformId)
+		res.Status = pkg.ResponseStatusNotFound
+		res.Message = errors.KeyErrorNotFound
 		return nil
 	}
 
@@ -29,7 +31,7 @@ func (s *Service) UploadKeysFile(ctx context.Context, req *grpc.PlatformKeysFile
 
 	// Process key by line
 	for scanner.Scan() {
-		key := &grpc.Key{
+		key := &billing.Key{
 			Id:           bson.NewObjectId().Hex(),
 			Code:         scanner.Text(),
 			KeyProductId: req.KeyProductId,
@@ -37,7 +39,7 @@ func (s *Service) UploadKeysFile(ctx context.Context, req *grpc.PlatformKeysFile
 		}
 
 		if err := s.keyRepository.Insert(key); err != nil {
-			zap.S().Errorf(pkg.KeyErrorFailedToInsert.Message, "err", err, "key", key)
+			zap.S().Errorf(errors.KeyErrorFailedToInsert.Message, "err", err, "key", key)
 			continue
 		}
 
@@ -47,11 +49,13 @@ func (s *Service) UploadKeysFile(ctx context.Context, req *grpc.PlatformKeysFile
 
 	// tell about errors
 	if err = scanner.Err(); err != nil {
-		zap.S().Errorf(pkg.KeyErrorFileProcess.Message, "err", err.Error())
-		res.Message = pkg.KeyErrorFileProcess
+		zap.S().Errorf(errors.KeyErrorFileProcess.Message, "err", err.Error())
+		res.Message = errors.KeyErrorFileProcess
 		res.Status = pkg.ResponseStatusBadData
 		return nil
 	}
+
+	res.Status = pkg.ResponseStatusOk
 
 	return nil
 }
@@ -60,9 +64,9 @@ func (s *Service) GetAvailableKeysCount(ctx context.Context, req *grpc.GetPlatfo
 	count, err := s.keyRepository.CountKeysByProductPlatform(req.KeyProductId, req.PlatformId)
 
 	if err != nil {
-		zap.S().Errorf(pkg.KeyErrorNotFound.Message, "err", err.Error(), "keyProductId", req.KeyProductId, "platformId", req.PlatformId)
-		res.Status = pkg.ResponseStatusSystemError
-		res.Message = pkg.KeyErrorNotFound
+		zap.S().Errorf(errors.KeyErrorNotFound.Message, "err", err.Error(), "keyProductId", req.KeyProductId, "platformId", req.PlatformId)
+		res.Status = pkg.ResponseStatusNotFound
+		res.Message = errors.KeyErrorNotFound
 		return nil
 	}
 
@@ -74,9 +78,9 @@ func (s *Service) GetKeyByID(ctx context.Context, req *grpc.KeyForOrderRequest, 
 	key, err := s.keyRepository.GetById(req.KeyId)
 
 	if err != nil {
-		zap.S().Errorf(pkg.KeyErrorNotFound.Message, "err", err.Error(), "keyId", req.KeyId)
+		zap.S().Errorf(errors.KeyErrorNotFound.Message, "err", err.Error(), "keyId", req.KeyId)
 		res.Status = pkg.ResponseStatusNotFound
-		res.Message = pkg.KeyErrorNotFound
+		res.Message = errors.KeyErrorNotFound
 		return nil
 	}
 
@@ -90,7 +94,7 @@ func (s *Service) ReserveKeyForOrder(ctx context.Context, req *grpc.PlatformKeyR
 
 	if err != nil {
 		zap.S().Errorf(
-			pkg.KeyErrorReserve.Message,
+			errors.KeyErrorReserve.Message,
 			"err", err,
 			"keyProductId", req.KeyProductId,
 			"platformId", req.PlatformId,
@@ -98,10 +102,12 @@ func (s *Service) ReserveKeyForOrder(ctx context.Context, req *grpc.PlatformKeyR
 			"ttl", req.Ttl,
 		)
 		res.Status = pkg.ResponseStatusSystemError
-		res.Message = pkg.KeyErrorReserve
+		res.Message = errors.KeyErrorReserve
+		return nil
 	}
 
 	res.KeyId = key.Id
+	res.Status = pkg.ResponseStatusOk
 
 	return nil
 }
@@ -110,33 +116,41 @@ func (s *Service) FinishRedeemKeyForOrder(ctx context.Context, req *grpc.KeyForO
 	key, err := s.keyRepository.FinishRedeemById(req.KeyId)
 
 	if err != nil {
-		zap.S().Errorf(pkg.KeyErrorFinish.Message, "err", err, "keyId", req.KeyId)
+		zap.S().Errorf(errors.KeyErrorFinish.Message, "err", err, "keyId", req.KeyId)
 		res.Status = pkg.ResponseStatusSystemError
-		res.Message = pkg.KeyErrorFinish
+		res.Message = errors.KeyErrorFinish
+		return nil
 	}
 
 	res.Key = key
+	res.Status = pkg.ResponseStatusOk
 
 	return nil
 }
 
-func (s *Service) CancelRedeemKeyForOrder(ctx context.Context, req *grpc.KeyForOrderRequest, res *grpc.EmptyResponseWithStatus) error {
-	if err := s.keyRepository.CancelById(req.KeyId); err != nil {
-		zap.S().Errorf(pkg.KeyErrorCanceled.Message, "err", err, "keyId", req.KeyId)
+func (s *Service) CancelRedeemKeyForOrder(ctx context.Context, req *grpc.KeyForOrderRequest, res *grpc.GetKeyForOrderRequestResponse) error {
+	key, err := s.keyRepository.CancelById(req.KeyId)
+
+	if err != nil {
+		zap.S().Errorf(errors.KeyErrorCanceled.Message, "err", err, "keyId", req.KeyId)
 		res.Status = pkg.ResponseStatusSystemError
-		res.Message = pkg.KeyErrorCanceled
+		res.Message = errors.KeyErrorCanceled
+		return nil
 	}
+
+	res.Key = key
+	res.Status = pkg.ResponseStatusOk
 
 	return nil
 }
 
 type KeyRepositoryInterface interface {
-	Insert(*grpc.Key) error
+	Insert(*billing.Key) error
+	GetById(string) (*billing.Key, error)
+	ReserveKey(string, string, string, int32) (*billing.Key, error)
+	CancelById(string) (*billing.Key, error)
+	FinishRedeemById(string) (*billing.Key, error)
 	CountKeysByProductPlatform(string, string) (int, error)
-	GetById(string) (*grpc.Key, error)
-	CancelById(string) error
-	FinishRedeemById(string) (*grpc.Key, error)
-	ReserveKey(string, string, string, int32) (*grpc.Key, error)
 }
 
 func newKeyRepository(svc *Service) *Key {
@@ -144,8 +158,8 @@ func newKeyRepository(svc *Service) *Key {
 	return s
 }
 
-func (h *Key) Insert(key *grpc.Key) error {
-	err := h.svc.db.Collection(collectionPriceGroup).Insert(key)
+func (h *Key) Insert(key *billing.Key) error {
+	err := h.svc.db.Collection(collectionKey).Insert(key)
 
 	if err != nil {
 		return err
@@ -154,18 +168,8 @@ func (h *Key) Insert(key *grpc.Key) error {
 	return nil
 }
 
-func (h *Key) CountKeysByProductPlatform(keyProductId string, platformId string) (int, error) {
-	query := bson.M{
-		"key_product_id": bson.ObjectIdHex(keyProductId),
-		"platform_id":    bson.ObjectIdHex(platformId),
-		"order_id":       bson.ObjectIdHex(""),
-	}
-
-	return h.svc.db.Collection(collectionKey).Find(query).Count()
-}
-
-func (h *Key) GetById(id string) (*grpc.Key, error) {
-	key := &grpc.Key{}
+func (h *Key) GetById(id string) (*billing.Key, error) {
+	key := &billing.Key{}
 	err := h.svc.db.Collection(collectionKey).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(key)
 
 	if err != nil {
@@ -175,64 +179,22 @@ func (h *Key) GetById(id string) (*grpc.Key, error) {
 	return key, nil
 }
 
-func (h *Key) CancelById(id string) error {
-	query := bson.M{"_id": bson.ObjectIdHex(id)}
-	change := mgo.Change{
-		Update: bson.M{
-			"reserved_to": "",
-			"order_id":    bson.ObjectIdHex(""),
-		},
-	}
-
-	info, err := h.svc.db.Collection(collectionKey).Find(query).Limit(1).Apply(change, &grpc.Key{})
-
-	if err != nil {
-		return err
-	}
-
-	if info.Updated == 0 {
-		return pkg.KeyErrorNotFound
-	}
-
-	return nil
-}
-
-func (h *Key) FinishRedeemById(id string) (*grpc.Key, error) {
-	key := &grpc.Key{}
-	query := bson.M{"_id": bson.ObjectIdHex(id)}
-	change := mgo.Change{
-		Update: bson.M{
-			"reserved_to": "",
-			"redeemed_at": time.Now().UTC(),
-		},
-	}
-
-	info, err := h.svc.db.Collection(collectionKey).Find(query).Limit(1).Apply(change, key)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if info.Updated == 0 {
-		return nil, pkg.KeyErrorNotFound
-	}
-
-	return key, nil
-}
-
-func (h *Key) ReserveKey(keyProductId string, platformId string, orderId string, ttl int32) (*grpc.Key, error) {
-	key := &grpc.Key{}
+func (h *Key) ReserveKey(keyProductId string, platformId string, orderId string, ttl int32) (*billing.Key, error) {
+	key := &billing.Key{}
 	duration := time.Second * time.Duration(ttl)
 	query := bson.M{
 		"key_product_id": bson.ObjectIdHex(keyProductId),
 		"platform_id":    bson.ObjectIdHex(platformId),
-		"order_id":       bson.ObjectIdHex(""),
+		"order_id":       nil,
 	}
 	change := mgo.Change{
 		Update: bson.M{
-			"reserved_to": time.Now().UTC().Add(duration),
-			"order_id":    bson.ObjectIdHex(orderId),
+			"$set": bson.M{
+				"reserved_to": time.Now().UTC().Add(duration),
+				"order_id":    bson.ObjectIdHex(orderId),
+			},
 		},
+		ReturnNew: true,
 	}
 
 	info, err := h.svc.db.Collection(collectionKey).Find(query).Limit(1).Apply(change, key)
@@ -242,8 +204,70 @@ func (h *Key) ReserveKey(keyProductId string, platformId string, orderId string,
 	}
 
 	if info.Updated == 0 {
-		return nil, pkg.KeyErrorNotFound
+		return nil, errors.KeyErrorNotFound
 	}
 
 	return key, nil
+}
+
+func (h *Key) CancelById(id string) (*billing.Key, error) {
+	key := &billing.Key{}
+	query := bson.M{"_id": bson.ObjectIdHex(id)}
+	change := mgo.Change{
+		Update: bson.M{
+			"$set": bson.M{
+				"reserved_to": "",
+				"order_id":    nil,
+			},
+		},
+		ReturnNew: true,
+	}
+
+	info, err := h.svc.db.Collection(collectionKey).Find(query).Limit(1).Apply(change, key)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if info.Updated == 0 {
+		return nil, errors.KeyErrorNotFound
+	}
+
+	return key, nil
+}
+
+func (h *Key) FinishRedeemById(id string) (*billing.Key, error) {
+	key := &billing.Key{}
+	query := bson.M{"_id": bson.ObjectIdHex(id)}
+	change := mgo.Change{
+		Update: bson.M{
+			"$set": bson.M{
+				"reserved_to": "",
+				"redeemed_at": time.Now().UTC(),
+			},
+		},
+		ReturnNew: true,
+	}
+
+	info, err := h.svc.db.Collection(collectionKey).Find(query).Limit(1).Apply(change, key)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if info.Updated == 0 {
+		return nil, errors.KeyErrorNotFound
+	}
+
+	return key, nil
+}
+
+func (h *Key) CountKeysByProductPlatform(keyProductId string, platformId string) (int, error) {
+	query := bson.M{
+		"key_product_id": bson.ObjectIdHex(keyProductId),
+		"platform_id":    bson.ObjectIdHex(platformId),
+		"order_id":       nil,
+	}
+
+	return h.svc.db.Collection(collectionKey).Find(query).Count()
 }
