@@ -130,7 +130,7 @@ func (s *Service) FinishRedeemKeyForOrder(ctx context.Context, req *grpc.KeyForO
 	return nil
 }
 
-func (s *Service) CancelRedeemKeyForOrder(ctx context.Context, req *grpc.KeyForOrderRequest, res *grpc.GetKeyForOrderRequestResponse) error {
+func (s *Service) CancelRedeemKeyForOrder(ctx context.Context, req *grpc.KeyForOrderRequest, res *grpc.EmptyResponseWithStatus) error {
 	_, err := s.keyRepository.CancelById(req.KeyId)
 
 	if err != nil {

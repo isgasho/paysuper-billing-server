@@ -139,7 +139,7 @@ service BillingService {
     rpc GetKeyByID(KeyForOrderRequest) returns (GetKeyForOrderRequestResponse) {}
     rpc ReserveKeyForOrder(PlatformKeyReserveRequest) returns (PlatformKeyReserveResponse) {}
     rpc FinishRedeemKeyForOrder(KeyForOrderRequest) returns (GetKeyForOrderRequestResponse) {}
-    rpc CancelRedeemKeyForOrder(KeyForOrderRequest) returns (GetKeyForOrderRequestResponse) {}
+    rpc CancelRedeemKeyForOrder(KeyForOrderRequest) returns (EmptyResponseWithStatus) {}
 }
 
 message EmptyRequest {}

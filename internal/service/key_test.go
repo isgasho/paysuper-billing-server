@@ -436,7 +436,7 @@ func (suite *KeyTestSuite) TestKey_CancelRedeemKeyForOrder_Ok() {
 	req := &grpc.KeyForOrderRequest{
 		KeyId: bson.NewObjectId().Hex(),
 	}
-	res := grpc.GetKeyForOrderRequestResponse{}
+	res := grpc.EmptyResponseWithStatus{}
 	key := &billing.Key{
 		Id: bson.NewObjectId().Hex(),
 	}
@@ -454,7 +454,7 @@ func (suite *KeyTestSuite) TestKey_CancelRedeemKeyForOrder_Error_NotFound() {
 	req := &grpc.KeyForOrderRequest{
 		KeyId: bson.NewObjectId().Hex(),
 	}
-	res := grpc.GetKeyForOrderRequestResponse{}
+	res := grpc.EmptyResponseWithStatus{}
 
 	kr := &mock.KeyRepositoryInterface{}
 	kr.On("CancelById", req.KeyId).Return(nil, errors.New("not found"))
