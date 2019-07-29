@@ -40,6 +40,7 @@ type OrderTestSuite struct {
 	project                                *billing.Project
 	projectFixedAmount                     *billing.Project
 	projectWithProducts                    *billing.Project
+	projectWithKeyProducts                 *billing.Project
 	inactiveProject                        *billing.Project
 	projectWithoutPaymentMethods           *billing.Project
 	projectIncorrectPaymentMethodId        *billing.Project
@@ -51,6 +52,7 @@ type OrderTestSuite struct {
 	pmWebMoney                             *billing.PaymentMethod
 	pmBitcoin1                             *billing.PaymentMethod
 	productIds                             []string
+	keyProductIds                          []string
 	merchantDefaultCurrency                string
 }
 
@@ -486,6 +488,20 @@ func (suite *OrderTestSuite) SetupTest() {
 		Status:                   pkg.ProjectStatusDraft,
 		MerchantId:               merchant.Id,
 	}
+	projectWithKeyProducts := &billing.Project{
+		Id:                       bson.NewObjectId().Hex(),
+		CallbackCurrency:         "RUB",
+		CallbackProtocol:         "default",
+		LimitsCurrency:           "USD",
+		MaxPaymentAmount:         15000,
+		MinPaymentAmount:         1,
+		Name:                     map[string]string{"en": "test key project"},
+		IsProductsCheckout:       false,
+		AllowDynamicRedirectUrls: true,
+		SecretKey:                "test key project secret key",
+		Status:                   pkg.ProjectStatusDraft,
+		MerchantId:               merchant.Id,
+	}
 	projectUahLimitCurrency := &billing.Project{
 		Id:                 bson.NewObjectId().Hex(),
 		CallbackCurrency:   "RUB",
@@ -560,6 +576,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		projectIncorrectPaymentMethodId,
 		projectEmptyPaymentMethodTerminal,
 		projectUahLimitCurrency,
+		projectWithKeyProducts,
 	}
 
 	ps4 := &billing.PaymentSystem{
@@ -798,6 +815,47 @@ func (suite *OrderTestSuite) SetupTest() {
 		productIds = append(productIds, prod.Id)
 	}
 
+	var keyProductIds []string
+	for i, n := range names {
+		req := &grpc.CreateOrUpdateKeyProductRequest{
+			Object:          "key_product",
+			Sku:             "ru_" + strconv.Itoa(i) + "_" + strcase.SnakeCase(n),
+			Name:            map[string]string{"en": n},
+			DefaultCurrency: "USD",
+			Enabled:         true,
+			Description:     map[string]string{"en": n + " description"},
+			MerchantId:      projectWithKeyProducts.MerchantId,
+			ProjectId:       projectWithKeyProducts.Id,
+		}
+
+		baseAmount := 37.00 * float64(i+1)
+
+		res := &grpc.KeyProductResponse{}
+		assert.NoError(suite.T(), suite.service.CreateOrUpdateKeyProduct(context.TODO(), req, res))
+		assert.NotNil(suite.T(), res.Product)
+		assert.NoError(suite.T(), suite.service.UpdatePlatformPrices(context.TODO(), &grpc.AddOrUpdatePlatformPricesRequest{
+			KeyProductId: res.Product.Id,
+			MerchantId:   projectWithKeyProducts.MerchantId,
+			Platform: &grpc.PlatformPrice{
+				Id: "steam",
+				Prices: []*grpc.ProductPrice{
+					{
+						Currency: "USD",
+						Region:   "USD",
+						Amount:   baseAmount,
+					},
+					{
+						Currency: "RUB",
+						Region:   "RUB",
+						Amount:   baseAmount * 65.13,
+					},
+				},
+			},
+		}, &grpc.UpdatePlatformPricesResponse{}))
+
+		keyProductIds = append(keyProductIds, res.Product.Id)
+	}
+
 	sysCost := &billing.PaymentChannelCostSystem{
 		Id:        bson.NewObjectId().Hex(),
 		Name:      "MASTERCARD",
@@ -901,6 +959,7 @@ func (suite *OrderTestSuite) SetupTest() {
 	suite.project = project
 	suite.projectFixedAmount = projectFixedAmount
 	suite.projectWithProducts = projectWithProducts
+	suite.projectWithKeyProducts = projectWithKeyProducts
 	suite.inactiveProject = inactiveProject
 	suite.projectWithoutPaymentMethods = projectWithoutPaymentMethods
 	suite.projectIncorrectPaymentMethodId = projectIncorrectPaymentMethodId
@@ -913,6 +972,7 @@ func (suite *OrderTestSuite) SetupTest() {
 	suite.pmBitcoin1 = pmBitcoin1
 	suite.productIds = productIds
 	suite.merchantDefaultCurrency = "USD"
+	suite.keyProductIds = keyProductIds
 
 	paymentSysCost1 := &billing.PaymentChannelCostSystem{
 		Name:              "MASTERCARD",
@@ -1168,6 +1228,17 @@ func (suite *OrderTestSuite) TestOrder_ProcessPayerData_Error() {
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), processor.checked.user.Address)
 	assert.Equal(suite.T(), orderErrorPayerRegionUnknown, err)
+}
+
+func (suite *OrderTestSuite) TestOrder_ValidateKeyProductsForOrder_Ok() {
+	_, err := suite.service.GetOrderKeyProducts(suite.projectWithKeyProducts.Id, suite.keyProductIds)
+	assert.Nil(suite.T(), err)
+}
+
+func (suite *OrderTestSuite) TestOrder_ValidateKeyProductsForOrder_AnotherProject_Fail() {
+	_, err := suite.service.GetOrderKeyProducts(suite.project.Id, suite.keyProductIds)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), orderErrorProductsInvalid, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ValidateProductsForOrder_Ok() {
@@ -1921,11 +1992,14 @@ func (suite *OrderTestSuite) TestOrder_ProcessSignature_Json_Ok() {
 		OrderId:       bson.NewObjectId().Hex(),
 		PayerEmail:    "test@unit.unit",
 		IsJson:        true,
+		Type:          billing.OrderType_simple,
 	}
 
 	req.RawBody = `{"project":"` + suite.project.Id + `","amount":` + fmt.Sprintf("%f", req.Amount) +
 		`,"currency":"` + req.Currency + `","account":"` + req.Account + `","order_id":"` + req.OrderId +
-		`","description":"` + req.Description + `","payment_method":"` + req.PaymentMethod + `","payer_email":"` + req.PayerEmail + `"}`
+		`","description":"` + req.Description + `","payment_method":"` + req.PaymentMethod + `","payer_email":"` + req.PayerEmail +
+		`","type":"` + billing.OrderType_simple.String() + `"}`
+
 	hashString := req.RawBody + suite.project.SecretKey
 
 	h := sha512.New()
@@ -2004,6 +2078,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_Ok() {
 		UrlSuccess: "https://unit.test",
 		UrlFail:    "https://unit.test",
 		Products:   suite.productIds,
+		Type:       billing.OrderType_product,
 	}
 
 	processor := &OrderCreateRequestProcessor{
@@ -2057,6 +2132,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_PaymentMethod_Ok() {
 			Ip:    "127.0.0.1",
 		},
 		Products: suite.productIds,
+		Type:     billing.OrderType_product,
 	}
 
 	processor := &OrderCreateRequestProcessor{
@@ -2119,6 +2195,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_UrlVerify_Error() {
 		UrlNotify: "https://unit.test",
 		UrlVerify: "https://unit.test",
 		Products:  suite.productIds,
+		Type:      billing.OrderType_product,
 	}
 
 	processor := &OrderCreateRequestProcessor{
@@ -2169,6 +2246,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_UrlRedirect_Error() {
 		UrlFail:    "https://unit.test",
 		UrlSuccess: "https://unit.test",
 		Products:   suite.productIds,
+		Type:       billing.OrderType_product,
 	}
 
 	processor := &OrderCreateRequestProcessor{
@@ -2311,10 +2389,36 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_Error_CheckoutWithoutA
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
+		Type: billing.OrderType_product,
 	}
 
 	rsp := &grpc.OrderCreateProcessResponse{}
 	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusBadData)
+	assert.Equal(suite.T(), orderErrorCheckoutWithoutProducts, rsp.Message)
+
+	suite.project.IsProductsCheckout = false
+	assert.NoError(suite.T(), suite.service.project.Update(suite.project))
+
+	req = &billing.OrderCreateRequest{
+		ProjectId:     suite.project.Id,
+		PaymentMethod: suite.paymentMethod.Group,
+		Currency:      "USD",
+		Amount:        100,
+		Account:       "unit test",
+		Description:   "unit test",
+		OrderId:       bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+		Type: billing.OrderType_key,
+	}
+
+	rsp = &grpc.OrderCreateProcessResponse{}
+	err = suite.service.OrderCreateProcess(context.TODO(), req, rsp)
 
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusBadData)
@@ -2337,6 +2441,7 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_Error_CheckoutWithoutP
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
+		Type: billing.OrderType_simple,
 	}
 
 	rsp := &grpc.OrderCreateProcessResponse{}
@@ -2360,6 +2465,7 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_CurrencyInvalid_Error(
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
+		Type: billing.OrderType_simple,
 	}
 
 	rsp := &grpc.OrderCreateProcessResponse{}
@@ -2804,6 +2910,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcessWithProducts_Ok
 			Ip:    "127.0.0.1",
 		},
 		Products: suite.productIds,
+		Type:     billing.OrderType_product,
 	}
 
 	rsp1 := &grpc.OrderCreateProcessResponse{}
@@ -3726,6 +3833,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Ok() {
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
+		Type: billing.OrderType_product,
 	}
 
 	rsp1 := &grpc.OrderCreateProcessResponse{}
@@ -3845,6 +3953,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Recurring_Ok() {
 			Ip:    "127.0.0.1",
 		},
 		Products: suite.productIds,
+		Type:     billing.OrderType_product,
 	}
 
 	rsp1 := &grpc.OrderCreateProcessResponse{}
@@ -5388,6 +5497,7 @@ func (suite *OrderTestSuite) TestCardpay_fillPaymentDataEwallet() {
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
+		Type: billing.OrderType_simple,
 	}
 
 	rsp0 := &grpc.OrderCreateProcessResponse{}
@@ -5431,6 +5541,7 @@ func (suite *OrderTestSuite) TestCardpay_fillPaymentDataCard() {
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
+		Type: billing.OrderType_simple,
 	}
 
 	rsp0 := &grpc.OrderCreateProcessResponse{}
@@ -5482,6 +5593,7 @@ func (suite *OrderTestSuite) TestBillingService_SetUserNotifySales_Ok() {
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
+		Type: billing.OrderType_simple,
 	}
 
 	rsp0 := &grpc.OrderCreateProcessResponse{}
@@ -5538,6 +5650,7 @@ func (suite *OrderTestSuite) TestBillingService_SetUserNotifyNewRegion_Ok() {
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
+		Type: billing.OrderType_simple,
 	}
 
 	rsp0 := &grpc.OrderCreateProcessResponse{}
@@ -5598,6 +5711,7 @@ func (suite *OrderTestSuite) TestBillingService_OrderCreateProcess_CountryRestri
 			Ip:      "127.0.0.1",
 			Address: &billing.OrderBillingAddress{},
 		},
+		Type: billing.OrderType_simple,
 	}
 
 	// payments allowed
@@ -5648,6 +5762,7 @@ func (suite *OrderTestSuite) TestBillingService_processPaymentFormData_CountryRe
 			Ip:      "127.0.0.1",
 			Address: &billing.OrderBillingAddress{},
 		},
+		Type: billing.OrderType_simple,
 	}
 	order := &billing.Order{}
 
@@ -5709,6 +5824,7 @@ func (suite *OrderTestSuite) TestBillingService_PaymentCreateProcess_CountryRest
 			Ip:      "127.0.0.1",
 			Address: &billing.OrderBillingAddress{},
 		},
+		Type: billing.OrderType_simple,
 	}
 	order := &billing.Order{}
 
@@ -5763,6 +5879,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessBillingAddress_USAZipIsEmpty_Error
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
+		Type: billing.OrderType_simple,
 	}
 
 	rsp0 := &grpc.OrderCreateProcessResponse{}
@@ -5800,6 +5917,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessBillingAddress_USAZipNotFound_Erro
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
+		Type: billing.OrderType_simple,
 	}
 
 	rsp0 := &grpc.OrderCreateProcessResponse{}
@@ -5838,6 +5956,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequi
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
+		Type: billing.OrderType_simple,
 	}
 
 	rsp0 := &grpc.OrderCreateProcessResponse{}
@@ -5892,6 +6011,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_AccountingEntries_
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
+		Type: billing.OrderType_product,
 	}
 
 	rsp := &grpc.OrderCreateProcessResponse{}
@@ -6002,6 +6122,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Error() {
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
+		Type: billing.OrderType_simple,
 	}
 
 	rsp1 := &grpc.OrderCreateProcessResponse{}

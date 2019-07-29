@@ -6039,7 +6039,7 @@ func (m *ListOrdersRequest) GetType() billing.OrderType {
 	if m != nil {
 		return m.Type
 	}
-	return billing.OrderType_product
+	return billing.OrderType_simple
 }
 
 type GetOrderRequest struct {

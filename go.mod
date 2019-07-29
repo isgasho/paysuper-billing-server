@@ -4,7 +4,7 @@ require (
 	github.com/InVisionApp/go-health v2.1.0+incompatible
 	github.com/ProtocolONE/geoip-service v0.0.0-20190130072841-bf3b3b79a742
 	github.com/ProtocolONE/go-micro-plugins v0.3.0
-	github.com/ProtocolONE/rabbitmq v0.0.0-20190129162844-9f24367e139c
+	github.com/ProtocolONE/rabbitmq v0.0.0-20190717193626-ba2a4466550d
 	github.com/alicebob/gopher-json v0.0.0-20180125190556-5a6b3ba71ee6 // indirect
 	github.com/alicebob/miniredis v2.5.0+incompatible
 	github.com/centrifugal/gocent v2.0.2+incompatible

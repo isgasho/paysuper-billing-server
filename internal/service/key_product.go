@@ -62,6 +62,7 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 		product.ProjectId = req.ProjectId
 		product.Sku = req.Sku
 	} else {
+		product.Id = req.Id
 		_ = s.GetKeyProduct(ctx, &grpc.RequestKeyProduct{Id: req.Id, MerchantId: req.MerchantId}, res)
 		if res.Message != nil {
 			zap.S().Errorf("Key product that requested to change is not found", "data", req)
@@ -135,7 +136,7 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 	product.Url = req.Url
 	product.UpdatedAt = now
 
-	_, err = s.db.Collection(collectionKeyProduct).UpsertId(bson.ObjectIdHex(req.Id), product)
+	_, err = s.db.Collection(collectionKeyProduct).UpsertId(bson.ObjectIdHex(product.Id), product)
 
 	if err != nil {
 		zap.S().Errorf("Query to create/update product failed", "err", err.Error(), "data", req)
@@ -144,6 +145,7 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 		return nil
 	}
 
+	res.Product = product
 	return nil
 }
 
@@ -411,7 +413,7 @@ func (s *Service) UpdatePlatformPrices(ctx context.Context, req *grpc.AddOrUpdat
 		product.Platforms = append(product.Platforms, price)
 	}
 
-	if err := s.db.Collection(collectionKeyProduct).UpdateId(bson.ObjectIdHex(req.KeyProductId), res); err != nil {
+	if err := s.db.Collection(collectionKeyProduct).UpdateId(bson.ObjectIdHex(req.KeyProductId), product); err != nil {
 		zap.S().Errorf("Query to update product failed", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
 		res.Message = newBillingServerErrorMsg(keyProductInternalError.Code, keyProductInternalError.Message, err.Error())
