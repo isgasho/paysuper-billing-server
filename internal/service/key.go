@@ -131,7 +131,7 @@ func (s *Service) FinishRedeemKeyForOrder(ctx context.Context, req *grpc.KeyForO
 }
 
 func (s *Service) CancelRedeemKeyForOrder(ctx context.Context, req *grpc.KeyForOrderRequest, res *grpc.GetKeyForOrderRequestResponse) error {
-	key, err := s.keyRepository.CancelById(req.KeyId)
+	_, err := s.keyRepository.CancelById(req.KeyId)
 
 	if err != nil {
 		zap.S().Errorf(errors.KeyErrorCanceled.Message, "err", err, "keyId", req.KeyId)
@@ -140,7 +140,6 @@ func (s *Service) CancelRedeemKeyForOrder(ctx context.Context, req *grpc.KeyForO
 		return nil
 	}
 
-	res.Key = key
 	res.Status = pkg.ResponseStatusOk
 
 	return nil

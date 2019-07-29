@@ -447,7 +447,6 @@ func (suite *KeyTestSuite) TestKey_CancelRedeemKeyForOrder_Ok() {
 
 	err := suite.service.CancelRedeemKeyForOrder(context.TODO(), req, &res)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), key.Id, res.Key.Id)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, res.Status)
 }
 
