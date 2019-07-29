@@ -247,9 +247,9 @@ func (s *Service) ListRoyaltyReports(
 	return nil
 }
 
-func (s *Service) MerchantAcceptRoyaltyReport(
+func (s *Service) MerchantReviewRoyaltyReport(
 	ctx context.Context,
-	req *grpc.MerchantAcceptRoyaltyReportRequest,
+	req *grpc.MerchantReviewRoyaltyReportRequest,
 	rsp *grpc.ResponseError,
 ) error {
 	var report *billing.RoyaltyReport

@@ -625,7 +625,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_Accep
 	assert.NoError(suite.T(), centrifugoCl.Err)
 }
 
-func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_MerchantAcceptRoyaltyReport_Accepted_Ok() {
+func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_MerchantReviewRoyaltyReport_Accepted_Ok() {
 	suite.createOrder(suite.project)
 	err := suite.service.updateOrderView([]string{})
 	assert.NoError(suite.T(), err)
@@ -647,13 +647,13 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_MerchantAcceptRoyaltyRepo
 	err = suite.service.db.Collection(collectionRoyaltyReport).UpdateId(bson.ObjectIdHex(report.Id), report)
 	assert.NoError(suite.T(), err)
 
-	req1 := &grpc.MerchantAcceptRoyaltyReportRequest{
+	req1 := &grpc.MerchantReviewRoyaltyReportRequest{
 		ReportId:   report.Id,
 		IsAccepted: true,
 		Ip:         "127.0.0.1",
 	}
 	rsp1 := &grpc.ResponseError{}
-	err = suite.service.MerchantAcceptRoyaltyReport(context.TODO(), req1, rsp1)
+	err = suite.service.MerchantReviewRoyaltyReport(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)
@@ -677,7 +677,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_MerchantAcceptRoyaltyRepo
 	assert.NoError(suite.T(), centrifugoCl.Err)
 }
 
-func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_MerchantAcceptRoyaltyReport_Dispute_Ok() {
+func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_MerchantReviewRoyaltyReport_Dispute_Ok() {
 	suite.createOrder(suite.project)
 	err := suite.service.updateOrderView([]string{})
 	assert.NoError(suite.T(), err)
@@ -699,13 +699,13 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_MerchantAcceptRoyaltyRepo
 	err = suite.service.db.Collection(collectionRoyaltyReport).UpdateId(bson.ObjectIdHex(report.Id), report)
 	assert.NoError(suite.T(), err)
 
-	req1 := &grpc.MerchantAcceptRoyaltyReportRequest{
+	req1 := &grpc.MerchantReviewRoyaltyReportRequest{
 		ReportId:   report.Id,
 		IsAccepted: false,
 		Ip:         "127.0.0.1",
 	}
 	rsp1 := &grpc.ResponseError{}
-	err = suite.service.MerchantAcceptRoyaltyReport(context.TODO(), req1, rsp1)
+	err = suite.service.MerchantReviewRoyaltyReport(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)

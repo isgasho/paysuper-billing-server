@@ -253,7 +253,7 @@ const (
 	RoyaltyReportStatusCanceled = "canceled"
 	RoyaltyReportStatusDispute  = "dispute"
 
-	EmailRoyaltyReportMessage = "New royalty report wait for merchant owner approve<"
+	EmailRoyaltyReportMessage = "New royalty report wait for merchant owner approve"
 
 	RoyaltyReportChangeSourceAuto     = "auto"
 	RoyaltyReportChangeSourceMerchant = "merchant"

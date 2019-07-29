@@ -98,7 +98,7 @@ It has these top-level messages:
 	ListRoyaltyReportsResponse
 	ListRoyaltyReportOrdersRequest
 	ChangeRoyaltyReportRequest
-	MerchantAcceptRoyaltyReportRequest
+	MerchantReviewRoyaltyReportRequest
 	PaymentChannelCostSystemListResponse
 	PaymentChannelCostSystemResponse
 	PaymentChannelCostMerchantListResponse
@@ -258,7 +258,7 @@ type BillingService interface {
 	ListRoyaltyReports(ctx context.Context, in *ListRoyaltyReportsRequest, opts ...client.CallOption) (*ListRoyaltyReportsResponse, error)
 	ChangeRoyaltyReport(ctx context.Context, in *ChangeRoyaltyReportRequest, opts ...client.CallOption) (*ResponseError, error)
 	ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, opts ...client.CallOption) (*TransactionsResponse, error)
-	MerchantAcceptRoyaltyReport(ctx context.Context, in *MerchantAcceptRoyaltyReportRequest, opts ...client.CallOption) (*ResponseError, error)
+	MerchantReviewRoyaltyReport(ctx context.Context, in *MerchantReviewRoyaltyReportRequest, opts ...client.CallOption) (*ResponseError, error)
 	AutoAcceptRoyaltyReports(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*EmptyResponse, error)
 	GetVatReportsDashboard(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*VatReportsResponse, error)
 	GetVatReportsForCountry(ctx context.Context, in *VatReportsRequest, opts ...client.CallOption) (*VatReportsResponse, error)
@@ -1146,8 +1146,8 @@ func (c *billingService) ListRoyaltyReportOrders(ctx context.Context, in *ListRo
 	return out, nil
 }
 
-func (c *billingService) MerchantAcceptRoyaltyReport(ctx context.Context, in *MerchantAcceptRoyaltyReportRequest, opts ...client.CallOption) (*ResponseError, error) {
-	req := c.c.NewRequest(c.name, "BillingService.MerchantAcceptRoyaltyReport", in)
+func (c *billingService) MerchantReviewRoyaltyReport(ctx context.Context, in *MerchantReviewRoyaltyReportRequest, opts ...client.CallOption) (*ResponseError, error) {
+	req := c.c.NewRequest(c.name, "BillingService.MerchantReviewRoyaltyReport", in)
 	out := new(ResponseError)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
@@ -1315,7 +1315,7 @@ type BillingServiceHandler interface {
 	ListRoyaltyReports(context.Context, *ListRoyaltyReportsRequest, *ListRoyaltyReportsResponse) error
 	ChangeRoyaltyReport(context.Context, *ChangeRoyaltyReportRequest, *ResponseError) error
 	ListRoyaltyReportOrders(context.Context, *ListRoyaltyReportOrdersRequest, *TransactionsResponse) error
-	MerchantAcceptRoyaltyReport(context.Context, *MerchantAcceptRoyaltyReportRequest, *ResponseError) error
+	MerchantReviewRoyaltyReport(context.Context, *MerchantReviewRoyaltyReportRequest, *ResponseError) error
 	AutoAcceptRoyaltyReports(context.Context, *EmptyRequest, *EmptyResponse) error
 	GetVatReportsDashboard(context.Context, *EmptyRequest, *VatReportsResponse) error
 	GetVatReportsForCountry(context.Context, *VatReportsRequest, *VatReportsResponse) error
@@ -1413,7 +1413,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		ListRoyaltyReports(ctx context.Context, in *ListRoyaltyReportsRequest, out *ListRoyaltyReportsResponse) error
 		ChangeRoyaltyReport(ctx context.Context, in *ChangeRoyaltyReportRequest, out *ResponseError) error
 		ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, out *TransactionsResponse) error
-		MerchantAcceptRoyaltyReport(ctx context.Context, in *MerchantAcceptRoyaltyReportRequest, out *ResponseError) error
+		MerchantReviewRoyaltyReport(ctx context.Context, in *MerchantReviewRoyaltyReportRequest, out *ResponseError) error
 		AutoAcceptRoyaltyReports(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error
 		GetVatReportsDashboard(ctx context.Context, in *EmptyRequest, out *VatReportsResponse) error
 		GetVatReportsForCountry(ctx context.Context, in *VatReportsRequest, out *VatReportsResponse) error
@@ -1777,8 +1777,8 @@ func (h *billingServiceHandler) ListRoyaltyReportOrders(ctx context.Context, in 
 	return h.BillingServiceHandler.ListRoyaltyReportOrders(ctx, in, out)
 }
 
-func (h *billingServiceHandler) MerchantAcceptRoyaltyReport(ctx context.Context, in *MerchantAcceptRoyaltyReportRequest, out *ResponseError) error {
-	return h.BillingServiceHandler.MerchantAcceptRoyaltyReport(ctx, in, out)
+func (h *billingServiceHandler) MerchantReviewRoyaltyReport(ctx context.Context, in *MerchantReviewRoyaltyReportRequest, out *ResponseError) error {
+	return h.BillingServiceHandler.MerchantReviewRoyaltyReport(ctx, in, out)
 }
 
 func (h *billingServiceHandler) AutoAcceptRoyaltyReports(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error {
