@@ -35,6 +35,7 @@ This service contain all business logic for payment processing
 | CENTRIFUGO_MERCHANT_CHANNEL          | -        | paysuper:merchant#%s  | Centrifugo channel name to send notifications to merchant                                                                           |
 | CENTRIFUGO_FINANCIER_CHANNEL         | -        | paysuper:financier    | Centrifugo channel name to send notifications to financier                                                                          |
 |EMAIL_NOTIFICATION_FINANCIER_RECIPIENT| true     |                       | Email of financier, to get vat reports notification                                                                                 |
+| KEY_DAEMON_RESTART_INTERVAL          | -        | 60                    | Starting frequency in seconds of the script to check the locked keys and return them to the stack.                                  |
 
 ## Docker Deployment
 

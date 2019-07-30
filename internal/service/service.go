@@ -83,6 +83,7 @@ type Service struct {
 	productService             ProductServiceInterface
 	turnover                   *Turnover
 	keyRepository              KeyRepositoryInterface
+	orderRepository            OrderRepositoryInterface
 }
 
 func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {
@@ -145,6 +146,7 @@ func (s *Service) Init() (err error) {
 	s.productService = newProductService(s)
 	s.turnover = newTurnoverService(s)
 	s.keyRepository = newKeyRepository(s)
+	s.orderRepository = newOrderRepository(s)
 
 	s.centrifugoClient = gocent.New(
 		gocent.Config{
@@ -158,7 +160,7 @@ func (s *Service) Init() (err error) {
 		return errors.New(errorAccountingCurrencyNotFound)
 	}
 
-	sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currencies.EmptyRequest{})
+	/*sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currencies.EmptyRequest{})
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorGrpcServiceCallFailed,
@@ -170,7 +172,7 @@ func (s *Service) Init() (err error) {
 		return err
 	}
 
-	s.supportedCurrencies = sCurr.Currencies
+	s.supportedCurrencies = sCurr.Currencies*/
 
 	return
 }

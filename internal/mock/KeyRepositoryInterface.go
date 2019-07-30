@@ -54,6 +54,29 @@ func (_m *KeyRepositoryInterface) CountKeysByProductPlatform(_a0 string, _a1 str
 	return r0, r1
 }
 
+// FindUnfinished provides a mock function with given fields:
+func (_m *KeyRepositoryInterface) FindUnfinished() ([]*billing.Key, error) {
+	ret := _m.Called()
+
+	var r0 []*billing.Key
+	if rf, ok := ret.Get(0).(func() []*billing.Key); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*billing.Key)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // FinishRedeemById provides a mock function with given fields: _a0
 func (_m *KeyRepositoryInterface) FinishRedeemById(_a0 string) (*billing.Key, error) {
 	ret := _m.Called(_a0)

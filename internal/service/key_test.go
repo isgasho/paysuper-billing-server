@@ -13,6 +13,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
+	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -503,4 +504,183 @@ func (suite *KeyTestSuite) TestKey_UploadKeysFile_Error_CountKeysByProductPlatfo
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, res.Status)
 	assert.Equal(suite.T(), errors2.KeyErrorNotFound, res.Message)
+}
+
+func (suite *KeyTestSuite) TestKey_KeyDaemonProcess_Ok_Finished() {
+	noTime, err := ptypes.TimestampProto(time.Time{})
+	reserveTime, err := ptypes.TimestampProto(time.Now().AddDate(0, 0, -1))
+	keys := []*billing.Key{{
+		Id:         bson.NewObjectId().Hex(),
+		OrderId:    bson.NewObjectId().Hex(),
+		ReservedTo: reserveTime,
+	}}
+	keyFinished := keys[0]
+	keyFinished.ReservedTo = noTime
+	keyFinished.RedeemedAt = reserveTime
+	orders := []*billing.Order{{
+		Id:            bson.NewObjectId().Hex(),
+		PrivateStatus: constant.OrderStatusPaymentSystemComplete,
+	}}
+
+	kr := &mock.KeyRepositoryInterface{}
+	kr.On("FindUnfinished").Return(keys, nil)
+	kr.On("FinishRedeemById", keys[0].Id).Return(keyFinished, nil)
+	suite.service.keyRepository = kr
+
+	or := &mock.OrderRepositoryInterface{}
+	or.On("GetOrdersById", []string{keys[0].OrderId}).Return(orders, nil)
+	suite.service.orderRepository = or
+
+	finished, cancelled, err := suite.service.KeyDaemonProcess()
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), 1, finished)
+	assert.Equal(suite.T(), 0, cancelled)
+}
+
+func (suite *KeyTestSuite) TestKey_KeyDaemonProcess_Ok_Cancelled() {
+	noTime, err := ptypes.TimestampProto(time.Time{})
+	reserveTime, err := ptypes.TimestampProto(time.Now().AddDate(0, 0, -1))
+	keys := []*billing.Key{{
+		Id:         bson.NewObjectId().Hex(),
+		OrderId:    bson.NewObjectId().Hex(),
+		ReservedTo: reserveTime,
+		RedeemedAt: noTime,
+	}}
+	orders := []*billing.Order{{
+		Id: bson.NewObjectId().Hex(),
+	}}
+
+	kr := &mock.KeyRepositoryInterface{}
+	kr.On("FindUnfinished").Return(keys, nil)
+	kr.On("CancelById", keys[0].Id).Return(&billing.Key{}, nil)
+	suite.service.keyRepository = kr
+
+	or := &mock.OrderRepositoryInterface{}
+	or.On("GetOrdersById", []string{keys[0].OrderId}).Return(orders, nil)
+	suite.service.orderRepository = or
+
+	finished, cancelled, err := suite.service.KeyDaemonProcess()
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), 1, cancelled)
+	assert.Equal(suite.T(), 0, finished)
+}
+
+func (suite *KeyTestSuite) TestKey_KeyDaemonProcess_Ok_NoJobs() {
+	reserveTime, err := ptypes.TimestampProto(time.Now().AddDate(0, 0, 1))
+	keys := []*billing.Key{{
+		Id:         bson.NewObjectId().Hex(),
+		OrderId:    bson.NewObjectId().Hex(),
+		ReservedTo: reserveTime,
+	}}
+	orders := []*billing.Order{{
+		Id: bson.NewObjectId().Hex(),
+	}}
+
+	kr := &mock.KeyRepositoryInterface{}
+	kr.On("FindUnfinished").Return(keys, nil)
+	suite.service.keyRepository = kr
+
+	or := &mock.OrderRepositoryInterface{}
+	or.On("GetOrdersById", []string{keys[0].OrderId}).Return(orders, nil)
+	suite.service.orderRepository = or
+
+	finished, cancelled, err := suite.service.KeyDaemonProcess()
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), 0, cancelled)
+	assert.Equal(suite.T(), 0, finished)
+}
+
+func (suite *KeyTestSuite) TestKey_KeyDaemonProcess_Error_FindUnfinished() {
+	kr := &mock.KeyRepositoryInterface{}
+	kr.On("FindUnfinished").Return(nil, errors.New("not found"))
+	suite.service.keyRepository = kr
+
+	finished, cancelled, err := suite.service.KeyDaemonProcess()
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), 0, cancelled)
+	assert.Equal(suite.T(), 0, finished)
+}
+
+func (suite *KeyTestSuite) TestKey_KeyDaemonProcess_Error_GetOrdersById() {
+	keys := []*billing.Key{{
+		Id:      bson.NewObjectId().Hex(),
+		OrderId: bson.NewObjectId().Hex(),
+	}}
+
+	kr := &mock.KeyRepositoryInterface{}
+	kr.On("FindUnfinished").Return(keys, nil)
+	suite.service.keyRepository = kr
+
+	or := &mock.OrderRepositoryInterface{}
+	or.On("GetOrdersById", []string{keys[0].OrderId}).Return(nil, errors.New("not found"))
+	suite.service.orderRepository = or
+
+	finished, cancelled, err := suite.service.KeyDaemonProcess()
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), 0, cancelled)
+	assert.Equal(suite.T(), 0, finished)
+}
+
+func (suite *KeyTestSuite) TestKey_KeyDaemonProcess_Error_CancelById() {
+	noTime, err := ptypes.TimestampProto(time.Time{})
+	reserveTime, err := ptypes.TimestampProto(time.Now().AddDate(0, 0, -1))
+	keys := []*billing.Key{{
+		Id:         bson.NewObjectId().Hex(),
+		OrderId:    bson.NewObjectId().Hex(),
+		ReservedTo: reserveTime,
+		RedeemedAt: noTime,
+	}}
+	orders := []*billing.Order{{
+		Id: bson.NewObjectId().Hex(),
+	}}
+
+	kr := &mock.KeyRepositoryInterface{}
+	kr.On("FindUnfinished").Return(keys, nil)
+	kr.On("CancelById", keys[0].Id).Return(nil, errors.New("not found"))
+	suite.service.keyRepository = kr
+
+	or := &mock.OrderRepositoryInterface{}
+	or.On("GetOrdersById", []string{keys[0].OrderId}).Return(orders, nil)
+	suite.service.orderRepository = or
+
+	finished, cancelled, err := suite.service.KeyDaemonProcess()
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), 0, cancelled)
+	assert.Equal(suite.T(), 0, finished)
+}
+
+func (suite *KeyTestSuite) TestKey_FindUnfinished_Ok() {
+	reserveTime, err := ptypes.TimestampProto(time.Now().AddDate(0, 0, 1))
+	finishedTime, err := ptypes.TimestampProto(time.Now().AddDate(0, 0, -1))
+
+	keyReserved := &billing.Key{
+		Id:           bson.NewObjectId().Hex(),
+		PlatformId:   bson.NewObjectId().Hex(),
+		KeyProductId: bson.NewObjectId().Hex(),
+		Code:         "code1",
+		ReservedTo:   reserveTime,
+	}
+	assert.NoError(suite.T(), suite.service.keyRepository.Insert(keyReserved))
+
+	keyCancelled := &billing.Key{
+		Id:           bson.NewObjectId().Hex(),
+		PlatformId:   bson.NewObjectId().Hex(),
+		KeyProductId: bson.NewObjectId().Hex(),
+		Code:         "code1",
+	}
+	assert.NoError(suite.T(), suite.service.keyRepository.Insert(keyCancelled))
+
+	keyFinished := &billing.Key{
+		Id:           bson.NewObjectId().Hex(),
+		PlatformId:   bson.NewObjectId().Hex(),
+		KeyProductId: bson.NewObjectId().Hex(),
+		Code:         "code1",
+		RedeemedAt:   finishedTime,
+	}
+	assert.NoError(suite.T(), suite.service.keyRepository.Insert(keyFinished))
+
+	keys, err := suite.service.keyRepository.FindUnfinished()
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), keys, 1)
+	assert.Equal(suite.T(), keyReserved.Id, keys[0].Id)
 }

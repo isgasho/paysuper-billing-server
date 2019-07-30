@@ -39,6 +39,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
@@ -176,14 +178,14 @@ func (app *Application) Init() {
 	d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 	smtpCl, err := d.Dial()
 
-	if err != nil {
+	/*if err != nil {
 		zap.L().Fatal(
 			"Connection to SMTP server failed",
 			zap.Error(err),
 			zap.Int("port", app.cfg.SmtpPort),
 			zap.String("user", app.cfg.SmtpUser),
 		)
-	}
+	}*/
 
 	zap.L().Info(
 		"SMTP server connection started",
@@ -332,4 +334,33 @@ func (app *Application) TaskCreateRoyaltyReport() error {
 
 func (app *Application) TaskAutoAcceptRoyaltyReports() error {
 	return app.svc.AutoAcceptRoyaltyReports(context.TODO(), &grpc.EmptyRequest{}, &grpc.EmptyResponse{})
+}
+
+func (app *Application) KeyDaemonStart() {
+	interval := time.Duration(int64(app.cfg.KeyDaemonRestartInterval) * int64(time.Second))
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+
+	zap.S().Infof("Key daemon started", zap.Int("RestartInterval", app.cfg.KeyDaemonRestartInterval))
+
+	go func() {
+		for {
+			zap.S().Debug("Key daemon working")
+
+			finished, cancelled, err := app.svc.KeyDaemonProcess()
+			if err != nil {
+				zap.L().Error("Key daemon process failed", zap.Error(err))
+			}
+
+			zap.S().Debugf("Key daemon job finished", "finished", finished, "cancelled", cancelled)
+			time.Sleep(interval)
+
+			select {
+			case <-shutdown:
+				zap.S().Info("Key daemon stopping")
+				return
+			default:
+			}
+		}
+	}()
 }

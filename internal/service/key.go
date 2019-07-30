@@ -10,6 +10,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/errors"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"go.uber.org/zap"
 	"time"
 )
@@ -145,6 +146,55 @@ func (s *Service) CancelRedeemKeyForOrder(ctx context.Context, req *grpc.KeyForO
 	return nil
 }
 
+func (s *Service) KeyDaemonProcess() (int, int, error) {
+	finished := 0
+	cancelled := 0
+
+	keys, err := s.keyRepository.FindUnfinished()
+	if err != nil {
+		return finished, cancelled, err
+	}
+
+	var orderIds []string
+	for _, key := range keys {
+		orderIds = append(orderIds, key.OrderId)
+	}
+
+	orders, err := s.orderRepository.GetOrdersById(orderIds)
+	if err != nil {
+		return finished, cancelled, err
+	}
+
+	for _, key := range keys {
+		for _, order := range orders {
+			if order.GetPublicStatus() == constant.OrderPublicStatusProcessed {
+				key, err = s.keyRepository.FinishRedeemById(key.Id)
+
+				if err != nil {
+					zap.S().Errorf(errors.KeyErrorFinish.Message, "err", err, "order", order)
+					return finished, cancelled, err
+				}
+
+				finished++
+			}
+		}
+
+		if key.ReservedTo.Seconds < time.Now().Unix() &&
+			key.RedeemedAt.Seconds <= 0 {
+			_, err = s.keyRepository.CancelById(key.Id)
+
+			if err != nil {
+				zap.S().Errorf(errors.KeyErrorCanceled.Message, "err", err, "keyId", key.Id)
+				return finished, cancelled, err
+			}
+
+			cancelled++
+		}
+	}
+
+	return finished, cancelled, nil
+}
+
 type KeyRepositoryInterface interface {
 	Insert(*billing.Key) error
 	GetById(string) (*billing.Key, error)
@@ -152,6 +202,7 @@ type KeyRepositoryInterface interface {
 	CancelById(string) (*billing.Key, error)
 	FinishRedeemById(string) (*billing.Key, error)
 	CountKeysByProductPlatform(string, string) (int, error)
+	FindUnfinished() ([]*billing.Key, error)
 }
 
 func newKeyRepository(svc *Service) *Key {
@@ -271,4 +322,20 @@ func (h *Key) CountKeysByProductPlatform(keyProductId string, platformId string)
 	}
 
 	return h.svc.db.Collection(collectionKey).Find(query).Count()
+}
+
+func (h *Key) FindUnfinished() ([]*billing.Key, error) {
+	var keys []*billing.Key
+
+	query := bson.M{
+		"reserved_to": bson.M{
+			"$gt": time.Time{},
+		},
+	}
+
+	if err := h.svc.db.Collection(collectionKey).Find(query).All(&keys); err != nil {
+		return nil, err
+	}
+
+	return keys, nil
 }

@@ -2739,3 +2739,26 @@ func (s *Service) applyCountryRestriction(order *billing.Order, countryCode stri
 	}
 	return
 }
+
+type OrderRepositoryInterface interface {
+	GetOrdersById([]string) ([]*billing.Order, error)
+}
+
+func newOrderRepository(svc *Service) *OrderRepository {
+	s := &OrderRepository{svc: svc}
+	return s
+}
+
+func (h *OrderRepository) GetOrdersById(ids []string) ([]*billing.Order, error) {
+	var orders []*billing.Order
+
+	query := bson.M{
+		"_id": bson.M{"$in": ids},
+	}
+
+	if err := h.svc.db.Collection(collectionOrder).Find(query).All(&orders); err != nil {
+		return nil, err
+	}
+
+	return orders, nil
+}
