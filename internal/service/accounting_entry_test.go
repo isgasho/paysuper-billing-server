@@ -95,7 +95,6 @@ func (suite *AccountingEntryTestSuite) SetupTest() {
 		redisClient,
 		suite.cache,
 		mock.NewCurrencyServiceMockOk(),
-		nil,
 	)
 
 	if err := suite.service.Init(); err != nil {

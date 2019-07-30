@@ -253,14 +253,11 @@ const (
 	RoyaltyReportStatusCanceled = "canceled"
 	RoyaltyReportStatusDispute  = "dispute"
 
-	EmailRoyaltyReportSubject = "New royalty report"
-	EmailRoyaltyReportMessage = "<h1>New royalty report wait for merchant owner approve</h1>"
-	EmailContentType          = "text/html"
+	EmailRoyaltyReportMessage = "New royalty report wait for merchant owner approve"
 
-	RoyaltyReportChangeSourceAuto = "auto"
-
-	EmailVatReportSubject = "Vat report status changed"
-	EmailVatReportMessage = "Vat report for %s country changed his status to %s"
+	RoyaltyReportChangeSourceAuto     = "auto"
+	RoyaltyReportChangeSourceMerchant = "merchant"
+	RoyaltyReportChangeSourceAdmin    = "admin"
 
 	VatCurrencyRatesPolicyOnDay    = "on-day"
 	VatCurrencyRatesPolicyLastDay  = "last-day"

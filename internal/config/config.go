@@ -32,13 +32,6 @@ type CacheRedis struct {
 	MaxRedirects int      `envconfig:"CACHE_REDIS_MAX_REDIRECTS" default:"8"`
 }
 
-type Smtp struct {
-	SmtpHost     string `envconfig:"SMTP_HOST" required:"true"`
-	SmtpPort     int    `envconfig:"SMTP_PORT" default:"587"`
-	SmtpUser     string `envconfig:"SMTP_USER" required:"true"`
-	SmtpPassword string `envconfig:"SMTP_PASSWORD" required:"true"`
-}
-
 type Config struct {
 	MongoDsn           string `envconfig:"MONGO_DSN" required:"true"`
 	MongoDialTimeout   string `envconfig:"MONGO_DIAL_TIMEOUT" required:"false" default:"10"`
@@ -52,10 +45,12 @@ type Config struct {
 	CentrifugoURL    string `envconfig:"CENTRIFUGO_URL" required:"false" default:"http://127.0.0.1:8000"`
 	BrokerAddress    string `envconfig:"BROKER_ADDRESS" default:"amqp://127.0.0.1:5672"`
 
-	CentrifugoUserChannel     string `envconfig:"CENTRIFUGO_USER_CHANNEL" default:"paysuper:user#%s"`
-	EmailConfirmTokenLifetime int64  `envconfig:"EMAIL_CONFIRM_TOKEN_LIFETIME" default:"86400"`
-	EmailConfirmUrl           string `envconfig:"EMAIL_CONFIRM_URL" default:"https://paysupermgmt.tst.protocol.one/confirm_email"`
-	EmailConfirmTemplate      string `envconfig:"EMAIL_CONFIRM_TEMPLATE" default:"p1_verify_letter"`
+	CentrifugoUserChannel         string `envconfig:"CENTRIFUGO_USER_CHANNEL" default:"paysuper:user#%s"`
+	EmailConfirmTokenLifetime     int64  `envconfig:"EMAIL_CONFIRM_TOKEN_LIFETIME" default:"86400"`
+	EmailConfirmUrl               string `envconfig:"EMAIL_CONFIRM_URL" default:"https://paysupermgmt.tst.protocol.one/confirm_email"`
+	EmailConfirmTemplate          string `envconfig:"EMAIL_CONFIRM_TEMPLATE" default:"p1_verify_letter"`
+	EmailNewRoyaltyReportTemplate string `envconfig:"EMAIL_NEW_ROYALTY_REPORT_TEMPLATE" default:"p1_new_royalty_report"`
+	EmailVatReportTemplate        string `envconfig:"EMAIL_VAT_REPORT_TEMPLATE" default:"p1_vat_report"`
 
 	MicroRegistry string `envconfig:"MICRO_REGISTRY" required:"false"`
 
@@ -66,8 +61,6 @@ type Config struct {
 	CentrifugoMerchantChannel  string `envconfig:"CENTRIFUGO_MERCHANT_CHANNEL" default:"paysuper:merchant#%s"`
 	CentrifugoFinancierChannel string `envconfig:"CENTRIFUGO_FINANCIER_CHANNEL" default:"paysuper:financier"`
 
-	EmailNotificationSender string `envconfig:"EMAIL_NOTIFICATION_SENDER" required:"true"`
-
 	EmailNotificationFinancierRecipient string `envconfig:"EMAIL_NOTIFICATION_FINANCIER_RECIPIENT" required:"true"`
 
 	OrderViewUpdateBatchSize int `envconfig:"ORDER_VIEW_UPDATE_BATCH_SIZE" default:"200"`
@@ -75,7 +68,6 @@ type Config struct {
 	*PaymentSystemConfig
 	*CustomerTokenConfig
 	*CacheRedis
-	*Smtp
 
 	EmailConfirmUrlParsed *url.URL
 }

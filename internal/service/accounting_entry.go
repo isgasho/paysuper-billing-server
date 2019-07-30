@@ -28,18 +28,19 @@ const (
 )
 
 var (
-	accountingEntryErrorOrderNotFound            = newBillingServerErrorMsg("ae00001", "order not found for creating accounting entry")
-	accountingEntryErrorRefundNotFound           = newBillingServerErrorMsg("ae00002", "refund not found for creating accounting entry")
-	accountingEntryErrorMerchantNotFound         = newBillingServerErrorMsg("ae00003", "merchant not found for creating accounting entry")
-	accountingEntryErrorCommissionNotFound       = newBillingServerErrorMsg("ae00004", "commission to merchant and payment method not found")
-	accountingEntryErrorExchangeFailed           = newBillingServerErrorMsg("ae00005", "currency exchange failed")
-	accountingEntryErrorUnknownEntry             = newBillingServerErrorMsg("ae00006", "unknown accounting entry type")
-	accountingEntryErrorUnknown                  = newBillingServerErrorMsg("ae00007", "unknown error. try request later")
-	accountingEntryErrorRefundExceedsOrderAmount = newBillingServerErrorMsg("ae00008", "refund exceeds order amount")
-	accountingEntryErrorCountryNotFound          = newBillingServerErrorMsg("ae00009", "country not found")
-	accountingEntryUnknownEvent                  = newBillingServerErrorMsg("ae00010", "accounting unknown event")
-	accountingEntryErrorUnknownSourceType        = newBillingServerErrorMsg("ae00011", "unknown accounting entry source type")
-	accountingEntryErrorInvalidSourceId          = newBillingServerErrorMsg("ae00012", "accounting entry invalid source id")
+	accountingEntryErrorOrderNotFound              = newBillingServerErrorMsg("ae00001", "order not found for creating accounting entry")
+	accountingEntryErrorRefundNotFound             = newBillingServerErrorMsg("ae00002", "refund not found for creating accounting entry")
+	accountingEntryErrorMerchantNotFound           = newBillingServerErrorMsg("ae00003", "merchant not found for creating accounting entry")
+	accountingEntryErrorMerchantCommissionNotFound = newBillingServerErrorMsg("ae00004", "commission to merchant and payment method not found")
+	accountingEntryErrorExchangeFailed             = newBillingServerErrorMsg("ae00005", "currency exchange failed")
+	accountingEntryErrorUnknownEntry               = newBillingServerErrorMsg("ae00006", "unknown accounting entry type")
+	accountingEntryErrorUnknown                    = newBillingServerErrorMsg("ae00007", "unknown error. try request later")
+	accountingEntryErrorRefundExceedsOrderAmount   = newBillingServerErrorMsg("ae00008", "refund exceeds order amount")
+	accountingEntryErrorCountryNotFound            = newBillingServerErrorMsg("ae00009", "country not found")
+	accountingEntryUnknownEvent                    = newBillingServerErrorMsg("ae00010", "accounting unknown event")
+	accountingEntryErrorUnknownSourceType          = newBillingServerErrorMsg("ae00011", "unknown accounting entry source type")
+	accountingEntryErrorInvalidSourceId            = newBillingServerErrorMsg("ae00012", "accounting entry invalid source id")
+	accountingEntryErrorSystemCommissionNotFound   = newBillingServerErrorMsg("ae00013", "system commission for payment method not found")
 
 	availableAccountingEntries = map[string]bool{
 		pkg.AccountingEntryTypeRealGrossRevenue:                    true,
@@ -941,13 +942,14 @@ func (h *accountingEntry) getPaymentChannelCostSystem() (*billing.PaymentChannel
 
 	if err != nil {
 		zap.S().Error(
-			accountingEntryErrorCommissionNotFound.Message,
+			accountingEntryErrorSystemCommissionNotFound.Message,
 			zap.Error(err),
-			zap.String("project", h.order.GetProjectId()),
-			zap.String("payment_method", h.order.GetPaymentMethodId()),
+			zap.String("payment_method", name),
+			zap.String("region", h.country.Region),
+			zap.String("country", h.country.IsoCodeA2),
 		)
 
-		return nil, accountingEntryErrorCommissionNotFound
+		return nil, accountingEntryErrorSystemCommissionNotFound
 	}
 	return cost, nil
 }
@@ -970,13 +972,13 @@ func (h *accountingEntry) getPaymentChannelCostMerchant(amount float64) (*billin
 
 	if err != nil {
 		zap.S().Error(
-			accountingEntryErrorCommissionNotFound.Message,
+			accountingEntryErrorMerchantCommissionNotFound.Message,
 			zap.Error(err),
 			zap.String("project", h.order.GetProjectId()),
 			zap.String("payment_method", h.order.GetPaymentMethodId()),
 		)
 
-		return nil, accountingEntryErrorCommissionNotFound
+		return nil, accountingEntryErrorMerchantCommissionNotFound
 	}
 	return cost, nil
 }

@@ -1321,14 +1321,12 @@ message RoyaltyReport {
     string payout_id = 5;
     google.protobuf.Timestamp payout_date = 6;
     string status = 7;
-    bool deleted = 8;
-    google.protobuf.Timestamp period_from = 9;
-    google.protobuf.Timestamp period_to = 10;
-    google.protobuf.Timestamp accept_expire_at = 11;
-    google.protobuf.Timestamp accepted_at = 12;
-    RoyaltyReportDetails amounts = 13;
-    RoyaltyReportCorrection correction = 14;
-    bool is_auto_accepted = 15;
+    google.protobuf.Timestamp period_from = 8;
+    google.protobuf.Timestamp period_to = 9;
+    google.protobuf.Timestamp accept_expire_at = 10;
+    google.protobuf.Timestamp accepted_at = 11;
+    RoyaltyReportDetails amounts = 12;
+    RoyaltyReportCorrection correction = 13;
 }
 
 message RoyaltyReportChanges {
@@ -1336,20 +1334,8 @@ message RoyaltyReportChanges {
     string royalty_report_id = 2;
     string source = 3;
     string ip = 4;
-    RoyaltyReport before = 5;
-    RoyaltyReport after = 6;
     string hash = 7;
     google.protobuf.Timestamp created_at = 8;
-}
-
-message RoyaltyReportOrder {
-    int64 date = 1;
-    string country = 2;
-    string payment_id = 4;
-    string method = 5;
-    double amount = 6;
-    double vat = 7;
-    double commission = 8;
 }
 
 message VatTransaction {
