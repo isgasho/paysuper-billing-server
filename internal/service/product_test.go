@@ -20,6 +20,7 @@ import (
 var (
 	initialName = "Double Yeti"
 	merchantId  = "5bdc35de5d1e1100019fb7db"
+	projectId  = "5bdc35de5d1e1100019fb7db"
 )
 
 type ProductTestSuite struct {

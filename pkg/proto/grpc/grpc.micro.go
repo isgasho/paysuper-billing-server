@@ -116,10 +116,13 @@ type BillingService interface {
 	CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, opts ...client.CallOption) (*CreateAccountingEntryResponse, error)
 	GetUserProfile(ctx context.Context, in *GetUserProfileRequest, opts ...client.CallOption) (*GetUserProfileResponse, error)
 	CreateOrUpdateUserProfile(ctx context.Context, in *UserProfile, opts ...client.CallOption) (*GetUserProfileResponse, error)
+	ConfirmUserEmail(ctx context.Context, in *ConfirmUserEmailRequest, opts ...client.CallOption) (*CheckProjectRequestSignatureResponse, error)
+	CreatePageReview(ctx context.Context, in *CreatePageReviewRequest, opts ...client.CallOption) (*CheckProjectRequestSignatureResponse, error)
 	CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, opts ...client.CallOption) (*CreateRoyaltyReportRequest, error)
 	ListRoyaltyReports(ctx context.Context, in *ListRoyaltyReportsRequest, opts ...client.CallOption) (*ListRoyaltyReportsResponse, error)
 	ChangeRoyaltyReport(ctx context.Context, in *ChangeRoyaltyReportRequest, opts ...client.CallOption) (*ResponseError, error)
 	ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, opts ...client.CallOption) (*TransactionsResponse, error)
+	MerchantReviewRoyaltyReport(ctx context.Context, in *MerchantReviewRoyaltyReportRequest, opts ...client.CallOption) (*ResponseError, error)
 	AutoAcceptRoyaltyReports(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*EmptyResponse, error)
 	GetVatReportsDashboard(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*VatReportsResponse, error)
 	GetVatReportsForCountry(ctx context.Context, in *VatReportsRequest, opts ...client.CallOption) (*VatReportsResponse, error)
@@ -962,6 +965,26 @@ func (c *billingService) CreateOrUpdateUserProfile(ctx context.Context, in *User
 	return out, nil
 }
 
+func (c *billingService) ConfirmUserEmail(ctx context.Context, in *ConfirmUserEmailRequest, opts ...client.CallOption) (*CheckProjectRequestSignatureResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.ConfirmUserEmail", in)
+	out := new(CheckProjectRequestSignatureResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) CreatePageReview(ctx context.Context, in *CreatePageReviewRequest, opts ...client.CallOption) (*CheckProjectRequestSignatureResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.CreatePageReview", in)
+	out := new(CheckProjectRequestSignatureResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *billingService) CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, opts ...client.CallOption) (*CreateRoyaltyReportRequest, error) {
 	req := c.c.NewRequest(c.name, "BillingService.CreateRoyaltyReport", in)
 	out := new(CreateRoyaltyReportRequest)
@@ -995,6 +1018,16 @@ func (c *billingService) ChangeRoyaltyReport(ctx context.Context, in *ChangeRoya
 func (c *billingService) ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, opts ...client.CallOption) (*TransactionsResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.ListRoyaltyReportOrders", in)
 	out := new(TransactionsResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) MerchantReviewRoyaltyReport(ctx context.Context, in *MerchantReviewRoyaltyReportRequest, opts ...client.CallOption) (*ResponseError, error) {
+	req := c.c.NewRequest(c.name, "BillingService.MerchantReviewRoyaltyReport", in)
+	out := new(ResponseError)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1305,10 +1338,13 @@ type BillingServiceHandler interface {
 	CreateAccountingEntry(context.Context, *CreateAccountingEntryRequest, *CreateAccountingEntryResponse) error
 	GetUserProfile(context.Context, *GetUserProfileRequest, *GetUserProfileResponse) error
 	CreateOrUpdateUserProfile(context.Context, *UserProfile, *GetUserProfileResponse) error
+	ConfirmUserEmail(context.Context, *ConfirmUserEmailRequest, *CheckProjectRequestSignatureResponse) error
+	CreatePageReview(context.Context, *CreatePageReviewRequest, *CheckProjectRequestSignatureResponse) error
 	CreateRoyaltyReport(context.Context, *CreateRoyaltyReportRequest, *CreateRoyaltyReportRequest) error
 	ListRoyaltyReports(context.Context, *ListRoyaltyReportsRequest, *ListRoyaltyReportsResponse) error
 	ChangeRoyaltyReport(context.Context, *ChangeRoyaltyReportRequest, *ResponseError) error
 	ListRoyaltyReportOrders(context.Context, *ListRoyaltyReportOrdersRequest, *TransactionsResponse) error
+	MerchantReviewRoyaltyReport(context.Context, *MerchantReviewRoyaltyReportRequest, *ResponseError) error
 	AutoAcceptRoyaltyReports(context.Context, *EmptyRequest, *EmptyResponse) error
 	GetVatReportsDashboard(context.Context, *EmptyRequest, *VatReportsResponse) error
 	GetVatReportsForCountry(context.Context, *VatReportsRequest, *VatReportsResponse) error
@@ -1415,10 +1451,13 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		CreateAccountingEntry(ctx context.Context, in *CreateAccountingEntryRequest, out *CreateAccountingEntryResponse) error
 		GetUserProfile(ctx context.Context, in *GetUserProfileRequest, out *GetUserProfileResponse) error
 		CreateOrUpdateUserProfile(ctx context.Context, in *UserProfile, out *GetUserProfileResponse) error
+		ConfirmUserEmail(ctx context.Context, in *ConfirmUserEmailRequest, out *CheckProjectRequestSignatureResponse) error
+		CreatePageReview(ctx context.Context, in *CreatePageReviewRequest, out *CheckProjectRequestSignatureResponse) error
 		CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, out *CreateRoyaltyReportRequest) error
 		ListRoyaltyReports(ctx context.Context, in *ListRoyaltyReportsRequest, out *ListRoyaltyReportsResponse) error
 		ChangeRoyaltyReport(ctx context.Context, in *ChangeRoyaltyReportRequest, out *ResponseError) error
 		ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, out *TransactionsResponse) error
+		MerchantReviewRoyaltyReport(ctx context.Context, in *MerchantReviewRoyaltyReportRequest, out *ResponseError) error
 		AutoAcceptRoyaltyReports(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error
 		GetVatReportsDashboard(ctx context.Context, in *EmptyRequest, out *VatReportsResponse) error
 		GetVatReportsForCountry(ctx context.Context, in *VatReportsRequest, out *VatReportsResponse) error
@@ -1773,6 +1812,14 @@ func (h *billingServiceHandler) CreateOrUpdateUserProfile(ctx context.Context, i
 	return h.BillingServiceHandler.CreateOrUpdateUserProfile(ctx, in, out)
 }
 
+func (h *billingServiceHandler) ConfirmUserEmail(ctx context.Context, in *ConfirmUserEmailRequest, out *CheckProjectRequestSignatureResponse) error {
+	return h.BillingServiceHandler.ConfirmUserEmail(ctx, in, out)
+}
+
+func (h *billingServiceHandler) CreatePageReview(ctx context.Context, in *CreatePageReviewRequest, out *CheckProjectRequestSignatureResponse) error {
+	return h.BillingServiceHandler.CreatePageReview(ctx, in, out)
+}
+
 func (h *billingServiceHandler) CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, out *CreateRoyaltyReportRequest) error {
 	return h.BillingServiceHandler.CreateRoyaltyReport(ctx, in, out)
 }
@@ -1787,6 +1834,10 @@ func (h *billingServiceHandler) ChangeRoyaltyReport(ctx context.Context, in *Cha
 
 func (h *billingServiceHandler) ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, out *TransactionsResponse) error {
 	return h.BillingServiceHandler.ListRoyaltyReportOrders(ctx, in, out)
+}
+
+func (h *billingServiceHandler) MerchantReviewRoyaltyReport(ctx context.Context, in *MerchantReviewRoyaltyReportRequest, out *ResponseError) error {
+	return h.BillingServiceHandler.MerchantReviewRoyaltyReport(ctx, in, out)
 }
 
 func (h *billingServiceHandler) AutoAcceptRoyaltyReports(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error {
