@@ -41,6 +41,7 @@ var (
 	accountingEntryErrorUnknownSourceType          = newBillingServerErrorMsg("ae00011", "unknown accounting entry source type")
 	accountingEntryErrorInvalidSourceId            = newBillingServerErrorMsg("ae00012", "accounting entry invalid source id")
 	accountingEntryErrorSystemCommissionNotFound   = newBillingServerErrorMsg("ae00013", "system commission for payment method not found")
+	accountingEntryAlreadyCreated                  = newBillingServerErrorMsg("ae00014", "accounting entries already created")
 
 	availableAccountingEntries = map[string]bool{
 		pkg.AccountingEntryTypeRealGrossRevenue:                    true,
@@ -317,6 +318,26 @@ func (h *accountingEntry) processPaymentEvent() error {
 		err    error
 	)
 
+	query := bson.M{
+		"object":      pkg.ObjectTypeBalanceTransaction,
+		"source.id":   bson.ObjectIdHex(h.order.Id),
+		"source.type": collectionOrder,
+	}
+	var aes []*billing.AccountingEntry
+	err = h.Service.db.Collection(collectionAccountingEntry).Find(query).All(&aes)
+	foundCount := len(aes)
+	if foundCount > 0 {
+		zap.S().Error(
+			accountingEntryAlreadyCreated.Message,
+			zap.Error(err),
+			zap.String("source.type", collectionOrder),
+			zap.String("source.id", h.order.Id),
+			zap.Int("entries found", foundCount),
+		)
+		return accountingEntryAlreadyCreated
+		// todo: is there must be an update of existing entry, instead of error?
+	}
+
 	// 1. realGrossRevenue
 	realGrossRevenue := h.newEntry(pkg.AccountingEntryTypeRealGrossRevenue)
 	realGrossRevenue.Amount, err = h.GetExchangePsCurrentCommon(h.order.Currency, h.order.TotalPaymentAmount)
@@ -506,8 +527,28 @@ func (h *accountingEntry) processRefundEvent() error {
 		err error
 	)
 
+	query := bson.M{
+		"object":      pkg.ObjectTypeBalanceTransaction,
+		"source.id":   bson.ObjectIdHex(h.refund.CreatedOrderId),
+		"source.type": collectionRefund,
+	}
+	var aes []*billing.AccountingEntry
+	err = h.Service.db.Collection(collectionAccountingEntry).Find(query).All(&aes)
+	foundCount := len(aes)
+	if foundCount > 0 {
+		zap.S().Error(
+			accountingEntryAlreadyCreated.Message,
+			zap.Error(err),
+			zap.String("source.type", collectionRefund),
+			zap.String("source.id", h.refund.CreatedOrderId),
+			zap.Int("entries found", foundCount),
+		)
+		return accountingEntryAlreadyCreated
+		// todo: is there must be an update of existing entry, instead of error?
+	}
+
 	// info: reversal rates are applied after the transaction has been physically processed by the payment method
-	// bur refund is the return of payment _before_ of the transaction was physically processed by the payment method.
+	// but refund is the return of payment _before_ of the transaction was physically processed by the payment method.
 	// Now, at this moment we can't determine that it is a refund or reversal
 	// But we will be able to determine it after getting a settlement from Cardpay
 	reason := "reversal"
@@ -544,7 +585,7 @@ func (h *accountingEntry) processRefundEvent() error {
 
 	// 2. realRefundTaxFee
 	realTaxFee := h.newEntry("")
-	query := bson.M{
+	query = bson.M{
 		"object":      pkg.ObjectTypeBalanceTransaction,
 		"type":        pkg.AccountingEntryTypeRealTaxFee,
 		"source.id":   bson.ObjectIdHex(h.order.Id),
@@ -812,7 +853,10 @@ func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
 		entry.OriginalCurrency = entry.Currency
 	}
 	if entry.LocalAmount == 0 && entry.LocalCurrency == "" && entry.Country != "" {
-		entry.LocalCurrency = h.country.Currency
+		// Use VatCurrency as local currency, instead of country currency.
+		// It because of some countries of EU,
+		// that use national currencies but pays vat in euro
+		entry.LocalCurrency = h.country.VatCurrency
 
 		if entry.LocalCurrency == entry.OriginalCurrency {
 			entry.LocalAmount = entry.OriginalAmount
