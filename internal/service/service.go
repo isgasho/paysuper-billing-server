@@ -145,7 +145,7 @@ func (s *Service) Init() (err error) {
 	s.centrifugoClient = gocent.New(
 		gocent.Config{
 			Addr:       s.cfg.CentrifugoURL,
-			Key:        s.cfg.CentrifugoSecret,
+			Key:        s.cfg.CentrifugoApiSecret,
 			HTTPClient: tools.NewLoggedHttpClient(zap.S()),
 		},
 	)

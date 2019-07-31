@@ -16,6 +16,7 @@ This service contain all business logic for payment processing
 | PSP_ACCOUNTING_CURRENCY              | -        | EUR                   | PaySuper accounting currency                                                                                                        |
 | METRICS_PORT                         | -        | 8086                  | Http server port for health and metrics request                                                                                     |
 | CENTRIFUGO_SECRET                    | true     | -                     | Centrifugo secret key                                                                                                               |
+| CENTRIFUGO_API_SECRET                | true     | -                     | Centrifugo API secret key                                                                                                               |
 | BROKER_ADDRESS                       | -        | amqp://127.0.0.1:5672 | RabbitMQ url address                                                                                                                |
 | CARD_PAY_API_URL                     | true     | -                     | CardPay API url to process payments, more in [documentation](https://integration.cardpay.com/v3/)                                   | 
 | CACHE_REDIS_ADDRESS                  | true     |                       | A seed list of host:port addresses of cluster nodes                                                                                 |
