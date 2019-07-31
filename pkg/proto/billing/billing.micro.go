@@ -37,7 +37,6 @@ It has these top-level messages:
 	PaymentMethodCrypto
 	ProjectPaymentMethod
 	PaymentMethod
-	Vat
 	Commission
 	CardExpire
 	SavedCard
@@ -97,7 +96,6 @@ It has these top-level messages:
 	RoyaltyReportCorrection
 	RoyaltyReport
 	RoyaltyReportChanges
-	RoyaltyReportOrder
 	VatTransaction
 	VatReport
 	AnnualTurnover

@@ -111,7 +111,6 @@ func NewBillingService(
 	redis redis.Cmdable,
 	cache CacheInterface,
 	curService currencies.CurrencyratesService,
-	smtpCl gomail.SendCloser,
 ) *Service {
 	return &Service{
 		db:         db,
@@ -123,7 +122,6 @@ func NewBillingService(
 		redis:      redis,
 		cacher:     cache,
 		curService: curService,
-		smtpCl:     smtpCl,
 	}
 }
 

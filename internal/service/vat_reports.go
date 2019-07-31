@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
@@ -16,8 +15,9 @@ import (
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	tax_service "github.com/paysuper/paysuper-tax-service/proto"
+	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
+	"github.com/streadway/amqp"
 	"go.uber.org/zap"
-	"gopkg.in/gomail.v2"
 	"time"
 )
 
@@ -29,7 +29,6 @@ const (
 	VatPeriodEvery3Month = 3
 
 	errorMsgVatReportCentrifugoNotificationFailed = "[Centrifugo] Send financier notification about vat report status change failed"
-	errorMsgVatReportSMTPNotificationFailed       = "[SMTP] Send financier notification about vat report status change failed"
 	errorMsgVatReportTaxServiceGetRateFailed      = "tax service get rate error"
 	errorMsgVatReportTurnoverNotFound             = "turnover not found"
 	errorMsgVatReportRatesPolicyNotImplemented    = "selected currency rates policy not implemented yet"
@@ -95,7 +94,7 @@ type vatReportProcessor struct {
 	date               time.Time
 	ts                 *timestamp.Timestamp
 	countries          []*billing.Country
-	orderViewUpdateIds []string
+	orderViewUpdateIds map[string]bool
 }
 
 func NewVatReportProcessor(s *Service, ctx context.Context, date *timestamp.Timestamp) (*vatReportProcessor, error) {
@@ -114,11 +113,12 @@ func NewVatReportProcessor(s *Service, ctx context.Context, date *timestamp.Time
 	}
 
 	processor := &vatReportProcessor{
-		Service:   s,
-		ctx:       ctx,
-		date:      eod,
-		ts:        eodTimestamp,
-		countries: countries.Countries,
+		Service:            s,
+		ctx:                ctx,
+		date:               eod,
+		ts:                 eodTimestamp,
+		countries:          countries.Countries,
+		orderViewUpdateIds: make(map[string]bool),
 	}
 
 	return processor, nil
@@ -416,20 +416,22 @@ func (s *Service) updateVatReport(vr *billing.VatReport) error {
 	}
 
 	if contains(VatReportOnStatusNotifyToEmail, vr.Status) {
-		m := gomail.NewMessage()
-		m.SetHeader("Subject", pkg.EmailVatReportSubject)
+		payload := &postmarkSdrPkg.Payload{
+			TemplateAlias: s.cfg.EmailVatReportTemplate,
+			TemplateModel: map[string]string{
+				"country": vr.Country,
+				"status":  vr.Status,
+			},
+			To: s.cfg.EmailNotificationFinancierRecipient,
+		}
 
-		message := fmt.Sprintf(pkg.EmailVatReportMessage, vr.Country, vr.Status)
-
-		m.SetBody(pkg.EmailContentType, message)
-
-		err = s.smtpCl.Send(s.cfg.EmailNotificationSender, []string{s.cfg.EmailNotificationFinancierRecipient}, m)
+		err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 
 		if err != nil {
 			zap.S().Error(
-				errorMsgVatReportSMTPNotificationFailed,
+				"Publication message about vat report status change to queue failed",
 				zap.Error(err),
-				zap.Any("vat_report", vr),
+				zap.Any("report", vr),
 			)
 		}
 	}
@@ -563,7 +565,12 @@ func (h *vatReportProcessor) UpdateOrderView() error {
 		return nil
 	}
 
-	err := h.Service.updateOrderView(h.orderViewUpdateIds)
+	ids := make([]string, 0, len(h.orderViewUpdateIds))
+	for k := range h.orderViewUpdateIds {
+		ids = append(ids, k)
+	}
+
+	err := h.Service.updateOrderView(ids)
 	if err != nil {
 		return err
 	}
@@ -801,14 +808,15 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.
 		return nil
 	}
 
-	var aeRealTaxFee = &billing.AccountingEntry{}
+	var aesRealTaxFee = make(map[string]*billing.AccountingEntry)
 	for _, ae := range aes {
 		if ae.Type != pkg.AccountingEntryTypeRealTaxFee {
 			continue
 		}
-		aeRealTaxFee = ae
-		break
+		aesRealTaxFee[ae.Source.Id] = ae
 	}
+
+	bulk := h.Service.db.Collection(collectionAccountingEntry).Bulk()
 
 	for _, ae := range aes {
 		if ae.Type == pkg.AccountingEntryTypeRealTaxFee {
@@ -822,25 +830,32 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.
 			}
 		}
 		if ae.Type == pkg.AccountingEntryTypeCentralBankTaxFee {
-			ae.LocalAmount = ae.LocalAmount - aeRealTaxFee.LocalAmount
+			realTaxFee, ok := aesRealTaxFee[ae.Source.Id]
+			if ok {
+				ae.LocalAmount = ae.LocalAmount - realTaxFee.LocalAmount
+			}
 		}
 		if amount == ae.LocalAmount {
 			continue
 		}
 
-		h.orderViewUpdateIds = append(h.orderViewUpdateIds, ae.Source.Id)
+		bulk.Update(bson.M{"_id": bson.ObjectIdHex(ae.Id)}, ae)
 
-		err = h.Service.db.Collection(collectionAccountingEntry).UpdateId(bson.ObjectIdHex(ae.Id), ae)
-		if err != nil && err != mgo.ErrNotFound {
-			zap.S().Error(
-				pkg.ErrorDatabaseQueryFailed,
-				zap.Error(err),
-				zap.String("collection", collectionAccountingEntry),
-				zap.Any("entry", ae),
-			)
-			return err
-		}
+		h.orderViewUpdateIds[ae.Source.Id] = true
 	}
+
+	bulkResult, err := bulk.Run()
+	if err != nil {
+		zap.S().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String("collection", collectionAccountingEntry),
+		)
+		return err
+	}
+
+	zap.S().Infow("accounting entries bulk update result",
+		"matched", bulkResult.Matched, "modified", bulkResult.Modified)
 
 	return nil
 }

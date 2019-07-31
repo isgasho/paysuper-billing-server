@@ -76,7 +76,6 @@ func (suite *UserProfileTestSuite) SetupTest() {
 		mock.NewTestRedis(),
 		suite.cache,
 		mock.NewCurrencyServiceMockOk(),
-		mock.NewSmtpSenderMockOk(),
 	)
 
 	err = suite.service.Init()
