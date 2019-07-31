@@ -1134,9 +1134,11 @@ message UserProfileCompany {
 }
 
 message UserProfileEmail {
-    //@inject_tag: validate:"required,email"
+    //@inject_tag: json:"email" validate:"required,email"
     string email = 1;
+    //@inject_tag: json:"confirmed"
     bool confirmed = 2;
+    //@inject_tag: json:"confirmed_at"
     google.protobuf.Timestamp confirmed_at = 3;
     //@inject_tag: json:"-" bson:"-"
     string confirmation_url = 4;
@@ -1149,7 +1151,7 @@ message UserProfile {
     string id = 1;
     //@inject_tag: json:"-" validate:"required,hexadecimal,len=24"
     string user_id = 2;
-    //@inject_tag: json:"-"
+    //@inject_tag: json:"email"
     UserProfileEmail email = 3;
     //@inject_tag: json:"personal"
     UserProfilePersonal personal = 4;
