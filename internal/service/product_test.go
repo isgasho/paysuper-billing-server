@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"github.com/ProtocolONE/rabbitmq/pkg"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -13,16 +12,15 @@ import (
 	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
+	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
 	"gopkg.in/mgo.v2/bson"
 	"testing"
 )
 
 var (
-	createdProductId string
-	initialName      = "Double Yeti"
-	newName          = "Double Yeti Reload"
-	merchantId       = "5bdc35de5d1e1100019fb7db"
-	projectId        = "5bdc39a95d1e1100019fb7df"
+	initialName = "Double Yeti"
+	merchantId  = "5bdc35de5d1e1100019fb7db"
+	projectId   = "5bdc35de5d1e1100019fb7db"
 )
 
 type ProductTestSuite struct {
@@ -80,7 +78,6 @@ func (suite *ProductTestSuite) SetupTest() {
 		nil,
 		suite.cache,
 		mock.NewCurrencyServiceMockOk(),
-		nil,
 	)
 
 	if err := suite.service.Init(); err != nil {

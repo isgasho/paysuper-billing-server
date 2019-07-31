@@ -5,7 +5,6 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/ProtocolONE/rabbitmq/pkg"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
@@ -19,6 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
+	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
 	"testing"
 	"time"
 )
@@ -306,7 +306,6 @@ func (suite *RefundTestSuite) SetupTest() {
 		nil,
 		suite.cache,
 		mock.NewCurrencyServiceMockOk(),
-		nil,
 	)
 
 	if err := suite.service.Init(); err != nil {

@@ -3165,7 +3165,7 @@ func (s *Service) doUpdateOrderView(match bson.M) error {
 
 	err := s.db.Collection(collectionOrder).Pipe(orderViewQuery).Iter().Err()
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			errorOrderViewUpdateQuery,
 			zap.Error(err),
 		)

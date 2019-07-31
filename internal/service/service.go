@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/ProtocolONE/geoip-service/pkg/proto"
-	"github.com/ProtocolONE/rabbitmq/pkg"
 	"github.com/centrifugal/gocent"
 	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
@@ -21,6 +20,7 @@ import (
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"github.com/paysuper/paysuper-tax-service/proto"
 	"go.uber.org/zap"
+	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
 	"gopkg.in/gomail.v2"
 	"strings"
 	"sync"
@@ -60,9 +60,9 @@ type Service struct {
 	geo                        proto.GeoIpService
 	rep                        repository.RepositoryService
 	tax                        tax_service.TaxService
-	broker                     *rabbitmq.Broker
+	broker                     rabbitmq.BrokerInterface
 	centrifugoClient           *gocent.Client
-	redis                      *redis.Client
+	redis                      redis.Cmdable
 	cacher                     CacheInterface
 	curService                 currencies.CurrencyratesService
 	smtpCl                     gomail.SendCloser
@@ -107,11 +107,10 @@ func NewBillingService(
 	geo proto.GeoIpService,
 	rep repository.RepositoryService,
 	tax tax_service.TaxService,
-	broker *rabbitmq.Broker,
-	redis *redis.Client,
+	broker rabbitmq.BrokerInterface,
+	redis redis.Cmdable,
 	cache CacheInterface,
 	curService currencies.CurrencyratesService,
-	smtpCl gomail.SendCloser,
 ) *Service {
 	return &Service{
 		db:         db,
@@ -123,7 +122,6 @@ func NewBillingService(
 		redis:      redis,
 		cacher:     cache,
 		curService: curService,
-		smtpCl:     smtpCl,
 	}
 }
 
@@ -158,7 +156,7 @@ func (s *Service) Init() (err error) {
 
 	sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currencies.EmptyRequest{})
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorGrpcServiceCallFailed,
 			zap.Error(err),
 			zap.String(errorFieldService, "CurrencyRatesService"),

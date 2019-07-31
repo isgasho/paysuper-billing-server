@@ -193,7 +193,10 @@ const (
 	BalanceTransactionStatusPending   = "pending"
 	BalanceTransactionStatusAvailable = "available"
 
-	ErrorDatabaseQueryFailed = "Query to database collection failed"
+	ErrorDatabaseQueryFailed     = "Query to database collection failed"
+	ErrorDatabaseFieldCollection = "collection"
+	ErrorDatabaseFieldQuery      = "query"
+	ErrorDatabaseFieldSet        = "set"
 
 	CardPayDeclineCodeSystemMalfunction                = "01"
 	CardPayDeclineCodeCancelledByCustomer              = "02"
@@ -250,14 +253,11 @@ const (
 	RoyaltyReportStatusCanceled = "canceled"
 	RoyaltyReportStatusDispute  = "dispute"
 
-	EmailRoyaltyReportSubject = "New royalty report"
-	EmailRoyaltyReportMessage = "<h1>New royalty report wait for merchant owner approve</h1>"
-	EmailContentType          = "text/html"
+	EmailRoyaltyReportMessage = "New royalty report wait for merchant owner approve"
 
-	RoyaltyReportChangeSourceAuto = "auto"
-
-	EmailVatReportSubject = "Vat report status changed"
-	EmailVatReportMessage = "Vat report for %s country changed his status to %s"
+	RoyaltyReportChangeSourceAuto     = "auto"
+	RoyaltyReportChangeSourceMerchant = "merchant"
+	RoyaltyReportChangeSourceAdmin    = "admin"
 
 	VatCurrencyRatesPolicyOnDay    = "on-day"
 	VatCurrencyRatesPolicyLastDay  = "last-day"

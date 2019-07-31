@@ -22,16 +22,6 @@ type MgoMultiLang struct {
 	Value string `bson:"value"`
 }
 
-type MgoVat struct {
-	Id          bson.ObjectId `bson:"_id" json:"id"`
-	Country     string        `bson:"country" json:"country"`
-	Subdivision string        `bson:"subdivision_code" json:"subdivision_code,omitempty"`
-	Vat         float64       `bson:"vat" json:"vat"`
-	IsActive    bool          `bson:"is_active" json:"is_active"`
-	CreatedAt   time.Time     `bson:"created_at" json:"created_at"`
-	UpdatedAt   time.Time     `bson:"updated_at" json:"updated_at,omitempty"`
-}
-
 type MgoProject struct {
 	Id                       bson.ObjectId   `bson:"_id"`
 	MerchantId               bson.ObjectId   `bson:"merchant_id"`
@@ -554,36 +544,21 @@ type MgoRoyaltyReport struct {
 	PayoutId       string                   `bson:"payout_id"`
 	PayoutDate     time.Time                `bson:"payout_date"`
 	Status         string                   `bson:"status"`
-	Deleted        bool                     `bson:"deleted"`
 	PeriodFrom     time.Time                `bson:"period_from"`
 	PeriodTo       time.Time                `bson:"period_to"`
 	AcceptExpireAt time.Time                `bson:"accept_expire_at"`
 	AcceptedAt     time.Time                `bson:"accepted_at"`
 	Amounts        *RoyaltyReportDetails    `bson:"amounts"`
 	Correction     *RoyaltyReportCorrection `bson:"correction"`
-	IsAutoAccepted bool                     `bson:"is_auto_accepted"`
 }
 
 type MgoRoyaltyReportChanges struct {
-	Id              bson.ObjectId     `bson:"_id"`
-	RoyaltyReportId bson.ObjectId     `bson:"royalty_report_id"`
-	Source          string            `bson:"source"`
-	Ip              string            `bson:"ip"`
-	Before          *MgoRoyaltyReport `bson:"before"`
-	After           *MgoRoyaltyReport `bson:"after"`
-	Hash            string            `bson:"hash"`
-	CreatedAt       time.Time         `bson:"created_at"`
-}
-
-type MgoRoyaltyReportOrder struct {
-	Date           time.Time            `bson:"pm_order_close_date"`
-	CountryIp      *OrderUser           `bson:"user"`
-	CountryBilling *OrderBillingAddress `bson:"billing_address"`
-	PaymentId      string               `bson:"uuid"`
-	Method         *PaymentMethodOrder  `bson:"payment_method"`
-	Amount         float64              `bson:"total_payment_amount"`
-	Vat            *OrderTax            `bson:"tax"`
-	Commission     float64              `bson:"commission"`
+	Id              bson.ObjectId `bson:"_id"`
+	RoyaltyReportId bson.ObjectId `bson:"royalty_report_id"`
+	Source          string        `bson:"source"`
+	Ip              string        `bson:"ip"`
+	Hash            string        `bson:"hash"`
+	CreatedAt       time.Time     `bson:"created_at"`
 }
 
 type MgoVatReport struct {
@@ -604,6 +579,8 @@ type MgoVatReport struct {
 	DateFrom              time.Time     `bson:"date_from"`
 	DateTo                time.Time     `bson:"date_to"`
 	PayUntilDate          time.Time     `bson:"pay_until_date"`
+	CreatedAt             time.Time     `bson:"created_at"`
+	UpdatedAt             time.Time     `bson:"updated_at"`
 }
 
 type MgoOrderViewPrivate struct {
@@ -868,80 +845,6 @@ func (m *PriceGroup) SetBSON(raw bson.Raw) error {
 	m.Currency = decoded.Currency
 	m.InflationRate = decoded.InflationRate
 	m.Fraction = decoded.Fraction
-
-	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
-
-	if err != nil {
-		return err
-	}
-
-	m.UpdatedAt, err = ptypes.TimestampProto(decoded.UpdatedAt)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *Vat) GetBSON() (interface{}, error) {
-	st := &MgoVat{
-		Country:     m.Country,
-		Subdivision: m.Subdivision,
-		Vat:         m.Vat,
-		IsActive:    m.IsActive,
-	}
-
-	if len(m.Id) <= 0 {
-		st.Id = bson.NewObjectId()
-	} else {
-		if bson.IsObjectIdHex(m.Id) == false {
-			return nil, errors.New(errorInvalidObjectId)
-		}
-
-		st.Id = bson.ObjectIdHex(m.Id)
-	}
-
-	if m.CreatedAt != nil {
-		t, err := ptypes.Timestamp(m.CreatedAt)
-
-		if err != nil {
-			return nil, err
-		}
-
-		st.CreatedAt = t
-	} else {
-		st.CreatedAt = time.Now()
-	}
-
-	if m.UpdatedAt != nil {
-		t, err := ptypes.Timestamp(m.UpdatedAt)
-
-		if err != nil {
-			return nil, err
-		}
-
-		st.UpdatedAt = t
-	} else {
-		st.UpdatedAt = time.Now()
-	}
-
-	return st, nil
-}
-
-func (m *Vat) SetBSON(raw bson.Raw) error {
-	decoded := new(MgoVat)
-	err := raw.Unmarshal(decoded)
-
-	if err != nil {
-		return err
-	}
-
-	m.Id = decoded.Id.Hex()
-	m.Country = decoded.Country
-	m.Subdivision = decoded.Subdivision
-	m.Vat = decoded.Vat
-	m.IsActive = decoded.IsActive
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 
@@ -2909,23 +2812,32 @@ func (m *VatReport) GetBSON() (interface{}, error) {
 		st.Id = bson.ObjectIdHex(m.Id)
 	}
 
-	t, err := ptypes.Timestamp(m.DateFrom)
-	if err != nil {
-		return nil, err
-	}
-	st.DateFrom = t
+	var err error
 
-	t, err = ptypes.Timestamp(m.DateTo)
+	st.DateFrom, err = ptypes.Timestamp(m.DateFrom)
 	if err != nil {
 		return nil, err
 	}
-	st.DateTo = t
 
-	t, err = ptypes.Timestamp(m.PayUntilDate)
+	st.DateTo, err = ptypes.Timestamp(m.DateTo)
 	if err != nil {
 		return nil, err
 	}
-	st.PayUntilDate = t
+
+	st.PayUntilDate, err = ptypes.Timestamp(m.PayUntilDate)
+	if err != nil {
+		return nil, err
+	}
+
+	st.CreatedAt, err = ptypes.Timestamp(m.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	st.UpdatedAt, err = ptypes.Timestamp(m.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
 
 	return st, nil
 }
@@ -2963,6 +2875,16 @@ func (m *VatReport) SetBSON(raw bson.Raw) error {
 	}
 
 	m.PayUntilDate, err = ptypes.TimestampProto(decoded.PayUntilDate)
+	if err != nil {
+		return err
+	}
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	m.UpdatedAt, err = ptypes.TimestampProto(decoded.UpdatedAt)
 	if err != nil {
 		return err
 	}
@@ -3059,14 +2981,12 @@ func (m *AccountingEntry) SetBSON(raw bson.Raw) error {
 
 func (m *RoyaltyReport) GetBSON() (interface{}, error) {
 	st := &MgoRoyaltyReport{
-		Id:             bson.ObjectIdHex(m.Id),
-		MerchantId:     bson.ObjectIdHex(m.MerchantId),
-		Status:         m.Status,
-		Deleted:        m.Deleted,
-		Amounts:        m.Amounts,
-		Correction:     m.Correction,
-		PayoutId:       m.PayoutId,
-		IsAutoAccepted: m.IsAutoAccepted,
+		Id:         bson.ObjectIdHex(m.Id),
+		MerchantId: bson.ObjectIdHex(m.MerchantId),
+		Status:     m.Status,
+		Amounts:    m.Amounts,
+		Correction: m.Correction,
+		PayoutId:   m.PayoutId,
 	}
 
 	if m.PayoutDate != nil {
@@ -3149,11 +3069,9 @@ func (m *RoyaltyReport) SetBSON(raw bson.Raw) error {
 	m.Id = decoded.Id.Hex()
 	m.MerchantId = decoded.MerchantId.Hex()
 	m.Status = decoded.Status
-	m.Deleted = decoded.Deleted
 	m.Amounts = decoded.Amounts
 	m.Correction = decoded.Correction
 	m.PayoutId = decoded.PayoutId
-	m.IsAutoAccepted = decoded.IsAutoAccepted
 	m.PayoutDate, err = ptypes.TimestampProto(decoded.PayoutDate)
 
 	if err != nil {
@@ -3205,44 +3123,7 @@ func (m *RoyaltyReportChanges) GetBSON() (interface{}, error) {
 		RoyaltyReportId: bson.ObjectIdHex(m.RoyaltyReportId),
 		Source:          m.Source,
 		Ip:              m.Ip,
-		After: &MgoRoyaltyReport{
-			Id:         bson.ObjectIdHex(m.After.Id),
-			MerchantId: bson.ObjectIdHex(m.After.MerchantId),
-			PayoutId:   m.After.PayoutId,
-			Status:     m.After.Status,
-			Deleted:    m.After.Deleted,
-			Amounts:    m.After.Amounts,
-			Correction: m.After.Correction,
-		},
-		Hash: m.Hash,
-	}
-
-	st.After.CreatedAt, _ = ptypes.Timestamp(m.After.CreatedAt)
-	st.After.UpdatedAt, _ = ptypes.Timestamp(m.After.UpdatedAt)
-	st.After.PayoutDate, _ = ptypes.Timestamp(m.After.PayoutDate)
-	st.After.PeriodFrom, _ = ptypes.Timestamp(m.After.PeriodFrom)
-	st.After.PeriodTo, _ = ptypes.Timestamp(m.After.PeriodTo)
-	st.After.AcceptExpireAt, _ = ptypes.Timestamp(m.After.AcceptExpireAt)
-	st.After.AcceptedAt, _ = ptypes.Timestamp(m.After.AcceptedAt)
-
-	if m.Before != nil {
-		st.Before = &MgoRoyaltyReport{
-			Id:         bson.ObjectIdHex(m.Before.Id),
-			MerchantId: bson.ObjectIdHex(m.Before.MerchantId),
-			PayoutId:   m.Before.PayoutId,
-			Status:     m.Before.Status,
-			Deleted:    m.Before.Deleted,
-			Amounts:    m.Before.Amounts,
-			Correction: m.Before.Correction,
-		}
-
-		st.Before.CreatedAt, _ = ptypes.Timestamp(m.Before.CreatedAt)
-		st.Before.UpdatedAt, _ = ptypes.Timestamp(m.Before.UpdatedAt)
-		st.Before.PayoutDate, _ = ptypes.Timestamp(m.Before.PayoutDate)
-		st.Before.PeriodFrom, _ = ptypes.Timestamp(m.Before.PeriodFrom)
-		st.Before.PeriodTo, _ = ptypes.Timestamp(m.Before.PeriodTo)
-		st.Before.AcceptExpireAt, _ = ptypes.Timestamp(m.Before.AcceptExpireAt)
-		st.Before.AcceptedAt, _ = ptypes.Timestamp(m.Before.AcceptedAt)
+		Hash:            m.Hash,
 	}
 
 	if m.CreatedAt != nil {
@@ -3272,74 +3153,12 @@ func (m *RoyaltyReportChanges) SetBSON(raw bson.Raw) error {
 	m.RoyaltyReportId = decoded.RoyaltyReportId.Hex()
 	m.Source = decoded.Source
 	m.Ip = decoded.Ip
-	m.After = &RoyaltyReport{
-		Id:         decoded.After.Id.Hex(),
-		MerchantId: decoded.After.MerchantId.Hex(),
-		PayoutId:   decoded.After.PayoutId,
-		Status:     decoded.After.Status,
-		Deleted:    decoded.After.Deleted,
-		Amounts:    decoded.After.Amounts,
-		Correction: decoded.After.Correction,
-	}
-	m.Hash = decoded.Hash
-
-	m.After.CreatedAt, _ = ptypes.TimestampProto(decoded.After.CreatedAt)
-	m.After.UpdatedAt, _ = ptypes.TimestampProto(decoded.After.UpdatedAt)
-	m.After.PayoutDate, _ = ptypes.TimestampProto(decoded.After.PayoutDate)
-	m.After.PeriodFrom, _ = ptypes.TimestampProto(decoded.After.PeriodFrom)
-	m.After.PeriodTo, _ = ptypes.TimestampProto(decoded.After.PeriodTo)
-	m.After.AcceptExpireAt, _ = ptypes.TimestampProto(decoded.After.AcceptExpireAt)
-	m.After.AcceptedAt, _ = ptypes.TimestampProto(decoded.After.AcceptedAt)
-
-	if decoded.Before != nil {
-		m.Before = &RoyaltyReport{
-			Id:         decoded.Before.Id.Hex(),
-			MerchantId: decoded.Before.MerchantId.Hex(),
-			PayoutId:   decoded.Before.PayoutId,
-			Status:     decoded.Before.Status,
-			Deleted:    decoded.Before.Deleted,
-			Amounts:    decoded.Before.Amounts,
-			Correction: decoded.Before.Correction,
-		}
-
-		m.Before.CreatedAt, _ = ptypes.TimestampProto(decoded.Before.CreatedAt)
-		m.Before.UpdatedAt, _ = ptypes.TimestampProto(decoded.Before.UpdatedAt)
-		m.Before.PayoutDate, _ = ptypes.TimestampProto(decoded.Before.PayoutDate)
-		m.Before.PeriodFrom, _ = ptypes.TimestampProto(decoded.Before.PeriodFrom)
-		m.Before.PeriodTo, _ = ptypes.TimestampProto(decoded.Before.PeriodTo)
-		m.Before.AcceptExpireAt, _ = ptypes.TimestampProto(decoded.Before.AcceptExpireAt)
-		m.Before.AcceptedAt, _ = ptypes.TimestampProto(decoded.Before.AcceptedAt)
-	}
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 
 	if err != nil {
 		return err
 	}
-
-	return nil
-}
-
-func (m *RoyaltyReportOrder) SetBSON(raw bson.Raw) error {
-	decoded := new(MgoRoyaltyReportOrder)
-	err := raw.Unmarshal(decoded)
-
-	if err != nil {
-		return err
-	}
-
-	m.Country = decoded.CountryIp.Address.Country
-
-	if decoded.CountryBilling != nil && decoded.CountryBilling.Country != "" {
-		m.Country = decoded.CountryBilling.Country
-	}
-
-	m.PaymentId = decoded.PaymentId
-	m.Method = decoded.Method.Name
-	m.Amount = tools.FormatAmount(decoded.Amount)
-	m.Vat = tools.FormatAmount(decoded.Vat.Amount)
-	m.Commission = tools.FormatAmount(decoded.Commission)
-	m.Date = decoded.Date.Unix()
 
 	return nil
 }

@@ -2,14 +2,12 @@ package internal
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"github.com/InVisionApp/go-health"
 	"github.com/InVisionApp/go-health/handlers"
 	"github.com/ProtocolONE/geoip-service/pkg"
 	"github.com/ProtocolONE/geoip-service/pkg/proto"
 	metrics "github.com/ProtocolONE/go-micro-plugins/wrapper/monitoring/prometheus"
-	"github.com/ProtocolONE/rabbitmq/pkg"
 	"github.com/go-redis/redis"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
@@ -35,7 +33,7 @@ import (
 	"github.com/paysuper/paysuper-tax-service/proto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
-	"gopkg.in/gomail.v2"
+	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
 	"log"
 	"net/http"
 	"os"
@@ -172,25 +170,6 @@ func (app *Application) Init() {
 		PoolSize:     cfg.CacheRedis.PoolSize,
 	})
 
-	d := gomail.NewDialer(app.cfg.SmtpHost, app.cfg.SmtpPort, app.cfg.SmtpUser, app.cfg.SmtpPassword)
-	d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
-	smtpCl, err := d.Dial()
-
-	if err != nil {
-		zap.L().Fatal(
-			"Connection to SMTP server failed",
-			zap.Error(err),
-			zap.Int("port", app.cfg.SmtpPort),
-			zap.String("user", app.cfg.SmtpUser),
-		)
-	}
-
-	zap.L().Info(
-		"SMTP server connection started",
-		zap.String("host", app.cfg.SmtpHost),
-		zap.Int("port", app.cfg.SmtpPort),
-	)
-
 	app.svc = service.NewBillingService(
 		app.database,
 		app.cfg,
@@ -201,7 +180,6 @@ func (app *Application) Init() {
 		app.redis,
 		service.NewCacheRedis(redisdb),
 		curService,
-		smtpCl,
 	)
 
 	if err := app.svc.Init(); err != nil {
@@ -284,18 +262,20 @@ func (app *Application) Stop() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := app.httpServer.Shutdown(ctx); err != nil {
-		app.logger.Error("Http server shutdown failed", zap.Error(err))
+	if app.httpServer != nil {
+		if err := app.httpServer.Shutdown(ctx); err != nil {
+			app.logger.Error("Http server shutdown failed", zap.Error(err))
+		}
+		app.logger.Info("Http server stopped")
 	}
-	app.logger.Info("Http server stopped")
 
 	app.database.Close()
 	app.logger.Info("Database connection closed")
 
 	if err := app.redis.Close(); err != nil {
-		zap.L().Error("Redis connection close failed", zap.Error(err))
+		zap.S().Error("Redis connection close failed", zap.Error(err))
 	} else {
-		zap.L().Info("Redis connection closed")
+		zap.S().Info("Redis connection closed")
 	}
 
 	if err := app.logger.Sync(); err != nil {
@@ -306,7 +286,7 @@ func (app *Application) Stop() {
 }
 
 func (app *Application) TaskProcessVatReports(date string) error {
-	zap.L().Info("Start to processing vat reports")
+	zap.S().Info("Start to processing vat reports")
 	req := &grpc.ProcessVatReportsRequest{
 		Date: ptypes.TimestampNow(),
 	}

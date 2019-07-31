@@ -1,0 +1,33 @@
+[
+  {
+    "update": "country",
+    "updates": [
+      {
+        "q": {
+          "iso_code_a2": "BV"
+        },
+        "u": {
+          "$currentDate": {
+            "updated_at": true
+          },
+          "$set": {
+            "region": "South America"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MO"
+        },
+        "u": {
+          "$currentDate": {
+            "updated_at": true
+          },
+          "$set": {
+            "region": "East Asia"
+          }
+        }
+      }
+    ]
+  }
+]
