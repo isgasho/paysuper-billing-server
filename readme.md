@@ -27,14 +27,13 @@ This service contain all business logic for payment processing
 | CUSTOMER_COOKIE_PRIVATE_KEY          | true     | -                     | Base64 encoded RSA private key - used for decrypt customer browser cookies content. Minimal length of RSA private key must be 4096  |
 | REDIS_HOST                           | -        | 127.0.0.1:6379        | Redis server host                                                                                                                   |
 | REDIS_PASSWORD                       | -        | ""                    | Password to access to Redis server                                                                                                  |
-| SMTP_HOST                            | true     | -                     | SMTP server address                                                                                                                 |
-| SMTP_PORT                            | true     | -                     | SMTP server port                                                                                                                    |
-| SMTP_USER                            | true     | -                     | User account to authorize on SMTP server                                                                                            |
-| SMTP_PASSWORD                        | true     | -                     | Password to authorize user on SMTP server                                                                                           |
-| EMAIL_NOTIFICATION_SENDER            | true     | -                     | Sender email for using to send alert notifications to users                                                                         |
 | CENTRIFUGO_MERCHANT_CHANNEL          | -        | paysuper:merchant#%s  | Centrifugo channel name to send notifications to merchant                                                                           |
 | CENTRIFUGO_FINANCIER_CHANNEL         | -        | paysuper:financier    | Centrifugo channel name to send notifications to financier                                                                          |
-|EMAIL_NOTIFICATION_FINANCIER_RECIPIENT| true     |                       | Email of financier, to get vat reports notification                                                                                 |
+| EMAIL_NOTIFICATION_FINANCIER_RECIPIENT| true    |                       | Email of financier, to get vat reports notification                                                                                 |
+| EMAIL_CONFIRM_URL                    | -        | https://paysupermgmt.tst.protocol.one/confirm_email | Url to use in template of confirmation email                                                          |
+| EMAIL_CONFIRM_TEMPLATE               | -        | sidmal_test_email_confirm| Confirmation email template name                                                                                                 |
+| EMAIL_NEW_ROYALTY_REPORT_TEMPLATE    | -        |                       | New royalty report notification email template name                                                                                 |
+| EMAIL_VAT_REPORT_TEMPLATE            | -        |                       | New vat report notification email template name                                                                                     |
 | KEY_DAEMON_RESTART_INTERVAL          | -        | 60                    | Starting frequency in seconds of the script to check the locked keys and return them to the stack.                                  |
 
 ## Docker Deployment

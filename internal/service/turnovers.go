@@ -47,20 +47,18 @@ func (s *Service) CalcAnnualTurnovers(ctx context.Context, req *grpc.EmptyReques
 	for _, country := range countries.Countries {
 		err = s.calcAnnualTurnover(ctx, country.IsoCodeA2)
 		if err != nil {
-			zap.L().Error(
-				errorCannotCalculateTurnoverCountry,
-				zap.Error(err),
-				zap.String("country", country.IsoCodeA2),
-			)
+			if err != errorTurnoversCurrencyRatesPolicyNotSupported {
+				zap.S().Errorf(errorCannotCalculateTurnoverCountry, "country", country.IsoCodeA2, err.Error())
+				return err
+			}
+			zap.S().Warnf(errorCannotCalculateTurnoverCountry, "country", country.IsoCodeA2, err.Error())
 		}
 	}
 
 	err = s.calcAnnualTurnover(ctx, "")
 	if err != nil {
-		zap.L().Error(
-			errorCannotCalculateTurnoverWorld,
-			zap.Error(err),
-		)
+		zap.S().Error(errorCannotCalculateTurnoverWorld, err.Error())
+		return err
 	}
 
 	return nil
@@ -130,7 +128,7 @@ func (s *Service) calcAnnualTurnover(ctx context.Context, countryCode string) er
 
 	err = s.turnover.Insert(at)
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionAnnualTurnovers),
@@ -181,7 +179,7 @@ func (s *Service) getTurnover(ctx context.Context, from, to time.Time, countryCo
 			err = nil
 			return
 		}
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionAccountingEntry),
@@ -214,7 +212,7 @@ func (s *Service) getTurnover(ctx context.Context, from, to time.Time, countryCo
 		rsp, err := s.curService.ExchangeCurrencyByDateCommon(ctx, req)
 
 		if err != nil {
-			zap.L().Error(
+			zap.S().Error(
 				pkg.ErrorGrpcServiceCallFailed,
 				zap.Error(err),
 				zap.String(errorFieldService, "CurrencyRatesService"),

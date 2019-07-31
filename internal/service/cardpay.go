@@ -301,7 +301,7 @@ func (h *cardPay) CreatePayment(requisites map[string]string) (url string, err e
 
 	req, err := http.NewRequest(cardPayPaths[action].method, qUrl, bytes.NewBuffer(b))
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			"CardPay create payment failed",
 			zap.Error(err),
 			zap.Any("request", cpOrder),
@@ -318,7 +318,7 @@ func (h *cardPay) CreatePayment(requisites map[string]string) (url string, err e
 	resp, err := client.Do(req)
 
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			"CardPay create payment failed",
 			zap.Error(err),
 			zap.Any("request", cpOrder),
@@ -791,7 +791,7 @@ func (t *cardPayTransport) log(reqUrl string, reqHeader http.Header, reqBody []b
 		return
 	}
 
-	zap.L().Info(
+	zap.S().Info(
 		reqUrl,
 		zap.String("request_headers", t.processor.httpHeadersToString(reqHeader)),
 		zap.String("request_body", string(request)),

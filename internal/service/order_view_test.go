@@ -1,7 +1,6 @@
 package service
 
 import (
-	rabbitmq "github.com/ProtocolONE/rabbitmq/pkg"
 	"github.com/go-redis/redis"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
@@ -14,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
+	rabbitmq "gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
 	"testing"
 )
 
@@ -39,6 +39,7 @@ func (suite *OrderViewTestSuite) SetupTest() {
 	}
 	cfg.AccountingCurrency = "RUB"
 	cfg.CardPayApiUrl = "https://sandbox.cardpay.com"
+	cfg.OrderViewUpdateBatchSize = 20
 
 	m, err := migrate.New(
 		"file://../../migrations/tests",
@@ -86,7 +87,6 @@ func (suite *OrderViewTestSuite) SetupTest() {
 		redisClient,
 		suite.cache,
 		mock.NewCurrencyServiceMockOk(),
-		nil,
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -105,7 +105,6 @@ func (suite *OrderViewTestSuite) TearDownTest() {
 }
 
 func (suite *OrderViewTestSuite) Test_OrderView_updateOrderView() {
-
 	amounts := []float64{100, 10}
 	currencies := []string{"RUB", "USD"}
 	countries := []string{"RU", "FI"}

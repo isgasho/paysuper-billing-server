@@ -1,0 +1,21 @@
+[
+  {
+    "update": "country",
+    "updates": [
+      {
+        "q": {
+          "iso_code_a2": "GH"
+        },
+        "u": {
+          "$currentDate": {
+            "updated_at": true
+          },
+          "$set": {
+            "currency": "GHS",
+            "vat_currency": "GHS"
+          }
+        }
+      }
+    ]
+  }
+]

@@ -2,8 +2,6 @@ package service
 
 import (
 	"context"
-	"github.com/ProtocolONE/rabbitmq/pkg"
-	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -13,6 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
+	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
+	"gopkg.in/mgo.v2/bson"
 	"testing"
 )
 
@@ -78,7 +78,6 @@ func (suite *KeyProductTestSuite) SetupTest() {
 		nil,
 		suite.cache,
 		mock.NewCurrencyServiceMockOk(),
-		nil,
 	)
 
 	if err := suite.service.Init(); err != nil {
