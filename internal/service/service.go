@@ -160,7 +160,7 @@ func (s *Service) Init() (err error) {
 		return errors.New(errorAccountingCurrencyNotFound)
 	}
 
-	/*sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currencies.EmptyRequest{})
+	sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currencies.EmptyRequest{})
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorGrpcServiceCallFailed,
@@ -172,7 +172,7 @@ func (s *Service) Init() (err error) {
 		return err
 	}
 
-	s.supportedCurrencies = sCurr.Currencies*/
+	s.supportedCurrencies = sCurr.Currencies
 
 	return
 }
