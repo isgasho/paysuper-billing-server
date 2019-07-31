@@ -317,29 +317,28 @@ func (app *Application) TaskAutoAcceptRoyaltyReports() error {
 }
 
 func (app *Application) KeyDaemonStart() {
-	interval := time.Duration(int64(app.cfg.KeyDaemonRestartInterval) * int64(time.Second))
-	shutdown := make(chan os.Signal, 1)
-	signal.Notify(shutdown, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
-
 	zap.S().Infof("Key daemon started", zap.Int("RestartInterval", app.cfg.KeyDaemonRestartInterval))
 
 	go func() {
+		interval := time.Duration(int64(app.cfg.KeyDaemonRestartInterval) * int64(time.Second))
+		shutdown := make(chan os.Signal, 1)
+		signal.Notify(shutdown, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+
 		for {
 			zap.S().Debug("Key daemon working")
-
-			finished, cancelled, err := app.svc.KeyDaemonProcess()
-			if err != nil {
-				zap.L().Error("Key daemon process failed", zap.Error(err))
-			}
-
-			zap.S().Debugf("Key daemon job finished", "finished", finished, "cancelled", cancelled)
-			time.Sleep(interval)
 
 			select {
 			case <-shutdown:
 				zap.S().Info("Key daemon stopping")
 				return
 			default:
+				count, err := app.svc.KeyDaemonProcess()
+				if err != nil {
+					zap.L().Error("Key daemon process failed", zap.Error(err))
+				}
+
+				zap.S().Debugf("Key daemon job finished", "count", count)
+				time.Sleep(interval)
 			}
 		}
 	}()

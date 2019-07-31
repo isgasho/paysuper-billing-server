@@ -16,5 +16,8 @@
   },
   {
     "create": "currency_rate"
+  },
+  {
+    "create": "vat"
   }
 ]
