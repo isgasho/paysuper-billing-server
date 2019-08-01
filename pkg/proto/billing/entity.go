@@ -61,6 +61,14 @@ func (m *Merchant) IsFullySigned() bool {
 	return m.HasMerchantSignature && m.HasPspSignature
 }
 
+func (m *Merchant) IsMerchantSignature(sign string) bool {
+	return m.MerchantSignature == sign
+}
+
+func (m *Merchant) IsPspSignature(sign string) bool {
+	return m.PspSignature == sign
+}
+
 func (m *Merchant) IsDeleted() bool {
 	return m.Status == pkg.MerchantStatusDeleted
 }
