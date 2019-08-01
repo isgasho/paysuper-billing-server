@@ -291,6 +291,10 @@ message Merchant {
     string centrifugo_token = 41;
     //@inject_tag: json:"signature_request" bson:"signature_request"
     MerchantSignatureRequest signature_request = 42;
+    //@inject_tag: json:"-"
+    string merchant_signature = 43;
+    //@inject_tag: json:"-"
+    string psp_signature = 44;
 }
 
 message SystemNotificationStatuses {

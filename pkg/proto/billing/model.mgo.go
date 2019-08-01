@@ -111,6 +111,8 @@ type MgoMerchant struct {
 	ItemMinCostAmount                             float64                              `bson:"item_min_cost_amount"`
 	ItemMinCostCurrency                           string                               `bson:"item_min_cost_currency"`
 	SignatureRequest                              *MerchantSignatureRequest            `bson:"signature_request"`
+	MerchantSignature                             string                               `bson:"merchant_signature"`
+	PspSignature                                  string                               `bson:"psp_signature"`
 }
 
 type MgoCommission struct {
@@ -1702,6 +1704,8 @@ func (m *Merchant) GetBSON() (interface{}, error) {
 		ItemMinCostAmount:   m.ItemMinCostAmount,
 		ItemMinCostCurrency: m.ItemMinCostCurrency,
 		SignatureRequest:    m.SignatureRequest,
+		MerchantSignature:   m.MerchantSignature,
+		PspSignature:        m.PspSignature,
 	}
 
 	if len(m.Id) <= 0 {
@@ -1823,6 +1827,8 @@ func (m *Merchant) SetBSON(raw bson.Raw) error {
 	m.ItemMinCostAmount = decoded.ItemMinCostAmount
 	m.ItemMinCostCurrency = decoded.ItemMinCostCurrency
 	m.SignatureRequest = decoded.SignatureRequest
+	m.MerchantSignature = decoded.MerchantSignature
+	m.PspSignature = decoded.PspSignature
 
 	m.FirstPaymentAt, err = ptypes.TimestampProto(decoded.FirstPaymentAt)
 

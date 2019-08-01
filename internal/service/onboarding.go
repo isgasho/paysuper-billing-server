@@ -6,6 +6,8 @@ import (
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
+	documentSignerPkg "github.com/paysuper/document-signer/pkg"
+	"github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -909,6 +911,26 @@ func (s *Service) AgreementSign(
 
 		return nil
 	}
+
+	req1 := &proto.CreateSignatureRequest{
+		Signers: []*proto.CreateSignatureRequestSigner{
+			{
+				Email:    "no-reply@protocol.one",
+				Name:     "Client Name",
+				RoleName: "Client",
+			},
+			{
+				Email:    "no-reply@protocol.one",
+				Name:     "Agent Name",
+				RoleName: "Agent",
+			},
+		},
+		Metadata: map[string]string{
+			documentSignerPkg.MetadataFieldIsMerchantSign: pkg.HelloSignTestMode,
+			documentSignerPkg.MetadataFieldMerchantId:     bson.NewObjectId().Hex(),
+		},
+	}
+	rsp1, err := s.documentSigner.CreateSignature(ctx, req1)
 
 	return nil
 }
