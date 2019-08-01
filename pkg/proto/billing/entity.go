@@ -57,6 +57,10 @@ func (m *Merchant) CanChangeStatusToSigning() bool {
 		m.Contacts != nil && m.Contacts.Authorized != nil
 }
 
+func (m *Merchant) IsFullySigned() bool {
+	return m.HasMerchantSignature && m.HasPspSignature
+}
+
 func (m *Merchant) IsDeleted() bool {
 	return m.Status == pkg.MerchantStatusDeleted
 }

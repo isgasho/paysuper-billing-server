@@ -33,6 +33,7 @@ var (
 	notificationErrorUserIdIncorrect         = newBillingServerErrorMsg("mr000013", "user identifier incorrect, notification can't be saved")
 	notificationErrorMessageIsEmpty          = newBillingServerErrorMsg("mr000014", "notification message can't be empty")
 	notificationErrorNotFound                = newBillingServerErrorMsg("mr000015", "notification not found")
+	merchantErrorAlreadySigned               = newBillingServerErrorMsg("mr000016", "merchant already fully signed")
 
 	NotificationStatusChangeTitles = map[int32]string{
 		pkg.MerchantStatusDraft:              "New merchant created",
@@ -879,4 +880,35 @@ func (s *Service) mapNotificationData(rsp *billing.Notification, notification *b
 	rsp.IsRead = notification.IsRead
 	rsp.CreatedAt = notification.CreatedAt
 	rsp.UpdatedAt = notification.UpdatedAt
+}
+
+func (s *Service) AgreementSign(
+	ctx context.Context,
+	req *grpc.SetMerchantS3AgreementRequest,
+	rsp *grpc.AgreementSignResponse,
+) error {
+	merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
+
+		return nil
+	}
+
+	if merchant.IsFullySigned() {
+		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Message = merchantErrorAlreadySigned
+
+		return nil
+	}
+
+	if merchant.SignatureRequest != nil {
+		rsp.Status = pkg.ResponseStatusOk
+		rsp.SignatureRequest = merchant.SignatureRequest
+
+		return nil
+	}
+
+	return nil
 }

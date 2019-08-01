@@ -110,6 +110,7 @@ type MgoMerchant struct {
 	RollingReserveChargebackTransactionsThreshold float64                              `bson:"rolling_reserve_chargeback_transactions_threshold"`
 	ItemMinCostAmount                             float64                              `bson:"item_min_cost_amount"`
 	ItemMinCostCurrency                           string                               `bson:"item_min_cost_currency"`
+	SignatureRequest                              *MerchantSignatureRequest            `bson:"signature_request"`
 }
 
 type MgoCommission struct {
@@ -1700,6 +1701,7 @@ func (m *Merchant) GetBSON() (interface{}, error) {
 		RollingReserveChargebackTransactionsThreshold: m.RollingReserveChargebackTransactionsThreshold,
 		ItemMinCostAmount:   m.ItemMinCostAmount,
 		ItemMinCostCurrency: m.ItemMinCostCurrency,
+		SignatureRequest:    m.SignatureRequest,
 	}
 
 	if len(m.Id) <= 0 {
@@ -1820,6 +1822,7 @@ func (m *Merchant) SetBSON(raw bson.Raw) error {
 	m.RollingReserveChargebackTransactionsThreshold = decoded.RollingReserveChargebackTransactionsThreshold
 	m.ItemMinCostAmount = decoded.ItemMinCostAmount
 	m.ItemMinCostCurrency = decoded.ItemMinCostCurrency
+	m.SignatureRequest = decoded.SignatureRequest
 
 	m.FirstPaymentAt, err = ptypes.TimestampProto(decoded.FirstPaymentAt)
 

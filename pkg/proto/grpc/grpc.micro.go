@@ -137,6 +137,7 @@ It has these top-level messages:
 	VatReportsResponse
 	ProcessVatReportsRequest
 	UpdateVatReportStatusRequest
+	AgreementSignResponse
 */
 package grpc
 
@@ -266,6 +267,7 @@ type BillingService interface {
 	ProcessVatReports(ctx context.Context, in *ProcessVatReportsRequest, opts ...client.CallOption) (*EmptyResponse, error)
 	UpdateVatReportStatus(ctx context.Context, in *UpdateVatReportStatusRequest, opts ...client.CallOption) (*ResponseError, error)
 	CalcAnnualTurnovers(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*EmptyResponse, error)
+	AgreementSign(ctx context.Context, in *SetMerchantS3AgreementRequest, opts ...client.CallOption) (*AgreementSignResponse, error)
 }
 
 type billingService struct {
@@ -1226,6 +1228,16 @@ func (c *billingService) CalcAnnualTurnovers(ctx context.Context, in *EmptyReque
 	return out, nil
 }
 
+func (c *billingService) AgreementSign(ctx context.Context, in *SetMerchantS3AgreementRequest, opts ...client.CallOption) (*AgreementSignResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.AgreementSign", in)
+	out := new(AgreementSignResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for BillingService service
 
 type BillingServiceHandler interface {
@@ -1323,6 +1335,7 @@ type BillingServiceHandler interface {
 	ProcessVatReports(context.Context, *ProcessVatReportsRequest, *EmptyResponse) error
 	UpdateVatReportStatus(context.Context, *UpdateVatReportStatusRequest, *ResponseError) error
 	CalcAnnualTurnovers(context.Context, *EmptyRequest, *EmptyResponse) error
+	AgreementSign(context.Context, *SetMerchantS3AgreementRequest, *AgreementSignResponse) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -1421,6 +1434,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		ProcessVatReports(ctx context.Context, in *ProcessVatReportsRequest, out *EmptyResponse) error
 		UpdateVatReportStatus(ctx context.Context, in *UpdateVatReportStatusRequest, out *ResponseError) error
 		CalcAnnualTurnovers(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error
+		AgreementSign(ctx context.Context, in *SetMerchantS3AgreementRequest, out *AgreementSignResponse) error
 	}
 	type BillingService struct {
 		billingService
@@ -1807,4 +1821,8 @@ func (h *billingServiceHandler) UpdateVatReportStatus(ctx context.Context, in *U
 
 func (h *billingServiceHandler) CalcAnnualTurnovers(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error {
 	return h.BillingServiceHandler.CalcAnnualTurnovers(ctx, in, out)
+}
+
+func (h *billingServiceHandler) AgreementSign(ctx context.Context, in *SetMerchantS3AgreementRequest, out *AgreementSignResponse) error {
+	return h.BillingServiceHandler.AgreementSign(ctx, in, out)
 }

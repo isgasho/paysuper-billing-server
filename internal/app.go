@@ -19,6 +19,8 @@ import (
 	"github.com/micro/go-config/source/microcli"
 	"github.com/micro/go-micro"
 	"github.com/micro/go-plugins/selector/static"
+	documentSignerPkg "github.com/paysuper/document-signer/pkg"
+	documentSignerProto "github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/service"
@@ -161,6 +163,7 @@ func (app *Application) Init() {
 	repService := repository.NewRepositoryService(constant.PayOneRepositoryServiceName, app.service.Client())
 	taxService := tax_service.NewTaxService(taxPkg.ServiceName, app.service.Client())
 	curService := currencies.NewCurrencyratesService(curPkg.ServiceName, app.service.Client())
+	documentSignerService := documentSignerProto.NewDocumentSignerService(documentSignerPkg.ServiceName, app.service.Client())
 
 	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
 		Addrs:        cfg.CacheRedis.Address,
