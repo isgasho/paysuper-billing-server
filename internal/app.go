@@ -183,6 +183,7 @@ func (app *Application) Init() {
 		app.redis,
 		service.NewCacheRedis(redisdb),
 		curService,
+		documentSignerService,
 	)
 
 	if err := app.svc.Init(); err != nil {
