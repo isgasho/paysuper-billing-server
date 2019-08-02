@@ -73,6 +73,7 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		nil,
 		NewCacheRedis(redisdb),
 		mock.NewCurrencyServiceMockOk(),
+		mock.NewDocumentSignerMockOk(),
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -303,6 +304,7 @@ func (suite *BillingServiceTestSuite) TestNewBillingService() {
 		nil,
 		suite.cache,
 		mock.NewCurrencyServiceMockOk(),
+		mock.NewDocumentSignerMockOk(),
 	)
 
 	err := service.Init()
@@ -326,6 +328,7 @@ func (suite *BillingServiceTestSuite) TestBillingService_AccountingCurrencyInitE
 		nil,
 		suite.cache,
 		mock.NewCurrencyServiceMockError(),
+		mock.NewDocumentSignerMockOk(),
 	)
 
 	err = service.Init()
@@ -345,6 +348,7 @@ func (suite *BillingServiceTestSuite) TestBillingService_IsProductionEnvironment
 		nil,
 		suite.cache,
 		mock.NewCurrencyServiceMockOk(),
+		mock.NewDocumentSignerMockOk(),
 	)
 
 	err := service.Init()

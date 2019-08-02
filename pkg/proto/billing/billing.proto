@@ -1723,6 +1723,8 @@ message MerchantSignatureRequestSignatures {
     string status_code = 7;
     //@inject_tag: json:"has_pin" bson:"has_pin"
     bool has_pin = 8;
+    //@inject_tag: json:"signer_role"
+    string signer_role = 9;
 }
 
 message MerchantSignatureRequestResponseData {

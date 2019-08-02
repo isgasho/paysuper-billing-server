@@ -61,10 +61,14 @@ type Config struct {
 
 	CentrifugoMerchantChannel  string `envconfig:"CENTRIFUGO_MERCHANT_CHANNEL" default:"paysuper:merchant#%s"`
 	CentrifugoFinancierChannel string `envconfig:"CENTRIFUGO_FINANCIER_CHANNEL" default:"paysuper:financier"`
+	CentrifugoAdminChannel     string `envconfig:"CENTRIFUGO_ADMIN_CHANNEL" default:"paysuper:admin"`
 
 	EmailNotificationFinancierRecipient string `envconfig:"EMAIL_NOTIFICATION_FINANCIER_RECIPIENT" required:"true"`
 
 	OrderViewUpdateBatchSize int `envconfig:"ORDER_VIEW_UPDATE_BATCH_SIZE" default:"200"`
+
+	PaysuperDocumentSignerEmail string `envconfig:"PAYSUPER_DOCUMENT_SIGNER_EMAIL" required:"true"`
+	PaysuperDocumentSignerName  string `envconfig:"PAYSUPER_DOCUMENT_SIGNER_NAME" required:"true"`
 
 	*PaymentSystemConfig
 	*CustomerTokenConfig

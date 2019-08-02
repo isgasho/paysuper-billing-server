@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -44,6 +45,9 @@ var (
 		pkg.MerchantStatusAgreementSigning:   "Agreement signing",
 		pkg.MerchantStatusAgreementSigned:    "Agreement signed",
 	}
+
+	merchantSignAgreementMessage = []byte(`{"code": "mr000017", "message": "license agreement was signed by merchant"}`)
+	paysuperSignAgreementMessage = []byte(`{"code": "mr000018", "message": "license agreement was signed by Paysuper admin"}`)
 )
 
 func (s *Service) GetMerchantBy(
@@ -416,6 +420,14 @@ func (s *Service) ChangeMerchantData(
 
 		merchant.Status = pkg.MerchantStatusAgreementRequested
 		merchant.AgreementType = req.AgreementType
+	}
+
+	if !merchant.HasPspSignature && req.HasPspSignature {
+		s.sendMessageToCentrifugo(ctx, s.getMerchantCentrifugoChannel(merchant), paysuperSignAgreementMessage)
+	}
+
+	if !merchant.HasMerchantSignature && req.HasMerchantSignature {
+		s.sendMessageToCentrifugo(ctx, s.cfg.CentrifugoAdminChannel, merchantSignAgreementMessage)
 	}
 
 	merchant.HasPspSignature = req.HasPspSignature
@@ -898,8 +910,8 @@ func (s *Service) AgreementSign(
 		return nil
 	}
 
-	if merchant.IsFullySigned() {
-		rsp.Status = pkg.ResponseStatusNotFound
+	if merchant.Status == pkg.MerchantStatusAgreementSigned {
+		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = merchantErrorAlreadySigned
 
 		return nil
@@ -915,22 +927,86 @@ func (s *Service) AgreementSign(
 	req1 := &proto.CreateSignatureRequest{
 		Signers: []*proto.CreateSignatureRequestSigner{
 			{
-				Email:    "no-reply@protocol.one",
-				Name:     "Client Name",
-				RoleName: "Client",
+				Email:    merchant.GetAuthorizedEmail(),
+				Name:     merchant.GetAuthorizedName(),
+				RoleName: documentSignerPkg.SignerRoleNameMerchant,
 			},
 			{
-				Email:    "no-reply@protocol.one",
-				Name:     "Agent Name",
-				RoleName: "Agent",
+				Email:    s.cfg.PaysuperDocumentSignerEmail,
+				Name:     s.cfg.PaysuperDocumentSignerName,
+				RoleName: documentSignerPkg.SignerRoleNamePaysuper,
 			},
 		},
 		Metadata: map[string]string{
-			documentSignerPkg.MetadataFieldIsMerchantSign: pkg.HelloSignTestMode,
-			documentSignerPkg.MetadataFieldMerchantId:     bson.NewObjectId().Hex(),
+			documentSignerPkg.MetadataFieldMerchantId: merchant.Id,
 		},
 	}
 	rsp1, err := s.documentSigner.CreateSignature(ctx, req1)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorGrpcServiceCallFailed,
+			zap.Error(err),
+			zap.String(errorFieldService, "DocumentSignerService"),
+			zap.String(errorFieldMethod, "CreateSignature"),
+			zap.Any(errorFieldRequest, req),
+		)
+
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = merchantErrorUnknown
+
+		return nil
+	}
+
+	if rsp1.Status != pkg.ResponseStatusOk {
+		rsp.Status = rsp1.Status
+		rsp.Message = &grpc.ResponseErrorMessage{
+			Code:    rsp1.Message.Code,
+			Message: rsp1.Message.Message,
+			Details: rsp1.Message.Details,
+		}
+
+		return nil
+	}
+
+	signature := new(billing.MerchantSignatureRequest)
+	err = json.Unmarshal(rsp1.HelloSignResponse, signature)
+
+	if err != nil {
+		zap.L().Error(
+			"Merchant signature request decoding failed",
+			zap.Error(err),
+			zap.ByteString("data", rsp1.HelloSignResponse),
+		)
+
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = merchantErrorUnknown
+
+		return nil
+	}
+
+	merchant.MerchantSignature = signature.GetSignatureId(documentSignerPkg.SignerRoleNameMerchant)
+	merchant.PspSignature = signature.GetSignatureId(documentSignerPkg.SignerRoleNamePaysuper)
+	merchant.SignatureRequest = signature
+
+	err = s.merchant.Update(merchant)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, "merchant"),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, merchant),
+		)
+
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = merchantErrorUnknown
+
+		return nil
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
+	rsp.SignatureRequest = signature
 
 	return nil
 }

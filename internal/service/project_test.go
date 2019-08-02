@@ -228,6 +228,7 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		nil,
 		suite.cache,
 		mock.NewCurrencyServiceMockOk(),
+		mock.NewDocumentSignerMockOk(),
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -851,6 +852,7 @@ func (suite *ProjectTestSuite) SetupTest() {
 		nil,
 		suite.cache,
 		mock.NewCurrencyServiceMockOk(),
+		mock.NewDocumentSignerMockOk(),
 	)
 
 	if err := suite.service.Init(); err != nil {

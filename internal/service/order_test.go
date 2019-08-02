@@ -727,6 +727,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		redisClient,
 		suite.cache,
 		mock.NewCurrencyServiceMockOk(),
+		mock.NewDocumentSignerMockOk(),
 	)
 
 	if err := suite.service.Init(); err != nil {

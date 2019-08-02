@@ -127,6 +127,10 @@ func (m *Merchant) GetAuthorizedEmail() string {
 	return m.Contacts.Authorized.Email
 }
 
+func (m *Merchant) GetAuthorizedName() string {
+	return m.Contacts.Authorized.Name
+}
+
 func (m *RoyaltyReport) ChangesAvailable(newStatus string) bool {
 	if m.Status == pkg.RoyaltyReportStatusAccepted {
 		return false
@@ -150,4 +154,18 @@ func (m *RoyaltyReport) ChangesAvailable(newStatus string) bool {
 	}
 
 	return true
+}
+
+func (m *MerchantSignatureRequest) GetSignatureId(roleName string) string {
+	signatureId := ""
+
+	for _, v := range m.Signatures {
+		if v.SignerRole != roleName {
+			continue
+		}
+
+		signatureId = v.SignatureId
+	}
+
+	return signatureId
 }
