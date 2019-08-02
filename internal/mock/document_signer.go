@@ -35,7 +35,7 @@ var (
         "signatures": [
             {
                 "signature_id": "10ab1cd037d9b6cba7975d61ff428c8d",
-                "signer_email_address": "george@example.com",
+                "signer_email_address": "test1@unit.test",
                 "signer_name": "George",
                 "signer_role": "Merchant",
                 "order": null,
@@ -47,7 +47,7 @@ var (
             },
 			{
                 "signature_id": "10ab1cd037d9b6cba7975d61ff428c8d",
-                "signer_email_address": "george@example.com",
+                "signer_email_address": "no-reply@protocol.one",
                 "signer_name": "George",
                 "signer_role": "Paysuper",
                 "order": null,
