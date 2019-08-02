@@ -8,6 +8,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
+	documentSignerPkg "github.com/paysuper/document-signer/pkg"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -2720,8 +2721,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_Ok() {
 	assert.NotEmpty(suite.T(), merchant.MerchantSignature)
 	assert.NotEmpty(suite.T(), merchant.PspSignature)
 	assert.NotNil(suite.T(), merchant.SignatureRequest)
-	assert.Equal(suite.T(), merchant.MerchantSignature, rsp1.SignatureRequest.GetSignatureId(rsp.Item.GetAuthorizedEmail()))
-	assert.Equal(suite.T(), merchant.PspSignature, rsp1.SignatureRequest.GetSignatureId(suite.service.cfg.PaysuperDocumentSignerEmail))
+	assert.Equal(suite.T(), merchant.MerchantSignature, rsp1.SignatureRequest.GetSignatureId(documentSignerPkg.SignerRoleNameMerchant))
+	assert.Equal(suite.T(), merchant.PspSignature, rsp1.SignatureRequest.GetSignatureId(documentSignerPkg.SignerRoleNamePaysuper))
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_MerchantNotFound_Error() {

@@ -25,7 +25,7 @@ require (
 	github.com/micro/go-micro v1.0.0
 	github.com/micro/go-plugins v1.0.0
 	github.com/micro/protoc-gen-micro v0.8.0 // indirect
-	github.com/paysuper/document-signer v0.0.0-20190801205612-674c99f1b00a
+	github.com/paysuper/document-signer v0.0.0-20190802154808-6c48d86129a5
 	github.com/paysuper/paysuper-currencies v0.0.0-20190723132218-9628e1b3ba42
 	github.com/paysuper/paysuper-database-mongo v0.1.0
 	github.com/paysuper/paysuper-recurring-repository v1.0.111

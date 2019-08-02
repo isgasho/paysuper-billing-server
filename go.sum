@@ -699,6 +699,8 @@ github.com/paysuper/document-signer v0.0.0-20190801205048-2f678fad8baa h1:+R6hvQ
 github.com/paysuper/document-signer v0.0.0-20190801205048-2f678fad8baa/go.mod h1:EINjr5kZIWmhvx7YT9mqSV9gKPEVe1HzNU9Ns1jmE0c=
 github.com/paysuper/document-signer v0.0.0-20190801205612-674c99f1b00a h1:Rfh1VDepqX4k2hrHSeSwNNPls0fEoLHIPaLfRETAeKs=
 github.com/paysuper/document-signer v0.0.0-20190801205612-674c99f1b00a/go.mod h1:EINjr5kZIWmhvx7YT9mqSV9gKPEVe1HzNU9Ns1jmE0c=
+github.com/paysuper/document-signer v0.0.0-20190802154808-6c48d86129a5 h1:/2RCwlgQOsQjNTa29uDLJa5B2CbPcexkljKbZCyG4kc=
+github.com/paysuper/document-signer v0.0.0-20190802154808-6c48d86129a5/go.mod h1:FVlQmxMCwOj4Tz6UwtFnRxJEqt4NAJTNRnYlzobUqJw=
 github.com/paysuper/paysuper-billing-server v0.0.0-20190730110641-01c53a635757/go.mod h1:lpU2waViaUZDqje93EGGl82YuumvKsSCnhLa9e4ZH8Q=
 github.com/paysuper/paysuper-billing-server v0.0.0-20190801190642-0f5394def881/go.mod h1:VANzUeZc2mcnHfnuI1E5HB1wczpZ0AUIiDozUj2vn/A=
 github.com/paysuper/paysuper-billing-server v0.0.0-20190801201139-8888c6f60f27/go.mod h1:I4q1nk/hBpNI3NNSpP1ZRMkA3mMOkSJhtrrg0JVXDyw=
@@ -909,6 +911,7 @@ github.com/ugorji/go/codec v0.0.0-20190128213124-ee1426cffec0/go.mod h1:iT03XoTw
 github.com/ugorji/go/codec v0.0.0-20190204201341-e444a5086c43/go.mod h1:iT03XoTwV7xq/+UGwKO3UbC1nNNlopQiY61beSdrtOA=
 github.com/ugorji/go/codec v0.0.0-20190309163734-c4a1c341dc93/go.mod h1:iT03XoTwV7xq/+UGwKO3UbC1nNNlopQiY61beSdrtOA=
 github.com/urfave/cli v1.18.0/go.mod h1:70zkFmudgCuE/ngEzBv17Jvp/497gISqfk5gWijbERA=
+github.com/valyala/bytebufferpool v1.0.0 h1:GqA5TC/0021Y/b9FG4Oi9Mr3q7XYx6KllzawFIhcdPw=
 github.com/valyala/bytebufferpool v1.0.0/go.mod h1:6bBcMArwyJ5K/AmCkWv1jt77kVWyCJ6HpOuEn7z0Csc=
 github.com/valyala/fasttemplate v1.0.1 h1:tY9CJiPnMXf1ERmG2EyK7gNUd+c6RKGD0IfU8WdUSz8=
 github.com/valyala/fasttemplate v1.0.1/go.mod h1:UQGH1tvbgY+Nz5t2n7tXsz52dQxojPUpymEIMZ47gx8=
