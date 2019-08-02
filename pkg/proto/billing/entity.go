@@ -156,11 +156,11 @@ func (m *RoyaltyReport) ChangesAvailable(newStatus string) bool {
 	return true
 }
 
-func (m *MerchantSignatureRequest) GetSignatureId(roleName string) string {
+func (m *MerchantSignatureRequest) GetSignatureId(email string) string {
 	signatureId := ""
 
 	for _, v := range m.Signatures {
-		if v.SignerRole != roleName {
+		if v.SignerEmailAddress != email {
 			continue
 		}
 

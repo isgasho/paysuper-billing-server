@@ -985,8 +985,8 @@ func (s *Service) AgreementSign(
 		return nil
 	}
 
-	merchant.MerchantSignature = signature.GetSignatureId(documentSignerPkg.SignerRoleNameMerchant)
-	merchant.PspSignature = signature.GetSignatureId(documentSignerPkg.SignerRoleNamePaysuper)
+	merchant.MerchantSignature = signature.GetSignatureId(merchant.GetAuthorizedEmail())
+	merchant.PspSignature = signature.GetSignatureId(s.cfg.PaysuperDocumentSignerEmail)
 	merchant.SignatureRequest = signature
 
 	err = s.merchant.Update(merchant)
