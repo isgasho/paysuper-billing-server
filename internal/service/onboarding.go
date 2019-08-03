@@ -171,15 +171,14 @@ func (s *Service) ChangeMerchant(
 	req *grpc.OnboardingRequest,
 	rsp *grpc.ChangeMerchantResponse,
 ) error {
-	var merchant *billing.Merchant
-	var err error
-	var isNew bool
+	var (
+		merchant *billing.Merchant
+		err      error
+	)
 
 	rsp.Status = pkg.ResponseStatusOk
 
-	if req.Id == "" && (req.User == nil || req.User.Id == "") {
-		isNew = true
-	} else {
+	if req.HasIdentificationFields() {
 		query := make(bson.M)
 
 		if req.Id != "" && req.User != nil && req.User.Id != "" {
@@ -196,22 +195,15 @@ func (s *Service) ChangeMerchant(
 
 		merchant, err = s.getMerchantBy(query)
 
-		if err != nil {
-			if err != merchantErrorNotFound {
-				zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
-				if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-					rsp.Status = pkg.ResponseStatusBadData
-					rsp.Message = e
-					return nil
-				}
-				return err
-			}
+		if err != nil && err != merchantErrorNotFound {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = err.(*grpc.ResponseErrorMessage)
 
-			isNew = true
+			return nil
 		}
 	}
 
-	if isNew {
+	if merchant == nil {
 		merchant = &billing.Merchant{
 			Id:        bson.NewObjectId().Hex(),
 			User:      req.User,
@@ -220,10 +212,8 @@ func (s *Service) ChangeMerchant(
 		}
 	}
 
-	if merchant == nil {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = merchantErrorUnknown
-		return nil
+	if merchant.IsAgreementSigned() {
+
 	}
 
 	if merchant.ChangesAllowed() == false {
@@ -799,7 +789,12 @@ func (s *Service) getMerchantBy(query bson.M) (*billing.Merchant, error) {
 	err := s.db.Collection(collectionMerchant).Find(query).One(&merchant)
 
 	if err != nil && err != mgo.ErrNotFound {
-		zap.S().Errorf("Query to find merchant by id failed", "err", err.Error(), "query", query)
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
 
 		return merchant, merchantErrorUnknown
 	}
