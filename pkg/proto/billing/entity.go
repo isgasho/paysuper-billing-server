@@ -57,6 +57,18 @@ func (m *Merchant) CanChangeStatusToSigning() bool {
 		m.Contacts != nil && m.Contacts.Authorized != nil
 }
 
+func (m *Merchant) IsFullySigned() bool {
+	return m.HasMerchantSignature && m.HasPspSignature
+}
+
+func (m *Merchant) IsMerchantSignature(sign string) bool {
+	return m.MerchantSignature == sign
+}
+
+func (m *Merchant) IsPspSignature(sign string) bool {
+	return m.PspSignature == sign
+}
+
 func (m *Merchant) IsDeleted() bool {
 	return m.Status == pkg.MerchantStatusDeleted
 }
@@ -115,6 +127,10 @@ func (m *Merchant) GetAuthorizedEmail() string {
 	return m.Contacts.Authorized.Email
 }
 
+func (m *Merchant) GetAuthorizedName() string {
+	return m.Contacts.Authorized.Name
+}
+
 func (m *RoyaltyReport) ChangesAvailable(newStatus string) bool {
 	if m.Status == pkg.RoyaltyReportStatusAccepted {
 		return false
@@ -140,10 +156,56 @@ func (m *RoyaltyReport) ChangesAvailable(newStatus string) bool {
 	return true
 }
 
-func (m *Merchant) IsAgreementSigningStarted() bool {
+func (m *MerchantSignatureRequest) GetSignatureId(role string) string {
+	signatureId := ""
 
+	for _, v := range m.Signatures {
+		if v.SignerRole != role {
+			continue
+		}
+
+		signatureId = v.SignatureId
+	}
+
+	return signatureId
+}
+
+func (m *Merchant) IsAgreementSigningStarted() bool {
+	return m.SignatureRequest != nil && (!m.HasPspSignature || !m.HasMerchantSignature)
 }
 
 func (m *Merchant) IsAgreementSigned() bool {
 	return m.HasMerchantSignature && m.HasPspSignature
+}
+
+func (m *Merchant) GetPrintableStatus() string {
+	status := "draft"
+
+	if m.Status == pkg.MerchantStatusAgreementSigned {
+		status = "life"
+	}
+
+	return status
+}
+
+func (m *Merchant) GetCompleteStepsCount() int32 {
+	count := int32(0)
+
+	if m.Steps.Company {
+		count++
+	}
+
+	if m.Steps.Contacts {
+		count++
+	}
+
+	if m.Steps.Banking {
+		count++
+	}
+
+	if m.Steps.Tariff {
+		count++
+	}
+
+	return count
 }

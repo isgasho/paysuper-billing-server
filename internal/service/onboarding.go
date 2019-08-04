@@ -2,10 +2,13 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
+	documentSignerPkg "github.com/paysuper/document-signer/pkg"
+	"github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -33,6 +36,7 @@ var (
 	notificationErrorUserIdIncorrect         = newBillingServerErrorMsg("mr000013", "user identifier incorrect, notification can't be saved")
 	notificationErrorMessageIsEmpty          = newBillingServerErrorMsg("mr000014", "notification message can't be empty")
 	notificationErrorNotFound                = newBillingServerErrorMsg("mr000015", "notification not found")
+	merchantErrorAlreadySigned               = newBillingServerErrorMsg("mr000016", "merchant already fully signed")
 
 	NotificationStatusChangeTitles = map[int32]string{
 		pkg.MerchantStatusDraft:              "New merchant created",
@@ -41,6 +45,9 @@ var (
 		pkg.MerchantStatusAgreementSigning:   "Agreement signing",
 		pkg.MerchantStatusAgreementSigned:    "Agreement signed",
 	}
+
+	merchantSignAgreementMessage = []byte(`{"code": "mr000017", "message": "license agreement was signed by merchant"}`)
+	paysuperSignAgreementMessage = []byte(`{"code": "mr000018", "message": "license agreement was signed by Paysuper admin"}`)
 )
 
 func (s *Service) GetMerchantBy(
@@ -102,12 +109,12 @@ func (s *Service) ListMerchants(
 
 	if req.QuickSearch != "" {
 		query["$or"] = []bson.M{
-			{"name": bson.RegEx{Pattern: ".*" + req.QuickSearch + ".*", Options: "i"}},
+			{"company.name": bson.RegEx{Pattern: ".*" + req.QuickSearch + ".*", Options: "i"}},
 			{"user.email": bson.RegEx{Pattern: ".*" + req.QuickSearch + ".*", Options: "i"}},
 		}
 	} else {
 		if req.Name != "" {
-			query["name"] = bson.RegEx{Pattern: ".*" + req.Name + ".*", Options: "i"}
+			query["company.name"] = bson.RegEx{Pattern: ".*" + req.Name + ".*", Options: "i"}
 		}
 
 		if req.LastPayoutDateFrom > 0 || req.LastPayoutDateTo > 0 {
@@ -144,7 +151,13 @@ func (s *Service) ListMerchants(
 	count, err := s.db.Collection(collectionMerchant).Find(query).Count()
 
 	if err != nil {
-		zap.S().Errorf("Query to count merchants failed", "err", err.Error(), "query", query)
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+
 		return merchantErrorUnknown
 	}
 
@@ -152,7 +165,13 @@ func (s *Service) ListMerchants(
 		Skip(int(req.Offset)).All(&merchants)
 
 	if err != nil {
-		zap.S().Errorf("Query to find merchants failed", "err", err.Error(), "query", query)
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+
 		return merchantErrorUnknown
 	}
 
@@ -175,8 +194,6 @@ func (s *Service) ChangeMerchant(
 		merchant *billing.Merchant
 		err      error
 	)
-
-	rsp.Status = pkg.ResponseStatusOk
 
 	if req.HasIdentificationFields() {
 		query := make(bson.M)
@@ -212,74 +229,67 @@ func (s *Service) ChangeMerchant(
 		}
 	}
 
-	if merchant.IsAgreementSigned() {
-
-	}
-
-	if merchant.ChangesAllowed() == false {
+	if !s.IsChangeDataAllow(merchant, req) {
 		rsp.Status = pkg.ResponseStatusForbidden
 		rsp.Message = merchantErrorChangeNotAllowed
+
 		return nil
 	}
 
-	if req.Country != "" {
-		country, err := s.country.GetByIsoCodeA2(req.Country)
+	if req.Company != nil {
+		_, err := s.country.GetByIsoCodeA2(req.Company.Country)
 
 		if err != nil {
-			zap.S().Errorf("Get country for merchant failed", "err", err.Error(), "request", req)
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = merchantErrorCountryNotFound
-			return nil
-		}
-
-		merchant.Country = country.IsoCodeA2
-	}
-
-	merchant.Banking = &billing.MerchantBanking{}
-
-	if req.Banking != nil && req.Banking.Currency != "" {
-		if !contains(s.supportedCurrencies, req.Banking.Currency) {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = merchantErrorCurrencyNotFound
 
 			return nil
 		}
 
-		merchant.Banking.Currency = req.Banking.Currency
+		merchant.Company = req.Company
 	}
 
-	merchant.Name = req.Name
-	merchant.AlternativeName = req.AlternativeName
-	merchant.Website = req.Website
-	merchant.State = req.State
-	merchant.Zip = req.Zip
-	merchant.City = req.City
-	merchant.Address = req.Address
-	merchant.AddressAdditional = req.AddressAdditional
-	merchant.RegistrationNumber = req.RegistrationNumber
-	merchant.TaxId = req.TaxId
-	merchant.Contacts = req.Contacts
-	merchant.Banking.Name = req.Banking.Name
-	merchant.Banking.Address = req.Banking.Address
-	merchant.Banking.AccountNumber = req.Banking.AccountNumber
-	merchant.Banking.Swift = req.Banking.Swift
-	merchant.Banking.Details = req.Banking.Details
+	if req.Banking != nil {
+		if req.Banking.Currency != "" {
+			if !contains(s.supportedCurrencies, req.Banking.Currency) {
+				rsp.Status = pkg.ResponseStatusBadData
+				rsp.Message = merchantErrorCurrencyNotFound
+
+				return nil
+			}
+		}
+
+		merchant.Banking = req.Banking
+	}
+
+	if req.Contacts != nil {
+		merchant.Contacts = req.Contacts
+	}
+
+	if req.Tariff != "" {
+		merchant.Tariff = req.Tariff
+	}
+
 	merchant.UpdatedAt = ptypes.TimestampNow()
-
-	if isNew {
-		err = s.merchant.Insert(merchant)
-	} else {
-		err = s.merchant.Update(merchant)
+	merchant.Steps = &billing.MerchantCompletedSteps{
+		Company:  merchant.Company != nil,
+		Contacts: merchant.Contacts != nil,
+		Banking:  merchant.Banking != nil,
+		Tariff:   merchant.Tariff != "",
 	}
+
+	err = s.merchant.Upsert(merchant)
 
 	if err != nil {
-		zap.S().Errorf("Query to change merchant data failed", "err", err.Error(), "data", merchant)
-		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = merchantErrorUnknown
+
 		return nil
 	}
 
+	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = merchant
+
 	return nil
 }
 
@@ -403,6 +413,14 @@ func (s *Service) ChangeMerchantData(
 
 		merchant.Status = pkg.MerchantStatusAgreementRequested
 		merchant.AgreementType = req.AgreementType
+	}
+
+	if !merchant.HasPspSignature && req.HasPspSignature {
+		s.sendMessageToCentrifugo(ctx, s.getMerchantCentrifugoChannel(merchant), paysuperSignAgreementMessage)
+	}
+
+	if !merchant.HasMerchantSignature && req.HasMerchantSignature {
+		s.sendMessageToCentrifugo(ctx, s.cfg.CentrifugoAdminChannel, merchantSignAgreementMessage)
 	}
 
 	merchant.HasPspSignature = req.HasPspSignature
@@ -874,4 +892,149 @@ func (s *Service) mapNotificationData(rsp *billing.Notification, notification *b
 	rsp.IsRead = notification.IsRead
 	rsp.CreatedAt = notification.CreatedAt
 	rsp.UpdatedAt = notification.UpdatedAt
+}
+
+func (s *Service) AgreementSign(
+	ctx context.Context,
+	req *grpc.SetMerchantS3AgreementRequest,
+	rsp *grpc.AgreementSignResponse,
+) error {
+	merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
+
+		return nil
+	}
+
+	if merchant.IsAgreementSigned() {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = merchantErrorAlreadySigned
+
+		return nil
+	}
+
+	if merchant.SignatureRequest != nil {
+		rsp.Status = pkg.ResponseStatusOk
+		rsp.SignatureRequest = merchant.SignatureRequest
+
+		return nil
+	}
+
+	req1 := &proto.CreateSignatureRequest{
+		Signers: []*proto.CreateSignatureRequestSigner{
+			{
+				Email:    merchant.GetAuthorizedEmail(),
+				Name:     merchant.GetAuthorizedName(),
+				RoleName: documentSignerPkg.SignerRoleNameMerchant,
+			},
+			{
+				Email:    s.cfg.PaysuperDocumentSignerEmail,
+				Name:     s.cfg.PaysuperDocumentSignerName,
+				RoleName: documentSignerPkg.SignerRoleNamePaysuper,
+			},
+		},
+		Metadata: map[string]string{
+			documentSignerPkg.MetadataFieldMerchantId: merchant.Id,
+		},
+	}
+	rsp1, err := s.documentSigner.CreateSignature(ctx, req1)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorGrpcServiceCallFailed,
+			zap.Error(err),
+			zap.String(errorFieldService, "DocumentSignerService"),
+			zap.String(errorFieldMethod, "CreateSignature"),
+			zap.Any(errorFieldRequest, req),
+		)
+
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = merchantErrorUnknown
+
+		return nil
+	}
+
+	if rsp1.Status != pkg.ResponseStatusOk {
+		rsp.Status = rsp1.Status
+		rsp.Message = &grpc.ResponseErrorMessage{
+			Code:    rsp1.Message.Code,
+			Message: rsp1.Message.Message,
+			Details: rsp1.Message.Details,
+		}
+
+		return nil
+	}
+
+	signature := new(billing.MerchantSignatureRequest)
+	err = json.Unmarshal(rsp1.HelloSignResponse, signature)
+
+	if err != nil {
+		zap.L().Error(
+			"Merchant signature request decoding failed",
+			zap.Error(err),
+			zap.ByteString("data", rsp1.HelloSignResponse),
+		)
+
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = merchantErrorUnknown
+
+		return nil
+	}
+
+	merchant.MerchantSignature = signature.GetSignatureId(documentSignerPkg.SignerRoleNameMerchant)
+	merchant.PspSignature = signature.GetSignatureId(documentSignerPkg.SignerRoleNamePaysuper)
+	merchant.SignatureRequest = signature
+
+	err = s.merchant.Update(merchant)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = merchantErrorUnknown
+
+		return nil
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
+	rsp.SignatureRequest = signature
+
+	return nil
+}
+
+func (s *Service) IsChangeDataAllow(merchant *billing.Merchant, data *grpc.OnboardingRequest) bool {
+	if merchant.IsAgreementSigningStarted() && (data.Company != nil || data.Contacts != nil || data.Banking != nil ||
+		data.Tariff != "") {
+		return false
+	}
+
+	if merchant.IsAgreementSigned() && data.Tariff != "" {
+		return false
+	}
+
+	return true
+}
+
+func (s *Service) GetMerchantOnboardingCompleteData(
+	ctx context.Context,
+	req *grpc.SetMerchantS3AgreementRequest,
+	rsp *grpc.GetMerchantOnboardingCompleteDataResponse,
+) error {
+	merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
+
+		return nil
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
+	rsp.Item = &grpc.GetMerchantOnboardingCompleteDataResponseItem{
+		Steps:              merchant.Steps,
+		Status:             merchant.GetPrintableStatus(),
+		CompleteStepsCount: merchant.GetCompleteStepsCount(),
+	}
+
+	return nil
 }

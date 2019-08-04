@@ -139,11 +139,13 @@ func (suite *EntityTestSuite) SetupTest() {
 	}
 
 	merchant := &billing.Merchant{
-		Id:      bson.NewObjectId().Hex(),
-		Name:    "Unit test",
-		Country: country.IsoCodeA2,
-		Zip:     "190000",
-		City:    "St.Petersburg",
+		Id: bson.NewObjectId().Hex(),
+		Company: &billing.MerchantCompanyInfo{
+			Name:    "merchant1",
+			Country: "RU",
+			Zip:     "190000",
+			City:    "St.Petersburg",
+		},
 		Contacts: &billing.MerchantContact{
 			Authorized: &billing.MerchantContactAuthorized{
 				Name:     "Unit Test",
@@ -193,11 +195,13 @@ func (suite *EntityTestSuite) SetupTest() {
 	}
 
 	merchantAgreement := &billing.Merchant{
-		Id:      bson.NewObjectId().Hex(),
-		Name:    "Unit test status Agreement",
-		Country: country.IsoCodeA2,
-		Zip:     "190000",
-		City:    "St.Petersburg",
+		Id: bson.NewObjectId().Hex(),
+		Company: &billing.MerchantCompanyInfo{
+			Name:    "merchant1",
+			Country: "RU",
+			Zip:     "190000",
+			City:    "St.Petersburg",
+		},
 		Contacts: &billing.MerchantContact{
 			Authorized: &billing.MerchantContactAuthorized{
 				Name:     "Unit Test",
@@ -225,11 +229,13 @@ func (suite *EntityTestSuite) SetupTest() {
 		IsSigned: true,
 	}
 	merchant1 := &billing.Merchant{
-		Id:      bson.NewObjectId().Hex(),
-		Name:    "merchant1",
-		Country: country.IsoCodeA2,
-		Zip:     "190000",
-		City:    "St.Petersburg",
+		Id: bson.NewObjectId().Hex(),
+		Company: &billing.MerchantCompanyInfo{
+			Name:    "merchant1",
+			Country: "RU",
+			Zip:     "190000",
+			City:    "St.Petersburg",
+		},
 		Contacts: &billing.MerchantContact{
 			Authorized: &billing.MerchantContactAuthorized{
 				Name:     "Unit Test",
@@ -271,6 +277,7 @@ func (suite *EntityTestSuite) SetupTest() {
 		nil,
 		suite.cache,
 		mock.NewCurrencyServiceMockOk(),
+		mock.NewDocumentSignerMockOk(),
 	)
 
 	if err := suite.service.Init(); err != nil {

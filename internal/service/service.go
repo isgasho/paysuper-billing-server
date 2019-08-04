@@ -6,10 +6,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/ProtocolONE/geoip-service/pkg/proto"
 	"github.com/centrifugal/gocent"
 	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
+	documentSignerProto "github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -82,6 +84,7 @@ type Service struct {
 	priceTable                 PriceTableServiceInterface
 	productService             ProductServiceInterface
 	turnover                   *Turnover
+	documentSigner             documentSignerProto.DocumentSignerService
 }
 
 func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {
@@ -111,17 +114,19 @@ func NewBillingService(
 	redis redis.Cmdable,
 	cache CacheInterface,
 	curService currencies.CurrencyratesService,
+	documentSigner documentSignerProto.DocumentSignerService,
 ) *Service {
 	return &Service{
-		db:         db,
-		cfg:        cfg,
-		geo:        geo,
-		rep:        rep,
-		tax:        tax,
-		broker:     broker,
-		redis:      redis,
-		cacher:     cache,
-		curService: curService,
+		db:             db,
+		cfg:            cfg,
+		geo:            geo,
+		rep:            rep,
+		tax:            tax,
+		broker:         broker,
+		redis:          redis,
+		cacher:         cache,
+		curService:     curService,
+		documentSigner: documentSigner,
 	}
 }
 
@@ -300,4 +305,21 @@ func (s *Service) CheckProjectRequestSignature(
 	rsp.Status = pkg.ResponseStatusOk
 
 	return nil
+}
+
+func (s *Service) getMerchantCentrifugoChannel(merchant *billing.Merchant) string {
+	return fmt.Sprintf(s.cfg.CentrifugoMerchantChannel, merchant.Id)
+}
+
+func (s *Service) sendMessageToCentrifugo(ctx context.Context, ch string, msg []byte) {
+	err := s.centrifugoClient.Publish(ctx, ch, msg)
+
+	if err != nil {
+		zap.L().Error(
+			"Publish message to centrifugo failed",
+			zap.Error(err),
+			zap.String("channel", ch),
+			zap.ByteString("message", paysuperSignAgreementMessage),
+		)
+	}
 }

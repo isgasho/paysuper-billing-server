@@ -19,6 +19,7 @@ It has these top-level messages:
 	MerchantLastPayout
 	MerchantUser
 	MerchantCompanyInfo
+	MerchantCompletedSteps
 	Merchant
 	SystemNotificationStatuses
 	Notification
@@ -107,6 +108,10 @@ It has these top-level messages:
 	PriceTable
 	PriceTableCurrency
 	Id
+	MerchantSignatureRequestCustomFields
+	MerchantSignatureRequestSignatures
+	MerchantSignatureRequestResponseData
+	MerchantSignatureRequest
 */
 package billing
 

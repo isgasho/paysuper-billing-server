@@ -28,6 +28,8 @@ jobs:
         - ORDER_VIEW_UPDATE_BATCH_SIZE=5
         - EMAIL_NOTIFICATION_FINANCIER_RECIPIENT=finance@paysuper.com
         - CACHE_REDIS_ADDRESS="127.0.0.1:6379"
+        - PAYSUPER_DOCUMENT_SIGNER_EMAIL=no-reply@protocol.one
+        - PAYSUPER_DOCUMENT_SIGNER_NAME=Some Name
       install:
         - wget https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-${MONGODB}.tgz
         - tar xzf mongodb-linux-x86_64-${MONGODB}.tgz
