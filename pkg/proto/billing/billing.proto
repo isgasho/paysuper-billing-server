@@ -75,6 +75,8 @@ message OrderCreateRequest {
     string psp_order_uuid = 31;
 
     OrderType type = 32;
+
+    string platform_id = 33;
 }
 
 message Project {
@@ -480,11 +482,15 @@ message Order {
 
     // @inject_tag: json:"type"
     OrderType product_type = 69;
+
+    // @inject_tag: json:"platform_id"
+    string platform_id = 70;
 }
 
 enum OrderType {
-    product = 0;
-    key = 1;
+    simple = 0;
+    product = 1;
+    key = 2;
 }
 
 message CountryRestriction {

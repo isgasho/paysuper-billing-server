@@ -138,3 +138,46 @@ func (m *UserProfileCompanyMonetization) IsComplete() bool {
 func (m *UserProfileCompanyPlatforms) IsComplete() bool {
 	return m.PcMac || m.GameConsole || m.MobileDevice || m.WebBrowser || m.Other
 }
+
+func (p *KeyProduct) GetLocalizedName(lang string) (string, error) {
+	v, ok := p.Name[lang]
+	if !ok {
+		return "", errors.New(fmt.Sprintf(productNoNameInLanguage, lang))
+	}
+	return v, nil
+}
+
+func (p *KeyProduct) GetLocalizedDescription(lang string) (string, error) {
+	v, ok := p.Description[lang]
+	if !ok {
+		return "", errors.New(fmt.Sprintf(productNoDescriptionInLanguage, lang))
+	}
+	return v, nil
+}
+
+func (p *KeyProduct) GetLocalizedLongDescription(lang string) (string, error) {
+	v, ok := p.LongDescription[lang]
+	if !ok {
+		return "", errors.New(fmt.Sprintf(productNoLongDescriptionInLanguage, lang))
+	}
+	return v, nil
+}
+
+func (p *KeyProduct) GetPriceInCurrencyAndPlatform(group *billing.PriceGroup, platformId string) (float64, error) {
+	for _, platform := range p.Platforms {
+		if platform.Id == platformId {
+			for _, price := range platform.Prices {
+				if group.Region != "" && price.Region == group.Region {
+					return price.Amount, nil
+				}
+
+				if group.Region == "" && price.Region == group.Currency {
+					return price.Amount, nil
+				}
+			}
+		}
+	}
+
+	return 0, errors.New(fmt.Sprintf(productNoPriceInCurrency, group.Region))
+}
+
