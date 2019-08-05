@@ -284,6 +284,7 @@ func (s *Service) createProject(req *billing.Project) (*billing.Project, error) 
 	project := &billing.Project{
 		Id:                       bson.NewObjectId().Hex(),
 		MerchantId:               req.MerchantId,
+		Image:                    req.Image,
 		Name:                     req.Name,
 		CallbackCurrency:         req.CallbackCurrency,
 		CallbackProtocol:         req.CallbackProtocol,
@@ -321,6 +322,7 @@ func (s *Service) createProject(req *billing.Project) (*billing.Project, error) 
 
 func (s *Service) updateProject(req *billing.Project, project *billing.Project) error {
 	project.Name = req.Name
+	project.Image = req.Image
 	project.CallbackCurrency = req.CallbackCurrency
 	project.CreateOrderAllowedUrls = req.CreateOrderAllowedUrls
 	project.AllowDynamicNotifyUrls = req.AllowDynamicNotifyUrls
