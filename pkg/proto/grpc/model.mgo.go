@@ -523,6 +523,7 @@ func (p *KeyProduct) GetBSON() (interface{}, error) {
 		index++
 	}
 
+	st.Platforms = make([]*MgoPlatformPrice, len(p.Platforms))
 	for i, pl := range p.Platforms {
 		var prices []*ProductPrice
 		prices = make([]*ProductPrice, len(pl.Prices))
