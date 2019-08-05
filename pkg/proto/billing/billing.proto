@@ -75,6 +75,7 @@ message OrderCreateRequest {
     string psp_order_uuid = 31;
 
     OrderType type = 32;
+
     string platform_id = 33;
 }
 
@@ -481,11 +482,15 @@ message Order {
 
     // @inject_tag: json:"type"
     OrderType product_type = 69;
+
+    // @inject_tag: json:"platform_id"
+    string platform_id = 70;
 }
 
 enum OrderType {
-    product = 0;
-    key = 1;
+    simple = 0;
+    product = 1;
+    key = 2;
 }
 
 message CountryRestriction {
@@ -1704,4 +1709,23 @@ message PriceTableCurrency {
 
 message Id {
     string id = 1;
+}
+
+message Key {
+    //@inject_tag: json:"id" bson:"_id"
+    string id = 1;
+    //@inject_tag: json:"code" validate:"required"
+    string code = 2;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string key_product_id = 3;
+    //@inject_tag: validate:"required,max=255"
+    string platform_id = 5;
+    //@inject_tag: validate:"omitempty,hexadecimal,len=24"
+    string order_id = 6;
+
+    google.protobuf.Timestamp created_at = 7;
+    //@inject_tag: validate:"omitempty"
+    google.protobuf.Timestamp reserved_to = 8;
+    //@inject_tag: validate:"omitempty"
+    google.protobuf.Timestamp redeemed_at = 9;
 }

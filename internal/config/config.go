@@ -65,6 +65,8 @@ type Config struct {
 
 	OrderViewUpdateBatchSize int `envconfig:"ORDER_VIEW_UPDATE_BATCH_SIZE" default:"200"`
 
+	KeyDaemonRestartInterval int `envconfig:"KEY_DAEMON_RESTART_INTERVAL" default:"60"`
+
 	*PaymentSystemConfig
 	*CustomerTokenConfig
 	*CacheRedis
