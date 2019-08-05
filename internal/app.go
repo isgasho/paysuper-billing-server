@@ -37,6 +37,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
@@ -312,4 +314,32 @@ func (app *Application) TaskCreateRoyaltyReport() error {
 
 func (app *Application) TaskAutoAcceptRoyaltyReports() error {
 	return app.svc.AutoAcceptRoyaltyReports(context.TODO(), &grpc.EmptyRequest{}, &grpc.EmptyResponse{})
+}
+
+func (app *Application) KeyDaemonStart() {
+	zap.S().Infof("Key daemon started", zap.Int("RestartInterval", app.cfg.KeyDaemonRestartInterval))
+
+	go func() {
+		interval := time.Duration(int64(app.cfg.KeyDaemonRestartInterval) * int64(time.Second))
+		shutdown := make(chan os.Signal, 1)
+		signal.Notify(shutdown, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+
+		for {
+			zap.S().Debug("Key daemon working")
+
+			select {
+			case <-shutdown:
+				zap.S().Info("Key daemon stopping")
+				return
+			default:
+				count, err := app.svc.KeyDaemonProcess()
+				if err != nil {
+					zap.L().Error("Key daemon process failed", zap.Error(err))
+				}
+
+				zap.S().Debugf("Key daemon job finished", "count", count)
+				time.Sleep(interval)
+			}
+		}
+	}()
 }

@@ -15,6 +15,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 	"testing"
 )
+
 type KeyProductTestSuite struct {
 	suite.Suite
 	service *Service

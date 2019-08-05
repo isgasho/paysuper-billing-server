@@ -696,6 +696,17 @@ type MgoOrderViewPublic struct {
 	RefundFeesTotalLocal                    *OrderViewMoney        `bson:"refund_fees_total_local"`
 }
 
+type MgoKey struct {
+	Id           bson.ObjectId  `bson:"_id"`
+	Code         string         `bson:"code"`
+	KeyProductId bson.ObjectId  `bson:"key_product_id"`
+	PlatformId   bson.ObjectId  `bson:"platform_id"`
+	OrderId      *bson.ObjectId `bson:"order_id"`
+	CreatedAt    time.Time      `bson:"created_at"`
+	ReservedTo   time.Time      `bson:"reserved_to"`
+	RedeemedAt   time.Time      `bson:"redeemed_at"`
+}
+
 func (m *Country) GetBSON() (interface{}, error) {
 	st := &MgoCountry{
 		IsoCodeA2:              m.IsoCodeA2,
@@ -3390,4 +3401,78 @@ func (m *Id) SetBSON(raw bson.Raw) error {
 
 	m.Id = decoded.Id.Hex()
 	return nil
+}
+
+func (k *Key) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoKey)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	k.Id = decoded.Id.Hex()
+	k.Code = decoded.Code
+	k.KeyProductId = decoded.KeyProductId.Hex()
+	k.PlatformId = decoded.PlatformId.Hex()
+
+	if decoded.OrderId != nil {
+		k.OrderId = decoded.OrderId.Hex()
+	}
+
+	if k.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt); err != nil {
+		return err
+	}
+
+	if k.RedeemedAt, err = ptypes.TimestampProto(decoded.RedeemedAt); err != nil {
+		return err
+	}
+
+	if k.ReservedTo, err = ptypes.TimestampProto(decoded.ReservedTo); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Key) GetBSON() (interface{}, error) {
+	st := &MgoKey{
+		Id:           bson.ObjectIdHex(m.Id),
+		PlatformId:   bson.ObjectIdHex(m.PlatformId),
+		KeyProductId: bson.ObjectIdHex(m.KeyProductId),
+		Code:         m.Code,
+	}
+
+	var err error
+
+	if m.OrderId != "" {
+		orderId := bson.ObjectIdHex(m.OrderId)
+		st.OrderId = &orderId
+	}
+
+	if m.RedeemedAt != nil {
+		if st.RedeemedAt, err = ptypes.Timestamp(m.RedeemedAt); err != nil {
+			return nil, err
+		}
+	} else {
+		st.RedeemedAt = time.Time{}
+	}
+
+	if m.ReservedTo != nil {
+		if st.ReservedTo, err = ptypes.Timestamp(m.ReservedTo); err != nil {
+			return nil, err
+		}
+	} else {
+		st.ReservedTo = time.Time{}
+	}
+
+	if m.CreatedAt != nil {
+		if st.CreatedAt, err = ptypes.Timestamp(m.CreatedAt); err != nil {
+			return nil, err
+		}
+	} else {
+		st.CreatedAt = time.Now()
+	}
+
+	return st, nil
 }

@@ -10,5 +10,14 @@
   },
   {
     "create": "notify_new_region"
+  },
+  {
+    "create": "commission"
+  },
+  {
+    "create": "currency_rate"
+  },
+  {
+    "create": "vat"
   }
 ]

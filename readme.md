@@ -34,6 +34,7 @@ This service contain all business logic for payment processing
 | EMAIL_CONFIRM_TEMPLATE               | -        | sidmal_test_email_confirm| Confirmation email template name                                                                                                 |
 | EMAIL_NEW_ROYALTY_REPORT_TEMPLATE    | -        |                       | New royalty report notification email template name                                                                                 |
 | EMAIL_VAT_REPORT_TEMPLATE            | -        |                       | New vat report notification email template name                                                                                     |
+| KEY_DAEMON_RESTART_INTERVAL          | -        | 60                    | Starting frequency in seconds of the script to check the locked keys and return them to the stack.                                  |
 
 ## Docker Deployment
 
