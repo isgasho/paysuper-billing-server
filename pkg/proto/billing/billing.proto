@@ -167,7 +167,7 @@ message MerchantContactTechnical {
     string name = 1;
     // @inject_tag: json:"email" validate:"required,email,max=100"
     string email = 2;
-    // @inject_tag: validate:"omitempty,phone" json:"phone" validate:"required,numeric,max=20"
+    // @inject_tag: json:"phone" validate:"required,numeric,max=20"
     string phone = 3;
 }
 
