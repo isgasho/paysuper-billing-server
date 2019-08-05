@@ -60,6 +60,9 @@ const (
 	collectionBinData         = "bank_bin"
 	collectionNotifySales     = "notify_sales"
 	collectionNotifyNewRegion = "notify_new_region"
+
+	processPaylinkKeyProductsTemplate      = "[processPaylinkKeyProducts] %s"
+	processProcessOrderKeyProductsTemplate = "[ProcessOrderKeyProducts] %s"
 )
 
 var (
@@ -115,6 +118,7 @@ var (
 	orderErrorCheckoutWithoutProducts                         = newBillingServerErrorMsg("fm000052", "order products not specified")
 	orderErrorCheckoutWithoutAmount                           = newBillingServerErrorMsg("fm000053", "order amount not specified")
 	orderErrorKeyReserveFailed                                = newBillingServerErrorMsg("fm000054", "can't reserve key for order")
+	orderErrorUnknownType                                     = newBillingServerErrorMsg("fm000055", "unknown type of order")
 )
 
 type orderCreateRequestProcessorChecked struct {
@@ -233,20 +237,17 @@ func (s *Service) OrderCreateProcess(
 			return nil
 		}
 		break
-	case billing.OrderType_product:
+	case billing.OrderType_product, billing.OrderType_key:
 		if req.Amount > float64(0) {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = orderErrorCheckoutWithoutProducts
 			return nil
 		}
 		break
-	case billing.OrderType_key:
-		if req.Amount > float64(0) {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = orderErrorCheckoutWithoutProducts
-			return nil
-		}
-		break
+	default:
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = orderErrorUnknownType
+		return nil
 	}
 
 	if req.User != nil {
@@ -1557,7 +1558,7 @@ func (v *OrderCreateRequestProcessor) processPaylinkKeyProducts() error {
 
 	pid := v.request.PrivateMetadata["PaylinkId"]
 
-	logInfo := "[processPaylinkKeyProducts] %s"
+	logInfo := processPaylinkKeyProductsTemplate
 
 	currency := v.cfg.AccountingCurrency
 	zap.S().Infow(fmt.Sprintf(logInfo, "accountingCurrency"), "currency", currency, "paylink", pid)
@@ -2497,7 +2498,7 @@ func (s *Service) ProcessOrderKeyProducts(order *billing.Order) error {
 		priceGroup *billing.PriceGroup
 		platformId string
 		locale     string
-		logInfo    = "[ProcessOrderKeyProducts] %s"
+		logInfo    = processProcessOrderKeyProductsTemplate
 	)
 
 	if order.BillingAddress != nil && order.BillingAddress.Country != "" {

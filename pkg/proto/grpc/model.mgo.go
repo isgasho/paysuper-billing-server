@@ -399,15 +399,15 @@ func (p *KeyProduct) SetBSON(raw bson.Raw) error {
 	p.MerchantId = decoded.MerchantId.Hex()
 	p.ProjectId = decoded.ProjectId.Hex()
 
-	var platforms []*PlatformPrice
-	for _, pl := range decoded.Platforms {
-		platforms = append(platforms, &PlatformPrice{
+	platforms := make([]*PlatformPrice, len(decoded.Platforms))
+	for i, pl := range decoded.Platforms {
+		platforms[i] = &PlatformPrice{
 			Id:            pl.Id,
 			Prices:        pl.Prices,
 			EulaUrl:       pl.EulaUrl,
 			Name:          pl.Name,
 			ActivationUrl: pl.ActivationUrl,
-		})
+		}
 	}
 
 	p.Platforms = platforms
@@ -516,27 +516,30 @@ func (p *KeyProduct) GetBSON() (interface{}, error) {
 		st.PublishedAt = &t
 	}
 
-	st.Name = []*I18NTextSearchable{}
+	st.Name = make([]*I18NTextSearchable, len(p.Name))
+	index := 0
 	for k, v := range p.Name {
-		st.Name = append(st.Name, &I18NTextSearchable{Lang: k, Value: v})
+		st.Name[index] = &I18NTextSearchable{Lang: k, Value: v}
+		index++
 	}
 
-	for _, pl := range p.Platforms {
+	for i, pl := range p.Platforms {
 		var prices []*ProductPrice
-		for _, price := range pl.Prices {
-			prices = append(prices, &ProductPrice{
+		prices = make([]*ProductPrice, len(pl.Prices))
+		for j, price := range pl.Prices {
+			prices[j] = &ProductPrice{
 				Currency: price.Currency,
 				Region:   price.Region,
 				Amount:   tools.FormatAmount(price.Amount),
-			})
+			}
 		}
-		st.Platforms = append(st.Platforms, &MgoPlatformPrice{
+		st.Platforms[i] = &MgoPlatformPrice{
 			Prices:        prices,
 			Id:            pl.Id,
 			Name:          pl.Name,
 			EulaUrl:       pl.EulaUrl,
 			ActivationUrl: pl.ActivationUrl,
-		})
+		}
 	}
 
 	return st, nil

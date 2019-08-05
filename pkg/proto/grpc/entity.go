@@ -40,10 +40,6 @@ func (p *Product) GetPriceInCurrency(group *billing.PriceGroup) (float64, error)
 		if group.Region != "" && price.Region == group.Region {
 			return price.Amount, nil
 		}
-
-		if group.Region == "" && price.Region == group.Currency {
-			return price.Amount, nil
-		}
 	}
 	return 0, errors.New(fmt.Sprintf(productNoPriceInCurrency, group.Region))
 }
@@ -168,10 +164,6 @@ func (p *KeyProduct) GetPriceInCurrencyAndPlatform(group *billing.PriceGroup, pl
 		if platform.Id == platformId {
 			for _, price := range platform.Prices {
 				if group.Region != "" && price.Region == group.Region {
-					return price.Amount, nil
-				}
-
-				if group.Region == "" && price.Region == group.Currency {
 					return price.Amount, nil
 				}
 			}
