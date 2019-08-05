@@ -75,6 +75,7 @@ message OrderCreateRequest {
     string psp_order_uuid = 31;
 
     OrderType type = 32;
+    string platform_id = 33;
 }
 
 message Project {

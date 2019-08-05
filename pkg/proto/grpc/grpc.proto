@@ -925,7 +925,7 @@ message RequestProduct {
 message RequestKeyProduct {
     //@inject_tag: query:"id" validate:"required,hexadecimal,len=24"
     string id = 1;
-    //@inject_tag: query:"merchant_id" validate:"hexadecimal,len=24"
+    //@inject_tag: query:"merchant_id" validate:"hexadecimal,len=24,omitempty"
     string merchant_id = 2;
 }
 
