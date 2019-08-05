@@ -26,6 +26,7 @@ type MgoProject struct {
 	Id                       bson.ObjectId   `bson:"_id"`
 	MerchantId               bson.ObjectId   `bson:"merchant_id"`
 	Name                     []*MgoMultiLang `bson:"name"`
+	Image                    string          `bson:"image"`
 	CallbackCurrency         string          `bson:"callback_currency"`
 	CallbackProtocol         string          `bson:"callback_protocol"`
 	CreateOrderAllowedUrls   []string        `bson:"create_order_allowed_urls"`
@@ -864,6 +865,7 @@ func (m *PriceGroup) SetBSON(raw bson.Raw) error {
 func (m *Project) GetBSON() (interface{}, error) {
 	st := &MgoProject{
 		MerchantId:               bson.ObjectIdHex(m.MerchantId),
+		Image:                    m.Image,
 		CallbackCurrency:         m.CallbackCurrency,
 		CallbackProtocol:         m.CallbackProtocol,
 		CreateOrderAllowedUrls:   m.CreateOrderAllowedUrls,
@@ -943,6 +945,7 @@ func (m *Project) SetBSON(raw bson.Raw) error {
 
 	m.Id = decoded.Id.Hex()
 	m.MerchantId = decoded.MerchantId.Hex()
+	m.Image = decoded.Image
 	m.CallbackCurrency = decoded.CallbackCurrency
 	m.CallbackProtocol = decoded.CallbackProtocol
 	m.CreateOrderAllowedUrls = decoded.CreateOrderAllowedUrls
