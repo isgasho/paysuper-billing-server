@@ -226,7 +226,7 @@ message MerchantCompanyInfo {
     string state = 5;
     // @inject_tag: json:"zip" validate:"required,max=30"
     string zip = 6;
-    // @inject_tag: json:"city" validate:"required,city,max=60"
+    // @inject_tag: json:"city" validate:"required,name,max=60"
     string city = 7;
     // @inject_tag: json:"address" validate:"required,max=100"
     string address = 8;
