@@ -222,8 +222,8 @@ func (s *Service) GetKeyProducts(ctx context.Context, req *grpc.ListKeyProductsR
 	return nil
 }
 
-func (s *Service) getPriceGroupByIpAddress(ipAddress string) (*billing.PriceGroup, error) {
-	rsp, err := s.geo.GetIpData(context.TODO(), &proto.GeoIpDataRequest{IP: ipAddress})
+func (s *Service) getPriceGroupByIpAddress(ctx context.Context, ipAddress string) (*billing.PriceGroup, error) {
+	rsp, err := s.geo.GetIpData(ctx, &proto.GeoIpDataRequest{IP: ipAddress})
 	if err != nil {
 		zap.S().Errorw("get county by ip failed", "err", err, "ip", ipAddress)
 		return nil, err
@@ -287,7 +287,7 @@ func (s *Service) GetKeyProductInfo(ctx context.Context, req *grpc.GetKeyProduct
 		return keyProductInternalError
 	}
 
-	priceGroup, err := s.getPriceGroupByIpAddress(req.IpAddress)
+	priceGroup, err := s.getPriceGroupByIpAddress(ctx, req.IpAddress)
 	if err != nil {
 		zap.S().Error("could not get price group by ip address", "ip", req.IpAddress)
 		priceGroup = defaultPriceGroup
