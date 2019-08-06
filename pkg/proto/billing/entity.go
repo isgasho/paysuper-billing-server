@@ -157,17 +157,13 @@ func (m *RoyaltyReport) ChangesAvailable(newStatus string) bool {
 }
 
 func (m *MerchantSignatureRequest) GetSignatureId(role string) string {
-	signatureId := ""
-
 	for _, v := range m.Signatures {
-		if v.SignerRole != role {
-			continue
+		if v.SignerRole == role {
+			return v.SignatureId
 		}
-
-		signatureId = v.SignatureId
 	}
 
-	return signatureId
+	return ""
 }
 
 func (m *Merchant) IsAgreementSigningStarted() bool {
