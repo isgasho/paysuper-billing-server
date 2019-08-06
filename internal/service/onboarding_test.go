@@ -8,7 +8,9 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
+	"github.com/micro/go-micro/client"
 	documentSignerPkg "github.com/paysuper/document-signer/pkg"
+	"github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -2611,6 +2613,16 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_Ok() {
 	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
 	assert.Empty(suite.T(), rsp.Message)
 
+	dsIsCalled := false
+	mockResultFn := func(ctx context.Context, in *proto.CreateSignatureRequest, opts ...client.CallOption) *proto.Response {
+		dsIsCalled = true
+		return &proto.Response{Status: pkg.ResponseStatusOk, HelloSignResponse: mock.HellosignResponse}
+	}
+
+	ds := &mock.DocumentSignerService{}
+	ds.On("CreateSignature", mock2.Anything, mock2.Anything).Return(mockResultFn, nil)
+	suite.service.documentSigner = ds
+
 	req1 := &grpc.SetMerchantS3AgreementRequest{
 		MerchantId: rsp.Item.Id,
 	}
@@ -2621,9 +2633,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_Ok() {
 	assert.Empty(suite.T(), rsp1.Message)
 	assert.NotNil(suite.T(), rsp1.SignatureRequest)
 
-	ds, ok := suite.service.documentSigner.(*mock.DocumentSignerMockOk)
-	assert.True(suite.T(), ok)
-	assert.True(suite.T(), ds.IsCalled)
+	assert.True(suite.T(), dsIsCalled)
 
 	merchant, err := suite.service.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(rsp.Item.Id)})
 	assert.NoError(suite.T(), err)
@@ -2762,10 +2772,6 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_MerchantHasSignat
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)
 	assert.NotNil(suite.T(), rsp1.SignatureRequest)
-
-	ds, ok := suite.service.documentSigner.(*mock.DocumentSignerMockOk)
-	assert.True(suite.T(), ok)
-	assert.False(suite.T(), ds.IsCalled)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerSystemError() {
@@ -2805,7 +2811,9 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerSys
 	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
 	assert.Empty(suite.T(), rsp.Message)
 
-	suite.service.documentSigner = mock.NewDocumentSignerMockSystemError()
+	ds := &mock.DocumentSignerService{}
+	ds.On("CreateSignature", mock2.Anything, mock2.Anything).Return(nil, errors.New(mock.SomeError))
+	suite.service.documentSigner = ds
 	zap.ReplaceGlobals(suite.logObserver)
 
 	req1 := &grpc.SetMerchantS3AgreementRequest{
@@ -2860,7 +2868,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerRes
 	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
 	assert.Empty(suite.T(), rsp.Message)
 
-	suite.service.documentSigner = mock.NewDocumentSignerMockError()
+	ds := &mock.DocumentSignerService{}
+	ds.On("CreateSignature", mock2.Anything, mock2.Anything).
+		Return(&proto.Response{Status: pkg.ResponseStatusBadData, Message: &proto.ResponseErrorMessage{Message: mock.SomeError}}, nil)
+	suite.service.documentSigner = ds
 
 	req1 := &grpc.SetMerchantS3AgreementRequest{
 		MerchantId: rsp.Item.Id,
@@ -2910,7 +2921,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerInc
 	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
 	assert.Empty(suite.T(), rsp.Message)
 
-	suite.service.documentSigner = mock.NewDocumentSignerMockOkIncorrectJson()
+	ds := &mock.DocumentSignerService{}
+	ds.On("CreateSignature", mock2.Anything, mock2.Anything).
+		Return(&proto.Response{Status: pkg.ResponseStatusOk, HelloSignResponse: []byte("not_json_string")}, nil)
+	suite.service.documentSigner = ds
 	zap.ReplaceGlobals(suite.logObserver)
 
 	req1 := &grpc.SetMerchantS3AgreementRequest{
