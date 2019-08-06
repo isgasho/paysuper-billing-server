@@ -120,7 +120,7 @@ func (suite *KeyProductTestSuite) GetKeyProduct_Test() {
 	res := response.Product
 
 	response = grpc.KeyProductResponse{}
-	err = suite.service.GetKeyProduct(context.TODO(), &grpc.RequestKeyProduct{Id: res.Id, MerchantId: res.MerchantId}, &response)
+	err = suite.service.GetKeyProduct(context.TODO(), &grpc.RequestKeyProductMerchant{Id: res.Id, MerchantId: res.MerchantId}, &response)
 	shouldBe.Nil(err)
 	shouldBe.Nil(response.Message)
 
@@ -141,15 +141,15 @@ func (suite *KeyProductTestSuite) GetKeyProduct_Test() {
 	shouldBe.Nil(product.PublishedAt)
 	shouldBe.False(product.Enabled)
 
-	err = suite.service.GetKeyProduct(context.TODO(), &grpc.RequestKeyProduct{Id: res.Id, MerchantId: res.MerchantId}, &response)
+	err = suite.service.GetKeyProduct(context.TODO(), &grpc.RequestKeyProductMerchant{Id: res.Id, MerchantId: res.MerchantId}, &response)
 	shouldBe.Nil(err)
 	shouldBe.Nil(response.Message)
 
-	err = suite.service.GetKeyProduct(context.TODO(), &grpc.RequestKeyProduct{Id: res.Id, MerchantId: res.MerchantId}, &response)
+	err = suite.service.GetKeyProduct(context.TODO(), &grpc.RequestKeyProductMerchant{Id: res.Id, MerchantId: res.MerchantId}, &response)
 	shouldBe.Nil(err)
 	shouldBe.Nil(response.Message)
 
-	err = suite.service.GetKeyProduct(context.TODO(), &grpc.RequestKeyProduct{Id: res.Id, MerchantId: res.MerchantId}, &response)
+	err = suite.service.GetKeyProduct(context.TODO(), &grpc.RequestKeyProductMerchant{Id: res.Id, MerchantId: res.MerchantId}, &response)
 	shouldBe.Nil(err)
 	shouldBe.Nil(response.Message)
 }
@@ -280,7 +280,7 @@ func (suite *KeyProductTestSuite) getKeyProduct(id string) *grpc.KeyProduct {
 	suite.T().Helper()
 
 	res := &grpc.KeyProductResponse{}
-	err := suite.service.GetKeyProduct(context.TODO(), &grpc.RequestKeyProduct{MerchantId: merchantId, Id: id}, res)
+	err := suite.service.GetKeyProduct(context.TODO(), &grpc.RequestKeyProductMerchant{MerchantId: merchantId, Id: id}, res)
 	assert.Nil(suite.T(), err)
 	assert.Nil(suite.T(), res.Message)
 	return res.Product
@@ -483,12 +483,12 @@ func (suite *KeyProductTestSuite) DeleteKeyProduct_Test() {
 	product := suite.createKeyProduct()
 
 	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.DeleteKeyProduct(context.TODO(), &grpc.RequestKeyProduct{Id: product.Id, MerchantId: merchantId}, res)
+	err := suite.service.DeleteKeyProduct(context.TODO(), &grpc.RequestKeyProductMerchant{Id: product.Id, MerchantId: merchantId}, res)
 	shouldBe.Nil(err)
 	shouldBe.Nil(res.Message)
 
 	res = &grpc.EmptyResponseWithStatus{}
-	err = suite.service.DeleteKeyProduct(context.TODO(), &grpc.RequestKeyProduct{Id: product.Id, MerchantId: merchantId}, res)
+	err = suite.service.DeleteKeyProduct(context.TODO(), &grpc.RequestKeyProductMerchant{Id: product.Id, MerchantId: merchantId}, res)
 	shouldBe.Nil(err)
 	shouldBe.NotNil(res.Message)
 }

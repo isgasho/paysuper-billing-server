@@ -128,8 +128,8 @@ service BillingService {
 
     rpc CreateOrUpdateKeyProduct (CreateOrUpdateKeyProductRequest) returns (KeyProductResponse) {}
     rpc GetKeyProducts(ListKeyProductsRequest) returns (ListKeyProductsResponse) {}
-    rpc GetKeyProduct (RequestKeyProduct) returns (KeyProductResponse) {}
-    rpc DeleteKeyProduct (RequestKeyProduct) returns (EmptyResponseWithStatus) {}
+    rpc GetKeyProduct (RequestKeyProductMerchant) returns (KeyProductResponse) {}
+    rpc DeleteKeyProduct (RequestKeyProductMerchant) returns (EmptyResponseWithStatus) {}
     rpc PublishKeyProduct(PublishKeyProductRequest) returns (KeyProductResponse) {}
     rpc GetKeyProductsForOrder (GetKeyProductsForOrderRequest) returns (ListKeyProductsResponse) {}
 
@@ -903,11 +903,16 @@ message RequestProduct {
     string merchant_id = 2;
 }
 
+message RequestKeyProductMerchant {
+    //@inject_tag: query:"id" validate:"required,hexadecimal,len=24"
+    string id = 1;
+    //@inject_tag: query:"merchant_id" validate:"hexadecimal,len=24"
+    string merchant_id = 2;
+}
+
 message RequestKeyProduct {
     //@inject_tag: query:"id" validate:"required,hexadecimal,len=24"
     string id = 1;
-    //@inject_tag: query:"merchant_id" validate:"hexadecimal,len=24,omitempty"
-    string merchant_id = 2;
 }
 
 message I18NTextSearchable {

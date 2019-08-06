@@ -63,7 +63,7 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 		product.Sku = req.Sku
 	} else {
 		product.Id = req.Id
-		_ = s.GetKeyProduct(ctx, &grpc.RequestKeyProduct{Id: req.Id, MerchantId: req.MerchantId}, res)
+		_ = s.GetKeyProduct(ctx, &grpc.RequestKeyProductMerchant{Id: req.Id, MerchantId: req.MerchantId}, res)
 		if res.Message != nil {
 			zap.S().Errorf("Key product that requested to change is not found", "data", req)
 			return nil
@@ -220,7 +220,7 @@ func (s *Service) GetKeyProducts(ctx context.Context, req *grpc.ListKeyProductsR
 	return nil
 }
 
-func (s *Service) GetKeyProduct(ctx context.Context, req *grpc.RequestKeyProduct, res *grpc.KeyProductResponse) error {
+func (s *Service) GetKeyProduct(ctx context.Context, req *grpc.RequestKeyProductMerchant, res *grpc.KeyProductResponse) error {
 	product, err := s.getKeyProductById(req.Id)
 	if err == mgo.ErrNotFound {
 		res.Status = http.StatusNotFound
@@ -251,7 +251,7 @@ func (s *Service) getKeyProductById(id string) (*grpc.KeyProduct, error) {
 	return product, err
 }
 
-func (s *Service) DeleteKeyProduct(ctx context.Context, req *grpc.RequestKeyProduct, res *grpc.EmptyResponseWithStatus) error {
+func (s *Service) DeleteKeyProduct(ctx context.Context, req *grpc.RequestKeyProductMerchant, res *grpc.EmptyResponseWithStatus) error {
 	product, err := s.getKeyProductById(req.Id)
 	if err == mgo.ErrNotFound {
 		res.Status = http.StatusNotFound
