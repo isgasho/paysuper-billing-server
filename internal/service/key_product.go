@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"github.com/ProtocolONE/geoip-service/pkg/proto"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"go.uber.org/zap"
@@ -217,6 +219,109 @@ func (s *Service) GetKeyProducts(ctx context.Context, req *grpc.ListKeyProductsR
 	}
 
 	res.Products = items
+	return nil
+}
+
+func (s *Service) getPriceGroupByIpAddress(ipAddress string) (*billing.PriceGroup, error) {
+	rsp, err := s.geo.GetIpData(context.TODO(), &proto.GeoIpDataRequest{IP: ipAddress})
+	if err != nil {
+		zap.S().Errorw("get county by ip failed", "err", err, "ip", ipAddress)
+		return nil, err
+	}
+
+	countryData, err := s.country.GetByIsoCodeA2(rsp.Country.IsoCode)
+	if err != nil {
+		return nil, err
+	}
+
+	priceGroup, err := s.priceGroup.GetById(countryData.PriceGroupId)
+	return priceGroup, nil
+}
+
+func (s *Service) GetKeyProductInfo(ctx context.Context, req *grpc.GetKeyProductInfoRequest, res *grpc.GetKeyProductInfoResponse) error {
+	res.Status = pkg.ResponseStatusOk
+
+	product, err := s.getKeyProductById(req.KeyProductId)
+	if err == mgo.ErrNotFound {
+		res.Status = http.StatusNotFound
+		res.Message = keyProductNotFound
+		return nil
+	}
+
+	if err != nil {
+		zap.S().Errorf("Query to find key product by id failed", "err", err.Error(), "data", req)
+		res.Status = http.StatusInternalServerError
+		res.Message = keyProductRetrieveError
+		return nil
+	}
+
+	if !product.Enabled {
+		zap.S().Error("Product is disabled", "data", req)
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = keyProductRetrieveError
+		return nil
+	}
+
+	res.KeyProduct = &grpc.KeyProductInfo{
+		Id:        product.Id,
+		Images:    product.Images,
+		ProjectId: product.ProjectId,
+	}
+
+	if res.KeyProduct.Name, err = product.GetLocalizedName(req.Language); err != nil {
+		res.KeyProduct.Name, _ = product.GetLocalizedName(DefaultLanguage)
+	}
+
+	if res.KeyProduct.Description, err = product.GetLocalizedDescription(req.Language); err != nil {
+		res.KeyProduct.Description, _ = product.GetLocalizedDescription(DefaultLanguage)
+	}
+
+	if res.KeyProduct.LongDescription, err = product.GetLocalizedLongDescription(req.Language); err != nil {
+		res.KeyProduct.LongDescription, _ = product.GetLocalizedLongDescription(DefaultLanguage)
+	}
+
+	defaultCurrency := product.DefaultCurrency
+	defaultPriceGroup, err := s.priceGroup.GetByRegion(defaultCurrency)
+	if err != nil {
+		zap.S().Errorw("Failed to get price group for default currency", "currency", defaultCurrency)
+		return keyProductInternalError
+	}
+
+	priceGroup, err := s.getPriceGroupByIpAddress(req.IpAddress)
+	if err != nil {
+		zap.S().Error("could not get price group by ip address", "ip", req.IpAddress)
+		priceGroup = defaultPriceGroup
+	}
+
+	platforms := make([]*grpc.PlatformPriceInfo, len(product.Platforms))
+	for i, p := range product.Platforms {
+		currency := priceGroup.Currency
+		region := priceGroup.Region
+		amount, err := product.GetPriceInCurrencyAndPlatform(priceGroup, p.Id)
+		if err != nil {
+			zap.S().Error("could not get price in currency and platform", "price_group", priceGroup, "platform", p.Id)
+			currency = defaultPriceGroup.Currency
+			region = defaultPriceGroup.Region
+			if amount, err = product.GetPriceInCurrencyAndPlatform(defaultPriceGroup, p.Id); err != nil {
+				zap.S().Error("could not get price in default currency and platform", "price_group", defaultPriceGroup, "platform", p.Id)
+				res.Status = pkg.ResponseStatusSystemError
+				res.Message = keyProductInternalError
+				return nil
+			}
+		}
+
+		platforms[i] = &grpc.PlatformPriceInfo{
+			Name: p.Name,
+			Id:   p.Id,
+			Price: &grpc.ProductPrice{
+				Amount:   amount,
+				Currency: currency,
+				Region:   region,
+			},
+		}
+	}
+	res.KeyProduct.Platforms = platforms
+
 	return nil
 }
 

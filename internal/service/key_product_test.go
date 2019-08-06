@@ -61,11 +61,6 @@ func (suite *KeyProductTestSuite) SetupTest() {
 	broker, err := rabbitmq.NewBroker(cfg.BrokerAddress)
 	assert.NoError(suite.T(), err, "Creating RabbitMQ publisher failed")
 
-	pgs := []*billing.PriceGroup{pgRub, pgUsd}
-	if err := suite.service.priceGroup.MultipleInsert(pgs); err != nil {
-		suite.FailNow("Insert price group test data failed", "%v", err)
-	}
-
 	redisdb := mock.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
@@ -83,6 +78,11 @@ func (suite *KeyProductTestSuite) SetupTest() {
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
+
+	pgs := []*billing.PriceGroup{pgRub, pgUsd}
+	if err := suite.service.priceGroup.MultipleInsert(pgs); err != nil {
+		suite.FailNow("Insert price group test data failed", "%v", err)
+	}
 }
 
 func (suite *KeyProductTestSuite) TearDownTest() {
@@ -91,6 +91,68 @@ func (suite *KeyProductTestSuite) TearDownTest() {
 	}
 
 	suite.service.db.Close()
+}
+
+func (suite *KeyProductTestSuite) TestGetKeyProductInfo() {
+	shouldBe := require.New(suite.T())
+
+	req := &grpc.CreateOrUpdateKeyProductRequest{
+		Object:          "product",
+		Sku:             "ru_double_yeti",
+		Name:            map[string]string{"en": initialName},
+		DefaultCurrency: "USD",
+		Enabled:         true,
+		Description:     map[string]string{"en": "blah-blah-blah"},
+		LongDescription: map[string]string{"en": "Super game steam keys"},
+		Url:             "http://test.ru/dffdsfsfs",
+		Images:          []string{"/home/image.jpg"},
+		MerchantId:      merchantId,
+		ProjectId:       projectId,
+		Metadata: map[string]string{
+			"SomeKey": "SomeValue",
+		},
+	}
+	response := grpc.KeyProductResponse{}
+	err := suite.service.CreateOrUpdateKeyProduct(context.TODO(), req, &response)
+	shouldBe.Nil(err)
+	shouldBe.Nil(response.Message)
+
+	err = suite.service.UpdatePlatformPrices(context.TODO(), &grpc.AddOrUpdatePlatformPricesRequest{
+		KeyProductId: response.Product.Id,
+		Platform: &grpc.PlatformPrice{
+			Id: "steam",
+			Prices: []*grpc.ProductPrice{
+				{Region: "USD", Currency: "USD", Amount: 10},
+			},
+		},
+	}, &grpc.UpdatePlatformPricesResponse{})
+	shouldBe.Nil(err)
+
+	res := grpc.GetKeyProductInfoResponse{}
+	err = suite.service.GetKeyProductInfo(context.TODO(), &grpc.GetKeyProductInfoRequest{IpAddress: "127.0.0.1", KeyProductId: response.Product.Id, Language: "en"}, &res)
+	shouldBe.Nil(err)
+	shouldBe.Nil(res.Message)
+	shouldBe.NotNil(res.KeyProduct)
+	shouldBe.Equal(response.Product.Id, res.KeyProduct.Id)
+	shouldBe.Equal(initialName, res.KeyProduct.Name)
+	shouldBe.Equal("blah-blah-blah", res.KeyProduct.Description)
+	shouldBe.Equal(1, len(res.KeyProduct.Platforms))
+	shouldBe.Equal("steam", res.KeyProduct.Platforms[0].Id)
+	shouldBe.EqualValues(10, res.KeyProduct.Platforms[0].Price.Amount)
+	shouldBe.Equal("USD", res.KeyProduct.Platforms[0].Price.Currency)
+
+	res = grpc.GetKeyProductInfoResponse{}
+	err = suite.service.GetKeyProductInfo(context.TODO(), &grpc.GetKeyProductInfoRequest{IpAddress: "192.168.1.1", KeyProductId: response.Product.Id, Language: "ru"}, &res)
+	shouldBe.Nil(err)
+	shouldBe.Nil(res.Message)
+	shouldBe.NotNil(res.KeyProduct)
+	shouldBe.Equal(response.Product.Id, res.KeyProduct.Id)
+	shouldBe.Equal(initialName, res.KeyProduct.Name)
+	shouldBe.Equal("blah-blah-blah", res.KeyProduct.Description)
+	shouldBe.Equal(1, len(res.KeyProduct.Platforms))
+	shouldBe.Equal("steam", res.KeyProduct.Platforms[0].Id)
+	shouldBe.EqualValues(10, res.KeyProduct.Platforms[0].Price.Amount)
+	shouldBe.Equal("USD", res.KeyProduct.Platforms[0].Price.Currency)
 }
 
 func (suite *KeyProductTestSuite) GetKeyProduct_Test() {
