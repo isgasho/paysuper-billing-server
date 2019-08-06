@@ -178,6 +178,7 @@ func (s *Service) ListProjects(
 				"_id":                         "$_id",
 				"merchant_id":                 "$merchant_id",
 				"name":                        "$name",
+				"image":                       "$image",
 				"callback_protocol":           "$callback_protocol",
 				"callback_currency":           "$callback_currency",
 				"create_order_allowed_urls":   "$create_order_allowed_urls",
