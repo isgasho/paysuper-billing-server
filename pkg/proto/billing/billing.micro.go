@@ -106,6 +106,10 @@ It has these top-level messages:
 	PriceTable
 	PriceTableCurrency
 	Id
+	MerchantSignatureRequestCustomFields
+	MerchantSignatureRequestSignatures
+	MerchantSignatureRequestResponseData
+	MerchantSignatureRequest
 */
 package billing
 

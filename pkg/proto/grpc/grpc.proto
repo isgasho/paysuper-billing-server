@@ -125,6 +125,7 @@ service BillingService {
     rpc UpdateVatReportStatus (UpdateVatReportStatusRequest) returns (ResponseError) {}
 
     rpc CalcAnnualTurnovers(EmptyRequest) returns (EmptyResponse) {}
+    rpc AgreementSign(SetMerchantS3AgreementRequest) returns (AgreementSignResponse) {}
 }
 
 message EmptyRequest {}
@@ -1276,4 +1277,10 @@ message UpdateVatReportStatusRequest {
     string id = 1;
     //@inject_tag: json:"status" bson:"status" validate:"required,alpha,oneof=paid canceled"
     string status = 2;
+}
+
+message AgreementSignResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.MerchantSignatureRequest signature_request = 3;
 }
