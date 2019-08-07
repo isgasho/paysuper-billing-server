@@ -1,11 +1,9 @@
 package mock
 
 import (
-	"context"
-	"errors"
-	"github.com/micro/go-micro/client"
 	"github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/pkg"
+	mock2 "github.com/stretchr/testify/mock"
 )
 
 var (
@@ -64,58 +62,10 @@ var (
     }`)
 )
 
-type DocumentSignerMockOk struct{}
-type DocumentSignerMockError struct{}
-type DocumentSignerMockSystemError struct{}
-type DocumentSignerMockOkIncorrectJson struct{}
-
 func NewDocumentSignerMockOk() proto.DocumentSignerService {
-	return &DocumentSignerMockOk{}
-}
+	ds := &DocumentSignerService{}
+	ds.On("CreateSignature", mock2.Anything, mock2.Anything).
+		Return(&proto.Response{Status: pkg.ResponseStatusOk, HelloSignResponse: HellosignResponse}, nil)
 
-func NewDocumentSignerMockError() proto.DocumentSignerService {
-	return &DocumentSignerMockError{}
-}
-
-func NewDocumentSignerMockSystemError() proto.DocumentSignerService {
-	return &DocumentSignerMockSystemError{}
-}
-
-func NewDocumentSignerMockOkIncorrectJson() proto.DocumentSignerService {
-	return &DocumentSignerMockOkIncorrectJson{}
-}
-
-func (m *DocumentSignerMockOk) CreateSignature(
-	ctx context.Context,
-	in *proto.CreateSignatureRequest,
-	opts ...client.CallOption,
-) (*proto.Response, error) {
-	return &proto.Response{Status: pkg.ResponseStatusOk, HelloSignResponse: HellosignResponse}, nil
-}
-
-func (m *DocumentSignerMockError) CreateSignature(
-	ctx context.Context,
-	in *proto.CreateSignatureRequest,
-	opts ...client.CallOption,
-) (*proto.Response, error) {
-	return &proto.Response{
-		Status:  pkg.ResponseStatusBadData,
-		Message: &proto.ResponseErrorMessage{Message: SomeError},
-	}, nil
-}
-
-func (m *DocumentSignerMockSystemError) CreateSignature(
-	ctx context.Context,
-	in *proto.CreateSignatureRequest,
-	opts ...client.CallOption,
-) (*proto.Response, error) {
-	return nil, errors.New(SomeError)
-}
-
-func (m *DocumentSignerMockOkIncorrectJson) CreateSignature(
-	ctx context.Context,
-	in *proto.CreateSignatureRequest,
-	opts ...client.CallOption,
-) (*proto.Response, error) {
-	return &proto.Response{Status: pkg.ResponseStatusOk, HelloSignResponse: []byte("some_not_json_string")}, nil
+	return ds
 }

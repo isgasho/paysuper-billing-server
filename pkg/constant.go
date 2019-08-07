@@ -198,6 +198,10 @@ const (
 	ErrorDatabaseFieldQuery      = "query"
 	ErrorDatabaseFieldSet        = "set"
 
+	ErrorCacheQueryFailed = "Query to cache storage failed"
+	ErrorCacheFieldKey    = "key"
+	ErrorCacheFieldCmd    = "command"
+
 	CardPayDeclineCodeSystemMalfunction                = "01"
 	CardPayDeclineCodeCancelledByCustomer              = "02"
 	CardPayDeclineCodeDeclinedByAntiFraud              = "03"

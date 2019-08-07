@@ -18,6 +18,8 @@ It has these top-level messages:
 	MerchantBanking
 	MerchantLastPayout
 	MerchantUser
+	MerchantCompanyInfo
+	MerchantCompletedSteps
 	Merchant
 	SystemNotificationStatuses
 	Notification

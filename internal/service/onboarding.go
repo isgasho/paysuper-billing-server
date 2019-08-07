@@ -109,12 +109,12 @@ func (s *Service) ListMerchants(
 
 	if req.QuickSearch != "" {
 		query["$or"] = []bson.M{
-			{"name": bson.RegEx{Pattern: ".*" + req.QuickSearch + ".*", Options: "i"}},
+			{"company.name": bson.RegEx{Pattern: ".*" + req.QuickSearch + ".*", Options: "i"}},
 			{"user.email": bson.RegEx{Pattern: ".*" + req.QuickSearch + ".*", Options: "i"}},
 		}
 	} else {
 		if req.Name != "" {
-			query["name"] = bson.RegEx{Pattern: ".*" + req.Name + ".*", Options: "i"}
+			query["company.name"] = bson.RegEx{Pattern: ".*" + req.Name + ".*", Options: "i"}
 		}
 
 		if req.LastPayoutDateFrom > 0 || req.LastPayoutDateTo > 0 {
@@ -151,7 +151,13 @@ func (s *Service) ListMerchants(
 	count, err := s.db.Collection(collectionMerchant).Find(query).Count()
 
 	if err != nil {
-		zap.S().Errorf("Query to count merchants failed", "err", err.Error(), "query", query)
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+
 		return merchantErrorUnknown
 	}
 
@@ -159,7 +165,13 @@ func (s *Service) ListMerchants(
 		Skip(int(req.Offset)).All(&merchants)
 
 	if err != nil {
-		zap.S().Errorf("Query to find merchants failed", "err", err.Error(), "query", query)
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+
 		return merchantErrorUnknown
 	}
 
@@ -178,15 +190,12 @@ func (s *Service) ChangeMerchant(
 	req *grpc.OnboardingRequest,
 	rsp *grpc.ChangeMerchantResponse,
 ) error {
-	var merchant *billing.Merchant
-	var err error
-	var isNew bool
+	var (
+		merchant *billing.Merchant
+		err      error
+	)
 
-	rsp.Status = pkg.ResponseStatusOk
-
-	if req.Id == "" && (req.User == nil || req.User.Id == "") {
-		isNew = true
-	} else {
+	if req.HasIdentificationFields() {
 		query := make(bson.M)
 
 		if req.Id != "" && req.User != nil && req.User.Id != "" {
@@ -203,22 +212,15 @@ func (s *Service) ChangeMerchant(
 
 		merchant, err = s.getMerchantBy(query)
 
-		if err != nil {
-			if err != merchantErrorNotFound {
-				zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
-				if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-					rsp.Status = pkg.ResponseStatusBadData
-					rsp.Message = e
-					return nil
-				}
-				return err
-			}
+		if err != nil && err != merchantErrorNotFound {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = err.(*grpc.ResponseErrorMessage)
 
-			isNew = true
+			return nil
 		}
 	}
 
-	if isNew {
+	if merchant == nil {
 		merchant = &billing.Merchant{
 			Id:        bson.NewObjectId().Hex(),
 			User:      req.User,
@@ -227,76 +229,67 @@ func (s *Service) ChangeMerchant(
 		}
 	}
 
-	if merchant == nil {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = merchantErrorUnknown
-		return nil
-	}
-
-	if merchant.ChangesAllowed() == false {
+	if !s.IsChangeDataAllow(merchant, req) {
 		rsp.Status = pkg.ResponseStatusForbidden
 		rsp.Message = merchantErrorChangeNotAllowed
+
 		return nil
 	}
 
-	if req.Country != "" {
-		country, err := s.country.GetByIsoCodeA2(req.Country)
+	if req.Company != nil {
+		_, err := s.country.GetByIsoCodeA2(req.Company.Country)
 
 		if err != nil {
-			zap.S().Errorf("Get country for merchant failed", "err", err.Error(), "request", req)
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = merchantErrorCountryNotFound
-			return nil
-		}
-
-		merchant.Country = country.IsoCodeA2
-	}
-
-	merchant.Banking = &billing.MerchantBanking{}
-
-	if req.Banking != nil && req.Banking.Currency != "" {
-		if !contains(s.supportedCurrencies, req.Banking.Currency) {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = merchantErrorCurrencyNotFound
 
 			return nil
 		}
 
-		merchant.Banking.Currency = req.Banking.Currency
+		merchant.Company = req.Company
 	}
 
-	merchant.Name = req.Name
-	merchant.AlternativeName = req.AlternativeName
-	merchant.Website = req.Website
-	merchant.State = req.State
-	merchant.Zip = req.Zip
-	merchant.City = req.City
-	merchant.Address = req.Address
-	merchant.AddressAdditional = req.AddressAdditional
-	merchant.RegistrationNumber = req.RegistrationNumber
-	merchant.TaxId = req.TaxId
-	merchant.Contacts = req.Contacts
-	merchant.Banking.Name = req.Banking.Name
-	merchant.Banking.Address = req.Banking.Address
-	merchant.Banking.AccountNumber = req.Banking.AccountNumber
-	merchant.Banking.Swift = req.Banking.Swift
-	merchant.Banking.Details = req.Banking.Details
+	if req.Banking != nil {
+		if req.Banking.Currency != "" {
+			if !contains(s.supportedCurrencies, req.Banking.Currency) {
+				rsp.Status = pkg.ResponseStatusBadData
+				rsp.Message = merchantErrorCurrencyNotFound
+
+				return nil
+			}
+		}
+
+		merchant.Banking = req.Banking
+	}
+
+	if req.Contacts != nil {
+		merchant.Contacts = req.Contacts
+	}
+
+	if req.Tariff != "" {
+		merchant.Tariff = req.Tariff
+	}
+
 	merchant.UpdatedAt = ptypes.TimestampNow()
-
-	if isNew {
-		err = s.merchant.Insert(merchant)
-	} else {
-		err = s.merchant.Update(merchant)
+	merchant.Steps = &billing.MerchantCompletedSteps{
+		Company:  merchant.Company != nil,
+		Contacts: merchant.Contacts != nil,
+		Banking:  merchant.Banking != nil,
+		Tariff:   merchant.Tariff != "",
 	}
+
+	err = s.merchant.Upsert(merchant)
 
 	if err != nil {
-		zap.S().Errorf("Query to change merchant data failed", "err", err.Error(), "data", merchant)
-		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = merchantErrorUnknown
+
 		return nil
 	}
 
+	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = merchant
+
 	return nil
 }
 
@@ -814,7 +807,12 @@ func (s *Service) getMerchantBy(query bson.M) (*billing.Merchant, error) {
 	err := s.db.Collection(collectionMerchant).Find(query).One(&merchant)
 
 	if err != nil && err != mgo.ErrNotFound {
-		zap.S().Errorf("Query to find merchant by id failed", "err", err.Error(), "query", query)
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
 
 		return merchant, merchantErrorUnknown
 	}
@@ -910,7 +908,7 @@ func (s *Service) AgreementSign(
 		return nil
 	}
 
-	if merchant.Status == pkg.MerchantStatusAgreementSigned {
+	if merchant.IsAgreementSigned() {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = merchantErrorAlreadySigned
 
@@ -925,6 +923,7 @@ func (s *Service) AgreementSign(
 	}
 
 	req1 := &proto.CreateSignatureRequest{
+		TemplateId: merchant.AgreementTemplate,
 		Signers: []*proto.CreateSignatureRequestSigner{
 			{
 				Email:    merchant.GetAuthorizedEmail(),
@@ -941,6 +940,11 @@ func (s *Service) AgreementSign(
 			documentSignerPkg.MetadataFieldMerchantId: merchant.Id,
 		},
 	}
+
+	if req1.TemplateId == "" {
+		req1.TemplateId = s.cfg.HelloSignDefaultTemplate
+	}
+
 	rsp1, err := s.documentSigner.CreateSignature(ctx, req1)
 
 	if err != nil {
@@ -992,13 +996,6 @@ func (s *Service) AgreementSign(
 	err = s.merchant.Update(merchant)
 
 	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, "merchant"),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, merchant),
-		)
-
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = merchantErrorUnknown
 
@@ -1007,6 +1004,43 @@ func (s *Service) AgreementSign(
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.SignatureRequest = signature
+
+	return nil
+}
+
+func (s *Service) IsChangeDataAllow(merchant *billing.Merchant, data *grpc.OnboardingRequest) bool {
+	if merchant.IsAgreementSigningStarted() && (data.Company != nil || data.Contacts != nil || data.Banking != nil ||
+		data.Tariff != "") {
+		return false
+	}
+
+	if merchant.IsAgreementSigned() && data.Tariff != "" {
+		return false
+	}
+
+	return true
+}
+
+func (s *Service) GetMerchantOnboardingCompleteData(
+	ctx context.Context,
+	req *grpc.SetMerchantS3AgreementRequest,
+	rsp *grpc.GetMerchantOnboardingCompleteDataResponse,
+) error {
+	merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
+
+		return nil
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
+	rsp.Item = &grpc.GetMerchantOnboardingCompleteDataResponseItem{
+		Steps:              merchant.Steps,
+		Status:             merchant.GetPrintableStatus(),
+		CompleteStepsCount: merchant.GetCompleteStepsCount(),
+	}
 
 	return nil
 }

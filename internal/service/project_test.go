@@ -124,9 +124,12 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 			Id:    bson.NewObjectId().Hex(),
 			Email: "test@unit.test",
 		},
-		Name: "Unit test",
-		Zip:  "190000",
-		City: "St.Petersburg",
+		Company: &billing.MerchantCompanyInfo{
+			Name:    "merchant1",
+			Country: "RU",
+			Zip:     "190000",
+			City:    "St.Petersburg",
+		},
 		Contacts: &billing.MerchantContact{
 			Authorized: &billing.MerchantContactAuthorized{},
 			Technical:  &billing.MerchantContactTechnical{},

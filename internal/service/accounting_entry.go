@@ -182,7 +182,7 @@ func (s *Service) CreateAccountingEntry(
 		}
 
 		handler.merchant = merchant
-		countryCode = merchant.Country
+		countryCode = merchant.Company.Country
 	}
 
 	if countryCode == "" {
