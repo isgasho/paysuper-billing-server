@@ -1793,4 +1793,6 @@ message MerchantSignatureRequest {
     repeated MerchantSignatureRequestCustomFields custom_fields = 15;
     //@inject_tag: json:"files_url" bson:"files_url"
     string files_url = 16;
+    //@inject_tag: json:"final_copy_uri" bson:"final_copy_uri"
+    string final_copy_uri = 17;
 }
