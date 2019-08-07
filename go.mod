@@ -22,7 +22,7 @@ require (
 	github.com/micro/go-config v0.14.0
 	github.com/micro/go-micro v1.0.0
 	github.com/micro/go-plugins v1.0.0
-	github.com/paysuper/document-signer v0.0.0-20190807090953-5bc990834c63
+	github.com/paysuper/document-signer v0.0.0-20190807095946-a2a286110a13
 	github.com/paysuper/paysuper-currencies v0.0.0-20190723132218-9628e1b3ba42
 	github.com/paysuper/paysuper-database-mongo v0.1.0
 	github.com/paysuper/paysuper-recurring-repository v1.0.111

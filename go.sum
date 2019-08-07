@@ -684,6 +684,8 @@ github.com/paysuper/document-signer v0.0.0-20190802154808-6c48d86129a5 h1:/2RCwl
 github.com/paysuper/document-signer v0.0.0-20190802154808-6c48d86129a5/go.mod h1:FVlQmxMCwOj4Tz6UwtFnRxJEqt4NAJTNRnYlzobUqJw=
 github.com/paysuper/document-signer v0.0.0-20190807090953-5bc990834c63 h1:0cKhAp+GiPMNq5QKl2DVd92BQD6E9UPbV+oWRJ5MAXM=
 github.com/paysuper/document-signer v0.0.0-20190807090953-5bc990834c63/go.mod h1:oWR/BZvaEqGs2SBDCxltVrU8jUyeAFIlZTFNNfarXHA=
+github.com/paysuper/document-signer v0.0.0-20190807095946-a2a286110a13 h1:gLO0BCTIj5izqgvmXZ3bFQySn+vmLgSgKTH6lyRjjXs=
+github.com/paysuper/document-signer v0.0.0-20190807095946-a2a286110a13/go.mod h1:oWR/BZvaEqGs2SBDCxltVrU8jUyeAFIlZTFNNfarXHA=
 github.com/paysuper/paysuper-billing-server v0.0.0-20190730110641-01c53a635757/go.mod h1:lpU2waViaUZDqje93EGGl82YuumvKsSCnhLa9e4ZH8Q=
 github.com/paysuper/paysuper-billing-server v0.0.0-20190801190642-0f5394def881/go.mod h1:VANzUeZc2mcnHfnuI1E5HB1wczpZ0AUIiDozUj2vn/A=
 github.com/paysuper/paysuper-billing-server v0.0.0-20190801201139-8888c6f60f27/go.mod h1:I4q1nk/hBpNI3NNSpP1ZRMkA3mMOkSJhtrrg0JVXDyw=
