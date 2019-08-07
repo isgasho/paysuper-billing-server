@@ -5294,14 +5294,14 @@ func (m *GetProductsForOrderRequest) GetIds() []string {
 }
 
 type GetKeyProductInfoRequest struct {
-	// @inject_tag: json:"country"
-	Country string `protobuf:"bytes,1,opt,name=country,proto3" json:"country"`
+	// @inject_tag: json:"country" query:"country"
+	Country string `protobuf:"bytes,1,opt,name=country,proto3" json:"country" query:"country"`
 	// @inject_tag: json:"key_product_id" validate:"required,hexadecimal,len=24"
 	KeyProductId string `protobuf:"bytes,2,opt,name=key_product_id,json=keyProductId,proto3" json:"key_product_id" validate:"required,hexadecimal,len=24"`
-	// @inject_tag: json:"language"
-	Language string `protobuf:"bytes,3,opt,name=language,proto3" json:"language"`
-	// @inject_tag: json:"currency"
-	Currency             string   `protobuf:"bytes,4,opt,name=currency,proto3" json:"currency"`
+	// @inject_tag: json:"language" query:"language"
+	Language string `protobuf:"bytes,3,opt,name=language,proto3" json:"language" query:"language"`
+	// @inject_tag: json:"currency" query:"currency"
+	Currency             string   `protobuf:"bytes,4,opt,name=currency,proto3" json:"currency" query:"currency"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`

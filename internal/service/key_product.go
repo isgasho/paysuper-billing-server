@@ -223,7 +223,6 @@ func (s *Service) GetKeyProducts(ctx context.Context, req *grpc.ListKeyProductsR
 
 func (s *Service) GetKeyProductInfo(ctx context.Context, req *grpc.GetKeyProductInfoRequest, res *grpc.GetKeyProductInfoResponse) error {
 	res.Status = pkg.ResponseStatusOk
-
 	product, err := s.getKeyProductById(req.KeyProductId)
 	if err == mgo.ErrNotFound {
 		res.Status = http.StatusNotFound
