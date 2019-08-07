@@ -75,17 +75,7 @@ type MgoMerchantPaymentMethod struct {
 type MgoMerchant struct {
 	Id                                            bson.ObjectId                        `bson:"_id"`
 	User                                          *MerchantUser                        `bson:"user"`
-	Name                                          string                               `bson:"name"`
-	AlternativeName                               string                               `bson:"alternative_name"`
-	Website                                       string                               `bson:"website"`
-	Country                                       string                               `bson:"country"`
-	State                                         string                               `bson:"state"`
-	Zip                                           string                               `bson:"zip"`
-	City                                          string                               `bson:"city"`
-	Address                                       string                               `bson:"address"`
-	AddressAdditional                             string                               `bson:"address_additional"`
-	RegistrationNumber                            string                               `bson:"registration_number"`
-	TaxId                                         string                               `bson:"tax_id"`
+	Company                                       *MerchantCompanyInfo                 `bson:"company"`
 	Contacts                                      *MerchantContact                     `bson:"contacts"`
 	Banking                                       *MerchantBanking                     `bson:"banking"`
 	Status                                        int32                                `bson:"status"`
@@ -111,6 +101,12 @@ type MgoMerchant struct {
 	RollingReserveChargebackTransactionsThreshold float64                              `bson:"rolling_reserve_chargeback_transactions_threshold"`
 	ItemMinCostAmount                             float64                              `bson:"item_min_cost_amount"`
 	ItemMinCostCurrency                           string                               `bson:"item_min_cost_currency"`
+	Tariff                                        string                               `bson:"tariff"`
+	SignatureRequest                              *MerchantSignatureRequest            `bson:"signature_request"`
+	MerchantSignature                             string                               `bson:"merchant_signature"`
+	PspSignature                                  string                               `bson:"psp_signature"`
+	Steps                                         *MerchantCompletedSteps              `bson:"steps"`
+	AgreementTemplate                             string                               `bson:"agreement_template"`
 }
 
 type MgoCommission struct {
@@ -1672,17 +1668,7 @@ func (m *PaymentSystem) SetBSON(raw bson.Raw) error {
 func (m *Merchant) GetBSON() (interface{}, error) {
 	st := &MgoMerchant{
 		User:                      m.User,
-		Name:                      m.Name,
-		AlternativeName:           m.AlternativeName,
-		Website:                   m.Website,
-		Country:                   m.Country,
-		State:                     m.State,
-		Zip:                       m.Zip,
-		City:                      m.City,
-		Address:                   m.Address,
-		AddressAdditional:         m.AddressAdditional,
-		RegistrationNumber:        m.RegistrationNumber,
-		TaxId:                     m.TaxId,
+		Company:                   m.Company,
 		Contacts:                  m.Contacts,
 		Banking:                   m.Banking,
 		Status:                    m.Status,
@@ -1703,6 +1689,12 @@ func (m *Merchant) GetBSON() (interface{}, error) {
 		RollingReserveChargebackTransactionsThreshold: m.RollingReserveChargebackTransactionsThreshold,
 		ItemMinCostAmount:   m.ItemMinCostAmount,
 		ItemMinCostCurrency: m.ItemMinCostCurrency,
+		Tariff:              m.Tariff,
+		SignatureRequest:    m.SignatureRequest,
+		MerchantSignature:   m.MerchantSignature,
+		PspSignature:        m.PspSignature,
+		Steps:               m.Steps,
+		AgreementTemplate:   m.AgreementTemplate,
 	}
 
 	if len(m.Id) <= 0 {
@@ -1792,17 +1784,7 @@ func (m *Merchant) SetBSON(raw bson.Raw) error {
 
 	m.Id = decoded.Id.Hex()
 	m.User = decoded.User
-	m.Name = decoded.Name
-	m.AlternativeName = decoded.AlternativeName
-	m.Website = decoded.Website
-	m.Country = decoded.Country
-	m.State = decoded.State
-	m.Zip = decoded.Zip
-	m.City = decoded.City
-	m.Address = decoded.Address
-	m.AddressAdditional = decoded.AddressAdditional
-	m.RegistrationNumber = decoded.RegistrationNumber
-	m.TaxId = decoded.TaxId
+	m.Company = decoded.Company
 	m.Contacts = decoded.Contacts
 	m.Banking = decoded.Banking
 	m.Status = decoded.Status
@@ -1823,6 +1805,12 @@ func (m *Merchant) SetBSON(raw bson.Raw) error {
 	m.RollingReserveChargebackTransactionsThreshold = decoded.RollingReserveChargebackTransactionsThreshold
 	m.ItemMinCostAmount = decoded.ItemMinCostAmount
 	m.ItemMinCostCurrency = decoded.ItemMinCostCurrency
+	m.Tariff = decoded.Tariff
+	m.SignatureRequest = decoded.SignatureRequest
+	m.MerchantSignature = decoded.MerchantSignature
+	m.PspSignature = decoded.PspSignature
+	m.Steps = decoded.Steps
+	m.AgreementTemplate = decoded.AgreementTemplate
 
 	m.FirstPaymentAt, err = ptypes.TimestampProto(decoded.FirstPaymentAt)
 

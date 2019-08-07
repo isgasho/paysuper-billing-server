@@ -163,38 +163,40 @@ message MerchantContact {
 }
 
 message MerchantContactTechnical {
-    // @inject_tag: json:"name"
+    // @inject_tag: json:"name" validate:"required,company_name,max=60"
     string name = 1;
-    // @inject_tag: validate:"omitempty,email" json:"email"
+    // @inject_tag: json:"email" validate:"required,email,max=100"
     string email = 2;
-    // @inject_tag: validate:"omitempty,phone" json:"phone"
+    // @inject_tag: json:"phone" validate:"required,numeric,max=20"
     string phone = 3;
 }
 
 message MerchantContactAuthorized {
-    // @inject_tag: json:"name"
+    // @inject_tag: json:"name" validate:"required,company_name,max=60"
     string name = 1;
-    // @inject_tag: validate:"omitempty,email" json:"email"
+    // @inject_tag: json:"email" validate:"required,email,max=100"
     string email = 2;
-    // @inject_tag: validate:"omitempty,phone" json:"phone"
+    // @inject_tag: json:"phone" validate:"required,numeric,max=20"
     string phone = 3;
-    // @inject_tag: json:"position"
+    // @inject_tag: json:"position" validate:"required,company_name,max=30"
     string position = 4;
 }
 
 message MerchantBanking {
-    // @inject_tag: json:"currency"
+    // @inject_tag: json:"currency" validate:"required,alpha,len=3"
     string currency = 1;
-    // @inject_tag: json:"name"
+    // @inject_tag: json:"name" validate:"required,city,max=60"
     string name = 2;
-    // @inject_tag: json:"address"
+    // @inject_tag: json:"address" validate:"required,max=60"
     string address = 3;
-    // @inject_tag: json:"account_number"
+    // @inject_tag: json:"account_number" bson:"account_number" validate:"required,numeric,max=30"
     string account_number = 4;
-    // @inject_tag: json:"swift"
+    // @inject_tag: json:"swift" validate:"required,swift"
     string swift = 5;
     // @inject_tag: json:"details"
     string details = 6;
+    // @inject_tag: json:"correspondent_account" bson:"correspondent_account" validate:"omitempty,numeric,max=30"
+    string correspondent_account = 7;
 }
 
 message MerchantLastPayout {
@@ -211,33 +213,45 @@ message MerchantUser {
     string email = 2;
 }
 
+message MerchantCompanyInfo {
+    // @inject_tag: json:"name" validate:"required,company_name,max=60"
+    string name = 1;
+    // @inject_tag: json:"alternative_name" bson:"alternative_name" validate:"required,company_name,max=60"
+    string alternative_name = 2;
+    // @inject_tag: json:"website" validate:"required,url"
+    string website = 3;
+    // @inject_tag: json:"country" validate:"required,alpha,len=2"
+    string country = 4;
+    // @inject_tag: json:"state" validate:"required"
+    string state = 5;
+    // @inject_tag: json:"zip" validate:"required,max=30"
+    string zip = 6;
+    // @inject_tag: json:"city" validate:"required,city,max=60"
+    string city = 7;
+    // @inject_tag: json:"address" validate:"required,max=100"
+    string address = 8;
+    // @inject_tag: json:"address_additional" bson:"address_additional" validate:"omitempty,max=100"
+    string address_additional = 9;
+    // @inject_tag: json:"registration_number" bson:"registration_number"
+    string registration_number = 10;
+    // @inject_tag: json:"tax_id" bson:"tax_id"
+    string tax_id = 11;
+}
+
+message MerchantCompletedSteps {
+    bool company = 1;
+    bool contacts = 2;
+    bool banking = 3;
+    bool tariff = 4;
+}
+
 message Merchant {
     // @inject_tag: bson:"_id"
     string id = 1;
     // @inject_tag: json:"user"
     MerchantUser user = 2;
-    // @inject_tag: json:"name"
-    string name = 4;
-    // @inject_tag: json:"alternative_name"
-    string alternative_name = 5;
-    // @inject_tag: json:"website"
-    string website = 6;
-    // @inject_tag: json:"country"
-    string country = 7;
-    // @inject_tag: json:"state"
-    string state = 8;
-    // @inject_tag: json:"zip"
-    string zip = 9;
-    // @inject_tag: json:"city"
-    string city = 10;
-    // @inject_tag: json:"address"
-    string address = 11;
-    // @inject_tag: json:"address_additional"
-    string address_additional = 12;
-    // @inject_tag: json:"registration_number"
-    string registration_number = 13;
-    // @inject_tag: json:"tax_id"
-    string tax_id = 14;
+    // @inject_tag: json:"company"
+    MerchantCompanyInfo company = 3;
     // @inject_tag: json:"contacts"
     MerchantContact contacts = 15;
     // @inject_tag: json:"banking"
@@ -289,6 +303,18 @@ message Merchant {
     //@inject_tag: json:"item_min_cost_currency" bson:"item_min_cost_currency" validate:"required,alpha,len=3"
     string item_min_cost_currency = 40;
     string centrifugo_token = 41;
+    //@inject_tag: json:"tariff"
+    string tariff = 42;
+    //@inject_tag: json:"signature_request" bson:"signature_request"
+    MerchantSignatureRequest signature_request = 43;
+    //@inject_tag: json:"-"
+    string merchant_signature = 44;
+    //@inject_tag: json:"-"
+    string psp_signature = 45;
+    //@inject_tag: json:"-"
+    MerchantCompletedSteps steps = 46;
+    //@inject_tag: json:"agreement_template"
+    string agreement_template = 47;
 }
 
 message SystemNotificationStatuses {
@@ -1691,4 +1717,82 @@ message PriceTableCurrency {
 
 message Id {
     string id = 1;
+}
+
+message MerchantSignatureRequestCustomFields {
+    //@inject_tag: json:"name" bson:"name"
+    string name = 1;
+    //@inject_tag: json:"value" bson:"value"
+    string value = 2;
+}
+
+message MerchantSignatureRequestSignatures {
+    //@inject_tag: json:"signature_id" bson:"signature_id"
+    string signature_id = 1;
+    //@inject_tag: json:"last_reminded_at" bson:"last_reminded_at"
+    int32 last_reminded_at = 2;
+    //@inject_tag: json:"last_viewed_at" bson:"last_viewed_at"
+    int32 last_viewed_at = 3;
+    //@inject_tag: json:"signed_at" bson:"signed_at"
+    int32 signed_at = 4;
+    //@inject_tag: json:"signer_email_address" bson:"signer_email_address"
+    string signer_email_address = 5;
+    //@inject_tag: json:"signer_name" bson:"signer_name"
+    string signer_name = 6;
+    //@inject_tag: json:"status_code" bson:"status_code"
+    string status_code = 7;
+    //@inject_tag: json:"has_pin" bson:"has_pin"
+    bool has_pin = 8;
+    //@inject_tag: json:"signer_role"
+    string signer_role = 9;
+}
+
+message MerchantSignatureRequestResponseData {
+    //@inject_tag: json:"api_id" bson:"api_id"
+    string api_id = 1;
+    //@inject_tag: json:"name" bson:"name"
+    string name = 2;
+    //@inject_tag: json:"signature_id" bson:"signature_id"
+    string signature_id = 3;
+    //@inject_tag: json:"value" bson:"value"
+    bool value = 4;
+    //@inject_tag: json:"type" bson:"type"
+    string type = 5;
+}
+
+message MerchantSignatureRequest {
+    //@inject_tag: json:"cc_email_addresses" bson:"cc_email_addresses"
+    repeated string cc_email_addresses = 1;
+    //@inject_tag: json:"details_url" bson:"details_url"
+    string details_url = 2;
+    //@inject_tag: json:"has_error" bson:"has_error"
+    bool has_error = 3;
+    //@inject_tag: json:"is_complete" bson:"is_complete"
+    bool is_complete = 4;
+    //@inject_tag: json:"is_declined" bson:"is_declined"
+    bool is_declined = 5;
+    //@inject_tag: json:"message" bson:"message"
+    string message = 6;
+    //@inject_tag: json:"requester_email_address" bson:"requester_email_address"
+    string requester_email_address = 7;
+    //@inject_tag: json:"response_data" bson:"response_data"
+    repeated MerchantSignatureRequestResponseData response_data = 8;
+    //@inject_tag: json:"signature_request_id" bson:"signature_request_id"
+    string signature_request_id = 9;
+    //@inject_tag: json:"signatures" bson:"signatures"
+    repeated MerchantSignatureRequestSignatures signatures = 10;
+    //@inject_tag: json:"signing_url" bson:"signing_url"
+    string signing_url = 11;
+    //@inject_tag: json:"signing_redirect_url" bson:"signing_redirect_url"
+    string signing_redirect_url = 12;
+    //@inject_tag: json:"subject" bson:"subject"
+    string subject = 13;
+    //@inject_tag: json:"title" bson:"title"
+    string title = 14;
+    //@inject_tag: json:"title" bson:"custom_fields"
+    repeated MerchantSignatureRequestCustomFields custom_fields = 15;
+    //@inject_tag: json:"files_url" bson:"files_url"
+    string files_url = 16;
+    //@inject_tag: json:"final_copy_uri" bson:"final_copy_uri"
+    string final_copy_uri = 17;
 }

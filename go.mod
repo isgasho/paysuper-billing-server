@@ -25,6 +25,7 @@ require (
 	github.com/micro/go-micro v1.0.0
 	github.com/micro/go-plugins v1.0.0
 	github.com/micro/protoc-gen-micro v0.8.0 // indirect
+	github.com/paysuper/document-signer v0.0.0-20190802154808-6c48d86129a5
 	github.com/paysuper/paysuper-currencies v0.0.0-20190723132218-9628e1b3ba42
 	github.com/paysuper/paysuper-database-mongo v0.1.0
 	github.com/paysuper/paysuper-recurring-repository v1.0.111
@@ -38,12 +39,12 @@ require (
 	github.com/ttacon/libphonenumber v1.0.1
 	github.com/yuin/gopher-lua v0.0.0-20190514113301-1cd887cd7036 // indirect
 	go.uber.org/zap v1.10.0
-	golang.org/x/crypto v0.0.0-20190426145343-a29dc8fdc734
+	golang.org/x/crypto v0.0.0-20190605123033-f99c8df09eb5
 	golang.org/x/exp/errors v0.0.0-20190123073158-f1c91bc264ca
-	golang.org/x/net v0.0.0-20190424112056-4829fb13d2c6
+	golang.org/x/net v0.0.0-20190607181551-461777fb6f67
 	google.golang.org/grpc v1.20.1
 	gopkg.in/ProtocolONE/rabbitmq.v1 v1.0.0-20190719062839-9858d727f3ef
-	gopkg.in/go-playground/validator.v9 v9.26.0
+	gopkg.in/go-playground/validator.v9 v9.29.1
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce
 )

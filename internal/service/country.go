@@ -260,16 +260,30 @@ func (h Country) GetByIsoCodeA2(code string) (*billing.Country, error) {
 		return &c, nil
 	}
 
-	err := h.svc.db.Collection(collectionCountry).
-		Find(bson.M{"iso_code_a2": code}).
-		One(&c)
+	query := bson.M{"iso_code_a2": code}
+	err := h.svc.db.Collection(collectionCountry).Find(query).One(&c)
+
 	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionCountry),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+
 		return nil, fmt.Errorf(errorNotFound, collectionCountry)
 	}
 
 	err = h.svc.cacher.Set(key, c, 0)
+
 	if err != nil {
-		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", key, "data", c)
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
+			zap.String(pkg.ErrorCacheFieldKey, key),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, c),
+		)
 	}
 
 	return &c, nil
@@ -344,7 +358,7 @@ func (h Country) IsRegionExists(region string) (bool, error) {
 	return ok, nil
 }
 
-func (h Country) IsCountryVatEnabled(iso_code_a2 string) (bool, error) {
+func (h Country) IsCountryVatEnabled(isoCodeA2 string) (bool, error) {
 	var c = &countryWithVat{}
 	key := cacheCountriesWithVatEnabled
 	if err := h.svc.cacher.Get(key, c); err != nil {
@@ -359,6 +373,6 @@ func (h Country) IsCountryVatEnabled(iso_code_a2 string) (bool, error) {
 		_ = h.svc.cacher.Set(key, c, 0)
 	}
 
-	_, ok := c.Countries[iso_code_a2]
+	_, ok := c.Countries[isoCodeA2]
 	return ok, nil
 }
