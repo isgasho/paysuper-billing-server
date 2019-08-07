@@ -106,6 +106,7 @@ type MgoMerchant struct {
 	MerchantSignature                             string                               `bson:"merchant_signature"`
 	PspSignature                                  string                               `bson:"psp_signature"`
 	Steps                                         *MerchantCompletedSteps              `bson:"steps"`
+	AgreementTemplate                             string                               `bson:"agreement_template"`
 }
 
 type MgoCommission struct {
@@ -1693,6 +1694,7 @@ func (m *Merchant) GetBSON() (interface{}, error) {
 		MerchantSignature:   m.MerchantSignature,
 		PspSignature:        m.PspSignature,
 		Steps:               m.Steps,
+		AgreementTemplate:   m.AgreementTemplate,
 	}
 
 	if len(m.Id) <= 0 {
@@ -1808,6 +1810,7 @@ func (m *Merchant) SetBSON(raw bson.Raw) error {
 	m.MerchantSignature = decoded.MerchantSignature
 	m.PspSignature = decoded.PspSignature
 	m.Steps = decoded.Steps
+	m.AgreementTemplate = decoded.AgreementTemplate
 
 	m.FirstPaymentAt, err = ptypes.TimestampProto(decoded.FirstPaymentAt)
 

@@ -923,6 +923,7 @@ func (s *Service) AgreementSign(
 	}
 
 	req1 := &proto.CreateSignatureRequest{
+		TemplateId: merchant.AgreementTemplate,
 		Signers: []*proto.CreateSignatureRequestSigner{
 			{
 				Email:    merchant.GetAuthorizedEmail(),
@@ -939,6 +940,11 @@ func (s *Service) AgreementSign(
 			documentSignerPkg.MetadataFieldMerchantId: merchant.Id,
 		},
 	}
+
+	if req1.TemplateId == "" {
+		req1.TemplateId = s.cfg.HelloSignDefaultTemplate
+	}
+
 	rsp1, err := s.documentSigner.CreateSignature(ctx, req1)
 
 	if err != nil {

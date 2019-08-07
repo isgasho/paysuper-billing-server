@@ -313,6 +313,8 @@ message Merchant {
     string psp_signature = 45;
     //@inject_tag: json:"-"
     MerchantCompletedSteps steps = 46;
+    //@inject_tag: json:"agreement_template"
+    string agreement_template = 47;
 }
 
 message SystemNotificationStatuses {
@@ -1789,4 +1791,6 @@ message MerchantSignatureRequest {
     string title = 14;
     //@inject_tag: json:"title" bson:"custom_fields"
     repeated MerchantSignatureRequestCustomFields custom_fields = 15;
+    //@inject_tag: json:"files_url" bson:"files_url"
+    string files_url = 16;
 }
