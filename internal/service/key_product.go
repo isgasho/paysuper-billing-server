@@ -262,10 +262,9 @@ func (s *Service) GetKeyProductInfo(ctx context.Context, req *grpc.GetKeyProduct
 		res.KeyProduct.LongDescription, _ = product.GetLocalizedLongDescription(DefaultLanguage)
 	}
 
-	defaultCurrency := product.DefaultCurrency
-	defaultPriceGroup, err := s.priceGroup.GetByRegion(defaultCurrency)
+	defaultPriceGroup, err := s.priceGroup.GetByRegion(product.DefaultCurrency)
 	if err != nil {
-		zap.S().Errorw("Failed to get price group for default currency", "currency", defaultCurrency)
+		zap.S().Errorw("Failed to get price group for default currency", "currency", product.DefaultCurrency)
 		return keyProductInternalError
 	}
 
