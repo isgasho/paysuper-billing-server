@@ -51,6 +51,11 @@ func (suite *KeyProductTestSuite) SetupTest() {
 		Region:   "USD",
 		Currency: "USD",
 	}
+	pgEur := &billing.PriceGroup{
+		Id:       bson.NewObjectId().Hex(),
+		Region:   "EUR",
+		Currency: "EUR",
+	}
 	if err != nil {
 		suite.FailNow("Insert currency test data failed", "%v", err)
 	}
@@ -79,7 +84,7 @@ func (suite *KeyProductTestSuite) SetupTest() {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 
-	pgs := []*billing.PriceGroup{pgRub, pgUsd}
+	pgs := []*billing.PriceGroup{pgRub, pgUsd, pgEur}
 	if err := suite.service.priceGroup.MultipleInsert(pgs); err != nil {
 		suite.FailNow("Insert price group test data failed", "%v", err)
 	}
@@ -123,13 +128,14 @@ func (suite *KeyProductTestSuite) TestGetKeyProductInfo() {
 			Id: "steam",
 			Prices: []*grpc.ProductPrice{
 				{Region: "USD", Currency: "USD", Amount: 10},
+				{Region: "EUR", Currency: "EUR", Amount: 20},
 			},
 		},
 	}, &grpc.UpdatePlatformPricesResponse{})
 	shouldBe.Nil(err)
 
 	res := grpc.GetKeyProductInfoResponse{}
-	err = suite.service.GetKeyProductInfo(context.TODO(), &grpc.GetKeyProductInfoRequest{IpAddress: "127.0.0.1", KeyProductId: response.Product.Id, Language: "en"}, &res)
+	err = suite.service.GetKeyProductInfo(context.TODO(), &grpc.GetKeyProductInfoRequest{Currency: "USD", KeyProductId: response.Product.Id, Language: "en"}, &res)
 	shouldBe.Nil(err)
 	shouldBe.Nil(res.Message)
 	shouldBe.NotNil(res.KeyProduct)
@@ -142,7 +148,46 @@ func (suite *KeyProductTestSuite) TestGetKeyProductInfo() {
 	shouldBe.Equal("USD", res.KeyProduct.Platforms[0].Price.Currency)
 
 	res = grpc.GetKeyProductInfoResponse{}
-	err = suite.service.GetKeyProductInfo(context.TODO(), &grpc.GetKeyProductInfoRequest{IpAddress: "192.168.1.1", KeyProductId: response.Product.Id, Language: "ru"}, &res)
+	err = suite.service.GetKeyProductInfo(context.TODO(), &grpc.GetKeyProductInfoRequest{Currency: "EUR", KeyProductId: response.Product.Id, Language: "ru"}, &res)
+	shouldBe.Nil(err)
+	shouldBe.Nil(res.Message)
+	shouldBe.NotNil(res.KeyProduct)
+	shouldBe.Equal(response.Product.Id, res.KeyProduct.Id)
+	shouldBe.Equal(initialName, res.KeyProduct.Name)
+	shouldBe.Equal("blah-blah-blah", res.KeyProduct.Description)
+	shouldBe.Equal(1, len(res.KeyProduct.Platforms))
+	shouldBe.Equal("steam", res.KeyProduct.Platforms[0].Id)
+	shouldBe.EqualValues(20, res.KeyProduct.Platforms[0].Price.Amount)
+	shouldBe.Equal("EUR", res.KeyProduct.Platforms[0].Price.Currency)
+
+	res = grpc.GetKeyProductInfoResponse{}
+	err = suite.service.GetKeyProductInfo(context.TODO(), &grpc.GetKeyProductInfoRequest{Currency: "UNK", KeyProductId: response.Product.Id, Language: "ru"}, &res)
+	shouldBe.Nil(err)
+	shouldBe.Nil(res.Message)
+	shouldBe.NotNil(res.KeyProduct)
+	shouldBe.Equal(response.Product.Id, res.KeyProduct.Id)
+	shouldBe.Equal(initialName, res.KeyProduct.Name)
+	shouldBe.Equal("blah-blah-blah", res.KeyProduct.Description)
+	shouldBe.Equal(1, len(res.KeyProduct.Platforms))
+	shouldBe.Equal("steam", res.KeyProduct.Platforms[0].Id)
+	shouldBe.EqualValues(10, res.KeyProduct.Platforms[0].Price.Amount)
+	shouldBe.Equal("USD", res.KeyProduct.Platforms[0].Price.Currency)
+
+	res = grpc.GetKeyProductInfoResponse{}
+	err = suite.service.GetKeyProductInfo(context.TODO(), &grpc.GetKeyProductInfoRequest{Currency: "RUB", KeyProductId: response.Product.Id, Language: "ru"}, &res)
+	shouldBe.Nil(err)
+	shouldBe.Nil(res.Message)
+	shouldBe.NotNil(res.KeyProduct)
+	shouldBe.Equal(response.Product.Id, res.KeyProduct.Id)
+	shouldBe.Equal(initialName, res.KeyProduct.Name)
+	shouldBe.Equal("blah-blah-blah", res.KeyProduct.Description)
+	shouldBe.Equal(1, len(res.KeyProduct.Platforms))
+	shouldBe.Equal("steam", res.KeyProduct.Platforms[0].Id)
+	shouldBe.EqualValues(10, res.KeyProduct.Platforms[0].Price.Amount)
+	shouldBe.Equal("USD", res.KeyProduct.Platforms[0].Price.Currency)
+
+	res = grpc.GetKeyProductInfoResponse{}
+	err = suite.service.GetKeyProductInfo(context.TODO(), &grpc.GetKeyProductInfoRequest{Country: "RUS", KeyProductId: response.Product.Id, Language: "ru"}, &res)
 	shouldBe.Nil(err)
 	shouldBe.Nil(res.Message)
 	shouldBe.NotNil(res.KeyProduct)

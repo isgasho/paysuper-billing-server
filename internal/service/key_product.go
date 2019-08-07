@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"github.com/ProtocolONE/geoip-service/pkg/proto"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -222,22 +221,6 @@ func (s *Service) GetKeyProducts(ctx context.Context, req *grpc.ListKeyProductsR
 	return nil
 }
 
-func (s *Service) getPriceGroupByIpAddress(ctx context.Context, ipAddress string) (*billing.PriceGroup, error) {
-	rsp, err := s.geo.GetIpData(ctx, &proto.GeoIpDataRequest{IP: ipAddress})
-	if err != nil {
-		zap.S().Errorw("get county by ip failed", "err", err, "ip", ipAddress)
-		return nil, err
-	}
-
-	countryData, err := s.country.GetByIsoCodeA2(rsp.Country.IsoCode)
-	if err != nil {
-		return nil, err
-	}
-
-	priceGroup, err := s.priceGroup.GetById(countryData.PriceGroupId)
-	return priceGroup, nil
-}
-
 func (s *Service) GetKeyProductInfo(ctx context.Context, req *grpc.GetKeyProductInfoRequest, res *grpc.GetKeyProductInfoResponse) error {
 	res.Status = pkg.ResponseStatusOk
 
@@ -287,10 +270,22 @@ func (s *Service) GetKeyProductInfo(ctx context.Context, req *grpc.GetKeyProduct
 		return keyProductInternalError
 	}
 
-	priceGroup, err := s.getPriceGroupByIpAddress(ctx, req.IpAddress)
-	if err != nil {
-		zap.S().Error("could not get price group by ip address", "ip", req.IpAddress)
-		priceGroup = defaultPriceGroup
+	priceGroup := defaultPriceGroup
+
+	if req.Currency != "" {
+		priceGroup, err = s.priceGroup.GetByRegion(req.Currency)
+		if err != nil {
+			zap.S().Errorw("Failed to get price group for specified currency", "currency", req.Currency)
+			priceGroup = defaultPriceGroup
+		}
+	} else {
+		if req.Country != "" {
+			err = s.GetPriceGroupByCountry(ctx, &grpc.PriceGroupByCountryRequest{Country: req.Country}, priceGroup)
+			if err != nil {
+				zap.S().Error("could not get price group by country", "country", req.Country)
+				priceGroup = defaultPriceGroup
+			}
+		}
 	}
 
 	platforms := make([]*grpc.PlatformPriceInfo, len(product.Platforms))
