@@ -18,6 +18,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	curPkg "github.com/paysuper/paysuper-currencies/pkg"
+	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/entity"
@@ -1224,7 +1225,6 @@ func (s *Service) saveRecurringCard(order *billing.Order, recurringId string) {
 }
 
 func (s *Service) updateOrder(order *billing.Order) error {
-
 	ps := order.GetPublicStatus()
 
 	zap.S().Debug("[updateOrder] updating order", "order_id", order.Id, "status", ps)
@@ -1255,9 +1255,79 @@ func (s *Service) updateOrder(order *billing.Order) error {
 	if statusChanged && ps != constant.OrderPublicStatusCreated && ps != constant.OrderPublicStatusPending {
 		zap.S().Debug("[updateOrder] notify merchant", "order_id", order.Id)
 		s.orderNotifyMerchant(order)
+		if order.ProductType == billing.OrderType_key {
+			s.orderNotifyKeyProducts(context.TODO(), order)
+		}
 	}
 
 	return nil
+}
+
+func (s *Service) orderNotifyKeyProducts(ctx context.Context, order *billing.Order) {
+	zap.S().Debug("[orderNotifyKeyProducts] called", "order_id", order.Id, "status", order.GetPublicStatus())
+	keys := order.Keys
+	var err error
+	switch order.GetPublicStatus() {
+	case constant.OrderPublicStatusCanceled, constant.OrderPublicStatusRejected:
+		for _, key := range keys {
+			zap.S().Debug("[orderNotifyKeyProducts] trying to cancel reserving key", "order_id", order.Id, "key", key)
+			rsp := &grpc.EmptyResponseWithStatus{}
+			err = s.CancelRedeemKeyForOrder(ctx, &grpc.KeyForOrderRequest{KeyId: key}, rsp)
+			if err != nil {
+				zap.S().Error("internal error during canceling reservation for key", "err", err, "key", key)
+				continue
+			}
+			if rsp.Status != pkg.ResponseStatusOk {
+				zap.S().Error("could not cancel reservation for key", "key", key, "message", rsp.Message)
+				continue
+			}
+		}
+		break
+	case constant.OrderPublicStatusProcessed:
+		for _, key := range keys {
+			zap.S().Debug("[orderNotifyKeyProducts] trying to finish reserving key", "order_id", order.Id, "key", key)
+			rsp := &grpc.GetKeyForOrderRequestResponse{}
+			err = s.FinishRedeemKeyForOrder(ctx, &grpc.KeyForOrderRequest{KeyId: key}, rsp)
+			if err != nil {
+				zap.S().Error("internal error during finishing reservation for key", "err", err, "key", key)
+				continue
+			}
+			if rsp.Status != pkg.ResponseStatusOk {
+				zap.S().Error("could not finish reservation for key", "key", key, "message", rsp.Message)
+				continue
+			}
+
+			kpRsp := &grpc.KeyProductResponse{}
+			err = s.GetKeyProduct(ctx, &grpc.RequestKeyProductMerchant{Id: rsp.Key.KeyProductId, MerchantId: order.GetMerchantId()}, kpRsp)
+			if err != nil {
+				zap.S().Error("internal error during getting key product", "err", err, "key_product_id", rsp.Key.KeyProductId)
+				continue
+			}
+
+			if kpRsp.Status != pkg.ResponseStatusOk {
+				zap.S().Error("could not get key product", "message", kpRsp.Message, "key_product_id", rsp.Key.KeyProductId)
+				continue
+			}
+
+			name, _ := kpRsp.Product.GetLocalizedName(DefaultLanguage)
+			payload := &postmarkSdrPkg.Payload{
+				TemplateAlias: s.cfg.EmailConfirmTemplate,
+				TemplateModel: map[string]string{
+					"code": rsp.Key.Code,
+					"platform_id": rsp.Key.PlatformId,
+					"product_name": name,
+				},
+				To: order.ReceiptEmail,
+			}
+			err = s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+			if err != nil {
+				zap.S().Error(
+					"Publication activation code to user email queue is failed",
+					"err", err, "email", order.ReceiptEmail, "order_id", order.Id, "key", rsp.Key.Id)
+			}
+		}
+		break
+	}
 }
 
 func (s *Service) orderNotifyMerchant(order *billing.Order) {
@@ -2626,29 +2696,34 @@ func (s *Service) ProcessOrderKeyProducts(order *billing.Order) error {
 	amount = tools.FormatAmount(amount)
 	merAccAmount = tools.FormatAmount(merAccAmount)
 
-	for _, productId := range order.KeyProducts {
-		reserveRes := &grpc.PlatformKeyReserveResponse{}
-		reserveReq := &grpc.PlatformKeyReserveRequest{
-			PlatformId:   order.PlatformId,
-			MerchantId:   order.Project.MerchantId,
-			OrderId:      order.Id,
-			KeyProductId: productId,
-		}
-		if err = s.ReserveKeyForOrder(context.TODO(), reserveReq, reserveRes); err != nil {
-			zap.L().Error(
-				pkg.ErrorGrpcServiceCallFailed,
-				zap.Error(err),
-				zap.String(errorFieldService, "KeyService"),
-				zap.String(errorFieldMethod, "ReserveKeyForOrder"),
-			)
-			return orderErrorKeyReserveFailed
-		}
+	keys := make([]string, len(order.KeyProducts))
+	if len(order.Keys) == 0 {
+		for i, productId := range order.KeyProducts {
+			reserveRes := &grpc.PlatformKeyReserveResponse{}
+			reserveReq := &grpc.PlatformKeyReserveRequest{
+				PlatformId:   order.PlatformId,
+				MerchantId:   order.Project.MerchantId,
+				OrderId:      order.Id,
+				KeyProductId: productId,
+			}
+			if err = s.ReserveKeyForOrder(context.TODO(), reserveReq, reserveRes); err != nil {
+				zap.L().Error(
+					pkg.ErrorGrpcServiceCallFailed,
+					zap.Error(err),
+					zap.String(errorFieldService, "KeyService"),
+					zap.String(errorFieldMethod, "ReserveKeyForOrder"),
+				)
+				return orderErrorKeyReserveFailed
+			}
 
-		if reserveRes.Status != pkg.ResponseStatusOk {
-			return reserveRes.Message
+			if reserveRes.Status != pkg.ResponseStatusOk {
+				return reserveRes.Message
+			}
+			keys[i] = reserveRes.KeyId
 		}
 	}
 
+	order.Keys = keys
 	order.Currency = currency
 
 	order.OrderAmount = amount
