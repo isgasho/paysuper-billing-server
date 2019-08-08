@@ -33,14 +33,18 @@ require (
 	github.com/prometheus/client_golang v0.9.3-0.20190127221311-3c4408c8b829
 	github.com/stoewer/go-strcase v1.0.2
 	github.com/streadway/amqp v0.0.0-20190404075320-75d898a42a94
+	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.3.0
 	github.com/ttacon/builder v0.0.0-20170518171403-c099f663e1c2 // indirect
 	github.com/ttacon/libphonenumber v1.0.1
+	github.com/vektra/mockery v0.0.0-20181123154057-e78b021dcbb5 // indirect
 	github.com/yuin/gopher-lua v0.0.0-20190514113301-1cd887cd7036 // indirect
 	go.uber.org/zap v1.10.0
-	golang.org/x/crypto v0.0.0-20190426145343-a29dc8fdc734
+	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
 	golang.org/x/exp/errors v0.0.0-20190123073158-f1c91bc264ca
-	golang.org/x/net v0.0.0-20190424112056-4829fb13d2c6
+	golang.org/x/net v0.0.0-20190724013045-ca1201d0de80
+	golang.org/x/sys v0.0.0-20190804053845-51ab0e2deafa // indirect
+	golang.org/x/tools v0.0.0-20190806215303-88ddfcebc769 // indirect
 	google.golang.org/grpc v1.20.1
 	gopkg.in/ProtocolONE/rabbitmq.v1 v1.0.0-20190719062839-9858d727f3ef
 	gopkg.in/go-playground/validator.v9 v9.26.0

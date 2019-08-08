@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"go.uber.org/zap"
@@ -217,6 +218,109 @@ func (s *Service) GetKeyProducts(ctx context.Context, req *grpc.ListKeyProductsR
 	}
 
 	res.Products = items
+	return nil
+}
+
+func (s *Service) GetKeyProductInfo(ctx context.Context, req *grpc.GetKeyProductInfoRequest, res *grpc.GetKeyProductInfoResponse) error {
+	res.Status = pkg.ResponseStatusOk
+	product, err := s.getKeyProductById(req.KeyProductId)
+	if err == mgo.ErrNotFound {
+		res.Status = http.StatusNotFound
+		res.Message = keyProductNotFound
+		return nil
+	}
+
+	if err != nil {
+		zap.S().Errorf("Query to find key product by id failed", "err", err.Error(), "data", req)
+		res.Status = http.StatusInternalServerError
+		res.Message = keyProductRetrieveError
+		return nil
+	}
+
+	if !product.Enabled {
+		zap.S().Error("Product is disabled", "data", req)
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = keyProductRetrieveError
+		return nil
+	}
+
+	res.KeyProduct = &grpc.KeyProductInfo{
+		Id:        product.Id,
+		Images:    product.Images,
+		ProjectId: product.ProjectId,
+	}
+
+	if res.KeyProduct.Name, err = product.GetLocalizedName(req.Language); err != nil {
+		res.KeyProduct.Name, _ = product.GetLocalizedName(DefaultLanguage)
+	}
+
+	if res.KeyProduct.Description, err = product.GetLocalizedDescription(req.Language); err != nil {
+		res.KeyProduct.Description, _ = product.GetLocalizedDescription(DefaultLanguage)
+	}
+
+	if res.KeyProduct.LongDescription, err = product.GetLocalizedLongDescription(req.Language); err != nil {
+		res.KeyProduct.LongDescription, _ = product.GetLocalizedLongDescription(DefaultLanguage)
+	}
+
+	defaultPriceGroup, err := s.priceGroup.GetByRegion(product.DefaultCurrency)
+	if err != nil {
+		zap.S().Errorw("Failed to get price group for default currency", "currency", product.DefaultCurrency)
+		return keyProductInternalError
+	}
+
+	priceGroup := defaultPriceGroup
+	globalIsFallback := false
+	if req.Currency != "" {
+		priceGroup, err = s.priceGroup.GetByRegion(req.Currency)
+		if err != nil {
+			zap.S().Errorw("Failed to get price group for specified currency", "currency", req.Currency)
+			priceGroup = defaultPriceGroup
+			globalIsFallback = true
+		}
+	} else {
+		if req.Country != "" {
+			err = s.GetPriceGroupByCountry(ctx, &grpc.PriceGroupByCountryRequest{Country: req.Country}, priceGroup)
+			if err != nil {
+				zap.S().Error("could not get price group by country", "country", req.Country)
+				priceGroup = defaultPriceGroup
+				globalIsFallback = true
+			}
+		}
+	}
+
+	platforms := make([]*grpc.PlatformPriceInfo, len(product.Platforms))
+	for i, p := range product.Platforms {
+		currency := priceGroup.Currency
+		region := priceGroup.Region
+		amount, err := product.GetPriceInCurrencyAndPlatform(priceGroup, p.Id)
+		isFallback := globalIsFallback
+		if err != nil {
+			zap.S().Error("could not get price in currency and platform", "price_group", priceGroup, "platform", p.Id)
+			isFallback = true
+			currency = defaultPriceGroup.Currency
+			region = defaultPriceGroup.Region
+			amount, err = product.GetPriceInCurrencyAndPlatform(defaultPriceGroup, p.Id)
+			if err != nil {
+				zap.S().Error("could not get price in currency and platform for default price group", "price_group", defaultPriceGroup, "platform", p.Id)
+				res.Status = pkg.ResponseStatusSystemError
+				res.Message = keyProductInternalError
+				return nil
+			}
+		}
+
+		platforms[i] = &grpc.PlatformPriceInfo{
+			Name: p.Name,
+			Id:   p.Id,
+			Price: &grpc.ProductPriceInfo{
+				Amount:   amount,
+				Currency: currency,
+				Region:   region,
+				IsFallback: isFallback,
+			},
+		}
+	}
+	res.KeyProduct.Platforms = platforms
+
 	return nil
 }
 
