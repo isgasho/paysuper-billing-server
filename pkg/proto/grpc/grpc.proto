@@ -763,7 +763,14 @@ message KeyProductInfo {
 message PlatformPriceInfo {
     string id = 1;
     string name = 2;
-    ProductPrice price = 3;
+    ProductPriceInfo price = 3;
+}
+
+message ProductPriceInfo {
+    double amount = 1;
+    string currency = 2;
+    string region = 3;
+    bool is_fallback = 4;
 }
 
 message KeyProduct {

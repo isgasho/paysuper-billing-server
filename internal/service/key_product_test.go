@@ -146,6 +146,7 @@ func (suite *KeyProductTestSuite) TestGetKeyProductInfo() {
 	shouldBe.Equal("steam", res.KeyProduct.Platforms[0].Id)
 	shouldBe.EqualValues(10, res.KeyProduct.Platforms[0].Price.Amount)
 	shouldBe.Equal("USD", res.KeyProduct.Platforms[0].Price.Currency)
+	shouldBe.False( res.KeyProduct.Platforms[0].Price.IsFallback)
 
 	res = grpc.GetKeyProductInfoResponse{}
 	err = suite.service.GetKeyProductInfo(context.TODO(), &grpc.GetKeyProductInfoRequest{Currency: "EUR", KeyProductId: response.Product.Id, Language: "ru"}, &res)
@@ -159,6 +160,7 @@ func (suite *KeyProductTestSuite) TestGetKeyProductInfo() {
 	shouldBe.Equal("steam", res.KeyProduct.Platforms[0].Id)
 	shouldBe.EqualValues(20, res.KeyProduct.Platforms[0].Price.Amount)
 	shouldBe.Equal("EUR", res.KeyProduct.Platforms[0].Price.Currency)
+	shouldBe.False( res.KeyProduct.Platforms[0].Price.IsFallback)
 
 	res = grpc.GetKeyProductInfoResponse{}
 	err = suite.service.GetKeyProductInfo(context.TODO(), &grpc.GetKeyProductInfoRequest{Currency: "UNK", KeyProductId: response.Product.Id, Language: "ru"}, &res)
@@ -172,6 +174,7 @@ func (suite *KeyProductTestSuite) TestGetKeyProductInfo() {
 	shouldBe.Equal("steam", res.KeyProduct.Platforms[0].Id)
 	shouldBe.EqualValues(10, res.KeyProduct.Platforms[0].Price.Amount)
 	shouldBe.Equal("USD", res.KeyProduct.Platforms[0].Price.Currency)
+	shouldBe.True( res.KeyProduct.Platforms[0].Price.IsFallback)
 
 	res = grpc.GetKeyProductInfoResponse{}
 	err = suite.service.GetKeyProductInfo(context.TODO(), &grpc.GetKeyProductInfoRequest{Currency: "RUB", KeyProductId: response.Product.Id, Language: "ru"}, &res)
@@ -185,6 +188,7 @@ func (suite *KeyProductTestSuite) TestGetKeyProductInfo() {
 	shouldBe.Equal("steam", res.KeyProduct.Platforms[0].Id)
 	shouldBe.EqualValues(10, res.KeyProduct.Platforms[0].Price.Amount)
 	shouldBe.Equal("USD", res.KeyProduct.Platforms[0].Price.Currency)
+	shouldBe.True( res.KeyProduct.Platforms[0].Price.IsFallback)
 
 	res = grpc.GetKeyProductInfoResponse{}
 	err = suite.service.GetKeyProductInfo(context.TODO(), &grpc.GetKeyProductInfoRequest{Country: "RUS", KeyProductId: response.Product.Id, Language: "ru"}, &res)
@@ -198,6 +202,7 @@ func (suite *KeyProductTestSuite) TestGetKeyProductInfo() {
 	shouldBe.Equal("steam", res.KeyProduct.Platforms[0].Id)
 	shouldBe.EqualValues(10, res.KeyProduct.Platforms[0].Price.Amount)
 	shouldBe.Equal("USD", res.KeyProduct.Platforms[0].Price.Currency)
+	shouldBe.True( res.KeyProduct.Platforms[0].Price.IsFallback)
 }
 
 func (suite *KeyProductTestSuite) GetKeyProduct_Test() {

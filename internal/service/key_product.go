@@ -269,12 +269,13 @@ func (s *Service) GetKeyProductInfo(ctx context.Context, req *grpc.GetKeyProduct
 	}
 
 	priceGroup := defaultPriceGroup
-
+	globalIsFallback := false
 	if req.Currency != "" {
 		priceGroup, err = s.priceGroup.GetByRegion(req.Currency)
 		if err != nil {
 			zap.S().Errorw("Failed to get price group for specified currency", "currency", req.Currency)
 			priceGroup = defaultPriceGroup
+			globalIsFallback = true
 		}
 	} else {
 		if req.Country != "" {
@@ -282,6 +283,7 @@ func (s *Service) GetKeyProductInfo(ctx context.Context, req *grpc.GetKeyProduct
 			if err != nil {
 				zap.S().Error("could not get price group by country", "country", req.Country)
 				priceGroup = defaultPriceGroup
+				globalIsFallback = true
 			}
 		}
 	}
@@ -291,12 +293,15 @@ func (s *Service) GetKeyProductInfo(ctx context.Context, req *grpc.GetKeyProduct
 		currency := priceGroup.Currency
 		region := priceGroup.Region
 		amount, err := product.GetPriceInCurrencyAndPlatform(priceGroup, p.Id)
+		isFallback := globalIsFallback
 		if err != nil {
 			zap.S().Error("could not get price in currency and platform", "price_group", priceGroup, "platform", p.Id)
+			isFallback = true
 			currency = defaultPriceGroup.Currency
 			region = defaultPriceGroup.Region
-			if amount, err = product.GetPriceInCurrencyAndPlatform(defaultPriceGroup, p.Id); err != nil {
-				zap.S().Error("could not get price in default currency and platform", "price_group", defaultPriceGroup, "platform", p.Id)
+			amount, err = product.GetPriceInCurrencyAndPlatform(defaultPriceGroup, p.Id)
+			if err != nil {
+				zap.S().Error("could not get price in currency and platform for default price group", "price_group", defaultPriceGroup, "platform", p.Id)
 				res.Status = pkg.ResponseStatusSystemError
 				res.Message = keyProductInternalError
 				return nil
@@ -306,10 +311,11 @@ func (s *Service) GetKeyProductInfo(ctx context.Context, req *grpc.GetKeyProduct
 		platforms[i] = &grpc.PlatformPriceInfo{
 			Name: p.Name,
 			Id:   p.Id,
-			Price: &grpc.ProductPrice{
+			Price: &grpc.ProductPriceInfo{
 				Amount:   amount,
 				Currency: currency,
 				Region:   region,
+				IsFallback: isFallback,
 			},
 		}
 	}
