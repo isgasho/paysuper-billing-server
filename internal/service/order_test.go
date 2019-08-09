@@ -20,6 +20,7 @@ import (
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/stoewer/go-strcase"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
@@ -4867,6 +4868,67 @@ func (suite *OrderTestSuite) TestOrder_CreateOrderByToken_Ok() {
 	assert.NotEmpty(suite.T(), rsp1.Id)
 	assert.Equal(suite.T(), req.Settings.ProjectId, rsp1.Project.Id)
 	assert.Equal(suite.T(), req.Settings.Description, rsp1.Description)
+}
+
+func (suite *OrderTestSuite) TestOrder_updateOrder_NotifyKeys_Ok() {
+	shoulBe := require.New(suite.T())
+
+	req := &billing.OrderCreateRequest{
+		ProjectId:     suite.projectWithKeyProducts.Id,
+		PaymentMethod: suite.paymentMethod.Group,
+		Currency:      "RUB",
+		Account:       "unit test",
+		Description:   "unit test",
+		OrderId:       bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+		Products: suite.keyProductIds,
+		Type: billing.OrderType_key,
+		PlatformId: "steam",
+	}
+
+	rsp := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	shoulBe.Nil(err)
+	shoulBe.EqualValues(200, rsp.Status)
+
+	order := rsp.Item
+	order.Status = constant.OrderPublicStatusProcessed
+	err = suite.service.updateOrder(order)
+	shoulBe.Nil(err)
+}
+
+
+func (suite *OrderTestSuite) TestOrder_updateOrder_NotifyKeysRejected_Ok() {
+	shoulBe := require.New(suite.T())
+
+	req := &billing.OrderCreateRequest{
+		ProjectId:     suite.projectWithKeyProducts.Id,
+		PaymentMethod: suite.paymentMethod.Group,
+		Currency:      "RUB",
+		Account:       "unit test",
+		Description:   "unit test",
+		OrderId:       bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+		Products: suite.keyProductIds,
+		Type: billing.OrderType_key,
+		PlatformId: "steam",
+	}
+
+	rsp := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	shoulBe.Nil(err)
+	shoulBe.EqualValues(200, rsp.Status)
+
+	order := rsp.Item
+	order.Status = constant.OrderPublicStatusRejected
+	err = suite.service.updateOrder(order)
+	shoulBe.Nil(err)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_UuidNotFound_Error() {

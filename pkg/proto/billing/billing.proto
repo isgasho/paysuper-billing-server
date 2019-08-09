@@ -485,6 +485,9 @@ message Order {
 
     // @inject_tag: json:"platform_id"
     string platform_id = 70;
+
+    // @inject_tag: json:"-" bson:"keys"
+    repeated string keys = 71;
 }
 
 enum OrderType {
