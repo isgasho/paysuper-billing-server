@@ -35,7 +35,7 @@ This service contain all business logic for payment processing
 | EMAIL_NEW_ROYALTY_REPORT_TEMPLATE    | -        |                       | New royalty report notification email template name                                                                                 |
 | EMAIL_VAT_REPORT_TEMPLATE            | -        |                       | New vat report notification email template name                                                                                     |
 | KEY_DAEMON_RESTART_INTERVAL          | -        | 60                    | Starting frequency in seconds of the script to check the locked keys and return them to the stack.                                  |
-
+| EMAIL_ACTIVATION_CODE_TEMPLATE       | -        |                       | Postmark Email template id for sending to user with activation code                                  |
 ## Docker Deployment
 
 ```bash
