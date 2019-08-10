@@ -20,6 +20,8 @@ It has these top-level messages:
 	MerchantUser
 	MerchantCompanyInfo
 	MerchantCompletedSteps
+	MerchantAgreementSignatureDataSignUrl
+	MerchantAgreementSignatureData
 	Merchant
 	SystemNotificationStatuses
 	Notification
@@ -108,10 +110,6 @@ It has these top-level messages:
 	PriceTable
 	PriceTableCurrency
 	Id
-	MerchantSignatureRequestCustomFields
-	MerchantSignatureRequestSignatures
-	MerchantSignatureRequestResponseData
-	MerchantSignatureRequest
 */
 package billing
 

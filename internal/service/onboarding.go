@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -18,6 +17,7 @@ import (
 
 const (
 	collectionNotification = "notification"
+	signerTypeMerchant     = int32(0)
 )
 
 var (
@@ -37,6 +37,7 @@ var (
 	notificationErrorMessageIsEmpty          = newBillingServerErrorMsg("mr000014", "notification message can't be empty")
 	notificationErrorNotFound                = newBillingServerErrorMsg("mr000015", "notification not found")
 	merchantErrorAlreadySigned               = newBillingServerErrorMsg("mr000016", "merchant already fully signed")
+	merchantErrorOnboardingNotComplete       = newBillingServerErrorMsg("mr000019", "merchant onboarding not complete")
 
 	NotificationStatusChangeTitles = map[int32]string{
 		pkg.MerchantStatusDraft:              "New merchant created",
@@ -268,6 +269,17 @@ func (s *Service) ChangeMerchant(
 
 	if req.Tariff != "" {
 		merchant.Tariff = req.Tariff
+	}
+
+	if merchant.IsDataComplete() && merchant.AgreementSignatureData == nil {
+		merchant.AgreementSignatureData, err = s.getMerchantAgreementSignature(ctx, merchant)
+
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = err.(*grpc.ResponseErrorMessage)
+
+			return nil
+		}
 	}
 
 	merchant.UpdatedAt = ptypes.TimestampNow()
@@ -894,16 +906,23 @@ func (s *Service) mapNotificationData(rsp *billing.Notification, notification *b
 	rsp.UpdatedAt = notification.UpdatedAt
 }
 
-func (s *Service) AgreementSign(
+func (s *Service) GetMerchantAgreementSignUrl(
 	ctx context.Context,
-	req *grpc.SetMerchantS3AgreementRequest,
-	rsp *grpc.AgreementSignResponse,
+	req *grpc.GetMerchantAgreementSignUrlRequest,
+	rsp *grpc.GetMerchantAgreementSignUrlResponse,
 ) error {
 	merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = err.(*grpc.ResponseErrorMessage)
+
+		return nil
+	}
+
+	if merchant.AgreementSignatureData == nil {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = merchantErrorOnboardingNotComplete
 
 		return nil
 	}
@@ -915,95 +934,17 @@ func (s *Service) AgreementSign(
 		return nil
 	}
 
-	if merchant.SignatureRequest != nil {
-		rsp.Status = pkg.ResponseStatusOk
-		rsp.SignatureRequest = merchant.SignatureRequest
-
-		return nil
-	}
-
-	req1 := &proto.CreateSignatureRequest{
-		TemplateId: merchant.AgreementTemplate,
-		Signers: []*proto.CreateSignatureRequestSigner{
-			{
-				Email:    merchant.GetAuthorizedEmail(),
-				Name:     merchant.GetAuthorizedName(),
-				RoleName: documentSignerPkg.SignerRoleNameMerchant,
-			},
-			{
-				Email:    s.cfg.PaysuperDocumentSignerEmail,
-				Name:     s.cfg.PaysuperDocumentSignerName,
-				RoleName: documentSignerPkg.SignerRoleNamePaysuper,
-			},
-		},
-		Metadata: map[string]string{
-			documentSignerPkg.MetadataFieldMerchantId: merchant.Id,
-		},
-	}
-
-	if req1.TemplateId == "" {
-		req1.TemplateId = s.cfg.HelloSignDefaultTemplate
-	}
-
-	rsp1, err := s.documentSigner.CreateSignature(ctx, req1)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorGrpcServiceCallFailed,
-			zap.Error(err),
-			zap.String(errorFieldService, "DocumentSignerService"),
-			zap.String(errorFieldMethod, "CreateSignature"),
-			zap.Any(errorFieldRequest, req),
-		)
-
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = merchantErrorUnknown
-
-		return nil
-	}
-
-	if rsp1.Status != pkg.ResponseStatusOk {
-		rsp.Status = rsp1.Status
-		rsp.Message = &grpc.ResponseErrorMessage{
-			Code:    rsp1.Message.Code,
-			Message: rsp1.Message.Message,
-			Details: rsp1.Message.Details,
-		}
-
-		return nil
-	}
-
-	signature := new(billing.MerchantSignatureRequest)
-	err = json.Unmarshal(rsp1.HelloSignResponse, signature)
-
-	if err != nil {
-		zap.L().Error(
-			"Merchant signature request decoding failed",
-			zap.Error(err),
-			zap.ByteString("data", rsp1.HelloSignResponse),
-		)
-
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = merchantErrorUnknown
-
-		return nil
-	}
-
-	merchant.MerchantSignature = signature.GetSignatureId(documentSignerPkg.SignerRoleNameMerchant)
-	merchant.PspSignature = signature.GetSignatureId(documentSignerPkg.SignerRoleNamePaysuper)
-	merchant.SignatureRequest = signature
-
-	err = s.merchant.Update(merchant)
+	data, err := s.changeMerchantAgreementSingUrl(ctx, req.SignerType, merchant)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = merchantErrorUnknown
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
 
 		return nil
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
-	rsp.SignatureRequest = signature
+	rsp.Item = data
 
 	return nil
 }
@@ -1043,4 +984,148 @@ func (s *Service) GetMerchantOnboardingCompleteData(
 	}
 
 	return nil
+}
+
+func (s *Service) getMerchantAgreementSignature(
+	ctx context.Context,
+	merchant *billing.Merchant,
+) (*billing.MerchantAgreementSignatureData, error) {
+	req := &proto.CreateSignatureRequest{
+		TemplateId: merchant.AgreementTemplate,
+		ClientId:   s.cfg.HelloSignClientId,
+		Signers: []*proto.CreateSignatureRequestSigner{
+			{
+				Email:    merchant.GetAuthorizedEmail(),
+				Name:     merchant.GetAuthorizedName(),
+				RoleName: documentSignerPkg.SignerRoleNameMerchant,
+			},
+			{
+				Email:    s.cfg.PaysuperDocumentSignerEmail,
+				Name:     s.cfg.PaysuperDocumentSignerName,
+				RoleName: documentSignerPkg.SignerRoleNamePaysuper,
+			},
+		},
+		Metadata: map[string]string{
+			documentSignerPkg.MetadataFieldMerchantId: merchant.Id,
+		},
+	}
+
+	if req.TemplateId == "" {
+		req.TemplateId = s.cfg.HelloSignDefaultTemplate
+	}
+
+	rsp, err := s.documentSigner.CreateSignature(ctx, req)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorGrpcServiceCallFailed,
+			zap.Error(err),
+			zap.String(errorFieldService, "DocumentSignerService"),
+			zap.String(errorFieldMethod, "CreateSignature"),
+			zap.Any(errorFieldRequest, req),
+		)
+
+		return nil, merchantErrorUnknown
+	}
+
+	if rsp.Status != pkg.ResponseStatusOk {
+		err = &grpc.ResponseErrorMessage{
+			Code:    rsp.Message.Code,
+			Message: rsp.Message.Message,
+			Details: rsp.Message.Details,
+		}
+
+		return nil, err
+	}
+
+	data := &billing.MerchantAgreementSignatureData{
+		DetailsUrl:          rsp.Item.DetailsUrl,
+		FilesUrl:            rsp.Item.FilesUrl,
+		SignatureRequestId:  rsp.Item.SignatureRequestId,
+		MerchantSignatureId: rsp.Item.MerchantSignatureId,
+		PsSignatureId:       rsp.Item.PsSignatureId,
+	}
+
+	return data, nil
+}
+
+func (s *Service) changeMerchantAgreementSingUrl(
+	ctx context.Context,
+	signerType int32,
+	merchant *billing.Merchant,
+) (*billing.MerchantAgreementSignatureDataSignUrl, error) {
+	var (
+		signUrl     *billing.MerchantAgreementSignatureDataSignUrl
+		signatureId string
+	)
+
+	if signerType == signerTypeMerchant {
+		signUrl = merchant.GetMerchantSignUrl()
+		signatureId = merchant.GetMerchantSignatureId()
+	} else {
+		signUrl = merchant.GetPaysuperSignUrl()
+		signatureId = merchant.GetPaysuperSignatureId()
+	}
+
+	if signUrl != nil {
+		t, err := ptypes.Timestamp(signUrl.ExpiresAt)
+
+		if err != nil {
+			zap.L().Error(
+				`Merchant sign url contain broken value in "expires_at"" filed`,
+				zap.Error(err),
+				zap.Any("data", merchant),
+			)
+
+			return nil, merchantErrorUnknown
+		}
+
+		if t.After(time.Now()) {
+			return signUrl, nil
+		}
+	}
+
+	req := &proto.GetSignatureUrlRequest{SignatureId: signatureId}
+	rsp, err := s.documentSigner.GetSignatureUrl(ctx, req)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorGrpcServiceCallFailed,
+			zap.Error(err),
+			zap.String(errorFieldService, "DocumentSignerService"),
+			zap.String(errorFieldMethod, "GetSignatureUrl"),
+			zap.Any(errorFieldRequest, req),
+		)
+
+		return nil, merchantErrorUnknown
+	}
+
+	if rsp.Status != pkg.ResponseStatusOk {
+		err = &grpc.ResponseErrorMessage{
+			Code:    rsp.Message.Code,
+			Message: rsp.Message.Message,
+			Details: rsp.Message.Details,
+		}
+
+		return nil, err
+	}
+
+	signUrl = &billing.MerchantAgreementSignatureDataSignUrl{
+		SignUrl:   rsp.Item.SignUrl,
+		ExpiresAt: rsp.Item.ExpiresAt,
+	}
+
+	if signerType == signerTypeMerchant {
+		merchant.AgreementSignatureData.MerchantSignUrl = signUrl
+	} else {
+		merchant.AgreementSignatureData.PsSignUrl = signUrl
+	}
+
+	err = s.merchant.Update(merchant)
+
+	if err != nil {
+		return nil, merchantErrorUnknown
+	}
+
+	return signUrl, nil
 }
