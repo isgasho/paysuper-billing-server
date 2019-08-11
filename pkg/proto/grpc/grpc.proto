@@ -1276,7 +1276,7 @@ message GetMerchantOnboardingCompleteDataResponse {
 message GetMerchantAgreementSignUrlRequest {
     //@inject_tag: json:"merchant_id" validate:"required,hexadecimal,len=24"
     string merchant_id = 1;
-    //@inject_tag: json:"signer_type" validate:"required,oneof=0 1"
+    //@inject_tag: json:"signer_type" validate:"oneof=0 1"
     int32 signer_type = 2;
 }
 
