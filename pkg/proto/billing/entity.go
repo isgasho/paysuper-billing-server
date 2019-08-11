@@ -207,3 +207,7 @@ func (m *Merchant) GetMerchantSignUrl() *MerchantAgreementSignatureDataSignUrl {
 func (m *Merchant) GetPaysuperSignUrl() *MerchantAgreementSignatureDataSignUrl {
 	return m.AgreementSignatureData.PsSignUrl
 }
+
+func (m *Merchant) IsPaysuperSignatureId(signatureId string) bool {
+	return m.AgreementSignatureData.PsSignatureId == signatureId
+}
