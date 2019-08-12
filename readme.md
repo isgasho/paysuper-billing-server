@@ -38,6 +38,8 @@ This service contain all business logic for payment processing
 | EMAIL_NEW_ROYALTY_REPORT_TEMPLATE    | -        | p1_new_royalty_report                               | New royalty report notification email template name                                                                                 |
 | PAYSUPER_DOCUMENT_SIGNER_EMAIL       | true     | -                                                   | Paysuper signer email for sign license agreements                                                                                   |
 | PAYSUPER_DOCUMENT_SIGNER_NAME        | true     | -                                                   | Paysuper signer name for sign license agreements                                                                                    |
+| HELLO_SIGN_DEFAULT_TEMPLATE          | true     | -                                                   | License agreement template identifier in HelloSign                                                                                  |
+| HELLO_SIGN_CLIENT_ID                 | true     | -                                                   | Client application identifier in HelloSign                                                                                          |
 
 ## Docker Deployment
 

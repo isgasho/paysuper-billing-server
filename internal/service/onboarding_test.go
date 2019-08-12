@@ -2,14 +2,12 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/client"
-	documentSignerPkg "github.com/paysuper/document-signer/pkg"
 	"github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mock"
@@ -2577,6 +2575,16 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_UserNotifi
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_Ok() {
+	dsIsCalled := false
+	mockResultFn := func(ctx context.Context, in *proto.CreateSignatureRequest, opts ...client.CallOption) *proto.CreateSignatureResponse {
+		dsIsCalled = true
+		return mock.CreateSignatureResponse
+	}
+	ds := &mock.DocumentSignerService{}
+	ds.On("CreateSignature", mock2.Anything, mock2.Anything).Return(mockResultFn, nil)
+	ds.On("GetSignatureUrl", mock2.Anything, mock2.Anything).Return(mock.GetSignatureUrlResponse, nil)
+	suite.service.documentSigner = ds
+
 	req := &grpc.OnboardingRequest{
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
@@ -2613,47 +2621,50 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_Ok() {
 	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
 	assert.Empty(suite.T(), rsp.Message)
 
-	dsIsCalled := false
-	mockResultFn := func(ctx context.Context, in *proto.CreateSignatureRequest, opts ...client.CallOption) *proto.Response {
-		dsIsCalled = true
-		return &proto.Response{Status: pkg.ResponseStatusOk, HelloSignResponse: mock.HellosignResponse}
-	}
-
-	ds := &mock.DocumentSignerService{}
-	ds.On("CreateSignature", mock2.Anything, mock2.Anything).Return(mockResultFn, nil)
-	suite.service.documentSigner = ds
-
-	req1 := &grpc.SetMerchantS3AgreementRequest{
-		MerchantId: rsp.Item.Id,
-	}
-	rsp1 := &grpc.AgreementSignResponse{}
-	err = suite.service.AgreementSign(context.TODO(), req1, rsp1)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
-	assert.Empty(suite.T(), rsp1.Message)
-	assert.NotNil(suite.T(), rsp1.SignatureRequest)
-
-	assert.True(suite.T(), dsIsCalled)
-
 	merchant, err := suite.service.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(rsp.Item.Id)})
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), merchant)
-	assert.NotEmpty(suite.T(), merchant.PspSignature)
-	assert.NotEmpty(suite.T(), merchant.MerchantSignature)
-	assert.Equal(suite.T(), merchant.PspSignature, rsp1.SignatureRequest.GetSignatureId(documentSignerPkg.SignerRoleNamePaysuper))
-	assert.Equal(suite.T(), merchant.MerchantSignature, rsp1.SignatureRequest.GetSignatureId(documentSignerPkg.SignerRoleNameMerchant))
+	assert.NotNil(suite.T(), merchant.AgreementSignatureData)
+	assert.Equal(suite.T(), mock.CreateSignatureResponse.Item.DetailsUrl, merchant.AgreementSignatureData.DetailsUrl)
+	assert.Equal(suite.T(), mock.CreateSignatureResponse.Item.FilesUrl, merchant.AgreementSignatureData.FilesUrl)
+	assert.Equal(suite.T(), mock.CreateSignatureResponse.Item.SignatureRequestId, merchant.AgreementSignatureData.SignatureRequestId)
+	assert.Equal(suite.T(), mock.CreateSignatureResponse.Item.MerchantSignatureId, merchant.AgreementSignatureData.MerchantSignatureId)
+	assert.Equal(suite.T(), mock.CreateSignatureResponse.Item.PsSignatureId, merchant.AgreementSignatureData.PsSignatureId)
+	assert.Nil(suite.T(), merchant.AgreementSignatureData.MerchantSignUrl)
+	assert.Nil(suite.T(), merchant.AgreementSignatureData.PsSignUrl)
+
+	req1 := &grpc.GetMerchantAgreementSignUrlRequest{
+		MerchantId: rsp.Item.Id,
+		SignerType: signerTypeMerchant,
+	}
+	rsp1 := &grpc.GetMerchantAgreementSignUrlResponse{}
+	err = suite.service.GetMerchantAgreementSignUrl(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.Empty(suite.T(), rsp1.Message)
+	assert.NotNil(suite.T(), rsp1.Item)
+
+	assert.True(suite.T(), dsIsCalled)
+
+	merchant, err = suite.service.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(rsp.Item.Id)})
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), merchant)
+	assert.NotNil(suite.T(), merchant.AgreementSignatureData)
+	assert.NotNil(suite.T(), merchant.AgreementSignatureData.MerchantSignUrl)
+	assert.Equal(suite.T(), mock.GetSignatureUrlResponse.Item.SignUrl, merchant.AgreementSignatureData.MerchantSignUrl.SignUrl)
+	assert.Equal(suite.T(), mock.GetSignatureUrlResponse.Item.ExpiresAt.Seconds, merchant.AgreementSignatureData.MerchantSignUrl.ExpiresAt.Seconds)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_MerchantNotFound_Error() {
-	req := &grpc.SetMerchantS3AgreementRequest{
+	req := &grpc.GetMerchantAgreementSignUrlRequest{
 		MerchantId: bson.NewObjectId().Hex(),
 	}
-	rsp := &grpc.AgreementSignResponse{}
-	err := suite.service.AgreementSign(context.TODO(), req, rsp)
+	rsp := &grpc.GetMerchantAgreementSignUrlResponse{}
+	err := suite.service.GetMerchantAgreementSignUrl(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, rsp.Status)
 	assert.Equal(suite.T(), merchantErrorNotFound, rsp.Message)
-	assert.Nil(suite.T(), rsp.SignatureRequest)
+	assert.Nil(suite.T(), rsp.Item)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_AgreementAlreadySigned_Error() {
@@ -2702,15 +2713,16 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_AgreementAlreadyS
 	err = suite.service.merchant.Update(merchant)
 	assert.NoError(suite.T(), err)
 
-	req1 := &grpc.SetMerchantS3AgreementRequest{
+	req1 := &grpc.GetMerchantAgreementSignUrlRequest{
 		MerchantId: rsp.Item.Id,
+		SignerType: signerTypeMerchant,
 	}
-	rsp1 := &grpc.AgreementSignResponse{}
-	err = suite.service.AgreementSign(context.TODO(), req1, rsp1)
+	rsp1 := &grpc.GetMerchantAgreementSignUrlResponse{}
+	err = suite.service.GetMerchantAgreementSignUrl(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
 	assert.Equal(suite.T(), merchantErrorAlreadySigned, rsp1.Message)
-	assert.Nil(suite.T(), rsp1.SignatureRequest)
+	assert.Nil(suite.T(), rsp1.Item)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_MerchantHasSignatureRequest_Ok() {
@@ -2750,31 +2762,35 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_MerchantHasSignat
 	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
 	assert.Empty(suite.T(), rsp.Message)
 
-	signature := new(billing.MerchantSignatureRequest)
-	err = json.Unmarshal(mock.HellosignResponse, signature)
-	assert.NoError(suite.T(), err)
-	assert.NotNil(suite.T(), signature)
-
 	merchant, err := suite.service.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(rsp.Item.Id)})
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), merchant)
 
-	merchant.SignatureRequest = signature
+	merchant.AgreementSignatureData.MerchantSignUrl = &billing.MerchantAgreementSignatureDataSignUrl{
+		SignUrl:   mock.GetSignatureUrlResponse.Item.SignUrl,
+		ExpiresAt: mock.GetSignatureUrlResponse.Item.ExpiresAt,
+	}
 	err = suite.service.merchant.Update(merchant)
 	assert.NoError(suite.T(), err)
 
-	req1 := &grpc.SetMerchantS3AgreementRequest{
+	req1 := &grpc.GetMerchantAgreementSignUrlRequest{
 		MerchantId: rsp.Item.Id,
+		SignerType: signerTypeMerchant,
 	}
-	rsp1 := &grpc.AgreementSignResponse{}
-	err = suite.service.AgreementSign(context.TODO(), req1, rsp1)
+	rsp1 := &grpc.GetMerchantAgreementSignUrlResponse{}
+	err = suite.service.GetMerchantAgreementSignUrl(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)
-	assert.NotNil(suite.T(), rsp1.SignatureRequest)
+	assert.NotNil(suite.T(), rsp1.Item)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerSystemError() {
+	ds := &mock.DocumentSignerService{}
+	ds.On("CreateSignature", mock2.Anything, mock2.Anything).Return(mock.CreateSignatureResponse, nil)
+	ds.On("GetSignatureUrl", mock2.Anything, mock2.Anything).Return(nil, errors.New(mock.SomeError))
+	suite.service.documentSigner = ds
+
 	req := &grpc.OnboardingRequest{
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
@@ -2811,20 +2827,18 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerSys
 	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
 	assert.Empty(suite.T(), rsp.Message)
 
-	ds := &mock.DocumentSignerService{}
-	ds.On("CreateSignature", mock2.Anything, mock2.Anything).Return(nil, errors.New(mock.SomeError))
-	suite.service.documentSigner = ds
 	zap.ReplaceGlobals(suite.logObserver)
 
-	req1 := &grpc.SetMerchantS3AgreementRequest{
+	req1 := &grpc.GetMerchantAgreementSignUrlRequest{
 		MerchantId: rsp.Item.Id,
+		SignerType: signerTypeMerchant,
 	}
-	rsp1 := &grpc.AgreementSignResponse{}
-	err = suite.service.AgreementSign(context.TODO(), req1, rsp1)
+	rsp1 := &grpc.GetMerchantAgreementSignUrlResponse{}
+	err = suite.service.GetMerchantAgreementSignUrl(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp1.Status)
 	assert.Equal(suite.T(), merchantErrorUnknown, rsp1.Message)
-	assert.Nil(suite.T(), rsp1.SignatureRequest)
+	assert.Nil(suite.T(), rsp1.Item)
 
 	messages := suite.zapRecorder.All()
 	assert.Equal(suite.T(), pkg.ErrorGrpcServiceCallFailed, messages[0].Message)
@@ -2869,77 +2883,20 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerRes
 	assert.Empty(suite.T(), rsp.Message)
 
 	ds := &mock.DocumentSignerService{}
-	ds.On("CreateSignature", mock2.Anything, mock2.Anything).
-		Return(&proto.Response{Status: pkg.ResponseStatusBadData, Message: &proto.ResponseErrorMessage{Message: mock.SomeError}}, nil)
+	ds.On("GetSignatureUrl", mock2.Anything, mock2.Anything).
+		Return(&proto.GetSignatureUrlResponse{Status: pkg.ResponseStatusBadData, Message: &proto.ResponseErrorMessage{Message: mock.SomeError}}, nil)
 	suite.service.documentSigner = ds
 
-	req1 := &grpc.SetMerchantS3AgreementRequest{
+	req1 := &grpc.GetMerchantAgreementSignUrlRequest{
 		MerchantId: rsp.Item.Id,
+		SignerType: signerTypeMerchant,
 	}
-	rsp1 := &grpc.AgreementSignResponse{}
-	err = suite.service.AgreementSign(context.TODO(), req1, rsp1)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
-	assert.Equal(suite.T(), mock.SomeError, rsp1.Message.Error())
-	assert.Nil(suite.T(), rsp1.SignatureRequest)
-}
-
-func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerIncorrectJson_Error() {
-	req := &grpc.OnboardingRequest{
-		Company: &billing.MerchantCompanyInfo{
-			Name:    "merchant1",
-			Country: "RU",
-			Zip:     "190000",
-			City:    "St.Petersburg",
-		},
-		Contacts: &billing.MerchantContact{
-			Authorized: &billing.MerchantContactAuthorized{
-				Name:     "Unit Test",
-				Email:    "test@unit.test",
-				Phone:    "1234567890",
-				Position: "Unit Test",
-			},
-			Technical: &billing.MerchantContactTechnical{
-				Name:  "Unit Test",
-				Email: "test@unit.test",
-				Phone: "1234567890",
-			},
-		},
-		Banking: &billing.MerchantBanking{
-			Currency:      "RUB",
-			Name:          "Bank name",
-			Address:       "Unknown",
-			AccountNumber: "1234567890",
-			Swift:         "TEST",
-			Details:       "",
-		},
-		Tariff: bson.NewObjectId().Hex(),
-	}
-	rsp := &grpc.ChangeMerchantResponse{}
-	err := suite.service.ChangeMerchant(context.TODO(), req, rsp)
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
-	assert.Empty(suite.T(), rsp.Message)
-
-	ds := &mock.DocumentSignerService{}
-	ds.On("CreateSignature", mock2.Anything, mock2.Anything).
-		Return(&proto.Response{Status: pkg.ResponseStatusOk, HelloSignResponse: []byte("not_json_string")}, nil)
-	suite.service.documentSigner = ds
-	zap.ReplaceGlobals(suite.logObserver)
-
-	req1 := &grpc.SetMerchantS3AgreementRequest{
-		MerchantId: rsp.Item.Id,
-	}
-	rsp1 := &grpc.AgreementSignResponse{}
-	err = suite.service.AgreementSign(context.TODO(), req1, rsp1)
+	rsp1 := &grpc.GetMerchantAgreementSignUrlResponse{}
+	err = suite.service.GetMerchantAgreementSignUrl(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp1.Status)
-	assert.Equal(suite.T(), merchantErrorUnknown, rsp1.Message)
-	assert.Nil(suite.T(), rsp1.SignatureRequest)
-
-	messages := suite.zapRecorder.All()
-	assert.Equal(suite.T(), "Merchant signature request decoding failed", messages[0].Message)
-	assert.Equal(suite.T(), zapcore.ErrorLevel, messages[0].Level)
+	assert.Equal(suite.T(), mock.SomeError, rsp1.Message.Error())
+	assert.Nil(suite.T(), rsp1.Item)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_UpdateError() {
@@ -2985,15 +2942,16 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_UpdateError() {
 	suite.service.cacher = cache
 	zap.ReplaceGlobals(suite.logObserver)
 
-	req1 := &grpc.SetMerchantS3AgreementRequest{
+	req1 := &grpc.GetMerchantAgreementSignUrlRequest{
 		MerchantId: rsp.Item.Id,
+		SignerType: signerTypeMerchant,
 	}
-	rsp1 := &grpc.AgreementSignResponse{}
-	err = suite.service.AgreementSign(context.TODO(), req1, rsp1)
+	rsp1 := &grpc.GetMerchantAgreementSignUrlResponse{}
+	err = suite.service.GetMerchantAgreementSignUrl(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp1.Status)
 	assert.Equal(suite.T(), merchantErrorUnknown, rsp1.Message)
-	assert.Nil(suite.T(), rsp1.SignatureRequest)
+	assert.Nil(suite.T(), rsp1.Item)
 
 	messages := suite.zapRecorder.All()
 	assert.Equal(suite.T(), pkg.ErrorCacheQueryFailed, messages[0].Message)
@@ -3114,4 +3072,228 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantOnboardingCompleteDa
 	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, rsp.Status)
 	assert.Equal(suite.T(), merchantErrorNotFound, rsp.Message)
 	assert.Nil(suite.T(), rsp.Item)
+}
+
+func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_GetMerchantAgreementSignature_Error() {
+	ds := &mock.DocumentSignerService{}
+	ds.On("CreateSignature", mock2.Anything, mock2.Anything).Return(nil, errors.New(mock.SomeError))
+	ds.On("GetSignatureUrl", mock2.Anything, mock2.Anything).Return(mock.GetSignatureUrlResponse, nil)
+	suite.service.documentSigner = ds
+
+	req := &grpc.OnboardingRequest{
+		Company: &billing.MerchantCompanyInfo{
+			Name:    "merchant1",
+			Country: "RU",
+			Zip:     "190000",
+			City:    "St.Petersburg",
+		},
+		Contacts: &billing.MerchantContact{
+			Authorized: &billing.MerchantContactAuthorized{
+				Name:     "Unit Test",
+				Email:    "test@unit.test",
+				Phone:    "1234567890",
+				Position: "Unit Test",
+			},
+			Technical: &billing.MerchantContactTechnical{
+				Name:  "Unit Test",
+				Email: "test@unit.test",
+				Phone: "1234567890",
+			},
+		},
+		Banking: &billing.MerchantBanking{
+			Currency:      "RUB",
+			Name:          "Bank name",
+			Address:       "Unknown",
+			AccountNumber: "1234567890",
+			Swift:         "TEST",
+			Details:       "",
+		},
+		Tariff: bson.NewObjectId().Hex(),
+	}
+	rsp := &grpc.ChangeMerchantResponse{}
+	err := suite.service.ChangeMerchant(context.TODO(), req, rsp)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp.Status)
+	assert.Equal(suite.T(), merchantErrorUnknown, rsp.Message)
+}
+
+func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_Upsert_Error() {
+	req := &grpc.OnboardingRequest{
+		Company: &billing.MerchantCompanyInfo{
+			Name:    "merchant1",
+			Country: "RU",
+			Zip:     "190000",
+			City:    "St.Petersburg",
+		},
+		Contacts: &billing.MerchantContact{
+			Authorized: &billing.MerchantContactAuthorized{
+				Name:     "Unit Test",
+				Email:    "test@unit.test",
+				Phone:    "1234567890",
+				Position: "Unit Test",
+			},
+			Technical: &billing.MerchantContactTechnical{
+				Name:  "Unit Test",
+				Email: "test@unit.test",
+				Phone: "1234567890",
+			},
+		},
+		Banking: &billing.MerchantBanking{
+			Currency:      "RUB",
+			Name:          "Bank name",
+			Address:       "Unknown",
+			AccountNumber: "1234567890",
+			Swift:         "TEST",
+			Details:       "",
+		},
+		Tariff: bson.NewObjectId().Hex(),
+	}
+
+	cache := &mock.CacheInterface{}
+	cache.On("Get", fmt.Sprintf(cacheCountryCodeA2, req.Company.Country), mock2.Anything).Return(nil)
+	cache.On("Set", mock2.Anything, mock2.Anything, mock2.Anything).
+		Return(errors.New(mock.SomeError))
+	suite.service.cacher = cache
+
+	rsp := &grpc.ChangeMerchantResponse{}
+	err := suite.service.ChangeMerchant(context.TODO(), req, rsp)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp.Status)
+	assert.Equal(suite.T(), merchantErrorUnknown, rsp.Message)
+}
+
+func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_AgreementSignatureDataIsNil_Error() {
+	req := &grpc.OnboardingRequest{
+		Company: &billing.MerchantCompanyInfo{
+			Name:    "merchant1",
+			Country: "RU",
+			Zip:     "190000",
+			City:    "St.Petersburg",
+		},
+		Banking: &billing.MerchantBanking{
+			Currency:      "RUB",
+			Name:          "Bank name",
+			Address:       "Unknown",
+			AccountNumber: "1234567890",
+			Swift:         "TEST",
+			Details:       "",
+		},
+		Tariff: bson.NewObjectId().Hex(),
+	}
+	rsp := &grpc.ChangeMerchantResponse{}
+	err := suite.service.ChangeMerchant(context.TODO(), req, rsp)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotNil(suite.T(), rsp.Item)
+
+	req1 := &grpc.GetMerchantAgreementSignUrlRequest{
+		MerchantId: rsp.Item.Id,
+		SignerType: signerTypeMerchant,
+	}
+	rsp1 := &grpc.GetMerchantAgreementSignUrlResponse{}
+	err = suite.service.GetMerchantAgreementSignUrl(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
+	assert.Equal(suite.T(), merchantErrorOnboardingNotComplete, rsp1.Message)
+	assert.Nil(suite.T(), rsp1.Item)
+}
+
+func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_GetMerchantAgreementSignature_ResultError() {
+	ds := &mock.DocumentSignerService{}
+	ds.On("CreateSignature", mock2.Anything, mock2.Anything).
+		Return(
+			&proto.CreateSignatureResponse{
+				Status:  pkg.ResponseStatusBadData,
+				Message: &proto.ResponseErrorMessage{Message: mock.SomeError},
+			},
+			nil,
+		)
+	ds.On("GetSignatureUrl", mock2.Anything, mock2.Anything).Return(mock.GetSignatureUrlResponse, nil)
+	suite.service.documentSigner = ds
+
+	req := &grpc.OnboardingRequest{
+		Company: &billing.MerchantCompanyInfo{
+			Name:    "merchant1",
+			Country: "RU",
+			Zip:     "190000",
+			City:    "St.Petersburg",
+		},
+		Contacts: &billing.MerchantContact{
+			Authorized: &billing.MerchantContactAuthorized{
+				Name:     "Unit Test",
+				Email:    "test@unit.test",
+				Phone:    "1234567890",
+				Position: "Unit Test",
+			},
+			Technical: &billing.MerchantContactTechnical{
+				Name:  "Unit Test",
+				Email: "test@unit.test",
+				Phone: "1234567890",
+			},
+		},
+		Banking: &billing.MerchantBanking{
+			Currency:      "RUB",
+			Name:          "Bank name",
+			Address:       "Unknown",
+			AccountNumber: "1234567890",
+			Swift:         "TEST",
+			Details:       "",
+		},
+		Tariff: bson.NewObjectId().Hex(),
+	}
+	rsp := &grpc.ChangeMerchantResponse{}
+	err := suite.service.ChangeMerchant(context.TODO(), req, rsp)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp.Status)
+	assert.Equal(suite.T(), mock.SomeError, rsp.Message.Message)
+}
+
+func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_PaysuperSign_Ok() {
+	req := &grpc.OnboardingRequest{
+		Company: &billing.MerchantCompanyInfo{
+			Name:    "merchant1",
+			Country: "RU",
+			Zip:     "190000",
+			City:    "St.Petersburg",
+		},
+		Contacts: &billing.MerchantContact{
+			Authorized: &billing.MerchantContactAuthorized{
+				Name:     "Unit Test",
+				Email:    "test@unit.test",
+				Phone:    "1234567890",
+				Position: "Unit Test",
+			},
+			Technical: &billing.MerchantContactTechnical{
+				Name:  "Unit Test",
+				Email: "test@unit.test",
+				Phone: "1234567890",
+			},
+		},
+		Banking: &billing.MerchantBanking{
+			Currency:      "RUB",
+			Name:          "Bank name",
+			Address:       "Unknown",
+			AccountNumber: "1234567890",
+			Swift:         "TEST",
+			Details:       "",
+		},
+		Tariff: bson.NewObjectId().Hex(),
+	}
+	rsp := &grpc.ChangeMerchantResponse{}
+	err := suite.service.ChangeMerchant(context.TODO(), req, rsp)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+
+	req1 := &grpc.GetMerchantAgreementSignUrlRequest{
+		MerchantId: rsp.Item.Id,
+		SignerType: 1,
+	}
+	rsp1 := &grpc.GetMerchantAgreementSignUrlResponse{}
+	err = suite.service.GetMerchantAgreementSignUrl(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.Empty(suite.T(), rsp1.Message)
+	assert.NotNil(suite.T(), rsp1.Item)
 }

@@ -125,7 +125,7 @@ service BillingService {
     rpc UpdateVatReportStatus (UpdateVatReportStatusRequest) returns (ResponseError) {}
 
     rpc CalcAnnualTurnovers(EmptyRequest) returns (EmptyResponse) {}
-    rpc AgreementSign(SetMerchantS3AgreementRequest) returns (AgreementSignResponse) {}
+    rpc GetMerchantAgreementSignUrl(GetMerchantAgreementSignUrlRequest) returns (GetMerchantAgreementSignUrlResponse) {}
     rpc GetMerchantOnboardingCompleteData(SetMerchantS3AgreementRequest) returns (GetMerchantOnboardingCompleteDataResponse) {}
 }
 
@@ -1258,12 +1258,6 @@ message UpdateVatReportStatusRequest {
     string status = 2;
 }
 
-message AgreementSignResponse {
-    int32 status = 1;
-    ResponseErrorMessage message = 2;
-    billing.MerchantSignatureRequest signature_request = 3;
-}
-
 message GetMerchantOnboardingCompleteDataResponseItem {
     //@inject_tag: json:"status"
     string status = 1;
@@ -1277,4 +1271,17 @@ message GetMerchantOnboardingCompleteDataResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     GetMerchantOnboardingCompleteDataResponseItem item = 3;
+}
+
+message GetMerchantAgreementSignUrlRequest {
+    //@inject_tag: json:"merchant_id" validate:"required,hexadecimal,len=24"
+    string merchant_id = 1;
+    //@inject_tag: json:"signer_type" validate:"oneof=0 1"
+    int32 signer_type = 2;
+}
+
+message GetMerchantAgreementSignUrlResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.MerchantAgreementSignatureDataSignUrl item = 3;
 }

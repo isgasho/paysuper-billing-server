@@ -72,6 +72,21 @@ type MgoMerchantPaymentMethod struct {
 	IsActive      bool                                    `bson:"is_active"`
 }
 
+type MgoMerchantAgreementSignatureDataSignUrl struct {
+	SignUrl   string    `bson:"sign_url"`
+	ExpiresAt time.Time `bson:"expires_at"`
+}
+
+type MgoMerchantAgreementSignatureData struct {
+	DetailsUrl          string                                    `bson:"details_url"`
+	FilesUrl            string                                    `bson:"files_url"`
+	SignatureRequestId  string                                    `bson:"signature_request_id"`
+	MerchantSignatureId string                                    `bson:"merchant_signature_id"`
+	PsSignatureId       string                                    `bson:"ps_signature_id"`
+	MerchantSignUrl     *MgoMerchantAgreementSignatureDataSignUrl `bson:"merchant_sign_url"`
+	PsSignUrl           *MgoMerchantAgreementSignatureDataSignUrl `bson:"ps_sign_url"`
+}
+
 type MgoMerchant struct {
 	Id                                            bson.ObjectId                        `bson:"_id"`
 	User                                          *MerchantUser                        `bson:"user"`
@@ -102,9 +117,7 @@ type MgoMerchant struct {
 	ItemMinCostAmount                             float64                              `bson:"item_min_cost_amount"`
 	ItemMinCostCurrency                           string                               `bson:"item_min_cost_currency"`
 	Tariff                                        string                               `bson:"tariff"`
-	SignatureRequest                              *MerchantSignatureRequest            `bson:"signature_request"`
-	MerchantSignature                             string                               `bson:"merchant_signature"`
-	PspSignature                                  string                               `bson:"psp_signature"`
+	AgreementSignatureData                        *MgoMerchantAgreementSignatureData   `bson:"agreement_signature_data"`
 	Steps                                         *MerchantCompletedSteps              `bson:"steps"`
 	AgreementTemplate                             string                               `bson:"agreement_template"`
 }
@@ -1690,9 +1703,6 @@ func (m *Merchant) GetBSON() (interface{}, error) {
 		ItemMinCostAmount:   m.ItemMinCostAmount,
 		ItemMinCostCurrency: m.ItemMinCostCurrency,
 		Tariff:              m.Tariff,
-		SignatureRequest:    m.SignatureRequest,
-		MerchantSignature:   m.MerchantSignature,
-		PspSignature:        m.PspSignature,
 		Steps:               m.Steps,
 		AgreementTemplate:   m.AgreementTemplate,
 	}
@@ -1771,6 +1781,44 @@ func (m *Merchant) GetBSON() (interface{}, error) {
 		}
 	}
 
+	if m.AgreementSignatureData != nil {
+		st.AgreementSignatureData = &MgoMerchantAgreementSignatureData{
+			DetailsUrl:          m.AgreementSignatureData.DetailsUrl,
+			FilesUrl:            m.AgreementSignatureData.FilesUrl,
+			SignatureRequestId:  m.AgreementSignatureData.SignatureRequestId,
+			MerchantSignatureId: m.AgreementSignatureData.MerchantSignatureId,
+			PsSignatureId:       m.AgreementSignatureData.PsSignatureId,
+		}
+
+		if m.AgreementSignatureData.MerchantSignUrl != nil {
+			st.AgreementSignatureData.MerchantSignUrl = &MgoMerchantAgreementSignatureDataSignUrl{
+				SignUrl: m.AgreementSignatureData.MerchantSignUrl.SignUrl,
+			}
+
+			t, err := ptypes.Timestamp(m.AgreementSignatureData.MerchantSignUrl.ExpiresAt)
+
+			if err != nil {
+				return nil, err
+			}
+
+			st.AgreementSignatureData.MerchantSignUrl.ExpiresAt = t
+		}
+
+		if m.AgreementSignatureData.PsSignUrl != nil {
+			st.AgreementSignatureData.PsSignUrl = &MgoMerchantAgreementSignatureDataSignUrl{
+				SignUrl: m.AgreementSignatureData.PsSignUrl.SignUrl,
+			}
+
+			t, err := ptypes.Timestamp(m.AgreementSignatureData.PsSignUrl.ExpiresAt)
+
+			if err != nil {
+				return nil, err
+			}
+
+			st.AgreementSignatureData.PsSignUrl.ExpiresAt = t
+		}
+	}
+
 	return st, nil
 }
 
@@ -1806,9 +1854,6 @@ func (m *Merchant) SetBSON(raw bson.Raw) error {
 	m.ItemMinCostAmount = decoded.ItemMinCostAmount
 	m.ItemMinCostCurrency = decoded.ItemMinCostCurrency
 	m.Tariff = decoded.Tariff
-	m.SignatureRequest = decoded.SignatureRequest
-	m.MerchantSignature = decoded.MerchantSignature
-	m.PspSignature = decoded.PspSignature
 	m.Steps = decoded.Steps
 	m.AgreementTemplate = decoded.AgreementTemplate
 
@@ -1857,6 +1902,44 @@ func (m *Merchant) SetBSON(raw bson.Raw) error {
 				m.PaymentMethods[k].PaymentMethod.Id = v.PaymentMethod.Id.Hex()
 				m.PaymentMethods[k].PaymentMethod.Name = v.PaymentMethod.Name
 			}
+		}
+	}
+
+	if decoded.AgreementSignatureData != nil {
+		m.AgreementSignatureData = &MerchantAgreementSignatureData{
+			DetailsUrl:          decoded.AgreementSignatureData.DetailsUrl,
+			FilesUrl:            decoded.AgreementSignatureData.FilesUrl,
+			SignatureRequestId:  decoded.AgreementSignatureData.SignatureRequestId,
+			MerchantSignatureId: decoded.AgreementSignatureData.MerchantSignatureId,
+			PsSignatureId:       decoded.AgreementSignatureData.PsSignatureId,
+		}
+
+		if decoded.AgreementSignatureData.MerchantSignUrl != nil {
+			m.AgreementSignatureData.MerchantSignUrl = &MerchantAgreementSignatureDataSignUrl{
+				SignUrl: decoded.AgreementSignatureData.MerchantSignUrl.SignUrl,
+			}
+
+			t, err := ptypes.TimestampProto(decoded.AgreementSignatureData.MerchantSignUrl.ExpiresAt)
+
+			if err != nil {
+				return err
+			}
+
+			m.AgreementSignatureData.MerchantSignUrl.ExpiresAt = t
+		}
+
+		if decoded.AgreementSignatureData.PsSignUrl != nil {
+			m.AgreementSignatureData.PsSignUrl = &MerchantAgreementSignatureDataSignUrl{
+				SignUrl: decoded.AgreementSignatureData.PsSignUrl.SignUrl,
+			}
+
+			t, err := ptypes.TimestampProto(decoded.AgreementSignatureData.PsSignUrl.ExpiresAt)
+
+			if err != nil {
+				return err
+			}
+
+			m.AgreementSignatureData.PsSignUrl.ExpiresAt = t
 		}
 	}
 

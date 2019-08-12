@@ -22,7 +22,7 @@ require (
 	github.com/micro/go-config v0.14.0
 	github.com/micro/go-micro v1.0.0
 	github.com/micro/go-plugins v1.0.0
-	github.com/paysuper/document-signer v0.0.0-20190807095946-a2a286110a13
+	github.com/paysuper/document-signer v0.0.0-20190812065749-d26175441785
 	github.com/paysuper/paysuper-currencies v0.0.0-20190723132218-9628e1b3ba42
 	github.com/paysuper/paysuper-database-mongo v0.1.0
 	github.com/paysuper/paysuper-recurring-repository v1.0.111
@@ -39,6 +39,7 @@ require (
 	golang.org/x/net v0.0.0-20190607181551-461777fb6f67
 	google.golang.org/grpc v1.20.1
 	gopkg.in/ProtocolONE/rabbitmq.v1 v1.0.0-20190719062839-9858d727f3ef
+	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/go-playground/validator.v9 v9.29.1
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce
