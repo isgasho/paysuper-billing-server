@@ -271,13 +271,15 @@ func (s *Service) GetVatReportTransactions(
 		"country_code": vr.Country,
 	}
 
+	n, err := s.countTransactions(match)
+
 	vts, err := s.getTransactionsPublic(match, int(req.Limit), int(req.Offset))
 	if err != nil {
 		return err
 	}
 
 	res.Data = &grpc.TransactionsPaginate{
-		Count: int32(len(vts)),
+		Count: int32(n),
 		Items: vts,
 	}
 
