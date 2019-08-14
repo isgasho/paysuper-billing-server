@@ -42,6 +42,10 @@ type OnboardingTestSuite struct {
 
 	logObserver *zap.Logger
 	zapRecorder *observer.ObservedLogs
+
+	euTariff           *billing.MerchantTariffRates
+	cisTariff          *billing.MerchantTariffRates
+	southPacificTariff *billing.MerchantTariffRates
 }
 
 func Test_Onboarding(t *testing.T) {
@@ -322,6 +326,135 @@ func (suite *OnboardingTestSuite) SetupTest() {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 
+	euTariff := &billing.MerchantTariffRates{
+		Payment: []*billing.MerchantTariffRatesPayments{
+			{
+				Method:                 "VISA",
+				PayoutCurrency:         "USD",
+				AmountRange:            &billing.PriceTableCurrency{From: 0.75, To: 5},
+				Country:                "DE",
+				MethodPercentFee:       2,
+				MethodFixedFee:         0.1,
+				MethodFixedFeeCurrency: "USD",
+				PsPercentFee:           5,
+				PsFixedFee:             0.05,
+				PsFixedFeeCurrency:     "USD",
+			},
+			{
+				Method:                 "VISA",
+				PayoutCurrency:         "USD",
+				AmountRange:            &billing.PriceTableCurrency{From: 5, To: 999999999999999.99},
+				Country:                "DE",
+				MethodPercentFee:       1.6,
+				MethodFixedFee:         0.1,
+				MethodFixedFeeCurrency: "USD",
+				PsPercentFee:           5,
+				PsFixedFee:             0,
+				PsFixedFeeCurrency:     "USD",
+			},
+		},
+		MoneyBack: []*billing.MerchantTariffRatesMoneyBack{
+			{
+				Method:           "VISA",
+				PayoutCurrency:   "USD",
+				Country:          "DE",
+				DaysRange:        &billing.RangeInt{From: 0, To: 1000000000},
+				PaymentStage:     1,
+				PercentFee:       1,
+				FixedFee:         10,
+				FixedFeeCurrency: "USD",
+				IsPaidByMerchant: false,
+			},
+		},
+		Payout:     &billing.TariffRatesItem{FixedFee: 25, FixedFeeCurrency: "USD", IsPaidByMerchant: true},
+		Chargeback: &billing.TariffRatesItem{FixedFee: 25, FixedFeeCurrency: "USD", IsPaidByMerchant: true},
+		Region:     "EU",
+	}
+	cisTariff := &billing.MerchantTariffRates{
+		Payment: []*billing.MerchantTariffRatesPayments{
+			{
+				Method:                 "MasterCard",
+				PayoutCurrency:         "USD",
+				AmountRange:            &billing.PriceTableCurrency{From: 0.75, To: 5},
+				Country:                "RU",
+				MethodPercentFee:       2,
+				MethodFixedFee:         0.1,
+				MethodFixedFeeCurrency: "USD",
+				PsPercentFee:           5,
+				PsFixedFee:             0.05,
+				PsFixedFeeCurrency:     "USD",
+			},
+			{
+				Method:                 "Yandex Money",
+				PayoutCurrency:         "USD",
+				AmountRange:            &billing.PriceTableCurrency{From: 0.75, To: 5},
+				Country:                "RU",
+				MethodPercentFee:       1.6,
+				MethodFixedFee:         0.1,
+				MethodFixedFeeCurrency: "USD",
+				PsPercentFee:           5,
+				PsFixedFee:             0,
+				PsFixedFeeCurrency:     "USD",
+			},
+		},
+		MoneyBack: []*billing.MerchantTariffRatesMoneyBack{
+			{
+				Method:           "MasterCard",
+				PayoutCurrency:   "USD",
+				Country:          "RU",
+				DaysRange:        &billing.RangeInt{From: 0, To: 1000000000},
+				PaymentStage:     1,
+				PercentFee:       1,
+				FixedFee:         10,
+				FixedFeeCurrency: "USD",
+				IsPaidByMerchant: false,
+			},
+		},
+		Payout:     &billing.TariffRatesItem{FixedFee: 25, FixedFeeCurrency: "USD", IsPaidByMerchant: true},
+		Chargeback: &billing.TariffRatesItem{FixedFee: 25, FixedFeeCurrency: "USD", IsPaidByMerchant: true},
+		Region:     "CIS",
+	}
+	southPacificTariff := &billing.MerchantTariffRates{
+		Payment: []*billing.MerchantTariffRatesPayments{
+			{
+				Method:                 "JCB",
+				PayoutCurrency:         "USD",
+				AmountRange:            &billing.PriceTableCurrency{From: 0.75, To: 5},
+				Country:                "TK",
+				MethodPercentFee:       2,
+				MethodFixedFee:         0.1,
+				MethodFixedFeeCurrency: "USD",
+				PsPercentFee:           5,
+				PsFixedFee:             0.05,
+				PsFixedFeeCurrency:     "USD",
+			},
+		},
+		MoneyBack: []*billing.MerchantTariffRatesMoneyBack{
+			{
+				Method:           "JCB",
+				PayoutCurrency:   "USD",
+				Country:          "TK",
+				DaysRange:        &billing.RangeInt{From: 0, To: 1000000000},
+				PaymentStage:     1,
+				PercentFee:       1,
+				FixedFee:         10,
+				FixedFeeCurrency: "USD",
+				IsPaidByMerchant: false,
+			},
+		},
+		Payout:     &billing.TariffRatesItem{FixedFee: 25, FixedFeeCurrency: "USD", IsPaidByMerchant: true},
+		Chargeback: &billing.TariffRatesItem{FixedFee: 25, FixedFeeCurrency: "USD", IsPaidByMerchant: true},
+		Region:     "South Pacific",
+	}
+
+	tariffs := []interface{}{euTariff, cisTariff, southPacificTariff}
+
+	err = suite.service.db.Collection(collectionMerchantsTariffRates).Insert(tariffs...)
+
+	if err != nil {
+		suite.FailNow("Insert merchant tariffs test data failed", "%v", err)
+	}
+
 	suite.merchant = merchant
 	suite.merchantAgreement = merchantAgreement
 	suite.merchant1 = merchant1
@@ -336,6 +469,10 @@ func (suite *OnboardingTestSuite) SetupTest() {
 	lvl := zap.NewAtomicLevel()
 	core, suite.zapRecorder = observer.New(lvl)
 	suite.logObserver = zap.New(core)
+
+	suite.euTariff = euTariff
+	suite.cisTariff = cisTariff
+	suite.southPacificTariff = southPacificTariff
 }
 
 func (suite *OnboardingTestSuite) TearDownTest() {
@@ -3296,4 +3433,62 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_Pay
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)
 	assert.NotNil(suite.T(), rsp1.Item)
+}
+
+func (suite *OnboardingTestSuite) TestOnboarding_GetOnboardingTariffRates_Ok() {
+	req := &grpc.GetMerchantTariffRatesRequest{
+		Region:         "CIS",
+		PayoutCurrency: "USD",
+		AmountFrom:     0.75,
+		AmountTo:       5,
+	}
+	rsp := &grpc.GetMerchantTariffRatesResponse{}
+	err := suite.service.GetOnboardingTariffRates(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotNil(suite.T(), rsp.Item)
+	assert.NotEmpty(suite.T(), rsp.Item.Payment)
+	assert.Len(suite.T(), rsp.Item.Payment, 2)
+	assert.Equal(suite.T(), rsp.Item.Payment[0], suite.cisTariff.Payment[0])
+	assert.Equal(suite.T(), rsp.Item.Payment[1], suite.cisTariff.Payment[1])
+	assert.NotEmpty(suite.T(), rsp.Item.MoneyBack)
+	assert.Len(suite.T(), rsp.Item.MoneyBack, 1)
+	assert.Equal(suite.T(), rsp.Item.MoneyBack[0], suite.cisTariff.MoneyBack[0])
+	assert.Equal(suite.T(), rsp.Item.Payout, suite.cisTariff.Payout)
+	assert.Equal(suite.T(), rsp.Item.Chargeback, suite.cisTariff.Chargeback)
+
+	err = suite.service.GetOnboardingTariffRates(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotNil(suite.T(), rsp.Item)
+	assert.NotEmpty(suite.T(), rsp.Item.Payment)
+	assert.Len(suite.T(), rsp.Item.Payment, 2)
+	assert.Equal(suite.T(), rsp.Item.Payment[0], suite.cisTariff.Payment[0])
+	assert.Equal(suite.T(), rsp.Item.Payment[1], suite.cisTariff.Payment[1])
+	assert.NotEmpty(suite.T(), rsp.Item.MoneyBack)
+	assert.Len(suite.T(), rsp.Item.MoneyBack, 1)
+	assert.Equal(suite.T(), rsp.Item.MoneyBack[0], suite.cisTariff.MoneyBack[0])
+	assert.Equal(suite.T(), rsp.Item.Payout, suite.cisTariff.Payout)
+	assert.Equal(suite.T(), rsp.Item.Chargeback, suite.cisTariff.Chargeback)
+}
+
+func (suite *OnboardingTestSuite) TestOnboarding_GetOnboardingTariffRates_RepositoryError() {
+	mtf := &mock.MerchantTariffRatesInterface{}
+	mtf.On("GetBy", mock2.Anything).Return(nil, errors.New(mock.SomeError))
+	suite.service.merchantTariffRates = mtf
+
+	req := &grpc.GetMerchantTariffRatesRequest{
+		Region:         "CIS",
+		PayoutCurrency: "USD",
+		AmountFrom:     0.75,
+		AmountTo:       5,
+	}
+	rsp := &grpc.GetMerchantTariffRatesResponse{}
+	err := suite.service.GetOnboardingTariffRates(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp.Status)
+	assert.Equal(suite.T(), merchantErrorUnknown, rsp.Message)
+	assert.Nil(suite.T(), rsp.Item)
 }

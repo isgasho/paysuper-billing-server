@@ -1129,3 +1129,23 @@ func (s *Service) changeMerchantAgreementSingUrl(
 
 	return signUrl, nil
 }
+
+func (s *Service) GetOnboardingTariffRates(
+	ctx context.Context,
+	req *grpc.GetMerchantTariffRatesRequest,
+	rsp *grpc.GetMerchantTariffRatesResponse,
+) error {
+	tariff, err := s.merchantTariffRates.GetBy(req)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = merchantErrorUnknown
+
+		return nil
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
+	rsp.Item = tariff
+
+	return nil
+}

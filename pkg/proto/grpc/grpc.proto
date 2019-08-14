@@ -21,6 +21,7 @@ service BillingService {
     rpc ChangeMerchantStatus (MerchantChangeStatusRequest) returns (ChangeMerchantStatusResponse) {}
     rpc ChangeMerchantData (ChangeMerchantDataRequest) returns (ChangeMerchantDataResponse) {}
     rpc SetMerchantS3Agreement (SetMerchantS3AgreementRequest) returns (ChangeMerchantDataResponse) {}
+    rpc GetOnboardingTariffRates(GetMerchantTariffRatesRequest) returns (GetMerchantTariffRatesResponse) {}
 
     rpc CreateNotification (NotificationRequest) returns (CreateNotificationResponse) {}
     rpc GetNotification (GetNotificationRequest) returns (billing.Notification) {}
@@ -1050,13 +1051,6 @@ message UpdateProductPricesRequest {
     repeated ProductPrice prices = 2;
 }
 
-message RangeInt {
-    //@inject_tag: json:"from"
-    int32 from = 1;
-    //@inject_tag: json:"to"
-    int32 to = 2;
-}
-
 message UserProfilePersonal {
     //@inject_tag: json:"first_name" bson:"first_name" validate:"required,name,max=30"
     string first_name = 1;
@@ -1109,9 +1103,9 @@ message UserProfileCompany {
     //@inject_tag: json:"website" validate:"required,url" bson:"website"
     string website = 2;
     //@inject_tag: json:"annual_income" bson:"annual_income" validate:"required"
-    RangeInt annual_income = 3;
+    billing.RangeInt annual_income = 3;
     //@inject_tag: json:"number_of_employees" bson:"number_of_employees" validate:"required"
-    RangeInt number_of_employees = 4;
+    billing.RangeInt number_of_employees = 4;
     //@inject_tag: json:"kind_of_activity" validate:"omitempty,oneof=develop_and_publish_your_games publish_games_of_other_companies publish_your_games_through_other_publishers other" bson:"kind_of_activity"
     string kind_of_activity = 5;
     //@inject_tag: json:"monetization" bson:"monetization"
@@ -1284,4 +1278,21 @@ message GetMerchantAgreementSignUrlResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     billing.MerchantAgreementSignatureDataSignUrl item = 3;
+}
+
+message GetMerchantTariffRatesRequest {
+    // @inject_tag: query:"region" validate:"required,numeric,oneof=0 1 2 3 4 5 6 7 8 9"
+    string region = 1;
+    //@inject_tag: query:"payout_currency" validate:"required,alpha,len=3"
+    string payout_currency = 2;
+    // @inject_tag: query:"amount[from]" validate:"required,numeric,gte=0"
+    double amount_from = 3;
+    // @inject_tag: query:"amount[to]" validate:"required,numeric,gt=0"
+    double amount_to = 4;
+}
+
+message GetMerchantTariffRatesResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.MerchantTariffRates item = 3;
 }
