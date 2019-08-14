@@ -205,6 +205,34 @@ func (suite *KeyProductTestSuite) TestGetKeyProductInfo() {
 	shouldBe.True( res.KeyProduct.Platforms[0].Price.IsFallback)
 }
 
+func (suite *KeyProductTestSuite) TestGetPlatforms() {
+	shouldBe := require.New(suite.T())
+
+	rsp := &grpc.ListPlatformsResponse{}
+	shouldBe.Nil(suite.service.GetPlatforms(context.TODO(), &grpc.ListPlatformsRequest{
+		Limit: 100,
+		Offset: 0,
+	}, rsp))
+	shouldBe.EqualValues(200, rsp.Status)
+	shouldBe.NotEmpty(rsp.Platforms)
+
+	rsp = &grpc.ListPlatformsResponse{}
+	shouldBe.Nil(suite.service.GetPlatforms(context.TODO(), &grpc.ListPlatformsRequest{
+		Limit: 1,
+		Offset: 0,
+	}, rsp))
+	shouldBe.EqualValues(200, rsp.Status)
+	shouldBe.Equal(1, len(rsp.Platforms))
+
+	rsp = &grpc.ListPlatformsResponse{}
+	shouldBe.Nil(suite.service.GetPlatforms(context.TODO(), &grpc.ListPlatformsRequest{
+		Limit: 100,
+		Offset: 100,
+	}, rsp))
+	shouldBe.EqualValues(200, rsp.Status)
+	shouldBe.Empty(rsp.Platforms)
+}
+
 func (suite *KeyProductTestSuite) GetKeyProduct_Test() {
 	shouldBe := require.New(suite.T())
 

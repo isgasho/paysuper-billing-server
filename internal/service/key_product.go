@@ -37,7 +37,7 @@ var (
 	keyProductInternalError          = newBillingServerErrorMsg("kp000018", "unknown error")
 )
 
-var availablePlatforms = map[string]grpc.Platform{
+var availablePlatforms = map[string]*grpc.Platform{
 	"steam":    {Id: "steam", Name: "Steam"},
 	"gog":      {Id: "gog", Name: "GOG"},
 	"egs":      {Id: "egs", Name: "Epic Game Store"},
