@@ -18,13 +18,13 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	curPkg "github.com/paysuper/paysuper-currencies/pkg"
-	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/entity"
 	repo "github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"github.com/paysuper/paysuper-tax-service/proto"
+	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
 	"github.com/streadway/amqp"
 	"github.com/ttacon/libphonenumber"
 	"go.uber.org/zap"
@@ -1253,11 +1253,12 @@ func (s *Service) updateOrder(order *billing.Order) error {
 	zap.S().Debug("[updateOrder] updating order success", "order_id", order.Id, "status_changed", statusChanged)
 
 	if statusChanged && ps != constant.OrderPublicStatusCreated && ps != constant.OrderPublicStatusPending {
-		zap.S().Debug("[updateOrder] notify merchant", "order_id", order.Id)
-		s.orderNotifyMerchant(order)
 		if order.ProductType == billing.OrderType_key {
 			s.orderNotifyKeyProducts(context.TODO(), order)
 		}
+
+		zap.S().Debug("[updateOrder] notify merchant", "order_id", order.Id)
+		s.orderNotifyMerchant(order)
 	}
 
 	return nil
@@ -1313,8 +1314,8 @@ func (s *Service) orderNotifyKeyProducts(ctx context.Context, order *billing.Ord
 			payload := &postmarkSdrPkg.Payload{
 				TemplateAlias: s.cfg.EmailConfirmTemplate,
 				TemplateModel: map[string]string{
-					"code": rsp.Key.Code,
-					"platform_id": rsp.Key.PlatformId,
+					"code":         rsp.Key.Code,
+					"platform_id":  rsp.Key.PlatformId,
 					"product_name": name,
 				},
 				To: order.ReceiptEmail,
@@ -1324,6 +1325,13 @@ func (s *Service) orderNotifyKeyProducts(ctx context.Context, order *billing.Ord
 				zap.S().Error(
 					"Publication activation code to user email queue is failed",
 					"err", err, "email", order.ReceiptEmail, "order_id", order.Id, "key", rsp.Key.Id)
+			}
+			
+			for _, p := range order.Items {
+				if p.Id == rsp.Key.KeyProductId {
+					p.Code = rsp.Key.Code
+					break
+				}
 			}
 		}
 		break
@@ -2537,6 +2545,7 @@ func (s *Service) GetOrderKeyProductsItems(products []*grpc.KeyProduct, language
 			Metadata:    p.Metadata,
 			Amount:      amount,
 			Currency:    group.Currency,
+			PlatformId:  platformId,
 		}
 		result = append(result, item)
 	}
