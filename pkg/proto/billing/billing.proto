@@ -530,6 +530,10 @@ message OrderItem {
     google.protobuf.Timestamp created_at = 11;
     //@inject_tag: json:"updated_at" bson:"updated_at"
     google.protobuf.Timestamp updated_at = 12;
+    //@inject_tag: validate:"omitempty,min=3" json:"platform_id" bson:"platform_id"
+    string platform_id = 13;
+    //@inject_tag: validate:"omitempty,min=5" json:"code" bson:"code"
+    string code = 14;
 }
 
 message OrderPaginate {
