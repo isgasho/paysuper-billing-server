@@ -256,23 +256,23 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_RUB() {
 		"ps_gross_revenue_fx_profit":                0.2,
 		"merchant_gross_revenue":                    11.76,
 		"merchant_tax_fee_cost_value":               1.96,
-		"merchant_tax_fee_central_bank_fx":          0.0459375,
-		"merchant_tax_fee":                          2.0059375,
+		"merchant_tax_fee_central_bank_fx":          0.045938,
+		"merchant_tax_fee":                          2.005938,
 		"ps_method_fee":                             0.588,
 		"merchant_method_fee":                       0.3528,
 		"merchant_method_fee_cost_value":            0.24,
 		"ps_markup_merchant_method_fee":             0.1128,
-		"merchant_method_fixed_fee":                 0.0225969231,
-		"real_merchant_method_fixed_fee":            0.0221538462,
-		"markup_merchant_method_fixed_fee_fx":       0.0004430769,
+		"merchant_method_fixed_fee":                 0.022597,
+		"real_merchant_method_fixed_fee":            0.022154,
+		"markup_merchant_method_fixed_fee_fx":       0.000443,
 		"real_merchant_method_fixed_fee_cost_value": 0.01,
-		"ps_method_fixed_fee_profit":                0.0121538462,
-		"merchant_ps_fixed_fee":                     0.0564923077,
-		"real_merchant_ps_fixed_fee":                0.0553846154,
-		"markup_merchant_ps_fixed_fee":              0.0011076923,
-		"ps_method_profit":                          0.3944923077,
-		"merchant_net_revenue":                      9.1095701923,
-		"ps_profit_total":                           0.5944923077,
+		"ps_method_fixed_fee_profit":                0.012154,
+		"merchant_ps_fixed_fee":                     0.056492,
+		"real_merchant_ps_fixed_fee":                0.055385,
+		"markup_merchant_ps_fixed_fee":              0.001107,
+		"ps_method_profit":                          0.394492,
+		"merchant_net_revenue":                      9.10957,
+		"ps_profit_total":                           0.594492,
 	}
 
 	refundControlResults := map[string]float64{
@@ -288,10 +288,10 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_RUB() {
 		"merchant_refund_fixed_fee":            0,
 		"ps_merchant_refund_fixed_fee_fx":      0,
 		"ps_merchant_refund_fixed_fee_profit":  -0.15,
-		"reverse_tax_fee":                      2.0059375,
+		"reverse_tax_fee":                      2.005938,
 		"reverse_tax_fee_delta":                0,
-		"ps_reverse_tax_fee_delta":             0.0340625,
-		"merchant_reverse_tax_fee":             2.0059375,
+		"ps_reverse_tax_fee_delta":             0.034062,
+		"merchant_reverse_tax_fee":             2.005937,
 		"merchant_reverse_revenue":             10.2340625,
 		"ps_refund_profit":                     -1.3159375,
 	}
@@ -370,17 +370,17 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_USD() {
 		"merchant_method_fee":                       0.3528,
 		"merchant_method_fee_cost_value":            0.24,
 		"ps_markup_merchant_method_fee":             0.1128,
-		"merchant_method_fixed_fee":                 0.0225969231,
-		"real_merchant_method_fixed_fee":            0.0221538462,
-		"markup_merchant_method_fixed_fee_fx":       0.0004430769,
+		"merchant_method_fixed_fee":                 0.022597,
+		"real_merchant_method_fixed_fee":            0.022154,
+		"markup_merchant_method_fixed_fee_fx":       0.000443,
 		"real_merchant_method_fixed_fee_cost_value": 0.01,
-		"ps_method_fixed_fee_profit":                0.0121538462,
-		"merchant_ps_fixed_fee":                     0.0564923077,
-		"real_merchant_ps_fixed_fee":                0.0553846154,
-		"markup_merchant_ps_fixed_fee":              0.0011076923,
-		"ps_method_profit":                          0.3944923077,
-		"merchant_net_revenue":                      9.1555076923,
-		"ps_profit_total":                           0.5944923077,
+		"ps_method_fixed_fee_profit":                0.012154,
+		"merchant_ps_fixed_fee":                     0.056492,
+		"real_merchant_ps_fixed_fee":                0.055385,
+		"markup_merchant_ps_fixed_fee":              0.001107,
+		"ps_method_profit":                          0.394492,
+		"merchant_net_revenue":                      9.155508,
+		"ps_profit_total":                           0.594492,
 	}
 
 	refundControlResults := map[string]float64{
@@ -474,22 +474,22 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_EUR() {
 		"ps_gross_revenue_fx_profit":                0.2,
 		"merchant_gross_revenue":                    11.76,
 		"merchant_tax_fee_cost_value":               1.96,
-		"merchant_tax_fee_central_bank_fx":          0.0044353448,
-		"merchant_tax_fee":                          1.9644353448,
+		"merchant_tax_fee_central_bank_fx":          0.004436,
+		"merchant_tax_fee":                          1.964436,
 		"ps_method_fee":                             0.588,
 		"merchant_method_fee":                       0.3528,
 		"merchant_method_fee_cost_value":            0.24,
 		"ps_markup_merchant_method_fee":             0.1128,
-		"merchant_method_fixed_fee":                 0.0225969231,
-		"real_merchant_method_fixed_fee":            0.0221538462,
-		"markup_merchant_method_fixed_fee_fx":       0.0004430769,
+		"merchant_method_fixed_fee":                 0.022597,
+		"real_merchant_method_fixed_fee":            0.022154,
+		"markup_merchant_method_fixed_fee_fx":       0.000443,
 		"real_merchant_method_fixed_fee_cost_value": 0.01,
-		"ps_method_fixed_fee_profit":                0.0121538462,
-		"merchant_ps_fixed_fee":                     0.0564923077,
-		"real_merchant_ps_fixed_fee":                0.0553846154,
-		"markup_merchant_ps_fixed_fee":              0.0011076923,
-		"ps_method_profit":                          0.3944923077,
-		"merchant_net_revenue":                      9.1510723475,
+		"ps_method_fixed_fee_profit":                0.012154,
+		"merchant_ps_fixed_fee":                     0.056492,
+		"real_merchant_ps_fixed_fee":                0.055385,
+		"markup_merchant_ps_fixed_fee":              0.001107,
+		"ps_method_profit":                          0.394492,
+		"merchant_net_revenue":                      9.151072,
 		"ps_profit_total":                           0.5944923077,
 	}
 
@@ -506,10 +506,10 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_EUR() {
 		"merchant_refund_fixed_fee":            0,
 		"ps_merchant_refund_fixed_fee_fx":      0,
 		"ps_merchant_refund_fixed_fee_profit":  -0.15,
-		"reverse_tax_fee":                      1.9644353448,
+		"reverse_tax_fee":                      1.964436,
 		"reverse_tax_fee_delta":                0,
-		"ps_reverse_tax_fee_delta":             0.0755646552,
-		"merchant_reverse_tax_fee":             1.9644353448,
+		"ps_reverse_tax_fee_delta":             0.075564,
+		"merchant_reverse_tax_fee":             1.964435,
 		"merchant_reverse_revenue":             10.2755646552,
 		"ps_refund_profit":                     -1.2744353448,
 	}
@@ -583,12 +583,12 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_PartialRefund_Ok_RUB_
 		"merchant_refund_fixed_fee":            0,
 		"ps_merchant_refund_fixed_fee_fx":      0,
 		"ps_merchant_refund_fixed_fee_profit":  -0.15,
-		"reverse_tax_fee":                      0.9822176724,
+		"reverse_tax_fee":                      0.982218,
 		"reverse_tax_fee_delta":                0,
-		"ps_reverse_tax_fee_delta":             0.0377823276,
-		"merchant_reverse_tax_fee":             0.9822176724,
-		"merchant_reverse_revenue":             5.1377823276,
-		"ps_refund_profit":                     -0.7122176724,
+		"ps_reverse_tax_fee_delta":             0.037782,
+		"merchant_reverse_tax_fee":             0.982218,
+		"merchant_reverse_revenue":             5.137782,
+		"ps_refund_profit":                     -0.712218,
 	}
 
 	order := helperCreateAndPayOrder(suite.Suite, suite.service, orderAmount, orderCurrency, orderCountry, suite.projectFixedAmount, suite.paymentMethod)
@@ -716,14 +716,14 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_USD
 		"ps_merchant_refund_fx":                0.24,
 		"merchant_refund_fee":                  2.448,
 		"ps_markup_merchant_refund_fee":        1.248,
-		"merchant_refund_fixed_fee_cost_value": 0.1661538462,
-		"merchant_refund_fixed_fee":            0.1694769231,
+		"merchant_refund_fixed_fee_cost_value": 0.166154,
+		"merchant_refund_fixed_fee":            0.169477,
 		"ps_merchant_refund_fixed_fee_fx":      0.0033230769,
 		"ps_merchant_refund_fixed_fee_profit":  0.0194769231,
-		"reverse_tax_fee":                      2.0059375,
+		"reverse_tax_fee":                      2.005938,
 		"reverse_tax_fee_delta":                0,
-		"ps_reverse_tax_fee_delta":             0.0340625,
-		"merchant_reverse_tax_fee":             2.0059375,
+		"ps_reverse_tax_fee_delta":             0.034062,
+		"merchant_reverse_tax_fee":             2.005938,
 		"merchant_reverse_revenue":             12.8515394231,
 		"ps_refund_profit":                     1.3015394231,
 	}
@@ -777,8 +777,8 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_USD
 		"ps_merchant_refund_fx":                0.24,
 		"merchant_refund_fee":                  2.448,
 		"ps_markup_merchant_refund_fee":        1.248,
-		"merchant_refund_fixed_fee_cost_value": 0.1661538462,
-		"merchant_refund_fixed_fee":            0.1694769231,
+		"merchant_refund_fixed_fee_cost_value": 0.166154,
+		"merchant_refund_fixed_fee":            0.169477,
 		"ps_merchant_refund_fixed_fee_fx":      0.0033230769,
 		"ps_merchant_refund_fixed_fee_profit":  0.0194769231,
 		"reverse_tax_fee":                      1.96,
@@ -838,16 +838,16 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_USD
 		"ps_merchant_refund_fx":                0.24,
 		"merchant_refund_fee":                  2.448,
 		"ps_markup_merchant_refund_fee":        1.248,
-		"merchant_refund_fixed_fee_cost_value": 0.1661538462,
-		"merchant_refund_fixed_fee":            0.1694769231,
-		"ps_merchant_refund_fixed_fee_fx":      0.0033230769,
-		"ps_merchant_refund_fixed_fee_profit":  0.0194769231,
-		"reverse_tax_fee":                      1.9644353448,
+		"merchant_refund_fixed_fee_cost_value": 0.166154,
+		"merchant_refund_fixed_fee":            0.169477,
+		"ps_merchant_refund_fixed_fee_fx":      0.003323,
+		"ps_merchant_refund_fixed_fee_profit":  0.019477,
+		"reverse_tax_fee":                      1.964436,
 		"reverse_tax_fee_delta":                0,
-		"ps_reverse_tax_fee_delta":             0.0755646552,
-		"merchant_reverse_tax_fee":             1.9644353448,
-		"merchant_reverse_revenue":             12.8930415783,
-		"ps_refund_profit":                     1.3430415783,
+		"ps_reverse_tax_fee_delta":             0.075564,
+		"merchant_reverse_tax_fee":             1.964435,
+		"merchant_reverse_revenue":             12.893042,
+		"ps_refund_profit":                     1.343042,
 	}
 
 	order := helperCreateAndPayOrder(suite.Suite, suite.service, orderAmount, orderCurrency, orderCountry, suite.projectFixedAmount, suite.paymentMethod)
@@ -1200,7 +1200,7 @@ func (suite *AccountingEntryTestSuite) helperCheckRefundView(orderId, orderCurre
 
 	a := orderView.RefundTaxFeeTotal.Amount
 	b := refundControlResults["reverse_tax_fee"] + refundControlResults["reverse_tax_fee_delta"]
-	assert.Equal(suite.T(), a, tools.ToPrecise(b))
+	assert.Equal(suite.T(), tools.ToPrecise(a), tools.ToPrecise(b))
 
 	a = orderView.RefundFeesTotal.Amount
 	b = refundControlResults["merchant_refund_fee"] + refundControlResults["merchant_refund_fixed_fee"]
@@ -1220,7 +1220,7 @@ func (suite *AccountingEntryTestSuite) helperCheckRefundView(orderId, orderCurre
 
 	a = orderView.RefundReverseRevenue.Amount
 	b = refundControlResults["merchant_refund"] + refundControlResults["merchant_refund_fee"] + refundControlResults["merchant_refund_fixed_fee"] + refundControlResults["reverse_tax_fee_delta"] - refundControlResults["reverse_tax_fee"]
-	assert.Equal(suite.T(), a, tools.ToPrecise(b))
+	assert.Equal(suite.T(), tools.ToPrecise(a), tools.ToPrecise(b))
 
 	a = orderView.PaysuperRefundTotalProfit.Amount
 	b = refundControlResults["merchant_refund_fee"] + refundControlResults["merchant_refund_fixed_fee"] + refundControlResults["ps_reverse_tax_fee_delta"] - refundControlResults["real_refund_fixed_fee"] - refundControlResults["real_refund_fee"]

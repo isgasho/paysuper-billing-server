@@ -704,6 +704,10 @@ github.com/paysuper/paysuper-database-mongo v0.1.0/go.mod h1:IZu996j//Qoq+uzzCBL
 github.com/paysuper/paysuper-recurring-repository v1.0.104/go.mod h1:FyZzueaAoG6apdmfjz7BQd5QMgV3KRIGgFhRXHEIpro=
 github.com/paysuper/paysuper-recurring-repository v1.0.111 h1:YSg8Rvp7p1Nd0baEaG+XpcFCtnUE9rlYR1HdS1toZqQ=
 github.com/paysuper/paysuper-recurring-repository v1.0.111/go.mod h1:4XX2FeDCMGxAHBO/Pn9mE8JJiPaYaNxXhQnZL91ec0Y=
+github.com/paysuper/paysuper-recurring-repository v1.0.112 h1:YafGEH/ya0lclQI63SgNQOGTsIv+dDzcQ0GW6iw1y58=
+github.com/paysuper/paysuper-recurring-repository v1.0.112/go.mod h1:4XX2FeDCMGxAHBO/Pn9mE8JJiPaYaNxXhQnZL91ec0Y=
+github.com/paysuper/paysuper-recurring-repository v1.0.113 h1:jumiog+1NakjhyldLwFB2px/gm8DjiQLNwXLopJ73wk=
+github.com/paysuper/paysuper-recurring-repository v1.0.113/go.mod h1:4XX2FeDCMGxAHBO/Pn9mE8JJiPaYaNxXhQnZL91ec0Y=
 github.com/paysuper/paysuper-tax-service v0.0.0-20190722140034-a37f835eaad7 h1:bGPbVtlyrkJ8W1kaZnxiUmGs5lsjuBVJzT9AE7SlS78=
 github.com/paysuper/paysuper-tax-service v0.0.0-20190722140034-a37f835eaad7/go.mod h1:sG79373f9raEBE9m1ZF9lmPSOfiLRTWhvvdcMR4h9/4=
 github.com/paysuper/postmark-sender v0.0.0-20190724195234-709a636c4f39 h1:VgocRLQ8zaXPA4fMm2H/PMBjmVgr1lNfLVyU3p2PzY4=
