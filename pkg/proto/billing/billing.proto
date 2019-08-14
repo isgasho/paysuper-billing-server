@@ -319,7 +319,7 @@ message Merchant {
     string item_min_cost_currency = 40;
     string centrifugo_token = 41;
     //@inject_tag: json:"tariff"
-    string tariff = 42;
+    MerchantTariffRates tariff = 42;
     //@inject_tag: json:"-"
     MerchantAgreementSignatureData agreement_signature_data = 43;
     //@inject_tag: json:"-"

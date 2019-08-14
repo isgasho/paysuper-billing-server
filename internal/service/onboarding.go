@@ -267,10 +267,6 @@ func (s *Service) ChangeMerchant(
 		merchant.Contacts = req.Contacts
 	}
 
-	if req.Tariff != "" {
-		merchant.Tariff = req.Tariff
-	}
-
 	if merchant.IsDataComplete() && merchant.AgreementSignatureData == nil {
 		merchant.AgreementSignatureData, err = s.getMerchantAgreementSignature(ctx, merchant)
 
@@ -287,7 +283,7 @@ func (s *Service) ChangeMerchant(
 		Company:  merchant.Company != nil,
 		Contacts: merchant.Contacts != nil,
 		Banking:  merchant.Banking != nil,
-		Tariff:   merchant.Tariff != "",
+		Tariff:   merchant.Tariff != nil,
 	}
 
 	err = s.merchant.Upsert(merchant)
@@ -951,11 +947,11 @@ func (s *Service) GetMerchantAgreementSignUrl(
 
 func (s *Service) IsChangeDataAllow(merchant *billing.Merchant, data *grpc.OnboardingRequest) bool {
 	if merchant.IsAgreementSigningStarted() && (data.Company != nil || data.Contacts != nil || data.Banking != nil ||
-		data.Tariff != "") {
+		merchant.Tariff != nil) {
 		return false
 	}
 
-	if merchant.IsAgreementSigned() && data.Tariff != "" {
+	if merchant.IsAgreementSigned() && merchant.Tariff != nil {
 		return false
 	}
 
@@ -1155,7 +1151,7 @@ func (s *Service) SetMerchantTariffRates(
 	req *grpc.SetMerchantTariffRatesRequest,
 	rsp *grpc.CheckProjectRequestSignatureResponse,
 ) error {
-	_, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
+	merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -1164,6 +1160,13 @@ func (s *Service) SetMerchantTariffRates(
 		if err == merchantErrorUnknown {
 			rsp.Status = pkg.ResponseStatusSystemError
 		}
+
+		return nil
+	}
+
+	if merchant.IsAgreementSigningStarted() {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = merchantErrorChangeNotAllowed
 
 		return nil
 	}
@@ -1268,6 +1271,27 @@ func (s *Service) SetMerchantTariffRates(
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusSystemError
 			rsp.Message = merchantErrorUnknown
+
+			return nil
+		}
+	}
+
+	merchant.Tariff = tariff
+	err = s.merchant.Update(merchant)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = merchantErrorUnknown
+
+		return nil
+	}
+
+	if merchant.IsDataComplete() && merchant.AgreementSignatureData == nil {
+		merchant.AgreementSignatureData, err = s.getMerchantAgreementSignature(ctx, merchant)
+
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = err.(*grpc.ResponseErrorMessage)
 
 			return nil
 		}

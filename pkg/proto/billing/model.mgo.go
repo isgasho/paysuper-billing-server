@@ -116,7 +116,7 @@ type MgoMerchant struct {
 	RollingReserveChargebackTransactionsThreshold float64                              `bson:"rolling_reserve_chargeback_transactions_threshold"`
 	ItemMinCostAmount                             float64                              `bson:"item_min_cost_amount"`
 	ItemMinCostCurrency                           string                               `bson:"item_min_cost_currency"`
-	Tariff                                        string                               `bson:"tariff"`
+	Tariff                                        *MerchantTariffRates                 `bson:"tariff"`
 	AgreementSignatureData                        *MgoMerchantAgreementSignatureData   `bson:"agreement_signature_data"`
 	Steps                                         *MerchantCompletedSteps              `bson:"steps"`
 	AgreementTemplate                             string                               `bson:"agreement_template"`

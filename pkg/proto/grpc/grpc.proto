@@ -227,7 +227,6 @@ message OnboardingRequest {
     billing.MerchantCompanyInfo company = 3;
     billing.MerchantContact contacts = 14;
     billing.MerchantBanking banking = 15;
-    string tariff = 16;
 }
 
 message FindByIdRequest {

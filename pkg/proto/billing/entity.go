@@ -189,7 +189,7 @@ func (m *Merchant) GetCompleteStepsCount() int32 {
 }
 
 func (m *Merchant) IsDataComplete() bool {
-	return m.Company != nil && m.Contacts != nil && m.Banking != nil && m.Tariff != ""
+	return m.Company != nil && m.Contacts != nil && m.Banking != nil && m.Tariff != nil
 }
 
 func (m *Merchant) GetMerchantSignatureId() string {
