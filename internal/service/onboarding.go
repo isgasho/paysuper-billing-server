@@ -1130,7 +1130,7 @@ func (s *Service) changeMerchantAgreementSingUrl(
 	return signUrl, nil
 }
 
-func (s *Service) GetOnboardingTariffRates(
+func (s *Service) GetMerchantTariffRates(
 	ctx context.Context,
 	req *grpc.GetMerchantTariffRatesRequest,
 	rsp *grpc.GetMerchantTariffRatesResponse,
@@ -1146,6 +1146,134 @@ func (s *Service) GetOnboardingTariffRates(
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = tariff
+
+	return nil
+}
+
+func (s *Service) SetMerchantTariffRates(
+	ctx context.Context,
+	req *grpc.SetMerchantTariffRatesRequest,
+	rsp *grpc.CheckProjectRequestSignatureResponse,
+) error {
+	_, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
+
+		if err == merchantErrorUnknown {
+			rsp.Status = pkg.ResponseStatusSystemError
+		}
+
+		return nil
+	}
+
+	query := &grpc.GetMerchantTariffRatesRequest{
+		Region:         req.Region,
+		PayoutCurrency: req.PayoutCurrency,
+		AmountFrom:     req.AmountFrom,
+		AmountTo:       req.AmountTo,
+	}
+	tariff, err := s.merchantTariffRates.GetBy(query)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = merchantErrorUnknown
+
+		return nil
+	}
+
+	if len(tariff.Payment) > 0 {
+		var costs []*billing.PaymentChannelCostMerchant
+
+		for _, v := range tariff.Payment {
+			cost := &billing.PaymentChannelCostMerchant{
+				Id:                      bson.NewObjectId().Hex(),
+				MerchantId:              req.MerchantId,
+				Name:                    v.Method,
+				PayoutCurrency:          v.PayoutCurrency,
+				MinAmount:               v.AmountRange.From,
+				Region:                  tariff.Region,
+				Country:                 v.Country,
+				MethodPercent:           v.MethodPercentFee,
+				MethodFixAmount:         v.MethodFixedFee,
+				MethodFixAmountCurrency: v.MethodFixedFeeCurrency,
+				PsPercent:               v.PsPercentFee,
+				PsFixedFee:              v.PsFixedFee,
+				PsFixedFeeCurrency:      v.PsFixedFeeCurrency,
+				CreatedAt:               ptypes.TimestampNow(),
+				UpdatedAt:               ptypes.TimestampNow(),
+				IsActive:                true,
+			}
+			costs = append(costs, cost)
+		}
+
+		err = s.paymentChannelCostMerchant.MultipleInsert(costs)
+
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = merchantErrorUnknown
+
+			return nil
+		}
+	}
+
+	if len(tariff.MoneyBack) > 0 {
+		var costs []*billing.MoneyBackCostMerchant
+
+		for _, v := range tariff.MoneyBack {
+			cost := &billing.MoneyBackCostMerchant{
+				Id:                bson.NewObjectId().Hex(),
+				MerchantId:        req.MerchantId,
+				Name:              v.Method,
+				PayoutCurrency:    v.PayoutCurrency,
+				UndoReason:        pkg.UndoReasonReversal,
+				Region:            tariff.Region,
+				Country:           v.Country,
+				DaysFrom:          v.DaysRange.From,
+				PaymentStage:      v.PaymentStage,
+				Percent:           v.PercentFee,
+				FixAmount:         v.FixedFee,
+				FixAmountCurrency: v.FixedFeeCurrency,
+				IsPaidByMerchant:  v.IsPaidByMerchant,
+				CreatedAt:         ptypes.TimestampNow(),
+				UpdatedAt:         ptypes.TimestampNow(),
+				IsActive:          true,
+			}
+			costs = append(costs, cost)
+
+			cost = &billing.MoneyBackCostMerchant{
+				Id:                bson.NewObjectId().Hex(),
+				MerchantId:        req.MerchantId,
+				Name:              v.Method,
+				PayoutCurrency:    v.PayoutCurrency,
+				UndoReason:        pkg.UndoReasonChargeback,
+				Region:            tariff.Region,
+				Country:           v.Country,
+				DaysFrom:          v.DaysRange.From,
+				PaymentStage:      v.PaymentStage,
+				FixAmount:         tariff.Chargeback.FixedFee,
+				FixAmountCurrency: tariff.Chargeback.FixedFeeCurrency,
+				IsPaidByMerchant:  tariff.Chargeback.IsPaidByMerchant,
+				CreatedAt:         ptypes.TimestampNow(),
+				UpdatedAt:         ptypes.TimestampNow(),
+				IsActive:          true,
+			}
+
+			costs = append(costs, cost)
+		}
+
+		err = s.moneyBackCostMerchant.MultipleInsert(costs)
+
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = merchantErrorUnknown
+
+			return nil
+		}
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
 
 	return nil
 }

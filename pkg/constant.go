@@ -275,6 +275,9 @@ const (
 	VatReportStatusPaid      = "paid"
 	VatReportStatusOverdue   = "overdue"
 	VatReportStatusCanceled  = "canceled"
+
+	UndoReasonReversal   = "reversal"
+	UndoReasonChargeback = "chargeback"
 )
 
 var (

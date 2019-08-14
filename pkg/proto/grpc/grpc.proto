@@ -21,7 +21,8 @@ service BillingService {
     rpc ChangeMerchantStatus (MerchantChangeStatusRequest) returns (ChangeMerchantStatusResponse) {}
     rpc ChangeMerchantData (ChangeMerchantDataRequest) returns (ChangeMerchantDataResponse) {}
     rpc SetMerchantS3Agreement (SetMerchantS3AgreementRequest) returns (ChangeMerchantDataResponse) {}
-    rpc GetOnboardingTariffRates(GetMerchantTariffRatesRequest) returns (GetMerchantTariffRatesResponse) {}
+    rpc GetMerchantTariffRates(GetMerchantTariffRatesRequest) returns (GetMerchantTariffRatesResponse) {}
+    rpc SetMerchantTariffRates(SetMerchantTariffRatesRequest) returns (CheckProjectRequestSignatureResponse) {}
 
     rpc CreateNotification (NotificationRequest) returns (CreateNotificationResponse) {}
     rpc GetNotification (GetNotificationRequest) returns (billing.Notification) {}
@@ -1285,9 +1286,9 @@ message GetMerchantTariffRatesRequest {
     string region = 1;
     //@inject_tag: query:"payout_currency" validate:"required,alpha,len=3"
     string payout_currency = 2;
-    // @inject_tag: query:"amount[from]" validate:"required,numeric,gte=0"
+    // @inject_tag: query:"amount[from]" validate:"omitempty,numeric,gte=0"
     double amount_from = 3;
-    // @inject_tag: query:"amount[to]" validate:"required,numeric,gt=0"
+    // @inject_tag: query:"amount[to]" validate:"omitempty,numeric,gt=0"
     double amount_to = 4;
 }
 
@@ -1295,4 +1296,17 @@ message GetMerchantTariffRatesResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     billing.MerchantTariffRates item = 3;
+}
+
+message SetMerchantTariffRatesRequest {
+    //@inject_tag: json:"merchant_id" validate:"required,hexadecimal,len=24"
+    string merchant_id = 1;
+    // @inject_tag: query:"region" validate:"required,numeric,oneof=0 1 2 3 4 5 6 7 8 9"
+    string region = 2;
+    //@inject_tag: query:"payout_currency" validate:"required,alpha,len=3"
+    string payout_currency = 3;
+    // @inject_tag: query:"amount[from]" validate:"required,numeric,gte=0"
+    double amount_from = 4;
+    // @inject_tag: query:"amount[to]" validate:"required,numeric,gt=0"
+    double amount_to = 5;
 }

@@ -56,7 +56,19 @@ func (h *MerchantsTariffRatesRepository) GetBy(
 		return item, nil
 	}
 
-	var mtr *MerchantsTariffRates
+	var (
+		mtr         *MerchantsTariffRates
+		paymentCond = []bson.M{{"$eq": []interface{}{"$$item.payout_currency", in.PayoutCurrency}}}
+	)
+
+	if in.AmountFrom >= 0 && in.AmountTo > in.AmountFrom {
+		paymentCond = append(
+			paymentCond,
+			bson.M{"$eq": []interface{}{"$$item.amount_range.from", in.AmountFrom}},
+			bson.M{"$eq": []interface{}{"$$item.amount_range.to", in.AmountTo}},
+		)
+	}
+
 	query := []bson.M{
 		{"$match": bson.M{"region": in.Region}},
 		{
@@ -68,13 +80,7 @@ func (h *MerchantsTariffRatesRepository) GetBy(
 								"$filter": bson.M{
 									"input": "$payment",
 									"as":    "item",
-									"cond": bson.M{
-										"$and": []bson.M{
-											{"$eq": []interface{}{"$$item.payout_currency", in.PayoutCurrency}},
-											{"$eq": []interface{}{"$$item.amount_range.from", in.AmountFrom}},
-											{"$eq": []interface{}{"$$item.amount_range.to", in.AmountTo}},
-										},
-									},
+									"cond":  bson.M{"$and": paymentCond},
 								},
 							},
 						},
