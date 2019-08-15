@@ -48,13 +48,17 @@ func (m *Merchant) NeedMarkESignAgreementAsSigned() bool {
 
 func (m *Merchant) CanGenerateAgreement() bool {
 	return (m.Status == pkg.MerchantStatusOnReview || m.Status == pkg.MerchantStatusAgreementSigning ||
-		m.Status == pkg.MerchantStatusAgreementSigned) && m.Banking != nil && m.Country != "" &&
+		m.Status == pkg.MerchantStatusAgreementSigned) && m.Banking != nil && m.Company.Country != "" &&
 		m.Contacts != nil && m.Contacts.Authorized != nil
 }
 
 func (m *Merchant) CanChangeStatusToSigning() bool {
-	return m.Status == pkg.MerchantStatusOnReview && m.Banking != nil && m.Country != "" &&
+	return m.Status == pkg.MerchantStatusOnReview && m.Banking != nil && m.Company.Country != "" &&
 		m.Contacts != nil && m.Contacts.Authorized != nil
+}
+
+func (m *Merchant) IsFullySigned() bool {
+	return m.HasMerchantSignature && m.HasPspSignature
 }
 
 func (m *Merchant) IsDeleted() bool {
@@ -115,6 +119,10 @@ func (m *Merchant) GetAuthorizedEmail() string {
 	return m.Contacts.Authorized.Email
 }
 
+func (m *Merchant) GetAuthorizedName() string {
+	return m.Contacts.Authorized.Name
+}
+
 func (m *RoyaltyReport) ChangesAvailable(newStatus string) bool {
 	if m.Status == pkg.RoyaltyReportStatusAccepted {
 		return false
@@ -138,4 +146,72 @@ func (m *RoyaltyReport) ChangesAvailable(newStatus string) bool {
 	}
 
 	return true
+}
+
+func (m *Merchant) IsAgreementSigningStarted() bool {
+	return m.AgreementSignatureData != nil && (!m.HasPspSignature || !m.HasMerchantSignature)
+}
+
+func (m *Merchant) IsAgreementSigned() bool {
+	return m.HasMerchantSignature && m.HasPspSignature
+}
+
+func (m *Merchant) GetPrintableStatus() string {
+	status := "draft"
+
+	if m.Status == pkg.MerchantStatusAgreementSigned {
+		status = "life"
+	}
+
+	return status
+}
+
+func (m *Merchant) GetCompleteStepsCount() int32 {
+	count := int32(0)
+
+	if m.Steps.Company {
+		count++
+	}
+
+	if m.Steps.Contacts {
+		count++
+	}
+
+	if m.Steps.Banking {
+		count++
+	}
+
+	if m.Steps.Tariff {
+		count++
+	}
+
+	return count
+}
+
+func (m *Merchant) IsDataComplete() bool {
+	return m.Company != nil && m.Contacts != nil && m.Banking != nil && m.Tariff != ""
+}
+
+func (m *Merchant) GetMerchantSignatureId() string {
+	return m.AgreementSignatureData.MerchantSignatureId
+}
+
+func (m *Merchant) GetPaysuperSignatureId() string {
+	return m.AgreementSignatureData.PsSignatureId
+}
+
+func (m *Merchant) GetMerchantSignUrl() *MerchantAgreementSignatureDataSignUrl {
+	return m.AgreementSignatureData.MerchantSignUrl
+}
+
+func (m *Merchant) GetPaysuperSignUrl() *MerchantAgreementSignatureDataSignUrl {
+	return m.AgreementSignatureData.PsSignUrl
+}
+
+func (m *Merchant) IsPaysuperSignatureId(signatureId string) bool {
+	return m.AgreementSignatureData.PsSignatureId == signatureId
+}
+
+func (m *Merchant) IsMerchantSignature(signatureId string) bool {
+	return m.AgreementSignatureData.MerchantSignatureId == signatureId
 }

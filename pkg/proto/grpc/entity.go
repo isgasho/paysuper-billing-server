@@ -138,3 +138,7 @@ func (m *UserProfileCompanyMonetization) IsComplete() bool {
 func (m *UserProfileCompanyPlatforms) IsComplete() bool {
 	return m.PcMac || m.GameConsole || m.MobileDevice || m.WebBrowser || m.Other
 }
+
+func (m *OnboardingRequest) HasIdentificationFields() bool {
+	return m.Id != "" || (m.User != nil && m.User.Id != "")
+}
