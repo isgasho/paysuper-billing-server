@@ -38,7 +38,8 @@ type NatsConfig struct {
 	NatsClusterId  string `envconfig:"NATS_CLUSTER_ID" default:"test-cluster"`
 	NatsClientId   string `envconfig:"NATS_CLIENT_ID" default:"billing-server-publisher"`
 	NatsAsync      bool   `envconfig:"NATS_ASYNC" default:"false"`
-	NatsCreds      string `envconfig:"NATS_CREDS" default:""`
+	NatsUser       string `envconfig:"NATS_USER" default:""`
+	NatsPassword   string `envconfig:"NATS_PASSWORD" default:""`
 }
 
 type Config struct {

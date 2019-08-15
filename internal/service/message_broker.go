@@ -2,8 +2,8 @@ package service
 
 import (
 	"encoding/json"
-	"github.com/nats-io/go-nats"
-	stan "github.com/nats-io/go-nats-streaming"
+	"github.com/nats-io/nats.go"
+	"github.com/nats-io/stan.go"
 	"go.uber.org/zap"
 	"sync"
 	"time"
@@ -23,8 +23,8 @@ func newMessageBroker(svc *Service) (MessageBrokerInterface, error) {
 
 	s := &MessageBroker{svc: svc}
 
-	if s.svc.cfg.NatsCreds != "" {
-		opts = append(opts, nats.UserCredentials(s.svc.cfg.NatsCreds))
+	if s.svc.cfg.NatsUser != "" && s.svc.cfg.NatsPassword != "" {
+		opts = append(opts, nats.UserInfo(s.svc.cfg.NatsUser, s.svc.cfg.NatsPassword))
 	}
 
 	nc, err := nats.Connect(s.svc.cfg.NatsServerUrls, opts...)
