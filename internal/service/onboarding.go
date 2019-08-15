@@ -279,12 +279,14 @@ func (s *Service) ChangeMerchant(
 	}
 
 	merchant.UpdatedAt = ptypes.TimestampNow()
-	merchant.Steps = &billing.MerchantCompletedSteps{
-		Company:  merchant.Company != nil,
-		Contacts: merchant.Contacts != nil,
-		Banking:  merchant.Banking != nil,
-		Tariff:   merchant.Tariff != nil,
+
+	if merchant.Steps == nil {
+		merchant.Steps = &billing.MerchantCompletedSteps{}
 	}
+
+	merchant.Steps.Company = merchant.Company != nil
+	merchant.Steps.Contacts = merchant.Contacts != nil
+	merchant.Steps.Banking = merchant.Banking != nil
 
 	err = s.merchant.Upsert(merchant)
 
@@ -1277,6 +1279,12 @@ func (s *Service) SetMerchantTariffRates(
 	}
 
 	merchant.Tariff = tariff
+
+	if merchant.Steps == nil {
+		merchant.Steps = &billing.MerchantCompletedSteps{}
+	}
+
+	merchant.Steps.Tariff = true
 	err = s.merchant.Update(merchant)
 
 	if err != nil {
