@@ -22,10 +22,9 @@ require (
 	github.com/micro/go-config v0.14.0
 	github.com/micro/go-micro v1.0.0
 	github.com/micro/go-plugins v1.0.0
-	github.com/paysuper/document-signer v0.0.0-20190812065749-d26175441785
-	github.com/micro/protoc-gen-micro v0.8.0 // indirect
 	github.com/nats-io/go-nats v1.7.0
 	github.com/nats-io/go-nats-streaming v0.4.0
+	github.com/paysuper/document-signer v0.0.0-20190812065749-d26175441785
 	github.com/paysuper/paysuper-currencies v0.0.0-20190723132218-9628e1b3ba42
 	github.com/paysuper/paysuper-database-mongo v0.1.0
 	github.com/paysuper/paysuper-recurring-repository v1.0.113

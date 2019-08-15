@@ -428,11 +428,26 @@ func (s *Service) ChangeMerchantData(
 	}
 
 	if !merchant.HasPspSignature && req.HasPspSignature {
-		s.sendMessageToCentrifugo(ctx, s.getMerchantCentrifugoChannel(merchant), paysuperSignAgreementMessage)
+		channel := s.getMerchantCentrifugoChannel(merchant)
+		if err = s.centrifugo.Publish(channel, paysuperSignAgreementMessage); err != nil {
+			zap.L().Error(
+				"Publish message to centrifugo failed",
+				zap.Error(err),
+				zap.String("channel", channel),
+				zap.ByteString("message", paysuperSignAgreementMessage),
+			)
+		}
 	}
 
 	if !merchant.HasMerchantSignature && req.HasMerchantSignature {
-		s.sendMessageToCentrifugo(ctx, s.cfg.CentrifugoAdminChannel, merchantSignAgreementMessage)
+		if err = s.centrifugo.Publish(s.cfg.CentrifugoAdminChannel, paysuperSignAgreementMessage); err != nil {
+			zap.L().Error(
+				"Publish message to centrifugo failed",
+				zap.Error(err),
+				zap.String("channel", s.cfg.CentrifugoAdminChannel),
+				zap.ByteString("message", paysuperSignAgreementMessage),
+			)
+		}
 	}
 
 	merchant.HasPspSignature = req.HasPspSignature

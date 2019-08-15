@@ -294,16 +294,3 @@ func (s *Service) CheckProjectRequestSignature(
 func (s *Service) getMerchantCentrifugoChannel(merchant *billing.Merchant) string {
 	return fmt.Sprintf(s.cfg.CentrifugoMerchantChannel, merchant.Id)
 }
-
-func (s *Service) sendMessageToCentrifugo(ctx context.Context, ch string, msg []byte) {
-	err := s.centrifugoClient.Publish(ctx, ch, msg)
-
-	if err != nil {
-		zap.L().Error(
-			"Publish message to centrifugo failed",
-			zap.Error(err),
-			zap.String("channel", ch),
-			zap.ByteString("message", paysuperSignAgreementMessage),
-		)
-	}
-}
