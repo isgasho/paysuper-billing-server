@@ -512,11 +512,9 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(merchantId bson.ObjectId) e
 	}
 
 	matchQuery := bson.M{
-		"pm_order_close_date": bson.M{
-			"$gte": h.from,
-			"$lte": h.to,
-		},
-		"merchant_id": merchantId,
+		"merchant_id":         merchantId,
+		"pm_order_close_date": bson.M{"$gte": h.from, "$lte": h.to},
+		"status":              constant.OrderPublicStatusProcessed,
 	}
 
 	query := []bson.M{

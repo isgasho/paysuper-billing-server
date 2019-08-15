@@ -18,7 +18,6 @@ It has these top-level messages:
 	PaymentFormJsonDataResponse
 	PaymentNotifyRequest
 	PaymentNotifyResponse
-	OnboardingBanking
 	OnboardingRequest
 	FindByIdRequest
 	MerchantListingRequest
@@ -137,6 +136,10 @@ It has these top-level messages:
 	VatReportsResponse
 	ProcessVatReportsRequest
 	UpdateVatReportStatusRequest
+	GetMerchantOnboardingCompleteDataResponseItem
+	GetMerchantOnboardingCompleteDataResponse
+	GetMerchantAgreementSignUrlRequest
+	GetMerchantAgreementSignUrlResponse
 */
 package grpc
 
@@ -266,6 +269,8 @@ type BillingService interface {
 	ProcessVatReports(ctx context.Context, in *ProcessVatReportsRequest, opts ...client.CallOption) (*EmptyResponse, error)
 	UpdateVatReportStatus(ctx context.Context, in *UpdateVatReportStatusRequest, opts ...client.CallOption) (*ResponseError, error)
 	CalcAnnualTurnovers(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*EmptyResponse, error)
+	GetMerchantAgreementSignUrl(ctx context.Context, in *GetMerchantAgreementSignUrlRequest, opts ...client.CallOption) (*GetMerchantAgreementSignUrlResponse, error)
+	GetMerchantOnboardingCompleteData(ctx context.Context, in *SetMerchantS3AgreementRequest, opts ...client.CallOption) (*GetMerchantOnboardingCompleteDataResponse, error)
 }
 
 type billingService struct {
@@ -1226,6 +1231,26 @@ func (c *billingService) CalcAnnualTurnovers(ctx context.Context, in *EmptyReque
 	return out, nil
 }
 
+func (c *billingService) GetMerchantAgreementSignUrl(ctx context.Context, in *GetMerchantAgreementSignUrlRequest, opts ...client.CallOption) (*GetMerchantAgreementSignUrlResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetMerchantAgreementSignUrl", in)
+	out := new(GetMerchantAgreementSignUrlResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetMerchantOnboardingCompleteData(ctx context.Context, in *SetMerchantS3AgreementRequest, opts ...client.CallOption) (*GetMerchantOnboardingCompleteDataResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetMerchantOnboardingCompleteData", in)
+	out := new(GetMerchantOnboardingCompleteDataResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for BillingService service
 
 type BillingServiceHandler interface {
@@ -1323,6 +1348,8 @@ type BillingServiceHandler interface {
 	ProcessVatReports(context.Context, *ProcessVatReportsRequest, *EmptyResponse) error
 	UpdateVatReportStatus(context.Context, *UpdateVatReportStatusRequest, *ResponseError) error
 	CalcAnnualTurnovers(context.Context, *EmptyRequest, *EmptyResponse) error
+	GetMerchantAgreementSignUrl(context.Context, *GetMerchantAgreementSignUrlRequest, *GetMerchantAgreementSignUrlResponse) error
+	GetMerchantOnboardingCompleteData(context.Context, *SetMerchantS3AgreementRequest, *GetMerchantOnboardingCompleteDataResponse) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -1421,6 +1448,8 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		ProcessVatReports(ctx context.Context, in *ProcessVatReportsRequest, out *EmptyResponse) error
 		UpdateVatReportStatus(ctx context.Context, in *UpdateVatReportStatusRequest, out *ResponseError) error
 		CalcAnnualTurnovers(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error
+		GetMerchantAgreementSignUrl(ctx context.Context, in *GetMerchantAgreementSignUrlRequest, out *GetMerchantAgreementSignUrlResponse) error
+		GetMerchantOnboardingCompleteData(ctx context.Context, in *SetMerchantS3AgreementRequest, out *GetMerchantOnboardingCompleteDataResponse) error
 	}
 	type BillingService struct {
 		billingService
@@ -1807,4 +1836,12 @@ func (h *billingServiceHandler) UpdateVatReportStatus(ctx context.Context, in *U
 
 func (h *billingServiceHandler) CalcAnnualTurnovers(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error {
 	return h.BillingServiceHandler.CalcAnnualTurnovers(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetMerchantAgreementSignUrl(ctx context.Context, in *GetMerchantAgreementSignUrlRequest, out *GetMerchantAgreementSignUrlResponse) error {
+	return h.BillingServiceHandler.GetMerchantAgreementSignUrl(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetMerchantOnboardingCompleteData(ctx context.Context, in *SetMerchantS3AgreementRequest, out *GetMerchantOnboardingCompleteDataResponse) error {
+	return h.BillingServiceHandler.GetMerchantOnboardingCompleteData(ctx, in, out)
 }

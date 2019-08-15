@@ -18,6 +18,10 @@ It has these top-level messages:
 	MerchantBanking
 	MerchantLastPayout
 	MerchantUser
+	MerchantCompanyInfo
+	MerchantCompletedSteps
+	MerchantAgreementSignatureDataSignUrl
+	MerchantAgreementSignatureData
 	Merchant
 	SystemNotificationStatuses
 	Notification

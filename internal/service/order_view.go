@@ -40,6 +40,20 @@ func (s *Service) getOrderFromViewPrivate(id string) (*billing.OrderViewPrivate,
 	return result, nil
 }
 
+func (s *Service) countTransactions(match bson.M) (n int, err error) {
+
+	n, err = s.db.Collection(collectionOrderView).
+		Find(match).
+		Count()
+
+	if err != nil {
+		zap.S().Errorf(pkg.ErrorDatabaseQueryFailed, "err", err.Error(), "collection", collectionOrderView, "match", match)
+		return
+	}
+
+	return
+}
+
 func (s *Service) getTransactionsPublic(match bson.M, limit, offset int) ([]*billing.OrderViewPublic, error) {
 	result := []*billing.OrderViewPublic{}
 
