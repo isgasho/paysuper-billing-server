@@ -63,8 +63,8 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 		product.ProjectId = req.ProjectId
 		product.Sku = req.Sku
 	} else {
-		product.Id = req.Id
 		_ = s.GetKeyProduct(ctx, &grpc.RequestKeyProductMerchant{Id: req.Id, MerchantId: req.MerchantId}, res)
+		product = res.Product
 		if res.Message != nil {
 			zap.S().Errorf("Key product that requested to change is not found", "data", req)
 			return nil
