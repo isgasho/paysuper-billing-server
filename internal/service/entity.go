@@ -29,6 +29,12 @@ type PriceTable Entity
 type Product Entity
 type Turnover Entity
 
+type Repository struct {
+	svc *Service
+}
+
+type ReportFileRepository Repository
+
 type kvIntFloat struct {
 	Key   int
 	Value float64

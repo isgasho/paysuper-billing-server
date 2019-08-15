@@ -630,9 +630,7 @@ func (s *Service) sendRoyaltyReportNotification(report *billing.RoyaltyReport) {
 	}
 
 	msg := map[string]interface{}{"id": report.Id, "code": "rr00001", "message": pkg.EmailRoyaltyReportMessage}
-	b, _ := json.Marshal(msg)
-
-	err = s.centrifugoClient.Publish(context.Background(), fmt.Sprintf(s.cfg.CentrifugoMerchantChannel, report.MerchantId), b)
+	err = s.centrifugo.Publish(fmt.Sprintf(s.cfg.CentrifugoMerchantChannel, report.MerchantId), msg)
 
 	if err != nil {
 		zap.S().Error(

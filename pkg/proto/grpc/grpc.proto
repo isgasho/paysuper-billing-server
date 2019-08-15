@@ -125,6 +125,11 @@ service BillingService {
     rpc UpdateVatReportStatus (UpdateVatReportStatusRequest) returns (ResponseError) {}
 
     rpc CalcAnnualTurnovers(EmptyRequest) returns (EmptyResponse) {}
+
+    rpc CreateReportFile(CreateReportFileRequest) returns (CreateReportFileResponse) {}
+    rpc UpdateReportFile(UpdateReportFileRequest) returns (ResponseError) {}
+    rpc GetReportFile(GetReportFileRequest) returns (GetReportFileResponse) {}
+    rpc DeleteOldestReportFiles(DeleteOldestReportFilesRequest) returns (ResponseError) {}
 }
 
 message EmptyRequest {}
@@ -1276,4 +1281,54 @@ message UpdateVatReportStatusRequest {
     string id = 1;
     //@inject_tag: json:"status" bson:"status" validate:"required,alpha,oneof=paid canceled"
     string status = 2;
+}
+
+message CreateReportFileRequest {
+    // @inject_tag: query:"merchant_id" validate:"required,hexadecimal,len=24"
+    string merchant_id = 1;
+    // @inject_tag: query:"period_from" validate:"required,numeric,gt=0"
+    int64 period_from = 2;
+    // @inject_tag: query:"period_to" validate:"required,numeric,gt=0"
+    int64 period_to = 3;
+    // @inject_tag: query:"report_type" validate:"required,alpha"
+    string report_type = 4;
+    // @inject_tag: query:"file_type" validate:"required,alpha"
+    string file_type = 5;
+}
+
+message CreateReportFileResponse {
+    // @inject_tag: json:"status"
+    int32 status = 1;
+    // @inject_tag: json:"message,omitempty"
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"file_id"
+    string file_id = 3;
+}
+
+message UpdateReportFileRequest {
+    // @inject_tag: query:"id" validate:"required,hexadecimal,len=24"
+    string id = 1;
+    // @inject_tag: query:"file_path" validate:"required"
+    string file_path = 2;
+}
+
+message GetReportFileRequest {
+    // @inject_tag: query:"merchant_id" validate:"required,hexadecimal,len=24"
+    string merchant_id = 1;
+    // @inject_tag: query:"id" validate:"required,hexadecimal,len=24"
+    string id = 2;
+}
+
+message GetReportFileResponse {
+    // @inject_tag: json:"status"
+    int32 status = 1;
+    // @inject_tag: json:"message,omitempty"
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"file"
+    billing.ReportFile file = 3;
+}
+
+message DeleteOldestReportFilesRequest {
+    // @inject_tag: query:"days" validate:"required,number"
+    int32 days = 1;
 }

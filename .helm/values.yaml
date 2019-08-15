@@ -47,6 +47,11 @@ backend:
     - EMAIL_NOTIFICATION_FINANCIER_RECIPIENT 
     - EMAIL_NOTIFICATION_SENDER
     - ORDER_VIEW_UPDATE_BATCH_SIZE
+    - NATS_SERVER_URLS
+    - NATS_ASYNC
+    - NATS_CREDS
+    - NATS_CLUSTER_ID
+    - NATS_CLIENT_ID
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious

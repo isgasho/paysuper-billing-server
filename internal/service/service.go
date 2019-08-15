@@ -4,10 +4,8 @@ import (
 	"context"
 	"crypto/sha512"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"github.com/ProtocolONE/geoip-service/pkg/proto"
-	"github.com/centrifugal/gocent"
 	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
@@ -17,7 +15,6 @@ import (
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
-	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"github.com/paysuper/paysuper-tax-service/proto"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
@@ -61,7 +58,6 @@ type Service struct {
 	rep                        repository.RepositoryService
 	tax                        tax_service.TaxService
 	broker                     rabbitmq.BrokerInterface
-	centrifugoClient           *gocent.Client
 	redis                      redis.Cmdable
 	cacher                     CacheInterface
 	curService                 currencies.CurrencyratesService
@@ -82,6 +78,9 @@ type Service struct {
 	priceTable                 PriceTableServiceInterface
 	productService             ProductServiceInterface
 	turnover                   *Turnover
+	reportFileRepository       ReportFileRepositoryInterface
+	centrifugo                 CentrifugoInterface
+	messageBroker              MessageBrokerInterface
 }
 
 func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {
@@ -141,14 +140,13 @@ func (s *Service) Init() (err error) {
 	s.priceTable = newPriceTableService(s)
 	s.productService = newProductService(s)
 	s.turnover = newTurnoverService(s)
+	s.reportFileRepository = newReportFileRepository(s)
+	s.centrifugo = newCentrifugo(s)
 
-	s.centrifugoClient = gocent.New(
-		gocent.Config{
-			Addr:       s.cfg.CentrifugoURL,
-			Key:        s.cfg.CentrifugoApiSecret,
-			HTTPClient: tools.NewLoggedHttpClient(zap.S()),
-		},
-	)
+	if s.messageBroker, err = newMessageBroker(s); err != nil {
+		zap.S().Error(pkg.ErrorMessageBrokerInitialize, zap.Error(err))
+		return err
+	}
 
 	if s.cfg.AccountingCurrency == "" {
 		return errors.New(errorAccountingCurrencyNotFound)
@@ -209,20 +207,6 @@ func (s *Service) getCountryFromAcceptLanguage(acceptLanguage string) (string, s
 	it = strings.Split(it[0], "-")
 
 	return strings.ToLower(it[0]), strings.ToUpper(it[1])
-}
-
-func (s *Service) sendCentrifugoMessage(msg map[string]interface{}) error {
-	b, err := json.Marshal(msg)
-
-	if err != nil {
-		return err
-	}
-
-	if err = s.centrifugoClient.Publish(context.Background(), centrifugoChannel, b); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (s *Service) mgoPipeSort(query []bson.M, sort []string) []bson.M {

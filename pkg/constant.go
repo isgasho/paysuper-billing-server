@@ -99,6 +99,7 @@ const (
 
 	ErrorGrpcServiceCallFailed       = "gRPC call failed"
 	ErrorVatReportDateCantBeInFuture = "vat report date cant be in future"
+	ErrorMessageBrokerInitialize     = "unable to initialize message broker"
 	MethodFinishedWithError          = "method finished with error"
 
 	ObjectTypeBalanceTransaction = "balance_transaction"
@@ -270,6 +271,13 @@ const (
 	VatReportStatusPaid      = "paid"
 	VatReportStatusOverdue   = "overdue"
 	VatReportStatusCanceled  = "canceled"
+
+	ReportTypeTax         = "tax"
+	ReportTypeTaxTemplate = "tax_report"
+
+	ReportFileTypeXslx = "xlsx"
+	ReportFileTypeCsv  = "csv"
+	ReportFileTypePdf  = "pdf"
 )
 
 var (

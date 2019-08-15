@@ -2419,7 +2419,8 @@ func (s *Service) notifyPaylinkError(PaylinkId string, err error, req interface{
 		"request":   req,
 		"order":     order,
 	}
-	sErr := s.sendCentrifugoMessage(msg)
+	sErr := s.centrifugo.Publish(centrifugoChannel, msg)
+
 	if sErr != nil {
 		zap.S().Errorf(
 			"Cannot send centrifugo message about Paylink Error",

@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"github.com/centrifugal/gocent"
 	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
 	"github.com/golang-migrate/migrate/v4"
@@ -112,15 +111,6 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 	}
 
 	suite.merchant, suite.project, suite.paymentMethod, suite.paymentSystem = helperCreateEntitiesForTests(suite.Suite, suite.service)
-
-	suite.service.centrifugoClient = gocent.New(
-		gocent.Config{
-			Addr:       cfg.CentrifugoURL,
-			Key:        cfg.CentrifugoSecret,
-			HTTPClient: suite.httpClient,
-		},
-	)
-
 	suite.merchant1 = helperCreateMerchant(suite.Suite, suite.service, "USD", "RU", suite.paymentMethod)
 	suite.merchant2 = helperCreateMerchant(suite.Suite, suite.service, "USD", "RU", suite.paymentMethod)
 
@@ -901,14 +891,6 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_SendRoyaltyReportNotifica
 	core, recorded := observer.New(zapcore.ErrorLevel)
 	logger := zap.New(core)
 	zap.ReplaceGlobals(logger)
-
-	suite.service.centrifugoClient = gocent.New(
-		gocent.Config{
-			Addr:       suite.service.cfg.CentrifugoURL,
-			Key:        suite.service.cfg.CentrifugoSecret,
-			HTTPClient: mock.NewClientStatusError(),
-		},
-	)
 
 	suite.service.sendRoyaltyReportNotification(report)
 	assert.True(suite.T(), recorded.Len() == 1)

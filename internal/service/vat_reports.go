@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
@@ -398,11 +397,7 @@ func (s *Service) updateVatReport(vr *billing.VatReport) error {
 	}
 
 	if contains(VatReportOnStatusNotifyToCentrifugo, vr.Status) {
-		b, err := json.Marshal(vr)
-		if err != nil {
-			return err
-		}
-		err = s.centrifugoClient.Publish(context.Background(), s.cfg.CentrifugoFinancierChannel, b)
+		err = s.centrifugo.Publish(s.cfg.CentrifugoFinancierChannel, vr)
 
 		if err != nil {
 			zap.S().Error(

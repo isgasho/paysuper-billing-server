@@ -12,6 +12,7 @@ func main() {
 
 	task := app.CliArgs.Get("task").String("")
 	date := app.CliArgs.Get("date").String("")
+	days := int32(app.CliArgs.Get("days").Int(7))
 
 	if task != "" {
 
@@ -28,6 +29,9 @@ func main() {
 
 		case "royalty_reports_accept":
 			err = app.TaskAutoAcceptRoyaltyReports()
+
+		case "report_file_remover":
+			err = app.TaskReportFileRemove(days)
 		}
 
 		if err != nil {

@@ -32,6 +32,15 @@ type CacheRedis struct {
 	MaxRedirects int      `envconfig:"CACHE_REDIS_MAX_REDIRECTS" default:"8"`
 }
 
+// CacheRedis defines the parameters for connecting to the radish server for caching objects.
+type NatsConfig struct {
+	NatsServerUrls string `envconfig:"NATS_SERVER_URLS" default:"127.0.0.1:4222"`
+	NatsClusterId  string `envconfig:"NATS_CLUSTER_ID" default:"test-cluster"`
+	NatsClientId   string `envconfig:"NATS_CLIENT_ID" default:"billing-server-publisher"`
+	NatsAsync      bool   `envconfig:"NATS_ASYNC" default:"false"`
+	NatsCreds      string `envconfig:"NATS_CREDS" default:""`
+}
+
 type Config struct {
 	MongoDsn           string `envconfig:"MONGO_DSN" required:"true"`
 	MongoDialTimeout   string `envconfig:"MONGO_DIAL_TIMEOUT" required:"false" default:"10"`
@@ -69,6 +78,7 @@ type Config struct {
 	*PaymentSystemConfig
 	*CustomerTokenConfig
 	*CacheRedis
+	*NatsConfig
 
 	EmailConfirmUrlParsed *url.URL
 }

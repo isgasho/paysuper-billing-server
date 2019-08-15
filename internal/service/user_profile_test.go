@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"github.com/centrifugal/gocent"
 	"github.com/elliotchance/redismock"
 	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
@@ -14,6 +13,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/stretchr/testify/assert"
+	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -83,14 +83,6 @@ func (suite *UserProfileTestSuite) SetupTest() {
 	if err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
-
-	suite.service.centrifugoClient = gocent.New(
-		gocent.Config{
-			Addr:       cfg.CentrifugoURL,
-			Key:        cfg.CentrifugoSecret,
-			HTTPClient: mock.NewClientStatusOk(),
-		},
-	)
 }
 
 func (suite *UserProfileTestSuite) TearDownTest() {
@@ -561,6 +553,10 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_Ok() {
 	assert.Len(suite.T(), p, 1)
 	assert.Contains(suite.T(), p, "token")
 
+	ci := &mock.CentrifugoInterface{}
+	ci.On("Publish", mock2.Anything, mock2.Anything).Return(nil)
+	suite.service.centrifugo = ci
+
 	req2 := &grpc.ConfirmUserEmailRequest{Token: p["token"][0]}
 	rsp2 := &grpc.CheckProjectRequestSignatureResponse{}
 	err = suite.service.ConfirmUserEmail(context.TODO(), req2, rsp2)
@@ -699,6 +695,10 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_EmailAlready
 	assert.Len(suite.T(), p, 1)
 	assert.Contains(suite.T(), p, "token")
 
+	ci := &mock.CentrifugoInterface{}
+	ci.On("Publish", mock2.Anything, mock2.Anything).Return(nil)
+	suite.service.centrifugo = ci
+
 	req2 := &grpc.ConfirmUserEmailRequest{Token: p["token"][0]}
 	rsp2 := &grpc.CheckProjectRequestSignatureResponse{}
 	err = suite.service.ConfirmUserEmail(context.TODO(), req2, rsp2)
@@ -761,14 +761,6 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_EmailConfirm
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), p, 1)
 	assert.Contains(suite.T(), p, "token")
-
-	suite.service.centrifugoClient = gocent.New(
-		gocent.Config{
-			Addr:       suite.service.cfg.CentrifugoURL,
-			Key:        suite.service.cfg.CentrifugoSecret,
-			HTTPClient: mock.NewClientStatusError(),
-		},
-	)
 
 	req2 := &grpc.ConfirmUserEmailRequest{Token: p["token"][0]}
 	rsp2 := &grpc.CheckProjectRequestSignatureResponse{}

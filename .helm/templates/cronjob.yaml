@@ -121,4 +121,45 @@ spec:
                   name: {{ $deploymentName }}-env
                   key: {{ . }}
             {{- end }}
-          restartPolicy: OnFailure 
+          restartPolicy: OnFailure
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: "{{ .Release.Name }}-report-file-remover"
+  labels:
+    app: {{ .Chart.Name }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    role: {{ $deployment.role }}
+  annotations:
+    released: {{ .Release.Time }}
+spec:
+  schedule: 59 23 * * *
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: "{{ .Release.Name }}-report-file-remover"
+            image: {{ $deployment.image }}:{{ $deployment.imageTag }}
+            command: ["/application/bin/paysuper_billing_service"]
+            args: ["-task=report_file_remover -days=7"]
+            env:
+            - name: MICRO_SERVER_ADDRESS
+              value: "0.0.0.0:{{ $deployment.port }}"
+            - name: MICRO_REGISTRY
+              value: "mdns"
+            - name: MICRO_SELECTOR
+              value: "static"
+            - name: METRICS_PORT
+              value: "{{ $deployment.healthPort }}"
+            {{- range .Values.backend.env }}
+            - name: {{ . }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $deploymentName }}-env
+                  key: {{ . }}
+            {{- end }}
+          restartPolicy: OnFailure

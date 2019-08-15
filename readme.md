@@ -9,32 +9,37 @@ This service contain all business logic for payment processing
 
 ## Environment variables:
 
-| Name                                 | Required | Default               | Description                                                                                                                         |
-|:-------------------------------------|:--------:|:----------------------|:------------------------------------------------------------------------------------------------------------------------------------|
-| MONGO_DSN                            | true     | -                     | MongoBD DSN connection string                                                                                                       |
-| MONGO_DIAL_TIMEOUT                   | -        | 10                    | MongoBD dial timeout in seconds                                                                                                     |
-| PSP_ACCOUNTING_CURRENCY              | -        | EUR                   | PaySuper accounting currency                                                                                                        |
-| METRICS_PORT                         | -        | 8086                  | Http server port for health and metrics request                                                                                     |
-| CENTRIFUGO_SECRET                    | true     | -                     | Centrifugo secret key                                                                                                               |
-| CENTRIFUGO_API_SECRET                | true     | -                     | Centrifugo API secret key                                                                                                               |
-| BROKER_ADDRESS                       | -        | amqp://127.0.0.1:5672 | RabbitMQ url address                                                                                                                |
-| CARD_PAY_API_URL                     | true     | -                     | CardPay API url to process payments, more in [documentation](https://integration.cardpay.com/v3/)                                   | 
-| CACHE_REDIS_ADDRESS                  | true     |                       | A seed list of host:port addresses of cluster nodes                                                                                 |
-| CACHE_REDIS_PASSWORD                 | -        |                       | Password for connection string                                                                                                      |
-| CACHE_REDIS_POOL_SIZE                | -        | 1                     | PoolSize applies per cluster node and not for the whole cluster                                                                     |
-| CACHE_REDIS_MAX_RETRIES              | -        | 10                    | Maximum retries for connection                                                                                                      |
-| CACHE_REDIS_MAX_REDIRECTS            | -        | 8                     | The maximum number of retries before giving up                                                                                      |
-| CUSTOMER_COOKIE_PUBLIC_KEY           | true     | -                     | Base64 encoded RSA public key - used for encrypt customer browser cookies content. Minimal length of RSA public key must be 4096    |
-| CUSTOMER_COOKIE_PRIVATE_KEY          | true     | -                     | Base64 encoded RSA private key - used for decrypt customer browser cookies content. Minimal length of RSA private key must be 4096  |
-| REDIS_HOST                           | -        | 127.0.0.1:6379        | Redis server host                                                                                                                   |
-| REDIS_PASSWORD                       | -        | ""                    | Password to access to Redis server                                                                                                  |
-| CENTRIFUGO_MERCHANT_CHANNEL          | -        | paysuper:merchant#%s  | Centrifugo channel name to send notifications to merchant                                                                           |
-| CENTRIFUGO_FINANCIER_CHANNEL         | -        | paysuper:financier    | Centrifugo channel name to send notifications to financier                                                                          |
-| EMAIL_NOTIFICATION_FINANCIER_RECIPIENT| true    |                       | Email of financier, to get vat reports notification                                                                                 |
-| EMAIL_CONFIRM_URL                    | -        | https://paysupermgmt.tst.protocol.one/confirm_email | Url to use in template of confirmation email                                                          |
-| EMAIL_CONFIRM_TEMPLATE               | -        | sidmal_test_email_confirm| Confirmation email template name                                                                                                 |
-| EMAIL_NEW_ROYALTY_REPORT_TEMPLATE    | -        |                       | New royalty report notification email template name                                                                                 |
-| EMAIL_VAT_REPORT_TEMPLATE            | -        |                       | New vat report notification email template name                                                                                     |
+| Name                                 | Required | Default                                             | Description                                                                                                                         |
+|:-------------------------------------|:--------:|:----------------------------------------------------|:------------------------------------------------------------------------------------------------------------------------------------|
+| MONGO_DSN                            | true     | -                                                   | MongoBD DSN connection string                                                                                                       |
+| MONGO_DIAL_TIMEOUT                   | -        | 10                                                  | MongoBD dial timeout in seconds                                                                                                     |
+| PSP_ACCOUNTING_CURRENCY              | -        | EUR                                                 | PaySuper accounting currency                                                                                                        |
+| METRICS_PORT                         | -        | 8086                                                | Http server port for health and metrics request                                                                                     |
+| CENTRIFUGO_SECRET                    | true     | -                                                   | Centrifugo secret key                                                                                                               |
+| CENTRIFUGO_API_SECRET                | true     | -                                                   | Centrifugo API secret key                                                                                                           |
+| BROKER_ADDRESS                       | -        | amqp://127.0.0.1:5672                               | RabbitMQ url address                                                                                                                |
+| CARD_PAY_API_URL                     | true     | -                                                   | CardPay API url to process payments, more in [documentation](https://integration.cardpay.com/v3/)                                   | 
+| CACHE_REDIS_ADDRESS                  | true     |                                                     | A seed list of host:port addresses of cluster nodes                                                                                 |
+| CACHE_REDIS_PASSWORD                 | -        |                                                     | Password for connection string                                                                                                      |
+| CACHE_REDIS_POOL_SIZE                | -        | 1                                                   | PoolSize applies per cluster node and not for the whole cluster                                                                     |
+| CACHE_REDIS_MAX_RETRIES              | -        | 10                                                  | Maximum retries for connection                                                                                                      |
+| CACHE_REDIS_MAX_REDIRECTS            | -        | 8                                                   | The maximum number of retries before giving up                                                                                      |
+| CUSTOMER_COOKIE_PUBLIC_KEY           | true     | -                                                   | Base64 encoded RSA public key - used for encrypt customer browser cookies content. Minimal length of RSA public key must be 4096    |
+| CUSTOMER_COOKIE_PRIVATE_KEY          | true     | -                                                   | Base64 encoded RSA private key - used for decrypt customer browser cookies content. Minimal length of RSA private key must be 4096  |
+| REDIS_HOST                           | -        | 127.0.0.1:6379                                      | Redis server host                                                                                                                   |
+| REDIS_PASSWORD                       | -        | ""                                                  | Password to access to Redis server                                                                                                  |
+| CENTRIFUGO_MERCHANT_CHANNEL          | -        | paysuper:merchant#%s                                | Centrifugo channel name to send notifications to merchant                                                                           |
+| CENTRIFUGO_FINANCIER_CHANNEL         | -        | paysuper:financier                                  | Centrifugo channel name to send notifications to financier                                                                          |
+| EMAIL_NOTIFICATION_FINANCIER_RECIPIENT| true    |                                                     | Email of financier, to get vat reports notification                                                                                 |
+| EMAIL_CONFIRM_URL                    | -        | https://paysupermgmt.tst.protocol.one/confirm_email | Url to use in template of confirmation email                                                                                        |
+| EMAIL_CONFIRM_TEMPLATE               | -        | sidmal_test_email_confirm                           | Confirmation email template name                                                                                                    |
+| EMAIL_NEW_ROYALTY_REPORT_TEMPLATE    | -        |                                                     | New royalty report notification email template name                                                                                 |
+| EMAIL_VAT_REPORT_TEMPLATE            | -        |                                                     | New vat report notification email template name                                                                                     |
+| NATS_SERVER_URLS                     | -        | 127.0.0.1:4222                                      | The nats server URLs (separated by comma)                                                                                           |
+| NATS_ASYNC                           | -        | false                                               | Publish asynchronously                                                                                                              |
+| NATS_CREDS                           | -        |                                                     | Credentials File                                                                                                                    |
+| NATS_CLUSTER_ID                      | -        | test-cluster                                        | The NATS Streaming cluster ID                                                                                                       |
+| NATS_CLIENT_ID                       | -        | billing-server-publisher                            | The NATS Streaming client ID to connect with                                                                                        |
 
 ## Docker Deployment
 
@@ -57,11 +62,18 @@ To start app in console mode you must set `-task` flag in command line to one of
 - `vat_reports` - to update vat reports data. This task must be run every day, at the end of day.
 - `royalty_reports` - to build royalty reports for merchants. This task must be run once on a week.
 - `royalty_reports_accept` - to auto-accept toyalty reports. This task must be run daily.
+- `report_file_remover` - to remove oldest the report files. This task must be run daily.
 
 Notice: for `vat-reports` task you may pass an report date (from past only!) for that you need get an report. 
 Date passed as `date` parameter, in YYYY-MM-DD format 
 
-Example: `$ paysuper-billing-server.exe -task=vat_reports -date="2018-12-31"` runs VAT reports calculation for last day of December, 2018.
+Example: `$ paysuper-billing-server.exe -task=vat_reports -date="2018-12-31"` runs VAT reports calculation for 
+last day of December, 2018.
+
+Notice: for the task `report_file_remover-reports` you can specify the interval of days from the current date. 
+Reports older than this interval will be deleted. The default is 7 days.
+
+Example: `$ paysuper-billing-server.exe -task=report_file_remover -days=14`
 
 To run application as microservice simply don't pass any flags to command line :)  
 
