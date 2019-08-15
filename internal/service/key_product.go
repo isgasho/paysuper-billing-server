@@ -387,6 +387,7 @@ func (s *Service) DeleteKeyProduct(ctx context.Context, req *grpc.RequestKeyProd
 
 func (s *Service) PublishKeyProduct(ctx context.Context, req *grpc.PublishKeyProductRequest, res *grpc.KeyProductResponse) error {
 	product, err := s.getKeyProductById(req.KeyProductId)
+	res.Status = pkg.ResponseStatusOk
 
 	if err == mgo.ErrNotFound {
 		res.Status = http.StatusNotFound
@@ -405,7 +406,7 @@ func (s *Service) PublishKeyProduct(ctx context.Context, req *grpc.PublishKeyPro
 	product.PublishedAt = ptypes.TimestampNow()
 	product.Enabled = true
 
-	if err := s.db.Collection(collectionKeyProduct).UpdateId(bson.ObjectIdHex(product.Id), res); err != nil {
+	if err := s.db.Collection(collectionKeyProduct).UpdateId(bson.ObjectIdHex(product.Id), product); err != nil {
 		zap.S().Errorf("Query to update product failed", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
 		res.Message = keyProductErrorUpsert
