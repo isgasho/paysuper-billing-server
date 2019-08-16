@@ -95,7 +95,8 @@ const (
 	TechEmailDomain        = "@paysuper.com"
 	OrderInlineFormUrlMask = "%s://%s/order/%s"
 
-	MigrationSource = "file://./migrations"
+	MigrationSource     = "file://./migrations"
+	MigrationSourceTest = "file://./../../migrations/tests"
 
 	ErrorGrpcServiceCallFailed       = "gRPC call failed"
 	ErrorVatReportDateCantBeInFuture = "vat report date cant be in future"
@@ -274,6 +275,9 @@ const (
 	VatReportStatusPaid      = "paid"
 	VatReportStatusOverdue   = "overdue"
 	VatReportStatusCanceled  = "canceled"
+
+	UndoReasonReversal   = "reversal"
+	UndoReasonChargeback = "chargeback"
 )
 
 var (

@@ -116,7 +116,7 @@ type MgoMerchant struct {
 	RollingReserveChargebackTransactionsThreshold float64                              `bson:"rolling_reserve_chargeback_transactions_threshold"`
 	ItemMinCostAmount                             float64                              `bson:"item_min_cost_amount"`
 	ItemMinCostCurrency                           string                               `bson:"item_min_cost_currency"`
-	Tariff                                        string                               `bson:"tariff"`
+	Tariff                                        *MerchantTariffRates                 `bson:"tariff"`
 	AgreementSignatureData                        *MgoMerchantAgreementSignatureData   `bson:"agreement_signature_data"`
 	Steps                                         *MerchantCompletedSteps              `bson:"steps"`
 	AgreementTemplate                             string                               `bson:"agreement_template"`
@@ -704,6 +704,17 @@ type MgoOrderViewPublic struct {
 	RefundReverseRevenue                    *OrderViewMoney        `bson:"refund_reverse_revenue"`
 	RefundFeesTotal                         *OrderViewMoney        `bson:"refund_fees_total"`
 	RefundFeesTotalLocal                    *OrderViewMoney        `bson:"refund_fees_total_local"`
+}
+
+type MgoMerchantTariffRates struct {
+	Id         bson.ObjectId                   `bson:"_id"`
+	Payment    []*MerchantTariffRatesPayments  `bson:"payment"`
+	MoneyBack  []*MerchantTariffRatesMoneyBack `bson:"money_back"`
+	Payout     *TariffRatesItem                `bson:"payout"`
+	Chargeback *TariffRatesItem                `bson:"chargeback"`
+	Region     string                          `bson:"region"`
+	CreatedAt  time.Time                       `bson:"created_at"`
+	UpdatedAt  time.Time                       `bson:"updated_at"`
 }
 
 func (m *Country) GetBSON() (interface{}, error) {
@@ -3463,5 +3474,22 @@ func (m *Id) SetBSON(raw bson.Raw) error {
 	}
 
 	m.Id = decoded.Id.Hex()
+	return nil
+}
+
+func (m *MerchantTariffRates) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoMerchantTariffRates)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Payment = decoded.Payment
+	m.MoneyBack = decoded.MoneyBack
+	m.Payout = decoded.Payout
+	m.Chargeback = decoded.Chargeback
+	m.Region = decoded.Region
+
 	return nil
 }

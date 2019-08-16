@@ -110,6 +110,11 @@ It has these top-level messages:
 	PriceTable
 	PriceTableCurrency
 	Id
+	RangeInt
+	MerchantTariffRatesPayments
+	MerchantTariffRatesMoneyBack
+	TariffRatesItem
+	MerchantTariffRates
 */
 package billing
 

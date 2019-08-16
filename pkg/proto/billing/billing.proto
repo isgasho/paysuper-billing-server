@@ -319,7 +319,7 @@ message Merchant {
     string item_min_cost_currency = 40;
     string centrifugo_token = 41;
     //@inject_tag: json:"tariff"
-    string tariff = 42;
+    MerchantTariffRates tariff = 42;
     //@inject_tag: json:"-"
     MerchantAgreementSignatureData agreement_signature_data = 43;
     //@inject_tag: json:"-"
@@ -1728,4 +1728,77 @@ message PriceTableCurrency {
 
 message Id {
     string id = 1;
+}
+
+message RangeInt {
+    //@inject_tag: json:"from"
+    int32 from = 1;
+    //@inject_tag: json:"to"
+    int32 to = 2;
+}
+
+message MerchantTariffRatesPayments {
+    //@inject_tag: json:"method" bson:"method"
+    string method = 1;
+    //@inject_tag: json:"payout_currency" bson:"payout_currency"
+    string payout_currency = 2;
+    //@inject_tag: json:"amount_range" bson:"amount_range"
+    PriceTableCurrency amount_range = 3;
+    //@inject_tag: json:"country" bson:"country"
+    string country = 4;
+    //@inject_tag: json:"method_percent_fee" bson:"method_percent_fee"
+    double method_percent_fee = 5;
+    //@inject_tag: json:"method_fixed_fee" bson:"method_fixed_fee"
+    double method_fixed_fee = 6;
+    //@inject_tag: json:"method_fixed_fee_currency" bson:"method_fixed_fee_currency"
+    string method_fixed_fee_currency = 7;
+    //@inject_tag: json:"ps_percent_fee" bson:"ps_percent_fee"
+    double ps_percent_fee = 8;
+    //@inject_tag: json:"ps_fixed_fee" bson:"ps_fixed_fee"
+    double ps_fixed_fee = 9;
+    //@inject_tag: json:"ps_fixed_fee_currency" bson:"ps_fixed_fee_currency"
+    string ps_fixed_fee_currency = 10;
+}
+
+message MerchantTariffRatesMoneyBack {
+    //@inject_tag: json:"method" bson:"method"
+    string method = 1;
+    //@inject_tag: json:"payout_currency" bson:"payout_currency"
+    string payout_currency = 2;
+    //@inject_tag: json:"country" bson:"country"
+    string country = 4;
+    //@inject_tag: json:"days_range" bson:"days_range"
+    RangeInt days_range = 5;
+    //@inject_tag: json:"payment_stage" bson:"payment_stage"
+    int32 payment_stage = 6;
+    //@inject_tag: json:"percent_fee" bson:"percent_fee"
+    double percent_fee = 7;
+    //@inject_tag: json:"fixed_fee" bson:"fixed_fee"
+    double fixed_fee = 8;
+    //@inject_tag: json:"fixed_fee_currency" bson:"fixed_fee_currency"
+    string fixed_fee_currency = 9;
+    //@inject_tag: json:"is_paid_by_merchant" bson:"is_paid_by_merchant"
+    bool is_paid_by_merchant = 10;
+}
+
+message TariffRatesItem {
+    //@inject_tag: json:"fixed_fee" bson:"fixed_fee"
+    double fixed_fee = 1;
+    //@inject_tag: json:"fixed_fee_currency" bson:"fixed_fee_currency"
+    string fixed_fee_currency = 2;
+    //@inject_tag: json:"is_paid_by_merchant" bson:"is_paid_by_merchant"
+    bool is_paid_by_merchant = 3;
+}
+
+message MerchantTariffRates {
+    //@inject_tag: json:"payment" bson:"payment"
+    repeated MerchantTariffRatesPayments payment = 1;
+    //@inject_tag: json:"money_back" bson:"money_back"
+    repeated MerchantTariffRatesMoneyBack money_back = 2;
+    //@inject_tag: json:"payout" bson:"payout"
+    TariffRatesItem payout = 3;
+    //@inject_tag: json:"chargeback" bson:"chargeback"
+    TariffRatesItem chargeback = 4;
+    //@inject_tag: json:"region" bson:"region"
+    string region = 5;
 }

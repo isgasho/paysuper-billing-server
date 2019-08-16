@@ -115,7 +115,6 @@ It has these top-level messages:
 	PriceGroupRecommendedPriceResponse
 	ProductPricesResponse
 	UpdateProductPricesRequest
-	RangeInt
 	UserProfilePersonal
 	UserProfileHelp
 	UserProfileCompanyMonetization
@@ -140,6 +139,9 @@ It has these top-level messages:
 	GetMerchantOnboardingCompleteDataResponse
 	GetMerchantAgreementSignUrlRequest
 	GetMerchantAgreementSignUrlResponse
+	GetMerchantTariffRatesRequest
+	GetMerchantTariffRatesResponse
+	SetMerchantTariffRatesRequest
 */
 package grpc
 
@@ -187,6 +189,8 @@ type BillingService interface {
 	ChangeMerchantStatus(ctx context.Context, in *MerchantChangeStatusRequest, opts ...client.CallOption) (*ChangeMerchantStatusResponse, error)
 	ChangeMerchantData(ctx context.Context, in *ChangeMerchantDataRequest, opts ...client.CallOption) (*ChangeMerchantDataResponse, error)
 	SetMerchantS3Agreement(ctx context.Context, in *SetMerchantS3AgreementRequest, opts ...client.CallOption) (*ChangeMerchantDataResponse, error)
+	GetMerchantTariffRates(ctx context.Context, in *GetMerchantTariffRatesRequest, opts ...client.CallOption) (*GetMerchantTariffRatesResponse, error)
+	SetMerchantTariffRates(ctx context.Context, in *SetMerchantTariffRatesRequest, opts ...client.CallOption) (*CheckProjectRequestSignatureResponse, error)
 	CreateNotification(ctx context.Context, in *NotificationRequest, opts ...client.CallOption) (*CreateNotificationResponse, error)
 	GetNotification(ctx context.Context, in *GetNotificationRequest, opts ...client.CallOption) (*billing.Notification, error)
 	ListNotifications(ctx context.Context, in *ListingNotificationRequest, opts ...client.CallOption) (*Notifications, error)
@@ -404,6 +408,26 @@ func (c *billingService) ChangeMerchantData(ctx context.Context, in *ChangeMerch
 func (c *billingService) SetMerchantS3Agreement(ctx context.Context, in *SetMerchantS3AgreementRequest, opts ...client.CallOption) (*ChangeMerchantDataResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.SetMerchantS3Agreement", in)
 	out := new(ChangeMerchantDataResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetMerchantTariffRates(ctx context.Context, in *GetMerchantTariffRatesRequest, opts ...client.CallOption) (*GetMerchantTariffRatesResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetMerchantTariffRates", in)
+	out := new(GetMerchantTariffRatesResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) SetMerchantTariffRates(ctx context.Context, in *SetMerchantTariffRatesRequest, opts ...client.CallOption) (*CheckProjectRequestSignatureResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.SetMerchantTariffRates", in)
+	out := new(CheckProjectRequestSignatureResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1266,6 +1290,8 @@ type BillingServiceHandler interface {
 	ChangeMerchantStatus(context.Context, *MerchantChangeStatusRequest, *ChangeMerchantStatusResponse) error
 	ChangeMerchantData(context.Context, *ChangeMerchantDataRequest, *ChangeMerchantDataResponse) error
 	SetMerchantS3Agreement(context.Context, *SetMerchantS3AgreementRequest, *ChangeMerchantDataResponse) error
+	GetMerchantTariffRates(context.Context, *GetMerchantTariffRatesRequest, *GetMerchantTariffRatesResponse) error
+	SetMerchantTariffRates(context.Context, *SetMerchantTariffRatesRequest, *CheckProjectRequestSignatureResponse) error
 	CreateNotification(context.Context, *NotificationRequest, *CreateNotificationResponse) error
 	GetNotification(context.Context, *GetNotificationRequest, *billing.Notification) error
 	ListNotifications(context.Context, *ListingNotificationRequest, *Notifications) error
@@ -1366,6 +1392,8 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		ChangeMerchantStatus(ctx context.Context, in *MerchantChangeStatusRequest, out *ChangeMerchantStatusResponse) error
 		ChangeMerchantData(ctx context.Context, in *ChangeMerchantDataRequest, out *ChangeMerchantDataResponse) error
 		SetMerchantS3Agreement(ctx context.Context, in *SetMerchantS3AgreementRequest, out *ChangeMerchantDataResponse) error
+		GetMerchantTariffRates(ctx context.Context, in *GetMerchantTariffRatesRequest, out *GetMerchantTariffRatesResponse) error
+		SetMerchantTariffRates(ctx context.Context, in *SetMerchantTariffRatesRequest, out *CheckProjectRequestSignatureResponse) error
 		CreateNotification(ctx context.Context, in *NotificationRequest, out *CreateNotificationResponse) error
 		GetNotification(ctx context.Context, in *GetNotificationRequest, out *billing.Notification) error
 		ListNotifications(ctx context.Context, in *ListingNotificationRequest, out *Notifications) error
@@ -1508,6 +1536,14 @@ func (h *billingServiceHandler) ChangeMerchantData(ctx context.Context, in *Chan
 
 func (h *billingServiceHandler) SetMerchantS3Agreement(ctx context.Context, in *SetMerchantS3AgreementRequest, out *ChangeMerchantDataResponse) error {
 	return h.BillingServiceHandler.SetMerchantS3Agreement(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetMerchantTariffRates(ctx context.Context, in *GetMerchantTariffRatesRequest, out *GetMerchantTariffRatesResponse) error {
+	return h.BillingServiceHandler.GetMerchantTariffRates(ctx, in, out)
+}
+
+func (h *billingServiceHandler) SetMerchantTariffRates(ctx context.Context, in *SetMerchantTariffRatesRequest, out *CheckProjectRequestSignatureResponse) error {
+	return h.BillingServiceHandler.SetMerchantTariffRates(ctx, in, out)
 }
 
 func (h *billingServiceHandler) CreateNotification(ctx context.Context, in *NotificationRequest, out *CreateNotificationResponse) error {
