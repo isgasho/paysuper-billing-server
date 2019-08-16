@@ -11,6 +11,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
+	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
 	"github.com/streadway/amqp"
@@ -209,7 +210,7 @@ func (s *Service) updateOnboardingProfile(profile, profileReq *grpc.UserProfile)
 
 		if profileReq.HasCompanyAnnualIncomeChanges(profile) {
 			if profile.Company.AnnualIncome == nil {
-				profile.Company.AnnualIncome = &grpc.RangeInt{}
+				profile.Company.AnnualIncome = &billing.RangeInt{}
 			}
 
 			if profile.Company.AnnualIncome.From != profileReq.Company.AnnualIncome.From {
@@ -223,7 +224,7 @@ func (s *Service) updateOnboardingProfile(profile, profileReq *grpc.UserProfile)
 
 		if profileReq.HasCompanyNumberOfEmployeesChanges(profile) {
 			if profile.Company.NumberOfEmployees == nil {
-				profile.Company.NumberOfEmployees = &grpc.RangeInt{}
+				profile.Company.NumberOfEmployees = &billing.RangeInt{}
 			}
 
 			if profile.Company.NumberOfEmployees.From != profileReq.Company.NumberOfEmployees.From {
