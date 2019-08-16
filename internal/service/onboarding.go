@@ -441,6 +441,10 @@ func (s *Service) ChangeMerchantData(
 	merchant.MailTrackingLink = req.MailTrackingLink
 	merchant.IsSigned = merchant.HasPspSignature == true && merchant.HasMerchantSignature == true
 
+	if merchant.HasMerchantSignature {
+		merchant.Status = pkg.MerchantStatusAgreementSigning
+	}
+
 	if merchant.NeedMarkESignAgreementAsSigned() == true {
 		merchant.Status = pkg.MerchantStatusAgreementSigned
 	}
