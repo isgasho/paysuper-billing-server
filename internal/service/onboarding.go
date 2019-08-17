@@ -21,23 +21,24 @@ const (
 )
 
 var (
-	merchantErrorChangeNotAllowed            = newBillingServerErrorMsg("mr000001", "merchant data changing not allowed")
-	merchantErrorCountryNotFound             = newBillingServerErrorMsg("mr000002", "merchant country not found")
-	merchantErrorCurrencyNotFound            = newBillingServerErrorMsg("mr000003", "merchant bank accounting currency not found")
-	merchantErrorAgreementRequested          = newBillingServerErrorMsg("mr000004", "agreement for merchant can't be requested")
-	merchantErrorOnReview                    = newBillingServerErrorMsg("mr000005", "merchant hasn't allowed status for review")
-	merchantErrorSigning                     = newBillingServerErrorMsg("mr000006", "signing uncompleted merchant is impossible")
-	merchantErrorSigned                      = newBillingServerErrorMsg("mr000007", "document can't be mark as signed")
-	merchantErrorUnknown                     = newBillingServerErrorMsg("mr000008", "request processing failed. try request later")
-	merchantErrorNotFound                    = newBillingServerErrorMsg("mr000009", "merchant with specified identifier not found")
-	merchantErrorBadData                     = newBillingServerErrorMsg("mr000010", "request data is incorrect")
-	merchantErrorAgreementTypeSelectNotAllow = newBillingServerErrorMsg("mr000011", "merchant status not allow select agreement type")
-	notificationErrorMerchantIdIncorrect     = newBillingServerErrorMsg("mr000012", "merchant identifier incorrect, notification can't be saved")
-	notificationErrorUserIdIncorrect         = newBillingServerErrorMsg("mr000013", "user identifier incorrect, notification can't be saved")
-	notificationErrorMessageIsEmpty          = newBillingServerErrorMsg("mr000014", "notification message can't be empty")
-	notificationErrorNotFound                = newBillingServerErrorMsg("mr000015", "notification not found")
-	merchantErrorAlreadySigned               = newBillingServerErrorMsg("mr000016", "merchant already fully signed")
-	merchantErrorOnboardingNotComplete       = newBillingServerErrorMsg("mr000019", "merchant onboarding not complete")
+	merchantErrorChangeNotAllowed             = newBillingServerErrorMsg("mr000001", "merchant data changing not allowed")
+	merchantErrorCountryNotFound              = newBillingServerErrorMsg("mr000002", "merchant country not found")
+	merchantErrorCurrencyNotFound             = newBillingServerErrorMsg("mr000003", "merchant bank accounting currency not found")
+	merchantErrorAgreementRequested           = newBillingServerErrorMsg("mr000004", "agreement for merchant can't be requested")
+	merchantErrorOnReview                     = newBillingServerErrorMsg("mr000005", "merchant hasn't allowed status for review")
+	merchantErrorSigning                      = newBillingServerErrorMsg("mr000006", "signing uncompleted merchant is impossible")
+	merchantErrorSigned                       = newBillingServerErrorMsg("mr000007", "document can't be mark as signed")
+	merchantErrorUnknown                      = newBillingServerErrorMsg("mr000008", "request processing failed. try request later")
+	merchantErrorNotFound                     = newBillingServerErrorMsg("mr000009", "merchant with specified identifier not found")
+	merchantErrorBadData                      = newBillingServerErrorMsg("mr000010", "request data is incorrect")
+	merchantErrorAgreementTypeSelectNotAllow  = newBillingServerErrorMsg("mr000011", "merchant status not allow select agreement type")
+	notificationErrorMerchantIdIncorrect      = newBillingServerErrorMsg("mr000012", "merchant identifier incorrect, notification can't be saved")
+	notificationErrorUserIdIncorrect          = newBillingServerErrorMsg("mr000013", "user identifier incorrect, notification can't be saved")
+	notificationErrorMessageIsEmpty           = newBillingServerErrorMsg("mr000014", "notification message can't be empty")
+	notificationErrorNotFound                 = newBillingServerErrorMsg("mr000015", "notification not found")
+	merchantErrorAlreadySigned                = newBillingServerErrorMsg("mr000016", "merchant already fully signed")
+	merchantErrorOnboardingNotComplete        = newBillingServerErrorMsg("mr000019", "merchant onboarding not complete")
+	merchantErrorOnboardingTariffAlreadyExist = newBillingServerErrorMsg("mr000020", "merchant tariffs already sets")
 
 	NotificationStatusChangeTitles = map[int32]string{
 		pkg.MerchantStatusDraft:              "New merchant created",
@@ -1170,6 +1171,13 @@ func (s *Service) SetMerchantTariffRates(
 		return nil
 	}
 
+	if merchant.HasTariff() {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = merchantErrorOnboardingTariffAlreadyExist
+
+		return nil
+	}
+
 	if merchant.IsAgreementSigningStarted() {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = merchantErrorChangeNotAllowed
@@ -1289,14 +1297,6 @@ func (s *Service) SetMerchantTariffRates(
 	}
 
 	merchant.Steps.Tariff = true
-	err = s.merchant.Update(merchant)
-
-	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = merchantErrorUnknown
-
-		return nil
-	}
 
 	if merchant.IsDataComplete() && merchant.AgreementSignatureData == nil {
 		merchant.AgreementSignatureData, err = s.getMerchantAgreementSignature(ctx, merchant)
@@ -1307,6 +1307,15 @@ func (s *Service) SetMerchantTariffRates(
 
 			return nil
 		}
+	}
+
+	err = s.merchant.Update(merchant)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = merchantErrorUnknown
+
+		return nil
 	}
 
 	rsp.Status = pkg.ResponseStatusOk

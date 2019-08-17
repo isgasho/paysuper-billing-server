@@ -1,0 +1,15 @@
+[
+  {
+    "update": "merchants_tariff_rates",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$currentDate": {"updated_at": true},
+          "$set": {"money_back.$[].days_range.to": 365}
+        },
+        "multi": true
+      }
+    ]
+  }
+]
