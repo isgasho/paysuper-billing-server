@@ -954,11 +954,11 @@ func (s *Service) GetMerchantAgreementSignUrl(
 
 func (s *Service) IsChangeDataAllow(merchant *billing.Merchant, data *grpc.OnboardingRequest) bool {
 	if merchant.IsAgreementSigningStarted() && (data.Company != nil || data.Contacts != nil || data.Banking != nil ||
-		merchant.Tariff != nil) {
+		merchant.HasTariff()) {
 		return false
 	}
 
-	if merchant.IsAgreementSigned() && merchant.Tariff != nil {
+	if merchant.IsAgreementSigned() && merchant.HasTariff() {
 		return false
 	}
 
