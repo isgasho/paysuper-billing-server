@@ -575,6 +575,11 @@ func (s *Service) ChangeCodeInOrder(ctx context.Context, req *grpc.ChangeCodeInO
 	order, err := s.getOrderById(req.OrderId)
 	if err != nil {
 		zap.S().Error("Query to get order failed", "err", err.Error(), "data", req)
+		if messageErr, ok := err.(*grpc.ResponseErrorMessage); ok {
+			res.Status = pkg.ResponseStatusBadData
+			res.Message = messageErr
+			return nil
+		}
 		res.Status = http.StatusInternalServerError
 		res.Message = newBillingServerErrorMsg(keyProductInternalError.Code, keyProductInternalError.Message, err.Error())
 		return nil
@@ -583,7 +588,7 @@ func (s *Service) ChangeCodeInOrder(ctx context.Context, req *grpc.ChangeCodeInO
 	if order.GetPublicStatus() != constant.OrderPublicStatusProcessed {
 		zap.S().Error("Trying to change order what has not been processed.", "status", order.GetPublicStatus(), "data", req)
 		res.Status = pkg.ResponseStatusBadData
-		res.Message = newBillingServerErrorMsg(keyProductOrderIsNotProcessedError.Code, keyProductOrderIsNotProcessedError.Message, err.Error())
+		res.Message = newBillingServerErrorMsg(keyProductOrderIsNotProcessedError.Code, keyProductOrderIsNotProcessedError.Message)
 		return nil
 	}
 
@@ -647,5 +652,6 @@ func (s *Service) ChangeCodeInOrder(ctx context.Context, req *grpc.ChangeCodeInO
 
 	s.orderNotifyMerchant(order)
 
+	res.Order = order
 	return nil
 }

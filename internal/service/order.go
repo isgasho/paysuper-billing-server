@@ -1478,6 +1478,8 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 			PaymentsAllowed: true,
 			ChangeAllowed:   true,
 		},
+		PlatformId: v.request.PlatformId,
+		ProductType: v.request.Type,
 	}
 
 	if order.User == nil {

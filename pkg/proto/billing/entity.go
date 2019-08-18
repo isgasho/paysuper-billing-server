@@ -26,6 +26,7 @@ var (
 		constant.OrderStatusProjectComplete:             constant.OrderPublicStatusProcessed,
 		constant.OrderStatusRefund:                      constant.OrderPublicStatusRefunded,
 		constant.OrderStatusChargeback:                  constant.OrderPublicStatusChargeback,
+		constant.OrderStatusItemReplaced:                constant.OrderPublicStatusProcessed,
 	}
 )
 
