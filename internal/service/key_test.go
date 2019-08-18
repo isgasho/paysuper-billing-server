@@ -553,7 +553,7 @@ func (suite *KeyTestSuite) TestKey_FindUnfinished_Ok() {
 
 	keyReserveNoExpire := &billing.Key{
 		Id:           bson.NewObjectId().Hex(),
-		PlatformId:   "steam",
+		PlatformId:   "gog",
 		KeyProductId: bson.NewObjectId().Hex(),
 		Code:         "code1",
 		ReservedTo:   reserveNoExpireTime,
