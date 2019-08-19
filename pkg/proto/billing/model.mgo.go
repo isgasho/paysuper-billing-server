@@ -1157,7 +1157,7 @@ func (m *Order) GetBSON() (interface{}, error) {
 		Type:                      m.Type,
 		IsVatDeduction:            m.IsVatDeduction,
 		CountryCode:               m.GetCountry(),
-		ProductType:               m.ProductType.String(),
+		ProductType:               m.ProductType,
 		PlatformId:                m.PlatformId,
 	}
 
@@ -1364,7 +1364,7 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.PaymentMethod = getPaymentMethodOrder(decoded.PaymentMethod)
 	m.Items = []*OrderItem{}
 	m.PlatformId = decoded.PlatformId
-	m.ProductType = OrderType(OrderType_value[decoded.ProductType])
+	m.ProductType = decoded.ProductType
 
 	if decoded.Refund != nil {
 		m.Refund = &OrderNotificationRefund{

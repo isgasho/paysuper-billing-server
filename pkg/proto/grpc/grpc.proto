@@ -1070,8 +1070,8 @@ message ListOrdersRequest {
     repeated string merchant = 15;
     // @inject_tag: query:"-"  json:"-"
     string status_notification_failed_for = 16;
-    // @inject_tag: query:"type" validate:"omitempty"
-    billing.OrderType type = 17;
+    // @inject_tag: query:"type" validate:"omitempty,oneof=simple product key"
+    string type = 17;
 }
 
 message GetOrderRequest {

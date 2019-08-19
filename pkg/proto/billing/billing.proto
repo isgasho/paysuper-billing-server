@@ -74,7 +74,8 @@ message OrderCreateRequest {
     // @inject_tag: json:"order" validate:"omitempty,uuid"
     string psp_order_uuid = 31;
 
-    OrderType type = 32;
+    // @inject_tag: validate="required,oneof=simple product key" json:"type"
+    string type = 32;
 
     string platform_id = 33;
 }
@@ -480,20 +481,14 @@ message Order {
     // @inject_tag: json:"-" bson:"key_products" validate:"omitempty,gte=1,dive,hexadecimal,len=24"
     repeated string key_products = 68;
 
-    // @inject_tag: json:"type"
-    OrderType product_type = 69;
+    // @inject_tag: validate="oneof=simple product key" json:"type"
+    string product_type = 69;
 
     // @inject_tag: json:"platform_id"
     string platform_id = 70;
 
     // @inject_tag: json:"-" bson:"keys"
     repeated string keys = 71;
-}
-
-enum OrderType {
-    simple = 0;
-    product = 1;
-    key = 2;
 }
 
 message CountryRestriction {

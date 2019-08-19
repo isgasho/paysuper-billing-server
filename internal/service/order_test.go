@@ -2013,7 +2013,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessSignature_Json_Ok() {
 	req.RawBody = `{"project":"` + suite.project.Id + `","amount":` + fmt.Sprintf("%f", req.Amount) +
 		`,"currency":"` + req.Currency + `","account":"` + req.Account + `","order_id":"` + req.OrderId +
 		`","description":"` + req.Description + `","payment_method":"` + req.PaymentMethod + `","payer_email":"` + req.PayerEmail +
-		`","type":"` + billing.OrderType_simple.String() + `"}`
+		`","type":"` + billing.OrderType_simple + `"}`
 
 	hashString := req.RawBody + suite.project.SecretKey
 

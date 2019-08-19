@@ -30,6 +30,12 @@ var (
 	}
 )
 
+const (
+	OrderType_simple  = "simple"
+	OrderType_key     = "key"
+	OrderType_product = "product"
+)
+
 func (m *Merchant) ChangesAllowed() bool {
 	return m.Status == pkg.MerchantStatusDraft
 }
