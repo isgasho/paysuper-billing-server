@@ -271,13 +271,15 @@ func (s *Service) GetVatReportTransactions(
 		"country_code": vr.Country,
 	}
 
+	n, err := s.countTransactions(match)
+
 	vts, err := s.getTransactionsPublic(match, int(req.Limit), int(req.Offset))
 	if err != nil {
 		return err
 	}
 
 	res.Data = &grpc.TransactionsPaginate{
-		Count: int32(len(vts)),
+		Count: int32(n),
 		Items: vts,
 	}
 
@@ -517,10 +519,12 @@ func (h *vatReportProcessor) ProcessVatReportsStatus() error {
 			}
 		}
 
+		noThreshold := country.VatThreshold.Year == 0 && country.VatThreshold.World == 0
+
 		thresholdExceeded := (country.VatThreshold.Year > 0 && report.CountryAnnualTurnover >= country.VatThreshold.Year) ||
 			(country.VatThreshold.World > 0 && report.WorldAnnualTurnover >= country.VatThreshold.World)
 
-		if thresholdExceeded {
+		if noThreshold || thresholdExceeded {
 			report.Status = pkg.VatReportStatusNeedToPay
 		} else {
 			report.Status = pkg.VatReportStatusExpired

@@ -45,6 +45,7 @@ func (suite *VatReportsTestSuite) SetupTest() {
 	}
 	cfg.AccountingCurrency = "RUB"
 	cfg.CardPayApiUrl = "https://sandbox.cardpay.com"
+	cfg.OrderViewUpdateBatchSize = 20
 
 	m, err := migrate.New(
 		"file://../../migrations/tests",
@@ -92,6 +93,7 @@ func (suite *VatReportsTestSuite) SetupTest() {
 		redisClient,
 		suite.cache,
 		mock.NewCurrencyServiceMockOk(),
+		mock.NewDocumentSignerMockOk(),
 	)
 
 	if err := suite.service.Init(); err != nil {

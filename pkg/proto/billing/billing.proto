@@ -168,38 +168,40 @@ message MerchantContact {
 }
 
 message MerchantContactTechnical {
-    // @inject_tag: json:"name"
+    // @inject_tag: json:"name" validate:"required,company_name,max=60"
     string name = 1;
-    // @inject_tag: validate:"omitempty,email" json:"email"
+    // @inject_tag: json:"email" validate:"required,email,max=100"
     string email = 2;
-    // @inject_tag: validate:"omitempty,phone" json:"phone"
+    // @inject_tag: json:"phone" validate:"required,numeric,max=20"
     string phone = 3;
 }
 
 message MerchantContactAuthorized {
-    // @inject_tag: json:"name"
+    // @inject_tag: json:"name" validate:"required,company_name,max=60"
     string name = 1;
-    // @inject_tag: validate:"omitempty,email" json:"email"
+    // @inject_tag: json:"email" validate:"required,email,max=100"
     string email = 2;
-    // @inject_tag: validate:"omitempty,phone" json:"phone"
+    // @inject_tag: json:"phone" validate:"required,numeric,max=20"
     string phone = 3;
-    // @inject_tag: json:"position"
+    // @inject_tag: json:"position" validate:"required,company_name,max=30"
     string position = 4;
 }
 
 message MerchantBanking {
-    // @inject_tag: json:"currency"
+    // @inject_tag: json:"currency" validate:"required,alpha,len=3"
     string currency = 1;
-    // @inject_tag: json:"name"
+    // @inject_tag: json:"name" validate:"required,city,max=60"
     string name = 2;
-    // @inject_tag: json:"address"
+    // @inject_tag: json:"address" validate:"required,max=60"
     string address = 3;
-    // @inject_tag: json:"account_number"
+    // @inject_tag: json:"account_number" bson:"account_number" validate:"required,numeric,max=30"
     string account_number = 4;
-    // @inject_tag: json:"swift"
+    // @inject_tag: json:"swift" validate:"required,swift"
     string swift = 5;
     // @inject_tag: json:"details"
     string details = 6;
+    // @inject_tag: json:"correspondent_account" bson:"correspondent_account" validate:"omitempty,numeric,max=30"
+    string correspondent_account = 7;
 }
 
 message MerchantLastPayout {
@@ -216,33 +218,60 @@ message MerchantUser {
     string email = 2;
 }
 
+message MerchantCompanyInfo {
+    // @inject_tag: json:"name" validate:"required,company_name,max=60"
+    string name = 1;
+    // @inject_tag: json:"alternative_name" bson:"alternative_name" validate:"required,company_name,max=60"
+    string alternative_name = 2;
+    // @inject_tag: json:"website" validate:"required,url"
+    string website = 3;
+    // @inject_tag: json:"country" validate:"required,alpha,len=2"
+    string country = 4;
+    // @inject_tag: json:"state" validate:"required"
+    string state = 5;
+    // @inject_tag: json:"zip" validate:"required,max=30"
+    string zip = 6;
+    // @inject_tag: json:"city" validate:"required,city,max=60"
+    string city = 7;
+    // @inject_tag: json:"address" validate:"required,max=100"
+    string address = 8;
+    // @inject_tag: json:"address_additional" bson:"address_additional" validate:"omitempty,max=100"
+    string address_additional = 9;
+    // @inject_tag: json:"registration_number" bson:"registration_number"
+    string registration_number = 10;
+    // @inject_tag: json:"tax_id" bson:"tax_id"
+    string tax_id = 11;
+}
+
+message MerchantCompletedSteps {
+    bool company = 1;
+    bool contacts = 2;
+    bool banking = 3;
+    bool tariff = 4;
+}
+
+message MerchantAgreementSignatureDataSignUrl {
+    string sign_url = 1;
+    google.protobuf.Timestamp expires_at = 2;
+}
+
+message MerchantAgreementSignatureData {
+    string details_url = 1;
+    string files_url = 2;
+    string signature_request_id = 3;
+    string merchant_signature_id = 4;
+    string ps_signature_id = 5;
+    MerchantAgreementSignatureDataSignUrl merchant_sign_url = 6;
+    MerchantAgreementSignatureDataSignUrl ps_sign_url = 7;
+}
+
 message Merchant {
     // @inject_tag: bson:"_id"
     string id = 1;
     // @inject_tag: json:"user"
     MerchantUser user = 2;
-    // @inject_tag: json:"name"
-    string name = 4;
-    // @inject_tag: json:"alternative_name"
-    string alternative_name = 5;
-    // @inject_tag: json:"website"
-    string website = 6;
-    // @inject_tag: json:"country"
-    string country = 7;
-    // @inject_tag: json:"state"
-    string state = 8;
-    // @inject_tag: json:"zip"
-    string zip = 9;
-    // @inject_tag: json:"city"
-    string city = 10;
-    // @inject_tag: json:"address"
-    string address = 11;
-    // @inject_tag: json:"address_additional"
-    string address_additional = 12;
-    // @inject_tag: json:"registration_number"
-    string registration_number = 13;
-    // @inject_tag: json:"tax_id"
-    string tax_id = 14;
+    // @inject_tag: json:"company"
+    MerchantCompanyInfo company = 3;
     // @inject_tag: json:"contacts"
     MerchantContact contacts = 15;
     // @inject_tag: json:"banking"
@@ -294,6 +323,14 @@ message Merchant {
     //@inject_tag: json:"item_min_cost_currency" bson:"item_min_cost_currency" validate:"required,alpha,len=3"
     string item_min_cost_currency = 40;
     string centrifugo_token = 41;
+    //@inject_tag: json:"tariff"
+    MerchantTariffRates tariff = 42;
+    //@inject_tag: json:"-"
+    MerchantAgreementSignatureData agreement_signature_data = 43;
+    //@inject_tag: json:"-"
+    MerchantCompletedSteps steps = 46;
+    //@inject_tag: json:"agreement_template"
+    string agreement_template = 47;
 }
 
 message SystemNotificationStatuses {
@@ -1711,6 +1748,79 @@ message PriceTableCurrency {
 
 message Id {
     string id = 1;
+}
+
+message RangeInt {
+    //@inject_tag: json:"from"
+    int32 from = 1;
+    //@inject_tag: json:"to"
+    int32 to = 2;
+}
+
+message MerchantTariffRatesPayments {
+    //@inject_tag: json:"method" bson:"method"
+    string method = 1;
+    //@inject_tag: json:"payout_currency" bson:"payout_currency"
+    string payout_currency = 2;
+    //@inject_tag: json:"amount_range" bson:"amount_range"
+    PriceTableCurrency amount_range = 3;
+    //@inject_tag: json:"country" bson:"country"
+    string country = 4;
+    //@inject_tag: json:"method_percent_fee" bson:"method_percent_fee"
+    double method_percent_fee = 5;
+    //@inject_tag: json:"method_fixed_fee" bson:"method_fixed_fee"
+    double method_fixed_fee = 6;
+    //@inject_tag: json:"method_fixed_fee_currency" bson:"method_fixed_fee_currency"
+    string method_fixed_fee_currency = 7;
+    //@inject_tag: json:"ps_percent_fee" bson:"ps_percent_fee"
+    double ps_percent_fee = 8;
+    //@inject_tag: json:"ps_fixed_fee" bson:"ps_fixed_fee"
+    double ps_fixed_fee = 9;
+    //@inject_tag: json:"ps_fixed_fee_currency" bson:"ps_fixed_fee_currency"
+    string ps_fixed_fee_currency = 10;
+}
+
+message MerchantTariffRatesMoneyBack {
+    //@inject_tag: json:"method" bson:"method"
+    string method = 1;
+    //@inject_tag: json:"payout_currency" bson:"payout_currency"
+    string payout_currency = 2;
+    //@inject_tag: json:"country" bson:"country"
+    string country = 4;
+    //@inject_tag: json:"days_range" bson:"days_range"
+    RangeInt days_range = 5;
+    //@inject_tag: json:"payment_stage" bson:"payment_stage"
+    int32 payment_stage = 6;
+    //@inject_tag: json:"percent_fee" bson:"percent_fee"
+    double percent_fee = 7;
+    //@inject_tag: json:"fixed_fee" bson:"fixed_fee"
+    double fixed_fee = 8;
+    //@inject_tag: json:"fixed_fee_currency" bson:"fixed_fee_currency"
+    string fixed_fee_currency = 9;
+    //@inject_tag: json:"is_paid_by_merchant" bson:"is_paid_by_merchant"
+    bool is_paid_by_merchant = 10;
+}
+
+message TariffRatesItem {
+    //@inject_tag: json:"fixed_fee" bson:"fixed_fee"
+    double fixed_fee = 1;
+    //@inject_tag: json:"fixed_fee_currency" bson:"fixed_fee_currency"
+    string fixed_fee_currency = 2;
+    //@inject_tag: json:"is_paid_by_merchant" bson:"is_paid_by_merchant"
+    bool is_paid_by_merchant = 3;
+}
+
+message MerchantTariffRates {
+    //@inject_tag: json:"payment" bson:"payment"
+    repeated MerchantTariffRatesPayments payment = 1;
+    //@inject_tag: json:"money_back" bson:"money_back"
+    repeated MerchantTariffRatesMoneyBack money_back = 2;
+    //@inject_tag: json:"payout" bson:"payout"
+    TariffRatesItem payout = 3;
+    //@inject_tag: json:"chargeback" bson:"chargeback"
+    TariffRatesItem chargeback = 4;
+    //@inject_tag: json:"region" bson:"region"
+    string region = 5;
 }
 
 message Key {

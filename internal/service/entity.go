@@ -28,6 +28,7 @@ type PayoutCostSystem Entity
 type PriceTable Entity
 type Product Entity
 type Turnover Entity
+type MerchantsTariffRatesRepository Entity
 type Key Entity
 type OrderRepository Entity
 

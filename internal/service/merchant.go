@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"go.uber.org/zap"
 )
@@ -21,12 +22,30 @@ func newMerchantService(svc *Service) *Merchant {
 
 func (h *Merchant) Update(merchant *billing.Merchant) error {
 	err := h.svc.db.Collection(collectionMerchant).UpdateId(bson.ObjectIdHex(merchant.Id), merchant)
+
 	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, merchant),
+		)
+
 		return err
 	}
 
-	err = h.svc.cacher.Set(fmt.Sprintf(cacheMerchantId, merchant.Id), merchant, 0)
+	key := fmt.Sprintf(cacheMerchantId, merchant.Id)
+	err = h.svc.cacher.Set(key, merchant, 0)
+
 	if err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
+			zap.String(pkg.ErrorCacheFieldKey, key),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, merchant),
+		)
+
 		return err
 	}
 
@@ -40,7 +59,40 @@ func (h *Merchant) Insert(merchant *billing.Merchant) error {
 	}
 
 	err = h.svc.cacher.Set(fmt.Sprintf(cacheMerchantId, merchant.Id), merchant, 0)
+
 	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h *Merchant) Upsert(merchant *billing.Merchant) error {
+	_, err := h.svc.db.Collection(collectionMerchant).UpsertId(bson.ObjectIdHex(merchant.Id), merchant)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, merchant),
+		)
+
+		return err
+	}
+
+	key := fmt.Sprintf(cacheMerchantId, merchant.Id)
+	err = h.svc.cacher.Set(key, merchant, 0)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
+			zap.String(pkg.ErrorCacheFieldKey, key),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, merchant),
+		)
+
 		return err
 	}
 

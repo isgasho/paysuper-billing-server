@@ -139,6 +139,10 @@ func (m *UserProfileCompanyPlatforms) IsComplete() bool {
 	return m.PcMac || m.GameConsole || m.MobileDevice || m.WebBrowser || m.Other
 }
 
+func (m *OnboardingRequest) HasIdentificationFields() bool {
+	return m.Id != "" || (m.User != nil && m.User.Id != "")
+}
+
 func (p *KeyProduct) GetLocalizedName(lang string) (string, error) {
 	v, ok := p.Name[lang]
 	if !ok {

@@ -178,6 +178,7 @@ func (s *Service) ListProjects(
 				"_id":                         "$_id",
 				"merchant_id":                 "$merchant_id",
 				"name":                        "$name",
+				"image":                       "$image",
 				"callback_protocol":           "$callback_protocol",
 				"callback_currency":           "$callback_currency",
 				"create_order_allowed_urls":   "$create_order_allowed_urls",
@@ -284,6 +285,7 @@ func (s *Service) createProject(req *billing.Project) (*billing.Project, error) 
 	project := &billing.Project{
 		Id:                       bson.NewObjectId().Hex(),
 		MerchantId:               req.MerchantId,
+		Image:                    req.Image,
 		Name:                     req.Name,
 		CallbackCurrency:         req.CallbackCurrency,
 		CallbackProtocol:         req.CallbackProtocol,
@@ -321,6 +323,7 @@ func (s *Service) createProject(req *billing.Project) (*billing.Project, error) 
 
 func (s *Service) updateProject(req *billing.Project, project *billing.Project) error {
 	project.Name = req.Name
+	project.Image = req.Image
 	project.CallbackCurrency = req.CallbackCurrency
 	project.CreateOrderAllowedUrls = req.CreateOrderAllowedUrls
 	project.AllowDynamicNotifyUrls = req.AllowDynamicNotifyUrls

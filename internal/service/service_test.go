@@ -73,6 +73,7 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		nil,
 		NewCacheRedis(redisdb),
 		mock.NewCurrencyServiceMockOk(),
+		mock.NewDocumentSignerMockOk(),
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -124,11 +125,13 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 	assert.NoError(suite.T(), err, "Generate merchant date failed")
 
 	merchant := &billing.Merchant{
-		Id:      bson.NewObjectId().Hex(),
-		Name:    "Unit test",
-		Country: country.IsoCodeA2,
-		Zip:     "190000",
-		City:    "St.Petersburg",
+		Id: bson.NewObjectId().Hex(),
+		Company: &billing.MerchantCompanyInfo{
+			Name:    "merchant1",
+			Country: "RU",
+			Zip:     "190000",
+			City:    "St.Petersburg",
+		},
 		Contacts: &billing.MerchantContact{
 			Authorized: &billing.MerchantContactAuthorized{
 				Name:     "Unit Test",
@@ -303,6 +306,7 @@ func (suite *BillingServiceTestSuite) TestNewBillingService() {
 		nil,
 		suite.cache,
 		mock.NewCurrencyServiceMockOk(),
+		mock.NewDocumentSignerMockOk(),
 	)
 
 	err := service.Init()
@@ -326,6 +330,7 @@ func (suite *BillingServiceTestSuite) TestBillingService_AccountingCurrencyInitE
 		nil,
 		suite.cache,
 		mock.NewCurrencyServiceMockError(),
+		mock.NewDocumentSignerMockOk(),
 	)
 
 	err = service.Init()
@@ -345,6 +350,7 @@ func (suite *BillingServiceTestSuite) TestBillingService_IsProductionEnvironment
 		nil,
 		suite.cache,
 		mock.NewCurrencyServiceMockOk(),
+		mock.NewDocumentSignerMockOk(),
 	)
 
 	err := service.Init()

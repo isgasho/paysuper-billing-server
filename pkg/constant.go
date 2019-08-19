@@ -95,7 +95,8 @@ const (
 	TechEmailDomain        = "@paysuper.com"
 	OrderInlineFormUrlMask = "%s://%s/order/%s"
 
-	MigrationSource = "file://./migrations"
+	MigrationSource     = "file://./migrations"
+	MigrationSourceTest = "file://./../../migrations/tests"
 
 	ErrorGrpcServiceCallFailed       = "gRPC call failed"
 	ErrorVatReportDateCantBeInFuture = "vat report date cant be in future"
@@ -198,6 +199,10 @@ const (
 	ErrorDatabaseFieldQuery      = "query"
 	ErrorDatabaseFieldSet        = "set"
 
+	ErrorCacheQueryFailed = "Query to cache storage failed"
+	ErrorCacheFieldKey    = "key"
+	ErrorCacheFieldCmd    = "command"
+
 	CardPayDeclineCodeSystemMalfunction                = "01"
 	CardPayDeclineCodeCancelledByCustomer              = "02"
 	CardPayDeclineCodeDeclinedByAntiFraud              = "03"
@@ -270,6 +275,9 @@ const (
 	VatReportStatusPaid      = "paid"
 	VatReportStatusOverdue   = "overdue"
 	VatReportStatusCanceled  = "canceled"
+
+	UndoReasonReversal   = "reversal"
+	UndoReasonChargeback = "chargeback"
 )
 
 var (

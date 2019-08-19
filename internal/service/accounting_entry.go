@@ -17,6 +17,7 @@ import (
 const (
 	errorFieldService = "service"
 	errorFieldMethod  = "method"
+	errorFieldEntry   = "entry"
 	errorFieldRequest = "request"
 
 	collectionAccountingEntry = "accounting_entry"
@@ -181,7 +182,7 @@ func (s *Service) CreateAccountingEntry(
 		}
 
 		handler.merchant = merchant
-		countryCode = merchant.Country
+		countryCode = merchant.Company.Country
 	}
 
 	if countryCode == "" {
@@ -872,11 +873,12 @@ func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
 			rsp, err := h.curService.ExchangeCurrencyCurrentCommon(h.ctx, req)
 
 			if err != nil {
-				zap.S().Error(
+				zap.L().Error(
 					pkg.ErrorGrpcServiceCallFailed,
 					zap.Error(err),
 					zap.String(errorFieldService, "CurrencyRatesService"),
 					zap.String(errorFieldMethod, "ExchangeCurrencyCurrentCommon"),
+					zap.String(errorFieldEntry, entry.Type),
 					zap.Any(errorFieldRequest, req),
 				)
 

@@ -26,6 +26,7 @@ backend:
   env:
     - MONGO_DSN
     - MONGO_DIAL_TIMEOUT
+    - CENTRIFUGO_API_SECRET
     - CENTRIFUGO_SECRET
     - CENTRIFUGO_URL 
     - CARD_PAY_API_URL
@@ -46,6 +47,10 @@ backend:
     - EMAIL_NOTIFICATION_FINANCIER_RECIPIENT 
     - EMAIL_NOTIFICATION_SENDER
     - ORDER_VIEW_UPDATE_BATCH_SIZE
+    - HELLO_SIGN_DEFAULT_TEMPLATE
+    - HELLO_SIGN_CLIENT_ID
+    - PAYSUPER_DOCUMENT_SIGNER_EMAIL
+    - PAYSUPER_DOCUMENT_SIGNER_NAME
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious

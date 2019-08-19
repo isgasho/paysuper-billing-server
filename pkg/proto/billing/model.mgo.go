@@ -26,6 +26,7 @@ type MgoProject struct {
 	Id                       bson.ObjectId   `bson:"_id"`
 	MerchantId               bson.ObjectId   `bson:"merchant_id"`
 	Name                     []*MgoMultiLang `bson:"name"`
+	Image                    string          `bson:"image"`
 	CallbackCurrency         string          `bson:"callback_currency"`
 	CallbackProtocol         string          `bson:"callback_protocol"`
 	CreateOrderAllowedUrls   []string        `bson:"create_order_allowed_urls"`
@@ -71,20 +72,25 @@ type MgoMerchantPaymentMethod struct {
 	IsActive      bool                                    `bson:"is_active"`
 }
 
+type MgoMerchantAgreementSignatureDataSignUrl struct {
+	SignUrl   string    `bson:"sign_url"`
+	ExpiresAt time.Time `bson:"expires_at"`
+}
+
+type MgoMerchantAgreementSignatureData struct {
+	DetailsUrl          string                                    `bson:"details_url"`
+	FilesUrl            string                                    `bson:"files_url"`
+	SignatureRequestId  string                                    `bson:"signature_request_id"`
+	MerchantSignatureId string                                    `bson:"merchant_signature_id"`
+	PsSignatureId       string                                    `bson:"ps_signature_id"`
+	MerchantSignUrl     *MgoMerchantAgreementSignatureDataSignUrl `bson:"merchant_sign_url"`
+	PsSignUrl           *MgoMerchantAgreementSignatureDataSignUrl `bson:"ps_sign_url"`
+}
+
 type MgoMerchant struct {
 	Id                                            bson.ObjectId                        `bson:"_id"`
 	User                                          *MerchantUser                        `bson:"user"`
-	Name                                          string                               `bson:"name"`
-	AlternativeName                               string                               `bson:"alternative_name"`
-	Website                                       string                               `bson:"website"`
-	Country                                       string                               `bson:"country"`
-	State                                         string                               `bson:"state"`
-	Zip                                           string                               `bson:"zip"`
-	City                                          string                               `bson:"city"`
-	Address                                       string                               `bson:"address"`
-	AddressAdditional                             string                               `bson:"address_additional"`
-	RegistrationNumber                            string                               `bson:"registration_number"`
-	TaxId                                         string                               `bson:"tax_id"`
+	Company                                       *MerchantCompanyInfo                 `bson:"company"`
 	Contacts                                      *MerchantContact                     `bson:"contacts"`
 	Banking                                       *MerchantBanking                     `bson:"banking"`
 	Status                                        int32                                `bson:"status"`
@@ -110,6 +116,10 @@ type MgoMerchant struct {
 	RollingReserveChargebackTransactionsThreshold float64                              `bson:"rolling_reserve_chargeback_transactions_threshold"`
 	ItemMinCostAmount                             float64                              `bson:"item_min_cost_amount"`
 	ItemMinCostCurrency                           string                               `bson:"item_min_cost_currency"`
+	Tariff                                        *MerchantTariffRates                 `bson:"tariff"`
+	AgreementSignatureData                        *MgoMerchantAgreementSignatureData   `bson:"agreement_signature_data"`
+	Steps                                         *MerchantCompletedSteps              `bson:"steps"`
+	AgreementTemplate                             string                               `bson:"agreement_template"`
 }
 
 type MgoCommission struct {
@@ -700,6 +710,17 @@ type MgoOrderViewPublic struct {
 	RefundFeesTotalLocal                    *OrderViewMoney        `bson:"refund_fees_total_local"`
 }
 
+type MgoMerchantTariffRates struct {
+	Id         bson.ObjectId                   `bson:"_id"`
+	Payment    []*MerchantTariffRatesPayments  `bson:"payment"`
+	MoneyBack  []*MerchantTariffRatesMoneyBack `bson:"money_back"`
+	Payout     *TariffRatesItem                `bson:"payout"`
+	Chargeback *TariffRatesItem                `bson:"chargeback"`
+	Region     string                          `bson:"region"`
+	CreatedAt  time.Time                       `bson:"created_at"`
+	UpdatedAt  time.Time                       `bson:"updated_at"`
+}
+
 type MgoKey struct {
 	Id           bson.ObjectId  `bson:"_id"`
 	Code         string         `bson:"code"`
@@ -879,6 +900,7 @@ func (m *PriceGroup) SetBSON(raw bson.Raw) error {
 func (m *Project) GetBSON() (interface{}, error) {
 	st := &MgoProject{
 		MerchantId:               bson.ObjectIdHex(m.MerchantId),
+		Image:                    m.Image,
 		CallbackCurrency:         m.CallbackCurrency,
 		CallbackProtocol:         m.CallbackProtocol,
 		CreateOrderAllowedUrls:   m.CreateOrderAllowedUrls,
@@ -958,6 +980,7 @@ func (m *Project) SetBSON(raw bson.Raw) error {
 
 	m.Id = decoded.Id.Hex()
 	m.MerchantId = decoded.MerchantId.Hex()
+	m.Image = decoded.Image
 	m.CallbackCurrency = decoded.CallbackCurrency
 	m.CallbackProtocol = decoded.CallbackProtocol
 	m.CreateOrderAllowedUrls = decoded.CreateOrderAllowedUrls
@@ -1693,17 +1716,7 @@ func (m *PaymentSystem) SetBSON(raw bson.Raw) error {
 func (m *Merchant) GetBSON() (interface{}, error) {
 	st := &MgoMerchant{
 		User:                      m.User,
-		Name:                      m.Name,
-		AlternativeName:           m.AlternativeName,
-		Website:                   m.Website,
-		Country:                   m.Country,
-		State:                     m.State,
-		Zip:                       m.Zip,
-		City:                      m.City,
-		Address:                   m.Address,
-		AddressAdditional:         m.AddressAdditional,
-		RegistrationNumber:        m.RegistrationNumber,
-		TaxId:                     m.TaxId,
+		Company:                   m.Company,
 		Contacts:                  m.Contacts,
 		Banking:                   m.Banking,
 		Status:                    m.Status,
@@ -1724,6 +1737,9 @@ func (m *Merchant) GetBSON() (interface{}, error) {
 		RollingReserveChargebackTransactionsThreshold: m.RollingReserveChargebackTransactionsThreshold,
 		ItemMinCostAmount:   m.ItemMinCostAmount,
 		ItemMinCostCurrency: m.ItemMinCostCurrency,
+		Tariff:              m.Tariff,
+		Steps:               m.Steps,
+		AgreementTemplate:   m.AgreementTemplate,
 	}
 
 	if len(m.Id) <= 0 {
@@ -1800,6 +1816,44 @@ func (m *Merchant) GetBSON() (interface{}, error) {
 		}
 	}
 
+	if m.AgreementSignatureData != nil {
+		st.AgreementSignatureData = &MgoMerchantAgreementSignatureData{
+			DetailsUrl:          m.AgreementSignatureData.DetailsUrl,
+			FilesUrl:            m.AgreementSignatureData.FilesUrl,
+			SignatureRequestId:  m.AgreementSignatureData.SignatureRequestId,
+			MerchantSignatureId: m.AgreementSignatureData.MerchantSignatureId,
+			PsSignatureId:       m.AgreementSignatureData.PsSignatureId,
+		}
+
+		if m.AgreementSignatureData.MerchantSignUrl != nil {
+			st.AgreementSignatureData.MerchantSignUrl = &MgoMerchantAgreementSignatureDataSignUrl{
+				SignUrl: m.AgreementSignatureData.MerchantSignUrl.SignUrl,
+			}
+
+			t, err := ptypes.Timestamp(m.AgreementSignatureData.MerchantSignUrl.ExpiresAt)
+
+			if err != nil {
+				return nil, err
+			}
+
+			st.AgreementSignatureData.MerchantSignUrl.ExpiresAt = t
+		}
+
+		if m.AgreementSignatureData.PsSignUrl != nil {
+			st.AgreementSignatureData.PsSignUrl = &MgoMerchantAgreementSignatureDataSignUrl{
+				SignUrl: m.AgreementSignatureData.PsSignUrl.SignUrl,
+			}
+
+			t, err := ptypes.Timestamp(m.AgreementSignatureData.PsSignUrl.ExpiresAt)
+
+			if err != nil {
+				return nil, err
+			}
+
+			st.AgreementSignatureData.PsSignUrl.ExpiresAt = t
+		}
+	}
+
 	return st, nil
 }
 
@@ -1813,17 +1867,7 @@ func (m *Merchant) SetBSON(raw bson.Raw) error {
 
 	m.Id = decoded.Id.Hex()
 	m.User = decoded.User
-	m.Name = decoded.Name
-	m.AlternativeName = decoded.AlternativeName
-	m.Website = decoded.Website
-	m.Country = decoded.Country
-	m.State = decoded.State
-	m.Zip = decoded.Zip
-	m.City = decoded.City
-	m.Address = decoded.Address
-	m.AddressAdditional = decoded.AddressAdditional
-	m.RegistrationNumber = decoded.RegistrationNumber
-	m.TaxId = decoded.TaxId
+	m.Company = decoded.Company
 	m.Contacts = decoded.Contacts
 	m.Banking = decoded.Banking
 	m.Status = decoded.Status
@@ -1844,6 +1888,9 @@ func (m *Merchant) SetBSON(raw bson.Raw) error {
 	m.RollingReserveChargebackTransactionsThreshold = decoded.RollingReserveChargebackTransactionsThreshold
 	m.ItemMinCostAmount = decoded.ItemMinCostAmount
 	m.ItemMinCostCurrency = decoded.ItemMinCostCurrency
+	m.Tariff = decoded.Tariff
+	m.Steps = decoded.Steps
+	m.AgreementTemplate = decoded.AgreementTemplate
 
 	m.FirstPaymentAt, err = ptypes.TimestampProto(decoded.FirstPaymentAt)
 
@@ -1890,6 +1937,44 @@ func (m *Merchant) SetBSON(raw bson.Raw) error {
 				m.PaymentMethods[k].PaymentMethod.Id = v.PaymentMethod.Id.Hex()
 				m.PaymentMethods[k].PaymentMethod.Name = v.PaymentMethod.Name
 			}
+		}
+	}
+
+	if decoded.AgreementSignatureData != nil {
+		m.AgreementSignatureData = &MerchantAgreementSignatureData{
+			DetailsUrl:          decoded.AgreementSignatureData.DetailsUrl,
+			FilesUrl:            decoded.AgreementSignatureData.FilesUrl,
+			SignatureRequestId:  decoded.AgreementSignatureData.SignatureRequestId,
+			MerchantSignatureId: decoded.AgreementSignatureData.MerchantSignatureId,
+			PsSignatureId:       decoded.AgreementSignatureData.PsSignatureId,
+		}
+
+		if decoded.AgreementSignatureData.MerchantSignUrl != nil {
+			m.AgreementSignatureData.MerchantSignUrl = &MerchantAgreementSignatureDataSignUrl{
+				SignUrl: decoded.AgreementSignatureData.MerchantSignUrl.SignUrl,
+			}
+
+			t, err := ptypes.TimestampProto(decoded.AgreementSignatureData.MerchantSignUrl.ExpiresAt)
+
+			if err != nil {
+				return err
+			}
+
+			m.AgreementSignatureData.MerchantSignUrl.ExpiresAt = t
+		}
+
+		if decoded.AgreementSignatureData.PsSignUrl != nil {
+			m.AgreementSignatureData.PsSignUrl = &MerchantAgreementSignatureDataSignUrl{
+				SignUrl: decoded.AgreementSignatureData.PsSignUrl.SignUrl,
+			}
+
+			t, err := ptypes.TimestampProto(decoded.AgreementSignatureData.PsSignUrl.ExpiresAt)
+
+			if err != nil {
+				return err
+			}
+
+			m.AgreementSignatureData.PsSignUrl.ExpiresAt = t
 		}
 	}
 
@@ -3413,6 +3498,23 @@ func (m *Id) SetBSON(raw bson.Raw) error {
 	}
 
 	m.Id = decoded.Id.Hex()
+	return nil
+}
+
+func (m *MerchantTariffRates) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoMerchantTariffRates)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Payment = decoded.Payment
+	m.MoneyBack = decoded.MoneyBack
+	m.Payout = decoded.Payout
+	m.Chargeback = decoded.Chargeback
+	m.Region = decoded.Region
+
 	return nil
 }
 
