@@ -1646,11 +1646,11 @@ func (v *OrderCreateRequestProcessor) processPaylinkKeyProducts() error {
 
 	priceGroup, err := v.priceGroup.GetByRegion(currency)
 
-	if v.checked.merchant.Country != "" {
-		country, err := v.country.GetByIsoCodeA2(v.checked.merchant.Country)
+	if v.checked.merchant.Company != nil && v.checked.merchant.Company.Country != "" {
+		country, err := v.country.GetByIsoCodeA2(v.checked.merchant.Company.Country)
 
 		if err != nil {
-			zap.S().Errorw("Country not found", "country", v.checked.merchant.Country)
+			zap.S().Errorw("Country not found", "country", v.checked.merchant.Company.Country)
 			return errorCountryNotFound
 		}
 
