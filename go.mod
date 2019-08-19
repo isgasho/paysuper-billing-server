@@ -31,11 +31,9 @@ require (
 	github.com/prometheus/client_golang v0.9.3-0.20190127221311-3c4408c8b829
 	github.com/stoewer/go-strcase v1.0.2
 	github.com/streadway/amqp v0.0.0-20190404075320-75d898a42a94
-	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.3.0
 	github.com/ttacon/libphonenumber v1.0.1
 	github.com/vektra/mockery v0.0.0-20181123154057-e78b021dcbb5 // indirect
-	github.com/yuin/gopher-lua v0.0.0-20190514113301-1cd887cd7036 // indirect
 	go.uber.org/zap v1.10.0
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
 	golang.org/x/exp/errors v0.0.0-20190123073158-f1c91bc264ca
