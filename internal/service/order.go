@@ -1298,43 +1298,33 @@ func (s *Service) orderNotifyKeyProducts(ctx context.Context, order *billing.Ord
 				continue
 			}
 
-			kpRsp := &grpc.KeyProductResponse{}
-			err = s.GetKeyProduct(ctx, &grpc.RequestKeyProductMerchant{Id: rsp.Key.KeyProductId, MerchantId: order.GetMerchantId()}, kpRsp)
-			if err != nil {
-				zap.S().Error("internal error during getting key product", "err", err, "key_product_id", rsp.Key.KeyProductId)
-				continue
-			}
+			s.sendMailWithCode(ctx, order, rsp.Key)
+		}
+		break
+	}
+}
 
-			if kpRsp.Status != pkg.ResponseStatusOk {
-				zap.S().Error("could not get key product", "message", kpRsp.Message, "key_product_id", rsp.Key.KeyProductId)
-				continue
-			}
-
-			name, _ := kpRsp.Product.GetLocalizedName(DefaultLanguage)
+func (s *Service) sendMailWithCode(ctx context.Context, order *billing.Order, key *billing.Key) {
+	for _, item := range order.Items {
+		if item.Id == key.KeyProductId {
+			item.Code = key.Code
 			payload := &postmarkSdrPkg.Payload{
 				TemplateAlias: s.cfg.EmailConfirmTemplate,
 				TemplateModel: map[string]string{
-					"code":         rsp.Key.Code,
-					"platform_id":  rsp.Key.PlatformId,
-					"product_name": name,
+					"code":         key.Code,
+					"platform_id":  order.PlatformId,
+					"product_name": item.Name,
 				},
 				To: order.ReceiptEmail,
 			}
-			err = s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+			err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 			if err != nil {
 				zap.S().Error(
 					"Publication activation code to user email queue is failed",
-					"err", err, "email", order.ReceiptEmail, "order_id", order.Id, "key", rsp.Key.Id)
+					"err", err, "email", order.ReceiptEmail, "order_id", order.Id, "key_id", key.Id)
 			}
-			
-			for _, p := range order.Items {
-				if p.Id == rsp.Key.KeyProductId {
-					p.Code = rsp.Key.Code
-					break
-				}
-			}
+			break
 		}
-		break
 	}
 }
 
@@ -1488,6 +1478,8 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 			PaymentsAllowed: true,
 			ChangeAllowed:   true,
 		},
+		PlatformId: v.request.PlatformId,
+		ProductType: v.request.Type,
 	}
 
 	if order.User == nil {

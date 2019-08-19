@@ -208,7 +208,7 @@ func (h *Key) ReserveKey(keyProductId string, platformId string, orderId string,
 	duration := time.Second * time.Duration(ttl)
 	query := bson.M{
 		"key_product_id": bson.ObjectIdHex(keyProductId),
-		"platform_id":    bson.ObjectIdHex(platformId),
+		"platform_id":    platformId,
 		"order_id":       nil,
 	}
 	change := mgo.Change{
@@ -222,6 +222,10 @@ func (h *Key) ReserveKey(keyProductId string, platformId string, orderId string,
 	}
 
 	info, err := h.svc.db.Collection(collectionKey).Find(query).Limit(1).Apply(change, key)
+
+	if err == mgo.ErrNotFound {
+		return nil, errors.KeyErrorNotFound
+	}
 
 	if err != nil {
 		return nil, err
@@ -289,7 +293,7 @@ func (h *Key) FinishRedeemById(id string) (*billing.Key, error) {
 func (h *Key) CountKeysByProductPlatform(keyProductId string, platformId string) (int, error) {
 	query := bson.M{
 		"key_product_id": bson.ObjectIdHex(keyProductId),
-		"platform_id":    bson.ObjectIdHex(platformId),
+		"platform_id":    platformId,
 		"order_id":       nil,
 	}
 

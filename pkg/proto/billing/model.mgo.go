@@ -232,6 +232,8 @@ type MgoOrder struct {
 	Type                       string                      `bson:"type"`
 	IsVatDeduction             bool                        `bson:"is_vat_deduction"`
 	CountryCode                string                      `bson:"country_code"`
+	PlatformId                 string                      `bson:"platform_id"`
+	ProductType                string                      `bson:"product_type"`
 }
 
 type MgoOrderItem struct {
@@ -245,8 +247,10 @@ type MgoOrderItem struct {
 	Images      []string          `bson:"images"`
 	Url         string            `bson:"url"`
 	Metadata    map[string]string `bson:"metadata"`
+	Code        string            `bson:"code"`
 	CreatedAt   time.Time         `bson:"created_at"`
 	UpdatedAt   time.Time         `bson:"updated_at"`
+	PlatformId  string            `bson:"platform_id"`
 }
 
 type MgoPaymentSystem struct {
@@ -700,7 +704,7 @@ type MgoKey struct {
 	Id           bson.ObjectId  `bson:"_id"`
 	Code         string         `bson:"code"`
 	KeyProductId bson.ObjectId  `bson:"key_product_id"`
-	PlatformId   bson.ObjectId  `bson:"platform_id"`
+	PlatformId   string         `bson:"platform_id"`
 	OrderId      *bson.ObjectId `bson:"order_id"`
 	CreatedAt    time.Time      `bson:"created_at"`
 	ReservedTo   time.Time      `bson:"reserved_to"`
@@ -1153,6 +1157,8 @@ func (m *Order) GetBSON() (interface{}, error) {
 		Type:                      m.Type,
 		IsVatDeduction:            m.IsVatDeduction,
 		CountryCode:               m.GetCountry(),
+		ProductType:               m.ProductType.String(),
+		PlatformId:                m.PlatformId,
 	}
 
 	if m.Refund != nil {
@@ -1177,6 +1183,8 @@ func (m *Order) GetBSON() (interface{}, error) {
 			Images:      v.Images,
 			Url:         v.Url,
 			Metadata:    v.Metadata,
+			Code:        v.Code,
+			PlatformId:  v.PlatformId,
 		}
 
 		if len(v.Id) <= 0 {
@@ -1355,6 +1363,9 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.Tax = decoded.Tax
 	m.PaymentMethod = getPaymentMethodOrder(decoded.PaymentMethod)
 	m.Items = []*OrderItem{}
+	m.PlatformId = decoded.PlatformId
+	m.ProductType = OrderType(OrderType_value[decoded.ProductType])
+
 	if decoded.Refund != nil {
 		m.Refund = &OrderNotificationRefund{
 			Amount:        decoded.Refund.Amount,
@@ -1381,6 +1392,8 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 			Images:      v.Images,
 			Url:         v.Url,
 			Metadata:    v.Metadata,
+			Code:        v.Code,
+			PlatformId:  v.PlatformId,
 		}
 		item.CreatedAt, _ = ptypes.TimestampProto(v.CreatedAt)
 		item.UpdatedAt, _ = ptypes.TimestampProto(v.UpdatedAt)
@@ -3414,7 +3427,7 @@ func (k *Key) SetBSON(raw bson.Raw) error {
 	k.Id = decoded.Id.Hex()
 	k.Code = decoded.Code
 	k.KeyProductId = decoded.KeyProductId.Hex()
-	k.PlatformId = decoded.PlatformId.Hex()
+	k.PlatformId = decoded.PlatformId
 
 	if decoded.OrderId != nil {
 		k.OrderId = decoded.OrderId.Hex()
@@ -3438,7 +3451,7 @@ func (k *Key) SetBSON(raw bson.Raw) error {
 func (m *Key) GetBSON() (interface{}, error) {
 	st := &MgoKey{
 		Id:           bson.ObjectIdHex(m.Id),
-		PlatformId:   bson.ObjectIdHex(m.PlatformId),
+		PlatformId:   m.PlatformId,
 		KeyProductId: bson.ObjectIdHex(m.KeyProductId),
 		Code:         m.Code,
 	}

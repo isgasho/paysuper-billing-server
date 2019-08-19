@@ -87,7 +87,7 @@ func (suite *KeyTestSuite) TearDownTest() {
 func (suite *KeyTestSuite) TestKey_Insert_Ok() {
 	assert.NoError(suite.T(), suite.service.keyRepository.Insert(&billing.Key{
 		Id:           bson.NewObjectId().Hex(),
-		PlatformId:   bson.NewObjectId().Hex(),
+		PlatformId:   "steam",
 		KeyProductId: bson.NewObjectId().Hex(),
 		Code:         "code",
 	}))
@@ -96,7 +96,7 @@ func (suite *KeyTestSuite) TestKey_Insert_Ok() {
 func (suite *KeyTestSuite) TestKey_Insert_Error_Duplicate() {
 	key := &billing.Key{
 		Id:           bson.NewObjectId().Hex(),
-		PlatformId:   bson.NewObjectId().Hex(),
+		PlatformId:   "steam",
 		KeyProductId: bson.NewObjectId().Hex(),
 		OrderId:      bson.NewObjectId().Hex(),
 		Code:         "code",
@@ -110,7 +110,7 @@ func (suite *KeyTestSuite) TestKey_Insert_Error_Duplicate() {
 func (suite *KeyTestSuite) TestKey_GetById_Ok() {
 	key := &billing.Key{
 		Id:           bson.NewObjectId().Hex(),
-		PlatformId:   bson.NewObjectId().Hex(),
+		PlatformId:   "steam",
 		KeyProductId: bson.NewObjectId().Hex(),
 		OrderId:      bson.NewObjectId().Hex(),
 		Code:         "code",
@@ -134,7 +134,7 @@ func (suite *KeyTestSuite) TestKey_GetById_Error_NotFound() {
 func (suite *KeyTestSuite) TestKey_ReserveKey_Ok() {
 	key := &billing.Key{
 		Id:           bson.NewObjectId().Hex(),
-		PlatformId:   bson.NewObjectId().Hex(),
+		PlatformId:   "steam",
 		KeyProductId: bson.NewObjectId().Hex(),
 		Code:         "code1",
 	}
@@ -170,7 +170,7 @@ func (suite *KeyTestSuite) TestKey_ReserveKey_Ok() {
 func (suite *KeyTestSuite) TestKey_ReserveKey_Error_NotFound() {
 	key := &billing.Key{
 		Id:           bson.NewObjectId().Hex(),
-		PlatformId:   bson.NewObjectId().Hex(),
+		PlatformId:   "steam",
 		KeyProductId: bson.NewObjectId().Hex(),
 		Code:         "code1",
 	}
@@ -183,7 +183,7 @@ func (suite *KeyTestSuite) TestKey_ReserveKey_Error_NotFound() {
 func (suite *KeyTestSuite) TestKey_ReserveKey_Error_NotFree() {
 	key := &billing.Key{
 		Id:           bson.NewObjectId().Hex(),
-		PlatformId:   bson.NewObjectId().Hex(),
+		PlatformId:   "steam",
 		KeyProductId: bson.NewObjectId().Hex(),
 		OrderId:      bson.NewObjectId().Hex(),
 		Code:         "code1",
@@ -197,7 +197,7 @@ func (suite *KeyTestSuite) TestKey_ReserveKey_Error_NotFree() {
 func (suite *KeyTestSuite) TestKey_CancelById_Ok() {
 	key := &billing.Key{
 		Id:           bson.NewObjectId().Hex(),
-		PlatformId:   bson.NewObjectId().Hex(),
+		PlatformId:   "steam",
 		KeyProductId: bson.NewObjectId().Hex(),
 		Code:         "code1",
 	}
@@ -230,7 +230,7 @@ func (suite *KeyTestSuite) TestKey_CancelById_Error_NotFound() {
 func (suite *KeyTestSuite) TestKey_FinishRedeemById_Ok() {
 	key := &billing.Key{
 		Id:           bson.NewObjectId().Hex(),
-		PlatformId:   bson.NewObjectId().Hex(),
+		PlatformId:   "steam",
 		KeyProductId: bson.NewObjectId().Hex(),
 		Code:         "code1",
 	}
@@ -265,7 +265,7 @@ func (suite *KeyTestSuite) TestKey_FinishRedeemById_Error_NotFound() {
 }
 
 func (suite *KeyTestSuite) TestKey_CountKeysByProductPlatform_Ok() {
-	platformId := bson.NewObjectId().Hex()
+	platformId := "steam"
 	keyProductId := bson.NewObjectId().Hex()
 
 	cnt, err := suite.service.keyRepository.CountKeysByProductPlatform(keyProductId, platformId)
@@ -296,7 +296,7 @@ func (suite *KeyTestSuite) TestKey_CountKeysByProductPlatform_Ok() {
 
 func (suite *KeyTestSuite) TestKey_GetAvailableKeysCount_Ok() {
 	req := &grpc.GetPlatformKeyCountRequest{
-		PlatformId:   bson.NewObjectId().Hex(),
+		PlatformId:   "steam",
 		KeyProductId: bson.NewObjectId().Hex(),
 	}
 	res := grpc.GetPlatformKeyCountResponse{}
@@ -312,7 +312,7 @@ func (suite *KeyTestSuite) TestKey_GetAvailableKeysCount_Ok() {
 
 func (suite *KeyTestSuite) TestKey_GetAvailableKeysCount_Error_NotFound() {
 	req := &grpc.GetPlatformKeyCountRequest{
-		PlatformId:   bson.NewObjectId().Hex(),
+		PlatformId:   "steam",
 		KeyProductId: bson.NewObjectId().Hex(),
 	}
 	res := grpc.GetPlatformKeyCountResponse{}
@@ -359,7 +359,7 @@ func (suite *KeyTestSuite) TestKey_GetKeyByID_Error_NotFound() {
 
 func (suite *KeyTestSuite) TestKey_ReserveKeyForOrder_Ok() {
 	req := &grpc.PlatformKeyReserveRequest{
-		PlatformId:   bson.NewObjectId().Hex(),
+		PlatformId:   "steam",
 		KeyProductId: bson.NewObjectId().Hex(),
 		OrderId:      bson.NewObjectId().Hex(),
 		Ttl:          3,
@@ -379,7 +379,7 @@ func (suite *KeyTestSuite) TestKey_ReserveKeyForOrder_Ok() {
 
 func (suite *KeyTestSuite) TestKey_ReserveKeyForOrder_Error_Reserve() {
 	req := &grpc.PlatformKeyReserveRequest{
-		PlatformId:   bson.NewObjectId().Hex(),
+		PlatformId:   "steam",
 		KeyProductId: bson.NewObjectId().Hex(),
 		OrderId:      bson.NewObjectId().Hex(),
 		Ttl:          3,
@@ -468,7 +468,7 @@ func (suite *KeyTestSuite) TestKey_CancelRedeemKeyForOrder_Error_NotFound() {
 func (suite *KeyTestSuite) TestKey_UploadKeysFile_Ok() {
 	req := &grpc.PlatformKeysFileRequest{
 		KeyProductId: bson.NewObjectId().Hex(),
-		PlatformId:   bson.NewObjectId().Hex(),
+		PlatformId:   "steam",
 		File:         []byte{},
 	}
 	res := grpc.PlatformKeysFileResponse{}
@@ -488,7 +488,7 @@ func (suite *KeyTestSuite) TestKey_UploadKeysFile_Ok() {
 func (suite *KeyTestSuite) TestKey_UploadKeysFile_Error_CountKeysByProductPlatform() {
 	req := &grpc.PlatformKeysFileRequest{
 		KeyProductId: bson.NewObjectId().Hex(),
-		PlatformId:   bson.NewObjectId().Hex(),
+		PlatformId:   "steam",
 		File:         []byte{},
 	}
 	res := grpc.PlatformKeysFileResponse{}
@@ -544,7 +544,7 @@ func (suite *KeyTestSuite) TestKey_FindUnfinished_Ok() {
 
 	keyReserveExpire := &billing.Key{
 		Id:           bson.NewObjectId().Hex(),
-		PlatformId:   bson.NewObjectId().Hex(),
+		PlatformId:   "steam",
 		KeyProductId: bson.NewObjectId().Hex(),
 		Code:         "code1",
 		ReservedTo:   reserveExpireTime,
@@ -553,7 +553,7 @@ func (suite *KeyTestSuite) TestKey_FindUnfinished_Ok() {
 
 	keyReserveNoExpire := &billing.Key{
 		Id:           bson.NewObjectId().Hex(),
-		PlatformId:   bson.NewObjectId().Hex(),
+		PlatformId:   "gog",
 		KeyProductId: bson.NewObjectId().Hex(),
 		Code:         "code1",
 		ReservedTo:   reserveNoExpireTime,

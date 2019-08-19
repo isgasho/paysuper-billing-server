@@ -24,6 +24,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
+	"math/rand"
 	"net"
 	"sort"
 	"strconv"
@@ -853,6 +854,19 @@ func (suite *OrderTestSuite) SetupTest() {
 				},
 			},
 		}, &grpc.UpdatePlatformPricesResponse{}))
+
+		fileContent := fmt.Sprintf("%s-%s-%s-%s", RandomString(4), RandomString(4), RandomString(4), RandomString(4))
+		file := []byte(fileContent)
+
+		keysRsp := &grpc.PlatformKeysFileResponse{}
+		keysReq := &grpc.PlatformKeysFileRequest{
+			KeyProductId: res.Product.Id,
+			PlatformId:   "steam",
+			MerchantId:   projectWithKeyProducts.MerchantId,
+			File:         file,
+		}
+		assert.NoError(suite.T(), suite.service.UploadKeysFile(context.TODO(), keysReq, keysRsp))
+		assert.Equal(suite.T(), pkg.ResponseStatusOk, keysRsp.Status)
 
 		keyProductIds = append(keyProductIds, res.Product.Id)
 	}
@@ -4884,8 +4898,8 @@ func (suite *OrderTestSuite) TestOrder_updateOrder_NotifyKeys_Ok() {
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		Products: suite.keyProductIds,
-		Type: billing.OrderType_key,
+		Products:   suite.keyProductIds,
+		Type:       billing.OrderType_key,
 		PlatformId: "steam",
 	}
 
@@ -4899,7 +4913,6 @@ func (suite *OrderTestSuite) TestOrder_updateOrder_NotifyKeys_Ok() {
 	err = suite.service.updateOrder(order)
 	shoulBe.Nil(err)
 }
-
 
 func (suite *OrderTestSuite) TestOrder_updateOrder_NotifyKeysRejected_Ok() {
 	shoulBe := require.New(suite.T())
@@ -4915,8 +4928,8 @@ func (suite *OrderTestSuite) TestOrder_updateOrder_NotifyKeysRejected_Ok() {
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		Products: suite.keyProductIds,
-		Type: billing.OrderType_key,
+		Products:   suite.keyProductIds,
+		Type:       billing.OrderType_key,
 		PlatformId: "steam",
 	}
 
@@ -6276,4 +6289,50 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Error() {
 	order, err = suite.service.getOrderById(order.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), order)
+}
+
+func (suite *OrderTestSuite) Test_ChangeCodeInOrder() {
+	shouldBe := require.New(suite.T())
+
+	req := &billing.OrderCreateRequest{
+		ProjectId:   suite.projectWithKeyProducts.Id,
+		Currency:    "RUB",
+		Account:     "unit test",
+		Description: "unit test",
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+		Products: suite.keyProductIds,
+		PlatformId: "steam",
+		Type: billing.OrderType_key,
+	}
+
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+	shouldBe.Nil(err)
+	shouldBe.Equal(pkg.ResponseStatusOk, rsp1.Status)
+
+	order := rsp1.Item
+	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
+
+	shouldBe.Nil(suite.service.updateOrder(order))
+
+	keyProductId := suite.keyProductIds[0]
+
+	codeRsp := &grpc.ChangeCodeInOrderResponse{}
+	err = suite.service.ChangeCodeInOrder(context.TODO(), &grpc.ChangeCodeInOrderRequest{OrderId: rsp1.Item.Id, KeyProductId: keyProductId}, codeRsp)
+	shouldBe.Nil(err)
+	shouldBe.Equal(pkg.ResponseStatusOk, codeRsp.Status)
+	shouldBe.EqualValues(constant.OrderStatusItemReplaced, codeRsp.Order.PrivateStatus)
+}
+
+func RandomString(n int) string {
+	var letter = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letter[rand.Intn(len(letter))]
+	}
+	return string(b)
 }
