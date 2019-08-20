@@ -4794,10 +4794,10 @@ type PlatformPrice struct {
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name"`
 	//@inject_tag: validate:"required,min=1,dive" json:"prices"
 	Prices []*ProductPrice `protobuf:"bytes,3,rep,name=prices,proto3" json:"prices" validate:"required,min=1,dive"`
-	//@inject_tag: validate:"url" json:"eula_url"
-	EulaUrl string `protobuf:"bytes,4,opt,name=eula_url,json=eulaUrl,proto3" json:"eula_url" validate:"url"`
-	//@inject_tag: validate:"url" json:"activation_url"
-	ActivationUrl        string   `protobuf:"bytes,5,opt,name=activation_url,json=activationUrl,proto3" json:"activation_url" validate:"url"`
+	//@inject_tag: validate:"omitempty,url" json:"eula_url"
+	EulaUrl string `protobuf:"bytes,4,opt,name=eula_url,json=eulaUrl,proto3" json:"eula_url" validate:"omitempty,url"`
+	//@inject_tag: validate:"omitempty,url" json:"activation_url"
+	ActivationUrl        string   `protobuf:"bytes,5,opt,name=activation_url,json=activationUrl,proto3" json:"activation_url" validate:"omitempty,url"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`

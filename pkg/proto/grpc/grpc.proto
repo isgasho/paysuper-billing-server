@@ -814,9 +814,9 @@ message PlatformPrice {
     string name = 2;
     //@inject_tag: validate:"required,min=1,dive" json:"prices"
     repeated ProductPrice prices = 3;
-    //@inject_tag: validate:"url" json:"eula_url"
+    //@inject_tag: validate:"omitempty,url" json:"eula_url"
     string eula_url = 4;
-    //@inject_tag: validate:"url" json:"activation_url"
+    //@inject_tag: validate:"omitempty,url" json:"activation_url"
     string activation_url = 5;
 }
 
