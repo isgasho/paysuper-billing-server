@@ -276,12 +276,12 @@ const (
 	VatReportStatusOverdue   = "overdue"
 	VatReportStatusCanceled  = "canceled"
 
-	ReportTypeTax         = "tax"
-	ReportTypeTaxTemplate = "tax_report"
-
-	ReportFileTypeXslx = "xlsx"
-	ReportFileTypeCsv  = "csv"
-	ReportFileTypePdf  = "pdf"
+	ReportTypeTax             = "tax"
+	ReportTypeTaxTemplate     = "tax_report"
+	ReportTypeVat             = "vat"
+	ReportTypeVatTemplate     = "vat_report"
+	ReportTypeRoyalty         = "royalty"
+	ReportTypeRoyaltyTemplate = "royalty_report"
 )
 
 var (

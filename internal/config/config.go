@@ -32,7 +32,7 @@ type CacheRedis struct {
 	MaxRedirects int      `envconfig:"CACHE_REDIS_MAX_REDIRECTS" default:"8"`
 }
 
-// CacheRedis defines the parameters for connecting to the radish server for caching objects.
+// NatsConfig defines the parameters for connecting to the NATS streaming server.
 type NatsConfig struct {
 	NatsServerUrls string `envconfig:"NATS_SERVER_URLS" default:"127.0.0.1:4222"`
 	NatsClusterId  string `envconfig:"NATS_CLUSTER_ID" default:"test-cluster"`

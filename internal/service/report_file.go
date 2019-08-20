@@ -2,12 +2,14 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	mbPkg "github.com/paysuper/paysuper-reporter/pkg"
 	"go.uber.org/zap"
 	"sort"
 	"time"
@@ -15,8 +17,6 @@ import (
 
 const (
 	collectionReportFiles = "report_files"
-
-	messageBrokerReportFileCreate = "report_file_create"
 )
 
 var (
@@ -25,27 +25,60 @@ var (
 	errorReportFileUnableToCreate               = newBillingServerErrorMsg("rf000003", "unable to create report file.")
 	errorReportFileUnableToUpdate               = newBillingServerErrorMsg("rf000004", "unable to update report file.")
 	errorReportFileNotFound                     = newBillingServerErrorMsg("rf000005", "report file not found.")
-	errorReportFileCentrifugoNotificationFailed = newBillingServerErrorMsg("rf000006", "unable to send report file to centrifugo")
-	errorReportFileDeleteOldest                 = newBillingServerErrorMsg("rf000007", "unable to delete oldest reports")
-	errorReportFileMessageBrokerFailed          = newBillingServerErrorMsg("rf000008", "unable to publish report file message to message broker")
+	errorReportFileCentrifugoNotificationFailed = newBillingServerErrorMsg("rf000006", "unable to send report file to centrifugo.")
+	errorReportFileDeleteOldest                 = newBillingServerErrorMsg("rf000007", "unable to delete oldest reports.")
+	errorReportFileMessageBrokerFailed          = newBillingServerErrorMsg("rf000008", "unable to publish report file message to the message broker.")
+	errorReportFileMarshalMatch                 = newBillingServerErrorMsg("rf000009", "unable to marshal match data.")
+	errorReportFileMarshalGroup                 = newBillingServerErrorMsg("rf000010", "unable to marshal group data.")
 
-	reportTemplates = map[string]string{
-		pkg.ReportTypeTax: pkg.ReportTypeTaxTemplate,
+	reportTemplates = map[string]*ReportFileTemplate{
+		pkg.ReportTypeVat: {
+			TemplateId: pkg.ReportTypeVatTemplate,
+			Table:      collectionPaymentMethod,
+			Fields:     []string{"payment_system_id", "name", "min_payment_amount", "max_payment_amount"},
+			Match: `{
+				"is_active": true,
+			}`,
+			Group: "",
+		},
+		pkg.ReportTypeTax: {
+			TemplateId: pkg.ReportTypeTaxTemplate,
+			Table:      "",
+			Fields:     []string{},
+			Match:      "",
+			Group:      "",
+		},
+		pkg.ReportTypeRoyalty: {
+			TemplateId: pkg.ReportTypeRoyaltyTemplate,
+			Table:      "",
+			Fields:     []string{},
+			Match:      "",
+			Group:      "",
+		},
 	}
 
 	reportFileTypes = []string{
-		pkg.ReportFileTypeXslx,
-		pkg.ReportFileTypeCsv,
-		pkg.ReportFileTypePdf,
+		mbPkg.OutputXslx,
+		mbPkg.OutputCsv,
+		mbPkg.OutputPdf,
 	}
 )
+
+type ReportFileTemplate struct {
+	TemplateId string
+	Table      string
+	Fields     []string
+	Match      string
+	Group      string
+}
 
 func (s *Service) CreateReportFile(
 	ctx context.Context,
 	req *grpc.CreateReportFileRequest,
 	res *grpc.CreateReportFileResponse,
 ) error {
-	if _, ok := reportTemplates[req.ReportType]; !ok {
+	template, ok := reportTemplates[req.ReportType]
+	if !ok {
 		zap.S().Errorf(errorReportFileTemplateNotFound.Message, "data", req)
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorReportFileTemplateNotFound
@@ -77,7 +110,30 @@ func (s *Service) CreateReportFile(
 		return nil
 	}
 
-	if err := s.messageBroker.Publish(messageBrokerReportFileCreate, file); err != nil {
+	match, err := json.Marshal(template.Match)
+	if err != nil {
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorReportFileMarshalMatch
+		return err
+	}
+
+	group, err := json.Marshal(template.Group)
+	if err != nil {
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorReportFileMarshalGroup
+		return err
+	}
+
+	msg := &mbPkg.ReportRequest{
+		FileId:       file.Id,
+		TemplateId:   template.TemplateId,
+		OutputFormat: req.FileType,
+		TableName:    template.Table,
+		Fields:       template.Fields,
+		Match:        match,
+		Group:        group,
+	}
+	if err := s.messageBroker.Publish(mbPkg.SubjectRequestReportFileCreate, msg); err != nil {
 		zap.S().Errorf(errorReportFileMessageBrokerFailed.Message, "data", req)
 		res.Status = pkg.ResponseStatusSystemError
 		res.Message = errorReportFileMessageBrokerFailed

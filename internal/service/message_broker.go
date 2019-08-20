@@ -19,27 +19,34 @@ type MessageBroker struct {
 }
 
 func newMessageBroker(svc *Service) (MessageBrokerInterface, error) {
-	var opts []nats.Option
-
-	s := &MessageBroker{svc: svc}
-
-	if s.svc.cfg.NatsUser != "" && s.svc.cfg.NatsPassword != "" {
-		opts = append(opts, nats.UserInfo(s.svc.cfg.NatsUser, s.svc.cfg.NatsPassword))
+	opts := []nats.Option{
+		nats.Name("NATS Streaming Publisher"),
 	}
 
-	nc, err := nats.Connect(s.svc.cfg.NatsServerUrls, opts...)
+	mb := &MessageBroker{svc: svc}
+
+	if mb.svc.cfg.NatsUser != "" && mb.svc.cfg.NatsPassword != "" {
+		opts = append(opts, nats.UserInfo(mb.svc.cfg.NatsUser, mb.svc.cfg.NatsPassword))
+	}
+
+	nc, err := nats.Connect(mb.svc.cfg.NatsServerUrls, opts...)
 	if err != nil {
 		return nil, err
 	}
-	defer nc.Close()
 
-	s.client, err = stan.Connect(s.svc.cfg.NatsClusterId, s.svc.cfg.NatsClientId, stan.NatsConn(nc))
+	mb.client, err = stan.Connect(
+		mb.svc.cfg.NatsClusterId,
+		mb.svc.cfg.NatsClientId,
+		stan.NatsConn(nc),
+		stan.SetConnectionLostHandler(func(_ stan.Conn, reason error) {
+			zap.S().Fatalf("[MessageBroker] Connection lost, reason: %v", "err", reason.Error())
+		}),
+	)
 	if err != nil {
 		return nil, err
 	}
-	defer s.client.Close()
 
-	return s, nil
+	return mb, nil
 }
 
 func (c MessageBroker) Publish(subject string, msg interface{}) error {
