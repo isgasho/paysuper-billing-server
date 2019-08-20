@@ -4788,8 +4788,8 @@ func (m *KeyProduct) GetPublishedAt() *timestamp.Timestamp {
 }
 
 type PlatformPrice struct {
-	//@inject_tag: validate:"required,hexadecimal,len=24" json:"id"
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" validate:"required,hexadecimal,len=24"`
+	//@inject_tag: validate:"required" json:"id"
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" validate:"required"`
 	//@inject_tag: json:"name"
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name"`
 	//@inject_tag: validate:"required,min=1,dive" json:"prices"

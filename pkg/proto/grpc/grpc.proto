@@ -808,7 +808,7 @@ message KeyProduct {
 }
 
 message PlatformPrice {
-    //@inject_tag: validate:"required,hexadecimal,len=24" json:"id"
+    //@inject_tag: validate:"required" json:"id"
     string id = 1;
     //@inject_tag: json:"name"
     string name = 2;
