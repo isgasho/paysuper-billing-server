@@ -63,7 +63,8 @@ service BillingService {
     rpc UpdateCountry (billing.Country) returns (billing.Country) {}
 
     rpc GetOrder (GetOrderRequest) returns (billing.Order) {}
-    rpc FindAllOrders (ListOrdersRequest) returns (billing.OrderPaginate) {}
+    rpc FindAllOrdersPublic (ListOrdersRequest) returns (ListOrdersPublicResponse) {}
+    rpc FindAllOrdersPrivate (ListOrdersRequest) returns (ListOrdersPrivateResponse) {}
     rpc IsOrderCanBePaying (IsOrderCanBePayingRequest) returns (IsOrderCanBePayingResponse) {}
 
     rpc GetPriceGroup (billing.GetPriceGroupRequest) returns (billing.PriceGroup) {}
@@ -1308,4 +1309,30 @@ message SetMerchantTariffRatesRequest {
     double amount_from = 4;
     // @inject_tag: json:"amount_to" validate:"required,numeric,gt=0"
     double amount_to = 5;
+}
+
+message ListOrdersPublicResponseItem {
+    // @inject_tag: json:"count"
+    int32 count = 1;
+    // @inject_tag: json:"items"
+    repeated billing.OrderViewPublic items = 2;
+}
+
+message ListOrdersPrivateResponseItem {
+    // @inject_tag: json:"count"
+    int32 count = 1;
+    // @inject_tag: json:"items"
+    repeated billing.OrderViewPrivate items = 2;
+}
+
+message ListOrdersPublicResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    ListOrdersPublicResponseItem Item = 3;
+}
+
+message ListOrdersPrivateResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    ListOrdersPrivateResponseItem Item = 3;
 }

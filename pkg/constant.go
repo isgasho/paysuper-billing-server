@@ -95,8 +95,7 @@ const (
 	TechEmailDomain        = "@paysuper.com"
 	OrderInlineFormUrlMask = "%s://%s/order/%s"
 
-	MigrationSource     = "file://./migrations"
-	MigrationSourceTest = "file://./../../migrations/tests"
+	MigrationSource = "file://./migrations"
 
 	ErrorGrpcServiceCallFailed       = "gRPC call failed"
 	ErrorVatReportDateCantBeInFuture = "vat report date cant be in future"

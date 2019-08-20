@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/globalsign/mgo/bson"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"go.uber.org/zap"
@@ -11,16 +12,83 @@ import (
 )
 
 const (
-	reportErrorNotFound = "not found"
-
 	orderFailedNotificationQueryFieldMask = "is_notifications_sent.%s"
 )
 
-func (s *Service) FindAllOrders(
+var (
+	reportErrorUnknown = newBillingServerErrorMsg("rp000001", "request processing failed. try request later")
+)
+
+func (s *Service) FindAllOrdersPublic(
 	ctx context.Context,
 	req *grpc.ListOrdersRequest,
-	rsp *billing.OrderPaginate,
+	rsp *grpc.ListOrdersPublicResponse,
 ) error {
+	var orders []*billing.OrderViewPublic
+	count, err := s.getOrdersList(req, orders)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = reportErrorUnknown
+
+		return nil
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
+	rsp.Item = &grpc.ListOrdersPublicResponseItem{
+		Count: int32(count),
+		Items: orders,
+	}
+
+	return nil
+}
+
+func (s *Service) FindAllOrdersPrivate(
+	ctx context.Context,
+	req *grpc.ListOrdersRequest,
+	rsp *grpc.ListOrdersPrivateResponse,
+) error {
+	var orders []*billing.OrderViewPrivate
+	count, err := s.getOrdersList(req, orders)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = reportErrorUnknown
+
+		return nil
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
+	rsp.Item = &grpc.ListOrdersPrivateResponseItem{
+		Count: int32(count),
+		Items: orders,
+	}
+
+	return nil
+}
+
+func (s *Service) GetOrder(
+	ctx context.Context,
+	req *grpc.GetOrderRequest,
+	rsp *billing.Order,
+) error {
+	query := bson.M{"uuid": req.Id}
+
+	if req.Merchant != "" {
+		query["project.merchant_id"] = bson.ObjectIdHex(req.Merchant)
+	}
+
+	err := s.db.Collection(collectionOrder).Find(query).One(&rsp)
+
+	if err != nil {
+		zap.S().Errorf("Query from table ended with error", "err", err.Error(), "table", collectionOrder)
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) getOrdersList(req *grpc.ListOrdersRequest, receiver interface{}) (int, error) {
 	query := make(bson.M)
 
 	if len(req.Merchant) > 0 {
@@ -114,42 +182,32 @@ func (s *Service) FindAllOrders(
 		}
 	}
 
-	co, err := s.db.Collection(collectionOrder).Find(query).Count()
+	count, err := s.db.Collection(collectionOrderView).Find(query).Count()
 
 	if err != nil {
-		zap.S().Errorf("Query from table ended with error", "err", err.Error(), "table", collectionOrder)
-		return err
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrderView),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+
+		return 0, err
 	}
 
-	var o []*billing.Order
-	if err := s.db.Collection(collectionOrder).Find(query).Sort(req.Sort...).Limit(int(req.Limit)).Skip(int(req.Offset)).All(&o); err != nil {
-		zap.S().Errorf("Query from table ended with error", "err", err.Error(), "table", collectionOrder)
-		return err
-	}
-
-	rsp.Count = int32(co)
-	rsp.Items = o
-
-	return nil
-}
-
-func (s *Service) GetOrder(
-	ctx context.Context,
-	req *grpc.GetOrderRequest,
-	rsp *billing.Order,
-) error {
-	query := bson.M{"uuid": req.Id}
-
-	if req.Merchant != "" {
-		query["project.merchant_id"] = bson.ObjectIdHex(req.Merchant)
-	}
-
-	err := s.db.Collection(collectionOrder).Find(query).One(&rsp)
+	err = s.db.Collection(collectionOrderView).Find(query).Sort(req.Sort...).Limit(int(req.Limit)).
+		Skip(int(req.Offset)).All(&receiver)
 
 	if err != nil {
-		zap.S().Errorf("Query from table ended with error", "err", err.Error(), "table", collectionOrder)
-		return err
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrderView),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+
+		return 0, err
 	}
 
-	return nil
+	return count, nil
 }

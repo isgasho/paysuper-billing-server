@@ -142,6 +142,10 @@ It has these top-level messages:
 	GetMerchantTariffRatesRequest
 	GetMerchantTariffRatesResponse
 	SetMerchantTariffRatesRequest
+	ListOrdersPublicResponseItem
+	ListOrdersPrivateResponseItem
+	ListOrdersPublicResponse
+	ListOrdersPrivateResponse
 */
 package grpc
 
@@ -222,7 +226,8 @@ type BillingService interface {
 	GetCountry(ctx context.Context, in *billing.GetCountryRequest, opts ...client.CallOption) (*billing.Country, error)
 	UpdateCountry(ctx context.Context, in *billing.Country, opts ...client.CallOption) (*billing.Country, error)
 	GetOrder(ctx context.Context, in *GetOrderRequest, opts ...client.CallOption) (*billing.Order, error)
-	FindAllOrders(ctx context.Context, in *ListOrdersRequest, opts ...client.CallOption) (*billing.OrderPaginate, error)
+	FindAllOrdersPublic(ctx context.Context, in *ListOrdersRequest, opts ...client.CallOption) (*ListOrdersPublicResponse, error)
+	FindAllOrdersPrivate(ctx context.Context, in *ListOrdersRequest, opts ...client.CallOption) (*ListOrdersPrivateResponse, error)
 	IsOrderCanBePaying(ctx context.Context, in *IsOrderCanBePayingRequest, opts ...client.CallOption) (*IsOrderCanBePayingResponse, error)
 	GetPriceGroup(ctx context.Context, in *billing.GetPriceGroupRequest, opts ...client.CallOption) (*billing.PriceGroup, error)
 	UpdatePriceGroup(ctx context.Context, in *billing.PriceGroup, opts ...client.CallOption) (*billing.PriceGroup, error)
@@ -745,9 +750,19 @@ func (c *billingService) GetOrder(ctx context.Context, in *GetOrderRequest, opts
 	return out, nil
 }
 
-func (c *billingService) FindAllOrders(ctx context.Context, in *ListOrdersRequest, opts ...client.CallOption) (*billing.OrderPaginate, error) {
-	req := c.c.NewRequest(c.name, "BillingService.FindAllOrders", in)
-	out := new(billing.OrderPaginate)
+func (c *billingService) FindAllOrdersPublic(ctx context.Context, in *ListOrdersRequest, opts ...client.CallOption) (*ListOrdersPublicResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.FindAllOrdersPublic", in)
+	out := new(ListOrdersPublicResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) FindAllOrdersPrivate(ctx context.Context, in *ListOrdersRequest, opts ...client.CallOption) (*ListOrdersPrivateResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.FindAllOrdersPrivate", in)
+	out := new(ListOrdersPrivateResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1323,7 +1338,8 @@ type BillingServiceHandler interface {
 	GetCountry(context.Context, *billing.GetCountryRequest, *billing.Country) error
 	UpdateCountry(context.Context, *billing.Country, *billing.Country) error
 	GetOrder(context.Context, *GetOrderRequest, *billing.Order) error
-	FindAllOrders(context.Context, *ListOrdersRequest, *billing.OrderPaginate) error
+	FindAllOrdersPublic(context.Context, *ListOrdersRequest, *ListOrdersPublicResponse) error
+	FindAllOrdersPrivate(context.Context, *ListOrdersRequest, *ListOrdersPrivateResponse) error
 	IsOrderCanBePaying(context.Context, *IsOrderCanBePayingRequest, *IsOrderCanBePayingResponse) error
 	GetPriceGroup(context.Context, *billing.GetPriceGroupRequest, *billing.PriceGroup) error
 	UpdatePriceGroup(context.Context, *billing.PriceGroup, *billing.PriceGroup) error
@@ -1425,7 +1441,8 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetCountry(ctx context.Context, in *billing.GetCountryRequest, out *billing.Country) error
 		UpdateCountry(ctx context.Context, in *billing.Country, out *billing.Country) error
 		GetOrder(ctx context.Context, in *GetOrderRequest, out *billing.Order) error
-		FindAllOrders(ctx context.Context, in *ListOrdersRequest, out *billing.OrderPaginate) error
+		FindAllOrdersPublic(ctx context.Context, in *ListOrdersRequest, out *ListOrdersPublicResponse) error
+		FindAllOrdersPrivate(ctx context.Context, in *ListOrdersRequest, out *ListOrdersPrivateResponse) error
 		IsOrderCanBePaying(ctx context.Context, in *IsOrderCanBePayingRequest, out *IsOrderCanBePayingResponse) error
 		GetPriceGroup(ctx context.Context, in *billing.GetPriceGroupRequest, out *billing.PriceGroup) error
 		UpdatePriceGroup(ctx context.Context, in *billing.PriceGroup, out *billing.PriceGroup) error
@@ -1670,8 +1687,12 @@ func (h *billingServiceHandler) GetOrder(ctx context.Context, in *GetOrderReques
 	return h.BillingServiceHandler.GetOrder(ctx, in, out)
 }
 
-func (h *billingServiceHandler) FindAllOrders(ctx context.Context, in *ListOrdersRequest, out *billing.OrderPaginate) error {
-	return h.BillingServiceHandler.FindAllOrders(ctx, in, out)
+func (h *billingServiceHandler) FindAllOrdersPublic(ctx context.Context, in *ListOrdersRequest, out *ListOrdersPublicResponse) error {
+	return h.BillingServiceHandler.FindAllOrdersPublic(ctx, in, out)
+}
+
+func (h *billingServiceHandler) FindAllOrdersPrivate(ctx context.Context, in *ListOrdersRequest, out *ListOrdersPrivateResponse) error {
+	return h.BillingServiceHandler.FindAllOrdersPrivate(ctx, in, out)
 }
 
 func (h *billingServiceHandler) IsOrderCanBePaying(ctx context.Context, in *IsOrderCanBePayingRequest, out *IsOrderCanBePayingResponse) error {
