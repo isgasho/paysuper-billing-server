@@ -267,11 +267,14 @@ func (s *Service) GetKeyProductInfo(ctx context.Context, req *grpc.GetKeyProduct
 		res.KeyProduct.LongDescription, _ = product.GetLocalizedLongDescription(DefaultLanguage)
 	}
 
+
 	defaultPriceGroup, err := s.priceGroup.GetByRegion(product.DefaultCurrency)
 	if err != nil {
 		zap.S().Errorw("Failed to get price group for default currency", "currency", product.DefaultCurrency)
 		return keyProductInternalError
 	}
+
+	zap.S().Info("product.DefaultCurrency ", product.DefaultCurrency, "defaultPriceGroup ", defaultPriceGroup)
 
 	priceGroup := defaultPriceGroup
 	globalIsFallback := false

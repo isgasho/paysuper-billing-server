@@ -1932,6 +1932,9 @@ func (v *OrderCreateRequestProcessor) processCustomerToken() error {
 		return err
 	}
 
+	v.request.Type = token.Settings.Type
+	v.request.PlatformId = token.Settings.PlatformId
+
 	v.request.ProjectId = token.Settings.ProjectId
 	v.request.Description = token.Settings.Description
 	v.request.Amount = token.Settings.Amount

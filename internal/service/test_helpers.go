@@ -527,6 +527,7 @@ func helperCreateMerchant(suite suite.Suite, service *Service, currency, country
 
 func helperCreateAndPayOrder(suite suite.Suite, service *Service, amount float64, currency, country string, project *billing.Project, paymentMethod *billing.PaymentMethod) *billing.Order {
 	req := &billing.OrderCreateRequest{
+		Type: billing.OrderType_simple,
 		ProjectId:   project.Id,
 		Amount:      amount,
 		Currency:    currency,

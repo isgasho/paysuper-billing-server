@@ -981,6 +981,10 @@ message TokenSettings {
     repeated string products_ids = 9;
     //@inject_tag: json:"metadata"
     map<string, string> metadata = 10;
+    //@inject_tag: json:"platform_id"
+    string platform_id = 11;
+    //@inject_tag: json:"type"
+    string type = 12;
 }
 
 message OrderIssuer {
