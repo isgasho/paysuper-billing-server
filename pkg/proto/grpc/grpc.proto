@@ -21,6 +21,8 @@ service BillingService {
     rpc ChangeMerchantStatus (MerchantChangeStatusRequest) returns (ChangeMerchantStatusResponse) {}
     rpc ChangeMerchantData (ChangeMerchantDataRequest) returns (ChangeMerchantDataResponse) {}
     rpc SetMerchantS3Agreement (SetMerchantS3AgreementRequest) returns (ChangeMerchantDataResponse) {}
+    rpc GetMerchantTariffRates(GetMerchantTariffRatesRequest) returns (GetMerchantTariffRatesResponse) {}
+    rpc SetMerchantTariffRates(SetMerchantTariffRatesRequest) returns (CheckProjectRequestSignatureResponse) {}
 
     rpc CreateNotification (NotificationRequest) returns (CreateNotificationResponse) {}
     rpc GetNotification (GetNotificationRequest) returns (billing.Notification) {}
@@ -127,11 +129,6 @@ service BillingService {
     rpc CalcAnnualTurnovers(EmptyRequest) returns (EmptyResponse) {}
     rpc GetMerchantAgreementSignUrl(GetMerchantAgreementSignUrlRequest) returns (GetMerchantAgreementSignUrlResponse) {}
     rpc GetMerchantOnboardingCompleteData(SetMerchantS3AgreementRequest) returns (GetMerchantOnboardingCompleteDataResponse) {}
-
-    rpc CreateReportFile(CreateReportFileRequest) returns (CreateReportFileResponse) {}
-    rpc UpdateReportFile(UpdateReportFileRequest) returns (ResponseError) {}
-    rpc GetReportFile(GetReportFileRequest) returns (GetReportFileResponse) {}
-    rpc DeleteOldestReportFiles(DeleteOldestReportFilesRequest) returns (ResponseError) {}
 }
 
 message EmptyRequest {}
@@ -230,7 +227,6 @@ message OnboardingRequest {
     billing.MerchantCompanyInfo company = 3;
     billing.MerchantContact contacts = 14;
     billing.MerchantBanking banking = 15;
-    string tariff = 16;
 }
 
 message FindByIdRequest {
@@ -1055,13 +1051,6 @@ message UpdateProductPricesRequest {
     repeated ProductPrice prices = 2;
 }
 
-message RangeInt {
-    //@inject_tag: json:"from"
-    int32 from = 1;
-    //@inject_tag: json:"to"
-    int32 to = 2;
-}
-
 message UserProfilePersonal {
     //@inject_tag: json:"first_name" bson:"first_name" validate:"required,name,max=30"
     string first_name = 1;
@@ -1114,9 +1103,9 @@ message UserProfileCompany {
     //@inject_tag: json:"website" validate:"required,url" bson:"website"
     string website = 2;
     //@inject_tag: json:"annual_income" bson:"annual_income" validate:"required"
-    RangeInt annual_income = 3;
+    billing.RangeInt annual_income = 3;
     //@inject_tag: json:"number_of_employees" bson:"number_of_employees" validate:"required"
-    RangeInt number_of_employees = 4;
+    billing.RangeInt number_of_employees = 4;
     //@inject_tag: json:"kind_of_activity" validate:"omitempty,oneof=develop_and_publish_your_games publish_games_of_other_companies publish_your_games_through_other_publishers other" bson:"kind_of_activity"
     string kind_of_activity = 5;
     //@inject_tag: json:"monetization" bson:"monetization"
@@ -1291,52 +1280,32 @@ message GetMerchantAgreementSignUrlResponse {
     billing.MerchantAgreementSignatureDataSignUrl item = 3;
 }
 
-message CreateReportFileRequest {
-    // @inject_tag: query:"merchant_id" validate:"required,hexadecimal,len=24"
-    string merchant_id = 1;
-    // @inject_tag: query:"period_from" validate:"required,numeric,gt=0"
-    int64 period_from = 2;
-    // @inject_tag: query:"period_to" validate:"required,numeric,gt=0"
-    int64 period_to = 3;
-    // @inject_tag: query:"report_type" validate:"required,alpha"
-    string report_type = 4;
-    // @inject_tag: query:"file_type" validate:"required,alpha"
-    string file_type = 5;
+message GetMerchantTariffRatesRequest {
+    // @inject_tag: query:"region" validate:"required,world_region"
+    string region = 1;
+    //@inject_tag: query:"payout_currency" validate:"required,alpha,len=3"
+    string payout_currency = 2;
+    // @inject_tag: query:"amount_from" validate:"omitempty,numeric,gte=0"
+    double amount_from = 3;
+    // @inject_tag: query:"amount_to" validate:"omitempty,numeric,gt=0"
+    double amount_to = 4;
 }
 
-message CreateReportFileResponse {
-    // @inject_tag: json:"status"
+message GetMerchantTariffRatesResponse {
     int32 status = 1;
-    // @inject_tag: json:"message,omitempty"
     ResponseErrorMessage message = 2;
-    // @inject_tag: json:"file_id"
-    string file_id = 3;
+    billing.MerchantTariffRates item = 3;
 }
 
-message UpdateReportFileRequest {
-    // @inject_tag: query:"id" validate:"required,hexadecimal,len=24"
-    string id = 1;
-    // @inject_tag: query:"file_path" validate:"required"
-    string file_path = 2;
-}
-
-message GetReportFileRequest {
-    // @inject_tag: query:"merchant_id" validate:"required,hexadecimal,len=24"
+message SetMerchantTariffRatesRequest {
+    //@inject_tag: json:"merchant_id" validate:"required,hexadecimal,len=24"
     string merchant_id = 1;
-    // @inject_tag: query:"id" validate:"required,hexadecimal,len=24"
-    string id = 2;
-}
-
-message GetReportFileResponse {
-    // @inject_tag: json:"status"
-    int32 status = 1;
-    // @inject_tag: json:"message,omitempty"
-    ResponseErrorMessage message = 2;
-    // @inject_tag: json:"file"
-    billing.ReportFile file = 3;
-}
-
-message DeleteOldestReportFilesRequest {
-    // @inject_tag: query:"days" validate:"required,number"
-    int32 days = 1;
+    // @inject_tag: json:"region" validate:"required,world_region"
+    string region = 2;
+    //@inject_tag: json:"payout_currency" validate:"required,alpha,len=3"
+    string payout_currency = 3;
+    // @inject_tag: json:"amount_from" validate:"required,numeric,gte=0"
+    double amount_from = 4;
+    // @inject_tag: json:"amount_to" validate:"required,numeric,gt=0"
+    double amount_to = 5;
 }

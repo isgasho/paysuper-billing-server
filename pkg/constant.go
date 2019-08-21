@@ -95,11 +95,11 @@ const (
 	TechEmailDomain        = "@paysuper.com"
 	OrderInlineFormUrlMask = "%s://%s/order/%s"
 
-	MigrationSource = "file://./migrations"
+	MigrationSource     = "file://./migrations"
+	MigrationSourceTest = "file://./../../migrations/tests"
 
 	ErrorGrpcServiceCallFailed       = "gRPC call failed"
 	ErrorVatReportDateCantBeInFuture = "vat report date cant be in future"
-	ErrorMessageBrokerInitialize     = "unable to initialize message broker"
 	MethodFinishedWithError          = "method finished with error"
 
 	ObjectTypeBalanceTransaction = "balance_transaction"
@@ -276,12 +276,8 @@ const (
 	VatReportStatusOverdue   = "overdue"
 	VatReportStatusCanceled  = "canceled"
 
-	ReportTypeTax             = "tax"
-	ReportTypeTaxTemplate     = "tax_report"
-	ReportTypeVat             = "vat"
-	ReportTypeVatTemplate     = "vat_report"
-	ReportTypeRoyalty         = "royalty"
-	ReportTypeRoyaltyTemplate = "royalty_report"
+	UndoReasonReversal   = "reversal"
+	UndoReasonChargeback = "chargeback"
 )
 
 var (

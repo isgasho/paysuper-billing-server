@@ -21,23 +21,24 @@ const (
 )
 
 var (
-	merchantErrorChangeNotAllowed            = newBillingServerErrorMsg("mr000001", "merchant data changing not allowed")
-	merchantErrorCountryNotFound             = newBillingServerErrorMsg("mr000002", "merchant country not found")
-	merchantErrorCurrencyNotFound            = newBillingServerErrorMsg("mr000003", "merchant bank accounting currency not found")
-	merchantErrorAgreementRequested          = newBillingServerErrorMsg("mr000004", "agreement for merchant can't be requested")
-	merchantErrorOnReview                    = newBillingServerErrorMsg("mr000005", "merchant hasn't allowed status for review")
-	merchantErrorSigning                     = newBillingServerErrorMsg("mr000006", "signing uncompleted merchant is impossible")
-	merchantErrorSigned                      = newBillingServerErrorMsg("mr000007", "document can't be mark as signed")
-	merchantErrorUnknown                     = newBillingServerErrorMsg("mr000008", "request processing failed. try request later")
-	merchantErrorNotFound                    = newBillingServerErrorMsg("mr000009", "merchant with specified identifier not found")
-	merchantErrorBadData                     = newBillingServerErrorMsg("mr000010", "request data is incorrect")
-	merchantErrorAgreementTypeSelectNotAllow = newBillingServerErrorMsg("mr000011", "merchant status not allow select agreement type")
-	notificationErrorMerchantIdIncorrect     = newBillingServerErrorMsg("mr000012", "merchant identifier incorrect, notification can't be saved")
-	notificationErrorUserIdIncorrect         = newBillingServerErrorMsg("mr000013", "user identifier incorrect, notification can't be saved")
-	notificationErrorMessageIsEmpty          = newBillingServerErrorMsg("mr000014", "notification message can't be empty")
-	notificationErrorNotFound                = newBillingServerErrorMsg("mr000015", "notification not found")
-	merchantErrorAlreadySigned               = newBillingServerErrorMsg("mr000016", "merchant already fully signed")
-	merchantErrorOnboardingNotComplete       = newBillingServerErrorMsg("mr000019", "merchant onboarding not complete")
+	merchantErrorChangeNotAllowed             = newBillingServerErrorMsg("mr000001", "merchant data changing not allowed")
+	merchantErrorCountryNotFound              = newBillingServerErrorMsg("mr000002", "merchant country not found")
+	merchantErrorCurrencyNotFound             = newBillingServerErrorMsg("mr000003", "merchant bank accounting currency not found")
+	merchantErrorAgreementRequested           = newBillingServerErrorMsg("mr000004", "agreement for merchant can't be requested")
+	merchantErrorOnReview                     = newBillingServerErrorMsg("mr000005", "merchant hasn't allowed status for review")
+	merchantErrorSigning                      = newBillingServerErrorMsg("mr000006", "signing uncompleted merchant is impossible")
+	merchantErrorSigned                       = newBillingServerErrorMsg("mr000007", "document can't be mark as signed")
+	merchantErrorUnknown                      = newBillingServerErrorMsg("mr000008", "request processing failed. try request later")
+	merchantErrorNotFound                     = newBillingServerErrorMsg("mr000009", "merchant with specified identifier not found")
+	merchantErrorBadData                      = newBillingServerErrorMsg("mr000010", "request data is incorrect")
+	merchantErrorAgreementTypeSelectNotAllow  = newBillingServerErrorMsg("mr000011", "merchant status not allow select agreement type")
+	notificationErrorMerchantIdIncorrect      = newBillingServerErrorMsg("mr000012", "merchant identifier incorrect, notification can't be saved")
+	notificationErrorUserIdIncorrect          = newBillingServerErrorMsg("mr000013", "user identifier incorrect, notification can't be saved")
+	notificationErrorMessageIsEmpty           = newBillingServerErrorMsg("mr000014", "notification message can't be empty")
+	notificationErrorNotFound                 = newBillingServerErrorMsg("mr000015", "notification not found")
+	merchantErrorAlreadySigned                = newBillingServerErrorMsg("mr000016", "merchant already fully signed")
+	merchantErrorOnboardingNotComplete        = newBillingServerErrorMsg("mr000019", "merchant onboarding not complete")
+	merchantErrorOnboardingTariffAlreadyExist = newBillingServerErrorMsg("mr000020", "merchant tariffs already sets")
 
 	NotificationStatusChangeTitles = map[int32]string{
 		pkg.MerchantStatusDraft:              "New merchant created",
@@ -267,10 +268,6 @@ func (s *Service) ChangeMerchant(
 		merchant.Contacts = req.Contacts
 	}
 
-	if req.Tariff != "" {
-		merchant.Tariff = req.Tariff
-	}
-
 	if merchant.IsDataComplete() && merchant.AgreementSignatureData == nil {
 		merchant.AgreementSignatureData, err = s.getMerchantAgreementSignature(ctx, merchant)
 
@@ -283,12 +280,14 @@ func (s *Service) ChangeMerchant(
 	}
 
 	merchant.UpdatedAt = ptypes.TimestampNow()
-	merchant.Steps = &billing.MerchantCompletedSteps{
-		Company:  merchant.Company != nil,
-		Contacts: merchant.Contacts != nil,
-		Banking:  merchant.Banking != nil,
-		Tariff:   merchant.Tariff != "",
+
+	if merchant.Steps == nil {
+		merchant.Steps = &billing.MerchantCompletedSteps{}
 	}
+
+	merchant.Steps.Company = merchant.Company != nil
+	merchant.Steps.Contacts = merchant.Contacts != nil
+	merchant.Steps.Banking = merchant.Banking != nil
 
 	err = s.merchant.Upsert(merchant)
 
@@ -455,6 +454,10 @@ func (s *Service) ChangeMerchantData(
 	merchant.AgreementSentViaMail = req.AgreementSentViaMail
 	merchant.MailTrackingLink = req.MailTrackingLink
 	merchant.IsSigned = merchant.HasPspSignature == true && merchant.HasMerchantSignature == true
+
+	if merchant.HasMerchantSignature {
+		merchant.Status = pkg.MerchantStatusAgreementSigning
+	}
 
 	if merchant.NeedMarkESignAgreementAsSigned() == true {
 		merchant.Status = pkg.MerchantStatusAgreementSigned
@@ -966,11 +969,11 @@ func (s *Service) GetMerchantAgreementSignUrl(
 
 func (s *Service) IsChangeDataAllow(merchant *billing.Merchant, data *grpc.OnboardingRequest) bool {
 	if merchant.IsAgreementSigningStarted() && (data.Company != nil || data.Contacts != nil || data.Banking != nil ||
-		data.Tariff != "") {
+		merchant.HasTariff()) {
 		return false
 	}
 
-	if merchant.IsAgreementSigned() && data.Tariff != "" {
+	if merchant.IsAgreementSigned() && merchant.HasTariff() {
 		return false
 	}
 
@@ -1143,4 +1146,194 @@ func (s *Service) changeMerchantAgreementSingUrl(
 	}
 
 	return signUrl, nil
+}
+
+func (s *Service) GetMerchantTariffRates(
+	ctx context.Context,
+	req *grpc.GetMerchantTariffRatesRequest,
+	rsp *grpc.GetMerchantTariffRatesResponse,
+) error {
+	tariff, err := s.merchantTariffRates.GetBy(req)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = merchantErrorUnknown
+
+		return nil
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
+	rsp.Item = tariff
+
+	return nil
+}
+
+func (s *Service) SetMerchantTariffRates(
+	ctx context.Context,
+	req *grpc.SetMerchantTariffRatesRequest,
+	rsp *grpc.CheckProjectRequestSignatureResponse,
+) error {
+	merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
+
+		if err == merchantErrorUnknown {
+			rsp.Status = pkg.ResponseStatusSystemError
+		}
+
+		return nil
+	}
+
+	if merchant.HasTariff() {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = merchantErrorOnboardingTariffAlreadyExist
+
+		return nil
+	}
+
+	if merchant.IsAgreementSigningStarted() {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = merchantErrorChangeNotAllowed
+
+		return nil
+	}
+
+	query := &grpc.GetMerchantTariffRatesRequest{
+		Region:         req.Region,
+		PayoutCurrency: req.PayoutCurrency,
+		AmountFrom:     req.AmountFrom,
+		AmountTo:       req.AmountTo,
+	}
+	tariff, err := s.merchantTariffRates.GetBy(query)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = merchantErrorUnknown
+
+		return nil
+	}
+
+	if len(tariff.Payment) > 0 {
+		var costs []*billing.PaymentChannelCostMerchant
+
+		for _, v := range tariff.Payment {
+			cost := &billing.PaymentChannelCostMerchant{
+				Id:                      bson.NewObjectId().Hex(),
+				MerchantId:              req.MerchantId,
+				Name:                    v.Method,
+				PayoutCurrency:          v.PayoutCurrency,
+				MinAmount:               v.AmountRange.From,
+				Region:                  tariff.Region,
+				Country:                 v.Country,
+				MethodPercent:           v.MethodPercentFee,
+				MethodFixAmount:         v.MethodFixedFee,
+				MethodFixAmountCurrency: v.MethodFixedFeeCurrency,
+				PsPercent:               v.PsPercentFee,
+				PsFixedFee:              v.PsFixedFee,
+				PsFixedFeeCurrency:      v.PsFixedFeeCurrency,
+				CreatedAt:               ptypes.TimestampNow(),
+				UpdatedAt:               ptypes.TimestampNow(),
+				IsActive:                true,
+			}
+			costs = append(costs, cost)
+		}
+
+		err = s.paymentChannelCostMerchant.MultipleInsert(costs)
+
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = merchantErrorUnknown
+
+			return nil
+		}
+	}
+
+	if len(tariff.MoneyBack) > 0 {
+		var costs []*billing.MoneyBackCostMerchant
+
+		for _, v := range tariff.MoneyBack {
+			cost := &billing.MoneyBackCostMerchant{
+				Id:                bson.NewObjectId().Hex(),
+				MerchantId:        req.MerchantId,
+				Name:              v.Method,
+				PayoutCurrency:    v.PayoutCurrency,
+				UndoReason:        pkg.UndoReasonReversal,
+				Region:            tariff.Region,
+				Country:           v.Country,
+				DaysFrom:          v.DaysRange.From,
+				PaymentStage:      v.PaymentStage,
+				Percent:           v.PercentFee,
+				FixAmount:         v.FixedFee,
+				FixAmountCurrency: v.FixedFeeCurrency,
+				IsPaidByMerchant:  v.IsPaidByMerchant,
+				CreatedAt:         ptypes.TimestampNow(),
+				UpdatedAt:         ptypes.TimestampNow(),
+				IsActive:          true,
+			}
+			costs = append(costs, cost)
+
+			cost = &billing.MoneyBackCostMerchant{
+				Id:                bson.NewObjectId().Hex(),
+				MerchantId:        req.MerchantId,
+				Name:              v.Method,
+				PayoutCurrency:    v.PayoutCurrency,
+				UndoReason:        pkg.UndoReasonChargeback,
+				Region:            tariff.Region,
+				Country:           v.Country,
+				DaysFrom:          v.DaysRange.From,
+				PaymentStage:      v.PaymentStage,
+				FixAmount:         tariff.Chargeback.FixedFee,
+				FixAmountCurrency: tariff.Chargeback.FixedFeeCurrency,
+				IsPaidByMerchant:  tariff.Chargeback.IsPaidByMerchant,
+				CreatedAt:         ptypes.TimestampNow(),
+				UpdatedAt:         ptypes.TimestampNow(),
+				IsActive:          true,
+			}
+
+			costs = append(costs, cost)
+		}
+
+		err = s.moneyBackCostMerchant.MultipleInsert(costs)
+
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = merchantErrorUnknown
+
+			return nil
+		}
+	}
+
+	merchant.Tariff = tariff
+
+	if merchant.Steps == nil {
+		merchant.Steps = &billing.MerchantCompletedSteps{}
+	}
+
+	merchant.Steps.Tariff = true
+
+	if merchant.IsDataComplete() && merchant.AgreementSignatureData == nil {
+		merchant.AgreementSignatureData, err = s.getMerchantAgreementSignature(ctx, merchant)
+
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = err.(*grpc.ResponseErrorMessage)
+
+			return nil
+		}
+	}
+
+	err = s.merchant.Update(merchant)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = merchantErrorUnknown
+
+		return nil
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
+
+	return nil
 }

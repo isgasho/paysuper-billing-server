@@ -188,8 +188,8 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_Cha
 		Company: &grpc.UserProfileCompany{
 			CompanyName:       "Unit test",
 			Website:           "http://localhost",
-			AnnualIncome:      &grpc.RangeInt{From: 10, To: 100},
-			NumberOfEmployees: &grpc.RangeInt{From: 10, To: 100},
+			AnnualIncome:      &billing.RangeInt{From: 10, To: 100},
+			NumberOfEmployees: &billing.RangeInt{From: 10, To: 100},
 			KindOfActivity:    "develop_and_publish_your_games",
 			Monetization: &grpc.UserProfileCompanyMonetization{
 				PaidSubscription: true,
@@ -246,8 +246,8 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateOnboardingProfi
 		Company: &grpc.UserProfileCompany{
 			CompanyName:       "Unit test",
 			Website:           "http://localhost",
-			AnnualIncome:      &grpc.RangeInt{From: 10, To: 100},
-			NumberOfEmployees: &grpc.RangeInt{From: 10, To: 100},
+			AnnualIncome:      &billing.RangeInt{From: 10, To: 100},
+			NumberOfEmployees: &billing.RangeInt{From: 10, To: 100},
 			KindOfActivity:    "develop_and_publish_your_games",
 			Monetization: &grpc.UserProfileCompanyMonetization{
 				PaidSubscription: true,
@@ -290,8 +290,8 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateOnboardingProfi
 		Company: &grpc.UserProfileCompany{
 			CompanyName:       "company name",
 			Website:           "http://127.0.0.1",
-			AnnualIncome:      &grpc.RangeInt{From: 10, To: 100000},
-			NumberOfEmployees: &grpc.RangeInt{From: 10, To: 50},
+			AnnualIncome:      &billing.RangeInt{From: 10, To: 100000},
+			NumberOfEmployees: &billing.RangeInt{From: 10, To: 50},
 			KindOfActivity:    "test",
 			Monetization: &grpc.UserProfileCompanyMonetization{
 				PaidSubscription:  true,
@@ -355,8 +355,8 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 		Company: &grpc.UserProfileCompany{
 			CompanyName:       "Unit test",
 			Website:           "http://localhost",
-			AnnualIncome:      &grpc.RangeInt{From: 10, To: 100},
-			NumberOfEmployees: &grpc.RangeInt{From: 10, To: 100},
+			AnnualIncome:      &billing.RangeInt{From: 10, To: 100},
+			NumberOfEmployees: &billing.RangeInt{From: 10, To: 100},
 			KindOfActivity:    "develop_and_publish_your_games",
 			Monetization: &grpc.UserProfileCompanyMonetization{
 				PaidSubscription: true,
@@ -411,8 +411,8 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 		Company: &grpc.UserProfileCompany{
 			CompanyName:       "Unit test",
 			Website:           "http://localhost",
-			AnnualIncome:      &grpc.RangeInt{From: 10, To: 100},
-			NumberOfEmployees: &grpc.RangeInt{From: 10, To: 100},
+			AnnualIncome:      &billing.RangeInt{From: 10, To: 100},
+			NumberOfEmployees: &billing.RangeInt{From: 10, To: 100},
 			KindOfActivity:    "develop_and_publish_your_games",
 			Monetization: &grpc.UserProfileCompanyMonetization{
 				PaidSubscription: true,
@@ -524,8 +524,8 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_Ok() {
 		Company: &grpc.UserProfileCompany{
 			CompanyName:       "Unit test",
 			Website:           "http://localhost",
-			AnnualIncome:      &grpc.RangeInt{From: 10, To: 100},
-			NumberOfEmployees: &grpc.RangeInt{From: 10, To: 100},
+			AnnualIncome:      &billing.RangeInt{From: 10, To: 100},
+			NumberOfEmployees: &billing.RangeInt{From: 10, To: 100},
 			KindOfActivity:    "develop_and_publish_your_games",
 			Monetization: &grpc.UserProfileCompanyMonetization{
 				PaidSubscription: true,
@@ -600,8 +600,8 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_UserNotFound
 		Company: &grpc.UserProfileCompany{
 			CompanyName:       "Unit test",
 			Website:           "http://localhost",
-			AnnualIncome:      &grpc.RangeInt{From: 10, To: 100},
-			NumberOfEmployees: &grpc.RangeInt{From: 10, To: 100},
+			AnnualIncome:      &billing.RangeInt{From: 10, To: 100},
+			NumberOfEmployees: &billing.RangeInt{From: 10, To: 100},
 			KindOfActivity:    "develop_and_publish_your_games",
 			Monetization: &grpc.UserProfileCompanyMonetization{
 				PaidSubscription: true,
@@ -666,8 +666,8 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_EmailAlready
 		Company: &grpc.UserProfileCompany{
 			CompanyName:       "Unit test",
 			Website:           "http://localhost",
-			AnnualIncome:      &grpc.RangeInt{From: 10, To: 100},
-			NumberOfEmployees: &grpc.RangeInt{From: 10, To: 100},
+			AnnualIncome:      &billing.RangeInt{From: 10, To: 100},
+			NumberOfEmployees: &billing.RangeInt{From: 10, To: 100},
 			KindOfActivity:    "develop_and_publish_your_games",
 			Monetization: &grpc.UserProfileCompanyMonetization{
 				PaidSubscription: true,
@@ -733,8 +733,8 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_EmailConfirm
 		Company: &grpc.UserProfileCompany{
 			CompanyName:       "Unit test",
 			Website:           "http://localhost",
-			AnnualIncome:      &grpc.RangeInt{From: 10, To: 100},
-			NumberOfEmployees: &grpc.RangeInt{From: 10, To: 100},
+			AnnualIncome:      &billing.RangeInt{From: 10, To: 100},
+			NumberOfEmployees: &billing.RangeInt{From: 10, To: 100},
 			KindOfActivity:    "develop_and_publish_your_games",
 			Monetization: &grpc.UserProfileCompanyMonetization{
 				PaidSubscription: true,

@@ -1,0 +1,3190 @@
+[
+  {
+    "create": "merchants_tariff_rates"
+  },
+  {
+    "createIndexes": "merchants_tariff_rates",
+    "indexes": [
+      {
+        "key": {
+          "region": 1
+        },
+        "name": "idx_merchants_tariff_rates_region"
+      },
+      {
+        "key": {
+          "payment.payout_currency": 1
+        },
+        "name": "idx_merchants_tariff_rates_payment_payout_currency"
+      },
+      {
+        "key": {
+          "payment.amount_range.from": 1
+        },
+        "name": "idx_merchants_tariff_rates_payment_amount_range_from"
+      },
+      {
+        "key": {
+          "payment.amount_range.to": 1
+        },
+        "name": "idx_merchants_tariff_rates_payment_amount_range_to"
+      },
+      {
+        "key": {
+          "region": 1,
+          "payment.payout_currency": 1
+        },
+        "name": "idx_merchants_tariff_rates_region_payment_payout_currency"
+      },
+      {
+        "key": {
+          "region": 1,
+          "payment.amount_range.from": 1,
+          "payment.amount_range.to": 1
+        },
+        "name": "idx_merchants_tariff_rates_region_payment_amount_range_from_payment_amount_range_to"
+      },
+      {
+        "key": {
+          "region": 1,
+          "payment.payout_currency": 1,
+          "payment.amount_range.from": 1,
+          "payment.amount_range.to": 1
+        },
+        "name": "idx_merchants_tariff_rates_region_payment_payout_currency_payment_amount_range_from_payment_amount_range_to"
+      },
+      {
+        "key": {
+          "money_back.payout_currency": 1
+        },
+        "name": "idx_merchants_tariff_rates_money_back_payout_currency"
+      },
+      {
+        "key": {
+          "money_back.days_range.from": 1
+        },
+        "name": "idx_merchants_tariff_rates_money_back_days_range_from"
+      },
+      {
+        "key": {
+          "money_back.days_range.to": 1
+        },
+        "name": "idx_merchants_tariff_rates_money_back_days_range_to"
+      },
+      {
+        "key": {
+          "region": 1,
+          "money_back.payout_currency": 1
+        },
+        "name": "idx_merchants_tariff_rates_region_money_back_payout_currency"
+      },
+      {
+        "key": {
+          "region": 1,
+          "money_back.days_range.from": 1,
+          "money_back.days_range.to": 1
+        },
+        "name": "idx_merchants_tariff_rates_region_money_back_days_from_money_back_days_range_to"
+      },
+      {
+        "key": {
+          "region": 1,
+          "money_back.payout_currency": 1,
+          "money_back.days_range.from": 1,
+          "money_back.days_range.to": 1
+        },
+        "name": "idx_merchants_tariff_rates_region_money_back_payout_currency_money_back_days_range_from_money_back_days_range_to"
+      }
+    ]
+  },
+  {
+    "insert": "merchants_tariff_rates",
+    "documents": [
+      {
+        "payment": [
+          {
+            "method": "VISA",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "DE",
+            "method_percent_fee": 2,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0.05,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Mastercard",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "DE",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Union Pay",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "DE",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "JCB",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "DE",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "PayPal",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "DE",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "QIWI",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "DE",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Ali Pay",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "DE",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "WebMoney",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "DE",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Yandex Money",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "DE",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Token.io",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "DE",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          }
+        ],
+        "money_back": [
+          {
+            "method": "VISA",
+            "payout_currency": "USD",
+            "country": "DE",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Mastercard",
+            "payout_currency": "USD",
+            "country": "DE",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Union Pay",
+            "payout_currency": "USD",
+            "country": "DE",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "JCB",
+            "payout_currency": "USD",
+            "country": "DE",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "PayPal",
+            "payout_currency": "USD",
+            "country": "DE",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "QIWI",
+            "payout_currency": "USD",
+            "country": "DE",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Ali Pay",
+            "payout_currency": "USD",
+            "country": "DE",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "WebMoney",
+            "payout_currency": "USD",
+            "country": "DE",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Yandex Money",
+            "payout_currency": "USD",
+            "country": "DE",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Token.io",
+            "payout_currency": "USD",
+            "country": "DE",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          }
+        ],
+        "payout": {
+          "fixed_fee": 25,
+          "fixed_fee_currency": "USD",
+          "is_paid_by_merchant": true
+        },
+        "chargeback": {
+          "fixed_fee": 25,
+          "fixed_fee_currency": "USD",
+          "is_paid_by_merchant": true
+        },
+        "region": "EU"
+      },
+      {
+        "payment": [
+          {
+            "method": "VISA",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "RU",
+            "method_percent_fee": 2,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0.05,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Mastercard",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "RU",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Union Pay",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "RU",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "JCB",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "RU",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "PayPal",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "RU",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "QIWI",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "RU",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Ali Pay",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "RU",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "WebMoney",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "RU",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Yandex Money",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "RU",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Token.io",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "RU",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          }
+        ],
+        "money_back": [
+          {
+            "method": "VISA",
+            "payout_currency": "USD",
+            "country": "RU",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Mastercard",
+            "payout_currency": "USD",
+            "country": "RU",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Union Pay",
+            "payout_currency": "USD",
+            "country": "RU",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "JCB",
+            "payout_currency": "USD",
+            "country": "RU",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "PayPal",
+            "payout_currency": "USD",
+            "country": "RU",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "QIWI",
+            "payout_currency": "USD",
+            "country": "RU",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Ali Pay",
+            "payout_currency": "USD",
+            "country": "RU",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "WebMoney",
+            "payout_currency": "USD",
+            "country": "RU",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Yandex Money",
+            "payout_currency": "USD",
+            "country": "RU",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Token.io",
+            "payout_currency": "USD",
+            "country": "RU",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          }
+        ],
+        "payout": {
+          "fixed_fee": 25,
+          "fixed_fee_currency": "USD",
+          "is_paid_by_merchant": true
+        },
+        "chargeback": {
+          "fixed_fee": 25,
+          "fixed_fee_currency": "USD",
+          "is_paid_by_merchant": true
+        },
+        "region": "Russia"
+      },
+      {
+        "payment": [
+          {
+            "method": "VISA",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 2,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0.05,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Mastercard",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Union Pay",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "JCB",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "PayPal",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "QIWI",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Ali Pay",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "WebMoney",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Yandex Money",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Token.io",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          }
+        ],
+        "money_back": [
+          {
+            "method": "VISA",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Mastercard",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Union Pay",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "JCB",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "PayPal",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "QIWI",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Ali Pay",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "WebMoney",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Yandex Money",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Token.io",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          }
+        ],
+        "payout": {
+          "fixed_fee": 25,
+          "fixed_fee_currency": "USD",
+          "is_paid_by_merchant": true
+        },
+        "chargeback": {
+          "fixed_fee": 25,
+          "fixed_fee_currency": "USD",
+          "is_paid_by_merchant": true
+        },
+        "region": "West Asia"
+      },
+      {
+        "payment": [
+          {
+            "method": "VISA",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 2,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0.05,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Mastercard",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Union Pay",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "JCB",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "PayPal",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "QIWI",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Ali Pay",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "WebMoney",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Yandex Money",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Token.io",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          }
+        ],
+        "money_back": [
+          {
+            "method": "VISA",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Mastercard",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Union Pay",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "JCB",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "PayPal",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "QIWI",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Ali Pay",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "WebMoney",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Yandex Money",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Token.io",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          }
+        ],
+        "payout": {
+          "fixed_fee": 25,
+          "fixed_fee_currency": "USD",
+          "is_paid_by_merchant": true
+        },
+        "chargeback": {
+          "fixed_fee": 25,
+          "fixed_fee_currency": "USD",
+          "is_paid_by_merchant": true
+        },
+        "region": "CIS"
+      },
+      {
+        "payment": [
+          {
+            "method": "VISA",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 2,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0.05,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Mastercard",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Union Pay",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "JCB",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "PayPal",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "QIWI",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Ali Pay",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "WebMoney",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Yandex Money",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Token.io",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          }
+        ],
+        "money_back": [
+          {
+            "method": "VISA",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Mastercard",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Union Pay",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "JCB",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "PayPal",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "QIWI",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Ali Pay",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "WebMoney",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Yandex Money",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Token.io",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          }
+        ],
+        "payout": {
+          "fixed_fee": 25,
+          "fixed_fee_currency": "USD",
+          "is_paid_by_merchant": true
+        },
+        "chargeback": {
+          "fixed_fee": 25,
+          "fixed_fee_currency": "USD",
+          "is_paid_by_merchant": true
+        },
+        "region": "North America"
+      },
+      {
+        "payment": [
+          {
+            "method": "VISA",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 2,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0.05,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Mastercard",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Union Pay",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "JCB",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "PayPal",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "QIWI",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Ali Pay",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "WebMoney",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Yandex Money",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Token.io",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          }
+        ],
+        "money_back": [
+          {
+            "method": "VISA",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Mastercard",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Union Pay",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "JCB",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "PayPal",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "QIWI",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Ali Pay",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "WebMoney",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Yandex Money",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Token.io",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          }
+        ],
+        "payout": {
+          "fixed_fee": 25,
+          "fixed_fee_currency": "USD",
+          "is_paid_by_merchant": true
+        },
+        "chargeback": {
+          "fixed_fee": 25,
+          "fixed_fee_currency": "USD",
+          "is_paid_by_merchant": true
+        },
+        "region": "Central America"
+      },
+      {
+        "payment": [
+          {
+            "method": "VISA",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 2,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0.05,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Mastercard",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Union Pay",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "JCB",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "PayPal",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "QIWI",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Ali Pay",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "WebMoney",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Yandex Money",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Token.io",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          }
+        ],
+        "money_back": [
+          {
+            "method": "VISA",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Mastercard",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Union Pay",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "JCB",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "PayPal",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "QIWI",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Ali Pay",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "WebMoney",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Yandex Money",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Token.io",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          }
+        ],
+        "payout": {
+          "fixed_fee": 25,
+          "fixed_fee_currency": "USD",
+          "is_paid_by_merchant": true
+        },
+        "chargeback": {
+          "fixed_fee": 25,
+          "fixed_fee_currency": "USD",
+          "is_paid_by_merchant": true
+        },
+        "region": "South America"
+      },
+      {
+        "payment": [
+          {
+            "method": "VISA",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 2,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0.05,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Mastercard",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Union Pay",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "JCB",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "PayPal",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "QIWI",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Ali Pay",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "WebMoney",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Yandex Money",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Token.io",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          }
+        ],
+        "money_back": [
+          {
+            "method": "VISA",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Mastercard",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Union Pay",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "JCB",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "PayPal",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "QIWI",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Ali Pay",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "WebMoney",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Yandex Money",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Token.io",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          }
+        ],
+        "payout": {
+          "fixed_fee": 25,
+          "fixed_fee_currency": "USD",
+          "is_paid_by_merchant": true
+        },
+        "chargeback": {
+          "fixed_fee": 25,
+          "fixed_fee_currency": "USD",
+          "is_paid_by_merchant": true
+        },
+        "region": "United Kingdom"
+      },
+      {
+        "payment": [
+          {
+            "method": "VISA",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 2,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0.05,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Mastercard",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Union Pay",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "JCB",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "PayPal",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "QIWI",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Ali Pay",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "WebMoney",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Yandex Money",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Token.io",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          }
+        ],
+        "money_back": [
+          {
+            "method": "VISA",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Mastercard",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Union Pay",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "JCB",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "PayPal",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "QIWI",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Ali Pay",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "WebMoney",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Yandex Money",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Token.io",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          }
+        ],
+        "payout": {
+          "fixed_fee": 25,
+          "fixed_fee_currency": "USD",
+          "is_paid_by_merchant": true
+        },
+        "chargeback": {
+          "fixed_fee": 25,
+          "fixed_fee_currency": "USD",
+          "is_paid_by_merchant": true
+        },
+        "region": "Worldwide"
+      },
+      {
+        "payment": [
+          {
+            "method": "VISA",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 2,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0.05,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Mastercard",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Union Pay",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "JCB",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "PayPal",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "QIWI",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Ali Pay",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "WebMoney",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Yandex Money",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          },
+          {
+            "method": "Token.io",
+            "payout_currency": "USD",
+            "amount_range": {
+              "from": 0.75,
+              "to": 5
+            },
+            "country": "",
+            "method_percent_fee": 1.6,
+            "method_fixed_fee": 0.1,
+            "method_fixed_fee_currency": "USD",
+            "ps_percent_fee": 5,
+            "ps_fixed_fee": 0,
+            "ps_fixed_fee_currency": "USD"
+          }
+        ],
+        "money_back": [
+          {
+            "method": "VISA",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Mastercard",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Union Pay",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "JCB",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "PayPal",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "QIWI",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Ali Pay",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "WebMoney",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Yandex Money",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method": "Token.io",
+            "payout_currency": "USD",
+            "country": "",
+            "days_range": {
+              "from": 0,
+              "to": 999999999999999
+            },
+            "payment_stage": 1,
+            "percent_fee": 1,
+            "fixed_fee": 10,
+            "fixed_fee_currency": "USD",
+            "is_paid_by_merchant": false
+          }
+        ],
+        "payout": {
+          "fixed_fee": 25,
+          "fixed_fee_currency": "USD",
+          "is_paid_by_merchant": true
+        },
+        "chargeback": {
+          "fixed_fee": 25,
+          "fixed_fee_currency": "USD",
+          "is_paid_by_merchant": true
+        },
+        "region": "South Pacific"
+      }
+    ]
+  },
+  {
+    "update": "merchants_tariff_rates",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$currentDate": {
+            "created_at": true,
+            "updated_at": true
+          }
+        },
+        "multi": true
+      }
+    ]
+  }
+]

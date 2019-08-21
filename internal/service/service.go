@@ -81,7 +81,7 @@ type Service struct {
 	productService             ProductServiceInterface
 	turnover                   *Turnover
 	documentSigner             documentSignerProto.DocumentSignerService
-	reportFileRepository       ReportFileRepositoryInterface
+	merchantTariffRates        MerchantTariffRatesInterface
 	centrifugo                 CentrifugoInterface
 	messageBroker              MessageBrokerInterface
 }
@@ -145,13 +145,8 @@ func (s *Service) Init() (err error) {
 	s.priceTable = newPriceTableService(s)
 	s.productService = newProductService(s)
 	s.turnover = newTurnoverService(s)
-	s.reportFileRepository = newReportFileRepository(s)
+	s.merchantTariffRates = newMerchantsTariffRatesRepository(s)
 	s.centrifugo = newCentrifugo(s)
-
-	if s.messageBroker, err = newMessageBroker(s); err != nil {
-		zap.S().Error(pkg.ErrorMessageBrokerInitialize, zap.Error(err))
-		return err
-	}
 
 	if s.cfg.AccountingCurrency == "" {
 		return errors.New(errorAccountingCurrencyNotFound)

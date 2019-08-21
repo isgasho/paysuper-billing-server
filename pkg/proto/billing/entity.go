@@ -189,7 +189,7 @@ func (m *Merchant) GetCompleteStepsCount() int32 {
 }
 
 func (m *Merchant) IsDataComplete() bool {
-	return m.Company != nil && m.Contacts != nil && m.Banking != nil && m.Tariff != ""
+	return m.Company != nil && m.Contacts != nil && m.Banking != nil && m.HasTariff()
 }
 
 func (m *Merchant) GetMerchantSignatureId() string {
@@ -214,4 +214,9 @@ func (m *Merchant) IsPaysuperSignatureId(signatureId string) bool {
 
 func (m *Merchant) IsMerchantSignature(signatureId string) bool {
 	return m.AgreementSignatureData.MerchantSignatureId == signatureId
+}
+
+func (m *Merchant) HasTariff() bool {
+	return m.Tariff != nil && m.Tariff.Payment != nil && m.Tariff.MoneyBack != nil && m.Tariff.Payout != nil &&
+		m.Tariff.Chargeback != nil && m.Tariff.Region != ""
 }
