@@ -276,7 +276,7 @@ func (s *Service) GetKeyProductInfo(ctx context.Context, req *grpc.GetKeyProduct
 
 	zap.S().Info("product.DefaultCurrency ", product.DefaultCurrency, "defaultPriceGroup ", defaultPriceGroup)
 
-	priceGroup := defaultPriceGroup
+	priceGroup := &billing.PriceGroup{}
 	globalIsFallback := false
 	if req.Currency != "" {
 		priceGroup, err = s.priceGroup.GetByRegion(req.Currency)
