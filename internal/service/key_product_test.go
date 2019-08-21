@@ -454,6 +454,44 @@ func (suite *KeyProductTestSuite) createKeyProduct() *grpc.KeyProduct {
 	return res.Product
 }
 
+func (suite *KeyProductTestSuite) Test_UpdatePlatformPrices_WithBadPrice_Error() {
+	shouldBe := require.New(suite.T())
+	product := suite.createKeyProduct()
+	req := &grpc.AddOrUpdatePlatformPricesRequest{
+		MerchantId:   merchantId,
+		KeyProductId: product.Id,
+		Platform: &grpc.PlatformPrice{
+			Id: "steam",
+			Prices: []*grpc.ProductPrice{
+				{Region:"USD", Currency: "RUB", Amount: 66.66},
+			},
+		},
+	}
+
+	res := &grpc.UpdatePlatformPricesResponse{}
+	err := suite.service.UpdatePlatformPrices(context.TODO(), req, res)
+	shouldBe.Nil(err)
+	shouldBe.NotNil(res.Message)
+	shouldBe.EqualValues(400, res.Status)
+
+	req = &grpc.AddOrUpdatePlatformPricesRequest{
+		MerchantId:   merchantId,
+		KeyProductId: product.Id,
+		Platform: &grpc.PlatformPrice{
+			Id: "steam",
+			Prices: []*grpc.ProductPrice{
+				{Region:"EUR", Currency: "EUR", Amount: 66.66},
+			},
+		},
+	}
+
+	res = &grpc.UpdatePlatformPricesResponse{}
+	err = suite.service.UpdatePlatformPrices(context.TODO(), req, res)
+	shouldBe.Nil(err)
+	shouldBe.NotNil(res.Message)
+	shouldBe.EqualValues(400, res.Status)
+}
+
 func (suite *KeyProductTestSuite) UpdatePlatformPrices_Test() {
 	shouldBe := require.New(suite.T())
 	product := suite.createKeyProduct()
@@ -463,7 +501,7 @@ func (suite *KeyProductTestSuite) UpdatePlatformPrices_Test() {
 		Platform: &grpc.PlatformPrice{
 			Id: "steam",
 			Prices: []*grpc.ProductPrice{
-				{Currency: "RUB", Amount: 66.66},
+				{Region: "USD", Currency: "USD", Amount: 77.66},
 			},
 		},
 	}
@@ -484,7 +522,8 @@ func (suite *KeyProductTestSuite) UpdatePlatformPrices_Test() {
 		Platform: &grpc.PlatformPrice{
 			Id: "steam",
 			Prices: []*grpc.ProductPrice{
-				{Currency: "EUR", Amount: 77.77},
+				{Region: "USD", Currency: "USD", Amount: 77.66},
+				{Region: "EUR", Currency: "EUR", Amount: 77.77},
 			},
 		},
 	}
@@ -494,9 +533,9 @@ func (suite *KeyProductTestSuite) UpdatePlatformPrices_Test() {
 	shouldBe.Nil(res.Message)
 
 	prices = res.Price
-	shouldBe.Equal(1, len(prices.Prices))
-	shouldBe.Equal(77.77, prices.Prices[0].Amount)
-	shouldBe.Equal("EUR", prices.Prices[0].Currency)
+	shouldBe.Equal(2, len(prices.Prices))
+	shouldBe.Equal(77.77, prices.Prices[1].Amount)
+	shouldBe.Equal("EUR", prices.Prices[1].Currency)
 
 	req = &grpc.AddOrUpdatePlatformPricesRequest{
 		MerchantId:   merchantId,
@@ -504,7 +543,9 @@ func (suite *KeyProductTestSuite) UpdatePlatformPrices_Test() {
 		Platform: &grpc.PlatformPrice{
 			Id: "gog",
 			Prices: []*grpc.ProductPrice{
-				{Currency: "RUB", Amount: 33.33},
+				{Region: "RUB", Currency: "RUB", Amount: 33.33},
+				{Region: "EUR", Currency: "EUR", Amount: 33.33},
+				{Region: "USD", Currency: "USD", Amount: 66.66},
 			},
 		},
 	}
@@ -512,7 +553,7 @@ func (suite *KeyProductTestSuite) UpdatePlatformPrices_Test() {
 	err = suite.service.UpdatePlatformPrices(context.TODO(), req, res)
 	shouldBe.Nil(err)
 	shouldBe.Nil(res.Message)
-	shouldBe.Equal(1, len(res.Price.Prices))
+	shouldBe.Equal(3, len(res.Price.Prices))
 
 	req = &grpc.AddOrUpdatePlatformPricesRequest{
 		MerchantId:   merchantId,
@@ -522,7 +563,8 @@ func (suite *KeyProductTestSuite) UpdatePlatformPrices_Test() {
 			EulaUrl:       "http://www.example.com",
 			ActivationUrl: "http://www.example.com",
 			Prices: []*grpc.ProductPrice{
-				{Currency: "RUB", Amount: 0.01},
+				{Region: "RUB", Currency: "RUB", Amount: 0.01},
+				{Region: "USD", Currency: "USD", Amount: 66.66},
 			},
 		},
 	}
@@ -539,7 +581,8 @@ func (suite *KeyProductTestSuite) UpdatePlatformPrices_Test() {
 			Name:          "The Best Store EVER",
 			ActivationUrl: "http://www.example.com",
 			Prices: []*grpc.ProductPrice{
-				{Currency: "RUB", Amount: 0.01},
+				{Region: "RUB", Currency: "RUB", Amount: 0.01},
+				{Region: "USD", Currency: "USD", Amount: 66.66},
 			},
 		},
 	}
@@ -556,7 +599,8 @@ func (suite *KeyProductTestSuite) UpdatePlatformPrices_Test() {
 			Name:    "The Best Store EVER",
 			EulaUrl: "http://www.example.com",
 			Prices: []*grpc.ProductPrice{
-				{Currency: "RUB", Amount: 0.01},
+				{Region: "RUB", Currency: "RUB", Amount: 0.01},
+				{Region: "USD", Currency: "USD", Amount: 66.66},
 			},
 		},
 	}
@@ -574,7 +618,8 @@ func (suite *KeyProductTestSuite) UpdatePlatformPrices_Test() {
 			EulaUrl:       "http://www.example.com",
 			ActivationUrl: "http://www.example.com",
 			Prices: []*grpc.ProductPrice{
-				{Currency: "RUB", Amount: 0.01},
+				{Region: "RUB", Currency: "RUB", Amount: 0.01},
+				{Region: "USD", Currency: "USD", Amount: 66.66},
 			},
 		},
 	}
@@ -593,7 +638,8 @@ func (suite *KeyProductTestSuite) UpdatePlatformPrices_Test() {
 			EulaUrl:       "http://www.example.com",
 			ActivationUrl: "http://www.example.com",
 			Prices: []*grpc.ProductPrice{
-				{Currency: "RUB", Amount: 0.01},
+				{Region: "RUB", Currency: "RUB", Amount: 0.01},
+				{Region: "USD", Currency: "USD", Amount: 66.66},
 			},
 		},
 	}

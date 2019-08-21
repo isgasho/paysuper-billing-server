@@ -19,26 +19,27 @@ const (
 )
 
 var (
-	keyProductMerchantMismatch             = newBillingServerErrorMsg("kp000001", "merchant id mismatch")
-	keyProductProjectMismatch              = newBillingServerErrorMsg("kp000002", "project id mismatch")
-	keyProductSkuMismatch                  = newBillingServerErrorMsg("kp000003", "sku mismatch")
-	keyProductNameNotProvided              = newBillingServerErrorMsg("kp000004", "name must be set")
-	keyProductDescriptionNotProvided       = newBillingServerErrorMsg("kp000005", "description must be set")
-	keyProductDuplicate                    = newBillingServerErrorMsg("kp000006", "sku+project id already exist")
-	keyProductIdsIsEmpty                   = newBillingServerErrorMsg("kp000007", "ids is empty")
-	keyProductAlreadyHasPlatform           = newBillingServerErrorMsg("kp000008", "product already has user defined platform")
-	keyProductActivationUrlEmpty           = newBillingServerErrorMsg("kp000009", "activation url must be set")
-	keyProductEulaEmpty                    = newBillingServerErrorMsg("kp000010", "eula url must be set")
-	keyProductPlatformName                 = newBillingServerErrorMsg("kp000011", "platform name must be set")
-	keyProductRetrieveError                = newBillingServerErrorMsg("kp000012", "query to retrieve key product failed")
-	keyProductErrorUpsert                  = newBillingServerErrorMsg("kp000013", "query to insert/update key product failed")
-	keyProductErrorDelete                  = newBillingServerErrorMsg("kp000014", "query to remove key product failed")
-	keyProductMerchantNotFound             = newBillingServerErrorMsg("kp000015", "merchant not found")
-	keyProductMerchantDbError              = newBillingServerErrorMsg("kp000016", "can't retrieve data from db for merchant")
-	keyProductNotFound                     = newBillingServerErrorMsg("kp000017", "key product not found")
-	keyProductInternalError                = newBillingServerErrorMsg("kp000018", "unknown error")
-	keyProductOrderIsNotProcessedError     = newBillingServerErrorMsg("kp000019", "order has wrong public status")
-	keyProductPlatformDontHaveDefaultPrice = newBillingServerErrorMsg("kp000020", "platform don't have price in default currency")
+	keyProductMerchantMismatch              = newBillingServerErrorMsg("kp000001", "merchant id mismatch")
+	keyProductProjectMismatch               = newBillingServerErrorMsg("kp000002", "project id mismatch")
+	keyProductSkuMismatch                   = newBillingServerErrorMsg("kp000003", "sku mismatch")
+	keyProductNameNotProvided               = newBillingServerErrorMsg("kp000004", "name must be set")
+	keyProductDescriptionNotProvided        = newBillingServerErrorMsg("kp000005", "description must be set")
+	keyProductDuplicate                     = newBillingServerErrorMsg("kp000006", "sku+project id already exist")
+	keyProductIdsIsEmpty                    = newBillingServerErrorMsg("kp000007", "ids is empty")
+	keyProductAlreadyHasPlatform            = newBillingServerErrorMsg("kp000008", "product already has user defined platform")
+	keyProductActivationUrlEmpty            = newBillingServerErrorMsg("kp000009", "activation url must be set")
+	keyProductEulaEmpty                     = newBillingServerErrorMsg("kp000010", "eula url must be set")
+	keyProductPlatformName                  = newBillingServerErrorMsg("kp000011", "platform name must be set")
+	keyProductRetrieveError                 = newBillingServerErrorMsg("kp000012", "query to retrieve key product failed")
+	keyProductErrorUpsert                   = newBillingServerErrorMsg("kp000013", "query to insert/update key product failed")
+	keyProductErrorDelete                   = newBillingServerErrorMsg("kp000014", "query to remove key product failed")
+	keyProductMerchantNotFound              = newBillingServerErrorMsg("kp000015", "merchant not found")
+	keyProductMerchantDbError               = newBillingServerErrorMsg("kp000016", "can't retrieve data from db for merchant")
+	keyProductNotFound                      = newBillingServerErrorMsg("kp000017", "key product not found")
+	keyProductInternalError                 = newBillingServerErrorMsg("kp000018", "unknown error")
+	keyProductOrderIsNotProcessedError      = newBillingServerErrorMsg("kp000019", "order has wrong public status")
+	keyProductPlatformDontHaveDefaultPrice  = newBillingServerErrorMsg("kp000020", "platform don't have price in default currency")
+	keyProductPlatformPriceMismatchCurrency = newBillingServerErrorMsg("kp000021", "platform don't have price with region that mismatch with currency")
 )
 
 var availablePlatforms = map[string]*grpc.Platform{
@@ -267,14 +268,11 @@ func (s *Service) GetKeyProductInfo(ctx context.Context, req *grpc.GetKeyProduct
 		res.KeyProduct.LongDescription, _ = product.GetLocalizedLongDescription(DefaultLanguage)
 	}
 
-
 	defaultPriceGroup, err := s.priceGroup.GetByRegion(product.DefaultCurrency)
 	if err != nil {
 		zap.S().Errorw("Failed to get price group for default currency", "currency", product.DefaultCurrency)
 		return keyProductInternalError
 	}
-
-	zap.S().Info("product.DefaultCurrency ", product.DefaultCurrency, "defaultPriceGroup ", defaultPriceGroup)
 
 	priceGroup := &billing.PriceGroup{}
 	globalIsFallback := false
@@ -524,16 +522,32 @@ func (s *Service) UpdatePlatformPrices(ctx context.Context, req *grpc.AddOrUpdat
 			platform.Name = req.Platform.Name
 		}
 
-		isHaveDefualtPrice := false
+		isHaveDefaultPrice := false
+
 		// Check that user specified price in default currency
 		for _, price := range platform.Prices {
 			if price.Currency == product.DefaultCurrency {
-				isHaveDefualtPrice = true
-				break
+				isHaveDefaultPrice = true
+			}
+
+			pr, err := s.priceGroup.GetByRegion(price.Region)
+			if err != nil {
+				zap.S().Errorw("Failed to get price group for region", "price", price)
+				res.Status = pkg.ResponseStatusBadData
+				res.Message = keyProductInternalError
+				return nil
+			}
+
+			if pr.Currency != price.Currency {
+				zap.S().Errorw("Currency is mismatch for specified region", "price", price)
+				res.Status = pkg.ResponseStatusBadData
+				res.Message = newBillingServerErrorMsg(keyProductPlatformPriceMismatchCurrency.Code, keyProductPlatformPriceMismatchCurrency.Message,
+					fmt.Sprintf("price with regin `%s` should have currency `%s` but have `%s`", price.Region, pr.Currency, price.Currency))
+				return nil
 			}
 		}
 
-		if isHaveDefualtPrice == false {
+		if isHaveDefaultPrice == false {
 			res.Status = http.StatusBadRequest
 			res.Message = newBillingServerErrorMsg(keyProductPlatformDontHaveDefaultPrice.Code, keyProductPlatformDontHaveDefaultPrice.Message,
 				fmt.Sprintf("platform %s should have price in currency %s", platform.Id, product.DefaultCurrency))
