@@ -7,7 +7,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/mock"
+	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -64,19 +64,19 @@ func (suite *UserProfileTestSuite) SetupTest() {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
-	redisdb := mock.NewTestRedis()
+	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
 		db,
 		cfg,
-		mock.NewGeoIpServiceTestOk(),
-		mock.NewRepositoryServiceOk(),
-		mock.NewTaxServiceOkMock(),
-		mock.NewBrokerMockOk(),
-		mock.NewTestRedis(),
+		mocks.NewGeoIpServiceTestOk(),
+		mocks.NewRepositoryServiceOk(),
+		mocks.NewTaxServiceOkMock(),
+		mocks.NewBrokerMockOk(),
+		mocks.NewTestRedis(),
 		suite.cache,
-		mock.NewCurrencyServiceMockOk(),
-		mock.NewDocumentSignerMockOk(),
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
 	)
 
 	err = suite.service.Init()
@@ -143,7 +143,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	assert.Equal(suite.T(), profile.Help.ProductPromotionAndDevelopment, rsp.Item.Help.ProductPromotionAndDevelopment)
 	assert.NotEmpty(suite.T(), rsp.Item.CentrifugoToken)
 
-	b, ok := suite.service.broker.(*mock.BrokerMockOk)
+	b, ok := suite.service.broker.(*mocks.BrokerMockOk)
 	assert.True(suite.T(), ok)
 	assert.False(suite.T(), b.IsSent)
 }
@@ -221,7 +221,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_Cha
 	assert.Equal(suite.T(), profile.Help.ProductPromotionAndDevelopment, rsp.Item.Help.ProductPromotionAndDevelopment)
 	assert.NotEmpty(suite.T(), rsp.Item.CentrifugoToken)
 
-	b, ok := suite.service.broker.(*mock.BrokerMockOk)
+	b, ok := suite.service.broker.(*mocks.BrokerMockOk)
 	assert.True(suite.T(), ok)
 	assert.True(suite.T(), b.IsSent)
 }
@@ -268,7 +268,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateOnboardingProfi
 	assert.IsType(suite.T(), &grpc.UserProfile{}, rsp.Item)
 	assert.NotEmpty(suite.T(), rsp.Item.CentrifugoToken)
 
-	b, ok := suite.service.broker.(*mock.BrokerMockOk)
+	b, ok := suite.service.broker.(*mocks.BrokerMockOk)
 	assert.True(suite.T(), ok)
 	assert.True(suite.T(), b.IsSent)
 
@@ -428,7 +428,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	profile := suite.service.getOnboardingProfileByUser(req.UserId)
 	assert.Nil(suite.T(), profile)
 
-	suite.service.broker = mock.NewBrokerMockError()
+	suite.service.broker = mocks.NewBrokerMockError()
 
 	core, recorded := observer.New(zapcore.ErrorLevel)
 	logger := zap.New(core)
@@ -554,7 +554,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_Ok() {
 	assert.Len(suite.T(), p, 1)
 	assert.Contains(suite.T(), p, "token")
 
-	ci := &mock.CentrifugoInterface{}
+	ci := &mocks.CentrifugoInterface{}
 	ci.On("Publish", mock2.Anything, mock2.Anything).Return(nil)
 	suite.service.centrifugo = ci
 
@@ -696,7 +696,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_EmailAlready
 	assert.Len(suite.T(), p, 1)
 	assert.Contains(suite.T(), p, "token")
 
-	ci := &mock.CentrifugoInterface{}
+	ci := &mocks.CentrifugoInterface{}
 	ci.On("Publish", mock2.Anything, mock2.Anything).Return(nil)
 	suite.service.centrifugo = ci
 

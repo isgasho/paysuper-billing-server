@@ -40,12 +40,6 @@ This service contain all business logic for payment processing
 | PAYSUPER_DOCUMENT_SIGNER_NAME        | true     | -                                                   | Paysuper signer name for sign license agreements                                                                                    |
 | HELLO_SIGN_DEFAULT_TEMPLATE          | true     | -                                                   | License agreement template identifier in HelloSign                                                                                  |
 | HELLO_SIGN_CLIENT_ID                 | true     | -                                                   | Client application identifier in HelloSign                                                                                          |
-| NATS_SERVER_URLS                     | -        | 127.0.0.1:4222                                      | The nats server URLs (separated by comma)                                                                                           |
-| NATS_ASYNC                           | -        | false                                               | Publish asynchronously                                                                                                              |
-| NATS_USER                            | -        |                                                     | User sets the username to be used when connecting to the server                                                                     |
-| NATS_PASSWORD                        | -        |                                                     | Password sets the password to be used when connecting to a server                                                                   |
-| NATS_CLUSTER_ID                      | -        | test-cluster                                        | The NATS Streaming cluster ID                                                                                                       |
-| NATS_CLIENT_ID                       | -        | billing-server-publisher                            | The NATS Streaming client ID to connect with                                                                                        |
 
 ## Docker Deployment
 

@@ -83,7 +83,6 @@ type Service struct {
 	documentSigner             documentSignerProto.DocumentSignerService
 	merchantTariffRates        MerchantTariffRatesInterface
 	centrifugo                 CentrifugoInterface
-	messageBroker              MessageBrokerInterface
 }
 
 func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {

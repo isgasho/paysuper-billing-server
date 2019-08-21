@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/mock"
+	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
@@ -47,7 +47,7 @@ func (suite *PriceGroupTestSuite) SetupTest() {
 	if err != nil {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
-	redisdb := mock.NewTestRedis()
+	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
 		db,
@@ -58,8 +58,8 @@ func (suite *PriceGroupTestSuite) SetupTest() {
 		nil,
 		nil,
 		suite.cache,
-		mock.NewCurrencyServiceMockOk(),
-		mock.NewDocumentSignerMockOk(),
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -171,7 +171,7 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_Insert_Ok() {
 }
 
 func (suite *PriceGroupTestSuite) TestPriceGroup_Insert_ErrorCacheUpdate() {
-	ci := &mock.CacheInterface{}
+	ci := &mocks.CacheInterface{}
 	pg := &billing.PriceGroup{
 		Id:       bson.NewObjectId().Hex(),
 		Currency: "USD",
@@ -365,7 +365,7 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupByCountry_Error_Pr
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 
-	pg := &mock.PriceGroupServiceInterface{}
+	pg := &mocks.PriceGroupServiceInterface{}
 	pg.On("GetById", mock2.Anything).Return(nil, errors.New("price group not found"))
 	suite.service.priceGroup = pg
 
@@ -386,7 +386,7 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupByCountry_Ok() {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 
-	pg := &mock.PriceGroupServiceInterface{}
+	pg := &mocks.PriceGroupServiceInterface{}
 	pg.On("GetById", mock2.Anything).Return(&billing.PriceGroup{}, nil)
 	suite.service.priceGroup = pg
 
@@ -399,7 +399,7 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupByCountry_Ok() {
 }
 
 func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencies_Error_NonePriceGroups() {
-	pg := &mock.PriceGroupServiceInterface{}
+	pg := &mocks.PriceGroupServiceInterface{}
 	pg.On("GetAll").Return(nil, errors.New("price group not exists"))
 	suite.service.priceGroup = pg
 
@@ -428,7 +428,7 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencies_Ok() {
 }
 
 func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencyByRegion_Error_NonePriceGroup() {
-	pg := &mock.PriceGroupServiceInterface{}
+	pg := &mocks.PriceGroupServiceInterface{}
 	pg.On("GetByRegion", mock2.Anything).Return(nil, errors.New("price group not exists"))
 	suite.service.priceGroup = pg
 
@@ -457,7 +457,7 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencyByRegion_O
 }
 
 func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupRecommendedPrice_Error_NonePriceGroups() {
-	pg := &mock.PriceGroupServiceInterface{}
+	pg := &mocks.PriceGroupServiceInterface{}
 	pg.On("GetAll").Return(nil, errors.New("price group not exists"))
 	suite.service.priceGroup = pg
 
@@ -468,7 +468,7 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupRecommendedPrice_E
 }
 
 func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupRecommendedPrice_Error_NonePriceTable() {
-	pg := &mock.PriceTableServiceInterface{}
+	pg := &mocks.PriceTableServiceInterface{}
 	pg.On("GetByAmount", mock2.Anything).Return(nil, errors.New("price table not exists"))
 	pg.On("GetLatest", mock2.Anything).Return(nil, errors.New("price table not exists"))
 	suite.service.priceTable = pg
@@ -480,8 +480,8 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupRecommendedPrice_E
 }
 
 func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupRecommendedPrice_Error_RecommendedPrice() {
-	pg := &mock.PriceGroupServiceInterface{}
-	pt := &mock.PriceTableServiceInterface{}
+	pg := &mocks.PriceGroupServiceInterface{}
+	pt := &mocks.PriceTableServiceInterface{}
 	pg.On("GetAll").Return([]*billing.PriceGroup{{
 		Region:   "RUB",
 		Currency: "RUB",
@@ -498,7 +498,7 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupRecommendedPrice_E
 }
 
 func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupRecommendedPrice_Ok() {
-	pt := &mock.PriceTableServiceInterface{}
+	pt := &mocks.PriceTableServiceInterface{}
 	pt.On("GetByAmount", mock2.Anything).Return(&billing.PriceTable{
 		From: float64(0),
 		To:   float64(20),

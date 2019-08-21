@@ -317,7 +317,3 @@ func (app *Application) TaskCreateRoyaltyReport() error {
 func (app *Application) TaskAutoAcceptRoyaltyReports() error {
 	return app.svc.AutoAcceptRoyaltyReports(context.TODO(), &grpc.EmptyRequest{}, &grpc.EmptyResponse{})
 }
-
-func (app *Application) TaskReportFileRemove(days int32) error {
-	return app.svc.DeleteOldestReportFiles(context.TODO(), &grpc.DeleteOldestReportFilesRequest{Days: days}, &grpc.ResponseError{})
-}

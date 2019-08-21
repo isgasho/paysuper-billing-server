@@ -28,13 +28,12 @@ type PayoutCostSystem Entity
 type PriceTable Entity
 type Product Entity
 type Turnover Entity
-type MerchantsTariffRatesRepository Entity
 
 type Repository struct {
 	svc *Service
 }
 
-type ReportFileRepository Repository
+type MerchantsTariffRatesRepository Repository
 
 type kvIntFloat struct {
 	Key   int

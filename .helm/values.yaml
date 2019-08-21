@@ -51,12 +51,6 @@ backend:
     - HELLO_SIGN_CLIENT_ID
     - PAYSUPER_DOCUMENT_SIGNER_EMAIL
     - PAYSUPER_DOCUMENT_SIGNER_NAME
-    - NATS_SERVER_URLS
-    - NATS_ASYNC
-    - NATS_USER
-    - NATS_PASSWORD
-    - NATS_CLUSTER_ID
-    - NATS_CLIENT_ID
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious

@@ -32,16 +32,6 @@ type CacheRedis struct {
 	MaxRedirects int      `envconfig:"CACHE_REDIS_MAX_REDIRECTS" default:"8"`
 }
 
-// NatsConfig defines the parameters for connecting to the NATS streaming server.
-type NatsConfig struct {
-	NatsServerUrls string `envconfig:"NATS_SERVER_URLS" default:"127.0.0.1:4222"`
-	NatsClusterId  string `envconfig:"NATS_CLUSTER_ID" default:"test-cluster"`
-	NatsClientId   string `envconfig:"NATS_CLIENT_ID" default:"billing-server-publisher"`
-	NatsAsync      bool   `envconfig:"NATS_ASYNC" default:"false"`
-	NatsUser       string `envconfig:"NATS_USER" default:""`
-	NatsPassword   string `envconfig:"NATS_PASSWORD" default:""`
-}
-
 type Config struct {
 	MongoDsn           string `envconfig:"MONGO_DSN" required:"true"`
 	MongoDialTimeout   string `envconfig:"MONGO_DIAL_TIMEOUT" required:"false" default:"10"`
@@ -85,7 +75,6 @@ type Config struct {
 	*PaymentSystemConfig
 	*CustomerTokenConfig
 	*CacheRedis
-	*NatsConfig
 
 	EmailConfirmUrlParsed *url.URL
 }

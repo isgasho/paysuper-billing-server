@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/mock"
+	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -77,7 +77,7 @@ func (suite *PaymentMethodTestSuite) SetupTest() {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
-	redisdb := mock.NewTestRedis()
+	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
 		db,
@@ -88,8 +88,8 @@ func (suite *PaymentMethodTestSuite) SetupTest() {
 		nil,
 		nil,
 		suite.cache,
-		mock.NewCurrencyServiceMockOk(),
-		mock.NewDocumentSignerMockOk(),
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -174,7 +174,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_Insert_Ok() {
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_Insert_ErrorCacheUpdate() {
 	id := bson.NewObjectId().Hex()
-	ci := &mock.CacheInterface{}
+	ci := &mocks.CacheInterface{}
 	ci.On("Delete", "payment_method:all").Return(nil)
 	ci.On("Set", "payment_method:id:"+id, mock2.Anything, mock2.Anything).
 		Return(errors.New("service unavailable"))
@@ -202,7 +202,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_NotFound() {
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_Update_ErrorCacheUpdate() {
 	id := bson.NewObjectId().Hex()
-	ci := &mock.CacheInterface{}
+	ci := &mocks.CacheInterface{}
 	ci.On("Delete", "payment_method:all").Return(nil)
 	ci.On("Set", "payment_method:id:"+id, mock2.Anything, mock2.Anything).
 		Return(errors.New("service unavailable"))
@@ -312,7 +312,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMeth
 		PaymentSystemId: bson.NewObjectId().Hex(),
 	}
 	rsp := &grpc.ChangePaymentMethodResponse{}
-	paymentSystem := &mock.PaymentSystemServiceInterface{}
+	paymentSystem := &mocks.PaymentSystemServiceInterface{}
 
 	paymentSystem.On("GetById", req.PaymentSystemId).Return(nil, errors.New("not found"))
 	suite.service.paymentSystem = paymentSystem
@@ -329,7 +329,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMeth
 		PaymentSystemId: bson.NewObjectId().Hex(),
 	}
 	rsp := &grpc.ChangePaymentMethodResponse{}
-	paymentSystem := &mock.PaymentSystemServiceInterface{}
+	paymentSystem := &mocks.PaymentSystemServiceInterface{}
 
 	paymentSystem.On("GetById", req.PaymentSystemId).Return(&billing.PaymentSystem{}, nil)
 	suite.service.paymentSystem = paymentSystem
@@ -346,7 +346,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMeth
 		IsActive:        true,
 	}
 	rsp := &grpc.ChangePaymentMethodResponse{}
-	paymentSystem := &mock.PaymentSystemServiceInterface{}
+	paymentSystem := &mocks.PaymentSystemServiceInterface{}
 
 	paymentSystem.On("GetById", req.PaymentSystemId).Return(&billing.PaymentSystem{}, nil)
 	suite.service.paymentSystem = paymentSystem
@@ -413,7 +413,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMeth
 		ProductionSettings: map[string]*billing.PaymentMethodParams{"RUB": {Currency: "RUB"}},
 	}
 	rsp := &grpc.ChangePaymentMethodResponse{}
-	paymentSystem := &mock.PaymentSystemServiceInterface{}
+	paymentSystem := &mocks.PaymentSystemServiceInterface{}
 
 	paymentSystem.On("GetById", req.PaymentSystemId).Return(&billing.PaymentSystem{}, nil)
 	suite.service.paymentSystem = paymentSystem
@@ -428,7 +428,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMeth
 		PaymentSystemId: bson.NewObjectId().Hex(),
 	}
 	rsp := &grpc.ChangePaymentMethodResponse{}
-	paymentSystem := &mock.PaymentSystemServiceInterface{}
+	paymentSystem := &mocks.PaymentSystemServiceInterface{}
 
 	paymentSystem.On("GetById", req.PaymentSystemId).Return(&billing.PaymentSystem{}, nil)
 	suite.service.paymentSystem = paymentSystem
@@ -444,7 +444,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMeth
 		Params:          &billing.PaymentMethodParams{},
 	}
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
-	method := &mock.PaymentMethodInterface{}
+	method := &mocks.PaymentMethodInterface{}
 
 	method.On("GetById", req.PaymentMethodId).Return(nil, errors.New("not found"))
 	suite.service.paymentMethod = method
@@ -466,7 +466,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMeth
 		},
 	}
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
-	method := &mock.PaymentMethodInterface{}
+	method := &mocks.PaymentMethodInterface{}
 
 	method.On("GetById", req.PaymentMethodId).Return(&billing.PaymentMethod{}, nil)
 	method.On("Update", mock2.Anything).Return(errors.New("not found"))
@@ -489,7 +489,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMeth
 		},
 	}
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
-	method := &mock.PaymentMethodInterface{}
+	method := &mocks.PaymentMethodInterface{}
 
 	method.On("GetById", req.PaymentMethodId).Return(&billing.PaymentMethod{}, nil)
 	method.On("Update", mock2.Anything).Return(nil)
@@ -505,7 +505,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodProductio
 		PaymentMethodId: bson.NewObjectId().Hex(),
 	}
 	rsp := &grpc.GetPaymentMethodSettingsResponse{}
-	method := &mock.PaymentMethodInterface{}
+	method := &mocks.PaymentMethodInterface{}
 
 	method.On("GetById", req.PaymentMethodId).Return(nil, errors.New("not found"))
 	suite.service.paymentMethod = method
@@ -520,7 +520,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodProductio
 		PaymentMethodId: bson.NewObjectId().Hex(),
 	}
 	rsp := &grpc.GetPaymentMethodSettingsResponse{}
-	method := &mock.PaymentMethodInterface{}
+	method := &mocks.PaymentMethodInterface{}
 
 	method.On("GetById", req.PaymentMethodId).Return(&billing.PaymentMethod{
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
@@ -543,7 +543,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodProduc
 		PaymentMethodId: bson.NewObjectId().Hex(),
 	}
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
-	method := &mock.PaymentMethodInterface{}
+	method := &mocks.PaymentMethodInterface{}
 
 	method.On("GetById", req.PaymentMethodId).Return(nil, errors.New("not found"))
 	suite.service.paymentMethod = method
@@ -560,7 +560,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodProduc
 		CurrencyA3:      "EUR",
 	}
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
-	method := &mock.PaymentMethodInterface{}
+	method := &mocks.PaymentMethodInterface{}
 
 	method.On("GetById", req.PaymentMethodId).Return(&billing.PaymentMethod{
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
@@ -581,7 +581,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodProduc
 		CurrencyA3:      "RUB",
 	}
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
-	method := &mock.PaymentMethodInterface{}
+	method := &mocks.PaymentMethodInterface{}
 
 	method.On("GetById", req.PaymentMethodId).Return(&billing.PaymentMethod{
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
@@ -603,7 +603,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodProduc
 		CurrencyA3:      "RUB",
 	}
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
-	method := &mock.PaymentMethodInterface{}
+	method := &mocks.PaymentMethodInterface{}
 
 	method.On("GetById", req.PaymentMethodId).Return(&billing.PaymentMethod{
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
@@ -624,7 +624,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMeth
 		Params:          &billing.PaymentMethodParams{},
 	}
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
-	method := &mock.PaymentMethodInterface{}
+	method := &mocks.PaymentMethodInterface{}
 
 	method.On("GetById", req.PaymentMethodId).Return(nil, errors.New("not found"))
 	suite.service.paymentMethod = method
@@ -646,7 +646,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMeth
 		},
 	}
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
-	method := &mock.PaymentMethodInterface{}
+	method := &mocks.PaymentMethodInterface{}
 
 	method.On("GetById", req.PaymentMethodId).Return(&billing.PaymentMethod{}, nil)
 	method.On("Update", mock2.Anything).Return(errors.New("not found"))
@@ -669,7 +669,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMeth
 		},
 	}
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
-	method := &mock.PaymentMethodInterface{}
+	method := &mocks.PaymentMethodInterface{}
 
 	method.On("GetById", req.PaymentMethodId).Return(&billing.PaymentMethod{}, nil)
 	method.On("Update", mock2.Anything).Return(nil)
@@ -685,7 +685,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodTestSetti
 		PaymentMethodId: bson.NewObjectId().Hex(),
 	}
 	rsp := &grpc.GetPaymentMethodSettingsResponse{}
-	method := &mock.PaymentMethodInterface{}
+	method := &mocks.PaymentMethodInterface{}
 
 	method.On("GetById", req.PaymentMethodId).Return(nil, errors.New("not found"))
 	suite.service.paymentMethod = method
@@ -700,7 +700,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodTestSetti
 		PaymentMethodId: bson.NewObjectId().Hex(),
 	}
 	rsp := &grpc.GetPaymentMethodSettingsResponse{}
-	method := &mock.PaymentMethodInterface{}
+	method := &mocks.PaymentMethodInterface{}
 
 	method.On("GetById", req.PaymentMethodId).Return(&billing.PaymentMethod{
 		TestSettings: map[string]*billing.PaymentMethodParams{
@@ -723,7 +723,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodTestSe
 		PaymentMethodId: bson.NewObjectId().Hex(),
 	}
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
-	method := &mock.PaymentMethodInterface{}
+	method := &mocks.PaymentMethodInterface{}
 
 	method.On("GetById", req.PaymentMethodId).Return(nil, errors.New("not found"))
 	suite.service.paymentMethod = method
@@ -740,7 +740,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodTestSe
 		CurrencyA3:      "EUR",
 	}
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
-	method := &mock.PaymentMethodInterface{}
+	method := &mocks.PaymentMethodInterface{}
 
 	method.On("GetById", req.PaymentMethodId).Return(&billing.PaymentMethod{
 		TestSettings: map[string]*billing.PaymentMethodParams{
@@ -761,7 +761,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodTestSe
 		CurrencyA3:      "RUB",
 	}
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
-	method := &mock.PaymentMethodInterface{}
+	method := &mocks.PaymentMethodInterface{}
 
 	method.On("GetById", req.PaymentMethodId).Return(&billing.PaymentMethod{
 		TestSettings: map[string]*billing.PaymentMethodParams{
@@ -783,7 +783,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodTestSe
 		CurrencyA3:      "RUB",
 	}
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
-	method := &mock.PaymentMethodInterface{}
+	method := &mocks.PaymentMethodInterface{}
 
 	method.On("GetById", req.PaymentMethodId).Return(&billing.PaymentMethod{
 		TestSettings: map[string]*billing.PaymentMethodParams{
