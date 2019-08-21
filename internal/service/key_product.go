@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -18,25 +19,26 @@ const (
 )
 
 var (
-	keyProductMerchantMismatch         = newBillingServerErrorMsg("kp000001", "merchant id mismatch")
-	keyProductProjectMismatch          = newBillingServerErrorMsg("kp000002", "project id mismatch")
-	keyProductSkuMismatch              = newBillingServerErrorMsg("kp000003", "sku mismatch")
-	keyProductNameNotProvided          = newBillingServerErrorMsg("kp000004", "name must be set")
-	keyProductDescriptionNotProvided   = newBillingServerErrorMsg("kp000005", "description must be set")
-	keyProductDuplicate                = newBillingServerErrorMsg("kp000006", "sku+project id already exist")
-	keyProductIdsIsEmpty               = newBillingServerErrorMsg("kp000007", "ids is empty")
-	keyProductAlreadyHasPlatform       = newBillingServerErrorMsg("kp000008", "product already has user defined platform")
-	keyProductActivationUrlEmpty       = newBillingServerErrorMsg("kp000009", "activation url must be set")
-	keyProductEulaEmpty                = newBillingServerErrorMsg("kp000010", "eula url must be set")
-	keyProductPlatformName             = newBillingServerErrorMsg("kp000011", "platform name must be set")
-	keyProductRetrieveError            = newBillingServerErrorMsg("kp000012", "query to retrieve key product failed")
-	keyProductErrorUpsert              = newBillingServerErrorMsg("kp000013", "query to insert/update key product failed")
-	keyProductErrorDelete              = newBillingServerErrorMsg("kp000014", "query to remove key product failed")
-	keyProductMerchantNotFound         = newBillingServerErrorMsg("kp000015", "merchant not found")
-	keyProductMerchantDbError          = newBillingServerErrorMsg("kp000016", "can't retrieve data from db for merchant")
-	keyProductNotFound                 = newBillingServerErrorMsg("kp000017", "key product not found")
-	keyProductInternalError            = newBillingServerErrorMsg("kp000018", "unknown error")
-	keyProductOrderIsNotProcessedError = newBillingServerErrorMsg("kp000019", "order has wrong public status")
+	keyProductMerchantMismatch             = newBillingServerErrorMsg("kp000001", "merchant id mismatch")
+	keyProductProjectMismatch              = newBillingServerErrorMsg("kp000002", "project id mismatch")
+	keyProductSkuMismatch                  = newBillingServerErrorMsg("kp000003", "sku mismatch")
+	keyProductNameNotProvided              = newBillingServerErrorMsg("kp000004", "name must be set")
+	keyProductDescriptionNotProvided       = newBillingServerErrorMsg("kp000005", "description must be set")
+	keyProductDuplicate                    = newBillingServerErrorMsg("kp000006", "sku+project id already exist")
+	keyProductIdsIsEmpty                   = newBillingServerErrorMsg("kp000007", "ids is empty")
+	keyProductAlreadyHasPlatform           = newBillingServerErrorMsg("kp000008", "product already has user defined platform")
+	keyProductActivationUrlEmpty           = newBillingServerErrorMsg("kp000009", "activation url must be set")
+	keyProductEulaEmpty                    = newBillingServerErrorMsg("kp000010", "eula url must be set")
+	keyProductPlatformName                 = newBillingServerErrorMsg("kp000011", "platform name must be set")
+	keyProductRetrieveError                = newBillingServerErrorMsg("kp000012", "query to retrieve key product failed")
+	keyProductErrorUpsert                  = newBillingServerErrorMsg("kp000013", "query to insert/update key product failed")
+	keyProductErrorDelete                  = newBillingServerErrorMsg("kp000014", "query to remove key product failed")
+	keyProductMerchantNotFound             = newBillingServerErrorMsg("kp000015", "merchant not found")
+	keyProductMerchantDbError              = newBillingServerErrorMsg("kp000016", "can't retrieve data from db for merchant")
+	keyProductNotFound                     = newBillingServerErrorMsg("kp000017", "key product not found")
+	keyProductInternalError                = newBillingServerErrorMsg("kp000018", "unknown error")
+	keyProductOrderIsNotProcessedError     = newBillingServerErrorMsg("kp000019", "order has wrong public status")
+	keyProductPlatformDontHaveDefaultPrice = newBillingServerErrorMsg("kp000020", "platform don't have price in default currency")
 )
 
 var availablePlatforms = map[string]*grpc.Platform{
@@ -466,7 +468,7 @@ func (s *Service) UpdatePlatformPrices(ctx context.Context, req *grpc.AddOrUpdat
 		return nil
 	}
 
-	price := req.Platform
+	platform := req.Platform
 
 	found := false
 	productHasUserPlatform := false
@@ -493,32 +495,49 @@ func (s *Service) UpdatePlatformPrices(ctx context.Context, req *grpc.AddOrUpdat
 
 	if found == false {
 		if isAvailable == false {
-			if price.ActivationUrl == "" {
+			if platform.ActivationUrl == "" {
 				zap.S().Errorf("Activation url must be set", "data", req)
 				res.Status = http.StatusBadRequest
 				res.Message = keyProductActivationUrlEmpty
 				return nil
 			}
 
-			if price.EulaUrl == "" {
+			if platform.EulaUrl == "" {
 				zap.S().Errorf("Eula url must be set", "data", req)
 				res.Status = http.StatusBadRequest
 				res.Message = keyProductEulaEmpty
 				return nil
 			}
 
-			if price.Name == "" {
+			if platform.Name == "" {
 				zap.S().Errorf("Name must be set", "data", req)
 				res.Status = http.StatusBadRequest
 				res.Message = keyProductPlatformName
 				return nil
 			}
 
-			price.ActivationUrl = req.Platform.ActivationUrl
-			price.EulaUrl = req.Platform.EulaUrl
-			price.Name = req.Platform.Name
+			platform.ActivationUrl = req.Platform.ActivationUrl
+			platform.EulaUrl = req.Platform.EulaUrl
+			platform.Name = req.Platform.Name
 		}
-		product.Platforms = append(product.Platforms, price)
+
+		isHaveDefualtPrice := false
+		// Check that user specified price in default currency
+		for _, price := range platform.Prices {
+			if price.Currency == product.DefaultCurrency {
+				isHaveDefualtPrice = true
+				break
+			}
+		}
+
+		if isHaveDefualtPrice == false {
+			res.Status = http.StatusBadRequest
+			res.Message = newBillingServerErrorMsg(keyProductPlatformDontHaveDefaultPrice.Code, keyProductPlatformDontHaveDefaultPrice.Message,
+				fmt.Sprintf("platform %s should have price in currency %s", platform.Id, product.DefaultCurrency))
+			return nil
+		}
+
+		product.Platforms = append(product.Platforms, platform)
 	}
 
 	if err := s.db.Collection(collectionKeyProduct).UpdateId(bson.ObjectIdHex(req.KeyProductId), product); err != nil {
@@ -528,7 +547,7 @@ func (s *Service) UpdatePlatformPrices(ctx context.Context, req *grpc.AddOrUpdat
 		return nil
 	}
 
-	res.Price = price
+	res.Price = platform
 
 	return nil
 }
@@ -561,7 +580,7 @@ func (s *Service) DeletePlatformFromProduct(ctx context.Context, req *grpc.Remov
 
 	if err := s.db.Collection(collectionKeyProduct).UpdateId(bson.ObjectIdHex(req.KeyProductId), product); err != nil {
 		zap.S().Errorf("Query to update product failed", "err", err.Error(), "data", req)
-		res.Status = http.StatusInternalServerError
+		res.Status = http.StatusInternalServerErrorGetKeyProductInfo
 		res.Message = newBillingServerErrorMsg(keyProductInternalError.Code, keyProductInternalError.Message, err.Error())
 		return nil
 	}
@@ -594,11 +613,11 @@ func (s *Service) ChangeCodeInOrder(ctx context.Context, req *grpc.ChangeCodeInO
 
 	rsp := &grpc.PlatformKeyReserveResponse{}
 	err = s.ReserveKeyForOrder(ctx, &grpc.PlatformKeyReserveRequest{
-		OrderId: req.OrderId,
+		OrderId:      req.OrderId,
 		KeyProductId: req.KeyProductId,
-		PlatformId: order.PlatformId,
-		MerchantId:order.GetMerchantId(),
-		Ttl: 86400, // one day
+		PlatformId:   order.PlatformId,
+		MerchantId:   order.GetMerchantId(),
+		Ttl:          86400, // one day
 	}, rsp)
 
 	if err != nil {
