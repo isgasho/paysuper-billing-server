@@ -580,7 +580,7 @@ func (s *Service) DeletePlatformFromProduct(ctx context.Context, req *grpc.Remov
 
 	if err := s.db.Collection(collectionKeyProduct).UpdateId(bson.ObjectIdHex(req.KeyProductId), product); err != nil {
 		zap.S().Errorf("Query to update product failed", "err", err.Error(), "data", req)
-		res.Status = http.StatusInternalServerErrorGetKeyProductInfo
+		res.Status = http.StatusInternalServerError
 		res.Message = newBillingServerErrorMsg(keyProductInternalError.Code, keyProductInternalError.Message, err.Error())
 		return nil
 	}
