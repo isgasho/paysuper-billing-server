@@ -56,7 +56,7 @@ var availablePlatforms = map[string]*grpc.Platform{
 func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.CreateOrUpdateKeyProductRequest, res *grpc.KeyProductResponse) error {
 	var (
 		err     error
-		isNew   = req.Id == ""
+		isNew   = len(req.Id) == 0
 		now     = ptypes.TimestampNow()
 		product = &grpc.KeyProduct{}
 	)
@@ -81,7 +81,7 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 		product = productResponse.Product
 
 		if productResponse.Status != pkg.ResponseStatusOk {
-			zap.S().Errorf("failed to fetch key product", "message", productResponse.Message)
+			zap.S().Errorf("failed to fetch key product", "message", productResponse.Message, "req", req)
 			res.Status = productResponse.Status
 			res.Message = productResponse.Message
 			return nil
