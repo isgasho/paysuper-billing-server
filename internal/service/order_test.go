@@ -860,6 +860,9 @@ func (suite *OrderTestSuite) SetupTest() {
 				},
 			},
 		}, &grpc.UpdatePlatformPricesResponse{}))
+		publishRsp := &grpc.KeyProductResponse{}
+		assert.NoError(suite.T(), suite.service.PublishKeyProduct(context.TODO(), &grpc.PublishKeyProductRequest{MerchantId: projectWithKeyProducts.MerchantId, KeyProductId: res.Product.Id}, publishRsp))
+		assert.EqualValues(suite.T(), 200, publishRsp.Status)
 
 		fileContent := fmt.Sprintf("%s-%s-%s-%s", RandomString(4), RandomString(4), RandomString(4), RandomString(4))
 		file := []byte(fileContent)
