@@ -474,16 +474,7 @@ func (s *Service) emailConfirmedSuccessfully(ctx context.Context, profile *grpc.
 
 	msg := []byte(`{"code": "op000005", "message": "user email confirmed successfully"}`)
 	ch := fmt.Sprintf(s.cfg.CentrifugoUserChannel, profile.Id)
-	err = s.centrifugo.Publish(ch, msg)
-
-	if err != nil {
-		zap.S().Error(
-			"Send message to centrifugo failed",
-			zap.Error(err),
-			zap.String("channel", ch),
-			zap.ByteString("message", msg),
-		)
-	}
+	_ = s.centrifugo.Publish(ctx, ch, msg)
 
 	return err
 }

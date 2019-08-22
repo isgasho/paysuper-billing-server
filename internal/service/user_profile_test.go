@@ -555,7 +555,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_Ok() {
 	assert.Contains(suite.T(), p, "token")
 
 	ci := &mocks.CentrifugoInterface{}
-	ci.On("Publish", mock2.Anything, mock2.Anything).Return(nil)
+	ci.On("Publish", mock2.Anything, mock2.Anything, mock2.Anything).Return(nil)
 	suite.service.centrifugo = ci
 
 	req2 := &grpc.ConfirmUserEmailRequest{Token: p["token"][0]}
@@ -697,7 +697,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_EmailAlready
 	assert.Contains(suite.T(), p, "token")
 
 	ci := &mocks.CentrifugoInterface{}
-	ci.On("Publish", mock2.Anything, mock2.Anything).Return(nil)
+	ci.On("Publish", mock2.Anything, mock2.Anything, mock2.Anything).Return(nil)
 	suite.service.centrifugo = ci
 
 	req2 := &grpc.ConfirmUserEmailRequest{Token: p["token"][0]}

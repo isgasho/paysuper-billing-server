@@ -9,7 +9,7 @@ import (
 )
 
 type CentrifugoInterface interface {
-	Publish(string, interface{}) error
+	Publish(context.Context, string, interface{}) error
 }
 
 type Centrifugo struct {
@@ -29,12 +29,18 @@ func newCentrifugo(svc *Service) CentrifugoInterface {
 	return s
 }
 
-func (c Centrifugo) Publish(channel string, msg interface{}) error {
+func (c Centrifugo) Publish(ctx context.Context, channel string, msg interface{}) error {
 	b, err := json.Marshal(msg)
 
 	if err != nil {
+		zap.L().Error(
+			"Publish message to centrifugo failed",
+			zap.Error(err),
+			zap.String("channel", channel),
+			zap.Any("message", msg),
+		)
 		return err
 	}
 
-	return c.centrifugoClient.Publish(context.Background(), channel, b)
+	return c.centrifugoClient.Publish(ctx, channel, b)
 }

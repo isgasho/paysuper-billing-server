@@ -267,7 +267,7 @@ func (s *Service) OrderCreateProcess(
 	if processor.checked.project.IsProductsCheckout == true {
 		if err := processor.processPaylinkProducts(); err != nil {
 			if pid := req.PrivateMetadata["PaylinkId"]; pid != "" {
-				s.notifyPaylinkError(pid, err, req, nil)
+				s.notifyPaylinkError(ctx, pid, err, req, nil)
 			}
 			zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
 			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
@@ -514,7 +514,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 	err = s.ProcessOrderProducts(order)
 	if err != nil {
 		if pid := order.PrivateMetadata["PaylinkId"]; pid != "" {
-			s.notifyPaylinkError(pid, err, req, order)
+			s.notifyPaylinkError(ctx, pid, err, req, order)
 		}
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
@@ -630,7 +630,7 @@ func (s *Service) PaymentCreateProcess(
 
 	if err != nil {
 		if pid := order.PrivateMetadata["PaylinkId"]; pid != "" {
-			s.notifyPaylinkError(pid, err, req, order)
+			s.notifyPaylinkError(ctx, pid, err, req, order)
 		}
 
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
@@ -897,7 +897,7 @@ func (s *Service) PaymentFormLanguageChanged(
 	err = s.ProcessOrderProducts(order)
 	if err != nil {
 		if pid := order.PrivateMetadata["PaylinkId"]; pid != "" {
-			s.notifyPaylinkError(pid, err, req, order)
+			s.notifyPaylinkError(ctx, pid, err, req, order)
 		}
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
@@ -1109,7 +1109,7 @@ func (s *Service) ProcessBillingAddress(
 	err = s.ProcessOrderProducts(order)
 	if err != nil {
 		if pid := order.PrivateMetadata["PaylinkId"]; pid != "" {
-			s.notifyPaylinkError(pid, err, req, order)
+			s.notifyPaylinkError(ctx, pid, err, req, order)
 		}
 		return err
 	}
@@ -2410,27 +2410,16 @@ func (s *Service) ProcessOrderProducts(order *billing.Order) error {
 	return nil
 }
 
-func (s *Service) notifyPaylinkError(PaylinkId string, err error, req interface{}, order interface{}) {
+func (s *Service) notifyPaylinkError(ctx context.Context, paylinkId string, err error, req interface{}, order interface{}) {
 	msg := map[string]interface{}{
 		"event":     "error",
-		"paylinkId": PaylinkId,
+		"paylinkId": paylinkId,
 		"message":   "Invalid paylink",
 		"error":     err,
 		"request":   req,
 		"order":     order,
 	}
-	sErr := s.centrifugo.Publish(centrifugoChannel, msg)
-
-	if sErr != nil {
-		zap.S().Errorf(
-			"Cannot send centrifugo message about Paylink Error",
-			"error", sErr.Error(),
-			"PaylinkId", PaylinkId,
-			"originalError", err.Error(),
-			"request", req,
-			"order", order,
-		)
-	}
+	_ = s.centrifugo.Publish(ctx, centrifugoChannel, msg)
 }
 
 func (v *PaymentCreateProcessor) GetMerchantId() string {

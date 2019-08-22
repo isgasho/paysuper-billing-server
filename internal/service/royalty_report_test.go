@@ -863,7 +863,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_SendRoyaltyReportNotifica
 	report := &billing.RoyaltyReport{
 		MerchantId: bson.NewObjectId().Hex(),
 	}
-	suite.service.sendRoyaltyReportNotification(report)
+	suite.service.sendRoyaltyReportNotification(context.Background(), report)
 	assert.True(suite.T(), recorded.Len() == 1)
 
 	messages := recorded.All()
@@ -893,7 +893,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_SendRoyaltyReportNotifica
 	logger := zap.New(core)
 	zap.ReplaceGlobals(logger)
 
-	suite.service.sendRoyaltyReportNotification(report)
+	suite.service.sendRoyaltyReportNotification(context.Background(), report)
 	assert.True(suite.T(), recorded.Len() == 1)
 
 	messages := recorded.All()
