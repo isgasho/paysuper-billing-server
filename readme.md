@@ -62,18 +62,12 @@ To start app in console mode you must set `-task` flag in command line to one of
 - `vat_reports` - to update vat reports data. This task must be run every day, at the end of day.
 - `royalty_reports` - to build royalty reports for merchants. This task must be run once on a week.
 - `royalty_reports_accept` - to auto-accept toyalty reports. This task must be run daily.
-- `report_file_remover` - to remove oldest the report files. This task must be run daily.
 
 Notice: for `vat-reports` task you may pass an report date (from past only!) for that you need get an report. 
 Date passed as `date` parameter, in YYYY-MM-DD format 
 
 Example: `$ paysuper-billing-server.exe -task=vat_reports -date="2018-12-31"` runs VAT reports calculation for 
 last day of December, 2018.
-
-Notice: for the task `report_file_remover-reports` you can specify the interval of days from the current date. 
-Reports older than this interval will be deleted. The default is 7 days.
-
-Example: `$ paysuper-billing-server.exe -task=report_file_remover -days=14`
 
 To run application as microservice simply don't pass any flags to command line :)  
 
