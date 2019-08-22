@@ -545,7 +545,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 	if order.ProductType == billing.OrderType_product {
 		err = s.ProcessOrderProducts(order)
 	} else if order.ProductType == billing.OrderType_key {
-		err = s.ProcessOrderKeyProducts(order)
+		err = s.ProcessOrderKeyProducts(ctx, order)
 	}
 
 	if err != nil {
@@ -665,7 +665,7 @@ func (s *Service) PaymentCreateProcess(
 	if order.ProductType == billing.OrderType_product {
 		err = s.ProcessOrderProducts(order)
 	} else if order.ProductType == billing.OrderType_key {
-		err = s.ProcessOrderKeyProducts(order)
+		err = s.ProcessOrderKeyProducts(ctx, order)
 	}
 
 	if err != nil {
@@ -937,7 +937,7 @@ func (s *Service) PaymentFormLanguageChanged(
 	if order.ProductType == billing.OrderType_product {
 		err = s.ProcessOrderProducts(order)
 	} else if order.ProductType == billing.OrderType_key {
-		err = s.ProcessOrderKeyProducts(order)
+		err = s.ProcessOrderKeyProducts(ctx, order)
 	}
 
 	if err != nil {
@@ -1154,7 +1154,7 @@ func (s *Service) ProcessBillingAddress(
 	if order.ProductType == billing.OrderType_product {
 		err = s.ProcessOrderProducts(order)
 	} else if order.ProductType == billing.OrderType_key {
-		err = s.ProcessOrderKeyProducts(order)
+		err = s.ProcessOrderKeyProducts(ctx, order)
 	}
 
 	if err != nil {
@@ -1620,7 +1620,7 @@ func (v *OrderCreateRequestProcessor) processPaylinkKeyProducts() error {
 		return nil
 	}
 
-	orderProducts, err := v.GetOrderKeyProducts(v.checked.project.Id, v.request.Products)
+	orderProducts, err := v.GetOrderKeyProducts(context.TODO(), v.checked.project.Id, v.request.Products)
 	if err != nil {
 		return err
 	}
@@ -2328,14 +2328,14 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 	return nil
 }
 
-func (s *Service) GetOrderKeyProducts(projectId string, productIds []string) ([]*grpc.KeyProduct, error) {
+func (s *Service) GetOrderKeyProducts(ctx context.Context, projectId string, productIds []string) ([]*grpc.KeyProduct, error) {
 	if len(productIds) == 0 {
 		return nil, orderErrorProductsEmpty
 	}
 
 	result := grpc.ListKeyProductsResponse{}
 
-	err := s.GetKeyProductsForOrder(context.TODO(), &grpc.GetKeyProductsForOrderRequest{
+	err := s.GetKeyProductsForOrder(ctx, &grpc.GetKeyProductsForOrderRequest{
 		ProjectId: projectId,
 		Ids:       productIds,
 	}, &result)
@@ -2547,7 +2547,7 @@ func (s *Service) GetOrderKeyProductsItems(products []*grpc.KeyProduct, language
 	return result, nil
 }
 
-func (s *Service) ProcessOrderKeyProducts(order *billing.Order) error {
+func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Order) error {
 	project, err := s.project.GetById(order.Project.Id)
 	if err != nil {
 		return orderErrorProjectNotFound
@@ -2560,7 +2560,7 @@ func (s *Service) ProcessOrderKeyProducts(order *billing.Order) error {
 		return nil
 	}
 
-	orderProducts, err := s.GetOrderKeyProducts(project.Id, order.Products)
+	orderProducts, err := s.GetOrderKeyProducts(ctx, project.Id, order.Products)
 	if err != nil {
 		return err
 	}
