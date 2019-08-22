@@ -831,7 +831,6 @@ func (suite *OrderTestSuite) SetupTest() {
 			Sku:             "ru_" + strconv.Itoa(i) + "_" + strcase.SnakeCase(n),
 			Name:            map[string]string{"en": n},
 			DefaultCurrency: "USD",
-			Enabled:         true,
 			Description:     map[string]string{"en": n + " description"},
 			MerchantId:      projectWithKeyProducts.MerchantId,
 			ProjectId:       projectWithKeyProducts.Id,

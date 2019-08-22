@@ -69,10 +69,19 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 		product.ProjectId = req.ProjectId
 		product.Sku = req.Sku
 	} else {
-		_ = s.GetKeyProduct(ctx, &grpc.RequestKeyProductMerchant{Id: req.Id, MerchantId: req.MerchantId}, res)
-		product = res.Product
-		if res.Message != nil {
-			zap.S().Errorf("Key product that requested to change is not found", "data", req)
+		productResponse := &grpc.KeyProductResponse{}
+		err = s.GetKeyProduct(ctx, &grpc.RequestKeyProductMerchant{Id: req.Id, MerchantId: req.MerchantId}, productResponse)
+		if err != nil {
+			res.Status = pkg.ResponseStatusSystemError
+			res.Message = keyProductInternalError
+			return nil
+		}
+
+		product = productResponse.Product
+
+		if productResponse.Status != pkg.ResponseStatusOk {
+			res.Status = productResponse.Status
+			res.Message = productResponse.Message
 			return nil
 		}
 
@@ -112,6 +121,22 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 		return nil
 	}
 
+	// Check updating of default currency for key product
+	isHaveDefaultPrice := len(product.Platforms) == 0
+	for _, platform := range product.Platforms {
+		for _, price := range platform.Prices {
+			if price.Currency == req.DefaultCurrency {
+				isHaveDefaultPrice = true
+			}
+		}
+	}
+
+	if isHaveDefaultPrice == false {
+		res.Message = keyProductPlatformPriceMismatchCurrency
+		res.Status = pkg.ResponseStatusBadData
+		return nil
+	}
+
 	// Prevent duplicated key products (by projectId+sku)
 	dupQuery := bson.M{"project_id": bson.ObjectIdHex(req.ProjectId), "sku": req.Sku, "deleted": false}
 	found, err := s.db.Collection(collectionKeyProduct).Find(dupQuery).Count()
@@ -133,10 +158,10 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 		return nil
 	}
 
+	product.Metadata = req.Metadata
 	product.Object = req.Object
 	product.Name = req.Name
 	product.DefaultCurrency = req.DefaultCurrency
-	product.Enabled = req.Enabled
 	product.Description = req.Description
 	product.LongDescription = req.LongDescription
 	product.Images = req.Images
@@ -160,11 +185,11 @@ func (s *Service) checkMerchantExist(id string) (bool, error) {
 	var c billing.Merchant
 	err := s.db.Collection(collectionMerchant).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&c)
 
-	if err == mgo.ErrNotFound {
-		return false, nil
-	}
-
 	if err != nil {
+		if err.Error() == mgo.ErrNotFound.Error() {
+			return false, nil
+		}
+
 		return false, keyProductMerchantDbError
 	}
 
@@ -172,13 +197,15 @@ func (s *Service) checkMerchantExist(id string) (bool, error) {
 }
 
 func (s *Service) GetKeyProducts(ctx context.Context, req *grpc.ListKeyProductsRequest, res *grpc.ListKeyProductsResponse) error {
+	res.Status = pkg.ResponseStatusOk
+
 	if exist, err := s.checkMerchantExist(req.MerchantId); exist == false || err != nil {
 		if err != nil {
-			res.Status = http.StatusInternalServerError
+			res.Status = pkg.ResponseStatusSystemError
 			res.Message = newBillingServerErrorMsg(keyProductInternalError.Code, keyProductInternalError.Message, err.Error())
 			return nil
 		}
-		res.Status = http.StatusNotFound
+		res.Status = pkg.ResponseStatusBadData
 		res.Message = keyProductMerchantNotFound
 		return nil
 	}
@@ -331,14 +358,16 @@ func (s *Service) GetKeyProductInfo(ctx context.Context, req *grpc.GetKeyProduct
 }
 
 func (s *Service) GetKeyProduct(ctx context.Context, req *grpc.RequestKeyProductMerchant, res *grpc.KeyProductResponse) error {
+	res.Status = pkg.ResponseStatusOk
 	product, err := s.getKeyProductById(req.Id)
-	if err == mgo.ErrNotFound {
-		res.Status = http.StatusNotFound
-		res.Message = keyProductNotFound
-		return nil
-	}
 
 	if err != nil {
+		if err.Error() == mgo.ErrNotFound.Error() {
+			res.Status = pkg.ResponseStatusBadData
+			res.Message = keyProductNotFound
+			return nil
+		}
+
 		zap.S().Errorf("Query to find key product by id failed", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
 		res.Message = keyProductRetrieveError
@@ -419,6 +448,8 @@ func (s *Service) PublishKeyProduct(ctx context.Context, req *grpc.PublishKeyPro
 		return nil
 	}
 
+	res.Product = product
+
 	return nil
 }
 
@@ -454,6 +485,7 @@ func (s *Service) GetKeyProductsForOrder(ctx context.Context, req *grpc.GetKeyPr
 }
 
 func (s *Service) UpdatePlatformPrices(ctx context.Context, req *grpc.AddOrUpdatePlatformPricesRequest, res *grpc.UpdatePlatformPricesResponse) error {
+	res.Status = pkg.ResponseStatusOk
 	product, err := s.getKeyProductById(req.KeyProductId)
 
 	if err == mgo.ErrNotFound {

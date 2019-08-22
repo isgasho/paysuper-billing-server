@@ -85,6 +85,8 @@ func (suite *KeyProductTestSuite) SetupTest() {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 
+	suite.NoError(suite.service.merchant.Insert(&billing.Merchant{Id: merchantId}))
+
 	pgs := []*billing.PriceGroup{pgRub, pgUsd, pgEur}
 	if err := suite.service.priceGroup.MultipleInsert(pgs); err != nil {
 		suite.FailNow("Insert price group test data failed", "%v", err)
@@ -99,7 +101,7 @@ func (suite *KeyProductTestSuite) TearDownTest() {
 	suite.service.db.Close()
 }
 
-func (suite *KeyProductTestSuite) TestGetKeyProductInfo() {
+func (suite *KeyProductTestSuite) Test_GetKeyProductInfo() {
 	shouldBe := require.New(suite.T())
 
 	req := &grpc.CreateOrUpdateKeyProductRequest{
@@ -107,7 +109,6 @@ func (suite *KeyProductTestSuite) TestGetKeyProductInfo() {
 		Sku:             "ru_double_yeti",
 		Name:            map[string]string{"en": initialName},
 		DefaultCurrency: "USD",
-		Enabled:         true,
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		LongDescription: map[string]string{"en": "Super game steam keys"},
 		Url:             "http://test.ru/dffdsfsfs",
@@ -136,6 +137,17 @@ func (suite *KeyProductTestSuite) TestGetKeyProductInfo() {
 	shouldBe.Nil(err)
 
 	res := grpc.GetKeyProductInfoResponse{}
+	err = suite.service.GetKeyProductInfo(context.TODO(), &grpc.GetKeyProductInfoRequest{Currency: "USD", KeyProductId: response.Product.Id, Language: "en"}, &res)
+	shouldBe.Nil(err)
+	shouldBe.NotNil(res.Message)
+	shouldBe.EqualValues(400, res.Status)
+
+	publishRsp := &grpc.KeyProductResponse{}
+	err = suite.service.PublishKeyProduct(context.TODO(), &grpc.PublishKeyProductRequest{MerchantId: merchantId, KeyProductId: response.Product.Id}, publishRsp)
+	shouldBe.Nil(err)
+	shouldBe.EqualValues(200, publishRsp.Status)
+
+	res = grpc.GetKeyProductInfoResponse{}
 	err = suite.service.GetKeyProductInfo(context.TODO(), &grpc.GetKeyProductInfoRequest{Currency: "USD", KeyProductId: response.Product.Id, Language: "en"}, &res)
 	shouldBe.Nil(err)
 	shouldBe.Nil(res.Message)
@@ -206,7 +218,7 @@ func (suite *KeyProductTestSuite) TestGetKeyProductInfo() {
 	shouldBe.True( res.KeyProduct.Platforms[0].Price.IsFallback)
 }
 
-func (suite *KeyProductTestSuite) TestGetPlatforms() {
+func (suite *KeyProductTestSuite) Test_GetPlatforms() {
 	shouldBe := require.New(suite.T())
 
 	rsp := &grpc.ListPlatformsResponse{}
@@ -234,7 +246,7 @@ func (suite *KeyProductTestSuite) TestGetPlatforms() {
 	shouldBe.Empty(rsp.Platforms)
 }
 
-func (suite *KeyProductTestSuite) GetKeyProduct_Test() {
+func (suite *KeyProductTestSuite) Test_GetKeyProduct() {
 	shouldBe := require.New(suite.T())
 
 	req := &grpc.CreateOrUpdateKeyProductRequest{
@@ -242,7 +254,6 @@ func (suite *KeyProductTestSuite) GetKeyProduct_Test() {
 		Sku:             "ru_double_yeti",
 		Name:            map[string]string{"en": initialName},
 		DefaultCurrency: "USD",
-		Enabled:         true,
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		LongDescription: map[string]string{"en": "Super game steam keys"},
 		Url:             "http://test.ru/dffdsfsfs",
@@ -295,7 +306,7 @@ func (suite *KeyProductTestSuite) GetKeyProduct_Test() {
 	shouldBe.Nil(response.Message)
 }
 
-func (suite *KeyProductTestSuite) CreateOrUpdateKeyProduct_Test() {
+func (suite *KeyProductTestSuite) Test_CreateOrUpdateKeyProduct() {
 	shouldBe := require.New(suite.T())
 
 	req := &grpc.CreateOrUpdateKeyProductRequest{
@@ -303,7 +314,6 @@ func (suite *KeyProductTestSuite) CreateOrUpdateKeyProduct_Test() {
 		Sku:             "ru_double_yeti",
 		Name:            map[string]string{"en": initialName},
 		DefaultCurrency: "USD",
-		Enabled:         true,
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		LongDescription: map[string]string{"en": "Super game steam keys"},
 		Url:             "http://test.ru/dffdsfsfs",
@@ -320,12 +330,11 @@ func (suite *KeyProductTestSuite) CreateOrUpdateKeyProduct_Test() {
 	res := response.Product
 
 	shouldBe.Nil(err)
-	shouldBe.Nil(response.Message)
+	shouldBe.EqualValuesf(200, response.Status, "%s", response.Message)
 	shouldBe.Equal(res.Name["en"], req.Name["en"])
 	shouldBe.Equal(res.DefaultCurrency, req.DefaultCurrency)
 	shouldBe.Equal(res.Sku, req.Sku)
 	shouldBe.Equal(res.Object, req.Object)
-	shouldBe.Equal(res.Enabled, req.Enabled)
 	shouldBe.Equal(res.Description, req.Description)
 	shouldBe.Equal(res.LongDescription, req.LongDescription)
 	shouldBe.Equal(res.Url, req.Url)
@@ -347,31 +356,62 @@ func (suite *KeyProductTestSuite) CreateOrUpdateKeyProduct_Test() {
 	req.Id = bson.NewObjectId().Hex()
 	err = suite.service.CreateOrUpdateKeyProduct(context.TODO(), req, &res2)
 	shouldBe.Nil(err)
-	shouldBe.Nil(res2.Message)
+	shouldBe.NotNil(res2.Message)
+	shouldBe.EqualValuesf(400, res2.Status, "%s", res2.Message)
 
 	req.Sku = "NEW SKU"
 	req.Id = res.Id
 	res2 = grpc.KeyProductResponse{}
 	err = suite.service.CreateOrUpdateKeyProduct(context.TODO(), req, &res2)
 	shouldBe.Nil(err)
-	shouldBe.Nil(res2.Message)
+	shouldBe.NotNil(res2.Message)
+	shouldBe.EqualValues(400, res2.Status)
 
 	req.Sku = res.Sku
 	req.MerchantId = bson.NewObjectId().Hex()
 	res2 = grpc.KeyProductResponse{}
 	err = suite.service.CreateOrUpdateKeyProduct(context.TODO(), req, &res2)
 	shouldBe.Nil(err)
-	shouldBe.Nil(res2.Message)
+	shouldBe.NotNil(res2.Message)
+	shouldBe.EqualValues(400, res2.Status)
 
 	req.MerchantId = res.MerchantId
 	req.ProjectId = bson.NewObjectId().Hex()
 	res2 = grpc.KeyProductResponse{}
 	err = suite.service.CreateOrUpdateKeyProduct(context.TODO(), req, &res2)
 	shouldBe.Nil(err)
-	shouldBe.Nil(res2.Message)
+	shouldBe.NotNil(res2.Message)
+	shouldBe.EqualValues(400, res2.Status)
+
+	platformReq := &grpc.AddOrUpdatePlatformPricesRequest{
+		MerchantId:  merchantId,
+		KeyProductId: res.Id,
+		Platform: &grpc.PlatformPrice{
+			Id: "steam",
+			Prices: []*grpc.ProductPrice{
+				{Region:"USD", Currency: "USD", Amount: 66.66},
+			},
+		},
+	}
+
+	platformRes := &grpc.UpdatePlatformPricesResponse{}
+	err = suite.service.UpdatePlatformPrices(context.TODO(), platformReq, platformRes)
+	shouldBe.Nil(err)
+	shouldBe.Nil(platformRes.Message)
+	shouldBe.EqualValues(200, platformRes.Status)
+
+	req.Sku = res.Sku
+	req.MerchantId = res.MerchantId
+	req.DefaultCurrency = "RUB"
+	req.ProjectId = res.ProjectId
+	res2 = grpc.KeyProductResponse{}
+	err = suite.service.CreateOrUpdateKeyProduct(context.TODO(), req, &res2)
+	shouldBe.Nil(err)
+	shouldBe.NotNil(res2.Message)
+	shouldBe.EqualValues(400, res2.Status)
 }
 
-func (suite *KeyProductTestSuite) GetKeyProducts_Test() {
+func (suite *KeyProductTestSuite) Test_GetKeyProducts() {
 	shouldBe := require.New(suite.T())
 
 	req := &grpc.ListKeyProductsRequest{
@@ -381,9 +421,9 @@ func (suite *KeyProductTestSuite) GetKeyProducts_Test() {
 	res := &grpc.ListKeyProductsResponse{}
 	err := suite.service.GetKeyProducts(context.TODO(), req, res)
 	shouldBe.Nil(err)
-	shouldBe.Equal(0, res.Count)
-	shouldBe.Equal(0, res.Offset)
-	shouldBe.Equal(0, len(res.Products))
+	shouldBe.EqualValues(0, res.Count)
+	shouldBe.EqualValues(0, res.Offset)
+	shouldBe.EqualValues(0, len(res.Products))
 
 	for i := 0; i < 10; i++ {
 		suite.createKeyProduct()
@@ -391,22 +431,23 @@ func (suite *KeyProductTestSuite) GetKeyProducts_Test() {
 
 	err = suite.service.GetKeyProducts(context.TODO(), req, res)
 	shouldBe.Nil(err)
-	shouldBe.Equal(10, res.Count)
-	shouldBe.Equal(0, res.Offset)
-	shouldBe.Equal(10, len(res.Products))
+	shouldBe.EqualValuesf(200, res.Status, "%s", res.Message)
+	shouldBe.EqualValues(10, res.Count)
+	shouldBe.EqualValues(0, res.Offset)
+	shouldBe.EqualValues(10, len(res.Products))
 
 	req.Offset = 9
 	err = suite.service.GetKeyProducts(context.TODO(), req, res)
 	shouldBe.Nil(err)
-	shouldBe.Equal(10, res.Count)
-	shouldBe.Equal(1, len(res.Products))
+	shouldBe.EqualValues(10, res.Count)
+	shouldBe.EqualValues(1, len(res.Products))
 
 	req.Offset = 0
 	req.Limit = 2
 	err = suite.service.GetKeyProducts(context.TODO(), req, res)
 	shouldBe.Nil(err)
-	shouldBe.Equal(10, res.Count)
-	shouldBe.Equal(2, len(res.Products))
+	shouldBe.EqualValues(10, res.Count)
+	shouldBe.EqualValues(2, len(res.Products))
 
 	req.Offset = 0
 	req.Limit = 0
@@ -435,7 +476,6 @@ func (suite *KeyProductTestSuite) createKeyProduct() *grpc.KeyProduct {
 		Sku:             bson.NewObjectId().Hex(),
 		Name:            map[string]string{"en": initialName},
 		DefaultCurrency: "USD",
-		Enabled:         true,
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		LongDescription: map[string]string{"en": "Super game steam keys"},
 		Url:             "http://test.ru/dffdsfsfs",
@@ -492,7 +532,7 @@ func (suite *KeyProductTestSuite) Test_UpdatePlatformPrices_WithBadPrice_Error()
 	shouldBe.EqualValues(400, res.Status)
 }
 
-func (suite *KeyProductTestSuite) UpdatePlatformPrices_Test() {
+func (suite *KeyProductTestSuite) Test_UpdatePlatformPrices() {
 	shouldBe := require.New(suite.T())
 	product := suite.createKeyProduct()
 	req := &grpc.AddOrUpdatePlatformPricesRequest{
@@ -513,8 +553,8 @@ func (suite *KeyProductTestSuite) UpdatePlatformPrices_Test() {
 
 	prices := res.Price
 	shouldBe.Equal(1, len(prices.Prices))
-	shouldBe.Equal(66.66, prices.Prices[0].Amount)
-	shouldBe.Equal("RUB", prices.Prices[0].Currency)
+	shouldBe.Equal(77.66, prices.Prices[0].Amount)
+	shouldBe.Equal("USD", prices.Prices[0].Currency)
 
 	req = &grpc.AddOrUpdatePlatformPricesRequest{
 		MerchantId:   merchantId,
@@ -626,8 +666,9 @@ func (suite *KeyProductTestSuite) UpdatePlatformPrices_Test() {
 	res = &grpc.UpdatePlatformPricesResponse{}
 	err = suite.service.UpdatePlatformPrices(context.TODO(), req, res)
 	shouldBe.Nil(err)
-	shouldBe.NotNil(res.Message)
-	shouldBe.Equal(1, len(res.Price.Prices))
+	shouldBe.Nil(res.Message)
+	shouldBe.EqualValues(200, res.Status)
+	shouldBe.EqualValues(2, len(res.Price.Prices))
 
 	req = &grpc.AddOrUpdatePlatformPricesRequest{
 		MerchantId:   merchantId,
@@ -647,9 +688,10 @@ func (suite *KeyProductTestSuite) UpdatePlatformPrices_Test() {
 	err = suite.service.UpdatePlatformPrices(context.TODO(), req, res)
 	shouldBe.Nil(err)
 	shouldBe.NotNil(res.Message)
+	shouldBe.EqualValues(400, res.Status)
 }
 
-func (suite *KeyProductTestSuite) PublishKeyProduct_Test() {
+func (suite *KeyProductTestSuite) Test_PublishKeyProduct() {
 	shouldBe := require.New(suite.T())
 
 	product := suite.createKeyProduct()
@@ -660,12 +702,13 @@ func (suite *KeyProductTestSuite) PublishKeyProduct_Test() {
 	res := &grpc.KeyProductResponse{}
 	err := suite.service.PublishKeyProduct(context.TODO(), req, res)
 	shouldBe.Nil(err)
-	shouldBe.NotNil(res.Message)
+	shouldBe.Nil(res.Message)
+	shouldBe.EqualValues(200, res.Status)
 	shouldBe.True(res.Product.Enabled)
 	shouldBe.NotNil(res.Product.PublishedAt)
 }
 
-func (suite *KeyProductTestSuite) DeleteKeyProduct_Test() {
+func (suite *KeyProductTestSuite) Test_DeleteKeyProduct() {
 	shouldBe := require.New(suite.T())
 	product := suite.createKeyProduct()
 

@@ -280,18 +280,16 @@ message CreateOrUpdateKeyProductRequest {
     repeated string images = 6;
     //@inject_tag: validate:"omitempty,url" json:"url"
     string url = 7;
-    //@inject_tag: json:"enabled"
-    bool enabled = 8;
     //@inject_tag: validate:"required,alpha,len=3" json:"default_currency"
-    string default_currency = 9;
+    string default_currency = 8;
     //@inject_tag: validate:"hexadecimal,len=24" json:"merchant_id"
-    string merchant_id = 10;
+    string merchant_id = 9;
     //@inject_tag: validate:"omitempty,hexadecimal,len=24"
-    string id = 11;
+    string id = 10;
     //@inject_tag: json:"object"
-    string object = 12;
+    string object = 11;
     //@inject_tag: json:"metadata"
-    map<string, string> metadata = 13;
+    map<string, string> metadata = 12;
 }
 
 message PublishKeyProductRequest {
