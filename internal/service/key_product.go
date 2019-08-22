@@ -72,6 +72,7 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 		productResponse := &grpc.KeyProductResponse{}
 		err = s.GetKeyProduct(ctx, &grpc.RequestKeyProductMerchant{Id: req.Id, MerchantId: req.MerchantId}, productResponse)
 		if err != nil {
+			zap.S().Errorf("internal error when getting product", "err", err)
 			res.Status = pkg.ResponseStatusSystemError
 			res.Message = keyProductInternalError
 			return nil
@@ -80,6 +81,7 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 		product = productResponse.Product
 
 		if productResponse.Status != pkg.ResponseStatusOk {
+			zap.S().Errorf("failed to fetch key product", "message", productResponse.Message)
 			res.Status = productResponse.Status
 			res.Message = productResponse.Message
 			return nil
@@ -132,6 +134,7 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 	}
 
 	if isHaveDefaultPrice == false {
+		zap.S().Errorf("platforms don't have price with specified default currency")
 		res.Message = keyProductPlatformPriceMismatchCurrency
 		res.Status = pkg.ResponseStatusBadData
 		return nil
@@ -257,13 +260,15 @@ func (s *Service) GetKeyProducts(ctx context.Context, req *grpc.ListKeyProductsR
 func (s *Service) GetKeyProductInfo(ctx context.Context, req *grpc.GetKeyProductInfoRequest, res *grpc.GetKeyProductInfoResponse) error {
 	res.Status = pkg.ResponseStatusOk
 	product, err := s.getKeyProductById(req.KeyProductId)
-	if err == mgo.ErrNotFound {
-		res.Status = http.StatusNotFound
-		res.Message = keyProductNotFound
-		return nil
-	}
 
 	if err != nil {
+		if err.Error() == mgo.ErrNotFound.Error() {
+			zap.S().Errorf("Key product not found", "id", req.KeyProductId)
+			res.Status = http.StatusNotFound
+			res.Message = keyProductNotFound
+			return nil
+		}
+
 		zap.S().Errorf("Query to find key product by id failed", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
 		res.Message = keyProductRetrieveError
@@ -392,13 +397,14 @@ func (s *Service) getKeyProductById(id string) (*grpc.KeyProduct, error) {
 
 func (s *Service) DeleteKeyProduct(ctx context.Context, req *grpc.RequestKeyProductMerchant, res *grpc.EmptyResponseWithStatus) error {
 	product, err := s.getKeyProductById(req.Id)
-	if err == mgo.ErrNotFound {
-		res.Status = http.StatusNotFound
-		res.Message = keyProductNotFound
-		return nil
-	}
 
 	if err != nil {
+		if err.Error() == mgo.ErrNotFound.Error() {
+			res.Status = pkg.ResponseStatusBadData
+			res.Message = keyProductNotFound
+			return nil
+		}
+
 		zap.S().Errorf("Error during getting key product", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
 		res.Message = keyProductRetrieveError
@@ -424,13 +430,13 @@ func (s *Service) PublishKeyProduct(ctx context.Context, req *grpc.PublishKeyPro
 	product, err := s.getKeyProductById(req.KeyProductId)
 	res.Status = pkg.ResponseStatusOk
 
-	if err == mgo.ErrNotFound {
-		res.Status = http.StatusNotFound
-		res.Message = keyProductNotFound
-		return nil
-	}
-
 	if err != nil {
+		if err.Error() == mgo.ErrNotFound.Error() {
+			res.Status = pkg.ResponseStatusBadData
+			res.Message = keyProductNotFound
+			return nil
+		}
+
 		zap.S().Errorf("Error during getting key product", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
 		res.Message = keyProductRetrieveError
@@ -488,13 +494,14 @@ func (s *Service) UpdatePlatformPrices(ctx context.Context, req *grpc.AddOrUpdat
 	res.Status = pkg.ResponseStatusOk
 	product, err := s.getKeyProductById(req.KeyProductId)
 
-	if err == mgo.ErrNotFound {
-		res.Status = http.StatusNotFound
-		res.Message = keyProductNotFound
-		return nil
-	}
-
 	if err != nil {
+		if err.Error() == mgo.ErrNotFound.Error() {
+			zap.S().Errorf("Key product not found", "id", req.KeyProductId)
+			res.Status = http.StatusNotFound
+			res.Message = keyProductNotFound
+			return nil
+		}
+
 		zap.S().Errorf("Error during getting key product", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
 		res.Message = keyProductRetrieveError
@@ -604,13 +611,14 @@ func (s *Service) UpdatePlatformPrices(ctx context.Context, req *grpc.AddOrUpdat
 func (s *Service) DeletePlatformFromProduct(ctx context.Context, req *grpc.RemovePlatformRequest, res *grpc.EmptyResponseWithStatus) error {
 	product, err := s.getKeyProductById(req.KeyProductId)
 
-	if err == mgo.ErrNotFound {
-		res.Status = http.StatusNotFound
-		res.Message = keyProductNotFound
-		return nil
-	}
-
 	if err != nil {
+		if err.Error() == mgo.ErrNotFound.Error() {
+			zap.S().Errorf("Key product not found", "id", req.KeyProductId)
+			res.Status = http.StatusNotFound
+			res.Message = keyProductNotFound
+			return nil
+		}
+
 		zap.S().Errorf("Error during getting key product", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
 		res.Message = newBillingServerErrorMsg(keyProductInternalError.Code, keyProductInternalError.Message, err.Error())
