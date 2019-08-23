@@ -1308,7 +1308,7 @@ func (s *Service) sendMailWithCode(ctx context.Context, order *billing.Order, ke
 		if item.Id == key.KeyProductId {
 			item.Code = key.Code
 			payload := &postmarkSdrPkg.Payload{
-				TemplateAlias: s.cfg.EmailConfirmTemplate,
+				TemplateAlias: s.cfg.EmailGameCodeTemplate,
 				TemplateModel: map[string]string{
 					"code":         key.Code,
 					"platform_id":  order.PlatformId,
