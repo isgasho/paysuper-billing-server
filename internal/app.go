@@ -321,7 +321,7 @@ func (app *Application) TaskAutoAcceptRoyaltyReports() error {
 }
 
 func (app *Application) KeyDaemonStart() {
-	zap.S().Infof("Key daemon started", zap.Int("RestartInterval", app.cfg.KeyDaemonRestartInterval))
+	zap.S().Infof("Key daemon started", zap.Int64("RestartInterval", app.cfg.KeyDaemonRestartInterval))
 
 	go func() {
 		interval := time.Duration(app.cfg.KeyDaemonRestartInterval) * time.Second
