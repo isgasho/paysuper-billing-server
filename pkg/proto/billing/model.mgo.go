@@ -244,6 +244,7 @@ type MgoOrder struct {
 	CountryCode                string                      `bson:"country_code"`
 	PlatformId                 string                      `bson:"platform_id"`
 	ProductType                string                      `bson:"product_type"`
+	Keys                       []string                    `bson:"keys"`
 }
 
 type MgoOrderItem struct {
@@ -1182,6 +1183,7 @@ func (m *Order) GetBSON() (interface{}, error) {
 		CountryCode:               m.GetCountry(),
 		ProductType:               m.ProductType,
 		PlatformId:                m.PlatformId,
+		Keys:                      m.Keys,
 	}
 
 	if m.Refund != nil {
@@ -1388,6 +1390,7 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.Items = []*OrderItem{}
 	m.PlatformId = decoded.PlatformId
 	m.ProductType = decoded.ProductType
+	m.Keys = decoded.Keys
 
 	if decoded.Refund != nil {
 		m.Refund = &OrderNotificationRefund{

@@ -1226,17 +1226,17 @@ func (s *Service) saveRecurringCard(order *billing.Order, recurringId string) {
 func (s *Service) updateOrder(order *billing.Order) error {
 	ps := order.GetPublicStatus()
 
-	zap.S().Debug("[updateOrder] updating order", "order_id", order.Id, "status", ps)
+	zap.S().Info("[updateOrder] updating order", "order_id", order.Id, "status", ps)
 
 	originalOrder, _ := s.getOrderById(order.Id)
 
 	statusChanged := false
 	if originalOrder != nil {
 		ops := originalOrder.GetPublicStatus()
-		zap.S().Debug("[updateOrder] no original order status", "order_id", order.Id, "status", ops)
+		zap.S().Info("[updateOrder] no original order status", "order_id", order.Id, "status", ops)
 		statusChanged = ops != ps
 	} else {
-		zap.S().Debug("[updateOrder] no original order found", "order_id", order.Id)
+		zap.S().Info("[updateOrder] no original order found", "order_id", order.Id)
 	}
 
 	err := s.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
@@ -1249,14 +1249,14 @@ func (s *Service) updateOrder(order *billing.Order) error {
 		return orderErrorUnknown
 	}
 
-	zap.S().Debug("[updateOrder] updating order success", "order_id", order.Id, "status_changed", statusChanged)
+	zap.S().Infow("[updateOrder] updating order success", "order_id", order.Id, "status_changed", statusChanged, "type", order.ProductType)
 
 	if statusChanged && ps != constant.OrderPublicStatusCreated && ps != constant.OrderPublicStatusPending {
 		if order.ProductType == billing.OrderType_key {
 			s.orderNotifyKeyProducts(context.TODO(), order)
 		}
 
-		zap.S().Debug("[updateOrder] notify merchant", "order_id", order.Id)
+		zap.S().Info("[updateOrder] notify merchant", "order_id", order.Id)
 		s.orderNotifyMerchant(order)
 	}
 
@@ -1264,13 +1264,13 @@ func (s *Service) updateOrder(order *billing.Order) error {
 }
 
 func (s *Service) orderNotifyKeyProducts(ctx context.Context, order *billing.Order) {
-	zap.S().Debug("[orderNotifyKeyProducts] called", "order_id", order.Id, "status", order.GetPublicStatus())
+	zap.S().Infow("[orderNotifyKeyProducts] called", "order_id", order.Id, "status", order.GetPublicStatus())
 	keys := order.Keys
 	var err error
 	switch order.GetPublicStatus() {
 	case constant.OrderPublicStatusCanceled, constant.OrderPublicStatusRejected:
 		for _, key := range keys {
-			zap.S().Debug("[orderNotifyKeyProducts] trying to cancel reserving key", "order_id", order.Id, "key", key)
+			zap.S().Infow("[orderNotifyKeyProducts] trying to cancel reserving key", "order_id", order.Id, "key", key)
 			rsp := &grpc.EmptyResponseWithStatus{}
 			err = s.CancelRedeemKeyForOrder(ctx, &grpc.KeyForOrderRequest{KeyId: key}, rsp)
 			if err != nil {
@@ -1285,7 +1285,7 @@ func (s *Service) orderNotifyKeyProducts(ctx context.Context, order *billing.Ord
 		break
 	case constant.OrderPublicStatusProcessed:
 		for _, key := range keys {
-			zap.S().Debug("[orderNotifyKeyProducts] trying to finish reserving key", "order_id", order.Id, "key", key)
+			zap.S().Infow("[orderNotifyKeyProducts] trying to finish reserving key", "order_id", order.Id, "key", key)
 			rsp := &grpc.GetKeyForOrderRequestResponse{}
 			err = s.FinishRedeemKeyForOrder(ctx, &grpc.KeyForOrderRequest{KeyId: key}, rsp)
 			if err != nil {
@@ -2645,7 +2645,7 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 			Amount:     amount,
 		}
 
-		rsp, err := s.curService.ExchangeCurrencyCurrentForMerchant(context.TODO(), req)
+		rsp, err := s.curService.ExchangeCurrencyCurrentForMerchant(ctx, req)
 
 		if err != nil {
 			zap.L().Error(
@@ -2709,19 +2709,22 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 				OrderId:      order.Id,
 				KeyProductId: productId,
 			}
-			if err = s.ReserveKeyForOrder(context.TODO(), reserveReq, reserveRes); err != nil {
+
+			err = s.ReserveKeyForOrder(ctx, reserveReq, reserveRes)
+			if err != nil {
 				zap.L().Error(
 					pkg.ErrorGrpcServiceCallFailed,
 					zap.Error(err),
 					zap.String(errorFieldService, "KeyService"),
 					zap.String(errorFieldMethod, "ReserveKeyForOrder"),
 				)
-				return orderErrorKeyReserveFailed
+				return err
 			}
 
 			if reserveRes.Status != pkg.ResponseStatusOk {
 				return reserveRes.Message
 			}
+
 			keys[i] = reserveRes.KeyId
 		}
 	}
