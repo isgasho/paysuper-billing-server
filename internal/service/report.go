@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -24,8 +25,7 @@ func (s *Service) FindAllOrdersPublic(
 	req *grpc.ListOrdersRequest,
 	rsp *grpc.ListOrdersPublicResponse,
 ) error {
-	var orders []*billing.OrderViewPublic
-	count, err := s.getOrdersList(req, orders)
+	count, orders, err := s.getOrdersList(req, make([]*billing.OrderViewPublic, 1))
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -37,7 +37,7 @@ func (s *Service) FindAllOrdersPublic(
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = &grpc.ListOrdersPublicResponseItem{
 		Count: int32(count),
-		Items: orders,
+		Items: orders.([]*billing.OrderViewPublic),
 	}
 
 	return nil
@@ -48,8 +48,7 @@ func (s *Service) FindAllOrdersPrivate(
 	req *grpc.ListOrdersRequest,
 	rsp *grpc.ListOrdersPrivateResponse,
 ) error {
-	var orders []*billing.OrderViewPrivate
-	count, err := s.getOrdersList(req, orders)
+	count, orders, err := s.getOrdersList(req, make([]*billing.OrderViewPrivate, 1))
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -61,7 +60,7 @@ func (s *Service) FindAllOrdersPrivate(
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = &grpc.ListOrdersPrivateResponseItem{
 		Count: int32(count),
-		Items: orders,
+		Items: orders.([]*billing.OrderViewPrivate),
 	}
 
 	return nil
@@ -78,17 +77,23 @@ func (s *Service) GetOrder(
 		query["project.merchant_id"] = bson.ObjectIdHex(req.Merchant)
 	}
 
-	err := s.db.Collection(collectionOrder).Find(query).One(&rsp)
+	err := s.db.Collection(collectionOrderView).Find(query).One(&rsp)
 
-	if err != nil {
-		zap.S().Errorf("Query from table ended with error", "err", err.Error(), "table", collectionOrder)
+	if err != nil && err != mgo.ErrNotFound {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrderView),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+
 		return err
 	}
 
 	return nil
 }
 
-func (s *Service) getOrdersList(req *grpc.ListOrdersRequest, receiver interface{}) (int, error) {
+func (s *Service) getOrdersList(req *grpc.ListOrdersRequest, receiver interface{}) (int, interface{}, error) {
 	query := make(bson.M)
 
 	if len(req.Merchant) > 0 {
@@ -140,38 +145,46 @@ func (s *Service) getOrdersList(req *grpc.ListOrdersRequest, receiver interface{
 			query["payment_method._id"] = bson.M{"$in": paymentMethod}
 		}
 
-		if len(req.PrivateStatus) > 0 {
-			query["private_status"] = bson.M{"$in": req.PrivateStatus}
+		if len(req.Status) > 0 {
+			query["status"] = bson.M{"$in": req.Status}
 		}
 
 		if req.Account != "" {
-			ar := bson.RegEx{Pattern: ".*" + req.Account + ".*", Options: "i"}
+			r := bson.RegEx{Pattern: ".*" + req.Account + ".*", Options: "i"}
 			query["$or"] = []bson.M{
-				{"project_account": ar},
-				{"pm_account": ar},
-				{"payer_data.phone": ar},
-				{"payer_data.email": ar},
+				{"user.external_id": r},
+				{"user.phone": r},
+				{"user.email": r},
+				{"payment_method.card.masked": bson.M{"$regex": r, "$exists": true}},
+				{"payment_method.crypto_currency.address": bson.M{"$regex": r, "$exists": true}},
+				{"payment_method.wallet.account": bson.M{"$regex": r, "$exists": true}},
 			}
 		}
 
 		pmDates := make(bson.M)
+
 		if req.PmDateFrom != 0 {
 			pmDates["$gte"] = time.Unix(req.PmDateFrom, 0)
 		}
+
 		if req.PmDateTo != 0 {
 			pmDates["$lte"] = time.Unix(req.PmDateTo, 0)
 		}
+
 		if len(pmDates) > 0 {
 			query["pm_order_close_date"] = pmDates
 		}
 
 		prjDates := make(bson.M)
+
 		if req.ProjectDateFrom != 0 {
 			prjDates["$gte"] = time.Unix(req.ProjectDateFrom, 0)
 		}
+
 		if req.ProjectDateTo != 0 {
 			prjDates["$lte"] = time.Unix(req.ProjectDateTo, 0)
 		}
+
 		if len(prjDates) > 0 {
 			query["created_at"] = prjDates
 		}
@@ -192,7 +205,7 @@ func (s *Service) getOrdersList(req *grpc.ListOrdersRequest, receiver interface{
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
 
-		return 0, err
+		return 0, nil, err
 	}
 
 	err = s.db.Collection(collectionOrderView).Find(query).Sort(req.Sort...).Limit(int(req.Limit)).
@@ -206,8 +219,8 @@ func (s *Service) getOrdersList(req *grpc.ListOrdersRequest, receiver interface{
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
 
-		return 0, err
+		return 0, nil, err
 	}
 
-	return count, nil
+	return count, receiver, nil
 }

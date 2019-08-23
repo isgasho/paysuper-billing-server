@@ -2,10 +2,12 @@ package service
 
 import (
 	"context"
+	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/uuid"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
@@ -14,11 +16,13 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
+	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
 	"testing"
+	"time"
 )
 
 type ReportTestSuite struct {
@@ -105,12 +109,21 @@ func (suite *ReportTestSuite) TearDownTest() {
 func (suite *ReportTestSuite) TestReport_ReturnEmptyList() {
 	req := &grpc.ListOrdersRequest{}
 	rsp := &grpc.ListOrdersPublicResponse{}
+
 	err := suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 	assert.NotNil(suite.T(), rsp.Item)
 	assert.Equal(suite.T(), int32(0), rsp.Item.Count)
 	assert.Empty(suite.T(), rsp.Item.Items)
+
+	rsp1 := &grpc.ListOrdersPrivateResponse{}
+	err = suite.service.FindAllOrdersPrivate(context.TODO(), req, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.NotNil(suite.T(), rsp1.Item)
+	assert.Equal(suite.T(), int32(0), rsp1.Item.Count)
+	assert.Empty(suite.T(), rsp1.Item.Items)
 }
 
 func (suite *ReportTestSuite) TestReport_FindById() {
@@ -130,4 +143,328 @@ func (suite *ReportTestSuite) TestReport_FindById() {
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 	assert.Equal(suite.T(), int32(1), rsp.Item.Count)
 	assert.Equal(suite.T(), order.Id, rsp.Item.Items[0].Id)
+
+	rsp1 := &grpc.ListOrdersPrivateResponse{}
+	err = suite.service.FindAllOrdersPrivate(context.TODO(), req, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.NotNil(suite.T(), rsp1.Item)
+	assert.Equal(suite.T(), int32(1), rsp1.Item.Count)
+	assert.Equal(suite.T(), order.Id, rsp1.Item.Items[0].Id)
+}
+
+func (suite *ReportTestSuite) TestReport_FindByMerchantId() {
+	req := &grpc.ListOrdersRequest{Merchant: []string{suite.project.MerchantId}}
+	rsp := &grpc.ListOrdersPublicResponse{}
+	err := suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.NotNil(suite.T(), rsp.Item)
+	assert.Equal(suite.T(), int32(0), rsp.Item.Count)
+
+	order1 := helperCreateAndPayOrder(suite.Suite, suite.service, 555.55, "RUB", "RU", suite.project, suite.pmBankCard)
+	order2 := helperCreateAndPayOrder(suite.Suite, suite.service, 555.55, "RUB", "RU", suite.project, suite.pmBankCard)
+	order3 := helperCreateAndPayOrder(suite.Suite, suite.service, 555.55, "RUB", "RU", suite.project, suite.pmBankCard)
+
+	err = suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.EqualValues(suite.T(), 3, rsp.Item.Count)
+	assert.Len(suite.T(), rsp.Item.Items, int(rsp.Item.Count))
+
+	var orderIds []string
+
+	for _, v := range rsp.Item.Items {
+		orderIds = append(orderIds, v.Id)
+	}
+
+	assert.Contains(suite.T(), orderIds, order1.Id)
+	assert.Contains(suite.T(), orderIds, order2.Id)
+	assert.Contains(suite.T(), orderIds, order3.Id)
+}
+
+func (suite *ReportTestSuite) TestReport_FindByProject() {
+	req := &grpc.ListOrdersRequest{Project: []string{suite.project.Id}}
+	rsp := &grpc.ListOrdersPublicResponse{}
+	err := suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.NotNil(suite.T(), rsp.Item)
+	assert.Equal(suite.T(), int32(0), rsp.Item.Count)
+
+	var orderIds []string
+
+	for i := 0; i < 5; i++ {
+		order := helperCreateAndPayOrder(suite.Suite, suite.service, 555.55, "RUB", "RU", suite.project, suite.pmBankCard)
+		orderIds = append(orderIds, order.Id)
+	}
+
+	err = suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.EqualValues(suite.T(), 5, rsp.Item.Count)
+	assert.Len(suite.T(), rsp.Item.Items, int(rsp.Item.Count))
+
+	for _, v := range rsp.Item.Items {
+		assert.Contains(suite.T(), orderIds, v.Id)
+	}
+}
+
+func (suite *ReportTestSuite) TestReport_FindByCountry() {
+	req := &grpc.ListOrdersRequest{Country: []string{"RU"}}
+	rsp := &grpc.ListOrdersPublicResponse{}
+	err := suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.NotNil(suite.T(), rsp.Item)
+	assert.Equal(suite.T(), int32(0), rsp.Item.Count)
+
+	var orderIds []string
+
+	for i := 0; i < 4; i++ {
+		order := helperCreateAndPayOrder(suite.Suite, suite.service, 555.55, "RUB", "RU", suite.project, suite.pmBankCard)
+		orderIds = append(orderIds, order.Id)
+	}
+
+	err = suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.EqualValues(suite.T(), 4, rsp.Item.Count)
+	assert.Len(suite.T(), rsp.Item.Items, int(rsp.Item.Count))
+
+	for _, v := range rsp.Item.Items {
+		assert.Contains(suite.T(), orderIds, v.Id)
+	}
+}
+
+func (suite *ReportTestSuite) TestReport_FindByPaymentMethod() {
+	req := &grpc.ListOrdersRequest{PaymentMethod: []string{suite.pmBankCard.Id}}
+	rsp := &grpc.ListOrdersPublicResponse{}
+	err := suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.NotNil(suite.T(), rsp.Item)
+	assert.Equal(suite.T(), int32(0), rsp.Item.Count)
+
+	var orderIds []string
+
+	for i := 0; i < 5; i++ {
+		order := helperCreateAndPayOrder(suite.Suite, suite.service, 555.55, "RUB", "RU", suite.project, suite.pmBankCard)
+		orderIds = append(orderIds, order.Id)
+	}
+
+	err = suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.EqualValues(suite.T(), 5, rsp.Item.Count)
+	assert.Len(suite.T(), rsp.Item.Items, int(rsp.Item.Count))
+
+	for _, v := range rsp.Item.Items {
+		assert.Contains(suite.T(), orderIds, v.Id)
+	}
+}
+
+func (suite *ReportTestSuite) TestReport_FindByStatus() {
+	req := &grpc.ListOrdersRequest{Status: []string{constant.OrderPublicStatusProcessed}}
+	rsp := &grpc.ListOrdersPublicResponse{}
+	err := suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.NotNil(suite.T(), rsp.Item)
+	assert.Equal(suite.T(), int32(0), rsp.Item.Count)
+
+	var orderIds []string
+
+	for i := 0; i < 5; i++ {
+		order := helperCreateAndPayOrder(suite.Suite, suite.service, 555.55, "RUB", "RU", suite.project, suite.pmBankCard)
+		orderIds = append(orderIds, order.Id)
+	}
+
+	err = suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.EqualValues(suite.T(), 5, rsp.Item.Count)
+	assert.Len(suite.T(), rsp.Item.Items, int(rsp.Item.Count))
+
+	for _, v := range rsp.Item.Items {
+		assert.Contains(suite.T(), orderIds, v.Id)
+	}
+}
+
+func (suite *ReportTestSuite) TestReport_FindByAccount() {
+	req := &grpc.ListOrdersRequest{Account: "test@unit.unit"}
+	rsp := &grpc.ListOrdersPublicResponse{}
+	err := suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.NotNil(suite.T(), rsp.Item)
+	assert.Equal(suite.T(), int32(0), rsp.Item.Count)
+
+	var orderIds []string
+
+	for i := 0; i < 5; i++ {
+		order := helperCreateAndPayOrder(suite.Suite, suite.service, 555.55, "RUB", "RU", suite.project, suite.pmBankCard)
+		orderIds = append(orderIds, order.Id)
+	}
+
+	err = suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.EqualValues(suite.T(), 5, rsp.Item.Count)
+	assert.Len(suite.T(), rsp.Item.Items, int(rsp.Item.Count))
+
+	for _, v := range rsp.Item.Items {
+		assert.Contains(suite.T(), orderIds, v.Id)
+	}
+
+	req.Account = "400000"
+	err = suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.EqualValues(suite.T(), 5, rsp.Item.Count)
+	assert.Len(suite.T(), rsp.Item.Items, int(rsp.Item.Count))
+
+	for _, v := range rsp.Item.Items {
+		assert.Contains(suite.T(), orderIds, v.Id)
+	}
+
+	req = &grpc.ListOrdersRequest{QuickSearch: suite.project.Name["en"]}
+	err = suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.EqualValues(suite.T(), 5, rsp.Item.Count)
+	assert.Len(suite.T(), rsp.Item.Items, int(rsp.Item.Count))
+
+	for _, v := range rsp.Item.Items {
+		assert.Contains(suite.T(), orderIds, v.Id)
+	}
+}
+
+func (suite *ReportTestSuite) TestReport_FindByPmDateFrom() {
+	req := &grpc.ListOrdersRequest{PmDateFrom: time.Now().Unix() - 10}
+	rsp := &grpc.ListOrdersPublicResponse{}
+	err := suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.NotNil(suite.T(), rsp.Item)
+	assert.Equal(suite.T(), int32(0), rsp.Item.Count)
+
+	var orderIds []string
+
+	for i := 0; i < 5; i++ {
+		order := helperCreateAndPayOrder(suite.Suite, suite.service, 555.55, "RUB", "RU", suite.project, suite.pmBankCard)
+		orderIds = append(orderIds, order.Id)
+	}
+
+	err = suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.EqualValues(suite.T(), 5, rsp.Item.Count)
+	assert.Len(suite.T(), rsp.Item.Items, int(rsp.Item.Count))
+
+	for _, v := range rsp.Item.Items {
+		assert.Contains(suite.T(), orderIds, v.Id)
+	}
+}
+
+func (suite *ReportTestSuite) TestReport_FindByPmDateTo() {
+	req := &grpc.ListOrdersRequest{PmDateTo: time.Now().Unix() + 1000}
+	rsp := &grpc.ListOrdersPublicResponse{}
+	err := suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.NotNil(suite.T(), rsp.Item)
+	assert.Equal(suite.T(), int32(0), rsp.Item.Count)
+
+	var orderIds []string
+	date := &timestamp.Timestamp{}
+
+	for i := 0; i < 5; i++ {
+		order := helperCreateAndPayOrder(suite.Suite, suite.service, 555.55, "RUB", "RU", suite.project, suite.pmBankCard)
+		orderIds = append(orderIds, order.Id)
+		date = order.PaymentMethodOrderClosedAt
+	}
+
+	req.PmDateTo = date.Seconds + 100
+	err = suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.EqualValues(suite.T(), 5, rsp.Item.Count)
+	assert.Len(suite.T(), rsp.Item.Items, int(rsp.Item.Count))
+
+	for _, v := range rsp.Item.Items {
+		assert.Contains(suite.T(), orderIds, v.Id)
+	}
+}
+
+func (suite *ReportTestSuite) TestReport_FindByProjectDateFrom() {
+	req := &grpc.ListOrdersRequest{ProjectDateFrom: time.Now().Unix() - 10}
+	rsp := &grpc.ListOrdersPublicResponse{}
+	err := suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.NotNil(suite.T(), rsp.Item)
+	assert.Equal(suite.T(), int32(0), rsp.Item.Count)
+
+	var orderIds []string
+
+	for i := 0; i < 5; i++ {
+		order := helperCreateAndPayOrder(suite.Suite, suite.service, 555.55, "RUB", "RU", suite.project, suite.pmBankCard)
+		orderIds = append(orderIds, order.Id)
+	}
+
+	err = suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.EqualValues(suite.T(), 5, rsp.Item.Count)
+	assert.Len(suite.T(), rsp.Item.Items, int(rsp.Item.Count))
+
+	for _, v := range rsp.Item.Items {
+		assert.Contains(suite.T(), orderIds, v.Id)
+	}
+}
+
+func (suite *ReportTestSuite) TestReport_FindByProjectDateTo() {
+	req := &grpc.ListOrdersRequest{ProjectDateTo: time.Now().Unix() + 100}
+	rsp := &grpc.ListOrdersPublicResponse{}
+	err := suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.NotNil(suite.T(), rsp.Item)
+	assert.Equal(suite.T(), int32(0), rsp.Item.Count)
+
+	var orderIds []string
+
+	for i := 0; i < 5; i++ {
+		order := helperCreateAndPayOrder(suite.Suite, suite.service, 555.55, "RUB", "RU", suite.project, suite.pmBankCard)
+		orderIds = append(orderIds, order.Id)
+	}
+
+	err = suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.EqualValues(suite.T(), 5, rsp.Item.Count)
+	assert.Len(suite.T(), rsp.Item.Items, int(rsp.Item.Count))
+
+	for _, v := range rsp.Item.Items {
+		assert.Contains(suite.T(), orderIds, v.Id)
+	}
+}
+
+func (suite *ReportTestSuite) TestReport_GetOrder() {
+	req := &grpc.GetOrderRequest{
+		Id:       bson.NewObjectId().Hex(),
+		Merchant: suite.project.MerchantId,
+	}
+	rsp := &billing.Order{}
+	err := suite.service.GetOrder(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Empty(suite.T(), rsp.Uuid)
+
+	order := helperCreateAndPayOrder(suite.Suite, suite.service, 555.55, "RUB", "RU", suite.project, suite.pmBankCard)
+
+	req.Id = order.Uuid
+	err = suite.service.GetOrder(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Uuid, order.Uuid)
 }
