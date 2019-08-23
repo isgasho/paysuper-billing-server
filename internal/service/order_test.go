@@ -1264,12 +1264,12 @@ func (suite *OrderTestSuite) TestOrder_ProcessPayerData_Error() {
 }
 
 func (suite *OrderTestSuite) TestOrder_ValidateKeyProductsForOrder_Ok() {
-	_, err := suite.service.GetOrderKeyProducts(suite.projectWithKeyProducts.Id, suite.keyProductIds)
+	_, err := suite.service.GetOrderKeyProducts(context.TODO(), suite.projectWithKeyProducts.Id, suite.keyProductIds)
 	assert.Nil(suite.T(), err)
 }
 
 func (suite *OrderTestSuite) TestOrder_ValidateKeyProductsForOrder_AnotherProject_Fail() {
-	_, err := suite.service.GetOrderKeyProducts(suite.project.Id, suite.keyProductIds)
+	_, err := suite.service.GetOrderKeyProducts(context.TODO(), suite.project.Id, suite.keyProductIds)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), orderErrorProductsInvalid, err)
 }
