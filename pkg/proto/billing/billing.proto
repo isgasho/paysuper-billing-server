@@ -526,6 +526,9 @@ message Order {
 
     // @inject_tag: json:"-" bson:"keys"
     repeated string keys = 71;
+
+    // @inject_tag: json:"-"
+    bool is_key_product_notified = 72;
 }
 
 message CountryRestriction {

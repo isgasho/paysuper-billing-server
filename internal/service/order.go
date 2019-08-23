@@ -1226,17 +1226,17 @@ func (s *Service) saveRecurringCard(order *billing.Order, recurringId string) {
 func (s *Service) updateOrder(order *billing.Order) error {
 	ps := order.GetPublicStatus()
 
-	zap.S().Info("[updateOrder] updating order", "order_id", order.Id, "status", ps)
+	zap.S().Debug("[updateOrder] updating order", "order_id", order.Id, "status", ps)
 
 	originalOrder, _ := s.getOrderById(order.Id)
 
 	statusChanged := false
 	if originalOrder != nil {
 		ops := originalOrder.GetPublicStatus()
-		zap.S().Info("[updateOrder] no original order status", "order_id", order.Id, "status", ops)
+		zap.S().Debug("[updateOrder] no original order status", "order_id", order.Id, "status", ops)
 		statusChanged = ops != ps
 	} else {
-		zap.S().Info("[updateOrder] no original order found", "order_id", order.Id)
+		zap.S().Debug("[updateOrder] no original order found", "order_id", order.Id)
 	}
 
 	err := s.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
@@ -1249,14 +1249,14 @@ func (s *Service) updateOrder(order *billing.Order) error {
 		return orderErrorUnknown
 	}
 
-	zap.S().Infow("[updateOrder] updating order success", "order_id", order.Id, "status_changed", statusChanged, "type", order.ProductType)
+	zap.S().Debug("[updateOrder] updating order success", "order_id", order.Id, "status_changed", statusChanged, "type", order.ProductType)
+
+	if order.ProductType == billing.OrderType_key {
+		s.orderNotifyKeyProducts(context.TODO(), order)
+	}
 
 	if statusChanged && ps != constant.OrderPublicStatusCreated && ps != constant.OrderPublicStatusPending {
-		if order.ProductType == billing.OrderType_key {
-			s.orderNotifyKeyProducts(context.TODO(), order)
-		}
-
-		zap.S().Info("[updateOrder] notify merchant", "order_id", order.Id)
+		zap.S().Debug("[updateOrder] notify merchant", "order_id", order.Id)
 		s.orderNotifyMerchant(order)
 	}
 
@@ -1264,7 +1264,12 @@ func (s *Service) updateOrder(order *billing.Order) error {
 }
 
 func (s *Service) orderNotifyKeyProducts(ctx context.Context, order *billing.Order) {
-	zap.S().Infow("[orderNotifyKeyProducts] called", "order_id", order.Id, "status", order.GetPublicStatus())
+	zap.S().Debug("[orderNotifyKeyProducts] called", "order_id", order.Id, "status", order.GetPublicStatus(), "is product notified: ", order.IsKeyProductNotified)
+
+	if order.IsKeyProductNotified {
+		return
+	}
+
 	keys := order.Keys
 	var err error
 	switch order.GetPublicStatus() {
@@ -1282,6 +1287,7 @@ func (s *Service) orderNotifyKeyProducts(ctx context.Context, order *billing.Ord
 				continue
 			}
 		}
+		order.IsKeyProductNotified = true
 		break
 	case constant.OrderPublicStatusProcessed:
 		for _, key := range keys {
@@ -1299,6 +1305,7 @@ func (s *Service) orderNotifyKeyProducts(ctx context.Context, order *billing.Ord
 
 			s.sendMailWithCode(ctx, order, rsp.Key)
 		}
+		order.IsKeyProductNotified = true
 		break
 	}
 }
@@ -1316,6 +1323,11 @@ func (s *Service) sendMailWithCode(ctx context.Context, order *billing.Order, ke
 				},
 				To: order.ReceiptEmail,
 			}
+
+			if len(item.Images) > 0 {
+				payload.TemplateModel["product_image"] = item.Images[0]
+			}
+
 			err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 			if err != nil {
 				zap.S().Error(
