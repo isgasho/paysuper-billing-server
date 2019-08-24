@@ -679,7 +679,7 @@ func (s *Service) ChangeCodeInOrder(ctx context.Context, req *grpc.ChangeCodeInO
 
 	rsp := &grpc.PlatformKeyReserveResponse{}
 	err = s.ReserveKeyForOrder(ctx, &grpc.PlatformKeyReserveRequest{
-		OrderId:      req.OrderId,
+		OrderId:      order.Id,
 		KeyProductId: req.KeyProductId,
 		PlatformId:   order.PlatformId,
 		MerchantId:   order.GetMerchantId(),
