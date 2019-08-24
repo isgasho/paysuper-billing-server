@@ -1489,7 +1489,7 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 			PaymentsAllowed: true,
 			ChangeAllowed:   true,
 		},
-		PlatformId: v.request.PlatformId,
+		PlatformId:  v.request.PlatformId,
 		ProductType: v.request.Type,
 	}
 
@@ -2711,7 +2711,10 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 	amount = tools.FormatAmount(amount)
 	merAccAmount = tools.FormatAmount(merAccAmount)
 
+	zap.S().Infow("[ProcessOrderKeyProducts] before processing order key. ", "keys ", len(order.Keys), "products ", len(order.KeyProducts), "order_id", order.Id)
+
 	if len(order.Keys) == 0 {
+		zap.S().Infow("[ProcessOrderKeyProducts] reserving keys", "order_id", order.Id)
 		keys := make([]string, len(order.KeyProducts))
 		for i, productId := range order.KeyProducts {
 			reserveRes := &grpc.PlatformKeyReserveResponse{}
@@ -2720,9 +2723,11 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 				MerchantId:   order.Project.MerchantId,
 				OrderId:      order.Id,
 				KeyProductId: productId,
+				Ttl:          oneDayTtl,
 			}
 
 			err = s.ReserveKeyForOrder(ctx, reserveReq, reserveRes)
+			zap.S().Infow("[ProcessOrderKeyProducts] reserved for product", "product ", productId, "reserveRes ", reserveRes, "order_id", order.Id)
 			if err != nil {
 				zap.L().Error(
 					pkg.ErrorGrpcServiceCallFailed,
@@ -2734,6 +2739,7 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 			}
 
 			if reserveRes.Status != pkg.ResponseStatusOk {
+				zap.S().Errorw("[ProcessOrderKeyProducts] can't reserve key", "message", reserveRes.Message, "order_id", order.Id)
 				return reserveRes.Message
 			}
 
