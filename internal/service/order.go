@@ -2711,8 +2711,8 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 	amount = tools.FormatAmount(amount)
 	merAccAmount = tools.FormatAmount(merAccAmount)
 
-	keys := make([]string, len(order.KeyProducts))
 	if len(order.Keys) == 0 {
+		keys := make([]string, len(order.KeyProducts))
 		for i, productId := range order.KeyProducts {
 			reserveRes := &grpc.PlatformKeyReserveResponse{}
 			reserveReq := &grpc.PlatformKeyReserveRequest{
@@ -2739,11 +2739,11 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 
 			keys[i] = reserveRes.KeyId
 		}
+
+		order.Keys = keys
 	}
 
-	order.Keys = keys
 	order.Currency = currency
-
 	order.OrderAmount = amount
 	order.TotalPaymentAmount = amount
 

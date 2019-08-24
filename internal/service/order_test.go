@@ -6385,6 +6385,50 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Error() {
 	assert.NotNil(suite.T(), order)
 }
 
+func (suite *OrderTestSuite) Test_processPaylinkKeyProducts_error() {
+	shouldBe := require.New(suite.T())
+
+	req := &billing.OrderCreateRequest{
+		ProjectId:   suite.projectWithKeyProducts.Id,
+		Currency:    "USD",
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+		Type: billing.OrderType_key,
+		PlatformId: "steam",
+	}
+
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+	shouldBe.Nil(err)
+	shouldBe.EqualValues(400, rsp1.Status)
+	shouldBe.NotEmpty(rsp1.Message)
+
+	req = &billing.OrderCreateRequest{
+		ProjectId:   suite.projectWithProducts.Id,
+		Currency:    "USD",
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+		Type: billing.OrderType_product,
+		PlatformId: "steam",
+	}
+
+	rsp1 = &grpc.OrderCreateProcessResponse{}
+	err = suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+	shouldBe.Nil(err)
+	shouldBe.EqualValues(400, rsp1.Status)
+	shouldBe.NotEmpty(rsp1.Message)
+}
+
 func (suite *OrderTestSuite) Test_ProcessOrderKeyProducts() {
 	shouldBe := require.New(suite.T())
 
