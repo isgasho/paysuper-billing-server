@@ -2711,12 +2711,12 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 	amount = tools.FormatAmount(amount)
 	merAccAmount = tools.FormatAmount(merAccAmount)
 
-	zap.S().Infow("[ProcessOrderKeyProducts] before processing order key. ", "keys ", len(order.Keys), "products ", len(order.KeyProducts), "order_id", order.Id)
+	zap.S().Infow("[ProcessOrderKeyProducts] before processing order key. ", "keys ", len(order.Keys), "products ", len(order.Products), "order_id", order.Id)
 
 	if len(order.Keys) == 0 {
 		zap.S().Infow("[ProcessOrderKeyProducts] reserving keys", "order_id", order.Id)
-		keys := make([]string, len(order.KeyProducts))
-		for i, productId := range order.KeyProducts {
+		keys := make([]string, len(order.Products))
+		for i, productId := range order.Products{
 			reserveRes := &grpc.PlatformKeyReserveResponse{}
 			reserveReq := &grpc.PlatformKeyReserveRequest{
 				PlatformId:   order.PlatformId,
