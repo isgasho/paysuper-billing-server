@@ -16,6 +16,7 @@ import (
 
 const (
 	collectionKeyProduct = "key_product"
+	oneDayTtl = 86400
 )
 
 var (
@@ -205,7 +206,8 @@ func (s *Service) GetKeyProducts(ctx context.Context, req *grpc.ListKeyProductsR
 	if exist, err := s.checkMerchantExist(req.MerchantId); exist == false || err != nil {
 		if err != nil {
 			res.Status = pkg.ResponseStatusSystemError
-			res.Message = newBillingServerErrorMsg(keyProductInternalError.Code, keyProductInternalError.Message, err.Error())
+			res.Message = keyProductInternalError
+			res.Message.Details = err.Error()
 			return nil
 		}
 		res.Status = pkg.ResponseStatusBadData
@@ -230,7 +232,8 @@ func (s *Service) GetKeyProducts(ctx context.Context, req *grpc.ListKeyProductsR
 	if err != nil {
 		zap.S().Errorf("Query to find key products by id failed", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
-		res.Message = newBillingServerErrorMsg(keyProductInternalError.Code, keyProductInternalError.Message, err.Error())
+		res.Message = keyProductInternalError
+		res.Message.Details = err.Error()
 		return nil
 	}
 
@@ -249,7 +252,8 @@ func (s *Service) GetKeyProducts(ctx context.Context, req *grpc.ListKeyProductsR
 	if err != nil {
 		zap.S().Errorf("Query to find key products by id failed", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
-		res.Message = newBillingServerErrorMsg(keyProductInternalError.Code, keyProductInternalError.Message, err.Error())
+		res.Message = keyProductInternalError
+		res.Message.Details = err.Error()
 		return nil
 	}
 
@@ -390,7 +394,7 @@ func (s *Service) getKeyProductById(id string) (*grpc.KeyProduct, error) {
 		"deleted": false,
 	}
 
-	var product = &grpc.KeyProduct{}
+	product := &grpc.KeyProduct{}
 	err := s.db.Collection(collectionKeyProduct).Find(query).One(product)
 	return product, err
 }
@@ -479,7 +483,8 @@ func (s *Service) GetKeyProductsForOrder(ctx context.Context, req *grpc.GetKeyPr
 	if err != nil {
 		zap.S().Errorf("Query to find key products for order is failed", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
-		res.Message = newBillingServerErrorMsg(keyProductInternalError.Code, keyProductInternalError.Message, err.Error())
+		res.Message = keyProductInternalError
+		res.Message.Details = err.Error()
 		return nil
 	}
 
@@ -580,16 +585,16 @@ func (s *Service) UpdatePlatformPrices(ctx context.Context, req *grpc.AddOrUpdat
 			if pr.Currency != price.Currency {
 				zap.S().Errorw("Currency is mismatch for specified region", "price", price)
 				res.Status = pkg.ResponseStatusBadData
-				res.Message = newBillingServerErrorMsg(keyProductPlatformPriceMismatchCurrency.Code, keyProductPlatformPriceMismatchCurrency.Message,
-					fmt.Sprintf("price with regin `%s` should have currency `%s` but have `%s`", price.Region, pr.Currency, price.Currency))
+				res.Message = keyProductPlatformPriceMismatchCurrency
+				res.Message.Details = fmt.Sprintf("price with regin `%s` should have currency `%s` but have `%s`", price.Region, pr.Currency, price.Currency)
 				return nil
 			}
 		}
 
 		if isHaveDefaultPrice == false {
 			res.Status = http.StatusBadRequest
-			res.Message = newBillingServerErrorMsg(keyProductPlatformDontHaveDefaultPrice.Code, keyProductPlatformDontHaveDefaultPrice.Message,
-				fmt.Sprintf("platform %s should have price in currency %s", platform.Id, product.DefaultCurrency))
+			res.Message = keyProductPlatformDontHaveDefaultPrice
+			res.Message.Details = fmt.Sprintf("platform %s should have price in currency %s", platform.Id, product.DefaultCurrency)
 			return nil
 		}
 
@@ -599,7 +604,8 @@ func (s *Service) UpdatePlatformPrices(ctx context.Context, req *grpc.AddOrUpdat
 	if err := s.db.Collection(collectionKeyProduct).UpdateId(bson.ObjectIdHex(req.KeyProductId), product); err != nil {
 		zap.S().Errorf("Query to update product failed", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
-		res.Message = newBillingServerErrorMsg(keyProductInternalError.Code, keyProductInternalError.Message, err.Error())
+		res.Message = keyProductInternalError
+		res.Message.Details = err.Error()
 		return nil
 	}
 
@@ -621,7 +627,8 @@ func (s *Service) DeletePlatformFromProduct(ctx context.Context, req *grpc.Remov
 
 		zap.S().Errorf("Error during getting key product", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
-		res.Message = newBillingServerErrorMsg(keyProductInternalError.Code, keyProductInternalError.Message, err.Error())
+		res.Message = keyProductInternalError
+		res.Message.Details = err.Error()
 		return nil
 	}
 
@@ -638,7 +645,8 @@ func (s *Service) DeletePlatformFromProduct(ctx context.Context, req *grpc.Remov
 	if err := s.db.Collection(collectionKeyProduct).UpdateId(bson.ObjectIdHex(req.KeyProductId), product); err != nil {
 		zap.S().Errorf("Query to update product failed", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
-		res.Message = newBillingServerErrorMsg(keyProductInternalError.Code, keyProductInternalError.Message, err.Error())
+		res.Message = keyProductInternalError
+		res.Message.Details = err.Error()
 		return nil
 	}
 
@@ -657,14 +665,15 @@ func (s *Service) ChangeCodeInOrder(ctx context.Context, req *grpc.ChangeCodeInO
 			return nil
 		}
 		res.Status = http.StatusInternalServerError
-		res.Message = newBillingServerErrorMsg(keyProductInternalError.Code, keyProductInternalError.Message, err.Error())
+		res.Message = keyProductInternalError
+		res.Message.Details = err.Error()
 		return nil
 	}
 
 	if order.GetPublicStatus() != constant.OrderPublicStatusProcessed {
 		zap.S().Error("Trying to change order what has not been processed.", "status", order.GetPublicStatus(), "data", req)
 		res.Status = pkg.ResponseStatusBadData
-		res.Message = newBillingServerErrorMsg(keyProductOrderIsNotProcessedError.Code, keyProductOrderIsNotProcessedError.Message)
+		res.Message = keyProductOrderIsNotProcessedError
 		return nil
 	}
 
@@ -674,13 +683,14 @@ func (s *Service) ChangeCodeInOrder(ctx context.Context, req *grpc.ChangeCodeInO
 		KeyProductId: req.KeyProductId,
 		PlatformId:   order.PlatformId,
 		MerchantId:   order.GetMerchantId(),
-		Ttl:          86400, // one day
+		Ttl:          oneDayTtl, // one day
 	}, rsp)
 
 	if err != nil {
 		zap.S().Error("Reserving key for order is failed", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
-		res.Message = newBillingServerErrorMsg(keyProductInternalError.Code, keyProductInternalError.Message, err.Error())
+		res.Message = keyProductInternalError
+		res.Message.Details = err.Error()
 		return nil
 	}
 
@@ -697,7 +707,9 @@ func (s *Service) ChangeCodeInOrder(ctx context.Context, req *grpc.ChangeCodeInO
 	if err != nil {
 		zap.S().Error("Finishing reserving key for order is failed", "err", err.Error(), "data", keyReq)
 		res.Status = http.StatusInternalServerError
-		res.Message = newBillingServerErrorMsg(keyProductInternalError.Code, keyProductInternalError.Message, err.Error())
+		res.Message = keyProductInternalError
+		res.Message.Details = err.Error()
+
 
 		cancelRsp := &grpc.EmptyResponseWithStatus{}
 		err = s.CancelRedeemKeyForOrder(ctx, keyReq, cancelRsp)
@@ -722,7 +734,8 @@ func (s *Service) ChangeCodeInOrder(ctx context.Context, req *grpc.ChangeCodeInO
 	if err != nil {
 		zap.S().Error("Error during updating order", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
-		res.Message = newBillingServerErrorMsg(keyProductInternalError.Code, keyProductInternalError.Message, err.Error())
+		res.Message = keyProductInternalError
+		res.Message.Details = err.Error()
 		return nil
 	}
 

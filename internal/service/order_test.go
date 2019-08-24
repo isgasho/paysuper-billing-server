@@ -862,7 +862,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		}, &grpc.UpdatePlatformPricesResponse{}))
 		publishRsp := &grpc.KeyProductResponse{}
 		assert.NoError(suite.T(), suite.service.PublishKeyProduct(context.TODO(), &grpc.PublishKeyProductRequest{MerchantId: projectWithKeyProducts.MerchantId, KeyProductId: res.Product.Id}, publishRsp))
-		assert.EqualValues(suite.T(), 200, publishRsp.Status)
+		assert.EqualValuesf(suite.T(), 200, publishRsp.Status, "%s", publishRsp.Message)
 
 		fileContent := fmt.Sprintf("%s-%s-%s-%s", RandomString(4), RandomString(4), RandomString(4), RandomString(4))
 		file := []byte(fileContent)
@@ -6383,6 +6383,37 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Error() {
 	order, err = suite.service.getOrderById(order.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), order)
+}
+
+func (suite *OrderTestSuite) Test_ProcessOrderKeyProducts() {
+	shouldBe := require.New(suite.T())
+
+	req := &billing.OrderCreateRequest{
+		ProjectId:   suite.projectWithKeyProducts.Id,
+		Currency:    "USD",
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+		Type: billing.OrderType_key,
+		PlatformId: "steam",
+	}
+
+	req.Products = append(req.Products, suite.keyProductIds[0])
+
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
+	shouldBe.Nil(err)
+	shouldBe.EqualValuesf(pkg.ResponseStatusOk, rsp1.Status, "%s", rsp1.Message)
+	order := rsp1.Item
+
+	shouldBe.Nil(suite.service.ProcessOrderKeyProducts(context.TODO(), order))
+	shouldBe.NotEmpty(order.Items)
+	shouldBe.Equal(suite.keyProductIds[0], order.Items[0].Id)
 }
 
 func (suite *OrderTestSuite) Test_ChangeCodeInOrder() {
