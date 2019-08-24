@@ -92,8 +92,8 @@ func (s *Service) GetKeyByID(ctx context.Context, req *grpc.KeyForOrderRequest, 
 }
 
 func (s *Service) ReserveKeyForOrder(ctx context.Context, req *grpc.PlatformKeyReserveRequest, res *grpc.PlatformKeyReserveResponse) error {
+	zap.S().Infow("[ReserveKeyForOrder] called", "order_id", req.OrderId, "platform_id", req.PlatformId, "KeyProductId", req.KeyProductId)
 	key, err := s.keyRepository.ReserveKey(req.KeyProductId, req.PlatformId, req.OrderId, req.Ttl)
-
 	if err != nil {
 		zap.S().Errorf(
 			errors.KeyErrorReserve.Message,
@@ -107,6 +107,8 @@ func (s *Service) ReserveKeyForOrder(ctx context.Context, req *grpc.PlatformKeyR
 		res.Message = errors.KeyErrorReserve
 		return nil
 	}
+
+	zap.S().Infow("[ReserveKeyForOrder] reserved key", "req.order_id", req.OrderId, "key.order_id", key.OrderId, "key.id", key.Id, "key.RedeemedAt", key.RedeemedAt, "key.KeyProductId", key.KeyProductId)
 
 	res.KeyId = key.Id
 	res.Status = pkg.ResponseStatusOk
