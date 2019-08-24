@@ -103,7 +103,7 @@ func (s *Service) ReserveKeyForOrder(ctx context.Context, req *grpc.PlatformKeyR
 			"orderId", req.OrderId,
 			"ttl", req.Ttl,
 		)
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = pkg.ResponseStatusBadData
 		res.Message = errors.KeyErrorReserve
 		return nil
 	}
