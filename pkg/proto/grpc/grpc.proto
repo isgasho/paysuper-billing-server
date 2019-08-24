@@ -160,7 +160,7 @@ message EmptyResponseWithStatus {
 }
 
 message ChangeCodeInOrderRequest {
-    //@inject_tag: validate:"required,hexadecimal,len=24"
+    //@inject_tag: validate:"required"
     string order_id = 1;
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string key_product_id = 2;

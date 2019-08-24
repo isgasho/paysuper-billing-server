@@ -656,7 +656,7 @@ func (s *Service) DeletePlatformFromProduct(ctx context.Context, req *grpc.Remov
 func (s *Service) ChangeCodeInOrder(ctx context.Context, req *grpc.ChangeCodeInOrderRequest, res *grpc.ChangeCodeInOrderResponse) error {
 	res.Status = pkg.ResponseStatusOk
 
-	order, err := s.getOrderById(req.OrderId)
+	order, err := s.getOrderByUuid(req.OrderId)
 	if err != nil {
 		zap.S().Error("Query to get order failed", "err", err.Error(), "data", req)
 		if messageErr, ok := err.(*grpc.ResponseErrorMessage); ok {

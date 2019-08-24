@@ -6490,7 +6490,7 @@ func (suite *OrderTestSuite) Test_ChangeCodeInOrder() {
 	keyProductId := suite.keyProductIds[0]
 
 	codeRsp := &grpc.ChangeCodeInOrderResponse{}
-	err = suite.service.ChangeCodeInOrder(context.TODO(), &grpc.ChangeCodeInOrderRequest{OrderId: rsp1.Item.Id, KeyProductId: keyProductId}, codeRsp)
+	err = suite.service.ChangeCodeInOrder(context.TODO(), &grpc.ChangeCodeInOrderRequest{OrderId: rsp1.Item.Uuid, KeyProductId: keyProductId}, codeRsp)
 	shouldBe.Nil(err)
 	shouldBe.Equal(pkg.ResponseStatusOk, codeRsp.Status)
 	shouldBe.EqualValues(constant.OrderStatusItemReplaced, codeRsp.Order.PrivateStatus)

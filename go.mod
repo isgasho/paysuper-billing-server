@@ -6,6 +6,7 @@ require (
 	github.com/ProtocolONE/go-micro-plugins v0.3.0
 	github.com/ProtocolONE/rabbitmq v0.0.0-20190717193626-ba2a4466550d
 	github.com/alicebob/miniredis v2.5.0+incompatible
+	github.com/apex/log v1.1.0
 	github.com/centrifugal/gocent v2.0.2+incompatible
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/elliotchance/redismock v1.5.1

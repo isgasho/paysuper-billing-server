@@ -132,8 +132,8 @@ func (m *EmptyResponseWithStatus) GetMessage() *ResponseErrorMessage {
 }
 
 type ChangeCodeInOrderRequest struct {
-	//@inject_tag: validate:"required,hexadecimal,len=24"
-	OrderId string `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty" validate:"required,hexadecimal,len=24"`
+	//@inject_tag: validate:"required"
+	OrderId string `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty" validate:"required"`
 	//@inject_tag: validate:"required,hexadecimal,len=24"
 	KeyProductId         string   `protobuf:"bytes,2,opt,name=key_product_id,json=keyProductId,proto3" json:"key_product_id,omitempty" validate:"required,hexadecimal,len=24"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
