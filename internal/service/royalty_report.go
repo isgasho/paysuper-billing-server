@@ -628,7 +628,15 @@ func (s *Service) sendRoyaltyReportNotification(ctx context.Context, report *bil
 	}
 
 	msg := map[string]interface{}{"id": report.Id, "code": "rr00001", "message": pkg.EmailRoyaltyReportMessage}
-	_ = s.centrifugo.Publish(ctx, fmt.Sprintf(s.cfg.CentrifugoMerchantChannel, report.MerchantId), msg)
+	err = s.centrifugo.Publish(ctx, fmt.Sprintf(s.cfg.CentrifugoMerchantChannel, report.MerchantId), msg)
+
+	if err != nil {
+		zap.S().Error(
+			"[Centrifugo] Send merchant notification about new royalty report failed",
+			zap.Error(err),
+			zap.Any("msg", msg),
+		)
+	}
 
 	return
 }

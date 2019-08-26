@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
 	"github.com/golang-migrate/migrate/v4"
@@ -17,6 +18,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -888,6 +890,10 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_SendRoyaltyReportNotifica
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), report)
 	assert.Equal(suite.T(), pkg.RoyaltyReportStatusPending, report.Status)
+
+	ci := &mocks.CentrifugoInterface{}
+	ci.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("error"))
+	suite.service.centrifugo = ci
 
 	core, recorded := observer.New(zapcore.ErrorLevel)
 	logger := zap.New(core)

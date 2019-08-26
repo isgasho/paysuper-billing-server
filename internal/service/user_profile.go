@@ -474,9 +474,8 @@ func (s *Service) emailConfirmedSuccessfully(ctx context.Context, profile *grpc.
 
 	msg := []byte(`{"code": "op000005", "message": "user email confirmed successfully"}`)
 	ch := fmt.Sprintf(s.cfg.CentrifugoUserChannel, profile.Id)
-	_ = s.centrifugo.Publish(ctx, ch, msg)
 
-	return err
+	return s.centrifugo.Publish(ctx, ch, msg)
 }
 
 func (s *Service) CreatePageReview(
