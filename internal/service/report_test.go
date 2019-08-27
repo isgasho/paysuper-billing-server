@@ -456,15 +456,30 @@ func (suite *ReportTestSuite) TestReport_GetOrder() {
 		Id:       bson.NewObjectId().Hex(),
 		Merchant: suite.project.MerchantId,
 	}
-	rsp := &billing.Order{}
-	err := suite.service.GetOrder(context.TODO(), req, rsp)
+	rsp := &grpc.GetOrderPublicResponse{}
+	err := suite.service.GetOrderPublic(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Empty(suite.T(), rsp.Uuid)
+	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, rsp.Status)
+	assert.Equal(suite.T(), orderErrorNotFound, rsp.Message)
+	assert.Nil(suite.T(), rsp.Item)
+
+	rsp1 := &grpc.GetOrderPrivateResponse{}
+	err = suite.service.GetOrderPrivate(context.TODO(), req, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, rsp.Status)
+	assert.Equal(suite.T(), orderErrorNotFound, rsp.Message)
+	assert.Nil(suite.T(), rsp.Item)
 
 	order := helperCreateAndPayOrder(suite.Suite, suite.service, 555.55, "RUB", "RU", suite.project, suite.pmBankCard)
 
 	req.Id = order.Uuid
-	err = suite.service.GetOrder(context.TODO(), req, rsp)
+	err = suite.service.GetOrderPublic(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), rsp.Uuid, order.Uuid)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.NotNil(suite.T(), rsp.Item)
+
+	err = suite.service.GetOrderPrivate(context.TODO(), req, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.NotNil(suite.T(), rsp.Item)
 }

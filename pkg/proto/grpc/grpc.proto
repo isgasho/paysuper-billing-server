@@ -62,7 +62,8 @@ service BillingService {
     rpc GetCountry (billing.GetCountryRequest) returns (billing.Country) {}
     rpc UpdateCountry (billing.Country) returns (billing.Country) {}
 
-    rpc GetOrder (GetOrderRequest) returns (billing.Order) {}
+    rpc GetOrderPublic (GetOrderRequest) returns (GetOrderPublicResponse) {}
+    rpc GetOrderPrivate (GetOrderRequest) returns (GetOrderPrivateResponse) {}
     rpc FindAllOrdersPublic (ListOrdersRequest) returns (ListOrdersPublicResponse) {}
     rpc FindAllOrdersPrivate (ListOrdersRequest) returns (ListOrdersPrivateResponse) {}
     rpc IsOrderCanBePaying (IsOrderCanBePayingRequest) returns (IsOrderCanBePayingResponse) {}
@@ -1335,4 +1336,16 @@ message ListOrdersPrivateResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     ListOrdersPrivateResponseItem Item = 3;
+}
+
+message GetOrderPublicResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.OrderViewPublic item = 3;
+}
+
+message GetOrderPrivateResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.OrderViewPrivate item = 3;
 }

@@ -66,20 +66,68 @@ func (s *Service) FindAllOrdersPrivate(
 	return nil
 }
 
-func (s *Service) GetOrder(
+func (s *Service) GetOrderPublic(
 	ctx context.Context,
 	req *grpc.GetOrderRequest,
-	rsp *billing.Order,
+	rsp *grpc.GetOrderPublicResponse,
 ) error {
-	query := bson.M{"uuid": req.Id}
+	order, err := s.getOrderBy(req.Id, req.Merchant, new(billing.OrderViewPublic))
 
-	if req.Merchant != "" {
-		query["project.merchant_id"] = bson.ObjectIdHex(req.Merchant)
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
+
+		if err == orderErrorNotFound {
+			rsp.Status = pkg.ResponseStatusNotFound
+		}
+
+		return nil
 	}
 
-	err := s.db.Collection(collectionOrderView).Find(query).One(&rsp)
+	rsp.Status = pkg.ResponseStatusOk
+	rsp.Item = order.(*billing.OrderViewPublic)
 
-	if err != nil && err != mgo.ErrNotFound {
+	return nil
+}
+
+func (s *Service) GetOrderPrivate(
+	ctx context.Context,
+	req *grpc.GetOrderRequest,
+	rsp *grpc.GetOrderPrivateResponse,
+) error {
+	order, err := s.getOrderBy(req.Id, req.Merchant, new(billing.OrderViewPrivate))
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
+
+		if err == orderErrorNotFound {
+			rsp.Status = pkg.ResponseStatusNotFound
+		}
+
+		return nil
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
+	rsp.Item = order.(*billing.OrderViewPrivate)
+
+	return nil
+}
+
+func (s *Service) getOrderBy(uuid, merchantId string, receiver interface{}) (interface{}, error) {
+	query := bson.M{"uuid": uuid}
+
+	if merchantId != "" {
+		query["project.merchant_id"] = bson.ObjectIdHex(merchantId)
+	}
+
+	err := s.db.Collection(collectionOrderView).Find(query).One(receiver)
+
+	if err != nil {
+		if err == mgo.ErrNotFound {
+			return nil, orderErrorNotFound
+		}
+
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
@@ -87,10 +135,10 @@ func (s *Service) GetOrder(
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
 
-		return err
+		return nil, reportErrorUnknown
 	}
 
-	return nil
+	return receiver, nil
 }
 
 func (s *Service) getOrdersList(req *grpc.ListOrdersRequest, receiver interface{}) (int, interface{}, error) {
