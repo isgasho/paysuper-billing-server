@@ -1086,7 +1086,7 @@ message PaymentChannelCostSystem {
     string country = 4;
     // @inject_tag: json:"percent" bson:"percent" validate:"required,numeric,gte=0,lte=1"
     double percent = 5;
-    // @inject_tag: json:"fix_amount" bson:"fix_amount" validate:"required,numeric,gte=0"
+    // @inject_tag: json:"fix_amount" bson:"fix_amount" validate:"numeric,gte=0"
     double fix_amount = 6;
     //@inject_tag: json:"fix_amount_currency" bson:"fix_amount_currency" validate:"required,alpha,len=3"
     string fix_amount_currency = 7;
@@ -1126,13 +1126,13 @@ message PaymentChannelCostMerchant {
     string region = 6;
     //@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
     string country = 7;
-    // @inject_tag: json:"method_percent" bson:"method_percent" validate:"numeric,gte=0,lte=11"
+    // @inject_tag: json:"method_percent" bson:"method_percent" validate:"required,numeric,gte=0,lte=11"
     double method_percent = 8;
     // @inject_tag: json:"method_fix_amount" bson:"method_fix_amount" validate:"numeric,gte=0"
     double method_fix_amount = 9;
     // @inject_tag: json:"method_fix_amount_currency" bson:"method_fix_amount_currency" validate:"required,alpha,len=3"
     string method_fix_amount_currency = 10;
-    // @inject_tag: json:"ps_percent" bson:"ps_percent" validate:"numeric,gte=0,lte=1"
+    // @inject_tag: json:"ps_percent" bson:"ps_percent" validate:"required,numeric,gte=0,lte=1"
     double ps_percent = 11;
     // @inject_tag: json:"ps_fixed_fee" bson:"ps_fixed_fee" validate:"numeric,gte=0"
     double ps_fixed_fee = 12;
