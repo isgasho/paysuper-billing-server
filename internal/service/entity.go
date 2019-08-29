@@ -29,6 +29,7 @@ type PriceTable Entity
 type Product Entity
 type Turnover Entity
 type MerchantsTariffRatesRepository Entity
+type DashboardRepository Entity
 
 type kvIntFloat struct {
 	Key   int
