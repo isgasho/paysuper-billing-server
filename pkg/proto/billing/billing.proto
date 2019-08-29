@@ -1258,19 +1258,19 @@ message MoneyBackCostMerchant {
 message MoneyBackCostMerchantRequest {
     //@inject_tag: json:"merchant_id" bson:"merchant_id" validate:"required,hexadecimal,len=24"
     string merchant_id = 1;
-    //@inject_tag: json:"name" bson:"name" validate:"required,alpha"
+    //@inject_tag: json:"name" bson:"name" validate:"required,alpha" query:"name"
     string name = 2;
-    //@inject_tag: json:"payout_currency" bson:"payout_currency" validate:"required,alpha,len=3"
+    //@inject_tag: json:"payout_currency" bson:"payout_currency" validate:"required,alpha,len=3" query:"payout_currency"
     string payout_currency = 3;
-    //@inject_tag: json:"undo_reason" bson:"undo_reason" validate:"required,alpha,oneof=refund reversal chargeback"
+    //@inject_tag: json:"undo_reason" bson:"undo_reason" validate:"required,alpha,oneof=refund reversal chargeback" query:"undo_reason"
     string undo_reason = 4;
-    //@inject_tag: json:"region" bson:"region" validate:"required"
+    //@inject_tag: json:"region" bson:"region" validate:"required" query:"region"
     string region = 5;
-    //@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
+    //@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2" query:"country"
     string country = 6;
-    // @inject_tag: json:"days" bson:"days" validate:"required,numeric,gte=0"
+    // @inject_tag: json:"days" bson:"days" validate:"required,numeric,gte=0" query:"days"
     int32 days = 7;
-    // @inject_tag: json:"payment_stage" bson:"payment_stage" validate:"numeric,gte=1"
+    // @inject_tag: json:"payment_stage" bson:"payment_stage" validate:"numeric,gte=1" query:"payment_stage"
     int32 payment_stage = 8;
 }
 
