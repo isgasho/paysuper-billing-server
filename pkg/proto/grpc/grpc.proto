@@ -129,6 +129,8 @@ service BillingService {
     rpc CalcAnnualTurnovers(EmptyRequest) returns (EmptyResponse) {}
     rpc GetMerchantAgreementSignUrl(GetMerchantAgreementSignUrlRequest) returns (GetMerchantAgreementSignUrlResponse) {}
     rpc GetMerchantOnboardingCompleteData(SetMerchantS3AgreementRequest) returns (GetMerchantOnboardingCompleteDataResponse) {}
+
+    rpc GetDashboardMain(GetDashboardMainRequest) returns (GetDashboardMainResponse) {}
 }
 
 message EmptyRequest {}
@@ -1308,4 +1310,48 @@ message SetMerchantTariffRatesRequest {
     double amount_from = 4;
     // @inject_tag: json:"amount_to" validate:"required,numeric,gt=0"
     double amount_to = 5;
+}
+
+message GetDashboardMainRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 1;
+}
+
+message GetDashboardMainResponseAmountItem {
+    double amount = 1;
+    string currency = 2;
+}
+
+message GetDashboardMainResponseItem {
+    // @inject_tag: json:"gross_revenue" bson:"gross_revenue"
+    GetDashboardMainResponseAmountItem gross_revenue = 1;
+    // @inject_tag: json:"total_payments" bson:"total_payments"
+    int64 total_payments = 2;
+    // @inject_tag: json:"arpu" bson:"arpu"
+    GetDashboardMainResponseAmountItem arpu = 3;
+    // @inject_tag: json:"vat" bson:"vat"
+    GetDashboardMainResponseAmountItem vat = 4;
+}
+
+message GetDashboardMainResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    GetDashboardMainResponseItem item = 3;
+}
+
+message GetDashboardRevenueDynamicResponseItem {
+    // @inject_tag: json:"period" bson:"_id"
+    int32 period = 1;
+    // @inject_tag: json:"amount" bson:"amount"
+    double amount = 2;
+    // @inject_tag: json:"currency" bson:"currency"
+    string currency = 3;
+    // @inject_tag: json:"count" bson:"count"
+    int64 count = 4;
+}
+
+message GetDashboardRevenueDynamicResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    GetDashboardRevenueDynamicResponseItem item = 3;
 }

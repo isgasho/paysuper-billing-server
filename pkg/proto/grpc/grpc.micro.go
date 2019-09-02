@@ -142,6 +142,12 @@ It has these top-level messages:
 	GetMerchantTariffRatesRequest
 	GetMerchantTariffRatesResponse
 	SetMerchantTariffRatesRequest
+	GetDashboardMainRequest
+	GetDashboardMainResponseAmountItem
+	GetDashboardMainResponseItem
+	GetDashboardMainResponse
+	GetDashboardRevenueDynamicResponseItem
+	GetDashboardRevenueDynamicResponse
 */
 package grpc
 
@@ -275,6 +281,7 @@ type BillingService interface {
 	CalcAnnualTurnovers(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*EmptyResponse, error)
 	GetMerchantAgreementSignUrl(ctx context.Context, in *GetMerchantAgreementSignUrlRequest, opts ...client.CallOption) (*GetMerchantAgreementSignUrlResponse, error)
 	GetMerchantOnboardingCompleteData(ctx context.Context, in *SetMerchantS3AgreementRequest, opts ...client.CallOption) (*GetMerchantOnboardingCompleteDataResponse, error)
+	GetDashboardMain(ctx context.Context, in *GetDashboardMainRequest, opts ...client.CallOption) (*GetDashboardMainResponse, error)
 }
 
 type billingService struct {
@@ -1275,6 +1282,16 @@ func (c *billingService) GetMerchantOnboardingCompleteData(ctx context.Context, 
 	return out, nil
 }
 
+func (c *billingService) GetDashboardMain(ctx context.Context, in *GetDashboardMainRequest, opts ...client.CallOption) (*GetDashboardMainResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetDashboardMain", in)
+	out := new(GetDashboardMainResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for BillingService service
 
 type BillingServiceHandler interface {
@@ -1376,6 +1393,7 @@ type BillingServiceHandler interface {
 	CalcAnnualTurnovers(context.Context, *EmptyRequest, *EmptyResponse) error
 	GetMerchantAgreementSignUrl(context.Context, *GetMerchantAgreementSignUrlRequest, *GetMerchantAgreementSignUrlResponse) error
 	GetMerchantOnboardingCompleteData(context.Context, *SetMerchantS3AgreementRequest, *GetMerchantOnboardingCompleteDataResponse) error
+	GetDashboardMain(context.Context, *GetDashboardMainRequest, *GetDashboardMainResponse) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -1478,6 +1496,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		CalcAnnualTurnovers(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error
 		GetMerchantAgreementSignUrl(ctx context.Context, in *GetMerchantAgreementSignUrlRequest, out *GetMerchantAgreementSignUrlResponse) error
 		GetMerchantOnboardingCompleteData(ctx context.Context, in *SetMerchantS3AgreementRequest, out *GetMerchantOnboardingCompleteDataResponse) error
+		GetDashboardMain(ctx context.Context, in *GetDashboardMainRequest, out *GetDashboardMainResponse) error
 	}
 	type BillingService struct {
 		billingService
@@ -1880,4 +1899,8 @@ func (h *billingServiceHandler) GetMerchantAgreementSignUrl(ctx context.Context,
 
 func (h *billingServiceHandler) GetMerchantOnboardingCompleteData(ctx context.Context, in *SetMerchantS3AgreementRequest, out *GetMerchantOnboardingCompleteDataResponse) error {
 	return h.BillingServiceHandler.GetMerchantOnboardingCompleteData(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetDashboardMain(ctx context.Context, in *GetDashboardMainRequest, out *GetDashboardMainResponse) error {
+	return h.BillingServiceHandler.GetDashboardMain(ctx, in, out)
 }

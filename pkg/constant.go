@@ -278,6 +278,17 @@ const (
 
 	UndoReasonReversal   = "reversal"
 	UndoReasonChargeback = "chargeback"
+
+	DashboardPeriodCurrentDay      = "current_week"
+	DashboardPeriodPreviousDay     = "previous_week"
+	DashboardPeriodCurrentWeek     = "current_week"
+	DashboardPeriodPreviousWeek    = "previous_week"
+	DashboardPeriodCurrentMonth    = "current_month"
+	DashboardPeriodPreviousMonth   = "previous_month"
+	DashboardPeriodCurrentQuarter  = "current_quarter"
+	DashboardPeriodPreviousQuarter = "previous_quarter"
+	DashboardPeriodCurrentYear     = "current_year"
+	DashboardPeriodPreviousYear    = "previous_year"
 )
 
 var (
