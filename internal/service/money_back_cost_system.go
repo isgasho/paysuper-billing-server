@@ -32,7 +32,7 @@ var (
 	errorMoneybackSystemSetFailed  = newBillingServerErrorMsg("mbs000003", "can't set money back setting for system")
 	errorMoneybackSystemDelete     = newBillingServerErrorMsg("mbs000004", "can't delete money back setting for system")
 	errorMoneybackSystemCurrency   = newBillingServerErrorMsg("mbs000005", "currency not supported")
-	errorMoneybackCostAlreadyExist = newBillingServerErrorMsg("mbs000005", "cost with specified parameters already exist")
+	errorMoneybackCostAlreadyExist = newBillingServerErrorMsg("mbs000006", "cost with specified parameters already exist")
 )
 
 type moneyBackCostSystems struct {
