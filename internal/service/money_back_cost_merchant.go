@@ -12,6 +12,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
+	"go.uber.org/zap"
 	"sort"
 )
 
@@ -323,15 +324,38 @@ func (h MoneyBackCostMerchant) Delete(obj *billing.MoneyBackCostMerchant) error 
 	obj.UpdatedAt = ptypes.TimestampNow()
 	obj.IsActive = false
 	if err := h.svc.db.Collection(collectionMoneyBackCostMerchant).UpdateId(bson.ObjectIdHex(obj.Id), obj); err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMoneyBackCostMerchant),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, obj),
+		)
+
 		return err
 	}
 	key := fmt.Sprintf(cacheMoneyBackCostMerchantKey, obj.MerchantId, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, obj.Country, obj.PaymentStage)
 	if err := h.svc.cacher.Delete(key); err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldKey, key),
+			zap.String(pkg.ErrorCacheFieldCmd, "DELETE"),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, obj),
+		)
+
 		return err
 	}
 
 	key = fmt.Sprintf(cacheMoneyBackCostMerchantAll, obj.MerchantId)
 	if err := h.svc.cacher.Delete(key); err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldKey, key),
+			zap.String(pkg.ErrorCacheFieldCmd, "DELETE"),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, obj),
+		)
+
 		return err
 	}
 
