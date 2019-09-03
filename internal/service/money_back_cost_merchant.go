@@ -31,6 +31,7 @@ var (
 	errorMoneybackMerchantDelete           = newBillingServerErrorMsg("mbm000004", "can't delete money back setting for merchant")
 	errorMoneybackMerchantCurrency         = newBillingServerErrorMsg("mbm000005", "currency not supported")
 	errorMoneybackMerchantCostAlreadyExist = newBillingServerErrorMsg("mbm000006", "cost with specified parameters already exist")
+	errorCostRateNotFound                  = newBillingServerErrorMsg("cr000001", "cost rate with specified identifier not found")
 )
 
 func (s *Service) GetAllMoneyBackCostMerchant(
@@ -161,8 +162,8 @@ func (s *Service) DeleteMoneyBackCostMerchant(
 ) error {
 	pc, err := s.moneyBackCostMerchant.GetById(req.Id)
 	if err != nil {
-		res.Status = pkg.ResponseStatusSystemError
-		res.Message = errorMoneybackMerchantDelete
+		res.Status = pkg.ResponseStatusNotFound
+		res.Message = errorCostRateNotFound
 		return nil
 	}
 	err = s.moneyBackCostMerchant.Delete(pc)

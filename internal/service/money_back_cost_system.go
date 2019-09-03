@@ -155,8 +155,8 @@ func (s *Service) DeleteMoneyBackCostSystem(
 ) error {
 	pc, err := s.moneyBackCostSystem.GetById(req.Id)
 	if err != nil {
-		res.Status = pkg.ResponseStatusSystemError
-		res.Message = errorMoneybackSystemDelete
+		res.Status = pkg.ResponseStatusNotFound
+		res.Message = errorCostRateNotFound
 		return nil
 	}
 	err = s.moneyBackCostSystem.Delete(pc)

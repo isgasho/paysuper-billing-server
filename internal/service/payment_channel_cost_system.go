@@ -143,8 +143,8 @@ func (s *Service) DeletePaymentChannelCostSystem(
 ) error {
 	pc, err := s.paymentChannelCostSystem.GetById(req.Id)
 	if err != nil {
-		res.Status = pkg.ResponseStatusSystemError
-		res.Message = errorPaymentChannelSystemDelete
+		res.Status = pkg.ResponseStatusNotFound
+		res.Message = errorCostRateNotFound
 		return nil
 	}
 	err = s.paymentChannelCostSystem.Delete(pc)
