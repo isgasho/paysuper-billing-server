@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -25,11 +26,12 @@ const (
 )
 
 var (
-	errorPaymentChannelMerchantGetAll    = newBillingServerErrorMsg("pcm000001", "can't get list of payment channel setting for merchant")
-	errorPaymentChannelMerchantGet       = newBillingServerErrorMsg("pcm000002", "can't get payment channel setting for merchant")
-	errorPaymentChannelMerchantSetFailed = newBillingServerErrorMsg("pcm000003", "can't set payment channel setting for merchant")
-	errorPaymentChannelMerchantDelete    = newBillingServerErrorMsg("pcm000004", "can't delete payment channel setting for merchant")
-	errorPaymentChannelMerchantCurrency  = newBillingServerErrorMsg("pcm000005", "currency not supported")
+	errorPaymentChannelMerchantGetAll           = newBillingServerErrorMsg("pcm000001", "can't get list of payment channel setting for merchant")
+	errorPaymentChannelMerchantGet              = newBillingServerErrorMsg("pcm000002", "can't get payment channel setting for merchant")
+	errorPaymentChannelMerchantSetFailed        = newBillingServerErrorMsg("pcm000003", "can't set payment channel setting for merchant")
+	errorPaymentChannelMerchantDelete           = newBillingServerErrorMsg("pcm000004", "can't delete payment channel setting for merchant")
+	errorPaymentChannelMerchantCurrency         = newBillingServerErrorMsg("pcm000005", "currency not supported")
+	errorPaymentChannelMerchantCostAlreadyExist = newBillingServerErrorMsg("pcm000006", "cost with specified parameters already exist")
 )
 
 func (s *Service) GetAllPaymentChannelCostMerchant(
@@ -141,6 +143,12 @@ func (s *Service) SetPaymentChannelCostMerchant(
 	if err != nil {
 		res.Status = pkg.ResponseStatusSystemError
 		res.Message = errorPaymentChannelMerchantSetFailed
+
+		if mgo.IsDup(err) {
+			res.Status = pkg.ResponseStatusBadData
+			res.Message = errorPaymentChannelMerchantCostAlreadyExist
+		}
+
 		return nil
 	}
 

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -21,11 +22,12 @@ const (
 )
 
 var (
-	errorPaymentChannelSystemGetAll    = newBillingServerErrorMsg("pcs000001", "can't get list of payment channel setting for system")
-	errorPaymentChannelSystemGet       = newBillingServerErrorMsg("pcs000002", "can't get payment channel setting for system")
-	errorPaymentChannelSystemSetFailed = newBillingServerErrorMsg("pcs000003", "can't set payment channel setting for system")
-	errorPaymentChannelSystemDelete    = newBillingServerErrorMsg("pcs000004", "can't delete payment channel setting for system")
-	errorPaymentChannelSystemCurrency  = newBillingServerErrorMsg("pcs000005", "currency not supported")
+	errorPaymentChannelSystemGetAll           = newBillingServerErrorMsg("pcs000001", "can't get list of payment channel setting for system")
+	errorPaymentChannelSystemGet              = newBillingServerErrorMsg("pcs000002", "can't get payment channel setting for system")
+	errorPaymentChannelSystemSetFailed        = newBillingServerErrorMsg("pcs000003", "can't set payment channel setting for system")
+	errorPaymentChannelSystemDelete           = newBillingServerErrorMsg("pcs000004", "can't delete payment channel setting for system")
+	errorPaymentChannelSystemCurrency         = newBillingServerErrorMsg("pcs000005", "currency not supported")
+	errorPaymentChannelSystemCostAlreadyExist = newBillingServerErrorMsg("pcs000006", "cost with specified parameters already exist")
 )
 
 func (s *Service) GetAllPaymentChannelCostSystem(
@@ -119,6 +121,12 @@ func (s *Service) SetPaymentChannelCostSystem(
 	if err != nil {
 		res.Status = pkg.ResponseStatusSystemError
 		res.Message = errorPaymentChannelSystemSetFailed
+
+		if mgo.IsDup(err) {
+			res.Status = pkg.ResponseStatusBadData
+			res.Message = errorPaymentChannelSystemCostAlreadyExist
+		}
+
 		return nil
 	}
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -23,11 +24,12 @@ const (
 )
 
 var (
-	errorMoneybackMerchantGetAll    = newBillingServerErrorMsg("mbm000001", "can't get list of money back setting for merchant")
-	errorMoneybackMerchantGet       = newBillingServerErrorMsg("mbm000002", "can't get money back setting for merchant")
-	errorMoneybackMerchantSetFailed = newBillingServerErrorMsg("mbm000003", "can't set money back setting for merchant")
-	errorMoneybackMerchantDelete    = newBillingServerErrorMsg("mbm000004", "can't delete money back setting for merchant")
-	errorMoneybackMerchantCurrency  = newBillingServerErrorMsg("mbm000005", "currency not supported")
+	errorMoneybackMerchantGetAll           = newBillingServerErrorMsg("mbm000001", "can't get list of money back setting for merchant")
+	errorMoneybackMerchantGet              = newBillingServerErrorMsg("mbm000002", "can't get money back setting for merchant")
+	errorMoneybackMerchantSetFailed        = newBillingServerErrorMsg("mbm000003", "can't set money back setting for merchant")
+	errorMoneybackMerchantDelete           = newBillingServerErrorMsg("mbm000004", "can't delete money back setting for merchant")
+	errorMoneybackMerchantCurrency         = newBillingServerErrorMsg("mbm000005", "currency not supported")
+	errorMoneybackMerchantCostAlreadyExist = newBillingServerErrorMsg("mbm000006", "cost with specified parameters already exist")
 )
 
 func (s *Service) GetAllMoneyBackCostMerchant(
@@ -136,6 +138,12 @@ func (s *Service) SetMoneyBackCostMerchant(
 	if err != nil {
 		res.Status = pkg.ResponseStatusSystemError
 		res.Message = errorMoneybackMerchantSetFailed
+
+		if mgo.IsDup(err) {
+			res.Status = pkg.ResponseStatusBadData
+			res.Message = errorMoneybackMerchantCostAlreadyExist
+		}
+
 		return nil
 	}
 
