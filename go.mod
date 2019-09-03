@@ -35,7 +35,7 @@ require (
 	github.com/micro/util v0.2.0 // indirect
 	github.com/openzipkin/zipkin-go v0.1.6 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
-	github.com/paysuper/document-signer v0.0.0-20190903134915-8c3e0adae226
+	github.com/paysuper/document-signer v0.0.0-20190903140137-c4c12bf31be5
 	github.com/paysuper/paysuper-currencies v0.0.0-20190903083641-668b8b2b997d
 	github.com/paysuper/paysuper-database-mongo v0.1.0
 	github.com/paysuper/paysuper-recurring-repository v1.0.123
