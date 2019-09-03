@@ -11,6 +11,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
+	"go.uber.org/zap"
 	"sort"
 )
 
@@ -193,16 +194,39 @@ func (h *MoneyBackCostSystem) Insert(obj *billing.MoneyBackCostSystem) error {
 	obj.CreatedAt = ptypes.TimestampNow()
 	obj.UpdatedAt = ptypes.TimestampNow()
 	obj.IsActive = true
+
 	if err := h.svc.db.Collection(collectionMoneyBackCostSystem).Insert(obj); err != nil {
+		zap.S().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String("collection", collectionMoneyBackCostSystem),
+			zap.Any("query", obj),
+		)
+
 		return err
 	}
 
 	key := fmt.Sprintf(cacheMoneyBackCostSystemKey, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, obj.Country, obj.PaymentStage)
 	if err := h.svc.cacher.Set(key, obj, 0); err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
+			zap.String(pkg.ErrorCacheFieldKey, key),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, obj),
+		)
+
 		return err
 	}
 
 	if err := h.svc.cacher.Delete(cacheMoneyBackCostSystemAll); err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldCmd, "DELETE"),
+			zap.String(pkg.ErrorCacheFieldKey, key),
+		)
+
 		return err
 	}
 
