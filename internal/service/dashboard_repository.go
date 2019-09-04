@@ -18,17 +18,30 @@ const (
 	dashboardRevenueDynamicCacheKey = "dashboard:revenue_dynamic:%x"
 
 	baseReportsItemsLimit = 5
+
+	baseReportsWeekPeriodsNameFirst  = "0 - 7"
+	baseReportsWeekPeriodsNameSecond = "8 - 15"
+	baseReportsWeekPeriodsNameThird  = "16 - 23"
+
+	baseReportsWeekPeriodsFirstStartHour = 0
+	baseReportsWeekPeriodsFirstEndHour   = 7
+	baseReportsWeekPeriodSecondStartHour = 8
+	baseReportsWeekPeriodSecondEndHour   = 15
+	baseReportsWeekPeriodsThirdStartHour = 16
+	baseReportsWeekPeriodsThirdEndHour   = 23
 )
 
 type DashboardRepositoryInterface interface{}
 
 type dashboardReportProcessor struct {
 	*Service
-	match        bson.M
-	period       string
-	groupBy      string
-	dbQueryFn    func() (interface{}, error)
-	cacheKeyMask string
+	match               bson.M
+	periodMatchCurrent  bson.M
+	periodMatchPrevious bson.M
+	period              string
+	groupBy             string
+	dbQueryFn           func() (interface{}, error)
+	cacheKeyMask        string
 }
 
 func (h *DashboardRepository) GetDashboardMain(merchantId, period string) (*grpc.GetDashboardMainResponseItem, error) {
@@ -307,26 +320,11 @@ func (h *dashboardReportProcessor) ExecuteDashboardRevenueDynamic() (interface{}
 }
 
 func (h *dashboardReportProcessor) ExecuteDashboardBaseReports() (interface{}, error) {
-
+	executeDashboardBaseReportsRevenueByCountry
 }
 
-func (h *dashboardReportProcessor) ExecuteDashboardBaseReportsRevenueByCountry() (interface{}, error) {
-	byPeriodSubQuery := []bson.M{
-		{
-			"$group": bson.M{
-				"_id":      h.groupBy,
-				"amount":   bson.M{"$sum": "$amount"},
-				"currency": bson.M{"$first": "$currency"},
-			},
-		},
-	}
-
-	if h.period == pkg.DashboardPeriodCurrentWeek || h.period == pkg.DashboardPeriodPreviousWeek {
-		byPeriodSubQuery[0]["$group"]["day"] = bson.M{"$first": "$day"}
-
-		//					"day": {$first: "$day"},
-	}
-
+func (h *dashboardReportProcessor) executeDashboardBaseReportsRevenueByCountry() (*grpc.DashboardBaseReportsRevenueByCountry, error) {
+	data := new(grpc.DashboardBaseReportsRevenueByCountry)
 	query := []bson.M{
 		{
 			"$project": bson.M{
@@ -352,6 +350,7 @@ func (h *dashboardReportProcessor) ExecuteDashboardBaseReportsRevenueByCountry()
 		{
 			"$facet": bson.M{
 				"by_country": []bson.M{
+					{"$match": h.periodMatchCurrent},
 					{
 						"$group": bson.M{
 							"_id":    "$country",
@@ -361,6 +360,7 @@ func (h *dashboardReportProcessor) ExecuteDashboardBaseReportsRevenueByCountry()
 					{"$limit": baseReportsItemsLimit},
 				},
 				"by_period": []bson.M{
+					{"$match": h.periodMatchCurrent},
 					{
 						"$group": bson.M{
 							"_id":      "$hour",
@@ -370,7 +370,18 @@ func (h *dashboardReportProcessor) ExecuteDashboardBaseReportsRevenueByCountry()
 						},
 					},
 				},
-				"total": []bson.M{
+				"total_current": []bson.M{
+					{"$match": h.periodMatchCurrent},
+					{
+						"$group": bson.M{
+							"_id":      "$merchant_id",
+							"amount":   bson.M{"$sum": "$amount"},
+							"currency": bson.M{"$first": "$currency"},
+						},
+					},
+				},
+				"total_previous": []bson.M{
+					{"$match": h.periodMatchPrevious},
 					{
 						"$group": bson.M{
 							"_id":      "$merchant_id",
@@ -382,4 +393,19 @@ func (h *dashboardReportProcessor) ExecuteDashboardBaseReportsRevenueByCountry()
 			},
 		},
 	}
+
+	err := h.db.Collection(collectionOrderView).Pipe(query).All(data)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrderView),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+
+		return nil, dashboardErrorUnknown
+	}
+
+	return data, nil
 }

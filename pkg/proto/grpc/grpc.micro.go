@@ -148,6 +148,10 @@ It has these top-level messages:
 	GetDashboardMainResponse
 	GetDashboardRevenueDynamicResponseItem
 	GetDashboardRevenueDynamicResponse
+	DashboardBaseReportsRevenueAmount
+	DashboardBaseReportsRevenueByCountryByCountry
+	DashboardBaseReportsRevenueByPeriod
+	DashboardBaseReportsRevenueByCountry
 */
 package grpc
 

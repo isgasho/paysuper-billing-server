@@ -158,6 +158,8 @@ message PaymentFormJsonDataRequest {
     string ip = 5;
     string user_agent = 6;
     string cookie = 7;
+    string referer = 8;
+    bool is_embedded = 9;
 }
 
 message PaymentFormJsonDataProject {
@@ -1354,4 +1356,44 @@ message GetDashboardRevenueDynamicResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     GetDashboardRevenueDynamicResponseItem item = 3;
+}
+
+message DashboardBaseReportsRevenueAmount {
+    // @inject_tag: json:"amount" bson:"amount"
+    double amount = 1;
+    // @inject_tag: json:"currency" bson:"currency"
+    string currency = 2;
+}
+
+message DashboardBaseReportsRevenueByCountryByCountry {
+    // @inject_tag: json:"country" bson:"_id"
+    string country = 1;
+    // @inject_tag: json:"amount" bson:"amount"
+    double amount = 2;
+    // @inject_tag: json:"currency" bson:"currency"
+    string currency = 3;
+}
+
+message DashboardBaseReportsRevenueByPeriod {
+    // @inject_tag: json:"-" bson:"_id"
+    int32 period_item = 1;
+    // @inject_tag: json:"-" bson:"day"
+    int32 day = 2;
+    // @inject_tag: json:"point" bson:"-"
+    string point = 3;
+    // @inject_tag: json:"amount" bson:"amount"
+    double amount = 4;
+    // @inject_tag: json:"currency" bson:"currency"
+    string currency = 5;
+}
+
+message DashboardBaseReportsRevenueByCountry {
+    // @inject_tag: json:"by_country" bson:"by_country"
+    repeated DashboardBaseReportsRevenueByCountryByCountry by_country = 1;
+    // @inject_tag: json:"by_period" bson:"by_period"
+    repeated DashboardBaseReportsRevenueByPeriod by_period = 2;
+    // @inject_tag: json:"total_current" bson:"total_current"
+    DashboardBaseReportsRevenueAmount total_current = 3;
+    // @inject_tag: json:"total_previous" bson:"total_previous"
+    DashboardBaseReportsRevenueAmount total_previous = 4;
 }
