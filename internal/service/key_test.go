@@ -393,7 +393,7 @@ func (suite *KeyTestSuite) TestKey_ReserveKeyForOrder_Error_Reserve() {
 
 	err := suite.service.ReserveKeyForOrder(context.TODO(), req, &res)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, res.Status)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, res.Status)
 	assert.Equal(suite.T(), errors2.KeyErrorReserve, res.Message)
 }
 
