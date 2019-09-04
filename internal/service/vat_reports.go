@@ -515,8 +515,12 @@ func (h *vatReportProcessor) ProcessVatReportsStatus() error {
 			}
 			if currentUnixTime >= reportDeadline.Unix() {
 				report.Status = pkg.VatReportStatusOverdue
-				return h.Service.updateVatReport(report)
+				err = h.Service.updateVatReport(report)
+				if err != nil {
+					return err
+				}
 			}
+			continue
 		}
 
 		noThreshold := country.VatThreshold.Year == 0 && country.VatThreshold.World == 0
@@ -524,12 +528,17 @@ func (h *vatReportProcessor) ProcessVatReportsStatus() error {
 		thresholdExceeded := (country.VatThreshold.Year > 0 && report.CountryAnnualTurnover >= country.VatThreshold.Year) ||
 			(country.VatThreshold.World > 0 && report.WorldAnnualTurnover >= country.VatThreshold.World)
 
-		if noThreshold || thresholdExceeded {
+		amountsGtZero := report.VatAmount > 0 || report.CorrectionAmount > 0 || report.DeductionAmount > 0
+
+		if (noThreshold || thresholdExceeded) && amountsGtZero {
 			report.Status = pkg.VatReportStatusNeedToPay
 		} else {
 			report.Status = pkg.VatReportStatusExpired
 		}
-		return h.Service.updateVatReport(report)
+		err = h.Service.updateVatReport(report)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
