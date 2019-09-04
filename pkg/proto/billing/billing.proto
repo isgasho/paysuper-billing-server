@@ -73,6 +73,11 @@ message OrderCreateRequest {
 
     // @inject_tag: json:"order" validate:"omitempty,uuid"
     string psp_order_uuid = 31;
+
+    // @inject_tag: validate="required,oneof=simple product key" json:"type"
+    string type = 32;
+
+    string platform_id = 33;
 }
 
 message Project {
@@ -510,6 +515,18 @@ message Order {
     string type = 53;
     // @inject_tag: json:"-"
     bool is_vat_deduction = 54;
+
+    // @inject_tag: validate="oneof=simple product key" json:"type"
+    string product_type = 69;
+
+    // @inject_tag: json:"platform_id"
+    string platform_id = 70;
+
+    // @inject_tag: json:"-" bson:"keys"
+    repeated string keys = 71;
+
+    // @inject_tag: json:"-"
+    bool is_key_product_notified = 72;
 }
 
 message CountryRestriction {
@@ -546,6 +563,10 @@ message OrderItem {
     google.protobuf.Timestamp created_at = 11;
     //@inject_tag: json:"updated_at" bson:"updated_at"
     google.protobuf.Timestamp updated_at = 12;
+    //@inject_tag: validate:"omitempty,min=3" json:"platform_id" bson:"platform_id"
+    string platform_id = 13;
+    //@inject_tag: validate:"omitempty,min=5" json:"code" bson:"code"
+    string code = 14;
 }
 
 message OrderPaginate {
@@ -961,6 +982,10 @@ message TokenSettings {
     repeated string products_ids = 9;
     //@inject_tag: json:"metadata"
     map<string, string> metadata = 10;
+    //@inject_tag: json:"platform_id"
+    string platform_id = 11;
+    //@inject_tag: json:"type"
+    string type = 12;
 }
 
 message OrderIssuer {
@@ -1801,4 +1826,23 @@ message MerchantTariffRates {
     TariffRatesItem chargeback = 4;
     //@inject_tag: json:"region" bson:"region"
     string region = 5;
+}
+
+message Key {
+    //@inject_tag: json:"id" bson:"_id"
+    string id = 1;
+    //@inject_tag: json:"code" validate:"required,max=50"
+    string code = 2;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string key_product_id = 3;
+    //@inject_tag: validate:"required,max=255"
+    string platform_id = 5;
+    //@inject_tag: validate:"omitempty,hexadecimal,len=24"
+    string order_id = 6;
+
+    google.protobuf.Timestamp created_at = 7;
+    //@inject_tag: validate:"omitempty"
+    google.protobuf.Timestamp reserved_to = 8;
+    //@inject_tag: validate:"omitempty"
+    google.protobuf.Timestamp redeemed_at = 9;
 }

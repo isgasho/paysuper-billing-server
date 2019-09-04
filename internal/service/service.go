@@ -86,6 +86,7 @@ type Service struct {
 	turnover                   *Turnover
 	documentSigner             documentSignerProto.DocumentSignerService
 	merchantTariffRates        MerchantTariffRatesInterface
+	keyRepository              KeyRepositoryInterface
 }
 
 func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {
@@ -148,6 +149,7 @@ func (s *Service) Init() (err error) {
 	s.productService = newProductService(s)
 	s.turnover = newTurnoverService(s)
 	s.merchantTariffRates = newMerchantsTariffRatesRepository(s)
+	s.keyRepository = newKeyRepository(s)
 
 	s.centrifugoClient = gocent.New(
 		gocent.Config{

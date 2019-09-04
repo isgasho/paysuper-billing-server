@@ -26,7 +26,14 @@ var (
 		constant.OrderStatusProjectComplete:             constant.OrderPublicStatusProcessed,
 		constant.OrderStatusRefund:                      constant.OrderPublicStatusRefunded,
 		constant.OrderStatusChargeback:                  constant.OrderPublicStatusChargeback,
+		constant.OrderStatusItemReplaced:                constant.OrderPublicStatusProcessed,
 	}
+)
+
+const (
+	OrderType_simple  = "simple"
+	OrderType_key     = "key"
+	OrderType_product = "product"
 )
 
 func (m *Merchant) ChangesAllowed() bool {
