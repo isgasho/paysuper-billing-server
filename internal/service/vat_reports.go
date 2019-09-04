@@ -394,6 +394,7 @@ func (s *Service) insertVatReport(vr *billing.VatReport) error {
 }
 
 func (s *Service) updateVatReport(vr *billing.VatReport) error {
+	vr.UpdatedAt = ptypes.TimestampNow()
 	err := s.db.Collection(collectionVatReports).UpdateId(bson.ObjectIdHex(vr.Id), vr)
 	if err != nil {
 		return err
