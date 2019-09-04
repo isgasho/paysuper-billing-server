@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -11,6 +12,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
+	"go.uber.org/zap"
 	"sort"
 )
 
@@ -25,11 +27,12 @@ const (
 )
 
 var (
-	errorMoneybackSystemGetAll    = newBillingServerErrorMsg("mbs000001", "can't get list of money back setting for system")
-	errorMoneybackSystemGet       = newBillingServerErrorMsg("mbs000002", "can't get money back setting for system")
-	errorMoneybackSystemSetFailed = newBillingServerErrorMsg("mbs000003", "can't set money back setting for system")
-	errorMoneybackSystemDelete    = newBillingServerErrorMsg("mbs000004", "can't delete money back setting for system")
-	errorMoneybackSystemCurrency  = newBillingServerErrorMsg("mbs000005", "currency not supported")
+	errorMoneybackSystemGetAll     = newBillingServerErrorMsg("mbs000001", "can't get list of money back setting for system")
+	errorMoneybackSystemGet        = newBillingServerErrorMsg("mbs000002", "can't get money back setting for system")
+	errorMoneybackSystemSetFailed  = newBillingServerErrorMsg("mbs000003", "can't set money back setting for system")
+	errorMoneybackSystemDelete     = newBillingServerErrorMsg("mbs000004", "can't delete money back setting for system")
+	errorMoneybackSystemCurrency   = newBillingServerErrorMsg("mbs000005", "currency not supported")
+	errorMoneybackCostAlreadyExist = newBillingServerErrorMsg("mbs000006", "cost with specified parameters already exist")
 )
 
 type moneyBackCostSystems struct {
@@ -130,6 +133,12 @@ func (s *Service) SetMoneyBackCostSystem(
 	if err != nil {
 		res.Status = pkg.ResponseStatusSystemError
 		res.Message = errorMoneybackSystemSetFailed
+
+		if mgo.IsDup(err) {
+			res.Status = pkg.ResponseStatusBadData
+			res.Message = errorMoneybackCostAlreadyExist
+		}
+
 		return nil
 	}
 
@@ -146,8 +155,8 @@ func (s *Service) DeleteMoneyBackCostSystem(
 ) error {
 	pc, err := s.moneyBackCostSystem.GetById(req.Id)
 	if err != nil {
-		res.Status = pkg.ResponseStatusSystemError
-		res.Message = errorMoneybackSystemDelete
+		res.Status = pkg.ResponseStatusNotFound
+		res.Message = errorCostRateNotFound
 		return nil
 	}
 	err = s.moneyBackCostSystem.Delete(pc)
@@ -193,16 +202,39 @@ func (h *MoneyBackCostSystem) Insert(obj *billing.MoneyBackCostSystem) error {
 	obj.CreatedAt = ptypes.TimestampNow()
 	obj.UpdatedAt = ptypes.TimestampNow()
 	obj.IsActive = true
+
 	if err := h.svc.db.Collection(collectionMoneyBackCostSystem).Insert(obj); err != nil {
+		zap.S().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String("collection", collectionMoneyBackCostSystem),
+			zap.Any("query", obj),
+		)
+
 		return err
 	}
 
 	key := fmt.Sprintf(cacheMoneyBackCostSystemKey, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, obj.Country, obj.PaymentStage)
 	if err := h.svc.cacher.Set(key, obj, 0); err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
+			zap.String(pkg.ErrorCacheFieldKey, key),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, obj),
+		)
+
 		return err
 	}
 
 	if err := h.svc.cacher.Delete(cacheMoneyBackCostSystemAll); err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldCmd, "DELETE"),
+			zap.String(pkg.ErrorCacheFieldKey, key),
+		)
+
 		return err
 	}
 

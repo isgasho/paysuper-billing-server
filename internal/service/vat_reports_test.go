@@ -132,6 +132,7 @@ func (suite *VatReportsTestSuite) TestVatReports_getLastVatReportTime() {
 		fromRef = fromRef.AddDate(0, -1, 0)
 	} else {
 		toRef = toRef.AddDate(0, 1, 0)
+		toRef = now.New(toRef).EndOfMonth()
 	}
 
 	from, to, err = suite.service.getLastVatReportTime(int32(2))
