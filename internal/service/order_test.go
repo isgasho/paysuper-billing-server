@@ -4058,6 +4058,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Recurring_Ok() {
 			pkg.PaymentCreateFieldHolder:          "Mr. Card Holder",
 			pkg.PaymentCreateFieldStoreData:       "1",
 		},
+		Ip: "127.0.0.1",
 	}
 
 	rsp := &grpc.PaymentCreateResponse{}

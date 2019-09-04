@@ -14,11 +14,11 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/micro/cli"
-	goConfig "github.com/micro/go-config"
-	"github.com/micro/go-config/source"
-	"github.com/micro/go-config/source/microcli"
 	"github.com/micro/go-micro"
-	"github.com/micro/go-plugins/selector/static"
+	goConfig "github.com/micro/go-micro/config"
+	"github.com/micro/go-micro/config/source"
+	goConfigCli "github.com/micro/go-micro/config/source/cli"
+	"github.com/micro/go-plugins/client/selector/static"
 	documentSignerPkg "github.com/paysuper/document-signer/pkg"
 	documentSignerProto "github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
@@ -149,8 +149,8 @@ func (app *Application) Init() {
 
 	app.service.Init(
 		micro.Action(func(c *cli.Context) {
-			clisrc = microcli.NewSource(
-				microcli.Context(c),
+			clisrc = goConfigCli.NewSource(
+				goConfigCli.Context(c),
 			)
 		}),
 	)
