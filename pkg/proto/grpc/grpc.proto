@@ -129,12 +129,225 @@ service BillingService {
     rpc CalcAnnualTurnovers(EmptyRequest) returns (EmptyResponse) {}
     rpc GetMerchantAgreementSignUrl(GetMerchantAgreementSignUrlRequest) returns (GetMerchantAgreementSignUrlResponse) {}
     rpc GetMerchantOnboardingCompleteData(SetMerchantS3AgreementRequest) returns (GetMerchantOnboardingCompleteDataResponse) {}
+    rpc CreateOrUpdateKeyProduct (CreateOrUpdateKeyProductRequest) returns (KeyProductResponse) {}
+    rpc GetKeyProducts(ListKeyProductsRequest) returns (ListKeyProductsResponse) {}
+    rpc GetKeyProduct (RequestKeyProductMerchant) returns (KeyProductResponse) {}
+    rpc DeleteKeyProduct (RequestKeyProductMerchant) returns (EmptyResponseWithStatus) {}
+    rpc PublishKeyProduct(PublishKeyProductRequest) returns (KeyProductResponse) {}
+    rpc GetKeyProductsForOrder (GetKeyProductsForOrderRequest) returns (ListKeyProductsResponse) {}
+    rpc GetKeyProductInfo(GetKeyProductInfoRequest) returns (GetKeyProductInfoResponse) {}
+
+    rpc GetPlatforms(ListPlatformsRequest) returns (ListPlatformsResponse) {}
+    rpc UpdatePlatformPrices(AddOrUpdatePlatformPricesRequest) returns (UpdatePlatformPricesResponse) {}
+    rpc DeletePlatformFromProduct(RemovePlatformRequest) returns (EmptyResponseWithStatus) {}
+
+    rpc GetAvailableKeysCount(GetPlatformKeyCountRequest) returns (GetPlatformKeyCountResponse) {}
+    rpc UploadKeysFile(PlatformKeysFileRequest) returns (PlatformKeysFileResponse) {}
+    rpc GetKeyByID(KeyForOrderRequest) returns (GetKeyForOrderRequestResponse) {}
+    rpc ReserveKeyForOrder(PlatformKeyReserveRequest) returns (PlatformKeyReserveResponse) {}
+    rpc FinishRedeemKeyForOrder(KeyForOrderRequest) returns (GetKeyForOrderRequestResponse) {}
+    rpc CancelRedeemKeyForOrder(KeyForOrderRequest) returns (EmptyResponseWithStatus) {}
+
+    rpc ChangeCodeInOrder(ChangeCodeInOrderRequest) returns (ChangeCodeInOrderResponse) {}
 
     rpc GetDashboardMain(GetDashboardMainRequest) returns (GetDashboardMainResponse) {}
 }
 
 message EmptyRequest {}
 message EmptyResponse {}
+
+message EmptyResponseWithStatus {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+}
+
+message ChangeCodeInOrderRequest {
+    //@inject_tag: validate:"required"
+    string order_id = 1;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string key_product_id = 2;
+}
+
+message ChangeCodeInOrderResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.Order order = 3;
+}
+
+message GetPlatformKeyCountResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    int32 count = 3;
+}
+
+message KeyForOrderRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string key_id = 1;
+}
+
+message GetKeyForOrderRequestResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.Key key = 3;
+}
+
+message PlatformKeyReserveResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    string key_id = 3;
+}
+
+message PlatformKeyReserveRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string key_product_id = 2;
+    //@inject_tag: validate:"hexadecimal,len=24"
+    string merchant_id = 3;
+    //@inject_tag: validate:"required,max=255"
+    string platform_id = 4;
+    //@inject_tag: validate:"required"
+    int32 ttl = 5;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string order_id = 6;
+}
+
+message PlatformKeysFileResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    int32 keys_processed = 3;
+    int32 total_count = 4;
+}
+
+message PlatformKeysFileRequest {
+    //@inject_tag: validate:"required,max=10485760"
+    bytes file = 1;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string key_product_id = 2;
+    //@inject_tag: validate:"hexadecimal,len=24" json:"merchant_id"
+    string merchant_id = 3;
+    //@inject_tag: validate:"required,max=255"
+    string platform_id = 4;
+}
+
+message GetPlatformKeyCountRequest {
+    //@inject_tag: query:"key_product_id" validate:"required,hexadecimal,len=24"
+    string key_product_id = 1;
+    //@inject_tag: validate:"hexadecimal,len=24"
+    string merchant_id = 2;
+    //@inject_tag: query:"platform_id" validate:"required,max=255"
+    string platform_id = 3;
+}
+
+message RemovePlatformRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string key_product_id = 1;
+    //@inject_tag: validate:"hexadecimal,len=24" json:"merchant_id"
+    string merchant_id = 2;
+    //@inject_tag: validate:"required,max=255"
+    string platform_id = 3;
+}
+
+message UpdatePlatformPricesResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    PlatformPrice price = 3;
+}
+
+message AddOrUpdatePlatformPricesRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string key_product_id = 1;
+    //@inject_tag: validate:"hexadecimal,len=24" json:"merchant_id"
+    string merchant_id = 2;
+    //@inject_tag: validate:"required,dive"
+    PlatformPrice platform = 3;
+}
+
+message KeyProductResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    KeyProduct product = 3;
+}
+
+message CreateOrUpdateKeyProductRequest {
+    //@inject_tag: validate:"required,min=1"
+    map<string, string> name = 1;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string project_id = 2;
+    //@inject_tag: validate:"required,min=1"
+    map<string, string> description = 3;
+    //@inject_tag: json:"long_description"
+    map<string, string> long_description = 4;
+    //@inject_tag: validate:"required,max=255"
+    string sku = 5;
+    //@inject_tag: validate:"dive,omitempty,uri" json:"images"
+    repeated string images = 6;
+    //@inject_tag: validate:"omitempty,url" json:"url"
+    string url = 7;
+    //@inject_tag: validate:"required,alpha,len=3" json:"default_currency"
+    string default_currency = 8;
+    //@inject_tag: validate:"hexadecimal,len=24" json:"merchant_id"
+    string merchant_id = 9;
+    //@inject_tag: validate:"omitempty,hexadecimal,len=24"
+    string id = 10;
+    //@inject_tag: json:"object"
+    string object = 11;
+    //@inject_tag: json:"metadata"
+    map<string, string> metadata = 12;
+}
+
+message PublishKeyProductRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string key_product_id = 1;
+    //@inject_tag: validate:"hexadecimal,len=24"
+    string merchant_id = 2;
+}
+
+message ListPlatformsRequest {
+    // @inject_tag: query:"limit" validate:"required,numeric,gt=0"
+    int32 limit = 1;
+    // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
+    int32 offset = 2;
+}
+
+message ListPlatformsResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"limit"
+    int32 limit = 3;
+    // @inject_tag: json:"offset"
+    int32 offset = 4;
+    // @inject_tag: json:"count"
+    int32 count = 5;
+    // @inject_tag: json:"platforms"
+    repeated Platform platforms = 6;
+}
+
+message ListKeyProductsResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"limit"
+    int32 limit = 3;
+    // @inject_tag: json:"offset"
+    int32 offset = 4;
+    // @inject_tag: json:"count"
+    int32 count = 5;
+    // @inject_tag: json:"products"
+    repeated KeyProduct products = 6;
+}
+
+message ListKeyProductsRequest {
+    //@inject_tag: query:"name" json:"name"
+    string name = 1;
+    //@inject_tag: query:"sku" json:"sku"
+    string sku = 2;
+    // @inject_tag: query:"limit" validate:"required,numeric,gt=0" json:"limit"
+    int32 limit = 3;
+    // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0" json:"offset"
+    int32 offset = 4;
+    //@inject_tag: query:"merchant_id" validate:"required,hexadecimal,len=24"
+    string merchant_id = 5;
+    //@inject_tag: query:"project_id" validate:"omitempty,hexadecimal,len=24"
+    string project_id = 6;
+}
 
 message PaymentCreateRequest {
     map<string, string> data = 1;
@@ -534,6 +747,88 @@ message SetMerchantS3AgreementRequest {
     string s3_agreement_name = 2;
 }
 
+message KeyProductInfo {
+    string id = 1;
+    string project_id = 2;
+    string name = 3;
+    string description = 4;
+    string long_description = 5;
+    repeated string images = 6;
+    repeated PlatformPriceInfo platforms = 7;
+}
+
+message PlatformPriceInfo {
+    string id = 1;
+    string name = 2;
+    ProductPriceInfo price = 3;
+}
+
+message ProductPriceInfo {
+    double amount = 1;
+    string currency = 2;
+    string region = 3;
+    bool is_fallback = 4;
+}
+
+message KeyProduct {
+    //@inject_tag: validate:"omitempty,hexadecimal,len=24" json:"id"
+    string id = 1;
+    //@inject_tag: validate:"required,hexadecimal,len=24" json:"-"
+    string merchant_id = 2;
+    //@inject_tag: validate:"required,hexadecimal,len=24" json:"project_id"
+    string project_id = 3;
+    //@inject_tag: validate:"omitempty" json:"object"
+    string object = 4;
+    //@inject_tag: validate:"required" json:"sku"
+    string sku = 5;
+    //@inject_tag: validate:"required" json:"name"
+    map<string, string> name = 6;
+    //@inject_tag: validate:"required,alpha,len=3" json:"default_currency"
+    string default_currency = 7;
+    //@inject_tag: json:"enabled"
+    bool enabled = 8;
+    //@inject_tag: validate:"required,min=1,dive" json:"platforms"
+    repeated PlatformPrice platforms = 9;
+    //@inject_tag: validate:"required" json:"description"
+    map<string, string> description = 10;
+    //@inject_tag: validate:"omitempty" json:"long_description"
+    map<string, string> long_description = 11;
+    //@inject_tag: json:"created_at"
+    google.protobuf.Timestamp created_at = 12;
+    //@inject_tag: json:"updated_at"
+    google.protobuf.Timestamp updated_at = 13;
+    //@inject_tag: validate:"dive,omitempty,uri" json:"images"
+    repeated string images = 14;
+    //@inject_tag: validate:"omitempty,url" json:"url"
+    string url = 15;
+    //@inject_tag: json:"metadata"
+    map<string, string> metadata = 16;
+    //@inject_tag: json:"-"
+    bool deleted = 17;
+    //@inject_tag: json:"published_at"
+    google.protobuf.Timestamp published_at = 18;
+}
+
+message PlatformPrice {
+    //@inject_tag: validate:"required" json:"id"
+    string id = 1;
+    //@inject_tag: json:"name"
+    string name = 2;
+    //@inject_tag: validate:"required,min=1,dive" json:"prices"
+    repeated ProductPrice prices = 3;
+    //@inject_tag: validate:"omitempty,url" json:"eula_url"
+    string eula_url = 4;
+    //@inject_tag: validate:"omitempty,url" json:"activation_url"
+    string activation_url = 5;
+}
+
+message Platform {
+    //@inject_tag: validate:"required,hexadecimal,len=24" json:"id"
+    string id = 1;
+    //@inject_tag: json:"name"
+    string name = 2;
+}
+
 message Product {
     //@inject_tag: validate:"omitempty,hexadecimal,len=24" json:"id" bson:"_id"
     string id = 1;
@@ -604,6 +899,30 @@ message GetProductsForOrderRequest {
     repeated string ids = 2;
 }
 
+message GetKeyProductInfoRequest {
+    // @inject_tag: json:"country" query:"country"
+    string country = 1;
+    // @inject_tag: json:"key_product_id" validate:"required,hexadecimal,len=24"
+    string key_product_id = 2;
+    // @inject_tag: json:"language" query:"language"
+    string language = 3;
+    // @inject_tag: json:"currency" query:"currency"
+    string currency = 4;
+}
+
+message GetKeyProductInfoResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    KeyProductInfo key_product = 3;
+}
+
+message GetKeyProductsForOrderRequest {
+    //@inject_tag: query:"project_id" validate:"required,hexadecimal,len=24"
+    string project_id = 1;
+    //@inject_tag: query:"ids[]" validate:"required,dive,hexadecimal,len=24"
+    repeated string ids = 2;
+}
+
 message ListProductsResponse {
     // @inject_tag: json:"limit"
     int32 limit = 1;
@@ -618,8 +937,20 @@ message ListProductsResponse {
 message RequestProduct {
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string id = 1;
-    //@inject_tag: validate:"hexadecimal,len=24" json:"merchant_id" bson:"merchant_id"
+    //@inject_tag: validate:"hexadecimal,len=24"
     string merchant_id = 2;
+}
+
+message RequestKeyProductMerchant {
+    //@inject_tag: query:"id" validate:"required,hexadecimal,len=24"
+    string id = 1;
+    //@inject_tag: query:"merchant_id" validate:"hexadecimal,len=24"
+    string merchant_id = 2;
+}
+
+message RequestKeyProduct {
+    //@inject_tag: query:"id" validate:"required,hexadecimal,len=24"
+    string id = 1;
 }
 
 message I18NTextSearchable {
@@ -721,6 +1052,8 @@ message ListOrdersRequest {
     repeated string merchant = 15;
     // @inject_tag: query:"-"  json:"-"
     string status_notification_failed_for = 16;
+    // @inject_tag: query:"type" validate:"omitempty,oneof=simple product key"
+    string type = 17;
 }
 
 message GetOrderRequest {

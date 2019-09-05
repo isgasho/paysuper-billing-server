@@ -363,6 +363,7 @@ func (suite *ReportTestSuite) TestReport_ReturnEmptyList() {
 
 func (suite *ReportTestSuite) TestReport_FindById() {
 	oReq := &billing.OrderCreateRequest{
+		Type:      billing.OrderType_simple,
 		ProjectId: suite.project.Id,
 		Currency:  "RUB",
 		Amount:    100,
@@ -391,6 +392,7 @@ func (suite *ReportTestSuite) TestReport_FindById() {
 
 func (suite *ReportTestSuite) TestReport_FindByMerchantId() {
 	oReq := &billing.OrderCreateRequest{
+		Type:      billing.OrderType_simple,
 		ProjectId: suite.project.Id,
 		Currency:  "RUB",
 		Amount:    100,
@@ -424,6 +426,7 @@ func (suite *ReportTestSuite) TestReport_FindByMerchantId() {
 
 func (suite *ReportTestSuite) TestReport_FindByProject() {
 	oReq := &billing.OrderCreateRequest{
+		Type:      billing.OrderType_simple,
 		ProjectId: suite.project.Id,
 		Currency:  "RUB",
 		Amount:    100,
@@ -452,6 +455,7 @@ func (suite *ReportTestSuite) TestReport_FindByProject() {
 
 func (suite *ReportTestSuite) TestReport_FindByCountry() {
 	oReq := &billing.OrderCreateRequest{
+		Type:      billing.OrderType_simple,
 		ProjectId: suite.project.Id,
 		Currency:  "RUB",
 		User: &billing.OrderUser{
@@ -485,6 +489,7 @@ func (suite *ReportTestSuite) TestReport_FindByCountry() {
 
 func (suite *ReportTestSuite) TestReport_FindByPaymentMethod() {
 	oReq := &billing.OrderCreateRequest{
+		Type:          billing.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		Currency:      "RUB",
 		Amount:        100,
@@ -528,6 +533,7 @@ func (suite *ReportTestSuite) TestReport_FindByPaymentMethod() {
 
 func (suite *ReportTestSuite) TestReport_FindByPaymentMethod_ErrorOnEmptyPaymentProductionSettings() {
 	oReq := &billing.OrderCreateRequest{
+		Type:          billing.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		Currency:      "RUB",
 		Amount:        100,
@@ -548,6 +554,7 @@ func (suite *ReportTestSuite) TestReport_FindByPaymentMethod_ErrorOnEmptyPayment
 
 func (suite *ReportTestSuite) TestReport_FindByStatus() {
 	oReq := &billing.OrderCreateRequest{
+		Type:      billing.OrderType_simple,
 		ProjectId: suite.project.Id,
 		Currency:  "RUB",
 		Amount:    100,
@@ -580,6 +587,7 @@ func (suite *ReportTestSuite) TestReport_FindByStatus() {
 
 func (suite *ReportTestSuite) TestReport_FindByAccount() {
 	oReq := &billing.OrderCreateRequest{
+		Type:      billing.OrderType_simple,
 		ProjectId: suite.project.Id,
 		Currency:  "RUB",
 		Amount:    100,
@@ -609,6 +617,7 @@ func (suite *ReportTestSuite) TestReport_FindByAccount() {
 
 func (suite *ReportTestSuite) TestReport_FindByPmDateFrom() {
 	oReq := &billing.OrderCreateRequest{
+		Type:      billing.OrderType_simple,
 		ProjectId: suite.project.Id,
 		Currency:  "RUB",
 		Amount:    100,
@@ -642,6 +651,7 @@ func (suite *ReportTestSuite) TestReport_FindByPmDateFrom() {
 
 func (suite *ReportTestSuite) TestReport_FindByPmDateTo() {
 	oReq := &billing.OrderCreateRequest{
+		Type:      billing.OrderType_simple,
 		ProjectId: suite.project.Id,
 		Currency:  "RUB",
 		Amount:    100,
@@ -675,6 +685,7 @@ func (suite *ReportTestSuite) TestReport_FindByPmDateTo() {
 
 func (suite *ReportTestSuite) TestReport_FindByProjectDateFrom() {
 	oReq := &billing.OrderCreateRequest{
+		Type:      billing.OrderType_simple,
 		ProjectId: suite.project.Id,
 		Currency:  "RUB",
 		Amount:    100,
@@ -708,6 +719,7 @@ func (suite *ReportTestSuite) TestReport_FindByProjectDateFrom() {
 
 func (suite *ReportTestSuite) TestReport_FindByProjectDateTo() {
 	oReq := &billing.OrderCreateRequest{
+		Type:      billing.OrderType_simple,
 		ProjectId: suite.project.Id,
 		Currency:  "RUB",
 		Amount:    100,
@@ -741,6 +753,7 @@ func (suite *ReportTestSuite) TestReport_FindByProjectDateTo() {
 
 func (suite *ReportTestSuite) TestReport_FindByQuickSearch_Id() {
 	oReq := &billing.OrderCreateRequest{
+		Type:      billing.OrderType_simple,
 		ProjectId: suite.project.Id,
 		Currency:  "RUB",
 		Amount:    100,
@@ -769,6 +782,7 @@ func (suite *ReportTestSuite) TestReport_FindByQuickSearch_Id() {
 
 func (suite *ReportTestSuite) TestReport_FindByQuickSearch_ProjectOrderId() {
 	oReq := &billing.OrderCreateRequest{
+		Type:      billing.OrderType_simple,
 		ProjectId: suite.project.Id,
 		Currency:  "RUB",
 		Amount:    100,
@@ -801,6 +815,7 @@ func (suite *ReportTestSuite) TestReport_FindByQuickSearch_ProjectOrderId() {
 
 func (suite *ReportTestSuite) TestReport_FindByQuickSearch_UserExternalId() {
 	oReq := &billing.OrderCreateRequest{
+		Type:      billing.OrderType_simple,
 		ProjectId: suite.project.Id,
 		Currency:  "RUB",
 		Amount:    100,
@@ -833,6 +848,7 @@ func (suite *ReportTestSuite) TestReport_FindByQuickSearch_UserExternalId() {
 
 func (suite *ReportTestSuite) TestReport_FindByQuickSearch_ProjectName() {
 	oReq := &billing.OrderCreateRequest{
+		Type:      billing.OrderType_simple,
 		ProjectId: suite.project.Id,
 		Currency:  "RUB",
 		Amount:    100,
@@ -874,6 +890,7 @@ func (suite *ReportTestSuite) TestReport_FindByQuickSearch_ProjectName() {
 
 func (suite *ReportTestSuite) TestReport_FindByQuickSearch_PaymentMethodName() {
 	oReq := &billing.OrderCreateRequest{
+		Type:      billing.OrderType_simple,
 		ProjectId: suite.project.Id,
 		Currency:  "RUB",
 		Amount:    100,
@@ -919,6 +936,7 @@ func (suite *ReportTestSuite) TestReport_GetOrder_ReturnError_NotFound() {
 
 func (suite *ReportTestSuite) TestReport_GetOrder_ReturnOrder() {
 	oReq := &billing.OrderCreateRequest{
+		Type:      billing.OrderType_simple,
 		ProjectId: suite.project.Id,
 		Currency:  "RUB",
 		Amount:    100,
