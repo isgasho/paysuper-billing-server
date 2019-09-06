@@ -78,6 +78,9 @@ const (
 
 	MerchantAgreementTypeESign = 2
 
+	SignerTypeMerchant = int32(0)
+	SignerTypePs       = int32(1)
+
 	ProjectStatusDraft         = int32(0)
 	ProjectStatusTestCompleted = int32(1)
 	ProjectStatusTestFailed    = int32(2)
@@ -150,47 +153,6 @@ const (
 	AccountingEntryTypeMerchantReverseRevenue          = "merchant_reverse_revenue"
 	AccountingEntryTypePsRefundProfit                  = "ps_refund_profit"
 
-	/*
-		AccountingEntryTypePayment                    = "payment"
-		AccountingEntryTypePsMarkupPaymentFx          = "ps_markup_payment_fx"
-		AccountingEntryTypeMethodFee                  = "method_fee"
-		AccountingEntryTypePsMarkupMethodFee          = "ps_markup_method_fee"
-		AccountingEntryTypeMethodFixedFee             = "method_fixed_fee"
-		AccountingEntryTypePsMarkupMethodFixedFee     = "ps_markup_method_fixed_fee"
-		AccountingEntryTypePsFee                      = "ps_fee"
-		AccountingEntryTypePsFixedFee                 = "ps_fixed_fee"
-		AccountingEntryTypePsMarkupFixedFeeFx         = "ps_markup_fixed_fee_fx"
-		AccountingEntryTypeTaxFee                     = "tax_fee"
-		AccountingEntryTypePsTaxFxFee                 = "ps_tax_fx_fee"
-		AccountingEntryTypeRefund                     = "refund"
-		AccountingEntryTypeRefundFee                  = "refund_fee"
-		AccountingEntryTypeRefundFixedFee             = "refund_fixed_fee"
-		AccountingEntryTypePsMarkupRefundFx           = "ps_markup_refund_fx"
-		AccountingEntryTypeRefundBody                 = "refund_body"
-		AccountingEntryTypeReverseTaxFee              = "reverse_tax_fee"
-		AccountingEntryTypePsMarkupReverseTaxFee      = "ps_markup_reverse_tax_fee"
-		AccountingEntryTypeReverseTaxFeeDelta         = "reverse_tax_fee_delta"
-		AccountingEntryTypePsReverseTaxFeeDelta       = "ps_reverse_tax_fee_delta"
-		AccountingEntryTypeChargeback                 = "chargeback"
-		AccountingEntryTypePsMarkupChargebackFx       = "ps_markup_chargeback_fx"
-		AccountingEntryTypeChargebackFee              = "chargeback_fee"
-		AccountingEntryTypePsMarkupChargebackFee      = "ps_markup_chargeback_fee"
-		AccountingEntryTypeChargebackFixedFee         = "chargeback_fixed_fee"
-		AccountingEntryTypePsMarkupChargebackFixedFee = "ps_markup_chargeback_fixed_fee"
-		AccountingEntryTypeRefundFailure              = "refund_failure"
-		AccountingEntryTypeChargebackFailure          = "chargeback_failure"
-		AccountingEntryTypePsAdjustment               = "ps_adjustment"
-		AccountingEntryTypeAdjustment                 = "adjustment"
-		AccountingEntryTypeReserved                   = "reserved"
-		AccountingEntryTypePayout                     = "payout"
-		AccountingEntryTypeTaxPayout                  = "tax_payout"
-		AccountingEntryTypePayoutFee                  = "payout_fee"
-		AccountingEntryTypePayoutTaxFee               = "payout_tax_fee"
-		AccountingEntryTypePsMarkupPayoutFee          = "ps_markup_payout_fee"
-		AccountingEntryTypePayoutFailure              = "payout_failure"
-		AccountingEntryTypeTaxPayoutFailure           = "tax_payout_failure"
-		AccountingEntryTypePayoutCancel               = "payout_cancel"
-	*/
 	BalanceTransactionStatusPending   = "pending"
 	BalanceTransactionStatusAvailable = "available"
 
@@ -198,6 +160,8 @@ const (
 	ErrorDatabaseFieldCollection = "collection"
 	ErrorDatabaseFieldQuery      = "query"
 	ErrorDatabaseFieldSet        = "set"
+
+	ErrorJsonMarshallingFailed = "json marshalling failed"
 
 	ErrorCacheQueryFailed = "Query to cache storage failed"
 	ErrorCacheFieldKey    = "key"
@@ -294,6 +258,13 @@ const (
 	DashboardPeriodCurrentYear     = "current_year"
 	DashboardPeriodPreviousYear    = "previous_year"
 	DashboardPeriodTwoYearsAgo     = "two_years_ago"
+
+	PayoutDocumentStatusSkip       = "skip"
+	PayoutDocumentStatusPending    = "pending"
+	PayoutDocumentStatusInProgress = "in_progress"
+	PayoutDocumentStatusPaid       = "paid"
+	PayoutDocumentStatusCanceled   = "canceled"
+	PayoutDocumentStatusFailed     = "failed"
 )
 
 var (

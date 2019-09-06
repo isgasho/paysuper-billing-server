@@ -17,6 +17,7 @@ type Country Entity
 type Project Entity
 type PaymentMethod Entity
 type Merchant Entity
+type PayoutDocument Entity
 type PriceGroup Entity
 type PaymentSystemService Entity
 type ZipCode Entity

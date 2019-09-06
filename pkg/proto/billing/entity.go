@@ -231,3 +231,11 @@ func (m *Merchant) HasTariff() bool {
 func (m *Merchant) HasPrimaryOnboardingUserName() bool {
 	return m.User != nil && m.User.FirstName != "" && m.User.LastName != ""
 }
+
+func (pd *PayoutDocument) IsPaysuperSignatureId(signatureId string) bool {
+	return pd.SignatureData.PsSignatureId == signatureId
+}
+
+func (pd *PayoutDocument) IsMerchantSignature(signatureId string) bool {
+	return pd.SignatureData.MerchantSignatureId == signatureId
+}

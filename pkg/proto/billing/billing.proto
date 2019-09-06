@@ -1860,3 +1860,68 @@ message Key {
     //@inject_tag: validate:"omitempty"
     google.protobuf.Timestamp redeemed_at = 9;
 }
+
+message PayoutDocument {
+    //@inject_tag: json:"id" bson:"_id" validate:"omitempty,hexadecimal,len=24"
+    string id = 1;
+    //@inject_tag: json:"source_id"
+    repeated string source_id = 3;
+    //@inject_tag: json:"transaction"
+    string transaction = 4;
+    // @inject_tag: json:"amount" validate:"numeric,gte=0"
+    double amount = 5;
+    //@inject_tag: json:"currency" validate:"required,alpha,len=3"
+    string currency = 6;
+    //@inject_tag: json:"status" validate:"required,oneof=skip pending in_progress paid canceled failed"
+    string status = 7;
+    //@inject_tag: json:"description" validate:"required"
+    string description = 8;
+    //@inject_tag: json:"destination"
+    MerchantBanking destination = 9;
+    //@inject_tag: json:"created_at"
+    google.protobuf.Timestamp created_at = 10;
+    //@inject_tag: json:"updated_at"
+    google.protobuf.Timestamp updated_at = 11;
+    //@inject_tag: json:"arrival_date"
+    google.protobuf.Timestamp arrival_date = 12;
+    //@inject_tag: json:"failure_code" validate:"omitempty,oneof=account_closed account_frozen account_restricted destination_bank_invalid could_not_process declined insufficient_funds invalid_account_number incorrect_account_holder_name invalid_currency"
+    string failure_code = 13;
+    //@inject_tag: json:"failure_message"
+    string failure_message = 14;
+    //@inject_tag: json:"failure_transaction"
+    string failure_transaction = 15;
+    //@inject_tag: json:"merchant_id" bson:"merchant_id" validate:"omitempty,hexadecimal,len=24"
+    string merchant_id = 16;
+    //@inject_tag: json:"signature_data" bson:"signature_data"
+    PayoutDocumentSignatureData signature_data = 18;
+    // @inject_tag: json:"has_merchant_signature"
+    bool has_merchant_signature = 19;
+    // @inject_tag: json:"has_psp_signature"
+    bool has_psp_signature = 20;
+    // @inject_tag: json:"signed_document_file_url"
+    string signed_document_file_url = 21;
+}
+
+message PayoutDocumentSignatureDataSignUrl {
+    string sign_url = 1;
+    google.protobuf.Timestamp expires_at = 2;
+}
+
+message PayoutDocumentSignatureData {
+    string details_url = 1;
+    string files_url = 2;
+    string signature_request_id = 3;
+    string merchant_signature_id = 4;
+    string ps_signature_id = 5;
+    PayoutDocumentSignatureDataSignUrl merchant_sign_url = 6;
+    PayoutDocumentSignatureDataSignUrl ps_sign_url = 7;
+}
+
+message PayoutDocumentChanges {
+    string id = 1;
+    string payout_document_id = 2;
+    string source = 3;
+    string ip = 4;
+    string hash = 5;
+    google.protobuf.Timestamp created_at = 6;
+}

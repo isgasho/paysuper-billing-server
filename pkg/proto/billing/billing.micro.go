@@ -116,6 +116,10 @@ It has these top-level messages:
 	TariffRatesItem
 	MerchantTariffRates
 	Key
+	PayoutDocument
+	PayoutDocumentSignatureDataSignUrl
+	PayoutDocumentSignatureData
+	PayoutDocumentChanges
 */
 package billing
 
