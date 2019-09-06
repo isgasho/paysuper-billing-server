@@ -363,6 +363,7 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 	refundOrder.Type = pkg.OrderTypeRefund
 	refundOrder.PrivateStatus = constant.OrderStatusRefund
 	refundOrder.Status = constant.OrderPublicStatusRefunded
+	refundOrder.CreatedAt = ptypes.TimestampNow()
 	refundOrder.UpdatedAt = ptypes.TimestampNow()
 	refundOrder.RefundedAt = ptypes.TimestampNow()
 	refundOrder.Refunded = true
