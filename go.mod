@@ -2,9 +2,8 @@ module github.com/paysuper/paysuper-billing-server
 
 require (
 	github.com/InVisionApp/go-health v2.1.0+incompatible
-	github.com/ProtocolONE/geoip-service v0.0.0-20190130072841-bf3b3b79a742
+	github.com/ProtocolONE/geoip-service v0.0.0-20190903084234-1d5ae6b96679
 	github.com/ProtocolONE/go-micro-plugins v0.3.0
-	github.com/ProtocolONE/rabbitmq v0.0.0-20190129162844-9f24367e139c
 	github.com/alicebob/miniredis v2.5.0+incompatible
 	github.com/centrifugal/gocent v2.0.2+incompatible
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -18,29 +17,27 @@ require (
 	github.com/jinzhu/copier v0.0.0-20190625015134-976e0346caa8
 	github.com/jinzhu/now v1.0.1
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/micro/cli v0.1.0
-	github.com/micro/go-config v0.14.0
-	github.com/micro/go-micro v1.0.0
-	github.com/micro/go-plugins v1.0.0
-	github.com/paysuper/document-signer v0.0.0-20190812065749-d26175441785
-	github.com/paysuper/paysuper-currencies v0.0.0-20190723132218-9628e1b3ba42
+	github.com/micro/cli v0.2.0
+	github.com/micro/go-micro v1.8.0
+	github.com/micro/go-plugins v1.2.0
+	github.com/paysuper/document-signer v0.0.0-20190903140137-c4c12bf31be5
+	github.com/paysuper/paysuper-currencies v0.0.0-20190903083641-668b8b2b997d
 	github.com/paysuper/paysuper-database-mongo v0.1.0
-	github.com/paysuper/paysuper-recurring-repository v1.0.113
-	github.com/paysuper/paysuper-tax-service v0.0.0-20190722140034-a37f835eaad7
-	github.com/paysuper/postmark-sender v0.0.0-20190724195234-709a636c4f39
-	github.com/prometheus/client_golang v0.9.3-0.20190127221311-3c4408c8b829
+	github.com/paysuper/paysuper-recurring-repository v1.0.123
+	github.com/paysuper/paysuper-tax-service v0.0.0-20190903084038-7849f394f122
+	github.com/paysuper/postmark-sender v0.0.0-20190903075212-a210e35789fc
+	github.com/prometheus/client_golang v1.0.0
 	github.com/stoewer/go-strcase v1.0.2
 	github.com/streadway/amqp v0.0.0-20190404075320-75d898a42a94
-	github.com/stretchr/testify v1.3.0
+	github.com/stretchr/testify v1.4.0
 	github.com/ttacon/libphonenumber v1.0.1
 	go.uber.org/zap v1.10.0
-	golang.org/x/crypto v0.0.0-20190605123033-f99c8df09eb5
-	golang.org/x/exp/errors v0.0.0-20190123073158-f1c91bc264ca
-	golang.org/x/net v0.0.0-20190607181551-461777fb6f67
-	google.golang.org/grpc v1.20.1
+	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
 	gopkg.in/ProtocolONE/rabbitmq.v1 v1.0.0-20190719062839-9858d727f3ef
-	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
-	gopkg.in/go-playground/validator.v9 v9.29.1
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce
 )
+
+replace github.com/hashicorp/consul => github.com/hashicorp/consul v1.5.1
+
+go 1.13

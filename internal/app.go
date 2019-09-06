@@ -14,11 +14,11 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/micro/cli"
-	goConfig "github.com/micro/go-config"
-	"github.com/micro/go-config/source"
-	"github.com/micro/go-config/source/microcli"
 	"github.com/micro/go-micro"
-	"github.com/micro/go-plugins/selector/static"
+	goConfig "github.com/micro/go-micro/config"
+	"github.com/micro/go-micro/config/source"
+	goConfigCli "github.com/micro/go-micro/config/source/cli"
+	"github.com/micro/go-plugins/client/selector/static"
 	documentSignerPkg "github.com/paysuper/document-signer/pkg"
 	documentSignerProto "github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
@@ -39,6 +39,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
@@ -147,8 +149,8 @@ func (app *Application) Init() {
 
 	app.service.Init(
 		micro.Action(func(c *cli.Context) {
-			clisrc = microcli.NewSource(
-				microcli.Context(c),
+			clisrc = goConfigCli.NewSource(
+				goConfigCli.Context(c),
 			)
 		}),
 	)
@@ -316,4 +318,32 @@ func (app *Application) TaskCreateRoyaltyReport() error {
 
 func (app *Application) TaskAutoAcceptRoyaltyReports() error {
 	return app.svc.AutoAcceptRoyaltyReports(context.TODO(), &grpc.EmptyRequest{}, &grpc.EmptyResponse{})
+}
+
+func (app *Application) KeyDaemonStart() {
+	zap.S().Infof("Key daemon started", zap.Int64("RestartInterval", app.cfg.KeyDaemonRestartInterval))
+
+	go func() {
+		interval := time.Duration(app.cfg.KeyDaemonRestartInterval) * time.Second
+		shutdown := make(chan os.Signal, 1)
+		signal.Notify(shutdown, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+
+		for {
+			zap.S().Debug("Key daemon working")
+
+			select {
+			case <-shutdown:
+				zap.S().Info("Key daemon stopping")
+				return
+			default:
+				count, err := app.svc.KeyDaemonProcess()
+				if err != nil {
+					zap.L().Error("Key daemon process failed", zap.Error(err))
+				}
+
+				zap.S().Debugf("Key daemon job finished", "count", count)
+				time.Sleep(interval)
+			}
+		}
+	}()
 }

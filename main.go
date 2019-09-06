@@ -37,5 +37,7 @@ func main() {
 		return
 	}
 
+	app.KeyDaemonStart()
+
 	app.Run()
 }

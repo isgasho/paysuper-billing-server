@@ -82,6 +82,7 @@ type Service struct {
 	turnover                   *Turnover
 	documentSigner             documentSignerProto.DocumentSignerService
 	merchantTariffRates        MerchantTariffRatesInterface
+	keyRepository              KeyRepositoryInterface
 	centrifugo                 CentrifugoInterface
 }
 
@@ -145,7 +146,16 @@ func (s *Service) Init() (err error) {
 	s.productService = newProductService(s)
 	s.turnover = newTurnoverService(s)
 	s.merchantTariffRates = newMerchantsTariffRatesRepository(s)
+	s.keyRepository = newKeyRepository(s)
 	s.centrifugo = newCentrifugo(s)
+
+	s.centrifugoClient = gocent.New(
+		gocent.Config{
+			Addr:       s.cfg.CentrifugoURL,
+			Key:        s.cfg.CentrifugoApiSecret,
+			HTTPClient: tools.NewLoggedHttpClient(zap.S()),
+		},
+	)
 
 	if s.cfg.AccountingCurrency == "" {
 		return errors.New(errorAccountingCurrencyNotFound)

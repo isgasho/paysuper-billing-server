@@ -134,6 +134,23 @@ type BillingService interface {
 	CalcAnnualTurnovers(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*EmptyResponse, error)
 	GetMerchantAgreementSignUrl(ctx context.Context, in *GetMerchantAgreementSignUrlRequest, opts ...client.CallOption) (*GetMerchantAgreementSignUrlResponse, error)
 	GetMerchantOnboardingCompleteData(ctx context.Context, in *SetMerchantS3AgreementRequest, opts ...client.CallOption) (*GetMerchantOnboardingCompleteDataResponse, error)
+	CreateOrUpdateKeyProduct(ctx context.Context, in *CreateOrUpdateKeyProductRequest, opts ...client.CallOption) (*KeyProductResponse, error)
+	GetKeyProducts(ctx context.Context, in *ListKeyProductsRequest, opts ...client.CallOption) (*ListKeyProductsResponse, error)
+	GetKeyProduct(ctx context.Context, in *RequestKeyProductMerchant, opts ...client.CallOption) (*KeyProductResponse, error)
+	DeleteKeyProduct(ctx context.Context, in *RequestKeyProductMerchant, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
+	PublishKeyProduct(ctx context.Context, in *PublishKeyProductRequest, opts ...client.CallOption) (*KeyProductResponse, error)
+	GetKeyProductsForOrder(ctx context.Context, in *GetKeyProductsForOrderRequest, opts ...client.CallOption) (*ListKeyProductsResponse, error)
+	GetKeyProductInfo(ctx context.Context, in *GetKeyProductInfoRequest, opts ...client.CallOption) (*GetKeyProductInfoResponse, error)
+	GetPlatforms(ctx context.Context, in *ListPlatformsRequest, opts ...client.CallOption) (*ListPlatformsResponse, error)
+	UpdatePlatformPrices(ctx context.Context, in *AddOrUpdatePlatformPricesRequest, opts ...client.CallOption) (*UpdatePlatformPricesResponse, error)
+	DeletePlatformFromProduct(ctx context.Context, in *RemovePlatformRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
+	GetAvailableKeysCount(ctx context.Context, in *GetPlatformKeyCountRequest, opts ...client.CallOption) (*GetPlatformKeyCountResponse, error)
+	UploadKeysFile(ctx context.Context, in *PlatformKeysFileRequest, opts ...client.CallOption) (*PlatformKeysFileResponse, error)
+	GetKeyByID(ctx context.Context, in *KeyForOrderRequest, opts ...client.CallOption) (*GetKeyForOrderRequestResponse, error)
+	ReserveKeyForOrder(ctx context.Context, in *PlatformKeyReserveRequest, opts ...client.CallOption) (*PlatformKeyReserveResponse, error)
+	FinishRedeemKeyForOrder(ctx context.Context, in *KeyForOrderRequest, opts ...client.CallOption) (*GetKeyForOrderRequestResponse, error)
+	CancelRedeemKeyForOrder(ctx context.Context, in *KeyForOrderRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
+	ChangeCodeInOrder(ctx context.Context, in *ChangeCodeInOrderRequest, opts ...client.CallOption) (*ChangeCodeInOrderResponse, error)
 }
 
 type billingService struct {
@@ -1134,6 +1151,176 @@ func (c *billingService) GetMerchantOnboardingCompleteData(ctx context.Context, 
 	return out, nil
 }
 
+func (c *billingService) CreateOrUpdateKeyProduct(ctx context.Context, in *CreateOrUpdateKeyProductRequest, opts ...client.CallOption) (*KeyProductResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.CreateOrUpdateKeyProduct", in)
+	out := new(KeyProductResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetKeyProducts(ctx context.Context, in *ListKeyProductsRequest, opts ...client.CallOption) (*ListKeyProductsResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetKeyProducts", in)
+	out := new(ListKeyProductsResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetKeyProduct(ctx context.Context, in *RequestKeyProductMerchant, opts ...client.CallOption) (*KeyProductResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetKeyProduct", in)
+	out := new(KeyProductResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) DeleteKeyProduct(ctx context.Context, in *RequestKeyProductMerchant, opts ...client.CallOption) (*EmptyResponseWithStatus, error) {
+	req := c.c.NewRequest(c.name, "BillingService.DeleteKeyProduct", in)
+	out := new(EmptyResponseWithStatus)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) PublishKeyProduct(ctx context.Context, in *PublishKeyProductRequest, opts ...client.CallOption) (*KeyProductResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.PublishKeyProduct", in)
+	out := new(KeyProductResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetKeyProductsForOrder(ctx context.Context, in *GetKeyProductsForOrderRequest, opts ...client.CallOption) (*ListKeyProductsResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetKeyProductsForOrder", in)
+	out := new(ListKeyProductsResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetKeyProductInfo(ctx context.Context, in *GetKeyProductInfoRequest, opts ...client.CallOption) (*GetKeyProductInfoResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetKeyProductInfo", in)
+	out := new(GetKeyProductInfoResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetPlatforms(ctx context.Context, in *ListPlatformsRequest, opts ...client.CallOption) (*ListPlatformsResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetPlatforms", in)
+	out := new(ListPlatformsResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) UpdatePlatformPrices(ctx context.Context, in *AddOrUpdatePlatformPricesRequest, opts ...client.CallOption) (*UpdatePlatformPricesResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.UpdatePlatformPrices", in)
+	out := new(UpdatePlatformPricesResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) DeletePlatformFromProduct(ctx context.Context, in *RemovePlatformRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error) {
+	req := c.c.NewRequest(c.name, "BillingService.DeletePlatformFromProduct", in)
+	out := new(EmptyResponseWithStatus)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetAvailableKeysCount(ctx context.Context, in *GetPlatformKeyCountRequest, opts ...client.CallOption) (*GetPlatformKeyCountResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetAvailableKeysCount", in)
+	out := new(GetPlatformKeyCountResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) UploadKeysFile(ctx context.Context, in *PlatformKeysFileRequest, opts ...client.CallOption) (*PlatformKeysFileResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.UploadKeysFile", in)
+	out := new(PlatformKeysFileResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetKeyByID(ctx context.Context, in *KeyForOrderRequest, opts ...client.CallOption) (*GetKeyForOrderRequestResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetKeyByID", in)
+	out := new(GetKeyForOrderRequestResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) ReserveKeyForOrder(ctx context.Context, in *PlatformKeyReserveRequest, opts ...client.CallOption) (*PlatformKeyReserveResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.ReserveKeyForOrder", in)
+	out := new(PlatformKeyReserveResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) FinishRedeemKeyForOrder(ctx context.Context, in *KeyForOrderRequest, opts ...client.CallOption) (*GetKeyForOrderRequestResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.FinishRedeemKeyForOrder", in)
+	out := new(GetKeyForOrderRequestResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) CancelRedeemKeyForOrder(ctx context.Context, in *KeyForOrderRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error) {
+	req := c.c.NewRequest(c.name, "BillingService.CancelRedeemKeyForOrder", in)
+	out := new(EmptyResponseWithStatus)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) ChangeCodeInOrder(ctx context.Context, in *ChangeCodeInOrderRequest, opts ...client.CallOption) (*ChangeCodeInOrderResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.ChangeCodeInOrder", in)
+	out := new(ChangeCodeInOrderResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for BillingService service
 
 type BillingServiceHandler interface {
@@ -1235,6 +1422,23 @@ type BillingServiceHandler interface {
 	CalcAnnualTurnovers(context.Context, *EmptyRequest, *EmptyResponse) error
 	GetMerchantAgreementSignUrl(context.Context, *GetMerchantAgreementSignUrlRequest, *GetMerchantAgreementSignUrlResponse) error
 	GetMerchantOnboardingCompleteData(context.Context, *SetMerchantS3AgreementRequest, *GetMerchantOnboardingCompleteDataResponse) error
+	CreateOrUpdateKeyProduct(context.Context, *CreateOrUpdateKeyProductRequest, *KeyProductResponse) error
+	GetKeyProducts(context.Context, *ListKeyProductsRequest, *ListKeyProductsResponse) error
+	GetKeyProduct(context.Context, *RequestKeyProductMerchant, *KeyProductResponse) error
+	DeleteKeyProduct(context.Context, *RequestKeyProductMerchant, *EmptyResponseWithStatus) error
+	PublishKeyProduct(context.Context, *PublishKeyProductRequest, *KeyProductResponse) error
+	GetKeyProductsForOrder(context.Context, *GetKeyProductsForOrderRequest, *ListKeyProductsResponse) error
+	GetKeyProductInfo(context.Context, *GetKeyProductInfoRequest, *GetKeyProductInfoResponse) error
+	GetPlatforms(context.Context, *ListPlatformsRequest, *ListPlatformsResponse) error
+	UpdatePlatformPrices(context.Context, *AddOrUpdatePlatformPricesRequest, *UpdatePlatformPricesResponse) error
+	DeletePlatformFromProduct(context.Context, *RemovePlatformRequest, *EmptyResponseWithStatus) error
+	GetAvailableKeysCount(context.Context, *GetPlatformKeyCountRequest, *GetPlatformKeyCountResponse) error
+	UploadKeysFile(context.Context, *PlatformKeysFileRequest, *PlatformKeysFileResponse) error
+	GetKeyByID(context.Context, *KeyForOrderRequest, *GetKeyForOrderRequestResponse) error
+	ReserveKeyForOrder(context.Context, *PlatformKeyReserveRequest, *PlatformKeyReserveResponse) error
+	FinishRedeemKeyForOrder(context.Context, *KeyForOrderRequest, *GetKeyForOrderRequestResponse) error
+	CancelRedeemKeyForOrder(context.Context, *KeyForOrderRequest, *EmptyResponseWithStatus) error
+	ChangeCodeInOrder(context.Context, *ChangeCodeInOrderRequest, *ChangeCodeInOrderResponse) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -1337,6 +1541,23 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		CalcAnnualTurnovers(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error
 		GetMerchantAgreementSignUrl(ctx context.Context, in *GetMerchantAgreementSignUrlRequest, out *GetMerchantAgreementSignUrlResponse) error
 		GetMerchantOnboardingCompleteData(ctx context.Context, in *SetMerchantS3AgreementRequest, out *GetMerchantOnboardingCompleteDataResponse) error
+		CreateOrUpdateKeyProduct(ctx context.Context, in *CreateOrUpdateKeyProductRequest, out *KeyProductResponse) error
+		GetKeyProducts(ctx context.Context, in *ListKeyProductsRequest, out *ListKeyProductsResponse) error
+		GetKeyProduct(ctx context.Context, in *RequestKeyProductMerchant, out *KeyProductResponse) error
+		DeleteKeyProduct(ctx context.Context, in *RequestKeyProductMerchant, out *EmptyResponseWithStatus) error
+		PublishKeyProduct(ctx context.Context, in *PublishKeyProductRequest, out *KeyProductResponse) error
+		GetKeyProductsForOrder(ctx context.Context, in *GetKeyProductsForOrderRequest, out *ListKeyProductsResponse) error
+		GetKeyProductInfo(ctx context.Context, in *GetKeyProductInfoRequest, out *GetKeyProductInfoResponse) error
+		GetPlatforms(ctx context.Context, in *ListPlatformsRequest, out *ListPlatformsResponse) error
+		UpdatePlatformPrices(ctx context.Context, in *AddOrUpdatePlatformPricesRequest, out *UpdatePlatformPricesResponse) error
+		DeletePlatformFromProduct(ctx context.Context, in *RemovePlatformRequest, out *EmptyResponseWithStatus) error
+		GetAvailableKeysCount(ctx context.Context, in *GetPlatformKeyCountRequest, out *GetPlatformKeyCountResponse) error
+		UploadKeysFile(ctx context.Context, in *PlatformKeysFileRequest, out *PlatformKeysFileResponse) error
+		GetKeyByID(ctx context.Context, in *KeyForOrderRequest, out *GetKeyForOrderRequestResponse) error
+		ReserveKeyForOrder(ctx context.Context, in *PlatformKeyReserveRequest, out *PlatformKeyReserveResponse) error
+		FinishRedeemKeyForOrder(ctx context.Context, in *KeyForOrderRequest, out *GetKeyForOrderRequestResponse) error
+		CancelRedeemKeyForOrder(ctx context.Context, in *KeyForOrderRequest, out *EmptyResponseWithStatus) error
+		ChangeCodeInOrder(ctx context.Context, in *ChangeCodeInOrderRequest, out *ChangeCodeInOrderResponse) error
 	}
 	type BillingService struct {
 		billingService
@@ -1739,4 +1960,72 @@ func (h *billingServiceHandler) GetMerchantAgreementSignUrl(ctx context.Context,
 
 func (h *billingServiceHandler) GetMerchantOnboardingCompleteData(ctx context.Context, in *SetMerchantS3AgreementRequest, out *GetMerchantOnboardingCompleteDataResponse) error {
 	return h.BillingServiceHandler.GetMerchantOnboardingCompleteData(ctx, in, out)
+}
+
+func (h *billingServiceHandler) CreateOrUpdateKeyProduct(ctx context.Context, in *CreateOrUpdateKeyProductRequest, out *KeyProductResponse) error {
+	return h.BillingServiceHandler.CreateOrUpdateKeyProduct(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetKeyProducts(ctx context.Context, in *ListKeyProductsRequest, out *ListKeyProductsResponse) error {
+	return h.BillingServiceHandler.GetKeyProducts(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetKeyProduct(ctx context.Context, in *RequestKeyProductMerchant, out *KeyProductResponse) error {
+	return h.BillingServiceHandler.GetKeyProduct(ctx, in, out)
+}
+
+func (h *billingServiceHandler) DeleteKeyProduct(ctx context.Context, in *RequestKeyProductMerchant, out *EmptyResponseWithStatus) error {
+	return h.BillingServiceHandler.DeleteKeyProduct(ctx, in, out)
+}
+
+func (h *billingServiceHandler) PublishKeyProduct(ctx context.Context, in *PublishKeyProductRequest, out *KeyProductResponse) error {
+	return h.BillingServiceHandler.PublishKeyProduct(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetKeyProductsForOrder(ctx context.Context, in *GetKeyProductsForOrderRequest, out *ListKeyProductsResponse) error {
+	return h.BillingServiceHandler.GetKeyProductsForOrder(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetKeyProductInfo(ctx context.Context, in *GetKeyProductInfoRequest, out *GetKeyProductInfoResponse) error {
+	return h.BillingServiceHandler.GetKeyProductInfo(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetPlatforms(ctx context.Context, in *ListPlatformsRequest, out *ListPlatformsResponse) error {
+	return h.BillingServiceHandler.GetPlatforms(ctx, in, out)
+}
+
+func (h *billingServiceHandler) UpdatePlatformPrices(ctx context.Context, in *AddOrUpdatePlatformPricesRequest, out *UpdatePlatformPricesResponse) error {
+	return h.BillingServiceHandler.UpdatePlatformPrices(ctx, in, out)
+}
+
+func (h *billingServiceHandler) DeletePlatformFromProduct(ctx context.Context, in *RemovePlatformRequest, out *EmptyResponseWithStatus) error {
+	return h.BillingServiceHandler.DeletePlatformFromProduct(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetAvailableKeysCount(ctx context.Context, in *GetPlatformKeyCountRequest, out *GetPlatformKeyCountResponse) error {
+	return h.BillingServiceHandler.GetAvailableKeysCount(ctx, in, out)
+}
+
+func (h *billingServiceHandler) UploadKeysFile(ctx context.Context, in *PlatformKeysFileRequest, out *PlatformKeysFileResponse) error {
+	return h.BillingServiceHandler.UploadKeysFile(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetKeyByID(ctx context.Context, in *KeyForOrderRequest, out *GetKeyForOrderRequestResponse) error {
+	return h.BillingServiceHandler.GetKeyByID(ctx, in, out)
+}
+
+func (h *billingServiceHandler) ReserveKeyForOrder(ctx context.Context, in *PlatformKeyReserveRequest, out *PlatformKeyReserveResponse) error {
+	return h.BillingServiceHandler.ReserveKeyForOrder(ctx, in, out)
+}
+
+func (h *billingServiceHandler) FinishRedeemKeyForOrder(ctx context.Context, in *KeyForOrderRequest, out *GetKeyForOrderRequestResponse) error {
+	return h.BillingServiceHandler.FinishRedeemKeyForOrder(ctx, in, out)
+}
+
+func (h *billingServiceHandler) CancelRedeemKeyForOrder(ctx context.Context, in *KeyForOrderRequest, out *EmptyResponseWithStatus) error {
+	return h.BillingServiceHandler.CancelRedeemKeyForOrder(ctx, in, out)
+}
+
+func (h *billingServiceHandler) ChangeCodeInOrder(ctx context.Context, in *ChangeCodeInOrderRequest, out *ChangeCodeInOrderResponse) error {
+	return h.BillingServiceHandler.ChangeCodeInOrder(ctx, in, out)
 }

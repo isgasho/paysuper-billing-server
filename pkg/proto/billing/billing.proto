@@ -73,6 +73,11 @@ message OrderCreateRequest {
 
     // @inject_tag: json:"order" validate:"omitempty,uuid"
     string psp_order_uuid = 31;
+
+    // @inject_tag: validate="required,oneof=simple product key" json:"type"
+    string type = 32;
+
+    string platform_id = 33;
 }
 
 message Project {
@@ -510,6 +515,18 @@ message Order {
     string type = 53;
     // @inject_tag: json:"-"
     bool is_vat_deduction = 54;
+
+    // @inject_tag: validate="oneof=simple product key" json:"type"
+    string product_type = 69;
+
+    // @inject_tag: json:"platform_id"
+    string platform_id = 70;
+
+    // @inject_tag: json:"-" bson:"keys"
+    repeated string keys = 71;
+
+    // @inject_tag: json:"-"
+    bool is_key_product_notified = 72;
 }
 
 message CountryRestriction {
@@ -546,6 +563,10 @@ message OrderItem {
     google.protobuf.Timestamp created_at = 11;
     //@inject_tag: json:"updated_at" bson:"updated_at"
     google.protobuf.Timestamp updated_at = 12;
+    //@inject_tag: validate:"omitempty,min=3" json:"platform_id" bson:"platform_id"
+    string platform_id = 13;
+    //@inject_tag: validate:"omitempty,min=5" json:"code" bson:"code"
+    string code = 14;
 }
 
 message OrderPaginate {
@@ -961,6 +982,10 @@ message TokenSettings {
     repeated string products_ids = 9;
     //@inject_tag: json:"metadata"
     map<string, string> metadata = 10;
+    //@inject_tag: json:"platform_id"
+    string platform_id = 11;
+    //@inject_tag: json:"type"
+    string type = 12;
 }
 
 message OrderIssuer {
@@ -1084,7 +1109,7 @@ message PaymentChannelCostSystem {
     string region = 3;
     //@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
     string country = 4;
-    // @inject_tag: json:"percent" bson:"percent" validate:"numeric,gte=0,lte=1"
+    // @inject_tag: json:"percent" bson:"percent" validate:"required,numeric,gte=0,lte=1"
     double percent = 5;
     // @inject_tag: json:"fix_amount" bson:"fix_amount" validate:"numeric,gte=0"
     double fix_amount = 6;
@@ -1126,13 +1151,13 @@ message PaymentChannelCostMerchant {
     string region = 6;
     //@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
     string country = 7;
-    // @inject_tag: json:"method_percent" bson:"method_percent" validate:"numeric,gte=0,lte=11"
+    // @inject_tag: json:"method_percent" bson:"method_percent" validate:"required,numeric,gte=0,lte=11"
     double method_percent = 8;
     // @inject_tag: json:"method_fix_amount" bson:"method_fix_amount" validate:"numeric,gte=0"
     double method_fix_amount = 9;
     // @inject_tag: json:"method_fix_amount_currency" bson:"method_fix_amount_currency" validate:"required,alpha,len=3"
     string method_fix_amount_currency = 10;
-    // @inject_tag: json:"ps_percent" bson:"ps_percent" validate:"numeric,gte=0,lte=1"
+    // @inject_tag: json:"ps_percent" bson:"ps_percent" validate:"required,numeric,gte=0,lte=1"
     double ps_percent = 11;
     // @inject_tag: json:"ps_fixed_fee" bson:"ps_fixed_fee" validate:"numeric,gte=0"
     double ps_fixed_fee = 12;
@@ -1149,15 +1174,15 @@ message PaymentChannelCostMerchant {
 message PaymentChannelCostMerchantRequest {
     //@inject_tag: json:"merchant_id" bson:"merchant_id" validate:"required,hexadecimal,len=24"
     string merchant_id = 1;
-    //@inject_tag: json:"name" bson:"name" validate:"required,alpha"
+    //@inject_tag: json:"name" bson:"name" validate:"required,alpha" query:"name"
     string name = 2;
-    //@inject_tag: json:"payout_currency" bson:"payout_currency" validate:"required,alpha,len=3"
+    //@inject_tag: json:"payout_currency" bson:"payout_currency" validate:"required,alpha,len=3" query:"payout_currency"
     string payout_currency = 3;
-    // @inject_tag: json:"amount" bson:"amount" validate:"required,numeric,gte=0"
+    // @inject_tag: json:"amount" bson:"amount" validate:"required,numeric,gte=0" query:"amount"
     double amount = 4;
-    //@inject_tag: json:"region" bson:"region" validate:"required"
+    //@inject_tag: json:"region" bson:"region" validate:"required" query:"region"
     string region = 5;
-    //@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
+    //@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2" query:"country"
     string country = 6;
 }
 
@@ -1200,19 +1225,19 @@ message MoneyBackCostSystem {
 }
 
 message MoneyBackCostSystemRequest {
-    //@inject_tag: json:"name" bson:"name" validate:"required,alpha"
+    //@inject_tag: json:"name" bson:"name" validate:"required,alpha" query:"name"
     string name = 1;
-    //@inject_tag: json:"payout_currency" bson:"payout_currency" validate:"required,alpha,len=3"
+    //@inject_tag: json:"payout_currency" bson:"payout_currency" validate:"required,alpha,len=3" query:"payout_currency"
     string payout_currency = 2;
-    //@inject_tag: json:"undo_reason" bson:"undo_reason" validate:"required,alpha,oneof=refund reversal chargeback"
+    //@inject_tag: json:"undo_reason" bson:"undo_reason" validate:"required,alpha,oneof=refund reversal chargeback" query:"undo_reason"
     string undo_reason = 3;
-    //@inject_tag: json:"region" bson:"region" validate:"required"
+    //@inject_tag: json:"region" bson:"region" validate:"required" query:"region"
     string region = 4;
-    //@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
+    //@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2" query:"country"
     string country = 5;
-    // @inject_tag: json:"days" bson:"days" validate:"required,numeric,gte=0"
+    // @inject_tag: json:"days" bson:"days" validate:"required,numeric,gte=0" query:"days"
     int32 days = 6;
-    // @inject_tag: json:"payment_stage" bson:"payment_stage" validate:"numeric,gte=1"
+    // @inject_tag: json:"payment_stage" bson:"payment_stage" validate:"numeric,gte=1" query:"payment_stage"
     int32 payment_stage = 7;
 }
 
@@ -1258,19 +1283,19 @@ message MoneyBackCostMerchant {
 message MoneyBackCostMerchantRequest {
     //@inject_tag: json:"merchant_id" bson:"merchant_id" validate:"required,hexadecimal,len=24"
     string merchant_id = 1;
-    //@inject_tag: json:"name" bson:"name" validate:"required,alpha"
+    //@inject_tag: json:"name" bson:"name" validate:"required,alpha" query:"name"
     string name = 2;
-    //@inject_tag: json:"payout_currency" bson:"payout_currency" validate:"required,alpha,len=3"
+    //@inject_tag: json:"payout_currency" bson:"payout_currency" validate:"required,alpha,len=3" query:"payout_currency"
     string payout_currency = 3;
-    //@inject_tag: json:"undo_reason" bson:"undo_reason" validate:"required,alpha,oneof=refund reversal chargeback"
+    //@inject_tag: json:"undo_reason" bson:"undo_reason" validate:"required,alpha,oneof=refund reversal chargeback" query:"undo_reason"
     string undo_reason = 4;
-    //@inject_tag: json:"region" bson:"region" validate:"required"
+    //@inject_tag: json:"region" bson:"region" validate:"required" query:"region"
     string region = 5;
-    //@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
+    //@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2" query:"country"
     string country = 6;
-    // @inject_tag: json:"days" bson:"days" validate:"required,numeric,gte=0"
+    // @inject_tag: json:"days" bson:"days" validate:"required,numeric,gte=0" query:"days"
     int32 days = 7;
-    // @inject_tag: json:"payment_stage" bson:"payment_stage" validate:"numeric,gte=1"
+    // @inject_tag: json:"payment_stage" bson:"payment_stage" validate:"numeric,gte=1" query:"payment_stage"
     int32 payment_stage = 8;
 }
 
@@ -1801,4 +1826,23 @@ message MerchantTariffRates {
     TariffRatesItem chargeback = 4;
     //@inject_tag: json:"region" bson:"region"
     string region = 5;
+}
+
+message Key {
+    //@inject_tag: json:"id" bson:"_id"
+    string id = 1;
+    //@inject_tag: json:"code" validate:"required,max=50"
+    string code = 2;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string key_product_id = 3;
+    //@inject_tag: validate:"required,max=255"
+    string platform_id = 5;
+    //@inject_tag: validate:"omitempty,hexadecimal,len=24"
+    string order_id = 6;
+
+    google.protobuf.Timestamp created_at = 7;
+    //@inject_tag: validate:"omitempty"
+    google.protobuf.Timestamp reserved_to = 8;
+    //@inject_tag: validate:"omitempty"
+    google.protobuf.Timestamp redeemed_at = 9;
 }

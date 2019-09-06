@@ -427,16 +427,19 @@ func (s *Service) ChangeMerchantData(
 	}
 
 	if !merchant.HasPspSignature && req.HasPspSignature {
+		merchant.HasPspSignature = req.HasPspSignature
 		channel := s.getMerchantCentrifugoChannel(merchant)
 		_ = s.centrifugo.Publish(ctx, channel, paysuperSignAgreementMessage)
 	}
 
 	if !merchant.HasMerchantSignature && req.HasMerchantSignature {
+		merchant.HasMerchantSignature = req.HasMerchantSignature
+		s.sendMessageToCentrifugo(ctx, s.cfg.CentrifugoAdminChannel, merchantSignAgreementMessage)
+	}
+		merchant.HasMerchantSignature = req.HasMerchantSignature
 		_ = s.centrifugo.Publish(ctx, s.cfg.CentrifugoAdminChannel, paysuperSignAgreementMessage)
 	}
 
-	merchant.HasPspSignature = req.HasPspSignature
-	merchant.HasMerchantSignature = req.HasMerchantSignature
 	merchant.AgreementSentViaMail = req.AgreementSentViaMail
 	merchant.MailTrackingLink = req.MailTrackingLink
 	merchant.IsSigned = merchant.HasPspSignature == true && merchant.HasMerchantSignature == true
