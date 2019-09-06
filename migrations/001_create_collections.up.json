@@ -18,6 +18,9 @@
     "create": "refund"
   },
   {
+    "create": "currency"
+  },
+  {
     "create": "currency_rate"
   },
   {
