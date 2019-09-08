@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/mock"
+	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
@@ -66,19 +66,19 @@ func (suite *KeyProductTestSuite) SetupTest() {
 	broker, err := rabbitmq.NewBroker(cfg.BrokerAddress)
 	assert.NoError(suite.T(), err, "Creating RabbitMQ publisher failed")
 
-	redisdb := mock.NewTestRedis()
+	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
 		db,
 		cfg,
-		mock.NewGeoIpServiceTestOk(),
-		mock.NewRepositoryServiceOk(),
-		mock.NewTaxServiceOkMock(),
+		mocks.NewGeoIpServiceTestOk(),
+		mocks.NewRepositoryServiceOk(),
+		mocks.NewTaxServiceOkMock(),
 		broker,
 		nil,
 		suite.cache,
-		mock.NewCurrencyServiceMockOk(),
-		mock.NewDocumentSignerMockOk(),
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -159,7 +159,7 @@ func (suite *KeyProductTestSuite) Test_GetKeyProductInfo() {
 	shouldBe.Equal("steam", res.KeyProduct.Platforms[0].Id)
 	shouldBe.EqualValues(10, res.KeyProduct.Platforms[0].Price.Amount)
 	shouldBe.Equal("USD", res.KeyProduct.Platforms[0].Price.Currency)
-	shouldBe.False( res.KeyProduct.Platforms[0].Price.IsFallback)
+	shouldBe.False(res.KeyProduct.Platforms[0].Price.IsFallback)
 
 	res = grpc.GetKeyProductInfoResponse{}
 	err = suite.service.GetKeyProductInfo(context.TODO(), &grpc.GetKeyProductInfoRequest{Currency: "EUR", KeyProductId: response.Product.Id, Language: "ru"}, &res)
@@ -173,7 +173,7 @@ func (suite *KeyProductTestSuite) Test_GetKeyProductInfo() {
 	shouldBe.Equal("steam", res.KeyProduct.Platforms[0].Id)
 	shouldBe.EqualValues(20, res.KeyProduct.Platforms[0].Price.Amount)
 	shouldBe.Equal("EUR", res.KeyProduct.Platforms[0].Price.Currency)
-	shouldBe.False( res.KeyProduct.Platforms[0].Price.IsFallback)
+	shouldBe.False(res.KeyProduct.Platforms[0].Price.IsFallback)
 
 	res = grpc.GetKeyProductInfoResponse{}
 	err = suite.service.GetKeyProductInfo(context.TODO(), &grpc.GetKeyProductInfoRequest{Currency: "UNK", KeyProductId: response.Product.Id, Language: "ru"}, &res)
@@ -187,7 +187,7 @@ func (suite *KeyProductTestSuite) Test_GetKeyProductInfo() {
 	shouldBe.Equal("steam", res.KeyProduct.Platforms[0].Id)
 	shouldBe.EqualValues(10, res.KeyProduct.Platforms[0].Price.Amount)
 	shouldBe.Equal("USD", res.KeyProduct.Platforms[0].Price.Currency)
-	shouldBe.True( res.KeyProduct.Platforms[0].Price.IsFallback)
+	shouldBe.True(res.KeyProduct.Platforms[0].Price.IsFallback)
 
 	res = grpc.GetKeyProductInfoResponse{}
 	err = suite.service.GetKeyProductInfo(context.TODO(), &grpc.GetKeyProductInfoRequest{Currency: "RUB", KeyProductId: response.Product.Id, Language: "ru"}, &res)
@@ -201,7 +201,7 @@ func (suite *KeyProductTestSuite) Test_GetKeyProductInfo() {
 	shouldBe.Equal("steam", res.KeyProduct.Platforms[0].Id)
 	shouldBe.EqualValues(10, res.KeyProduct.Platforms[0].Price.Amount)
 	shouldBe.Equal("USD", res.KeyProduct.Platforms[0].Price.Currency)
-	shouldBe.True( res.KeyProduct.Platforms[0].Price.IsFallback)
+	shouldBe.True(res.KeyProduct.Platforms[0].Price.IsFallback)
 
 	res = grpc.GetKeyProductInfoResponse{}
 	err = suite.service.GetKeyProductInfo(context.TODO(), &grpc.GetKeyProductInfoRequest{Country: "RUS", KeyProductId: response.Product.Id, Language: "ru"}, &res)
@@ -215,7 +215,7 @@ func (suite *KeyProductTestSuite) Test_GetKeyProductInfo() {
 	shouldBe.Equal("steam", res.KeyProduct.Platforms[0].Id)
 	shouldBe.EqualValues(10, res.KeyProduct.Platforms[0].Price.Amount)
 	shouldBe.Equal("USD", res.KeyProduct.Platforms[0].Price.Currency)
-	shouldBe.True( res.KeyProduct.Platforms[0].Price.IsFallback)
+	shouldBe.True(res.KeyProduct.Platforms[0].Price.IsFallback)
 }
 
 func (suite *KeyProductTestSuite) Test_GetPlatforms() {
@@ -223,7 +223,7 @@ func (suite *KeyProductTestSuite) Test_GetPlatforms() {
 
 	rsp := &grpc.ListPlatformsResponse{}
 	shouldBe.Nil(suite.service.GetPlatforms(context.TODO(), &grpc.ListPlatformsRequest{
-		Limit: 100,
+		Limit:  100,
 		Offset: 0,
 	}, rsp))
 	shouldBe.EqualValues(200, rsp.Status)
@@ -231,7 +231,7 @@ func (suite *KeyProductTestSuite) Test_GetPlatforms() {
 
 	rsp = &grpc.ListPlatformsResponse{}
 	shouldBe.Nil(suite.service.GetPlatforms(context.TODO(), &grpc.ListPlatformsRequest{
-		Limit: 1,
+		Limit:  1,
 		Offset: 0,
 	}, rsp))
 	shouldBe.EqualValues(200, rsp.Status)
@@ -239,7 +239,7 @@ func (suite *KeyProductTestSuite) Test_GetPlatforms() {
 
 	rsp = &grpc.ListPlatformsResponse{}
 	shouldBe.Nil(suite.service.GetPlatforms(context.TODO(), &grpc.ListPlatformsRequest{
-		Limit: 100,
+		Limit:  100,
 		Offset: 100,
 	}, rsp))
 	shouldBe.EqualValues(200, rsp.Status)
@@ -384,12 +384,12 @@ func (suite *KeyProductTestSuite) Test_CreateOrUpdateKeyProduct() {
 	shouldBe.EqualValues(400, res2.Status)
 
 	platformReq := &grpc.AddOrUpdatePlatformPricesRequest{
-		MerchantId:  merchantId,
+		MerchantId:   merchantId,
 		KeyProductId: res.Id,
 		Platform: &grpc.PlatformPrice{
 			Id: "steam",
 			Prices: []*grpc.ProductPrice{
-				{Region:"USD", Currency: "USD", Amount: 66.66},
+				{Region: "USD", Currency: "USD", Amount: 66.66},
 			},
 		},
 	}
@@ -503,7 +503,7 @@ func (suite *KeyProductTestSuite) Test_UpdatePlatformPrices_WithBadPrice_Error()
 		Platform: &grpc.PlatformPrice{
 			Id: "steam",
 			Prices: []*grpc.ProductPrice{
-				{Region:"USD", Currency: "RUB", Amount: 66.66},
+				{Region: "USD", Currency: "RUB", Amount: 66.66},
 			},
 		},
 	}
@@ -520,7 +520,7 @@ func (suite *KeyProductTestSuite) Test_UpdatePlatformPrices_WithBadPrice_Error()
 		Platform: &grpc.PlatformPrice{
 			Id: "steam",
 			Prices: []*grpc.ProductPrice{
-				{Region:"EUR", Currency: "EUR", Amount: 66.66},
+				{Region: "EUR", Currency: "EUR", Amount: 66.66},
 			},
 		},
 	}

@@ -230,7 +230,7 @@ func (suite *ProductTestSuite) TestProduct_CreateOrUpdateProduct_Error_MerchantN
 }
 
 func (suite *ProductTestSuite) TestProduct_CreateOrUpdateProduct_Error_SkuNotEqual() {
-	ps := &mock.ProductServiceInterface{}
+	ps := &mocks.ProductServiceInterface{}
 	ps.On("GetById", mock2.Anything).Return(&grpc.Product{MerchantId: bson.NewObjectId().Hex()}, nil)
 	ps.On("CountByProjectSku", mock2.Anything, mock2.Anything).Return(0, nil)
 	ps.On("Upsert", mock2.Anything).Return(nil)

@@ -149,14 +149,6 @@ func (s *Service) Init() (err error) {
 	s.keyRepository = newKeyRepository(s)
 	s.centrifugo = newCentrifugo(s)
 
-	s.centrifugoClient = gocent.New(
-		gocent.Config{
-			Addr:       s.cfg.CentrifugoURL,
-			Key:        s.cfg.CentrifugoApiSecret,
-			HTTPClient: tools.NewLoggedHttpClient(zap.S()),
-		},
-	)
-
 	if s.cfg.AccountingCurrency == "" {
 		return errors.New(errorAccountingCurrencyNotFound)
 	}

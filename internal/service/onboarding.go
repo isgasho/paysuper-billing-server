@@ -434,10 +434,7 @@ func (s *Service) ChangeMerchantData(
 
 	if !merchant.HasMerchantSignature && req.HasMerchantSignature {
 		merchant.HasMerchantSignature = req.HasMerchantSignature
-		s.sendMessageToCentrifugo(ctx, s.cfg.CentrifugoAdminChannel, merchantSignAgreementMessage)
-	}
-		merchant.HasMerchantSignature = req.HasMerchantSignature
-		_ = s.centrifugo.Publish(ctx, s.cfg.CentrifugoAdminChannel, paysuperSignAgreementMessage)
+		_ = s.centrifugo.Publish(ctx, s.cfg.CentrifugoAdminChannel, merchantSignAgreementMessage)
 	}
 
 	merchant.AgreementSentViaMail = req.AgreementSentViaMail

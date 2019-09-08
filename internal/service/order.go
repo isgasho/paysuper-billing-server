@@ -314,7 +314,7 @@ func (s *Service) OrderCreateProcess(
 	case billing.OrderType_key:
 		if err := processor.processPaylinkKeyProducts(); err != nil {
 			if pid := req.PrivateMetadata["PaylinkId"]; pid != "" {
-				s.notifyPaylinkError(pid, err, req, nil)
+				s.notifyPaylinkError(ctx, pid, err, req, nil)
 			}
 			zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
 			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
@@ -2716,7 +2716,7 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 	if len(order.Keys) == 0 {
 		zap.S().Infow("[ProcessOrderKeyProducts] reserving keys", "order_id", order.Id)
 		keys := make([]string, len(order.Products))
-		for i, productId := range order.Products{
+		for i, productId := range order.Products {
 			reserveRes := &grpc.PlatformKeyReserveResponse{}
 			reserveReq := &grpc.PlatformKeyReserveRequest{
 				PlatformId:   order.PlatformId,
