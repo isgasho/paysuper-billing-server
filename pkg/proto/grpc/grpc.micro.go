@@ -175,15 +175,21 @@ It has these top-level messages:
 	GetMerchantTariffRatesResponse
 	SetMerchantTariffRatesRequest
 	GetDashboardMainRequest
-	GetDashboardMainResponseAmountItem
-	GetDashboardMainResponseItem
 	GetDashboardMainResponse
-	GetDashboardRevenueDynamicResponseItem
-	GetDashboardRevenueDynamicResponse
-	DashboardBaseReportsRevenueAmount
-	DashboardBaseReportsRevenueByCountryByCountry
-	DashboardBaseReportsRevenueByPeriod
-	DashboardBaseReportsRevenueByCountry
+	DashboardAmountItemWithChart
+	DashboardChartItemFloat
+	DashboardMainReportTotalTransactions
+	DashboardMainReport
+	DashboardRevenueDynamicReport
+	DashboardRevenueByCountryReportTop
+	DashboardRevenueByCountryReportTotal
+	DashboardRevenueByCountryReportChartItem
+	DashboardRevenueByCountryReport
+	DashboardSalesTodayReportTop
+	DashboardChartItemInt
+	DashboardSalesTodayReport
+	DashboardSourcesReport
+	DashboardBaseReports
 */
 package grpc
 

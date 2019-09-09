@@ -29,4 +29,5 @@ func (s *Service) GetDashboardMain(
 		return nil
 	}
 
+	return nil
 }

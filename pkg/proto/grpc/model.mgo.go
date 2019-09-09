@@ -91,6 +91,35 @@ type MgoPageReview struct {
 	UpdatedAt time.Time     `bson:"updated_at"`
 }
 
+type MgoDashboardAmountItemWithChart struct {
+	Amount   float64                    `bson:"amount"`
+	Currency string                     `bson:"currency"`
+	Chart    []*DashboardChartItemFloat `bson:"chart"`
+}
+
+type MgoDashboardRevenueDynamicReport struct {
+	Amount   float64 `bson:"amount"`
+	Currency string  `bson:"currency"`
+	Count    int64   `bson:"count"`
+}
+
+type MgoDashboardRevenueByCountryReportTop struct {
+	Country  string  `bson:"country"`
+	Amount   float64 `bson:"amount"`
+	Currency string  `bson:"currency"`
+}
+
+type MgoDashboardRevenueByCountryReportTotal struct {
+	Amount   float64 `bson:"amount"`
+	Currency string  `bson:"currency"`
+}
+
+type MgoDashboardRevenueByCountryReportChartItem struct {
+	Label    string  `bson:"label"`
+	Amount   float64 `bson:"amount"`
+	Currency string  `bson:"currency"`
+}
+
 func (p *Product) SetBSON(raw bson.Raw) error {
 	decoded := new(MgoProduct)
 	err := raw.Unmarshal(decoded)
@@ -544,4 +573,86 @@ func (p *KeyProduct) GetBSON() (interface{}, error) {
 	}
 
 	return st, nil
+}
+
+func (m *DashboardAmountItemWithChart) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoDashboardAmountItemWithChart)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Amount = tools.FormatAmount(decoded.Amount)
+	m.Currency = decoded.Currency
+	m.Chart = make([]*DashboardChartItemFloat, 1)
+
+	for _, v := range decoded.Chart {
+		item := &DashboardChartItemFloat{
+			Label: v.Label,
+			Value: tools.FormatAmount(v.Value),
+		}
+		m.Chart = append(m.Chart, item)
+	}
+
+	return nil
+}
+
+func (m *DashboardRevenueDynamicReport) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoDashboardRevenueDynamicReport)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Amount = tools.FormatAmount(decoded.Amount)
+	m.Currency = decoded.Currency
+	m.Count = decoded.Count
+
+	return nil
+}
+
+func (m *DashboardRevenueByCountryReportTop) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoDashboardRevenueByCountryReportTop)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Amount = tools.FormatAmount(decoded.Amount)
+	m.Currency = decoded.Currency
+	m.Country = decoded.Country
+
+	return nil
+}
+
+func (m *DashboardRevenueByCountryReportTotal) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoDashboardRevenueByCountryReportTotal)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Amount = tools.FormatAmount(decoded.Amount)
+	m.Currency = decoded.Currency
+
+	return nil
+}
+
+func (m *DashboardRevenueByCountryReportChartItem) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoDashboardRevenueByCountryReportChartItem)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Amount = tools.FormatAmount(decoded.Amount)
+	m.Currency = decoded.Currency
+	m.Label = decoded.Label
+
+	return nil
 }

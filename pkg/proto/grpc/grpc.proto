@@ -1652,81 +1652,130 @@ message GetDashboardMainRequest {
     string merchant_id = 1;
 }
 
-message GetDashboardMainResponseAmountItem {
-    double amount = 1;
-    string currency = 2;
-}
-
-message GetDashboardMainResponseItem {
-    // @inject_tag: json:"gross_revenue" bson:"gross_revenue"
-    GetDashboardMainResponseAmountItem gross_revenue = 1;
-    // @inject_tag: json:"total_payments" bson:"total_payments"
-    int64 total_payments = 2;
-    // @inject_tag: json:"arpu" bson:"arpu"
-    GetDashboardMainResponseAmountItem arpu = 3;
-    // @inject_tag: json:"vat" bson:"vat"
-    GetDashboardMainResponseAmountItem vat = 4;
-}
-
 message GetDashboardMainResponse {
-    int32 status = 1;
-    ResponseErrorMessage message = 2;
-    GetDashboardMainResponseItem item = 3;
+
 }
 
-message GetDashboardRevenueDynamicResponseItem {
-    // @inject_tag: json:"period" bson:"_id"
-    int32 period = 1;
-    // @inject_tag: json:"amount" bson:"amount"
-    double amount = 2;
-    // @inject_tag: json:"currency" bson:"currency"
-    string currency = 3;
-    // @inject_tag: json:"count" bson:"count"
-    int64 count = 4;
-}
-
-message GetDashboardRevenueDynamicResponse {
-    int32 status = 1;
-    ResponseErrorMessage message = 2;
-    GetDashboardRevenueDynamicResponseItem item = 3;
-}
-
-message DashboardBaseReportsRevenueAmount {
-    // @inject_tag: json:"amount" bson:"amount"
+message DashboardAmountItemWithChart {
+    //@inject_tag: json:"amount"
     double amount = 1;
-    // @inject_tag: json:"currency" bson:"currency"
+    //@inject_tag: json:"currency"
+    string currency = 2;
+    //@inject_tag: json:"chart"
+    repeated DashboardChartItemFloat chart = 3;
+}
+
+message DashboardChartItemFloat {
+    //@inject_tag: json:"label"
+    string label = 1;
+    //@inject_tag: json:"value"
+    double value = 2;
+}
+
+message DashboardMainReportTotalTransactions {
+    //@inject_tag: json:"count" bson:"count"
+    int64 count = 1;
+    //@inject_tag: json:"chart"
+    repeated DashboardChartItemFloat chart = 3;
+}
+
+message DashboardMainReport {
+    //@inject_tag: json:"gross_revenue" bson:"gross_revenue"
+    DashboardAmountItemWithChart gross_revenue = 1;
+    //@inject_tag: json:"vat" bson:"vat"
+    DashboardAmountItemWithChart vat = 2;
+    //@inject_tag: json:"total_transactions" bson:"total_transactions"
+    DashboardMainReportTotalTransactions total_transactions = 3;
+    //@inject_tag: json:"arpu" bson:"arpu"
+    DashboardAmountItemWithChart arpu = 4;
+}
+
+message DashboardRevenueDynamicReport {
+    //@inject_tag: json:"amount"
+    double amount = 1;
+    //@inject_tag: json:"currency"
+    string currency = 2;
+    //@inject_tag: json:"count"
+    int64 count = 3;
+}
+
+message DashboardRevenueByCountryReportTop {
+    //@inject_tag: json:"country"
+    string country = 1;
+    //@inject_tag: json:"amount"
+    double amount = 2;
+    //@inject_tag: json:"currency"
+    string currency = 3;
+}
+
+message DashboardRevenueByCountryReportTotal {
+    //@inject_tag: json:"amount"
+    double amount = 1;
+    //@inject_tag: json:"currency"
     string currency = 2;
 }
 
-message DashboardBaseReportsRevenueByCountryByCountry {
-    // @inject_tag: json:"country" bson:"_id"
-    string country = 1;
-    // @inject_tag: json:"amount" bson:"amount"
+message DashboardRevenueByCountryReportChartItem {
+    //@inject_tag: json:"label"
+    string label = 1;
+    //@inject_tag: json:"amount"
     double amount = 2;
-    // @inject_tag: json:"currency" bson:"currency"
+    //@inject_tag: json:"currency"
     string currency = 3;
 }
 
-message DashboardBaseReportsRevenueByPeriod {
-    // @inject_tag: json:"-" bson:"_id"
-    int32 period_item = 1;
-    // @inject_tag: json:"-" bson:"day"
-    int32 day = 2;
-    // @inject_tag: json:"point" bson:"-"
-    string point = 3;
-    // @inject_tag: json:"amount" bson:"amount"
-    double amount = 4;
-    // @inject_tag: json:"currency" bson:"currency"
-    string currency = 5;
+message DashboardRevenueByCountryReport {
+    //@inject_tag: json:"top" bson:"top"
+    repeated DashboardRevenueByCountryReportTop top = 1;
+    //@inject_tag: json:"total_current" bson:"total"
+    DashboardRevenueByCountryReportTotal total_current = 2;
+    //@inject_tag: json:"total_previous"
+    DashboardRevenueByCountryReportTotal total_previous= 3;
+    //@inject_tag: json:"chart" bson:"chart"
+    repeated DashboardRevenueByCountryReportChartItem chart = 4;
 }
 
-message DashboardBaseReportsRevenueByCountry {
-    // @inject_tag: json:"by_country" bson:"by_country"
-    repeated DashboardBaseReportsRevenueByCountryByCountry by_country = 1;
-    // @inject_tag: json:"by_period" bson:"by_period"
-    repeated DashboardBaseReportsRevenueByPeriod by_period = 2;
-    // @inject_tag: json:"total_current" bson:"total_current"
-    DashboardBaseReportsRevenueAmount total_current = 3;
-    // @inject_tag: json:"total_previous" bson:"total_previous"
-    DashboardBaseReportsRevenueAmount total_previous = 4;
+message DashboardSalesTodayReportTop {
+    //@inject_tag: json:"name" bson:"name"
+    string name = 1;
+    //@inject_tag: json:"count" bson:"count"
+    int64 count = 2;
+}
+
+message DashboardChartItemInt {
+    //@inject_tag: json:"label" bson:"label"
+    string label = 1;
+    //@inject_tag: json:"value" bson:"value"
+    int64 value = 2;
+}
+
+message DashboardSalesTodayReport {
+    //@inject_tag: json:"top" bson:"top"
+    repeated DashboardSalesTodayReportTop top = 1;
+    //@inject_tag: json:"total_current" bson:"total"
+    int64 total_current = 2;
+    //@inject_tag: json:"total_previous"
+    int64 total_previous = 3;
+    //@inject_tag: json:"chart" bson:"chart"
+    repeated DashboardChartItemInt chart = 4;
+}
+
+message DashboardSourcesReport {
+    //@inject_tag: json:"top" bson:"top"
+    repeated DashboardSalesTodayReportTop top = 1;
+    //@inject_tag: json:"total_current" bson:"total"
+    int64 total_current = 2;
+    //@inject_tag: json:"total_previous"
+    int64 total_previous = 3;
+    //@inject_tag: json:"chart" bson:"chart"
+    repeated DashboardChartItemInt chart = 4;
+}
+
+message DashboardBaseReports {
+    //@inject_tag: json:"revenue_by_country"
+    DashboardRevenueByCountryReport revenue_by_country = 1;
+    //@inject_tag: json:"sales_today"
+    DashboardSalesTodayReport sales_today = 2;
+    //@inject_tag: json:"sources"
+    DashboardSourcesReport sources = 4;
 }
