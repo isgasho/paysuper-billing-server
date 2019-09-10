@@ -292,12 +292,6 @@ func (s *Service) ProcessVatReports(
 	res *grpc.EmptyResponse,
 ) error {
 
-	zap.S().Info("calc annual turnovers")
-	err := s.CalcAnnualTurnovers(ctx, &grpc.EmptyRequest{}, &grpc.EmptyResponse{})
-	if err != nil {
-		return err
-	}
-
 	handler, err := NewVatReportProcessor(s, ctx, req.Date)
 	if err != nil {
 		return err
@@ -311,6 +305,12 @@ func (s *Service) ProcessVatReports(
 
 	zap.S().Info("updating order view")
 	err = handler.UpdateOrderView()
+	if err != nil {
+		return err
+	}
+
+	zap.S().Info("calc annual turnovers")
+	err = s.CalcAnnualTurnovers(ctx, &grpc.EmptyRequest{}, &grpc.EmptyResponse{})
 	if err != nil {
 		return err
 	}
