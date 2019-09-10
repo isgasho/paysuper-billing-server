@@ -43,6 +43,7 @@ var (
 	accountingEntryErrorInvalidSourceId            = newBillingServerErrorMsg("ae00012", "accounting entry invalid source id")
 	accountingEntryErrorSystemCommissionNotFound   = newBillingServerErrorMsg("ae00013", "system commission for payment method not found")
 	accountingEntryAlreadyCreated                  = newBillingServerErrorMsg("ae00014", "accounting entries already created")
+	accountingEntryBalanceUpdateFailed             = newBillingServerErrorMsg("ae00015", "balance update failed after create accounting entry")
 
 	availableAccountingEntries = map[string]bool{
 		pkg.AccountingEntryTypeRealGrossRevenue:                    true,
@@ -89,12 +90,19 @@ var (
 		pkg.AccountingEntryTypeMerchantReverseTaxFee:               true,
 		pkg.AccountingEntryTypeMerchantReverseRevenue:              true,
 		pkg.AccountingEntryTypePsRefundProfit:                      true,
+		pkg.AccountingEntryTypeMerchantRollingReserveCreate:        true,
+		pkg.AccountingEntryTypeMerchantRollingReserveRelease:       true,
 	}
 
 	availableAccountingEntriesSourceTypes = map[string]bool{
 		collectionOrder:    true,
 		collectionRefund:   true,
 		collectionMerchant: true,
+	}
+
+	rollingReserveAccountingEntries = map[string]bool{
+		pkg.AccountingEntryTypeMerchantRollingReserveCreate:  true,
+		pkg.AccountingEntryTypeMerchantRollingReserveRelease: true,
 	}
 )
 
@@ -205,6 +213,16 @@ func (s *Service) CreateAccountingEntry(
 		rsp.Message = accountingEntryErrorUnknown
 
 		return nil
+	}
+
+	if _, ok := rollingReserveAccountingEntries[req.Type]; ok {
+		_, err = s.updateMerchantBalance(handler.merchant.Id)
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = accountingEntryBalanceUpdateFailed
+
+			return nil
+		}
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
@@ -948,21 +966,44 @@ func (h *accountingEntry) newEntry(entryType string) *billing.AccountingEntry {
 	var (
 		createdTime = ptypes.TimestampNow()
 		source      *billing.AccountingEntrySource
+		merchantId  = ""
+		currency    = ""
+		country     = ""
 	)
 	if h.refund != nil {
 		if h.refundOrder != nil {
 			createdTime = h.refundOrder.PaymentMethodOrderClosedAt
+			merchantId = h.refundOrder.GetMerchantId()
+			currency = h.refundOrder.GetMerchantRoyaltyCurrency()
 		}
 		source = &billing.AccountingEntrySource{
 			Id:   h.refund.CreatedOrderId,
 			Type: collectionRefund,
 		}
 	} else {
-		createdTime = h.order.PaymentMethodOrderClosedAt
-		source = &billing.AccountingEntrySource{
-			Id:   h.order.Id,
-			Type: collectionOrder,
+		if h.order != nil {
+			createdTime = h.order.PaymentMethodOrderClosedAt
+			source = &billing.AccountingEntrySource{
+				Id:   h.order.Id,
+				Type: collectionOrder,
+			}
+			merchantId = h.order.GetMerchantId()
+			currency = h.order.GetMerchantRoyaltyCurrency()
+		} else {
+			if h.merchant != nil {
+				createdTime = ptypes.TimestampNow()
+				source = &billing.AccountingEntrySource{
+					Id:   h.merchant.Id,
+					Type: collectionMerchant,
+				}
+				merchantId = h.merchant.Id
+				currency = h.merchant.GetPayoutCurrency()
+			}
 		}
+	}
+
+	if h.country != nil {
+		country = h.country.IsoCodeA2
 	}
 
 	return &billing.AccountingEntry{
@@ -970,11 +1011,11 @@ func (h *accountingEntry) newEntry(entryType string) *billing.AccountingEntry {
 		Object:     pkg.ObjectTypeBalanceTransaction,
 		Type:       entryType,
 		Source:     source,
-		MerchantId: h.order.GetMerchantId(),
+		MerchantId: merchantId,
 		Status:     pkg.BalanceTransactionStatusPending,
 		CreatedAt:  createdTime,
-		Country:    h.country.IsoCodeA2,
-		Currency:   h.order.GetMerchantRoyaltyCurrency(),
+		Country:    country,
+		Currency:   currency,
 	}
 }
 

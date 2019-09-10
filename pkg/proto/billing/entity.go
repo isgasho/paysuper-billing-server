@@ -239,3 +239,7 @@ func (pd *PayoutDocument) IsPaysuperSignatureId(signatureId string) bool {
 func (pd *PayoutDocument) IsMerchantSignature(signatureId string) bool {
 	return pd.SignatureData.MerchantSignatureId == signatureId
 }
+
+func (pd *PayoutDocument) IsFullySigned() bool {
+	return pd.HasMerchantSignature == true && pd.HasPspSignature == true
+}

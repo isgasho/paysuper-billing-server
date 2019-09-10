@@ -1925,3 +1925,21 @@ message PayoutDocumentChanges {
     string hash = 5;
     google.protobuf.Timestamp created_at = 6;
 }
+
+message MerchantBalance {
+    //@inject_tag: json:"id" validate:"required,hexadecimal,len=24"
+    string id = 1;
+    //@inject_tag: json:"merchant_id" validate:"required,hexadecimal,len=24"
+    string merchant_id = 2;
+    //@inject_tag: json:"currency" validate:"required,alpha,len=3"
+    string currency = 3;
+    //@inject_tag: json:"debit" validate:"required,numeric"
+    double debit = 4;
+    //@inject_tag: json:"credit" validate:"required,numeric"
+    double credit = 5;
+    //@inject_tag: json:"rolling_reserve" validate:"required,numeric"
+    double rolling_reserve = 6;
+    //@inject_tag: json:"total" validate:"required,numeric"
+    double total = 7;
+    google.protobuf.Timestamp created_at = 8;
+}

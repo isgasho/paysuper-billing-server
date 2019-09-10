@@ -153,6 +153,9 @@ const (
 	AccountingEntryTypeMerchantReverseRevenue          = "merchant_reverse_revenue"
 	AccountingEntryTypePsRefundProfit                  = "ps_refund_profit"
 
+	AccountingEntryTypeMerchantRollingReserveCreate  = "merchant_rolling_reserve_create"
+	AccountingEntryTypeMerchantRollingReserveRelease = "merchant_rolling_reserve_release"
+
 	BalanceTransactionStatusPending   = "pending"
 	BalanceTransactionStatusAvailable = "available"
 

@@ -40,7 +40,16 @@ var (
 	errorPayoutAmountInvalid       = newBillingServerErrorMsg("po000005", "payout amount is invalid")
 	errorPayoutInvalid             = newBillingServerErrorMsg("po000006", "requested payout is invalid")
 	errorPayoutAlreadySigned       = newBillingServerErrorMsg("po000007", "payout already signed for this signer type")
-	errorCreateSignature           = newBillingServerErrorMsg("po000008", "create signature failed")
+	errorPayoutCreateSignature     = newBillingServerErrorMsg("po000008", "create signature failed")
+	errorPayoutUpdateBalance       = newBillingServerErrorMsg("po000009", "balance update failed")
+	errorPayoutBalanceError        = newBillingServerErrorMsg("po000010", "getting balance failed")
+	errorPayoutNotEnoughBalance    = newBillingServerErrorMsg("po000011", "not enough balance for payout")
+
+	statusForUpdateBalance = map[string]bool{
+		pkg.PayoutDocumentStatusPending:    true,
+		pkg.PayoutDocumentStatusInProgress: true,
+		pkg.PayoutDocumentStatusPaid:       true,
+	}
 )
 
 type PayoutDocumentServiceInterface interface {
@@ -121,6 +130,24 @@ func (s *Service) CreatePayoutDocument(
 		return nil
 	}
 
+	balance, err := s.getMerchantBalance(merchant.Id)
+	if err != nil {
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorPayoutBalanceError
+		return nil
+	}
+
+	if pd.Amount > (balance.Debit - balance.Credit) {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorPayoutNotEnoughBalance
+		return nil
+	}
+
+	// We must substract rolling reserve amount from payout amount.
+	// In case of rolling reserve release, balance.RollingReserve will have negative amount
+	// and finally will be added to payout amount.
+	pd.Amount = pd.Amount - balance.RollingReserve
+
 	if pd.Amount < merchant.MinPayoutAmount {
 		pd.Status = pkg.PayoutDocumentStatusSkip
 	}
@@ -188,6 +215,17 @@ func (s *Service) UpdatePayoutDocumentSignatures(
 		}
 		return err
 	}
+
+	if pd.IsFullySigned() {
+		_, err = s.updateMerchantBalance(pd.MerchantId)
+		if err != nil {
+			res.Status = pkg.ResponseStatusSystemError
+			res.Message = errorPayoutUpdateBalance
+
+			return nil
+		}
+	}
+
 	res.Status = pkg.ResponseStatusOk
 	res.Item = pd
 
@@ -218,10 +256,14 @@ func (s *Service) UpdatePayoutDocument(
 	}
 
 	isChanged := false
+	needBalanceUpdate := false
 
 	if req.Status != "" && pd.Status != req.Status {
 		isChanged = true
 		pd.Status = req.Status
+		if _, ok := statusForUpdateBalance[pd.Status]; ok {
+			needBalanceUpdate = true
+		}
 	}
 
 	if req.Transaction != "" && pd.Transaction != req.Transaction {
@@ -259,6 +301,16 @@ func (s *Service) UpdatePayoutDocument(
 		res.Status = pkg.ResponseStatusNotModified
 	}
 
+	if needBalanceUpdate == true {
+		_, err = s.updateMerchantBalance(pd.MerchantId)
+		if err != nil {
+			res.Status = pkg.ResponseStatusSystemError
+			res.Message = errorPayoutUpdateBalance
+
+			return nil
+		}
+	}
+
 	res.Item = pd
 	return nil
 }
@@ -280,7 +332,7 @@ func (s *Service) GetPayoutDocuments(
 			query["status"] = req.Status
 		}
 		if req.MerchantId != "" {
-			query["merchant_id"] = req.MerchantId
+			query["merchant_id"] = bson.ObjectIdHex(req.MerchantId)
 		}
 		if req.Signed == true {
 			query["has_merchant_signature"] = true
@@ -457,6 +509,7 @@ func (s *Service) getPayoutSignature(
 				RoleName: documentSignerPkg.SignerRoleNamePaysuper,
 			},
 		},
+		// todo: pass custom fields?
 		Metadata: map[string]string{
 			documentSignerPkg.MetadataFieldAction:           documentSignerPkg.MetadataFieldActionValueMerchantPayout,
 			documentSignerPkg.MetadataFieldPayoutDocumentId: pd.Id,
@@ -474,7 +527,7 @@ func (s *Service) getPayoutSignature(
 			zap.Any(errorFieldRequest, req),
 		)
 
-		return nil, errorCreateSignature
+		return nil, errorPayoutCreateSignature
 	}
 
 	if rsp.Status != pkg.ResponseStatusOk {

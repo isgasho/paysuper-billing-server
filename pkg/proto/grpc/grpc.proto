@@ -161,6 +161,8 @@ service BillingService {
     rpc GetPayoutDocuments(GetPayoutDocumentsRequest) returns (GetPayoutDocumentsResponse) {}
     rpc GetPayoutDocumentSignUrl(GetPayoutDocumentSignUrlRequest) returns (GetPayoutDocumentSignUrlResponse) {}
     rpc UpdatePayoutDocumentSignatures(UpdatePayoutDocumentSignaturesRequest) returns (PayoutDocumentResponse) {}
+
+    rpc GetMerchantBalance(GetMerchantBalanceRequest) returns (GetMerchantBalanceResponse) {}
 }
 
 message EmptyRequest {}
@@ -1961,4 +1963,15 @@ message UpdatePayoutDocumentSignaturesRequest {
     bool has_psp_signature = 3;
     // @inject_tag: json:"signed_document_file_url"
     string signed_document_file_url = 4;
+}
+
+message GetMerchantBalanceRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 1;
+}
+
+message GetMerchantBalanceResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.MerchantBalance item = 3;
 }

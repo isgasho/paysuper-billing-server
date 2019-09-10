@@ -122,8 +122,8 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 		},
 	)
 
-	suite.merchant1 = helperCreateMerchant(suite.Suite, suite.service, "USD", "RU", suite.paymentMethod)
-	suite.merchant2 = helperCreateMerchant(suite.Suite, suite.service, "USD", "RU", suite.paymentMethod)
+	suite.merchant1 = helperCreateMerchant(suite.Suite, suite.service, "USD", "RU", suite.paymentMethod, 0)
+	suite.merchant2 = helperCreateMerchant(suite.Suite, suite.service, "USD", "RU", suite.paymentMethod, 0)
 
 	suite.project1 = &billing.Project{
 		Id:                       bson.NewObjectId().Hex(),

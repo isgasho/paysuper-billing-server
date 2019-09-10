@@ -43,6 +43,7 @@ var (
 	royaltyReportErrorReportStatusChangeDenied        = newBillingServerErrorMsg("rr00002", "change royalty report to new status denied")
 	royaltyReportErrorReportDisputeCorrectionRequired = newBillingServerErrorMsg("rr00003", "for change royalty report status to dispute fields with correction amount and correction reason is required")
 	royaltyReportEntryErrorUnknown                    = newBillingServerErrorMsg("rr00004", "unknown error. try request later")
+	royaltyReportUpdateBalanceError                   = newBillingServerErrorMsg("rr00005", "update balance failed")
 )
 
 type royaltyReportQueryResItem struct {
@@ -172,6 +173,11 @@ func (s *Service) AutoAcceptRoyaltyReports(
 		}
 
 		s.onRoyaltyReportChange(report, "", pkg.RoyaltyReportChangeSourceAuto)
+
+		_, err = s.updateMerchantBalance(report.MerchantId)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -273,6 +279,7 @@ func (s *Service) MerchantReviewRoyaltyReport(
 	if report.Status != pkg.RoyaltyReportStatusPending {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = royaltyReportErrorReportStatusChangeDenied
+		return nil
 	}
 
 	if req.IsAccepted == true {
@@ -300,6 +307,16 @@ func (s *Service) MerchantReviewRoyaltyReport(
 	}
 
 	s.onRoyaltyReportChange(report, req.Ip, pkg.RoyaltyReportChangeSourceMerchant)
+
+	if req.IsAccepted {
+		_, err = s.updateMerchantBalance(report.MerchantId)
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = royaltyReportUpdateBalanceError
+
+			return nil
+		}
+	}
 
 	rsp.Status = pkg.ResponseStatusOk
 
@@ -370,6 +387,11 @@ func (s *Service) ChangeRoyaltyReport(
 
 	if req.Status == pkg.RoyaltyReportStatusPending {
 		s.sendRoyaltyReportNotification(report)
+	}
+
+	_, err = s.updateMerchantBalance(report.MerchantId)
+	if err != nil {
+		return err
 	}
 
 	rsp.Status = pkg.ResponseStatusOk

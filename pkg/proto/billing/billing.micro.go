@@ -120,6 +120,7 @@ It has these top-level messages:
 	PayoutDocumentSignatureDataSignUrl
 	PayoutDocumentSignatureData
 	PayoutDocumentChanges
+	MerchantBalance
 */
 package billing
 

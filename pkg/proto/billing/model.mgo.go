@@ -760,7 +760,7 @@ type MgoPayoutDocument struct {
 	FailureCode           string                          `bson:"failure_code"`
 	FailureMessage        string                          `bson:"failure_message"`
 	FailureTransaction    string                          `bson:"failure_transaction"`
-	MerchantId            string                          `bson:"merchant_id"`
+	MerchantId            bson.ObjectId                   `bson:"merchant_id"`
 	SignatureData         *MgoPayoutDocumentSignatureData `bson:"signature_data"`
 	HasMerchantSignature  bool                            `bson:"has_merchant_signature"`
 	HasPspSignature       bool                            `bson:"has_psp_signature"`
@@ -790,6 +790,17 @@ type MgoPayoutDocumentChanges struct {
 	CreatedAt        time.Time     `bson:"created_at"`
 }
 
+type MgoMerchantBalance struct {
+	Id             bson.ObjectId `bson:"_id"`
+	MerchantId     bson.ObjectId `bson:"merchant_id"`
+	Currency       string        `bson:"currency"`
+	Debit          float64       `bson:"debit"`
+	Credit         float64       `bson:"credit"`
+	RollingReserve float64       `bson:"rolling_reserve"`
+	Total          float64       `bson:"total"`
+	CreatedAt      time.Time     `bson:"created_at"`
+}
+
 func (m *PayoutDocument) GetBSON() (interface{}, error) {
 	st := &MgoPayoutDocument{
 		SourceId:              m.SourceId,
@@ -802,7 +813,6 @@ func (m *PayoutDocument) GetBSON() (interface{}, error) {
 		FailureCode:           m.FailureCode,
 		FailureMessage:        m.FailureMessage,
 		FailureTransaction:    m.FailureTransaction,
-		MerchantId:            m.MerchantId,
 		HasMerchantSignature:  m.HasMerchantSignature,
 		HasPspSignature:       m.HasPspSignature,
 		SignedDocumentFileUrl: m.SignedDocumentFileUrl,
@@ -816,6 +826,12 @@ func (m *PayoutDocument) GetBSON() (interface{}, error) {
 
 		st.Id = bson.ObjectIdHex(m.Id)
 	}
+
+	if bson.IsObjectIdHex(m.MerchantId) == false {
+		return nil, errors.New(errorInvalidObjectId)
+	}
+
+	st.MerchantId = bson.ObjectIdHex(m.MerchantId)
 
 	if m.CreatedAt != nil {
 		t, err := ptypes.Timestamp(m.CreatedAt)
@@ -913,7 +929,7 @@ func (m *PayoutDocument) SetBSON(raw bson.Raw) error {
 	m.FailureCode = decoded.FailureCode
 	m.FailureMessage = decoded.FailureMessage
 	m.FailureTransaction = decoded.FailureTransaction
-	m.MerchantId = decoded.MerchantId
+	m.MerchantId = decoded.MerchantId.Hex()
 	m.HasMerchantSignature = decoded.HasMerchantSignature
 	m.HasPspSignature = decoded.HasPspSignature
 	m.SignedDocumentFileUrl = decoded.SignedDocumentFileUrl
@@ -1020,6 +1036,69 @@ func (m *PayoutDocumentChanges) SetBSON(raw bson.Raw) error {
 	m.PayoutDocumentId = decoded.PayoutDocumentId.Hex()
 	m.Source = decoded.Source
 	m.Ip = decoded.Ip
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *MerchantBalance) GetBSON() (interface{}, error) {
+	st := &MgoMerchantBalance{
+		Currency:       m.Currency,
+		Debit:          m.Debit,
+		Credit:         m.Credit,
+		RollingReserve: m.RollingReserve,
+		Total:          m.Total,
+	}
+	if len(m.Id) <= 0 {
+		st.Id = bson.NewObjectId()
+	} else {
+		if bson.IsObjectIdHex(m.Id) == false {
+			return nil, errors.New(errorInvalidObjectId)
+		}
+
+		st.Id = bson.ObjectIdHex(m.Id)
+	}
+
+	if bson.IsObjectIdHex(m.MerchantId) == false {
+		return nil, errors.New(errorInvalidObjectId)
+	}
+
+	st.MerchantId = bson.ObjectIdHex(m.MerchantId)
+
+	if m.CreatedAt != nil {
+		t, err := ptypes.Timestamp(m.CreatedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.CreatedAt = t
+	} else {
+		st.CreatedAt = time.Now()
+	}
+
+	return st, nil
+}
+
+func (m *MerchantBalance) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoMerchantBalance)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.MerchantId = decoded.MerchantId.Hex()
+	m.Currency = decoded.Currency
+	m.Debit = decoded.Debit
+	m.Credit = decoded.Credit
+	m.RollingReserve = decoded.RollingReserve
+	m.Total = decoded.Total
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {
