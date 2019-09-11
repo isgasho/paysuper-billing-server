@@ -70,7 +70,7 @@ func (s *Service) calcAnnualTurnover(ctx context.Context, countryCode string) er
 		targetCurrency = "EUR"
 		ratesType      = curPkg.RateTypeOxr
 		ratesSource    = ""
-		currencyPolicy = "on-day"
+		currencyPolicy = pkg.VatCurrencyRatesPolicyOnDay
 		year           = now.BeginningOfYear()
 		from           = now.BeginningOfYear()
 		to             = now.EndOfDay()
