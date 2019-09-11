@@ -47,7 +47,7 @@ var (
 type DashboardRepositoryInterface interface {
 	NewDashboardReportProcessor(string, string, string, interface{}, *mongodb.Source, CacheInterface) (*dashboardReportProcessor, error)
 	GetDashboardMainReport(string, string) (*grpc.DashboardMainReport, error)
-	GetDashboardRevenueDynamicsReport(string, string) ([]*grpc.DashboardRevenueDynamicReport, error)
+	GetDashboardRevenueDynamicsReport(string, string) ([]*grpc.DashboardRevenueDynamicReportItem, error)
 	GetDashboardBaseReport(string, string) (*grpc.DashboardBaseReports, error)
 	GetDashboardBaseRevenueByCountryReport(string, string) (*grpc.DashboardRevenueByCountryReport, error)
 	GetDashboardBaseSalesTodayReport(string, string) (*grpc.DashboardSalesTodayReport, error)
@@ -103,7 +103,7 @@ func (m *DashboardRepository) GetDashboardMainReport(merchantId, period string) 
 
 func (m *DashboardRepository) GetDashboardRevenueDynamicsReport(
 	merchantId, period string,
-) ([]*grpc.DashboardRevenueDynamicReport, error) {
+) ([]*grpc.DashboardRevenueDynamicReportItem, error) {
 	processor, err := m.NewDashboardReportProcessor(
 		merchantId,
 		period,
@@ -118,13 +118,13 @@ func (m *DashboardRepository) GetDashboardRevenueDynamicsReport(
 	}
 
 	processor.dbQueryFn = processor.ExecuteDashboardRevenueDynamicReport
-	data, err := processor.ExecuteReport(make([]*grpc.DashboardRevenueDynamicReport, 1))
+	data, err := processor.ExecuteReport(new(grpc.DashboardRevenueDynamicReport))
 
 	if err != nil {
 		return nil, dashboardErrorUnknown
 	}
 
-	return data.([]*grpc.DashboardRevenueDynamicReport), nil
+	return data.(*grpc.DashboardRevenueDynamicReport).Items, nil
 }
 
 func (m *DashboardRepository) GetDashboardBaseReport(merchantId, period string) (*grpc.DashboardBaseReports, error) {
@@ -608,6 +608,7 @@ func (m *dashboardReportProcessor) ExecuteDashboardMainReport(receiver interface
 }
 
 func (m *dashboardReportProcessor) ExecuteDashboardRevenueDynamicReport(receiver interface{}) (interface{}, error) {
+	var items []*grpc.DashboardRevenueDynamicReportItem
 	query := []bson.M{
 		{"$match": m.match},
 		{
@@ -630,7 +631,7 @@ func (m *dashboardReportProcessor) ExecuteDashboardRevenueDynamicReport(receiver
 		},
 	}
 
-	err := m.db.Collection(collectionOrderView).Pipe(query).All(&receiver)
+	err := m.db.Collection(collectionOrderView).Pipe(query).All(&items)
 
 	if err != nil {
 		zap.L().Error(
@@ -643,7 +644,7 @@ func (m *dashboardReportProcessor) ExecuteDashboardRevenueDynamicReport(receiver
 		return nil, dashboardErrorUnknown
 	}
 
-	return receiver, nil
+	return &grpc.DashboardRevenueDynamicReport{Items: items}, nil
 }
 
 func (m *dashboardReportProcessor) ExecuteDashboardRevenueByCountryReport(receiver interface{}) (interface{}, error) {

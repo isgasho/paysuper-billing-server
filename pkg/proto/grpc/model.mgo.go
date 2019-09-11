@@ -97,7 +97,7 @@ type MgoDashboardAmountItemWithChart struct {
 	Chart    []*DashboardChartItemFloat `bson:"chart"`
 }
 
-type MgoDashboardRevenueDynamicReport struct {
+type MgoDashboardRevenueDynamicReportItem struct {
 	Label    string  `bson:"label"`
 	Amount   float64 `bson:"amount"`
 	Currency string  `bson:"currency"`
@@ -598,8 +598,8 @@ func (m *DashboardAmountItemWithChart) SetBSON(raw bson.Raw) error {
 	return nil
 }
 
-func (m *DashboardRevenueDynamicReport) SetBSON(raw bson.Raw) error {
-	decoded := new(MgoDashboardRevenueDynamicReport)
+func (m *DashboardRevenueDynamicReportItem) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoDashboardRevenueDynamicReportItem)
 	err := raw.Unmarshal(decoded)
 
 	if err != nil {

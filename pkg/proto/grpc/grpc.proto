@@ -1678,7 +1678,7 @@ message GetDashboardBaseReportResponse {
 message GetDashboardRevenueDynamicsReportResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
-    repeated DashboardRevenueDynamicReport item = 3;
+    repeated DashboardRevenueDynamicReportItem item = 3;
 }
 
 message DashboardAmountItemWithChart {
@@ -1716,6 +1716,11 @@ message DashboardMainReport {
 }
 
 message DashboardRevenueDynamicReport {
+    //@inject_tag: json:"items"
+    repeated DashboardRevenueDynamicReportItem items = 1;
+}
+
+message DashboardRevenueDynamicReportItem {
     //@inject_tag: json:"label"
     string label = 1;
     //@inject_tag: json:"amount"

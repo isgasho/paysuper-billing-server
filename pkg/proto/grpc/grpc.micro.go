@@ -184,6 +184,7 @@ It has these top-level messages:
 	DashboardMainReportTotalTransactions
 	DashboardMainReport
 	DashboardRevenueDynamicReport
+	DashboardRevenueDynamicReportItem
 	DashboardRevenueByCountryReportTop
 	DashboardRevenueByCountryReportTotal
 	DashboardRevenueByCountryReportChartItem
