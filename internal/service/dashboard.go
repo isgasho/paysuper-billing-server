@@ -45,7 +45,7 @@ func (s *Service) GetDashboardMainReport(
 	return nil
 }
 
-func (s *Service) GetDashboardRevenueDynamicsReportResponse(
+func (s *Service) GetDashboardRevenueDynamicsReport(
 	ctx context.Context,
 	req *grpc.GetDashboardMainRequest,
 	rsp *grpc.GetDashboardRevenueDynamicsReportResponse,
