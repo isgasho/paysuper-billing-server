@@ -44,6 +44,7 @@ var (
 	errorVatReportQueryError                    = newBillingServerErrorMsg("vr000006", "vat report db query error")
 	errorVatReportNotFound                      = newBillingServerErrorMsg("vr000007", "vat report not found")
 	errorVatReportInternal                      = newBillingServerErrorMsg("vr000008", "vat report internal error")
+	errorVatReportStatusIsTheSame               = newBillingServerErrorMsg("vr000009", "vat report status is the same")
 
 	VatReportOnStatusNotifyToCentrifugo = []string{
 		pkg.VatReportStatusNeedToPay,
@@ -367,11 +368,7 @@ func (s *Service) UpdateVatReportStatus(
 
 	if vr.Status == req.Status {
 		res.Status = pkg.ResponseStatusNotModified
-		return nil
-	}
-
-	if vr.Status == req.Status {
-		res.Status = pkg.ResponseStatusNotModified
+		res.Message = errorVatReportStatusIsTheSame
 		return nil
 	}
 
