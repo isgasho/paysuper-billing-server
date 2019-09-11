@@ -1716,7 +1716,7 @@ message DashboardMainReport {
 }
 
 message DashboardRevenueDynamicReport {
-    //@inject_tag: json:"amount"
+    //@inject_tag: json:"label"
     string label = 1;
     //@inject_tag: json:"amount"
     double amount = 2;
