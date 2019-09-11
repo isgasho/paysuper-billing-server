@@ -608,7 +608,6 @@ func (m *dashboardReportProcessor) ExecuteDashboardMainReport(receiver interface
 }
 
 func (m *dashboardReportProcessor) ExecuteDashboardRevenueDynamicReport(receiver interface{}) (interface{}, error) {
-	var items []*grpc.DashboardRevenueDynamicReportItem
 	query := []bson.M{
 		{"$match": m.match},
 		{
@@ -631,7 +630,8 @@ func (m *dashboardReportProcessor) ExecuteDashboardRevenueDynamicReport(receiver
 		},
 	}
 
-	err := m.db.Collection(collectionOrderView).Pipe(query).All(&items)
+	receiverTyped := receiver.(*grpc.DashboardRevenueDynamicReport)
+	err := m.db.Collection(collectionOrderView).Pipe(query).All(&receiverTyped.Items)
 
 	if err != nil {
 		zap.L().Error(
@@ -644,7 +644,7 @@ func (m *dashboardReportProcessor) ExecuteDashboardRevenueDynamicReport(receiver
 		return nil, dashboardErrorUnknown
 	}
 
-	return &grpc.DashboardRevenueDynamicReport{Items: items}, nil
+	return receiverTyped, nil
 }
 
 func (m *dashboardReportProcessor) ExecuteDashboardRevenueByCountryReport(receiver interface{}) (interface{}, error) {
