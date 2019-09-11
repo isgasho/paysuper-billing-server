@@ -55,6 +55,7 @@ const (
 	MerchantStatusDeleted            = int32(5)
 
 	ResponseStatusOk          = int32(200)
+	ResponseStatusNotModified = int32(304)
 	ResponseStatusBadData     = int32(400)
 	ResponseStatusNotFound    = int32(404)
 	ResponseStatusForbidden   = int32(403)
