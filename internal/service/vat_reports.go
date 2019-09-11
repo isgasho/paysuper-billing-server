@@ -366,13 +366,13 @@ func (s *Service) UpdateVatReportStatus(
 	}
 
 	if !contains(VatReportStatusAllowManualChangeFrom, vr.Status) {
-		res.Status = pkg.StatusErrorValidation
+		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorVatReportStatusChangeNotAllowed
 		return nil
 	}
 
 	if !contains(VatReportStatusAllowManualChangeTo, req.Status) {
-		res.Status = pkg.StatusErrorValidation
+		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorVatReportStatusChangeNotAllowed
 		return nil
 	}
