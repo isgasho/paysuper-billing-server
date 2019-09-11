@@ -1652,7 +1652,7 @@ message SetMerchantTariffRatesRequest {
 message GetDashboardMainRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string merchant_id = 1;
-    //@inject_tag: validate:"required,oneof=current_month previous_month current_quarter previous_quarter current_year previous_year"
+    //@inject_tag: query:"period" validate:"required,oneof=current_month previous_month current_quarter previous_quarter current_year previous_year"
     string period = 2;
 }
 
@@ -1665,7 +1665,7 @@ message GetDashboardMainResponse {
 message GetDashboardBaseReportRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string merchant_id = 1;
-    //@inject_tag: validate:"required,oneof=current_day previous_day current_week previous_week current_month previous_month current_quarter previous_quarter current_year previous_year"
+    //@inject_tag: query:"period" validate:"required,oneof=current_day previous_day current_week previous_week current_month previous_month current_quarter previous_quarter current_year previous_year"
     string period = 2;
 }
 
