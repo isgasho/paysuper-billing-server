@@ -44,6 +44,7 @@ var (
 	errorVatReportQueryError                    = newBillingServerErrorMsg("vr000006", "vat report db query error")
 	errorVatReportNotFound                      = newBillingServerErrorMsg("vr000007", "vat report not found")
 	errorVatReportInternal                      = newBillingServerErrorMsg("vr000008", "vat report internal error")
+	errorVatReportStatusIsTheSame               = newBillingServerErrorMsg("vr000009", "vat report status is the same")
 
 	VatReportOnStatusNotifyToCentrifugo = []string{
 		pkg.VatReportStatusNeedToPay,
@@ -292,12 +293,6 @@ func (s *Service) ProcessVatReports(
 	res *grpc.EmptyResponse,
 ) error {
 
-	zap.S().Info("calc annual turnovers")
-	err := s.CalcAnnualTurnovers(ctx, &grpc.EmptyRequest{}, &grpc.EmptyResponse{})
-	if err != nil {
-		return err
-	}
-
 	handler, err := NewVatReportProcessor(s, ctx, req.Date)
 	if err != nil {
 		return err
@@ -311,6 +306,12 @@ func (s *Service) ProcessVatReports(
 
 	zap.S().Info("updating order view")
 	err = handler.UpdateOrderView()
+	if err != nil {
+		return err
+	}
+
+	zap.S().Info("calc annual turnovers")
+	err = s.CalcAnnualTurnovers(ctx, &grpc.EmptyRequest{}, &grpc.EmptyResponse{})
 	if err != nil {
 		return err
 	}
@@ -365,14 +366,20 @@ func (s *Service) UpdateVatReportStatus(
 		return nil
 	}
 
+	if vr.Status == req.Status {
+		res.Status = pkg.ResponseStatusNotModified
+		res.Message = errorVatReportStatusIsTheSame
+		return nil
+	}
+
 	if !contains(VatReportStatusAllowManualChangeFrom, vr.Status) {
-		res.Status = pkg.StatusErrorValidation
+		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorVatReportStatusChangeNotAllowed
 		return nil
 	}
 
 	if !contains(VatReportStatusAllowManualChangeTo, req.Status) {
-		res.Status = pkg.StatusErrorValidation
+		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorVatReportStatusChangeNotAllowed
 		return nil
 	}
@@ -394,6 +401,7 @@ func (s *Service) insertVatReport(vr *billing.VatReport) error {
 }
 
 func (s *Service) updateVatReport(vr *billing.VatReport) error {
+	vr.UpdatedAt = ptypes.TimestampNow()
 	err := s.db.Collection(collectionVatReports).UpdateId(bson.ObjectIdHex(vr.Id), vr)
 	if err != nil {
 		return err
@@ -515,8 +523,12 @@ func (h *vatReportProcessor) ProcessVatReportsStatus() error {
 			}
 			if currentUnixTime >= reportDeadline.Unix() {
 				report.Status = pkg.VatReportStatusOverdue
-				return h.Service.updateVatReport(report)
+				err = h.Service.updateVatReport(report)
+				if err != nil {
+					return err
+				}
 			}
+			continue
 		}
 
 		noThreshold := country.VatThreshold.Year == 0 && country.VatThreshold.World == 0
@@ -524,12 +536,17 @@ func (h *vatReportProcessor) ProcessVatReportsStatus() error {
 		thresholdExceeded := (country.VatThreshold.Year > 0 && report.CountryAnnualTurnover >= country.VatThreshold.Year) ||
 			(country.VatThreshold.World > 0 && report.WorldAnnualTurnover >= country.VatThreshold.World)
 
-		if noThreshold || thresholdExceeded {
+		amountsGtZero := report.VatAmount > 0 || report.CorrectionAmount > 0 || report.DeductionAmount > 0
+
+		if (noThreshold || thresholdExceeded) && amountsGtZero {
 			report.Status = pkg.VatReportStatusNeedToPay
 		} else {
 			report.Status = pkg.VatReportStatusExpired
 		}
-		return h.Service.updateVatReport(report)
+		err = h.Service.updateVatReport(report)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

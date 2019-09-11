@@ -7,9 +7,9 @@ addons:
   sonarcloud:
     organization: paysuper
 stages:
-- test
-- name: deploy
-  if: branch = master
+  - test
+  - name: deploy
+    if: branch IN (master, feature/PAY-261)
 jobs:
   include:
   - stage: test

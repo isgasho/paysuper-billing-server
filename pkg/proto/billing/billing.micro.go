@@ -115,6 +115,7 @@ It has these top-level messages:
 	MerchantTariffRatesMoneyBack
 	TariffRatesItem
 	MerchantTariffRates
+	Key
 */
 package billing
 

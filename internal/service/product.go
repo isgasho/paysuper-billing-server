@@ -37,6 +37,9 @@ var (
 	productErrorList                       = newBillingServerErrorMsg("pd000016", "unable to get product list")
 	productErrorListPrices                 = newBillingServerErrorMsg("pd000017", "list of prices is empty")
 	productErrorPricesUpdate               = newBillingServerErrorMsg("pd000017", "query to update product prices is failed")
+	productMerchantMismatch       = newBillingServerErrorMsg("pd000006", "merchant id mismatch")
+	productProjectMismatch        = newBillingServerErrorMsg("pd000007", "project id mismatch")
+	productSkuMismatch            = newBillingServerErrorMsg("pd000008", "sku mismatch")
 )
 
 func (s *Service) CreateOrUpdateProduct(ctx context.Context, req *grpc.Product, res *grpc.Product) error {
@@ -55,6 +58,11 @@ func (s *Service) CreateOrUpdateProduct(ctx context.Context, req *grpc.Product, 
 		if err != nil {
 			zap.S().Errorf("Product that requested to change is not found", "err", err.Error(), "data", req)
 			return productErrorNotFound
+		}
+
+		if req.Sku != "" && req.Sku != product.Sku {
+			zap.S().Errorf("SKU mismatch", "data", req)
+			return productSkuMismatch
 		}
 
 		if req.MerchantId != product.MerchantId {
