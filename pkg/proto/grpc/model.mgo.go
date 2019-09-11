@@ -98,13 +98,14 @@ type MgoDashboardAmountItemWithChart struct {
 }
 
 type MgoDashboardRevenueDynamicReport struct {
+	Label    string  `bson:"label"`
 	Amount   float64 `bson:"amount"`
 	Currency string  `bson:"currency"`
 	Count    int64   `bson:"count"`
 }
 
 type MgoDashboardRevenueByCountryReportTop struct {
-	Country  string  `bson:"country"`
+	Country  string  `bson:"_id"`
 	Amount   float64 `bson:"amount"`
 	Currency string  `bson:"currency"`
 }
@@ -585,7 +586,6 @@ func (m *DashboardAmountItemWithChart) SetBSON(raw bson.Raw) error {
 
 	m.Amount = tools.FormatAmount(decoded.Amount)
 	m.Currency = decoded.Currency
-	m.Chart = make([]*DashboardChartItemFloat, 1)
 
 	for _, v := range decoded.Chart {
 		item := &DashboardChartItemFloat{
@@ -606,6 +606,7 @@ func (m *DashboardRevenueDynamicReport) SetBSON(raw bson.Raw) error {
 		return err
 	}
 
+	m.Label = decoded.Label
 	m.Amount = tools.FormatAmount(decoded.Amount)
 	m.Currency = decoded.Currency
 	m.Count = decoded.Count

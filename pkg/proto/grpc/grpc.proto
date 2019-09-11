@@ -150,7 +150,9 @@ service BillingService {
 
     rpc ChangeCodeInOrder(ChangeCodeInOrderRequest) returns (ChangeCodeInOrderResponse) {}
 
-    rpc GetDashboardMain(GetDashboardMainRequest) returns (GetDashboardMainResponse) {}
+    rpc GetDashboardMainReport(GetDashboardMainRequest) returns (GetDashboardMainResponse) {}
+    rpc GetDashboardRevenueDynamicsReport(GetDashboardMainRequest) returns (GetDashboardRevenueDynamicsReportResponse) {}
+    rpc GetDashboardBaseReport(GetDashboardBaseReportRequest) returns (GetDashboardBaseReportResponse) {}
 }
 
 message EmptyRequest {}
@@ -1650,10 +1652,33 @@ message SetMerchantTariffRatesRequest {
 message GetDashboardMainRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string merchant_id = 1;
+    //@inject_tag: validate:"required,oneof=current_month previous_month current_quarter previous_quarter current_year previous_year"
+    string period = 2;
 }
 
 message GetDashboardMainResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    DashboardMainReport item = 3;
+}
 
+message GetDashboardBaseReportRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 1;
+    //@inject_tag: validate:"required,oneof=current_day previous_day current_week previous_week current_month previous_month current_quarter previous_quarter current_year previous_year"
+    string period = 2;
+}
+
+message GetDashboardBaseReportResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    DashboardBaseReports item = 3;
+}
+
+message GetDashboardRevenueDynamicsReportResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    repeated DashboardRevenueDynamicReport item = 3;
 }
 
 message DashboardAmountItemWithChart {
@@ -1666,9 +1691,9 @@ message DashboardAmountItemWithChart {
 }
 
 message DashboardChartItemFloat {
-    //@inject_tag: json:"label"
+    //@inject_tag: json:"label" bson:"label"
     string label = 1;
-    //@inject_tag: json:"value"
+    //@inject_tag: json:"value" bson:"value"
     double value = 2;
 }
 
@@ -1692,11 +1717,13 @@ message DashboardMainReport {
 
 message DashboardRevenueDynamicReport {
     //@inject_tag: json:"amount"
-    double amount = 1;
+    string label = 1;
+    //@inject_tag: json:"amount"
+    double amount = 2;
     //@inject_tag: json:"currency"
-    string currency = 2;
+    string currency = 3;
     //@inject_tag: json:"count"
-    int64 count = 3;
+    int64 count = 4;
 }
 
 message DashboardRevenueByCountryReportTop {

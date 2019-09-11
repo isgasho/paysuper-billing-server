@@ -7,6 +7,7 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -15,6 +16,8 @@ import (
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"math/rand"
+	"strconv"
 	"time"
 )
 
@@ -525,9 +528,16 @@ func helperCreateMerchant(suite suite.Suite, service *Service, currency, country
 	return merchant
 }
 
-func helperCreateAndPayOrder(suite suite.Suite, service *Service, amount float64, currency, country string, project *billing.Project, paymentMethod *billing.PaymentMethod) *billing.Order {
+func helperCreateAndPayOrder(
+	suite suite.Suite,
+	service *Service,
+	amount float64,
+	currency, country string,
+	project *billing.Project,
+	paymentMethod *billing.PaymentMethod,
+) *billing.Order {
 	req := &billing.OrderCreateRequest{
-		Type: billing.OrderType_simple,
+		Type:        billing.OrderType_simple,
 		ProjectId:   project.Id,
 		Amount:      amount,
 		Currency:    currency,
@@ -693,4 +703,277 @@ func helperMakeRefund(suite suite.Suite, service *Service, order *billing.Order,
 	assert.Equal(suite.T(), pkg.RefundStatusCompleted, refund.Status)
 
 	return refund
+}
+
+func createProductsForProject(
+	suite suite.Suite,
+	service *Service,
+	project *billing.Project,
+	productsCount int,
+) []*grpc.Product {
+	products := make([]*grpc.Product, 1)
+
+	for i := 0; i < productsCount; i++ {
+		name := "ru_test_product_" + strconv.Itoa(i)
+		req := &grpc.Product{
+			Object:          "product",
+			Type:            "simple_product",
+			Sku:             name,
+			Name:            map[string]string{"en": name},
+			DefaultCurrency: "USD",
+			Enabled:         true,
+			Description:     map[string]string{"en": name + " description"},
+			MerchantId:      project.MerchantId,
+			ProjectId:       project.Id,
+		}
+
+		baseAmount := 37.00 * float64(i+1)
+
+		req.Prices = append(req.Prices, &grpc.ProductPrice{
+			Currency: "USD",
+			Region:   "USD",
+			Amount:   baseAmount,
+		})
+		req.Prices = append(req.Prices, &grpc.ProductPrice{
+			Currency: "RUB",
+			Region:   "RUB",
+			Amount:   baseAmount * 65.13,
+		})
+
+		prod := &grpc.Product{}
+		err := service.CreateOrUpdateProduct(context.TODO(), req, prod)
+
+		if err != nil {
+			suite.FailNow("Add products for project failed", "%v", err)
+		}
+
+		products = append(products, prod)
+	}
+
+	return products
+}
+
+func createKeyProductsFroProject(
+	suite suite.Suite,
+	service *Service,
+	project *billing.Project,
+	productsCount int,
+) []*grpc.KeyProduct {
+	products := make([]*grpc.KeyProduct, 1)
+
+	for i := 0; i < productsCount; i++ {
+		name := "ru_test_key_product_" + strconv.Itoa(i)
+		req := &grpc.CreateOrUpdateKeyProductRequest{
+			Object:          "key_product",
+			Sku:             name,
+			Name:            map[string]string{"en": name},
+			DefaultCurrency: "USD",
+			Description:     map[string]string{"en": name + " description"},
+			MerchantId:      project.MerchantId,
+			ProjectId:       project.Id,
+		}
+
+		baseAmount := 37.00 * float64(i+1)
+
+		rsp := &grpc.KeyProductResponse{}
+		err := service.CreateOrUpdateKeyProduct(context.TODO(), req, rsp)
+
+		if err != nil {
+			suite.FailNow("Add key products for project failed", "%v", err)
+		}
+
+		req1 := &grpc.AddOrUpdatePlatformPricesRequest{
+			KeyProductId: rsp.Product.Id,
+			MerchantId:   project.MerchantId,
+			Platform: &grpc.PlatformPrice{
+				Id: "steam",
+				Prices: []*grpc.ProductPrice{
+					{
+						Currency: "USD",
+						Region:   "USD",
+						Amount:   baseAmount,
+					},
+					{
+						Currency: "RUB",
+						Region:   "RUB",
+						Amount:   baseAmount * 65.13,
+					},
+				},
+			},
+		}
+		rsp1 := &grpc.UpdatePlatformPricesResponse{}
+		err = service.UpdatePlatformPrices(context.TODO(), req1, rsp1)
+
+		if err != nil {
+			suite.FailNow("Update platform prices for key product for project failed", "%v", err)
+		}
+
+		req2 := &grpc.PublishKeyProductRequest{
+			MerchantId:   project.MerchantId,
+			KeyProductId: rsp.Product.Id,
+		}
+		rsp2 := &grpc.KeyProductResponse{}
+		err = service.PublishKeyProduct(context.TODO(), req2, rsp2)
+
+		if err != nil {
+			suite.FailNow("Publishing key product for project failed", "%v", err)
+		}
+
+		fileContent := fmt.Sprintf("%s-%s-%s-%s", GenerateRandomString(4), GenerateRandomString(4), GenerateRandomString(4), GenerateRandomString(4))
+		file := []byte(fileContent)
+
+		req3 := &grpc.PlatformKeysFileRequest{
+			KeyProductId: rsp.Product.Id,
+			PlatformId:   "steam",
+			MerchantId:   project.MerchantId,
+			File:         file,
+		}
+		rsp3 := &grpc.PlatformKeysFileResponse{}
+		err = service.UploadKeysFile(context.TODO(), req3, rsp3)
+
+		if err != nil {
+			suite.FailNow("Upload keys to key product for project failed", "%v", err)
+		}
+
+		products = append(products, rsp.Product)
+	}
+
+	return products
+}
+
+func helperCreateAndPayOrder2(
+	suite suite.Suite,
+	service *Service,
+	amount float64,
+	currency, country string,
+	project *billing.Project,
+	paymentMethod *billing.PaymentMethod,
+	paymentMethodClosedAt time.Time,
+	product *grpc.Product,
+	keyProduct *grpc.KeyProduct,
+	issuerUrl string,
+) *billing.Order {
+	req := &billing.OrderCreateRequest{
+		ProjectId:   project.Id,
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+			Address: &billing.OrderBillingAddress{
+				Country: country,
+			},
+		},
+		IssuerUrl: issuerUrl,
+	}
+
+	if product != nil {
+		req.Type = billing.OrderType_product
+		req.Products = []string{product.Id}
+	} else if keyProduct != nil {
+		req.Type = billing.OrderType_key
+		req.Products = []string{keyProduct.Id}
+	} else {
+		if amount <= 0 || currency == "" {
+			suite.FailNow("Order creation failed because request hasn't required fields", "%v")
+		}
+
+		req.Type = billing.OrderType_simple
+		req.Amount = amount
+		req.Currency = currency
+	}
+
+	rsp := &grpc.OrderCreateProcessResponse{}
+	err := service.OrderCreateProcess(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
+
+	req1 := &grpc.PaymentCreateRequest{
+		Data: map[string]string{
+			pkg.PaymentCreateFieldOrderId:         rsp.Item.Uuid,
+			pkg.PaymentCreateFieldPaymentMethodId: paymentMethod.Id,
+			pkg.PaymentCreateFieldEmail:           "test@unit.unit",
+			pkg.PaymentCreateFieldPan:             "4000000000000002",
+			pkg.PaymentCreateFieldCvv:             "123",
+			pkg.PaymentCreateFieldMonth:           "02",
+			pkg.PaymentCreateFieldYear:            time.Now().AddDate(1, 0, 0).Format("2006"),
+			pkg.PaymentCreateFieldHolder:          "MR. CARD HOLDER",
+		},
+		Ip: "127.0.0.1",
+	}
+
+	rsp1 := &grpc.PaymentCreateResponse{}
+	err = service.PaymentCreateProcess(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+
+	var order *billing.Order
+	err = service.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(rsp.Item.Id)).One(&order)
+	assert.NotNil(suite.T(), order)
+	assert.IsType(suite.T(), &billing.Order{}, order)
+
+	callbackRequest := &billing.CardPayPaymentCallback{
+		PaymentMethod: paymentMethod.ExternalId,
+		CallbackTime:  paymentMethodClosedAt.Format("2006-01-02T15:04:05Z"),
+		MerchantOrder: &billing.CardPayMerchantOrder{
+			Id:          rsp.Item.Id,
+			Description: rsp.Item.Description,
+		},
+		CardAccount: &billing.CallbackCardPayBankCardAccount{
+			Holder:             order.PaymentRequisites[pkg.PaymentCreateFieldHolder],
+			IssuingCountryCode: country,
+			MaskedPan:          order.PaymentRequisites[pkg.PaymentCreateFieldPan],
+			Token:              bson.NewObjectId().Hex(),
+		},
+		Customer: &billing.CardPayCustomer{
+			Email:  rsp.Item.User.Email,
+			Ip:     rsp.Item.User.Ip,
+			Id:     rsp.Item.ProjectAccount,
+			Locale: "Europe/Moscow",
+		},
+		PaymentData: &billing.CallbackCardPayPaymentData{
+			Id:          bson.NewObjectId().Hex(),
+			Amount:      order.TotalPaymentAmount,
+			Currency:    order.Currency,
+			Description: order.Description,
+			Is_3D:       true,
+			Rrn:         bson.NewObjectId().Hex(),
+			Status:      pkg.CardPayPaymentResponseStatusCompleted,
+		},
+	}
+
+	buf, err := json.Marshal(callbackRequest)
+	assert.NoError(suite.T(), err)
+
+	hash := sha512.New()
+	hash.Write([]byte(string(buf) + order.PaymentMethod.Params.SecretCallback))
+
+	callbackData := &grpc.PaymentNotifyRequest{
+		OrderId:   order.Id,
+		Request:   buf,
+		Signature: hex.EncodeToString(hash.Sum(nil)),
+	}
+
+	callbackResponse := &grpc.PaymentNotifyResponse{}
+	err = service.PaymentCallbackProcess(context.TODO(), callbackData, callbackResponse)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.StatusOK, callbackResponse.Status)
+
+	err = service.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(order.Id)).One(&order)
+	assert.NotNil(suite.T(), order)
+	assert.IsType(suite.T(), &billing.Order{}, order)
+	assert.Equal(suite.T(), int32(constant.OrderStatusPaymentSystemComplete), order.PrivateStatus)
+
+	return order
+}
+
+func GenerateRandomString(n int) string {
+	var letter = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letter[rand.Intn(len(letter))]
+	}
+	return string(b)
 }

@@ -73,6 +73,10 @@ type dashboardReportProcessor struct {
 	cache       CacheInterface
 }
 
+func newDashboardRepository(s *Service) DashboardRepositoryInterface {
+	return &DashboardRepository{svc: s}
+}
+
 func (m *DashboardRepository) GetDashboardMainReport(merchantId, period string) (*grpc.DashboardMainReport, error) {
 	processor, err := m.NewDashboardReportProcessor(
 		merchantId,
@@ -188,14 +192,28 @@ func (m *DashboardRepository) GetDashboardBaseRevenueByCountryReport(
 		return nil, dashboardErrorUnknown
 	}
 
-	dataPrevious, err := processorCurrent.ExecuteReport(new(grpc.DashboardRevenueByCountryReport))
+	dataPrevious, err := processorPrevious.ExecuteReport(new(grpc.DashboardRevenueByCountryReport))
 
 	if err != nil {
 		return nil, dashboardErrorUnknown
 	}
 
 	dataCurrentTyped := dataCurrent.(*grpc.DashboardRevenueByCountryReport)
+
+	if dataCurrentTyped == nil || dataCurrentTyped.TotalCurrent == nil {
+		dataCurrentTyped = &grpc.DashboardRevenueByCountryReport{
+			TotalCurrent: &grpc.DashboardRevenueByCountryReportTotal{},
+		}
+	}
+
 	dataPreviousTyped := dataPrevious.(*grpc.DashboardRevenueByCountryReport)
+
+	if dataPreviousTyped == nil || dataPreviousTyped.TotalCurrent == nil {
+		dataPreviousTyped = &grpc.DashboardRevenueByCountryReport{
+			TotalCurrent: &grpc.DashboardRevenueByCountryReportTotal{},
+		}
+	}
+
 	dataCurrentTyped.TotalPrevious = dataPreviousTyped.TotalCurrent
 
 	return dataCurrentTyped, nil
@@ -238,7 +256,7 @@ func (m *DashboardRepository) GetDashboardBaseSalesTodayReport(
 		return nil, dashboardErrorUnknown
 	}
 
-	dataPrevious, err := processorCurrent.ExecuteReport(new(grpc.DashboardSalesTodayReport))
+	dataPrevious, err := processorPrevious.ExecuteReport(new(grpc.DashboardSalesTodayReport))
 
 	if err != nil {
 		return nil, dashboardErrorUnknown
@@ -288,7 +306,7 @@ func (m *DashboardRepository) GetDashboardBaseSourcesReport(
 		return nil, dashboardErrorUnknown
 	}
 
-	dataPrevious, err := processorCurrent.ExecuteReport(new(grpc.DashboardSourcesReport))
+	dataPrevious, err := processorPrevious.ExecuteReport(new(grpc.DashboardSourcesReport))
 
 	if err != nil {
 		return nil, dashboardErrorUnknown
@@ -318,7 +336,9 @@ func (m *DashboardRepository) NewDashboardReportProcessor(
 	switch period {
 	case pkg.DashboardPeriodCurrentDay:
 		processor.groupBy = dashboardReportGroupByHour
-		processor.match["pm_order_close_date"] = bson.M{"$gte": now.BeginningOfDay(), "$lte": now.EndOfDay()}
+		gte := now.BeginningOfDay()
+		lte := now.EndOfDay()
+		processor.match["pm_order_close_date"] = bson.M{"$gte": gte, "$lte": lte}
 		break
 	case pkg.DashboardPeriodPreviousDay, pkg.DashboardPeriodTwoDaysAgo:
 		decrement := -1
@@ -326,17 +346,18 @@ func (m *DashboardRepository) NewDashboardReportProcessor(
 			decrement = decrement * 2
 		}
 		previousDay := time.Now().AddDate(0, 0, decrement)
+		gte := now.New(previousDay).BeginningOfDay()
+		lte := now.New(previousDay).EndOfDay()
 
 		processor.groupBy = dashboardReportGroupByHour
-		processor.match["pm_order_close_date"] = bson.M{
-			"$gte": now.New(previousDay).BeginningOfDay(),
-			"$lte": now.New(previousDay).EndOfDay(),
-		}
+		processor.match["pm_order_close_date"] = bson.M{"$gte": gte, "$lte": lte}
 		processor.cacheExpire = now.New(current).EndOfDay().Sub(current)
 		break
 	case pkg.DashboardPeriodCurrentWeek:
 		processor.groupBy = dashboardReportGroupByPeriodInDay
-		processor.match["pm_order_close_date"] = bson.M{"$gte": now.BeginningOfWeek(), "$lte": now.EndOfWeek()}
+		gte := now.BeginningOfWeek()
+		lte := now.EndOfWeek()
+		processor.match["pm_order_close_date"] = bson.M{"$gte": gte, "$lte": lte}
 		break
 	case pkg.DashboardPeriodPreviousWeek, pkg.DashboardPeriodTwoWeeksAgo:
 		decrement := -7
@@ -344,17 +365,19 @@ func (m *DashboardRepository) NewDashboardReportProcessor(
 			decrement = decrement * 2
 		}
 		previousWeek := time.Now().AddDate(0, 0, decrement)
+		gte := now.New(previousWeek).BeginningOfWeek()
+		lte := now.New(previousWeek).EndOfWeek()
 
 		processor.groupBy = dashboardReportGroupByPeriodInDay
-		processor.match["pm_order_close_date"] = bson.M{
-			"$gte": now.New(previousWeek).BeginningOfWeek(),
-			"$lte": now.New(previousWeek).EndOfWeek(),
-		}
+		processor.match["pm_order_close_date"] = bson.M{"$gte": gte, "$lte": lte}
 		processor.cacheExpire = now.New(current).EndOfWeek().Sub(current)
 		break
 	case pkg.DashboardPeriodCurrentMonth:
+		gte := now.BeginningOfMonth()
+		lte := now.EndOfMonth()
+
 		processor.groupBy = dashboardReportGroupByDay
-		processor.match["pm_order_close_date"] = bson.M{"$gte": now.BeginningOfMonth(), "$lte": now.EndOfMonth()}
+		processor.match["pm_order_close_date"] = bson.M{"$gte": gte, "$lte": lte}
 		break
 	case pkg.DashboardPeriodPreviousMonth, pkg.DashboardPeriodTwoMonthsAgo:
 		decrement := -1
@@ -362,17 +385,19 @@ func (m *DashboardRepository) NewDashboardReportProcessor(
 			decrement = decrement * 2
 		}
 		previousMonth := time.Now().AddDate(0, decrement, 0)
+		gte := now.New(previousMonth).BeginningOfMonth()
+		lte := now.New(previousMonth).EndOfMonth()
 
 		processor.groupBy = dashboardReportGroupByDay
-		processor.match["pm_order_close_date"] = bson.M{
-			"$gte": now.New(previousMonth).BeginningOfMonth(),
-			"$lte": now.New(previousMonth).EndOfMonth(),
-		}
+		processor.match["pm_order_close_date"] = bson.M{"$gte": gte, "$lte": lte}
+
 		processor.cacheExpire = now.New(current).EndOfMonth().Sub(current)
 		break
 	case pkg.DashboardPeriodCurrentQuarter:
+		gte := now.BeginningOfQuarter()
+		lte := now.EndOfQuarter()
 		processor.groupBy = dashboardReportGroupByWeek
-		processor.match["pm_order_close_date"] = bson.M{"$gte": now.BeginningOfQuarter(), "$lte": now.EndOfQuarter()}
+		processor.match["pm_order_close_date"] = bson.M{"$gte": gte, "$lte": lte}
 		break
 	case pkg.DashboardPeriodPreviousQuarter, pkg.DashboardPeriodTwoQuarterAgo:
 		decrement := -1
@@ -380,17 +405,20 @@ func (m *DashboardRepository) NewDashboardReportProcessor(
 			decrement = decrement * 2
 		}
 		previousQuarter := now.BeginningOfQuarter().AddDate(0, decrement, 0)
+		gte := now.New(previousQuarter).BeginningOfQuarter()
+		lte := now.New(previousQuarter).EndOfQuarter()
 
 		processor.groupBy = dashboardReportGroupByWeek
-		processor.match["pm_order_close_date"] = bson.M{
-			"$gte": now.New(previousQuarter).BeginningOfQuarter(),
-			"$lte": now.New(previousQuarter).EndOfQuarter(),
-		}
+		processor.match["pm_order_close_date"] = bson.M{"$gte": gte, "$lte": lte}
+
 		processor.cacheExpire = now.New(current).EndOfQuarter().Sub(current)
 		break
 	case pkg.DashboardPeriodCurrentYear:
+		gte := now.BeginningOfYear()
+		lte := now.EndOfYear()
+
 		processor.groupBy = dashboardReportGroupByMonth
-		processor.match["pm_order_close_date"] = bson.M{"$gte": now.BeginningOfYear(), "$lte": now.EndOfYear()}
+		processor.match["pm_order_close_date"] = bson.M{"$gte": gte, "$lte": lte}
 		break
 	case pkg.DashboardPeriodPreviousYear, pkg.DashboardPeriodTwoYearsAgo:
 		decrement := -1
@@ -398,14 +426,15 @@ func (m *DashboardRepository) NewDashboardReportProcessor(
 			decrement = decrement * 2
 		}
 		previousYear := time.Now().AddDate(-1, 0, 0)
+		gte := now.New(previousYear).BeginningOfYear()
+		lte := now.New(previousYear).EndOfYear()
 
 		processor.groupBy = dashboardReportGroupByMonth
-		processor.match["pm_order_close_date"] = bson.M{
-			"$gte": now.New(previousYear).BeginningOfQuarter(),
-			"$lte": now.New(previousYear).EndOfQuarter(),
-		}
+		processor.match["pm_order_close_date"] = bson.M{"$gte": gte, "$lte": lte}
 		processor.cacheExpire = now.New(current).EndOfYear().Sub(current)
 		break
+	default:
+		return nil, dashboardErrorIncorrectPeriod
 	}
 
 	if processor.cacheExpire > 0 {
@@ -500,7 +529,7 @@ func (m *dashboardReportProcessor) ExecuteDashboardMainReport(receiver interface
 					{
 						"$group": bson.M{
 							"_id":   m.groupBy,
-							"label": bson.M{"$first": "$day"},
+							"label": bson.M{"$first": bson.M{"$toString": m.groupBy}},
 							"value": bson.M{"$sum": "$revenue_amount"},
 						},
 					},
@@ -509,7 +538,7 @@ func (m *dashboardReportProcessor) ExecuteDashboardMainReport(receiver interface
 					{
 						"$group": bson.M{
 							"_id":   m.groupBy,
-							"label": bson.M{"$first": "$day"},
+							"label": bson.M{"$first": bson.M{"$toString": m.groupBy}},
 							"value": bson.M{"$sum": "$vat_amount"},
 						},
 					},
@@ -518,7 +547,7 @@ func (m *dashboardReportProcessor) ExecuteDashboardMainReport(receiver interface
 					{
 						"$group": bson.M{
 							"_id":   m.groupBy,
-							"label": bson.M{"$first": "$day"},
+							"label": bson.M{"$first": bson.M{"$toString": m.groupBy}},
 							"value": bson.M{"$sum": 1},
 						},
 					},
@@ -527,7 +556,7 @@ func (m *dashboardReportProcessor) ExecuteDashboardMainReport(receiver interface
 					{
 						"$group": bson.M{
 							"_id":                m.groupBy,
-							"label":              bson.M{"$first": "$day"},
+							"label":              bson.M{"$first": bson.M{"$toString": m.groupBy}},
 							"gross_revenue":      bson.M{"$sum": "$revenue_amount"},
 							"total_transactions": bson.M{"$sum": 1},
 						},
@@ -535,7 +564,8 @@ func (m *dashboardReportProcessor) ExecuteDashboardMainReport(receiver interface
 					{"$addFields": bson.M{"value": bson.M{"$divide": []string{"$gross_revenue", "$total_transactions"}}}},
 					{"$project": bson.M{"label": "$label", "value": "$value"}},
 				},
-			}},
+			},
+		},
 		{
 			"$project": bson.M{
 				"gross_revenue": bson.M{
@@ -553,8 +583,9 @@ func (m *dashboardReportProcessor) ExecuteDashboardMainReport(receiver interface
 					"chart": "$chart_total_transactions",
 				},
 				"arpu": bson.M{
-					"value": bson.M{"$arrayElemAt": []interface{}{"$main.arpu", 0}},
-					"chart": "$chart_arpu",
+					"amount":   bson.M{"$arrayElemAt": []interface{}{"$main.arpu", 0}},
+					"currency": bson.M{"$arrayElemAt": []interface{}{"$main.currency", 0}},
+					"chart":    "$chart_arpu",
 				},
 			},
 		},
@@ -591,6 +622,7 @@ func (m *dashboardReportProcessor) ExecuteDashboardRevenueDynamicReport(receiver
 		{
 			"$group": bson.M{
 				"_id":      m.groupBy,
+				"label":    bson.M{"$first": bson.M{"$toString": m.groupBy}},
 				"amount":   bson.M{"$sum": "$amount"},
 				"currency": bson.M{"$first": "$currency"},
 				"count":    bson.M{"$sum": 1},
@@ -625,7 +657,12 @@ func (m *dashboardReportProcessor) ExecuteDashboardRevenueByCountryReport(receiv
 				"week":  bson.M{"$week": "$pm_order_close_date"},
 				"country": bson.M{
 					"$cond": []interface{}{
-						bson.M{"$eq": []string{"$billing_address.country", ""}},
+						bson.M{
+							"$or": []bson.M{
+								{"$eq": []interface{}{"$billing_address", nil}},
+								{"$eq": []interface{}{"$billing_address.country", ""}},
+							},
+						},
 						"$user.address.country", "$billing_address.country",
 					},
 				},
@@ -681,7 +718,7 @@ func (m *dashboardReportProcessor) ExecuteDashboardRevenueByCountryReport(receiv
 					{
 						"$group": bson.M{
 							"_id":      m.groupBy,
-							"label":    bson.M{"$first": "$period_in_day"},
+							"label":    bson.M{"$first": bson.M{"$toString": m.groupBy}},
 							"amount":   bson.M{"$sum": "$amount"},
 							"currency": bson.M{"$first": "$currency"},
 						},
@@ -728,7 +765,7 @@ func (m *dashboardReportProcessor) ExecuteDashboardSalesTodayReport(receiver int
 				},
 				"items": bson.M{
 					"$cond": []interface{}{
-						bson.M{"$ne": []interface{}{"$items", []string{}}}, "$items", []string{""}},
+						bson.M{"$ne": []interface{}{"$items", []interface{}{}}}, "$items", []string{""}},
 				},
 				"hour":  bson.M{"$hour": "$pm_order_close_date"},
 				"day":   bson.M{"$dayOfMonth": "$pm_order_close_date"},
@@ -788,7 +825,7 @@ func (m *dashboardReportProcessor) ExecuteDashboardSalesTodayReport(receiver int
 					{
 						"$group": bson.M{
 							"_id":   m.groupBy,
-							"label": bson.M{"$first": "$period_in_day"},
+							"label": bson.M{"$first": bson.M{"$toString": m.groupBy}},
 							"value": bson.M{"$sum": 1},
 						},
 					},
@@ -877,7 +914,7 @@ func (m *dashboardReportProcessor) ExecuteDashboardSourcesReport(receiver interf
 					{
 						"$group": bson.M{
 							"_id":   m.groupBy,
-							"label": bson.M{"$first": "$period_in_day"},
+							"label": bson.M{"$first": bson.M{"$toString": m.groupBy}},
 							"value": bson.M{"$sum": 1},
 						},
 					},
