@@ -466,10 +466,20 @@ message MerchantListingRequest {
     string quick_search = 9;
     // @inject_tag: query:"status[]"
     repeated int32 statuses = 10;
+    // @inject_tag: query:"registration_date_from" validate:"omitempty,numeric,gt=0"
+    int64 registration_date_from = 11;
+    // @inject_tag: query:"registration_date_to" validate:"omitempty,numeric,gt=0"
+    int64 registration_date_to = 12;
+    // @inject_tag: query:"received_date_from" validate:"omitempty,numeric,gt=0"
+    int64 received_date_from = 13;
+    // @inject_tag: query:"received_date_to" validate:"omitempty,numeric,gt=0"
+    int64 received_date_to = 14;
 }
 
 message MerchantListingResponse {
+    // @inject_tag: json:"count"
     int32 count = 1;
+    // @inject_tag: json:"items"
     repeated billing.Merchant items = 2;
 }
 
