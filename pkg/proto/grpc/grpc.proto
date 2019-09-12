@@ -1494,8 +1494,10 @@ message UserProfile {
 }
 
 message GetUserProfileRequest {
-    //@inject_tag: validate:"required,hexadecimal,len=24"
+    //@inject_tag: validate:"required_without=ProfileId,hexadecimal,len=24"
     string user_id = 1;
+    //@inject_tag: validate:"required_without=UserId,hexadecimal,len=24"
+    string profile_id = 2;
 }
 
 message GetUserProfileResponse {

@@ -123,7 +123,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	}
 	rsp := &grpc.GetUserProfileResponse{}
 
-	profile := suite.service.getOnboardingProfileByUser(req.UserId)
+	profile := suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
 	assert.Nil(suite.T(), profile)
 
 	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
@@ -136,7 +136,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	assert.NotEmpty(suite.T(), rsp.Item.CreatedAt)
 	assert.NotEmpty(suite.T(), rsp.Item.UpdatedAt)
 
-	profile = suite.service.getOnboardingProfileByUser(req.UserId)
+	profile = suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
 	assert.NotNil(suite.T(), rsp.Item)
 	assert.IsType(suite.T(), &grpc.UserProfile{}, rsp.Item)
 
@@ -177,7 +177,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_Cha
 	}
 	rsp := &grpc.GetUserProfileResponse{}
 
-	profile := suite.service.getOnboardingProfileByUser(req.UserId)
+	profile := suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
 	assert.Nil(suite.T(), profile)
 
 	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
@@ -214,7 +214,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_Cha
 	assert.Empty(suite.T(), rsp.Message)
 	assert.NotNil(suite.T(), rsp.Item)
 
-	profile = suite.service.getOnboardingProfileByUser(req.UserId)
+	profile = suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
 	assert.NotNil(suite.T(), rsp.Item)
 	assert.IsType(suite.T(), &grpc.UserProfile{}, rsp.Item)
 
@@ -331,7 +331,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateOnboardingProfi
 	assert.NotEqual(suite.T(), rsp.Item.Help, rsp1.Item.Help)
 	assert.NotEqual(suite.T(), rsp.Item.Company, rsp1.Item.Company)
 
-	profile := suite.service.getOnboardingProfileByUser(req.UserId)
+	profile := suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
 	assert.NotNil(suite.T(), profile)
 
 	assert.Equal(suite.T(), profile.UserId, rsp1.Item.UserId)
@@ -377,7 +377,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	}
 	rsp := &grpc.GetUserProfileResponse{}
 
-	profile := suite.service.getOnboardingProfileByUser(req.UserId)
+	profile := suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
 	assert.Nil(suite.T(), profile)
 
 	redisCl, ok := suite.service.redis.(*redismock.ClientMock)
@@ -433,7 +433,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	}
 	rsp := &grpc.GetUserProfileResponse{}
 
-	profile := suite.service.getOnboardingProfileByUser(req.UserId)
+	profile := suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
 	assert.Nil(suite.T(), profile)
 
 	suite.service.broker = mock.NewBrokerMockError()
@@ -569,7 +569,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_Ok() {
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
 	assert.Empty(suite.T(), rsp2.Message)
 
-	profile := suite.service.getOnboardingProfileByUser(req.UserId)
+	profile := suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
 	assert.NotNil(suite.T(), profile)
 	assert.True(suite.T(), profile.Email.Confirmed)
 	assert.NotNil(suite.T(), profile.Email.ConfirmedAt)
@@ -839,4 +839,40 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreatePageReview_Ok() {
 		assert.NotEmpty(suite.T(), v.Review)
 		assert.NotEmpty(suite.T(), v.PageId)
 	}
+}
+
+func (suite *UserProfileTestSuite) TestUserProfile_GetUserProfile_ByProfileId_Ok() {
+	req := &grpc.UserProfile{
+		UserId: bson.NewObjectId().Hex(),
+		Email: &grpc.UserProfileEmail{
+			Email: "test@unit.test",
+		},
+		Personal: &grpc.UserProfilePersonal{
+			FirstName: "Unit test",
+			LastName:  "Unit Test",
+			Position:  "test",
+		},
+		Help: &grpc.UserProfileHelp{
+			ProductPromotionAndDevelopment: false,
+			ReleasedGamePromotion:          true,
+			InternationalSales:             true,
+			Other:                          false,
+		},
+		LastStep: "step2",
+	}
+	rsp := &grpc.GetUserProfileResponse{}
+	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotNil(suite.T(), rsp.Item)
+
+	req1 := &grpc.GetUserProfileRequest{ProfileId: rsp.Item.Id}
+	rsp1 := &grpc.GetUserProfileResponse{}
+	err = suite.service.GetUserProfile(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.NotNil(suite.T(), rsp1.Item)
+	assert.Equal(suite.T(), rsp.Item.Id, rsp1.Item.Id)
+	assert.Equal(suite.T(), rsp.Item.UserId, rsp1.Item.UserId)
 }

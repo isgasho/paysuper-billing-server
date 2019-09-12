@@ -21,6 +21,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -499,6 +500,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_NewMerchant_Ok()
 	var merchant *billing.Merchant
 
 	req := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -553,6 +558,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_NewMerchant_Ok()
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_UpdateMerchant_Ok() {
 	req := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -756,6 +765,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantById_MerchantId_Ok()
 	assert.Equal(suite.T(), suite.merchant.Company.Website, rsp.Item.Company.Website)
 	assert.Equal(suite.T(), suite.merchant.Company.Name, rsp.Item.Company.Name)
 	assert.NotEmpty(suite.T(), rsp.Item.CentrifugoToken)
+	assert.True(suite.T(), rsp.Item.HasProjects)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantById_UserId_Ok() {
@@ -825,6 +835,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_NameQuery_Ok() {
 
 func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_StatusesQuery_Ok() {
 	req := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -859,6 +873,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_StatusesQuery_Ok(
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
 
+	req.User.Id = bson.NewObjectId().Hex()
 	req.Company.Name = req.Company.Name + "_1"
 	err = suite.service.ChangeMerchant(context.TODO(), req, rsp)
 	assert.Nil(suite.T(), err)
@@ -871,9 +886,11 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_StatusesQuery_Ok(
 	merchant.Status = pkg.MerchantStatusAgreementSigned
 	err = suite.service.merchant.Update(merchant)
 
+	req.User.Id = bson.NewObjectId().Hex()
 	req.Company.Name = req.Company.Name + "_2"
 	err = suite.service.ChangeMerchant(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
 
 	merchant, err = suite.service.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(rsp.Item.Id)})
 	assert.NoError(suite.T(), err)
@@ -882,9 +899,11 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_StatusesQuery_Ok(
 	merchant.Status = pkg.MerchantStatusOnReview
 	err = suite.service.merchant.Update(merchant)
 
+	req.User.Id = bson.NewObjectId().Hex()
 	req.Company.Name = req.Company.Name + "_3"
 	err = suite.service.ChangeMerchant(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
 
 	merchant, err = suite.service.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(rsp.Item.Id)})
 	assert.NoError(suite.T(), err)
@@ -893,9 +912,11 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_StatusesQuery_Ok(
 	merchant.Status = pkg.MerchantStatusAgreementSigned
 	err = suite.service.merchant.Update(merchant)
 
+	req.User.Id = bson.NewObjectId().Hex()
 	req.Company.Name = req.Company.Name + "_4"
 	err = suite.service.ChangeMerchant(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
 
 	merchant, err = suite.service.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(rsp.Item.Id)})
 	assert.NoError(suite.T(), err)
@@ -1087,6 +1108,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_EmptyResult_Ok() 
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_Ok() {
 	req := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -1138,6 +1163,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_Ok() {
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_AgreementRequested_Error() {
 	req := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -1193,6 +1222,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_AgreementR
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_OnReview_Error() {
 	req := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -1246,6 +1279,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_OnReview_E
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_AgreementSigning_Error() {
 	req := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -1295,6 +1332,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_AgreementS
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_AgreementSigned_IncorrectBeforeStatus_Error() {
 	req := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -1348,6 +1389,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_AgreementS
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_AgreementSigned_NotHaveTwoSignature_Error() {
 	req := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -1401,6 +1446,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_AgreementS
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_AgreementSigned_NotHaveMerchantSignature_Error() {
 	req := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -1456,6 +1505,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_AgreementS
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_AgreementSigned_NotHavePspSignature_Error() {
 	req := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -1511,6 +1564,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_AgreementS
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_AgreementSigned_Ok() {
 	req := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -1629,6 +1686,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_Exis
 
 func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_NewMerchant_Ok() {
 	req := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -2358,6 +2419,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantData_Ok() {
 	assert.Equal(suite.T(), cmres.Status, pkg.ResponseStatusOk)
 	rsp := cmres.Item
 	assert.Equal(suite.T(), pkg.MerchantStatusDraft, rsp.Status)
+	assert.Empty(suite.T(), rsp.ReceivedDate)
+	assert.Empty(suite.T(), rsp.StatusLastUpdatedAt)
 
 	merchant, err := suite.service.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(rsp.Id)})
 	assert.NoError(suite.T(), err)
@@ -2384,6 +2447,9 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantData_Ok() {
 	assert.True(suite.T(), merchant1.HasPspSignature)
 	assert.True(suite.T(), merchant1.HasMerchantSignature)
 	assert.Equal(suite.T(), pkg.MerchantStatusAgreementSigned, merchant1.Status)
+	assert.NotEmpty(suite.T(), merchant1.ReceivedDate)
+	assert.NotZero(suite.T(), merchant.ReceivedDate.Seconds)
+	assert.NotZero(suite.T(), merchant.StatusLastUpdatedAt.Seconds)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantData_MerchantNotFound_Error() {
@@ -2530,6 +2596,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantS3Agreement_Merchant
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_SystemNotifications_Ok() {
 	req := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -2634,6 +2704,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_SystemNoti
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_UserNotifications_Ok() {
 	req := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -2737,6 +2811,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_UserNotifi
 
 func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_Ok() {
 	req0 := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -2775,6 +2853,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_Ok() {
 
 	req := &grpc.OnboardingRequest{
 		Id: req1.MerchantId,
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -2857,6 +2939,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_MerchantNotFound_
 
 func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_AgreementAlreadySigned_Error() {
 	req0 := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -2885,6 +2971,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_AgreementAlreadyS
 
 	req := &grpc.OnboardingRequest{
 		Id: req1.MerchantId,
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -2942,6 +3032,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_AgreementAlreadyS
 
 func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_MerchantHasSignatureRequest_Ok() {
 	req0 := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -2970,6 +3064,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_MerchantHasSignat
 
 	req := &grpc.OnboardingRequest{
 		Id: req1.MerchantId,
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -3029,6 +3127,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_MerchantHasSignat
 
 func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerSystemError() {
 	req0 := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -3062,6 +3164,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerSys
 
 	req := &grpc.OnboardingRequest{
 		Id: req1.MerchantId,
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -3116,6 +3222,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerSys
 
 func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerResultError() {
 	req0 := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -3144,6 +3254,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerRes
 
 	req := &grpc.OnboardingRequest{
 		Id: req2.MerchantId,
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -3197,6 +3311,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerRes
 
 func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_UpdateError() {
 	req0 := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -3225,6 +3343,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_UpdateError() {
 
 	req := &grpc.OnboardingRequest{
 		Id: req1.MerchantId,
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -3283,6 +3405,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_UpdateError() {
 
 func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantOnboardingCompleteData_Ok() {
 	req := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -3324,6 +3450,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantOnboardingCompleteDa
 
 func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantOnboardingCompleteData_FullyCompleteAndLive_Ok() {
 	req0 := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -3352,6 +3482,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantOnboardingCompleteDa
 
 	req := &grpc.OnboardingRequest{
 		Id: req2.MerchantId,
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -3426,6 +3560,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantOnboardingCompleteDa
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_GetMerchantAgreementSignature_Error() {
 	req0 := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -3496,6 +3634,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_GetMerchantAgree
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_Upsert_Error() {
 	req := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -3540,6 +3682,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_Upsert_Error() {
 
 func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_AgreementSignatureDataIsNil_Error() {
 	req := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -3576,6 +3722,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_Agr
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_GetMerchantAgreementSignature_ResultError() {
 	req0 := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -3616,6 +3766,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_GetMerchantAgree
 
 	req := &grpc.OnboardingRequest{
 		Id: req1.MerchantId,
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -3653,6 +3807,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_GetMerchantAgree
 
 func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_PaysuperSign_Ok() {
 	req0 := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -3681,6 +3839,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_Pay
 
 	req := &grpc.OnboardingRequest{
 		Id: req2.MerchantId,
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -4027,4 +4189,251 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_Merchant
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
 	assert.Equal(suite.T(), merchantErrorOnboardingTariffAlreadyExist, rsp.Message)
+}
+
+func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_NewMerchant_WithBeforeCreatedUserProfile_Ok() {
+	req := &grpc.UserProfile{
+		UserId: bson.NewObjectId().Hex(),
+		Email: &grpc.UserProfileEmail{
+			Email: "test@unit.test",
+		},
+		Personal: &grpc.UserProfilePersonal{
+			FirstName: "Unit test",
+			LastName:  "Unit Test",
+			Position:  "test",
+		},
+		Help: &grpc.UserProfileHelp{
+			ProductPromotionAndDevelopment: false,
+			ReleasedGamePromotion:          true,
+			InternationalSales:             true,
+			Other:                          false,
+		},
+		LastStep: "step2",
+	}
+	rsp := &grpc.GetUserProfileResponse{}
+	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotNil(suite.T(), rsp.Item)
+
+	rsp.Item.Email.Confirmed = true
+	rsp.Item.Email.ConfirmedAt = ptypes.TimestampNow()
+	err = suite.service.db.Collection(collectionUserProfile).UpdateId(bson.ObjectIdHex(rsp.Item.Id), rsp.Item)
+	assert.NoError(suite.T(), err)
+
+	req1 := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    rsp.Item.UserId,
+			Email: rsp.Item.Email.Email,
+		},
+		Company: &billing.MerchantCompanyInfo{
+			Name:    "merchant1",
+			Country: "RU",
+			Zip:     "190000",
+			City:    "St.Petersburg",
+		},
+		Contacts: &billing.MerchantContact{
+			Authorized: &billing.MerchantContactAuthorized{
+				Name:     "Unit Test",
+				Email:    "test@unit.test",
+				Phone:    "1234567890",
+				Position: "Unit Test",
+			},
+			Technical: &billing.MerchantContactTechnical{
+				Name:  "Unit Test",
+				Email: "test@unit.test",
+				Phone: "1234567890",
+			},
+		},
+		Banking: &billing.MerchantBanking{
+			Currency:      "RUB",
+			Name:          "Bank name",
+			Address:       "Unknown",
+			AccountNumber: "1234567890",
+			Swift:         "TEST",
+			Details:       "",
+		},
+	}
+	rsp1 := &grpc.ChangeMerchantResponse{}
+	err = suite.service.ChangeMerchant(context.TODO(), req1, rsp1)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.NotNil(suite.T(), rsp1.Item)
+	assert.Len(suite.T(), rsp1.Item.Id, 24)
+
+	assert.NotNil(suite.T(), rsp1.Item.User)
+	assert.Equal(suite.T(), rsp1.Item.User.Email, rsp.Item.Email.Email)
+	assert.Equal(suite.T(), rsp1.Item.User.FirstName, rsp.Item.Personal.FirstName)
+	assert.Equal(suite.T(), rsp1.Item.User.LastName, rsp.Item.Personal.LastName)
+	assert.NotZero(suite.T(), rsp1.Item.User.ProfileId, rsp.Item.Id)
+	assert.Equal(suite.T(), rsp1.Item.User.RegistrationDate.Seconds, req.Email.ConfirmedAt.Seconds)
+}
+
+func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_QuickSearchQuery_UserFirstNameLastName_Ok() {
+	lastName := "LastName"
+
+	req := &grpc.UserProfile{
+		UserId: bson.NewObjectId().Hex(),
+		Email: &grpc.UserProfileEmail{
+			Email: "test@unit.test",
+		},
+		Personal: &grpc.UserProfilePersonal{
+			FirstName: "FirstName",
+			LastName:  lastName,
+			Position:  "test",
+		},
+		Help: &grpc.UserProfileHelp{
+			ProductPromotionAndDevelopment: false,
+			ReleasedGamePromotion:          true,
+			InternationalSales:             true,
+			Other:                          false,
+		},
+		LastStep: "step2",
+	}
+	rsp := &grpc.GetUserProfileResponse{}
+
+	for i := 0; i < 5; i++ {
+		if i > 0 {
+			req.UserId = bson.NewObjectId().Hex()
+			req.Personal.LastName = lastName + "_" + strconv.Itoa(i)
+		}
+
+		err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
+		assert.NoError(suite.T(), err)
+		assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+
+		req1 := &grpc.OnboardingRequest{
+			User: &billing.MerchantUser{
+				Id:    rsp.Item.UserId,
+				Email: rsp.Item.Email.Email,
+			},
+			Company: &billing.MerchantCompanyInfo{
+				Name:    "merchant1",
+				Country: "RU",
+				Zip:     "190000",
+				City:    "St.Petersburg",
+			},
+		}
+		rsp1 := &grpc.ChangeMerchantResponse{}
+		err = suite.service.ChangeMerchant(context.TODO(), req1, rsp1)
+		assert.Nil(suite.T(), err)
+		assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	}
+
+	req2 := &grpc.MerchantListingRequest{QuickSearch: "first"}
+	rsp2 := &grpc.MerchantListingResponse{}
+
+	err := suite.service.ListMerchants(context.TODO(), req2, rsp2)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), int32(5), rsp2.Count)
+	assert.Len(suite.T(), rsp2.Items, int(rsp2.Count))
+
+	req2.QuickSearch = "name_1"
+	err = suite.service.ListMerchants(context.TODO(), req2, rsp2)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), int32(1), rsp2.Count)
+	assert.Len(suite.T(), rsp2.Items, int(rsp2.Count))
+}
+
+func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_QuickSearchQuery_UserRegistrationDate_Ok() {
+	req := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{},
+		Company: &billing.MerchantCompanyInfo{
+			Name:    "merchant1",
+			Country: "RU",
+			Zip:     "190000",
+			City:    "St.Petersburg",
+		},
+	}
+
+	for i := 0; i < 10; i++ {
+		req.User.Id = bson.NewObjectId().Hex()
+		req.User.Email = "test_" + strconv.Itoa(i) + "@unit.test"
+		rsp := &grpc.ChangeMerchantResponse{}
+		err := suite.service.ChangeMerchant(context.TODO(), req, rsp)
+		assert.Nil(suite.T(), err)
+		assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+
+		if i == 2 || i == 5 || i == 7 {
+			rsp.Item.User.RegistrationDate, _ = ptypes.TimestampProto(time.Now().AddDate(0, 0, -1))
+		} else if i == 3 || i == 6 || i == 9 {
+			rsp.Item.User.RegistrationDate, _ = ptypes.TimestampProto(time.Now().AddDate(0, 0, -5))
+		} else {
+			rsp.Item.User.RegistrationDate, _ = ptypes.TimestampProto(time.Now())
+		}
+
+		err = suite.service.db.Collection(collectionMerchant).UpdateId(bson.ObjectIdHex(rsp.Item.Id), rsp.Item)
+	}
+
+	req2 := &grpc.MerchantListingRequest{RegistrationDateFrom: time.Now().Add(-49 * time.Hour).Unix()}
+	rsp2 := &grpc.MerchantListingResponse{}
+
+	err := suite.service.ListMerchants(context.TODO(), req2, rsp2)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), int32(7), rsp2.Count)
+	assert.Len(suite.T(), rsp2.Items, int(rsp2.Count))
+
+	req2.RegistrationDateTo = time.Now().Add(-23 * time.Hour).Unix()
+	err = suite.service.ListMerchants(context.TODO(), req2, rsp2)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), int32(3), rsp2.Count)
+	assert.Len(suite.T(), rsp2.Items, int(rsp2.Count))
+
+	req2 = &grpc.MerchantListingRequest{RegistrationDateTo: time.Now().Add(-48 * time.Hour).Unix()}
+	err = suite.service.ListMerchants(context.TODO(), req2, rsp2)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), int32(6), rsp2.Count)
+	assert.Len(suite.T(), rsp2.Items, int(rsp2.Count))
+}
+
+func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_QuickSearchQuery_ReceivedDateFrom_Ok() {
+	req := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{},
+		Company: &billing.MerchantCompanyInfo{
+			Name:    "merchant1",
+			Country: "RU",
+			Zip:     "190000",
+			City:    "St.Petersburg",
+		},
+	}
+
+	for i := 0; i < 10; i++ {
+		req.User.Id = bson.NewObjectId().Hex()
+		req.User.Email = "test_" + strconv.Itoa(i) + "@unit.test"
+		rsp := &grpc.ChangeMerchantResponse{}
+		err := suite.service.ChangeMerchant(context.TODO(), req, rsp)
+		assert.Nil(suite.T(), err)
+		assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+
+		if i == 2 || i == 5 || i == 7 {
+			rsp.Item.ReceivedDate, _ = ptypes.TimestampProto(time.Now().AddDate(0, 0, -1))
+		} else if i == 3 || i == 6 || i == 9 {
+			rsp.Item.ReceivedDate, _ = ptypes.TimestampProto(time.Now().AddDate(0, 0, -5))
+		} else {
+			rsp.Item.ReceivedDate, _ = ptypes.TimestampProto(time.Now())
+		}
+
+		err = suite.service.db.Collection(collectionMerchant).UpdateId(bson.ObjectIdHex(rsp.Item.Id), rsp.Item)
+	}
+
+	req2 := &grpc.MerchantListingRequest{ReceivedDateFrom: time.Now().Add(-49 * time.Hour).Unix()}
+	rsp2 := &grpc.MerchantListingResponse{}
+
+	err := suite.service.ListMerchants(context.TODO(), req2, rsp2)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), int32(7), rsp2.Count)
+	assert.Len(suite.T(), rsp2.Items, int(rsp2.Count))
+
+	req2.ReceivedDateTo = time.Now().Add(-23 * time.Hour).Unix()
+	err = suite.service.ListMerchants(context.TODO(), req2, rsp2)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), int32(3), rsp2.Count)
+	assert.Len(suite.T(), rsp2.Items, int(rsp2.Count))
+
+	req2 = &grpc.MerchantListingRequest{ReceivedDateTo: time.Now().Add(-48 * time.Hour).Unix()}
+	err = suite.service.ListMerchants(context.TODO(), req2, rsp2)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), int32(6), rsp2.Count)
+	assert.Len(suite.T(), rsp2.Items, int(rsp2.Count))
 }

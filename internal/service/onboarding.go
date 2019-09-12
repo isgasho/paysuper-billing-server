@@ -94,6 +94,7 @@ func (s *Service) GetMerchantBy(
 	expire := time.Now().Add(time.Hour * 3).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": merchant.Id, "exp": expire})
 	merchant.CentrifugoToken, _ = token.SignedString([]byte(s.cfg.CentrifugoSecret))
+	merchant.HasProjects = s.getProjectsCountByMerchant(merchant.Id) > 0
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = merchant
@@ -320,7 +321,7 @@ func (s *Service) ChangeMerchant(
 	merchant.Steps.Banking = merchant.Banking != nil
 
 	if !merchant.HasPrimaryOnboardingUserName() {
-		profile := s.getOnboardingProfileByUser(req.User.Id)
+		profile := s.getOnboardingProfileBy(bson.M{"user_id": req.User.Id})
 
 		if profile != nil {
 			merchant.User.ProfileId = profile.Id

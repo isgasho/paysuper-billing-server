@@ -87,9 +87,18 @@ type MgoMerchantAgreementSignatureData struct {
 	PsSignUrl           *MgoMerchantAgreementSignatureDataSignUrl `bson:"ps_sign_url"`
 }
 
+type MgoMerchantUser struct {
+	Id               string    `bson:"id"`
+	Email            string    `bson:"email"`
+	FirstName        string    `bson:"first_name"`
+	LastName         string    `bson:"last_name"`
+	ProfileId        string    `bson:"profile_id"`
+	RegistrationDate time.Time `bson:"registration_date"`
+}
+
 type MgoMerchant struct {
 	Id                                            bson.ObjectId                        `bson:"_id"`
-	User                                          *MerchantUser                        `bson:"user"`
+	User                                          *MgoMerchantUser                     `bson:"user"`
 	Company                                       *MerchantCompanyInfo                 `bson:"company"`
 	Contacts                                      *MerchantContact                     `bson:"contacts"`
 	Banking                                       *MerchantBanking                     `bson:"banking"`
@@ -120,6 +129,8 @@ type MgoMerchant struct {
 	AgreementSignatureData                        *MgoMerchantAgreementSignatureData   `bson:"agreement_signature_data"`
 	Steps                                         *MerchantCompletedSteps              `bson:"steps"`
 	AgreementTemplate                             string                               `bson:"agreement_template"`
+	ReceivedDate                                  time.Time                            `bson:"received_date"`
+	StatusLastUpdatedAt                           time.Time                            `bson:"status_last_updated_at"`
 }
 
 type MgoCommission struct {
@@ -1721,7 +1732,6 @@ func (m *PaymentSystem) SetBSON(raw bson.Raw) error {
 
 func (m *Merchant) GetBSON() (interface{}, error) {
 	st := &MgoMerchant{
-		User:                      m.User,
 		Company:                   m.Company,
 		Contacts:                  m.Contacts,
 		Banking:                   m.Banking,
@@ -1756,6 +1766,46 @@ func (m *Merchant) GetBSON() (interface{}, error) {
 		}
 
 		st.Id = bson.ObjectIdHex(m.Id)
+	}
+
+	if m.User != nil {
+		st.User = &MgoMerchantUser{
+			Id:        m.User.Id,
+			Email:     m.User.Email,
+			FirstName: m.User.FirstName,
+			LastName:  m.User.LastName,
+			ProfileId: m.User.ProfileId,
+		}
+
+		if m.User.RegistrationDate != nil {
+			t, err := ptypes.Timestamp(m.User.RegistrationDate)
+
+			if err != nil {
+				return nil, err
+			}
+
+			st.User.RegistrationDate = t
+		}
+	}
+
+	if m.ReceivedDate != nil {
+		t, err := ptypes.Timestamp(m.ReceivedDate)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.ReceivedDate = t
+	}
+
+	if m.StatusLastUpdatedAt != nil {
+		t, err := ptypes.Timestamp(m.StatusLastUpdatedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.StatusLastUpdatedAt = t
 	}
 
 	if m.FirstPaymentAt != nil {
@@ -1872,7 +1922,6 @@ func (m *Merchant) SetBSON(raw bson.Raw) error {
 	}
 
 	m.Id = decoded.Id.Hex()
-	m.User = decoded.User
 	m.Company = decoded.Company
 	m.Contacts = decoded.Contacts
 	m.Banking = decoded.Banking
@@ -1897,6 +1946,34 @@ func (m *Merchant) SetBSON(raw bson.Raw) error {
 	m.Tariff = decoded.Tariff
 	m.Steps = decoded.Steps
 	m.AgreementTemplate = decoded.AgreementTemplate
+
+	if decoded.User != nil {
+		m.User = &MerchantUser{
+			Id:        decoded.User.Id,
+			Email:     decoded.User.Email,
+			FirstName: decoded.User.FirstName,
+			LastName:  decoded.User.LastName,
+			ProfileId: decoded.User.ProfileId,
+		}
+
+		m.User.RegistrationDate, err = ptypes.TimestampProto(decoded.User.RegistrationDate)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	m.ReceivedDate, err = ptypes.TimestampProto(decoded.ReceivedDate)
+
+	if err != nil {
+		return err
+	}
+
+	m.StatusLastUpdatedAt, err = ptypes.TimestampProto(decoded.StatusLastUpdatedAt)
+
+	if err != nil {
+		return err
+	}
 
 	m.FirstPaymentAt, err = ptypes.TimestampProto(decoded.FirstPaymentAt)
 
