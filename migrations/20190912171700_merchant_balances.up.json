@@ -1,0 +1,17 @@
+[
+  {
+    "create": "merchant_balances"
+  },
+  {
+    "createIndexes": "merchant_balances",
+    "indexes": [
+      {
+        "key": {
+          "merchant_id": 1,
+          "currency": 1
+        },
+        "name": "merchant_currency"
+      }
+    ]
+  }
+]
