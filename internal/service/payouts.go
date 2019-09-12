@@ -44,6 +44,8 @@ var (
 	errorPayoutUpdateBalance       = newBillingServerErrorMsg("po000009", "balance update failed")
 	errorPayoutBalanceError        = newBillingServerErrorMsg("po000010", "getting balance failed")
 	errorPayoutNotEnoughBalance    = newBillingServerErrorMsg("po000011", "not enough balance for payout")
+	errorPayoutNetRevenueFailed    = newBillingServerErrorMsg("po000012", "failed to calc net revenue report for payout")
+	errorPayoutOrderStatFailed     = newBillingServerErrorMsg("po000013", "failed to calc order stat for payout")
 
 	statusForUpdateBalance = map[string]bool{
 		pkg.PayoutDocumentStatusPending:    true,
@@ -55,6 +57,32 @@ var (
 type PayoutDocumentServiceInterface interface {
 	Insert(document *billing.PayoutDocument, ip, source string) error
 	Update(document *billing.PayoutDocument, ip, source string) error
+}
+
+type period struct {
+	From time.Time
+	To   time.Time
+}
+
+type netRevenueItem struct {
+	Country  string  `bson:"_id"`
+	Currency string  `bson:"currency"`
+	Amount   float64 `bson:"amount"`
+}
+
+type netRevenue struct {
+	Top   []netRevenueItem `bson:"top"`
+	Total netRevenueItem   `bson:"total"`
+}
+
+type orderStatItem struct {
+	Name  string `bson:"name"`
+	Count int32  `bson:"count"`
+}
+
+type orderStat struct {
+	Top   []orderStatItem `bson:"top"`
+	Total int32           `bson:"total"`
 }
 
 func newPayoutService(svc *Service) PayoutDocumentServiceInterface {
@@ -114,6 +142,8 @@ func (s *Service) CreatePayoutDocument(
 
 	pd.Currency = reports[0].Amounts.Currency
 
+	periods := []*period{}
+
 	for _, r := range reports {
 		if pd.Currency != r.Amounts.Currency {
 			res.Status = pkg.ResponseStatusBadData
@@ -122,6 +152,25 @@ func (s *Service) CreatePayoutDocument(
 		}
 		pd.Amount += r.Amounts.PayoutAmount
 		pd.SourceId = append(pd.SourceId, r.Id)
+
+		from, err := ptypes.Timestamp(r.PeriodFrom)
+		if err != nil {
+			zap.S().Error(
+				"Time conversion error",
+				zap.Error(err),
+			)
+			return err
+		}
+		to, err := ptypes.Timestamp(r.PeriodTo)
+		if err != nil {
+			zap.S().Error(
+				"Time conversion error",
+				zap.Error(err),
+			)
+			return err
+		}
+
+		periods = append(periods, &period{From: from, To: to})
 	}
 
 	if pd.Amount <= 0 {
@@ -152,7 +201,34 @@ func (s *Service) CreatePayoutDocument(
 		pd.Status = pkg.PayoutDocumentStatusSkip
 	}
 
-	pd.SignatureData, err = s.getPayoutSignature(ctx, merchant, pd)
+	netRevenues := []*netRevenue{}
+	orderStats := []*orderStat{}
+
+	for _, v := range periods {
+		nr, err := s.getNetRevenueForPayout(merchant.Id, v.From, v.To)
+		if err != nil {
+			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+				res.Status = pkg.ResponseStatusSystemError
+				res.Message = e
+				return nil
+			}
+			return err
+		}
+		netRevenues = append(netRevenues, nr)
+
+		os, err := s.getItemsStatForPayout(merchant.Id, v.From, v.To)
+		if err != nil {
+			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+				res.Status = pkg.ResponseStatusSystemError
+				res.Message = e
+				return nil
+			}
+			return err
+		}
+		orderStats = append(orderStats, os)
+	}
+
+	pd.SignatureData, err = s.getPayoutSignature(ctx, merchant, pd, netRevenues, orderStats)
 	if err != nil {
 		zap.S().Error(
 			"Getting signature data failed",
@@ -466,7 +542,7 @@ func (s *Service) getPayoutDocumentSources(sources []string, merchant_id string)
 		"status":      pkg.RoyaltyReportStatusAccepted,
 	}
 
-	err := s.db.Collection(collectionRoyaltyReport).Find(query).All(&result)
+	err := s.db.Collection(collectionRoyaltyReport).Find(query).Sort("period_from").All(&result)
 
 	if err != nil {
 		if err == mgo.ErrNotFound {
@@ -493,6 +569,8 @@ func (s *Service) getPayoutSignature(
 	ctx context.Context,
 	merchant *billing.Merchant,
 	pd *billing.PayoutDocument,
+	netRevenues []*netRevenue,
+	orderStat []*orderStat,
 ) (*billing.PayoutDocumentSignatureData, error) {
 	req := &proto.CreateSignatureRequest{
 		TemplateId: s.cfg.HelloSignPayoutTemplate,
@@ -634,6 +712,183 @@ func (s *Service) changePayoutDocumentSignUrl(
 	}
 
 	return signUrl, nil
+}
+
+func (s *Service) getNetRevenueForPayout(merchantId string, from, to time.Time) (*netRevenue, error) {
+	query := []bson.M{
+		{
+			"$match": bson.M{
+				"merchant_id":         bson.ObjectIdHex(merchantId),
+				"status":              "processed",
+				"pm_order_close_date": bson.M{"$gte": from, "$lte": to},
+			},
+		},
+		{
+			"$project": bson.M{
+				"country": bson.M{
+					"$cond": list{
+						bson.M{
+							"$eq": []string{
+								"$billing_address.country",
+								"",
+							},
+						},
+						"$user.address.country",
+						"$billing_address.country",
+					},
+				},
+				"amount":   "$net_revenue.amount",
+				"currency": "$net_revenue.currency",
+			},
+		},
+		{
+			"$facet": bson.M{
+				"top": []bson.M{
+					{
+						"$group": bson.M{
+							"_id":      "$country",
+							"amount":   bson.M{"$sum": "$amount"},
+							"currency": bson.M{"$first": "$currency"},
+						},
+					},
+				},
+				"total": []bson.M{
+					{
+						"$group": bson.M{
+							"_id":      nil,
+							"amount":   bson.M{"$sum": "$amount"},
+							"currency": bson.M{"$first": "$currency"},
+						},
+					},
+				},
+			},
+		},
+		{
+			"$project": bson.M{
+				"top":   "$top",
+				"total": bson.M{"$arrayElemAt": []interface{}{"$total", 0}},
+			},
+		},
+	}
+
+	var res []*netRevenue
+	err := s.db.Collection(collectionOrderView).Pipe(query).All(&res)
+
+	if err != nil {
+		zap.S().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String("collection", collectionOrderView),
+			zap.Any("query", query),
+		)
+		return nil, err
+	}
+
+	if len(res) != 1 {
+		return nil, errorPayoutNetRevenueFailed
+	}
+
+	return res[0], nil
+}
+
+func (s *Service) getItemsStatForPayout(merchantId string, from, to time.Time) (*orderStat, error) {
+	query := []bson.M{
+		{
+			"$match": bson.M{
+				"merchant_id":         bson.ObjectIdHex(merchantId),
+				"status":              "processed",
+				"pm_order_close_date": bson.M{"$gte": from, "$lte": to},
+			},
+		},
+		{
+			"$project": bson.M{
+				"names": bson.M{
+					"$filter": bson.M{
+						"input": "$project.name",
+						"as":    "name",
+						"cond":  bson.M{"$eq": []interface{}{"$$name.lang", "en"}},
+					},
+				},
+				"items": bson.M{
+					"$cond": list{
+						bson.M{
+							"$ne": []string{
+								"$items",
+								"[]",
+							},
+						},
+						"$items",
+						"[]",
+					},
+				},
+			},
+		},
+		{
+			"$unwind": "$items",
+		},
+		{
+			"$project": bson.M{
+				"item": bson.M{
+					"$cond": list{
+						bson.M{
+							"$eq": []string{
+								"$items",
+								"",
+							},
+						},
+						bson.M{"$arrayElemAt": []interface{}{"$names.value", 0}},
+						"$items.name",
+					},
+				},
+			},
+		},
+		{
+			"$facet": bson.M{
+				"top": []bson.M{
+					{
+						"$group": bson.M{
+							"_id":   "$item",
+							"name":  bson.M{"$first": "$item"},
+							"count": bson.M{"$sum": 1},
+						},
+					},
+				},
+				"total": []bson.M{
+					{
+						"$group": bson.M{
+							"_id":   nil,
+							"count": bson.M{"$sum": 1},
+						},
+					},
+				},
+			},
+		},
+		{
+			"$project": bson.M{
+				"top":   "$top",
+				"total": bson.M{"$arrayElemAt": []interface{}{"$total.count", 0}},
+			},
+		},
+	}
+
+	var res []*orderStat
+	err := s.db.Collection(collectionOrder).Pipe(query).All(&res)
+
+	if err != nil {
+		zap.S().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String("collection", collectionOrder),
+			zap.Any("query", query),
+		)
+		return nil, err
+	}
+
+	if len(res) != 1 {
+		return nil, errorPayoutOrderStatFailed
+	}
+
+	return res[0], nil
 }
 
 func (h *PayoutDocument) Insert(pd *billing.PayoutDocument, ip, source string) error {
