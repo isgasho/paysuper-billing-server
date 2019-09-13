@@ -151,6 +151,10 @@ service BillingService {
     rpc CancelRedeemKeyForOrder(KeyForOrderRequest) returns (EmptyResponseWithStatus) {}
 
     rpc ChangeCodeInOrder(ChangeCodeInOrderRequest) returns (ChangeCodeInOrderResponse) {}
+
+    rpc GetDashboardMainReport(GetDashboardMainRequest) returns (GetDashboardMainResponse) {}
+    rpc GetDashboardRevenueDynamicsReport(GetDashboardMainRequest) returns (GetDashboardRevenueDynamicsReportResponse) {}
+    rpc GetDashboardBaseReport(GetDashboardBaseReportRequest) returns (GetDashboardBaseReportResponse) {}
 }
 
 message EmptyRequest {}
@@ -371,6 +375,8 @@ message PaymentFormJsonDataRequest {
     string ip = 5;
     string user_agent = 6;
     string cookie = 7;
+    string referer = 8;
+    bool is_embedded = 9;
 }
 
 message PaymentFormJsonDataProject {
@@ -1681,4 +1687,167 @@ message GetOrderPrivateResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     billing.OrderViewPrivate item = 3;
+}
+
+message GetDashboardMainRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 1;
+    //@inject_tag: query:"period" validate:"required,oneof=current_month previous_month current_quarter previous_quarter current_year previous_year"
+    string period = 2;
+}
+
+message GetDashboardMainResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    DashboardMainReport item = 3;
+}
+
+message GetDashboardBaseReportRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 1;
+    //@inject_tag: query:"period" validate:"required,oneof=current_day previous_day current_week previous_week current_month previous_month current_quarter previous_quarter current_year previous_year"
+    string period = 2;
+}
+
+message GetDashboardBaseReportResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    DashboardBaseReports item = 3;
+}
+
+message GetDashboardRevenueDynamicsReportResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    repeated DashboardRevenueDynamicReportItem item = 3;
+}
+
+message DashboardAmountItemWithChart {
+    //@inject_tag: json:"amount"
+    double amount = 1;
+    //@inject_tag: json:"currency"
+    string currency = 2;
+    //@inject_tag: json:"chart"
+    repeated DashboardChartItemFloat chart = 3;
+}
+
+message DashboardChartItemFloat {
+    //@inject_tag: json:"label" bson:"label"
+    string label = 1;
+    //@inject_tag: json:"value" bson:"value"
+    double value = 2;
+}
+
+message DashboardMainReportTotalTransactions {
+    //@inject_tag: json:"count" bson:"count"
+    int64 count = 1;
+    //@inject_tag: json:"chart"
+    repeated DashboardChartItemFloat chart = 3;
+}
+
+message DashboardMainReport {
+    //@inject_tag: json:"gross_revenue" bson:"gross_revenue"
+    DashboardAmountItemWithChart gross_revenue = 1;
+    //@inject_tag: json:"vat" bson:"vat"
+    DashboardAmountItemWithChart vat = 2;
+    //@inject_tag: json:"total_transactions" bson:"total_transactions"
+    DashboardMainReportTotalTransactions total_transactions = 3;
+    //@inject_tag: json:"arpu" bson:"arpu"
+    DashboardAmountItemWithChart arpu = 4;
+}
+
+message DashboardRevenueDynamicReport {
+    //@inject_tag: json:"items"
+    repeated DashboardRevenueDynamicReportItem items = 1;
+}
+
+message DashboardRevenueDynamicReportItem {
+    //@inject_tag: json:"label"
+    string label = 1;
+    //@inject_tag: json:"amount"
+    double amount = 2;
+    //@inject_tag: json:"currency"
+    string currency = 3;
+    //@inject_tag: json:"count"
+    int64 count = 4;
+}
+
+message DashboardRevenueByCountryReportTop {
+    //@inject_tag: json:"country"
+    string country = 1;
+    //@inject_tag: json:"amount"
+    double amount = 2;
+    //@inject_tag: json:"currency"
+    string currency = 3;
+}
+
+message DashboardRevenueByCountryReportTotal {
+    //@inject_tag: json:"amount"
+    double amount = 1;
+    //@inject_tag: json:"currency"
+    string currency = 2;
+}
+
+message DashboardRevenueByCountryReportChartItem {
+    //@inject_tag: json:"label"
+    string label = 1;
+    //@inject_tag: json:"amount"
+    double amount = 2;
+    //@inject_tag: json:"currency"
+    string currency = 3;
+}
+
+message DashboardRevenueByCountryReport {
+    //@inject_tag: json:"top" bson:"top"
+    repeated DashboardRevenueByCountryReportTop top = 1;
+    //@inject_tag: json:"total_current" bson:"total"
+    DashboardRevenueByCountryReportTotal total_current = 2;
+    //@inject_tag: json:"total_previous"
+    DashboardRevenueByCountryReportTotal total_previous= 3;
+    //@inject_tag: json:"chart" bson:"chart"
+    repeated DashboardRevenueByCountryReportChartItem chart = 4;
+}
+
+message DashboardSalesTodayReportTop {
+    //@inject_tag: json:"name" bson:"name"
+    string name = 1;
+    //@inject_tag: json:"count" bson:"count"
+    int64 count = 2;
+}
+
+message DashboardChartItemInt {
+    //@inject_tag: json:"label" bson:"label"
+    string label = 1;
+    //@inject_tag: json:"value" bson:"value"
+    int64 value = 2;
+}
+
+message DashboardSalesTodayReport {
+    //@inject_tag: json:"top" bson:"top"
+    repeated DashboardSalesTodayReportTop top = 1;
+    //@inject_tag: json:"total_current" bson:"total"
+    int64 total_current = 2;
+    //@inject_tag: json:"total_previous"
+    int64 total_previous = 3;
+    //@inject_tag: json:"chart" bson:"chart"
+    repeated DashboardChartItemInt chart = 4;
+}
+
+message DashboardSourcesReport {
+    //@inject_tag: json:"top" bson:"top"
+    repeated DashboardSalesTodayReportTop top = 1;
+    //@inject_tag: json:"total_current" bson:"total"
+    int64 total_current = 2;
+    //@inject_tag: json:"total_previous"
+    int64 total_previous = 3;
+    //@inject_tag: json:"chart" bson:"chart"
+    repeated DashboardChartItemInt chart = 4;
+}
+
+message DashboardBaseReports {
+    //@inject_tag: json:"revenue_by_country"
+    DashboardRevenueByCountryReport revenue_by_country = 1;
+    //@inject_tag: json:"sales_today"
+    DashboardSalesTodayReport sales_today = 2;
+    //@inject_tag: json:"sources"
+    DashboardSourcesReport sources = 4;
 }

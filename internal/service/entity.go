@@ -31,6 +31,7 @@ type Turnover Entity
 type MerchantsTariffRatesRepository Entity
 type Key Entity
 type OrderRepository Entity
+type DashboardRepository Entity
 
 type kvIntFloat struct {
 	Key   int

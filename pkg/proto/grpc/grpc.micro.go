@@ -180,6 +180,26 @@ It has these top-level messages:
 	ListOrdersPrivateResponse
 	GetOrderPublicResponse
 	GetOrderPrivateResponse
+	GetDashboardMainRequest
+	GetDashboardMainResponse
+	GetDashboardBaseReportRequest
+	GetDashboardBaseReportResponse
+	GetDashboardRevenueDynamicsReportResponse
+	DashboardAmountItemWithChart
+	DashboardChartItemFloat
+	DashboardMainReportTotalTransactions
+	DashboardMainReport
+	DashboardRevenueDynamicReport
+	DashboardRevenueDynamicReportItem
+	DashboardRevenueByCountryReportTop
+	DashboardRevenueByCountryReportTotal
+	DashboardRevenueByCountryReportChartItem
+	DashboardRevenueByCountryReport
+	DashboardSalesTodayReportTop
+	DashboardChartItemInt
+	DashboardSalesTodayReport
+	DashboardSourcesReport
+	DashboardBaseReports
 */
 package grpc
 
@@ -332,6 +352,9 @@ type BillingService interface {
 	FinishRedeemKeyForOrder(ctx context.Context, in *KeyForOrderRequest, opts ...client.CallOption) (*GetKeyForOrderRequestResponse, error)
 	CancelRedeemKeyForOrder(ctx context.Context, in *KeyForOrderRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 	ChangeCodeInOrder(ctx context.Context, in *ChangeCodeInOrderRequest, opts ...client.CallOption) (*ChangeCodeInOrderResponse, error)
+	GetDashboardMainReport(ctx context.Context, in *GetDashboardMainRequest, opts ...client.CallOption) (*GetDashboardMainResponse, error)
+	GetDashboardRevenueDynamicsReport(ctx context.Context, in *GetDashboardMainRequest, opts ...client.CallOption) (*GetDashboardRevenueDynamicsReportResponse, error)
+	GetDashboardBaseReport(ctx context.Context, in *GetDashboardBaseReportRequest, opts ...client.CallOption) (*GetDashboardBaseReportResponse, error)
 }
 
 type billingService struct {
@@ -1522,6 +1545,36 @@ func (c *billingService) ChangeCodeInOrder(ctx context.Context, in *ChangeCodeIn
 	return out, nil
 }
 
+func (c *billingService) GetDashboardMainReport(ctx context.Context, in *GetDashboardMainRequest, opts ...client.CallOption) (*GetDashboardMainResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetMainReport", in)
+	out := new(GetDashboardMainResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetDashboardRevenueDynamicsReport(ctx context.Context, in *GetDashboardMainRequest, opts ...client.CallOption) (*GetDashboardRevenueDynamicsReportResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetRevenueDynamicsReport", in)
+	out := new(GetDashboardRevenueDynamicsReportResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetDashboardBaseReport(ctx context.Context, in *GetDashboardBaseReportRequest, opts ...client.CallOption) (*GetDashboardBaseReportResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetBaseReport", in)
+	out := new(GetDashboardBaseReportResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for BillingService service
 
 type BillingServiceHandler interface {
@@ -1642,6 +1695,9 @@ type BillingServiceHandler interface {
 	FinishRedeemKeyForOrder(context.Context, *KeyForOrderRequest, *GetKeyForOrderRequestResponse) error
 	CancelRedeemKeyForOrder(context.Context, *KeyForOrderRequest, *EmptyResponseWithStatus) error
 	ChangeCodeInOrder(context.Context, *ChangeCodeInOrderRequest, *ChangeCodeInOrderResponse) error
+	GetDashboardMainReport(context.Context, *GetDashboardMainRequest, *GetDashboardMainResponse) error
+	GetDashboardRevenueDynamicsReport(context.Context, *GetDashboardMainRequest, *GetDashboardRevenueDynamicsReportResponse) error
+	GetDashboardBaseReport(context.Context, *GetDashboardBaseReportRequest, *GetDashboardBaseReportResponse) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -1763,6 +1819,9 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		FinishRedeemKeyForOrder(ctx context.Context, in *KeyForOrderRequest, out *GetKeyForOrderRequestResponse) error
 		CancelRedeemKeyForOrder(ctx context.Context, in *KeyForOrderRequest, out *EmptyResponseWithStatus) error
 		ChangeCodeInOrder(ctx context.Context, in *ChangeCodeInOrderRequest, out *ChangeCodeInOrderResponse) error
+		GetDashboardMainReport(ctx context.Context, in *GetDashboardMainRequest, out *GetDashboardMainResponse) error
+		GetDashboardRevenueDynamicsReport(ctx context.Context, in *GetDashboardMainRequest, out *GetDashboardRevenueDynamicsReportResponse) error
+		GetDashboardBaseReport(ctx context.Context, in *GetDashboardBaseReportRequest, out *GetDashboardBaseReportResponse) error
 	}
 	type BillingService struct {
 		billingService
@@ -2241,4 +2300,16 @@ func (h *billingServiceHandler) CancelRedeemKeyForOrder(ctx context.Context, in 
 
 func (h *billingServiceHandler) ChangeCodeInOrder(ctx context.Context, in *ChangeCodeInOrderRequest, out *ChangeCodeInOrderResponse) error {
 	return h.BillingServiceHandler.ChangeCodeInOrder(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetDashboardMainReport(ctx context.Context, in *GetDashboardMainRequest, out *GetDashboardMainResponse) error {
+	return h.BillingServiceHandler.GetDashboardMainReport(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetDashboardRevenueDynamicsReport(ctx context.Context, in *GetDashboardMainRequest, out *GetDashboardRevenueDynamicsReportResponse) error {
+	return h.BillingServiceHandler.GetDashboardRevenueDynamicsReport(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetDashboardBaseReport(ctx context.Context, in *GetDashboardBaseReportRequest, out *GetDashboardBaseReportResponse) error {
+	return h.BillingServiceHandler.GetDashboardBaseReport(ctx, in, out)
 }

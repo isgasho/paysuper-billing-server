@@ -3162,6 +3162,8 @@ func (s *Service) doUpdateOrderView(match bson.M) error {
 				"refund_fees_total":                                 1,
 				"refund_fees_total_local":                           1,
 				"paysuper_refund_total_profit":                      1,
+				"issuer":                                            1,
+				"items":                                             1,
 			},
 		},
 		{
