@@ -1018,8 +1018,12 @@ github.com/paysuper/document-signer v0.0.0-20190903134915-8c3e0adae226 h1:H+cD81
 github.com/paysuper/document-signer v0.0.0-20190903134915-8c3e0adae226/go.mod h1:HH+6SQ8iJQsXe5gFAzAqRvX8lkowVKMLOy2eDJi1wgA=
 github.com/paysuper/document-signer v0.0.0-20190903140137-c4c12bf31be5 h1:wEad5VJYpCwj64xMJIh1yALAMDTJnoxlId5fBWZr6G0=
 github.com/paysuper/document-signer v0.0.0-20190903140137-c4c12bf31be5/go.mod h1:HH+6SQ8iJQsXe5gFAzAqRvX8lkowVKMLOy2eDJi1wgA=
+github.com/paysuper/document-signer v0.0.0-20190906075749-af06b306ee92 h1:OzcTm69qCoqQ2YqYjgf8zAmkjAVaEV0VmzRNMyePPUI=
+github.com/paysuper/document-signer v0.0.0-20190906075749-af06b306ee92/go.mod h1:gqEKigUzMNjJ9P+OYeKCu+wOA17/Q2EElpJnd6O3Zr4=
 github.com/paysuper/paysuper-aws-manager v0.0.0-20190827071211-4aff35ed4d82 h1:/p8k5EsVivYfSVFeWV9Pb7/EZj6PJt+f3v/OPmH2dr0=
 github.com/paysuper/paysuper-aws-manager v0.0.0-20190827071211-4aff35ed4d82/go.mod h1:TjXLdcbFp4VeSvZK3+sKv61uRS1tH0mtrEEqziaJ/+E=
+github.com/paysuper/paysuper-aws-manager v0.0.1 h1:792ZR+2Pva93ziJbV8zTxjod9gbx4jBlZ1ZUZpN/8Ts=
+github.com/paysuper/paysuper-aws-manager v0.0.1/go.mod h1:TjXLdcbFp4VeSvZK3+sKv61uRS1tH0mtrEEqziaJ/+E=
 github.com/paysuper/paysuper-billing-server v0.0.0-20190903132256-814645b104e6/go.mod h1:0oiTCZU+Qp+Nhgj/kI7vCWJb13qSYkcQ/arq5TFsvgA=
 github.com/paysuper/paysuper-currencies v0.0.0-20190903083641-668b8b2b997d h1:hoMkfdq4qEGOONvxajsZO0Mf6np++pGnrKVxegvplaw=
 github.com/paysuper/paysuper-currencies v0.0.0-20190903083641-668b8b2b997d/go.mod h1:C+QHdgbjIlAPxHD93/08yi+xWfUgk8maLY8FKFqNzMQ=
