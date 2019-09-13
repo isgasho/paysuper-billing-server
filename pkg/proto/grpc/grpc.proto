@@ -62,8 +62,10 @@ service BillingService {
     rpc GetCountry (billing.GetCountryRequest) returns (billing.Country) {}
     rpc UpdateCountry (billing.Country) returns (billing.Country) {}
 
-    rpc GetOrder (GetOrderRequest) returns (billing.Order) {}
-    rpc FindAllOrders (ListOrdersRequest) returns (billing.OrderPaginate) {}
+    rpc GetOrderPublic (GetOrderRequest) returns (GetOrderPublicResponse) {}
+    rpc GetOrderPrivate (GetOrderRequest) returns (GetOrderPrivateResponse) {}
+    rpc FindAllOrdersPublic (ListOrdersRequest) returns (ListOrdersPublicResponse) {}
+    rpc FindAllOrdersPrivate (ListOrdersRequest) returns (ListOrdersPrivateResponse) {}
     rpc IsOrderCanBePaying (IsOrderCanBePayingRequest) returns (IsOrderCanBePayingResponse) {}
 
     rpc GetPriceGroup (billing.GetPriceGroupRequest) returns (billing.PriceGroup) {}
@@ -1024,8 +1026,8 @@ message ListOrdersRequest {
     repeated string payment_method = 3;
     // @inject_tag: query:"country[]" validate:"omitempty,dive,alpha,len=2"
     repeated string country = 4;
-    // @inject_tag: query:"private_status[]" validate:"omitempty,dive,numeric,oneof=0 1 2 3 4 5 6 7 8 9 10 11 12"
-    repeated int32 private_status = 5;
+    // @inject_tag: query:"status[]" validate:"omitempty,dive,numeric,oneof=created processed canceled rejected refunded chargeback pending"
+    repeated string status = 5;
     // @inject_tag: query:"account"
     string account = 6;
     // @inject_tag: query:"pm_date_from" validate:"omitempty,numeric,gt=0"
@@ -1641,4 +1643,42 @@ message SetMerchantTariffRatesRequest {
     double amount_from = 4;
     // @inject_tag: json:"amount_to" validate:"required,numeric,gt=0"
     double amount_to = 5;
+}
+
+message ListOrdersPublicResponseItem {
+    // @inject_tag: json:"count"
+    int32 count = 1;
+    // @inject_tag: json:"items"
+    repeated billing.OrderViewPublic items = 2;
+}
+
+message ListOrdersPrivateResponseItem {
+    // @inject_tag: json:"count"
+    int32 count = 1;
+    // @inject_tag: json:"items"
+    repeated billing.OrderViewPrivate items = 2;
+}
+
+message ListOrdersPublicResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    ListOrdersPublicResponseItem Item = 3;
+}
+
+message ListOrdersPrivateResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    ListOrdersPrivateResponseItem Item = 3;
+}
+
+message GetOrderPublicResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.OrderViewPublic item = 3;
+}
+
+message GetOrderPrivateResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.OrderViewPrivate item = 3;
 }

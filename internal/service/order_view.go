@@ -3085,6 +3085,7 @@ func (s *Service) doUpdateOrderView(match bson.M) error {
 				"_id":                  1,
 				"uuid":                 1,
 				"pm_order_id":          1,
+				"project_order_id":     1,
 				"project":              1,
 				"created_at":           1,
 				"pm_order_close_date":  1,
