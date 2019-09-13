@@ -96,8 +96,7 @@ const (
 	TechEmailDomain        = "@paysuper.com"
 	OrderInlineFormUrlMask = "%s://%s/order/%s"
 
-	MigrationSource     = "file://./migrations"
-	MigrationSourceTest = "file://./../../migrations/tests"
+	MigrationSource = "file://./migrations"
 
 	ErrorGrpcServiceCallFailed       = "gRPC call failed"
 	ErrorVatReportDateCantBeInFuture = "vat report date cant be in future"
@@ -279,6 +278,22 @@ const (
 
 	UndoReasonReversal   = "reversal"
 	UndoReasonChargeback = "chargeback"
+
+	DashboardPeriodCurrentDay      = "current_day"
+	DashboardPeriodPreviousDay     = "previous_day"
+	DashboardPeriodTwoDaysAgo      = "two_days_ago"
+	DashboardPeriodCurrentWeek     = "current_week"
+	DashboardPeriodPreviousWeek    = "previous_week"
+	DashboardPeriodTwoWeeksAgo     = "two_weeks_ago"
+	DashboardPeriodCurrentMonth    = "current_month"
+	DashboardPeriodPreviousMonth   = "previous_month"
+	DashboardPeriodTwoMonthsAgo    = "two_months_ago"
+	DashboardPeriodCurrentQuarter  = "current_quarter"
+	DashboardPeriodPreviousQuarter = "previous_quarter"
+	DashboardPeriodTwoQuarterAgo   = "two_quarter_ago"
+	DashboardPeriodCurrentYear     = "current_year"
+	DashboardPeriodPreviousYear    = "previous_year"
+	DashboardPeriodTwoYearsAgo     = "two_years_ago"
 )
 
 var (

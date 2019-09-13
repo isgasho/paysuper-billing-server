@@ -174,6 +174,32 @@ It has these top-level messages:
 	GetMerchantTariffRatesRequest
 	GetMerchantTariffRatesResponse
 	SetMerchantTariffRatesRequest
+	ListOrdersPublicResponseItem
+	ListOrdersPrivateResponseItem
+	ListOrdersPublicResponse
+	ListOrdersPrivateResponse
+	GetOrderPublicResponse
+	GetOrderPrivateResponse
+	GetDashboardMainRequest
+	GetDashboardMainResponse
+	GetDashboardBaseReportRequest
+	GetDashboardBaseReportResponse
+	GetDashboardRevenueDynamicsReportResponse
+	DashboardAmountItemWithChart
+	DashboardChartItemFloat
+	DashboardMainReportTotalTransactions
+	DashboardMainReport
+	DashboardRevenueDynamicReport
+	DashboardRevenueDynamicReportItem
+	DashboardRevenueByCountryReportTop
+	DashboardRevenueByCountryReportTotal
+	DashboardRevenueByCountryReportChartItem
+	DashboardRevenueByCountryReport
+	DashboardSalesTodayReportTop
+	DashboardChartItemInt
+	DashboardSalesTodayReport
+	DashboardSourcesReport
+	DashboardBaseReports
 */
 package grpc
 
@@ -253,8 +279,10 @@ type BillingService interface {
 	GetCountriesList(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*billing.CountriesList, error)
 	GetCountry(ctx context.Context, in *billing.GetCountryRequest, opts ...client.CallOption) (*billing.Country, error)
 	UpdateCountry(ctx context.Context, in *billing.Country, opts ...client.CallOption) (*billing.Country, error)
-	GetOrder(ctx context.Context, in *GetOrderRequest, opts ...client.CallOption) (*billing.Order, error)
-	FindAllOrders(ctx context.Context, in *ListOrdersRequest, opts ...client.CallOption) (*billing.OrderPaginate, error)
+	GetOrderPublic(ctx context.Context, in *GetOrderRequest, opts ...client.CallOption) (*GetOrderPublicResponse, error)
+	GetOrderPrivate(ctx context.Context, in *GetOrderRequest, opts ...client.CallOption) (*GetOrderPrivateResponse, error)
+	FindAllOrdersPublic(ctx context.Context, in *ListOrdersRequest, opts ...client.CallOption) (*ListOrdersPublicResponse, error)
+	FindAllOrdersPrivate(ctx context.Context, in *ListOrdersRequest, opts ...client.CallOption) (*ListOrdersPrivateResponse, error)
 	IsOrderCanBePaying(ctx context.Context, in *IsOrderCanBePayingRequest, opts ...client.CallOption) (*IsOrderCanBePayingResponse, error)
 	GetPriceGroup(ctx context.Context, in *billing.GetPriceGroupRequest, opts ...client.CallOption) (*billing.PriceGroup, error)
 	UpdatePriceGroup(ctx context.Context, in *billing.PriceGroup, opts ...client.CallOption) (*billing.PriceGroup, error)
@@ -324,6 +352,9 @@ type BillingService interface {
 	FinishRedeemKeyForOrder(ctx context.Context, in *KeyForOrderRequest, opts ...client.CallOption) (*GetKeyForOrderRequestResponse, error)
 	CancelRedeemKeyForOrder(ctx context.Context, in *KeyForOrderRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 	ChangeCodeInOrder(ctx context.Context, in *ChangeCodeInOrderRequest, opts ...client.CallOption) (*ChangeCodeInOrderResponse, error)
+	GetDashboardMainReport(ctx context.Context, in *GetDashboardMainRequest, opts ...client.CallOption) (*GetDashboardMainResponse, error)
+	GetDashboardRevenueDynamicsReport(ctx context.Context, in *GetDashboardMainRequest, opts ...client.CallOption) (*GetDashboardRevenueDynamicsReportResponse, error)
+	GetDashboardBaseReport(ctx context.Context, in *GetDashboardBaseReportRequest, opts ...client.CallOption) (*GetDashboardBaseReportResponse, error)
 }
 
 type billingService struct {
@@ -784,9 +815,9 @@ func (c *billingService) UpdateCountry(ctx context.Context, in *billing.Country,
 	return out, nil
 }
 
-func (c *billingService) GetOrder(ctx context.Context, in *GetOrderRequest, opts ...client.CallOption) (*billing.Order, error) {
-	req := c.c.NewRequest(c.name, "BillingService.GetOrder", in)
-	out := new(billing.Order)
+func (c *billingService) GetOrderPublic(ctx context.Context, in *GetOrderRequest, opts ...client.CallOption) (*GetOrderPublicResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetOrderPublic", in)
+	out := new(GetOrderPublicResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -794,9 +825,29 @@ func (c *billingService) GetOrder(ctx context.Context, in *GetOrderRequest, opts
 	return out, nil
 }
 
-func (c *billingService) FindAllOrders(ctx context.Context, in *ListOrdersRequest, opts ...client.CallOption) (*billing.OrderPaginate, error) {
-	req := c.c.NewRequest(c.name, "BillingService.FindAllOrders", in)
-	out := new(billing.OrderPaginate)
+func (c *billingService) GetOrderPrivate(ctx context.Context, in *GetOrderRequest, opts ...client.CallOption) (*GetOrderPrivateResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetOrderPrivate", in)
+	out := new(GetOrderPrivateResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) FindAllOrdersPublic(ctx context.Context, in *ListOrdersRequest, opts ...client.CallOption) (*ListOrdersPublicResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.FindAllOrdersPublic", in)
+	out := new(ListOrdersPublicResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) FindAllOrdersPrivate(ctx context.Context, in *ListOrdersRequest, opts ...client.CallOption) (*ListOrdersPrivateResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.FindAllOrdersPrivate", in)
+	out := new(ListOrdersPrivateResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1494,6 +1545,36 @@ func (c *billingService) ChangeCodeInOrder(ctx context.Context, in *ChangeCodeIn
 	return out, nil
 }
 
+func (c *billingService) GetDashboardMainReport(ctx context.Context, in *GetDashboardMainRequest, opts ...client.CallOption) (*GetDashboardMainResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetMainReport", in)
+	out := new(GetDashboardMainResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetDashboardRevenueDynamicsReport(ctx context.Context, in *GetDashboardMainRequest, opts ...client.CallOption) (*GetDashboardRevenueDynamicsReportResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetRevenueDynamicsReport", in)
+	out := new(GetDashboardRevenueDynamicsReportResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetDashboardBaseReport(ctx context.Context, in *GetDashboardBaseReportRequest, opts ...client.CallOption) (*GetDashboardBaseReportResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetBaseReport", in)
+	out := new(GetDashboardBaseReportResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for BillingService service
 
 type BillingServiceHandler interface {
@@ -1541,8 +1622,10 @@ type BillingServiceHandler interface {
 	GetCountriesList(context.Context, *EmptyRequest, *billing.CountriesList) error
 	GetCountry(context.Context, *billing.GetCountryRequest, *billing.Country) error
 	UpdateCountry(context.Context, *billing.Country, *billing.Country) error
-	GetOrder(context.Context, *GetOrderRequest, *billing.Order) error
-	FindAllOrders(context.Context, *ListOrdersRequest, *billing.OrderPaginate) error
+	GetOrderPublic(context.Context, *GetOrderRequest, *GetOrderPublicResponse) error
+	GetOrderPrivate(context.Context, *GetOrderRequest, *GetOrderPrivateResponse) error
+	FindAllOrdersPublic(context.Context, *ListOrdersRequest, *ListOrdersPublicResponse) error
+	FindAllOrdersPrivate(context.Context, *ListOrdersRequest, *ListOrdersPrivateResponse) error
 	IsOrderCanBePaying(context.Context, *IsOrderCanBePayingRequest, *IsOrderCanBePayingResponse) error
 	GetPriceGroup(context.Context, *billing.GetPriceGroupRequest, *billing.PriceGroup) error
 	UpdatePriceGroup(context.Context, *billing.PriceGroup, *billing.PriceGroup) error
@@ -1612,6 +1695,9 @@ type BillingServiceHandler interface {
 	FinishRedeemKeyForOrder(context.Context, *KeyForOrderRequest, *GetKeyForOrderRequestResponse) error
 	CancelRedeemKeyForOrder(context.Context, *KeyForOrderRequest, *EmptyResponseWithStatus) error
 	ChangeCodeInOrder(context.Context, *ChangeCodeInOrderRequest, *ChangeCodeInOrderResponse) error
+	GetDashboardMainReport(context.Context, *GetDashboardMainRequest, *GetDashboardMainResponse) error
+	GetDashboardRevenueDynamicsReport(context.Context, *GetDashboardMainRequest, *GetDashboardRevenueDynamicsReportResponse) error
+	GetDashboardBaseReport(context.Context, *GetDashboardBaseReportRequest, *GetDashboardBaseReportResponse) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -1660,8 +1746,10 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetCountriesList(ctx context.Context, in *EmptyRequest, out *billing.CountriesList) error
 		GetCountry(ctx context.Context, in *billing.GetCountryRequest, out *billing.Country) error
 		UpdateCountry(ctx context.Context, in *billing.Country, out *billing.Country) error
-		GetOrder(ctx context.Context, in *GetOrderRequest, out *billing.Order) error
-		FindAllOrders(ctx context.Context, in *ListOrdersRequest, out *billing.OrderPaginate) error
+		GetOrderPublic(ctx context.Context, in *GetOrderRequest, out *GetOrderPublicResponse) error
+		GetOrderPrivate(ctx context.Context, in *GetOrderRequest, out *GetOrderPrivateResponse) error
+		FindAllOrdersPublic(ctx context.Context, in *ListOrdersRequest, out *ListOrdersPublicResponse) error
+		FindAllOrdersPrivate(ctx context.Context, in *ListOrdersRequest, out *ListOrdersPrivateResponse) error
 		IsOrderCanBePaying(ctx context.Context, in *IsOrderCanBePayingRequest, out *IsOrderCanBePayingResponse) error
 		GetPriceGroup(ctx context.Context, in *billing.GetPriceGroupRequest, out *billing.PriceGroup) error
 		UpdatePriceGroup(ctx context.Context, in *billing.PriceGroup, out *billing.PriceGroup) error
@@ -1731,6 +1819,9 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		FinishRedeemKeyForOrder(ctx context.Context, in *KeyForOrderRequest, out *GetKeyForOrderRequestResponse) error
 		CancelRedeemKeyForOrder(ctx context.Context, in *KeyForOrderRequest, out *EmptyResponseWithStatus) error
 		ChangeCodeInOrder(ctx context.Context, in *ChangeCodeInOrderRequest, out *ChangeCodeInOrderResponse) error
+		GetDashboardMainReport(ctx context.Context, in *GetDashboardMainRequest, out *GetDashboardMainResponse) error
+		GetDashboardRevenueDynamicsReport(ctx context.Context, in *GetDashboardMainRequest, out *GetDashboardRevenueDynamicsReportResponse) error
+		GetDashboardBaseReport(ctx context.Context, in *GetDashboardBaseReportRequest, out *GetDashboardBaseReportResponse) error
 	}
 	type BillingService struct {
 		billingService
@@ -1919,12 +2010,20 @@ func (h *billingServiceHandler) UpdateCountry(ctx context.Context, in *billing.C
 	return h.BillingServiceHandler.UpdateCountry(ctx, in, out)
 }
 
-func (h *billingServiceHandler) GetOrder(ctx context.Context, in *GetOrderRequest, out *billing.Order) error {
-	return h.BillingServiceHandler.GetOrder(ctx, in, out)
+func (h *billingServiceHandler) GetOrderPublic(ctx context.Context, in *GetOrderRequest, out *GetOrderPublicResponse) error {
+	return h.BillingServiceHandler.GetOrderPublic(ctx, in, out)
 }
 
-func (h *billingServiceHandler) FindAllOrders(ctx context.Context, in *ListOrdersRequest, out *billing.OrderPaginate) error {
-	return h.BillingServiceHandler.FindAllOrders(ctx, in, out)
+func (h *billingServiceHandler) GetOrderPrivate(ctx context.Context, in *GetOrderRequest, out *GetOrderPrivateResponse) error {
+	return h.BillingServiceHandler.GetOrderPrivate(ctx, in, out)
+}
+
+func (h *billingServiceHandler) FindAllOrdersPublic(ctx context.Context, in *ListOrdersRequest, out *ListOrdersPublicResponse) error {
+	return h.BillingServiceHandler.FindAllOrdersPublic(ctx, in, out)
+}
+
+func (h *billingServiceHandler) FindAllOrdersPrivate(ctx context.Context, in *ListOrdersRequest, out *ListOrdersPrivateResponse) error {
+	return h.BillingServiceHandler.FindAllOrdersPrivate(ctx, in, out)
 }
 
 func (h *billingServiceHandler) IsOrderCanBePaying(ctx context.Context, in *IsOrderCanBePayingRequest, out *IsOrderCanBePayingResponse) error {
@@ -2201,4 +2300,16 @@ func (h *billingServiceHandler) CancelRedeemKeyForOrder(ctx context.Context, in 
 
 func (h *billingServiceHandler) ChangeCodeInOrder(ctx context.Context, in *ChangeCodeInOrderRequest, out *ChangeCodeInOrderResponse) error {
 	return h.BillingServiceHandler.ChangeCodeInOrder(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetDashboardMainReport(ctx context.Context, in *GetDashboardMainRequest, out *GetDashboardMainResponse) error {
+	return h.BillingServiceHandler.GetDashboardMainReport(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetDashboardRevenueDynamicsReport(ctx context.Context, in *GetDashboardMainRequest, out *GetDashboardRevenueDynamicsReportResponse) error {
+	return h.BillingServiceHandler.GetDashboardRevenueDynamicsReport(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetDashboardBaseReport(ctx context.Context, in *GetDashboardBaseReportRequest, out *GetDashboardBaseReportResponse) error {
+	return h.BillingServiceHandler.GetDashboardBaseReport(ctx, in, out)
 }
