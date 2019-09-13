@@ -266,8 +266,8 @@ func (s *Service) GetVatReportTransactions(
 
 	match := bson.M{
 		"pm_order_close_date": bson.M{
-			"$gte": bod(from),
-			"$lte": eod(to),
+			"$gte": now.New(from).BeginningOfDay(),
+			"$lte": now.New(to).EndOfDay(),
 		},
 		"country_code": vr.Country,
 	}
@@ -684,8 +684,8 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 
 	matchQuery := bson.M{
 		"pm_order_close_date": bson.M{
-			"$gte": bod(from),
-			"$lte": eod(to),
+			"$gte": now.New(from).BeginningOfDay(),
+			"$lte": now.New(to).EndOfDay(),
 		},
 		"country_code":     country.IsoCodeA2,
 		"is_vat_deduction": false,
@@ -805,8 +805,8 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.
 
 	query := bson.M{
 		"created_at": bson.M{
-			"$gte": bod(from),
-			"$lte": eod(to),
+			"$gte": now.New(from).BeginningOfDay(),
+			"$lte": now.New(to).EndOfDay(),
 		},
 		"country": country.IsoCodeA2,
 		"type":    bson.M{"$in": AccountingEntriesLocalAmountsUpdate},
