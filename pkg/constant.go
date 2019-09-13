@@ -219,7 +219,6 @@ const (
 	PaymentCreateBankCardFieldIssuerName    = "bank_issuer_name"
 	PaymentCreateBankCardFieldIssuerCountry = "bank_issuer_country"
 
-	RoyaltyReportStatusNew      = "new"
 	RoyaltyReportStatusPending  = "pending"
 	RoyaltyReportStatusAccepted = "accepted"
 	RoyaltyReportStatusCanceled = "canceled"

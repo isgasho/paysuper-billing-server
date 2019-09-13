@@ -588,12 +588,8 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(merchantId bson.ObjectId) e
 		Id:         bson.NewObjectId().Hex(),
 		MerchantId: merchantId.Hex(),
 		Amounts:    amounts,
-		Status:     pkg.RoyaltyReportStatusNew,
+		Status:     pkg.RoyaltyReportStatusPending,
 		CreatedAt:  ptypes.TimestampNow(),
-	}
-
-	if amounts.PayoutAmount >= merchant.MinPayoutAmount {
-		report.Status = pkg.RoyaltyReportStatusPending
 	}
 
 	report.PeriodFrom, _ = ptypes.TimestampProto(h.from)

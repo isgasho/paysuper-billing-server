@@ -761,7 +761,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_Chang
 
 	req1 := &grpc.ChangeRoyaltyReportRequest{
 		ReportId: report.Id,
-		Status:   pkg.RoyaltyReportStatusNew,
+		Status:   pkg.RoyaltyReportStatusCanceled,
 		Ip:       "127.0.0.1",
 	}
 	rsp1 := &grpc.ResponseError{}

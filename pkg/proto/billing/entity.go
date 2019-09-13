@@ -135,16 +135,12 @@ func (m *RoyaltyReport) ChangesAvailable(newStatus string) bool {
 		return false
 	}
 
-	if m.Status == pkg.RoyaltyReportStatusNew && newStatus != pkg.RoyaltyReportStatusPending && newStatus != pkg.RoyaltyReportStatusCanceled {
-		return false
-	}
-
 	if m.Status == pkg.RoyaltyReportStatusPending && newStatus != pkg.RoyaltyReportStatusAccepted &&
 		newStatus != pkg.RoyaltyReportStatusDispute {
 		return false
 	}
 
-	if m.Status == pkg.RoyaltyReportStatusCanceled && newStatus != pkg.RoyaltyReportStatusNew {
+	if m.Status == pkg.RoyaltyReportStatusCanceled && newStatus != pkg.RoyaltyReportStatusPending {
 		return false
 	}
 
