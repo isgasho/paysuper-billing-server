@@ -360,6 +360,13 @@ func (s *Service) ConfirmUserEmail(
 		return nil
 	}
 
+	merchant, err := s.getMerchantBy(bson.M{"user.id": userId})
+
+	if err == nil {
+		merchant.User.RegistrationDate = profile.Email.ConfirmedAt
+		_ = s.merchant.Update(merchant)
+	}
+
 	return nil
 }
 

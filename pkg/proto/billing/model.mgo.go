@@ -1956,23 +1956,29 @@ func (m *Merchant) SetBSON(raw bson.Raw) error {
 			ProfileId: decoded.User.ProfileId,
 		}
 
-		m.User.RegistrationDate, err = ptypes.TimestampProto(decoded.User.RegistrationDate)
+		if !decoded.User.RegistrationDate.IsZero() {
+			m.User.RegistrationDate, err = ptypes.TimestampProto(decoded.User.RegistrationDate)
+
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if !decoded.ReceivedDate.IsZero() {
+		m.ReceivedDate, err = ptypes.TimestampProto(decoded.ReceivedDate)
 
 		if err != nil {
 			return err
 		}
 	}
 
-	m.ReceivedDate, err = ptypes.TimestampProto(decoded.ReceivedDate)
+	if !decoded.StatusLastUpdatedAt.IsZero() {
+		m.StatusLastUpdatedAt, err = ptypes.TimestampProto(decoded.StatusLastUpdatedAt)
 
-	if err != nil {
-		return err
-	}
-
-	m.StatusLastUpdatedAt, err = ptypes.TimestampProto(decoded.StatusLastUpdatedAt)
-
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
 	}
 
 	m.FirstPaymentAt, err = ptypes.TimestampProto(decoded.FirstPaymentAt)

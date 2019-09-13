@@ -2448,8 +2448,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantData_Ok() {
 	assert.True(suite.T(), merchant1.HasMerchantSignature)
 	assert.Equal(suite.T(), pkg.MerchantStatusAgreementSigned, merchant1.Status)
 	assert.NotEmpty(suite.T(), merchant1.ReceivedDate)
-	assert.NotZero(suite.T(), merchant.ReceivedDate.Seconds)
-	assert.NotZero(suite.T(), merchant.StatusLastUpdatedAt.Seconds)
+	assert.NotZero(suite.T(), merchant1.ReceivedDate.Seconds)
+	assert.NotZero(suite.T(), merchant1.StatusLastUpdatedAt.Seconds)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantData_MerchantNotFound_Error() {
