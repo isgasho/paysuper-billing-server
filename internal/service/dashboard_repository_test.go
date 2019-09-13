@@ -1,6 +1,6 @@
 package service
 
-//1. Тесты GetDashboardMainReport:
+//1. Тесты GetMainReport:
 //1.1. Ошибка формирования процессора (processor)
 //1.2. Ошибка выполнения запроса к БД
 //1.3. Ошибка - не известный период
@@ -8,7 +8,7 @@ package service
 //1.5. Получение отчета из кэша
 //1.6. Ошибка выполнения запроса на запись в редис
 
-//2. Тесты GetDashboardRevenueDynamicsReport:
+//2. Тесты GetRevenueDynamicsReport:
 //2.1. Ошибка формирования процессора (processor)
 //2.2. Ошибка выполнения запроса к БД
 //2.3. Успешное получение данных за предыдущий месяц
@@ -21,7 +21,7 @@ package service
 //2.10. Получение отчета из кэша
 //2.11. Ошибка выполнения запроса на запись в редис
 
-//3. Тесты GetDashboardBaseReport:
+//3. Тесты GetBaseReport:
 //3.1. Ошибка получения результата выборки данных по отчету "Revenue by country" из БД
 //3.2. Ошибка получения результата выборки данных по отчету "Sales today" из БД
 //3.3. Ошибка получения результата выборки данных по отчету "Sources" из БД
@@ -41,19 +41,19 @@ package service
 //3.16. Ошибка выполнения запроса на запись в редис для отчета "Sales today"
 //3.17. Ошибка выполнения запроса на запись в редис для отчета "Sources"
 
-//4. Тесты GetDashboardBaseRevenueByCountryReport:
+//4. Тесты GetBaseRevenueByCountryReport:
 //4.1. Ошибка формирования процессора для текущего периода
 //4.2. Ошибка формирования процессора для предыдущего периода
 //4.3. Ошибка получения результата выборки за текущий период
 //4.4. Ошибка получения результата выборки за предыдущий период
 
-//5. Тесты GetDashboardBaseSalesTodayReport:
+//5. Тесты GetBaseSalesTodayReport:
 //5.1. Ошибка формирования процессора для текущего периода
 //5.2. Ошибка формирования процессора для предыдущего периода
 //5.3. Ошибка получения результата выборки за текущий период
 //5.4. Ошибка получения результата выборки за предыдущий период
 
-//6. Тесты GetDashboardBaseSourcesReport:
+//6. Тесты GetBaseSourcesReport:
 //6.1. Ошибка формирования процессора для текущего периода
 //6.2. Ошибка формирования процессора для предыдущего периода
 //6.3. Ошибка получения результата выборки за текущий период
@@ -168,7 +168,7 @@ func (suite *DashboardRepositoryTestSuite) TearDownTest() {
 }
 
 func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_EmptyResult_Ok() {
-	report, err := suite.service.dashboardRepository.GetDashboardMainReport(suite.project.MerchantId, pkg.DashboardPeriodCurrentMonth)
+	report, err := suite.service.dashboardRepository.GetMainReport(suite.project.MerchantId, pkg.DashboardPeriodCurrentMonth)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), report)
 
@@ -195,7 +195,7 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_CurrentMo
 	iterations := (current.Day() - monthBeginning.Day()) + 1
 	suite.createOrdersForPeriod(iterations, pkg.DashboardPeriodCurrentMonth, monthBeginning)
 
-	report, err := suite.service.dashboardRepository.GetDashboardMainReport(suite.project.MerchantId, pkg.DashboardPeriodCurrentMonth)
+	report, err := suite.service.dashboardRepository.GetMainReport(suite.project.MerchantId, pkg.DashboardPeriodCurrentMonth)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), report)
 
@@ -247,7 +247,7 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_PreviousM
 	iterations := (monthEnd.Day() - monthBeginning.Day()) + 1
 	suite.createOrdersForPeriod(iterations, pkg.DashboardPeriodPreviousMonth, monthBeginning)
 
-	report, err := suite.service.dashboardRepository.GetDashboardMainReport(suite.project.MerchantId, pkg.DashboardPeriodPreviousMonth)
+	report, err := suite.service.dashboardRepository.GetMainReport(suite.project.MerchantId, pkg.DashboardPeriodPreviousMonth)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), report)
 
@@ -299,7 +299,7 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_CurrentQu
 	iterations := int((current.Unix() - monthBeginning.Unix()) / 604800)
 
 	suite.createOrdersForPeriod(iterations, pkg.DashboardPeriodCurrentQuarter, monthBeginning)
-	report, err := suite.service.dashboardRepository.GetDashboardMainReport(suite.project.MerchantId, pkg.DashboardPeriodCurrentQuarter)
+	report, err := suite.service.dashboardRepository.GetMainReport(suite.project.MerchantId, pkg.DashboardPeriodCurrentQuarter)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), report)
 
@@ -351,7 +351,7 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_PreviousQ
 	iterations := 3
 
 	suite.createOrdersForPeriod(iterations, pkg.DashboardPeriodPreviousQuarter, quarterBeginning)
-	report, err := suite.service.dashboardRepository.GetDashboardMainReport(suite.project.MerchantId, pkg.DashboardPeriodPreviousQuarter)
+	report, err := suite.service.dashboardRepository.GetMainReport(suite.project.MerchantId, pkg.DashboardPeriodPreviousQuarter)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), report)
 
@@ -403,7 +403,7 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_CurrentYe
 	iterations := int((current.Month() - beginning.Month()) + 1)
 	suite.createOrdersForPeriod(iterations, pkg.DashboardPeriodCurrentYear, beginning)
 
-	report, err := suite.service.dashboardRepository.GetDashboardMainReport(suite.project.MerchantId, pkg.DashboardPeriodCurrentYear)
+	report, err := suite.service.dashboardRepository.GetMainReport(suite.project.MerchantId, pkg.DashboardPeriodCurrentYear)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), report)
 
@@ -455,7 +455,7 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardRevenueDynamicsRepor
 	iterations := (current.Day() - monthBeginning.Day()) + 1
 	suite.createOrdersForPeriod(iterations, pkg.DashboardPeriodCurrentMonth, monthBeginning)
 
-	report, err := suite.service.dashboardRepository.GetDashboardRevenueDynamicsReport(suite.project.MerchantId, pkg.DashboardPeriodCurrentMonth)
+	report, err := suite.service.dashboardRepository.GetRevenueDynamicsReport(suite.project.MerchantId, pkg.DashboardPeriodCurrentMonth)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), report)
 	assert.Len(suite.T(), report, iterations)
@@ -469,7 +469,7 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardRevenueDynamicsRepor
 }
 
 func (suite *DashboardRepositoryTestSuite) Test_GetDashboardRevenueDynamicsReport_EmptyResult_Ok() {
-	report, err := suite.service.dashboardRepository.GetDashboardRevenueDynamicsReport(suite.project.MerchantId, pkg.DashboardPeriodCurrentMonth)
+	report, err := suite.service.dashboardRepository.GetRevenueDynamicsReport(suite.project.MerchantId, pkg.DashboardPeriodCurrentMonth)
 	assert.NoError(suite.T(), err)
 	assert.Empty(suite.T(), report)
 }
@@ -479,7 +479,7 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardBaseReport_CurrentMo
 	monthBeginning := now.BeginningOfMonth()
 	iterations := (current.Day() - monthBeginning.Day()) + 1
 	suite.createOrdersForPeriod(iterations, pkg.DashboardPeriodCurrentMonth, monthBeginning)
-	report, err := suite.service.dashboardRepository.GetDashboardBaseReport(suite.project.MerchantId, pkg.DashboardPeriodCurrentMonth)
+	report, err := suite.service.dashboardRepository.GetBaseReport(suite.project.MerchantId, pkg.DashboardPeriodCurrentMonth)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), report)
 
@@ -540,7 +540,7 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardBaseReport_CurrentMo
 }
 
 func (suite *DashboardRepositoryTestSuite) Test_GetDashboardBaseReport_EmptyResult_Ok() {
-	report, err := suite.service.dashboardRepository.GetDashboardBaseReport(suite.project.MerchantId, pkg.DashboardPeriodCurrentMonth)
+	report, err := suite.service.dashboardRepository.GetBaseReport(suite.project.MerchantId, pkg.DashboardPeriodCurrentMonth)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), report)
 	assert.NotNil(suite.T(), report.SalesToday)

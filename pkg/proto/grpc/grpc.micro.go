@@ -1546,7 +1546,7 @@ func (c *billingService) ChangeCodeInOrder(ctx context.Context, in *ChangeCodeIn
 }
 
 func (c *billingService) GetDashboardMainReport(ctx context.Context, in *GetDashboardMainRequest, opts ...client.CallOption) (*GetDashboardMainResponse, error) {
-	req := c.c.NewRequest(c.name, "BillingService.GetDashboardMainReport", in)
+	req := c.c.NewRequest(c.name, "BillingService.GetMainReport", in)
 	out := new(GetDashboardMainResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
@@ -1556,7 +1556,7 @@ func (c *billingService) GetDashboardMainReport(ctx context.Context, in *GetDash
 }
 
 func (c *billingService) GetDashboardRevenueDynamicsReport(ctx context.Context, in *GetDashboardMainRequest, opts ...client.CallOption) (*GetDashboardRevenueDynamicsReportResponse, error) {
-	req := c.c.NewRequest(c.name, "BillingService.GetDashboardRevenueDynamicsReport", in)
+	req := c.c.NewRequest(c.name, "BillingService.GetRevenueDynamicsReport", in)
 	out := new(GetDashboardRevenueDynamicsReportResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
@@ -1566,7 +1566,7 @@ func (c *billingService) GetDashboardRevenueDynamicsReport(ctx context.Context, 
 }
 
 func (c *billingService) GetDashboardBaseReport(ctx context.Context, in *GetDashboardBaseReportRequest, opts ...client.CallOption) (*GetDashboardBaseReportResponse, error) {
-	req := c.c.NewRequest(c.name, "BillingService.GetDashboardBaseReport", in)
+	req := c.c.NewRequest(c.name, "BillingService.GetBaseReport", in)
 	out := new(GetDashboardBaseReportResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {

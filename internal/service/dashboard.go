@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 )
@@ -17,7 +16,7 @@ func (s *Service) GetDashboardMainReport(
 	req *grpc.GetDashboardMainRequest,
 	rsp *grpc.GetDashboardMainResponse,
 ) error {
-	_, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
+	_, err := s.merchant.GetById(req.MerchantId)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -30,7 +29,7 @@ func (s *Service) GetDashboardMainReport(
 		return nil
 	}
 
-	report, err := s.dashboardRepository.GetDashboardMainReport(req.MerchantId, req.Period)
+	report, err := s.dashboardRepository.GetMainReport(req.MerchantId, req.Period)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -50,7 +49,7 @@ func (s *Service) GetDashboardRevenueDynamicsReport(
 	req *grpc.GetDashboardMainRequest,
 	rsp *grpc.GetDashboardRevenueDynamicsReportResponse,
 ) error {
-	_, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
+	_, err := s.merchant.GetById(req.MerchantId)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -63,7 +62,7 @@ func (s *Service) GetDashboardRevenueDynamicsReport(
 		return nil
 	}
 
-	report, err := s.dashboardRepository.GetDashboardRevenueDynamicsReport(req.MerchantId, req.Period)
+	report, err := s.dashboardRepository.GetRevenueDynamicsReport(req.MerchantId, req.Period)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -83,7 +82,7 @@ func (s *Service) GetDashboardBaseReport(
 	req *grpc.GetDashboardBaseReportRequest,
 	rsp *grpc.GetDashboardBaseReportResponse,
 ) error {
-	_, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
+	_, err := s.merchant.GetById(req.MerchantId)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -96,7 +95,7 @@ func (s *Service) GetDashboardBaseReport(
 		return nil
 	}
 
-	report, err := s.dashboardRepository.GetDashboardBaseReport(req.MerchantId, req.Period)
+	report, err := s.dashboardRepository.GetBaseReport(req.MerchantId, req.Period)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError

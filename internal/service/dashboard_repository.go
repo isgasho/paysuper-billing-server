@@ -46,21 +46,21 @@ var (
 
 type DashboardRepositoryInterface interface {
 	NewDashboardReportProcessor(string, string, string, interface{}, *mongodb.Source, CacheInterface) (*dashboardReportProcessor, error)
-	GetDashboardMainReport(string, string) (*grpc.DashboardMainReport, error)
-	GetDashboardRevenueDynamicsReport(string, string) ([]*grpc.DashboardRevenueDynamicReportItem, error)
-	GetDashboardBaseReport(string, string) (*grpc.DashboardBaseReports, error)
-	GetDashboardBaseRevenueByCountryReport(string, string) (*grpc.DashboardRevenueByCountryReport, error)
-	GetDashboardBaseSalesTodayReport(string, string) (*grpc.DashboardSalesTodayReport, error)
-	GetDashboardBaseSourcesReport(string, string) (*grpc.DashboardSourcesReport, error)
+	GetMainReport(string, string) (*grpc.DashboardMainReport, error)
+	GetRevenueDynamicsReport(string, string) ([]*grpc.DashboardRevenueDynamicReportItem, error)
+	GetBaseReport(string, string) (*grpc.DashboardBaseReports, error)
+	GetBaseRevenueByCountryReport(string, string) (*grpc.DashboardRevenueByCountryReport, error)
+	GetBaseSalesTodayReport(string, string) (*grpc.DashboardSalesTodayReport, error)
+	GetBaseSourcesReport(string, string) (*grpc.DashboardSourcesReport, error)
 }
 
 type DashboardReportProcessorInterface interface {
 	ExecuteReport(interface{}) (interface{}, error)
-	ExecuteDashboardMainReport(interface{}) (interface{}, error)
-	ExecuteDashboardRevenueDynamicReport(interface{}) (interface{}, error)
-	ExecuteDashboardRevenueByCountryReport(interface{}) (interface{}, error)
-	ExecuteDashboardSalesTodayReport(interface{}) (interface{}, error)
-	ExecuteDashboardSourcesReport(interface{}) (interface{}, error)
+	ExecuteMainReport(interface{}) (interface{}, error)
+	ExecuteRevenueDynamicReport(interface{}) (interface{}, error)
+	ExecuteRevenueByCountryReport(interface{}) (interface{}, error)
+	ExecuteSalesTodayReport(interface{}) (interface{}, error)
+	ExecuteSourcesReport(interface{}) (interface{}, error)
 }
 
 type dashboardReportProcessor struct {
@@ -77,7 +77,7 @@ func newDashboardRepository(s *Service) DashboardRepositoryInterface {
 	return &DashboardRepository{svc: s}
 }
 
-func (m *DashboardRepository) GetDashboardMainReport(merchantId, period string) (*grpc.DashboardMainReport, error) {
+func (m *DashboardRepository) GetMainReport(merchantId, period string) (*grpc.DashboardMainReport, error) {
 	processor, err := m.NewDashboardReportProcessor(
 		merchantId,
 		period,
@@ -91,7 +91,7 @@ func (m *DashboardRepository) GetDashboardMainReport(merchantId, period string) 
 		return nil, dashboardErrorUnknown
 	}
 
-	processor.dbQueryFn = processor.ExecuteDashboardMainReport
+	processor.dbQueryFn = processor.ExecuteMainReport
 	data, err := processor.ExecuteReport(new(grpc.DashboardMainReport))
 
 	if err != nil {
@@ -101,7 +101,7 @@ func (m *DashboardRepository) GetDashboardMainReport(merchantId, period string) 
 	return data.(*grpc.DashboardMainReport), nil
 }
 
-func (m *DashboardRepository) GetDashboardRevenueDynamicsReport(
+func (m *DashboardRepository) GetRevenueDynamicsReport(
 	merchantId, period string,
 ) ([]*grpc.DashboardRevenueDynamicReportItem, error) {
 	processor, err := m.NewDashboardReportProcessor(
@@ -117,7 +117,7 @@ func (m *DashboardRepository) GetDashboardRevenueDynamicsReport(
 		return nil, dashboardErrorUnknown
 	}
 
-	processor.dbQueryFn = processor.ExecuteDashboardRevenueDynamicReport
+	processor.dbQueryFn = processor.ExecuteRevenueDynamicReport
 	data, err := processor.ExecuteReport(new(grpc.DashboardRevenueDynamicReport))
 
 	if err != nil {
@@ -127,20 +127,20 @@ func (m *DashboardRepository) GetDashboardRevenueDynamicsReport(
 	return data.(*grpc.DashboardRevenueDynamicReport).Items, nil
 }
 
-func (m *DashboardRepository) GetDashboardBaseReport(merchantId, period string) (*grpc.DashboardBaseReports, error) {
-	revenueByCountryReport, err := m.GetDashboardBaseRevenueByCountryReport(merchantId, period)
+func (m *DashboardRepository) GetBaseReport(merchantId, period string) (*grpc.DashboardBaseReports, error) {
+	revenueByCountryReport, err := m.GetBaseRevenueByCountryReport(merchantId, period)
 
 	if err != nil {
 		return nil, err
 	}
 
-	salesTodayReport, err := m.GetDashboardBaseSalesTodayReport(merchantId, period)
+	salesTodayReport, err := m.GetBaseSalesTodayReport(merchantId, period)
 
 	if err != nil {
 		return nil, err
 	}
 
-	sourcesReport, err := m.GetDashboardBaseSourcesReport(merchantId, period)
+	sourcesReport, err := m.GetBaseSourcesReport(merchantId, period)
 
 	if err != nil {
 		return nil, err
@@ -155,7 +155,7 @@ func (m *DashboardRepository) GetDashboardBaseReport(merchantId, period string) 
 	return reports, nil
 }
 
-func (m *DashboardRepository) GetDashboardBaseRevenueByCountryReport(
+func (m *DashboardRepository) GetBaseRevenueByCountryReport(
 	merchantId, period string,
 ) (*grpc.DashboardRevenueByCountryReport, error) {
 	processorCurrent, err := m.NewDashboardReportProcessor(
@@ -184,8 +184,8 @@ func (m *DashboardRepository) GetDashboardBaseRevenueByCountryReport(
 		return nil, dashboardErrorUnknown
 	}
 
-	processorCurrent.dbQueryFn = processorCurrent.ExecuteDashboardRevenueByCountryReport
-	processorPrevious.dbQueryFn = processorPrevious.ExecuteDashboardRevenueByCountryReport
+	processorCurrent.dbQueryFn = processorCurrent.ExecuteRevenueByCountryReport
+	processorPrevious.dbQueryFn = processorPrevious.ExecuteRevenueByCountryReport
 	dataCurrent, err := processorCurrent.ExecuteReport(new(grpc.DashboardRevenueByCountryReport))
 
 	if err != nil {
@@ -219,7 +219,7 @@ func (m *DashboardRepository) GetDashboardBaseRevenueByCountryReport(
 	return dataCurrentTyped, nil
 }
 
-func (m *DashboardRepository) GetDashboardBaseSalesTodayReport(
+func (m *DashboardRepository) GetBaseSalesTodayReport(
 	merchantId, period string,
 ) (*grpc.DashboardSalesTodayReport, error) {
 	processorCurrent, err := m.NewDashboardReportProcessor(
@@ -248,8 +248,8 @@ func (m *DashboardRepository) GetDashboardBaseSalesTodayReport(
 		return nil, dashboardErrorUnknown
 	}
 
-	processorCurrent.dbQueryFn = processorCurrent.ExecuteDashboardSalesTodayReport
-	processorPrevious.dbQueryFn = processorPrevious.ExecuteDashboardSalesTodayReport
+	processorCurrent.dbQueryFn = processorCurrent.ExecuteSalesTodayReport
+	processorPrevious.dbQueryFn = processorPrevious.ExecuteSalesTodayReport
 	dataCurrent, err := processorCurrent.ExecuteReport(new(grpc.DashboardSalesTodayReport))
 
 	if err != nil {
@@ -269,7 +269,7 @@ func (m *DashboardRepository) GetDashboardBaseSalesTodayReport(
 	return dataCurrentTyped, nil
 }
 
-func (m *DashboardRepository) GetDashboardBaseSourcesReport(
+func (m *DashboardRepository) GetBaseSourcesReport(
 	merchantId, period string,
 ) (*grpc.DashboardSourcesReport, error) {
 	processorCurrent, err := m.NewDashboardReportProcessor(
@@ -298,8 +298,8 @@ func (m *DashboardRepository) GetDashboardBaseSourcesReport(
 		return nil, dashboardErrorUnknown
 	}
 
-	processorCurrent.dbQueryFn = processorCurrent.ExecuteDashboardSourcesReport
-	processorPrevious.dbQueryFn = processorPrevious.ExecuteDashboardSourcesReport
+	processorCurrent.dbQueryFn = processorCurrent.ExecuteSourcesReport
+	processorPrevious.dbQueryFn = processorPrevious.ExecuteSourcesReport
 	dataCurrent, err := processorCurrent.ExecuteReport(new(grpc.DashboardSourcesReport))
 
 	if err != nil {
@@ -490,7 +490,7 @@ func (m *dashboardReportProcessor) ExecuteReport(receiver interface{}) (interfac
 	return receiver, nil
 }
 
-func (m *dashboardReportProcessor) ExecuteDashboardMainReport(receiver interface{}) (interface{}, error) {
+func (m *dashboardReportProcessor) ExecuteMainReport(receiver interface{}) (interface{}, error) {
 	query := []bson.M{
 		{"$match": m.match},
 		{
@@ -607,7 +607,7 @@ func (m *dashboardReportProcessor) ExecuteDashboardMainReport(receiver interface
 	return receiver, nil
 }
 
-func (m *dashboardReportProcessor) ExecuteDashboardRevenueDynamicReport(receiver interface{}) (interface{}, error) {
+func (m *dashboardReportProcessor) ExecuteRevenueDynamicReport(receiver interface{}) (interface{}, error) {
 	query := []bson.M{
 		{"$match": m.match},
 		{
@@ -647,7 +647,7 @@ func (m *dashboardReportProcessor) ExecuteDashboardRevenueDynamicReport(receiver
 	return receiverTyped, nil
 }
 
-func (m *dashboardReportProcessor) ExecuteDashboardRevenueByCountryReport(receiver interface{}) (interface{}, error) {
+func (m *dashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interface{}) (interface{}, error) {
 	query := []bson.M{
 		{"$match": m.match},
 		{
@@ -752,7 +752,7 @@ func (m *dashboardReportProcessor) ExecuteDashboardRevenueByCountryReport(receiv
 	return receiver, nil
 }
 
-func (m *dashboardReportProcessor) ExecuteDashboardSalesTodayReport(receiver interface{}) (interface{}, error) {
+func (m *dashboardReportProcessor) ExecuteSalesTodayReport(receiver interface{}) (interface{}, error) {
 	query := []bson.M{
 		{"$match": m.match},
 		{
@@ -858,7 +858,7 @@ func (m *dashboardReportProcessor) ExecuteDashboardSalesTodayReport(receiver int
 	return receiver, nil
 }
 
-func (m *dashboardReportProcessor) ExecuteDashboardSourcesReport(receiver interface{}) (interface{}, error) {
+func (m *dashboardReportProcessor) ExecuteSourcesReport(receiver interface{}) (interface{}, error) {
 	delete(m.match, "status")
 	query := []bson.M{
 		{"$match": m.match},
