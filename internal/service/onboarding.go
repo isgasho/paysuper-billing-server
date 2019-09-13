@@ -94,6 +94,7 @@ func (s *Service) GetMerchantBy(
 	expire := time.Now().Add(time.Hour * 3).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": merchant.Id, "exp": expire})
 	merchant.CentrifugoToken, _ = token.SignedString([]byte(s.cfg.CentrifugoSecret))
+	merchant.HasProjects = s.getProjectsCountByMerchant(merchant.Id) > 0
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = merchant
@@ -113,6 +114,8 @@ func (s *Service) ListMerchants(
 		query["$or"] = []bson.M{
 			{"company.name": bson.RegEx{Pattern: ".*" + req.QuickSearch + ".*", Options: "i"}},
 			{"user.email": bson.RegEx{Pattern: ".*" + req.QuickSearch + ".*", Options: "i"}},
+			{"user.first_name": bson.RegEx{Pattern: ".*" + req.QuickSearch + ".*", Options: "i"}},
+			{"user.last_name": bson.RegEx{Pattern: ".*" + req.QuickSearch + ".*", Options: "i"}},
 		}
 	} else {
 		if req.Name != "" {
@@ -143,6 +146,34 @@ func (s *Service) ListMerchants(
 
 		if req.LastPayoutAmount > 0 {
 			query["last_payout.amount"] = req.LastPayoutAmount
+		}
+
+		if req.RegistrationDateFrom > 0 || req.RegistrationDateTo > 0 {
+			regDates := bson.M{}
+
+			if req.RegistrationDateFrom > 0 {
+				regDates["$gte"] = time.Unix(req.RegistrationDateFrom, 0)
+			}
+
+			if req.RegistrationDateTo > 0 {
+				regDates["$lte"] = time.Unix(req.RegistrationDateTo, 0)
+			}
+
+			query["user.registration_date"] = regDates
+		}
+
+		if req.ReceivedDateFrom > 0 || req.ReceivedDateTo > 0 {
+			dates := bson.M{}
+
+			if req.ReceivedDateFrom > 0 {
+				dates["$gte"] = time.Unix(req.ReceivedDateFrom, 0)
+			}
+
+			if req.ReceivedDateTo > 0 {
+				dates["$lte"] = time.Unix(req.ReceivedDateTo, 0)
+			}
+
+			query["received_date"] = dates
 		}
 	}
 
@@ -289,6 +320,23 @@ func (s *Service) ChangeMerchant(
 	merchant.Steps.Contacts = merchant.Contacts != nil
 	merchant.Steps.Banking = merchant.Banking != nil
 
+	if !merchant.HasPrimaryOnboardingUserName() {
+		profile := s.getOnboardingProfileBy(bson.M{"user_id": req.User.Id})
+
+		if profile != nil {
+			merchant.User.ProfileId = profile.Id
+
+			if profile.IsPersonalComplete() {
+				merchant.User.FirstName = profile.Personal.FirstName
+				merchant.User.LastName = profile.Personal.LastName
+			}
+
+			if profile.IsEmailVerified() {
+				merchant.User.RegistrationDate = profile.Email.ConfirmedAt
+			}
+		}
+	}
+
 	err = s.merchant.Upsert(merchant)
 
 	if err != nil {
@@ -377,6 +425,8 @@ func (s *Service) ChangeMerchantStatus(
 		}
 	}
 
+	merchant.StatusLastUpdatedAt = ptypes.TimestampNow()
+
 	if err := s.merchant.Update(merchant); err != nil {
 		zap.S().Errorf("Query to change merchant data failed", "err", err.Error(), "data", rsp)
 		rsp.Status = pkg.ResponseStatusBadData
@@ -432,7 +482,9 @@ func (s *Service) ChangeMerchantData(
 	}
 
 	if !merchant.HasMerchantSignature && req.HasMerchantSignature {
+		merchant.ReceivedDate = ptypes.TimestampNow()
 		merchant.HasMerchantSignature = req.HasMerchantSignature
+
 		s.sendMessageToCentrifugo(ctx, s.cfg.CentrifugoAdminChannel, merchantSignAgreementMessage)
 	}
 
@@ -442,10 +494,12 @@ func (s *Service) ChangeMerchantData(
 
 	if merchant.HasMerchantSignature {
 		merchant.Status = pkg.MerchantStatusAgreementSigning
+		merchant.StatusLastUpdatedAt = ptypes.TimestampNow()
 	}
 
 	if merchant.NeedMarkESignAgreementAsSigned() == true {
 		merchant.Status = pkg.MerchantStatusAgreementSigned
+		merchant.StatusLastUpdatedAt = ptypes.TimestampNow()
 	}
 
 	if err := s.merchant.Update(merchant); err != nil {

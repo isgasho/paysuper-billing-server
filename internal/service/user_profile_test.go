@@ -85,6 +85,21 @@ func (suite *UserProfileTestSuite) SetupTest() {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 
+	country := &billing.Country{
+		IsoCodeA2:       "RU",
+		Region:          "Russia",
+		Currency:        "RUB",
+		PaymentsAllowed: true,
+		ChangeAllowed:   true,
+		VatEnabled:      true,
+		PriceGroupId:    "",
+		VatCurrency:     "RUB",
+	}
+
+	if err := suite.service.country.Insert(country); err != nil {
+		suite.FailNow("Insert country test data failed", "%v", err)
+	}
+
 	suite.service.centrifugoClient = gocent.New(
 		gocent.Config{
 			Addr:       cfg.CentrifugoURL,
@@ -123,7 +138,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	}
 	rsp := &grpc.GetUserProfileResponse{}
 
-	profile := suite.service.getOnboardingProfileByUser(req.UserId)
+	profile := suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
 	assert.Nil(suite.T(), profile)
 
 	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
@@ -136,7 +151,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	assert.NotEmpty(suite.T(), rsp.Item.CreatedAt)
 	assert.NotEmpty(suite.T(), rsp.Item.UpdatedAt)
 
-	profile = suite.service.getOnboardingProfileByUser(req.UserId)
+	profile = suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
 	assert.NotNil(suite.T(), rsp.Item)
 	assert.IsType(suite.T(), &grpc.UserProfile{}, rsp.Item)
 
@@ -177,7 +192,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_Cha
 	}
 	rsp := &grpc.GetUserProfileResponse{}
 
-	profile := suite.service.getOnboardingProfileByUser(req.UserId)
+	profile := suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
 	assert.Nil(suite.T(), profile)
 
 	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
@@ -214,7 +229,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_Cha
 	assert.Empty(suite.T(), rsp.Message)
 	assert.NotNil(suite.T(), rsp.Item)
 
-	profile = suite.service.getOnboardingProfileByUser(req.UserId)
+	profile = suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
 	assert.NotNil(suite.T(), rsp.Item)
 	assert.IsType(suite.T(), &grpc.UserProfile{}, rsp.Item)
 
@@ -331,7 +346,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateOnboardingProfi
 	assert.NotEqual(suite.T(), rsp.Item.Help, rsp1.Item.Help)
 	assert.NotEqual(suite.T(), rsp.Item.Company, rsp1.Item.Company)
 
-	profile := suite.service.getOnboardingProfileByUser(req.UserId)
+	profile := suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
 	assert.NotNil(suite.T(), profile)
 
 	assert.Equal(suite.T(), profile.UserId, rsp1.Item.UserId)
@@ -377,7 +392,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	}
 	rsp := &grpc.GetUserProfileResponse{}
 
-	profile := suite.service.getOnboardingProfileByUser(req.UserId)
+	profile := suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
 	assert.Nil(suite.T(), profile)
 
 	redisCl, ok := suite.service.redis.(*redismock.ClientMock)
@@ -433,7 +448,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	}
 	rsp := &grpc.GetUserProfileResponse{}
 
-	profile := suite.service.getOnboardingProfileByUser(req.UserId)
+	profile := suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
 	assert.Nil(suite.T(), profile)
 
 	suite.service.broker = mock.NewBrokerMockError()
@@ -569,7 +584,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_Ok() {
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
 	assert.Empty(suite.T(), rsp2.Message)
 
-	profile := suite.service.getOnboardingProfileByUser(req.UserId)
+	profile := suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
 	assert.NotNil(suite.T(), profile)
 	assert.True(suite.T(), profile.Email.Confirmed)
 	assert.NotNil(suite.T(), profile.Email.ConfirmedAt)
@@ -839,4 +854,131 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreatePageReview_Ok() {
 		assert.NotEmpty(suite.T(), v.Review)
 		assert.NotEmpty(suite.T(), v.PageId)
 	}
+}
+
+func (suite *UserProfileTestSuite) TestUserProfile_GetUserProfile_ByProfileId_Ok() {
+	req := &grpc.UserProfile{
+		UserId: bson.NewObjectId().Hex(),
+		Email: &grpc.UserProfileEmail{
+			Email: "test@unit.test",
+		},
+		Personal: &grpc.UserProfilePersonal{
+			FirstName: "Unit test",
+			LastName:  "Unit Test",
+			Position:  "test",
+		},
+		Help: &grpc.UserProfileHelp{
+			ProductPromotionAndDevelopment: false,
+			ReleasedGamePromotion:          true,
+			InternationalSales:             true,
+			Other:                          false,
+		},
+		LastStep: "step2",
+	}
+	rsp := &grpc.GetUserProfileResponse{}
+	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotNil(suite.T(), rsp.Item)
+
+	req1 := &grpc.GetUserProfileRequest{ProfileId: rsp.Item.Id}
+	rsp1 := &grpc.GetUserProfileResponse{}
+	err = suite.service.GetUserProfile(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.NotNil(suite.T(), rsp1.Item)
+	assert.Equal(suite.T(), rsp.Item.Id, rsp1.Item.Id)
+	assert.Equal(suite.T(), rsp.Item.UserId, rsp1.Item.UserId)
+}
+
+func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_WithExistMerchant_Ok() {
+	req := &grpc.UserProfile{
+		UserId: bson.NewObjectId().Hex(),
+		Email: &grpc.UserProfileEmail{
+			Email: "test@unit.test",
+		},
+		Personal: &grpc.UserProfilePersonal{
+			FirstName: "Unit test",
+			LastName:  "Unit Test",
+			Position:  "test",
+		},
+		Help: &grpc.UserProfileHelp{
+			ProductPromotionAndDevelopment: false,
+			ReleasedGamePromotion:          true,
+			InternationalSales:             true,
+			Other:                          false,
+		},
+		Company: &grpc.UserProfileCompany{
+			CompanyName:       "Unit test",
+			Website:           "http://localhost",
+			AnnualIncome:      &billing.RangeInt{From: 10, To: 100},
+			NumberOfEmployees: &billing.RangeInt{From: 10, To: 100},
+			KindOfActivity:    "develop_and_publish_your_games",
+			Monetization: &grpc.UserProfileCompanyMonetization{
+				PaidSubscription: true,
+			},
+			Platforms: &grpc.UserProfileCompanyPlatforms{
+				WebBrowser: true,
+			},
+		},
+		LastStep: "step3",
+	}
+	rsp := &grpc.GetUserProfileResponse{}
+
+	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotNil(suite.T(), rsp.Item)
+
+	u, err := url.ParseRequestURI(rsp.Item.Email.ConfirmationUrl)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), u)
+	assert.NotEmpty(suite.T(), u.RawQuery)
+
+	p, err := url.ParseQuery(u.RawQuery)
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), p, 1)
+	assert.Contains(suite.T(), p, "token")
+
+	req1 := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    req.UserId,
+			Email: req.Email.Email,
+		},
+		Company: &billing.MerchantCompanyInfo{
+			Name:    "merchant1",
+			Country: "RU",
+			Zip:     "190000",
+			City:    "St.Petersburg",
+		},
+	}
+
+	rsp1 := &grpc.ChangeMerchantResponse{}
+	err = suite.service.ChangeMerchant(context.TODO(), req1, rsp1)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+
+	merchant, err := suite.service.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(rsp1.Item.Id)})
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), merchant)
+	assert.Empty(suite.T(), merchant.User.RegistrationDate)
+
+	req2 := &grpc.ConfirmUserEmailRequest{Token: p["token"][0]}
+	rsp2 := &grpc.CheckProjectRequestSignatureResponse{}
+	err = suite.service.ConfirmUserEmail(context.TODO(), req2, rsp2)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
+	assert.Empty(suite.T(), rsp2.Message)
+
+	profile := suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
+	assert.NotNil(suite.T(), profile)
+	assert.True(suite.T(), profile.Email.Confirmed)
+	assert.NotNil(suite.T(), profile.Email.ConfirmedAt)
+
+	merchant, err = suite.service.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(rsp1.Item.Id)})
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), merchant)
+	assert.Equal(suite.T(), merchant.User.RegistrationDate.Seconds, profile.Email.ConfirmedAt.Seconds)
 }
