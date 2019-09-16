@@ -1062,7 +1062,7 @@ func (s *Service) getMerchantAgreementSignature(
 			},
 		},
 		Metadata: map[string]string{
-			documentSignerPkg.MetadataFieldAction:     documentSignerPkg.MetadataFieldActionValueMerchantAgreement,
+			// documentSignerPkg.MetadataFieldAction:     documentSignerPkg.MetadataFieldActionValueMerchantAgreement,
 			documentSignerPkg.MetadataFieldMerchantId: merchant.Id,
 		},
 	}
