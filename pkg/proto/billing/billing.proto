@@ -1165,7 +1165,7 @@ message PaymentChannelCostMerchant {
     string region = 6;
     //@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
     string country = 7;
-    // @inject_tag: json:"method_percent" bson:"method_percent" validate:"required,numeric,gte=0,lte=11"
+    // @inject_tag: json:"method_percent" bson:"method_percent" validate:"required,numeric,gte=0,lte=1"
     double method_percent = 8;
     // @inject_tag: json:"method_fix_amount" bson:"method_fix_amount" validate:"numeric,gte=0"
     double method_fix_amount = 9;

@@ -6903,8 +6903,8 @@ type PaymentChannelCostMerchant struct {
 	Region string `protobuf:"bytes,6,opt,name=region,proto3" json:"region" bson:"region" validate:"required"`
 	//@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
 	Country string `protobuf:"bytes,7,opt,name=country,proto3" json:"country" bson:"country" validate:"omitempty,alpha,len=2"`
-	// @inject_tag: json:"method_percent" bson:"method_percent" validate:"required,numeric,gte=0,lte=11"
-	MethodPercent float64 `protobuf:"fixed64,8,opt,name=method_percent,json=methodPercent,proto3" json:"method_percent" bson:"method_percent" validate:"required,numeric,gte=0,lte=11"`
+	// @inject_tag: json:"method_percent" bson:"method_percent" validate:"required,numeric,gte=0,lte=1"
+	MethodPercent float64 `protobuf:"fixed64,8,opt,name=method_percent,json=methodPercent,proto3" json:"method_percent" bson:"method_percent" validate:"required,numeric,gte=0,lte=1"`
 	// @inject_tag: json:"method_fix_amount" bson:"method_fix_amount" validate:"numeric,gte=0"
 	MethodFixAmount float64 `protobuf:"fixed64,9,opt,name=method_fix_amount,json=methodFixAmount,proto3" json:"method_fix_amount" bson:"method_fix_amount" validate:"numeric,gte=0"`
 	// @inject_tag: json:"method_fix_amount_currency" bson:"method_fix_amount_currency" validate:"required,alpha,len=3"
