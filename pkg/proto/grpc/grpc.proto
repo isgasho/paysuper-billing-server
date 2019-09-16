@@ -181,6 +181,7 @@ message ChangeCodeInOrderResponse {
 message GetPlatformKeyCountResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
+    //@inject_tag: json:"count"
     int32 count = 3;
 }
 
@@ -192,12 +193,14 @@ message KeyForOrderRequest {
 message GetKeyForOrderRequestResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
+    //@inject_tag: json:"key"
     billing.Key key = 3;
 }
 
 message PlatformKeyReserveResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
+    //@inject_tag: json:"key_id"
     string key_id = 3;
 }
 
@@ -268,6 +271,7 @@ message AddOrUpdatePlatformPricesRequest {
 message KeyProductResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
+    //@inject_tag: json:"product"
     KeyProduct product = 3;
 }
 
