@@ -533,6 +533,7 @@ func (m *dashboardReportProcessor) ExecuteMainReport(receiver interface{}) (inte
 							"value": bson.M{"$sum": "$revenue_amount"},
 						},
 					},
+					{"$sort": bson.M{"label": 1}},
 				},
 				"chart_vat": []bson.M{
 					{
@@ -542,6 +543,7 @@ func (m *dashboardReportProcessor) ExecuteMainReport(receiver interface{}) (inte
 							"value": bson.M{"$sum": "$vat_amount"},
 						},
 					},
+					{"$sort": bson.M{"label": 1}},
 				},
 				"chart_total_transactions": []bson.M{
 					{
@@ -551,6 +553,7 @@ func (m *dashboardReportProcessor) ExecuteMainReport(receiver interface{}) (inte
 							"value": bson.M{"$sum": 1},
 						},
 					},
+					{"$sort": bson.M{"label": 1}},
 				},
 				"chart_arpu": []bson.M{
 					{
@@ -563,6 +566,7 @@ func (m *dashboardReportProcessor) ExecuteMainReport(receiver interface{}) (inte
 					},
 					{"$addFields": bson.M{"value": bson.M{"$divide": []string{"$gross_revenue", "$total_transactions"}}}},
 					{"$project": bson.M{"label": "$label", "value": "$value"}},
+					{"$sort": bson.M{"label": 1}},
 				},
 			},
 		},
@@ -628,6 +632,7 @@ func (m *dashboardReportProcessor) ExecuteRevenueDynamicReport(receiver interfac
 				"count":    bson.M{"$sum": 1},
 			},
 		},
+		{"$sort": bson.M{"_id": 1}},
 	}
 
 	receiverTyped := receiver.(*grpc.DashboardRevenueDynamicReport)
@@ -704,6 +709,7 @@ func (m *dashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interf
 							"currency": bson.M{"$first": "$currency"},
 						},
 					},
+					{"$sort": bson.M{"amount": -1}},
 					{"$limit": baseReportsItemsLimit},
 				},
 				"total": []bson.M{
@@ -724,6 +730,7 @@ func (m *dashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interf
 							"currency": bson.M{"$first": "$currency"},
 						},
 					},
+					{"$sort": bson.M{"label": 1}},
 				},
 			},
 		},
@@ -809,9 +816,10 @@ func (m *dashboardReportProcessor) ExecuteSalesTodayReport(receiver interface{})
 						"$group": bson.M{
 							"_id":   "$item",
 							"name":  bson.M{"$first": "$item"},
-							"count": bson.M{"$sum": 1},
+							"count": bson.M{"$sum": -1},
 						},
 					},
+					{"$sort": bson.M{"count": -1}},
 					{"$limit": baseReportsItemsLimit},
 				},
 				"total": []bson.M{
@@ -830,6 +838,7 @@ func (m *dashboardReportProcessor) ExecuteSalesTodayReport(receiver interface{})
 							"value": bson.M{"$sum": 1},
 						},
 					},
+					{"$sort": bson.M{"label": 1}},
 				},
 			},
 		},
@@ -898,9 +907,10 @@ func (m *dashboardReportProcessor) ExecuteSourcesReport(receiver interface{}) (i
 						"$group": bson.M{
 							"_id":   "$issuer",
 							"name":  bson.M{"$first": "$issuer"},
-							"count": bson.M{"$sum": 1},
+							"count": bson.M{"$sum": -1},
 						},
 					},
+					{"$sort": bson.M{"count": 1}},
 					{"$limit": baseReportsItemsLimit},
 				},
 				"total": []bson.M{
@@ -919,6 +929,7 @@ func (m *dashboardReportProcessor) ExecuteSourcesReport(receiver interface{}) (i
 							"value": bson.M{"$sum": 1},
 						},
 					},
+					{"$sort": bson.M{"label": 1}},
 				},
 			},
 		},
