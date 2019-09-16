@@ -116,6 +116,11 @@ It has these top-level messages:
 	TariffRatesItem
 	MerchantTariffRates
 	Key
+	PayoutDocumentNetRevenueItem
+	PayoutDocumentNetRevenue
+	PayoutDocumentOrdersItem
+	PayoutDocumentOrders
+	PayoutDocumentSummary
 	PayoutDocument
 	PayoutDocumentSignatureDataSignUrl
 	PayoutDocumentSignatureData

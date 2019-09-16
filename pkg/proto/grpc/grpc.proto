@@ -1873,14 +1873,12 @@ message DashboardBaseReports {
 }
 
 message CreatePayoutDocumentRequest {
-    //@inject_tag: json:"source_id" validate:"required"
-    repeated string source_id = 1;
     //@inject_tag: json:"description" validate:"required"
-    string description = 2;
+    string description = 1;
     //@inject_tag: json:"merchant_id" validate:"required,hexadecimal,len=24"
-    string merchant_id = 3;
+    string merchant_id = 2;
     //@inject_tag: json:"ip" validate:"required"
-    string ip = 4;
+    string ip = 3;
 }
 
 message PayoutDocumentResponse {

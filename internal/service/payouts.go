@@ -16,6 +16,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"go.uber.org/zap"
+	"sort"
 	"time"
 )
 
@@ -33,19 +34,18 @@ const (
 )
 
 var (
-	errorPayoutNoSources           = newBillingServerErrorMsg("po000001", "no source documents passed for payout")
-	errorPayoutSourcesNotFound     = newBillingServerErrorMsg("po000002", "no source documents found for payout")
-	errorPayoutNotFound            = newBillingServerErrorMsg("po000003", "payout document not found")
-	errorPayoutSourcesInconsistent = newBillingServerErrorMsg("po000004", "sources have inconsistent currencies")
-	errorPayoutAmountInvalid       = newBillingServerErrorMsg("po000005", "payout amount is invalid")
-	errorPayoutInvalid             = newBillingServerErrorMsg("po000006", "requested payout is invalid")
-	errorPayoutAlreadySigned       = newBillingServerErrorMsg("po000007", "payout already signed for this signer type")
-	errorPayoutCreateSignature     = newBillingServerErrorMsg("po000008", "create signature failed")
-	errorPayoutUpdateBalance       = newBillingServerErrorMsg("po000009", "balance update failed")
-	errorPayoutBalanceError        = newBillingServerErrorMsg("po000010", "getting balance failed")
-	errorPayoutNotEnoughBalance    = newBillingServerErrorMsg("po000011", "not enough balance for payout")
-	errorPayoutNetRevenueFailed    = newBillingServerErrorMsg("po000012", "failed to calc net revenue report for payout")
-	errorPayoutOrderStatFailed     = newBillingServerErrorMsg("po000013", "failed to calc order stat for payout")
+	errorPayoutSourcesNotFound  = newBillingServerErrorMsg("po000001", "no source documents found for payout")
+	errorPayoutSourcesPending   = newBillingServerErrorMsg("po000002", "you have at least one royalty report waiting for acceptance")
+	errorPayoutSourcesDispute   = newBillingServerErrorMsg("po000003", "you have at least one unclosed dispute in your royalty reports")
+	errorPayoutNotFound         = newBillingServerErrorMsg("po000004", "payout document not found")
+	errorPayoutAmountInvalid    = newBillingServerErrorMsg("po000005", "payout amount is invalid")
+	errorPayoutAlreadySigned    = newBillingServerErrorMsg("po000006", "payout already signed for this signer type")
+	errorPayoutCreateSignature  = newBillingServerErrorMsg("po000007", "create signature failed")
+	errorPayoutUpdateBalance    = newBillingServerErrorMsg("po000008", "balance update failed")
+	errorPayoutBalanceError     = newBillingServerErrorMsg("po000009", "getting balance failed")
+	errorPayoutNotEnoughBalance = newBillingServerErrorMsg("po000010", "not enough balance for payout")
+	errorPayoutNetRevenueFailed = newBillingServerErrorMsg("po000011", "failed to calc net revenue report for payout")
+	errorPayoutOrdersFailed     = newBillingServerErrorMsg("po000012", "failed to calc order stat for payout")
 
 	statusForUpdateBalance = map[string]bool{
 		pkg.PayoutDocumentStatusPending:    true,
@@ -59,30 +59,8 @@ type PayoutDocumentServiceInterface interface {
 	Update(document *billing.PayoutDocument, ip, source string) error
 }
 
-type period struct {
-	From time.Time
-	To   time.Time
-}
-
-type netRevenueItem struct {
-	Country  string  `bson:"_id"`
-	Currency string  `bson:"currency"`
-	Amount   float64 `bson:"amount"`
-}
-
-type netRevenue struct {
-	Top   []netRevenueItem `bson:"top"`
-	Total netRevenueItem   `bson:"total"`
-}
-
-type orderStatItem struct {
-	Name  string `bson:"name"`
-	Count int32  `bson:"count"`
-}
-
-type orderStat struct {
-	Top   []orderStatItem `bson:"top"`
-	Total int32           `bson:"total"`
+type sources struct {
+	Items []string `bson:"sources"`
 }
 
 func newPayoutService(svc *Service) PayoutDocumentServiceInterface {
@@ -111,12 +89,7 @@ func (s *Service) CreatePayoutDocument(
 		ArrivalDate:          arrivalDate,
 		HasMerchantSignature: false,
 		HasPspSignature:      false,
-	}
-
-	if len(req.SourceId) == 0 {
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorPayoutNoSources
-		return nil
+		Summary:              &billing.PayoutDocumentSummary{},
 	}
 
 	merchant, err := s.merchant.GetById(req.MerchantId)
@@ -129,7 +102,7 @@ func (s *Service) CreatePayoutDocument(
 	pd.MerchantId = merchant.Id
 	pd.Destination = merchant.Banking
 
-	reports, err := s.getPayoutDocumentSources(req.SourceId, req.MerchantId)
+	reports, err := s.getPayoutDocumentSources(merchant)
 
 	if err != nil {
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
@@ -142,26 +115,14 @@ func (s *Service) CreatePayoutDocument(
 
 	pd.Currency = reports[0].Amounts.Currency
 
-	periods := []*period{}
+	var times []time.Time
 
 	for _, r := range reports {
-		if pd.Currency != r.Amounts.Currency {
-			res.Status = pkg.ResponseStatusBadData
-			res.Message = errorPayoutSourcesInconsistent
-			return nil
-		}
 		pd.Amount += r.Amounts.PayoutAmount
 		pd.SourceId = append(pd.SourceId, r.Id)
 
 		from, err := ptypes.Timestamp(r.PeriodFrom)
-		if err != nil {
-			zap.S().Error(
-				"Time conversion error",
-				zap.Error(err),
-			)
-			return err
-		}
-		to, err := ptypes.Timestamp(r.PeriodTo)
+
 		if err != nil {
 			zap.S().Error(
 				"Time conversion error",
@@ -170,7 +131,16 @@ func (s *Service) CreatePayoutDocument(
 			return err
 		}
 
-		periods = append(periods, &period{From: from, To: to})
+		to, err := ptypes.Timestamp(r.PeriodTo)
+		if err != nil {
+			zap.S().Error(
+				"Payout source time conversion error",
+				zap.Error(err),
+			)
+			return err
+		}
+		times = append(times, from)
+		times = append(times, to)
 	}
 
 	if pd.Amount <= 0 {
@@ -201,39 +171,47 @@ func (s *Service) CreatePayoutDocument(
 		pd.Status = pkg.PayoutDocumentStatusSkip
 	}
 
-	netRevenues := []*netRevenue{}
-	orderStats := []*orderStat{}
+	sort.Slice(times, func(i, j int) bool {
+		return times[i].Before(times[j])
+	})
 
-	for _, v := range periods {
-		nr, err := s.getNetRevenueForPayout(merchant.Id, v.From, v.To)
-		if err != nil {
-			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-				res.Status = pkg.ResponseStatusSystemError
-				res.Message = e
-				return nil
-			}
-			return err
-		}
-		netRevenues = append(netRevenues, nr)
+	from := times[0]
+	to := times[len(times)-1]
 
-		os, err := s.getItemsStatForPayout(merchant.Id, v.From, v.To)
-		if err != nil {
-			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-				res.Status = pkg.ResponseStatusSystemError
-				res.Message = e
-				return nil
-			}
-			return err
-		}
-		orderStats = append(orderStats, os)
-	}
-
-	pd.SignatureData, err = s.getPayoutSignature(ctx, merchant, pd, netRevenues, orderStats)
+	pd.PeriodFrom, err = ptypes.TimestampProto(from)
 	if err != nil {
 		zap.S().Error(
-			"Getting signature data failed",
+			"Payout PeriodFrom time conversion error",
 			zap.Error(err),
 		)
+		return err
+	}
+	pd.PeriodTo, err = ptypes.TimestampProto(to)
+	if err != nil {
+		zap.S().Error(
+			"Payout PeriodTo time conversion error",
+			zap.Error(err),
+		)
+		return err
+	}
+
+	pd.Summary.NetRevenue, err = s.getPayoutDocumentNetRevenue(merchant.Id, from, to)
+	if err != nil {
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			res.Status = pkg.ResponseStatusSystemError
+			res.Message = e
+			return nil
+		}
+		return err
+	}
+
+	pd.Summary.Orders, err = s.getPayoutDocumentOrders(merchant.Id, from, to)
+	if err != nil {
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			res.Status = pkg.ResponseStatusSystemError
+			res.Message = e
+			return nil
+		}
 		return err
 	}
 
@@ -246,6 +224,8 @@ func (s *Service) CreatePayoutDocument(
 		}
 		return err
 	}
+
+	// todo: send created document to render service
 
 	res.Status = pkg.ResponseStatusOk
 	res.Item = pd
@@ -435,12 +415,12 @@ func (s *Service) GetPayoutDocuments(
 		return nil
 	}
 
-	sort := []string{"_id"}
+	sorts := []string{"_id"}
 
 	var pds []*billing.PayoutDocument
 	err = s.db.Collection(collectionPayoutDocuments).
 		Find(query).
-		Sort(sort...).
+		Sort(sorts...).
 		Limit(int(req.Limit)).
 		Skip(int(req.Offset)).
 		All(&pds)
@@ -470,10 +450,10 @@ func (s *Service) GetPayoutDocumentSignUrl(
 	res *grpc.GetPayoutDocumentSignUrlResponse,
 ) error {
 
+	res.Status = pkg.ResponseStatusOk
+
 	var pd *billing.PayoutDocument
-
-	err := s.db.Collection(collectionPayoutDocuments).Find(bson.M{"_id": bson.ObjectIdHex(req.PayoutDocumentId)}).One(&pd)
-
+	err := s.db.Collection(collectionPayoutDocuments).FindId(bson.ObjectIdHex(req.PayoutDocumentId)).One(&pd)
 	if err != nil {
 		if err == mgo.ErrNotFound {
 			res.Status = pkg.ResponseStatusNotFound
@@ -490,10 +470,14 @@ func (s *Service) GetPayoutDocumentSignUrl(
 	}
 
 	if pd.SignatureData == nil {
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorPayoutInvalid
-
-		return nil
+		pd.SignatureData, err = s.getPayoutSignature(ctx, pd)
+		if err != nil {
+			zap.S().Error(
+				"Getting signature data failed",
+				zap.Error(err),
+			)
+			return err
+		}
 	}
 
 	if req.SignerType == pkg.SignerTypeMerchant && pd.HasMerchantSignature {
@@ -510,8 +494,7 @@ func (s *Service) GetPayoutDocumentSignUrl(
 		return nil
 	}
 
-	data, err := s.changePayoutDocumentSignUrl(ctx, req.SignerType, pd, req.Ip)
-
+	res.Item, err = s.changePayoutDocumentSignUrl(ctx, req.SignerType, pd, req.Ip)
 	if err != nil {
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			res.Status = pkg.ResponseStatusSystemError
@@ -521,28 +504,68 @@ func (s *Service) GetPayoutDocumentSignUrl(
 		return err
 	}
 
-	res.Status = pkg.ResponseStatusOk
-	res.Item = data
-
 	return nil
 }
 
-func (s *Service) getPayoutDocumentSources(sources []string, merchant_id string) ([]*billing.RoyaltyReport, error) {
+func (s *Service) getPayoutDocumentSources(merchant *billing.Merchant) ([]*billing.RoyaltyReport, error) {
 	var result []*billing.RoyaltyReport
 
-	var sourcesIdHex []bson.ObjectId
-
-	for _, v := range sources {
-		sourcesIdHex = append(sourcesIdHex, bson.ObjectIdHex(v))
+	pdSourcesQuery := []bson.M{
+		{
+			"$match": bson.M{
+				"merchant_id":            bson.ObjectIdHex(merchant.Id),
+				"currency":               merchant.GetPayoutCurrency(),
+				"has_merchant_signature": true,
+				"has_psp_signature":      true,
+				"status":                 bson.M{"$in": []string{pkg.PayoutDocumentStatusPending, pkg.PayoutDocumentStatusInProgress, pkg.PayoutDocumentStatusPaid}},
+			},
+		},
+		{
+			"$project": bson.M{
+				"_id":       0,
+				"source_id": 1,
+			},
+		},
+		{
+			"$unwind": "$source_id",
+		},
+		{
+			"$group": bson.M{
+				"_id":     nil,
+				"sources": bson.M{"$push": "$source_id"},
+			},
+		},
 	}
 
-	query := bson.M{
-		"_id":         bson.M{"$in": sourcesIdHex},
-		"merchant_id": bson.ObjectIdHex(merchant_id),
-		"status":      pkg.RoyaltyReportStatusAccepted,
+	var res []*sources
+	err := s.db.Collection(collectionPayoutDocuments).Pipe(pdSourcesQuery).All(&res)
+
+	if err != nil {
+		zap.S().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String("collection", collectionOrderView),
+			zap.Any("query", pdSourcesQuery),
+		)
+		return nil, err
 	}
 
-	err := s.db.Collection(collectionRoyaltyReport).Find(query).Sort("period_from").All(&result)
+	royaltyReportsQuery := bson.M{
+		"merchant_id":      bson.ObjectIdHex(merchant.Id),
+		"amounts.currency": merchant.GetPayoutCurrency(),
+		"status":           bson.M{"$in": []string{pkg.RoyaltyReportStatusPending, pkg.RoyaltyReportStatusAccepted, pkg.RoyaltyReportStatusDispute}},
+	}
+
+	if len(res) > 0 {
+		excludeIds := []bson.ObjectId{}
+		for _, v := range res[0].Items {
+			excludeIds = append(excludeIds, bson.ObjectIdHex(v))
+		}
+
+		royaltyReportsQuery["_id"] = bson.M{"$nin": excludeIds}
+	}
+
+	err = s.db.Collection(collectionRoyaltyReport).Find(royaltyReportsQuery).Sort("period_from").All(&result)
 
 	if err != nil {
 		if err == mgo.ErrNotFound {
@@ -553,7 +576,7 @@ func (s *Service) getPayoutDocumentSources(sources []string, merchant_id string)
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String(errorFieldCollection, collectionRoyaltyReport),
-			zap.Any(errorFieldQuery, query),
+			zap.Any(errorFieldQuery, royaltyReportsQuery),
 		)
 		return nil, err
 	}
@@ -562,16 +585,33 @@ func (s *Service) getPayoutDocumentSources(sources []string, merchant_id string)
 		return nil, errorPayoutSourcesNotFound
 	}
 
+	for _, v := range result {
+		if v.Status == pkg.RoyaltyReportStatusPending {
+			return nil, errorPayoutSourcesPending
+		}
+		if v.Status == pkg.RoyaltyReportStatusDispute {
+			return nil, errorPayoutSourcesDispute
+		}
+	}
+
 	return result, nil
 }
 
 func (s *Service) getPayoutSignature(
 	ctx context.Context,
-	merchant *billing.Merchant,
 	pd *billing.PayoutDocument,
-	netRevenues []*netRevenue,
-	orderStat []*orderStat,
 ) (*billing.PayoutDocumentSignatureData, error) {
+
+	merchant, err := s.merchant.GetById(pd.MerchantId)
+
+	if err != nil {
+		zap.S().Error("Merchant not found", zap.Error(err), zap.String("merchant_id", pd.MerchantId))
+		return nil, err
+	}
+
+	// todo: check for rendered document exists
+	// return error if not
+
 	req := &proto.CreateSignatureRequest{
 		TemplateId: s.cfg.HelloSignPayoutTemplate,
 		ClientId:   s.cfg.HelloSignClientId,
@@ -587,7 +627,7 @@ func (s *Service) getPayoutSignature(
 				RoleName: documentSignerPkg.SignerRoleNamePaysuper,
 			},
 		},
-		// todo: pass custom fields?
+		// todo: pass rendered document
 		Metadata: map[string]string{
 			documentSignerPkg.MetadataFieldAction:           documentSignerPkg.MetadataFieldActionValueMerchantPayout,
 			documentSignerPkg.MetadataFieldPayoutDocumentId: pd.Id,
@@ -714,7 +754,7 @@ func (s *Service) changePayoutDocumentSignUrl(
 	return signUrl, nil
 }
 
-func (s *Service) getNetRevenueForPayout(merchantId string, from, to time.Time) (*netRevenue, error) {
+func (s *Service) getPayoutDocumentNetRevenue(merchantId string, from, to time.Time) (*billing.PayoutDocumentNetRevenue, error) {
 	query := []bson.M{
 		{
 			"$match": bson.M{
@@ -747,6 +787,7 @@ func (s *Service) getNetRevenueForPayout(merchantId string, from, to time.Time) 
 					{
 						"$group": bson.M{
 							"_id":      "$country",
+							"country":  bson.M{"$first": "$country"},
 							"amount":   bson.M{"$sum": "$amount"},
 							"currency": bson.M{"$first": "$currency"},
 						},
@@ -771,7 +812,7 @@ func (s *Service) getNetRevenueForPayout(merchantId string, from, to time.Time) 
 		},
 	}
 
-	var res []*netRevenue
+	var res []*billing.PayoutDocumentNetRevenue
 	err := s.db.Collection(collectionOrderView).Pipe(query).All(&res)
 
 	if err != nil {
@@ -791,7 +832,7 @@ func (s *Service) getNetRevenueForPayout(merchantId string, from, to time.Time) 
 	return res[0], nil
 }
 
-func (s *Service) getItemsStatForPayout(merchantId string, from, to time.Time) (*orderStat, error) {
+func (s *Service) getPayoutDocumentOrders(merchantId string, from, to time.Time) (*billing.PayoutDocumentOrders, error) {
 	query := []bson.M{
 		{
 			"$match": bson.M{
@@ -871,7 +912,7 @@ func (s *Service) getItemsStatForPayout(merchantId string, from, to time.Time) (
 		},
 	}
 
-	var res []*orderStat
+	var res []*billing.PayoutDocumentOrders
 	err := s.db.Collection(collectionOrder).Pipe(query).All(&res)
 
 	if err != nil {
@@ -885,7 +926,7 @@ func (s *Service) getItemsStatForPayout(merchantId string, from, to time.Time) (
 	}
 
 	if len(res) != 1 {
-		return nil, errorPayoutOrderStatFailed
+		return nil, errorPayoutOrdersFailed
 	}
 
 	return res[0], nil

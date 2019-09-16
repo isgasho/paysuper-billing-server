@@ -765,6 +765,9 @@ type MgoPayoutDocument struct {
 	HasMerchantSignature  bool                            `bson:"has_merchant_signature"`
 	HasPspSignature       bool                            `bson:"has_psp_signature"`
 	SignedDocumentFileUrl string                          `bson:"signed_document_file_url"`
+	PeriodFrom            time.Time                       `bson:"period_from"`
+	PeriodTo              time.Time                       `bson:"period_to"`
+	Summary               *PayoutDocumentSummary          `bson:"summary"`
 }
 
 type MgoPayoutDocumentSignatureDataSignUrl struct {
@@ -816,6 +819,7 @@ func (m *PayoutDocument) GetBSON() (interface{}, error) {
 		HasMerchantSignature:  m.HasMerchantSignature,
 		HasPspSignature:       m.HasPspSignature,
 		SignedDocumentFileUrl: m.SignedDocumentFileUrl,
+		Summary:               m.Summary,
 	}
 	if len(m.Id) <= 0 {
 		st.Id = bson.NewObjectId()
@@ -867,6 +871,26 @@ func (m *PayoutDocument) GetBSON() (interface{}, error) {
 		st.ArrivalDate = t
 	} else {
 		st.ArrivalDate = time.Now()
+	}
+
+	if m.PeriodFrom != nil {
+		t, err := ptypes.Timestamp(m.PeriodFrom)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.PeriodFrom = t
+	}
+
+	if m.PeriodTo != nil {
+		t, err := ptypes.Timestamp(m.PeriodTo)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.PeriodTo = t
 	}
 
 	if m.SignatureData != nil {
@@ -933,6 +957,7 @@ func (m *PayoutDocument) SetBSON(raw bson.Raw) error {
 	m.HasMerchantSignature = decoded.HasMerchantSignature
 	m.HasPspSignature = decoded.HasPspSignature
 	m.SignedDocumentFileUrl = decoded.SignedDocumentFileUrl
+	m.Summary = decoded.Summary
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {
@@ -945,6 +970,16 @@ func (m *PayoutDocument) SetBSON(raw bson.Raw) error {
 	}
 
 	m.ArrivalDate, err = ptypes.TimestampProto(decoded.ArrivalDate)
+	if err != nil {
+		return err
+	}
+
+	m.PeriodFrom, err = ptypes.TimestampProto(decoded.PeriodFrom)
+	if err != nil {
+		return err
+	}
+
+	m.PeriodTo, err = ptypes.TimestampProto(decoded.PeriodTo)
 	if err != nil {
 		return err
 	}
