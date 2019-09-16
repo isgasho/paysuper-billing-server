@@ -629,8 +629,8 @@ func (s *Service) getPayoutSignature(
 		},
 		// todo: pass rendered document
 		Metadata: map[string]string{
-			// documentSignerPkg.MetadataFieldAction:           documentSignerPkg.MetadataFieldActionValueMerchantPayout,
-			// documentSignerPkg.MetadataFieldPayoutDocumentId: pd.Id,
+			documentSignerPkg.MetadataFieldAction:           documentSignerPkg.MetadataFieldActionValueMerchantPayout,
+			documentSignerPkg.MetadataFieldPayoutDocumentId: pd.Id,
 		},
 	}
 
