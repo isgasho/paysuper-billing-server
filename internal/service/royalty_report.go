@@ -1,6 +1,6 @@
 package service
 
-//1) крон для формирования - 1 раз в неделю
+//1) крон для формирования - 1 раз в неделю (после 18 часов понедельника!)
 //2) крон для проверки не пропущена ли дата - каждый день
 
 import (
@@ -44,6 +44,12 @@ var (
 	royaltyReportErrorReportStatusChangeDenied        = newBillingServerErrorMsg("rr00002", "change royalty report to new status denied")
 	royaltyReportErrorReportDisputeCorrectionRequired = newBillingServerErrorMsg("rr00003", "for change royalty report status to dispute fields with correction amount and correction reason is required")
 	royaltyReportEntryErrorUnknown                    = newBillingServerErrorMsg("rr00004", "unknown error. try request later")
+
+	orderStatusForRoyaltyReports = []string{
+		constant.OrderPublicStatusProcessed,
+		constant.OrderPublicStatusRefunded,
+		constant.OrderPublicStatusChargeback,
+	}
 )
 
 type royaltyReportQueryResItem struct {
@@ -418,7 +424,7 @@ func (s *Service) ListRoyaltyReportOrders(
 	match := bson.M{
 		"merchant_id":         bson.ObjectIdHex(report.MerchantId),
 		"pm_order_close_date": bson.M{"$gte": from, "$lte": to},
-		"status":              constant.OrderPublicStatusProcessed,
+		"status":              bson.M{"$in": orderStatusForRoyaltyReports},
 	}
 
 	ts, err := s.getTransactionsPublic(match, int(req.Limit), int(req.Offset))
@@ -441,7 +447,7 @@ func (s *Service) getRoyaltyReportMerchantsByPeriod(from, to time.Time) []*Royal
 		{
 			"$match": bson.M{
 				"pm_order_close_date": bson.M{"$gte": from, "$lte": to},
-				"status":              constant.OrderPublicStatusProcessed,
+				"status":              bson.M{"$in": orderStatusForRoyaltyReports},
 			},
 		},
 		{"$project": bson.M{"project.merchant_id": true}},
@@ -520,7 +526,7 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(merchantId bson.ObjectId) e
 	matchQuery := bson.M{
 		"merchant_id":         merchantId,
 		"pm_order_close_date": bson.M{"$gte": h.from, "$lte": h.to},
-		"status":              constant.OrderPublicStatusProcessed,
+		"status":              bson.M{"$in": orderStatusForRoyaltyReports},
 	}
 
 	query := []bson.M{
