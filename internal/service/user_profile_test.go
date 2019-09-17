@@ -957,6 +957,10 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_WithExistMer
 	assert.NotNil(suite.T(), merchant)
 	assert.Empty(suite.T(), merchant.User.RegistrationDate)
 
+	ci := &mocks.CentrifugoInterface{}
+	ci.On("Publish", mock2.Anything, mock2.Anything, mock2.Anything).Return(nil)
+	suite.service.centrifugo = ci
+
 	req2 := &grpc.ConfirmUserEmailRequest{Token: p["token"][0]}
 	rsp2 := &grpc.CheckProjectRequestSignatureResponse{}
 	err = suite.service.ConfirmUserEmail(context.TODO(), req2, rsp2)
