@@ -425,7 +425,7 @@ func (m *DashboardRepository) NewDashboardReportProcessor(
 		if period == pkg.DashboardPeriodTwoYearsAgo {
 			decrement = decrement * 2
 		}
-		previousYear := time.Now().AddDate(-1, 0, 0)
+		previousYear := time.Now().AddDate(decrement, 0, 0)
 		gte := now.New(previousYear).BeginningOfYear()
 		lte := now.New(previousYear).EndOfYear()
 
