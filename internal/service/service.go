@@ -83,6 +83,7 @@ type Service struct {
 	documentSigner             documentSignerProto.DocumentSignerService
 	merchantTariffRates        MerchantTariffRatesInterface
 	keyRepository              KeyRepositoryInterface
+	dashboardRepository        DashboardRepositoryInterface
 	centrifugo                 CentrifugoInterface
 }
 
@@ -147,6 +148,8 @@ func (s *Service) Init() (err error) {
 	s.turnover = newTurnoverService(s)
 	s.merchantTariffRates = newMerchantsTariffRatesRepository(s)
 	s.keyRepository = newKeyRepository(s)
+	s.dashboardRepository = newDashboardRepository(s)
+
 	s.centrifugo = newCentrifugo(s)
 
 	if s.cfg.AccountingCurrency == "" {

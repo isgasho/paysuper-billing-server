@@ -216,6 +216,14 @@ message MerchantUser {
     string id = 1;
     // @inject_tag: json:"email" validate:"required,email"
     string email = 2;
+    // @inject_tag: json:"first_name"
+    string first_name = 3;
+    // @inject_tag: json:"last_name"
+    string last_name = 4;
+    // @inject_tag: json:"profile_id"
+    string profile_id = 5;
+    // @inject_tag: json:"registration_date"
+    google.protobuf.Timestamp registration_date = 6;
 }
 
 message MerchantCompanyInfo {
@@ -331,6 +339,12 @@ message Merchant {
     MerchantCompletedSteps steps = 46;
     //@inject_tag: json:"agreement_template"
     string agreement_template = 47;
+    // @inject_tag: json:"received_date"
+    google.protobuf.Timestamp received_date = 48;
+    // @inject_tag: json:"status_last_updated_at"
+    google.protobuf.Timestamp status_last_updated_at = 49;
+    // @inject_tag: json:"has_projects"
+    bool has_projects = 50;
 }
 
 message SystemNotificationStatuses {
@@ -1151,7 +1165,7 @@ message PaymentChannelCostMerchant {
     string region = 6;
     //@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
     string country = 7;
-    // @inject_tag: json:"method_percent" bson:"method_percent" validate:"required,numeric,gte=0,lte=11"
+    // @inject_tag: json:"method_percent" bson:"method_percent" validate:"required,numeric,gte=0,lte=1"
     double method_percent = 8;
     // @inject_tag: json:"method_fix_amount" bson:"method_fix_amount" validate:"numeric,gte=0"
     double method_fix_amount = 9;

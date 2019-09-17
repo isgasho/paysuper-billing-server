@@ -44,8 +44,7 @@ func (s *Service) CreateOrUpdateUserProfile(
 	rsp *grpc.GetUserProfileResponse,
 ) error {
 	var err error
-
-	profile := s.getOnboardingProfileByUser(req.UserId)
+	profile := s.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
 
 	if profile == nil {
 		profile = req
@@ -112,7 +111,13 @@ func (s *Service) GetUserProfile(
 	req *grpc.GetUserProfileRequest,
 	rsp *grpc.GetUserProfileResponse,
 ) error {
-	profile := s.getOnboardingProfileByUser(req.UserId)
+	query := bson.M{"user_id": req.UserId}
+
+	if req.ProfileId != "" {
+		query = bson.M{"_id": bson.ObjectIdHex(req.ProfileId)}
+	}
+
+	profile := s.getOnboardingProfileBy(query)
 
 	if profile == nil {
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -138,16 +143,15 @@ func (s *Service) GetUserProfile(
 	return nil
 }
 
-func (s *Service) getOnboardingProfileByUser(userId string) (profile *grpc.UserProfile) {
-	query := bson.M{"user_id": userId}
+func (s *Service) getOnboardingProfileBy(query bson.M) (profile *grpc.UserProfile) {
 	err := s.db.Collection(collectionUserProfile).Find(query).One(&profile)
 
 	if err != nil && err != mgo.ErrNotFound {
-		zap.S().Error(
+		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String("collection", collectionUserProfile),
-			zap.Any("query", query),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionUserProfile),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
 	}
 
@@ -330,7 +334,7 @@ func (s *Service) ConfirmUserEmail(
 		return nil
 	}
 
-	profile := s.getOnboardingProfileByUser(userId)
+	profile := s.getOnboardingProfileBy(bson.M{"user_id": userId})
 
 	if profile == nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -354,6 +358,13 @@ func (s *Service) ConfirmUserEmail(
 		rsp.Message = userProfileErrorUnknown
 
 		return nil
+	}
+
+	merchant, err := s.getMerchantBy(bson.M{"user.id": userId})
+
+	if err == nil {
+		merchant.User.RegistrationDate = profile.Email.ConfirmedAt
+		_ = s.merchant.Update(merchant)
 	}
 
 	return nil

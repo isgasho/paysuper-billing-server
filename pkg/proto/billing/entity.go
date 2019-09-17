@@ -227,3 +227,7 @@ func (m *Merchant) HasTariff() bool {
 	return m.Tariff != nil && m.Tariff.Payment != nil && m.Tariff.MoneyBack != nil && m.Tariff.Payout != nil &&
 		m.Tariff.Chargeback != nil && m.Tariff.Region != ""
 }
+
+func (m *Merchant) HasPrimaryOnboardingUserName() bool {
+	return m.User != nil && m.User.FirstName != "" && m.User.LastName != ""
+}

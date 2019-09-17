@@ -363,6 +363,24 @@ func (s *Service) updateProject(req *billing.Project, project *billing.Project) 
 	return nil
 }
 
+func (s *Service) getProjectsCountByMerchant(merchantId string) int32 {
+	query := bson.M{"merchant_id": bson.ObjectIdHex(merchantId)}
+	count, err := s.db.Collection(collectionProject).Find(query).Count()
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionProject),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+
+		return 0
+	}
+
+	return int32(count)
+}
+
 func newProjectService(svc *Service) *Project {
 	s := &Project{svc: svc}
 	return s
