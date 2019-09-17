@@ -54,7 +54,7 @@ type royaltyReportQueryResItem struct {
 	RefundReverseRevenue float64 `bson:"refund_reverse_revenue"`
 	Payout               float64 `bson:"merchant_payout"`
 	FeesTotal            float64 `bson:"fees_total"`
-	RefundReesTotal      float64 `bson:"refund_fees_total"`
+	RefundFeesTotal      float64 `bson:"refund_fees_total"`
 	TaxFeeTotal          float64 `bson:"tax_fee_total"`
 	RefundTaxFeeTotal    float64 `bson:"refund_tax_fee_total"`
 }
@@ -558,8 +558,8 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(ctx context.Context, mercha
 		amounts.TransactionsCount = res[0].Count
 		amounts.GrossAmount = tools.FormatAmount(res[0].GrossRevenue - res[0].RefundGrossRevenue)
 		amounts.PayoutAmount = tools.FormatAmount(res[0].NetRevenue - res[0].RefundReverseRevenue - res[0].Payout)
-		amounts.VatAmount = tools.FormatAmount(res[0].FeesTotal + res[0].RefundReesTotal)
-		amounts.FeeAmount = res[0].TaxFeeTotal + res[0].RefundTaxFeeTotal
+		amounts.VatAmount = tools.FormatAmount(res[0].TaxFeeTotal + res[0].RefundTaxFeeTotal)
+		amounts.FeeAmount = tools.FormatAmount(res[0].FeesTotal + res[0].RefundFeesTotal)
 	}
 
 	report := &billing.RoyaltyReport{

@@ -816,7 +816,7 @@ func (m *dashboardReportProcessor) ExecuteSalesTodayReport(receiver interface{})
 						"$group": bson.M{
 							"_id":   "$item",
 							"name":  bson.M{"$first": "$item"},
-							"count": bson.M{"$sum": -1},
+							"count": bson.M{"$sum": 1},
 						},
 					},
 					{"$sort": bson.M{"count": -1}},
@@ -907,10 +907,10 @@ func (m *dashboardReportProcessor) ExecuteSourcesReport(receiver interface{}) (i
 						"$group": bson.M{
 							"_id":   "$issuer",
 							"name":  bson.M{"$first": "$issuer"},
-							"count": bson.M{"$sum": -1},
+							"count": bson.M{"$sum": 1},
 						},
 					},
-					{"$sort": bson.M{"count": 1}},
+					{"$sort": bson.M{"count": -1}},
 					{"$limit": baseReportsItemsLimit},
 				},
 				"total": []bson.M{
