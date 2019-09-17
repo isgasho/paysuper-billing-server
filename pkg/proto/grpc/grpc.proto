@@ -1062,7 +1062,7 @@ message ListOrdersRequest {
     int32 offset = 13;
     // @inject_tag: query:"sort[]"
     repeated string sort = 14;
-    // @inject_tag: query:"merchant[]" validate:"omitempty,hexadecimal,len=24"
+    // @inject_tag: query:"merchant[]" validate:"omitempty,dive,hexadecimal,len=24"
     repeated string merchant = 15;
     // @inject_tag: query:"-"  json:"-"
     string status_notification_failed_for = 16;
