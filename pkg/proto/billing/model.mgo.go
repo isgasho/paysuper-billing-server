@@ -87,9 +87,18 @@ type MgoMerchantAgreementSignatureData struct {
 	PsSignUrl           *MgoMerchantAgreementSignatureDataSignUrl `bson:"ps_sign_url"`
 }
 
+type MgoMerchantUser struct {
+	Id               string    `bson:"id"`
+	Email            string    `bson:"email"`
+	FirstName        string    `bson:"first_name"`
+	LastName         string    `bson:"last_name"`
+	ProfileId        string    `bson:"profile_id"`
+	RegistrationDate time.Time `bson:"registration_date"`
+}
+
 type MgoMerchant struct {
 	Id                                            bson.ObjectId                        `bson:"_id"`
-	User                                          *MerchantUser                        `bson:"user"`
+	User                                          *MgoMerchantUser                     `bson:"user"`
 	Company                                       *MerchantCompanyInfo                 `bson:"company"`
 	Contacts                                      *MerchantContact                     `bson:"contacts"`
 	Banking                                       *MerchantBanking                     `bson:"banking"`
@@ -120,6 +129,8 @@ type MgoMerchant struct {
 	AgreementSignatureData                        *MgoMerchantAgreementSignatureData   `bson:"agreement_signature_data"`
 	Steps                                         *MerchantCompletedSteps              `bson:"steps"`
 	AgreementTemplate                             string                               `bson:"agreement_template"`
+	ReceivedDate                                  time.Time                            `bson:"received_date"`
+	StatusLastUpdatedAt                           time.Time                            `bson:"status_last_updated_at"`
 }
 
 type MgoCommission struct {
@@ -242,6 +253,10 @@ type MgoOrder struct {
 	Type                       string                      `bson:"type"`
 	IsVatDeduction             bool                        `bson:"is_vat_deduction"`
 	CountryCode                string                      `bson:"country_code"`
+	PlatformId                 string                      `bson:"platform_id"`
+	ProductType                string                      `bson:"product_type"`
+	Keys                       []string                    `bson:"keys"`
+	IsKeyProductNotified       bool                        `bson:"is_key_product_notified"`
 }
 
 type MgoOrderItem struct {
@@ -255,8 +270,10 @@ type MgoOrderItem struct {
 	Images      []string          `bson:"images"`
 	Url         string            `bson:"url"`
 	Metadata    map[string]string `bson:"metadata"`
+	Code        string            `bson:"code"`
 	CreatedAt   time.Time         `bson:"created_at"`
 	UpdatedAt   time.Time         `bson:"updated_at"`
+	PlatformId  string            `bson:"platform_id"`
 }
 
 type MgoPaymentSystem struct {
@@ -605,7 +622,7 @@ type MgoOrderViewPrivate struct {
 	CountryCode                                string                 `bson:"country_code"`
 	MerchantId                                 bson.ObjectId          `bson:"merchant_id"`
 	Locale                                     string                 `bson:"locale"`
-	Status                                     string                 `bson:"Status"`
+	Status                                     string                 `bson:"status"`
 	TransactionDate                            time.Time              `bson:"pm_order_close_date"`
 	User                                       *OrderUser             `bson:"user"`
 	BillingAddress                             *OrderBillingAddress   `bson:"billing_address"`
@@ -678,7 +695,7 @@ type MgoOrderViewPublic struct {
 	CountryCode                             string                 `bson:"country_code"`
 	MerchantId                              bson.ObjectId          `bson:"merchant_id"`
 	Locale                                  string                 `bson:"locale"`
-	Status                                  string                 `bson:"Status"`
+	Status                                  string                 `bson:"status"`
 	TransactionDate                         time.Time              `bson:"pm_order_close_date"`
 	User                                    *OrderUser             `bson:"user"`
 	BillingAddress                          *OrderBillingAddress   `bson:"billing_address"`
@@ -715,6 +732,17 @@ type MgoMerchantTariffRates struct {
 	Region     string                          `bson:"region"`
 	CreatedAt  time.Time                       `bson:"created_at"`
 	UpdatedAt  time.Time                       `bson:"updated_at"`
+}
+
+type MgoKey struct {
+	Id           bson.ObjectId  `bson:"_id"`
+	Code         string         `bson:"code"`
+	KeyProductId bson.ObjectId  `bson:"key_product_id"`
+	PlatformId   string         `bson:"platform_id"`
+	OrderId      *bson.ObjectId `bson:"order_id"`
+	CreatedAt    time.Time      `bson:"created_at"`
+	ReservedTo   time.Time      `bson:"reserved_to"`
+	RedeemedAt   time.Time      `bson:"redeemed_at"`
 }
 
 func (m *Country) GetBSON() (interface{}, error) {
@@ -1165,6 +1193,10 @@ func (m *Order) GetBSON() (interface{}, error) {
 		Type:                      m.Type,
 		IsVatDeduction:            m.IsVatDeduction,
 		CountryCode:               m.GetCountry(),
+		ProductType:               m.ProductType,
+		PlatformId:                m.PlatformId,
+		Keys:                      m.Keys,
+		IsKeyProductNotified:      m.IsKeyProductNotified,
 	}
 
 	if m.Refund != nil {
@@ -1189,6 +1221,8 @@ func (m *Order) GetBSON() (interface{}, error) {
 			Images:      v.Images,
 			Url:         v.Url,
 			Metadata:    v.Metadata,
+			Code:        v.Code,
+			PlatformId:  v.PlatformId,
 		}
 
 		if len(v.Id) <= 0 {
@@ -1367,6 +1401,11 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.Tax = decoded.Tax
 	m.PaymentMethod = getPaymentMethodOrder(decoded.PaymentMethod)
 	m.Items = []*OrderItem{}
+	m.PlatformId = decoded.PlatformId
+	m.ProductType = decoded.ProductType
+	m.Keys = decoded.Keys
+	m.IsKeyProductNotified = decoded.IsKeyProductNotified
+
 	if decoded.Refund != nil {
 		m.Refund = &OrderNotificationRefund{
 			Amount:        decoded.Refund.Amount,
@@ -1393,6 +1432,8 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 			Images:      v.Images,
 			Url:         v.Url,
 			Metadata:    v.Metadata,
+			Code:        v.Code,
+			PlatformId:  v.PlatformId,
 		}
 		item.CreatedAt, _ = ptypes.TimestampProto(v.CreatedAt)
 		item.UpdatedAt, _ = ptypes.TimestampProto(v.UpdatedAt)
@@ -1691,7 +1732,6 @@ func (m *PaymentSystem) SetBSON(raw bson.Raw) error {
 
 func (m *Merchant) GetBSON() (interface{}, error) {
 	st := &MgoMerchant{
-		User:                      m.User,
 		Company:                   m.Company,
 		Contacts:                  m.Contacts,
 		Banking:                   m.Banking,
@@ -1726,6 +1766,46 @@ func (m *Merchant) GetBSON() (interface{}, error) {
 		}
 
 		st.Id = bson.ObjectIdHex(m.Id)
+	}
+
+	if m.User != nil {
+		st.User = &MgoMerchantUser{
+			Id:        m.User.Id,
+			Email:     m.User.Email,
+			FirstName: m.User.FirstName,
+			LastName:  m.User.LastName,
+			ProfileId: m.User.ProfileId,
+		}
+
+		if m.User.RegistrationDate != nil {
+			t, err := ptypes.Timestamp(m.User.RegistrationDate)
+
+			if err != nil {
+				return nil, err
+			}
+
+			st.User.RegistrationDate = t
+		}
+	}
+
+	if m.ReceivedDate != nil {
+		t, err := ptypes.Timestamp(m.ReceivedDate)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.ReceivedDate = t
+	}
+
+	if m.StatusLastUpdatedAt != nil {
+		t, err := ptypes.Timestamp(m.StatusLastUpdatedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.StatusLastUpdatedAt = t
 	}
 
 	if m.FirstPaymentAt != nil {
@@ -1842,7 +1922,6 @@ func (m *Merchant) SetBSON(raw bson.Raw) error {
 	}
 
 	m.Id = decoded.Id.Hex()
-	m.User = decoded.User
 	m.Company = decoded.Company
 	m.Contacts = decoded.Contacts
 	m.Banking = decoded.Banking
@@ -1867,6 +1946,40 @@ func (m *Merchant) SetBSON(raw bson.Raw) error {
 	m.Tariff = decoded.Tariff
 	m.Steps = decoded.Steps
 	m.AgreementTemplate = decoded.AgreementTemplate
+
+	if decoded.User != nil {
+		m.User = &MerchantUser{
+			Id:        decoded.User.Id,
+			Email:     decoded.User.Email,
+			FirstName: decoded.User.FirstName,
+			LastName:  decoded.User.LastName,
+			ProfileId: decoded.User.ProfileId,
+		}
+
+		if !decoded.User.RegistrationDate.IsZero() {
+			m.User.RegistrationDate, err = ptypes.TimestampProto(decoded.User.RegistrationDate)
+
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if !decoded.ReceivedDate.IsZero() {
+		m.ReceivedDate, err = ptypes.TimestampProto(decoded.ReceivedDate)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	if !decoded.StatusLastUpdatedAt.IsZero() {
+		m.StatusLastUpdatedAt, err = ptypes.TimestampProto(decoded.StatusLastUpdatedAt)
+
+		if err != nil {
+			return err
+		}
+	}
 
 	m.FirstPaymentAt, err = ptypes.TimestampProto(decoded.FirstPaymentAt)
 
@@ -3492,4 +3605,78 @@ func (m *MerchantTariffRates) SetBSON(raw bson.Raw) error {
 	m.Region = decoded.Region
 
 	return nil
+}
+
+func (k *Key) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoKey)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	k.Id = decoded.Id.Hex()
+	k.Code = decoded.Code
+	k.KeyProductId = decoded.KeyProductId.Hex()
+	k.PlatformId = decoded.PlatformId
+
+	if decoded.OrderId != nil {
+		k.OrderId = decoded.OrderId.Hex()
+	}
+
+	if k.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt); err != nil {
+		return err
+	}
+
+	if k.RedeemedAt, err = ptypes.TimestampProto(decoded.RedeemedAt); err != nil {
+		return err
+	}
+
+	if k.ReservedTo, err = ptypes.TimestampProto(decoded.ReservedTo); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Key) GetBSON() (interface{}, error) {
+	st := &MgoKey{
+		Id:           bson.ObjectIdHex(m.Id),
+		PlatformId:   m.PlatformId,
+		KeyProductId: bson.ObjectIdHex(m.KeyProductId),
+		Code:         m.Code,
+	}
+
+	var err error
+
+	if m.OrderId != "" {
+		orderId := bson.ObjectIdHex(m.OrderId)
+		st.OrderId = &orderId
+	}
+
+	if m.RedeemedAt != nil {
+		if st.RedeemedAt, err = ptypes.Timestamp(m.RedeemedAt); err != nil {
+			return nil, err
+		}
+	} else {
+		st.RedeemedAt = time.Time{}
+	}
+
+	if m.ReservedTo != nil {
+		if st.ReservedTo, err = ptypes.Timestamp(m.ReservedTo); err != nil {
+			return nil, err
+		}
+	} else {
+		st.ReservedTo = time.Time{}
+	}
+
+	if m.CreatedAt != nil {
+		if st.CreatedAt, err = ptypes.Timestamp(m.CreatedAt); err != nil {
+			return nil, err
+		}
+	} else {
+		st.CreatedAt = time.Now()
+	}
+
+	return st, nil
 }

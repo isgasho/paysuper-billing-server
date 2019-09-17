@@ -3085,6 +3085,7 @@ func (s *Service) doUpdateOrderView(match bson.M) error {
 				"_id":                  1,
 				"uuid":                 1,
 				"pm_order_id":          1,
+				"project_order_id":     1,
 				"project":              1,
 				"created_at":           1,
 				"pm_order_close_date":  1,
@@ -3161,6 +3162,8 @@ func (s *Service) doUpdateOrderView(match bson.M) error {
 				"refund_fees_total":                                 1,
 				"refund_fees_total_local":                           1,
 				"paysuper_refund_total_profit":                      1,
+				"issuer":                                            1,
+				"items":                                             1,
 			},
 		},
 		{

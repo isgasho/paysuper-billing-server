@@ -26,7 +26,14 @@ var (
 		constant.OrderStatusProjectComplete:             constant.OrderPublicStatusProcessed,
 		constant.OrderStatusRefund:                      constant.OrderPublicStatusRefunded,
 		constant.OrderStatusChargeback:                  constant.OrderPublicStatusChargeback,
+		constant.OrderStatusItemReplaced:                constant.OrderPublicStatusProcessed,
 	}
+)
+
+const (
+	OrderType_simple  = "simple"
+	OrderType_key     = "key"
+	OrderType_product = "product"
 )
 
 func (m *Merchant) ChangesAllowed() bool {
@@ -219,4 +226,8 @@ func (m *Merchant) IsMerchantSignature(signatureId string) bool {
 func (m *Merchant) HasTariff() bool {
 	return m.Tariff != nil && m.Tariff.Payment != nil && m.Tariff.MoneyBack != nil && m.Tariff.Payout != nil &&
 		m.Tariff.Chargeback != nil && m.Tariff.Region != ""
+}
+
+func (m *Merchant) HasPrimaryOnboardingUserName() bool {
+	return m.User != nil && m.User.FirstName != "" && m.User.LastName != ""
 }

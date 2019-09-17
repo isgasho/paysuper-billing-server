@@ -597,6 +597,7 @@ func (suite *RefundTestSuite) TearDownTest() {
 
 func (suite *RefundTestSuite) TestRefund_CreateRefund_Ok() {
 	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -672,6 +673,7 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_Ok() {
 
 func (suite *RefundTestSuite) TestRefund_CreateRefund_AmountLess_Error() {
 	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -745,6 +747,7 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_AmountLess_Error() {
 
 func (suite *RefundTestSuite) TestRefund_CreateRefund_PaymentSystemNotExists_Error() {
 	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -809,6 +812,7 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_PaymentSystemNotExists_Err
 
 func (suite *RefundTestSuite) TestRefund_CreateRefund_PaymentSystemReturnError_Error() {
 	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -893,6 +897,7 @@ func (suite *RefundTestSuite) TestRefund_CreateRefundProcessor_ProcessOrder_Orde
 
 func (suite *RefundTestSuite) TestRefund_CreateRefund_RefundNotAllowed_Error() {
 	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -950,6 +955,7 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_RefundNotAllowed_Error() {
 
 func (suite *RefundTestSuite) TestRefund_CreateRefund_WasRefunded_Error() {
 	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -1010,6 +1016,7 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_WasRefunded_Error() {
 
 func (suite *RefundTestSuite) TestRefund_ListRefunds_Ok() {
 	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -1095,6 +1102,7 @@ func (suite *RefundTestSuite) TestRefund_ListRefunds_Ok() {
 
 func (suite *RefundTestSuite) TestRefund_ListRefunds_Limit_Ok() {
 	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -1192,6 +1200,7 @@ func (suite *RefundTestSuite) TestRefund_ListRefunds_NoResults_Ok() {
 
 func (suite *RefundTestSuite) TestRefund_GetRefund_Ok() {
 	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -1277,6 +1286,7 @@ func (suite *RefundTestSuite) TestRefund_GetRefund_NotFound_Error() {
 
 func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -1461,6 +1471,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 
 func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnmarshalError() {
 	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -1545,6 +1556,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnmarshalError() 
 
 func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnknownHandler_Error() {
 	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -1656,6 +1668,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnknownHandler_Er
 
 func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_RefundNotFound_Error() {
 	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -1767,6 +1780,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_RefundNotFound_Er
 
 func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderNotFound_Error() {
 	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -1885,6 +1899,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderNotFound_Err
 
 func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnknownPaymentSystemHandler_Error() {
 	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -1999,6 +2014,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnknownPaymentSys
 
 func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_ProcessRefundError() {
 	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -2124,6 +2140,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_ProcessRefundErro
 
 func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_TemporaryStatus_Ok() {
 	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -2243,6 +2260,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_TemporaryStatus_O
 
 func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunded_Ok() {
 	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -2407,6 +2425,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 
 func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Chargeback_Ok() {
 	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
