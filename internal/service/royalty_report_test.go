@@ -19,6 +19,7 @@ import (
 	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -908,6 +909,10 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_SendRoyaltyReportNotifica
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_AutoAcceptRoyaltyReports_Ok() {
 	projects := []*billing.Project{suite.project, suite.project1, suite.project2}
+
+	ci := &mocks.CentrifugoInterface{}
+	ci.On("Publish", mock2.Anything, mock2.Anything, mock2.Anything).Return(nil)
+	suite.service.centrifugo = ci
 
 	for _, v := range projects {
 		for i := 0; i < 10; i++ {
