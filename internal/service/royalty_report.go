@@ -33,9 +33,10 @@ const (
 	collectionRoyaltyReport        = "royalty_report"
 	collectionRoyaltyReportChanges = "royalty_report_changes"
 
-	royaltyReportErrorNoTransactions    = "no transactions for the period"
-	royaltyReportErrorTimezoneIncorrect = "incorrect time zone"
-	royaltyReportErrorAlreadyExists     = "report for this merchant and period already exists"
+	royaltyReportErrorNoTransactions        = "no transactions for the period"
+	royaltyReportErrorTimezoneIncorrect     = "incorrect time zone"
+	royaltyReportErrorEndOfPeriodIsInFuture = "end of royalty report period is in future"
+	royaltyReportErrorAlreadyExists         = "report for this merchant and period already exists"
 )
 
 var (
@@ -84,6 +85,11 @@ func (s *Service) CreateRoyaltyReport(
 	}
 
 	to := now.Monday().In(loc).Add(time.Duration(18) * time.Hour)
+	if to.After(time.Now().In(loc)) {
+		zap.S().Errorf(royaltyReportErrorTimezoneIncorrect)
+		return errors.New(royaltyReportErrorEndOfPeriodIsInFuture)
+	}
+
 	from := to.Add(-time.Duration(s.cfg.RoyaltyReportPeriod) * time.Second).In(loc)
 
 	var merchants []*RoyaltyReportMerchant
