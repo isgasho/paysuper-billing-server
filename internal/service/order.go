@@ -562,11 +562,17 @@ func (s *Service) PaymentFormJsonDataProcess(
 	}
 
 	if order.Issuer == nil {
-		order.Issuer = &billing.OrderIssuer{}
-	}
+		order.Issuer = &billing.OrderIssuer{
+			Url:      req.Referer,
+			Embedded: req.IsEmbedded,
+		}
+	} else {
+		if req.Referer != "" && req.Referer != order.Issuer.Url {
+			order.Issuer.Url = req.Referer
+		}
 
-	order.Issuer.Url = req.Referer
-	order.Issuer.Embedded = req.IsEmbedded
+		order.Issuer.Embedded = req.IsEmbedded
+	}
 
 	p1.processOrderVat(order)
 	err = s.updateOrder(order)
