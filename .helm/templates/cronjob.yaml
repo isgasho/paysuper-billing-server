@@ -121,4 +121,4 @@ spec:
                   name: {{ $deploymentName }}-env
                   key: {{ . }}
             {{- end }}
-          restartPolicy: OnFailure 
+          restartPolicy: OnFailure
