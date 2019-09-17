@@ -1607,7 +1607,12 @@ func (v *OrderCreateRequestProcessor) processPayerIp() error {
 	rsp, err := v.geo.GetIpData(context.TODO(), &proto.GeoIpDataRequest{IP: v.checked.user.Ip})
 
 	if err != nil {
-		zap.S().Errorw("Order create get payer data error", "err", err, "ip", v.checked.user.Ip)
+		zap.L().Error(
+			"Order create get payer data error",
+			zap.Error(err),
+			zap.String("ip", v.checked.user.Ip),
+		)
+
 		return orderErrorPayerRegionUnknown
 	}
 
@@ -2723,7 +2728,7 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 	if len(order.Keys) == 0 {
 		zap.S().Infow("[ProcessOrderKeyProducts] reserving keys", "order_id", order.Id)
 		keys := make([]string, len(order.Products))
-		for i, productId := range order.Products{
+		for i, productId := range order.Products {
 			reserveRes := &grpc.PlatformKeyReserveResponse{}
 			reserveReq := &grpc.PlatformKeyReserveRequest{
 				PlatformId:   order.PlatformId,
