@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
-	"github.com/paysuper/paysuper-billing-server/internal/mock"
+	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -740,19 +740,19 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 	)
 
-	redisdb := mock.NewTestRedis()
+	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
 		db,
 		cfg,
-		mock.NewGeoIpServiceTestOk(),
-		mock.NewRepositoryServiceOk(),
-		mock.NewTaxServiceOkMock(),
+		mocks.NewGeoIpServiceTestOk(),
+		mocks.NewRepositoryServiceOk(),
+		mocks.NewTaxServiceOkMock(),
 		broker,
 		redisClient,
 		suite.cache,
-		mock.NewCurrencyServiceMockOk(),
-		mock.NewDocumentSignerMockOk(),
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -1028,7 +1028,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		PsFixedFeeCurrency:      "EUR",
 	}
 	paymentMerCost2 := &billing.PaymentChannelCostMerchant{
-		MerchantId:              mock.MerchantIdMock,
+		MerchantId:              mocks.MerchantIdMock,
 		Name:                    "MASTERCARD",
 		PayoutCurrency:          "USD",
 		MinAmount:               5,
@@ -1146,7 +1146,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessCurrency_Error() {
 	}
 	assert.Empty(suite.T(), processor.checked.currency)
 
-	suite.service.curService = mock.NewCurrencyServiceMockError()
+	suite.service.curService = mocks.NewCurrencyServiceMockError()
 	suite.service.supportedCurrencies = []string{}
 
 	err := processor.processCurrency()
@@ -1182,7 +1182,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPayerData_EmptyEmailAndPhone_Ok() 
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessPayerData_EmptySubdivision_Ok() {
-	suite.service.geo = mock.NewGeoIpServiceTestOkWithoutSubdivision()
+	suite.service.geo = mocks.NewGeoIpServiceTestOkWithoutSubdivision()
 
 	req := &billing.OrderCreateRequest{
 		Type: billing.OrderType_simple,
@@ -1205,7 +1205,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPayerData_EmptySubdivision_Ok() {
 	assert.NotNil(suite.T(), processor.checked.user.Address)
 	assert.Empty(suite.T(), processor.checked.user.Address.State)
 
-	suite.service.geo = mock.NewGeoIpServiceTestOk()
+	suite.service.geo = mocks.NewGeoIpServiceTestOk()
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessPayerData_NotEmptyEmailAndPhone_Ok() {
@@ -1240,7 +1240,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPayerData_NotEmptyEmailAndPhone_Ok
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessPayerData_Error() {
-	suite.service.geo = mock.NewGeoIpServiceTestError()
+	suite.service.geo = mocks.NewGeoIpServiceTestError()
 
 	req := &billing.OrderCreateRequest{
 		Type: billing.OrderType_simple,
@@ -2791,7 +2791,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethodsData_EmptySavedCards
 		},
 	}
 
-	suite.service.rep = mock.NewRepositoryServiceEmpty()
+	suite.service.rep = mocks.NewRepositoryServiceEmpty()
 
 	rsp := &grpc.OrderCreateProcessResponse{}
 	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
@@ -2834,7 +2834,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethodsData_NotBankCard_Ok(
 		},
 	}
 
-	suite.service.rep = mock.NewRepositoryServiceEmpty()
+	suite.service.rep = mocks.NewRepositoryServiceEmpty()
 
 	rsp := &grpc.OrderCreateProcessResponse{}
 	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
@@ -2877,7 +2877,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethodsData_GetSavedCards_E
 		},
 	}
 
-	suite.service.rep = mock.NewRepositoryServiceError()
+	suite.service.rep = mocks.NewRepositoryServiceError()
 
 	rsp := &grpc.OrderCreateProcessResponse{}
 	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
@@ -3506,7 +3506,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_GetBinData_Error()
 		pkg.PaymentCreateFieldHolder:          "Mr. Card Holder",
 	}
 
-	suite.service.rep = mock.NewRepositoryServiceError()
+	suite.service.rep = mocks.NewRepositoryServiceError()
 
 	processor := &PaymentCreateProcessor{service: suite.service, data: data}
 	err = processor.processPaymentFormData()
@@ -3521,7 +3521,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_GetBinData_Error()
 	assert.False(suite.T(), ok)
 	assert.Len(suite.T(), bankBrand, 0)
 
-	suite.service.rep = mock.NewRepositoryServiceOk()
+	suite.service.rep = mocks.NewRepositoryServiceOk()
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_AccountEmpty_Error() {

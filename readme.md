@@ -67,7 +67,8 @@ To start app in console mode you must set `-task` flag in command line to one of
 Notice: for `vat-reports` task you may pass an report date (from past only!) for that you need get an report. 
 Date passed as `date` parameter, in YYYY-MM-DD format 
 
-Example: `$ paysuper-billing-server.exe -task=vat_reports -date="2018-12-31"` runs VAT reports calculation for last day of December, 2018.
+Example: `$ paysuper-billing-server.exe -task=vat_reports -date="2018-12-31"` runs VAT reports calculation for 
+last day of December, 2018.
 
 To run application as microservice simply don't pass any flags to command line :)  
 

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/mock"
+	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -219,7 +219,7 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 
 	err = db.Collection(collectionProduct).Insert(products...)
 	assert.NoError(suite.T(), err, "Insert product test data failed")
-	redisdb := mock.NewTestRedis()
+	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
 		db,
@@ -230,8 +230,8 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		nil,
 		nil,
 		suite.cache,
-		mock.NewCurrencyServiceMockOk(),
-		mock.NewDocumentSignerMockOk(),
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -445,7 +445,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_CallbackCurrenc
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 
-	suite.service.curService = mock.NewCurrencyServiceMockError()
+	suite.service.curService = mocks.NewCurrencyServiceMockError()
 	suite.service.supportedCurrencies = []string{}
 
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
@@ -470,7 +470,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_LimitCurrencyNo
 	rsp := &grpc.ChangeProjectResponse{}
 
 	suite.service.supportedCurrencies = []string{"RUB"}
-	suite.service.curService = mock.NewCurrencyServiceMockError()
+	suite.service.curService = mocks.NewCurrencyServiceMockError()
 
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
 
@@ -843,7 +843,7 @@ func (suite *ProjectTestSuite) SetupTest() {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
-	redisdb := mock.NewTestRedis()
+	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
 		db,
@@ -854,8 +854,8 @@ func (suite *ProjectTestSuite) SetupTest() {
 		nil,
 		nil,
 		suite.cache,
-		mock.NewCurrencyServiceMockOk(),
-		mock.NewDocumentSignerMockOk(),
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
 	)
 
 	if err := suite.service.Init(); err != nil {

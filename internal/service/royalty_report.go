@@ -116,7 +116,7 @@ func (s *Service) CreateRoyaltyReport(
 
 	for _, v := range merchants {
 		go func(merchantId bson.ObjectId) {
-			err := handler.createMerchantRoyaltyReport(merchantId)
+			err := handler.createMerchantRoyaltyReport(ctx, merchantId)
 
 			if err != nil {
 				rsp.Merchants = append(rsp.Merchants, merchantId.Hex())
@@ -369,7 +369,7 @@ func (s *Service) ChangeRoyaltyReport(
 	}
 
 	if req.Status == pkg.RoyaltyReportStatusPending {
-		s.sendRoyaltyReportNotification(report)
+		s.sendRoyaltyReportNotification(ctx, report)
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
@@ -484,7 +484,7 @@ func (s *Service) onRoyaltyReportChange(reportNew *billing.RoyaltyReport, ip, so
 	return
 }
 
-func (h *royaltyHandler) createMerchantRoyaltyReport(merchantId bson.ObjectId) error {
+func (h *royaltyHandler) createMerchantRoyaltyReport(ctx context.Context, merchantId bson.ObjectId) error {
 	zap.S().Infow("generating royalty report for merchant", "merchantId", merchantId.Hex())
 
 	merchant, err := h.merchant.GetById(merchantId.Hex())
@@ -591,14 +591,14 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(merchantId bson.ObjectId) e
 		return err
 	}
 
-	h.Service.sendRoyaltyReportNotification(report)
+	h.Service.sendRoyaltyReportNotification(ctx, report)
 
 	zap.S().Infow("generating royalty report for merchant finished", "merchantId", merchantId.Hex())
 
 	return nil
 }
 
-func (s *Service) sendRoyaltyReportNotification(report *billing.RoyaltyReport) {
+func (s *Service) sendRoyaltyReportNotification(ctx context.Context, report *billing.RoyaltyReport) {
 	merchant, err := s.merchant.GetById(report.MerchantId)
 
 	if err != nil {
@@ -628,19 +628,14 @@ func (s *Service) sendRoyaltyReportNotification(report *billing.RoyaltyReport) {
 	}
 
 	msg := map[string]interface{}{"id": report.Id, "code": "rr00001", "message": pkg.EmailRoyaltyReportMessage}
-	b, _ := json.Marshal(msg)
-
-	err = s.centrifugoClient.Publish(context.Background(), fmt.Sprintf(s.cfg.CentrifugoMerchantChannel, report.MerchantId), b)
+	err = s.centrifugo.Publish(ctx, fmt.Sprintf(s.cfg.CentrifugoMerchantChannel, report.MerchantId), msg)
 
 	if err != nil {
 		zap.S().Error(
 			"[Centrifugo] Send merchant notification about new royalty report failed",
 			zap.Error(err),
-			zap.String("merchant_id", merchant.Id),
-			zap.String("royalty_report_id", report.Id),
+			zap.Any("msg", msg),
 		)
-
-		return
 	}
 
 	return

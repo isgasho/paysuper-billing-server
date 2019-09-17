@@ -1,0 +1,14 @@
+[
+  {
+    "createIndexes": "report_files",
+    "indexes": [
+      {
+        "key": {
+          "expireAt": 1
+        },
+        "expireAfterSeconds": 0,
+        "name": "expire_at"
+      }
+    ]
+  }
+]

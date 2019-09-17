@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/mock"
+	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/stretchr/testify/assert"
@@ -46,7 +46,7 @@ func (suite *CountryTestSuite) SetupTest() {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
-	redisdb := mock.NewTestRedis()
+	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
 		db,
@@ -57,8 +57,8 @@ func (suite *CountryTestSuite) SetupTest() {
 		nil,
 		nil,
 		suite.cache,
-		mock.NewCurrencyServiceMockOk(),
-		mock.NewDocumentSignerMockOk(),
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -159,7 +159,7 @@ func (suite *CountryTestSuite) TestCountry_Insert_Ok() {
 }
 
 func (suite *CountryTestSuite) TestCountry_Insert_ErrorCacheUpdate() {
-	ci := &mock.CacheInterface{}
+	ci := &mocks.CacheInterface{}
 	ci.On("Set", "country:code_a2:AAA", mock2.Anything, mock2.Anything).
 		Return(errors.New("service unavailable"))
 	suite.service.cacher = ci
