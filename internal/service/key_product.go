@@ -16,7 +16,7 @@ import (
 
 const (
 	collectionKeyProduct = "key_product"
-	oneDayTtl = 86400
+	oneDayTtl            = 86400
 )
 
 var (
@@ -41,6 +41,7 @@ var (
 	keyProductOrderIsNotProcessedError      = newBillingServerErrorMsg("kp000019", "order has wrong public status")
 	keyProductPlatformDontHaveDefaultPrice  = newBillingServerErrorMsg("kp000020", "platform don't have price in default currency")
 	keyProductPlatformPriceMismatchCurrency = newBillingServerErrorMsg("kp000021", "platform don't have price with region that mismatch with currency")
+	keyPlatformNotFound                     = newBillingServerErrorMsg("kp000022", "platform not found")
 )
 
 var availablePlatforms = map[string]*grpc.Platform{
@@ -632,14 +633,24 @@ func (s *Service) DeletePlatformFromProduct(ctx context.Context, req *grpc.Remov
 		return nil
 	}
 
+	found := false
+
 	for i, platform := range product.Platforms {
 		if platform.Id == req.PlatformId {
 			// https://github.com/golang/go/wiki/SliceTricks
 			copy(product.Platforms[i:], product.Platforms[i+1:])
 			product.Platforms[len(product.Platforms)-1] = nil
 			product.Platforms = product.Platforms[:len(product.Platforms)-1]
+			found = true
 			break
 		}
+	}
+
+	if !found {
+		zap.S().Errorf("Platform `%s` not found", req.PlatformId)
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = keyPlatformNotFound
+		return nil
 	}
 
 	if err := s.db.Collection(collectionKeyProduct).UpdateId(bson.ObjectIdHex(req.KeyProductId), product); err != nil {
@@ -709,7 +720,6 @@ func (s *Service) ChangeCodeInOrder(ctx context.Context, req *grpc.ChangeCodeInO
 		res.Status = http.StatusInternalServerError
 		res.Message = keyProductInternalError
 		res.Message.Details = err.Error()
-
 
 		cancelRsp := &grpc.EmptyResponseWithStatus{}
 		err = s.CancelRedeemKeyForOrder(ctx, keyReq, cancelRsp)

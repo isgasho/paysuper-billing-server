@@ -296,7 +296,7 @@ message CreateOrUpdateKeyProductRequest {
     string merchant_id = 9;
     //@inject_tag: validate:"omitempty,hexadecimal,len=24"
     string id = 10;
-    //@inject_tag: json:"object"
+    //@inject_tag: json:"object" validate:"required"
     string object = 11;
     //@inject_tag: json:"metadata"
     map<string, string> metadata = 12;
