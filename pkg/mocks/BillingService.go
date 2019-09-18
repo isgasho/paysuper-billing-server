@@ -1033,8 +1033,8 @@ func (_m *BillingService) DeleteProject(ctx context.Context, in *grpc.GetProject
 	return r0, r1
 }
 
-// FindAllOrders provides a mock function with given fields: ctx, in, opts
-func (_m *BillingService) FindAllOrders(ctx context.Context, in *grpc.ListOrdersRequest, opts ...client.CallOption) (*billing.OrderPaginate, error) {
+// FindAllOrdersPrivate provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) FindAllOrdersPrivate(ctx context.Context, in *grpc.ListOrdersRequest, opts ...client.CallOption) (*grpc.ListOrdersPrivateResponse, error) {
 	_va := make([]interface{}, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
@@ -1044,12 +1044,42 @@ func (_m *BillingService) FindAllOrders(ctx context.Context, in *grpc.ListOrders
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
 
-	var r0 *billing.OrderPaginate
-	if rf, ok := ret.Get(0).(func(context.Context, *grpc.ListOrdersRequest, ...client.CallOption) *billing.OrderPaginate); ok {
+	var r0 *grpc.ListOrdersPrivateResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.ListOrdersRequest, ...client.CallOption) *grpc.ListOrdersPrivateResponse); ok {
 		r0 = rf(ctx, in, opts...)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*billing.OrderPaginate)
+			r0 = ret.Get(0).(*grpc.ListOrdersPrivateResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.ListOrdersRequest, ...client.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// FindAllOrdersPublic provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) FindAllOrdersPublic(ctx context.Context, in *grpc.ListOrdersRequest, opts ...client.CallOption) (*grpc.ListOrdersPublicResponse, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *grpc.ListOrdersPublicResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.ListOrdersRequest, ...client.CallOption) *grpc.ListOrdersPublicResponse); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*grpc.ListOrdersPublicResponse)
 		}
 	}
 
@@ -1325,6 +1355,96 @@ func (_m *BillingService) GetCountry(ctx context.Context, in *billing.GetCountry
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *billing.GetCountryRequest, ...client.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetDashboardBaseReport provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) GetDashboardBaseReport(ctx context.Context, in *grpc.GetDashboardBaseReportRequest, opts ...client.CallOption) (*grpc.GetDashboardBaseReportResponse, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *grpc.GetDashboardBaseReportResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.GetDashboardBaseReportRequest, ...client.CallOption) *grpc.GetDashboardBaseReportResponse); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*grpc.GetDashboardBaseReportResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.GetDashboardBaseReportRequest, ...client.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetDashboardMainReport provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) GetDashboardMainReport(ctx context.Context, in *grpc.GetDashboardMainRequest, opts ...client.CallOption) (*grpc.GetDashboardMainResponse, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *grpc.GetDashboardMainResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.GetDashboardMainRequest, ...client.CallOption) *grpc.GetDashboardMainResponse); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*grpc.GetDashboardMainResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.GetDashboardMainRequest, ...client.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetDashboardRevenueDynamicsReport provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) GetDashboardRevenueDynamicsReport(ctx context.Context, in *grpc.GetDashboardMainRequest, opts ...client.CallOption) (*grpc.GetDashboardRevenueDynamicsReportResponse, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *grpc.GetDashboardRevenueDynamicsReportResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.GetDashboardMainRequest, ...client.CallOption) *grpc.GetDashboardRevenueDynamicsReportResponse); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*grpc.GetDashboardRevenueDynamicsReportResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.GetDashboardMainRequest, ...client.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)
@@ -1723,8 +1843,8 @@ func (_m *BillingService) GetNotification(ctx context.Context, in *grpc.GetNotif
 	return r0, r1
 }
 
-// GetOrder provides a mock function with given fields: ctx, in, opts
-func (_m *BillingService) GetOrder(ctx context.Context, in *grpc.GetOrderRequest, opts ...client.CallOption) (*billing.Order, error) {
+// GetOrderPrivate provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) GetOrderPrivate(ctx context.Context, in *grpc.GetOrderRequest, opts ...client.CallOption) (*grpc.GetOrderPrivateResponse, error) {
 	_va := make([]interface{}, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
@@ -1734,12 +1854,42 @@ func (_m *BillingService) GetOrder(ctx context.Context, in *grpc.GetOrderRequest
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
 
-	var r0 *billing.Order
-	if rf, ok := ret.Get(0).(func(context.Context, *grpc.GetOrderRequest, ...client.CallOption) *billing.Order); ok {
+	var r0 *grpc.GetOrderPrivateResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.GetOrderRequest, ...client.CallOption) *grpc.GetOrderPrivateResponse); ok {
 		r0 = rf(ctx, in, opts...)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*billing.Order)
+			r0 = ret.Get(0).(*grpc.GetOrderPrivateResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.GetOrderRequest, ...client.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetOrderPublic provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) GetOrderPublic(ctx context.Context, in *grpc.GetOrderRequest, opts ...client.CallOption) (*grpc.GetOrderPublicResponse, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *grpc.GetOrderPublicResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.GetOrderRequest, ...client.CallOption) *grpc.GetOrderPublicResponse); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*grpc.GetOrderPublicResponse)
 		}
 	}
 
