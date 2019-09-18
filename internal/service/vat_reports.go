@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
@@ -317,13 +316,13 @@ func (s *Service) ProcessVatReports(
 	}
 
 	zap.S().Info("processing vat reports")
-	err = handler.ProcessVatReports()
+	err = handler.ProcessVatReports(ctx)
 	if err != nil {
 		return err
 	}
 
 	zap.S().Info("updating vat reports status")
-	err = handler.ProcessVatReportsStatus()
+	err = handler.ProcessVatReportsStatus(ctx)
 	if err != nil {
 		return err
 	}
@@ -386,7 +385,7 @@ func (s *Service) UpdateVatReportStatus(
 
 	vr.Status = req.Status
 
-	err = s.updateVatReport(vr)
+	err = s.updateVatReport(ctx, vr)
 	if err != nil {
 		res.Status = pkg.ResponseStatusSystemError
 		res.Message = errorVatReportStatusChangeFailed
@@ -400,7 +399,7 @@ func (s *Service) insertVatReport(vr *billing.VatReport) error {
 	return s.db.Collection(collectionVatReports).Insert(vr)
 }
 
-func (s *Service) updateVatReport(vr *billing.VatReport) error {
+func (s *Service) updateVatReport(ctx context.Context, vr *billing.VatReport) error {
 	vr.UpdatedAt = ptypes.TimestampNow()
 	err := s.db.Collection(collectionVatReports).UpdateId(bson.ObjectIdHex(vr.Id), vr)
 	if err != nil {
@@ -408,19 +407,7 @@ func (s *Service) updateVatReport(vr *billing.VatReport) error {
 	}
 
 	if contains(VatReportOnStatusNotifyToCentrifugo, vr.Status) {
-		b, err := json.Marshal(vr)
-		if err != nil {
-			return err
-		}
-		err = s.centrifugoClient.Publish(context.Background(), s.cfg.CentrifugoFinancierChannel, b)
-
-		if err != nil {
-			zap.S().Error(
-				errorMsgVatReportCentrifugoNotificationFailed,
-				zap.Error(err),
-				zap.Any("vat_report", vr),
-			)
-
+		if err = s.centrifugo.Publish(ctx, s.cfg.CentrifugoFinancierChannel, vr); err != nil {
 			return err
 		}
 	}
@@ -488,7 +475,7 @@ func (s *Service) getLastVatReportTime(VatPeriodMonth int32) (from, to time.Time
 	return s.getVatReportTime(VatPeriodMonth, time.Time{})
 }
 
-func (h *vatReportProcessor) ProcessVatReportsStatus() error {
+func (h *vatReportProcessor) ProcessVatReportsStatus(ctx context.Context) error {
 	currentUnixTime := time.Now().Unix()
 
 	query := bson.M{
@@ -523,7 +510,7 @@ func (h *vatReportProcessor) ProcessVatReportsStatus() error {
 			}
 			if currentUnixTime >= reportDeadline.Unix() {
 				report.Status = pkg.VatReportStatusOverdue
-				err = h.Service.updateVatReport(report)
+				err = h.Service.updateVatReport(ctx, report)
 				if err != nil {
 					return err
 				}
@@ -543,7 +530,7 @@ func (h *vatReportProcessor) ProcessVatReportsStatus() error {
 		} else {
 			report.Status = pkg.VatReportStatusExpired
 		}
-		err = h.Service.updateVatReport(report)
+		err = h.Service.updateVatReport(ctx, report)
 		if err != nil {
 			return err
 		}
@@ -560,9 +547,9 @@ func (h *vatReportProcessor) getCountry(countryCode string) *billing.Country {
 	return nil
 }
 
-func (h *vatReportProcessor) ProcessVatReports() error {
+func (h *vatReportProcessor) ProcessVatReports(ctx context.Context) error {
 	for _, c := range h.countries {
-		err := h.processVatReportForPeriod(c)
+		err := h.processVatReportForPeriod(ctx, c)
 		if err != nil {
 			return err
 		}
@@ -599,7 +586,7 @@ func (h *vatReportProcessor) UpdateOrderView() error {
 	return nil
 }
 
-func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country) error {
+func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, country *billing.Country) error {
 
 	from, to, err := h.Service.getVatReportTimeForDate(country.VatPeriodMonth, h.date)
 	if err != nil {
@@ -770,7 +757,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(country *billing.Country)
 
 	report.Id = vr.Id
 	report.CreatedAt = vr.CreatedAt
-	return h.Service.updateVatReport(report)
+	return h.Service.updateVatReport(ctx, report)
 
 }
 

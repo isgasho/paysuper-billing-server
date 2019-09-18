@@ -7,7 +7,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/mock"
+	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	errors2 "github.com/paysuper/paysuper-billing-server/pkg/errors"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -50,19 +50,19 @@ func (suite *KeyTestSuite) SetupTest() {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
-	redisdb := mock.NewTestRedis()
+	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
 		db,
 		cfg,
-		mock.NewGeoIpServiceTestOk(),
-		mock.NewRepositoryServiceOk(),
-		mock.NewTaxServiceOkMock(),
+		mocks.NewGeoIpServiceTestOk(),
+		mocks.NewRepositoryServiceOk(),
+		mocks.NewTaxServiceOkMock(),
 		nil,
 		nil,
 		suite.cache,
-		mock.NewCurrencyServiceMockOk(),
-		mock.NewDocumentSignerMockOk(),
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -302,7 +302,7 @@ func (suite *KeyTestSuite) TestKey_GetAvailableKeysCount_Ok() {
 	}
 	res := grpc.GetPlatformKeyCountResponse{}
 
-	kr := &mock.KeyRepositoryInterface{}
+	kr := &mocks.KeyRepositoryInterface{}
 	kr.On("CountKeysByProductPlatform", req.KeyProductId, req.PlatformId).Return(1, nil)
 	suite.service.keyRepository = kr
 
@@ -318,7 +318,7 @@ func (suite *KeyTestSuite) TestKey_GetAvailableKeysCount_Error_NotFound() {
 	}
 	res := grpc.GetPlatformKeyCountResponse{}
 
-	kr := &mock.KeyRepositoryInterface{}
+	kr := &mocks.KeyRepositoryInterface{}
 	kr.On("CountKeysByProductPlatform", req.KeyProductId, req.PlatformId).Return(0, errors.New("not found"))
 	suite.service.keyRepository = kr
 
@@ -334,7 +334,7 @@ func (suite *KeyTestSuite) TestKey_GetKeyByID_Ok() {
 	}
 	res := grpc.GetKeyForOrderRequestResponse{}
 
-	kr := &mock.KeyRepositoryInterface{}
+	kr := &mocks.KeyRepositoryInterface{}
 	kr.On("GetById", req.KeyId).Return(&billing.Key{}, nil)
 	suite.service.keyRepository = kr
 
@@ -348,7 +348,7 @@ func (suite *KeyTestSuite) TestKey_GetKeyByID_Error_NotFound() {
 	}
 	res := grpc.GetKeyForOrderRequestResponse{}
 
-	kr := &mock.KeyRepositoryInterface{}
+	kr := &mocks.KeyRepositoryInterface{}
 	kr.On("GetById", req.KeyId).Return(nil, errors.New("not found"))
 	suite.service.keyRepository = kr
 
@@ -368,7 +368,7 @@ func (suite *KeyTestSuite) TestKey_ReserveKeyForOrder_Ok() {
 	res := grpc.PlatformKeyReserveResponse{}
 	keyId := bson.NewObjectId().Hex()
 
-	kr := &mock.KeyRepositoryInterface{}
+	kr := &mocks.KeyRepositoryInterface{}
 	kr.On("ReserveKey", req.KeyProductId, req.PlatformId, req.OrderId, req.Ttl).Return(&billing.Key{Id: keyId}, nil)
 	suite.service.keyRepository = kr
 
@@ -387,7 +387,7 @@ func (suite *KeyTestSuite) TestKey_ReserveKeyForOrder_Error_Reserve() {
 	}
 	res := grpc.PlatformKeyReserveResponse{}
 
-	kr := &mock.KeyRepositoryInterface{}
+	kr := &mocks.KeyRepositoryInterface{}
 	kr.On("ReserveKey", req.KeyProductId, req.PlatformId, req.OrderId, req.Ttl).Return(nil, errors.New("error"))
 	suite.service.keyRepository = kr
 
@@ -406,7 +406,7 @@ func (suite *KeyTestSuite) TestKey_FinishRedeemKeyForOrder_Ok() {
 		Id: bson.NewObjectId().Hex(),
 	}
 
-	kr := &mock.KeyRepositoryInterface{}
+	kr := &mocks.KeyRepositoryInterface{}
 	kr.On("FinishRedeemById", req.KeyId).Return(key, nil)
 	suite.service.keyRepository = kr
 
@@ -422,7 +422,7 @@ func (suite *KeyTestSuite) TestKey_FinishRedeemKeyForOrder_Error_NotFound() {
 	}
 	res := grpc.GetKeyForOrderRequestResponse{}
 
-	kr := &mock.KeyRepositoryInterface{}
+	kr := &mocks.KeyRepositoryInterface{}
 	kr.On("FinishRedeemById", req.KeyId).Return(nil, errors.New("not found"))
 	suite.service.keyRepository = kr
 
@@ -441,7 +441,7 @@ func (suite *KeyTestSuite) TestKey_CancelRedeemKeyForOrder_Ok() {
 		Id: bson.NewObjectId().Hex(),
 	}
 
-	kr := &mock.KeyRepositoryInterface{}
+	kr := &mocks.KeyRepositoryInterface{}
 	kr.On("CancelById", req.KeyId).Return(key, nil)
 	suite.service.keyRepository = kr
 
@@ -456,7 +456,7 @@ func (suite *KeyTestSuite) TestKey_CancelRedeemKeyForOrder_Error_NotFound() {
 	}
 	res := grpc.EmptyResponseWithStatus{}
 
-	kr := &mock.KeyRepositoryInterface{}
+	kr := &mocks.KeyRepositoryInterface{}
 	kr.On("CancelById", req.KeyId).Return(nil, errors.New("not found"))
 	suite.service.keyRepository = kr
 
@@ -474,7 +474,7 @@ func (suite *KeyTestSuite) TestKey_UploadKeysFile_Ok() {
 	}
 	res := grpc.PlatformKeysFileResponse{}
 
-	kr := &mock.KeyRepositoryInterface{}
+	kr := &mocks.KeyRepositoryInterface{}
 	kr.On("CountKeysByProductPlatform", req.KeyProductId, req.PlatformId).Return(1, nil)
 	kr.On("Insert", mock2.Anything).Return(nil)
 	suite.service.keyRepository = kr
@@ -494,7 +494,7 @@ func (suite *KeyTestSuite) TestKey_UploadKeysFile_Error_CountKeysByProductPlatfo
 	}
 	res := grpc.PlatformKeysFileResponse{}
 
-	kr := &mock.KeyRepositoryInterface{}
+	kr := &mocks.KeyRepositoryInterface{}
 	kr.On("CountKeysByProductPlatform", req.KeyProductId, req.PlatformId).Return(0, errors.New("not found"))
 	kr.On("Insert", mock2.Anything).Return(nil)
 	suite.service.keyRepository = kr
@@ -507,7 +507,7 @@ func (suite *KeyTestSuite) TestKey_UploadKeysFile_Error_CountKeysByProductPlatfo
 
 func (suite *KeyTestSuite) TestKey_KeyDaemonProcess_Ok() {
 	keys := []*billing.Key{{Id: bson.NewObjectId().Hex()}}
-	kr := &mock.KeyRepositoryInterface{}
+	kr := &mocks.KeyRepositoryInterface{}
 	kr.On("FindUnfinished").Return(keys, nil)
 	kr.On("CancelById", keys[0].Id).Return(&billing.Key{}, nil)
 	suite.service.keyRepository = kr
@@ -518,7 +518,7 @@ func (suite *KeyTestSuite) TestKey_KeyDaemonProcess_Ok() {
 }
 
 func (suite *KeyTestSuite) TestKey_KeyDaemonProcess_Error_FindUnfinished() {
-	kr := &mock.KeyRepositoryInterface{}
+	kr := &mocks.KeyRepositoryInterface{}
 	kr.On("FindUnfinished").Return(nil, errors.New("not found"))
 	suite.service.keyRepository = kr
 
@@ -530,7 +530,7 @@ func (suite *KeyTestSuite) TestKey_KeyDaemonProcess_Error_FindUnfinished() {
 func (suite *KeyTestSuite) TestKey_KeyDaemonProcess_Error_CancelById() {
 	keys := []*billing.Key{{Id: bson.NewObjectId().Hex()}}
 
-	kr := &mock.KeyRepositoryInterface{}
+	kr := &mocks.KeyRepositoryInterface{}
 	kr.On("FindUnfinished").Return(keys, nil)
 	kr.On("CancelById", keys[0].Id).Return(nil, errors.New("not found"))
 	suite.service.keyRepository = kr

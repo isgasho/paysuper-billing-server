@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/mock"
+	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
@@ -54,7 +54,7 @@ func (suite *ZipCodeTestSuite) SetupTest() {
 		suite.FailNow("Insert zip codes test data failed", "%v", err)
 	}
 
-	redisdb := mock.NewTestRedis()
+	redisdb := mocks.NewTestRedis()
 	cache := NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
 		db,
@@ -65,8 +65,8 @@ func (suite *ZipCodeTestSuite) SetupTest() {
 		nil,
 		nil,
 		cache,
-		mock.NewCurrencyServiceMockOk(),
-		mock.NewDocumentSignerMockOk(),
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
 	)
 	err = suite.service.Init()
 

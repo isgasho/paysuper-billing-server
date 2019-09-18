@@ -1,6 +1,6 @@
 package service
 
-//1) крон для формирования - 1 раз в неделю
+//1) крон для формирования - 1 раз в неделю (после 18 часов понедельника!)
 //2) крон для проверки не пропущена ли дата - каждый день
 
 import (
@@ -33,9 +33,10 @@ const (
 	collectionRoyaltyReport        = "royalty_report"
 	collectionRoyaltyReportChanges = "royalty_report_changes"
 
-	royaltyReportErrorNoTransactions    = "no transactions for the period"
-	royaltyReportErrorTimezoneIncorrect = "incorrect time zone"
-	royaltyReportErrorAlreadyExists     = "report for this merchant and period already exists"
+	royaltyReportErrorNoTransactions        = "no transactions for the period"
+	royaltyReportErrorTimezoneIncorrect     = "incorrect time zone"
+	royaltyReportErrorEndOfPeriodIsInFuture = "end of royalty report period is in future"
+	royaltyReportErrorAlreadyExists         = "report for this merchant and period already exists"
 )
 
 var (
@@ -43,6 +44,12 @@ var (
 	royaltyReportErrorReportStatusChangeDenied        = newBillingServerErrorMsg("rr00002", "change royalty report to new status denied")
 	royaltyReportErrorReportDisputeCorrectionRequired = newBillingServerErrorMsg("rr00003", "for change royalty report status to dispute fields with correction amount and correction reason is required")
 	royaltyReportEntryErrorUnknown                    = newBillingServerErrorMsg("rr00004", "unknown error. try request later")
+
+	orderStatusForRoyaltyReports = []string{
+		constant.OrderPublicStatusProcessed,
+		constant.OrderPublicStatusRefunded,
+		constant.OrderPublicStatusChargeback,
+	}
 )
 
 type royaltyReportQueryResItem struct {
@@ -54,7 +61,7 @@ type royaltyReportQueryResItem struct {
 	RefundReverseRevenue float64 `bson:"refund_reverse_revenue"`
 	Payout               float64 `bson:"merchant_payout"`
 	FeesTotal            float64 `bson:"fees_total"`
-	RefundReesTotal      float64 `bson:"refund_fees_total"`
+	RefundFeesTotal      float64 `bson:"refund_fees_total"`
 	TaxFeeTotal          float64 `bson:"tax_fee_total"`
 	RefundTaxFeeTotal    float64 `bson:"refund_tax_fee_total"`
 }
@@ -84,6 +91,11 @@ func (s *Service) CreateRoyaltyReport(
 	}
 
 	to := now.Monday().In(loc).Add(time.Duration(18) * time.Hour)
+	if to.After(time.Now().In(loc)) {
+		zap.S().Errorf(royaltyReportErrorTimezoneIncorrect)
+		return errors.New(royaltyReportErrorEndOfPeriodIsInFuture)
+	}
+
 	from := to.Add(-time.Duration(s.cfg.RoyaltyReportPeriod) * time.Second).In(loc)
 
 	var merchants []*RoyaltyReportMerchant
@@ -116,7 +128,7 @@ func (s *Service) CreateRoyaltyReport(
 
 	for _, v := range merchants {
 		go func(merchantId bson.ObjectId) {
-			err := handler.createMerchantRoyaltyReport(merchantId)
+			err := handler.createMerchantRoyaltyReport(ctx, merchantId)
 
 			if err != nil {
 				rsp.Merchants = append(rsp.Merchants, merchantId.Hex())
@@ -369,7 +381,7 @@ func (s *Service) ChangeRoyaltyReport(
 	}
 
 	if req.Status == pkg.RoyaltyReportStatusPending {
-		s.sendRoyaltyReportNotification(report)
+		s.sendRoyaltyReportNotification(ctx, report)
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
@@ -412,7 +424,7 @@ func (s *Service) ListRoyaltyReportOrders(
 	match := bson.M{
 		"merchant_id":         bson.ObjectIdHex(report.MerchantId),
 		"pm_order_close_date": bson.M{"$gte": from, "$lte": to},
-		"status":              constant.OrderPublicStatusProcessed,
+		"status":              bson.M{"$in": orderStatusForRoyaltyReports},
 	}
 
 	ts, err := s.getTransactionsPublic(match, int(req.Limit), int(req.Offset))
@@ -435,7 +447,7 @@ func (s *Service) getRoyaltyReportMerchantsByPeriod(from, to time.Time) []*Royal
 		{
 			"$match": bson.M{
 				"pm_order_close_date": bson.M{"$gte": from, "$lte": to},
-				"status":              constant.OrderPublicStatusProcessed,
+				"status":              bson.M{"$in": orderStatusForRoyaltyReports},
 			},
 		},
 		{"$project": bson.M{"project.merchant_id": true}},
@@ -484,7 +496,7 @@ func (s *Service) onRoyaltyReportChange(reportNew *billing.RoyaltyReport, ip, so
 	return
 }
 
-func (h *royaltyHandler) createMerchantRoyaltyReport(merchantId bson.ObjectId) error {
+func (h *royaltyHandler) createMerchantRoyaltyReport(ctx context.Context, merchantId bson.ObjectId) error {
 	zap.S().Infow("generating royalty report for merchant", "merchantId", merchantId.Hex())
 
 	merchant, err := h.merchant.GetById(merchantId.Hex())
@@ -514,7 +526,7 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(merchantId bson.ObjectId) e
 	matchQuery := bson.M{
 		"merchant_id":         merchantId,
 		"pm_order_close_date": bson.M{"$gte": h.from, "$lte": h.to},
-		"status":              constant.OrderPublicStatusProcessed,
+		"status":              bson.M{"$in": orderStatusForRoyaltyReports},
 	}
 
 	query := []bson.M{
@@ -558,8 +570,8 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(merchantId bson.ObjectId) e
 		amounts.TransactionsCount = res[0].Count
 		amounts.GrossAmount = tools.FormatAmount(res[0].GrossRevenue - res[0].RefundGrossRevenue)
 		amounts.PayoutAmount = tools.FormatAmount(res[0].NetRevenue - res[0].RefundReverseRevenue - res[0].Payout)
-		amounts.VatAmount = tools.FormatAmount(res[0].FeesTotal + res[0].RefundReesTotal)
-		amounts.FeeAmount = res[0].TaxFeeTotal + res[0].RefundTaxFeeTotal
+		amounts.VatAmount = tools.FormatAmount(res[0].TaxFeeTotal + res[0].RefundTaxFeeTotal)
+		amounts.FeeAmount = tools.FormatAmount(res[0].FeesTotal + res[0].RefundFeesTotal)
 	}
 
 	report := &billing.RoyaltyReport{
@@ -591,14 +603,14 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(merchantId bson.ObjectId) e
 		return err
 	}
 
-	h.Service.sendRoyaltyReportNotification(report)
+	h.Service.sendRoyaltyReportNotification(ctx, report)
 
 	zap.S().Infow("generating royalty report for merchant finished", "merchantId", merchantId.Hex())
 
 	return nil
 }
 
-func (s *Service) sendRoyaltyReportNotification(report *billing.RoyaltyReport) {
+func (s *Service) sendRoyaltyReportNotification(ctx context.Context, report *billing.RoyaltyReport) {
 	merchant, err := s.merchant.GetById(report.MerchantId)
 
 	if err != nil {
@@ -628,19 +640,14 @@ func (s *Service) sendRoyaltyReportNotification(report *billing.RoyaltyReport) {
 	}
 
 	msg := map[string]interface{}{"id": report.Id, "code": "rr00001", "message": pkg.EmailRoyaltyReportMessage}
-	b, _ := json.Marshal(msg)
-
-	err = s.centrifugoClient.Publish(context.Background(), fmt.Sprintf(s.cfg.CentrifugoMerchantChannel, report.MerchantId), b)
+	err = s.centrifugo.Publish(ctx, fmt.Sprintf(s.cfg.CentrifugoMerchantChannel, report.MerchantId), msg)
 
 	if err != nil {
 		zap.S().Error(
 			"[Centrifugo] Send merchant notification about new royalty report failed",
 			zap.Error(err),
-			zap.String("merchant_id", merchant.Id),
-			zap.String("royalty_report_id", report.Id),
+			zap.Any("msg", msg),
 		)
-
-		return
 	}
 
 	return

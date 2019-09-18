@@ -4,7 +4,7 @@ import (
 	"errors"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/mock"
+	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/stretchr/testify/assert"
@@ -45,7 +45,7 @@ func (suite *MerchantTestSuite) SetupTest() {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
-	redisdb := mock.NewTestRedis()
+	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
 		db,
@@ -56,8 +56,8 @@ func (suite *MerchantTestSuite) SetupTest() {
 		nil,
 		nil,
 		suite.cache,
-		mock.NewCurrencyServiceMockOk(),
-		mock.NewDocumentSignerMockOk(),
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -111,7 +111,7 @@ func (suite *MerchantTestSuite) TestMerchant_Insert_Ok() {
 
 func (suite *MerchantTestSuite) TestMerchant_Insert_ErrorCacheUpdate() {
 	id := bson.NewObjectId().Hex()
-	ci := &mock.CacheInterface{}
+	ci := &mocks.CacheInterface{}
 	ci.On("Set", "merchant:id:"+id, mock2.Anything, mock2.Anything).
 		Return(errors.New("service unavailable"))
 	suite.service.cacher = ci
@@ -134,7 +134,7 @@ func (suite *MerchantTestSuite) TestMerchant_Update_NotFound() {
 
 func (suite *MerchantTestSuite) TestMerchant_Update_ErrorCacheUpdate() {
 	id := bson.NewObjectId().Hex()
-	ci := &mock.CacheInterface{}
+	ci := &mocks.CacheInterface{}
 	ci.On("Set", "merchant:id:"+id, mock2.Anything, mock2.Anything).
 		Return(errors.New("service unavailable"))
 	suite.service.cacher = ci
@@ -160,7 +160,7 @@ func (suite *MerchantTestSuite) TestMerchant_GetById_Ok() {
 }
 
 func (suite *MerchantTestSuite) TestMerchant_GetById_Ok_ByCache() {
-	ci := &mock.CacheInterface{}
+	ci := &mocks.CacheInterface{}
 	ci.On("Get", "merchant:id:"+suite.merchant.Id, mock2.Anything).
 		Return(nil)
 	suite.service.cacher = ci

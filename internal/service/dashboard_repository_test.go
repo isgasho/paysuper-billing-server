@@ -60,13 +60,12 @@ package service
 //6.4. Ошибка получения результата выборки за предыдущий период
 
 import (
-	"github.com/centrifugal/gocent"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jinzhu/now"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/mock"
+	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -126,19 +125,19 @@ func (suite *DashboardRepositoryTestSuite) SetupTest() {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
-	redisdb := mock.NewTestRedis()
+	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
 		db,
 		cfg,
-		mock.NewGeoIpServiceTestOk(),
-		mock.NewRepositoryServiceOk(),
-		mock.NewTaxServiceOkMock(),
-		mock.NewBrokerMockOk(),
+		mocks.NewGeoIpServiceTestOk(),
+		mocks.NewRepositoryServiceOk(),
+		mocks.NewTaxServiceOkMock(),
+		mocks.NewBrokerMockOk(),
 		nil,
 		suite.cache,
-		mock.NewCurrencyServiceMockOk(),
-		mock.NewDocumentSignerMockOk(),
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -146,15 +145,6 @@ func (suite *DashboardRepositoryTestSuite) SetupTest() {
 	}
 
 	suite.merchant, suite.project, suite.paymentMethod, _ = helperCreateEntitiesForTests(suite.Suite, suite.service)
-
-	suite.service.centrifugoClient = gocent.New(
-		gocent.Config{
-			Addr:       cfg.CentrifugoURL,
-			Key:        cfg.CentrifugoSecret,
-			HTTPClient: mock.NewClientStatusOk(),
-		},
-	)
-
 	suite.products = createProductsForProject(suite.Suite, suite.service, suite.project, 3)
 	suite.keyProducts = createKeyProductsFroProject(suite.Suite, suite.service, suite.project, 3)
 }

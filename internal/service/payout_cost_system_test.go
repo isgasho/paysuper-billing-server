@@ -4,7 +4,7 @@ import (
 	"errors"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/mock"
+	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/stretchr/testify/assert"
@@ -44,7 +44,7 @@ func (suite *PayoutCostSystemTestSuite) SetupTest() {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
-	redisdb := mock.NewTestRedis()
+	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
 		db,
@@ -55,8 +55,8 @@ func (suite *PayoutCostSystemTestSuite) SetupTest() {
 		nil,
 		nil,
 		suite.cache,
-		mock.NewCurrencyServiceMockOk(),
-		mock.NewDocumentSignerMockOk(),
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -116,7 +116,7 @@ func (suite *PayoutCostSystemTestSuite) TestPayoutCostSystem_Set_Ok() {
 }
 
 func (suite *PayoutCostSystemTestSuite) TestPayoutCostSystem_Insert_ErrorCacheUpdate() {
-	ci := &mock.CacheInterface{}
+	ci := &mocks.CacheInterface{}
 	obj := &billing.PayoutCostSystem{
 		IntrabankCostAmount:   2,
 		IntrabankCostCurrency: "EUR",
