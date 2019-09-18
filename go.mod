@@ -51,6 +51,9 @@ require (
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce
 )
 
-replace github.com/hashicorp/consul => github.com/hashicorp/consul v1.5.1
+replace (
+	github.com/gogo/protobuf v0.0.0-20190410021324-65acae22fc9 => github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
+	github.com/hashicorp/consul => github.com/hashicorp/consul v1.5.1
+)
 
 go 1.13
