@@ -3090,6 +3090,7 @@ func (s *Service) doUpdateOrderView(match bson.M) error {
 				"created_at":           1,
 				"pm_order_close_date":  1,
 				"total_payment_amount": 1,
+				"amount_before_vat":    "$private_amount",
 				"currency":             1,
 				"user":                 1,
 				"billing_address":      1,
