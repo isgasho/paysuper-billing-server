@@ -320,6 +320,10 @@ func (app *Application) TaskAutoAcceptRoyaltyReports() error {
 	return app.svc.AutoAcceptRoyaltyReports(context.TODO(), &grpc.EmptyRequest{}, &grpc.EmptyResponse{})
 }
 
+func (app *Application) TaskRebuildOrderView() error {
+	return app.svc.RebuildOrderView()
+}
+
 func (app *Application) KeyDaemonStart() {
 	zap.L().Info("Key daemon started", zap.Int64("RestartInterval", app.cfg.KeyDaemonRestartInterval))
 

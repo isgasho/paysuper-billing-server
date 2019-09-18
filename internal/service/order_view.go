@@ -3191,3 +3191,18 @@ func (s *Service) doUpdateOrderView(match bson.M) error {
 	}
 	return nil
 }
+
+func (s *Service) RebuildOrderView() error {
+
+	zap.S().Info("start rebuilding order view")
+
+	err := s.updateOrderView([]string{})
+	if err != nil {
+		zap.S().Error("rebuilding order view failed with error", "err", err)
+		return err
+	}
+
+	zap.S().Info("rebuilding order view finished successfully")
+
+	return nil
+}
