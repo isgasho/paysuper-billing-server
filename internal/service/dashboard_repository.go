@@ -674,6 +674,17 @@ func (m *dashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interf
 				},
 				"amount":   "$net_revenue.amount",
 				"currency": "$net_revenue.currency",
+			},
+		},
+		{
+			"$project": bson.M{
+				"hour":     "$hour",
+				"day":      "$day",
+				"month":    "$month",
+				"week":     "$week",
+				"country":  "$country",
+				"amount":   "$amount",
+				"currency": "$currency",
 				"period_in_day": bson.M{
 					"$cond": []interface{}{
 						bson.M{"$and": []bson.M{{"$gte": []interface{}{"$hour", 0}}, {"$lte": []interface{}{"$hour", 7}}}},
@@ -779,6 +790,22 @@ func (m *dashboardReportProcessor) ExecuteSalesTodayReport(receiver interface{})
 				"day":   bson.M{"$dayOfMonth": "$pm_order_close_date"},
 				"month": bson.M{"$month": "$pm_order_close_date"},
 				"week":  bson.M{"$week": "$pm_order_close_date"},
+			},
+		},
+		{"$unwind": "$items"},
+		{
+			"$project": bson.M{
+				"item": bson.M{
+					"$cond": []interface{}{
+						bson.M{"$eq": []string{"$items", ""}},
+						bson.M{"$arrayElemAt": []interface{}{"$names.value", 0}},
+						"$items.name",
+					},
+				},
+				"hour":  "$hour",
+				"day":   "$day",
+				"month": "$month",
+				"week":  "$week",
 				"period_in_day": bson.M{
 					"$cond": []interface{}{
 						bson.M{"$and": []bson.M{{"$gte": []interface{}{"$hour", 0}}, {"$lte": []interface{}{"$hour", 7}}}},
@@ -792,16 +819,9 @@ func (m *dashboardReportProcessor) ExecuteSalesTodayReport(receiver interface{})
 				},
 			},
 		},
-		{"$unwind": "$items"},
 		{
 			"$project": bson.M{
-				"item": bson.M{
-					"$cond": []interface{}{
-						bson.M{"$eq": []string{"$items", ""}},
-						bson.M{"$arrayElemAt": []interface{}{"$names.value", 0}},
-						"$items.name",
-					},
-				},
+				"item":          "$item",
 				"hour":          "$hour",
 				"day":           "$day",
 				"month":         "$month",
@@ -873,10 +893,18 @@ func (m *dashboardReportProcessor) ExecuteSourcesReport(receiver interface{}) (i
 		{"$match": m.match},
 		{
 			"$project": bson.M{
-				"hour":  bson.M{"$hour": "$pm_order_close_date"},
-				"day":   bson.M{"$dayOfMonth": "$pm_order_close_date"},
-				"month": bson.M{"$month": "$pm_order_close_date"},
-				"week":  bson.M{"$week": "$pm_order_close_date"},
+				"hour":   bson.M{"$hour": "$pm_order_close_date"},
+				"day":    bson.M{"$dayOfMonth": "$pm_order_close_date"},
+				"month":  bson.M{"$month": "$pm_order_close_date"},
+				"week":   bson.M{"$week": "$pm_order_close_date"},
+				"issuer": "$issuer.url",
+			}},
+		{
+			"$project": bson.M{
+				"hour":  "$hour",
+				"day":   "$day",
+				"month": "$month",
+				"week":  "$week",
 				"period_in_day": bson.M{
 					"$cond": []interface{}{
 						bson.M{"$and": []bson.M{{"$gte": []interface{}{"$hour", 0}}, {"$lte": []interface{}{"$hour", 7}}}},
@@ -888,8 +916,9 @@ func (m *dashboardReportProcessor) ExecuteSourcesReport(receiver interface{}) (i
 						}},
 					},
 				},
-				"issuer": "$issuer.url",
-			}},
+				"issuer": "$issuer",
+			},
+		},
 		{
 			"$project": bson.M{
 				"hour":          "$hour",

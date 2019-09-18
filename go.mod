@@ -7,6 +7,7 @@ require (
 	github.com/ProtocolONE/go-micro-plugins v0.3.0
 	github.com/SAP/go-hdb v0.13.2 // indirect
 	github.com/SermoDigital/jose v0.9.2-0.20161205224733-f6df55f235c2 // indirect
+	github.com/alicebob/gopher-json v0.0.0-20180125190556-5a6b3ba71ee6 // indirect
 	github.com/alicebob/miniredis v2.5.0+incompatible
 	github.com/asaskevich/govalidator v0.0.0-20180720115003-f9ffefc3facf // indirect
 	github.com/centrifugal/gocent v2.0.2+incompatible
@@ -32,8 +33,9 @@ require (
 	github.com/micro/go-plugins v1.2.0
 	github.com/micro/go-rcache v0.2.1 // indirect
 	github.com/micro/util v0.2.0 // indirect
+	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
-	github.com/paysuper/document-signer v0.0.0-20190906075749-af06b306ee92
+	github.com/paysuper/document-signer v0.0.0-20190916111907-052775c62716
 	github.com/paysuper/paysuper-currencies v0.0.0-20190903083641-668b8b2b997d
 	github.com/paysuper/paysuper-database-mongo v0.1.0
 	github.com/paysuper/paysuper-recurring-repository v1.0.123
@@ -43,7 +45,9 @@ require (
 	github.com/stoewer/go-strcase v1.0.2
 	github.com/streadway/amqp v0.0.0-20190404075320-75d898a42a94
 	github.com/stretchr/testify v1.4.0
+	github.com/ttacon/builder v0.0.0-20170518171403-c099f663e1c2 // indirect
 	github.com/ttacon/libphonenumber v1.0.1
+	github.com/yuin/gopher-lua v0.0.0-20190514113301-1cd887cd7036 // indirect
 	go.uber.org/zap v1.10.0
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
 	gopkg.in/ProtocolONE/rabbitmq.v1 v1.0.0-20190719062839-9858d727f3ef
