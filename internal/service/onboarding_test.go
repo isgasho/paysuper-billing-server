@@ -543,6 +543,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_NewMerchant_Ok()
 	assert.Equal(suite.T(), req.Company.Website, rsp.Company.Website)
 	assert.Equal(suite.T(), req.Contacts.Authorized.Position, rsp.Contacts.Authorized.Position)
 	assert.Equal(suite.T(), req.Banking.Name, rsp.Banking.Name)
+	assert.Zero(suite.T(), rsp.Banking.Currency)
 	assert.True(suite.T(), rsp.Steps.Company)
 	assert.True(suite.T(), rsp.Steps.Contacts)
 	assert.True(suite.T(), rsp.Steps.Banking)
@@ -704,49 +705,6 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_CreateMerchant_C
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), cmres.Status, pkg.ResponseStatusBadData)
 	assert.Equal(suite.T(), merchantErrorCountryNotFound, cmres.Message)
-	assert.Nil(suite.T(), cmres.Item)
-}
-
-func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_CreateMerchant_CurrencyNotFound_Error() {
-	req := &grpc.OnboardingRequest{
-		Company: &billing.MerchantCompanyInfo{
-			Name:    "merchant1",
-			Country: "RU",
-			Zip:     "190000",
-			City:    "St.Petersburg",
-		},
-		Contacts: &billing.MerchantContact{
-			Authorized: &billing.MerchantContactAuthorized{
-				Name:     "Unit Test",
-				Email:    "test@unit.test",
-				Phone:    "1234567890",
-				Position: "Unit Test",
-			},
-			Technical: &billing.MerchantContactTechnical{
-				Name:  "Unit Test",
-				Email: "test@unit.test",
-				Phone: "1234567890",
-			},
-		},
-		Banking: &billing.MerchantBanking{
-			Currency:      "USD",
-			Name:          "Bank name",
-			Address:       "Unknown",
-			AccountNumber: "1234567890",
-			Swift:         "TEST",
-			Details:       "",
-		},
-	}
-
-	cmres := &grpc.ChangeMerchantResponse{}
-
-	suite.service.curService = mocks.NewCurrencyServiceMockError()
-	suite.service.supportedCurrencies = []string{}
-
-	err := suite.service.ChangeMerchant(context.TODO(), req, cmres)
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), cmres.Status, pkg.ResponseStatusBadData)
-	assert.Equal(suite.T(), merchantErrorCurrencyNotFound, cmres.Message)
 	assert.Nil(suite.T(), cmres.Item)
 }
 
@@ -3971,11 +3929,59 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantTariffRates_Reposito
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_Ok() {
-	paymentCosts, err := suite.service.paymentChannelCostMerchant.GetAllForMerchant(suite.merchant.Id)
+	req0 := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
+		Company: &billing.MerchantCompanyInfo{
+			Name:    "merchant1",
+			Country: "RU",
+			Zip:     "190000",
+			City:    "St.Petersburg",
+		},
+		Contacts: &billing.MerchantContact{
+			Authorized: &billing.MerchantContactAuthorized{
+				Name:     "Unit Test",
+				Email:    "test@unit.test",
+				Phone:    "1234567890",
+				Position: "Unit Test",
+			},
+			Technical: &billing.MerchantContactTechnical{
+				Name:  "Unit Test",
+				Email: "test@unit.test",
+				Phone: "1234567890",
+			},
+		},
+		Banking: &billing.MerchantBanking{
+			Currency:      "RUB",
+			Name:          "Bank name",
+			Address:       "Unknown",
+			AccountNumber: "1234567890",
+			Swift:         "TEST",
+			Details:       "",
+		},
+	}
+	rsp0 := &grpc.ChangeMerchantResponse{}
+	err := suite.service.ChangeMerchant(context.TODO(), req0, rsp0)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp0.Status)
+	assert.NotNil(suite.T(), rsp0.Item)
+	assert.NotNil(suite.T(), rsp0.Item.Banking)
+	assert.Zero(suite.T(), rsp0.Item.Banking.Currency)
+	assert.NotEqual(suite.T(), rsp0.Item.Banking.Currency, req0.Banking.Currency)
+
+	merchant, err := suite.service.merchant.GetById(rsp0.Item.Id)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), merchant)
+	assert.NotNil(suite.T(), merchant.Banking)
+	assert.Zero(suite.T(), merchant.Banking.Currency)
+
+	paymentCosts, err := suite.service.paymentChannelCostMerchant.GetAllForMerchant(rsp0.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.Nil(suite.T(), paymentCosts.Items)
 
-	moneyBackCosts, err := suite.service.moneyBackCostMerchant.GetAllForMerchant(suite.merchant.Id)
+	moneyBackCosts, err := suite.service.moneyBackCostMerchant.GetAllForMerchant(rsp0.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.Nil(suite.T(), moneyBackCosts.Items)
 
@@ -3993,7 +3999,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_Ok() {
 	assert.NotNil(suite.T(), rsp.Item)
 
 	req1 := &grpc.SetMerchantTariffRatesRequest{
-		MerchantId:     suite.merchant.Id,
+		MerchantId:     rsp0.Item.Id,
 		Region:         "CIS",
 		PayoutCurrency: "USD",
 		AmountFrom:     0.75,
@@ -4005,15 +4011,21 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_Ok() {
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 	assert.Empty(suite.T(), rsp.Message)
 
-	paymentCosts, err = suite.service.paymentChannelCostMerchant.GetAllForMerchant(suite.merchant.Id)
+	paymentCosts, err = suite.service.paymentChannelCostMerchant.GetAllForMerchant(rsp0.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), paymentCosts.Items)
 	assert.Len(suite.T(), paymentCosts.Items, len(rsp.Item.Payment))
 
-	moneyBackCosts, err = suite.service.moneyBackCostMerchant.GetAllForMerchant(suite.merchant.Id)
+	moneyBackCosts, err = suite.service.moneyBackCostMerchant.GetAllForMerchant(rsp0.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), moneyBackCosts.Items)
 	assert.Len(suite.T(), moneyBackCosts.Items, len(rsp.Item.MoneyBack)*2)
+
+	merchant, err = suite.service.merchant.GetById(rsp0.Item.Id)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), merchant)
+	assert.NotNil(suite.T(), merchant.Banking)
+	assert.Equal(suite.T(), merchant.Banking.Currency, req1.PayoutCurrency)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_MerchantNotFound_Error() {
@@ -4268,6 +4280,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_NewMerchant_With
 	assert.Equal(suite.T(), rsp1.Item.User.LastName, rsp.Item.Personal.LastName)
 	assert.NotZero(suite.T(), rsp1.Item.User.ProfileId, rsp.Item.Id)
 	assert.Equal(suite.T(), rsp1.Item.User.RegistrationDate.Seconds, req.Email.ConfirmedAt.Seconds)
+	assert.NotNil(suite.T(), rsp1.Item.Banking)
+	assert.Zero(suite.T(), rsp1.Item.Banking.Currency)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_QuickSearchQuery_UserFirstNameLastName_Ok() {

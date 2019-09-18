@@ -188,7 +188,7 @@ message MerchantContactAuthorized {
 }
 
 message MerchantBanking {
-    // @inject_tag: json:"currency" validate:"required,alpha,len=3"
+    // @inject_tag: json:"currency"
     string currency = 1;
     // @inject_tag: json:"name" validate:"required,city,max=60"
     string name = 2;
