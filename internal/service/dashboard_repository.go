@@ -327,7 +327,7 @@ func (m *DashboardRepository) NewDashboardReportProcessor(
 ) (*dashboardReportProcessor, error) {
 	current := time.Now()
 	processor := &dashboardReportProcessor{
-		match:       bson.M{"merchant_id": bson.ObjectIdHex(merchantId), "status": status},
+		match:       bson.M{"merchant_id": bson.ObjectIdHex(merchantId), "status": status, "type": "order"},
 		db:          db,
 		cache:       cache,
 		cacheExpire: time.Duration(0),
