@@ -891,7 +891,7 @@ message ProductPrice {
     double amount = 1;
     //@inject_tag: validate:"required,alpha,len=3" json:"currency"
     string currency = 2;
-    //@inject_tag: validate:"omitempty,alpha" json:"region"
+    //@inject_tag: validate:"required,alpha" json:"region"
     string region = 3;
 }
 
