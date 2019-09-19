@@ -159,15 +159,23 @@ const (
 	BalanceTransactionStatusPending   = "pending"
 	BalanceTransactionStatusAvailable = "available"
 
-	ErrorDatabaseQueryFailed     = "Query to database collection failed"
-	ErrorDatabaseFieldCollection = "collection"
-	ErrorDatabaseFieldQuery      = "query"
-	ErrorDatabaseFieldSet        = "set"
+	ErrorDatabaseQueryFailed          = "Query to database collection failed"
+	ErrorDatabaseFieldCollection      = "collection"
+	ErrorDatabaseFieldQuery           = "query"
+	ErrorDatabaseFieldSet             = "set"
+	ErrorDatabaseFieldSorts           = "sorts"
+	ErrorDatabaseFieldLimit           = "limit"
+	ErrorDatabaseFieldOffset          = "offset"
+	ErrorDatabaseFieldOperation       = "operation"
+	ErrorDatabaseFieldOperationInsert = "insert"
+	ErrorDatabaseFieldOperationUpdate = "update"
+	ErrorDatabaseFieldDocument        = "document"
 
 	ErrorJsonMarshallingFailed = "json marshalling failed"
 
 	ErrorCacheQueryFailed = "Query to cache storage failed"
 	ErrorCacheFieldKey    = "key"
+	ErrorCacheFieldData   = "data"
 	ErrorCacheFieldCmd    = "command"
 
 	CardPayDeclineCodeSystemMalfunction                = "01"

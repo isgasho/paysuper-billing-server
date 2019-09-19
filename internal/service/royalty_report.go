@@ -44,6 +44,12 @@ var (
 	royaltyReportErrorReportDisputeCorrectionRequired = newBillingServerErrorMsg("rr00003", "for change royalty report status to dispute fields with correction amount and correction reason is required")
 	royaltyReportEntryErrorUnknown                    = newBillingServerErrorMsg("rr00004", "unknown error. try request later")
 	royaltyReportUpdateBalanceError                   = newBillingServerErrorMsg("rr00005", "update balance failed")
+
+	royaltyReportsStatusActive = []string{
+		pkg.RoyaltyReportStatusPending,
+		pkg.RoyaltyReportStatusAccepted,
+		pkg.RoyaltyReportStatusDispute,
+	}
 )
 
 type royaltyReportQueryResItem struct {
@@ -68,6 +74,16 @@ type royaltyHandler struct {
 	*Service
 	from time.Time
 	to   time.Time
+}
+
+type RoyaltyReportServiceInterface interface {
+	GetNonPayoutReports(merchantId, currency string) ([]*billing.RoyaltyReport, error)
+	GetBalanceAmount(merchantId, currency string) (float64, error)
+}
+
+func newRoyaltyReport(svc *Service) RoyaltyReportServiceInterface {
+	s := &RoyaltyReport{svc: svc}
+	return s
 }
 
 func (s *Service) CreateRoyaltyReport(
@@ -662,4 +678,74 @@ func (s *Service) sendRoyaltyReportNotification(report *billing.RoyaltyReport) {
 	}
 
 	return
+}
+
+func (r RoyaltyReport) GetNonPayoutReports(merchantId, currency string) (result []*billing.RoyaltyReport, err error) {
+	query := bson.M{
+		"merchant_id":      bson.ObjectIdHex(merchantId),
+		"amounts.currency": currency,
+		"status":           bson.M{"$in": royaltyReportsStatusActive},
+	}
+
+	excludeIdsString, err := r.svc.payoutDocument.GetAllSourcesIdHex(merchantId, currency)
+	if err != nil {
+		return nil, err
+	}
+
+	excludeIds := []bson.ObjectId{}
+	for _, v := range excludeIdsString {
+		excludeIds = append(excludeIds, bson.ObjectIdHex(v))
+	}
+
+	if len(excludeIds) > 0 {
+		query["_id"] = bson.M{"$nin": excludeIds}
+	}
+	sorts := "period_from"
+	err = r.svc.db.Collection(collectionRoyaltyReport).Find(query).Sort(sorts).All(&result)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(errorFieldCollection, collectionRoyaltyReport),
+			zap.Any(errorFieldQuery, query),
+			zap.Any(pkg.ErrorDatabaseFieldSorts, sorts),
+		)
+	}
+
+	return
+
+}
+
+func (r RoyaltyReport) GetBalanceAmount(merchantId, currency string) (float64, error) {
+	query := []bson.M{
+		{
+			"$match": bson.M{
+				"merchant_id":      bson.ObjectIdHex(merchantId),
+				"amounts.currency": currency,
+				"status":           pkg.RoyaltyReportStatusAccepted,
+			},
+		},
+		{
+			"$group": bson.M{
+				"_id":    "$amounts.currency",
+				"amount": bson.M{"$sum": "$amounts.payout_amount"},
+			},
+		},
+	}
+
+	res := &balanceQueryResItem{}
+
+	err := r.svc.db.Collection(collectionRoyaltyReport).Pipe(query).One(&res)
+	if err != nil && err != mgo.ErrNotFound {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String("collection", collectionRoyaltyReport),
+			zap.Any("query", query),
+		)
+		return 0, err
+	}
+
+	return res.Amount, nil
 }

@@ -18,6 +18,8 @@ type Project Entity
 type PaymentMethod Entity
 type Merchant Entity
 type PayoutDocument Entity
+type MerchantBalance Entity
+type RoyaltyReport Entity
 type PriceGroup Entity
 type PaymentSystemService Entity
 type ZipCode Entity
@@ -42,6 +44,10 @@ type kvIntFloat struct {
 type kvIntInt struct {
 	Key   int
 	Value int32
+}
+
+type balanceQueryResItem struct {
+	Amount float64 `bson:"amount"`
 }
 
 func contains(s []string, e string) bool {

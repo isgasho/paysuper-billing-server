@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
@@ -13,6 +14,8 @@ import (
 
 const (
 	collectionMerchantBalances = "merchant_balances"
+
+	cacheKeyMerchantBalances = "balance:merchant_id:%s:currency:%s"
 )
 
 var (
@@ -24,14 +27,19 @@ var (
 	}
 )
 
-type balanceQueryResItem struct {
-	Currency string  `bson:"_id"`
-	Amount   float64 `bson:"amount"`
-}
-
 type reserveQueryResItem struct {
 	Type   string  `bson:"_id"`
 	Amount float64 `bson:"amount"`
+}
+
+type MerchantBalanceServiceInterface interface {
+	Insert(document *billing.MerchantBalance) error
+	GetByMerchantIdAndCurrency(merchantId, currency string) (*billing.MerchantBalance, error)
+}
+
+func newMerchantBalance(svc *Service) MerchantBalanceServiceInterface {
+	s := &MerchantBalance{svc: svc}
+	return s
 }
 
 func (s *Service) GetMerchantBalance(
@@ -72,116 +80,38 @@ func (s *Service) GetMerchantBalance(
 
 func (s *Service) getMerchantBalance(merchantId string) (*billing.MerchantBalance, error) {
 	merchant, err := s.merchant.GetById(merchantId)
-
 	if err != nil {
-		zap.S().Error("Merchant not found", zap.Error(err), zap.String("merchant_id", merchantId))
 		return nil, err
 	}
 
 	if merchant.GetPayoutCurrency() == "" {
-		zap.S().Error(errorMerchantPayoutCurrencyNotSet.Error(), zap.String("merchant_id", merchantId))
+		zap.L().Error(errorMerchantPayoutCurrencyNotSet.Error(), zap.String("merchant_id", merchantId))
 		return nil, errorMerchantPayoutCurrencyNotSet
 	}
 
-	query := bson.M{
-		"merchant_id": bson.ObjectIdHex(merchantId),
-		"currency":    merchant.GetPayoutCurrency(),
-	}
-	mb := &billing.MerchantBalance{}
-	err = s.db.Collection(collectionMerchantBalances).Find(query).Sort("-_id").One(&mb)
-	if err != nil {
-		zap.S().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(errorFieldCollection, collectionMerchantBalances),
-		)
-		return nil, err
-	}
-
-	return mb, nil
+	return s.merchantBalance.GetByMerchantIdAndCurrency(merchant.Id, merchant.GetPayoutCurrency())
 }
 
 func (s *Service) updateMerchantBalance(merchantId string) (*billing.MerchantBalance, error) {
 
 	merchant, err := s.merchant.GetById(merchantId)
-
 	if err != nil {
-		zap.S().Error("Merchant not found", zap.Error(err), zap.String("merchant_id", merchantId))
 		return nil, err
 	}
 
 	if merchant.GetPayoutCurrency() == "" {
-		zap.S().Error(errorMerchantPayoutCurrencyNotSet.Error(), zap.String("merchant_id", merchantId))
+		zap.L().Error(errorMerchantPayoutCurrencyNotSet.Error(), zap.String("merchant_id", merchantId))
 		return nil, errorMerchantPayoutCurrencyNotSet
 	}
 
-	debit_query := []bson.M{
-		{
-			"$match": bson.M{
-				"merchant_id":      bson.ObjectIdHex(merchantId),
-				"amounts.currency": merchant.GetPayoutCurrency(),
-				"status":           pkg.RoyaltyReportStatusAccepted,
-			},
-		},
-		{
-			"$group": bson.M{
-				"_id":    "$amounts.currency",
-				"amount": bson.M{"$sum": "$amounts.payout_amount"},
-			},
-		},
-	}
-
-	debit_res := []*balanceQueryResItem{}
-	err = s.db.Collection(collectionRoyaltyReport).Pipe(debit_query).All(&debit_res)
+	debit, err := s.royaltyReport.GetBalanceAmount(merchant.Id, merchant.GetPayoutCurrency())
 	if err != nil {
-		zap.S().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String("collection", collectionRoyaltyReport),
-			zap.Any("query", debit_query),
-		)
 		return nil, err
 	}
 
-	credit_query := []bson.M{
-		{
-			"$match": bson.M{
-				"merchant_id":            bson.ObjectIdHex(merchantId),
-				"currency":               merchant.GetPayoutCurrency(),
-				"has_merchant_signature": true,
-				"has_psp_signature":      true,
-				"status":                 bson.M{"$in": []string{pkg.PayoutDocumentStatusPending, pkg.PayoutDocumentStatusInProgress, pkg.PayoutDocumentStatusPaid}},
-			},
-		},
-		{
-			"$group": bson.M{
-				"_id":    "$currency",
-				"amount": bson.M{"$sum": "$amount"},
-			},
-		},
-	}
-
-	credit_res := []*balanceQueryResItem{}
-	err = s.db.Collection(collectionPayoutDocuments).Pipe(credit_query).All(&credit_res)
+	credit, err := s.payoutDocument.GetBalanceAmount(merchant.Id, merchant.GetPayoutCurrency())
 	if err != nil {
-		zap.S().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String("collection", collectionPayoutDocuments),
-			zap.Any("query", credit_query),
-		)
 		return nil, err
-	}
-
-	debit := float64(0)
-	credit := float64(0)
-
-	if len(debit_res) > 0 {
-		debit = debit_res[0].Amount
-	}
-
-	if len(credit_res) > 0 {
-		credit = credit_res[0].Amount
 	}
 
 	rr, err := s.getRollingReserveForBalance(merchantId, merchant.GetPayoutCurrency())
@@ -201,9 +131,9 @@ func (s *Service) updateMerchantBalance(merchantId string) (*billing.MerchantBal
 
 	balance.Total = balance.Debit - balance.Credit - balance.RollingReserve
 
-	err = s.db.Collection(collectionMerchantBalances).Insert(balance)
+	err = s.merchantBalance.Insert(balance)
 	if err != nil {
-		zap.S().Error(
+		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionMerchantBalances),
@@ -216,22 +146,9 @@ func (s *Service) updateMerchantBalance(merchantId string) (*billing.MerchantBal
 }
 
 func (s *Service) getRollingReserveForBalance(merchantId, currency string) (float64, error) {
-	last_payout_query := bson.M{
-		"merchant_id":            bson.ObjectIdHex(merchantId),
-		"has_merchant_signature": true,
-		"has_psp_signature":      true,
-		"status":                 bson.M{"$in": []string{pkg.PayoutDocumentStatusPending, pkg.PayoutDocumentStatusInProgress, pkg.PayoutDocumentStatusPaid}},
-	}
 
-	var pd *billing.PayoutDocument
-	err := s.db.Collection(collectionPayoutDocuments).Find(last_payout_query).Sort("-created_at").One(&pd)
-
+	pd, err := s.payoutDocument.GetLast(merchantId, currency)
 	if err != nil && err != mgo.ErrNotFound {
-		zap.S().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(errorFieldCollection, collectionRoyaltyReport),
-		)
 		return 0, err
 	}
 
@@ -244,7 +161,7 @@ func (s *Service) getRollingReserveForBalance(merchantId, currency string) (floa
 	if pd != nil {
 		createdAt, err := ptypes.Timestamp(pd.CreatedAt)
 		if err != nil {
-			zap.S().Error(
+			zap.L().Error(
 				"Time conversion error",
 				zap.Error(err),
 			)
@@ -266,7 +183,7 @@ func (s *Service) getRollingReserveForBalance(merchantId, currency string) (floa
 	items := []*reserveQueryResItem{}
 	err = s.db.Collection(collectionAccountingEntry).Pipe(query).All(&items)
 	if err != nil {
-		zap.S().Error(
+		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionAccountingEntry),
@@ -291,4 +208,75 @@ func (s *Service) getRollingReserveForBalance(merchantId, currency string) (floa
 	}
 
 	return result, nil
+}
+
+func (m MerchantBalance) Insert(mb *billing.MerchantBalance) (err error) {
+	err = m.svc.db.Collection(collectionMerchantBalances).Insert(mb)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchantBalances),
+			zap.String(pkg.ErrorDatabaseFieldOperation, pkg.ErrorDatabaseFieldOperationInsert),
+			zap.Any(pkg.ErrorDatabaseFieldDocument, mb),
+		)
+		return
+	}
+	key := fmt.Sprintf(cacheKeyMerchantBalances, mb.MerchantId, mb.Currency)
+	err = m.svc.cacher.Set(key, mb, 0)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
+			zap.String(pkg.ErrorCacheFieldKey, key),
+			zap.Any(pkg.ErrorCacheFieldData, mb),
+		)
+		// suppress error returning here
+		err = nil
+	}
+
+	return
+}
+
+func (m MerchantBalance) GetByMerchantIdAndCurrency(merchantId, currency string) (mb *billing.MerchantBalance, err error) {
+	var c billing.MerchantBalance
+	key := fmt.Sprintf(cacheKeyMerchantBalances, merchantId, currency)
+	if err := m.svc.cacher.Get(key, c); err == nil {
+		return &c, nil
+	}
+
+	query := bson.M{
+		"merchant_id": bson.ObjectIdHex(merchantId),
+		"currency":    currency,
+	}
+
+	sorts := "-_id"
+
+	err = m.svc.db.Collection(collectionMerchantBalances).Find(query).Sort(sorts).One(&mb)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionPayoutDocuments),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			zap.Any(pkg.ErrorDatabaseFieldSorts, sorts),
+		)
+		return
+	}
+
+	err = m.svc.cacher.Set(key, mb, 0)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
+			zap.String(pkg.ErrorCacheFieldKey, key),
+			zap.Any(pkg.ErrorCacheFieldData, mb),
+		)
+		// suppress error returning here
+		err = nil
+	}
+
+	return
 }

@@ -874,10 +874,10 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_SendRoyaltyReportNotifica
 		MerchantId: bson.NewObjectId().Hex(),
 	}
 	suite.service.sendRoyaltyReportNotification(report)
-	assert.True(suite.T(), recorded.Len() == 1)
+	assert.True(suite.T(), recorded.Len() == 2)
 
 	messages := recorded.All()
-	assert.Contains(suite.T(), messages[0].Message, "Merchant not found")
+	assert.Contains(suite.T(), messages[1].Message, "Merchant not found")
 }
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_SendRoyaltyReportNotification_CentrifugoSendError() {

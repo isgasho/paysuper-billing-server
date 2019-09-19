@@ -740,6 +740,9 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_InsertErr
 
 	pds := &mock.PayoutDocumentServiceInterface{}
 	pds.On("Insert", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New(mock.SomeError))
+	pds.On("GetAllSourcesIdHex", mock2.Anything, mock2.Anything).Return([]string{}, nil)
+	pds.On("GetBalanceAmount", mock2.Anything, mock2.Anything).Return(float64(0), nil)
+	pds.On("GetLast", mock2.Anything, mock2.Anything).Return(nil, nil)
 	suite.service.payoutDocument = pds
 
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report1, suite.report2})
@@ -763,6 +766,9 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_InsertErr
 
 	pds := &mock.PayoutDocumentServiceInterface{}
 	pds.On("Insert", mock2.Anything, mock2.Anything, mock2.Anything).Return(newBillingServerErrorMsg("0", "test"))
+	pds.On("GetAllSourcesIdHex", mock2.Anything, mock2.Anything).Return([]string{}, nil)
+	pds.On("GetBalanceAmount", mock2.Anything, mock2.Anything).Return(float64(0), nil)
+	pds.On("GetLast", mock2.Anything, mock2.Anything).Return(nil, nil)
 	suite.service.payoutDocument = pds
 
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report1, suite.report2})
@@ -856,6 +862,7 @@ func (suite *PayoutsTestSuite) TestPayouts_UpdatePayoutDocument_Failed_UpdateErr
 
 	pds := &mock.PayoutDocumentServiceInterface{}
 	pds.On("Update", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New(mock.SomeError))
+	pds.On("GetById", mock2.Anything).Return(suite.payout1, nil)
 	suite.service.payoutDocument = pds
 
 	req := &grpc.UpdatePayoutDocumentRequest{
@@ -929,7 +936,7 @@ func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocuments_AllWithPaging_Ok()
 	assert.Len(suite.T(), res.Data.Items, 1)
 }
 
-func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocuments_Failed_NotFound() {
+func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocuments_Ok_NotFound() {
 	req := &grpc.GetPayoutDocumentsRequest{
 		PayoutDocumentId: bson.NewObjectId().Hex(),
 	}
@@ -938,7 +945,9 @@ func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocuments_Failed_NotFound() 
 
 	err := suite.service.GetPayoutDocuments(context.TODO(), req, res)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusNotFound)
+	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), res.Data.Count, int32(0))
+	assert.Nil(suite.T(), res.Data.Items)
 }
 
 func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocumentSignUrl_Ok_Merchant() {
@@ -1215,6 +1224,7 @@ func (suite *PayoutsTestSuite) TestPayouts_UpdatePayoutDocumentSignatures_Failed
 
 	pds := &mock.PayoutDocumentServiceInterface{}
 	pds.On("Update", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New(mock.SomeError))
+	pds.On("GetById", mock2.Anything).Return(suite.payout1, nil)
 	suite.service.payoutDocument = pds
 
 	req := &grpc.UpdatePayoutDocumentSignaturesRequest{
