@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
@@ -90,9 +89,7 @@ func (s *Service) GetMerchantBy(
 		return err
 	}
 
-	expire := time.Now().Add(time.Hour * 3).Unix()
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": merchant.Id, "exp": expire})
-	merchant.CentrifugoToken, _ = token.SignedString([]byte(s.cfg.CentrifugoSecret))
+	merchant.CentrifugoToken = s.centrifugo.GetChannelToken(merchant.Id, time.Now().Add(time.Hour*3).Unix())
 	merchant.HasProjects = s.getProjectsCountByMerchant(merchant.Id) > 0
 
 	rsp.Status = pkg.ResponseStatusOk
@@ -342,6 +339,8 @@ func (s *Service) ChangeMerchant(
 
 		return nil
 	}
+
+	merchant.CentrifugoToken = s.centrifugo.GetChannelToken(merchant.Id, time.Now().Add(time.Hour*3).Unix())
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = merchant

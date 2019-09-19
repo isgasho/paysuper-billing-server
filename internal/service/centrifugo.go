@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/centrifugal/gocent"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"go.uber.org/zap"
 )
 
 type CentrifugoInterface interface {
 	Publish(context.Context, string, interface{}) error
+	GetChannelToken(subject string, expire int64) string
 }
 
 type Centrifugo struct {
@@ -29,7 +31,7 @@ func newCentrifugo(svc *Service) CentrifugoInterface {
 	return s
 }
 
-func (c Centrifugo) Publish(ctx context.Context, channel string, msg interface{}) error {
+func (c *Centrifugo) Publish(ctx context.Context, channel string, msg interface{}) error {
 	b, err := json.Marshal(msg)
 
 	if err != nil {
@@ -43,4 +45,22 @@ func (c Centrifugo) Publish(ctx context.Context, channel string, msg interface{}
 	}
 
 	return c.centrifugoClient.Publish(ctx, channel, b)
+}
+
+func (c *Centrifugo) GetChannelToken(subject string, expire int64) string {
+	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": subject, "exp": expire})
+	token, err := claims.SignedString([]byte(c.svc.cfg.CentrifugoSecret))
+
+	if err != nil {
+		zap.L().Error(
+			"Generate centrifugo channel token failed",
+			zap.Error(err),
+			zap.String("subject", subject),
+			zap.Any("expire", expire),
+		)
+
+		return ""
+	}
+
+	return token
 }

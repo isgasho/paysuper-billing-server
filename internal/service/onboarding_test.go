@@ -602,6 +602,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_UpdateMerchant_O
 	assert.Equal(suite.T(), req.Company.Website, rsp.Company.Website)
 	assert.Equal(suite.T(), req.Contacts.Authorized.Phone, rsp.Contacts.Authorized.Phone)
 	assert.Equal(suite.T(), req.Banking.AccountNumber, rsp.Banking.AccountNumber)
+	assert.NotZero(suite.T(), rsp.CentrifugoToken)
 
 	var merchant *billing.Merchant
 	err = suite.service.db.Collection(collectionMerchant).Find(bson.M{"_id": bson.ObjectIdHex(rsp.Id)}).One(&merchant)
@@ -4273,6 +4274,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_NewMerchant_With
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 	assert.NotNil(suite.T(), rsp1.Item)
 	assert.Len(suite.T(), rsp1.Item.Id, 24)
+	assert.NotZero(suite.T(), rsp.Item.CentrifugoToken)
 
 	assert.NotNil(suite.T(), rsp1.Item.User)
 	assert.Equal(suite.T(), rsp1.Item.User.Email, rsp.Item.Email.Email)
