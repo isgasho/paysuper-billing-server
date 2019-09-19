@@ -23,7 +23,6 @@ const (
 var (
 	merchantErrorChangeNotAllowed             = newBillingServerErrorMsg("mr000001", "merchant data changing not allowed")
 	merchantErrorCountryNotFound              = newBillingServerErrorMsg("mr000002", "merchant country not found")
-	merchantErrorCurrencyNotFound             = newBillingServerErrorMsg("mr000003", "merchant bank accounting currency not found")
 	merchantErrorAgreementRequested           = newBillingServerErrorMsg("mr000004", "agreement for merchant can't be requested")
 	merchantErrorOnReview                     = newBillingServerErrorMsg("mr000005", "merchant hasn't allowed status for review")
 	merchantErrorSigning                      = newBillingServerErrorMsg("mr000006", "signing uncompleted merchant is impossible")
@@ -283,16 +282,14 @@ func (s *Service) ChangeMerchant(
 	}
 
 	if req.Banking != nil {
-		if req.Banking.Currency != "" {
-			if !contains(s.supportedCurrencies, req.Banking.Currency) {
-				rsp.Status = pkg.ResponseStatusBadData
-				rsp.Message = merchantErrorCurrencyNotFound
-
-				return nil
-			}
+		merchant.Banking = &billing.MerchantBanking{
+			Name:                 req.Banking.Name,
+			Address:              req.Banking.Address,
+			AccountNumber:        req.Banking.AccountNumber,
+			Swift:                req.Banking.Swift,
+			Details:              req.Banking.Details,
+			CorrespondentAccount: req.Banking.CorrespondentAccount,
 		}
-
-		merchant.Banking = req.Banking
 	}
 
 	if req.Contacts != nil {
@@ -1345,6 +1342,12 @@ func (s *Service) SetMerchantTariffRates(
 	}
 
 	merchant.Tariff = tariff
+
+	if merchant.Banking == nil {
+		merchant.Banking = &billing.MerchantBanking{}
+	}
+
+	merchant.Banking.Currency = req.PayoutCurrency
 
 	if merchant.Steps == nil {
 		merchant.Steps = &billing.MerchantCompletedSteps{}
