@@ -899,20 +899,6 @@ func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
 }
 
 func (h *accountingEntry) saveAccountingEntries() error {
-	if h.order != nil {
-		err := h.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(h.order.Id), h.order)
-
-		if err != nil {
-			zap.S().Error(
-				"Order update failed",
-				zap.Error(err),
-				zap.Any("data", h.order),
-			)
-
-			return err
-		}
-	}
-
 	err := h.db.Collection(collectionAccountingEntry).Insert(h.accountingEntries...)
 
 	if err != nil {
