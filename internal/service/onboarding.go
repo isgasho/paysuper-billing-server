@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
@@ -23,7 +22,6 @@ const (
 var (
 	merchantErrorChangeNotAllowed             = newBillingServerErrorMsg("mr000001", "merchant data changing not allowed")
 	merchantErrorCountryNotFound              = newBillingServerErrorMsg("mr000002", "merchant country not found")
-	merchantErrorCurrencyNotFound             = newBillingServerErrorMsg("mr000003", "merchant bank accounting currency not found")
 	merchantErrorAgreementRequested           = newBillingServerErrorMsg("mr000004", "agreement for merchant can't be requested")
 	merchantErrorOnReview                     = newBillingServerErrorMsg("mr000005", "merchant hasn't allowed status for review")
 	merchantErrorSigning                      = newBillingServerErrorMsg("mr000006", "signing uncompleted merchant is impossible")
@@ -91,9 +89,7 @@ func (s *Service) GetMerchantBy(
 		return err
 	}
 
-	expire := time.Now().Add(time.Hour * 3).Unix()
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": merchant.Id, "exp": expire})
-	merchant.CentrifugoToken, _ = token.SignedString([]byte(s.cfg.CentrifugoSecret))
+	merchant.CentrifugoToken = s.centrifugo.GetChannelToken(merchant.Id, time.Now().Add(time.Hour*3).Unix())
 	merchant.HasProjects = s.getProjectsCountByMerchant(merchant.Id) > 0
 
 	rsp.Status = pkg.ResponseStatusOk
@@ -283,16 +279,14 @@ func (s *Service) ChangeMerchant(
 	}
 
 	if req.Banking != nil {
-		if req.Banking.Currency != "" {
-			if !contains(s.supportedCurrencies, req.Banking.Currency) {
-				rsp.Status = pkg.ResponseStatusBadData
-				rsp.Message = merchantErrorCurrencyNotFound
-
-				return nil
-			}
+		merchant.Banking = &billing.MerchantBanking{
+			Name:                 req.Banking.Name,
+			Address:              req.Banking.Address,
+			AccountNumber:        req.Banking.AccountNumber,
+			Swift:                req.Banking.Swift,
+			Details:              req.Banking.Details,
+			CorrespondentAccount: req.Banking.CorrespondentAccount,
 		}
-
-		merchant.Banking = req.Banking
 	}
 
 	if req.Contacts != nil {
@@ -345,6 +339,8 @@ func (s *Service) ChangeMerchant(
 
 		return nil
 	}
+
+	merchant.CentrifugoToken = s.centrifugo.GetChannelToken(merchant.Id, time.Now().Add(time.Hour*3).Unix())
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = merchant
@@ -1345,6 +1341,12 @@ func (s *Service) SetMerchantTariffRates(
 	}
 
 	merchant.Tariff = tariff
+
+	if merchant.Banking == nil {
+		merchant.Banking = &billing.MerchantBanking{}
+	}
+
+	merchant.Banking.Currency = req.PayoutCurrency
 
 	if merchant.Steps == nil {
 		merchant.Steps = &billing.MerchantCompletedSteps{}

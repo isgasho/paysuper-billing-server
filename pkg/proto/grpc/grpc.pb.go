@@ -236,12 +236,13 @@ func (m *ChangeCodeInOrderResponse) GetOrder() *billing.Order {
 }
 
 type GetPlatformKeyCountResponse struct {
-	Status               int32                 `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
-	Message              *ResponseErrorMessage `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	Count                int32                 `protobuf:"varint,3,opt,name=count,proto3" json:"count,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}              `json:"-" bson:"-" structure:"-" validate:"-"`
-	XXX_unrecognized     []byte                `json:"-" bson:"-" structure:"-" validate:"-"`
-	XXX_sizecache        int32                 `json:"-" bson:"-" structure:"-" validate:"-"`
+	Status  int32                 `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
+	Message *ResponseErrorMessage `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	//@inject_tag: json:"count"
+	Count                int32    `protobuf:"varint,3,opt,name=count,proto3" json:"count"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
+	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
+	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`
 }
 
 func (m *GetPlatformKeyCountResponse) Reset()         { *m = GetPlatformKeyCountResponse{} }
@@ -331,12 +332,13 @@ func (m *KeyForOrderRequest) GetKeyId() string {
 }
 
 type GetKeyForOrderRequestResponse struct {
-	Status               int32                 `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
-	Message              *ResponseErrorMessage `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	Key                  *billing.Key          `protobuf:"bytes,3,opt,name=key,proto3" json:"key,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}              `json:"-" bson:"-" structure:"-" validate:"-"`
-	XXX_unrecognized     []byte                `json:"-" bson:"-" structure:"-" validate:"-"`
-	XXX_sizecache        int32                 `json:"-" bson:"-" structure:"-" validate:"-"`
+	Status  int32                 `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
+	Message *ResponseErrorMessage `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	//@inject_tag: json:"key"
+	Key                  *billing.Key `protobuf:"bytes,3,opt,name=key,proto3" json:"key"`
+	XXX_NoUnkeyedLiteral struct{}     `json:"-" bson:"-" structure:"-" validate:"-"`
+	XXX_unrecognized     []byte       `json:"-" bson:"-" structure:"-" validate:"-"`
+	XXX_sizecache        int32        `json:"-" bson:"-" structure:"-" validate:"-"`
 }
 
 func (m *GetKeyForOrderRequestResponse) Reset()         { *m = GetKeyForOrderRequestResponse{} }
@@ -386,12 +388,13 @@ func (m *GetKeyForOrderRequestResponse) GetKey() *billing.Key {
 }
 
 type PlatformKeyReserveResponse struct {
-	Status               int32                 `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
-	Message              *ResponseErrorMessage `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	KeyId                string                `protobuf:"bytes,3,opt,name=key_id,json=keyId,proto3" json:"key_id,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}              `json:"-" bson:"-" structure:"-" validate:"-"`
-	XXX_unrecognized     []byte                `json:"-" bson:"-" structure:"-" validate:"-"`
-	XXX_sizecache        int32                 `json:"-" bson:"-" structure:"-" validate:"-"`
+	Status  int32                 `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
+	Message *ResponseErrorMessage `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	//@inject_tag: json:"key_id"
+	KeyId                string   `protobuf:"bytes,3,opt,name=key_id,json=keyId,proto3" json:"key_id"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
+	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
+	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`
 }
 
 func (m *PlatformKeyReserveResponse) Reset()         { *m = PlatformKeyReserveResponse{} }
@@ -876,12 +879,13 @@ func (m *AddOrUpdatePlatformPricesRequest) GetPlatform() *PlatformPrice {
 }
 
 type KeyProductResponse struct {
-	Status               int32                 `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
-	Message              *ResponseErrorMessage `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	Product              *KeyProduct           `protobuf:"bytes,3,opt,name=product,proto3" json:"product,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}              `json:"-" bson:"-" structure:"-" validate:"-"`
-	XXX_unrecognized     []byte                `json:"-" bson:"-" structure:"-" validate:"-"`
-	XXX_sizecache        int32                 `json:"-" bson:"-" structure:"-" validate:"-"`
+	Status  int32                 `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
+	Message *ResponseErrorMessage `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	//@inject_tag: json:"product"
+	Product              *KeyProduct `protobuf:"bytes,3,opt,name=product,proto3" json:"product"`
+	XXX_NoUnkeyedLiteral struct{}    `json:"-" bson:"-" structure:"-" validate:"-"`
+	XXX_unrecognized     []byte      `json:"-" bson:"-" structure:"-" validate:"-"`
+	XXX_sizecache        int32       `json:"-" bson:"-" structure:"-" validate:"-"`
 }
 
 func (m *KeyProductResponse) Reset()         { *m = KeyProductResponse{} }
@@ -5155,8 +5159,8 @@ type ProductPrice struct {
 	Amount float64 `protobuf:"fixed64,1,opt,name=amount,proto3" json:"amount" validate:"required,numeric,gt=0"`
 	//@inject_tag: validate:"required,alpha,len=3" json:"currency"
 	Currency string `protobuf:"bytes,2,opt,name=currency,proto3" json:"currency" validate:"required,alpha,len=3"`
-	//@inject_tag: validate:"omitempty,alpha" json:"region"
-	Region               string   `protobuf:"bytes,3,opt,name=region,proto3" json:"region" validate:"omitempty,alpha"`
+	//@inject_tag: validate:"required,alpha" json:"region"
+	Region               string   `protobuf:"bytes,3,opt,name=region,proto3" json:"region" validate:"required,alpha"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`
