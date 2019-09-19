@@ -1573,6 +1573,10 @@ func (v *OrderCreateRequestProcessor) processProject() error {
 		return orderErrorProjectInactive
 	}
 
+	if project.MerchantId == "" || bson.IsObjectIdHex(project.MerchantId) == false {
+		return orderErrorProjectMerchantNotFound
+	}
+
 	merchant, err := v.merchant.GetById(project.MerchantId)
 	if err != nil {
 		return orderErrorProjectMerchantNotFound

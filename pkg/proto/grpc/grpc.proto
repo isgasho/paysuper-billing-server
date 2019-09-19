@@ -181,6 +181,7 @@ message ChangeCodeInOrderResponse {
 message GetPlatformKeyCountResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
+    //@inject_tag: json:"count"
     int32 count = 3;
 }
 
@@ -192,12 +193,14 @@ message KeyForOrderRequest {
 message GetKeyForOrderRequestResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
+    //@inject_tag: json:"key"
     billing.Key key = 3;
 }
 
 message PlatformKeyReserveResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
+    //@inject_tag: json:"key_id"
     string key_id = 3;
 }
 
@@ -268,6 +271,7 @@ message AddOrUpdatePlatformPricesRequest {
 message KeyProductResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
+    //@inject_tag: json:"product"
     KeyProduct product = 3;
 }
 
@@ -292,7 +296,7 @@ message CreateOrUpdateKeyProductRequest {
     string merchant_id = 9;
     //@inject_tag: validate:"omitempty,hexadecimal,len=24"
     string id = 10;
-    //@inject_tag: json:"object"
+    //@inject_tag: json:"object" validate:"required"
     string object = 11;
     //@inject_tag: json:"metadata"
     map<string, string> metadata = 12;
