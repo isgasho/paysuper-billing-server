@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"github.com/centrifugal/gocent"
+	"errors"
 	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
 	"github.com/golang-migrate/migrate/v4"
@@ -12,12 +12,14 @@ import (
 	"github.com/jinzhu/now"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
-	"github.com/paysuper/paysuper-billing-server/internal/mock"
+	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -92,20 +94,20 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 		},
 	)
 
-	redisdb := mock.NewTestRedis()
-	suite.httpClient = mock.NewClientStatusOk()
+	redisdb := mocks.NewTestRedis()
+	suite.httpClient = mocks.NewClientStatusOk()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
 		db,
 		cfg,
-		mock.NewGeoIpServiceTestOk(),
-		mock.NewRepositoryServiceOk(),
-		mock.NewTaxServiceOkMock(),
+		mocks.NewGeoIpServiceTestOk(),
+		mocks.NewRepositoryServiceOk(),
+		mocks.NewTaxServiceOkMock(),
 		broker,
 		redisClient,
 		suite.cache,
-		mock.NewCurrencyServiceMockOk(),
-		mock.NewDocumentSignerMockOk(),
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -113,15 +115,6 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 	}
 
 	suite.merchant, suite.project, suite.paymentMethod, suite.paymentSystem = helperCreateEntitiesForTests(suite.Suite, suite.service)
-
-	suite.service.centrifugoClient = gocent.New(
-		gocent.Config{
-			Addr:       cfg.CentrifugoURL,
-			Key:        cfg.CentrifugoSecret,
-			HTTPClient: suite.httpClient,
-		},
-	)
-
 	suite.merchant1 = helperCreateMerchant(suite.Suite, suite.service, "USD", "RU", suite.paymentMethod, 0)
 	suite.merchant2 = helperCreateMerchant(suite.Suite, suite.service, "USD", "RU", suite.paymentMethod, 0)
 
@@ -569,7 +562,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_Ok() 
 	assert.Equal(suite.T(), req1.Ip, changes[0].Ip)
 	assert.Equal(suite.T(), pkg.RoyaltyReportChangeSourceAdmin, changes[0].Source)
 
-	centrifugoCl, ok := suite.httpClient.Transport.(*mock.TransportStatusOk)
+	centrifugoCl, ok := suite.httpClient.Transport.(*mocks.TransportStatusOk)
 	assert.True(suite.T(), ok)
 	assert.NoError(suite.T(), centrifugoCl.Err)
 }
@@ -621,7 +614,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_Accep
 	assert.Equal(suite.T(), req1.Ip, changes[0].Ip)
 	assert.Equal(suite.T(), pkg.RoyaltyReportChangeSourceAdmin, changes[0].Source)
 
-	centrifugoCl, ok := suite.httpClient.Transport.(*mock.TransportStatusOk)
+	centrifugoCl, ok := suite.httpClient.Transport.(*mocks.TransportStatusOk)
 	assert.True(suite.T(), ok)
 	assert.NoError(suite.T(), centrifugoCl.Err)
 }
@@ -673,7 +666,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_MerchantReviewRoyaltyRepo
 	assert.Equal(suite.T(), req1.Ip, changes[0].Ip)
 	assert.Equal(suite.T(), pkg.RoyaltyReportChangeSourceMerchant, changes[0].Source)
 
-	centrifugoCl, ok := suite.httpClient.Transport.(*mock.TransportStatusOk)
+	centrifugoCl, ok := suite.httpClient.Transport.(*mocks.TransportStatusOk)
 	assert.True(suite.T(), ok)
 	assert.NoError(suite.T(), centrifugoCl.Err)
 }
@@ -724,7 +717,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_MerchantReviewRoyaltyRepo
 	assert.Equal(suite.T(), req1.Ip, changes[0].Ip)
 	assert.Equal(suite.T(), pkg.RoyaltyReportChangeSourceMerchant, changes[0].Source)
 
-	centrifugoCl, ok := suite.httpClient.Transport.(*mock.TransportStatusOk)
+	centrifugoCl, ok := suite.httpClient.Transport.(*mocks.TransportStatusOk)
 	assert.True(suite.T(), ok)
 	assert.NoError(suite.T(), centrifugoCl.Err)
 }
@@ -873,7 +866,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_SendRoyaltyReportNotifica
 	report := &billing.RoyaltyReport{
 		MerchantId: bson.NewObjectId().Hex(),
 	}
-	suite.service.sendRoyaltyReportNotification(report)
+	suite.service.sendRoyaltyReportNotification(context.Background(), report)
 	assert.True(suite.T(), recorded.Len() == 2)
 
 	messages := recorded.All()
@@ -899,19 +892,15 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_SendRoyaltyReportNotifica
 	assert.NotNil(suite.T(), report)
 	assert.Equal(suite.T(), pkg.RoyaltyReportStatusPending, report.Status)
 
+	ci := &mocks.CentrifugoInterface{}
+	ci.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("error"))
+	suite.service.centrifugo = ci
+
 	core, recorded := observer.New(zapcore.ErrorLevel)
 	logger := zap.New(core)
 	zap.ReplaceGlobals(logger)
 
-	suite.service.centrifugoClient = gocent.New(
-		gocent.Config{
-			Addr:       suite.service.cfg.CentrifugoURL,
-			Key:        suite.service.cfg.CentrifugoSecret,
-			HTTPClient: mock.NewClientStatusError(),
-		},
-	)
-
-	suite.service.sendRoyaltyReportNotification(report)
+	suite.service.sendRoyaltyReportNotification(context.Background(), report)
 	assert.True(suite.T(), recorded.Len() == 1)
 
 	messages := recorded.All()
@@ -920,6 +909,10 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_SendRoyaltyReportNotifica
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_AutoAcceptRoyaltyReports_Ok() {
 	projects := []*billing.Project{suite.project, suite.project1, suite.project2}
+
+	ci := &mocks.CentrifugoInterface{}
+	ci.On("Publish", mock2.Anything, mock2.Anything, mock2.Anything).Return(nil)
+	suite.service.centrifugo = ci
 
 	for _, v := range projects {
 		for i := 0; i < 10; i++ {

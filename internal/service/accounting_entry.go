@@ -872,10 +872,20 @@ func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
 		entry.OriginalCurrency = entry.Currency
 	}
 	if entry.LocalAmount == 0 && entry.LocalCurrency == "" && entry.Country != "" {
-		// Use VatCurrency as local currency, instead of country currency.
-		// It because of some countries of EU,
-		// that use national currencies but pays vat in euro
-		entry.LocalCurrency = h.country.VatCurrency
+		var rateType string
+		var rateSource string
+		if h.country.VatEnabled {
+			// Use VatCurrency as local currency, instead of country currency.
+			// It because of some countries of EU,
+			// that use national currencies but pays vat in euro
+			entry.LocalCurrency = h.country.VatCurrency
+			rateType = curPkg.RateTypeCentralbanks
+			rateSource = h.country.VatCurrencyRatesSource
+		} else {
+			entry.LocalCurrency = h.country.Currency
+			rateType = curPkg.RateTypeOxr
+			rateSource = ""
+		}
 
 		if entry.LocalCurrency == entry.OriginalCurrency {
 			entry.LocalAmount = entry.OriginalAmount
@@ -883,8 +893,8 @@ func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
 			req := &currencies.ExchangeCurrencyCurrentCommonRequest{
 				From:     entry.OriginalCurrency,
 				To:       entry.LocalCurrency,
-				RateType: curPkg.RateTypeCentralbanks,
-				Source:   h.country.VatCurrencyRatesSource,
+				RateType: rateType,
+				Source:   rateSource,
 				Amount:   entry.OriginalAmount,
 			}
 
@@ -917,20 +927,6 @@ func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
 }
 
 func (h *accountingEntry) saveAccountingEntries() error {
-	if h.order != nil {
-		err := h.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(h.order.Id), h.order)
-
-		if err != nil {
-			zap.S().Error(
-				"Order update failed",
-				zap.Error(err),
-				zap.Any("data", h.order),
-			)
-
-			return err
-		}
-	}
-
 	err := h.db.Collection(collectionAccountingEntry).Insert(h.accountingEntries...)
 
 	if err != nil {

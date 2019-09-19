@@ -327,7 +327,7 @@ func (m *DashboardRepository) NewDashboardReportProcessor(
 ) (*dashboardReportProcessor, error) {
 	current := time.Now()
 	processor := &dashboardReportProcessor{
-		match:       bson.M{"merchant_id": bson.ObjectIdHex(merchantId), "status": status},
+		match:       bson.M{"merchant_id": bson.ObjectIdHex(merchantId), "status": status, "type": "order"},
 		db:          db,
 		cache:       cache,
 		cacheExpire: time.Duration(0),
@@ -425,7 +425,7 @@ func (m *DashboardRepository) NewDashboardReportProcessor(
 		if period == pkg.DashboardPeriodTwoYearsAgo {
 			decrement = decrement * 2
 		}
-		previousYear := time.Now().AddDate(-1, 0, 0)
+		previousYear := time.Now().AddDate(decrement, 0, 0)
 		gte := now.New(previousYear).BeginningOfYear()
 		lte := now.New(previousYear).EndOfYear()
 
@@ -533,6 +533,7 @@ func (m *dashboardReportProcessor) ExecuteMainReport(receiver interface{}) (inte
 							"value": bson.M{"$sum": "$revenue_amount"},
 						},
 					},
+					{"$sort": bson.M{"label": 1}},
 				},
 				"chart_vat": []bson.M{
 					{
@@ -542,6 +543,7 @@ func (m *dashboardReportProcessor) ExecuteMainReport(receiver interface{}) (inte
 							"value": bson.M{"$sum": "$vat_amount"},
 						},
 					},
+					{"$sort": bson.M{"label": 1}},
 				},
 				"chart_total_transactions": []bson.M{
 					{
@@ -551,6 +553,7 @@ func (m *dashboardReportProcessor) ExecuteMainReport(receiver interface{}) (inte
 							"value": bson.M{"$sum": 1},
 						},
 					},
+					{"$sort": bson.M{"label": 1}},
 				},
 				"chart_arpu": []bson.M{
 					{
@@ -563,6 +566,7 @@ func (m *dashboardReportProcessor) ExecuteMainReport(receiver interface{}) (inte
 					},
 					{"$addFields": bson.M{"value": bson.M{"$divide": []string{"$gross_revenue", "$total_transactions"}}}},
 					{"$project": bson.M{"label": "$label", "value": "$value"}},
+					{"$sort": bson.M{"label": 1}},
 				},
 			},
 		},
@@ -628,6 +632,7 @@ func (m *dashboardReportProcessor) ExecuteRevenueDynamicReport(receiver interfac
 				"count":    bson.M{"$sum": 1},
 			},
 		},
+		{"$sort": bson.M{"_id": 1}},
 	}
 
 	receiverTyped := receiver.(*grpc.DashboardRevenueDynamicReport)
@@ -669,6 +674,17 @@ func (m *dashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interf
 				},
 				"amount":   "$net_revenue.amount",
 				"currency": "$net_revenue.currency",
+			},
+		},
+		{
+			"$project": bson.M{
+				"hour":     "$hour",
+				"day":      "$day",
+				"month":    "$month",
+				"week":     "$week",
+				"country":  "$country",
+				"amount":   "$amount",
+				"currency": "$currency",
 				"period_in_day": bson.M{
 					"$cond": []interface{}{
 						bson.M{"$and": []bson.M{{"$gte": []interface{}{"$hour", 0}}, {"$lte": []interface{}{"$hour", 7}}}},
@@ -704,6 +720,7 @@ func (m *dashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interf
 							"currency": bson.M{"$first": "$currency"},
 						},
 					},
+					{"$sort": bson.M{"amount": -1}},
 					{"$limit": baseReportsItemsLimit},
 				},
 				"total": []bson.M{
@@ -724,6 +741,7 @@ func (m *dashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interf
 							"currency": bson.M{"$first": "$currency"},
 						},
 					},
+					{"$sort": bson.M{"label": 1}},
 				},
 			},
 		},
@@ -772,6 +790,22 @@ func (m *dashboardReportProcessor) ExecuteSalesTodayReport(receiver interface{})
 				"day":   bson.M{"$dayOfMonth": "$pm_order_close_date"},
 				"month": bson.M{"$month": "$pm_order_close_date"},
 				"week":  bson.M{"$week": "$pm_order_close_date"},
+			},
+		},
+		{"$unwind": "$items"},
+		{
+			"$project": bson.M{
+				"item": bson.M{
+					"$cond": []interface{}{
+						bson.M{"$eq": []string{"$items", ""}},
+						bson.M{"$arrayElemAt": []interface{}{"$names.value", 0}},
+						"$items.name",
+					},
+				},
+				"hour":  "$hour",
+				"day":   "$day",
+				"month": "$month",
+				"week":  "$week",
 				"period_in_day": bson.M{
 					"$cond": []interface{}{
 						bson.M{"$and": []bson.M{{"$gte": []interface{}{"$hour", 0}}, {"$lte": []interface{}{"$hour", 7}}}},
@@ -785,16 +819,9 @@ func (m *dashboardReportProcessor) ExecuteSalesTodayReport(receiver interface{})
 				},
 			},
 		},
-		{"$unwind": "$items"},
 		{
 			"$project": bson.M{
-				"item": bson.M{
-					"$cond": []interface{}{
-						bson.M{"$eq": []string{"$items", ""}},
-						bson.M{"$arrayElemAt": []interface{}{"$names.value", 0}},
-						"$items.name",
-					},
-				},
+				"item":          "$item",
 				"hour":          "$hour",
 				"day":           "$day",
 				"month":         "$month",
@@ -812,6 +839,7 @@ func (m *dashboardReportProcessor) ExecuteSalesTodayReport(receiver interface{})
 							"count": bson.M{"$sum": 1},
 						},
 					},
+					{"$sort": bson.M{"count": -1}},
 					{"$limit": baseReportsItemsLimit},
 				},
 				"total": []bson.M{
@@ -830,6 +858,7 @@ func (m *dashboardReportProcessor) ExecuteSalesTodayReport(receiver interface{})
 							"value": bson.M{"$sum": 1},
 						},
 					},
+					{"$sort": bson.M{"label": 1}},
 				},
 			},
 		},
@@ -864,10 +893,18 @@ func (m *dashboardReportProcessor) ExecuteSourcesReport(receiver interface{}) (i
 		{"$match": m.match},
 		{
 			"$project": bson.M{
-				"hour":  bson.M{"$hour": "$pm_order_close_date"},
-				"day":   bson.M{"$dayOfMonth": "$pm_order_close_date"},
-				"month": bson.M{"$month": "$pm_order_close_date"},
-				"week":  bson.M{"$week": "$pm_order_close_date"},
+				"hour":   bson.M{"$hour": "$pm_order_close_date"},
+				"day":    bson.M{"$dayOfMonth": "$pm_order_close_date"},
+				"month":  bson.M{"$month": "$pm_order_close_date"},
+				"week":   bson.M{"$week": "$pm_order_close_date"},
+				"issuer": "$issuer.url",
+			}},
+		{
+			"$project": bson.M{
+				"hour":  "$hour",
+				"day":   "$day",
+				"month": "$month",
+				"week":  "$week",
 				"period_in_day": bson.M{
 					"$cond": []interface{}{
 						bson.M{"$and": []bson.M{{"$gte": []interface{}{"$hour", 0}}, {"$lte": []interface{}{"$hour", 7}}}},
@@ -879,8 +916,9 @@ func (m *dashboardReportProcessor) ExecuteSourcesReport(receiver interface{}) (i
 						}},
 					},
 				},
-				"issuer": "$issuer.url",
-			}},
+				"issuer": "$issuer",
+			},
+		},
 		{
 			"$project": bson.M{
 				"hour":          "$hour",
@@ -901,6 +939,7 @@ func (m *dashboardReportProcessor) ExecuteSourcesReport(receiver interface{}) (i
 							"count": bson.M{"$sum": 1},
 						},
 					},
+					{"$sort": bson.M{"count": -1}},
 					{"$limit": baseReportsItemsLimit},
 				},
 				"total": []bson.M{
@@ -919,6 +958,7 @@ func (m *dashboardReportProcessor) ExecuteSourcesReport(receiver interface{}) (i
 							"value": bson.M{"$sum": 1},
 						},
 					},
+					{"$sort": bson.M{"label": 1}},
 				},
 			},
 		},

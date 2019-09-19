@@ -3090,6 +3090,7 @@ func (s *Service) doUpdateOrderView(match bson.M) error {
 				"created_at":           1,
 				"pm_order_close_date":  1,
 				"total_payment_amount": 1,
+				"amount_before_vat":    "$private_amount",
 				"currency":             1,
 				"user":                 1,
 				"billing_address":      1,
@@ -3164,6 +3165,9 @@ func (s *Service) doUpdateOrderView(match bson.M) error {
 				"paysuper_refund_total_profit":                      1,
 				"issuer":                                            1,
 				"items":                                             1,
+				"merchant_payout_currency": bson.M{
+					"$ifNull": list{"$net_revenue.currency", "$refund_reverse_revenue.currency"},
+				},
 			},
 		},
 		{
@@ -3188,5 +3192,20 @@ func (s *Service) doUpdateOrderView(match bson.M) error {
 		)
 		return err
 	}
+	return nil
+}
+
+func (s *Service) RebuildOrderView() error {
+
+	zap.S().Info("start rebuilding order view")
+
+	err := s.updateOrderView([]string{})
+	if err != nil {
+		zap.S().Error("rebuilding order view failed with error", "err", err)
+		return err
+	}
+
+	zap.S().Info("rebuilding order view finished successfully")
+
 	return nil
 }

@@ -54,7 +54,7 @@ metadata:
   annotations: 
     released: {{ .Release.Time }} 
 spec:
-  schedule: 0 8 * * 1
+  schedule: 0 8 * * 2
   jobTemplate:
     spec:
       template:
@@ -121,4 +121,4 @@ spec:
                   name: {{ $deploymentName }}-env
                   key: {{ . }}
             {{- end }}
-          restartPolicy: OnFailure 
+          restartPolicy: OnFailure

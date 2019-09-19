@@ -28,6 +28,9 @@ func main() {
 
 		case "royalty_reports_accept":
 			err = app.TaskAutoAcceptRoyaltyReports()
+
+		case "rebuild_order_view":
+			err = app.TaskRebuildOrderView()
 		}
 
 		if err != nil {

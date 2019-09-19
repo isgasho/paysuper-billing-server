@@ -1019,8 +1019,8 @@ func (m *MerchantContactAuthorized) GetPosition() string {
 }
 
 type MerchantBanking struct {
-	// @inject_tag: json:"currency" validate:"required,alpha,len=3"
-	Currency string `protobuf:"bytes,1,opt,name=currency,proto3" json:"currency" validate:"required,alpha,len=3"`
+	// @inject_tag: json:"currency"
+	Currency string `protobuf:"bytes,1,opt,name=currency,proto3" json:"currency"`
 	// @inject_tag: json:"name" validate:"required,city,max=60"
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name" validate:"required,city,max=60"`
 	// @inject_tag: json:"address" validate:"required,max=60"

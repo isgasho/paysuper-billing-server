@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/mock"
+	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -422,7 +422,7 @@ func (suite *PayoutsTestSuite) SetupTest() {
 	suite.log, err = zap.NewProduction()
 	assert.NoError(suite.T(), err, "Logger initialization failed")
 
-	redisdb := mock.NewTestRedis()
+	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
 		db,
@@ -433,8 +433,8 @@ func (suite *PayoutsTestSuite) SetupTest() {
 		nil,
 		nil,
 		suite.cache,
-		mock.NewCurrencyServiceMockOk(),
-		mock.NewDocumentSignerMockOk(),
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -738,8 +738,8 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_NotEnough
 
 func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_InsertError() {
 
-	pds := &mock.PayoutDocumentServiceInterface{}
-	pds.On("Insert", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New(mock.SomeError))
+	pds := &mocks.PayoutDocumentServiceInterface{}
+	pds.On("Insert", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New(mocks.SomeError))
 	pds.On("GetAllSourcesIdHex", mock2.Anything, mock2.Anything).Return([]string{}, nil)
 	pds.On("GetBalanceAmount", mock2.Anything, mock2.Anything).Return(float64(0), nil)
 	pds.On("GetLast", mock2.Anything, mock2.Anything).Return(nil, nil)
@@ -764,7 +764,7 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_InsertErr
 
 func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_InsertErrorWithResponse() {
 
-	pds := &mock.PayoutDocumentServiceInterface{}
+	pds := &mocks.PayoutDocumentServiceInterface{}
 	pds.On("Insert", mock2.Anything, mock2.Anything, mock2.Anything).Return(newBillingServerErrorMsg("0", "test"))
 	pds.On("GetAllSourcesIdHex", mock2.Anything, mock2.Anything).Return([]string{}, nil)
 	pds.On("GetBalanceAmount", mock2.Anything, mock2.Anything).Return(float64(0), nil)
@@ -860,8 +860,8 @@ func (suite *PayoutsTestSuite) TestPayouts_UpdatePayoutDocument_Failed_UpdateErr
 
 	suite.helperInsertPayoutDocuments([]*billing.PayoutDocument{suite.payout1})
 
-	pds := &mock.PayoutDocumentServiceInterface{}
-	pds.On("Update", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New(mock.SomeError))
+	pds := &mocks.PayoutDocumentServiceInterface{}
+	pds.On("Update", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New(mocks.SomeError))
 	pds.On("GetById", mock2.Anything).Return(suite.payout1, nil)
 	suite.service.payoutDocument = pds
 
@@ -1040,9 +1040,9 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_CreateSig
 
 	suite.helperInsertPayoutDocuments([]*billing.PayoutDocument{suite.payout6})
 
-	ds := &mock.DocumentSignerService{}
+	ds := &mocks.DocumentSignerService{}
 	ds.On("CreateSignature", mock2.Anything, mock2.Anything).
-		Return(nil, errors.New(mock.SomeError))
+		Return(nil, errors.New(mocks.SomeError))
 	suite.service.documentSigner = ds
 
 	req := &grpc.GetPayoutDocumentSignUrlRequest{
@@ -1062,7 +1062,7 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_CreateSig
 
 	suite.helperInsertPayoutDocuments([]*billing.PayoutDocument{suite.payout6})
 
-	ds := &mock.DocumentSignerService{}
+	ds := &mocks.DocumentSignerService{}
 	ds.On("CreateSignature", mock2.Anything, mock2.Anything).
 		Return(&proto.CreateSignatureResponse{
 			Status: pkg.ResponseStatusBadData,
@@ -1138,8 +1138,8 @@ func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocumentSignUrl_Failed_Refre
 
 	suite.helperInsertPayoutDocuments([]*billing.PayoutDocument{suite.payout5})
 
-	ds := &mock.DocumentSignerService{}
-	ds.On("GetSignatureUrl", mock2.Anything, mock2.Anything).Return(nil, errors.New(mock.SomeError))
+	ds := &mocks.DocumentSignerService{}
+	ds.On("GetSignatureUrl", mock2.Anything, mock2.Anything).Return(nil, errors.New(mocks.SomeError))
 	suite.service.documentSigner = ds
 
 	req := &grpc.GetPayoutDocumentSignUrlRequest{
@@ -1158,7 +1158,7 @@ func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocumentSignUrl_Failed_Refre
 
 	suite.helperInsertPayoutDocuments([]*billing.PayoutDocument{suite.payout5})
 
-	ds := &mock.DocumentSignerService{}
+	ds := &mocks.DocumentSignerService{}
 	ds.On("GetSignatureUrl", mock2.Anything, mock2.Anything).
 		Return(&proto.GetSignatureUrlResponse{
 			Status:  pkg.ResponseStatusSystemError,
@@ -1222,8 +1222,8 @@ func (suite *PayoutsTestSuite) TestPayouts_UpdatePayoutDocumentSignatures_Failed
 
 	suite.helperInsertPayoutDocuments([]*billing.PayoutDocument{suite.payout1})
 
-	pds := &mock.PayoutDocumentServiceInterface{}
-	pds.On("Update", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New(mock.SomeError))
+	pds := &mocks.PayoutDocumentServiceInterface{}
+	pds.On("Update", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New(mocks.SomeError))
 	pds.On("GetById", mock2.Anything).Return(suite.payout1, nil)
 	suite.service.payoutDocument = pds
 

@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"github.com/centrifugal/gocent"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
@@ -12,7 +11,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
-	"github.com/paysuper/paysuper-billing-server/internal/mock"
+	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -88,33 +87,25 @@ func (suite *MerchantBalanceTestSuite) SetupTest() {
 		},
 	)
 
-	redisdb := mock.NewTestRedis()
-	suite.httpClient = mock.NewClientStatusOk()
+	redisdb := mocks.NewTestRedis()
+	suite.httpClient = mocks.NewClientStatusOk()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
 		db,
 		cfg,
-		mock.NewGeoIpServiceTestOk(),
-		mock.NewRepositoryServiceOk(),
-		mock.NewTaxServiceOkMock(),
+		mocks.NewGeoIpServiceTestOk(),
+		mocks.NewRepositoryServiceOk(),
+		mocks.NewTaxServiceOkMock(),
 		broker,
 		redisClient,
 		suite.cache,
-		mock.NewCurrencyServiceMockOk(),
-		mock.NewDocumentSignerMockOk(),
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
 	)
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
-
-	suite.service.centrifugoClient = gocent.New(
-		gocent.Config{
-			Addr:       cfg.CentrifugoURL,
-			Key:        cfg.CentrifugoSecret,
-			HTTPClient: suite.httpClient,
-		},
-	)
 
 	var core zapcore.Core
 

@@ -3,17 +3,17 @@ package service
 import (
 	"context"
 	"errors"
-	"github.com/centrifugal/gocent"
 	"github.com/elliotchance/redismock"
 	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/mock"
+	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/stretchr/testify/assert"
+	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -64,19 +64,19 @@ func (suite *UserProfileTestSuite) SetupTest() {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
-	redisdb := mock.NewTestRedis()
+	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
 		db,
 		cfg,
-		mock.NewGeoIpServiceTestOk(),
-		mock.NewRepositoryServiceOk(),
-		mock.NewTaxServiceOkMock(),
-		mock.NewBrokerMockOk(),
-		mock.NewTestRedis(),
+		mocks.NewGeoIpServiceTestOk(),
+		mocks.NewRepositoryServiceOk(),
+		mocks.NewTaxServiceOkMock(),
+		mocks.NewBrokerMockOk(),
+		mocks.NewTestRedis(),
 		suite.cache,
-		mock.NewCurrencyServiceMockOk(),
-		mock.NewDocumentSignerMockOk(),
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
 	)
 
 	err = suite.service.Init()
@@ -99,14 +99,6 @@ func (suite *UserProfileTestSuite) SetupTest() {
 	if err := suite.service.country.Insert(country); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
-
-	suite.service.centrifugoClient = gocent.New(
-		gocent.Config{
-			Addr:       cfg.CentrifugoURL,
-			Key:        cfg.CentrifugoSecret,
-			HTTPClient: mock.NewClientStatusOk(),
-		},
-	)
 }
 
 func (suite *UserProfileTestSuite) TearDownTest() {
@@ -166,7 +158,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	assert.Equal(suite.T(), profile.Help.ProductPromotionAndDevelopment, rsp.Item.Help.ProductPromotionAndDevelopment)
 	assert.NotEmpty(suite.T(), rsp.Item.CentrifugoToken)
 
-	b, ok := suite.service.broker.(*mock.BrokerMockOk)
+	b, ok := suite.service.broker.(*mocks.BrokerMockOk)
 	assert.True(suite.T(), ok)
 	assert.False(suite.T(), b.IsSent)
 }
@@ -244,7 +236,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_Cha
 	assert.Equal(suite.T(), profile.Help.ProductPromotionAndDevelopment, rsp.Item.Help.ProductPromotionAndDevelopment)
 	assert.NotEmpty(suite.T(), rsp.Item.CentrifugoToken)
 
-	b, ok := suite.service.broker.(*mock.BrokerMockOk)
+	b, ok := suite.service.broker.(*mocks.BrokerMockOk)
 	assert.True(suite.T(), ok)
 	assert.True(suite.T(), b.IsSent)
 }
@@ -291,7 +283,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateOnboardingProfi
 	assert.IsType(suite.T(), &grpc.UserProfile{}, rsp.Item)
 	assert.NotEmpty(suite.T(), rsp.Item.CentrifugoToken)
 
-	b, ok := suite.service.broker.(*mock.BrokerMockOk)
+	b, ok := suite.service.broker.(*mocks.BrokerMockOk)
 	assert.True(suite.T(), ok)
 	assert.True(suite.T(), b.IsSent)
 
@@ -451,7 +443,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	profile := suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
 	assert.Nil(suite.T(), profile)
 
-	suite.service.broker = mock.NewBrokerMockError()
+	suite.service.broker = mocks.NewBrokerMockError()
 
 	core, recorded := observer.New(zapcore.ErrorLevel)
 	logger := zap.New(core)
@@ -576,6 +568,10 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_Ok() {
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), p, 1)
 	assert.Contains(suite.T(), p, "token")
+
+	ci := &mocks.CentrifugoInterface{}
+	ci.On("Publish", mock2.Anything, mock2.Anything, mock2.Anything).Return(nil)
+	suite.service.centrifugo = ci
 
 	req2 := &grpc.ConfirmUserEmailRequest{Token: p["token"][0]}
 	rsp2 := &grpc.CheckProjectRequestSignatureResponse{}
@@ -715,6 +711,10 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_EmailAlready
 	assert.Len(suite.T(), p, 1)
 	assert.Contains(suite.T(), p, "token")
 
+	ci := &mocks.CentrifugoInterface{}
+	ci.On("Publish", mock2.Anything, mock2.Anything, mock2.Anything).Return(nil)
+	suite.service.centrifugo = ci
+
 	req2 := &grpc.ConfirmUserEmailRequest{Token: p["token"][0]}
 	rsp2 := &grpc.CheckProjectRequestSignatureResponse{}
 	err = suite.service.ConfirmUserEmail(context.TODO(), req2, rsp2)
@@ -777,14 +777,6 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_EmailConfirm
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), p, 1)
 	assert.Contains(suite.T(), p, "token")
-
-	suite.service.centrifugoClient = gocent.New(
-		gocent.Config{
-			Addr:       suite.service.cfg.CentrifugoURL,
-			Key:        suite.service.cfg.CentrifugoSecret,
-			HTTPClient: mock.NewClientStatusError(),
-		},
-	)
 
 	req2 := &grpc.ConfirmUserEmailRequest{Token: p["token"][0]}
 	rsp2 := &grpc.CheckProjectRequestSignatureResponse{}
@@ -964,6 +956,10 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_WithExistMer
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), merchant)
 	assert.Empty(suite.T(), merchant.User.RegistrationDate)
+
+	ci := &mocks.CentrifugoInterface{}
+	ci.On("Publish", mock2.Anything, mock2.Anything, mock2.Anything).Return(nil)
+	suite.service.centrifugo = ci
 
 	req2 := &grpc.ConfirmUserEmailRequest{Token: p["token"][0]}
 	rsp2 := &grpc.CheckProjectRequestSignatureResponse{}

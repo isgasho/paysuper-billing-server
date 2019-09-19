@@ -622,7 +622,7 @@ type MgoOrderViewPrivate struct {
 	CountryCode                                string                 `bson:"country_code"`
 	MerchantId                                 bson.ObjectId          `bson:"merchant_id"`
 	Locale                                     string                 `bson:"locale"`
-	Status                                     string                 `bson:"Status"`
+	Status                                     string                 `bson:"status"`
 	TransactionDate                            time.Time              `bson:"pm_order_close_date"`
 	User                                       *OrderUser             `bson:"user"`
 	BillingAddress                             *OrderBillingAddress   `bson:"billing_address"`
@@ -695,7 +695,7 @@ type MgoOrderViewPublic struct {
 	CountryCode                             string                 `bson:"country_code"`
 	MerchantId                              bson.ObjectId          `bson:"merchant_id"`
 	Locale                                  string                 `bson:"locale"`
-	Status                                  string                 `bson:"Status"`
+	Status                                  string                 `bson:"status"`
 	TransactionDate                         time.Time              `bson:"pm_order_close_date"`
 	User                                    *OrderUser             `bson:"user"`
 	BillingAddress                          *OrderBillingAddress   `bson:"billing_address"`

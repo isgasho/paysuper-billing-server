@@ -454,7 +454,12 @@ func (s *Service) GetPayoutDocumentSignUrl(
 }
 
 func (s *Service) getPayoutDocumentSources(merchant *billing.Merchant) ([]*billing.RoyaltyReport, error) {
-	result, err := s.royaltyReport.GetNonPayoutReports(merchant.Id, merchant.GetPayoutCurrency())
+	excludeIdsString, err := s.payoutDocument.GetAllSourcesIdHex(merchant.Id, merchant.GetPayoutCurrency())
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := s.royaltyReport.GetNonPayoutReports(merchant.Id, merchant.GetPayoutCurrency(), excludeIdsString)
 
 	if err != nil && err != mgo.ErrNotFound {
 		return nil, err

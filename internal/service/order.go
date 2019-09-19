@@ -300,7 +300,7 @@ func (s *Service) OrderCreateProcess(
 	case billing.OrderType_product:
 		if err := processor.processPaylinkProducts(); err != nil {
 			if pid := req.PrivateMetadata["PaylinkId"]; pid != "" {
-				s.notifyPaylinkError(pid, err, req, nil)
+				s.notifyPaylinkError(ctx, pid, err, req, nil)
 			}
 			zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
 			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
@@ -314,7 +314,7 @@ func (s *Service) OrderCreateProcess(
 	case billing.OrderType_key:
 		if err := processor.processPaylinkKeyProducts(); err != nil {
 			if pid := req.PrivateMetadata["PaylinkId"]; pid != "" {
-				s.notifyPaylinkError(pid, err, req, nil)
+				s.notifyPaylinkError(ctx, pid, err, req, nil)
 			}
 			zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
 			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
@@ -550,7 +550,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 
 	if err != nil {
 		if pid := order.PrivateMetadata["PaylinkId"]; pid != "" {
-			s.notifyPaylinkError(pid, err, req, order)
+			s.notifyPaylinkError(ctx, pid, err, req, order)
 		}
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
@@ -562,11 +562,17 @@ func (s *Service) PaymentFormJsonDataProcess(
 	}
 
 	if order.Issuer == nil {
-		order.Issuer = &billing.OrderIssuer{}
-	}
+		order.Issuer = &billing.OrderIssuer{
+			Url:      req.Referer,
+			Embedded: req.IsEmbedded,
+		}
+	} else {
+		if req.Referer != "" && req.Referer != order.Issuer.Url {
+			order.Issuer.Url = req.Referer
+		}
 
-	order.Issuer.Url = req.Referer
-	order.Issuer.Embedded = req.IsEmbedded
+		order.Issuer.Embedded = req.IsEmbedded
+	}
 
 	p1.processOrderVat(order)
 	err = s.updateOrder(order)
@@ -677,7 +683,7 @@ func (s *Service) PaymentCreateProcess(
 
 	if err != nil {
 		if pid := order.PrivateMetadata["PaylinkId"]; pid != "" {
-			s.notifyPaylinkError(pid, err, req, order)
+			s.notifyPaylinkError(ctx, pid, err, req, order)
 		}
 
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
@@ -949,7 +955,7 @@ func (s *Service) PaymentFormLanguageChanged(
 
 	if err != nil {
 		if pid := order.PrivateMetadata["PaylinkId"]; pid != "" {
-			s.notifyPaylinkError(pid, err, req, order)
+			s.notifyPaylinkError(ctx, pid, err, req, order)
 		}
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
@@ -1166,7 +1172,7 @@ func (s *Service) ProcessBillingAddress(
 
 	if err != nil {
 		if pid := order.PrivateMetadata["PaylinkId"]; pid != "" {
-			s.notifyPaylinkError(pid, err, req, order)
+			s.notifyPaylinkError(ctx, pid, err, req, order)
 		}
 		return err
 	}
@@ -1567,6 +1573,10 @@ func (v *OrderCreateRequestProcessor) processProject() error {
 		return orderErrorProjectInactive
 	}
 
+	if project.MerchantId == "" || bson.IsObjectIdHex(project.MerchantId) == false {
+		return orderErrorProjectMerchantNotFound
+	}
+
 	merchant, err := v.merchant.GetById(project.MerchantId)
 	if err != nil {
 		return orderErrorProjectMerchantNotFound
@@ -1607,7 +1617,12 @@ func (v *OrderCreateRequestProcessor) processPayerIp() error {
 	rsp, err := v.geo.GetIpData(context.TODO(), &proto.GeoIpDataRequest{IP: v.checked.user.Ip})
 
 	if err != nil {
-		zap.S().Errorw("Order create get payer data error", "err", err, "ip", v.checked.user.Ip)
+		zap.L().Error(
+			"Order create get payer data error",
+			zap.Error(err),
+			zap.String("ip", v.checked.user.Ip),
+		)
+
 		return orderErrorPayerRegionUnknown
 	}
 
@@ -2723,7 +2738,7 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 	if len(order.Keys) == 0 {
 		zap.S().Infow("[ProcessOrderKeyProducts] reserving keys", "order_id", order.Id)
 		keys := make([]string, len(order.Products))
-		for i, productId := range order.Products{
+		for i, productId := range order.Products {
 			reserveRes := &grpc.PlatformKeyReserveResponse{}
 			reserveReq := &grpc.PlatformKeyReserveRequest{
 				PlatformId:   order.PlatformId,
@@ -2928,26 +2943,16 @@ func (s *Service) ProcessOrderProducts(order *billing.Order) error {
 	return nil
 }
 
-func (s *Service) notifyPaylinkError(PaylinkId string, err error, req interface{}, order interface{}) {
+func (s *Service) notifyPaylinkError(ctx context.Context, paylinkId string, err error, req interface{}, order interface{}) {
 	msg := map[string]interface{}{
 		"event":     "error",
-		"paylinkId": PaylinkId,
+		"paylinkId": paylinkId,
 		"message":   "Invalid paylink",
 		"error":     err,
 		"request":   req,
 		"order":     order,
 	}
-	sErr := s.sendCentrifugoMessage(msg)
-	if sErr != nil {
-		zap.S().Errorf(
-			"Cannot send centrifugo message about Paylink Error",
-			"error", sErr.Error(),
-			"PaylinkId", PaylinkId,
-			"originalError", err.Error(),
-			"request", req,
-			"order", order,
-		)
-	}
+	_ = s.centrifugo.Publish(ctx, centrifugoChannel, msg)
 }
 
 func (v *PaymentCreateProcessor) GetMerchantId() string {
