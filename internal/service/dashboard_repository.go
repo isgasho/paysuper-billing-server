@@ -206,7 +206,7 @@ func (m *DashboardRepository) GetMainReport(merchantId, period string) (*grpc.Da
 
 func (m *DashboardRepository) GetRevenueDynamicsReport(
 	merchantId, period string,
-) ([]*grpc.DashboardRevenueDynamicReportItem, error) {
+) (*grpc.DashboardRevenueDynamicReport, error) {
 	processor, err := m.NewDashboardReportProcessor(
 		merchantId,
 		period,
@@ -227,7 +227,13 @@ func (m *DashboardRepository) GetRevenueDynamicsReport(
 		return nil, dashboardErrorUnknown
 	}
 
-	return data.(*grpc.DashboardRevenueDynamicReport).Items, nil
+	dataTyped := data.(*grpc.DashboardRevenueDynamicReport)
+
+	if len(dataTyped.Items) > 0 {
+		dataTyped.Currency = dataTyped.Items[0].Currency
+	}
+
+	return dataTyped, nil
 }
 
 func (m *DashboardRepository) GetBaseReport(merchantId, period string) (*grpc.DashboardBaseReports, error) {

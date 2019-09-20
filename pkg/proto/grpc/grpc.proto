@@ -1776,8 +1776,10 @@ message DashboardMainReport {
 }
 
 message DashboardRevenueDynamicReport {
+    //@inject_tag: json:"currency"
+    string currency = 1;
     //@inject_tag: json:"items"
-    repeated DashboardRevenueDynamicReportItem items = 1;
+    repeated DashboardRevenueDynamicReportItem items = 2;
 }
 
 message DashboardRevenueDynamicReportItem {
@@ -1785,7 +1787,7 @@ message DashboardRevenueDynamicReportItem {
     string label = 1;
     //@inject_tag: json:"amount"
     double amount = 2;
-    //@inject_tag: json:"currency"
+    //@inject_tag: json:"-"
     string currency = 3;
     //@inject_tag: json:"count"
     int64 count = 4;
