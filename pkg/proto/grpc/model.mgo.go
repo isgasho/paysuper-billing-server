@@ -585,7 +585,7 @@ func (m *DashboardAmountItemWithChart) SetBSON(raw bson.Raw) error {
 		return err
 	}
 
-	m.Amount = tools.FormatAmount(decoded.Amount)
+	m.AmountCurrent = tools.FormatAmount(decoded.Amount)
 	m.Currency = decoded.Currency
 
 	for _, v := range decoded.Chart {

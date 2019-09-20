@@ -1738,12 +1738,14 @@ message GetDashboardRevenueDynamicsReportResponse {
 }
 
 message DashboardAmountItemWithChart {
-    //@inject_tag: json:"amount"
-    double amount = 1;
+    //@inject_tag: json:"amount_current"
+    double amount_current = 1;
+    //@inject_tag: json:"amount_previous"
+    double amount_previous = 2;
     //@inject_tag: json:"currency"
-    string currency = 2;
+    string currency = 3;
     //@inject_tag: json:"chart"
-    repeated DashboardChartItemFloat chart = 3;
+    repeated DashboardChartItemFloat chart = 4;
 }
 
 message DashboardChartItemFloat {
@@ -1754,8 +1756,10 @@ message DashboardChartItemFloat {
 }
 
 message DashboardMainReportTotalTransactions {
-    //@inject_tag: json:"count" bson:"count"
-    int64 count = 1;
+    //@inject_tag: json:"count_current" bson:"count"
+    int64 count_current = 1;
+    //@inject_tag: json:"count_current"
+    int64 count_previous = 2;
     //@inject_tag: json:"chart"
     repeated DashboardChartItemFloat chart = 3;
 }
