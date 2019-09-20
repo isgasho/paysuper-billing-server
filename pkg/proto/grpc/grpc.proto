@@ -1792,15 +1792,6 @@ message DashboardRevenueByCountryReportTop {
     string country = 1;
     //@inject_tag: json:"amount"
     double amount = 2;
-    //@inject_tag: json:"currency"
-    string currency = 3;
-}
-
-message DashboardRevenueByCountryReportTotal {
-    //@inject_tag: json:"amount"
-    double amount = 1;
-    //@inject_tag: json:"currency"
-    string currency = 2;
 }
 
 message DashboardRevenueByCountryReportChartItem {
@@ -1808,19 +1799,19 @@ message DashboardRevenueByCountryReportChartItem {
     string label = 1;
     //@inject_tag: json:"amount"
     double amount = 2;
-    //@inject_tag: json:"currency"
-    string currency = 3;
 }
 
 message DashboardRevenueByCountryReport {
+    //@inject_tag: json:"currency"
+    string currency = 1;
     //@inject_tag: json:"top" bson:"top"
-    repeated DashboardRevenueByCountryReportTop top = 1;
+    repeated DashboardRevenueByCountryReportTop top = 2;
     //@inject_tag: json:"total_current" bson:"total"
-    DashboardRevenueByCountryReportTotal total_current = 2;
+    double total_current = 3;
     //@inject_tag: json:"total_previous"
-    DashboardRevenueByCountryReportTotal total_previous= 3;
+    double total_previous= 4;
     //@inject_tag: json:"chart" bson:"chart"
-    repeated DashboardRevenueByCountryReportChartItem chart = 4;
+    repeated DashboardRevenueByCountryReportChartItem chart = 5;
 }
 
 message DashboardSalesTodayReportTop {

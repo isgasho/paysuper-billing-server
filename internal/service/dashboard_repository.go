@@ -242,18 +242,14 @@ func (m *DashboardRepository) GetBaseRevenueByCountryReport(
 
 	dataCurrentTyped := dataCurrent.(*grpc.DashboardRevenueByCountryReport)
 
-	if dataCurrentTyped == nil || dataCurrentTyped.TotalCurrent == nil {
-		dataCurrentTyped = &grpc.DashboardRevenueByCountryReport{
-			TotalCurrent: &grpc.DashboardRevenueByCountryReportTotal{},
-		}
+	if dataCurrentTyped == nil {
+		dataCurrentTyped = &grpc.DashboardRevenueByCountryReport{}
 	}
 
 	dataPreviousTyped := dataPrevious.(*grpc.DashboardRevenueByCountryReport)
 
-	if dataPreviousTyped == nil || dataPreviousTyped.TotalCurrent == nil {
-		dataPreviousTyped = &grpc.DashboardRevenueByCountryReport{
-			TotalCurrent: &grpc.DashboardRevenueByCountryReportTotal{},
-		}
+	if dataPreviousTyped == nil {
+		dataPreviousTyped = &grpc.DashboardRevenueByCountryReport{}
 	}
 
 	dataCurrentTyped.TotalPrevious = dataPreviousTyped.TotalCurrent
@@ -797,12 +793,14 @@ func (m *dashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interf
 		},
 		{
 			"$facet": bson.M{
+				"currency": []bson.M{
+					{"$group": bson.M{"_id": "$currency"}},
+				},
 				"top": []bson.M{
 					{
 						"$group": bson.M{
-							"_id":      "$country",
-							"amount":   bson.M{"$sum": "$amount"},
-							"currency": bson.M{"$first": "$currency"},
+							"_id":    "$country",
+							"amount": bson.M{"$sum": "$amount"},
 						},
 					},
 					{"$sort": bson.M{"amount": -1}},
@@ -811,19 +809,17 @@ func (m *dashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interf
 				"total": []bson.M{
 					{
 						"$group": bson.M{
-							"_id":      nil,
-							"amount":   bson.M{"$sum": "$amount"},
-							"currency": bson.M{"$first": "$currency"},
+							"_id":    nil,
+							"amount": bson.M{"$sum": "$amount"},
 						},
 					},
 				},
 				"chart": []bson.M{
 					{
 						"$group": bson.M{
-							"_id":      m.groupBy,
-							"label":    bson.M{"$first": bson.M{"$toString": m.groupBy}},
-							"amount":   bson.M{"$sum": "$amount"},
-							"currency": bson.M{"$first": "$currency"},
+							"_id":    m.groupBy,
+							"label":  bson.M{"$first": bson.M{"$toString": m.groupBy}},
+							"amount": bson.M{"$sum": "$amount"},
 						},
 					},
 					{"$sort": bson.M{"label": 1}},
@@ -832,9 +828,10 @@ func (m *dashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interf
 		},
 		{
 			"$project": bson.M{
-				"top":   "$top",
-				"total": bson.M{"$arrayElemAt": []interface{}{"$total", 0}},
-				"chart": "$chart",
+				"currency": bson.M{"$arrayElemAt": []interface{}{"$currency._id", 0}},
+				"top":      "$top",
+				"total":    bson.M{"$arrayElemAt": []interface{}{"$total.amount", 0}},
+				"chart":    "$chart",
 			},
 		},
 	}
