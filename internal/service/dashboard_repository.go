@@ -861,7 +861,7 @@ func (m *dashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interf
 		{
 			"$facet": bson.M{
 				"currency": []bson.M{
-					{"$group": bson.M{"_id": "$currency"}},
+					{"$project": bson.M{"currency": "$currency"}},
 				},
 				"top": []bson.M{
 					{
@@ -895,7 +895,7 @@ func (m *dashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interf
 		},
 		{
 			"$project": bson.M{
-				"currency": bson.M{"$arrayElemAt": []interface{}{"$currency._id", 0}},
+				"currency": bson.M{"$arrayElemAt": []interface{}{"$currency.currency", 0}},
 				"top":      "$top",
 				"total":    bson.M{"$arrayElemAt": []interface{}{"$total.amount", 0}},
 				"chart":    "$chart",
