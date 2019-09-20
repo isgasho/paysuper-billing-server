@@ -475,17 +475,12 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardBaseReport_CurrentMo
 
 	assert.NotNil(suite.T(), report.RevenueByCountry)
 	assert.Len(suite.T(), report.RevenueByCountry.Top, 1)
-	assert.NotNil(suite.T(), report.RevenueByCountry.TotalCurrent)
-	assert.NotZero(suite.T(), report.RevenueByCountry.TotalCurrent.Currency)
-	assert.NotZero(suite.T(), report.RevenueByCountry.TotalCurrent.Amount)
-	assert.NotNil(suite.T(), report.RevenueByCountry.TotalPrevious)
-	assert.Zero(suite.T(), report.RevenueByCountry.TotalPrevious.Currency)
-	assert.Zero(suite.T(), report.RevenueByCountry.TotalPrevious.Amount)
+	assert.NotZero(suite.T(), report.RevenueByCountry.TotalCurrent)
+	assert.Zero(suite.T(), report.RevenueByCountry.TotalPrevious)
 	assert.NotEmpty(suite.T(), report.RevenueByCountry.Chart)
 	assert.Len(suite.T(), report.RevenueByCountry.Chart, iterations)
 
 	for _, v := range report.RevenueByCountry.Top {
-		assert.NotZero(suite.T(), v.Currency)
 		assert.NotZero(suite.T(), v.Amount)
 		assert.NotZero(suite.T(), v.Country)
 	}
@@ -493,7 +488,6 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardBaseReport_CurrentMo
 	for _, v := range report.RevenueByCountry.Chart {
 		assert.NotZero(suite.T(), v.Amount)
 		assert.NotZero(suite.T(), v.Label)
-		assert.NotZero(suite.T(), v.Currency)
 	}
 
 	assert.NotNil(suite.T(), report.Sources)
@@ -540,12 +534,8 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardBaseReport_EmptyResu
 	assert.Empty(suite.T(), report.SalesToday.Chart)
 	assert.NotNil(suite.T(), report.RevenueByCountry)
 	assert.Empty(suite.T(), report.RevenueByCountry.Top)
-	assert.NotNil(suite.T(), report.RevenueByCountry.TotalCurrent)
-	assert.Zero(suite.T(), report.RevenueByCountry.TotalCurrent.Amount)
-	assert.Zero(suite.T(), report.RevenueByCountry.TotalCurrent.Currency)
-	assert.NotNil(suite.T(), report.RevenueByCountry.TotalPrevious)
-	assert.Zero(suite.T(), report.RevenueByCountry.TotalPrevious.Amount)
-	assert.Zero(suite.T(), report.RevenueByCountry.TotalPrevious.Currency)
+	assert.Zero(suite.T(), report.RevenueByCountry.TotalCurrent)
+	assert.Zero(suite.T(), report.RevenueByCountry.TotalPrevious)
 	assert.Empty(suite.T(), report.RevenueByCountry.Chart)
 	assert.NotNil(suite.T(), report.Sources)
 	assert.Empty(suite.T(), report.Sources.Top)

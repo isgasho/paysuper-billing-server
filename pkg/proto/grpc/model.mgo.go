@@ -105,20 +105,21 @@ type MgoDashboardRevenueDynamicReportItem struct {
 }
 
 type MgoDashboardRevenueByCountryReportTop struct {
-	Country  string  `bson:"_id"`
-	Amount   float64 `bson:"amount"`
-	Currency string  `bson:"currency"`
-}
-
-type MgoDashboardRevenueByCountryReportTotal struct {
-	Amount   float64 `bson:"amount"`
-	Currency string  `bson:"currency"`
+	Country string  `bson:"_id"`
+	Amount  float64 `bson:"amount"`
 }
 
 type MgoDashboardRevenueByCountryReportChartItem struct {
-	Label    string  `bson:"label"`
-	Amount   float64 `bson:"amount"`
-	Currency string  `bson:"currency"`
+	Label  string  `bson:"label"`
+	Amount float64 `bson:"amount"`
+}
+
+type MgoDashboardRevenueByCountryReport struct {
+	Currency      string                                      `bson:"currency"`
+	Top           []*DashboardRevenueByCountryReportTop       `bson:"top"`
+	TotalCurrent  float64                                     `bson:"total"`
+	TotalPrevious float64                                     `bson:"total_previous"`
+	Chart         []*DashboardRevenueByCountryReportChartItem `bson:"chart"`
 }
 
 func (p *Product) SetBSON(raw bson.Raw) error {
@@ -623,22 +624,7 @@ func (m *DashboardRevenueByCountryReportTop) SetBSON(raw bson.Raw) error {
 	}
 
 	m.Amount = tools.FormatAmount(decoded.Amount)
-	m.Currency = decoded.Currency
 	m.Country = decoded.Country
-
-	return nil
-}
-
-func (m *DashboardRevenueByCountryReportTotal) SetBSON(raw bson.Raw) error {
-	decoded := new(MgoDashboardRevenueByCountryReportTotal)
-	err := raw.Unmarshal(decoded)
-
-	if err != nil {
-		return err
-	}
-
-	m.Amount = tools.FormatAmount(decoded.Amount)
-	m.Currency = decoded.Currency
 
 	return nil
 }
@@ -652,8 +638,24 @@ func (m *DashboardRevenueByCountryReportChartItem) SetBSON(raw bson.Raw) error {
 	}
 
 	m.Amount = tools.FormatAmount(decoded.Amount)
-	m.Currency = decoded.Currency
 	m.Label = decoded.Label
+
+	return nil
+}
+
+func (m *DashboardRevenueByCountryReport) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoDashboardRevenueByCountryReport)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Currency = decoded.Currency
+	m.Top = decoded.Top
+	m.TotalCurrent = tools.FormatAmount(decoded.TotalCurrent)
+	m.TotalPrevious = tools.FormatAmount(decoded.TotalPrevious)
+	m.Chart = decoded.Chart
 
 	return nil
 }

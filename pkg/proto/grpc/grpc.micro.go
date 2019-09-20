@@ -192,7 +192,6 @@ It has these top-level messages:
 	DashboardRevenueDynamicReport
 	DashboardRevenueDynamicReportItem
 	DashboardRevenueByCountryReportTop
-	DashboardRevenueByCountryReportTotal
 	DashboardRevenueByCountryReportChartItem
 	DashboardRevenueByCountryReport
 	DashboardSalesTodayReportTop
