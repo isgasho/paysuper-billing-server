@@ -1758,7 +1758,7 @@ message DashboardChartItemFloat {
 message DashboardMainReportTotalTransactions {
     //@inject_tag: json:"count_current" bson:"count"
     int64 count_current = 1;
-    //@inject_tag: json:"count_current"
+    //@inject_tag: json:"count_previous"
     int64 count_previous = 2;
     //@inject_tag: json:"chart"
     repeated DashboardChartItemFloat chart = 3;

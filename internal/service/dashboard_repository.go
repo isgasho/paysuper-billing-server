@@ -180,7 +180,7 @@ func (m *DashboardRepository) GetMainReport(merchantId, period string) (*grpc.Da
 		}
 	}
 	dataGrossRevenueAndVatCurrentTyped.GrossRevenue.AmountPrevious = dataGrossRevenueAndVatPreviousTyped.GrossRevenue.AmountCurrent
-	dataGrossRevenueAndVatCurrentTyped.Vat.AmountPrevious = dataGrossRevenueAndVatPreviousTyped.GrossRevenue.AmountCurrent
+	dataGrossRevenueAndVatCurrentTyped.Vat.AmountPrevious = dataGrossRevenueAndVatPreviousTyped.Vat.AmountCurrent
 
 	dataTotalTransactionsAndArpuCurrentTyped := dataTotalTransactionsAndArpuCurrent.(*TotalTransactionsAndArpuReports)
 	dataTotalTransactionsAndArpuPreviousTyped := dataTotalTransactionsAndArpuPrevious.(*TotalTransactionsAndArpuReports)
