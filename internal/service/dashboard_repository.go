@@ -48,7 +48,7 @@ var (
 type DashboardRepositoryInterface interface {
 	NewDashboardReportProcessor(string, string, string, interface{}, *mongodb.Source, CacheInterface) (*dashboardReportProcessor, error)
 	GetMainReport(string, string) (*grpc.DashboardMainReport, error)
-	GetRevenueDynamicsReport(string, string) ([]*grpc.DashboardRevenueDynamicReportItem, error)
+	GetRevenueDynamicsReport(string, string) (*grpc.DashboardRevenueDynamicReport, error)
 	GetBaseReport(string, string) (*grpc.DashboardBaseReports, error)
 	GetBaseRevenueByCountryReport(string, string) (*grpc.DashboardRevenueByCountryReport, error)
 	GetBaseSalesTodayReport(string, string) (*grpc.DashboardSalesTodayReport, error)

@@ -1734,7 +1734,7 @@ message GetDashboardBaseReportResponse {
 message GetDashboardRevenueDynamicsReportResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
-    repeated DashboardRevenueDynamicReportItem item = 3;
+    DashboardRevenueDynamicReport item = 3;
 }
 
 message DashboardAmountItemWithChart {
