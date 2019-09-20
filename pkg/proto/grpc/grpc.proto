@@ -1742,16 +1742,18 @@ message GetDashboardBaseReportResponse {
 message GetDashboardRevenueDynamicsReportResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
-    repeated DashboardRevenueDynamicReportItem item = 3;
+    DashboardRevenueDynamicReport item = 3;
 }
 
 message DashboardAmountItemWithChart {
-    //@inject_tag: json:"amount"
-    double amount = 1;
+    //@inject_tag: json:"amount_current"
+    double amount_current = 1;
+    //@inject_tag: json:"amount_previous"
+    double amount_previous = 2;
     //@inject_tag: json:"currency"
-    string currency = 2;
+    string currency = 3;
     //@inject_tag: json:"chart"
-    repeated DashboardChartItemFloat chart = 3;
+    repeated DashboardChartItemFloat chart = 4;
 }
 
 message DashboardChartItemFloat {
@@ -1762,8 +1764,10 @@ message DashboardChartItemFloat {
 }
 
 message DashboardMainReportTotalTransactions {
-    //@inject_tag: json:"count" bson:"count"
-    int64 count = 1;
+    //@inject_tag: json:"count_current" bson:"count"
+    int64 count_current = 1;
+    //@inject_tag: json:"count_previous"
+    int64 count_previous = 2;
     //@inject_tag: json:"chart"
     repeated DashboardChartItemFloat chart = 3;
 }
@@ -1780,8 +1784,10 @@ message DashboardMainReport {
 }
 
 message DashboardRevenueDynamicReport {
+    //@inject_tag: json:"currency"
+    string currency = 1;
     //@inject_tag: json:"items"
-    repeated DashboardRevenueDynamicReportItem items = 1;
+    repeated DashboardRevenueDynamicReportItem items = 2;
 }
 
 message DashboardRevenueDynamicReportItem {
@@ -1789,7 +1795,7 @@ message DashboardRevenueDynamicReportItem {
     string label = 1;
     //@inject_tag: json:"amount"
     double amount = 2;
-    //@inject_tag: json:"currency"
+    //@inject_tag: json:"-"
     string currency = 3;
     //@inject_tag: json:"count"
     int64 count = 4;

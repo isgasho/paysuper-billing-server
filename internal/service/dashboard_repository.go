@@ -48,7 +48,7 @@ var (
 type DashboardRepositoryInterface interface {
 	NewDashboardReportProcessor(string, string, string, interface{}, *mongodb.Source, CacheInterface) (*dashboardReportProcessor, error)
 	GetMainReport(string, string) (*grpc.DashboardMainReport, error)
-	GetRevenueDynamicsReport(string, string) ([]*grpc.DashboardRevenueDynamicReportItem, error)
+	GetRevenueDynamicsReport(string, string) (*grpc.DashboardRevenueDynamicReport, error)
 	GetBaseReport(string, string) (*grpc.DashboardBaseReports, error)
 	GetBaseRevenueByCountryReport(string, string) (*grpc.DashboardRevenueByCountryReport, error)
 	GetBaseSalesTodayReport(string, string) (*grpc.DashboardSalesTodayReport, error)
@@ -80,7 +80,7 @@ type GrossRevenueAndVatReports struct {
 	Vat          *grpc.DashboardAmountItemWithChart `bson:"vat"`
 }
 
-type GrossRevenueAndVatReportsTotalTransactionsAndArpu struct {
+type TotalTransactionsAndArpuReports struct {
 	TotalTransactions *grpc.DashboardMainReportTotalTransactions `bson:"total_transactions"`
 	Arpu              *grpc.DashboardAmountItemWithChart         `bson:"arpu"`
 }
@@ -90,7 +90,7 @@ func newDashboardRepository(s *Service) DashboardRepositoryInterface {
 }
 
 func (m *DashboardRepository) GetMainReport(merchantId, period string) (*grpc.DashboardMainReport, error) {
-	processorGrossRevenueAndVat, err := m.NewDashboardReportProcessor(
+	processorGrossRevenueAndVatCurrent, err := m.NewDashboardReportProcessor(
 		merchantId,
 		period,
 		dashboardMainGrossRevenueAndVatCacheKey,
@@ -103,14 +103,34 @@ func (m *DashboardRepository) GetMainReport(merchantId, period string) (*grpc.Da
 		return nil, dashboardErrorUnknown
 	}
 
-	processorGrossRevenueAndVat.dbQueryFn = processorGrossRevenueAndVat.ExecuteGrossRevenueAndVatReports
-	dataGrossRevenueAndVat, err := processorGrossRevenueAndVat.ExecuteReport(new(GrossRevenueAndVatReports))
+	processorGrossRevenueAndVatCurrent.dbQueryFn = processorGrossRevenueAndVatCurrent.ExecuteGrossRevenueAndVatReports
+	dataGrossRevenueAndVatCurrent, err := processorGrossRevenueAndVatCurrent.ExecuteReport(new(GrossRevenueAndVatReports))
 
 	if err != nil {
 		return nil, dashboardErrorUnknown
 	}
 
-	processorTotalTransactionsAndArpu, err := m.NewDashboardReportProcessor(
+	processorGrossRevenueAndVatPrevious, err := m.NewDashboardReportProcessor(
+		merchantId,
+		dashboardReportBasePreviousPeriodsNames[period],
+		dashboardMainGrossRevenueAndVatCacheKey,
+		"processed",
+		m.svc.db,
+		m.svc.cacher,
+	)
+
+	if err != nil {
+		return nil, dashboardErrorUnknown
+	}
+
+	processorGrossRevenueAndVatPrevious.dbQueryFn = processorGrossRevenueAndVatPrevious.ExecuteGrossRevenueAndVatReports
+	dataGrossRevenueAndVatPrevious, err := processorGrossRevenueAndVatPrevious.ExecuteReport(new(GrossRevenueAndVatReports))
+
+	if err != nil {
+		return nil, dashboardErrorUnknown
+	}
+
+	processorTotalTransactionsAndArpuCurrent, err := m.NewDashboardReportProcessor(
 		merchantId,
 		period,
 		dashboardMainTotalTransactionsAndArpuCacheKey,
@@ -123,21 +143,62 @@ func (m *DashboardRepository) GetMainReport(merchantId, period string) (*grpc.Da
 		return nil, dashboardErrorUnknown
 	}
 
-	processorTotalTransactionsAndArpu.dbQueryFn = processorTotalTransactionsAndArpu.ExecuteTotalTransactionsAndArpuReports
-	dataTotalTransactionsAndArpu, err := processorTotalTransactionsAndArpu.ExecuteReport(new(GrossRevenueAndVatReportsTotalTransactionsAndArpu))
+	processorTotalTransactionsAndArpuCurrent.dbQueryFn = processorTotalTransactionsAndArpuCurrent.ExecuteTotalTransactionsAndArpuReports
+	dataTotalTransactionsAndArpuCurrent, err := processorTotalTransactionsAndArpuCurrent.ExecuteReport(new(TotalTransactionsAndArpuReports))
 
 	if err != nil {
 		return nil, dashboardErrorUnknown
 	}
 
-	dataGrossRevenueAndVatTyped := dataGrossRevenueAndVat.(*GrossRevenueAndVatReports)
-	dataTotalTransactionsAndArpuTyped := dataTotalTransactionsAndArpu.(*GrossRevenueAndVatReportsTotalTransactionsAndArpu)
+	processorTotalTransactionsAndArpuPrevious, err := m.NewDashboardReportProcessor(
+		merchantId,
+		dashboardReportBasePreviousPeriodsNames[period],
+		dashboardMainTotalTransactionsAndArpuCacheKey,
+		bson.M{"$in": []string{"processed", "refunded", "chargeback"}},
+		m.svc.db,
+		m.svc.cacher,
+	)
+
+	if err != nil {
+		return nil, dashboardErrorUnknown
+	}
+
+	processorTotalTransactionsAndArpuPrevious.dbQueryFn = processorTotalTransactionsAndArpuPrevious.ExecuteTotalTransactionsAndArpuReports
+	dataTotalTransactionsAndArpuPrevious, err := processorTotalTransactionsAndArpuPrevious.ExecuteReport(new(TotalTransactionsAndArpuReports))
+
+	if err != nil {
+		return nil, dashboardErrorUnknown
+	}
+
+	dataGrossRevenueAndVatCurrentTyped := dataGrossRevenueAndVatCurrent.(*GrossRevenueAndVatReports)
+	dataGrossRevenueAndVatPreviousTyped := dataGrossRevenueAndVatPrevious.(*GrossRevenueAndVatReports)
+
+	if dataGrossRevenueAndVatPreviousTyped == nil {
+		dataGrossRevenueAndVatPreviousTyped = &GrossRevenueAndVatReports{
+			GrossRevenue: &grpc.DashboardAmountItemWithChart{},
+			Vat:          &grpc.DashboardAmountItemWithChart{},
+		}
+	}
+	dataGrossRevenueAndVatCurrentTyped.GrossRevenue.AmountPrevious = dataGrossRevenueAndVatPreviousTyped.GrossRevenue.AmountCurrent
+	dataGrossRevenueAndVatCurrentTyped.Vat.AmountPrevious = dataGrossRevenueAndVatPreviousTyped.Vat.AmountCurrent
+
+	dataTotalTransactionsAndArpuCurrentTyped := dataTotalTransactionsAndArpuCurrent.(*TotalTransactionsAndArpuReports)
+	dataTotalTransactionsAndArpuPreviousTyped := dataTotalTransactionsAndArpuPrevious.(*TotalTransactionsAndArpuReports)
+
+	if dataTotalTransactionsAndArpuPreviousTyped == nil {
+		dataTotalTransactionsAndArpuPreviousTyped = &TotalTransactionsAndArpuReports{
+			TotalTransactions: &grpc.DashboardMainReportTotalTransactions{},
+			Arpu:              &grpc.DashboardAmountItemWithChart{},
+		}
+	}
+	dataTotalTransactionsAndArpuCurrentTyped.TotalTransactions.CountPrevious = dataTotalTransactionsAndArpuPreviousTyped.TotalTransactions.CountCurrent
+	dataTotalTransactionsAndArpuCurrentTyped.Arpu.AmountPrevious = dataTotalTransactionsAndArpuPreviousTyped.Arpu.AmountCurrent
 
 	result := &grpc.DashboardMainReport{
-		GrossRevenue:      dataGrossRevenueAndVatTyped.GrossRevenue,
-		Vat:               dataGrossRevenueAndVatTyped.Vat,
-		TotalTransactions: dataTotalTransactionsAndArpuTyped.TotalTransactions,
-		Arpu:              dataTotalTransactionsAndArpuTyped.Arpu,
+		GrossRevenue:      dataGrossRevenueAndVatCurrentTyped.GrossRevenue,
+		Vat:               dataGrossRevenueAndVatCurrentTyped.Vat,
+		TotalTransactions: dataTotalTransactionsAndArpuCurrentTyped.TotalTransactions,
+		Arpu:              dataTotalTransactionsAndArpuCurrentTyped.Arpu,
 	}
 
 	return result, nil
@@ -145,7 +206,7 @@ func (m *DashboardRepository) GetMainReport(merchantId, period string) (*grpc.Da
 
 func (m *DashboardRepository) GetRevenueDynamicsReport(
 	merchantId, period string,
-) ([]*grpc.DashboardRevenueDynamicReportItem, error) {
+) (*grpc.DashboardRevenueDynamicReport, error) {
 	processor, err := m.NewDashboardReportProcessor(
 		merchantId,
 		period,
@@ -166,7 +227,13 @@ func (m *DashboardRepository) GetRevenueDynamicsReport(
 		return nil, dashboardErrorUnknown
 	}
 
-	return data.(*grpc.DashboardRevenueDynamicReport).Items, nil
+	dataTyped := data.(*grpc.DashboardRevenueDynamicReport)
+
+	if len(dataTyped.Items) > 0 {
+		dataTyped.Currency = dataTyped.Items[0].Currency
+	}
+
+	return dataTyped, nil
 }
 
 func (m *DashboardRepository) GetBaseReport(merchantId, period string) (*grpc.DashboardBaseReports, error) {
@@ -440,7 +507,7 @@ func (m *DashboardRepository) NewDashboardReportProcessor(
 	case pkg.DashboardPeriodPreviousQuarter, pkg.DashboardPeriodTwoQuarterAgo:
 		decrement := -1
 		if period == pkg.DashboardPeriodTwoQuarterAgo {
-			decrement = decrement * 2
+			decrement = decrement * 4
 		}
 		previousQuarter := now.BeginningOfQuarter().AddDate(0, decrement, 0)
 		gte := now.New(previousQuarter).BeginningOfQuarter()
@@ -794,7 +861,7 @@ func (m *dashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interf
 		{
 			"$facet": bson.M{
 				"currency": []bson.M{
-					{"$group": bson.M{"_id": "$currency"}},
+					{"$project": bson.M{"currency": "$currency"}},
 				},
 				"top": []bson.M{
 					{
@@ -828,7 +895,7 @@ func (m *dashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interf
 		},
 		{
 			"$project": bson.M{
-				"currency": bson.M{"$arrayElemAt": []interface{}{"$currency._id", 0}},
+				"currency": bson.M{"$arrayElemAt": []interface{}{"$currency.currency", 0}},
 				"top":      "$top",
 				"total":    bson.M{"$arrayElemAt": []interface{}{"$total.amount", 0}},
 				"chart":    "$chart",

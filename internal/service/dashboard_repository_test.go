@@ -163,19 +163,23 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_EmptyResu
 	assert.NotNil(suite.T(), report)
 
 	assert.NotNil(suite.T(), report.GrossRevenue)
-	assert.Zero(suite.T(), report.GrossRevenue.Amount)
+	assert.Zero(suite.T(), report.GrossRevenue.AmountPrevious)
+	assert.Zero(suite.T(), report.GrossRevenue.AmountCurrent)
 	assert.Zero(suite.T(), report.GrossRevenue.Currency)
 	assert.Empty(suite.T(), report.GrossRevenue.Chart)
 	assert.NotNil(suite.T(), report.TotalTransactions)
-	assert.Zero(suite.T(), report.TotalTransactions.Count)
+	assert.Zero(suite.T(), report.TotalTransactions.CountPrevious)
+	assert.Zero(suite.T(), report.TotalTransactions.CountCurrent)
 	assert.Empty(suite.T(), report.TotalTransactions.Chart)
 	assert.NotNil(suite.T(), report.Vat)
 	assert.Zero(suite.T(), report.Vat.Currency)
-	assert.Zero(suite.T(), report.Vat.Amount)
+	assert.Zero(suite.T(), report.Vat.AmountPrevious)
+	assert.Zero(suite.T(), report.Vat.AmountCurrent)
 	assert.Empty(suite.T(), report.Vat.Chart)
 	assert.NotNil(suite.T(), report.Arpu)
 	assert.Zero(suite.T(), report.Arpu.Currency)
-	assert.Zero(suite.T(), report.Arpu.Amount)
+	assert.Zero(suite.T(), report.Arpu.AmountPrevious)
+	assert.Zero(suite.T(), report.Arpu.AmountCurrent)
 	assert.Empty(suite.T(), report.Arpu.Chart)
 }
 
@@ -190,7 +194,8 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_CurrentMo
 	assert.NotNil(suite.T(), report)
 
 	assert.NotNil(suite.T(), report.GrossRevenue)
-	assert.NotZero(suite.T(), report.GrossRevenue.Amount)
+	assert.NotZero(suite.T(), report.GrossRevenue.AmountCurrent)
+	assert.Zero(suite.T(), report.GrossRevenue.AmountPrevious)
 	assert.NotZero(suite.T(), report.GrossRevenue.Currency)
 	assert.NotNil(suite.T(), report.GrossRevenue.Chart)
 	assert.Len(suite.T(), report.GrossRevenue.Chart, iterations)
@@ -201,7 +206,8 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_CurrentMo
 	}
 
 	assert.NotNil(suite.T(), report.TotalTransactions)
-	assert.NotZero(suite.T(), report.TotalTransactions.Count)
+	assert.NotZero(suite.T(), report.TotalTransactions.CountCurrent)
+	assert.Zero(suite.T(), report.TotalTransactions.CountPrevious)
 	assert.NotNil(suite.T(), report.TotalTransactions.Chart)
 	assert.Len(suite.T(), report.TotalTransactions.Chart, iterations)
 
@@ -212,7 +218,8 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_CurrentMo
 
 	assert.NotNil(suite.T(), report.Vat)
 	assert.NotZero(suite.T(), report.Vat.Currency)
-	assert.NotZero(suite.T(), report.Vat.Amount)
+	assert.NotZero(suite.T(), report.Vat.AmountCurrent)
+	assert.Zero(suite.T(), report.Vat.AmountPrevious)
 	assert.Len(suite.T(), report.Vat.Chart, iterations)
 
 	for _, v := range report.Vat.Chart {
@@ -222,7 +229,8 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_CurrentMo
 
 	assert.NotNil(suite.T(), report.Arpu)
 	assert.NotZero(suite.T(), report.Arpu.Currency)
-	assert.NotZero(suite.T(), report.Arpu.Amount)
+	assert.NotZero(suite.T(), report.Arpu.AmountCurrent)
+	assert.Zero(suite.T(), report.Arpu.AmountPrevious)
 	assert.Len(suite.T(), report.Arpu.Chart, iterations)
 
 	for _, v := range report.Arpu.Chart {
@@ -242,7 +250,8 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_PreviousM
 	assert.NotNil(suite.T(), report)
 
 	assert.NotNil(suite.T(), report.GrossRevenue)
-	assert.NotZero(suite.T(), report.GrossRevenue.Amount)
+	assert.NotZero(suite.T(), report.GrossRevenue.AmountCurrent)
+	assert.Zero(suite.T(), report.GrossRevenue.AmountPrevious)
 	assert.NotZero(suite.T(), report.GrossRevenue.Currency)
 	assert.NotNil(suite.T(), report.GrossRevenue.Chart)
 	assert.Len(suite.T(), report.GrossRevenue.Chart, iterations)
@@ -253,7 +262,8 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_PreviousM
 	}
 
 	assert.NotNil(suite.T(), report.TotalTransactions)
-	assert.NotZero(suite.T(), report.TotalTransactions.Count)
+	assert.NotZero(suite.T(), report.TotalTransactions.CountCurrent)
+	assert.Zero(suite.T(), report.TotalTransactions.CountPrevious)
 	assert.NotNil(suite.T(), report.TotalTransactions.Chart)
 	assert.Len(suite.T(), report.TotalTransactions.Chart, iterations)
 
@@ -264,7 +274,8 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_PreviousM
 
 	assert.NotNil(suite.T(), report.Vat)
 	assert.NotZero(suite.T(), report.Vat.Currency)
-	assert.NotZero(suite.T(), report.Vat.Amount)
+	assert.NotZero(suite.T(), report.Vat.AmountCurrent)
+	assert.Zero(suite.T(), report.Vat.AmountPrevious)
 	assert.Len(suite.T(), report.Vat.Chart, iterations)
 
 	for _, v := range report.Vat.Chart {
@@ -274,7 +285,8 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_PreviousM
 
 	assert.NotNil(suite.T(), report.Arpu)
 	assert.NotZero(suite.T(), report.Arpu.Currency)
-	assert.NotZero(suite.T(), report.Arpu.Amount)
+	assert.NotZero(suite.T(), report.Arpu.AmountCurrent)
+	assert.Zero(suite.T(), report.Arpu.AmountPrevious)
 	assert.Len(suite.T(), report.Arpu.Chart, iterations)
 
 	for _, v := range report.Arpu.Chart {
@@ -294,7 +306,8 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_CurrentQu
 	assert.NotNil(suite.T(), report)
 
 	assert.NotNil(suite.T(), report.GrossRevenue)
-	assert.NotZero(suite.T(), report.GrossRevenue.Amount)
+	assert.NotZero(suite.T(), report.GrossRevenue.AmountCurrent)
+	assert.Zero(suite.T(), report.GrossRevenue.AmountPrevious)
 	assert.NotZero(suite.T(), report.GrossRevenue.Currency)
 	assert.NotNil(suite.T(), report.GrossRevenue.Chart)
 	assert.Len(suite.T(), report.GrossRevenue.Chart, iterations)
@@ -305,7 +318,8 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_CurrentQu
 	}
 
 	assert.NotNil(suite.T(), report.TotalTransactions)
-	assert.NotZero(suite.T(), report.TotalTransactions.Count)
+	assert.NotZero(suite.T(), report.TotalTransactions.CountCurrent)
+	assert.Zero(suite.T(), report.TotalTransactions.CountPrevious)
 	assert.NotNil(suite.T(), report.TotalTransactions.Chart)
 	assert.Len(suite.T(), report.TotalTransactions.Chart, iterations)
 
@@ -316,7 +330,8 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_CurrentQu
 
 	assert.NotNil(suite.T(), report.Vat)
 	assert.NotZero(suite.T(), report.Vat.Currency)
-	assert.NotZero(suite.T(), report.Vat.Amount)
+	assert.NotZero(suite.T(), report.Vat.AmountCurrent)
+	assert.Zero(suite.T(), report.Vat.AmountPrevious)
 	assert.Len(suite.T(), report.Vat.Chart, iterations)
 
 	for _, v := range report.Vat.Chart {
@@ -326,7 +341,8 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_CurrentQu
 
 	assert.NotNil(suite.T(), report.Arpu)
 	assert.NotZero(suite.T(), report.Arpu.Currency)
-	assert.NotZero(suite.T(), report.Arpu.Amount)
+	assert.NotZero(suite.T(), report.Arpu.AmountCurrent)
+	assert.Zero(suite.T(), report.Arpu.AmountPrevious)
 	assert.Len(suite.T(), report.Arpu.Chart, iterations)
 
 	for _, v := range report.Arpu.Chart {
@@ -346,7 +362,8 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_PreviousQ
 	assert.NotNil(suite.T(), report)
 
 	assert.NotNil(suite.T(), report.GrossRevenue)
-	assert.NotZero(suite.T(), report.GrossRevenue.Amount)
+	assert.NotZero(suite.T(), report.GrossRevenue.AmountCurrent)
+	assert.Zero(suite.T(), report.GrossRevenue.AmountPrevious)
 	assert.NotZero(suite.T(), report.GrossRevenue.Currency)
 	assert.NotNil(suite.T(), report.GrossRevenue.Chart)
 	assert.Len(suite.T(), report.GrossRevenue.Chart, iterations)
@@ -357,7 +374,8 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_PreviousQ
 	}
 
 	assert.NotNil(suite.T(), report.TotalTransactions)
-	assert.NotZero(suite.T(), report.TotalTransactions.Count)
+	assert.NotZero(suite.T(), report.TotalTransactions.CountCurrent)
+	assert.Zero(suite.T(), report.TotalTransactions.CountPrevious)
 	assert.NotNil(suite.T(), report.TotalTransactions.Chart)
 	assert.Len(suite.T(), report.TotalTransactions.Chart, iterations)
 
@@ -368,7 +386,8 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_PreviousQ
 
 	assert.NotNil(suite.T(), report.Vat)
 	assert.NotZero(suite.T(), report.Vat.Currency)
-	assert.NotZero(suite.T(), report.Vat.Amount)
+	assert.NotZero(suite.T(), report.Vat.AmountCurrent)
+	assert.Zero(suite.T(), report.Vat.AmountPrevious)
 	assert.Len(suite.T(), report.Vat.Chart, iterations)
 
 	for _, v := range report.Vat.Chart {
@@ -378,7 +397,8 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_PreviousQ
 
 	assert.NotNil(suite.T(), report.Arpu)
 	assert.NotZero(suite.T(), report.Arpu.Currency)
-	assert.NotZero(suite.T(), report.Arpu.Amount)
+	assert.NotZero(suite.T(), report.Arpu.AmountCurrent)
+	assert.Zero(suite.T(), report.Arpu.AmountPrevious)
 	assert.Len(suite.T(), report.Arpu.Chart, iterations)
 
 	for _, v := range report.Arpu.Chart {
@@ -398,7 +418,8 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_CurrentYe
 	assert.NotNil(suite.T(), report)
 
 	assert.NotNil(suite.T(), report.GrossRevenue)
-	assert.NotZero(suite.T(), report.GrossRevenue.Amount)
+	assert.NotZero(suite.T(), report.GrossRevenue.AmountCurrent)
+	assert.Zero(suite.T(), report.GrossRevenue.AmountPrevious)
 	assert.NotZero(suite.T(), report.GrossRevenue.Currency)
 	assert.NotNil(suite.T(), report.GrossRevenue.Chart)
 	assert.Len(suite.T(), report.GrossRevenue.Chart, iterations)
@@ -409,7 +430,8 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_CurrentYe
 	}
 
 	assert.NotNil(suite.T(), report.TotalTransactions)
-	assert.NotZero(suite.T(), report.TotalTransactions.Count)
+	assert.NotZero(suite.T(), report.TotalTransactions.CountCurrent)
+	assert.Zero(suite.T(), report.TotalTransactions.CountPrevious)
 	assert.NotNil(suite.T(), report.TotalTransactions.Chart)
 	assert.Len(suite.T(), report.TotalTransactions.Chart, iterations)
 
@@ -420,7 +442,8 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_CurrentYe
 
 	assert.NotNil(suite.T(), report.Vat)
 	assert.NotZero(suite.T(), report.Vat.Currency)
-	assert.NotZero(suite.T(), report.Vat.Amount)
+	assert.NotZero(suite.T(), report.Vat.AmountCurrent)
+	assert.Zero(suite.T(), report.Vat.AmountPrevious)
 	assert.Len(suite.T(), report.Vat.Chart, iterations)
 
 	for _, v := range report.Vat.Chart {
@@ -430,7 +453,8 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_CurrentYe
 
 	assert.NotNil(suite.T(), report.Arpu)
 	assert.NotZero(suite.T(), report.Arpu.Currency)
-	assert.NotZero(suite.T(), report.Arpu.Amount)
+	assert.NotZero(suite.T(), report.Arpu.AmountCurrent)
+	assert.Zero(suite.T(), report.Arpu.AmountPrevious)
 	assert.Len(suite.T(), report.Arpu.Chart, iterations)
 
 	for _, v := range report.Arpu.Chart {
@@ -448,12 +472,12 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardRevenueDynamicsRepor
 	report, err := suite.service.dashboardRepository.GetRevenueDynamicsReport(suite.project.MerchantId, pkg.DashboardPeriodCurrentMonth)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), report)
-	assert.Len(suite.T(), report, iterations)
+	assert.Len(suite.T(), report.Items, iterations)
+	assert.NotZero(suite.T(), report.Currency)
 
-	for _, v := range report {
+	for _, v := range report.Items {
 		assert.NotZero(suite.T(), v.Label)
 		assert.NotZero(suite.T(), v.Amount)
-		assert.NotZero(suite.T(), v.Currency)
 		assert.NotZero(suite.T(), v.Count)
 	}
 }
@@ -475,6 +499,7 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardBaseReport_CurrentMo
 
 	assert.NotNil(suite.T(), report.RevenueByCountry)
 	assert.Len(suite.T(), report.RevenueByCountry.Top, 1)
+	assert.NotZero(suite.T(), report.RevenueByCountry.Currency)
 	assert.NotZero(suite.T(), report.RevenueByCountry.TotalCurrent)
 	assert.Zero(suite.T(), report.RevenueByCountry.TotalPrevious)
 	assert.NotEmpty(suite.T(), report.RevenueByCountry.Chart)
