@@ -14,11 +14,12 @@ import (
 )
 
 const (
-	dashboardMainCacheKey                 = "dashboard:main:%x"
-	dashboardRevenueDynamicCacheKey       = "dashboard:revenue_dynamic:%x"
-	dashboardBaseRevenueByCountryCacheKey = "dashboard:base:revenue_by_country:%x"
-	dashboardBaseSalesTodayCacheKey       = "dashboard:base:sales_today:%x"
-	dashboardBaseSourcesCacheKey          = "dashboard:base:sources:%x"
+	dashboardMainGrossRevenueAndVatCacheKey       = "dashboard:main:gross_revenue_and_vat:%x"
+	dashboardMainTotalTransactionsAndArpuCacheKey = "dashboard:main:total_transactions_and_arpu:%x"
+	dashboardRevenueDynamicCacheKey               = "dashboard:revenue_dynamic:%x"
+	dashboardBaseRevenueByCountryCacheKey         = "dashboard:base:revenue_by_country:%x"
+	dashboardBaseSalesTodayCacheKey               = "dashboard:base:sales_today:%x"
+	dashboardBaseSourcesCacheKey                  = "dashboard:base:sources:%x"
 
 	baseReportsItemsLimit = 5
 
@@ -56,7 +57,8 @@ type DashboardRepositoryInterface interface {
 
 type DashboardReportProcessorInterface interface {
 	ExecuteReport(interface{}) (interface{}, error)
-	ExecuteMainReport(interface{}) (interface{}, error)
+	ExecuteGrossRevenueAndVatReports(interface{}) (interface{}, error)
+	ExecuteTotalTransactionsAndArpuReports(interface{}) (interface{}, error)
 	ExecuteRevenueDynamicReport(interface{}) (interface{}, error)
 	ExecuteRevenueByCountryReport(interface{}) (interface{}, error)
 	ExecuteSalesTodayReport(interface{}) (interface{}, error)
@@ -73,15 +75,45 @@ type dashboardReportProcessor struct {
 	cache       CacheInterface
 }
 
+type GrossRevenueAndVatReports struct {
+	GrossRevenue *grpc.DashboardAmountItemWithChart `bson:"gross_revenue"`
+	Vat          *grpc.DashboardAmountItemWithChart `bson:"vat"`
+}
+
+type GrossRevenueAndVatReportsTotalTransactionsAndArpu struct {
+	TotalTransactions *grpc.DashboardMainReportTotalTransactions `bson:"total_transactions"`
+	Arpu              *grpc.DashboardAmountItemWithChart         `bson:"arpu"`
+}
+
 func newDashboardRepository(s *Service) DashboardRepositoryInterface {
 	return &DashboardRepository{svc: s}
 }
 
 func (m *DashboardRepository) GetMainReport(merchantId, period string) (*grpc.DashboardMainReport, error) {
-	processor, err := m.NewDashboardReportProcessor(
+	processorGrossRevenueAndVat, err := m.NewDashboardReportProcessor(
 		merchantId,
 		period,
-		dashboardMainCacheKey,
+		dashboardMainGrossRevenueAndVatCacheKey,
+		"processed",
+		m.svc.db,
+		m.svc.cacher,
+	)
+
+	if err != nil {
+		return nil, dashboardErrorUnknown
+	}
+
+	processorGrossRevenueAndVat.dbQueryFn = processorGrossRevenueAndVat.ExecuteGrossRevenueAndVatReports
+	dataGrossRevenueAndVat, err := processorGrossRevenueAndVat.ExecuteReport(new(GrossRevenueAndVatReports))
+
+	if err != nil {
+		return nil, dashboardErrorUnknown
+	}
+
+	processorTotalTransactionsAndArpu, err := m.NewDashboardReportProcessor(
+		merchantId,
+		period,
+		dashboardMainTotalTransactionsAndArpuCacheKey,
 		bson.M{"$in": []string{"processed", "refunded", "chargeback"}},
 		m.svc.db,
 		m.svc.cacher,
@@ -91,14 +123,24 @@ func (m *DashboardRepository) GetMainReport(merchantId, period string) (*grpc.Da
 		return nil, dashboardErrorUnknown
 	}
 
-	processor.dbQueryFn = processor.ExecuteMainReport
-	data, err := processor.ExecuteReport(new(grpc.DashboardMainReport))
+	processorTotalTransactionsAndArpu.dbQueryFn = processorTotalTransactionsAndArpu.ExecuteTotalTransactionsAndArpuReports
+	dataTotalTransactionsAndArpu, err := processorTotalTransactionsAndArpu.ExecuteReport(new(GrossRevenueAndVatReportsTotalTransactionsAndArpu))
 
 	if err != nil {
 		return nil, dashboardErrorUnknown
 	}
 
-	return data.(*grpc.DashboardMainReport), nil
+	dataGrossRevenueAndVatTyped := dataGrossRevenueAndVat.(*GrossRevenueAndVatReports)
+	dataTotalTransactionsAndArpuTyped := dataTotalTransactionsAndArpu.(*GrossRevenueAndVatReportsTotalTransactionsAndArpu)
+
+	result := &grpc.DashboardMainReport{
+		GrossRevenue:      dataGrossRevenueAndVatTyped.GrossRevenue,
+		Vat:               dataGrossRevenueAndVatTyped.Vat,
+		TotalTransactions: dataTotalTransactionsAndArpuTyped.TotalTransactions,
+		Arpu:              dataTotalTransactionsAndArpuTyped.Arpu,
+	}
+
+	return result, nil
 }
 
 func (m *DashboardRepository) GetRevenueDynamicsReport(
@@ -490,25 +532,17 @@ func (m *dashboardReportProcessor) ExecuteReport(receiver interface{}) (interfac
 	return receiver, nil
 }
 
-func (m *dashboardReportProcessor) ExecuteMainReport(receiver interface{}) (interface{}, error) {
+func (m *dashboardReportProcessor) ExecuteGrossRevenueAndVatReports(receiver interface{}) (interface{}, error) {
 	query := []bson.M{
 		{"$match": m.match},
 		{
 			"$project": bson.M{
-				"day":   bson.M{"$dayOfMonth": "$pm_order_close_date"},
-				"week":  bson.M{"$week": "$pm_order_close_date"},
-				"month": bson.M{"$month": "$pm_order_close_date"},
-				"revenue_amount": bson.M{
-					"$cond": []interface{}{
-						bson.M{"$eq": []string{"$status", "processed"}}, "$payment_gross_revenue.amount", 0,
-					},
-				},
-				"vat_amount": bson.M{
-					"$cond": []interface{}{
-						bson.M{"$eq": []string{"$status", "processed"}}, "$payment_tax_fee.amount", 0,
-					},
-				},
-				"currency": "$payment_gross_revenue.currency",
+				"day":            bson.M{"$dayOfMonth": "$pm_order_close_date"},
+				"week":           bson.M{"$week": "$pm_order_close_date"},
+				"month":          bson.M{"$month": "$pm_order_close_date"},
+				"revenue_amount": "$payment_gross_revenue.amount",
+				"vat_amount":     "$payment_tax_fee.amount",
+				"currency":       "$payment_gross_revenue.currency",
 			},
 		},
 		{
@@ -516,14 +550,12 @@ func (m *dashboardReportProcessor) ExecuteMainReport(receiver interface{}) (inte
 				"main": []bson.M{
 					{
 						"$group": bson.M{
-							"_id":                nil,
-							"gross_revenue":      bson.M{"$sum": "$revenue_amount"},
-							"currency":           bson.M{"$first": "$currency"},
-							"vat_amount":         bson.M{"$sum": "$vat_amount"},
-							"total_transactions": bson.M{"$sum": 1},
+							"_id":           nil,
+							"gross_revenue": bson.M{"$sum": "$revenue_amount"},
+							"currency":      bson.M{"$first": "$currency"},
+							"vat_amount":    bson.M{"$sum": "$vat_amount"},
 						},
 					},
-					{"$addFields": bson.M{"arpu": bson.M{"$divide": []string{"$gross_revenue", "$total_transactions"}}}},
 				},
 				"chart_gross_revenue": []bson.M{
 					{
@@ -533,7 +565,7 @@ func (m *dashboardReportProcessor) ExecuteMainReport(receiver interface{}) (inte
 							"value": bson.M{"$sum": "$revenue_amount"},
 						},
 					},
-					{"$sort": bson.M{"label": 1}},
+					{"$sort": bson.M{"_id": 1}},
 				},
 				"chart_vat": []bson.M{
 					{
@@ -543,30 +575,7 @@ func (m *dashboardReportProcessor) ExecuteMainReport(receiver interface{}) (inte
 							"value": bson.M{"$sum": "$vat_amount"},
 						},
 					},
-					{"$sort": bson.M{"label": 1}},
-				},
-				"chart_total_transactions": []bson.M{
-					{
-						"$group": bson.M{
-							"_id":   m.groupBy,
-							"label": bson.M{"$first": bson.M{"$toString": m.groupBy}},
-							"value": bson.M{"$sum": 1},
-						},
-					},
-					{"$sort": bson.M{"label": 1}},
-				},
-				"chart_arpu": []bson.M{
-					{
-						"$group": bson.M{
-							"_id":                m.groupBy,
-							"label":              bson.M{"$first": bson.M{"$toString": m.groupBy}},
-							"gross_revenue":      bson.M{"$sum": "$revenue_amount"},
-							"total_transactions": bson.M{"$sum": 1},
-						},
-					},
-					{"$addFields": bson.M{"value": bson.M{"$divide": []string{"$gross_revenue", "$total_transactions"}}}},
-					{"$project": bson.M{"label": "$label", "value": "$value"}},
-					{"$sort": bson.M{"label": 1}},
+					{"$sort": bson.M{"_id": 1}},
 				},
 			},
 		},
@@ -582,6 +591,82 @@ func (m *dashboardReportProcessor) ExecuteMainReport(receiver interface{}) (inte
 					"currency": bson.M{"$arrayElemAt": []interface{}{"$main.currency", 0}},
 					"chart":    "$chart_vat",
 				},
+			},
+		},
+	}
+
+	err := m.db.Collection(collectionOrderView).Pipe(query).One(receiver)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrderView),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+
+		return nil, dashboardErrorUnknown
+	}
+
+	return receiver, nil
+}
+
+func (m *dashboardReportProcessor) ExecuteTotalTransactionsAndArpuReports(receiver interface{}) (interface{}, error) {
+	query := []bson.M{
+		{"$match": m.match},
+		{
+			"$project": bson.M{
+				"day":   bson.M{"$dayOfMonth": "$pm_order_close_date"},
+				"week":  bson.M{"$week": "$pm_order_close_date"},
+				"month": bson.M{"$month": "$pm_order_close_date"},
+				"revenue_amount": bson.M{
+					"$cond": []interface{}{
+						bson.M{"$eq": []string{"$status", "processed"}}, "$payment_gross_revenue.amount", 0,
+					},
+				},
+				"currency": "$payment_gross_revenue.currency",
+			},
+		},
+		{
+			"$facet": bson.M{
+				"main": []bson.M{
+					{
+						"$group": bson.M{
+							"_id":                nil,
+							"gross_revenue":      bson.M{"$sum": "$revenue_amount"},
+							"currency":           bson.M{"$first": "$currency"},
+							"total_transactions": bson.M{"$sum": 1},
+						},
+					},
+					{"$addFields": bson.M{"arpu": bson.M{"$divide": []string{"$gross_revenue", "$total_transactions"}}}},
+				},
+				"chart_total_transactions": []bson.M{
+					{
+						"$group": bson.M{
+							"_id":   m.groupBy,
+							"label": bson.M{"$first": bson.M{"$toString": m.groupBy}},
+							"value": bson.M{"$sum": 1},
+						},
+					},
+					{"$sort": bson.M{"_id": 1}},
+				},
+				"chart_arpu": []bson.M{
+					{
+						"$group": bson.M{
+							"_id":                m.groupBy,
+							"label":              bson.M{"$first": bson.M{"$toString": m.groupBy}},
+							"gross_revenue":      bson.M{"$sum": "$revenue_amount"},
+							"total_transactions": bson.M{"$sum": 1},
+						},
+					},
+					{"$addFields": bson.M{"value": bson.M{"$divide": []string{"$gross_revenue", "$total_transactions"}}}},
+					{"$project": bson.M{"label": "$label", "value": "$value"}},
+					{"$sort": bson.M{"_id": 1}},
+				},
+			},
+		},
+		{
+			"$project": bson.M{
 				"total_transactions": bson.M{
 					"count": bson.M{"$arrayElemAt": []interface{}{"$main.total_transactions", 0}},
 					"chart": "$chart_total_transactions",
