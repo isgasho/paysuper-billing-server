@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -43,6 +44,7 @@ var (
 	accountingEntryErrorInvalidSourceId            = newBillingServerErrorMsg("ae00012", "accounting entry invalid source id")
 	accountingEntryErrorSystemCommissionNotFound   = newBillingServerErrorMsg("ae00013", "system commission for payment method not found")
 	accountingEntryAlreadyCreated                  = newBillingServerErrorMsg("ae00014", "accounting entries already created")
+	accountingEntryOriginalTaxNotFound             = newBillingServerErrorMsg("ae00015", "real_tax_fee entry from original order not found, refund processing failed")
 
 	availableAccountingEntries = map[string]bool{
 		pkg.AccountingEntryTypeRealGrossRevenue:                    true,
@@ -328,7 +330,7 @@ func (h *accountingEntry) processPaymentEvent() error {
 	err = h.Service.db.Collection(collectionAccountingEntry).Find(query).All(&aes)
 	foundCount := len(aes)
 	if foundCount > 0 {
-		zap.S().Error(
+		zap.L().Error(
 			accountingEntryAlreadyCreated.Message,
 			zap.Error(err),
 			zap.String("source.type", collectionOrder),
@@ -535,9 +537,18 @@ func (h *accountingEntry) processRefundEvent() error {
 	}
 	var aes []*billing.AccountingEntry
 	err = h.Service.db.Collection(collectionAccountingEntry).Find(query).All(&aes)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionAccountingEntry),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return err
+	}
 	foundCount := len(aes)
 	if foundCount > 0 {
-		zap.S().Error(
+		zap.L().Error(
 			accountingEntryAlreadyCreated.Message,
 			zap.Error(err),
 			zap.String("source.type", collectionRefund),
@@ -594,6 +605,16 @@ func (h *accountingEntry) processRefundEvent() error {
 	}
 	err = h.Service.db.Collection(collectionAccountingEntry).Find(query).One(&realTaxFee)
 	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionAccountingEntry),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		if err == mgo.ErrNotFound {
+			return accountingEntryOriginalTaxNotFound
+		}
+
 		return err
 	}
 	realRefundTaxFee := h.newEntry(pkg.AccountingEntryTypeRealRefundTaxFee)
@@ -804,7 +825,7 @@ func (h *accountingEntry) GetExchangeCurrentMerchant(req *currencies.ExchangeCur
 	rsp, err := h.curService.ExchangeCurrencyCurrentForMerchant(h.ctx, req)
 
 	if err != nil {
-		zap.S().Error(
+		zap.L().Error(
 			pkg.ErrorGrpcServiceCallFailed,
 			zap.Error(err),
 			zap.String(errorFieldService, "CurrencyRatesService"),
@@ -822,7 +843,7 @@ func (h *accountingEntry) GetExchangeCurrentCommon(req *currencies.ExchangeCurre
 	rsp, err := h.curService.ExchangeCurrencyCurrentCommon(h.ctx, req)
 
 	if err != nil {
-		zap.S().Error(
+		zap.L().Error(
 			pkg.ErrorGrpcServiceCallFailed,
 			zap.Error(err),
 			zap.String(errorFieldService, "CurrencyRatesService"),
@@ -912,7 +933,7 @@ func (h *accountingEntry) saveAccountingEntries() error {
 	err := h.db.Collection(collectionAccountingEntry).Insert(h.accountingEntries...)
 
 	if err != nil {
-		zap.S().Error(
+		zap.L().Error(
 			"Accounting entries insert failed",
 			zap.Error(err),
 			zap.Any("accounting_entries", h.accountingEntries),
@@ -983,7 +1004,7 @@ func (h *accountingEntry) getPaymentChannelCostSystem() (*billing.PaymentChannel
 	cost, err := h.Service.paymentChannelCostSystem.Get(name, h.country.Region, h.country.IsoCodeA2)
 
 	if err != nil {
-		zap.S().Error(
+		zap.L().Error(
 			accountingEntryErrorSystemCommissionNotFound.Message,
 			zap.Error(err),
 			zap.String("payment_method", name),
@@ -1013,7 +1034,7 @@ func (h *accountingEntry) getPaymentChannelCostMerchant(amount float64) (*billin
 	cost, err := h.Service.getPaymentChannelCostMerchant(req)
 
 	if err != nil {
-		zap.S().Error(
+		zap.L().Error(
 			accountingEntryErrorMerchantCommissionNotFound.Message,
 			zap.Error(err),
 			zap.String("project", h.order.GetProjectId()),
