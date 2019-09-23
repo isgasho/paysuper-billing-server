@@ -1099,7 +1099,7 @@ func (suite *AccountingEntryTestSuite) helperGetAccountingEntries(orderId, colle
 }
 
 func (suite *AccountingEntryTestSuite) helperCheckOrderView(orderId, orderCurrency, royaltyCurrency, vatCurrency string, orderControlResults map[string]float64) {
-	orderView, err := suite.service.getOrderFromViewPrivate(orderId)
+	orderView, err := suite.service.orderView.GetOrderFromViewPrivate(orderId)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), orderView)
 
@@ -1186,7 +1186,7 @@ func (suite *AccountingEntryTestSuite) helperCheckOrderView(orderId, orderCurren
 }
 
 func (suite *AccountingEntryTestSuite) helperCheckRefundView(orderId, orderCurrency, royaltyCurrency, vatCurrency string, refundControlResults map[string]float64) {
-	orderView, err := suite.service.getOrderFromViewPrivate(orderId)
+	orderView, err := suite.service.orderView.GetOrderFromViewPrivate(orderId)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), orderView)
 

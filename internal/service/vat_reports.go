@@ -271,9 +271,9 @@ func (s *Service) GetVatReportTransactions(
 		"country_code": vr.Country,
 	}
 
-	n, err := s.countTransactions(match)
+	n, err := s.orderView.CountTransactions(match)
 
-	vts, err := s.getTransactionsPublic(match, int(req.Limit), int(req.Offset))
+	vts, err := s.orderView.GetTransactionsPublic(match, int(req.Limit), int(req.Offset))
 	if err != nil {
 		return err
 	}

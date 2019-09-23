@@ -161,6 +161,7 @@ const (
 
 	ErrorDatabaseQueryFailed          = "Query to database collection failed"
 	ErrorDatabaseFieldCollection      = "collection"
+	ErrorDatabaseFieldDocumentId      = "document_id"
 	ErrorDatabaseFieldQuery           = "query"
 	ErrorDatabaseFieldSet             = "set"
 	ErrorDatabaseFieldSorts           = "sorts"

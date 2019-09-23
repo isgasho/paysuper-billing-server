@@ -465,7 +465,7 @@ func (s *Service) ListRoyaltyReportOrders(
 		"status":              bson.M{"$in": orderStatusForRoyaltyReports},
 	}
 
-	ts, err := s.getTransactionsPublic(match, int(req.Limit), int(req.Offset))
+	ts, err := s.orderView.GetTransactionsPublic(match, int(req.Limit), int(req.Offset))
 	if err != nil {
 		return err
 	}

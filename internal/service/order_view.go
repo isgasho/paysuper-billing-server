@@ -16,78 +16,17 @@ const (
 
 type list []interface{}
 
-func (s *Service) getOrderFromViewPublic(id string) (*billing.OrderViewPublic, error) {
-	result := &billing.OrderViewPublic{}
-	err := s.db.Collection(collectionOrderView).
-		Find(bson.M{"_id": bson.ObjectIdHex(id)}).
-		One(&result)
-	if err != nil {
-		zap.S().Errorf(pkg.ErrorDatabaseQueryFailed, "err", err.Error(), "collection", collectionOrderView, "id", id)
-		return nil, err
-	}
-	return result, nil
+type OrderViewServiceInterface interface {
+	GetOrderFromViewPublic(id string) (result *billing.OrderViewPublic, err error)
+	GetOrderFromViewPrivate(id string) (result *billing.OrderViewPrivate, err error)
+	CountTransactions(match bson.M) (n int, err error)
+	GetTransactionsPublic(match bson.M, limit, offset int) (result []*billing.OrderViewPublic, err error)
+	GetTransactionsPrivate(match bson.M, limit, offset int) (result []*billing.OrderViewPrivate, err error)
 }
 
-func (s *Service) getOrderFromViewPrivate(id string) (*billing.OrderViewPrivate, error) {
-	result := &billing.OrderViewPrivate{}
-	err := s.db.Collection(collectionOrderView).
-		Find(bson.M{"_id": bson.ObjectIdHex(id)}).
-		One(&result)
-	if err != nil {
-		zap.S().Errorf(pkg.ErrorDatabaseQueryFailed, "err", err.Error(), "collection", collectionOrderView, "id", id)
-		return nil, err
-	}
-	return result, nil
-}
-
-func (s *Service) countTransactions(match bson.M) (n int, err error) {
-
-	n, err = s.db.Collection(collectionOrderView).
-		Find(match).
-		Count()
-
-	if err != nil {
-		zap.S().Errorf(pkg.ErrorDatabaseQueryFailed, "err", err.Error(), "collection", collectionOrderView, "match", match)
-		return
-	}
-
-	return
-}
-
-func (s *Service) getTransactionsPublic(match bson.M, limit, offset int) ([]*billing.OrderViewPublic, error) {
-	result := []*billing.OrderViewPublic{}
-
-	err := s.db.Collection(collectionOrderView).
-		Find(match).
-		Sort("created_at").
-		Limit(limit).
-		Skip(offset).
-		All(&result)
-
-	if err != nil {
-		zap.S().Errorf(pkg.ErrorDatabaseQueryFailed, "err", err.Error(), "collection", collectionOrderView, "match", match, "limit", limit, "offset", offset)
-		return nil, err
-	}
-
-	return result, nil
-}
-
-func (s *Service) getTransactionsPrivate(match bson.M, limit, offset int) ([]*billing.OrderViewPrivate, error) {
-	result := []*billing.OrderViewPrivate{}
-
-	err := s.db.Collection(collectionOrderView).
-		Find(match).
-		Sort("created_at").
-		Limit(limit).
-		Skip(offset).
-		All(&result)
-
-	if err != nil {
-		zap.S().Errorf(pkg.ErrorDatabaseQueryFailed, "err", err.Error(), "collection", collectionOrderView, "match", match, "limit", limit, "offset", offset)
-		return nil, err
-	}
-
-	return result, nil
+func newOrderView(svc *Service) OrderViewServiceInterface {
+	s := &OrderView{svc: svc}
+	return s
 }
 
 // emulate update batching, because aggregarion pipeline, ended with $merge,
@@ -3208,4 +3147,92 @@ func (s *Service) RebuildOrderView() error {
 	zap.S().Info("rebuilding order view finished successfully")
 
 	return nil
+}
+
+func (ow OrderView) GetOrderFromViewPublic(id string) (result *billing.OrderViewPublic, err error) {
+	err = ow.svc.db.Collection(collectionOrderView).
+		FindId(bson.ObjectIdHex(id)).
+		One(&result)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrderView),
+			zap.Any(pkg.ErrorDatabaseFieldDocumentId, id),
+		)
+	}
+	return
+}
+
+func (ow OrderView) GetOrderFromViewPrivate(id string) (result *billing.OrderViewPrivate, err error) {
+	err = ow.svc.db.Collection(collectionOrderView).
+		FindId(bson.ObjectIdHex(id)).
+		One(&result)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrderView),
+			zap.Any(pkg.ErrorDatabaseFieldDocumentId, id),
+		)
+	}
+	return
+}
+
+func (ow OrderView) CountTransactions(match bson.M) (n int, err error) {
+	n, err = ow.svc.db.Collection(collectionOrderView).
+		Find(match).
+		Count()
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrderView),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, match),
+		)
+	}
+	return
+}
+
+func (ow OrderView) GetTransactionsPublic(match bson.M, limit, offset int) (result []*billing.OrderViewPublic, err error) {
+	err = ow.svc.db.Collection(collectionOrderView).
+		Find(match).
+		Sort("created_at").
+		Limit(limit).
+		Skip(offset).
+		All(&result)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrderView),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, match),
+			zap.Any(pkg.ErrorDatabaseFieldLimit, limit),
+			zap.Any(pkg.ErrorDatabaseFieldOffset, offset),
+		)
+	}
+	return
+}
+
+func (ow OrderView) GetTransactionsPrivate(match bson.M, limit, offset int) (result []*billing.OrderViewPrivate, err error) {
+	err = ow.svc.db.Collection(collectionOrderView).
+		Find(match).
+		Sort("created_at").
+		Limit(limit).
+		Skip(offset).
+		All(&result)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrderView),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, match),
+			zap.Any(pkg.ErrorDatabaseFieldLimit, limit),
+			zap.Any(pkg.ErrorDatabaseFieldOffset, offset),
+		)
+	}
+	return
 }

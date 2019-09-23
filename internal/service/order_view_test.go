@@ -1,6 +1,7 @@
 package service
 
 import (
+	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
@@ -129,4 +130,109 @@ func (suite *OrderViewTestSuite) Test_OrderView_updateOrderView() {
 	}
 	err := suite.service.updateOrderView([]string{})
 	assert.NoError(suite.T(), err)
+}
+
+func (suite *OrderViewTestSuite) Test_OrderView_GetOrderFromViewPublic_Ok() {
+	order := helperCreateAndPayOrder(
+		suite.Suite,
+		suite.service,
+		100,
+		"USD",
+		"RU",
+		suite.projectFixedAmount,
+		suite.paymentMethod,
+	)
+
+	orderPublic, err := suite.service.orderView.GetOrderFromViewPublic(order.Id)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), orderPublic)
+	assert.IsType(suite.T(), &billing.OrderViewPublic{}, orderPublic)
+}
+
+func (suite *OrderViewTestSuite) Test_OrderView_GetOrderFromViewPrivate_Ok() {
+	order := helperCreateAndPayOrder(
+		suite.Suite,
+		suite.service,
+		100,
+		"USD",
+		"RU",
+		suite.projectFixedAmount,
+		suite.paymentMethod,
+	)
+
+	orderPrivate, err := suite.service.orderView.GetOrderFromViewPrivate(order.Id)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), orderPrivate)
+	assert.IsType(suite.T(), &billing.OrderViewPrivate{}, orderPrivate)
+}
+
+func (suite *OrderViewTestSuite) Test_OrderView_CountTransactions_Ok() {
+	_ = helperCreateAndPayOrder(
+		suite.Suite,
+		suite.service,
+		100,
+		"RUB",
+		"RU",
+		suite.projectFixedAmount,
+		suite.paymentMethod,
+	)
+	_ = helperCreateAndPayOrder(
+		suite.Suite,
+		suite.service,
+		200,
+		"USD",
+		"FI",
+		suite.projectFixedAmount,
+		suite.paymentMethod,
+	)
+
+	count, err := suite.service.orderView.CountTransactions(bson.M{})
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), count, 2)
+
+	count, err = suite.service.orderView.CountTransactions(bson.M{"country_code": "FI"})
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), count, 1)
+}
+
+func (suite *OrderViewTestSuite) Test_OrderView_GetTransactionsPublic_Ok() {
+	transactions, err := suite.service.orderView.GetTransactionsPublic(bson.M{}, 10, 0)
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), transactions, 0)
+
+	_ = helperCreateAndPayOrder(
+		suite.Suite,
+		suite.service,
+		100,
+		"USD",
+		"RU",
+		suite.projectFixedAmount,
+		suite.paymentMethod,
+	)
+
+	transactions, err = suite.service.orderView.GetTransactionsPublic(bson.M{}, 10, 0)
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), transactions, 1)
+	assert.IsType(suite.T(), &billing.OrderViewPublic{}, transactions[0])
+}
+
+func (suite *OrderViewTestSuite) Test_OrderView_GetTransactionsPrivate_Ok() {
+	transactions, err := suite.service.orderView.GetTransactionsPrivate(bson.M{}, 10, 0)
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), transactions, 0)
+
+	_ = helperCreateAndPayOrder(
+		suite.Suite,
+		suite.service,
+		100,
+		"USD",
+		"RU",
+		suite.projectFixedAmount,
+		suite.paymentMethod,
+	)
+
+	transactions, err = suite.service.orderView.GetTransactionsPrivate(bson.M{}, 10, 0)
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), transactions, 1)
+	assert.IsType(suite.T(), &billing.OrderViewPrivate{}, transactions[0])
 }
