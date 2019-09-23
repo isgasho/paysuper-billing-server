@@ -1758,7 +1758,7 @@ message DashboardAmountItemWithChart {
 
 message DashboardChartItemFloat {
     //@inject_tag: json:"label" bson:"label"
-    string label = 1;
+    int64 label = 1;
     //@inject_tag: json:"value" bson:"value"
     double value = 2;
 }
@@ -1792,7 +1792,7 @@ message DashboardRevenueDynamicReport {
 
 message DashboardRevenueDynamicReportItem {
     //@inject_tag: json:"label"
-    string label = 1;
+    int64 label = 1;
     //@inject_tag: json:"amount"
     double amount = 2;
     //@inject_tag: json:"-"
@@ -1810,7 +1810,7 @@ message DashboardRevenueByCountryReportTop {
 
 message DashboardRevenueByCountryReportChartItem {
     //@inject_tag: json:"label"
-    string label = 1;
+    int64 label = 1;
     //@inject_tag: json:"amount"
     double amount = 2;
 }
@@ -1837,7 +1837,7 @@ message DashboardSalesTodayReportTop {
 
 message DashboardChartItemInt {
     //@inject_tag: json:"label" bson:"label"
-    string label = 1;
+    int64 label = 1;
     //@inject_tag: json:"value" bson:"value"
     int64 value = 2;
 }
