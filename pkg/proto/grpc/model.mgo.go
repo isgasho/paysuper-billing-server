@@ -98,7 +98,7 @@ type MgoDashboardAmountItemWithChart struct {
 }
 
 type MgoDashboardRevenueDynamicReportItem struct {
-	Label    string  `bson:"label"`
+	Label    int64   `bson:"label"`
 	Amount   float64 `bson:"amount"`
 	Currency string  `bson:"currency"`
 	Count    int64   `bson:"count"`
@@ -110,7 +110,7 @@ type MgoDashboardRevenueByCountryReportTop struct {
 }
 
 type MgoDashboardRevenueByCountryReportChartItem struct {
-	Label  string  `bson:"label"`
+	Label  int64   `bson:"label"`
 	Amount float64 `bson:"amount"`
 }
 

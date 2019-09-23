@@ -600,12 +600,13 @@ func (m *dashboardReportProcessor) ExecuteGrossRevenueAndVatReports(receiver int
 		{"$match": m.match},
 		{
 			"$project": bson.M{
-				"day":            bson.M{"$dayOfMonth": "$pm_order_close_date"},
-				"week":           bson.M{"$week": "$pm_order_close_date"},
-				"month":          bson.M{"$month": "$pm_order_close_date"},
-				"revenue_amount": "$payment_gross_revenue.amount",
-				"vat_amount":     "$payment_tax_fee.amount",
-				"currency":       "$payment_gross_revenue.currency",
+				"day":                 bson.M{"$dayOfMonth": "$pm_order_close_date"},
+				"week":                bson.M{"$week": "$pm_order_close_date"},
+				"month":               bson.M{"$month": "$pm_order_close_date"},
+				"revenue_amount":      "$payment_gross_revenue.amount",
+				"vat_amount":          "$payment_tax_fee.amount",
+				"currency":            "$payment_gross_revenue.currency",
+				"pm_order_close_date": "$pm_order_close_date",
 			},
 		},
 		{
@@ -624,7 +625,7 @@ func (m *dashboardReportProcessor) ExecuteGrossRevenueAndVatReports(receiver int
 					{
 						"$group": bson.M{
 							"_id":   m.groupBy,
-							"label": bson.M{"$first": bson.M{"$toString": m.groupBy}},
+							"label": bson.M{"$last": bson.M{"$toLong": "$pm_order_close_date"}},
 							"value": bson.M{"$sum": "$revenue_amount"},
 						},
 					},
@@ -634,7 +635,7 @@ func (m *dashboardReportProcessor) ExecuteGrossRevenueAndVatReports(receiver int
 					{
 						"$group": bson.M{
 							"_id":   m.groupBy,
-							"label": bson.M{"$first": bson.M{"$toString": m.groupBy}},
+							"label": bson.M{"$last": bson.M{"$toLong": "$pm_order_close_date"}},
 							"value": bson.M{"$sum": "$vat_amount"},
 						},
 					},
@@ -687,7 +688,8 @@ func (m *dashboardReportProcessor) ExecuteTotalTransactionsAndArpuReports(receiv
 						bson.M{"$eq": []string{"$status", "processed"}}, "$payment_gross_revenue.amount", 0,
 					},
 				},
-				"currency": "$payment_gross_revenue.currency",
+				"currency":            "$payment_gross_revenue.currency",
+				"pm_order_close_date": "$pm_order_close_date",
 			},
 		},
 		{
@@ -707,7 +709,7 @@ func (m *dashboardReportProcessor) ExecuteTotalTransactionsAndArpuReports(receiv
 					{
 						"$group": bson.M{
 							"_id":   m.groupBy,
-							"label": bson.M{"$first": bson.M{"$toString": m.groupBy}},
+							"label": bson.M{"$last": bson.M{"$toLong": "$pm_order_close_date"}},
 							"value": bson.M{"$sum": 1},
 						},
 					},
@@ -717,7 +719,7 @@ func (m *dashboardReportProcessor) ExecuteTotalTransactionsAndArpuReports(receiv
 					{
 						"$group": bson.M{
 							"_id":                m.groupBy,
-							"label":              bson.M{"$first": bson.M{"$toString": m.groupBy}},
+							"label":              bson.M{"$last": bson.M{"$toLong": "$pm_order_close_date"}},
 							"gross_revenue":      bson.M{"$sum": "$revenue_amount"},
 							"total_transactions": bson.M{"$sum": 1},
 						},
@@ -764,17 +766,18 @@ func (m *dashboardReportProcessor) ExecuteRevenueDynamicReport(receiver interfac
 		{"$match": m.match},
 		{
 			"$project": bson.M{
-				"day":      bson.M{"$dayOfMonth": "$pm_order_close_date"},
-				"week":     bson.M{"$week": "$pm_order_close_date"},
-				"month":    bson.M{"$month": "$pm_order_close_date"},
-				"amount":   "$net_revenue.amount",
-				"currency": "$net_revenue.currency",
+				"day":                 bson.M{"$dayOfMonth": "$pm_order_close_date"},
+				"week":                bson.M{"$week": "$pm_order_close_date"},
+				"month":               bson.M{"$month": "$pm_order_close_date"},
+				"amount":              "$net_revenue.amount",
+				"currency":            "$net_revenue.currency",
+				"pm_order_close_date": "$pm_order_close_date",
 			},
 		},
 		{
 			"$group": bson.M{
 				"_id":      m.groupBy,
-				"label":    bson.M{"$first": bson.M{"$toString": m.groupBy}},
+				"label":    bson.M{"$last": bson.M{"$toLong": "$pm_order_close_date"}},
 				"amount":   bson.M{"$sum": "$amount"},
 				"currency": bson.M{"$first": "$currency"},
 				"count":    bson.M{"$sum": 1},
@@ -820,8 +823,9 @@ func (m *dashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interf
 						"$user.address.country", "$billing_address.country",
 					},
 				},
-				"amount":   "$net_revenue.amount",
-				"currency": "$net_revenue.currency",
+				"amount":              "$net_revenue.amount",
+				"currency":            "$net_revenue.currency",
+				"pm_order_close_date": "$pm_order_close_date",
 			},
 		},
 		{
@@ -844,18 +848,20 @@ func (m *dashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interf
 						}},
 					},
 				},
+				"pm_order_close_date": "$pm_order_close_date",
 			},
 		},
 		{
 			"$project": bson.M{
-				"hour":          "$hour",
-				"day":           "$day",
-				"month":         "$month",
-				"week":          "$week",
-				"country":       "$country",
-				"amount":        "$amount",
-				"currency":      "$currency",
-				"period_in_day": bson.M{"$concat": []interface{}{bson.M{"$toString": "$day"}, " ", "$period_in_day"}},
+				"hour":                "$hour",
+				"day":                 "$day",
+				"month":               "$month",
+				"week":                "$week",
+				"country":             "$country",
+				"amount":              "$amount",
+				"currency":            "$currency",
+				"period_in_day":       bson.M{"$concat": []interface{}{bson.M{"$toString": "$day"}, " ", "$period_in_day"}},
+				"pm_order_close_date": "$pm_order_close_date",
 			},
 		},
 		{
@@ -885,7 +891,7 @@ func (m *dashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interf
 					{
 						"$group": bson.M{
 							"_id":    m.groupBy,
-							"label":  bson.M{"$first": bson.M{"$toString": m.groupBy}},
+							"label":  bson.M{"$last": bson.M{"$toLong": "$pm_order_close_date"}},
 							"amount": bson.M{"$sum": "$amount"},
 						},
 					},
@@ -935,10 +941,11 @@ func (m *dashboardReportProcessor) ExecuteSalesTodayReport(receiver interface{})
 					"$cond": []interface{}{
 						bson.M{"$ne": []interface{}{"$items", []interface{}{}}}, "$items", []string{""}},
 				},
-				"hour":  bson.M{"$hour": "$pm_order_close_date"},
-				"day":   bson.M{"$dayOfMonth": "$pm_order_close_date"},
-				"month": bson.M{"$month": "$pm_order_close_date"},
-				"week":  bson.M{"$week": "$pm_order_close_date"},
+				"hour":                bson.M{"$hour": "$pm_order_close_date"},
+				"day":                 bson.M{"$dayOfMonth": "$pm_order_close_date"},
+				"month":               bson.M{"$month": "$pm_order_close_date"},
+				"week":                bson.M{"$week": "$pm_order_close_date"},
+				"pm_order_close_date": "$pm_order_close_date",
 			},
 		},
 		{"$unwind": "$items"},
@@ -966,16 +973,18 @@ func (m *dashboardReportProcessor) ExecuteSalesTodayReport(receiver interface{})
 						}},
 					},
 				},
+				"pm_order_close_date": "$pm_order_close_date",
 			},
 		},
 		{
 			"$project": bson.M{
-				"item":          "$item",
-				"hour":          "$hour",
-				"day":           "$day",
-				"month":         "$month",
-				"week":          "$week",
-				"period_in_day": bson.M{"$concat": []interface{}{bson.M{"$toString": "$day"}, " ", "$period_in_day"}},
+				"item":                "$item",
+				"hour":                "$hour",
+				"day":                 "$day",
+				"month":               "$month",
+				"week":                "$week",
+				"period_in_day":       bson.M{"$concat": []interface{}{bson.M{"$toString": "$day"}, " ", "$period_in_day"}},
+				"pm_order_close_date": "$pm_order_close_date",
 			},
 		},
 		{
@@ -1003,7 +1012,7 @@ func (m *dashboardReportProcessor) ExecuteSalesTodayReport(receiver interface{})
 					{
 						"$group": bson.M{
 							"_id":   m.groupBy,
-							"label": bson.M{"$first": bson.M{"$toString": m.groupBy}},
+							"label": bson.M{"$last": bson.M{"$toLong": "$pm_order_close_date"}},
 							"value": bson.M{"$sum": 1},
 						},
 					},
@@ -1042,12 +1051,14 @@ func (m *dashboardReportProcessor) ExecuteSourcesReport(receiver interface{}) (i
 		{"$match": m.match},
 		{
 			"$project": bson.M{
-				"hour":   bson.M{"$hour": "$pm_order_close_date"},
-				"day":    bson.M{"$dayOfMonth": "$pm_order_close_date"},
-				"month":  bson.M{"$month": "$pm_order_close_date"},
-				"week":   bson.M{"$week": "$pm_order_close_date"},
-				"issuer": "$issuer.url",
-			}},
+				"hour":                bson.M{"$hour": "$pm_order_close_date"},
+				"day":                 bson.M{"$dayOfMonth": "$pm_order_close_date"},
+				"month":               bson.M{"$month": "$pm_order_close_date"},
+				"week":                bson.M{"$week": "$pm_order_close_date"},
+				"issuer":              "$issuer.url",
+				"pm_order_close_date": "$pm_order_close_date",
+			},
+		},
 		{
 			"$project": bson.M{
 				"hour":  "$hour",
@@ -1065,17 +1076,19 @@ func (m *dashboardReportProcessor) ExecuteSourcesReport(receiver interface{}) (i
 						}},
 					},
 				},
-				"issuer": "$issuer",
+				"issuer":              "$issuer",
+				"pm_order_close_date": "$pm_order_close_date",
 			},
 		},
 		{
 			"$project": bson.M{
-				"hour":          "$hour",
-				"day":           "$day",
-				"month":         "$month",
-				"week":          "$week",
-				"period_in_day": bson.M{"$concat": []interface{}{bson.M{"$toString": "$day"}, " ", "$period_in_day"}},
-				"issuer":        "$issuer",
+				"hour":                "$hour",
+				"day":                 "$day",
+				"month":               "$month",
+				"week":                "$week",
+				"period_in_day":       bson.M{"$concat": []interface{}{bson.M{"$toString": "$day"}, " ", "$period_in_day"}},
+				"issuer":              "$issuer",
+				"pm_order_close_date": "$pm_order_close_date",
 			},
 		},
 		{
@@ -1103,7 +1116,7 @@ func (m *dashboardReportProcessor) ExecuteSourcesReport(receiver interface{}) (i
 					{
 						"$group": bson.M{
 							"_id":   m.groupBy,
-							"label": bson.M{"$first": bson.M{"$toString": m.groupBy}},
+							"label": bson.M{"$last": bson.M{"$toLong": "$pm_order_close_date"}},
 							"value": bson.M{"$sum": 1},
 						},
 					},
