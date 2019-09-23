@@ -743,6 +743,18 @@ func (s *Service) PaymentCreateProcess(
 		delete(order.PaymentRequisites, pkg.PaymentCreateFieldRecurringId)
 	}
 
+	err = processor.processMerchantCosts(order, merchant)
+
+	if err != nil {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
+	}
+
 	err = s.updateOrder(order)
 
 	if err != nil {
@@ -2126,6 +2138,41 @@ func (v *PaymentFormProcessor) processPaymentMethodsData(pm *billing.PaymentForm
 			}
 
 		}
+	}
+
+	return nil
+}
+
+// validate merchant commissions
+func (v *PaymentCreateProcessor) processMerchantCosts(order *billing.Order, merchant *billing.Merchant) error {
+	name, err := order.GetCostPaymentMethodName()
+	if err != nil {
+		return err
+	}
+
+	countryCode := merchant.Company.Country
+	if countryCode == "" {
+		return accountingEntryErrorCountryNotFound
+	}
+
+	country, err := v.service.country.GetByIsoCodeA2(countryCode)
+	if err != nil {
+		return accountingEntryErrorCountryNotFound
+	}
+
+	req := &billing.PaymentChannelCostMerchantRequest{
+		MerchantId:     order.GetMerchantId(),
+		Name:           name,
+		PayoutCurrency: order.GetMerchantRoyaltyCurrency(),
+		Amount:         order.OrderAmount,
+		Region:         country.Region,
+		Country:        country.IsoCodeA2,
+	}
+
+	_, err = v.service.getPaymentChannelCostMerchant(req)
+
+	if err != nil {
+		return err
 	}
 
 	return nil

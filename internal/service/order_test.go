@@ -56,6 +56,7 @@ type OrderTestSuite struct {
 	productIds                             []string
 	keyProductIds                          []string
 	merchantDefaultCurrency                string
+	paymentMethodWithoutCommission         *billing.PaymentMethod
 }
 
 func Test_Order(t *testing.T) {
@@ -166,6 +167,49 @@ func (suite *OrderTestSuite) SetupTest() {
 		VatStoreYears:          5,
 		VatCurrencyRatesPolicy: "last-day",
 		VatCurrencyRatesSource: "cbrf",
+	}
+
+	ps0 := &billing.PaymentSystem{
+		Id:                 bson.NewObjectId().Hex(),
+		Name:               "CardPay",
+		AccountingCurrency: "RUB",
+		AccountingPeriod:   "every-day",
+		Country:            "",
+		IsActive:           true,
+		Handler:            "cardpay",
+	}
+
+	pmBankCardNotUsed := &billing.PaymentMethod{
+		Id:               bson.NewObjectId().Hex(),
+		Name:             "Bank card NEVER USING",
+		Group:            "BANKCARD",
+		MinPaymentAmount: 100,
+		MaxPaymentAmount: 15000,
+		Currencies:       []string{"RUB", "USD", "EUR"},
+		ExternalId:       "BANKCARD",
+		ProductionSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				TerminalId:     "15985",
+				Secret:         "A1tph4I6BD0f",
+				SecretCallback: "0V1rJ7t4jCRv",
+			},
+			"USD": {
+				TerminalId:     "15985",
+				Secret:         "A1tph4I6BD0f",
+				SecretCallback: "0V1rJ7t4jCRv",
+			},
+		},
+		TestSettings: map[string]*billing.PaymentMethodParams{
+			"USD": {
+				TerminalId:     "15985",
+				Secret:         "A1tph4I6BD0f",
+				SecretCallback: "0V1rJ7t4jCRv",
+			},
+		},
+		Type:            "bank_card",
+		IsActive:        true,
+		AccountRegexp:   "^(?:4[0-9]{12}(?:[0-9]{3})?|[25][1-7][0-9]{14}|6(?:011|5[0-9][0-9])[0-9]{12}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|(?:2131|1800|35\\d{3})\\d{11})$",
+		PaymentSystemId: ps0.Id,
 	}
 
 	ps1 := &billing.PaymentSystem{
@@ -990,6 +1034,7 @@ func (suite *OrderTestSuite) SetupTest() {
 	suite.projectEmptyPaymentMethodTerminal = projectEmptyPaymentMethodTerminal
 	suite.projectUahLimitCurrency = projectUahLimitCurrency
 	suite.paymentMethod = pmBankCard
+	suite.paymentMethodWithoutCommission = pmBankCardNotUsed
 	suite.inactivePaymentMethod = pmBitcoin
 	suite.paymentMethodWithInactivePaymentSystem = pmQiwi
 	suite.pmWebMoney = pmWebMoney
@@ -3561,6 +3606,51 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_AccountEmpty_Error
 	assert.Nil(suite.T(), processor.checked.project)
 	assert.Nil(suite.T(), processor.checked.paymentMethod)
 	assert.Equal(suite.T(), paymentSystemErrorEWalletIdentifierIsInvalid, err)
+}
+
+func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_MerchantDontHaveCommissions_Error() {
+	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
+		ProjectId:   suite.project.Id,
+		Currency:    "RUB",
+		Amount:      100,
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+	}
+
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	order := rsp1.Item
+
+	expireYear := time.Now().AddDate(1, 0, 0)
+
+	createPaymentRequest := &grpc.PaymentCreateRequest{
+		Data: map[string]string{
+			pkg.PaymentCreateFieldOrderId:         order.Uuid,
+			pkg.PaymentCreateFieldPaymentMethodId: suite.paymentMethodWithoutCommission.Id,
+			pkg.PaymentCreateFieldEmail:           "test@unit.unit",
+			pkg.PaymentCreateFieldPan:             "4000000000000002",
+			pkg.PaymentCreateFieldCvv:             "123",
+			pkg.PaymentCreateFieldMonth:           "02",
+			pkg.PaymentCreateFieldYear:            expireYear.Format("2006"),
+			pkg.PaymentCreateFieldHolder:          "Mr. Card Holder",
+		},
+		Ip: "127.0.0.1",
+	}
+
+	rsp := &grpc.PaymentCreateResponse{}
+	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_ChangePaymentSystemTerminal_Ok() {
