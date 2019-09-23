@@ -247,7 +247,7 @@ func (s *Service) ProcessRefundCallback(
 		}
 	}
 
-	if pErr == nil {
+	if pErr == nil && refund.CreatedOrderId == "" {
 		refund.CreatedOrderId, err = s.createOrderByRefund(order, refund)
 
 		if err != nil {

@@ -48,7 +48,7 @@ var (
 type DashboardRepositoryInterface interface {
 	NewDashboardReportProcessor(string, string, string, interface{}, *mongodb.Source, CacheInterface) (*dashboardReportProcessor, error)
 	GetMainReport(string, string) (*grpc.DashboardMainReport, error)
-	GetRevenueDynamicsReport(string, string) ([]*grpc.DashboardRevenueDynamicReportItem, error)
+	GetRevenueDynamicsReport(string, string) (*grpc.DashboardRevenueDynamicReport, error)
 	GetBaseReport(string, string) (*grpc.DashboardBaseReports, error)
 	GetBaseRevenueByCountryReport(string, string) (*grpc.DashboardRevenueByCountryReport, error)
 	GetBaseSalesTodayReport(string, string) (*grpc.DashboardSalesTodayReport, error)
@@ -206,7 +206,7 @@ func (m *DashboardRepository) GetMainReport(merchantId, period string) (*grpc.Da
 
 func (m *DashboardRepository) GetRevenueDynamicsReport(
 	merchantId, period string,
-) ([]*grpc.DashboardRevenueDynamicReportItem, error) {
+) (*grpc.DashboardRevenueDynamicReport, error) {
 	processor, err := m.NewDashboardReportProcessor(
 		merchantId,
 		period,
@@ -227,7 +227,13 @@ func (m *DashboardRepository) GetRevenueDynamicsReport(
 		return nil, dashboardErrorUnknown
 	}
 
-	return data.(*grpc.DashboardRevenueDynamicReport).Items, nil
+	dataTyped := data.(*grpc.DashboardRevenueDynamicReport)
+
+	if len(dataTyped.Items) > 0 {
+		dataTyped.Currency = dataTyped.Items[0].Currency
+	}
+
+	return dataTyped, nil
 }
 
 func (m *DashboardRepository) GetBaseReport(merchantId, period string) (*grpc.DashboardBaseReports, error) {
@@ -855,7 +861,7 @@ func (m *dashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interf
 		{
 			"$facet": bson.M{
 				"currency": []bson.M{
-					{"$group": bson.M{"_id": "$currency"}},
+					{"$project": bson.M{"currency": "$currency"}},
 				},
 				"top": []bson.M{
 					{
@@ -889,7 +895,7 @@ func (m *dashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interf
 		},
 		{
 			"$project": bson.M{
-				"currency": bson.M{"$arrayElemAt": []interface{}{"$currency._id", 0}},
+				"currency": bson.M{"$arrayElemAt": []interface{}{"$currency.currency", 0}},
 				"top":      "$top",
 				"total":    bson.M{"$arrayElemAt": []interface{}{"$total.amount", 0}},
 				"chart":    "$chart",

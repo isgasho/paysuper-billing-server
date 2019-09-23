@@ -472,12 +472,12 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardRevenueDynamicsRepor
 	report, err := suite.service.dashboardRepository.GetRevenueDynamicsReport(suite.project.MerchantId, pkg.DashboardPeriodCurrentMonth)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), report)
-	assert.Len(suite.T(), report, iterations)
+	assert.Len(suite.T(), report.Items, iterations)
+	assert.NotZero(suite.T(), report.Currency)
 
-	for _, v := range report {
+	for _, v := range report.Items {
 		assert.NotZero(suite.T(), v.Label)
 		assert.NotZero(suite.T(), v.Amount)
-		assert.NotZero(suite.T(), v.Currency)
 		assert.NotZero(suite.T(), v.Count)
 	}
 }
