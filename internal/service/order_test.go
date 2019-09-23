@@ -91,6 +91,11 @@ func (suite *OrderTestSuite) SetupTest() {
 		Region:   "CIS",
 		Currency: "USD",
 	}
+	pgUah := &billing.PriceGroup{
+		Id:       bson.NewObjectId().Hex(),
+		Region:   "UAH",
+		Currency: "UAH",
+	}
 
 	ru := &billing.Country{
 		IsoCodeA2:       "RU",
@@ -168,6 +173,25 @@ func (suite *OrderTestSuite) SetupTest() {
 		VatCurrencyRatesPolicy: "last-day",
 		VatCurrencyRatesSource: "cbrf",
 	}
+	it := &billing.Country{
+		IsoCodeA2:       "IT",
+		Region:          "UAH",
+		Currency:        "UAH",
+		PaymentsAllowed: true,
+		ChangeAllowed:   true,
+		VatEnabled:      true,
+		PriceGroupId:    pgUah.Id,
+		VatCurrency:     "",
+		VatThreshold: &billing.CountryVatThreshold{
+			Year:  0,
+			World: 0,
+		},
+		VatPeriodMonth:         3,
+		VatDeadlineDays:        25,
+		VatStoreYears:          5,
+		VatCurrencyRatesPolicy: "last-day",
+		VatCurrencyRatesSource: "cbrf",
+	}
 
 	ps0 := &billing.PaymentSystem{
 		Id:                 bson.NewObjectId().Hex(),
@@ -183,7 +207,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		Id:               bson.NewObjectId().Hex(),
 		Name:             "Bank card NEVER USING",
 		Group:            "BANKCARD",
-		MinPaymentAmount: 100,
+		MinPaymentAmount: 90,
 		MaxPaymentAmount: 15000,
 		Currencies:       []string{"RUB", "USD", "EUR"},
 		ExternalId:       "BANKCARD",
@@ -742,8 +766,24 @@ func (suite *OrderTestSuite) SetupTest() {
 		BankCountryIsoCode: "US",
 	}
 
+	bin2 := &BinData{
+		Id:                 bson.NewObjectId(),
+		CardBin:            408300,
+		CardBrand:          "VISA",
+		CardType:           "DEBIT",
+		CardCategory:       "WORLD",
+		BankName:           "ALFA BANK",
+		BankCountryName:    "UKRAINE",
+		BankCountryIsoCode: "US",
+	}
+
 	err = db.Collection(collectionBinData).Insert(bin)
 
+	if err != nil {
+		suite.FailNow("Insert BIN test data failed", "%v", err)
+	}
+
+	err = db.Collection(collectionBinData).Insert(bin2)
 	if err != nil {
 		suite.FailNow("Insert BIN test data failed", "%v", err)
 	}
@@ -803,7 +843,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 
-	pms := []*billing.PaymentMethod{pmBankCard, pmQiwi, pmBitcoin, pmWebMoney, pmWebMoneyWME, pmBitcoin1}
+	pms := []*billing.PaymentMethod{pmBankCard, pmQiwi, pmBitcoin, pmWebMoney, pmWebMoneyWME, pmBitcoin1, pmBankCardNotUsed}
 	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {
 		suite.FailNow("Insert payment methods test data failed", "%v", err)
 	}
@@ -813,7 +853,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
 	}
 
-	country := []*billing.Country{ru, us, by, ua}
+	country := []*billing.Country{ru, us, by, ua, it}
 	if err := suite.service.country.MultipleInsert(country); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
@@ -822,12 +862,12 @@ func (suite *OrderTestSuite) SetupTest() {
 		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 
-	ps := []*billing.PaymentSystem{ps1, ps2, ps3, ps4, ps5}
+	ps := []*billing.PaymentSystem{ps0, ps1, ps2, ps3, ps4, ps5}
 	if err := suite.service.paymentSystem.MultipleInsert(ps); err != nil {
 		suite.FailNow("Insert payment system test data failed", "%v", err)
 	}
 
-	pgs := []*billing.PriceGroup{pgRub, pgUsd, pgCis}
+	pgs := []*billing.PriceGroup{pgRub, pgUsd, pgCis, pgUah}
 	if err := suite.service.priceGroup.MultipleInsert(pgs); err != nil {
 		suite.FailNow("Insert price group test data failed", "%v", err)
 	}
@@ -3612,8 +3652,8 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_MerchantDontHaveCo
 	req := &billing.OrderCreateRequest{
 		Type:        billing.OrderType_simple,
 		ProjectId:   suite.project.Id,
-		Currency:    "RUB",
-		Amount:      100,
+		Currency:    "EUR",
+		Amount:      90,
 		Account:     "unit test",
 		Description: "unit test",
 		OrderId:     bson.NewObjectId().Hex(),
@@ -3627,7 +3667,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_MerchantDontHaveCo
 	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
 
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 	order := rsp1.Item
 
 	expireYear := time.Now().AddDate(1, 0, 0)
@@ -3637,11 +3677,12 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_MerchantDontHaveCo
 			pkg.PaymentCreateFieldOrderId:         order.Uuid,
 			pkg.PaymentCreateFieldPaymentMethodId: suite.paymentMethodWithoutCommission.Id,
 			pkg.PaymentCreateFieldEmail:           "test@unit.unit",
-			pkg.PaymentCreateFieldPan:             "4000000000000002",
+			pkg.PaymentCreateFieldPan:             "4083000000000002",
 			pkg.PaymentCreateFieldCvv:             "123",
 			pkg.PaymentCreateFieldMonth:           "02",
 			pkg.PaymentCreateFieldYear:            expireYear.Format("2006"),
 			pkg.PaymentCreateFieldHolder:          "Mr. Card Holder",
+			pkg.PaymentCreateFieldUserCountry:     "IT",
 		},
 		Ip: "127.0.0.1",
 	}
@@ -3651,6 +3692,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_MerchantDontHaveCo
 
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), errorCostMatchedToAmountNotFound, rsp.Message)
 }
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_ChangePaymentSystemTerminal_Ok() {

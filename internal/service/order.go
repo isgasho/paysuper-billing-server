@@ -747,6 +747,7 @@ func (s *Service) PaymentCreateProcess(
 
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
+
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = e
