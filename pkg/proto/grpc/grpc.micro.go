@@ -199,6 +199,17 @@ It has these top-level messages:
 	DashboardSalesTodayReport
 	DashboardSourcesReport
 	DashboardBaseReports
+	CreatePayoutDocumentRequest
+	PayoutDocumentResponse
+	UpdatePayoutDocumentRequest
+	GetPayoutDocumentsRequest
+	PayoutDocumentsPaginate
+	GetPayoutDocumentsResponse
+	GetPayoutDocumentSignUrlRequest
+	GetPayoutDocumentSignUrlResponse
+	UpdatePayoutDocumentSignaturesRequest
+	GetMerchantBalanceRequest
+	GetMerchantBalanceResponse
 */
 package grpc
 
@@ -354,6 +365,12 @@ type BillingService interface {
 	GetDashboardMainReport(ctx context.Context, in *GetDashboardMainRequest, opts ...client.CallOption) (*GetDashboardMainResponse, error)
 	GetDashboardRevenueDynamicsReport(ctx context.Context, in *GetDashboardMainRequest, opts ...client.CallOption) (*GetDashboardRevenueDynamicsReportResponse, error)
 	GetDashboardBaseReport(ctx context.Context, in *GetDashboardBaseReportRequest, opts ...client.CallOption) (*GetDashboardBaseReportResponse, error)
+	CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, opts ...client.CallOption) (*PayoutDocumentResponse, error)
+	UpdatePayoutDocument(ctx context.Context, in *UpdatePayoutDocumentRequest, opts ...client.CallOption) (*PayoutDocumentResponse, error)
+	GetPayoutDocuments(ctx context.Context, in *GetPayoutDocumentsRequest, opts ...client.CallOption) (*GetPayoutDocumentsResponse, error)
+	GetPayoutDocumentSignUrl(ctx context.Context, in *GetPayoutDocumentSignUrlRequest, opts ...client.CallOption) (*GetPayoutDocumentSignUrlResponse, error)
+	UpdatePayoutDocumentSignatures(ctx context.Context, in *UpdatePayoutDocumentSignaturesRequest, opts ...client.CallOption) (*PayoutDocumentResponse, error)
+	GetMerchantBalance(ctx context.Context, in *GetMerchantBalanceRequest, opts ...client.CallOption) (*GetMerchantBalanceResponse, error)
 }
 
 type billingService struct {
@@ -1574,6 +1591,66 @@ func (c *billingService) GetDashboardBaseReport(ctx context.Context, in *GetDash
 	return out, nil
 }
 
+func (c *billingService) CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, opts ...client.CallOption) (*PayoutDocumentResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.CreatePayoutDocument", in)
+	out := new(PayoutDocumentResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) UpdatePayoutDocument(ctx context.Context, in *UpdatePayoutDocumentRequest, opts ...client.CallOption) (*PayoutDocumentResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.UpdatePayoutDocument", in)
+	out := new(PayoutDocumentResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetPayoutDocuments(ctx context.Context, in *GetPayoutDocumentsRequest, opts ...client.CallOption) (*GetPayoutDocumentsResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetPayoutDocuments", in)
+	out := new(GetPayoutDocumentsResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetPayoutDocumentSignUrl(ctx context.Context, in *GetPayoutDocumentSignUrlRequest, opts ...client.CallOption) (*GetPayoutDocumentSignUrlResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetPayoutDocumentSignUrl", in)
+	out := new(GetPayoutDocumentSignUrlResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) UpdatePayoutDocumentSignatures(ctx context.Context, in *UpdatePayoutDocumentSignaturesRequest, opts ...client.CallOption) (*PayoutDocumentResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.UpdatePayoutDocumentSignatures", in)
+	out := new(PayoutDocumentResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetMerchantBalance(ctx context.Context, in *GetMerchantBalanceRequest, opts ...client.CallOption) (*GetMerchantBalanceResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetMerchantBalance", in)
+	out := new(GetMerchantBalanceResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for BillingService service
 
 type BillingServiceHandler interface {
@@ -1697,6 +1774,12 @@ type BillingServiceHandler interface {
 	GetDashboardMainReport(context.Context, *GetDashboardMainRequest, *GetDashboardMainResponse) error
 	GetDashboardRevenueDynamicsReport(context.Context, *GetDashboardMainRequest, *GetDashboardRevenueDynamicsReportResponse) error
 	GetDashboardBaseReport(context.Context, *GetDashboardBaseReportRequest, *GetDashboardBaseReportResponse) error
+	CreatePayoutDocument(context.Context, *CreatePayoutDocumentRequest, *PayoutDocumentResponse) error
+	UpdatePayoutDocument(context.Context, *UpdatePayoutDocumentRequest, *PayoutDocumentResponse) error
+	GetPayoutDocuments(context.Context, *GetPayoutDocumentsRequest, *GetPayoutDocumentsResponse) error
+	GetPayoutDocumentSignUrl(context.Context, *GetPayoutDocumentSignUrlRequest, *GetPayoutDocumentSignUrlResponse) error
+	UpdatePayoutDocumentSignatures(context.Context, *UpdatePayoutDocumentSignaturesRequest, *PayoutDocumentResponse) error
+	GetMerchantBalance(context.Context, *GetMerchantBalanceRequest, *GetMerchantBalanceResponse) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -1821,6 +1904,12 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetDashboardMainReport(ctx context.Context, in *GetDashboardMainRequest, out *GetDashboardMainResponse) error
 		GetDashboardRevenueDynamicsReport(ctx context.Context, in *GetDashboardMainRequest, out *GetDashboardRevenueDynamicsReportResponse) error
 		GetDashboardBaseReport(ctx context.Context, in *GetDashboardBaseReportRequest, out *GetDashboardBaseReportResponse) error
+		CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, out *PayoutDocumentResponse) error
+		UpdatePayoutDocument(ctx context.Context, in *UpdatePayoutDocumentRequest, out *PayoutDocumentResponse) error
+		GetPayoutDocuments(ctx context.Context, in *GetPayoutDocumentsRequest, out *GetPayoutDocumentsResponse) error
+		GetPayoutDocumentSignUrl(ctx context.Context, in *GetPayoutDocumentSignUrlRequest, out *GetPayoutDocumentSignUrlResponse) error
+		UpdatePayoutDocumentSignatures(ctx context.Context, in *UpdatePayoutDocumentSignaturesRequest, out *PayoutDocumentResponse) error
+		GetMerchantBalance(ctx context.Context, in *GetMerchantBalanceRequest, out *GetMerchantBalanceResponse) error
 	}
 	type BillingService struct {
 		billingService
@@ -2311,4 +2400,28 @@ func (h *billingServiceHandler) GetDashboardRevenueDynamicsReport(ctx context.Co
 
 func (h *billingServiceHandler) GetDashboardBaseReport(ctx context.Context, in *GetDashboardBaseReportRequest, out *GetDashboardBaseReportResponse) error {
 	return h.BillingServiceHandler.GetDashboardBaseReport(ctx, in, out)
+}
+
+func (h *billingServiceHandler) CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, out *PayoutDocumentResponse) error {
+	return h.BillingServiceHandler.CreatePayoutDocument(ctx, in, out)
+}
+
+func (h *billingServiceHandler) UpdatePayoutDocument(ctx context.Context, in *UpdatePayoutDocumentRequest, out *PayoutDocumentResponse) error {
+	return h.BillingServiceHandler.UpdatePayoutDocument(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetPayoutDocuments(ctx context.Context, in *GetPayoutDocumentsRequest, out *GetPayoutDocumentsResponse) error {
+	return h.BillingServiceHandler.GetPayoutDocuments(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetPayoutDocumentSignUrl(ctx context.Context, in *GetPayoutDocumentSignUrlRequest, out *GetPayoutDocumentSignUrlResponse) error {
+	return h.BillingServiceHandler.GetPayoutDocumentSignUrl(ctx, in, out)
+}
+
+func (h *billingServiceHandler) UpdatePayoutDocumentSignatures(ctx context.Context, in *UpdatePayoutDocumentSignaturesRequest, out *PayoutDocumentResponse) error {
+	return h.BillingServiceHandler.UpdatePayoutDocumentSignatures(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetMerchantBalance(ctx context.Context, in *GetMerchantBalanceRequest, out *GetMerchantBalanceResponse) error {
+	return h.BillingServiceHandler.GetMerchantBalance(ctx, in, out)
 }

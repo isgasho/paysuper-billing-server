@@ -44,11 +44,18 @@ var (
 	royaltyReportErrorReportStatusChangeDenied        = newBillingServerErrorMsg("rr00002", "change royalty report to new status denied")
 	royaltyReportErrorReportDisputeCorrectionRequired = newBillingServerErrorMsg("rr00003", "for change royalty report status to dispute fields with correction amount and correction reason is required")
 	royaltyReportEntryErrorUnknown                    = newBillingServerErrorMsg("rr00004", "unknown error. try request later")
+	royaltyReportUpdateBalanceError                   = newBillingServerErrorMsg("rr00005", "update balance failed")
 
 	orderStatusForRoyaltyReports = []string{
 		constant.OrderPublicStatusProcessed,
 		constant.OrderPublicStatusRefunded,
 		constant.OrderPublicStatusChargeback,
+	}
+
+	royaltyReportsStatusActive = []string{
+		pkg.RoyaltyReportStatusPending,
+		pkg.RoyaltyReportStatusAccepted,
+		pkg.RoyaltyReportStatusDispute,
 	}
 )
 
@@ -74,6 +81,16 @@ type royaltyHandler struct {
 	*Service
 	from time.Time
 	to   time.Time
+}
+
+type RoyaltyReportServiceInterface interface {
+	GetNonPayoutReports(merchantId, currency string, excludeIdsString []string) ([]*billing.RoyaltyReport, error)
+	GetBalanceAmount(merchantId, currency string) (float64, error)
+}
+
+func newRoyaltyReport(svc *Service) RoyaltyReportServiceInterface {
+	s := &RoyaltyReport{svc: svc}
+	return s
 }
 
 func (s *Service) CreateRoyaltyReport(
@@ -184,6 +201,11 @@ func (s *Service) AutoAcceptRoyaltyReports(
 		}
 
 		s.onRoyaltyReportChange(report, "", pkg.RoyaltyReportChangeSourceAuto)
+
+		_, err = s.updateMerchantBalance(report.MerchantId)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -285,6 +307,7 @@ func (s *Service) MerchantReviewRoyaltyReport(
 	if report.Status != pkg.RoyaltyReportStatusPending {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = royaltyReportErrorReportStatusChangeDenied
+		return nil
 	}
 
 	if req.IsAccepted == true {
@@ -312,6 +335,16 @@ func (s *Service) MerchantReviewRoyaltyReport(
 	}
 
 	s.onRoyaltyReportChange(report, req.Ip, pkg.RoyaltyReportChangeSourceMerchant)
+
+	if req.IsAccepted {
+		_, err = s.updateMerchantBalance(report.MerchantId)
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = royaltyReportUpdateBalanceError
+
+			return nil
+		}
+	}
 
 	rsp.Status = pkg.ResponseStatusOk
 
@@ -382,6 +415,11 @@ func (s *Service) ChangeRoyaltyReport(
 
 	if req.Status == pkg.RoyaltyReportStatusPending {
 		s.sendRoyaltyReportNotification(ctx, report)
+	}
+
+	_, err = s.updateMerchantBalance(report.MerchantId)
+	if err != nil {
+		return err
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
@@ -578,12 +616,8 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(ctx context.Context, mercha
 		Id:         bson.NewObjectId().Hex(),
 		MerchantId: merchantId.Hex(),
 		Amounts:    amounts,
-		Status:     pkg.RoyaltyReportStatusNew,
+		Status:     pkg.RoyaltyReportStatusPending,
 		CreatedAt:  ptypes.TimestampNow(),
-	}
-
-	if amounts.PayoutAmount >= merchant.MinPayoutAmount {
-		report.Status = pkg.RoyaltyReportStatusPending
 	}
 
 	report.PeriodFrom, _ = ptypes.TimestampProto(h.from)
@@ -651,4 +685,69 @@ func (s *Service) sendRoyaltyReportNotification(ctx context.Context, report *bil
 	}
 
 	return
+}
+
+func (r RoyaltyReport) GetNonPayoutReports(merchantId, currency string, excludeIdsString []string) (result []*billing.RoyaltyReport, err error) {
+	query := bson.M{
+		"merchant_id":      bson.ObjectIdHex(merchantId),
+		"amounts.currency": currency,
+		"status":           bson.M{"$in": royaltyReportsStatusActive},
+	}
+
+	if len(excludeIdsString) > 0 {
+		excludeIds := []bson.ObjectId{}
+		for _, v := range excludeIdsString {
+			excludeIds = append(excludeIds, bson.ObjectIdHex(v))
+		}
+
+		query["_id"] = bson.M{"$nin": excludeIds}
+	}
+	sorts := "period_from"
+	err = r.svc.db.Collection(collectionRoyaltyReport).Find(query).Sort(sorts).All(&result)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(errorFieldCollection, collectionRoyaltyReport),
+			zap.Any(errorFieldQuery, query),
+			zap.Any(pkg.ErrorDatabaseFieldSorts, sorts),
+		)
+	}
+
+	return
+
+}
+
+func (r RoyaltyReport) GetBalanceAmount(merchantId, currency string) (float64, error) {
+	query := []bson.M{
+		{
+			"$match": bson.M{
+				"merchant_id":      bson.ObjectIdHex(merchantId),
+				"amounts.currency": currency,
+				"status":           pkg.RoyaltyReportStatusAccepted,
+			},
+		},
+		{
+			"$group": bson.M{
+				"_id":    "$amounts.currency",
+				"amount": bson.M{"$sum": "$amounts.payout_amount"},
+			},
+		},
+	}
+
+	res := &balanceQueryResItem{}
+
+	err := r.svc.db.Collection(collectionRoyaltyReport).Pipe(query).One(&res)
+	if err != nil && err != mgo.ErrNotFound {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String("collection", collectionRoyaltyReport),
+			zap.Any("query", query),
+		)
+		return 0, err
+	}
+
+	return res.Amount, nil
 }

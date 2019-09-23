@@ -745,6 +745,404 @@ type MgoKey struct {
 	RedeemedAt   time.Time      `bson:"redeemed_at"`
 }
 
+type MgoPayoutDocument struct {
+	Id                    bson.ObjectId                   `bson:"_id"`
+	SourceId              []string                        `bson:"source_id"`
+	Transaction           string                          `bson:"transaction"`
+	Amount                float64                         `bson:"amount"`
+	Currency              string                          `bson:"currency"`
+	Status                string                          `bson:"status"`
+	Description           string                          `bson:"description"`
+	Destination           *MerchantBanking                `bson:"destination"`
+	CreatedAt             time.Time                       `bson:"created_at"`
+	UpdatedAt             time.Time                       `bson:"updated_at"`
+	ArrivalDate           time.Time                       `bson:"arrival_date"`
+	FailureCode           string                          `bson:"failure_code"`
+	FailureMessage        string                          `bson:"failure_message"`
+	FailureTransaction    string                          `bson:"failure_transaction"`
+	MerchantId            bson.ObjectId                   `bson:"merchant_id"`
+	SignatureData         *MgoPayoutDocumentSignatureData `bson:"signature_data"`
+	HasMerchantSignature  bool                            `bson:"has_merchant_signature"`
+	HasPspSignature       bool                            `bson:"has_psp_signature"`
+	SignedDocumentFileUrl string                          `bson:"signed_document_file_url"`
+	PeriodFrom            time.Time                       `bson:"period_from"`
+	PeriodTo              time.Time                       `bson:"period_to"`
+	Summary               *PayoutDocumentSummary          `bson:"summary"`
+}
+
+type MgoPayoutDocumentSignatureDataSignUrl struct {
+	SignUrl   string    `bson:"sign_url"`
+	ExpiresAt time.Time `bson:"expires_at"`
+}
+
+type MgoPayoutDocumentSignatureData struct {
+	DetailsUrl          string                                 `bson:"details_url"`
+	FilesUrl            string                                 `bson:"files_url"`
+	SignatureRequestId  string                                 `bson:"signature_request_id"`
+	MerchantSignatureId string                                 `bson:"merchant_signature_id"`
+	PsSignatureId       string                                 `bson:"ps_signature_id"`
+	MerchantSignUrl     *MgoPayoutDocumentSignatureDataSignUrl `bson:"merchant_sign_url"`
+	PsSignUrl           *MgoPayoutDocumentSignatureDataSignUrl `bson:"ps_sign_url"`
+}
+
+type MgoPayoutDocumentChanges struct {
+	Id               bson.ObjectId `bson:"_id"`
+	PayoutDocumentId bson.ObjectId `bson:"payout_document_id"`
+	Source           string        `bson:"source"`
+	Ip               string        `bson:"ip"`
+	CreatedAt        time.Time     `bson:"created_at"`
+}
+
+type MgoMerchantBalance struct {
+	Id             bson.ObjectId `bson:"_id"`
+	MerchantId     bson.ObjectId `bson:"merchant_id"`
+	Currency       string        `bson:"currency"`
+	Debit          float64       `bson:"debit"`
+	Credit         float64       `bson:"credit"`
+	RollingReserve float64       `bson:"rolling_reserve"`
+	Total          float64       `bson:"total"`
+	CreatedAt      time.Time     `bson:"created_at"`
+}
+
+func (m *PayoutDocument) GetBSON() (interface{}, error) {
+	st := &MgoPayoutDocument{
+		SourceId:              m.SourceId,
+		Transaction:           m.Transaction,
+		Amount:                m.Amount,
+		Currency:              m.Currency,
+		Status:                m.Status,
+		Description:           m.Description,
+		Destination:           m.Destination,
+		FailureCode:           m.FailureCode,
+		FailureMessage:        m.FailureMessage,
+		FailureTransaction:    m.FailureTransaction,
+		HasMerchantSignature:  m.HasMerchantSignature,
+		HasPspSignature:       m.HasPspSignature,
+		SignedDocumentFileUrl: m.SignedDocumentFileUrl,
+		Summary:               m.Summary,
+	}
+	if len(m.Id) <= 0 {
+		st.Id = bson.NewObjectId()
+	} else {
+		if bson.IsObjectIdHex(m.Id) == false {
+			return nil, errors.New(errorInvalidObjectId)
+		}
+
+		st.Id = bson.ObjectIdHex(m.Id)
+	}
+
+	if bson.IsObjectIdHex(m.MerchantId) == false {
+		return nil, errors.New(errorInvalidObjectId)
+	}
+
+	st.MerchantId = bson.ObjectIdHex(m.MerchantId)
+
+	if m.CreatedAt != nil {
+		t, err := ptypes.Timestamp(m.CreatedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.CreatedAt = t
+	} else {
+		st.CreatedAt = time.Now()
+	}
+
+	if m.UpdatedAt != nil {
+		t, err := ptypes.Timestamp(m.UpdatedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.UpdatedAt = t
+	} else {
+		st.UpdatedAt = time.Now()
+	}
+
+	if m.ArrivalDate != nil {
+		t, err := ptypes.Timestamp(m.ArrivalDate)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.ArrivalDate = t
+	} else {
+		st.ArrivalDate = time.Now()
+	}
+
+	if m.PeriodFrom != nil {
+		t, err := ptypes.Timestamp(m.PeriodFrom)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.PeriodFrom = t
+	}
+
+	if m.PeriodTo != nil {
+		t, err := ptypes.Timestamp(m.PeriodTo)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.PeriodTo = t
+	}
+
+	if m.SignatureData != nil {
+		st.SignatureData = &MgoPayoutDocumentSignatureData{
+			DetailsUrl:          m.SignatureData.DetailsUrl,
+			FilesUrl:            m.SignatureData.FilesUrl,
+			SignatureRequestId:  m.SignatureData.SignatureRequestId,
+			MerchantSignatureId: m.SignatureData.MerchantSignatureId,
+			PsSignatureId:       m.SignatureData.PsSignatureId,
+		}
+
+		if m.SignatureData.MerchantSignUrl != nil {
+			st.SignatureData.MerchantSignUrl = &MgoPayoutDocumentSignatureDataSignUrl{
+				SignUrl: m.SignatureData.MerchantSignUrl.SignUrl,
+			}
+
+			t, err := ptypes.Timestamp(m.SignatureData.MerchantSignUrl.ExpiresAt)
+
+			if err != nil {
+				return nil, err
+			}
+
+			st.SignatureData.MerchantSignUrl.ExpiresAt = t
+		}
+
+		if m.SignatureData.PsSignUrl != nil {
+			st.SignatureData.PsSignUrl = &MgoPayoutDocumentSignatureDataSignUrl{
+				SignUrl: m.SignatureData.PsSignUrl.SignUrl,
+			}
+
+			t, err := ptypes.Timestamp(m.SignatureData.PsSignUrl.ExpiresAt)
+
+			if err != nil {
+				return nil, err
+			}
+
+			st.SignatureData.PsSignUrl.ExpiresAt = t
+		}
+	}
+
+	return st, nil
+}
+
+func (m *PayoutDocument) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoPayoutDocument)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.SourceId = decoded.SourceId
+	m.Transaction = decoded.Transaction
+	m.Amount = decoded.Amount
+	m.Currency = decoded.Currency
+	m.Status = decoded.Status
+	m.Description = decoded.Description
+	m.Destination = decoded.Destination
+	m.FailureCode = decoded.FailureCode
+	m.FailureMessage = decoded.FailureMessage
+	m.FailureTransaction = decoded.FailureTransaction
+	m.MerchantId = decoded.MerchantId.Hex()
+	m.HasMerchantSignature = decoded.HasMerchantSignature
+	m.HasPspSignature = decoded.HasPspSignature
+	m.SignedDocumentFileUrl = decoded.SignedDocumentFileUrl
+	m.Summary = decoded.Summary
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	m.UpdatedAt, err = ptypes.TimestampProto(decoded.UpdatedAt)
+	if err != nil {
+		return err
+	}
+
+	m.ArrivalDate, err = ptypes.TimestampProto(decoded.ArrivalDate)
+	if err != nil {
+		return err
+	}
+
+	m.PeriodFrom, err = ptypes.TimestampProto(decoded.PeriodFrom)
+	if err != nil {
+		return err
+	}
+
+	m.PeriodTo, err = ptypes.TimestampProto(decoded.PeriodTo)
+	if err != nil {
+		return err
+	}
+
+	if decoded.SignatureData != nil {
+		m.SignatureData = &PayoutDocumentSignatureData{
+			DetailsUrl:          decoded.SignatureData.DetailsUrl,
+			FilesUrl:            decoded.SignatureData.FilesUrl,
+			SignatureRequestId:  decoded.SignatureData.SignatureRequestId,
+			MerchantSignatureId: decoded.SignatureData.MerchantSignatureId,
+			PsSignatureId:       decoded.SignatureData.PsSignatureId,
+		}
+
+		if decoded.SignatureData.MerchantSignUrl != nil {
+			m.SignatureData.MerchantSignUrl = &PayoutDocumentSignatureDataSignUrl{
+				SignUrl: decoded.SignatureData.MerchantSignUrl.SignUrl,
+			}
+
+			t, err := ptypes.TimestampProto(decoded.SignatureData.MerchantSignUrl.ExpiresAt)
+
+			if err != nil {
+				return err
+			}
+
+			m.SignatureData.MerchantSignUrl.ExpiresAt = t
+		}
+
+		if decoded.SignatureData.PsSignUrl != nil {
+			m.SignatureData.PsSignUrl = &PayoutDocumentSignatureDataSignUrl{
+				SignUrl: decoded.SignatureData.PsSignUrl.SignUrl,
+			}
+
+			t, err := ptypes.TimestampProto(decoded.SignatureData.PsSignUrl.ExpiresAt)
+
+			if err != nil {
+				return err
+			}
+
+			m.SignatureData.PsSignUrl.ExpiresAt = t
+		}
+	}
+
+	return nil
+}
+
+func (m *PayoutDocumentChanges) GetBSON() (interface{}, error) {
+	st := &MgoPayoutDocumentChanges{
+		Source: m.Source,
+		Ip:     m.Ip,
+	}
+	if len(m.Id) <= 0 {
+		st.Id = bson.NewObjectId()
+	} else {
+		if bson.IsObjectIdHex(m.Id) == false {
+			return nil, errors.New(errorInvalidObjectId)
+		}
+		st.Id = bson.ObjectIdHex(m.Id)
+	}
+
+	if bson.IsObjectIdHex(m.PayoutDocumentId) == false {
+		return nil, errors.New(errorInvalidObjectId)
+	}
+	st.PayoutDocumentId = bson.ObjectIdHex(m.PayoutDocumentId)
+
+	if m.CreatedAt != nil {
+		t, err := ptypes.Timestamp(m.CreatedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.CreatedAt = t
+	} else {
+		st.CreatedAt = time.Now()
+	}
+
+	return st, nil
+}
+
+func (m *PayoutDocumentChanges) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoPayoutDocumentChanges)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.PayoutDocumentId = decoded.PayoutDocumentId.Hex()
+	m.Source = decoded.Source
+	m.Ip = decoded.Ip
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *MerchantBalance) GetBSON() (interface{}, error) {
+	st := &MgoMerchantBalance{
+		Currency:       m.Currency,
+		Debit:          m.Debit,
+		Credit:         m.Credit,
+		RollingReserve: m.RollingReserve,
+		Total:          m.Total,
+	}
+	if len(m.Id) <= 0 {
+		st.Id = bson.NewObjectId()
+	} else {
+		if bson.IsObjectIdHex(m.Id) == false {
+			return nil, errors.New(errorInvalidObjectId)
+		}
+
+		st.Id = bson.ObjectIdHex(m.Id)
+	}
+
+	if bson.IsObjectIdHex(m.MerchantId) == false {
+		return nil, errors.New(errorInvalidObjectId)
+	}
+
+	st.MerchantId = bson.ObjectIdHex(m.MerchantId)
+
+	if m.CreatedAt != nil {
+		t, err := ptypes.Timestamp(m.CreatedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.CreatedAt = t
+	} else {
+		st.CreatedAt = time.Now()
+	}
+
+	return st, nil
+}
+
+func (m *MerchantBalance) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoMerchantBalance)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.MerchantId = decoded.MerchantId.Hex()
+	m.Currency = decoded.Currency
+	m.Debit = decoded.Debit
+	m.Credit = decoded.Credit
+	m.RollingReserve = decoded.RollingReserve
+	m.Total = decoded.Total
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (m *Country) GetBSON() (interface{}, error) {
 	st := &MgoCountry{
 		IsoCodeA2:              m.IsoCodeA2,

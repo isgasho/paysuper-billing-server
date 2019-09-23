@@ -115,8 +115,8 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 	}
 
 	suite.merchant, suite.project, suite.paymentMethod, suite.paymentSystem = helperCreateEntitiesForTests(suite.Suite, suite.service)
-	suite.merchant1 = helperCreateMerchant(suite.Suite, suite.service, "USD", "RU", suite.paymentMethod)
-	suite.merchant2 = helperCreateMerchant(suite.Suite, suite.service, "USD", "RU", suite.paymentMethod)
+	suite.merchant1 = helperCreateMerchant(suite.Suite, suite.service, "USD", "RU", suite.paymentMethod, 0)
+	suite.merchant2 = helperCreateMerchant(suite.Suite, suite.service, "USD", "RU", suite.paymentMethod, 0)
 
 	suite.project1 = &billing.Project{
 		Id:                       bson.NewObjectId().Hex(),
@@ -754,7 +754,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_Chang
 
 	req1 := &grpc.ChangeRoyaltyReportRequest{
 		ReportId: report.Id,
-		Status:   pkg.RoyaltyReportStatusNew,
+		Status:   pkg.RoyaltyReportStatusCanceled,
 		Ip:       "127.0.0.1",
 	}
 	rsp1 := &grpc.ResponseError{}
@@ -867,10 +867,10 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_SendRoyaltyReportNotifica
 		MerchantId: bson.NewObjectId().Hex(),
 	}
 	suite.service.sendRoyaltyReportNotification(context.Background(), report)
-	assert.True(suite.T(), recorded.Len() == 1)
+	assert.True(suite.T(), recorded.Len() == 2)
 
 	messages := recorded.All()
-	assert.Contains(suite.T(), messages[0].Message, "Merchant not found")
+	assert.Contains(suite.T(), messages[1].Message, "Merchant not found")
 }
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_SendRoyaltyReportNotification_CentrifugoSendError() {

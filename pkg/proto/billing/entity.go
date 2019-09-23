@@ -135,16 +135,12 @@ func (m *RoyaltyReport) ChangesAvailable(newStatus string) bool {
 		return false
 	}
 
-	if m.Status == pkg.RoyaltyReportStatusNew && newStatus != pkg.RoyaltyReportStatusPending && newStatus != pkg.RoyaltyReportStatusCanceled {
-		return false
-	}
-
 	if m.Status == pkg.RoyaltyReportStatusPending && newStatus != pkg.RoyaltyReportStatusAccepted &&
 		newStatus != pkg.RoyaltyReportStatusDispute {
 		return false
 	}
 
-	if m.Status == pkg.RoyaltyReportStatusCanceled && newStatus != pkg.RoyaltyReportStatusNew {
+	if m.Status == pkg.RoyaltyReportStatusCanceled && newStatus != pkg.RoyaltyReportStatusPending {
 		return false
 	}
 
@@ -238,4 +234,16 @@ func (m *Merchant) HasTariffMoneyBack() bool {
 
 func (m *Merchant) HasPrimaryOnboardingUserName() bool {
 	return m.User != nil && m.User.FirstName != "" && m.User.LastName != ""
+}
+
+func (pd *PayoutDocument) IsPaysuperSignatureId(signatureId string) bool {
+	return pd.SignatureData.PsSignatureId == signatureId
+}
+
+func (pd *PayoutDocument) IsMerchantSignature(signatureId string) bool {
+	return pd.SignatureData.MerchantSignatureId == signatureId
+}
+
+func (pd *PayoutDocument) IsFullySigned() bool {
+	return pd.HasMerchantSignature == true && pd.HasPspSignature == true
 }

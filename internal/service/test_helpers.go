@@ -76,7 +76,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		PaymentSystemId: paymentSystem.Id,
 	}
 
-	merchant := helperCreateMerchant(suite, service, "USD", "RU", pmBankCard)
+	merchant := helperCreateMerchant(suite, service, "USD", "RU", pmBankCard, 0)
 
 	projectFixedAmount := &billing.Project{
 		Id:                       bson.NewObjectId().Hex(),
@@ -261,7 +261,14 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 	return merchant, projectFixedAmount, pmBankCard, paymentSystem
 }
 
-func helperCreateMerchant(suite suite.Suite, service *Service, currency, country string, paymentMethod *billing.PaymentMethod) *billing.Merchant {
+func helperCreateMerchant(
+	suite suite.Suite,
+	service *Service,
+	currency string,
+	country string,
+	paymentMethod *billing.PaymentMethod,
+	minPayoutAmount float64,
+) *billing.Merchant {
 	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -360))
 
 	if err != nil {
@@ -292,35 +299,38 @@ func helperCreateMerchant(suite suite.Suite, service *Service, currency, country
 			Name:     "Bank name",
 		},
 		IsVatEnabled:              true,
+		MinPayoutAmount:           minPayoutAmount,
 		IsCommissionToUserEnabled: true,
 		Status:                    pkg.MerchantStatusDraft,
 		LastPayout: &billing.MerchantLastPayout{
 			Date:   date,
 			Amount: 999999,
 		},
-		IsSigned: true,
-		PaymentMethods: map[string]*billing.MerchantPaymentMethod{
-			paymentMethod.Id: {
-				PaymentMethod: &billing.MerchantPaymentMethodIdentification{
-					Id:   paymentMethod.Id,
-					Name: paymentMethod.Name,
-				},
-				Commission: &billing.MerchantPaymentMethodCommissions{
-					Fee: 2.5,
-					PerTransaction: &billing.MerchantPaymentMethodPerTransactionCommission{
-						Fee:      30,
-						Currency: "RUB",
-					},
-				},
-				Integration: &billing.MerchantPaymentMethodIntegration{
-					TerminalId:               "15985",
-					TerminalPassword:         "A1tph4I6BD0f",
-					TerminalCallbackPassword: "0V1rJ7t4jCRv",
-					Integrated:               true,
-				},
-				IsActive: true,
+		IsSigned:       true,
+		PaymentMethods: map[string]*billing.MerchantPaymentMethod{},
+	}
+
+	if paymentMethod != nil {
+		merchant.PaymentMethods[paymentMethod.Id] = &billing.MerchantPaymentMethod{
+			PaymentMethod: &billing.MerchantPaymentMethodIdentification{
+				Id:   paymentMethod.Id,
+				Name: paymentMethod.Name,
 			},
-		},
+			Commission: &billing.MerchantPaymentMethodCommissions{
+				Fee: 2.5,
+				PerTransaction: &billing.MerchantPaymentMethodPerTransactionCommission{
+					Fee:      30,
+					Currency: "RUB",
+				},
+			},
+			Integration: &billing.MerchantPaymentMethodIntegration{
+				TerminalId:               "15985",
+				TerminalPassword:         "A1tph4I6BD0f",
+				TerminalCallbackPassword: "0V1rJ7t4jCRv",
+				Integrated:               true,
+			},
+			IsActive: true,
+		}
 	}
 
 	merchants := []*billing.Merchant{merchant}

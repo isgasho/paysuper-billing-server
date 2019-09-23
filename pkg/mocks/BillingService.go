@@ -643,6 +643,36 @@ func (_m *BillingService) CreatePageReview(ctx context.Context, in *grpc.CreateP
 	return r0, r1
 }
 
+// CreatePayoutDocument provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) CreatePayoutDocument(ctx context.Context, in *grpc.CreatePayoutDocumentRequest, opts ...client.CallOption) (*grpc.PayoutDocumentResponse, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *grpc.PayoutDocumentResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.CreatePayoutDocumentRequest, ...client.CallOption) *grpc.PayoutDocumentResponse); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*grpc.PayoutDocumentResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.CreatePayoutDocumentRequest, ...client.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // CreateRefund provides a mock function with given fields: ctx, in, opts
 func (_m *BillingService) CreateRefund(ctx context.Context, in *grpc.CreateRefundRequest, opts ...client.CallOption) (*grpc.CreateRefundResponse, error) {
 	_va := make([]interface{}, len(opts))
@@ -1633,6 +1663,36 @@ func (_m *BillingService) GetMerchantAgreementSignUrl(ctx context.Context, in *g
 	return r0, r1
 }
 
+// GetMerchantBalance provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) GetMerchantBalance(ctx context.Context, in *grpc.GetMerchantBalanceRequest, opts ...client.CallOption) (*grpc.GetMerchantBalanceResponse, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *grpc.GetMerchantBalanceResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.GetMerchantBalanceRequest, ...client.CallOption) *grpc.GetMerchantBalanceResponse); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*grpc.GetMerchantBalanceResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.GetMerchantBalanceRequest, ...client.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetMerchantBy provides a mock function with given fields: ctx, in, opts
 func (_m *BillingService) GetMerchantBy(ctx context.Context, in *grpc.GetMerchantByRequest, opts ...client.CallOption) (*grpc.GetMerchantResponse, error) {
 	_va := make([]interface{}, len(opts))
@@ -2015,6 +2075,66 @@ func (_m *BillingService) GetPaymentMethodTestSettings(ctx context.Context, in *
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *grpc.GetPaymentMethodSettingsRequest, ...client.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetPayoutDocumentSignUrl provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) GetPayoutDocumentSignUrl(ctx context.Context, in *grpc.GetPayoutDocumentSignUrlRequest, opts ...client.CallOption) (*grpc.GetPayoutDocumentSignUrlResponse, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *grpc.GetPayoutDocumentSignUrlResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.GetPayoutDocumentSignUrlRequest, ...client.CallOption) *grpc.GetPayoutDocumentSignUrlResponse); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*grpc.GetPayoutDocumentSignUrlResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.GetPayoutDocumentSignUrlRequest, ...client.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetPayoutDocuments provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) GetPayoutDocuments(ctx context.Context, in *grpc.GetPayoutDocumentsRequest, opts ...client.CallOption) (*grpc.GetPayoutDocumentsResponse, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *grpc.GetPayoutDocumentsResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.GetPayoutDocumentsRequest, ...client.CallOption) *grpc.GetPayoutDocumentsResponse); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*grpc.GetPayoutDocumentsResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.GetPayoutDocumentsRequest, ...client.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)
@@ -3455,6 +3575,66 @@ func (_m *BillingService) UpdateOrder(ctx context.Context, in *billing.Order, op
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *billing.Order, ...client.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// UpdatePayoutDocument provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) UpdatePayoutDocument(ctx context.Context, in *grpc.UpdatePayoutDocumentRequest, opts ...client.CallOption) (*grpc.PayoutDocumentResponse, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *grpc.PayoutDocumentResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.UpdatePayoutDocumentRequest, ...client.CallOption) *grpc.PayoutDocumentResponse); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*grpc.PayoutDocumentResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.UpdatePayoutDocumentRequest, ...client.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// UpdatePayoutDocumentSignatures provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) UpdatePayoutDocumentSignatures(ctx context.Context, in *grpc.UpdatePayoutDocumentSignaturesRequest, opts ...client.CallOption) (*grpc.PayoutDocumentResponse, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *grpc.PayoutDocumentResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.UpdatePayoutDocumentSignaturesRequest, ...client.CallOption) *grpc.PayoutDocumentResponse); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*grpc.PayoutDocumentResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.UpdatePayoutDocumentSignaturesRequest, ...client.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)

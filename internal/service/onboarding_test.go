@@ -2864,7 +2864,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_Ok() {
 
 	req2 := &grpc.GetMerchantAgreementSignUrlRequest{
 		MerchantId: rsp.Item.Id,
-		SignerType: signerTypeMerchant,
+		SignerType: pkg.SignerTypeMerchant,
 	}
 	rsp2 := &grpc.GetMerchantAgreementSignUrlResponse{}
 	err = suite.service.GetMerchantAgreementSignUrl(context.TODO(), req2, rsp2)
@@ -2979,7 +2979,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_AgreementAlreadyS
 
 	req2 := &grpc.GetMerchantAgreementSignUrlRequest{
 		MerchantId: rsp.Item.Id,
-		SignerType: signerTypeMerchant,
+		SignerType: pkg.SignerTypeMerchant,
 	}
 	rsp2 := &grpc.GetMerchantAgreementSignUrlResponse{}
 	err = suite.service.GetMerchantAgreementSignUrl(context.TODO(), req2, rsp2)
@@ -3074,7 +3074,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_MerchantHasSignat
 
 	req2 := &grpc.GetMerchantAgreementSignUrlRequest{
 		MerchantId: rsp.Item.Id,
-		SignerType: signerTypeMerchant,
+		SignerType: pkg.SignerTypeMerchant,
 	}
 	rsp2 := &grpc.GetMerchantAgreementSignUrlResponse{}
 	err = suite.service.GetMerchantAgreementSignUrl(context.TODO(), req2, rsp2)
@@ -3165,7 +3165,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerSys
 
 	req2 := &grpc.GetMerchantAgreementSignUrlRequest{
 		MerchantId: rsp.Item.Id,
-		SignerType: signerTypeMerchant,
+		SignerType: pkg.SignerTypeMerchant,
 	}
 	rsp2 := &grpc.GetMerchantAgreementSignUrlResponse{}
 	err = suite.service.GetMerchantAgreementSignUrl(context.TODO(), req2, rsp2)
@@ -3258,7 +3258,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerRes
 
 	req1 := &grpc.GetMerchantAgreementSignUrlRequest{
 		MerchantId: rsp.Item.Id,
-		SignerType: signerTypeMerchant,
+		SignerType: pkg.SignerTypeMerchant,
 	}
 	rsp1 := &grpc.GetMerchantAgreementSignUrlResponse{}
 	err = suite.service.GetMerchantAgreementSignUrl(context.TODO(), req1, rsp1)
@@ -3348,7 +3348,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_UpdateError() {
 
 	req2 := &grpc.GetMerchantAgreementSignUrlRequest{
 		MerchantId: rsp.Item.Id,
-		SignerType: signerTypeMerchant,
+		SignerType: pkg.SignerTypeMerchant,
 	}
 	rsp2 := &grpc.GetMerchantAgreementSignUrlResponse{}
 	err = suite.service.GetMerchantAgreementSignUrl(context.TODO(), req2, rsp2)
@@ -3669,7 +3669,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_Agr
 
 	req1 := &grpc.GetMerchantAgreementSignUrlRequest{
 		MerchantId: rsp.Item.Id,
-		SignerType: signerTypeMerchant,
+		SignerType: pkg.SignerTypeMerchant,
 	}
 	rsp1 := &grpc.GetMerchantAgreementSignUrlResponse{}
 	err = suite.service.GetMerchantAgreementSignUrl(context.TODO(), req1, rsp1)
