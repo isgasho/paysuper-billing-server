@@ -107,7 +107,7 @@ func (s *Service) CreateRoyaltyReport(
 		return errors.New(royaltyReportErrorTimezoneIncorrect)
 	}
 
-	to := now.Monday().In(loc).Add(time.Duration(18) * time.Hour)
+	to := now.Monday().In(loc).Add(time.Duration(s.cfg.RoyaltyReportPeriodEndHour) * time.Hour)
 	if to.After(time.Now().In(loc)) {
 		zap.S().Errorf(royaltyReportErrorTimezoneIncorrect)
 		return errors.New(royaltyReportErrorEndOfPeriodIsInFuture)

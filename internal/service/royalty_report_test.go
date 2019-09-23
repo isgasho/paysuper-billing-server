@@ -25,6 +25,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
 	rabbitmq "gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
+	"math"
 	"net/http"
 	"testing"
 	"time"
@@ -58,6 +59,7 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 		suite.FailNow("Config load failed", "%v", err)
 	}
 	cfg.AccountingCurrency = "RUB"
+	cfg.RoyaltyReportPeriodEndHour = 0
 	cfg.CardPayApiUrl = "https://sandbox.cardpay.com"
 
 	m, err := migrate.New(
@@ -183,7 +185,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_CreateRoyaltyReport_AllMe
 	loc, err := time.LoadLocation(suite.service.cfg.RoyaltyReportTimeZone)
 	assert.NoError(suite.T(), err)
 
-	to := now.Monday().In(loc).Add(time.Duration(18) * time.Hour)
+	to := now.Monday().In(loc).Add(time.Duration(suite.service.cfg.RoyaltyReportPeriodEndHour) * time.Hour)
 	from := to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).In(loc)
 
 	var reports []*billing.RoyaltyReport
@@ -256,7 +258,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_CreateRoyaltyReport_Selec
 	loc, err := time.LoadLocation(suite.service.cfg.RoyaltyReportTimeZone)
 	assert.NoError(suite.T(), err)
 
-	to := now.Monday().In(loc).Add(time.Duration(18) * time.Hour)
+	to := now.Monday().In(loc).Add(time.Duration(suite.service.cfg.RoyaltyReportPeriodEndHour) * time.Hour)
 	from := to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).In(loc)
 
 	for _, v := range reports {
@@ -348,7 +350,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_Ok() {
 	loc, err := time.LoadLocation(suite.service.cfg.RoyaltyReportTimeZone)
 	assert.NoError(suite.T(), err)
 
-	to := now.Monday().In(loc).Add(time.Duration(18) * time.Hour).Add(-time.Duration(168) * time.Hour)
+	to := now.Monday().In(loc).Add(time.Duration(suite.service.cfg.RoyaltyReportPeriodEndHour) * time.Hour).Add(-time.Duration(168) * time.Hour)
 	from := to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).In(loc)
 
 	query := bson.M{"merchant_id": bson.ObjectIdHex(suite.project.GetMerchantId())}
@@ -436,7 +438,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindBy
 	loc, err := time.LoadLocation(suite.service.cfg.RoyaltyReportTimeZone)
 	assert.NoError(suite.T(), err)
 
-	to := now.Monday().In(loc).Add(time.Duration(18) * time.Hour).Add(-time.Duration(168) * time.Hour)
+	to := now.Monday().In(loc).Add(time.Duration(suite.service.cfg.RoyaltyReportPeriodEndHour) * time.Hour).Add(-time.Duration(168) * time.Hour)
 	from := to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).In(loc)
 
 	query := bson.M{"merchant_id": bson.ObjectIdHex(suite.project.GetMerchantId())}
@@ -484,7 +486,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindBy
 	loc, err := time.LoadLocation(suite.service.cfg.RoyaltyReportTimeZone)
 	assert.NoError(suite.T(), err)
 
-	to := now.Monday().In(loc).Add(time.Duration(18) * time.Hour).Add(-time.Duration(168) * time.Hour)
+	to := now.Monday().In(loc).Add(time.Duration(suite.service.cfg.RoyaltyReportPeriodEndHour) * time.Hour).Add(-time.Duration(168) * time.Hour)
 	from := to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).In(loc)
 
 	query := bson.M{"merchant_id": bson.ObjectIdHex(suite.project.GetMerchantId())}
@@ -495,7 +497,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindBy
 	assert.NoError(suite.T(), err)
 	assert.NotEmpty(suite.T(), rsp.Merchants)
 
-	to = now.Monday().In(loc).Add(time.Duration(18) * time.Hour)
+	to = now.Monday().In(loc).Add(time.Duration(suite.service.cfg.RoyaltyReportPeriodEndHour) * time.Hour)
 	from = to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).In(loc)
 
 	req1 := &grpc.ListRoyaltyReportsRequest{
@@ -973,7 +975,7 @@ func (suite *RoyaltyReportTestSuite) createOrder(project *billing.Project) *bill
 	if !assert.NoError(suite.T(), err) {
 		suite.FailNow("time.LoadLocation failed", "%v", err)
 	}
-	to := now.Monday().In(loc).Add(time.Duration(18) * time.Hour)
+	to := now.Monday().In(loc).Add(time.Duration(suite.service.cfg.RoyaltyReportPeriodEndHour) * time.Hour)
 	date := to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod/2) * time.Second).In(loc)
 
 	order.PaymentMethodOrderClosedAt, _ = ptypes.TimestampProto(date)
@@ -990,4 +992,21 @@ func (suite *RoyaltyReportTestSuite) createOrder(project *billing.Project) *bill
 	}
 
 	return order
+}
+
+func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_CreateRoyaltyReport_Fail_EndOfPeriodInFuture() {
+
+	loc, err := time.LoadLocation(suite.service.cfg.RoyaltyReportTimeZone)
+	if !assert.NoError(suite.T(), err) {
+		suite.FailNow("time.LoadLocation failed", "%v", err)
+	}
+
+	currentTime := time.Now().In(loc)
+	monday := now.Monday().In(loc)
+	suite.service.cfg.RoyaltyReportPeriodEndHour = int64(math.Ceil(currentTime.Sub(monday).Hours()))
+
+	req := &grpc.CreateRoyaltyReportRequest{}
+	rsp := &grpc.CreateRoyaltyReportRequest{}
+	err = suite.service.CreateRoyaltyReport(context.TODO(), req, rsp)
+	assert.Error(suite.T(), err)
 }
