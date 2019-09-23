@@ -30,6 +30,7 @@ jobs:
     - CACHE_REDIS_ADDRESS="127.0.0.1:6379"
     - PAYSUPER_DOCUMENT_SIGNER_EMAIL=no-reply@protocol.one
     - PAYSUPER_DOCUMENT_SIGNER_NAME=Some Name
+    - HELLO_SIGN_PAYOUT_TEMPLATE=aaa
     install:
     - wget https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-${MONGODB}.tgz
     - tar xzf mongodb-linux-x86_64-${MONGODB}.tgz

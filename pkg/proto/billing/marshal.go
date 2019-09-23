@@ -56,6 +56,16 @@ type JsonRoyaltyReportOrder struct {
 	PayoutAmount float64 `json:"payout_amount"`
 }
 
+type JsonMerchantBalance struct {
+	MerchantId     string  `json:"merchant_id"`
+	Currency       string  `json:"currency"`
+	Debit          float64 `json:"debit"`
+	Credit         float64 `json:"credit"`
+	RollingReserve float64 `json:"rolling_reserve"`
+	Total          float64 `json:"total"`
+	CreatedAt      string  `json:"created_at"`
+}
+
 func (m *Refund) MarshalJSON() ([]byte, error) {
 	return json.Marshal(
 		&JsonRefund{
@@ -193,4 +203,24 @@ func (m *VatReport) UnmarshalJSON(b []byte) error {
 	}
 
 	return nil
+}
+
+func (m *MerchantBalance) MarshalJSON() ([]byte, error) {
+
+	CreatedAt, err := ptypes.Timestamp(m.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	return json.Marshal(
+		&JsonMerchantBalance{
+			MerchantId:     m.MerchantId,
+			Currency:       m.Currency,
+			Debit:          m.Debit,
+			Credit:         m.Credit,
+			RollingReserve: m.RollingReserve,
+			Total:          m.Total,
+			CreatedAt:      CreatedAt.Format(time.RFC3339),
+		},
+	)
 }

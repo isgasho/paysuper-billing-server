@@ -97,14 +97,14 @@ func (s *Service) updateOrderView(ids []string) error {
 	batchSize := s.cfg.OrderViewUpdateBatchSize
 	count := len(ids)
 	if count == 0 {
-		var orderIds []*billing.Id
-		err := s.db.Collection(collectionOrder).Find(nil).All(&orderIds)
+		var orderIds []*bson.ObjectId
+		err := s.db.Collection(collectionAccountingEntry).Find(nil).Distinct("source.id", &orderIds)
 		if err != nil {
-			zap.S().Errorf(pkg.ErrorDatabaseQueryFailed, "err", err.Error(), "collection", collectionOrder)
+			zap.S().Errorf(pkg.ErrorDatabaseQueryFailed, "err", err.Error(), "collection", collectionAccountingEntry)
 			return err
 		}
 		for _, id := range orderIds {
-			ids = append(ids, id.Id)
+			ids = append(ids, id.Hex())
 		}
 		count = len(ids)
 	}

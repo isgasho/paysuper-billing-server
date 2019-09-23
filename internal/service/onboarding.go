@@ -16,7 +16,6 @@ import (
 
 const (
 	collectionNotification = "notification"
-	signerTypeMerchant     = int32(0)
 )
 
 var (
@@ -1059,6 +1058,7 @@ func (s *Service) getMerchantAgreementSignature(
 			},
 		},
 		Metadata: map[string]string{
+			documentSignerPkg.MetadataFieldAction:     documentSignerPkg.MetadataFieldActionValueMerchantAgreement,
 			documentSignerPkg.MetadataFieldMerchantId: merchant.Id,
 		},
 	}
@@ -1112,7 +1112,7 @@ func (s *Service) changeMerchantAgreementSingUrl(
 		signatureId string
 	)
 
-	if signerType == signerTypeMerchant {
+	if signerType == pkg.SignerTypeMerchant {
 		signUrl = merchant.GetMerchantSignUrl()
 		signatureId = merchant.GetMerchantSignatureId()
 	} else {
@@ -1168,7 +1168,7 @@ func (s *Service) changeMerchantAgreementSingUrl(
 		ExpiresAt: rsp.Item.ExpiresAt,
 	}
 
-	if signerType == signerTypeMerchant {
+	if signerType == pkg.SignerTypeMerchant {
 		merchant.AgreementSignatureData.MerchantSignUrl = signUrl
 	} else {
 		merchant.AgreementSignatureData.PsSignUrl = signUrl

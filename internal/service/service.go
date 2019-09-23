@@ -68,6 +68,9 @@ type Service struct {
 	country                    CountryServiceInterface
 	project                    *Project
 	merchant                   *Merchant
+	payoutDocument             PayoutDocumentServiceInterface
+	merchantBalance            MerchantBalanceServiceInterface
+	royaltyReport              RoyaltyReportServiceInterface
 	paymentMethod              PaymentMethodInterface
 	priceGroup                 PriceGroupServiceInterface
 	paymentSystem              PaymentSystemServiceInterface
@@ -133,6 +136,9 @@ func NewBillingService(
 func (s *Service) Init() (err error) {
 	s.paymentMethod = newPaymentMethodService(s)
 	s.merchant = newMerchantService(s)
+	s.payoutDocument = newPayoutService(s)
+	s.merchantBalance = newMerchantBalance(s)
+	s.royaltyReport = newRoyaltyReport(s)
 	s.country = newCountryService(s)
 	s.project = newProjectService(s)
 	s.priceGroup = newPriceGroupService(s)

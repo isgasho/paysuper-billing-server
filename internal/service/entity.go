@@ -17,6 +17,9 @@ type Country Entity
 type Project Entity
 type PaymentMethod Entity
 type Merchant Entity
+type PayoutDocument Entity
+type MerchantBalance Entity
+type RoyaltyReport Entity
 type PriceGroup Entity
 type PaymentSystemService Entity
 type ZipCode Entity
@@ -48,6 +51,10 @@ type kvIntInt struct {
 	Value int32
 }
 
+type balanceQueryResItem struct {
+	Amount float64 `bson:"amount"`
+}
+
 func contains(s []string, e string) bool {
 	for _, a := range s {
 		if a == e {
@@ -59,7 +66,7 @@ func contains(s []string, e string) bool {
 
 func timeTrack(start time.Time, name string) {
 	elapsed := time.Since(start)
-	zap.S().Info(
+	zap.L().Info(
 		"function execution time",
 		zap.String("name", name),
 		zap.Duration("time", elapsed),

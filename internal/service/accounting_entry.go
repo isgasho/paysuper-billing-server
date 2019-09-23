@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -43,6 +44,8 @@ var (
 	accountingEntryErrorInvalidSourceId            = newBillingServerErrorMsg("ae00012", "accounting entry invalid source id")
 	accountingEntryErrorSystemCommissionNotFound   = newBillingServerErrorMsg("ae00013", "system commission for payment method not found")
 	accountingEntryAlreadyCreated                  = newBillingServerErrorMsg("ae00014", "accounting entries already created")
+	accountingEntryBalanceUpdateFailed             = newBillingServerErrorMsg("ae00015", "balance update failed after create accounting entry")
+	accountingEntryOriginalTaxNotFound             = newBillingServerErrorMsg("ae00016", "real_tax_fee entry from original order not found, refund processing failed")
 
 	availableAccountingEntries = map[string]bool{
 		pkg.AccountingEntryTypeRealGrossRevenue:                    true,
@@ -89,12 +92,19 @@ var (
 		pkg.AccountingEntryTypeMerchantReverseTaxFee:               true,
 		pkg.AccountingEntryTypeMerchantReverseRevenue:              true,
 		pkg.AccountingEntryTypePsRefundProfit:                      true,
+		pkg.AccountingEntryTypeMerchantRollingReserveCreate:        true,
+		pkg.AccountingEntryTypeMerchantRollingReserveRelease:       true,
 	}
 
 	availableAccountingEntriesSourceTypes = map[string]bool{
 		collectionOrder:    true,
 		collectionRefund:   true,
 		collectionMerchant: true,
+	}
+
+	rollingReserveAccountingEntries = map[string]bool{
+		pkg.AccountingEntryTypeMerchantRollingReserveCreate:  true,
+		pkg.AccountingEntryTypeMerchantRollingReserveRelease: true,
 	}
 )
 
@@ -205,6 +215,16 @@ func (s *Service) CreateAccountingEntry(
 		rsp.Message = accountingEntryErrorUnknown
 
 		return nil
+	}
+
+	if _, ok := rollingReserveAccountingEntries[req.Type]; ok {
+		_, err = s.updateMerchantBalance(handler.merchant.Id)
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = accountingEntryBalanceUpdateFailed
+
+			return nil
+		}
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
@@ -328,7 +348,7 @@ func (h *accountingEntry) processPaymentEvent() error {
 	err = h.Service.db.Collection(collectionAccountingEntry).Find(query).All(&aes)
 	foundCount := len(aes)
 	if foundCount > 0 {
-		zap.S().Error(
+		zap.L().Error(
 			accountingEntryAlreadyCreated.Message,
 			zap.Error(err),
 			zap.String("source.type", collectionOrder),
@@ -535,9 +555,18 @@ func (h *accountingEntry) processRefundEvent() error {
 	}
 	var aes []*billing.AccountingEntry
 	err = h.Service.db.Collection(collectionAccountingEntry).Find(query).All(&aes)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionAccountingEntry),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return err
+	}
 	foundCount := len(aes)
 	if foundCount > 0 {
-		zap.S().Error(
+		zap.L().Error(
 			accountingEntryAlreadyCreated.Message,
 			zap.Error(err),
 			zap.String("source.type", collectionRefund),
@@ -594,6 +623,16 @@ func (h *accountingEntry) processRefundEvent() error {
 	}
 	err = h.Service.db.Collection(collectionAccountingEntry).Find(query).One(&realTaxFee)
 	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionAccountingEntry),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		if err == mgo.ErrNotFound {
+			return accountingEntryOriginalTaxNotFound
+		}
+
 		return err
 	}
 	realRefundTaxFee := h.newEntry(pkg.AccountingEntryTypeRealRefundTaxFee)
@@ -804,7 +843,7 @@ func (h *accountingEntry) GetExchangeCurrentMerchant(req *currencies.ExchangeCur
 	rsp, err := h.curService.ExchangeCurrencyCurrentForMerchant(h.ctx, req)
 
 	if err != nil {
-		zap.S().Error(
+		zap.L().Error(
 			pkg.ErrorGrpcServiceCallFailed,
 			zap.Error(err),
 			zap.String(errorFieldService, "CurrencyRatesService"),
@@ -822,7 +861,7 @@ func (h *accountingEntry) GetExchangeCurrentCommon(req *currencies.ExchangeCurre
 	rsp, err := h.curService.ExchangeCurrencyCurrentCommon(h.ctx, req)
 
 	if err != nil {
-		zap.S().Error(
+		zap.L().Error(
 			pkg.ErrorGrpcServiceCallFailed,
 			zap.Error(err),
 			zap.String(errorFieldService, "CurrencyRatesService"),
@@ -912,7 +951,7 @@ func (h *accountingEntry) saveAccountingEntries() error {
 	err := h.db.Collection(collectionAccountingEntry).Insert(h.accountingEntries...)
 
 	if err != nil {
-		zap.S().Error(
+		zap.L().Error(
 			"Accounting entries insert failed",
 			zap.Error(err),
 			zap.Any("accounting_entries", h.accountingEntries),
@@ -944,21 +983,44 @@ func (h *accountingEntry) newEntry(entryType string) *billing.AccountingEntry {
 	var (
 		createdTime = ptypes.TimestampNow()
 		source      *billing.AccountingEntrySource
+		merchantId  = ""
+		currency    = ""
+		country     = ""
 	)
 	if h.refund != nil {
 		if h.refundOrder != nil {
 			createdTime = h.refundOrder.PaymentMethodOrderClosedAt
+			merchantId = h.refundOrder.GetMerchantId()
+			currency = h.refundOrder.GetMerchantRoyaltyCurrency()
 		}
 		source = &billing.AccountingEntrySource{
 			Id:   h.refund.CreatedOrderId,
 			Type: collectionRefund,
 		}
 	} else {
-		createdTime = h.order.PaymentMethodOrderClosedAt
-		source = &billing.AccountingEntrySource{
-			Id:   h.order.Id,
-			Type: collectionOrder,
+		if h.order != nil {
+			createdTime = h.order.PaymentMethodOrderClosedAt
+			source = &billing.AccountingEntrySource{
+				Id:   h.order.Id,
+				Type: collectionOrder,
+			}
+			merchantId = h.order.GetMerchantId()
+			currency = h.order.GetMerchantRoyaltyCurrency()
+		} else {
+			if h.merchant != nil {
+				createdTime = ptypes.TimestampNow()
+				source = &billing.AccountingEntrySource{
+					Id:   h.merchant.Id,
+					Type: collectionMerchant,
+				}
+				merchantId = h.merchant.Id
+				currency = h.merchant.GetPayoutCurrency()
+			}
 		}
+	}
+
+	if h.country != nil {
+		country = h.country.IsoCodeA2
 	}
 
 	return &billing.AccountingEntry{
@@ -966,11 +1028,11 @@ func (h *accountingEntry) newEntry(entryType string) *billing.AccountingEntry {
 		Object:     pkg.ObjectTypeBalanceTransaction,
 		Type:       entryType,
 		Source:     source,
-		MerchantId: h.order.GetMerchantId(),
+		MerchantId: merchantId,
 		Status:     pkg.BalanceTransactionStatusPending,
 		CreatedAt:  createdTime,
-		Country:    h.country.IsoCodeA2,
-		Currency:   h.order.GetMerchantRoyaltyCurrency(),
+		Country:    country,
+		Currency:   currency,
 	}
 }
 
@@ -983,7 +1045,7 @@ func (h *accountingEntry) getPaymentChannelCostSystem() (*billing.PaymentChannel
 	cost, err := h.Service.paymentChannelCostSystem.Get(name, h.country.Region, h.country.IsoCodeA2)
 
 	if err != nil {
-		zap.S().Error(
+		zap.L().Error(
 			accountingEntryErrorSystemCommissionNotFound.Message,
 			zap.Error(err),
 			zap.String("payment_method", name),
@@ -1013,7 +1075,7 @@ func (h *accountingEntry) getPaymentChannelCostMerchant(amount float64) (*billin
 	cost, err := h.Service.getPaymentChannelCostMerchant(req)
 
 	if err != nil {
-		zap.S().Error(
+		zap.L().Error(
 			accountingEntryErrorMerchantCommissionNotFound.Message,
 			zap.Error(err),
 			zap.String("project", h.order.GetProjectId()),
