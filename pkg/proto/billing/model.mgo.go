@@ -565,19 +565,27 @@ type MgoAccountingEntry struct {
 }
 
 type MgoRoyaltyReport struct {
-	Id             bson.ObjectId            `bson:"_id"`
-	MerchantId     bson.ObjectId            `bson:"merchant_id"`
-	CreatedAt      time.Time                `bson:"created_at"`
-	UpdatedAt      time.Time                `bson:"updated_at"`
-	PayoutId       string                   `bson:"payout_id"`
-	PayoutDate     time.Time                `bson:"payout_date"`
-	Status         string                   `bson:"status"`
-	PeriodFrom     time.Time                `bson:"period_from"`
-	PeriodTo       time.Time                `bson:"period_to"`
-	AcceptExpireAt time.Time                `bson:"accept_expire_at"`
-	AcceptedAt     time.Time                `bson:"accepted_at"`
-	Amounts        *RoyaltyReportDetails    `bson:"amounts"`
-	Correction     *RoyaltyReportCorrection `bson:"correction"`
+	Id             bson.ObjectId         `bson:"_id"`
+	MerchantId     bson.ObjectId         `bson:"merchant_id"`
+	CreatedAt      time.Time             `bson:"created_at"`
+	UpdatedAt      time.Time             `bson:"updated_at"`
+	PayoutDate     time.Time             `bson:"payout_date"`
+	Status         string                `bson:"status"`
+	PeriodFrom     time.Time             `bson:"period_from"`
+	PeriodTo       time.Time             `bson:"period_to"`
+	AcceptExpireAt time.Time             `bson:"accept_expire_at"`
+	AcceptedAt     time.Time             `bson:"accepted_at"`
+	Totals         *RoyaltyReportTotals  `bson:"totals"`
+	Currency       string                `bson:"currency"`
+	Summary        *RoyaltyReportSummary `bson:"summary"`
+}
+
+type MgoRoyaltyReportCorrectionItem struct {
+	AccountingEntryId bson.ObjectId `bson:"accounting_entry_id"`
+	Amount            float64       `bson:"amount"`
+	Currency          string        `bson:"currency"`
+	Reason            string        `bson:"reason"`
+	EntryDate         time.Time     `bson:"entry_date"`
 }
 
 type MgoRoyaltyReportChanges struct {
@@ -3583,9 +3591,9 @@ func (m *RoyaltyReport) GetBSON() (interface{}, error) {
 		Id:         bson.ObjectIdHex(m.Id),
 		MerchantId: bson.ObjectIdHex(m.MerchantId),
 		Status:     m.Status,
-		Amounts:    m.Amounts,
-		Correction: m.Correction,
-		PayoutId:   m.PayoutId,
+		Totals:     m.Totals,
+		Currency:   m.Currency,
+		Summary:    m.Summary,
 	}
 
 	if m.PayoutDate != nil {
@@ -3668,9 +3676,9 @@ func (m *RoyaltyReport) SetBSON(raw bson.Raw) error {
 	m.Id = decoded.Id.Hex()
 	m.MerchantId = decoded.MerchantId.Hex()
 	m.Status = decoded.Status
-	m.Amounts = decoded.Amounts
-	m.Correction = decoded.Correction
-	m.PayoutId = decoded.PayoutId
+	m.Totals = decoded.Totals
+	m.Currency = decoded.Currency
+	m.Summary = decoded.Summary
 	m.PayoutDate, err = ptypes.TimestampProto(decoded.PayoutDate)
 
 	if err != nil {
@@ -3752,9 +3760,50 @@ func (m *RoyaltyReportChanges) SetBSON(raw bson.Raw) error {
 	m.RoyaltyReportId = decoded.RoyaltyReportId.Hex()
 	m.Source = decoded.Source
 	m.Ip = decoded.Ip
+	m.Hash = decoded.Hash
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *RoyaltyReportCorrectionItem) GetBSON() (interface{}, error) {
+	st := &MgoRoyaltyReportCorrectionItem{
+		AccountingEntryId: bson.ObjectIdHex(m.AccountingEntryId),
+		Amount:            m.Amount,
+		Currency:          m.Currency,
+		Reason:            m.Reason,
+	}
+
+	t, err := ptypes.Timestamp(m.EntryDate)
+
+	if err != nil {
+		return nil, err
+	}
+
+	st.EntryDate = t
+
+	return st, nil
+}
+
+func (m *RoyaltyReportCorrectionItem) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoRoyaltyReportCorrectionItem)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.AccountingEntryId = decoded.AccountingEntryId.Hex()
+	m.Amount = decoded.Amount
+	m.Currency = decoded.Currency
+	m.Reason = decoded.Reason
+
+	m.EntryDate, err = ptypes.TimestampProto(decoded.EntryDate)
 	if err != nil {
 		return err
 	}

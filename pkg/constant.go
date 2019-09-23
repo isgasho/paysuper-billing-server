@@ -152,9 +152,9 @@ const (
 	AccountingEntryTypeMerchantReverseTaxFee           = "merchant_reverse_tax_fee"
 	AccountingEntryTypeMerchantReverseRevenue          = "merchant_reverse_revenue"
 	AccountingEntryTypePsRefundProfit                  = "ps_refund_profit"
-
-	AccountingEntryTypeMerchantRollingReserveCreate  = "merchant_rolling_reserve_create"
-	AccountingEntryTypeMerchantRollingReserveRelease = "merchant_rolling_reserve_release"
+	AccountingEntryTypeMerchantRollingReserveCreate    = "merchant_rolling_reserve_create"
+	AccountingEntryTypeMerchantRollingReserveRelease   = "merchant_rolling_reserve_release"
+	AccountingEntryTypeMerchantRoyaltyCorrection       = "merchant_royalty_correction"
 
 	BalanceTransactionStatusPending   = "pending"
 	BalanceTransactionStatusAvailable = "available"
@@ -178,6 +178,11 @@ const (
 	ErrorCacheFieldKey    = "key"
 	ErrorCacheFieldData   = "data"
 	ErrorCacheFieldCmd    = "command"
+
+	ErrorRoyaltyReportGenerationFailed = "royalty report generation failed"
+	ErrorRoyaltyReportFieldMerchantId  = "merchant_id"
+	ErrorRoyaltyReportFieldFrom        = "from"
+	ErrorRoyaltyReportFieldTo          = "to"
 
 	CardPayDeclineCodeSystemMalfunction                = "01"
 	CardPayDeclineCodeCancelledByCustomer              = "02"

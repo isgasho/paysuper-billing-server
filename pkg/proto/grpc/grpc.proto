@@ -1273,14 +1273,18 @@ message ListRoyaltyReportOrdersRequest {
     int32 offset = 6;
 }
 
+message ChangeRoyaltyReportCorrection {
+    double amount = 1;
+    string reason = 2;
+}
+
 message ChangeRoyaltyReportRequest {
-    // @inject_tag: validate:"required,hexadecimal,len=24"
+    // @inject_tag: json:"report_id" validate:"required,hexadecimal,len=24"
     string report_id = 1;
-    // @inject_tag: validate:"omitempty,oneof=pending skipped accepted canceled dispute ready_for_invoice payment_in_progress payment_done payment_error"
+    // @inject_tag: json:"status" validate:"omitempty,oneof=pending skipped accepted canceled dispute ready_for_invoice payment_in_progress payment_done payment_error"
     string status = 2;
-    // @inject_tag: validate:"omitempty,hexadecimal,len=24"
-    string payout_id = 3;
-    billing.RoyaltyReportCorrection correction = 4;
+    // @inject_tag: json:"correction"
+    ChangeRoyaltyReportCorrection correction = 3;
     string ip = 5;
 }
 

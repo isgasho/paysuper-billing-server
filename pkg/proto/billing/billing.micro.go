@@ -96,8 +96,10 @@ It has these top-level messages:
 	PayoutCostSystem
 	AccountingEntrySource
 	AccountingEntry
-	RoyaltyReportDetails
-	RoyaltyReportCorrection
+	RoyaltyReportTotals
+	RoyaltyReportProductSummaryItem
+	RoyaltyReportCorrectionItem
+	RoyaltyReportSummary
 	RoyaltyReport
 	RoyaltyReportChanges
 	VatTransaction

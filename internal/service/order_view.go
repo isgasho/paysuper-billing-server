@@ -4,6 +4,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"go.uber.org/zap"
 	"time"
 )
@@ -14,6 +15,21 @@ const (
 	errorOrderViewUpdateQuery = "order query view update failed"
 )
 
+var (
+	errorRoyaltySummaryFailed = newBillingServerErrorMsg("ow000001", "royalty summary calculation failed")
+
+	statusForRoyatySummary = []string{
+		constant.OrderPublicStatusProcessed,
+		constant.OrderPublicStatusRefunded,
+		constant.OrderPublicStatusChargeback,
+	}
+)
+
+type royaltySummaryResult struct {
+	Items []*billing.RoyaltyReportProductSummaryItem `bson:"top"`
+	Total *billing.RoyaltyReportProductSummaryItem   `bson:"total"`
+}
+
 type list []interface{}
 
 type OrderViewServiceInterface interface {
@@ -22,6 +38,7 @@ type OrderViewServiceInterface interface {
 	CountTransactions(match bson.M) (n int, err error)
 	GetTransactionsPublic(match bson.M, limit, offset int) (result []*billing.OrderViewPublic, err error)
 	GetTransactionsPrivate(match bson.M, limit, offset int) (result []*billing.OrderViewPrivate, err error)
+	GetRoyaltySummary(merchantId, currency string, from, to time.Time) (items []*billing.RoyaltyReportProductSummaryItem, total *billing.RoyaltyReportProductSummaryItem, err error)
 }
 
 func newOrderView(svc *Service) OrderViewServiceInterface {
@@ -3234,5 +3251,182 @@ func (ow OrderView) GetTransactionsPrivate(match bson.M, limit, offset int) (res
 			zap.Any(pkg.ErrorDatabaseFieldOffset, offset),
 		)
 	}
+	return
+}
+
+func (ow OrderView) getRoyaltySummaryGroupingQuery(isTotal bool) []bson.M {
+	var groupingId bson.M
+	if !isTotal {
+		groupingId = bson.M{"product": "$product", "region": "$region"}
+	} else {
+		groupingId = nil
+	}
+
+	return []bson.M{
+		{
+			"$group": bson.M{
+				"_id":                          groupingId,
+				"product":                      bson.M{"$first": "$product"},
+				"region":                       bson.M{"$first": "$region"},
+				"currency":                     bson.M{"$first": "$currency"},
+				"total_transactions":           bson.M{"$sum": 1},
+				"gross_sales_amount":           bson.M{"$sum": "$purchase_gross_revenue"},
+				"gross_returns_amount":         bson.M{"$sum": "$refund_gross_revenue"},
+				"purchase_fees":                bson.M{"$sum": "$purchase_fees_total"},
+				"refund_fees":                  bson.M{"$sum": "$refund_fees_total"},
+				"purchase_tax":                 bson.M{"$sum": "$purchase_tax_fee_total"},
+				"refund_tax":                   bson.M{"$sum": "$refund_tax_fee_total"},
+				"net_revenue_total":            bson.M{"$sum": "$net_revenue"},
+				"refund_reverse_revenue_total": bson.M{"$sum": "$refund_reverse_revenue"},
+				"sales_count":                  bson.M{"$sum": bson.M{"$cond": list{bson.M{"$eq": list{"$status", "processed"}}, 1, 0}}},
+			},
+		},
+		{
+			"$addFields": bson.M{
+				"returns_count":      bson.M{"$subtract": list{"$total_transactions", "$sales_count"}},
+				"gross_total_amount": bson.M{"$subtract": list{"$gross_sales_amount", "$gross_returns_amount"}},
+				"total_fees":         bson.M{"$sum": list{"$purchase_fees", "$refund_fees"}},
+				"total_vat":          bson.M{"$abs": bson.M{"$subtract": list{"$purchase_tax", "$refund_tax"}}},
+				"payout_amount":      bson.M{"$subtract": list{"$net_revenue_total", "$refund_reverse_revenue_total"}},
+			},
+		},
+		{
+			"$sort": bson.M{"product": 1, "region": 1},
+		},
+	}
+}
+
+func (ow OrderView) GetRoyaltySummary(merchantId, currency string, from, to time.Time) (items []*billing.RoyaltyReportProductSummaryItem, total *billing.RoyaltyReportProductSummaryItem, err error) {
+	items = []*billing.RoyaltyReportProductSummaryItem{}
+	total = &billing.RoyaltyReportProductSummaryItem{}
+
+	query := []bson.M{
+		{
+			"$match": bson.M{
+				"merchant_id":              bson.ObjectIdHex(merchantId),
+				"merchant_payout_currency": currency,
+				"pm_order_close_date":      bson.M{"$gte": from, "$lte": to},
+				"status":                   bson.M{"$in": statusForRoyatySummary},
+			},
+		},
+		{
+			"$project": bson.M{
+				"names": bson.M{
+					"$filter": bson.M{
+						"input": "$project.name",
+						"as":    "name",
+						"cond":  bson.M{"$eq": list{"$$name.lang", "en"}},
+					},
+				},
+				"items": bson.M{
+					"$cond": list{
+						bson.M{"$ne": list{"$items", list{}}}, "$items", []string{""}},
+				},
+				"region":                 "$country_code",
+				"status":                 1,
+				"purchase_gross_revenue": "$gross_revenue.amount",
+				"refund_gross_revenue":   "$refund_gross_revenue.amount",
+				"purchase_tax_fee_total": "$tax_fee_total.amount",
+				"refund_tax_fee_total":   "$refund_tax_fee_total.amount",
+				"purchase_fees_total":    "$fees_total.amount",
+				"refund_fees_total":      "$refund_fees_total.amount",
+				"net_revenue":            "$net_revenue.amount",
+				"refund_reverse_revenue": "$refund_reverse_revenue.amount",
+				"amount_before_vat":      1,
+				"currency":               "$merchant_payout_currency",
+			},
+		},
+		{
+			"$unwind": "$items",
+		},
+		{
+			"$project": bson.M{
+				"region":                   1,
+				"status":                   1,
+				"purchase_gross_revenue":   1,
+				"refund_gross_revenue":     1,
+				"purchase_tax_fee_total":   1,
+				"refund_tax_fee_total":     1,
+				"purchase_fees_total":      1,
+				"refund_fees_total":        1,
+				"net_revenue":              1,
+				"refund_reverse_revenue":   1,
+				"order_amount_without_vat": 1,
+				"currency":                 1,
+				"product": bson.M{
+					"$cond": list{
+						bson.M{"$eq": []string{"$items", ""}},
+						bson.M{"$arrayElemAt": list{"$names.value", 0}},
+						"$items.name",
+					},
+				},
+				"correction": bson.M{
+					"$cond": list{
+						bson.M{"$eq": []string{"$items", ""}},
+						1,
+						bson.M{"$divide": list{"$items.amount", "$amount_before_vat"}},
+					},
+				},
+			},
+		},
+		{
+			"$project": bson.M{
+				"product":                  1,
+				"region":                   1,
+				"status":                   1,
+				"currency":                 1,
+				"purchase_gross_revenue":   bson.M{"$multiply": list{"$purchase_gross_revenue", "$correction"}},
+				"refund_gross_revenue":     bson.M{"$multiply": list{"$refund_gross_revenue", "$correction"}},
+				"purchase_tax_fee_total":   bson.M{"$multiply": list{"$purchase_tax_fee_total", "$correction"}},
+				"refund_tax_fee_total":     bson.M{"$multiply": list{"$refund_tax_fee_total", "$correction"}},
+				"purchase_fees_total":      bson.M{"$multiply": list{"$purchase_fees_total", "$correction"}},
+				"refund_fees_total":        bson.M{"$multiply": list{"$refund_fees_total", "$correction"}},
+				"net_revenue":              bson.M{"$multiply": list{"$net_revenue", "$correction"}},
+				"refund_reverse_revenue":   bson.M{"$multiply": list{"$refund_reverse_revenue", "$correction"}},
+				"order_amount_without_vat": bson.M{"$multiply": list{"$order_amount_without_vat", "$correction"}},
+			},
+		},
+		{
+			"$facet": bson.M{
+				"top":   ow.getRoyaltySummaryGroupingQuery(false),
+				"total": ow.getRoyaltySummaryGroupingQuery(true),
+			},
+		},
+		{
+			"$project": bson.M{
+				"top":   "$top",
+				"total": bson.M{"$arrayElemAt": list{"$total", 0}},
+			},
+		},
+	}
+
+	var result []*royaltySummaryResult
+
+	err = ow.svc.db.Collection(collectionOrderView).Pipe(query).All(&result)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String("collection", collectionOrderView),
+			zap.Any("query", query),
+		)
+		return
+	}
+
+	if len(result) != 1 {
+		err = errorRoyaltySummaryFailed
+		return
+	}
+
+	if result[0].Items != nil {
+		items = result[0].Items
+	}
+
+	if result[0].Total != nil {
+		total = result[0].Total
+		total.Product = ""
+		total.Region = ""
+	}
+
 	return
 }

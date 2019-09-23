@@ -121,12 +121,12 @@ func (s *Service) CreatePayoutDocument(
 		return err
 	}
 
-	pd.Currency = reports[0].Amounts.Currency
+	pd.Currency = reports[0].Currency
 
 	var times []time.Time
 
 	for _, r := range reports {
-		pd.Amount += r.Amounts.PayoutAmount
+		pd.Amount += r.Totals.PayoutAmount
 		pd.SourceId = append(pd.SourceId, r.Id)
 
 		from, err := ptypes.Timestamp(r.PeriodFrom)

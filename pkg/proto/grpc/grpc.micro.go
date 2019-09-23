@@ -128,6 +128,7 @@ It has these top-level messages:
 	RoyaltyReportsPaginate
 	ListRoyaltyReportsResponse
 	ListRoyaltyReportOrdersRequest
+	ChangeRoyaltyReportCorrection
 	ChangeRoyaltyReportRequest
 	MerchantReviewRoyaltyReportRequest
 	PaymentChannelCostSystemListResponse
