@@ -1024,6 +1024,8 @@ github.com/paysuper/document-signer v0.0.0-20190906075749-af06b306ee92 h1:OzcTm6
 github.com/paysuper/document-signer v0.0.0-20190906075749-af06b306ee92/go.mod h1:gqEKigUzMNjJ9P+OYeKCu+wOA17/Q2EElpJnd6O3Zr4=
 github.com/paysuper/document-signer v0.0.0-20190916111907-052775c62716 h1:B4dw1lXXFaa1MC2lNGdpEBl6DuuQ2ref9dchQevEkeU=
 github.com/paysuper/document-signer v0.0.0-20190916111907-052775c62716/go.mod h1:3yaO+xYLvqjkj7mJqNKuzp8ncd7gj75jud4KIkiLMzc=
+github.com/paysuper/document-signer v0.0.0-20190923080905-cb9cc2665d8b h1:Jmg864eBJl/HS+xX5jana68ynYmi6ddp6klUI+Uu9Ec=
+github.com/paysuper/document-signer v0.0.0-20190923080905-cb9cc2665d8b/go.mod h1:3yaO+xYLvqjkj7mJqNKuzp8ncd7gj75jud4KIkiLMzc=
 github.com/paysuper/paysuper-aws-manager v0.0.0-20190827071211-4aff35ed4d82 h1:/p8k5EsVivYfSVFeWV9Pb7/EZj6PJt+f3v/OPmH2dr0=
 github.com/paysuper/paysuper-aws-manager v0.0.0-20190827071211-4aff35ed4d82/go.mod h1:TjXLdcbFp4VeSvZK3+sKv61uRS1tH0mtrEEqziaJ/+E=
 github.com/paysuper/paysuper-aws-manager v0.0.1 h1:792ZR+2Pva93ziJbV8zTxjod9gbx4jBlZ1ZUZpN/8Ts=
