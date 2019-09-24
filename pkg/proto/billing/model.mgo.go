@@ -346,6 +346,7 @@ type MgoRefund struct {
 	SalesTax       float32          `bson:"sales_tax"`
 	IsChargeback   bool             `bson:"is_chargeback"`
 	CreatedOrderId bson.ObjectId    `bson:"created_order_id,omitempty"`
+	Reason         string           `bson:"reason"`
 }
 
 type MgoMerchantPaymentMethodHistory struct {
@@ -2562,6 +2563,7 @@ func (m *Refund) GetBSON() (interface{}, error) {
 		PayerData:    m.PayerData,
 		SalesTax:     m.SalesTax,
 		IsChargeback: m.IsChargeback,
+		Reason:       m.Reason,
 	}
 
 	if len(m.Id) <= 0 {
@@ -2631,6 +2633,7 @@ func (m *Refund) SetBSON(raw bson.Raw) error {
 	m.SalesTax = decoded.SalesTax
 	m.IsChargeback = decoded.IsChargeback
 	m.CreatedOrderId = decoded.CreatedOrderId.Hex()
+	m.Reason = decoded.Reason
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 
