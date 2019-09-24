@@ -451,6 +451,25 @@ func (suite *OrderTestSuite) SetupTest() {
 				IsActive: true,
 			},
 		},
+		Tariff: &billing.MerchantTariffRates{
+			Region: "USD",
+			Chargeback: &billing.TariffRatesItem{
+				FixedFee: 1,
+				FixedFeeCurrency: "USD",
+				IsPaidByMerchant: true,
+			},
+			MoneyBack: []*billing.MerchantTariffRatesMoneyBack{
+				{Method: "VISA"},
+			},
+			Payment: []*billing.MerchantTariffRatesPayments{
+				{Method: "VISA"},
+			},
+			Payout: &billing.TariffRatesItem{
+				FixedFee: 1,
+				FixedFeeCurrency: "USD",
+				IsPaidByMerchant: true,
+			},
+		},
 	}
 
 	merchantAgreement := &billing.Merchant{
@@ -486,6 +505,25 @@ func (suite *OrderTestSuite) SetupTest() {
 			Amount: 10000,
 		},
 		IsSigned: true,
+		Tariff: &billing.MerchantTariffRates{
+			Region: "USD",
+			Chargeback: &billing.TariffRatesItem{
+				FixedFee: 1,
+				FixedFeeCurrency: "USD",
+				IsPaidByMerchant: true,
+			},
+			MoneyBack: []*billing.MerchantTariffRatesMoneyBack{
+				{Method: "VISA"},
+			},
+			Payment: []*billing.MerchantTariffRatesPayments{
+				{Method: "VISA"},
+			},
+			Payout: &billing.TariffRatesItem{
+				FixedFee: 1,
+				FixedFeeCurrency: "USD",
+				IsPaidByMerchant: true,
+			},
+		},
 	}
 	merchant1 := &billing.Merchant{
 		Id: bson.NewObjectId().Hex(),
@@ -520,6 +558,25 @@ func (suite *OrderTestSuite) SetupTest() {
 			Amount: 100000,
 		},
 		IsSigned: false,
+		Tariff: &billing.MerchantTariffRates{
+			Region: "USD",
+			Chargeback: &billing.TariffRatesItem{
+				FixedFee: 1,
+				FixedFeeCurrency: "USD",
+				IsPaidByMerchant: true,
+			},
+			MoneyBack: []*billing.MerchantTariffRatesMoneyBack{
+				{Method: "VISA"},
+			},
+			Payment: []*billing.MerchantTariffRatesPayments{
+				{Method: "VISA"},
+			},
+			Payout: &billing.TariffRatesItem{
+				FixedFee: 1,
+				FixedFeeCurrency: "USD",
+				IsPaidByMerchant: true,
+			},
+		},
 	}
 
 	project := &billing.Project{
