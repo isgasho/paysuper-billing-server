@@ -284,9 +284,12 @@ func (s *Service) ProcessRefundCallback(
 		if refundedAmount == order.TotalPaymentAmount {
 			if refund.IsChargeback == true {
 				order.PrivateStatus = constant.OrderStatusChargeback
+				order.Status = constant.OrderPublicStatusChargeback
 			} else {
 				order.PrivateStatus = constant.OrderStatusRefund
+				order.Status = constant.OrderPublicStatusRefunded
 			}
+
 			order.UpdatedAt = ptypes.TimestampNow()
 			order.RefundedAt = ptypes.TimestampNow()
 			order.Refunded = true
@@ -344,7 +347,9 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 			)
 			return "", refundErrorUnknown
 		}
-		orderPaydAt, err := ptypes.Timestamp(order.PaymentMethodOrderClosedAt)
+
+		orderPayedAt, err := ptypes.Timestamp(order.PaymentMethodOrderClosedAt)
+
 		if err != nil {
 			zap.S().Error(
 				"cannot get convert PaymentMethodOrderClosedAt date to time",
@@ -353,7 +358,7 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 			return "", refundErrorUnknown
 		}
 
-		if orderPaydAt.Unix() < from.Unix() {
+		if orderPayedAt.Unix() < from.Unix() {
 			isVatDeduction = true
 		}
 	}

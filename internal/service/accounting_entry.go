@@ -251,13 +251,14 @@ func (s *Service) onPaymentNotify(ctx context.Context, order *billing.Order) err
 }
 
 func (s *Service) onRefundNotify(ctx context.Context, refund *billing.Refund, order *billing.Order) error {
-
 	country, err := s.country.GetByIsoCodeA2(order.GetCountry())
+
 	if err != nil {
 		return err
 	}
 
 	refundOrder, err := s.getOrderById(refund.CreatedOrderId)
+
 	if err != nil {
 		return err
 	}
@@ -275,7 +276,6 @@ func (s *Service) onRefundNotify(ctx context.Context, refund *billing.Refund, or
 }
 
 func (s *Service) processEvent(handler *accountingEntry, eventType string) error {
-
 	var err error
 
 	switch eventType {
