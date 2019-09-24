@@ -120,6 +120,7 @@ var (
 	orderErrorCheckoutWithoutAmount                           = newBillingServerErrorMsg("fm000053", "order amount not specified")
 	orderErrorKeyReserveFailed                                = newBillingServerErrorMsg("fm000054", "can't reserve key for order")
 	orderErrorUnknownType                                     = newBillingServerErrorMsg("fm000055", "unknown type of order")
+	orderErrorMerchantBadTariffs                              = newBillingServerErrorMsg("fm000056", "merchant don't have tariffs")
 )
 
 type orderCreateRequestProcessorChecked struct {
@@ -209,6 +210,16 @@ func (s *Service) OrderCreateProcess(
 	}
 
 	if err := processor.processProject(); err != nil {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
+	}
+
+	if err := processor.processMerchant(); err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusBadData
@@ -741,19 +752,6 @@ func (s *Service) PaymentCreateProcess(
 	if _, ok := order.PaymentRequisites[pkg.PaymentCreateFieldRecurringId]; ok {
 		req.Data[pkg.PaymentCreateFieldRecurringId] = order.PaymentRequisites[pkg.PaymentCreateFieldRecurringId]
 		delete(order.PaymentRequisites, pkg.PaymentCreateFieldRecurringId)
-	}
-
-	err = processor.processMerchantCosts(order, merchant)
-
-	if err != nil {
-		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
-
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = e
-			return nil
-		}
-		return err
 	}
 
 	err = s.updateOrder(order)
@@ -1574,6 +1572,14 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 	return order, nil
 }
 
+func (v *OrderCreateRequestProcessor) processMerchant() error {
+	if v.checked.merchant.HasTariff() == false {
+		return orderErrorMerchantBadTariffs
+	}
+
+	return nil
+}
+
 func (v *OrderCreateRequestProcessor) processProject() error {
 	project, err := v.project.GetById(v.request.ProjectId)
 
@@ -2139,41 +2145,6 @@ func (v *PaymentFormProcessor) processPaymentMethodsData(pm *billing.PaymentForm
 			}
 
 		}
-	}
-
-	return nil
-}
-
-// validate merchant commissions
-func (v *PaymentCreateProcessor) processMerchantCosts(order *billing.Order, merchant *billing.Merchant) error {
-	name, err := order.GetCostPaymentMethodName()
-	if err != nil {
-		return err
-	}
-
-	countryCode := merchant.Company.Country
-	if countryCode == "" {
-		return accountingEntryErrorCountryNotFound
-	}
-
-	country, err := v.service.country.GetByIsoCodeA2(countryCode)
-	if err != nil {
-		return accountingEntryErrorCountryNotFound
-	}
-
-	req := &billing.PaymentChannelCostMerchantRequest{
-		MerchantId:     order.GetMerchantId(),
-		Name:           name,
-		PayoutCurrency: order.GetMerchantRoyaltyCurrency(),
-		Amount:         order.OrderAmount,
-		Region:         country.Region,
-		Country:        country.IsoCodeA2,
-	}
-
-	_, err = v.service.getPaymentChannelCostMerchant(req)
-
-	if err != nil {
-		return err
 	}
 
 	return nil

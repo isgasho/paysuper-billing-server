@@ -3648,53 +3648,6 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_AccountEmpty_Error
 	assert.Equal(suite.T(), paymentSystemErrorEWalletIdentifierIsInvalid, err)
 }
 
-func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_MerchantDontHaveCommissions_Error() {
-	req := &billing.OrderCreateRequest{
-		Type:        billing.OrderType_simple,
-		ProjectId:   suite.project.Id,
-		Currency:    "EUR",
-		Amount:      90,
-		Account:     "unit test",
-		Description: "unit test",
-		OrderId:     bson.NewObjectId().Hex(),
-		User: &billing.OrderUser{
-			Email: "test@unit.unit",
-			Ip:    "127.0.0.1",
-		},
-	}
-
-	rsp1 := &grpc.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
-
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
-	order := rsp1.Item
-
-	expireYear := time.Now().AddDate(1, 0, 0)
-
-	createPaymentRequest := &grpc.PaymentCreateRequest{
-		Data: map[string]string{
-			pkg.PaymentCreateFieldOrderId:         order.Uuid,
-			pkg.PaymentCreateFieldPaymentMethodId: suite.paymentMethodWithoutCommission.Id,
-			pkg.PaymentCreateFieldEmail:           "test@unit.unit",
-			pkg.PaymentCreateFieldPan:             "4083000000000002",
-			pkg.PaymentCreateFieldCvv:             "123",
-			pkg.PaymentCreateFieldMonth:           "02",
-			pkg.PaymentCreateFieldYear:            expireYear.Format("2006"),
-			pkg.PaymentCreateFieldHolder:          "Mr. Card Holder",
-			pkg.PaymentCreateFieldUserCountry:     "IT",
-		},
-		Ip: "127.0.0.1",
-	}
-
-	rsp := &grpc.PaymentCreateResponse{}
-	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp)
-
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
-	assert.Equal(suite.T(), errorCostMatchedToAmountNotFound, rsp.Message)
-}
-
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_ChangePaymentSystemTerminal_Ok() {
 	req := &billing.OrderCreateRequest{
 		Type:        billing.OrderType_simple,
