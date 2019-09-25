@@ -752,11 +752,28 @@ func (h *accountingEntry) processRefundEvent() error {
 	reverseTaxFeeDelta := h.newEntry(pkg.AccountingEntryTypeReverseTaxFeeDelta)
 	psReverseTaxFeeDelta := h.newEntry(pkg.AccountingEntryTypePsReverseTaxFeeDelta)
 
-	amount := reverseTaxFee.Amount - (merchantRefund.Amount / (1 + h.order.Tax.Rate) * h.order.Tax.Rate)
-	if amount < 0 {
-		psReverseTaxFeeDelta.Amount = -1 * amount
+	// #192161 calculation rules changed:
+	// first, restoring tax amount from merchantRefund,
+	// then converting restored tax amount from merchant currency to vat currency by centralbank rate,
+	// after that converting it back from vat currency  to merchant currency by stock rate,
+	// next getting Centralbank fx for restored value as difference between converted and restored values,
+	// and finally getting difference between old merchantTaxFeeCentralBankFx amount and calculated new.
+	amountVatRestored := merchantRefund.Amount / (1 + h.order.Tax.Rate) * h.order.Tax.Rate
+	amountVatCb, err := h.GetExchangeCbCurrentCommon(h.order.GetMerchantRoyaltyCurrency(), amountVatRestored)
+	if err != nil {
+		return err
+	}
+	amountMerchantStock, err := h.GetExchangeStockCurrentCommon(h.country.VatCurrency, amountVatCb)
+	if err != nil {
+		return err
+	}
+	amountFxRestored := amountMerchantStock - amountVatRestored
+	amountResult := merchantTaxFeeCentralBankFx.Amount - amountFxRestored
+
+	if amountResult < 0 {
+		psReverseTaxFeeDelta.Amount = -1 * amountResult
 	} else {
-		reverseTaxFeeDelta.Amount = amount
+		reverseTaxFeeDelta.Amount = amountResult
 	}
 
 	if err = h.addEntry(reverseTaxFeeDelta); err != nil {
