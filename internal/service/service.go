@@ -147,14 +147,7 @@ func (s *Service) Init() (err error) {
 	s.merchantTariffRates = newMerchantsTariffRatesRepository(s)
 	s.keyRepository = newKeyRepository(s)
 	s.dashboardRepository = newDashboardRepository(s)
-
 	s.centrifugo = newCentrifugo(s)
-	s.localizator, err = localization.NewLocalizator()
-
-	if err != nil {
-		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
-		return err
-	}
 
 	if s.cfg.AccountingCurrency == "" {
 		return errors.New(errorAccountingCurrencyNotFound)

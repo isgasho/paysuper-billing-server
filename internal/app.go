@@ -23,6 +23,7 @@ import (
 	documentSignerProto "github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
+	"github.com/paysuper/paysuper-billing-server/internal/localization"
 	"github.com/paysuper/paysuper-billing-server/internal/service"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -175,7 +176,13 @@ func (app *Application) Init() {
 		PoolSize:     cfg.CacheRedis.PoolSize,
 	})
 
-	app.svc = service.NewBillingService(app.database, app.cfg, geoService, repService, taxService, broker, app.redis, service.NewCacheRedis(redisdb), curService, documentSignerService, nil, )
+	localizator, err := localization.NewLocalizator()
+
+	if err != nil {
+		app.logger.Fatal("Create localizator failed", zap.Error(err))
+	}
+
+	app.svc = service.NewBillingService(app.database, app.cfg, geoService, repService, taxService, broker, app.redis, service.NewCacheRedis(redisdb), curService, documentSignerService, localizator, )
 
 	if err := app.svc.Init(); err != nil {
 		app.logger.Fatal("Create service instance failed", zap.Error(err))
