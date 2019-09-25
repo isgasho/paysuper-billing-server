@@ -291,10 +291,6 @@ func (s *Service) processEvent(handler *accountingEntry, eventType string) error
 		err = handler.processManualCorrectionEvent()
 		break
 
-	case accountingEventTypeSettlement:
-		// err = handler.processSettlementEvent()
-		break
-
 	default:
 		return accountingEntryUnknownEvent
 	}
@@ -1029,7 +1025,7 @@ func (h *accountingEntry) newEntry(entryType string) *billing.AccountingEntry {
 		Type:       entryType,
 		Source:     source,
 		MerchantId: merchantId,
-		Status:     pkg.BalanceTransactionStatusPending,
+		Status:     pkg.BalanceTransactionStatusAvailable,
 		CreatedAt:  createdTime,
 		Country:    country,
 		Currency:   currency,
