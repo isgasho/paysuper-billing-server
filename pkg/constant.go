@@ -156,7 +156,6 @@ const (
 	AccountingEntryTypeMerchantRollingReserveRelease   = "merchant_rolling_reserve_release"
 	AccountingEntryTypeMerchantRoyaltyCorrection       = "merchant_royalty_correction"
 
-	BalanceTransactionStatusPending   = "pending"
 	BalanceTransactionStatusAvailable = "available"
 
 	ErrorDatabaseQueryFailed          = "Query to database collection failed"
