@@ -3284,7 +3284,7 @@ func (ow *OrderView) getRoyaltySummaryGroupingQuery(isTotal bool) []bson.M {
 				"returns_count":      bson.M{"$subtract": list{"$total_transactions", "$sales_count"}},
 				"gross_total_amount": bson.M{"$subtract": list{"$gross_sales_amount", "$gross_returns_amount"}},
 				"total_fees":         bson.M{"$sum": list{"$purchase_fees", "$refund_fees"}},
-				"total_vat":          bson.M{"$abs": bson.M{"$subtract": list{"$purchase_tax", "$refund_tax"}}},
+				"total_vat":          bson.M{"$subtract": list{"$purchase_tax", "$refund_tax"}},
 				"payout_amount":      bson.M{"$subtract": list{"$net_revenue_total", "$refund_reverse_revenue_total"}},
 			},
 		},

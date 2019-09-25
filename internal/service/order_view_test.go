@@ -391,8 +391,8 @@ func (suite *OrderViewTestSuite) Test_OrderView_GetRoyaltySummary_Ok_SalesAndRef
 	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[0].GrossReturnsAmount), float64(12))
 	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[0].GrossTotalAmount), float64(0))
 	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[0].TotalFees), float64(0.66))
-	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[0].TotalVat), float64(0.01))
-	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[0].PayoutAmount), float64(-0.66))
+	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[0].TotalVat), float64(0))
+	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[0].PayoutAmount), float64(-0.65))
 
 	controlTotal0 := summaryItems[0].GrossTotalAmount - summaryItems[0].TotalFees - summaryItems[0].TotalVat
 	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[0].PayoutAmount), tools.FormatAmount(controlTotal0))
@@ -406,8 +406,8 @@ func (suite *OrderViewTestSuite) Test_OrderView_GetRoyaltySummary_Ok_SalesAndRef
 	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[1].GrossReturnsAmount), float64(24))
 	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[1].GrossTotalAmount), float64(0))
 	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[1].TotalFees), float64(1.32))
-	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[1].TotalVat), float64(0.1))
-	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[1].PayoutAmount), float64(-1.4))
+	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[1].TotalVat), float64(0))
+	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[1].PayoutAmount), float64(-1.31))
 
 	controlTotal1 := summaryItems[1].GrossTotalAmount - summaryItems[1].TotalFees - summaryItems[1].TotalVat
 	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[1].PayoutAmount), tools.FormatAmount(controlTotal1))
@@ -422,8 +422,8 @@ func (suite *OrderViewTestSuite) Test_OrderView_GetRoyaltySummary_Ok_SalesAndRef
 	assert.Equal(suite.T(), tools.FormatAmount(summaryTotal.GrossReturnsAmount), float64(36))
 	assert.Equal(suite.T(), tools.FormatAmount(summaryTotal.GrossTotalAmount), float64(0))
 	assert.Equal(suite.T(), tools.FormatAmount(summaryTotal.TotalFees), float64(1.97))
-	assert.Equal(suite.T(), tools.FormatAmount(summaryTotal.TotalVat), float64(0.1))
-	assert.Equal(suite.T(), tools.FormatAmount(summaryTotal.PayoutAmount), float64(-2.06))
+	assert.Equal(suite.T(), tools.FormatAmount(summaryTotal.TotalVat), float64(0))
+	assert.Equal(suite.T(), tools.FormatAmount(summaryTotal.PayoutAmount), float64(-1.96))
 
 	controlTotal := summaryTotal.GrossTotalAmount - summaryTotal.TotalFees - summaryTotal.TotalVat
 	assert.Equal(suite.T(), tools.FormatAmount(summaryTotal.PayoutAmount), tools.FormatAmount(controlTotal))
