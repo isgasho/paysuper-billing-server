@@ -120,6 +120,7 @@ var (
 	orderErrorCheckoutWithoutAmount                           = newBillingServerErrorMsg("fm000053", "order amount not specified")
 	orderErrorKeyReserveFailed                                = newBillingServerErrorMsg("fm000054", "can't reserve key for order")
 	orderErrorUnknownType                                     = newBillingServerErrorMsg("fm000055", "unknown type of order")
+	orderErrorMerchantBadTariffs                              = newBillingServerErrorMsg("fm000056", "merchant don't have tariffs")
 )
 
 type orderCreateRequestProcessorChecked struct {
@@ -209,6 +210,16 @@ func (s *Service) OrderCreateProcess(
 	}
 
 	if err := processor.processProject(); err != nil {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
+	}
+
+	if err := processor.processMerchant(); err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusBadData
@@ -1559,6 +1570,14 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 	order.ExpireDateToFormInput, _ = ptypes.TimestampProto(time.Now().Add(time.Minute * defaultExpireDateToFormInput))
 
 	return order, nil
+}
+
+func (v *OrderCreateRequestProcessor) processMerchant() error {
+	if v.checked.merchant.HasTariff() == false {
+		return orderErrorMerchantBadTariffs
+	}
+
+	return nil
 }
 
 func (v *OrderCreateRequestProcessor) processProject() error {

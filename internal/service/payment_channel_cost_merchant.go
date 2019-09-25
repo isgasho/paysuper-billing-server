@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -21,8 +20,6 @@ const (
 	cachePaymentChannelCostMerchantAll   = "pccm:all:m:%s"
 
 	collectionPaymentChannelCostMerchant = "payment_channel_cost_merchant"
-
-	errorCostMatchedToAmountNotFound = "cost matched to amount not found"
 )
 
 var (
@@ -32,6 +29,7 @@ var (
 	errorPaymentChannelMerchantDelete           = newBillingServerErrorMsg("pcm000004", "can't delete payment channel setting for merchant")
 	errorPaymentChannelMerchantCurrency         = newBillingServerErrorMsg("pcm000005", "currency not supported")
 	errorPaymentChannelMerchantCostAlreadyExist = newBillingServerErrorMsg("pcm000006", "cost with specified parameters already exist")
+	errorCostMatchedToAmountNotFound            = newBillingServerErrorMsg("pcm000007", "cost matched to amount not found")
 )
 
 func (s *Service) GetAllPaymentChannelCostMerchant(
@@ -193,7 +191,7 @@ func (s *Service) getPaymentChannelCostMerchant(req *billing.PaymentChannelCostM
 		}
 	}
 	if len(matchedAmounts) == 0 {
-		return nil, errors.New(errorCostMatchedToAmountNotFound)
+		return nil, errorCostMatchedToAmountNotFound
 	}
 
 	sort.Slice(matchedAmounts, func(i, j int) bool {
