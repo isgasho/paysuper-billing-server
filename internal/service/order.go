@@ -1327,10 +1327,48 @@ func (s *Service) orderNotifyKeyProducts(ctx context.Context, order *billing.Ord
 				continue
 			}
 
+			s.sendMailWithReceipt(ctx, order)
 			s.sendMailWithCode(ctx, order, rsp.Key)
 		}
 		order.IsKeyProductNotified = true
 		break
+	}
+}
+
+func (s *Service) sendMailWithReceipt(ctx context.Context, order *billing.Order) {
+	payload := s.getPayloadForReceipt(order)
+    index := 1
+	for _, item := range order.Items {
+		payload.TemplateModel[fmt.Sprintf("name_%d", index)] = item.Name
+		price, err := s.localizator.FormatCurrency("en", item.Amount, item.Currency)
+		if err != nil {
+			zap.S().Errorw("Error during formatting currency", "price", item.Amount, "locale", "en", "currency", item.Currency)
+		}
+		payload.TemplateModel[fmt.Sprintf("price_%d", index)] = price
+
+		err = s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+		if err != nil {
+			zap.S().Errorw(
+				"Publication activation code to user email queue is failed",
+				"err", err, "email", order.ReceiptEmail, "order_id", order.Id)
+		}
+		index++
+	}
+}
+
+func (s *Service) getPayloadForReceipt(order *billing.Order) *postmarkSdrPkg.Payload {
+	totalPrice, err := s.localizator.FormatCurrency("en", order.OrderAmount, order.Currency)
+	if err != nil {
+		zap.S().Errorw("Error during formatting currency", "price", order.OrderAmount, "locale", "en", "currency", order.Currency)
+	}
+
+	return &postmarkSdrPkg.Payload{
+		TemplateAlias: s.cfg.EmailSuccessTransactionTemplate,
+		TemplateModel: map[string]string{
+			"platform_name": order.PlatformId,
+			"total_price": totalPrice,
+		},
+		To: order.ReceiptEmail,
 	}
 }
 
@@ -1354,13 +1392,16 @@ func (s *Service) sendMailWithCode(ctx context.Context, order *billing.Order, ke
 
 			err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 			if err != nil {
-				zap.S().Error(
+				zap.S().Errorw(
 					"Publication activation code to user email queue is failed",
 					"err", err, "email", order.ReceiptEmail, "order_id", order.Id, "key_id", key.Id)
 			}
-			break
+			zap.S().Infow("Sent payload to broker", "email", order.ReceiptEmail, "order_id", order.Id, "key_id", key.Id)
+			return
 		}
 	}
+
+	zap.S().Errorw("Mail not sent because no items found for key", "order_id", order.Id, "key_id", key.Id, "email", order.ReceiptEmail)
 }
 
 func (s *Service) orderNotifyMerchant(order *billing.Order) {

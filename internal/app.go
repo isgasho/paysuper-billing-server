@@ -175,18 +175,7 @@ func (app *Application) Init() {
 		PoolSize:     cfg.CacheRedis.PoolSize,
 	})
 
-	app.svc = service.NewBillingService(
-		app.database,
-		app.cfg,
-		geoService,
-		repService,
-		taxService,
-		broker,
-		app.redis,
-		service.NewCacheRedis(redisdb),
-		curService,
-		documentSignerService,
-	)
+	app.svc = service.NewBillingService(app.database, app.cfg, geoService, repService, taxService, broker, app.redis, service.NewCacheRedis(redisdb), curService, documentSignerService, nil, )
 
 	if err := app.svc.Init(); err != nil {
 		app.logger.Fatal("Create service instance failed", zap.Error(err))
