@@ -1291,8 +1291,11 @@ message ChangeRoyaltyReportRequest {
 message MerchantReviewRoyaltyReportRequest {
     // @inject_tag: validate:"required,hexadecimal,len=24"
     string report_id = 1;
+    //@inject_tag: json:"is_accepted"
     bool is_accepted = 2;
     string ip = 3;
+    //@inject_tag: json:"dispute_reason"
+    string dispute_reason = 4;
 }
 
 message PaymentChannelCostSystemListResponse {

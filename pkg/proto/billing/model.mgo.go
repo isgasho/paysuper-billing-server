@@ -565,19 +565,22 @@ type MgoAccountingEntry struct {
 }
 
 type MgoRoyaltyReport struct {
-	Id             bson.ObjectId         `bson:"_id"`
-	MerchantId     bson.ObjectId         `bson:"merchant_id"`
-	CreatedAt      time.Time             `bson:"created_at"`
-	UpdatedAt      time.Time             `bson:"updated_at"`
-	PayoutDate     time.Time             `bson:"payout_date"`
-	Status         string                `bson:"status"`
-	PeriodFrom     time.Time             `bson:"period_from"`
-	PeriodTo       time.Time             `bson:"period_to"`
-	AcceptExpireAt time.Time             `bson:"accept_expire_at"`
-	AcceptedAt     time.Time             `bson:"accepted_at"`
-	Totals         *RoyaltyReportTotals  `bson:"totals"`
-	Currency       string                `bson:"currency"`
-	Summary        *RoyaltyReportSummary `bson:"summary"`
+	Id               bson.ObjectId         `bson:"_id"`
+	MerchantId       bson.ObjectId         `bson:"merchant_id"`
+	CreatedAt        time.Time             `bson:"created_at"`
+	UpdatedAt        time.Time             `bson:"updated_at"`
+	PayoutDate       time.Time             `bson:"payout_date"`
+	Status           string                `bson:"status"`
+	PeriodFrom       time.Time             `bson:"period_from"`
+	PeriodTo         time.Time             `bson:"period_to"`
+	AcceptExpireAt   time.Time             `bson:"accept_expire_at"`
+	AcceptedAt       time.Time             `bson:"accepted_at"`
+	Totals           *RoyaltyReportTotals  `bson:"totals"`
+	Currency         string                `bson:"currency"`
+	Summary          *RoyaltyReportSummary `bson:"summary"`
+	DisputeReason    string                `bson:"dispute_reason"`
+	DisputeStartedAt time.Time             `bson:"dispute_started_at"`
+	DisputeClosedAt  time.Time             `bson:"dispute_closed_at"`
 }
 
 type MgoRoyaltyReportCorrectionItem struct {
@@ -3588,12 +3591,13 @@ func (m *AccountingEntry) SetBSON(raw bson.Raw) error {
 
 func (m *RoyaltyReport) GetBSON() (interface{}, error) {
 	st := &MgoRoyaltyReport{
-		Id:         bson.ObjectIdHex(m.Id),
-		MerchantId: bson.ObjectIdHex(m.MerchantId),
-		Status:     m.Status,
-		Totals:     m.Totals,
-		Currency:   m.Currency,
-		Summary:    m.Summary,
+		Id:            bson.ObjectIdHex(m.Id),
+		MerchantId:    bson.ObjectIdHex(m.MerchantId),
+		Status:        m.Status,
+		Totals:        m.Totals,
+		Currency:      m.Currency,
+		Summary:       m.Summary,
+		DisputeReason: m.DisputeReason,
 	}
 
 	if m.PayoutDate != nil {
@@ -3662,6 +3666,26 @@ func (m *RoyaltyReport) GetBSON() (interface{}, error) {
 		st.UpdatedAt = time.Now()
 	}
 
+	if m.DisputeStartedAt != nil {
+		t, err := ptypes.Timestamp(m.DisputeStartedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.DisputeStartedAt = t
+	}
+
+	if m.DisputeClosedAt != nil {
+		t, err := ptypes.Timestamp(m.DisputeClosedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.DisputeClosedAt = t
+	}
+
 	return st, nil
 }
 
@@ -3679,44 +3703,49 @@ func (m *RoyaltyReport) SetBSON(raw bson.Raw) error {
 	m.Totals = decoded.Totals
 	m.Currency = decoded.Currency
 	m.Summary = decoded.Summary
-	m.PayoutDate, err = ptypes.TimestampProto(decoded.PayoutDate)
+	m.DisputeReason = decoded.DisputeReason
 
+	m.PayoutDate, err = ptypes.TimestampProto(decoded.PayoutDate)
 	if err != nil {
 		return err
 	}
 
 	m.PeriodFrom, err = ptypes.TimestampProto(decoded.PeriodFrom)
-
 	if err != nil {
 		return err
 	}
 
 	m.PeriodTo, err = ptypes.TimestampProto(decoded.PeriodTo)
-
 	if err != nil {
 		return err
 	}
 
 	m.AcceptExpireAt, err = ptypes.TimestampProto(decoded.AcceptExpireAt)
-
 	if err != nil {
 		return err
 	}
 
 	m.AcceptedAt, err = ptypes.TimestampProto(decoded.AcceptedAt)
-
 	if err != nil {
 		return err
 	}
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
-
 	if err != nil {
 		return err
 	}
 
 	m.UpdatedAt, err = ptypes.TimestampProto(decoded.UpdatedAt)
+	if err != nil {
+		return err
+	}
 
+	m.DisputeStartedAt, err = ptypes.TimestampProto(decoded.DisputeStartedAt)
+	if err != nil {
+		return err
+	}
+
+	m.DisputeClosedAt, err = ptypes.TimestampProto(decoded.DisputeClosedAt)
 	if err != nil {
 		return err
 	}

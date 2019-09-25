@@ -1,6 +1,7 @@
 package service
 
 import (
+	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -16,8 +17,6 @@ const (
 )
 
 var (
-	errorRoyaltySummaryFailed = newBillingServerErrorMsg("ow000001", "royalty summary calculation failed")
-
 	statusForRoyatySummary = []string{
 		constant.OrderPublicStatusProcessed,
 		constant.OrderPublicStatusRefunded,
@@ -33,12 +32,11 @@ type royaltySummaryResult struct {
 type list []interface{}
 
 type OrderViewServiceInterface interface {
-	GetOrderFromViewPublic(id string) (result *billing.OrderViewPublic, err error)
-	GetOrderFromViewPrivate(id string) (result *billing.OrderViewPrivate, err error)
 	CountTransactions(match bson.M) (n int, err error)
 	GetTransactionsPublic(match bson.M, limit, offset int) (result []*billing.OrderViewPublic, err error)
 	GetTransactionsPrivate(match bson.M, limit, offset int) (result []*billing.OrderViewPrivate, err error)
 	GetRoyaltySummary(merchantId, currency string, from, to time.Time) (items []*billing.RoyaltyReportProductSummaryItem, total *billing.RoyaltyReportProductSummaryItem, err error)
+	GetOrderBy(id, uuid, merchantId string, receiver interface{}) (interface{}, error)
 }
 
 func newOrderView(svc *Service) OrderViewServiceInterface {
@@ -3153,20 +3151,20 @@ func (s *Service) doUpdateOrderView(match bson.M) error {
 
 func (s *Service) RebuildOrderView() error {
 
-	zap.S().Info("start rebuilding order view")
+	zap.L().Info("start rebuilding order view")
 
 	err := s.updateOrderView([]string{})
 	if err != nil {
-		zap.S().Error("rebuilding order view failed with error", "err", err)
+		zap.L().Error("rebuilding order view failed with error", zap.Error(err))
 		return err
 	}
 
-	zap.S().Info("rebuilding order view finished successfully")
+	zap.L().Info("rebuilding order view finished successfully")
 
 	return nil
 }
 
-func (ow OrderView) GetOrderFromViewPublic(id string) (result *billing.OrderViewPublic, err error) {
+func (ow *OrderView) GetOrderFromViewPublic(id string) (result *billing.OrderViewPublic, err error) {
 	err = ow.svc.db.Collection(collectionOrderView).
 		FindId(bson.ObjectIdHex(id)).
 		One(&result)
@@ -3181,7 +3179,7 @@ func (ow OrderView) GetOrderFromViewPublic(id string) (result *billing.OrderView
 	return
 }
 
-func (ow OrderView) GetOrderFromViewPrivate(id string) (result *billing.OrderViewPrivate, err error) {
+func (ow *OrderView) GetOrderFromViewPrivate(id string) (result *billing.OrderViewPrivate, err error) {
 	err = ow.svc.db.Collection(collectionOrderView).
 		FindId(bson.ObjectIdHex(id)).
 		One(&result)
@@ -3196,7 +3194,7 @@ func (ow OrderView) GetOrderFromViewPrivate(id string) (result *billing.OrderVie
 	return
 }
 
-func (ow OrderView) CountTransactions(match bson.M) (n int, err error) {
+func (ow *OrderView) CountTransactions(match bson.M) (n int, err error) {
 	n, err = ow.svc.db.Collection(collectionOrderView).
 		Find(match).
 		Count()
@@ -3212,7 +3210,7 @@ func (ow OrderView) CountTransactions(match bson.M) (n int, err error) {
 	return
 }
 
-func (ow OrderView) GetTransactionsPublic(match bson.M, limit, offset int) (result []*billing.OrderViewPublic, err error) {
+func (ow *OrderView) GetTransactionsPublic(match bson.M, limit, offset int) (result []*billing.OrderViewPublic, err error) {
 	err = ow.svc.db.Collection(collectionOrderView).
 		Find(match).
 		Sort("created_at").
@@ -3233,7 +3231,7 @@ func (ow OrderView) GetTransactionsPublic(match bson.M, limit, offset int) (resu
 	return
 }
 
-func (ow OrderView) GetTransactionsPrivate(match bson.M, limit, offset int) (result []*billing.OrderViewPrivate, err error) {
+func (ow *OrderView) GetTransactionsPrivate(match bson.M, limit, offset int) (result []*billing.OrderViewPrivate, err error) {
 	err = ow.svc.db.Collection(collectionOrderView).
 		Find(match).
 		Sort("created_at").
@@ -3254,7 +3252,7 @@ func (ow OrderView) GetTransactionsPrivate(match bson.M, limit, offset int) (res
 	return
 }
 
-func (ow OrderView) getRoyaltySummaryGroupingQuery(isTotal bool) []bson.M {
+func (ow *OrderView) getRoyaltySummaryGroupingQuery(isTotal bool) []bson.M {
 	var groupingId bson.M
 	if !isTotal {
 		groupingId = bson.M{"product": "$product", "region": "$region"}
@@ -3296,7 +3294,7 @@ func (ow OrderView) getRoyaltySummaryGroupingQuery(isTotal bool) []bson.M {
 	}
 }
 
-func (ow OrderView) GetRoyaltySummary(merchantId, currency string, from, to time.Time) (items []*billing.RoyaltyReportProductSummaryItem, total *billing.RoyaltyReportProductSummaryItem, err error) {
+func (ow *OrderView) GetRoyaltySummary(merchantId, currency string, from, to time.Time) (items []*billing.RoyaltyReportProductSummaryItem, total *billing.RoyaltyReportProductSummaryItem, err error) {
 	items = []*billing.RoyaltyReportProductSummaryItem{}
 	total = &billing.RoyaltyReportProductSummaryItem{}
 
@@ -3400,9 +3398,9 @@ func (ow OrderView) GetRoyaltySummary(merchantId, currency string, from, to time
 		},
 	}
 
-	var result []*royaltySummaryResult
+	var result *royaltySummaryResult
 
-	err = ow.svc.db.Collection(collectionOrderView).Pipe(query).All(&result)
+	err = ow.svc.db.Collection(collectionOrderView).Pipe(query).One(&result)
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
@@ -3413,20 +3411,54 @@ func (ow OrderView) GetRoyaltySummary(merchantId, currency string, from, to time
 		return
 	}
 
-	if len(result) != 1 {
-		err = errorRoyaltySummaryFailed
+	if result == nil {
 		return
 	}
 
-	if result[0].Items != nil {
-		items = result[0].Items
+	if result.Items != nil {
+		items = result.Items
 	}
 
-	if result[0].Total != nil {
-		total = result[0].Total
+	if result.Total != nil {
+		total = result.Total
 		total.Product = ""
 		total.Region = ""
 	}
 
 	return
+}
+
+func (ow *OrderView) GetOrderBy(id, uuid, merchantId string, receiver interface{}) (interface{}, error) {
+	query := bson.M{}
+
+	if id != "" {
+		query["_id"] = bson.ObjectIdHex(id)
+	}
+
+	if uuid != "" {
+		query["uuid"] = uuid
+	}
+
+	if merchantId != "" {
+		query["project.merchant_id"] = bson.ObjectIdHex(merchantId)
+	}
+
+	err := ow.svc.db.Collection(collectionOrderView).Find(query).One(receiver)
+
+	if err != nil {
+		if err == mgo.ErrNotFound {
+			return nil, orderErrorNotFound
+		}
+
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrderView),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+
+		return nil, orderErrorNotFound
+	}
+
+	return receiver, nil
 }

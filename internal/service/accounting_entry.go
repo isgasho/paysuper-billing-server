@@ -1164,8 +1164,8 @@ func (a Accounting) GetCorrectionsForRoyaltyReport(merchantId, currency string, 
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String(errorFieldCollection, collectionAccountingEntry),
-			zap.Any(errorFieldQuery, query),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionAccountingEntry),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 			zap.Any(pkg.ErrorDatabaseFieldSorts, sorts),
 		)
 	}
@@ -1188,8 +1188,8 @@ func (a Accounting) GetRollingReservesForRoyaltyReport(merchantId, currency stri
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String(errorFieldCollection, collectionAccountingEntry),
-			zap.Any(errorFieldQuery, query),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionAccountingEntry),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 			zap.Any(pkg.ErrorDatabaseFieldSorts, sorts),
 		)
 	}

@@ -146,8 +146,7 @@ func (suite *OrderViewTestSuite) Test_OrderView_GetOrderFromViewPublic_Ok() {
 		suite.projectFixedAmount,
 		suite.paymentMethod,
 	)
-
-	orderPublic, err := suite.service.orderView.GetOrderFromViewPublic(order.Id)
+	orderPublic, err := suite.service.orderView.GetOrderBy(order.Id, "", "", new(billing.OrderViewPublic))
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), orderPublic)
 	assert.IsType(suite.T(), &billing.OrderViewPublic{}, orderPublic)
@@ -164,7 +163,7 @@ func (suite *OrderViewTestSuite) Test_OrderView_GetOrderFromViewPrivate_Ok() {
 		suite.paymentMethod,
 	)
 
-	orderPrivate, err := suite.service.orderView.GetOrderFromViewPrivate(order.Id)
+	orderPrivate, err := suite.service.orderView.GetOrderBy(order.Id, "", "", new(billing.OrderViewPrivate))
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), orderPrivate)
 	assert.IsType(suite.T(), &billing.OrderViewPrivate{}, orderPrivate)

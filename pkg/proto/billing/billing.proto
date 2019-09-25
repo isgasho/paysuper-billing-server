@@ -1459,6 +1459,12 @@ message RoyaltyReport {
     string currency = 12;
     //@inject_tag: bson:"summary" json:"summary"
     RoyaltyReportSummary summary = 13;
+    //@inject_tag: bson:"dispute_reason" json:"dispute_reason"
+    string dispute_reason = 14;
+    //@inject_tag: bson:"dispute_started_at" json:"dispute_closed_at"
+    google.protobuf.Timestamp dispute_started_at = 15;
+    //@inject_tag: bson:"dispute_closed_at" json:"dispute_closed_at"
+    google.protobuf.Timestamp dispute_closed_at = 16;
 }
 
 message RoyaltyReportChanges {
