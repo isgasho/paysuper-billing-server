@@ -56,6 +56,7 @@ type OrderTestSuite struct {
 	productIds                             []string
 	keyProductIds                          []string
 	merchantDefaultCurrency                string
+	paymentMethodWithoutCommission         *billing.PaymentMethod
 }
 
 func Test_Order(t *testing.T) {
@@ -89,6 +90,11 @@ func (suite *OrderTestSuite) SetupTest() {
 		Id:       bson.NewObjectId().Hex(),
 		Region:   "CIS",
 		Currency: "USD",
+	}
+	pgUah := &billing.PriceGroup{
+		Id:       bson.NewObjectId().Hex(),
+		Region:   "UAH",
+		Currency: "UAH",
 	}
 
 	ru := &billing.Country{
@@ -166,6 +172,68 @@ func (suite *OrderTestSuite) SetupTest() {
 		VatStoreYears:          5,
 		VatCurrencyRatesPolicy: "last-day",
 		VatCurrencyRatesSource: "cbrf",
+	}
+	it := &billing.Country{
+		IsoCodeA2:       "IT",
+		Region:          "UAH",
+		Currency:        "UAH",
+		PaymentsAllowed: true,
+		ChangeAllowed:   true,
+		VatEnabled:      true,
+		PriceGroupId:    pgUah.Id,
+		VatCurrency:     "",
+		VatThreshold: &billing.CountryVatThreshold{
+			Year:  0,
+			World: 0,
+		},
+		VatPeriodMonth:         3,
+		VatDeadlineDays:        25,
+		VatStoreYears:          5,
+		VatCurrencyRatesPolicy: "last-day",
+		VatCurrencyRatesSource: "cbrf",
+	}
+
+	ps0 := &billing.PaymentSystem{
+		Id:                 bson.NewObjectId().Hex(),
+		Name:               "CardPay",
+		AccountingCurrency: "RUB",
+		AccountingPeriod:   "every-day",
+		Country:            "",
+		IsActive:           true,
+		Handler:            "cardpay",
+	}
+
+	pmBankCardNotUsed := &billing.PaymentMethod{
+		Id:               bson.NewObjectId().Hex(),
+		Name:             "Bank card NEVER USING",
+		Group:            "BANKCARD",
+		MinPaymentAmount: 90,
+		MaxPaymentAmount: 15000,
+		Currencies:       []string{"RUB", "USD", "EUR"},
+		ExternalId:       "BANKCARD",
+		ProductionSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				TerminalId:     "15985",
+				Secret:         "A1tph4I6BD0f",
+				SecretCallback: "0V1rJ7t4jCRv",
+			},
+			"USD": {
+				TerminalId:     "15985",
+				Secret:         "A1tph4I6BD0f",
+				SecretCallback: "0V1rJ7t4jCRv",
+			},
+		},
+		TestSettings: map[string]*billing.PaymentMethodParams{
+			"USD": {
+				TerminalId:     "15985",
+				Secret:         "A1tph4I6BD0f",
+				SecretCallback: "0V1rJ7t4jCRv",
+			},
+		},
+		Type:            "bank_card",
+		IsActive:        true,
+		AccountRegexp:   "^(?:4[0-9]{12}(?:[0-9]{3})?|[25][1-7][0-9]{14}|6(?:011|5[0-9][0-9])[0-9]{12}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|(?:2131|1800|35\\d{3})\\d{11})$",
+		PaymentSystemId: ps0.Id,
 	}
 
 	ps1 := &billing.PaymentSystem{
@@ -383,6 +451,25 @@ func (suite *OrderTestSuite) SetupTest() {
 				IsActive: true,
 			},
 		},
+		Tariff: &billing.MerchantTariffRates{
+			Region: "USD",
+			Chargeback: &billing.TariffRatesItem{
+				FixedFee: 1,
+				FixedFeeCurrency: "USD",
+				IsPaidByMerchant: true,
+			},
+			MoneyBack: []*billing.MerchantTariffRatesMoneyBack{
+				{Method: "VISA"},
+			},
+			Payment: []*billing.MerchantTariffRatesPayments{
+				{Method: "VISA"},
+			},
+			Payout: &billing.TariffRatesItem{
+				FixedFee: 1,
+				FixedFeeCurrency: "USD",
+				IsPaidByMerchant: true,
+			},
+		},
 	}
 
 	merchantAgreement := &billing.Merchant{
@@ -418,6 +505,25 @@ func (suite *OrderTestSuite) SetupTest() {
 			Amount: 10000,
 		},
 		IsSigned: true,
+		Tariff: &billing.MerchantTariffRates{
+			Region: "USD",
+			Chargeback: &billing.TariffRatesItem{
+				FixedFee: 1,
+				FixedFeeCurrency: "USD",
+				IsPaidByMerchant: true,
+			},
+			MoneyBack: []*billing.MerchantTariffRatesMoneyBack{
+				{Method: "VISA"},
+			},
+			Payment: []*billing.MerchantTariffRatesPayments{
+				{Method: "VISA"},
+			},
+			Payout: &billing.TariffRatesItem{
+				FixedFee: 1,
+				FixedFeeCurrency: "USD",
+				IsPaidByMerchant: true,
+			},
+		},
 	}
 	merchant1 := &billing.Merchant{
 		Id: bson.NewObjectId().Hex(),
@@ -452,6 +558,25 @@ func (suite *OrderTestSuite) SetupTest() {
 			Amount: 100000,
 		},
 		IsSigned: false,
+		Tariff: &billing.MerchantTariffRates{
+			Region: "USD",
+			Chargeback: &billing.TariffRatesItem{
+				FixedFee: 1,
+				FixedFeeCurrency: "USD",
+				IsPaidByMerchant: true,
+			},
+			MoneyBack: []*billing.MerchantTariffRatesMoneyBack{
+				{Method: "VISA"},
+			},
+			Payment: []*billing.MerchantTariffRatesPayments{
+				{Method: "VISA"},
+			},
+			Payout: &billing.TariffRatesItem{
+				FixedFee: 1,
+				FixedFeeCurrency: "USD",
+				IsPaidByMerchant: true,
+			},
+		},
 	}
 
 	project := &billing.Project{
@@ -698,8 +823,24 @@ func (suite *OrderTestSuite) SetupTest() {
 		BankCountryIsoCode: "US",
 	}
 
+	bin2 := &BinData{
+		Id:                 bson.NewObjectId(),
+		CardBin:            408300,
+		CardBrand:          "VISA",
+		CardType:           "DEBIT",
+		CardCategory:       "WORLD",
+		BankName:           "ALFA BANK",
+		BankCountryName:    "UKRAINE",
+		BankCountryIsoCode: "US",
+	}
+
 	err = db.Collection(collectionBinData).Insert(bin)
 
+	if err != nil {
+		suite.FailNow("Insert BIN test data failed", "%v", err)
+	}
+
+	err = db.Collection(collectionBinData).Insert(bin2)
 	if err != nil {
 		suite.FailNow("Insert BIN test data failed", "%v", err)
 	}
@@ -759,7 +900,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 
-	pms := []*billing.PaymentMethod{pmBankCard, pmQiwi, pmBitcoin, pmWebMoney, pmWebMoneyWME, pmBitcoin1}
+	pms := []*billing.PaymentMethod{pmBankCard, pmQiwi, pmBitcoin, pmWebMoney, pmWebMoneyWME, pmBitcoin1, pmBankCardNotUsed}
 	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {
 		suite.FailNow("Insert payment methods test data failed", "%v", err)
 	}
@@ -769,7 +910,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
 	}
 
-	country := []*billing.Country{ru, us, by, ua}
+	country := []*billing.Country{ru, us, by, ua, it}
 	if err := suite.service.country.MultipleInsert(country); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
@@ -778,12 +919,12 @@ func (suite *OrderTestSuite) SetupTest() {
 		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 
-	ps := []*billing.PaymentSystem{ps1, ps2, ps3, ps4, ps5}
+	ps := []*billing.PaymentSystem{ps0, ps1, ps2, ps3, ps4, ps5}
 	if err := suite.service.paymentSystem.MultipleInsert(ps); err != nil {
 		suite.FailNow("Insert payment system test data failed", "%v", err)
 	}
 
-	pgs := []*billing.PriceGroup{pgRub, pgUsd, pgCis}
+	pgs := []*billing.PriceGroup{pgRub, pgUsd, pgCis, pgUah}
 	if err := suite.service.priceGroup.MultipleInsert(pgs); err != nil {
 		suite.FailNow("Insert price group test data failed", "%v", err)
 	}
@@ -990,6 +1131,7 @@ func (suite *OrderTestSuite) SetupTest() {
 	suite.projectEmptyPaymentMethodTerminal = projectEmptyPaymentMethodTerminal
 	suite.projectUahLimitCurrency = projectUahLimitCurrency
 	suite.paymentMethod = pmBankCard
+	suite.paymentMethodWithoutCommission = pmBankCardNotUsed
 	suite.inactivePaymentMethod = pmBitcoin
 	suite.paymentMethodWithInactivePaymentSystem = pmQiwi
 	suite.pmWebMoney = pmWebMoney

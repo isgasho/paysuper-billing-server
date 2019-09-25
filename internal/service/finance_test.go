@@ -114,6 +114,25 @@ func (suite *FinanceTestSuite) SetupTest() {
 			Amount: 999999,
 		},
 		IsSigned: true,
+		Tariff: &billing.MerchantTariffRates{
+			Region: "USD",
+			Chargeback: &billing.TariffRatesItem{
+				FixedFee: 1,
+				FixedFeeCurrency: "USD",
+				IsPaidByMerchant: true,
+			},
+			MoneyBack: []*billing.MerchantTariffRatesMoneyBack{
+				{Method: "VISA"},
+			},
+			Payment: []*billing.MerchantTariffRatesPayments{
+				{Method: "VISA"},
+			},
+			Payout: &billing.TariffRatesItem{
+				FixedFee: 1,
+				FixedFeeCurrency: "USD",
+				IsPaidByMerchant: true,
+			},
+		},
 		PaymentMethods: map[string]*billing.MerchantPaymentMethod{
 			pmBankCard.Id: {
 				PaymentMethod: &billing.MerchantPaymentMethodIdentification{
