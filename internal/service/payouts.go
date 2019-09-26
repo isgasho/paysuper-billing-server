@@ -15,6 +15,8 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	reporterConst "github.com/paysuper/paysuper-reporter/pkg"
+	reporterProto "github.com/paysuper/paysuper-reporter/pkg/proto"
 	"go.uber.org/zap"
 	"sort"
 	"time"
@@ -212,7 +214,31 @@ func (s *Service) CreatePayoutDocument(
 		return err
 	}
 
-	// todo: send created document to render service
+	params, err := json.Marshal(map[string]interface{}{reporterConst.ParamsFieldId: pd.Id})
+	if err != nil {
+		zap.L().Error(
+			"Unable to marshal the params of payout for the reporting service.",
+			zap.Error(err),
+		)
+		return err
+	}
+
+	fileReq := &reporterProto.ReportFile{
+		UserId:           merchant.User.Id,
+		MerchantId:       merchant.Id,
+		ReportType:       reporterConst.ReportTypePayout,
+		FileType:         reporterConst.OutputExtensionPdf,
+		Params:           params,
+		SendNotification: false,
+	}
+
+	if _, err = s.reporterService.CreateFile(ctx, fileReq); err != nil {
+		zap.L().Error(
+			"Unable to create file in the reporting service for payout.",
+			zap.Error(err),
+		)
+		return err
+	}
 
 	res.Status = pkg.ResponseStatusOk
 	res.Item = pd
@@ -449,6 +475,18 @@ func (s *Service) GetPayoutDocumentSignUrl(
 		}
 		return err
 	}
+
+	return nil
+}
+
+func (s *Service) PayoutDocumentPdfUploaded(
+	ctx context.Context,
+	req *grpc.PayoutDocumentPdfUploadedRequest,
+	res *grpc.PayoutDocumentPdfUploadedResponse,
+) error {
+	res.Status = pkg.ResponseStatusOk
+
+	//TODO: Use the request params for update payout document
 
 	return nil
 }
