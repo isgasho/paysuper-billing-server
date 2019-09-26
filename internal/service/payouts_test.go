@@ -15,6 +15,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
+	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -428,7 +429,7 @@ func (suite *PayoutsTestSuite) SetupTest() {
 		suite.cache,
 		mocks.NewCurrencyServiceMockOk(),
 		mocks.NewDocumentSignerMockOk(),
-		nil,
+		&reportingMocks.ReporterService{},
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -530,6 +531,10 @@ func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Fail_HasDisp
 }
 
 func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Ok_Pending() {
+	reporting := &reportingMocks.ReporterService{}
+	reporting.On("CreateFile", mock2.Anything, mock2.Anything).Return(nil, nil)
+	suite.service.reporterService = reporting
+
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report1, suite.report2})
 
 	_, err := suite.service.updateMerchantBalance(suite.merchant.Id)
@@ -557,6 +562,10 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Ok_Pending() {
 }
 
 func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Ok_SkipByAmount() {
+	reporting := &reportingMocks.ReporterService{}
+	reporting.On("CreateFile", mock2.Anything, mock2.Anything).Return(nil, nil)
+	suite.service.reporterService = reporting
+
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report2})
 
 	_, err := suite.service.updateMerchantBalance(suite.merchant.Id)
@@ -584,6 +593,9 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Ok_SkipByAmount(
 }
 
 func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Ok_SkipByRollingReserve() {
+	reporting := &reportingMocks.ReporterService{}
+	reporting.On("CreateFile", mock2.Anything, mock2.Anything).Return(nil, nil)
+	suite.service.reporterService = reporting
 
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report1, suite.report2})
 
