@@ -161,6 +161,7 @@ service BillingService {
     rpc GetPayoutDocuments(GetPayoutDocumentsRequest) returns (GetPayoutDocumentsResponse) {}
     rpc GetPayoutDocumentSignUrl(GetPayoutDocumentSignUrlRequest) returns (GetPayoutDocumentSignUrlResponse) {}
     rpc UpdatePayoutDocumentSignatures(UpdatePayoutDocumentSignaturesRequest) returns (PayoutDocumentResponse) {}
+    rpc PayoutDocumentPdfUploaded(PayoutDocumentPdfUploadedRequest) returns (PayoutDocumentPdfUploadedResponse) {}
 
     rpc GetMerchantBalance(GetMerchantBalanceRequest) returns (GetMerchantBalanceResponse) {}
 }
@@ -1273,22 +1274,29 @@ message ListRoyaltyReportOrdersRequest {
     int32 offset = 6;
 }
 
+message ChangeRoyaltyReportCorrection {
+    double amount = 1;
+    string reason = 2;
+}
+
 message ChangeRoyaltyReportRequest {
-    // @inject_tag: validate:"required,hexadecimal,len=24"
+    // @inject_tag: json:"report_id" validate:"required,hexadecimal,len=24"
     string report_id = 1;
-    // @inject_tag: validate:"omitempty,oneof=pending skipped accepted canceled dispute ready_for_invoice payment_in_progress payment_done payment_error"
+    // @inject_tag: json:"status" validate:"omitempty,oneof=pending skipped accepted canceled dispute ready_for_invoice payment_in_progress payment_done payment_error"
     string status = 2;
-    // @inject_tag: validate:"omitempty,hexadecimal,len=24"
-    string payout_id = 3;
-    billing.RoyaltyReportCorrection correction = 4;
+    // @inject_tag: json:"correction"
+    ChangeRoyaltyReportCorrection correction = 3;
     string ip = 5;
 }
 
 message MerchantReviewRoyaltyReportRequest {
     // @inject_tag: validate:"required,hexadecimal,len=24"
     string report_id = 1;
+    //@inject_tag: json:"is_accepted"
     bool is_accepted = 2;
     string ip = 3;
+    //@inject_tag: json:"dispute_reason"
+    string dispute_reason = 4;
 }
 
 message PaymentChannelCostSystemListResponse {
@@ -1973,4 +1981,18 @@ message GetMerchantBalanceResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     billing.MerchantBalance item = 3;
+}
+
+message PayoutDocumentPdfUploadedRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string id = 1;
+    //@inject_tag: validate:"required,alpha"
+    string filename = 2;
+    //@inject_tag: validate:"required,numeric,gte=0"
+    int32 retention_time = 3;
+}
+
+message PayoutDocumentPdfUploadedResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
 }

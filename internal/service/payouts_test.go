@@ -156,10 +156,8 @@ func (suite *PayoutsTestSuite) SetupTest() {
 	suite.report1 = &billing.RoyaltyReport{
 		Id:         bson.NewObjectId().Hex(),
 		MerchantId: suite.merchant.Id,
-		Amounts: &billing.RoyaltyReportDetails{
-			Currency:          suite.merchant.GetPayoutCurrency(),
+		Totals: &billing.RoyaltyReportTotals{
 			TransactionsCount: 100,
-			GrossAmount:       100500,
 			PayoutAmount:      12345,
 			VatAmount:         100,
 			FeeAmount:         50,
@@ -169,15 +167,14 @@ func (suite *PayoutsTestSuite) SetupTest() {
 		PeriodFrom:     suite.dateFrom1,
 		PeriodTo:       suite.dateTo1,
 		AcceptExpireAt: ptypes.TimestampNow(),
+		Currency:       suite.merchant.GetPayoutCurrency(),
 	}
 
 	suite.report2 = &billing.RoyaltyReport{
 		Id:         bson.NewObjectId().Hex(),
 		MerchantId: suite.merchant.Id,
-		Amounts: &billing.RoyaltyReportDetails{
-			Currency:          suite.merchant.GetPayoutCurrency(),
+		Totals: &billing.RoyaltyReportTotals{
 			TransactionsCount: 10,
-			GrossAmount:       10050,
 			PayoutAmount:      1234.5,
 			VatAmount:         10,
 			FeeAmount:         5,
@@ -187,15 +184,14 @@ func (suite *PayoutsTestSuite) SetupTest() {
 		PeriodFrom:     suite.dateFrom2,
 		PeriodTo:       suite.dateTo2,
 		AcceptExpireAt: ptypes.TimestampNow(),
+		Currency:       suite.merchant.GetPayoutCurrency(),
 	}
 
 	suite.report3 = &billing.RoyaltyReport{
 		Id:         bson.NewObjectId().Hex(),
 		MerchantId: suite.merchant.Id,
-		Amounts: &billing.RoyaltyReportDetails{
-			Currency:          suite.merchant.GetPayoutCurrency(),
+		Totals: &billing.RoyaltyReportTotals{
 			TransactionsCount: 10,
-			GrossAmount:       10050,
 			PayoutAmount:      1234.5,
 			VatAmount:         10,
 			FeeAmount:         5,
@@ -205,15 +201,14 @@ func (suite *PayoutsTestSuite) SetupTest() {
 		PeriodFrom:     ptypes.TimestampNow(),
 		PeriodTo:       ptypes.TimestampNow(),
 		AcceptExpireAt: ptypes.TimestampNow(),
+		Currency:       suite.merchant.GetPayoutCurrency(),
 	}
 
 	suite.report4 = &billing.RoyaltyReport{
 		Id:         bson.NewObjectId().Hex(),
 		MerchantId: suite.merchant.Id,
-		Amounts: &billing.RoyaltyReportDetails{
-			Currency:          suite.merchant.GetPayoutCurrency(),
+		Totals: &billing.RoyaltyReportTotals{
 			TransactionsCount: 0,
-			GrossAmount:       0,
 			PayoutAmount:      0,
 			VatAmount:         0,
 			FeeAmount:         0,
@@ -223,15 +218,14 @@ func (suite *PayoutsTestSuite) SetupTest() {
 		PeriodFrom:     ptypes.TimestampNow(),
 		PeriodTo:       ptypes.TimestampNow(),
 		AcceptExpireAt: ptypes.TimestampNow(),
+		Currency:       suite.merchant.GetPayoutCurrency(),
 	}
 
 	suite.report5 = &billing.RoyaltyReport{
 		Id:         bson.NewObjectId().Hex(),
 		MerchantId: suite.merchant.Id,
-		Amounts: &billing.RoyaltyReportDetails{
-			Currency:          "USD",
+		Totals: &billing.RoyaltyReportTotals{
 			TransactionsCount: 10,
-			GrossAmount:       20,
 			PayoutAmount:      30,
 			VatAmount:         40,
 			FeeAmount:         50,
@@ -241,15 +235,14 @@ func (suite *PayoutsTestSuite) SetupTest() {
 		PeriodFrom:     ptypes.TimestampNow(),
 		PeriodTo:       ptypes.TimestampNow(),
 		AcceptExpireAt: ptypes.TimestampNow(),
+		Currency:       "USD",
 	}
 
 	suite.report6 = &billing.RoyaltyReport{
 		Id:         bson.NewObjectId().Hex(),
 		MerchantId: suite.merchant.Id,
-		Amounts: &billing.RoyaltyReportDetails{
-			Currency:          suite.merchant.GetPayoutCurrency(),
+		Totals: &billing.RoyaltyReportTotals{
 			TransactionsCount: 100,
-			GrossAmount:       100500,
 			PayoutAmount:      alreadyPaidRoyalty,
 			VatAmount:         100,
 			FeeAmount:         50,
@@ -259,15 +252,14 @@ func (suite *PayoutsTestSuite) SetupTest() {
 		PeriodFrom:     ptypes.TimestampNow(),
 		PeriodTo:       ptypes.TimestampNow(),
 		AcceptExpireAt: ptypes.TimestampNow(),
+		Currency:       suite.merchant.GetPayoutCurrency(),
 	}
 
 	suite.report7 = &billing.RoyaltyReport{
 		Id:         bson.NewObjectId().Hex(),
 		MerchantId: suite.merchant.Id,
-		Amounts: &billing.RoyaltyReportDetails{
-			Currency:          suite.merchant.GetPayoutCurrency(),
+		Totals: &billing.RoyaltyReportTotals{
 			TransactionsCount: 100,
-			GrossAmount:       100500,
 			PayoutAmount:      90,
 			VatAmount:         100,
 			FeeAmount:         50,
@@ -277,6 +269,7 @@ func (suite *PayoutsTestSuite) SetupTest() {
 		PeriodFrom:     ptypes.TimestampNow(),
 		PeriodTo:       ptypes.TimestampNow(),
 		AcceptExpireAt: ptypes.TimestampNow(),
+		Currency:       suite.merchant.GetPayoutCurrency(),
 	}
 
 	suite.payout1 = &billing.PayoutDocument{
@@ -424,7 +417,19 @@ func (suite *PayoutsTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), nil, )
+	suite.service = NewBillingService(
+		db,
+		cfg,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		suite.cache,
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
+		nil,
+	)
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -541,7 +546,7 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Ok_Pending() {
 	err = suite.service.CreatePayoutDocument(context.TODO(), req, res)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
-	controlAmount := suite.report1.Amounts.PayoutAmount + suite.report2.Amounts.PayoutAmount
+	controlAmount := suite.report1.Totals.PayoutAmount + suite.report2.Totals.PayoutAmount
 	assert.Equal(suite.T(), res.Item.Amount, controlAmount)
 	assert.Equal(suite.T(), res.Item.Amount, float64(13579.5))
 	assert.True(suite.T(), suite.merchant.MinPayoutAmount < controlAmount)
@@ -568,7 +573,7 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Ok_SkipByAmount(
 	err = suite.service.CreatePayoutDocument(context.TODO(), req, res)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
-	controlAmount := suite.report2.Amounts.PayoutAmount
+	controlAmount := suite.report2.Totals.PayoutAmount
 	assert.Equal(suite.T(), res.Item.Amount, controlAmount)
 	assert.Equal(suite.T(), res.Item.Amount, float64(1234.5))
 	assert.True(suite.T(), suite.merchant.MinPayoutAmount > controlAmount)
@@ -611,7 +616,7 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Ok_SkipByRolling
 	err = suite.service.CreatePayoutDocument(context.TODO(), req1, res1)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res1.Status, pkg.ResponseStatusOk)
-	controlAmount := suite.report1.Amounts.PayoutAmount + suite.report2.Amounts.PayoutAmount - rollingReserveAmount
+	controlAmount := suite.report1.Totals.PayoutAmount + suite.report2.Totals.PayoutAmount - rollingReserveAmount
 	assert.Equal(suite.T(), res1.Item.Amount, controlAmount)
 	assert.Equal(suite.T(), res1.Item.Amount, float64(12979.5))
 	assert.True(suite.T(), suite.merchant.MinPayoutAmount > controlAmount)

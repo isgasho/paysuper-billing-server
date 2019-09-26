@@ -128,6 +128,7 @@ It has these top-level messages:
 	RoyaltyReportsPaginate
 	ListRoyaltyReportsResponse
 	ListRoyaltyReportOrdersRequest
+	ChangeRoyaltyReportCorrection
 	ChangeRoyaltyReportRequest
 	MerchantReviewRoyaltyReportRequest
 	PaymentChannelCostSystemListResponse
@@ -210,6 +211,8 @@ It has these top-level messages:
 	UpdatePayoutDocumentSignaturesRequest
 	GetMerchantBalanceRequest
 	GetMerchantBalanceResponse
+	PayoutDocumentPdfUploadedRequest
+	PayoutDocumentPdfUploadedResponse
 */
 package grpc
 
@@ -370,6 +373,7 @@ type BillingService interface {
 	GetPayoutDocuments(ctx context.Context, in *GetPayoutDocumentsRequest, opts ...client.CallOption) (*GetPayoutDocumentsResponse, error)
 	GetPayoutDocumentSignUrl(ctx context.Context, in *GetPayoutDocumentSignUrlRequest, opts ...client.CallOption) (*GetPayoutDocumentSignUrlResponse, error)
 	UpdatePayoutDocumentSignatures(ctx context.Context, in *UpdatePayoutDocumentSignaturesRequest, opts ...client.CallOption) (*PayoutDocumentResponse, error)
+	PayoutDocumentPdfUploaded(ctx context.Context, in *PayoutDocumentPdfUploadedRequest, opts ...client.CallOption) (*PayoutDocumentPdfUploadedResponse, error)
 	GetMerchantBalance(ctx context.Context, in *GetMerchantBalanceRequest, opts ...client.CallOption) (*GetMerchantBalanceResponse, error)
 }
 
@@ -1641,6 +1645,16 @@ func (c *billingService) UpdatePayoutDocumentSignatures(ctx context.Context, in 
 	return out, nil
 }
 
+func (c *billingService) PayoutDocumentPdfUploaded(ctx context.Context, in *PayoutDocumentPdfUploadedRequest, opts ...client.CallOption) (*PayoutDocumentPdfUploadedResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.PayoutDocumentPdfUploaded", in)
+	out := new(PayoutDocumentPdfUploadedResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *billingService) GetMerchantBalance(ctx context.Context, in *GetMerchantBalanceRequest, opts ...client.CallOption) (*GetMerchantBalanceResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.GetMerchantBalance", in)
 	out := new(GetMerchantBalanceResponse)
@@ -1779,6 +1793,7 @@ type BillingServiceHandler interface {
 	GetPayoutDocuments(context.Context, *GetPayoutDocumentsRequest, *GetPayoutDocumentsResponse) error
 	GetPayoutDocumentSignUrl(context.Context, *GetPayoutDocumentSignUrlRequest, *GetPayoutDocumentSignUrlResponse) error
 	UpdatePayoutDocumentSignatures(context.Context, *UpdatePayoutDocumentSignaturesRequest, *PayoutDocumentResponse) error
+	PayoutDocumentPdfUploaded(context.Context, *PayoutDocumentPdfUploadedRequest, *PayoutDocumentPdfUploadedResponse) error
 	GetMerchantBalance(context.Context, *GetMerchantBalanceRequest, *GetMerchantBalanceResponse) error
 }
 
@@ -1909,6 +1924,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetPayoutDocuments(ctx context.Context, in *GetPayoutDocumentsRequest, out *GetPayoutDocumentsResponse) error
 		GetPayoutDocumentSignUrl(ctx context.Context, in *GetPayoutDocumentSignUrlRequest, out *GetPayoutDocumentSignUrlResponse) error
 		UpdatePayoutDocumentSignatures(ctx context.Context, in *UpdatePayoutDocumentSignaturesRequest, out *PayoutDocumentResponse) error
+		PayoutDocumentPdfUploaded(ctx context.Context, in *PayoutDocumentPdfUploadedRequest, out *PayoutDocumentPdfUploadedResponse) error
 		GetMerchantBalance(ctx context.Context, in *GetMerchantBalanceRequest, out *GetMerchantBalanceResponse) error
 	}
 	type BillingService struct {
@@ -2420,6 +2436,10 @@ func (h *billingServiceHandler) GetPayoutDocumentSignUrl(ctx context.Context, in
 
 func (h *billingServiceHandler) UpdatePayoutDocumentSignatures(ctx context.Context, in *UpdatePayoutDocumentSignaturesRequest, out *PayoutDocumentResponse) error {
 	return h.BillingServiceHandler.UpdatePayoutDocumentSignatures(ctx, in, out)
+}
+
+func (h *billingServiceHandler) PayoutDocumentPdfUploaded(ctx context.Context, in *PayoutDocumentPdfUploadedRequest, out *PayoutDocumentPdfUploadedResponse) error {
+	return h.BillingServiceHandler.PayoutDocumentPdfUploaded(ctx, in, out)
 }
 
 func (h *billingServiceHandler) GetMerchantBalance(ctx context.Context, in *GetMerchantBalanceRequest, out *GetMerchantBalanceResponse) error {

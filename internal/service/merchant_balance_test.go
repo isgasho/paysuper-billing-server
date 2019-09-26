@@ -90,7 +90,19 @@ func (suite *MerchantBalanceTestSuite) SetupTest() {
 	redisdb := mocks.NewTestRedis()
 	suite.httpClient = mocks.NewClientStatusOk()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), broker, redisClient, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), nil, )
+	suite.service = NewBillingService(
+		db,
+		cfg,
+		mocks.NewGeoIpServiceTestOk(),
+		mocks.NewRepositoryServiceOk(),
+		mocks.NewTaxServiceOkMock(),
+		broker,
+		redisClient,
+		suite.cache,
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
+		nil,
+	)
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -246,10 +258,8 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_updateMerchantBalance
 	report := &billing.RoyaltyReport{
 		Id:         bson.NewObjectId().Hex(),
 		MerchantId: suite.merchant.Id,
-		Amounts: &billing.RoyaltyReportDetails{
-			Currency:          suite.merchant.GetPayoutCurrency(),
+		Totals: &billing.RoyaltyReportTotals{
 			TransactionsCount: 10,
-			GrossAmount:       10050,
 			PayoutAmount:      1234.5,
 			VatAmount:         10,
 			FeeAmount:         5,
@@ -259,6 +269,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_updateMerchantBalance
 		PeriodFrom:     ptypes.TimestampNow(),
 		PeriodTo:       ptypes.TimestampNow(),
 		AcceptExpireAt: ptypes.TimestampNow(),
+		Currency:       suite.merchant.GetPayoutCurrency(),
 	}
 	err := suite.service.db.Collection(collectionRoyaltyReport).Insert(report)
 	assert.NoError(suite.T(), err)
@@ -378,10 +389,8 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	report := &billing.RoyaltyReport{
 		Id:         bson.NewObjectId().Hex(),
 		MerchantId: suite.merchant.Id,
-		Amounts: &billing.RoyaltyReportDetails{
-			Currency:          suite.merchant.GetPayoutCurrency(),
+		Totals: &billing.RoyaltyReportTotals{
 			TransactionsCount: 10,
-			GrossAmount:       10050,
 			PayoutAmount:      1234.5,
 			VatAmount:         10,
 			FeeAmount:         5,
@@ -391,6 +400,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 		PeriodFrom:     ptypes.TimestampNow(),
 		PeriodTo:       ptypes.TimestampNow(),
 		AcceptExpireAt: ptypes.TimestampNow(),
+		Currency:       suite.merchant.GetPayoutCurrency(),
 	}
 	err := suite.service.db.Collection(collectionRoyaltyReport).Insert(report)
 	assert.NoError(suite.T(), err)
@@ -646,10 +656,8 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	report := &billing.RoyaltyReport{
 		Id:         bson.NewObjectId().Hex(),
 		MerchantId: suite.merchant.Id,
-		Amounts: &billing.RoyaltyReportDetails{
-			Currency:          suite.merchant.GetPayoutCurrency(),
+		Totals: &billing.RoyaltyReportTotals{
 			TransactionsCount: 10,
-			GrossAmount:       10050,
 			PayoutAmount:      1000,
 			VatAmount:         10,
 			FeeAmount:         5,
@@ -659,6 +667,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 		PeriodFrom:     ptypes.TimestampNow(),
 		PeriodTo:       ptypes.TimestampNow(),
 		AcceptExpireAt: date,
+		Currency:       suite.merchant.GetPayoutCurrency(),
 	}
 	err = suite.service.db.Collection(collectionRoyaltyReport).Insert(report)
 	assert.NoError(suite.T(), err)
@@ -698,10 +707,8 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	report := &billing.RoyaltyReport{
 		Id:         bson.NewObjectId().Hex(),
 		MerchantId: suite.merchant.Id,
-		Amounts: &billing.RoyaltyReportDetails{
-			Currency:          suite.merchant.GetPayoutCurrency(),
+		Totals: &billing.RoyaltyReportTotals{
 			TransactionsCount: 10,
-			GrossAmount:       10050,
 			PayoutAmount:      500,
 			VatAmount:         10,
 			FeeAmount:         5,
@@ -711,6 +718,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 		PeriodFrom:     ptypes.TimestampNow(),
 		PeriodTo:       ptypes.TimestampNow(),
 		AcceptExpireAt: date,
+		Currency:       suite.merchant.GetPayoutCurrency(),
 	}
 	err = suite.service.db.Collection(collectionRoyaltyReport).Insert(report)
 	assert.NoError(suite.T(), err)

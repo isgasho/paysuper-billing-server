@@ -18,6 +18,8 @@ type Project Entity
 type PaymentMethod Entity
 type Merchant Entity
 type PayoutDocument Entity
+type OrderView Entity
+type Accounting Entity
 type MerchantBalance Entity
 type RoyaltyReport Entity
 type PriceGroup Entity

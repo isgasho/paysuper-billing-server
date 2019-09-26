@@ -94,6 +94,7 @@ var (
 		pkg.AccountingEntryTypePsRefundProfit:                      true,
 		pkg.AccountingEntryTypeMerchantRollingReserveCreate:        true,
 		pkg.AccountingEntryTypeMerchantRollingReserveRelease:       true,
+		pkg.AccountingEntryTypeMerchantRoyaltyCorrection:           true,
 	}
 
 	availableAccountingEntriesSourceTypes = map[string]bool{
@@ -105,6 +106,11 @@ var (
 	rollingReserveAccountingEntries = map[string]bool{
 		pkg.AccountingEntryTypeMerchantRollingReserveCreate:  true,
 		pkg.AccountingEntryTypeMerchantRollingReserveRelease: true,
+	}
+
+	rollingReserveAccountingEntriesList = []string{
+		pkg.AccountingEntryTypeMerchantRollingReserveCreate,
+		pkg.AccountingEntryTypeMerchantRollingReserveRelease,
 	}
 )
 
@@ -119,6 +125,16 @@ type accountingEntry struct {
 	country           *billing.Country
 	accountingEntries []interface{}
 	req               *grpc.CreateAccountingEntryRequest
+}
+
+type AccountingServiceInterface interface {
+	GetCorrectionsForRoyaltyReport(merchantId, currency string, from, to time.Time) (items []*billing.AccountingEntry, err error)
+	GetRollingReservesForRoyaltyReport(merchantId, currency string, from, to time.Time) (items []*billing.AccountingEntry, err error)
+}
+
+func newAccounting(svc *Service) AccountingServiceInterface {
+	s := &Accounting{svc: svc}
+	return s
 }
 
 func (s *Service) CreateAccountingEntry(
@@ -320,6 +336,7 @@ func (h *accountingEntry) processManualCorrectionEvent() error {
 	if h.merchant != nil {
 		entry.Source.Type = collectionMerchant
 		entry.Source.Id = h.merchant.Id
+		entry.MerchantId = h.merchant.Id
 	}
 
 	if err = h.addEntry(entry); err != nil {
@@ -1143,4 +1160,52 @@ func (h *accountingEntry) getMoneyBackCostSystem(reason string) (*billing.MoneyB
 		UndoReason:     reason,
 	}
 	return h.Service.getMoneyBackCostSystem(data)
+}
+
+func (a Accounting) GetCorrectionsForRoyaltyReport(merchantId, currency string, from, to time.Time) (items []*billing.AccountingEntry, err error) {
+	query := bson.M{
+		"merchant_id": bson.ObjectIdHex(merchantId),
+		"currency":    currency,
+		"created_at":  bson.M{"$gte": from, "$lte": to},
+		"type":        pkg.AccountingEntryTypeMerchantRoyaltyCorrection,
+	}
+
+	sorts := "created_at"
+	err = a.svc.db.Collection(collectionAccountingEntry).Find(query).Sort(sorts).All(&items)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionAccountingEntry),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			zap.Any(pkg.ErrorDatabaseFieldSorts, sorts),
+		)
+	}
+
+	return
+}
+
+func (a Accounting) GetRollingReservesForRoyaltyReport(merchantId, currency string, from, to time.Time) (items []*billing.AccountingEntry, err error) {
+	query := bson.M{
+		"merchant_id": bson.ObjectIdHex(merchantId),
+		"currency":    currency,
+		"created_at":  bson.M{"$gte": from, "$lte": to},
+		"type":        bson.M{"$in": rollingReserveAccountingEntriesList},
+	}
+
+	sorts := "created_at"
+	err = a.svc.db.Collection(collectionAccountingEntry).Find(query).Sort(sorts).All(&items)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionAccountingEntry),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			zap.Any(pkg.ErrorDatabaseFieldSorts, sorts),
+		)
+	}
+
+	return
 }

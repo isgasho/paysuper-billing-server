@@ -18,6 +18,7 @@ import (
 	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/paysuper/paysuper-i18n"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
+	reporterProto "github.com/paysuper/paysuper-reporter/pkg/proto"
 	"github.com/paysuper/paysuper-tax-service/proto"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
@@ -72,6 +73,8 @@ type Service struct {
 	payoutDocument             PayoutDocumentServiceInterface
 	merchantBalance            MerchantBalanceServiceInterface
 	royaltyReport              RoyaltyReportServiceInterface
+	orderView                  OrderViewServiceInterface
+	accounting                 AccountingServiceInterface
 	paymentMethod              PaymentMethodInterface
 	priceGroup                 PriceGroupServiceInterface
 	paymentSystem              PaymentSystemServiceInterface
@@ -90,6 +93,7 @@ type Service struct {
 	dashboardRepository   DashboardRepositoryInterface
 	centrifugo            CentrifugoInterface
 	formatter             paysuper_i18n.Formatter
+	reporterService            reporterProto.ReporterService
 }
 
 func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {
@@ -109,18 +113,31 @@ func newBillingServerErrorMsg(code, msg string, details ...string) *grpc.Respons
 	return &grpc.ResponseErrorMessage{Code: code, Message: msg, Details: det}
 }
 
-func NewBillingService(db *mongodb.Source, cfg *config.Config, geo proto.GeoIpService, rep repository.RepositoryService, tax tax_service.TaxService, broker rabbitmq.BrokerInterface, redis redis.Cmdable, cache CacheInterface, curService currencies.CurrencyratesService, documentSigner documentSignerProto.DocumentSignerService, formatter paysuper_i18n.Formatter, ) *Service {
+func NewBillingService(
+	db *mongodb.Source,
+	cfg *config.Config,
+	geo proto.GeoIpService,
+	rep repository.RepositoryService,
+	tax tax_service.TaxService,
+	broker rabbitmq.BrokerInterface,
+	redis redis.Cmdable,
+	cache CacheInterface,
+	curService currencies.CurrencyratesService,
+	documentSigner documentSignerProto.DocumentSignerService,
+	reporterService reporterProto.ReporterService,
+) *Service {
 	return &Service{
-		db:             db,
-		cfg:            cfg,
-		geo:            geo,
-		rep:            rep,
-		tax:            tax,
-		broker:         broker,
-		redis:          redis,
-		cacher:         cache,
-		curService:     curService,
-		documentSigner: documentSigner,
+		db:              db,
+		cfg:             cfg,
+		geo:             geo,
+		rep:             rep,
+		tax:             tax,
+		broker:          broker,
+		redis:           redis,
+		cacher:          cache,
+		curService:      curService,
+		documentSigner:  documentSigner,
+		reporterService: reporterService,
 		formatter:      formatter,
 	}
 }
@@ -131,6 +148,8 @@ func (s *Service) Init() (err error) {
 	s.payoutDocument = newPayoutService(s)
 	s.merchantBalance = newMerchantBalance(s)
 	s.royaltyReport = newRoyaltyReport(s)
+	s.orderView = newOrderView(s)
+	s.accounting = newAccounting(s)
 	s.country = newCountryService(s)
 	s.project = newProjectService(s)
 	s.priceGroup = newPriceGroupService(s)

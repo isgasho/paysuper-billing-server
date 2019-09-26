@@ -454,7 +454,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		Tariff: &billing.MerchantTariffRates{
 			Region: "USD",
 			Chargeback: &billing.TariffRatesItem{
-				FixedFee: 1,
+				FixedFee:         1,
 				FixedFeeCurrency: "USD",
 				IsPaidByMerchant: true,
 			},
@@ -465,7 +465,7 @@ func (suite *OrderTestSuite) SetupTest() {
 				{Method: "VISA"},
 			},
 			Payout: &billing.TariffRatesItem{
-				FixedFee: 1,
+				FixedFee:         1,
 				FixedFeeCurrency: "USD",
 				IsPaidByMerchant: true,
 			},
@@ -508,7 +508,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		Tariff: &billing.MerchantTariffRates{
 			Region: "USD",
 			Chargeback: &billing.TariffRatesItem{
-				FixedFee: 1,
+				FixedFee:         1,
 				FixedFeeCurrency: "USD",
 				IsPaidByMerchant: true,
 			},
@@ -519,7 +519,7 @@ func (suite *OrderTestSuite) SetupTest() {
 				{Method: "VISA"},
 			},
 			Payout: &billing.TariffRatesItem{
-				FixedFee: 1,
+				FixedFee:         1,
 				FixedFeeCurrency: "USD",
 				IsPaidByMerchant: true,
 			},
@@ -561,7 +561,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		Tariff: &billing.MerchantTariffRates{
 			Region: "USD",
 			Chargeback: &billing.TariffRatesItem{
-				FixedFee: 1,
+				FixedFee:         1,
 				FixedFeeCurrency: "USD",
 				IsPaidByMerchant: true,
 			},
@@ -572,7 +572,7 @@ func (suite *OrderTestSuite) SetupTest() {
 				{Method: "VISA"},
 			},
 			Payout: &billing.TariffRatesItem{
-				FixedFee: 1,
+				FixedFee:         1,
 				FixedFeeCurrency: "USD",
 				IsPaidByMerchant: true,
 			},
@@ -883,7 +883,19 @@ func (suite *OrderTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), broker, redisClient, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), nil, )
+	suite.service = NewBillingService(
+		db,
+		cfg,
+		mocks.NewGeoIpServiceTestOk(),
+		mocks.NewRepositoryServiceOk(),
+		mocks.NewTaxServiceOkMock(),
+		broker,
+		redisClient,
+		suite.cache,
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
+		nil,
+	)
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -6530,7 +6542,7 @@ func (suite *OrderTestSuite) Test_processPaylinkKeyProducts_error() {
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		Type: billing.OrderType_key,
+		Type:       billing.OrderType_key,
 		PlatformId: "steam",
 	}
 
@@ -6550,7 +6562,7 @@ func (suite *OrderTestSuite) Test_processPaylinkKeyProducts_error() {
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		Type: billing.OrderType_product,
+		Type:       billing.OrderType_product,
 		PlatformId: "steam",
 	}
 
@@ -6574,7 +6586,7 @@ func (suite *OrderTestSuite) Test_ProcessOrderKeyProducts() {
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		Type: billing.OrderType_key,
+		Type:       billing.OrderType_key,
 		PlatformId: "steam",
 	}
 
