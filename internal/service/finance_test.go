@@ -117,7 +117,7 @@ func (suite *FinanceTestSuite) SetupTest() {
 		Tariff: &billing.MerchantTariffRates{
 			Region: "USD",
 			Chargeback: &billing.TariffRatesItem{
-				FixedFee: 1,
+				FixedFee:         1,
 				FixedFeeCurrency: "USD",
 				IsPaidByMerchant: true,
 			},
@@ -128,7 +128,7 @@ func (suite *FinanceTestSuite) SetupTest() {
 				{Method: "VISA"},
 			},
 			Payout: &billing.TariffRatesItem{
-				FixedFee: 1,
+				FixedFee:         1,
 				FixedFeeCurrency: "USD",
 				IsPaidByMerchant: true,
 			},
@@ -222,6 +222,7 @@ func (suite *FinanceTestSuite) SetupTest() {
 		suite.cache,
 		mocks.NewCurrencyServiceMockOk(),
 		mocks.NewDocumentSignerMockOk(),
+		nil,
 	)
 
 	if err := suite.service.Init(); err != nil {

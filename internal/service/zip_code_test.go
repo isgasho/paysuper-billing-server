@@ -67,6 +67,7 @@ func (suite *ZipCodeTestSuite) SetupTest() {
 		cache,
 		mocks.NewCurrencyServiceMockOk(),
 		mocks.NewDocumentSignerMockOk(),
+		nil,
 	)
 	err = suite.service.Init()
 
