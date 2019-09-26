@@ -23,7 +23,6 @@ import (
 	documentSignerProto "github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
-	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/service"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -180,14 +179,13 @@ func (app *Application) Init() {
 		PoolSize:     cfg.CacheRedis.PoolSize,
 	})
 
-	app.svc = service.NewBillingService(app.database, app.cfg, geoService, repService, taxService, broker, app.redis, service.NewCacheRedis(redisdb), curService, documentSignerService, reporter, mocks.NewFormatterOK())
 	formatter, err := paysuper_i18n.NewFormatter([]string{"data/rules"}, []string{"data/messages"})
 
 	if err != nil {
 		app.logger.Fatal("Create il8n formatter failed", zap.Error(err))
 	}
 
-	app.svc = service.NewBillingService(app.database, app.cfg, geoService, repService, taxService, broker, app.redis, service.NewCacheRedis(redisdb), curService, documentSignerService, nil, mocks.NewFormatterOK())
+	app.svc = service.NewBillingService(app.database, app.cfg, geoService, repService, taxService, broker, app.redis, service.NewCacheRedis(redisdb), curService, documentSignerService, reporter, formatter)
 
 	if err := app.svc.Init(); err != nil {
 		app.logger.Fatal("Create service instance failed", zap.Error(err))
