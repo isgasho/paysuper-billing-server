@@ -13,6 +13,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 	protobuf "github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
+	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/google/uuid"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -1281,6 +1282,7 @@ func (s *Service) updateOrder(order *billing.Order) error {
 
 	if statusChanged && ps != constant.OrderPublicStatusCreated && ps != constant.OrderPublicStatusPending {
 		zap.S().Debug("[updateOrder] notify merchant", "order_id", order.Id)
+		s.sendMailWithReceipt(context.TODO(), order)
 		s.orderNotifyMerchant(order)
 	}
 
@@ -1327,7 +1329,6 @@ func (s *Service) orderNotifyKeyProducts(ctx context.Context, order *billing.Ord
 				continue
 			}
 
-			s.sendMailWithReceipt(ctx, order)
 			s.sendMailWithCode(ctx, order, rsp.Key)
 		}
 		order.IsKeyProductNotified = true
@@ -1337,29 +1338,61 @@ func (s *Service) orderNotifyKeyProducts(ctx context.Context, order *billing.Ord
 
 func (s *Service) sendMailWithReceipt(ctx context.Context, order *billing.Order) {
 	payload := s.getPayloadForReceipt(order)
-    index := 1
+	var items []*structpb.Value
+
 	for _, item := range order.Items {
-		payload.TemplateModel[fmt.Sprintf("name_%d", index)] = item.Name
 		price, err := s.formatter.FormatCurrency("en", item.Amount, item.Currency)
 		if err != nil {
 			zap.S().Errorw("Error during formatting currency", "price", item.Amount, "locale", "en", "currency", item.Currency)
 		}
-		payload.TemplateModel[fmt.Sprintf("price_%d", index)] = price
+		items = append(items, s.getReceiptModel(item.Name, price))
+	}
 
-		err = s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
-		if err != nil {
-			zap.S().Errorw(
-				"Publication activation code to user email queue is failed",
-				"err", err, "email", order.ReceiptEmail, "order_id", order.Id)
-		}
-		index++
+	payload.TemplateObjectModel = &structpb.Struct{
+		Fields: map[string]*structpb.Value{
+			"items": {
+				Kind: &structpb.Value_ListValue{ListValue: &structpb.ListValue{
+					Values: items,
+				}},
+			},
+		},
+	}
+
+	zap.S().Infow("sending receipt to broker", "order_id", order.Id)
+	err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+	if err != nil {
+		zap.S().Errorw(
+			"Publication activation code to user email queue is failed",
+			"err", err, "email", order.ReceiptEmail, "order_id", order.Id)
+	}
+}
+
+func (s *Service) getReceiptModel(name string, price string) *structpb.Value {
+	return &structpb.Value{
+		Kind: &structpb.Value_StructValue{
+			StructValue: &structpb.Struct{
+				Fields: map[string]*structpb.Value{
+					"name": {
+						Kind: &structpb.Value_StringValue{StringValue:name},
+					},
+					"price": {
+						Kind: &structpb.Value_StringValue{StringValue:price},
+					},
+				},
+			},
+		},
 	}
 }
 
 func (s *Service) getPayloadForReceipt(order *billing.Order) *postmarkSdrPkg.Payload {
-	totalPrice, err := s.formatter.FormatCurrency("en", order.OrderAmount, order.Currency)
+	totalPrice, err := s.formatter.FormatCurrency(DefaultLanguage, order.OrderAmount, order.Currency)
 	if err != nil {
-		zap.S().Errorw("Error during formatting currency", "price", order.OrderAmount, "locale", "en", "currency", order.Currency)
+		zap.S().Errorw("Error during formatting currency", "price", order.OrderAmount, "locale", DefaultLanguage, "currency", order.Currency)
+	}
+
+	date, err := s.formatter.FormatDateTime(DefaultLanguage, time.Unix(order.CreatedAt.Seconds, 0))
+	if err != nil {
+		zap.S().Errorw("Error during formatting date", "date", order.CreatedAt, "locale", DefaultLanguage)
 	}
 
 	return &postmarkSdrPkg.Payload{
@@ -1367,6 +1400,9 @@ func (s *Service) getPayloadForReceipt(order *billing.Order) *postmarkSdrPkg.Pay
 		TemplateModel: map[string]string{
 			"platform_name": order.PlatformId,
 			"total_price": totalPrice,
+			"transaction_id": order.Uuid,
+			"transaction_date": date,
+			"project_name": order.Project.Name[DefaultLanguage],
 		},
 		To: order.ReceiptEmail,
 	}
