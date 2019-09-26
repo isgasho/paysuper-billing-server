@@ -82,17 +82,17 @@ type Service struct {
 	paymentChannelCostSystem   *PaymentChannelCostSystem
 	paymentChannelCostMerchant *PaymentChannelCostMerchant
 	moneyBackCostSystem        *MoneyBackCostSystem
-	moneyBackCostMerchant *MoneyBackCostMerchant
-	payoutCostSystem      *PayoutCostSystem
-	priceTable            PriceTableServiceInterface
-	productService        ProductServiceInterface
-	turnover              *Turnover
-	documentSigner        documentSignerProto.DocumentSignerService
-	merchantTariffRates   MerchantTariffRatesInterface
-	keyRepository         KeyRepositoryInterface
-	dashboardRepository   DashboardRepositoryInterface
-	centrifugo            CentrifugoInterface
-	formatter             paysuper_i18n.Formatter
+	moneyBackCostMerchant      *MoneyBackCostMerchant
+	payoutCostSystem           *PayoutCostSystem
+	priceTable                 PriceTableServiceInterface
+	productService             ProductServiceInterface
+	turnover                   *Turnover
+	documentSigner             documentSignerProto.DocumentSignerService
+	merchantTariffRates        MerchantTariffRatesInterface
+	keyRepository              KeyRepositoryInterface
+	dashboardRepository        DashboardRepositoryInterface
+	centrifugo                 CentrifugoInterface
+	formatter                  paysuper_i18n.Formatter
 	reporterService            reporterProto.ReporterService
 }
 
@@ -125,6 +125,7 @@ func NewBillingService(
 	curService currencies.CurrencyratesService,
 	documentSigner documentSignerProto.DocumentSignerService,
 	reporterService reporterProto.ReporterService,
+	formatter paysuper_i18n.Formatter,
 ) *Service {
 	return &Service{
 		db:              db,
@@ -138,7 +139,7 @@ func NewBillingService(
 		curService:      curService,
 		documentSigner:  documentSigner,
 		reporterService: reporterService,
-		formatter:      formatter,
+		formatter:       formatter,
 	}
 }
 

@@ -179,26 +179,14 @@ func (app *Application) Init() {
 		PoolSize:     cfg.CacheRedis.PoolSize,
 	})
 
-	app.svc = service.NewBillingService(
-		app.database,
-		app.cfg,
-		geoService,
-		repService,
-		taxService,
-		broker,
-		app.redis,
-		service.NewCacheRedis(redisdb),
-		curService,
-		documentSignerService,
-		reporter,
-	)
+	app.svc = service.NewBillingService(app.database, app.cfg, geoService, repService, taxService, broker, app.redis, service.NewCacheRedis(redisdb), curService, documentSignerService, reporter, nil)
 	formatter, err := paysuper_i18n.NewFormatter([]string{"data/rules"}, []string{"data/messages"})
 
 	if err != nil {
 		app.logger.Fatal("Create il8n formatter failed", zap.Error(err))
 	}
 
-	app.svc = service.NewBillingService(app.database, app.cfg, geoService, repService, taxService, broker, app.redis, service.NewCacheRedis(redisdb), curService, documentSignerService, formatter, )
+	app.svc = service.NewBillingService(app.database, app.cfg, geoService, repService, taxService, broker, app.redis, service.NewCacheRedis(redisdb), curService, documentSignerService, nil)
 
 	if err := app.svc.Init(); err != nil {
 		app.logger.Fatal("Create service instance failed", zap.Error(err))

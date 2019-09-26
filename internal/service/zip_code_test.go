@@ -56,19 +56,7 @@ func (suite *ZipCodeTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	cache := NewCacheRedis(redisdb)
-	suite.service = NewBillingService(
-		db,
-		cfg,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		cache,
-		mocks.NewCurrencyServiceMockOk(),
-		mocks.NewDocumentSignerMockOk(),
-		nil,
-	)
+	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), nil, nil)
 	err = suite.service.Init()
 
 	if err != nil {
