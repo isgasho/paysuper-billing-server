@@ -186,7 +186,7 @@ func (app *Application) Init() {
 		app.logger.Fatal("Create il8n formatter failed", zap.Error(err))
 	}
 
-	app.svc = service.NewBillingService(app.database, app.cfg, geoService, repService, taxService, broker, app.redis, service.NewCacheRedis(redisdb), curService, documentSignerService, nil)
+	app.svc = service.NewBillingService(app.database, app.cfg, geoService, repService, taxService, broker, app.redis, service.NewCacheRedis(redisdb), curService, documentSignerService, nil, formatter)
 
 	if err := app.svc.Init(); err != nil {
 		app.logger.Fatal("Create service instance failed", zap.Error(err))
