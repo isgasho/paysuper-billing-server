@@ -454,7 +454,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		Tariff: &billing.MerchantTariffRates{
 			Region: "USD",
 			Chargeback: &billing.TariffRatesItem{
-				FixedFee: 1,
+				FixedFee:         1,
 				FixedFeeCurrency: "USD",
 				IsPaidByMerchant: true,
 			},
@@ -465,7 +465,7 @@ func (suite *OrderTestSuite) SetupTest() {
 				{Method: "VISA"},
 			},
 			Payout: &billing.TariffRatesItem{
-				FixedFee: 1,
+				FixedFee:         1,
 				FixedFeeCurrency: "USD",
 				IsPaidByMerchant: true,
 			},
@@ -508,7 +508,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		Tariff: &billing.MerchantTariffRates{
 			Region: "USD",
 			Chargeback: &billing.TariffRatesItem{
-				FixedFee: 1,
+				FixedFee:         1,
 				FixedFeeCurrency: "USD",
 				IsPaidByMerchant: true,
 			},
@@ -519,7 +519,7 @@ func (suite *OrderTestSuite) SetupTest() {
 				{Method: "VISA"},
 			},
 			Payout: &billing.TariffRatesItem{
-				FixedFee: 1,
+				FixedFee:         1,
 				FixedFeeCurrency: "USD",
 				IsPaidByMerchant: true,
 			},
@@ -561,7 +561,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		Tariff: &billing.MerchantTariffRates{
 			Region: "USD",
 			Chargeback: &billing.TariffRatesItem{
-				FixedFee: 1,
+				FixedFee:         1,
 				FixedFeeCurrency: "USD",
 				IsPaidByMerchant: true,
 			},
@@ -572,7 +572,7 @@ func (suite *OrderTestSuite) SetupTest() {
 				{Method: "VISA"},
 			},
 			Payout: &billing.TariffRatesItem{
-				FixedFee: 1,
+				FixedFee:         1,
 				FixedFeeCurrency: "USD",
 				IsPaidByMerchant: true,
 			},
@@ -894,6 +894,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		suite.cache,
 		mocks.NewCurrencyServiceMockOk(),
 		mocks.NewDocumentSignerMockOk(),
+		nil,
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -6541,7 +6542,7 @@ func (suite *OrderTestSuite) Test_processPaylinkKeyProducts_error() {
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		Type: billing.OrderType_key,
+		Type:       billing.OrderType_key,
 		PlatformId: "steam",
 	}
 
@@ -6561,7 +6562,7 @@ func (suite *OrderTestSuite) Test_processPaylinkKeyProducts_error() {
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		Type: billing.OrderType_product,
+		Type:       billing.OrderType_product,
 		PlatformId: "steam",
 	}
 
@@ -6585,7 +6586,7 @@ func (suite *OrderTestSuite) Test_ProcessOrderKeyProducts() {
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		Type: billing.OrderType_key,
+		Type:       billing.OrderType_key,
 		PlatformId: "steam",
 	}
 

@@ -79,6 +79,7 @@ func (suite *ProductTestSuite) SetupTest() {
 		suite.cache,
 		mocks.NewCurrencyServiceMockOk(),
 		mocks.NewDocumentSignerMockOk(),
+		nil,
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -175,17 +176,17 @@ func (suite *ProductTestSuite) TestProduct_CreateProduct_DefaultPriceError() {
 	res := grpc.Product{}
 	err := suite.service.CreateOrUpdateProduct(context.TODO(), &grpc.Product{
 		DefaultCurrency: "RUB",
-		ProjectId: suite.product.ProjectId,
-		MerchantId: suite.product.MerchantId,
+		ProjectId:       suite.product.ProjectId,
+		MerchantId:      suite.product.MerchantId,
 		Prices: []*grpc.ProductPrice{
 			{Currency: "RUB", Amount: 100},
 		},
-		Sku: "SKU",
-		Object: suite.product.Object,
+		Sku:             "SKU",
+		Object:          suite.product.Object,
 		LongDescription: suite.product.LongDescription,
-		Description: suite.product.Description,
-		Type: suite.product.Type,
-		Url: suite.product.Url,
+		Description:     suite.product.Description,
+		Type:            suite.product.Type,
+		Url:             suite.product.Url,
 	}, &res)
 
 	assert.NotNil(suite.T(), err)

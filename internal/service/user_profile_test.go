@@ -77,6 +77,7 @@ func (suite *UserProfileTestSuite) SetupTest() {
 		suite.cache,
 		mocks.NewCurrencyServiceMockOk(),
 		mocks.NewDocumentSignerMockOk(),
+		nil,
 	)
 
 	err = suite.service.Init()

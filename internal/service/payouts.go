@@ -15,8 +15,6 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	reporterConst "github.com/paysuper/paysuper-reporter/pkg"
-	reporterProto "github.com/paysuper/paysuper-reporter/pkg/proto"
 	"go.uber.org/zap"
 	"sort"
 	"time"
@@ -214,7 +212,7 @@ func (s *Service) CreatePayoutDocument(
 		return err
 	}
 
-	params, err := json.Marshal(map[string]interface{}{reporterConst.ParamsFieldId: pd.Id})
+	/*params, err := json.Marshal(map[string]interface{}{reporterConst.ParamsFieldId: pd.Id})
 	if err != nil {
 		zap.L().Error(
 			"Unable to marshal the params of payout for the reporting service.",
@@ -238,7 +236,7 @@ func (s *Service) CreatePayoutDocument(
 			zap.Error(err),
 		)
 		return err
-	}
+	}*/
 
 	res.Status = pkg.ResponseStatusOk
 	res.Item = pd

@@ -332,6 +332,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		suite.cache,
 		mocks.NewCurrencyServiceMockOk(),
 		mocks.NewDocumentSignerMockOk(),
+		nil,
 	)
 
 	if err := suite.service.Init(); err != nil {
