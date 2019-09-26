@@ -1340,7 +1340,7 @@ func (s *Service) sendMailWithReceipt(ctx context.Context, order *billing.Order)
     index := 1
 	for _, item := range order.Items {
 		payload.TemplateModel[fmt.Sprintf("name_%d", index)] = item.Name
-		price, err := s.localizator.FormatCurrency("en", item.Amount, item.Currency)
+		price, err := s.formatter.FormatCurrency("en", item.Amount, item.Currency)
 		if err != nil {
 			zap.S().Errorw("Error during formatting currency", "price", item.Amount, "locale", "en", "currency", item.Currency)
 		}
@@ -1357,7 +1357,7 @@ func (s *Service) sendMailWithReceipt(ctx context.Context, order *billing.Order)
 }
 
 func (s *Service) getPayloadForReceipt(order *billing.Order) *postmarkSdrPkg.Payload {
-	totalPrice, err := s.localizator.FormatCurrency("en", order.OrderAmount, order.Currency)
+	totalPrice, err := s.formatter.FormatCurrency("en", order.OrderAmount, order.Currency)
 	if err != nil {
 		zap.S().Errorw("Error during formatting currency", "price", order.OrderAmount, "locale", "en", "currency", order.Currency)
 	}

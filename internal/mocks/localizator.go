@@ -1,16 +1,16 @@
 package mocks
 
-import "github.com/paysuper/paysuper-billing-server/internal/localization"
+import paysuper_i18n "github.com/paysuper/paysuper-i18n"
 
-type localizatorOk struct {
+type formatterOk struct {
 
 }
 
-func (localizatorOk) FormatCurrency(locale string, amount float64, currency string) (string, error) {
+func (formatterOk) FormatCurrency(locale string, amount float64, currency string) (string, error) {
 	return "test", nil
 }
 
-func NewLocalizatorOK() localization.Localizator {
-	return &localizatorOk{
+func NewFormatterOK() paysuper_i18n.Formatter {
+	return &formatterOk{
 	}
 }

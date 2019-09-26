@@ -11,12 +11,12 @@ import (
 	"github.com/go-redis/redis"
 	documentSignerProto "github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/localization"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
+	"github.com/paysuper/paysuper-i18n"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
 	"github.com/paysuper/paysuper-tax-service/proto"
 	"go.uber.org/zap"
@@ -79,17 +79,17 @@ type Service struct {
 	paymentChannelCostSystem   *PaymentChannelCostSystem
 	paymentChannelCostMerchant *PaymentChannelCostMerchant
 	moneyBackCostSystem        *MoneyBackCostSystem
-	moneyBackCostMerchant      *MoneyBackCostMerchant
-	payoutCostSystem           *PayoutCostSystem
-	priceTable                 PriceTableServiceInterface
-	productService             ProductServiceInterface
-	turnover                   *Turnover
-	documentSigner             documentSignerProto.DocumentSignerService
-	merchantTariffRates        MerchantTariffRatesInterface
-	keyRepository              KeyRepositoryInterface
-	dashboardRepository        DashboardRepositoryInterface
-	centrifugo                 CentrifugoInterface
-	localizator                localization.Localizator
+	moneyBackCostMerchant *MoneyBackCostMerchant
+	payoutCostSystem      *PayoutCostSystem
+	priceTable            PriceTableServiceInterface
+	productService        ProductServiceInterface
+	turnover              *Turnover
+	documentSigner        documentSignerProto.DocumentSignerService
+	merchantTariffRates   MerchantTariffRatesInterface
+	keyRepository         KeyRepositoryInterface
+	dashboardRepository   DashboardRepositoryInterface
+	centrifugo            CentrifugoInterface
+	formatter             paysuper_i18n.Formatter
 }
 
 func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {
@@ -109,7 +109,7 @@ func newBillingServerErrorMsg(code, msg string, details ...string) *grpc.Respons
 	return &grpc.ResponseErrorMessage{Code: code, Message: msg, Details: det}
 }
 
-func NewBillingService(db *mongodb.Source, cfg *config.Config, geo proto.GeoIpService, rep repository.RepositoryService, tax tax_service.TaxService, broker rabbitmq.BrokerInterface, redis redis.Cmdable, cache CacheInterface, curService currencies.CurrencyratesService, documentSigner documentSignerProto.DocumentSignerService, localizator localization.Localizator, ) *Service {
+func NewBillingService(db *mongodb.Source, cfg *config.Config, geo proto.GeoIpService, rep repository.RepositoryService, tax tax_service.TaxService, broker rabbitmq.BrokerInterface, redis redis.Cmdable, cache CacheInterface, curService currencies.CurrencyratesService, documentSigner documentSignerProto.DocumentSignerService, formatter paysuper_i18n.Formatter, ) *Service {
 	return &Service{
 		db:             db,
 		cfg:            cfg,
@@ -121,7 +121,7 @@ func NewBillingService(db *mongodb.Source, cfg *config.Config, geo proto.GeoIpSe
 		cacher:         cache,
 		curService:     curService,
 		documentSigner: documentSigner,
-		localizator:    localizator,
+		formatter:      formatter,
 	}
 }
 
