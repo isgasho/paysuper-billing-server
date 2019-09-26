@@ -7,6 +7,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
+	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -47,7 +48,19 @@ func (suite *MerchantTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), nil, nil)
+	suite.service = NewBillingService(
+		db,
+		cfg,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		suite.cache,
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
+		&reportingMocks.ReporterService{},
+	)
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)

@@ -70,6 +70,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
+	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
@@ -127,7 +128,19 @@ func (suite *DashboardRepositoryTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), mocks.NewBrokerMockOk(), nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), nil, mocks.NewFormatterOK())
+	suite.service = NewBillingService(
+		db,
+		cfg,
+		mocks.NewGeoIpServiceTestOk(),
+		mocks.NewRepositoryServiceOk(),
+		mocks.NewTaxServiceOkMock(),
+		mocks.NewBrokerMockOk(),
+		nil,
+		suite.cache,
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
+		&reportingMocks.ReporterService{},
+	)
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)

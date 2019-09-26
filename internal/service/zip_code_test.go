@@ -9,6 +9,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
+	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"testing"
@@ -56,7 +57,19 @@ func (suite *ZipCodeTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	cache := NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), nil, nil)
+	suite.service = NewBillingService(
+		db,
+		cfg,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		cache,
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
+		&reportingMocks.ReporterService{},
+	)
 	err = suite.service.Init()
 
 	if err != nil {
