@@ -1055,6 +1055,8 @@ github.com/paysuper/paysuper-reporter v0.0.0-20190926075921-e8efa832119b h1:doTC
 github.com/paysuper/paysuper-reporter v0.0.0-20190926075921-e8efa832119b/go.mod h1:ZSS1+yQ52jJjwJaSgvaARQpPxx+8bL5cFAzPu4MZZAc=
 github.com/paysuper/paysuper-reporter v0.0.0-20190926134253-f856b35bab19 h1:yvogXQIieHRYOb5q/rijhHeC5IiUjEax2mNQ02polSo=
 github.com/paysuper/paysuper-reporter v0.0.0-20190926134253-f856b35bab19/go.mod h1:nqWCL/fCIC9ESkK1q2K5vWiGYp7HR0NFuj9+x0Vr9Fo=
+github.com/paysuper/paysuper-reporter v0.0.0-20190926153454-b1e25c1cfc69 h1:kp2Kt2qdIJvHzwXamKrVCijdnSRygUUypdml7GObQ2M=
+github.com/paysuper/paysuper-reporter v0.0.0-20190926153454-b1e25c1cfc69/go.mod h1:nqWCL/fCIC9ESkK1q2K5vWiGYp7HR0NFuj9+x0Vr9Fo=
 github.com/paysuper/paysuper-tax-service v0.0.0-20190722140034-a37f835eaad7 h1:bGPbVtlyrkJ8W1kaZnxiUmGs5lsjuBVJzT9AE7SlS78=
 github.com/paysuper/paysuper-tax-service v0.0.0-20190722140034-a37f835eaad7/go.mod h1:sG79373f9raEBE9m1ZF9lmPSOfiLRTWhvvdcMR4h9/4=
 github.com/paysuper/paysuper-tax-service v0.0.0-20190903084038-7849f394f122 h1:46e+iUwsIwyRqININIIQNooTU8KCwcQw7AVnaTpTizg=
