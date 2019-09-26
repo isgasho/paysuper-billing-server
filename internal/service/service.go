@@ -17,6 +17,7 @@ import (
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
+	reporterProto "github.com/paysuper/paysuper-reporter/pkg/proto"
 	"github.com/paysuper/paysuper-tax-service/proto"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
@@ -90,6 +91,7 @@ type Service struct {
 	keyRepository              KeyRepositoryInterface
 	dashboardRepository        DashboardRepositoryInterface
 	centrifugo                 CentrifugoInterface
+	reporterService            reporterProto.ReporterService
 }
 
 func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {
@@ -120,18 +122,20 @@ func NewBillingService(
 	cache CacheInterface,
 	curService currencies.CurrencyratesService,
 	documentSigner documentSignerProto.DocumentSignerService,
+	reporterService reporterProto.ReporterService,
 ) *Service {
 	return &Service{
-		db:             db,
-		cfg:            cfg,
-		geo:            geo,
-		rep:            rep,
-		tax:            tax,
-		broker:         broker,
-		redis:          redis,
-		cacher:         cache,
-		curService:     curService,
-		documentSigner: documentSigner,
+		db:              db,
+		cfg:             cfg,
+		geo:             geo,
+		rep:             rep,
+		tax:             tax,
+		broker:          broker,
+		redis:           redis,
+		cacher:          cache,
+		curService:      curService,
+		documentSigner:  documentSigner,
+		reporterService: reporterService,
 	}
 }
 
