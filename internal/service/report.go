@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -71,7 +70,7 @@ func (s *Service) GetOrderPublic(
 	req *grpc.GetOrderRequest,
 	rsp *grpc.GetOrderPublicResponse,
 ) error {
-	order, err := s.getOrderBy(req.Id, req.Merchant, new(billing.OrderViewPublic))
+	order, err := s.orderView.GetOrderBy("", req.Id, req.Merchant, new(billing.OrderViewPublic))
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -95,7 +94,7 @@ func (s *Service) GetOrderPrivate(
 	req *grpc.GetOrderRequest,
 	rsp *grpc.GetOrderPrivateResponse,
 ) error {
-	order, err := s.getOrderBy(req.Id, req.Merchant, new(billing.OrderViewPrivate))
+	order, err := s.orderView.GetOrderBy("", req.Id, req.Merchant, new(billing.OrderViewPrivate))
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -112,33 +111,6 @@ func (s *Service) GetOrderPrivate(
 	rsp.Item = order.(*billing.OrderViewPrivate)
 
 	return nil
-}
-
-func (s *Service) getOrderBy(uuid, merchantId string, receiver interface{}) (interface{}, error) {
-	query := bson.M{"uuid": uuid}
-
-	if merchantId != "" {
-		query["project.merchant_id"] = bson.ObjectIdHex(merchantId)
-	}
-
-	err := s.db.Collection(collectionOrderView).Find(query).One(receiver)
-
-	if err != nil {
-		if err == mgo.ErrNotFound {
-			return nil, orderErrorNotFound
-		}
-
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrderView),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
-		)
-
-		return nil, reportErrorUnknown
-	}
-
-	return receiver, nil
 }
 
 func (s *Service) getOrdersList(req *grpc.ListOrdersRequest, receiver interface{}) (int, interface{}, error) {

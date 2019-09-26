@@ -1368,9 +1368,7 @@ message AccountingEntry {
     google.protobuf.Timestamp available_on = 16;
 }
 
-message RoyaltyReportDetails {
-    //@inject_tag: bson:"gross_amount"
-    double gross_amount = 1;
+message RoyaltyReportTotals {
     //@inject_tag: bson:"transactions_count"
     int32 transactions_count = 2;
     //@inject_tag: bson:"fee_amount"
@@ -1379,30 +1377,94 @@ message RoyaltyReportDetails {
     double vat_amount = 4;
     //@inject_tag: bson:"payout_amount"
     double payout_amount = 5;
-    //@inject_tag: bson:"currency"
-    string currency = 6;
+    //@inject_tag: bson:"rolling_reserve_total_amount"
+    double rolling_reserve_amount = 6;
+    //@inject_tag: bson:"correction_total_amount"
+    double correction_amount = 7;
 }
 
-message RoyaltyReportCorrection {
-    // @inject_tag: validate:"omitempty,numeric,gt=0"
-    double amount = 1;
-    string reason = 2;
+message RoyaltyReportProductSummaryItem {
+    //@inject_tag: bson:"product" json:"product"
+    string product = 1;
+    //@inject_tag: bson:"region" json:"region"
+    string region = 2;
+    //@inject_tag: bson:"total_transactions" json:"total_transactions"
+    int32 total_transactions = 3;
+    //@inject_tag: bson:"sales_count" json:"sales_count"
+    int32 sales_count = 4;
+    //@inject_tag: bson:"gross_sales_amount" json:"gross_sales_amount"
+    double gross_sales_amount = 5;
+    //@inject_tag: bson:"returns_count" json:"returns_count"
+    int32 returns_count = 6;
+    //@inject_tag: bson:"gross_returns_amount" json:"gross_returns_amount"
+    double gross_returns_amount = 7;
+    //@inject_tag: bson:"gross_total_amount" json:"gross_total_amount"
+    double gross_total_amount = 8;
+    //@inject_tag: bson:"total_fees" json:"total_fees"
+    double total_fees = 9;
+    //@inject_tag: bson:"total_vat" json:"total_vat"
+    double total_vat = 10;
+    //@inject_tag: bson:"payout_amount" json:"payout_amount"
+    double payout_amount = 11;
+}
+
+message RoyaltyReportCorrectionItem {
+    //@inject_tag: bson:"accounting_entry_id" json:"accounting_entry_id"
+    string accounting_entry_id = 1;
+    //@inject_tag: bson:"amount" json:"amount"
+    double amount = 2;
+    //@inject_tag: bson:"currency" json:"currency"
+    string currency = 3;
+    //@inject_tag: bson:"reason" json:"reason"
+    string reason = 4;
+    //@inject_tag: bson:"entry_date" json:"entry_date"
+    google.protobuf.Timestamp entry_date = 5;
+}
+
+message RoyaltyReportSummary {
+    //@inject_tag: bson:"products_items" json:"products_items"
+    repeated RoyaltyReportProductSummaryItem products_items = 1;
+    //@inject_tag: bson:"products_total" json:"products_total"
+    RoyaltyReportProductSummaryItem products_total = 2;
+    //@inject_tag: bson:"corrections" json:"corrections"
+    repeated RoyaltyReportCorrectionItem corrections = 3;
+    //@inject_tag: bson:"rolling_reserves" json:"rolling_reserves"
+    repeated RoyaltyReportCorrectionItem rolling_reserves = 4;
 }
 
 message RoyaltyReport {
+    //@inject_tag: bson:"_id" json:"id"
     string id = 1;
+    //@inject_tag: bson:"merchant_id" json:"merchant_id"
     string merchant_id = 2;
+    //@inject_tag: bson:"created_at" json:"created_at"
     google.protobuf.Timestamp created_at = 3;
+    //@inject_tag: bson:"updated_at" json:"updated_at"
     google.protobuf.Timestamp updated_at = 4;
-    string payout_id = 5;
-    google.protobuf.Timestamp payout_date = 6;
-    string status = 7;
-    google.protobuf.Timestamp period_from = 8;
-    google.protobuf.Timestamp period_to = 9;
-    google.protobuf.Timestamp accept_expire_at = 10;
-    google.protobuf.Timestamp accepted_at = 11;
-    RoyaltyReportDetails amounts = 12;
-    RoyaltyReportCorrection correction = 13;
+    //@inject_tag: bson:"payout_date" json:"payout_date"
+    google.protobuf.Timestamp payout_date = 5;
+    //@inject_tag: bson:"status" json:"status"
+    string status = 6;
+    //@inject_tag: bson:"period_from" json:"period_from"
+    google.protobuf.Timestamp period_from = 7;
+    //@inject_tag: bson:"period_to" json:"period_to"
+    google.protobuf.Timestamp period_to = 8;
+    //@inject_tag: bson:"accept_expire_at" json:"accept_expire_at"
+    google.protobuf.Timestamp accept_expire_at = 9;
+    //@inject_tag: bson:"merchant_id" json:"accepted_at"
+    google.protobuf.Timestamp accepted_at = 10;
+    //@inject_tag: bson:"totals" json:"totals"
+    RoyaltyReportTotals totals = 11;
+    //@inject_tag: bson:"currency" json:"currency"
+    string currency = 12;
+    //@inject_tag: bson:"summary" json:"summary"
+    RoyaltyReportSummary summary = 13;
+    //@inject_tag: bson:"dispute_reason" json:"dispute_reason"
+    string dispute_reason = 14;
+    //@inject_tag: bson:"dispute_started_at" json:"dispute_closed_at"
+    google.protobuf.Timestamp dispute_started_at = 15;
+    //@inject_tag: bson:"dispute_closed_at" json:"dispute_closed_at"
+    google.protobuf.Timestamp dispute_closed_at = 16;
 }
 
 message RoyaltyReportChanges {

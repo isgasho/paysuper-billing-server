@@ -72,6 +72,8 @@ type Service struct {
 	payoutDocument             PayoutDocumentServiceInterface
 	merchantBalance            MerchantBalanceServiceInterface
 	royaltyReport              RoyaltyReportServiceInterface
+	orderView                  OrderViewServiceInterface
+	accounting                 AccountingServiceInterface
 	paymentMethod              PaymentMethodInterface
 	priceGroup                 PriceGroupServiceInterface
 	paymentSystem              PaymentSystemServiceInterface
@@ -143,6 +145,8 @@ func (s *Service) Init() (err error) {
 	s.payoutDocument = newPayoutService(s)
 	s.merchantBalance = newMerchantBalance(s)
 	s.royaltyReport = newRoyaltyReport(s)
+	s.orderView = newOrderView(s)
+	s.accounting = newAccounting(s)
 	s.country = newCountryService(s)
 	s.project = newProjectService(s)
 	s.priceGroup = newPriceGroupService(s)
