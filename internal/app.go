@@ -31,6 +31,8 @@ import (
 	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
+	reporterServiceConst "github.com/paysuper/paysuper-reporter/pkg"
+	reporterService "github.com/paysuper/paysuper-reporter/pkg/proto"
 	taxPkg "github.com/paysuper/paysuper-tax-service/pkg"
 	"github.com/paysuper/paysuper-tax-service/proto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -166,6 +168,7 @@ func (app *Application) Init() {
 	taxService := tax_service.NewTaxService(taxPkg.ServiceName, app.service.Client())
 	curService := currencies.NewCurrencyratesService(curPkg.ServiceName, app.service.Client())
 	documentSignerService := documentSignerProto.NewDocumentSignerService(documentSignerPkg.ServiceName, app.service.Client())
+	reporter := reporterService.NewReporterService(reporterServiceConst.ServiceName, app.service.Client())
 
 	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
 		Addrs:        cfg.CacheRedis.Address,
@@ -186,6 +189,7 @@ func (app *Application) Init() {
 		service.NewCacheRedis(redisdb),
 		curService,
 		documentSignerService,
+		reporter,
 	)
 
 	if err := app.svc.Init(); err != nil {

@@ -161,6 +161,7 @@ service BillingService {
     rpc GetPayoutDocuments(GetPayoutDocumentsRequest) returns (GetPayoutDocumentsResponse) {}
     rpc GetPayoutDocumentSignUrl(GetPayoutDocumentSignUrlRequest) returns (GetPayoutDocumentSignUrlResponse) {}
     rpc UpdatePayoutDocumentSignatures(UpdatePayoutDocumentSignaturesRequest) returns (PayoutDocumentResponse) {}
+    rpc PayoutDocumentPdfUploaded(PayoutDocumentPdfUploadedRequest) returns (PayoutDocumentPdfUploadedResponse) {}
 
     rpc GetMerchantBalance(GetMerchantBalanceRequest) returns (GetMerchantBalanceResponse) {}
 }
@@ -1973,4 +1974,18 @@ message GetMerchantBalanceResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     billing.MerchantBalance item = 3;
+}
+
+message PayoutDocumentPdfUploadedRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string id = 1;
+    //@inject_tag: validate:"required,alpha"
+    string filename = 2;
+    //@inject_tag: validate:"required,numeric,gte=0"
+    int32 retention_time = 3;
+}
+
+message PayoutDocumentPdfUploadedResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
 }

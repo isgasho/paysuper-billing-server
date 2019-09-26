@@ -278,7 +278,7 @@ func (suite *TurnoversTestSuite) fillAccountingEntries(countryCode string, daysM
 				Type: collectionOrder,
 			},
 			MerchantId: bson.NewObjectId().Hex(),
-			Status:     pkg.BalanceTransactionStatusPending,
+			Status:     pkg.BalanceTransactionStatusAvailable,
 			CreatedAt:  createdAt,
 			Country:    countryCode,
 			Amount:     float64(count),
