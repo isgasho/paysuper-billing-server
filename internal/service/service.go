@@ -16,6 +16,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
+	"github.com/paysuper/paysuper-i18n"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
 	reporterProto "github.com/paysuper/paysuper-reporter/pkg/proto"
 	"github.com/paysuper/paysuper-tax-service/proto"
@@ -91,6 +92,7 @@ type Service struct {
 	keyRepository              KeyRepositoryInterface
 	dashboardRepository        DashboardRepositoryInterface
 	centrifugo                 CentrifugoInterface
+	formatter                  paysuper_i18n.Formatter
 	reporterService            reporterProto.ReporterService
 }
 
@@ -111,19 +113,7 @@ func newBillingServerErrorMsg(code, msg string, details ...string) *grpc.Respons
 	return &grpc.ResponseErrorMessage{Code: code, Message: msg, Details: det}
 }
 
-func NewBillingService(
-	db *mongodb.Source,
-	cfg *config.Config,
-	geo proto.GeoIpService,
-	rep repository.RepositoryService,
-	tax tax_service.TaxService,
-	broker rabbitmq.BrokerInterface,
-	redis redis.Cmdable,
-	cache CacheInterface,
-	curService currencies.CurrencyratesService,
-	documentSigner documentSignerProto.DocumentSignerService,
-	reporterService reporterProto.ReporterService,
-) *Service {
+func NewBillingService(db *mongodb.Source, cfg *config.Config, geo proto.GeoIpService, rep repository.RepositoryService, tax tax_service.TaxService, broker rabbitmq.BrokerInterface, redis redis.Cmdable, cache CacheInterface, curService currencies.CurrencyratesService, documentSigner documentSignerProto.DocumentSignerService, reporterService reporterProto.ReporterService, formatter paysuper_i18n.Formatter, ) *Service {
 	return &Service{
 		db:              db,
 		cfg:             cfg,
@@ -136,6 +126,7 @@ func NewBillingService(
 		curService:      curService,
 		documentSigner:  documentSigner,
 		reporterService: reporterService,
+		formatter:       formatter,
 	}
 }
 
@@ -163,7 +154,6 @@ func (s *Service) Init() (err error) {
 	s.merchantTariffRates = newMerchantsTariffRatesRepository(s)
 	s.keyRepository = newKeyRepository(s)
 	s.dashboardRepository = newDashboardRepository(s)
-
 	s.centrifugo = newCentrifugo(s)
 
 	if s.cfg.AccountingCurrency == "" {
