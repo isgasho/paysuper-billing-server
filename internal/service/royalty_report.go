@@ -204,14 +204,8 @@ func (s *Service) ListRoyaltyReports(
 ) error {
 	rsp.Status = pkg.ResponseStatusOk
 
-	query := bson.M{}
-
-	if req.Id != "" {
-		query["_id"] = bson.ObjectIdHex(req.Id)
-	}
-
-	if req.MerchantId != "" {
-		query["merchant_id"] = bson.ObjectIdHex(req.MerchantId)
+	query := bson.M{
+		"merchant_id": bson.ObjectIdHex(req.MerchantId),
 	}
 
 	if req.PeriodFrom != 0 {

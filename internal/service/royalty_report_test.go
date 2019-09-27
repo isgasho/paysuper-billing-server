@@ -353,21 +353,12 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_Ok() {
 	err = suite.service.CreateRoyaltyReport(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 
-	req1 := &grpc.ListRoyaltyReportsRequest{}
+	req1 := &grpc.ListRoyaltyReportsRequest{MerchantId: suite.project.GetMerchantId()}
 	rsp1 := &grpc.ListRoyaltyReportsResponse{}
 	err = suite.service.ListRoyaltyReports(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.EqualValues(suite.T(), 3, rsp1.Data.Count)
+	assert.EqualValues(suite.T(), int32(1), rsp1.Data.Count)
 	assert.Len(suite.T(), rsp1.Data.Items, int(rsp1.Data.Count))
-}
-
-func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_NotFound() {
-	req := &grpc.ListRoyaltyReportsRequest{}
-	rsp := &grpc.ListRoyaltyReportsResponse{}
-	err := suite.service.ListRoyaltyReports(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
-	assert.EqualValues(suite.T(), 0, rsp.Data.Count)
-	assert.Empty(suite.T(), rsp.Data.Items)
 }
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindById_Ok() {
@@ -392,7 +383,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindBy
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), report)
 
-	req1 := &grpc.ListRoyaltyReportsRequest{Id: report.Id}
+	req1 := &grpc.ListRoyaltyReportsRequest{MerchantId: report.MerchantId}
 	rsp1 := &grpc.ListRoyaltyReportsResponse{}
 	err = suite.service.ListRoyaltyReports(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
@@ -400,8 +391,8 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindBy
 	assert.Len(suite.T(), rsp1.Data.Items, int(rsp1.Data.Count))
 }
 
-func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindById_NotFound() {
-	req := &grpc.ListRoyaltyReportsRequest{Id: bson.NewObjectId().Hex()}
+func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_Merchant_NotFound() {
+	req := &grpc.ListRoyaltyReportsRequest{MerchantId: bson.NewObjectId().Hex()}
 	rsp := &grpc.ListRoyaltyReportsResponse{}
 	err := suite.service.ListRoyaltyReports(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
@@ -492,18 +483,20 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindBy
 	from = to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).In(loc)
 
 	req1 := &grpc.ListRoyaltyReportsRequest{
+		MerchantId: suite.project.GetMerchantId(),
 		PeriodFrom: from.Unix(),
 		PeriodTo:   to.Unix(),
 	}
 	rsp1 := &grpc.ListRoyaltyReportsResponse{}
 	err = suite.service.ListRoyaltyReports(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.EqualValues(suite.T(), 3, rsp1.Data.Count)
+	assert.EqualValues(suite.T(), int32(1), rsp1.Data.Count)
 	assert.Len(suite.T(), rsp1.Data.Items, int(rsp1.Data.Count))
 }
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindByPeriod_NotFound() {
 	req := &grpc.ListRoyaltyReportsRequest{
+		MerchantId: suite.project.GetMerchantId(),
 		PeriodFrom: time.Now().Unix(),
 		PeriodTo:   time.Now().Unix(),
 	}
