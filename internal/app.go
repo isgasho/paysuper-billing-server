@@ -29,6 +29,7 @@ import (
 	curPkg "github.com/paysuper/paysuper-currencies/pkg"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
+	paysuper_i18n "github.com/paysuper/paysuper-i18n"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
 	reporterServiceConst "github.com/paysuper/paysuper-reporter/pkg"
@@ -178,19 +179,13 @@ func (app *Application) Init() {
 		PoolSize:     cfg.CacheRedis.PoolSize,
 	})
 
-	app.svc = service.NewBillingService(
-		app.database,
-		app.cfg,
-		geoService,
-		repService,
-		taxService,
-		broker,
-		app.redis,
-		service.NewCacheRedis(redisdb),
-		curService,
-		documentSignerService,
-		reporter,
-	)
+	formatter, err := paysuper_i18n.NewFormatter([]string{"i18n/rules"}, []string{"i18n/messages"})
+
+	if err != nil {
+		app.logger.Fatal("Create il8n formatter failed", zap.Error(err))
+	}
+
+	app.svc = service.NewBillingService(app.database, app.cfg, geoService, repService, taxService, broker, app.redis, service.NewCacheRedis(redisdb), curService, documentSignerService, reporter, formatter)
 
 	if err := app.svc.Init(); err != nil {
 		app.logger.Fatal("Create service instance failed", zap.Error(err))

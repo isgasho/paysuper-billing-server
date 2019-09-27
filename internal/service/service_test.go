@@ -64,19 +64,7 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 	}
 
 	redisdb := mocks.NewTestRedis()
-	suite.service = NewBillingService(
-		db,
-		cfg,
-		mocks.NewGeoIpServiceTestOk(),
-		mocks.NewRepositoryServiceOk(),
-		mocks.NewTaxServiceOkMock(),
-		broker,
-		nil,
-		NewCacheRedis(redisdb),
-		mocks.NewCurrencyServiceMockOk(),
-		mocks.NewDocumentSignerMockOk(),
-		&reportingMocks.ReporterService{},
-	)
+	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), broker, nil, NewCacheRedis(redisdb), mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), )
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -298,19 +286,7 @@ func (suite *BillingServiceTestSuite) TearDownTest() {
 func (suite *BillingServiceTestSuite) TestNewBillingService() {
 	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	service := NewBillingService(
-		suite.db,
-		suite.cfg,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		suite.cache,
-		mocks.NewCurrencyServiceMockOk(),
-		mocks.NewDocumentSignerMockOk(),
-		&reportingMocks.ReporterService{},
-	)
+	service := NewBillingService(suite.db, suite.cfg, nil, nil, nil, nil, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), )
 
 	err := service.Init()
 	assert.Nil(suite.T(), err)
@@ -323,19 +299,7 @@ func (suite *BillingServiceTestSuite) TestBillingService_AccountingCurrencyInitE
 
 	cfg.AccountingCurrency = "AUD"
 	suite.cache = NewCacheRedis(mocks.NewTestRedis())
-	service := NewBillingService(
-		suite.db,
-		cfg,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		suite.cache,
-		mocks.NewCurrencyServiceMockError(),
-		mocks.NewDocumentSignerMockOk(),
-		&reportingMocks.ReporterService{},
-	)
+	service := NewBillingService(suite.db, cfg, nil, nil, nil, nil, nil, suite.cache, mocks.NewCurrencyServiceMockError(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), )
 
 	err = service.Init()
 	assert.Error(suite.T(), err)
@@ -344,19 +308,7 @@ func (suite *BillingServiceTestSuite) TestBillingService_AccountingCurrencyInitE
 func (suite *BillingServiceTestSuite) TestBillingService_IsProductionEnvironment() {
 	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	service := NewBillingService(
-		suite.db,
-		suite.cfg,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		suite.cache,
-		mocks.NewCurrencyServiceMockOk(),
-		mocks.NewDocumentSignerMockOk(),
-		&reportingMocks.ReporterService{},
-	)
+	service := NewBillingService(suite.db, suite.cfg, nil, nil, nil, nil, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), )
 
 	err := service.Init()
 	assert.Nil(suite.T(), err)
