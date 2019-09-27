@@ -11,6 +11,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
+	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"net"
@@ -131,7 +132,7 @@ func (suite *TokenTestSuite) SetupTest() {
 		suite.cache,
 		mocks.NewCurrencyServiceMockOk(),
 		mocks.NewDocumentSignerMockOk(),
-		nil,
+		&reportingMocks.ReporterService{},
 	)
 
 	if err := suite.service.Init(); err != nil {
