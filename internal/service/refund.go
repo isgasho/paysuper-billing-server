@@ -368,6 +368,12 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 	refundOrder.Type = pkg.OrderTypeRefund
 	refundOrder.PrivateStatus = constant.OrderStatusRefund
 	refundOrder.Status = constant.OrderPublicStatusRefunded
+
+	if refund.IsChargeback {
+		refundOrder.PrivateStatus = constant.OrderStatusChargeback
+		refundOrder.Status = constant.OrderPublicStatusChargeback
+	}
+
 	refundOrder.CreatedAt = ptypes.TimestampNow()
 	refundOrder.UpdatedAt = ptypes.TimestampNow()
 	refundOrder.RefundedAt = ptypes.TimestampNow()
@@ -386,7 +392,7 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 
 	refundOrder.TotalPaymentAmount = refund.Amount
 
-	refundOrder.OrderAmount = tools.FormatAmount(refund.Amount / (1 + float64(refundOrder.Tax.Rate)) * float64(refundOrder.Tax.Rate))
+	refundOrder.OrderAmount = tools.FormatAmount(refund.Amount / (1 + refundOrder.Tax.Rate) * refundOrder.Tax.Rate)
 	refundOrder.Tax.Amount = tools.FormatAmount(refundOrder.TotalPaymentAmount - refundOrder.OrderAmount)
 
 	err = s.db.Collection(collectionOrder).Insert(refundOrder)

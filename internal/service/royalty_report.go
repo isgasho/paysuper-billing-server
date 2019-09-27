@@ -204,14 +204,8 @@ func (s *Service) ListRoyaltyReports(
 ) error {
 	rsp.Status = pkg.ResponseStatusOk
 
-	query := bson.M{}
-
-	if req.Id != "" {
-		query["_id"] = bson.ObjectIdHex(req.Id)
-	}
-
-	if req.MerchantId != "" {
-		query["merchant_id"] = bson.ObjectIdHex(req.MerchantId)
+	query := bson.M{
+		"merchant_id": bson.ObjectIdHex(req.MerchantId),
 	}
 
 	if req.PeriodFrom != 0 {
@@ -321,6 +315,27 @@ func (s *Service) MerchantReviewRoyaltyReport(
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
+
+	return nil
+}
+
+func (s *Service) GetRoyaltyReport(
+	ctx context.Context,
+	req *grpc.GetRoyaltyReportRequest,
+	rsp *grpc.GetRoyaltyReportResponse,
+) error {
+	report, err := s.royaltyReport.GetById(req.ReportId)
+	if err != nil {
+		if err == mgo.ErrNotFound {
+			rsp.Status = pkg.ResponseStatusNotFound
+			rsp.Message = royaltyReportErrorReportNotFound
+			return nil
+		}
+		return err
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
+	rsp.Item = report
 
 	return nil
 }

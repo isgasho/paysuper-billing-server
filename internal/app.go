@@ -179,7 +179,7 @@ func (app *Application) Init() {
 		PoolSize:     cfg.CacheRedis.PoolSize,
 	})
 
-	formatter, err := paysuper_i18n.NewFormatter([]string{"../i18n/rules"}, []string{"../i18n/messages"})
+	formatter, err := paysuper_i18n.NewFormatter([]string{"i18n/rules"}, []string{"i18n/messages"})
 
 	if err != nil {
 		app.logger.Fatal("Create il8n formatter failed", zap.Error(err))

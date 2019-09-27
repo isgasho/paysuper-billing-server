@@ -3164,36 +3164,6 @@ func (s *Service) RebuildOrderView() error {
 	return nil
 }
 
-func (ow *OrderView) GetOrderFromViewPublic(id string) (result *billing.OrderViewPublic, err error) {
-	err = ow.svc.db.Collection(collectionOrderView).
-		FindId(bson.ObjectIdHex(id)).
-		One(&result)
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrderView),
-			zap.Any(pkg.ErrorDatabaseFieldDocumentId, id),
-		)
-	}
-	return
-}
-
-func (ow *OrderView) GetOrderFromViewPrivate(id string) (result *billing.OrderViewPrivate, err error) {
-	err = ow.svc.db.Collection(collectionOrderView).
-		FindId(bson.ObjectIdHex(id)).
-		One(&result)
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrderView),
-			zap.Any(pkg.ErrorDatabaseFieldDocumentId, id),
-		)
-	}
-	return
-}
-
 func (ow *OrderView) CountTransactions(match bson.M) (n int, err error) {
 	n, err = ow.svc.db.Collection(collectionOrderView).
 		Find(match).
