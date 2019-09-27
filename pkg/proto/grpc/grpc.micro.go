@@ -129,6 +129,8 @@ It has these top-level messages:
 	ListRoyaltyReportsResponse
 	ListRoyaltyReportOrdersRequest
 	ChangeRoyaltyReportCorrection
+	GetRoyaltyReportRequest
+	GetRoyaltyReportResponse
 	ChangeRoyaltyReportRequest
 	MerchantReviewRoyaltyReportRequest
 	PaymentChannelCostSystemListResponse
@@ -336,6 +338,7 @@ type BillingService interface {
 	CreatePageReview(ctx context.Context, in *CreatePageReviewRequest, opts ...client.CallOption) (*CheckProjectRequestSignatureResponse, error)
 	CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, opts ...client.CallOption) (*CreateRoyaltyReportRequest, error)
 	ListRoyaltyReports(ctx context.Context, in *ListRoyaltyReportsRequest, opts ...client.CallOption) (*ListRoyaltyReportsResponse, error)
+	GetRoyaltyReport(ctx context.Context, in *GetRoyaltyReportRequest, opts ...client.CallOption) (*GetRoyaltyReportResponse, error)
 	ChangeRoyaltyReport(ctx context.Context, in *ChangeRoyaltyReportRequest, opts ...client.CallOption) (*ResponseError, error)
 	ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, opts ...client.CallOption) (*TransactionsResponse, error)
 	MerchantReviewRoyaltyReport(ctx context.Context, in *MerchantReviewRoyaltyReportRequest, opts ...client.CallOption) (*ResponseError, error)
@@ -1275,6 +1278,16 @@ func (c *billingService) ListRoyaltyReports(ctx context.Context, in *ListRoyalty
 	return out, nil
 }
 
+func (c *billingService) GetRoyaltyReport(ctx context.Context, in *GetRoyaltyReportRequest, opts ...client.CallOption) (*GetRoyaltyReportResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetRoyaltyReport", in)
+	out := new(GetRoyaltyReportResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *billingService) ChangeRoyaltyReport(ctx context.Context, in *ChangeRoyaltyReportRequest, opts ...client.CallOption) (*ResponseError, error) {
 	req := c.c.NewRequest(c.name, "BillingService.ChangeRoyaltyReport", in)
 	out := new(ResponseError)
@@ -1756,6 +1769,7 @@ type BillingServiceHandler interface {
 	CreatePageReview(context.Context, *CreatePageReviewRequest, *CheckProjectRequestSignatureResponse) error
 	CreateRoyaltyReport(context.Context, *CreateRoyaltyReportRequest, *CreateRoyaltyReportRequest) error
 	ListRoyaltyReports(context.Context, *ListRoyaltyReportsRequest, *ListRoyaltyReportsResponse) error
+	GetRoyaltyReport(context.Context, *GetRoyaltyReportRequest, *GetRoyaltyReportResponse) error
 	ChangeRoyaltyReport(context.Context, *ChangeRoyaltyReportRequest, *ResponseError) error
 	ListRoyaltyReportOrders(context.Context, *ListRoyaltyReportOrdersRequest, *TransactionsResponse) error
 	MerchantReviewRoyaltyReport(context.Context, *MerchantReviewRoyaltyReportRequest, *ResponseError) error
@@ -1887,6 +1901,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		CreatePageReview(ctx context.Context, in *CreatePageReviewRequest, out *CheckProjectRequestSignatureResponse) error
 		CreateRoyaltyReport(ctx context.Context, in *CreateRoyaltyReportRequest, out *CreateRoyaltyReportRequest) error
 		ListRoyaltyReports(ctx context.Context, in *ListRoyaltyReportsRequest, out *ListRoyaltyReportsResponse) error
+		GetRoyaltyReport(ctx context.Context, in *GetRoyaltyReportRequest, out *GetRoyaltyReportResponse) error
 		ChangeRoyaltyReport(ctx context.Context, in *ChangeRoyaltyReportRequest, out *ResponseError) error
 		ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, out *TransactionsResponse) error
 		MerchantReviewRoyaltyReport(ctx context.Context, in *MerchantReviewRoyaltyReportRequest, out *ResponseError) error
@@ -2288,6 +2303,10 @@ func (h *billingServiceHandler) CreateRoyaltyReport(ctx context.Context, in *Cre
 
 func (h *billingServiceHandler) ListRoyaltyReports(ctx context.Context, in *ListRoyaltyReportsRequest, out *ListRoyaltyReportsResponse) error {
 	return h.BillingServiceHandler.ListRoyaltyReports(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetRoyaltyReport(ctx context.Context, in *GetRoyaltyReportRequest, out *GetRoyaltyReportResponse) error {
+	return h.BillingServiceHandler.GetRoyaltyReport(ctx, in, out)
 }
 
 func (h *billingServiceHandler) ChangeRoyaltyReport(ctx context.Context, in *ChangeRoyaltyReportRequest, out *ResponseError) error {

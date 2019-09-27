@@ -325,6 +325,27 @@ func (s *Service) MerchantReviewRoyaltyReport(
 	return nil
 }
 
+func (s *Service) GetRoyaltyReport(
+	ctx context.Context,
+	req *grpc.GetRoyaltyReportRequest,
+	rsp *grpc.GetRoyaltyReportResponse,
+) error {
+	report, err := s.royaltyReport.GetById(req.ReportId)
+	if err != nil {
+		if err == mgo.ErrNotFound {
+			rsp.Status = pkg.ResponseStatusNotFound
+			rsp.Message = royaltyReportErrorReportNotFound
+			return nil
+		}
+		return err
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
+	rsp.Item = report
+
+	return nil
+}
+
 func (s *Service) ChangeRoyaltyReport(
 	ctx context.Context,
 	req *grpc.ChangeRoyaltyReportRequest,

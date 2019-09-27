@@ -117,6 +117,7 @@ service BillingService {
 
     rpc CreateRoyaltyReport(CreateRoyaltyReportRequest) returns (CreateRoyaltyReportRequest) {}
     rpc ListRoyaltyReports(ListRoyaltyReportsRequest) returns (ListRoyaltyReportsResponse) {}
+    rpc GetRoyaltyReport(GetRoyaltyReportRequest) returns (GetRoyaltyReportResponse) {}
     rpc ChangeRoyaltyReport(ChangeRoyaltyReportRequest) returns (ResponseError) {}
     rpc ListRoyaltyReportOrders(ListRoyaltyReportOrdersRequest) returns (TransactionsResponse) {}
     rpc MerchantReviewRoyaltyReport(MerchantReviewRoyaltyReportRequest) returns (ResponseError) {}
@@ -1277,6 +1278,20 @@ message ListRoyaltyReportOrdersRequest {
 message ChangeRoyaltyReportCorrection {
     double amount = 1;
     string reason = 2;
+}
+
+message GetRoyaltyReportRequest {
+    // @inject_tag: json:"report_id" validate:"required,hexadecimal,len=24"
+    string report_id = 1;
+}
+
+message GetRoyaltyReportResponse {
+    //@inject_tag: json:"status"
+    int32 status = 1;
+    //@inject_tag: json:"message"
+    ResponseErrorMessage message = 2;
+    //@inject_tag: json:"item"
+    billing.RoyaltyReport item = 3;
 }
 
 message ChangeRoyaltyReportRequest {

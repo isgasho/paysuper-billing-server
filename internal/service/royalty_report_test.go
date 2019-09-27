@@ -100,7 +100,7 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 	redisdb := mocks.NewTestRedis()
 	suite.httpClient = mocks.NewClientStatusOk()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), broker, redisClient, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), )
+	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), broker, redisClient, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK())
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -1076,4 +1076,33 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_CreateRoyaltyReport_Ok_Me
 	assert.Len(suite.T(), report.Summary.RollingReserves, 1)
 	assert.Equal(suite.T(), report.Totals.RollingReserveAmount, float64(100))
 	assert.Equal(suite.T(), report.Totals.CorrectionAmount, float64(10))
+}
+
+func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_GetRoyaltyReport_Ok() {
+	suite.createOrder(suite.project)
+	err := suite.service.updateOrderView([]string{})
+	assert.NoError(suite.T(), err)
+
+	req := &grpc.CreateRoyaltyReportRequest{}
+	rsp := &grpc.CreateRoyaltyReportRequest{}
+	err = suite.service.CreateRoyaltyReport(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.NotEmpty(suite.T(), rsp.Merchants)
+
+	report := new(billing.RoyaltyReport)
+	err = suite.service.db.Collection(collectionRoyaltyReport).Find(bson.M{}).One(&report)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), report)
+	assert.Equal(suite.T(), pkg.RoyaltyReportStatusPending, report.Status)
+
+	req1 := &grpc.GetRoyaltyReportRequest{
+		ReportId: report.Id,
+	}
+	rsp1 := &grpc.GetRoyaltyReportResponse{}
+	err = suite.service.GetRoyaltyReport(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.Empty(suite.T(), rsp1.Message)
+	assert.NotEmpty(suite.T(), rsp1.Item)
+	assert.Equal(suite.T(), rsp1.Item, report)
 }
