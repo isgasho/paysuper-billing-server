@@ -9,7 +9,7 @@ import (
 func Test_Formatter(t *testing.T) {
 	shouldBe := require.New(t)
 
-	formatter, err := paysuper_i18n.NewFormatter([]string{"../data/rules"}, []string{"../data/messages"})
+	formatter, err := paysuper_i18n.NewFormatter([]string{"../../i18n/rules"}, []string{"../../i18n/messages"})
 	shouldBe.Nil(err)
 
 	price, err := formatter.FormatCurrency("en", 33.33, "USD")
