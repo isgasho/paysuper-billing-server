@@ -55,18 +55,18 @@ func (_m *ProductServiceInterface) GetById(_a0 string) (*grpc.Product, error) {
 }
 
 // List provides a mock function with given fields: _a0, _a1, _a2, _a3, _a4, _a5
-func (_m *ProductServiceInterface) List(_a0 string, _a1 string, _a2 string, _a3 string, _a4 int32, _a5 int32) (int32, []*grpc.Product, error) {
+func (_m *ProductServiceInterface) List(_a0 string, _a1 string, _a2 string, _a3 string, _a4 int, _a5 int) (int32, []*grpc.Product) {
 	ret := _m.Called(_a0, _a1, _a2, _a3, _a4, _a5)
 
 	var r0 int32
-	if rf, ok := ret.Get(0).(func(string, string, string, string, int32, int32) int32); ok {
+	if rf, ok := ret.Get(0).(func(string, string, string, string, int, int) int32); ok {
 		r0 = rf(_a0, _a1, _a2, _a3, _a4, _a5)
 	} else {
 		r0 = ret.Get(0).(int32)
 	}
 
 	var r1 []*grpc.Product
-	if rf, ok := ret.Get(1).(func(string, string, string, string, int32, int32) []*grpc.Product); ok {
+	if rf, ok := ret.Get(1).(func(string, string, string, string, int, int) []*grpc.Product); ok {
 		r1 = rf(_a0, _a1, _a2, _a3, _a4, _a5)
 	} else {
 		if ret.Get(1) != nil {
@@ -74,14 +74,7 @@ func (_m *ProductServiceInterface) List(_a0 string, _a1 string, _a2 string, _a3 
 		}
 	}
 
-	var r2 error
-	if rf, ok := ret.Get(2).(func(string, string, string, string, int32, int32) error); ok {
-		r2 = rf(_a0, _a1, _a2, _a3, _a4, _a5)
-	} else {
-		r2 = ret.Error(2)
-	}
-
-	return r0, r1, r2
+	return r0, r1
 }
 
 // Upsert provides a mock function with given fields: product

@@ -433,8 +433,9 @@ func (suite *ProductTestSuite) TestProduct_ListProducts_Error() {
 	res := grpc.ListProductsResponse{}
 	err := suite.service.ListProducts(context.TODO(), &req, &res)
 
-	assert.Error(suite.T(), err)
-	assert.EqualError(suite.T(), err, productErrorList.Message)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), int32(0), res.Total)
+	assert.Empty(suite.T(), res.Products)
 }
 
 func (suite *ProductTestSuite) TestProduct_ListProducts_Ok() {
@@ -614,11 +615,11 @@ func (suite *ProductTestSuite) TestProduct_List_Ok() {
 	if err := suite.service.productService.Upsert(suite.product); err != nil {
 		suite.Assert().NoError(err)
 	}
-	count, list, err := suite.service.productService.List(suite.product.MerchantId, "", "", "", int32(0), int32(10))
+	count, list := suite.service.productService.List(suite.product.MerchantId, "", "", "", 0, 10)
 
-	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(1), count)
 	assert.Equal(suite.T(), suite.product.MerchantId, list[0].MerchantId)
+	assert.Len(suite.T(), list, int(count))
 }
 
 func (suite *ProductTestSuite) TestProduct_List_Ok_Project() {
@@ -626,12 +627,12 @@ func (suite *ProductTestSuite) TestProduct_List_Ok_Project() {
 	if err := suite.service.productService.Upsert(suite.product); err != nil {
 		suite.Assert().NoError(err)
 	}
-	count, list, err := suite.service.productService.List(suite.product.MerchantId, suite.product.ProjectId, "", "", int32(0), int32(10))
+	count, list := suite.service.productService.List(suite.product.MerchantId, suite.product.ProjectId, "", "", 0, 10)
 
-	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(1), count)
 	assert.Equal(suite.T(), suite.product.MerchantId, list[0].MerchantId)
 	assert.Equal(suite.T(), suite.product.ProjectId, list[0].ProjectId)
+	assert.Len(suite.T(), list, int(count))
 }
 
 func (suite *ProductTestSuite) TestProduct_List_Ok_Sku() {
@@ -639,12 +640,12 @@ func (suite *ProductTestSuite) TestProduct_List_Ok_Sku() {
 	if err := suite.service.productService.Upsert(suite.product); err != nil {
 		suite.Assert().NoError(err)
 	}
-	count, list, err := suite.service.productService.List(suite.product.MerchantId, "", suite.product.Sku, "", int32(0), int32(10))
+	count, list := suite.service.productService.List(suite.product.MerchantId, "", suite.product.Sku, "", 0, 10)
 
-	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(1), count)
 	assert.Equal(suite.T(), suite.product.MerchantId, list[0].MerchantId)
 	assert.Equal(suite.T(), suite.product.Sku, list[0].Sku)
+	assert.Len(suite.T(), list, int(count))
 }
 
 func (suite *ProductTestSuite) TestProduct_List_Ok_Name() {
@@ -652,12 +653,12 @@ func (suite *ProductTestSuite) TestProduct_List_Ok_Name() {
 	if err := suite.service.productService.Upsert(suite.product); err != nil {
 		suite.Assert().NoError(err)
 	}
-	count, list, err := suite.service.productService.List(suite.product.MerchantId, "", "", suite.product.Name["en"], int32(0), int32(10))
+	count, list := suite.service.productService.List(suite.product.MerchantId, "", "", suite.product.Name["en"], 0, 10)
 
-	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(1), count)
 	assert.Equal(suite.T(), suite.product.MerchantId, list[0].MerchantId)
 	assert.Equal(suite.T(), suite.product.Name, list[0].Name)
+	assert.Len(suite.T(), list, int(count))
 }
 
 func (suite *ProductTestSuite) TestProduct_List_Error_Empty() {
@@ -665,9 +666,10 @@ func (suite *ProductTestSuite) TestProduct_List_Error_Empty() {
 	if err := suite.service.productService.Upsert(suite.product); err != nil {
 		suite.Assert().NoError(err)
 	}
-	_, _, err := suite.service.productService.List(bson.NewObjectId().Hex(), "", "", "", int32(0), int32(10))
 
-	assert.Error(suite.T(), err)
+	count, list := suite.service.productService.List(bson.NewObjectId().Hex(), "", "", "", 0, 10)
+	assert.EqualValues(suite.T(), 0, count)
+	assert.Empty(suite.T(), list)
 }
 
 func (suite *ProductTestSuite) TestProduct_List_Error_Offset() {
@@ -675,7 +677,7 @@ func (suite *ProductTestSuite) TestProduct_List_Error_Offset() {
 	if err := suite.service.productService.Upsert(suite.product); err != nil {
 		suite.Assert().NoError(err)
 	}
-	_, _, err := suite.service.productService.List(suite.product.MerchantId, "", "", "", int32(5), int32(10))
-
-	assert.Error(suite.T(), err)
+	count, list := suite.service.productService.List(suite.product.MerchantId, "", "", "", 5, 10)
+	assert.EqualValues(suite.T(), 0, count)
+	assert.Empty(suite.T(), list)
 }

@@ -2,19 +2,18 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"go.uber.org/zap"
 )
 
 const (
-	cacheProductId = "product:id:%s"
-
+	cacheProductId    = "product:id:%s"
 	collectionProduct = "product"
 )
 
@@ -34,11 +33,8 @@ var (
 	productErrorUpsert                     = newBillingServerErrorMsg("pd000013", "query to insert/update product failed")
 	productErrorDelete                     = newBillingServerErrorMsg("pd000014", "query to delete product failed")
 	productErrorProjectAndSkuAlreadyExists = newBillingServerErrorMsg("pd000015", "pair projectId+Sku already exists")
-	productErrorList                       = newBillingServerErrorMsg("pd000016", "unable to get product list")
 	productErrorListPrices                 = newBillingServerErrorMsg("pd000017", "list of prices is empty")
 	productErrorPricesUpdate               = newBillingServerErrorMsg("pd000017", "query to update product prices is failed")
-	productMerchantMismatch                = newBillingServerErrorMsg("pd000006", "merchant id mismatch")
-	productProjectMismatch                 = newBillingServerErrorMsg("pd000007", "project id mismatch")
 	productSkuMismatch                     = newBillingServerErrorMsg("pd000008", "sku mismatch")
 )
 
@@ -168,17 +164,17 @@ func (s *Service) GetProductsForOrder(ctx context.Context, req *grpc.GetProducts
 }
 
 func (s *Service) ListProducts(ctx context.Context, req *grpc.ListProductsRequest, res *grpc.ListProductsResponse) error {
-	count, list, err := s.productService.List(req.MerchantId, req.ProjectId, req.Sku, req.Name, req.Offset, req.Limit)
-
-	if err != nil {
-		zap.S().Errorf("Query to find refund by id failed", "err", err.Error(), "data", req)
-		return productErrorList
-	}
+	res.Total, res.Products = s.productService.List(
+		req.MerchantId,
+		req.ProjectId,
+		req.Sku,
+		req.Name,
+		int(req.Offset),
+		int(req.Limit),
+	)
 
 	res.Limit = req.Limit
 	res.Offset = req.Offset
-	res.Total = count
-	res.Products = list
 
 	return nil
 }
@@ -349,7 +345,7 @@ type ProductServiceInterface interface {
 	Upsert(product *grpc.Product) error
 	GetById(string) (*grpc.Product, error)
 	CountByProjectSku(string, string) (int, error)
-	List(string, string, string, string, int32, int32) (int32, []*grpc.Product, error)
+	List(string, string, string, string, int, int) (int32, []*grpc.Product)
 }
 
 func newProductService(svc *Service) *Product {
@@ -370,7 +366,7 @@ func (h *Product) Upsert(p *grpc.Product) error {
 	return nil
 }
 
-func (h Product) GetById(id string) (*grpc.Product, error) {
+func (h *Product) GetById(id string) (*grpc.Product, error) {
 	var c grpc.Product
 	key := fmt.Sprintf(cacheProductId, id)
 
@@ -391,7 +387,7 @@ func (h Product) GetById(id string) (*grpc.Product, error) {
 	return &c, nil
 }
 
-func (h Product) CountByProjectSku(projectId string, sku string) (int, error) {
+func (h *Product) CountByProjectSku(projectId string, sku string) (int, error) {
 	query := bson.M{"project_id": bson.ObjectIdHex(projectId), "sku": sku, "deleted": false}
 	count, err := h.svc.db.Collection(collectionProduct).Find(query).Count()
 
@@ -403,7 +399,14 @@ func (h Product) CountByProjectSku(projectId string, sku string) (int, error) {
 	return count, nil
 }
 
-func (h Product) List(merchantId string, projectId string, sku string, name string, offset int32, limit int32) (int32, []*grpc.Product, error) {
+func (h *Product) List(
+	merchantId string,
+	projectId string,
+	sku string,
+	name string,
+	offset int,
+	limit int,
+) (int32, []*grpc.Product) {
 	query := bson.M{"merchant_id": bson.ObjectIdHex(merchantId), "deleted": false}
 
 	if projectId != "" {
@@ -411,31 +414,48 @@ func (h Product) List(merchantId string, projectId string, sku string, name stri
 	}
 
 	if sku != "" {
-		query["sku"] = bson.RegEx{sku, "i"}
+		query["sku"] = bson.RegEx{Pattern: sku, Options: "i"}
 	}
 	if name != "" {
-		query["name"] = bson.M{"$elemMatch": bson.M{"value": bson.RegEx{name, "i"}}}
+		query["name"] = bson.M{"$elemMatch": bson.M{"value": bson.RegEx{Pattern: name, Options: "i"}}}
 	}
 
 	count, err := h.svc.db.Collection(collectionProduct).Find(query).Count()
+
 	if err != nil {
-		return 0, nil, err
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrderView),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return 0, nil
 	}
 
-	total := int32(count)
-
-	if total == 0 || offset > total {
-		return total, nil, errors.New("total is empty or less then total")
+	if count == 0 || offset > count {
+		zap.L().Error(
+			"total is empty or less then total",
+			zap.Error(err),
+			zap.Int(pkg.ErrorDatabaseFieldLimit, limit),
+			zap.Int(pkg.ErrorDatabaseFieldOffset, offset),
+		)
+		return 0, nil
 	}
 
 	var list []*grpc.Product
-	err = h.svc.db.Collection(collectionProduct).Find(query).Skip(int(offset)).Limit(int(limit)).All(&list)
+	err = h.svc.db.Collection(collectionProduct).Find(query).Skip(offset).Limit(limit).All(&list)
 
 	if err != nil {
-		return 0, nil, err
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrderView),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return 0, nil
 	}
 
-	return total, list, nil
+	return int32(count), list
 }
 
 func (h *Product) updateCache(p *grpc.Product) error {

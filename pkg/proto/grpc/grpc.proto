@@ -955,9 +955,9 @@ message ListProductsResponse {
     int32 limit = 1;
     // @inject_tag: json:"offset"
     int32 offset = 2;
-    // @inject_tag: json:"total"
+    // @inject_tag: json:"count"
     int32 total = 3;
-    // @inject_tag: json:"products"
+    // @inject_tag: json:"items"
     repeated Product products = 5;
 }
 
