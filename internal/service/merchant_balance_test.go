@@ -91,7 +91,7 @@ func (suite *MerchantBalanceTestSuite) SetupTest() {
 	redisdb := mocks.NewTestRedis()
 	suite.httpClient = mocks.NewClientStatusOk()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), broker, redisClient, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), )
+	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), broker, redisClient, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK())
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -270,7 +270,8 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_updateMerchantBalance
 		Id:                   bson.NewObjectId().Hex(),
 		MerchantId:           suite.merchant.Id,
 		SourceId:             []string{bson.NewObjectId().Hex()},
-		Amount:               1000,
+		TotalFees:            1000,
+		Balance:              1000,
 		Currency:             "RUB",
 		Status:               pkg.PayoutDocumentStatusPending,
 		Description:          "test payout document",
@@ -346,7 +347,8 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_getRollingReserveForB
 		Id:                   bson.NewObjectId().Hex(),
 		MerchantId:           suite.merchant.Id,
 		SourceId:             []string{bson.NewObjectId().Hex()},
-		Amount:               1000,
+		TotalFees:            1000,
+		Balance:              1000,
 		Currency:             "RUB",
 		Status:               pkg.PayoutDocumentStatusPending,
 		Description:          "test payout document",
@@ -436,7 +438,8 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 		Id:                   bson.NewObjectId().Hex(),
 		MerchantId:           suite.merchant.Id,
 		SourceId:             []string{bson.NewObjectId().Hex()},
-		Amount:               1000,
+		TotalFees:            1000,
+		Balance:              1000,
 		Currency:             "RUB",
 		Status:               pkg.PayoutDocumentStatusPending,
 		Description:          "test payout document",
@@ -503,7 +506,8 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 		Id:                   bson.NewObjectId().Hex(),
 		MerchantId:           suite.merchant.Id,
 		SourceId:             []string{bson.NewObjectId().Hex()},
-		Amount:               1000,
+		TotalFees:            1000,
+		Balance:              1000,
 		Currency:             "RUB",
 		Status:               pkg.PayoutDocumentStatusPending,
 		Description:          "test payout document",

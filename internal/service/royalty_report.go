@@ -762,7 +762,7 @@ func (r *RoyaltyReport) GetBalanceAmount(merchantId, currency string) (float64, 
 			"$group": bson.M{
 				"_id":               "currency",
 				"payout_amount":     bson.M{"$sum": "$totals.payout_amount"},
-				"correction_amount": bson.M{"$sum": "$totals.correction_total_amount"},
+				"correction_amount": bson.M{"$sum": "$totals.correction_amount"},
 			},
 		},
 		{
