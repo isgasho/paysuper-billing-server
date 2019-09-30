@@ -42,6 +42,7 @@ var (
 	keyProductPlatformDontHaveDefaultPrice  = newBillingServerErrorMsg("kp000020", "platform don't have price in default currency")
 	keyProductPlatformPriceMismatchCurrency = newBillingServerErrorMsg("kp000021", "platform don't have price with region that mismatch with currency")
 	keyPlatformNotFound                     = newBillingServerErrorMsg("kp000022", "platform not found")
+	keyProductNotPublished                     = newBillingServerErrorMsg("kp000023", "key product is not published")
 )
 
 var availablePlatforms = map[string]*grpc.Platform{
@@ -456,6 +457,7 @@ func (s *Service) getKeyProductById(id string) (*grpc.KeyProduct, error) {
 
 func (s *Service) DeleteKeyProduct(ctx context.Context, req *grpc.RequestKeyProductMerchant, res *grpc.EmptyResponseWithStatus) error {
 	product, err := s.getKeyProductById(req.Id)
+	res.Status = pkg.ResponseStatusOk
 
 	if err != nil {
 		if err.Error() == mgo.ErrNotFound.Error() {
@@ -638,5 +640,43 @@ func (s *Service) ChangeCodeInOrder(ctx context.Context, req *grpc.ChangeCodeInO
 	s.orderNotifyMerchant(order)
 
 	res.Order = order
+	return nil
+}
+
+func (s *Service) UnPublishKeyProduct(ctx context.Context, req *grpc.UnPublishKeyProductRequest, res *grpc.KeyProductResponse) error {
+	product, err := s.getKeyProductById(req.KeyProductId)
+	res.Status = pkg.ResponseStatusOk
+
+	if err != nil {
+		if err.Error() == mgo.ErrNotFound.Error() {
+			res.Status = pkg.ResponseStatusBadData
+			res.Message = keyProductNotFound
+			return nil
+		}
+
+		zap.S().Errorw("Error during getting key product", "err", err.Error(), "data", req)
+		res.Status = http.StatusInternalServerError
+		res.Message = keyProductRetrieveError
+		return nil
+	}
+
+	if product.Enabled == false {
+		zap.S().Errorw("Key product not published", "key_product", req.KeyProductId)
+		res.Status = http.StatusBadRequest
+		res.Message = keyProductNotPublished
+		return nil
+	}
+
+	product.Enabled = false
+
+	if err := s.db.Collection(collectionKeyProduct).UpdateId(bson.ObjectIdHex(product.Id), product); err != nil {
+		zap.S().Errorf("Query to update product failed", "err", err.Error(), "data", req)
+		res.Status = http.StatusInternalServerError
+		res.Message = keyProductErrorUpsert
+		return nil
+	}
+
+	res.Product = product
+
 	return nil
 }

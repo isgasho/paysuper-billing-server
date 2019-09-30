@@ -142,6 +142,7 @@ type BillingService interface {
 	GetKeyProduct(ctx context.Context, in *RequestKeyProductMerchant, opts ...client.CallOption) (*KeyProductResponse, error)
 	DeleteKeyProduct(ctx context.Context, in *RequestKeyProductMerchant, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 	PublishKeyProduct(ctx context.Context, in *PublishKeyProductRequest, opts ...client.CallOption) (*KeyProductResponse, error)
+	UnPublishKeyProduct(ctx context.Context, in *UnPublishKeyProductRequest, opts ...client.CallOption) (*KeyProductResponse, error)
 	GetKeyProductsForOrder(ctx context.Context, in *GetKeyProductsForOrderRequest, opts ...client.CallOption) (*ListKeyProductsResponse, error)
 	GetKeyProductInfo(ctx context.Context, in *GetKeyProductInfoRequest, opts ...client.CallOption) (*GetKeyProductInfoResponse, error)
 	GetPlatforms(ctx context.Context, in *ListPlatformsRequest, opts ...client.CallOption) (*ListPlatformsResponse, error)
@@ -1242,6 +1243,16 @@ func (c *billingService) PublishKeyProduct(ctx context.Context, in *PublishKeyPr
 	return out, nil
 }
 
+func (c *billingService) UnPublishKeyProduct(ctx context.Context, in *UnPublishKeyProductRequest, opts ...client.CallOption) (*KeyProductResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.UnPublishKeyProduct", in)
+	out := new(KeyProductResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *billingService) GetKeyProductsForOrder(ctx context.Context, in *GetKeyProductsForOrderRequest, opts ...client.CallOption) (*ListKeyProductsResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.GetKeyProductsForOrder", in)
 	out := new(ListKeyProductsResponse)
@@ -1551,6 +1562,7 @@ type BillingServiceHandler interface {
 	GetKeyProduct(context.Context, *RequestKeyProductMerchant, *KeyProductResponse) error
 	DeleteKeyProduct(context.Context, *RequestKeyProductMerchant, *EmptyResponseWithStatus) error
 	PublishKeyProduct(context.Context, *PublishKeyProductRequest, *KeyProductResponse) error
+	UnPublishKeyProduct(context.Context, *UnPublishKeyProductRequest, *KeyProductResponse) error
 	GetKeyProductsForOrder(context.Context, *GetKeyProductsForOrderRequest, *ListKeyProductsResponse) error
 	GetKeyProductInfo(context.Context, *GetKeyProductInfoRequest, *GetKeyProductInfoResponse) error
 	GetPlatforms(context.Context, *ListPlatformsRequest, *ListPlatformsResponse) error
@@ -1681,6 +1693,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetKeyProduct(ctx context.Context, in *RequestKeyProductMerchant, out *KeyProductResponse) error
 		DeleteKeyProduct(ctx context.Context, in *RequestKeyProductMerchant, out *EmptyResponseWithStatus) error
 		PublishKeyProduct(ctx context.Context, in *PublishKeyProductRequest, out *KeyProductResponse) error
+		UnPublishKeyProduct(ctx context.Context, in *UnPublishKeyProductRequest, out *KeyProductResponse) error
 		GetKeyProductsForOrder(ctx context.Context, in *GetKeyProductsForOrderRequest, out *ListKeyProductsResponse) error
 		GetKeyProductInfo(ctx context.Context, in *GetKeyProductInfoRequest, out *GetKeyProductInfoResponse) error
 		GetPlatforms(ctx context.Context, in *ListPlatformsRequest, out *ListPlatformsResponse) error
@@ -2135,6 +2148,10 @@ func (h *billingServiceHandler) DeleteKeyProduct(ctx context.Context, in *Reques
 
 func (h *billingServiceHandler) PublishKeyProduct(ctx context.Context, in *PublishKeyProductRequest, out *KeyProductResponse) error {
 	return h.BillingServiceHandler.PublishKeyProduct(ctx, in, out)
+}
+
+func (h *billingServiceHandler) UnPublishKeyProduct(ctx context.Context, in *UnPublishKeyProductRequest, out *KeyProductResponse) error {
+	return h.BillingServiceHandler.UnPublishKeyProduct(ctx, in, out)
 }
 
 func (h *billingServiceHandler) GetKeyProductsForOrder(ctx context.Context, in *GetKeyProductsForOrderRequest, out *ListKeyProductsResponse) error {

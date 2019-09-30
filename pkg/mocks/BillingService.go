@@ -3523,6 +3523,36 @@ func (_m *BillingService) SetUserNotifySales(ctx context.Context, in *grpc.SetUs
 	return r0, r1
 }
 
+// UnPublishKeyProduct provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) UnPublishKeyProduct(ctx context.Context, in *grpc.UnPublishKeyProductRequest, opts ...client.CallOption) (*grpc.KeyProductResponse, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *grpc.KeyProductResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.UnPublishKeyProductRequest, ...client.CallOption) *grpc.KeyProductResponse); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*grpc.KeyProductResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.UnPublishKeyProductRequest, ...client.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // UpdateCountry provides a mock function with given fields: ctx, in, opts
 func (_m *BillingService) UpdateCountry(ctx context.Context, in *billing.Country, opts ...client.CallOption) (*billing.Country, error) {
 	_va := make([]interface{}, len(opts))
