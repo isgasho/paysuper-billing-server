@@ -10,7 +10,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/jinzhu/now"
-	documentSignerPkg "github.com/paysuper/document-signer/pkg"
+	documentSignerConst "github.com/paysuper/document-signer/pkg/constant"
 	"github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -539,19 +539,19 @@ func (s *Service) getPayoutSignature(
 			{
 				Email:    merchant.GetAuthorizedEmail(),
 				Name:     merchant.GetAuthorizedName(),
-				RoleName: documentSignerPkg.SignerRoleNameMerchant,
+				RoleName: documentSignerConst.SignerRoleNameMerchant,
 			},
 			{
 				Email:    s.cfg.PaysuperDocumentSignerEmail,
 				Name:     s.cfg.PaysuperDocumentSignerName,
-				RoleName: documentSignerPkg.SignerRoleNamePaysuper,
+				RoleName: documentSignerConst.SignerRoleNamePaysuper,
 			},
 		},
 		// todo: pass rendered document
 		Metadata: map[string]string{
-			documentSignerPkg.MetadataFieldAction:           documentSignerPkg.MetadataFieldActionValueMerchantPayout,
-			documentSignerPkg.MetadataFieldPayoutDocumentId: pd.Id,
+			documentSignerConst.MetadataFieldPayoutDocumentId: pd.Id,
 		},
+		RequestType: documentSignerConst.RequestTypeCreateEmbedded,
 	}
 
 	rsp, err := s.documentSigner.CreateSignature(ctx, req)
