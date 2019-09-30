@@ -137,6 +137,7 @@ service BillingService {
     rpc GetKeyProduct (RequestKeyProductMerchant) returns (KeyProductResponse) {}
     rpc DeleteKeyProduct (RequestKeyProductMerchant) returns (EmptyResponseWithStatus) {}
     rpc PublishKeyProduct(PublishKeyProductRequest) returns (KeyProductResponse) {}
+    rpc UnPublishKeyProduct(UnPublishKeyProductRequest) returns (KeyProductResponse) {}
     rpc GetKeyProductsForOrder (GetKeyProductsForOrderRequest) returns (ListKeyProductsResponse) {}
     rpc GetKeyProductInfo(GetKeyProductInfoRequest) returns (GetKeyProductInfoResponse) {}
 
@@ -295,6 +296,11 @@ message CreateOrUpdateKeyProductRequest {
     map<string, string> metadata = 12;
     //@inject_tag: validate:"dive" json:"platforms"
     repeated PlatformPrice platforms = 13;
+}
+
+message UnPublishKeyProductRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string key_product_id = 1;
 }
 
 message PublishKeyProductRequest {

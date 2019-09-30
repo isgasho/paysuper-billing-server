@@ -635,3 +635,32 @@ func (suite *KeyProductTestSuite) Test_DeleteKeyProduct() {
 	shouldBe.Nil(err)
 	shouldBe.NotNil(res.Message)
 }
+
+func (suite *KeyProductTestSuite) Test_UnPublishKeyProduct() {
+	shoulBe := require.New(suite.T())
+	product := suite.createKeyProduct()
+
+	res := &grpc.KeyProductResponse{}
+	err := suite.service.PublishKeyProduct(context.TODO(), &grpc.PublishKeyProductRequest{KeyProductId: product.Id, MerchantId: product.MerchantId}, res)
+	shoulBe.Nil(err)
+	shoulBe.EqualValues(200, res.Status)
+
+	err = suite.service.UnPublishKeyProduct(context.TODO(), &grpc.UnPublishKeyProductRequest{KeyProductId: product.Id}, res)
+	shoulBe.Nil(err)
+	shoulBe.EqualValues(200, res.Status)
+
+	err = suite.service.UnPublishKeyProduct(context.TODO(), &grpc.UnPublishKeyProductRequest{KeyProductId: product.Id}, res)
+	shoulBe.Nil(err)
+	shoulBe.EqualValues(400, res.Status)
+	shoulBe.Equal(keyProductNotPublished, res.Message)
+
+	emptyRes := &grpc.EmptyResponseWithStatus{}
+	err = suite.service.DeleteKeyProduct(context.TODO(), &grpc.RequestKeyProductMerchant{Id: product.Id, MerchantId: product.MerchantId}, emptyRes)
+	shoulBe.Nil(err)
+	shoulBe.EqualValuesf(200, emptyRes.Status, "%v", emptyRes.Message)
+
+	err = suite.service.UnPublishKeyProduct(context.TODO(), &grpc.UnPublishKeyProductRequest{KeyProductId: product.Id}, res)
+	shoulBe.Nil(err)
+	shoulBe.EqualValues(400, res.Status)
+	shoulBe.Equal(keyProductNotFound, res.Message)
+}
