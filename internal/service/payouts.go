@@ -30,6 +30,7 @@ const (
 
 	payoutChangeSourceMerchant  = "merchant"
 	payoutChangeSourceAdmin     = "admin"
+	payoutChangeSourceReporter  = "reporter"
 	payoutChangeSourceHellosign = "hellosign"
 
 	payoutArrivalInDays = 5
@@ -46,6 +47,7 @@ var (
 	errorPayoutUpdateBalance    = newBillingServerErrorMsg("po000008", "balance update failed")
 	errorPayoutBalanceError     = newBillingServerErrorMsg("po000009", "getting balance failed")
 	errorPayoutNotEnoughBalance = newBillingServerErrorMsg("po000010", "not enough balance for payout")
+	errorPayoutNotRendered      = newBillingServerErrorMsg("po000011", "payout document not rendered yet")
 
 	statusForUpdateBalance = map[string]bool{
 		pkg.PayoutDocumentStatusPending:    true,
@@ -101,7 +103,6 @@ func (s *Service) CreatePayoutDocument(
 		ArrivalDate:          arrivalDate,
 		HasMerchantSignature: false,
 		HasPspSignature:      false,
-		Summary:              &billing.PayoutDocumentSummary{},
 	}
 
 	merchant, err := s.merchant.GetById(req.MerchantId)
@@ -111,6 +112,8 @@ func (s *Service) CreatePayoutDocument(
 
 	pd.MerchantId = merchant.Id
 	pd.Destination = merchant.Banking
+	pd.Company = merchant.Company
+	pd.MerchantAgreementNumber = merchant.AgreementNumber
 
 	reports, err := s.getPayoutDocumentSources(merchant)
 
@@ -128,7 +131,9 @@ func (s *Service) CreatePayoutDocument(
 	var times []time.Time
 
 	for _, r := range reports {
-		pd.Amount += r.Totals.PayoutAmount
+		pd.TotalFees += r.Totals.PayoutAmount - r.Totals.CorrectionAmount
+		pd.Balance += r.Totals.PayoutAmount - r.Totals.CorrectionAmount - r.Totals.RollingReserveAmount
+		pd.TotalTransactions += r.Totals.TransactionsCount
 		pd.SourceId = append(pd.SourceId, r.Id)
 
 		from, err := ptypes.Timestamp(r.PeriodFrom)
@@ -152,7 +157,7 @@ func (s *Service) CreatePayoutDocument(
 		times = append(times, from, to)
 	}
 
-	if pd.Amount <= 0 {
+	if pd.Balance <= 0 {
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorPayoutAmountInvalid
 		return nil
@@ -165,18 +170,13 @@ func (s *Service) CreatePayoutDocument(
 		return nil
 	}
 
-	if pd.Amount > (balance.Debit - balance.Credit) {
+	if pd.Balance > (balance.Debit - balance.Credit) {
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorPayoutNotEnoughBalance
 		return nil
 	}
 
-	// We must substract rolling reserve amount from payout amount.
-	// In case of rolling reserve release, balance.RollingReserve will have negative amount
-	// and finally will be added to payout amount.
-	pd.Amount = pd.Amount - balance.RollingReserve
-
-	if pd.Amount < merchant.MinPayoutAmount {
+	if pd.Balance < merchant.MinPayoutAmount {
 		pd.Status = pkg.PayoutDocumentStatusSkip
 	}
 
@@ -214,6 +214,21 @@ func (s *Service) CreatePayoutDocument(
 		return err
 	}
 
+	err = s.renderPayoutDocument(ctx, pd, merchant)
+	if err != nil {
+		return err
+	}
+
+	res.Status = pkg.ResponseStatusOk
+	res.Item = pd
+	return nil
+}
+
+func (s *Service) renderPayoutDocument(
+	ctx context.Context,
+	pd *billing.PayoutDocument,
+	merchant *billing.Merchant,
+) error {
 	params, err := json.Marshal(map[string]interface{}{reporterConst.ParamsFieldId: pd.Id})
 	if err != nil {
 		zap.L().Error(
@@ -239,9 +254,6 @@ func (s *Service) CreatePayoutDocument(
 		)
 		return err
 	}
-
-	res.Status = pkg.ResponseStatusOk
-	res.Item = pd
 	return nil
 }
 
@@ -448,6 +460,11 @@ func (s *Service) GetPayoutDocumentSignUrl(
 				"Getting signature data failed",
 				zap.Error(err),
 			)
+			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+				res.Status = pkg.ResponseStatusSystemError
+				res.Message = e
+				return nil
+			}
 			return err
 		}
 	}
@@ -486,7 +503,50 @@ func (s *Service) PayoutDocumentPdfUploaded(
 ) error {
 	res.Status = pkg.ResponseStatusOk
 
-	//TODO: Use the request params for update payout document
+	pd, err := s.payoutDocument.GetById(req.Id)
+	if err != nil {
+		if err == mgo.ErrNotFound {
+			res.Status = pkg.ResponseStatusNotFound
+			res.Message = errorPayoutNotFound
+			return nil
+		}
+		return err
+	}
+
+	if req.Filename != "" {
+		pd.RenderedDocumentFileUrl = req.Filename
+	}
+
+	// update first to ensure save rendered document file url to db
+	err = s.payoutDocument.Update(pd, "", payoutChangeSourceReporter)
+	if err != nil {
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			res.Status = pkg.ResponseStatusSystemError
+			res.Message = e
+			return nil
+		}
+		return err
+	}
+
+	pd.SignatureData, err = s.getPayoutSignature(ctx, pd)
+	if err != nil {
+		zap.L().Error(
+			"Getting signature data failed",
+			zap.Error(err),
+		)
+		return err
+	}
+
+	// updating once again, to save signature data
+	err = s.payoutDocument.Update(pd, "", payoutChangeSourceReporter)
+	if err != nil {
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			res.Status = pkg.ResponseStatusSystemError
+			res.Message = e
+			return nil
+		}
+		return err
+	}
 
 	return nil
 }
@@ -529,9 +589,15 @@ func (s *Service) getPayoutSignature(
 		return nil, err
 	}
 
-	// todo: check for rendered document exists
-	// return error if not
+	if pd.RenderedDocumentFileUrl == "" {
+		err = s.renderPayoutDocument(ctx, pd, merchant)
+		if err != nil {
+			return nil, err
+		}
+		return nil, errorPayoutNotRendered
+	}
 
+	// todo: call another method in documentSigner and pass rendered document - waiting for task #191999
 	req := &proto.CreateSignatureRequest{
 		TemplateId: s.cfg.HelloSignPayoutTemplate,
 		ClientId:   s.cfg.HelloSignClientId,
@@ -547,7 +613,6 @@ func (s *Service) getPayoutSignature(
 				RoleName: documentSignerConst.SignerRoleNamePaysuper,
 			},
 		},
-		// todo: pass rendered document
 		Metadata: map[string]string{
 			documentSignerConst.MetadataFieldPayoutDocumentId: pd.Id,
 		},
@@ -910,7 +975,7 @@ func (h *PayoutDocument) GetBalanceAmount(merchantId, currency string) (float64,
 		{
 			"$group": bson.M{
 				"_id":    "$currency",
-				"amount": bson.M{"$sum": "$amount"},
+				"amount": bson.M{"$sum": "$total_fees"},
 			},
 		},
 	}
