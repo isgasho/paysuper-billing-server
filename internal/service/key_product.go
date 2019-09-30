@@ -125,23 +125,6 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 		return nil
 	}
 
-	// Check updating of default currency for key product
-	isHaveDefaultPrice := len(product.Platforms) == 0
-	for _, platform := range product.Platforms {
-		for _, price := range platform.Prices {
-			if price.Currency == req.DefaultCurrency {
-				isHaveDefaultPrice = true
-			}
-		}
-	}
-
-	if isHaveDefaultPrice == false {
-		zap.S().Errorf("platforms don't have price with specified default currency")
-		res.Message = keyProductPlatformPriceMismatchCurrency
-		res.Status = pkg.ResponseStatusBadData
-		return nil
-	}
-
 	// Prevent duplicated key products (by projectId+sku)
 	dupQuery := bson.M{"project_id": bson.ObjectIdHex(req.ProjectId), "sku": req.Sku, "deleted": false}
 	found, err := s.db.Collection(collectionKeyProduct).Find(dupQuery).Count()
@@ -163,6 +146,77 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 		return nil
 	}
 
+	countUserDefinedPlatforms := 0
+
+	for _, platform := range req.Platforms {
+		available, ok := availablePlatforms[platform.Id]
+		if !ok {
+			countUserDefinedPlatforms++
+			if countUserDefinedPlatforms > 1 {
+				zap.S().Errorw("Product has more that 1 user defined platforms", "data", req)
+				res.Status = http.StatusBadRequest
+				res.Message = keyProductAlreadyHasPlatform
+				return nil
+			}
+
+			if platform.ActivationUrl == "" {
+				zap.S().Errorw("Activation url must be set", "data", req)
+				res.Status = http.StatusBadRequest
+				res.Message = keyProductActivationUrlEmpty
+				return nil
+			}
+
+			if platform.EulaUrl == "" {
+				zap.S().Errorw("Eula url must be set", "data", req)
+				res.Status = http.StatusBadRequest
+				res.Message = keyProductEulaEmpty
+				return nil
+			}
+
+			if platform.Name == "" {
+				zap.S().Errorw("Name must be set", "data", req)
+				res.Status = http.StatusBadRequest
+				res.Message = keyProductPlatformName
+				return nil
+			}
+		} else {
+			platform.Name = available.Name
+		}
+
+		isHaveDefaultPrice := false
+
+		// Check that user specified price in default currency
+		for _, price := range platform.Prices {
+			if price.Currency == req.DefaultCurrency {
+				isHaveDefaultPrice = true
+			}
+
+			pr, err := s.priceGroup.GetByRegion(price.Region)
+			if err != nil {
+				zap.S().Errorw("Failed to get price group for region", "price", price)
+				res.Status = pkg.ResponseStatusBadData
+				res.Message = keyProductInternalError
+				return nil
+			}
+
+			if pr.Currency != price.Currency {
+				zap.S().Errorw("Currency is mismatch for specified region", "price", price)
+				res.Status = pkg.ResponseStatusBadData
+				res.Message = keyProductPlatformPriceMismatchCurrency
+				res.Message.Details = fmt.Sprintf("price with regin `%s` should have currency `%s` but have `%s`", price.Region, pr.Currency, price.Currency)
+				return nil
+			}
+		}
+
+		if isHaveDefaultPrice == false {
+			res.Status = http.StatusBadRequest
+			res.Message = keyProductPlatformDontHaveDefaultPrice
+			res.Message.Details = fmt.Sprintf("platform `%s` should have price in currency `%s`", platform.Id, req.DefaultCurrency)
+			return nil
+		}
+	}
+
+	product.Platforms = req.Platforms
 	product.Metadata = req.Metadata
 	product.Object = req.Object
 	product.Name = req.Name
@@ -493,174 +547,6 @@ func (s *Service) GetKeyProductsForOrder(ctx context.Context, req *grpc.GetKeyPr
 	res.Offset = 0
 	res.Count = res.Limit
 	res.Products = found
-	return nil
-}
-
-func (s *Service) UpdatePlatformPrices(ctx context.Context, req *grpc.AddOrUpdatePlatformPricesRequest, res *grpc.UpdatePlatformPricesResponse) error {
-	res.Status = pkg.ResponseStatusOk
-	product, err := s.getKeyProductById(req.KeyProductId)
-
-	if err != nil {
-		if err.Error() == mgo.ErrNotFound.Error() {
-			zap.S().Errorf("Key product not found", "id", req.KeyProductId)
-			res.Status = http.StatusNotFound
-			res.Message = keyProductNotFound
-			return nil
-		}
-
-		zap.S().Errorf("Error during getting key product", "err", err.Error(), "data", req)
-		res.Status = http.StatusInternalServerError
-		res.Message = keyProductRetrieveError
-		return nil
-	}
-
-	platform := req.Platform
-
-	found := false
-	productHasUserPlatform := false
-
-	for _, platform := range product.Platforms {
-		if platform.Id == req.Platform.Id {
-			platform.Prices = req.Platform.Prices
-			found = true
-		}
-
-		if _, ok := availablePlatforms[platform.Id]; !ok {
-			productHasUserPlatform = true
-		}
-	}
-
-	_, isAvailable := availablePlatforms[req.Platform.Id]
-
-	if !isAvailable && productHasUserPlatform && found == false {
-		zap.S().Errorf("Product already has user defined platform", "data", req)
-		res.Status = http.StatusBadRequest
-		res.Message = keyProductAlreadyHasPlatform
-		return nil
-	}
-
-	if found == false {
-		if isAvailable == false {
-			if platform.ActivationUrl == "" {
-				zap.S().Errorf("Activation url must be set", "data", req)
-				res.Status = http.StatusBadRequest
-				res.Message = keyProductActivationUrlEmpty
-				return nil
-			}
-
-			if platform.EulaUrl == "" {
-				zap.S().Errorf("Eula url must be set", "data", req)
-				res.Status = http.StatusBadRequest
-				res.Message = keyProductEulaEmpty
-				return nil
-			}
-
-			if platform.Name == "" {
-				zap.S().Errorf("Name must be set", "data", req)
-				res.Status = http.StatusBadRequest
-				res.Message = keyProductPlatformName
-				return nil
-			}
-
-			platform.ActivationUrl = req.Platform.ActivationUrl
-			platform.EulaUrl = req.Platform.EulaUrl
-			platform.Name = req.Platform.Name
-		}
-
-		isHaveDefaultPrice := false
-
-		// Check that user specified price in default currency
-		for _, price := range platform.Prices {
-			if price.Currency == product.DefaultCurrency {
-				isHaveDefaultPrice = true
-			}
-
-			pr, err := s.priceGroup.GetByRegion(price.Region)
-			if err != nil {
-				zap.S().Errorw("Failed to get price group for region", "price", price)
-				res.Status = pkg.ResponseStatusBadData
-				res.Message = keyProductInternalError
-				return nil
-			}
-
-			if pr.Currency != price.Currency {
-				zap.S().Errorw("Currency is mismatch for specified region", "price", price)
-				res.Status = pkg.ResponseStatusBadData
-				res.Message = keyProductPlatformPriceMismatchCurrency
-				res.Message.Details = fmt.Sprintf("price with regin `%s` should have currency `%s` but have `%s`", price.Region, pr.Currency, price.Currency)
-				return nil
-			}
-		}
-
-		if isHaveDefaultPrice == false {
-			res.Status = http.StatusBadRequest
-			res.Message = keyProductPlatformDontHaveDefaultPrice
-			res.Message.Details = fmt.Sprintf("platform %s should have price in currency %s", platform.Id, product.DefaultCurrency)
-			return nil
-		}
-
-		product.Platforms = append(product.Platforms, platform)
-	}
-
-	if err := s.db.Collection(collectionKeyProduct).UpdateId(bson.ObjectIdHex(req.KeyProductId), product); err != nil {
-		zap.S().Errorf("Query to update product failed", "err", err.Error(), "data", req)
-		res.Status = http.StatusInternalServerError
-		res.Message = keyProductInternalError
-		res.Message.Details = err.Error()
-		return nil
-	}
-
-	res.Price = platform
-
-	return nil
-}
-
-func (s *Service) DeletePlatformFromProduct(ctx context.Context, req *grpc.RemovePlatformRequest, res *grpc.EmptyResponseWithStatus) error {
-	product, err := s.getKeyProductById(req.KeyProductId)
-
-	if err != nil {
-		if err.Error() == mgo.ErrNotFound.Error() {
-			zap.S().Errorf("Key product not found", "id", req.KeyProductId)
-			res.Status = http.StatusNotFound
-			res.Message = keyProductNotFound
-			return nil
-		}
-
-		zap.S().Errorf("Error during getting key product", "err", err.Error(), "data", req)
-		res.Status = http.StatusInternalServerError
-		res.Message = keyProductInternalError
-		res.Message.Details = err.Error()
-		return nil
-	}
-
-	found := false
-
-	for i, platform := range product.Platforms {
-		if platform.Id == req.PlatformId {
-			// https://github.com/golang/go/wiki/SliceTricks
-			copy(product.Platforms[i:], product.Platforms[i+1:])
-			product.Platforms[len(product.Platforms)-1] = nil
-			product.Platforms = product.Platforms[:len(product.Platforms)-1]
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		zap.S().Errorf("Platform `%s` not found", req.PlatformId)
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = keyPlatformNotFound
-		return nil
-	}
-
-	if err := s.db.Collection(collectionKeyProduct).UpdateId(bson.ObjectIdHex(req.KeyProductId), product); err != nil {
-		zap.S().Errorf("Query to update product failed", "err", err.Error(), "data", req)
-		res.Status = http.StatusInternalServerError
-		res.Message = keyProductInternalError
-		res.Message.Details = err.Error()
-		return nil
-	}
-
 	return nil
 }
 

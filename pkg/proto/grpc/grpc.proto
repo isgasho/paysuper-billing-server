@@ -141,8 +141,6 @@ service BillingService {
     rpc GetKeyProductInfo(GetKeyProductInfoRequest) returns (GetKeyProductInfoResponse) {}
 
     rpc GetPlatforms(ListPlatformsRequest) returns (ListPlatformsResponse) {}
-    rpc UpdatePlatformPrices(AddOrUpdatePlatformPricesRequest) returns (UpdatePlatformPricesResponse) {}
-    rpc DeletePlatformFromProduct(RemovePlatformRequest) returns (EmptyResponseWithStatus) {}
 
     rpc GetAvailableKeysCount(GetPlatformKeyCountRequest) returns (GetPlatformKeyCountResponse) {}
     rpc UploadKeysFile(PlatformKeysFileRequest) returns (PlatformKeysFileResponse) {}
@@ -263,21 +261,6 @@ message RemovePlatformRequest {
     string platform_id = 3;
 }
 
-message UpdatePlatformPricesResponse {
-    int32 status = 1;
-    ResponseErrorMessage message = 2;
-    PlatformPrice price = 3;
-}
-
-message AddOrUpdatePlatformPricesRequest {
-    //@inject_tag: validate:"required,hexadecimal,len=24"
-    string key_product_id = 1;
-    //@inject_tag: validate:"hexadecimal,len=24" json:"merchant_id"
-    string merchant_id = 2;
-    //@inject_tag: validate:"required,dive"
-    PlatformPrice platform = 3;
-}
-
 message KeyProductResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
@@ -310,6 +293,8 @@ message CreateOrUpdateKeyProductRequest {
     string object = 11;
     //@inject_tag: json:"metadata"
     map<string, string> metadata = 12;
+    //@inject_tag: validate:"dive" json:"platforms"
+    repeated PlatformPrice platforms = 13;
 }
 
 message PublishKeyProductRequest {
