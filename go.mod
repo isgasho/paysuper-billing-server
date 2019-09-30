@@ -2,25 +2,39 @@ module github.com/paysuper/paysuper-billing-server
 
 require (
 	github.com/InVisionApp/go-health v2.1.0+incompatible
+	github.com/Jeffail/gabs v1.1.1 // indirect
 	github.com/ProtocolONE/geoip-service v0.0.0-20190903084234-1d5ae6b96679
 	github.com/ProtocolONE/go-micro-plugins v0.3.0
+	github.com/SAP/go-hdb v0.13.2 // indirect
+	github.com/SermoDigital/jose v0.9.2-0.20161205224733-f6df55f235c2 // indirect
 	github.com/alicebob/miniredis v2.5.0+incompatible
+	github.com/asaskevich/govalidator v0.0.0-20180720115003-f9ffefc3facf // indirect
 	github.com/centrifugal/gocent v2.0.2+incompatible
+	github.com/denisenkom/go-mssqldb v0.0.0-20190121005146-b04fd42d9952 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/elazarl/go-bindata-assetfs v1.0.0 // indirect
 	github.com/elliotchance/redismock v1.5.1
+	github.com/fatih/structs v1.1.0 // indirect
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
 	github.com/go-redis/redis v6.15.2+incompatible
 	github.com/gogo/protobuf v1.3.0
 	github.com/golang-migrate/migrate/v4 v4.3.1
 	github.com/golang/protobuf v1.3.2
 	github.com/google/uuid v1.1.1
+	github.com/hashicorp/go-memdb v0.0.0-20181108192425-032f93b25bec // indirect
+	github.com/hashicorp/go-plugin v0.0.0-20181212150838-f444068e8f5a // indirect
 	github.com/jinzhu/copier v0.0.0-20190625015134-976e0346caa8
 	github.com/jinzhu/now v1.0.1
 	github.com/kelseyhightower/envconfig v1.4.0
+	github.com/keybase/go-crypto v0.0.0-20181127160227-255a5089e85a // indirect
 	github.com/micro/cli v0.2.0
 	github.com/micro/go-micro v1.8.0
 	github.com/micro/go-plugins v1.2.0
+	github.com/micro/go-rcache v0.2.1 // indirect
+	github.com/micro/util v0.2.0 // indirect
+	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/morikuni/aec v0.0.0-20170113033406-39771216ff4c // indirect
+	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/paysuper/document-signer v0.0.0-20190923080905-cb9cc2665d8b
 	github.com/paysuper/paysuper-currencies v0.0.0-20190903083641-668b8b2b997d
 	github.com/paysuper/paysuper-database-mongo v0.1.1

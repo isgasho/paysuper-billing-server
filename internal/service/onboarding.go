@@ -45,8 +45,8 @@ var (
 		pkg.MerchantStatusAgreementSigned:    "Agreement signed",
 	}
 
-	merchantSignAgreementMessage = []byte(`{"code": "mr000017", "message": "license agreement was signed by merchant"}`)
-	paysuperSignAgreementMessage = []byte(`{"code": "mr000018", "message": "license agreement was signed by Paysuper admin"}`)
+	merchantSignAgreementMessage = map[string]string{"code": "mr000017", "message": "license agreement was signed by merchant"}
+	paysuperSignAgreementMessage = map[string]string{"code": "mr000018", "message": "license agreement was signed by Paysuper admin"}
 )
 
 func (s *Service) GetMerchantBy(
