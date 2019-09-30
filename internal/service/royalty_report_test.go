@@ -539,6 +539,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_Ok() 
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), report)
 	assert.Equal(suite.T(), pkg.RoyaltyReportStatusAccepted, report.Status)
+	assert.False(suite.T(), report.IsAutoAccepted)
 
 	var changes []*billing.RoyaltyReportChanges
 	err = suite.service.db.Collection(collectionRoyaltyReportChanges).
@@ -942,8 +943,10 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_AutoAcceptRoyaltyReports_
 	for _, v := range reports {
 		if v.MerchantId == suite.project.GetMerchantId() {
 			assert.Equal(suite.T(), pkg.RoyaltyReportStatusAccepted, v.Status)
+			assert.True(suite.T(), v.IsAutoAccepted)
 		} else {
 			assert.Equal(suite.T(), pkg.RoyaltyReportStatusPending, v.Status)
+			assert.False(suite.T(), v.IsAutoAccepted)
 		}
 	}
 }

@@ -184,6 +184,7 @@ func (s *Service) AutoAcceptRoyaltyReports(
 		report.Status = pkg.RoyaltyReportStatusAccepted
 		report.AcceptedAt = ptypes.TimestampNow()
 		report.UpdatedAt = ptypes.TimestampNow()
+		report.IsAutoAccepted = true
 
 		err = s.royaltyReport.Update(report, "", pkg.RoyaltyReportChangeSourceAuto)
 		if err != nil {

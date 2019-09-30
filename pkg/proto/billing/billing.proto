@@ -1467,6 +1467,8 @@ message RoyaltyReport {
     google.protobuf.Timestamp dispute_started_at = 15;
     //@inject_tag: bson:"dispute_closed_at" json:"dispute_closed_at"
     google.protobuf.Timestamp dispute_closed_at = 16;
+    //@inject_tag: bson:"is_auto_accepted" json:"is_auto_accepted"
+    bool is_auto_accepted = 17;
 }
 
 message RoyaltyReportChanges {
