@@ -6,6 +6,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
+	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"go.uber.org/zap"
 	"time"
 )
@@ -3395,7 +3396,22 @@ func (ow *OrderView) GetRoyaltySummary(merchantId, currency string, from, to tim
 		total.Region = ""
 	}
 
+	for _, item := range items {
+		ow.royaltySummaryItemPrecise(item)
+	}
+
+	ow.royaltySummaryItemPrecise(total)
+
 	return
+}
+
+func (ow *OrderView) royaltySummaryItemPrecise(item *billing.RoyaltyReportProductSummaryItem) {
+	item.GrossSalesAmount = tools.ToPrecise(item.GrossSalesAmount)
+	item.GrossReturnsAmount = tools.ToPrecise(item.GrossReturnsAmount)
+	item.GrossTotalAmount = tools.ToPrecise(item.GrossTotalAmount)
+	item.TotalFees = tools.ToPrecise(item.TotalFees)
+	item.TotalVat = tools.ToPrecise(item.TotalVat)
+	item.PayoutAmount = tools.ToPrecise(item.PayoutAmount)
 }
 
 func (ow *OrderView) GetOrderBy(id, uuid, merchantId string, receiver interface{}) (interface{}, error) {

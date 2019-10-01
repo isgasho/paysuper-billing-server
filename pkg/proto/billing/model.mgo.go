@@ -131,6 +131,7 @@ type MgoMerchant struct {
 	AgreementTemplate                             string                               `bson:"agreement_template"`
 	ReceivedDate                                  time.Time                            `bson:"received_date"`
 	StatusLastUpdatedAt                           time.Time                            `bson:"status_last_updated_at"`
+	AgreementNumber                               string                               `bson:"agreement_number"`
 }
 
 type MgoCommission struct {
@@ -581,6 +582,7 @@ type MgoRoyaltyReport struct {
 	DisputeReason    string                `bson:"dispute_reason"`
 	DisputeStartedAt time.Time             `bson:"dispute_started_at"`
 	DisputeClosedAt  time.Time             `bson:"dispute_closed_at"`
+	IsAutoAccepted   bool                  `bson:"is_auto_accepted"`
 }
 
 type MgoRoyaltyReportCorrectionItem struct {
@@ -758,28 +760,32 @@ type MgoKey struct {
 }
 
 type MgoPayoutDocument struct {
-	Id                    bson.ObjectId                   `bson:"_id"`
-	SourceId              []string                        `bson:"source_id"`
-	Transaction           string                          `bson:"transaction"`
-	Amount                float64                         `bson:"amount"`
-	Currency              string                          `bson:"currency"`
-	Status                string                          `bson:"status"`
-	Description           string                          `bson:"description"`
-	Destination           *MerchantBanking                `bson:"destination"`
-	CreatedAt             time.Time                       `bson:"created_at"`
-	UpdatedAt             time.Time                       `bson:"updated_at"`
-	ArrivalDate           time.Time                       `bson:"arrival_date"`
-	FailureCode           string                          `bson:"failure_code"`
-	FailureMessage        string                          `bson:"failure_message"`
-	FailureTransaction    string                          `bson:"failure_transaction"`
-	MerchantId            bson.ObjectId                   `bson:"merchant_id"`
-	SignatureData         *MgoPayoutDocumentSignatureData `bson:"signature_data"`
-	HasMerchantSignature  bool                            `bson:"has_merchant_signature"`
-	HasPspSignature       bool                            `bson:"has_psp_signature"`
-	SignedDocumentFileUrl string                          `bson:"signed_document_file_url"`
-	PeriodFrom            time.Time                       `bson:"period_from"`
-	PeriodTo              time.Time                       `bson:"period_to"`
-	Summary               *PayoutDocumentSummary          `bson:"summary"`
+	Id                      bson.ObjectId                   `bson:"_id"`
+	MerchantId              bson.ObjectId                   `bson:"merchant_id"`
+	SourceId                []string                        `bson:"source_id"`
+	TotalFees               float64                         `bson:"total_fees"`
+	Balance                 float64                         `bson:"balance"`
+	Currency                string                          `bson:"currency"`
+	PeriodFrom              time.Time                       `bson:"period_from"`
+	PeriodTo                time.Time                       `bson:"period_to"`
+	TotalTransactions       int32                           `bson:"total_transactions"`
+	Description             string                          `bson:"description"`
+	Destination             *MerchantBanking                `bson:"destination"`
+	MerchantAgreementNumber string                          `bson:"merchant_agreement_number"`
+	Company                 *MerchantCompanyInfo            `bson:"company"`
+	Status                  string                          `bson:"status"`
+	Transaction             string                          `bson:"transaction"`
+	FailureCode             string                          `bson:"failure_code"`
+	FailureMessage          string                          `bson:"failure_message"`
+	FailureTransaction      string                          `bson:"failure_transaction"`
+	SignatureData           *MgoPayoutDocumentSignatureData `bson:"signature_data"`
+	HasMerchantSignature    bool                            `bson:"has_merchant_signature"`
+	HasPspSignature         bool                            `bson:"has_psp_signature"`
+	SignedDocumentFileUrl   string                          `bson:"signed_document_file_url"`
+	RenderedDocumentFileUrl string                          `bson:"rendered_document_file_url"`
+	CreatedAt               time.Time                       `bson:"created_at"`
+	UpdatedAt               time.Time                       `bson:"updated_at"`
+	ArrivalDate             time.Time                       `bson:"arrival_date"`
 }
 
 type MgoPayoutDocumentSignatureDataSignUrl struct {
@@ -818,20 +824,24 @@ type MgoMerchantBalance struct {
 
 func (m *PayoutDocument) GetBSON() (interface{}, error) {
 	st := &MgoPayoutDocument{
-		SourceId:              m.SourceId,
-		Transaction:           m.Transaction,
-		Amount:                m.Amount,
-		Currency:              m.Currency,
-		Status:                m.Status,
-		Description:           m.Description,
-		Destination:           m.Destination,
-		FailureCode:           m.FailureCode,
-		FailureMessage:        m.FailureMessage,
-		FailureTransaction:    m.FailureTransaction,
-		HasMerchantSignature:  m.HasMerchantSignature,
-		HasPspSignature:       m.HasPspSignature,
-		SignedDocumentFileUrl: m.SignedDocumentFileUrl,
-		Summary:               m.Summary,
+		SourceId:                m.SourceId,
+		TotalFees:               m.TotalFees,
+		Balance:                 m.Balance,
+		Currency:                m.Currency,
+		TotalTransactions:       m.TotalTransactions,
+		Description:             m.Description,
+		MerchantAgreementNumber: m.MerchantAgreementNumber,
+		Status:                  m.Status,
+		Transaction:             m.Transaction,
+		FailureCode:             m.FailureCode,
+		FailureMessage:          m.FailureMessage,
+		FailureTransaction:      m.FailureTransaction,
+		HasMerchantSignature:    m.HasMerchantSignature,
+		HasPspSignature:         m.HasPspSignature,
+		SignedDocumentFileUrl:   m.SignedDocumentFileUrl,
+		RenderedDocumentFileUrl: m.RenderedDocumentFileUrl,
+		Destination:             m.Destination,
+		Company:                 m.Company,
 	}
 	if len(m.Id) <= 0 {
 		st.Id = bson.NewObjectId()
@@ -846,7 +856,6 @@ func (m *PayoutDocument) GetBSON() (interface{}, error) {
 	if bson.IsObjectIdHex(m.MerchantId) == false {
 		return nil, errors.New(errorInvalidObjectId)
 	}
-
 	st.MerchantId = bson.ObjectIdHex(m.MerchantId)
 
 	if m.CreatedAt != nil {
@@ -955,21 +964,25 @@ func (m *PayoutDocument) SetBSON(raw bson.Raw) error {
 	}
 
 	m.Id = decoded.Id.Hex()
+	m.MerchantId = decoded.MerchantId.Hex()
 	m.SourceId = decoded.SourceId
-	m.Transaction = decoded.Transaction
-	m.Amount = decoded.Amount
+	m.TotalFees = decoded.TotalFees
+	m.Balance = decoded.Balance
 	m.Currency = decoded.Currency
-	m.Status = decoded.Status
+	m.TotalTransactions = decoded.TotalTransactions
 	m.Description = decoded.Description
-	m.Destination = decoded.Destination
+	m.MerchantAgreementNumber = decoded.MerchantAgreementNumber
+	m.Status = decoded.Status
+	m.Transaction = decoded.Transaction
 	m.FailureCode = decoded.FailureCode
 	m.FailureMessage = decoded.FailureMessage
 	m.FailureTransaction = decoded.FailureTransaction
-	m.MerchantId = decoded.MerchantId.Hex()
+	m.SignedDocumentFileUrl = decoded.SignedDocumentFileUrl
+	m.RenderedDocumentFileUrl = decoded.RenderedDocumentFileUrl
 	m.HasMerchantSignature = decoded.HasMerchantSignature
 	m.HasPspSignature = decoded.HasPspSignature
-	m.SignedDocumentFileUrl = decoded.SignedDocumentFileUrl
-	m.Summary = decoded.Summary
+	m.Destination = decoded.Destination
+	m.Company = decoded.Company
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {
@@ -2166,6 +2179,7 @@ func (m *Merchant) GetBSON() (interface{}, error) {
 		Tariff:              m.Tariff,
 		Steps:               m.Steps,
 		AgreementTemplate:   m.AgreementTemplate,
+		AgreementNumber:     m.AgreementNumber,
 	}
 
 	if len(m.Id) <= 0 {
@@ -2356,6 +2370,7 @@ func (m *Merchant) SetBSON(raw bson.Raw) error {
 	m.Tariff = decoded.Tariff
 	m.Steps = decoded.Steps
 	m.AgreementTemplate = decoded.AgreementTemplate
+	m.AgreementNumber = decoded.AgreementNumber
 
 	if decoded.User != nil {
 		m.User = &MerchantUser{
@@ -3591,13 +3606,14 @@ func (m *AccountingEntry) SetBSON(raw bson.Raw) error {
 
 func (m *RoyaltyReport) GetBSON() (interface{}, error) {
 	st := &MgoRoyaltyReport{
-		Id:            bson.ObjectIdHex(m.Id),
-		MerchantId:    bson.ObjectIdHex(m.MerchantId),
-		Status:        m.Status,
-		Totals:        m.Totals,
-		Currency:      m.Currency,
-		Summary:       m.Summary,
-		DisputeReason: m.DisputeReason,
+		Id:             bson.ObjectIdHex(m.Id),
+		MerchantId:     bson.ObjectIdHex(m.MerchantId),
+		Status:         m.Status,
+		Totals:         m.Totals,
+		Currency:       m.Currency,
+		Summary:        m.Summary,
+		DisputeReason:  m.DisputeReason,
+		IsAutoAccepted: m.IsAutoAccepted,
 	}
 
 	if m.PayoutDate != nil {
@@ -3704,6 +3720,7 @@ func (m *RoyaltyReport) SetBSON(raw bson.Raw) error {
 	m.Currency = decoded.Currency
 	m.Summary = decoded.Summary
 	m.DisputeReason = decoded.DisputeReason
+	m.IsAutoAccepted = decoded.IsAutoAccepted
 
 	m.PayoutDate, err = ptypes.TimestampProto(decoded.PayoutDate)
 	if err != nil {

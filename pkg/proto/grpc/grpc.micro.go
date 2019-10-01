@@ -22,10 +22,9 @@ It has these top-level messages:
 	PlatformKeysFileRequest
 	GetPlatformKeyCountRequest
 	RemovePlatformRequest
-	UpdatePlatformPricesResponse
-	AddOrUpdatePlatformPricesRequest
 	KeyProductResponse
 	CreateOrUpdateKeyProductRequest
+	UnPublishKeyProductRequest
 	PublishKeyProductRequest
 	ListPlatformsRequest
 	ListPlatformsResponse
@@ -356,11 +355,10 @@ type BillingService interface {
 	GetKeyProduct(ctx context.Context, in *RequestKeyProductMerchant, opts ...client.CallOption) (*KeyProductResponse, error)
 	DeleteKeyProduct(ctx context.Context, in *RequestKeyProductMerchant, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 	PublishKeyProduct(ctx context.Context, in *PublishKeyProductRequest, opts ...client.CallOption) (*KeyProductResponse, error)
+	UnPublishKeyProduct(ctx context.Context, in *UnPublishKeyProductRequest, opts ...client.CallOption) (*KeyProductResponse, error)
 	GetKeyProductsForOrder(ctx context.Context, in *GetKeyProductsForOrderRequest, opts ...client.CallOption) (*ListKeyProductsResponse, error)
 	GetKeyProductInfo(ctx context.Context, in *GetKeyProductInfoRequest, opts ...client.CallOption) (*GetKeyProductInfoResponse, error)
 	GetPlatforms(ctx context.Context, in *ListPlatformsRequest, opts ...client.CallOption) (*ListPlatformsResponse, error)
-	UpdatePlatformPrices(ctx context.Context, in *AddOrUpdatePlatformPricesRequest, opts ...client.CallOption) (*UpdatePlatformPricesResponse, error)
-	DeletePlatformFromProduct(ctx context.Context, in *RemovePlatformRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 	GetAvailableKeysCount(ctx context.Context, in *GetPlatformKeyCountRequest, opts ...client.CallOption) (*GetPlatformKeyCountResponse, error)
 	UploadKeysFile(ctx context.Context, in *PlatformKeysFileRequest, opts ...client.CallOption) (*PlatformKeysFileResponse, error)
 	GetKeyByID(ctx context.Context, in *KeyForOrderRequest, opts ...client.CallOption) (*GetKeyForOrderRequestResponse, error)
@@ -1458,6 +1456,16 @@ func (c *billingService) PublishKeyProduct(ctx context.Context, in *PublishKeyPr
 	return out, nil
 }
 
+func (c *billingService) UnPublishKeyProduct(ctx context.Context, in *UnPublishKeyProductRequest, opts ...client.CallOption) (*KeyProductResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.UnPublishKeyProduct", in)
+	out := new(KeyProductResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *billingService) GetKeyProductsForOrder(ctx context.Context, in *GetKeyProductsForOrderRequest, opts ...client.CallOption) (*ListKeyProductsResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.GetKeyProductsForOrder", in)
 	out := new(ListKeyProductsResponse)
@@ -1481,26 +1489,6 @@ func (c *billingService) GetKeyProductInfo(ctx context.Context, in *GetKeyProduc
 func (c *billingService) GetPlatforms(ctx context.Context, in *ListPlatformsRequest, opts ...client.CallOption) (*ListPlatformsResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.GetPlatforms", in)
 	out := new(ListPlatformsResponse)
-	err := c.c.Call(ctx, req, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *billingService) UpdatePlatformPrices(ctx context.Context, in *AddOrUpdatePlatformPricesRequest, opts ...client.CallOption) (*UpdatePlatformPricesResponse, error) {
-	req := c.c.NewRequest(c.name, "BillingService.UpdatePlatformPrices", in)
-	out := new(UpdatePlatformPricesResponse)
-	err := c.c.Call(ctx, req, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *billingService) DeletePlatformFromProduct(ctx context.Context, in *RemovePlatformRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error) {
-	req := c.c.NewRequest(c.name, "BillingService.DeletePlatformFromProduct", in)
-	out := new(EmptyResponseWithStatus)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1787,11 +1775,10 @@ type BillingServiceHandler interface {
 	GetKeyProduct(context.Context, *RequestKeyProductMerchant, *KeyProductResponse) error
 	DeleteKeyProduct(context.Context, *RequestKeyProductMerchant, *EmptyResponseWithStatus) error
 	PublishKeyProduct(context.Context, *PublishKeyProductRequest, *KeyProductResponse) error
+	UnPublishKeyProduct(context.Context, *UnPublishKeyProductRequest, *KeyProductResponse) error
 	GetKeyProductsForOrder(context.Context, *GetKeyProductsForOrderRequest, *ListKeyProductsResponse) error
 	GetKeyProductInfo(context.Context, *GetKeyProductInfoRequest, *GetKeyProductInfoResponse) error
 	GetPlatforms(context.Context, *ListPlatformsRequest, *ListPlatformsResponse) error
-	UpdatePlatformPrices(context.Context, *AddOrUpdatePlatformPricesRequest, *UpdatePlatformPricesResponse) error
-	DeletePlatformFromProduct(context.Context, *RemovePlatformRequest, *EmptyResponseWithStatus) error
 	GetAvailableKeysCount(context.Context, *GetPlatformKeyCountRequest, *GetPlatformKeyCountResponse) error
 	UploadKeysFile(context.Context, *PlatformKeysFileRequest, *PlatformKeysFileResponse) error
 	GetKeyByID(context.Context, *KeyForOrderRequest, *GetKeyForOrderRequestResponse) error
@@ -1919,11 +1906,10 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetKeyProduct(ctx context.Context, in *RequestKeyProductMerchant, out *KeyProductResponse) error
 		DeleteKeyProduct(ctx context.Context, in *RequestKeyProductMerchant, out *EmptyResponseWithStatus) error
 		PublishKeyProduct(ctx context.Context, in *PublishKeyProductRequest, out *KeyProductResponse) error
+		UnPublishKeyProduct(ctx context.Context, in *UnPublishKeyProductRequest, out *KeyProductResponse) error
 		GetKeyProductsForOrder(ctx context.Context, in *GetKeyProductsForOrderRequest, out *ListKeyProductsResponse) error
 		GetKeyProductInfo(ctx context.Context, in *GetKeyProductInfoRequest, out *GetKeyProductInfoResponse) error
 		GetPlatforms(ctx context.Context, in *ListPlatformsRequest, out *ListPlatformsResponse) error
-		UpdatePlatformPrices(ctx context.Context, in *AddOrUpdatePlatformPricesRequest, out *UpdatePlatformPricesResponse) error
-		DeletePlatformFromProduct(ctx context.Context, in *RemovePlatformRequest, out *EmptyResponseWithStatus) error
 		GetAvailableKeysCount(ctx context.Context, in *GetPlatformKeyCountRequest, out *GetPlatformKeyCountResponse) error
 		UploadKeysFile(ctx context.Context, in *PlatformKeysFileRequest, out *PlatformKeysFileResponse) error
 		GetKeyByID(ctx context.Context, in *KeyForOrderRequest, out *GetKeyForOrderRequestResponse) error
@@ -2377,6 +2363,10 @@ func (h *billingServiceHandler) PublishKeyProduct(ctx context.Context, in *Publi
 	return h.BillingServiceHandler.PublishKeyProduct(ctx, in, out)
 }
 
+func (h *billingServiceHandler) UnPublishKeyProduct(ctx context.Context, in *UnPublishKeyProductRequest, out *KeyProductResponse) error {
+	return h.BillingServiceHandler.UnPublishKeyProduct(ctx, in, out)
+}
+
 func (h *billingServiceHandler) GetKeyProductsForOrder(ctx context.Context, in *GetKeyProductsForOrderRequest, out *ListKeyProductsResponse) error {
 	return h.BillingServiceHandler.GetKeyProductsForOrder(ctx, in, out)
 }
@@ -2387,14 +2377,6 @@ func (h *billingServiceHandler) GetKeyProductInfo(ctx context.Context, in *GetKe
 
 func (h *billingServiceHandler) GetPlatforms(ctx context.Context, in *ListPlatformsRequest, out *ListPlatformsResponse) error {
 	return h.BillingServiceHandler.GetPlatforms(ctx, in, out)
-}
-
-func (h *billingServiceHandler) UpdatePlatformPrices(ctx context.Context, in *AddOrUpdatePlatformPricesRequest, out *UpdatePlatformPricesResponse) error {
-	return h.BillingServiceHandler.UpdatePlatformPrices(ctx, in, out)
-}
-
-func (h *billingServiceHandler) DeletePlatformFromProduct(ctx context.Context, in *RemovePlatformRequest, out *EmptyResponseWithStatus) error {
-	return h.BillingServiceHandler.DeletePlatformFromProduct(ctx, in, out)
 }
 
 func (h *billingServiceHandler) GetAvailableKeysCount(ctx context.Context, in *GetPlatformKeyCountRequest, out *GetPlatformKeyCountResponse) error {

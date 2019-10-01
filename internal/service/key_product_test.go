@@ -69,7 +69,7 @@ func (suite *KeyProductTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), broker, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), )
+	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), broker, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK())
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -105,6 +105,15 @@ func (suite *KeyProductTestSuite) Test_GetKeyProductInfo() {
 		Images:          []string{"/home/image.jpg"},
 		MerchantId:      merchantId,
 		ProjectId:       projectId,
+		Platforms: []*grpc.PlatformPrice{
+			{
+				Id: "steam",
+				Prices: []*grpc.ProductPrice{
+					{Region: "USD", Currency: "USD", Amount: 10},
+					{Region: "EUR", Currency: "EUR", Amount: 20},
+				},
+			},
+		},
 		Metadata: map[string]string{
 			"SomeKey": "SomeValue",
 		},
@@ -113,18 +122,6 @@ func (suite *KeyProductTestSuite) Test_GetKeyProductInfo() {
 	err := suite.service.CreateOrUpdateKeyProduct(context.TODO(), req, &response)
 	shouldBe.Nil(err)
 	shouldBe.Nil(response.Message)
-
-	err = suite.service.UpdatePlatformPrices(context.TODO(), &grpc.AddOrUpdatePlatformPricesRequest{
-		KeyProductId: response.Product.Id,
-		Platform: &grpc.PlatformPrice{
-			Id: "steam",
-			Prices: []*grpc.ProductPrice{
-				{Region: "USD", Currency: "USD", Amount: 10},
-				{Region: "EUR", Currency: "EUR", Amount: 20},
-			},
-		},
-	}, &grpc.UpdatePlatformPricesResponse{})
-	shouldBe.Nil(err)
 
 	res := grpc.GetKeyProductInfoResponse{}
 	err = suite.service.GetKeyProductInfo(context.TODO(), &grpc.GetKeyProductInfoRequest{Currency: "USD", KeyProductId: response.Product.Id, Language: "en"}, &res)
@@ -372,33 +369,6 @@ func (suite *KeyProductTestSuite) Test_CreateOrUpdateKeyProduct() {
 	shouldBe.Nil(err)
 	shouldBe.NotNil(res2.Message)
 	shouldBe.EqualValues(400, res2.Status)
-
-	platformReq := &grpc.AddOrUpdatePlatformPricesRequest{
-		MerchantId:   merchantId,
-		KeyProductId: res.Id,
-		Platform: &grpc.PlatformPrice{
-			Id: "steam",
-			Prices: []*grpc.ProductPrice{
-				{Region: "USD", Currency: "USD", Amount: 66.66},
-			},
-		},
-	}
-
-	platformRes := &grpc.UpdatePlatformPricesResponse{}
-	err = suite.service.UpdatePlatformPrices(context.TODO(), platformReq, platformRes)
-	shouldBe.Nil(err)
-	shouldBe.Nil(platformRes.Message)
-	shouldBe.EqualValues(200, platformRes.Status)
-
-	req.Sku = res.Sku
-	req.MerchantId = res.MerchantId
-	req.DefaultCurrency = "RUB"
-	req.ProjectId = res.ProjectId
-	res2 = grpc.KeyProductResponse{}
-	err = suite.service.CreateOrUpdateKeyProduct(context.TODO(), req, &res2)
-	shouldBe.Nil(err)
-	shouldBe.NotNil(res2.Message)
-	shouldBe.EqualValues(400, res2.Status)
 }
 
 func (suite *KeyProductTestSuite) Test_GetKeyProducts() {
@@ -472,6 +442,14 @@ func (suite *KeyProductTestSuite) createKeyProduct() *grpc.KeyProduct {
 		Images:          []string{"/home/image.jpg"},
 		MerchantId:      merchantId,
 		ProjectId:       projectId,
+		Platforms: []*grpc.PlatformPrice{
+			{
+				Id: "steam",
+				Prices: []*grpc.ProductPrice{
+					{Region: "USD", Currency: "USD", Amount: 66.66},
+				},
+			},
+		},
 		Metadata: map[string]string{
 			"SomeKey": "SomeValue",
 		},
@@ -487,195 +465,140 @@ func (suite *KeyProductTestSuite) createKeyProduct() *grpc.KeyProduct {
 func (suite *KeyProductTestSuite) Test_UpdatePlatformPrices_WithBadPrice_Error() {
 	shouldBe := require.New(suite.T())
 	product := suite.createKeyProduct()
-	req := &grpc.AddOrUpdatePlatformPricesRequest{
-		MerchantId:   merchantId,
-		KeyProductId: product.Id,
-		Platform: &grpc.PlatformPrice{
-			Id: "steam",
-			Prices: []*grpc.ProductPrice{
-				{Region: "USD", Currency: "RUB", Amount: 66.66},
+	req := &grpc.CreateOrUpdateKeyProductRequest{
+		Id:              product.Id,
+		MerchantId:      product.MerchantId,
+		Name:            product.Name,
+		Description:     product.Description,
+		ProjectId:       product.MerchantId,
+		DefaultCurrency: product.DefaultCurrency,
+		Platforms: []*grpc.PlatformPrice{
+			{
+				Id: "steam",
+				Prices: []*grpc.ProductPrice{
+					{Region: "USD", Currency: "RUB", Amount: 66.66},
+				},
 			},
 		},
 	}
 
-	res := &grpc.UpdatePlatformPricesResponse{}
-	err := suite.service.UpdatePlatformPrices(context.TODO(), req, res)
+	res := &grpc.KeyProductResponse{}
+	err := suite.service.CreateOrUpdateKeyProduct(context.TODO(), req, res)
 	shouldBe.Nil(err)
-	shouldBe.NotNil(res.Message)
 	shouldBe.EqualValues(400, res.Status)
-
-	req = &grpc.AddOrUpdatePlatformPricesRequest{
-		MerchantId:   merchantId,
-		KeyProductId: product.Id,
-		Platform: &grpc.PlatformPrice{
-			Id: "steam",
-			Prices: []*grpc.ProductPrice{
-				{Region: "EUR", Currency: "EUR", Amount: 66.66},
-			},
-		},
-	}
-
-	res = &grpc.UpdatePlatformPricesResponse{}
-	err = suite.service.UpdatePlatformPrices(context.TODO(), req, res)
-	shouldBe.Nil(err)
-	shouldBe.NotNil(res.Message)
-	shouldBe.EqualValues(400, res.Status)
+	shouldBe.NotEmpty(res.Message)
 }
 
 func (suite *KeyProductTestSuite) Test_UpdatePlatformPrices() {
 	shouldBe := require.New(suite.T())
 	product := suite.createKeyProduct()
-	req := &grpc.AddOrUpdatePlatformPricesRequest{
-		MerchantId:   merchantId,
-		KeyProductId: product.Id,
-		Platform: &grpc.PlatformPrice{
-			Id: "steam",
-			Prices: []*grpc.ProductPrice{
-				{Region: "USD", Currency: "USD", Amount: 77.66},
+	req := &grpc.CreateOrUpdateKeyProductRequest{
+		Id:              product.Id,
+		MerchantId:      product.MerchantId,
+		Name:            product.Name,
+		Description:     product.Description,
+		ProjectId:       product.MerchantId,
+		DefaultCurrency: product.DefaultCurrency,
+		Platforms: []*grpc.PlatformPrice{
+			{
+				Id: "steam",
+				Prices: []*grpc.ProductPrice{
+					{Region: "USD", Currency: "USD", Amount: 66.66},
+				},
 			},
 		},
 	}
 
-	res := &grpc.UpdatePlatformPricesResponse{}
-	err := suite.service.UpdatePlatformPrices(context.TODO(), req, res)
+	res := &grpc.KeyProductResponse{}
+	err := suite.service.CreateOrUpdateKeyProduct(context.TODO(), req, res)
 	shouldBe.Nil(err)
 	shouldBe.Nil(res.Message)
 
-	prices := res.Price
-	shouldBe.Equal(1, len(prices.Prices))
-	shouldBe.Equal(77.66, prices.Prices[0].Amount)
-	shouldBe.Equal("USD", prices.Prices[0].Currency)
+	prices := res.Product.Platforms[0].Prices
+	shouldBe.Equal(1, len(prices))
+	shouldBe.Equal(66.66, prices[0].Amount)
+	shouldBe.Equal("USD", prices[0].Currency)
 
-	req = &grpc.AddOrUpdatePlatformPricesRequest{
-		MerchantId:   merchantId,
-		KeyProductId: product.Id,
-		Platform: &grpc.PlatformPrice{
-			Id: "steam",
-			Prices: []*grpc.ProductPrice{
-				{Region: "USD", Currency: "USD", Amount: 77.66},
-				{Region: "EUR", Currency: "EUR", Amount: 77.77},
+	req = &grpc.CreateOrUpdateKeyProductRequest{
+		Id:         product.Id,
+		MerchantId: product.MerchantId,
+		ProjectId:  product.MerchantId,
+		DefaultCurrency: product.DefaultCurrency,
+		Name:            product.Name,
+		Description:     product.Description,
+		Platforms: []*grpc.PlatformPrice{
+			{
+				Id: "steam",
+				Prices: []*grpc.ProductPrice{
+					{Region: "USD", Currency: "USD", Amount: 77.66},
+					{Region: "EUR", Currency: "EUR", Amount: 77.77},
+				},
 			},
 		},
 	}
-	res = &grpc.UpdatePlatformPricesResponse{}
-	err = suite.service.UpdatePlatformPrices(context.TODO(), req, res)
+
+	res = &grpc.KeyProductResponse{}
+	err = suite.service.CreateOrUpdateKeyProduct(context.TODO(), req, res)
+
 	shouldBe.Nil(err)
 	shouldBe.Nil(res.Message)
 
-	prices = res.Price
-	shouldBe.Equal(2, len(prices.Prices))
-	shouldBe.Equal(77.77, prices.Prices[1].Amount)
-	shouldBe.Equal("EUR", prices.Prices[1].Currency)
-
-	req = &grpc.AddOrUpdatePlatformPricesRequest{
-		MerchantId:   merchantId,
-		KeyProductId: product.Id,
-		Platform: &grpc.PlatformPrice{
-			Id: "gog",
-			Prices: []*grpc.ProductPrice{
-				{Region: "RUB", Currency: "RUB", Amount: 33.33},
-				{Region: "EUR", Currency: "EUR", Amount: 33.33},
-				{Region: "USD", Currency: "USD", Amount: 66.66},
+	req = &grpc.CreateOrUpdateKeyProductRequest{
+		Id:              product.Id,
+		MerchantId:      product.MerchantId,
+		ProjectId:       product.MerchantId,
+		DefaultCurrency: product.DefaultCurrency,
+		Name:            product.Name,
+		Description:     product.Description,
+		Platforms: []*grpc.PlatformPrice{
+			{
+				Id:            "best_store_ever",
+				EulaUrl:       "http://www.example.com",
+				ActivationUrl: "http://www.example.com",
+				Prices: []*grpc.ProductPrice{
+					{Region: "RUB", Currency: "RUB", Amount: 0.01},
+					{Region: "USD", Currency: "USD", Amount: 66.66},
+				},
 			},
 		},
 	}
-	res = &grpc.UpdatePlatformPricesResponse{}
-	err = suite.service.UpdatePlatformPrices(context.TODO(), req, res)
-	shouldBe.Nil(err)
-	shouldBe.Nil(res.Message)
-	shouldBe.Equal(3, len(res.Price.Prices))
 
-	req = &grpc.AddOrUpdatePlatformPricesRequest{
-		MerchantId:   merchantId,
-		KeyProductId: product.Id,
-		Platform: &grpc.PlatformPrice{
-			Id:            "best_store_ever",
-			EulaUrl:       "http://www.example.com",
-			ActivationUrl: "http://www.example.com",
-			Prices: []*grpc.ProductPrice{
-				{Region: "RUB", Currency: "RUB", Amount: 0.01},
-				{Region: "USD", Currency: "USD", Amount: 66.66},
-			},
-		},
-	}
-	res = &grpc.UpdatePlatformPricesResponse{}
-	err = suite.service.UpdatePlatformPrices(context.TODO(), req, res)
+	res = &grpc.KeyProductResponse{}
+	err = suite.service.CreateOrUpdateKeyProduct(context.TODO(), req, res)
 	shouldBe.Nil(err)
 	shouldBe.NotNil(res.Message)
+	shouldBe.EqualValues(400, res.Status)
 
-	req = &grpc.AddOrUpdatePlatformPricesRequest{
-		MerchantId:   merchantId,
-		KeyProductId: product.Id,
-		Platform: &grpc.PlatformPrice{
-			Id:            "best_store_ever",
-			Name:          "The Best Store EVER",
-			ActivationUrl: "http://www.example.com",
-			Prices: []*grpc.ProductPrice{
-				{Region: "RUB", Currency: "RUB", Amount: 0.01},
-				{Region: "USD", Currency: "USD", Amount: 66.66},
+	req = &grpc.CreateOrUpdateKeyProductRequest{
+		Id:              product.Id,
+		MerchantId:      product.MerchantId,
+		ProjectId:       product.MerchantId,
+		DefaultCurrency: product.DefaultCurrency,
+		Name:            product.Name,
+		Description:     product.Description,
+		Platforms: []*grpc.PlatformPrice{
+			{
+				Id:            "best_store_ever",
+				EulaUrl:       "http://www.example.com",
+				ActivationUrl: "http://www.example.com",
+				Prices: []*grpc.ProductPrice{
+					{Region: "RUB", Currency: "RUB", Amount: 0.01},
+					{Region: "USD", Currency: "USD", Amount: 66.66},
+				},
+			},
+			{
+				Id:            "another_best_store_ever",
+				EulaUrl:       "http://www.example.com",
+				ActivationUrl: "http://www.example.com",
+				Prices: []*grpc.ProductPrice{
+					{Region: "RUB", Currency: "RUB", Amount: 0.01},
+					{Region: "USD", Currency: "USD", Amount: 66.66},
+				},
 			},
 		},
 	}
-	res = &grpc.UpdatePlatformPricesResponse{}
-	err = suite.service.UpdatePlatformPrices(context.TODO(), req, res)
-	shouldBe.Nil(err)
-	shouldBe.NotNil(res.Message)
-
-	req = &grpc.AddOrUpdatePlatformPricesRequest{
-		MerchantId:   merchantId,
-		KeyProductId: product.Id,
-		Platform: &grpc.PlatformPrice{
-			Id:      "best_store_ever",
-			Name:    "The Best Store EVER",
-			EulaUrl: "http://www.example.com",
-			Prices: []*grpc.ProductPrice{
-				{Region: "RUB", Currency: "RUB", Amount: 0.01},
-				{Region: "USD", Currency: "USD", Amount: 66.66},
-			},
-		},
-	}
-	res = &grpc.UpdatePlatformPricesResponse{}
-	err = suite.service.UpdatePlatformPrices(context.TODO(), req, res)
-	shouldBe.Nil(err)
-	shouldBe.NotNil(res.Message)
-
-	req = &grpc.AddOrUpdatePlatformPricesRequest{
-		MerchantId:   merchantId,
-		KeyProductId: product.Id,
-		Platform: &grpc.PlatformPrice{
-			Id:            "best_store_ever",
-			Name:          "The Best Store EVER",
-			EulaUrl:       "http://www.example.com",
-			ActivationUrl: "http://www.example.com",
-			Prices: []*grpc.ProductPrice{
-				{Region: "RUB", Currency: "RUB", Amount: 0.01},
-				{Region: "USD", Currency: "USD", Amount: 66.66},
-			},
-		},
-	}
-	res = &grpc.UpdatePlatformPricesResponse{}
-	err = suite.service.UpdatePlatformPrices(context.TODO(), req, res)
-	shouldBe.Nil(err)
-	shouldBe.Nil(res.Message)
-	shouldBe.EqualValues(200, res.Status)
-	shouldBe.EqualValues(2, len(res.Price.Prices))
-
-	req = &grpc.AddOrUpdatePlatformPricesRequest{
-		MerchantId:   merchantId,
-		KeyProductId: product.Id,
-		Platform: &grpc.PlatformPrice{
-			Id:            "best_store_ever_another",
-			Name:          "The Best Store EVER",
-			EulaUrl:       "http://www.example.com",
-			ActivationUrl: "http://www.example.com",
-			Prices: []*grpc.ProductPrice{
-				{Region: "RUB", Currency: "RUB", Amount: 0.01},
-				{Region: "USD", Currency: "USD", Amount: 66.66},
-			},
-		},
-	}
-	res = &grpc.UpdatePlatformPricesResponse{}
-	err = suite.service.UpdatePlatformPrices(context.TODO(), req, res)
+	res = &grpc.KeyProductResponse{}
+	err = suite.service.CreateOrUpdateKeyProduct(context.TODO(), req, res)
 	shouldBe.Nil(err)
 	shouldBe.NotNil(res.Message)
 	shouldBe.EqualValues(400, res.Status)
@@ -711,4 +634,33 @@ func (suite *KeyProductTestSuite) Test_DeleteKeyProduct() {
 	err = suite.service.DeleteKeyProduct(context.TODO(), &grpc.RequestKeyProductMerchant{Id: product.Id, MerchantId: merchantId}, res)
 	shouldBe.Nil(err)
 	shouldBe.NotNil(res.Message)
+}
+
+func (suite *KeyProductTestSuite) Test_UnPublishKeyProduct() {
+	shoulBe := require.New(suite.T())
+	product := suite.createKeyProduct()
+
+	res := &grpc.KeyProductResponse{}
+	err := suite.service.PublishKeyProduct(context.TODO(), &grpc.PublishKeyProductRequest{KeyProductId: product.Id, MerchantId: product.MerchantId}, res)
+	shoulBe.Nil(err)
+	shoulBe.EqualValues(200, res.Status)
+
+	err = suite.service.UnPublishKeyProduct(context.TODO(), &grpc.UnPublishKeyProductRequest{KeyProductId: product.Id}, res)
+	shoulBe.Nil(err)
+	shoulBe.EqualValues(200, res.Status)
+
+	err = suite.service.UnPublishKeyProduct(context.TODO(), &grpc.UnPublishKeyProductRequest{KeyProductId: product.Id}, res)
+	shoulBe.Nil(err)
+	shoulBe.EqualValues(400, res.Status)
+	shoulBe.Equal(keyProductNotPublished, res.Message)
+
+	emptyRes := &grpc.EmptyResponseWithStatus{}
+	err = suite.service.DeleteKeyProduct(context.TODO(), &grpc.RequestKeyProductMerchant{Id: product.Id, MerchantId: product.MerchantId}, emptyRes)
+	shoulBe.Nil(err)
+	shoulBe.EqualValuesf(200, emptyRes.Status, "%v", emptyRes.Message)
+
+	err = suite.service.UnPublishKeyProduct(context.TODO(), &grpc.UnPublishKeyProductRequest{KeyProductId: product.Id}, res)
+	shoulBe.Nil(err)
+	shoulBe.EqualValues(400, res.Status)
+	shoulBe.Equal(keyProductNotFound, res.Message)
 }

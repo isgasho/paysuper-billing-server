@@ -791,6 +791,8 @@ func createKeyProductsFroProject(
 	products := make([]*grpc.KeyProduct, 1)
 
 	for i := 0; i < productsCount; i++ {
+		baseAmount := 37.00 * float64(i+1)
+
 		name := "ru_test_key_product_" + strconv.Itoa(i)
 		req := &grpc.CreateOrUpdateKeyProductRequest{
 			Object:          "key_product",
@@ -800,41 +802,29 @@ func createKeyProductsFroProject(
 			Description:     map[string]string{"en": name + " description"},
 			MerchantId:      project.MerchantId,
 			ProjectId:       project.Id,
+			Platforms: []*grpc.PlatformPrice{
+				{
+					Id: "steam",
+					Prices: []*grpc.ProductPrice{
+						{
+							Currency: "USD",
+							Region:   "USD",
+							Amount:   baseAmount,
+						},
+						{
+							Currency: "RUB",
+							Region:   "RUB",
+							Amount:   baseAmount * 65.13,
+						},
+					},
+				},
+			},
 		}
-
-		baseAmount := 37.00 * float64(i+1)
-
 		rsp := &grpc.KeyProductResponse{}
 		err := service.CreateOrUpdateKeyProduct(context.TODO(), req, rsp)
 
 		if err != nil {
 			suite.FailNow("Add key products for project failed", "%v", err)
-		}
-
-		req1 := &grpc.AddOrUpdatePlatformPricesRequest{
-			KeyProductId: rsp.Product.Id,
-			MerchantId:   project.MerchantId,
-			Platform: &grpc.PlatformPrice{
-				Id: "steam",
-				Prices: []*grpc.ProductPrice{
-					{
-						Currency: "USD",
-						Region:   "USD",
-						Amount:   baseAmount,
-					},
-					{
-						Currency: "RUB",
-						Region:   "RUB",
-						Amount:   baseAmount * 65.13,
-					},
-				},
-			},
-		}
-		rsp1 := &grpc.UpdatePlatformPricesResponse{}
-		err = service.UpdatePlatformPrices(context.TODO(), req1, rsp1)
-
-		if err != nil {
-			suite.FailNow("Update platform prices for key product for project failed", "%v", err)
 		}
 
 		req2 := &grpc.PublishKeyProductRequest{
