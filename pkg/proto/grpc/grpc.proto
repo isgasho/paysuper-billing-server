@@ -1070,7 +1070,7 @@ message ListOrdersRequest {
     int64 project_date_to = 10;
     // @inject_tag: query:"quick_search"
     string quick_search = 11;
-    // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
+    // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0,lte=1000"
     int32 limit = 12;
     // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
     int32 offset = 13;
