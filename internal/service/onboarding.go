@@ -5,7 +5,7 @@ import (
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
-	documentSignerPkg "github.com/paysuper/document-signer/pkg"
+	documentSignerConst "github.com/paysuper/document-signer/pkg/constant"
 	"github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -45,8 +45,8 @@ var (
 		pkg.MerchantStatusAgreementSigned:    "Agreement signed",
 	}
 
-	merchantSignAgreementMessage = []byte(`{"code": "mr000017", "message": "license agreement was signed by merchant"}`)
-	paysuperSignAgreementMessage = []byte(`{"code": "mr000018", "message": "license agreement was signed by Paysuper admin"}`)
+	merchantSignAgreementMessage = map[string]string{"code": "mr000017", "message": "license agreement was signed by merchant"}
+	paysuperSignAgreementMessage = map[string]string{"code": "mr000018", "message": "license agreement was signed by Paysuper admin"}
 )
 
 func (s *Service) GetMerchantBy(
@@ -1049,17 +1049,16 @@ func (s *Service) getMerchantAgreementSignature(
 			{
 				Email:    merchant.GetAuthorizedEmail(),
 				Name:     merchant.GetAuthorizedName(),
-				RoleName: documentSignerPkg.SignerRoleNameMerchant,
+				RoleName: documentSignerConst.SignerRoleNameMerchant,
 			},
 			{
 				Email:    s.cfg.PaysuperDocumentSignerEmail,
 				Name:     s.cfg.PaysuperDocumentSignerName,
-				RoleName: documentSignerPkg.SignerRoleNamePaysuper,
+				RoleName: documentSignerConst.SignerRoleNamePaysuper,
 			},
 		},
 		Metadata: map[string]string{
-			documentSignerPkg.MetadataFieldAction:     documentSignerPkg.MetadataFieldActionValueMerchantAgreement,
-			documentSignerPkg.MetadataFieldMerchantId: merchant.Id,
+			documentSignerConst.MetadataFieldMerchantId: merchant.Id,
 		},
 	}
 
@@ -1118,24 +1117,6 @@ func (s *Service) changeMerchantAgreementSingUrl(
 	} else {
 		signUrl = merchant.GetPaysuperSignUrl()
 		signatureId = merchant.GetPaysuperSignatureId()
-	}
-
-	if signUrl != nil {
-		t, err := ptypes.Timestamp(signUrl.ExpiresAt)
-
-		if err != nil {
-			zap.L().Error(
-				`Merchant sign url contain broken value in "expires_at"" filed`,
-				zap.Error(err),
-				zap.Any("data", merchant),
-			)
-
-			return nil, merchantErrorUnknown
-		}
-
-		if t.After(time.Now()) {
-			return signUrl, nil
-		}
 	}
 
 	req := &proto.GetSignatureUrlRequest{SignatureId: signatureId}

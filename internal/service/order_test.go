@@ -956,6 +956,8 @@ func (suite *OrderTestSuite) SetupTest() {
 
 	var keyProductIds []string
 	for i, n := range names {
+		baseAmount := 37.00 * float64(i+1)
+
 		req := &grpc.CreateOrUpdateKeyProductRequest{
 			Object:          "key_product",
 			Sku:             "ru_" + strconv.Itoa(i) + "_" + strcase.SnakeCase(n),
@@ -964,32 +966,28 @@ func (suite *OrderTestSuite) SetupTest() {
 			Description:     map[string]string{"en": n + " description"},
 			MerchantId:      projectWithKeyProducts.MerchantId,
 			ProjectId:       projectWithKeyProducts.Id,
+			Platforms: []*grpc.PlatformPrice{
+				{
+					Id: "steam",
+					Prices: []*grpc.ProductPrice{
+						{
+							Currency: "USD",
+							Region:   "USD",
+							Amount:   baseAmount,
+						},
+						{
+							Currency: "RUB",
+							Region:   "RUB",
+							Amount:   baseAmount * 65.13,
+						},
+					},
+				},
+			},
 		}
-
-		baseAmount := 37.00 * float64(i+1)
 
 		res := &grpc.KeyProductResponse{}
 		assert.NoError(suite.T(), suite.service.CreateOrUpdateKeyProduct(context.TODO(), req, res))
 		assert.NotNil(suite.T(), res.Product)
-		assert.NoError(suite.T(), suite.service.UpdatePlatformPrices(context.TODO(), &grpc.AddOrUpdatePlatformPricesRequest{
-			KeyProductId: res.Product.Id,
-			MerchantId:   projectWithKeyProducts.MerchantId,
-			Platform: &grpc.PlatformPrice{
-				Id: "steam",
-				Prices: []*grpc.ProductPrice{
-					{
-						Currency: "USD",
-						Region:   "USD",
-						Amount:   baseAmount,
-					},
-					{
-						Currency: "RUB",
-						Region:   "RUB",
-						Amount:   baseAmount * 65.13,
-					},
-				},
-			},
-		}, &grpc.UpdatePlatformPricesResponse{}))
 		publishRsp := &grpc.KeyProductResponse{}
 		assert.NoError(suite.T(), suite.service.PublishKeyProduct(context.TODO(), &grpc.PublishKeyProductRequest{MerchantId: projectWithKeyProducts.MerchantId, KeyProductId: res.Product.Id}, publishRsp))
 		assert.EqualValuesf(suite.T(), 200, publishRsp.Status, "%s", publishRsp.Message)

@@ -74,6 +74,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
+	"math"
 	"math/rand"
 	"testing"
 	"time"
@@ -128,7 +129,7 @@ func (suite *DashboardRepositoryTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), mocks.NewBrokerMockOk(), nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), )
+	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), mocks.NewBrokerMockOk(), nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK())
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -288,7 +289,7 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_PreviousM
 func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_CurrentQuarter_Ok() {
 	current := time.Now()
 	monthBeginning := now.BeginningOfQuarter()
-	iterations := int((current.Unix() - monthBeginning.Unix()) / 604800)
+	iterations := int(math.Ceil(float64(current.Unix()-monthBeginning.Unix()) / 604800))
 
 	suite.createOrdersForPeriod(iterations, pkg.DashboardPeriodCurrentQuarter, monthBeginning)
 	report, err := suite.service.dashboardRepository.GetMainReport(suite.project.MerchantId, pkg.DashboardPeriodCurrentQuarter)

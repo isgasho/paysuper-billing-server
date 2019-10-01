@@ -17,6 +17,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
+	"github.com/paysuper/paysuper-recurring-repository/tools"
 	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
 	"github.com/streadway/amqp"
 	"go.uber.org/zap"
@@ -183,6 +184,7 @@ func (s *Service) AutoAcceptRoyaltyReports(
 		report.Status = pkg.RoyaltyReportStatusAccepted
 		report.AcceptedAt = ptypes.TimestampNow()
 		report.UpdatedAt = ptypes.TimestampNow()
+		report.IsAutoAccepted = true
 
 		err = s.royaltyReport.Update(report, "", pkg.RoyaltyReportChangeSourceAuto)
 		if err != nil {
@@ -639,8 +641,8 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(ctx context.Context, mercha
 			FeeAmount:            summaryTotal.TotalFees,
 			VatAmount:            summaryTotal.TotalVat,
 			PayoutAmount:         summaryTotal.PayoutAmount,
-			CorrectionAmount:     correctionsTotal,
-			RollingReserveAmount: reservesTotal,
+			CorrectionAmount:     tools.ToPrecise(correctionsTotal),
+			RollingReserveAmount: tools.ToPrecise(reservesTotal),
 		},
 		Summary: &billing.RoyaltyReportSummary{
 			ProductsItems:   summaryItems,
@@ -762,7 +764,7 @@ func (r *RoyaltyReport) GetBalanceAmount(merchantId, currency string) (float64, 
 			"$group": bson.M{
 				"_id":               "currency",
 				"payout_amount":     bson.M{"$sum": "$totals.payout_amount"},
-				"correction_amount": bson.M{"$sum": "$totals.correction_total_amount"},
+				"correction_amount": bson.M{"$sum": "$totals.correction_amount"},
 			},
 		},
 		{

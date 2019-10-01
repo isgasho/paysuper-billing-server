@@ -19,7 +19,7 @@ import (
 	"github.com/micro/go-micro/config/source"
 	goConfigCli "github.com/micro/go-micro/config/source/cli"
 	"github.com/micro/go-plugins/client/selector/static"
-	documentSignerPkg "github.com/paysuper/document-signer/pkg"
+	documentSignerConst "github.com/paysuper/document-signer/pkg/constant"
 	documentSignerProto "github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
@@ -29,7 +29,7 @@ import (
 	curPkg "github.com/paysuper/paysuper-currencies/pkg"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
-	paysuper_i18n "github.com/paysuper/paysuper-i18n"
+	paysuperI18n "github.com/paysuper/paysuper-i18n"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
 	reporterServiceConst "github.com/paysuper/paysuper-reporter/pkg"
@@ -168,7 +168,7 @@ func (app *Application) Init() {
 	repService := repository.NewRepositoryService(constant.PayOneRepositoryServiceName, app.service.Client())
 	taxService := tax_service.NewTaxService(taxPkg.ServiceName, app.service.Client())
 	curService := currencies.NewCurrencyratesService(curPkg.ServiceName, app.service.Client())
-	documentSignerService := documentSignerProto.NewDocumentSignerService(documentSignerPkg.ServiceName, app.service.Client())
+	documentSignerService := documentSignerProto.NewDocumentSignerService(documentSignerConst.ServiceName, app.service.Client())
 	reporter := reporterService.NewReporterService(reporterServiceConst.ServiceName, app.service.Client())
 
 	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
@@ -179,7 +179,7 @@ func (app *Application) Init() {
 		PoolSize:     cfg.CacheRedis.PoolSize,
 	})
 
-	formatter, err := paysuper_i18n.NewFormatter([]string{"i18n/rules"}, []string{"i18n/messages"})
+	formatter, err := paysuperI18n.NewFormatter([]string{"i18n/rules"}, []string{"i18n/messages"})
 
 	if err != nil {
 		app.logger.Fatal("Create il8n formatter failed", zap.Error(err))
