@@ -392,8 +392,8 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 
 	refundOrder.TotalPaymentAmount = refund.Amount
 
-	refundOrder.OrderAmount = tools.FormatAmount(refund.Amount / (1 + refundOrder.Tax.Rate) * refundOrder.Tax.Rate)
-	refundOrder.Tax.Amount = tools.FormatAmount(refundOrder.TotalPaymentAmount - refundOrder.OrderAmount)
+	refundOrder.Tax.Amount = tools.FormatAmount(refund.Amount / (1 + refundOrder.Tax.Rate) * refundOrder.Tax.Rate)
+	refundOrder.OrderAmount = tools.FormatAmount(refundOrder.TotalPaymentAmount - refundOrder.Tax.Amount)
 
 	err = s.db.Collection(collectionOrder).Insert(refundOrder)
 
