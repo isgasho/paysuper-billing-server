@@ -604,7 +604,7 @@ func helperCreateAndPayOrder(
 	rsp1 := &grpc.PaymentCreateResponse{}
 	err = service.PaymentCreateProcess(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.Equalf(suite.T(), pkg.ResponseStatusOk, rsp1.Status, "%v", rsp1.Message)
 
 	var order *billing.Order
 	err = service.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(rsp.Item.Id)).One(&order)
