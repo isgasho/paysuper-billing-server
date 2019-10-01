@@ -164,6 +164,8 @@ service BillingService {
     rpc PayoutDocumentPdfUploaded(PayoutDocumentPdfUploadedRequest) returns (PayoutDocumentPdfUploadedResponse) {}
 
     rpc GetMerchantBalance(GetMerchantBalanceRequest) returns (GetMerchantBalanceResponse) {}
+
+    rpc PaymentFormPlatformChanged (PaymentFormUserChangePlatformRequest) returns (EmptyResponseWithStatus) {}
 }
 
 message EmptyRequest {}
@@ -640,6 +642,13 @@ message PaymentFormDataChangedRequest {
     string order_id = 1;
     string lang = 2;
     string account = 3;
+}
+
+message PaymentFormUserChangePlatformRequest {
+    // @inject_tag: validate:"required,uuid"
+    string order_id = 1;
+    // @inject_tag: validate:"required,min=2,max=255"
+    string platform = 2;
 }
 
 message PaymentFormUserChangeLangRequest {

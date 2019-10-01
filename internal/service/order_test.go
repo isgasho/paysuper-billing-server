@@ -968,6 +968,21 @@ func (suite *OrderTestSuite) SetupTest() {
 			ProjectId:       projectWithKeyProducts.Id,
 			Platforms: []*grpc.PlatformPrice{
 				{
+					Id: "gog",
+					Prices: []*grpc.ProductPrice{
+						{
+							Currency: "USD",
+							Region:   "USD",
+							Amount:   baseAmount,
+						},
+						{
+							Currency: "RUB",
+							Region:   "RUB",
+							Amount:   baseAmount * 65.13,
+						},
+					},
+				},
+				{
 					Id: "steam",
 					Prices: []*grpc.ProductPrice{
 						{
@@ -995,10 +1010,22 @@ func (suite *OrderTestSuite) SetupTest() {
 		fileContent := fmt.Sprintf("%s-%s-%s-%s", RandomString(4), RandomString(4), RandomString(4), RandomString(4))
 		file := []byte(fileContent)
 
+		// Platform 1
 		keysRsp := &grpc.PlatformKeysFileResponse{}
 		keysReq := &grpc.PlatformKeysFileRequest{
 			KeyProductId: res.Product.Id,
 			PlatformId:   "steam",
+			MerchantId:   projectWithKeyProducts.MerchantId,
+			File:         file,
+		}
+		assert.NoError(suite.T(), suite.service.UploadKeysFile(context.TODO(), keysReq, keysRsp))
+		assert.Equal(suite.T(), pkg.ResponseStatusOk, keysRsp.Status)
+
+		// Platform 2
+		keysRsp = &grpc.PlatformKeysFileResponse{}
+		keysReq = &grpc.PlatformKeysFileRequest{
+			KeyProductId: res.Product.Id,
+			PlatformId:   "gog",
 			MerchantId:   projectWithKeyProducts.MerchantId,
 			File:         file,
 		}
@@ -6624,6 +6651,39 @@ func (suite *OrderTestSuite) Test_ChangeCodeInOrder() {
 	shouldBe.Nil(err)
 	shouldBe.Equal(pkg.ResponseStatusOk, codeRsp.Status)
 	shouldBe.EqualValues(constant.OrderStatusItemReplaced, codeRsp.Order.PrivateStatus)
+}
+
+func (suite *OrderTestSuite) Test_ChangePlatformInForm() {
+	shouldBe := require.New(suite.T())
+	req := &billing.OrderCreateRequest{
+		ProjectId:   suite.projectWithKeyProducts.Id,
+		Currency:    "RUB",
+		Account:     "unit test",
+		Description: "unit test",
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+		Products:   suite.keyProductIds,
+		PlatformId: "steam",
+		Type:       billing.OrderType_key,
+	}
+
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+	shouldBe.Nil(err)
+	shouldBe.Equal(pkg.ResponseStatusOk, rsp1.Status)
+
+	order := rsp1.Item
+	codeRsp := &grpc.EmptyResponseWithStatus{}
+	err = suite.service.PaymentFormPlatformChanged(context.TODO(), &grpc.PaymentFormUserChangePlatformRequest{OrderId: order.Uuid, Platform: "gog"}, codeRsp)
+	shouldBe.Nil(err)
+	shouldBe.EqualValuesf(pkg.ResponseStatusOk, codeRsp.Status, "%v", codeRsp.Message)
+
+	codeRsp = &grpc.EmptyResponseWithStatus{}
+	err = suite.service.PaymentFormPlatformChanged(context.TODO(), &grpc.PaymentFormUserChangePlatformRequest{OrderId: order.Uuid, Platform: "xbox"}, codeRsp)
+	shouldBe.Nil(err)
+	shouldBe.Equal(pkg.ResponseStatusBadData, codeRsp.Status)
 }
 
 func RandomString(n int) string {

@@ -2829,8 +2829,6 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 	amount = tools.FormatAmount(amount)
 	merAccAmount = tools.FormatAmount(merAccAmount)
 
-	zap.S().Infow("[ProcessOrderKeyProducts] before processing order key. ", "keys ", len(order.Keys), "products ", len(order.Products), "order_id", order.Id)
-
 	if len(order.Keys) == 0 {
 		zap.S().Infow("[ProcessOrderKeyProducts] reserving keys", "order_id", order.Id)
 		keys := make([]string, len(order.Products))
@@ -3357,4 +3355,69 @@ func (s *Service) applyCountryRestriction(order *billing.Order, countryCode stri
 		err = nil
 	}
 	return
+}
+
+func (s *Service) PaymentFormPlatformChanged(ctx context.Context, req *grpc.PaymentFormUserChangePlatformRequest, rsp *grpc.EmptyResponseWithStatus) error {
+	order, err := s.getOrderByUuidToForm(req.OrderId)
+
+	if err != nil {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
+
+	order.PlatformId = req.Platform
+
+	if order.ProductType == billing.OrderType_product {
+		err = s.ProcessOrderProducts(order)
+	} else if order.ProductType == billing.OrderType_key {
+
+		// Cancel reserving for keys
+		for _, key := range order.Keys {
+			cancelRes := &grpc.EmptyResponseWithStatus{}
+			err = s.CancelRedeemKeyForOrder(ctx, &grpc.KeyForOrderRequest{KeyId: key}, cancelRes)
+			if err != nil {
+				zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
+			} else if cancelRes.Status != pkg.ResponseStatusOk {
+				zap.S().Errorw(pkg.MethodFinishedWithError, "err", cancelRes.Message.Error())
+			}
+		}
+
+		order.Keys = nil
+
+		err = s.ProcessOrderKeyProducts(ctx, order)
+	}
+
+	if err != nil {
+		if pid := order.PrivateMetadata["PaylinkId"]; pid != "" {
+			s.notifyPaylinkError(ctx, pid, err, req, order)
+		}
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
+	}
+
+	err = s.updateOrder(order)
+
+	if err != nil {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = e
+			return nil
+		}
+		return err
+	}
+
+	return nil
 }
