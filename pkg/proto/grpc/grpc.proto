@@ -892,7 +892,7 @@ message ProductPrice {
     double amount = 1;
     //@inject_tag: validate:"required,alpha,len=3" json:"currency"
     string currency = 2;
-    //@inject_tag: json:"region" validate:"required,oneof=oceania eu cis north_europe north_africa polynesia north_america central_africa south_europe antarctica south_america south_asia caribbean south_asia west_asia central_america west_africa southern_africa southeast_asia east_africa east_asia micronesia west_europe latin_america melanesia russia sub_saharan_africa south_africa"
+    //@inject_tag: json:"region" validate:"required"
     string region = 3;
 }
 
@@ -1906,15 +1906,15 @@ message PayoutDocumentResponse {
 message UpdatePayoutDocumentRequest {
     //@inject_tag: json:"payout_document_id" validate:"required,hexadecimal,len=24"
     string payout_document_id = 1;
-    //@inject_tag: json:"transaction" validate:"omitempty,len=255"
+    //@inject_tag: json:"transaction" validate:"omitempty,max=255"
     string transaction = 2;
     //@inject_tag: json:"status" validate:"required,oneof=skip pending in_progress paid canceled failed"
     string status = 3;
     //@inject_tag: json:"failure_code" validate:"omitempty,oneof=account_closed account_frozen account_restricted destination_bank_invalid could_not_process declined insufficient_funds invalid_account_number incorrect_account_holder_name invalid_currency"
     string failure_code = 4;
-    //@inject_tag: json:"failure_message" validate:"omitempty,len=255"
+    //@inject_tag: json:"failure_message" validate:"omitempty,max=255"
     string failure_message = 5;
-    //@inject_tag: json:"failure_transaction" validate:"omitempty,len=255"
+    //@inject_tag: json:"failure_transaction" validate:"omitempty,max=255"
     string failure_transaction = 6;
     //@inject_tag: json:"ip"
     string ip = 7;
