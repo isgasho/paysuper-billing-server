@@ -12014,16 +12014,16 @@ func (m *PayoutDocumentResponse) GetItem() *billing.PayoutDocument {
 type UpdatePayoutDocumentRequest struct {
 	//@inject_tag: json:"payout_document_id" validate:"required,hexadecimal,len=24"
 	PayoutDocumentId string `protobuf:"bytes,1,opt,name=payout_document_id,json=payoutDocumentId,proto3" json:"payout_document_id" validate:"required,hexadecimal,len=24"`
-	//@inject_tag: json:"transaction" validate:"omitempty,len=255"
-	Transaction string `protobuf:"bytes,2,opt,name=transaction,proto3" json:"transaction" validate:"omitempty,len=255"`
+	//@inject_tag: json:"transaction" validate:"omitempty,max=255"
+	Transaction string `protobuf:"bytes,2,opt,name=transaction,proto3" json:"transaction" validate:"omitempty,max=255"`
 	//@inject_tag: json:"status" validate:"required,oneof=skip pending in_progress paid canceled failed"
 	Status string `protobuf:"bytes,3,opt,name=status,proto3" json:"status" validate:"required,oneof=skip pending in_progress paid canceled failed"`
 	//@inject_tag: json:"failure_code" validate:"omitempty,oneof=account_closed account_frozen account_restricted destination_bank_invalid could_not_process declined insufficient_funds invalid_account_number incorrect_account_holder_name invalid_currency"
 	FailureCode string `protobuf:"bytes,4,opt,name=failure_code,json=failureCode,proto3" json:"failure_code" validate:"omitempty,oneof=account_closed account_frozen account_restricted destination_bank_invalid could_not_process declined insufficient_funds invalid_account_number incorrect_account_holder_name invalid_currency"`
-	//@inject_tag: json:"failure_message" validate:"omitempty,len=255"
-	FailureMessage string `protobuf:"bytes,5,opt,name=failure_message,json=failureMessage,proto3" json:"failure_message" validate:"omitempty,len=255"`
-	//@inject_tag: json:"failure_transaction" validate:"omitempty,len=255"
-	FailureTransaction string `protobuf:"bytes,6,opt,name=failure_transaction,json=failureTransaction,proto3" json:"failure_transaction" validate:"omitempty,len=255"`
+	//@inject_tag: json:"failure_message" validate:"omitempty,max=255"
+	FailureMessage string `protobuf:"bytes,5,opt,name=failure_message,json=failureMessage,proto3" json:"failure_message" validate:"omitempty,max=255"`
+	//@inject_tag: json:"failure_transaction" validate:"omitempty,max=255"
+	FailureTransaction string `protobuf:"bytes,6,opt,name=failure_transaction,json=failureTransaction,proto3" json:"failure_transaction" validate:"omitempty,max=255"`
 	//@inject_tag: json:"ip"
 	Ip                   string   `protobuf:"bytes,7,opt,name=ip,proto3" json:"ip"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
