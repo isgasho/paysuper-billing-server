@@ -1423,7 +1423,7 @@ func (s *Service) generateMerchantAgreement(ctx context.Context, merchant *billi
 		Params:           b,
 		SendNotification: false,
 	}
-	_, err = s.reporterService.CreateFile(ctx, req)
+	rsp, err := s.reporterService.CreateFile(ctx, req)
 
 	if err != nil {
 		zap.L().Error(
@@ -1434,6 +1434,17 @@ func (s *Service) generateMerchantAgreement(ctx context.Context, merchant *billi
 			zap.Any(errorFieldRequest, req),
 		)
 		return merchantErrorUnknown
+	}
+
+	if rsp.Status != pkg.ResponseStatusOk {
+		zap.L().Error(
+			pkg.ErrorGrpcServiceCallFailed,
+			zap.Any("error", rsp.Message),
+			zap.String(errorFieldService, reporterConst.ServiceName),
+			zap.String(errorFieldMethod, "CreateFile"),
+			zap.Any(errorFieldRequest, req),
+		)
+		return &grpc.ResponseErrorMessage{Code: rsp.Message.Code, Message: rsp.Message.Message}
 	}
 
 	return nil
