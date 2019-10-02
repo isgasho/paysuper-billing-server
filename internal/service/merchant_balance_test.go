@@ -434,10 +434,31 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -480))
 	assert.NoError(suite.T(), err, "Generate PayoutDocument date failed")
 
+	royaltyReport := &billing.RoyaltyReport{
+		Id:         bson.NewObjectId().Hex(),
+		MerchantId: suite.merchant.Id,
+		Totals: &billing.RoyaltyReportTotals{
+			TransactionsCount:    0,
+			PayoutAmount:         0,
+			VatAmount:            0,
+			FeeAmount:            0,
+			RollingReserveAmount: 0,
+			CorrectionAmount:     0,
+		},
+		Status:         pkg.RoyaltyReportStatusAccepted,
+		CreatedAt:      ptypes.TimestampNow(),
+		PeriodFrom:     ptypes.TimestampNow(),
+		PeriodTo:       ptypes.TimestampNow(),
+		AcceptExpireAt: ptypes.TimestampNow(),
+		Currency:       suite.merchant.GetPayoutCurrency(),
+	}
+
+	err = suite.service.royaltyReport.Insert(royaltyReport, "127.0.0.1", pkg.RoyaltyReportChangeSourceAdmin)
+
 	payout := &billing.PayoutDocument{
 		Id:                   bson.NewObjectId().Hex(),
 		MerchantId:           suite.merchant.Id,
-		SourceId:             []string{bson.NewObjectId().Hex()},
+		SourceId:             []string{royaltyReport.Id},
 		TotalFees:            1000,
 		Balance:              1000,
 		Currency:             "RUB",
