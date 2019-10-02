@@ -236,6 +236,11 @@ func (m *Merchant) HasPrimaryOnboardingUserName() bool {
 	return m.User != nil && m.User.FirstName != "" && m.User.LastName != ""
 }
 
+func (m *Merchant) GetAddress() string {
+	return m.Company.Address + " " + m.Company.AddressAdditional + " " + m.Company.Zip + " " +
+		m.Company.Country
+}
+
 func (pd *PayoutDocument) IsPaysuperSignatureId(signatureId string) bool {
 	return pd.SignatureData.PsSignatureId == signatureId
 }

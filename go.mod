@@ -7,6 +7,7 @@ require (
 	github.com/alicebob/miniredis v2.5.0+incompatible
 	github.com/centrifugal/gocent v2.0.2+incompatible
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/divan/num2words v0.0.0-20170904212200-57dba452f942
 	github.com/elliotchance/redismock v1.5.1
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
 	github.com/go-redis/redis v6.15.2+incompatible
@@ -14,7 +15,6 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.3.1
 	github.com/golang/protobuf v1.3.2
 	github.com/google/uuid v1.1.1
-	github.com/hashicorp/consul v1.4.2 // indirect
 	github.com/jinzhu/copier v0.0.0-20190625015134-976e0346caa8
 	github.com/jinzhu/now v1.0.1
 	github.com/kelseyhightower/envconfig v1.4.0
@@ -26,7 +26,7 @@ require (
 	github.com/paysuper/paysuper-database-mongo v0.1.1
 	github.com/paysuper/paysuper-i18n v0.0.0-20190926113224-7eaca4563c7b
 	github.com/paysuper/paysuper-recurring-repository v1.0.123
-	github.com/paysuper/paysuper-reporter v0.0.0-20191002161301-524e73fc4e32
+	github.com/paysuper/paysuper-reporter v0.0.0-20191002161756-34383a0eaba0
 	github.com/paysuper/paysuper-tax-service v0.0.0-20190903084038-7849f394f122
 	github.com/paysuper/postmark-sender v0.0.0-20190926173213-1b6244122c49
 	github.com/prometheus/client_golang v1.1.0

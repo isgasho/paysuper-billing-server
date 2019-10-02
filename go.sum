@@ -198,6 +198,8 @@ github.com/dhui/dktest v0.3.0/go.mod h1:cyzIUfGsBEbZ6BT7tnXqAShHSXCZhSNmFl70sZ7c
 github.com/digitalocean/godo v1.1.1/go.mod h1:h6faOIcZ8lWIwNQ+DN7b3CgX4Kwby5T+nbpNqkUIozU=
 github.com/digitalocean/godo v1.10.0/go.mod h1:h6faOIcZ8lWIwNQ+DN7b3CgX4Kwby5T+nbpNqkUIozU=
 github.com/dimchansky/utfbom v1.1.0/go.mod h1:rO41eb7gLfo8SF1jd9F8HplJm1Fewwi4mQvIirEdv+8=
+github.com/divan/num2words v0.0.0-20170904212200-57dba452f942 h1:fJ8/Lid8fF4i7Bwl7vWKvG2KeZzr3yU4qG6h/DPdXLU=
+github.com/divan/num2words v0.0.0-20170904212200-57dba452f942/go.mod h1:K88GQWK1aAiPMo9q2LZwyKBfEGnge7kmVVTUcZ61HSc=
 github.com/docker/distribution v2.7.0+incompatible/go.mod h1:J2gT2udsDAN96Uj4KfcMRqY0/ypR+oyYUYmja8H+y+w=
 github.com/docker/distribution v2.7.1+incompatible h1:a5mlkVzth6W5A4fOsS3D2EO5BUmsJpcB+cRlLU7cSug=
 github.com/docker/distribution v2.7.1+incompatible/go.mod h1:J2gT2udsDAN96Uj4KfcMRqY0/ypR+oyYUYmja8H+y+w=
@@ -715,6 +717,7 @@ github.com/paysuper/paysuper-billing-server v0.0.0-20190926065953-0100f748197d/g
 github.com/paysuper/paysuper-billing-server v0.0.0-20190926070734-3da75bc375c7/go.mod h1:ejy2ffHoEEQMtmvo6Dt38a9hzYSPBiW6C1KSEOL9d+k=
 github.com/paysuper/paysuper-billing-server v0.0.0-20190926100841-ae41a61c4745/go.mod h1:ejy2ffHoEEQMtmvo6Dt38a9hzYSPBiW6C1KSEOL9d+k=
 github.com/paysuper/paysuper-billing-server v0.0.0-20190927123432-893bab0748f1/go.mod h1:DV0QVfOOVTq9TXuYl1sgk8e+jyxOW2YUx8aHe6sUmiA=
+github.com/paysuper/paysuper-billing-server v0.0.0-20191002130927-fb4dc5d0cb2c/go.mod h1:RsZbiKkMgJ/c4NDxCj2JnUpQs3Q7238HgvTSpuJvxEk=
 github.com/paysuper/paysuper-currencies v0.0.0-20190903083641-668b8b2b997d h1:hoMkfdq4qEGOONvxajsZO0Mf6np++pGnrKVxegvplaw=
 github.com/paysuper/paysuper-currencies v0.0.0-20190903083641-668b8b2b997d/go.mod h1:C+QHdgbjIlAPxHD93/08yi+xWfUgk8maLY8FKFqNzMQ=
 github.com/paysuper/paysuper-database-mongo v0.1.0 h1:RMSIYB8rpTAAHc0wmIQz8XQVa8KB6/xX8iA8ceiDic8=
@@ -733,6 +736,8 @@ github.com/paysuper/paysuper-reporter v0.0.0-20190926160409-3dfa3c2d811f h1:0Nk0
 github.com/paysuper/paysuper-reporter v0.0.0-20190926160409-3dfa3c2d811f/go.mod h1:nqWCL/fCIC9ESkK1q2K5vWiGYp7HR0NFuj9+x0Vr9Fo=
 github.com/paysuper/paysuper-reporter v0.0.0-20191002161301-524e73fc4e32 h1:wT9K8IwTPs3V1x8tucWXRPi0fQd1L3bNIVLEtZL8kNM=
 github.com/paysuper/paysuper-reporter v0.0.0-20191002161301-524e73fc4e32/go.mod h1:0yy2QLLtAUIhvuR0RhmhLx09XLBep1969YQdh7XOLfo=
+github.com/paysuper/paysuper-reporter v0.0.0-20191002161756-34383a0eaba0 h1:qDNyM8vWY47y+usDjCOK4irp2ZOvx9FsRPcvMH9u6OQ=
+github.com/paysuper/paysuper-reporter v0.0.0-20191002161756-34383a0eaba0/go.mod h1:hu3GL1n9OoeE7svmDQYlrhx3wKrIuiWQo6QCMEc8xiQ=
 github.com/paysuper/paysuper-tax-service v0.0.0-20190903084038-7849f394f122 h1:46e+iUwsIwyRqININIIQNooTU8KCwcQw7AVnaTpTizg=
 github.com/paysuper/paysuper-tax-service v0.0.0-20190903084038-7849f394f122/go.mod h1:QK6czJ8ge3pF/QbFlRXuYfPRrm/90qubdWQ9OWKfeUs=
 github.com/paysuper/postmark-sender v0.0.0-20190903075212-a210e35789fc h1:LPZzsbFRq04SkYik74jOvu9pVpHWsjoELbxXkSx18D0=

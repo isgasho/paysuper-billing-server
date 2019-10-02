@@ -2,6 +2,9 @@ package service
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"github.com/divan/num2words"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
@@ -252,11 +255,13 @@ func (s *Service) ChangeMerchant(
 
 	if merchant == nil {
 		merchant = &billing.Merchant{
-			Id:        bson.NewObjectId().Hex(),
-			User:      req.User,
-			Status:    pkg.MerchantStatusDraft,
-			CreatedAt: ptypes.TimestampNow(),
+			Id:                 bson.NewObjectId().Hex(),
+			User:               req.User,
+			MinimalPayoutLimit: pkg.MerchantMinimalPayoutLimit,
+			Status:             pkg.MerchantStatusDraft,
+			CreatedAt:          ptypes.TimestampNow(),
 		}
+		merchant.AgreementNumber = s.getMerchantAgreementNumber(merchant.Id)
 	}
 
 	if !s.IsChangeDataAllow(merchant, req) {
@@ -294,8 +299,8 @@ func (s *Service) ChangeMerchant(
 		merchant.Contacts = req.Contacts
 	}
 
-	if merchant.IsDataComplete() && merchant.AgreementSignatureData == nil {
-		merchant.AgreementSignatureData, err = s.getMerchantAgreementSignature(ctx, merchant)
+	if merchant.IsDataComplete() {
+		err = s.generateMerchantAgreement(ctx, merchant)
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusSystemError
@@ -525,6 +530,17 @@ func (s *Service) SetMerchantS3Agreement(
 	}
 
 	merchant.S3AgreementName = req.S3AgreementName
+
+	if merchant.AgreementSignatureData == nil {
+		merchant.AgreementSignatureData, err = s.getMerchantAgreementSignature(ctx, merchant)
+
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = err.(*grpc.ResponseErrorMessage)
+
+			return nil
+		}
+	}
 
 	if err := s.merchant.Update(merchant); err != nil {
 		zap.S().Errorf("Query to change merchant data failed", "err", err.Error(), "data", merchant)
@@ -1045,8 +1061,8 @@ func (s *Service) getMerchantAgreementSignature(
 	merchant *billing.Merchant,
 ) (*billing.MerchantAgreementSignatureData, error) {
 	req := &proto.CreateSignatureRequest{
-		TemplateId: merchant.AgreementTemplate,
-		ClientId:   s.cfg.HelloSignClientId,
+		RequestType: documentSignerConst.RequestTypeCreateEmbedded,
+		ClientId:    s.cfg.HelloSignClientId,
 		Signers: []*proto.CreateSignatureRequestSigner{
 			{
 				Email:    merchant.GetAuthorizedEmail(),
@@ -1062,10 +1078,12 @@ func (s *Service) getMerchantAgreementSignature(
 		Metadata: map[string]string{
 			documentSignerConst.MetadataFieldMerchantId: merchant.Id,
 		},
-	}
-
-	if req.TemplateId == "" {
-		req.TemplateId = s.cfg.HelloSignDefaultTemplate
+		FileUrl: []*proto.CreateSignatureRequestFileUrl{
+			{
+				Name:    merchant.S3AgreementName,
+				Storage: documentSignerConst.StorageTypeAgreement,
+			},
+		},
 	}
 
 	rsp, err := s.documentSigner.CreateSignature(ctx, req)
@@ -1338,7 +1356,7 @@ func (s *Service) SetMerchantTariffRates(
 	merchant.Steps.Tariff = true
 
 	if merchant.IsDataComplete() {
-		merchant.AgreementSignatureData, err = s.getMerchantAgreementSignature(ctx, merchant)
+		err = s.generateMerchantAgreement(ctx, merchant)
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusSystemError
@@ -1362,21 +1380,66 @@ func (s *Service) SetMerchantTariffRates(
 	return nil
 }
 
-func (s *Service) createMerchantAgreement(merchant *billing.Merchant) error {
+func (s *Service) generateMerchantAgreement(ctx context.Context, merchant *billing.Merchant) error {
+	payoutCostInt := int(merchant.Tariff.Payout.FixedFee)
+	payoutCostWord := num2words.Convert(payoutCostInt)
+	minPayoutLimitInt := int(merchant.MinimalPayoutLimit)
+	minPayoutLimitWord := num2words.Convert(minPayoutLimitInt)
+
+	payoutCost := fmt.Sprintf("%s (%d) %s", payoutCostWord, payoutCostInt, merchant.Tariff.Payout.FixedFeeCurrency)
+	minPayoutLimit := fmt.Sprintf("%s (%d) %s", minPayoutLimitWord, minPayoutLimitInt, merchant.GetPayoutCurrency())
+
+	params := map[string]interface{}{
+		reporterConst.RequestParameterAgreementNumber:                     merchant.AgreementNumber,
+		reporterConst.RequestParameterAgreementLegalName:                  merchant.Company.Name,
+		reporterConst.RequestParameterAgreementAddress:                    merchant.GetAddress(),
+		reporterConst.RequestParameterAgreementRegistrationNumber:         merchant.Company.RegistrationNumber,
+		reporterConst.RequestParameterAgreementPayoutCost:                 payoutCost,
+		reporterConst.RequestParameterAgreementMinimalPayoutLimit:         minPayoutLimit,
+		reporterConst.RequestParameterAgreementPayoutCurrency:             merchant.GetPayoutCurrency(),
+		reporterConst.RequestParameterAgreementPSRate:                     merchant.Tariff.Payment,
+		reporterConst.RequestParameterAgreementHomeRegion:                 merchant.Tariff.Region,
+		reporterConst.RequestParameterAgreementMerchantAuthorizedName:     merchant.Contacts.Authorized.Name,
+		reporterConst.RequestParameterAgreementMerchantAuthorizedPosition: merchant.Contacts.Authorized.Position,
+		reporterConst.RequestParameterAgreementProjectsLink:               s.cfg.DashboardProjectsUrl,
+	}
+
+	b, err := json.Marshal(params)
+
+	if err != nil {
+		zap.L().Error(
+			"Marshal params to json for generate agreement failed",
+			zap.Error(err),
+			zap.Any("parameters", params),
+		)
+		return merchantErrorUnknown
+	}
+
 	req := &reporterProto.ReportFile{
 		UserId:           merchant.User.Id,
 		MerchantId:       merchant.Id,
-		ReportType:       reporterConst.ReportTypeA,
+		ReportType:       reporterConst.ReportTypeAgreement,
 		FileType:         reporterConst.OutputExtensionPdf,
-		Params:           params,
+		Params:           b,
 		SendNotification: false,
 	}
+	_, err = s.reporterService.CreateFile(ctx, req)
 
-	if _, err = s.reporterService.CreateFile(ctx, fileReq); err != nil {
+	if err != nil {
 		zap.L().Error(
-			"Unable to create file in the reporting service for payout.",
+			pkg.ErrorGrpcServiceCallFailed,
 			zap.Error(err),
+			zap.String(errorFieldService, reporterConst.ServiceName),
+			zap.String(errorFieldMethod, "CreateFile"),
+			zap.Any(errorFieldRequest, req),
 		)
-		return err
+		return merchantErrorUnknown
 	}
+
+	return nil
+}
+
+func (s *Service) getMerchantAgreementNumber(merchantId string) string {
+	now := time.Now()
+	return fmt.Sprintf("%s%s-%03d", now.Format("01"), now.Format("02"), bson.ObjectIdHex(merchantId).Counter())
 }
