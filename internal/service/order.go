@@ -1442,6 +1442,14 @@ func (s *Service) getPayloadForReceipt(order *billing.Order) *postmarkSdrPkg.Pay
 		zap.S().Errorw("Error during formatting date", "date", order.CreatedAt, "locale", DefaultLanguage)
 	}
 
+	merchantName := order.GetMerchantId()
+	merchant, err := s.merchant.GetById(order.GetMerchantId())
+	if err != nil {
+		zap.S().Errorw("Error during getting merchant", "merchant_id", order.GetMerchantId(), "order.uuid", order.Uuid, "err", err)
+	} else {
+		merchantName = merchant.Company.Name
+	}
+
 	return &postmarkSdrPkg.Payload{
 		TemplateAlias: s.cfg.EmailSuccessTransactionTemplate,
 		TemplateModel: map[string]string{
@@ -1451,7 +1459,7 @@ func (s *Service) getPayloadForReceipt(order *billing.Order) *postmarkSdrPkg.Pay
 			"transaction_date": date,
 			"project_name":     order.Project.Name[DefaultLanguage],
 			"receipt_id":       order.ReceiptId,
-			"merchant_id": order.GetMerchantId(),
+			"merchant_name": merchantName,
 		},
 		To: order.ReceiptEmail,
 	}
@@ -1494,7 +1502,7 @@ func (s *Service) sendMailWithCode(ctx context.Context, order *billing.Order, ke
 	zap.S().Errorw("Mail not sent because no items found for key", "order_id", order.Id, "key_id", key.Id, "email", order.ReceiptEmail)
 }
 
-func (s *Service) orderNotifyMerschant(order *billing.Order) {
+func (s *Service) orderNotifyMerchant(order *billing.Order) {
 	zap.S().Debug("[orderNotifyMerchant] try to send notify merchant to rmq", "order_id", order.Id, "status", order.GetPublicStatus())
 
 	err := s.broker.Publish(constant.PayOneTopicNotifyPaymentName, order, amqp.Table{"x-retry-count": int32(0)})
