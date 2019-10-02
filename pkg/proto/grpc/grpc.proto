@@ -892,7 +892,7 @@ message ProductPrice {
     double amount = 1;
     //@inject_tag: validate:"required,alpha,len=3" json:"currency"
     string currency = 2;
-    //@inject_tag: json:"region" validate:"required,oneof=oceania eu cis north_europe north_africa polynesia north_america central_africa south_europe antarctica south_america south_asia caribbean south_asia west_asia central_america west_africa southern_africa southeast_asia east_africa east_asia micronesia west_europe latin_america melanesia russia sub_saharan_africa south_africa"
+    //@inject_tag: json:"region" validate:"required,price_region"
     string region = 3;
 }
 
