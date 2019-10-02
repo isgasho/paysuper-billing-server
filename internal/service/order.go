@@ -1389,6 +1389,22 @@ func (s *Service) sendMailWithReceipt(ctx context.Context, order *billing.Order)
 		},
 	}
 
+	if platform, ok := availablePlatforms[order.PlatformId]; ok {
+		payload.TemplateObjectModel.Fields["platform"] = &structpb.Value{
+			Kind: &structpb.Value_StructValue{
+				StructValue: &structpb.Struct {
+					Fields: map[string]*structpb.Value {
+						"name": {
+							Kind: &structpb.Value_StringValue{
+								StringValue: platform.Name,
+							},
+						},
+					},
+				},
+			},
+		}
+	}
+
 	zap.S().Infow("sending receipt to broker", "order_id", order.Id)
 	err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 	if err != nil {
@@ -1430,17 +1446,23 @@ func (s *Service) getPayloadForReceipt(order *billing.Order) *postmarkSdrPkg.Pay
 		TemplateAlias: s.cfg.EmailSuccessTransactionTemplate,
 		TemplateModel: map[string]string{
 			"platform_name":    order.PlatformId,
-			"total_price":      totalPrice,
-			"transaction_id":   order.Uuid,
+			"total_price": totalPrice,
+			"transaction_id": order.Uuid,
 			"transaction_date": date,
 			"project_name":     order.Project.Name[DefaultLanguage],
 			"receipt_id":       order.ReceiptId,
+			"merchant_id": order.GetMerchantId(),
 		},
 		To: order.ReceiptEmail,
 	}
 }
 
 func (s *Service) sendMailWithCode(ctx context.Context, order *billing.Order, key *billing.Key) {
+	var platformIconUrl = ""
+	if platform, ok := availablePlatforms[order.PlatformId]; ok {
+		platformIconUrl = platform.Icon
+	}
+
 	for _, item := range order.Items {
 		if item.Id == key.KeyProductId {
 			item.Code = key.Code
@@ -1448,7 +1470,7 @@ func (s *Service) sendMailWithCode(ctx context.Context, order *billing.Order, ke
 				TemplateAlias: s.cfg.EmailGameCodeTemplate,
 				TemplateModel: map[string]string{
 					"code":         key.Code,
-					"platform_id":  order.PlatformId,
+					"platform_icon": platformIconUrl,
 					"product_name": item.Name,
 				},
 				To: order.ReceiptEmail,
@@ -1472,7 +1494,7 @@ func (s *Service) sendMailWithCode(ctx context.Context, order *billing.Order, ke
 	zap.S().Errorw("Mail not sent because no items found for key", "order_id", order.Id, "key_id", key.Id, "email", order.ReceiptEmail)
 }
 
-func (s *Service) orderNotifyMerchant(order *billing.Order) {
+func (s *Service) orderNotifyMerschant(order *billing.Order) {
 	zap.S().Debug("[orderNotifyMerchant] try to send notify merchant to rmq", "order_id", order.Id, "status", order.GetPublicStatus())
 
 	err := s.broker.Publish(constant.PayOneTopicNotifyPaymentName, order, amqp.Table{"x-retry-count": int32(0)})

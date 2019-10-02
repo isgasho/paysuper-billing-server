@@ -863,6 +863,8 @@ message Platform {
     string id = 1;
     //@inject_tag: json:"name"
     string name = 2;
+    //@inject_tag: json:"-"
+    string icon = 3;
 }
 
 message Product {
