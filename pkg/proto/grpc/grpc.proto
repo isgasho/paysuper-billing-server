@@ -17,6 +17,8 @@ service BillingService {
     }
     rpc OrderReceipt (OrderReceiptRequest) returns (OrderReceiptResponse) {
     }
+    rpc OrderReceiptRefund (OrderReceiptRequest) returns (OrderReceiptResponse) {
+    }
 
     rpc UpdateOrder (billing.Order) returns (EmptyResponse) {
     }
