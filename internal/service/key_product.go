@@ -47,14 +47,15 @@ var (
 
 //TODO: correct icons
 var availablePlatforms = map[string]*grpc.Platform{
-	"steam":    {Id: "steam", Name: "Steam", Icon: "https://s3.protocol.one/mails/logo-steam.png"},
-	"gog":      {Id: "gog", Name: "GOG", Icon: "https://s3.protocol.one/mails/logo-steam.png"},
-	"egs":      {Id: "egs", Name: "Epic Game Store", Icon: "https://s3.protocol.one/mails/logo-steam.png"},
-	"uplay":    {Id: "uplay", Name: "Uplay", Icon: "https://s3.protocol.one/mails/logo-steam.png"},
-	"origin":   {Id: "origin", Name: "Origin", Icon: "https://s3.protocol.one/mails/logo-steam.png"},
-	"psn":      {Id: "psn", Name: "PSN", Icon: "https://s3.protocol.one/mails/logo-steam.png"},
-	"xbox":     {Id: "xbox", Name: "XBOX Store", Icon: "https://s3.protocol.one/mails/logo-steam.png"},
-	"nintendo": {Id: "nintendo", Name: "Nintendo Store", Icon: "https://s3.protocol.one/mails/logo-steam.png"},
+	"steam":    {Id: "steam", Name: "Steam", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-steam.svg"},
+	"gog":      {Id: "gog", Name: "GOG", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-gog.svg"},
+	"uplay":    {Id: "uplay", Name: "Uplay", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-uplay.svg"},
+	"origin":   {Id: "origin", Name: "Origin", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-origin.svg"},
+	"psn":      {Id: "psn", Name: "PSN", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-psn.svg"},
+	"xbox":     {Id: "xbox", Name: "XBOX Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-xbox.svg"},
+	"nintendo": {Id: "nintendo", Name: "Nintendo Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-nintendo.svg"},
+	"itch":     {Id: "nintendo", Name: "Nintendo Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-itch.svg"},
+	"egs":      {Id: "egs", Name: "Epic Games Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-epic.svg"},
 }
 
 func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.CreateOrUpdateKeyProductRequest, res *grpc.KeyProductResponse) error {
