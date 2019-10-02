@@ -42,7 +42,7 @@ var (
 	keyProductPlatformDontHaveDefaultPrice  = newBillingServerErrorMsg("kp000020", "platform don't have price in default currency")
 	keyProductPlatformPriceMismatchCurrency = newBillingServerErrorMsg("kp000021", "platform don't have price with region that mismatch with currency")
 	keyPlatformNotFound                     = newBillingServerErrorMsg("kp000022", "platform not found")
-	keyProductNotPublished                     = newBillingServerErrorMsg("kp000023", "key product is not published")
+	keyProductNotPublished                  = newBillingServerErrorMsg("kp000023", "key product is not published")
 )
 
 var availablePlatforms = map[string]*grpc.Platform{
@@ -226,6 +226,7 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 	product.LongDescription = req.LongDescription
 	product.Images = req.Images
 	product.Url = req.Url
+	product.Pricing = req.Pricing
 	product.UpdatedAt = now
 
 	_, err = s.db.Collection(collectionKeyProduct).UpsertId(bson.ObjectIdHex(product.Id), product)

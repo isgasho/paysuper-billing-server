@@ -296,6 +296,8 @@ message CreateOrUpdateKeyProductRequest {
     map<string, string> metadata = 12;
     //@inject_tag: validate:"dive" json:"platforms"
     repeated PlatformPrice platforms = 13;
+    // @inject_tag: json:"pricing" validate:"required,oneof=currency manual steam default"
+    string pricing = 14;
 }
 
 message UnPublishKeyProductRequest {
@@ -826,6 +828,8 @@ message KeyProduct {
     bool deleted = 17;
     //@inject_tag: json:"published_at"
     google.protobuf.Timestamp published_at = 18;
+    // @inject_tag: json:"pricing" validate:"required,oneof=currency manual steam default"
+    string pricing = 19;
 }
 
 message PlatformPrice {
