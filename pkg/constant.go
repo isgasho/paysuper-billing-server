@@ -232,16 +232,19 @@ const (
 	PaymentCreateBankCardFieldIssuerName    = "bank_issuer_name"
 	PaymentCreateBankCardFieldIssuerCountry = "bank_issuer_country"
 
-	RoyaltyReportStatusPending  = "pending"
-	RoyaltyReportStatusAccepted = "accepted"
-	RoyaltyReportStatusCanceled = "canceled"
-	RoyaltyReportStatusDispute  = "dispute"
+	RoyaltyReportStatusPending        = "pending"
+	RoyaltyReportStatusAccepted       = "accepted"
+	RoyaltyReportStatusCanceled       = "canceled"
+	RoyaltyReportStatusDispute        = "dispute"
+	RoyaltyReportStatusWaitForPayment = "waiting_payment"
+	RoyaltyReportStatusPaid           = "paid"
 
 	EmailRoyaltyReportMessage = "New royalty report wait for merchant owner approve"
 
-	RoyaltyReportChangeSourceAuto     = "auto"
-	RoyaltyReportChangeSourceMerchant = "merchant"
-	RoyaltyReportChangeSourceAdmin    = "admin"
+	RoyaltyReportChangeSourceAuto      = "auto"
+	RoyaltyReportChangeSourceMerchant  = "merchant"
+	RoyaltyReportChangeSourceHellosign = "hellosign"
+	RoyaltyReportChangeSourceAdmin     = "admin"
 
 	VatCurrencyRatesPolicyOnDay    = "on-day"
 	VatCurrencyRatesPolicyLastDay  = "last-day"

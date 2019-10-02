@@ -43,7 +43,8 @@ var (
 	royaltyReportErrorEndOfPeriodIsInFuture    = newBillingServerErrorMsg("rr00006", "end of royalty report period is in future")
 	royaltyReportErrorTimezoneIncorrect        = newBillingServerErrorMsg("rr00007", "incorrect time zone")
 	royaltyReportErrorAlreadyExists            = newBillingServerErrorMsg("rr00008", "report for this merchant and period already exists")
-	royaltyReportErrorCorrectionAmountRequired = newBillingServerErrorMsg("rr00003", "correction amount required and must be not zero")
+	royaltyReportErrorCorrectionAmountRequired = newBillingServerErrorMsg("rr00009", "correction amount required and must be not zero")
+	royaltyReportErrorPayoutDocumentIdInvalid  = newBillingServerErrorMsg("rr00010", "payout document id is invalid")
 
 	orderStatusForRoyaltyReports = []string{
 		constant.OrderPublicStatusProcessed,
@@ -75,6 +76,10 @@ type RoyaltyReportServiceInterface interface {
 	GetNonPayoutReports(merchantId, currency string, excludeIdsString []string) ([]*billing.RoyaltyReport, error)
 	GetBalanceAmount(merchantId, currency string) (float64, error)
 	CheckReportExists(merchantId, currency string, from, to time.Time) (exists bool, err error)
+	SetPayoutDocumentId(reportIds []string, payoutDocumentId, ip, source string) (err error)
+	UnsetPayoutDocumentId(reportIds []string, ip, source string) (err error)
+	SetPaid(reportIds []string, payoutDocumentId, ip, source string) (err error)
+	UnsetPaid(reportIds []string, ip, source string) (err error)
 }
 
 func newRoyaltyReport(svc *Service) RoyaltyReportServiceInterface {
@@ -952,4 +957,86 @@ func (r *RoyaltyReport) onRoyaltyReportChange(document *billing.RoyaltyReport, i
 	}
 
 	return
+}
+
+func (r *RoyaltyReport) SetPayoutDocumentId(reportIds []string, payoutDocumentId, ip, source string) error {
+	if bson.IsObjectIdHex(payoutDocumentId) == false {
+		return royaltyReportErrorPayoutDocumentIdInvalid
+	}
+
+	for _, id := range reportIds {
+		rr, err := r.GetById(id)
+		if err != nil {
+			return err
+		}
+
+		rr.PayoutDocumentId = payoutDocumentId
+		rr.Status = pkg.RoyaltyReportStatusWaitForPayment
+
+		err = r.Update(rr, ip, source)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *RoyaltyReport) UnsetPayoutDocumentId(reportIds []string, ip, source string) (err error) {
+	for _, id := range reportIds {
+		rr, err := r.GetById(id)
+		if err != nil {
+			return err
+		}
+
+		rr.PayoutDocumentId = ""
+		rr.Status = pkg.RoyaltyReportStatusAccepted
+
+		err = r.Update(rr, ip, source)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *RoyaltyReport) SetPaid(reportIds []string, payoutDocumentId, ip, source string) (err error) {
+	if bson.IsObjectIdHex(payoutDocumentId) == false {
+		return royaltyReportErrorPayoutDocumentIdInvalid
+	}
+
+	for _, id := range reportIds {
+		rr, err := r.GetById(id)
+		if err != nil {
+			return err
+		}
+
+		rr.PayoutDocumentId = payoutDocumentId
+		rr.Status = pkg.RoyaltyReportStatusPaid
+		rr.PayoutDate = ptypes.TimestampNow()
+
+		err = r.Update(rr, ip, source)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *RoyaltyReport) UnsetPaid(reportIds []string, ip, source string) (err error) {
+	for _, id := range reportIds {
+		rr, err := r.GetById(id)
+		if err != nil {
+			return err
+		}
+
+		rr.PayoutDocumentId = ""
+		rr.Status = pkg.RoyaltyReportStatusAccepted
+		rr.PayoutDate = nil
+
+		err = r.Update(rr, ip, source)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

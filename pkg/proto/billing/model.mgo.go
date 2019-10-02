@@ -583,6 +583,7 @@ type MgoRoyaltyReport struct {
 	DisputeStartedAt time.Time             `bson:"dispute_started_at"`
 	DisputeClosedAt  time.Time             `bson:"dispute_closed_at"`
 	IsAutoAccepted   bool                  `bson:"is_auto_accepted"`
+	PayoutDocumentId string                `bson:"payout_document_id"`
 }
 
 type MgoRoyaltyReportCorrectionItem struct {
@@ -3606,14 +3607,15 @@ func (m *AccountingEntry) SetBSON(raw bson.Raw) error {
 
 func (m *RoyaltyReport) GetBSON() (interface{}, error) {
 	st := &MgoRoyaltyReport{
-		Id:             bson.ObjectIdHex(m.Id),
-		MerchantId:     bson.ObjectIdHex(m.MerchantId),
-		Status:         m.Status,
-		Totals:         m.Totals,
-		Currency:       m.Currency,
-		Summary:        m.Summary,
-		DisputeReason:  m.DisputeReason,
-		IsAutoAccepted: m.IsAutoAccepted,
+		Id:               bson.ObjectIdHex(m.Id),
+		MerchantId:       bson.ObjectIdHex(m.MerchantId),
+		Status:           m.Status,
+		Totals:           m.Totals,
+		Currency:         m.Currency,
+		Summary:          m.Summary,
+		DisputeReason:    m.DisputeReason,
+		IsAutoAccepted:   m.IsAutoAccepted,
+		PayoutDocumentId: m.PayoutDocumentId,
 	}
 
 	if m.PayoutDate != nil {
@@ -3721,6 +3723,7 @@ func (m *RoyaltyReport) SetBSON(raw bson.Raw) error {
 	m.Summary = decoded.Summary
 	m.DisputeReason = decoded.DisputeReason
 	m.IsAutoAccepted = decoded.IsAutoAccepted
+	m.PayoutDocumentId = decoded.PayoutDocumentId
 
 	m.PayoutDate, err = ptypes.TimestampProto(decoded.PayoutDate)
 	if err != nil {

@@ -37,20 +37,37 @@ const (
 )
 
 var (
-	errorPayoutSourcesNotFound  = newBillingServerErrorMsg("po000001", "no source documents found for payout")
-	errorPayoutSourcesPending   = newBillingServerErrorMsg("po000002", "you have at least one royalty report waiting for acceptance")
-	errorPayoutSourcesDispute   = newBillingServerErrorMsg("po000003", "you have at least one unclosed dispute in your royalty reports")
-	errorPayoutNotFound         = newBillingServerErrorMsg("po000004", "payout document not found")
-	errorPayoutAmountInvalid    = newBillingServerErrorMsg("po000005", "payout amount is invalid")
-	errorPayoutAlreadySigned    = newBillingServerErrorMsg("po000006", "payout already signed for this signer type")
-	errorPayoutCreateSignature  = newBillingServerErrorMsg("po000007", "create signature failed")
-	errorPayoutUpdateBalance    = newBillingServerErrorMsg("po000008", "balance update failed")
-	errorPayoutBalanceError     = newBillingServerErrorMsg("po000009", "getting balance failed")
-	errorPayoutNotEnoughBalance = newBillingServerErrorMsg("po000010", "not enough balance for payout")
-	errorPayoutNotRendered      = newBillingServerErrorMsg("po000011", "payout document not rendered yet")
+	errorPayoutSourcesNotFound         = newBillingServerErrorMsg("po000001", "no source documents found for payout")
+	errorPayoutSourcesPending          = newBillingServerErrorMsg("po000002", "you have at least one royalty report waiting for acceptance")
+	errorPayoutSourcesDispute          = newBillingServerErrorMsg("po000003", "you have at least one unclosed dispute in your royalty reports")
+	errorPayoutNotFound                = newBillingServerErrorMsg("po000004", "payout document not found")
+	errorPayoutAmountInvalid           = newBillingServerErrorMsg("po000005", "payout amount is invalid")
+	errorPayoutAlreadySigned           = newBillingServerErrorMsg("po000006", "payout already signed for this signer type")
+	errorPayoutCreateSignature         = newBillingServerErrorMsg("po000007", "create signature failed")
+	errorPayoutUpdateBalance           = newBillingServerErrorMsg("po000008", "balance update failed")
+	errorPayoutBalanceError            = newBillingServerErrorMsg("po000009", "getting balance failed")
+	errorPayoutNotEnoughBalance        = newBillingServerErrorMsg("po000010", "not enough balance for payout")
+	errorPayoutNotRendered             = newBillingServerErrorMsg("po000011", "payout document not rendered yet")
+	errorPayoutUpdateRoyaltyReports    = newBillingServerErrorMsg("po000012", "royalty reports update failed")
+	errorPayoutStatusRequiresFullSign  = newBillingServerErrorMsg("po000013", "requested status requires fully signed payout document")
+	errorPayoutStatusChangeIsForbidden = newBillingServerErrorMsg("po000014", "status change is forbidden")
 
 	statusForUpdateBalance = map[string]bool{
 		pkg.PayoutDocumentStatusPending:    true,
+		pkg.PayoutDocumentStatusInProgress: true,
+		pkg.PayoutDocumentStatusPaid:       true,
+	}
+
+	statusForBecomePaid = map[string]bool{
+		pkg.PayoutDocumentStatusPaid: true,
+	}
+
+	statusForBecomeFailed = map[string]bool{
+		pkg.PayoutDocumentStatusFailed:   true,
+		pkg.PayoutDocumentStatusCanceled: true,
+	}
+
+	statusRequiresFullySigned = map[string]bool{
 		pkg.PayoutDocumentStatusInProgress: true,
 		pkg.PayoutDocumentStatusPaid:       true,
 	}
@@ -297,6 +314,13 @@ func (s *Service) UpdatePayoutDocumentSignatures(
 
 			return nil
 		}
+		err = s.royaltyReport.SetPayoutDocumentId(pd.SourceId, pd.Id, "", pkg.RoyaltyReportChangeSourceHellosign)
+		if err != nil {
+			res.Status = pkg.ResponseStatusSystemError
+			res.Message = errorPayoutUpdateRoyaltyReports
+
+			return nil
+		}
 	}
 
 	res.Status = pkg.ResponseStatusOk
@@ -323,7 +347,29 @@ func (s *Service) UpdatePayoutDocument(
 	isChanged := false
 	needBalanceUpdate := false
 
+	_, isReqStatusRequiresFullySigned := statusRequiresFullySigned[req.Status]
+	if isReqStatusRequiresFullySigned && pd.Status != req.Status && !pd.IsFullySigned() {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorPayoutStatusRequiresFullSign
+
+		return nil
+	}
+
+	_, isReqStatusForBecomePaid := statusForBecomePaid[req.Status]
+	becomePaid := pd.IsFullySigned() && isReqStatusForBecomePaid && pd.Status != req.Status
+
+	_, isReqStatusForBecomeFailed := statusForBecomeFailed[req.Status]
+	_, isPayoutStatusForBecomeFailed := statusForBecomeFailed[pd.Status]
+	becomeFailed := pd.IsFullySigned() && isReqStatusForBecomeFailed && !isPayoutStatusForBecomeFailed
+
 	if req.Status != "" && pd.Status != req.Status {
+		if pd.Status == pkg.PayoutDocumentStatusPaid || pd.Status == pkg.PayoutDocumentStatusFailed {
+			res.Status = pkg.ResponseStatusBadData
+			res.Message = errorPayoutStatusChangeIsForbidden
+
+			return nil
+		}
+
 		isChanged = true
 		pd.Status = req.Status
 		if _, ok := statusForUpdateBalance[pd.Status]; ok {
@@ -361,6 +407,28 @@ func (s *Service) UpdatePayoutDocument(
 			}
 			return err
 		}
+
+		if becomePaid == true {
+			err = s.royaltyReport.SetPaid(pd.SourceId, pd.Id, req.Ip, pkg.RoyaltyReportChangeSourceAdmin)
+			if err != nil {
+				res.Status = pkg.ResponseStatusSystemError
+				res.Message = errorPayoutUpdateRoyaltyReports
+
+				return nil
+			}
+
+		} else {
+			if becomeFailed == true {
+				err = s.royaltyReport.UnsetPaid(pd.SourceId, req.Ip, pkg.RoyaltyReportChangeSourceAdmin)
+				if err != nil {
+					res.Status = pkg.ResponseStatusSystemError
+					res.Message = errorPayoutUpdateRoyaltyReports
+
+					return nil
+				}
+			}
+		}
+
 		res.Status = pkg.ResponseStatusOk
 	} else {
 		res.Status = pkg.ResponseStatusNotModified
