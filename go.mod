@@ -21,13 +21,12 @@ require (
 	github.com/micro/cli v0.2.0
 	github.com/micro/go-micro v1.8.0
 	github.com/micro/go-plugins v1.2.0
-	github.com/morikuni/aec v0.0.0-20170113033406-39771216ff4c // indirect
 	github.com/paysuper/document-signer v0.0.0-20190930091754-a3f6474309f3
 	github.com/paysuper/paysuper-currencies v0.0.0-20190903083641-668b8b2b997d
 	github.com/paysuper/paysuper-database-mongo v0.1.1
 	github.com/paysuper/paysuper-i18n v0.0.0-20190926113224-7eaca4563c7b
 	github.com/paysuper/paysuper-recurring-repository v1.0.123
-	github.com/paysuper/paysuper-reporter v0.0.0-20190926160409-3dfa3c2d811f
+	github.com/paysuper/paysuper-reporter v0.0.0-20191002161301-524e73fc4e32
 	github.com/paysuper/paysuper-tax-service v0.0.0-20190903084038-7849f394f122
 	github.com/paysuper/postmark-sender v0.0.0-20190926173213-1b6244122c49
 	github.com/prometheus/client_golang v1.1.0

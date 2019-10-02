@@ -10,6 +10,8 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	reporterConst "github.com/paysuper/paysuper-reporter/pkg"
+	reporterProto "github.com/paysuper/paysuper-reporter/pkg/proto"
 	"go.uber.org/zap"
 	"time"
 )
@@ -1335,7 +1337,7 @@ func (s *Service) SetMerchantTariffRates(
 
 	merchant.Steps.Tariff = true
 
-	if merchant.IsDataComplete() && merchant.AgreementSignatureData == nil {
+	if merchant.IsDataComplete() {
 		merchant.AgreementSignatureData, err = s.getMerchantAgreementSignature(ctx, merchant)
 
 		if err != nil {
@@ -1358,4 +1360,23 @@ func (s *Service) SetMerchantTariffRates(
 	rsp.Status = pkg.ResponseStatusOk
 
 	return nil
+}
+
+func (s *Service) createMerchantAgreement(merchant *billing.Merchant) error {
+	req := &reporterProto.ReportFile{
+		UserId:           merchant.User.Id,
+		MerchantId:       merchant.Id,
+		ReportType:       reporterConst.ReportTypeA,
+		FileType:         reporterConst.OutputExtensionPdf,
+		Params:           params,
+		SendNotification: false,
+	}
+
+	if _, err = s.reporterService.CreateFile(ctx, fileReq); err != nil {
+		zap.L().Error(
+			"Unable to create file in the reporting service for payout.",
+			zap.Error(err),
+		)
+		return err
+	}
 }
