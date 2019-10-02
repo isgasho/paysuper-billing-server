@@ -892,7 +892,7 @@ message ProductPrice {
     double amount = 1;
     //@inject_tag: validate:"required,alpha,len=3" json:"currency"
     string currency = 2;
-    //@inject_tag: validate:"required,alpha" json:"region"
+    //@inject_tag: json:"region" validate:"required,oneof=oceania eu cis north_europe north_africa polynesia north_america central_africa south_europe antarctica south_america south_asia caribbean south_asia west_asia central_america west_africa southern_africa southeast_asia east_africa east_asia micronesia west_europe latin_america melanesia russia sub_saharan_africa south_africa"
     string region = 3;
 }
 
@@ -1886,7 +1886,7 @@ message DashboardBaseReports {
 }
 
 message CreatePayoutDocumentRequest {
-    //@inject_tag: json:"description" validate:"required,len=255"
+    //@inject_tag: json:"description" validate:"required,max=255"
     string description = 1;
     //@inject_tag: json:"merchant_id" validate:"required,hexadecimal,len=24"
     string merchant_id = 2;

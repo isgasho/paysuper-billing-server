@@ -1119,24 +1119,6 @@ func (s *Service) changeMerchantAgreementSingUrl(
 		signatureId = merchant.GetPaysuperSignatureId()
 	}
 
-	if signUrl != nil {
-		t, err := ptypes.Timestamp(signUrl.ExpiresAt)
-
-		if err != nil {
-			zap.L().Error(
-				`Merchant sign url contain broken value in "expires_at"" filed`,
-				zap.Error(err),
-				zap.Any("data", merchant),
-			)
-
-			return nil, merchantErrorUnknown
-		}
-
-		if t.After(time.Now()) {
-			return signUrl, nil
-		}
-	}
-
 	req := &proto.GetSignatureUrlRequest{SignatureId: signatureId}
 	rsp, err := s.documentSigner.GetSignatureUrl(ctx, req)
 
