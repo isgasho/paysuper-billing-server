@@ -3459,7 +3459,6 @@ func (s *Service) OrderReceipt(
 	}
 
 	receipt := &billing.OrderReceipt{
-		PlatformName:    order.PlatformId,
 		TotalPrice:      totalPrice,
 		TransactionId:   order.Uuid,
 		TransactionDate: date,
