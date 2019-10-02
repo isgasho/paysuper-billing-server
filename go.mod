@@ -44,6 +44,7 @@ require (
 replace (
 	github.com/gogo/protobuf v0.0.0-20190410021324-65acae22fc9 => github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
 	github.com/hashicorp/consul => github.com/hashicorp/consul v1.5.1
+	golang.org/x/sys => golang.org/x/sys v0.0.0-20190927073244-c990c680b611
 )
 
 go 1.13

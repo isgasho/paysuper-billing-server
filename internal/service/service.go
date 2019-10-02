@@ -91,11 +91,11 @@ type Service struct {
 	merchantTariffRates        MerchantTariffRatesInterface
 	keyRepository              KeyRepositoryInterface
 	dashboardRepository        DashboardRepositoryInterface
+	orderRepository            OrderRepositoryInterface
 	centrifugo                 CentrifugoInterface
 	formatter                  paysuper_i18n.Formatter
 	reporterService            reporterProto.ReporterService
 }
-
 
 func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {
 	return &grpc.ResponseError{
@@ -114,7 +114,7 @@ func newBillingServerErrorMsg(code, msg string, details ...string) *grpc.Respons
 	return &grpc.ResponseErrorMessage{Code: code, Message: msg, Details: det}
 }
 
-func NewBillingService(db *mongodb.Source, cfg *config.Config, geo proto.GeoIpService, rep repository.RepositoryService, tax tax_service.TaxService, broker rabbitmq.BrokerInterface, redis redis.Cmdable, cache CacheInterface, curService currencies.CurrencyratesService, documentSigner documentSignerProto.DocumentSignerService, reporterService reporterProto.ReporterService, formatter paysuper_i18n.Formatter, ) *Service {
+func NewBillingService(db *mongodb.Source, cfg *config.Config, geo proto.GeoIpService, rep repository.RepositoryService, tax tax_service.TaxService, broker rabbitmq.BrokerInterface, redis redis.Cmdable, cache CacheInterface, curService currencies.CurrencyratesService, documentSigner documentSignerProto.DocumentSignerService, reporterService reporterProto.ReporterService, formatter paysuper_i18n.Formatter) *Service {
 	return &Service{
 		db:              db,
 		cfg:             cfg,
@@ -155,6 +155,7 @@ func (s *Service) Init() (err error) {
 	s.merchantTariffRates = newMerchantsTariffRatesRepository(s)
 	s.keyRepository = newKeyRepository(s)
 	s.dashboardRepository = newDashboardRepository(s)
+	s.orderRepository = newOrderRepository(s)
 	s.centrifugo = newCentrifugo(s)
 
 	if s.cfg.AccountingCurrency == "" {
