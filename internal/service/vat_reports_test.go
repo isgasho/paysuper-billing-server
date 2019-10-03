@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
@@ -17,6 +18,7 @@ import (
 	mongodb "github.com/paysuper/paysuper-database-mongo"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
+	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	rabbitmq "gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
@@ -84,7 +86,20 @@ func (suite *VatReportsTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), broker, redisClient, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), )
+	suite.service = NewBillingService(
+		db,
+		cfg,
+		mocks.NewGeoIpServiceTestOk(),
+		mocks.NewRepositoryServiceOk(),
+		mocks.NewTaxServiceOkMock(),
+		broker,
+		redisClient,
+		suite.cache,
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
+		&reportingMocks.ReporterService{},
+		mocks.NewFormatterOK(),
+	)
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -270,4 +285,61 @@ func (suite *VatReportsTestSuite) TestVatReports_ProcessVatReports() {
 	assert.Equal(suite.T(), report.Status, pkg.VatReportStatusThreshold)
 
 	assert.NoError(suite.T(), err)
+}
+
+func (suite *VatReportsTestSuite) TestVatReports_PaymentDateSet() {
+
+	ci := &mocks.CentrifugoInterface{}
+	ci.On("Publish", mock2.Anything, mock2.Anything, mock2.Anything).Return(nil)
+	suite.service.centrifugo = ci
+
+	nowTimestamp := time.Now().Unix()
+
+	vatReport := &billing.VatReport{
+		Id:                    bson.NewObjectId().Hex(),
+		Country:               "RU",
+		VatRate:               20,
+		Currency:              "RUB",
+		Status:                pkg.VatReportStatusNeedToPay,
+		TransactionsCount:     999,
+		GrossRevenue:          100500,
+		VatAmount:             100500,
+		FeesAmount:            0,
+		DeductionAmount:       0,
+		CountryAnnualTurnover: 100500,
+		WorldAnnualTurnover:   100500,
+		CorrectionAmount:      0,
+		AmountsApproximate:    false,
+		DateFrom:              ptypes.TimestampNow(),
+		DateTo:                ptypes.TimestampNow(),
+		CreatedAt:             ptypes.TimestampNow(),
+		UpdatedAt:             ptypes.TimestampNow(),
+		PayUntilDate:          ptypes.TimestampNow(),
+	}
+
+	err := suite.service.insertVatReport(vatReport)
+	assert.NoError(suite.T(), err)
+
+	query := bson.M{
+		"_id": bson.ObjectIdHex(vatReport.Id),
+	}
+	var vr *billing.VatReport
+	err = suite.service.db.Collection(collectionVatReports).Find(query).One(&vr)
+	assert.NoError(suite.T(), err)
+	assert.NotEqual(suite.T(), vr.Status, pkg.VatReportStatusPaid)
+	assert.EqualValues(suite.T(), -62135596800, vr.PaidAt.Seconds)
+
+	req := &grpc.UpdateVatReportStatusRequest{
+		Id:     vr.Id,
+		Status: pkg.VatReportStatusPaid,
+	}
+	res := &grpc.ResponseError{}
+	err = suite.service.UpdateVatReportStatus(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
+
+	err = suite.service.db.Collection(collectionVatReports).Find(query).One(&vr)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), vr.Status, pkg.VatReportStatusPaid)
+	assert.GreaterOrEqual(suite.T(), nowTimestamp, vr.PaidAt.Seconds)
 }

@@ -624,6 +624,7 @@ type MgoVatReport struct {
 	PayUntilDate          time.Time     `bson:"pay_until_date"`
 	CreatedAt             time.Time     `bson:"created_at"`
 	UpdatedAt             time.Time     `bson:"updated_at"`
+	PaidAt                time.Time     `bson:"paid_at"`
 }
 
 type MgoOrderViewPrivate struct {
@@ -3468,6 +3469,13 @@ func (m *VatReport) GetBSON() (interface{}, error) {
 		return nil, err
 	}
 
+	if m.PaidAt != nil {
+		st.PaidAt, err = ptypes.Timestamp(m.PaidAt)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return st, nil
 }
 
@@ -3514,6 +3522,11 @@ func (m *VatReport) SetBSON(raw bson.Raw) error {
 	}
 
 	m.UpdatedAt, err = ptypes.TimestampProto(decoded.UpdatedAt)
+	if err != nil {
+		return err
+	}
+
+	m.PaidAt, err = ptypes.TimestampProto(decoded.PaidAt)
 	if err != nil {
 		return err
 	}

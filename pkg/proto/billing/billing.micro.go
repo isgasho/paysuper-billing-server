@@ -123,6 +123,8 @@ It has these top-level messages:
 	PayoutDocumentSignatureData
 	PayoutDocumentChanges
 	MerchantBalance
+	OrderReceipt
+	OrderReceiptItem
 */
 package billing
 

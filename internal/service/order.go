@@ -119,9 +119,12 @@ var (
 	orderErrorProductsPrice                                   = newBillingServerErrorMsg("fm000051", "can't get product price")
 	orderErrorCheckoutWithoutProducts                         = newBillingServerErrorMsg("fm000052", "order products not specified")
 	orderErrorCheckoutWithoutAmount                           = newBillingServerErrorMsg("fm000053", "order amount not specified")
-	orderErrorKeyReserveFailed                                = newBillingServerErrorMsg("fm000054", "can't reserve key for order")
 	orderErrorUnknownType                                     = newBillingServerErrorMsg("fm000055", "unknown type of order")
 	orderErrorMerchantBadTariffs                              = newBillingServerErrorMsg("fm000056", "merchant don't have tariffs")
+	orderErrorReceiptNotEquals                                = newBillingServerErrorMsg("fm000057", "receipts not equals")
+	orderErrorDuringFormattingCurrency                        = newBillingServerErrorMsg("fm000058", "error during formatting currency")
+	orderErrorDuringFormattingDate                            = newBillingServerErrorMsg("fm000059", "error during formatting date")
+	orderErrorMerchantForOrderNotFound                        = newBillingServerErrorMsg("fm000060", "merchant for order not found")
 )
 
 type orderCreateRequestProcessorChecked struct {
@@ -1097,6 +1100,22 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 	order.User.Address.Country = country
 	order.UserAddressDataRequired = true
 
+	restricted, err := s.applyCountryRestriction(order, country)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = orderErrorUnknown
+
+		return nil
+	}
+
+	if restricted == true {
+		rsp.Status = pkg.ResponseStatusForbidden
+		rsp.Message = orderCountryPaymentRestrictedError
+
+		return nil
+	}
+
 	err = s.updateOrder(order)
 
 	if err != nil {
@@ -1116,6 +1135,14 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		Zip:     order.User.Address.PostalCode,
 	}
 	rsp.Item.Brand = brand
+
+	if order.CountryRestriction != nil {
+		rsp.Item.CountryPaymentsAllowed = order.CountryRestriction.PaymentsAllowed
+		rsp.Item.CountryChangeAllowed = order.CountryRestriction.ChangeAllowed
+	} else {
+		rsp.Item.CountryPaymentsAllowed = true
+		rsp.Item.CountryChangeAllowed = true
+	}
 
 	return nil
 }
@@ -1362,6 +1389,22 @@ func (s *Service) sendMailWithReceipt(ctx context.Context, order *billing.Order)
 		},
 	}
 
+	if platform, ok := availablePlatforms[order.PlatformId]; ok {
+		payload.TemplateObjectModel.Fields["platform"] = &structpb.Value{
+			Kind: &structpb.Value_StructValue{
+				StructValue: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"name": {
+							Kind: &structpb.Value_StringValue{
+								StringValue: platform.Name,
+							},
+						},
+					},
+				},
+			},
+		}
+	}
+
 	zap.S().Infow("sending receipt to broker", "order_id", order.Id)
 	err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 	if err != nil {
@@ -1377,10 +1420,10 @@ func (s *Service) getReceiptModel(name string, price string) *structpb.Value {
 			StructValue: &structpb.Struct{
 				Fields: map[string]*structpb.Value{
 					"name": {
-						Kind: &structpb.Value_StringValue{StringValue:name},
+						Kind: &structpb.Value_StringValue{StringValue: name},
 					},
 					"price": {
-						Kind: &structpb.Value_StringValue{StringValue:price},
+						Kind: &structpb.Value_StringValue{StringValue: price},
 					},
 				},
 			},
@@ -1399,29 +1442,43 @@ func (s *Service) getPayloadForReceipt(order *billing.Order) *postmarkSdrPkg.Pay
 		zap.S().Errorw("Error during formatting date", "date", order.CreatedAt, "locale", DefaultLanguage)
 	}
 
+	merchantName := order.GetMerchantId()
+	merchant, err := s.merchant.GetById(order.GetMerchantId())
+	if err != nil {
+		zap.S().Errorw("Error during getting merchant", "merchant_id", order.GetMerchantId(), "order.uuid", order.Uuid, "err", err)
+	} else {
+		merchantName = merchant.Company.Name
+	}
+
 	return &postmarkSdrPkg.Payload{
 		TemplateAlias: s.cfg.EmailSuccessTransactionTemplate,
 		TemplateModel: map[string]string{
-			"platform_name": order.PlatformId,
-			"total_price": totalPrice,
-			"transaction_id": order.Uuid,
+			"total_price":      totalPrice,
+			"transaction_id":   order.Uuid,
 			"transaction_date": date,
-			"project_name": order.Project.Name[DefaultLanguage],
+			"project_name":     order.Project.Name[DefaultLanguage],
+			"receipt_id":       order.ReceiptId,
+			"merchant_name":    merchantName,
 		},
 		To: order.ReceiptEmail,
 	}
 }
 
 func (s *Service) sendMailWithCode(ctx context.Context, order *billing.Order, key *billing.Key) {
+	var platformIconUrl = ""
+	if platform, ok := availablePlatforms[order.PlatformId]; ok {
+		platformIconUrl = platform.Icon
+	}
+
 	for _, item := range order.Items {
 		if item.Id == key.KeyProductId {
 			item.Code = key.Code
 			payload := &postmarkSdrPkg.Payload{
 				TemplateAlias: s.cfg.EmailGameCodeTemplate,
 				TemplateModel: map[string]string{
-					"code":         key.Code,
-					"platform_id":  order.PlatformId,
-					"product_name": item.Name,
+					"code":          key.Code,
+					"platform_icon": platformIconUrl,
+					"product_name":  item.Name,
 				},
 				To: order.ReceiptEmail,
 			}
@@ -1481,7 +1538,7 @@ func (s *Service) getOrderById(id string) (order *billing.Order, err error) {
 }
 
 func (s *Service) getOrderByUuid(uuid string) (order *billing.Order, err error) {
-	err = s.db.Collection(collectionOrder).Find(bson.M{"uuid": uuid}).One(&order)
+	order, err = s.orderRepository.GetByUuid(uuid)
 
 	if err != nil && err != mgo.ErrNotFound {
 		zap.S().Errorf("Order not found in payment create process", "err", err.Error(), "uuid", uuid)
@@ -1577,6 +1634,7 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 		IsJsonRequest:  v.request.IsJson,
 
 		Uuid:               uuid.New().String(),
+		ReceiptId:          uuid.New().String(),
 		User:               v.checked.user,
 		OrderAmount:        amount,
 		TotalPaymentAmount: amount,
@@ -2230,7 +2288,6 @@ func (v *PaymentFormProcessor) processPaymentMethodsData(pm *billing.PaymentForm
 
 	return nil
 }
-
 
 func (s *PaymentCreateProcessor) reserveKeysForOrder(ctx context.Context, order *billing.Order) error {
 	if len(order.Keys) == 0 {
@@ -3433,4 +3490,132 @@ func (s *Service) PaymentFormPlatformChanged(ctx context.Context, req *grpc.Paym
 	}
 
 	return nil
+}
+
+func (s *Service) OrderReceipt(
+	ctx context.Context,
+	req *grpc.OrderReceiptRequest,
+	rsp *grpc.OrderReceiptResponse,
+) error {
+	order, err := s.orderRepository.GetByUuid(req.OrderId)
+
+	if err != nil {
+		zap.L().Error(pkg.MethodFinishedWithError, zap.Error(err))
+
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
+
+		return nil
+	}
+
+	if order.ReceiptId != req.ReceiptId {
+		zap.L().Error(
+			orderErrorReceiptNotEquals.Message,
+			zap.String("Requested receipt", req.ReceiptId),
+			zap.String("Order receipt", order.ReceiptId),
+		)
+
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = orderErrorReceiptNotEquals
+
+		return nil
+	}
+
+	merchant, err := s.merchant.GetById(order.GetMerchantId())
+
+	if err != nil {
+		zap.L().Error(orderErrorMerchantForOrderNotFound.Message, zap.Error(err))
+
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = orderErrorMerchantForOrderNotFound
+
+		return nil
+	}
+
+	totalPrice, err := s.formatter.FormatCurrency(DefaultLanguage, order.OrderAmount, order.Currency)
+
+	if err != nil {
+		zap.L().Error(
+			orderErrorDuringFormattingCurrency.Message,
+			zap.Float64("price", order.OrderAmount),
+			zap.String("locale", DefaultLanguage),
+			zap.String("currency", order.Currency),
+		)
+
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = orderErrorDuringFormattingCurrency
+
+		return nil
+	}
+
+	date, err := s.formatter.FormatDateTime(DefaultLanguage, time.Unix(order.CreatedAt.Seconds, 0))
+
+	if err != nil {
+		zap.L().Error(
+			orderErrorDuringFormattingDate.Message,
+			zap.Any("date", order.CreatedAt),
+			zap.String("locale", DefaultLanguage),
+		)
+
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = orderErrorDuringFormattingDate
+
+		return nil
+	}
+
+	items := make([]*billing.OrderReceiptItem, len(order.Items))
+
+	for _, item := range order.Items {
+		price, err := s.formatter.FormatCurrency("en", item.Amount, item.Currency)
+
+		if err != nil {
+			zap.L().Error(
+				orderErrorDuringFormattingCurrency.Message,
+				zap.Float64("price", item.Amount),
+				zap.String("locale", DefaultLanguage),
+				zap.String("currency", item.Currency),
+			)
+
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = orderErrorDuringFormattingCurrency
+
+			return nil
+		}
+
+		items = append(items, &billing.OrderReceiptItem{Name: item.Name, Price: price})
+	}
+
+	receipt := &billing.OrderReceipt{
+		TotalPrice:      totalPrice,
+		TransactionId:   order.Uuid,
+		TransactionDate: date,
+		ProjectName:     order.Project.Name[DefaultLanguage],
+		MerchantName:    merchant.Company.Name,
+		Items:           items,
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
+	rsp.Receipt = receipt
+
+	return nil
+}
+
+type OrderRepositoryInterface interface {
+	GetByUuid(string) (*billing.Order, error)
+}
+
+func newOrderRepository(svc *Service) OrderRepositoryInterface {
+	s := &OrderRepository{svc: svc}
+	return s
+}
+
+func (h *OrderRepository) GetByUuid(uuid string) (*billing.Order, error) {
+	order := &billing.Order{}
+	err := h.svc.db.Collection(collectionOrder).Find(bson.M{"uuid": uuid}).One(order)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return order, nil
 }
