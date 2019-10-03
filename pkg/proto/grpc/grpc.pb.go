@@ -5171,8 +5171,8 @@ type ProductPrice struct {
 	Amount float64 `protobuf:"fixed64,1,opt,name=amount,proto3" json:"amount" validate:"required,numeric,gt=0"`
 	//@inject_tag: validate:"required,alpha,len=3" json:"currency"
 	Currency string `protobuf:"bytes,2,opt,name=currency,proto3" json:"currency" validate:"required,alpha,len=3"`
-	//@inject_tag: json:"region" validate:"required"
-	Region               string   `protobuf:"bytes,3,opt,name=region,proto3" json:"region" validate:"required"`
+	//@inject_tag: json:"region" validate:"required,region_price"
+	Region               string   `protobuf:"bytes,3,opt,name=region,proto3" json:"region" validate:"required,region_price"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`
