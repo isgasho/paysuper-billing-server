@@ -54,6 +54,8 @@ const (
 	MerchantStatusAgreementSigned    = int32(4)
 	MerchantStatusDeleted            = int32(5)
 
+	MerchantMinimalPayoutLimit = float32(1000)
+
 	ResponseStatusOk          = int32(200)
 	ResponseStatusNotModified = int32(304)
 	ResponseStatusBadData     = int32(400)

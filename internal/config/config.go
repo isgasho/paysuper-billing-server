@@ -78,7 +78,8 @@ type Config struct {
 	PaysuperDocumentSignerEmail string `envconfig:"PAYSUPER_DOCUMENT_SIGNER_EMAIL" required:"true"`
 	PaysuperDocumentSignerName  string `envconfig:"PAYSUPER_DOCUMENT_SIGNER_NAME" required:"true"`
 
-	KeyDaemonRestartInterval int64 `envconfig:"KEY_DAEMON_RESTART_INTERVAL" default:"60"`
+	KeyDaemonRestartInterval int64  `envconfig:"KEY_DAEMON_RESTART_INTERVAL" default:"60"`
+	DashboardProjectsUrl     string `envconfig:"DASHBOARD_PROJECTS_URL" default:"https://paysupermgmt.tst.protocol.one/projects"`
 
 	*PaymentSystemConfig
 	*CustomerTokenConfig

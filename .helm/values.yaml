@@ -52,6 +52,7 @@ backend:
     - HELLO_SIGN_CLIENT_ID
     - PAYSUPER_DOCUMENT_SIGNER_EMAIL
     - PAYSUPER_DOCUMENT_SIGNER_NAME
+    - DASHBOARD_PROJECTS_URL
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
