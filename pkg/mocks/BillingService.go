@@ -2953,6 +2953,66 @@ func (_m *BillingService) OrderCreateProcess(ctx context.Context, in *billing.Or
 	return r0, r1
 }
 
+// OrderReceipt provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) OrderReceipt(ctx context.Context, in *grpc.OrderReceiptRequest, opts ...client.CallOption) (*grpc.OrderReceiptResponse, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *grpc.OrderReceiptResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.OrderReceiptRequest, ...client.CallOption) *grpc.OrderReceiptResponse); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*grpc.OrderReceiptResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.OrderReceiptRequest, ...client.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// OrderReceiptRefund provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) OrderReceiptRefund(ctx context.Context, in *grpc.OrderReceiptRequest, opts ...client.CallOption) (*grpc.OrderReceiptResponse, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *grpc.OrderReceiptResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.OrderReceiptRequest, ...client.CallOption) *grpc.OrderReceiptResponse); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*grpc.OrderReceiptResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.OrderReceiptRequest, ...client.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // PaymentCallbackProcess provides a mock function with given fields: ctx, in, opts
 func (_m *BillingService) PaymentCallbackProcess(ctx context.Context, in *grpc.PaymentNotifyRequest, opts ...client.CallOption) (*grpc.PaymentNotifyResponse, error) {
 	_va := make([]interface{}, len(opts))
