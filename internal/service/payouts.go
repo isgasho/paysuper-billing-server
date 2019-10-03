@@ -929,6 +929,7 @@ func (h *PayoutDocument) GetById(id string) (pd *billing.PayoutDocument, err err
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String(pkg.ErrorDatabaseFieldCollection, collectionPayoutDocuments),
+			zap.String(pkg.ErrorDatabaseFieldDocumentId, id),
 		)
 		return
 	}
