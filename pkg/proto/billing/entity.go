@@ -2,10 +2,8 @@ package billing
 
 import (
 	"github.com/globalsign/mgo/bson"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
-	"time"
 )
 
 var (
@@ -28,16 +26,23 @@ var (
 		constant.OrderStatusProjectComplete:             constant.OrderPublicStatusProcessed,
 		constant.OrderStatusRefund:                      constant.OrderPublicStatusRefunded,
 		constant.OrderStatusChargeback:                  constant.OrderPublicStatusChargeback,
+		constant.OrderStatusItemReplaced:                constant.OrderPublicStatusProcessed,
 	}
+)
+
+const (
+	OrderType_simple  = "simple"
+	OrderType_key     = "key"
+	OrderType_product = "product"
 )
 
 func (m *Merchant) ChangesAllowed() bool {
 	return m.Status == pkg.MerchantStatusDraft
 }
 
-func (m *Merchant) GetPayoutCurrency() *Currency {
+func (m *Merchant) GetPayoutCurrency() string {
 	if m.Banking == nil {
-		return nil
+		return ""
 	}
 
 	return m.Banking.Currency
@@ -50,39 +55,21 @@ func (m *Merchant) NeedMarkESignAgreementAsSigned() bool {
 
 func (m *Merchant) CanGenerateAgreement() bool {
 	return (m.Status == pkg.MerchantStatusOnReview || m.Status == pkg.MerchantStatusAgreementSigning ||
-		m.Status == pkg.MerchantStatusAgreementSigned) && m.Banking != nil && m.Country != "" &&
+		m.Status == pkg.MerchantStatusAgreementSigned) && m.Banking != nil && m.Company.Country != "" &&
 		m.Contacts != nil && m.Contacts.Authorized != nil
 }
 
 func (m *Merchant) CanChangeStatusToSigning() bool {
-	return m.Status == pkg.MerchantStatusOnReview && m.Banking != nil && m.Country != "" &&
+	return m.Status == pkg.MerchantStatusOnReview && m.Banking != nil && m.Company.Country != "" &&
 		m.Contacts != nil && m.Contacts.Authorized != nil
+}
+
+func (m *Merchant) IsFullySigned() bool {
+	return m.HasMerchantSignature && m.HasPspSignature
 }
 
 func (m *Merchant) IsDeleted() bool {
 	return m.Status == pkg.MerchantStatusDeleted
-}
-
-func (m *Order) HasEndedStatus() bool {
-	return m.PrivateStatus == constant.OrderStatusPaymentSystemReject || m.PrivateStatus == constant.OrderStatusProjectComplete ||
-		m.PrivateStatus == constant.OrderStatusProjectReject || m.PrivateStatus == constant.OrderStatusRefund ||
-		m.PrivateStatus == constant.OrderStatusChargeback
-}
-
-func (m *Order) RefundAllowed() bool {
-	v, ok := orderRefundAllowedStatuses[m.PrivateStatus]
-
-	return ok && v == true
-}
-
-func (m *Order) FormInputTimeIsEnded() bool {
-	t, err := ptypes.Timestamp(m.ExpireDateToFormInput)
-
-	return err != nil || t.Before(time.Now())
-}
-
-func (m *Order) GetProjectId() string {
-	return m.Project.Id
 }
 
 func (m *Project) IsProduction() bool {
@@ -121,66 +108,6 @@ func (m *OrderUser) IsIdentified() bool {
 	return m.Id != "" && bson.IsObjectIdHex(m.Id) == true
 }
 
-func (m *Order) GetPublicStatus() string {
-	st, ok := orderStatusPublicMapping[m.PrivateStatus]
-	if !ok {
-		return constant.OrderPublicStatusPending
-	}
-	return st
-}
-
-func (m *Order) GetReceiptUserEmail() string {
-	if m.User != nil {
-		return m.User.Email
-	}
-	return ""
-}
-
-func (m *Order) GetReceiptUserPhone() string {
-	if m.User != nil {
-		return m.User.Phone
-	}
-	return ""
-}
-
-func (m *Order) GetCountry() string {
-	if m.BillingAddress != nil && m.BillingAddress.Country != "" {
-		return m.BillingAddress.Country
-	}
-	if m.User != nil && m.User.Address != nil && m.User.Address.Country != "" {
-		return m.User.Address.Country
-	}
-	return ""
-}
-
-func (m *Order) GetState() string {
-	if m.BillingAddress != nil && m.BillingAddress.State != "" {
-		return m.BillingAddress.State
-	}
-	if m.User != nil && m.User.Address != nil && m.User.Address.State != "" {
-		return m.User.Address.State
-	}
-	return ""
-}
-
-func (m *Order) SetNotificationStatus(key string, val bool) {
-	if m.IsNotificationsSent == nil {
-		m.IsNotificationsSent = make(map[string]bool)
-	}
-	m.IsNotificationsSent[key] = val
-}
-
-func (m *Order) GetNotificationStatus(key string) bool {
-	if m.IsNotificationsSent == nil {
-		return false
-	}
-	val, ok := m.IsNotificationsSent[key]
-	if !ok {
-		return false
-	}
-	return val
-}
-
 func (m *PaymentMethod) IsValid() bool {
 	return m.ExternalId != "" &&
 		m.Currencies != nil &&
@@ -189,4 +116,139 @@ func (m *PaymentMethod) IsValid() bool {
 		m.Name != "" &&
 		m.TestSettings != nil &&
 		m.ProductionSettings != nil
+}
+
+func (m *Merchant) HasAuthorizedEmail() bool {
+	return m.Contacts != nil && m.Contacts.Authorized != nil && m.Contacts.Authorized.Email != ""
+}
+
+func (m *Merchant) GetAuthorizedEmail() string {
+	return m.Contacts.Authorized.Email
+}
+
+func (m *Merchant) GetAuthorizedName() string {
+	return m.Contacts.Authorized.Name
+}
+
+func (m *RoyaltyReport) ChangesAvailable(newStatus string) bool {
+	if m.Status == pkg.RoyaltyReportStatusAccepted {
+		return false
+	}
+
+	if m.Status == pkg.RoyaltyReportStatusPending && newStatus != pkg.RoyaltyReportStatusAccepted &&
+		newStatus != pkg.RoyaltyReportStatusDispute {
+		return false
+	}
+
+	if m.Status == pkg.RoyaltyReportStatusCanceled && newStatus != pkg.RoyaltyReportStatusPending {
+		return false
+	}
+
+	if m.Status == pkg.RoyaltyReportStatusDispute && newStatus != pkg.RoyaltyReportStatusPending {
+		return false
+	}
+
+	return true
+}
+
+func (m *Merchant) IsAgreementSigningStarted() bool {
+	return m.AgreementSignatureData != nil && (!m.HasPspSignature || !m.HasMerchantSignature)
+}
+
+func (m *Merchant) IsAgreementSigned() bool {
+	return m.HasMerchantSignature && m.HasPspSignature
+}
+
+func (m *Merchant) GetPrintableStatus() string {
+	status := "draft"
+
+	if m.Status == pkg.MerchantStatusAgreementSigned {
+		status = "life"
+	}
+
+	return status
+}
+
+func (m *Merchant) GetCompleteStepsCount() int32 {
+	count := int32(0)
+
+	if m.Steps.Company {
+		count++
+	}
+
+	if m.Steps.Contacts {
+		count++
+	}
+
+	if m.Steps.Banking {
+		count++
+	}
+
+	if m.Steps.Tariff {
+		count++
+	}
+
+	return count
+}
+
+func (m *Merchant) IsDataComplete() bool {
+	return m.Company != nil && m.Contacts != nil && m.Banking != nil && m.HasTariff()
+}
+
+func (m *Merchant) GetMerchantSignatureId() string {
+	return m.AgreementSignatureData.MerchantSignatureId
+}
+
+func (m *Merchant) GetPaysuperSignatureId() string {
+	return m.AgreementSignatureData.PsSignatureId
+}
+
+func (m *Merchant) GetMerchantSignUrl() *MerchantAgreementSignatureDataSignUrl {
+	return m.AgreementSignatureData.MerchantSignUrl
+}
+
+func (m *Merchant) GetPaysuperSignUrl() *MerchantAgreementSignatureDataSignUrl {
+	return m.AgreementSignatureData.PsSignUrl
+}
+
+func (m *Merchant) IsPaysuperSignatureId(signatureId string) bool {
+	return m.AgreementSignatureData.PsSignatureId == signatureId
+}
+
+func (m *Merchant) IsMerchantSignature(signatureId string) bool {
+	return m.AgreementSignatureData.MerchantSignatureId == signatureId
+}
+
+func (m *Merchant) HasTariff() bool {
+	return m.Tariff != nil && m.HasTariffPayment() && m.HasTariffMoneyBack() && m.Tariff.Payout != nil &&
+		m.Tariff.Chargeback != nil && m.Tariff.Region != ""
+}
+
+func (m *Merchant) HasTariffPayment() bool {
+	return m.Tariff.Payment != nil && len(m.Tariff.Payment) > 0
+}
+
+func (m *Merchant) HasTariffMoneyBack() bool {
+	return m.Tariff.MoneyBack != nil && len(m.Tariff.MoneyBack) > 0
+}
+
+func (m *Merchant) HasPrimaryOnboardingUserName() bool {
+	return m.User != nil && m.User.FirstName != "" && m.User.LastName != ""
+}
+
+func (m *Merchant) GetAddress() string {
+	return m.Company.Address + " " + m.Company.AddressAdditional + " " + m.Company.Zip + " " +
+		m.Company.Country
+}
+
+func (pd *PayoutDocument) IsPaysuperSignatureId(signatureId string) bool {
+	return pd.SignatureData.PsSignatureId == signatureId
+}
+
+func (pd *PayoutDocument) IsMerchantSignature(signatureId string) bool {
+	return pd.SignatureData.MerchantSignatureId == signatureId
+}
+
+func (pd *PayoutDocument) IsFullySigned() bool {
+	return pd.HasMerchantSignature == true && pd.HasPspSignature == true
 }

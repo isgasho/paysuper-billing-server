@@ -97,10 +97,13 @@ func (s *Service) CreateToken(
 		pids, err := s.processTokenProducts(req)
 
 		if err != nil {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
-
-			return nil
+			zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+				rsp.Status = pkg.ResponseStatusBadData
+				rsp.Message = e
+				return nil
+			}
+			return err
 		}
 
 		req.Settings.ProductsIds = pids
@@ -116,10 +119,13 @@ func (s *Service) CreateToken(
 	customer, err := s.findCustomer(req, project)
 
 	if err != nil && err != customerNotFound {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
-
-		return nil
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
 	}
 
 	if customer == nil {
@@ -129,19 +135,25 @@ func (s *Service) CreateToken(
 	}
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
-
-		return nil
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
 	}
 
 	token, err := s.createToken(req, customer)
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
-
-		return nil
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
 	}
 
 	rsp.Status = pkg.ResponseStatusOk

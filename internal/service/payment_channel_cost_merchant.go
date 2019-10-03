@@ -2,13 +2,14 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"sort"
 )
@@ -19,15 +20,16 @@ const (
 	cachePaymentChannelCostMerchantAll   = "pccm:all:m:%s"
 
 	collectionPaymentChannelCostMerchant = "payment_channel_cost_merchant"
-
-	errorCostMatchedToAmountNotFound = "cost matched to amount not found"
 )
 
 var (
-	errorPaymentChannelMerchantGetAll    = newBillingServerErrorMsg("pcm000001", "can't get list of payment channel setting for merchant")
-	errorPaymentChannelMerchantGet       = newBillingServerErrorMsg("pcm000002", "can't get payment channel setting for merchant")
-	errorPaymentChannelMerchantSetFailed = newBillingServerErrorMsg("pcm000003", "can't set payment channel setting for merchant")
-	errorPaymentChannelMerchantDelete    = newBillingServerErrorMsg("pcm000004", "can't delete payment channel setting for merchant")
+	errorPaymentChannelMerchantGetAll           = newBillingServerErrorMsg("pcm000001", "can't get list of payment channel setting for merchant")
+	errorPaymentChannelMerchantGet              = newBillingServerErrorMsg("pcm000002", "can't get payment channel setting for merchant")
+	errorPaymentChannelMerchantSetFailed        = newBillingServerErrorMsg("pcm000003", "can't set payment channel setting for merchant")
+	errorPaymentChannelMerchantDelete           = newBillingServerErrorMsg("pcm000004", "can't delete payment channel setting for merchant")
+	errorPaymentChannelMerchantCurrency         = newBillingServerErrorMsg("pcm000005", "currency not supported")
+	errorPaymentChannelMerchantCostAlreadyExist = newBillingServerErrorMsg("pcm000006", "cost with specified parameters already exist")
+	errorCostMatchedToAmountNotFound            = newBillingServerErrorMsg("pcm000007", "cost matched to amount not found")
 )
 
 func (s *Service) GetAllPaymentChannelCostMerchant(
@@ -55,7 +57,7 @@ func (s *Service) GetPaymentChannelCostMerchant(
 ) error {
 	val, err := s.getPaymentChannelCostMerchant(req)
 	if err != nil {
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = pkg.ResponseStatusNotFound
 		res.Message = errorPaymentChannelMerchantGet
 		return nil
 	}
@@ -97,8 +99,27 @@ func (s *Service) SetPaymentChannelCostMerchant(
 		}
 	}
 
-	// todo: 1. check for supported PayoutCurrency after integrations with currencies service
-	// todo: 2. check for supported PsFixedFeeCurrency after integrations with currencies service
+	sCurr, err := s.curService.GetSettlementCurrencies(ctx, &currencies.EmptyRequest{})
+	if err != nil {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorPaymentChannelMerchantCurrency
+		return nil
+	}
+	if !contains(sCurr.Currencies, req.PayoutCurrency) {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorPaymentChannelMerchantCurrency
+		return nil
+	}
+	if !contains(sCurr.Currencies, req.PsFixedFeeCurrency) {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorPaymentChannelMerchantCurrency
+		return nil
+	}
+	if !contains(sCurr.Currencies, req.MethodFixAmountCurrency) {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorPaymentChannelMerchantCurrency
+		return nil
+	}
 
 	req.IsActive = true
 
@@ -106,7 +127,7 @@ func (s *Service) SetPaymentChannelCostMerchant(
 		val, err := s.paymentChannelCostMerchant.GetById(req.Id)
 		if err != nil {
 			res.Status = pkg.ResponseStatusSystemError
-			res.Message = errorPaymentChannelMerchantGet
+			res.Message = errorPaymentChannelMerchantSetFailed
 			return nil
 		}
 		req.Id = val.Id
@@ -120,6 +141,12 @@ func (s *Service) SetPaymentChannelCostMerchant(
 	if err != nil {
 		res.Status = pkg.ResponseStatusSystemError
 		res.Message = errorPaymentChannelMerchantSetFailed
+
+		if mgo.IsDup(err) {
+			res.Status = pkg.ResponseStatusBadData
+			res.Message = errorPaymentChannelMerchantCostAlreadyExist
+		}
+
 		return nil
 	}
 
@@ -137,7 +164,7 @@ func (s *Service) DeletePaymentChannelCostMerchant(
 	pc, err := s.paymentChannelCostMerchant.GetById(req.Id)
 	if err != nil {
 		res.Status = pkg.ResponseStatusNotFound
-		res.Message = errorPaymentChannelMerchantGet
+		res.Message = errorCostRateNotFound
 		return nil
 	}
 	err = s.paymentChannelCostMerchant.Delete(pc)
@@ -164,7 +191,7 @@ func (s *Service) getPaymentChannelCostMerchant(req *billing.PaymentChannelCostM
 		}
 	}
 	if len(matchedAmounts) == 0 {
-		return nil, errors.New(errorCostMatchedToAmountNotFound)
+		return nil, errorCostMatchedToAmountNotFound
 	}
 
 	sort.Slice(matchedAmounts, func(i, j int) bool {
@@ -272,18 +299,24 @@ func (h PaymentChannelCostMerchant) GetById(id string) (*billing.PaymentChannelC
 	return &c, nil
 }
 
-func (h PaymentChannelCostMerchant) Get(merchant_id string, name string, payout_currency string, region string, country string) (*billing.PaymentChannelCostMerchantList, error) {
+func (h PaymentChannelCostMerchant) Get(
+	merchantId string,
+	name string,
+	payoutCurrency string,
+	region string,
+	country string,
+) (*billing.PaymentChannelCostMerchantList, error) {
 	var c billing.PaymentChannelCostMerchantList
-	key := fmt.Sprintf(cachePaymentChannelCostMerchantKey, merchant_id, name, payout_currency, region, country)
+	key := fmt.Sprintf(cachePaymentChannelCostMerchantKey, merchantId, name, payoutCurrency, region, country)
 
 	if err := h.svc.cacher.Get(key, c); err == nil {
 		return &c, nil
 	}
 
 	query := bson.M{
-		"merchant_id":     bson.ObjectIdHex(merchant_id),
-		"name":            name,
-		"payout_currency": payout_currency,
+		"merchant_id":     bson.ObjectIdHex(merchantId),
+		"name":            bson.RegEx{Pattern: "^" + name + "$", Options: "i"},
+		"payout_currency": payoutCurrency,
 		"region":          region,
 		"country":         country,
 		"is_active":       true,

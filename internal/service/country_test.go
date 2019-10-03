@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/mock"
+	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
+	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -40,26 +41,15 @@ func (suite *CountryTestSuite) SetupTest() {
 		suite.FailNow("Database connection failed", "%v", err)
 	}
 
-	rub := &billing.Currency{
-		CodeInt:  643,
-		CodeA3:   "RUB",
-		Name:     &billing.Name{Ru: "Российский рубль", En: "Russian ruble"},
-		IsActive: true,
-	}
-
 	suite.log, err = zap.NewProduction()
 
 	if err != nil {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
-	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
-
-	redisdb := mock.NewTestRedis()
+	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache)
+	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), )
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -68,7 +58,6 @@ func (suite *CountryTestSuite) SetupTest() {
 	pg := &billing.PriceGroup{
 		Id:       bson.NewObjectId().Hex(),
 		Currency: "USD",
-		IsSimple: true,
 		Region:   "",
 	}
 	if err := suite.service.priceGroup.Insert(pg); err != nil {
@@ -85,6 +74,15 @@ func (suite *CountryTestSuite) SetupTest() {
 		VatEnabled:      true,
 		PriceGroupId:    pg.Id,
 		VatCurrency:     "RUB",
+		VatThreshold: &billing.CountryVatThreshold{
+			Year:  0,
+			World: 0,
+		},
+		VatPeriodMonth:         3,
+		VatDeadlineDays:        25,
+		VatStoreYears:          5,
+		VatCurrencyRatesPolicy: "last-day",
+		VatCurrencyRatesSource: "cbrf",
 	}
 	if err := suite.service.country.Insert(suite.country); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
@@ -151,7 +149,7 @@ func (suite *CountryTestSuite) TestCountry_Insert_Ok() {
 }
 
 func (suite *CountryTestSuite) TestCountry_Insert_ErrorCacheUpdate() {
-	ci := &mock.CacheInterface{}
+	ci := &mocks.CacheInterface{}
 	ci.On("Set", "country:code_a2:AAA", mock2.Anything, mock2.Anything).
 		Return(errors.New("service unavailable"))
 	suite.service.cacher = ci
@@ -181,7 +179,7 @@ func (suite *CountryTestSuite) TestCountry_GetAll_Ok() {
 	assert.NotNil(suite.T(), c3)
 	assert.True(suite.T(), len(c3.Countries) > 0)
 
-	// saving db connection adn broke service db connection
+	// saving db connection and broke service db connection
 	db := suite.service.db
 	suite.service.db = nil
 
@@ -199,5 +197,46 @@ func (suite *CountryTestSuite) TestCountry_GetAll_Ok() {
 	assert.NoError(suite.T(), suite.service.country.Insert(&billing.Country{IsoCodeA2: "RU"}))
 	c5 := &billing.CountriesList{}
 	err = suite.service.cacher.Get(cacheCountryAll, c5)
+	assert.EqualError(suite.T(), err, "redis: nil")
+}
+
+func (suite *CountryTestSuite) TestCountry_GetCountriesWithVatEnabled_Ok() {
+	// initially cache is empty
+	c1 := &billing.CountriesList{}
+	err := suite.service.cacher.Get(cacheCountriesWithVatEnabled, c1)
+	assert.EqualError(suite.T(), err, "redis: nil")
+
+	// filling the cache
+	c2 := &billing.CountriesList{}
+	c2, err = suite.service.country.GetCountriesWithVatEnabled()
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), c2)
+	assert.True(suite.T(), len(c2.Countries) > 0)
+
+	// cache is already fulfilled
+	c3 := &billing.CountriesList{}
+	err = suite.service.cacher.Get(cacheCountriesWithVatEnabled, c3)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), c3)
+	assert.True(suite.T(), len(c3.Countries) > 0)
+
+	// saving db connection and broke service db connection
+	db := suite.service.db
+	suite.service.db = nil
+
+	// reading from cache, not from db
+	c4 := &billing.CountriesList{}
+	c4, err = suite.service.country.GetCountriesWithVatEnabled()
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), c4)
+	assert.True(suite.T(), len(c4.Countries) > 0)
+
+	// restoring db connection
+	suite.service.db = db
+
+	// inserting new country must clear cacheCountryAll cache
+	assert.NoError(suite.T(), suite.service.country.Insert(&billing.Country{IsoCodeA2: "US"}))
+	c5 := &billing.CountriesList{}
+	err = suite.service.cacher.Get(cacheCountriesWithVatEnabled, c5)
 	assert.EqualError(suite.T(), err, "redis: nil")
 }

@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/mock"
+	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
+	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"testing"
@@ -54,21 +55,9 @@ func (suite *ZipCodeTestSuite) SetupTest() {
 		suite.FailNow("Insert zip codes test data failed", "%v", err)
 	}
 
-	rub := &billing.Currency{
-		CodeInt:  643,
-		CodeA3:   "RUB",
-		Name:     &billing.Name{Ru: "Российский рубль", En: "Russian ruble"},
-		IsActive: true,
-	}
-	err = InitTestCurrency(db, []interface{}{rub})
-
-	if err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
-
-	redisdb := mock.NewTestRedis()
+	redisdb := mocks.NewTestRedis()
 	cache := NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, cache)
+	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), )
 	err = suite.service.Init()
 
 	if err != nil {

@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/mock"
+	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
+	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
@@ -39,17 +40,10 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 	assert.NoError(suite.T(), err, "Database connection failed")
 	projectId := bson.NewObjectId().Hex()
 
-	rub := &billing.Currency{
-		CodeInt:  643,
-		CodeA3:   "RUB",
-		Name:     &billing.Name{Ru: "Российский рубль", En: "Russian ruble"},
-		IsActive: true,
-	}
-
 	ps1 := &billing.PaymentSystem{
 		Id:                 bson.NewObjectId().Hex(),
 		Name:               "CardPay",
-		AccountingCurrency: rub,
+		AccountingCurrency: "RUB",
 		AccountingPeriod:   "every-day",
 		Country:            "",
 		IsActive:           true,
@@ -61,7 +55,7 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		Group:            "BANKCARD",
 		MinPaymentAmount: 100,
 		MaxPaymentAmount: 15000,
-		Currencies:       []int32{643, 840, 980},
+		Currencies:       []string{"RUB", "USD", "EUR"},
 		ExternalId:       "BANKCARD",
 		TestSettings: map[string]*billing.PaymentMethodParams{
 			"RUB": {
@@ -80,7 +74,7 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 	ps2 := &billing.PaymentSystem{
 		Id:                 bson.NewObjectId().Hex(),
 		Name:               "CardPay",
-		AccountingCurrency: rub,
+		AccountingCurrency: "RUB",
 		AccountingPeriod:   "every-day",
 		Country:            "",
 		IsActive:           true,
@@ -92,7 +86,7 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		Group:            "BITCOIN_1",
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
-		Currencies:       []int32{643, 840, 980},
+		Currencies:       []string{"RUB", "USD", "EUR"},
 		ExternalId:       "BITCOIN",
 		TestSettings: map[string]*billing.PaymentMethodParams{
 			"RUB": {
@@ -131,15 +125,18 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 			Id:    bson.NewObjectId().Hex(),
 			Email: "test@unit.test",
 		},
-		Name: "Unit test",
-		Zip:  "190000",
-		City: "St.Petersburg",
+		Company: &billing.MerchantCompanyInfo{
+			Name:    "merchant1",
+			Country: "RU",
+			Zip:     "190000",
+			City:    "St.Petersburg",
+		},
 		Contacts: &billing.MerchantContact{
 			Authorized: &billing.MerchantContactAuthorized{},
 			Technical:  &billing.MerchantContactTechnical{},
 		},
 		Banking: &billing.MerchantBanking{
-			Currency: rub,
+			Currency: "RUB",
 			Name:     "Bank name",
 		},
 		IsVatEnabled:              true,
@@ -223,14 +220,9 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 
 	err = db.Collection(collectionProduct).Insert(products...)
 	assert.NoError(suite.T(), err, "Insert product test data failed")
-
-	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
-
-	redisdb := mock.NewTestRedis()
+	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache)
+	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), )
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -442,6 +434,10 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_CallbackCurrenc
 		IsProductsCheckout: false,
 	}
 	rsp := &grpc.ChangeProjectResponse{}
+
+	suite.service.curService = mocks.NewCurrencyServiceMockError()
+	suite.service.supportedCurrencies = []string{}
+
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
 
 	assert.NoError(suite.T(), err)
@@ -462,6 +458,10 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_LimitCurrencyNo
 		IsProductsCheckout: false,
 	}
 	rsp := &grpc.ChangeProjectResponse{}
+
+	suite.service.supportedCurrencies = []string{"RUB"}
+	suite.service.curService = mocks.NewCurrencyServiceMockError()
+
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
 
 	assert.NoError(suite.T(), err)
@@ -813,19 +813,12 @@ func (suite *ProjectTestSuite) SetupTest() {
 		suite.FailNow("Database connection failed", "%v", err)
 	}
 
-	rub := &billing.Currency{
-		CodeInt:  643,
-		CodeA3:   "RUB",
-		Name:     &billing.Name{Ru: "Российский рубль", En: "Russian ruble"},
-		IsActive: true,
-	}
-
 	suite.project = &billing.Project{
 		Id:                 bson.NewObjectId().Hex(),
 		MerchantId:         bson.NewObjectId().Hex(),
-		CallbackCurrency:   rub.CodeA3,
+		CallbackCurrency:   "RUB",
 		CallbackProtocol:   "default",
-		LimitsCurrency:     rub.CodeA3,
+		LimitsCurrency:     "RUB",
 		MaxPaymentAmount:   15000,
 		MinPaymentAmount:   0,
 		Name:               map[string]string{"en": "test project 1"},
@@ -840,13 +833,9 @@ func (suite *ProjectTestSuite) SetupTest() {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
-	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
-
-	redisdb := mock.NewTestRedis()
+	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache)
+	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), )
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)

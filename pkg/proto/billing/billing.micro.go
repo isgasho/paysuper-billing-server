@@ -18,6 +18,10 @@ It has these top-level messages:
 	MerchantBanking
 	MerchantLastPayout
 	MerchantUser
+	MerchantCompanyInfo
+	MerchantCompletedSteps
+	MerchantAgreementSignatureDataSignUrl
+	MerchantAgreementSignatureData
 	Merchant
 	SystemNotificationStatuses
 	Notification
@@ -25,25 +29,18 @@ It has these top-level messages:
 	OrderTax
 	OrderBillingAddress
 	OrderUser
-	OrderPaymentRoyaltyData
 	Order
 	CountryRestriction
 	OrderItem
 	OrderPaginate
-	Currency
 	PaymentMethodOrder
 	PaymentMethodParams
 	PaymentSystem
 	PaymentMethodCard
 	PaymentMethodWallet
 	PaymentMethodCrypto
-	OrderFee
-	OrderFeePsp
-	OrderFeePaymentSystem
 	ProjectPaymentMethod
-	CurrencyRate
 	PaymentMethod
-	Vat
 	Commission
 	CardExpire
 	SavedCard
@@ -74,14 +71,13 @@ It has these top-level messages:
 	OrderIssuer
 	OrderNotificationRefund
 	GetCountryRequest
+	CountryVatThreshold
 	Country
 	CountriesList
 	GetPriceGroupRequest
 	PriceGroup
 	ZipCodeState
 	ZipCode
-	CurrencyList
-	GetCurrencyRequest
 	PaymentChannelCostSystem
 	PaymentChannelCostSystemRequest
 	PaymentChannelCostSystemList
@@ -98,7 +94,35 @@ It has these top-level messages:
 	MoneyBackCostMerchantList
 	MoneyBackCostMerchantListRequest
 	PayoutCostSystem
+	AccountingEntrySource
 	AccountingEntry
+	RoyaltyReportTotals
+	RoyaltyReportProductSummaryItem
+	RoyaltyReportCorrectionItem
+	RoyaltyReportSummary
+	RoyaltyReport
+	RoyaltyReportChanges
+	VatTransaction
+	VatReport
+	AnnualTurnover
+	OrderViewMoney
+	OrderViewPublic
+	OrderViewPrivate
+	PriceGroupRecommendedPrice
+	PriceTable
+	PriceTableCurrency
+	Id
+	RangeInt
+	MerchantTariffRatesPayments
+	MerchantTariffRatesMoneyBack
+	TariffRatesItem
+	MerchantTariffRates
+	Key
+	PayoutDocument
+	PayoutDocumentSignatureDataSignUrl
+	PayoutDocumentSignatureData
+	PayoutDocumentChanges
+	MerchantBalance
 */
 package billing
 

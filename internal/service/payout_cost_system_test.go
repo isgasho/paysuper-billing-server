@@ -4,9 +4,10 @@ import (
 	"errors"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/mock"
+	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
+	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -38,26 +39,15 @@ func (suite *PayoutCostSystemTestSuite) SetupTest() {
 		suite.FailNow("Database connection failed", "%v", err)
 	}
 
-	rub := &billing.Currency{
-		CodeInt:  643,
-		CodeA3:   "RUB",
-		Name:     &billing.Name{Ru: "Российский рубль", En: "Russian ruble"},
-		IsActive: true,
-	}
-
 	suite.log, err = zap.NewProduction()
 
 	if err != nil {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
-	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
-
-	redisdb := mock.NewTestRedis()
+	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache)
+	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), )
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -116,7 +106,7 @@ func (suite *PayoutCostSystemTestSuite) TestPayoutCostSystem_Set_Ok() {
 }
 
 func (suite *PayoutCostSystemTestSuite) TestPayoutCostSystem_Insert_ErrorCacheUpdate() {
-	ci := &mock.CacheInterface{}
+	ci := &mocks.CacheInterface{}
 	obj := &billing.PayoutCostSystem{
 		IntrabankCostAmount:   2,
 		IntrabankCostCurrency: "EUR",

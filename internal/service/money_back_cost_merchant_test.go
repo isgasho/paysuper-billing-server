@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/mock"
+	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
+	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -43,26 +44,15 @@ func (suite *MoneyBackCostMerchantTestSuite) SetupTest() {
 		suite.FailNow("Database connection failed", "%v", err)
 	}
 
-	rub := &billing.Currency{
-		CodeInt:  643,
-		CodeA3:   "RUB",
-		Name:     &billing.Name{Ru: "Российский рубль", En: "Russian ruble"},
-		IsActive: true,
-	}
-
 	suite.log, err = zap.NewProduction()
 
 	if err != nil {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
-	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
-
-	redisdb := mock.NewTestRedis()
+	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache)
+	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), )
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -114,7 +104,7 @@ func (suite *MoneyBackCostMerchantTestSuite) SetupTest() {
 					Fee: 2.5,
 					PerTransaction: &billing.MerchantPaymentMethodPerTransactionCommission{
 						Fee:      30,
-						Currency: rub.CodeA3,
+						Currency: "RUB",
 					},
 				},
 				Integration: &billing.MerchantPaymentMethodIntegration{
@@ -222,17 +212,18 @@ func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_GrpcGet_O
 
 func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_GrpcSet_Ok() {
 	req := &billing.MoneyBackCostMerchant{
-		Id:             suite.moneyBackCostMerchantId,
-		MerchantId:     suite.merchantId,
-		Name:           "VISA",
-		PayoutCurrency: "USD",
-		UndoReason:     "chargeback",
-		Region:         "CIS",
-		Country:        "AZ",
-		DaysFrom:       0,
-		PaymentStage:   1,
-		Percent:        3.33,
-		FixAmount:      7.5,
+		Id:                suite.moneyBackCostMerchantId,
+		MerchantId:        suite.merchantId,
+		Name:              "VISA",
+		PayoutCurrency:    "USD",
+		UndoReason:        "chargeback",
+		Region:            "CIS",
+		Country:           "AZ",
+		DaysFrom:          0,
+		PaymentStage:      1,
+		Percent:           3.33,
+		FixAmount:         7.5,
+		FixAmountCurrency: "USD",
 	}
 
 	res := grpc.MoneyBackCostMerchantResponse{}
@@ -263,7 +254,7 @@ func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_Insert_Ok
 }
 
 func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_Insert_ErrorCacheUpdate() {
-	ci := &mock.CacheInterface{}
+	ci := &mocks.CacheInterface{}
 	obj := &billing.MoneyBackCostMerchant{
 		MerchantId:     suite.merchantId,
 		Name:           "MASTERCARD",

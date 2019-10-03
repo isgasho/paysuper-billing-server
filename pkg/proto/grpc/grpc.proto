@@ -14,7 +14,6 @@ service BillingService {
 
     rpc UpdateOrder (billing.Order) returns (EmptyResponse) {}
     rpc UpdateMerchant (billing.Merchant) returns (EmptyResponse) {}
-    rpc GetConvertRate (ConvertRateRequest) returns (ConvertRateResponse) {}
 
     rpc GetMerchantBy (GetMerchantByRequest) returns (GetMerchantResponse) {}
     rpc ListMerchants (MerchantListingRequest) returns (MerchantListingResponse) {}
@@ -22,6 +21,8 @@ service BillingService {
     rpc ChangeMerchantStatus (MerchantChangeStatusRequest) returns (ChangeMerchantStatusResponse) {}
     rpc ChangeMerchantData (ChangeMerchantDataRequest) returns (ChangeMerchantDataResponse) {}
     rpc SetMerchantS3Agreement (SetMerchantS3AgreementRequest) returns (ChangeMerchantDataResponse) {}
+    rpc GetMerchantTariffRates(GetMerchantTariffRatesRequest) returns (GetMerchantTariffRatesResponse) {}
+    rpc SetMerchantTariffRates(SetMerchantTariffRatesRequest) returns (CheckProjectRequestSignatureResponse) {}
 
     rpc CreateNotification (NotificationRequest) returns (CreateNotificationResponse) {}
     rpc GetNotification (GetNotificationRequest) returns (billing.Notification) {}
@@ -46,6 +47,8 @@ service BillingService {
     rpc GetProduct (RequestProduct) returns (Product) {}
     rpc DeleteProduct (RequestProduct) returns (EmptyResponse) {}
     rpc GetProductsForOrder (GetProductsForOrderRequest) returns (ListProductsResponse) {}
+    rpc GetProductPrices (RequestProduct) returns (ProductPricesResponse) {}
+    rpc UpdateProductPrices (UpdateProductPricesRequest) returns (ResponseError) {}
 
     rpc ChangeProject (billing.Project) returns (ChangeProjectResponse) {}
     rpc GetProject (GetProjectRequest) returns (ChangeProjectResponse) {}
@@ -59,28 +62,31 @@ service BillingService {
     rpc GetCountry (billing.GetCountryRequest) returns (billing.Country) {}
     rpc UpdateCountry (billing.Country) returns (billing.Country) {}
 
-    rpc GetOrder (GetOrderRequest) returns (billing.Order) {}
-    rpc FindAllOrders (ListOrdersRequest) returns (billing.OrderPaginate) {}
+    rpc GetOrderPublic (GetOrderRequest) returns (GetOrderPublicResponse) {}
+    rpc GetOrderPrivate (GetOrderRequest) returns (GetOrderPrivateResponse) {}
+    rpc FindAllOrdersPublic (ListOrdersRequest) returns (ListOrdersPublicResponse) {}
+    rpc FindAllOrdersPrivate (ListOrdersRequest) returns (ListOrdersPrivateResponse) {}
     rpc IsOrderCanBePaying (IsOrderCanBePayingRequest) returns (IsOrderCanBePayingResponse) {}
 
     rpc GetPriceGroup (billing.GetPriceGroupRequest) returns (billing.PriceGroup) {}
     rpc UpdatePriceGroup (billing.PriceGroup) returns (billing.PriceGroup) {}
+    rpc GetPriceGroupByCountry (PriceGroupByCountryRequest) returns (billing.PriceGroup) {}
+    rpc GetPriceGroupCurrencies (EmptyRequest) returns (PriceGroupCurrenciesResponse) {}
+    rpc GetPriceGroupCurrencyByRegion (PriceGroupByRegionRequest) returns (PriceGroupCurrenciesResponse) {}
+    rpc GetPriceGroupRecommendedPrice (PriceGroupRecommendedPriceRequest) returns (PriceGroupRecommendedPriceResponse) {}
 
     rpc SetUserNotifySales (SetUserNotifyRequest) returns (EmptyResponse) {}
     rpc SetUserNotifyNewRegion (SetUserNotifyRequest) returns (EmptyResponse) {}
 
-    rpc CreateOrUpdatePaymentMethod(billing.PaymentMethod) returns (ChangePaymentMethodResponse) {}
-    rpc CreateOrUpdatePaymentMethodProductionSettings(ChangePaymentMethodParamsRequest) returns (ChangePaymentMethodParamsResponse) {}
-    rpc GetPaymentMethodProductionSettings(GetPaymentMethodSettingsRequest) returns (billing.PaymentMethodParams) {}
-    rpc DeletePaymentMethodProductionSettings(GetPaymentMethodSettingsRequest) returns (ChangePaymentMethodParamsResponse) {}
-    rpc CreateOrUpdatePaymentMethodTestSettings(ChangePaymentMethodParamsRequest) returns (ChangePaymentMethodParamsResponse) {}
-    rpc GetPaymentMethodTestSettings(GetPaymentMethodSettingsRequest) returns (billing.PaymentMethodParams) {}
-    rpc DeletePaymentMethodTestSettings(GetPaymentMethodSettingsRequest) returns (ChangePaymentMethodParamsResponse) {}
+    rpc CreateOrUpdatePaymentMethod (billing.PaymentMethod) returns (ChangePaymentMethodResponse) {}
+    rpc CreateOrUpdatePaymentMethodProductionSettings (ChangePaymentMethodParamsRequest) returns (ChangePaymentMethodParamsResponse) {}
+    rpc GetPaymentMethodProductionSettings (GetPaymentMethodSettingsRequest) returns (GetPaymentMethodSettingsResponse) {}
+    rpc DeletePaymentMethodProductionSettings (GetPaymentMethodSettingsRequest) returns (ChangePaymentMethodParamsResponse) {}
+    rpc CreateOrUpdatePaymentMethodTestSettings (ChangePaymentMethodParamsRequest) returns (ChangePaymentMethodParamsResponse) {}
+    rpc GetPaymentMethodTestSettings (GetPaymentMethodSettingsRequest) returns (GetPaymentMethodSettingsResponse) {}
+    rpc DeletePaymentMethodTestSettings (GetPaymentMethodSettingsRequest) returns (ChangePaymentMethodParamsResponse) {}
 
-    rpc GetCurrencyList (EmptyRequest) returns (billing.CurrencyList) {}
-    rpc GetCurrency (billing.GetCurrencyRequest) returns (billing.Currency) {}
-
-    rpc FindByZipCode(FindByZipCodeRequest) returns (FindByZipCodeResponse) {}
+    rpc FindByZipCode (FindByZipCodeRequest) returns (FindByZipCodeResponse) {}
 
     rpc GetAllPaymentChannelCostSystem(EmptyRequest) returns (PaymentChannelCostSystemListResponse) {}
     rpc GetPaymentChannelCostSystem(billing.PaymentChannelCostSystemRequest) returns (PaymentChannelCostSystemResponse) {}
@@ -102,11 +108,257 @@ service BillingService {
     rpc SetMoneyBackCostMerchant(billing.MoneyBackCostMerchant) returns (MoneyBackCostMerchantResponse) {}
     rpc DeleteMoneyBackCostMerchant(billing.PaymentCostDeleteRequest) returns (ResponseError) {}
 
-    rpc CreateAccountingEntry(CreateAccountingEntryRequest) returns (CreateAccountingEntryRequest) {}
+    rpc CreateAccountingEntry(CreateAccountingEntryRequest) returns (CreateAccountingEntryResponse) {}
+
+    rpc GetUserProfile (GetUserProfileRequest) returns (GetUserProfileResponse) {}
+    rpc CreateOrUpdateUserProfile (UserProfile) returns (GetUserProfileResponse) {}
+    rpc ConfirmUserEmail (ConfirmUserEmailRequest) returns (CheckProjectRequestSignatureResponse) {}
+    rpc CreatePageReview(CreatePageReviewRequest) returns (CheckProjectRequestSignatureResponse) {}
+
+    rpc CreateRoyaltyReport(CreateRoyaltyReportRequest) returns (CreateRoyaltyReportRequest) {}
+    rpc ListRoyaltyReports(ListRoyaltyReportsRequest) returns (ListRoyaltyReportsResponse) {}
+    rpc GetRoyaltyReport(GetRoyaltyReportRequest) returns (GetRoyaltyReportResponse) {}
+    rpc ChangeRoyaltyReport(ChangeRoyaltyReportRequest) returns (ResponseError) {}
+    rpc ListRoyaltyReportOrders(ListRoyaltyReportOrdersRequest) returns (TransactionsResponse) {}
+    rpc MerchantReviewRoyaltyReport(MerchantReviewRoyaltyReportRequest) returns (ResponseError) {}
+    rpc AutoAcceptRoyaltyReports(EmptyRequest) returns (EmptyResponse) {}
+
+    rpc GetVatReportsDashboard (EmptyRequest) returns (VatReportsResponse) {}
+    rpc GetVatReportsForCountry (VatReportsRequest) returns (VatReportsResponse) {}
+    rpc GetVatReportTransactions (VatTransactionsRequest) returns (TransactionsResponse) {}
+    rpc ProcessVatReports (ProcessVatReportsRequest) returns (EmptyResponse) {}
+    rpc UpdateVatReportStatus (UpdateVatReportStatusRequest) returns (ResponseError) {}
+
+    rpc CalcAnnualTurnovers(EmptyRequest) returns (EmptyResponse) {}
+    rpc GetMerchantAgreementSignUrl(GetMerchantAgreementSignUrlRequest) returns (GetMerchantAgreementSignUrlResponse) {}
+    rpc GetMerchantOnboardingCompleteData(SetMerchantS3AgreementRequest) returns (GetMerchantOnboardingCompleteDataResponse) {}
+    rpc CreateOrUpdateKeyProduct (CreateOrUpdateKeyProductRequest) returns (KeyProductResponse) {}
+    rpc GetKeyProducts(ListKeyProductsRequest) returns (ListKeyProductsResponse) {}
+    rpc GetKeyProduct (RequestKeyProductMerchant) returns (KeyProductResponse) {}
+    rpc DeleteKeyProduct (RequestKeyProductMerchant) returns (EmptyResponseWithStatus) {}
+    rpc PublishKeyProduct(PublishKeyProductRequest) returns (KeyProductResponse) {}
+    rpc UnPublishKeyProduct(UnPublishKeyProductRequest) returns (KeyProductResponse) {}
+    rpc GetKeyProductsForOrder (GetKeyProductsForOrderRequest) returns (ListKeyProductsResponse) {}
+    rpc GetKeyProductInfo(GetKeyProductInfoRequest) returns (GetKeyProductInfoResponse) {}
+
+    rpc GetPlatforms(ListPlatformsRequest) returns (ListPlatformsResponse) {}
+
+    rpc GetAvailableKeysCount(GetPlatformKeyCountRequest) returns (GetPlatformKeyCountResponse) {}
+    rpc UploadKeysFile(PlatformKeysFileRequest) returns (PlatformKeysFileResponse) {}
+    rpc GetKeyByID(KeyForOrderRequest) returns (GetKeyForOrderRequestResponse) {}
+    rpc ReserveKeyForOrder(PlatformKeyReserveRequest) returns (PlatformKeyReserveResponse) {}
+    rpc FinishRedeemKeyForOrder(KeyForOrderRequest) returns (GetKeyForOrderRequestResponse) {}
+    rpc CancelRedeemKeyForOrder(KeyForOrderRequest) returns (EmptyResponseWithStatus) {}
+
+    rpc ChangeCodeInOrder(ChangeCodeInOrderRequest) returns (ChangeCodeInOrderResponse) {}
+
+    rpc GetDashboardMainReport(GetDashboardMainRequest) returns (GetDashboardMainResponse) {}
+    rpc GetDashboardRevenueDynamicsReport(GetDashboardMainRequest) returns (GetDashboardRevenueDynamicsReportResponse) {}
+    rpc GetDashboardBaseReport(GetDashboardBaseReportRequest) returns (GetDashboardBaseReportResponse) {}
+
+    rpc CreatePayoutDocument(CreatePayoutDocumentRequest) returns (PayoutDocumentResponse) {}
+    rpc UpdatePayoutDocument(UpdatePayoutDocumentRequest) returns (PayoutDocumentResponse) {}
+    rpc GetPayoutDocuments(GetPayoutDocumentsRequest) returns (GetPayoutDocumentsResponse) {}
+    rpc GetPayoutDocumentSignUrl(GetPayoutDocumentSignUrlRequest) returns (GetPayoutDocumentSignUrlResponse) {}
+    rpc UpdatePayoutDocumentSignatures(UpdatePayoutDocumentSignaturesRequest) returns (PayoutDocumentResponse) {}
+    rpc PayoutDocumentPdfUploaded(PayoutDocumentPdfUploadedRequest) returns (PayoutDocumentPdfUploadedResponse) {}
+
+    rpc GetMerchantBalance(GetMerchantBalanceRequest) returns (GetMerchantBalanceResponse) {}
+
+    rpc PaymentFormPlatformChanged (PaymentFormUserChangePlatformRequest) returns (EmptyResponseWithStatus) {}
 }
 
 message EmptyRequest {}
 message EmptyResponse {}
+
+message EmptyResponseWithStatus {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+}
+
+message ChangeCodeInOrderRequest {
+    //@inject_tag: validate:"required"
+    string order_id = 1;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string key_product_id = 2;
+}
+
+message ChangeCodeInOrderResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.Order order = 3;
+}
+
+message GetPlatformKeyCountResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    //@inject_tag: json:"count"
+    int32 count = 3;
+}
+
+message KeyForOrderRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string key_id = 1;
+}
+
+message GetKeyForOrderRequestResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    //@inject_tag: json:"key"
+    billing.Key key = 3;
+}
+
+message PlatformKeyReserveResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    //@inject_tag: json:"key_id"
+    string key_id = 3;
+}
+
+message PlatformKeyReserveRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string key_product_id = 2;
+    //@inject_tag: validate:"hexadecimal,len=24"
+    string merchant_id = 3;
+    //@inject_tag: validate:"required,max=255"
+    string platform_id = 4;
+    //@inject_tag: validate:"required"
+    int32 ttl = 5;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string order_id = 6;
+}
+
+message PlatformKeysFileResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    int32 keys_processed = 3;
+    int32 total_count = 4;
+}
+
+message PlatformKeysFileRequest {
+    //@inject_tag: validate:"required,max=10485760"
+    bytes file = 1;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string key_product_id = 2;
+    //@inject_tag: validate:"hexadecimal,len=24" json:"merchant_id"
+    string merchant_id = 3;
+    //@inject_tag: validate:"required,max=255"
+    string platform_id = 4;
+}
+
+message GetPlatformKeyCountRequest {
+    //@inject_tag: query:"key_product_id" validate:"required,hexadecimal,len=24"
+    string key_product_id = 1;
+    //@inject_tag: validate:"hexadecimal,len=24"
+    string merchant_id = 2;
+    //@inject_tag: query:"platform_id" validate:"required,max=255"
+    string platform_id = 3;
+}
+
+message RemovePlatformRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string key_product_id = 1;
+    //@inject_tag: validate:"hexadecimal,len=24" json:"merchant_id"
+    string merchant_id = 2;
+    //@inject_tag: validate:"required,max=255"
+    string platform_id = 3;
+}
+
+message KeyProductResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    //@inject_tag: json:"product"
+    KeyProduct product = 3;
+}
+
+message CreateOrUpdateKeyProductRequest {
+    //@inject_tag: validate:"required,min=1"
+    map<string, string> name = 1;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string project_id = 2;
+    //@inject_tag: validate:"required,min=1"
+    map<string, string> description = 3;
+    //@inject_tag: json:"long_description"
+    map<string, string> long_description = 4;
+    //@inject_tag: validate:"required,max=255"
+    string sku = 5;
+    //@inject_tag: validate:"dive,omitempty,uri" json:"images"
+    repeated string images = 6;
+    //@inject_tag: validate:"omitempty,url" json:"url"
+    string url = 7;
+    //@inject_tag: validate:"required,alpha,len=3" json:"default_currency"
+    string default_currency = 8;
+    //@inject_tag: validate:"hexadecimal,len=24" json:"merchant_id"
+    string merchant_id = 9;
+    //@inject_tag: validate:"omitempty,hexadecimal,len=24"
+    string id = 10;
+    //@inject_tag: json:"object" validate:"required"
+    string object = 11;
+    //@inject_tag: json:"metadata"
+    map<string, string> metadata = 12;
+    //@inject_tag: validate:"dive" json:"platforms"
+    repeated PlatformPrice platforms = 13;
+}
+
+message UnPublishKeyProductRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string key_product_id = 1;
+}
+
+message PublishKeyProductRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string key_product_id = 1;
+    //@inject_tag: validate:"hexadecimal,len=24"
+    string merchant_id = 2;
+}
+
+message ListPlatformsRequest {
+    // @inject_tag: query:"limit" validate:"required,numeric,gt=0"
+    int32 limit = 1;
+    // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
+    int32 offset = 2;
+}
+
+message ListPlatformsResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"limit"
+    int32 limit = 3;
+    // @inject_tag: json:"offset"
+    int32 offset = 4;
+    // @inject_tag: json:"count"
+    int32 count = 5;
+    // @inject_tag: json:"platforms"
+    repeated Platform platforms = 6;
+}
+
+message ListKeyProductsResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"limit"
+    int32 limit = 3;
+    // @inject_tag: json:"offset"
+    int32 offset = 4;
+    // @inject_tag: json:"count"
+    int32 count = 5;
+    // @inject_tag: json:"products"
+    repeated KeyProduct products = 6;
+}
+
+message ListKeyProductsRequest {
+    //@inject_tag: query:"name" json:"name"
+    string name = 1;
+    //@inject_tag: query:"sku" json:"sku"
+    string sku = 2;
+    // @inject_tag: query:"limit" validate:"required,numeric,gt=0" json:"limit"
+    int32 limit = 3;
+    // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0" json:"offset"
+    int32 offset = 4;
+    //@inject_tag: query:"merchant_id" validate:"required,hexadecimal,len=24"
+    string merchant_id = 5;
+    //@inject_tag: query:"project_id" validate:"omitempty,hexadecimal,len=24"
+    string project_id = 6;
+}
 
 message PaymentCreateRequest {
     map<string, string> data = 1;
@@ -130,6 +382,8 @@ message PaymentFormJsonDataRequest {
     string ip = 5;
     string user_agent = 6;
     string cookie = 7;
+    string referer = 8;
+    bool is_embedded = 9;
 }
 
 message PaymentFormJsonDataProject {
@@ -140,7 +394,7 @@ message PaymentFormJsonDataProject {
     string url_fail = 3; // url to redirect user after failed payment. may be NULL if not set in project settings
 }
 
-message PaymentFormJsonDataResponse {
+message PaymentFormJsonData {
     string id = 1; // order unique identifier
     // @inject_tag: json:"account,omitempty"
     string account = 2; // user account, may be null
@@ -173,6 +427,15 @@ message PaymentFormJsonDataResponse {
     bool country_change_allowed = 19;
 }
 
+message PaymentFormJsonDataResponse {
+    //@inject_tag: json:"status"
+    int32 status = 1;
+    //@inject_tag: json:"message"
+    ResponseErrorMessage message = 2;
+    //@inject_tag: json:"item"
+    PaymentFormJsonData item = 3;
+}
+
 message PaymentNotifyRequest {
     string order_id = 1;
     bytes request = 2;
@@ -184,46 +447,14 @@ message PaymentNotifyResponse {
     string error = 2;
 }
 
-message ConvertRateRequest {
-    int32 from = 1;
-    int32 to = 2;
-}
-
-message ConvertRateResponse {
-    double rate = 1;
-}
-
-message OnboardingBanking {
-    //@inject_tag: validate:"omitempty,len=3"
-    string currency = 1;
-    string name = 2;
-    string address = 3;
-    string account_number = 4;
-    string swift = 5;
-    string details = 6;
-}
-
 message OnboardingRequest {
     // @inject_tag: validate:"omitempty,hexadecimal,len=24"
     string id = 1;
     //@inject_tag: validate:"required"
     billing.MerchantUser user = 2;
-    string name = 3;
-    string alternative_name = 4;
-    string website = 5;
-    //@inject_tag: validate:"omitempty,len=2"
-    string country = 6;
-    string state = 7;
-    string zip = 8;
-    string city = 9;
-    string address = 10;
-    string address_additional = 11;
-    string registration_number = 12;
-    string tax_id = 13;
-    // @inject_tag: validate:"required"
+    billing.MerchantCompanyInfo company = 3;
     billing.MerchantContact contacts = 14;
-    // @inject_tag: validate:"required"
-    OnboardingBanking banking = 15;
+    billing.MerchantBanking banking = 15;
 }
 
 message FindByIdRequest {
@@ -250,10 +481,20 @@ message MerchantListingRequest {
     string quick_search = 9;
     // @inject_tag: query:"status[]"
     repeated int32 statuses = 10;
+    // @inject_tag: query:"registration_date_from" validate:"omitempty,numeric,gt=0"
+    int64 registration_date_from = 11;
+    // @inject_tag: query:"registration_date_to" validate:"omitempty,numeric,gt=0"
+    int64 registration_date_to = 12;
+    // @inject_tag: query:"received_date_from" validate:"omitempty,numeric,gt=0"
+    int64 received_date_from = 13;
+    // @inject_tag: query:"received_date_to" validate:"omitempty,numeric,gt=0"
+    int64 received_date_to = 14;
 }
 
 message MerchantListingResponse {
+    // @inject_tag: json:"count"
     int32 count = 1;
+    // @inject_tag: json:"items"
     repeated billing.Merchant items = 2;
 }
 
@@ -361,6 +602,7 @@ message CreateRefundRequest {
     double amount = 2;
     string creator_id = 3;
     string reason = 4;
+    bool is_chargeback = 5;
 }
 
 message CreateRefundResponse {
@@ -400,6 +642,13 @@ message PaymentFormDataChangedRequest {
     string order_id = 1;
     string lang = 2;
     string account = 3;
+}
+
+message PaymentFormUserChangePlatformRequest {
+    // @inject_tag: validate:"required,uuid"
+    string order_id = 1;
+    // @inject_tag: validate:"required,min=2,max=255"
+    string platform = 2;
 }
 
 message PaymentFormUserChangeLangRequest {
@@ -530,6 +779,88 @@ message SetMerchantS3AgreementRequest {
     string s3_agreement_name = 2;
 }
 
+message KeyProductInfo {
+    string id = 1;
+    string project_id = 2;
+    string name = 3;
+    string description = 4;
+    string long_description = 5;
+    repeated string images = 6;
+    repeated PlatformPriceInfo platforms = 7;
+}
+
+message PlatformPriceInfo {
+    string id = 1;
+    string name = 2;
+    ProductPriceInfo price = 3;
+}
+
+message ProductPriceInfo {
+    double amount = 1;
+    string currency = 2;
+    string region = 3;
+    bool is_fallback = 4;
+}
+
+message KeyProduct {
+    //@inject_tag: validate:"omitempty,hexadecimal,len=24" json:"id"
+    string id = 1;
+    //@inject_tag: validate:"required,hexadecimal,len=24" json:"-"
+    string merchant_id = 2;
+    //@inject_tag: validate:"required,hexadecimal,len=24" json:"project_id"
+    string project_id = 3;
+    //@inject_tag: validate:"omitempty" json:"object"
+    string object = 4;
+    //@inject_tag: validate:"required" json:"sku"
+    string sku = 5;
+    //@inject_tag: validate:"required" json:"name"
+    map<string, string> name = 6;
+    //@inject_tag: validate:"required,alpha,len=3" json:"default_currency"
+    string default_currency = 7;
+    //@inject_tag: json:"enabled"
+    bool enabled = 8;
+    //@inject_tag: validate:"required,min=1,dive" json:"platforms"
+    repeated PlatformPrice platforms = 9;
+    //@inject_tag: validate:"required" json:"description"
+    map<string, string> description = 10;
+    //@inject_tag: validate:"omitempty" json:"long_description"
+    map<string, string> long_description = 11;
+    //@inject_tag: json:"created_at"
+    google.protobuf.Timestamp created_at = 12;
+    //@inject_tag: json:"updated_at"
+    google.protobuf.Timestamp updated_at = 13;
+    //@inject_tag: validate:"dive,omitempty,uri" json:"images"
+    repeated string images = 14;
+    //@inject_tag: validate:"omitempty,url" json:"url"
+    string url = 15;
+    //@inject_tag: json:"metadata"
+    map<string, string> metadata = 16;
+    //@inject_tag: json:"-"
+    bool deleted = 17;
+    //@inject_tag: json:"published_at"
+    google.protobuf.Timestamp published_at = 18;
+}
+
+message PlatformPrice {
+    //@inject_tag: validate:"required" json:"id"
+    string id = 1;
+    //@inject_tag: json:"name"
+    string name = 2;
+    //@inject_tag: validate:"required,min=1,dive" json:"prices"
+    repeated ProductPrice prices = 3;
+    //@inject_tag: validate:"omitempty,url" json:"eula_url"
+    string eula_url = 4;
+    //@inject_tag: validate:"omitempty,url" json:"activation_url"
+    string activation_url = 5;
+}
+
+message Platform {
+    //@inject_tag: validate:"required,hexadecimal,len=24" json:"id"
+    string id = 1;
+    //@inject_tag: json:"name"
+    string name = 2;
+}
+
 message Product {
     //@inject_tag: validate:"omitempty,hexadecimal,len=24" json:"id" bson:"_id"
     string id = 1;
@@ -567,7 +898,6 @@ message Product {
     map<string, string> metadata = 17;
     //@inject_tag: json:"-" bson:"deleted"
     bool deleted = 18;
-
 }
 
 message ProductPrice {
@@ -575,6 +905,8 @@ message ProductPrice {
     double amount = 1;
     //@inject_tag: validate:"required,alpha,len=3" json:"currency"
     string currency = 2;
+    //@inject_tag: json:"region" validate:"required"
+    string region = 3;
 }
 
 message ListProductsRequest {
@@ -599,22 +931,58 @@ message GetProductsForOrderRequest {
     repeated string ids = 2;
 }
 
+message GetKeyProductInfoRequest {
+    // @inject_tag: json:"country" query:"country"
+    string country = 1;
+    // @inject_tag: json:"key_product_id" validate:"required,hexadecimal,len=24"
+    string key_product_id = 2;
+    // @inject_tag: json:"language" query:"language"
+    string language = 3;
+    // @inject_tag: json:"currency" query:"currency"
+    string currency = 4;
+}
+
+message GetKeyProductInfoResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    KeyProductInfo key_product = 3;
+}
+
+message GetKeyProductsForOrderRequest {
+    //@inject_tag: query:"project_id" validate:"required,hexadecimal,len=24"
+    string project_id = 1;
+    //@inject_tag: query:"ids[]" validate:"required,dive,hexadecimal,len=24"
+    repeated string ids = 2;
+}
+
 message ListProductsResponse {
     // @inject_tag: json:"limit"
     int32 limit = 1;
     // @inject_tag: json:"offset"
     int32 offset = 2;
-    // @inject_tag: json:"total"
+    // @inject_tag: json:"count"
     int32 total = 3;
-    // @inject_tag: json:"products"
+    // @inject_tag: json:"items"
     repeated Product products = 5;
 }
 
 message RequestProduct {
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string id = 1;
-    //@inject_tag: validate:"hexadecimal,len=24" json:"merchant_id" bson:"merchant_id"
+    //@inject_tag: validate:"hexadecimal,len=24"
     string merchant_id = 2;
+}
+
+message RequestKeyProductMerchant {
+    //@inject_tag: query:"id" validate:"required,hexadecimal,len=24"
+    string id = 1;
+    //@inject_tag: query:"merchant_id" validate:"hexadecimal,len=24"
+    string merchant_id = 2;
+}
+
+message RequestKeyProduct {
+    //@inject_tag: query:"id" validate:"required,hexadecimal,len=24"
+    string id = 1;
 }
 
 message I18NTextSearchable {
@@ -692,8 +1060,8 @@ message ListOrdersRequest {
     repeated string payment_method = 3;
     // @inject_tag: query:"country[]" validate:"omitempty,dive,alpha,len=2"
     repeated string country = 4;
-    // @inject_tag: query:"private_status[]" validate:"omitempty,dive,numeric,oneof=0 1 2 3 4 5 6 7 8 9 10 11 12"
-    repeated int32 private_status = 5;
+    // @inject_tag: query:"status[]" validate:"omitempty,dive,alpha,oneof=created processed canceled rejected refunded chargeback pending"
+    repeated string status = 5;
     // @inject_tag: query:"account"
     string account = 6;
     // @inject_tag: query:"pm_date_from" validate:"omitempty,numeric,gt=0"
@@ -706,16 +1074,18 @@ message ListOrdersRequest {
     int64 project_date_to = 10;
     // @inject_tag: query:"quick_search"
     string quick_search = 11;
-    // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
+    // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0,lte=1000"
     int32 limit = 12;
     // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
     int32 offset = 13;
     // @inject_tag: query:"sort[]"
     repeated string sort = 14;
-    // @inject_tag: query:"merchant[]" validate:"omitempty,hexadecimal,len=24"
+    // @inject_tag: query:"merchant[]" validate:"omitempty,dive,hexadecimal,len=24"
     repeated string merchant = 15;
     // @inject_tag: query:"-"  json:"-"
     string status_notification_failed_for = 16;
+    // @inject_tag: query:"type" validate:"omitempty,oneof=simple product key"
+    string type = 17;
 }
 
 message GetOrderRequest {
@@ -772,8 +1142,13 @@ message NotifyUserNewRegion {
 message GetPaymentMethodSettingsRequest {
     // @inject_tag: query:"payment_method_id" validate:"required,hexadecimal,len=24"
     string payment_method_id = 1;
-    // @inject_tag: query:"currency_a3" validate:"required,alpha,len=3"
+    // @inject_tag: query:"currency_a3" validate:"omitempty,alpha,len=3"
     string currency_a3 = 2;
+}
+
+message GetPaymentMethodSettingsResponse {
+    // @inject_tag: json:"params"
+    repeated billing.PaymentMethodParams params = 1;
 }
 
 message ChangePaymentMethodRequest {
@@ -828,7 +1203,7 @@ message ResponseErrorMessage {
     string code = 1;
     //@inject_tag: json:"message"
     string message = 2;
-    //@inject_tag: json:"details;omitempty"
+    //@inject_tag: json:"details,omitempty"
     string details = 3;
 }
 
@@ -836,19 +1211,109 @@ message CreateAccountingEntryRequest {
     // @inject_tag: validate:"required"
     string type = 1;
     // @inject_tag: validate:"omitempty,hexadecimal,len=24"
-    string source = 2;
+    string order_id = 2;
+    // @inject_tag: validate:"omitempty,hexadecimal,len=24"
+    string refund_id = 3;
+    // @inject_tag: validate:"omitempty,hexadecimal,len=24"
+    string merchant_id = 4;
     // @inject_tag: validate:"required,numeric"
-    double amount = 3;
+    double amount = 5;
     // @inject_tag: validate:"required,alpha,len=3"
-    string currency = 4;
-    // @inject_tag: query:"limit" validate:"required,oneof=pending available"
-    string status = 5;
-    // @inject_tag: validate:"required,numeric,gt=0"
-    int64 date = 6;
+    string currency = 6;
+    // @inject_tag: validate:"required,oneof=pending available"
+    string status = 7;
+    // @inject_tag: validate:"omitempty,numeric,gt=0"
+    int64 date = 8;
+    //@inject_tag: json:"country" validate:"required,alpha,len=2"
+    string country = 9;
+    //@inject_tag: json:"reason"
+    string reason = 10;
 }
 
 message CreateAccountingEntryResponse {
-    billing.AccountingEntry item = 1;
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.AccountingEntry item = 3;
+}
+
+message CreateRoyaltyReportRequest {
+    repeated string merchants = 1;
+}
+
+message ListRoyaltyReportsRequest {
+    // @inject_tag: query:"period_from" validate:"omitempty,numeric,gt=0"
+    int64 period_from = 1;
+    // @inject_tag: query:"period_to" validate:"omitempty,numeric,gt=0"
+    int64 period_to = 2;
+    // @inject_tag: query:"merchant_id" validate:"required,hexadecimal,len=24"
+    string merchant_id = 3;
+    // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
+    int32 limit = 4;
+    // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
+    int32 offset = 5;
+}
+
+message RoyaltyReportsPaginate {
+    // @inject_tag: json:"count"
+    int32 count = 1; // total count of selected orders
+    // @inject_tag: json:"items"
+    repeated billing.RoyaltyReport items = 2; // array of selected orders
+}
+
+message ListRoyaltyReportsResponse {
+    int32 status = 1;
+    // @inject_tag: json:"message,omitempty"
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"data"
+    RoyaltyReportsPaginate data = 3;
+}
+
+message ListRoyaltyReportOrdersRequest {
+    // @inject_tag: query:"report_id" validate:"required,hexadecimal,len=24"
+    string report_id = 1;
+    // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
+    int32 limit = 5;
+    // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
+    int32 offset = 6;
+}
+
+message ChangeRoyaltyReportCorrection {
+    double amount = 1;
+    string reason = 2;
+}
+
+message GetRoyaltyReportRequest {
+    // @inject_tag: json:"report_id" validate:"required,hexadecimal,len=24"
+    string report_id = 1;
+}
+
+message GetRoyaltyReportResponse {
+    //@inject_tag: json:"status"
+    int32 status = 1;
+    //@inject_tag: json:"message"
+    ResponseErrorMessage message = 2;
+    //@inject_tag: json:"item"
+    billing.RoyaltyReport item = 3;
+}
+
+message ChangeRoyaltyReportRequest {
+    // @inject_tag: json:"report_id" validate:"required,hexadecimal,len=24"
+    string report_id = 1;
+    // @inject_tag: json:"status" validate:"omitempty,oneof=pending skipped accepted canceled dispute ready_for_invoice payment_in_progress payment_done payment_error"
+    string status = 2;
+    // @inject_tag: json:"correction"
+    ChangeRoyaltyReportCorrection correction = 3;
+    string ip = 5;
+}
+
+message MerchantReviewRoyaltyReportRequest {
+    // @inject_tag: validate:"required,hexadecimal,len=24"
+    string report_id = 1;
+    //@inject_tag: json:"is_accepted"
+    bool is_accepted = 2;
+    string ip = 3;
+    //@inject_tag: json:"dispute_reason"
+    string dispute_reason = 4;
 }
 
 message PaymentChannelCostSystemListResponse {
@@ -921,4 +1386,630 @@ message MoneyBackCostMerchantResponse {
     ResponseErrorMessage message = 2;
     //@inject_tag: json:"item"
     billing.MoneyBackCostMerchant item = 3;
+}
+
+message PriceGroupByCountryRequest {
+    //@inject_tag: validate:"required,alpha,len=2"
+    string country = 1;
+}
+
+message PriceGroupCurrenciesResponse {
+    //@inject_tag: json:"regions"
+    repeated PriceGroupRegions region = 1;
+}
+
+message PriceGroupRegions {
+    //@inject_tag: json:"currency"
+    string currency = 1;
+    //@inject_tag: json:"regions"
+    repeated PriceGroupRegion regions = 2;
+}
+
+message PriceGroupRegion {
+    //@inject_tag: json:"region"
+    string region = 1;
+    //@inject_tag: json:"country"
+    repeated string country = 2;
+}
+
+message PriceGroupByRegionRequest {
+    //@inject_tag: validate:"required,alpha"
+    string region = 1;
+}
+
+message PriceGroupRecommendedPriceRequest {
+    // @inject_tag: validate:"required,numeric,gte=0"
+    double amount = 1;
+}
+
+message PriceGroupRecommendedPriceResponse {
+    // @inject_tag: json:"recommended_price"
+    repeated billing.PriceGroupRecommendedPrice recommended_price = 1;
+}
+
+message ProductPricesResponse {
+    // @inject_tag: json:"product_price"
+    repeated ProductPrice product_price = 1;
+}
+
+message UpdateProductPricesRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24" json:"product_id"
+    string product_id = 1;
+    //@inject_tag: validate:"required,min=1,dive" json:"prices"
+    repeated ProductPrice prices = 2;
+}
+
+message UserProfilePersonal {
+    //@inject_tag: json:"first_name" bson:"first_name" validate:"required,name,max=30"
+    string first_name = 1;
+    //@inject_tag: json:"last_name" bson:"last_name" validate:"required,name,max=30"
+    string last_name = 2;
+    //@inject_tag: json:"position" bson:"position" validate:"required,position"
+    string position = 3;
+}
+
+message UserProfileHelp {
+    //@inject_tag: json:"product_promotion_and_development" bson:"product_promotion_and_development"
+    bool product_promotion_and_development = 1;
+    //@inject_tag: json:"released_game_promotion" bson:"released_game_promotion"
+    bool released_game_promotion = 2;
+    //@inject_tag: json:"international_sales" bson:"international_sales"
+    bool international_sales = 3;
+    //@inject_tag: json:"other" bson:"other"
+    bool other = 4;
+}
+
+message UserProfileCompanyMonetization {
+    //@inject_tag: json:"paid_subscription" bson:"paid_subscription"
+    bool paid_subscription = 1;
+    //@inject_tag: json:"in_game_advertising" bson:"in_game_advertising"
+    bool in_game_advertising = 2;
+    //@inject_tag: json:"in_game_purchases" bson:"in_game_purchases"
+    bool in_game_purchases = 3;
+    //@inject_tag: json:"premium_access" bson:"premium_access"
+    bool premium_access = 4;
+    //@inject_tag: json:"other" bson:"other"
+    bool other = 5;
+}
+
+message UserProfileCompanyPlatforms {
+    //@inject_tag: json:"pc_mac" bson:"pc_mac"
+    bool pc_mac = 1;
+    //@inject_tag: json:"game_console" bson:"game_console"
+    bool game_console = 2;
+    //@inject_tag: json:"mobile_device" bson:"mobile_device"
+    bool mobile_device = 3;
+    //@inject_tag: json:"web_browser" bson:"web_browser"
+    bool web_browser = 4;
+    //@inject_tag: json:"other" bson:"other"
+    bool other = 5;
+}
+
+message UserProfileCompany {
+    //@inject_tag: json:"company_name" bson:"company_name" validate:"required,company_name,max=60"
+    string company_name = 1;
+    //@inject_tag: json:"website" validate:"required,url" bson:"website"
+    string website = 2;
+    //@inject_tag: json:"annual_income" bson:"annual_income" validate:"required"
+    billing.RangeInt annual_income = 3;
+    //@inject_tag: json:"number_of_employees" bson:"number_of_employees" validate:"required"
+    billing.RangeInt number_of_employees = 4;
+    //@inject_tag: json:"kind_of_activity" validate:"omitempty,oneof=develop_and_publish_your_games publish_games_of_other_companies publish_your_games_through_other_publishers other" bson:"kind_of_activity"
+    string kind_of_activity = 5;
+    //@inject_tag: json:"monetization" bson:"monetization"
+    UserProfileCompanyMonetization monetization = 6;
+    //@inject_tag: json:"platforms" bson:"platforms"
+    UserProfileCompanyPlatforms platforms = 7;
+}
+
+message UserProfileEmail {
+    //@inject_tag: json:"email" validate:"required,email"
+    string email = 1;
+    //@inject_tag: json:"confirmed"
+    bool confirmed = 2;
+    //@inject_tag: json:"confirmed_at"
+    google.protobuf.Timestamp confirmed_at = 3;
+    //@inject_tag: json:"-" bson:"-"
+    string confirmation_url = 4;
+    //@inject_tag: json:"-" bson:"is_confirmation_email_sent"
+    bool is_confirmation_email_sent = 5;
+}
+
+message UserProfile {
+    //@inject_tag: json:"id"
+    string id = 1;
+    //@inject_tag: json:"-" validate:"required,hexadecimal,len=24"
+    string user_id = 2;
+    //@inject_tag: json:"email"
+    UserProfileEmail email = 3;
+    //@inject_tag: json:"personal"
+    UserProfilePersonal personal = 4;
+    //@inject_tag: json:"help"
+    UserProfileHelp help = 5;
+    //@inject_tag: json:"company"
+    UserProfileCompany company = 6;
+    //@inject_tag: json:"last_step" bson:"last_step"
+    string last_step = 7;
+    //@inject_tag: json:"centrifugo_token" bson:"centrifugo_token"
+    string centrifugo_token = 8;
+    // @inject_tag: json:"created_at"
+    google.protobuf.Timestamp created_at = 9;
+    // @inject_tag: json:"updated_at"
+    google.protobuf.Timestamp updated_at = 10;
+}
+
+message GetUserProfileRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string user_id = 1;
+    //@inject_tag: validate:"omitempty,hexadecimal,len=24"
+    string profile_id = 2;
+}
+
+message GetUserProfileResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    UserProfile item = 3;
+}
+
+message PageReview {
+    string id = 1;
+    //@inject_tag: json:"user_id" bson:"user_id"
+    string user_id = 2;
+    string review = 3;
+    string page_id = 4;
+    bool is_read = 5;
+    // @inject_tag: json:"created_at"
+    google.protobuf.Timestamp created_at = 6;
+    // @inject_tag: json:"updated_at"
+    google.protobuf.Timestamp updated_at = 7;
+}
+
+message CreatePageReviewRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string user_id = 1;
+    //@inject_tag: validate:"required,max=500"
+    string review = 2;
+    //@inject_tag: validate:"required,oneof=primary_onboarding merchant_onboarding"
+    string page_id = 3;
+}
+
+message ConfirmUserEmailRequest {
+    //@inject_tag: validate:"required"
+    string token = 1;
+}
+
+
+message VatTransactionsRequest {
+    //@inject_tag: json:"vat_report_id" validate:"required,hexadecimal,len=24"
+    string vat_report_id = 1;
+    // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
+    int32 limit = 2;
+    // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
+    int32 offset = 3;
+    // @inject_tag: query:"sort[]"
+    repeated string sort = 4;
+}
+
+message TransactionsPaginate {
+    // @inject_tag: json:"count"
+    int32 count = 1; // total count of selected transactions
+    // @inject_tag: json:"items"
+    repeated billing.OrderViewPublic items = 2; // array of selected transactions
+}
+
+message TransactionsResponse {
+    int32 status = 1;
+    // @inject_tag: json:"message,omitempty"
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"data"
+    TransactionsPaginate data = 3;
+}
+
+message VatReportsRequest {
+    //@inject_tag: json:"country" query:"country" validate:"required,alpha,len=2"
+    string country = 1;
+    // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
+    int32 limit = 2;
+    // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
+    int32 offset = 3;
+    // @inject_tag: query:"sort[]"
+    repeated string sort = 4;
+}
+
+message VatReportsPaginate {
+    // @inject_tag: json:"count"
+    int32 count = 1; // total count of selected orders
+    // @inject_tag: json:"items"
+    repeated billing.VatReport items = 2; // array of selected orders
+}
+
+message VatReportsResponse {
+    int32 status = 1;
+    // @inject_tag: json:"message,omitempty"
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"data"
+    VatReportsPaginate data = 3;
+}
+
+message ProcessVatReportsRequest {
+    google.protobuf.Timestamp date = 1;
+}
+
+message UpdateVatReportStatusRequest {
+    //@inject_tag: json:"id" bson:"_id" validate:"hexadecimal,len=24"
+    string id = 1;
+    //@inject_tag: json:"status" bson:"status" validate:"required,alpha,oneof=paid canceled"
+    string status = 2;
+}
+
+message GetMerchantOnboardingCompleteDataResponseItem {
+    //@inject_tag: json:"status"
+    string status = 1;
+    //@inject_tag: json:"steps"
+    billing.MerchantCompletedSteps steps = 2;
+    //@inject_tag: json:"complete_steps_count"
+    int32 complete_steps_count = 3;
+}
+
+message GetMerchantOnboardingCompleteDataResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    GetMerchantOnboardingCompleteDataResponseItem item = 3;
+}
+
+message GetMerchantAgreementSignUrlRequest {
+    //@inject_tag: json:"merchant_id" validate:"required,hexadecimal,len=24"
+    string merchant_id = 1;
+    //@inject_tag: json:"signer_type" validate:"oneof=0 1"
+    int32 signer_type = 2;
+}
+
+message GetMerchantAgreementSignUrlResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.MerchantAgreementSignatureDataSignUrl item = 3;
+}
+
+message GetMerchantTariffRatesRequest {
+    // @inject_tag: query:"region" validate:"required,world_region"
+    string region = 1;
+    //@inject_tag: query:"payout_currency" validate:"required,alpha,len=3"
+    string payout_currency = 2;
+    // @inject_tag: query:"amount_from" validate:"omitempty,numeric,gte=0"
+    double amount_from = 3;
+    // @inject_tag: query:"amount_to" validate:"omitempty,numeric,gt=0"
+    double amount_to = 4;
+}
+
+message GetMerchantTariffRatesResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.MerchantTariffRates item = 3;
+}
+
+message SetMerchantTariffRatesRequest {
+    //@inject_tag: json:"merchant_id" validate:"required,hexadecimal,len=24"
+    string merchant_id = 1;
+    // @inject_tag: json:"region" validate:"required,world_region"
+    string region = 2;
+    //@inject_tag: json:"payout_currency" validate:"required,alpha,len=3"
+    string payout_currency = 3;
+    // @inject_tag: json:"amount_from" validate:"required,numeric,gte=0"
+    double amount_from = 4;
+    // @inject_tag: json:"amount_to" validate:"required,numeric,gt=0"
+    double amount_to = 5;
+}
+
+message ListOrdersPublicResponseItem {
+    // @inject_tag: json:"count"
+    int32 count = 1;
+    // @inject_tag: json:"items"
+    repeated billing.OrderViewPublic items = 2;
+}
+
+message ListOrdersPrivateResponseItem {
+    // @inject_tag: json:"count"
+    int32 count = 1;
+    // @inject_tag: json:"items"
+    repeated billing.OrderViewPrivate items = 2;
+}
+
+message ListOrdersPublicResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    ListOrdersPublicResponseItem Item = 3;
+}
+
+message ListOrdersPrivateResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    ListOrdersPrivateResponseItem Item = 3;
+}
+
+message GetOrderPublicResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.OrderViewPublic item = 3;
+}
+
+message GetOrderPrivateResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.OrderViewPrivate item = 3;
+}
+
+message GetDashboardMainRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 1;
+    //@inject_tag: query:"period" validate:"required,oneof=current_month previous_month current_quarter previous_quarter current_year previous_year"
+    string period = 2;
+}
+
+message GetDashboardMainResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    DashboardMainReport item = 3;
+}
+
+message GetDashboardBaseReportRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 1;
+    //@inject_tag: query:"period" validate:"required,oneof=current_day previous_day current_week previous_week current_month previous_month current_quarter previous_quarter current_year previous_year"
+    string period = 2;
+}
+
+message GetDashboardBaseReportResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    DashboardBaseReports item = 3;
+}
+
+message GetDashboardRevenueDynamicsReportResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    DashboardRevenueDynamicReport item = 3;
+}
+
+message DashboardAmountItemWithChart {
+    //@inject_tag: json:"amount_current"
+    double amount_current = 1;
+    //@inject_tag: json:"amount_previous"
+    double amount_previous = 2;
+    //@inject_tag: json:"currency"
+    string currency = 3;
+    //@inject_tag: json:"chart"
+    repeated DashboardChartItemFloat chart = 4;
+}
+
+message DashboardChartItemFloat {
+    //@inject_tag: json:"label" bson:"label"
+    int64 label = 1;
+    //@inject_tag: json:"value" bson:"value"
+    double value = 2;
+}
+
+message DashboardMainReportTotalTransactions {
+    //@inject_tag: json:"count_current" bson:"count"
+    int64 count_current = 1;
+    //@inject_tag: json:"count_previous"
+    int64 count_previous = 2;
+    //@inject_tag: json:"chart"
+    repeated DashboardChartItemFloat chart = 3;
+}
+
+message DashboardMainReport {
+    //@inject_tag: json:"gross_revenue" bson:"gross_revenue"
+    DashboardAmountItemWithChart gross_revenue = 1;
+    //@inject_tag: json:"vat" bson:"vat"
+    DashboardAmountItemWithChart vat = 2;
+    //@inject_tag: json:"total_transactions" bson:"total_transactions"
+    DashboardMainReportTotalTransactions total_transactions = 3;
+    //@inject_tag: json:"arpu" bson:"arpu"
+    DashboardAmountItemWithChart arpu = 4;
+}
+
+message DashboardRevenueDynamicReport {
+    //@inject_tag: json:"currency"
+    string currency = 1;
+    //@inject_tag: json:"items"
+    repeated DashboardRevenueDynamicReportItem items = 2;
+}
+
+message DashboardRevenueDynamicReportItem {
+    //@inject_tag: json:"label"
+    int64 label = 1;
+    //@inject_tag: json:"amount"
+    double amount = 2;
+    //@inject_tag: json:"-"
+    string currency = 3;
+    //@inject_tag: json:"count"
+    int64 count = 4;
+}
+
+message DashboardRevenueByCountryReportTop {
+    //@inject_tag: json:"country"
+    string country = 1;
+    //@inject_tag: json:"amount"
+    double amount = 2;
+}
+
+message DashboardRevenueByCountryReportChartItem {
+    //@inject_tag: json:"label"
+    int64 label = 1;
+    //@inject_tag: json:"amount"
+    double amount = 2;
+}
+
+message DashboardRevenueByCountryReport {
+    //@inject_tag: json:"currency"
+    string currency = 1;
+    //@inject_tag: json:"top" bson:"top"
+    repeated DashboardRevenueByCountryReportTop top = 2;
+    //@inject_tag: json:"total_current" bson:"total"
+    double total_current = 3;
+    //@inject_tag: json:"total_previous"
+    double total_previous= 4;
+    //@inject_tag: json:"chart" bson:"chart"
+    repeated DashboardRevenueByCountryReportChartItem chart = 5;
+}
+
+message DashboardSalesTodayReportTop {
+    //@inject_tag: json:"name" bson:"name"
+    string name = 1;
+    //@inject_tag: json:"count" bson:"count"
+    int64 count = 2;
+}
+
+message DashboardChartItemInt {
+    //@inject_tag: json:"label" bson:"label"
+    int64 label = 1;
+    //@inject_tag: json:"value" bson:"value"
+    int64 value = 2;
+}
+
+message DashboardSalesTodayReport {
+    //@inject_tag: json:"top" bson:"top"
+    repeated DashboardSalesTodayReportTop top = 1;
+    //@inject_tag: json:"total_current" bson:"total"
+    int64 total_current = 2;
+    //@inject_tag: json:"total_previous"
+    int64 total_previous = 3;
+    //@inject_tag: json:"chart" bson:"chart"
+    repeated DashboardChartItemInt chart = 4;
+}
+
+message DashboardSourcesReport {
+    //@inject_tag: json:"top" bson:"top"
+    repeated DashboardSalesTodayReportTop top = 1;
+    //@inject_tag: json:"total_current" bson:"total"
+    int64 total_current = 2;
+    //@inject_tag: json:"total_previous"
+    int64 total_previous = 3;
+    //@inject_tag: json:"chart" bson:"chart"
+    repeated DashboardChartItemInt chart = 4;
+}
+
+message DashboardBaseReports {
+    //@inject_tag: json:"revenue_by_country"
+    DashboardRevenueByCountryReport revenue_by_country = 1;
+    //@inject_tag: json:"sales_today"
+    DashboardSalesTodayReport sales_today = 2;
+    //@inject_tag: json:"sources"
+    DashboardSourcesReport sources = 4;
+}
+
+message CreatePayoutDocumentRequest {
+    //@inject_tag: json:"description" validate:"required,max=255"
+    string description = 1;
+    //@inject_tag: json:"merchant_id" validate:"required,hexadecimal,len=24"
+    string merchant_id = 2;
+    //@inject_tag: json:"ip" validate:"required"
+    string ip = 3;
+}
+
+message PayoutDocumentResponse {
+    //@inject_tag: json:"status"
+    int32 status = 1;
+    //@inject_tag: json:"message"
+    ResponseErrorMessage message = 2;
+    //@inject_tag: json:"item"
+    billing.PayoutDocument item = 3;
+}
+
+message UpdatePayoutDocumentRequest {
+    //@inject_tag: json:"payout_document_id" validate:"required,hexadecimal,len=24"
+    string payout_document_id = 1;
+    //@inject_tag: json:"transaction" validate:"omitempty,max=255"
+    string transaction = 2;
+    //@inject_tag: json:"status" validate:"required,oneof=skip pending in_progress paid canceled failed"
+    string status = 3;
+    //@inject_tag: json:"failure_code" validate:"omitempty,oneof=account_closed account_frozen account_restricted destination_bank_invalid could_not_process declined insufficient_funds invalid_account_number incorrect_account_holder_name invalid_currency"
+    string failure_code = 4;
+    //@inject_tag: json:"failure_message" validate:"omitempty,max=255"
+    string failure_message = 5;
+    //@inject_tag: json:"failure_transaction" validate:"omitempty,max=255"
+    string failure_transaction = 6;
+    //@inject_tag: json:"ip"
+    string ip = 7;
+}
+
+message GetPayoutDocumentsRequest {
+    //@inject_tag: query:"payout_document_id" validate:"omitempty,hexadecimal,len=24"
+    string payout_document_id = 1;
+    //@inject_tag: query:"status" validate:"omitempty,oneof=skip pending in_progress paid canceled failed"
+    string status = 2;
+    //@inject_tag: query:"merchant_id" validate:"omitempty,hexadecimal,len=24"
+    string merchant_id = 3;
+    //@inject_tag: query:"signed"
+    bool signed = 4;
+    // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
+    int32 limit = 5;
+    // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
+    int32 offset = 6;
+}
+
+message PayoutDocumentsPaginate {
+    // @inject_tag: json:"count"
+    int32 count = 1; // total count of selected orders
+    // @inject_tag: json:"items"
+    repeated billing.PayoutDocument items = 2; // array of selected docs
+}
+
+message GetPayoutDocumentsResponse {
+    int32 status = 1;
+    // @inject_tag: json:"message,omitempty"
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"data"
+    PayoutDocumentsPaginate data = 3;
+}
+
+message GetPayoutDocumentSignUrlRequest {
+    //@inject_tag: query:"payout_document_id" validate:"required,hexadecimal,len=24"
+    string payout_document_id = 1;
+    //@inject_tag: json:"signer_type" validate:"oneof=0 1"
+    int32 signer_type = 2;
+    //@inject_tag: json:"ip"
+    string ip = 3;
+}
+
+message GetPayoutDocumentSignUrlResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.PayoutDocumentSignatureDataSignUrl item = 3;
+}
+
+message UpdatePayoutDocumentSignaturesRequest {
+    //@inject_tag: query:"payout_document_id" validate:"required,hexadecimal,len=24"
+    string payout_document_id = 1;
+    // @inject_tag: json:"has_merchant_signature"
+    bool has_merchant_signature = 2;
+    // @inject_tag: json:"has_psp_signature"
+    bool has_psp_signature = 3;
+    // @inject_tag: json:"signed_document_file_url"
+    string signed_document_file_url = 4;
+}
+
+message GetMerchantBalanceRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 1;
+}
+
+message GetMerchantBalanceResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.MerchantBalance item = 3;
+}
+
+message PayoutDocumentPdfUploadedRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string id = 1;
+    //@inject_tag: validate:"required,alpha"
+    string filename = 2;
+    //@inject_tag: validate:"required,numeric,gte=0"
+    int32 retention_time = 3;
+}
+
+message PayoutDocumentPdfUploadedResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
 }

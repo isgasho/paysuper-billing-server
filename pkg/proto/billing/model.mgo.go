@@ -2,37 +2,31 @@ package billing
 
 import (
 	"errors"
-	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
+	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"time"
 )
 
 const (
 	errorInvalidObjectId = "invalid bson object id"
-	errorRequiredField   = "field \"%s\" is required to convert object %s"
 )
+
+type MgoId struct {
+	Id bson.ObjectId `bson:"_id"`
+}
 
 type MgoMultiLang struct {
 	Lang  string `bson:"lang"`
 	Value string `bson:"value"`
 }
 
-type MgoVat struct {
-	Id          bson.ObjectId `bson:"_id" json:"id"`
-	Country     string        `bson:"country" json:"country"`
-	Subdivision string        `bson:"subdivision_code" json:"subdivision_code,omitempty"`
-	Vat         float64       `bson:"vat" json:"vat"`
-	IsActive    bool          `bson:"is_active" json:"is_active"`
-	CreatedAt   time.Time     `bson:"created_at" json:"created_at"`
-	UpdatedAt   time.Time     `bson:"updated_at" json:"updated_at,omitempty"`
-}
-
 type MgoProject struct {
 	Id                       bson.ObjectId   `bson:"_id"`
 	MerchantId               bson.ObjectId   `bson:"merchant_id"`
 	Name                     []*MgoMultiLang `bson:"name"`
+	Image                    string          `bson:"image"`
 	CallbackCurrency         string          `bson:"callback_currency"`
 	CallbackProtocol         string          `bson:"callback_protocol"`
 	CreateOrderAllowedUrls   []string        `bson:"create_order_allowed_urls"`
@@ -78,20 +72,34 @@ type MgoMerchantPaymentMethod struct {
 	IsActive      bool                                    `bson:"is_active"`
 }
 
+type MgoMerchantAgreementSignatureDataSignUrl struct {
+	SignUrl   string    `bson:"sign_url"`
+	ExpiresAt time.Time `bson:"expires_at"`
+}
+
+type MgoMerchantAgreementSignatureData struct {
+	DetailsUrl          string                                    `bson:"details_url"`
+	FilesUrl            string                                    `bson:"files_url"`
+	SignatureRequestId  string                                    `bson:"signature_request_id"`
+	MerchantSignatureId string                                    `bson:"merchant_signature_id"`
+	PsSignatureId       string                                    `bson:"ps_signature_id"`
+	MerchantSignUrl     *MgoMerchantAgreementSignatureDataSignUrl `bson:"merchant_sign_url"`
+	PsSignUrl           *MgoMerchantAgreementSignatureDataSignUrl `bson:"ps_sign_url"`
+}
+
+type MgoMerchantUser struct {
+	Id               string    `bson:"id"`
+	Email            string    `bson:"email"`
+	FirstName        string    `bson:"first_name"`
+	LastName         string    `bson:"last_name"`
+	ProfileId        string    `bson:"profile_id"`
+	RegistrationDate time.Time `bson:"registration_date"`
+}
+
 type MgoMerchant struct {
 	Id                                            bson.ObjectId                        `bson:"_id"`
-	User                                          *MerchantUser                        `bson:"user"`
-	Name                                          string                               `bson:"name"`
-	AlternativeName                               string                               `bson:"alternative_name"`
-	Website                                       string                               `bson:"website"`
-	Country                                       string                               `bson:"country"`
-	State                                         string                               `bson:"state"`
-	Zip                                           string                               `bson:"zip"`
-	City                                          string                               `bson:"city"`
-	Address                                       string                               `bson:"address"`
-	AddressAdditional                             string                               `bson:"address_additional"`
-	RegistrationNumber                            string                               `bson:"registration_number"`
-	TaxId                                         string                               `bson:"tax_id"`
+	User                                          *MgoMerchantUser                     `bson:"user"`
+	Company                                       *MerchantCompanyInfo                 `bson:"company"`
 	Contacts                                      *MerchantContact                     `bson:"contacts"`
 	Banking                                       *MerchantBanking                     `bson:"banking"`
 	Status                                        int32                                `bson:"status"`
@@ -117,16 +125,14 @@ type MgoMerchant struct {
 	RollingReserveChargebackTransactionsThreshold float64                              `bson:"rolling_reserve_chargeback_transactions_threshold"`
 	ItemMinCostAmount                             float64                              `bson:"item_min_cost_amount"`
 	ItemMinCostCurrency                           string                               `bson:"item_min_cost_currency"`
-}
-
-type MgoCurrencyRate struct {
-	Id           bson.ObjectId `bson:"_id"`
-	CurrencyFrom int32         `bson:"currency_from"`
-	CurrencyTo   int32         `bson:"currency_to"`
-	Rate         float64       `bson:"rate"`
-	Date         time.Time     `bson:"date"`
-	IsActive     bool          `bson:"is_active"`
-	CreatedAt    time.Time     `bson:"created_at"`
+	Tariff                                        *MerchantTariffRates                 `bson:"tariff"`
+	AgreementSignatureData                        *MgoMerchantAgreementSignatureData   `bson:"agreement_signature_data"`
+	Steps                                         *MerchantCompletedSteps              `bson:"steps"`
+	AgreementTemplate                             string                               `bson:"agreement_template"`
+	ReceivedDate                                  time.Time                            `bson:"received_date"`
+	StatusLastUpdatedAt                           time.Time                            `bson:"status_last_updated_at"`
+	AgreementNumber                               string                               `bson:"agreement_number"`
+	MinimalPayoutLimit                            float32                              `bson:"minimal_payout_limit"`
 }
 
 type MgoCommission struct {
@@ -153,7 +159,7 @@ type MgoCommissionBilling struct {
 }
 
 type MgoOrderProject struct {
-	Id                   bson.ObjectId   `bson:"_id" `
+	Id                   bson.ObjectId   `bson:"_id"`
 	MerchantId           bson.ObjectId   `bson:"merchant_id"`
 	Name                 []*MgoMultiLang `bson:"name"`
 	UrlSuccess           string          `bson:"url_success"`
@@ -180,80 +186,79 @@ type MgoOrderPaymentMethod struct {
 	PaymentSystemId bson.ObjectId        `bson:"payment_system_id"`
 	Group           string               `bson:"group_alias"`
 	Saved           bool                 `bson:"saved"`
-	Fee             *OrderFee            `bson:"fee"`
 	Card            *PaymentMethodCard   `bson:"card,omitempty"`
 	Wallet          *PaymentMethodWallet `bson:"wallet,omitempty"`
 	CryptoCurrency  *PaymentMethodCrypto `bson:"crypto_currency,omitempty"`
 }
 
+type MgoOrderNotificationRefund struct {
+	Amount        float64 `bson:"amount"`
+	Currency      string  `bson:"currency"`
+	Reason        string  `bson:"reason"`
+	Code          string  `bson:"code"`
+	ReceiptNumber string  `bson:"receipt_number"`
+	ReceiptUrl    string  `bson:"receipt_url"`
+}
+
 type MgoOrder struct {
-	Id                                      bson.ObjectId            `bson:"_id"`
-	Uuid                                    string                   `bson:"uuid"`
-	Transaction                             string                   `bson:"pm_order_id"`
-	Object                                  string                   `bson:"object"`
-	Status                                  string                   `bson:"status"`
-	PrivateStatus                           int32                    `bson:"private_status"`
-	Description                             string                   `bson:"description"`
-	CreatedAt                               time.Time                `bson:"created_at"`
-	UpdatedAt                               time.Time                `bson:"updated_at"`
-	CanceledAt                              time.Time                `bson:"canceled_at"`
-	Canceled                                bool                     `bson:"canceled"`
-	CancellationReason                      string                   `bson:"cancellation_reason"`
-	Refunded                                bool                     `bson:"refunded"`
-	RefundedAt                              time.Time                `bson:"refunded_at"`
-	ReceiptEmail                            string                   `bson:"receipt_email"`
-	ReceiptPhone                            string                   `bson:"receipt_phone"`
-	ReceiptNumber                           string                   `bson:"receipt_number"`
-	ReceiptUrl                              string                   `bson:"receipt_url"`
-	AgreementVersion                        string                   `bson:"agreement_version"`
-	AgreementAccepted                       bool                     `bson:"agreement_accepted"`
-	NotifySale                              bool                     `bson:"notify_sale"`
-	NotifySaleEmail                         string                   `bson:"notify_sale_email"`
-	Issuer                                  *OrderIssuer             `bson:"issuer"`
-	TotalPaymentAmount                      float64                  `bson:"total_payment_amount"`
-	Currency                                string                   `bson:"currency"`
-	User                                    *OrderUser               `bson:"user"`
-	Payout                                  *OrderFee                `bson:"payout"`
-	PlatformFee                             *OrderFee                `bson:"project_fee_amount"`
-	BillingAddress                          *OrderBillingAddress     `bson:"billing_address"`
-	Tax                                     *OrderTax                `bson:"tax"`
-	PaymentMethod                           *MgoOrderPaymentMethod   `bson:"payment_method"`
-	Items                                   []*MgoOrderItem          `bson:"items"`
-	Refund                                  *OrderNotificationRefund `bson:"refund"`
-	Metadata                                map[string]string        `bson:"metadata"`
-	PrivateMetadata                         map[string]string        `bson:"private_metadata"`
-	Project                                 *MgoOrderProject         `bson:"project"`
-	ProjectOrderId                          string                   `bson:"project_order_id"`
-	ProjectAccount                          string                   `bson:"project_account"`
-	ProjectIncomeAmount                     float64                  `bson:"project_income_amount"`
-	ProjectIncomeCurrency                   *Currency                `bson:"project_income_currency"`
-	ProjectOutcomeAmount                    float64                  `bson:"project_outcome_amount"`
-	ProjectOutcomeCurrency                  *Currency                `bson:"project_outcome_currency"`
-	ProjectLastRequestedAt                  time.Time                `bson:"project_last_requested_at"`
-	ProjectParams                           map[string]string        `bson:"project_params"`
-	PaymentMethodOutcomeAmount              float64                  `bson:"pm_outcome_amount"`
-	PaymentMethodOutcomeCurrency            *Currency                `bson:"pm_outcome_currency"`
-	PaymentMethodIncomeAmount               float64                  `bson:"pm_income_amount"`
-	PaymentMethodIncomeCurrency             *Currency                `bson:"pm_income_currency"`
-	PaymentMethodOrderClosedAt              time.Time                `bson:"pm_order_close_date"`
-	IsJsonRequest                           bool                     `bson:"created_by_json"`
-	OrderAmount                             float64                  `bson:"private_amount"`
-	AmountInPspAccountingCurrency           float64                  `bson:"amount_psp_ac"`
-	AmountInMerchantAccountingCurrency      float64                  `bson:"amount_in_merchant_ac"`
-	AmountOutMerchantAccountingCurrency     float64                  `bson:"amount_out_merchant_ac"`
-	AmountInPaymentSystemAccountingCurrency float64                  `bson:"amount_ps_ac"`
-	PaymentMethodPayerAccount               string                   `bson:"pm_account"`
-	PaymentMethodTxnParams                  map[string]string        `bson:"pm_txn_params"`
-	PaymentRequisites                       map[string]string        `bson:"payment_requisites"`
-	PspFeeAmount                            *OrderFeePsp             `bson:"psp_fee_amount"`
-	ToPayerFeeAmount                        *OrderFee                `bson:"to_payer_fee_amount"`
-	PaymentSystemFeeAmount                  *OrderFeePaymentSystem   `bson:"ps_fee_amount"`
-	ExpireDateToFormInput                   time.Time                `bson:"expire_date_to_form_input"`
-	UserAddressDataRequired                 bool                     `bson:"user_address_data_required"`
-	Products                                []string                 `bson:"products"`
-	IsNotificationsSent                     map[string]bool          `bson:"is_notifications_sent"`
-	PaymentRoyaltyData                      *OrderPaymentRoyaltyData `bson:"payment_royalty_data"`
-	CountryRestriction                      *CountryRestriction      `bson:"country_restriction"`
+	Id                         bson.ObjectId               `bson:"_id"`
+	Uuid                       string                      `bson:"uuid"`
+	Transaction                string                      `bson:"pm_order_id"`
+	Object                     string                      `bson:"object"`
+	Status                     string                      `bson:"status"`
+	PrivateStatus              int32                       `bson:"private_status"`
+	Description                string                      `bson:"description"`
+	CreatedAt                  time.Time                   `bson:"created_at"`
+	UpdatedAt                  time.Time                   `bson:"updated_at"`
+	CanceledAt                 time.Time                   `bson:"canceled_at"`
+	Canceled                   bool                        `bson:"canceled"`
+	CancellationReason         string                      `bson:"cancellation_reason"`
+	Refunded                   bool                        `bson:"refunded"`
+	RefundedAt                 time.Time                   `bson:"refunded_at"`
+	ReceiptEmail               string                      `bson:"receipt_email"`
+	ReceiptPhone               string                      `bson:"receipt_phone"`
+	ReceiptNumber              string                      `bson:"receipt_number"`
+	ReceiptUrl                 string                      `bson:"receipt_url"`
+	AgreementVersion           string                      `bson:"agreement_version"`
+	AgreementAccepted          bool                        `bson:"agreement_accepted"`
+	NotifySale                 bool                        `bson:"notify_sale"`
+	NotifySaleEmail            string                      `bson:"notify_sale_email"`
+	Issuer                     *OrderIssuer                `bson:"issuer"`
+	TotalPaymentAmount         float64                     `bson:"total_payment_amount"`
+	Currency                   string                      `bson:"currency"`
+	User                       *OrderUser                  `bson:"user"`
+	BillingAddress             *OrderBillingAddress        `bson:"billing_address"`
+	Tax                        *OrderTax                   `bson:"tax"`
+	PaymentMethod              *MgoOrderPaymentMethod      `bson:"payment_method"`
+	Items                      []*MgoOrderItem             `bson:"items"`
+	Refund                     *MgoOrderNotificationRefund `bson:"refund"`
+	Metadata                   map[string]string           `bson:"metadata"`
+	PrivateMetadata            map[string]string           `bson:"private_metadata"`
+	Project                    *MgoOrderProject            `bson:"project"`
+	ProjectOrderId             string                      `bson:"project_order_id"`
+	ProjectAccount             string                      `bson:"project_account"`
+	ProjectLastRequestedAt     time.Time                   `bson:"project_last_requested_at"`
+	ProjectParams              map[string]string           `bson:"project_params"`
+	PaymentMethodOrderClosedAt time.Time                   `bson:"pm_order_close_date"`
+	IsJsonRequest              bool                        `bson:"created_by_json"`
+	OrderAmount                float64                     `bson:"private_amount"`
+	PaymentMethodPayerAccount  string                      `bson:"pm_account"`
+	PaymentMethodTxnParams     map[string]string           `bson:"pm_txn_params"`
+	PaymentRequisites          map[string]string           `bson:"payment_requisites"`
+	ExpireDateToFormInput      time.Time                   `bson:"expire_date_to_form_input"`
+	UserAddressDataRequired    bool                        `bson:"user_address_data_required"`
+	Products                   []string                    `bson:"products"`
+	IsNotificationsSent        map[string]bool             `bson:"is_notifications_sent"`
+	CountryRestriction         *CountryRestriction         `bson:"country_restriction"`
+	ParentId                   string                      `bson:"parent_id"`
+	ParentPaymentAt            time.Time                   `bson:"parent_payment_at"`
+	Type                       string                      `bson:"type"`
+	IsVatDeduction             bool                        `bson:"is_vat_deduction"`
+	CountryCode                string                      `bson:"country_code"`
+	PlatformId                 string                      `bson:"platform_id"`
+	ProductType                string                      `bson:"product_type"`
+	Keys                       []string                    `bson:"keys"`
+	IsKeyProductNotified       bool                        `bson:"is_key_product_notified"`
 }
 
 type MgoOrderItem struct {
@@ -267,8 +272,10 @@ type MgoOrderItem struct {
 	Images      []string          `bson:"images"`
 	Url         string            `bson:"url"`
 	Metadata    map[string]string `bson:"metadata"`
+	Code        string            `bson:"code"`
 	CreatedAt   time.Time         `bson:"created_at"`
 	UpdatedAt   time.Time         `bson:"updated_at"`
+	PlatformId  string            `bson:"platform_id"`
 }
 
 type MgoPaymentSystem struct {
@@ -276,7 +283,7 @@ type MgoPaymentSystem struct {
 	Name               string        `bson:"name"`
 	Handler            string        `bson:"handler"`
 	Country            string        `bson:"country"`
-	AccountingCurrency *Currency     `bson:"accounting_currency"`
+	AccountingCurrency string        `bson:"accounting_currency"`
 	AccountingPeriod   string        `bson:"accounting_period"`
 	IsActive           bool          `bson:"is_active"`
 	CreatedAt          time.Time     `bson:"created_at"`
@@ -297,7 +304,7 @@ type MgoPaymentMethod struct {
 	CreatedAt          time.Time                `bson:"created_at"`
 	UpdatedAt          time.Time                `bson:"updated_at"`
 	PaymentSystemId    bson.ObjectId            `bson:"payment_system_id"`
-	Currencies         []int32                  `bson:"currencies"`
+	Currencies         []string                 `bson:"currencies"`
 	Type               string                   `bson:"type"`
 	AccountRegexp      string                   `bson:"account_regexp"`
 }
@@ -328,17 +335,20 @@ type MgoRefundOrder struct {
 }
 
 type MgoRefund struct {
-	Id         bson.ObjectId    `bson:"_id"`
-	Order      *MgoRefundOrder  `bson:"order"`
-	ExternalId string           `bson:"external_id"`
-	Amount     float64          `bson:"amount"`
-	CreatorId  bson.ObjectId    `bson:"creator_id"`
-	Currency   *Currency        `bson:"currency"`
-	Status     int32            `bson:"status"`
-	CreatedAt  time.Time        `bson:"created_at"`
-	UpdatedAt  time.Time        `bson:"updated_at"`
-	PayerData  *RefundPayerData `bson:"payer_data"`
-	SalesTax   float32          `bson:"sales_tax"`
+	Id             bson.ObjectId    `bson:"_id"`
+	OriginalOrder  *MgoRefundOrder  `bson:"original_order"`
+	ExternalId     string           `bson:"external_id"`
+	Amount         float64          `bson:"amount"`
+	CreatorId      bson.ObjectId    `bson:"creator_id"`
+	Currency       string           `bson:"currency"`
+	Status         int32            `bson:"status"`
+	CreatedAt      time.Time        `bson:"created_at"`
+	UpdatedAt      time.Time        `bson:"updated_at"`
+	PayerData      *RefundPayerData `bson:"payer_data"`
+	SalesTax       float32          `bson:"sales_tax"`
+	IsChargeback   bool             `bson:"is_chargeback"`
+	CreatedOrderId bson.ObjectId    `bson:"created_order_id,omitempty"`
+	Reason         string           `bson:"reason"`
 }
 
 type MgoMerchantPaymentMethodHistory struct {
@@ -405,26 +415,33 @@ type MgoCustomer struct {
 }
 
 type MgoPriceGroup struct {
-	Id        bson.ObjectId `bson:"_id"`
-	Currency  string        `bson:"currency"`
-	IsSimple  bool          `bson:"is_simple"`
-	Region    string        `bson:"region"`
-	CreatedAt time.Time     `bson:"created_at"`
-	UpdatedAt time.Time     `bson:"updated_at"`
+	Id            bson.ObjectId `bson:"_id"`
+	Currency      string        `bson:"currency"`
+	Region        string        `bson:"region"`
+	InflationRate float64       `bson:"inflation_rate"`
+	Fraction      float64       `bson:"fraction"`
+	CreatedAt     time.Time     `bson:"created_at"`
+	UpdatedAt     time.Time     `bson:"updated_at"`
 }
 
 type MgoCountry struct {
-	Id              bson.ObjectId `bson:"_id"`
-	IsoCodeA2       string        `bson:"iso_code_a2"`
-	Region          string        `bson:"region"`
-	Currency        string        `bson:"currency"`
-	PaymentsAllowed bool          `bson:"payments_allowed"`
-	ChangeAllowed   bool          `bson:"change_allowed"`
-	VatEnabled      bool          `bson:"vat_enabled"`
-	VatCurrency     string        `bson:"vat_currency"`
-	PriceGroupId    string        `bson:"price_group_id"`
-	CreatedAt       time.Time     `bson:"created_at"`
-	UpdatedAt       time.Time     `bson:"updated_at"`
+	Id                     bson.ObjectId        `bson:"_id"`
+	IsoCodeA2              string               `bson:"iso_code_a2"`
+	Region                 string               `bson:"region"`
+	Currency               string               `bson:"currency"`
+	PaymentsAllowed        bool                 `bson:"payments_allowed"`
+	ChangeAllowed          bool                 `bson:"change_allowed"`
+	VatEnabled             bool                 `bson:"vat_enabled"`
+	VatCurrency            string               `bson:"vat_currency"`
+	PriceGroupId           string               `bson:"price_group_id"`
+	VatThreshold           *CountryVatThreshold `bson:"vat_threshold"`
+	VatPeriodMonth         int32                `bson:"vat_period_month"`
+	VatDeadlineDays        int32                `bson:"vat_deadline_days"`
+	VatStoreYears          int32                `bson:"vat_store_years"`
+	VatCurrencyRatesPolicy string               `bson:"vat_currency_rates_policy"`
+	VatCurrencyRatesSource string               `bson:"vat_currency_rates_source"`
+	CreatedAt              time.Time            `bson:"created_at"`
+	UpdatedAt              time.Time            `bson:"updated_at"`
 }
 
 type MgoPayoutCostSystem struct {
@@ -432,8 +449,8 @@ type MgoPayoutCostSystem struct {
 	IntrabankCostAmount   float64       `bson:"intrabank_cost_amount"`
 	IntrabankCostCurrency string        `bson:"intrabank_cost_currency"`
 	InterbankCostAmount   float64       `bson:"interbank_cost_amount"`
-	InterbankCostCurrency string        ` bson:"interbank_cost_currency"`
-	IsActive              bool          ` bson:"is_active"`
+	InterbankCostCurrency string        `bson:"interbank_cost_currency"`
+	IsActive              bool          `bson:"is_active"`
 	CreatedAt             time.Time     `bson:"created_at"`
 }
 
@@ -459,21 +476,22 @@ type MgoPaymentChannelCostSystem struct {
 }
 
 type MgoPaymentChannelCostMerchant struct {
-	Id                 bson.ObjectId `bson:"_id"`
-	MerchantId         bson.ObjectId `bson:"merchant_id"`
-	Name               string        `bson:"name"`
-	PayoutCurrency     string        `bson:"payout_currency"`
-	MinAmount          float64       `bson:"min_amount"`
-	Region             string        `bson:"region"`
-	Country            string        `bson:"country"`
-	MethodPercent      float64       `bson:"method_percent"`
-	MethodFixAmount    float64       `bson:"method_fix_amount"`
-	PsPercent          float64       `bson:"ps_percent"`
-	PsFixedFee         float64       `bson:"ps_fixed_fee"`
-	PsFixedFeeCurrency string        `bson:"ps_fixed_fee_currency"`
-	CreatedAt          time.Time     `bson:"created_at"`
-	UpdatedAt          time.Time     `bson:"updated_at"`
-	IsActive           bool          `bson:"is_active"`
+	Id                      bson.ObjectId `bson:"_id"`
+	MerchantId              bson.ObjectId `bson:"merchant_id"`
+	Name                    string        `bson:"name"`
+	PayoutCurrency          string        `bson:"payout_currency"`
+	MinAmount               float64       `bson:"min_amount"`
+	Region                  string        `bson:"region"`
+	Country                 string        `bson:"country"`
+	MethodPercent           float64       `bson:"method_percent"`
+	MethodFixAmount         float64       `bson:"method_fix_amount"`
+	MethodFixAmountCurrency string        `bson:"method_fix_amount_currency"`
+	PsPercent               float64       `bson:"ps_percent"`
+	PsFixedFee              float64       `bson:"ps_fixed_fee"`
+	PsFixedFeeCurrency      string        `bson:"ps_fixed_fee_currency"`
+	CreatedAt               time.Time     `bson:"created_at"`
+	UpdatedAt               time.Time     `bson:"updated_at"`
+	IsActive                bool          `bson:"is_active"`
 }
 
 type MgoMoneyBackCostSystem struct {
@@ -511,16 +529,662 @@ type MgoMoneyBackCostMerchant struct {
 	IsActive          bool          `bson:"is_active"`
 }
 
+type MgoPriceTable struct {
+	Id         bson.ObjectId            `bson:"_id"`
+	Currencies []*MgoPriceTableCurrency `bson:"currencies"`
+	From       float64                  `bson:"from"`
+	To         float64                  `bson:"to"`
+}
+
+type MgoPriceTableCurrency struct {
+	Currency string  `bson:"currency"`
+	From     float64 `bson:"from"`
+	To       float64 `bson:"to"`
+}
+
+type MgoAccountingEntrySource struct {
+	Id   bson.ObjectId `bson:"id"`
+	Type string        `bson:"type"`
+}
+
+type MgoAccountingEntry struct {
+	Id               bson.ObjectId             `bson:"_id"`
+	Object           string                    `bson:"object"`
+	Type             string                    `bson:"type"`
+	Source           *MgoAccountingEntrySource `bson:"source"`
+	MerchantId       bson.ObjectId             `bson:"merchant_id"`
+	Amount           float64                   `bson:"amount"`
+	Currency         string                    `bson:"currency"`
+	Reason           string                    `bson:"reason"`
+	Status           string                    `bson:"status"`
+	Country          string                    `bson:"country"`
+	OriginalAmount   float64                   `bson:"original_amount"`
+	OriginalCurrency string                    `bson:"original_currency"`
+	LocalAmount      float64                   `bson:"local_amount"`
+	LocalCurrency    string                    `bson:"local_currency"`
+	CreatedAt        time.Time                 `bson:"created_at"`
+	AvailableOn      time.Time                 `bson:"available_on"`
+}
+
+type MgoRoyaltyReport struct {
+	Id               bson.ObjectId         `bson:"_id"`
+	MerchantId       bson.ObjectId         `bson:"merchant_id"`
+	CreatedAt        time.Time             `bson:"created_at"`
+	UpdatedAt        time.Time             `bson:"updated_at"`
+	PayoutDate       time.Time             `bson:"payout_date"`
+	Status           string                `bson:"status"`
+	PeriodFrom       time.Time             `bson:"period_from"`
+	PeriodTo         time.Time             `bson:"period_to"`
+	AcceptExpireAt   time.Time             `bson:"accept_expire_at"`
+	AcceptedAt       time.Time             `bson:"accepted_at"`
+	Totals           *RoyaltyReportTotals  `bson:"totals"`
+	Currency         string                `bson:"currency"`
+	Summary          *RoyaltyReportSummary `bson:"summary"`
+	DisputeReason    string                `bson:"dispute_reason"`
+	DisputeStartedAt time.Time             `bson:"dispute_started_at"`
+	DisputeClosedAt  time.Time             `bson:"dispute_closed_at"`
+	IsAutoAccepted   bool                  `bson:"is_auto_accepted"`
+	PayoutDocumentId string                `bson:"payout_document_id"`
+}
+
+type MgoRoyaltyReportCorrectionItem struct {
+	AccountingEntryId bson.ObjectId `bson:"accounting_entry_id"`
+	Amount            float64       `bson:"amount"`
+	Currency          string        `bson:"currency"`
+	Reason            string        `bson:"reason"`
+	EntryDate         time.Time     `bson:"entry_date"`
+}
+
+type MgoRoyaltyReportChanges struct {
+	Id              bson.ObjectId `bson:"_id"`
+	RoyaltyReportId bson.ObjectId `bson:"royalty_report_id"`
+	Source          string        `bson:"source"`
+	Ip              string        `bson:"ip"`
+	Hash            string        `bson:"hash"`
+	CreatedAt       time.Time     `bson:"created_at"`
+}
+
+type MgoVatReport struct {
+	Id                    bson.ObjectId `bson:"_id"`
+	Country               string        `bson:"country"`
+	VatRate               float64       `bson:"vat_rate"`
+	Currency              string        `bson:"currency"`
+	TransactionsCount     int32         `bson:"transactions_count"`
+	GrossRevenue          float64       `bson:"gross_revenue"`
+	VatAmount             float64       `bson:"vat_amount"`
+	FeesAmount            float64       `bson:"fees_amount"`
+	DeductionAmount       float64       `bson:"deduction_amount"`
+	CorrectionAmount      float64       `bson:"correction_amount"`
+	Status                string        `bson:"status"`
+	CountryAnnualTurnover float64       `bson:"country_annual_turnover"`
+	WorldAnnualTurnover   float64       `bson:"world_annual_turnover"`
+	AmountsApproximate    bool          `bson:"amounts_approximate"`
+	DateFrom              time.Time     `bson:"date_from"`
+	DateTo                time.Time     `bson:"date_to"`
+	PayUntilDate          time.Time     `bson:"pay_until_date"`
+	CreatedAt             time.Time     `bson:"created_at"`
+	UpdatedAt             time.Time     `bson:"updated_at"`
+}
+
+type MgoOrderViewPrivate struct {
+	Id                                         bson.ObjectId          `bson:"_id"`
+	Uuid                                       string                 `bson:"uuid"`
+	TotalPaymentAmount                         float64                `bson:"total_payment_amount"`
+	Currency                                   string                 `bson:"currency"`
+	Project                                    *MgoOrderProject       `bson:"project"`
+	CreatedAt                                  time.Time              `bson:"created_at"`
+	Transaction                                string                 `bson:"pm_order_id"`
+	PaymentMethod                              *MgoOrderPaymentMethod `bson:"payment_method"`
+	CountryCode                                string                 `bson:"country_code"`
+	MerchantId                                 bson.ObjectId          `bson:"merchant_id"`
+	Locale                                     string                 `bson:"locale"`
+	Status                                     string                 `bson:"status"`
+	TransactionDate                            time.Time              `bson:"pm_order_close_date"`
+	User                                       *OrderUser             `bson:"user"`
+	BillingAddress                             *OrderBillingAddress   `bson:"billing_address"`
+	Type                                       string                 `bson:"type"`
+	IsVatDeduction                             bool                   `bson:"is_vat_deduction"`
+	PaymentGrossRevenueLocal                   *OrderViewMoney        `bson:"payment_gross_revenue_local"`
+	PaymentGrossRevenueOrigin                  *OrderViewMoney        `bson:"payment_gross_revenue_origin"`
+	PaymentGrossRevenue                        *OrderViewMoney        `bson:"payment_gross_revenue"`
+	PaymentTaxFee                              *OrderViewMoney        `bson:"payment_tax_fee"`
+	PaymentTaxFeeLocal                         *OrderViewMoney        `bson:"payment_tax_fee_local"`
+	PaymentTaxFeeOrigin                        *OrderViewMoney        `bson:"payment_tax_fee_origin"`
+	PaymentTaxFeeCurrencyExchangeFee           *OrderViewMoney        `bson:"payment_tax_fee_currency_exchange_fee"`
+	PaymentTaxFeeTotal                         *OrderViewMoney        `bson:"payment_tax_fee_total"`
+	PaymentGrossRevenueFx                      *OrderViewMoney        `bson:"payment_gross_revenue_fx"`
+	PaymentGrossRevenueFxTaxFee                *OrderViewMoney        `bson:"payment_gross_revenue_fx_tax_fee"`
+	PaymentGrossRevenueFxProfit                *OrderViewMoney        `bson:"payment_gross_revenue_fx_profit"`
+	GrossRevenue                               *OrderViewMoney        `bson:"gross_revenue"`
+	TaxFee                                     *OrderViewMoney        `bson:"tax_fee"`
+	TaxFeeCurrencyExchangeFee                  *OrderViewMoney        `bson:"tax_fee_currency_exchange_fee"`
+	TaxFeeTotal                                *OrderViewMoney        `bson:"tax_fee_total"`
+	MethodFeeTotal                             *OrderViewMoney        `bson:"method_fee_total"`
+	MethodFeeTariff                            *OrderViewMoney        `bson:"method_fee_tariff"`
+	PaysuperMethodFeeTariffSelfCost            *OrderViewMoney        `bson:"paysuper_method_fee_tariff_self_cost"`
+	PaysuperMethodFeeProfit                    *OrderViewMoney        `bson:"paysuper_method_fee_profit"`
+	MethodFixedFeeTariff                       *OrderViewMoney        `bson:"method_fixed_fee_tariff"`
+	PaysuperMethodFixedFeeTariffFxProfit       *OrderViewMoney        `bson:"paysuper_method_fixed_fee_tariff_fx_profit"`
+	PaysuperMethodFixedFeeTariffSelfCost       *OrderViewMoney        `bson:"paysuper_method_fixed_fee_tariff_self_cost"`
+	PaysuperMethodFixedFeeTariffTotalProfit    *OrderViewMoney        `bson:"paysuper_method_fixed_fee_tariff_total_profit"`
+	PaysuperFixedFee                           *OrderViewMoney        `bson:"paysuper_fixed_fee"`
+	PaysuperFixedFeeFxProfit                   *OrderViewMoney        `bson:"paysuper_fixed_fee_fx_profit"`
+	FeesTotal                                  *OrderViewMoney        `bson:"fees_total"`
+	FeesTotalLocal                             *OrderViewMoney        `bson:"fees_total_local"`
+	NetRevenue                                 *OrderViewMoney        `bson:"net_revenue"`
+	PaysuperMethodTotalProfit                  *OrderViewMoney        `bson:"paysuper_method_total_profit"`
+	PaysuperTotalProfit                        *OrderViewMoney        `bson:"paysuper_total_profit"`
+	PaymentRefundGrossRevenueLocal             *OrderViewMoney        `bson:"payment_refund_gross_revenue_local"`
+	PaymentRefundGrossRevenueOrigin            *OrderViewMoney        `bson:"payment_refund_gross_revenue_origin"`
+	PaymentRefundGrossRevenue                  *OrderViewMoney        `bson:"payment_refund_gross_revenue"`
+	PaymentRefundTaxFee                        *OrderViewMoney        `bson:"payment_refund_tax_fee"`
+	PaymentRefundTaxFeeLocal                   *OrderViewMoney        `bson:"payment_refund_tax_fee_local"`
+	PaymentRefundTaxFeeOrigin                  *OrderViewMoney        `bson:"payment_refund_tax_fee_origin"`
+	PaymentRefundFeeTariff                     *OrderViewMoney        `bson:"payment_refund_fee_tariff"`
+	MethodRefundFixedFeeTariff                 *OrderViewMoney        `bson:"method_refund_fixed_fee_tariff"`
+	RefundGrossRevenue                         *OrderViewMoney        `bson:"refund_gross_revenue"`
+	RefundGrossRevenueFx                       *OrderViewMoney        `bson:"refund_gross_revenue_fx"`
+	MethodRefundFeeTariff                      *OrderViewMoney        `bson:"method_refund_fee_tariff"`
+	PaysuperMethodRefundFeeTariffProfit        *OrderViewMoney        `bson:"paysuper_method_refund_fee_tariff_profit"`
+	PaysuperMethodRefundFixedFeeTariffSelfCost *OrderViewMoney        `bson:"paysuper_method_refund_fixed_fee_tariff_self_cost"`
+	MerchantRefundFixedFeeTariff               *OrderViewMoney        `bson:"merchant_refund_fixed_fee_tariff"`
+	PaysuperMethodRefundFixedFeeTariffProfit   *OrderViewMoney        `bson:"paysuper_method_refund_fixed_fee_tariff_profit"`
+	RefundTaxFee                               *OrderViewMoney        `bson:"refund_tax_fee"`
+	RefundTaxFeeCurrencyExchangeFee            *OrderViewMoney        `bson:"refund_tax_fee_currency_exchange_fee"`
+	PaysuperRefundTaxFeeCurrencyExchangeFee    *OrderViewMoney        `bson:"paysuper_refund_tax_fee_currency_exchange_fee"`
+	RefundTaxFeeTotal                          *OrderViewMoney        `bson:"refund_tax_fee_total"`
+	RefundReverseRevenue                       *OrderViewMoney        `bson:"refund_reverse_revenue"`
+	RefundFeesTotal                            *OrderViewMoney        `bson:"refund_fees_total"`
+	RefundFeesTotalLocal                       *OrderViewMoney        `bson:"refund_fees_total_local"`
+	PaysuperRefundTotalProfit                  *OrderViewMoney        `bson:"paysuper_refund_total_profit"`
+}
+
+type MgoOrderViewPublic struct {
+	Id                                      bson.ObjectId          `bson:"_id"`
+	Uuid                                    string                 `bson:"uuid"`
+	TotalPaymentAmount                      float64                `bson:"total_payment_amount"`
+	Currency                                string                 `bson:"currency"`
+	Project                                 *MgoOrderProject       `bson:"project"`
+	CreatedAt                               time.Time              `bson:"created_at"`
+	Transaction                             string                 `bson:"pm_order_id"`
+	PaymentMethod                           *MgoOrderPaymentMethod `bson:"payment_method"`
+	CountryCode                             string                 `bson:"country_code"`
+	MerchantId                              bson.ObjectId          `bson:"merchant_id"`
+	Locale                                  string                 `bson:"locale"`
+	Status                                  string                 `bson:"status"`
+	TransactionDate                         time.Time              `bson:"pm_order_close_date"`
+	User                                    *OrderUser             `bson:"user"`
+	BillingAddress                          *OrderBillingAddress   `bson:"billing_address"`
+	Type                                    string                 `bson:"type"`
+	IsVatDeduction                          bool                   `bson:"is_vat_deduction"`
+	GrossRevenue                            *OrderViewMoney        `bson:"gross_revenue"`
+	TaxFee                                  *OrderViewMoney        `bson:"tax_fee"`
+	TaxFeeCurrencyExchangeFee               *OrderViewMoney        `bson:"tax_fee_currency_exchange_fee"`
+	TaxFeeTotal                             *OrderViewMoney        `bson:"tax_fee_total"`
+	MethodFeeTotal                          *OrderViewMoney        `bson:"method_fee_total"`
+	MethodFeeTariff                         *OrderViewMoney        `bson:"method_fee_tariff"`
+	MethodFixedFeeTariff                    *OrderViewMoney        `bson:"method_fixed_fee_tariff"`
+	PaysuperFixedFee                        *OrderViewMoney        `bson:"paysuper_fixed_fee"`
+	FeesTotal                               *OrderViewMoney        `bson:"fees_total"`
+	FeesTotalLocal                          *OrderViewMoney        `bson:"fees_total_local"`
+	NetRevenue                              *OrderViewMoney        `bson:"net_revenue"`
+	RefundGrossRevenue                      *OrderViewMoney        `bson:"refund_gross_revenue"`
+	MethodRefundFeeTariff                   *OrderViewMoney        `bson:"method_refund_fee_tariff"`
+	MerchantRefundFixedFeeTariff            *OrderViewMoney        `bson:"merchant_refund_fixed_fee_tariff"`
+	RefundTaxFee                            *OrderViewMoney        `bson:"refund_tax_fee"`
+	RefundTaxFeeCurrencyExchangeFee         *OrderViewMoney        `bson:"refund_tax_fee_currency_exchange_fee"`
+	PaysuperRefundTaxFeeCurrencyExchangeFee *OrderViewMoney        `bson:"paysuper_refund_tax_fee_currency_exchange_fee"`
+	RefundReverseRevenue                    *OrderViewMoney        `bson:"refund_reverse_revenue"`
+	RefundFeesTotal                         *OrderViewMoney        `bson:"refund_fees_total"`
+	RefundFeesTotalLocal                    *OrderViewMoney        `bson:"refund_fees_total_local"`
+}
+
+type MgoMerchantTariffRates struct {
+	Id         bson.ObjectId                   `bson:"_id"`
+	Payment    []*MerchantTariffRatesPayments  `bson:"payment"`
+	MoneyBack  []*MerchantTariffRatesMoneyBack `bson:"money_back"`
+	Payout     *TariffRatesItem                `bson:"payout"`
+	Chargeback *TariffRatesItem                `bson:"chargeback"`
+	Region     string                          `bson:"region"`
+	CreatedAt  time.Time                       `bson:"created_at"`
+	UpdatedAt  time.Time                       `bson:"updated_at"`
+}
+
+type MgoKey struct {
+	Id           bson.ObjectId  `bson:"_id"`
+	Code         string         `bson:"code"`
+	KeyProductId bson.ObjectId  `bson:"key_product_id"`
+	PlatformId   string         `bson:"platform_id"`
+	OrderId      *bson.ObjectId `bson:"order_id"`
+	CreatedAt    time.Time      `bson:"created_at"`
+	ReservedTo   time.Time      `bson:"reserved_to"`
+	RedeemedAt   time.Time      `bson:"redeemed_at"`
+}
+
+type MgoPayoutDocument struct {
+	Id                      bson.ObjectId                   `bson:"_id"`
+	MerchantId              bson.ObjectId                   `bson:"merchant_id"`
+	SourceId                []string                        `bson:"source_id"`
+	TotalFees               float64                         `bson:"total_fees"`
+	Balance                 float64                         `bson:"balance"`
+	Currency                string                          `bson:"currency"`
+	PeriodFrom              time.Time                       `bson:"period_from"`
+	PeriodTo                time.Time                       `bson:"period_to"`
+	TotalTransactions       int32                           `bson:"total_transactions"`
+	Description             string                          `bson:"description"`
+	Destination             *MerchantBanking                `bson:"destination"`
+	MerchantAgreementNumber string                          `bson:"merchant_agreement_number"`
+	Company                 *MerchantCompanyInfo            `bson:"company"`
+	Status                  string                          `bson:"status"`
+	Transaction             string                          `bson:"transaction"`
+	FailureCode             string                          `bson:"failure_code"`
+	FailureMessage          string                          `bson:"failure_message"`
+	FailureTransaction      string                          `bson:"failure_transaction"`
+	SignatureData           *MgoPayoutDocumentSignatureData `bson:"signature_data"`
+	HasMerchantSignature    bool                            `bson:"has_merchant_signature"`
+	HasPspSignature         bool                            `bson:"has_psp_signature"`
+	SignedDocumentFileUrl   string                          `bson:"signed_document_file_url"`
+	RenderedDocumentFileUrl string                          `bson:"rendered_document_file_url"`
+	CreatedAt               time.Time                       `bson:"created_at"`
+	UpdatedAt               time.Time                       `bson:"updated_at"`
+	ArrivalDate             time.Time                       `bson:"arrival_date"`
+}
+
+type MgoPayoutDocumentSignatureDataSignUrl struct {
+	SignUrl   string    `bson:"sign_url"`
+	ExpiresAt time.Time `bson:"expires_at"`
+}
+
+type MgoPayoutDocumentSignatureData struct {
+	DetailsUrl          string                                 `bson:"details_url"`
+	FilesUrl            string                                 `bson:"files_url"`
+	SignatureRequestId  string                                 `bson:"signature_request_id"`
+	MerchantSignatureId string                                 `bson:"merchant_signature_id"`
+	PsSignatureId       string                                 `bson:"ps_signature_id"`
+	MerchantSignUrl     *MgoPayoutDocumentSignatureDataSignUrl `bson:"merchant_sign_url"`
+	PsSignUrl           *MgoPayoutDocumentSignatureDataSignUrl `bson:"ps_sign_url"`
+}
+
+type MgoPayoutDocumentChanges struct {
+	Id               bson.ObjectId `bson:"_id"`
+	PayoutDocumentId bson.ObjectId `bson:"payout_document_id"`
+	Source           string        `bson:"source"`
+	Ip               string        `bson:"ip"`
+	CreatedAt        time.Time     `bson:"created_at"`
+}
+
+type MgoMerchantBalance struct {
+	Id             bson.ObjectId `bson:"_id"`
+	MerchantId     bson.ObjectId `bson:"merchant_id"`
+	Currency       string        `bson:"currency"`
+	Debit          float64       `bson:"debit"`
+	Credit         float64       `bson:"credit"`
+	RollingReserve float64       `bson:"rolling_reserve"`
+	Total          float64       `bson:"total"`
+	CreatedAt      time.Time     `bson:"created_at"`
+}
+
+func (m *PayoutDocument) GetBSON() (interface{}, error) {
+	st := &MgoPayoutDocument{
+		SourceId:                m.SourceId,
+		TotalFees:               m.TotalFees,
+		Balance:                 m.Balance,
+		Currency:                m.Currency,
+		TotalTransactions:       m.TotalTransactions,
+		Description:             m.Description,
+		MerchantAgreementNumber: m.MerchantAgreementNumber,
+		Status:                  m.Status,
+		Transaction:             m.Transaction,
+		FailureCode:             m.FailureCode,
+		FailureMessage:          m.FailureMessage,
+		FailureTransaction:      m.FailureTransaction,
+		HasMerchantSignature:    m.HasMerchantSignature,
+		HasPspSignature:         m.HasPspSignature,
+		SignedDocumentFileUrl:   m.SignedDocumentFileUrl,
+		RenderedDocumentFileUrl: m.RenderedDocumentFileUrl,
+		Destination:             m.Destination,
+		Company:                 m.Company,
+	}
+	if len(m.Id) <= 0 {
+		st.Id = bson.NewObjectId()
+	} else {
+		if bson.IsObjectIdHex(m.Id) == false {
+			return nil, errors.New(errorInvalidObjectId)
+		}
+
+		st.Id = bson.ObjectIdHex(m.Id)
+	}
+
+	if bson.IsObjectIdHex(m.MerchantId) == false {
+		return nil, errors.New(errorInvalidObjectId)
+	}
+	st.MerchantId = bson.ObjectIdHex(m.MerchantId)
+
+	if m.CreatedAt != nil {
+		t, err := ptypes.Timestamp(m.CreatedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.CreatedAt = t
+	} else {
+		st.CreatedAt = time.Now()
+	}
+
+	if m.UpdatedAt != nil {
+		t, err := ptypes.Timestamp(m.UpdatedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.UpdatedAt = t
+	} else {
+		st.UpdatedAt = time.Now()
+	}
+
+	if m.ArrivalDate != nil {
+		t, err := ptypes.Timestamp(m.ArrivalDate)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.ArrivalDate = t
+	} else {
+		st.ArrivalDate = time.Now()
+	}
+
+	if m.PeriodFrom != nil {
+		t, err := ptypes.Timestamp(m.PeriodFrom)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.PeriodFrom = t
+	}
+
+	if m.PeriodTo != nil {
+		t, err := ptypes.Timestamp(m.PeriodTo)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.PeriodTo = t
+	}
+
+	if m.SignatureData != nil {
+		st.SignatureData = &MgoPayoutDocumentSignatureData{
+			DetailsUrl:          m.SignatureData.DetailsUrl,
+			FilesUrl:            m.SignatureData.FilesUrl,
+			SignatureRequestId:  m.SignatureData.SignatureRequestId,
+			MerchantSignatureId: m.SignatureData.MerchantSignatureId,
+			PsSignatureId:       m.SignatureData.PsSignatureId,
+		}
+
+		if m.SignatureData.MerchantSignUrl != nil {
+			st.SignatureData.MerchantSignUrl = &MgoPayoutDocumentSignatureDataSignUrl{
+				SignUrl: m.SignatureData.MerchantSignUrl.SignUrl,
+			}
+
+			t, err := ptypes.Timestamp(m.SignatureData.MerchantSignUrl.ExpiresAt)
+
+			if err != nil {
+				return nil, err
+			}
+
+			st.SignatureData.MerchantSignUrl.ExpiresAt = t
+		}
+
+		if m.SignatureData.PsSignUrl != nil {
+			st.SignatureData.PsSignUrl = &MgoPayoutDocumentSignatureDataSignUrl{
+				SignUrl: m.SignatureData.PsSignUrl.SignUrl,
+			}
+
+			t, err := ptypes.Timestamp(m.SignatureData.PsSignUrl.ExpiresAt)
+
+			if err != nil {
+				return nil, err
+			}
+
+			st.SignatureData.PsSignUrl.ExpiresAt = t
+		}
+	}
+
+	return st, nil
+}
+
+func (m *PayoutDocument) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoPayoutDocument)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.MerchantId = decoded.MerchantId.Hex()
+	m.SourceId = decoded.SourceId
+	m.TotalFees = decoded.TotalFees
+	m.Balance = decoded.Balance
+	m.Currency = decoded.Currency
+	m.TotalTransactions = decoded.TotalTransactions
+	m.Description = decoded.Description
+	m.MerchantAgreementNumber = decoded.MerchantAgreementNumber
+	m.Status = decoded.Status
+	m.Transaction = decoded.Transaction
+	m.FailureCode = decoded.FailureCode
+	m.FailureMessage = decoded.FailureMessage
+	m.FailureTransaction = decoded.FailureTransaction
+	m.SignedDocumentFileUrl = decoded.SignedDocumentFileUrl
+	m.RenderedDocumentFileUrl = decoded.RenderedDocumentFileUrl
+	m.HasMerchantSignature = decoded.HasMerchantSignature
+	m.HasPspSignature = decoded.HasPspSignature
+	m.Destination = decoded.Destination
+	m.Company = decoded.Company
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	m.UpdatedAt, err = ptypes.TimestampProto(decoded.UpdatedAt)
+	if err != nil {
+		return err
+	}
+
+	m.ArrivalDate, err = ptypes.TimestampProto(decoded.ArrivalDate)
+	if err != nil {
+		return err
+	}
+
+	m.PeriodFrom, err = ptypes.TimestampProto(decoded.PeriodFrom)
+	if err != nil {
+		return err
+	}
+
+	m.PeriodTo, err = ptypes.TimestampProto(decoded.PeriodTo)
+	if err != nil {
+		return err
+	}
+
+	if decoded.SignatureData != nil {
+		m.SignatureData = &PayoutDocumentSignatureData{
+			DetailsUrl:          decoded.SignatureData.DetailsUrl,
+			FilesUrl:            decoded.SignatureData.FilesUrl,
+			SignatureRequestId:  decoded.SignatureData.SignatureRequestId,
+			MerchantSignatureId: decoded.SignatureData.MerchantSignatureId,
+			PsSignatureId:       decoded.SignatureData.PsSignatureId,
+		}
+
+		if decoded.SignatureData.MerchantSignUrl != nil {
+			m.SignatureData.MerchantSignUrl = &PayoutDocumentSignatureDataSignUrl{
+				SignUrl: decoded.SignatureData.MerchantSignUrl.SignUrl,
+			}
+
+			t, err := ptypes.TimestampProto(decoded.SignatureData.MerchantSignUrl.ExpiresAt)
+
+			if err != nil {
+				return err
+			}
+
+			m.SignatureData.MerchantSignUrl.ExpiresAt = t
+		}
+
+		if decoded.SignatureData.PsSignUrl != nil {
+			m.SignatureData.PsSignUrl = &PayoutDocumentSignatureDataSignUrl{
+				SignUrl: decoded.SignatureData.PsSignUrl.SignUrl,
+			}
+
+			t, err := ptypes.TimestampProto(decoded.SignatureData.PsSignUrl.ExpiresAt)
+
+			if err != nil {
+				return err
+			}
+
+			m.SignatureData.PsSignUrl.ExpiresAt = t
+		}
+	}
+
+	return nil
+}
+
+func (m *PayoutDocumentChanges) GetBSON() (interface{}, error) {
+	st := &MgoPayoutDocumentChanges{
+		Source: m.Source,
+		Ip:     m.Ip,
+	}
+	if len(m.Id) <= 0 {
+		st.Id = bson.NewObjectId()
+	} else {
+		if bson.IsObjectIdHex(m.Id) == false {
+			return nil, errors.New(errorInvalidObjectId)
+		}
+		st.Id = bson.ObjectIdHex(m.Id)
+	}
+
+	if bson.IsObjectIdHex(m.PayoutDocumentId) == false {
+		return nil, errors.New(errorInvalidObjectId)
+	}
+	st.PayoutDocumentId = bson.ObjectIdHex(m.PayoutDocumentId)
+
+	if m.CreatedAt != nil {
+		t, err := ptypes.Timestamp(m.CreatedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.CreatedAt = t
+	} else {
+		st.CreatedAt = time.Now()
+	}
+
+	return st, nil
+}
+
+func (m *PayoutDocumentChanges) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoPayoutDocumentChanges)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.PayoutDocumentId = decoded.PayoutDocumentId.Hex()
+	m.Source = decoded.Source
+	m.Ip = decoded.Ip
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *MerchantBalance) GetBSON() (interface{}, error) {
+	st := &MgoMerchantBalance{
+		Currency:       m.Currency,
+		Debit:          m.Debit,
+		Credit:         m.Credit,
+		RollingReserve: m.RollingReserve,
+		Total:          m.Total,
+	}
+	if len(m.Id) <= 0 {
+		st.Id = bson.NewObjectId()
+	} else {
+		if bson.IsObjectIdHex(m.Id) == false {
+			return nil, errors.New(errorInvalidObjectId)
+		}
+
+		st.Id = bson.ObjectIdHex(m.Id)
+	}
+
+	if bson.IsObjectIdHex(m.MerchantId) == false {
+		return nil, errors.New(errorInvalidObjectId)
+	}
+
+	st.MerchantId = bson.ObjectIdHex(m.MerchantId)
+
+	if m.CreatedAt != nil {
+		t, err := ptypes.Timestamp(m.CreatedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.CreatedAt = t
+	} else {
+		st.CreatedAt = time.Now()
+	}
+
+	return st, nil
+}
+
+func (m *MerchantBalance) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoMerchantBalance)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.MerchantId = decoded.MerchantId.Hex()
+	m.Currency = decoded.Currency
+	m.Debit = decoded.Debit
+	m.Credit = decoded.Credit
+	m.RollingReserve = decoded.RollingReserve
+	m.Total = decoded.Total
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (m *Country) GetBSON() (interface{}, error) {
 	st := &MgoCountry{
-		IsoCodeA2:       m.IsoCodeA2,
-		Region:          m.Region,
-		Currency:        m.Currency,
-		PaymentsAllowed: m.PaymentsAllowed,
-		ChangeAllowed:   m.ChangeAllowed,
-		VatEnabled:      m.VatEnabled,
-		PriceGroupId:    m.PriceGroupId,
-		VatCurrency:     m.VatCurrency,
+		IsoCodeA2:              m.IsoCodeA2,
+		Region:                 m.Region,
+		Currency:               m.Currency,
+		PaymentsAllowed:        m.PaymentsAllowed,
+		ChangeAllowed:          m.ChangeAllowed,
+		VatEnabled:             m.VatEnabled,
+		PriceGroupId:           m.PriceGroupId,
+		VatCurrency:            m.VatCurrency,
+		VatThreshold:           m.VatThreshold,
+		VatPeriodMonth:         m.VatPeriodMonth,
+		VatStoreYears:          m.VatStoreYears,
+		VatCurrencyRatesPolicy: m.VatCurrencyRatesPolicy,
+		VatCurrencyRatesSource: m.VatCurrencyRatesSource,
 	}
 	if len(m.Id) <= 0 {
 		st.Id = bson.NewObjectId()
@@ -576,6 +1240,12 @@ func (m *Country) SetBSON(raw bson.Raw) error {
 	m.VatEnabled = decoded.VatEnabled
 	m.PriceGroupId = decoded.PriceGroupId
 	m.VatCurrency = decoded.VatCurrency
+	m.VatThreshold = decoded.VatThreshold
+	m.VatPeriodMonth = decoded.VatPeriodMonth
+	m.VatDeadlineDays = decoded.VatDeadlineDays
+	m.VatStoreYears = decoded.VatStoreYears
+	m.VatCurrencyRatesPolicy = decoded.VatCurrencyRatesPolicy
+	m.VatCurrencyRatesSource = decoded.VatCurrencyRatesSource
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 
@@ -594,9 +1264,10 @@ func (m *Country) SetBSON(raw bson.Raw) error {
 
 func (m *PriceGroup) GetBSON() (interface{}, error) {
 	st := &MgoPriceGroup{
-		IsSimple: m.IsSimple,
-		Region:   m.Region,
-		Currency: m.Currency,
+		Region:        m.Region,
+		Currency:      m.Currency,
+		InflationRate: m.InflationRate,
+		Fraction:      m.Fraction,
 	}
 	if len(m.Id) <= 0 {
 		st.Id = bson.NewObjectId()
@@ -644,83 +1315,10 @@ func (m *PriceGroup) SetBSON(raw bson.Raw) error {
 	}
 
 	m.Id = decoded.Id.Hex()
-	m.IsSimple = decoded.IsSimple
 	m.Region = decoded.Region
 	m.Currency = decoded.Currency
-
-	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
-
-	if err != nil {
-		return err
-	}
-
-	m.UpdatedAt, err = ptypes.TimestampProto(decoded.UpdatedAt)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *Vat) GetBSON() (interface{}, error) {
-	st := &MgoVat{
-		Country:     m.Country,
-		Subdivision: m.Subdivision,
-		Vat:         m.Vat,
-		IsActive:    m.IsActive,
-	}
-
-	if len(m.Id) <= 0 {
-		st.Id = bson.NewObjectId()
-	} else {
-		if bson.IsObjectIdHex(m.Id) == false {
-			return nil, errors.New(errorInvalidObjectId)
-		}
-
-		st.Id = bson.ObjectIdHex(m.Id)
-	}
-
-	if m.CreatedAt != nil {
-		t, err := ptypes.Timestamp(m.CreatedAt)
-
-		if err != nil {
-			return nil, err
-		}
-
-		st.CreatedAt = t
-	} else {
-		st.CreatedAt = time.Now()
-	}
-
-	if m.UpdatedAt != nil {
-		t, err := ptypes.Timestamp(m.UpdatedAt)
-
-		if err != nil {
-			return nil, err
-		}
-
-		st.UpdatedAt = t
-	} else {
-		st.UpdatedAt = time.Now()
-	}
-
-	return st, nil
-}
-
-func (m *Vat) SetBSON(raw bson.Raw) error {
-	decoded := new(MgoVat)
-	err := raw.Unmarshal(decoded)
-
-	if err != nil {
-		return err
-	}
-
-	m.Id = decoded.Id.Hex()
-	m.Country = decoded.Country
-	m.Subdivision = decoded.Subdivision
-	m.Vat = decoded.Vat
-	m.IsActive = decoded.IsActive
+	m.InflationRate = decoded.InflationRate
+	m.Fraction = decoded.Fraction
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 
@@ -740,6 +1338,7 @@ func (m *Vat) SetBSON(raw bson.Raw) error {
 func (m *Project) GetBSON() (interface{}, error) {
 	st := &MgoProject{
 		MerchantId:               bson.ObjectIdHex(m.MerchantId),
+		Image:                    m.Image,
 		CallbackCurrency:         m.CallbackCurrency,
 		CallbackProtocol:         m.CallbackProtocol,
 		CreateOrderAllowedUrls:   m.CreateOrderAllowedUrls,
@@ -819,6 +1418,7 @@ func (m *Project) SetBSON(raw bson.Raw) error {
 
 	m.Id = decoded.Id.Hex()
 	m.MerchantId = decoded.MerchantId.Hex()
+	m.Image = decoded.Image
 	m.CallbackCurrency = decoded.CallbackCurrency
 	m.CallbackProtocol = decoded.CallbackProtocol
 	m.CreateOrderAllowedUrls = decoded.CreateOrderAllowedUrls
@@ -869,76 +1469,6 @@ func (m *Project) SetBSON(raw bson.Raw) error {
 	}
 
 	return nil
-}
-
-func (m *CurrencyRate) GetBSON() (interface{}, error) {
-	st := &MgoCurrencyRate{
-		CurrencyFrom: m.CurrencyFrom,
-		CurrencyTo:   m.CurrencyTo,
-		Rate:         m.Rate,
-		IsActive:     m.IsActive,
-	}
-
-	if len(m.Id) <= 0 {
-		st.Id = bson.NewObjectId()
-	} else {
-		if bson.IsObjectIdHex(m.Id) == false {
-			return nil, errors.New(errorInvalidObjectId)
-		}
-
-		st.Id = bson.ObjectIdHex(m.Id)
-	}
-
-	if m.Date == nil {
-		return nil, fmt.Errorf(errorRequiredField, "Date", "CurrencyRate")
-	}
-
-	t, err := ptypes.Timestamp(m.Date)
-
-	if err != nil {
-		return nil, err
-	}
-
-	st.Date = t
-
-	if m.CreatedAt != nil {
-		t, err := ptypes.Timestamp(m.CreatedAt)
-
-		if err != nil {
-			return nil, err
-		}
-
-		st.CreatedAt = t
-	} else {
-		st.CreatedAt = time.Now()
-	}
-
-	return st, nil
-}
-
-func (m *CurrencyRate) SetBSON(raw bson.Raw) error {
-	decoded := new(MgoCurrencyRate)
-	err := raw.Unmarshal(decoded)
-
-	if err != nil {
-		return err
-	}
-
-	m.Id = decoded.Id.Hex()
-	m.CurrencyFrom = decoded.CurrencyFrom
-	m.CurrencyTo = decoded.CurrencyTo
-	m.Rate = decoded.Rate
-	m.IsActive = decoded.IsActive
-
-	m.Date, err = ptypes.TimestampProto(decoded.Date)
-
-	if err != nil {
-		return err
-	}
-
-	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
-
-	return err
 }
 
 func (m *Commission) GetBSON() (interface{}, error) {
@@ -1050,12 +1580,9 @@ func (m *Order) GetBSON() (interface{}, error) {
 		TotalPaymentAmount: m.TotalPaymentAmount,
 		Currency:           m.Currency,
 		User:               m.User,
-		Payout:             m.Payout,
-		PlatformFee:        m.PlatformFee,
 		BillingAddress:     m.BillingAddress,
 		Tax:                m.Tax,
 		Items:              []*MgoOrderItem{},
-		Refund:             m.Refund,
 		Metadata:           m.Metadata,
 		PrivateMetadata:    m.PrivateMetadata,
 		Project: &MgoOrderProject{
@@ -1075,34 +1602,37 @@ func (m *Order) GetBSON() (interface{}, error) {
 			UrlFraudPayment:      m.Project.UrlFraudPayment,
 			Status:               m.Project.Status,
 		},
-		ProjectOrderId:                          m.ProjectOrderId,
-		ProjectAccount:                          m.ProjectAccount,
-		ProjectIncomeAmount:                     m.ProjectIncomeAmount,
-		ProjectIncomeCurrency:                   m.ProjectIncomeCurrency,
-		ProjectOutcomeAmount:                    m.ProjectOutcomeAmount,
-		ProjectOutcomeCurrency:                  m.ProjectOutcomeCurrency,
-		ProjectParams:                           m.ProjectParams,
-		PaymentMethodOutcomeAmount:              m.PaymentMethodOutcomeAmount,
-		PaymentMethodOutcomeCurrency:            m.PaymentMethodOutcomeCurrency,
-		PaymentMethodIncomeAmount:               m.PaymentMethodIncomeAmount,
-		PaymentMethodIncomeCurrency:             m.PaymentMethodIncomeCurrency,
-		IsJsonRequest:                           m.IsJsonRequest,
-		OrderAmount:                             m.OrderAmount,
-		AmountInPspAccountingCurrency:           m.AmountInPspAccountingCurrency,
-		AmountInMerchantAccountingCurrency:      m.AmountInMerchantAccountingCurrency,
-		AmountOutMerchantAccountingCurrency:     m.AmountOutMerchantAccountingCurrency,
-		AmountInPaymentSystemAccountingCurrency: m.AmountInPaymentSystemAccountingCurrency,
-		PaymentMethodPayerAccount:               m.PaymentMethodPayerAccount,
-		PaymentMethodTxnParams:                  m.PaymentMethodTxnParams,
-		PaymentRequisites:                       m.PaymentRequisites,
-		PspFeeAmount:                            m.PspFeeAmount,
-		ToPayerFeeAmount:                        m.ToPayerFeeAmount,
-		PaymentSystemFeeAmount:                  m.PaymentSystemFeeAmount,
-		UserAddressDataRequired:                 m.UserAddressDataRequired,
-		Products:                                m.Products,
-		IsNotificationsSent:                     m.IsNotificationsSent,
-		CountryRestriction:                      m.CountryRestriction,
-		PaymentRoyaltyData:                      m.PaymentRoyaltyData,
+		ProjectOrderId:            m.ProjectOrderId,
+		ProjectAccount:            m.ProjectAccount,
+		ProjectParams:             m.ProjectParams,
+		IsJsonRequest:             m.IsJsonRequest,
+		OrderAmount:               m.OrderAmount,
+		PaymentMethodPayerAccount: m.PaymentMethodPayerAccount,
+		PaymentMethodTxnParams:    m.PaymentMethodTxnParams,
+		PaymentRequisites:         m.PaymentRequisites,
+		UserAddressDataRequired:   m.UserAddressDataRequired,
+		Products:                  m.Products,
+		IsNotificationsSent:       m.IsNotificationsSent,
+		CountryRestriction:        m.CountryRestriction,
+		ParentId:                  m.ParentId,
+		Type:                      m.Type,
+		IsVatDeduction:            m.IsVatDeduction,
+		CountryCode:               m.GetCountry(),
+		ProductType:               m.ProductType,
+		PlatformId:                m.PlatformId,
+		Keys:                      m.Keys,
+		IsKeyProductNotified:      m.IsKeyProductNotified,
+	}
+
+	if m.Refund != nil {
+		st.Refund = &MgoOrderNotificationRefund{
+			Amount:        m.Refund.Amount,
+			Currency:      m.Refund.Currency,
+			Reason:        m.Refund.Reason,
+			Code:          m.Refund.Code,
+			ReceiptNumber: m.Refund.ReceiptNumber,
+			ReceiptUrl:    m.Refund.ReceiptUrl,
+		}
 	}
 
 	for _, v := range m.Items {
@@ -1116,6 +1646,8 @@ func (m *Order) GetBSON() (interface{}, error) {
 			Images:      v.Images,
 			Url:         v.Url,
 			Metadata:    v.Metadata,
+			Code:        v.Code,
+			PlatformId:  v.PlatformId,
 		}
 
 		if len(v.Id) <= 0 {
@@ -1141,7 +1673,7 @@ func (m *Order) GetBSON() (interface{}, error) {
 			PaymentSystemId: bson.ObjectIdHex(m.PaymentMethod.PaymentSystemId),
 			Group:           m.PaymentMethod.Group,
 			Saved:           m.PaymentMethod.Saved,
-			Fee:             m.PaymentMethod.Fee,
+			Handler:         m.PaymentMethod.Handler,
 		}
 
 		if m.PaymentMethod.Card != nil {
@@ -1247,6 +1779,16 @@ func (m *Order) GetBSON() (interface{}, error) {
 		st.RefundedAt = t
 	}
 
+	if m.ParentPaymentAt != nil {
+		t, err := ptypes.Timestamp(m.ParentPaymentAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.ParentPaymentAt = t
+	}
+
 	return st, nil
 }
 
@@ -1280,52 +1822,28 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.TotalPaymentAmount = decoded.TotalPaymentAmount
 	m.Currency = decoded.Currency
 	m.User = decoded.User
-	m.Payout = decoded.Payout
-	m.PlatformFee = decoded.PlatformFee
 	m.BillingAddress = decoded.BillingAddress
 	m.Tax = decoded.Tax
-	if decoded.PaymentMethod != nil {
-		m.PaymentMethod = &PaymentMethodOrder{
-			Id:              decoded.PaymentMethod.Id.Hex(),
-			Name:            decoded.PaymentMethod.Name,
-			ExternalId:      decoded.PaymentMethod.ExternalId,
-			Params:          decoded.PaymentMethod.Params,
-			PaymentSystemId: decoded.PaymentMethod.PaymentSystemId.Hex(),
-			Group:           decoded.PaymentMethod.Group,
-			Saved:           decoded.PaymentMethod.Saved,
-			Fee:             decoded.PaymentMethod.Fee,
-		}
-		if decoded.PaymentMethod.Card != nil {
-			m.PaymentMethod.Card = decoded.PaymentMethod.Card
-		}
-		if decoded.PaymentMethod.Wallet != nil {
-			m.PaymentMethod.Wallet = decoded.PaymentMethod.Wallet
-		}
-		if decoded.PaymentMethod.CryptoCurrency != nil {
-			m.PaymentMethod.CryptoCurrency = decoded.PaymentMethod.CryptoCurrency
+	m.PaymentMethod = getPaymentMethodOrder(decoded.PaymentMethod)
+	m.Items = []*OrderItem{}
+	m.PlatformId = decoded.PlatformId
+	m.ProductType = decoded.ProductType
+	m.Keys = decoded.Keys
+	m.IsKeyProductNotified = decoded.IsKeyProductNotified
+
+	if decoded.Refund != nil {
+		m.Refund = &OrderNotificationRefund{
+			Amount:        decoded.Refund.Amount,
+			Currency:      decoded.Refund.Currency,
+			Reason:        decoded.Refund.Reason,
+			Code:          decoded.Refund.Code,
+			ReceiptNumber: decoded.Refund.ReceiptNumber,
+			ReceiptUrl:    decoded.Refund.ReceiptUrl,
 		}
 	}
-	m.Items = []*OrderItem{}
-	m.Refund = decoded.Refund
 	m.Metadata = decoded.Metadata
 	m.PrivateMetadata = decoded.PrivateMetadata
-	m.Project = &ProjectOrder{
-		Id:                   decoded.Project.Id.Hex(),
-		MerchantId:           decoded.Project.MerchantId.Hex(),
-		UrlSuccess:           decoded.Project.UrlSuccess,
-		UrlFail:              decoded.Project.UrlFail,
-		NotifyEmails:         decoded.Project.NotifyEmails,
-		SendNotifyEmail:      decoded.Project.SendNotifyEmail,
-		SecretKey:            decoded.Project.SecretKey,
-		UrlCheckAccount:      decoded.Project.UrlCheckAccount,
-		UrlProcessPayment:    decoded.Project.UrlProcessPayment,
-		UrlChargebackPayment: decoded.Project.UrlChargebackPayment,
-		UrlCancelPayment:     decoded.Project.UrlCancelPayment,
-		UrlRefundPayment:     decoded.Project.UrlRefundPayment,
-		UrlFraudPayment:      decoded.Project.UrlFraudPayment,
-		CallbackProtocol:     decoded.Project.CallbackProtocol,
-		Status:               decoded.Project.Status,
-	}
+	m.Project = getOrderProject(decoded.Project)
 
 	for _, v := range decoded.Items {
 		item := &OrderItem{
@@ -1339,6 +1857,8 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 			Images:      v.Images,
 			Url:         v.Url,
 			Metadata:    v.Metadata,
+			Code:        v.Code,
+			PlatformId:  v.PlatformId,
 		}
 		item.CreatedAt, _ = ptypes.TimestampProto(v.CreatedAt)
 		item.UpdatedAt, _ = ptypes.TimestampProto(v.UpdatedAt)
@@ -1358,34 +1878,28 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 
 	m.ProjectOrderId = decoded.ProjectOrderId
 	m.ProjectAccount = decoded.ProjectAccount
-	m.ProjectIncomeAmount = decoded.ProjectIncomeAmount
-	m.ProjectIncomeCurrency = decoded.ProjectIncomeCurrency
-	m.ProjectOutcomeAmount = decoded.ProjectOutcomeAmount
-	m.ProjectOutcomeCurrency = decoded.ProjectOutcomeCurrency
 	m.ProjectParams = decoded.ProjectParams
-	m.PaymentMethodOutcomeAmount = decoded.PaymentMethodOutcomeAmount
-	m.PaymentMethodOutcomeCurrency = decoded.PaymentMethodOutcomeCurrency
-	m.PaymentMethodIncomeAmount = decoded.PaymentMethodIncomeAmount
-	m.PaymentMethodIncomeCurrency = decoded.PaymentMethodIncomeCurrency
 	m.IsJsonRequest = decoded.IsJsonRequest
 	m.OrderAmount = decoded.OrderAmount
-	m.AmountInPspAccountingCurrency = decoded.AmountInPspAccountingCurrency
-	m.AmountInMerchantAccountingCurrency = decoded.AmountInMerchantAccountingCurrency
-	m.AmountOutMerchantAccountingCurrency = decoded.AmountOutMerchantAccountingCurrency
-	m.AmountInPaymentSystemAccountingCurrency = decoded.AmountInPaymentSystemAccountingCurrency
 	m.PaymentMethodPayerAccount = decoded.PaymentMethodPayerAccount
 	m.PaymentMethodTxnParams = decoded.PaymentMethodTxnParams
 	m.PaymentRequisites = decoded.PaymentRequisites
-	m.PspFeeAmount = decoded.PspFeeAmount
-	m.ToPayerFeeAmount = decoded.ToPayerFeeAmount
-	m.PaymentSystemFeeAmount = decoded.PaymentSystemFeeAmount
 	m.UserAddressDataRequired = decoded.UserAddressDataRequired
 	m.Products = decoded.Products
 	m.IsNotificationsSent = decoded.IsNotificationsSent
 	m.CountryRestriction = decoded.CountryRestriction
-	m.PaymentRoyaltyData = decoded.PaymentRoyaltyData
+	m.ParentId = decoded.ParentId
+	m.Type = decoded.Type
+	m.IsVatDeduction = decoded.IsVatDeduction
+	m.CountryCode = decoded.CountryCode
 
 	m.PaymentMethodOrderClosedAt, err = ptypes.TimestampProto(decoded.PaymentMethodOrderClosedAt)
+	if err != nil {
+		return err
+	}
+
+	m.ParentPaymentAt, err = ptypes.TimestampProto(decoded.ParentPaymentAt)
+
 	if err != nil {
 		return err
 	}
@@ -1526,6 +2040,7 @@ func (m *PaymentMethod) SetBSON(raw bson.Raw) error {
 		pmp := make(map[string]*PaymentMethodParams, len(decoded.TestSettings))
 		for _, value := range decoded.TestSettings {
 			pmp[value.Currency] = &PaymentMethodParams{
+				Currency:       value.Currency,
 				TerminalId:     value.TerminalId,
 				Secret:         value.Secret,
 				SecretCallback: value.SecretCallback,
@@ -1538,6 +2053,7 @@ func (m *PaymentMethod) SetBSON(raw bson.Raw) error {
 		pmp := make(map[string]*PaymentMethodParams, len(decoded.ProductionSettings))
 		for _, value := range decoded.ProductionSettings {
 			pmp[value.Currency] = &PaymentMethodParams{
+				Currency:       value.Currency,
 				TerminalId:     value.TerminalId,
 				Secret:         value.Secret,
 				SecretCallback: value.SecretCallback,
@@ -1641,18 +2157,7 @@ func (m *PaymentSystem) SetBSON(raw bson.Raw) error {
 
 func (m *Merchant) GetBSON() (interface{}, error) {
 	st := &MgoMerchant{
-		User:                      m.User,
-		Name:                      m.Name,
-		AlternativeName:           m.AlternativeName,
-		Website:                   m.Website,
-		Country:                   m.Country,
-		State:                     m.State,
-		Zip:                       m.Zip,
-		City:                      m.City,
-		Address:                   m.Address,
-		AddressAdditional:         m.AddressAdditional,
-		RegistrationNumber:        m.RegistrationNumber,
-		TaxId:                     m.TaxId,
+		Company:                   m.Company,
 		Contacts:                  m.Contacts,
 		Banking:                   m.Banking,
 		Status:                    m.Status,
@@ -1673,6 +2178,11 @@ func (m *Merchant) GetBSON() (interface{}, error) {
 		RollingReserveChargebackTransactionsThreshold: m.RollingReserveChargebackTransactionsThreshold,
 		ItemMinCostAmount:   m.ItemMinCostAmount,
 		ItemMinCostCurrency: m.ItemMinCostCurrency,
+		Tariff:              m.Tariff,
+		Steps:               m.Steps,
+		AgreementTemplate:   m.AgreementTemplate,
+		AgreementNumber:     m.AgreementNumber,
+		MinimalPayoutLimit:  m.MinimalPayoutLimit,
 	}
 
 	if len(m.Id) <= 0 {
@@ -1683,6 +2193,46 @@ func (m *Merchant) GetBSON() (interface{}, error) {
 		}
 
 		st.Id = bson.ObjectIdHex(m.Id)
+	}
+
+	if m.User != nil {
+		st.User = &MgoMerchantUser{
+			Id:        m.User.Id,
+			Email:     m.User.Email,
+			FirstName: m.User.FirstName,
+			LastName:  m.User.LastName,
+			ProfileId: m.User.ProfileId,
+		}
+
+		if m.User.RegistrationDate != nil {
+			t, err := ptypes.Timestamp(m.User.RegistrationDate)
+
+			if err != nil {
+				return nil, err
+			}
+
+			st.User.RegistrationDate = t
+		}
+	}
+
+	if m.ReceivedDate != nil {
+		t, err := ptypes.Timestamp(m.ReceivedDate)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.ReceivedDate = t
+	}
+
+	if m.StatusLastUpdatedAt != nil {
+		t, err := ptypes.Timestamp(m.StatusLastUpdatedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.StatusLastUpdatedAt = t
 	}
 
 	if m.FirstPaymentAt != nil {
@@ -1749,6 +2299,44 @@ func (m *Merchant) GetBSON() (interface{}, error) {
 		}
 	}
 
+	if m.AgreementSignatureData != nil {
+		st.AgreementSignatureData = &MgoMerchantAgreementSignatureData{
+			DetailsUrl:          m.AgreementSignatureData.DetailsUrl,
+			FilesUrl:            m.AgreementSignatureData.FilesUrl,
+			SignatureRequestId:  m.AgreementSignatureData.SignatureRequestId,
+			MerchantSignatureId: m.AgreementSignatureData.MerchantSignatureId,
+			PsSignatureId:       m.AgreementSignatureData.PsSignatureId,
+		}
+
+		if m.AgreementSignatureData.MerchantSignUrl != nil {
+			st.AgreementSignatureData.MerchantSignUrl = &MgoMerchantAgreementSignatureDataSignUrl{
+				SignUrl: m.AgreementSignatureData.MerchantSignUrl.SignUrl,
+			}
+
+			t, err := ptypes.Timestamp(m.AgreementSignatureData.MerchantSignUrl.ExpiresAt)
+
+			if err != nil {
+				return nil, err
+			}
+
+			st.AgreementSignatureData.MerchantSignUrl.ExpiresAt = t
+		}
+
+		if m.AgreementSignatureData.PsSignUrl != nil {
+			st.AgreementSignatureData.PsSignUrl = &MgoMerchantAgreementSignatureDataSignUrl{
+				SignUrl: m.AgreementSignatureData.PsSignUrl.SignUrl,
+			}
+
+			t, err := ptypes.Timestamp(m.AgreementSignatureData.PsSignUrl.ExpiresAt)
+
+			if err != nil {
+				return nil, err
+			}
+
+			st.AgreementSignatureData.PsSignUrl.ExpiresAt = t
+		}
+	}
+
 	return st, nil
 }
 
@@ -1761,18 +2349,7 @@ func (m *Merchant) SetBSON(raw bson.Raw) error {
 	}
 
 	m.Id = decoded.Id.Hex()
-	m.User = decoded.User
-	m.Name = decoded.Name
-	m.AlternativeName = decoded.AlternativeName
-	m.Website = decoded.Website
-	m.Country = decoded.Country
-	m.State = decoded.State
-	m.Zip = decoded.Zip
-	m.City = decoded.City
-	m.Address = decoded.Address
-	m.AddressAdditional = decoded.AddressAdditional
-	m.RegistrationNumber = decoded.RegistrationNumber
-	m.TaxId = decoded.TaxId
+	m.Company = decoded.Company
 	m.Contacts = decoded.Contacts
 	m.Banking = decoded.Banking
 	m.Status = decoded.Status
@@ -1793,6 +2370,45 @@ func (m *Merchant) SetBSON(raw bson.Raw) error {
 	m.RollingReserveChargebackTransactionsThreshold = decoded.RollingReserveChargebackTransactionsThreshold
 	m.ItemMinCostAmount = decoded.ItemMinCostAmount
 	m.ItemMinCostCurrency = decoded.ItemMinCostCurrency
+	m.Tariff = decoded.Tariff
+	m.Steps = decoded.Steps
+	m.AgreementTemplate = decoded.AgreementTemplate
+	m.AgreementNumber = decoded.AgreementNumber
+	m.MinimalPayoutLimit = decoded.MinimalPayoutLimit
+
+	if decoded.User != nil {
+		m.User = &MerchantUser{
+			Id:        decoded.User.Id,
+			Email:     decoded.User.Email,
+			FirstName: decoded.User.FirstName,
+			LastName:  decoded.User.LastName,
+			ProfileId: decoded.User.ProfileId,
+		}
+
+		if !decoded.User.RegistrationDate.IsZero() {
+			m.User.RegistrationDate, err = ptypes.TimestampProto(decoded.User.RegistrationDate)
+
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if !decoded.ReceivedDate.IsZero() {
+		m.ReceivedDate, err = ptypes.TimestampProto(decoded.ReceivedDate)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	if !decoded.StatusLastUpdatedAt.IsZero() {
+		m.StatusLastUpdatedAt, err = ptypes.TimestampProto(decoded.StatusLastUpdatedAt)
+
+		if err != nil {
+			return err
+		}
+	}
 
 	m.FirstPaymentAt, err = ptypes.TimestampProto(decoded.FirstPaymentAt)
 
@@ -1839,6 +2455,44 @@ func (m *Merchant) SetBSON(raw bson.Raw) error {
 				m.PaymentMethods[k].PaymentMethod.Id = v.PaymentMethod.Id.Hex()
 				m.PaymentMethods[k].PaymentMethod.Name = v.PaymentMethod.Name
 			}
+		}
+	}
+
+	if decoded.AgreementSignatureData != nil {
+		m.AgreementSignatureData = &MerchantAgreementSignatureData{
+			DetailsUrl:          decoded.AgreementSignatureData.DetailsUrl,
+			FilesUrl:            decoded.AgreementSignatureData.FilesUrl,
+			SignatureRequestId:  decoded.AgreementSignatureData.SignatureRequestId,
+			MerchantSignatureId: decoded.AgreementSignatureData.MerchantSignatureId,
+			PsSignatureId:       decoded.AgreementSignatureData.PsSignatureId,
+		}
+
+		if decoded.AgreementSignatureData.MerchantSignUrl != nil {
+			m.AgreementSignatureData.MerchantSignUrl = &MerchantAgreementSignatureDataSignUrl{
+				SignUrl: decoded.AgreementSignatureData.MerchantSignUrl.SignUrl,
+			}
+
+			t, err := ptypes.TimestampProto(decoded.AgreementSignatureData.MerchantSignUrl.ExpiresAt)
+
+			if err != nil {
+				return err
+			}
+
+			m.AgreementSignatureData.MerchantSignUrl.ExpiresAt = t
+		}
+
+		if decoded.AgreementSignatureData.PsSignUrl != nil {
+			m.AgreementSignatureData.PsSignUrl = &MerchantAgreementSignatureDataSignUrl{
+				SignUrl: decoded.AgreementSignatureData.PsSignUrl.SignUrl,
+			}
+
+			t, err := ptypes.TimestampProto(decoded.AgreementSignatureData.PsSignUrl.ExpiresAt)
+
+			if err != nil {
+				return err
+			}
+
+			m.AgreementSignatureData.PsSignUrl.ExpiresAt = t
 		}
 	}
 
@@ -1927,17 +2581,19 @@ func (m *Notification) SetBSON(raw bson.Raw) error {
 
 func (m *Refund) GetBSON() (interface{}, error) {
 	st := &MgoRefund{
-		Order: &MgoRefundOrder{
-			Id:   bson.ObjectIdHex(m.Order.Id),
-			Uuid: m.Order.Uuid,
+		OriginalOrder: &MgoRefundOrder{
+			Id:   bson.ObjectIdHex(m.OriginalOrder.Id),
+			Uuid: m.OriginalOrder.Uuid,
 		},
-		ExternalId: m.ExternalId,
-		Amount:     m.Amount,
-		CreatorId:  bson.ObjectIdHex(m.CreatorId),
-		Currency:   m.Currency,
-		Status:     m.Status,
-		PayerData:  m.PayerData,
-		SalesTax:   m.SalesTax,
+		ExternalId:   m.ExternalId,
+		Amount:       m.Amount,
+		CreatorId:    bson.ObjectIdHex(m.CreatorId),
+		Currency:     m.Currency,
+		Status:       m.Status,
+		PayerData:    m.PayerData,
+		SalesTax:     m.SalesTax,
+		IsChargeback: m.IsChargeback,
+		Reason:       m.Reason,
 	}
 
 	if len(m.Id) <= 0 {
@@ -1948,6 +2604,14 @@ func (m *Refund) GetBSON() (interface{}, error) {
 		}
 
 		st.Id = bson.ObjectIdHex(m.Id)
+	}
+
+	if m.CreatedOrderId != "" {
+		if bson.IsObjectIdHex(m.CreatedOrderId) == false {
+			return nil, errors.New(errorInvalidObjectId)
+		}
+
+		st.CreatedOrderId = bson.ObjectIdHex(m.CreatedOrderId)
 	}
 
 	if m.CreatedAt != nil {
@@ -1986,9 +2650,9 @@ func (m *Refund) SetBSON(raw bson.Raw) error {
 	}
 
 	m.Id = decoded.Id.Hex()
-	m.Order = &RefundOrder{
-		Id:   decoded.Order.Id.Hex(),
-		Uuid: decoded.Order.Uuid,
+	m.OriginalOrder = &RefundOrder{
+		Id:   decoded.OriginalOrder.Id.Hex(),
+		Uuid: decoded.OriginalOrder.Uuid,
 	}
 	m.ExternalId = decoded.ExternalId
 	m.Amount = decoded.Amount
@@ -1997,6 +2661,9 @@ func (m *Refund) SetBSON(raw bson.Raw) error {
 	m.Status = decoded.Status
 	m.PayerData = decoded.PayerData
 	m.SalesTax = decoded.SalesTax
+	m.IsChargeback = decoded.IsChargeback
+	m.CreatedOrderId = decoded.CreatedOrderId.Hex()
+	m.Reason = decoded.Reason
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 
@@ -2373,18 +3040,19 @@ func (m *PaymentChannelCostSystem) SetBSON(raw bson.Raw) error {
 
 func (m *PaymentChannelCostMerchant) GetBSON() (interface{}, error) {
 	st := &MgoPaymentChannelCostMerchant{
-		MerchantId:         bson.ObjectIdHex(m.MerchantId),
-		Name:               m.Name,
-		PayoutCurrency:     m.PayoutCurrency,
-		MinAmount:          m.MinAmount,
-		Region:             m.Region,
-		Country:            m.Country,
-		MethodPercent:      m.MethodPercent,
-		MethodFixAmount:    m.MethodFixAmount,
-		PsPercent:          m.PsPercent,
-		PsFixedFee:         m.PsFixedFee,
-		PsFixedFeeCurrency: m.PsFixedFeeCurrency,
-		IsActive:           m.IsActive,
+		MerchantId:              bson.ObjectIdHex(m.MerchantId),
+		Name:                    m.Name,
+		PayoutCurrency:          m.PayoutCurrency,
+		MinAmount:               m.MinAmount,
+		Region:                  m.Region,
+		Country:                 m.Country,
+		MethodPercent:           m.MethodPercent,
+		MethodFixAmount:         m.MethodFixAmount,
+		MethodFixAmountCurrency: m.MethodFixAmountCurrency,
+		PsPercent:               m.PsPercent,
+		PsFixedFee:              m.PsFixedFee,
+		PsFixedFeeCurrency:      m.PsFixedFeeCurrency,
+		IsActive:                m.IsActive,
 	}
 
 	if len(m.Id) <= 0 {
@@ -2434,6 +3102,7 @@ func (m *PaymentChannelCostMerchant) SetBSON(raw bson.Raw) error {
 	m.Country = decoded.Country
 	m.MethodPercent = decoded.MethodPercent
 	m.MethodFixAmount = decoded.MethodFixAmount
+	m.MethodFixAmountCurrency = decoded.MethodFixAmountCurrency
 	m.PsPercent = decoded.PsPercent
 	m.PsFixedFee = decoded.PsFixedFee
 	m.PsFixedFeeCurrency = decoded.PsFixedFeeCurrency
@@ -2700,4 +3369,816 @@ func (m *PayoutCostSystem) SetBSON(raw bson.Raw) error {
 	}
 
 	return nil
+}
+
+func (m *PriceTable) GetBSON() (interface{}, error) {
+	st := &MgoPriceTable{
+		Id:   bson.ObjectIdHex(m.Id),
+		From: m.From,
+		To:   m.To,
+	}
+
+	if len(m.Currencies) > 0 {
+		for k, v := range m.Currencies {
+			st.Currencies = append(st.Currencies, &MgoPriceTableCurrency{Currency: k, From: v.From, To: v.To})
+		}
+	}
+
+	return st, nil
+}
+
+func (m *PriceTable) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoPriceTable)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.From = decoded.From
+	m.To = decoded.To
+
+	currencyLen := len(decoded.Currencies)
+
+	if currencyLen > 0 {
+		m.Currencies = make(map[string]*PriceTableCurrency, currencyLen)
+
+		for _, v := range decoded.Currencies {
+			m.Currencies[v.Currency] = &PriceTableCurrency{
+				From: v.From,
+				To:   v.To,
+			}
+		}
+	}
+
+	return nil
+}
+
+func (m *VatReport) GetBSON() (interface{}, error) {
+	st := &MgoVatReport{
+		Country:               m.Country,
+		VatRate:               m.VatRate,
+		Currency:              m.Currency,
+		TransactionsCount:     m.TransactionsCount,
+		GrossRevenue:          m.GrossRevenue,
+		VatAmount:             m.VatAmount,
+		FeesAmount:            m.FeesAmount,
+		DeductionAmount:       m.DeductionAmount,
+		CorrectionAmount:      m.CorrectionAmount,
+		CountryAnnualTurnover: m.CountryAnnualTurnover,
+		WorldAnnualTurnover:   m.WorldAnnualTurnover,
+		AmountsApproximate:    m.AmountsApproximate,
+		Status:                m.Status,
+	}
+
+	if len(m.Id) <= 0 {
+		st.Id = bson.NewObjectId()
+	} else {
+		if bson.IsObjectIdHex(m.Id) == false {
+			return nil, errors.New(errorInvalidObjectId)
+		}
+		st.Id = bson.ObjectIdHex(m.Id)
+	}
+
+	var err error
+
+	st.DateFrom, err = ptypes.Timestamp(m.DateFrom)
+	if err != nil {
+		return nil, err
+	}
+
+	st.DateTo, err = ptypes.Timestamp(m.DateTo)
+	if err != nil {
+		return nil, err
+	}
+
+	st.PayUntilDate, err = ptypes.Timestamp(m.PayUntilDate)
+	if err != nil {
+		return nil, err
+	}
+
+	st.CreatedAt, err = ptypes.Timestamp(m.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	st.UpdatedAt, err = ptypes.Timestamp(m.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	return st, nil
+}
+
+func (m *VatReport) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoVatReport)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+	m.Id = decoded.Id.Hex()
+	m.Country = decoded.Country
+	m.VatRate = decoded.VatRate
+	m.Currency = decoded.Currency
+	m.TransactionsCount = decoded.TransactionsCount
+	m.GrossRevenue = decoded.GrossRevenue
+	m.VatAmount = decoded.VatAmount
+	m.FeesAmount = decoded.FeesAmount
+	m.DeductionAmount = decoded.DeductionAmount
+	m.CorrectionAmount = decoded.CorrectionAmount
+	m.CountryAnnualTurnover = decoded.CountryAnnualTurnover
+	m.WorldAnnualTurnover = decoded.WorldAnnualTurnover
+	m.AmountsApproximate = decoded.AmountsApproximate
+	m.Status = decoded.Status
+
+	m.DateFrom, err = ptypes.TimestampProto(decoded.DateFrom)
+	if err != nil {
+		return err
+	}
+
+	m.DateTo, err = ptypes.TimestampProto(decoded.DateTo)
+	if err != nil {
+		return err
+	}
+
+	m.PayUntilDate, err = ptypes.TimestampProto(decoded.PayUntilDate)
+	if err != nil {
+		return err
+	}
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	m.UpdatedAt, err = ptypes.TimestampProto(decoded.UpdatedAt)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *AccountingEntry) GetBSON() (interface{}, error) {
+	st := &MgoAccountingEntry{
+		Id:     bson.ObjectIdHex(m.Id),
+		Object: m.Object,
+		Type:   m.Type,
+		Source: &MgoAccountingEntrySource{
+			Id:   bson.ObjectIdHex(m.Source.Id),
+			Type: m.Source.Type,
+		},
+		MerchantId:       bson.ObjectIdHex(m.MerchantId),
+		Amount:           m.Amount,
+		Currency:         m.Currency,
+		OriginalAmount:   m.OriginalAmount,
+		OriginalCurrency: m.OriginalCurrency,
+		LocalAmount:      m.LocalAmount,
+		LocalCurrency:    m.LocalCurrency,
+		Country:          m.Country,
+		Reason:           m.Reason,
+		Status:           m.Status,
+	}
+
+	if m.CreatedAt != nil {
+		t, err := ptypes.Timestamp(m.CreatedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.CreatedAt = t
+	} else {
+		st.CreatedAt = time.Now()
+	}
+
+	if m.AvailableOn != nil {
+		t, err := ptypes.Timestamp(m.AvailableOn)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.AvailableOn = t
+	}
+
+	return st, nil
+}
+
+func (m *AccountingEntry) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoAccountingEntry)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.Object = decoded.Object
+	m.Type = decoded.Type
+	m.Source = &AccountingEntrySource{
+		Id:   decoded.Source.Id.Hex(),
+		Type: decoded.Source.Type,
+	}
+	m.MerchantId = decoded.MerchantId.Hex()
+	m.Amount = decoded.Amount
+	m.Currency = decoded.Currency
+	m.OriginalAmount = decoded.OriginalAmount
+	m.OriginalCurrency = decoded.OriginalCurrency
+	m.LocalAmount = decoded.LocalAmount
+	m.LocalCurrency = decoded.LocalCurrency
+	m.Country = decoded.Country
+	m.Reason = decoded.Reason
+	m.Status = decoded.Status
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+
+	if err != nil {
+		return err
+	}
+
+	m.AvailableOn, err = ptypes.TimestampProto(decoded.AvailableOn)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *RoyaltyReport) GetBSON() (interface{}, error) {
+	st := &MgoRoyaltyReport{
+		Id:               bson.ObjectIdHex(m.Id),
+		MerchantId:       bson.ObjectIdHex(m.MerchantId),
+		Status:           m.Status,
+		Totals:           m.Totals,
+		Currency:         m.Currency,
+		Summary:          m.Summary,
+		DisputeReason:    m.DisputeReason,
+		IsAutoAccepted:   m.IsAutoAccepted,
+		PayoutDocumentId: m.PayoutDocumentId,
+	}
+
+	if m.PayoutDate != nil {
+		t, err := ptypes.Timestamp(m.PayoutDate)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.PayoutDate = t
+	}
+
+	t, err := ptypes.Timestamp(m.PeriodFrom)
+
+	if err != nil {
+		return nil, err
+	}
+
+	st.PeriodFrom = t
+	t, err = ptypes.Timestamp(m.PeriodTo)
+
+	if err != nil {
+		return nil, err
+	}
+
+	st.PeriodTo = t
+	t, err = ptypes.Timestamp(m.AcceptExpireAt)
+
+	if err != nil {
+		return nil, err
+	}
+
+	st.AcceptExpireAt = t
+
+	if m.AcceptedAt != nil {
+		t, err = ptypes.Timestamp(m.AcceptedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.AcceptedAt = t
+	}
+
+	if m.CreatedAt != nil {
+		t, err := ptypes.Timestamp(m.CreatedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.CreatedAt = t
+	} else {
+		st.CreatedAt = time.Now()
+	}
+
+	if m.UpdatedAt != nil {
+		t, err := ptypes.Timestamp(m.UpdatedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.UpdatedAt = t
+	} else {
+		st.UpdatedAt = time.Now()
+	}
+
+	if m.DisputeStartedAt != nil {
+		t, err := ptypes.Timestamp(m.DisputeStartedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.DisputeStartedAt = t
+	}
+
+	if m.DisputeClosedAt != nil {
+		t, err := ptypes.Timestamp(m.DisputeClosedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.DisputeClosedAt = t
+	}
+
+	return st, nil
+}
+
+func (m *RoyaltyReport) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoRoyaltyReport)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.MerchantId = decoded.MerchantId.Hex()
+	m.Status = decoded.Status
+	m.Totals = decoded.Totals
+	m.Currency = decoded.Currency
+	m.Summary = decoded.Summary
+	m.DisputeReason = decoded.DisputeReason
+	m.IsAutoAccepted = decoded.IsAutoAccepted
+	m.PayoutDocumentId = decoded.PayoutDocumentId
+
+	m.PayoutDate, err = ptypes.TimestampProto(decoded.PayoutDate)
+	if err != nil {
+		return err
+	}
+
+	m.PeriodFrom, err = ptypes.TimestampProto(decoded.PeriodFrom)
+	if err != nil {
+		return err
+	}
+
+	m.PeriodTo, err = ptypes.TimestampProto(decoded.PeriodTo)
+	if err != nil {
+		return err
+	}
+
+	m.AcceptExpireAt, err = ptypes.TimestampProto(decoded.AcceptExpireAt)
+	if err != nil {
+		return err
+	}
+
+	m.AcceptedAt, err = ptypes.TimestampProto(decoded.AcceptedAt)
+	if err != nil {
+		return err
+	}
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	m.UpdatedAt, err = ptypes.TimestampProto(decoded.UpdatedAt)
+	if err != nil {
+		return err
+	}
+
+	m.DisputeStartedAt, err = ptypes.TimestampProto(decoded.DisputeStartedAt)
+	if err != nil {
+		return err
+	}
+
+	m.DisputeClosedAt, err = ptypes.TimestampProto(decoded.DisputeClosedAt)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *RoyaltyReportChanges) GetBSON() (interface{}, error) {
+	st := &MgoRoyaltyReportChanges{
+		Id:              bson.ObjectIdHex(m.Id),
+		RoyaltyReportId: bson.ObjectIdHex(m.RoyaltyReportId),
+		Source:          m.Source,
+		Ip:              m.Ip,
+		Hash:            m.Hash,
+	}
+
+	if m.CreatedAt != nil {
+		t, err := ptypes.Timestamp(m.CreatedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.CreatedAt = t
+	} else {
+		st.CreatedAt = time.Now()
+	}
+
+	return st, nil
+}
+
+func (m *RoyaltyReportChanges) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoRoyaltyReportChanges)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.RoyaltyReportId = decoded.RoyaltyReportId.Hex()
+	m.Source = decoded.Source
+	m.Ip = decoded.Ip
+	m.Hash = decoded.Hash
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *RoyaltyReportCorrectionItem) GetBSON() (interface{}, error) {
+	st := &MgoRoyaltyReportCorrectionItem{
+		AccountingEntryId: bson.ObjectIdHex(m.AccountingEntryId),
+		Amount:            m.Amount,
+		Currency:          m.Currency,
+		Reason:            m.Reason,
+	}
+
+	t, err := ptypes.Timestamp(m.EntryDate)
+
+	if err != nil {
+		return nil, err
+	}
+
+	st.EntryDate = t
+
+	return st, nil
+}
+
+func (m *RoyaltyReportCorrectionItem) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoRoyaltyReportCorrectionItem)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.AccountingEntryId = decoded.AccountingEntryId.Hex()
+	m.Amount = decoded.Amount
+	m.Currency = decoded.Currency
+	m.Reason = decoded.Reason
+
+	m.EntryDate, err = ptypes.TimestampProto(decoded.EntryDate)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *OrderViewPrivate) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoOrderViewPrivate)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.Uuid = decoded.Uuid
+	m.TotalPaymentAmount = decoded.TotalPaymentAmount
+	m.Currency = decoded.Currency
+	m.Project = getOrderProject(decoded.Project)
+	m.Transaction = decoded.Transaction
+	m.PaymentMethod = getPaymentMethodOrder(decoded.PaymentMethod)
+	m.CountryCode = decoded.CountryCode
+	m.MerchantId = decoded.MerchantId.Hex()
+	m.Locale = decoded.Locale
+	m.Status = decoded.Status
+	m.User = decoded.User
+	m.BillingAddress = decoded.BillingAddress
+	m.Type = decoded.Type
+	m.IsVatDeduction = decoded.IsVatDeduction
+
+	m.PaymentGrossRevenueLocal = getOrderViewMoney(decoded.PaymentGrossRevenueLocal)
+	m.PaymentGrossRevenueOrigin = getOrderViewMoney(decoded.PaymentGrossRevenueOrigin)
+	m.PaymentGrossRevenue = getOrderViewMoney(decoded.PaymentGrossRevenue)
+	m.PaymentTaxFee = getOrderViewMoney(decoded.PaymentTaxFee)
+	m.PaymentTaxFeeLocal = getOrderViewMoney(decoded.PaymentTaxFeeLocal)
+	m.PaymentTaxFeeOrigin = getOrderViewMoney(decoded.PaymentTaxFeeOrigin)
+	m.PaymentTaxFeeCurrencyExchangeFee = getOrderViewMoney(decoded.PaymentTaxFeeCurrencyExchangeFee)
+	m.PaymentTaxFeeTotal = getOrderViewMoney(decoded.PaymentTaxFeeTotal)
+	m.PaymentGrossRevenueFx = getOrderViewMoney(decoded.PaymentGrossRevenueFx)
+	m.PaymentGrossRevenueFxTaxFee = getOrderViewMoney(decoded.PaymentGrossRevenueFxTaxFee)
+	m.PaymentGrossRevenueFxProfit = getOrderViewMoney(decoded.PaymentGrossRevenueFxProfit)
+	m.GrossRevenue = getOrderViewMoney(decoded.GrossRevenue)
+	m.TaxFee = getOrderViewMoney(decoded.TaxFee)
+	m.TaxFeeCurrencyExchangeFee = getOrderViewMoney(decoded.TaxFeeCurrencyExchangeFee)
+	m.TaxFeeTotal = getOrderViewMoney(decoded.TaxFeeTotal)
+	m.MethodFeeTotal = getOrderViewMoney(decoded.MethodFeeTotal)
+	m.MethodFeeTariff = getOrderViewMoney(decoded.MethodFeeTariff)
+	m.PaysuperMethodFeeTariffSelfCost = getOrderViewMoney(decoded.PaysuperMethodFeeTariffSelfCost)
+	m.PaysuperMethodFeeProfit = getOrderViewMoney(decoded.PaysuperMethodFeeProfit)
+	m.MethodFixedFeeTariff = getOrderViewMoney(decoded.MethodFixedFeeTariff)
+	m.PaysuperMethodFixedFeeTariffFxProfit = getOrderViewMoney(decoded.PaysuperMethodFixedFeeTariffFxProfit)
+	m.PaysuperMethodFixedFeeTariffSelfCost = getOrderViewMoney(decoded.PaysuperMethodFixedFeeTariffSelfCost)
+	m.PaysuperMethodFixedFeeTariffTotalProfit = getOrderViewMoney(decoded.PaysuperMethodFixedFeeTariffTotalProfit)
+	m.PaysuperFixedFee = getOrderViewMoney(decoded.PaysuperFixedFee)
+	m.PaysuperFixedFeeFxProfit = getOrderViewMoney(decoded.PaysuperFixedFeeFxProfit)
+	m.FeesTotal = getOrderViewMoney(decoded.FeesTotal)
+	m.FeesTotalLocal = getOrderViewMoney(decoded.FeesTotalLocal)
+	m.NetRevenue = getOrderViewMoney(decoded.NetRevenue)
+	m.PaysuperMethodTotalProfit = getOrderViewMoney(decoded.PaysuperMethodTotalProfit)
+	m.PaysuperTotalProfit = getOrderViewMoney(decoded.PaysuperTotalProfit)
+	m.PaymentRefundGrossRevenueLocal = getOrderViewMoney(decoded.PaymentRefundGrossRevenueLocal)
+	m.PaymentRefundGrossRevenueOrigin = getOrderViewMoney(decoded.PaymentRefundGrossRevenueOrigin)
+	m.PaymentRefundGrossRevenue = getOrderViewMoney(decoded.PaymentRefundGrossRevenue)
+	m.PaymentRefundTaxFee = getOrderViewMoney(decoded.PaymentRefundTaxFee)
+	m.PaymentRefundTaxFeeLocal = getOrderViewMoney(decoded.PaymentRefundTaxFeeLocal)
+	m.PaymentRefundTaxFeeOrigin = getOrderViewMoney(decoded.PaymentRefundTaxFeeOrigin)
+	m.PaymentRefundFeeTariff = getOrderViewMoney(decoded.PaymentRefundFeeTariff)
+	m.MethodRefundFixedFeeTariff = getOrderViewMoney(decoded.MethodRefundFixedFeeTariff)
+	m.RefundGrossRevenue = getOrderViewMoney(decoded.RefundGrossRevenue)
+	m.RefundGrossRevenueFx = getOrderViewMoney(decoded.RefundGrossRevenueFx)
+	m.MethodRefundFeeTariff = getOrderViewMoney(decoded.MethodRefundFeeTariff)
+	m.PaysuperMethodRefundFeeTariffProfit = getOrderViewMoney(decoded.PaysuperMethodRefundFeeTariffProfit)
+	m.PaysuperMethodRefundFixedFeeTariffSelfCost = getOrderViewMoney(decoded.PaysuperMethodRefundFixedFeeTariffSelfCost)
+	m.MerchantRefundFixedFeeTariff = getOrderViewMoney(decoded.MerchantRefundFixedFeeTariff)
+	m.PaysuperMethodRefundFixedFeeTariffProfit = getOrderViewMoney(decoded.PaysuperMethodRefundFixedFeeTariffProfit)
+	m.RefundTaxFee = getOrderViewMoney(decoded.RefundTaxFee)
+	m.RefundTaxFeeCurrencyExchangeFee = getOrderViewMoney(decoded.RefundTaxFeeCurrencyExchangeFee)
+	m.PaysuperRefundTaxFeeCurrencyExchangeFee = getOrderViewMoney(decoded.PaysuperRefundTaxFeeCurrencyExchangeFee)
+	m.RefundTaxFeeTotal = getOrderViewMoney(decoded.RefundTaxFeeTotal)
+	m.RefundReverseRevenue = getOrderViewMoney(decoded.RefundReverseRevenue)
+	m.RefundFeesTotal = getOrderViewMoney(decoded.RefundFeesTotal)
+	m.RefundFeesTotalLocal = getOrderViewMoney(decoded.RefundFeesTotalLocal)
+	m.PaysuperRefundTotalProfit = getOrderViewMoney(decoded.PaysuperRefundTotalProfit)
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	m.TransactionDate, err = ptypes.TimestampProto(decoded.TransactionDate)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *OrderViewPublic) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoOrderViewPublic)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.Uuid = decoded.Uuid
+	m.TotalPaymentAmount = decoded.TotalPaymentAmount
+	m.Currency = decoded.Currency
+	m.Project = getOrderProject(decoded.Project)
+	m.Transaction = decoded.Transaction
+	m.PaymentMethod = getPaymentMethodOrder(decoded.PaymentMethod)
+	m.CountryCode = decoded.CountryCode
+	m.MerchantId = decoded.MerchantId.Hex()
+	m.Locale = decoded.Locale
+	m.Status = decoded.Status
+	m.User = decoded.User
+	m.BillingAddress = decoded.BillingAddress
+	m.Type = decoded.Type
+	m.IsVatDeduction = decoded.IsVatDeduction
+
+	m.GrossRevenue = getOrderViewMoney(decoded.GrossRevenue)
+	m.TaxFee = getOrderViewMoney(decoded.TaxFee)
+	m.TaxFeeCurrencyExchangeFee = getOrderViewMoney(decoded.TaxFeeCurrencyExchangeFee)
+	m.TaxFeeTotal = getOrderViewMoney(decoded.TaxFeeTotal)
+	m.MethodFeeTotal = getOrderViewMoney(decoded.MethodFeeTotal)
+	m.MethodFeeTariff = getOrderViewMoney(decoded.MethodFeeTariff)
+	m.MethodFixedFeeTariff = getOrderViewMoney(decoded.MethodFixedFeeTariff)
+	m.PaysuperFixedFee = getOrderViewMoney(decoded.PaysuperFixedFee)
+	m.FeesTotal = getOrderViewMoney(decoded.FeesTotal)
+	m.FeesTotalLocal = getOrderViewMoney(decoded.FeesTotalLocal)
+	m.NetRevenue = getOrderViewMoney(decoded.NetRevenue)
+	m.RefundGrossRevenue = getOrderViewMoney(decoded.RefundGrossRevenue)
+	m.MethodRefundFeeTariff = getOrderViewMoney(decoded.MethodRefundFeeTariff)
+	m.MerchantRefundFixedFeeTariff = getOrderViewMoney(decoded.MerchantRefundFixedFeeTariff)
+	m.RefundTaxFee = getOrderViewMoney(decoded.RefundTaxFee)
+	m.RefundTaxFeeCurrencyExchangeFee = getOrderViewMoney(decoded.RefundTaxFeeCurrencyExchangeFee)
+	m.PaysuperRefundTaxFeeCurrencyExchangeFee = getOrderViewMoney(decoded.PaysuperRefundTaxFeeCurrencyExchangeFee)
+	m.RefundReverseRevenue = getOrderViewMoney(decoded.RefundReverseRevenue)
+	m.RefundFeesTotal = getOrderViewMoney(decoded.RefundFeesTotal)
+	m.RefundFeesTotalLocal = getOrderViewMoney(decoded.RefundFeesTotalLocal)
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	m.TransactionDate, err = ptypes.TimestampProto(decoded.TransactionDate)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func getPaymentMethodOrder(in *MgoOrderPaymentMethod) *PaymentMethodOrder {
+	if in == nil {
+		return nil
+	}
+
+	result := &PaymentMethodOrder{
+		Id:              in.Id.Hex(),
+		Name:            in.Name,
+		ExternalId:      in.ExternalId,
+		Params:          in.Params,
+		PaymentSystemId: in.PaymentSystemId.Hex(),
+		Group:           in.Group,
+		Saved:           in.Saved,
+	}
+
+	if in.Card != nil {
+		result.Card = in.Card
+	}
+	if in.Wallet != nil {
+		result.Wallet = in.Wallet
+	}
+	if in.CryptoCurrency != nil {
+		result.CryptoCurrency = in.CryptoCurrency
+	}
+
+	return result
+}
+
+func getOrderProject(in *MgoOrderProject) *ProjectOrder {
+	return &ProjectOrder{
+		Id:                   in.Id.Hex(),
+		MerchantId:           in.MerchantId.Hex(),
+		UrlSuccess:           in.UrlSuccess,
+		UrlFail:              in.UrlFail,
+		NotifyEmails:         in.NotifyEmails,
+		SendNotifyEmail:      in.SendNotifyEmail,
+		SecretKey:            in.SecretKey,
+		UrlCheckAccount:      in.UrlCheckAccount,
+		UrlProcessPayment:    in.UrlProcessPayment,
+		UrlChargebackPayment: in.UrlChargebackPayment,
+		UrlCancelPayment:     in.UrlCancelPayment,
+		UrlRefundPayment:     in.UrlRefundPayment,
+		UrlFraudPayment:      in.UrlFraudPayment,
+		CallbackProtocol:     in.CallbackProtocol,
+		Status:               in.Status,
+	}
+}
+
+func getOrderViewMoney(in *OrderViewMoney) *OrderViewMoney {
+	if in == nil {
+		return &OrderViewMoney{}
+	}
+
+	return &OrderViewMoney{
+		Amount:   tools.ToPrecise(in.Amount),
+		Currency: in.Currency,
+	}
+}
+
+func (m *Id) GetBSON() (interface{}, error) {
+	st := &MgoId{}
+	if bson.IsObjectIdHex(m.Id) == false {
+		return nil, errors.New(errorInvalidObjectId)
+	}
+	st.Id = bson.ObjectIdHex(m.Id)
+	return st, nil
+}
+
+func (m *Id) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoId)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	return nil
+}
+
+func (m *MerchantTariffRates) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoMerchantTariffRates)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Payment = decoded.Payment
+	m.MoneyBack = decoded.MoneyBack
+	m.Payout = decoded.Payout
+	m.Chargeback = decoded.Chargeback
+	m.Region = decoded.Region
+
+	return nil
+}
+
+func (k *Key) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoKey)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	k.Id = decoded.Id.Hex()
+	k.Code = decoded.Code
+	k.KeyProductId = decoded.KeyProductId.Hex()
+	k.PlatformId = decoded.PlatformId
+
+	if decoded.OrderId != nil {
+		k.OrderId = decoded.OrderId.Hex()
+	}
+
+	if k.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt); err != nil {
+		return err
+	}
+
+	if k.RedeemedAt, err = ptypes.TimestampProto(decoded.RedeemedAt); err != nil {
+		return err
+	}
+
+	if k.ReservedTo, err = ptypes.TimestampProto(decoded.ReservedTo); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Key) GetBSON() (interface{}, error) {
+	st := &MgoKey{
+		Id:           bson.ObjectIdHex(m.Id),
+		PlatformId:   m.PlatformId,
+		KeyProductId: bson.ObjectIdHex(m.KeyProductId),
+		Code:         m.Code,
+	}
+
+	var err error
+
+	if m.OrderId != "" {
+		orderId := bson.ObjectIdHex(m.OrderId)
+		st.OrderId = &orderId
+	}
+
+	if m.RedeemedAt != nil {
+		if st.RedeemedAt, err = ptypes.Timestamp(m.RedeemedAt); err != nil {
+			return nil, err
+		}
+	} else {
+		st.RedeemedAt = time.Time{}
+	}
+
+	if m.ReservedTo != nil {
+		if st.ReservedTo, err = ptypes.Timestamp(m.ReservedTo); err != nil {
+			return nil, err
+		}
+	} else {
+		st.ReservedTo = time.Time{}
+	}
+
+	if m.CreatedAt != nil {
+		if st.CreatedAt, err = ptypes.Timestamp(m.CreatedAt); err != nil {
+			return nil, err
+		}
+	} else {
+		st.CreatedAt = time.Now()
+	}
+
+	return st, nil
 }

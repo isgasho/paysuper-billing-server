@@ -61,7 +61,7 @@ func (s *Service) ChangeProject(
 	}
 
 	if req.CallbackCurrency != "" {
-		if _, err := s.currency.GetByCodeA3(req.CallbackCurrency); err != nil {
+		if !contains(s.supportedCurrencies, req.CallbackCurrency) {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = projectErrorCallbackCurrencyIncorrect
 
@@ -70,7 +70,7 @@ func (s *Service) ChangeProject(
 	}
 
 	if req.LimitsCurrency != "" {
-		if _, err := s.currency.GetByCodeA3(req.LimitsCurrency); err != nil {
+		if !contains(s.supportedCurrencies, req.LimitsCurrency) {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = projectErrorLimitCurrencyIncorrect
 
@@ -178,6 +178,7 @@ func (s *Service) ListProjects(
 				"_id":                         "$_id",
 				"merchant_id":                 "$merchant_id",
 				"name":                        "$name",
+				"image":                       "$image",
 				"callback_protocol":           "$callback_protocol",
 				"callback_currency":           "$callback_currency",
 				"create_order_allowed_urls":   "$create_order_allowed_urls",
@@ -284,6 +285,7 @@ func (s *Service) createProject(req *billing.Project) (*billing.Project, error) 
 	project := &billing.Project{
 		Id:                       bson.NewObjectId().Hex(),
 		MerchantId:               req.MerchantId,
+		Image:                    req.Image,
 		Name:                     req.Name,
 		CallbackCurrency:         req.CallbackCurrency,
 		CallbackProtocol:         req.CallbackProtocol,
@@ -321,6 +323,7 @@ func (s *Service) createProject(req *billing.Project) (*billing.Project, error) 
 
 func (s *Service) updateProject(req *billing.Project, project *billing.Project) error {
 	project.Name = req.Name
+	project.Image = req.Image
 	project.CallbackCurrency = req.CallbackCurrency
 	project.CreateOrderAllowedUrls = req.CreateOrderAllowedUrls
 	project.AllowDynamicNotifyUrls = req.AllowDynamicNotifyUrls
@@ -358,6 +361,24 @@ func (s *Service) updateProject(req *billing.Project, project *billing.Project) 
 	project.ProductsCount = s.getProductsCountByProject(project.Id)
 
 	return nil
+}
+
+func (s *Service) getProjectsCountByMerchant(merchantId string) int32 {
+	query := bson.M{"merchant_id": bson.ObjectIdHex(merchantId)}
+	count, err := s.db.Collection(collectionProject).Find(query).Count()
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionProject),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+
+		return 0
+	}
+
+	return int32(count)
 }
 
 func newProjectService(svc *Service) *Project {

@@ -1,6 +1,6 @@
 FROM golang:1.11-alpine AS builder
 
-RUN apk add bash ca-certificates git
+RUN apk add bash ca-certificates git tzdata
 
 WORKDIR /application
 
@@ -13,7 +13,7 @@ COPY . ./
 RUN CGO_ENABLED=0 GOOS=linux go build -a -o ./bin/paysuper_billing_service .
 
 FROM alpine:3.9
-RUN apk update && apk add ca-certificates && rm -rf /var/cache/apk/*
+RUN apk update && apk add ca-certificates tzdata && rm -rf /var/cache/apk/*
 
 WORKDIR /application
 

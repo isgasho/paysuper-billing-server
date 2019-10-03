@@ -146,3 +146,7 @@ func (m *CardPayPaymentCallback) GetIs3DS() string {
 
 	return result
 }
+
+func (m *CardPayPaymentCallback) IsSuccess() bool {
+	return m.RecurringData != nil && m.RecurringData.Status == pkg.CardPayPaymentResponseStatusCompleted
+}

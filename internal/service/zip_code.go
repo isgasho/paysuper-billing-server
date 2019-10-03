@@ -35,7 +35,7 @@ func (s *Service) FindByZipCode(
 	count, err := s.db.Collection(collectionZipCode).Find(query).Count()
 
 	if err != nil {
-		zap.L().Error(
+		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionZipCode),
@@ -53,7 +53,7 @@ func (s *Service) FindByZipCode(
 
 	if err != nil {
 		if err != mgo.ErrNotFound {
-			zap.L().Error(
+			zap.S().Error(
 				pkg.ErrorDatabaseQueryFailed,
 				zap.Error(err),
 				zap.String("collection", collectionZipCode),
@@ -85,7 +85,7 @@ func (h *ZipCode) getByZipAndCountry(zip, country string) (*billing.ZipCode, err
 
 	if err != nil {
 		if err != mgo.ErrNotFound {
-			zap.L().Error(
+			zap.S().Error(
 				pkg.ErrorDatabaseQueryFailed,
 				zap.Error(err),
 				zap.String("collection", collectionZipCode),
@@ -99,7 +99,7 @@ func (h *ZipCode) getByZipAndCountry(zip, country string) (*billing.ZipCode, err
 	err = h.svc.cacher.Set(key, data, 0)
 
 	if err != nil {
-		zap.L().Error("Save zip codes data to cache failed", zap.Error(err))
+		zap.S().Error("Save zip codes data to cache failed", zap.Error(err))
 	}
 
 	return data, nil

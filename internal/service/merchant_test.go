@@ -4,9 +4,10 @@ import (
 	"errors"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/mock"
+	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
+	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -39,26 +40,15 @@ func (suite *MerchantTestSuite) SetupTest() {
 		suite.FailNow("Database connection failed", "%v", err)
 	}
 
-	rub := &billing.Currency{
-		CodeInt:  643,
-		CodeA3:   "RUB",
-		Name:     &billing.Name{Ru: "Российский рубль", En: "Russian ruble"},
-		IsActive: true,
-	}
-
 	suite.log, err = zap.NewProduction()
 
 	if err != nil {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
-	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
-
-	redisdb := mock.NewTestRedis()
+	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache)
+	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), )
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -80,7 +70,7 @@ func (suite *MerchantTestSuite) SetupTest() {
 					Fee: 2.5,
 					PerTransaction: &billing.MerchantPaymentMethodPerTransactionCommission{
 						Fee:      30,
-						Currency: rub.CodeA3,
+						Currency: "RUB",
 					},
 				},
 				Integration: &billing.MerchantPaymentMethodIntegration{
@@ -111,7 +101,7 @@ func (suite *MerchantTestSuite) TestMerchant_Insert_Ok() {
 
 func (suite *MerchantTestSuite) TestMerchant_Insert_ErrorCacheUpdate() {
 	id := bson.NewObjectId().Hex()
-	ci := &mock.CacheInterface{}
+	ci := &mocks.CacheInterface{}
 	ci.On("Set", "merchant:id:"+id, mock2.Anything, mock2.Anything).
 		Return(errors.New("service unavailable"))
 	suite.service.cacher = ci
@@ -134,7 +124,7 @@ func (suite *MerchantTestSuite) TestMerchant_Update_NotFound() {
 
 func (suite *MerchantTestSuite) TestMerchant_Update_ErrorCacheUpdate() {
 	id := bson.NewObjectId().Hex()
-	ci := &mock.CacheInterface{}
+	ci := &mocks.CacheInterface{}
 	ci.On("Set", "merchant:id:"+id, mock2.Anything, mock2.Anything).
 		Return(errors.New("service unavailable"))
 	suite.service.cacher = ci
@@ -160,7 +150,7 @@ func (suite *MerchantTestSuite) TestMerchant_GetById_Ok() {
 }
 
 func (suite *MerchantTestSuite) TestMerchant_GetById_Ok_ByCache() {
-	ci := &mock.CacheInterface{}
+	ci := &mocks.CacheInterface{}
 	ci.On("Get", "merchant:id:"+suite.merchant.Id, mock2.Anything).
 		Return(nil)
 	suite.service.cacher = ci

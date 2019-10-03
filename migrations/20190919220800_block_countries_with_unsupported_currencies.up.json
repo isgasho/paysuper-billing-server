@@ -1,0 +1,35 @@
+[
+  {
+    "update": "country",
+    "updates": [
+      {
+        "q": {
+          "vat_enabled": false,
+          "currency": {"$nin": ["AED", "ALL", "AMD", "ARS", "AUD", "BGN", "BHD", "BRL", "BYN", "CAD", "CHF", "CLP", "CNY", "COP", "CZK", "DKK", "EGP", "EUR", "GBP", "GHS", "HKD", "HRK", "HUF", "IDR", "ILS", "INR", "ISK", "JPY", "KES", "KRW", "KWD", "KZT", "MXN", "MYR", "NOK", "NZD", "PEN", "PHP", "PLN", "QAR", "RON", "RSD", "RUB", "SAR", "SEK", "SGD", "THB", "TRY", "TWD", "TZS", "UAH", "USD", "UYU", "VND", "ZAR"]}
+        },
+        "u": {
+          "$currentDate": {
+            "updated_at": true
+          },
+          "$set": {
+            "payments_allowed": false
+          }
+        }
+      },
+      {
+        "q": {
+          "vat_enabled": true,
+          "vat_currency": {"$nin": ["AED", "ALL", "AMD", "ARS", "AUD", "BGN", "BHD", "BRL", "BYN", "CAD", "CHF", "CLP", "CNY", "COP", "CZK", "DKK", "EGP", "EUR", "GBP", "GHS", "HKD", "HRK", "HUF", "IDR", "ILS", "INR", "ISK", "JPY", "KES", "KRW", "KWD", "KZT", "MXN", "MYR", "NOK", "NZD", "PEN", "PHP", "PLN", "QAR", "RON", "RSD", "RUB", "SAR", "SEK", "SGD", "THB", "TRY", "TWD", "TZS", "UAH", "USD", "UYU", "VND", "ZAR"]}
+        },
+        "u": {
+          "$currentDate": {
+            "updated_at": true
+          },
+          "$set": {
+            "payments_allowed": false
+          }
+        }
+      }
+    ]
+  }
+]

@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/mock"
+	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
+	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -42,26 +43,15 @@ func (suite *PaymentChannelCostSystemTestSuite) SetupTest() {
 		suite.FailNow("Database connection failed", "%v", err)
 	}
 
-	rub := &billing.Currency{
-		CodeInt:  643,
-		CodeA3:   "RUB",
-		Name:     &billing.Name{Ru: "Российский рубль", En: "Russian ruble"},
-		IsActive: true,
-	}
-
 	suite.log, err = zap.NewProduction()
 
 	if err != nil {
 		suite.FailNow("Logger initialization failed", "%v", err)
 	}
 
-	if err := InitTestCurrency(db, []interface{}{rub}); err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
-
-	redisdb := mock.NewTestRedis()
+	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache)
+	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), )
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -152,11 +142,12 @@ func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_Grp
 
 func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_GrpcSet_Ok() {
 	req := &billing.PaymentChannelCostSystem{
-		Name:      "VISA",
-		Region:    "CIS",
-		Country:   "AZ",
-		Percent:   1.7,
-		FixAmount: 4,
+		Name:              "VISA",
+		Region:            "CIS",
+		Country:           "AZ",
+		Percent:           1.7,
+		FixAmount:         4,
+		FixAmountCurrency: "USD",
 	}
 
 	res := grpc.PaymentChannelCostSystemResponse{}
@@ -169,11 +160,12 @@ func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_Grp
 	assert.Equal(suite.T(), res.Item.Id, suite.paymentChannelCostSystemId)
 
 	req2 := &billing.PaymentChannelCostSystem{
-		Name:      "MASTERCARD",
-		Region:    "US",
-		Country:   "",
-		Percent:   2.2,
-		FixAmount: 1,
+		Name:              "MASTERCARD",
+		Region:            "US",
+		Country:           "",
+		Percent:           2.2,
+		FixAmount:         1,
+		FixAmountCurrency: "USD",
 	}
 
 	res2 := grpc.PaymentChannelCostSystemResponse{}
@@ -199,7 +191,7 @@ func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_Ins
 }
 
 func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_Insert_ErrorCacheUpdate() {
-	ci := &mock.CacheInterface{}
+	ci := &mocks.CacheInterface{}
 	obj := &billing.PaymentChannelCostSystem{
 		Name:      "Mastercard",
 		Region:    "US",

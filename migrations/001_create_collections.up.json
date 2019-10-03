@@ -10,5 +10,23 @@
   },
   {
     "create": "notify_new_region"
+  },
+  {
+    "create": "order"
+  },
+  {
+    "create": "refund"
+  },
+  {
+    "create": "currency"
+  },
+  {
+    "create": "currency_rate"
+  },
+  {
+    "create": "commission"
+  },
+  {
+    "create": "vat"
   }
 ]

@@ -1,8 +1,5 @@
 [
   {
-    "drop": "payment_method"
-  },
-  {
     "create": "payment_method"
   },
   {

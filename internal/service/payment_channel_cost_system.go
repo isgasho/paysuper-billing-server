@@ -3,11 +3,13 @@ package service
 import (
 	"context"
 	"fmt"
+	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 )
 
@@ -20,10 +22,12 @@ const (
 )
 
 var (
-	errorPaymentChannelSystemGetAll    = newBillingServerErrorMsg("pcs000001", "can't get list of payment channel setting for system")
-	errorPaymentChannelSystemGet       = newBillingServerErrorMsg("pcs000002", "can't get payment channel setting for system")
-	errorPaymentChannelSystemSetFailed = newBillingServerErrorMsg("pcs000003", "can't set payment channel setting for system")
-	errorPaymentChannelSystemDelete    = newBillingServerErrorMsg("pcs000004", "can't delete payment channel setting for system")
+	errorPaymentChannelSystemGetAll           = newBillingServerErrorMsg("pcs000001", "can't get list of payment channel setting for system")
+	errorPaymentChannelSystemGet              = newBillingServerErrorMsg("pcs000002", "can't get payment channel setting for system")
+	errorPaymentChannelSystemSetFailed        = newBillingServerErrorMsg("pcs000003", "can't set payment channel setting for system")
+	errorPaymentChannelSystemDelete           = newBillingServerErrorMsg("pcs000004", "can't delete payment channel setting for system")
+	errorPaymentChannelSystemCurrency         = newBillingServerErrorMsg("pcs000005", "currency not supported")
+	errorPaymentChannelSystemCostAlreadyExist = newBillingServerErrorMsg("pcs000006", "cost with specified parameters already exist")
 )
 
 func (s *Service) GetAllPaymentChannelCostSystem(
@@ -51,7 +55,7 @@ func (s *Service) GetPaymentChannelCostSystem(
 ) error {
 	val, err := s.paymentChannelCostSystem.Get(req.Name, req.Region, req.Country)
 	if err != nil {
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = pkg.ResponseStatusNotFound
 		res.Message = errorPaymentChannelSystemGet
 		return nil
 	}
@@ -71,7 +75,7 @@ func (s *Service) SetPaymentChannelCostSystem(
 	val, err := s.paymentChannelCostSystem.Get(req.Name, req.Region, req.Country)
 	if err != nil && err.Error() != fmt.Sprintf(errorNotFound, collectionPaymentChannelCostSystem) {
 		res.Status = pkg.ResponseStatusSystemError
-		res.Message = errorPaymentChannelSystemGet
+		res.Message = errorPaymentChannelSystemSetFailed
 		return nil
 	}
 
@@ -94,6 +98,18 @@ func (s *Service) SetPaymentChannelCostSystem(
 
 	req.IsActive = true
 
+	sCurr, err := s.curService.GetSettlementCurrencies(ctx, &currencies.EmptyRequest{})
+	if err != nil {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorPaymentChannelSystemCurrency
+		return nil
+	}
+	if !contains(sCurr.Currencies, req.FixAmountCurrency) {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorPaymentChannelSystemCurrency
+		return nil
+	}
+
 	if val == nil {
 		req.Id = bson.NewObjectId().Hex()
 		err = s.paymentChannelCostSystem.Insert(req)
@@ -105,6 +121,12 @@ func (s *Service) SetPaymentChannelCostSystem(
 	if err != nil {
 		res.Status = pkg.ResponseStatusSystemError
 		res.Message = errorPaymentChannelSystemSetFailed
+
+		if mgo.IsDup(err) {
+			res.Status = pkg.ResponseStatusBadData
+			res.Message = errorPaymentChannelSystemCostAlreadyExist
+		}
+
 		return nil
 	}
 
@@ -121,8 +143,8 @@ func (s *Service) DeletePaymentChannelCostSystem(
 ) error {
 	pc, err := s.paymentChannelCostSystem.GetById(req.Id)
 	if err != nil {
-		res.Status = pkg.ResponseStatusSystemError
-		res.Message = errorPaymentChannelSystemGet
+		res.Status = pkg.ResponseStatusNotFound
+		res.Message = errorCostRateNotFound
 		return nil
 	}
 	err = s.paymentChannelCostSystem.Delete(pc)

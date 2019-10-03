@@ -4,22 +4,25 @@ import (
 	"context"
 	"crypto/sha512"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/ProtocolONE/geoip-service/pkg/proto"
-	"github.com/ProtocolONE/rabbitmq/pkg"
-	"github.com/centrifugal/gocent"
 	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
+	documentSignerProto "github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
+	"github.com/paysuper/paysuper-i18n"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
-	"github.com/paysuper/paysuper-recurring-repository/tools"
+	reporterProto "github.com/paysuper/paysuper-reporter/pkg/proto"
 	"github.com/paysuper/paysuper-tax-service/proto"
 	"go.uber.org/zap"
+	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
+	"gopkg.in/gomail.v2"
 	"strings"
 	"sync"
 )
@@ -51,28 +54,29 @@ const (
 )
 
 type Service struct {
-	db               *mongodb.Source
-	mx               sync.Mutex
-	cfg              *config.Config
-	ctx              context.Context
-	geo              proto.GeoIpService
-	rep              repository.RepositoryService
-	tax              tax_service.TaxService
-	broker           *rabbitmq.Broker
-	centrifugoClient *gocent.Client
-	redis            *redis.Client
-	cacher           CacheInterface
-
-	accountingCurrency *billing.Currency
-
-	currency                   CurrencyServiceInterface
-	currencyRate               *CurrencyRate
-	commission                 *Commission
-	country                    *Country
+	db                         *mongodb.Source
+	mx                         sync.Mutex
+	cfg                        *config.Config
+	ctx                        context.Context
+	geo                        proto.GeoIpService
+	rep                        repository.RepositoryService
+	tax                        tax_service.TaxService
+	broker                     rabbitmq.BrokerInterface
+	redis                      redis.Cmdable
+	cacher                     CacheInterface
+	curService                 currencies.CurrencyratesService
+	smtpCl                     gomail.SendCloser
+	supportedCurrencies        []string
+	country                    CountryServiceInterface
 	project                    *Project
 	merchant                   *Merchant
+	payoutDocument             PayoutDocumentServiceInterface
+	merchantBalance            MerchantBalanceServiceInterface
+	royaltyReport              RoyaltyReportServiceInterface
+	orderView                  OrderViewServiceInterface
+	accounting                 AccountingServiceInterface
 	paymentMethod              PaymentMethodInterface
-	priceGroup                 *PriceGroup
+	priceGroup                 PriceGroupServiceInterface
 	paymentSystem              PaymentSystemServiceInterface
 	zipCode                    *ZipCode
 	paymentChannelCostSystem   *PaymentChannelCostSystem
@@ -80,6 +84,16 @@ type Service struct {
 	moneyBackCostSystem        *MoneyBackCostSystem
 	moneyBackCostMerchant      *MoneyBackCostMerchant
 	payoutCostSystem           *PayoutCostSystem
+	priceTable                 PriceTableServiceInterface
+	productService             ProductServiceInterface
+	turnover                   *Turnover
+	documentSigner             documentSignerProto.DocumentSignerService
+	merchantTariffRates        MerchantTariffRatesInterface
+	keyRepository              KeyRepositoryInterface
+	dashboardRepository        DashboardRepositoryInterface
+	centrifugo                 CentrifugoInterface
+	formatter                  paysuper_i18n.Formatter
+	reporterService            reporterProto.ReporterService
 }
 
 func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {
@@ -99,34 +113,31 @@ func newBillingServerErrorMsg(code, msg string, details ...string) *grpc.Respons
 	return &grpc.ResponseErrorMessage{Code: code, Message: msg, Details: det}
 }
 
-func NewBillingService(
-	db *mongodb.Source,
-	cfg *config.Config,
-	geo proto.GeoIpService,
-	rep repository.RepositoryService,
-	tax tax_service.TaxService,
-	broker *rabbitmq.Broker,
-	redis *redis.Client,
-	cache CacheInterface,
-) *Service {
+func NewBillingService(db *mongodb.Source, cfg *config.Config, geo proto.GeoIpService, rep repository.RepositoryService, tax tax_service.TaxService, broker rabbitmq.BrokerInterface, redis redis.Cmdable, cache CacheInterface, curService currencies.CurrencyratesService, documentSigner documentSignerProto.DocumentSignerService, reporterService reporterProto.ReporterService, formatter paysuper_i18n.Formatter, ) *Service {
 	return &Service{
-		db:     db,
-		cfg:    cfg,
-		geo:    geo,
-		rep:    rep,
-		tax:    tax,
-		broker: broker,
-		redis:  redis,
-		cacher: cache,
+		db:              db,
+		cfg:             cfg,
+		geo:             geo,
+		rep:             rep,
+		tax:             tax,
+		broker:          broker,
+		redis:           redis,
+		cacher:          cache,
+		curService:      curService,
+		documentSigner:  documentSigner,
+		reporterService: reporterService,
+		formatter:       formatter,
 	}
 }
 
 func (s *Service) Init() (err error) {
 	s.paymentMethod = newPaymentMethodService(s)
 	s.merchant = newMerchantService(s)
-	s.currency = newCurrencyService(s)
-	s.currencyRate = newCurrencyRateService(s)
-	s.commission = newCommissionService(s)
+	s.payoutDocument = newPayoutService(s)
+	s.merchantBalance = newMerchantBalance(s)
+	s.royaltyReport = newRoyaltyReport(s)
+	s.orderView = newOrderView(s)
+	s.accounting = newAccounting(s)
 	s.country = newCountryService(s)
 	s.project = newProjectService(s)
 	s.priceGroup = newPriceGroupService(s)
@@ -137,20 +148,31 @@ func (s *Service) Init() (err error) {
 	s.moneyBackCostSystem = newMoneyBackCostSystemService(s)
 	s.moneyBackCostMerchant = newMoneyBackCostMerchantService(s)
 	s.payoutCostSystem = newPayoutCostSystemService(s)
+	s.priceTable = newPriceTableService(s)
+	s.productService = newProductService(s)
+	s.turnover = newTurnoverService(s)
+	s.merchantTariffRates = newMerchantsTariffRatesRepository(s)
+	s.keyRepository = newKeyRepository(s)
+	s.dashboardRepository = newDashboardRepository(s)
+	s.centrifugo = newCentrifugo(s)
 
-	s.centrifugoClient = gocent.New(
-		gocent.Config{
-			Addr:       s.cfg.CentrifugoURL,
-			Key:        s.cfg.CentrifugoSecret,
-			HTTPClient: tools.NewLoggedHttpClient(zap.S()),
-		},
-	)
-
-	s.accountingCurrency, err = s.currency.GetByCodeA3(s.cfg.AccountingCurrency)
-
-	if err != nil {
+	if s.cfg.AccountingCurrency == "" {
 		return errors.New(errorAccountingCurrencyNotFound)
 	}
+
+	sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currencies.EmptyRequest{})
+	if err != nil {
+		zap.S().Error(
+			pkg.ErrorGrpcServiceCallFailed,
+			zap.Error(err),
+			zap.String(errorFieldService, "CurrencyRatesService"),
+			zap.String(errorFieldMethod, "GetSupportedCurrencies"),
+		)
+
+		return err
+	}
+
+	s.supportedCurrencies = sCurr.Currencies
 
 	return
 }
@@ -179,18 +201,6 @@ func (s *Service) UpdateMerchant(ctx context.Context, req *billing.Merchant, rsp
 	return nil
 }
 
-func (s *Service) GetConvertRate(ctx context.Context, req *grpc.ConvertRateRequest, rsp *grpc.ConvertRateResponse) error {
-	rate, err := s.currencyRate.Convert(req.From, req.To, 1)
-
-	if err != nil {
-		zap.S().Errorf("Get convert rate failed", "err", err.Error(), "from", req.From, "to", req.To)
-	} else {
-		rsp.Rate = rate
-	}
-
-	return nil
-}
-
 func (s *Service) IsDbNotFoundError(err error) bool {
 	return err.Error() == errorBbNotFoundMessage
 }
@@ -205,20 +215,6 @@ func (s *Service) getCountryFromAcceptLanguage(acceptLanguage string) (string, s
 	it = strings.Split(it[0], "-")
 
 	return strings.ToLower(it[0]), strings.ToUpper(it[1])
-}
-
-func (s *Service) sendCentrifugoMessage(msg map[string]interface{}) error {
-	b, err := json.Marshal(msg)
-
-	if err != nil {
-		return err
-	}
-
-	if err = s.centrifugoClient.Publish(context.Background(), centrifugoChannel, b); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (s *Service) mgoPipeSort(query []bson.M, sort []string) []bson.M {
@@ -272,10 +268,13 @@ func (s *Service) CheckProjectRequestSignature(
 	err := p.processProject()
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
-
-		return nil
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
 	}
 
 	hashString := req.Body + p.checked.project.SecretKey
@@ -293,4 +292,8 @@ func (s *Service) CheckProjectRequestSignature(
 	rsp.Status = pkg.ResponseStatusOk
 
 	return nil
+}
+
+func (s *Service) getMerchantCentrifugoChannel(merchant *billing.Merchant) string {
+	return fmt.Sprintf(s.cfg.CentrifugoMerchantChannel, merchant.Id)
 }

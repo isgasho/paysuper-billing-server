@@ -4,12 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
+	"go.uber.org/zap"
 	"sort"
 )
 
@@ -22,10 +25,13 @@ const (
 )
 
 var (
-	errorMoneybackMerchantGetAll    = newBillingServerErrorMsg("mbs000001", "can't get list of money back setting for merchant")
-	errorMoneybackMerchantGet       = newBillingServerErrorMsg("mbs000002", "can't get money back setting for merchant")
-	errorMoneybackMerchantSetFailed = newBillingServerErrorMsg("mbs000003", "can't set money back setting for merchant")
-	errorMoneybackMerchantDelete    = newBillingServerErrorMsg("mbs000004", "can't delete money back setting for merchant")
+	errorMoneybackMerchantGetAll           = newBillingServerErrorMsg("mbm000001", "can't get list of money back setting for merchant")
+	errorMoneybackMerchantGet              = newBillingServerErrorMsg("mbm000002", "can't get money back setting for merchant")
+	errorMoneybackMerchantSetFailed        = newBillingServerErrorMsg("mbm000003", "can't set money back setting for merchant")
+	errorMoneybackMerchantDelete           = newBillingServerErrorMsg("mbm000004", "can't delete money back setting for merchant")
+	errorMoneybackMerchantCurrency         = newBillingServerErrorMsg("mbm000005", "currency not supported")
+	errorMoneybackMerchantCostAlreadyExist = newBillingServerErrorMsg("mbm000006", "cost with specified parameters already exist")
+	errorCostRateNotFound                  = newBillingServerErrorMsg("cr000001", "cost rate with specified identifier not found")
 )
 
 func (s *Service) GetAllMoneyBackCostMerchant(
@@ -53,7 +59,7 @@ func (s *Service) GetMoneyBackCostMerchant(
 ) error {
 	val, err := s.getMoneyBackCostMerchant(req)
 	if err != nil {
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = pkg.ResponseStatusNotFound
 		res.Message = errorMoneybackMerchantGet
 		return nil
 	}
@@ -95,7 +101,22 @@ func (s *Service) SetMoneyBackCostMerchant(
 		}
 	}
 
-	// todo: check fo valid payout currency after integrations with currencies service
+	sCurr, err := s.curService.GetSettlementCurrencies(ctx, &currencies.EmptyRequest{})
+	if err != nil {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorMoneybackMerchantCurrency
+		return nil
+	}
+	if !contains(sCurr.Currencies, req.PayoutCurrency) {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorMoneybackMerchantCurrency
+		return nil
+	}
+	if !contains(sCurr.Currencies, req.FixAmountCurrency) {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorMoneybackMerchantCurrency
+		return nil
+	}
 
 	req.UpdatedAt = ptypes.TimestampNow()
 	req.IsActive = true
@@ -104,7 +125,7 @@ func (s *Service) SetMoneyBackCostMerchant(
 		val, err := s.moneyBackCostMerchant.GetById(req.Id)
 		if err != nil {
 			res.Status = pkg.ResponseStatusNotFound
-			res.Message = errorMoneybackMerchantGet
+			res.Message = errorMoneybackMerchantSetFailed
 			return nil
 		}
 		req.Id = val.Id
@@ -119,6 +140,12 @@ func (s *Service) SetMoneyBackCostMerchant(
 	if err != nil {
 		res.Status = pkg.ResponseStatusSystemError
 		res.Message = errorMoneybackMerchantSetFailed
+
+		if mgo.IsDup(err) {
+			res.Status = pkg.ResponseStatusBadData
+			res.Message = errorMoneybackMerchantCostAlreadyExist
+		}
+
 		return nil
 	}
 
@@ -136,7 +163,7 @@ func (s *Service) DeleteMoneyBackCostMerchant(
 	pc, err := s.moneyBackCostMerchant.GetById(req.Id)
 	if err != nil {
 		res.Status = pkg.ResponseStatusNotFound
-		res.Message = errorMoneybackMerchantDelete
+		res.Message = errorCostRateNotFound
 		return nil
 	}
 	err = s.moneyBackCostMerchant.Delete(pc)
@@ -240,29 +267,29 @@ func (h MoneyBackCostMerchant) Update(obj *billing.MoneyBackCostMerchant) error 
 }
 
 func (h MoneyBackCostMerchant) Get(
-	merchant_id string,
+	merchantId string,
 	name string,
-	payout_currency string,
-	undo_reason string,
+	payoutCurrency string,
+	undoReason string,
 	region string,
 	country string,
-	payment_stage int32,
+	paymentStage int32,
 ) (*billing.MoneyBackCostMerchantList, error) {
 	var c billing.MoneyBackCostMerchantList
-	key := fmt.Sprintf(cacheMoneyBackCostMerchantKey, merchant_id, name, payout_currency, undo_reason, region, country, payment_stage)
+	key := fmt.Sprintf(cacheMoneyBackCostMerchantKey, merchantId, name, payoutCurrency, undoReason, region, country, paymentStage)
 
 	if err := h.svc.cacher.Get(key, c); err == nil {
 		return &c, nil
 	}
 
 	query := bson.M{
-		"merchant_id":     bson.ObjectIdHex(merchant_id),
-		"name":            name,
-		"payout_currency": payout_currency,
-		"undo_reason":     undo_reason,
+		"merchant_id":     bson.ObjectIdHex(merchantId),
+		"name":            bson.RegEx{Pattern: "^" + name + "$", Options: "i"},
+		"payout_currency": payoutCurrency,
+		"undo_reason":     undoReason,
 		"region":          region,
 		"country":         country,
-		"payment_stage":   payment_stage,
+		"payment_stage":   paymentStage,
 		"is_active":       true,
 	}
 
@@ -298,15 +325,38 @@ func (h MoneyBackCostMerchant) Delete(obj *billing.MoneyBackCostMerchant) error 
 	obj.UpdatedAt = ptypes.TimestampNow()
 	obj.IsActive = false
 	if err := h.svc.db.Collection(collectionMoneyBackCostMerchant).UpdateId(bson.ObjectIdHex(obj.Id), obj); err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMoneyBackCostMerchant),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, obj),
+		)
+
 		return err
 	}
 	key := fmt.Sprintf(cacheMoneyBackCostMerchantKey, obj.MerchantId, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, obj.Country, obj.PaymentStage)
 	if err := h.svc.cacher.Delete(key); err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldKey, key),
+			zap.String(pkg.ErrorCacheFieldCmd, "DELETE"),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, obj),
+		)
+
 		return err
 	}
 
 	key = fmt.Sprintf(cacheMoneyBackCostMerchantAll, obj.MerchantId)
 	if err := h.svc.cacher.Delete(key); err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldKey, key),
+			zap.String(pkg.ErrorCacheFieldCmd, "DELETE"),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, obj),
+		)
+
 		return err
 	}
 

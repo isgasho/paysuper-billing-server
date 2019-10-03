@@ -1,0 +1,14 @@
+[
+  {
+    "create": "country"
+  },
+  {
+    "create": "price_group"
+  },
+  {
+    "create": "notify_sales"
+  },
+  {
+    "create": "notify_new_region"
+  }
+]
