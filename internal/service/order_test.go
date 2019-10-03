@@ -968,6 +968,21 @@ func (suite *OrderTestSuite) SetupTest() {
 			ProjectId:       projectWithKeyProducts.Id,
 			Platforms: []*grpc.PlatformPrice{
 				{
+					Id: "gog",
+					Prices: []*grpc.ProductPrice{
+						{
+							Currency: "USD",
+							Region:   "USD",
+							Amount:   baseAmount,
+						},
+						{
+							Currency: "RUB",
+							Region:   "RUB",
+							Amount:   baseAmount * 65.13,
+						},
+					},
+				},
+				{
 					Id: "steam",
 					Prices: []*grpc.ProductPrice{
 						{
@@ -995,10 +1010,22 @@ func (suite *OrderTestSuite) SetupTest() {
 		fileContent := fmt.Sprintf("%s-%s-%s-%s", RandomString(4), RandomString(4), RandomString(4), RandomString(4))
 		file := []byte(fileContent)
 
+		// Platform 1
 		keysRsp := &grpc.PlatformKeysFileResponse{}
 		keysReq := &grpc.PlatformKeysFileRequest{
 			KeyProductId: res.Product.Id,
 			PlatformId:   "steam",
+			MerchantId:   projectWithKeyProducts.MerchantId,
+			File:         file,
+		}
+		assert.NoError(suite.T(), suite.service.UploadKeysFile(context.TODO(), keysReq, keysRsp))
+		assert.Equal(suite.T(), pkg.ResponseStatusOk, keysRsp.Status)
+
+		// Platform 2
+		keysRsp = &grpc.PlatformKeysFileResponse{}
+		keysReq = &grpc.PlatformKeysFileRequest{
+			KeyProductId: res.Product.Id,
+			PlatformId:   "gog",
 			MerchantId:   projectWithKeyProducts.MerchantId,
 			File:         file,
 		}
@@ -4457,7 +4484,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_Qiwi_Ok(
 	req1 := &grpc.PaymentFormUserChangePaymentAccountRequest{
 		OrderId:  rsp.Uuid,
 		MethodId: suite.paymentMethodWithInactivePaymentSystem.Id,
-		Account:  "375444190039",
+		Account:  "380123456789",
 	}
 	rsp1 := &grpc.PaymentFormDataChangeResponse{}
 	err = suite.service.PaymentFormPaymentAccountChanged(context.TODO(), req1, rsp1)
@@ -4466,7 +4493,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_Qiwi_Ok(
 	assert.Empty(suite.T(), rsp1.Message)
 	assert.NotNil(suite.T(), rsp1.Item)
 	assert.True(suite.T(), rsp1.Item.UserAddressDataRequired)
-	assert.Equal(suite.T(), "BY", rsp1.Item.UserIpData.Country)
+	assert.Equal(suite.T(), "UA", rsp1.Item.UserIpData.Country)
 	assert.Equal(suite.T(), rsp.User.Address.PostalCode, rsp1.Item.UserIpData.Zip)
 	assert.Equal(suite.T(), rsp.User.Address.City, rsp1.Item.UserIpData.City)
 	assert.Empty(suite.T(), rsp1.Item.Brand)
@@ -6624,6 +6651,128 @@ func (suite *OrderTestSuite) Test_ChangeCodeInOrder() {
 	shouldBe.Nil(err)
 	shouldBe.Equal(pkg.ResponseStatusOk, codeRsp.Status)
 	shouldBe.EqualValues(constant.OrderStatusItemReplaced, codeRsp.Order.PrivateStatus)
+}
+
+func (suite *OrderTestSuite) Test_ChangePlatformInForm() {
+	shouldBe := require.New(suite.T())
+	req := &billing.OrderCreateRequest{
+		ProjectId:   suite.projectWithKeyProducts.Id,
+		Currency:    "RUB",
+		Account:     "unit test",
+		Description: "unit test",
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+		Products:   suite.keyProductIds,
+		PlatformId: "steam",
+		Type:       billing.OrderType_key,
+	}
+
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+	shouldBe.Nil(err)
+	shouldBe.Equal(pkg.ResponseStatusOk, rsp1.Status)
+
+	order := rsp1.Item
+	codeRsp := &grpc.EmptyResponseWithStatus{}
+	err = suite.service.PaymentFormPlatformChanged(context.TODO(), &grpc.PaymentFormUserChangePlatformRequest{OrderId: order.Uuid, Platform: "gog"}, codeRsp)
+	shouldBe.Nil(err)
+	shouldBe.EqualValuesf(pkg.ResponseStatusOk, codeRsp.Status, "%v", codeRsp.Message)
+
+	codeRsp = &grpc.EmptyResponseWithStatus{}
+	err = suite.service.PaymentFormPlatformChanged(context.TODO(), &grpc.PaymentFormUserChangePlatformRequest{OrderId: order.Uuid, Platform: "xbox"}, codeRsp)
+	shouldBe.Nil(err)
+	shouldBe.Equal(pkg.ResponseStatusBadData, codeRsp.Status)
+}
+
+func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_KeyProductReservation_Error() {
+	shouldBe := require.New(suite.T())
+
+	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_key,
+		ProjectId:   suite.projectWithKeyProducts.Id,
+		Currency:    "RUB",
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+		Products:   suite.keyProductIds,
+		PlatformId: "steam",
+	}
+
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
+	shouldBe.Nil(err)
+	shouldBe.Equal(pkg.ResponseStatusOk, rsp1.Status)
+	order := rsp1.Item
+
+	data := map[string]string{
+		pkg.PaymentCreateFieldOrderId:         order.Uuid,
+		pkg.PaymentCreateFieldPaymentMethodId: suite.paymentMethod.Id,
+		pkg.PaymentCreateFieldEmail:           "test@unit.unit",
+		pkg.PaymentCreateFieldPan:             "4000000000000002",
+		pkg.PaymentCreateFieldCvv:             "123",
+		pkg.PaymentCreateFieldMonth:           "02",
+		pkg.PaymentCreateFieldYear:            "2100",
+		pkg.PaymentCreateFieldHolder:          "Mr. Card Holder",
+	}
+
+	// simulate not available product
+	order.Products = append(order.Products, bson.NewObjectId().Hex())
+
+	processor := &PaymentCreateProcessor{service: suite.service, data: data}
+	err = processor.reserveKeysForOrder(context.TODO(), order)
+
+	shouldBe.Error(err)
+	shouldBe.EqualValues(0, len(order.Keys))
+}
+
+func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_KeyProductReservation_Ok() {
+	shouldBe := require.New(suite.T())
+
+	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_key,
+		ProjectId:   suite.projectWithKeyProducts.Id,
+		Currency:    "RUB",
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+		Products:   suite.keyProductIds,
+		PlatformId: "steam",
+	}
+
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
+	shouldBe.Nil(err)
+	shouldBe.Equal(rsp1.Status, pkg.ResponseStatusOk)
+	order := rsp1.Item
+
+	data := map[string]string{
+		pkg.PaymentCreateFieldOrderId:         order.Uuid,
+		pkg.PaymentCreateFieldPaymentMethodId: suite.paymentMethod.Id,
+		pkg.PaymentCreateFieldEmail:           "test@unit.unit",
+		pkg.PaymentCreateFieldPan:             "4000000000000002",
+		pkg.PaymentCreateFieldCvv:             "123",
+		pkg.PaymentCreateFieldMonth:           "02",
+		pkg.PaymentCreateFieldYear:            "2100",
+		pkg.PaymentCreateFieldHolder:          "Mr. Card Holder",
+	}
+
+	processor := &PaymentCreateProcessor{service: suite.service, data: data}
+	err = processor.reserveKeysForOrder(context.TODO(), order)
+
+	shouldBe.Nil(err)
+	shouldBe.EqualValues(len(suite.keyProductIds), len(order.Keys))
 }
 
 func RandomString(n int) string {

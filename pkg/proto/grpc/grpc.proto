@@ -293,8 +293,9 @@ service BillingService {
     rpc PayoutDocumentPdfUploaded (PayoutDocumentPdfUploadedRequest) returns (PayoutDocumentPdfUploadedResponse) {
     }
 
-    rpc GetMerchantBalance (GetMerchantBalanceRequest) returns (GetMerchantBalanceResponse) {
-    }
+    rpc GetMerchantBalance(GetMerchantBalanceRequest) returns (GetMerchantBalanceResponse) {}
+
+    rpc PaymentFormPlatformChanged (PaymentFormUserChangePlatformRequest) returns (EmptyResponseWithStatus) {}
 }
 
 message EmptyRequest {
@@ -775,6 +776,13 @@ message PaymentFormDataChangedRequest {
     string account = 3;
 }
 
+message PaymentFormUserChangePlatformRequest {
+    // @inject_tag: validate:"required,uuid"
+    string order_id = 1;
+    // @inject_tag: validate:"required,min=2,max=255"
+    string platform = 2;
+}
+
 message PaymentFormUserChangeLangRequest {
     // @inject_tag: validate:"required,uuid"
     string order_id = 1;
@@ -812,6 +820,10 @@ message PaymentFormDataChangeResponseItem {
     // @inject_tag: json:"user_ip_data"
     UserIpData user_ip_data = 2;
     string brand = 3;
+    //@inject_tag: json:"country_payments_allowed"
+    bool country_payments_allowed = 18;
+    //@inject_tag: json:"country_change_allowed"
+    bool country_change_allowed = 19;
 }
 
 message PaymentFormDataChangeResponse {

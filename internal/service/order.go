@@ -119,7 +119,6 @@ var (
 	orderErrorProductsPrice                                   = newBillingServerErrorMsg("fm000051", "can't get product price")
 	orderErrorCheckoutWithoutProducts                         = newBillingServerErrorMsg("fm000052", "order products not specified")
 	orderErrorCheckoutWithoutAmount                           = newBillingServerErrorMsg("fm000053", "order amount not specified")
-	orderErrorKeyReserveFailed                                = newBillingServerErrorMsg("fm000054", "can't reserve key for order")
 	orderErrorUnknownType                                     = newBillingServerErrorMsg("fm000055", "unknown type of order")
 	orderErrorMerchantBadTariffs                              = newBillingServerErrorMsg("fm000056", "merchant don't have tariffs")
 	orderErrorReceiptNotEquals                                = newBillingServerErrorMsg("fm000057", "receipts not equals")
@@ -672,6 +671,7 @@ func (s *Service) PaymentCreateProcess(
 		acceptLanguage: req.AcceptLanguage,
 		userAgent:      req.UserAgent,
 	}
+
 	err := processor.processPaymentFormData()
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
@@ -694,7 +694,10 @@ func (s *Service) PaymentCreateProcess(
 	if order.ProductType == billing.OrderType_product {
 		err = s.ProcessOrderProducts(order)
 	} else if order.ProductType == billing.OrderType_key {
-		err = s.ProcessOrderKeyProducts(ctx, order)
+		// We should reserve keys only before payment
+		if err = s.ProcessOrderKeyProducts(ctx, order); err == nil {
+			err = processor.reserveKeysForOrder(ctx, order)
+		}
 	}
 
 	if err != nil {
@@ -1097,6 +1100,22 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 	order.User.Address.Country = country
 	order.UserAddressDataRequired = true
 
+	restricted, err := s.applyCountryRestriction(order, country)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = orderErrorUnknown
+
+		return nil
+	}
+
+	if restricted == true {
+		rsp.Status = pkg.ResponseStatusForbidden
+		rsp.Message = orderCountryPaymentRestrictedError
+
+		return nil
+	}
+
 	err = s.updateOrder(order)
 
 	if err != nil {
@@ -1116,6 +1135,14 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		Zip:     order.User.Address.PostalCode,
 	}
 	rsp.Item.Brand = brand
+
+	if order.CountryRestriction != nil {
+		rsp.Item.CountryPaymentsAllowed = order.CountryRestriction.PaymentsAllowed
+		rsp.Item.CountryChangeAllowed = order.CountryRestriction.ChangeAllowed
+	} else {
+		rsp.Item.CountryPaymentsAllowed = true
+		rsp.Item.CountryChangeAllowed = true
+	}
 
 	return nil
 }
@@ -1377,10 +1404,10 @@ func (s *Service) getReceiptModel(name string, price string) *structpb.Value {
 			StructValue: &structpb.Struct{
 				Fields: map[string]*structpb.Value{
 					"name": {
-						Kind: &structpb.Value_StringValue{StringValue: name},
+						Kind: &structpb.Value_StringValue{StringValue:name},
 					},
 					"price": {
-						Kind: &structpb.Value_StringValue{StringValue: price},
+						Kind: &structpb.Value_StringValue{StringValue:price},
 					},
 				},
 			},
@@ -2233,6 +2260,66 @@ func (v *PaymentFormProcessor) processPaymentMethodsData(pm *billing.PaymentForm
 	return nil
 }
 
+func (s *PaymentCreateProcessor) reserveKeysForOrder(ctx context.Context, order *billing.Order) error {
+	if len(order.Keys) == 0 {
+		zap.S().Infow("[ProcessOrderKeyProducts] reserving keys", "order_id", order.Id)
+		keys := make([]string, len(order.Products))
+		for i, productId := range order.Products {
+			reserveRes := &grpc.PlatformKeyReserveResponse{}
+			reserveReq := &grpc.PlatformKeyReserveRequest{
+				PlatformId:   order.PlatformId,
+				MerchantId:   order.Project.MerchantId,
+				OrderId:      order.Id,
+				KeyProductId: productId,
+				Ttl:          oneDayTtl,
+			}
+
+			err := s.service.ReserveKeyForOrder(ctx, reserveReq, reserveRes)
+			if err != nil {
+				zap.L().Error(
+					pkg.ErrorGrpcServiceCallFailed,
+					zap.Error(err),
+					zap.String(errorFieldService, "KeyService"),
+					zap.String(errorFieldMethod, "ReserveKeyForOrder"),
+				)
+				return err
+			}
+
+			if reserveRes.Status != pkg.ResponseStatusOk {
+				zap.S().Errorw("[ProcessOrderKeyProducts] can't reserve key. Cancelling reserved before", "message", reserveRes.Message, "order_id", order.Id)
+
+				// we should cancel reservation for keys reserved before
+				for _, keyToCancel := range keys {
+					if len(keyToCancel) > 0 {
+						cancelRes := &grpc.EmptyResponseWithStatus{}
+						err := s.service.CancelRedeemKeyForOrder(ctx, &grpc.KeyForOrderRequest{KeyId: keyToCancel}, cancelRes)
+						if err != nil {
+							zap.L().Error(
+								pkg.ErrorGrpcServiceCallFailed,
+								zap.Error(err),
+								zap.String(errorFieldService, "KeyService"),
+								zap.String(errorFieldMethod, "CancelRedeemKeyForOrder"),
+							)
+						} else if cancelRes.Status != pkg.ResponseStatusOk {
+							zap.S().Errorw("[ProcessOrderKeyProducts] error during cancelling reservation", "message", cancelRes.Message, "order_id", order.Id)
+						} else {
+							zap.S().Infow("[ProcessOrderKeyProducts] successful canceled reservation", "order_id", order.Id, "key_id", keyToCancel)
+						}
+					}
+				}
+
+				return reserveRes.Message
+			}
+			zap.S().Infow("[ProcessOrderKeyProducts] reserved for product", "product ", productId, "reserveRes ", reserveRes, "order_id", order.Id)
+			keys[i] = reserveRes.KeyId
+		}
+
+		order.Keys = keys
+	}
+
+	return nil
+}
+
 // Validate data received from payment form and write validated data to order
 func (v *PaymentCreateProcessor) processPaymentFormData() error {
 	if _, ok := v.data[pkg.PaymentCreateFieldOrderId]; !ok ||
@@ -2757,7 +2844,6 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 	}
 
 	zap.S().Infow(fmt.Sprintf(logInfo, "try to use detected currency for order amount"), "currency", currency, "order.Uuid", order.Uuid)
-
 	// try to get order Amount in requested currency
 	amount, err := s.GetOrderKeyProductsAmount(orderProducts, priceGroup, platformId)
 	if err != nil {
@@ -2835,48 +2921,9 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 	amount = tools.FormatAmount(amount)
 	merAccAmount = tools.FormatAmount(merAccAmount)
 
-	zap.S().Infow("[ProcessOrderKeyProducts] before processing order key. ", "keys ", len(order.Keys), "products ", len(order.Products), "order_id", order.Id)
-
-	if len(order.Keys) == 0 {
-		zap.S().Infow("[ProcessOrderKeyProducts] reserving keys", "order_id", order.Id)
-		keys := make([]string, len(order.Products))
-		for i, productId := range order.Products {
-			reserveRes := &grpc.PlatformKeyReserveResponse{}
-			reserveReq := &grpc.PlatformKeyReserveRequest{
-				PlatformId:   order.PlatformId,
-				MerchantId:   order.Project.MerchantId,
-				OrderId:      order.Id,
-				KeyProductId: productId,
-				Ttl:          oneDayTtl,
-			}
-
-			err = s.ReserveKeyForOrder(ctx, reserveReq, reserveRes)
-			zap.S().Infow("[ProcessOrderKeyProducts] reserved for product", "product ", productId, "reserveRes ", reserveRes, "order_id", order.Id)
-			if err != nil {
-				zap.L().Error(
-					pkg.ErrorGrpcServiceCallFailed,
-					zap.Error(err),
-					zap.String(errorFieldService, "KeyService"),
-					zap.String(errorFieldMethod, "ReserveKeyForOrder"),
-				)
-				return err
-			}
-
-			if reserveRes.Status != pkg.ResponseStatusOk {
-				zap.S().Errorw("[ProcessOrderKeyProducts] can't reserve key", "message", reserveRes.Message, "order_id", order.Id)
-				return reserveRes.Message
-			}
-
-			keys[i] = reserveRes.KeyId
-		}
-
-		order.Keys = keys
-	}
-
 	order.Currency = currency
 	order.OrderAmount = amount
 	order.TotalPaymentAmount = amount
-
 	order.Items = items
 
 	return nil
@@ -3363,6 +3410,57 @@ func (s *Service) applyCountryRestriction(order *billing.Order, countryCode stri
 		err = nil
 	}
 	return
+}
+
+func (s *Service) PaymentFormPlatformChanged(ctx context.Context, req *grpc.PaymentFormUserChangePlatformRequest, rsp *grpc.EmptyResponseWithStatus) error {
+	order, err := s.getOrderByUuidToForm(req.OrderId)
+
+	if err != nil {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
+
+	order.PlatformId = req.Platform
+
+	if order.ProductType == billing.OrderType_product {
+		err = s.ProcessOrderProducts(order)
+	} else if order.ProductType == billing.OrderType_key {
+		err = s.ProcessOrderKeyProducts(ctx, order)
+	}
+
+	if err != nil {
+		if pid := order.PrivateMetadata["PaylinkId"]; pid != "" {
+			s.notifyPaylinkError(ctx, pid, err, req, order)
+		}
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
+	}
+
+	err = s.updateOrder(order)
+
+	if err != nil {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = e
+			return nil
+		}
+		return err
+	}
+
+	return nil
 }
 
 func (s *Service) OrderReceipt(

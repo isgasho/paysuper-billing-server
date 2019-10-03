@@ -245,7 +245,7 @@ message MerchantCompanyInfo {
     string address = 8;
     // @inject_tag: json:"address_additional" bson:"address_additional" validate:"omitempty,max=100"
     string address_additional = 9;
-    // @inject_tag: json:"registration_number" bson:"registration_number"
+    // @inject_tag: json:"registration_number" bson:"registration_number" validate:"required,max=100"
     string registration_number = 10;
     // @inject_tag: json:"tax_id" bson:"tax_id"
     string tax_id = 11;
@@ -347,6 +347,8 @@ message Merchant {
     bool has_projects = 50;
     // @inject_tag: json:"agreement_number"
     string agreement_number = 51;
+    // @inject_tag: json:"minimal_payout_limit"
+    float minimal_payout_limit = 52;
 }
 
 message SystemNotificationStatuses {
