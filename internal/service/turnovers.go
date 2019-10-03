@@ -88,7 +88,12 @@ func (s *Service) calcAnnualTurnover(ctx context.Context, countryCode string) er
 		if err != nil {
 			return errorCountryNotFound
 		}
-		targetCurrency = country.Currency
+		if country.VatEnabled {
+			targetCurrency = country.VatCurrency
+		}
+		if targetCurrency == "" {
+			targetCurrency = country.Currency
+		}
 		VatPeriodMonth = country.VatPeriodMonth
 		currencyPolicy = country.VatCurrencyRatesPolicy
 		ratesType = curPkg.RateTypeCentralbanks

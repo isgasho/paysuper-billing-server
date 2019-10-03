@@ -663,8 +663,16 @@ func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, coun
 		return err
 	}
 	report.WorldAnnualTurnover = worldTurnover.Amount
-	if worldTurnover.Currency != country.Currency {
-		report.WorldAnnualTurnover, err = h.exchangeAmount(worldTurnover.Currency, country.Currency, worldTurnover.Amount, country.VatCurrencyRatesSource)
+
+	targetCurrency := ""
+	if country.VatEnabled {
+		targetCurrency = country.VatCurrency
+	}
+	if targetCurrency == "" {
+		targetCurrency = country.Currency
+	}
+	if worldTurnover.Currency != targetCurrency {
+		report.WorldAnnualTurnover, err = h.exchangeAmount(worldTurnover.Currency, targetCurrency, worldTurnover.Amount, country.VatCurrencyRatesSource)
 		if err != nil {
 			return err
 		}
