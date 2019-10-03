@@ -571,7 +571,7 @@ func (s *Service) PayoutDocumentPdfUploaded(
 ) error {
 	res.Status = pkg.ResponseStatusOk
 
-	pd, err := s.payoutDocument.GetById(req.Id)
+	pd, err := s.payoutDocument.GetById(req.PayoutId)
 	if err != nil {
 		if err == mgo.ErrNotFound {
 			res.Status = pkg.ResponseStatusNotFound
