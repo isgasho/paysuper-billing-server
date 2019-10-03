@@ -533,18 +533,16 @@ message Order {
     string type = 53;
     // @inject_tag: json:"-"
     bool is_vat_deduction = 54;
-
     // @inject_tag: validate="oneof=simple product key" json:"type"
     string product_type = 69;
-
     // @inject_tag: json:"platform_id"
     string platform_id = 70;
-
     // @inject_tag: json:"-" bson:"keys"
     repeated string keys = 71;
-
     // @inject_tag: json:"-"
     bool is_key_product_notified = 72;
+    // @inject_tag: json:"receipt_id" bson:"receipt_id"
+    string receipt_id = 73; // unique public receipt identifier
 }
 
 message CountryRestriction {
@@ -1570,6 +1568,8 @@ message VatReport {
     google.protobuf.Timestamp created_at = 18;
     //@inject_tag: json:"updated_at" bson:"updated_at"
     google.protobuf.Timestamp updated_at = 19;
+    //@inject_tag: json:"paid_at" bson:"paid_at"
+    google.protobuf.Timestamp paid_at = 20;
 }
 
 message AnnualTurnover {
@@ -2026,4 +2026,26 @@ message MerchantBalance {
     //@inject_tag: json:"total" validate:"required,numeric"
     double total = 7;
     google.protobuf.Timestamp created_at = 8;
+}
+
+message OrderReceipt {
+    //@inject_tag: json:"total_price"
+    string total_price = 1;
+    //@inject_tag: json:"transaction_id"
+    string transaction_id = 2;
+    //@inject_tag: json:"transaction_date"
+    string transaction_date = 3;
+    //@inject_tag: json:"project_name"
+    string project_name = 4;
+    //@inject_tag: json:"merchant_name"
+    string merchant_name = 5;
+    //@inject_tag: json:"items"
+    repeated OrderReceiptItem items = 6;
+}
+
+message OrderReceiptItem {
+    //@inject_tag: json:"name"
+    string name = 1;
+    //@inject_tag: json:"price"
+    string price = 2;
 }

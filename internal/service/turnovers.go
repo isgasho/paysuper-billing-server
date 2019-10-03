@@ -48,16 +48,20 @@ func (s *Service) CalcAnnualTurnovers(ctx context.Context, req *grpc.EmptyReques
 		err = s.calcAnnualTurnover(ctx, country.IsoCodeA2)
 		if err != nil {
 			if err != errorTurnoversCurrencyRatesPolicyNotSupported {
-				zap.S().Errorf(errorCannotCalculateTurnoverCountry, "country", country.IsoCodeA2, err.Error())
+				zap.L().Error(errorCannotCalculateTurnoverCountry,
+					zap.String("country", country.IsoCodeA2),
+					zap.Error(err))
 				return err
 			}
-			zap.S().Warnf(errorCannotCalculateTurnoverCountry, "country", country.IsoCodeA2, err.Error())
+			zap.L().Warn(errorCannotCalculateTurnoverCountry,
+				zap.String("country", country.IsoCodeA2),
+				zap.Error(err))
 		}
 	}
 
 	err = s.calcAnnualTurnover(ctx, "")
 	if err != nil {
-		zap.S().Error(errorCannotCalculateTurnoverWorld, err.Error())
+		zap.L().Error(errorCannotCalculateTurnoverWorld, zap.Error(err))
 		return err
 	}
 
@@ -84,7 +88,12 @@ func (s *Service) calcAnnualTurnover(ctx context.Context, countryCode string) er
 		if err != nil {
 			return errorCountryNotFound
 		}
-		targetCurrency = country.Currency
+		if country.VatEnabled {
+			targetCurrency = country.VatCurrency
+		}
+		if targetCurrency == "" {
+			targetCurrency = country.Currency
+		}
 		VatPeriodMonth = country.VatPeriodMonth
 		currencyPolicy = country.VatCurrencyRatesPolicy
 		ratesType = curPkg.RateTypeCentralbanks
@@ -128,7 +137,7 @@ func (s *Service) calcAnnualTurnover(ctx context.Context, countryCode string) er
 
 	err = s.turnover.Insert(at)
 	if err != nil {
-		zap.S().Error(
+		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionAnnualTurnovers),
@@ -179,7 +188,7 @@ func (s *Service) getTurnover(ctx context.Context, from, to time.Time, countryCo
 			err = nil
 			return
 		}
-		zap.S().Error(
+		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionAccountingEntry),
@@ -212,7 +221,7 @@ func (s *Service) getTurnover(ctx context.Context, from, to time.Time, countryCo
 		rsp, err := s.curService.ExchangeCurrencyByDateCommon(ctx, req)
 
 		if err != nil {
-			zap.S().Error(
+			zap.L().Error(
 				pkg.ErrorGrpcServiceCallFailed,
 				zap.Error(err),
 				zap.String(errorFieldService, "CurrencyRatesService"),
@@ -237,7 +246,13 @@ func newTurnoverService(svc *Service) *Turnover {
 func (h *Turnover) Insert(turnover *billing.AnnualTurnover) error {
 	_, err := h.svc.db.Collection(collectionAnnualTurnovers).Upsert(bson.M{"year": turnover.Year, "country": turnover.Country}, turnover)
 	if err != nil {
-		zap.S().Errorf(pkg.ErrorDatabaseQueryFailed, "err", err.Error(), "collection", collectionAnnualTurnovers, "turnover", turnover)
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionAnnualTurnovers),
+			zap.String(pkg.ErrorDatabaseFieldOperation, pkg.ErrorDatabaseFieldOperationUpsert),
+			zap.Any(pkg.ErrorDatabaseFieldDocument, turnover),
+		)
 		return err
 	}
 
@@ -262,12 +277,19 @@ func (h *Turnover) Get(country string, year int) (*billing.AnnualTurnover, error
 		return &c, nil
 	}
 
+	query := bson.M{"country": country, "year": year}
+
 	err := h.svc.db.Collection(collectionAnnualTurnovers).
-		Find(bson.M{"country": country, "year": year}).
+		Find(query).
 		One(&c)
 	if err != nil {
-		zap.S().Errorf(pkg.ErrorDatabaseQueryFailed, "err", err.Error(), "collection", collectionAnnualTurnovers)
-		return nil, fmt.Errorf(errorNotFound, collectionAnnualTurnovers)
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionAnnualTurnovers),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return nil, err
 	}
 
 	err = h.svc.cacher.Set(key, c, 0)

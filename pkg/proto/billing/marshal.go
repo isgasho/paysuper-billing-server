@@ -43,6 +43,7 @@ type JsonVatReport struct {
 	PayUntilDate          string  `json:"pay_until_date"`
 	CreatedAt             string  `json:"created_at"`
 	UpdatedAt             string  `json:"updated_at"`
+	PaidAt                string  `json:"paid_at"`
 }
 
 type JsonRoyaltyReportOrder struct {
@@ -86,27 +87,6 @@ func (m *Refund) MarshalJSON() ([]byte, error) {
 }
 
 func (m *VatReport) MarshalJSON() ([]byte, error) {
-	DateFrom, err := ptypes.Timestamp(m.DateFrom)
-	if err != nil {
-		return nil, err
-	}
-	DateTo, err := ptypes.Timestamp(m.DateTo)
-	if err != nil {
-		return nil, err
-	}
-	PayUntilDate, err := ptypes.Timestamp(m.PayUntilDate)
-	if err != nil {
-		return nil, err
-	}
-	CreatedAt, err := ptypes.Timestamp(m.CreatedAt)
-	if err != nil {
-		return nil, err
-	}
-	UpdatedAt, err := ptypes.Timestamp(m.UpdatedAt)
-	if err != nil {
-		return nil, err
-	}
-
 	return json.Marshal(
 		&JsonVatReport{
 			Id:                    m.Id,
@@ -123,11 +103,12 @@ func (m *VatReport) MarshalJSON() ([]byte, error) {
 			CountryAnnualTurnover: m.CountryAnnualTurnover,
 			WorldAnnualTurnover:   m.WorldAnnualTurnover,
 			AmountsApproximate:    m.AmountsApproximate,
-			DateFrom:              DateFrom.Format(time.RFC3339),
-			DateTo:                DateTo.Format(time.RFC3339),
-			PayUntilDate:          PayUntilDate.Format(time.RFC3339),
-			CreatedAt:             CreatedAt.Format(time.RFC3339),
-			UpdatedAt:             UpdatedAt.Format(time.RFC3339),
+			DateFrom:              ptypes.TimestampString(m.DateFrom),
+			DateTo:                ptypes.TimestampString(m.DateTo),
+			PayUntilDate:          ptypes.TimestampString(m.PayUntilDate),
+			CreatedAt:             ptypes.TimestampString(m.CreatedAt),
+			UpdatedAt:             ptypes.TimestampString(m.UpdatedAt),
+			PaidAt:                ptypes.TimestampString(m.PaidAt),
 		},
 	)
 }
@@ -154,7 +135,7 @@ func (m *VatReport) UnmarshalJSON(b []byte) error {
 	m.WorldAnnualTurnover = decoded.WorldAnnualTurnover
 	m.AmountsApproximate = decoded.AmountsApproximate
 
-	DateFrom, err := time.Parse(time.RFC3339, decoded.DateFrom)
+	DateFrom, err := time.Parse(time.RFC3339Nano, decoded.DateFrom)
 	if err != nil {
 		return err
 	}
@@ -164,7 +145,7 @@ func (m *VatReport) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	DateTo, err := time.Parse(time.RFC3339, decoded.DateTo)
+	DateTo, err := time.Parse(time.RFC3339Nano, decoded.DateTo)
 	if err != nil {
 		return err
 	}
@@ -174,7 +155,7 @@ func (m *VatReport) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	PayUntilDate, err := time.Parse(time.RFC3339, decoded.PayUntilDate)
+	PayUntilDate, err := time.Parse(time.RFC3339Nano, decoded.PayUntilDate)
 	if err != nil {
 		return err
 	}
@@ -184,7 +165,7 @@ func (m *VatReport) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	CreatedAt, err := time.Parse(time.RFC3339, decoded.CreatedAt)
+	CreatedAt, err := time.Parse(time.RFC3339Nano, decoded.CreatedAt)
 	if err != nil {
 		return err
 	}
@@ -193,7 +174,7 @@ func (m *VatReport) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	UpdatedAt, err := time.Parse(time.RFC3339, decoded.UpdatedAt)
+	UpdatedAt, err := time.Parse(time.RFC3339Nano, decoded.UpdatedAt)
 	if err != nil {
 		return err
 	}
@@ -202,16 +183,19 @@ func (m *VatReport) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
+	PaidAt, err := time.Parse(time.RFC3339Nano, decoded.PaidAt)
+	if err != nil {
+		return err
+	}
+	m.PaidAt, err = ptypes.TimestampProto(PaidAt)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (m *MerchantBalance) MarshalJSON() ([]byte, error) {
-
-	CreatedAt, err := ptypes.Timestamp(m.CreatedAt)
-	if err != nil {
-		return nil, err
-	}
-
 	return json.Marshal(
 		&JsonMerchantBalance{
 			MerchantId:     m.MerchantId,
@@ -220,7 +204,7 @@ func (m *MerchantBalance) MarshalJSON() ([]byte, error) {
 			Credit:         m.Credit,
 			RollingReserve: m.RollingReserve,
 			Total:          m.Total,
-			CreatedAt:      CreatedAt.Format(time.RFC3339),
+			CreatedAt:      ptypes.TimestampString(m.CreatedAt),
 		},
 	)
 }

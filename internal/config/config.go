@@ -73,7 +73,6 @@ type Config struct {
 	OrderViewUpdateBatchSize int `envconfig:"ORDER_VIEW_UPDATE_BATCH_SIZE" default:"200"`
 
 	HelloSignDefaultTemplate    string `envconfig:"HELLO_SIGN_DEFAULT_TEMPLATE" required:"true"`
-	HelloSignPayoutTemplate     string `envconfig:"HELLO_SIGN_PAYOUT_TEMPLATE" required:"true"`
 	HelloSignClientId           string `envconfig:"HELLO_SIGN_CLIENT_ID" required:"true"`
 	PaysuperDocumentSignerEmail string `envconfig:"PAYSUPER_DOCUMENT_SIGNER_EMAIL" required:"true"`
 	PaysuperDocumentSignerName  string `envconfig:"PAYSUPER_DOCUMENT_SIGNER_NAME" required:"true"`

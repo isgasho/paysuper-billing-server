@@ -571,7 +571,7 @@ func (s *Service) PayoutDocumentPdfUploaded(
 ) error {
 	res.Status = pkg.ResponseStatusOk
 
-	pd, err := s.payoutDocument.GetById(req.Id)
+	pd, err := s.payoutDocument.GetById(req.PayoutId)
 	if err != nil {
 		if err == mgo.ErrNotFound {
 			res.Status = pkg.ResponseStatusNotFound
@@ -665,10 +665,9 @@ func (s *Service) getPayoutSignature(
 		return nil, errorPayoutNotRendered
 	}
 
-	// todo: call another method in documentSigner and pass rendered document - waiting for task #191999
 	req := &proto.CreateSignatureRequest{
-		TemplateId: s.cfg.HelloSignPayoutTemplate,
-		ClientId:   s.cfg.HelloSignClientId,
+		RequestType: documentSignerConst.RequestTypeCreateEmbedded,
+		ClientId:    s.cfg.HelloSignClientId,
 		Signers: []*proto.CreateSignatureRequestSigner{
 			{
 				Email:    merchant.GetAuthorizedEmail(),
@@ -684,7 +683,12 @@ func (s *Service) getPayoutSignature(
 		Metadata: map[string]string{
 			documentSignerConst.MetadataFieldPayoutDocumentId: pd.Id,
 		},
-		RequestType: documentSignerConst.RequestTypeCreateEmbedded,
+		FileUrl: []*proto.CreateSignatureRequestFileUrl{
+			{
+				Name:    pd.RenderedDocumentFileUrl,
+				Storage: documentSignerConst.StorageTypeReport,
+			},
+		},
 	}
 
 	rsp, err := s.documentSigner.CreateSignature(ctx, req)
@@ -925,6 +929,7 @@ func (h *PayoutDocument) GetById(id string) (pd *billing.PayoutDocument, err err
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String(pkg.ErrorDatabaseFieldCollection, collectionPayoutDocuments),
+			zap.String(pkg.ErrorDatabaseFieldDocumentId, id),
 		)
 		return
 	}
