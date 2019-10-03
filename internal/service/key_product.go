@@ -42,18 +42,20 @@ var (
 	keyProductPlatformDontHaveDefaultPrice  = newBillingServerErrorMsg("kp000020", "platform don't have price in default currency")
 	keyProductPlatformPriceMismatchCurrency = newBillingServerErrorMsg("kp000021", "platform don't have price with region that mismatch with currency")
 	keyPlatformNotFound                     = newBillingServerErrorMsg("kp000022", "platform not found")
-	keyProductNotPublished                     = newBillingServerErrorMsg("kp000023", "key product is not published")
+	keyProductNotPublished                  = newBillingServerErrorMsg("kp000023", "key product is not published")
 )
 
+//TODO: correct icons
 var availablePlatforms = map[string]*grpc.Platform{
-	"steam":    {Id: "steam", Name: "Steam"},
-	"gog":      {Id: "gog", Name: "GOG"},
-	"egs":      {Id: "egs", Name: "Epic Game Store"},
-	"uplay":    {Id: "uplay", Name: "Uplay"},
-	"origin":   {Id: "origin", Name: "Origin"},
-	"psn":      {Id: "psn", Name: "PSN"},
-	"xbox":     {Id: "xbox", Name: "XBOX Store"},
-	"nintendo": {Id: "nintendo", Name: "Nintendo Store"},
+	"steam":    {Id: "steam", Name: "Steam", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-steam.svg"},
+	"gog":      {Id: "gog", Name: "GOG", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-gog.svg"},
+	"uplay":    {Id: "uplay", Name: "Uplay", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-uplay.svg"},
+	"origin":   {Id: "origin", Name: "Origin", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-origin.svg"},
+	"psn":      {Id: "psn", Name: "PSN", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-psn.svg"},
+	"xbox":     {Id: "xbox", Name: "XBOX Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-xbox.svg"},
+	"nintendo": {Id: "nintendo", Name: "Nintendo Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-nintendo.svg"},
+	"itch":     {Id: "nintendo", Name: "Nintendo Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-itch.svg"},
+	"egs":      {Id: "egs", Name: "Epic Games Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-epic.svg"},
 }
 
 func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.CreateOrUpdateKeyProductRequest, res *grpc.KeyProductResponse) error {

@@ -1389,6 +1389,22 @@ func (s *Service) sendMailWithReceipt(ctx context.Context, order *billing.Order)
 		},
 	}
 
+	if platform, ok := availablePlatforms[order.PlatformId]; ok {
+		payload.TemplateObjectModel.Fields["platform"] = &structpb.Value{
+			Kind: &structpb.Value_StructValue{
+				StructValue: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"name": {
+							Kind: &structpb.Value_StringValue{
+								StringValue: platform.Name,
+							},
+						},
+					},
+				},
+			},
+		}
+	}
+
 	zap.S().Infow("sending receipt to broker", "order_id", order.Id)
 	err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 	if err != nil {
@@ -1404,10 +1420,10 @@ func (s *Service) getReceiptModel(name string, price string) *structpb.Value {
 			StructValue: &structpb.Struct{
 				Fields: map[string]*structpb.Value{
 					"name": {
-						Kind: &structpb.Value_StringValue{StringValue:name},
+						Kind: &structpb.Value_StringValue{StringValue: name},
 					},
 					"price": {
-						Kind: &structpb.Value_StringValue{StringValue:price},
+						Kind: &structpb.Value_StringValue{StringValue: price},
 					},
 				},
 			},
@@ -1426,30 +1442,43 @@ func (s *Service) getPayloadForReceipt(order *billing.Order) *postmarkSdrPkg.Pay
 		zap.S().Errorw("Error during formatting date", "date", order.CreatedAt, "locale", DefaultLanguage)
 	}
 
+	merchantName := order.GetMerchantId()
+	merchant, err := s.merchant.GetById(order.GetMerchantId())
+	if err != nil {
+		zap.S().Errorw("Error during getting merchant", "merchant_id", order.GetMerchantId(), "order.uuid", order.Uuid, "err", err)
+	} else {
+		merchantName = merchant.Company.Name
+	}
+
 	return &postmarkSdrPkg.Payload{
 		TemplateAlias: s.cfg.EmailSuccessTransactionTemplate,
 		TemplateModel: map[string]string{
-			"platform_name":    order.PlatformId,
 			"total_price":      totalPrice,
 			"transaction_id":   order.Uuid,
 			"transaction_date": date,
 			"project_name":     order.Project.Name[DefaultLanguage],
 			"receipt_id":       order.ReceiptId,
+			"merchant_name":    merchantName,
 		},
 		To: order.ReceiptEmail,
 	}
 }
 
 func (s *Service) sendMailWithCode(ctx context.Context, order *billing.Order, key *billing.Key) {
+	var platformIconUrl = ""
+	if platform, ok := availablePlatforms[order.PlatformId]; ok {
+		platformIconUrl = platform.Icon
+	}
+
 	for _, item := range order.Items {
 		if item.Id == key.KeyProductId {
 			item.Code = key.Code
 			payload := &postmarkSdrPkg.Payload{
 				TemplateAlias: s.cfg.EmailGameCodeTemplate,
 				TemplateModel: map[string]string{
-					"code":         key.Code,
-					"platform_id":  order.PlatformId,
-					"product_name": item.Name,
+					"code":          key.Code,
+					"platform_icon": platformIconUrl,
+					"product_name":  item.Name,
 				},
 				To: order.ReceiptEmail,
 			}
