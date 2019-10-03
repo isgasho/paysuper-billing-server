@@ -1425,6 +1425,8 @@ func (s *Service) generateMerchantAgreement(ctx context.Context, merchant *billi
 	}
 	rsp, err := s.reporterService.CreateFile(ctx, req)
 
+	zap.L().Info("reporterService", zap.Any("req", req))
+
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorGrpcServiceCallFailed,
