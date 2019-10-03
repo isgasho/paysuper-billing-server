@@ -61,6 +61,7 @@ It has these top-level messages:
 	GetRefundRequest
 	CallbackRequest
 	PaymentFormDataChangedRequest
+	PaymentFormUserChangePlatformRequest
 	PaymentFormUserChangeLangRequest
 	PaymentFormUserChangePaymentAccountRequest
 	UserIpData
