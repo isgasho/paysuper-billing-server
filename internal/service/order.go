@@ -1392,8 +1392,8 @@ func (s *Service) sendMailWithReceipt(ctx context.Context, order *billing.Order)
 	if platform, ok := availablePlatforms[order.PlatformId]; ok {
 		payload.TemplateObjectModel.Fields["platform"] = &structpb.Value{
 			Kind: &structpb.Value_StructValue{
-				StructValue: &structpb.Struct {
-					Fields: map[string]*structpb.Value {
+				StructValue: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
 						"name": {
 							Kind: &structpb.Value_StringValue{
 								StringValue: platform.Name,
@@ -1420,10 +1420,10 @@ func (s *Service) getReceiptModel(name string, price string) *structpb.Value {
 			StructValue: &structpb.Struct{
 				Fields: map[string]*structpb.Value{
 					"name": {
-						Kind: &structpb.Value_StringValue{StringValue:name},
+						Kind: &structpb.Value_StringValue{StringValue: name},
 					},
 					"price": {
-						Kind: &structpb.Value_StringValue{StringValue:price},
+						Kind: &structpb.Value_StringValue{StringValue: price},
 					},
 				},
 			},
@@ -1453,13 +1453,12 @@ func (s *Service) getPayloadForReceipt(order *billing.Order) *postmarkSdrPkg.Pay
 	return &postmarkSdrPkg.Payload{
 		TemplateAlias: s.cfg.EmailSuccessTransactionTemplate,
 		TemplateModel: map[string]string{
-			"platform_name":    order.PlatformId,
-			"total_price": totalPrice,
-			"transaction_id": order.Uuid,
+			"total_price":      totalPrice,
+			"transaction_id":   order.Uuid,
 			"transaction_date": date,
 			"project_name":     order.Project.Name[DefaultLanguage],
 			"receipt_id":       order.ReceiptId,
-			"merchant_name": merchantName,
+			"merchant_name":    merchantName,
 		},
 		To: order.ReceiptEmail,
 	}
@@ -1477,9 +1476,9 @@ func (s *Service) sendMailWithCode(ctx context.Context, order *billing.Order, ke
 			payload := &postmarkSdrPkg.Payload{
 				TemplateAlias: s.cfg.EmailGameCodeTemplate,
 				TemplateModel: map[string]string{
-					"code":         key.Code,
+					"code":          key.Code,
 					"platform_icon": platformIconUrl,
-					"product_name": item.Name,
+					"product_name":  item.Name,
 				},
 				To: order.ReceiptEmail,
 			}
