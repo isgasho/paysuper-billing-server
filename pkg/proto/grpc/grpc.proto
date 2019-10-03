@@ -7,293 +7,165 @@ import "google/protobuf/timestamp.proto";
 import "billing/billing.proto";
 
 service BillingService {
-    rpc OrderCreateProcess (billing.OrderCreateRequest) returns (OrderCreateProcessResponse) {
-    }
-    rpc PaymentFormJsonDataProcess (PaymentFormJsonDataRequest) returns (PaymentFormJsonDataResponse) {
-    }
-    rpc PaymentCreateProcess (PaymentCreateRequest) returns (PaymentCreateResponse) {
-    }
-    rpc PaymentCallbackProcess (PaymentNotifyRequest) returns (PaymentNotifyResponse) {
-    }
-    rpc OrderReceipt (OrderReceiptRequest) returns (OrderReceiptResponse) {
-    }
-    rpc OrderReceiptRefund (OrderReceiptRequest) returns (OrderReceiptResponse) {
-    }
+    rpc OrderCreateProcess (billing.OrderCreateRequest) returns (OrderCreateProcessResponse) {}
+    rpc PaymentFormJsonDataProcess (PaymentFormJsonDataRequest) returns (PaymentFormJsonDataResponse) {}
+    rpc PaymentCreateProcess (PaymentCreateRequest) returns (PaymentCreateResponse) {}
+    rpc PaymentCallbackProcess (PaymentNotifyRequest) returns (PaymentNotifyResponse) {}
+    rpc OrderReceipt (OrderReceiptRequest) returns (OrderReceiptResponse) {}
+    rpc OrderReceiptRefund (OrderReceiptRequest) returns (OrderReceiptResponse) {}
 
-    rpc UpdateOrder (billing.Order) returns (EmptyResponse) {
-    }
-    rpc UpdateMerchant (billing.Merchant) returns (EmptyResponse) {
-    }
+    rpc UpdateOrder (billing.Order) returns (EmptyResponse) {}
+    rpc UpdateMerchant (billing.Merchant) returns (EmptyResponse) {}
 
-    rpc GetMerchantBy (GetMerchantByRequest) returns (GetMerchantResponse) {
-    }
-    rpc ListMerchants (MerchantListingRequest) returns (MerchantListingResponse) {
-    }
-    rpc ChangeMerchant (OnboardingRequest) returns (ChangeMerchantResponse) {
-    }
-    rpc ChangeMerchantStatus (MerchantChangeStatusRequest) returns (ChangeMerchantStatusResponse) {
-    }
-    rpc ChangeMerchantData (ChangeMerchantDataRequest) returns (ChangeMerchantDataResponse) {
-    }
-    rpc SetMerchantS3Agreement (SetMerchantS3AgreementRequest) returns (ChangeMerchantDataResponse) {
-    }
-    rpc GetMerchantTariffRates (GetMerchantTariffRatesRequest) returns (GetMerchantTariffRatesResponse) {
-    }
-    rpc SetMerchantTariffRates (SetMerchantTariffRatesRequest) returns (CheckProjectRequestSignatureResponse) {
-    }
+    rpc GetMerchantBy (GetMerchantByRequest) returns (GetMerchantResponse) {}
+    rpc ListMerchants (MerchantListingRequest) returns (MerchantListingResponse) {}
+    rpc ChangeMerchant (OnboardingRequest) returns (ChangeMerchantResponse) {}
+    rpc ChangeMerchantStatus (MerchantChangeStatusRequest) returns (ChangeMerchantStatusResponse) {}
+    rpc ChangeMerchantData (ChangeMerchantDataRequest) returns (ChangeMerchantDataResponse) {}
+    rpc SetMerchantS3Agreement (SetMerchantS3AgreementRequest) returns (ChangeMerchantDataResponse) {}
+    rpc GetMerchantTariffRates (GetMerchantTariffRatesRequest) returns (GetMerchantTariffRatesResponse) {}
+    rpc SetMerchantTariffRates (SetMerchantTariffRatesRequest) returns (CheckProjectRequestSignatureResponse) {}
 
-    rpc CreateNotification (NotificationRequest) returns (CreateNotificationResponse) {
-    }
-    rpc GetNotification (GetNotificationRequest) returns (billing.Notification) {
-    }
-    rpc ListNotifications (ListingNotificationRequest) returns (Notifications) {
-    }
-    rpc MarkNotificationAsRead (GetNotificationRequest) returns (billing.Notification) {
-    }
+    rpc CreateNotification (NotificationRequest) returns (CreateNotificationResponse) {}
+    rpc GetNotification (GetNotificationRequest) returns (billing.Notification) {}
+    rpc ListNotifications (ListingNotificationRequest) returns (Notifications) {}
+    rpc MarkNotificationAsRead (GetNotificationRequest) returns (billing.Notification) {}
 
-    rpc ListMerchantPaymentMethods (ListMerchantPaymentMethodsRequest) returns (ListingMerchantPaymentMethod) {
-    }
-    rpc GetMerchantPaymentMethod (GetMerchantPaymentMethodRequest) returns (GetMerchantPaymentMethodResponse) {
-    }
-    rpc ChangeMerchantPaymentMethod (MerchantPaymentMethodRequest) returns (MerchantPaymentMethodResponse) {
-    }
+    rpc ListMerchantPaymentMethods (ListMerchantPaymentMethodsRequest) returns (ListingMerchantPaymentMethod) {}
+    rpc GetMerchantPaymentMethod (GetMerchantPaymentMethodRequest) returns (GetMerchantPaymentMethodResponse) {}
+    rpc ChangeMerchantPaymentMethod (MerchantPaymentMethodRequest) returns (MerchantPaymentMethodResponse) {}
 
-    rpc CreateRefund (CreateRefundRequest) returns (CreateRefundResponse) {
-    }
-    rpc ListRefunds (ListRefundsRequest) returns (ListRefundsResponse) {
-    }
-    rpc GetRefund (GetRefundRequest) returns (CreateRefundResponse) {
-    }
-    rpc ProcessRefundCallback (CallbackRequest) returns (PaymentNotifyResponse) {
-    }
+    rpc CreateRefund (CreateRefundRequest) returns (CreateRefundResponse) {}
+    rpc ListRefunds (ListRefundsRequest) returns (ListRefundsResponse) {}
+    rpc GetRefund (GetRefundRequest) returns (CreateRefundResponse) {}
+    rpc ProcessRefundCallback (CallbackRequest) returns (PaymentNotifyResponse) {}
 
-    rpc PaymentFormLanguageChanged (PaymentFormUserChangeLangRequest) returns (PaymentFormDataChangeResponse) {
-    }
-    rpc PaymentFormPaymentAccountChanged (PaymentFormUserChangePaymentAccountRequest) returns (PaymentFormDataChangeResponse) {
-    }
-    rpc ProcessBillingAddress (ProcessBillingAddressRequest) returns (ProcessBillingAddressResponse) {
-    }
+    rpc PaymentFormLanguageChanged (PaymentFormUserChangeLangRequest) returns (PaymentFormDataChangeResponse) {}
+    rpc PaymentFormPaymentAccountChanged (PaymentFormUserChangePaymentAccountRequest) returns (PaymentFormDataChangeResponse) {}
+    rpc ProcessBillingAddress (ProcessBillingAddressRequest) returns (ProcessBillingAddressResponse) {}
 
-    rpc CreateOrUpdateProduct (Product) returns (Product) {
-    }
-    rpc ListProducts (ListProductsRequest) returns (ListProductsResponse) {
-    }
-    rpc GetProduct (RequestProduct) returns (Product) {
-    }
-    rpc DeleteProduct (RequestProduct) returns (EmptyResponse) {
-    }
-    rpc GetProductsForOrder (GetProductsForOrderRequest) returns (ListProductsResponse) {
-    }
-    rpc GetProductPrices (RequestProduct) returns (ProductPricesResponse) {
-    }
-    rpc UpdateProductPrices (UpdateProductPricesRequest) returns (ResponseError) {
-    }
+    rpc CreateOrUpdateProduct (Product) returns (Product) {}
+    rpc ListProducts (ListProductsRequest) returns (ListProductsResponse) {}
+    rpc GetProduct (RequestProduct) returns (Product) {}
+    rpc DeleteProduct (RequestProduct) returns (EmptyResponse) {}
+    rpc GetProductsForOrder (GetProductsForOrderRequest) returns (ListProductsResponse) {}
+    rpc GetProductPrices (RequestProduct) returns (ProductPricesResponse) {}
+    rpc UpdateProductPrices (UpdateProductPricesRequest) returns (ResponseError) {}
 
-    rpc ChangeProject (billing.Project) returns (ChangeProjectResponse) {
-    }
-    rpc GetProject (GetProjectRequest) returns (ChangeProjectResponse) {
-    }
-    rpc ListProjects (ListProjectsRequest) returns (ListProjectsResponse) {
-    }
-    rpc DeleteProject (GetProjectRequest) returns (ChangeProjectResponse) {
-    }
+    rpc ChangeProject (billing.Project) returns (ChangeProjectResponse) {}
+    rpc GetProject (GetProjectRequest) returns (ChangeProjectResponse) {}
+    rpc ListProjects (ListProjectsRequest) returns (ListProjectsResponse) {}
+    rpc DeleteProject (GetProjectRequest) returns (ChangeProjectResponse) {}
 
-    rpc CreateToken (TokenRequest) returns (TokenResponse) {
-    }
-    rpc CheckProjectRequestSignature (CheckProjectRequestSignatureRequest) returns (CheckProjectRequestSignatureResponse) {
-    }
+    rpc CreateToken (TokenRequest) returns (TokenResponse) {}
+    rpc CheckProjectRequestSignature (CheckProjectRequestSignatureRequest) returns (CheckProjectRequestSignatureResponse) {}
 
-    rpc GetCountriesList (EmptyRequest) returns (billing.CountriesList) {
-    }
-    rpc GetCountry (billing.GetCountryRequest) returns (billing.Country) {
-    }
-    rpc UpdateCountry (billing.Country) returns (billing.Country) {
-    }
+    rpc GetCountriesList (EmptyRequest) returns (billing.CountriesList) {}
+    rpc GetCountry (billing.GetCountryRequest) returns (billing.Country) {}
+    rpc UpdateCountry (billing.Country) returns (billing.Country) {}
 
-    rpc GetOrderPublic (GetOrderRequest) returns (GetOrderPublicResponse) {
-    }
-    rpc GetOrderPrivate (GetOrderRequest) returns (GetOrderPrivateResponse) {
-    }
-    rpc FindAllOrdersPublic (ListOrdersRequest) returns (ListOrdersPublicResponse) {
-    }
-    rpc FindAllOrdersPrivate (ListOrdersRequest) returns (ListOrdersPrivateResponse) {
-    }
-    rpc IsOrderCanBePaying (IsOrderCanBePayingRequest) returns (IsOrderCanBePayingResponse) {
-    }
+    rpc GetOrderPublic (GetOrderRequest) returns (GetOrderPublicResponse) {}
+    rpc GetOrderPrivate (GetOrderRequest) returns (GetOrderPrivateResponse) {}
+    rpc FindAllOrdersPublic (ListOrdersRequest) returns (ListOrdersPublicResponse) {}
+    rpc FindAllOrdersPrivate (ListOrdersRequest) returns (ListOrdersPrivateResponse) {}
+    rpc IsOrderCanBePaying (IsOrderCanBePayingRequest) returns (IsOrderCanBePayingResponse) {}
 
-    rpc GetPriceGroup (billing.GetPriceGroupRequest) returns (billing.PriceGroup) {
-    }
-    rpc UpdatePriceGroup (billing.PriceGroup) returns (billing.PriceGroup) {
-    }
-    rpc GetPriceGroupByCountry (PriceGroupByCountryRequest) returns (billing.PriceGroup) {
-    }
-    rpc GetPriceGroupCurrencies (EmptyRequest) returns (PriceGroupCurrenciesResponse) {
-    }
-    rpc GetPriceGroupCurrencyByRegion (PriceGroupByRegionRequest) returns (PriceGroupCurrenciesResponse) {
-    }
-    rpc GetPriceGroupRecommendedPrice (PriceGroupRecommendedPriceRequest) returns (PriceGroupRecommendedPriceResponse) {
-    }
+    rpc GetPriceGroup (billing.GetPriceGroupRequest) returns (billing.PriceGroup) {}
+    rpc UpdatePriceGroup (billing.PriceGroup) returns (billing.PriceGroup) {}
+    rpc GetPriceGroupByCountry (PriceGroupByCountryRequest) returns (billing.PriceGroup) {}
+    rpc GetPriceGroupCurrencies (EmptyRequest) returns (PriceGroupCurrenciesResponse) {}
+    rpc GetPriceGroupCurrencyByRegion (PriceGroupByRegionRequest) returns (PriceGroupCurrenciesResponse) {}
+    rpc GetPriceGroupRecommendedPrice (PriceGroupRecommendedPriceRequest) returns (PriceGroupRecommendedPriceResponse) {}
 
-    rpc SetUserNotifySales (SetUserNotifyRequest) returns (EmptyResponse) {
-    }
-    rpc SetUserNotifyNewRegion (SetUserNotifyRequest) returns (EmptyResponse) {
-    }
+    rpc SetUserNotifySales (SetUserNotifyRequest) returns (EmptyResponse) {}
+    rpc SetUserNotifyNewRegion (SetUserNotifyRequest) returns (EmptyResponse) {}
 
-    rpc CreateOrUpdatePaymentMethod (billing.PaymentMethod) returns (ChangePaymentMethodResponse) {
-    }
-    rpc CreateOrUpdatePaymentMethodProductionSettings (ChangePaymentMethodParamsRequest) returns (ChangePaymentMethodParamsResponse) {
-    }
-    rpc GetPaymentMethodProductionSettings (GetPaymentMethodSettingsRequest) returns (GetPaymentMethodSettingsResponse) {
-    }
-    rpc DeletePaymentMethodProductionSettings (GetPaymentMethodSettingsRequest) returns (ChangePaymentMethodParamsResponse) {
-    }
-    rpc CreateOrUpdatePaymentMethodTestSettings (ChangePaymentMethodParamsRequest) returns (ChangePaymentMethodParamsResponse) {
-    }
-    rpc GetPaymentMethodTestSettings (GetPaymentMethodSettingsRequest) returns (GetPaymentMethodSettingsResponse) {
-    }
-    rpc DeletePaymentMethodTestSettings (GetPaymentMethodSettingsRequest) returns (ChangePaymentMethodParamsResponse) {
-    }
+    rpc CreateOrUpdatePaymentMethod (billing.PaymentMethod) returns (ChangePaymentMethodResponse) {}
+    rpc CreateOrUpdatePaymentMethodProductionSettings (ChangePaymentMethodParamsRequest) returns (ChangePaymentMethodParamsResponse) {}
+    rpc GetPaymentMethodProductionSettings (GetPaymentMethodSettingsRequest) returns (GetPaymentMethodSettingsResponse) {}
+    rpc DeletePaymentMethodProductionSettings (GetPaymentMethodSettingsRequest) returns (ChangePaymentMethodParamsResponse) {}
+    rpc CreateOrUpdatePaymentMethodTestSettings (ChangePaymentMethodParamsRequest) returns (ChangePaymentMethodParamsResponse) {}
+    rpc GetPaymentMethodTestSettings (GetPaymentMethodSettingsRequest) returns (GetPaymentMethodSettingsResponse) {}
+    rpc DeletePaymentMethodTestSettings (GetPaymentMethodSettingsRequest) returns (ChangePaymentMethodParamsResponse) {}
 
-    rpc FindByZipCode (FindByZipCodeRequest) returns (FindByZipCodeResponse) {
-    }
+    rpc FindByZipCode (FindByZipCodeRequest) returns (FindByZipCodeResponse) {}
 
-    rpc GetAllPaymentChannelCostSystem (EmptyRequest) returns (PaymentChannelCostSystemListResponse) {
-    }
-    rpc GetPaymentChannelCostSystem (billing.PaymentChannelCostSystemRequest) returns (PaymentChannelCostSystemResponse) {
-    }
-    rpc SetPaymentChannelCostSystem (billing.PaymentChannelCostSystem) returns (PaymentChannelCostSystemResponse) {
-    }
-    rpc DeletePaymentChannelCostSystem (billing.PaymentCostDeleteRequest) returns (ResponseError) {
-    }
+    rpc GetAllPaymentChannelCostSystem (EmptyRequest) returns (PaymentChannelCostSystemListResponse) {}
+    rpc GetPaymentChannelCostSystem (billing.PaymentChannelCostSystemRequest) returns (PaymentChannelCostSystemResponse) {}
+    rpc SetPaymentChannelCostSystem (billing.PaymentChannelCostSystem) returns (PaymentChannelCostSystemResponse) {}
+    rpc DeletePaymentChannelCostSystem (billing.PaymentCostDeleteRequest) returns (ResponseError) {}
 
-    rpc GetAllPaymentChannelCostMerchant (billing.PaymentChannelCostMerchantListRequest) returns (PaymentChannelCostMerchantListResponse) {
-    }
-    rpc GetPaymentChannelCostMerchant (billing.PaymentChannelCostMerchantRequest) returns (PaymentChannelCostMerchantResponse) {
-    }
-    rpc SetPaymentChannelCostMerchant (billing.PaymentChannelCostMerchant) returns (PaymentChannelCostMerchantResponse) {
-    }
-    rpc DeletePaymentChannelCostMerchant (billing.PaymentCostDeleteRequest) returns (ResponseError) {
-    }
+    rpc GetAllPaymentChannelCostMerchant (billing.PaymentChannelCostMerchantListRequest) returns (PaymentChannelCostMerchantListResponse) {}
+    rpc GetPaymentChannelCostMerchant (billing.PaymentChannelCostMerchantRequest) returns (PaymentChannelCostMerchantResponse) {}
+    rpc SetPaymentChannelCostMerchant (billing.PaymentChannelCostMerchant) returns (PaymentChannelCostMerchantResponse) {}
+    rpc DeletePaymentChannelCostMerchant (billing.PaymentCostDeleteRequest) returns (ResponseError) {}
 
-    rpc GetAllMoneyBackCostSystem (EmptyRequest) returns (MoneyBackCostSystemListResponse) {
-    }
-    rpc GetMoneyBackCostSystem (billing.MoneyBackCostSystemRequest) returns (MoneyBackCostSystemResponse) {
-    }
-    rpc SetMoneyBackCostSystem (billing.MoneyBackCostSystem) returns (MoneyBackCostSystemResponse) {
-    }
-    rpc DeleteMoneyBackCostSystem (billing.PaymentCostDeleteRequest) returns (ResponseError) {
-    }
+    rpc GetAllMoneyBackCostSystem (EmptyRequest) returns (MoneyBackCostSystemListResponse) {}
+    rpc GetMoneyBackCostSystem (billing.MoneyBackCostSystemRequest) returns (MoneyBackCostSystemResponse) {}
+    rpc SetMoneyBackCostSystem (billing.MoneyBackCostSystem) returns (MoneyBackCostSystemResponse) {}
+    rpc DeleteMoneyBackCostSystem (billing.PaymentCostDeleteRequest) returns (ResponseError) {}
 
-    rpc GetAllMoneyBackCostMerchant (billing.MoneyBackCostMerchantListRequest) returns (MoneyBackCostMerchantListResponse) {
-    }
-    rpc GetMoneyBackCostMerchant (billing.MoneyBackCostMerchantRequest) returns (MoneyBackCostMerchantResponse) {
-    }
-    rpc SetMoneyBackCostMerchant (billing.MoneyBackCostMerchant) returns (MoneyBackCostMerchantResponse) {
-    }
-    rpc DeleteMoneyBackCostMerchant (billing.PaymentCostDeleteRequest) returns (ResponseError) {
-    }
+    rpc GetAllMoneyBackCostMerchant (billing.MoneyBackCostMerchantListRequest) returns (MoneyBackCostMerchantListResponse) {}
+    rpc GetMoneyBackCostMerchant (billing.MoneyBackCostMerchantRequest) returns (MoneyBackCostMerchantResponse) {}
+    rpc SetMoneyBackCostMerchant (billing.MoneyBackCostMerchant) returns (MoneyBackCostMerchantResponse) {}
+    rpc DeleteMoneyBackCostMerchant (billing.PaymentCostDeleteRequest) returns (ResponseError) {}
 
-    rpc CreateAccountingEntry (CreateAccountingEntryRequest) returns (CreateAccountingEntryResponse) {
-    }
+    rpc CreateAccountingEntry (CreateAccountingEntryRequest) returns (CreateAccountingEntryResponse) {}
 
-    rpc GetUserProfile (GetUserProfileRequest) returns (GetUserProfileResponse) {
-    }
-    rpc CreateOrUpdateUserProfile (UserProfile) returns (GetUserProfileResponse) {
-    }
-    rpc ConfirmUserEmail (ConfirmUserEmailRequest) returns (CheckProjectRequestSignatureResponse) {
-    }
-    rpc CreatePageReview (CreatePageReviewRequest) returns (CheckProjectRequestSignatureResponse) {
-    }
+    rpc GetUserProfile (GetUserProfileRequest) returns (GetUserProfileResponse) {}
+    rpc CreateOrUpdateUserProfile (UserProfile) returns (GetUserProfileResponse) {}
+    rpc ConfirmUserEmail (ConfirmUserEmailRequest) returns (CheckProjectRequestSignatureResponse) {}
+    rpc CreatePageReview (CreatePageReviewRequest) returns (CheckProjectRequestSignatureResponse) {}
 
-    rpc CreateRoyaltyReport (CreateRoyaltyReportRequest) returns (CreateRoyaltyReportRequest) {
-    }
-    rpc ListRoyaltyReports (ListRoyaltyReportsRequest) returns (ListRoyaltyReportsResponse) {
-    }
-    rpc GetRoyaltyReport (GetRoyaltyReportRequest) returns (GetRoyaltyReportResponse) {
-    }
-    rpc ChangeRoyaltyReport (ChangeRoyaltyReportRequest) returns (ResponseError) {
-    }
-    rpc ListRoyaltyReportOrders (ListRoyaltyReportOrdersRequest) returns (TransactionsResponse) {
-    }
-    rpc MerchantReviewRoyaltyReport (MerchantReviewRoyaltyReportRequest) returns (ResponseError) {
-    }
-    rpc AutoAcceptRoyaltyReports (EmptyRequest) returns (EmptyResponse) {
-    }
+    rpc CreateRoyaltyReport (CreateRoyaltyReportRequest) returns (CreateRoyaltyReportRequest) {}
+    rpc ListRoyaltyReports (ListRoyaltyReportsRequest) returns (ListRoyaltyReportsResponse) {}
+    rpc GetRoyaltyReport (GetRoyaltyReportRequest) returns (GetRoyaltyReportResponse) {}
+    rpc ChangeRoyaltyReport (ChangeRoyaltyReportRequest) returns (ResponseError) {}
+    rpc ListRoyaltyReportOrders (ListRoyaltyReportOrdersRequest) returns (TransactionsResponse) {}
+    rpc MerchantReviewRoyaltyReport (MerchantReviewRoyaltyReportRequest) returns (ResponseError) {}
+    rpc AutoAcceptRoyaltyReports (EmptyRequest) returns (EmptyResponse) {}
 
-    rpc GetVatReportsDashboard (EmptyRequest) returns (VatReportsResponse) {
-    }
-    rpc GetVatReportsForCountry (VatReportsRequest) returns (VatReportsResponse) {
-    }
-    rpc GetVatReportTransactions (VatTransactionsRequest) returns (TransactionsResponse) {
-    }
-    rpc ProcessVatReports (ProcessVatReportsRequest) returns (EmptyResponse) {
-    }
-    rpc UpdateVatReportStatus (UpdateVatReportStatusRequest) returns (ResponseError) {
-    }
+    rpc GetVatReportsDashboard (EmptyRequest) returns (VatReportsResponse) {}
+    rpc GetVatReportsForCountry (VatReportsRequest) returns (VatReportsResponse) {}
+    rpc GetVatReportTransactions (VatTransactionsRequest) returns (TransactionsResponse) {}
+    rpc ProcessVatReports (ProcessVatReportsRequest) returns (EmptyResponse) {}
+    rpc UpdateVatReportStatus (UpdateVatReportStatusRequest) returns (ResponseError) {}
 
-    rpc CalcAnnualTurnovers (EmptyRequest) returns (EmptyResponse) {
-    }
-    rpc GetMerchantAgreementSignUrl (GetMerchantAgreementSignUrlRequest) returns (GetMerchantAgreementSignUrlResponse) {
-    }
-    rpc GetMerchantOnboardingCompleteData (SetMerchantS3AgreementRequest) returns (GetMerchantOnboardingCompleteDataResponse) {
-    }
-    rpc CreateOrUpdateKeyProduct (CreateOrUpdateKeyProductRequest) returns (KeyProductResponse) {
-    }
-    rpc GetKeyProducts (ListKeyProductsRequest) returns (ListKeyProductsResponse) {
-    }
-    rpc GetKeyProduct (RequestKeyProductMerchant) returns (KeyProductResponse) {
-    }
-    rpc DeleteKeyProduct (RequestKeyProductMerchant) returns (EmptyResponseWithStatus) {
-    }
-    rpc PublishKeyProduct (PublishKeyProductRequest) returns (KeyProductResponse) {
-    }
-    rpc UnPublishKeyProduct (UnPublishKeyProductRequest) returns (KeyProductResponse) {
-    }
-    rpc GetKeyProductsForOrder (GetKeyProductsForOrderRequest) returns (ListKeyProductsResponse) {
-    }
-    rpc GetKeyProductInfo (GetKeyProductInfoRequest) returns (GetKeyProductInfoResponse) {
-    }
+    rpc CalcAnnualTurnovers (EmptyRequest) returns (EmptyResponse) {}
+    rpc GetMerchantAgreementSignUrl (GetMerchantAgreementSignUrlRequest) returns (GetMerchantAgreementSignUrlResponse) {}
+    rpc GetMerchantOnboardingCompleteData (SetMerchantS3AgreementRequest) returns (GetMerchantOnboardingCompleteDataResponse) {}
+    rpc CreateOrUpdateKeyProduct (CreateOrUpdateKeyProductRequest) returns (KeyProductResponse) {}
+    rpc GetKeyProducts (ListKeyProductsRequest) returns (ListKeyProductsResponse) {}
+    rpc GetKeyProduct (RequestKeyProductMerchant) returns (KeyProductResponse) {}
+    rpc DeleteKeyProduct (RequestKeyProductMerchant) returns (EmptyResponseWithStatus) {}
+    rpc PublishKeyProduct (PublishKeyProductRequest) returns (KeyProductResponse) {}
+    rpc UnPublishKeyProduct (UnPublishKeyProductRequest) returns (KeyProductResponse) {}
+    rpc GetKeyProductsForOrder (GetKeyProductsForOrderRequest) returns (ListKeyProductsResponse) {}
+    rpc GetKeyProductInfo (GetKeyProductInfoRequest) returns (GetKeyProductInfoResponse) {}
 
-    rpc GetPlatforms (ListPlatformsRequest) returns (ListPlatformsResponse) {
-    }
+    rpc GetPlatforms (ListPlatformsRequest) returns (ListPlatformsResponse) {}
 
-    rpc GetAvailableKeysCount (GetPlatformKeyCountRequest) returns (GetPlatformKeyCountResponse) {
-    }
-    rpc UploadKeysFile (PlatformKeysFileRequest) returns (PlatformKeysFileResponse) {
-    }
-    rpc GetKeyByID (KeyForOrderRequest) returns (GetKeyForOrderRequestResponse) {
-    }
-    rpc ReserveKeyForOrder (PlatformKeyReserveRequest) returns (PlatformKeyReserveResponse) {
-    }
-    rpc FinishRedeemKeyForOrder (KeyForOrderRequest) returns (GetKeyForOrderRequestResponse) {
-    }
-    rpc CancelRedeemKeyForOrder (KeyForOrderRequest) returns (EmptyResponseWithStatus) {
-    }
+    rpc GetAvailableKeysCount (GetPlatformKeyCountRequest) returns (GetPlatformKeyCountResponse) {}
+    rpc UploadKeysFile (PlatformKeysFileRequest) returns (PlatformKeysFileResponse) {}
+    rpc GetKeyByID (KeyForOrderRequest) returns (GetKeyForOrderRequestResponse) {}
+    rpc ReserveKeyForOrder (PlatformKeyReserveRequest) returns (PlatformKeyReserveResponse) {}
+    rpc FinishRedeemKeyForOrder (KeyForOrderRequest) returns (GetKeyForOrderRequestResponse) {}
+    rpc CancelRedeemKeyForOrder (KeyForOrderRequest) returns (EmptyResponseWithStatus) {}
 
-    rpc ChangeCodeInOrder (ChangeCodeInOrderRequest) returns (ChangeCodeInOrderResponse) {
-    }
+    rpc ChangeCodeInOrder (ChangeCodeInOrderRequest) returns (ChangeCodeInOrderResponse) {}
 
-    rpc GetDashboardMainReport (GetDashboardMainRequest) returns (GetDashboardMainResponse) {
-    }
-    rpc GetDashboardRevenueDynamicsReport (GetDashboardMainRequest) returns (GetDashboardRevenueDynamicsReportResponse) {
-    }
-    rpc GetDashboardBaseReport (GetDashboardBaseReportRequest) returns (GetDashboardBaseReportResponse) {
-    }
+    rpc GetDashboardMainReport (GetDashboardMainRequest) returns (GetDashboardMainResponse) {}
+    rpc GetDashboardRevenueDynamicsReport (GetDashboardMainRequest) returns (GetDashboardRevenueDynamicsReportResponse) {}
+    rpc GetDashboardBaseReport (GetDashboardBaseReportRequest) returns (GetDashboardBaseReportResponse) {}
 
-    rpc CreatePayoutDocument (CreatePayoutDocumentRequest) returns (PayoutDocumentResponse) {
-    }
-    rpc UpdatePayoutDocument (UpdatePayoutDocumentRequest) returns (PayoutDocumentResponse) {
-    }
-    rpc GetPayoutDocuments (GetPayoutDocumentsRequest) returns (GetPayoutDocumentsResponse) {
-    }
-    rpc GetPayoutDocumentSignUrl (GetPayoutDocumentSignUrlRequest) returns (GetPayoutDocumentSignUrlResponse) {
-    }
-    rpc UpdatePayoutDocumentSignatures (UpdatePayoutDocumentSignaturesRequest) returns (PayoutDocumentResponse) {
-    }
-    rpc PayoutDocumentPdfUploaded (PayoutDocumentPdfUploadedRequest) returns (PayoutDocumentPdfUploadedResponse) {
-    }
+    rpc CreatePayoutDocument (CreatePayoutDocumentRequest) returns (PayoutDocumentResponse) {}
+    rpc UpdatePayoutDocument (UpdatePayoutDocumentRequest) returns (PayoutDocumentResponse) {}
+    rpc GetPayoutDocuments (GetPayoutDocumentsRequest) returns (GetPayoutDocumentsResponse) {}
+    rpc GetPayoutDocumentSignUrl (GetPayoutDocumentSignUrlRequest) returns (GetPayoutDocumentSignUrlResponse) {}
+    rpc UpdatePayoutDocumentSignatures (UpdatePayoutDocumentSignaturesRequest) returns (PayoutDocumentResponse) {}
+    rpc PayoutDocumentPdfUploaded (PayoutDocumentPdfUploadedRequest) returns (PayoutDocumentPdfUploadedResponse) {}
 
-    rpc GetMerchantBalance(GetMerchantBalanceRequest) returns (GetMerchantBalanceResponse) {}
+    rpc GetMerchantBalance (GetMerchantBalanceRequest) returns (GetMerchantBalanceResponse) {}
 
     rpc PaymentFormPlatformChanged (PaymentFormUserChangePlatformRequest) returns (EmptyResponseWithStatus) {}
 }
