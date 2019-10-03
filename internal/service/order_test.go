@@ -4484,7 +4484,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_Qiwi_Ok(
 	req1 := &grpc.PaymentFormUserChangePaymentAccountRequest{
 		OrderId:  rsp.Uuid,
 		MethodId: suite.paymentMethodWithInactivePaymentSystem.Id,
-		Account:  "375444190039",
+		Account:  "380123456789",
 	}
 	rsp1 := &grpc.PaymentFormDataChangeResponse{}
 	err = suite.service.PaymentFormPaymentAccountChanged(context.TODO(), req1, rsp1)
@@ -4493,7 +4493,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_Qiwi_Ok(
 	assert.Empty(suite.T(), rsp1.Message)
 	assert.NotNil(suite.T(), rsp1.Item)
 	assert.True(suite.T(), rsp1.Item.UserAddressDataRequired)
-	assert.Equal(suite.T(), "BY", rsp1.Item.UserIpData.Country)
+	assert.Equal(suite.T(), "UA", rsp1.Item.UserIpData.Country)
 	assert.Equal(suite.T(), rsp.User.Address.PostalCode, rsp1.Item.UserIpData.Zip)
 	assert.Equal(suite.T(), rsp.User.Address.City, rsp1.Item.UserIpData.City)
 	assert.Empty(suite.T(), rsp1.Item.Brand)
@@ -6700,7 +6700,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_KeyProductReservat
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		Products: suite.keyProductIds,
+		Products:   suite.keyProductIds,
 		PlatformId: "steam",
 	}
 
@@ -6746,7 +6746,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_KeyProductReservat
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		Products: suite.keyProductIds,
+		Products:   suite.keyProductIds,
 		PlatformId: "steam",
 	}
 
@@ -6784,4 +6784,3 @@ func RandomString(n int) string {
 	}
 	return string(b)
 }
-

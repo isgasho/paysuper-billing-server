@@ -119,7 +119,6 @@ var (
 	orderErrorProductsPrice                                   = newBillingServerErrorMsg("fm000051", "can't get product price")
 	orderErrorCheckoutWithoutProducts                         = newBillingServerErrorMsg("fm000052", "order products not specified")
 	orderErrorCheckoutWithoutAmount                           = newBillingServerErrorMsg("fm000053", "order amount not specified")
-	orderErrorKeyReserveFailed                                = newBillingServerErrorMsg("fm000054", "can't reserve key for order")
 	orderErrorUnknownType                                     = newBillingServerErrorMsg("fm000055", "unknown type of order")
 	orderErrorMerchantBadTariffs                              = newBillingServerErrorMsg("fm000056", "merchant don't have tariffs")
 )
@@ -1401,10 +1400,10 @@ func (s *Service) getReceiptModel(name string, price string) *structpb.Value {
 			StructValue: &structpb.Struct{
 				Fields: map[string]*structpb.Value{
 					"name": {
-						Kind: &structpb.Value_StringValue{StringValue:name},
+						Kind: &structpb.Value_StringValue{StringValue: name},
 					},
 					"price": {
-						Kind: &structpb.Value_StringValue{StringValue:price},
+						Kind: &structpb.Value_StringValue{StringValue: price},
 					},
 				},
 			},
@@ -1426,11 +1425,11 @@ func (s *Service) getPayloadForReceipt(order *billing.Order) *postmarkSdrPkg.Pay
 	return &postmarkSdrPkg.Payload{
 		TemplateAlias: s.cfg.EmailSuccessTransactionTemplate,
 		TemplateModel: map[string]string{
-			"platform_name": order.PlatformId,
-			"total_price": totalPrice,
-			"transaction_id": order.Uuid,
+			"platform_name":    order.PlatformId,
+			"total_price":      totalPrice,
+			"transaction_id":   order.Uuid,
 			"transaction_date": date,
-			"project_name": order.Project.Name[DefaultLanguage],
+			"project_name":     order.Project.Name[DefaultLanguage],
 		},
 		To: order.ReceiptEmail,
 	}
@@ -2254,7 +2253,6 @@ func (v *PaymentFormProcessor) processPaymentMethodsData(pm *billing.PaymentForm
 
 	return nil
 }
-
 
 func (s *PaymentCreateProcessor) reserveKeysForOrder(ctx context.Context, order *billing.Order) error {
 	if len(order.Keys) == 0 {
