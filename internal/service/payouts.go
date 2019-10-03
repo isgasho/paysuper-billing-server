@@ -667,7 +667,7 @@ func (s *Service) getPayoutSignature(
 
 	req := &proto.CreateSignatureRequest{
 		RequestType: documentSignerConst.RequestTypeCreateEmbedded,
-		ClientId:    s.cfg.HelloSignClientId,
+		ClientId:    s.cfg.HelloSignPayoutsClientId,
 		Signers: []*proto.CreateSignatureRequestSigner{
 			{
 				Email:    merchant.GetAuthorizedEmail(),

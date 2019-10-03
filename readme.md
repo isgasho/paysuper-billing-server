@@ -39,7 +39,8 @@ This service contain all business logic for payment processing
 | PAYSUPER_DOCUMENT_SIGNER_EMAIL       | true     | -                                                   | Paysuper signer email for sign license agreements                                                                                   |
 | PAYSUPER_DOCUMENT_SIGNER_NAME        | true     | -                                                   | Paysuper signer name for sign license agreements                                                                                    |
 | HELLO_SIGN_DEFAULT_TEMPLATE          | true     | -                                                   | License agreement template identifier in HelloSign                                                                                  |
-| HELLO_SIGN_CLIENT_ID                 | true     | -                                                   | Client application identifier in HelloSign                                                                                          |
+| HELLO_SIGN_AGREEMENT_CLIENT_ID       | true     | -                                                   | Client application identifier in HelloSign for Merchant Agreement sign                                                              |
+| HELLO_SIGN_PAYOUTS_CLIENT_ID         | true     | -                                                   | Client application identifier in HelloSign for Payout Invoice sign                                                                  |
 | KEY_DAEMON_RESTART_INTERVAL          | -        | 60                    | Starting frequency in seconds of the script to check the locked keys and return them to the stack.                                  |
 | EMAIL_ACTIVATION_CODE_TEMPLATE       | -        |                       | Postmark Email template id for sending to user with activation code                                  |
 ## Docker Deployment

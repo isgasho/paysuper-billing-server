@@ -1062,7 +1062,7 @@ func (s *Service) getMerchantAgreementSignature(
 ) (*billing.MerchantAgreementSignatureData, error) {
 	req := &proto.CreateSignatureRequest{
 		RequestType: documentSignerConst.RequestTypeCreateEmbedded,
-		ClientId:    s.cfg.HelloSignClientId,
+		ClientId:    s.cfg.HelloSignAgreementClientId,
 		Signers: []*proto.CreateSignatureRequestSigner{
 			{
 				Email:    merchant.GetAuthorizedEmail(),
