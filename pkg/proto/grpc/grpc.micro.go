@@ -92,7 +92,8 @@ type BillingService interface {
 	GetPriceGroupByCountry(ctx context.Context, in *PriceGroupByCountryRequest, opts ...client.CallOption) (*billing.PriceGroup, error)
 	GetPriceGroupCurrencies(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*PriceGroupCurrenciesResponse, error)
 	GetPriceGroupCurrencyByRegion(ctx context.Context, in *PriceGroupByRegionRequest, opts ...client.CallOption) (*PriceGroupCurrenciesResponse, error)
-	GetPriceGroupRecommendedPrice(ctx context.Context, in *PriceGroupRecommendedPriceRequest, opts ...client.CallOption) (*PriceGroupRecommendedPriceResponse, error)
+	GetRecommendedPriceByPriceGroup(ctx context.Context, in *RecommendedPriceRequest, opts ...client.CallOption) (*RecommendedPriceResponse, error)
+	GetRecommendedPriceByConversion(ctx context.Context, in *RecommendedPriceRequest, opts ...client.CallOption) (*RecommendedPriceResponse, error)
 	SetUserNotifySales(ctx context.Context, in *SetUserNotifyRequest, opts ...client.CallOption) (*EmptyResponse, error)
 	SetUserNotifyNewRegion(ctx context.Context, in *SetUserNotifyRequest, opts ...client.CallOption) (*EmptyResponse, error)
 	CreateOrUpdatePaymentMethod(ctx context.Context, in *billing.PaymentMethod, opts ...client.CallOption) (*ChangePaymentMethodResponse, error)
@@ -746,9 +747,19 @@ func (c *billingService) GetPriceGroupCurrencyByRegion(ctx context.Context, in *
 	return out, nil
 }
 
-func (c *billingService) GetPriceGroupRecommendedPrice(ctx context.Context, in *PriceGroupRecommendedPriceRequest, opts ...client.CallOption) (*PriceGroupRecommendedPriceResponse, error) {
-	req := c.c.NewRequest(c.name, "BillingService.GetPriceGroupRecommendedPrice", in)
-	out := new(PriceGroupRecommendedPriceResponse)
+func (c *billingService) GetRecommendedPriceByPriceGroup(ctx context.Context, in *RecommendedPriceRequest, opts ...client.CallOption) (*RecommendedPriceResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetRecommendedPriceByPriceGroup", in)
+	out := new(RecommendedPriceResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetRecommendedPriceByConversion(ctx context.Context, in *RecommendedPriceRequest, opts ...client.CallOption) (*RecommendedPriceResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetRecommendedPriceByConversion", in)
+	out := new(RecommendedPriceResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1545,7 +1556,8 @@ type BillingServiceHandler interface {
 	GetPriceGroupByCountry(context.Context, *PriceGroupByCountryRequest, *billing.PriceGroup) error
 	GetPriceGroupCurrencies(context.Context, *EmptyRequest, *PriceGroupCurrenciesResponse) error
 	GetPriceGroupCurrencyByRegion(context.Context, *PriceGroupByRegionRequest, *PriceGroupCurrenciesResponse) error
-	GetPriceGroupRecommendedPrice(context.Context, *PriceGroupRecommendedPriceRequest, *PriceGroupRecommendedPriceResponse) error
+	GetRecommendedPriceByPriceGroup(context.Context, *RecommendedPriceRequest, *RecommendedPriceResponse) error
+	GetRecommendedPriceByConversion(context.Context, *RecommendedPriceRequest, *RecommendedPriceResponse) error
 	SetUserNotifySales(context.Context, *SetUserNotifyRequest, *EmptyResponse) error
 	SetUserNotifyNewRegion(context.Context, *SetUserNotifyRequest, *EmptyResponse) error
 	CreateOrUpdatePaymentMethod(context.Context, *billing.PaymentMethod, *ChangePaymentMethodResponse) error
@@ -1679,7 +1691,8 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetPriceGroupByCountry(ctx context.Context, in *PriceGroupByCountryRequest, out *billing.PriceGroup) error
 		GetPriceGroupCurrencies(ctx context.Context, in *EmptyRequest, out *PriceGroupCurrenciesResponse) error
 		GetPriceGroupCurrencyByRegion(ctx context.Context, in *PriceGroupByRegionRequest, out *PriceGroupCurrenciesResponse) error
-		GetPriceGroupRecommendedPrice(ctx context.Context, in *PriceGroupRecommendedPriceRequest, out *PriceGroupRecommendedPriceResponse) error
+		GetRecommendedPriceByPriceGroup(ctx context.Context, in *RecommendedPriceRequest, out *RecommendedPriceResponse) error
+		GetRecommendedPriceByConversion(ctx context.Context, in *RecommendedPriceRequest, out *RecommendedPriceResponse) error
 		SetUserNotifySales(ctx context.Context, in *SetUserNotifyRequest, out *EmptyResponse) error
 		SetUserNotifyNewRegion(ctx context.Context, in *SetUserNotifyRequest, out *EmptyResponse) error
 		CreateOrUpdatePaymentMethod(ctx context.Context, in *billing.PaymentMethod, out *ChangePaymentMethodResponse) error
@@ -1989,8 +2002,12 @@ func (h *billingServiceHandler) GetPriceGroupCurrencyByRegion(ctx context.Contex
 	return h.BillingServiceHandler.GetPriceGroupCurrencyByRegion(ctx, in, out)
 }
 
-func (h *billingServiceHandler) GetPriceGroupRecommendedPrice(ctx context.Context, in *PriceGroupRecommendedPriceRequest, out *PriceGroupRecommendedPriceResponse) error {
-	return h.BillingServiceHandler.GetPriceGroupRecommendedPrice(ctx, in, out)
+func (h *billingServiceHandler) GetRecommendedPriceByPriceGroup(ctx context.Context, in *RecommendedPriceRequest, out *RecommendedPriceResponse) error {
+	return h.BillingServiceHandler.GetRecommendedPriceByPriceGroup(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetRecommendedPriceByConversion(ctx context.Context, in *RecommendedPriceRequest, out *RecommendedPriceResponse) error {
+	return h.BillingServiceHandler.GetRecommendedPriceByConversion(ctx, in, out)
 }
 
 func (h *billingServiceHandler) SetUserNotifySales(ctx context.Context, in *SetUserNotifyRequest, out *EmptyResponse) error {

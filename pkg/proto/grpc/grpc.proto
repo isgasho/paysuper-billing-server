@@ -75,7 +75,8 @@ service BillingService {
     rpc GetPriceGroupByCountry (PriceGroupByCountryRequest) returns (billing.PriceGroup) {}
     rpc GetPriceGroupCurrencies (EmptyRequest) returns (PriceGroupCurrenciesResponse) {}
     rpc GetPriceGroupCurrencyByRegion (PriceGroupByRegionRequest) returns (PriceGroupCurrenciesResponse) {}
-    rpc GetPriceGroupRecommendedPrice (PriceGroupRecommendedPriceRequest) returns (PriceGroupRecommendedPriceResponse) {}
+    rpc GetRecommendedPriceByPriceGroup (RecommendedPriceRequest) returns (RecommendedPriceResponse) {}
+    rpc GetRecommendedPriceByConversion (RecommendedPriceRequest) returns (RecommendedPriceResponse) {}
 
     rpc SetUserNotifySales (SetUserNotifyRequest) returns (EmptyResponse) {}
     rpc SetUserNotifyNewRegion (SetUserNotifyRequest) returns (EmptyResponse) {}
@@ -908,6 +909,8 @@ message Product {
     map<string, string> metadata = 17;
     //@inject_tag: json:"-" bson:"deleted"
     bool deleted = 18;
+    // @inject_tag: json:"pricing" validate:"required,oneof=currency manual steam default"
+    string pricing = 19;
 }
 
 message ProductPrice {
@@ -1427,14 +1430,14 @@ message PriceGroupByRegionRequest {
     string region = 1;
 }
 
-message PriceGroupRecommendedPriceRequest {
+message RecommendedPriceRequest {
     // @inject_tag: validate:"required,numeric,gte=0"
     double amount = 1;
 }
 
-message PriceGroupRecommendedPriceResponse {
+message RecommendedPriceResponse {
     // @inject_tag: json:"recommended_price"
-    repeated billing.PriceGroupRecommendedPrice recommended_price = 1;
+    repeated billing.RecommendedPrice recommended_price = 1;
 }
 
 message ProductPricesResponse {
