@@ -27,11 +27,10 @@ const (
 	VatPeriodEvery2Month = 2
 	VatPeriodEvery3Month = 3
 
-	errorMsgVatReportCentrifugoNotificationFailed = "[Centrifugo] Send financier notification about vat report status change failed"
-	errorMsgVatReportTaxServiceGetRateFailed      = "tax service get rate error"
-	errorMsgVatReportTurnoverNotFound             = "turnover not found"
-	errorMsgVatReportRatesPolicyNotImplemented    = "selected currency rates policy not implemented yet"
-	errorMsgVatReportCantGetTimeForDate           = "cannot get vat report time for date"
+	errorMsgVatReportTaxServiceGetRateFailed   = "tax service get rate error"
+	errorMsgVatReportTurnoverNotFound          = "turnover not found"
+	errorMsgVatReportRatesPolicyNotImplemented = "selected currency rates policy not implemented yet"
+	errorMsgVatReportCantGetTimeForDate        = "cannot get vat report time for date"
 )
 
 var (
@@ -146,7 +145,7 @@ func (s *Service) GetVatReportsDashboard(
 			return nil
 		}
 
-		zap.S().Error(
+		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionVatReports),
@@ -198,7 +197,7 @@ func (s *Service) GetVatReportsForCountry(
 			return nil
 		}
 
-		zap.S().Error(
+		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionVatReports),
@@ -238,7 +237,7 @@ func (s *Service) GetVatReportTransactions(
 			return nil
 		}
 
-		zap.S().Error(
+		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionVatReports),
@@ -353,7 +352,7 @@ func (s *Service) UpdateVatReportStatus(
 			return nil
 		}
 
-		zap.S().Error(
+		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionVatReports),
@@ -384,6 +383,9 @@ func (s *Service) UpdateVatReportStatus(
 	}
 
 	vr.Status = req.Status
+	if vr.Status == pkg.VatReportStatusPaid {
+		vr.PaidAt = ptypes.TimestampNow()
+	}
 
 	err = s.updateVatReport(ctx, vr)
 	if err != nil {
@@ -425,7 +427,7 @@ func (s *Service) updateVatReport(ctx context.Context, vr *billing.VatReport) er
 		err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 
 		if err != nil {
-			zap.S().Error(
+			zap.L().Error(
 				"Publication message about vat report status change to queue failed",
 				zap.Error(err),
 				zap.Any("report", vr),
@@ -485,7 +487,12 @@ func (h *vatReportProcessor) ProcessVatReportsStatus(ctx context.Context) error 
 	var reports []*billing.VatReport
 	err := h.Service.db.Collection(collectionVatReports).Find(query).All(&reports)
 	if err != nil {
-		zap.S().Errorf(pkg.ErrorDatabaseQueryFailed, "err", err.Error(), "collection", collectionVatReports, "query", query)
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionVatReports),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
 		return err
 	}
 	for _, report := range reports {
@@ -609,7 +616,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, coun
 
 	rsp, err := h.Service.tax.GetRate(h.ctx, req)
 	if err != nil {
-		zap.S().Error(errorMsgVatReportTaxServiceGetRateFailed, zap.Error(err))
+		zap.L().Error(errorMsgVatReportTaxServiceGetRateFailed, zap.Error(err))
 		return err
 	}
 
@@ -699,7 +706,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, coun
 	var res []*vatReportQueryResItem
 	err = h.Service.db.Collection(collectionOrderView).Pipe(query).All(&res)
 	if err != nil && err != mgo.ErrNotFound {
-		zap.S().Error(
+		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionOrderView),
@@ -718,7 +725,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, coun
 	matchQuery["is_vat_deduction"] = true
 	err = h.Service.db.Collection(collectionOrderView).Pipe(query).All(&res)
 	if err != nil && err != mgo.ErrNotFound {
-		zap.S().Error(
+		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionOrderView),
@@ -781,7 +788,7 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.
 
 	from, to, err := h.Service.getVatReportTimeForDate(country.VatPeriodMonth, h.date)
 	if err != nil {
-		zap.S().Error(
+		zap.L().Error(
 			errorMsgVatReportCantGetTimeForDate,
 			zap.Error(err),
 			zap.String("country", country.IsoCodeA2),
@@ -803,7 +810,7 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.
 
 	err = h.Service.db.Collection(collectionAccountingEntry).Find(query).All(&aes)
 	if err != nil && err != mgo.ErrNotFound {
-		zap.S().Error(
+		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionAccountingEntry),
@@ -854,7 +861,7 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.
 
 	bulkResult, err := bulk.Run()
 	if err != nil {
-		zap.S().Error(
+		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String("collection", collectionAccountingEntry),
@@ -881,7 +888,7 @@ func (h *vatReportProcessor) exchangeAmount(from, to string, amount float64, sou
 	rsp, err := h.Service.curService.ExchangeCurrencyByDateCommon(h.ctx, req)
 
 	if err != nil {
-		zap.S().Error(
+		zap.L().Error(
 			pkg.ErrorGrpcServiceCallFailed,
 			zap.Error(err),
 			zap.String(errorFieldService, "CurrencyRatesService"),
