@@ -712,21 +712,22 @@ func (s *Service) UnPublishKeyProduct(ctx context.Context, req *grpc.UnPublishKe
 }
 
 func (s *Service) CheckSkuAndKeyProject(ctx context.Context, req *grpc.CheckSkuAndKeyProjectRequest, rsp *grpc.EmptyResponseWithStatus) error {
-	zap.S().Infow("[CheckSkuAndKeyProject] called", "req", req)
-
 	rsp.Status = pkg.ResponseStatusOk
 
 	dupQuery := bson.M{"project_id": bson.ObjectIdHex(req.ProjectId), "sku": req.Sku, "deleted": false}
 	found, err := s.db.Collection(collectionKeyProduct).Find(dupQuery).Count()
 	if err != nil {
-		zap.S().Errorw("Query to find duplicates failed", "err", err.Error(), "data", req)
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, dupQuery),
+		)
 		rsp.Status = http.StatusBadRequest
 		rsp.Message = keyProductRetrieveError
 		return nil
 	}
 
 	if found > 0 {
-		zap.S().Errorw("Pair projectId+Sku already exists", "data", req)
 		rsp.Status = http.StatusBadRequest
 		rsp.Message = keyProductDuplicate
 		return nil
