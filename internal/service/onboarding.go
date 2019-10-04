@@ -48,8 +48,8 @@ var (
 	merchantStatusChangesMessages = map[int32]string{
 		pkg.MerchantStatusAgreementSigning: merchantStatusSigningMessage,
 		pkg.MerchantStatusAgreementSigned:  merchantStatusSignedMessage,
-		pkg.MerchantStatusDeleted:          merchantStatusRejectedMessage,
-		pkg.MerchantStatusRejected:         merchantStatusDeletedMessage,
+		pkg.MerchantStatusDeleted:          merchantStatusDeletedMessage,
+		pkg.MerchantStatusRejected:         merchantStatusRejectedMessage,
 	}
 )
 
