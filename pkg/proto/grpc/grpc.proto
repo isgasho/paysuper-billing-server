@@ -884,7 +884,7 @@ message Product {
     map<string, string> name = 7;
     //@inject_tag: validate:"required,alpha,len=3" json:"default_currency"
     string default_currency = 8;
-    //@inject_tag: validate:"required" json:"enabled"
+    //@inject_tag: json:"enabled"
     bool enabled = 9;
     //@inject_tag: validate:"required,min=1,dive" json:"prices"
     repeated ProductPrice prices = 10;
