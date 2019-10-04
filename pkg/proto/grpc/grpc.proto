@@ -46,7 +46,7 @@ service BillingService {
 
     rpc CreateOrUpdateProduct (Product) returns (Product) {}
     rpc ListProducts (ListProductsRequest) returns (ListProductsResponse) {}
-    rpc GetProduct (RequestProduct) returns (Product) {}
+    rpc GetProduct (RequestProduct) returns (GetProductResponse) {}
     rpc DeleteProduct (RequestProduct) returns (EmptyResponse) {}
     rpc GetProductsForOrder (GetProductsForOrderRequest) returns (ListProductsResponse) {}
     rpc GetProductPrices (RequestProduct) returns (ProductPricesResponse) {}
@@ -2031,4 +2031,10 @@ message OrderReceiptResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     billing.OrderReceipt receipt = 3;
+}
+
+message GetProductResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    Product item = 3;
 }

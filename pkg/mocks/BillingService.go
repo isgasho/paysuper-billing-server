@@ -2294,7 +2294,7 @@ func (_m *BillingService) GetPriceGroupRecommendedPrice(ctx context.Context, in 
 }
 
 // GetProduct provides a mock function with given fields: ctx, in, opts
-func (_m *BillingService) GetProduct(ctx context.Context, in *grpc.RequestProduct, opts ...client.CallOption) (*grpc.Product, error) {
+func (_m *BillingService) GetProduct(ctx context.Context, in *grpc.RequestProduct, opts ...client.CallOption) (*grpc.GetProductResponse, error) {
 	_va := make([]interface{}, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
@@ -2304,12 +2304,12 @@ func (_m *BillingService) GetProduct(ctx context.Context, in *grpc.RequestProduc
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
 
-	var r0 *grpc.Product
-	if rf, ok := ret.Get(0).(func(context.Context, *grpc.RequestProduct, ...client.CallOption) *grpc.Product); ok {
+	var r0 *grpc.GetProductResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.RequestProduct, ...client.CallOption) *grpc.GetProductResponse); ok {
 		r0 = rf(ctx, in, opts...)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*grpc.Product)
+			r0 = ret.Get(0).(*grpc.GetProductResponse)
 		}
 	}
 

@@ -217,6 +217,7 @@ It has these top-level messages:
 	PayoutDocumentPdfUploadedResponse
 	OrderReceiptRequest
 	OrderReceiptResponse
+	GetProductResponse
 */
 package grpc
 
@@ -284,7 +285,7 @@ type BillingService interface {
 	ProcessBillingAddress(ctx context.Context, in *ProcessBillingAddressRequest, opts ...client.CallOption) (*ProcessBillingAddressResponse, error)
 	CreateOrUpdateProduct(ctx context.Context, in *Product, opts ...client.CallOption) (*Product, error)
 	ListProducts(ctx context.Context, in *ListProductsRequest, opts ...client.CallOption) (*ListProductsResponse, error)
-	GetProduct(ctx context.Context, in *RequestProduct, opts ...client.CallOption) (*Product, error)
+	GetProduct(ctx context.Context, in *RequestProduct, opts ...client.CallOption) (*GetProductResponse, error)
 	DeleteProduct(ctx context.Context, in *RequestProduct, opts ...client.CallOption) (*EmptyResponse, error)
 	GetProductsForOrder(ctx context.Context, in *GetProductsForOrderRequest, opts ...client.CallOption) (*ListProductsResponse, error)
 	GetProductPrices(ctx context.Context, in *RequestProduct, opts ...client.CallOption) (*ProductPricesResponse, error)
@@ -722,9 +723,9 @@ func (c *billingService) ListProducts(ctx context.Context, in *ListProductsReque
 	return out, nil
 }
 
-func (c *billingService) GetProduct(ctx context.Context, in *RequestProduct, opts ...client.CallOption) (*Product, error) {
+func (c *billingService) GetProduct(ctx context.Context, in *RequestProduct, opts ...client.CallOption) (*GetProductResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.GetProduct", in)
-	out := new(Product)
+	out := new(GetProductResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1737,7 +1738,7 @@ type BillingServiceHandler interface {
 	ProcessBillingAddress(context.Context, *ProcessBillingAddressRequest, *ProcessBillingAddressResponse) error
 	CreateOrUpdateProduct(context.Context, *Product, *Product) error
 	ListProducts(context.Context, *ListProductsRequest, *ListProductsResponse) error
-	GetProduct(context.Context, *RequestProduct, *Product) error
+	GetProduct(context.Context, *RequestProduct, *GetProductResponse) error
 	DeleteProduct(context.Context, *RequestProduct, *EmptyResponse) error
 	GetProductsForOrder(context.Context, *GetProductsForOrderRequest, *ListProductsResponse) error
 	GetProductPrices(context.Context, *RequestProduct, *ProductPricesResponse) error
@@ -1871,7 +1872,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		ProcessBillingAddress(ctx context.Context, in *ProcessBillingAddressRequest, out *ProcessBillingAddressResponse) error
 		CreateOrUpdateProduct(ctx context.Context, in *Product, out *Product) error
 		ListProducts(ctx context.Context, in *ListProductsRequest, out *ListProductsResponse) error
-		GetProduct(ctx context.Context, in *RequestProduct, out *Product) error
+		GetProduct(ctx context.Context, in *RequestProduct, out *GetProductResponse) error
 		DeleteProduct(ctx context.Context, in *RequestProduct, out *EmptyResponse) error
 		GetProductsForOrder(ctx context.Context, in *GetProductsForOrderRequest, out *ListProductsResponse) error
 		GetProductPrices(ctx context.Context, in *RequestProduct, out *ProductPricesResponse) error
@@ -2109,7 +2110,7 @@ func (h *billingServiceHandler) ListProducts(ctx context.Context, in *ListProduc
 	return h.BillingServiceHandler.ListProducts(ctx, in, out)
 }
 
-func (h *billingServiceHandler) GetProduct(ctx context.Context, in *RequestProduct, out *Product) error {
+func (h *billingServiceHandler) GetProduct(ctx context.Context, in *RequestProduct, out *GetProductResponse) error {
 	return h.BillingServiceHandler.GetProduct(ctx, in, out)
 }
 
