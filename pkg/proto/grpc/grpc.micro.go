@@ -167,6 +167,7 @@ type BillingService interface {
 	PayoutDocumentPdfUploaded(ctx context.Context, in *PayoutDocumentPdfUploadedRequest, opts ...client.CallOption) (*PayoutDocumentPdfUploadedResponse, error)
 	GetMerchantBalance(ctx context.Context, in *GetMerchantBalanceRequest, opts ...client.CallOption) (*GetMerchantBalanceResponse, error)
 	PaymentFormPlatformChanged(ctx context.Context, in *PaymentFormUserChangePlatformRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
+	CheckSkuAndKeyProject(ctx context.Context, in *CheckSkuAndKeyProjectRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 }
 
 type billingService struct {
@@ -1497,6 +1498,16 @@ func (c *billingService) PaymentFormPlatformChanged(ctx context.Context, in *Pay
 	return out, nil
 }
 
+func (c *billingService) CheckSkuAndKeyProject(ctx context.Context, in *CheckSkuAndKeyProjectRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error) {
+	req := c.c.NewRequest(c.name, "BillingService.CheckSkuAndKeyProject", in)
+	out := new(EmptyResponseWithStatus)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for BillingService service
 
 type BillingServiceHandler interface {
@@ -1631,6 +1642,7 @@ type BillingServiceHandler interface {
 	PayoutDocumentPdfUploaded(context.Context, *PayoutDocumentPdfUploadedRequest, *PayoutDocumentPdfUploadedResponse) error
 	GetMerchantBalance(context.Context, *GetMerchantBalanceRequest, *GetMerchantBalanceResponse) error
 	PaymentFormPlatformChanged(context.Context, *PaymentFormUserChangePlatformRequest, *EmptyResponseWithStatus) error
+	CheckSkuAndKeyProject(context.Context, *CheckSkuAndKeyProjectRequest, *EmptyResponseWithStatus) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -1766,6 +1778,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		PayoutDocumentPdfUploaded(ctx context.Context, in *PayoutDocumentPdfUploadedRequest, out *PayoutDocumentPdfUploadedResponse) error
 		GetMerchantBalance(ctx context.Context, in *GetMerchantBalanceRequest, out *GetMerchantBalanceResponse) error
 		PaymentFormPlatformChanged(ctx context.Context, in *PaymentFormUserChangePlatformRequest, out *EmptyResponseWithStatus) error
+		CheckSkuAndKeyProject(ctx context.Context, in *CheckSkuAndKeyProjectRequest, out *EmptyResponseWithStatus) error
 	}
 	type BillingService struct {
 		billingService
@@ -2300,4 +2313,8 @@ func (h *billingServiceHandler) GetMerchantBalance(ctx context.Context, in *GetM
 
 func (h *billingServiceHandler) PaymentFormPlatformChanged(ctx context.Context, in *PaymentFormUserChangePlatformRequest, out *EmptyResponseWithStatus) error {
 	return h.BillingServiceHandler.PaymentFormPlatformChanged(ctx, in, out)
+}
+
+func (h *billingServiceHandler) CheckSkuAndKeyProject(ctx context.Context, in *CheckSkuAndKeyProjectRequest, out *EmptyResponseWithStatus) error {
+	return h.BillingServiceHandler.CheckSkuAndKeyProject(ctx, in, out)
 }

@@ -710,3 +710,28 @@ func (s *Service) UnPublishKeyProduct(ctx context.Context, req *grpc.UnPublishKe
 
 	return nil
 }
+
+func (s *Service) CheckSkuAndKeyProject(ctx context.Context, req *grpc.CheckSkuAndKeyProjectRequest, rsp *grpc.EmptyResponseWithStatus) error {
+	rsp.Status = pkg.ResponseStatusOk
+
+	dupQuery := bson.M{"project_id": bson.ObjectIdHex(req.ProjectId), "sku": req.Sku, "deleted": false}
+	found, err := s.db.Collection(collectionKeyProduct).Find(dupQuery).Count()
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, dupQuery),
+		)
+		rsp.Status = http.StatusBadRequest
+		rsp.Message = keyProductRetrieveError
+		return nil
+	}
+
+	if found > 0 {
+		rsp.Status = http.StatusBadRequest
+		rsp.Message = keyProductDuplicate
+		return nil
+	}
+
+	return nil
+}
