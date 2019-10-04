@@ -69,7 +69,7 @@ type Service struct {
 	supportedCurrencies        []string
 	country                    CountryServiceInterface
 	project                    *Project
-	merchant                   *Merchant
+	merchant                   MerchantRepositoryInterface
 	payoutDocument             PayoutDocumentServiceInterface
 	merchantBalance            MerchantBalanceServiceInterface
 	royaltyReport              RoyaltyReportServiceInterface
@@ -296,6 +296,6 @@ func (s *Service) CheckProjectRequestSignature(
 	return nil
 }
 
-func (s *Service) getMerchantCentrifugoChannel(merchant *billing.Merchant) string {
-	return fmt.Sprintf(s.cfg.CentrifugoMerchantChannel, merchant.Id)
+func (s *Service) getMerchantCentrifugoChannel(merchantId string) string {
+	return fmt.Sprintf(s.cfg.CentrifugoMerchantChannel, merchantId)
 }

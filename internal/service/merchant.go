@@ -15,9 +15,20 @@ const (
 	collectionMerchantPaymentMethodHistory = "payment_method_history"
 )
 
-func newMerchantService(svc *Service) *Merchant {
-	s := &Merchant{svc: svc}
-	return s
+type MerchantRepositoryInterface interface {
+	Update(merchant *billing.Merchant) error
+	Insert(merchant *billing.Merchant) error
+	Upsert(merchant *billing.Merchant) error
+	MultipleInsert(merchants []*billing.Merchant) error
+	GetById(id string) (*billing.Merchant, error)
+	GetPaymentMethod(merchantId string, method string) (*billing.MerchantPaymentMethod, error)
+	GetPaymentMethodTerminalId(merchantId, pmId string) (string, error)
+	GetPaymentMethodTerminalPassword(merchantId, pmId string) (string, error)
+	GetPaymentMethodTerminalCallbackPassword(merchantId, pmId string) (string, error)
+}
+
+func newMerchantService(svc *Service) MerchantRepositoryInterface {
+	return &Merchant{svc: svc}
 }
 
 func (h *Merchant) Update(merchant *billing.Merchant) error {
