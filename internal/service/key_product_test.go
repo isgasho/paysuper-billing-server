@@ -553,9 +553,9 @@ func (suite *KeyProductTestSuite) Test_UpdatePlatformPrices() {
 	shouldBe.Equal("USD", prices[0].Currency)
 
 	req = &grpc.CreateOrUpdateKeyProductRequest{
-		Id:         product.Id,
-		MerchantId: product.MerchantId,
-		ProjectId:  product.MerchantId,
+		Id:              product.Id,
+		MerchantId:      product.MerchantId,
+		ProjectId:       product.MerchantId,
 		DefaultCurrency: product.DefaultCurrency,
 		Name:            product.Name,
 		Description:     product.Description,
@@ -683,9 +683,9 @@ func (suite *KeyProductTestSuite) Test_UploadKey() {
 		File:         file,
 	}
 	shouldBe.NoError(suite.service.UploadKeysFile(context.TODO(), keysReq, keysRsp))
-	shouldBe.EqualValues( 200, keysRsp.Status)
-	shouldBe.EqualValues( 1, keysRsp.TotalCount)
-	shouldBe.EqualValues( 1, keysRsp.KeysProcessed)
+	shouldBe.EqualValues(200, keysRsp.Status)
+	shouldBe.EqualValues(1, keysRsp.TotalCount)
+	shouldBe.EqualValues(1, keysRsp.KeysProcessed)
 
 	keysRsp = &grpc.PlatformKeysFileResponse{}
 	keysReq = &grpc.PlatformKeysFileRequest{
@@ -696,35 +696,49 @@ func (suite *KeyProductTestSuite) Test_UploadKey() {
 	}
 	shouldBe.NoError(suite.service.UploadKeysFile(context.TODO(), keysReq, keysRsp))
 	shouldBe.EqualValues(200, keysRsp.Status)
-	shouldBe.EqualValues( 1, keysRsp.TotalCount)
-	shouldBe.EqualValues( 0, keysRsp.KeysProcessed)
+	shouldBe.EqualValues(1, keysRsp.TotalCount)
+	shouldBe.EqualValues(0, keysRsp.KeysProcessed)
+}
+
+func (suite *KeyProductTestSuite) Test_CheckSkuAndKeyProject() {
+	shouldBe := require.New(suite.T())
+	rsp := &grpc.EmptyResponseWithStatus{}
+	err := suite.service.CheckSkuAndKeyProject(context.TODO(), &grpc.CheckSkuAndKeyProjectRequest{ProjectId: projectId, Sku: "TEST_SKU"}, rsp)
+	shouldBe.NoError(err)
+	shouldBe.EqualValues(200, rsp.Status)
+
+	product := suite.createKeyProduct()
+	err = suite.service.CheckSkuAndKeyProject(context.TODO(), &grpc.CheckSkuAndKeyProjectRequest{ProjectId: product.ProjectId, Sku: product.Sku}, rsp)
+	shouldBe.NoError(err)
+	shouldBe.EqualValues(400, rsp.Status)
+	shouldBe.NotNil(rsp.Message)
 }
 
 func (suite *KeyProductTestSuite) Test_UnPublishKeyProduct() {
-	shoulBe := require.New(suite.T())
+	shouldBe := require.New(suite.T())
 	product := suite.createKeyProduct()
 
 	res := &grpc.KeyProductResponse{}
 	err := suite.service.PublishKeyProduct(context.TODO(), &grpc.PublishKeyProductRequest{KeyProductId: product.Id, MerchantId: product.MerchantId}, res)
-	shoulBe.Nil(err)
-	shoulBe.EqualValues(200, res.Status)
+	shouldBe.Nil(err)
+	shouldBe.EqualValues(200, res.Status)
 
 	err = suite.service.UnPublishKeyProduct(context.TODO(), &grpc.UnPublishKeyProductRequest{KeyProductId: product.Id}, res)
-	shoulBe.Nil(err)
-	shoulBe.EqualValues(200, res.Status)
+	shouldBe.Nil(err)
+	shouldBe.EqualValues(200, res.Status)
 
 	err = suite.service.UnPublishKeyProduct(context.TODO(), &grpc.UnPublishKeyProductRequest{KeyProductId: product.Id}, res)
-	shoulBe.Nil(err)
-	shoulBe.EqualValues(400, res.Status)
-	shoulBe.Equal(keyProductNotPublished, res.Message)
+	shouldBe.Nil(err)
+	shouldBe.EqualValues(400, res.Status)
+	shouldBe.Equal(keyProductNotPublished, res.Message)
 
 	emptyRes := &grpc.EmptyResponseWithStatus{}
 	err = suite.service.DeleteKeyProduct(context.TODO(), &grpc.RequestKeyProductMerchant{Id: product.Id, MerchantId: product.MerchantId}, emptyRes)
-	shoulBe.Nil(err)
-	shoulBe.EqualValuesf(200, emptyRes.Status, "%v", emptyRes.Message)
+	shouldBe.Nil(err)
+	shouldBe.EqualValuesf(200, emptyRes.Status, "%v", emptyRes.Message)
 
 	err = suite.service.UnPublishKeyProduct(context.TODO(), &grpc.UnPublishKeyProductRequest{KeyProductId: product.Id}, res)
-	shoulBe.Nil(err)
-	shoulBe.EqualValues(400, res.Status)
-	shoulBe.Equal(keyProductNotFound, res.Message)
+	shouldBe.Nil(err)
+	shouldBe.EqualValues(400, res.Status)
+	shouldBe.Equal(keyProductNotFound, res.Message)
 }

@@ -169,6 +169,8 @@ service BillingService {
     rpc GetMerchantBalance (GetMerchantBalanceRequest) returns (GetMerchantBalanceResponse) {}
 
     rpc PaymentFormPlatformChanged (PaymentFormUserChangePlatformRequest) returns (EmptyResponseWithStatus) {}
+
+    rpc CheckSkuAndKeyProject(CheckSkuAndKeyProjectRequest) returns (EmptyResponseWithStatus) {}
 }
 
 message EmptyRequest {
@@ -179,6 +181,14 @@ message EmptyResponse {
 message EmptyResponseWithStatus {
     int32 status = 1;
     ResponseErrorMessage message = 2;
+}
+
+message CheckSkuAndKeyProjectRequest {
+    //@inject_tag: validate:"required,max=255"
+    string sku = 1;
+
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string project_id = 2;
 }
 
 message ChangeCodeInOrderRequest {
