@@ -911,7 +911,7 @@ message ProductPrice {
     double amount = 1;
     //@inject_tag: validate:"required,alpha,len=3" json:"currency"
     string currency = 2;
-    //@inject_tag: json:"region" validate:"required"
+    //@inject_tag: json:"region" validate:"required,region_price"
     string region = 3;
 }
 
@@ -2013,6 +2013,8 @@ message PayoutDocumentPdfUploadedRequest {
     string filename = 2;
     //@inject_tag: validate:"required,numeric,gte=0"
     int32 retention_time = 3;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string payout_id = 4;
 }
 
 message PayoutDocumentPdfUploadedResponse {

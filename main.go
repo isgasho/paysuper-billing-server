@@ -34,7 +34,11 @@ func main() {
 		}
 
 		if err != nil {
-			zap.S().Fatalf("task error", "err", err, "task", task, "date", date)
+			zap.L().Fatal("task error",
+				zap.Error(err),
+				zap.String("task", task),
+				zap.String("date", date),
+			)
 		}
 
 		return

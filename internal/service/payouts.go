@@ -571,7 +571,7 @@ func (s *Service) PayoutDocumentPdfUploaded(
 ) error {
 	res.Status = pkg.ResponseStatusOk
 
-	pd, err := s.payoutDocument.GetById(req.Id)
+	pd, err := s.payoutDocument.GetById(req.PayoutId)
 	if err != nil {
 		if err == mgo.ErrNotFound {
 			res.Status = pkg.ResponseStatusNotFound
@@ -667,7 +667,7 @@ func (s *Service) getPayoutSignature(
 
 	req := &proto.CreateSignatureRequest{
 		RequestType: documentSignerConst.RequestTypeCreateEmbedded,
-		ClientId:    s.cfg.HelloSignClientId,
+		ClientId:    s.cfg.HelloSignPayoutsClientId,
 		Signers: []*proto.CreateSignatureRequestSigner{
 			{
 				Email:    merchant.GetAuthorizedEmail(),
@@ -929,6 +929,7 @@ func (h *PayoutDocument) GetById(id string) (pd *billing.PayoutDocument, err err
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String(pkg.ErrorDatabaseFieldCollection, collectionPayoutDocuments),
+			zap.String(pkg.ErrorDatabaseFieldDocumentId, id),
 		)
 		return
 	}
