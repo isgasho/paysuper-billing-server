@@ -21,6 +21,10 @@ import (
 
 const (
 	collectionNotification = "notification"
+
+	merchantStatusSigningMessage = "We've got your license agreement signing request. If we will need your further assistance, processing this request, our onboarding manager will contact you directly."
+	merchantStatusSignedMessage  = "Your license agreement signing request is confirmed and document is signed by Pay Super. Let us have productive cooperation!"
+	merchantStatusDeletedMessage = "Sorry, but while processing your license agreement signing request we encountered insuperable obstacles which lead to termination of our deal."
 )
 
 var (
@@ -41,14 +45,6 @@ var (
 	merchantErrorAlreadySigned                = newBillingServerErrorMsg("mr000016", "merchant already fully signed")
 	merchantErrorOnboardingNotComplete        = newBillingServerErrorMsg("mr000019", "merchant onboarding not complete")
 	merchantErrorOnboardingTariffAlreadyExist = newBillingServerErrorMsg("mr000020", "merchant tariffs already sets")
-
-	NotificationStatusChangeTitles = map[int32]string{
-		pkg.MerchantStatusDraft:              "New merchant created",
-		pkg.MerchantStatusAgreementRequested: "Merchant asked for agreement",
-		pkg.MerchantStatusOnReview:           "Merchant on KYC review",
-		pkg.MerchantStatusAgreementSigning:   "Agreement signing",
-		pkg.MerchantStatusAgreementSigned:    "Agreement signed",
-	}
 
 	merchantSignAgreementMessage = map[string]string{"code": "mr000017", "message": "license agreement was signed by merchant"}
 	paysuperSignAgreementMessage = map[string]string{"code": "mr000018", "message": "license agreement was signed by Paysuper admin"}
@@ -364,26 +360,13 @@ func (s *Service) ChangeMerchantStatus(
 	merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
 
 	if err != nil {
-		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+		zap.L().Error(pkg.MethodFinishedWithError, zap.Error(err))
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = e
 			return nil
 		}
 		return err
-	}
-
-	if req.Status == pkg.MerchantStatusAgreementRequested && merchant.Status != pkg.MerchantStatusDraft {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = merchantErrorAgreementRequested
-		return nil
-	}
-
-	if req.Status == pkg.MerchantStatusOnReview && merchant.Status != pkg.MerchantStatusAgreementRequested {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = merchantErrorOnReview
-		return nil
-
 	}
 
 	if req.Status == pkg.MerchantStatusAgreementSigning && merchant.CanChangeStatusToSigning() == false {
@@ -399,7 +382,7 @@ func (s *Service) ChangeMerchantStatus(
 		return nil
 	}
 
-	nStatuses := &billing.SystemNotificationStatuses{From: merchant.Status, To: req.Status}
+	//nStatuses := &billing.SystemNotificationStatuses{From: merchant.Status, To: req.Status}
 	merchant.Status = req.Status
 
 	if req.Status == pkg.MerchantStatusAgreementSigned {
@@ -413,19 +396,19 @@ func (s *Service) ChangeMerchantStatus(
 		merchant.IsSigned = false
 	}
 
-	if title, ok := NotificationStatusChangeTitles[req.Status]; ok {
-		_, err := s.addNotification(title, req.Message, merchant.Id, "", nStatuses)
+	/*if msg, ok := notificationStatusChangeMessages[req.Status]; ok {
+	    _, err := s.addNotification(msg, merchant.Id, "", nStatuses)
 
-		if err != nil {
-			zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
-			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-				rsp.Status = pkg.ResponseStatusBadData
-				rsp.Message = e
-				return nil
-			}
-			return err
-		}
-	}
+	    if err != nil {
+	        zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
+	        if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+	            rsp.Status = pkg.ResponseStatusBadData
+	            rsp.Message = e
+	            return nil
+	        }
+	        return err
+	    }
+	}*/
 
 	merchant.StatusLastUpdatedAt = ptypes.TimestampNow()
 
@@ -459,25 +442,6 @@ func (s *Service) ChangeMerchantData(
 		return err
 	}
 
-	if req.AgreementType > 0 && merchant.AgreementType != req.AgreementType {
-		if merchant.ChangesAllowed() == false {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = merchantErrorAgreementTypeSelectNotAllow
-
-			return nil
-		}
-
-		nStatuses := &billing.SystemNotificationStatuses{From: merchant.Status, To: pkg.MerchantStatusAgreementRequested}
-		_, err := s.addNotification(NotificationStatusChangeTitles[merchant.Status], "", merchant.Id, "", nStatuses)
-
-		if err != nil {
-			zap.S().Errorf("Add notification failed", "err", err.Error(), "data", merchant)
-		}
-
-		merchant.Status = pkg.MerchantStatusAgreementRequested
-		merchant.AgreementType = req.AgreementType
-	}
-
 	if !merchant.HasPspSignature && req.HasPspSignature {
 		merchant.HasPspSignature = req.HasPspSignature
 		channel := s.getMerchantCentrifugoChannel(merchant)
@@ -497,15 +461,37 @@ func (s *Service) ChangeMerchantData(
 	if merchant.HasMerchantSignature {
 		merchant.Status = pkg.MerchantStatusAgreementSigning
 		merchant.StatusLastUpdatedAt = ptypes.TimestampNow()
+
+		_, err = s.addNotification(merchantStatusSigningMessage, merchant.Id, "", &billing.SystemNotificationStatuses{})
+
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = err.(*grpc.ResponseErrorMessage)
+
+			return nil
+		}
 	}
 
 	if merchant.NeedMarkESignAgreementAsSigned() == true {
 		merchant.Status = pkg.MerchantStatusAgreementSigned
 		merchant.StatusLastUpdatedAt = ptypes.TimestampNow()
+
+		_, err = s.addNotification(merchantStatusSignedMessage, merchant.Id, "", &billing.SystemNotificationStatuses{})
+
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = err.(*grpc.ResponseErrorMessage)
+
+			return nil
+		}
 	}
 
 	if err := s.merchant.Update(merchant); err != nil {
-		zap.S().Errorf("Query to change merchant data failed", "err", err.Error(), "data", merchant)
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, merchant),
+		)
 		return merchantErrorUnknown
 	}
 
@@ -584,7 +570,7 @@ func (s *Service) CreateNotification(
 		return nil
 	}
 
-	n, err := s.addNotification(req.Title, req.Message, req.MerchantId, req.UserId, nil)
+	n, err := s.addNotification(req.Message, req.MerchantId, req.UserId, nil)
 
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
@@ -907,7 +893,7 @@ func (s *Service) getMerchantBy(query bson.M) (*billing.Merchant, error) {
 }
 
 func (s *Service) addNotification(
-	title, msg, merchantId, userId string,
+	msg, merchantId, userId string,
 	nStatuses *billing.SystemNotificationStatuses,
 ) (*billing.Notification, error) {
 	if merchantId == "" || bson.IsObjectIdHex(merchantId) == false {
@@ -916,7 +902,6 @@ func (s *Service) addNotification(
 
 	notification := &billing.Notification{
 		Id:         bson.NewObjectId().Hex(),
-		Title:      title,
 		Message:    msg,
 		MerchantId: merchantId,
 		IsRead:     false,
@@ -924,7 +909,6 @@ func (s *Service) addNotification(
 	}
 
 	if userId == "" || bson.IsObjectIdHex(userId) == false {
-		notification.UserId = pkg.SystemUserId
 		notification.IsSystem = true
 	} else {
 		notification.UserId = userId
@@ -933,7 +917,11 @@ func (s *Service) addNotification(
 	err := s.db.Collection(collectionNotification).Insert(notification)
 
 	if err != nil {
-		zap.S().Errorf("Query to insert notification failed", "err", err.Error(), "query", notification)
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, notification),
+		)
 		return nil, merchantErrorUnknown
 	}
 
@@ -969,7 +957,6 @@ func (s *Service) mapNotificationData(rsp *billing.Notification, notification *b
 	rsp.UserId = notification.UserId
 	rsp.MerchantId = notification.MerchantId
 	rsp.Message = notification.Message
-	rsp.Title = notification.Title
 	rsp.IsSystem = notification.IsSystem
 	rsp.IsRead = notification.IsRead
 	rsp.CreatedAt = notification.CreatedAt

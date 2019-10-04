@@ -358,7 +358,6 @@ message SystemNotificationStatuses {
 
 message Notification {
     string id = 1;
-    string title = 2;
     string message = 3;
     string merchant_id = 4;
     string user_id = 5;
