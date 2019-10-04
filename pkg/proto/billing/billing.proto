@@ -1808,7 +1808,7 @@ message OrderViewPrivate {
     OrderViewMoney paysuper_refund_total_profit = 70;
 }
 
-message PriceGroupRecommendedPrice {
+message RecommendedPrice {
     // @inject_tag: json:"region"
     string region = 1;
     // @inject_tag: json:"currency"

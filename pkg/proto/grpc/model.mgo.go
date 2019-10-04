@@ -31,6 +31,7 @@ type MgoKeyProduct struct {
 	Deleted         bool                  `bson:"deleted" json:"deleted"`
 	MerchantId      bson.ObjectId         `bson:"merchant_id" json:"-"`
 	ProjectId       bson.ObjectId         `bson:"project_id" json:"project_id"`
+	Pricing         string                `bson:"pricing" json:"pricing"`
 }
 
 type MgoPlatformPrice struct {
@@ -60,6 +61,7 @@ type MgoProduct struct {
 	Deleted         bool                  `bson:"deleted" json:"deleted"`
 	MerchantId      bson.ObjectId         `bson:"merchant_id" json:"-"`
 	ProjectId       bson.ObjectId         `bson:"project_id" json:"project_id"`
+	Pricing         string                `bson:"pricing" json:"pricing"`
 }
 
 type MgoUserProfileEmail struct {
@@ -145,6 +147,7 @@ func (p *Product) SetBSON(raw bson.Raw) error {
 	p.Deleted = decoded.Deleted
 	p.MerchantId = decoded.MerchantId.Hex()
 	p.ProjectId = decoded.ProjectId.Hex()
+	p.Pricing = decoded.Pricing
 
 	p.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 
@@ -179,6 +182,7 @@ func (p *Product) GetBSON() (interface{}, error) {
 		Url:             p.Url,
 		Metadata:        p.Metadata,
 		Deleted:         p.Deleted,
+		Pricing:         p.Pricing,
 	}
 
 	if len(p.Id) <= 0 {
@@ -429,6 +433,7 @@ func (p *KeyProduct) SetBSON(raw bson.Raw) error {
 	p.Deleted = decoded.Deleted
 	p.MerchantId = decoded.MerchantId.Hex()
 	p.ProjectId = decoded.ProjectId.Hex()
+	p.Pricing = decoded.Pricing
 
 	platforms := make([]*PlatformPrice, len(decoded.Platforms))
 	for i, pl := range decoded.Platforms {
@@ -481,6 +486,7 @@ func (p *KeyProduct) GetBSON() (interface{}, error) {
 		Url:             p.Url,
 		Metadata:        p.Metadata,
 		Deleted:         p.Deleted,
+		Pricing:         p.Pricing,
 	}
 
 	if len(p.Id) <= 0 {
