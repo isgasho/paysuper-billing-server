@@ -1,5 +1,8 @@
 [
   {
+    "drop": "key"
+  },
+  {
     "create": "key"
   },
   {
