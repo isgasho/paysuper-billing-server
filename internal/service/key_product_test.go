@@ -395,6 +395,7 @@ func (suite *KeyProductTestSuite) Test_GetKeyProducts() {
 	shouldBe.EqualValues(10, res.Count)
 	shouldBe.EqualValues(0, res.Offset)
 	shouldBe.EqualValues(10, len(res.Products))
+	shouldBe.EqualValues(0, res.Products[0].Platforms[0].Count)
 
 	req.Offset = 9
 	err = suite.service.GetKeyProducts(context.TODO(), req, res)
@@ -416,6 +417,23 @@ func (suite *KeyProductTestSuite) Test_GetKeyProducts() {
 	err = suite.service.GetKeyProducts(context.TODO(), req, res)
 	shouldBe.Nil(err)
 
+	req.Offset = 0
+	req.Limit = 100
+	req.Sku = ""
+	req.Name = ""
+	req.Enabled = "true"
+	err = suite.service.GetKeyProducts(context.TODO(), req, res)
+	shouldBe.Nil(err)
+	shouldBe.EqualValues(0, len(res.Products))
+
+	req.Offset = 0
+	req.Limit = 100
+	req.Sku = ""
+	req.Name = ""
+	req.Enabled = "false"
+	err = suite.service.GetKeyProducts(context.TODO(), req, res)
+	shouldBe.Nil(err)
+	shouldBe.EqualValues(10, len(res.Products))
 }
 
 func (suite *KeyProductTestSuite) getKeyProduct(id string) *grpc.KeyProduct {

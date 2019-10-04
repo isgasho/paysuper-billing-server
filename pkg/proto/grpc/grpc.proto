@@ -365,6 +365,8 @@ message ListKeyProductsRequest {
     string merchant_id = 5;
     //@inject_tag: query:"project_id" validate:"omitempty,hexadecimal,len=24"
     string project_id = 6;
+    //@inject_tag: query:"enabled" validate:"omitempty,oneof=true,false"
+    string enabled = 7;
 }
 
 message PaymentCreateRequest {
@@ -861,6 +863,9 @@ message PlatformPrice {
     string eula_url = 4;
     //@inject_tag: validate:"omitempty,url" json:"activation_url"
     string activation_url = 5;
+    // count is used only in listing of key products for merchant. in all other keys will be empty always
+    //@inject_tag: validate:"omitempty" json:"count"
+    int32 count = 6;
 }
 
 message Platform {
