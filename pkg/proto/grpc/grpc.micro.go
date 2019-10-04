@@ -11,6 +11,7 @@ It has these top-level messages:
 	EmptyRequest
 	EmptyResponse
 	EmptyResponseWithStatus
+	CheckSkuAndKeyProjectRequest
 	ChangeCodeInOrderRequest
 	ChangeCodeInOrderResponse
 	GetPlatformKeyCountResponse
