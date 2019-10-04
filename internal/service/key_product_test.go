@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"github.com/golang-migrate/migrate/v4"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -40,6 +42,19 @@ func (suite *KeyProductTestSuite) SetupTest() {
 	db, err := mongodb.NewDatabase()
 	if err != nil {
 		suite.FailNow("Database connection failed", "%v", err)
+	}
+
+	m, err := migrate.New(
+		"file://../../migrations/tests/keys",
+		cfg.MongoDsn)
+	assert.NoError(suite.T(), err, "Migrate init failed")
+	if err != nil {
+		suite.FailNow("Migrations failed", "%v", err)
+	}
+
+	err = m.Up()
+	if err != nil && err.Error() != "no change" {
+		suite.FailNow("Migrations failed", "%v", err)
 	}
 
 	pgRub := &billing.PriceGroup{
@@ -652,6 +667,37 @@ func (suite *KeyProductTestSuite) Test_DeleteKeyProduct() {
 	err = suite.service.DeleteKeyProduct(context.TODO(), &grpc.RequestKeyProductMerchant{Id: product.Id, MerchantId: merchantId}, res)
 	shouldBe.Nil(err)
 	shouldBe.NotNil(res.Message)
+}
+
+func (suite *KeyProductTestSuite) Test_UploadKey() {
+	shouldBe := require.New(suite.T())
+	product := suite.createKeyProduct()
+	fileContent := fmt.Sprintf("%s-%s-%s-%s", RandomString(4), RandomString(4), RandomString(4), RandomString(4))
+	file := []byte(fileContent)
+
+	keysRsp := &grpc.PlatformKeysFileResponse{}
+	keysReq := &grpc.PlatformKeysFileRequest{
+		KeyProductId: product.Id,
+		PlatformId:   "steam",
+		MerchantId:   product.MerchantId,
+		File:         file,
+	}
+	shouldBe.NoError(suite.service.UploadKeysFile(context.TODO(), keysReq, keysRsp))
+	shouldBe.EqualValues( 200, keysRsp.Status)
+	shouldBe.EqualValues( 1, keysRsp.TotalCount)
+	shouldBe.EqualValues( 1, keysRsp.KeysProcessed)
+
+	keysRsp = &grpc.PlatformKeysFileResponse{}
+	keysReq = &grpc.PlatformKeysFileRequest{
+		KeyProductId: product.Id,
+		PlatformId:   "steam",
+		MerchantId:   product.MerchantId,
+		File:         file,
+	}
+	shouldBe.NoError(suite.service.UploadKeysFile(context.TODO(), keysReq, keysRsp))
+	shouldBe.EqualValues(200, keysRsp.Status)
+	shouldBe.EqualValues( 1, keysRsp.TotalCount)
+	shouldBe.EqualValues( 0, keysRsp.KeysProcessed)
 }
 
 func (suite *KeyProductTestSuite) Test_UnPublishKeyProduct() {
