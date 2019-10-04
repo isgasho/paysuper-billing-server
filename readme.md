@@ -41,8 +41,12 @@ This service contain all business logic for payment processing
 | HELLO_SIGN_DEFAULT_TEMPLATE          | true     | -                                                   | License agreement template identifier in HelloSign                                                                                  |
 | HELLO_SIGN_AGREEMENT_CLIENT_ID       | true     | -                                                   | Client application identifier in HelloSign for Merchant Agreement sign                                                              |
 | HELLO_SIGN_PAYOUTS_CLIENT_ID         | true     | -                                                   | Client application identifier in HelloSign for Payout Invoice sign                                                                  |
-| KEY_DAEMON_RESTART_INTERVAL          | -        | 60                    | Starting frequency in seconds of the script to check the locked keys and return them to the stack.                                  |
-| EMAIL_ACTIVATION_CODE_TEMPLATE       | -        |                       | Postmark Email template id for sending to user with activation code                                  |
+| KEY_DAEMON_RESTART_INTERVAL          | -        | 60                                                  | Starting frequency in seconds of the script to check the locked keys and return them to the stack.                                  |
+| EMAIL_ACTIVATION_CODE_TEMPLATE       | -        |                                                     | Postmark Email template id for sending to user with activation code                                                                 |
+| HELLO_SIGN_PAYOUTS_TITLE             | -        | Payout invoice                                      | Hellosign title for payout invoices                                                                                                 |
+| HELLO_SIGN_PAYOUTS_SUBJECT           | -        | Merchant's payout invoice                           | Hellosign subject for payout invoices                                                                                               |
+| HELLO_SIGN_PAYOUTS_MESSAGE           | -        | Please sign this invoice to get your royalty        | Hellosign prompt message for payout invoices                                                                                        |
+
 ## Docker Deployment
 
 ```bash
