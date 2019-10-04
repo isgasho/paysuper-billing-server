@@ -180,20 +180,41 @@ func (s *Service) ListProducts(ctx context.Context, req *grpc.ListProductsReques
 	return nil
 }
 
-func (s *Service) GetProduct(ctx context.Context, req *grpc.RequestProduct, res *grpc.Product) error {
+func (s *Service) GetProduct(
+	ctx context.Context,
+	req *grpc.RequestProduct,
+	rsp *grpc.GetProductResponse,
+) error {
 	product, err := s.productService.GetById(req.Id)
 
 	if err != nil {
-		zap.S().Errorf("Unable to get product", "err", err.Error(), "req", req)
-		return productErrorNotFound
+		zap.L().Error(
+			"Unable to get product",
+			zap.Error(err),
+			zap.Any(pkg.LogFieldRequest, req),
+		)
+
+		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Message = productErrorNotFound
+
+		return nil
 	}
 
 	if req.MerchantId != product.MerchantId {
-		zap.S().Errorf("MerchantId mismatch", "product", product, "data", req)
-		return productErrorMerchantNotEqual
+		zap.L().Error(
+			"Merchant id mismatch",
+			zap.Any("product", product),
+			zap.Any(pkg.LogFieldRequest, req),
+		)
+
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = productErrorMerchantNotEqual
+
+		return nil
 	}
 
-	res = product
+	rsp.Status = pkg.ResponseStatusOk
+	rsp.Item = product
 
 	return nil
 }

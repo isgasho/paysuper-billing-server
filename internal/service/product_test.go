@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
@@ -69,7 +70,7 @@ func (suite *ProductTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), broker, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), )
+	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), broker, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK())
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -117,10 +118,13 @@ func (suite *ProductTestSuite) TestProduct_GetProduct_Ok() {
 		Id:         id,
 		MerchantId: merchantId,
 	}
-	res := grpc.Product{}
+	res := grpc.GetProductResponse{}
 	err := suite.service.GetProduct(context.TODO(), req, &res)
-
 	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, res.Status)
+	assert.Empty(suite.T(), res.Message)
+	assert.NotNil(suite.T(), res.Item)
+	assert.NotEmpty(suite.T(), res.Item.MerchantId)
 }
 
 func (suite *ProductTestSuite) TestProduct_GetProduct_Error_NotFound() {
@@ -135,11 +139,11 @@ func (suite *ProductTestSuite) TestProduct_GetProduct_Error_NotFound() {
 		Id:         id,
 		MerchantId: merchantId,
 	}
-	res := grpc.Product{}
+	res := grpc.GetProductResponse{}
 	err := suite.service.GetProduct(context.TODO(), req, &res)
-
-	assert.Error(suite.T(), err)
-	assert.EqualError(suite.T(), err, productErrorNotFound.Message)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, res.Status)
+	assert.Equal(suite.T(), res.Message, productErrorNotFound)
 }
 
 func (suite *ProductTestSuite) TestProduct_GetProduct_Error_Merchant() {
@@ -154,11 +158,11 @@ func (suite *ProductTestSuite) TestProduct_GetProduct_Error_Merchant() {
 		Id:         id,
 		MerchantId: bson.NewObjectId().Hex(),
 	}
-	res := grpc.Product{}
+	res := grpc.GetProductResponse{}
 	err := suite.service.GetProduct(context.TODO(), req, &res)
-
-	assert.Error(suite.T(), err)
-	assert.EqualError(suite.T(), err, productErrorMerchantNotEqual.Message)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, res.Status)
+	assert.Equal(suite.T(), res.Message, productErrorMerchantNotEqual)
 }
 
 func (suite *ProductTestSuite) TestProduct_CreateProduct_DefaultPriceError() {
