@@ -50,7 +50,7 @@ func (suite *PriceGroupTestSuite) SetupTest() {
 	}
 	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), )
+	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK())
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -399,17 +399,6 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencies_Error_N
 	assert.EqualError(suite.T(), err, "price group not exists")
 }
 
-/*func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencies_Error_NoneCountries() {
-	cs := &mock.CountryServiceInterface{}
-	cs.On("GetAll").Return(nil, errors.New("countries not exists"))
-	suite.service.country = cs
-
-	req := &grpc.EmptyRequest{}
-	res := grpc.PriceGroupCurrenciesResponse{}
-	err := suite.service.GetPriceGroupCurrencies(context.TODO(), req, &res)
-	assert.EqualError(suite.T(), err, "countries not exists")
-}*/
-
 func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencies_Ok() {
 	req := &grpc.EmptyRequest{}
 	res := grpc.PriceGroupCurrenciesResponse{}
@@ -428,17 +417,6 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencyByRegion_E
 	assert.EqualError(suite.T(), err, "price group not exists")
 }
 
-/*func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencyByRegion_Error_NoneCountries() {
-	cs := &mock.CountryServiceInterface{}
-	cs.On("GetAll").Return(nil, errors.New("countries not exists"))
-	suite.service.country = cs
-
-	req := &grpc.PriceGroupByRegionRequest{}
-	res := grpc.PriceGroupCurrenciesResponse{}
-	err := suite.service.GetPriceGroupCurrencyByRegion(context.TODO(), req, &res)
-	assert.EqualError(suite.T(), err, "countries not exists")
-}
-*/
 func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencyByRegion_Ok() {
 	req := &grpc.PriceGroupByRegionRequest{}
 	res := grpc.PriceGroupCurrenciesResponse{}
@@ -446,30 +424,30 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencyByRegion_O
 	assert.NoError(suite.T(), err)
 }
 
-func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupRecommendedPrice_Error_NonePriceGroups() {
+func (suite *PriceGroupTestSuite) TestPriceGroup_GetRecommendedPriceByPriceGroup_Error_NonePriceGroups() {
 	pg := &mocks.PriceGroupServiceInterface{}
 	pg.On("GetAll").Return(nil, errors.New("price group not exists"))
 	suite.service.priceGroup = pg
 
-	req := &grpc.PriceGroupRecommendedPriceRequest{}
-	res := grpc.PriceGroupRecommendedPriceResponse{}
-	err := suite.service.GetPriceGroupRecommendedPrice(context.TODO(), req, &res)
+	req := &grpc.RecommendedPriceRequest{}
+	res := grpc.RecommendedPriceResponse{}
+	err := suite.service.GetRecommendedPriceByPriceGroup(context.TODO(), req, &res)
 	assert.EqualError(suite.T(), err, "price group not exists")
 }
 
-func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupRecommendedPrice_Error_NonePriceTable() {
+func (suite *PriceGroupTestSuite) TestPriceGroup_GetRecommendedPriceByPriceGroup_Error_NonePriceTable() {
 	pg := &mocks.PriceTableServiceInterface{}
 	pg.On("GetByAmount", mock2.Anything).Return(nil, errors.New("price table not exists"))
 	pg.On("GetLatest", mock2.Anything).Return(nil, errors.New("price table not exists"))
 	suite.service.priceTable = pg
 
-	req := &grpc.PriceGroupRecommendedPriceRequest{}
-	res := grpc.PriceGroupRecommendedPriceResponse{}
-	err := suite.service.GetPriceGroupRecommendedPrice(context.TODO(), req, &res)
+	req := &grpc.RecommendedPriceRequest{}
+	res := grpc.RecommendedPriceResponse{}
+	err := suite.service.GetRecommendedPriceByPriceGroup(context.TODO(), req, &res)
 	assert.EqualError(suite.T(), err, "price table not exists")
 }
 
-func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupRecommendedPrice_Error_RecommendedPrice() {
+func (suite *PriceGroupTestSuite) TestPriceGroup_GetRecommendedPriceByPriceGroup_Error_RecommendedPrice() {
 	pg := &mocks.PriceGroupServiceInterface{}
 	pt := &mocks.PriceTableServiceInterface{}
 	pg.On("GetAll").Return([]*billing.PriceGroup{{
@@ -481,13 +459,13 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupRecommendedPrice_E
 	suite.service.priceGroup = pg
 	suite.service.priceTable = pt
 
-	req := &grpc.PriceGroupRecommendedPriceRequest{Amount: float64(10)}
-	res := grpc.PriceGroupRecommendedPriceResponse{}
-	err := suite.service.GetPriceGroupRecommendedPrice(context.TODO(), req, &res)
+	req := &grpc.RecommendedPriceRequest{Amount: float64(10)}
+	res := grpc.RecommendedPriceResponse{}
+	err := suite.service.GetRecommendedPriceByPriceGroup(context.TODO(), req, &res)
 	assert.EqualError(suite.T(), err, "unable to get price")
 }
 
-func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupRecommendedPrice_Ok() {
+func (suite *PriceGroupTestSuite) TestPriceGroup_GetRecommendedPriceByPriceGroup_Ok() {
 	pt := &mocks.PriceTableServiceInterface{}
 	pt.On("GetByAmount", mock2.Anything).Return(&billing.PriceTable{
 		From: float64(0),
@@ -498,9 +476,9 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupRecommendedPrice_O
 	}, nil)
 	suite.service.priceTable = pt
 
-	req := &grpc.PriceGroupRecommendedPriceRequest{Amount: float64(10)}
-	res := grpc.PriceGroupRecommendedPriceResponse{}
-	err := suite.service.GetPriceGroupRecommendedPrice(context.TODO(), req, &res)
+	req := &grpc.RecommendedPriceRequest{Amount: float64(10)}
+	res := grpc.RecommendedPriceResponse{}
+	err := suite.service.GetRecommendedPriceByPriceGroup(context.TODO(), req, &res)
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), res.RecommendedPrice, 1)
 }

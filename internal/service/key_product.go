@@ -228,6 +228,7 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 	product.LongDescription = req.LongDescription
 	product.Images = req.Images
 	product.Url = req.Url
+	product.Pricing = req.Pricing
 	product.UpdatedAt = now
 
 	_, err = s.db.Collection(collectionKeyProduct).UpsertId(bson.ObjectIdHex(product.Id), product)
@@ -286,6 +287,12 @@ func (s *Service) GetKeyProducts(ctx context.Context, req *grpc.ListKeyProductsR
 		query["name"] = bson.M{"$elemMatch": bson.M{"value": bson.RegEx{req.Name, "i"}}}
 	}
 
+	if req.Enabled == "true" {
+		query["enabled"] = bson.M{"$eq": true}
+	} else if req.Enabled == "false" {
+		query["enabled"] = bson.M{"$eq": false}
+	}
+
 	total, err := s.db.Collection(collectionKeyProduct).Find(query).Count()
 	if err != nil {
 		zap.S().Errorf("Query to find key products by id failed", "err", err.Error(), "data", req)
@@ -308,11 +315,32 @@ func (s *Service) GetKeyProducts(ctx context.Context, req *grpc.ListKeyProductsR
 	err = s.db.Collection(collectionKeyProduct).Find(query).Skip(int(req.Offset)).Limit(int(req.Limit)).All(&items)
 
 	if err != nil {
-		zap.S().Errorf("Query to find key products by id failed", "err", err.Error(), "data", req)
+		zap.S().Errorw("Query to find key products by id failed", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
 		res.Message = keyProductInternalError
 		res.Message.Details = err.Error()
 		return nil
+	}
+
+	for _, item := range items {
+		for _, platform := range item.Platforms {
+			keysRsp := &grpc.GetPlatformKeyCountResponse{}
+			err := s.GetAvailableKeysCount(ctx, &grpc.GetPlatformKeyCountRequest{PlatformId: platform.Id, MerchantId: item.MerchantId, KeyProductId: item.Id}, keysRsp)
+			if err != nil {
+				zap.S().Errorw("Query to find count keys for platform failed", "err", err.Error(), "platform", platform.Id, "product.id", item.Id)
+				res.Status = http.StatusInternalServerError
+				res.Message = keyProductInternalError
+				return nil
+			}
+			if keysRsp.Status != pkg.ResponseStatusOk {
+				zap.S().Errorw("Query to find count keys for platform failed", "message", keysRsp.Message, "platform", platform.Id, "product.id", item.Id)
+				res.Status = keysRsp.Status
+				res.Message = keysRsp.Message
+				return nil
+			}
+
+			platform.Count = keysRsp.Count
+		}
 	}
 
 	res.Products = items

@@ -130,6 +130,7 @@ func (s *Service) CreateOrUpdateProduct(ctx context.Context, req *grpc.Product, 
 	res.Deleted = req.Deleted
 	res.MerchantId = req.MerchantId
 	res.ProjectId = req.ProjectId
+	res.Pricing = req.Pricing
 
 	return nil
 }

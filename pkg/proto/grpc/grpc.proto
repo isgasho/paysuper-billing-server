@@ -75,7 +75,8 @@ service BillingService {
     rpc GetPriceGroupByCountry (PriceGroupByCountryRequest) returns (billing.PriceGroup) {}
     rpc GetPriceGroupCurrencies (EmptyRequest) returns (PriceGroupCurrenciesResponse) {}
     rpc GetPriceGroupCurrencyByRegion (PriceGroupByRegionRequest) returns (PriceGroupCurrenciesResponse) {}
-    rpc GetPriceGroupRecommendedPrice (PriceGroupRecommendedPriceRequest) returns (PriceGroupRecommendedPriceResponse) {}
+    rpc GetRecommendedPriceByPriceGroup (RecommendedPriceRequest) returns (RecommendedPriceResponse) {}
+    rpc GetRecommendedPriceByConversion (RecommendedPriceRequest) returns (RecommendedPriceResponse) {}
 
     rpc SetUserNotifySales (SetUserNotifyRequest) returns (EmptyResponse) {}
     rpc SetUserNotifyNewRegion (SetUserNotifyRequest) returns (EmptyResponse) {}
@@ -302,6 +303,8 @@ message CreateOrUpdateKeyProductRequest {
     map<string, string> metadata = 12;
     //@inject_tag: validate:"dive" json:"platforms"
     repeated PlatformPrice platforms = 13;
+    // @inject_tag: json:"pricing" validate:"required,oneof=currency manual steam default"
+    string pricing = 14;
 }
 
 message UnPublishKeyProductRequest {
@@ -362,6 +365,8 @@ message ListKeyProductsRequest {
     string merchant_id = 5;
     //@inject_tag: query:"project_id" validate:"omitempty,hexadecimal,len=24"
     string project_id = 6;
+    //@inject_tag: query:"enabled" validate:"omitempty,oneof=true,false"
+    string enabled = 7;
 }
 
 message PaymentCreateRequest {
@@ -843,6 +848,8 @@ message KeyProduct {
     bool deleted = 17;
     //@inject_tag: json:"published_at"
     google.protobuf.Timestamp published_at = 18;
+    // @inject_tag: json:"pricing" validate:"required,oneof=currency manual steam default"
+    string pricing = 19;
 }
 
 message PlatformPrice {
@@ -856,6 +863,9 @@ message PlatformPrice {
     string eula_url = 4;
     //@inject_tag: validate:"omitempty,url" json:"activation_url"
     string activation_url = 5;
+    // count is used only in listing of key products for merchant. in all other keys will be empty always
+    //@inject_tag: validate:"omitempty" json:"count"
+    int32 count = 6;
 }
 
 message Platform {
@@ -904,6 +914,8 @@ message Product {
     map<string, string> metadata = 17;
     //@inject_tag: json:"-" bson:"deleted"
     bool deleted = 18;
+    // @inject_tag: json:"pricing" validate:"required,oneof=currency manual steam default"
+    string pricing = 19;
 }
 
 message ProductPrice {
@@ -1423,14 +1435,14 @@ message PriceGroupByRegionRequest {
     string region = 1;
 }
 
-message PriceGroupRecommendedPriceRequest {
+message RecommendedPriceRequest {
     // @inject_tag: validate:"required,numeric,gte=0"
     double amount = 1;
 }
 
-message PriceGroupRecommendedPriceResponse {
+message RecommendedPriceResponse {
     // @inject_tag: json:"recommended_price"
-    repeated billing.PriceGroupRecommendedPrice recommended_price = 1;
+    repeated billing.RecommendedPrice recommended_price = 1;
 }
 
 message ProductPricesResponse {

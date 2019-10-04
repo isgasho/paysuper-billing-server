@@ -1,0 +1,18 @@
+[
+  {
+    "create": "key"
+  },
+  {
+    "createIndexes": "key",
+    "indexes": [
+      {
+        "key": {
+          "code": 1,
+          "platform_id": 1
+        },
+        "name": "udx_key_platform_code",
+        "unique": true
+      }
+    ]
+  }
+]

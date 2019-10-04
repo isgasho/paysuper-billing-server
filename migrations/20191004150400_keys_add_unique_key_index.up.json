@@ -1,5 +1,11 @@
 [
   {
+    "drop": "key"
+  },
+  {
+    "create": "key"
+  },
+  {
     "createIndexes": "key",
     "indexes": [
       {
