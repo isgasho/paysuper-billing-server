@@ -61,16 +61,19 @@ func (suite *KeyProductTestSuite) SetupTest() {
 		Id:       bson.NewObjectId().Hex(),
 		Region:   "RUB",
 		Currency: "RUB",
+		IsActive: true,
 	}
 	pgUsd := &billing.PriceGroup{
 		Id:       bson.NewObjectId().Hex(),
 		Region:   "USD",
 		Currency: "USD",
+		IsActive: true,
 	}
 	pgEur := &billing.PriceGroup{
 		Id:       bson.NewObjectId().Hex(),
 		Region:   "EUR",
 		Currency: "EUR",
+		IsActive: true,
 	}
 	if err != nil {
 		suite.FailNow("Insert currency test data failed", "%v", err)

@@ -55,11 +55,13 @@ func (suite *ProductTestSuite) SetupTest() {
 		Id:       bson.NewObjectId().Hex(),
 		Region:   "RUB",
 		Currency: "RUB",
+		IsActive: true,
 	}
 	pgUsd := &billing.PriceGroup{
 		Id:       bson.NewObjectId().Hex(),
 		Region:   "USD",
 		Currency: "USD",
+		IsActive: true,
 	}
 
 	suite.log, err = zap.NewProduction()

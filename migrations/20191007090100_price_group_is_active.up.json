@@ -1,0 +1,29 @@
+[
+  {
+    "createIndexes": "price_group",
+    "indexes": [
+      {
+        "key": {
+          "is_active": 1
+        },
+        "name": "idx_price_group_is_active"
+      }
+    ]
+  },
+  {
+    "update": "price_group",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$currentDate": {
+            "updated_at": true
+          },
+          "$set": {
+            "is_active": true
+          }
+        }
+      }
+    ]
+  }
+]

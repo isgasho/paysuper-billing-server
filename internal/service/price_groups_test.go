@@ -62,6 +62,7 @@ func (suite *PriceGroupTestSuite) SetupTest() {
 		Id:       suite.priceGroupId,
 		Currency: "USD",
 		Region:   "",
+		IsActive: true,
 	}
 	if err := suite.service.priceGroup.Insert(suite.priceGroup); err != nil {
 		suite.FailNow("Insert price group test data failed", "%v", err)
@@ -88,7 +89,7 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroup_Error_NotFound() 
 
 func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroup_Ok() {
 	id := bson.NewObjectId().Hex()
-	err := suite.service.priceGroup.Insert(&billing.PriceGroup{Id: id, Currency: "USD"})
+	err := suite.service.priceGroup.Insert(&billing.PriceGroup{Id: id, Currency: "USD", IsActive: true})
 
 	pgReq := &billing.GetPriceGroupRequest{
 		Id: id,

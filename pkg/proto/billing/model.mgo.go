@@ -421,6 +421,7 @@ type MgoPriceGroup struct {
 	Region        string        `bson:"region"`
 	InflationRate float64       `bson:"inflation_rate"`
 	Fraction      float64       `bson:"fraction"`
+	IsActive      bool          `bson:"is_active"`
 	CreatedAt     time.Time     `bson:"created_at"`
 	UpdatedAt     time.Time     `bson:"updated_at"`
 }
@@ -1270,6 +1271,7 @@ func (m *PriceGroup) GetBSON() (interface{}, error) {
 		Currency:      m.Currency,
 		InflationRate: m.InflationRate,
 		Fraction:      m.Fraction,
+		IsActive:      m.IsActive,
 	}
 	if len(m.Id) <= 0 {
 		st.Id = bson.NewObjectId()
@@ -1321,6 +1323,7 @@ func (m *PriceGroup) SetBSON(raw bson.Raw) error {
 	m.Currency = decoded.Currency
 	m.InflationRate = decoded.InflationRate
 	m.Fraction = decoded.Fraction
+	m.IsActive = decoded.IsActive
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 

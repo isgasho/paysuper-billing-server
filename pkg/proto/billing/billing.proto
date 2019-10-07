@@ -1099,6 +1099,8 @@ message PriceGroup {
     google.protobuf.Timestamp created_at = 6;
     //@inject_tag: json:"-" bson:"updated_at"
     google.protobuf.Timestamp updated_at = 7;
+    // @inject_tag: json:"is_active" bson:"is_active"
+    bool is_active = 8;
 }
 
 message ZipCodeState {
