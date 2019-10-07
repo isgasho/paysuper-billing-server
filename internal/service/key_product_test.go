@@ -233,6 +233,8 @@ func (suite *KeyProductTestSuite) Test_GetPlatforms() {
 	}, rsp))
 	shouldBe.EqualValues(200, rsp.Status)
 	shouldBe.NotEmpty(rsp.Platforms)
+	shouldBe.EqualValues(9, len(rsp.Platforms))
+	shouldBe.Equal(rsp.Platforms[0], availablePlatforms["steam"])
 
 	rsp = &grpc.ListPlatformsResponse{}
 	shouldBe.Nil(suite.service.GetPlatforms(context.TODO(), &grpc.ListPlatformsRequest{
