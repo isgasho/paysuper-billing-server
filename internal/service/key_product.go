@@ -13,6 +13,7 @@ import (
 	"gopkg.in/mgo.v2"
 	"net/http"
 	"sort"
+	"strings"
 )
 
 const (
@@ -756,22 +757,59 @@ func getImageByLanguage(lng string, collection *grpc.ImageCollection) string {
 		return ""
 	}
 
-	defaultImage := collection.Images.En
+	lng = strings.ToLower(lng)
+	var image = ""
 
 	switch lng {
 	case "en":
-		return collection.Images.En
+		image = collection.Images.En
 	case "ru":
-		return collection.Images.Ru
+		image = collection.Images.Ru
 	case "fr":
-		return collection.Images.Fr
+		image = collection.Images.Fr
 	case "es":
-		return collection.Images.Es
+		image = collection.Images.Es
 	case "de":
-		return collection.Images.De
-	case "cn":
-		return collection.Images.Cn
-	default:
-		return defaultImage
+		image = collection.Images.De
+	case "zh":
+		image = collection.Images.Zh
+	case "ar":
+		image = collection.Images.Ar
+	case "pt":
+		image = collection.Images.Pt
+	case "it":
+		image = collection.Images.It
+	case "pl":
+		image = collection.Images.Pl
+	case "tr":
+		image = collection.Images.Tr
+	case "el":
+		image = collection.Images.El
+	case "ko":
+		image = collection.Images.Ko
+	case "vl":
+		image = collection.Images.Vl
+	case "ja":
+		image = collection.Images.Ja
+	case "he":
+		image = collection.Images.He
+	case "th":
+		image = collection.Images.Th
+	case "cs":
+		image = collection.Images.Cs
+	case "bg":
+		image = collection.Images.Bg
+	case "fi":
+		image = collection.Images.Fi
+	case "sv":
+		image = collection.Images.Sv
+	case "da":
+		image = collection.Images.Da
 	}
+
+	if image == "" {
+		image = collection.Images.En
+	}
+
+	return image
 }
