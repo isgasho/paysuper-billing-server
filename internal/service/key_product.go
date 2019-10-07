@@ -13,6 +13,7 @@ import (
 	"gopkg.in/mgo.v2"
 	"net/http"
 	"sort"
+	"strings"
 )
 
 const (
@@ -227,7 +228,7 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 	product.DefaultCurrency = req.DefaultCurrency
 	product.Description = req.Description
 	product.LongDescription = req.LongDescription
-	product.Images = req.Images
+	product.Cover = req.Cover
 	product.Url = req.Url
 	product.Pricing = req.Pricing
 	product.UpdatedAt = now
@@ -375,7 +376,7 @@ func (s *Service) GetKeyProductInfo(ctx context.Context, req *grpc.GetKeyProduct
 
 	res.KeyProduct = &grpc.KeyProductInfo{
 		Id:        product.Id,
-		Images:    product.Images,
+		Images:    []string{getImageByLanguage(req.Language, product.Cover)},
 		ProjectId: product.ProjectId,
 	}
 
@@ -749,4 +750,66 @@ func (s *Service) CheckSkuAndKeyProject(ctx context.Context, req *grpc.CheckSkuA
 	}
 
 	return nil
+}
+
+func getImageByLanguage(lng string, collection *grpc.ImageCollection) string {
+	if collection == nil || collection.Images == nil {
+		return ""
+	}
+
+	lng = strings.ToLower(lng)
+	var image = ""
+
+	switch lng {
+	case "en":
+		image = collection.Images.En
+	case "ru":
+		image = collection.Images.Ru
+	case "fr":
+		image = collection.Images.Fr
+	case "es":
+		image = collection.Images.Es
+	case "de":
+		image = collection.Images.De
+	case "zh":
+		image = collection.Images.Zh
+	case "ar":
+		image = collection.Images.Ar
+	case "pt":
+		image = collection.Images.Pt
+	case "it":
+		image = collection.Images.It
+	case "pl":
+		image = collection.Images.Pl
+	case "tr":
+		image = collection.Images.Tr
+	case "el":
+		image = collection.Images.El
+	case "ko":
+		image = collection.Images.Ko
+	case "vl":
+		image = collection.Images.Vl
+	case "ja":
+		image = collection.Images.Ja
+	case "he":
+		image = collection.Images.He
+	case "th":
+		image = collection.Images.Th
+	case "cs":
+		image = collection.Images.Cs
+	case "bg":
+		image = collection.Images.Bg
+	case "fi":
+		image = collection.Images.Fi
+	case "sv":
+		image = collection.Images.Sv
+	case "da":
+		image = collection.Images.Da
+	}
+
+	if image == "" {
+		image = collection.Images.En
+	}
+
+	return image
 }
