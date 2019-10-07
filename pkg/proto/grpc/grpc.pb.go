@@ -4740,8 +4740,8 @@ type KeyProduct struct {
 	CreatedAt *timestamp.Timestamp `protobuf:"bytes,12,opt,name=created_at,json=createdAt,proto3" json:"created_at"`
 	//@inject_tag: json:"updated_at"
 	UpdatedAt *timestamp.Timestamp `protobuf:"bytes,13,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at"`
-	//@inject_tag: validate:"dive" json:"cover"
-	Cover *ImageCollection `protobuf:"bytes,14,opt,name=cover,proto3" json:"cover" validate:"dive"`
+	//@inject_tag: validate:"omitempty,dive" json:"cover"
+	Cover *ImageCollection `protobuf:"bytes,14,opt,name=cover,proto3" json:"cover" validate:"omitempty,dive"`
 	//@inject_tag: validate:"omitempty,url" json:"url"
 	Url string `protobuf:"bytes,15,opt,name=url,proto3" json:"url" validate:"omitempty,url"`
 	//@inject_tag: json:"metadata"

@@ -848,7 +848,7 @@ message KeyProduct {
     google.protobuf.Timestamp created_at = 12;
     //@inject_tag: json:"updated_at"
     google.protobuf.Timestamp updated_at = 13;
-    //@inject_tag: validate:"dive" json:"cover"
+    //@inject_tag: validate:"omitempty,dive" json:"cover"
     ImageCollection cover = 14;
     //@inject_tag: validate:"omitempty,url" json:"url"
     string url = 15;
