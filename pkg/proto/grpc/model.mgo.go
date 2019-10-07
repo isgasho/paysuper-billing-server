@@ -25,7 +25,7 @@ type MgoKeyProduct struct {
 	CreatedAt       time.Time             `bson:"created_at" json:"created_at"`
 	UpdatedAt       time.Time             `bson:"updated_at" json:"updated_at"`
 	PublishedAt     *time.Time            `bson:"published_at" json:"published_at"`
-	Images          []string              `bson:"images,omitempty" json:"images"`
+	Cover           *ImageCollection      `bson:"cover" json:"cover"`
 	Url             string                `bson:"url,omitempty" json:"url"`
 	Metadata        map[string]string     `bson:"metadata,omitempty" json:"metadata"`
 	Deleted         bool                  `bson:"deleted" json:"deleted"`
@@ -427,7 +427,7 @@ func (p *KeyProduct) SetBSON(raw bson.Raw) error {
 	p.Enabled = decoded.Enabled
 	p.Description = decoded.Description
 	p.LongDescription = decoded.LongDescription
-	p.Images = decoded.Images
+	p.Cover = decoded.Cover
 	p.Url = decoded.Url
 	p.Metadata = decoded.Metadata
 	p.Deleted = decoded.Deleted
@@ -482,7 +482,7 @@ func (p *KeyProduct) GetBSON() (interface{}, error) {
 		Enabled:         p.Enabled,
 		Description:     p.Description,
 		LongDescription: p.LongDescription,
-		Images:          p.Images,
+		Cover:           p.Cover,
 		Url:             p.Url,
 		Metadata:        p.Metadata,
 		Deleted:         p.Deleted,

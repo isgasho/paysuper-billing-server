@@ -227,7 +227,7 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 	product.DefaultCurrency = req.DefaultCurrency
 	product.Description = req.Description
 	product.LongDescription = req.LongDescription
-	product.Images = req.Images
+	product.Cover = req.Cover
 	product.Url = req.Url
 	product.Pricing = req.Pricing
 	product.UpdatedAt = now
@@ -375,7 +375,7 @@ func (s *Service) GetKeyProductInfo(ctx context.Context, req *grpc.GetKeyProduct
 
 	res.KeyProduct = &grpc.KeyProductInfo{
 		Id:        product.Id,
-		Images:    product.Images,
+		Images:    []string{getImageByLanguage(req.Language, product.Cover)},
 		ProjectId: product.ProjectId,
 	}
 
@@ -749,4 +749,29 @@ func (s *Service) CheckSkuAndKeyProject(ctx context.Context, req *grpc.CheckSkuA
 	}
 
 	return nil
+}
+
+func getImageByLanguage(lng string, collection *grpc.ImageCollection) string {
+	if collection == nil || collection.Images == nil {
+		return ""
+	}
+
+	defaultImage := collection.Images.En
+
+	switch lng {
+	case "en":
+		return collection.Images.En
+	case "ru":
+		return collection.Images.Ru
+	case "fr":
+		return collection.Images.Fr
+	case "es":
+		return collection.Images.Es
+	case "de":
+		return collection.Images.De
+	case "cn":
+		return collection.Images.Cn
+	default:
+		return defaultImage
+	}
 }
