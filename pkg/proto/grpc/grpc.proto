@@ -375,7 +375,7 @@ message ListKeyProductsRequest {
     string merchant_id = 5;
     //@inject_tag: query:"project_id" validate:"omitempty,hexadecimal,len=24"
     string project_id = 6;
-    //@inject_tag: query:"enabled" validate:"omitempty,oneof=true,false"
+    //@inject_tag: query:"enabled" validate:"omitempty,oneof=true false"
     string enabled = 7;
 }
 

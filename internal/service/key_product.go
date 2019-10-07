@@ -54,7 +54,7 @@ var availablePlatforms = map[string]*grpc.Platform{
 	"psn":      {Id: "psn", Name: "PSN", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-psn.svg"},
 	"xbox":     {Id: "xbox", Name: "XBOX Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-xbox.svg"},
 	"nintendo": {Id: "nintendo", Name: "Nintendo Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-nintendo.svg"},
-	"itch":     {Id: "nintendo", Name: "Nintendo Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-itch.svg"},
+	"itch":     {Id: "nintendo", Name: "Itch.io", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-itch.svg"},
 	"egs":      {Id: "egs", Name: "Epic Games Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-epic.svg"},
 }
 
