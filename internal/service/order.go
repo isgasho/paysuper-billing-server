@@ -2803,7 +2803,7 @@ func (s *Service) GetOrderKeyProductsItems(products []*grpc.KeyProduct, language
 			Description: description,
 			CreatedAt:   p.CreatedAt,
 			UpdatedAt:   p.UpdatedAt,
-			Images:      p.Images,
+			Images:      []string{getImageByLanguage(DefaultLanguage, p.Cover)},
 			Url:         p.Url,
 			Metadata:    p.Metadata,
 			Amount:      amount,

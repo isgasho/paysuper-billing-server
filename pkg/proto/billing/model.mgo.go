@@ -260,6 +260,7 @@ type MgoOrder struct {
 	ProductType                string                      `bson:"product_type"`
 	Keys                       []string                    `bson:"keys"`
 	IsKeyProductNotified       bool                        `bson:"is_key_product_notified"`
+	ReceiptId                  string                      `bson:"receipt_id"`
 }
 
 type MgoOrderItem struct {
@@ -421,6 +422,7 @@ type MgoPriceGroup struct {
 	Region        string        `bson:"region"`
 	InflationRate float64       `bson:"inflation_rate"`
 	Fraction      float64       `bson:"fraction"`
+	IsActive      bool          `bson:"is_active"`
 	CreatedAt     time.Time     `bson:"created_at"`
 	UpdatedAt     time.Time     `bson:"updated_at"`
 }
@@ -1270,6 +1272,7 @@ func (m *PriceGroup) GetBSON() (interface{}, error) {
 		Currency:      m.Currency,
 		InflationRate: m.InflationRate,
 		Fraction:      m.Fraction,
+		IsActive:      m.IsActive,
 	}
 	if len(m.Id) <= 0 {
 		st.Id = bson.NewObjectId()
@@ -1321,6 +1324,7 @@ func (m *PriceGroup) SetBSON(raw bson.Raw) error {
 	m.Currency = decoded.Currency
 	m.InflationRate = decoded.InflationRate
 	m.Fraction = decoded.Fraction
+	m.IsActive = decoded.IsActive
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 
@@ -1625,6 +1629,7 @@ func (m *Order) GetBSON() (interface{}, error) {
 		PlatformId:                m.PlatformId,
 		Keys:                      m.Keys,
 		IsKeyProductNotified:      m.IsKeyProductNotified,
+		ReceiptId:                 m.ReceiptId,
 	}
 
 	if m.Refund != nil {
@@ -1833,6 +1838,7 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.ProductType = decoded.ProductType
 	m.Keys = decoded.Keys
 	m.IsKeyProductNotified = decoded.IsKeyProductNotified
+	m.ReceiptId = decoded.ReceiptId
 
 	if decoded.Refund != nil {
 		m.Refund = &OrderNotificationRefund{

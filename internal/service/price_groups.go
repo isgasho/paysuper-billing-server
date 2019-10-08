@@ -8,6 +8,8 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-currencies/pkg"
+	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	"go.uber.org/zap"
 	"math"
 	"strconv"
@@ -60,6 +62,7 @@ func (s *Service) UpdatePriceGroup(
 		Region:        req.Region,
 		InflationRate: req.InflationRate,
 		Fraction:      req.Fraction,
+		IsActive:      req.IsActive,
 		UpdatedAt:     ptypes.TimestampNow(),
 	}
 
@@ -170,10 +173,10 @@ func (s *Service) GetPriceGroupCurrencyByRegion(
 	return nil
 }
 
-func (s *Service) GetPriceGroupRecommendedPrice(
+func (s *Service) GetRecommendedPriceByPriceGroup(
 	ctx context.Context,
-	req *grpc.PriceGroupRecommendedPriceRequest,
-	res *grpc.PriceGroupRecommendedPriceResponse,
+	req *grpc.RecommendedPriceRequest,
+	res *grpc.RecommendedPriceResponse,
 ) error {
 	regions, err := s.priceGroup.GetAll()
 
@@ -190,15 +193,45 @@ func (s *Service) GetPriceGroupRecommendedPrice(
 	}
 
 	for _, region := range regions {
-		price, err := s.priceGroup.GetRecommendedPriceForRegion(priceTable, region, float64(req.Amount))
+		price, err := s.priceGroup.GetRecommendedPriceForRegion(priceTable, region, req.Amount)
 
 		if err != nil {
 			zap.S().Errorw("Unable to get recommended price for region", "err", err, "region", region)
 			return err
 		}
 
-		res.RecommendedPrice = append(res.RecommendedPrice, &billing.PriceGroupRecommendedPrice{
+		res.RecommendedPrice = append(res.RecommendedPrice, &billing.RecommendedPrice{
 			Amount:   price,
+			Region:   region.Region,
+			Currency: region.Currency,
+		})
+	}
+
+	return nil
+}
+
+func (s *Service) GetRecommendedPriceByConversion(
+	ctx context.Context,
+	req *grpc.RecommendedPriceRequest,
+	res *grpc.RecommendedPriceResponse,
+) error {
+	regions, err := s.priceGroup.GetAll()
+
+	if err != nil {
+		zap.S().Errorw("Unable to get price regions", "err", err, "req", req)
+		return err
+	}
+
+	for _, region := range regions {
+		amount, err := s.getPriceInCurrencyByAmount(region.Currency, req.Amount)
+
+		if err != nil {
+			zap.S().Errorw("Unable to get amount for region", "err", err, "region", region)
+			return err
+		}
+
+		res.RecommendedPrice = append(res.RecommendedPrice, &billing.RecommendedPrice{
+			Amount:   s.priceGroup.CalculatePriceWithFraction(region.Fraction, amount),
 			Region:   region.Region,
 			Currency: region.Currency,
 		})
@@ -221,6 +254,22 @@ func (s *Service) findPriceTableByAmount(amount float64) (*billing.PriceTable, e
 	}
 
 	return s.priceTable.InterpolateByAmount(priceTable, amount), nil
+}
+
+func (s *Service) getPriceInCurrencyByAmount(currency string, amount float64) (float64, error) {
+	req := &currencies.ExchangeCurrencyCurrentCommonRequest{
+		Amount:   amount,
+		From:     "USD",
+		To:       currency,
+		RateType: pkg.RateTypeOxr,
+	}
+	res, err := s.curService.ExchangeCurrencyCurrentCommon(context.Background(), req)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return res.ExchangedAmount, nil
 }
 
 type PriceGroupServiceInterface interface {
@@ -285,7 +334,7 @@ func (h PriceGroup) GetById(id string) (*billing.PriceGroup, error) {
 		return &c, nil
 	}
 
-	err := h.svc.db.Collection(collectionPriceGroup).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&c)
+	err := h.svc.db.Collection(collectionPriceGroup).Find(bson.M{"_id": bson.ObjectIdHex(id), "is_active": true}).One(&c)
 
 	if err != nil {
 		return nil, fmt.Errorf(errorNotFound, collectionPriceGroup)
@@ -306,7 +355,7 @@ func (h PriceGroup) GetByRegion(region string) (*billing.PriceGroup, error) {
 		return &c, nil
 	}
 
-	err := h.svc.db.Collection(collectionPriceGroup).Find(bson.M{"region": region}).One(&c)
+	err := h.svc.db.Collection(collectionPriceGroup).Find(bson.M{"region": region, "is_active": true}).One(&c)
 
 	if err != nil {
 		return nil, fmt.Errorf(errorNotFound, collectionPriceGroup)
@@ -326,7 +375,7 @@ func (h PriceGroup) GetAll() ([]*billing.PriceGroup, error) {
 		return c, nil
 	}
 
-	err := h.svc.db.Collection(collectionPriceGroup).Find(nil).All(&c)
+	err := h.svc.db.Collection(collectionPriceGroup).Find(bson.M{"is_active": true}).All(&c)
 	if err != nil {
 		return nil, err
 	}

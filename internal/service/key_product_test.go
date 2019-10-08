@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"github.com/golang-migrate/migrate/v4"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -42,20 +44,36 @@ func (suite *KeyProductTestSuite) SetupTest() {
 		suite.FailNow("Database connection failed", "%v", err)
 	}
 
+	m, err := migrate.New(
+		"file://../../migrations/tests/keys",
+		cfg.MongoDsn)
+	assert.NoError(suite.T(), err, "Migrate init failed")
+	if err != nil {
+		suite.FailNow("Migrations failed", "%v", err)
+	}
+
+	err = m.Up()
+	if err != nil && err.Error() != "no change" {
+		suite.FailNow("Migrations failed", "%v", err)
+	}
+
 	pgRub := &billing.PriceGroup{
 		Id:       bson.NewObjectId().Hex(),
 		Region:   "RUB",
 		Currency: "RUB",
+		IsActive: true,
 	}
 	pgUsd := &billing.PriceGroup{
 		Id:       bson.NewObjectId().Hex(),
 		Region:   "USD",
 		Currency: "USD",
+		IsActive: true,
 	}
 	pgEur := &billing.PriceGroup{
 		Id:       bson.NewObjectId().Hex(),
 		Region:   "EUR",
 		Currency: "EUR",
+		IsActive: true,
 	}
 	if err != nil {
 		suite.FailNow("Insert currency test data failed", "%v", err)
@@ -102,7 +120,12 @@ func (suite *KeyProductTestSuite) Test_GetKeyProductInfo() {
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		LongDescription: map[string]string{"en": "Super game steam keys"},
 		Url:             "http://test.ru/dffdsfsfs",
-		Images:          []string{"/home/image.jpg"},
+		Cover:          &grpc.ImageCollection{
+			UseOneForAll: false,
+			Images: &grpc.LocalizedUrl{
+			En: "/home/image.jpg",
+			},
+		},
 		MerchantId:      merchantId,
 		ProjectId:       projectId,
 		Platforms: []*grpc.PlatformPrice{
@@ -215,6 +238,8 @@ func (suite *KeyProductTestSuite) Test_GetPlatforms() {
 	}, rsp))
 	shouldBe.EqualValues(200, rsp.Status)
 	shouldBe.NotEmpty(rsp.Platforms)
+	shouldBe.EqualValues(9, len(rsp.Platforms))
+	shouldBe.Equal(rsp.Platforms[0], availablePlatforms["steam"])
 
 	rsp = &grpc.ListPlatformsResponse{}
 	shouldBe.Nil(suite.service.GetPlatforms(context.TODO(), &grpc.ListPlatformsRequest{
@@ -244,7 +269,12 @@ func (suite *KeyProductTestSuite) Test_GetKeyProduct() {
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		LongDescription: map[string]string{"en": "Super game steam keys"},
 		Url:             "http://test.ru/dffdsfsfs",
-		Images:          []string{"/home/image.jpg"},
+		Cover:          &grpc.ImageCollection{
+			UseOneForAll: false,
+			Images: &grpc.LocalizedUrl{
+				En: "/home/image.jpg",
+			},
+		},
 		MerchantId:      merchantId,
 		ProjectId:       projectId,
 		Metadata: map[string]string{
@@ -273,7 +303,7 @@ func (suite *KeyProductTestSuite) Test_GetKeyProduct() {
 	shouldBe.Equal(res.Description, product.Description)
 	shouldBe.Equal(res.LongDescription, product.LongDescription)
 	shouldBe.Equal(res.Url, product.Url)
-	shouldBe.Equal(res.Images, product.Images)
+	shouldBe.Equal(res.Cover.Images.En, product.Cover.Images.En)
 	shouldBe.Equal(res.Metadata, product.Metadata)
 	shouldBe.NotNil(product.UpdatedAt)
 	shouldBe.NotNil(product.CreatedAt)
@@ -304,7 +334,12 @@ func (suite *KeyProductTestSuite) Test_CreateOrUpdateKeyProduct() {
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		LongDescription: map[string]string{"en": "Super game steam keys"},
 		Url:             "http://test.ru/dffdsfsfs",
-		Images:          []string{"/home/image.jpg"},
+		Cover:          &grpc.ImageCollection{
+			UseOneForAll: false,
+			Images: &grpc.LocalizedUrl{
+				En: "/home/image.jpg",
+			},
+		},
 		MerchantId:      merchantId,
 		ProjectId:       projectId,
 		Metadata: map[string]string{
@@ -325,7 +360,7 @@ func (suite *KeyProductTestSuite) Test_CreateOrUpdateKeyProduct() {
 	shouldBe.Equal(res.Description, req.Description)
 	shouldBe.Equal(res.LongDescription, req.LongDescription)
 	shouldBe.Equal(res.Url, req.Url)
-	shouldBe.Equal(res.Images, req.Images)
+	shouldBe.Equal(res.Cover.Images.En, req.Cover.Images.En)
 	shouldBe.Equal(res.Metadata, req.Metadata)
 	shouldBe.NotNil(res.UpdatedAt)
 	shouldBe.NotNil(res.CreatedAt)
@@ -395,6 +430,7 @@ func (suite *KeyProductTestSuite) Test_GetKeyProducts() {
 	shouldBe.EqualValues(10, res.Count)
 	shouldBe.EqualValues(0, res.Offset)
 	shouldBe.EqualValues(10, len(res.Products))
+	shouldBe.EqualValues(0, res.Products[0].Platforms[0].Count)
 
 	req.Offset = 9
 	err = suite.service.GetKeyProducts(context.TODO(), req, res)
@@ -416,6 +452,23 @@ func (suite *KeyProductTestSuite) Test_GetKeyProducts() {
 	err = suite.service.GetKeyProducts(context.TODO(), req, res)
 	shouldBe.Nil(err)
 
+	req.Offset = 0
+	req.Limit = 100
+	req.Sku = ""
+	req.Name = ""
+	req.Enabled = "true"
+	err = suite.service.GetKeyProducts(context.TODO(), req, res)
+	shouldBe.Nil(err)
+	shouldBe.EqualValues(0, len(res.Products))
+
+	req.Offset = 0
+	req.Limit = 100
+	req.Sku = ""
+	req.Name = ""
+	req.Enabled = "false"
+	err = suite.service.GetKeyProducts(context.TODO(), req, res)
+	shouldBe.Nil(err)
+	shouldBe.EqualValues(10, len(res.Products))
 }
 
 func (suite *KeyProductTestSuite) getKeyProduct(id string) *grpc.KeyProduct {
@@ -439,7 +492,12 @@ func (suite *KeyProductTestSuite) createKeyProduct() *grpc.KeyProduct {
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		LongDescription: map[string]string{"en": "Super game steam keys"},
 		Url:             "http://test.ru/dffdsfsfs",
-		Images:          []string{"/home/image.jpg"},
+		Cover:          &grpc.ImageCollection{
+			UseOneForAll: false,
+			Images: &grpc.LocalizedUrl{
+				En: "/home/image.jpg",
+			},
+		},
 		MerchantId:      merchantId,
 		ProjectId:       projectId,
 		Platforms: []*grpc.PlatformPrice{
@@ -520,9 +578,9 @@ func (suite *KeyProductTestSuite) Test_UpdatePlatformPrices() {
 	shouldBe.Equal("USD", prices[0].Currency)
 
 	req = &grpc.CreateOrUpdateKeyProductRequest{
-		Id:         product.Id,
-		MerchantId: product.MerchantId,
-		ProjectId:  product.MerchantId,
+		Id:              product.Id,
+		MerchantId:      product.MerchantId,
+		ProjectId:       product.MerchantId,
 		DefaultCurrency: product.DefaultCurrency,
 		Name:            product.Name,
 		Description:     product.Description,
@@ -636,31 +694,76 @@ func (suite *KeyProductTestSuite) Test_DeleteKeyProduct() {
 	shouldBe.NotNil(res.Message)
 }
 
+func (suite *KeyProductTestSuite) Test_UploadKey() {
+	shouldBe := require.New(suite.T())
+	product := suite.createKeyProduct()
+	fileContent := fmt.Sprintf("%s-%s-%s-%s", RandomString(4), RandomString(4), RandomString(4), RandomString(4))
+	file := []byte(fileContent)
+
+	keysRsp := &grpc.PlatformKeysFileResponse{}
+	keysReq := &grpc.PlatformKeysFileRequest{
+		KeyProductId: product.Id,
+		PlatformId:   "steam",
+		MerchantId:   product.MerchantId,
+		File:         file,
+	}
+	shouldBe.NoError(suite.service.UploadKeysFile(context.TODO(), keysReq, keysRsp))
+	shouldBe.EqualValues(200, keysRsp.Status)
+	shouldBe.EqualValues(1, keysRsp.TotalCount)
+	shouldBe.EqualValues(1, keysRsp.KeysProcessed)
+
+	keysRsp = &grpc.PlatformKeysFileResponse{}
+	keysReq = &grpc.PlatformKeysFileRequest{
+		KeyProductId: product.Id,
+		PlatformId:   "steam",
+		MerchantId:   product.MerchantId,
+		File:         file,
+	}
+	shouldBe.NoError(suite.service.UploadKeysFile(context.TODO(), keysReq, keysRsp))
+	shouldBe.EqualValues(200, keysRsp.Status)
+	shouldBe.EqualValues(1, keysRsp.TotalCount)
+	shouldBe.EqualValues(0, keysRsp.KeysProcessed)
+}
+
+func (suite *KeyProductTestSuite) Test_CheckSkuAndKeyProject() {
+	shouldBe := require.New(suite.T())
+	rsp := &grpc.EmptyResponseWithStatus{}
+	err := suite.service.CheckSkuAndKeyProject(context.TODO(), &grpc.CheckSkuAndKeyProjectRequest{ProjectId: projectId, Sku: "TEST_SKU"}, rsp)
+	shouldBe.NoError(err)
+	shouldBe.EqualValues(200, rsp.Status)
+
+	product := suite.createKeyProduct()
+	err = suite.service.CheckSkuAndKeyProject(context.TODO(), &grpc.CheckSkuAndKeyProjectRequest{ProjectId: product.ProjectId, Sku: product.Sku}, rsp)
+	shouldBe.NoError(err)
+	shouldBe.EqualValues(400, rsp.Status)
+	shouldBe.NotNil(rsp.Message)
+}
+
 func (suite *KeyProductTestSuite) Test_UnPublishKeyProduct() {
-	shoulBe := require.New(suite.T())
+	shouldBe := require.New(suite.T())
 	product := suite.createKeyProduct()
 
 	res := &grpc.KeyProductResponse{}
 	err := suite.service.PublishKeyProduct(context.TODO(), &grpc.PublishKeyProductRequest{KeyProductId: product.Id, MerchantId: product.MerchantId}, res)
-	shoulBe.Nil(err)
-	shoulBe.EqualValues(200, res.Status)
+	shouldBe.Nil(err)
+	shouldBe.EqualValues(200, res.Status)
 
 	err = suite.service.UnPublishKeyProduct(context.TODO(), &grpc.UnPublishKeyProductRequest{KeyProductId: product.Id}, res)
-	shoulBe.Nil(err)
-	shoulBe.EqualValues(200, res.Status)
+	shouldBe.Nil(err)
+	shouldBe.EqualValues(200, res.Status)
 
 	err = suite.service.UnPublishKeyProduct(context.TODO(), &grpc.UnPublishKeyProductRequest{KeyProductId: product.Id}, res)
-	shoulBe.Nil(err)
-	shoulBe.EqualValues(400, res.Status)
-	shoulBe.Equal(keyProductNotPublished, res.Message)
+	shouldBe.Nil(err)
+	shouldBe.EqualValues(400, res.Status)
+	shouldBe.Equal(keyProductNotPublished, res.Message)
 
 	emptyRes := &grpc.EmptyResponseWithStatus{}
 	err = suite.service.DeleteKeyProduct(context.TODO(), &grpc.RequestKeyProductMerchant{Id: product.Id, MerchantId: product.MerchantId}, emptyRes)
-	shoulBe.Nil(err)
-	shoulBe.EqualValuesf(200, emptyRes.Status, "%v", emptyRes.Message)
+	shouldBe.Nil(err)
+	shouldBe.EqualValuesf(200, emptyRes.Status, "%v", emptyRes.Message)
 
 	err = suite.service.UnPublishKeyProduct(context.TODO(), &grpc.UnPublishKeyProductRequest{KeyProductId: product.Id}, res)
-	shoulBe.Nil(err)
-	shoulBe.EqualValues(400, res.Status)
-	shoulBe.Equal(keyProductNotFound, res.Message)
+	shouldBe.Nil(err)
+	shouldBe.EqualValues(400, res.Status)
+	shouldBe.Equal(keyProductNotFound, res.Message)
 }

@@ -343,6 +343,36 @@ func (_m *BillingService) CheckProjectRequestSignature(ctx context.Context, in *
 	return r0, r1
 }
 
+// CheckSkuAndKeyProject provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) CheckSkuAndKeyProject(ctx context.Context, in *grpc.CheckSkuAndKeyProjectRequest, opts ...client.CallOption) (*grpc.EmptyResponseWithStatus, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *grpc.EmptyResponseWithStatus
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.CheckSkuAndKeyProjectRequest, ...client.CallOption) *grpc.EmptyResponseWithStatus); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*grpc.EmptyResponseWithStatus)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.CheckSkuAndKeyProjectRequest, ...client.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // ConfirmUserEmail provides a mock function with given fields: ctx, in, opts
 func (_m *BillingService) ConfirmUserEmail(ctx context.Context, in *grpc.ConfirmUserEmailRequest, opts ...client.CallOption) (*grpc.CheckProjectRequestSignatureResponse, error) {
 	_va := make([]interface{}, len(opts))
@@ -2263,36 +2293,6 @@ func (_m *BillingService) GetPriceGroupCurrencyByRegion(ctx context.Context, in 
 	return r0, r1
 }
 
-// GetPriceGroupRecommendedPrice provides a mock function with given fields: ctx, in, opts
-func (_m *BillingService) GetPriceGroupRecommendedPrice(ctx context.Context, in *grpc.PriceGroupRecommendedPriceRequest, opts ...client.CallOption) (*grpc.PriceGroupRecommendedPriceResponse, error) {
-	_va := make([]interface{}, len(opts))
-	for _i := range opts {
-		_va[_i] = opts[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx, in)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
-
-	var r0 *grpc.PriceGroupRecommendedPriceResponse
-	if rf, ok := ret.Get(0).(func(context.Context, *grpc.PriceGroupRecommendedPriceRequest, ...client.CallOption) *grpc.PriceGroupRecommendedPriceResponse); ok {
-		r0 = rf(ctx, in, opts...)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*grpc.PriceGroupRecommendedPriceResponse)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *grpc.PriceGroupRecommendedPriceRequest, ...client.CallOption) error); ok {
-		r1 = rf(ctx, in, opts...)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // GetProduct provides a mock function with given fields: ctx, in, opts
 func (_m *BillingService) GetProduct(ctx context.Context, in *grpc.RequestProduct, opts ...client.CallOption) (*grpc.GetProductResponse, error) {
 	_va := make([]interface{}, len(opts))
@@ -2405,6 +2405,66 @@ func (_m *BillingService) GetProject(ctx context.Context, in *grpc.GetProjectReq
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *grpc.GetProjectRequest, ...client.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetRecommendedPriceByConversion provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) GetRecommendedPriceByConversion(ctx context.Context, in *grpc.RecommendedPriceRequest, opts ...client.CallOption) (*grpc.RecommendedPriceResponse, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *grpc.RecommendedPriceResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.RecommendedPriceRequest, ...client.CallOption) *grpc.RecommendedPriceResponse); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*grpc.RecommendedPriceResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.RecommendedPriceRequest, ...client.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetRecommendedPriceByPriceGroup provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) GetRecommendedPriceByPriceGroup(ctx context.Context, in *grpc.RecommendedPriceRequest, opts ...client.CallOption) (*grpc.RecommendedPriceResponse, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *grpc.RecommendedPriceResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.RecommendedPriceRequest, ...client.CallOption) *grpc.RecommendedPriceResponse); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*grpc.RecommendedPriceResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.RecommendedPriceRequest, ...client.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)

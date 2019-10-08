@@ -12,6 +12,8 @@ import (
 	"go.uber.org/zap"
 	"gopkg.in/mgo.v2"
 	"net/http"
+	"sort"
+	"strings"
 )
 
 const (
@@ -47,15 +49,15 @@ var (
 
 //TODO: correct icons
 var availablePlatforms = map[string]*grpc.Platform{
-	"steam":    {Id: "steam", Name: "Steam", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-steam.svg"},
-	"gog":      {Id: "gog", Name: "GOG", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-gog.svg"},
-	"uplay":    {Id: "uplay", Name: "Uplay", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-uplay.svg"},
-	"origin":   {Id: "origin", Name: "Origin", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-origin.svg"},
-	"psn":      {Id: "psn", Name: "PSN", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-psn.svg"},
-	"xbox":     {Id: "xbox", Name: "XBOX Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-xbox.svg"},
-	"nintendo": {Id: "nintendo", Name: "Nintendo Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-nintendo.svg"},
-	"itch":     {Id: "nintendo", Name: "Nintendo Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-itch.svg"},
-	"egs":      {Id: "egs", Name: "Epic Games Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-epic.svg"},
+	"steam":    {Id: "steam", Name: "Steam", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-steam.svg", Order: 1},
+	"gog":      {Id: "gog", Name: "GOG", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-gog.svg", Order: 2},
+	"uplay":    {Id: "uplay", Name: "Uplay", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-uplay.svg", Order: 3},
+	"origin":   {Id: "origin", Name: "Origin", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-origin.svg", Order: 4},
+	"psn":      {Id: "psn", Name: "PSN", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-psn.svg", Order: 5},
+	"xbox":     {Id: "xbox", Name: "XBOX Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-xbox.svg", Order: 6},
+	"nintendo": {Id: "nintendo", Name: "Nintendo Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-nintendo.svg", Order: 7},
+	"itch":     {Id: "itch", Name: "Itch.io", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-itch.svg", Order: 8},
+	"egs":      {Id: "egs", Name: "Epic Games Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-epic.svg", Order: 9},
 }
 
 func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.CreateOrUpdateKeyProductRequest, res *grpc.KeyProductResponse) error {
@@ -226,8 +228,9 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 	product.DefaultCurrency = req.DefaultCurrency
 	product.Description = req.Description
 	product.LongDescription = req.LongDescription
-	product.Images = req.Images
+	product.Cover = req.Cover
 	product.Url = req.Url
+	product.Pricing = req.Pricing
 	product.UpdatedAt = now
 
 	_, err = s.db.Collection(collectionKeyProduct).UpsertId(bson.ObjectIdHex(product.Id), product)
@@ -286,6 +289,12 @@ func (s *Service) GetKeyProducts(ctx context.Context, req *grpc.ListKeyProductsR
 		query["name"] = bson.M{"$elemMatch": bson.M{"value": bson.RegEx{req.Name, "i"}}}
 	}
 
+	if req.Enabled == "true" {
+		query["enabled"] = bson.M{"$eq": true}
+	} else if req.Enabled == "false" {
+		query["enabled"] = bson.M{"$eq": false}
+	}
+
 	total, err := s.db.Collection(collectionKeyProduct).Find(query).Count()
 	if err != nil {
 		zap.S().Errorf("Query to find key products by id failed", "err", err.Error(), "data", req)
@@ -308,11 +317,32 @@ func (s *Service) GetKeyProducts(ctx context.Context, req *grpc.ListKeyProductsR
 	err = s.db.Collection(collectionKeyProduct).Find(query).Skip(int(req.Offset)).Limit(int(req.Limit)).All(&items)
 
 	if err != nil {
-		zap.S().Errorf("Query to find key products by id failed", "err", err.Error(), "data", req)
+		zap.S().Errorw("Query to find key products by id failed", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
 		res.Message = keyProductInternalError
 		res.Message.Details = err.Error()
 		return nil
+	}
+
+	for _, item := range items {
+		for _, platform := range item.Platforms {
+			keysRsp := &grpc.GetPlatformKeyCountResponse{}
+			err := s.GetAvailableKeysCount(ctx, &grpc.GetPlatformKeyCountRequest{PlatformId: platform.Id, MerchantId: item.MerchantId, KeyProductId: item.Id}, keysRsp)
+			if err != nil {
+				zap.S().Errorw("Query to find count keys for platform failed", "err", err.Error(), "platform", platform.Id, "product.id", item.Id)
+				res.Status = http.StatusInternalServerError
+				res.Message = keyProductInternalError
+				return nil
+			}
+			if keysRsp.Status != pkg.ResponseStatusOk {
+				zap.S().Errorw("Query to find count keys for platform failed", "message", keysRsp.Message, "platform", platform.Id, "product.id", item.Id)
+				res.Status = keysRsp.Status
+				res.Message = keysRsp.Message
+				return nil
+			}
+
+			platform.Count = keysRsp.Count
+		}
 	}
 
 	res.Products = items
@@ -346,7 +376,7 @@ func (s *Service) GetKeyProductInfo(ctx context.Context, req *grpc.GetKeyProduct
 
 	res.KeyProduct = &grpc.KeyProductInfo{
 		Id:        product.Id,
-		Images:    product.Images,
+		Images:    []string{getImageByLanguage(req.Language, product.Cover)},
 		ProjectId: product.ProjectId,
 	}
 
@@ -419,6 +449,20 @@ func (s *Service) GetKeyProductInfo(ctx context.Context, req *grpc.GetKeyProduct
 			},
 		}
 	}
+
+	sort.Slice(platforms, func(i, j int) bool {
+		platform1 := &grpc.Platform{}
+		platform2 := &grpc.Platform{}
+		ok := false
+		if platform1, ok = availablePlatforms[platforms[i].Id]; !ok {
+			return false
+		}
+		if platform2, ok = availablePlatforms[platforms[i].Id]; !ok {
+			return false
+		}
+		return platform1.Order < platform2.Order
+	})
+
 	res.KeyProduct.Platforms = platforms
 
 	return nil
@@ -681,4 +725,91 @@ func (s *Service) UnPublishKeyProduct(ctx context.Context, req *grpc.UnPublishKe
 	res.Product = product
 
 	return nil
+}
+
+func (s *Service) CheckSkuAndKeyProject(ctx context.Context, req *grpc.CheckSkuAndKeyProjectRequest, rsp *grpc.EmptyResponseWithStatus) error {
+	rsp.Status = pkg.ResponseStatusOk
+
+	dupQuery := bson.M{"project_id": bson.ObjectIdHex(req.ProjectId), "sku": req.Sku, "deleted": false}
+	found, err := s.db.Collection(collectionKeyProduct).Find(dupQuery).Count()
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, dupQuery),
+		)
+		rsp.Status = http.StatusBadRequest
+		rsp.Message = keyProductRetrieveError
+		return nil
+	}
+
+	if found > 0 {
+		rsp.Status = http.StatusBadRequest
+		rsp.Message = keyProductDuplicate
+		return nil
+	}
+
+	return nil
+}
+
+func getImageByLanguage(lng string, collection *grpc.ImageCollection) string {
+	if collection == nil || collection.Images == nil {
+		return ""
+	}
+
+	lng = strings.ToLower(lng)
+	var image = ""
+
+	switch lng {
+	case "en":
+		image = collection.Images.En
+	case "ru":
+		image = collection.Images.Ru
+	case "fr":
+		image = collection.Images.Fr
+	case "es":
+		image = collection.Images.Es
+	case "de":
+		image = collection.Images.De
+	case "zh":
+		image = collection.Images.Zh
+	case "ar":
+		image = collection.Images.Ar
+	case "pt":
+		image = collection.Images.Pt
+	case "it":
+		image = collection.Images.It
+	case "pl":
+		image = collection.Images.Pl
+	case "tr":
+		image = collection.Images.Tr
+	case "el":
+		image = collection.Images.El
+	case "ko":
+		image = collection.Images.Ko
+	case "vl":
+		image = collection.Images.Vl
+	case "ja":
+		image = collection.Images.Ja
+	case "he":
+		image = collection.Images.He
+	case "th":
+		image = collection.Images.Th
+	case "cs":
+		image = collection.Images.Cs
+	case "bg":
+		image = collection.Images.Bg
+	case "fi":
+		image = collection.Images.Fi
+	case "sv":
+		image = collection.Images.Sv
+	case "da":
+		image = collection.Images.Da
+	}
+
+	if image == "" {
+		image = collection.Images.En
+	}
+
+	return image
 }

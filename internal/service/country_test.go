@@ -49,7 +49,7 @@ func (suite *CountryTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), )
+	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK())
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -59,6 +59,7 @@ func (suite *CountryTestSuite) SetupTest() {
 		Id:       bson.NewObjectId().Hex(),
 		Currency: "USD",
 		Region:   "",
+		IsActive: true,
 	}
 	if err := suite.service.priceGroup.Insert(pg); err != nil {
 		suite.FailNow("Insert price group test data failed", "%v", err)
