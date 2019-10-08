@@ -22,9 +22,6 @@ type MerchantRepositoryInterface interface {
 	MultipleInsert(merchants []*billing.Merchant) error
 	GetById(id string) (*billing.Merchant, error)
 	GetPaymentMethod(merchantId string, method string) (*billing.MerchantPaymentMethod, error)
-	GetPaymentMethodTerminalId(merchantId, pmId string) (string, error)
-	GetPaymentMethodTerminalPassword(merchantId, pmId string) (string, error)
-	GetPaymentMethodTerminalCallbackPassword(merchantId, pmId string) (string, error)
 }
 
 func newMerchantService(svc *Service) MerchantRepositoryInterface {
