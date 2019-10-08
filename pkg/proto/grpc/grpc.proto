@@ -522,7 +522,7 @@ message MerchantChangeStatusRequest {
     // @inject_tag: validate:"required,hexadecimal"
     string merchant_id = 1;
     string user_id = 2;
-    // @inject_tag: validate:"omitempty,numeric,oneof=0 1 2 3 4"
+    // @inject_tag: validate:"omitempty,numeric,oneof=5 6"
     int32 status = 3;
     string message = 4;
 }
@@ -754,12 +754,8 @@ message GetMerchantByRequest {
 message ChangeMerchantDataRequest {
     // @inject_tag: validate:"required,hexadecimal,len=24"
     string merchant_id = 1;
-    // @inject_tag: validate:"omitempty,numeric,oneof=1 2"
-    int32 agreement_type = 2;
     bool has_merchant_signature = 3;
     bool has_psp_signature = 4;
-    bool agreement_sent_via_mail = 5;
-    string mail_tracking_link = 6;
 }
 
 message ChangeMerchantDataResponse {

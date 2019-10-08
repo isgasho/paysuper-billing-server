@@ -54,13 +54,13 @@ func (m *Merchant) NeedMarkESignAgreementAsSigned() bool {
 }
 
 func (m *Merchant) CanGenerateAgreement() bool {
-	return (m.Status == pkg.MerchantStatusOnReview || m.Status == pkg.MerchantStatusAgreementSigning ||
+	return (m.Status == pkg.MerchantStatusAgreementSigning ||
 		m.Status == pkg.MerchantStatusAgreementSigned) && m.Banking != nil && m.Company.Country != "" &&
 		m.Contacts != nil && m.Contacts.Authorized != nil
 }
 
 func (m *Merchant) CanChangeStatusToSigning() bool {
-	return m.Status == pkg.MerchantStatusOnReview && m.Banking != nil && m.Company.Country != "" &&
+	return m.Banking != nil && m.Company.Country != "" &&
 		m.Contacts != nil && m.Contacts.Authorized != nil
 }
 

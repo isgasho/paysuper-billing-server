@@ -47,12 +47,11 @@ const (
 	StatusErrorSystem     = int32(2)
 	StatusTemporary       = int32(4)
 
-	MerchantStatusDraft              = int32(0)
-	MerchantStatusAgreementRequested = int32(1)
-	MerchantStatusOnReview           = int32(2)
-	MerchantStatusAgreementSigning   = int32(3)
-	MerchantStatusAgreementSigned    = int32(4)
-	MerchantStatusDeleted            = int32(5)
+	MerchantStatusDraft            = int32(0)
+	MerchantStatusAgreementSigning = int32(3)
+	MerchantStatusAgreementSigned  = int32(4)
+	MerchantStatusDeleted          = int32(5)
+	MerchantStatusRejected         = int32(6)
 
 	MerchantMinimalPayoutLimit = float32(1000)
 

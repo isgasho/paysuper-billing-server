@@ -359,14 +359,18 @@ message SystemNotificationStatuses {
 }
 
 message Notification {
+    // @inject_tag: json:"id"
     string id = 1;
-    string title = 2;
+    // @inject_tag: json:"message"
     string message = 3;
+    // @inject_tag: json:"merchant_id"
     string merchant_id = 4;
     string user_id = 5;
     bool is_system = 6;
+    // @inject_tag: json:"is_read"
     bool is_read = 7;
     SystemNotificationStatuses statuses = 8;
+    // @inject_tag: json:"created_at"
     google.protobuf.Timestamp created_at = 9;
     google.protobuf.Timestamp updated_at = 10;
 }

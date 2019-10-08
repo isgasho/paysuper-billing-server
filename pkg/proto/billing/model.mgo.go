@@ -320,10 +320,9 @@ type MgoPaymentMethodParam struct {
 
 type MgoNotification struct {
 	Id         bson.ObjectId               `bson:"_id"`
-	Title      string                      `bson:"title"`
 	Message    string                      `bson:"message"`
 	MerchantId bson.ObjectId               `bson:"merchant_id"`
-	UserId     bson.ObjectId               `bson:"user_id"`
+	UserId     string                      `bson:"user_id"`
 	IsSystem   bool                        `bson:"is_system"`
 	IsRead     bool                        `bson:"is_read"`
 	CreatedAt  time.Time                   `bson:"created_at"`
@@ -2508,12 +2507,11 @@ func (m *Merchant) SetBSON(raw bson.Raw) error {
 
 func (m *Notification) GetBSON() (interface{}, error) {
 	st := &MgoNotification{
-		Title:      m.Title,
 		Message:    m.Message,
 		IsSystem:   m.IsSystem,
 		IsRead:     m.IsRead,
 		MerchantId: bson.ObjectIdHex(m.MerchantId),
-		UserId:     bson.ObjectIdHex(m.UserId),
+		UserId:     m.UserId,
 		Statuses:   m.Statuses,
 	}
 
@@ -2563,12 +2561,11 @@ func (m *Notification) SetBSON(raw bson.Raw) error {
 	}
 
 	m.Id = decoded.Id.Hex()
-	m.Title = decoded.Title
 	m.Message = decoded.Message
 	m.IsSystem = decoded.IsSystem
 	m.IsRead = decoded.IsRead
 	m.MerchantId = decoded.MerchantId.Hex()
-	m.UserId = decoded.UserId.Hex()
+	m.UserId = decoded.UserId
 	m.Statuses = decoded.Statuses
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)

@@ -220,7 +220,7 @@ func (suite *EntityTestSuite) SetupTest() {
 		},
 		IsVatEnabled:              true,
 		IsCommissionToUserEnabled: true,
-		Status:                    pkg.MerchantStatusAgreementRequested,
+		Status:                    pkg.MerchantStatusAgreementSigning,
 		LastPayout: &billing.MerchantLastPayout{
 			Date:   date,
 			Amount: 10000,
