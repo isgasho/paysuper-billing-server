@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
+	our "github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-currencies/pkg"
@@ -50,6 +51,8 @@ func (s *Service) GetPriceGroup(
 
 	return nil
 }
+
+
 
 func (s *Service) UpdatePriceGroup(
 	ctx context.Context,
@@ -236,6 +239,26 @@ func (s *Service) GetRecommendedPriceByConversion(
 			Currency: region.Currency,
 		})
 	}
+
+	return nil
+}
+
+func (s *Service) GetPriceGroupByRegion(ctx context.Context, req *grpc.GetPriceGroupByRegionRequest, rsp *grpc.GetPriceGroupByRegionResponse) error {
+	group, err := s.priceGroup.GetByRegion(req.Region)
+	rsp.Status = our.ResponseStatusOk
+
+	if err != nil {
+		zap.L().Error(
+			our.ErrorGrpcServiceCallFailed,
+			zap.Error(err),
+			zap.Any("region", req.Region),
+		)
+		rsp.Status = our.ResponseStatusBadData
+		rsp.Message = priceGroupErrorNotFound
+		return nil
+	}
+
+	rsp.Group = group
 
 	return nil
 }
