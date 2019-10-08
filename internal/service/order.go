@@ -1312,7 +1312,11 @@ func (s *Service) updateOrder(order *billing.Order) error {
 
 	if statusChanged && ps != constant.OrderPublicStatusCreated && ps != constant.OrderPublicStatusPending {
 		zap.S().Debug("[updateOrder] notify merchant", "order_id", order.Id)
-		s.sendMailWithReceipt(context.TODO(), order)
+		if ps == constant.OrderPublicStatusRefunded {
+			s.sendMailWithRefund(order)
+		} else if ps != constant.OrderPublicStatusChargeback {
+			s.sendMailWithReceipt(order)
+		}
 		s.orderNotifyMerchant(order)
 	}
 
@@ -1366,49 +1370,27 @@ func (s *Service) orderNotifyKeyProducts(ctx context.Context, order *billing.Ord
 	}
 }
 
-func (s *Service) sendMailWithReceipt(ctx context.Context, order *billing.Order) {
+func (s *Service) sendMailWithRefund(order *billing.Order) {
 	payload := s.getPayloadForReceipt(order)
-	var items []*structpb.Value
-
-	for _, item := range order.Items {
-		price, err := s.formatter.FormatCurrency("en", item.Amount, item.Currency)
-		if err != nil {
-			zap.S().Errorw("Error during formatting currency", "price", item.Amount, "locale", "en", "currency", item.Currency)
-		}
-		items = append(items, s.getReceiptModel(item.Name, price))
-	}
-
-	payload.TemplateObjectModel = &structpb.Struct{
-		Fields: map[string]*structpb.Value{
-			"items": {
-				Kind: &structpb.Value_ListValue{ListValue: &structpb.ListValue{
-					Values: items,
-				}},
-			},
-		},
-	}
-
-	if platform, ok := availablePlatforms[order.PlatformId]; ok {
-		payload.TemplateObjectModel.Fields["platform"] = &structpb.Value{
-			Kind: &structpb.Value_StructValue{
-				StructValue: &structpb.Struct{
-					Fields: map[string]*structpb.Value{
-						"name": {
-							Kind: &structpb.Value_StringValue{
-								StringValue: platform.Name,
-							},
-						},
-					},
-				},
-			},
-		}
-	}
+	payload.TemplateAlias = s.cfg.EmailRefundTransactionTemplate
 
 	zap.S().Infow("sending receipt to broker", "order_id", order.Id)
 	err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 	if err != nil {
 		zap.S().Errorw(
-			"Publication activation code to user email queue is failed",
+			"Publication refund transaction to user email queue is failed",
+			"err", err, "email", order.ReceiptEmail, "order_id", order.Id)
+	}
+}
+
+func (s *Service) sendMailWithReceipt(order *billing.Order) {
+	payload := s.getPayloadForReceipt(order)
+
+	zap.S().Infow("sending receipt to broker", "order_id", order.Id)
+	err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+	if err != nil {
+		zap.S().Errorw(
+			"Publication receipt to user email queue is failed",
 			"err", err, "email", order.ReceiptEmail, "order_id", order.Id)
 	}
 }
@@ -1449,7 +1431,7 @@ func (s *Service) getPayloadForReceipt(order *billing.Order) *postmarkSdrPkg.Pay
 		merchantName = merchant.Company.Name
 	}
 
-	return &postmarkSdrPkg.Payload{
+	payload := &postmarkSdrPkg.Payload{
 		TemplateAlias: s.cfg.EmailSuccessTransactionTemplate,
 		TemplateModel: map[string]string{
 			"total_price":      totalPrice,
@@ -1461,6 +1443,44 @@ func (s *Service) getPayloadForReceipt(order *billing.Order) *postmarkSdrPkg.Pay
 		},
 		To: order.ReceiptEmail,
 	}
+
+	var items []*structpb.Value
+
+	for _, item := range order.Items {
+		price, err := s.formatter.FormatCurrency("en", item.Amount, item.Currency)
+		if err != nil {
+			zap.S().Errorw("Error during formatting currency", "price", item.Amount, "locale", "en", "currency", item.Currency)
+		}
+		items = append(items, s.getReceiptModel(item.Name, price))
+	}
+
+	payload.TemplateObjectModel = &structpb.Struct{
+		Fields: map[string]*structpb.Value{
+			"items": {
+				Kind: &structpb.Value_ListValue{ListValue: &structpb.ListValue{
+					Values: items,
+				}},
+			},
+		},
+	}
+
+	if platform, ok := availablePlatforms[order.PlatformId]; ok {
+		payload.TemplateObjectModel.Fields["platform"] = &structpb.Value{
+			Kind: &structpb.Value_StructValue{
+				StructValue: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"name": {
+							Kind: &structpb.Value_StringValue{
+								StringValue: platform.Name,
+							},
+						},
+					},
+				},
+			},
+		}
+	}
+
+	return payload
 }
 
 func (s *Service) sendMailWithCode(ctx context.Context, order *billing.Order, key *billing.Key) {
