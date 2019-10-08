@@ -77,6 +77,7 @@ service BillingService {
     rpc GetPriceGroupCurrencyByRegion (PriceGroupByRegionRequest) returns (PriceGroupCurrenciesResponse) {}
     rpc GetRecommendedPriceByPriceGroup (RecommendedPriceRequest) returns (RecommendedPriceResponse) {}
     rpc GetRecommendedPriceByConversion (RecommendedPriceRequest) returns (RecommendedPriceResponse) {}
+    rpc GetPriceGroupByRegion (GetPriceGroupByRegionRequest) returns (GetPriceGroupByRegionResponse) {}
 
     rpc SetUserNotifySales (SetUserNotifyRequest) returns (EmptyResponse) {}
     rpc SetUserNotifyNewRegion (SetUserNotifyRequest) returns (EmptyResponse) {}
@@ -297,7 +298,7 @@ message CreateOrUpdateKeyProductRequest {
     map<string, string> long_description = 4;
     //@inject_tag: validate:"required,max=255"
     string sku = 5;
-    //@inject_tag: validate:"dive" json:"cover"
+    //@inject_tag: validate:"omitempty,dive" json:"cover"
     ImageCollection cover = 6;
     //@inject_tag: validate:"omitempty,url" json:"url"
     string url = 7;
@@ -2117,4 +2118,16 @@ message GetProductResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     Product item = 3;
+}
+
+message GetPriceGroupByRegionResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    //@inject_tag: json:"group"
+    billing.PriceGroup Group = 3;
+}
+
+message GetPriceGroupByRegionRequest {
+    //@inject_tag: json:"region" validate:"required"
+    string region = 1;
 }
