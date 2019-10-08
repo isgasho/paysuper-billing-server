@@ -287,6 +287,17 @@ const (
 	PayoutDocumentStatusPaid       = "paid"
 	PayoutDocumentStatusCanceled   = "canceled"
 	PayoutDocumentStatusFailed     = "failed"
+
+	MerchantUserRoleOwner      = "owner"
+	MerchantUserRoleDeveloper  = "developer"
+	MerchantUserRoleAccounting = "accounting"
+	MerchantUserRoleReadOnly   = "read_only"
+
+	AdminUserRole          = "admin"
+	AdminUserRiskManager   = "risk_manager"
+	AdminUserRiskFinancial = "financial"
+	AdminUserRiskSupport   = "support"
+	AdminUserRoleReadOnly  = "read_only"
 )
 
 var (
