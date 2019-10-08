@@ -881,8 +881,8 @@ type CreateOrUpdateKeyProductRequest struct {
 	LongDescription map[string]string `protobuf:"bytes,4,rep,name=long_description,json=longDescription,proto3" json:"long_description" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	//@inject_tag: validate:"required,max=255"
 	Sku string `protobuf:"bytes,5,opt,name=sku,proto3" json:"sku,omitempty" validate:"required,max=255"`
-	//@inject_tag: validate:"omitempty,dive" json:"cover"
-	Cover *ImageCollection `protobuf:"bytes,6,opt,name=cover,proto3" json:"cover" validate:"omitempty,dive"`
+	//@inject_tag: json:"cover"
+	Cover *ImageCollection `protobuf:"bytes,6,opt,name=cover,proto3" json:"cover"`
 	//@inject_tag: validate:"omitempty,url" json:"url"
 	Url string `protobuf:"bytes,7,opt,name=url,proto3" json:"url" validate:"omitempty,url"`
 	//@inject_tag: validate:"required,alpha,len=3" json:"default_currency"
@@ -4740,8 +4740,8 @@ type KeyProduct struct {
 	CreatedAt *timestamp.Timestamp `protobuf:"bytes,12,opt,name=created_at,json=createdAt,proto3" json:"created_at"`
 	//@inject_tag: json:"updated_at"
 	UpdatedAt *timestamp.Timestamp `protobuf:"bytes,13,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at"`
-	//@inject_tag: validate:"omitempty,dive" json:"cover"
-	Cover *ImageCollection `protobuf:"bytes,14,opt,name=cover,proto3" json:"cover" validate:"omitempty,dive"`
+	//@inject_tag: json:"cover"
+	Cover *ImageCollection `protobuf:"bytes,14,opt,name=cover,proto3" json:"cover"`
 	//@inject_tag: validate:"omitempty,url" json:"url"
 	Url string `protobuf:"bytes,15,opt,name=url,proto3" json:"url" validate:"omitempty,url"`
 	//@inject_tag: json:"metadata"
@@ -4916,10 +4916,10 @@ func (m *KeyProduct) GetPricing() string {
 }
 
 type ImageCollection struct {
-	//@inject_tag: validate:"dive,omitempty,uri" json:"images"
-	Images *LocalizedUrl `protobuf:"bytes,1,opt,name=images,proto3" json:"images" validate:"dive,omitempty,uri"`
-	//@inject_tag: validate:"dive,omitempty,uri" json:"use_one_for_all"
-	UseOneForAll         bool     `protobuf:"varint,2,opt,name=use_one_for_all,json=useOneForAll,proto3" json:"use_one_for_all" validate:"dive,omitempty,uri"`
+	//@inject_tag: validate:"omitempty,uri" json:"images"
+	Images *LocalizedUrl `protobuf:"bytes,1,opt,name=images,proto3" json:"images" validate:"omitempty,uri"`
+	//@inject_tag: validate:"omitempty,uri" json:"use_one_for_all"
+	UseOneForAll         bool     `protobuf:"varint,2,opt,name=use_one_for_all,json=useOneForAll,proto3" json:"use_one_for_all" validate:"omitempty,uri"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`

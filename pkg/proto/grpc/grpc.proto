@@ -298,7 +298,7 @@ message CreateOrUpdateKeyProductRequest {
     map<string, string> long_description = 4;
     //@inject_tag: validate:"required,max=255"
     string sku = 5;
-    //@inject_tag: validate:"omitempty,dive" json:"cover"
+    //@inject_tag: json:"cover"
     ImageCollection cover = 6;
     //@inject_tag: validate:"omitempty,url" json:"url"
     string url = 7;
@@ -849,7 +849,7 @@ message KeyProduct {
     google.protobuf.Timestamp created_at = 12;
     //@inject_tag: json:"updated_at"
     google.protobuf.Timestamp updated_at = 13;
-    //@inject_tag: validate:"omitempty,dive" json:"cover"
+    //@inject_tag: json:"cover"
     ImageCollection cover = 14;
     //@inject_tag: validate:"omitempty,url" json:"url"
     string url = 15;
@@ -864,9 +864,9 @@ message KeyProduct {
 }
 
 message ImageCollection {
-    //@inject_tag: validate:"dive,omitempty,uri" json:"images"
+    //@inject_tag: validate:"omitempty,uri" json:"images"
     LocalizedUrl images = 1;
-    //@inject_tag: validate:"dive,omitempty,uri" json:"use_one_for_all"
+    //@inject_tag: validate:"omitempty,uri" json:"use_one_for_all"
     bool use_one_for_all = 2;
 }
 
