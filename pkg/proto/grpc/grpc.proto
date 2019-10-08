@@ -298,7 +298,7 @@ message CreateOrUpdateKeyProductRequest {
     map<string, string> long_description = 4;
     //@inject_tag: validate:"required,max=255"
     string sku = 5;
-    //@inject_tag: validate:"dive" json:"cover"
+    //@inject_tag: validate:"omitempty,dive" json:"cover"
     ImageCollection cover = 6;
     //@inject_tag: validate:"omitempty,url" json:"url"
     string url = 7;
