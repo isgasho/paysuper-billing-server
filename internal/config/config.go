@@ -151,3 +151,7 @@ func (cfg *Config) GetUserConfirmEmailUrl(params map[string]string) string {
 
 	return cfg.EmailConfirmUrlParsed.String()
 }
+
+func (m *PaymentSystemConfig) GetCardPayApiUrl() string {
+	return m.CardPayApiUrl
+}

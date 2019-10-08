@@ -57,7 +57,6 @@ func (suite *FinanceTestSuite) SetupTest() {
 		Group:            "BANKCARD",
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
-		Currencies:       []string{"RUB", "USD", "EUR"},
 		ExternalId:       "BANKCARD",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
 			"RUB": {
@@ -177,7 +176,6 @@ func (suite *FinanceTestSuite) SetupTest() {
 		Group:            "QIWI",
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
-		Currencies:       []string{"RUB", "USD", "EUR"},
 		ExternalId:       "QIWI",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
 			"RUB": {
@@ -193,7 +191,6 @@ func (suite *FinanceTestSuite) SetupTest() {
 		Group:            "BITCOIN",
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
-		Currencies:       []string{"RUB", "USD", "EUR"},
 		ExternalId:       "BITCOIN",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
 			"RUB": {
@@ -212,7 +209,7 @@ func (suite *FinanceTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), )
+	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK())
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)

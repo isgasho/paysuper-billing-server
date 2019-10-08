@@ -35,7 +35,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		AccountingPeriod:   "every-day",
 		Country:            "",
 		IsActive:           true,
-		Handler:            "cardpay",
+		Handler:            paymentSystemHandlerCardPayMock,
 	}
 
 	pmBankCard := &billing.PaymentMethod{
@@ -44,7 +44,6 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		Group:            "BANKCARD",
 		MinPaymentAmount: 10,
 		MaxPaymentAmount: 15000,
-		Currencies:       []string{"RUB", "USD", "EUR"},
 		ExternalId:       "BANKCARD",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
 			"RUB": {
@@ -136,7 +135,6 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		Percent:        0.10,
 		FixAmount:      0.15,
 	}
-
 	sysCost2 := &billing.MoneyBackCostSystem{
 		Name:           "MASTERCARD",
 		PayoutCurrency: "RUB",
@@ -148,7 +146,6 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		Percent:        0.10,
 		FixAmount:      0.15,
 	}
-
 	sysCost3 := &billing.MoneyBackCostSystem{
 		Name:           "MASTERCARD",
 		PayoutCurrency: "USD",
@@ -160,7 +157,6 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		Percent:        0.10,
 		FixAmount:      0.15,
 	}
-
 	sysCost4 := &billing.MoneyBackCostSystem{
 		Name:           "MASTERCARD",
 		PayoutCurrency: "USD",
@@ -172,7 +168,6 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		Percent:        0.10,
 		FixAmount:      0.15,
 	}
-
 	sysCost5 := &billing.MoneyBackCostSystem{
 		Name:           "MASTERCARD",
 		PayoutCurrency: "USD",
@@ -184,7 +179,6 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		Percent:        0.10,
 		FixAmount:      0.15,
 	}
-
 	sysCost6 := &billing.MoneyBackCostSystem{
 		Name:           "MASTERCARD",
 		PayoutCurrency: "RUB",
@@ -196,7 +190,6 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		Percent:        0.10,
 		FixAmount:      0.15,
 	}
-
 	sysCost7 := &billing.MoneyBackCostSystem{
 		Name:           "MASTERCARD",
 		PayoutCurrency: "USD",
@@ -208,7 +201,6 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		Percent:        0.10,
 		FixAmount:      0.15,
 	}
-
 	sysCost8 := &billing.MoneyBackCostSystem{
 		Name:           "MASTERCARD",
 		PayoutCurrency: "USD",
@@ -251,8 +243,21 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		FixAmount:         0.01,
 		FixAmountCurrency: "USD",
 	}
+	paymentSysCost4 := &billing.PaymentChannelCostSystem{
+		Name:              "VISA",
+		Region:            "Russia",
+		Country:           "RU",
+		Percent:           0.015,
+		FixAmount:         0.01,
+		FixAmountCurrency: "USD",
+	}
 
-	err = service.paymentChannelCostSystem.MultipleInsert([]*billing.PaymentChannelCostSystem{paymentSysCost1, paymentSysCost2, paymentSysCost3})
+	err = service.paymentChannelCostSystem.MultipleInsert([]*billing.PaymentChannelCostSystem{
+		paymentSysCost1,
+		paymentSysCost2,
+		paymentSysCost3,
+		paymentSysCost4,
+	})
 
 	if err != nil {
 		suite.FailNow("Insert PaymentChannelCostSystem test data failed", "%v", err)
@@ -311,7 +316,7 @@ func helperCreateMerchant(
 		Tariff: &billing.MerchantTariffRates{
 			Region: "USD",
 			Chargeback: &billing.TariffRatesItem{
-				FixedFee: 1,
+				FixedFee:         1,
 				FixedFeeCurrency: "USD",
 				IsPaidByMerchant: true,
 			},
@@ -322,7 +327,7 @@ func helperCreateMerchant(
 				{Method: "VISA"},
 			},
 			Payout: &billing.TariffRatesItem{
-				FixedFee: 1,
+				FixedFee:         1,
 				FixedFeeCurrency: "USD",
 				IsPaidByMerchant: true,
 			},
