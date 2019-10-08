@@ -83,6 +83,8 @@ It has these top-level messages:
 	PlatformPriceInfo
 	ProductPriceInfo
 	KeyProduct
+	ImageCollection
+	LocalizedUrl
 	PlatformPrice
 	Platform
 	Product
@@ -219,6 +221,8 @@ It has these top-level messages:
 	OrderReceiptRequest
 	OrderReceiptResponse
 	GetProductResponse
+	GetPriceGroupByRegionResponse
+	GetPriceGroupByRegionRequest
 */
 package grpc
 
