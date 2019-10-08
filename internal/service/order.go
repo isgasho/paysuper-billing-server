@@ -1315,7 +1315,7 @@ func (s *Service) updateOrder(order *billing.Order) error {
 		if ps == constant.OrderPublicStatusRefunded {
 			s.sendMailWithRefund(order)
 		} else if ps != constant.OrderPublicStatusChargeback {
-			s.sendMailWithReceipt(context.TODO(), order)
+			s.sendMailWithReceipt(order)
 		}
 		s.orderNotifyMerchant(order)
 	}
