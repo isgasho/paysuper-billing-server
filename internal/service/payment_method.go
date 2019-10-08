@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -13,9 +13,10 @@ import (
 )
 
 const (
-	cachePaymentMethodId    = "payment_method:id:%s"
-	cachePaymentMethodGroup = "payment_method:group:%s"
-	cachePaymentMethodAll   = "payment_method:all"
+	cachePaymentMethodId       = "payment_method:id:%s"
+	cachePaymentMethodGroup    = "payment_method:group:%s"
+	cachePaymentMethodAll      = "payment_method:all"
+	cachePaymentMethodCurrency = "payment_method:currency:%s"
 
 	collectionPaymentMethod = "payment_method"
 
@@ -23,8 +24,11 @@ const (
 	paymentMethodErrorUnknownMethod              = "payment method is unknown"
 	paymentMethodErrorNotFoundProductionSettings = "payment method is not contain requesting settings"
 	paymentMethodErrorSettings                   = "payment method is not contain settings for test"
-	paymentMethodErrorBankingSettings            = "merchant dont have banking settings"
 )
+
+type PaymentMethods struct {
+	PaymentMethods []*billing.PaymentMethod `json:"payment_methods"`
+}
 
 func (s *Service) CreateOrUpdatePaymentMethod(
 	ctx context.Context,
@@ -75,7 +79,6 @@ func (s *Service) CreateOrUpdatePaymentMethod(
 		pm.IsActive = req.IsActive
 		pm.Group = req.Group
 		pm.Type = req.Type
-		pm.Currencies = req.Currencies
 		pm.AccountRegexp = req.AccountRegexp
 		pm.MaxPaymentAmount = req.MaxPaymentAmount
 		pm.MinPaymentAmount = req.MinPaymentAmount
@@ -297,13 +300,13 @@ func (s *Service) DeletePaymentMethodTestSettings(
 
 type PaymentMethodInterface interface {
 	GetAll() (map[string]*billing.PaymentMethod, error)
-	Groups() (map[string]map[string]*billing.PaymentMethod, error)
-	GetByGroupAndCurrency(string, string) (*billing.PaymentMethod, error)
+	GetByGroupAndCurrency(project *billing.Project, group string, currency string) (*billing.PaymentMethod, error)
 	GetById(string) (*billing.PaymentMethod, error)
 	MultipleInsert([]*billing.PaymentMethod) error
 	Insert(*billing.PaymentMethod) error
 	Update(*billing.PaymentMethod) error
-	GetPaymentSettings(*billing.PaymentMethod, *billing.Merchant, *billing.Project) (*billing.PaymentMethodParams, error)
+	GetPaymentSettings(paymentMethod *billing.PaymentMethod, currency string, project *billing.Project) (*billing.PaymentMethodParams, error)
+	ListByCurrency(project *billing.Project, currency string) ([]*billing.PaymentMethod, error)
 }
 
 type paymentMethods struct {
@@ -341,38 +344,28 @@ func (h *PaymentMethod) GetAll() (map[string]*billing.PaymentMethod, error) {
 	return c.Methods, nil
 }
 
-func (h *PaymentMethod) Groups() (map[string]map[string]*billing.PaymentMethod, error) {
-	pool, err := h.GetAll()
-	if err != nil {
-		return nil, err
-	}
-	if pool == nil {
-		return nil, nil
-	}
-
-	groups := make(map[string]map[string]*billing.PaymentMethod, len(pool))
-	for _, r := range pool {
-		group := make(map[string]*billing.PaymentMethod, len(r.Currencies))
-		for _, v := range r.Currencies {
-			group[v] = r
-		}
-		groups[r.Group] = group
-	}
-
-	return groups, nil
-}
-
-func (h *PaymentMethod) GetByGroupAndCurrency(group string, currency string) (*billing.PaymentMethod, error) {
-	var c billing.PaymentMethod
+func (h *PaymentMethod) GetByGroupAndCurrency(
+	project *billing.Project,
+	group string,
+	currency string,
+) (*billing.PaymentMethod, error) {
+	var c *billing.PaymentMethod
 	key := fmt.Sprintf(cachePaymentMethodGroup, group)
+	err := h.svc.cacher.Get(key, &c)
 
-	if err := h.svc.cacher.Get(key, c); err == nil {
-		return &c, err
+	if err == nil {
+		return c, nil
 	}
 
-	err := h.svc.db.Collection(collectionPaymentMethod).
-		Find(bson.M{"group_alias": group, "currencies": currency}).
-		One(&c)
+	field := "test_settings"
+
+	if project.IsProduction() {
+		field = "production_settings"
+	}
+
+	query := bson.M{"group_alias": group, field: bson.M{"$elemMatch": bson.M{"currency": currency}}}
+	err = h.svc.db.Collection(collectionPaymentMethod).Find(query).One(&c)
+
 	if err != nil {
 		return nil, fmt.Errorf(errorNotFound, collectionPaymentMethod)
 	}
@@ -381,7 +374,7 @@ func (h *PaymentMethod) GetByGroupAndCurrency(group string, currency string) (*b
 		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", key, "data", c)
 	}
 
-	return &c, nil
+	return c, nil
 }
 
 func (h *PaymentMethod) GetById(id string) (*billing.PaymentMethod, error) {
@@ -458,13 +451,9 @@ func (h *PaymentMethod) Update(pm *billing.PaymentMethod) error {
 
 func (h *PaymentMethod) GetPaymentSettings(
 	paymentMethod *billing.PaymentMethod,
-	merchant *billing.Merchant,
+	currency string,
 	project *billing.Project,
 ) (*billing.PaymentMethodParams, error) {
-	if merchant == nil || merchant.Banking == nil || merchant.Banking.Currency == "" {
-		return nil, errors.New(paymentMethodErrorBankingSettings)
-	}
-
 	settings := paymentMethod.TestSettings
 
 	if project.IsProduction() == true {
@@ -472,15 +461,65 @@ func (h *PaymentMethod) GetPaymentSettings(
 	}
 
 	if settings == nil {
-		return nil, errors.New(paymentMethodErrorSettings)
+		return nil, orderErrorPaymentMethodEmptySettings
 	}
 
-	if _, ok := settings[merchant.Banking.Currency]; !ok {
-		return nil, errors.New(paymentMethodErrorNotFoundProductionSettings)
+	setting, ok := settings[currency]
+
+	if !ok || !setting.IsSettingComplete() {
+		return nil, orderErrorPaymentMethodEmptySettings
 	}
 
-	result := settings[merchant.Banking.Currency]
-	result.Currency = merchant.Banking.Currency
+	setting.Currency = currency
 
-	return result, nil
+	return setting, nil
+}
+
+func (h *PaymentMethod) ListByCurrency(project *billing.Project, currency string) ([]*billing.PaymentMethod, error) {
+	val := new(PaymentMethods)
+	key := fmt.Sprintf(cachePaymentMethodCurrency, currency)
+	err := h.svc.cacher.Get(key, &val)
+
+	if err == nil {
+		return val.PaymentMethods, nil
+	}
+
+	field := "test_settings"
+
+	if project.IsProduction() {
+		field = "production_settings"
+	}
+
+	query := bson.M{field: bson.M{"$elemMatch": bson.M{"currency": currency}}}
+	err = h.svc.db.Collection(collectionPaymentMethod).Find(query).All(&val.PaymentMethods)
+
+	if err != nil {
+		if err != mgo.ErrNotFound {
+			zap.L().Error(
+				pkg.ErrorDatabaseQueryFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, collectionPaymentMethod),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			)
+
+			return nil, orderErrorUnknown
+		}
+
+		return nil, orderErrorPaymentMethodsNotFound
+	}
+
+	err = h.svc.cacher.Set(key, val, 0)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
+			zap.String(pkg.ErrorCacheFieldKey, key),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, val),
+		)
+		return nil, orderErrorUnknown
+	}
+
+	return val.PaymentMethods, nil
 }
