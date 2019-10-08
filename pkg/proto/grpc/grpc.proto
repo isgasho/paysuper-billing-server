@@ -862,7 +862,7 @@ message KeyProduct {
 message ImageCollection {
     //@inject_tag: validate:"omitempty,uri" json:"images"
     LocalizedUrl images = 1;
-    //@inject_tag: validate:"omitempty,uri" json:"use_one_for_all"
+    //@inject_tag: json:"use_one_for_all"
     bool use_one_for_all = 2;
 }
 
