@@ -1682,7 +1682,7 @@ message OrderViewPrivate {
     string currency = 4;
     // @inject_tag: json:"project" bson:"project"
     ProjectOrder project = 5;
-    // @inject_tag: bson:"created_at" bson:"created_at"
+    // @inject_tag: json:"created_at" bson:"created_at"
     google.protobuf.Timestamp created_at = 6;
     // @inject_tag: json:"transaction" bson:"pm_order_id"
     string transaction = 7; // unique order id in payment system
