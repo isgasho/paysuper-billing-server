@@ -33,13 +33,13 @@ func (_m *PaymentMethodInterface) GetAll() (map[string]*billing.PaymentMethod, e
 	return r0, r1
 }
 
-// GetByGroupAndCurrency provides a mock function with given fields: _a0, _a1
-func (_m *PaymentMethodInterface) GetByGroupAndCurrency(_a0 string, _a1 string) (*billing.PaymentMethod, error) {
-	ret := _m.Called(_a0, _a1)
+// GetByGroupAndCurrency provides a mock function with given fields: project, group, currency
+func (_m *PaymentMethodInterface) GetByGroupAndCurrency(project *billing.Project, group string, currency string) (*billing.PaymentMethod, error) {
+	ret := _m.Called(project, group, currency)
 
 	var r0 *billing.PaymentMethod
-	if rf, ok := ret.Get(0).(func(string, string) *billing.PaymentMethod); ok {
-		r0 = rf(_a0, _a1)
+	if rf, ok := ret.Get(0).(func(*billing.Project, string, string) *billing.PaymentMethod); ok {
+		r0 = rf(project, group, currency)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*billing.PaymentMethod)
@@ -47,8 +47,8 @@ func (_m *PaymentMethodInterface) GetByGroupAndCurrency(_a0 string, _a1 string) 
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(_a0, _a1)
+	if rf, ok := ret.Get(1).(func(*billing.Project, string, string) error); ok {
+		r1 = rf(project, group, currency)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -79,13 +79,13 @@ func (_m *PaymentMethodInterface) GetById(_a0 string) (*billing.PaymentMethod, e
 	return r0, r1
 }
 
-// GetPaymentSettings provides a mock function with given fields: _a0, _a1, _a2
-func (_m *PaymentMethodInterface) GetPaymentSettings(_a0 *billing.PaymentMethod, _a1 *billing.Merchant, _a2 *billing.Project) (*billing.PaymentMethodParams, error) {
-	ret := _m.Called(_a0, _a1, _a2)
+// GetPaymentSettings provides a mock function with given fields: paymentMethod, currency, project
+func (_m *PaymentMethodInterface) GetPaymentSettings(paymentMethod *billing.PaymentMethod, currency string, project *billing.Project) (*billing.PaymentMethodParams, error) {
+	ret := _m.Called(paymentMethod, currency, project)
 
 	var r0 *billing.PaymentMethodParams
-	if rf, ok := ret.Get(0).(func(*billing.PaymentMethod, *billing.Merchant, *billing.Project) *billing.PaymentMethodParams); ok {
-		r0 = rf(_a0, _a1, _a2)
+	if rf, ok := ret.Get(0).(func(*billing.PaymentMethod, string, *billing.Project) *billing.PaymentMethodParams); ok {
+		r0 = rf(paymentMethod, currency, project)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*billing.PaymentMethodParams)
@@ -93,31 +93,8 @@ func (_m *PaymentMethodInterface) GetPaymentSettings(_a0 *billing.PaymentMethod,
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*billing.PaymentMethod, *billing.Merchant, *billing.Project) error); ok {
-		r1 = rf(_a0, _a1, _a2)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// Groups provides a mock function with given fields:
-func (_m *PaymentMethodInterface) Groups() (map[string]map[string]*billing.PaymentMethod, error) {
-	ret := _m.Called()
-
-	var r0 map[string]map[string]*billing.PaymentMethod
-	if rf, ok := ret.Get(0).(func() map[string]map[string]*billing.PaymentMethod); ok {
-		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(map[string]map[string]*billing.PaymentMethod)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
+	if rf, ok := ret.Get(1).(func(*billing.PaymentMethod, string, *billing.Project) error); ok {
+		r1 = rf(paymentMethod, currency, project)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -137,6 +114,29 @@ func (_m *PaymentMethodInterface) Insert(_a0 *billing.PaymentMethod) error {
 	}
 
 	return r0
+}
+
+// ListByCurrency provides a mock function with given fields: project, currency
+func (_m *PaymentMethodInterface) ListByCurrency(project *billing.Project, currency string) ([]*billing.PaymentMethod, error) {
+	ret := _m.Called(project, currency)
+
+	var r0 []*billing.PaymentMethod
+	if rf, ok := ret.Get(0).(func(*billing.Project, string) []*billing.PaymentMethod); ok {
+		r0 = rf(project, currency)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*billing.PaymentMethod)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*billing.Project, string) error); ok {
+		r1 = rf(project, currency)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // MultipleInsert provides a mock function with given fields: _a0

@@ -110,7 +110,6 @@ func (m *OrderUser) IsIdentified() bool {
 
 func (m *PaymentMethod) IsValid() bool {
 	return m.ExternalId != "" &&
-		m.Currencies != nil &&
 		m.Type != "" &&
 		m.Group != "" &&
 		m.Name != "" &&
@@ -251,4 +250,8 @@ func (pd *PayoutDocument) IsMerchantSignature(signatureId string) bool {
 
 func (pd *PayoutDocument) IsFullySigned() bool {
 	return pd.HasMerchantSignature == true && pd.HasPspSignature == true
+}
+
+func (m *PaymentMethodParams) IsSettingComplete() bool {
+	return m.TerminalId != "" && m.Secret != "" && m.SecretCallback != ""
 }

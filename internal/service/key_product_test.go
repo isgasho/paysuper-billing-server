@@ -61,16 +61,19 @@ func (suite *KeyProductTestSuite) SetupTest() {
 		Id:       bson.NewObjectId().Hex(),
 		Region:   "RUB",
 		Currency: "RUB",
+		IsActive: true,
 	}
 	pgUsd := &billing.PriceGroup{
 		Id:       bson.NewObjectId().Hex(),
 		Region:   "USD",
 		Currency: "USD",
+		IsActive: true,
 	}
 	pgEur := &billing.PriceGroup{
 		Id:       bson.NewObjectId().Hex(),
 		Region:   "EUR",
 		Currency: "EUR",
+		IsActive: true,
 	}
 	if err != nil {
 		suite.FailNow("Insert currency test data failed", "%v", err)
@@ -117,7 +120,12 @@ func (suite *KeyProductTestSuite) Test_GetKeyProductInfo() {
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		LongDescription: map[string]string{"en": "Super game steam keys"},
 		Url:             "http://test.ru/dffdsfsfs",
-		Images:          []string{"/home/image.jpg"},
+		Cover:          &grpc.ImageCollection{
+			UseOneForAll: false,
+			Images: &grpc.LocalizedUrl{
+			En: "/home/image.jpg",
+			},
+		},
 		MerchantId:      merchantId,
 		ProjectId:       projectId,
 		Platforms: []*grpc.PlatformPrice{
@@ -230,6 +238,8 @@ func (suite *KeyProductTestSuite) Test_GetPlatforms() {
 	}, rsp))
 	shouldBe.EqualValues(200, rsp.Status)
 	shouldBe.NotEmpty(rsp.Platforms)
+	shouldBe.EqualValues(9, len(rsp.Platforms))
+	shouldBe.Equal(rsp.Platforms[0], availablePlatforms["steam"])
 
 	rsp = &grpc.ListPlatformsResponse{}
 	shouldBe.Nil(suite.service.GetPlatforms(context.TODO(), &grpc.ListPlatformsRequest{
@@ -259,7 +269,12 @@ func (suite *KeyProductTestSuite) Test_GetKeyProduct() {
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		LongDescription: map[string]string{"en": "Super game steam keys"},
 		Url:             "http://test.ru/dffdsfsfs",
-		Images:          []string{"/home/image.jpg"},
+		Cover:          &grpc.ImageCollection{
+			UseOneForAll: false,
+			Images: &grpc.LocalizedUrl{
+				En: "/home/image.jpg",
+			},
+		},
 		MerchantId:      merchantId,
 		ProjectId:       projectId,
 		Metadata: map[string]string{
@@ -288,7 +303,7 @@ func (suite *KeyProductTestSuite) Test_GetKeyProduct() {
 	shouldBe.Equal(res.Description, product.Description)
 	shouldBe.Equal(res.LongDescription, product.LongDescription)
 	shouldBe.Equal(res.Url, product.Url)
-	shouldBe.Equal(res.Images, product.Images)
+	shouldBe.Equal(res.Cover.Images.En, product.Cover.Images.En)
 	shouldBe.Equal(res.Metadata, product.Metadata)
 	shouldBe.NotNil(product.UpdatedAt)
 	shouldBe.NotNil(product.CreatedAt)
@@ -319,7 +334,12 @@ func (suite *KeyProductTestSuite) Test_CreateOrUpdateKeyProduct() {
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		LongDescription: map[string]string{"en": "Super game steam keys"},
 		Url:             "http://test.ru/dffdsfsfs",
-		Images:          []string{"/home/image.jpg"},
+		Cover:          &grpc.ImageCollection{
+			UseOneForAll: false,
+			Images: &grpc.LocalizedUrl{
+				En: "/home/image.jpg",
+			},
+		},
 		MerchantId:      merchantId,
 		ProjectId:       projectId,
 		Metadata: map[string]string{
@@ -340,7 +360,7 @@ func (suite *KeyProductTestSuite) Test_CreateOrUpdateKeyProduct() {
 	shouldBe.Equal(res.Description, req.Description)
 	shouldBe.Equal(res.LongDescription, req.LongDescription)
 	shouldBe.Equal(res.Url, req.Url)
-	shouldBe.Equal(res.Images, req.Images)
+	shouldBe.Equal(res.Cover.Images.En, req.Cover.Images.En)
 	shouldBe.Equal(res.Metadata, req.Metadata)
 	shouldBe.NotNil(res.UpdatedAt)
 	shouldBe.NotNil(res.CreatedAt)
@@ -472,7 +492,12 @@ func (suite *KeyProductTestSuite) createKeyProduct() *grpc.KeyProduct {
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		LongDescription: map[string]string{"en": "Super game steam keys"},
 		Url:             "http://test.ru/dffdsfsfs",
-		Images:          []string{"/home/image.jpg"},
+		Cover:          &grpc.ImageCollection{
+			UseOneForAll: false,
+			Images: &grpc.LocalizedUrl{
+				En: "/home/image.jpg",
+			},
+		},
 		MerchantId:      merchantId,
 		ProjectId:       projectId,
 		Platforms: []*grpc.PlatformPrice{

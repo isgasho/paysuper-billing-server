@@ -11,20 +11,20 @@ type PaymentSystem struct {
 	mock.Mock
 }
 
-// CreatePayment provides a mock function with given fields: _a0
-func (_m *PaymentSystem) CreatePayment(_a0 map[string]string) (string, error) {
-	ret := _m.Called(_a0)
+// CreatePayment provides a mock function with given fields: order, requisites
+func (_m *PaymentSystem) CreatePayment(order *billing.Order, requisites map[string]string) (string, error) {
+	ret := _m.Called(order, requisites)
 
 	var r0 string
-	if rf, ok := ret.Get(0).(func(map[string]string) string); ok {
-		r0 = rf(_a0)
+	if rf, ok := ret.Get(0).(func(*billing.Order, map[string]string) string); ok {
+		r0 = rf(order, requisites)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(map[string]string) error); ok {
-		r1 = rf(_a0)
+	if rf, ok := ret.Get(1).(func(*billing.Order, map[string]string) error); ok {
+		r1 = rf(order, requisites)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -32,13 +32,13 @@ func (_m *PaymentSystem) CreatePayment(_a0 map[string]string) (string, error) {
 	return r0, r1
 }
 
-// CreateRefund provides a mock function with given fields: refund
-func (_m *PaymentSystem) CreateRefund(refund *billing.Refund) error {
-	ret := _m.Called(refund)
+// CreateRefund provides a mock function with given fields: order, refund
+func (_m *PaymentSystem) CreateRefund(order *billing.Order, refund *billing.Refund) error {
+	ret := _m.Called(order, refund)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(*billing.Refund) error); ok {
-		r0 = rf(refund)
+	if rf, ok := ret.Get(0).(func(*billing.Order, *billing.Refund) error); ok {
+		r0 = rf(order, refund)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -74,13 +74,13 @@ func (_m *PaymentSystem) IsRecurringCallback(request proto.Message) bool {
 	return r0
 }
 
-// ProcessPayment provides a mock function with given fields: request, rawRequest, signature
-func (_m *PaymentSystem) ProcessPayment(request proto.Message, rawRequest string, signature string) error {
-	ret := _m.Called(request, rawRequest, signature)
+// ProcessPayment provides a mock function with given fields: order, message, raw, signature
+func (_m *PaymentSystem) ProcessPayment(order *billing.Order, message proto.Message, raw string, signature string) error {
+	ret := _m.Called(order, message, raw, signature)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(proto.Message, string, string) error); ok {
-		r0 = rf(request, rawRequest, signature)
+	if rf, ok := ret.Get(0).(func(*billing.Order, proto.Message, string, string) error); ok {
+		r0 = rf(order, message, raw, signature)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -88,13 +88,13 @@ func (_m *PaymentSystem) ProcessPayment(request proto.Message, rawRequest string
 	return r0
 }
 
-// ProcessRefund provides a mock function with given fields: refund, message, raw, signature
-func (_m *PaymentSystem) ProcessRefund(refund *billing.Refund, message proto.Message, raw string, signature string) error {
-	ret := _m.Called(refund, message, raw, signature)
+// ProcessRefund provides a mock function with given fields: order, refund, message, raw, signature
+func (_m *PaymentSystem) ProcessRefund(order *billing.Order, refund *billing.Refund, message proto.Message, raw string, signature string) error {
+	ret := _m.Called(order, refund, message, raw, signature)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(*billing.Refund, proto.Message, string, string) error); ok {
-		r0 = rf(refund, message, raw, signature)
+	if rf, ok := ret.Get(0).(func(*billing.Order, *billing.Refund, proto.Message, string, string) error); ok {
+		r0 = rf(order, refund, message, raw, signature)
 	} else {
 		r0 = ret.Error(0)
 	}

@@ -159,22 +159,23 @@ type MgoCommissionBilling struct {
 }
 
 type MgoOrderProject struct {
-	Id                   bson.ObjectId   `bson:"_id"`
-	MerchantId           bson.ObjectId   `bson:"merchant_id"`
-	Name                 []*MgoMultiLang `bson:"name"`
-	UrlSuccess           string          `bson:"url_success"`
-	UrlFail              string          `bson:"url_fail"`
-	NotifyEmails         []string        `bson:"notify_emails"`
-	SecretKey            string          `bson:"secret_key"`
-	SendNotifyEmail      bool            `bson:"send_notify_email"`
-	UrlCheckAccount      string          `bson:"url_check_account"`
-	UrlProcessPayment    string          `bson:"url_process_payment"`
-	CallbackProtocol     string          `bson:"callback_protocol"`
-	UrlChargebackPayment string          `bson:"url_chargeback_payment"`
-	UrlCancelPayment     string          `bson:"url_cancel_payment"`
-	UrlFraudPayment      string          `bson:"url_fraud_payment"`
-	UrlRefundPayment     string          `bson:"url_refund_payment"`
-	Status               int32           `bson:"status"`
+	Id                      bson.ObjectId   `bson:"_id"`
+	MerchantId              bson.ObjectId   `bson:"merchant_id"`
+	Name                    []*MgoMultiLang `bson:"name"`
+	UrlSuccess              string          `bson:"url_success"`
+	UrlFail                 string          `bson:"url_fail"`
+	NotifyEmails            []string        `bson:"notify_emails"`
+	SecretKey               string          `bson:"secret_key"`
+	SendNotifyEmail         bool            `bson:"send_notify_email"`
+	UrlCheckAccount         string          `bson:"url_check_account"`
+	UrlProcessPayment       string          `bson:"url_process_payment"`
+	CallbackProtocol        string          `bson:"callback_protocol"`
+	UrlChargebackPayment    string          `bson:"url_chargeback_payment"`
+	UrlCancelPayment        string          `bson:"url_cancel_payment"`
+	UrlFraudPayment         string          `bson:"url_fraud_payment"`
+	UrlRefundPayment        string          `bson:"url_refund_payment"`
+	Status                  int32           `bson:"status"`
+	MerchantRoyaltyCurrency string          `bson:"merchant_royalty_currency"`
 }
 
 type MgoOrderPaymentMethod struct {
@@ -420,6 +421,7 @@ type MgoPriceGroup struct {
 	Region        string        `bson:"region"`
 	InflationRate float64       `bson:"inflation_rate"`
 	Fraction      float64       `bson:"fraction"`
+	IsActive      bool          `bson:"is_active"`
 	CreatedAt     time.Time     `bson:"created_at"`
 	UpdatedAt     time.Time     `bson:"updated_at"`
 }
@@ -1269,6 +1271,7 @@ func (m *PriceGroup) GetBSON() (interface{}, error) {
 		Currency:      m.Currency,
 		InflationRate: m.InflationRate,
 		Fraction:      m.Fraction,
+		IsActive:      m.IsActive,
 	}
 	if len(m.Id) <= 0 {
 		st.Id = bson.NewObjectId()
@@ -1320,6 +1323,7 @@ func (m *PriceGroup) SetBSON(raw bson.Raw) error {
 	m.Currency = decoded.Currency
 	m.InflationRate = decoded.InflationRate
 	m.Fraction = decoded.Fraction
+	m.IsActive = decoded.IsActive
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 
@@ -1587,21 +1591,22 @@ func (m *Order) GetBSON() (interface{}, error) {
 		Metadata:           m.Metadata,
 		PrivateMetadata:    m.PrivateMetadata,
 		Project: &MgoOrderProject{
-			Id:                   bson.ObjectIdHex(m.Project.Id),
-			MerchantId:           bson.ObjectIdHex(m.Project.MerchantId),
-			UrlSuccess:           m.Project.UrlSuccess,
-			UrlFail:              m.Project.UrlFail,
-			NotifyEmails:         m.Project.NotifyEmails,
-			SendNotifyEmail:      m.Project.SendNotifyEmail,
-			SecretKey:            m.Project.SecretKey,
-			UrlCheckAccount:      m.Project.UrlCheckAccount,
-			UrlProcessPayment:    m.Project.UrlProcessPayment,
-			CallbackProtocol:     m.Project.CallbackProtocol,
-			UrlChargebackPayment: m.Project.UrlChargebackPayment,
-			UrlCancelPayment:     m.Project.UrlCancelPayment,
-			UrlRefundPayment:     m.Project.UrlRefundPayment,
-			UrlFraudPayment:      m.Project.UrlFraudPayment,
-			Status:               m.Project.Status,
+			Id:                      bson.ObjectIdHex(m.Project.Id),
+			MerchantId:              bson.ObjectIdHex(m.Project.MerchantId),
+			UrlSuccess:              m.Project.UrlSuccess,
+			UrlFail:                 m.Project.UrlFail,
+			NotifyEmails:            m.Project.NotifyEmails,
+			SendNotifyEmail:         m.Project.SendNotifyEmail,
+			SecretKey:               m.Project.SecretKey,
+			UrlCheckAccount:         m.Project.UrlCheckAccount,
+			UrlProcessPayment:       m.Project.UrlProcessPayment,
+			CallbackProtocol:        m.Project.CallbackProtocol,
+			UrlChargebackPayment:    m.Project.UrlChargebackPayment,
+			UrlCancelPayment:        m.Project.UrlCancelPayment,
+			UrlRefundPayment:        m.Project.UrlRefundPayment,
+			UrlFraudPayment:         m.Project.UrlFraudPayment,
+			Status:                  m.Project.Status,
+			MerchantRoyaltyCurrency: m.Project.MerchantRoyaltyCurrency,
 		},
 		ProjectOrderId:            m.ProjectOrderId,
 		ProjectAccount:            m.ProjectAccount,
@@ -1946,7 +1951,6 @@ func (m *PaymentMethod) GetBSON() (interface{}, error) {
 		ExternalId:       m.ExternalId,
 		MinPaymentAmount: m.MinPaymentAmount,
 		MaxPaymentAmount: m.MaxPaymentAmount,
-		Currencies:       m.Currencies,
 		Type:             m.Type,
 		AccountRegexp:    m.AccountRegexp,
 		IsActive:         m.IsActive,
@@ -2031,7 +2035,6 @@ func (m *PaymentMethod) SetBSON(raw bson.Raw) error {
 	m.Name = decoded.Name
 	m.Group = decoded.Group
 	m.ExternalId = decoded.ExternalId
-	m.Currencies = decoded.Currencies
 	m.MinPaymentAmount = decoded.MinPaymentAmount
 	m.MaxPaymentAmount = decoded.MaxPaymentAmount
 	m.Type = decoded.Type
@@ -4055,21 +4058,22 @@ func getPaymentMethodOrder(in *MgoOrderPaymentMethod) *PaymentMethodOrder {
 
 func getOrderProject(in *MgoOrderProject) *ProjectOrder {
 	return &ProjectOrder{
-		Id:                   in.Id.Hex(),
-		MerchantId:           in.MerchantId.Hex(),
-		UrlSuccess:           in.UrlSuccess,
-		UrlFail:              in.UrlFail,
-		NotifyEmails:         in.NotifyEmails,
-		SendNotifyEmail:      in.SendNotifyEmail,
-		SecretKey:            in.SecretKey,
-		UrlCheckAccount:      in.UrlCheckAccount,
-		UrlProcessPayment:    in.UrlProcessPayment,
-		UrlChargebackPayment: in.UrlChargebackPayment,
-		UrlCancelPayment:     in.UrlCancelPayment,
-		UrlRefundPayment:     in.UrlRefundPayment,
-		UrlFraudPayment:      in.UrlFraudPayment,
-		CallbackProtocol:     in.CallbackProtocol,
-		Status:               in.Status,
+		Id:                      in.Id.Hex(),
+		MerchantId:              in.MerchantId.Hex(),
+		UrlSuccess:              in.UrlSuccess,
+		UrlFail:                 in.UrlFail,
+		NotifyEmails:            in.NotifyEmails,
+		SendNotifyEmail:         in.SendNotifyEmail,
+		SecretKey:               in.SecretKey,
+		UrlCheckAccount:         in.UrlCheckAccount,
+		UrlProcessPayment:       in.UrlProcessPayment,
+		UrlChargebackPayment:    in.UrlChargebackPayment,
+		UrlCancelPayment:        in.UrlCancelPayment,
+		UrlRefundPayment:        in.UrlRefundPayment,
+		UrlFraudPayment:         in.UrlFraudPayment,
+		CallbackProtocol:        in.CallbackProtocol,
+		Status:                  in.Status,
+		MerchantRoyaltyCurrency: in.MerchantRoyaltyCurrency,
 	}
 }
 
