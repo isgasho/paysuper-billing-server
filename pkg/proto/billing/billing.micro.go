@@ -108,7 +108,7 @@ It has these top-level messages:
 	OrderViewMoney
 	OrderViewPublic
 	OrderViewPrivate
-	PriceGroupRecommendedPrice
+	RecommendedPrice
 	PriceTable
 	PriceTableCurrency
 	Id
