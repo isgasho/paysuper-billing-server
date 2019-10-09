@@ -2,7 +2,9 @@ package service
 
 import (
 	"github.com/globalsign/mgo/bson"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"go.uber.org/zap"
 )
 
 const (
@@ -17,11 +19,30 @@ type UserRoleServiceInterface interface {
 	UpdateAdminUser(*billing.UserRoleAdmin) error
 	GetMerchantUserByEmail(string, string) (*billing.UserRoleMerchant, error)
 	GetAdminUserByEmail(string) (*billing.UserRoleAdmin, error)
+	GetUsersForMerchants(string) ([]*billing.UserRoleMerchant, error)
 }
 
 func newUserRoleRepository(svc *Service) UserRoleServiceInterface {
 	s := &UserRoleRepository{svc: svc}
 	return s
+}
+
+func (h *UserRoleRepository) GetUsersForMerchants(merchantId string) ([]*billing.UserRoleMerchant, error) {
+	users := []*billing.UserRoleMerchant{}
+	query := bson.M{"merchant_id": bson.ObjectIdHex(merchantId)}
+	err := h.svc.db.Collection(collectionMerchantUsersTable).Find(query).All(&users)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+
+		return nil, err
+	}
+
+	return users, nil
 }
 
 func (h *UserRoleRepository) AddMerchantUser(u *billing.UserRoleMerchant) error {

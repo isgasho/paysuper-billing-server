@@ -171,6 +171,8 @@ service BillingService {
     rpc PaymentFormPlatformChanged (PaymentFormUserChangePlatformRequest) returns (EmptyResponseWithStatus) {}
 
     rpc CheckSkuAndKeyProject(CheckSkuAndKeyProjectRequest) returns (EmptyResponseWithStatus) {}
+
+    rpc GetMerchantUsers(GetMerchantUsersRequest) returns (GetMerchantUsersResponse) {}
 }
 
 message EmptyRequest {
@@ -2061,4 +2063,14 @@ message GetProductResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     Product item = 3;
+}
+
+message GetMerchantUsersRequest {
+    string merchant_id = 1;
+}
+
+message GetMerchantUsersResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    repeated billing.UserRoleMerchant users = 3;
 }
