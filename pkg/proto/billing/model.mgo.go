@@ -821,6 +821,31 @@ type MgoMerchantBalance struct {
 	CreatedAt      time.Time     `bson:"created_at"`
 }
 
+type MgoUserRoleProfile struct {
+	Id        bson.ObjectId `bson:"_id"`
+	UserId    bson.ObjectId `bson:"user_id"`
+	FirstName string        `bson:"first_name"`
+	LastName  string        `bson:"last_name"`
+	Email     string        `bson:"email"`
+	Status    string        `bson:"status"`
+	CreatedAt time.Time     `bson:"created_at"`
+	UpdatedAt time.Time     `bson:"updated_at"`
+}
+
+type MgoUserRoleProject struct {
+	ProjectId bson.ObjectId `bson:"project_id"`
+	Role      string        `bson:"role"`
+}
+
+type MgoUserRoleMerchant struct {
+	Id          bson.ObjectId      `bson:"_id"`
+	User        *UserRoleProfile   `bson:"user"`
+	MerchantId  bson.ObjectId      `bson:"merchant_id"`
+	ProjectRole []*UserRoleProject `bson:"project_role"`
+	CreatedAt   time.Time          `bson:"created_at"`
+	UpdatedAt   time.Time          `bson:"updated_at"`
+}
+
 func (m *PayoutDocument) GetBSON() (interface{}, error) {
 	st := &MgoPayoutDocument{
 		SourceId:                m.SourceId,
@@ -4183,6 +4208,62 @@ func (m *Key) GetBSON() (interface{}, error) {
 		}
 	} else {
 		st.CreatedAt = time.Now()
+	}
+
+	return st, nil
+}
+
+func (m *UserRoleMerchant) GetBSON() (interface{}, error) {
+	var err error
+
+	st := &MgoUserRoleMerchant{
+		Id:          bson.ObjectIdHex(m.Id),
+		MerchantId:  bson.ObjectIdHex(m.MerchantId),
+		User:        m.User,
+		ProjectRole: m.ProjectRole,
+	}
+
+	if m.CreatedAt != nil {
+		if st.CreatedAt, err = ptypes.Timestamp(m.CreatedAt); err != nil {
+			return nil, err
+		}
+	} else {
+		st.CreatedAt = time.Now()
+	}
+
+	if m.UpdatedAt != nil {
+		if st.UpdatedAt, err = ptypes.Timestamp(m.UpdatedAt); err != nil {
+			return nil, err
+		}
+	} else {
+		st.UpdatedAt = time.Now()
+	}
+
+	return st, nil
+}
+
+func (m *UserRoleAdmin) GetBSON() (interface{}, error) {
+	var err error
+
+	st := &MgoUserRoleMerchant{
+		Id:   bson.ObjectIdHex(m.Id),
+		User: m.User,
+	}
+
+	if m.CreatedAt != nil {
+		if st.CreatedAt, err = ptypes.Timestamp(m.CreatedAt); err != nil {
+			return nil, err
+		}
+	} else {
+		st.CreatedAt = time.Now()
+	}
+
+	if m.UpdatedAt != nil {
+		if st.UpdatedAt, err = ptypes.Timestamp(m.UpdatedAt); err != nil {
+			return nil, err
+		}
+	} else {
+		st.UpdatedAt = time.Now()
 	}
 
 	return st, nil
