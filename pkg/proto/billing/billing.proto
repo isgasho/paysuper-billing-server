@@ -2207,22 +2207,20 @@ message UserRole {
 }
 
 message UserRoleProfile {
-    //@inject_tag: json:"id" validate:"required,hexadecimal,len=24"
-    string id = 1;
     //@inject_tag: json:"-" validate:"required,hexadecimal,len=24"
-    string user_id = 2;
-    //@inject_tag: json:"first_name" validate:"required,alpha"
-    string first_name = 3;
-    //@inject_tag: json:"last_name" validate:"required,alpha"
-    string last_name = 4;
+    string user_id = 1;
+    //@inject_tag: json:"first_name" validate:"required"
+    string first_name = 2;
+    //@inject_tag: json:"last_name" validate:"required"
+    string last_name = 3;
     //@inject_tag: json:"email" validate:"required,email"
-    string email = 5;
+    string email = 4;
     //@inject_tag: json:"email" validate="oneof=invited accepted"
-    string status = 6;
+    string status = 5;
     // @inject_tag: json:"created_at"
-    google.protobuf.Timestamp created_at = 7;
+    google.protobuf.Timestamp created_at = 6;
     // @inject_tag: json:"updated_at"
-    google.protobuf.Timestamp updated_at = 8;
+    google.protobuf.Timestamp updated_at = 7;
 }
 
 message UserRoleProject {
