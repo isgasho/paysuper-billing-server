@@ -190,6 +190,8 @@ service BillingService {
     rpc GetPaylinkStatByReferrer (GetPaylinkStatCommonRequest) returns (GetPaylinkStatCommonGroupResponse) {}
     rpc GetPaylinkStatByDate (GetPaylinkStatCommonRequest) returns (GetPaylinkStatCommonGroupResponse) {}
     rpc GetPaylinkStatByUtm (GetPaylinkStatCommonRequest) returns (GetPaylinkStatCommonGroupResponse) {}
+
+    rpc GetMerchantUsers(GetMerchantUsersRequest) returns (GetMerchantUsersResponse) {}
 }
 
 message EmptyRequest {
@@ -2250,4 +2252,14 @@ message RoyaltyReportPdfUploadedRequest {
 message RoyaltyReportPdfUploadedResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
+}
+
+message GetMerchantUsersRequest {
+    string merchant_id = 1;
+}
+
+message GetMerchantUsersResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    repeated billing.UserRoleMerchant users = 3;
 }
