@@ -172,6 +172,7 @@ func (s *Service) ListProducts(ctx context.Context, req *grpc.ListProductsReques
 		req.Name,
 		int(req.Offset),
 		int(req.Limit),
+		req.Enable,
 	)
 
 	res.Limit = req.Limit
@@ -375,7 +376,7 @@ type ProductServiceInterface interface {
 	Upsert(product *grpc.Product) error
 	GetById(string) (*grpc.Product, error)
 	CountByProjectSku(string, string) (int, error)
-	List(string, string, string, string, int, int) (int32, []*grpc.Product)
+	List(string, string, string, string, int, int, int32) (int32, []*grpc.Product)
 }
 
 func newProductService(svc *Service) *Product {
@@ -436,6 +437,7 @@ func (h *Product) List(
 	name string,
 	offset int,
 	limit int,
+	enable int32,
 ) (int32, []*grpc.Product) {
 	query := bson.M{"merchant_id": bson.ObjectIdHex(merchantId), "deleted": false}
 
@@ -448,6 +450,14 @@ func (h *Product) List(
 	}
 	if name != "" {
 		query["name"] = bson.M{"$elemMatch": bson.M{"value": bson.RegEx{Pattern: name, Options: "i"}}}
+	}
+
+	if enable > 0 {
+		if enable == 1 {
+			query["enabled"] = false
+		} else {
+			query["enabled"] = true
+		}
 	}
 
 	count, err := h.svc.db.Collection(collectionProduct).Find(query).Count()

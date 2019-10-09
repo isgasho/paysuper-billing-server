@@ -22,7 +22,6 @@ It has these top-level messages:
 	MerchantCompletedSteps
 	MerchantAgreementSignatureDataSignUrl
 	MerchantAgreementSignatureData
-	MerchantTariff
 	Merchant
 	SystemNotificationStatuses
 	Notification
@@ -114,10 +113,10 @@ It has these top-level messages:
 	PriceTableCurrency
 	Id
 	RangeInt
-	MerchantTariffRatesPayment
-	MerchantTariffRatesSettingsRefundItem
-	MerchantTariffRatesSettingsItem
-	MerchantTariffRatesSettings
+	MerchantTariffRatesPayments
+	MerchantTariffRatesMoneyBack
+	TariffRatesItem
+	MerchantTariffRates
 	Key
 	PayoutDocument
 	PayoutDocumentSignatureDataSignUrl
@@ -126,7 +125,11 @@ It has these top-level messages:
 	MerchantBalance
 	OrderReceipt
 	OrderReceiptItem
-	OrderCreateByPaylink
+	HasCurrencyItem
+	LocalizedUrl
+	ImageCollection
+	ProductPrice
+	ProjectVirtualCurrency
 */
 package billing
 

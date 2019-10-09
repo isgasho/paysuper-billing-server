@@ -726,7 +726,7 @@ func (s *Service) UnPublishKeyProduct(ctx context.Context, req *grpc.UnPublishKe
 	return nil
 }
 
-func getImageByLanguage(lng string, collection *grpc.ImageCollection) string {
+func getImageByLanguage(lng string, collection *billing.ImageCollection) string {
 	if collection == nil || collection.Images == nil {
 		return ""
 	}
