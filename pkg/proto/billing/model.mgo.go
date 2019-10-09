@@ -852,6 +852,14 @@ type MgoUserRoleMerchant struct {
 	UpdatedAt   time.Time          `bson:"updated_at"`
 }
 
+type MgoUserRoleAdmin struct {
+	Id        bson.ObjectId    `bson:"_id"`
+	User      *UserRoleProfile `bson:"user"`
+	Role      string           `bson:"role"`
+	CreatedAt time.Time        `bson:"created_at"`
+	UpdatedAt time.Time        `bson:"updated_at"`
+}
+
 func (m *PayoutDocument) GetBSON() (interface{}, error) {
 	st := &MgoPayoutDocument{
 		SourceId:                m.SourceId,
@@ -4259,7 +4267,7 @@ func (m *UserRoleMerchant) GetBSON() (interface{}, error) {
 func (m *UserRoleAdmin) GetBSON() (interface{}, error) {
 	var err error
 
-	st := &MgoUserRoleMerchant{
+	st := &MgoUserRoleAdmin{
 		Id:   bson.ObjectIdHex(m.Id),
 		User: m.User,
 	}
