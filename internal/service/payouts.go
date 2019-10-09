@@ -461,8 +461,8 @@ func (s *Service) GetPayoutDocuments(
 	if req.PayoutDocumentId != "" {
 		query["_id"] = bson.ObjectIdHex(req.PayoutDocumentId)
 	} else {
-		if req.Status != "" {
-			query["status"] = req.Status
+		if len(req.Status) > 0 {
+			query["status"] = bson.M{"$in": req.Status}
 		}
 		if req.MerchantId != "" {
 			query["merchant_id"] = bson.ObjectIdHex(req.MerchantId)

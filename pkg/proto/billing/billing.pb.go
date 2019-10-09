@@ -9797,8 +9797,8 @@ type OrderViewPrivate struct {
 	Currency string `protobuf:"bytes,4,opt,name=currency,proto3" json:"currency" bson:"currency"`
 	// @inject_tag: json:"project" bson:"project"
 	Project *ProjectOrder `protobuf:"bytes,5,opt,name=project,proto3" json:"project" bson:"project"`
-	// @inject_tag: bson:"created_at" bson:"created_at"
-	CreatedAt *timestamp.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty" bson:"created_at" bson:"created_at"`
+	// @inject_tag: json:"created_at" bson:"created_at"
+	CreatedAt *timestamp.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at" bson:"created_at"`
 	// @inject_tag: json:"transaction" bson:"pm_order_id"
 	Transaction string `protobuf:"bytes,7,opt,name=transaction,proto3" json:"transaction" bson:"pm_order_id"`
 	// @inject_tag: json:"payment_method" bson:"payment_method"
