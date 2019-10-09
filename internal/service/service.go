@@ -92,6 +92,7 @@ type Service struct {
 	keyRepository              KeyRepositoryInterface
 	dashboardRepository        DashboardRepositoryInterface
 	orderRepository            OrderRepositoryInterface
+	userRoleRepository         UserRoleServiceInterface
 	centrifugo                 CentrifugoInterface
 	formatter                  paysuper_i18n.Formatter
 	reporterService            reporterProto.ReporterService
@@ -156,6 +157,7 @@ func (s *Service) Init() (err error) {
 	s.keyRepository = newKeyRepository(s)
 	s.dashboardRepository = newDashboardRepository(s)
 	s.orderRepository = newOrderRepository(s)
+	s.userRoleRepository = newUserRoleRepository(s)
 	s.centrifugo = newCentrifugo(s)
 
 	if s.cfg.AccountingCurrency == "" {
