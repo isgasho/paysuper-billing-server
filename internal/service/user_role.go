@@ -19,7 +19,7 @@ type UserRoleServiceInterface interface {
 	UpdateAdminUser(*billing.UserRoleAdmin) error
 	GetMerchantUserByEmail(string, string) (*billing.UserRoleMerchant, error)
 	GetAdminUserByEmail(string) (*billing.UserRoleAdmin, error)
-	GetUsersForMerchants(string) ([]*billing.UserRoleMerchant, error)
+	GetUsersForMerchant(string) ([]*billing.UserRoleMerchant, error)
 }
 
 func newUserRoleRepository(svc *Service) UserRoleServiceInterface {
@@ -27,7 +27,7 @@ func newUserRoleRepository(svc *Service) UserRoleServiceInterface {
 	return s
 }
 
-func (h *UserRoleRepository) GetUsersForMerchants(merchantId string) ([]*billing.UserRoleMerchant, error) {
+func (h *UserRoleRepository) GetUsersForMerchant(merchantId string) ([]*billing.UserRoleMerchant, error) {
 	users := []*billing.UserRoleMerchant{}
 	query := bson.M{"merchant_id": bson.ObjectIdHex(merchantId)}
 	err := h.svc.db.Collection(collectionMerchantUsersTable).Find(query).All(&users)
