@@ -21,7 +21,7 @@ func (s *Service) GetMerchantUsers(ctx context.Context, req *grpc.GetMerchantUse
 		return nil
 	}
 
-	users, err := s.userRoleRepository.GetUsersForMerchants(req.MerchantId)
+	users, err := s.userRoleRepository.GetUsersForMerchant(req.MerchantId)
 
 	if err != nil {
 		res.Status = pkg.ResponseStatusSystemError

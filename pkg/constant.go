@@ -298,8 +298,6 @@ const (
 	AdminUserRiskFinancial = "financial"
 	AdminUserRiskSupport   = "support"
 	AdminUserRoleReadOnly  = "read_only"
-
-
 )
 
 var (
