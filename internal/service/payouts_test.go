@@ -989,7 +989,7 @@ func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocuments_ByQuery_Ok() {
 
 	req := &grpc.GetPayoutDocumentsRequest{
 		Signed:     true,
-		Status:     "paid",
+		Status:     []string{"paid"},
 		MerchantId: suite.merchant.Id,
 		Limit:      10,
 		Offset:     0,

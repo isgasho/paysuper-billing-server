@@ -2017,8 +2017,8 @@ message UpdatePayoutDocumentRequest {
 message GetPayoutDocumentsRequest {
     //@inject_tag: query:"payout_document_id" validate:"omitempty,hexadecimal,len=24"
     string payout_document_id = 1;
-    //@inject_tag: query:"status" validate:"omitempty,oneof=skip pending in_progress paid canceled failed"
-    string status = 2;
+    //@inject_tag: query:"status[]" validate:"omitempty,dive,oneof=skip pending in_progress paid canceled failed"
+    repeated string status = 2;
     //@inject_tag: query:"merchant_id" validate:"omitempty,hexadecimal,len=24"
     string merchant_id = 3;
     //@inject_tag: query:"signed"
