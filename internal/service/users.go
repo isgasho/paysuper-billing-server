@@ -374,13 +374,12 @@ func (s *Service) GetAdminUser(
 }
 
 func (s *Service) sendInviteEmail(receiverEmail string, senderEmail string, senderFirstName string, senderLastName string, senderCompany string) error {
-	inviteLink := "/invite/member?email=" + receiverEmail
+	// TODO: What will be the address of the links? How do we transfer the parameters (to the public or to the JWT key)?
+	inviteLink := "/user/invite/member?email=" + receiverEmail
 
 	if senderCompany != defaultCompanyName {
-		inviteLink = "/invite/user?email=" + receiverEmail
+		inviteLink = "/user/invite/merchant?email=" + receiverEmail
 	}
-
-	// TODO: What will be the address of the links? How do we transfer the parameters (to the public or to the JWT key)?
 
 	payload := &postmarkSdrPkg.Payload{
 		TemplateAlias: s.cfg.EmailInviteTemplate,
