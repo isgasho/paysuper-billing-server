@@ -68,6 +68,7 @@ service BillingService {
     rpc GetOrderPrivate (GetOrderRequest) returns (GetOrderPrivateResponse) {}
     rpc FindAllOrdersPublic (ListOrdersRequest) returns (ListOrdersPublicResponse) {}
     rpc FindAllOrdersPrivate (ListOrdersRequest) returns (ListOrdersPrivateResponse) {}
+    rpc FindAllOrders (ListOrdersRequest) returns (ListOrdersResponse) {}
     rpc IsOrderCanBePaying (IsOrderCanBePayingRequest) returns (IsOrderCanBePayingResponse) {}
 
     rpc GetPriceGroup (billing.GetPriceGroupRequest) returns (billing.PriceGroup) {}
@@ -1807,6 +1808,17 @@ message ListOrdersPrivateResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     ListOrdersPrivateResponseItem Item = 3;
+}
+
+message ListOrdersResponseItem {
+    int32 count = 1;
+    repeated billing.Order items = 2;
+}
+
+message ListOrdersResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    ListOrdersResponseItem Item = 3;
 }
 
 message GetOrderPublicResponse {
