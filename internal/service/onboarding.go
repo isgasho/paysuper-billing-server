@@ -315,9 +315,9 @@ func (s *Service) ChangeMerchant(
 		merchant.Steps = &billing.MerchantCompletedSteps{}
 	}
 
-	merchant.Steps.Company = merchant.Company != nil
-	merchant.Steps.Contacts = merchant.Contacts != nil
-	merchant.Steps.Banking = merchant.Banking != nil
+	merchant.Steps.Company = merchant.IsCompanyComplete()
+	merchant.Steps.Contacts = merchant.IsContactsComplete()
+	merchant.Steps.Banking = merchant.IsBankingComplete()
 
 	if !merchant.HasPrimaryOnboardingUserName() {
 		profile := s.getOnboardingProfileBy(bson.M{"user_id": req.User.Id})
