@@ -291,6 +291,8 @@ func (s *Service) AcceptMerchantInvite(
 		return nil
 	}
 
+	// TODO: Add user to casbin
+
 	res.Status = pkg.ResponseStatusOk
 
 	return nil
@@ -325,6 +327,8 @@ func (s *Service) AcceptAdminInvite(
 		res.Message = errorUserUnableToAdd
 		return nil
 	}
+
+	// TODO: Add user to casbin
 
 	res.Status = pkg.ResponseStatusOk
 
