@@ -2131,6 +2131,7 @@ message GetPriceGroupByRegionRequest {
 }
 
 message GetMerchantUsersRequest {
+    //@inject_tag: json:"merchant_id" validate:"required"
     string merchant_id = 1;
 }
 
