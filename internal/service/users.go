@@ -60,7 +60,7 @@ func (s *Service) InviteUserMerchant(
 	req *grpc.InviteUserMerchantRequest,
 	res *grpc.InviteUserMerchantResponse,
 ) error {
-	owner, err := s.merchant.GetByUserId(req.UserId)
+	merchant, err := s.merchant.GetById(req.MerchantId)
 
 	if err != nil {
 		zap.L().Error(errorUserMerchantNotFound.Message, zap.Error(err), zap.Any("req", req))
@@ -70,7 +70,7 @@ func (s *Service) InviteUserMerchant(
 		return nil
 	}
 
-	user, err := s.userRoleRepository.GetMerchantUserByEmail(owner.Id, req.Item.User.Email)
+	user, err := s.userRoleRepository.GetMerchantUserByEmail(merchant.Id, req.Item.User.Email)
 
 	if (err != nil && err != mgo.ErrNotFound) || user != nil {
 		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req))
@@ -91,15 +91,15 @@ func (s *Service) InviteUserMerchant(
 		return nil
 	}
 
-	if err = s.sendInviteEmail(req.Item.User.Email, owner.User.Email, owner.User.FirstName, owner.User.LastName, owner.Company.Name); err != nil {
+	if err = s.sendInviteEmail(req.Item.User.Email, merchant.User.Email, merchant.User.FirstName, merchant.User.LastName, merchant.Company.Name); err != nil {
 		zap.L().Error(
 			errorUserUnableToSendInvite.Message,
 			zap.Error(err),
 			zap.String("receiverEmail", req.Item.User.Email),
-			zap.String("senderEmail", owner.User.Email),
-			zap.String("senderFirstName", owner.User.FirstName),
-			zap.String("senderLastName", owner.User.LastName),
-			zap.String("senderCompany", owner.Company.Name),
+			zap.String("senderEmail", merchant.User.Email),
+			zap.String("senderFirstName", merchant.User.FirstName),
+			zap.String("senderLastName", merchant.User.LastName),
+			zap.String("senderCompany", merchant.Company.Name),
 		)
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserUnableToSendInvite
@@ -175,7 +175,7 @@ func (s *Service) ResendInviteMerchant(
 	req *grpc.ResendInviteMerchantRequest,
 	res *grpc.EmptyResponseWithStatus,
 ) error {
-	owner, err := s.merchant.GetByUserId(req.UserId)
+	merchant, err := s.merchant.GetById(req.MerchantId)
 
 	if err != nil {
 		zap.L().Error(errorUserMerchantNotFound.Message, zap.Error(err), zap.Any("req", req))
@@ -185,7 +185,7 @@ func (s *Service) ResendInviteMerchant(
 		return nil
 	}
 
-	_, err = s.userRoleRepository.GetMerchantUserByEmail(owner.Id, req.ReceiverEmail)
+	_, err = s.userRoleRepository.GetMerchantUserByEmail(merchant.Id, req.ReceiverEmail)
 
 	if err != nil {
 		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req))
@@ -195,15 +195,15 @@ func (s *Service) ResendInviteMerchant(
 		return nil
 	}
 
-	if err = s.sendInviteEmail(req.ReceiverEmail, owner.User.Email, owner.User.FirstName, owner.User.LastName, owner.Company.Name); err != nil {
+	if err = s.sendInviteEmail(req.ReceiverEmail, merchant.User.Email, merchant.User.FirstName, merchant.User.LastName, merchant.Company.Name); err != nil {
 		zap.L().Error(
 			errorUserUnableToSendInvite.Message,
 			zap.Error(err),
 			zap.String("receiverEmail", req.ReceiverEmail),
-			zap.String("senderEmail", owner.User.Email),
-			zap.String("senderFirstName", owner.User.FirstName),
-			zap.String("senderLastName", owner.User.LastName),
-			zap.String("senderCompany", owner.Company.Name),
+			zap.String("senderEmail", merchant.User.Email),
+			zap.String("senderFirstName", merchant.User.FirstName),
+			zap.String("senderLastName", merchant.User.LastName),
+			zap.String("senderCompany", merchant.Company.Name),
 		)
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserUnableToSendInvite
