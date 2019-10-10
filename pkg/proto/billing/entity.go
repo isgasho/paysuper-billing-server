@@ -54,13 +54,13 @@ func (m *Merchant) NeedMarkESignAgreementAsSigned() bool {
 }
 
 func (m *Merchant) CanGenerateAgreement() bool {
-	return (m.Status == pkg.MerchantStatusOnReview || m.Status == pkg.MerchantStatusAgreementSigning ||
+	return (m.Status == pkg.MerchantStatusAgreementSigning ||
 		m.Status == pkg.MerchantStatusAgreementSigned) && m.Banking != nil && m.Company.Country != "" &&
 		m.Contacts != nil && m.Contacts.Authorized != nil
 }
 
 func (m *Merchant) CanChangeStatusToSigning() bool {
-	return m.Status == pkg.MerchantStatusOnReview && m.Banking != nil && m.Company.Country != "" &&
+	return m.Banking != nil && m.Company.Country != "" &&
 		m.Contacts != nil && m.Contacts.Authorized != nil
 }
 
@@ -110,7 +110,6 @@ func (m *OrderUser) IsIdentified() bool {
 
 func (m *PaymentMethod) IsValid() bool {
 	return m.ExternalId != "" &&
-		m.Currencies != nil &&
 		m.Type != "" &&
 		m.Group != "" &&
 		m.Name != "" &&
@@ -251,4 +250,8 @@ func (pd *PayoutDocument) IsMerchantSignature(signatureId string) bool {
 
 func (pd *PayoutDocument) IsFullySigned() bool {
 	return pd.HasMerchantSignature == true && pd.HasPspSignature == true
+}
+
+func (m *PaymentMethodParams) IsSettingComplete() bool {
+	return m.TerminalId != "" && m.Secret != "" && m.SecretCallback != ""
 }

@@ -77,6 +77,7 @@ service BillingService {
     rpc GetPriceGroupCurrencyByRegion (PriceGroupByRegionRequest) returns (PriceGroupCurrenciesResponse) {}
     rpc GetRecommendedPriceByPriceGroup (RecommendedPriceRequest) returns (RecommendedPriceResponse) {}
     rpc GetRecommendedPriceByConversion (RecommendedPriceRequest) returns (RecommendedPriceResponse) {}
+    rpc GetPriceGroupByRegion (GetPriceGroupByRegionRequest) returns (GetPriceGroupByRegionResponse) {}
 
     rpc SetUserNotifySales (SetUserNotifyRequest) returns (EmptyResponse) {}
     rpc SetUserNotifyNewRegion (SetUserNotifyRequest) returns (EmptyResponse) {}
@@ -171,6 +172,8 @@ service BillingService {
     rpc PaymentFormPlatformChanged (PaymentFormUserChangePlatformRequest) returns (EmptyResponseWithStatus) {}
 
     rpc CheckSkuAndKeyProject(CheckSkuAndKeyProjectRequest) returns (EmptyResponseWithStatus) {}
+
+    rpc GetMerchantUsers(GetMerchantUsersRequest) returns (GetMerchantUsersResponse) {}
 }
 
 message EmptyRequest {
@@ -297,8 +300,8 @@ message CreateOrUpdateKeyProductRequest {
     map<string, string> long_description = 4;
     //@inject_tag: validate:"required,max=255"
     string sku = 5;
-    //@inject_tag: validate:"dive,omitempty,uri" json:"images"
-    repeated string images = 6;
+    //@inject_tag: json:"cover"
+    ImageCollection cover = 6;
     //@inject_tag: validate:"omitempty,url" json:"url"
     string url = 7;
     //@inject_tag: validate:"required,alpha,len=3" json:"default_currency"
@@ -521,7 +524,7 @@ message MerchantChangeStatusRequest {
     // @inject_tag: validate:"required,hexadecimal"
     string merchant_id = 1;
     string user_id = 2;
-    // @inject_tag: validate:"omitempty,numeric,oneof=0 1 2 3 4"
+    // @inject_tag: validate:"omitempty,numeric,oneof=5 6"
     int32 status = 3;
     string message = 4;
 }
@@ -753,12 +756,8 @@ message GetMerchantByRequest {
 message ChangeMerchantDataRequest {
     // @inject_tag: validate:"required,hexadecimal,len=24"
     string merchant_id = 1;
-    // @inject_tag: validate:"omitempty,numeric,oneof=1 2"
-    int32 agreement_type = 2;
     bool has_merchant_signature = 3;
     bool has_psp_signature = 4;
-    bool agreement_sent_via_mail = 5;
-    string mail_tracking_link = 6;
 }
 
 message ChangeMerchantDataResponse {
@@ -848,8 +847,8 @@ message KeyProduct {
     google.protobuf.Timestamp created_at = 12;
     //@inject_tag: json:"updated_at"
     google.protobuf.Timestamp updated_at = 13;
-    //@inject_tag: validate:"dive,omitempty,uri" json:"images"
-    repeated string images = 14;
+    //@inject_tag: json:"cover"
+    ImageCollection cover = 14;
     //@inject_tag: validate:"omitempty,url" json:"url"
     string url = 15;
     //@inject_tag: json:"metadata"
@@ -860,6 +859,60 @@ message KeyProduct {
     google.protobuf.Timestamp published_at = 18;
     // @inject_tag: json:"pricing" validate:"required,oneof=currency manual steam default"
     string pricing = 19;
+}
+
+message ImageCollection {
+    //@inject_tag: validate:"omitempty,uri" json:"images"
+    LocalizedUrl images = 1;
+    //@inject_tag: json:"use_one_for_all"
+    bool use_one_for_all = 2;
+}
+
+message LocalizedUrl {
+    //@inject_tag: validate:"omitempty,uri" json:"en"
+    string en = 1;
+    //@inject_tag: validate:"omitempty,uri" json:"ru"
+    string ru = 2;
+    //@inject_tag: validate:"omitempty,uri" json:"es"
+    string es = 3;
+    //@inject_tag: validate:"omitempty,uri" json:"de"
+    string de = 4;
+    //@inject_tag: validate:"omitempty,uri" json:"zh"
+    string zh = 5;
+    //@inject_tag: validate:"omitempty,uri" json:"fr"
+    string fr = 6;
+    //@inject_tag: validate:"omitempty,uri" json:"ar"
+    string ar = 7;
+    //@inject_tag: validate:"omitempty,uri" json:"pt"
+    string pt = 8;
+    //@inject_tag: validate:"omitempty,uri" json:"it"
+    string it = 9;
+    //@inject_tag: validate:"omitempty,uri" json:"pl"
+    string pl = 10;
+    //@inject_tag: validate:"omitempty,uri" json:"el"
+    string el = 11;
+    //@inject_tag: validate:"omitempty,uri" json:"ko"
+    string ko = 12;
+    //@inject_tag: validate:"omitempty,uri" json:"ja"
+    string ja = 13;
+    //@inject_tag: validate:"omitempty,uri" json:"vl"
+    string vl = 14;
+    //@inject_tag: validate:"omitempty,uri" json:"he"
+    string he = 15;
+    //@inject_tag: validate:"omitempty,uri" json:"th"
+    string th = 16;
+    //@inject_tag: validate:"omitempty,uri" json:"cs"
+    string cs = 17;
+    //@inject_tag: validate:"omitempty,uri" json:"bg"
+    string bg = 18;
+    //@inject_tag: validate:"omitempty,uri" json:"fi"
+    string fi = 19;
+    //@inject_tag: validate:"omitempty,uri" json:"sv"
+    string sv = 20;
+    //@inject_tag: validate:"omitempty,uri" json:"da"
+    string da = 21;
+    //@inject_tag: validate:"omitempty,uri" json:"tr"
+    string tr = 22;
 }
 
 message PlatformPrice {
@@ -885,6 +938,8 @@ message Platform {
     string name = 2;
     //@inject_tag: json:"-"
     string icon = 3;
+    //@inject_tag: json:"-"
+    int32 order = 4;
 }
 
 message Product {
@@ -2061,4 +2116,26 @@ message GetProductResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     Product item = 3;
+}
+
+message GetPriceGroupByRegionResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    //@inject_tag: json:"group"
+    billing.PriceGroup Group = 3;
+}
+
+message GetPriceGroupByRegionRequest {
+    //@inject_tag: json:"region" validate:"required"
+    string region = 1;
+}
+
+message GetMerchantUsersRequest {
+    string merchant_id = 1;
+}
+
+message GetMerchantUsersResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    repeated billing.UserRoleMerchant users = 3;
 }

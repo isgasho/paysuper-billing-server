@@ -94,6 +94,7 @@ type BillingService interface {
 	GetPriceGroupCurrencyByRegion(ctx context.Context, in *PriceGroupByRegionRequest, opts ...client.CallOption) (*PriceGroupCurrenciesResponse, error)
 	GetRecommendedPriceByPriceGroup(ctx context.Context, in *RecommendedPriceRequest, opts ...client.CallOption) (*RecommendedPriceResponse, error)
 	GetRecommendedPriceByConversion(ctx context.Context, in *RecommendedPriceRequest, opts ...client.CallOption) (*RecommendedPriceResponse, error)
+	GetPriceGroupByRegion(ctx context.Context, in *GetPriceGroupByRegionRequest, opts ...client.CallOption) (*GetPriceGroupByRegionResponse, error)
 	SetUserNotifySales(ctx context.Context, in *SetUserNotifyRequest, opts ...client.CallOption) (*EmptyResponse, error)
 	SetUserNotifyNewRegion(ctx context.Context, in *SetUserNotifyRequest, opts ...client.CallOption) (*EmptyResponse, error)
 	CreateOrUpdatePaymentMethod(ctx context.Context, in *billing.PaymentMethod, opts ...client.CallOption) (*ChangePaymentMethodResponse, error)
@@ -168,6 +169,7 @@ type BillingService interface {
 	GetMerchantBalance(ctx context.Context, in *GetMerchantBalanceRequest, opts ...client.CallOption) (*GetMerchantBalanceResponse, error)
 	PaymentFormPlatformChanged(ctx context.Context, in *PaymentFormUserChangePlatformRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 	CheckSkuAndKeyProject(ctx context.Context, in *CheckSkuAndKeyProjectRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
+	GetMerchantUsers(ctx context.Context, in *GetMerchantUsersRequest, opts ...client.CallOption) (*GetMerchantUsersResponse, error)
 }
 
 type billingService struct {
@@ -761,6 +763,16 @@ func (c *billingService) GetRecommendedPriceByPriceGroup(ctx context.Context, in
 func (c *billingService) GetRecommendedPriceByConversion(ctx context.Context, in *RecommendedPriceRequest, opts ...client.CallOption) (*RecommendedPriceResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.GetRecommendedPriceByConversion", in)
 	out := new(RecommendedPriceResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetPriceGroupByRegion(ctx context.Context, in *GetPriceGroupByRegionRequest, opts ...client.CallOption) (*GetPriceGroupByRegionResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetPriceGroupByRegion", in)
+	out := new(GetPriceGroupByRegionResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1508,6 +1520,16 @@ func (c *billingService) CheckSkuAndKeyProject(ctx context.Context, in *CheckSku
 	return out, nil
 }
 
+func (c *billingService) GetMerchantUsers(ctx context.Context, in *GetMerchantUsersRequest, opts ...client.CallOption) (*GetMerchantUsersResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetMerchantUsers", in)
+	out := new(GetMerchantUsersResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for BillingService service
 
 type BillingServiceHandler interface {
@@ -1569,6 +1591,7 @@ type BillingServiceHandler interface {
 	GetPriceGroupCurrencyByRegion(context.Context, *PriceGroupByRegionRequest, *PriceGroupCurrenciesResponse) error
 	GetRecommendedPriceByPriceGroup(context.Context, *RecommendedPriceRequest, *RecommendedPriceResponse) error
 	GetRecommendedPriceByConversion(context.Context, *RecommendedPriceRequest, *RecommendedPriceResponse) error
+	GetPriceGroupByRegion(context.Context, *GetPriceGroupByRegionRequest, *GetPriceGroupByRegionResponse) error
 	SetUserNotifySales(context.Context, *SetUserNotifyRequest, *EmptyResponse) error
 	SetUserNotifyNewRegion(context.Context, *SetUserNotifyRequest, *EmptyResponse) error
 	CreateOrUpdatePaymentMethod(context.Context, *billing.PaymentMethod, *ChangePaymentMethodResponse) error
@@ -1643,6 +1666,7 @@ type BillingServiceHandler interface {
 	GetMerchantBalance(context.Context, *GetMerchantBalanceRequest, *GetMerchantBalanceResponse) error
 	PaymentFormPlatformChanged(context.Context, *PaymentFormUserChangePlatformRequest, *EmptyResponseWithStatus) error
 	CheckSkuAndKeyProject(context.Context, *CheckSkuAndKeyProjectRequest, *EmptyResponseWithStatus) error
+	GetMerchantUsers(context.Context, *GetMerchantUsersRequest, *GetMerchantUsersResponse) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -1705,6 +1729,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetPriceGroupCurrencyByRegion(ctx context.Context, in *PriceGroupByRegionRequest, out *PriceGroupCurrenciesResponse) error
 		GetRecommendedPriceByPriceGroup(ctx context.Context, in *RecommendedPriceRequest, out *RecommendedPriceResponse) error
 		GetRecommendedPriceByConversion(ctx context.Context, in *RecommendedPriceRequest, out *RecommendedPriceResponse) error
+		GetPriceGroupByRegion(ctx context.Context, in *GetPriceGroupByRegionRequest, out *GetPriceGroupByRegionResponse) error
 		SetUserNotifySales(ctx context.Context, in *SetUserNotifyRequest, out *EmptyResponse) error
 		SetUserNotifyNewRegion(ctx context.Context, in *SetUserNotifyRequest, out *EmptyResponse) error
 		CreateOrUpdatePaymentMethod(ctx context.Context, in *billing.PaymentMethod, out *ChangePaymentMethodResponse) error
@@ -1779,6 +1804,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetMerchantBalance(ctx context.Context, in *GetMerchantBalanceRequest, out *GetMerchantBalanceResponse) error
 		PaymentFormPlatformChanged(ctx context.Context, in *PaymentFormUserChangePlatformRequest, out *EmptyResponseWithStatus) error
 		CheckSkuAndKeyProject(ctx context.Context, in *CheckSkuAndKeyProjectRequest, out *EmptyResponseWithStatus) error
+		GetMerchantUsers(ctx context.Context, in *GetMerchantUsersRequest, out *GetMerchantUsersResponse) error
 	}
 	type BillingService struct {
 		billingService
@@ -2021,6 +2047,10 @@ func (h *billingServiceHandler) GetRecommendedPriceByPriceGroup(ctx context.Cont
 
 func (h *billingServiceHandler) GetRecommendedPriceByConversion(ctx context.Context, in *RecommendedPriceRequest, out *RecommendedPriceResponse) error {
 	return h.BillingServiceHandler.GetRecommendedPriceByConversion(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetPriceGroupByRegion(ctx context.Context, in *GetPriceGroupByRegionRequest, out *GetPriceGroupByRegionResponse) error {
+	return h.BillingServiceHandler.GetPriceGroupByRegion(ctx, in, out)
 }
 
 func (h *billingServiceHandler) SetUserNotifySales(ctx context.Context, in *SetUserNotifyRequest, out *EmptyResponse) error {
@@ -2317,4 +2347,8 @@ func (h *billingServiceHandler) PaymentFormPlatformChanged(ctx context.Context, 
 
 func (h *billingServiceHandler) CheckSkuAndKeyProject(ctx context.Context, in *CheckSkuAndKeyProjectRequest, out *EmptyResponseWithStatus) error {
 	return h.BillingServiceHandler.CheckSkuAndKeyProject(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetMerchantUsers(ctx context.Context, in *GetMerchantUsersRequest, out *GetMerchantUsersResponse) error {
+	return h.BillingServiceHandler.GetMerchantUsers(ctx, in, out)
 }

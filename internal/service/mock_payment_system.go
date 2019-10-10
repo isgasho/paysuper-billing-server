@@ -4,30 +4,95 @@ import (
 	"errors"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/paysuper/paysuper-billing-server/internal/config"
+	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
+	"github.com/stretchr/testify/mock"
+	"time"
 )
 
-type PaymentSystemMockOk struct {
-	processor *paymentProcessor
-}
-type PaymentSystemMockError struct {
-	processor *paymentProcessor
+type PaymentSystemMockOk struct{}
+type PaymentSystemMockError struct{}
+
+func NewPaymentSystemMockOk(cfg *config.PaymentSystemConfig) PaymentSystem {
+	return &PaymentSystemMockOk{}
 }
 
-func NewPaymentSystemMockOk(processor *paymentProcessor) PaymentSystem {
-	return &PaymentSystemMockOk{processor: processor}
+func NewPaymentSystemMockError(cfg *config.PaymentSystemConfig) PaymentSystem {
+	return &PaymentSystemMockError{}
 }
 
-func NewPaymentSystemMockError(processor *paymentProcessor) PaymentSystem {
-	return &PaymentSystemMockError{processor: processor}
+func NewCardPayMock(cfg *config.PaymentSystemConfig) PaymentSystem {
+	cpMock := &mocks.PaymentSystem{}
+	cpMock.On("CreatePayment", mock.Anything, mock.Anything).
+		Return(
+			func(order *billing.Order, requisites map[string]string) string {
+				order.PrivateStatus = constant.OrderStatusPaymentSystemCreate
+				return "http://localhost"
+			},
+			nil,
+		)
+	cpMock.On("ProcessPayment", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(
+			func(order *billing.Order, message proto.Message, raw, signature string) error {
+				req := message.(*billing.CardPayPaymentCallback)
+
+				t, _ := time.Parse(cardPayDateFormat, req.CallbackTime)
+				ts, _ := ptypes.TimestampProto(t)
+
+				order.PaymentMethodTxnParams = map[string]string{
+
+					"emission_country": "US",
+					"token":            "",
+					"rrn":              "",
+					"is_3ds":           "1",
+					"pan":              req.CardAccount.MaskedPan,
+					"card_holder":      "UNIT TEST",
+				}
+				order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
+				order.Transaction = req.GetId()
+				order.PaymentMethodOrderClosedAt = ts
+
+				if req.GetAmount() == 123 {
+					return newBillingServerResponseError(pkg.StatusErrorValidation, paymentSystemErrorRequestAmountOrCurrencyIsInvalid)
+				}
+
+				return nil
+			},
+			nil,
+		)
+	cpMock.On("IsRecurringCallback", mock.Anything).Return(false)
+	cpMock.On("GetRecurringId", mock.Anything).Return("0987654321")
+	cpMock.On("CreateRefund", mock.Anything, mock.Anything).
+		Return(
+			func(order *billing.Order, refund *billing.Refund) error {
+				refund.Status = pkg.RefundStatusInProgress
+				refund.ExternalId = "0987654321"
+				return nil
+			},
+			nil,
+		)
+	cpMock.On("ProcessRefund", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(
+			func(order *billing.Order, refund *billing.Refund, message proto.Message, raw, signature string) error {
+				refund.Status = pkg.RefundStatusCompleted
+				refund.ExternalId = "0987654321"
+				refund.UpdatedAt = ptypes.TimestampNow()
+				return nil
+			},
+			nil,
+		)
+	return cpMock
 }
 
-func (m *PaymentSystemMockOk) CreatePayment(map[string]string) (string, error) {
+func (m *PaymentSystemMockOk) CreatePayment(order *billing.Order, requisites map[string]string) (string, error) {
 	return "", nil
 }
 
-func (m *PaymentSystemMockOk) ProcessPayment(request proto.Message, rawRequest string, signature string) error {
+func (m *PaymentSystemMockOk) ProcessPayment(order *billing.Order, message proto.Message, raw, signature string) error {
 	return nil
 }
 
@@ -39,30 +104,25 @@ func (m *PaymentSystemMockOk) GetRecurringId(request proto.Message) string {
 	return ""
 }
 
-func (m *PaymentSystemMockOk) CreateRefund(refund *billing.Refund) error {
+func (m *PaymentSystemMockOk) CreateRefund(order *billing.Order, refund *billing.Refund) error {
 	refund.Status = pkg.RefundStatusInProgress
 	refund.ExternalId = bson.NewObjectId().Hex()
 
 	return nil
 }
 
-func (m *PaymentSystemMockOk) ProcessRefund(
-	refund *billing.Refund,
-	message proto.Message,
-	raw,
-	signature string,
-) (err error) {
+func (m *PaymentSystemMockOk) ProcessRefund(order *billing.Order, refund *billing.Refund, message proto.Message, raw, signature string) error {
 	refund.Status = pkg.RefundStatusCompleted
 	refund.ExternalId = bson.NewObjectId().Hex()
 
-	return
+	return nil
 }
 
-func (m *PaymentSystemMockError) CreatePayment(map[string]string) (string, error) {
+func (m *PaymentSystemMockError) CreatePayment(order *billing.Order, requisites map[string]string) (string, error) {
 	return "", nil
 }
 
-func (m *PaymentSystemMockError) ProcessPayment(request proto.Message, rawRequest string, signature string) error {
+func (m *PaymentSystemMockError) ProcessPayment(order *billing.Order, message proto.Message, raw, signature string) error {
 	return nil
 }
 
@@ -74,16 +134,11 @@ func (m *PaymentSystemMockError) GetRecurringId(request proto.Message) string {
 	return ""
 }
 
-func (m *PaymentSystemMockError) CreateRefund(refund *billing.Refund) error {
+func (m *PaymentSystemMockError) CreateRefund(order *billing.Order, refund *billing.Refund) error {
 	refund.Status = pkg.RefundStatusRejected
 	return errors.New(pkg.PaymentSystemErrorCreateRefundFailed)
 }
 
-func (m *PaymentSystemMockError) ProcessRefund(
-	refund *billing.Refund,
-	message proto.Message,
-	raw,
-	signature string,
-) (err error) {
+func (m *PaymentSystemMockError) ProcessRefund(order *billing.Order, refund *billing.Refund, message proto.Message, raw, signature string) error {
 	return newBillingServerResponseError(pkg.ResponseStatusBadData, paymentSystemErrorRefundRequestAmountOrCurrencyIsInvalid)
 }

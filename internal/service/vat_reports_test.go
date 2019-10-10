@@ -205,7 +205,6 @@ func (suite *VatReportsTestSuite) TestVatReports_getVatReportTimeForDate() {
 }
 
 func (suite *VatReportsTestSuite) TestVatReports_ProcessVatReports() {
-
 	amounts := []float64{100, 10}
 	currencies := []string{"RUB", "USD"}
 	countries := []string{"RU", "FI"}
@@ -256,13 +255,13 @@ func (suite *VatReportsTestSuite) TestVatReports_ProcessVatReports() {
 	assert.NotNil(suite.T(), report)
 	assert.Equal(suite.T(), report.Country, "RU")
 	assert.Equal(suite.T(), report.Currency, "RUB")
-	assert.Equal(suite.T(), report.TransactionsCount, int32(numberOfOrders))
-	assert.Equal(suite.T(), report.GrossRevenue, float64(900))
-	assert.Equal(suite.T(), report.VatAmount, float64(150))
-	assert.Equal(suite.T(), report.FeesAmount, float64(144.39))
-	assert.Equal(suite.T(), report.DeductionAmount, float64(0))
-	assert.Equal(suite.T(), report.CountryAnnualTurnover, float64(1800))
-	assert.Equal(suite.T(), report.WorldAnnualTurnover, float64(13183.80))
+	assert.EqualValues(suite.T(), report.TransactionsCount, numberOfOrders)
+	assert.EqualValues(suite.T(), report.GrossRevenue, 900)
+	assert.EqualValues(suite.T(), report.VatAmount, 150)
+	assert.EqualValues(suite.T(), report.FeesAmount, 144.39)
+	assert.EqualValues(suite.T(), report.DeductionAmount, 0)
+	assert.EqualValues(suite.T(), report.CountryAnnualTurnover, 1800)
+	assert.EqualValues(suite.T(), report.WorldAnnualTurnover, 13183.80)
 	assert.Equal(suite.T(), report.Status, pkg.VatReportStatusThreshold)
 
 	err = suite.service.GetVatReportsForCountry(context.TODO(), &grpc.VatReportsRequest{Country: "FI"}, &repRes)

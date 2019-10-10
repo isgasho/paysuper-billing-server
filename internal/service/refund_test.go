@@ -85,7 +85,6 @@ func (suite *RefundTestSuite) SetupTest() {
 		Group:            "BANKCARD",
 		MinPaymentAmount: 100,
 		MaxPaymentAmount: 15000,
-		Currencies:       []string{"RUB", "USD", "EUR"},
 		ExternalId:       "BANKCARD",
 		TestSettings: map[string]*billing.PaymentMethodParams{
 			"RUB": {
@@ -213,7 +212,6 @@ func (suite *RefundTestSuite) SetupTest() {
 		Group:            "QIWI",
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
-		Currencies:       []string{"RUB", "USD", "EUR"},
 		ExternalId:       "QIWI",
 		TestSettings: map[string]*billing.PaymentMethodParams{
 			"RUB": {
@@ -231,7 +229,6 @@ func (suite *RefundTestSuite) SetupTest() {
 		Group:            "BITCOIN",
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
-		Currencies:       []string{"RUB", "USD", "EUR"},
 		ExternalId:       "BITCOIN",
 		TestSettings: map[string]*billing.PaymentMethodParams{
 			"RUB": {
@@ -275,7 +272,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		},
 		IsVatEnabled:              true,
 		IsCommissionToUserEnabled: true,
-		Status:                    pkg.MerchantStatusAgreementRequested,
+		Status:                    pkg.MerchantStatusAgreementSigning,
 		LastPayout: &billing.MerchantLastPayout{
 			Date:   date,
 			Amount: 10000,
@@ -322,7 +319,7 @@ func (suite *RefundTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), broker, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), )
+	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), broker, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK())
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -424,7 +421,7 @@ func (suite *RefundTestSuite) SetupTest() {
 
 	mbSysCost := &billing.MoneyBackCostSystem{
 		Name:           "VISA",
-		PayoutCurrency: "USD",
+		PayoutCurrency: "RUB",
 		UndoReason:     "chargeback",
 		Region:         "CIS",
 		Country:        "AZ",
@@ -436,7 +433,7 @@ func (suite *RefundTestSuite) SetupTest() {
 
 	mbSysCost1 := &billing.MoneyBackCostSystem{
 		Name:           "VISA",
-		PayoutCurrency: "USD",
+		PayoutCurrency: "RUB",
 		UndoReason:     "chargeback",
 		Region:         "Russia",
 		Country:        "RU",
@@ -448,7 +445,7 @@ func (suite *RefundTestSuite) SetupTest() {
 
 	mbSysCost2 := &billing.MoneyBackCostSystem{
 		Name:           "VISA",
-		PayoutCurrency: "USD",
+		PayoutCurrency: "RUB",
 		UndoReason:     "chargeback",
 		Region:         "Russia",
 		Country:        "RU",
@@ -460,7 +457,7 @@ func (suite *RefundTestSuite) SetupTest() {
 
 	mbSysCost3 := &billing.MoneyBackCostSystem{
 		Name:           "VISA",
-		PayoutCurrency: "USD",
+		PayoutCurrency: "RUB",
 		UndoReason:     "reversal",
 		Region:         "Russia",
 		Country:        "RU",
@@ -480,7 +477,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		Id:                bson.NewObjectId().Hex(),
 		MerchantId:        project.GetMerchantId(),
 		Name:              "VISA",
-		PayoutCurrency:    "USD",
+		PayoutCurrency:    "RUB",
 		UndoReason:        "chargeback",
 		Region:            "CIS",
 		Country:           "AZ",
@@ -496,7 +493,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		Id:                bson.NewObjectId().Hex(),
 		MerchantId:        project.GetMerchantId(),
 		Name:              "VISA",
-		PayoutCurrency:    "USD",
+		PayoutCurrency:    "RUB",
 		UndoReason:        "chargeback",
 		Region:            "Russia",
 		Country:           "RU",
@@ -512,7 +509,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		Id:                bson.NewObjectId().Hex(),
 		MerchantId:        project.GetMerchantId(),
 		Name:              "VISA",
-		PayoutCurrency:    "USD",
+		PayoutCurrency:    "RUB",
 		UndoReason:        "chargeback",
 		Region:            "CIS",
 		Country:           "",
@@ -527,7 +524,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		Id:                bson.NewObjectId().Hex(),
 		MerchantId:        project.GetMerchantId(),
 		Name:              "VISA",
-		PayoutCurrency:    "USD",
+		PayoutCurrency:    "RUB",
 		UndoReason:        "reversal",
 		Region:            "CIS",
 		Country:           "AZ",
@@ -542,7 +539,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		Id:                bson.NewObjectId().Hex(),
 		MerchantId:        project.GetMerchantId(),
 		Name:              "VISA",
-		PayoutCurrency:    "USD",
+		PayoutCurrency:    "RUB",
 		UndoReason:        "reversal",
 		Region:            "Russia",
 		Country:           "RU",
@@ -557,7 +554,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		Id:                bson.NewObjectId().Hex(),
 		MerchantId:        project.GetMerchantId(),
 		Name:              "VISA",
-		PayoutCurrency:    "USD",
+		PayoutCurrency:    "RUB",
 		UndoReason:        "reversal",
 		Region:            "CIS",
 		Country:           "",
@@ -1346,7 +1343,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 		Currency: "RUB",
 	}
 	order.PaymentMethod.Params.Currency = "USD"
-	order.PaymentMethodOrderClosedAt = ptypes.TimestampNow()
+	order.PaymentMethodOrderClosedAt, _ = ptypes.TimestampProto(time.Now().Add(-30 * time.Minute))
 	err = suite.service.updateOrder(order)
 
 	ae := &billing.AccountingEntry{
@@ -2320,6 +2317,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 		Currency: "RUB",
 	}
 	order.PaymentMethod.Params.Currency = "USD"
+	order.PaymentMethodOrderClosedAt, _ = ptypes.TimestampProto(time.Now().Add(-30 * time.Minute))
 	err = suite.service.updateOrder(order)
 
 	ae := &billing.AccountingEntry{
@@ -2485,6 +2483,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Chargeback_Ok() {
 		Currency: "RUB",
 	}
 	order.PaymentMethod.Params.Currency = "USD"
+	order.PaymentMethodOrderClosedAt, _ = ptypes.TimestampProto(time.Now().Add(-30 * time.Minute))
 	err = suite.service.updateOrder(order)
 
 	ae := &billing.AccountingEntry{

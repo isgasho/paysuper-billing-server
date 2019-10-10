@@ -125,6 +125,7 @@ var (
 	orderErrorDuringFormattingCurrency                        = newBillingServerErrorMsg("fm000058", "error during formatting currency")
 	orderErrorDuringFormattingDate                            = newBillingServerErrorMsg("fm000059", "error during formatting date")
 	orderErrorMerchantForOrderNotFound                        = newBillingServerErrorMsg("fm000060", "merchant for order not found")
+	orderErrorPaymentMethodsNotFound                          = newBillingServerErrorMsg("fm000061", "payment methods for payment with specified currency not found")
 )
 
 type orderCreateRequestProcessorChecked struct {
@@ -361,7 +362,12 @@ func (s *Service) OrderCreateProcess(
 	}
 
 	if req.PaymentMethod != "" {
-		pm, err := s.paymentMethod.GetByGroupAndCurrency(req.PaymentMethod, processor.checked.currency)
+		pm, err := s.paymentMethod.GetByGroupAndCurrency(
+			processor.checked.project,
+			req.PaymentMethod,
+			processor.checked.currency,
+		)
+
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = orderErrorPaymentMethodNotFound
@@ -602,13 +608,26 @@ func (s *Service) PaymentFormJsonDataProcess(
 		return err
 	}
 
-	pms, err := p.processRenderFormPaymentMethods()
+	project, err := s.project.GetById(order.Project.Id)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Message = orderErrorProjectNotFound
+		return nil
+	}
+
+	pms, err := p.processRenderFormPaymentMethods(project)
 
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusSystemError
 			rsp.Message = e
+
+			if e == orderErrorPaymentMethodNotAllowed {
+				rsp.Status = pkg.ResponseStatusNotFound
+			}
+
 			return nil
 		}
 		return err
@@ -714,26 +733,17 @@ func (s *Service) PaymentCreateProcess(
 		return err
 	}
 
-	merchant, err := s.merchant.GetById(processor.GetMerchantId())
-	if err != nil {
-		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			rsp.Status = pkg.ResponseStatusSystemError
-			rsp.Message = e
-			return nil
-		}
-		return err
-	}
+	settings, err := s.paymentMethod.GetPaymentSettings(
+		processor.checked.paymentMethod,
+		order.Currency,
+		processor.checked.project,
+	)
 
-	settings, err := s.paymentMethod.GetPaymentSettings(processor.checked.paymentMethod, merchant, processor.checked.project)
 	if err != nil {
-		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			rsp.Status = pkg.ResponseStatusSystemError
-			rsp.Message = e
-			return nil
-		}
-		return err
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
+
+		return nil
 	}
 
 	ps, err := s.paymentSystem.GetById(processor.checked.paymentMethod.PaymentSystemId)
@@ -783,10 +793,9 @@ func (s *Service) PaymentCreateProcess(
 		return err
 	}
 
-	url, err := h.CreatePayment(req.Data)
-	if err != nil {
-		s.logError("Order create in payment system failed", []interface{}{"err", err.Error(), "order", order})
+	url, err := h.CreatePayment(order, req.Data)
 
+	if err != nil {
 		rsp.Message = orderErrorUnknown
 		rsp.Status = pkg.ResponseStatusBadData
 
@@ -836,7 +845,7 @@ func (s *Service) PaymentCallbackProcess(
 	}
 
 	switch ps.Handler {
-	case pkg.PaymentSystemHandlerCardPay:
+	case pkg.PaymentSystemHandlerCardPay, paymentSystemHandlerCardPayMock:
 		data = &billing.CardPayPaymentCallback{}
 		err := json.Unmarshal(req.Request, data)
 
@@ -854,19 +863,9 @@ func (s *Service) PaymentCallbackProcess(
 		return err
 	}
 
-	pErr := h.ProcessPayment(data, string(req.Request), req.Signature)
+	pErr := h.ProcessPayment(order, data, string(req.Request), req.Signature)
 
 	if pErr != nil {
-		s.logError(
-			"Callback processing failed",
-			[]interface{}{
-				"err", pErr.Error(),
-				"order_id", req.OrderId,
-				"request", string(req.Request),
-				"signature", req.Signature,
-			},
-		)
-
 		pErr, _ := pErr.(*grpc.ResponseError)
 
 		rsp.Error = pErr.Error()
@@ -1313,7 +1312,11 @@ func (s *Service) updateOrder(order *billing.Order) error {
 
 	if statusChanged && ps != constant.OrderPublicStatusCreated && ps != constant.OrderPublicStatusPending {
 		zap.S().Debug("[updateOrder] notify merchant", "order_id", order.Id)
-		s.sendMailWithReceipt(context.TODO(), order)
+		if ps == constant.OrderPublicStatusRefunded {
+			s.sendMailWithRefund(order)
+		} else if ps != constant.OrderPublicStatusChargeback {
+			s.sendMailWithReceipt(order)
+		}
 		s.orderNotifyMerchant(order)
 	}
 
@@ -1367,49 +1370,27 @@ func (s *Service) orderNotifyKeyProducts(ctx context.Context, order *billing.Ord
 	}
 }
 
-func (s *Service) sendMailWithReceipt(ctx context.Context, order *billing.Order) {
+func (s *Service) sendMailWithRefund(order *billing.Order) {
 	payload := s.getPayloadForReceipt(order)
-	var items []*structpb.Value
-
-	for _, item := range order.Items {
-		price, err := s.formatter.FormatCurrency("en", item.Amount, item.Currency)
-		if err != nil {
-			zap.S().Errorw("Error during formatting currency", "price", item.Amount, "locale", "en", "currency", item.Currency)
-		}
-		items = append(items, s.getReceiptModel(item.Name, price))
-	}
-
-	payload.TemplateObjectModel = &structpb.Struct{
-		Fields: map[string]*structpb.Value{
-			"items": {
-				Kind: &structpb.Value_ListValue{ListValue: &structpb.ListValue{
-					Values: items,
-				}},
-			},
-		},
-	}
-
-	if platform, ok := availablePlatforms[order.PlatformId]; ok {
-		payload.TemplateObjectModel.Fields["platform"] = &structpb.Value{
-			Kind: &structpb.Value_StructValue{
-				StructValue: &structpb.Struct{
-					Fields: map[string]*structpb.Value{
-						"name": {
-							Kind: &structpb.Value_StringValue{
-								StringValue: platform.Name,
-							},
-						},
-					},
-				},
-			},
-		}
-	}
+	payload.TemplateAlias = s.cfg.EmailRefundTransactionTemplate
 
 	zap.S().Infow("sending receipt to broker", "order_id", order.Id)
 	err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 	if err != nil {
 		zap.S().Errorw(
-			"Publication activation code to user email queue is failed",
+			"Publication refund transaction to user email queue is failed",
+			"err", err, "email", order.ReceiptEmail, "order_id", order.Id)
+	}
+}
+
+func (s *Service) sendMailWithReceipt(order *billing.Order) {
+	payload := s.getPayloadForReceipt(order)
+
+	zap.S().Infow("sending receipt to broker", "order_id", order.Id)
+	err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+	if err != nil {
+		zap.S().Errorw(
+			"Publication receipt to user email queue is failed",
 			"err", err, "email", order.ReceiptEmail, "order_id", order.Id)
 	}
 }
@@ -1450,7 +1431,7 @@ func (s *Service) getPayloadForReceipt(order *billing.Order) *postmarkSdrPkg.Pay
 		merchantName = merchant.Company.Name
 	}
 
-	return &postmarkSdrPkg.Payload{
+	payload := &postmarkSdrPkg.Payload{
 		TemplateAlias: s.cfg.EmailSuccessTransactionTemplate,
 		TemplateModel: map[string]string{
 			"total_price":      totalPrice,
@@ -1462,6 +1443,44 @@ func (s *Service) getPayloadForReceipt(order *billing.Order) *postmarkSdrPkg.Pay
 		},
 		To: order.ReceiptEmail,
 	}
+
+	var items []*structpb.Value
+
+	for _, item := range order.Items {
+		price, err := s.formatter.FormatCurrency("en", item.Amount, item.Currency)
+		if err != nil {
+			zap.S().Errorw("Error during formatting currency", "price", item.Amount, "locale", "en", "currency", item.Currency)
+		}
+		items = append(items, s.getReceiptModel(item.Name, price))
+	}
+
+	payload.TemplateObjectModel = &structpb.Struct{
+		Fields: map[string]*structpb.Value{
+			"items": {
+				Kind: &structpb.Value_ListValue{ListValue: &structpb.ListValue{
+					Values: items,
+				}},
+			},
+		},
+	}
+
+	if platform, ok := availablePlatforms[order.PlatformId]; ok {
+		payload.TemplateObjectModel.Fields["platform"] = &structpb.Value{
+			Kind: &structpb.Value_StructValue{
+				StructValue: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"name": {
+							Kind: &structpb.Value_StringValue{
+								StringValue: platform.Name,
+							},
+						},
+					},
+				},
+			},
+		}
+	}
+
+	return payload
 }
 
 func (s *Service) sendMailWithCode(ctx context.Context, order *billing.Order, key *billing.Key) {
@@ -1608,22 +1627,23 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 		Id:   id,
 		Type: pkg.OrderTypeOrder,
 		Project: &billing.ProjectOrder{
-			Id:                   v.checked.project.Id,
-			Name:                 v.checked.project.Name,
-			UrlSuccess:           v.checked.project.UrlRedirectSuccess,
-			UrlFail:              v.checked.project.UrlRedirectFail,
-			SendNotifyEmail:      v.checked.project.SendNotifyEmail,
-			NotifyEmails:         v.checked.project.NotifyEmails,
-			SecretKey:            v.checked.project.SecretKey,
-			UrlCheckAccount:      v.checked.project.UrlCheckAccount,
-			UrlProcessPayment:    v.checked.project.UrlProcessPayment,
-			UrlChargebackPayment: v.checked.project.UrlChargebackPayment,
-			UrlCancelPayment:     v.checked.project.UrlCancelPayment,
-			UrlRefundPayment:     v.checked.project.UrlRefundPayment,
-			UrlFraudPayment:      v.checked.project.UrlFraudPayment,
-			CallbackProtocol:     v.checked.project.CallbackProtocol,
-			MerchantId:           v.checked.merchant.Id,
-			Status:               v.checked.project.Status,
+			Id:                      v.checked.project.Id,
+			Name:                    v.checked.project.Name,
+			UrlSuccess:              v.checked.project.UrlRedirectSuccess,
+			UrlFail:                 v.checked.project.UrlRedirectFail,
+			SendNotifyEmail:         v.checked.project.SendNotifyEmail,
+			NotifyEmails:            v.checked.project.NotifyEmails,
+			SecretKey:               v.checked.project.SecretKey,
+			UrlCheckAccount:         v.checked.project.UrlCheckAccount,
+			UrlProcessPayment:       v.checked.project.UrlProcessPayment,
+			UrlChargebackPayment:    v.checked.project.UrlChargebackPayment,
+			UrlCancelPayment:        v.checked.project.UrlCancelPayment,
+			UrlRefundPayment:        v.checked.project.UrlRefundPayment,
+			UrlFraudPayment:         v.checked.project.UrlFraudPayment,
+			CallbackProtocol:        v.checked.project.CallbackProtocol,
+			MerchantId:              v.checked.merchant.Id,
+			Status:                  v.checked.project.Status,
+			MerchantRoyaltyCurrency: v.checked.merchant.GetPayoutCurrency(),
 		},
 		Description:    fmt.Sprintf(orderDefaultDescription, id),
 		ProjectOrderId: v.request.OrderId,
@@ -1692,7 +1712,12 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 			return nil, err
 		}
 
-		settings, err := v.paymentMethod.GetPaymentSettings(v.checked.paymentMethod, v.checked.merchant, v.checked.project)
+		settings, err := v.paymentMethod.GetPaymentSettings(
+			v.checked.paymentMethod,
+			v.checked.currency,
+			v.checked.project,
+		)
+
 		if err != nil {
 			return nil, err
 		}
@@ -1966,8 +1991,10 @@ func (v *OrderCreateRequestProcessor) processPaymentMethod(pm *billing.PaymentMe
 		return orderErrorPaymentSystemInactive
 	}
 
-	if _, err := v.Service.paymentMethod.GetPaymentSettings(pm, v.checked.merchant, v.checked.project); err != nil {
-		return orderErrorPaymentMethodEmptySettings
+	_, err := v.Service.paymentMethod.GetPaymentSettings(pm, v.checked.currency, v.checked.project)
+
+	if err != nil {
+		return err
 	}
 
 	v.checked.paymentMethod = pm
@@ -2201,26 +2228,36 @@ func (v *OrderCreateRequestProcessor) processUserData() (err error) {
 }
 
 // GetById payment methods of project for rendering in payment form
-func (v *PaymentFormProcessor) processRenderFormPaymentMethods() ([]*billing.PaymentFormPaymentMethod, error) {
+func (v *PaymentFormProcessor) processRenderFormPaymentMethods(
+	project *billing.Project,
+) ([]*billing.PaymentFormPaymentMethod, error) {
 	var projectPms []*billing.PaymentFormPaymentMethod
 
-	pmg, err := v.service.paymentMethod.Groups()
+	paymentMethods, err := v.service.paymentMethod.ListByCurrency(project, v.order.Currency)
+
 	if err != nil {
 		return nil, err
 	}
-	for _, val := range pmg {
-		pm, ok := val[v.order.Currency]
 
-		if !ok || pm.IsActive == false {
+	for _, pm := range paymentMethods {
+		if pm.IsActive == false {
 			continue
 		}
 
-		if ps, err := v.service.paymentSystem.GetById(pm.PaymentSystemId); err != nil || ps.IsActive == false {
+		ps, err := v.service.paymentSystem.GetById(pm.PaymentSystemId)
+
+		if err != nil || ps.IsActive == false {
 			continue
 		}
 
 		if v.order.OrderAmount < pm.MinPaymentAmount ||
 			(pm.MaxPaymentAmount > 0 && v.order.OrderAmount > pm.MaxPaymentAmount) {
+			continue
+		}
+
+		_, err = v.service.paymentMethod.GetPaymentSettings(pm, v.order.Currency, project)
+
+		if err != nil {
 			continue
 		}
 
@@ -2232,7 +2269,7 @@ func (v *PaymentFormProcessor) processRenderFormPaymentMethods() ([]*billing.Pay
 			AccountRegexp: pm.AccountRegexp,
 		}
 
-		err := v.processPaymentMethodsData(formPm)
+		err = v.processPaymentMethodsData(formPm)
 
 		if err != nil {
 			zap.S().Errorw(
@@ -2289,7 +2326,7 @@ func (v *PaymentFormProcessor) processPaymentMethodsData(pm *billing.PaymentForm
 	return nil
 }
 
-func (s *PaymentCreateProcessor) reserveKeysForOrder(ctx context.Context, order *billing.Order) error {
+func (v *PaymentCreateProcessor) reserveKeysForOrder(ctx context.Context, order *billing.Order) error {
 	if len(order.Keys) == 0 {
 		zap.S().Infow("[ProcessOrderKeyProducts] reserving keys", "order_id", order.Id)
 		keys := make([]string, len(order.Products))
@@ -2303,7 +2340,7 @@ func (s *PaymentCreateProcessor) reserveKeysForOrder(ctx context.Context, order 
 				Ttl:          oneDayTtl,
 			}
 
-			err := s.service.ReserveKeyForOrder(ctx, reserveReq, reserveRes)
+			err := v.service.ReserveKeyForOrder(ctx, reserveReq, reserveRes)
 			if err != nil {
 				zap.L().Error(
 					pkg.ErrorGrpcServiceCallFailed,
@@ -2321,7 +2358,7 @@ func (s *PaymentCreateProcessor) reserveKeysForOrder(ctx context.Context, order 
 				for _, keyToCancel := range keys {
 					if len(keyToCancel) > 0 {
 						cancelRes := &grpc.EmptyResponseWithStatus{}
-						err := s.service.CancelRedeemKeyForOrder(ctx, &grpc.KeyForOrderRequest{KeyId: keyToCancel}, cancelRes)
+						err := v.service.CancelRedeemKeyForOrder(ctx, &grpc.KeyForOrderRequest{KeyId: keyToCancel}, cancelRes)
 						if err != nil {
 							zap.L().Error(
 								pkg.ErrorGrpcServiceCallFailed,
@@ -2786,7 +2823,7 @@ func (s *Service) GetOrderKeyProductsItems(products []*grpc.KeyProduct, language
 			Description: description,
 			CreatedAt:   p.CreatedAt,
 			UpdatedAt:   p.UpdatedAt,
-			Images:      p.Images,
+			Images:      []string{getImageByLanguage(DefaultLanguage, p.Cover)},
 			Url:         p.Url,
 			Metadata:    p.Metadata,
 			Amount:      amount,
@@ -3209,8 +3246,8 @@ func (s *Service) fillPaymentDataCard(order *billing.Order) error {
 	}
 	order.PaymentMethodPayerAccount = pan
 	if len(pan) >= 6 {
-		first6 = string(pan[0:6])
-		last4 = string(pan[len(pan)-4:])
+		first6 = pan[0:6]
+		last4 = pan[len(pan)-4:]
 	}
 	cardBrand, ok := order.PaymentRequisites["card_brand"]
 
