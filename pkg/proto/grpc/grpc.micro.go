@@ -184,8 +184,6 @@ It has these top-level messages:
 	ListOrdersPrivateResponseItem
 	ListOrdersPublicResponse
 	ListOrdersPrivateResponse
-	ListOrdersResponseItem
-	ListOrdersResponse
 	GetOrderPublicResponse
 	GetOrderPrivateResponse
 	GetDashboardMainRequest
@@ -310,7 +308,6 @@ type BillingService interface {
 	GetOrderPrivate(ctx context.Context, in *GetOrderRequest, opts ...client.CallOption) (*GetOrderPrivateResponse, error)
 	FindAllOrdersPublic(ctx context.Context, in *ListOrdersRequest, opts ...client.CallOption) (*ListOrdersPublicResponse, error)
 	FindAllOrdersPrivate(ctx context.Context, in *ListOrdersRequest, opts ...client.CallOption) (*ListOrdersPrivateResponse, error)
-	FindAllOrders(ctx context.Context, in *ListOrdersRequest, opts ...client.CallOption) (*ListOrdersResponse, error)
 	IsOrderCanBePaying(ctx context.Context, in *IsOrderCanBePayingRequest, opts ...client.CallOption) (*IsOrderCanBePayingResponse, error)
 	GetPriceGroup(ctx context.Context, in *billing.GetPriceGroupRequest, opts ...client.CallOption) (*billing.PriceGroup, error)
 	UpdatePriceGroup(ctx context.Context, in *billing.PriceGroup, opts ...client.CallOption) (*billing.PriceGroup, error)
@@ -907,16 +904,6 @@ func (c *billingService) FindAllOrdersPublic(ctx context.Context, in *ListOrders
 func (c *billingService) FindAllOrdersPrivate(ctx context.Context, in *ListOrdersRequest, opts ...client.CallOption) (*ListOrdersPrivateResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.FindAllOrdersPrivate", in)
 	out := new(ListOrdersPrivateResponse)
-	err := c.c.Call(ctx, req, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *billingService) FindAllOrders(ctx context.Context, in *ListOrdersRequest, opts ...client.CallOption) (*ListOrdersResponse, error) {
-	req := c.c.NewRequest(c.name, "BillingService.FindAllOrders", in)
-	out := new(ListOrdersResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1807,7 +1794,6 @@ type BillingServiceHandler interface {
 	GetOrderPrivate(context.Context, *GetOrderRequest, *GetOrderPrivateResponse) error
 	FindAllOrdersPublic(context.Context, *ListOrdersRequest, *ListOrdersPublicResponse) error
 	FindAllOrdersPrivate(context.Context, *ListOrdersRequest, *ListOrdersPrivateResponse) error
-	FindAllOrders(context.Context, *ListOrdersRequest, *ListOrdersResponse) error
 	IsOrderCanBePaying(context.Context, *IsOrderCanBePayingRequest, *IsOrderCanBePayingResponse) error
 	GetPriceGroup(context.Context, *billing.GetPriceGroupRequest, *billing.PriceGroup) error
 	UpdatePriceGroup(context.Context, *billing.PriceGroup, *billing.PriceGroup) error
@@ -1945,7 +1931,6 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetOrderPrivate(ctx context.Context, in *GetOrderRequest, out *GetOrderPrivateResponse) error
 		FindAllOrdersPublic(ctx context.Context, in *ListOrdersRequest, out *ListOrdersPublicResponse) error
 		FindAllOrdersPrivate(ctx context.Context, in *ListOrdersRequest, out *ListOrdersPrivateResponse) error
-		FindAllOrders(ctx context.Context, in *ListOrdersRequest, out *ListOrdersResponse) error
 		IsOrderCanBePaying(ctx context.Context, in *IsOrderCanBePayingRequest, out *IsOrderCanBePayingResponse) error
 		GetPriceGroup(ctx context.Context, in *billing.GetPriceGroupRequest, out *billing.PriceGroup) error
 		UpdatePriceGroup(ctx context.Context, in *billing.PriceGroup, out *billing.PriceGroup) error
@@ -2239,10 +2224,6 @@ func (h *billingServiceHandler) FindAllOrdersPublic(ctx context.Context, in *Lis
 
 func (h *billingServiceHandler) FindAllOrdersPrivate(ctx context.Context, in *ListOrdersRequest, out *ListOrdersPrivateResponse) error {
 	return h.BillingServiceHandler.FindAllOrdersPrivate(ctx, in, out)
-}
-
-func (h *billingServiceHandler) FindAllOrders(ctx context.Context, in *ListOrdersRequest, out *ListOrdersResponse) error {
-	return h.BillingServiceHandler.FindAllOrders(ctx, in, out)
 }
 
 func (h *billingServiceHandler) IsOrderCanBePaying(ctx context.Context, in *IsOrderCanBePayingRequest, out *IsOrderCanBePayingResponse) error {

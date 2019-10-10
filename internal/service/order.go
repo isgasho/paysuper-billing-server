@@ -1312,12 +1312,14 @@ func (s *Service) updateOrder(order *billing.Order) error {
 
 	if statusChanged && ps != constant.OrderPublicStatusCreated && ps != constant.OrderPublicStatusPending {
 		zap.S().Debug("[updateOrder] notify merchant", "order_id", order.Id)
-		if ps == constant.OrderPublicStatusRefunded {
+		s.orderNotifyMerchant(order)
+
+		switch ps {
+		case constant.OrderPublicStatusRefunded:
 			s.sendMailWithRefund(order)
-		} else if ps != constant.OrderPublicStatusChargeback {
+		case constant.OrderPublicStatusProcessed:
 			s.sendMailWithReceipt(order)
 		}
-		s.orderNotifyMerchant(order)
 	}
 
 	return nil
