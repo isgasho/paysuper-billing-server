@@ -7,6 +7,8 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
+	"github.com/streadway/amqp"
 	"go.uber.org/zap"
 )
 
@@ -372,6 +374,29 @@ func (s *Service) GetAdminUser(
 }
 
 func (s *Service) sendInviteEmail(receiverEmail string, senderEmail string, senderName string, senderCompany string) error {
-	// TODO: Send invite mail over postmark
+	inviteLink := "/invite/member?email=" + receiverEmail
+
+	if senderCompany != defaultCompanyName {
+		inviteLink = "/invite/user?email=" + receiverEmail
+	}
+
+	// TODO: What will be the address of the links? How do we transfer the parameters (to the public or to the JWT key)?
+
+	payload := &postmarkSdrPkg.Payload{
+		TemplateAlias: s.cfg.EmailInviteTemplate,
+		TemplateModel: map[string]string{
+			"sender_name":    senderName,
+			"sender_email":   senderEmail,
+			"sender_company": senderCompany,
+			"invite_link":    inviteLink,
+		},
+		To: receiverEmail,
+	}
+	err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

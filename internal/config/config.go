@@ -55,6 +55,7 @@ type Config struct {
 	EmailGameCodeTemplate           string `envconfig:"EMAIL_ACTIVATION_CODE_TEMPLATE" default:"p1_verify_letter-2"`
 	EmailSuccessTransactionTemplate string `envconfig:"EMAIL_SUCCESS_TRANSACTION_TEMPLATE" default:"p1_verify_letter-4"`
 	EmailRefundTransactionTemplate  string `envconfig:"EMAIL_REFUND_TRANSACTION_TEMPLATE" default:"p1_verify_letter-5"`
+	EmailInviteTemplate             string `envconfig:"EMAIL_INVITE_TEMPLATE" default:"code-your-own"`
 
 	MicroRegistry string `envconfig:"MICRO_REGISTRY" required:"false"`
 
