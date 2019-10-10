@@ -4334,7 +4334,7 @@ func (m *UserRoleMerchant) GetBSON() (interface{}, error) {
 func (m *UserRoleAdmin) GetBSON() (interface{}, error) {
 	var err error
 
-	st := &MgoUserRoleMerchant{
+	st := &MgoUserRoleAdmin{
 		Id:   bson.ObjectIdHex(m.Id),
 		User: m.User,
 	}

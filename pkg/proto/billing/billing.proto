@@ -2237,12 +2237,14 @@ message UserRoleMerchant {
     UserRoleProfile user = 2;
     //@inject_tag: json:"merchant_id" validate:"required,hexadecimal,len=24"
     string merchant_id = 3;
+    //@inject_tag: json:"merchant_id" validate:"required,hexadecimal,len=24"
+    bool is_owner = 4;
     //@inject_tag: json:"project_role" validate:"required"
-    repeated UserRoleProject project_role = 4;
+    repeated UserRoleProject project_role = 5;
     // @inject_tag: json:"created_at"
-    google.protobuf.Timestamp created_at = 5;
+    google.protobuf.Timestamp created_at = 6;
     // @inject_tag: json:"updated_at"
-    google.protobuf.Timestamp updated_at = 6;
+    google.protobuf.Timestamp updated_at = 7;
 }
 
 message UserRoleAdmin {

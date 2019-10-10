@@ -47,6 +47,7 @@ var (
 	merchantNotificationSettingNotFound       = newBillingServerErrorMsg("mr000022", "setting for create notification for status change not found")
 	merchantTariffsNotFound                   = newBillingServerErrorMsg("mr000023", "tariffs for merchant not found")
 	merchantPayoutCurrencyMissed              = newBillingServerErrorMsg("mr000024", "merchant don't have payout currency")
+	merchantUnableToAddMerchantUserRole       = newBillingServerErrorMsg("mr000025", "unable to add user role to merchant")
 
 	merchantSignAgreementMessage        = map[string]string{"code": "mr000017", "message": "license agreement was signed by merchant"}
 	merchantAgreementReadyToSignMessage = map[string]interface{}{"code": "mr000025", "generated": true, "message": "merchant license agreement ready to sign"}
@@ -352,6 +353,26 @@ func (s *Service) ChangeMerchant(
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = merchantErrorUnknown
+
+		return nil
+	}
+
+	err = s.userRoleRepository.AddMerchantUser(&billing.UserRoleMerchant{
+		Id:         bson.NewObjectId().Hex(),
+		MerchantId: merchant.Id,
+		User: &billing.UserRoleProfile{
+			UserId:    merchant.User.Id,
+			Email:     merchant.User.Email,
+			FirstName: merchant.User.FirstName,
+			LastName:  merchant.User.LastName,
+			Status:    pkg.UserRoleStatusAccepted,
+		},
+		IsOwner: true,
+	})
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = merchantUnableToAddMerchantUserRole
 
 		return nil
 	}

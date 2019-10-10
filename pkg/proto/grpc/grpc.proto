@@ -192,6 +192,14 @@ service BillingService {
     rpc GetPaylinkStatByUtm (GetPaylinkStatCommonRequest) returns (GetPaylinkStatCommonGroupResponse) {}
 
     rpc GetMerchantUsers(GetMerchantUsersRequest) returns (GetMerchantUsersResponse) {}
+    rpc InviteUserMerchant(InviteUserMerchantRequest) returns (InviteUserMerchantResponse) {}
+    rpc InviteUserAdmin(InviteUserAdminRequest) returns (InviteUserAdminResponse) {}
+    rpc ResendInviteMerchant(ResendInviteMerchantRequest) returns (EmptyResponseWithStatus) {}
+    rpc ResendInviteAdmin(ResendInviteAdminRequest) returns (EmptyResponseWithStatus) {}
+    rpc GetMerchantUser(GetMerchantUserRequest) returns (GetMerchantUserResponse) {}
+    rpc GetAdminUser(GetAdminUserRequest) returns (GetAdminUserResponse) {}
+    rpc AcceptMerchantInvite(billing.UserRoleMerchant) returns (EmptyResponseWithStatus) {}
+    rpc AcceptAdminInvite(billing.UserRoleAdmin) returns (EmptyResponseWithStatus) {}
 }
 
 message EmptyRequest {
@@ -2262,4 +2270,66 @@ message GetMerchantUsersResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     repeated billing.UserRoleMerchant users = 3;
+}
+
+message InviteUserMerchantRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string user_id = 1;
+    //@inject_tag: validate:"required"
+    billing.UserRoleMerchant item = 2;
+}
+
+message InviteUserMerchantResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.UserRoleMerchant item = 3;
+}
+
+message InviteUserAdminRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string user_id = 1;
+    //@inject_tag: validate:"required"
+    billing.UserRoleAdmin item = 2;
+}
+
+message InviteUserAdminResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.UserRoleAdmin item = 3;
+}
+
+message ResendInviteMerchantRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string user_id = 1;
+    //@inject_tag: validate:"required,email"
+    string receiver_email = 2;
+}
+
+message ResendInviteAdminRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string user_id = 1;
+    //@inject_tag: validate:"required,email"
+    string receiver_email = 2;
+}
+
+message GetMerchantUserRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string id = 1;
+}
+
+message GetMerchantUserResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.UserRoleMerchant item = 3;
+}
+
+message GetAdminUserRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string id = 1;
+}
+
+message GetAdminUserResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.UserRoleAdmin item = 3;
 }

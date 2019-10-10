@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	cacheMerchantId = "merchant:id:%s"
+	cacheMerchantId     = "merchant:id:%s"
+	cacheMerchantUserId = "merchant:user_id:%s"
 
 	collectionMerchant                     = "merchant"
 	collectionMerchantPaymentMethodHistory = "payment_method_history"
@@ -23,6 +24,7 @@ type MerchantRepositoryInterface interface {
 	GetById(id string) (*billing.Merchant, error)
 	GetPaymentMethod(merchantId string, method string) (*billing.MerchantPaymentMethod, error)
 	GetMerchantsWithAutoPayouts() ([]*billing.Merchant, error)
+	GetByUserId(id string) (*billing.Merchant, error)
 }
 
 func newMerchantService(svc *Service) MerchantRepositoryInterface {
@@ -147,6 +149,39 @@ func (h *Merchant) GetById(id string) (*billing.Merchant, error) {
 	}
 
 	query := bson.M{"_id": bson.ObjectIdHex(id)}
+	err := h.svc.db.Collection(collectionMerchant).Find(query).One(&c)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return nil, fmt.Errorf(errorNotFound, collectionMerchant)
+	}
+
+	if err := h.svc.cacher.Set(key, c, 0); err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
+			zap.String(pkg.ErrorCacheFieldKey, key),
+			zap.Any(pkg.ErrorCacheFieldData, c),
+		)
+	}
+
+	return &c, nil
+}
+
+func (h *Merchant) GetByUserId(userId string) (*billing.Merchant, error) {
+	var c billing.Merchant
+	key := fmt.Sprintf(cacheMerchantUserId, userId)
+
+	if err := h.svc.cacher.Get(key, c); err == nil {
+		return &c, nil
+	}
+
+	query := bson.M{"user.id": userId}
 	err := h.svc.db.Collection(collectionMerchant).Find(query).One(&c)
 	if err != nil {
 		zap.L().Error(

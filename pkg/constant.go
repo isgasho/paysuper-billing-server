@@ -311,6 +311,9 @@ const (
 	ProjectSellCountTypeIntegral   = "integral"
 
 	FallbackCurrency = "USD"
+
+	UserRoleStatusInvited  = "invited"
+	UserRoleStatusAccepted = "accepted"
 )
 
 var (
