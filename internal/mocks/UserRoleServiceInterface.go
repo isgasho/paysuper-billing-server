@@ -61,8 +61,100 @@ func (_m *UserRoleServiceInterface) GetAdminUserByEmail(_a0 string) (*billing.Us
 	return r0, r1
 }
 
+// GetAdminUserById provides a mock function with given fields: _a0
+func (_m *UserRoleServiceInterface) GetAdminUserById(_a0 string) (*billing.UserRoleAdmin, error) {
+	ret := _m.Called(_a0)
+
+	var r0 *billing.UserRoleAdmin
+	if rf, ok := ret.Get(0).(func(string) *billing.UserRoleAdmin); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*billing.UserRoleAdmin)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetAdminUserByUserId provides a mock function with given fields: _a0
+func (_m *UserRoleServiceInterface) GetAdminUserByUserId(_a0 string) (*billing.UserRoleAdmin, error) {
+	ret := _m.Called(_a0)
+
+	var r0 *billing.UserRoleAdmin
+	if rf, ok := ret.Get(0).(func(string) *billing.UserRoleAdmin); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*billing.UserRoleAdmin)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetMerchantUserByEmail provides a mock function with given fields: _a0, _a1
 func (_m *UserRoleServiceInterface) GetMerchantUserByEmail(_a0 string, _a1 string) (*billing.UserRoleMerchant, error) {
+	ret := _m.Called(_a0, _a1)
+
+	var r0 *billing.UserRoleMerchant
+	if rf, ok := ret.Get(0).(func(string, string) *billing.UserRoleMerchant); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*billing.UserRoleMerchant)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string) error); ok {
+		r1 = rf(_a0, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetMerchantUserById provides a mock function with given fields: _a0
+func (_m *UserRoleServiceInterface) GetMerchantUserById(_a0 string) (*billing.UserRoleMerchant, error) {
+	ret := _m.Called(_a0)
+
+	var r0 *billing.UserRoleMerchant
+	if rf, ok := ret.Get(0).(func(string) *billing.UserRoleMerchant); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*billing.UserRoleMerchant)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetMerchantUserByUserId provides a mock function with given fields: _a0, _a1
+func (_m *UserRoleServiceInterface) GetMerchantUserByUserId(_a0 string, _a1 string) (*billing.UserRoleMerchant, error) {
 	ret := _m.Called(_a0, _a1)
 
 	var r0 *billing.UserRoleMerchant

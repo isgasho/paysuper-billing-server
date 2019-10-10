@@ -114,6 +114,62 @@ func (_m *RoyaltyReportServiceInterface) Insert(document *billing.RoyaltyReport,
 	return r0
 }
 
+// SetPaid provides a mock function with given fields: reportIds, payoutDocumentId, ip, source
+func (_m *RoyaltyReportServiceInterface) SetPaid(reportIds []string, payoutDocumentId string, ip string, source string) error {
+	ret := _m.Called(reportIds, payoutDocumentId, ip, source)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func([]string, string, string, string) error); ok {
+		r0 = rf(reportIds, payoutDocumentId, ip, source)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// SetPayoutDocumentId provides a mock function with given fields: reportIds, payoutDocumentId, ip, source
+func (_m *RoyaltyReportServiceInterface) SetPayoutDocumentId(reportIds []string, payoutDocumentId string, ip string, source string) error {
+	ret := _m.Called(reportIds, payoutDocumentId, ip, source)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func([]string, string, string, string) error); ok {
+		r0 = rf(reportIds, payoutDocumentId, ip, source)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// UnsetPaid provides a mock function with given fields: reportIds, ip, source
+func (_m *RoyaltyReportServiceInterface) UnsetPaid(reportIds []string, ip string, source string) error {
+	ret := _m.Called(reportIds, ip, source)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func([]string, string, string) error); ok {
+		r0 = rf(reportIds, ip, source)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// UnsetPayoutDocumentId provides a mock function with given fields: reportIds, ip, source
+func (_m *RoyaltyReportServiceInterface) UnsetPayoutDocumentId(reportIds []string, ip string, source string) error {
+	ret := _m.Called(reportIds, ip, source)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func([]string, string, string) error); ok {
+		r0 = rf(reportIds, ip, source)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // Update provides a mock function with given fields: document, ip, source
 func (_m *RoyaltyReportServiceInterface) Update(document *billing.RoyaltyReport, ip string, source string) error {
 	ret := _m.Called(document, ip, source)

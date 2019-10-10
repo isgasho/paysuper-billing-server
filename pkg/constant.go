@@ -299,6 +299,9 @@ const (
 	AdminUserRiskFinancial = "financial"
 	AdminUserRiskSupport   = "support"
 	AdminUserRoleReadOnly  = "read_only"
+
+	UserRoleStatusInvited  = "invited"
+	UserRoleStatusAccepted = "accepted"
 )
 
 var (
