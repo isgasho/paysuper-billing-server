@@ -230,8 +230,9 @@ func (s *Service) ChangeMerchant(
 	rsp *grpc.ChangeMerchantResponse,
 ) error {
 	var (
-		merchant *billing.Merchant
-		err      error
+		merchant      *billing.Merchant
+		err           error
+		isNewMerchant bool
 	)
 
 	if req.HasIdentificationFields() {
@@ -268,6 +269,7 @@ func (s *Service) ChangeMerchant(
 			CreatedAt:          ptypes.TimestampNow(),
 		}
 		merchant.AgreementNumber = s.getMerchantAgreementNumber(merchant.Id)
+		isNewMerchant = true
 	}
 
 	if !s.IsChangeDataAllow(merchant, req) {
@@ -357,18 +359,20 @@ func (s *Service) ChangeMerchant(
 		return nil
 	}
 
-	err = s.userRoleRepository.AddMerchantUser(&billing.UserRoleMerchant{
-		Id:         bson.NewObjectId().Hex(),
-		MerchantId: merchant.Id,
-		User: &billing.UserRoleProfile{
-			UserId:    merchant.User.Id,
-			Email:     merchant.User.Email,
-			FirstName: merchant.User.FirstName,
-			LastName:  merchant.User.LastName,
-			Status:    pkg.UserRoleStatusAccepted,
-		},
-		IsOwner: true,
-	})
+	if isNewMerchant == true {
+		err = s.userRoleRepository.AddMerchantUser(&billing.UserRoleMerchant{
+			Id:         bson.NewObjectId().Hex(),
+			MerchantId: merchant.Id,
+			User: &billing.UserRoleProfile{
+				UserId:    merchant.User.Id,
+				Email:     merchant.User.Email,
+				FirstName: merchant.User.FirstName,
+				LastName:  merchant.User.LastName,
+				Status:    pkg.UserRoleStatusAccepted,
+			},
+			IsOwner: true,
+		})
+	}
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
