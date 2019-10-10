@@ -288,6 +288,8 @@ const (
 	PayoutDocumentStatusPaid       = "paid"
 	PayoutDocumentStatusCanceled   = "canceled"
 	PayoutDocumentStatusFailed     = "failed"
+
+	OrderIssuerReferenceTypePaylink = "paylink"
 )
 
 var (
