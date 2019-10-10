@@ -2274,7 +2274,7 @@ message GetMerchantUsersResponse {
 
 message InviteUserMerchantRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24"
-    string user_id = 1;
+    string merchant_id = 1;
     //@inject_tag: validate:"required"
     billing.UserRoleMerchant item = 2;
 }
@@ -2300,7 +2300,7 @@ message InviteUserAdminResponse {
 
 message ResendInviteMerchantRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24"
-    string user_id = 1;
+    string merchant_id = 1;
     //@inject_tag: validate:"required,email"
     string receiver_email = 2;
 }
