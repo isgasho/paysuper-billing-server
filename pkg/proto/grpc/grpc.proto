@@ -405,6 +405,11 @@ message PaymentFormJsonDataRequest {
     string cookie = 7;
     string referer = 8;
     bool is_embedded = 9;
+    string issuer_reference = 10;
+    string issuer_reference_type = 11;
+    string utm_source = 12;
+    string utm_medium = 13;
+    string utm_campaign = 14;
 }
 
 message PaymentFormJsonDataProject {
