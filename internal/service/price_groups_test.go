@@ -13,6 +13,7 @@ import (
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"testing"
@@ -61,7 +62,7 @@ func (suite *PriceGroupTestSuite) SetupTest() {
 	suite.priceGroup = &billing.PriceGroup{
 		Id:       suite.priceGroupId,
 		Currency: "USD",
-		Region:   "",
+		Region:   "USD",
 		IsActive: true,
 	}
 	if err := suite.service.priceGroup.Insert(suite.priceGroup); err != nil {
@@ -419,7 +420,7 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencyByRegion_E
 }
 
 func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupCurrencyByRegion_Ok() {
-	req := &grpc.PriceGroupByRegionRequest{}
+	req := &grpc.PriceGroupByRegionRequest{Region: "USD"}
 	res := grpc.PriceGroupCurrenciesResponse{}
 	err := suite.service.GetPriceGroupCurrencyByRegion(context.TODO(), req, &res)
 	assert.NoError(suite.T(), err)
@@ -482,4 +483,25 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_GetRecommendedPriceByPriceGroup
 	err := suite.service.GetRecommendedPriceByPriceGroup(context.TODO(), req, &res)
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), res.RecommendedPrice, 1)
+}
+
+func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupByRegion_Error() {
+	shouldBe := require.New(suite.T())
+
+	rsp := &grpc.GetPriceGroupByRegionResponse{}
+	err := suite.service.GetPriceGroupByRegion(context.TODO(), &grpc.GetPriceGroupByRegionRequest{Region: "TEST_SOME_REGION"}, rsp)
+	shouldBe.NoError(err)
+	shouldBe.EqualValues(400, rsp.Status)
+	shouldBe.NotEmpty(rsp.Message)
+	shouldBe.Nil(rsp.Group)
+}
+
+func (suite *PriceGroupTestSuite) TestPriceGroup_GetPriceGroupByRegion_Ok() {
+	shouldBe := require.New(suite.T())
+
+	rsp := &grpc.GetPriceGroupByRegionResponse{}
+	err := suite.service.GetPriceGroupByRegion(context.TODO(), &grpc.GetPriceGroupByRegionRequest{Region: "USD"}, rsp)
+	shouldBe.NoError(err)
+	shouldBe.EqualValues(200, rsp.Status)
+	shouldBe.NotNil(rsp.Group)
 }

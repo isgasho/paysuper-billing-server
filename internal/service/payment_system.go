@@ -11,11 +11,11 @@ import (
 )
 
 const (
-	paymentSystemHandlerMockOk    = "mock_ok"
-	paymentSystemHandlerMockError = "mock_error"
+	paymentSystemHandlerMockOk      = "mock_ok"
+	paymentSystemHandlerMockError   = "mock_error"
+	paymentSystemHandlerCardPayMock = "cardpay_mock"
 
 	defaultHttpClientTimeout = 10
-	defaultResponseBodyLimit = 512
 
 	cachePaymentSystem      = "payment_system:id:%s"
 	collectionPaymentSystem = "payment_system"
@@ -37,10 +37,11 @@ var (
 	paymentSystemErrorRequestTemporarySkipped                = newBillingServerErrorMsg("ph000013", "notification skipped with temporary status")
 	paymentSystemErrorRecurringFailed                        = newBillingServerErrorMsg("ph000014", "recurring payment failed")
 
-	paymentSystemHandlers = map[string]func(*paymentProcessor) PaymentSystem{
+	paymentSystemHandlers = map[string]func(cfg *config.PaymentSystemConfig) PaymentSystem{
 		pkg.PaymentSystemHandlerCardPay: newCardPayHandler,
 		paymentSystemHandlerMockOk:      NewPaymentSystemMockOk,
 		paymentSystemHandlerMockError:   NewPaymentSystemMockError,
+		paymentSystemHandlerCardPayMock: NewCardPayMock,
 	}
 )
 
@@ -50,18 +51,12 @@ type Path struct {
 }
 
 type PaymentSystem interface {
-	CreatePayment(map[string]string) (string, error)
-	ProcessPayment(request proto.Message, rawRequest string, signature string) error
+	CreatePayment(order *billing.Order, requisites map[string]string) (string, error)
+	ProcessPayment(order *billing.Order, message proto.Message, raw, signature string) error
 	IsRecurringCallback(request proto.Message) bool
 	GetRecurringId(request proto.Message) string
-	CreateRefund(refund *billing.Refund) error
-	ProcessRefund(refund *billing.Refund, message proto.Message, raw, signature string) (err error)
-}
-
-type paymentProcessor struct {
-	cfg     *config.PaymentSystemConfig
-	order   *billing.Order
-	service *Service
+	CreateRefund(order *billing.Order, refund *billing.Refund) error
+	ProcessRefund(order *billing.Order, refund *billing.Refund, message proto.Message, raw, signature string) error
 }
 
 func (s *Service) NewPaymentSystem(
@@ -69,6 +64,7 @@ func (s *Service) NewPaymentSystem(
 	order *billing.Order,
 ) (PaymentSystem, error) {
 	ps, err := s.paymentSystem.GetById(order.PaymentMethod.PaymentSystemId)
+
 	if err != nil {
 		return nil, err
 	}
@@ -79,30 +75,7 @@ func (s *Service) NewPaymentSystem(
 		return nil, paymentSystemErrorHandlerNotFound
 	}
 
-	processor := &paymentProcessor{cfg: cfg, order: order, service: s}
-
-	return h(processor), nil
-}
-
-func (h *paymentProcessor) cutBytes(body []byte, limit int) string {
-	sBody := string(body)
-	r := []rune(sBody)
-
-	if len(r) > limit {
-		return string(r[:limit])
-	}
-
-	return sBody
-}
-
-func (h *paymentProcessor) httpHeadersToString(headers map[string][]string) string {
-	var out string
-
-	for k, v := range headers {
-		out += k + ":" + v[0] + "\n "
-	}
-
-	return out
+	return h(cfg), nil
 }
 
 type PaymentSystemServiceInterface interface {

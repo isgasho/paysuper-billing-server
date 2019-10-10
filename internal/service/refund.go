@@ -76,10 +76,9 @@ func (s *Service) CreateRefund(
 		return err
 	}
 
-	err = h.CreateRefund(refund)
+	err = h.CreateRefund(processor.checked.order, refund)
 
 	if err != nil {
-		zap.S().Errorf("create refund failed", "err", err.Error())
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = refundErrorUnknown
 
@@ -225,19 +224,9 @@ func (s *Service) ProcessRefundCallback(
 		return nil
 	}
 
-	pErr := h.ProcessRefund(refund, data, string(req.Body), req.Signature)
+	pErr := h.ProcessRefund(order, refund, data, string(req.Body), req.Signature)
 
 	if pErr != nil {
-		s.logError(
-			"Refund callback processing failed",
-			[]interface{}{
-				"err", pErr.Error(),
-				"refund_id", refundId,
-				"request", string(req.Body),
-				"signature", req.Signature,
-			},
-		)
-
 		rsp.Error = pErr.Error()
 		rsp.Status = pErr.(*grpc.ResponseError).Status
 

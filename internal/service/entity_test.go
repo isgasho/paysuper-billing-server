@@ -24,6 +24,7 @@ type EntityTestSuite struct {
 	cache   CacheInterface
 
 	projectId     string
+	project       *billing.Project
 	paymentMethod *billing.PaymentMethod
 }
 
@@ -79,7 +80,6 @@ func (suite *EntityTestSuite) SetupTest() {
 		Group:            "BANKCARD",
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
-		Currencies:       []string{"RUB", "USD", "EUR"},
 		ExternalId:       "BANKCARD",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
 			"RUB": {
@@ -95,7 +95,6 @@ func (suite *EntityTestSuite) SetupTest() {
 		Group:            "QIWI",
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
-		Currencies:       []string{"RUB", "USD", "EUR"},
 		ExternalId:       "QIWI",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
 			"RUB": {
@@ -111,7 +110,6 @@ func (suite *EntityTestSuite) SetupTest() {
 		Group:            "BITCOIN",
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
-		Currencies:       []string{"RUB", "USD", "EUR"},
 		ExternalId:       "BITCOIN",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
 			"RUB": {
@@ -222,7 +220,7 @@ func (suite *EntityTestSuite) SetupTest() {
 		},
 		IsVatEnabled:              true,
 		IsCommissionToUserEnabled: true,
-		Status:                    pkg.MerchantStatusAgreementRequested,
+		Status:                    pkg.MerchantStatusAgreementSigning,
 		LastPayout: &billing.MerchantLastPayout{
 			Date:   date,
 			Amount: 10000,
@@ -265,10 +263,11 @@ func (suite *EntityTestSuite) SetupTest() {
 	}
 
 	suite.projectId = project.Id
+	suite.project = project
 
 	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), )
+	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK())
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -308,7 +307,7 @@ func (suite *EntityTestSuite) TearDownTest() {
 }
 
 func (suite *EntityTestSuite) TestProject_GetPaymentMethodByGroupAndCurrency_Ok() {
-	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(suite.paymentMethod.Group, "RUB")
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(suite.project, suite.paymentMethod.Group, "RUB")
 
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
@@ -317,7 +316,7 @@ func (suite *EntityTestSuite) TestProject_GetPaymentMethodByGroupAndCurrency_Ok(
 }
 
 func (suite *EntityTestSuite) TestProject_GetPaymentMethodByGroupAndCurrency_GroupError() {
-	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency("group_from_my_head", "RUB")
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(suite.project, "group_from_my_head", "RUB")
 
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), pm)
@@ -325,7 +324,7 @@ func (suite *EntityTestSuite) TestProject_GetPaymentMethodByGroupAndCurrency_Gro
 }
 
 func (suite *EntityTestSuite) TestProject_GetPaymentMethodByGroupAndCurrency_CurrencyError() {
-	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(suite.paymentMethod.Group, "XDR")
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(suite.project, suite.paymentMethod.Group, "XDR")
 
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), pm)

@@ -15,9 +15,17 @@ const (
 	collectionMerchantPaymentMethodHistory = "payment_method_history"
 )
 
-func newMerchantService(svc *Service) *Merchant {
-	s := &Merchant{svc: svc}
-	return s
+type MerchantRepositoryInterface interface {
+	Update(merchant *billing.Merchant) error
+	Insert(merchant *billing.Merchant) error
+	Upsert(merchant *billing.Merchant) error
+	MultipleInsert(merchants []*billing.Merchant) error
+	GetById(id string) (*billing.Merchant, error)
+	GetPaymentMethod(merchantId string, method string) (*billing.MerchantPaymentMethod, error)
+}
+
+func newMerchantService(svc *Service) MerchantRepositoryInterface {
+	return &Merchant{svc: svc}
 }
 
 func (h *Merchant) Update(merchant *billing.Merchant) error {
@@ -193,46 +201,4 @@ func (h Merchant) GetPaymentMethod(merchantId string, method string) (*billing.M
 	}
 
 	return merchantPaymentMethods[method], nil
-}
-
-func (h Merchant) GetPaymentMethodTerminalId(merchantId, pmId string) (string, error) {
-	pm, err := h.GetPaymentMethod(merchantId, pmId)
-
-	if err != nil {
-		return "", err
-	}
-
-	if pm.Integration == nil || pm.Integration.TerminalId == "" {
-		return "", orderErrorPaymentMethodEmptySettings
-	}
-
-	return pm.Integration.TerminalId, nil
-}
-
-func (h Merchant) GetPaymentMethodTerminalPassword(merchantId, pmId string) (string, error) {
-	pm, err := h.GetPaymentMethod(merchantId, pmId)
-
-	if err != nil {
-		return "", err
-	}
-
-	if pm.Integration == nil || pm.Integration.TerminalPassword == "" {
-		return "", orderErrorPaymentMethodEmptySettings
-	}
-
-	return pm.Integration.TerminalPassword, nil
-}
-
-func (h Merchant) GetPaymentMethodTerminalCallbackPassword(merchantId, pmId string) (string, error) {
-	pm, err := h.GetPaymentMethod(merchantId, pmId)
-
-	if err != nil {
-		return "", err
-	}
-
-	if pm.Integration == nil || pm.Integration.TerminalCallbackPassword == "" {
-		return "", orderErrorPaymentMethodEmptySettings
-	}
-
-	return pm.Integration.TerminalCallbackPassword, nil
 }

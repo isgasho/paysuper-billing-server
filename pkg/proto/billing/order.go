@@ -62,10 +62,10 @@ func (m *Order) GetPublicDeclineCode() string {
 }
 
 func (m *Order) GetMerchantRoyaltyCurrency() string {
-	if m.PaymentMethod == nil || m.PaymentMethod.Params == nil {
+	if m.Project == nil {
 		return ""
 	}
-	return m.PaymentMethod.Params.Currency
+	return m.Project.MerchantRoyaltyCurrency
 }
 
 func (m *Order) GetPaymentMethodName() string {

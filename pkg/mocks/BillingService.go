@@ -2263,6 +2263,36 @@ func (_m *BillingService) GetPriceGroupByCountry(ctx context.Context, in *grpc.P
 	return r0, r1
 }
 
+// GetPriceGroupByRegion provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) GetPriceGroupByRegion(ctx context.Context, in *grpc.GetPriceGroupByRegionRequest, opts ...client.CallOption) (*grpc.GetPriceGroupByRegionResponse, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *grpc.GetPriceGroupByRegionResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.GetPriceGroupByRegionRequest, ...client.CallOption) *grpc.GetPriceGroupByRegionResponse); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*grpc.GetPriceGroupByRegionResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.GetPriceGroupByRegionRequest, ...client.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetPriceGroupCurrencies provides a mock function with given fields: ctx, in, opts
 func (_m *BillingService) GetPriceGroupCurrencies(ctx context.Context, in *grpc.EmptyRequest, opts ...client.CallOption) (*grpc.PriceGroupCurrenciesResponse, error) {
 	_va := make([]interface{}, len(opts))
