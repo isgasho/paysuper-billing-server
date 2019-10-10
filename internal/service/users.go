@@ -91,14 +91,14 @@ func (s *Service) InviteUserMerchant(
 		return nil
 	}
 
-	name := owner.User.FirstName + " " + owner.User.LastName
-	if err = s.sendInviteEmail(req.Item.User.Email, owner.User.Email, name, owner.Company.Name); err != nil {
+	if err = s.sendInviteEmail(req.Item.User.Email, owner.User.Email, owner.User.FirstName, owner.User.LastName, owner.Company.Name); err != nil {
 		zap.L().Error(
 			errorUserUnableToSendInvite.Message,
 			zap.Error(err),
 			zap.String("receiverEmail", req.Item.User.Email),
 			zap.String("senderEmail", owner.User.Email),
-			zap.String("senderName", name),
+			zap.String("senderFirstName", owner.User.FirstName),
+			zap.String("senderLastName", owner.User.LastName),
 			zap.String("senderCompany", owner.Company.Name),
 		)
 		res.Status = pkg.ResponseStatusBadData
@@ -149,14 +149,14 @@ func (s *Service) InviteUserAdmin(
 		return nil
 	}
 
-	name := owner.User.FirstName + " " + owner.User.LastName
-	if err = s.sendInviteEmail(req.Item.User.Email, owner.User.Email, name, defaultCompanyName); err != nil {
+	if err = s.sendInviteEmail(req.Item.User.Email, owner.User.Email, owner.User.FirstName, owner.User.LastName, defaultCompanyName); err != nil {
 		zap.L().Error(
 			errorUserUnableToSendInvite.Message,
 			zap.Error(err),
 			zap.String("receiverEmail", req.Item.User.Email),
 			zap.String("senderEmail", owner.User.Email),
-			zap.String("senderName", name),
+			zap.String("senderFirstName", owner.User.FirstName),
+			zap.String("senderLastName", owner.User.LastName),
 		)
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserUnableToSendInvite
@@ -195,14 +195,14 @@ func (s *Service) ResendInviteMerchant(
 		return nil
 	}
 
-	name := owner.User.FirstName + " " + owner.User.LastName
-	if err = s.sendInviteEmail(req.ReceiverEmail, owner.User.Email, name, owner.Company.Name); err != nil {
+	if err = s.sendInviteEmail(req.ReceiverEmail, owner.User.Email, owner.User.FirstName, owner.User.LastName, owner.Company.Name); err != nil {
 		zap.L().Error(
 			errorUserUnableToSendInvite.Message,
 			zap.Error(err),
 			zap.String("receiverEmail", req.ReceiverEmail),
 			zap.String("senderEmail", owner.User.Email),
-			zap.String("senderName", name),
+			zap.String("senderFirstName", owner.User.FirstName),
+			zap.String("senderLastName", owner.User.LastName),
 			zap.String("senderCompany", owner.Company.Name),
 		)
 		res.Status = pkg.ResponseStatusBadData
@@ -241,14 +241,14 @@ func (s *Service) ResendInviteAdmin(
 		return nil
 	}
 
-	name := owner.User.FirstName + " " + owner.User.LastName
-	if err = s.sendInviteEmail(req.ReceiverEmail, owner.User.Email, name, defaultCompanyName); err != nil {
+	if err = s.sendInviteEmail(req.ReceiverEmail, owner.User.Email, owner.User.FirstName, owner.User.LastName, defaultCompanyName); err != nil {
 		zap.L().Error(
 			errorUserUnableToSendInvite.Message,
 			zap.Error(err),
 			zap.String("receiverEmail", req.ReceiverEmail),
 			zap.String("senderEmail", owner.User.Email),
-			zap.String("senderName", name),
+			zap.String("senderFirstName", owner.User.FirstName),
+			zap.String("senderLastName", owner.User.LastName),
 		)
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserUnableToSendInvite
@@ -373,7 +373,7 @@ func (s *Service) GetAdminUser(
 	return nil
 }
 
-func (s *Service) sendInviteEmail(receiverEmail string, senderEmail string, senderName string, senderCompany string) error {
+func (s *Service) sendInviteEmail(receiverEmail string, senderEmail string, senderFirstName string, senderLastName string, senderCompany string) error {
 	inviteLink := "/invite/member?email=" + receiverEmail
 
 	if senderCompany != defaultCompanyName {
@@ -385,10 +385,11 @@ func (s *Service) sendInviteEmail(receiverEmail string, senderEmail string, send
 	payload := &postmarkSdrPkg.Payload{
 		TemplateAlias: s.cfg.EmailInviteTemplate,
 		TemplateModel: map[string]string{
-			"sender_name":    senderName,
-			"sender_email":   senderEmail,
-			"sender_company": senderCompany,
-			"invite_link":    inviteLink,
+			"sender_first_name": senderFirstName,
+			"sender_last_name":  senderLastName,
+			"sender_email":      senderEmail,
+			"sender_company":    senderCompany,
+			"invite_link":       inviteLink,
 		},
 		To: receiverEmail,
 	}
