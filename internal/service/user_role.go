@@ -125,11 +125,11 @@ func (h *UserRoleRepository) GetAdminUserByUserId(userId string) (*billing.UserR
 	return user, nil
 }
 
-func (h *UserRoleRepository) GetMerchantUserByUserId(merchantId string, userId string) (*billing.UserRoleMerchant, error) {
+func (h *UserRoleRepository) GetMerchantUserByUserId(merchantId string, id string) (*billing.UserRoleMerchant, error) {
 	var user *billing.UserRoleMerchant
 
 	err := h.svc.db.Collection(collectionMerchantUsersTable).
-		Find(bson.M{"merchant_id": merchantId, "user.user_id": userId}).
+		Find(bson.M{"merchant_id": merchantId, "user.user_id": id}).
 		One(&user)
 
 	if err != nil {
