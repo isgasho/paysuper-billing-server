@@ -36,3 +36,19 @@ func (s *Service) GetMerchantUsers(ctx context.Context, req *grpc.GetMerchantUse
 
 	return nil
 }
+
+func (s *Service) GetAdminUsers(ctx context.Context, _ *grpc.EmptyRequest, res *grpc.GetAdminUsersResponse) error {
+	users, err := s.userRoleRepository.GetUsersForAdmin()
+
+	if err != nil {
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = usersDbInternalError
+		res.Message.Details = err.Error()
+
+		return nil
+	}
+	res.Status = pkg.ResponseStatusOk
+	res.Users = users
+
+	return nil
+}

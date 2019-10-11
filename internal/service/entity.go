@@ -44,6 +44,7 @@ type OrderRepository Repository
 type DashboardRepository Entity
 type UserRoleRepository Entity
 
+
 type kvIntFloat struct {
 	Key   int
 	Value float64
