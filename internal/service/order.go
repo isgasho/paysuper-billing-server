@@ -584,15 +584,26 @@ func (s *Service) PaymentFormJsonDataProcess(
 
 	if order.Issuer == nil {
 		order.Issuer = &billing.OrderIssuer{
-			Url:      req.Referer,
 			Embedded: req.IsEmbedded,
 		}
-	} else {
-		if req.Referer != "" && req.Referer != order.Issuer.Url {
-			order.Issuer.Url = req.Referer
-		}
-
-		order.Issuer.Embedded = req.IsEmbedded
+	}
+	if order.Issuer.Url == "" {
+		order.Issuer.Url = req.Referer
+	}
+	if order.Issuer.ReferenceType == "" {
+		order.Issuer.ReferenceType = req.IssuerReferenceType
+	}
+	if order.Issuer.Reference == "" {
+		order.Issuer.Reference = req.IssuerReference
+	}
+	if order.Issuer.UtmSource == "" {
+		order.Issuer.UtmSource = req.UtmSource
+	}
+	if order.Issuer.UtmCampaign == "" {
+		order.Issuer.UtmCampaign = req.UtmCampaign
+	}
+	if order.Issuer.UtmMedium == "" {
+		order.Issuer.UtmMedium = req.UtmMedium
 	}
 
 	p1.processOrderVat(order)
@@ -1311,12 +1322,15 @@ func (s *Service) updateOrder(order *billing.Order) error {
 	}
 
 	if statusChanged && ps != constant.OrderPublicStatusCreated && ps != constant.OrderPublicStatusPending {
-		zap.S().Debug("[updateOrder] notify merchant", "order_id", order.Id)
-		if ps == constant.OrderPublicStatusRefunded {
+		zap.S().Infow("[updateOrder] notify merchant", "order_id", order.Id, "status", ps)
+
+		switch ps {
+		case constant.OrderPublicStatusRefunded:
 			s.sendMailWithRefund(order)
-		} else if ps != constant.OrderPublicStatusChargeback {
+		case constant.OrderPublicStatusProcessed:
 			s.sendMailWithReceipt(order)
 		}
+
 		s.orderNotifyMerchant(order)
 	}
 
@@ -1355,11 +1369,11 @@ func (s *Service) orderNotifyKeyProducts(ctx context.Context, order *billing.Ord
 			rsp := &grpc.GetKeyForOrderRequestResponse{}
 			err = s.FinishRedeemKeyForOrder(ctx, &grpc.KeyForOrderRequest{KeyId: key}, rsp)
 			if err != nil {
-				zap.S().Error("internal error during finishing reservation for key", "err", err, "key", key)
+				zap.S().Errorw("internal error during finishing reservation for key", "err", err, "key", key)
 				continue
 			}
 			if rsp.Status != pkg.ResponseStatusOk {
-				zap.S().Error("could not finish reservation for key", "key", key, "message", rsp.Message)
+				zap.S().Errorw("could not finish reservation for key", "key", key, "message", rsp.Message)
 				continue
 			}
 
@@ -1386,12 +1400,12 @@ func (s *Service) sendMailWithRefund(order *billing.Order) {
 func (s *Service) sendMailWithReceipt(order *billing.Order) {
 	payload := s.getPayloadForReceipt(order)
 
-	zap.S().Infow("sending receipt to broker", "order_id", order.Id)
+	zap.S().Infow("sending receipt to broker", "order_id", order.Id, "topic", postmarkSdrPkg.PostmarkSenderTopicName)
 	err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 	if err != nil {
 		zap.S().Errorw(
 			"Publication receipt to user email queue is failed",
-			"err", err, "email", order.ReceiptEmail, "order_id", order.Id)
+			"err", err, "email", order.ReceiptEmail, "order_id", order.Id, "topic", postmarkSdrPkg.PostmarkSenderTopicName)
 	}
 }
 
@@ -1511,8 +1525,10 @@ func (s *Service) sendMailWithCode(ctx context.Context, order *billing.Order, ke
 				zap.S().Errorw(
 					"Publication activation code to user email queue is failed",
 					"err", err, "email", order.ReceiptEmail, "order_id", order.Id, "key_id", key.Id)
+
+			} else {
+				zap.S().Infow("Sent payload to broker", "email", order.ReceiptEmail, "order_id", order.Id, "key_id", key.Id, "topic", postmarkSdrPkg.PostmarkSenderTopicName)
 			}
-			zap.S().Infow("Sent payload to broker", "email", order.ReceiptEmail, "order_id", order.Id, "key_id", key.Id)
 			return
 		}
 	}
@@ -1664,8 +1680,13 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 		Metadata:           v.checked.metadata,
 		PrivateMetadata:    v.checked.privateMetadata,
 		Issuer: &billing.OrderIssuer{
-			Url:      v.request.IssuerUrl,
-			Embedded: v.request.IsEmbedded,
+			Url:           v.request.IssuerUrl,
+			Embedded:      v.request.IsEmbedded,
+			ReferenceType: v.request.IssuerReferenceType,
+			Reference:     v.request.IssuerReference,
+			UtmSource:     v.request.UtmSource,
+			UtmCampaign:   v.request.UtmCampaign,
+			UtmMedium:     v.request.UtmMedium,
 		},
 		CountryRestriction: &billing.CountryRestriction{
 			IsoCodeA2:       "",
@@ -3602,7 +3623,7 @@ func (s *Service) OrderReceipt(
 
 	items := make([]*billing.OrderReceiptItem, len(order.Items))
 
-	for _, item := range order.Items {
+	for i, item := range order.Items {
 		price, err := s.formatter.FormatCurrency("en", item.Amount, item.Currency)
 
 		if err != nil {
@@ -3619,7 +3640,7 @@ func (s *Service) OrderReceipt(
 			return nil
 		}
 
-		items = append(items, &billing.OrderReceiptItem{Name: item.Name, Price: price})
+		items[i] = &billing.OrderReceiptItem{Name: item.Name, Price: price}
 	}
 
 	receipt := &billing.OrderReceipt{

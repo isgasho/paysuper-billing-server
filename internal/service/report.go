@@ -24,7 +24,7 @@ func (s *Service) FindAllOrdersPublic(
 	req *grpc.ListOrdersRequest,
 	rsp *grpc.ListOrdersPublicResponse,
 ) error {
-	count, orders, err := s.getOrdersList(req, make([]*billing.OrderViewPublic, 1))
+	count, orders, err := s.getOrdersList(req, collectionOrderView, make([]*billing.OrderViewPublic, 1))
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -47,7 +47,7 @@ func (s *Service) FindAllOrdersPrivate(
 	req *grpc.ListOrdersRequest,
 	rsp *grpc.ListOrdersPrivateResponse,
 ) error {
-	count, orders, err := s.getOrdersList(req, make([]*billing.OrderViewPrivate, 1))
+	count, orders, err := s.getOrdersList(req, collectionOrderView, make([]*billing.OrderViewPrivate, 1))
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -60,6 +60,29 @@ func (s *Service) FindAllOrdersPrivate(
 	rsp.Item = &grpc.ListOrdersPrivateResponseItem{
 		Count: int32(count),
 		Items: orders.([]*billing.OrderViewPrivate),
+	}
+
+	return nil
+}
+
+func (s *Service) FindAllOrders(
+	ctx context.Context,
+	req *grpc.ListOrdersRequest,
+	rsp *grpc.ListOrdersResponse,
+) error {
+	count, orders, err := s.getOrdersList(req, collectionOrder, make([]*billing.Order, 1))
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = reportErrorUnknown
+
+		return nil
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
+	rsp.Item = &grpc.ListOrdersResponseItem{
+		Count: int32(count),
+		Items: orders.([]*billing.Order),
 	}
 
 	return nil
@@ -113,7 +136,11 @@ func (s *Service) GetOrderPrivate(
 	return nil
 }
 
-func (s *Service) getOrdersList(req *grpc.ListOrdersRequest, receiver interface{}) (int, interface{}, error) {
+func (s *Service) getOrdersList(
+	req *grpc.ListOrdersRequest,
+	source string,
+	receiver interface{},
+) (int, interface{}, error) {
 	query := make(bson.M)
 
 	if len(req.Merchant) > 0 {
@@ -215,27 +242,27 @@ func (s *Service) getOrdersList(req *grpc.ListOrdersRequest, receiver interface{
 		}
 	}
 
-	count, err := s.db.Collection(collectionOrderView).Find(query).Count()
+	count, err := s.db.Collection(source).Find(query).Count()
 
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrderView),
+			zap.String(pkg.ErrorDatabaseFieldCollection, source),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
 
 		return 0, nil, err
 	}
 
-	err = s.db.Collection(collectionOrderView).Find(query).Sort(req.Sort...).Limit(int(req.Limit)).
+	err = s.db.Collection(source).Find(query).Sort(req.Sort...).Limit(int(req.Limit)).
 		Skip(int(req.Offset)).All(&receiver)
 
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrderView),
+			zap.String(pkg.ErrorDatabaseFieldCollection, source),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
 

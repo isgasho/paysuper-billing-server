@@ -284,14 +284,16 @@ func (s *Service) ChangeMerchant(
 	}
 
 	if req.Banking != nil {
-		merchant.Banking = &billing.MerchantBanking{
-			Name:                 req.Banking.Name,
-			Address:              req.Banking.Address,
-			AccountNumber:        req.Banking.AccountNumber,
-			Swift:                req.Banking.Swift,
-			Details:              req.Banking.Details,
-			CorrespondentAccount: req.Banking.CorrespondentAccount,
+		if merchant.Banking == nil {
+			merchant.Banking = &billing.MerchantBanking{}
 		}
+
+		merchant.Banking.Name = req.Banking.Name
+		merchant.Banking.Address = req.Banking.Address
+		merchant.Banking.AccountNumber = req.Banking.AccountNumber
+		merchant.Banking.Swift = req.Banking.Swift
+		merchant.Banking.Details = req.Banking.Details
+		merchant.Banking.CorrespondentAccount = req.Banking.CorrespondentAccount
 	}
 
 	if req.Contacts != nil {
@@ -315,9 +317,9 @@ func (s *Service) ChangeMerchant(
 		merchant.Steps = &billing.MerchantCompletedSteps{}
 	}
 
-	merchant.Steps.Company = merchant.Company != nil
-	merchant.Steps.Contacts = merchant.Contacts != nil
-	merchant.Steps.Banking = merchant.Banking != nil
+	merchant.Steps.Company = merchant.IsCompanyComplete()
+	merchant.Steps.Contacts = merchant.IsContactsComplete()
+	merchant.Steps.Banking = merchant.IsBankingComplete()
 
 	if !merchant.HasPrimaryOnboardingUserName() {
 		profile := s.getOnboardingProfileBy(bson.M{"user_id": req.User.Id})
@@ -1336,6 +1338,7 @@ func (s *Service) SetMerchantTariffRates(
 	}
 
 	merchant.Steps.Tariff = true
+	merchant.Steps.Banking = merchant.IsBankingComplete()
 
 	if merchant.IsDataComplete() {
 		err = s.generateMerchantAgreement(ctx, merchant)

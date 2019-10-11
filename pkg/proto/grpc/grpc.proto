@@ -68,6 +68,7 @@ service BillingService {
     rpc GetOrderPrivate (GetOrderRequest) returns (GetOrderPrivateResponse) {}
     rpc FindAllOrdersPublic (ListOrdersRequest) returns (ListOrdersPublicResponse) {}
     rpc FindAllOrdersPrivate (ListOrdersRequest) returns (ListOrdersPrivateResponse) {}
+    rpc FindAllOrders (ListOrdersRequest) returns (ListOrdersResponse) {}
     rpc IsOrderCanBePaying (IsOrderCanBePayingRequest) returns (IsOrderCanBePayingResponse) {}
 
     rpc GetPriceGroup (billing.GetPriceGroupRequest) returns (billing.PriceGroup) {}
@@ -406,6 +407,11 @@ message PaymentFormJsonDataRequest {
     string cookie = 7;
     string referer = 8;
     bool is_embedded = 9;
+    string issuer_reference = 10;
+    string issuer_reference_type = 11;
+    string utm_source = 12;
+    string utm_medium = 13;
+    string utm_campaign = 14;
 }
 
 message PaymentFormJsonDataProject {
@@ -1330,10 +1336,12 @@ message ListRoyaltyReportsRequest {
     int64 period_to = 2;
     // @inject_tag: query:"merchant_id" validate:"required,hexadecimal,len=24"
     string merchant_id = 3;
+    //@inject_tag: query:"status[]" validate:"omitempty,dive,oneof=pending accepted canceled dispute waiting_payment paid"
+    repeated string status = 4;
     // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
-    int32 limit = 4;
+    int32 limit = 5;
     // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
-    int32 offset = 5;
+    int32 offset = 6;
 }
 
 message RoyaltyReportsPaginate {
@@ -1809,6 +1817,17 @@ message ListOrdersPrivateResponse {
     ListOrdersPrivateResponseItem Item = 3;
 }
 
+message ListOrdersResponseItem {
+    int32 count = 1;
+    repeated billing.Order items = 2;
+}
+
+message ListOrdersResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    ListOrdersResponseItem Item = 3;
+}
+
 message GetOrderPublicResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
@@ -2019,8 +2038,8 @@ message UpdatePayoutDocumentRequest {
 message GetPayoutDocumentsRequest {
     //@inject_tag: query:"payout_document_id" validate:"omitempty,hexadecimal,len=24"
     string payout_document_id = 1;
-    //@inject_tag: query:"status" validate:"omitempty,oneof=skip pending in_progress paid canceled failed"
-    string status = 2;
+    //@inject_tag: query:"status[]" validate:"omitempty,dive,oneof=skip pending in_progress paid canceled failed"
+    repeated string status = 2;
     //@inject_tag: query:"merchant_id" validate:"omitempty,hexadecimal,len=24"
     string merchant_id = 3;
     //@inject_tag: query:"signed"

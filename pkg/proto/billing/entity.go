@@ -191,7 +191,7 @@ func (m *Merchant) GetCompleteStepsCount() int32 {
 }
 
 func (m *Merchant) IsDataComplete() bool {
-	return m.Company != nil && m.Contacts != nil && m.Banking != nil && m.HasTariff()
+	return m.IsCompanyComplete() && m.IsContactsComplete() && m.IsBankingComplete() && m.HasTariff()
 }
 
 func (m *Merchant) GetMerchantSignatureId() string {
@@ -254,4 +254,22 @@ func (pd *PayoutDocument) IsFullySigned() bool {
 
 func (m *PaymentMethodParams) IsSettingComplete() bool {
 	return m.TerminalId != "" && m.Secret != "" && m.SecretCallback != ""
+}
+
+func (m *Merchant) IsCompanyComplete() bool {
+	return m.Company != nil && m.Company.Name != "" && m.Company.AlternativeName != "" && m.Company.Website != "" &&
+		m.Company.Country != "" && m.Company.State != "" && m.Company.Zip != "" && m.Company.City != "" &&
+		m.Company.Address != "" && m.Company.RegistrationNumber != ""
+}
+
+func (m *Merchant) IsContactsComplete() bool {
+	return m.Contacts != nil && m.Contacts.Authorized != nil && m.Contacts.Technical != nil &&
+		m.Contacts.Authorized.Name != "" && m.Contacts.Authorized.Email != "" && m.Contacts.Authorized.Phone != "" &&
+		m.Contacts.Authorized.Position != "" && m.Contacts.Technical.Name != "" && m.Contacts.Technical.Email != "" &&
+		m.Contacts.Technical.Phone != ""
+}
+
+func (m *Merchant) IsBankingComplete() bool {
+	return m.Banking != nil && m.Banking.Currency != "" && m.Banking.Name != "" && m.Banking.Address != "" &&
+		m.Banking.AccountNumber != "" && m.Banking.Swift != ""
 }

@@ -78,6 +78,17 @@ message OrderCreateRequest {
     string type = 32;
 
     string platform_id = 33;
+
+    //@inject_tag: bson:"issuer_reference" json:"issuer_reference"
+    string issuer_reference = 34;
+    //@inject_tag: bson:"issuer_reference_type" json:"issuer_reference_type"
+    string issuer_reference_type = 35;
+    //@inject_tag: bson:"utm_source" json:"utm_source"
+    string utm_source = 36;
+    //@inject_tag: bson:"utm_medium" json:"utm_medium"
+    string utm_medium = 37;
+    //@inject_tag: bson:"utm_campaign" json:"utm_campaign"
+    string utm_campaign = 38;
 }
 
 message Project {
@@ -1009,10 +1020,20 @@ message TokenSettings {
 }
 
 message OrderIssuer {
-    //@inject_tag: json:"url"
+    //@inject_tag: bson:"url" json:"url"
     string url = 1;
-    //@inject_tag: json:"embedded"
+    //@inject_tag: bson:"embedded" json:"embedded"
     bool embedded = 2;
+    //@inject_tag: bson:"reference" json:"reference"
+    string reference = 3;
+    //@inject_tag: bson:"reference_type" json:"reference_type"
+    string reference_type = 4;
+    //@inject_tag: bson:"utm_source" json:"utm_source"
+    string utm_source = 5;
+    //@inject_tag: bson:"utm_medium" json:"utm_medium"
+    string utm_medium = 6;
+    //@inject_tag: bson:"utm_campaign" json:"utm_campaign"
+    string utm_campaign = 7;
 }
 
 message OrderNotificationRefund {
@@ -1669,6 +1690,11 @@ message OrderViewPublic {
     OrderViewMoney refund_fees_total = 36;
     // @inject_tag: json:"refund_fees_total_local" bson:"refund_fees_total_local"
     OrderViewMoney refund_fees_total_local = 37;
+    OrderIssuer issuer = 38;
+    // @inject_tag: json:"items" bson:"items"
+    repeated OrderItem items = 39;
+    //@inject_tag: json:"merchant_payout_currency" bson:"merchant_payout_currency"
+    string merchant_payout_currency = 40;
 }
 
 message OrderViewPrivate {
@@ -1812,6 +1838,12 @@ message OrderViewPrivate {
     OrderViewMoney refund_fees_total_local = 69;
     // @inject_tag: json:"paysuper_refund_total_profit" bson:"paysuper_refund_total_profit"
     OrderViewMoney paysuper_refund_total_profit = 70;
+    //@inject_tag: json:"issuer" bson:"issuer"
+    OrderIssuer issuer = 71;
+    // @inject_tag: json:"items" bson:"items"
+    repeated OrderItem items = 72;
+    //@inject_tag: json:"merchant_payout_currency" bson:"merchant_payout_currency"
+    string merchant_payout_currency = 73;
 }
 
 message RecommendedPrice {
