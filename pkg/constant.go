@@ -289,6 +289,8 @@ const (
 	PayoutDocumentStatusCanceled   = "canceled"
 	PayoutDocumentStatusFailed     = "failed"
 
+	OrderIssuerReferenceTypePaylink = "paylink"
+
 	MerchantUserRoleOwner      = "owner"
 	MerchantUserRoleDeveloper  = "developer"
 	MerchantUserRoleAccounting = "accounting"

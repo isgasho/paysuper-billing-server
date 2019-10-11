@@ -79,7 +79,7 @@ func (suite *ReportTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), broker, redisClient, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), )
+	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), broker, redisClient, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK())
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -114,6 +114,14 @@ func (suite *ReportTestSuite) TestReport_ReturnEmptyList() {
 	assert.NotNil(suite.T(), rsp1.Item)
 	assert.Equal(suite.T(), int32(0), rsp1.Item.Count)
 	assert.Empty(suite.T(), rsp1.Item.Items)
+
+	rsp2 := &grpc.ListOrdersResponse{}
+	err = suite.service.FindAllOrders(context.TODO(), req, rsp2)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.NotNil(suite.T(), rsp1.Item)
+	assert.Equal(suite.T(), int32(0), rsp1.Item.Count)
+	assert.Empty(suite.T(), rsp1.Item.Items)
 }
 
 func (suite *ReportTestSuite) TestReport_FindById() {
@@ -136,6 +144,14 @@ func (suite *ReportTestSuite) TestReport_FindById() {
 
 	rsp1 := &grpc.ListOrdersPrivateResponse{}
 	err = suite.service.FindAllOrdersPrivate(context.TODO(), req, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.NotNil(suite.T(), rsp1.Item)
+	assert.Equal(suite.T(), int32(1), rsp1.Item.Count)
+	assert.Equal(suite.T(), order.Id, rsp1.Item.Items[0].Id)
+
+	rsp2 := &grpc.ListOrdersResponse{}
+	err = suite.service.FindAllOrders(context.TODO(), req, rsp2)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 	assert.NotNil(suite.T(), rsp1.Item)
