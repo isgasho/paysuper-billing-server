@@ -202,6 +202,7 @@ service BillingService {
     rpc AcceptMerchantInvite(AcceptMerchantInviteRequest) returns (AcceptMerchantInviteResponse) {}
     rpc AcceptAdminInvite(AcceptAdminInviteRequest) returns (AcceptAdminInviteResponse) {}
     rpc CheckInviteToken(CheckInviteTokenRequest) returns (CheckInviteTokenResponse) {}
+    rpc GetMerchantsForUser(GetMerchantsForUserRequest) returns (GetMerchantsForUserResponse) {}
 }
 
 message EmptyRequest {
@@ -2389,4 +2390,20 @@ message GetAdminUsersResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     repeated billing.UserRoleAdmin users = 3;
+}
+
+message GetMerchantsForUserRequest {
+    //@inject_tag: json:"user_id" validate:"required"
+    string user_id = 1;
+}
+
+message GetMerchantsForUserResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    repeated MerchantForUserInfo merchants = 3;
+}
+
+message MerchantForUserInfo {
+    string id = 1;
+    string name = 2;
 }
