@@ -49,15 +49,15 @@ var (
 
 //TODO: correct icons
 var availablePlatforms = map[string]*grpc.Platform{
-	"steam":    {Id: "steam", Name: "Steam", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-steam.svg", Order: 1},
-	"gog":      {Id: "gog", Name: "GOG", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-gog.svg", Order: 2},
-	"uplay":    {Id: "uplay", Name: "Uplay", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-uplay.svg", Order: 3},
-	"origin":   {Id: "origin", Name: "Origin", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-origin.svg", Order: 4},
-	"psn":      {Id: "psn", Name: "PSN", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-psn.svg", Order: 5},
-	"xbox":     {Id: "xbox", Name: "XBOX Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-xbox.svg", Order: 6},
-	"nintendo": {Id: "nintendo", Name: "Nintendo Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-nintendo.svg", Order: 7},
-	"itch":     {Id: "itch", Name: "Itch.io", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-itch.svg", Order: 8},
-	"egs":      {Id: "egs", Name: "Epic Games Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-epic.svg", Order: 9},
+	"steam":    {Id: "steam", Name: "Steam", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-steam.png", Order: 1},
+	"gog":      {Id: "gog", Name: "GOG", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-gog.png", Order: 2},
+	"uplay":    {Id: "uplay", Name: "Uplay", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-uplay.png", Order: 3},
+	"origin":   {Id: "origin", Name: "Origin", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-origin.png", Order: 4},
+	"psn":      {Id: "psn", Name: "PSN", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-psn.png", Order: 5},
+	"xbox":     {Id: "xbox", Name: "XBOX Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-xbox.png", Order: 6},
+	"nintendo": {Id: "nintendo", Name: "Nintendo Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-nintendo.png", Order: 7},
+	"itch":     {Id: "itch", Name: "Itch.io", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-itch.png", Order: 8},
+	"egs":      {Id: "egs", Name: "Epic Games Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-epic.png", Order: 9},
 }
 
 func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.CreateOrUpdateKeyProductRequest, res *grpc.KeyProductResponse) error {
