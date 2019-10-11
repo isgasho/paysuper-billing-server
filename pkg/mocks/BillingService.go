@@ -1214,7 +1214,7 @@ func (_m *BillingService) FinishRedeemKeyForOrder(ctx context.Context, in *grpc.
 }
 
 // GetAdminUsers provides a mock function with given fields: ctx, in, opts
-func (_m *BillingService) GetAdminUsers(ctx context.Context, in *grpc.EmptyRequest, opts ...client.CallOption) (*grpc.GetMerchantAdminResponse, error) {
+func (_m *BillingService) GetAdminUsers(ctx context.Context, in *grpc.EmptyRequest, opts ...client.CallOption) (*grpc.GetAdminUsersResponse, error) {
 	_va := make([]interface{}, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
@@ -1224,12 +1224,12 @@ func (_m *BillingService) GetAdminUsers(ctx context.Context, in *grpc.EmptyReque
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
 
-	var r0 *grpc.GetMerchantAdminResponse
-	if rf, ok := ret.Get(0).(func(context.Context, *grpc.EmptyRequest, ...client.CallOption) *grpc.GetMerchantAdminResponse); ok {
+	var r0 *grpc.GetAdminUsersResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.EmptyRequest, ...client.CallOption) *grpc.GetAdminUsersResponse); ok {
 		r0 = rf(ctx, in, opts...)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*grpc.GetMerchantAdminResponse)
+			r0 = ret.Get(0).(*grpc.GetAdminUsersResponse)
 		}
 	}
 
