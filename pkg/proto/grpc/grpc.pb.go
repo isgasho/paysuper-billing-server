@@ -13525,7 +13525,8 @@ func (m *GetPriceGroupByRegionRequest) GetRegion() string {
 }
 
 type GetMerchantUsersRequest struct {
-	MerchantId           string   `protobuf:"bytes,1,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id,omitempty"`
+	//@inject_tag: json:"merchant_id" validate:"required"
+	MerchantId           string   `protobuf:"bytes,1,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id" validate:"required"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`
