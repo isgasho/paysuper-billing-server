@@ -1322,8 +1322,7 @@ func (s *Service) updateOrder(order *billing.Order) error {
 	}
 
 	if statusChanged && ps != constant.OrderPublicStatusCreated && ps != constant.OrderPublicStatusPending {
-		zap.S().Debug("[updateOrder] notify merchant", "order_id", order.Id)
-		s.orderNotifyMerchant(order)
+		zap.S().Infow("[updateOrder] notify merchant", "order_id", order.Id, "status", ps)
 
 		switch ps {
 		case constant.OrderPublicStatusRefunded:
@@ -1331,6 +1330,8 @@ func (s *Service) updateOrder(order *billing.Order) error {
 		case constant.OrderPublicStatusProcessed:
 			s.sendMailWithReceipt(order)
 		}
+
+		s.orderNotifyMerchant(order)
 	}
 
 	return nil
@@ -1368,11 +1369,11 @@ func (s *Service) orderNotifyKeyProducts(ctx context.Context, order *billing.Ord
 			rsp := &grpc.GetKeyForOrderRequestResponse{}
 			err = s.FinishRedeemKeyForOrder(ctx, &grpc.KeyForOrderRequest{KeyId: key}, rsp)
 			if err != nil {
-				zap.S().Error("internal error during finishing reservation for key", "err", err, "key", key)
+				zap.S().Errorw("internal error during finishing reservation for key", "err", err, "key", key)
 				continue
 			}
 			if rsp.Status != pkg.ResponseStatusOk {
-				zap.S().Error("could not finish reservation for key", "key", key, "message", rsp.Message)
+				zap.S().Errorw("could not finish reservation for key", "key", key, "message", rsp.Message)
 				continue
 			}
 
@@ -1399,12 +1400,12 @@ func (s *Service) sendMailWithRefund(order *billing.Order) {
 func (s *Service) sendMailWithReceipt(order *billing.Order) {
 	payload := s.getPayloadForReceipt(order)
 
-	zap.S().Infow("sending receipt to broker", "order_id", order.Id)
+	zap.S().Infow("sending receipt to broker", "order_id", order.Id, "topic", postmarkSdrPkg.PostmarkSenderTopicName)
 	err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 	if err != nil {
 		zap.S().Errorw(
 			"Publication receipt to user email queue is failed",
-			"err", err, "email", order.ReceiptEmail, "order_id", order.Id)
+			"err", err, "email", order.ReceiptEmail, "order_id", order.Id, "topic", postmarkSdrPkg.PostmarkSenderTopicName)
 	}
 }
 
@@ -1524,8 +1525,10 @@ func (s *Service) sendMailWithCode(ctx context.Context, order *billing.Order, ke
 				zap.S().Errorw(
 					"Publication activation code to user email queue is failed",
 					"err", err, "email", order.ReceiptEmail, "order_id", order.Id, "key_id", key.Id)
+
+			} else {
+				zap.S().Infow("Sent payload to broker", "email", order.ReceiptEmail, "order_id", order.Id, "key_id", key.Id, "topic", postmarkSdrPkg.PostmarkSenderTopicName)
 			}
-			zap.S().Infow("Sent payload to broker", "email", order.ReceiptEmail, "order_id", order.Id, "key_id", key.Id)
 			return
 		}
 	}
