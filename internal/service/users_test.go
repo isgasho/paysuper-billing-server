@@ -19,7 +19,7 @@ type UsersTestSuite struct {
 	service *Service
 	cache   CacheInterface
 
-	merchant *billing.Merchant
+	merchant   *billing.Merchant
 }
 
 func Test_Users(t *testing.T) {
@@ -60,9 +60,16 @@ func (suite *UsersTestSuite) SetupTest() {
 	repository := newUserRoleRepository(suite.service)
 
 	err = repository.AddMerchantUser(&billing.UserRoleMerchant{
-		MerchantId: suite.merchant.Id, Id: bson.NewObjectId().Hex(), User: &billing.UserRoleProfile{}, ProjectRole: []*billing.UserRoleProject{
+		MerchantId: suite.merchant.Id, Id: bson.NewObjectId().Hex(), User: &billing.UserRoleProfile{UserId: bson.NewObjectId().Hex()}, ProjectRole: []*billing.UserRoleProject{
 			{Role: pkg.MerchantUserRoleDeveloper},
 		},
+	})
+
+	err = repository.AddAdminUser(&billing.UserRoleAdmin{
+		Id: bson.NewObjectId().Hex(),
+		User: &billing.UserRoleProfile{
+			UserId: bson.NewObjectId().Hex(),
+		}, Role: "some_role",
 	})
 
 	if err != nil {
@@ -92,6 +99,16 @@ func (suite *UsersTestSuite) TestGetUsers_Ok() {
 
 	res := &grpc.GetMerchantUsersResponse{}
 	err := suite.service.GetMerchantUsers(context.TODO(), &grpc.GetMerchantUsersRequest{MerchantId: suite.merchant.Id}, res)
+	shouldBe.NoError(err)
+	shouldBe.EqualValues(200, res.Status)
+	shouldBe.NotEmpty(res.Users)
+}
+
+func (suite *UsersTestSuite) TestGetAdminUsers_Ok() {
+	shouldBe := require.New(suite.T())
+
+	res := &grpc.GetAdminUsersResponse{}
+	err := suite.service.GetAdminUsers(context.TODO(), &grpc.EmptyRequest{}, res)
 	shouldBe.NoError(err)
 	shouldBe.EqualValues(200, res.Status)
 	shouldBe.NotEmpty(res.Users)

@@ -20,11 +20,30 @@ type UserRoleServiceInterface interface {
 	GetMerchantUserByEmail(string, string) (*billing.UserRoleMerchant, error)
 	GetAdminUserByEmail(string) (*billing.UserRoleAdmin, error)
 	GetUsersForMerchant(string) ([]*billing.UserRoleMerchant, error)
+	GetUsersForAdmin() ([]*billing.UserRoleAdmin, error)
 }
 
 func newUserRoleRepository(svc *Service) UserRoleServiceInterface {
 	s := &UserRoleRepository{svc: svc}
 	return s
+}
+
+func (h *UserRoleRepository) GetUsersForAdmin() ([]*billing.UserRoleAdmin, error) {
+	users := []*billing.UserRoleAdmin{}
+	query := bson.M{}
+	err := h.svc.db.Collection(collectionAdminUsersTable).Find(query).All(&users)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+
+		return nil, err
+	}
+
+	return users, nil
 }
 
 func (h *UserRoleRepository) GetUsersForMerchant(merchantId string) ([]*billing.UserRoleMerchant, error) {
@@ -54,7 +73,7 @@ func (h *UserRoleRepository) AddMerchantUser(u *billing.UserRoleMerchant) error 
 }
 
 func (h *UserRoleRepository) AddAdminUser(u *billing.UserRoleAdmin) error {
-	if err := h.svc.db.Collection(collectionMerchantUsersTable).Insert(u); err != nil {
+	if err := h.svc.db.Collection(collectionAdminUsersTable).Insert(u); err != nil {
 		return err
 	}
 
@@ -70,7 +89,7 @@ func (h *UserRoleRepository) UpdateMerchantUser(u *billing.UserRoleMerchant) err
 }
 
 func (h *UserRoleRepository) UpdateAdminUser(u *billing.UserRoleAdmin) error {
-	if err := h.svc.db.Collection(collectionMerchantUsersTable).UpdateId(u.Id, u); err != nil {
+	if err := h.svc.db.Collection(collectionAdminUsersTable).UpdateId(u.Id, u); err != nil {
 		return err
 	}
 

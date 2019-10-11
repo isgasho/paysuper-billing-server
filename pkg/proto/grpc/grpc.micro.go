@@ -171,6 +171,7 @@ type BillingService interface {
 	PaymentFormPlatformChanged(ctx context.Context, in *PaymentFormUserChangePlatformRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 	CheckSkuAndKeyProject(ctx context.Context, in *CheckSkuAndKeyProjectRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 	GetMerchantUsers(ctx context.Context, in *GetMerchantUsersRequest, opts ...client.CallOption) (*GetMerchantUsersResponse, error)
+	GetAdminUsers(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*GetAdminUsersResponse, error)
 }
 
 type billingService struct {
@@ -1541,6 +1542,16 @@ func (c *billingService) GetMerchantUsers(ctx context.Context, in *GetMerchantUs
 	return out, nil
 }
 
+func (c *billingService) GetAdminUsers(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*GetAdminUsersResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetAdminUsers", in)
+	out := new(GetAdminUsersResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for BillingService service
 
 type BillingServiceHandler interface {
@@ -1679,6 +1690,7 @@ type BillingServiceHandler interface {
 	PaymentFormPlatformChanged(context.Context, *PaymentFormUserChangePlatformRequest, *EmptyResponseWithStatus) error
 	CheckSkuAndKeyProject(context.Context, *CheckSkuAndKeyProjectRequest, *EmptyResponseWithStatus) error
 	GetMerchantUsers(context.Context, *GetMerchantUsersRequest, *GetMerchantUsersResponse) error
+	GetAdminUsers(context.Context, *EmptyRequest, *GetAdminUsersResponse) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -1818,6 +1830,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		PaymentFormPlatformChanged(ctx context.Context, in *PaymentFormUserChangePlatformRequest, out *EmptyResponseWithStatus) error
 		CheckSkuAndKeyProject(ctx context.Context, in *CheckSkuAndKeyProjectRequest, out *EmptyResponseWithStatus) error
 		GetMerchantUsers(ctx context.Context, in *GetMerchantUsersRequest, out *GetMerchantUsersResponse) error
+		GetAdminUsers(ctx context.Context, in *EmptyRequest, out *GetAdminUsersResponse) error
 	}
 	type BillingService struct {
 		billingService
@@ -2368,4 +2381,8 @@ func (h *billingServiceHandler) CheckSkuAndKeyProject(ctx context.Context, in *C
 
 func (h *billingServiceHandler) GetMerchantUsers(ctx context.Context, in *GetMerchantUsersRequest, out *GetMerchantUsersResponse) error {
 	return h.BillingServiceHandler.GetMerchantUsers(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetAdminUsers(ctx context.Context, in *EmptyRequest, out *GetAdminUsersResponse) error {
+	return h.BillingServiceHandler.GetAdminUsers(ctx, in, out)
 }
