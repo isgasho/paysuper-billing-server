@@ -283,6 +283,9 @@ func (s *Service) AcceptMerchantInvite(
 	}
 
 	user.User.Status = pkg.UserRoleStatusAccepted
+	user.User.UserId = req.User.UserId
+	user.User.FirstName = req.User.FirstName
+	user.User.LastName = req.User.LastName
 
 	if err = s.userRoleRepository.UpdateMerchantUser(user); err != nil {
 		zap.L().Error(errorUserUnableToAdd.Message, zap.Error(err), zap.Any("req", req))
@@ -320,6 +323,9 @@ func (s *Service) AcceptAdminInvite(
 	}
 
 	user.User.Status = pkg.UserRoleStatusAccepted
+	user.User.UserId = req.User.UserId
+	user.User.FirstName = req.User.FirstName
+	user.User.LastName = req.User.LastName
 
 	if err = s.userRoleRepository.UpdateAdminUser(user); err != nil {
 		zap.L().Error(errorUserUnableToAdd.Message, zap.Error(err), zap.Any("req", req))
