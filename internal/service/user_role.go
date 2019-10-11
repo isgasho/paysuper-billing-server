@@ -30,14 +30,12 @@ func newUserRoleRepository(svc *Service) UserRoleServiceInterface {
 
 func (h *UserRoleRepository) GetUsersForAdmin() ([]*billing.UserRoleAdmin, error) {
 	users := []*billing.UserRoleAdmin{}
-	query := bson.M{}
-	err := h.svc.db.Collection(collectionAdminUsersTable).Find(query).All(&users)
+	err := h.svc.db.Collection(collectionAdminUsersTable).Find(nil).All(&users)
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
 
 		return nil, err

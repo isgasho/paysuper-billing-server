@@ -19,7 +19,7 @@ type UsersTestSuite struct {
 	service *Service
 	cache   CacheInterface
 
-	merchant   *billing.Merchant
+	merchant *billing.Merchant
 }
 
 func Test_Users(t *testing.T) {
