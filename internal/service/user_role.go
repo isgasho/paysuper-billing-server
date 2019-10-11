@@ -21,11 +21,30 @@ type UserRoleServiceInterface interface {
 	GetAdminUserByEmail(string) (*billing.UserRoleAdmin, error)
 	GetUsersForMerchant(string) ([]*billing.UserRoleMerchant, error)
 	GetUsersForAdmin() ([]*billing.UserRoleAdmin, error)
+	GetMerchantsForUser(string) ([]*billing.UserRoleMerchant, error)
 }
 
 func newUserRoleRepository(svc *Service) UserRoleServiceInterface {
 	s := &UserRoleRepository{svc: svc}
 	return s
+}
+
+func (h *UserRoleRepository) GetMerchantsForUser(userId string) ([]*billing.UserRoleMerchant, error) {
+	var users []*billing.UserRoleMerchant
+	query := bson.M{"user.user_id": bson.ObjectIdHex(userId)}
+	err := h.svc.db.Collection(collectionMerchantUsersTable).Find(query).All(&users)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+
+		return nil, err
+	}
+
+	return users, nil
 }
 
 func (h *UserRoleRepository) GetUsersForAdmin() ([]*billing.UserRoleAdmin, error) {

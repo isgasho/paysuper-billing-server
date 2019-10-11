@@ -172,6 +172,7 @@ type BillingService interface {
 	CheckSkuAndKeyProject(ctx context.Context, in *CheckSkuAndKeyProjectRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 	GetMerchantUsers(ctx context.Context, in *GetMerchantUsersRequest, opts ...client.CallOption) (*GetMerchantUsersResponse, error)
 	GetAdminUsers(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*GetAdminUsersResponse, error)
+	GetMerchantsForUser(ctx context.Context, in *GetMerchantsForUserRequest, opts ...client.CallOption) (*GetMerchantsForUserResponse, error)
 }
 
 type billingService struct {
@@ -1552,6 +1553,16 @@ func (c *billingService) GetAdminUsers(ctx context.Context, in *EmptyRequest, op
 	return out, nil
 }
 
+func (c *billingService) GetMerchantsForUser(ctx context.Context, in *GetMerchantsForUserRequest, opts ...client.CallOption) (*GetMerchantsForUserResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetMerchantsForUser", in)
+	out := new(GetMerchantsForUserResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for BillingService service
 
 type BillingServiceHandler interface {
@@ -1691,6 +1702,7 @@ type BillingServiceHandler interface {
 	CheckSkuAndKeyProject(context.Context, *CheckSkuAndKeyProjectRequest, *EmptyResponseWithStatus) error
 	GetMerchantUsers(context.Context, *GetMerchantUsersRequest, *GetMerchantUsersResponse) error
 	GetAdminUsers(context.Context, *EmptyRequest, *GetAdminUsersResponse) error
+	GetMerchantsForUser(context.Context, *GetMerchantsForUserRequest, *GetMerchantsForUserResponse) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -1831,6 +1843,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		CheckSkuAndKeyProject(ctx context.Context, in *CheckSkuAndKeyProjectRequest, out *EmptyResponseWithStatus) error
 		GetMerchantUsers(ctx context.Context, in *GetMerchantUsersRequest, out *GetMerchantUsersResponse) error
 		GetAdminUsers(ctx context.Context, in *EmptyRequest, out *GetAdminUsersResponse) error
+		GetMerchantsForUser(ctx context.Context, in *GetMerchantsForUserRequest, out *GetMerchantsForUserResponse) error
 	}
 	type BillingService struct {
 		billingService
@@ -2385,4 +2398,8 @@ func (h *billingServiceHandler) GetMerchantUsers(ctx context.Context, in *GetMer
 
 func (h *billingServiceHandler) GetAdminUsers(ctx context.Context, in *EmptyRequest, out *GetAdminUsersResponse) error {
 	return h.BillingServiceHandler.GetAdminUsers(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetMerchantsForUser(ctx context.Context, in *GetMerchantsForUserRequest, out *GetMerchantsForUserResponse) error {
+	return h.BillingServiceHandler.GetMerchantsForUser(ctx, in, out)
 }
