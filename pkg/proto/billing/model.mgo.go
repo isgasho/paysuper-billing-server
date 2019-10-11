@@ -847,11 +847,11 @@ type MgoUserRoleMerchant struct {
 }
 
 type MgoUserRoleAdmin struct {
-	Id        bson.ObjectId    `bson:"_id"`
-	User      *UserRoleProfile `bson:"user"`
-	Role      string           `bson:"role"`
-	CreatedAt time.Time        `bson:"created_at"`
-	UpdatedAt time.Time        `bson:"updated_at"`
+	Id          bson.ObjectId      `bson:"_id"`
+	User        *UserRoleProfile   `bson:"user"`
+	ProjectRole []*UserRoleProject `bson:"project_role"`
+	CreatedAt   time.Time          `bson:"created_at"`
+	UpdatedAt   time.Time          `bson:"updated_at"`
 }
 
 type MgoUserRoleProfile struct {

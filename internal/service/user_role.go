@@ -40,7 +40,7 @@ func (h *UserRoleRepository) AddMerchantUser(u *billing.UserRole) error {
 }
 
 func (h *UserRoleRepository) AddAdminUser(u *billing.UserRole) error {
-	if err := h.svc.db.Collection(collectionMerchantUsersTable).Insert(u); err != nil {
+	if err := h.svc.db.Collection(collectionAdminUsersTable).Insert(u); err != nil {
 		return err
 	}
 
@@ -56,7 +56,7 @@ func (h *UserRoleRepository) UpdateMerchantUser(u *billing.UserRole) error {
 }
 
 func (h *UserRoleRepository) UpdateAdminUser(u *billing.UserRole) error {
-	if err := h.svc.db.Collection(collectionMerchantUsersTable).UpdateId(u.Id, u); err != nil {
+	if err := h.svc.db.Collection(collectionAdminUsersTable).UpdateId(u.Id, u); err != nil {
 		return err
 	}
 
