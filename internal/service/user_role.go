@@ -91,6 +91,22 @@ func (h *UserRoleRepository) GetMerchantUserByEmail(merchantId string, email str
 	return user, nil
 }
 
+func (h *UserRoleRepository) GetUsersForAdmin() ([]*billing.UserRoleAdmin, error) {
+	users := []*billing.UserRoleAdmin{}
+	err := h.svc.db.Collection(collectionAdminUsersTable).Find(nil).All(&users)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
+		)
+
+		return nil, err
+	}
+
+	return users, nil
+}
+
 func (h *UserRoleRepository) GetUsersForMerchant(merchantId string) ([]*billing.UserRole, error) {
 	var users []*billing.UserRole
 
