@@ -700,6 +700,9 @@ type MgoOrderViewPrivate struct {
 	RefundFeesTotal                            *OrderViewMoney        `bson:"refund_fees_total" json:"refund_fees_total"`
 	RefundFeesTotalLocal                       *OrderViewMoney        `bson:"refund_fees_total_local" json:"refund_fees_total_local"`
 	PaysuperRefundTotalProfit                  *OrderViewMoney        `bson:"paysuper_refund_total_profit" json:"paysuper_refund_total_profit"`
+	Issuer                                     *OrderIssuer           `bson:"issuer"`
+	Items                                      []*MgoOrderItem        `bson:"items"`
+	MerchantPayoutCurrency                     string                 `bson:"merchant_payout_currency"`
 }
 
 type MgoOrderViewPublic struct {
@@ -740,6 +743,9 @@ type MgoOrderViewPublic struct {
 	RefundReverseRevenue                    *OrderViewMoney        `bson:"refund_reverse_revenue"`
 	RefundFeesTotal                         *OrderViewMoney        `bson:"refund_fees_total"`
 	RefundFeesTotalLocal                    *OrderViewMoney        `bson:"refund_fees_total_local"`
+	Issuer                                  *OrderIssuer           `bson:"issuer"`
+	Items                                   []*MgoOrderItem        `bson:"items"`
+	MerchantPayoutCurrency                  string                 `bson:"merchant_payout_currency"`
 }
 
 type MgoMerchantTariffRates struct {
@@ -3901,6 +3907,9 @@ func (m *OrderViewPrivate) SetBSON(raw bson.Raw) error {
 	m.User = decoded.User
 	m.BillingAddress = decoded.BillingAddress
 	m.Type = decoded.Type
+	m.Issuer = decoded.Issuer
+	m.MerchantPayoutCurrency = decoded.MerchantPayoutCurrency
+	m.Items = []*OrderItem{}
 	m.IsVatDeduction = decoded.IsVatDeduction
 
 	m.PaymentGrossRevenueLocal = getOrderViewMoney(decoded.PaymentGrossRevenueLocal)
@@ -3957,6 +3966,26 @@ func (m *OrderViewPrivate) SetBSON(raw bson.Raw) error {
 	m.RefundFeesTotalLocal = getOrderViewMoney(decoded.RefundFeesTotalLocal)
 	m.PaysuperRefundTotalProfit = getOrderViewMoney(decoded.PaysuperRefundTotalProfit)
 
+	for _, v := range decoded.Items {
+		item := &OrderItem{
+			Id:          v.Id.Hex(),
+			Object:      v.Object,
+			Sku:         v.Sku,
+			Name:        v.Name,
+			Description: v.Description,
+			Amount:      v.Amount,
+			Currency:    v.Currency,
+			Images:      v.Images,
+			Url:         v.Url,
+			Metadata:    v.Metadata,
+			Code:        v.Code,
+			PlatformId:  v.PlatformId,
+		}
+		item.CreatedAt, _ = ptypes.TimestampProto(v.CreatedAt)
+		item.UpdatedAt, _ = ptypes.TimestampProto(v.UpdatedAt)
+		m.Items = append(m.Items, item)
+	}
+
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {
 		return err
@@ -3992,6 +4021,9 @@ func (m *OrderViewPublic) SetBSON(raw bson.Raw) error {
 	m.User = decoded.User
 	m.BillingAddress = decoded.BillingAddress
 	m.Type = decoded.Type
+	m.Issuer = decoded.Issuer
+	m.MerchantPayoutCurrency = decoded.MerchantPayoutCurrency
+	m.Items = []*OrderItem{}
 	m.IsVatDeduction = decoded.IsVatDeduction
 
 	m.GrossRevenue = getOrderViewMoney(decoded.GrossRevenue)
@@ -4014,6 +4046,26 @@ func (m *OrderViewPublic) SetBSON(raw bson.Raw) error {
 	m.RefundReverseRevenue = getOrderViewMoney(decoded.RefundReverseRevenue)
 	m.RefundFeesTotal = getOrderViewMoney(decoded.RefundFeesTotal)
 	m.RefundFeesTotalLocal = getOrderViewMoney(decoded.RefundFeesTotalLocal)
+
+	for _, v := range decoded.Items {
+		item := &OrderItem{
+			Id:          v.Id.Hex(),
+			Object:      v.Object,
+			Sku:         v.Sku,
+			Name:        v.Name,
+			Description: v.Description,
+			Amount:      v.Amount,
+			Currency:    v.Currency,
+			Images:      v.Images,
+			Url:         v.Url,
+			Metadata:    v.Metadata,
+			Code:        v.Code,
+			PlatformId:  v.PlatformId,
+		}
+		item.CreatedAt, _ = ptypes.TimestampProto(v.CreatedAt)
+		item.UpdatedAt, _ = ptypes.TimestampProto(v.UpdatedAt)
+		m.Items = append(m.Items, item)
+	}
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {

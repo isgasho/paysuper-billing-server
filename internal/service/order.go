@@ -584,15 +584,26 @@ func (s *Service) PaymentFormJsonDataProcess(
 
 	if order.Issuer == nil {
 		order.Issuer = &billing.OrderIssuer{
-			Url:      req.Referer,
 			Embedded: req.IsEmbedded,
 		}
-	} else {
-		if req.Referer != "" && req.Referer != order.Issuer.Url {
-			order.Issuer.Url = req.Referer
-		}
-
-		order.Issuer.Embedded = req.IsEmbedded
+	}
+	if order.Issuer.Url == "" {
+		order.Issuer.Url = req.Referer
+	}
+	if order.Issuer.ReferenceType == "" {
+		order.Issuer.ReferenceType = req.IssuerReferenceType
+	}
+	if order.Issuer.Reference == "" {
+		order.Issuer.Reference = req.IssuerReference
+	}
+	if order.Issuer.UtmSource == "" {
+		order.Issuer.UtmSource = req.UtmSource
+	}
+	if order.Issuer.UtmCampaign == "" {
+		order.Issuer.UtmCampaign = req.UtmCampaign
+	}
+	if order.Issuer.UtmMedium == "" {
+		order.Issuer.UtmMedium = req.UtmMedium
 	}
 
 	p1.processOrderVat(order)
@@ -1666,8 +1677,13 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 		Metadata:           v.checked.metadata,
 		PrivateMetadata:    v.checked.privateMetadata,
 		Issuer: &billing.OrderIssuer{
-			Url:      v.request.IssuerUrl,
-			Embedded: v.request.IsEmbedded,
+			Url:           v.request.IssuerUrl,
+			Embedded:      v.request.IsEmbedded,
+			ReferenceType: v.request.IssuerReferenceType,
+			Reference:     v.request.IssuerReference,
+			UtmSource:     v.request.UtmSource,
+			UtmCampaign:   v.request.UtmCampaign,
+			UtmMedium:     v.request.UtmMedium,
 		},
 		CountryRestriction: &billing.CountryRestriction{
 			IsoCodeA2:       "",
