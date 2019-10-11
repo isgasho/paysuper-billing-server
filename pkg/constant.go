@@ -290,6 +290,17 @@ const (
 	PayoutDocumentStatusFailed     = "failed"
 
 	OrderIssuerReferenceTypePaylink = "paylink"
+
+	MerchantUserRoleOwner      = "owner"
+	MerchantUserRoleDeveloper  = "developer"
+	MerchantUserRoleAccounting = "accounting"
+	MerchantUserRoleReadOnly   = "read_only"
+
+	AdminUserRole          = "admin"
+	AdminUserRiskManager   = "risk_manager"
+	AdminUserRiskFinancial = "financial"
+	AdminUserRiskSupport   = "support"
+	AdminUserRoleReadOnly  = "read_only"
 )
 
 var (
