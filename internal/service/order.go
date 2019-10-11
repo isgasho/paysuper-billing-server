@@ -3623,7 +3623,7 @@ func (s *Service) OrderReceipt(
 
 	items := make([]*billing.OrderReceiptItem, len(order.Items))
 
-	for _, item := range order.Items {
+	for i, item := range order.Items {
 		price, err := s.formatter.FormatCurrency("en", item.Amount, item.Currency)
 
 		if err != nil {
@@ -3640,7 +3640,7 @@ func (s *Service) OrderReceipt(
 			return nil
 		}
 
-		items = append(items, &billing.OrderReceiptItem{Name: item.Name, Price: price})
+		items[i] = &billing.OrderReceiptItem{Name: item.Name, Price: price}
 	}
 
 	receipt := &billing.OrderReceipt{
