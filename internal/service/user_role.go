@@ -31,7 +31,7 @@ func newUserRoleRepository(svc *Service) UserRoleServiceInterface {
 
 func (h *UserRoleRepository) GetMerchantsForUser(userId string) ([]*billing.UserRoleMerchant, error) {
 	var users []*billing.UserRoleMerchant
-	query := bson.M{"user.user_id": bson.ObjectIdHex(userId)}
+	query := bson.M{"user.user_id": userId}
 	err := h.svc.db.Collection(collectionMerchantUsersTable).Find(query).All(&users)
 	if err != nil {
 		zap.L().Error(
