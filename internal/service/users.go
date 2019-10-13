@@ -598,8 +598,15 @@ func (s *Service) GetMerchantsForUser(ctx context.Context, req *grpc.GetMerchant
 			return nil
 		}
 
-		merchants[i].Id = user.MerchantId
-		merchants[i].Name = merchant.Company.Name
+		name := merchant.Id
+		if merchant.Company != nil {
+			name = merchant.Company.Name
+		}
+
+		merchants[i] = &grpc.MerchantForUserInfo {
+			Id: user.MerchantId,
+			Name: name,
+		}
 	}
 
 	res.Status = pkg.ResponseStatusOk
