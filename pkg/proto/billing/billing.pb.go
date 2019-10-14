@@ -12036,20 +12036,20 @@ func (m *OrderReceiptItem) GetPrice() string {
 }
 
 type UserRoleProfile struct {
-	//@inject_tag: json:"-" validate:"required,hexadecimal,len=24"
-	UserId string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"-" validate:"required,hexadecimal,len=24"`
-	//@inject_tag: json:"first_name" validate:"required"
-	FirstName string `protobuf:"bytes,2,opt,name=first_name,json=firstName,proto3" json:"first_name" validate:"required"`
-	//@inject_tag: json:"last_name" validate:"required"
-	LastName string `protobuf:"bytes,3,opt,name=last_name,json=lastName,proto3" json:"last_name" validate:"required"`
-	//@inject_tag: json:"email" validate:"required,email"
-	Email string `protobuf:"bytes,4,opt,name=email,proto3" json:"email" validate:"required,email"`
-	//@inject_tag: json:"email" validate="oneof=invited accepted"
-	Status string `protobuf:"bytes,5,opt,name=status,proto3" json:"email"`
-	// @inject_tag: json:"created_at"
-	CreatedAt *timestamp.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at"`
-	// @inject_tag: json:"updated_at"
-	UpdatedAt            *timestamp.Timestamp `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at"`
+	//@inject_tag: json:"user_id" bson:"user_id" validate:"required,hexadecimal,len=24"
+	UserId string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id" bson:"user_id" validate:"required,hexadecimal,len=24"`
+	//@inject_tag: json:"first_name" bson:"first_name"  validate:"required"
+	FirstName string `protobuf:"bytes,2,opt,name=first_name,json=firstName,proto3" json:"first_name" bson:"first_name" validate:"required"`
+	//@inject_tag: json:"last_name" bson:"last_name" validate:"required"
+	LastName string `protobuf:"bytes,3,opt,name=last_name,json=lastName,proto3" json:"last_name" bson:"last_name" validate:"required"`
+	//@inject_tag: json:"email" bson:"email" validate:"required,email"
+	Email string `protobuf:"bytes,4,opt,name=email,proto3" json:"email" bson:"email" validate:"required,email"`
+	//@inject_tag: json:"status" bson:"status" validate="oneof=invited accepted"
+	Status string `protobuf:"bytes,5,opt,name=status,proto3" json:"status" bson:"status"`
+	// @inject_tag: json:"created_at" bson:"created_at"
+	CreatedAt *timestamp.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at" bson:"created_at"`
+	// @inject_tag: json:"updated_at" bson:"updated_at"
+	UpdatedAt            *timestamp.Timestamp `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at" bson:"updated_at"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte               `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32                `json:"-" bson:"-" structure:"-" validate:"-"`

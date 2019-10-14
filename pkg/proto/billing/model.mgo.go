@@ -4310,3 +4310,27 @@ func (m *UserRole) GetBSON() (interface{}, error) {
 
 	return st, nil
 }
+
+func (k *UserRoleMerchant) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoUserRoleMerchant)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	k.MerchantId = decoded.MerchantId.Hex()
+	k.Id = decoded.Id.Hex()
+	k.User = decoded.User
+	k.ProjectRole = decoded.ProjectRole
+
+	if k.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt); err != nil {
+		return err
+	}
+
+	if k.UpdatedAt, err = ptypes.TimestampProto(decoded.UpdatedAt); err != nil {
+		return err
+	}
+
+	return nil
+}

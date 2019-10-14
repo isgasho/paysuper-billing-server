@@ -20,6 +20,7 @@ type UsersTestSuite struct {
 	cache   CacheInterface
 
 	merchant *billing.Merchant
+	user     *billing.UserRoleProfile
 }
 
 func Test_Users(t *testing.T) {
@@ -59,11 +60,18 @@ func (suite *UsersTestSuite) SetupTest() {
 
 	repository := newUserRoleRepository(suite.service)
 
+	user := &billing.UserRoleProfile{UserId: bson.NewObjectId().Hex()}
 	err = repository.AddMerchantUser(&billing.UserRoleMerchant{
 		MerchantId: suite.merchant.Id, Id: bson.NewObjectId().Hex(), User: &billing.UserRoleProfile{UserId: bson.NewObjectId().Hex()}, ProjectRole: []*billing.UserRoleProject{
 			{Role: pkg.UserRoleDeveloper},
 		},
 	})
+
+	if err != nil {
+		suite.FailNow("Users failed to insert", "%v", err)
+	}
+
+	suite.user = user
 
 	err = repository.AddAdminUser(&billing.UserRoleAdmin{
 		Id: bson.NewObjectId().Hex(),
@@ -112,4 +120,28 @@ func (suite *UsersTestSuite) TestGetAdminUsers_Ok() {
 	shouldBe.NoError(err)
 	shouldBe.EqualValues(200, res.Status)
 	shouldBe.NotEmpty(res.Users)
+}
+
+func (suite *UsersTestSuite) TestGetMerchantsForUser_Empty_Ok() {
+	shouldBe := require.New(suite.T())
+
+	res := &grpc.GetMerchantsForUserResponse{}
+	err := suite.service.GetMerchantsForUser(context.TODO(), &grpc.GetMerchantsForUserRequest{
+		UserId: bson.NewObjectId().Hex(),
+	}, res)
+	shouldBe.NoError(err)
+	shouldBe.EqualValues(200, res.Status)
+	shouldBe.Empty(res.Merchants)
+}
+
+func (suite *UsersTestSuite) TestGetMerchantsForUser_Ok() {
+	shouldBe := require.New(suite.T())
+
+	res := &grpc.GetMerchantsForUserResponse{}
+	err := suite.service.GetMerchantsForUser(context.TODO(), &grpc.GetMerchantsForUserRequest{
+		UserId: suite.user.UserId,
+	}, res)
+	shouldBe.NoError(err)
+	shouldBe.EqualValues(200, res.Status)
+	shouldBe.NotEmpty(res.Merchants)
 }

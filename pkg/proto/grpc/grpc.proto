@@ -176,6 +176,7 @@ service BillingService {
 
     rpc GetMerchantUsers(GetMerchantUsersRequest) returns (GetMerchantUsersResponse) {}
     rpc GetAdminUsers(EmptyRequest) returns (GetAdminUsersResponse) {}
+    rpc GetMerchantsForUser(GetMerchantsForUserRequest) returns (GetMerchantsForUserResponse) {}
     rpc InviteUserMerchant(InviteUserMerchantRequest) returns (InviteUserMerchantResponse) {}
     rpc InviteUserAdmin(InviteUserAdminRequest) returns (InviteUserAdminResponse) {}
     rpc ResendInviteMerchant(ResendInviteMerchantRequest) returns (EmptyResponseWithStatus) {}
@@ -2174,6 +2175,22 @@ message GetAdminUsersResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     repeated billing.UserRole users = 3;
+}
+
+message GetMerchantsForUserRequest {
+    //@inject_tag: json:"user_id" validate:"required"
+    string user_id = 1;
+}
+
+message GetMerchantsForUserResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    repeated MerchantForUserInfo merchants = 3;
+}
+
+message MerchantForUserInfo {
+    string id = 1;
+    string name = 2;
 }
 
 message InviteUserMerchantRequest {
