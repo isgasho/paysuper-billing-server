@@ -94,6 +94,9 @@ type Config struct {
 	PaylinkMinProducts int `envconfig:"PAYLINK_MIN_PRODUCTS" required:"false" default:"1"`
 	PaylinkMaxProducts int `envconfig:"PAYLINK_MAX_PRODUCTS" required:"false" default:"8"`
 
+	UserInviteTokenSecret  string `envconfig:"USER_INVITE_TOKEN_TIMEOUT" required:"true"`
+	UserInviteTokenTimeout int64  `envconfig:"USER_INVITE_TOKEN_TIMEOUT" default:"48"`
+
 	*PaymentSystemConfig
 	*CustomerTokenConfig
 	*CacheRedis

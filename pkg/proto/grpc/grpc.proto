@@ -198,8 +198,9 @@ service BillingService {
     rpc ResendInviteAdmin(ResendInviteAdminRequest) returns (EmptyResponseWithStatus) {}
     rpc GetMerchantUser(GetMerchantUserRequest) returns (GetMerchantUserResponse) {}
     rpc GetAdminUser(GetAdminUserRequest) returns (GetAdminUserResponse) {}
-    rpc AcceptMerchantInvite(billing.UserRoleMerchant) returns (EmptyResponseWithStatus) {}
-    rpc AcceptAdminInvite(billing.UserRoleAdmin) returns (EmptyResponseWithStatus) {}
+    rpc AcceptMerchantInvite(AcceptMerchantInviteRequest) returns (AcceptMerchantInviteResponse) {}
+    rpc AcceptAdminInvite(AcceptAdminInviteRequest) returns (AcceptAdminInviteResponse) {}
+    rpc CheckInviteToken(CheckInviteTokenRequest) returns (CheckInviteTokenResponse) {}
 }
 
 message EmptyRequest {
@@ -2270,47 +2271,47 @@ message GetMerchantUsersRequest {
 message GetMerchantUsersResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
-    repeated billing.UserRoleMerchant users = 3;
+    repeated billing.UserRole users = 3;
 }
 
 message InviteUserMerchantRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24"
-    string merchant_id = 1;
+    string user_id = 1;
     //@inject_tag: validate:"required"
-    billing.UserRoleMerchant item = 2;
+    billing.UserRole role = 2;
 }
 
 message InviteUserMerchantResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
-    billing.UserRoleMerchant item = 3;
+    billing.UserRole role = 3;
 }
 
 message InviteUserAdminRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string user_id = 1;
     //@inject_tag: validate:"required"
-    billing.UserRoleAdmin item = 2;
+    billing.UserRole role = 2;
 }
 
 message InviteUserAdminResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
-    billing.UserRoleAdmin item = 3;
+    billing.UserRole role = 3;
 }
 
 message ResendInviteMerchantRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24"
-    string merchant_id = 1;
-    //@inject_tag: validate:"required,email"
-    string receiver_email = 2;
+    string user_id = 1;
+    //@inject_tag: validate:"required"
+    billing.UserRole role = 2;
 }
 
 message ResendInviteAdminRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string user_id = 1;
-    //@inject_tag: validate:"required,email"
-    string receiver_email = 2;
+    //@inject_tag: validate:"required"
+    billing.UserRole role = 2;
 }
 
 message GetMerchantUserRequest {
@@ -2321,7 +2322,7 @@ message GetMerchantUserRequest {
 message GetMerchantUserResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
-    billing.UserRoleMerchant item = 3;
+    billing.UserRole role = 3;
 }
 
 message GetAdminUserRequest {
@@ -2332,5 +2333,53 @@ message GetAdminUserRequest {
 message GetAdminUserResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
-    billing.UserRoleAdmin item = 3;
+    billing.UserRole role = 3;
+}
+
+message CheckInviteTokenRequest {
+    //@inject_tag: validate:"required"
+    string token = 1;
+    //@inject_tag: validate:"required,email"
+    string email = 2;
+}
+
+message CheckInviteTokenResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    string role_id = 3;
+    string role_type = 4;
+}
+
+message AcceptMerchantInviteRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string id = 1;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string user_id = 2;
+    //@inject_tag: validate:"required"
+    string first_name = 3;
+    //@inject_tag: validate:"required"
+    string last_name = 4;
+}
+
+message AcceptMerchantInviteResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.UserRole role = 3;
+}
+
+message AcceptAdminInviteRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string id = 1;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string user_id = 2;
+    //@inject_tag: validate:"required"
+    string first_name = 3;
+    //@inject_tag: validate:"required"
+    string last_name = 4;
+}
+
+message AcceptAdminInviteResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.UserRole role = 3;
 }

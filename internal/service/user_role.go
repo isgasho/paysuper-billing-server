@@ -13,17 +13,17 @@ const (
 )
 
 type UserRoleServiceInterface interface {
-	AddMerchantUser(*billing.UserRoleMerchant) error
-	AddAdminUser(*billing.UserRoleAdmin) error
-	UpdateMerchantUser(*billing.UserRoleMerchant) error
-	UpdateAdminUser(*billing.UserRoleAdmin) error
-	GetMerchantUserByEmail(string, string) (*billing.UserRoleMerchant, error)
-	GetAdminUserByEmail(string) (*billing.UserRoleAdmin, error)
-	GetMerchantUserById(string) (*billing.UserRoleMerchant, error)
-	GetAdminUserById(string) (*billing.UserRoleAdmin, error)
-	GetMerchantUserByUserId(string, string) (*billing.UserRoleMerchant, error)
-	GetAdminUserByUserId(string) (*billing.UserRoleAdmin, error)
-	GetUsersForMerchant(string) ([]*billing.UserRoleMerchant, error)
+	AddMerchantUser(*billing.UserRole) error
+	AddAdminUser(*billing.UserRole) error
+	UpdateMerchantUser(*billing.UserRole) error
+	UpdateAdminUser(*billing.UserRole) error
+	GetMerchantUserByEmail(string, string) (*billing.UserRole, error)
+	GetAdminUserByEmail(string) (*billing.UserRole, error)
+	GetMerchantUserById(string) (*billing.UserRole, error)
+	GetAdminUserById(string) (*billing.UserRole, error)
+	GetMerchantUserByUserId(string, string) (*billing.UserRole, error)
+	GetAdminUserByUserId(string) (*billing.UserRole, error)
+	GetUsersForMerchant(string) ([]*billing.UserRole, error)
 }
 
 func newUserRoleRepository(svc *Service) UserRoleServiceInterface {
@@ -31,7 +31,7 @@ func newUserRoleRepository(svc *Service) UserRoleServiceInterface {
 	return s
 }
 
-func (h *UserRoleRepository) AddMerchantUser(u *billing.UserRoleMerchant) error {
+func (h *UserRoleRepository) AddMerchantUser(u *billing.UserRole) error {
 	if err := h.svc.db.Collection(collectionMerchantUsersTable).Insert(u); err != nil {
 		return err
 	}
@@ -39,7 +39,7 @@ func (h *UserRoleRepository) AddMerchantUser(u *billing.UserRoleMerchant) error 
 	return nil
 }
 
-func (h *UserRoleRepository) AddAdminUser(u *billing.UserRoleAdmin) error {
+func (h *UserRoleRepository) AddAdminUser(u *billing.UserRole) error {
 	if err := h.svc.db.Collection(collectionMerchantUsersTable).Insert(u); err != nil {
 		return err
 	}
@@ -47,7 +47,7 @@ func (h *UserRoleRepository) AddAdminUser(u *billing.UserRoleAdmin) error {
 	return nil
 }
 
-func (h *UserRoleRepository) UpdateMerchantUser(u *billing.UserRoleMerchant) error {
+func (h *UserRoleRepository) UpdateMerchantUser(u *billing.UserRole) error {
 	if err := h.svc.db.Collection(collectionMerchantUsersTable).UpdateId(u.Id, u); err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func (h *UserRoleRepository) UpdateMerchantUser(u *billing.UserRoleMerchant) err
 	return nil
 }
 
-func (h *UserRoleRepository) UpdateAdminUser(u *billing.UserRoleAdmin) error {
+func (h *UserRoleRepository) UpdateAdminUser(u *billing.UserRole) error {
 	if err := h.svc.db.Collection(collectionMerchantUsersTable).UpdateId(u.Id, u); err != nil {
 		return err
 	}
@@ -63,8 +63,8 @@ func (h *UserRoleRepository) UpdateAdminUser(u *billing.UserRoleAdmin) error {
 	return nil
 }
 
-func (h *UserRoleRepository) GetAdminUserByEmail(email string) (*billing.UserRoleAdmin, error) {
-	var user *billing.UserRoleAdmin
+func (h *UserRoleRepository) GetAdminUserByEmail(email string) (*billing.UserRole, error) {
+	var user *billing.UserRole
 
 	err := h.svc.db.Collection(collectionAdminUsersTable).
 		Find(bson.M{"user.email": email}).
@@ -77,8 +77,8 @@ func (h *UserRoleRepository) GetAdminUserByEmail(email string) (*billing.UserRol
 	return user, nil
 }
 
-func (h *UserRoleRepository) GetMerchantUserByEmail(merchantId string, email string) (*billing.UserRoleMerchant, error) {
-	var user *billing.UserRoleMerchant
+func (h *UserRoleRepository) GetMerchantUserByEmail(merchantId string, email string) (*billing.UserRole, error) {
+	var user *billing.UserRole
 
 	err := h.svc.db.Collection(collectionMerchantUsersTable).
 		Find(bson.M{"merchant_id": merchantId, "user.email": email}).
@@ -91,8 +91,8 @@ func (h *UserRoleRepository) GetMerchantUserByEmail(merchantId string, email str
 	return user, nil
 }
 
-func (h *UserRoleRepository) GetUsersForMerchant(merchantId string) ([]*billing.UserRoleMerchant, error) {
-	var users []*billing.UserRoleMerchant
+func (h *UserRoleRepository) GetUsersForMerchant(merchantId string) ([]*billing.UserRole, error) {
+	var users []*billing.UserRole
 
 	query := bson.M{"merchant_id": bson.ObjectIdHex(merchantId)}
 	err := h.svc.db.Collection(collectionMerchantUsersTable).Find(query).All(&users)
@@ -111,8 +111,8 @@ func (h *UserRoleRepository) GetUsersForMerchant(merchantId string) ([]*billing.
 	return users, nil
 }
 
-func (h *UserRoleRepository) GetAdminUserByUserId(userId string) (*billing.UserRoleAdmin, error) {
-	var user *billing.UserRoleAdmin
+func (h *UserRoleRepository) GetAdminUserByUserId(userId string) (*billing.UserRole, error) {
+	var user *billing.UserRole
 
 	err := h.svc.db.Collection(collectionAdminUsersTable).
 		Find(bson.M{"user.user_id": userId}).
@@ -125,8 +125,8 @@ func (h *UserRoleRepository) GetAdminUserByUserId(userId string) (*billing.UserR
 	return user, nil
 }
 
-func (h *UserRoleRepository) GetMerchantUserByUserId(merchantId string, id string) (*billing.UserRoleMerchant, error) {
-	var user *billing.UserRoleMerchant
+func (h *UserRoleRepository) GetMerchantUserByUserId(merchantId string, id string) (*billing.UserRole, error) {
+	var user *billing.UserRole
 
 	err := h.svc.db.Collection(collectionMerchantUsersTable).
 		Find(bson.M{"merchant_id": merchantId, "user.user_id": id}).
@@ -139,8 +139,8 @@ func (h *UserRoleRepository) GetMerchantUserByUserId(merchantId string, id strin
 	return user, nil
 }
 
-func (h *UserRoleRepository) GetAdminUserById(id string) (*billing.UserRoleAdmin, error) {
-	var user *billing.UserRoleAdmin
+func (h *UserRoleRepository) GetAdminUserById(id string) (*billing.UserRole, error) {
+	var user *billing.UserRole
 
 	err := h.svc.db.Collection(collectionAdminUsersTable).FindId(id).One(&user)
 
@@ -151,8 +151,8 @@ func (h *UserRoleRepository) GetAdminUserById(id string) (*billing.UserRoleAdmin
 	return user, nil
 }
 
-func (h *UserRoleRepository) GetMerchantUserById(id string) (*billing.UserRoleMerchant, error) {
-	var user *billing.UserRoleMerchant
+func (h *UserRoleRepository) GetMerchantUserById(id string) (*billing.UserRole, error) {
+	var user *billing.UserRole
 
 	err := h.svc.db.Collection(collectionMerchantUsersTable).FindId(id).One(&user)
 

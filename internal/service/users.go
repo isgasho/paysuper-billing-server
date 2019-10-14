@@ -2,18 +2,28 @@ package service
 
 import (
 	"context"
+	"errors"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
 	"github.com/streadway/amqp"
 	"go.uber.org/zap"
+	"time"
 )
 
 const (
 	defaultCompanyName = "PaySuper"
+
+	claimType   = "type"
+	claimEmail  = "email"
+	claimRoleId = "role_id"
+	claimExpire = "exp"
+
+	typeMerchant = "merchant"
+	typeAdmin    = "admin"
 )
 
 var (
@@ -25,6 +35,9 @@ var (
 	errorUserMerchantNotFound      = newBillingServerErrorMsg("uu000006", "merchant not found.")
 	errorUserUnableToSendInvite    = newBillingServerErrorMsg("uu000007", "unable to send invite email.")
 	errorUserNoHavePermission      = newBillingServerErrorMsg("uu000008", "user not have permission to invite users.")
+	errorUserUnableToCreateToken   = newBillingServerErrorMsg("uu000009", "unable to create invite token.")
+	errorUserInvalidToken          = newBillingServerErrorMsg("uu000010", "invalid token string.")
+	errorUserInvalidInviteEmail    = newBillingServerErrorMsg("uu000011", "invalid invite email.")
 )
 
 func (s *Service) GetMerchantUsers(ctx context.Context, req *grpc.GetMerchantUsersRequest, res *grpc.GetMerchantUsersResponse) error {
@@ -60,7 +73,17 @@ func (s *Service) InviteUserMerchant(
 	req *grpc.InviteUserMerchantRequest,
 	res *grpc.InviteUserMerchantResponse,
 ) error {
-	merchant, err := s.merchant.GetById(req.MerchantId)
+	owner, err := s.userRoleRepository.GetMerchantUserByUserId(req.Role.MerchantId, req.UserId)
+
+	if err != nil || !owner.IsOwner() {
+		zap.L().Error(errorUserNoHavePermission.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserNoHavePermission
+
+		return nil
+	}
+
+	merchant, err := s.merchant.GetById(owner.MerchantId)
 
 	if err != nil {
 		zap.L().Error(errorUserMerchantNotFound.Message, zap.Error(err), zap.Any("req", req))
@@ -70,7 +93,7 @@ func (s *Service) InviteUserMerchant(
 		return nil
 	}
 
-	user, err := s.userRoleRepository.GetMerchantUserByEmail(merchant.Id, req.Item.User.Email)
+	user, err := s.userRoleRepository.GetMerchantUserByEmail(owner.MerchantId, req.Role.User.Email)
 
 	if (err != nil && err != mgo.ErrNotFound) || user != nil {
 		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req))
@@ -80,10 +103,10 @@ func (s *Service) InviteUserMerchant(
 		return nil
 	}
 
-	req.Item.Id = bson.NewObjectId().Hex()
-	req.Item.User.Status = pkg.UserRoleStatusInvited
+	req.Role.Id = bson.NewObjectId().Hex()
+	req.Role.User.Status = pkg.UserRoleStatusInvited
 
-	if err = s.userRoleRepository.AddMerchantUser(req.Item); err != nil {
+	if err = s.userRoleRepository.AddMerchantUser(req.Role); err != nil {
 		zap.L().Error(errorUserUnableToAdd.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserUnableToAdd
@@ -91,15 +114,33 @@ func (s *Service) InviteUserMerchant(
 		return nil
 	}
 
-	if err = s.sendInviteEmail(req.Item.User.Email, merchant.User.Email, merchant.User.FirstName, merchant.User.LastName, merchant.Company.Name); err != nil {
+	expire := time.Now().Add(time.Hour * time.Duration(s.cfg.UserInviteTokenTimeout)).Unix()
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		claimType:   typeMerchant,
+		claimEmail:  req.Role.User.Email,
+		claimRoleId: req.Role.Id,
+		claimExpire: expire,
+	})
+	tokenString, err := token.SignedString([]byte(s.cfg.UserInviteTokenSecret))
+
+	if err != nil {
+		zap.L().Error(errorUserUnableToCreateToken.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserUnableToCreateToken
+
+		return nil
+	}
+
+	if err = s.sendInviteEmail(req.Role.User.Email, owner.User.Email, owner.User.FirstName, owner.User.LastName, merchant.Company.Name, tokenString); err != nil {
 		zap.L().Error(
 			errorUserUnableToSendInvite.Message,
 			zap.Error(err),
-			zap.String("receiverEmail", req.Item.User.Email),
-			zap.String("senderEmail", merchant.User.Email),
-			zap.String("senderFirstName", merchant.User.FirstName),
-			zap.String("senderLastName", merchant.User.LastName),
+			zap.String("receiverEmail", req.Role.User.Email),
+			zap.String("senderEmail", owner.User.Email),
+			zap.String("senderFirstName", owner.User.FirstName),
+			zap.String("senderLastName", owner.User.LastName),
 			zap.String("senderCompany", merchant.Company.Name),
+			zap.String("token", tokenString),
 		)
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserUnableToSendInvite
@@ -108,7 +149,7 @@ func (s *Service) InviteUserMerchant(
 	}
 
 	res.Status = pkg.ResponseStatusOk
-	res.Item = req.Item
+	res.Role = req.Role
 
 	return nil
 }
@@ -120,7 +161,7 @@ func (s *Service) InviteUserAdmin(
 ) error {
 	owner, err := s.userRoleRepository.GetAdminUserByUserId(req.UserId)
 
-	if err != nil || owner.Role != pkg.AdminUserRole {
+	if err != nil || !owner.IsAdmin() {
 		zap.L().Error(errorUserNoHavePermission.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserNoHavePermission
@@ -128,7 +169,7 @@ func (s *Service) InviteUserAdmin(
 		return nil
 	}
 
-	user, err := s.userRoleRepository.GetAdminUserByEmail(req.Item.User.Email)
+	user, err := s.userRoleRepository.GetAdminUserByEmail(req.Role.User.Email)
 
 	if (err != nil && err != mgo.ErrNotFound) || user != nil {
 		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req))
@@ -138,10 +179,10 @@ func (s *Service) InviteUserAdmin(
 		return nil
 	}
 
-	req.Item.Id = bson.NewObjectId().Hex()
-	req.Item.User.Status = pkg.UserRoleStatusInvited
+	req.Role.Id = bson.NewObjectId().Hex()
+	req.Role.User.Status = pkg.UserRoleStatusInvited
 
-	if err = s.userRoleRepository.AddAdminUser(req.Item); err != nil {
+	if err = s.userRoleRepository.AddAdminUser(req.Role); err != nil {
 		zap.L().Error(errorUserUnableToAdd.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserUnableToAdd
@@ -149,14 +190,32 @@ func (s *Service) InviteUserAdmin(
 		return nil
 	}
 
-	if err = s.sendInviteEmail(req.Item.User.Email, owner.User.Email, owner.User.FirstName, owner.User.LastName, defaultCompanyName); err != nil {
+	expire := time.Now().Add(time.Hour * time.Duration(s.cfg.UserInviteTokenTimeout)).Unix()
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		claimType:   typeAdmin,
+		claimEmail:  req.Role.User.Email,
+		claimRoleId: req.Role.Id,
+		claimExpire: expire,
+	})
+	tokenString, err := token.SignedString([]byte(s.cfg.UserInviteTokenSecret))
+
+	if err != nil {
+		zap.L().Error(errorUserUnableToCreateToken.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserUnableToCreateToken
+
+		return nil
+	}
+
+	if err = s.sendInviteEmail(req.Role.User.Email, owner.User.Email, owner.User.FirstName, owner.User.LastName, defaultCompanyName, tokenString); err != nil {
 		zap.L().Error(
 			errorUserUnableToSendInvite.Message,
 			zap.Error(err),
-			zap.String("receiverEmail", req.Item.User.Email),
+			zap.String("receiverEmail", req.Role.User.Email),
 			zap.String("senderEmail", owner.User.Email),
 			zap.String("senderFirstName", owner.User.FirstName),
 			zap.String("senderLastName", owner.User.LastName),
+			zap.String("token", tokenString),
 		)
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserUnableToSendInvite
@@ -165,7 +224,7 @@ func (s *Service) InviteUserAdmin(
 	}
 
 	res.Status = pkg.ResponseStatusOk
-	res.Item = req.Item
+	res.Role = req.Role
 
 	return nil
 }
@@ -175,7 +234,17 @@ func (s *Service) ResendInviteMerchant(
 	req *grpc.ResendInviteMerchantRequest,
 	res *grpc.EmptyResponseWithStatus,
 ) error {
-	merchant, err := s.merchant.GetById(req.MerchantId)
+	owner, err := s.userRoleRepository.GetMerchantUserByUserId(req.Role.MerchantId, req.UserId)
+
+	if err != nil || !owner.IsOwner() {
+		zap.L().Error(errorUserNoHavePermission.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserNoHavePermission
+
+		return nil
+	}
+
+	merchant, err := s.merchant.GetById(owner.MerchantId)
 
 	if err != nil {
 		zap.L().Error(errorUserMerchantNotFound.Message, zap.Error(err), zap.Any("req", req))
@@ -185,25 +254,43 @@ func (s *Service) ResendInviteMerchant(
 		return nil
 	}
 
-	_, err = s.userRoleRepository.GetMerchantUserByEmail(merchant.Id, req.ReceiverEmail)
+	_, err = s.userRoleRepository.GetMerchantUserByEmail(merchant.Id, req.Role.User.Email)
 
 	if err != nil {
-		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req))
+		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserAlreadyExist
+		res.Message = errorUserNotFound
 
 		return nil
 	}
 
-	if err = s.sendInviteEmail(req.ReceiverEmail, merchant.User.Email, merchant.User.FirstName, merchant.User.LastName, merchant.Company.Name); err != nil {
+	expire := time.Now().Add(time.Hour * time.Duration(s.cfg.UserInviteTokenTimeout)).Unix()
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		claimType:   typeMerchant,
+		claimEmail:  req.Role.User.Email,
+		claimRoleId: req.Role.Id,
+		claimExpire: expire,
+	})
+	tokenString, err := token.SignedString([]byte(s.cfg.UserInviteTokenSecret))
+
+	if err != nil {
+		zap.L().Error(errorUserUnableToCreateToken.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserUnableToCreateToken
+
+		return nil
+	}
+
+	if err = s.sendInviteEmail(req.Role.User.Email, owner.User.Email, owner.User.FirstName, owner.User.LastName, merchant.Company.Name, tokenString); err != nil {
 		zap.L().Error(
 			errorUserUnableToSendInvite.Message,
 			zap.Error(err),
-			zap.String("receiverEmail", req.ReceiverEmail),
+			zap.String("receiverEmail", req.Role.User.Email),
 			zap.String("senderEmail", merchant.User.Email),
 			zap.String("senderFirstName", merchant.User.FirstName),
 			zap.String("senderLastName", merchant.User.LastName),
 			zap.String("senderCompany", merchant.Company.Name),
+			zap.String("tokenString", tokenString),
 		)
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserUnableToSendInvite
@@ -223,7 +310,7 @@ func (s *Service) ResendInviteAdmin(
 ) error {
 	owner, err := s.userRoleRepository.GetAdminUserByUserId(req.UserId)
 
-	if err != nil || owner.Role != pkg.AdminUserRole {
+	if err != nil || owner.IsAdmin() {
 		zap.L().Error(errorUserNoHavePermission.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserNoHavePermission
@@ -231,7 +318,7 @@ func (s *Service) ResendInviteAdmin(
 		return nil
 	}
 
-	user, err := s.userRoleRepository.GetAdminUserByEmail(req.ReceiverEmail)
+	user, err := s.userRoleRepository.GetAdminUserByEmail(req.Role.User.Email)
 
 	if (err != nil && err != mgo.ErrNotFound) || user != nil {
 		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req))
@@ -241,14 +328,32 @@ func (s *Service) ResendInviteAdmin(
 		return nil
 	}
 
-	if err = s.sendInviteEmail(req.ReceiverEmail, owner.User.Email, owner.User.FirstName, owner.User.LastName, defaultCompanyName); err != nil {
+	expire := time.Now().Add(time.Hour * time.Duration(s.cfg.UserInviteTokenTimeout)).Unix()
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		claimType:   typeAdmin,
+		claimEmail:  req.Role.User.Email,
+		claimRoleId: req.Role.Id,
+		claimExpire: expire,
+	})
+	tokenString, err := token.SignedString([]byte(s.cfg.UserInviteTokenSecret))
+
+	if err != nil {
+		zap.L().Error(errorUserUnableToCreateToken.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserUnableToCreateToken
+
+		return nil
+	}
+
+	if err = s.sendInviteEmail(req.Role.User.Email, owner.User.Email, owner.User.FirstName, owner.User.LastName, defaultCompanyName, tokenString); err != nil {
 		zap.L().Error(
 			errorUserUnableToSendInvite.Message,
 			zap.Error(err),
-			zap.String("receiverEmail", req.ReceiverEmail),
+			zap.String("receiverEmail", req.Role.User.Email),
 			zap.String("senderEmail", owner.User.Email),
 			zap.String("senderFirstName", owner.User.FirstName),
 			zap.String("senderLastName", owner.User.LastName),
+			zap.String("tokenString", tokenString),
 		)
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserUnableToSendInvite
@@ -263,8 +368,8 @@ func (s *Service) ResendInviteAdmin(
 
 func (s *Service) AcceptMerchantInvite(
 	ctx context.Context,
-	req *billing.UserRoleMerchant,
-	res *grpc.EmptyResponseWithStatus,
+	req *grpc.AcceptMerchantInviteRequest,
+	res *grpc.AcceptMerchantInviteResponse,
 ) error {
 	user, err := s.userRoleRepository.GetMerchantUserById(req.Id)
 
@@ -283,9 +388,9 @@ func (s *Service) AcceptMerchantInvite(
 	}
 
 	user.User.Status = pkg.UserRoleStatusAccepted
-	user.User.UserId = req.User.UserId
-	user.User.FirstName = req.User.FirstName
-	user.User.LastName = req.User.LastName
+	user.User.UserId = req.UserId
+	user.User.FirstName = req.FirstName
+	user.User.LastName = req.LastName
 
 	if err = s.userRoleRepository.UpdateMerchantUser(user); err != nil {
 		zap.L().Error(errorUserUnableToAdd.Message, zap.Error(err), zap.Any("req", req))
@@ -297,14 +402,15 @@ func (s *Service) AcceptMerchantInvite(
 	// TODO: Add user to casbin
 
 	res.Status = pkg.ResponseStatusOk
+	res.Role = user
 
 	return nil
 }
 
 func (s *Service) AcceptAdminInvite(
 	ctx context.Context,
-	req *billing.UserRoleAdmin,
-	res *grpc.EmptyResponseWithStatus,
+	req *grpc.AcceptAdminInviteRequest,
+	res *grpc.AcceptAdminInviteResponse,
 ) error {
 	user, err := s.userRoleRepository.GetAdminUserById(req.Id)
 
@@ -323,9 +429,9 @@ func (s *Service) AcceptAdminInvite(
 	}
 
 	user.User.Status = pkg.UserRoleStatusAccepted
-	user.User.UserId = req.User.UserId
-	user.User.FirstName = req.User.FirstName
-	user.User.LastName = req.User.LastName
+	user.User.UserId = req.UserId
+	user.User.FirstName = req.FirstName
+	user.User.LastName = req.LastName
 
 	if err = s.userRoleRepository.UpdateAdminUser(user); err != nil {
 		zap.L().Error(errorUserUnableToAdd.Message, zap.Error(err), zap.Any("req", req))
@@ -337,6 +443,7 @@ func (s *Service) AcceptAdminInvite(
 	// TODO: Add user to casbin
 
 	res.Status = pkg.ResponseStatusOk
+	res.Role = user
 
 	return nil
 }
@@ -357,7 +464,7 @@ func (s *Service) GetMerchantUser(
 	}
 
 	res.Status = pkg.ResponseStatusOk
-	res.Item = user
+	res.Role = user
 
 	return nil
 }
@@ -378,17 +485,68 @@ func (s *Service) GetAdminUser(
 	}
 
 	res.Status = pkg.ResponseStatusOk
-	res.Item = user
+	res.Role = user
 
 	return nil
 }
 
-func (s *Service) sendInviteEmail(receiverEmail string, senderEmail string, senderFirstName string, senderLastName string, senderCompany string) error {
+func (s *Service) CheckInviteToken(
+	ctx context.Context,
+	req *grpc.CheckInviteTokenRequest,
+	res *grpc.CheckInviteTokenResponse,
+) error {
+	token, err := jwt.Parse(req.Token, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New(errorUserInvalidToken.Message)
+		}
+
+		return []byte(s.cfg.UserInviteTokenSecret), nil
+	})
+
+	if err != nil {
+		zap.L().Error(errorUserInvalidToken.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserInvalidToken
+
+		return nil
+	}
+
+	if !token.Valid {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserInvalidToken
+
+		return nil
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+
+	if !ok {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserInvalidToken
+
+		return nil
+	}
+
+	if claims[claimEmail] != req.Email {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserInvalidInviteEmail
+
+		return nil
+	}
+
+	res.Status = pkg.ResponseStatusOk
+	res.RoleId = claims[claimRoleId].(string)
+	res.RoleType = claims[claimType].(string)
+
+	return nil
+}
+
+func (s *Service) sendInviteEmail(receiverEmail, senderEmail, senderFirstName, senderLastName, senderCompany, token string) error {
 	// TODO: What will be the address of the links? How do we transfer the parameters (to the public or to the JWT key)?
-	inviteLink := "/user/invite/member?email=" + receiverEmail
+	inviteLink := "/user/invite/member?key=" + token
 
 	if senderCompany != defaultCompanyName {
-		inviteLink = "/user/invite/merchant?email=" + receiverEmail
+		inviteLink = "/user/invite/merchant?key=" + token
 	}
 
 	payload := &postmarkSdrPkg.Payload{

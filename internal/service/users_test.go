@@ -61,7 +61,7 @@ func (suite *UsersTestSuite) SetupTest() {
 
 	err = repository.AddMerchantUser(&billing.UserRoleMerchant{
 		MerchantId: suite.merchant.Id, Id: bson.NewObjectId().Hex(), User: &billing.UserRoleProfile{}, ProjectRole: []*billing.UserRoleProject{
-			{Role: pkg.MerchantUserRoleDeveloper},
+			{Role: pkg.UserRoleDeveloper},
 		},
 	})
 

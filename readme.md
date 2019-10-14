@@ -104,6 +104,8 @@ To run application as microservice simply don't pass any flags to command line :
 | PAYLINK_MAX_PRODUCTS                 | Maximum number of products allowed for one payment link                                                                             |
 | ROYALTY_REPORTS_URL                  | Url to use in template of royalty reports                                                                                           |
 | PAYOUTS_URL                          | Url to use in template of payouts                                                                                                   |
+| USER_INVITE_TOKEN_SECRET             | Invite token secret key                                                                                                             |
+| USER_INVITE_TOKEN_TIMEOUT            | Invite token timeout in hours                                                                                                       |
 
 
 ## Architecture
