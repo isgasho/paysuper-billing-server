@@ -64,8 +64,6 @@ const (
 	ResponseStatusSystemError = int32(500)
 	ResponseStatusTemporary   = int32(410)
 
-	SystemUserId = "000000000000000000000000"
-
 	RefundStatusCreated               = int32(0)
 	RefundStatusRejected              = int32(1)
 	RefundStatusInProgress            = int32(2)
@@ -299,6 +297,11 @@ const (
 	PaylinkUrlDefaultMask = "/paylink/%s"
 
 	DatabaseRequestDefaultLimit = int(100)
+
+	ProjectSellCountTypeFractional = "fractional"
+	ProjectSellCountTypeIntegral   = "integral"
+
+	FallbackCurrency = "USD"
 )
 
 var (
