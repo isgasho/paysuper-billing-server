@@ -1389,7 +1389,7 @@ func (s *Service) sendMailWithRefund(order *billing.Order) {
 	payload.TemplateAlias = s.cfg.EmailRefundTransactionTemplate
 
 	zap.S().Infow("sending receipt to broker", "order_id", order.Id)
-	err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+	err := s.postmarkBroker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 	if err != nil {
 		zap.S().Errorw(
 			"Publication refund transaction to user email queue is failed",
@@ -1401,7 +1401,7 @@ func (s *Service) sendMailWithReceipt(order *billing.Order) {
 	payload := s.getPayloadForReceipt(order)
 
 	zap.S().Infow("sending receipt to broker", "order_id", order.Id, "topic", postmarkSdrPkg.PostmarkSenderTopicName)
-	err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+	err := s.postmarkBroker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 	if err != nil {
 		zap.S().Errorw(
 			"Publication receipt to user email queue is failed",
@@ -1520,7 +1520,7 @@ func (s *Service) sendMailWithCode(ctx context.Context, order *billing.Order, ke
 				payload.TemplateModel["product_image"] = item.Images[0]
 			}
 
-			err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+			err := s.postmarkBroker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 			if err != nil {
 				zap.S().Errorw(
 					"Publication activation code to user email queue is failed",
