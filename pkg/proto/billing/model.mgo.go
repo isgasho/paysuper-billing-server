@@ -837,19 +837,12 @@ type MgoUserRoleProject struct {
 	Role      string        `bson:"role"`
 }
 
-type MgoUserRoleMerchant struct {
+type MgoUserRole struct {
 	Id          bson.ObjectId      `bson:"_id"`
 	User        *UserRoleProfile   `bson:"user"`
 	MerchantId  bson.ObjectId      `bson:"merchant_id"`
 	ProjectRole []*UserRoleProject `bson:"project_role"`
-	CreatedAt   time.Time          `bson:"created_at"`
-	UpdatedAt   time.Time          `bson:"updated_at"`
-}
-
-type MgoUserRoleAdmin struct {
-	Id          bson.ObjectId      `bson:"_id"`
-	User        *UserRoleProfile   `bson:"user"`
-	ProjectRole []*UserRoleProject `bson:"project_role"`
+	Role        string             `bson:"role"`
 	CreatedAt   time.Time          `bson:"created_at"`
 	UpdatedAt   time.Time          `bson:"updated_at"`
 }
@@ -4246,41 +4239,18 @@ func (m *Key) GetBSON() (interface{}, error) {
 	return st, nil
 }
 
-func (m *UserRoleMerchant) GetBSON() (interface{}, error) {
+func (m *UserRole) GetBSON() (interface{}, error) {
 	var err error
 
-	st := &MgoUserRoleMerchant{
+	st := &MgoUserRole{
 		Id:          bson.ObjectIdHex(m.Id),
-		MerchantId:  bson.ObjectIdHex(m.MerchantId),
 		User:        m.User,
 		ProjectRole: m.ProjectRole,
+		Role:        m.Role,
 	}
 
-	if m.CreatedAt != nil {
-		if st.CreatedAt, err = ptypes.Timestamp(m.CreatedAt); err != nil {
-			return nil, err
-		}
-	} else {
-		st.CreatedAt = time.Now()
-	}
-
-	if m.UpdatedAt != nil {
-		if st.UpdatedAt, err = ptypes.Timestamp(m.UpdatedAt); err != nil {
-			return nil, err
-		}
-	} else {
-		st.UpdatedAt = time.Now()
-	}
-
-	return st, nil
-}
-
-func (m *UserRoleAdmin) GetBSON() (interface{}, error) {
-	var err error
-
-	st := &MgoUserRoleAdmin{
-		Id:   bson.ObjectIdHex(m.Id),
-		User: m.User,
+	if m.MerchantId != "" {
+		st.MerchantId = bson.ObjectIdHex(m.MerchantId)
 	}
 
 	if m.CreatedAt != nil {

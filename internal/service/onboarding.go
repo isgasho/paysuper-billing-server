@@ -360,7 +360,7 @@ func (s *Service) ChangeMerchant(
 	}
 
 	if isNewMerchant == true {
-		err = s.userRoleRepository.AddMerchantUser(&billing.UserRoleMerchant{
+		err = s.userRoleRepository.AddMerchantUser(&billing.UserRole{
 			Id:         bson.NewObjectId().Hex(),
 			MerchantId: merchant.Id,
 			User: &billing.UserRoleProfile{
@@ -370,7 +370,7 @@ func (s *Service) ChangeMerchant(
 				LastName:  merchant.User.LastName,
 				Status:    pkg.UserRoleStatusAccepted,
 			},
-			IsOwner: true,
+			Role: pkg.UserRoleOwner,
 		})
 	}
 
