@@ -451,6 +451,8 @@ message PaymentFormJsonData {
     bool country_payments_allowed = 18;
     //@inject_tag: json:"country_change_allowed"
     bool country_change_allowed = 19;
+    //@inject_tag: json:"platforms"
+    repeated Platform platforms = 20;
 }
 
 message PaymentFormJsonDataResponse {

@@ -47,7 +47,6 @@ var (
 	keyProductNotPublished                  = newBillingServerErrorMsg("kp000023", "key product is not published")
 )
 
-//TODO: correct icons
 var availablePlatforms = map[string]*grpc.Platform{
 	"steam":    {Id: "steam", Name: "Steam", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-steam.png", Order: 1},
 	"gog":      {Id: "gog", Name: "GOG", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-gog.png", Order: 2},

@@ -6691,7 +6691,8 @@ func (suite *OrderTestSuite) Test_ProcessOrderKeyProducts() {
 	shouldBe.EqualValuesf(pkg.ResponseStatusOk, rsp1.Status, "%s", rsp1.Message)
 	order := rsp1.Item
 
-	shouldBe.Nil(suite.service.ProcessOrderKeyProducts(context.TODO(), order))
+	_, err = suite.service.ProcessOrderKeyProducts(context.TODO(), order)
+	shouldBe.Nil(err)
 	shouldBe.NotEmpty(order.Items)
 	shouldBe.Equal(suite.keyProductIds[0], order.Items[0].Id)
 }
