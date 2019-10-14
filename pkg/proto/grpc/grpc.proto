@@ -175,6 +175,7 @@ service BillingService {
     rpc CheckSkuAndKeyProject(CheckSkuAndKeyProjectRequest) returns (EmptyResponseWithStatus) {}
 
     rpc GetMerchantUsers(GetMerchantUsersRequest) returns (GetMerchantUsersResponse) {}
+    rpc GetAdminUsers(EmptyRequest) returns (GetAdminUsersResponse) {}
     rpc InviteUserMerchant(InviteUserMerchantRequest) returns (InviteUserMerchantResponse) {}
     rpc InviteUserAdmin(InviteUserAdminRequest) returns (InviteUserAdminResponse) {}
     rpc ResendInviteMerchant(ResendInviteMerchantRequest) returns (EmptyResponseWithStatus) {}
@@ -2164,6 +2165,12 @@ message GetMerchantUsersRequest {
 }
 
 message GetMerchantUsersResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    repeated billing.UserRole users = 3;
+}
+
+message GetAdminUsersResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     repeated billing.UserRole users = 3;

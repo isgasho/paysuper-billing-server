@@ -24,11 +24,46 @@ type UserRoleServiceInterface interface {
 	GetMerchantUserByUserId(string, string) (*billing.UserRole, error)
 	GetAdminUserByUserId(string) (*billing.UserRole, error)
 	GetUsersForMerchant(string) ([]*billing.UserRole, error)
+	GetUsersForAdmin() ([]*billing.UserRole, error)
 }
 
 func newUserRoleRepository(svc *Service) UserRoleServiceInterface {
 	s := &UserRoleRepository{svc: svc}
 	return s
+}
+
+func (h *UserRoleRepository) GetUsersForAdmin() ([]*billing.UserRole, error) {
+	users := []*billing.UserRole{}
+	err := h.svc.db.Collection(collectionAdminUsersTable).Find(nil).All(&users)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
+		)
+
+		return nil, err
+	}
+
+	return users, nil
+}
+
+func (h *UserRoleRepository) GetUsersForMerchant(merchantId string) ([]*billing.UserRole, error) {
+	users := []*billing.UserRole{}
+	query := bson.M{"merchant_id": bson.ObjectIdHex(merchantId)}
+	err := h.svc.db.Collection(collectionMerchantUsersTable).Find(query).All(&users)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+
+		return nil, err
+	}
+
+	return users, nil
 }
 
 func (h *UserRoleRepository) AddMerchantUser(u *billing.UserRole) error {
@@ -40,7 +75,7 @@ func (h *UserRoleRepository) AddMerchantUser(u *billing.UserRole) error {
 }
 
 func (h *UserRoleRepository) AddAdminUser(u *billing.UserRole) error {
-	if err := h.svc.db.Collection(collectionMerchantUsersTable).Insert(u); err != nil {
+	if err := h.svc.db.Collection(collectionAdminUsersTable).Insert(u); err != nil {
 		return err
 	}
 
@@ -56,7 +91,7 @@ func (h *UserRoleRepository) UpdateMerchantUser(u *billing.UserRole) error {
 }
 
 func (h *UserRoleRepository) UpdateAdminUser(u *billing.UserRole) error {
-	if err := h.svc.db.Collection(collectionMerchantUsersTable).UpdateId(u.Id, u); err != nil {
+	if err := h.svc.db.Collection(collectionAdminUsersTable).UpdateId(u.Id, u); err != nil {
 		return err
 	}
 
