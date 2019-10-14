@@ -42,6 +42,7 @@ var (
 	merchantErrorOnboardingTariffAlreadyExist = newBillingServerErrorMsg("mr000020", "merchant tariffs already sets")
 	merchantStatusChangeNotPossible           = newBillingServerErrorMsg("mr000021", "change status not possible by merchant flow")
 	merchantNotificationSettingNotFound       = newBillingServerErrorMsg("mr000022", "setting for create notification for status change not found")
+	merchantUnableToAddMerchantUserRole       = newBillingServerErrorMsg("mr000023", "unable to add user role to merchant")
 
 	merchantSignAgreementMessage = map[string]string{"code": "mr000017", "message": "license agreement was signed by merchant"}
 
@@ -223,8 +224,9 @@ func (s *Service) ChangeMerchant(
 	rsp *grpc.ChangeMerchantResponse,
 ) error {
 	var (
-		merchant *billing.Merchant
-		err      error
+		merchant      *billing.Merchant
+		err           error
+		isNewMerchant bool
 	)
 
 	if req.HasIdentificationFields() {
@@ -261,6 +263,7 @@ func (s *Service) ChangeMerchant(
 			CreatedAt:          ptypes.TimestampNow(),
 		}
 		merchant.AgreementNumber = s.getMerchantAgreementNumber(merchant.Id)
+		isNewMerchant = true
 	}
 
 	if !s.IsChangeDataAllow(merchant, req) {
@@ -343,6 +346,28 @@ func (s *Service) ChangeMerchant(
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = merchantErrorUnknown
+
+		return nil
+	}
+
+	if isNewMerchant == true {
+		err = s.userRoleRepository.AddMerchantUser(&billing.UserRole{
+			Id:         bson.NewObjectId().Hex(),
+			MerchantId: merchant.Id,
+			User: &billing.UserRoleProfile{
+				UserId:    merchant.User.Id,
+				Email:     merchant.User.Email,
+				FirstName: merchant.User.FirstName,
+				LastName:  merchant.User.LastName,
+				Status:    pkg.UserRoleStatusAccepted,
+			},
+			Role: pkg.UserRoleOwner,
+		})
+	}
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = merchantUnableToAddMerchantUserRole
 
 		return nil
 	}

@@ -273,3 +273,11 @@ func (m *Merchant) IsBankingComplete() bool {
 	return m.Banking != nil && m.Banking.Currency != "" && m.Banking.Name != "" && m.Banking.Address != "" &&
 		m.Banking.AccountNumber != "" && m.Banking.Swift != ""
 }
+
+func (m *UserRole) IsOwner() bool {
+	return m.Role == pkg.UserRoleOwner
+}
+
+func (m *UserRole) IsAdmin() bool {
+	return m.Role == pkg.UserRoleAdmin
+}

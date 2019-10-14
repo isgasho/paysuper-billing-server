@@ -55,6 +55,7 @@ type Config struct {
 	EmailGameCodeTemplate           string `envconfig:"EMAIL_ACTIVATION_CODE_TEMPLATE" default:"p1_verify_letter-2"`
 	EmailSuccessTransactionTemplate string `envconfig:"EMAIL_SUCCESS_TRANSACTION_TEMPLATE" default:"p1_verify_letter-4"`
 	EmailRefundTransactionTemplate  string `envconfig:"EMAIL_REFUND_TRANSACTION_TEMPLATE" default:"p1_verify_letter-5"`
+	EmailInviteTemplate             string `envconfig:"EMAIL_INVITE_TEMPLATE" default:"code-your-own"`
 
 	MicroRegistry string `envconfig:"MICRO_REGISTRY" required:"false"`
 
@@ -84,6 +85,9 @@ type Config struct {
 
 	KeyDaemonRestartInterval int64  `envconfig:"KEY_DAEMON_RESTART_INTERVAL" default:"60"`
 	DashboardProjectsUrl     string `envconfig:"DASHBOARD_PROJECTS_URL" default:"https://paysupermgmt.tst.protocol.one/projects"`
+
+	UserInviteTokenSecret  string `envconfig:"USER_INVITE_TOKEN_SECRET" required:"true"`
+	UserInviteTokenTimeout int64  `envconfig:"USER_INVITE_TOKEN_TIMEOUT" default:"48"`
 
 	*PaymentSystemConfig
 	*CustomerTokenConfig
