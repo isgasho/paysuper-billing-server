@@ -113,10 +113,7 @@ It has these top-level messages:
 	PriceTableCurrency
 	Id
 	RangeInt
-	MerchantTariffRatesPayments
-	MerchantTariffRatesMoneyBack
-	TariffRatesItem
-	MerchantTariffRates
+	MerchantTariffRatesPayment
 	Key
 	PayoutDocument
 	PayoutDocumentSignatureDataSignUrl
