@@ -98,7 +98,6 @@ type Service struct {
 	reporterService            reporterProto.ReporterService
 }
 
-
 func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {
 	return &grpc.ResponseError{
 		Status:  status,

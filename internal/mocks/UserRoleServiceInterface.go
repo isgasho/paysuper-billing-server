@@ -84,6 +84,52 @@ func (_m *UserRoleServiceInterface) GetMerchantUserByEmail(_a0 string, _a1 strin
 	return r0, r1
 }
 
+// GetMerchantsForUser provides a mock function with given fields: _a0
+func (_m *UserRoleServiceInterface) GetMerchantsForUser(_a0 string) ([]*billing.UserRoleMerchant, error) {
+	ret := _m.Called(_a0)
+
+	var r0 []*billing.UserRoleMerchant
+	if rf, ok := ret.Get(0).(func(string) []*billing.UserRoleMerchant); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*billing.UserRoleMerchant)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetUsersForAdmin provides a mock function with given fields:
+func (_m *UserRoleServiceInterface) GetUsersForAdmin() ([]*billing.UserRoleAdmin, error) {
+	ret := _m.Called()
+
+	var r0 []*billing.UserRoleAdmin
+	if rf, ok := ret.Get(0).(func() []*billing.UserRoleAdmin); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*billing.UserRoleAdmin)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetUsersForMerchant provides a mock function with given fields: _a0
 func (_m *UserRoleServiceInterface) GetUsersForMerchant(_a0 string) ([]*billing.UserRoleMerchant, error) {
 	ret := _m.Called(_a0)

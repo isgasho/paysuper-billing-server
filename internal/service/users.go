@@ -52,3 +52,48 @@ func (s *Service) GetAdminUsers(ctx context.Context, _ *grpc.EmptyRequest, res *
 
 	return nil
 }
+
+func (s *Service) GetMerchantsForUser(ctx context.Context, req *grpc.GetMerchantsForUserRequest, res *grpc.GetMerchantsForUserResponse) error {
+	users, err := s.userRoleRepository.GetMerchantsForUser(req.UserId)
+
+	if err != nil {
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = usersDbInternalError
+		res.Message.Details = err.Error()
+
+		return nil
+	}
+
+	merchants := make([]*grpc.MerchantForUserInfo, len(users))
+
+	for i, user := range users {
+		merchant, err := s.merchant.GetById(user.MerchantId)
+		if err != nil {
+			zap.L().Error(
+				"Can't get merchant by id",
+				zap.Error(err),
+				zap.String("merchant_id", user.MerchantId),
+			)
+
+			res.Status = pkg.ResponseStatusSystemError
+			res.Message = usersDbInternalError
+			res.Message.Details = err.Error()
+
+			return nil
+		}
+
+		name := merchant.Id
+		if merchant.Company != nil {
+			name = merchant.Company.Name
+		}
+
+		merchants[i] = &grpc.MerchantForUserInfo {
+			Id: user.MerchantId,
+			Name: name,
+		}
+	}
+
+	res.Status = pkg.ResponseStatusOk
+	res.Merchants = merchants
+	return nil
+}
