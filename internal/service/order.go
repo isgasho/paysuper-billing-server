@@ -2885,11 +2885,7 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 		logInfo    = processProcessOrderKeyProductsTemplate
 	)
 
-	if order.BillingAddress != nil && order.BillingAddress.Country != "" {
-		country = order.BillingAddress.Country
-	} else if order.User.Address != nil && order.User.Address.Country != "" {
-		country = order.User.Address.Country
-	}
+	country = order.GetCountry()
 
 	// filter available platformIds for all products in request
 	var platformIds []string
