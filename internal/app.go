@@ -36,6 +36,7 @@ import (
 	reporterService "github.com/paysuper/paysuper-reporter/pkg/proto"
 	taxPkg "github.com/paysuper/paysuper-tax-service/pkg"
 	"github.com/paysuper/paysuper-tax-service/proto"
+	postmarkPkg "github.com/paysuper/postmark-sender/pkg"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
@@ -116,6 +117,14 @@ func (app *Application) Init() {
 		app.logger.Fatal("Creating RabbitMQ publisher failed", zap.Error(err))
 	}
 
+	postmarkBroker, err := rabbitmq.NewBroker(app.cfg.BrokerAddress)
+
+	if err != nil {
+		app.logger.Fatal("Creating postmark broker failed", zap.Error(err))
+	}
+
+	postmarkBroker.SetExchangeName(postmarkPkg.PostmarkSenderTopicName)
+
 	options := []micro.Option{
 		micro.Name(pkg.ServiceName),
 		micro.Version(pkg.ServiceVersion),
@@ -185,7 +194,21 @@ func (app *Application) Init() {
 		app.logger.Fatal("Create il8n formatter failed", zap.Error(err))
 	}
 
-	app.svc = service.NewBillingService(app.database, app.cfg, geoService, repService, taxService, broker, app.redis, service.NewCacheRedis(redisdb), curService, documentSignerService, reporter, formatter)
+	app.svc = service.NewBillingService(
+		app.database,
+		app.cfg,
+		geoService,
+		repService,
+		taxService,
+		broker,
+		app.redis,
+		service.NewCacheRedis(redisdb),
+		curService,
+		documentSignerService,
+		reporter,
+		formatter,
+		postmarkBroker,
+	)
 
 	if err := app.svc.Init(); err != nil {
 		app.logger.Fatal("Create service instance failed", zap.Error(err))

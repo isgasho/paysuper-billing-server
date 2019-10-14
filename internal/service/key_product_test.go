@@ -87,7 +87,21 @@ func (suite *KeyProductTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), broker, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK())
+	suite.service = NewBillingService(
+		db,
+		cfg,
+		mocks.NewGeoIpServiceTestOk(),
+		mocks.NewRepositoryServiceOk(),
+		mocks.NewTaxServiceOkMock(),
+		broker,
+		nil,
+		suite.cache,
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
+		&reportingMocks.ReporterService{},
+		mocks.NewFormatterOK(),
+		mocks.NewBrokerMockOk(),
+	)
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -120,14 +134,14 @@ func (suite *KeyProductTestSuite) Test_GetKeyProductInfo() {
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		LongDescription: map[string]string{"en": "Super game steam keys"},
 		Url:             "http://test.ru/dffdsfsfs",
-		Cover:          &grpc.ImageCollection{
+		Cover: &grpc.ImageCollection{
 			UseOneForAll: false,
 			Images: &grpc.LocalizedUrl{
-			En: "/home/image.jpg",
+				En: "/home/image.jpg",
 			},
 		},
-		MerchantId:      merchantId,
-		ProjectId:       projectId,
+		MerchantId: merchantId,
+		ProjectId:  projectId,
 		Platforms: []*grpc.PlatformPrice{
 			{
 				Id: "steam",
@@ -269,14 +283,14 @@ func (suite *KeyProductTestSuite) Test_GetKeyProduct() {
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		LongDescription: map[string]string{"en": "Super game steam keys"},
 		Url:             "http://test.ru/dffdsfsfs",
-		Cover:          &grpc.ImageCollection{
+		Cover: &grpc.ImageCollection{
 			UseOneForAll: false,
 			Images: &grpc.LocalizedUrl{
 				En: "/home/image.jpg",
 			},
 		},
-		MerchantId:      merchantId,
-		ProjectId:       projectId,
+		MerchantId: merchantId,
+		ProjectId:  projectId,
 		Metadata: map[string]string{
 			"SomeKey": "SomeValue",
 		},
@@ -334,14 +348,14 @@ func (suite *KeyProductTestSuite) Test_CreateOrUpdateKeyProduct() {
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		LongDescription: map[string]string{"en": "Super game steam keys"},
 		Url:             "http://test.ru/dffdsfsfs",
-		Cover:          &grpc.ImageCollection{
+		Cover: &grpc.ImageCollection{
 			UseOneForAll: false,
 			Images: &grpc.LocalizedUrl{
 				En: "/home/image.jpg",
 			},
 		},
-		MerchantId:      merchantId,
-		ProjectId:       projectId,
+		MerchantId: merchantId,
+		ProjectId:  projectId,
 		Metadata: map[string]string{
 			"SomeKey": "SomeValue",
 		},
@@ -492,14 +506,14 @@ func (suite *KeyProductTestSuite) createKeyProduct() *grpc.KeyProduct {
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		LongDescription: map[string]string{"en": "Super game steam keys"},
 		Url:             "http://test.ru/dffdsfsfs",
-		Cover:          &grpc.ImageCollection{
+		Cover: &grpc.ImageCollection{
 			UseOneForAll: false,
 			Images: &grpc.LocalizedUrl{
 				En: "/home/image.jpg",
 			},
 		},
-		MerchantId:      merchantId,
-		ProjectId:       projectId,
+		MerchantId: merchantId,
+		ProjectId:  projectId,
 		Platforms: []*grpc.PlatformPrice{
 			{
 				Id: "steam",
