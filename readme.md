@@ -46,6 +46,8 @@ This service contain all business logic for payment processing
 | HELLO_SIGN_PAYOUTS_TITLE             | -        | Payout invoice                                      | Hellosign title for payout invoices                                                                                                 |
 | HELLO_SIGN_PAYOUTS_SUBJECT           | -        | Merchant's payout invoice                           | Hellosign subject for payout invoices                                                                                               |
 | HELLO_SIGN_PAYOUTS_MESSAGE           | -        | Please sign this invoice to get your royalty        | Hellosign prompt message for payout invoices                                                                                        |
+| USER_INVITE_TOKEN_SECRET             | true     |                                                     | Invite token secret key                                                                                                             |
+| USER_INVITE_TOKEN_TIMEOUT            | -        | 48                                                  | Invite token timeout in hours                                                                                                       |
 
 ## Docker Deployment
 

@@ -291,16 +291,14 @@ const (
 
 	OrderIssuerReferenceTypePaylink = "paylink"
 
-	MerchantUserRoleOwner      = "owner"
-	MerchantUserRoleDeveloper  = "developer"
-	MerchantUserRoleAccounting = "accounting"
-	MerchantUserRoleReadOnly   = "read_only"
-
-	AdminUserRole          = "admin"
-	AdminUserRiskManager   = "risk_manager"
-	AdminUserRiskFinancial = "financial"
-	AdminUserRiskSupport   = "support"
-	AdminUserRoleReadOnly  = "read_only"
+	UserRoleOwner       = "owner"
+	UserRoleDeveloper   = "developer"
+	UserRoleAccounting  = "accounting"
+	UserRoleReadOnly    = "read_only"
+	UserRoleAdmin       = "admin"
+	UserRoleRiskManager = "risk_manager"
+	UserRoleFinancial   = "financial"
+	UserRoleSupport     = "support"
 
 	UserRoleStatusInvited  = "invited"
 	UserRoleStatusAccepted = "accepted"

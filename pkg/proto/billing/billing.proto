@@ -2112,32 +2112,19 @@ message UserRoleProject {
     string role = 2;
 }
 
-message UserRoleMerchant {
+message UserRole {
     //@inject_tag: json:"id" validate:"required,hexadecimal,len=24"
     string id = 1;
     //@inject_tag: json:"user" validate:"required"
     UserRoleProfile user = 2;
     //@inject_tag: json:"merchant_id" validate:"required,hexadecimal,len=24"
     string merchant_id = 3;
-    //@inject_tag: json:"merchant_id" validate:"required,hexadecimal,len=24"
-    bool is_owner = 4;
+    //@inject_tag: json:"role" validate:"required"
+    string role = 4;
     //@inject_tag: json:"project_role" validate:"required"
     repeated UserRoleProject project_role = 5;
     // @inject_tag: json:"created_at"
     google.protobuf.Timestamp created_at = 6;
     // @inject_tag: json:"updated_at"
     google.protobuf.Timestamp updated_at = 7;
-}
-
-message UserRoleAdmin {
-    //@inject_tag: json:"id" validate:"required,hexadecimal,len=24"
-    string id = 1;
-    //@inject_tag: json:"user" validate:"required"
-    UserRoleProfile user = 2;
-    //@inject_tag: json:"role" validate:"required"
-    string role = 3;
-    // @inject_tag: json:"created_at"
-    google.protobuf.Timestamp created_at = 4;
-    // @inject_tag: json:"updated_at"
-    google.protobuf.Timestamp updated_at = 5;
 }
