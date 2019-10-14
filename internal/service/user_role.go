@@ -49,14 +49,16 @@ func (h *UserRoleRepository) GetUsersForAdmin() ([]*billing.UserRole, error) {
 }
 
 func (h *UserRoleRepository) GetUsersForMerchant(merchantId string) ([]*billing.UserRole, error) {
-	users := []*billing.UserRole{}
+	var users []*billing.UserRole
+
 	query := bson.M{"merchant_id": bson.ObjectIdHex(merchantId)}
 	err := h.svc.db.Collection(collectionMerchantUsersTable).Find(query).All(&users)
+
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchantUsersTable),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
 
@@ -124,26 +126,6 @@ func (h *UserRoleRepository) GetMerchantUserByEmail(merchantId string, email str
 	}
 
 	return user, nil
-}
-
-func (h *UserRoleRepository) GetUsersForMerchant(merchantId string) ([]*billing.UserRole, error) {
-	var users []*billing.UserRole
-
-	query := bson.M{"merchant_id": bson.ObjectIdHex(merchantId)}
-	err := h.svc.db.Collection(collectionMerchantUsersTable).Find(query).All(&users)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchantUsersTable),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
-		)
-
-		return nil, err
-	}
-
-	return users, nil
 }
 
 func (h *UserRoleRepository) GetAdminUserByUserId(userId string) (*billing.UserRole, error) {

@@ -86,7 +86,7 @@ type Config struct {
 	KeyDaemonRestartInterval int64  `envconfig:"KEY_DAEMON_RESTART_INTERVAL" default:"60"`
 	DashboardProjectsUrl     string `envconfig:"DASHBOARD_PROJECTS_URL" default:"https://paysupermgmt.tst.protocol.one/projects"`
 
-	UserInviteTokenSecret  string `envconfig:"USER_INVITE_TOKEN_TIMEOUT" required:"true"`
+	UserInviteTokenSecret  string `envconfig:"USER_INVITE_TOKEN_SECRET" required:"true"`
 	UserInviteTokenTimeout int64  `envconfig:"USER_INVITE_TOKEN_TIMEOUT" default:"48"`
 
 	*PaymentSystemConfig
