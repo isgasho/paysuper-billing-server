@@ -700,7 +700,7 @@ type MgoOrderViewPrivate struct {
 	RefundFeesTotal                            *OrderViewMoney        `bson:"refund_fees_total" json:"refund_fees_total"`
 	RefundFeesTotalLocal                       *OrderViewMoney        `bson:"refund_fees_total_local" json:"refund_fees_total_local"`
 	PaysuperRefundTotalProfit                  *OrderViewMoney        `bson:"paysuper_refund_total_profit" json:"paysuper_refund_total_profit"`
-	Items                                      []*OrderItem           `bson:"items"`
+	Items                                      []*MgoOrderItem        `bson:"items"`
 }
 
 type MgoOrderViewPublic struct {
@@ -741,7 +741,7 @@ type MgoOrderViewPublic struct {
 	RefundReverseRevenue                    *OrderViewMoney        `bson:"refund_reverse_revenue"`
 	RefundFeesTotal                         *OrderViewMoney        `bson:"refund_fees_total"`
 	RefundFeesTotalLocal                    *OrderViewMoney        `bson:"refund_fees_total_local"`
-	Items                                   []*OrderItem           `bson:"items"`
+	Items                                   []*MgoOrderItem        `bson:"items"`
 }
 
 type MgoMerchantTariffRates struct {
@@ -3958,6 +3958,7 @@ func (m *OrderViewPrivate) SetBSON(raw bson.Raw) error {
 	m.RefundFeesTotal = getOrderViewMoney(decoded.RefundFeesTotal)
 	m.RefundFeesTotalLocal = getOrderViewMoney(decoded.RefundFeesTotalLocal)
 	m.PaysuperRefundTotalProfit = getOrderViewMoney(decoded.PaysuperRefundTotalProfit)
+	m.Items = getOrderViewItems(decoded.Items)
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {
@@ -4016,7 +4017,7 @@ func (m *OrderViewPublic) SetBSON(raw bson.Raw) error {
 	m.RefundReverseRevenue = getOrderViewMoney(decoded.RefundReverseRevenue)
 	m.RefundFeesTotal = getOrderViewMoney(decoded.RefundFeesTotal)
 	m.RefundFeesTotalLocal = getOrderViewMoney(decoded.RefundFeesTotalLocal)
-	m.Items = decoded.Items
+	m.Items = getOrderViewItems(decoded.Items)
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {
@@ -4099,6 +4100,38 @@ func getOrderViewMoney(in *OrderViewMoney) *OrderViewMoney {
 		Amount:   tools.ToPrecise(in.Amount),
 		Currency: in.Currency,
 	}
+}
+
+func getOrderViewItems(in []*MgoOrderItem) []*OrderItem {
+	var items []*OrderItem
+
+	if len(in) <= 0 {
+		return items
+	}
+
+	for _, v := range in {
+		item := &OrderItem{
+			Id:          v.Id.Hex(),
+			Object:      v.Object,
+			Sku:         v.Sku,
+			Name:        v.Name,
+			Description: v.Description,
+			Amount:      v.Amount,
+			Currency:    v.Currency,
+			Images:      v.Images,
+			Url:         v.Url,
+			Metadata:    v.Metadata,
+			Code:        v.Code,
+			PlatformId:  v.PlatformId,
+		}
+
+		item.CreatedAt, _ = ptypes.TimestampProto(v.CreatedAt)
+		item.CreatedAt, _ = ptypes.TimestampProto(v.UpdatedAt)
+
+		items = append(items, item)
+	}
+
+	return items
 }
 
 func (m *Id) GetBSON() (interface{}, error) {
