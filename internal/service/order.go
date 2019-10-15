@@ -1907,7 +1907,7 @@ func (v *OrderCreateRequestProcessor) processPaylinkKeyProducts() error {
 			zap.S().Errorw("No available platformIds")
 			return orderErrorNoPlatforms
 		}
-		sort.Slice(platforms, func(i, j int)bool {
+		sort.Slice(platforms, func(i, j int) bool {
 			return availablePlatforms[platforms[i]].Order < availablePlatforms[platforms[j]].Order
 		})
 		platformId = platforms[0]
@@ -2932,7 +2932,7 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 		platforms[i] = availablePlatforms[v]
 	}
 
-	sort.Slice(platforms, func(i, j int)bool {
+	sort.Slice(platforms, func(i, j int) bool {
 		return platforms[i].Order < platforms[j].Order
 	})
 
@@ -3700,6 +3700,7 @@ func (s *Service) OrderReceipt(
 		TransactionDate: date,
 		ProjectName:     order.Project.Name[DefaultLanguage],
 		MerchantName:    merchant.Company.Name,
+		OrderType:       order.Type,
 		Items:           items,
 	}
 

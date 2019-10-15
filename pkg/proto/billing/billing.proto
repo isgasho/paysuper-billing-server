@@ -2079,6 +2079,8 @@ message OrderReceipt {
     string merchant_name = 5;
     //@inject_tag: json:"items"
     repeated OrderReceiptItem items = 6;
+    //@inject_tag: json:"order_type"
+    string order_type = 7;
 }
 
 message OrderReceiptItem {
