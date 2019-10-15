@@ -700,6 +700,7 @@ type MgoOrderViewPrivate struct {
 	RefundFeesTotal                            *OrderViewMoney        `bson:"refund_fees_total" json:"refund_fees_total"`
 	RefundFeesTotalLocal                       *OrderViewMoney        `bson:"refund_fees_total_local" json:"refund_fees_total_local"`
 	PaysuperRefundTotalProfit                  *OrderViewMoney        `bson:"paysuper_refund_total_profit" json:"paysuper_refund_total_profit"`
+	Items                                      []*OrderItem           `bson:"items"`
 }
 
 type MgoOrderViewPublic struct {
@@ -740,6 +741,7 @@ type MgoOrderViewPublic struct {
 	RefundReverseRevenue                    *OrderViewMoney        `bson:"refund_reverse_revenue"`
 	RefundFeesTotal                         *OrderViewMoney        `bson:"refund_fees_total"`
 	RefundFeesTotalLocal                    *OrderViewMoney        `bson:"refund_fees_total_local"`
+	Items                                   []*OrderItem           `bson:"items"`
 }
 
 type MgoMerchantTariffRates struct {
@@ -4014,6 +4016,7 @@ func (m *OrderViewPublic) SetBSON(raw bson.Raw) error {
 	m.RefundReverseRevenue = getOrderViewMoney(decoded.RefundReverseRevenue)
 	m.RefundFeesTotal = getOrderViewMoney(decoded.RefundFeesTotal)
 	m.RefundFeesTotalLocal = getOrderViewMoney(decoded.RefundFeesTotalLocal)
+	m.Items = decoded.Items
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {
@@ -4057,7 +4060,7 @@ func getPaymentMethodOrder(in *MgoOrderPaymentMethod) *PaymentMethodOrder {
 }
 
 func getOrderProject(in *MgoOrderProject) *ProjectOrder {
-	return &ProjectOrder{
+	project := &ProjectOrder{
 		Id:                      in.Id.Hex(),
 		MerchantId:              in.MerchantId.Hex(),
 		UrlSuccess:              in.UrlSuccess,
@@ -4075,6 +4078,16 @@ func getOrderProject(in *MgoOrderProject) *ProjectOrder {
 		Status:                  in.Status,
 		MerchantRoyaltyCurrency: in.MerchantRoyaltyCurrency,
 	}
+
+	if len(in.Name) > 0 {
+		project.Name = make(map[string]string)
+
+		for _, v := range in.Name {
+			project.Name[v.Lang] = v.Value
+		}
+	}
+
+	return project
 }
 
 func getOrderViewMoney(in *OrderViewMoney) *OrderViewMoney {

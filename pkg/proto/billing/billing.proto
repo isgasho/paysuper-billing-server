@@ -1669,6 +1669,8 @@ message OrderViewPublic {
     OrderViewMoney refund_fees_total = 36;
     // @inject_tag: json:"refund_fees_total_local" bson:"refund_fees_total_local"
     OrderViewMoney refund_fees_total_local = 37;
+    // @inject_tag: json:"items"
+    repeated OrderItem items = 38;
 }
 
 message OrderViewPrivate {
@@ -1812,6 +1814,8 @@ message OrderViewPrivate {
     OrderViewMoney refund_fees_total_local = 69;
     // @inject_tag: json:"paysuper_refund_total_profit" bson:"paysuper_refund_total_profit"
     OrderViewMoney paysuper_refund_total_profit = 70;
+    // @inject_tag: json:"items"
+    repeated OrderItem items = 71;
 }
 
 message RecommendedPrice {
