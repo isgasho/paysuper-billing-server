@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"github.com/globalsign/mgo/bson"
-	casbinMocks "github.com/paysuper/casbin-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -43,7 +42,7 @@ func (suite *UsersTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), mocks.NewBrokerMockOk(), mocks.NewTestRedis(), suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), nil, mocks.NewFormatterOK(), &casbinMocks.CasbinService{})
+	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), mocks.NewBrokerMockOk(), mocks.NewTestRedis(), suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), nil, mocks.NewFormatterOK())
 
 	err = suite.service.Init()
 
@@ -62,9 +61,9 @@ func (suite *UsersTestSuite) SetupTest() {
 	repository := newUserRoleRepository(suite.service)
 
 	user := &billing.UserRoleProfile{UserId: bson.NewObjectId().Hex()}
-	err = repository.AddMerchantUser(&billing.UserRoleMerchant{
-		MerchantId: suite.merchant.Id, Id: bson.NewObjectId().Hex(), User: &billing.UserRoleProfile{UserId: bson.NewObjectId().Hex()}, ProjectRole: []*billing.UserRoleProject{
-			{Role: pkg.RoleMerchantDeveloper},
+	err = repository.AddMerchantUser(&billing.UserRole{
+		MerchantId: suite.merchant.Id, Id: bson.NewObjectId().Hex(), User: user, ProjectRole: []*billing.UserRoleProject{
+			{Role: pkg.UserRoleDeveloper},
 		},
 	})
 
@@ -74,7 +73,7 @@ func (suite *UsersTestSuite) SetupTest() {
 
 	suite.user = user
 
-	err = repository.AddAdminUser(&billing.UserRoleAdmin{
+	err = repository.AddAdminUser(&billing.UserRole{
 		Id: bson.NewObjectId().Hex(),
 		User: &billing.UserRoleProfile{
 			UserId: bson.NewObjectId().Hex(),
