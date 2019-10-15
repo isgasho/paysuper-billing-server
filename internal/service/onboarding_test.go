@@ -3828,6 +3828,21 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_SetRejecte
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_SetDeletedStatus_Error() {
+	suite.merchant.Status = pkg.MerchantStatusAgreementSigned
+	err := suite.service.merchant.Update(suite.merchant)
+	assert.NoError(suite.T(), err)
+	req := &grpc.MerchantChangeStatusRequest{
+		MerchantId: suite.merchant.Id,
+		Status:     pkg.MerchantStatusDeleted,
+	}
+	rsp := &grpc.ChangeMerchantStatusResponse{}
+	err = suite.service.ChangeMerchantStatus(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), merchantStatusChangeNotPossible, rsp.Message)
+}
+
+func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_SetFromDraftToDeletedStatus_Ok() {
 	req := &grpc.MerchantChangeStatusRequest{
 		MerchantId: suite.merchant.Id,
 		Status:     pkg.MerchantStatusDeleted,
@@ -3835,8 +3850,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_SetDeleted
 	rsp := &grpc.ChangeMerchantStatusResponse{}
 	err := suite.service.ChangeMerchantStatus(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
-	assert.Equal(suite.T(), merchantStatusChangeNotPossible, rsp.Message)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_MessageNotFound_Error() {
