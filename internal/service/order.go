@@ -2916,7 +2916,7 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 		return platforms[i].Order < platforms[j].Order
 	})
 
-	if order.PlatformId != "" {
+	if len(order.PlatformId) > 0 {
 		platformId = order.PlatformId
 	} else {
 		// default platform if not specified before
@@ -2961,7 +2961,7 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 		currency = priceGroup.Currency
 	}
 
-	zap.S().Infow(fmt.Sprintf(logInfo, "try to use detected currency for order amount"), "currency", currency, "order.Uuid", order.Uuid)
+	zap.S().Infow(fmt.Sprintf(logInfo, "try to use detected currency for order amount"), "currency", currency, "order.Uuid", order.Uuid, "platform_id", platformId, "order.PlatformId", order.PlatformId)
 	// try to get order Amount in requested currency
 	amount, err := s.GetOrderKeyProductsAmount(orderProducts, priceGroup, platformId)
 	if err != nil {
@@ -2973,7 +2973,7 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 		if err != nil {
 			return nil, err
 		}
-		zap.S().Infow(fmt.Sprintf(logInfo, "try to use default currency for order amount"), "currency", defaultCurrency, "order.Uuid", order.Uuid)
+		zap.S().Infow(fmt.Sprintf(logInfo, "try to use default currency for order amount"), "currency", defaultCurrency, "order.Uuid", order.Uuid, "platform_id", platformId)
 
 		priceGroup = defaultPriceGroup
 		// converting Amount from default currency to requested
