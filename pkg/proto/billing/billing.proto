@@ -2088,4 +2088,6 @@ message OrderReceiptItem {
     string name = 1;
     //@inject_tag: json:"price"
     string price = 2;
+    //@inject_tag: json:"platform_id"
+    string platform_id = 3;
 }

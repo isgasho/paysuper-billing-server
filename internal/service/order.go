@@ -3691,7 +3691,7 @@ func (s *Service) OrderReceipt(
 			return nil
 		}
 
-		items[i] = &billing.OrderReceiptItem{Name: item.Name, Price: price}
+		items[i] = &billing.OrderReceiptItem{Name: item.Name, Price: price, PlatformId: item.PlatformId}
 	}
 
 	receipt := &billing.OrderReceipt{
