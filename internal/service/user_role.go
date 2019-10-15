@@ -106,7 +106,7 @@ func (h *UserRoleRepository) AddAdminUser(u *billing.UserRole) error {
 }
 
 func (h *UserRoleRepository) UpdateMerchantUser(u *billing.UserRole) error {
-	if err := h.svc.db.Collection(collectionMerchantUsersTable).UpdateId(u.Id, u); err != nil {
+	if err := h.svc.db.Collection(collectionMerchantUsersTable).UpdateId(bson.ObjectIdHex(u.Id), u); err != nil {
 		return err
 	}
 
@@ -114,7 +114,7 @@ func (h *UserRoleRepository) UpdateMerchantUser(u *billing.UserRole) error {
 }
 
 func (h *UserRoleRepository) UpdateAdminUser(u *billing.UserRole) error {
-	if err := h.svc.db.Collection(collectionAdminUsersTable).UpdateId(u.Id, u); err != nil {
+	if err := h.svc.db.Collection(collectionAdminUsersTable).UpdateId(bson.ObjectIdHex(u.Id), u); err != nil {
 		return err
 	}
 
@@ -167,7 +167,7 @@ func (h *UserRoleRepository) GetMerchantUserByUserId(merchantId string, id strin
 	var user *billing.UserRole
 
 	err := h.svc.db.Collection(collectionMerchantUsersTable).
-		Find(bson.M{"merchant_id": merchantId, "user.user_id": id}).
+		Find(bson.M{"merchant_id": bson.ObjectIdHex(merchantId), "user.user_id": id}).
 		One(&user)
 
 	if err != nil {
@@ -180,7 +180,7 @@ func (h *UserRoleRepository) GetMerchantUserByUserId(merchantId string, id strin
 func (h *UserRoleRepository) GetAdminUserById(id string) (*billing.UserRole, error) {
 	var user *billing.UserRole
 
-	err := h.svc.db.Collection(collectionAdminUsersTable).FindId(id).One(&user)
+	err := h.svc.db.Collection(collectionAdminUsersTable).FindId(bson.ObjectIdHex(id)).One(&user)
 
 	if err != nil {
 		return nil, err
@@ -192,7 +192,7 @@ func (h *UserRoleRepository) GetAdminUserById(id string) (*billing.UserRole, err
 func (h *UserRoleRepository) GetMerchantUserById(id string) (*billing.UserRole, error) {
 	var user *billing.UserRole
 
-	err := h.svc.db.Collection(collectionMerchantUsersTable).FindId(id).One(&user)
+	err := h.svc.db.Collection(collectionMerchantUsersTable).FindId(bson.ObjectIdHex(id)).One(&user)
 
 	if err != nil {
 		return nil, err
