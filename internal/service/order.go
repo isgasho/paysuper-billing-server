@@ -1900,12 +1900,25 @@ func (v *OrderCreateRequestProcessor) processPaylinkKeyProducts() error {
 		return priceGroupErrorNotFound
 	}
 
-	amount, err := v.GetOrderKeyProductsAmount(orderProducts, priceGroup, v.request.PlatformId)
+	platformId := v.request.PlatformId
+	if len(platformId) == 0 {
+		platforms := v.filterPlatforms(orderProducts)
+		if len(platforms) == 0 {
+			zap.S().Errorw("No available platformIds")
+			return orderErrorNoPlatforms
+		}
+		sort.Slice(platforms, func(i, j int)bool {
+			return availablePlatforms[platforms[i]].Order < availablePlatforms[platforms[j]].Order
+		})
+		platformId = platforms[0]
+	}
+
+	amount, err := v.GetOrderKeyProductsAmount(orderProducts, priceGroup, platformId)
 	if err != nil {
 		return err
 	}
 
-	items, err := v.GetOrderKeyProductsItems(orderProducts, DefaultLanguage, priceGroup, v.request.PlatformId)
+	items, err := v.GetOrderKeyProductsItems(orderProducts, DefaultLanguage, priceGroup, platformId)
 	if err != nil {
 		return err
 	}
@@ -2858,6 +2871,25 @@ func (s *Service) GetOrderKeyProductsItems(products []*grpc.KeyProduct, language
 	return result, nil
 }
 
+func (s *Service) filterPlatforms(orderProducts []*grpc.KeyProduct) []string {
+	// filter available platformIds for all products in request
+	var platformIds []string
+	for i, product := range orderProducts {
+		var platformsToCheck []string
+		for _, pl := range product.Platforms {
+			platformsToCheck = append(platformsToCheck, pl.Id)
+		}
+
+		if i > 0 {
+			platformIds = intersect(platformIds, platformsToCheck)
+		} else {
+			platformIds = platformsToCheck
+		}
+	}
+
+	return platformIds
+}
+
 func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Order) ([]*grpc.Platform, error) {
 	project, err := s.project.GetById(order.Project.Id)
 	if err != nil {
@@ -2888,19 +2920,7 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 	country = order.GetCountry()
 
 	// filter available platformIds for all products in request
-	var platformIds []string
-	for i, product := range orderProducts {
-		var platformsToCheck []string
-		for _, pl := range product.Platforms {
-			platformsToCheck = append(platformsToCheck, pl.Id)
-		}
-
-		if i > 0 {
-			platformIds = intersect(platformIds, platformsToCheck)
-		} else {
-			platformIds = platformsToCheck
-		}
-	}
+	platformIds := s.filterPlatforms(orderProducts)
 
 	if len(platformIds) == 0 {
 		zap.S().Errorw("No available platformIds", "order.uuid", order.Uuid)
