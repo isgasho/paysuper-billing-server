@@ -3,11 +3,9 @@ package service
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
-	casbinProto "github.com/paysuper/casbin-server/internal/generated/api/proto/casbinpb"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -43,7 +41,9 @@ var (
 	errorUserUnableToCreateToken   = newBillingServerErrorMsg("uu000009", "unable to create invite token")
 	errorUserInvalidToken          = newBillingServerErrorMsg("uu000010", "invalid token string")
 	errorUserInvalidInviteEmail    = newBillingServerErrorMsg("uu000011", "email in request and token are not equal")
-	errorUserUnableToAddToCasbin   = newBillingServerErrorMsg("uu000012", "unable to add user to the casbin server")
+	errorUserAlreadyHasRole        = newBillingServerErrorMsg("uu000012", "user already has role")
+	errorUserUnableToSave          = newBillingServerErrorMsg("uu000013", "can't update user in db")
+	errorUserUnableToAddToCasbin   = newBillingServerErrorMsg("uu000014", "unable to add user to the casbin server")
 )
 
 func (s *Service) GetMerchantUsers(ctx context.Context, req *grpc.GetMerchantUsersRequest, res *grpc.GetMerchantUsersResponse) error {
@@ -685,6 +685,75 @@ func (s *Service) sendInviteEmail(receiverEmail, senderEmail, senderFirstName, s
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.ChangeRoleForMerchantUserRequest, res *grpc.EmptyResponseWithStatus) error {
+	user, err := s.userRoleRepository.GetMerchantUserByUserId(req.MerchantId, req.UserId)
+
+	if err != nil {
+		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserNotFound
+
+		return nil
+	}
+
+	if user.Role == req.Role {
+		zap.L().Error(errorUserAlreadyHasRole.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserAlreadyHasRole
+
+		return nil
+	}
+
+	user.Role = req.Role
+	err = s.userRoleRepository.UpdateMerchantUser(user)
+	if err != nil {
+		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorUserUnableToSave
+
+		return nil
+	}
+
+	res.Status = pkg.ResponseStatusOk
+
+	return nil
+}
+
+func (s *Service) ChangeRoleForAdminUser(ctx context.Context, req *grpc.ChangeRoleForAdminUserRequest, res *grpc.EmptyResponseWithStatus) error {
+	user, err := s.userRoleRepository.GetAdminUserByUserId(req.UserId)
+
+	if err != nil {
+		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserNotFound
+
+		return nil
+	}
+
+	if user.Role == req.Role {
+		zap.L().Error(errorUserAlreadyHasRole.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserAlreadyHasRole
+
+		return nil
+	}
+
+	user.Role = req.Role
+	err = s.userRoleRepository.UpdateAdminUser(user)
+	if err != nil {
+		zap.L().Error(errorUserUnableToSave.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorUserUnableToSave
+		res.Message.Details = err.Error()
+
+		return nil
+	}
+
+	res.Status = pkg.ResponseStatusOk
 
 	return nil
 }

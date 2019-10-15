@@ -20,8 +20,9 @@ type UsersTestSuite struct {
 	service *Service
 	cache   CacheInterface
 
-	merchant *billing.Merchant
-	user     *billing.UserRoleProfile
+	merchant  *billing.Merchant
+	user      *billing.UserRoleProfile
+	adminUser *billing.UserRoleProfile
 }
 
 func Test_Users(t *testing.T) {
@@ -62,10 +63,11 @@ func (suite *UsersTestSuite) SetupTest() {
 	repository := newUserRoleRepository(suite.service)
 
 	user := &billing.UserRoleProfile{UserId: bson.NewObjectId().Hex()}
-	err = repository.AddMerchantUser(&billing.UserRoleMerchant{
-		MerchantId: suite.merchant.Id, Id: bson.NewObjectId().Hex(), User: &billing.UserRoleProfile{UserId: bson.NewObjectId().Hex()}, ProjectRole: []*billing.UserRoleProject{
-			{Role: pkg.RoleMerchantDeveloper},
-		},
+	err = repository.AddMerchantUser(&billing.UserRole{
+		MerchantId: suite.merchant.Id,
+		Id: bson.NewObjectId().Hex(),
+		User: user,
+		Role: pkg.RoleMerchantDeveloper,
 	})
 
 	if err != nil {
@@ -73,12 +75,11 @@ func (suite *UsersTestSuite) SetupTest() {
 	}
 
 	suite.user = user
-
-	err = repository.AddAdminUser(&billing.UserRoleAdmin{
+	suite.adminUser = &billing.UserRoleProfile{UserId: bson.NewObjectId().Hex()}
+	err = repository.AddAdminUser(&billing.UserRole{
 		Id: bson.NewObjectId().Hex(),
-		User: &billing.UserRoleProfile{
-			UserId: bson.NewObjectId().Hex(),
-		}, Role: "some_role",
+		User: suite.adminUser,
+		Role: "some_role",
 	})
 
 	if err != nil {
@@ -145,4 +146,85 @@ func (suite *UsersTestSuite) TestGetMerchantsForUser_Ok() {
 	shouldBe.NoError(err)
 	shouldBe.EqualValues(200, res.Status)
 	shouldBe.NotEmpty(res.Merchants)
+}
+
+func (suite *UsersTestSuite) TestChangeAdminUserRole_RoleError() {
+	shouldBe := require.New(suite.T())
+
+	res := &grpc.EmptyResponseWithStatus{}
+	err := suite.service.ChangeRoleForAdminUser(context.TODO(), &grpc.ChangeRoleForAdminUserRequest{
+		UserId: suite.adminUser.UserId,
+		Role:   "test_role",
+	}, res)
+	shouldBe.NoError(err)
+	shouldBe.EqualValues(200, res.Status)
+
+	res = &grpc.EmptyResponseWithStatus{}
+	err = suite.service.ChangeRoleForAdminUser(context.TODO(), &grpc.ChangeRoleForAdminUserRequest{
+		UserId: suite.adminUser.UserId,
+		Role:   "test_role",
+	}, res)
+	shouldBe.NoError(err)
+	shouldBe.EqualValues(400, res.Status)
+	shouldBe.NotEmpty(res.Message)
+}
+
+func (suite *UsersTestSuite) TestChangeAdminUserRole_Ok() {
+	shouldBe := require.New(suite.T())
+
+	res := &grpc.EmptyResponseWithStatus{}
+	err := suite.service.ChangeRoleForAdminUser(context.TODO(), &grpc.ChangeRoleForAdminUserRequest{
+		UserId: suite.adminUser.UserId,
+		Role:   "test_role",
+	}, res)
+	shouldBe.NoError(err)
+	shouldBe.EqualValues(200, res.Status)
+}
+
+func (suite *UsersTestSuite) TestChangeMerchantUserRole_NotFoundError() {
+	shouldBe := require.New(suite.T())
+
+	res := &grpc.EmptyResponseWithStatus{}
+	err := suite.service.ChangeRoleForMerchantUser(context.TODO(), &grpc.ChangeRoleForMerchantUserRequest{
+		Role: "test_role",
+		MerchantId: bson.NewObjectId().Hex(),
+	}, res)
+	shouldBe.NoError(err)
+	shouldBe.EqualValues(400, res.Status)
+}
+
+func (suite *UsersTestSuite) TestChangeMerchantUserRole_RoleError() {
+	shouldBe := require.New(suite.T())
+
+	res := &grpc.EmptyResponseWithStatus{}
+	err := suite.service.ChangeRoleForMerchantUser(context.TODO(), &grpc.ChangeRoleForMerchantUserRequest{
+		MerchantId: suite.merchant.Id,
+		UserId:     suite.user.UserId,
+		Role:       "test_role",
+	}, res)
+	shouldBe.NoError(err)
+	shouldBe.EqualValues(200, res.Status)
+
+	res = &grpc.EmptyResponseWithStatus{}
+	err = suite.service.ChangeRoleForMerchantUser(context.TODO(), &grpc.ChangeRoleForMerchantUserRequest{
+		MerchantId: suite.merchant.Id,
+		UserId:     suite.user.UserId,
+		Role:       "test_role",
+	}, res)
+	shouldBe.NoError(err)
+	shouldBe.EqualValues(400, res.Status)
+	shouldBe.NotEmpty(res.Message)
+}
+
+func (suite *UsersTestSuite) TestChangeMerchantUserRole_Ok() {
+	shouldBe := require.New(suite.T())
+
+	res := &grpc.EmptyResponseWithStatus{}
+	err := suite.service.ChangeRoleForMerchantUser(context.TODO(), &grpc.ChangeRoleForMerchantUserRequest{
+		MerchantId: suite.merchant.Id,
+		UserId:     suite.user.UserId,
+		Role:       "test_role",
+	}, res)
+	shouldBe.NoError(err)
+	shouldBe.EqualValues(200, res.Status)
 }

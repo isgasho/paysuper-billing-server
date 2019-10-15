@@ -845,12 +845,12 @@ type MgoUserRoleProfile struct {
 }
 
 type MgoUserRole struct {
-	Id         bson.ObjectId    `bson:"_id"`
-	User       *UserRoleProfile `bson:"user"`
-	MerchantId bson.ObjectId    `bson:"merchant_id"`
-	Role       string           `bson:"role"`
-	CreatedAt  time.Time        `bson:"created_at"`
-	UpdatedAt  time.Time        `bson:"updated_at"`
+	Id          bson.ObjectId      `bson:"_id"`
+	User        *UserRoleProfile   `bson:"user"`
+	MerchantId  *bson.ObjectId      `bson:"merchant_id"`
+	Role        string             `bson:"role"`
+	CreatedAt   time.Time          `bson:"created_at"`
+	UpdatedAt   time.Time          `bson:"updated_at"`
 }
 
 func (m *PayoutDocument) GetBSON() (interface{}, error) {
@@ -4282,7 +4282,8 @@ func (m *UserRole) GetBSON() (interface{}, error) {
 	}
 
 	if m.MerchantId != "" {
-		st.MerchantId = bson.ObjectIdHex(m.MerchantId)
+		hex := bson.ObjectIdHex(m.MerchantId)
+		st.MerchantId = &hex
 	}
 
 	if m.CreatedAt != nil {
@@ -4316,7 +4317,8 @@ func (k *UserRole) SetBSON(raw bson.Raw) error {
 	k.User = decoded.User
 	k.Role = decoded.Role
 
-	if k.MerchantId != "" {
+
+	if decoded.MerchantId != nil {
 		k.MerchantId = decoded.MerchantId.Hex()
 	}
 

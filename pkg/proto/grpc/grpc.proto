@@ -186,6 +186,9 @@ service BillingService {
     rpc AcceptMerchantInvite(AcceptMerchantInviteRequest) returns (AcceptMerchantInviteResponse) {}
     rpc AcceptAdminInvite(AcceptAdminInviteRequest) returns (AcceptAdminInviteResponse) {}
     rpc CheckInviteToken(CheckInviteTokenRequest) returns (CheckInviteTokenResponse) {}
+
+    rpc ChangeRoleForMerchantUser(ChangeRoleForMerchantUserRequest) returns (EmptyResponseWithStatus) {}
+    rpc ChangeRoleForAdminUser(ChangeRoleForAdminUserRequest) returns (EmptyResponseWithStatus) {}
 }
 
 message EmptyRequest {
@@ -2313,4 +2316,21 @@ message AcceptAdminInviteResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     billing.UserRole role = 3;
+}
+
+message ChangeRoleForMerchantUserRequest {
+    //@inject_tag: validate:"required"
+    string merchant_id = 1;
+    //@inject_tag: validate:"required"
+    string user_id = 2;
+    //@inject_tag: validate:"required"
+    string role = 3;
+
+    string project_id = 4;
+}
+
+message ChangeRoleForAdminUserRequest {
+    string user_id = 1;
+
+    string role = 2;
 }
