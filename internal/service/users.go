@@ -40,6 +40,7 @@ var (
 	errorUserInvalidToken          = newBillingServerErrorMsg("uu000010", "invalid token string")
 	errorUserInvalidInviteEmail    = newBillingServerErrorMsg("uu000011", "email in request and token are not equal")
 	errorUserAlreadyHasRole        = newBillingServerErrorMsg("uu000012", "user already has role")
+	errorUserUnableToSave        = newBillingServerErrorMsg("uu000013", "can't update user in db")
 )
 
 func (s *Service) GetMerchantUsers(ctx context.Context, req *grpc.GetMerchantUsersRequest, res *grpc.GetMerchantUsersResponse) error {
@@ -667,7 +668,7 @@ func (s *Service) sendInviteEmail(receiverEmail, senderEmail, senderFirstName, s
 }
 
 func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.ChangeRoleForMerchantUserRequest, res *grpc.EmptyResponseWithStatus) error {
-	user, err := s.userRoleRepository.GetMerchantUserById(req.UserId)
+	user, err := s.userRoleRepository.GetMerchantUserByUserId(req.MerchantId, req.UserId)
 
 	if err != nil {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
@@ -681,6 +682,16 @@ func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.Chang
 		zap.L().Error(errorUserAlreadyHasRole.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserAlreadyHasRole
+
+		return nil
+	}
+
+	user.Role = req.Role
+	err = s.userRoleRepository.UpdateMerchantUser(user)
+	if err != nil {
+		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorUserUnableToSave
 
 		return nil
 	}
@@ -705,6 +716,17 @@ func (s *Service) ChangeRoleForAdminUser(ctx context.Context, req *grpc.ChangeRo
 		zap.L().Error(errorUserAlreadyHasRole.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserAlreadyHasRole
+
+		return nil
+	}
+
+	user.Role = req.Role
+	err = s.userRoleRepository.UpdateAdminUser(user)
+	if err != nil {
+		zap.L().Error(errorUserUnableToSave.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorUserUnableToSave
+		res.Message.Details = err.Error()
 
 		return nil
 	}
