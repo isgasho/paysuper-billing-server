@@ -24,6 +24,7 @@ service BillingService {
     rpc SetMerchantS3Agreement (SetMerchantS3AgreementRequest) returns (ChangeMerchantDataResponse) {}
     rpc GetMerchantTariffRates (GetMerchantTariffRatesRequest) returns (GetMerchantTariffRatesResponse) {}
     rpc SetMerchantTariffRates (SetMerchantTariffRatesRequest) returns (CheckProjectRequestSignatureResponse) {}
+    rpc ChangeMerchantManualPayouts(ChangeMerchantManualPayoutsRequest) returns (ChangeMerchantManualPayoutsResponse) {}
 
     rpc CreateNotification (NotificationRequest) returns (CreateNotificationResponse) {}
     rpc GetNotification (GetNotificationRequest) returns (billing.Notification) {}
@@ -2150,4 +2151,16 @@ message GetPriceGroupByRegionResponse {
 message GetPriceGroupByRegionRequest {
     //@inject_tag: json:"region" validate:"required"
     string region = 1;
+}
+
+message ChangeMerchantManualPayoutsRequest {
+    // @inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 1;
+    bool manual_payouts_enabled = 2;
+}
+
+message ChangeMerchantManualPayoutsResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.Merchant item = 3;
 }

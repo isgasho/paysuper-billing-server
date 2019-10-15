@@ -362,6 +362,8 @@ message Merchant {
     string agreement_number = 51;
     // @inject_tag: json:"minimal_payout_limit"
     float minimal_payout_limit = 52;
+    // @inject_tag: json:"manual_payouts_enabled"
+    bool manual_payouts_enabled = 53;
 }
 
 message SystemNotificationStatuses {

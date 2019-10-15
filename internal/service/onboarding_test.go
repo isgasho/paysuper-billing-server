@@ -3949,3 +3949,32 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantData_UpdateMercha
 	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp.Status)
 	assert.Equal(suite.T(), merchantErrorUnknown, rsp.Message)
 }
+
+func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantManualPayouts_Ok() {
+	merchant1, err := suite.service.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(suite.merchant.Id)})
+	assert.NoError(suite.T(), err)
+	assert.False(suite.T(), merchant1.ManualPayoutsEnabled)
+
+	req1 := &grpc.ChangeMerchantManualPayoutsRequest{
+		MerchantId:           suite.merchant.Id,
+		ManualPayoutsEnabled: true,
+	}
+	rsp1 := &grpc.ChangeMerchantManualPayoutsResponse{}
+	err = suite.service.ChangeMerchantManualPayouts(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.Empty(suite.T(), rsp1.Message)
+	assert.True(suite.T(), rsp1.Item.ManualPayoutsEnabled)
+}
+
+func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantManualPayouts_MerchantNotFound_Error() {
+	req1 := &grpc.ChangeMerchantManualPayoutsRequest{
+		MerchantId:           bson.NewObjectId().Hex(),
+		ManualPayoutsEnabled: true,
+	}
+	rsp1 := &grpc.ChangeMerchantManualPayoutsResponse{}
+	err := suite.service.ChangeMerchantManualPayouts(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, rsp1.Status)
+	assert.Equal(suite.T(), merchantErrorNotFound, rsp1.Message)
+}

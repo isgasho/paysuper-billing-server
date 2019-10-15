@@ -133,6 +133,7 @@ type MgoMerchant struct {
 	StatusLastUpdatedAt                           time.Time                            `bson:"status_last_updated_at"`
 	AgreementNumber                               string                               `bson:"agreement_number"`
 	MinimalPayoutLimit                            float32                              `bson:"minimal_payout_limit"`
+	ManualPayoutsEnabled                          bool                                 `bson:"manual_payouts_enabled"`
 }
 
 type MgoCommission struct {
@@ -2188,13 +2189,14 @@ func (m *Merchant) GetBSON() (interface{}, error) {
 		RollingReserveThreshold:   m.RollingReserveThreshold,
 		RollingReserveDays:        m.RollingReserveDays,
 		RollingReserveChargebackTransactionsThreshold: m.RollingReserveChargebackTransactionsThreshold,
-		ItemMinCostAmount:   m.ItemMinCostAmount,
-		ItemMinCostCurrency: m.ItemMinCostCurrency,
-		Tariff:              m.Tariff,
-		Steps:               m.Steps,
-		AgreementTemplate:   m.AgreementTemplate,
-		AgreementNumber:     m.AgreementNumber,
-		MinimalPayoutLimit:  m.MinimalPayoutLimit,
+		ItemMinCostAmount:    m.ItemMinCostAmount,
+		ItemMinCostCurrency:  m.ItemMinCostCurrency,
+		Tariff:               m.Tariff,
+		Steps:                m.Steps,
+		AgreementTemplate:    m.AgreementTemplate,
+		AgreementNumber:      m.AgreementNumber,
+		MinimalPayoutLimit:   m.MinimalPayoutLimit,
+		ManualPayoutsEnabled: m.ManualPayoutsEnabled,
 	}
 
 	if len(m.Id) <= 0 {
@@ -2387,6 +2389,7 @@ func (m *Merchant) SetBSON(raw bson.Raw) error {
 	m.AgreementTemplate = decoded.AgreementTemplate
 	m.AgreementNumber = decoded.AgreementNumber
 	m.MinimalPayoutLimit = decoded.MinimalPayoutLimit
+	m.ManualPayoutsEnabled = decoded.ManualPayoutsEnabled
 
 	if decoded.User != nil {
 		m.User = &MerchantUser{
