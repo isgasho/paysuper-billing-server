@@ -852,7 +852,7 @@ type MgoUserRoleProject struct {
 type MgoUserRole struct {
 	Id          bson.ObjectId      `bson:"_id"`
 	User        *UserRoleProfile   `bson:"user"`
-	MerchantId  bson.ObjectId      `bson:"merchant_id"`
+	MerchantId  *bson.ObjectId      `bson:"merchant_id"`
 	ProjectRole []*UserRoleProject `bson:"project_role"`
 	Role        string             `bson:"role"`
 	CreatedAt   time.Time          `bson:"created_at"`
@@ -4288,8 +4288,10 @@ func (m *UserRole) GetBSON() (interface{}, error) {
 		Role:        m.Role,
 	}
 
+
 	if m.MerchantId != "" {
-		st.MerchantId = bson.ObjectIdHex(m.MerchantId)
+		hex := bson.ObjectIdHex(m.MerchantId)
+		st.MerchantId = &hex
 	}
 
 	if m.CreatedAt != nil {
@@ -4324,7 +4326,8 @@ func (k *UserRole) SetBSON(raw bson.Raw) error {
 	k.ProjectRole = decoded.ProjectRole
 	k.Role = decoded.Role
 
-	if k.MerchantId != "" {
+
+	if decoded.MerchantId != nil {
 		k.MerchantId = decoded.MerchantId.Hex()
 	}
 

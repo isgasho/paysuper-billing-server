@@ -61,8 +61,8 @@ func (suite *UsersTestSuite) SetupTest() {
 	repository := newUserRoleRepository(suite.service)
 
 	user := &billing.UserRoleProfile{UserId: bson.NewObjectId().Hex()}
-	err = repository.AddMerchantUser(&billing.UserRoleMerchant{
-		MerchantId: suite.merchant.Id, Id: bson.NewObjectId().Hex(), User: &billing.UserRoleProfile{UserId: bson.NewObjectId().Hex()}, ProjectRole: []*billing.UserRoleProject{
+	err = repository.AddMerchantUser(&billing.UserRole{
+		MerchantId: suite.merchant.Id, Id: bson.NewObjectId().Hex(), User: user, ProjectRole: []*billing.UserRoleProject{
 			{Role: pkg.UserRoleDeveloper},
 		},
 	})
@@ -73,7 +73,7 @@ func (suite *UsersTestSuite) SetupTest() {
 
 	suite.user = user
 
-	err = repository.AddAdminUser(&billing.UserRoleAdmin{
+	err = repository.AddAdminUser(&billing.UserRole{
 		Id: bson.NewObjectId().Hex(),
 		User: &billing.UserRoleProfile{
 			UserId: bson.NewObjectId().Hex(),
