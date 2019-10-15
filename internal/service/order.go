@@ -1252,6 +1252,8 @@ func (s *Service) ProcessBillingAddress(
 		Vat:         order.Tax.Amount,
 		Amount:      tools.FormatAmount(order.OrderAmount),
 		TotalAmount: tools.FormatAmount(order.TotalPaymentAmount),
+		Currency:    order.Currency,
+		Items:       order.Items,
 	}
 
 	return nil

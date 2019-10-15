@@ -745,6 +745,10 @@ message ProcessBillingAddressResponseItem {
     double amount = 4;
     // @inject_tag: json:"total_amount"
     double total_amount = 5;
+    //@inject_tag: json:"currency"
+    string currency = 6;
+    // @inject_tag: json:"items"
+    repeated billing.OrderItem items = 7;
 }
 
 message ProcessBillingAddressResponse {
