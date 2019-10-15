@@ -3909,7 +3909,6 @@ func (m *OrderViewPrivate) SetBSON(raw bson.Raw) error {
 	m.Type = decoded.Type
 	m.Issuer = decoded.Issuer
 	m.MerchantPayoutCurrency = decoded.MerchantPayoutCurrency
-	m.Items = []*OrderItem{}
 	m.IsVatDeduction = decoded.IsVatDeduction
 
 	m.PaymentGrossRevenueLocal = getOrderViewMoney(decoded.PaymentGrossRevenueLocal)
@@ -3965,26 +3964,7 @@ func (m *OrderViewPrivate) SetBSON(raw bson.Raw) error {
 	m.RefundFeesTotal = getOrderViewMoney(decoded.RefundFeesTotal)
 	m.RefundFeesTotalLocal = getOrderViewMoney(decoded.RefundFeesTotalLocal)
 	m.PaysuperRefundTotalProfit = getOrderViewMoney(decoded.PaysuperRefundTotalProfit)
-
-	for _, v := range decoded.Items {
-		item := &OrderItem{
-			Id:          v.Id.Hex(),
-			Object:      v.Object,
-			Sku:         v.Sku,
-			Name:        v.Name,
-			Description: v.Description,
-			Amount:      v.Amount,
-			Currency:    v.Currency,
-			Images:      v.Images,
-			Url:         v.Url,
-			Metadata:    v.Metadata,
-			Code:        v.Code,
-			PlatformId:  v.PlatformId,
-		}
-		item.CreatedAt, _ = ptypes.TimestampProto(v.CreatedAt)
-		item.UpdatedAt, _ = ptypes.TimestampProto(v.UpdatedAt)
-		m.Items = append(m.Items, item)
-	}
+	m.Items = getOrderViewItems(decoded.Items)
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {
@@ -4023,7 +4003,6 @@ func (m *OrderViewPublic) SetBSON(raw bson.Raw) error {
 	m.Type = decoded.Type
 	m.Issuer = decoded.Issuer
 	m.MerchantPayoutCurrency = decoded.MerchantPayoutCurrency
-	m.Items = []*OrderItem{}
 	m.IsVatDeduction = decoded.IsVatDeduction
 
 	m.GrossRevenue = getOrderViewMoney(decoded.GrossRevenue)
@@ -4046,26 +4025,7 @@ func (m *OrderViewPublic) SetBSON(raw bson.Raw) error {
 	m.RefundReverseRevenue = getOrderViewMoney(decoded.RefundReverseRevenue)
 	m.RefundFeesTotal = getOrderViewMoney(decoded.RefundFeesTotal)
 	m.RefundFeesTotalLocal = getOrderViewMoney(decoded.RefundFeesTotalLocal)
-
-	for _, v := range decoded.Items {
-		item := &OrderItem{
-			Id:          v.Id.Hex(),
-			Object:      v.Object,
-			Sku:         v.Sku,
-			Name:        v.Name,
-			Description: v.Description,
-			Amount:      v.Amount,
-			Currency:    v.Currency,
-			Images:      v.Images,
-			Url:         v.Url,
-			Metadata:    v.Metadata,
-			Code:        v.Code,
-			PlatformId:  v.PlatformId,
-		}
-		item.CreatedAt, _ = ptypes.TimestampProto(v.CreatedAt)
-		item.UpdatedAt, _ = ptypes.TimestampProto(v.UpdatedAt)
-		m.Items = append(m.Items, item)
-	}
+	m.Items = getOrderViewItems(decoded.Items)
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {
@@ -4109,7 +4069,7 @@ func getPaymentMethodOrder(in *MgoOrderPaymentMethod) *PaymentMethodOrder {
 }
 
 func getOrderProject(in *MgoOrderProject) *ProjectOrder {
-	return &ProjectOrder{
+	project := &ProjectOrder{
 		Id:                      in.Id.Hex(),
 		MerchantId:              in.MerchantId.Hex(),
 		UrlSuccess:              in.UrlSuccess,
@@ -4127,6 +4087,16 @@ func getOrderProject(in *MgoOrderProject) *ProjectOrder {
 		Status:                  in.Status,
 		MerchantRoyaltyCurrency: in.MerchantRoyaltyCurrency,
 	}
+
+	if len(in.Name) > 0 {
+		project.Name = make(map[string]string)
+
+		for _, v := range in.Name {
+			project.Name[v.Lang] = v.Value
+		}
+	}
+
+	return project
 }
 
 func getOrderViewMoney(in *OrderViewMoney) *OrderViewMoney {
@@ -4138,6 +4108,38 @@ func getOrderViewMoney(in *OrderViewMoney) *OrderViewMoney {
 		Amount:   tools.ToPrecise(in.Amount),
 		Currency: in.Currency,
 	}
+}
+
+func getOrderViewItems(in []*MgoOrderItem) []*OrderItem {
+	var items []*OrderItem
+
+	if len(in) <= 0 {
+		return items
+	}
+
+	for _, v := range in {
+		item := &OrderItem{
+			Id:          v.Id.Hex(),
+			Object:      v.Object,
+			Sku:         v.Sku,
+			Name:        v.Name,
+			Description: v.Description,
+			Amount:      v.Amount,
+			Currency:    v.Currency,
+			Images:      v.Images,
+			Url:         v.Url,
+			Metadata:    v.Metadata,
+			Code:        v.Code,
+			PlatformId:  v.PlatformId,
+		}
+
+		item.CreatedAt, _ = ptypes.TimestampProto(v.CreatedAt)
+		item.CreatedAt, _ = ptypes.TimestampProto(v.UpdatedAt)
+
+		items = append(items, item)
+	}
+
+	return items
 }
 
 func (m *Id) GetBSON() (interface{}, error) {
