@@ -2201,7 +2201,7 @@ message InviteUserMerchantRequest {
     //@inject_tag: validate:"required,email"
     string email = 3;
     //@inject_tag: validate:"required"
-    repeated billing.UserRoleProject project_role = 4;
+    string role = 4;
 }
 
 message InviteUserMerchantResponse {

@@ -275,9 +275,9 @@ func (m *Merchant) IsBankingComplete() bool {
 }
 
 func (m *UserRole) IsOwner() bool {
-	return m.Role == pkg.UserRoleOwner
+	return m.Role == pkg.RoleMerchantOwner
 }
 
 func (m *UserRole) IsAdmin() bool {
-	return m.Role == pkg.UserRoleAdmin
+	return m.Role == pkg.RoleSystemAdmin
 }

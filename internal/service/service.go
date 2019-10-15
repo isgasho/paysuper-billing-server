@@ -9,6 +9,7 @@ import (
 	"github.com/ProtocolONE/geoip-service/pkg/proto"
 	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
+	casbinProto "github.com/paysuper/casbin-server/internal/generated/api/proto/casbinpb"
 	documentSignerProto "github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -96,6 +97,7 @@ type Service struct {
 	centrifugo                 CentrifugoInterface
 	formatter                  paysuper_i18n.Formatter
 	reporterService            reporterProto.ReporterService
+	casbinService              casbinProto.CasbinService
 }
 
 func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {
@@ -115,7 +117,21 @@ func newBillingServerErrorMsg(code, msg string, details ...string) *grpc.Respons
 	return &grpc.ResponseErrorMessage{Code: code, Message: msg, Details: det}
 }
 
-func NewBillingService(db *mongodb.Source, cfg *config.Config, geo proto.GeoIpService, rep repository.RepositoryService, tax tax_service.TaxService, broker rabbitmq.BrokerInterface, redis redis.Cmdable, cache CacheInterface, curService currencies.CurrencyratesService, documentSigner documentSignerProto.DocumentSignerService, reporterService reporterProto.ReporterService, formatter paysuper_i18n.Formatter) *Service {
+func NewBillingService(
+	db *mongodb.Source,
+	cfg *config.Config,
+	geo proto.GeoIpService,
+	rep repository.RepositoryService,
+	tax tax_service.TaxService,
+	broker rabbitmq.BrokerInterface,
+	redis redis.Cmdable,
+	cache CacheInterface,
+	curService currencies.CurrencyratesService,
+	documentSigner documentSignerProto.DocumentSignerService,
+	reporterService reporterProto.ReporterService,
+	formatter paysuper_i18n.Formatter,
+	casbinService casbinProto.CasbinService,
+) *Service {
 	return &Service{
 		db:              db,
 		cfg:             cfg,
@@ -129,6 +145,7 @@ func NewBillingService(db *mongodb.Source, cfg *config.Config, geo proto.GeoIpSe
 		documentSigner:  documentSigner,
 		reporterService: reporterService,
 		formatter:       formatter,
+		casbinService:   casbinService,
 	}
 }
 

@@ -361,7 +361,7 @@ func (s *Service) ChangeMerchant(
 				LastName:  merchant.User.LastName,
 				Status:    pkg.UserRoleStatusAccepted,
 			},
-			Role: pkg.UserRoleOwner,
+			Role: pkg.RoleMerchantOwner,
 		})
 	}
 

@@ -844,19 +844,13 @@ type MgoUserRoleProfile struct {
 	UpdatedAt time.Time     `bson:"updated_at"`
 }
 
-type MgoUserRoleProject struct {
-	ProjectId bson.ObjectId `bson:"project_id"`
-	Role      string        `bson:"role"`
-}
-
 type MgoUserRole struct {
-	Id          bson.ObjectId      `bson:"_id"`
-	User        *UserRoleProfile   `bson:"user"`
-	MerchantId  bson.ObjectId      `bson:"merchant_id"`
-	ProjectRole []*UserRoleProject `bson:"project_role"`
-	Role        string             `bson:"role"`
-	CreatedAt   time.Time          `bson:"created_at"`
-	UpdatedAt   time.Time          `bson:"updated_at"`
+	Id         bson.ObjectId    `bson:"_id"`
+	User       *UserRoleProfile `bson:"user"`
+	MerchantId bson.ObjectId    `bson:"merchant_id"`
+	Role       string           `bson:"role"`
+	CreatedAt  time.Time        `bson:"created_at"`
+	UpdatedAt  time.Time        `bson:"updated_at"`
 }
 
 func (m *PayoutDocument) GetBSON() (interface{}, error) {
@@ -4282,10 +4276,9 @@ func (m *UserRole) GetBSON() (interface{}, error) {
 	var err error
 
 	st := &MgoUserRole{
-		Id:          bson.ObjectIdHex(m.Id),
-		User:        m.User,
-		ProjectRole: m.ProjectRole,
-		Role:        m.Role,
+		Id:   bson.ObjectIdHex(m.Id),
+		User: m.User,
+		Role: m.Role,
 	}
 
 	if m.MerchantId != "" {
@@ -4321,7 +4314,6 @@ func (k *UserRole) SetBSON(raw bson.Raw) error {
 
 	k.Id = decoded.Id.Hex()
 	k.User = decoded.User
-	k.ProjectRole = decoded.ProjectRole
 	k.Role = decoded.Role
 
 	if k.MerchantId != "" {

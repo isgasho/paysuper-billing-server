@@ -22,6 +22,7 @@ require (
 	github.com/micro/cli v0.2.0
 	github.com/micro/go-micro v1.8.0
 	github.com/micro/go-plugins v1.2.0
+	github.com/paysuper/casbin-server v0.0.0-20191015130642-f4e02a8b00e5
 	github.com/paysuper/document-signer v0.0.0-20190930091754-a3f6474309f3
 	github.com/paysuper/paysuper-currencies v0.0.0-20190903083641-668b8b2b997d
 	github.com/paysuper/paysuper-database-mongo v0.1.1
@@ -44,9 +45,17 @@ require (
 )
 
 replace (
+	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.0
 	github.com/gogo/protobuf v0.0.0-20190410021324-65acae22fc9 => github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
-	github.com/hashicorp/consul => github.com/hashicorp/consul v1.5.1
+	github.com/golang/lint => github.com/golang/lint v0.0.0-20190227174305-8f45f776aaf1
+	github.com/hashicorp/consul => github.com/hashicorp/consul v1.5.2
+	github.com/hashicorp/consul/api => github.com/hashicorp/consul/api v1.1.0
+	github.com/lucas-clemente/quic-go => github.com/lucas-clemente/quic-go v0.12.0
+	github.com/marten-seemann/qtls => github.com/marten-seemann/qtls v0.3.2
 	golang.org/x/sys => golang.org/x/sys v0.0.0-20190927073244-c990c680b611
+	gopkg.in/DATA-DOG/go-sqlmock.v1 => github.com/DATA-DOG/go-sqlmock v1.3.3
+	gopkg.in/urfave/cli.v1 => github.com/urfave/cli v1.21.0
+	sourcegraph.com/sourcegraph/go-diff => github.com/sourcegraph/go-diff v0.5.1
 )
 
 go 1.13

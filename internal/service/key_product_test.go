@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/golang-migrate/migrate/v4"
+	casbinMocks "github.com/paysuper/casbin-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -87,7 +88,7 @@ func (suite *KeyProductTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), broker, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK())
+	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), broker, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), &casbinMocks.CasbinService{})
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -120,14 +121,14 @@ func (suite *KeyProductTestSuite) Test_GetKeyProductInfo() {
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		LongDescription: map[string]string{"en": "Super game steam keys"},
 		Url:             "http://test.ru/dffdsfsfs",
-		Cover:          &grpc.ImageCollection{
+		Cover: &grpc.ImageCollection{
 			UseOneForAll: false,
 			Images: &grpc.LocalizedUrl{
-			En: "/home/image.jpg",
+				En: "/home/image.jpg",
 			},
 		},
-		MerchantId:      merchantId,
-		ProjectId:       projectId,
+		MerchantId: merchantId,
+		ProjectId:  projectId,
 		Platforms: []*grpc.PlatformPrice{
 			{
 				Id: "steam",
@@ -269,14 +270,14 @@ func (suite *KeyProductTestSuite) Test_GetKeyProduct() {
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		LongDescription: map[string]string{"en": "Super game steam keys"},
 		Url:             "http://test.ru/dffdsfsfs",
-		Cover:          &grpc.ImageCollection{
+		Cover: &grpc.ImageCollection{
 			UseOneForAll: false,
 			Images: &grpc.LocalizedUrl{
 				En: "/home/image.jpg",
 			},
 		},
-		MerchantId:      merchantId,
-		ProjectId:       projectId,
+		MerchantId: merchantId,
+		ProjectId:  projectId,
 		Metadata: map[string]string{
 			"SomeKey": "SomeValue",
 		},
@@ -334,14 +335,14 @@ func (suite *KeyProductTestSuite) Test_CreateOrUpdateKeyProduct() {
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		LongDescription: map[string]string{"en": "Super game steam keys"},
 		Url:             "http://test.ru/dffdsfsfs",
-		Cover:          &grpc.ImageCollection{
+		Cover: &grpc.ImageCollection{
 			UseOneForAll: false,
 			Images: &grpc.LocalizedUrl{
 				En: "/home/image.jpg",
 			},
 		},
-		MerchantId:      merchantId,
-		ProjectId:       projectId,
+		MerchantId: merchantId,
+		ProjectId:  projectId,
 		Metadata: map[string]string{
 			"SomeKey": "SomeValue",
 		},
@@ -492,14 +493,14 @@ func (suite *KeyProductTestSuite) createKeyProduct() *grpc.KeyProduct {
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		LongDescription: map[string]string{"en": "Super game steam keys"},
 		Url:             "http://test.ru/dffdsfsfs",
-		Cover:          &grpc.ImageCollection{
+		Cover: &grpc.ImageCollection{
 			UseOneForAll: false,
 			Images: &grpc.LocalizedUrl{
 				En: "/home/image.jpg",
 			},
 		},
-		MerchantId:      merchantId,
-		ProjectId:       projectId,
+		MerchantId: merchantId,
+		ProjectId:  projectId,
 		Platforms: []*grpc.PlatformPrice{
 			{
 				Id: "steam",
