@@ -10,6 +10,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/golang/protobuf/ptypes"
+	casbinMocks "github.com/paysuper/casbin-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
@@ -100,6 +101,7 @@ func (suite *AccountingEntryTestSuite) SetupTest() {
 		&reportingMocks.ReporterService{},
 		mocks.NewFormatterOK(),
 		broker,
+		&casbinMocks.CasbinService{},
 	)
 
 	if err := suite.service.Init(); err != nil {

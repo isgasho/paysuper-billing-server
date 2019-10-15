@@ -6,6 +6,7 @@ import (
 	"github.com/elliotchance/redismock"
 	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
+	casbinMocks "github.com/paysuper/casbin-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
@@ -81,6 +82,7 @@ func (suite *UserProfileTestSuite) SetupTest() {
 		&reportingMocks.ReporterService{},
 		mocks.NewFormatterOK(),
 		mocks.NewBrokerMockOk(),
+		&casbinMocks.CasbinService{},
 	)
 
 	err = suite.service.Init()

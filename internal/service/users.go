@@ -3,9 +3,11 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
+	casbinProto "github.com/paysuper/casbin-server/internal/generated/api/proto/casbinpb"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -24,7 +26,9 @@ const (
 	claimExpire = "exp"
 
 	typeMerchant = "merchant"
-	typeAdmin    = "admin"
+	typeSystem   = "system"
+
+	casbinMerchantUserMask = "%s_%s"
 )
 
 var (
@@ -39,6 +43,7 @@ var (
 	errorUserUnableToCreateToken   = newBillingServerErrorMsg("uu000009", "unable to create invite token")
 	errorUserInvalidToken          = newBillingServerErrorMsg("uu000010", "invalid token string")
 	errorUserInvalidInviteEmail    = newBillingServerErrorMsg("uu000011", "email in request and token are not equal")
+	errorUserUnableToAddToCasbin   = newBillingServerErrorMsg("uu000012", "unable to add user to the casbin server")
 )
 
 func (s *Service) GetMerchantUsers(ctx context.Context, req *grpc.GetMerchantUsersRequest, res *grpc.GetMerchantUsersResponse) error {
@@ -166,9 +171,8 @@ func (s *Service) InviteUserMerchant(
 	}
 
 	role := &billing.UserRole{
-		Id:          bson.NewObjectId().Hex(),
-		MerchantId:  req.MerchantId,
-		ProjectRole: req.ProjectRole,
+		Id:         bson.NewObjectId().Hex(),
+		MerchantId: req.MerchantId,
 		User: &billing.UserRoleProfile{
 			Email:  req.Email,
 			Status: pkg.UserRoleStatusInvited,
@@ -267,7 +271,7 @@ func (s *Service) InviteUserAdmin(
 
 	expire := time.Now().Add(time.Hour * time.Duration(s.cfg.UserInviteTokenTimeout)).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		claimType:   typeAdmin,
+		claimType:   typeSystem,
 		claimEmail:  req.Email,
 		claimRoleId: role.Id,
 		claimExpire: expire,
@@ -405,7 +409,7 @@ func (s *Service) ResendInviteAdmin(
 
 	expire := time.Now().Add(time.Hour * time.Duration(s.cfg.UserInviteTokenTimeout)).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		claimType:   typeAdmin,
+		claimType:   typeSystem,
 		claimEmail:  role.User.Email,
 		claimRoleId: role.Id,
 		claimExpire: expire,
@@ -484,7 +488,17 @@ func (s *Service) AcceptMerchantInvite(
 		return nil
 	}
 
-	// TODO: Add user to casbin
+	_, err = s.casbinService.AddRoleForUser(ctx, &casbinProto.UserRoleRequest{
+		User: fmt.Sprintf(casbinMerchantUserMask, user.MerchantId, user.User.UserId),
+		Role: user.Role,
+	})
+
+	if err != nil {
+		zap.L().Error(errorUserUnableToAddToCasbin.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserUnableToAddToCasbin
+		return nil
+	}
 
 	res.Status = pkg.ResponseStatusOk
 	res.Role = user
@@ -535,7 +549,17 @@ func (s *Service) AcceptAdminInvite(
 		return nil
 	}
 
-	// TODO: Add user to casbin
+	_, err = s.casbinService.AddRoleForUser(ctx, &casbinProto.UserRoleRequest{
+		User: user.User.UserId,
+		Role: user.Role,
+	})
+
+	if err != nil {
+		zap.L().Error(errorUserUnableToAddToCasbin.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserUnableToAddToCasbin
+		return nil
+	}
 
 	res.Status = pkg.ResponseStatusOk
 	res.Role = user

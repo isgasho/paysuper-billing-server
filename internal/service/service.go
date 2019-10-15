@@ -8,6 +8,7 @@ import (
 	"github.com/ProtocolONE/geoip-service/pkg/proto"
 	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
+	casbinProto "github.com/paysuper/casbin-server/internal/generated/api/proto/casbinpb"
 	documentSignerProto "github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
@@ -97,6 +98,7 @@ type Service struct {
 	reporterService            reporterProto.ReporterService
 	postmarkBroker             rabbitmq.BrokerInterface
 	paylinkService             PaylinkServiceInterface
+	casbinService              casbinProto.CasbinService
 }
 
 func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {
@@ -130,6 +132,7 @@ func NewBillingService(
 	reporterService reporterProto.ReporterService,
 	formatter paysuper_i18n.Formatter,
 	postmarkBroker rabbitmq.BrokerInterface,
+	casbinService casbinProto.CasbinService,
 ) *Service {
 	return &Service{
 		db:              db,
@@ -145,6 +148,7 @@ func NewBillingService(
 		reporterService: reporterService,
 		formatter:       formatter,
 		postmarkBroker:  postmarkBroker,
+		casbinService:   casbinService,
 	}
 }
 

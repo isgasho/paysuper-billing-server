@@ -289,9 +289,9 @@ func (m *Project) GetVirtualCurrencyRate(group *PriceGroup) (float64, error) {
 }
 
 func (m *UserRole) IsOwner() bool {
-	return m.Role == pkg.UserRoleOwner
+	return m.Role == pkg.RoleMerchantOwner
 }
 
 func (m *UserRole) IsAdmin() bool {
-	return m.Role == pkg.UserRoleAdmin
+	return m.Role == pkg.RoleSystemAdmin
 }

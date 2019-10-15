@@ -6,6 +6,7 @@ import (
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
+	casbinMocks "github.com/paysuper/casbin-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
@@ -67,6 +68,7 @@ func (suite *KeyTestSuite) SetupTest() {
 		&reportingMocks.ReporterService{},
 		mocks.NewFormatterOK(),
 		mocks.NewBrokerMockOk(),
+		&casbinMocks.CasbinService{},
 	)
 
 	if err := suite.service.Init(); err != nil {

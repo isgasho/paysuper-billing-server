@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
+	casbinMocks "github.com/paysuper/casbin-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -70,6 +71,7 @@ func (suite *ZipCodeTestSuite) SetupTest() {
 		&reportingMocks.ReporterService{},
 		mocks.NewFormatterOK(),
 		mocks.NewBrokerMockOk(),
+		&casbinMocks.CasbinService{},
 	)
 	err = suite.service.Init()
 
