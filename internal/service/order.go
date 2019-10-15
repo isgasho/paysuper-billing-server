@@ -606,6 +606,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 	if order.Issuer.UtmMedium == "" {
 		order.Issuer.UtmMedium = req.UtmMedium
 	}
+	order.Issuer.ReferrerHost = getHostFromUrl(order.Issuer.Url)
 
 	p1.processOrderVat(order)
 	err = s.updateOrder(order)
@@ -1695,6 +1696,7 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 			UtmSource:     v.request.UtmSource,
 			UtmCampaign:   v.request.UtmCampaign,
 			UtmMedium:     v.request.UtmMedium,
+			ReferrerHost:  getHostFromUrl(v.request.IssuerUrl),
 		},
 		CountryRestriction: &billing.CountryRestriction{
 			IsoCodeA2:       "",

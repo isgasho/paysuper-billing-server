@@ -2,6 +2,8 @@ package service
 
 import (
 	"go.uber.org/zap"
+	"net"
+	"net/url"
 	"sync"
 	"time"
 )
@@ -73,4 +75,24 @@ func timeTrack(start time.Time, name string) {
 		zap.String("name", name),
 		zap.Duration("time", elapsed),
 	)
+}
+
+func getHostFromUrl(urlString string) string {
+	u, err := url.Parse(urlString)
+	if err != nil {
+		zap.L().Error(
+			"url parsing failed",
+			zap.Error(err),
+		)
+		return ""
+	}
+	host, _, err := net.SplitHostPort(u.Host)
+	if err != nil {
+		zap.L().Error(
+			"host-port splitting failed",
+			zap.Error(err),
+		)
+		return ""
+	}
+	return host
 }

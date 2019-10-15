@@ -1042,6 +1042,8 @@ message OrderIssuer {
     string utm_medium = 6;
     //@inject_tag: bson:"utm_campaign" json:"utm_campaign"
     string utm_campaign = 7;
+    //@inject_tag: bson:"referrer_host" json:"referrer_host"
+    string referrer_host = 8;
 }
 
 message OrderNotificationRefund {
