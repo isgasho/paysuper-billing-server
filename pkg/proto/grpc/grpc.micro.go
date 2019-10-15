@@ -182,6 +182,8 @@ type BillingService interface {
 	AcceptMerchantInvite(ctx context.Context, in *AcceptMerchantInviteRequest, opts ...client.CallOption) (*AcceptMerchantInviteResponse, error)
 	AcceptAdminInvite(ctx context.Context, in *AcceptAdminInviteRequest, opts ...client.CallOption) (*AcceptAdminInviteResponse, error)
 	CheckInviteToken(ctx context.Context, in *CheckInviteTokenRequest, opts ...client.CallOption) (*CheckInviteTokenResponse, error)
+	ChangeRoleForMerchantUser(ctx context.Context, in *ChangeRoleForMerchantUserRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
+	ChangeRoleForAdminUser(ctx context.Context, in *ChangeRoleForAdminUserRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 }
 
 type billingService struct {
@@ -1662,6 +1664,26 @@ func (c *billingService) CheckInviteToken(ctx context.Context, in *CheckInviteTo
 	return out, nil
 }
 
+func (c *billingService) ChangeRoleForMerchantUser(ctx context.Context, in *ChangeRoleForMerchantUserRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error) {
+	req := c.c.NewRequest(c.name, "BillingService.ChangeRoleForMerchantUser", in)
+	out := new(EmptyResponseWithStatus)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) ChangeRoleForAdminUser(ctx context.Context, in *ChangeRoleForAdminUserRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error) {
+	req := c.c.NewRequest(c.name, "BillingService.ChangeRoleForAdminUser", in)
+	out := new(EmptyResponseWithStatus)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for BillingService service
 
 type BillingServiceHandler interface {
@@ -1811,6 +1833,8 @@ type BillingServiceHandler interface {
 	AcceptMerchantInvite(context.Context, *AcceptMerchantInviteRequest, *AcceptMerchantInviteResponse) error
 	AcceptAdminInvite(context.Context, *AcceptAdminInviteRequest, *AcceptAdminInviteResponse) error
 	CheckInviteToken(context.Context, *CheckInviteTokenRequest, *CheckInviteTokenResponse) error
+	ChangeRoleForMerchantUser(context.Context, *ChangeRoleForMerchantUserRequest, *EmptyResponseWithStatus) error
+	ChangeRoleForAdminUser(context.Context, *ChangeRoleForAdminUserRequest, *EmptyResponseWithStatus) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -1961,6 +1985,8 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		AcceptMerchantInvite(ctx context.Context, in *AcceptMerchantInviteRequest, out *AcceptMerchantInviteResponse) error
 		AcceptAdminInvite(ctx context.Context, in *AcceptAdminInviteRequest, out *AcceptAdminInviteResponse) error
 		CheckInviteToken(ctx context.Context, in *CheckInviteTokenRequest, out *CheckInviteTokenResponse) error
+		ChangeRoleForMerchantUser(ctx context.Context, in *ChangeRoleForMerchantUserRequest, out *EmptyResponseWithStatus) error
+		ChangeRoleForAdminUser(ctx context.Context, in *ChangeRoleForAdminUserRequest, out *EmptyResponseWithStatus) error
 	}
 	type BillingService struct {
 		billingService
@@ -2555,4 +2581,12 @@ func (h *billingServiceHandler) AcceptAdminInvite(ctx context.Context, in *Accep
 
 func (h *billingServiceHandler) CheckInviteToken(ctx context.Context, in *CheckInviteTokenRequest, out *CheckInviteTokenResponse) error {
 	return h.BillingServiceHandler.CheckInviteToken(ctx, in, out)
+}
+
+func (h *billingServiceHandler) ChangeRoleForMerchantUser(ctx context.Context, in *ChangeRoleForMerchantUserRequest, out *EmptyResponseWithStatus) error {
+	return h.BillingServiceHandler.ChangeRoleForMerchantUser(ctx, in, out)
+}
+
+func (h *billingServiceHandler) ChangeRoleForAdminUser(ctx context.Context, in *ChangeRoleForAdminUserRequest, out *EmptyResponseWithStatus) error {
+	return h.BillingServiceHandler.ChangeRoleForAdminUser(ctx, in, out)
 }

@@ -145,3 +145,84 @@ func (suite *UsersTestSuite) TestGetMerchantsForUser_Ok() {
 	shouldBe.EqualValues(200, res.Status)
 	shouldBe.NotEmpty(res.Merchants)
 }
+
+
+func (suite *UsersTestSuite) TestChangeAdminUserRole_RoleError() {
+	shouldBe := require.New(suite.T())
+
+	res := &grpc.EmptyResponseWithStatus{}
+	err := suite.service.ChangeRoleForAdminUser(context.TODO(), &grpc.ChangeRoleForAdminUserRequest{
+		UserId: suite.user.UserId,
+		Role: "some_role",
+	}, res)
+	shouldBe.NoError(err)
+	shouldBe.EqualValues(200, res.Status)
+
+	res = &grpc.EmptyResponseWithStatus{}
+	err = suite.service.ChangeRoleForAdminUser(context.TODO(), &grpc.ChangeRoleForAdminUserRequest{
+		UserId: suite.user.UserId,
+		Role: "some_role",
+	}, res)
+	shouldBe.Error(err)
+	shouldBe.EqualValues(400, res.Status)
+	shouldBe.NotEmpty(res.Message)
+}
+
+func (suite *UsersTestSuite) TestChangeAdminUserRole_Ok() {
+	shouldBe := require.New(suite.T())
+
+	res := &grpc.EmptyResponseWithStatus{}
+	err := suite.service.ChangeRoleForAdminUser(context.TODO(), &grpc.ChangeRoleForAdminUserRequest{
+		UserId: suite.user.UserId,
+		Role: "some_role",
+	}, res)
+	shouldBe.NoError(err)
+	shouldBe.EqualValues(200, res.Status)
+}
+
+func (suite *UsersTestSuite) TestChangeMerchantUserRole_NotFoundError() {
+	shouldBe := require.New(suite.T())
+
+	res := &grpc.EmptyResponseWithStatus{}
+	err := suite.service.ChangeRoleForMerchantUser(context.TODO(), &grpc.ChangeRoleForMerchantUserRequest{
+		Role: "some_role",
+	}, res)
+	shouldBe.Error(err)
+	shouldBe.EqualValues(400, res.Status)
+}
+
+func (suite *UsersTestSuite) TestChangeMerchantUserRole_RoleError() {
+	shouldBe := require.New(suite.T())
+
+	res := &grpc.EmptyResponseWithStatus{}
+	err := suite.service.ChangeRoleForMerchantUser(context.TODO(), &grpc.ChangeRoleForMerchantUserRequest{
+		MerchantId: suite.merchant.Id,
+		UserId: suite.user.UserId,
+		Role: "some_role",
+	}, res)
+	shouldBe.NoError(err)
+	shouldBe.EqualValues(200, res.Status)
+
+	res = &grpc.EmptyResponseWithStatus{}
+	err = suite.service.ChangeRoleForMerchantUser(context.TODO(), &grpc.ChangeRoleForMerchantUserRequest{
+		MerchantId: suite.merchant.Id,
+		UserId: suite.user.UserId,
+		Role: "some_role",
+	}, res)
+	shouldBe.Error(err)
+	shouldBe.EqualValues(400, res.Status)
+	shouldBe.NotEmpty(res.Message)
+}
+
+func (suite *UsersTestSuite) TestChangeMerchantUserRole_Ok() {
+	shouldBe := require.New(suite.T())
+
+	res := &grpc.EmptyResponseWithStatus{}
+	err := suite.service.ChangeRoleForMerchantUser(context.TODO(), &grpc.ChangeRoleForMerchantUserRequest{
+		MerchantId: suite.merchant.Id,
+		UserId: suite.user.UserId,
+		Role: "some_role",
+	}, res)
+	shouldBe.NoError(err)
+	shouldBe.EqualValues(200, res.Status)
+}

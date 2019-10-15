@@ -39,6 +39,7 @@ var (
 	errorUserUnableToCreateToken   = newBillingServerErrorMsg("uu000009", "unable to create invite token")
 	errorUserInvalidToken          = newBillingServerErrorMsg("uu000010", "invalid token string")
 	errorUserInvalidInviteEmail    = newBillingServerErrorMsg("uu000011", "email in request and token are not equal")
+	errorUserAlreadyHasRole        = newBillingServerErrorMsg("uu000012", "user already has role")
 )
 
 func (s *Service) GetMerchantUsers(ctx context.Context, req *grpc.GetMerchantUsersRequest, res *grpc.GetMerchantUsersResponse) error {
@@ -661,6 +662,54 @@ func (s *Service) sendInviteEmail(receiverEmail, senderEmail, senderFirstName, s
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.ChangeRoleForMerchantUserRequest, res *grpc.EmptyResponseWithStatus) error {
+	user, err := s.userRoleRepository.GetMerchantUserById(req.UserId)
+
+	if err != nil {
+		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserNotFound
+
+		return nil
+	}
+
+	if user.Role == req.Role {
+		zap.L().Error(errorUserAlreadyHasRole.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserAlreadyHasRole
+
+		return nil
+	}
+
+	res.Status = pkg.ResponseStatusOk
+
+	return nil
+}
+
+func (s *Service) ChangeRoleForAdminUser(ctx context.Context, req *grpc.ChangeRoleForAdminUserRequest, res *grpc.EmptyResponseWithStatus) error {
+	user, err := s.userRoleRepository.GetAdminUserByUserId(req.UserId)
+
+	if err != nil {
+		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserNotFound
+
+		return nil
+	}
+
+	if user.Role == req.Role {
+		zap.L().Error(errorUserAlreadyHasRole.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserAlreadyHasRole
+
+		return nil
+	}
+
+	res.Status = pkg.ResponseStatusOk
 
 	return nil
 }
