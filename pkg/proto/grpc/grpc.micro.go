@@ -41,7 +41,6 @@ type BillingService interface {
 	PaymentCreateProcess(ctx context.Context, in *PaymentCreateRequest, opts ...client.CallOption) (*PaymentCreateResponse, error)
 	PaymentCallbackProcess(ctx context.Context, in *PaymentNotifyRequest, opts ...client.CallOption) (*PaymentNotifyResponse, error)
 	OrderReceipt(ctx context.Context, in *OrderReceiptRequest, opts ...client.CallOption) (*OrderReceiptResponse, error)
-	OrderReceiptRefund(ctx context.Context, in *OrderReceiptRequest, opts ...client.CallOption) (*OrderReceiptResponse, error)
 	UpdateOrder(ctx context.Context, in *billing.Order, opts ...client.CallOption) (*EmptyResponse, error)
 	UpdateMerchant(ctx context.Context, in *billing.Merchant, opts ...client.CallOption) (*EmptyResponse, error)
 	GetMerchantBy(ctx context.Context, in *GetMerchantByRequest, opts ...client.CallOption) (*GetMerchantResponse, error)
@@ -232,16 +231,6 @@ func (c *billingService) PaymentCallbackProcess(ctx context.Context, in *Payment
 
 func (c *billingService) OrderReceipt(ctx context.Context, in *OrderReceiptRequest, opts ...client.CallOption) (*OrderReceiptResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.OrderReceipt", in)
-	out := new(OrderReceiptResponse)
-	err := c.c.Call(ctx, req, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *billingService) OrderReceiptRefund(ctx context.Context, in *OrderReceiptRequest, opts ...client.CallOption) (*OrderReceiptResponse, error) {
-	req := c.c.NewRequest(c.name, "BillingService.OrderReceiptRefund", in)
 	out := new(OrderReceiptResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
@@ -1538,7 +1527,6 @@ type BillingServiceHandler interface {
 	PaymentCreateProcess(context.Context, *PaymentCreateRequest, *PaymentCreateResponse) error
 	PaymentCallbackProcess(context.Context, *PaymentNotifyRequest, *PaymentNotifyResponse) error
 	OrderReceipt(context.Context, *OrderReceiptRequest, *OrderReceiptResponse) error
-	OrderReceiptRefund(context.Context, *OrderReceiptRequest, *OrderReceiptResponse) error
 	UpdateOrder(context.Context, *billing.Order, *EmptyResponse) error
 	UpdateMerchant(context.Context, *billing.Merchant, *EmptyResponse) error
 	GetMerchantBy(context.Context, *GetMerchantByRequest, *GetMerchantResponse) error
@@ -1676,7 +1664,6 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		PaymentCreateProcess(ctx context.Context, in *PaymentCreateRequest, out *PaymentCreateResponse) error
 		PaymentCallbackProcess(ctx context.Context, in *PaymentNotifyRequest, out *PaymentNotifyResponse) error
 		OrderReceipt(ctx context.Context, in *OrderReceiptRequest, out *OrderReceiptResponse) error
-		OrderReceiptRefund(ctx context.Context, in *OrderReceiptRequest, out *OrderReceiptResponse) error
 		UpdateOrder(ctx context.Context, in *billing.Order, out *EmptyResponse) error
 		UpdateMerchant(ctx context.Context, in *billing.Merchant, out *EmptyResponse) error
 		GetMerchantBy(ctx context.Context, in *GetMerchantByRequest, out *GetMerchantResponse) error
@@ -1835,10 +1822,6 @@ func (h *billingServiceHandler) PaymentCallbackProcess(ctx context.Context, in *
 
 func (h *billingServiceHandler) OrderReceipt(ctx context.Context, in *OrderReceiptRequest, out *OrderReceiptResponse) error {
 	return h.BillingServiceHandler.OrderReceipt(ctx, in, out)
-}
-
-func (h *billingServiceHandler) OrderReceiptRefund(ctx context.Context, in *OrderReceiptRequest, out *OrderReceiptResponse) error {
-	return h.BillingServiceHandler.OrderReceiptRefund(ctx, in, out)
 }
 
 func (h *billingServiceHandler) UpdateOrder(ctx context.Context, in *billing.Order, out *EmptyResponse) error {
