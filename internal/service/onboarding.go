@@ -1173,7 +1173,11 @@ func (s *Service) GetMerchantTariffRates(
 	req *grpc.GetMerchantTariffRatesRequest,
 	rsp *grpc.GetMerchantTariffRatesResponse,
 ) error {
-	tariff, err := s.merchantTariffRates.GetBy(req)
+	if req.PayerRegion == "" {
+		req.PayerRegion = req.HomeRegion
+	}
+
+	tariffs, err := s.merchantTariffRates.GetBy(req)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -1183,7 +1187,7 @@ func (s *Service) GetMerchantTariffRates(
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
-	rsp.Item = tariff
+	rsp.Items = tariffs
 
 	return nil
 }
@@ -1220,19 +1224,21 @@ func (s *Service) SetMerchantTariffRates(
 		return nil
 	}
 
-	query := &grpc.GetMerchantTariffRatesRequest{
-		Region:         req.Region,
-		PayoutCurrency: req.PayoutCurrency,
-		AmountFrom:     req.AmountFrom,
-		AmountTo:       req.AmountTo,
-	}
-	tariff, err := s.merchantTariffRates.GetBy(query)
+	query := &grpc.GetMerchantTariffRatesRequest{HomeRegion: req.HomeRegion}
+	tariffs, err := s.merchantTariffRates.GetBy(query)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = merchantErrorUnknown
 
 		return nil
+	}
+
+	countryRegions := make(map[string]string)
+
+	for _, v := range tariffs {
+		var costs []*billing.PaymentChannelCostMerchant
+
 	}
 
 	if len(tariff.Payment) > 0 {

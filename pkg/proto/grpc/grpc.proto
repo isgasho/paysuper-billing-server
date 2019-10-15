@@ -1762,7 +1762,7 @@ message GetMerchantAgreementSignUrlResponse {
 message GetMerchantTariffRatesRequest {
     // @inject_tag: query:"region" validate:"required,world_region"
     string home_region = 1;
-    //@inject_tag: query:"payer_region" validate:"required,world_region"
+    //@inject_tag: query:"payer_region" validate:"omitempty,world_region"
     string payer_region = 2;
     // @inject_tag: query:"min_amount" validate:"omitempty,numeric,gte=0"
     double min_amount = 3;
@@ -1780,13 +1780,7 @@ message SetMerchantTariffRatesRequest {
     //@inject_tag: json:"merchant_id" validate:"required,hexadecimal,len=24"
     string merchant_id = 1;
     // @inject_tag: json:"region" validate:"required,world_region"
-    string region = 2;
-    //@inject_tag: json:"payout_currency" validate:"required,alpha,len=3"
-    string payout_currency = 3;
-    // @inject_tag: json:"amount_from" validate:"required,numeric,gte=0"
-    double amount_from = 4;
-    // @inject_tag: json:"amount_to" validate:"required,numeric,gt=0"
-    double amount_to = 5;
+    string home_region = 2;
 }
 
 message ListOrdersPublicResponseItem {
