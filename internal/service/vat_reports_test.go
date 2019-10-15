@@ -99,6 +99,7 @@ func (suite *VatReportsTestSuite) SetupTest() {
 		mocks.NewDocumentSignerMockOk(),
 		&reportingMocks.ReporterService{},
 		mocks.NewFormatterOK(),
+		mocks.NewBrokerMockOk(),
 	)
 
 	if err := suite.service.Init(); err != nil {

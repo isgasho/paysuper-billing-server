@@ -405,6 +405,11 @@ message PaymentFormJsonDataRequest {
     string cookie = 7;
     string referer = 8;
     bool is_embedded = 9;
+    string issuer_reference = 10;
+    string issuer_reference_type = 11;
+    string utm_source = 12;
+    string utm_medium = 13;
+    string utm_campaign = 14;
 }
 
 message PaymentFormJsonDataProject {
@@ -446,6 +451,8 @@ message PaymentFormJsonData {
     bool country_payments_allowed = 18;
     //@inject_tag: json:"country_change_allowed"
     bool country_change_allowed = 19;
+    //@inject_tag: json:"platforms"
+    repeated Platform platforms = 20;
 }
 
 message PaymentFormJsonDataResponse {

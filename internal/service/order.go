@@ -126,6 +126,7 @@ var (
 	orderErrorDuringFormattingDate                            = newBillingServerErrorMsg("fm000059", "error during formatting date")
 	orderErrorMerchantForOrderNotFound                        = newBillingServerErrorMsg("fm000060", "merchant for order not found")
 	orderErrorPaymentMethodsNotFound                          = newBillingServerErrorMsg("fm000061", "payment methods for payment with specified currency not found")
+	orderErrorNoPlatforms                                     = newBillingServerErrorMsg("fm000062", "no available platforms")
 )
 
 type orderCreateRequestProcessorChecked struct {
@@ -566,7 +567,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 	if order.ProductType == billing.OrderType_product {
 		err = s.ProcessOrderProducts(order)
 	} else if order.ProductType == billing.OrderType_key {
-		err = s.ProcessOrderKeyProducts(ctx, order)
+		rsp.Item.Platforms, err = s.ProcessOrderKeyProducts(ctx, order)
 	}
 
 	if err != nil {
@@ -584,15 +585,26 @@ func (s *Service) PaymentFormJsonDataProcess(
 
 	if order.Issuer == nil {
 		order.Issuer = &billing.OrderIssuer{
-			Url:      req.Referer,
 			Embedded: req.IsEmbedded,
 		}
-	} else {
-		if req.Referer != "" && req.Referer != order.Issuer.Url {
-			order.Issuer.Url = req.Referer
-		}
-
-		order.Issuer.Embedded = req.IsEmbedded
+	}
+	if order.Issuer.Url == "" {
+		order.Issuer.Url = req.Referer
+	}
+	if order.Issuer.ReferenceType == "" {
+		order.Issuer.ReferenceType = req.IssuerReferenceType
+	}
+	if order.Issuer.Reference == "" {
+		order.Issuer.Reference = req.IssuerReference
+	}
+	if order.Issuer.UtmSource == "" {
+		order.Issuer.UtmSource = req.UtmSource
+	}
+	if order.Issuer.UtmCampaign == "" {
+		order.Issuer.UtmCampaign = req.UtmCampaign
+	}
+	if order.Issuer.UtmMedium == "" {
+		order.Issuer.UtmMedium = req.UtmMedium
 	}
 
 	p1.processOrderVat(order)
@@ -714,7 +726,7 @@ func (s *Service) PaymentCreateProcess(
 		err = s.ProcessOrderProducts(order)
 	} else if order.ProductType == billing.OrderType_key {
 		// We should reserve keys only before payment
-		if err = s.ProcessOrderKeyProducts(ctx, order); err == nil {
+		if _, err = s.ProcessOrderKeyProducts(ctx, order); err == nil {
 			err = processor.reserveKeysForOrder(ctx, order)
 		}
 	}
@@ -968,7 +980,7 @@ func (s *Service) PaymentFormLanguageChanged(
 	if order.ProductType == billing.OrderType_product {
 		err = s.ProcessOrderProducts(order)
 	} else if order.ProductType == billing.OrderType_key {
-		err = s.ProcessOrderKeyProducts(ctx, order)
+		_, err = s.ProcessOrderKeyProducts(ctx, order)
 	}
 
 	if err != nil {
@@ -1209,7 +1221,7 @@ func (s *Service) ProcessBillingAddress(
 	if order.ProductType == billing.OrderType_product {
 		err = s.ProcessOrderProducts(order)
 	} else if order.ProductType == billing.OrderType_key {
-		err = s.ProcessOrderKeyProducts(ctx, order)
+		_, err = s.ProcessOrderKeyProducts(ctx, order)
 	}
 
 	if err != nil {
@@ -1311,8 +1323,7 @@ func (s *Service) updateOrder(order *billing.Order) error {
 	}
 
 	if statusChanged && ps != constant.OrderPublicStatusCreated && ps != constant.OrderPublicStatusPending {
-		zap.S().Debug("[updateOrder] notify merchant", "order_id", order.Id)
-		s.orderNotifyMerchant(order)
+		zap.S().Infow("[updateOrder] notify merchant", "order_id", order.Id, "status", ps)
 
 		switch ps {
 		case constant.OrderPublicStatusRefunded:
@@ -1320,6 +1331,8 @@ func (s *Service) updateOrder(order *billing.Order) error {
 		case constant.OrderPublicStatusProcessed:
 			s.sendMailWithReceipt(order)
 		}
+
+		s.orderNotifyMerchant(order)
 	}
 
 	return nil
@@ -1357,11 +1370,11 @@ func (s *Service) orderNotifyKeyProducts(ctx context.Context, order *billing.Ord
 			rsp := &grpc.GetKeyForOrderRequestResponse{}
 			err = s.FinishRedeemKeyForOrder(ctx, &grpc.KeyForOrderRequest{KeyId: key}, rsp)
 			if err != nil {
-				zap.S().Error("internal error during finishing reservation for key", "err", err, "key", key)
+				zap.S().Errorw("internal error during finishing reservation for key", "err", err, "key", key)
 				continue
 			}
 			if rsp.Status != pkg.ResponseStatusOk {
-				zap.S().Error("could not finish reservation for key", "key", key, "message", rsp.Message)
+				zap.S().Errorw("could not finish reservation for key", "key", key, "message", rsp.Message)
 				continue
 			}
 
@@ -1377,7 +1390,7 @@ func (s *Service) sendMailWithRefund(order *billing.Order) {
 	payload.TemplateAlias = s.cfg.EmailRefundTransactionTemplate
 
 	zap.S().Infow("sending receipt to broker", "order_id", order.Id)
-	err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+	err := s.postmarkBroker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 	if err != nil {
 		zap.S().Errorw(
 			"Publication refund transaction to user email queue is failed",
@@ -1388,12 +1401,12 @@ func (s *Service) sendMailWithRefund(order *billing.Order) {
 func (s *Service) sendMailWithReceipt(order *billing.Order) {
 	payload := s.getPayloadForReceipt(order)
 
-	zap.S().Infow("sending receipt to broker", "order_id", order.Id)
-	err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+	zap.S().Infow("sending receipt to broker", "order_id", order.Id, "topic", postmarkSdrPkg.PostmarkSenderTopicName)
+	err := s.postmarkBroker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 	if err != nil {
 		zap.S().Errorw(
 			"Publication receipt to user email queue is failed",
-			"err", err, "email", order.ReceiptEmail, "order_id", order.Id)
+			"err", err, "email", order.ReceiptEmail, "order_id", order.Id, "topic", postmarkSdrPkg.PostmarkSenderTopicName)
 	}
 }
 
@@ -1508,13 +1521,15 @@ func (s *Service) sendMailWithCode(ctx context.Context, order *billing.Order, ke
 				payload.TemplateModel["product_image"] = item.Images[0]
 			}
 
-			err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+			err := s.postmarkBroker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 			if err != nil {
 				zap.S().Errorw(
 					"Publication activation code to user email queue is failed",
 					"err", err, "email", order.ReceiptEmail, "order_id", order.Id, "key_id", key.Id)
+
+			} else {
+				zap.S().Infow("Sent payload to broker", "email", order.ReceiptEmail, "order_id", order.Id, "key_id", key.Id, "topic", postmarkSdrPkg.PostmarkSenderTopicName)
 			}
-			zap.S().Infow("Sent payload to broker", "email", order.ReceiptEmail, "order_id", order.Id, "key_id", key.Id)
 			return
 		}
 	}
@@ -1666,8 +1681,13 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 		Metadata:           v.checked.metadata,
 		PrivateMetadata:    v.checked.privateMetadata,
 		Issuer: &billing.OrderIssuer{
-			Url:      v.request.IssuerUrl,
-			Embedded: v.request.IsEmbedded,
+			Url:           v.request.IssuerUrl,
+			Embedded:      v.request.IsEmbedded,
+			ReferenceType: v.request.IssuerReferenceType,
+			Reference:     v.request.IssuerReference,
+			UtmSource:     v.request.UtmSource,
+			UtmCampaign:   v.request.UtmCampaign,
+			UtmMedium:     v.request.UtmMedium,
 		},
 		CountryRestriction: &billing.CountryRestriction{
 			IsoCodeA2:       "",
@@ -1880,12 +1900,25 @@ func (v *OrderCreateRequestProcessor) processPaylinkKeyProducts() error {
 		return priceGroupErrorNotFound
 	}
 
-	amount, err := v.GetOrderKeyProductsAmount(orderProducts, priceGroup, v.request.PlatformId)
+	platformId := v.request.PlatformId
+	if len(platformId) == 0 {
+		platforms := v.filterPlatforms(orderProducts)
+		if len(platforms) == 0 {
+			zap.S().Errorw("No available platformIds")
+			return orderErrorNoPlatforms
+		}
+		sort.Slice(platforms, func(i, j int)bool {
+			return availablePlatforms[platforms[i]].Order < availablePlatforms[platforms[j]].Order
+		})
+		platformId = platforms[0]
+	}
+
+	amount, err := v.GetOrderKeyProductsAmount(orderProducts, priceGroup, platformId)
 	if err != nil {
 		return err
 	}
 
-	items, err := v.GetOrderKeyProductsItems(orderProducts, DefaultLanguage, priceGroup, v.request.PlatformId)
+	items, err := v.GetOrderKeyProductsItems(orderProducts, DefaultLanguage, priceGroup, platformId)
 	if err != nil {
 		return err
 	}
@@ -2838,22 +2871,41 @@ func (s *Service) GetOrderKeyProductsItems(products []*grpc.KeyProduct, language
 	return result, nil
 }
 
-func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Order) error {
+func (s *Service) filterPlatforms(orderProducts []*grpc.KeyProduct) []string {
+	// filter available platformIds for all products in request
+	var platformIds []string
+	for i, product := range orderProducts {
+		var platformsToCheck []string
+		for _, pl := range product.Platforms {
+			platformsToCheck = append(platformsToCheck, pl.Id)
+		}
+
+		if i > 0 {
+			platformIds = intersect(platformIds, platformsToCheck)
+		} else {
+			platformIds = platformsToCheck
+		}
+	}
+
+	return platformIds
+}
+
+func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Order) ([]*grpc.Platform, error) {
 	project, err := s.project.GetById(order.Project.Id)
 	if err != nil {
-		return orderErrorProjectNotFound
+		return nil, orderErrorProjectNotFound
 	}
 	if project.IsDeleted() == true {
-		return orderErrorProjectInactive
+		return nil, orderErrorProjectInactive
 	}
 
 	if order.ProductType != billing.OrderType_key {
-		return nil
+		return nil, nil
 	}
 
 	orderProducts, err := s.GetOrderKeyProducts(ctx, project.Id, order.Products)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var (
@@ -2865,13 +2917,31 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 		logInfo    = processProcessOrderKeyProductsTemplate
 	)
 
-	if order.BillingAddress != nil && order.BillingAddress.Country != "" {
-		country = order.BillingAddress.Country
-	} else if order.User.Address != nil && order.User.Address.Country != "" {
-		country = order.User.Address.Country
+	country = order.GetCountry()
+
+	// filter available platformIds for all products in request
+	platformIds := s.filterPlatforms(orderProducts)
+
+	if len(platformIds) == 0 {
+		zap.S().Errorw("No available platformIds", "order.uuid", order.Uuid)
+		return nil, orderErrorNoPlatforms
 	}
 
-	platformId = order.PlatformId
+	platforms := make([]*grpc.Platform, len(platformIds))
+	for i, v := range platformIds {
+		platforms[i] = availablePlatforms[v]
+	}
+
+	sort.Slice(platforms, func(i, j int)bool {
+		return platforms[i].Order < platforms[j].Order
+	})
+
+	if len(order.PlatformId) > 0 {
+		platformId = order.PlatformId
+	} else {
+		// default platform if not specified before
+		platformId = platforms[0].Id
+	}
 
 	defaultCurrency := s.cfg.AccountingCurrency
 	zap.S().Infow(fmt.Sprintf(logInfo, "accountingCurrency"), "currency", defaultCurrency, "order.Uuid", order.Uuid)
@@ -2889,7 +2959,7 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 	defaultPriceGroup, err := s.priceGroup.GetByRegion(defaultCurrency)
 	if err != nil {
 		zap.S().Errorw("Price group not found", "currency", currency)
-		return orderErrorUnknown
+		return nil, orderErrorUnknown
 	}
 
 	currency = defaultCurrency
@@ -2899,31 +2969,31 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 		countryData, err := s.country.GetByIsoCodeA2(country)
 		if err != nil {
 			zap.S().Errorw("Country not found", "country", country)
-			return orderErrorUnknown
+			return nil, orderErrorUnknown
 		}
 
 		priceGroup, err = s.priceGroup.GetById(countryData.PriceGroupId)
 		if err != nil {
 			zap.S().Errorw("Price group not found", "countryData", countryData)
-			return orderErrorUnknown
+			return nil, orderErrorUnknown
 		}
 
 		currency = priceGroup.Currency
 	}
 
-	zap.S().Infow(fmt.Sprintf(logInfo, "try to use detected currency for order amount"), "currency", currency, "order.Uuid", order.Uuid)
+	zap.S().Infow(fmt.Sprintf(logInfo, "try to use detected currency for order amount"), "currency", currency, "order.Uuid", order.Uuid, "platform_id", platformId, "order.PlatformId", order.PlatformId)
 	// try to get order Amount in requested currency
 	amount, err := s.GetOrderKeyProductsAmount(orderProducts, priceGroup, platformId)
 	if err != nil {
 		if priceGroup.Id == defaultPriceGroup.Id {
-			return err
+			return nil, err
 		}
 		// try to get order Amount in default currency, if it differs from requested one
 		amount, err = s.GetOrderKeyProductsAmount(orderProducts, defaultPriceGroup, platformId)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		zap.S().Infow(fmt.Sprintf(logInfo, "try to use default currency for order amount"), "currency", defaultCurrency, "order.Uuid", order.Uuid)
+		zap.S().Infow(fmt.Sprintf(logInfo, "try to use default currency for order amount"), "currency", defaultCurrency, "order.Uuid", order.Uuid, "platform_id", platformId)
 
 		priceGroup = defaultPriceGroup
 		// converting Amount from default currency to requested
@@ -2945,7 +3015,7 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
 			)
 
-			return orderErrorConvertionCurrency
+			return nil, orderErrorConvertionCurrency
 		}
 		amount = rsp.ExchangedAmount
 	}
@@ -2958,7 +3028,7 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 
 	items, err := s.GetOrderKeyProductsItems(orderProducts, locale, priceGroup, platformId)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	merAccAmount := amount
@@ -2981,7 +3051,7 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
 			)
 
-			return orderErrorConvertionCurrency
+			return nil, orderErrorConvertionCurrency
 		}
 		merAccAmount = rsp.ExchangedAmount
 	}
@@ -2994,7 +3064,7 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 	order.TotalPaymentAmount = amount
 	order.Items = items
 
-	return nil
+	return platforms, nil
 }
 
 func (s *Service) ProcessOrderProducts(order *billing.Order) error {
@@ -3500,7 +3570,7 @@ func (s *Service) PaymentFormPlatformChanged(ctx context.Context, req *grpc.Paym
 	if order.ProductType == billing.OrderType_product {
 		err = s.ProcessOrderProducts(order)
 	} else if order.ProductType == billing.OrderType_key {
-		err = s.ProcessOrderKeyProducts(ctx, order)
+		_, err = s.ProcessOrderKeyProducts(ctx, order)
 	}
 
 	if err != nil {
@@ -3604,7 +3674,7 @@ func (s *Service) OrderReceipt(
 
 	items := make([]*billing.OrderReceiptItem, len(order.Items))
 
-	for _, item := range order.Items {
+	for i, item := range order.Items {
 		price, err := s.formatter.FormatCurrency("en", item.Amount, item.Currency)
 
 		if err != nil {
@@ -3621,7 +3691,7 @@ func (s *Service) OrderReceipt(
 			return nil
 		}
 
-		items = append(items, &billing.OrderReceiptItem{Name: item.Name, Price: price})
+		items[i] = &billing.OrderReceiptItem{Name: item.Name, Price: price}
 	}
 
 	receipt := &billing.OrderReceipt{
@@ -3657,4 +3727,21 @@ func (h *OrderRepository) GetByUuid(uuid string) (*billing.Order, error) {
 	}
 
 	return order, nil
+}
+
+func intersect(a []string, b []string) []string {
+	set := make([]string, 0)
+	hash := make(map[string]bool)
+
+	for _, v := range a {
+		hash[v] = true
+	}
+
+	for _, v := range b {
+		if _, found := hash[v]; found {
+			set = append(set, v)
+		}
+	}
+
+	return set
 }

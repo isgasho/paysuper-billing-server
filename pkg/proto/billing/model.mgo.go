@@ -700,7 +700,9 @@ type MgoOrderViewPrivate struct {
 	RefundFeesTotal                            *OrderViewMoney        `bson:"refund_fees_total" json:"refund_fees_total"`
 	RefundFeesTotalLocal                       *OrderViewMoney        `bson:"refund_fees_total_local" json:"refund_fees_total_local"`
 	PaysuperRefundTotalProfit                  *OrderViewMoney        `bson:"paysuper_refund_total_profit" json:"paysuper_refund_total_profit"`
+	Issuer                                     *OrderIssuer           `bson:"issuer"`
 	Items                                      []*MgoOrderItem        `bson:"items"`
+	MerchantPayoutCurrency                     string                 `bson:"merchant_payout_currency"`
 }
 
 type MgoOrderViewPublic struct {
@@ -741,7 +743,9 @@ type MgoOrderViewPublic struct {
 	RefundReverseRevenue                    *OrderViewMoney        `bson:"refund_reverse_revenue"`
 	RefundFeesTotal                         *OrderViewMoney        `bson:"refund_fees_total"`
 	RefundFeesTotalLocal                    *OrderViewMoney        `bson:"refund_fees_total_local"`
+	Issuer                                  *OrderIssuer           `bson:"issuer"`
 	Items                                   []*MgoOrderItem        `bson:"items"`
+	MerchantPayoutCurrency                  string                 `bson:"merchant_payout_currency"`
 }
 
 type MgoMerchantTariffRates struct {
@@ -3903,6 +3907,8 @@ func (m *OrderViewPrivate) SetBSON(raw bson.Raw) error {
 	m.User = decoded.User
 	m.BillingAddress = decoded.BillingAddress
 	m.Type = decoded.Type
+	m.Issuer = decoded.Issuer
+	m.MerchantPayoutCurrency = decoded.MerchantPayoutCurrency
 	m.IsVatDeduction = decoded.IsVatDeduction
 
 	m.PaymentGrossRevenueLocal = getOrderViewMoney(decoded.PaymentGrossRevenueLocal)
@@ -3995,6 +4001,8 @@ func (m *OrderViewPublic) SetBSON(raw bson.Raw) error {
 	m.User = decoded.User
 	m.BillingAddress = decoded.BillingAddress
 	m.Type = decoded.Type
+	m.Issuer = decoded.Issuer
+	m.MerchantPayoutCurrency = decoded.MerchantPayoutCurrency
 	m.IsVatDeduction = decoded.IsVatDeduction
 
 	m.GrossRevenue = getOrderViewMoney(decoded.GrossRevenue)
