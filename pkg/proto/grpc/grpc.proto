@@ -203,6 +203,9 @@ service BillingService {
     rpc AcceptAdminInvite(AcceptAdminInviteRequest) returns (AcceptAdminInviteResponse) {}
     rpc CheckInviteToken(CheckInviteTokenRequest) returns (CheckInviteTokenResponse) {}
     rpc GetMerchantsForUser(GetMerchantsForUserRequest) returns (GetMerchantsForUserResponse) {}
+
+    rpc ChangeRoleForMerchantUser(ChangeRoleForMerchantUserRequest) returns (EmptyResponseWithStatus) {}
+    rpc ChangeRoleForAdminUser(ChangeRoleForAdminUserRequest) returns (EmptyResponseWithStatus) {}
 }
 
 message EmptyRequest {
@@ -2418,4 +2421,21 @@ message GetMerchantsForUserResponse {
 message MerchantForUserInfo {
     string id = 1;
     string name = 2;
+}
+
+message ChangeRoleForMerchantUserRequest {
+    //@inject_tag: validate:"required"
+    string merchant_id = 1;
+    //@inject_tag: validate:"required"
+    string user_id = 2;
+    //@inject_tag: validate:"required"
+    string role = 3;
+
+    string project_id = 4;
+}
+
+message ChangeRoleForAdminUserRequest {
+    string user_id = 1;
+
+    string role = 2;
 }
