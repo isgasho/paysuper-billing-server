@@ -2119,3 +2119,10 @@ message UserRole {
     // @inject_tag: json:"updated_at"
     google.protobuf.Timestamp updated_at = 6;
 }
+
+message RoleListItem {
+    //@inject_tag: json:"id"
+    string id = 1;
+    //@inject_tag: json:"name"
+    string name = 2;
+}

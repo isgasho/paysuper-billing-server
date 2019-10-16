@@ -343,6 +343,66 @@ func (_m *BillingService) ChangeProject(ctx context.Context, in *billing.Project
 	return r0, r1
 }
 
+// ChangeRoleForAdminUser provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) ChangeRoleForAdminUser(ctx context.Context, in *grpc.ChangeRoleForAdminUserRequest, opts ...client.CallOption) (*grpc.EmptyResponseWithStatus, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *grpc.EmptyResponseWithStatus
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.ChangeRoleForAdminUserRequest, ...client.CallOption) *grpc.EmptyResponseWithStatus); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*grpc.EmptyResponseWithStatus)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.ChangeRoleForAdminUserRequest, ...client.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ChangeRoleForMerchantUser provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) ChangeRoleForMerchantUser(ctx context.Context, in *grpc.ChangeRoleForMerchantUserRequest, opts ...client.CallOption) (*grpc.EmptyResponseWithStatus, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *grpc.EmptyResponseWithStatus
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.ChangeRoleForMerchantUserRequest, ...client.CallOption) *grpc.EmptyResponseWithStatus); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*grpc.EmptyResponseWithStatus)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.ChangeRoleForMerchantUserRequest, ...client.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // ChangeRoyaltyReport provides a mock function with given fields: ctx, in, opts
 func (_m *BillingService) ChangeRoyaltyReport(ctx context.Context, in *grpc.ChangeRoyaltyReportRequest, opts ...client.CallOption) (*grpc.ResponseError, error) {
 	_va := make([]interface{}, len(opts))
@@ -2795,6 +2855,36 @@ func (_m *BillingService) GetRefund(ctx context.Context, in *grpc.GetRefundReque
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *grpc.GetRefundRequest, ...client.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetRoleList provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) GetRoleList(ctx context.Context, in *grpc.GetRoleListRequest, opts ...client.CallOption) (*grpc.GetRoleListResponse, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *grpc.GetRoleListResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.GetRoleListRequest, ...client.CallOption) *grpc.GetRoleListResponse); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*grpc.GetRoleListResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.GetRoleListRequest, ...client.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)
