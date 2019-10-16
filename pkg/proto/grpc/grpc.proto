@@ -206,6 +206,8 @@ service BillingService {
     rpc ChangeRoleForMerchantUser(ChangeRoleForMerchantUserRequest) returns (EmptyResponseWithStatus) {}
     rpc ChangeRoleForAdminUser(ChangeRoleForAdminUserRequest) returns (EmptyResponseWithStatus) {}
     rpc GetRoleList(GetRoleListRequest) returns (GetRoleListResponse) {}
+    rpc DeleteMerchantUser(DeleteMerchantUserRequest) returns (EmptyResponseWithStatus) {}
+    rpc DeleteAdminUser(DeleteAdminUserRequest) returns (EmptyResponseWithStatus) {}
 }
 
 message EmptyRequest {
@@ -2281,7 +2283,7 @@ message GetMerchantUsersResponse {
 
 message InviteUserMerchantRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24"
-    string user_id = 1;
+    string performer_id = 1;
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string merchant_id = 2;
     //@inject_tag: validate:"required,email"
@@ -2298,7 +2300,7 @@ message InviteUserMerchantResponse {
 
 message InviteUserAdminRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24"
-    string user_id = 1;
+    string performer_id = 1;
     //@inject_tag: validate:"required,email"
     string email = 2;
     //@inject_tag: validate:"required"
@@ -2313,7 +2315,7 @@ message InviteUserAdminResponse {
 
 message ResendInviteMerchantRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24"
-    string user_id = 1;
+    string performer_id = 1;
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string merchant_id = 2;
     //@inject_tag: validate:"required,hexadecimal,len=24"
@@ -2322,7 +2324,7 @@ message ResendInviteMerchantRequest {
 
 message ResendInviteAdminRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24"
-    string user_id = 1;
+    string performer_id = 1;
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string role_id = 2;
 }
@@ -2406,18 +2408,22 @@ message MerchantForUserInfo {
 
 message ChangeRoleForMerchantUserRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24"
-    string merchant_id = 1;
+    string role_id = 1;
     //@inject_tag: validate:"required,hexadecimal,len=24"
-    string user_id = 2;
+    string merchant_id = 2;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string performer_id = 3;
     //@inject_tag: validate:"required"
-    string role = 3;
+    string role = 4;
 }
 
 message ChangeRoleForAdminUserRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24"
-    string user_id = 1;
+    string role_id = 1;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string performer_id = 2;
     //@inject_tag: validate:"required"
-    string role = 2;
+    string role = 3;
 }
 
 message GetRoleListRequest {
@@ -2427,4 +2433,20 @@ message GetRoleListRequest {
 
 message GetRoleListResponse {
     repeated billing.RoleListItem items = 1;
+}
+
+message DeleteAdminUserRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string role_id = 1;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string performer_id = 2;
+}
+
+message DeleteMerchantUserRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string role_id = 1;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 2;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string performer_id = 3;
 }

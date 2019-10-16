@@ -7,7 +7,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
-	casbinProto "github.com/paysuper/casbin-server/internal/generated/api/proto/casbinpb"
+	casbinProto "github.com/paysuper/casbin-server/pkg/generated/api/proto/casbinpb"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -40,21 +40,23 @@ const (
 )
 
 var (
-	usersDbInternalError           = newBillingServerErrorMsg("uu000001", "unknown database error")
-	errorUserAlreadyExist          = newBillingServerErrorMsg("uu000002", "user already exist")
-	errorUserUnableToAdd           = newBillingServerErrorMsg("uu000003", "unable to add user")
-	errorUserNotFound              = newBillingServerErrorMsg("uu000004", "user not found")
-	errorUserInviteAlreadyAccepted = newBillingServerErrorMsg("uu000005", "user already accepted invite")
-	errorUserMerchantNotFound      = newBillingServerErrorMsg("uu000006", "merchant not found")
-	errorUserUnableToSendInvite    = newBillingServerErrorMsg("uu000007", "unable to send invite email")
-	errorUserNoHavePermission      = newBillingServerErrorMsg("uu000008", "user not have permission to invite users")
-	errorUserUnableToCreateToken   = newBillingServerErrorMsg("uu000009", "unable to create invite token")
-	errorUserInvalidToken          = newBillingServerErrorMsg("uu000010", "invalid token string")
-	errorUserInvalidInviteEmail    = newBillingServerErrorMsg("uu000011", "email in request and token are not equal")
-	errorUserAlreadyHasRole        = newBillingServerErrorMsg("uu000012", "user already has role")
-	errorUserUnableToSave          = newBillingServerErrorMsg("uu000013", "can't update user in db")
-	errorUserUnableToAddToCasbin   = newBillingServerErrorMsg("uu000014", "unable to add user to the casbin server")
-	errorUserUnsupportedRoleType   = newBillingServerErrorMsg("uu000015", "unsupported role type")
+	usersDbInternalError              = newBillingServerErrorMsg("uu000001", "unknown database error")
+	errorUserAlreadyExist             = newBillingServerErrorMsg("uu000002", "user already exist")
+	errorUserUnableToAdd              = newBillingServerErrorMsg("uu000003", "unable to add user")
+	errorUserNotFound                 = newBillingServerErrorMsg("uu000004", "user not found")
+	errorUserInviteAlreadyAccepted    = newBillingServerErrorMsg("uu000005", "user already accepted invite")
+	errorUserMerchantNotFound         = newBillingServerErrorMsg("uu000006", "merchant not found")
+	errorUserUnableToSendInvite       = newBillingServerErrorMsg("uu000007", "unable to send invite email")
+	errorUserNoHavePermission         = newBillingServerErrorMsg("uu000008", "user not have permission to invite users")
+	errorUserUnableToCreateToken      = newBillingServerErrorMsg("uu000009", "unable to create invite token")
+	errorUserInvalidToken             = newBillingServerErrorMsg("uu000010", "invalid token string")
+	errorUserInvalidInviteEmail       = newBillingServerErrorMsg("uu000011", "email in request and token are not equal")
+	errorUserAlreadyHasRole           = newBillingServerErrorMsg("uu000012", "user already has role")
+	errorUserUnableToSave             = newBillingServerErrorMsg("uu000013", "can't update user in db")
+	errorUserUnableToAddToCasbin      = newBillingServerErrorMsg("uu000014", "unable to add user to the casbin server")
+	errorUserUnsupportedRoleType      = newBillingServerErrorMsg("uu000015", "unsupported role type")
+	errorUserUnableToDelete           = newBillingServerErrorMsg("uu000016", "unable to delete user")
+	errorUserUnableToDeleteFromCasbin = newBillingServerErrorMsg("uu000017", "unable to delete user from the casbin server")
 
 	merchantUserRoles = map[string][]*billing.RoleListItem{
 		pkg.RoleTypeMerchant: {
@@ -169,7 +171,7 @@ func (s *Service) InviteUserMerchant(
 	req *grpc.InviteUserMerchantRequest,
 	res *grpc.InviteUserMerchantResponse,
 ) error {
-	owner, err := s.userRoleRepository.GetMerchantUserByUserId(req.MerchantId, req.UserId)
+	owner, err := s.userRoleRepository.GetMerchantUserByUserId(req.MerchantId, req.PerformerId)
 
 	if err != nil || !owner.IsOwner() {
 		zap.L().Error(errorUserNoHavePermission.Message, zap.Error(err), zap.Any("req", req))
@@ -261,7 +263,7 @@ func (s *Service) InviteUserAdmin(
 	req *grpc.InviteUserAdminRequest,
 	res *grpc.InviteUserAdminResponse,
 ) error {
-	owner, err := s.userRoleRepository.GetAdminUserByUserId(req.UserId)
+	owner, err := s.userRoleRepository.GetAdminUserByUserId(req.PerformerId)
 
 	if err != nil || !owner.IsAdmin() {
 		zap.L().Error(errorUserNoHavePermission.Message, zap.Error(err), zap.Any("req", req))
@@ -342,7 +344,7 @@ func (s *Service) ResendInviteMerchant(
 	req *grpc.ResendInviteMerchantRequest,
 	res *grpc.EmptyResponseWithStatus,
 ) error {
-	owner, err := s.userRoleRepository.GetMerchantUserByUserId(req.MerchantId, req.UserId)
+	owner, err := s.userRoleRepository.GetMerchantUserByUserId(req.MerchantId, req.PerformerId)
 
 	if err != nil || !owner.IsOwner() {
 		zap.L().Error(errorUserNoHavePermission.Message, zap.Error(err), zap.Any("req", req))
@@ -416,7 +418,7 @@ func (s *Service) ResendInviteAdmin(
 	req *grpc.ResendInviteAdminRequest,
 	res *grpc.EmptyResponseWithStatus,
 ) error {
-	owner, err := s.userRoleRepository.GetAdminUserByUserId(req.UserId)
+	owner, err := s.userRoleRepository.GetAdminUserByUserId(req.PerformerId)
 
 	if err != nil || owner.IsAdmin() {
 		zap.L().Error(errorUserNoHavePermission.Message, zap.Error(err), zap.Any("req", req))
@@ -539,8 +541,14 @@ func (s *Service) AcceptInvite(
 		return nil
 	}
 
+	casbinUserId := user.User.UserId
+
+	if claims[claimType] == pkg.RoleTypeMerchant {
+		casbinUserId = fmt.Sprintf(casbinMerchantUserMask, user.MerchantId, user.User.UserId)
+	}
+
 	_, err = s.casbinService.AddRoleForUser(ctx, &casbinProto.UserRoleRequest{
-		User: fmt.Sprintf(casbinMerchantUserMask, user.MerchantId, user.User.UserId),
+		User: casbinUserId,
 		Role: user.Role,
 	})
 
@@ -680,10 +688,20 @@ func (s *Service) sendInviteEmail(receiverEmail, senderEmail, senderFirstName, s
 }
 
 func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.ChangeRoleForMerchantUserRequest, res *grpc.EmptyResponseWithStatus) error {
-	user, err := s.userRoleRepository.GetMerchantUserByUserId(req.MerchantId, req.UserId)
+	owner, err := s.userRoleRepository.GetMerchantUserByUserId(req.MerchantId, req.PerformerId)
+
+	if err != nil || !owner.IsOwner() {
+		zap.L().Error(errorUserNoHavePermission.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserNoHavePermission
+
+		return nil
+	}
+
+	user, err := s.userRoleRepository.GetMerchantUserById(req.RoleId)
 
 	if err != nil {
-		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
+		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserNotFound
 
@@ -700,6 +718,7 @@ func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.Chang
 
 	user.Role = req.Role
 	err = s.userRoleRepository.UpdateMerchantUser(user)
+
 	if err != nil {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusSystemError
@@ -708,16 +727,42 @@ func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.Chang
 		return nil
 	}
 
+	casbinUserId := fmt.Sprintf(casbinMerchantUserMask, user.MerchantId, user.User.UserId)
+
+	_, err = s.casbinService.DeleteUser(ctx, &casbinProto.UserRoleRequest{User: casbinUserId})
+
+	if err != nil {
+		zap.L().Error(errorUserUnableToDeleteFromCasbin.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserUnableToDeleteFromCasbin
+		return nil
+	}
+
+	_, err = s.casbinService.AddRoleForUser(ctx, &casbinProto.UserRoleRequest{
+		User: casbinUserId,
+		Role: req.Role,
+	})
+
 	res.Status = pkg.ResponseStatusOk
 
 	return nil
 }
 
 func (s *Service) ChangeRoleForAdminUser(ctx context.Context, req *grpc.ChangeRoleForAdminUserRequest, res *grpc.EmptyResponseWithStatus) error {
-	user, err := s.userRoleRepository.GetAdminUserByUserId(req.UserId)
+	owner, err := s.userRoleRepository.GetAdminUserByUserId(req.PerformerId)
+
+	if err != nil || !owner.IsAdmin() {
+		zap.L().Error(errorUserNoHavePermission.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserNoHavePermission
+
+		return nil
+	}
+
+	user, err := s.userRoleRepository.GetAdminUserById(req.RoleId)
 
 	if err != nil {
-		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
+		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserNotFound
 
@@ -734,12 +779,34 @@ func (s *Service) ChangeRoleForAdminUser(ctx context.Context, req *grpc.ChangeRo
 
 	user.Role = req.Role
 	err = s.userRoleRepository.UpdateAdminUser(user)
+
 	if err != nil {
 		zap.L().Error(errorUserUnableToSave.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusSystemError
 		res.Message = errorUserUnableToSave
 		res.Message.Details = err.Error()
 
+		return nil
+	}
+
+	_, err = s.casbinService.DeleteUser(ctx, &casbinProto.UserRoleRequest{User: user.User.UserId})
+
+	if err != nil {
+		zap.L().Error(errorUserUnableToDeleteFromCasbin.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserUnableToDeleteFromCasbin
+		return nil
+	}
+
+	_, err = s.casbinService.AddRoleForUser(ctx, &casbinProto.UserRoleRequest{
+		User: user.User.UserId,
+		Role: req.Role,
+	})
+
+	if err != nil {
+		zap.L().Error(errorUserUnableToDeleteFromCasbin.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserUnableToDeleteFromCasbin
 		return nil
 	}
 
@@ -757,6 +824,102 @@ func (s *Service) GetRoleList(ctx context.Context, req *grpc.GetRoleListRequest,
 	}
 
 	res.Items = list
+
+	return nil
+}
+
+func (s *Service) DeleteMerchantUser(
+	ctx context.Context,
+	req *grpc.DeleteMerchantUserRequest,
+	res *grpc.EmptyResponseWithStatus,
+) error {
+	owner, err := s.userRoleRepository.GetMerchantUserByUserId(req.MerchantId, req.PerformerId)
+
+	if err != nil || !owner.IsOwner() {
+		zap.L().Error(errorUserNoHavePermission.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserNoHavePermission
+
+		return nil
+	}
+
+	user, err := s.userRoleRepository.GetMerchantUserById(req.RoleId)
+
+	if err != nil {
+		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserNotFound
+
+		return nil
+	}
+
+	if err = s.userRoleRepository.DeleteMerchantUser(user); err != nil {
+		zap.L().Error(errorUserUnableToDelete.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserUnableToDelete
+
+		return nil
+	}
+
+	_, err = s.casbinService.DeleteUser(ctx, &casbinProto.UserRoleRequest{
+		User: fmt.Sprintf(casbinMerchantUserMask, user.MerchantId, user.User.UserId),
+	})
+
+	if err != nil {
+		zap.L().Error(errorUserUnableToDeleteFromCasbin.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserUnableToDeleteFromCasbin
+		return nil
+	}
+
+	res.Status = pkg.ResponseStatusOk
+
+	return nil
+}
+
+func (s *Service) DeleteAdminUser(
+	ctx context.Context,
+	req *grpc.DeleteAdminUserRequest,
+	res *grpc.EmptyResponseWithStatus,
+) error {
+	owner, err := s.userRoleRepository.GetAdminUserByUserId(req.PerformerId)
+
+	if err != nil || !owner.IsAdmin() {
+		zap.L().Error(errorUserNoHavePermission.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserNoHavePermission
+
+		return nil
+	}
+
+	user, err := s.userRoleRepository.GetAdminUserById(req.RoleId)
+
+	if err != nil {
+		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserNotFound
+
+		return nil
+	}
+
+	if err = s.userRoleRepository.DeleteAdminUser(user); err != nil {
+		zap.L().Error(errorUserUnableToDelete.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserUnableToDelete
+
+		return nil
+	}
+
+	_, err = s.casbinService.DeleteUser(ctx, &casbinProto.UserRoleRequest{User: user.User.UserId})
+
+	if err != nil {
+		zap.L().Error(errorUserUnableToDeleteFromCasbin.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserUnableToDeleteFromCasbin
+		return nil
+	}
+
+	res.Status = pkg.ResponseStatusOk
 
 	return nil
 }

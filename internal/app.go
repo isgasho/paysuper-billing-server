@@ -19,7 +19,7 @@ import (
 	"github.com/micro/go-micro/config/source"
 	goConfigCli "github.com/micro/go-micro/config/source/cli"
 	"github.com/micro/go-plugins/client/selector/static"
-	casbinProto "github.com/paysuper/casbin-server/internal/generated/api/proto/casbinpb"
+	casbinProto "github.com/paysuper/casbin-server/pkg/generated/api/proto/casbinpb"
 	documentSignerConst "github.com/paysuper/document-signer/pkg/constant"
 	documentSignerProto "github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"

@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"github.com/globalsign/mgo/bson"
-	casbinMocks "github.com/paysuper/casbin-server/internal/mocks"
+	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
