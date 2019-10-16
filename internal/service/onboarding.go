@@ -1444,6 +1444,7 @@ func (s *Service) generateMerchantAgreement(ctx context.Context, merchant *billi
 		Params:           b,
 		SendNotification: false,
 	}
+	zap.L().Info(merchant.Id, zap.ByteString("payload", b))
 	rsp, err := s.reporterService.CreateFile(ctx, req)
 
 	if err != nil {
