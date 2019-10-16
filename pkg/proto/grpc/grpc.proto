@@ -206,6 +206,7 @@ service BillingService {
 
     rpc ChangeRoleForMerchantUser(ChangeRoleForMerchantUserRequest) returns (EmptyResponseWithStatus) {}
     rpc ChangeRoleForAdminUser(ChangeRoleForAdminUserRequest) returns (EmptyResponseWithStatus) {}
+    rpc GetRoleList(GetRoleListRequest) returns (GetRoleListResponse) {}
 }
 
 message EmptyRequest {
@@ -2424,18 +2425,26 @@ message MerchantForUserInfo {
 }
 
 message ChangeRoleForMerchantUserRequest {
-    //@inject_tag: validate:"required"
+    //@inject_tag: validate:"required,hexadecimal,len=24"
     string merchant_id = 1;
-    //@inject_tag: validate:"required"
+    //@inject_tag: validate:"required,hexadecimal,len=24"
     string user_id = 2;
     //@inject_tag: validate:"required"
     string role = 3;
-
-    string project_id = 4;
 }
 
 message ChangeRoleForAdminUserRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
     string user_id = 1;
-
+    //@inject_tag: validate:"required"
     string role = 2;
+}
+
+message GetRoleListRequest {
+    //@inject_tag: validate:"required,oneof=merchant system"
+    string type = 1;
+}
+
+message GetRoleListResponse {
+    repeated billing.RoleListItem items = 1;
 }

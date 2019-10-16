@@ -26,7 +26,20 @@ const (
 	claimExpire = "exp"
 
 	typeMerchant = "merchant"
-	typeAdmin    = "admin"
+	typeSystem   = "system"
+
+	casbinMerchantUserMask = "%s_%s"
+
+	roleNameMerchantOwner      = "Owner"
+	roleNameMerchantDeveloper  = "Developer"
+	roleNameMerchantAccounting = "Accounting"
+	roleNameMerchantSupport    = "Support"
+	roleNameMerchantViewOnly   = "View only"
+	roleNameSystemAdmin        = "Admin"
+	roleNameSystemRiskManager  = "Risk manager"
+	roleNameSystemFinancial    = "Financial"
+	roleNameSystemSupport      = "Support"
+	roleNameSystemViewOnly     = "View only"
 )
 
 var (
@@ -42,7 +55,26 @@ var (
 	errorUserInvalidToken          = newBillingServerErrorMsg("uu000010", "invalid token string")
 	errorUserInvalidInviteEmail    = newBillingServerErrorMsg("uu000011", "email in request and token are not equal")
 	errorUserAlreadyHasRole        = newBillingServerErrorMsg("uu000012", "user already has role")
-	errorUserUnableToSave        = newBillingServerErrorMsg("uu000013", "can't update user in db")
+	errorUserUnableToSave          = newBillingServerErrorMsg("uu000013", "can't update user in db")
+	errorUserUnableToAddToCasbin   = newBillingServerErrorMsg("uu000014", "unable to add user to the casbin server")
+
+	merchantUserRoles = map[string][]*billing.RoleListItem{
+		typeMerchant: {
+			{Id: pkg.RoleMerchantOwner, Name: roleNameMerchantOwner},
+			{Id: pkg.RoleMerchantOwner, Name: roleNameMerchantDeveloper},
+			{Id: pkg.RoleMerchantOwner, Name: roleNameMerchantAccounting},
+			{Id: pkg.RoleMerchantOwner, Name: roleNameMerchantSupport},
+			{Id: pkg.RoleMerchantOwner, Name: roleNameMerchantSupport},
+			{Id: pkg.RoleMerchantOwner, Name: roleNameMerchantViewOnly},
+		},
+		typeSystem: {
+			{Id: pkg.RoleMerchantOwner, Name: roleNameSystemAdmin},
+			{Id: pkg.RoleMerchantOwner, Name: roleNameSystemRiskManager},
+			{Id: pkg.RoleMerchantOwner, Name: roleNameSystemFinancial},
+			{Id: pkg.RoleMerchantOwner, Name: roleNameSystemSupport},
+			{Id: pkg.RoleMerchantOwner, Name: roleNameSystemViewOnly},
+		},
+	}
 )
 
 func (s *Service) GetMerchantUsers(ctx context.Context, req *grpc.GetMerchantUsersRequest, res *grpc.GetMerchantUsersResponse) error {
@@ -170,9 +202,8 @@ func (s *Service) InviteUserMerchant(
 	}
 
 	role := &billing.UserRole{
-		Id:          bson.NewObjectId().Hex(),
-		MerchantId:  req.MerchantId,
-		ProjectRole: req.ProjectRole,
+		Id:         bson.NewObjectId().Hex(),
+		MerchantId: req.MerchantId,
 		User: &billing.UserRoleProfile{
 			Email:  req.Email,
 			Status: pkg.UserRoleStatusInvited,
@@ -271,7 +302,7 @@ func (s *Service) InviteUserAdmin(
 
 	expire := time.Now().Add(time.Hour * time.Duration(s.cfg.UserInviteTokenTimeout)).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		claimType:   typeAdmin,
+		claimType:   typeSystem,
 		claimEmail:  req.Email,
 		claimRoleId: role.Id,
 		claimExpire: expire,
@@ -409,7 +440,7 @@ func (s *Service) ResendInviteAdmin(
 
 	expire := time.Now().Add(time.Hour * time.Duration(s.cfg.UserInviteTokenTimeout)).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		claimType:   typeAdmin,
+		claimType:   typeSystem,
 		claimEmail:  role.User.Email,
 		claimRoleId: role.Id,
 		claimExpire: expire,
@@ -488,7 +519,17 @@ func (s *Service) AcceptMerchantInvite(
 		return nil
 	}
 
-	// TODO: Add user to casbin
+	_, err = s.casbinService.AddRoleForUser(ctx, &casbinProto.UserRoleRequest{
+		User: fmt.Sprintf(casbinMerchantUserMask, user.MerchantId, user.User.UserId),
+		Role: user.Role,
+	})
+
+	if err != nil {
+		zap.L().Error(errorUserUnableToAddToCasbin.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserUnableToAddToCasbin
+		return nil
+	}
 
 	res.Status = pkg.ResponseStatusOk
 	res.Role = user
@@ -539,7 +580,17 @@ func (s *Service) AcceptAdminInvite(
 		return nil
 	}
 
-	// TODO: Add user to casbin
+	_, err = s.casbinService.AddRoleForUser(ctx, &casbinProto.UserRoleRequest{
+		User: user.User.UserId,
+		Role: user.Role,
+	})
+
+	if err != nil {
+		zap.L().Error(errorUserUnableToAddToCasbin.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserUnableToAddToCasbin
+		return nil
+	}
 
 	res.Status = pkg.ResponseStatusOk
 	res.Role = user
@@ -734,6 +785,19 @@ func (s *Service) ChangeRoleForAdminUser(ctx context.Context, req *grpc.ChangeRo
 	}
 
 	res.Status = pkg.ResponseStatusOk
+
+	return nil
+}
+
+func (s *Service) GetRoleList(ctx context.Context, req *grpc.GetRoleListRequest, res *grpc.GetRoleListResponse) error {
+	list, ok := merchantUserRoles[req.Type]
+
+	if !ok {
+		zap.L().Error("unsupported user type", zap.Any("req", req))
+		return nil
+	}
+
+	res.Items = list
 
 	return nil
 }
