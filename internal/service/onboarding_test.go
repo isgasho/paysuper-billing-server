@@ -7,7 +7,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
-	casbinMocks "github.com/paysuper/casbin-server/internal/mocks"
+	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"

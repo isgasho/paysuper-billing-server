@@ -9,7 +9,7 @@ import (
 	"github.com/ProtocolONE/geoip-service/pkg/proto"
 	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
-	casbinProto "github.com/paysuper/casbin-server/internal/generated/api/proto/casbinpb"
+	casbinProto "github.com/paysuper/casbin-server/pkg/generated/api/proto/casbinpb"
 	documentSignerProto "github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/pkg"

@@ -9,7 +9,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/uuid"
-	casbinMocks "github.com/paysuper/casbin-server/internal/mocks"
+	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"

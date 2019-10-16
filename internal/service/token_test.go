@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
-	casbinMocks "github.com/paysuper/casbin-server/internal/mocks"
+	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
