@@ -38,6 +38,34 @@ func (_m *UserRoleServiceInterface) AddMerchantUser(_a0 *billing.UserRole) error
 	return r0
 }
 
+// DeleteAdminUser provides a mock function with given fields: _a0
+func (_m *UserRoleServiceInterface) DeleteAdminUser(_a0 *billing.UserRole) error {
+	ret := _m.Called(_a0)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*billing.UserRole) error); ok {
+		r0 = rf(_a0)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// DeleteMerchantUser provides a mock function with given fields: _a0
+func (_m *UserRoleServiceInterface) DeleteMerchantUser(_a0 *billing.UserRole) error {
+	ret := _m.Called(_a0)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*billing.UserRole) error); ok {
+		r0 = rf(_a0)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // GetAdminUserByEmail provides a mock function with given fields: _a0
 func (_m *UserRoleServiceInterface) GetAdminUserByEmail(_a0 string) (*billing.UserRole, error) {
 	ret := _m.Called(_a0)

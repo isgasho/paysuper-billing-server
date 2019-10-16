@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"github.com/globalsign/mgo/bson"
-	casbinMocks "github.com/paysuper/casbin-server/internal/mocks"
+	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -65,9 +65,9 @@ func (suite *UsersTestSuite) SetupTest() {
 	user := &billing.UserRoleProfile{UserId: bson.NewObjectId().Hex()}
 	err = repository.AddMerchantUser(&billing.UserRole{
 		MerchantId: suite.merchant.Id,
-		Id: bson.NewObjectId().Hex(),
-		User: user,
-		Role: pkg.RoleMerchantDeveloper,
+		Id:         bson.NewObjectId().Hex(),
+		User:       user,
+		Role:       pkg.RoleMerchantDeveloper,
 	})
 
 	if err != nil {
@@ -77,7 +77,7 @@ func (suite *UsersTestSuite) SetupTest() {
 	suite.user = user
 	suite.adminUser = &billing.UserRoleProfile{UserId: bson.NewObjectId().Hex()}
 	err = repository.AddAdminUser(&billing.UserRole{
-		Id: bson.NewObjectId().Hex(),
+		Id:   bson.NewObjectId().Hex(),
 		User: suite.adminUser,
 		Role: "some_role",
 	})
@@ -186,7 +186,7 @@ func (suite *UsersTestSuite) TestChangeMerchantUserRole_NotFoundError() {
 
 	res := &grpc.EmptyResponseWithStatus{}
 	err := suite.service.ChangeRoleForMerchantUser(context.TODO(), &grpc.ChangeRoleForMerchantUserRequest{
-		Role: "test_role",
+		Role:       "test_role",
 		MerchantId: bson.NewObjectId().Hex(),
 	}, res)
 	shouldBe.NoError(err)
