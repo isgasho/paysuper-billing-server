@@ -29,6 +29,17 @@ const (
 	typeSystem   = "system"
 
 	casbinMerchantUserMask = "%s_%s"
+
+	roleNameMerchantOwner      = "Owner"
+	roleNameMerchantDeveloper  = "Developer"
+	roleNameMerchantAccounting = "Accounting"
+	roleNameMerchantSupport    = "Support"
+	roleNameMerchantViewOnly   = "View only"
+	roleNameSystemAdmin        = "Admin"
+	roleNameSystemRiskManager  = "Risk manager"
+	roleNameSystemFinancial    = "Financial"
+	roleNameSystemSupport      = "Support"
+	roleNameSystemViewOnly     = "View only"
 )
 
 var (
@@ -46,6 +57,24 @@ var (
 	errorUserAlreadyHasRole        = newBillingServerErrorMsg("uu000012", "user already has role")
 	errorUserUnableToSave          = newBillingServerErrorMsg("uu000013", "can't update user in db")
 	errorUserUnableToAddToCasbin   = newBillingServerErrorMsg("uu000014", "unable to add user to the casbin server")
+
+	merchantUserRoles = map[string][]*billing.RoleListItem{
+		typeMerchant: {
+			{Id: pkg.RoleMerchantOwner, Name: roleNameMerchantOwner},
+			{Id: pkg.RoleMerchantOwner, Name: roleNameMerchantDeveloper},
+			{Id: pkg.RoleMerchantOwner, Name: roleNameMerchantAccounting},
+			{Id: pkg.RoleMerchantOwner, Name: roleNameMerchantSupport},
+			{Id: pkg.RoleMerchantOwner, Name: roleNameMerchantSupport},
+			{Id: pkg.RoleMerchantOwner, Name: roleNameMerchantViewOnly},
+		},
+		typeSystem: {
+			{Id: pkg.RoleMerchantOwner, Name: roleNameSystemAdmin},
+			{Id: pkg.RoleMerchantOwner, Name: roleNameSystemRiskManager},
+			{Id: pkg.RoleMerchantOwner, Name: roleNameSystemFinancial},
+			{Id: pkg.RoleMerchantOwner, Name: roleNameSystemSupport},
+			{Id: pkg.RoleMerchantOwner, Name: roleNameSystemViewOnly},
+		},
+	}
 )
 
 func (s *Service) GetMerchantUsers(ctx context.Context, req *grpc.GetMerchantUsersRequest, res *grpc.GetMerchantUsersResponse) error {
@@ -756,6 +785,19 @@ func (s *Service) ChangeRoleForAdminUser(ctx context.Context, req *grpc.ChangeRo
 	}
 
 	res.Status = pkg.ResponseStatusOk
+
+	return nil
+}
+
+func (s *Service) GetRoleList(ctx context.Context, req *grpc.GetRoleListRequest, res *grpc.GetRoleListResponse) error {
+	list, ok := merchantUserRoles[req.Type]
+
+	if !ok {
+		zap.L().Error("unsupported user type", zap.Any("req", req))
+		return nil
+	}
+
+	res.Items = list
 
 	return nil
 }

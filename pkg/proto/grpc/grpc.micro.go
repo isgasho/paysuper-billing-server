@@ -184,6 +184,7 @@ type BillingService interface {
 	CheckInviteToken(ctx context.Context, in *CheckInviteTokenRequest, opts ...client.CallOption) (*CheckInviteTokenResponse, error)
 	ChangeRoleForMerchantUser(ctx context.Context, in *ChangeRoleForMerchantUserRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 	ChangeRoleForAdminUser(ctx context.Context, in *ChangeRoleForAdminUserRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
+	GetRoleList(ctx context.Context, in *GetRoleListRequest, opts ...client.CallOption) (*GetRoleListResponse, error)
 }
 
 type billingService struct {
@@ -1684,6 +1685,16 @@ func (c *billingService) ChangeRoleForAdminUser(ctx context.Context, in *ChangeR
 	return out, nil
 }
 
+func (c *billingService) GetRoleList(ctx context.Context, in *GetRoleListRequest, opts ...client.CallOption) (*GetRoleListResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetRoleList", in)
+	out := new(GetRoleListResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for BillingService service
 
 type BillingServiceHandler interface {
@@ -1835,6 +1846,7 @@ type BillingServiceHandler interface {
 	CheckInviteToken(context.Context, *CheckInviteTokenRequest, *CheckInviteTokenResponse) error
 	ChangeRoleForMerchantUser(context.Context, *ChangeRoleForMerchantUserRequest, *EmptyResponseWithStatus) error
 	ChangeRoleForAdminUser(context.Context, *ChangeRoleForAdminUserRequest, *EmptyResponseWithStatus) error
+	GetRoleList(context.Context, *GetRoleListRequest, *GetRoleListResponse) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -1987,6 +1999,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		CheckInviteToken(ctx context.Context, in *CheckInviteTokenRequest, out *CheckInviteTokenResponse) error
 		ChangeRoleForMerchantUser(ctx context.Context, in *ChangeRoleForMerchantUserRequest, out *EmptyResponseWithStatus) error
 		ChangeRoleForAdminUser(ctx context.Context, in *ChangeRoleForAdminUserRequest, out *EmptyResponseWithStatus) error
+		GetRoleList(ctx context.Context, in *GetRoleListRequest, out *GetRoleListResponse) error
 	}
 	type BillingService struct {
 		billingService
@@ -2589,4 +2602,8 @@ func (h *billingServiceHandler) ChangeRoleForMerchantUser(ctx context.Context, i
 
 func (h *billingServiceHandler) ChangeRoleForAdminUser(ctx context.Context, in *ChangeRoleForAdminUserRequest, out *EmptyResponseWithStatus) error {
 	return h.BillingServiceHandler.ChangeRoleForAdminUser(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetRoleList(ctx context.Context, in *GetRoleListRequest, out *GetRoleListResponse) error {
+	return h.BillingServiceHandler.GetRoleList(ctx, in, out)
 }
