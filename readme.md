@@ -99,8 +99,8 @@ To run application as microservice simply don't pass any flags to command line :
 | HELLO_SIGN_PAYOUTS_TITLE             | Hellosign title for payout invoices                                                                                                 |
 | HELLO_SIGN_PAYOUTS_SUBJECT           | Hellosign subject for payout invoices                                                                                               |
 | HELLO_SIGN_PAYOUTS_MESSAGE           | Hellosign prompt message for payout invoices                                                                                        |
-| USER_INVITE_TOKEN_SECRET             | true     |                                                     | Invite token secret key                                                                                                             |
-| USER_INVITE_TOKEN_TIMEOUT            | -        | 48                                                  | Invite token timeout in hours                                                                                                       |
+| USER_INVITE_TOKEN_SECRET             | Secret key for generation invitation token of user                                                                                  |
+| USER_INVITE_TOKEN_TIMEOUT            | Timeout in hours for lifetime of invitation token of user                                                                           |
 
 ## Architecture
 
