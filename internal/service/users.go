@@ -54,6 +54,7 @@ var (
 	errorUserAlreadyHasRole        = newBillingServerErrorMsg("uu000012", "user already has role")
 	errorUserUnableToSave          = newBillingServerErrorMsg("uu000013", "can't update user in db")
 	errorUserUnableToAddToCasbin   = newBillingServerErrorMsg("uu000014", "unable to add user to the casbin server")
+	errorUserUnsupportedRoleType   = newBillingServerErrorMsg("uu000015", "unsupported role type")
 
 	merchantUserRoles = map[string][]*billing.RoleListItem{
 		pkg.RoleTypeMerchant: {
@@ -473,10 +474,10 @@ func (s *Service) ResendInviteAdmin(
 	return nil
 }
 
-func (s *Service) AcceptMerchantInvite(
+func (s *Service) AcceptInvite(
 	ctx context.Context,
-	req *grpc.AcceptMerchantInviteRequest,
-	res *grpc.AcceptMerchantInviteResponse,
+	req *grpc.AcceptInviteRequest,
+	res *grpc.AcceptInviteResponse,
 ) error {
 	claims, err := s.parseInviteToken(req.Token, req.Email)
 
@@ -488,7 +489,18 @@ func (s *Service) AcceptMerchantInvite(
 		return nil
 	}
 
-	user, err := s.userRoleRepository.GetMerchantUserById(claims[claimRoleId].(string))
+	var user *billing.UserRole
+
+	switch claims[claimType] {
+	case pkg.RoleTypeMerchant:
+		user, err = s.userRoleRepository.GetMerchantUserById(claims[claimRoleId].(string))
+		break
+	case pkg.RoleTypeSystem:
+		user, err = s.userRoleRepository.GetAdminUserById(claims[claimRoleId].(string))
+		break
+	default:
+		err = errors.New(errorUserUnsupportedRoleType.Message)
+	}
 
 	if err != nil {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
@@ -509,7 +521,18 @@ func (s *Service) AcceptMerchantInvite(
 	user.User.FirstName = req.FirstName
 	user.User.LastName = req.LastName
 
-	if err = s.userRoleRepository.UpdateMerchantUser(user); err != nil {
+	switch claims[claimType] {
+	case pkg.RoleTypeMerchant:
+		err = s.userRoleRepository.UpdateMerchantUser(user)
+		break
+	case pkg.RoleTypeSystem:
+		err = s.userRoleRepository.UpdateAdminUser(user)
+		break
+	default:
+		err = errors.New(errorUserUnsupportedRoleType.Message)
+	}
+
+	if err != nil {
 		zap.L().Error(errorUserUnableToAdd.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserUnableToAdd
@@ -518,67 +541,6 @@ func (s *Service) AcceptMerchantInvite(
 
 	_, err = s.casbinService.AddRoleForUser(ctx, &casbinProto.UserRoleRequest{
 		User: fmt.Sprintf(casbinMerchantUserMask, user.MerchantId, user.User.UserId),
-		Role: user.Role,
-	})
-
-	if err != nil {
-		zap.L().Error(errorUserUnableToAddToCasbin.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserUnableToAddToCasbin
-		return nil
-	}
-
-	res.Status = pkg.ResponseStatusOk
-	res.Role = user
-
-	return nil
-}
-
-func (s *Service) AcceptAdminInvite(
-	ctx context.Context,
-	req *grpc.AcceptAdminInviteRequest,
-	res *grpc.AcceptAdminInviteResponse,
-) error {
-	claims, err := s.parseInviteToken(req.Token, req.Email)
-
-	if err != nil {
-		zap.L().Error("Error on parse invite token", zap.Error(err), zap.String("token", req.Token), zap.String("email", req.Email))
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserInvalidToken
-
-		return nil
-	}
-
-	user, err := s.userRoleRepository.GetAdminUserById(claims[claimRoleId].(string))
-
-	if err != nil {
-		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserNotFound
-		return nil
-	}
-
-	if user.User.Status != pkg.UserRoleStatusInvited {
-		zap.L().Error(errorUserInviteAlreadyAccepted.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserInviteAlreadyAccepted
-		return nil
-	}
-
-	user.User.Status = pkg.UserRoleStatusAccepted
-	user.User.UserId = req.UserId
-	user.User.FirstName = req.FirstName
-	user.User.LastName = req.LastName
-
-	if err = s.userRoleRepository.UpdateAdminUser(user); err != nil {
-		zap.L().Error(errorUserUnableToAdd.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserUnableToAdd
-		return nil
-	}
-
-	_, err = s.casbinService.AddRoleForUser(ctx, &casbinProto.UserRoleRequest{
-		User: user.User.UserId,
 		Role: user.Role,
 	})
 

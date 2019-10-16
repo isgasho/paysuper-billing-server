@@ -199,8 +199,7 @@ service BillingService {
     rpc ResendInviteAdmin(ResendInviteAdminRequest) returns (EmptyResponseWithStatus) {}
     rpc GetMerchantUser(GetMerchantUserRequest) returns (GetMerchantUserResponse) {}
     rpc GetAdminUser(GetAdminUserRequest) returns (GetAdminUserResponse) {}
-    rpc AcceptMerchantInvite(AcceptMerchantInviteRequest) returns (AcceptMerchantInviteResponse) {}
-    rpc AcceptAdminInvite(AcceptAdminInviteRequest) returns (AcceptAdminInviteResponse) {}
+    rpc AcceptInvite(AcceptInviteRequest) returns (AcceptInviteResponse) {}
     rpc CheckInviteToken(CheckInviteTokenRequest) returns (CheckInviteTokenResponse) {}
     rpc GetMerchantsForUser(GetMerchantsForUserRequest) returns (GetMerchantsForUserResponse) {}
 
@@ -2364,7 +2363,7 @@ message CheckInviteTokenResponse {
     string role_type = 4;
 }
 
-message AcceptMerchantInviteRequest {
+message AcceptInviteRequest {
     //@inject_tag: validate:"required"
     string token = 1;
     //@inject_tag: validate:"required,hexadecimal,len=24"
@@ -2377,26 +2376,7 @@ message AcceptMerchantInviteRequest {
     string email = 5;
 }
 
-message AcceptMerchantInviteResponse {
-    int32 status = 1;
-    ResponseErrorMessage message = 2;
-    billing.UserRole role = 3;
-}
-
-message AcceptAdminInviteRequest {
-    //@inject_tag: validate:"required"
-    string token = 1;
-    //@inject_tag: validate:"required,hexadecimal,len=24"
-    string user_id = 2;
-    //@inject_tag: validate:"required"
-    string first_name = 3;
-    //@inject_tag: validate:"required"
-    string last_name = 4;
-    //@inject_tag: validate:"required,email"
-    string email = 5;
-}
-
-message AcceptAdminInviteResponse {
+message AcceptInviteResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     billing.UserRole role = 3;
