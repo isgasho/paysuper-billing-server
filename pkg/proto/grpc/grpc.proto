@@ -995,10 +995,12 @@ message Product {
 message ProductPrice {
     // @inject_tag: validate:"required,numeric,gt=0" json:"amount"
     double amount = 1;
-    //@inject_tag: validate:"required,alpha,len=3" json:"currency"
+    //@inject_tag: validate:"required_without=is_virtual_currency,alpha,len=3" json:"currency"
     string currency = 2;
     //@inject_tag: json:"region" validate:"required,region_price"
     string region = 3;
+    //@inject_tag: json:"is_virtual_currency"
+    bool is_virtual_currency = 4;
 }
 
 message ListProductsRequest {
