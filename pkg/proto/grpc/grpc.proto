@@ -433,7 +433,6 @@ message PaymentFormJsonData {
     string currency = 7; // order currency
     PaymentFormJsonDataProject project = 8; // contain data about project
     repeated billing.PaymentFormPaymentMethod payment_methods = 9; // contain data about payment methods
-    string inline_form_redirect_url = 10; // url to redirect user to inline form in PSP side
     string token = 11; // access token to websocket private chanel
     // @inject_tag: json:"user_address_data_required"
     bool user_address_data_required = 12;

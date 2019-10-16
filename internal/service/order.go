@@ -667,7 +667,6 @@ func (s *Service) PaymentFormJsonDataProcess(
 	}
 	rsp.Item.PaymentMethods = pms
 	rsp.Item.Token, _ = token.SignedString([]byte(s.cfg.CentrifugoSecret))
-	rsp.Item.InlineFormRedirectUrl = fmt.Sprintf(pkg.OrderInlineFormUrlMask, req.Scheme, req.Host, rsp.Item.Id)
 	rsp.Item.Amount = order.OrderAmount
 	rsp.Item.TotalAmount = order.TotalPaymentAmount
 	rsp.Item.Items = order.Items
