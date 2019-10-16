@@ -210,7 +210,7 @@ func (app *Application) Init() {
 		reporter,
 		formatter,
 		postmarkBroker,
-		&casbinMocks.CasbinService{},
+		casbin,
 	)
 
 	if err := app.svc.Init(); err != nil {
