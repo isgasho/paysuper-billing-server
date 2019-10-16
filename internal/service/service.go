@@ -97,6 +97,7 @@ type Service struct {
 	centrifugo                 CentrifugoInterface
 	formatter                  paysuper_i18n.Formatter
 	reporterService            reporterProto.ReporterService
+	postmarkBroker             rabbitmq.BrokerInterface
 	casbinService              casbinProto.CasbinService
 }
 
@@ -130,6 +131,7 @@ func NewBillingService(
 	documentSigner documentSignerProto.DocumentSignerService,
 	reporterService reporterProto.ReporterService,
 	formatter paysuper_i18n.Formatter,
+	postmarkBroker rabbitmq.BrokerInterface,
 	casbinService casbinProto.CasbinService,
 ) *Service {
 	return &Service{
@@ -145,6 +147,7 @@ func NewBillingService(
 		documentSigner:  documentSigner,
 		reporterService: reporterService,
 		formatter:       formatter,
+		postmarkBroker:  postmarkBroker,
 		casbinService:   casbinService,
 	}
 }

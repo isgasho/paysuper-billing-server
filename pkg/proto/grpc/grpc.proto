@@ -12,7 +12,6 @@ service BillingService {
     rpc PaymentCreateProcess (PaymentCreateRequest) returns (PaymentCreateResponse) {}
     rpc PaymentCallbackProcess (PaymentNotifyRequest) returns (PaymentNotifyResponse) {}
     rpc OrderReceipt (OrderReceiptRequest) returns (OrderReceiptResponse) {}
-    rpc OrderReceiptRefund (OrderReceiptRequest) returns (OrderReceiptResponse) {}
 
     rpc UpdateOrder (billing.Order) returns (EmptyResponse) {}
     rpc UpdateMerchant (billing.Merchant) returns (EmptyResponse) {}
@@ -25,6 +24,7 @@ service BillingService {
     rpc SetMerchantS3Agreement (SetMerchantS3AgreementRequest) returns (ChangeMerchantDataResponse) {}
     rpc GetMerchantTariffRates (GetMerchantTariffRatesRequest) returns (GetMerchantTariffRatesResponse) {}
     rpc SetMerchantTariffRates (SetMerchantTariffRatesRequest) returns (CheckProjectRequestSignatureResponse) {}
+    rpc ChangeMerchantManualPayouts(ChangeMerchantManualPayoutsRequest) returns (ChangeMerchantManualPayoutsResponse) {}
 
     rpc CreateNotification (NotificationRequest) returns (CreateNotificationResponse) {}
     rpc GetNotification (GetNotificationRequest) returns (billing.Notification) {}
@@ -450,7 +450,6 @@ message PaymentFormJsonData {
     string currency = 7; // order currency
     PaymentFormJsonDataProject project = 8; // contain data about project
     repeated billing.PaymentFormPaymentMethod payment_methods = 9; // contain data about payment methods
-    string inline_form_redirect_url = 10; // url to redirect user to inline form in PSP side
     string token = 11; // access token to websocket private chanel
     // @inject_tag: json:"user_address_data_required"
     bool user_address_data_required = 12;
@@ -468,6 +467,8 @@ message PaymentFormJsonData {
     bool country_payments_allowed = 18;
     //@inject_tag: json:"country_change_allowed"
     bool country_change_allowed = 19;
+    //@inject_tag: json:"platforms"
+    repeated Platform platforms = 20;
 }
 
 message PaymentFormJsonDataResponse {
@@ -761,6 +762,10 @@ message ProcessBillingAddressResponseItem {
     double amount = 4;
     // @inject_tag: json:"total_amount"
     double total_amount = 5;
+    //@inject_tag: json:"currency"
+    string currency = 6;
+    // @inject_tag: json:"items"
+    repeated billing.OrderItem items = 7;
 }
 
 message ProcessBillingAddressResponse {
@@ -2162,6 +2167,18 @@ message GetPriceGroupByRegionResponse {
 message GetPriceGroupByRegionRequest {
     //@inject_tag: json:"region" validate:"required"
     string region = 1;
+}
+
+message ChangeMerchantManualPayoutsRequest {
+    // @inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 1;
+    bool manual_payouts_enabled = 2;
+}
+
+message ChangeMerchantManualPayoutsResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.Merchant item = 3;
 }
 
 message GetMerchantUsersRequest {

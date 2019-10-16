@@ -53,9 +53,9 @@ func (suite *CountryTestSuite) SetupTest() {
 	suite.service = NewBillingService(
 		db,
 		cfg,
-		mocks.NewGeoIpServiceTestOk(),
-		mocks.NewRepositoryServiceOk(),
-		mocks.NewTaxServiceOkMock(),
+		nil,
+		nil,
+		nil,
 		nil,
 		nil,
 		suite.cache,
@@ -63,6 +63,7 @@ func (suite *CountryTestSuite) SetupTest() {
 		mocks.NewDocumentSignerMockOk(),
 		&reportingMocks.ReporterService{},
 		mocks.NewFormatterOK(),
+		mocks.NewBrokerMockOk(),
 		&casbinMocks.CasbinService{},
 	)
 

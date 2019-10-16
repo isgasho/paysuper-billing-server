@@ -37,6 +37,7 @@ import (
 	reporterService "github.com/paysuper/paysuper-reporter/pkg/proto"
 	taxPkg "github.com/paysuper/paysuper-tax-service/pkg"
 	"github.com/paysuper/paysuper-tax-service/proto"
+	postmarkPkg "github.com/paysuper/postmark-sender/pkg"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
@@ -116,6 +117,14 @@ func (app *Application) Init() {
 	if err != nil {
 		app.logger.Fatal("Creating RabbitMQ publisher failed", zap.Error(err))
 	}
+
+	postmarkBroker, err := rabbitmq.NewBroker(app.cfg.BrokerAddress)
+
+	if err != nil {
+		app.logger.Fatal("Creating postmark broker failed", zap.Error(err))
+	}
+
+	postmarkBroker.SetExchangeName(postmarkPkg.PostmarkSenderTopicName)
 
 	options := []micro.Option{
 		micro.Name(pkg.ServiceName),
@@ -200,7 +209,8 @@ func (app *Application) Init() {
 		documentSignerService,
 		reporter,
 		formatter,
-		casbin,
+		postmarkBroker,
+		&casbinMocks.CasbinService{},
 	)
 
 	if err := app.svc.Init(); err != nil {

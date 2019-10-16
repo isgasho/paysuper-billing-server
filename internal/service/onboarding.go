@@ -401,7 +401,8 @@ func (s *Service) ChangeMerchantStatus(
 		return nil
 	}
 
-	if req.Status == pkg.MerchantStatusDeleted && merchant.Status != pkg.MerchantStatusAgreementSigning {
+	if req.Status == pkg.MerchantStatusDeleted && merchant.Status != pkg.MerchantStatusDraft &&
+		merchant.Status != pkg.MerchantStatusAgreementSigning {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = merchantStatusChangeNotPossible
 
@@ -508,6 +509,41 @@ func (s *Service) ChangeMerchantData(
 
 	err = s.merchant.Update(merchant)
 
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = merchantErrorUnknown
+
+		return nil
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
+	rsp.Item = merchant
+
+	return nil
+}
+
+func (s *Service) ChangeMerchantManualPayouts(
+	ctx context.Context,
+	req *grpc.ChangeMerchantManualPayoutsRequest,
+	rsp *grpc.ChangeMerchantManualPayoutsResponse,
+) error {
+	merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
+
+		return nil
+	}
+
+	if merchant.ManualPayoutsEnabled == req.ManualPayoutsEnabled {
+		rsp.Status = pkg.ResponseStatusNotModified
+		return nil
+	}
+
+	merchant.ManualPayoutsEnabled = req.ManualPayoutsEnabled
+
+	err = s.merchant.Update(merchant)
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = merchantErrorUnknown
@@ -1433,6 +1469,7 @@ func (s *Service) generateMerchantAgreement(ctx context.Context, merchant *billi
 		Params:           b,
 		SendNotification: false,
 	}
+	zap.L().Info(merchant.Id, zap.ByteString("payload", b))
 	rsp, err := s.reporterService.CreateFile(ctx, req)
 
 	if err != nil {

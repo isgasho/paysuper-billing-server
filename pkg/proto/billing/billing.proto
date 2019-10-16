@@ -362,6 +362,8 @@ message Merchant {
     string agreement_number = 51;
     // @inject_tag: json:"minimal_payout_limit"
     float minimal_payout_limit = 52;
+    // @inject_tag: json:"manual_payouts_enabled"
+    bool manual_payouts_enabled = 53;
 }
 
 message SystemNotificationStatuses {
@@ -2079,6 +2081,10 @@ message OrderReceipt {
     string merchant_name = 5;
     //@inject_tag: json:"items"
     repeated OrderReceiptItem items = 6;
+    //@inject_tag: json:"order_type"
+    string order_type = 7;
+    //@inject_tag: json:"platform_name"
+    string platform_name = 8;
 }
 
 message OrderReceiptItem {

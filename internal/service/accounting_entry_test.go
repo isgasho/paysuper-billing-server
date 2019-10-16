@@ -100,6 +100,7 @@ func (suite *AccountingEntryTestSuite) SetupTest() {
 		mocks.NewDocumentSignerMockOk(),
 		&reportingMocks.ReporterService{},
 		mocks.NewFormatterOK(),
+		broker,
 		&casbinMocks.CasbinService{},
 	)
 

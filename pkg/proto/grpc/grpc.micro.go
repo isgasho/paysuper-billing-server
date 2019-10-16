@@ -41,7 +41,6 @@ type BillingService interface {
 	PaymentCreateProcess(ctx context.Context, in *PaymentCreateRequest, opts ...client.CallOption) (*PaymentCreateResponse, error)
 	PaymentCallbackProcess(ctx context.Context, in *PaymentNotifyRequest, opts ...client.CallOption) (*PaymentNotifyResponse, error)
 	OrderReceipt(ctx context.Context, in *OrderReceiptRequest, opts ...client.CallOption) (*OrderReceiptResponse, error)
-	OrderReceiptRefund(ctx context.Context, in *OrderReceiptRequest, opts ...client.CallOption) (*OrderReceiptResponse, error)
 	UpdateOrder(ctx context.Context, in *billing.Order, opts ...client.CallOption) (*EmptyResponse, error)
 	UpdateMerchant(ctx context.Context, in *billing.Merchant, opts ...client.CallOption) (*EmptyResponse, error)
 	GetMerchantBy(ctx context.Context, in *GetMerchantByRequest, opts ...client.CallOption) (*GetMerchantResponse, error)
@@ -52,6 +51,7 @@ type BillingService interface {
 	SetMerchantS3Agreement(ctx context.Context, in *SetMerchantS3AgreementRequest, opts ...client.CallOption) (*ChangeMerchantDataResponse, error)
 	GetMerchantTariffRates(ctx context.Context, in *GetMerchantTariffRatesRequest, opts ...client.CallOption) (*GetMerchantTariffRatesResponse, error)
 	SetMerchantTariffRates(ctx context.Context, in *SetMerchantTariffRatesRequest, opts ...client.CallOption) (*CheckProjectRequestSignatureResponse, error)
+	ChangeMerchantManualPayouts(ctx context.Context, in *ChangeMerchantManualPayoutsRequest, opts ...client.CallOption) (*ChangeMerchantManualPayoutsResponse, error)
 	CreateNotification(ctx context.Context, in *NotificationRequest, opts ...client.CallOption) (*CreateNotificationResponse, error)
 	GetNotification(ctx context.Context, in *GetNotificationRequest, opts ...client.CallOption) (*billing.Notification, error)
 	ListNotifications(ctx context.Context, in *ListingNotificationRequest, opts ...client.CallOption) (*Notifications, error)
@@ -256,16 +256,6 @@ func (c *billingService) OrderReceipt(ctx context.Context, in *OrderReceiptReque
 	return out, nil
 }
 
-func (c *billingService) OrderReceiptRefund(ctx context.Context, in *OrderReceiptRequest, opts ...client.CallOption) (*OrderReceiptResponse, error) {
-	req := c.c.NewRequest(c.name, "BillingService.OrderReceiptRefund", in)
-	out := new(OrderReceiptResponse)
-	err := c.c.Call(ctx, req, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *billingService) UpdateOrder(ctx context.Context, in *billing.Order, opts ...client.CallOption) (*EmptyResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.UpdateOrder", in)
 	out := new(EmptyResponse)
@@ -359,6 +349,16 @@ func (c *billingService) GetMerchantTariffRates(ctx context.Context, in *GetMerc
 func (c *billingService) SetMerchantTariffRates(ctx context.Context, in *SetMerchantTariffRatesRequest, opts ...client.CallOption) (*CheckProjectRequestSignatureResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.SetMerchantTariffRates", in)
 	out := new(CheckProjectRequestSignatureResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) ChangeMerchantManualPayouts(ctx context.Context, in *ChangeMerchantManualPayoutsRequest, opts ...client.CallOption) (*ChangeMerchantManualPayoutsResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.ChangeMerchantManualPayouts", in)
+	out := new(ChangeMerchantManualPayoutsResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1714,7 +1714,6 @@ type BillingServiceHandler interface {
 	PaymentCreateProcess(context.Context, *PaymentCreateRequest, *PaymentCreateResponse) error
 	PaymentCallbackProcess(context.Context, *PaymentNotifyRequest, *PaymentNotifyResponse) error
 	OrderReceipt(context.Context, *OrderReceiptRequest, *OrderReceiptResponse) error
-	OrderReceiptRefund(context.Context, *OrderReceiptRequest, *OrderReceiptResponse) error
 	UpdateOrder(context.Context, *billing.Order, *EmptyResponse) error
 	UpdateMerchant(context.Context, *billing.Merchant, *EmptyResponse) error
 	GetMerchantBy(context.Context, *GetMerchantByRequest, *GetMerchantResponse) error
@@ -1725,6 +1724,7 @@ type BillingServiceHandler interface {
 	SetMerchantS3Agreement(context.Context, *SetMerchantS3AgreementRequest, *ChangeMerchantDataResponse) error
 	GetMerchantTariffRates(context.Context, *GetMerchantTariffRatesRequest, *GetMerchantTariffRatesResponse) error
 	SetMerchantTariffRates(context.Context, *SetMerchantTariffRatesRequest, *CheckProjectRequestSignatureResponse) error
+	ChangeMerchantManualPayouts(context.Context, *ChangeMerchantManualPayoutsRequest, *ChangeMerchantManualPayoutsResponse) error
 	CreateNotification(context.Context, *NotificationRequest, *CreateNotificationResponse) error
 	GetNotification(context.Context, *GetNotificationRequest, *billing.Notification) error
 	ListNotifications(context.Context, *ListingNotificationRequest, *Notifications) error
@@ -1868,7 +1868,6 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		PaymentCreateProcess(ctx context.Context, in *PaymentCreateRequest, out *PaymentCreateResponse) error
 		PaymentCallbackProcess(ctx context.Context, in *PaymentNotifyRequest, out *PaymentNotifyResponse) error
 		OrderReceipt(ctx context.Context, in *OrderReceiptRequest, out *OrderReceiptResponse) error
-		OrderReceiptRefund(ctx context.Context, in *OrderReceiptRequest, out *OrderReceiptResponse) error
 		UpdateOrder(ctx context.Context, in *billing.Order, out *EmptyResponse) error
 		UpdateMerchant(ctx context.Context, in *billing.Merchant, out *EmptyResponse) error
 		GetMerchantBy(ctx context.Context, in *GetMerchantByRequest, out *GetMerchantResponse) error
@@ -1879,6 +1878,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		SetMerchantS3Agreement(ctx context.Context, in *SetMerchantS3AgreementRequest, out *ChangeMerchantDataResponse) error
 		GetMerchantTariffRates(ctx context.Context, in *GetMerchantTariffRatesRequest, out *GetMerchantTariffRatesResponse) error
 		SetMerchantTariffRates(ctx context.Context, in *SetMerchantTariffRatesRequest, out *CheckProjectRequestSignatureResponse) error
+		ChangeMerchantManualPayouts(ctx context.Context, in *ChangeMerchantManualPayoutsRequest, out *ChangeMerchantManualPayoutsResponse) error
 		CreateNotification(ctx context.Context, in *NotificationRequest, out *CreateNotificationResponse) error
 		GetNotification(ctx context.Context, in *GetNotificationRequest, out *billing.Notification) error
 		ListNotifications(ctx context.Context, in *ListingNotificationRequest, out *Notifications) error
@@ -2045,10 +2045,6 @@ func (h *billingServiceHandler) OrderReceipt(ctx context.Context, in *OrderRecei
 	return h.BillingServiceHandler.OrderReceipt(ctx, in, out)
 }
 
-func (h *billingServiceHandler) OrderReceiptRefund(ctx context.Context, in *OrderReceiptRequest, out *OrderReceiptResponse) error {
-	return h.BillingServiceHandler.OrderReceiptRefund(ctx, in, out)
-}
-
 func (h *billingServiceHandler) UpdateOrder(ctx context.Context, in *billing.Order, out *EmptyResponse) error {
 	return h.BillingServiceHandler.UpdateOrder(ctx, in, out)
 }
@@ -2087,6 +2083,10 @@ func (h *billingServiceHandler) GetMerchantTariffRates(ctx context.Context, in *
 
 func (h *billingServiceHandler) SetMerchantTariffRates(ctx context.Context, in *SetMerchantTariffRatesRequest, out *CheckProjectRequestSignatureResponse) error {
 	return h.BillingServiceHandler.SetMerchantTariffRates(ctx, in, out)
+}
+
+func (h *billingServiceHandler) ChangeMerchantManualPayouts(ctx context.Context, in *ChangeMerchantManualPayoutsRequest, out *ChangeMerchantManualPayoutsResponse) error {
+	return h.BillingServiceHandler.ChangeMerchantManualPayouts(ctx, in, out)
 }
 
 func (h *billingServiceHandler) CreateNotification(ctx context.Context, in *NotificationRequest, out *CreateNotificationResponse) error {

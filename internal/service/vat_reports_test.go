@@ -100,6 +100,7 @@ func (suite *VatReportsTestSuite) SetupTest() {
 		mocks.NewDocumentSignerMockOk(),
 		&reportingMocks.ReporterService{},
 		mocks.NewFormatterOK(),
+		mocks.NewBrokerMockOk(),
 		&casbinMocks.CasbinService{},
 	)
 
