@@ -291,6 +291,9 @@ const (
 
 	OrderIssuerReferenceTypePaylink = "paylink"
 
+	RoleTypeMerchant = "merchant"
+	RoleTypeSystem   = "system"
+
 	RoleMerchantOwner      = "merchant_owner"
 	RoleMerchantDeveloper  = "merchant_developer"
 	RoleMerchantAccounting = "merchant_accounting"
