@@ -13,8 +13,8 @@ type BillingService struct {
 	mock.Mock
 }
 
-// AcceptAdminInvite provides a mock function with given fields: ctx, in, opts
-func (_m *BillingService) AcceptAdminInvite(ctx context.Context, in *grpc.AcceptAdminInviteRequest, opts ...client.CallOption) (*grpc.AcceptAdminInviteResponse, error) {
+// AcceptInvite provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) AcceptInvite(ctx context.Context, in *grpc.AcceptInviteRequest, opts ...client.CallOption) (*grpc.AcceptInviteResponse, error) {
 	_va := make([]interface{}, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
@@ -24,47 +24,17 @@ func (_m *BillingService) AcceptAdminInvite(ctx context.Context, in *grpc.Accept
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
 
-	var r0 *grpc.AcceptAdminInviteResponse
-	if rf, ok := ret.Get(0).(func(context.Context, *grpc.AcceptAdminInviteRequest, ...client.CallOption) *grpc.AcceptAdminInviteResponse); ok {
+	var r0 *grpc.AcceptInviteResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.AcceptInviteRequest, ...client.CallOption) *grpc.AcceptInviteResponse); ok {
 		r0 = rf(ctx, in, opts...)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*grpc.AcceptAdminInviteResponse)
+			r0 = ret.Get(0).(*grpc.AcceptInviteResponse)
 		}
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *grpc.AcceptAdminInviteRequest, ...client.CallOption) error); ok {
-		r1 = rf(ctx, in, opts...)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// AcceptMerchantInvite provides a mock function with given fields: ctx, in, opts
-func (_m *BillingService) AcceptMerchantInvite(ctx context.Context, in *grpc.AcceptMerchantInviteRequest, opts ...client.CallOption) (*grpc.AcceptMerchantInviteResponse, error) {
-	_va := make([]interface{}, len(opts))
-	for _i := range opts {
-		_va[_i] = opts[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx, in)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
-
-	var r0 *grpc.AcceptMerchantInviteResponse
-	if rf, ok := ret.Get(0).(func(context.Context, *grpc.AcceptMerchantInviteRequest, ...client.CallOption) *grpc.AcceptMerchantInviteResponse); ok {
-		r0 = rf(ctx, in, opts...)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*grpc.AcceptMerchantInviteResponse)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *grpc.AcceptMerchantInviteRequest, ...client.CallOption) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.AcceptInviteRequest, ...client.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)
