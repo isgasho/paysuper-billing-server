@@ -25,9 +25,6 @@ const (
 	claimRoleId = "role_id"
 	claimExpire = "exp"
 
-	typeMerchant = "merchant"
-	typeSystem   = "system"
-
 	casbinMerchantUserMask = "%s_%s"
 
 	roleNameMerchantOwner      = "Owner"
@@ -59,7 +56,7 @@ var (
 	errorUserUnableToAddToCasbin   = newBillingServerErrorMsg("uu000014", "unable to add user to the casbin server")
 
 	merchantUserRoles = map[string][]*billing.RoleListItem{
-		typeMerchant: {
+		pkg.RoleTypeMerchant: {
 			{Id: pkg.RoleMerchantOwner, Name: roleNameMerchantOwner},
 			{Id: pkg.RoleMerchantOwner, Name: roleNameMerchantDeveloper},
 			{Id: pkg.RoleMerchantOwner, Name: roleNameMerchantAccounting},
@@ -67,7 +64,7 @@ var (
 			{Id: pkg.RoleMerchantOwner, Name: roleNameMerchantSupport},
 			{Id: pkg.RoleMerchantOwner, Name: roleNameMerchantViewOnly},
 		},
-		typeSystem: {
+		pkg.RoleTypeSystem: {
 			{Id: pkg.RoleMerchantOwner, Name: roleNameSystemAdmin},
 			{Id: pkg.RoleMerchantOwner, Name: roleNameSystemRiskManager},
 			{Id: pkg.RoleMerchantOwner, Name: roleNameSystemFinancial},
@@ -220,7 +217,7 @@ func (s *Service) InviteUserMerchant(
 
 	expire := time.Now().Add(time.Hour * time.Duration(s.cfg.UserInviteTokenTimeout)).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		claimType:   typeMerchant,
+		claimType:   pkg.RoleTypeMerchant,
 		claimEmail:  req.Email,
 		claimRoleId: role.Id,
 		claimExpire: expire,
@@ -302,7 +299,7 @@ func (s *Service) InviteUserAdmin(
 
 	expire := time.Now().Add(time.Hour * time.Duration(s.cfg.UserInviteTokenTimeout)).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		claimType:   typeSystem,
+		claimType:   pkg.RoleTypeSystem,
 		claimEmail:  req.Email,
 		claimRoleId: role.Id,
 		claimExpire: expire,
@@ -376,7 +373,7 @@ func (s *Service) ResendInviteMerchant(
 
 	expire := time.Now().Add(time.Hour * time.Duration(s.cfg.UserInviteTokenTimeout)).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		claimType:   typeMerchant,
+		claimType:   pkg.RoleTypeMerchant,
 		claimEmail:  role.User.Email,
 		claimRoleId: role.Id,
 		claimExpire: expire,
@@ -440,7 +437,7 @@ func (s *Service) ResendInviteAdmin(
 
 	expire := time.Now().Add(time.Hour * time.Duration(s.cfg.UserInviteTokenTimeout)).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		claimType:   typeSystem,
+		claimType:   pkg.RoleTypeSystem,
 		claimEmail:  role.User.Email,
 		claimRoleId: role.Id,
 		claimExpire: expire,

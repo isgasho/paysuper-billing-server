@@ -290,6 +290,9 @@ const (
 	PayoutDocumentStatusCanceled = "canceled"
 	PayoutDocumentStatusFailed   = "failed"
 
+	RoleTypeMerchant = "merchant"
+	RoleTypeSystem   = "system"
+
 	RoleMerchantOwner      = "merchant_owner"
 	RoleMerchantDeveloper  = "merchant_developer"
 	RoleMerchantAccounting = "merchant_accounting"
