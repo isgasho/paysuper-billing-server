@@ -3692,7 +3692,13 @@ func (s *Service) OrderReceipt(
 			return nil
 		}
 
-		items[i] = &billing.OrderReceiptItem{Name: item.Name, Price: price, PlatformId: item.PlatformId}
+		items[i] = &billing.OrderReceiptItem{Name: item.Name, Price: price}
+	}
+
+	var platformName = ""
+
+	if platform, ok := availablePlatforms[order.PlatformId]; ok {
+		platformName = platform.Name
 	}
 
 	receipt := &billing.OrderReceipt{
@@ -3703,6 +3709,7 @@ func (s *Service) OrderReceipt(
 		MerchantName:    merchant.Company.Name,
 		OrderType:       order.Type,
 		Items:           items,
+		PlatformName:    platformName,
 	}
 
 	rsp.Status = pkg.ResponseStatusOk

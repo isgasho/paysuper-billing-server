@@ -2083,6 +2083,8 @@ message OrderReceipt {
     repeated OrderReceiptItem items = 6;
     //@inject_tag: json:"order_type"
     string order_type = 7;
+    //@inject_tag: json:"platform_name"
+    string platform_name = 8;
 }
 
 message OrderReceiptItem {
@@ -2090,6 +2092,4 @@ message OrderReceiptItem {
     string name = 1;
     //@inject_tag: json:"price"
     string price = 2;
-    //@inject_tag: json:"platform_id"
-    string platform_id = 3;
 }
