@@ -369,7 +369,7 @@ func (s *Service) ChangeMerchantStatus(
 		return nil
 	}
 
-	if req.Status == pkg.MerchantStatusRejected && merchant.Status != pkg.MerchantStatusAgreementSigning {
+	if req.Status == pkg.MerchantStatusRejected && merchant.Status != pkg.MerchantStatusAgreementSigning && merchant.Status != pkg.MerchantStatusDeleted {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = merchantStatusChangeNotPossible
 
