@@ -25,7 +25,6 @@ const (
 
 	accountingEventTypePayment          = "payment"
 	accountingEventTypeRefund           = "refund"
-	accountingEventTypeSettlement       = "settlement"
 	accountingEventTypeManualCorrection = "manual-correction"
 )
 
@@ -445,7 +444,7 @@ func (h *accountingEntry) processPaymentEvent() error {
 	if err != nil {
 		return err
 	}
-	amount, err = h.GetExchangeStockCurrentCommon(h.country.VatCurrency, amount)
+	amount, err = h.GetExchangeStockCurrentCommon(h.country.GetVatCurrencyCode(), amount)
 	if err != nil {
 		return err
 	}
@@ -776,7 +775,7 @@ func (h *accountingEntry) processRefundEvent() error {
 	if err != nil {
 		return err
 	}
-	amountMerchantStock, err := h.GetExchangeStockCurrentCommon(h.country.VatCurrency, amountVatCb)
+	amountMerchantStock, err := h.GetExchangeStockCurrentCommon(h.country.GetVatCurrencyCode(), amountVatCb)
 	if err != nil {
 		return err
 	}
@@ -853,7 +852,7 @@ func (h *accountingEntry) GetExchangePsCurrentMerchant(from string, amount float
 }
 
 func (h *accountingEntry) GetExchangeCbCurrentCommon(from string, amount float64) (float64, error) {
-	to := h.country.VatCurrency
+	to := h.country.GetVatCurrencyCode()
 
 	if to == from {
 		return amount, nil
@@ -869,6 +868,10 @@ func (h *accountingEntry) GetExchangeCbCurrentCommon(from string, amount float64
 }
 
 func (h *accountingEntry) GetExchangeCurrentMerchant(req *currencies.ExchangeCurrencyCurrentForMerchantRequest) (float64, error) {
+
+	if req.Amount == 0 || req.From == req.To {
+		return req.Amount, nil
+	}
 
 	rsp, err := h.curService.ExchangeCurrencyCurrentForMerchant(h.ctx, req)
 
@@ -888,6 +891,11 @@ func (h *accountingEntry) GetExchangeCurrentMerchant(req *currencies.ExchangeCur
 }
 
 func (h *accountingEntry) GetExchangeCurrentCommon(req *currencies.ExchangeCurrencyCurrentCommonRequest) (float64, error) {
+
+	if req.Amount == 0 || req.From == req.To {
+		return req.Amount, nil
+	}
+
 	rsp, err := h.curService.ExchangeCurrencyCurrentCommon(h.ctx, req)
 
 	if err != nil {
@@ -949,21 +957,24 @@ func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
 				Amount:   entry.OriginalAmount,
 			}
 
-			rsp, err := h.curService.ExchangeCurrencyCurrentCommon(h.ctx, req)
+			if req.Amount != 0 && req.From != req.To {
 
-			if err != nil {
-				zap.L().Error(
-					pkg.ErrorGrpcServiceCallFailed,
-					zap.Error(err),
-					zap.String(errorFieldService, "CurrencyRatesService"),
-					zap.String(errorFieldMethod, "ExchangeCurrencyCurrentCommon"),
-					zap.String(errorFieldEntry, entry.Type),
-					zap.Any(errorFieldRequest, req),
-				)
+				rsp, err := h.curService.ExchangeCurrencyCurrentCommon(h.ctx, req)
 
-				return accountingEntryErrorExchangeFailed
-			} else {
-				entry.LocalAmount = rsp.ExchangedAmount
+				if err != nil {
+					zap.L().Error(
+						pkg.ErrorGrpcServiceCallFailed,
+						zap.Error(err),
+						zap.String(errorFieldService, "CurrencyRatesService"),
+						zap.String(errorFieldMethod, "ExchangeCurrencyCurrentCommon"),
+						zap.String(errorFieldEntry, entry.Type),
+						zap.Any(errorFieldRequest, req),
+					)
+
+					return accountingEntryErrorExchangeFailed
+				} else {
+					entry.LocalAmount = rsp.ExchangedAmount
+				}
 			}
 		}
 	}
