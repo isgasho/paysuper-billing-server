@@ -78,17 +78,6 @@ var (
 )
 
 func (s *Service) GetMerchantUsers(ctx context.Context, req *grpc.GetMerchantUsersRequest, res *grpc.GetMerchantUsersResponse) error {
-	_, err := s.merchant.GetById(req.MerchantId)
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorGrpcServiceCallFailed,
-			zap.Error(err),
-		)
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = merchantErrorNotFound
-		return nil
-	}
-
 	users, err := s.userRoleRepository.GetUsersForMerchant(req.MerchantId)
 
 	if err != nil {
@@ -733,7 +722,7 @@ func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.Chang
 
 	if err != nil {
 		zap.L().Error(errorUserUnableToDeleteFromCasbin.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = pkg.ResponseStatusSystemError
 		res.Message = errorUserUnableToDeleteFromCasbin
 		return nil
 	}
@@ -742,6 +731,13 @@ func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.Chang
 		User: casbinUserId,
 		Role: req.Role,
 	})
+
+	if err != nil {
+		zap.L().Error(errorUserUnableToDeleteFromCasbin.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorUserUnableToDeleteFromCasbin
+		return nil
+	}
 
 	res.Status = pkg.ResponseStatusOk
 
@@ -793,7 +789,7 @@ func (s *Service) ChangeRoleForAdminUser(ctx context.Context, req *grpc.ChangeRo
 
 	if err != nil {
 		zap.L().Error(errorUserUnableToDeleteFromCasbin.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = pkg.ResponseStatusSystemError
 		res.Message = errorUserUnableToDeleteFromCasbin
 		return nil
 	}
@@ -805,7 +801,7 @@ func (s *Service) ChangeRoleForAdminUser(ctx context.Context, req *grpc.ChangeRo
 
 	if err != nil {
 		zap.L().Error(errorUserUnableToDeleteFromCasbin.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = pkg.ResponseStatusSystemError
 		res.Message = errorUserUnableToDeleteFromCasbin
 		return nil
 	}
