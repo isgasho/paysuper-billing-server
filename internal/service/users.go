@@ -57,6 +57,7 @@ var (
 	errorUserUnsupportedRoleType      = newBillingServerErrorMsg("uu000015", "unsupported role type")
 	errorUserUnableToDelete           = newBillingServerErrorMsg("uu000016", "unable to delete user")
 	errorUserUnableToDeleteFromCasbin = newBillingServerErrorMsg("uu000017", "unable to delete user from the casbin server")
+	errorUserDontHaveRole = newBillingServerErrorMsg("uu000018", "user dont have any role")
 
 	merchantUserRoles = map[string][]*billing.RoleListItem{
 		pkg.RoleTypeMerchant: {
@@ -919,6 +920,43 @@ func (s *Service) DeleteAdminUser(
 		return nil
 	}
 
+	res.Status = pkg.ResponseStatusOk
+
+	return nil
+}
+
+func (s *Service) GetPermissionsForUser(ctx context.Context, req *grpc.GetPermissionsForUserRequest, res *grpc.GetPermissionsForUserResponse) error {
+	userId := req.UserId
+	if len(req.MerchantId) > 0 {
+		userId = fmt.Sprintf("%s_%s", req.MerchantId, req.UserId)
+	}
+
+	rsp, err := s.casbinService.GetImplicitPermissionsForUser(ctx, &casbinProto.PermissionRequest{User: userId})
+	if err != nil {
+		zap.L().Error(errorUserUnableToDeleteFromCasbin.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserUnableToDeleteFromCasbin
+
+		return nil
+	}
+
+	if len(rsp.D2) == 0 {
+		zap.L().Error(errorUserDontHaveRole.Message, zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserDontHaveRole
+
+		return nil
+	}
+
+	permissions := make([]*grpc.Permission, len(rsp.D2))
+	for i, p := range rsp.D2 {
+		permissions[i] = &grpc.Permission{
+			Name: p.D1[0],
+			Access: p.D1[1],
+		}
+	}
+
+	res.Permissions = permissions
 	res.Status = pkg.ResponseStatusOk
 
 	return nil

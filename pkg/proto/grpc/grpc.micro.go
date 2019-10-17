@@ -186,6 +186,7 @@ type BillingService interface {
 	GetRoleList(ctx context.Context, in *GetRoleListRequest, opts ...client.CallOption) (*GetRoleListResponse, error)
 	DeleteMerchantUser(ctx context.Context, in *DeleteMerchantUserRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 	DeleteAdminUser(ctx context.Context, in *DeleteAdminUserRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
+	GetPermissionsForUser(ctx context.Context, in *GetPermissionsForUserRequest, opts ...client.CallOption) (*GetPermissionsForUserResponse, error)
 }
 
 type billingService struct {
@@ -1706,6 +1707,16 @@ func (c *billingService) DeleteAdminUser(ctx context.Context, in *DeleteAdminUse
 	return out, nil
 }
 
+func (c *billingService) GetPermissionsForUser(ctx context.Context, in *GetPermissionsForUserRequest, opts ...client.CallOption) (*GetPermissionsForUserResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetPermissionsForUser", in)
+	out := new(GetPermissionsForUserResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for BillingService service
 
 type BillingServiceHandler interface {
@@ -1859,6 +1870,7 @@ type BillingServiceHandler interface {
 	GetRoleList(context.Context, *GetRoleListRequest, *GetRoleListResponse) error
 	DeleteMerchantUser(context.Context, *DeleteMerchantUserRequest, *EmptyResponseWithStatus) error
 	DeleteAdminUser(context.Context, *DeleteAdminUserRequest, *EmptyResponseWithStatus) error
+	GetPermissionsForUser(context.Context, *GetPermissionsForUserRequest, *GetPermissionsForUserResponse) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -2013,6 +2025,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetRoleList(ctx context.Context, in *GetRoleListRequest, out *GetRoleListResponse) error
 		DeleteMerchantUser(ctx context.Context, in *DeleteMerchantUserRequest, out *EmptyResponseWithStatus) error
 		DeleteAdminUser(ctx context.Context, in *DeleteAdminUserRequest, out *EmptyResponseWithStatus) error
+		GetPermissionsForUser(ctx context.Context, in *GetPermissionsForUserRequest, out *GetPermissionsForUserResponse) error
 	}
 	type BillingService struct {
 		billingService
@@ -2623,4 +2636,8 @@ func (h *billingServiceHandler) DeleteMerchantUser(ctx context.Context, in *Dele
 
 func (h *billingServiceHandler) DeleteAdminUser(ctx context.Context, in *DeleteAdminUserRequest, out *EmptyResponseWithStatus) error {
 	return h.BillingServiceHandler.DeleteAdminUser(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetPermissionsForUser(ctx context.Context, in *GetPermissionsForUserRequest, out *GetPermissionsForUserResponse) error {
+	return h.BillingServiceHandler.GetPermissionsForUser(ctx, in, out)
 }
