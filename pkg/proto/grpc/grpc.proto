@@ -358,6 +358,8 @@ message CreateOrUpdateKeyProductRequest {
 message UnPublishKeyProductRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string key_product_id = 1;
+    //@inject_tag: validate:"required"
+    string merchant_id = 2;
 }
 
 message PublishKeyProductRequest {
