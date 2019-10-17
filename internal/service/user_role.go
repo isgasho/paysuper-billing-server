@@ -141,7 +141,7 @@ func (h *UserRoleRepository) GetMerchantUserByEmail(merchantId string, email str
 	var user *billing.UserRole
 
 	err := h.svc.db.Collection(collectionMerchantUsersTable).
-		Find(bson.M{"merchant_id": merchantId, "user.email": email}).
+		Find(bson.M{"merchant_id": bson.ObjectIdHex(merchantId), "user.email": email}).
 		One(&user)
 
 	if err != nil {
@@ -204,7 +204,7 @@ func (h *UserRoleRepository) GetMerchantUserById(id string) (*billing.UserRole, 
 }
 
 func (h *UserRoleRepository) DeleteAdminUser(u *billing.UserRole) error {
-	if err := h.svc.db.Collection(collectionMerchantUsersTable).RemoveId(bson.ObjectIdHex(u.Id)); err != nil {
+	if err := h.svc.db.Collection(collectionAdminUsersTable).RemoveId(bson.ObjectIdHex(u.Id)); err != nil {
 		return err
 	}
 
@@ -212,7 +212,7 @@ func (h *UserRoleRepository) DeleteAdminUser(u *billing.UserRole) error {
 }
 
 func (h *UserRoleRepository) DeleteMerchantUser(u *billing.UserRole) error {
-	if err := h.svc.db.Collection(collectionAdminUsersTable).RemoveId(bson.ObjectIdHex(u.Id)); err != nil {
+	if err := h.svc.db.Collection(collectionMerchantUsersTable).RemoveId(bson.ObjectIdHex(u.Id)); err != nil {
 		return err
 	}
 

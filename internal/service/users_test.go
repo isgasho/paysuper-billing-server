@@ -44,7 +44,22 @@ func (suite *UsersTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), mocks.NewBrokerMockOk(), mocks.NewTestRedis(), suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), nil, mocks.NewFormatterOK(), &casbinMocks.CasbinService{})
+	suite.service = NewBillingService(
+		db,
+		cfg,
+		mocks.NewGeoIpServiceTestOk(),
+		mocks.NewRepositoryServiceOk(),
+		mocks.NewTaxServiceOkMock(),
+		mocks.NewBrokerMockOk(),
+		mocks.NewTestRedis(),
+		suite.cache,
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
+		nil,
+		mocks.NewFormatterOK(),
+		mocks.NewBrokerMockOk(),
+		&casbinMocks.CasbinService{},
+	)
 
 	err = suite.service.Init()
 
@@ -153,16 +168,16 @@ func (suite *UsersTestSuite) TestChangeAdminUserRole_RoleError() {
 
 	res := &grpc.EmptyResponseWithStatus{}
 	err := suite.service.ChangeRoleForAdminUser(context.TODO(), &grpc.ChangeRoleForAdminUserRequest{
-		UserId: suite.adminUser.UserId,
-		Role:   "test_role",
+		PerformerId: suite.adminUser.UserId,
+		Role:        "test_role",
 	}, res)
 	shouldBe.NoError(err)
 	shouldBe.EqualValues(200, res.Status)
 
 	res = &grpc.EmptyResponseWithStatus{}
 	err = suite.service.ChangeRoleForAdminUser(context.TODO(), &grpc.ChangeRoleForAdminUserRequest{
-		UserId: suite.adminUser.UserId,
-		Role:   "test_role",
+		PerformerId: suite.adminUser.UserId,
+		Role:        "test_role",
 	}, res)
 	shouldBe.NoError(err)
 	shouldBe.EqualValues(400, res.Status)
@@ -174,8 +189,8 @@ func (suite *UsersTestSuite) TestChangeAdminUserRole_Ok() {
 
 	res := &grpc.EmptyResponseWithStatus{}
 	err := suite.service.ChangeRoleForAdminUser(context.TODO(), &grpc.ChangeRoleForAdminUserRequest{
-		UserId: suite.adminUser.UserId,
-		Role:   "test_role",
+		PerformerId: suite.adminUser.UserId,
+		Role:        "test_role",
 	}, res)
 	shouldBe.NoError(err)
 	shouldBe.EqualValues(200, res.Status)
@@ -198,18 +213,18 @@ func (suite *UsersTestSuite) TestChangeMerchantUserRole_RoleError() {
 
 	res := &grpc.EmptyResponseWithStatus{}
 	err := suite.service.ChangeRoleForMerchantUser(context.TODO(), &grpc.ChangeRoleForMerchantUserRequest{
-		MerchantId: suite.merchant.Id,
-		UserId:     suite.user.UserId,
-		Role:       "test_role",
+		MerchantId:  suite.merchant.Id,
+		PerformerId: suite.user.UserId,
+		Role:        "test_role",
 	}, res)
 	shouldBe.NoError(err)
 	shouldBe.EqualValues(200, res.Status)
 
 	res = &grpc.EmptyResponseWithStatus{}
 	err = suite.service.ChangeRoleForMerchantUser(context.TODO(), &grpc.ChangeRoleForMerchantUserRequest{
-		MerchantId: suite.merchant.Id,
-		UserId:     suite.user.UserId,
-		Role:       "test_role",
+		MerchantId:  suite.merchant.Id,
+		PerformerId: suite.user.UserId,
+		Role:        "test_role",
 	}, res)
 	shouldBe.NoError(err)
 	shouldBe.EqualValues(400, res.Status)
@@ -221,9 +236,9 @@ func (suite *UsersTestSuite) TestChangeMerchantUserRole_Ok() {
 
 	res := &grpc.EmptyResponseWithStatus{}
 	err := suite.service.ChangeRoleForMerchantUser(context.TODO(), &grpc.ChangeRoleForMerchantUserRequest{
-		MerchantId: suite.merchant.Id,
-		UserId:     suite.user.UserId,
-		Role:       "test_role",
+		MerchantId:  suite.merchant.Id,
+		PerformerId: suite.user.UserId,
+		Role:        "test_role",
 	}, res)
 	shouldBe.NoError(err)
 	shouldBe.EqualValues(200, res.Status)
