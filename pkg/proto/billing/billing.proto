@@ -2095,3 +2095,18 @@ message OrderReceiptItem {
     //@inject_tag: json:"price"
     string price = 2;
 }
+
+message OrderCreateByPaylink {
+    //@inject_tag: json:"id" validate:"required,hexadecimal,len=24"
+    string paylink_id = 1;
+    string payer_ip = 2;
+    string issuer_url = 3;
+    // @inject_tag: json:"is_embedded"
+    bool is_embedded = 4;
+    //@inject_tag: bson:"utm_source" json:"utm_source"
+    string utm_source = 5;
+    //@inject_tag: bson:"utm_medium" json:"utm_medium"
+    string utm_medium = 6;
+    //@inject_tag: bson:"utm_campaign" json:"utm_campaign"
+    string utm_campaign = 7;
+}

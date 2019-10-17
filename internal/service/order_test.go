@@ -10,12 +10,14 @@ import (
 	"github.com/go-redis/redis"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
+	"github.com/jinzhu/now"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-billing-server/pkg/proto/paylink"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/stoewer/go-strcase"
@@ -24,7 +26,6 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
-	"math/rand"
 	"net"
 	"sort"
 	"strconv"
@@ -57,6 +58,9 @@ type OrderTestSuite struct {
 	keyProductIds                          []string
 	merchantDefaultCurrency                string
 	paymentMethodWithoutCommission         *billing.PaymentMethod
+	paylink1                               *paylink.Paylink
+	paylink2                               *paylink.Paylink // deleted paylink
+	paylink3                               *paylink.Paylink // expired paylink
 }
 
 func Test_Order(t *testing.T) {
@@ -1147,6 +1151,94 @@ func (suite *OrderTestSuite) SetupTest() {
 
 		keyProductIds = append(keyProductIds, res.Product.Id)
 	}
+
+	paylinkBod, _ := ptypes.TimestampProto(now.BeginningOfDay())
+	paylinkExpiresAt, _ := ptypes.TimestampProto(time.Now().Add(1 * time.Hour))
+	paylinkAlreadyExpiredAt, _ := ptypes.TimestampProto(time.Now().Add(-25 * time.Hour))
+
+	suite.paylink1 = &paylink.Paylink{
+		Id:                   bson.NewObjectId().Hex(),
+		Object:               "paylink",
+		Products:             productIds,
+		ExpiresAt:            paylinkExpiresAt,
+		CreatedAt:            paylinkBod,
+		UpdatedAt:            paylinkBod,
+		MerchantId:           projectWithProducts.MerchantId,
+		ProjectId:            projectWithProducts.Id,
+		Name:                 "Willy Wonka Strikes Back",
+		IsExpired:            false,
+		Visits:               0,
+		NoExpiryDate:         false,
+		ProductsType:         "product",
+		Deleted:              false,
+		TotalTransactions:    0,
+		SalesCount:           0,
+		ReturnsCount:         0,
+		Conversion:           0,
+		GrossSalesAmount:     0,
+		GrossReturnsAmount:   0,
+		GrossTotalAmount:     0,
+		TransactionsCurrency: "",
+	}
+
+	err = suite.service.paylinkService.Insert(suite.paylink1)
+	assert.NoError(suite.T(), err)
+
+	suite.paylink2 = &paylink.Paylink{
+		Id:                   bson.NewObjectId().Hex(),
+		Object:               "paylink",
+		Products:             productIds,
+		ExpiresAt:            paylinkExpiresAt,
+		CreatedAt:            paylinkBod,
+		UpdatedAt:            paylinkBod,
+		MerchantId:           projectWithProducts.MerchantId,
+		ProjectId:            projectWithProducts.Id,
+		Name:                 "Willy Wonka Strikes Back",
+		IsExpired:            false,
+		Visits:               0,
+		NoExpiryDate:         false,
+		ProductsType:         "product",
+		Deleted:              true,
+		TotalTransactions:    0,
+		SalesCount:           0,
+		ReturnsCount:         0,
+		Conversion:           0,
+		GrossSalesAmount:     0,
+		GrossReturnsAmount:   0,
+		GrossTotalAmount:     0,
+		TransactionsCurrency: "",
+	}
+
+	err = suite.service.paylinkService.Insert(suite.paylink2)
+	assert.NoError(suite.T(), err)
+
+	suite.paylink3 = &paylink.Paylink{
+		Id:                   bson.NewObjectId().Hex(),
+		Object:               "paylink",
+		Products:             productIds,
+		ExpiresAt:            paylinkAlreadyExpiredAt,
+		CreatedAt:            paylinkBod,
+		UpdatedAt:            paylinkBod,
+		MerchantId:           projectWithProducts.MerchantId,
+		ProjectId:            projectWithProducts.Id,
+		Name:                 "Willy Wonka Strikes Back",
+		IsExpired:            true,
+		Visits:               0,
+		NoExpiryDate:         false,
+		ProductsType:         "product",
+		Deleted:              false,
+		TotalTransactions:    0,
+		SalesCount:           0,
+		ReturnsCount:         0,
+		Conversion:           0,
+		GrossSalesAmount:     0,
+		GrossReturnsAmount:   0,
+		GrossTotalAmount:     0,
+		TransactionsCurrency: "",
+	}
+
+	err = suite.service.paylinkService.Insert(suite.paylink3)
+	assert.NoError(suite.T(), err)
 
 	sysCost := &billing.PaymentChannelCostSystem{
 		Id:        bson.NewObjectId().Hex(),
@@ -7051,12 +7143,94 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_NoPaymentMetho
 	assert.Equal(suite.T(), orderErrorPaymentMethodNotAllowed, rsp.Message)
 }
 
-func RandomString(n int) string {
-	var letter = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letter[rand.Intn(len(letter))]
+func (suite *OrderTestSuite) TestOrder_OrderCreateByPaylink_Ok() {
+	req := &billing.OrderCreateByPaylink{
+		PaylinkId:   suite.paylink1.Id,
+		PayerIp:     "127.0.0.1",
+		IssuerUrl:   "http://localhost/referrer",
+		UtmSource:   "unit-test-source",
+		UtmMedium:   "unit-test-medium",
+		UtmCampaign: "unit-test-campaign",
+		IsEmbedded:  false,
 	}
-	return string(b)
+
+	rsp := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateByPaylink(context.TODO(), req, rsp)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
+	assert.NotNil(suite.T(), rsp.Item)
+	assert.Equal(suite.T(), pkg.OrderTypeOrder, rsp.Item.Type)
+	assert.Equal(suite.T(), rsp.Item.Issuer.ReferenceType, pkg.OrderIssuerReferenceTypePaylink)
+	assert.Equal(suite.T(), rsp.Item.Issuer.Reference, suite.paylink1.Id)
+	assert.False(suite.T(), rsp.Item.Issuer.Embedded)
+	assert.Equal(suite.T(), rsp.Item.Issuer.Url, "http://localhost/referrer")
+	assert.Equal(suite.T(), rsp.Item.Issuer.UtmSource, "unit-test-source")
+	assert.Equal(suite.T(), rsp.Item.Issuer.UtmMedium, "unit-test-medium")
+	assert.Equal(suite.T(), rsp.Item.Issuer.UtmCampaign, "unit-test-campaign")
+	assert.Equal(suite.T(), rsp.Item.PrivateMetadata["PaylinkId"], suite.paylink1.Id)
+	assert.Len(suite.T(), rsp.Item.Products, len(suite.productIds))
+	assert.Len(suite.T(), rsp.Item.Items, len(suite.productIds))
+	assert.Equal(suite.T(), rsp.Item.Project.Id, suite.paylink1.ProjectId)
+	assert.Equal(suite.T(), rsp.Item.Project.MerchantId, suite.paylink1.MerchantId)
+}
+
+func (suite *OrderTestSuite) TestOrder_OrderCreateByPaylink_Fail_Expired() {
+	req := &billing.OrderCreateByPaylink{
+		PaylinkId:   suite.paylink3.Id,
+		PayerIp:     "127.0.0.1",
+		IssuerUrl:   "http://localhost/referrer",
+		UtmSource:   "unit-test-source",
+		UtmMedium:   "unit-test-medium",
+		UtmCampaign: "unit-test-medium",
+		IsEmbedded:  false,
+	}
+
+	rsp := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateByPaylink(context.TODO(), req, rsp)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusGone)
+	assert.Equal(suite.T(), rsp.Message, errorPaylinkExpired)
+	assert.Nil(suite.T(), rsp.Item)
+}
+
+func (suite *OrderTestSuite) TestOrder_OrderCreateByPaylink_Fail_Deleted() {
+	req := &billing.OrderCreateByPaylink{
+		PaylinkId:   suite.paylink2.Id,
+		PayerIp:     "127.0.0.1",
+		IssuerUrl:   "http://localhost/referrer",
+		UtmSource:   "unit-test-source",
+		UtmMedium:   "unit-test-medium",
+		UtmCampaign: "unit-test-medium",
+		IsEmbedded:  false,
+	}
+
+	rsp := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateByPaylink(context.TODO(), req, rsp)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusNotFound)
+	assert.Equal(suite.T(), rsp.Message, errorPaylinkNotFound)
+	assert.Nil(suite.T(), rsp.Item)
+}
+
+func (suite *OrderTestSuite) TestOrder_OrderCreateByPaylink_Fail_NotFound() {
+	req := &billing.OrderCreateByPaylink{
+		PaylinkId:   bson.NewObjectId().Hex(),
+		PayerIp:     "127.0.0.1",
+		IssuerUrl:   "http://localhost/referrer",
+		UtmSource:   "unit-test-source",
+		UtmMedium:   "unit-test-medium",
+		UtmCampaign: "unit-test-medium",
+		IsEmbedded:  false,
+	}
+
+	rsp := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateByPaylink(context.TODO(), req, rsp)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusNotFound)
+	assert.Equal(suite.T(), rsp.Message, errorPaylinkNotFound)
+	assert.Nil(suite.T(), rsp.Item)
 }

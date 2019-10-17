@@ -96,6 +96,7 @@ type Service struct {
 	formatter                  paysuper_i18n.Formatter
 	reporterService            reporterProto.ReporterService
 	postmarkBroker             rabbitmq.BrokerInterface
+	paylinkService             PaylinkServiceInterface
 }
 
 func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {
@@ -173,6 +174,7 @@ func (s *Service) Init() (err error) {
 	s.dashboardRepository = newDashboardRepository(s)
 	s.orderRepository = newOrderRepository(s)
 	s.centrifugo = newCentrifugo(s)
+	s.paylinkService = newPaylinkService(s)
 
 	if s.cfg.AccountingCurrency == "" {
 		return errors.New(errorAccountingCurrencyNotFound)

@@ -5,8 +5,10 @@ package grpc;
 
 import "google/protobuf/timestamp.proto";
 import "billing/billing.proto";
+import "paylink/paylink.proto";
 
 service BillingService {
+    rpc OrderCreateByPaylink (billing.OrderCreateByPaylink) returns (OrderCreateProcessResponse) {}
     rpc OrderCreateProcess (billing.OrderCreateRequest) returns (OrderCreateProcessResponse) {}
     rpc PaymentFormJsonDataProcess (PaymentFormJsonDataRequest) returns (PaymentFormJsonDataResponse) {}
     rpc PaymentCreateProcess (PaymentCreateRequest) returns (PaymentCreateResponse) {}
@@ -173,6 +175,18 @@ service BillingService {
     rpc PaymentFormPlatformChanged (PaymentFormUserChangePlatformRequest) returns (EmptyResponseWithStatus) {}
 
     rpc CheckSkuAndKeyProject(CheckSkuAndKeyProjectRequest) returns (EmptyResponseWithStatus) {}
+
+    rpc GetPaylinks (GetPaylinksRequest) returns (GetPaylinksResponse) {}
+    rpc GetPaylink (PaylinkRequest) returns (GetPaylinkResponse) {}
+    rpc IncrPaylinkVisits (PaylinkRequestById) returns (EmptyResponse) {}
+    rpc GetPaylinkURL (GetPaylinkURLRequest) returns (GetPaylinkUrlResponse) {}
+    rpc CreateOrUpdatePaylink (paylink.CreatePaylinkRequest) returns (GetPaylinkResponse) {}
+    rpc DeletePaylink (PaylinkRequest) returns (EmptyResponseWithStatus) {}
+    rpc GetPaylinkStatTotal (GetPaylinkStatCommonRequest) returns (GetPaylinkStatCommonResponse) {}
+    rpc GetPaylinkStatByCountry (GetPaylinkStatCommonRequest) returns (GetPaylinkStatCommonGroupResponse) {}
+    rpc GetPaylinkStatByReferrer (GetPaylinkStatCommonRequest) returns (GetPaylinkStatCommonGroupResponse) {}
+    rpc GetPaylinkStatByDate (GetPaylinkStatCommonRequest) returns (GetPaylinkStatCommonGroupResponse) {}
+    rpc GetPaylinkStatByUtm (GetPaylinkStatCommonRequest) returns (GetPaylinkStatCommonGroupResponse) {}
 }
 
 message EmptyRequest {
@@ -2168,4 +2182,96 @@ message ChangeMerchantManualPayoutsResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     billing.Merchant item = 3;
+}
+
+message GetPaylinksRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 1;
+    //@inject_tag: validate:"omitempty,hexadecimal,len=24"
+    string project_id = 2;
+    // @inject_tag: validate:"required,numeric,gte=1"
+    int32 limit = 3;
+    // @inject_tag: validate:"omitempty,numeric,gte=0"
+    int32 offset = 4;
+}
+
+message PaylinksPaginate {
+    // @inject_tag: json:"count"
+    int32 count = 1; // total count of selected orders
+    // @inject_tag: json:"items"
+    repeated paylink.Paylink items = 2; // array of selected docs
+}
+
+message GetPaylinksResponse {
+    int32 status = 1;
+    // @inject_tag: json:"message,omitempty"
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"data"
+    PaylinksPaginate data = 3;
+}
+
+message PaylinkRequestById {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string id = 1;
+}
+
+message PaylinkRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string id = 1;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 2;
+}
+
+message GetPaylinkResponse {
+    int32 status = 1;
+    // @inject_tag: json:"message,omitempty"
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"item"
+    paylink.Paylink item = 3;
+}
+
+message GetPaylinkURLRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string id = 1;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 2;
+    string url_mask = 3;
+    string utm_source = 4;
+    string utm_medium = 5;
+    string utm_campaign = 6;
+}
+
+message GetPaylinkUrlResponse {
+    int32 status = 1;
+    // @inject_tag: json:"message,omitempty"
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"url"
+    string url = 4;
+}
+
+message GetPaylinkStatCommonRequest {
+    //@inject_tag: validate:"required,hexadecimal"
+    string id = 1;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 2;
+    // @inject_tag: query:"period_from" validate:"omitempty,numeric,gte=0"
+    int64 period_from = 3;
+    // @inject_tag: query:"period_to" validate:"omitempty,numeric,gte=0"
+    int64 period_to = 4;
+}
+
+message GetPaylinkStatCommonResponse {
+    int32 status = 1;
+    // @inject_tag: json:"message,omitempty"
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"item"
+    paylink.StatCommon item = 3;
+}
+
+message GetPaylinkStatCommonGroupResponse {
+    int32 status = 1;
+    // @inject_tag: json:"message,omitempty"
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"item"
+    paylink.GroupStatCommon item = 3;
 }

@@ -99,6 +99,9 @@ To run application as microservice simply don't pass any flags to command line :
 | HELLO_SIGN_PAYOUTS_TITLE             | Hellosign title for payout invoices                                                                                                 |
 | HELLO_SIGN_PAYOUTS_SUBJECT           | Hellosign subject for payout invoices                                                                                               |
 | HELLO_SIGN_PAYOUTS_MESSAGE           | Hellosign prompt message for payout invoices                                                                                        |
+| PAYLINK_MIN_PRODUCTS                 | Minimum number of products allowed for one payment link (must be >= 1)                                                              |
+| PAYLINK_MAX_PRODUCTS                 | Maximum number of products allowed for one payment link                                                                             |
+
 
 ## Architecture
 

@@ -60,6 +60,7 @@ const (
 	ResponseStatusBadData     = int32(400)
 	ResponseStatusNotFound    = int32(404)
 	ResponseStatusForbidden   = int32(403)
+	ResponseStatusGone        = int32(410)
 	ResponseStatusSystemError = int32(500)
 	ResponseStatusTemporary   = int32(410)
 
@@ -161,6 +162,10 @@ const (
 
 	BalanceTransactionStatusAvailable = "available"
 
+	ErrorTimeConversion       = "Time conversion error"
+	ErrorTimeConversionValue  = "value"
+	ErrorTimeConversionMethod = "conversion method"
+
 	ErrorDatabaseQueryFailed          = "Query to database collection failed"
 	ErrorDatabaseFieldCollection      = "collection"
 	ErrorDatabaseFieldDocumentId      = "document_id"
@@ -170,6 +175,7 @@ const (
 	ErrorDatabaseFieldLimit           = "limit"
 	ErrorDatabaseFieldOffset          = "offset"
 	ErrorDatabaseFieldOperation       = "operation"
+	ErrorDatabaseFieldOperationCount  = "count"
 	ErrorDatabaseFieldOperationInsert = "insert"
 	ErrorDatabaseFieldOperationUpdate = "update"
 	ErrorDatabaseFieldOperationUpsert = "upsert"
@@ -289,6 +295,10 @@ const (
 	PayoutDocumentStatusFailed     = "failed"
 
 	OrderIssuerReferenceTypePaylink = "paylink"
+
+	PaylinkUrlDefaultMask = "/paylink/%s"
+
+	DatabaseRequestDefaultLimit = int(100)
 )
 
 var (

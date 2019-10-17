@@ -31,6 +31,7 @@ type PaymentChannelCostSystem Entity
 type PaymentChannelCostMerchant Entity
 type MoneyBackCostSystem Entity
 type MoneyBackCostMerchant Entity
+type Paylink Entity
 type PayoutCostSystem Entity
 type PriceTable Entity
 type Product Entity
@@ -88,11 +89,7 @@ func getHostFromUrl(urlString string) string {
 	}
 	host, _, err := net.SplitHostPort(u.Host)
 	if err != nil {
-		zap.L().Error(
-			"host-port splitting failed",
-			zap.Error(err),
-		)
-		return ""
+		return u.Host
 	}
 	return host
 }
