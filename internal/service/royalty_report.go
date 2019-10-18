@@ -287,12 +287,15 @@ func (s *Service) MerchantReviewRoyaltyReport(
 	rsp *grpc.ResponseError,
 ) error {
 	report, err := s.royaltyReport.GetById(req.ReportId)
-	if err != nil {
+
+	if err != nil || report.MerchantId != req.MerchantId {
 		if err == mgo.ErrNotFound {
 			rsp.Status = pkg.ResponseStatusNotFound
 			rsp.Message = royaltyReportErrorReportNotFound
+
 			return nil
 		}
+
 		return err
 	}
 
@@ -314,6 +317,7 @@ func (s *Service) MerchantReviewRoyaltyReport(
 	report.UpdatedAt = ptypes.TimestampNow()
 
 	err = s.royaltyReport.Update(report, req.Ip, pkg.RoyaltyReportChangeSourceMerchant)
+
 	if err != nil {
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusSystemError
@@ -344,12 +348,14 @@ func (s *Service) GetRoyaltyReport(
 	rsp *grpc.GetRoyaltyReportResponse,
 ) error {
 	report, err := s.royaltyReport.GetById(req.ReportId)
-	if err != nil {
+
+	if err != nil || report.MerchantId != req.MerchantId {
 		if err == mgo.ErrNotFound {
 			rsp.Status = pkg.ResponseStatusNotFound
 			rsp.Message = royaltyReportErrorReportNotFound
 			return nil
 		}
+
 		return err
 	}
 
@@ -365,12 +371,15 @@ func (s *Service) ChangeRoyaltyReport(
 	rsp *grpc.ResponseError,
 ) error {
 	report, err := s.royaltyReport.GetById(req.ReportId)
-	if err != nil {
+
+	if err != nil || report.MerchantId != req.MerchantId {
 		if err == mgo.ErrNotFound {
 			rsp.Status = pkg.ResponseStatusNotFound
 			rsp.Message = royaltyReportErrorReportNotFound
+
 			return nil
 		}
+
 		return err
 	}
 
@@ -508,16 +517,18 @@ func (s *Service) ListRoyaltyReportOrders(
 	req *grpc.ListRoyaltyReportOrdersRequest,
 	res *grpc.TransactionsResponse,
 ) error {
-
 	res.Status = pkg.ResponseStatusOk
 
 	report, err := s.royaltyReport.GetById(req.ReportId)
-	if err != nil {
+
+	if err != nil || report.MerchantId != req.MerchantId {
 		if err == mgo.ErrNotFound {
 			res.Status = pkg.ResponseStatusNotFound
 			res.Message = royaltyReportErrorReportNotFound
+
 			return nil
 		}
+
 		return err
 	}
 
@@ -531,6 +542,7 @@ func (s *Service) ListRoyaltyReportOrders(
 	}
 
 	ts, err := s.orderView.GetTransactionsPublic(match, int(req.Limit), int(req.Offset))
+
 	if err != nil {
 		return err
 	}
