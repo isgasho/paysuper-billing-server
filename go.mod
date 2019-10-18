@@ -47,7 +47,6 @@ require (
 replace (
 	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.0
 	github.com/gogo/protobuf v0.0.0-20190410021324-65acae22fc9 => github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
-	github.com/golang/lint => github.com/golang/lint v0.0.0-20190227174305-8f45f776aaf1
 	github.com/hashicorp/consul => github.com/hashicorp/consul v1.5.2
 	github.com/hashicorp/consul/api => github.com/hashicorp/consul/api v1.1.0
 	github.com/lucas-clemente/quic-go => github.com/lucas-clemente/quic-go v0.12.0

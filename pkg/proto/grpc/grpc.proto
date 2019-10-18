@@ -986,17 +986,17 @@ message Product {
 }
 
 message ListProductsRequest {
-    //@inject_tag: json:"name"
+    //@inject_tag: json:"name" query:"name"
     string name = 1;
-    //@inject_tag: json:"sku"
+    //@inject_tag: json:"sku" query:"sku"
     string sku = 2;
-    // @inject_tag: validate:"required,numeric,gt=0" json:"limit"
+    // @inject_tag: validate:"required,numeric,gt=0" json:"limit" query:"limit"
     int32 limit = 3;
-    // @inject_tag: validate:"omitempty,numeric,gte=0" json:"offset"
+    // @inject_tag: validate:"omitempty,numeric,gte=0" json:"offset" query:"offset"
     int32 offset = 4;
     //@inject_tag: validate:"required,hexadecimal,len=24" json:"merchant_id" bson:"merchant_id"
     string merchant_id = 5;
-    //@inject_tag: validate:"omitempty,hexadecimal,len=24" json:"project_id" bson:"project_id"
+    //@inject_tag: validate:"omitempty,hexadecimal,len=24" json:"project_id" bson:"project_id" query:"project_id"
     string project_id = 6;
     //@inject_tag: json:"enable"
     int32 enable = 7;
@@ -1045,7 +1045,7 @@ message ListProductsResponse {
 }
 
 message RequestProduct {
-    //@inject_tag: validate:"required,hexadecimal,len=24"
+    //@inject_tag: validate:"required,hexadecimal,len=24" param:"product_id"
     string id = 1;
     //@inject_tag: validate:"hexadecimal,len=24"
     string merchant_id = 2;
@@ -1533,10 +1533,12 @@ message ProductPricesResponse {
 }
 
 message UpdateProductPricesRequest {
-    //@inject_tag: validate:"required,hexadecimal,len=24" json:"product_id"
+    //@inject_tag: validate:"required,hexadecimal,len=24" json:"product_id" param:"product_id"
     string product_id = 1;
     //@inject_tag: validate:"required,min=1,dive" json:"prices"
     repeated billing.ProductPrice prices = 2;
+    //@inject_tag: validate:"hexadecimal,len=24"
+    string merchant_id = 3;
 }
 
 message UserProfilePersonal {
