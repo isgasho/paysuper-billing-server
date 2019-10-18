@@ -46,7 +46,7 @@ func (s *Service) ChangeProject(
 	if req.Id != "" {
 		project, err = s.getProjectBy(bson.M{"_id": bson.ObjectIdHex(req.Id), "merchant_id": bson.ObjectIdHex(req.MerchantId)})
 
-		if err != nil {
+		if err != nil || project.MerchantId != req.MerchantId {
 			rsp.Status = pkg.ResponseStatusNotFound
 			rsp.Message = projectErrorNotFound
 
@@ -119,7 +119,7 @@ func (s *Service) GetProject(
 
 	project, err := s.getProjectBy(query)
 
-	if err != nil {
+	if err != nil || project.MerchantId != req.MerchantId {
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = projectErrorNotFound
 
@@ -235,13 +235,9 @@ func (s *Service) DeleteProject(
 ) error {
 	query := bson.M{"_id": bson.ObjectIdHex(req.ProjectId)}
 
-	if req.MerchantId != "" {
-		query["merchant_id"] = bson.ObjectIdHex(req.MerchantId)
-	}
-
 	project, err := s.getProjectBy(query)
 
-	if err != nil {
+	if err != nil || req.MerchantId != project.MerchantId {
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = projectErrorNotFound
 
@@ -444,7 +440,6 @@ func (h Project) GetById(id string) (*billing.Project, error) {
 
 	return &c, nil
 }
-
 
 func (s *Service) CheckSkuAndKeyProject(ctx context.Context, req *grpc.CheckSkuAndKeyProjectRequest, rsp *grpc.EmptyResponseWithStatus) error {
 	rsp.Status = pkg.ResponseStatusOk

@@ -1340,8 +1340,8 @@ type ListKeyProductsRequest struct {
 	Limit int32 `protobuf:"varint,3,opt,name=limit,proto3" json:"limit" query:"limit" validate:"required,numeric,gt=0"`
 	// @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0" json:"offset"
 	Offset int32 `protobuf:"varint,4,opt,name=offset,proto3" json:"offset" query:"offset" validate:"omitempty,numeric,gte=0"`
-	//@inject_tag: query:"merchant_id" validate:"required,hexadecimal,len=24"
-	MerchantId string `protobuf:"bytes,5,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id,omitempty" query:"merchant_id" validate:"required,hexadecimal,len=24"`
+	//@inject_tag: validate:"required,hexadecimal,len=24"
+	MerchantId string `protobuf:"bytes,5,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id,omitempty" validate:"required,hexadecimal,len=24"`
 	//@inject_tag: query:"project_id" validate:"omitempty,hexadecimal,len=24"
 	ProjectId string `protobuf:"bytes,6,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty" query:"project_id" validate:"omitempty,hexadecimal,len=24"`
 	//@inject_tag: query:"enabled" validate:"omitempty,oneof=true false"
@@ -2726,8 +2726,8 @@ func (m *ListingMerchantPaymentMethod) GetPaymentMethods() []*billing.MerchantPa
 }
 
 type GetMerchantPaymentMethodRequest struct {
-	// @inject_tag: query:"merchant_id", validate:"required,hexadecimal,len=24"
-	MerchantId string `protobuf:"bytes,1,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id,omitempty" query:"merchant_id" validate:"required,hexadecimal,len=24"`
+	// @inject_tag: validate:"required,hexadecimal,len=24"
+	MerchantId string `protobuf:"bytes,1,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id,omitempty" validate:"required,hexadecimal,len=24"`
 	// @inject_tag: query:"payment_method_id", validate:"required,hexadecimal,len=24"
 	PaymentMethodId      string   `protobuf:"bytes,2,opt,name=payment_method_id,json=paymentMethodId,proto3" json:"payment_method_id,omitempty" query:"payment_method_id" validate:"required,hexadecimal,len=24"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -2830,8 +2830,8 @@ func (m *GetMerchantPaymentMethodResponse) GetItem() *billing.MerchantPaymentMet
 }
 
 type ListMerchantPaymentMethodsRequest struct {
-	// @inject_tag: query:"merchant_id", validate:"required,hexadecimal,len=24"
-	MerchantId string `protobuf:"bytes,1,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id,omitempty" query:"merchant_id" validate:"required,hexadecimal,len=24"`
+	// @inject_tag: validate:"required,hexadecimal,len=24"
+	MerchantId string `protobuf:"bytes,1,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id,omitempty" validate:"required,hexadecimal,len=24"`
 	// @inject_tag: query:"method_name"
 	PaymentMethodName string `protobuf:"bytes,2,opt,name=payment_method_name,json=paymentMethodName,proto3" json:"payment_method_name,omitempty" query:"method_name"`
 	// @inject_tag: query:"sort[]"
@@ -6064,8 +6064,8 @@ func (m *RequestProduct) GetMerchantId() string {
 type RequestKeyProductMerchant struct {
 	//@inject_tag: query:"id" validate:"required,hexadecimal,len=24"
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty" query:"id" validate:"required,hexadecimal,len=24"`
-	//@inject_tag: query:"merchant_id" validate:"hexadecimal,len=24"
-	MerchantId           string   `protobuf:"bytes,2,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id,omitempty" query:"merchant_id" validate:"hexadecimal,len=24"`
+	//@inject_tag: validate:"hexadecimal,len=24"
+	MerchantId           string   `protobuf:"bytes,2,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id,omitempty" validate:"hexadecimal,len=24"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -6304,8 +6304,8 @@ func (m *GetProjectRequest) GetProjectId() string {
 }
 
 type ListProjectsRequest struct {
-	//@inject_tag: query:"merchant_id" validate:"omitempty,hexadecimal,len=24"
-	MerchantId string `protobuf:"bytes,1,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id,omitempty" query:"merchant_id" validate:"omitempty,hexadecimal,len=24"`
+	//@inject_tag: validate:"omitempty,hexadecimal,len=24"
+	MerchantId string `protobuf:"bytes,1,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id,omitempty" validate:"omitempty,hexadecimal,len=24"`
 	// @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
 	Limit int32 `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty" query:"limit" validate:"omitempty,numeric,gt=0"`
 	// @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
@@ -7901,8 +7901,8 @@ type ListRoyaltyReportsRequest struct {
 	PeriodFrom int64 `protobuf:"varint,1,opt,name=period_from,json=periodFrom,proto3" json:"period_from,omitempty" query:"period_from" validate:"omitempty,numeric,gt=0"`
 	// @inject_tag: query:"period_to" validate:"omitempty,numeric,gt=0"
 	PeriodTo int64 `protobuf:"varint,2,opt,name=period_to,json=periodTo,proto3" json:"period_to,omitempty" query:"period_to" validate:"omitempty,numeric,gt=0"`
-	// @inject_tag: query:"merchant_id" validate:"required,hexadecimal,len=24"
-	MerchantId string `protobuf:"bytes,3,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id,omitempty" query:"merchant_id" validate:"required,hexadecimal,len=24"`
+	// @inject_tag: validate:"required,hexadecimal,len=24"
+	MerchantId string `protobuf:"bytes,3,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id,omitempty" validate:"required,hexadecimal,len=24"`
 	//@inject_tag: query:"status[]" validate:"omitempty,dive,oneof=pending accepted canceled dispute waiting_payment paid"
 	Status []string `protobuf:"bytes,4,rep,name=status,proto3" json:"status,omitempty" query:"status[]" validate:"omitempty,dive,oneof=pending accepted canceled dispute waiting_payment paid"`
 	// @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
@@ -12713,8 +12713,8 @@ type GetPayoutDocumentsRequest struct {
 	PayoutDocumentId string `protobuf:"bytes,1,opt,name=payout_document_id,json=payoutDocumentId,proto3" json:"payout_document_id,omitempty" query:"payout_document_id" validate:"omitempty,hexadecimal,len=24"`
 	//@inject_tag: query:"status[]" validate:"omitempty,dive,oneof=skip pending in_progress paid canceled failed"
 	Status []string `protobuf:"bytes,2,rep,name=status,proto3" json:"status,omitempty" query:"status[]" validate:"omitempty,dive,oneof=skip pending in_progress paid canceled failed"`
-	//@inject_tag: query:"merchant_id" validate:"omitempty,hexadecimal,len=24"
-	MerchantId string `protobuf:"bytes,3,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id,omitempty" query:"merchant_id" validate:"omitempty,hexadecimal,len=24"`
+	//@inject_tag: validate:"omitempty,hexadecimal,len=24"
+	MerchantId string `protobuf:"bytes,3,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id,omitempty" validate:"omitempty,hexadecimal,len=24"`
 	//@inject_tag: query:"signed"
 	Signed bool `protobuf:"varint,4,opt,name=signed,proto3" json:"signed,omitempty" query:"signed"`
 	// @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
