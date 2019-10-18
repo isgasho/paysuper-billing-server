@@ -57,7 +57,9 @@ var (
 	errorUserUnsupportedRoleType      = newBillingServerErrorMsg("uu000015", "unsupported role type")
 	errorUserUnableToDelete           = newBillingServerErrorMsg("uu000016", "unable to delete user")
 	errorUserUnableToDeleteFromCasbin = newBillingServerErrorMsg("uu000017", "unable to delete user from the casbin server")
-	errorUserDontHaveRole = newBillingServerErrorMsg("uu000018", "user dont have any role")
+	errorUserDontHaveRole             = newBillingServerErrorMsg("uu000018", "user dont have any role")
+	errorUserUnableResendInvite       = newBillingServerErrorMsg("uu000019", "unable to resend invite")
+	errorUserBelongAnotherMerchant    = newBillingServerErrorMsg("uu000020", "user belongs to another merchant")
 
 	merchantUserRoles = map[string][]*billing.RoleListItem{
 		pkg.RoleTypeMerchant: {
@@ -360,6 +362,22 @@ func (s *Service) ResendInviteMerchant(
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserNotFound
+
+		return nil
+	}
+
+	if role.User.Status == pkg.UserRoleStatusInvited {
+		zap.L().Error(errorUserUnableResendInvite.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserUnableResendInvite
+
+		return nil
+	}
+
+	if role.MerchantId != owner.MerchantId {
+		zap.L().Error(errorUserBelongAnotherMerchant.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserBelongAnotherMerchant
 
 		return nil
 	}
@@ -706,6 +724,14 @@ func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.Chang
 		return nil
 	}
 
+	if user.MerchantId != owner.MerchantId {
+		zap.L().Error(errorUserBelongAnotherMerchant.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserBelongAnotherMerchant
+
+		return nil
+	}
+
 	user.Role = req.Role
 	err = s.userRoleRepository.UpdateMerchantUser(user)
 
@@ -850,6 +876,14 @@ func (s *Service) DeleteMerchantUser(
 		return nil
 	}
 
+	if user.MerchantId != owner.MerchantId {
+		zap.L().Error(errorUserBelongAnotherMerchant.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserBelongAnotherMerchant
+
+		return nil
+	}
+
 	if err = s.userRoleRepository.DeleteMerchantUser(user); err != nil {
 		zap.L().Error(errorUserUnableToDelete.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
@@ -947,7 +981,7 @@ func (s *Service) GetPermissionsForUser(ctx context.Context, req *grpc.GetPermis
 	permissions := make([]*grpc.Permission, len(rsp.D2))
 	for i, p := range rsp.D2 {
 		permissions[i] = &grpc.Permission{
-			Name: p.D1[0],
+			Name:   p.D1[0],
 			Access: p.D1[1],
 		}
 	}
