@@ -4,17 +4,17 @@
 package grpc
 
 import (
-	"fmt"
-	"github.com/golang/protobuf/proto"
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
 	_ "github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"math"
+	billing "github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	math "math"
 )
 
 import (
-	"context"
-	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/server"
+	context "context"
+	client "github.com/micro/go-micro/client"
+	server "github.com/micro/go-micro/server"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
