@@ -12972,8 +12972,8 @@ func (m *GetPayoutDocumentsResponse) GetData() *PayoutDocumentsPaginate {
 }
 
 type GetPayoutDocumentSignUrlRequest struct {
-	//@inject_tag: query:"payout_document_id" validate:"required,hexadecimal,len=24"
-	PayoutDocumentId string `protobuf:"bytes,1,opt,name=payout_document_id,json=payoutDocumentId,proto3" json:"payout_document_id,omitempty" query:"payout_document_id" validate:"required,hexadecimal,len=24"`
+	//@inject_tag: validate:"required,hexadecimal,len=24" param:"id"
+	PayoutDocumentId string `protobuf:"bytes,1,opt,name=payout_document_id,json=payoutDocumentId,proto3" json:"payout_document_id,omitempty" validate:"required,hexadecimal,len=24" param:"id"`
 	//@inject_tag: json:"signer_type" validate:"oneof=0 1"
 	SignerType int32 `protobuf:"varint,2,opt,name=signer_type,json=signerType,proto3" json:"signer_type" validate:"oneof=0 1"`
 	//@inject_tag: json:"ip"

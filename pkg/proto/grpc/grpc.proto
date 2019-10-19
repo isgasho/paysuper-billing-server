@@ -2103,7 +2103,7 @@ message GetPayoutDocumentsResponse {
 }
 
 message GetPayoutDocumentSignUrlRequest {
-    //@inject_tag: query:"payout_document_id" validate:"required,hexadecimal,len=24"
+    //@inject_tag: validate:"required,hexadecimal,len=24" param:"id"
     string payout_document_id = 1;
     //@inject_tag: json:"signer_type" validate:"oneof=0 1"
     int32 signer_type = 2;
