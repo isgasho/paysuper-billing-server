@@ -108,8 +108,16 @@ func (s *Service) ListRefunds(
 ) error {
 	var refunds []*billing.Refund
 
+	order := &billing.OrderViewPublic{}
+	err := s.db.Collection(collectionOrderView).Find(bson.M{"uuid": bson.ObjectIdHex(req.OrderId)}).One(order)
+
+	if err != nil || order.MerchantId != req.MerchantId {
+		zap.S().Errorf("Unable to get original order on refund", "uuid", req.OrderId, "merchantId", req.MerchantId)
+		return nil
+	}
+
 	query := bson.M{"original_order.uuid": req.OrderId}
-	err := s.db.Collection(collectionRefund).Find(query).Limit(int(req.Limit)).Skip(int(req.Offset)).All(&refunds)
+	err = s.db.Collection(collectionRefund).Find(query).Limit(int(req.Limit)).Skip(int(req.Offset)).All(&refunds)
 
 	if err != nil {
 		if err != mgo.ErrNotFound {
@@ -141,8 +149,16 @@ func (s *Service) GetRefund(
 ) error {
 	var refund *billing.Refund
 
+	order := &billing.OrderViewPublic{}
+	err := s.db.Collection(collectionOrderView).Find(bson.M{"uuid": bson.ObjectIdHex(req.OrderId)}).One(order)
+
+	if err != nil || order.MerchantId != req.MerchantId {
+		zap.S().Errorf("Unable to get original order on refund", "uuid", req.OrderId, "merchantId", req.MerchantId)
+		return nil
+	}
+
 	query := bson.M{"_id": bson.ObjectIdHex(req.RefundId), "original_order.uuid": req.OrderId}
-	err := s.db.Collection(collectionRefund).Find(query).One(&refund)
+	err = s.db.Collection(collectionRefund).Find(query).One(&refund)
 
 	if err != nil {
 		if err != mgo.ErrNotFound {

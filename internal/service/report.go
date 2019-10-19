@@ -33,10 +33,16 @@ func (s *Service) FindAllOrdersPublic(
 		return nil
 	}
 
+	orderList := orders.([]*billing.OrderViewPublic)
+
+	if orderList[0].MerchantId != req.Merchant[0] {
+		return nil
+	}
+
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = &grpc.ListOrdersPublicResponseItem{
 		Count: int32(count),
-		Items: orders.([]*billing.OrderViewPublic),
+		Items: orderList,
 	}
 
 	return nil
@@ -93,7 +99,7 @@ func (s *Service) GetOrderPublic(
 	req *grpc.GetOrderRequest,
 	rsp *grpc.GetOrderPublicResponse,
 ) error {
-	order, err := s.orderView.GetOrderBy("", req.Id, req.Merchant, new(billing.OrderViewPublic))
+	order, err := s.orderView.GetOrderBy("", req.OrderId, req.MerchantId, new(billing.OrderViewPublic))
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -106,8 +112,16 @@ func (s *Service) GetOrderPublic(
 		return nil
 	}
 
-	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = order.(*billing.OrderViewPublic)
+
+	if rsp.Item.MerchantId != req.MerchantId {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
+
+		return nil
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
 
 	return nil
 }
@@ -117,7 +131,7 @@ func (s *Service) GetOrderPrivate(
 	req *grpc.GetOrderRequest,
 	rsp *grpc.GetOrderPrivateResponse,
 ) error {
-	order, err := s.orderView.GetOrderBy("", req.Id, req.Merchant, new(billing.OrderViewPrivate))
+	order, err := s.orderView.GetOrderBy("", req.OrderId, req.MerchantId, new(billing.OrderViewPrivate))
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
