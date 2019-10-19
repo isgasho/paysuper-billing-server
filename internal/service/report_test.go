@@ -475,8 +475,8 @@ func (suite *ReportTestSuite) TestReport_FindByProjectDateTo() {
 
 func (suite *ReportTestSuite) TestReport_GetOrder() {
 	req := &grpc.GetOrderRequest{
-		Id:       bson.NewObjectId().Hex(),
-		Merchant: suite.project.MerchantId,
+		OrderId:    bson.NewObjectId().Hex(),
+		MerchantId: suite.project.MerchantId,
 	}
 	rsp := &grpc.GetOrderPublicResponse{}
 	err := suite.service.GetOrderPublic(context.TODO(), req, rsp)
@@ -494,7 +494,7 @@ func (suite *ReportTestSuite) TestReport_GetOrder() {
 
 	order := helperCreateAndPayOrder(suite.Suite, suite.service, 555.55, "RUB", "RU", suite.project, suite.pmBankCard)
 
-	req.Id = order.Uuid
+	req.OrderId = order.Uuid
 	err = suite.service.GetOrderPublic(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
