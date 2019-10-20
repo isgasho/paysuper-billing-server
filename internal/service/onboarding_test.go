@@ -3381,6 +3381,13 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_Ok() {
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), merchant)
 	assert.NotNil(suite.T(), merchant.Banking)
+	assert.NotNil(suite.T(), merchant.Tariff)
+	assert.NotNil(suite.T(), merchant.Tariff.Payment)
+	assert.NotEmpty(suite.T(), merchant.Tariff.Payment)
+	assert.NotNil(suite.T(), merchant.Tariff.Payout)
+	assert.NotZero(suite.T(), merchant.Tariff.Payout.MethodFixedFee)
+	assert.NotZero(suite.T(), merchant.Tariff.Payout.MethodFixedFeeCurrency)
+	assert.Equal(suite.T(), req.HomeRegion, merchant.Tariff.HomeRegion)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_MerchantNotFound_Error() {

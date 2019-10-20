@@ -125,7 +125,7 @@ type MgoMerchant struct {
 	RollingReserveChargebackTransactionsThreshold float64                              `bson:"rolling_reserve_chargeback_transactions_threshold"`
 	ItemMinCostAmount                             float64                              `bson:"item_min_cost_amount"`
 	ItemMinCostCurrency                           string                               `bson:"item_min_cost_currency"`
-	PaymentTariffs                                []*MerchantTariffRatesPayment        `bson:"payment_tariffs"`
+	Tariff                                        *MerchantTariff                      `bson:"tariff"`
 	AgreementSignatureData                        *MgoMerchantAgreementSignatureData   `bson:"agreement_signature_data"`
 	Steps                                         *MerchantCompletedSteps              `bson:"steps"`
 	AgreementTemplate                             string                               `bson:"agreement_template"`
@@ -2193,7 +2193,7 @@ func (m *Merchant) GetBSON() (interface{}, error) {
 		RollingReserveChargebackTransactionsThreshold: m.RollingReserveChargebackTransactionsThreshold,
 		ItemMinCostAmount:   m.ItemMinCostAmount,
 		ItemMinCostCurrency: m.ItemMinCostCurrency,
-		PaymentTariffs:      m.PaymentTariffs,
+		Tariff:              m.Tariff,
 		Steps:               m.Steps,
 		AgreementTemplate:   m.AgreementTemplate,
 		AgreementNumber:     m.AgreementNumber,
@@ -2385,7 +2385,7 @@ func (m *Merchant) SetBSON(raw bson.Raw) error {
 	m.RollingReserveChargebackTransactionsThreshold = decoded.RollingReserveChargebackTransactionsThreshold
 	m.ItemMinCostAmount = decoded.ItemMinCostAmount
 	m.ItemMinCostCurrency = decoded.ItemMinCostCurrency
-	m.PaymentTariffs = decoded.PaymentTariffs
+	m.Tariff = decoded.Tariff
 	m.Steps = decoded.Steps
 	m.AgreementTemplate = decoded.AgreementTemplate
 	m.AgreementNumber = decoded.AgreementNumber

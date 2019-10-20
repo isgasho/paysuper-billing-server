@@ -219,7 +219,8 @@ func (m *Merchant) IsMerchantSignature(signatureId string) bool {
 }
 
 func (m *Merchant) HasTariff() bool {
-	return len(m.PaymentTariffs) > 0
+	return m.Tariff != nil && len(m.Tariff.Payment) > 0 && m.Tariff.Payout != nil &&
+		m.Tariff.Payout.MethodFixedFee > 0 && m.Tariff.Payout.MethodFixedFeeCurrency != "" && m.Tariff.HomeRegion != ""
 
 }
 

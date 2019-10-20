@@ -22,6 +22,7 @@ It has these top-level messages:
 	MerchantCompletedSteps
 	MerchantAgreementSignatureDataSignUrl
 	MerchantAgreementSignatureData
+	MerchantTariff
 	Merchant
 	SystemNotificationStatuses
 	Notification

@@ -286,6 +286,12 @@ message MerchantAgreementSignatureData {
     MerchantAgreementSignatureDataSignUrl ps_sign_url = 7;
 }
 
+message MerchantTariff {
+    repeated billing.MerchantTariffRatesPayment payment = 1;
+    MerchantTariffRatesSettingsItem payout = 2;
+    string home_region = 3;
+}
+
 message Merchant {
     // @inject_tag: bson:"_id"
     string id = 1;
@@ -361,7 +367,7 @@ message Merchant {
     // @inject_tag: json:"minimal_payout_limit"
     float minimal_payout_limit = 52;
     // @inject_tag: json:"-"
-    repeated billing.MerchantTariffRatesPayment payment_tariffs = 53;
+    MerchantTariff tariff = 53;
 }
 
 message SystemNotificationStatuses {

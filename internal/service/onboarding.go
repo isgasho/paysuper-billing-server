@@ -1355,7 +1355,11 @@ func (s *Service) SetMerchantTariffRates(
 		}
 	}
 
-	merchant.PaymentTariffs = tariffs.Payment
+	merchant.Tariff = &billing.MerchantTariff{
+		Payment:    tariffs.Payment,
+		Payout:     tariffs.Payout,
+		HomeRegion: req.HomeRegion,
+	}
 
 	if merchant.Steps == nil {
 		merchant.Steps = &billing.MerchantCompletedSteps{}
