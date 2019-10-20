@@ -1796,7 +1796,7 @@ message GetMerchantTariffRatesResponse {
 message SetMerchantTariffRatesRequest {
     //@inject_tag: json:"merchant_id" validate:"required,hexadecimal,len=24"
     string merchant_id = 1;
-    // @inject_tag: json:"region" validate:"required,tariff_region"
+    // @inject_tag: json:"home_region" validate:"required,tariff_region"
     string home_region = 2;
 }
 

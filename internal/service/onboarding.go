@@ -1210,10 +1210,6 @@ func (s *Service) GetMerchantTariffRates(
 	req *grpc.GetMerchantTariffRatesRequest,
 	rsp *grpc.GetMerchantTariffRatesResponse,
 ) error {
-	if req.PayerRegion == "" {
-		req.PayerRegion = req.HomeRegion
-	}
-
 	tariffs, err := s.merchantTariffRates.GetBy(req)
 
 	if err != nil {
