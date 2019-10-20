@@ -114,6 +114,9 @@ It has these top-level messages:
 	Id
 	RangeInt
 	MerchantTariffRatesPayment
+	MerchantTariffRatesSettingsRefundItem
+	MerchantTariffRatesSettingsItem
+	MerchantTariffRatesSettings
 	Key
 	PayoutDocument
 	PayoutDocumentSignatureDataSignUrl

@@ -31,6 +31,7 @@ const (
 var (
 	merchantErrorChangeNotAllowed             = newBillingServerErrorMsg("mr000001", "merchant data changing not allowed")
 	merchantErrorCountryNotFound              = newBillingServerErrorMsg("mr000002", "merchant country not found")
+	merchantErrorCurrencyNotFound             = newBillingServerErrorMsg("mr000003", "merchant bank accounting currency not found")
 	merchantErrorUnknown                      = newBillingServerErrorMsg("mr000008", "request processing failed. try request later")
 	merchantErrorNotFound                     = newBillingServerErrorMsg("mr000009", "merchant with specified identifier not found")
 	merchantErrorBadData                      = newBillingServerErrorMsg("mr000010", "request data is incorrect")
@@ -42,6 +43,7 @@ var (
 	merchantErrorOnboardingTariffAlreadyExist = newBillingServerErrorMsg("mr000020", "merchant tariffs already sets")
 	merchantStatusChangeNotPossible           = newBillingServerErrorMsg("mr000021", "change status not possible by merchant flow")
 	merchantNotificationSettingNotFound       = newBillingServerErrorMsg("mr000022", "setting for create notification for status change not found")
+	merchantTariffsNotFound                   = newBillingServerErrorMsg("mr000023", "tariffs for merchant not found")
 
 	merchantSignAgreementMessage = map[string]string{"code": "mr000017", "message": "license agreement was signed by merchant"}
 
@@ -284,16 +286,15 @@ func (s *Service) ChangeMerchant(
 	}
 
 	if req.Banking != nil {
-		if merchant.Banking == nil {
-			merchant.Banking = &billing.MerchantBanking{}
+		if req.Banking.Currency != "" {
+			if !contains(s.supportedCurrencies, req.Banking.Currency) {
+				rsp.Status = pkg.ResponseStatusBadData
+				rsp.Message = merchantErrorCurrencyNotFound
+				return nil
+			}
 		}
 
-		merchant.Banking.Name = req.Banking.Name
-		merchant.Banking.Address = req.Banking.Address
-		merchant.Banking.AccountNumber = req.Banking.AccountNumber
-		merchant.Banking.Swift = req.Banking.Swift
-		merchant.Banking.Details = req.Banking.Details
-		merchant.Banking.CorrespondentAccount = req.Banking.CorrespondentAccount
+		merchant.Banking = req.Banking
 	}
 
 	if req.Contacts != nil {
@@ -1181,7 +1182,11 @@ func (s *Service) GetMerchantTariffRates(
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = merchantErrorUnknown
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
+
+		if err == merchantTariffsNotFound {
+			rsp.Status = pkg.ResponseStatusNotFound
+		}
 
 		return nil
 	}
@@ -1234,36 +1239,46 @@ func (s *Service) SetMerchantTariffRates(
 		return nil
 	}
 
-	countryRegions := make(map[string]string)
-
-	for _, v := range tariffs {
+	if len(tariffs.Payment) > 0 {
 		var costs []*billing.PaymentChannelCostMerchant
 
-	}
+		for _, v := range tariffs.Payment {
+			tariffRegions, err := s.country.GetCountriesAndRegionsByTariffRegion(v.PayerRegion)
 
-	if len(tariff.Payment) > 0 {
-		var costs []*billing.PaymentChannelCostMerchant
-
-		for _, v := range tariff.Payment {
-			cost := &billing.PaymentChannelCostMerchant{
-				Id:                      bson.NewObjectId().Hex(),
-				MerchantId:              req.MerchantId,
-				Name:                    v.Method,
-				PayoutCurrency:          v.PayoutCurrency,
-				MinAmount:               v.AmountRange.From,
-				Region:                  tariff.Region,
-				Country:                 v.Country,
-				MethodPercent:           v.MethodPercentFee / 100,
-				MethodFixAmount:         v.MethodFixedFee,
-				MethodFixAmountCurrency: v.MethodFixedFeeCurrency,
-				PsPercent:               v.PsPercentFee / 100,
-				PsFixedFee:              v.PsFixedFee,
-				PsFixedFeeCurrency:      v.PsFixedFeeCurrency,
-				CreatedAt:               ptypes.TimestampNow(),
-				UpdatedAt:               ptypes.TimestampNow(),
-				IsActive:                true,
+			if err != nil {
+				rsp.Status = pkg.ResponseStatusSystemError
+				rsp.Message = merchantErrorUnknown
+				return nil
 			}
-			costs = append(costs, cost)
+
+			for _, v1 := range tariffRegions {
+				cost := &billing.PaymentChannelCostMerchant{
+					Id:                      bson.NewObjectId().Hex(),
+					MerchantId:              req.MerchantId,
+					Name:                    v.MethodName,
+					PayoutCurrency:          merchant.GetPayoutCurrency(),
+					MinAmount:               v.MinAmount,
+					Region:                  v1.Region,
+					Country:                 v1.Country,
+					MethodPercent:           v.MethodPercentFee / 100,
+					MethodFixAmount:         v.MethodFixedFee,
+					MethodFixAmountCurrency: v.MethodFixedFeeCurrency,
+					PsPercent:               v.PsPercentFee / 100,
+					PsFixedFee:              v.PsFixedFee,
+					PsFixedFeeCurrency:      v.PsFixedFeeCurrency,
+					CreatedAt:               ptypes.TimestampNow(),
+					UpdatedAt:               ptypes.TimestampNow(),
+					IsActive:                true,
+				}
+
+				costs = append(costs, cost)
+			}
+		}
+
+		if len(costs) <= 0 {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = merchantErrorUnknown
+			return nil
 		}
 
 		err = s.paymentChannelCostMerchant.MultipleInsert(costs)
@@ -1271,28 +1286,37 @@ func (s *Service) SetMerchantTariffRates(
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusSystemError
 			rsp.Message = merchantErrorUnknown
-
 			return nil
 		}
 	}
 
-	if len(tariff.MoneyBack) > 0 {
-		var costs []*billing.MoneyBackCostMerchant
+	regions, err := s.country.GetAll()
 
-		for _, v := range tariff.MoneyBack {
-			cost := &billing.MoneyBackCostMerchant{
+	if err != nil || len(regions.Countries) <= 0 {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = merchantErrorUnknown
+		return nil
+	}
+
+	var (
+		cost  *billing.MoneyBackCostMerchant
+		costs []*billing.MoneyBackCostMerchant
+	)
+
+	for _, region := range regions.Countries {
+		for _, v := range tariffs.Refund {
+			cost = &billing.MoneyBackCostMerchant{
 				Id:                bson.NewObjectId().Hex(),
 				MerchantId:        req.MerchantId,
-				Name:              v.Method,
-				PayoutCurrency:    v.PayoutCurrency,
+				Name:              v.MethodName,
+				PayoutCurrency:    merchant.GetPayoutCurrency(),
 				UndoReason:        pkg.UndoReasonReversal,
-				Region:            tariff.Region,
-				Country:           v.Country,
-				DaysFrom:          v.DaysRange.From,
-				PaymentStage:      v.PaymentStage,
-				Percent:           v.PercentFee / 100,
-				FixAmount:         v.FixedFee,
-				FixAmountCurrency: v.FixedFeeCurrency,
+				Region:            region.Region,
+				Country:           region.IsoCodeA2,
+				PaymentStage:      1,
+				Percent:           v.MethodPercentFee / 100,
+				FixAmount:         v.MethodFixedFee,
+				FixAmountCurrency: v.MethodFixedFeeCurrency,
 				IsPaidByMerchant:  v.IsPaidByMerchant,
 				CreatedAt:         ptypes.TimestampNow(),
 				UpdatedAt:         ptypes.TimestampNow(),
@@ -1303,48 +1327,41 @@ func (s *Service) SetMerchantTariffRates(
 			cost = &billing.MoneyBackCostMerchant{
 				Id:                bson.NewObjectId().Hex(),
 				MerchantId:        req.MerchantId,
-				Name:              v.Method,
-				PayoutCurrency:    v.PayoutCurrency,
+				Name:              v.MethodName,
+				PayoutCurrency:    merchant.GetPayoutCurrency(),
 				UndoReason:        pkg.UndoReasonChargeback,
-				Region:            tariff.Region,
-				Country:           v.Country,
-				DaysFrom:          v.DaysRange.From,
-				PaymentStage:      v.PaymentStage,
-				FixAmount:         tariff.Chargeback.FixedFee,
-				FixAmountCurrency: tariff.Chargeback.FixedFeeCurrency,
-				IsPaidByMerchant:  tariff.Chargeback.IsPaidByMerchant,
+				Region:            region.Region,
+				Country:           region.IsoCodeA2,
+				PaymentStage:      1,
+				Percent:           tariffs.Chargeback.MethodPercentFee / 100,
+				FixAmount:         tariffs.Chargeback.MethodFixedFee,
+				FixAmountCurrency: tariffs.Chargeback.MethodFixedFeeCurrency,
+				IsPaidByMerchant:  tariffs.Chargeback.IsPaidByMerchant,
 				CreatedAt:         ptypes.TimestampNow(),
 				UpdatedAt:         ptypes.TimestampNow(),
 				IsActive:          true,
 			}
-
 			costs = append(costs, cost)
 		}
+	}
 
+	if len(costs) > 0 {
 		err = s.moneyBackCostMerchant.MultipleInsert(costs)
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusSystemError
 			rsp.Message = merchantErrorUnknown
-
 			return nil
 		}
 	}
 
-	merchant.Tariff = tariff
-
-	if merchant.Banking == nil {
-		merchant.Banking = &billing.MerchantBanking{}
-	}
-
-	merchant.Banking.Currency = req.PayoutCurrency
+	merchant.PaymentTariffs = tariffs.Payment
 
 	if merchant.Steps == nil {
 		merchant.Steps = &billing.MerchantCompletedSteps{}
 	}
 
 	merchant.Steps.Tariff = true
-	merchant.Steps.Banking = merchant.IsBankingComplete()
 
 	if merchant.IsDataComplete() {
 		err = s.generateMerchantAgreement(ctx, merchant)
@@ -1362,34 +1379,32 @@ func (s *Service) SetMerchantTariffRates(
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = merchantErrorUnknown
-
 		return nil
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
-
 	return nil
 }
 
 func (s *Service) generateMerchantAgreement(ctx context.Context, merchant *billing.Merchant) error {
-	payoutCostInt := int(merchant.Tariff.Payout.FixedFee)
-	payoutCostWord := num2words.Convert(payoutCostInt)
+	//payoutCostInt := int(merchant.Tariff.Payout.FixedFee)
+	//payoutCostWord := num2words.Convert(payoutCostInt)
 	minPayoutLimitInt := int(merchant.MinimalPayoutLimit)
 	minPayoutLimitWord := num2words.Convert(minPayoutLimitInt)
 
-	payoutCost := fmt.Sprintf("%s (%d) %s", payoutCostWord, payoutCostInt, merchant.Tariff.Payout.FixedFeeCurrency)
+	//payoutCost := fmt.Sprintf("%s (%d) %s", payoutCostWord, payoutCostInt, merchant.Tariff.Payout.FixedFeeCurrency)
 	minPayoutLimit := fmt.Sprintf("%s (%d) %s", minPayoutLimitWord, minPayoutLimitInt, merchant.GetPayoutCurrency())
 
 	params := map[string]interface{}{
-		reporterConst.RequestParameterAgreementNumber:                     merchant.AgreementNumber,
-		reporterConst.RequestParameterAgreementLegalName:                  merchant.Company.Name,
-		reporterConst.RequestParameterAgreementAddress:                    merchant.GetAddress(),
-		reporterConst.RequestParameterAgreementRegistrationNumber:         merchant.Company.RegistrationNumber,
-		reporterConst.RequestParameterAgreementPayoutCost:                 payoutCost,
-		reporterConst.RequestParameterAgreementMinimalPayoutLimit:         minPayoutLimit,
-		reporterConst.RequestParameterAgreementPayoutCurrency:             merchant.GetPayoutCurrency(),
-		reporterConst.RequestParameterAgreementPSRate:                     merchant.Tariff.Payment,
-		reporterConst.RequestParameterAgreementHomeRegion:                 merchant.Tariff.Region,
+		reporterConst.RequestParameterAgreementNumber:             merchant.AgreementNumber,
+		reporterConst.RequestParameterAgreementLegalName:          merchant.Company.Name,
+		reporterConst.RequestParameterAgreementAddress:            merchant.GetAddress(),
+		reporterConst.RequestParameterAgreementRegistrationNumber: merchant.Company.RegistrationNumber,
+		//reporterConst.RequestParameterAgreementPayoutCost:                 payoutCost,
+		reporterConst.RequestParameterAgreementMinimalPayoutLimit: minPayoutLimit,
+		reporterConst.RequestParameterAgreementPayoutCurrency:     merchant.GetPayoutCurrency(),
+		//reporterConst.RequestParameterAgreementPSRate:                     merchant.Tariff.Payment,
+		//reporterConst.RequestParameterAgreementHomeRegion:                 merchant.Tariff.Region,
 		reporterConst.RequestParameterAgreementMerchantAuthorizedName:     merchant.Contacts.Authorized.Name,
 		reporterConst.RequestParameterAgreementMerchantAuthorizedPosition: merchant.Contacts.Authorized.Position,
 		reporterConst.RequestParameterAgreementProjectsLink:               s.cfg.DashboardProjectsUrl,

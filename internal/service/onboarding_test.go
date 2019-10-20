@@ -45,9 +45,9 @@ type OnboardingTestSuite struct {
 	logObserver *zap.Logger
 	zapRecorder *observer.ObservedLogs
 
-	euTariff           *billing.MerchantTariffRates
-	cisTariff          *billing.MerchantTariffRates
-	southPacificTariff *billing.MerchantTariffRates
+	euTariff   []*billing.MerchantTariffRatesPayment
+	cisTariff  []*billing.MerchantTariffRatesPayment
+	asiaTariff []*billing.MerchantTariffRatesPayment
 }
 
 func Test_Onboarding(t *testing.T) {
@@ -66,14 +66,15 @@ func (suite *OnboardingTestSuite) SetupTest() {
 	assert.NoError(suite.T(), err, "Database connection failed")
 
 	country := &billing.Country{
-		IsoCodeA2:       "RU",
-		Region:          "Russia",
-		Currency:        "RUB",
-		PaymentsAllowed: true,
-		ChangeAllowed:   true,
-		VatEnabled:      true,
-		PriceGroupId:    "",
-		VatCurrency:     "RUB",
+		IsoCodeA2:         "RU",
+		Region:            "Russia",
+		Currency:          "RUB",
+		PaymentsAllowed:   true,
+		ChangeAllowed:     true,
+		VatEnabled:        true,
+		PriceGroupId:      "",
+		VatCurrency:       "RUB",
+		PayerTariffRegion: "russia_and_cis",
 	}
 
 	ps := &billing.PaymentSystem{
@@ -335,149 +336,216 @@ func (suite *OnboardingTestSuite) SetupTest() {
 		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 
-	if err := suite.service.country.Insert(country); err != nil {
-		suite.FailNow("Insert country test data failed", "%v", err)
+	countries := []*billing.Country{
+		country,
+		{
+			IsoCodeA2:         "DE",
+			Region:            "EU",
+			Currency:          "EUR",
+			PaymentsAllowed:   true,
+			ChangeAllowed:     true,
+			VatEnabled:        true,
+			PriceGroupId:      "",
+			VatCurrency:       "EUR",
+			PayerTariffRegion: "europe",
+		},
+		{
+			IsoCodeA2:         "UK",
+			Region:            "EU",
+			Currency:          "EUR",
+			PaymentsAllowed:   true,
+			ChangeAllowed:     true,
+			VatEnabled:        true,
+			PriceGroupId:      "",
+			VatCurrency:       "EUR",
+			PayerTariffRegion: "europe",
+		},
+	}
+	err = suite.service.country.MultipleInsert(countries)
+
+	if err != nil {
+		suite.FailNow("Insert countries test data failed", "%v", err)
 	}
 
-	euTariff := &billing.MerchantTariffRates{
-		Payment: []*billing.MerchantTariffRatesPayments{
-			{
-				Method:                 "VISA",
-				PayoutCurrency:         "USD",
-				AmountRange:            &billing.PriceTableCurrency{From: 0.75, To: 5},
-				Country:                "DE",
-				MethodPercentFee:       2,
-				MethodFixedFee:         0.1,
-				MethodFixedFeeCurrency: "USD",
-				PsPercentFee:           5,
-				PsFixedFee:             0.05,
-				PsFixedFeeCurrency:     "USD",
-			},
-			{
-				Method:                 "VISA",
-				PayoutCurrency:         "USD",
-				AmountRange:            &billing.PriceTableCurrency{From: 5, To: 999999999999999.99},
-				Country:                "DE",
-				MethodPercentFee:       1.6,
-				MethodFixedFee:         0.1,
-				MethodFixedFeeCurrency: "USD",
-				PsPercentFee:           5,
-				PsFixedFee:             0,
-				PsFixedFeeCurrency:     "USD",
-			},
+	euTariff := []*billing.MerchantTariffRatesPayment{
+		{
+			MinAmount:              0,
+			MaxAmount:              4.99,
+			MethodName:             "VISA",
+			MethodPercentFee:       1.8,
+			MethodFixedFee:         0.2,
+			MethodFixedFeeCurrency: "USD",
+			PsPercentFee:           3.0,
+			PsFixedFee:             0.3,
+			PsFixedFeeCurrency:     "USD",
+			MerchantHomeRegion:     "europe",
+			PayerRegion:            "europe",
 		},
-		MoneyBack: []*billing.MerchantTariffRatesMoneyBack{
-			{
-				Method:           "VISA",
-				PayoutCurrency:   "USD",
-				Country:          "DE",
-				DaysRange:        &billing.RangeInt{From: 0, To: 1000000000},
-				PaymentStage:     1,
-				PercentFee:       1,
-				FixedFee:         10,
-				FixedFeeCurrency: "USD",
-				IsPaidByMerchant: false,
-			},
+		{
+			MinAmount:              0,
+			MaxAmount:              4.99,
+			MethodName:             "MasterCard",
+			MethodPercentFee:       1.8,
+			MethodFixedFee:         0.2,
+			MethodFixedFeeCurrency: "USD",
+			PsPercentFee:           3.0,
+			PsFixedFee:             0.3,
+			PsFixedFeeCurrency:     "USD",
+			MerchantHomeRegion:     "europe",
+			PayerRegion:            "europe",
 		},
-		Payout:     &billing.TariffRatesItem{FixedFee: 25, FixedFeeCurrency: "USD", IsPaidByMerchant: true},
-		Chargeback: &billing.TariffRatesItem{FixedFee: 25, FixedFeeCurrency: "USD", IsPaidByMerchant: true},
-		Region:     "EU",
+		{
+			MinAmount:              0,
+			MaxAmount:              4.99,
+			MethodName:             "Bitcoin",
+			MethodPercentFee:       2.5,
+			MethodFixedFee:         0.2,
+			MethodFixedFeeCurrency: "USD",
+			PsPercentFee:           5.0,
+			PsFixedFee:             0.3,
+			PsFixedFeeCurrency:     "USD",
+			MerchantHomeRegion:     "europe",
+			PayerRegion:            "europe",
+		},
 	}
-	cisTariff := &billing.MerchantTariffRates{
-		Payment: []*billing.MerchantTariffRatesPayments{
-			{
-				Method:                 "MasterCard",
-				PayoutCurrency:         "USD",
-				AmountRange:            &billing.PriceTableCurrency{From: 0.75, To: 5},
-				Country:                "RU",
-				MethodPercentFee:       2,
-				MethodFixedFee:         0.1,
-				MethodFixedFeeCurrency: "USD",
-				PsPercentFee:           5,
-				PsFixedFee:             0.05,
-				PsFixedFeeCurrency:     "USD",
-			},
-			{
-				Method:                 "Yandex Money",
-				PayoutCurrency:         "USD",
-				AmountRange:            &billing.PriceTableCurrency{From: 0.75, To: 5},
-				Country:                "RU",
-				MethodPercentFee:       1.6,
-				MethodFixedFee:         0.1,
-				MethodFixedFeeCurrency: "USD",
-				PsPercentFee:           5,
-				PsFixedFee:             0,
-				PsFixedFeeCurrency:     "USD",
-			},
-			{
-				Method:                 "Yandex Money",
-				PayoutCurrency:         "USD",
-				AmountRange:            &billing.PriceTableCurrency{From: 5, To: 10},
-				Country:                "RU",
-				MethodPercentFee:       1.5,
-				MethodFixedFee:         0.1,
-				MethodFixedFeeCurrency: "USD",
-				PsPercentFee:           5,
-				PsFixedFee:             0,
-				PsFixedFeeCurrency:     "USD",
-			},
+	cisTariff := []*billing.MerchantTariffRatesPayment{
+		{
+			MinAmount:              0,
+			MaxAmount:              4.99,
+			MethodName:             "VISA",
+			MethodPercentFee:       1.8,
+			MethodFixedFee:         0.2,
+			MethodFixedFeeCurrency: "USD",
+			PsPercentFee:           3.0,
+			PsFixedFee:             0.3,
+			PsFixedFeeCurrency:     "USD",
+			MerchantHomeRegion:     "russia_and_cis",
+			PayerRegion:            "russia_and_cis",
 		},
-		MoneyBack: []*billing.MerchantTariffRatesMoneyBack{
-			{
-				Method:           "MasterCard",
-				PayoutCurrency:   "USD",
-				Country:          "RU",
-				DaysRange:        &billing.RangeInt{From: 0, To: 1000000000},
-				PaymentStage:     1,
-				PercentFee:       1,
-				FixedFee:         10,
-				FixedFeeCurrency: "USD",
-				IsPaidByMerchant: false,
-			},
+		{
+			MinAmount:              0,
+			MaxAmount:              4.99,
+			MethodName:             "MasterCard",
+			MethodPercentFee:       1.8,
+			MethodFixedFee:         0.2,
+			MethodFixedFeeCurrency: "USD",
+			PsPercentFee:           3.0,
+			PsFixedFee:             0.3,
+			PsFixedFeeCurrency:     "USD",
+			MerchantHomeRegion:     "russia_and_cis",
+			PayerRegion:            "russia_and_cis",
 		},
-		Payout:     &billing.TariffRatesItem{FixedFee: 25, FixedFeeCurrency: "USD", IsPaidByMerchant: true},
-		Chargeback: &billing.TariffRatesItem{FixedFee: 25, FixedFeeCurrency: "USD", IsPaidByMerchant: true},
-		Region:     "CIS",
+		{
+			MinAmount:              0,
+			MaxAmount:              4.99,
+			MethodName:             "Bitcoin",
+			MethodPercentFee:       2.5,
+			MethodFixedFee:         0.2,
+			MethodFixedFeeCurrency: "USD",
+			PsPercentFee:           5.0,
+			PsFixedFee:             0.3,
+			PsFixedFeeCurrency:     "USD",
+			MerchantHomeRegion:     "russia_and_cis",
+			PayerRegion:            "europe",
+		},
 	}
-	southPacificTariff := &billing.MerchantTariffRates{
-		Payment: []*billing.MerchantTariffRatesPayments{
-			{
-				Method:                 "JCB",
-				PayoutCurrency:         "USD",
-				AmountRange:            &billing.PriceTableCurrency{From: 0.75, To: 5},
-				Country:                "TK",
-				MethodPercentFee:       2,
-				MethodFixedFee:         0.1,
-				MethodFixedFeeCurrency: "USD",
-				PsPercentFee:           5,
-				PsFixedFee:             0.05,
-				PsFixedFeeCurrency:     "USD",
-			},
+	asiaTariff := []*billing.MerchantTariffRatesPayment{
+		{
+			MinAmount:              0,
+			MaxAmount:              4.99,
+			MethodName:             "VISA",
+			MethodPercentFee:       1.8,
+			MethodFixedFee:         0.2,
+			MethodFixedFeeCurrency: "USD",
+			PsPercentFee:           3.0,
+			PsFixedFee:             0.3,
+			PsFixedFeeCurrency:     "USD",
+			MerchantHomeRegion:     "asia",
+			PayerRegion:            "europe",
 		},
-		MoneyBack: []*billing.MerchantTariffRatesMoneyBack{
-			{
-				Method:           "JCB",
-				PayoutCurrency:   "USD",
-				Country:          "TK",
-				DaysRange:        &billing.RangeInt{From: 0, To: 1000000000},
-				PaymentStage:     1,
-				PercentFee:       1,
-				FixedFee:         10,
-				FixedFeeCurrency: "USD",
-				IsPaidByMerchant: false,
-			},
+		{
+			MinAmount:              0,
+			MaxAmount:              4.99,
+			MethodName:             "MasterCard",
+			MethodPercentFee:       1.8,
+			MethodFixedFee:         0.2,
+			MethodFixedFeeCurrency: "USD",
+			PsPercentFee:           3.0,
+			PsFixedFee:             0.3,
+			PsFixedFeeCurrency:     "USD",
+			MerchantHomeRegion:     "asia",
+			PayerRegion:            "europe",
 		},
-		Payout:     &billing.TariffRatesItem{FixedFee: 25, FixedFeeCurrency: "USD", IsPaidByMerchant: true},
-		Chargeback: &billing.TariffRatesItem{FixedFee: 25, FixedFeeCurrency: "USD", IsPaidByMerchant: true},
-		Region:     "South Pacific",
+		{
+			MinAmount:              0,
+			MaxAmount:              4.99,
+			MethodName:             "Bitcoin",
+			MethodPercentFee:       2.5,
+			MethodFixedFee:         0.2,
+			MethodFixedFeeCurrency: "USD",
+			PsPercentFee:           5.0,
+			PsFixedFee:             0.3,
+			PsFixedFeeCurrency:     "USD",
+			MerchantHomeRegion:     "asia",
+			PayerRegion:            "europe",
+		},
 	}
 
-	tariffs := []interface{}{euTariff, cisTariff, southPacificTariff}
+	var tariffs []interface{}
 
-	err = suite.service.db.Collection(collectionMerchantsTariffRates).Insert(tariffs...)
+	for _, v := range euTariff {
+		tariffs = append(tariffs, v)
+	}
+
+	for _, v := range cisTariff {
+		tariffs = append(tariffs, v)
+	}
+
+	for _, v := range asiaTariff {
+		tariffs = append(tariffs, v)
+	}
+
+	err = suite.service.db.Collection(collectionMerchantsPaymentTariffs).Insert(tariffs...)
 
 	if err != nil {
 		suite.FailNow("Insert merchant tariffs test data failed", "%v", err)
+	}
+
+	tariffsSettings := &billing.MerchantTariffRatesSettings{
+		Refund: []*billing.MerchantTariffRatesSettingsRefundItem{
+			{
+				MethodName:             "MasterCard",
+				MethodPercentFee:       0.059757,
+				MethodFixedFee:         0.03916,
+				MethodFixedFeeCurrency: "EUR",
+				IsPaidByMerchant:       false,
+			},
+			{
+				MethodName:             "VISA",
+				MethodPercentFee:       0.00,
+				MethodFixedFee:         0.27115,
+				MethodFixedFeeCurrency: "EUR",
+				IsPaidByMerchant:       false,
+			},
+		},
+		Chargeback: &billing.MerchantTariffRatesSettingsItem{
+			MethodPercentFee:       0.00,
+			MethodFixedFee:         25.00,
+			MethodFixedFeeCurrency: "EUR",
+			IsPaidByMerchant:       true,
+		},
+		Payout: &billing.MerchantTariffRatesSettingsItem{
+			MethodPercentFee:       0.00,
+			MethodFixedFee:         25.00,
+			MethodFixedFeeCurrency: "EUR",
+			IsPaidByMerchant:       true,
+		},
+	}
+
+	err = suite.service.db.Collection(collectionMerchantTariffsSettings).Insert(tariffsSettings)
+
+	if err != nil {
+		suite.FailNow("Insert merchant tariffs settings test data failed", "%v", err)
 	}
 
 	suite.merchant = merchant
@@ -497,7 +565,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 
 	suite.euTariff = euTariff
 	suite.cisTariff = cisTariff
-	suite.southPacificTariff = southPacificTariff
+	suite.asiaTariff = asiaTariff
 
 	reporterMock := &reportingMocks.ReporterService{}
 	reporterMock.On("CreateFile", mock2.Anything, mock2.Anything, mock2.Anything).
@@ -571,18 +639,15 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_NewMerchant_Ok()
 	assert.Equal(suite.T(), req.Company.Website, rsp.Company.Website)
 	assert.Equal(suite.T(), req.Contacts.Authorized.Position, rsp.Contacts.Authorized.Position)
 	assert.Equal(suite.T(), req.Banking.Name, rsp.Banking.Name)
-	assert.Zero(suite.T(), rsp.Banking.Currency)
+	assert.Equal(suite.T(), req.Banking.Currency, rsp.Banking.Currency)
 	assert.True(suite.T(), rsp.Steps.Company)
 	assert.True(suite.T(), rsp.Steps.Contacts)
-	assert.False(suite.T(), rsp.Steps.Banking)
+	assert.True(suite.T(), rsp.Steps.Banking)
 	assert.False(suite.T(), rsp.Steps.Tariff)
 
 	req1 := &grpc.SetMerchantTariffRatesRequest{
-		MerchantId:     rsp.Id,
-		Region:         "CIS",
-		PayoutCurrency: "USD",
-		AmountFrom:     0.75,
-		AmountTo:       5,
+		MerchantId: rsp.Id,
+		HomeRegion: "russia_and_cis",
 	}
 	rsp1 := &grpc.CheckProjectRequestSignatureResponse{}
 	err = suite.service.SetMerchantTariffRates(context.TODO(), req1, rsp1)
@@ -657,11 +722,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_UpdateMerchant_O
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_UpdateMerchantNotAllowed_Error() {
 	req1 := &grpc.SetMerchantTariffRatesRequest{
-		MerchantId:     suite.merchantAgreement.Id,
-		Region:         "CIS",
-		PayoutCurrency: "USD",
-		AmountFrom:     0.75,
-		AmountTo:       5,
+		MerchantId: suite.merchantAgreement.Id,
+		HomeRegion: "russia_and_cis",
 	}
 	rsp1 := &grpc.CheckProjectRequestSignatureResponse{}
 	err := suite.service.SetMerchantTariffRates(context.TODO(), req1, rsp1)
@@ -2191,11 +2253,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_Ok() {
 	assert.Empty(suite.T(), rsp0.Message)
 
 	req1 := &grpc.SetMerchantTariffRatesRequest{
-		MerchantId:     rsp0.Item.Id,
-		Region:         "CIS",
-		PayoutCurrency: "USD",
-		AmountFrom:     0.75,
-		AmountTo:       5,
+		MerchantId: rsp0.Item.Id,
+		HomeRegion: "russia_and_cis",
 	}
 	rsp1 := &grpc.CheckProjectRequestSignatureResponse{}
 	err = suite.service.SetMerchantTariffRates(context.TODO(), req1, rsp1)
@@ -2309,11 +2368,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_MerchantHasSignat
 	assert.Empty(suite.T(), rsp0.Message)
 
 	req1 := &grpc.SetMerchantTariffRatesRequest{
-		MerchantId:     rsp0.Item.Id,
-		Region:         "CIS",
-		PayoutCurrency: "USD",
-		AmountFrom:     0.75,
-		AmountTo:       5,
+		MerchantId: rsp0.Item.Id,
+		HomeRegion: "russia_and_cis",
 	}
 	rsp1 := &grpc.CheckProjectRequestSignatureResponse{}
 	err = suite.service.SetMerchantTariffRates(context.TODO(), req1, rsp1)
@@ -2406,11 +2462,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerSys
 	assert.Empty(suite.T(), rsp0.Message)
 
 	req1 := &grpc.SetMerchantTariffRatesRequest{
-		MerchantId:     rsp0.Item.Id,
-		Region:         "CIS",
-		PayoutCurrency: "USD",
-		AmountFrom:     0.75,
-		AmountTo:       5,
+		MerchantId: rsp0.Item.Id,
+		HomeRegion: "russia_and_cis",
 	}
 	rsp1 := &grpc.CheckProjectRequestSignatureResponse{}
 	err = suite.service.SetMerchantTariffRates(context.TODO(), req1, rsp1)
@@ -2507,11 +2560,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerRes
 	assert.Empty(suite.T(), rsp0.Message)
 
 	req2 := &grpc.SetMerchantTariffRatesRequest{
-		MerchantId:     rsp0.Item.Id,
-		Region:         "CIS",
-		PayoutCurrency: "USD",
-		AmountFrom:     0.75,
-		AmountTo:       5,
+		MerchantId: rsp0.Item.Id,
+		HomeRegion: "russia_and_cis",
 	}
 	rsp2 := &grpc.CheckProjectRequestSignatureResponse{}
 	err = suite.service.SetMerchantTariffRates(context.TODO(), req2, rsp2)
@@ -2602,11 +2652,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_UpdateError() {
 	assert.Empty(suite.T(), rsp0.Message)
 
 	req1 := &grpc.SetMerchantTariffRatesRequest{
-		MerchantId:     rsp0.Item.Id,
-		Region:         "CIS",
-		PayoutCurrency: "USD",
-		AmountFrom:     0.75,
-		AmountTo:       5,
+		MerchantId: rsp0.Item.Id,
+		HomeRegion: "russia_and_cis",
 	}
 	rsp1 := &grpc.CheckProjectRequestSignatureResponse{}
 	err = suite.service.SetMerchantTariffRates(context.TODO(), req1, rsp1)
@@ -2726,10 +2773,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantOnboardingCompleteDa
 	assert.NotNil(suite.T(), rsp1.Item)
 
 	assert.True(suite.T(), rsp1.Item.Steps.Company)
-	assert.False(suite.T(), rsp1.Item.Steps.Banking)
+	assert.True(suite.T(), rsp1.Item.Steps.Banking)
 	assert.False(suite.T(), rsp1.Item.Steps.Contacts)
 	assert.False(suite.T(), rsp1.Item.Steps.Tariff)
-	assert.Equal(suite.T(), int32(1), rsp1.Item.CompleteStepsCount)
+	assert.Equal(suite.T(), int32(2), rsp1.Item.CompleteStepsCount)
 	assert.Equal(suite.T(), "draft", rsp1.Item.Status)
 }
 
@@ -2753,11 +2800,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantOnboardingCompleteDa
 	assert.Empty(suite.T(), rsp0.Message)
 
 	req2 := &grpc.SetMerchantTariffRatesRequest{
-		MerchantId:     rsp0.Item.Id,
-		Region:         "CIS",
-		PayoutCurrency: "USD",
-		AmountFrom:     0.75,
-		AmountTo:       5,
+		MerchantId: rsp0.Item.Id,
+		HomeRegion: "russia_and_cis",
 	}
 	rsp2 := &grpc.CheckProjectRequestSignatureResponse{}
 	err = suite.service.SetMerchantTariffRates(context.TODO(), req2, rsp2)
@@ -2869,11 +2913,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_GetMerchantAgree
 	assert.Empty(suite.T(), rsp0.Message)
 
 	req2 := &grpc.SetMerchantTariffRatesRequest{
-		MerchantId:     rsp0.Item.Id,
-		Region:         "CIS",
-		PayoutCurrency: "USD",
-		AmountFrom:     0.75,
-		AmountTo:       5,
+		MerchantId: rsp0.Item.Id,
+		HomeRegion: "russia_and_cis",
 	}
 	rsp2 := &grpc.CheckProjectRequestSignatureResponse{}
 	err = suite.service.SetMerchantTariffRates(context.TODO(), req2, rsp2)
@@ -3040,11 +3081,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_GetMerchantAgree
 	assert.Empty(suite.T(), rsp0.Message)
 
 	req1 := &grpc.SetMerchantTariffRatesRequest{
-		MerchantId:     rsp0.Item.Id,
-		Region:         "CIS",
-		PayoutCurrency: "USD",
-		AmountFrom:     0.75,
-		AmountTo:       5,
+		MerchantId: rsp0.Item.Id,
+		HomeRegion: "russia_and_cis",
 	}
 	rsp1 := &grpc.CheckProjectRequestSignatureResponse{}
 	err = suite.service.SetMerchantTariffRates(context.TODO(), req1, rsp1)
@@ -3128,11 +3166,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_Pay
 	assert.Empty(suite.T(), rsp0.Message)
 
 	req2 := &grpc.SetMerchantTariffRatesRequest{
-		MerchantId:     rsp0.Item.Id,
-		Region:         "CIS",
-		PayoutCurrency: "USD",
-		AmountFrom:     0.75,
-		AmountTo:       5,
+		MerchantId: rsp0.Item.Id,
+		HomeRegion: "russia_and_cis",
 	}
 	rsp2 := &grpc.CheckProjectRequestSignatureResponse{}
 	err = suite.service.SetMerchantTariffRates(context.TODO(), req2, rsp2)
@@ -3199,84 +3234,63 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_Pay
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantTariffRates_Ok() {
-	req := &grpc.GetMerchantTariffRatesRequest{
-		Region:         "CIS",
-		PayoutCurrency: "USD",
-		AmountFrom:     0.75,
-		AmountTo:       5,
-	}
+	req := &grpc.GetMerchantTariffRatesRequest{HomeRegion: "russia_and_cis"}
 	rsp := &grpc.GetMerchantTariffRatesResponse{}
 	err := suite.service.GetMerchantTariffRates(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 	assert.Empty(suite.T(), rsp.Message)
-	assert.NotNil(suite.T(), rsp.Item)
-	assert.NotEmpty(suite.T(), rsp.Item.Payment)
-	assert.Len(suite.T(), rsp.Item.Payment, 2)
-	assert.Equal(suite.T(), rsp.Item.Payment[0], suite.cisTariff.Payment[0])
-	assert.Equal(suite.T(), rsp.Item.Payment[1], suite.cisTariff.Payment[1])
-	assert.NotEmpty(suite.T(), rsp.Item.MoneyBack)
-	assert.Len(suite.T(), rsp.Item.MoneyBack, 1)
-	assert.Equal(suite.T(), rsp.Item.MoneyBack[0], suite.cisTariff.MoneyBack[0])
-	assert.Equal(suite.T(), rsp.Item.Payout, suite.cisTariff.Payout)
-	assert.Equal(suite.T(), rsp.Item.Chargeback, suite.cisTariff.Chargeback)
+	assert.NotEmpty(suite.T(), rsp.Items)
+	assert.NotEmpty(suite.T(), rsp.Items.Payment)
+	assert.Len(suite.T(), rsp.Items.Payment, 2)
+	assert.Equal(suite.T(), rsp.Items.Payment[0], suite.cisTariff[0])
+	assert.Equal(suite.T(), rsp.Items.Payment[1], suite.cisTariff[1])
+	assert.NotEmpty(suite.T(), rsp.Items.Chargeback)
+	assert.NotNil(suite.T(), rsp.Items.Chargeback)
+	assert.NotNil(suite.T(), rsp.Items.Payout)
 
 	err = suite.service.GetMerchantTariffRates(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 	assert.Empty(suite.T(), rsp.Message)
-	assert.NotNil(suite.T(), rsp.Item)
-	assert.NotEmpty(suite.T(), rsp.Item.Payment)
-	assert.Len(suite.T(), rsp.Item.Payment, 2)
-	assert.Equal(suite.T(), rsp.Item.Payment[0], suite.cisTariff.Payment[0])
-	assert.Equal(suite.T(), rsp.Item.Payment[1], suite.cisTariff.Payment[1])
-	assert.NotEmpty(suite.T(), rsp.Item.MoneyBack)
-	assert.Len(suite.T(), rsp.Item.MoneyBack, 1)
-	assert.Equal(suite.T(), rsp.Item.MoneyBack[0], suite.cisTariff.MoneyBack[0])
-	assert.Equal(suite.T(), rsp.Item.Payout, suite.cisTariff.Payout)
-	assert.Equal(suite.T(), rsp.Item.Chargeback, suite.cisTariff.Chargeback)
+	assert.NotEmpty(suite.T(), rsp.Items)
+	assert.NotEmpty(suite.T(), rsp.Items.Payment)
+	assert.Len(suite.T(), rsp.Items.Payment, 2)
+	assert.Equal(suite.T(), rsp.Items.Payment[0], suite.cisTariff[0])
+	assert.Equal(suite.T(), rsp.Items.Payment[1], suite.cisTariff[1])
+	assert.NotEmpty(suite.T(), rsp.Items.Chargeback)
+	assert.NotNil(suite.T(), rsp.Items.Chargeback)
+	assert.NotNil(suite.T(), rsp.Items.Payout)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantTariffRates_WithoutRange_Ok() {
-	req := &grpc.GetMerchantTariffRatesRequest{
-		Region:         "CIS",
-		PayoutCurrency: "USD",
-	}
+	req := &grpc.GetMerchantTariffRatesRequest{HomeRegion: "russia_and_cis"}
 	rsp := &grpc.GetMerchantTariffRatesResponse{}
 	err := suite.service.GetMerchantTariffRates(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 	assert.Empty(suite.T(), rsp.Message)
-	assert.NotNil(suite.T(), rsp.Item)
-	assert.NotEmpty(suite.T(), rsp.Item.Payment)
-	assert.Len(suite.T(), rsp.Item.Payment, 3)
-	assert.Equal(suite.T(), rsp.Item.Payment[0], suite.cisTariff.Payment[0])
-	assert.Equal(suite.T(), rsp.Item.Payment[1], suite.cisTariff.Payment[1])
-	assert.Equal(suite.T(), rsp.Item.Payment[2], suite.cisTariff.Payment[2])
-	assert.NotEmpty(suite.T(), rsp.Item.MoneyBack)
-	assert.Len(suite.T(), rsp.Item.MoneyBack, 1)
-	assert.Equal(suite.T(), rsp.Item.MoneyBack[0], suite.cisTariff.MoneyBack[0])
-	assert.Equal(suite.T(), rsp.Item.Payout, suite.cisTariff.Payout)
-	assert.Equal(suite.T(), rsp.Item.Chargeback, suite.cisTariff.Chargeback)
+	assert.NotNil(suite.T(), rsp.Items)
+	assert.NotEmpty(suite.T(), rsp.Items.Payment)
+	assert.Len(suite.T(), rsp.Items.Payment, 2)
+	assert.Equal(suite.T(), rsp.Items.Payment[0], suite.cisTariff[0])
+	assert.Equal(suite.T(), rsp.Items.Payment[1], suite.cisTariff[1])
+	assert.NotNil(suite.T(), rsp.Items.Chargeback)
+	assert.NotNil(suite.T(), rsp.Items.Payout)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantTariffRates_RepositoryError() {
 	mtf := &mocks.MerchantTariffRatesInterface{}
-	mtf.On("GetBy", mock2.Anything).Return(nil, errors.New(mocks.SomeError))
+	mtf.On("GetBy", mock2.Anything).Return(nil, merchantErrorUnknown)
 	suite.service.merchantTariffRates = mtf
 
-	req := &grpc.GetMerchantTariffRatesRequest{
-		Region:         "CIS",
-		PayoutCurrency: "USD",
-		AmountFrom:     0.75,
-		AmountTo:       5,
-	}
+	req := &grpc.GetMerchantTariffRatesRequest{HomeRegion: "russia_and_cis"}
 	rsp := &grpc.GetMerchantTariffRatesResponse{}
 	err := suite.service.GetMerchantTariffRates(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp.Status)
 	assert.Equal(suite.T(), merchantErrorUnknown, rsp.Message)
-	assert.Nil(suite.T(), rsp.Item)
+	assert.Nil(suite.T(), rsp.Items)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_Ok() {
@@ -3319,14 +3333,13 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_Ok() {
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp0.Status)
 	assert.NotNil(suite.T(), rsp0.Item)
 	assert.NotNil(suite.T(), rsp0.Item.Banking)
-	assert.Zero(suite.T(), rsp0.Item.Banking.Currency)
-	assert.NotEqual(suite.T(), rsp0.Item.Banking.Currency, req0.Banking.Currency)
+	assert.Equal(suite.T(), req0.Banking.Currency, rsp0.Item.Banking.Currency)
 
 	merchant, err := suite.service.merchant.GetById(rsp0.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), merchant)
 	assert.NotNil(suite.T(), merchant.Banking)
-	assert.Zero(suite.T(), merchant.Banking.Currency)
+	assert.NotZero(suite.T(), merchant.Banking.Currency)
 
 	paymentCosts, err := suite.service.paymentChannelCostMerchant.GetAllForMerchant(rsp0.Item.Id)
 	assert.NoError(suite.T(), err)
@@ -3336,25 +3349,17 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_Ok() {
 	assert.NoError(suite.T(), err)
 	assert.Nil(suite.T(), moneyBackCosts.Items)
 
-	req := &grpc.GetMerchantTariffRatesRequest{
-		Region:         "CIS",
-		PayoutCurrency: "USD",
-		AmountFrom:     0.75,
-		AmountTo:       5,
-	}
+	req := &grpc.GetMerchantTariffRatesRequest{HomeRegion: "russia_and_cis"}
 	rsp := &grpc.GetMerchantTariffRatesResponse{}
 	err = suite.service.GetMerchantTariffRates(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 	assert.Empty(suite.T(), rsp.Message)
-	assert.NotNil(suite.T(), rsp.Item)
+	assert.NotNil(suite.T(), rsp.Items)
 
 	req1 := &grpc.SetMerchantTariffRatesRequest{
-		MerchantId:     rsp0.Item.Id,
-		Region:         "CIS",
-		PayoutCurrency: "USD",
-		AmountFrom:     0.75,
-		AmountTo:       5,
+		MerchantId: rsp0.Item.Id,
+		HomeRegion: "russia_and_cis",
 	}
 	rsp1 := &grpc.CheckProjectRequestSignatureResponse{}
 	err = suite.service.SetMerchantTariffRates(context.TODO(), req1, rsp1)
@@ -3365,27 +3370,23 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_Ok() {
 	paymentCosts, err = suite.service.paymentChannelCostMerchant.GetAllForMerchant(rsp0.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), paymentCosts.Items)
-	assert.Len(suite.T(), paymentCosts.Items, len(rsp.Item.Payment))
+	assert.Len(suite.T(), paymentCosts.Items, 4)
 
 	moneyBackCosts, err = suite.service.moneyBackCostMerchant.GetAllForMerchant(rsp0.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), moneyBackCosts.Items)
-	assert.Len(suite.T(), moneyBackCosts.Items, len(rsp.Item.MoneyBack)*2)
+	assert.Len(suite.T(), moneyBackCosts.Items, len(rsp.Items.Refund)*6)
 
 	merchant, err = suite.service.merchant.GetById(rsp0.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), merchant)
 	assert.NotNil(suite.T(), merchant.Banking)
-	assert.Equal(suite.T(), merchant.Banking.Currency, req1.PayoutCurrency)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_MerchantNotFound_Error() {
 	req := &grpc.SetMerchantTariffRatesRequest{
-		MerchantId:     bson.NewObjectId().Hex(),
-		Region:         "CIS",
-		PayoutCurrency: "USD",
-		AmountFrom:     0.75,
-		AmountTo:       5,
+		MerchantId: bson.NewObjectId().Hex(),
+		HomeRegion: "russia_and_cis",
 	}
 	rsp := &grpc.CheckProjectRequestSignatureResponse{}
 	err := suite.service.SetMerchantTariffRates(context.TODO(), req, rsp)
@@ -3400,11 +3401,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_GetBy_Er
 	suite.service.merchantTariffRates = mtf
 
 	req := &grpc.SetMerchantTariffRatesRequest{
-		MerchantId:     suite.merchant.Id,
-		Region:         "CIS",
-		PayoutCurrency: "USD",
-		AmountFrom:     0.75,
-		AmountTo:       5,
+		MerchantId: suite.merchant.Id,
+		HomeRegion: "russia_and_cis",
 	}
 	rsp := &grpc.CheckProjectRequestSignatureResponse{}
 	err := suite.service.SetMerchantTariffRates(context.TODO(), req, rsp)
@@ -3422,11 +3420,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_InsertPa
 	suite.service.cacher = ci
 
 	req := &grpc.SetMerchantTariffRatesRequest{
-		MerchantId:     suite.merchant.Id,
-		Region:         "CIS",
-		PayoutCurrency: "USD",
-		AmountFrom:     0.75,
-		AmountTo:       5,
+		MerchantId: suite.merchant.Id,
+		HomeRegion: "russia_and_cis",
 	}
 	rsp := &grpc.CheckProjectRequestSignatureResponse{}
 	err := suite.service.SetMerchantTariffRates(context.TODO(), req, rsp)
@@ -3445,11 +3440,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_InsertMo
 	suite.service.cacher = ci
 
 	req := &grpc.SetMerchantTariffRatesRequest{
-		MerchantId:     suite.merchant.Id,
-		Region:         "CIS",
-		PayoutCurrency: "USD",
-		AmountFrom:     0.75,
-		AmountTo:       5,
+		MerchantId: suite.merchant.Id,
+		HomeRegion: "russia_and_cis",
 	}
 	rsp := &grpc.CheckProjectRequestSignatureResponse{}
 	err := suite.service.SetMerchantTariffRates(context.TODO(), req, rsp)
@@ -3470,11 +3462,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_ChangeTa
 	assert.NoError(suite.T(), err)
 
 	req := &grpc.SetMerchantTariffRatesRequest{
-		MerchantId:     suite.merchant.Id,
-		Region:         "CIS",
-		PayoutCurrency: "USD",
-		AmountFrom:     0.75,
-		AmountTo:       5,
+		MerchantId: suite.merchant.Id,
+		HomeRegion: "russia_and_cis",
 	}
 	rsp := &grpc.CheckProjectRequestSignatureResponse{}
 	err = suite.service.SetMerchantTariffRates(context.TODO(), req, rsp)
@@ -3494,11 +3483,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_Merchant
 	suite.service.cacher = ci
 
 	req := &grpc.SetMerchantTariffRatesRequest{
-		MerchantId:     suite.merchant.Id,
-		Region:         "CIS",
-		PayoutCurrency: "USD",
-		AmountFrom:     0.75,
-		AmountTo:       5,
+		MerchantId: suite.merchant.Id,
+		HomeRegion: "russia_and_cis",
 	}
 	rsp := &grpc.CheckProjectRequestSignatureResponse{}
 	err := suite.service.SetMerchantTariffRates(context.TODO(), req, rsp)
@@ -3520,11 +3506,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_GetMerch
 	suite.service.reporterService = rs
 
 	req := &grpc.SetMerchantTariffRatesRequest{
-		MerchantId:     suite.merchant.Id,
-		Region:         "CIS",
-		PayoutCurrency: "USD",
-		AmountFrom:     0.75,
-		AmountTo:       5,
+		MerchantId: suite.merchant.Id,
+		HomeRegion: "russia_and_cis",
 	}
 	rsp := &grpc.CheckProjectRequestSignatureResponse{}
 	err := suite.service.SetMerchantTariffRates(context.TODO(), req, rsp)
@@ -3535,11 +3518,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_GetMerch
 
 func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_MerchantHasTariff_Error() {
 	req := &grpc.SetMerchantTariffRatesRequest{
-		MerchantId:     suite.merchant.Id,
-		Region:         "CIS",
-		PayoutCurrency: "USD",
-		AmountFrom:     0.75,
-		AmountTo:       5,
+		MerchantId: suite.merchant.Id,
+		HomeRegion: "russia_and_cis",
 	}
 	rsp := &grpc.CheckProjectRequestSignatureResponse{}
 	err := suite.service.SetMerchantTariffRates(context.TODO(), req, rsp)
@@ -3632,7 +3612,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_NewMerchant_With
 	assert.NotZero(suite.T(), rsp1.Item.User.ProfileId, rsp.Item.Id)
 	assert.Equal(suite.T(), rsp1.Item.User.RegistrationDate.Seconds, req.Email.ConfirmedAt.Seconds)
 	assert.NotNil(suite.T(), rsp1.Item.Banking)
-	assert.Zero(suite.T(), rsp1.Item.Banking.Currency)
+	assert.NotZero(suite.T(), rsp1.Item.Banking.Currency)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_QuickSearchQuery_UserFirstNameLastName_Ok() {

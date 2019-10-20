@@ -178,6 +178,7 @@ It has these top-level messages:
 	GetMerchantAgreementSignUrlRequest
 	GetMerchantAgreementSignUrlResponse
 	GetMerchantTariffRatesRequest
+	GetMerchantTariffRatesResponseItems
 	GetMerchantTariffRatesResponse
 	SetMerchantTariffRatesRequest
 	ListOrdersPublicResponseItem

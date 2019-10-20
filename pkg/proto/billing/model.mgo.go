@@ -125,7 +125,7 @@ type MgoMerchant struct {
 	RollingReserveChargebackTransactionsThreshold float64                              `bson:"rolling_reserve_chargeback_transactions_threshold"`
 	ItemMinCostAmount                             float64                              `bson:"item_min_cost_amount"`
 	ItemMinCostCurrency                           string                               `bson:"item_min_cost_currency"`
-	Tariff                                        *MerchantTariffRates                 `bson:"tariff"`
+	PaymentTariffs                                []*MerchantTariffRatesPayment        `bson:"payment_tariffs"`
 	AgreementSignatureData                        *MgoMerchantAgreementSignatureData   `bson:"agreement_signature_data"`
 	Steps                                         *MerchantCompletedSteps              `bson:"steps"`
 	AgreementTemplate                             string                               `bson:"agreement_template"`
@@ -442,6 +442,7 @@ type MgoCountry struct {
 	VatStoreYears          int32                `bson:"vat_store_years"`
 	VatCurrencyRatesPolicy string               `bson:"vat_currency_rates_policy"`
 	VatCurrencyRatesSource string               `bson:"vat_currency_rates_source"`
+	PayerTariffRegion      string               `bson:"payer_tariff_region"`
 	CreatedAt              time.Time            `bson:"created_at"`
 	UpdatedAt              time.Time            `bson:"updated_at"`
 }
@@ -748,7 +749,7 @@ type MgoOrderViewPublic struct {
 	MerchantPayoutCurrency                  string                 `bson:"merchant_payout_currency"`
 }
 
-type MgoMerchantTariffRates struct {
+/*type MgoMerchantTariffRates struct {
 	Id         bson.ObjectId                   `bson:"_id"`
 	Payment    []*MerchantTariffRatesPayments  `bson:"payment"`
 	MoneyBack  []*MerchantTariffRatesMoneyBack `bson:"money_back"`
@@ -757,7 +758,7 @@ type MgoMerchantTariffRates struct {
 	Region     string                          `bson:"region"`
 	CreatedAt  time.Time                       `bson:"created_at"`
 	UpdatedAt  time.Time                       `bson:"updated_at"`
-}
+}*/
 
 type MgoKey struct {
 	Id           bson.ObjectId  `bson:"_id"`
@@ -1194,6 +1195,7 @@ func (m *Country) GetBSON() (interface{}, error) {
 		VatStoreYears:          m.VatStoreYears,
 		VatCurrencyRatesPolicy: m.VatCurrencyRatesPolicy,
 		VatCurrencyRatesSource: m.VatCurrencyRatesSource,
+		PayerTariffRegion:      m.PayerTariffRegion,
 	}
 	if len(m.Id) <= 0 {
 		st.Id = bson.NewObjectId()
@@ -1255,6 +1257,7 @@ func (m *Country) SetBSON(raw bson.Raw) error {
 	m.VatStoreYears = decoded.VatStoreYears
 	m.VatCurrencyRatesPolicy = decoded.VatCurrencyRatesPolicy
 	m.VatCurrencyRatesSource = decoded.VatCurrencyRatesSource
+	m.PayerTariffRegion = decoded.PayerTariffRegion
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 
@@ -2190,7 +2193,7 @@ func (m *Merchant) GetBSON() (interface{}, error) {
 		RollingReserveChargebackTransactionsThreshold: m.RollingReserveChargebackTransactionsThreshold,
 		ItemMinCostAmount:   m.ItemMinCostAmount,
 		ItemMinCostCurrency: m.ItemMinCostCurrency,
-		Tariff:              m.Tariff,
+		PaymentTariffs:      m.PaymentTariffs,
 		Steps:               m.Steps,
 		AgreementTemplate:   m.AgreementTemplate,
 		AgreementNumber:     m.AgreementNumber,
@@ -2382,7 +2385,7 @@ func (m *Merchant) SetBSON(raw bson.Raw) error {
 	m.RollingReserveChargebackTransactionsThreshold = decoded.RollingReserveChargebackTransactionsThreshold
 	m.ItemMinCostAmount = decoded.ItemMinCostAmount
 	m.ItemMinCostCurrency = decoded.ItemMinCostCurrency
-	m.Tariff = decoded.Tariff
+	m.PaymentTariffs = decoded.PaymentTariffs
 	m.Steps = decoded.Steps
 	m.AgreementTemplate = decoded.AgreementTemplate
 	m.AgreementNumber = decoded.AgreementNumber
@@ -4161,7 +4164,7 @@ func (m *Id) SetBSON(raw bson.Raw) error {
 	return nil
 }
 
-func (m *MerchantTariffRates) SetBSON(raw bson.Raw) error {
+/*func (m *MerchantTariffRates) SetBSON(raw bson.Raw) error {
 	decoded := new(MgoMerchantTariffRates)
 	err := raw.Unmarshal(decoded)
 
@@ -4176,7 +4179,7 @@ func (m *MerchantTariffRates) SetBSON(raw bson.Raw) error {
 	m.Region = decoded.Region
 
 	return nil
-}
+}*/
 
 func (k *Key) SetBSON(raw bson.Raw) error {
 	decoded := new(MgoKey)

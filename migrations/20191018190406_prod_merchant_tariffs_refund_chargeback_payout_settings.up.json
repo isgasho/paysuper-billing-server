@@ -1,0 +1,55 @@
+[
+  {
+    "create": "merchant_tariffs_settings"
+  },
+  {
+    "insert": "merchant_tariffs_settings",
+    "documents": [
+      {
+        "refund": [
+          {
+            "method_name": "MasterCard",
+            "method_percent_fee": 0.059757,
+            "method_fixed_fee": 0.03916,
+            "method_fixed_fee_currency": "EUR",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method_name": "VISA",
+            "method_percent_fee": 0.00,
+            "method_fixed_fee": 0.27115,
+            "method_fixed_fee_currency": "EUR",
+            "is_paid_by_merchant": false
+          }
+        ],
+        "chargeback": {
+          "method_percent_fee": 0.00,
+          "method_fixed_fee": 25.00,
+          "method_fixed_fee_currency": "EUR",
+          "is_paid_by_merchant": true
+        },
+        "payout": {
+          "method_percent_fee": 0.00,
+          "method_fixed_fee": 25.00,
+          "method_fixed_fee_currency": "EUR",
+          "is_paid_by_merchant": true
+        }
+      }
+    ]
+  },
+  {
+    "update": "merchant_tariffs_settings",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$currentDate": {
+            "created_at": true,
+            "updated_at": true
+          }
+        },
+        "multi": true
+      }
+    ]
+  }
+]

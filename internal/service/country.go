@@ -13,10 +13,11 @@ import (
 )
 
 const (
-	cacheCountryCodeA2           = "country:code_a2:%s"
-	cacheCountryAll              = "country:all"
-	cacheCountryRegions          = "country:regions"
-	cacheCountriesWithVatEnabled = "country:with_vat"
+	cacheCountryCodeA2                    = "country:code_a2:%s"
+	cacheCountryAll                       = "country:all"
+	cacheCountryRegions                   = "country:regions"
+	cacheCountriesWithVatEnabled          = "country:with_vat"
+	cacheTariffRegionsCountriesAndRegions = "country:tariff_region:%s"
 
 	collectionCountry = "country"
 )
@@ -159,6 +160,16 @@ type CountryServiceInterface interface {
 	GetAll() (*billing.CountriesList, error)
 	IsRegionExists(string) (bool, error)
 	GetCountriesWithVatEnabled() (*billing.CountriesList, error)
+	GetCountriesAndRegionsByTariffRegion(tariffRegion string) ([]*CountryAndRegionItem, error)
+}
+
+type CountryAndRegionItem struct {
+	Country string `bson:"iso_code_a2"`
+	Region  string `bson:"region"`
+}
+
+type CountryAndRegionItems struct {
+	Items []*CountryAndRegionItem `json:"items"`
 }
 
 func newCountryService(svc *Service) *Country {
@@ -191,7 +202,7 @@ func (h *Country) Insert(country *billing.Country) error {
 	return nil
 }
 
-func (h Country) MultipleInsert(country []*billing.Country) error {
+func (h *Country) MultipleInsert(country []*billing.Country) error {
 	c := make([]interface{}, len(country))
 	for i, v := range country {
 		if v.VatThreshold == nil {
@@ -224,7 +235,7 @@ func (h Country) MultipleInsert(country []*billing.Country) error {
 	return nil
 }
 
-func (h Country) Update(country *billing.Country) error {
+func (h *Country) Update(country *billing.Country) error {
 	country.VatThreshold.Year = tools.FormatAmount(country.VatThreshold.Year)
 	country.VatThreshold.World = tools.FormatAmount(country.VatThreshold.World)
 
@@ -252,7 +263,7 @@ func (h Country) Update(country *billing.Country) error {
 	return nil
 }
 
-func (h Country) GetByIsoCodeA2(code string) (*billing.Country, error) {
+func (h *Country) GetByIsoCodeA2(code string) (*billing.Country, error) {
 	var c billing.Country
 	key := fmt.Sprintf(cacheCountryCodeA2, code)
 
@@ -289,7 +300,7 @@ func (h Country) GetByIsoCodeA2(code string) (*billing.Country, error) {
 	return &c, nil
 }
 
-func (h Country) GetCountriesWithVatEnabled() (*billing.CountriesList, error) {
+func (h *Country) GetCountriesWithVatEnabled() (*billing.CountriesList, error) {
 	var c = &billing.CountriesList{}
 	key := cacheCountriesWithVatEnabled
 
@@ -318,7 +329,7 @@ func (h Country) GetCountriesWithVatEnabled() (*billing.CountriesList, error) {
 	return c, nil
 }
 
-func (h Country) GetAll() (*billing.CountriesList, error) {
+func (h *Country) GetAll() (*billing.CountriesList, error) {
 	var c = &billing.CountriesList{}
 	key := cacheCountryAll
 
@@ -339,7 +350,7 @@ func (h Country) GetAll() (*billing.CountriesList, error) {
 	return c, nil
 }
 
-func (h Country) IsRegionExists(region string) (bool, error) {
+func (h *Country) IsRegionExists(region string) (bool, error) {
 	var c = &countryRegions{}
 	key := cacheCountryRegions
 	if err := h.svc.cacher.Get(key, c); err != nil {
@@ -358,7 +369,46 @@ func (h Country) IsRegionExists(region string) (bool, error) {
 	return ok, nil
 }
 
-func (h Country) IsCountryVatEnabled(isoCodeA2 string) (bool, error) {
+func (h *Country) GetCountriesAndRegionsByTariffRegion(tariffRegion string) ([]*CountryAndRegionItem, error) {
+	items := new(CountryAndRegionItems)
+	key := fmt.Sprintf(cacheTariffRegionsCountriesAndRegions, tariffRegion)
+	err := h.svc.cacher.Get(key, items)
+
+	if err == nil {
+		return items.Items, nil
+	}
+
+	query := bson.M{"payer_tariff_region": tariffRegion}
+	err = h.svc.db.Collection(collectionCountry).Find(query).All(&items.Items)
+
+	if err != nil || len(items.Items) <= 0 {
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorDatabaseQueryFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, collectionCountry),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			)
+		}
+		return nil, err
+	}
+
+	err = h.svc.cacher.Set(key, items, 0)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
+			zap.String(pkg.ErrorCacheFieldKey, key),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, items),
+		)
+	}
+
+	return items.Items, nil
+}
+
+func (h *Country) IsCountryVatEnabled(isoCodeA2 string) (bool, error) {
 	var c = &countryWithVat{}
 	key := cacheCountriesWithVatEnabled
 	if err := h.svc.cacher.Get(key, c); err != nil {

@@ -360,6 +360,8 @@ message Merchant {
     string agreement_number = 51;
     // @inject_tag: json:"minimal_payout_limit"
     float minimal_payout_limit = 52;
+    // @inject_tag: json:"-"
+    repeated billing.MerchantTariffRatesPayment payment_tariffs = 53;
 }
 
 message SystemNotificationStatuses {
@@ -1096,6 +1098,8 @@ message Country {
     google.protobuf.Timestamp created_at = 16;
     //@inject_tag: json:"updated_at" bson:"updated_at"
     google.protobuf.Timestamp updated_at = 17;
+    //@inject_tag: json:"payer_tariff_region" bson:"payer_tariff_region"
+    string payer_tariff_region = 18;
 }
 
 message CountriesList {
@@ -1884,27 +1888,60 @@ message RangeInt {
 
 message MerchantTariffRatesPayment {
     //@inject_tag: json:"min_amount" bson:"min_amount"
-    float min_amount = 1;
+    double min_amount = 1;
     //@inject_tag: json:"max_amount" bson:"max_amount"
-    float max_amount = 2;
+    double max_amount = 2;
     //@inject_tag: json:"method_name" bson:"method_name"
     string method_name = 3;
     //@inject_tag: json:"method_percent_fee" bson:"method_percent_fee"
-    float method_percent_fee = 4;
+    double method_percent_fee = 4;
     //@inject_tag: json:"method_fixed_fee" bson:"method_fixed_fee"
-    float method_fixed_fee = 5;
+    double method_fixed_fee = 5;
     //@inject_tag: json:"method_fixed_fee_currency" bson:"method_fixed_fee_currency"
     string method_fixed_fee_currency = 6;
     //@inject_tag: json:"ps_percent_fee" bson:"ps_percent_fee"
-    float ps_percent_fee = 7;
+    double ps_percent_fee = 7;
     //@inject_tag: json:"ps_fixed_fee" bson:"ps_fixed_fee"
-    float ps_fixed_fee = 8;
+    double ps_fixed_fee = 8;
     //@inject_tag: json:"ps_fixed_fee_currency" bson:"ps_fixed_fee_currency"
     string ps_fixed_fee_currency = 9;
     //@inject_tag: json:"merchant_home_region" bson:"merchant_home_region"
     string merchant_home_region = 10;
-    //@inject_tag: json:"payer_regions" bson:"payer_regions"
-    repeated string payer_regions = 11;
+    //@inject_tag: json:"payer_regions" bson:"payer_region"
+    string payer_region = 11;
+}
+
+message MerchantTariffRatesSettingsRefundItem {
+    //@inject_tag: json:"method_name" bson:"method_name"
+    string method_name = 1;
+    //@inject_tag: json:"method_percent_fee" bson:"method_percent_fee"
+	double method_percent_fee = 2;
+    //@inject_tag: json:"method_fixed_fee" bson:"method_fixed_fee"
+	double method_fixed_fee = 3;
+    //@inject_tag: json:"method_fixed_fee_currency" bson:"method_fixed_fee_currency"
+	string method_fixed_fee_currency = 4;
+    //@inject_tag: json:"is_paid_by_merchant" bson:"is_paid_by_merchant"
+	bool is_paid_by_merchant = 5;
+}
+
+message MerchantTariffRatesSettingsItem {
+    //@inject_tag: json:"method_percent_fee" bson:"method_percent_fee"
+    double method_percent_fee = 1;
+    //@inject_tag: json:"method_fixed_fee" bson:"method_fixed_fee"
+	double method_fixed_fee = 2;
+    //@inject_tag: json:"method_fixed_fee_currency" bson:"method_fixed_fee_currency"
+	string method_fixed_fee_currency = 3;
+    //@inject_tag: json:"is_paid_by_merchant" bson:"is_paid_by_merchant"
+	bool is_paid_by_merchant = 4;
+}
+
+message MerchantTariffRatesSettings {
+    //@inject_tag: json:"refund" bson:"refund"
+    repeated MerchantTariffRatesSettingsRefundItem refund = 1;
+    //@inject_tag: json:"chargeback" bson:"chargeback"
+    MerchantTariffRatesSettingsItem chargeback = 2;
+    //@inject_tag: json:"payout" bson:"payout"
+    MerchantTariffRatesSettingsItem payout = 3;
 }
 
 message Key {

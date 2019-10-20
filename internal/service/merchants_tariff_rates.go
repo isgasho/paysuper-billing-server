@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	collectionMerchantsTariffRates     = "merchants_tariff_rates"
+	collectionMerchantsPaymentTariffs  = "merchants_payment_tariffs"
+	collectionMerchantTariffsSettings  = "merchant_tariffs_settings"
 	onboardingTariffRatesCacheKeyGetBy = "onboarding_tariff_rates:%x"
 )
 
@@ -21,7 +22,9 @@ type TariffRates struct {
 }
 
 type MerchantTariffRatesInterface interface {
-	GetBy(*grpc.GetMerchantTariffRatesRequest) ([]*billing.MerchantTariffRatesPayment, error)
+	GetPaymentTariffsBy(*grpc.GetMerchantTariffRatesRequest) ([]*billing.MerchantTariffRatesPayment, error)
+	GetTariffsSettings() (*billing.MerchantTariffRatesSettings, error)
+	GetBy(in *grpc.GetMerchantTariffRatesRequest) (*grpc.GetMerchantTariffRatesResponseItems, error)
 	GetCacheKeyForGetBy(*grpc.GetMerchantTariffRatesRequest) (string, error)
 }
 
@@ -31,8 +34,69 @@ func newMerchantsTariffRatesRepository(s *Service) *MerchantsTariffRatesReposito
 
 func (h *MerchantsTariffRatesRepository) GetBy(
 	in *grpc.GetMerchantTariffRatesRequest,
+) (*grpc.GetMerchantTariffRatesResponseItems, error) {
+	payment, err := h.GetPaymentTariffsBy(in)
+
+	if err != nil {
+		return nil, err
+	}
+
+	settings, err := h.GetTariffsSettings()
+
+	if err != nil {
+		return nil, err
+	}
+
+	tariffs := &grpc.GetMerchantTariffRatesResponseItems{
+		Payment:    payment,
+		Refund:     settings.Refund,
+		Chargeback: settings.Chargeback,
+		Payout:     settings.Payout,
+	}
+
+	return tariffs, nil
+}
+
+func (h *MerchantsTariffRatesRepository) GetTariffsSettings() (*billing.MerchantTariffRatesSettings, error) {
+	item := new(billing.MerchantTariffRatesSettings)
+	err := h.svc.cacher.Get(collectionMerchantTariffsSettings, &item)
+
+	if err == nil {
+		return item, nil
+	}
+
+	query := bson.M{}
+	err = h.svc.db.Collection(collectionMerchantTariffsSettings).Find(query).One(item)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchantTariffsSettings),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return nil, merchantTariffsNotFound
+	}
+
+	err = h.svc.cacher.Set(collectionMerchantTariffsSettings, item, 0)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
+			zap.String(pkg.ErrorCacheFieldKey, collectionMerchantTariffsSettings),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, item),
+		)
+	}
+
+	return item, nil
+}
+
+func (h *MerchantsTariffRatesRepository) GetPaymentTariffsBy(
+	in *grpc.GetMerchantTariffRatesRequest,
 ) ([]*billing.MerchantTariffRatesPayment, error) {
-	var item *TariffRates
+	item := new(TariffRates)
 	key, err := h.GetCacheKeyForGetBy(in)
 
 	if err != nil {
@@ -48,7 +112,7 @@ func (h *MerchantsTariffRatesRepository) GetBy(
 	query := bson.M{"merchant_home_region": in.HomeRegion}
 
 	if in.PayerRegion != "" {
-		query["payer_regions"] = bson.M{"$in": []string{in.HomeRegion}}
+		query["payer_region"] = in.HomeRegion
 	}
 
 	if in.MinAmount >= 0 && in.MaxAmount > in.MinAmount {
@@ -56,17 +120,20 @@ func (h *MerchantsTariffRatesRepository) GetBy(
 		query["max_amount"] = in.MaxAmount
 	}
 
-	err = h.svc.db.Collection(collectionMerchantsTariffRates).Find(query).All(&item.Items)
+	err = h.svc.db.Collection(collectionMerchantsPaymentTariffs).Find(query).All(&item.Items)
 
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchantsTariffRates),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchantsPaymentTariffs),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
+		return nil, merchantErrorUnknown
+	}
 
-		return nil, fmt.Errorf(errorNotFound, collectionMerchantsTariffRates)
+	if len(item.Items) <= 0 {
+		return nil, merchantTariffsNotFound
 	}
 
 	err = h.svc.cacher.Set(key, item, 0)
@@ -80,7 +147,7 @@ func (h *MerchantsTariffRatesRepository) GetBy(
 			zap.Any(pkg.ErrorDatabaseFieldQuery, item),
 		)
 
-		return nil, fmt.Errorf(errorNotFound, collectionMerchantsTariffRates)
+		return nil, fmt.Errorf(errorNotFound, collectionMerchantsPaymentTariffs)
 	}
 
 	return item.Items, nil
