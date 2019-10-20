@@ -97,8 +97,7 @@ const (
 	UserIdentityTypePhone    = "phone"
 	UserIdentityTypeExternal = "external"
 
-	TechEmailDomain        = "@paysuper.com"
-	OrderInlineFormUrlMask = "%s://%s/order/%s"
+	TechEmailDomain = "@paysuper.com"
 
 	MigrationSource = "file://./migrations"
 

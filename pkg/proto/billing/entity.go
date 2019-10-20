@@ -266,3 +266,10 @@ func (m *Merchant) IsBankingComplete() bool {
 	return m.Banking != nil && m.Banking.Currency != "" && m.Banking.Name != "" && m.Banking.Address != "" &&
 		m.Banking.AccountNumber != "" && m.Banking.Swift != ""
 }
+
+func (c *Country) GetVatCurrencyCode() string {
+	if c.VatEnabled {
+		return c.VatCurrency
+	}
+	return c.Currency
+}

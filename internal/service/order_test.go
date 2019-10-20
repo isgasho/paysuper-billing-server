@@ -4968,6 +4968,8 @@ func (suite *OrderTestSuite) TestOrder_OrderReCalculateAmounts_Ok() {
 
 	assert.Equal(suite.T(), order1.Tax.Amount, rsp1.Item.Vat)
 	assert.Equal(suite.T(), order1.TotalPaymentAmount, rsp1.Item.TotalAmount)
+	assert.Equal(suite.T(), order1.Currency, rsp1.Item.Currency)
+	assert.Equal(suite.T(), order1.Items, rsp1.Item.Items)
 }
 
 func (suite *OrderTestSuite) TestOrder_OrderReCalculateAmounts_OrderNotFound_Error() {
@@ -6745,7 +6747,8 @@ func (suite *OrderTestSuite) Test_ProcessOrderKeyProducts() {
 	shouldBe.EqualValuesf(pkg.ResponseStatusOk, rsp1.Status, "%s", rsp1.Message)
 	order := rsp1.Item
 
-	shouldBe.Nil(suite.service.ProcessOrderKeyProducts(context.TODO(), order))
+	_, err = suite.service.ProcessOrderKeyProducts(context.TODO(), order)
+	shouldBe.Nil(err)
 	shouldBe.NotEmpty(order.Items)
 	shouldBe.Equal(suite.keyProductIds[0], order.Items[0].Id)
 }
