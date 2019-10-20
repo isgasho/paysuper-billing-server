@@ -756,6 +756,7 @@ github.com/paysuper/paysuper-billing-server v0.0.0-20190926070734-3da75bc375c7/g
 github.com/paysuper/paysuper-billing-server v0.0.0-20190926100841-ae41a61c4745/go.mod h1:ejy2ffHoEEQMtmvo6Dt38a9hzYSPBiW6C1KSEOL9d+k=
 github.com/paysuper/paysuper-billing-server v0.0.0-20190927123432-893bab0748f1/go.mod h1:DV0QVfOOVTq9TXuYl1sgk8e+jyxOW2YUx8aHe6sUmiA=
 github.com/paysuper/paysuper-billing-server v0.0.0-20191002130927-fb4dc5d0cb2c/go.mod h1:RsZbiKkMgJ/c4NDxCj2JnUpQs3Q7238HgvTSpuJvxEk=
+github.com/paysuper/paysuper-billing-server v0.0.0-20191020124804-ebda379fcb1a/go.mod h1:9QiSUsWYim3EjLC/eRgdM7Xovd8/A77L+pIfApBi0EI=
 github.com/paysuper/paysuper-currencies v0.0.0-20190903083641-668b8b2b997d h1:hoMkfdq4qEGOONvxajsZO0Mf6np++pGnrKVxegvplaw=
 github.com/paysuper/paysuper-currencies v0.0.0-20190903083641-668b8b2b997d/go.mod h1:C+QHdgbjIlAPxHD93/08yi+xWfUgk8maLY8FKFqNzMQ=
 github.com/paysuper/paysuper-database-mongo v0.1.0 h1:RMSIYB8rpTAAHc0wmIQz8XQVa8KB6/xX8iA8ceiDic8=
@@ -778,6 +779,8 @@ github.com/paysuper/paysuper-reporter v0.0.0-20191002161756-34383a0eaba0 h1:qDNy
 github.com/paysuper/paysuper-reporter v0.0.0-20191002161756-34383a0eaba0/go.mod h1:hu3GL1n9OoeE7svmDQYlrhx3wKrIuiWQo6QCMEc8xiQ=
 github.com/paysuper/paysuper-reporter v0.0.0-20191003072342-610371fc9395 h1:6tSNLhHyGLurHuF+l+b3bRtuikWHXxusXjQryLWcMDQ=
 github.com/paysuper/paysuper-reporter v0.0.0-20191003072342-610371fc9395/go.mod h1:QbzB6168BfM3iSunv9BlMKjJpYmPGsGyGpXr9t0saA4=
+github.com/paysuper/paysuper-reporter v0.0.0-20191020130525-87884ddaf229 h1:PQ5mSNJdsjN1NRiX4dgvI5149ZDAvyVKGiv8pEhmzoE=
+github.com/paysuper/paysuper-reporter v0.0.0-20191020130525-87884ddaf229/go.mod h1:d2oC+xp+BndvSge5SkmbZDcq5IiIeHYoQL50jfLfpMc=
 github.com/paysuper/paysuper-tax-service v0.0.0-20190903084038-7849f394f122 h1:46e+iUwsIwyRqININIIQNooTU8KCwcQw7AVnaTpTizg=
 github.com/paysuper/paysuper-tax-service v0.0.0-20190903084038-7849f394f122/go.mod h1:QK6czJ8ge3pF/QbFlRXuYfPRrm/90qubdWQ9OWKfeUs=
 github.com/paysuper/postmark-sender v0.0.0-20190903075212-a210e35789fc h1:LPZzsbFRq04SkYik74jOvu9pVpHWsjoELbxXkSx18D0=

@@ -8,6 +8,7 @@ import (
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/micro/go-micro/client"
 	documentSignerConst "github.com/paysuper/document-signer/pkg/constant"
 	"github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -1465,8 +1466,7 @@ func (s *Service) generateMerchantAgreement(ctx context.Context, merchant *billi
 		Params:           b,
 		SendNotification: false,
 	}
-	zap.L().Info(merchant.Id, zap.ByteString("payload", b))
-	rsp, err := s.reporterService.CreateFile(ctx, req)
+	rsp, err := s.reporterService.CreateFile(ctx, req, client.WithRequestTimeout(time.Minute*10))
 
 	if err != nil {
 		zap.L().Error(
