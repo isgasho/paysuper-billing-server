@@ -1913,9 +1913,9 @@ message MerchantTariffRatesPayment {
     double ps_fixed_fee = 8;
     //@inject_tag: json:"ps_fixed_fee_currency" bson:"ps_fixed_fee_currency"
     string ps_fixed_fee_currency = 9;
-    //@inject_tag: json:"merchant_home_region" bson:"merchant_home_region"
+    //@inject_tag: json:"-" bson:"merchant_home_region"
     string merchant_home_region = 10;
-    //@inject_tag: json:"payer_regions" bson:"payer_region"
+    //@inject_tag: json:"-" bson:"payer_region"
     string payer_region = 11;
 }
 
