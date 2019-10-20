@@ -1391,24 +1391,24 @@ func (s *Service) SetMerchantTariffRates(
 }
 
 func (s *Service) generateMerchantAgreement(ctx context.Context, merchant *billing.Merchant) error {
-	//payoutCostInt := int(merchant.Tariff.Payout.FixedFee)
-	//payoutCostWord := num2words.Convert(payoutCostInt)
+	payoutCostInt := int(merchant.Tariff.Payout.MethodFixedFee)
+	payoutCostWord := num2words.Convert(payoutCostInt)
 	minPayoutLimitInt := int(merchant.MinimalPayoutLimit)
 	minPayoutLimitWord := num2words.Convert(minPayoutLimitInt)
 
-	//payoutCost := fmt.Sprintf("%s (%d) %s", payoutCostWord, payoutCostInt, merchant.Tariff.Payout.FixedFeeCurrency)
+	payoutCost := fmt.Sprintf("%s (%d) %s", payoutCostWord, payoutCostInt, merchant.Tariff.Payout.MethodFixedFeeCurrency)
 	minPayoutLimit := fmt.Sprintf("%s (%d) %s", minPayoutLimitWord, minPayoutLimitInt, merchant.GetPayoutCurrency())
 
 	params := map[string]interface{}{
-		reporterConst.RequestParameterAgreementNumber:             merchant.AgreementNumber,
-		reporterConst.RequestParameterAgreementLegalName:          merchant.Company.Name,
-		reporterConst.RequestParameterAgreementAddress:            merchant.GetAddress(),
-		reporterConst.RequestParameterAgreementRegistrationNumber: merchant.Company.RegistrationNumber,
-		//reporterConst.RequestParameterAgreementPayoutCost:                 payoutCost,
-		reporterConst.RequestParameterAgreementMinimalPayoutLimit: minPayoutLimit,
-		reporterConst.RequestParameterAgreementPayoutCurrency:     merchant.GetPayoutCurrency(),
-		//reporterConst.RequestParameterAgreementPSRate:                     merchant.Tariff.Payment,
-		//reporterConst.RequestParameterAgreementHomeRegion:                 merchant.Tariff.Region,
+		reporterConst.RequestParameterAgreementNumber:                     merchant.AgreementNumber,
+		reporterConst.RequestParameterAgreementLegalName:                  merchant.Company.Name,
+		reporterConst.RequestParameterAgreementAddress:                    merchant.GetAddress(),
+		reporterConst.RequestParameterAgreementRegistrationNumber:         merchant.Company.RegistrationNumber,
+		reporterConst.RequestParameterAgreementPayoutCost:                 payoutCost,
+		reporterConst.RequestParameterAgreementMinimalPayoutLimit:         minPayoutLimit,
+		reporterConst.RequestParameterAgreementPayoutCurrency:             merchant.GetPayoutCurrency(),
+		reporterConst.RequestParameterAgreementPSRate:                     merchant.Tariff.Payment,
+		reporterConst.RequestParameterAgreementHomeRegion:                 pkg.HomeRegions[merchant.Tariff.HomeRegion],
 		reporterConst.RequestParameterAgreementMerchantAuthorizedName:     merchant.Contacts.Authorized.Name,
 		reporterConst.RequestParameterAgreementMerchantAuthorizedPosition: merchant.Contacts.Authorized.Position,
 		reporterConst.RequestParameterAgreementProjectsLink:               s.cfg.DashboardProjectsUrl,

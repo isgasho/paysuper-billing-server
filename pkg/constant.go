@@ -339,4 +339,12 @@ var (
 		CardPayDeclineCodeWrongPaymentWasReceived:          PaySuperDeclineCodeWrongPaymentWasReceived,
 		CardPayDeclineCodeConfirmationsPaymentTimeout:      PaySuperDeclineCodeConfirmationsPaymentTimeout,
 	}
+
+	HomeRegions = map[string]string{
+		"asia":           "Asia",
+		"europe":         "Europe",
+		"latin_america":  "Latin America",
+		"russia_and_cis": "Russia & CIS",
+		"worldwide":      "Worldwide",
+	}
 )
