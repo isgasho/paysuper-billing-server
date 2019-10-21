@@ -781,6 +781,8 @@ github.com/paysuper/paysuper-reporter v0.0.0-20191003072342-610371fc9395 h1:6tSN
 github.com/paysuper/paysuper-reporter v0.0.0-20191003072342-610371fc9395/go.mod h1:QbzB6168BfM3iSunv9BlMKjJpYmPGsGyGpXr9t0saA4=
 github.com/paysuper/paysuper-reporter v0.0.0-20191020130525-87884ddaf229 h1:PQ5mSNJdsjN1NRiX4dgvI5149ZDAvyVKGiv8pEhmzoE=
 github.com/paysuper/paysuper-reporter v0.0.0-20191020130525-87884ddaf229/go.mod h1:d2oC+xp+BndvSge5SkmbZDcq5IiIeHYoQL50jfLfpMc=
+github.com/paysuper/paysuper-reporter v0.0.0-20191021125507-8d7a093b7c6d h1:cY6u07E3IaxiVdgw9PMDqwHCwMINLlT0LgaqTDOd9Ko=
+github.com/paysuper/paysuper-reporter v0.0.0-20191021125507-8d7a093b7c6d/go.mod h1:d2oC+xp+BndvSge5SkmbZDcq5IiIeHYoQL50jfLfpMc=
 github.com/paysuper/paysuper-tax-service v0.0.0-20190903084038-7849f394f122 h1:46e+iUwsIwyRqININIIQNooTU8KCwcQw7AVnaTpTizg=
 github.com/paysuper/paysuper-tax-service v0.0.0-20190903084038-7849f394f122/go.mod h1:QK6czJ8ge3pF/QbFlRXuYfPRrm/90qubdWQ9OWKfeUs=
 github.com/paysuper/postmark-sender v0.0.0-20190903075212-a210e35789fc h1:LPZzsbFRq04SkYik74jOvu9pVpHWsjoELbxXkSx18D0=

@@ -27,7 +27,7 @@ require (
 	github.com/paysuper/paysuper-database-mongo v0.1.1
 	github.com/paysuper/paysuper-i18n v0.0.0-20190926113224-7eaca4563c7b
 	github.com/paysuper/paysuper-recurring-repository v1.0.123
-	github.com/paysuper/paysuper-reporter v0.0.0-20191020130525-87884ddaf229
+	github.com/paysuper/paysuper-reporter v0.0.0-20191021125507-8d7a093b7c6d
 	github.com/paysuper/paysuper-tax-service v0.0.0-20190903084038-7849f394f122
 	github.com/paysuper/postmark-sender v0.0.0-20190926173213-1b6244122c49
 	github.com/prometheus/client_golang v1.1.0
