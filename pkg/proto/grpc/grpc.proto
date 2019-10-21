@@ -676,7 +676,7 @@ message CreateRefundResponse {
 }
 
 message ListRefundsRequest {
-    // @inject_tag: validate:"required,uuid"
+    // @inject_tag: validate:"required,uuid" param:"order_id"
     string order_id = 1;
     // @inject_tag: validate:"required,hexadecimal,len=24"
     string merchant_id = 2;
