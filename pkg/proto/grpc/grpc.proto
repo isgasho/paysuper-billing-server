@@ -1767,33 +1767,37 @@ message GetMerchantAgreementSignUrlResponse {
 }
 
 message GetMerchantTariffRatesRequest {
-    // @inject_tag: query:"region" validate:"required,world_region"
-    string region = 1;
-    //@inject_tag: query:"payout_currency" validate:"required,alpha,len=3"
-    string payout_currency = 2;
-    // @inject_tag: query:"amount_from" validate:"omitempty,numeric,gte=0"
-    double amount_from = 3;
-    // @inject_tag: query:"amount_to" validate:"omitempty,numeric,gt=0"
-    double amount_to = 4;
+    // @inject_tag: query:"region" validate:"required,tariff_region"
+    string home_region = 1;
+    //@inject_tag: query:"payer_region" validate:"omitempty,tariff_region"
+    string payer_region = 2;
+    // @inject_tag: query:"min_amount" validate:"omitempty,numeric,gte=0"
+    double min_amount = 3;
+    // @inject_tag: query:"max_amount" validate:"omitempty,numeric,gt=0"
+    double max_amount = 4;
+}
+
+message GetMerchantTariffRatesResponseItems {
+    repeated billing.MerchantTariffRatesPayment payment = 1;
+    //@inject_tag: json:"-"
+    repeated billing.MerchantTariffRatesSettingsRefundItem refund = 2;
+    //@inject_tag: json:"chargeback"
+    billing.MerchantTariffRatesSettingsItem chargeback = 3;
+    //@inject_tag: json:"payout"
+    billing.MerchantTariffRatesSettingsItem payout = 4;
 }
 
 message GetMerchantTariffRatesResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
-    billing.MerchantTariffRates item = 3;
+    GetMerchantTariffRatesResponseItems items = 3;
 }
 
 message SetMerchantTariffRatesRequest {
     //@inject_tag: json:"merchant_id" validate:"required,hexadecimal,len=24"
     string merchant_id = 1;
-    // @inject_tag: json:"region" validate:"required,world_region"
-    string region = 2;
-    //@inject_tag: json:"payout_currency" validate:"required,alpha,len=3"
-    string payout_currency = 3;
-    // @inject_tag: json:"amount_from" validate:"required,numeric,gte=0"
-    double amount_from = 4;
-    // @inject_tag: json:"amount_to" validate:"required,numeric,gt=0"
-    double amount_to = 5;
+    // @inject_tag: json:"home_region" validate:"required,tariff_region"
+    string home_region = 2;
 }
 
 message ListOrdersPublicResponseItem {

@@ -483,24 +483,42 @@ func (suite *OrderTestSuite) SetupTest() {
 				IsActive: true,
 			},
 		},
-		Tariff: &billing.MerchantTariffRates{
-			Region: "USD",
-			Chargeback: &billing.TariffRatesItem{
-				FixedFee:         1,
-				FixedFeeCurrency: "USD",
-				IsPaidByMerchant: true,
+		Tariff: &billing.MerchantTariff{
+			Payment: []*billing.MerchantTariffRatesPayment{
+				{
+					MinAmount:              0,
+					MaxAmount:              4.99,
+					MethodName:             "VISA",
+					MethodPercentFee:       1.8,
+					MethodFixedFee:         0.2,
+					MethodFixedFeeCurrency: "USD",
+					PsPercentFee:           3.0,
+					PsFixedFee:             0.3,
+					PsFixedFeeCurrency:     "USD",
+					MerchantHomeRegion:     "russia_and_cis",
+					PayerRegion:            "europe",
+				},
+				{
+					MinAmount:              5,
+					MaxAmount:              999999999.99,
+					MethodName:             "MasterCard",
+					MethodPercentFee:       1.8,
+					MethodFixedFee:         0.2,
+					MethodFixedFeeCurrency: "USD",
+					PsPercentFee:           3.0,
+					PsFixedFee:             0.3,
+					PsFixedFeeCurrency:     "USD",
+					MerchantHomeRegion:     "russia_and_cis",
+					PayerRegion:            "europe",
+				},
 			},
-			MoneyBack: []*billing.MerchantTariffRatesMoneyBack{
-				{Method: "VISA"},
+			Payout: &billing.MerchantTariffRatesSettingsItem{
+				MethodPercentFee:       0,
+				MethodFixedFee:         25.0,
+				MethodFixedFeeCurrency: "EUR",
+				IsPaidByMerchant:       true,
 			},
-			Payment: []*billing.MerchantTariffRatesPayments{
-				{Method: "VISA"},
-			},
-			Payout: &billing.TariffRatesItem{
-				FixedFee:         1,
-				FixedFeeCurrency: "USD",
-				IsPaidByMerchant: true,
-			},
+			HomeRegion: "russia_and_cis",
 		},
 	}
 
@@ -537,24 +555,42 @@ func (suite *OrderTestSuite) SetupTest() {
 			Amount: 10000,
 		},
 		IsSigned: true,
-		Tariff: &billing.MerchantTariffRates{
-			Region: "USD",
-			Chargeback: &billing.TariffRatesItem{
-				FixedFee:         1,
-				FixedFeeCurrency: "USD",
-				IsPaidByMerchant: true,
+		Tariff: &billing.MerchantTariff{
+			Payment: []*billing.MerchantTariffRatesPayment{
+				{
+					MinAmount:              0,
+					MaxAmount:              4.99,
+					MethodName:             "VISA",
+					MethodPercentFee:       1.8,
+					MethodFixedFee:         0.2,
+					MethodFixedFeeCurrency: "USD",
+					PsPercentFee:           3.0,
+					PsFixedFee:             0.3,
+					PsFixedFeeCurrency:     "USD",
+					MerchantHomeRegion:     "russia_and_cis",
+					PayerRegion:            "europe",
+				},
+				{
+					MinAmount:              5,
+					MaxAmount:              999999999.99,
+					MethodName:             "MasterCard",
+					MethodPercentFee:       1.8,
+					MethodFixedFee:         0.2,
+					MethodFixedFeeCurrency: "USD",
+					PsPercentFee:           3.0,
+					PsFixedFee:             0.3,
+					PsFixedFeeCurrency:     "USD",
+					MerchantHomeRegion:     "russia_and_cis",
+					PayerRegion:            "europe",
+				},
 			},
-			MoneyBack: []*billing.MerchantTariffRatesMoneyBack{
-				{Method: "VISA"},
+			Payout: &billing.MerchantTariffRatesSettingsItem{
+				MethodPercentFee:       0,
+				MethodFixedFee:         25.0,
+				MethodFixedFeeCurrency: "EUR",
+				IsPaidByMerchant:       true,
 			},
-			Payment: []*billing.MerchantTariffRatesPayments{
-				{Method: "VISA"},
-			},
-			Payout: &billing.TariffRatesItem{
-				FixedFee:         1,
-				FixedFeeCurrency: "USD",
-				IsPaidByMerchant: true,
-			},
+			HomeRegion: "russia_and_cis",
 		},
 	}
 	merchant1 := &billing.Merchant{
@@ -590,24 +626,42 @@ func (suite *OrderTestSuite) SetupTest() {
 			Amount: 100000,
 		},
 		IsSigned: false,
-		Tariff: &billing.MerchantTariffRates{
-			Region: "USD",
-			Chargeback: &billing.TariffRatesItem{
-				FixedFee:         1,
-				FixedFeeCurrency: "USD",
-				IsPaidByMerchant: true,
+		Tariff: &billing.MerchantTariff{
+			Payment: []*billing.MerchantTariffRatesPayment{
+				{
+					MinAmount:              0,
+					MaxAmount:              4.99,
+					MethodName:             "VISA",
+					MethodPercentFee:       1.8,
+					MethodFixedFee:         0.2,
+					MethodFixedFeeCurrency: "USD",
+					PsPercentFee:           3.0,
+					PsFixedFee:             0.3,
+					PsFixedFeeCurrency:     "USD",
+					MerchantHomeRegion:     "russia_and_cis",
+					PayerRegion:            "europe",
+				},
+				{
+					MinAmount:              5,
+					MaxAmount:              999999999.99,
+					MethodName:             "MasterCard",
+					MethodPercentFee:       1.8,
+					MethodFixedFee:         0.2,
+					MethodFixedFeeCurrency: "USD",
+					PsPercentFee:           3.0,
+					PsFixedFee:             0.3,
+					PsFixedFeeCurrency:     "USD",
+					MerchantHomeRegion:     "russia_and_cis",
+					PayerRegion:            "europe",
+				},
 			},
-			MoneyBack: []*billing.MerchantTariffRatesMoneyBack{
-				{Method: "VISA"},
+			Payout: &billing.MerchantTariffRatesSettingsItem{
+				MethodPercentFee:       0,
+				MethodFixedFee:         25.0,
+				MethodFixedFeeCurrency: "EUR",
+				IsPaidByMerchant:       true,
 			},
-			Payment: []*billing.MerchantTariffRatesPayments{
-				{Method: "VISA"},
-			},
-			Payout: &billing.TariffRatesItem{
-				FixedFee:         1,
-				FixedFeeCurrency: "USD",
-				IsPaidByMerchant: true,
-			},
+			HomeRegion: "russia_and_cis",
 		},
 	}
 

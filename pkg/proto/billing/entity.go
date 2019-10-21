@@ -219,16 +219,9 @@ func (m *Merchant) IsMerchantSignature(signatureId string) bool {
 }
 
 func (m *Merchant) HasTariff() bool {
-	return m.Tariff != nil && m.HasTariffPayment() && m.HasTariffMoneyBack() && m.Tariff.Payout != nil &&
-		m.Tariff.Chargeback != nil && m.Tariff.Region != ""
-}
+	return m.Tariff != nil && len(m.Tariff.Payment) > 0 && m.Tariff.Payout != nil &&
+		m.Tariff.Payout.MethodFixedFee > 0 && m.Tariff.Payout.MethodFixedFeeCurrency != "" && m.Tariff.HomeRegion != ""
 
-func (m *Merchant) HasTariffPayment() bool {
-	return m.Tariff.Payment != nil && len(m.Tariff.Payment) > 0
-}
-
-func (m *Merchant) HasTariffMoneyBack() bool {
-	return m.Tariff.MoneyBack != nil && len(m.Tariff.MoneyBack) > 0
 }
 
 func (m *Merchant) HasPrimaryOnboardingUserName() bool {
