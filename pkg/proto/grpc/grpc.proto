@@ -181,8 +181,6 @@ service BillingService {
     rpc InviteUserAdmin(InviteUserAdminRequest) returns (InviteUserAdminResponse) {}
     rpc ResendInviteMerchant(ResendInviteMerchantRequest) returns (EmptyResponseWithStatus) {}
     rpc ResendInviteAdmin(ResendInviteAdminRequest) returns (EmptyResponseWithStatus) {}
-    rpc GetMerchantUser(GetMerchantUserRequest) returns (GetMerchantUserResponse) {}
-    rpc GetAdminUser(GetAdminUserRequest) returns (GetAdminUserResponse) {}
     rpc AcceptInvite(AcceptInviteRequest) returns (AcceptInviteResponse) {}
     rpc CheckInviteToken(CheckInviteTokenRequest) returns (CheckInviteTokenResponse) {}
     rpc ChangeRoleForMerchantUser(ChangeRoleForMerchantUserRequest) returns (EmptyResponseWithStatus) {}
