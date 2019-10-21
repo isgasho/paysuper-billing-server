@@ -3267,8 +3267,8 @@ func (m *CreateRefundResponse) GetItem() *billing.Refund {
 }
 
 type ListRefundsRequest struct {
-	// @inject_tag: validate:"required,uuid"
-	OrderId string `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty" validate:"required,uuid"`
+	// @inject_tag: validate:"required,uuid" param:"order_id"
+	OrderId string `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty" validate:"required,uuid" param:"order_id"`
 	// @inject_tag: validate:"required,hexadecimal,len=24"
 	MerchantId string `protobuf:"bytes,2,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id,omitempty" validate:"required,hexadecimal,len=24"`
 	// @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
