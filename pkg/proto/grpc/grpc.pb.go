@@ -14750,8 +14750,8 @@ func (m *AcceptInviteResponse) GetRole() *billing.UserRole {
 }
 
 type ChangeRoleForMerchantUserRequest struct {
-	//@inject_tag: validate:"required,hexadecimal,len=24" param:"user_id"
-	UserId string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty" validate:"required,hexadecimal,len=24" param:"user_id"`
+	//@inject_tag: validate:"required,hexadecimal,len=24" param:"user"
+	UserId string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty" validate:"required,hexadecimal,len=24" param:"user"`
 	//@inject_tag: validate:"required,hexadecimal,len=24"
 	MerchantId string `protobuf:"bytes,2,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id,omitempty" validate:"required,hexadecimal,len=24"`
 	//@inject_tag: validate:"required"
@@ -14808,8 +14808,8 @@ func (m *ChangeRoleForMerchantUserRequest) GetRole() string {
 }
 
 type ChangeRoleForAdminUserRequest struct {
-	//@inject_tag: validate:"required,hexadecimal,len=24" param:"user_id"
-	UserId string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty" validate:"required,hexadecimal,len=24" param:"user_id"`
+	//@inject_tag: validate:"required,hexadecimal,len=24" param:"user"
+	UserId string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty" validate:"required,hexadecimal,len=24" param:"user"`
 	//@inject_tag: validate:"required"
 	Role                 string   `protobuf:"bytes,3,opt,name=role,proto3" json:"role,omitempty" validate:"required"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -14936,8 +14936,8 @@ func (m *GetRoleListResponse) GetItems() []*billing.RoleListItem {
 }
 
 type DeleteAdminUserRequest struct {
-	//@inject_tag: validate:"required,hexadecimal,len=24" param:"user_id"
-	UserId               string   `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty" validate:"required,hexadecimal,len=24" param:"user_id"`
+	//@inject_tag: validate:"required,hexadecimal,len=24" param:"user"
+	UserId               string   `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty" validate:"required,hexadecimal,len=24" param:"user"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -14976,8 +14976,8 @@ func (m *DeleteAdminUserRequest) GetUserId() string {
 }
 
 type DeleteMerchantUserRequest struct {
-	//@inject_tag: validate:"required,hexadecimal,len=24" param:"user_id"
-	UserId string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty" validate:"required,hexadecimal,len=24" param:"user_id"`
+	//@inject_tag: validate:"required,hexadecimal,len=24" param:"user"
+	UserId string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty" validate:"required,hexadecimal,len=24" param:"user"`
 	//@inject_tag: validate:"required,hexadecimal,len=24"
 	MerchantId           string   `protobuf:"bytes,2,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id,omitempty" validate:"required,hexadecimal,len=24"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
