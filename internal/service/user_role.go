@@ -28,6 +28,8 @@ type UserRoleServiceInterface interface {
 	GetMerchantsForUser(string) ([]*billing.UserRole, error)
 	DeleteAdminUser(*billing.UserRole) error
 	DeleteMerchantUser(*billing.UserRole) error
+	GetSystemAdmin() (*billing.UserRole, error)
+	GetMerchantOwner(string) (*billing.UserRole, error)
 }
 
 func newUserRoleRepository(svc *Service) UserRoleServiceInterface {
@@ -217,4 +219,30 @@ func (h *UserRoleRepository) DeleteMerchantUser(u *billing.UserRole) error {
 	}
 
 	return nil
+}
+
+func (h *UserRoleRepository) GetSystemAdmin() (*billing.UserRole, error) {
+	var user *billing.UserRole
+
+	err := h.svc.db.Collection(collectionMerchantUsersTable).Find(bson.M{"role": pkg.RoleSystemAdmin}).One(&user)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (h *UserRoleRepository) GetMerchantOwner(merchantId string) (*billing.UserRole, error) {
+	var user *billing.UserRole
+
+	err := h.svc.db.Collection(collectionMerchantUsersTable).
+		Find(bson.M{"merchant_id": bson.ObjectIdHex(merchantId), "role": pkg.RoleMerchantOwner}).
+		One(&user)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }

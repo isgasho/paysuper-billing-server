@@ -2103,8 +2103,6 @@ message UserRoleProfile {
     string last_name = 3;
     //@inject_tag: json:"email" bson:"email" validate:"required,email"
     string email = 4;
-    //@inject_tag: json:"status" bson:"status" validate="oneof=invited accepted"
-    string status = 5;
     // @inject_tag: json:"created_at" bson:"created_at"
     google.protobuf.Timestamp created_at = 6;
     // @inject_tag: json:"updated_at" bson:"updated_at"
@@ -2120,10 +2118,12 @@ message UserRole {
     string merchant_id = 3;
     //@inject_tag: json:"role" validate:"required"
     string role = 4;
+    //@inject_tag: json:"status" bson:"status" validate="oneof=invited accepted"
+    string status = 5;
     // @inject_tag: json:"created_at"
-    google.protobuf.Timestamp created_at = 5;
+    google.protobuf.Timestamp created_at = 6;
     // @inject_tag: json:"updated_at"
-    google.protobuf.Timestamp updated_at = 6;
+    google.protobuf.Timestamp updated_at = 7;
 }
 
 message RoleListItem {

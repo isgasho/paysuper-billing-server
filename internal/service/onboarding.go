@@ -354,14 +354,14 @@ func (s *Service) ChangeMerchant(
 		err = s.userRoleRepository.AddMerchantUser(&billing.UserRole{
 			Id:         bson.NewObjectId().Hex(),
 			MerchantId: merchant.Id,
+			Status:     pkg.UserRoleStatusAccepted,
+			Role:       pkg.RoleMerchantOwner,
 			User: &billing.UserRoleProfile{
 				UserId:    merchant.User.Id,
 				Email:     merchant.User.Email,
 				FirstName: merchant.User.FirstName,
 				LastName:  merchant.User.LastName,
-				Status:    pkg.UserRoleStatusAccepted,
 			},
-			Role: pkg.RoleMerchantOwner,
 		})
 	}
 

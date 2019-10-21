@@ -2233,13 +2233,11 @@ message MerchantForUserInfo {
 
 message InviteUserMerchantRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24"
-    string performer_id = 1;
-    //@inject_tag: validate:"required,hexadecimal,len=24"
-    string merchant_id = 2;
+    string merchant_id = 1;
     //@inject_tag: validate:"required,email"
-    string email = 3;
+    string email = 2;
     //@inject_tag: validate:"required"
-    string role = 4;
+    string role = 3;
 }
 
 message InviteUserMerchantResponse {
@@ -2249,12 +2247,10 @@ message InviteUserMerchantResponse {
 }
 
 message InviteUserAdminRequest {
-    //@inject_tag: validate:"required,hexadecimal,len=24"
-    string performer_id = 1;
     //@inject_tag: validate:"required,email"
-    string email = 2;
+    string email = 1;
     //@inject_tag: validate:"required"
-    string role = 3;
+    string role = 2;
 }
 
 message InviteUserAdminResponse {
@@ -2265,18 +2261,14 @@ message InviteUserAdminResponse {
 
 message ResendInviteMerchantRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24"
-    string performer_id = 1;
-    //@inject_tag: validate:"required,hexadecimal,len=24"
-    string merchant_id = 2;
-    //@inject_tag: validate:"required,hexadecimal,len=24"
-    string role_id = 3;
+    string merchant_id = 1;
+    //@inject_tag: validate:"required,email"
+    string email = 2;
 }
 
 message ResendInviteAdminRequest {
-    //@inject_tag: validate:"required,hexadecimal,len=24"
-    string performer_id = 1;
-    //@inject_tag: validate:"required,hexadecimal,len=24"
-    string role_id = 2;
+    //@inject_tag: validate:"required,email"
+    string email = 1;
 }
 
 message GetMerchantUserRequest {
@@ -2335,21 +2327,17 @@ message AcceptInviteResponse {
 }
 
 message ChangeRoleForMerchantUserRequest {
-    //@inject_tag: validate:"required,hexadecimal,len=24"
-    string role_id = 1;
+    //@inject_tag: validate:"required,hexadecimal,len=24" param:"user_id"
+    string user_id = 1;
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string merchant_id = 2;
-    //@inject_tag: validate:"required,hexadecimal,len=24"
-    string performer_id = 3;
     //@inject_tag: validate:"required"
-    string role = 4;
+    string role = 3;
 }
 
 message ChangeRoleForAdminUserRequest {
-    //@inject_tag: validate:"required,hexadecimal,len=24"
-    string role_id = 1;
-    //@inject_tag: validate:"required,hexadecimal,len=24"
-    string performer_id = 2;
+    //@inject_tag: validate:"required,hexadecimal,len=24" param:"user_id"
+    string user_id = 1;
     //@inject_tag: validate:"required"
     string role = 3;
 }
@@ -2364,19 +2352,15 @@ message GetRoleListResponse {
 }
 
 message DeleteAdminUserRequest {
-    //@inject_tag: validate:"required,hexadecimal,len=24"
-    string role_id = 1;
-    //@inject_tag: validate:"required,hexadecimal,len=24"
-    string performer_id = 2;
+    //@inject_tag: validate:"required,hexadecimal,len=24" param:"user_id"
+    string user_id = 1;
 }
 
 message DeleteMerchantUserRequest {
-    //@inject_tag: validate:"required,hexadecimal,len=24"
-    string role_id = 1;
+    //@inject_tag: validate:"required,hexadecimal,len=24" param:"user_id"
+    string user_id = 1;
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string merchant_id = 2;
-    //@inject_tag: validate:"required,hexadecimal,len=24"
-    string performer_id = 3;
 }
 
 message GetPermissionsForUserRequest {

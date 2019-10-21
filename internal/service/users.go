@@ -163,17 +163,7 @@ func (s *Service) InviteUserMerchant(
 	req *grpc.InviteUserMerchantRequest,
 	res *grpc.InviteUserMerchantResponse,
 ) error {
-	owner, err := s.userRoleRepository.GetMerchantUserByUserId(req.MerchantId, req.PerformerId)
-
-	if err != nil || !owner.IsOwner() {
-		zap.L().Error(errorUserNoHavePermission.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserNoHavePermission
-
-		return nil
-	}
-
-	merchant, err := s.merchant.GetById(owner.MerchantId)
+	merchant, err := s.merchant.GetById(req.MerchantId)
 
 	if err != nil {
 		zap.L().Error(errorUserMerchantNotFound.Message, zap.Error(err), zap.Any("req", req))
@@ -183,7 +173,17 @@ func (s *Service) InviteUserMerchant(
 		return nil
 	}
 
-	user, err := s.userRoleRepository.GetMerchantUserByEmail(owner.MerchantId, req.Email)
+	owner, err := s.userRoleRepository.GetMerchantOwner(merchant.Id)
+
+	if err != nil {
+		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserNotFound
+
+		return nil
+	}
+
+	user, err := s.userRoleRepository.GetMerchantUserByEmail(merchant.Id, req.Email)
 
 	if (err != nil && err != mgo.ErrNotFound) || user != nil {
 		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req))
@@ -195,10 +195,11 @@ func (s *Service) InviteUserMerchant(
 
 	role := &billing.UserRole{
 		Id:         bson.NewObjectId().Hex(),
-		MerchantId: req.MerchantId,
+		MerchantId: merchant.Id,
+		Role:       req.Role,
+		Status:     pkg.UserRoleStatusInvited,
 		User: &billing.UserRoleProfile{
-			Email:  req.Email,
-			Status: pkg.UserRoleStatusInvited,
+			Email: req.Email,
 		},
 	}
 
@@ -255,12 +256,12 @@ func (s *Service) InviteUserAdmin(
 	req *grpc.InviteUserAdminRequest,
 	res *grpc.InviteUserAdminResponse,
 ) error {
-	owner, err := s.userRoleRepository.GetAdminUserByUserId(req.PerformerId)
+	owner, err := s.userRoleRepository.GetSystemAdmin()
 
-	if err != nil || !owner.IsAdmin() {
-		zap.L().Error(errorUserNoHavePermission.Message, zap.Error(err), zap.Any("req", req))
+	if err != nil {
+		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserNoHavePermission
+		res.Message = errorUserNotFound
 
 		return nil
 	}
@@ -276,11 +277,11 @@ func (s *Service) InviteUserAdmin(
 	}
 
 	role := &billing.UserRole{
-		Id:   bson.NewObjectId().Hex(),
-		Role: req.Role,
+		Id:     bson.NewObjectId().Hex(),
+		Role:   req.Role,
+		Status: pkg.UserRoleStatusInvited,
 		User: &billing.UserRoleProfile{
-			Email:  req.Email,
-			Status: pkg.UserRoleStatusInvited,
+			Email: req.Email,
 		},
 	}
 
@@ -336,17 +337,7 @@ func (s *Service) ResendInviteMerchant(
 	req *grpc.ResendInviteMerchantRequest,
 	res *grpc.EmptyResponseWithStatus,
 ) error {
-	owner, err := s.userRoleRepository.GetMerchantUserByUserId(req.MerchantId, req.PerformerId)
-
-	if err != nil || !owner.IsOwner() {
-		zap.L().Error(errorUserNoHavePermission.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserNoHavePermission
-
-		return nil
-	}
-
-	merchant, err := s.merchant.GetById(owner.MerchantId)
+	merchant, err := s.merchant.GetById(req.MerchantId)
 
 	if err != nil {
 		zap.L().Error(errorUserMerchantNotFound.Message, zap.Error(err), zap.Any("req", req))
@@ -356,7 +347,7 @@ func (s *Service) ResendInviteMerchant(
 		return nil
 	}
 
-	role, err := s.userRoleRepository.GetMerchantUserById(req.RoleId)
+	owner, err := s.userRoleRepository.GetMerchantOwner(merchant.Id)
 
 	if err != nil {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
@@ -366,18 +357,20 @@ func (s *Service) ResendInviteMerchant(
 		return nil
 	}
 
-	if role.User.Status == pkg.UserRoleStatusInvited {
-		zap.L().Error(errorUserUnableResendInvite.Message, zap.Error(err), zap.Any("req", req))
+	role, err := s.userRoleRepository.GetMerchantUserByEmail(merchant.Id, req.Email)
+
+	if err != nil {
+		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserUnableResendInvite
+		res.Message = errorUserNotFound
 
 		return nil
 	}
 
-	if role.MerchantId != owner.MerchantId {
-		zap.L().Error(errorUserBelongAnotherMerchant.Message, zap.Error(err), zap.Any("req", req))
+	if role.Status == pkg.UserRoleStatusInvited {
+		zap.L().Error(errorUserUnableResendInvite.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserBelongAnotherMerchant
+		res.Message = errorUserUnableResendInvite
 
 		return nil
 	}
@@ -426,17 +419,17 @@ func (s *Service) ResendInviteAdmin(
 	req *grpc.ResendInviteAdminRequest,
 	res *grpc.EmptyResponseWithStatus,
 ) error {
-	owner, err := s.userRoleRepository.GetAdminUserByUserId(req.PerformerId)
+	owner, err := s.userRoleRepository.GetSystemAdmin()
 
-	if err != nil || owner.IsAdmin() {
-		zap.L().Error(errorUserNoHavePermission.Message, zap.Error(err), zap.Any("req", req))
+	if err != nil {
+		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserNoHavePermission
+		res.Message = errorUserNotFound
 
 		return nil
 	}
 
-	role, err := s.userRoleRepository.GetAdminUserById(req.RoleId)
+	role, err := s.userRoleRepository.GetAdminUserByEmail(req.Email)
 
 	if (err != nil && err != mgo.ErrNotFound) || role != nil {
 		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req))
@@ -519,14 +512,14 @@ func (s *Service) AcceptInvite(
 		return nil
 	}
 
-	if user.User.Status != pkg.UserRoleStatusInvited {
+	if user.Status != pkg.UserRoleStatusInvited {
 		zap.L().Error(errorUserInviteAlreadyAccepted.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserInviteAlreadyAccepted
 		return nil
 	}
 
-	user.User.Status = pkg.UserRoleStatusAccepted
+	user.Status = pkg.UserRoleStatusAccepted
 	user.User.UserId = req.UserId
 	user.User.FirstName = req.FirstName
 	user.User.LastName = req.LastName
@@ -564,48 +557,6 @@ func (s *Service) AcceptInvite(
 		zap.L().Error(errorUserUnableToAddToCasbin.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserUnableToAddToCasbin
-		return nil
-	}
-
-	res.Status = pkg.ResponseStatusOk
-	res.Role = user
-
-	return nil
-}
-
-func (s *Service) GetMerchantUser(
-	ctx context.Context,
-	req *grpc.GetMerchantUserRequest,
-	res *grpc.GetMerchantUserResponse,
-) error {
-	user, err := s.userRoleRepository.GetMerchantUserById(req.Id)
-
-	if err != nil {
-		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserNotFound
-
-		return nil
-	}
-
-	res.Status = pkg.ResponseStatusOk
-	res.Role = user
-
-	return nil
-}
-
-func (s *Service) GetAdminUser(
-	ctx context.Context,
-	req *grpc.GetAdminUserRequest,
-	res *grpc.GetAdminUserResponse,
-) error {
-	user, err := s.userRoleRepository.GetAdminUserById(req.Id)
-
-	if err != nil {
-		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserNotFound
-
 		return nil
 	}
 
@@ -696,17 +647,7 @@ func (s *Service) sendInviteEmail(receiverEmail, senderEmail, senderFirstName, s
 }
 
 func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.ChangeRoleForMerchantUserRequest, res *grpc.EmptyResponseWithStatus) error {
-	owner, err := s.userRoleRepository.GetMerchantUserByUserId(req.MerchantId, req.PerformerId)
-
-	if err != nil || !owner.IsOwner() {
-		zap.L().Error(errorUserNoHavePermission.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserNoHavePermission
-
-		return nil
-	}
-
-	user, err := s.userRoleRepository.GetMerchantUserById(req.RoleId)
+	user, err := s.userRoleRepository.GetMerchantUserByUserId(req.MerchantId, req.UserId)
 
 	if err != nil {
 		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req))
@@ -720,14 +661,6 @@ func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.Chang
 		zap.L().Error(errorUserAlreadyHasRole.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserAlreadyHasRole
-
-		return nil
-	}
-
-	if user.MerchantId != owner.MerchantId {
-		zap.L().Error(errorUserBelongAnotherMerchant.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserBelongAnotherMerchant
 
 		return nil
 	}
@@ -772,17 +705,7 @@ func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.Chang
 }
 
 func (s *Service) ChangeRoleForAdminUser(ctx context.Context, req *grpc.ChangeRoleForAdminUserRequest, res *grpc.EmptyResponseWithStatus) error {
-	owner, err := s.userRoleRepository.GetAdminUserByUserId(req.PerformerId)
-
-	if err != nil || !owner.IsAdmin() {
-		zap.L().Error(errorUserNoHavePermission.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserNoHavePermission
-
-		return nil
-	}
-
-	user, err := s.userRoleRepository.GetAdminUserById(req.RoleId)
+	user, err := s.userRoleRepository.GetAdminUserByUserId(req.UserId)
 
 	if err != nil {
 		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req))
@@ -856,30 +779,12 @@ func (s *Service) DeleteMerchantUser(
 	req *grpc.DeleteMerchantUserRequest,
 	res *grpc.EmptyResponseWithStatus,
 ) error {
-	owner, err := s.userRoleRepository.GetMerchantUserByUserId(req.MerchantId, req.PerformerId)
-
-	if err != nil || !owner.IsOwner() {
-		zap.L().Error(errorUserNoHavePermission.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserNoHavePermission
-
-		return nil
-	}
-
-	user, err := s.userRoleRepository.GetMerchantUserById(req.RoleId)
+	user, err := s.userRoleRepository.GetMerchantUserByUserId(req.MerchantId, req.UserId)
 
 	if err != nil {
 		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserNotFound
-
-		return nil
-	}
-
-	if user.MerchantId != owner.MerchantId {
-		zap.L().Error(errorUserBelongAnotherMerchant.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserBelongAnotherMerchant
 
 		return nil
 	}
@@ -913,17 +818,7 @@ func (s *Service) DeleteAdminUser(
 	req *grpc.DeleteAdminUserRequest,
 	res *grpc.EmptyResponseWithStatus,
 ) error {
-	owner, err := s.userRoleRepository.GetAdminUserByUserId(req.PerformerId)
-
-	if err != nil || !owner.IsAdmin() {
-		zap.L().Error(errorUserNoHavePermission.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserNoHavePermission
-
-		return nil
-	}
-
-	user, err := s.userRoleRepository.GetAdminUserById(req.RoleId)
+	user, err := s.userRoleRepository.GetAdminUserByUserId(req.UserId)
 
 	if err != nil {
 		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req))
