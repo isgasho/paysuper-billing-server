@@ -2026,6 +2026,8 @@ message PayoutDocument {
     google.protobuf.Timestamp updated_at = 25;
     //@inject_tag: json:"arrival_date"
     google.protobuf.Timestamp arrival_date = 26;
+    //@inject_tag: json:"paid_at"
+    google.protobuf.Timestamp paid_at = 27;
 }
 
 message PayoutDocumentSignatureDataSignUrl {
