@@ -2205,7 +2205,7 @@ message PaylinkRequestById {
 }
 
 message PaylinkRequest {
-    //@inject_tag: validate:"required,hexadecimal,len=24"
+    //@inject_tag: validate:"required,hexadecimal,len=24" param="id"
     string id = 1;
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string merchant_id = 2;
@@ -2242,7 +2242,7 @@ message GetPaylinkUrlResponse {
 }
 
 message GetPaylinkStatCommonRequest {
-    //@inject_tag: validate:"required,hexadecimal"
+    //@inject_tag: validate:"required,hexadecimal" param:"id"
     string id = 1;
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string merchant_id = 2;

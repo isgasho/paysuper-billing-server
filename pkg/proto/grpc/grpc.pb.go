@@ -13652,7 +13652,7 @@ func (m *PaylinkRequestById) GetId() string {
 }
 
 type PaylinkRequest struct {
-	//@inject_tag: validate:"required,hexadecimal,len=24"
+	//@inject_tag: validate:"required,hexadecimal,len=24" param="id"
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty" validate:"required,hexadecimal,len=24"`
 	//@inject_tag: validate:"required,hexadecimal,len=24"
 	MerchantId           string   `protobuf:"bytes,2,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id,omitempty" validate:"required,hexadecimal,len=24"`
@@ -13899,8 +13899,8 @@ func (m *GetPaylinkUrlResponse) GetUrl() string {
 }
 
 type GetPaylinkStatCommonRequest struct {
-	//@inject_tag: validate:"required,hexadecimal"
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty" validate:"required,hexadecimal"`
+	//@inject_tag: validate:"required,hexadecimal" param:"id"
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty" validate:"required,hexadecimal" param:"id"`
 	//@inject_tag: validate:"required,hexadecimal,len=24"
 	MerchantId string `protobuf:"bytes,2,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id,omitempty" validate:"required,hexadecimal,len=24"`
 	// @inject_tag: query:"period_from" validate:"omitempty,numeric,gte=0"
