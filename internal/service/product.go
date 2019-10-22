@@ -283,6 +283,13 @@ func (s *Service) UpdateProductPrices(ctx context.Context, req *grpc.UpdateProdu
 
 	product.Prices = req.Prices
 
+	// note: virtual currency has IsVirtualCurrency=true && Currency=""
+	for _, p := range product.Prices {
+		if p.IsVirtualCurrency == true {
+			p.Currency = ""
+		}
+	}
+
 	if !product.IsPricesContainDefaultCurrency() {
 		zap.S().Errorf(productErrorPriceDefaultCurrency.Message, "data", req)
 		return productErrorPriceDefaultCurrency
@@ -346,6 +353,7 @@ func (s *Service) processTokenProducts(req *grpc.TokenRequest) ([]string, error)
 		matchCurrency := false
 
 		for _, v1 := range v.Prices {
+			// todo: add support for virtual currencies?
 			if item.Amount != v1.Amount && item.Currency != v1.Currency {
 				continue
 			}

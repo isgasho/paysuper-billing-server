@@ -5,9 +5,11 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-billing-server/pkg/proto/paylink"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"go.uber.org/zap"
+	"strings"
 	"time"
 )
 
@@ -30,6 +32,8 @@ type royaltySummaryResult struct {
 	Total *billing.RoyaltyReportProductSummaryItem   `bson:"total"`
 }
 
+type conformPaylinkStatItemFn func(item *paylink.StatCommon)
+
 type list []interface{}
 
 type OrderViewServiceInterface interface {
@@ -38,6 +42,11 @@ type OrderViewServiceInterface interface {
 	GetTransactionsPrivate(match bson.M, limit, offset int) (result []*billing.OrderViewPrivate, err error)
 	GetRoyaltySummary(merchantId, currency string, from, to time.Time) (items []*billing.RoyaltyReportProductSummaryItem, total *billing.RoyaltyReportProductSummaryItem, err error)
 	GetOrderBy(id, uuid, merchantId string, receiver interface{}) (interface{}, error)
+	GetPaylinkStat(paylinkId, merchantId string, from, to int64) (*paylink.StatCommon, error)
+	GetPaylinkStatByCountry(paylinkId, merchantId string, from, to int64) (result *paylink.GroupStatCommon, err error)
+	GetPaylinkStatByReferrer(paylinkId, merchantId string, from, to int64) (result *paylink.GroupStatCommon, err error)
+	GetPaylinkStatByDate(paylinkId, merchantId string, from, to int64) (result *paylink.GroupStatCommon, err error)
+	GetPaylinkStatByUtm(paylinkId, merchantId string, from, to int64) (result *paylink.GroupStatCommon, err error)
 }
 
 func newOrderView(svc *Service) OrderViewServiceInterface {
@@ -3447,4 +3456,195 @@ func (ow *OrderView) GetOrderBy(id, uuid, merchantId string, receiver interface{
 	}
 
 	return receiver, nil
+}
+
+func (ow *OrderView) GetPaylinkStatMatchQuery(paylinkId, merchantId string, from, to int64) []bson.M {
+	matchQuery := bson.M{
+		"merchant_id":           bson.ObjectIdHex(merchantId),
+		"issuer.reference_type": pkg.OrderIssuerReferenceTypePaylink,
+		"issuer.reference":      paylinkId,
+	}
+
+	if from > 0 || to > 0 {
+		date := bson.M{}
+		if from > 0 {
+			date["$gte"] = time.Unix(from, 0)
+		}
+		if to > 0 {
+			date["$lte"] = time.Unix(to, 0)
+		}
+		matchQuery["pm_order_close_date"] = date
+	}
+
+	return []bson.M{
+		{
+			"$match": matchQuery,
+		},
+	}
+}
+
+func (ow *OrderView) getPaylinkStatGroupingQuery(groupingId interface{}) []bson.M {
+
+	return []bson.M{
+		{
+			"$group": bson.M{
+				"_id":                   groupingId,
+				"total_transactions":    bson.M{"$sum": 1},
+				"gross_sales_amount":    bson.M{"$sum": "$payment_gross_revenue.amount"},
+				"gross_returns_amount":  bson.M{"$sum": "$refund_gross_revenue.amount"},
+				"sales_count":           bson.M{"$sum": bson.M{"$cond": list{bson.M{"$eq": list{"$status", "processed"}}, 1, 0}}},
+				"country_code":          bson.M{"$first": "$country_code"},
+				"transactions_currency": bson.M{"$first": "$merchant_payout_currency"},
+			},
+		},
+		{
+			"$addFields": bson.M{
+				"returns_count":      bson.M{"$subtract": list{"$total_transactions", "$sales_count"}},
+				"gross_total_amount": bson.M{"$subtract": list{"$gross_sales_amount", "$gross_returns_amount"}},
+			},
+		},
+	}
+}
+
+func (ow *OrderView) GetPaylinkStat(paylinkId, merchantId string, from, to int64) (*paylink.StatCommon, error) {
+	query := append(ow.GetPaylinkStatMatchQuery(paylinkId, merchantId, from, to),
+		ow.getPaylinkStatGroupingQuery("$merchant_payout_currency")...)
+
+	var results []*paylink.StatCommon
+
+	err := ow.svc.db.Collection(collectionOrderView).Pipe(query).All(&results)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String("collection", collectionOrderView),
+			zap.Any("query", query),
+		)
+		return nil, err
+	}
+
+	resultsCount := len(results)
+
+	if resultsCount == 1 {
+		ow.paylinkStatItemPrecise(results[0])
+		results[0].PaylinkId = paylinkId
+		return results[0], nil
+	}
+
+	if resultsCount == 0 {
+		return &paylink.StatCommon{}, nil
+	}
+
+	zap.L().Error(
+		errorPaylinkStatDataInconsistent.Message,
+	)
+
+	return nil, errorPaylinkStatDataInconsistent
+}
+
+func (ow *OrderView) GetPaylinkStatByCountry(paylinkId, merchantId string, from, to int64) (result *paylink.GroupStatCommon, err error) {
+	return ow.getPaylinkGroupStat(paylinkId, merchantId, from, to, "$country_code", func(item *paylink.StatCommon) {
+		item.PaylinkId = paylinkId
+		item.CountryCode = item.Id
+	})
+}
+
+func (ow *OrderView) GetPaylinkStatByReferrer(paylinkId, merchantId string, from, to int64) (result *paylink.GroupStatCommon, err error) {
+	return ow.getPaylinkGroupStat(paylinkId, merchantId, from, to, "$issuer.referrer_host", func(item *paylink.StatCommon) {
+		item.PaylinkId = paylinkId
+		item.ReferrerHost = item.Id
+	})
+}
+
+func (ow *OrderView) GetPaylinkStatByDate(paylinkId, merchantId string, from, to int64) (result *paylink.GroupStatCommon, err error) {
+	return ow.getPaylinkGroupStat(paylinkId, merchantId, from, to,
+		bson.M{
+			"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$pm_order_close_date"},
+		},
+		func(item *paylink.StatCommon) {
+			item.Date = item.Id
+			item.PaylinkId = paylinkId
+		})
+}
+
+func (ow *OrderView) GetPaylinkStatByUtm(paylinkId, merchantId string, from, to int64) (result *paylink.GroupStatCommon, err error) {
+	return ow.getPaylinkGroupStat(paylinkId, merchantId, from, to,
+		bson.M{
+			"$concat": list{"$issuer.utm_source", "&", "$issuer.utm_medium", "&", "$issuer.utm_campaign"},
+		},
+		func(item *paylink.StatCommon) {
+			if item.Id != "" {
+				utm := strings.Split(item.Id, "&")
+				item.Utm = &paylink.Utm{
+					UtmSource:   utm[0],
+					UtmMedium:   utm[1],
+					UtmCampaign: utm[2],
+				}
+			}
+			item.PaylinkId = paylinkId
+		})
+}
+
+func (ow *OrderView) getPaylinkGroupStat(
+	paylinkId string,
+	merchantId string,
+	from, to int64,
+	groupingId interface{},
+	conformFn conformPaylinkStatItemFn,
+) (result *paylink.GroupStatCommon, err error) {
+	query := ow.GetPaylinkStatMatchQuery(paylinkId, merchantId, from, to)
+
+	query = append(query, bson.M{
+		"$facet": bson.M{
+			"top": append(
+				ow.getPaylinkStatGroupingQuery(groupingId),
+				bson.M{"$sort": bson.M{"_id": 1}},
+				bson.M{"$limit": 10},
+			),
+			"total": ow.getPaylinkStatGroupingQuery(nil),
+		},
+	},
+		bson.M{
+			"$project": bson.M{
+				"top":   "$top",
+				"total": bson.M{"$arrayElemAt": list{"$total", 0}},
+			},
+		})
+
+	err = ow.svc.db.Collection(collectionOrderView).Pipe(query).One(&result)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String("collection", collectionOrderView),
+			zap.Any("query", query),
+		)
+		return nil, err
+	}
+
+	if result == nil {
+		return
+	}
+
+	for _, item := range result.Top {
+		ow.paylinkStatItemPrecise(item)
+		conformFn(item)
+	}
+
+	if result.Total == nil {
+		result.Total = &paylink.StatCommon{
+			PaylinkId: paylinkId,
+		}
+	}
+
+	ow.paylinkStatItemPrecise(result.Total)
+	conformFn(result.Total)
+
+	return
+}
+
+func (ow *OrderView) paylinkStatItemPrecise(item *paylink.StatCommon) {
+	item.GrossSalesAmount = tools.ToPrecise(item.GrossSalesAmount)
+	item.GrossReturnsAmount = tools.ToPrecise(item.GrossReturnsAmount)
+	item.GrossTotalAmount = tools.ToPrecise(item.GrossTotalAmount)
 }

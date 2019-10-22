@@ -25,7 +25,6 @@ const (
 
 	accountingEventTypePayment          = "payment"
 	accountingEventTypeRefund           = "refund"
-	accountingEventTypeSettlement       = "settlement"
 	accountingEventTypeManualCorrection = "manual-correction"
 )
 
@@ -445,7 +444,7 @@ func (h *accountingEntry) processPaymentEvent() error {
 	if err != nil {
 		return err
 	}
-	amount, err = h.GetExchangeStockCurrentCommon(h.country.VatCurrency, amount)
+	amount, err = h.GetExchangeStockCurrentCommon(h.country.GetVatCurrencyCode(), amount)
 	if err != nil {
 		return err
 	}
@@ -776,7 +775,7 @@ func (h *accountingEntry) processRefundEvent() error {
 	if err != nil {
 		return err
 	}
-	amountMerchantStock, err := h.GetExchangeStockCurrentCommon(h.country.VatCurrency, amountVatCb)
+	amountMerchantStock, err := h.GetExchangeStockCurrentCommon(h.country.GetVatCurrencyCode(), amountVatCb)
 	if err != nil {
 		return err
 	}
@@ -853,7 +852,7 @@ func (h *accountingEntry) GetExchangePsCurrentMerchant(from string, amount float
 }
 
 func (h *accountingEntry) GetExchangeCbCurrentCommon(from string, amount float64) (float64, error) {
-	to := h.country.VatCurrency
+	to := h.country.GetVatCurrencyCode()
 
 	if to == from {
 		return amount, nil
@@ -869,6 +868,10 @@ func (h *accountingEntry) GetExchangeCbCurrentCommon(from string, amount float64
 }
 
 func (h *accountingEntry) GetExchangeCurrentMerchant(req *currencies.ExchangeCurrencyCurrentForMerchantRequest) (float64, error) {
+
+	if req.Amount == 0 || req.From == req.To {
+		return req.Amount, nil
+	}
 
 	rsp, err := h.curService.ExchangeCurrencyCurrentForMerchant(h.ctx, req)
 
@@ -888,6 +891,11 @@ func (h *accountingEntry) GetExchangeCurrentMerchant(req *currencies.ExchangeCur
 }
 
 func (h *accountingEntry) GetExchangeCurrentCommon(req *currencies.ExchangeCurrencyCurrentCommonRequest) (float64, error) {
+
+	if req.Amount == 0 || req.From == req.To {
+		return req.Amount, nil
+	}
+
 	rsp, err := h.curService.ExchangeCurrencyCurrentCommon(h.ctx, req)
 
 	if err != nil {
@@ -949,21 +957,24 @@ func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
 				Amount:   entry.OriginalAmount,
 			}
 
-			rsp, err := h.curService.ExchangeCurrencyCurrentCommon(h.ctx, req)
+			if req.Amount != 0 && req.From != req.To {
 
-			if err != nil {
-				zap.L().Error(
-					pkg.ErrorGrpcServiceCallFailed,
-					zap.Error(err),
-					zap.String(errorFieldService, "CurrencyRatesService"),
-					zap.String(errorFieldMethod, "ExchangeCurrencyCurrentCommon"),
-					zap.String(errorFieldEntry, entry.Type),
-					zap.Any(errorFieldRequest, req),
-				)
+				rsp, err := h.curService.ExchangeCurrencyCurrentCommon(h.ctx, req)
 
-				return accountingEntryErrorExchangeFailed
-			} else {
-				entry.LocalAmount = rsp.ExchangedAmount
+				if err != nil {
+					zap.L().Error(
+						pkg.ErrorGrpcServiceCallFailed,
+						zap.Error(err),
+						zap.String(errorFieldService, "CurrencyRatesService"),
+						zap.String(errorFieldMethod, "ExchangeCurrencyCurrentCommon"),
+						zap.String(errorFieldEntry, entry.Type),
+						zap.Any(errorFieldRequest, req),
+					)
+
+					return accountingEntryErrorExchangeFailed
+				} else {
+					entry.LocalAmount = rsp.ExchangedAmount
+				}
 			}
 		}
 	}
@@ -991,21 +1002,38 @@ func (h *accountingEntry) saveAccountingEntries() error {
 	}
 
 	var ids []string
+	var paylinks = map[string]string{}
 	if h.order != nil {
 		ids = append(ids, h.order.Id)
+		if h.order.Issuer.ReferenceType == pkg.OrderIssuerReferenceTypePaylink && h.order.Issuer.Reference != "" {
+			paylinks[h.order.Issuer.Reference] = h.order.Project.MerchantId
+		}
 	}
 
 	if h.refund != nil && h.refundOrder != nil {
 		ids = append(ids, h.refundOrder.Id)
-
+		if h.refundOrder.Issuer.ReferenceType == pkg.OrderIssuerReferenceTypePaylink && h.refundOrder.Issuer.Reference != "" {
+			paylinks[h.order.Issuer.Reference] = h.refundOrder.Project.MerchantId
+		}
 	}
 
 	if len(ids) == 0 {
 		return nil
 	}
 
-	return h.Service.updateOrderView(ids)
+	err = h.Service.updateOrderView(ids)
+	if err != nil {
+		return err
+	}
 
+	for paylinkId, merchantId := range paylinks {
+		err = h.Service.paylinkService.UpdatePaylinkTotalStat(paylinkId, merchantId)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (h *accountingEntry) newEntry(entryType string) *billing.AccountingEntry {

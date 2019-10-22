@@ -5,8 +5,10 @@ package grpc;
 
 import "google/protobuf/timestamp.proto";
 import "billing/billing.proto";
+import "paylink/paylink.proto";
 
 service BillingService {
+    rpc OrderCreateByPaylink (billing.OrderCreateByPaylink) returns (OrderCreateProcessResponse) {}
     rpc OrderCreateProcess (billing.OrderCreateRequest) returns (OrderCreateProcessResponse) {}
     rpc PaymentFormJsonDataProcess (PaymentFormJsonDataRequest) returns (PaymentFormJsonDataResponse) {}
     rpc PaymentCreateProcess (PaymentCreateRequest) returns (PaymentCreateResponse) {}
@@ -190,6 +192,18 @@ service BillingService {
     rpc DeleteAdminUser(DeleteAdminUserRequest) returns (EmptyResponseWithStatus) {}
 
     rpc GetPermissionsForUser(GetPermissionsForUserRequest) returns (GetPermissionsForUserResponse) {}
+
+    rpc GetPaylinks (GetPaylinksRequest) returns (GetPaylinksResponse) {}
+    rpc GetPaylink (PaylinkRequest) returns (GetPaylinkResponse) {}
+    rpc IncrPaylinkVisits (PaylinkRequestById) returns (EmptyResponse) {}
+    rpc GetPaylinkURL (GetPaylinkURLRequest) returns (GetPaylinkUrlResponse) {}
+    rpc CreateOrUpdatePaylink (paylink.CreatePaylinkRequest) returns (GetPaylinkResponse) {}
+    rpc DeletePaylink (PaylinkRequest) returns (EmptyResponseWithStatus) {}
+    rpc GetPaylinkStatTotal (GetPaylinkStatCommonRequest) returns (GetPaylinkStatCommonResponse) {}
+    rpc GetPaylinkStatByCountry (GetPaylinkStatCommonRequest) returns (GetPaylinkStatCommonGroupResponse) {}
+    rpc GetPaylinkStatByReferrer (GetPaylinkStatCommonRequest) returns (GetPaylinkStatCommonGroupResponse) {}
+    rpc GetPaylinkStatByDate (GetPaylinkStatCommonRequest) returns (GetPaylinkStatCommonGroupResponse) {}
+    rpc GetPaylinkStatByUtm (GetPaylinkStatCommonRequest) returns (GetPaylinkStatCommonGroupResponse) {}
 }
 
 message EmptyRequest {
@@ -1017,10 +1031,12 @@ message Product {
 message ProductPrice {
     // @inject_tag: validate:"required,numeric,gt=0" json:"amount"
     double amount = 1;
-    //@inject_tag: validate:"required,alpha,len=3" json:"currency"
+    //@inject_tag: validate:"required_without=is_virtual_currency,alpha,len=3" json:"currency"
     string currency = 2;
     //@inject_tag: json:"region" validate:"required,region_price"
     string region = 3;
+    //@inject_tag: json:"is_virtual_currency"
+    bool is_virtual_currency = 4;
 }
 
 message ListProductsRequest {
@@ -1797,33 +1813,37 @@ message GetMerchantAgreementSignUrlResponse {
 }
 
 message GetMerchantTariffRatesRequest {
-    // @inject_tag: query:"region" validate:"required,world_region"
-    string region = 1;
-    //@inject_tag: query:"payout_currency" validate:"required,alpha,len=3"
-    string payout_currency = 2;
-    // @inject_tag: query:"amount_from" validate:"omitempty,numeric,gte=0"
-    double amount_from = 3;
-    // @inject_tag: query:"amount_to" validate:"omitempty,numeric,gt=0"
-    double amount_to = 4;
+    // @inject_tag: query:"region" validate:"required,tariff_region"
+    string home_region = 1;
+    //@inject_tag: query:"payer_region" validate:"omitempty,tariff_region"
+    string payer_region = 2;
+    // @inject_tag: query:"min_amount" validate:"omitempty,numeric,gte=0"
+    double min_amount = 3;
+    // @inject_tag: query:"max_amount" validate:"omitempty,numeric,gt=0"
+    double max_amount = 4;
+}
+
+message GetMerchantTariffRatesResponseItems {
+    repeated billing.MerchantTariffRatesPayment payment = 1;
+    //@inject_tag: json:"-"
+    repeated billing.MerchantTariffRatesSettingsRefundItem refund = 2;
+    //@inject_tag: json:"chargeback"
+    billing.MerchantTariffRatesSettingsItem chargeback = 3;
+    //@inject_tag: json:"payout"
+    billing.MerchantTariffRatesSettingsItem payout = 4;
 }
 
 message GetMerchantTariffRatesResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
-    billing.MerchantTariffRates item = 3;
+    GetMerchantTariffRatesResponseItems items = 3;
 }
 
 message SetMerchantTariffRatesRequest {
     //@inject_tag: json:"merchant_id" validate:"required,hexadecimal,len=24"
     string merchant_id = 1;
-    // @inject_tag: json:"region" validate:"required,world_region"
-    string region = 2;
-    //@inject_tag: json:"payout_currency" validate:"required,alpha,len=3"
-    string payout_currency = 3;
-    // @inject_tag: json:"amount_from" validate:"required,numeric,gte=0"
-    double amount_from = 4;
-    // @inject_tag: json:"amount_to" validate:"required,numeric,gt=0"
-    double amount_to = 5;
+    // @inject_tag: json:"home_region" validate:"required,tariff_region"
+    string home_region = 2;
 }
 
 message ListOrdersPublicResponseItem {
@@ -2378,4 +2398,96 @@ message GetPermissionsForUserResponse {
 message Permission {
     string name = 1;
     string access = 2;
+}}
+
+message GetPaylinksRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 1;
+    //@inject_tag: validate:"omitempty,hexadecimal,len=24"
+    string project_id = 2;
+    // @inject_tag: validate:"required,numeric,gte=1"
+    int32 limit = 3;
+    // @inject_tag: validate:"omitempty,numeric,gte=0"
+    int32 offset = 4;
+}
+
+message PaylinksPaginate {
+    // @inject_tag: json:"count"
+    int32 count = 1; // total count of selected orders
+    // @inject_tag: json:"items"
+    repeated paylink.Paylink items = 2; // array of selected docs
+}
+
+message GetPaylinksResponse {
+    int32 status = 1;
+    // @inject_tag: json:"message,omitempty"
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"data"
+    PaylinksPaginate data = 3;
+}
+
+message PaylinkRequestById {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string id = 1;
+}
+
+message PaylinkRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string id = 1;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 2;
+}
+
+message GetPaylinkResponse {
+    int32 status = 1;
+    // @inject_tag: json:"message,omitempty"
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"item"
+    paylink.Paylink item = 3;
+}
+
+message GetPaylinkURLRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string id = 1;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 2;
+    string url_mask = 3;
+    string utm_source = 4;
+    string utm_medium = 5;
+    string utm_campaign = 6;
+}
+
+message GetPaylinkUrlResponse {
+    int32 status = 1;
+    // @inject_tag: json:"message,omitempty"
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"url"
+    string url = 4;
+}
+
+message GetPaylinkStatCommonRequest {
+    //@inject_tag: validate:"required,hexadecimal"
+    string id = 1;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 2;
+    // @inject_tag: query:"period_from" validate:"omitempty,numeric,gte=0"
+    int64 period_from = 3;
+    // @inject_tag: query:"period_to" validate:"omitempty,numeric,gte=0"
+    int64 period_to = 4;
+}
+
+message GetPaylinkStatCommonResponse {
+    int32 status = 1;
+    // @inject_tag: json:"message,omitempty"
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"item"
+    paylink.StatCommon item = 3;
+}
+
+message GetPaylinkStatCommonGroupResponse {
+    int32 status = 1;
+    // @inject_tag: json:"message,omitempty"
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"item"
+    paylink.GroupStatCommon item = 3;
 }

@@ -1,3 +1,9 @@
+protoc -I=. --micro_out=./paylink/ --go_out=./paylink/ ./paylink/paylink.proto
+move /Y .\paylink\github.com\paysuper\paysuper-billing-server\pkg\proto\paylink\paylink.micro.go .\paylink\paylink.micro.go
+move /Y .\paylink\github.com\paysuper\paysuper-billing-server\pkg\proto\paylink\paylink.pb.go .\paylink\paylink.pb.go
+rmdir /Q/S .\paylink\github.com
+protoc-go-inject-tag -input=./paylink/paylink.pb.go -XXX_skip=bson,json,structure,validate
+
 protoc -I=. --micro_out=./billing/ --go_out=./billing/ ./billing/billing.proto
 move /Y .\billing\github.com\paysuper\paysuper-billing-server\pkg\proto\billing\billing.micro.go .\billing\billing.micro.go
 move /Y .\billing\github.com\paysuper\paysuper-billing-server\pkg\proto\billing\billing.pb.go .\billing\billing.pb.go

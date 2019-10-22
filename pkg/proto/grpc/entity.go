@@ -36,6 +36,8 @@ func (p *Product) IsPricesContainDefaultCurrency() bool {
 }
 
 func (p *Product) GetPriceInCurrency(group *billing.PriceGroup) (float64, error) {
+	// todo: add support for virtual currencies here?
+	// note: virtual currency has IsVirtualCurrency=true && Currency=""
 	for _, price := range p.Prices {
 		if group.Region != "" && price.Region == group.Region {
 			return price.Amount, nil
@@ -168,6 +170,8 @@ func (p *KeyProduct) GetLocalizedLongDescription(lang string) (string, error) {
 }
 
 func (p *KeyProduct) GetPriceInCurrencyAndPlatform(group *billing.PriceGroup, platformId string) (float64, error) {
+	// todo: add support for virtual currencies here?
+	// note: virtual currency has IsVirtualCurrency=true && Currency=""
 	for _, platform := range p.Platforms {
 		if platform.Id == platformId {
 			for _, price := range platform.Prices {
@@ -184,4 +188,3 @@ func (p *KeyProduct) GetPriceInCurrencyAndPlatform(group *billing.PriceGroup, pl
 
 	return 0, errors.New(fmt.Sprintf(productNoPriceInCurrency, group.Region))
 }
-

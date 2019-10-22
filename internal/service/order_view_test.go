@@ -1,16 +1,22 @@
 package service
 
 import (
+	"context"
 	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/jinzhu/now"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-billing-server/pkg/proto/paylink"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
@@ -28,10 +34,12 @@ type OrderViewTestSuite struct {
 	log     *zap.Logger
 	cache   CacheInterface
 
-	merchant           *billing.Merchant
-	projectFixedAmount *billing.Project
-	paymentMethod      *billing.PaymentMethod
-	paymentSystem      *billing.PaymentSystem
+	merchant            *billing.Merchant
+	projectFixedAmount  *billing.Project
+	projectWithProducts *billing.Project
+	paymentMethod       *billing.PaymentMethod
+	paymentSystem       *billing.PaymentSystem
+	paylink1            *paylink.Paylink
 }
 
 func Test_OrderView(t *testing.T) {
@@ -106,6 +114,59 @@ func (suite *OrderViewTestSuite) SetupTest() {
 	}
 
 	suite.merchant, suite.projectFixedAmount, suite.paymentMethod, suite.paymentSystem = helperCreateEntitiesForTests(suite.Suite, suite.service)
+
+	suite.projectWithProducts = &billing.Project{
+		Id:                       bson.NewObjectId().Hex(),
+		CallbackCurrency:         "RUB",
+		CallbackProtocol:         "default",
+		LimitsCurrency:           "USD",
+		MaxPaymentAmount:         15000,
+		MinPaymentAmount:         1,
+		Name:                     map[string]string{"en": "test project 1"},
+		IsProductsCheckout:       true,
+		AllowDynamicRedirectUrls: true,
+		SecretKey:                "test project 1 secret key",
+		Status:                   pkg.ProjectStatusDraft,
+		MerchantId:               suite.merchant.Id,
+	}
+
+	if err := suite.service.project.Insert(suite.projectWithProducts); err != nil {
+		suite.FailNow("Insert project test data failed", "%v", err)
+	}
+
+	products := createProductsForProject(suite.Suite, suite.service, suite.projectWithProducts, 1)
+	assert.Len(suite.T(), products, 1)
+
+	paylinkBod, _ := ptypes.TimestampProto(now.BeginningOfDay())
+	paylinkExpiresAt, _ := ptypes.TimestampProto(time.Now().Add(1 * time.Hour))
+
+	suite.paylink1 = &paylink.Paylink{
+		Id:                   bson.NewObjectId().Hex(),
+		Object:               "paylink",
+		Products:             []string{products[0].Id},
+		ExpiresAt:            paylinkExpiresAt,
+		CreatedAt:            paylinkBod,
+		UpdatedAt:            paylinkBod,
+		MerchantId:           suite.projectWithProducts.MerchantId,
+		ProjectId:            suite.projectWithProducts.Id,
+		Name:                 "Willy Wonka Strikes Back",
+		IsExpired:            false,
+		Visits:               0,
+		NoExpiryDate:         false,
+		ProductsType:         "product",
+		Deleted:              false,
+		TotalTransactions:    0,
+		SalesCount:           0,
+		ReturnsCount:         0,
+		Conversion:           0,
+		GrossSalesAmount:     0,
+		GrossReturnsAmount:   0,
+		GrossTotalAmount:     0,
+		TransactionsCurrency: "",
+	}
+
+	err = suite.service.paylinkService.Insert(suite.paylink1)
+	assert.NoError(suite.T(), err)
 }
 
 func (suite *OrderViewTestSuite) TearDownTest() {
@@ -433,4 +494,218 @@ func (suite *OrderViewTestSuite) Test_OrderView_GetRoyaltySummary_Ok_SalesAndRef
 
 	controlTotal := summaryTotal.GrossTotalAmount - summaryTotal.TotalFees - summaryTotal.TotalVat
 	assert.Equal(suite.T(), tools.FormatAmount(summaryTotal.PayoutAmount), tools.FormatAmount(controlTotal))
+}
+
+func (suite *OrderViewTestSuite) Test_OrderView_PaylinkStat() {
+	countries := []string{"RU", "FI"}
+	referrers := []string{"http://steam.com", "http://games.mail.ru/someurl"}
+	utmSources := []string{"yandex", "google"}
+	utmMedias := []string{"cpc", ""}
+	utmCampaign := []string{"45249779", "dfsdf"}
+	yesterday := time.Now().Add(-24 * time.Hour).Unix()
+	tomorrow := time.Now().Add(24 * time.Hour).Unix()
+	maxVisits := 3
+	maxOrders := 4
+	maxRefunds := 1
+	var orders []*billing.Order
+
+	visitsQuery := bson.M{
+		"paylink_id": bson.ObjectIdHex(suite.paylink1.Id),
+	}
+	n, err := suite.service.db.Collection(collectionPaylinkVisits).Find(visitsQuery).Count()
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), n, 0)
+
+	visitsReq := &grpc.PaylinkRequestById{
+		Id: suite.paylink1.Id,
+	}
+
+	count := 0
+	for count < maxVisits {
+		err = suite.service.IncrPaylinkVisits(context.TODO(), visitsReq, &grpc.EmptyResponse{})
+		assert.NoError(suite.T(), err)
+		count++
+	}
+
+	count = 0
+	for count < maxOrders {
+		err = suite.service.IncrPaylinkVisits(context.TODO(), visitsReq, &grpc.EmptyResponse{})
+		assert.NoError(suite.T(), err)
+
+		order := helperCreateAndPayPaylinkOrder(
+			suite.Suite,
+			suite.service,
+			suite.paylink1.Id,
+			countries[count%2],
+			suite.paymentMethod,
+			&billing.OrderIssuer{
+				Url:         referrers[count%2],
+				UtmSource:   utmSources[count%2],
+				UtmMedium:   utmMedias[count%2],
+				UtmCampaign: utmCampaign[count%2],
+			},
+		)
+		assert.NotNil(suite.T(), order)
+		orders = append(orders, order)
+		count++
+	}
+
+	count = 0
+	for count < maxRefunds {
+		refund := helperMakeRefund(suite.Suite, suite.service, orders[count], orders[count].TotalPaymentAmount, false)
+		assert.NotNil(suite.T(), refund)
+		count++
+	}
+
+	n, err = suite.service.db.Collection(collectionPaylinkVisits).Find(visitsQuery).Count()
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), n, maxVisits+maxOrders)
+
+	req := &grpc.PaylinkRequest{
+		Id:         suite.paylink1.Id,
+		MerchantId: suite.paylink1.MerchantId,
+	}
+
+	res := &grpc.GetPaylinkResponse{}
+	err = suite.service.GetPaylink(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), res.Item.Visits, int32(maxVisits+maxOrders))
+	assert.Equal(suite.T(), res.Item.TotalTransactions, int32(maxOrders+maxRefunds))
+	assert.Equal(suite.T(), res.Item.SalesCount, int32(maxOrders))
+	assert.Equal(suite.T(), res.Item.ReturnsCount, int32(maxRefunds))
+	assert.Equal(suite.T(), res.Item.Conversion, tools.ToPrecise(float64(maxOrders)/float64(maxVisits+maxOrders)))
+	assert.Equal(suite.T(), res.Item.TransactionsCurrency, suite.merchant.Banking.Currency)
+	assert.Equal(suite.T(), res.Item.GrossSalesAmount, float64(176.020308))
+	assert.Equal(suite.T(), res.Item.GrossReturnsAmount, float64(45.378702))
+	assert.Equal(suite.T(), res.Item.GrossTotalAmount, float64(130.641606))
+
+	// stat by country
+
+	stat, err := suite.service.orderView.GetPaylinkStatByCountry(suite.paylink1.Id, suite.paylink1.MerchantId, yesterday, tomorrow)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), stat.Total)
+	assert.Len(suite.T(), stat.Top, len(countries))
+
+	assert.Equal(suite.T(), stat.Top[0].CountryCode, "FI")
+	assert.Equal(suite.T(), stat.Top[0].TotalTransactions, int32(2))
+	assert.Equal(suite.T(), stat.Top[0].SalesCount, int32(2))
+	assert.Equal(suite.T(), stat.Top[0].ReturnsCount, int32(0))
+	assert.Equal(suite.T(), stat.Top[0].TransactionsCurrency, suite.merchant.Banking.Currency)
+	assert.Equal(suite.T(), stat.Top[0].GrossSalesAmount, float64(87.042462))
+	assert.Equal(suite.T(), stat.Top[0].GrossReturnsAmount, float64(0))
+	assert.Equal(suite.T(), stat.Top[0].GrossTotalAmount, float64(87.042462))
+
+	assert.Equal(suite.T(), stat.Top[1].CountryCode, "RU")
+	assert.Equal(suite.T(), stat.Top[1].TotalTransactions, int32(3))
+	assert.Equal(suite.T(), stat.Top[1].SalesCount, int32(2))
+	assert.Equal(suite.T(), stat.Top[1].ReturnsCount, int32(1))
+	assert.Equal(suite.T(), stat.Top[1].TransactionsCurrency, suite.merchant.Banking.Currency)
+	assert.Equal(suite.T(), stat.Top[1].GrossSalesAmount, float64(88.977846))
+	assert.Equal(suite.T(), stat.Top[1].GrossReturnsAmount, float64(45.378702))
+	assert.Equal(suite.T(), stat.Top[1].GrossTotalAmount, float64(43.599144))
+
+	assert.Equal(suite.T(), stat.Total.TotalTransactions, int32(maxOrders+maxRefunds))
+	assert.Equal(suite.T(), stat.Total.SalesCount, int32(maxOrders))
+	assert.Equal(suite.T(), stat.Total.ReturnsCount, int32(maxRefunds))
+	assert.Equal(suite.T(), stat.Total.TransactionsCurrency, suite.merchant.Banking.Currency)
+	assert.Equal(suite.T(), stat.Total.GrossSalesAmount, float64(176.020308))
+	assert.Equal(suite.T(), stat.Total.GrossReturnsAmount, float64(45.378702))
+	assert.Equal(suite.T(), stat.Total.GrossTotalAmount, float64(130.641606))
+
+	// stat by referrer
+
+	stat, err = suite.service.orderView.GetPaylinkStatByReferrer(suite.paylink1.Id, suite.paylink1.MerchantId, yesterday, tomorrow)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), stat.Total)
+	assert.Len(suite.T(), stat.Top, len(referrers))
+
+	assert.Equal(suite.T(), stat.Top[0].ReferrerHost, "games.mail.ru")
+	assert.Equal(suite.T(), stat.Top[0].TotalTransactions, int32(2))
+	assert.Equal(suite.T(), stat.Top[0].SalesCount, int32(2))
+	assert.Equal(suite.T(), stat.Top[0].ReturnsCount, int32(0))
+	assert.Equal(suite.T(), stat.Top[0].TransactionsCurrency, suite.merchant.Banking.Currency)
+	assert.Equal(suite.T(), stat.Top[0].GrossSalesAmount, float64(87.042462))
+	assert.Equal(suite.T(), stat.Top[0].GrossReturnsAmount, float64(0))
+	assert.Equal(suite.T(), stat.Top[0].GrossTotalAmount, float64(87.042462))
+
+	assert.Equal(suite.T(), stat.Top[1].ReferrerHost, "steam.com")
+	assert.Equal(suite.T(), stat.Top[1].TotalTransactions, int32(3))
+	assert.Equal(suite.T(), stat.Top[1].SalesCount, int32(2))
+	assert.Equal(suite.T(), stat.Top[1].ReturnsCount, int32(1))
+	assert.Equal(suite.T(), stat.Top[1].TransactionsCurrency, suite.merchant.Banking.Currency)
+	assert.Equal(suite.T(), stat.Top[1].GrossSalesAmount, float64(88.977846))
+	assert.Equal(suite.T(), stat.Top[1].GrossReturnsAmount, float64(45.378702))
+	assert.Equal(suite.T(), stat.Top[1].GrossTotalAmount, float64(43.599144))
+
+	assert.Equal(suite.T(), stat.Total.TotalTransactions, int32(maxOrders+maxRefunds))
+	assert.Equal(suite.T(), stat.Total.SalesCount, int32(maxOrders))
+	assert.Equal(suite.T(), stat.Total.ReturnsCount, int32(maxRefunds))
+	assert.Equal(suite.T(), stat.Total.TransactionsCurrency, suite.merchant.Banking.Currency)
+	assert.Equal(suite.T(), stat.Total.GrossSalesAmount, float64(176.020308))
+	assert.Equal(suite.T(), stat.Total.GrossReturnsAmount, float64(45.378702))
+	assert.Equal(suite.T(), stat.Total.GrossTotalAmount, float64(130.641606))
+
+	// stat by date
+
+	stat, err = suite.service.orderView.GetPaylinkStatByDate(suite.paylink1.Id, suite.paylink1.MerchantId, yesterday, tomorrow)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), stat.Total)
+	assert.Len(suite.T(), stat.Top, 1)
+
+	assert.Equal(suite.T(), stat.Top[0].Date, time.Now().Format("2006-01-02"))
+	assert.Equal(suite.T(), stat.Top[0].TotalTransactions, int32(maxOrders+maxRefunds))
+	assert.Equal(suite.T(), stat.Top[0].SalesCount, int32(maxOrders))
+	assert.Equal(suite.T(), stat.Top[0].ReturnsCount, int32(maxRefunds))
+	assert.Equal(suite.T(), stat.Top[0].TransactionsCurrency, suite.merchant.Banking.Currency)
+	assert.Equal(suite.T(), stat.Top[0].GrossSalesAmount, float64(176.020308))
+	assert.Equal(suite.T(), stat.Top[0].GrossReturnsAmount, float64(45.378702))
+	assert.Equal(suite.T(), stat.Top[0].GrossTotalAmount, float64(130.641606))
+
+	assert.Equal(suite.T(), stat.Total.TotalTransactions, int32(maxOrders+maxRefunds))
+	assert.Equal(suite.T(), stat.Total.SalesCount, int32(maxOrders))
+	assert.Equal(suite.T(), stat.Total.ReturnsCount, int32(maxRefunds))
+	assert.Equal(suite.T(), stat.Total.TransactionsCurrency, suite.merchant.Banking.Currency)
+	assert.Equal(suite.T(), stat.Total.GrossSalesAmount, float64(176.020308))
+	assert.Equal(suite.T(), stat.Total.GrossReturnsAmount, float64(45.378702))
+	assert.Equal(suite.T(), stat.Total.GrossTotalAmount, float64(130.641606))
+
+	// stat by utm
+
+	stat, err = suite.service.orderView.GetPaylinkStatByUtm(suite.paylink1.Id, suite.paylink1.MerchantId, yesterday, tomorrow)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), stat.Total)
+	assert.Len(suite.T(), stat.Top, 2)
+
+	assert.NotNil(suite.T(), stat.Top[0].Utm)
+	assert.Equal(suite.T(), stat.Top[0].Utm.UtmSource, "google")
+	assert.Equal(suite.T(), stat.Top[0].Utm.UtmMedium, "")
+	assert.Equal(suite.T(), stat.Top[0].Utm.UtmCampaign, "dfsdf")
+	assert.Equal(suite.T(), stat.Top[0].TotalTransactions, int32(2))
+	assert.Equal(suite.T(), stat.Top[0].SalesCount, int32(2))
+	assert.Equal(suite.T(), stat.Top[0].ReturnsCount, int32(0))
+	assert.Equal(suite.T(), stat.Top[0].TransactionsCurrency, suite.merchant.Banking.Currency)
+	assert.Equal(suite.T(), stat.Top[0].GrossSalesAmount, float64(87.042462))
+	assert.Equal(suite.T(), stat.Top[0].GrossReturnsAmount, float64(0))
+	assert.Equal(suite.T(), stat.Top[0].GrossTotalAmount, float64(87.042462))
+
+	assert.NotNil(suite.T(), stat.Top[1].Utm)
+	assert.Equal(suite.T(), stat.Top[1].Utm.UtmSource, "yandex")
+	assert.Equal(suite.T(), stat.Top[1].Utm.UtmMedium, "cpc")
+	assert.Equal(suite.T(), stat.Top[1].Utm.UtmCampaign, "45249779")
+	assert.Equal(suite.T(), stat.Top[1].TotalTransactions, int32(3))
+	assert.Equal(suite.T(), stat.Top[1].SalesCount, int32(2))
+	assert.Equal(suite.T(), stat.Top[1].ReturnsCount, int32(1))
+	assert.Equal(suite.T(), stat.Top[1].TransactionsCurrency, suite.merchant.Banking.Currency)
+	assert.Equal(suite.T(), stat.Top[1].GrossSalesAmount, float64(88.977846))
+	assert.Equal(suite.T(), stat.Top[1].GrossReturnsAmount, float64(45.378702))
+	assert.Equal(suite.T(), stat.Top[1].GrossTotalAmount, float64(43.599144))
+
+	assert.Equal(suite.T(), stat.Total.TotalTransactions, int32(maxOrders+maxRefunds))
+	assert.Equal(suite.T(), stat.Total.SalesCount, int32(maxOrders))
+	assert.Equal(suite.T(), stat.Total.ReturnsCount, int32(maxRefunds))
+	assert.Equal(suite.T(), stat.Total.TransactionsCurrency, suite.merchant.Banking.Currency)
+	assert.Equal(suite.T(), stat.Total.GrossSalesAmount, float64(176.020308))
+	assert.Equal(suite.T(), stat.Total.GrossReturnsAmount, float64(45.378702))
+	assert.Equal(suite.T(), stat.Total.GrossTotalAmount, float64(130.641606))
 }

@@ -101,6 +101,9 @@ To run application as microservice simply don't pass any flags to command line :
 | HELLO_SIGN_PAYOUTS_MESSAGE           | Hellosign prompt message for payout invoices                                                                                        |
 | USER_INVITE_TOKEN_SECRET             | Secret key for generation invitation token of user                                                                                  |
 | USER_INVITE_TOKEN_TIMEOUT            | Timeout in hours for lifetime of invitation token of user                                                                           |
+| PAYLINK_MIN_PRODUCTS                 | Minimum number of products allowed for one payment link (must be >= 1)                                                              |
+| PAYLINK_MAX_PRODUCTS                 | Maximum number of products allowed for one payment link                                                                             |
+
 
 ## Architecture
 

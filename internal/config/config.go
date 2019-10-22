@@ -63,7 +63,7 @@ type Config struct {
 	RoyaltyReportTimeZone      string `envconfig:"ROYALTY_REPORT_TIMEZONE" default:"Europe/Moscow"`
 	RoyaltyReportAcceptTimeout int64  `envconfig:"ROYALTY_REPORT_TIMEZONE" default:"432000"`
 	// moved to config for testing purposes, to prevent royalty reports tests crash on mondays before 18:00
-	// must not be changed on normal app running, because it will broke roalty reports calculations
+	// must not be changed on normal app running, because it will broke royalty reports calculations
 	RoyaltyReportPeriodEndHour int64 `default:"18"`
 
 	CentrifugoMerchantChannel  string `envconfig:"CENTRIFUGO_MERCHANT_CHANNEL" default:"paysuper:merchant#%s"`
@@ -88,6 +88,9 @@ type Config struct {
 
 	UserInviteTokenSecret  string `envconfig:"USER_INVITE_TOKEN_SECRET" required:"true"`
 	UserInviteTokenTimeout int64  `envconfig:"USER_INVITE_TOKEN_TIMEOUT" default:"48"`
+
+	PaylinkMinProducts int `envconfig:"PAYLINK_MIN_PRODUCTS" required:"false" default:"1"`
+	PaylinkMaxProducts int `envconfig:"PAYLINK_MAX_PRODUCTS" required:"false" default:"8"`
 
 	*PaymentSystemConfig
 	*CustomerTokenConfig

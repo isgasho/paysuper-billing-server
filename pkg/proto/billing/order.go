@@ -92,6 +92,16 @@ func (m *Order) GetCountry() string {
 	return ""
 }
 
+func (m *Order) GetPostalCode() string {
+	if m.BillingAddress != nil && m.BillingAddress.PostalCode != "" {
+		return m.BillingAddress.PostalCode
+	}
+	if m.User != nil && m.User.Address != nil && m.User.Address.PostalCode != "" {
+		return m.User.Address.PostalCode
+	}
+	return ""
+}
+
 func (m *Order) HasEndedStatus() bool {
 	return m.PrivateStatus == constant.OrderStatusPaymentSystemReject || m.PrivateStatus == constant.OrderStatusProjectComplete ||
 		m.PrivateStatus == constant.OrderStatusProjectReject || m.PrivateStatus == constant.OrderStatusRefund ||
