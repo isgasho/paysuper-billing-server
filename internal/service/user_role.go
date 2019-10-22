@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -10,6 +11,8 @@ import (
 const (
 	collectionMerchantUsersTable = "user_merchant"
 	collectionAdminUsersTable    = "user_admin"
+
+	cacheUserMerchants = "user:merchants:%s"
 )
 
 type UserRoleServiceInterface interface {
@@ -39,6 +42,11 @@ func newUserRoleRepository(svc *Service) UserRoleServiceInterface {
 
 func (h *UserRoleRepository) GetMerchantsForUser(userId string) ([]*billing.UserRole, error) {
 	var users []*billing.UserRole
+
+	if err := h.svc.cacher.Get(fmt.Sprintf(cacheUserMerchants, userId), users); err == nil {
+		return users, nil
+	}
+
 	query := bson.M{"user.user_id": userId}
 	err := h.svc.db.Collection(collectionMerchantUsersTable).Find(query).All(&users)
 	if err != nil {
@@ -50,6 +58,11 @@ func (h *UserRoleRepository) GetMerchantsForUser(userId string) ([]*billing.User
 		)
 
 		return nil, err
+	}
+
+	err = h.svc.cacher.Set(fmt.Sprintf(cacheUserMerchants, userId), users, 0)
+	if err != nil {
+		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", cacheUserMerchants, "data", users)
 	}
 
 	return users, nil
@@ -111,6 +124,10 @@ func (h *UserRoleRepository) AddAdminUser(u *billing.UserRole) error {
 
 func (h *UserRoleRepository) UpdateMerchantUser(u *billing.UserRole) error {
 	if err := h.svc.db.Collection(collectionMerchantUsersTable).UpdateId(bson.ObjectIdHex(u.Id), u); err != nil {
+		return err
+	}
+
+	if err := h.svc.cacher.Delete(fmt.Sprintf(cacheUserMerchants, u.User.UserId)); err != nil {
 		return err
 	}
 
@@ -215,6 +232,10 @@ func (h *UserRoleRepository) DeleteAdminUser(u *billing.UserRole) error {
 
 func (h *UserRoleRepository) DeleteMerchantUser(u *billing.UserRole) error {
 	if err := h.svc.db.Collection(collectionMerchantUsersTable).RemoveId(bson.ObjectIdHex(u.Id)); err != nil {
+		return err
+	}
+
+	if err := h.svc.cacher.Delete(fmt.Sprintf(cacheUserMerchants, u.User.UserId)); err != nil {
 		return err
 	}
 
