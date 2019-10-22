@@ -498,7 +498,7 @@ func (s *Service) CreatePageReview(
 		Id:        bson.NewObjectId().Hex(),
 		UserId:    req.UserId,
 		Review:    req.Review,
-		PageId:    req.PageId,
+		Url:       req.Url,
 		CreatedAt: ptypes.TimestampNow(),
 	}
 
