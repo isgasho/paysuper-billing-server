@@ -358,14 +358,22 @@ func (s *Service) GetRoyaltyReport(
 ) error {
 	report, err := s.royaltyReport.GetById(req.ReportId)
 
-	if err != nil || report.MerchantId != req.MerchantId {
+	if err != nil {
 		if err == mgo.ErrNotFound {
 			rsp.Status = pkg.ResponseStatusNotFound
 			rsp.Message = royaltyReportErrorReportNotFound
 			return nil
 		}
 
-		return err
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = royaltyReportEntryErrorUnknown
+		return nil
+	}
+
+	if report.MerchantId != req.MerchantId {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = royaltyReportErrorNotOwnedByMerchant
+		return nil
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
@@ -388,16 +396,15 @@ func (s *Service) ChangeRoyaltyReport(
 			return nil
 		}
 
-		return err
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = royaltyReportEntryErrorUnknown
+		return nil
 	}
 
 	if report.MerchantId != req.MerchantId {
-		if err == mgo.ErrNotFound {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = royaltyReportErrorNotOwnedByMerchant
-
-			return nil
-		}
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = royaltyReportErrorNotOwnedByMerchant
+		return nil
 	}
 
 	if req.Status != "" && report.ChangesAvailable(req.Status) == false {
@@ -538,7 +545,7 @@ func (s *Service) ListRoyaltyReportOrders(
 
 	report, err := s.royaltyReport.GetById(req.ReportId)
 
-	if err != nil || report.MerchantId != req.MerchantId {
+	if err != nil {
 		if err == mgo.ErrNotFound {
 			res.Status = pkg.ResponseStatusNotFound
 			res.Message = royaltyReportErrorReportNotFound
@@ -546,7 +553,16 @@ func (s *Service) ListRoyaltyReportOrders(
 			return nil
 		}
 
-		return err
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = royaltyReportEntryErrorUnknown
+		return nil
+	}
+
+
+	if err == mgo.ErrNotFound {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = royaltyReportErrorReportNotFound
+		return nil
 	}
 
 	from, _ := ptypes.Timestamp(report.PeriodFrom)

@@ -548,6 +548,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_Ok() 
 
 	req1 := &grpc.ChangeRoyaltyReportRequest{
 		ReportId: report.Id,
+		MerchantId: report.MerchantId,
 		Status:   pkg.RoyaltyReportStatusAccepted,
 		Ip:       "127.0.0.1",
 	}
@@ -616,6 +617,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_Dispu
 	req2 := &grpc.ChangeRoyaltyReportRequest{
 		ReportId: report.Id,
 		Status:   pkg.RoyaltyReportStatusPending,
+		MerchantId: report.MerchantId,
 		Correction: &grpc.ChangeRoyaltyReportCorrection{
 			Amount: 10,
 			Reason: "unit-test",
@@ -769,6 +771,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_Chang
 	req1 := &grpc.ChangeRoyaltyReportRequest{
 		ReportId: report.Id,
 		Status:   pkg.RoyaltyReportStatusCanceled,
+		MerchantId: report.MerchantId,
 		Ip:       "127.0.0.1",
 	}
 	rsp1 := &grpc.ResponseError{}
@@ -802,6 +805,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_Statu
 	req1 := &grpc.ChangeRoyaltyReportRequest{
 		ReportId: report.Id,
 		Status:   pkg.RoyaltyReportStatusDispute,
+		MerchantId: report.MerchantId,
 		Ip:       "127.0.0.1",
 	}
 	rsp1 := &grpc.ResponseError{}
@@ -1115,6 +1119,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_GetRoyaltyReport_Ok() {
 
 	req1 := &grpc.GetRoyaltyReportRequest{
 		ReportId: report.Id,
+		MerchantId: report.MerchantId,
 	}
 	rsp1 := &grpc.GetRoyaltyReportResponse{}
 	err = suite.service.GetRoyaltyReport(context.TODO(), req1, rsp1)
