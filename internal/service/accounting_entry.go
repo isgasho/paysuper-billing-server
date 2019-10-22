@@ -1002,21 +1002,38 @@ func (h *accountingEntry) saveAccountingEntries() error {
 	}
 
 	var ids []string
+	var paylinks = map[string]string{}
 	if h.order != nil {
 		ids = append(ids, h.order.Id)
+		if h.order.Issuer.ReferenceType == pkg.OrderIssuerReferenceTypePaylink && h.order.Issuer.Reference != "" {
+			paylinks[h.order.Issuer.Reference] = h.order.Project.MerchantId
+		}
 	}
 
 	if h.refund != nil && h.refundOrder != nil {
 		ids = append(ids, h.refundOrder.Id)
-
+		if h.refundOrder.Issuer.ReferenceType == pkg.OrderIssuerReferenceTypePaylink && h.refundOrder.Issuer.Reference != "" {
+			paylinks[h.order.Issuer.Reference] = h.refundOrder.Project.MerchantId
+		}
 	}
 
 	if len(ids) == 0 {
 		return nil
 	}
 
-	return h.Service.updateOrderView(ids)
+	err = h.Service.updateOrderView(ids)
+	if err != nil {
+		return err
+	}
 
+	for paylinkId, merchantId := range paylinks {
+		err = h.Service.paylinkService.UpdatePaylinkTotalStat(paylinkId, merchantId)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (h *accountingEntry) newEntry(entryType string) *billing.AccountingEntry {

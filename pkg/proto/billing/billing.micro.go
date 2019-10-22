@@ -126,6 +126,7 @@ It has these top-level messages:
 	MerchantBalance
 	OrderReceipt
 	OrderReceiptItem
+	OrderCreateByPaylink
 */
 package billing
 

@@ -1,0 +1,59 @@
+[
+  {
+    "create": "paylinks"
+  },
+  {
+    "create": "paylink_visits"
+  },
+  {
+    "createIndexes": "paylinks",
+    "indexes": [
+      {
+        "key": {
+          "merchant_id": 1,
+          "deleted": 1
+        },
+        "name": "merchant_deleted"
+      },
+      {
+        "key": {
+          "_id": 1,
+          "merchant_id": 1,
+          "deleted": 1
+        },
+        "name": "id_merchant_deleted"
+      },
+      {
+        "key": {
+          "merchant_id": 1,
+          "project_id": 1,
+          "deleted": 1
+        },
+        "name": "merchant_project_deleted"
+      }
+    ]
+  },
+  {
+    "createIndexes": "paylink_visits",
+    "indexes": [
+      {
+        "key": {
+          "paylink_id": 1
+        },
+        "name": "paylink_id"
+      }
+    ]
+  },
+  {
+    "createIndexes": "order_view",
+    "indexes": [
+      {
+        "key": {
+          "issuer.reference_type": 1,
+          "issuer.reference": 1
+        },
+        "name": "issuer_reference"
+      }
+    ]
+  }
+]

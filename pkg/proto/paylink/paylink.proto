@@ -1,0 +1,121 @@
+syntax = "proto3";
+
+option go_package = "github.com/paysuper/paysuper-billing-server/pkg/proto/paylink";
+package paylink;
+
+import "google/protobuf/timestamp.proto";
+
+
+message CreatePaylinkRequest {
+    //@inject_tag: validate:"omitempty,hexadecimal,len=24"
+    string id = 1;
+    // @inject_tag: json:"expires_at" validate:"omitempty,numeric,gte=0"
+    int64 expires_at = 2;
+    //@inject_tag: validate:"required,gte=1,dive,hexadecimal,len=24"
+    repeated string products = 3;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 4;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string project_id = 5;
+    // @inject_tag: validate:"required"
+    string name = 6;
+    bool no_expiry_date = 7;
+    // @inject_tag: validate="required,oneof=product key"
+    string products_type = 8;
+}
+
+message Paylink {
+    // @inject_tag: json:"id"
+    string id = 1;
+    // @inject_tag: json:"object"
+    string object = 2;
+    // @inject_tag: json:"products"
+    repeated string products = 3;
+    // @inject_tag: json:"expires_at"
+    google.protobuf.Timestamp expires_at = 4;
+    // @inject_tag: json:"created_at"
+    google.protobuf.Timestamp created_at = 5;
+    // @inject_tag: json:"updated_at"
+    google.protobuf.Timestamp updated_at = 6;
+    // @inject_tag: json:"merchant_id"
+    string merchant_id = 7;
+    // @inject_tag: json:"project_id"
+    string project_id = 8;
+    // @inject_tag: json:"name"
+    string name = 9;
+    // @inject_tag: json:"is_expired"
+    bool is_expired = 10;
+    // @inject_tag: json:"visits"
+    int32 visits = 11;
+    // @inject_tag: json:"no_expiry_date"
+    bool no_expiry_date = 12;
+    // @inject_tag: json:"products_type"
+    string products_type = 13;
+    // @inject_tag: json:"-"
+    bool deleted = 14;
+    // @inject_tag: json:"total_transactions"
+    int32 total_transactions = 15;
+    // @inject_tag: json:"sales_count"
+    int32 sales_count = 16;
+    // @inject_tag: json:"returns_count"
+    int32 returns_count = 17;
+    // @inject_tag: json:"conversion"
+    double conversion = 18;
+    // @inject_tag: json:"gross_sales_amount"
+    double gross_sales_amount = 19;
+    // @inject_tag: json:"gross_returns_amount"
+    double gross_returns_amount = 20;
+    // @inject_tag: json:"gross_total_amount"
+    double gross_total_amount = 21;
+    // @inject_tag: json:"transactions_currency"
+    string transactions_currency = 22;
+}
+
+message StatCommon {
+    // @inject_tag: json:"-" bson:"_id"
+    string id = 1;
+    // @inject_tag: json:"paylink_id" bson:"-"
+    string paylink_id = 2;
+    // @inject_tag: json:"visits" bson:"-"
+    int32 visits = 3;
+    // @inject_tag: json:"total_transactions" bson:"total_transactions"
+    int32 total_transactions = 4;
+    // @inject_tag: json:"sales_count" bson:"sales_count"
+    int32 sales_count = 5;
+    // @inject_tag: json:"returns_count" bson:"returns_count"
+    int32 returns_count = 6;
+    // @inject_tag: json:"gross_sales_amount" bson:"gross_sales_amount"
+    double gross_sales_amount = 7;
+    // @inject_tag: json:"gross_returns_amount" bson:"gross_returns_amount"
+    double gross_returns_amount = 8;
+    // @inject_tag: json:"gross_total_amount" bson:"gross_total_amount"
+    double gross_total_amount = 9;
+    // @inject_tag: json:"transactions_currency" bson:"transactions_currency"
+    string transactions_currency = 10;
+    // @inject_tag: json:"conversion" bson:"-"
+    double conversion = 11;
+    // @inject_tag: json:"country_code" bson:"-"
+    string country_code = 12;
+    // @inject_tag: json:"date" bson:"-"
+    string date = 13;
+    // @inject_tag: json:"referrer_host" bson:"-"
+    string referrer_host = 14;
+    // @inject_tag: json:"utm" bson:"-"
+    Utm utm = 15;
+}
+
+message Utm {
+    // @inject_tag: json:"utm_source"
+    string utm_source = 1;
+    // @inject_tag: json:"utm_medium"
+    string utm_medium = 2;
+    // @inject_tag: json:"utm_campaign"
+    string utm_campaign = 3;
+}
+
+message GroupStatCommon {
+    // @inject_tag: json:"top" bson:"top"
+    repeated StatCommon top = 1;
+    // @inject_tag: json:"total" bson:"total"
+    StatCommon total = 2;
+}

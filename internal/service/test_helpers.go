@@ -56,6 +56,11 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 				Secret:         "A1tph4I6BD0f",
 				SecretCallback: "0V1rJ7t4jCRv",
 			},
+			"EUR": {
+				TerminalId:     "15985",
+				Secret:         "A1tph4I6BD0f",
+				SecretCallback: "0V1rJ7t4jCRv",
+			},
 		},
 		TestSettings: map[string]*billing.PaymentMethodParams{
 			"RUB": {
@@ -64,6 +69,11 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 				SecretCallback: "0V1rJ7t4jCRv",
 			},
 			"USD": {
+				TerminalId:     "15985",
+				Secret:         "A1tph4I6BD0f",
+				SecretCallback: "0V1rJ7t4jCRv",
+			},
+			"EUR": {
 				TerminalId:     "15985",
 				Secret:         "A1tph4I6BD0f",
 				SecretCallback: "0V1rJ7t4jCRv",
@@ -580,6 +590,49 @@ func helperCreateMerchant(
 	return merchant
 }
 
+func helperCreateAndPayPaylinkOrder(
+	suite suite.Suite,
+	service *Service,
+	paylinkId, country string,
+	paymentMethod *billing.PaymentMethod,
+	issuer *billing.OrderIssuer,
+) *billing.Order {
+	req := &billing.OrderCreateByPaylink{
+		PaylinkId: paylinkId,
+		PayerIp:   "127.0.0.1",
+	}
+
+	if issuer != nil {
+		req.IssuerUrl = issuer.Url
+		req.IsEmbedded = issuer.Embedded
+		req.UtmSource = issuer.UtmSource
+		req.UtmMedium = issuer.UtmMedium
+		req.UtmCampaign = issuer.UtmCampaign
+	}
+
+	rsp := &grpc.OrderCreateProcessResponse{}
+	err := service.OrderCreateByPaylink(context.TODO(), req, rsp)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
+
+	req1 := &grpc.ProcessBillingAddressRequest{
+		OrderId: rsp.Item.Uuid,
+		Country: country,
+		Zip:     "123345",
+	}
+	rsp1 := &grpc.ProcessBillingAddressResponse{}
+	err = service.ProcessBillingAddress(context.TODO(), req1, rsp1)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+
+	order := &billing.Order{}
+	err = service.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(rsp.Item.Id)).One(&order)
+	assert.NotNil(suite.T(), order)
+	assert.IsType(suite.T(), &billing.Order{}, order)
+
+	return helperPayOrder(suite, service, order, paymentMethod, country)
+}
+
 func helperCreateAndPayOrder(
 	suite suite.Suite,
 	service *Service,
@@ -610,9 +663,19 @@ func helperCreateAndPayOrder(
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
 
+	return helperPayOrder(suite, service, rsp.Item, paymentMethod, country)
+}
+
+func helperPayOrder(
+	suite suite.Suite,
+	service *Service,
+	order *billing.Order,
+	paymentMethod *billing.PaymentMethod,
+	country string,
+) *billing.Order {
 	req1 := &grpc.PaymentCreateRequest{
 		Data: map[string]string{
-			pkg.PaymentCreateFieldOrderId:         rsp.Item.Uuid,
+			pkg.PaymentCreateFieldOrderId:         order.Uuid,
 			pkg.PaymentCreateFieldPaymentMethodId: paymentMethod.Id,
 			pkg.PaymentCreateFieldEmail:           "test@unit.unit",
 			pkg.PaymentCreateFieldPan:             "4000000000000002",
@@ -625,12 +688,11 @@ func helperCreateAndPayOrder(
 	}
 
 	rsp1 := &grpc.PaymentCreateResponse{}
-	err = service.PaymentCreateProcess(context.TODO(), req1, rsp1)
+	err := service.PaymentCreateProcess(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
 	assert.Equalf(suite.T(), pkg.ResponseStatusOk, rsp1.Status, "%v", rsp1.Message)
 
-	var order *billing.Order
-	err = service.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(rsp.Item.Id)).One(&order)
+	err = service.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(order.Id)).One(&order)
 	assert.NotNil(suite.T(), order)
 	assert.IsType(suite.T(), &billing.Order{}, order)
 
@@ -638,8 +700,8 @@ func helperCreateAndPayOrder(
 		PaymentMethod: paymentMethod.ExternalId,
 		CallbackTime:  time.Now().Format("2006-01-02T15:04:05Z"),
 		MerchantOrder: &billing.CardPayMerchantOrder{
-			Id:          rsp.Item.Id,
-			Description: rsp.Item.Description,
+			Id:          order.Id,
+			Description: order.Description,
 		},
 		CardAccount: &billing.CallbackCardPayBankCardAccount{
 			Holder:             order.PaymentRequisites[pkg.PaymentCreateFieldHolder],
@@ -648,9 +710,9 @@ func helperCreateAndPayOrder(
 			Token:              bson.NewObjectId().Hex(),
 		},
 		Customer: &billing.CardPayCustomer{
-			Email:  rsp.Item.User.Email,
-			Ip:     rsp.Item.User.Ip,
-			Id:     rsp.Item.ProjectAccount,
+			Email:  order.User.Email,
+			Ip:     order.User.Ip,
+			Id:     order.ProjectAccount,
 			Locale: "Europe/Moscow",
 		},
 		PaymentData: &billing.CallbackCardPayPaymentData{
@@ -763,7 +825,7 @@ func createProductsForProject(
 	project *billing.Project,
 	productsCount int,
 ) []*grpc.Product {
-	products := make([]*grpc.Product, 1)
+	products := make([]*grpc.Product, productsCount)
 
 	for i := 0; i < productsCount; i++ {
 		name := "ru_test_product_" + strconv.Itoa(i)
@@ -799,7 +861,7 @@ func createProductsForProject(
 			suite.FailNow("Add products for project failed", "%v", err)
 		}
 
-		products = append(products, prod)
+		products[i] = prod
 	}
 
 	return products
@@ -861,7 +923,7 @@ func createKeyProductsFroProject(
 			suite.FailNow("Publishing key product for project failed", "%v", err)
 		}
 
-		fileContent := fmt.Sprintf("%s-%s-%s-%s", GenerateRandomString(4), GenerateRandomString(4), GenerateRandomString(4), GenerateRandomString(4))
+		fileContent := fmt.Sprintf("%s-%s-%s-%s", RandomString(4), RandomString(4), RandomString(4), RandomString(4))
 		file := []byte(fileContent)
 
 		req3 := &grpc.PlatformKeysFileRequest{
@@ -1010,7 +1072,7 @@ func helperCreateAndPayOrder2(
 	return order
 }
 
-func GenerateRandomString(n int) string {
+func RandomString(n int) string {
 	var letter = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
 	b := make([]rune, n)

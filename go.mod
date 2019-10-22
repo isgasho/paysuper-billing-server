@@ -4,6 +4,7 @@ require (
 	github.com/InVisionApp/go-health v2.1.0+incompatible
 	github.com/ProtocolONE/geoip-service v0.0.0-20190903084234-1d5ae6b96679
 	github.com/ProtocolONE/go-micro-plugins v0.3.0
+	github.com/PuerkitoBio/purell v1.0.0
 	github.com/alicebob/miniredis v2.5.0+incompatible
 	github.com/centrifugal/gocent v2.0.2+incompatible
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -12,8 +13,9 @@ require (
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
 	github.com/go-redis/redis v6.15.2+incompatible
 	github.com/gogo/protobuf v1.3.0
-	github.com/golang-migrate/migrate/v4 v4.3.1
+	github.com/golang-migrate/migrate/v4 v4.6.2
 	github.com/golang/protobuf v1.3.2
+	github.com/google/go-querystring v1.0.0
 	github.com/google/uuid v1.1.1
 	github.com/jinzhu/copier v0.0.0-20190625015134-976e0346caa8
 	github.com/jinzhu/now v1.0.1

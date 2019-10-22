@@ -228,6 +228,17 @@ It has these top-level messages:
 	GetPriceGroupByRegionRequest
 	ChangeMerchantManualPayoutsRequest
 	ChangeMerchantManualPayoutsResponse
+	GetPaylinksRequest
+	PaylinksPaginate
+	GetPaylinksResponse
+	PaylinkRequestById
+	PaylinkRequest
+	GetPaylinkResponse
+	GetPaylinkURLRequest
+	GetPaylinkUrlResponse
+	GetPaylinkStatCommonRequest
+	GetPaylinkStatCommonResponse
+	GetPaylinkStatCommonGroupResponse
 */
 package grpc
 
@@ -236,6 +247,7 @@ import fmt "fmt"
 import math "math"
 import _ "github.com/golang/protobuf/ptypes/timestamp"
 import billing "github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+import paylink "github.com/paysuper/paysuper-billing-server/pkg/proto/paylink"
 
 import (
 	context "context"
@@ -248,6 +260,7 @@ var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 var _ = billing.PaymentCostDeleteRequest{}
+var _ = paylink.CreatePaylinkRequest{}
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the proto package it is being compiled against.
@@ -263,6 +276,7 @@ var _ server.Option
 // Client API for BillingService service
 
 type BillingService interface {
+	OrderCreateByPaylink(ctx context.Context, in *billing.OrderCreateByPaylink, opts ...client.CallOption) (*OrderCreateProcessResponse, error)
 	OrderCreateProcess(ctx context.Context, in *billing.OrderCreateRequest, opts ...client.CallOption) (*OrderCreateProcessResponse, error)
 	PaymentFormJsonDataProcess(ctx context.Context, in *PaymentFormJsonDataRequest, opts ...client.CallOption) (*PaymentFormJsonDataResponse, error)
 	PaymentCreateProcess(ctx context.Context, in *PaymentCreateRequest, opts ...client.CallOption) (*PaymentCreateResponse, error)
@@ -397,6 +411,17 @@ type BillingService interface {
 	GetMerchantBalance(ctx context.Context, in *GetMerchantBalanceRequest, opts ...client.CallOption) (*GetMerchantBalanceResponse, error)
 	PaymentFormPlatformChanged(ctx context.Context, in *PaymentFormUserChangePlatformRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 	CheckSkuAndKeyProject(ctx context.Context, in *CheckSkuAndKeyProjectRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
+	GetPaylinks(ctx context.Context, in *GetPaylinksRequest, opts ...client.CallOption) (*GetPaylinksResponse, error)
+	GetPaylink(ctx context.Context, in *PaylinkRequest, opts ...client.CallOption) (*GetPaylinkResponse, error)
+	IncrPaylinkVisits(ctx context.Context, in *PaylinkRequestById, opts ...client.CallOption) (*EmptyResponse, error)
+	GetPaylinkURL(ctx context.Context, in *GetPaylinkURLRequest, opts ...client.CallOption) (*GetPaylinkUrlResponse, error)
+	CreateOrUpdatePaylink(ctx context.Context, in *paylink.CreatePaylinkRequest, opts ...client.CallOption) (*GetPaylinkResponse, error)
+	DeletePaylink(ctx context.Context, in *PaylinkRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
+	GetPaylinkStatTotal(ctx context.Context, in *GetPaylinkStatCommonRequest, opts ...client.CallOption) (*GetPaylinkStatCommonResponse, error)
+	GetPaylinkStatByCountry(ctx context.Context, in *GetPaylinkStatCommonRequest, opts ...client.CallOption) (*GetPaylinkStatCommonGroupResponse, error)
+	GetPaylinkStatByReferrer(ctx context.Context, in *GetPaylinkStatCommonRequest, opts ...client.CallOption) (*GetPaylinkStatCommonGroupResponse, error)
+	GetPaylinkStatByDate(ctx context.Context, in *GetPaylinkStatCommonRequest, opts ...client.CallOption) (*GetPaylinkStatCommonGroupResponse, error)
+	GetPaylinkStatByUtm(ctx context.Context, in *GetPaylinkStatCommonRequest, opts ...client.CallOption) (*GetPaylinkStatCommonGroupResponse, error)
 }
 
 type billingService struct {
@@ -415,6 +440,16 @@ func NewBillingService(name string, c client.Client) BillingService {
 		c:    c,
 		name: name,
 	}
+}
+
+func (c *billingService) OrderCreateByPaylink(ctx context.Context, in *billing.OrderCreateByPaylink, opts ...client.CallOption) (*OrderCreateProcessResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.OrderCreateByPaylink", in)
+	out := new(OrderCreateProcessResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *billingService) OrderCreateProcess(ctx context.Context, in *billing.OrderCreateRequest, opts ...client.CallOption) (*OrderCreateProcessResponse, error) {
@@ -1757,9 +1792,120 @@ func (c *billingService) CheckSkuAndKeyProject(ctx context.Context, in *CheckSku
 	return out, nil
 }
 
+func (c *billingService) GetPaylinks(ctx context.Context, in *GetPaylinksRequest, opts ...client.CallOption) (*GetPaylinksResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetPaylinks", in)
+	out := new(GetPaylinksResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetPaylink(ctx context.Context, in *PaylinkRequest, opts ...client.CallOption) (*GetPaylinkResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetPaylink", in)
+	out := new(GetPaylinkResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) IncrPaylinkVisits(ctx context.Context, in *PaylinkRequestById, opts ...client.CallOption) (*EmptyResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.IncrPaylinkVisits", in)
+	out := new(EmptyResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetPaylinkURL(ctx context.Context, in *GetPaylinkURLRequest, opts ...client.CallOption) (*GetPaylinkUrlResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetPaylinkURL", in)
+	out := new(GetPaylinkUrlResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) CreateOrUpdatePaylink(ctx context.Context, in *paylink.CreatePaylinkRequest, opts ...client.CallOption) (*GetPaylinkResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.CreateOrUpdatePaylink", in)
+	out := new(GetPaylinkResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) DeletePaylink(ctx context.Context, in *PaylinkRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error) {
+	req := c.c.NewRequest(c.name, "BillingService.DeletePaylink", in)
+	out := new(EmptyResponseWithStatus)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetPaylinkStatTotal(ctx context.Context, in *GetPaylinkStatCommonRequest, opts ...client.CallOption) (*GetPaylinkStatCommonResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetPaylinkStatTotal", in)
+	out := new(GetPaylinkStatCommonResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetPaylinkStatByCountry(ctx context.Context, in *GetPaylinkStatCommonRequest, opts ...client.CallOption) (*GetPaylinkStatCommonGroupResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetPaylinkStatByCountry", in)
+	out := new(GetPaylinkStatCommonGroupResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetPaylinkStatByReferrer(ctx context.Context, in *GetPaylinkStatCommonRequest, opts ...client.CallOption) (*GetPaylinkStatCommonGroupResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetPaylinkStatByReferrer", in)
+	out := new(GetPaylinkStatCommonGroupResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetPaylinkStatByDate(ctx context.Context, in *GetPaylinkStatCommonRequest, opts ...client.CallOption) (*GetPaylinkStatCommonGroupResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetPaylinkStatByDate", in)
+	out := new(GetPaylinkStatCommonGroupResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetPaylinkStatByUtm(ctx context.Context, in *GetPaylinkStatCommonRequest, opts ...client.CallOption) (*GetPaylinkStatCommonGroupResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetPaylinkStatByUtm", in)
+	out := new(GetPaylinkStatCommonGroupResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for BillingService service
 
 type BillingServiceHandler interface {
+	OrderCreateByPaylink(context.Context, *billing.OrderCreateByPaylink, *OrderCreateProcessResponse) error
 	OrderCreateProcess(context.Context, *billing.OrderCreateRequest, *OrderCreateProcessResponse) error
 	PaymentFormJsonDataProcess(context.Context, *PaymentFormJsonDataRequest, *PaymentFormJsonDataResponse) error
 	PaymentCreateProcess(context.Context, *PaymentCreateRequest, *PaymentCreateResponse) error
@@ -1894,10 +2040,22 @@ type BillingServiceHandler interface {
 	GetMerchantBalance(context.Context, *GetMerchantBalanceRequest, *GetMerchantBalanceResponse) error
 	PaymentFormPlatformChanged(context.Context, *PaymentFormUserChangePlatformRequest, *EmptyResponseWithStatus) error
 	CheckSkuAndKeyProject(context.Context, *CheckSkuAndKeyProjectRequest, *EmptyResponseWithStatus) error
+	GetPaylinks(context.Context, *GetPaylinksRequest, *GetPaylinksResponse) error
+	GetPaylink(context.Context, *PaylinkRequest, *GetPaylinkResponse) error
+	IncrPaylinkVisits(context.Context, *PaylinkRequestById, *EmptyResponse) error
+	GetPaylinkURL(context.Context, *GetPaylinkURLRequest, *GetPaylinkUrlResponse) error
+	CreateOrUpdatePaylink(context.Context, *paylink.CreatePaylinkRequest, *GetPaylinkResponse) error
+	DeletePaylink(context.Context, *PaylinkRequest, *EmptyResponseWithStatus) error
+	GetPaylinkStatTotal(context.Context, *GetPaylinkStatCommonRequest, *GetPaylinkStatCommonResponse) error
+	GetPaylinkStatByCountry(context.Context, *GetPaylinkStatCommonRequest, *GetPaylinkStatCommonGroupResponse) error
+	GetPaylinkStatByReferrer(context.Context, *GetPaylinkStatCommonRequest, *GetPaylinkStatCommonGroupResponse) error
+	GetPaylinkStatByDate(context.Context, *GetPaylinkStatCommonRequest, *GetPaylinkStatCommonGroupResponse) error
+	GetPaylinkStatByUtm(context.Context, *GetPaylinkStatCommonRequest, *GetPaylinkStatCommonGroupResponse) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
 	type billingService interface {
+		OrderCreateByPaylink(ctx context.Context, in *billing.OrderCreateByPaylink, out *OrderCreateProcessResponse) error
 		OrderCreateProcess(ctx context.Context, in *billing.OrderCreateRequest, out *OrderCreateProcessResponse) error
 		PaymentFormJsonDataProcess(ctx context.Context, in *PaymentFormJsonDataRequest, out *PaymentFormJsonDataResponse) error
 		PaymentCreateProcess(ctx context.Context, in *PaymentCreateRequest, out *PaymentCreateResponse) error
@@ -2032,6 +2190,17 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetMerchantBalance(ctx context.Context, in *GetMerchantBalanceRequest, out *GetMerchantBalanceResponse) error
 		PaymentFormPlatformChanged(ctx context.Context, in *PaymentFormUserChangePlatformRequest, out *EmptyResponseWithStatus) error
 		CheckSkuAndKeyProject(ctx context.Context, in *CheckSkuAndKeyProjectRequest, out *EmptyResponseWithStatus) error
+		GetPaylinks(ctx context.Context, in *GetPaylinksRequest, out *GetPaylinksResponse) error
+		GetPaylink(ctx context.Context, in *PaylinkRequest, out *GetPaylinkResponse) error
+		IncrPaylinkVisits(ctx context.Context, in *PaylinkRequestById, out *EmptyResponse) error
+		GetPaylinkURL(ctx context.Context, in *GetPaylinkURLRequest, out *GetPaylinkUrlResponse) error
+		CreateOrUpdatePaylink(ctx context.Context, in *paylink.CreatePaylinkRequest, out *GetPaylinkResponse) error
+		DeletePaylink(ctx context.Context, in *PaylinkRequest, out *EmptyResponseWithStatus) error
+		GetPaylinkStatTotal(ctx context.Context, in *GetPaylinkStatCommonRequest, out *GetPaylinkStatCommonResponse) error
+		GetPaylinkStatByCountry(ctx context.Context, in *GetPaylinkStatCommonRequest, out *GetPaylinkStatCommonGroupResponse) error
+		GetPaylinkStatByReferrer(ctx context.Context, in *GetPaylinkStatCommonRequest, out *GetPaylinkStatCommonGroupResponse) error
+		GetPaylinkStatByDate(ctx context.Context, in *GetPaylinkStatCommonRequest, out *GetPaylinkStatCommonGroupResponse) error
+		GetPaylinkStatByUtm(ctx context.Context, in *GetPaylinkStatCommonRequest, out *GetPaylinkStatCommonGroupResponse) error
 	}
 	type BillingService struct {
 		billingService
@@ -2042,6 +2211,10 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 
 type billingServiceHandler struct {
 	BillingServiceHandler
+}
+
+func (h *billingServiceHandler) OrderCreateByPaylink(ctx context.Context, in *billing.OrderCreateByPaylink, out *OrderCreateProcessResponse) error {
+	return h.BillingServiceHandler.OrderCreateByPaylink(ctx, in, out)
 }
 
 func (h *billingServiceHandler) OrderCreateProcess(ctx context.Context, in *billing.OrderCreateRequest, out *OrderCreateProcessResponse) error {
@@ -2578,4 +2751,48 @@ func (h *billingServiceHandler) PaymentFormPlatformChanged(ctx context.Context, 
 
 func (h *billingServiceHandler) CheckSkuAndKeyProject(ctx context.Context, in *CheckSkuAndKeyProjectRequest, out *EmptyResponseWithStatus) error {
 	return h.BillingServiceHandler.CheckSkuAndKeyProject(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetPaylinks(ctx context.Context, in *GetPaylinksRequest, out *GetPaylinksResponse) error {
+	return h.BillingServiceHandler.GetPaylinks(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetPaylink(ctx context.Context, in *PaylinkRequest, out *GetPaylinkResponse) error {
+	return h.BillingServiceHandler.GetPaylink(ctx, in, out)
+}
+
+func (h *billingServiceHandler) IncrPaylinkVisits(ctx context.Context, in *PaylinkRequestById, out *EmptyResponse) error {
+	return h.BillingServiceHandler.IncrPaylinkVisits(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetPaylinkURL(ctx context.Context, in *GetPaylinkURLRequest, out *GetPaylinkUrlResponse) error {
+	return h.BillingServiceHandler.GetPaylinkURL(ctx, in, out)
+}
+
+func (h *billingServiceHandler) CreateOrUpdatePaylink(ctx context.Context, in *paylink.CreatePaylinkRequest, out *GetPaylinkResponse) error {
+	return h.BillingServiceHandler.CreateOrUpdatePaylink(ctx, in, out)
+}
+
+func (h *billingServiceHandler) DeletePaylink(ctx context.Context, in *PaylinkRequest, out *EmptyResponseWithStatus) error {
+	return h.BillingServiceHandler.DeletePaylink(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetPaylinkStatTotal(ctx context.Context, in *GetPaylinkStatCommonRequest, out *GetPaylinkStatCommonResponse) error {
+	return h.BillingServiceHandler.GetPaylinkStatTotal(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetPaylinkStatByCountry(ctx context.Context, in *GetPaylinkStatCommonRequest, out *GetPaylinkStatCommonGroupResponse) error {
+	return h.BillingServiceHandler.GetPaylinkStatByCountry(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetPaylinkStatByReferrer(ctx context.Context, in *GetPaylinkStatCommonRequest, out *GetPaylinkStatCommonGroupResponse) error {
+	return h.BillingServiceHandler.GetPaylinkStatByReferrer(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetPaylinkStatByDate(ctx context.Context, in *GetPaylinkStatCommonRequest, out *GetPaylinkStatCommonGroupResponse) error {
+	return h.BillingServiceHandler.GetPaylinkStatByDate(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetPaylinkStatByUtm(ctx context.Context, in *GetPaylinkStatCommonRequest, out *GetPaylinkStatCommonGroupResponse) error {
+	return h.BillingServiceHandler.GetPaylinkStatByUtm(ctx, in, out)
 }

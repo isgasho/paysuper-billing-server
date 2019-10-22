@@ -2,6 +2,8 @@ package service
 
 import (
 	"go.uber.org/zap"
+	"net"
+	"net/url"
 	"sync"
 	"time"
 )
@@ -29,6 +31,7 @@ type PaymentChannelCostSystem Entity
 type PaymentChannelCostMerchant Entity
 type MoneyBackCostSystem Entity
 type MoneyBackCostMerchant Entity
+type Paylink Entity
 type PayoutCostSystem Entity
 type PriceTable Entity
 type Product Entity
@@ -73,4 +76,20 @@ func timeTrack(start time.Time, name string) {
 		zap.String("name", name),
 		zap.Duration("time", elapsed),
 	)
+}
+
+func getHostFromUrl(urlString string) string {
+	u, err := url.Parse(urlString)
+	if err != nil {
+		zap.L().Error(
+			"url parsing failed",
+			zap.Error(err),
+		)
+		return ""
+	}
+	host, _, err := net.SplitHostPort(u.Host)
+	if err != nil {
+		return u.Host
+	}
+	return host
 }
