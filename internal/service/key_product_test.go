@@ -773,9 +773,13 @@ func (suite *KeyProductTestSuite) Test_UnPublishKeyProduct() {
 
 	err = suite.service.UnPublishKeyProduct(context.TODO(), &grpc.UnPublishKeyProductRequest{KeyProductId: product.Id}, res)
 	shouldBe.Nil(err)
+	shouldBe.EqualValues(400, res.Status)
+
+	err = suite.service.UnPublishKeyProduct(context.TODO(), &grpc.UnPublishKeyProductRequest{KeyProductId: product.Id, MerchantId: product.MerchantId}, res)
+	shouldBe.Nil(err)
 	shouldBe.EqualValues(200, res.Status)
 
-	err = suite.service.UnPublishKeyProduct(context.TODO(), &grpc.UnPublishKeyProductRequest{KeyProductId: product.Id}, res)
+	err = suite.service.UnPublishKeyProduct(context.TODO(), &grpc.UnPublishKeyProductRequest{KeyProductId: product.Id, MerchantId: product.MerchantId}, res)
 	shouldBe.Nil(err)
 	shouldBe.EqualValues(400, res.Status)
 	shouldBe.Equal(keyProductNotPublished, res.Message)
@@ -785,7 +789,7 @@ func (suite *KeyProductTestSuite) Test_UnPublishKeyProduct() {
 	shouldBe.Nil(err)
 	shouldBe.EqualValuesf(200, emptyRes.Status, "%v", emptyRes.Message)
 
-	err = suite.service.UnPublishKeyProduct(context.TODO(), &grpc.UnPublishKeyProductRequest{KeyProductId: product.Id}, res)
+	err = suite.service.UnPublishKeyProduct(context.TODO(), &grpc.UnPublishKeyProductRequest{KeyProductId: product.Id, MerchantId: product.MerchantId}, res)
 	shouldBe.Nil(err)
 	shouldBe.EqualValues(400, res.Status)
 	shouldBe.Equal(keyProductNotFound, res.Message)
