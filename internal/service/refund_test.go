@@ -1300,8 +1300,9 @@ func (suite *RefundTestSuite) TestRefund_GetRefund_Ok() {
 	assert.NotEmpty(suite.T(), rsp2.Item)
 
 	req3 := &grpc.GetRefundRequest{
-		OrderId:  order.Uuid,
-		RefundId: rsp2.Item.Id,
+		OrderId:    order.Uuid,
+		RefundId:   rsp2.Item.Id,
+		MerchantId: order.GetMerchantId(),
 	}
 	rsp3 := &grpc.CreateRefundResponse{}
 	err = suite.service.GetRefund(context.TODO(), req3, rsp3)
