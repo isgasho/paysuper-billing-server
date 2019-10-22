@@ -1195,6 +1195,12 @@ func (s *Service) ProcessBillingAddress(
 		return err
 	}
 
+	if order.CountryRestriction != nil && order.CountryRestriction.ChangeAllowed != true {
+		rsp.Status = pkg.ResponseStatusForbidden
+		rsp.Message = orderCountryPaymentRestrictedError
+		return nil
+	}
+
 	order.BillingAddress = &billing.OrderBillingAddress{
 		Country: req.Country,
 	}
