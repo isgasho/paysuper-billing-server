@@ -10,6 +10,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/jinzhu/now"
+	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
@@ -114,6 +115,7 @@ func (suite *PaylinkTestSuite) SetupTest() {
 		&reportingMocks.ReporterService{},
 		mocks.NewFormatterOK(),
 		mocks.NewBrokerMockOk(),
+		&casbinMocks.CasbinService{},
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -250,7 +252,7 @@ func (suite *PaylinkTestSuite) SetupTest() {
 			},
 		},
 		MerchantId: suite.merchant.Id,
-		ProjectId:  bson.NewObjectId().Hex(),
+		ProjectId:  suite.projectFixedAmount.Id,
 		Platforms: []*grpc.PlatformPrice{
 			{
 				Id: "steam",
