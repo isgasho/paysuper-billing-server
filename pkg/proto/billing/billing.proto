@@ -2134,7 +2134,6 @@ message RoleListItem {
     //@inject_tag: json:"name"
     string name = 2;
 }
-}
 
 message OrderCreateByPaylink {
     //@inject_tag: json:"id" validate:"required,hexadecimal,len=24"

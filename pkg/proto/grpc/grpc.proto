@@ -2398,7 +2398,7 @@ message GetPermissionsForUserResponse {
 message Permission {
     string name = 1;
     string access = 2;
-}}
+}
 
 message GetPaylinksRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24"
