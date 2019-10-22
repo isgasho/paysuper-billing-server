@@ -35,8 +35,6 @@ func (s *Service) FindAllOrdersPublic(
 
 	orderList := orders.([]*billing.OrderViewPublic)
 
-	fmt.Println(orderList)
-	fmt.Println(len(orderList))
 	if len(orderList) > 0 && orderList[0].MerchantId != req.Merchant[0] {
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = reportErrorUnknown
