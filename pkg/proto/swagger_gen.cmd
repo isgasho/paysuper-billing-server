@@ -1,0 +1,1 @@
+protoc --swagger_out=. .\grpc\grpc.proto
