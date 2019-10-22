@@ -80,7 +80,12 @@ func (suite *UserRoleTestSuite) TestUserRole_AddMerchantUser_Ok() {
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_UpdateMerchantUser_Ok() {
-	role := &billing.UserRole{Id: bson.NewObjectId().Hex()}
+	role := &billing.UserRole{
+		Id: bson.NewObjectId().Hex(),
+		User: &billing.UserRoleProfile{
+			UserId: bson.NewObjectId().Hex(),
+		},
+			}
 	assert.NoError(suite.T(), suite.service.userRoleRepository.AddMerchantUser(role))
 
 	role.Role = "test"
@@ -148,7 +153,12 @@ func (suite *UserRoleTestSuite) TestUserRole_GetMerchantUserById_Error_NotFound(
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_DeleteMerchantUser_Ok() {
-	role := &billing.UserRole{Id: bson.NewObjectId().Hex()}
+	role := &billing.UserRole{
+		Id: bson.NewObjectId().Hex(),
+		User: &billing.UserRoleProfile{
+			UserId: bson.NewObjectId().Hex(),
+		},
+		}
 	assert.NoError(suite.T(), suite.service.userRoleRepository.AddMerchantUser(role))
 	assert.NoError(suite.T(), suite.service.userRoleRepository.DeleteMerchantUser(role))
 }
