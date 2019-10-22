@@ -317,6 +317,9 @@ const (
 
 	UserRoleStatusInvited  = "invited"
 	UserRoleStatusAccepted = "accepted"
+
+	// MerchantId_UserId
+	CasbinMerchantUserMask = "%s_%s"
 )
 
 var (

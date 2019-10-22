@@ -25,8 +25,6 @@ const (
 	claimRoleId = "role_id"
 	claimExpire = "exp"
 
-	casbinMerchantUserMask = "%s_%s"
-
 	roleNameMerchantOwner      = "Owner"
 	roleNameMerchantDeveloper  = "Developer"
 	roleNameMerchantAccounting = "Accounting"
@@ -546,7 +544,7 @@ func (s *Service) AcceptInvite(
 	casbinUserId := user.User.UserId
 
 	if claims[claimType] == pkg.RoleTypeMerchant {
-		casbinUserId = fmt.Sprintf(casbinMerchantUserMask, user.MerchantId, user.User.UserId)
+		casbinUserId = fmt.Sprintf(pkg.CasbinMerchantUserMask, user.MerchantId, user.User.UserId)
 	}
 
 	_, err = s.casbinService.AddRoleForUser(ctx, &casbinProto.UserRoleRequest{
@@ -677,7 +675,7 @@ func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.Chang
 		return nil
 	}
 
-	casbinUserId := fmt.Sprintf(casbinMerchantUserMask, user.MerchantId, user.User.UserId)
+	casbinUserId := fmt.Sprintf(pkg.CasbinMerchantUserMask, user.MerchantId, user.User.UserId)
 
 	_, err = s.casbinService.DeleteUser(ctx, &casbinProto.UserRoleRequest{User: casbinUserId})
 
@@ -799,7 +797,7 @@ func (s *Service) DeleteMerchantUser(
 	}
 
 	_, err = s.casbinService.DeleteUser(ctx, &casbinProto.UserRoleRequest{
-		User: fmt.Sprintf(casbinMerchantUserMask, user.MerchantId, user.User.UserId),
+		User: fmt.Sprintf(pkg.CasbinMerchantUserMask, user.MerchantId, user.User.UserId),
 	})
 
 	if err != nil {
