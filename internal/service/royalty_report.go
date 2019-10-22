@@ -45,6 +45,7 @@ var (
 	royaltyReportErrorAlreadyExists            = newBillingServerErrorMsg("rr00008", "report for this merchant and period already exists")
 	royaltyReportErrorCorrectionAmountRequired = newBillingServerErrorMsg("rr00009", "correction amount required and must be not zero")
 	royaltyReportErrorPayoutDocumentIdInvalid  = newBillingServerErrorMsg("rr00010", "payout document id is invalid")
+	royaltyReportErrorNotOwnedByMerchant       = newBillingServerErrorMsg("rr00011", "payout document is not owned by merchant")
 
 	orderStatusForRoyaltyReports = []string{
 		constant.OrderPublicStatusProcessed,
@@ -282,15 +283,23 @@ func (s *Service) MerchantReviewRoyaltyReport(
 ) error {
 	report, err := s.royaltyReport.GetById(req.ReportId)
 
-	if err != nil || report.MerchantId != req.MerchantId {
+	if err != nil {
 		if err == mgo.ErrNotFound {
 			rsp.Status = pkg.ResponseStatusNotFound
 			rsp.Message = royaltyReportErrorReportNotFound
-
 			return nil
 		}
 
 		return err
+	}
+
+	if report.MerchantId != req.MerchantId {
+		if err == mgo.ErrNotFound {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = royaltyReportErrorNotOwnedByMerchant
+
+			return nil
+		}
 	}
 
 	if report.Status != pkg.RoyaltyReportStatusPending {
@@ -366,15 +375,23 @@ func (s *Service) ChangeRoyaltyReport(
 ) error {
 	report, err := s.royaltyReport.GetById(req.ReportId)
 
-	if err != nil || report.MerchantId != req.MerchantId {
+	if err != nil {
 		if err == mgo.ErrNotFound {
 			rsp.Status = pkg.ResponseStatusNotFound
 			rsp.Message = royaltyReportErrorReportNotFound
-
 			return nil
 		}
 
 		return err
+	}
+
+	if report.MerchantId != req.MerchantId {
+		if err == mgo.ErrNotFound {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = royaltyReportErrorNotOwnedByMerchant
+
+			return nil
+		}
 	}
 
 	if req.Status != "" && report.ChangesAvailable(req.Status) == false {

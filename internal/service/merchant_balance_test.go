@@ -416,6 +416,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 		ReportId:   report.Id,
 		IsAccepted: true,
 		Ip:         "127.0.0.1",
+		MerchantId: suite.merchant.Id,
 	}
 	rsp1 := &grpc.ResponseError{}
 	err = suite.service.MerchantReviewRoyaltyReport(context.TODO(), req1, rsp1)
@@ -754,9 +755,10 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	assert.NoError(suite.T(), err)
 
 	req7 := &grpc.ChangeRoyaltyReportRequest{
-		ReportId: report.Id,
-		Status:   pkg.RoyaltyReportStatusAccepted,
-		Ip:       "127.0.0.1",
+		ReportId:   report.Id,
+		Status:     pkg.RoyaltyReportStatusAccepted,
+		Ip:         "127.0.0.1",
+		MerchantId: suite.merchant.Id,
 	}
 	rsp7 := &grpc.ResponseError{}
 	err = suite.service.ChangeRoyaltyReport(context.TODO(), req7, rsp7)
