@@ -300,7 +300,6 @@ const (
 
 	DatabaseRequestDefaultLimit = int(100)
 
-
 	RoleTypeMerchant = "merchant"
 	RoleTypeSystem   = "system"
 
@@ -317,6 +316,9 @@ const (
 
 	UserRoleStatusInvited  = "invited"
 	UserRoleStatusAccepted = "accepted"
+
+	// MerchantId_UserId
+	CasbinMerchantUserMask = "%s_%s"
 )
 
 var (
