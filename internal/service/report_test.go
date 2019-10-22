@@ -152,6 +152,7 @@ func (suite *ReportTestSuite) TestReport_FindById() {
 	order := helperCreateAndPayOrder(suite.Suite, suite.service, 555.55, "RUB", "RU", suite.project, suite.pmBankCard)
 
 	req = &grpc.ListOrdersRequest{Id: order.Uuid}
+	req.Merchant = append(req.Merchant, suite.project.MerchantId)
 	err = suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
@@ -221,6 +222,7 @@ func (suite *ReportTestSuite) TestReport_FindByProject() {
 		orderIds = append(orderIds, order.Id)
 	}
 
+	req.Merchant = append(req.Merchant, suite.project.MerchantId)
 	err = suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
@@ -248,6 +250,7 @@ func (suite *ReportTestSuite) TestReport_FindByCountry() {
 		orderIds = append(orderIds, order.Id)
 	}
 
+	req.Merchant = append(req.Merchant, suite.project.MerchantId)
 	err = suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
@@ -275,6 +278,7 @@ func (suite *ReportTestSuite) TestReport_FindByPaymentMethod() {
 		orderIds = append(orderIds, order.Id)
 	}
 
+	req.Merchant = append(req.Merchant, suite.project.MerchantId)
 	err = suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
@@ -302,6 +306,7 @@ func (suite *ReportTestSuite) TestReport_FindByStatus() {
 		orderIds = append(orderIds, order.Id)
 	}
 
+	req.Merchant = append(req.Merchant, suite.project.MerchantId)
 	err = suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
@@ -329,6 +334,7 @@ func (suite *ReportTestSuite) TestReport_FindByAccount() {
 		orderIds = append(orderIds, order.Id)
 	}
 
+	req.Merchant = append(req.Merchant, suite.project.MerchantId)
 	err = suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
@@ -339,6 +345,7 @@ func (suite *ReportTestSuite) TestReport_FindByAccount() {
 		assert.Contains(suite.T(), orderIds, v.Id)
 	}
 
+	req.Merchant = append(req.Merchant, suite.project.MerchantId)
 	req.Account = "400000"
 	err = suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
@@ -351,6 +358,7 @@ func (suite *ReportTestSuite) TestReport_FindByAccount() {
 	}
 
 	req = &grpc.ListOrdersRequest{QuickSearch: suite.project.Name["en"]}
+	req.Merchant = append(req.Merchant, suite.project.MerchantId)
 	err = suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
@@ -378,6 +386,7 @@ func (suite *ReportTestSuite) TestReport_FindByPmDateFrom() {
 		orderIds = append(orderIds, order.Id)
 	}
 
+	req.Merchant = append(req.Merchant, suite.project.MerchantId)
 	err = suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
@@ -407,6 +416,7 @@ func (suite *ReportTestSuite) TestReport_FindByPmDateTo() {
 		date = order.PaymentMethodOrderClosedAt
 	}
 
+	req.Merchant = append(req.Merchant, suite.project.MerchantId)
 	req.PmDateTo = date.Seconds + 100
 	err = suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
@@ -435,6 +445,7 @@ func (suite *ReportTestSuite) TestReport_FindByProjectDateFrom() {
 		orderIds = append(orderIds, order.Id)
 	}
 
+	req.Merchant = append(req.Merchant, suite.project.MerchantId)
 	err = suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
@@ -462,6 +473,7 @@ func (suite *ReportTestSuite) TestReport_FindByProjectDateTo() {
 		orderIds = append(orderIds, order.Id)
 	}
 
+	req.Merchant = append(req.Merchant, suite.project.MerchantId)
 	err = suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
