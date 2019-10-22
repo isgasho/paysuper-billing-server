@@ -2411,6 +2411,7 @@ message GetMerchantsForUserResponse {
 message MerchantForUserInfo {
     string id = 1;
     string name = 2;
+    string role = 3;
 }
 
 message ChangeRoleForMerchantUserRequest {

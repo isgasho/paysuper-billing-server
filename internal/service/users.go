@@ -150,6 +150,7 @@ func (s *Service) GetMerchantsForUser(ctx context.Context, req *grpc.GetMerchant
 		merchants[i] = &grpc.MerchantForUserInfo{
 			Id:   user.MerchantId,
 			Name: name,
+			Role: user.Role,
 		}
 	}
 
