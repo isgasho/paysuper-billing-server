@@ -48,6 +48,9 @@ type PaylinkTestSuite struct {
 	paylink1           *paylink.Paylink // normal paylink
 	paylink2           *paylink.Paylink // deleted paylink
 	paylink3           *paylink.Paylink // expired paylink
+	merchant2          *billing.Merchant
+	project2           *billing.Project
+	project3           *billing.Project
 }
 
 func Test_Paylink(t *testing.T) {
@@ -122,6 +125,39 @@ func (suite *PaylinkTestSuite) SetupTest() {
 	}
 
 	suite.merchant, suite.projectFixedAmount, suite.paymentMethod, suite.paymentSystem = helperCreateEntitiesForTests(suite.Suite, suite.service)
+	suite.merchant2 = helperCreateMerchant(suite.Suite, suite.service, suite.merchant.PayoutCostCurrency, suite.merchant.Company.Country, suite.paymentMethod, suite.merchant.MinPayoutAmount)
+	suite.project2 = &billing.Project{
+		Id:                       bson.NewObjectId().Hex(),
+		CallbackCurrency:         "RUB",
+		CallbackProtocol:         "default",
+		LimitsCurrency:           "USD",
+		MaxPaymentAmount:         15000,
+		MinPaymentAmount:         1,
+		Name:                     map[string]string{"en": "test project 1"},
+		IsProductsCheckout:       false,
+		AllowDynamicRedirectUrls: true,
+		SecretKey:                "test project 1 secret key",
+		Status:                   pkg.ProjectStatusDraft,
+		MerchantId:               suite.merchant.Id,
+	}
+	suite.project3 = &billing.Project{
+		Id:                       bson.NewObjectId().Hex(),
+		CallbackCurrency:         "RUB",
+		CallbackProtocol:         "default",
+		LimitsCurrency:           "USD",
+		MaxPaymentAmount:         15000,
+		MinPaymentAmount:         1,
+		Name:                     map[string]string{"en": "test project 1"},
+		IsProductsCheckout:       false,
+		AllowDynamicRedirectUrls: true,
+		SecretKey:                "test project 1 secret key",
+		Status:                   pkg.ProjectStatusDraft,
+		MerchantId:               suite.merchant2.Id,
+	}
+	projects := []*billing.Project{suite.project2, suite.project3}
+	if err := suite.service.project.MultipleInsert(projects); err != nil {
+		suite.FailNow("Insert project test data failed", "%v", err)
+	}
 
 	suite.product1 = &grpc.Product{
 		Id:              bson.NewObjectId().Hex(),
@@ -250,7 +286,7 @@ func (suite *PaylinkTestSuite) SetupTest() {
 			},
 		},
 		MerchantId: suite.merchant.Id,
-		ProjectId:  suite.projectFixedAmount.Id,
+		ProjectId:  suite.project2.Id,
 		Platforms: []*grpc.PlatformPrice{
 			{
 				Id: "steam",
@@ -280,8 +316,8 @@ func (suite *PaylinkTestSuite) SetupTest() {
 				En: "/home/image.jpg",
 			},
 		},
-		MerchantId: suite.merchant.Id,
-		ProjectId:  suite.projectFixedAmount.Id,
+		MerchantId: suite.merchant2.Id,
+		ProjectId:  suite.project3.Id,
 		Platforms: []*grpc.PlatformPrice{
 			{
 				Id: "steam",
@@ -613,8 +649,8 @@ func (suite *PaylinkTestSuite) Test_Paylink_Create_Fail_KeyProductFromAnotherMer
 	res := &grpc.GetPaylinkResponse{}
 	err := suite.service.CreateOrUpdatePaylink(context.TODO(), req, res)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusBadData)
-	assert.Equal(suite.T(), res.Message, errorPaylinkProductNotBelongToMerchant)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, res.Status)
+	assert.Equal(suite.T(), errorPaylinkProductNotBelongToMerchant, res.Message)
 }
 
 func (suite *PaylinkTestSuite) Test_Paylink_Create_Fail_ExpiresInPast() {
