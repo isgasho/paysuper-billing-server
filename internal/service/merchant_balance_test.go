@@ -435,10 +435,10 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	assert.Equal(suite.T(), mbRes.Status, pkg.ResponseStatusOk)
 	assert.Equal(suite.T(), mbRes.Item.MerchantId, suite.merchant.Id)
 	assert.Equal(suite.T(), mbRes.Item.Currency, suite.merchant.GetPayoutCurrency())
-	assert.Equal(suite.T(), mbRes.Item.Debit, float64(1234.5))
-	assert.Equal(suite.T(), mbRes.Item.Credit, float64(0))
-	assert.Equal(suite.T(), mbRes.Item.RollingReserve, float64(0))
-	assert.Equal(suite.T(), mbRes.Item.Total, float64(1234.5))
+	assert.Equal(suite.T(), float64(1234.5), mbRes.Item.Debit)
+	assert.Equal(suite.T(), float64(0), mbRes.Item.Credit)
+	assert.Equal(suite.T(), float64(0), mbRes.Item.RollingReserve)
+	assert.Equal(suite.T(), float64(1234.5), mbRes.Item.Total)
 }
 
 // 2. Triggering on payout sign

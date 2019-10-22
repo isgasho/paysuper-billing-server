@@ -115,6 +115,13 @@ func (suite *KeyProductTestSuite) SetupTest() {
 	if err := suite.service.priceGroup.MultipleInsert(pgs); err != nil {
 		suite.FailNow("Insert price group test data failed", "%v", err)
 	}
+
+	if err := suite.service.project.Insert(&billing.Project{
+		Id: projectId,
+		MerchantId: merchantId,
+	}); err != nil {
+		suite.FailNow("Insert project test data failed", "%v", err)
+	}
 }
 
 func (suite *KeyProductTestSuite) TearDownTest() {
@@ -419,7 +426,7 @@ func (suite *KeyProductTestSuite) Test_CreateOrUpdateKeyProduct() {
 	err = suite.service.CreateOrUpdateKeyProduct(context.TODO(), req, &res2)
 	shouldBe.Nil(err)
 	shouldBe.NotNil(res2.Message)
-	shouldBe.EqualValues(400, res2.Status)
+	shouldBe.EqualValues(500, res2.Status)
 }
 
 func (suite *KeyProductTestSuite) Test_GetKeyProducts() {
