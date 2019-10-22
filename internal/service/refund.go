@@ -152,12 +152,7 @@ func (s *Service) GetRefund(
 	var refund *billing.Refund
 
 	order := &billing.OrderViewPublic{}
-	err := s.db.Collection(collectionOrderView).Find(bson.M{"uuid": bson.ObjectIdHex(req.OrderId)}).One(order)
-
-	if err != nil || order.MerchantId != req.MerchantId {
-		zap.S().Errorf("Unable to get original order on refund", "uuid", req.OrderId, "merchantId", req.MerchantId)
-		return nil
-	}
+	err := s.db.Collection(collectionOrderView).Find(bson.M{"uuid": req.OrderId}).One(order)
 
 	query := bson.M{"_id": bson.ObjectIdHex(req.RefundId), "original_order.uuid": req.OrderId}
 	err = s.db.Collection(collectionRefund).Find(query).One(&refund)
@@ -170,6 +165,11 @@ func (s *Service) GetRefund(
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = refundErrorNotFound
 
+		return nil
+	}
+
+	if order.MerchantId != req.MerchantId {
+		zap.S().Errorw("Unable to get original order on refund", "uuid", req.OrderId, "merchantId", req.MerchantId)
 		return nil
 	}
 

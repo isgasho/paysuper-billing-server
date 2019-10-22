@@ -1326,7 +1326,7 @@ func (suite *RefundTestSuite) TestRefund_GetRefund_Ok() {
 
 func (suite *RefundTestSuite) TestRefund_GetRefund_NotFound_Error() {
 	req3 := &grpc.GetRefundRequest{
-		OrderId:  bson.NewObjectId().Hex(),
+		OrderId:  uuid.New().String(),
 		RefundId: bson.NewObjectId().Hex(),
 	}
 	rsp3 := &grpc.CreateRefundResponse{}
