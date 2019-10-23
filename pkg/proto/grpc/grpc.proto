@@ -119,7 +119,7 @@ service BillingService {
 
     rpc GetUserProfile (GetUserProfileRequest) returns (GetUserProfileResponse) {}
     rpc CreateOrUpdateUserProfile (UserProfile) returns (GetUserProfileResponse) {}
-    rpc ConfirmUserEmail (ConfirmUserEmailRequest) returns (CheckProjectRequestSignatureResponse) {}
+    rpc ConfirmUserEmail (ConfirmUserEmailRequest) returns (ConfirmUserEmailResponse) {}
     rpc CreatePageReview (CreatePageReviewRequest) returns (CheckProjectRequestSignatureResponse) {}
 
     rpc CreateRoyaltyReport (CreateRoyaltyReportRequest) returns (CreateRoyaltyReportRequest) {}
@@ -1720,6 +1720,11 @@ message ConfirmUserEmailRequest {
     string token = 1;
 }
 
+message ConfirmUserEmailResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    UserProfile profile = 3;
+}
 
 message VatTransactionsRequest {
     //@inject_tag: json:"vat_report_id" validate:"required,hexadecimal,len=24"

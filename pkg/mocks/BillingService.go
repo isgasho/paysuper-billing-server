@@ -525,7 +525,7 @@ func (_m *BillingService) CheckSkuAndKeyProject(ctx context.Context, in *grpc.Ch
 }
 
 // ConfirmUserEmail provides a mock function with given fields: ctx, in, opts
-func (_m *BillingService) ConfirmUserEmail(ctx context.Context, in *grpc.ConfirmUserEmailRequest, opts ...client.CallOption) (*grpc.CheckProjectRequestSignatureResponse, error) {
+func (_m *BillingService) ConfirmUserEmail(ctx context.Context, in *grpc.ConfirmUserEmailRequest, opts ...client.CallOption) (*grpc.ConfirmUserEmailResponse, error) {
 	_va := make([]interface{}, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
@@ -535,12 +535,12 @@ func (_m *BillingService) ConfirmUserEmail(ctx context.Context, in *grpc.Confirm
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
 
-	var r0 *grpc.CheckProjectRequestSignatureResponse
-	if rf, ok := ret.Get(0).(func(context.Context, *grpc.ConfirmUserEmailRequest, ...client.CallOption) *grpc.CheckProjectRequestSignatureResponse); ok {
+	var r0 *grpc.ConfirmUserEmailResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.ConfirmUserEmailRequest, ...client.CallOption) *grpc.ConfirmUserEmailResponse); ok {
 		r0 = rf(ctx, in, opts...)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*grpc.CheckProjectRequestSignatureResponse)
+			r0 = ret.Get(0).(*grpc.ConfirmUserEmailResponse)
 		}
 	}
 
