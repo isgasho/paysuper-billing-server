@@ -34,8 +34,8 @@ type CreatePaylinkRequest struct {
 	ProjectId string `protobuf:"bytes,5,opt,name=project_id,json=projectId,proto3" json:"project_id" validate:"required,hexadecimal,len=24"`
 	// @inject_tag: json:"name" validate:"required"
 	Name string `protobuf:"bytes,6,opt,name=name,proto3" json:"name" validate:"required"`
-	// @inject_tag: json:"no_expiry_date" validate:"required"
-	NoExpiryDate bool `protobuf:"varint,7,opt,name=no_expiry_date,json=noExpiryDate,proto3" json:"no_expiry_date" validate:"required"`
+	// @inject_tag: json:"no_expiry_date"
+	NoExpiryDate bool `protobuf:"varint,7,opt,name=no_expiry_date,json=noExpiryDate,proto3" json:"no_expiry_date"`
 	// @inject_tag: json:"products_type" validate="required,oneof=product key"
 	ProductsType         string   `protobuf:"bytes,8,opt,name=products_type,json=productsType,proto3" json:"products_type"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`

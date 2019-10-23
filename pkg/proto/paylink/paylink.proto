@@ -19,7 +19,7 @@ message CreatePaylinkRequest {
     string project_id = 5;
     // @inject_tag: json:"name" validate:"required"
     string name = 6;
-    // @inject_tag: json:"no_expiry_date" validate:"required"
+    // @inject_tag: json:"no_expiry_date"
     bool no_expiry_date = 7;
     // @inject_tag: json:"products_type" validate="required,oneof=product key"
     string products_type = 8;
