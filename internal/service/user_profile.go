@@ -323,7 +323,7 @@ func (s *Service) getUserCentrifugoToken(profile *grpc.UserProfile) (string, err
 func (s *Service) ConfirmUserEmail(
 	ctx context.Context,
 	req *grpc.ConfirmUserEmailRequest,
-	rsp *grpc.CheckProjectRequestSignatureResponse,
+	rsp *grpc.ConfirmUserEmailResponse,
 ) error {
 	userId, err := s.getUserEmailConfirmationToken(req.Token)
 
@@ -334,9 +334,9 @@ func (s *Service) ConfirmUserEmail(
 		return nil
 	}
 
-	profile := s.getOnboardingProfileBy(bson.M{"user_id": userId})
+	rsp.Profile = s.getOnboardingProfileBy(bson.M{"user_id": userId})
 
-	if profile == nil {
+	if rsp.Profile == nil {
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = userProfileErrorUnknown
 
@@ -345,26 +345,19 @@ func (s *Service) ConfirmUserEmail(
 
 	rsp.Status = pkg.ResponseStatusOk
 
-	if profile.IsEmailVerified() {
+	if rsp.Profile.IsEmailVerified() {
 		rsp.Status = pkg.ResponseStatusOk
 
 		return nil
 	}
 
-	err = s.emailConfirmedSuccessfully(ctx, profile)
+	err = s.emailConfirmedSuccessfully(ctx, rsp.Profile)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = userProfileErrorUnknown
 
 		return nil
-	}
-
-	merchant, err := s.getMerchantBy(bson.M{"user.id": userId})
-
-	if err == nil {
-		merchant.User.RegistrationDate = profile.Email.ConfirmedAt
-		_ = s.merchant.Update(merchant)
 	}
 
 	return nil
