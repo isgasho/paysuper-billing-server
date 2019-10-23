@@ -799,6 +799,7 @@ type MgoPayoutDocument struct {
 	CreatedAt               time.Time                       `bson:"created_at"`
 	UpdatedAt               time.Time                       `bson:"updated_at"`
 	ArrivalDate             time.Time                       `bson:"arrival_date"`
+	PaidAt                  time.Time                       `bson:"paid_at"`
 }
 
 type MgoPayoutDocumentSignatureDataSignUrl struct {
@@ -947,6 +948,16 @@ func (m *PayoutDocument) GetBSON() (interface{}, error) {
 		st.PeriodTo = t
 	}
 
+	if m.PaidAt != nil {
+		t, err := ptypes.Timestamp(m.PaidAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.PaidAt = t
+	}
+
 	if m.SignatureData != nil {
 		st.SignatureData = &MgoPayoutDocumentSignatureData{
 			DetailsUrl:          m.SignatureData.DetailsUrl,
@@ -1038,6 +1049,11 @@ func (m *PayoutDocument) SetBSON(raw bson.Raw) error {
 	}
 
 	m.PeriodTo, err = ptypes.TimestampProto(decoded.PeriodTo)
+	if err != nil {
+		return err
+	}
+
+	m.PaidAt, err = ptypes.TimestampProto(decoded.PaidAt)
 	if err != nil {
 		return err
 	}

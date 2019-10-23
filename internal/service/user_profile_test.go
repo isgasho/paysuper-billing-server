@@ -822,7 +822,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreatePageReview_Ok() {
 	req1 := &grpc.CreatePageReviewRequest{
 		UserId: req.UserId,
 		Review: "review 1",
-		PageId: "primary_onboarding",
+		Url:    "primary_onboarding",
 	}
 	rsp1 := &grpc.CheckProjectRequestSignatureResponse{}
 	err = suite.service.CreatePageReview(context.TODO(), req1, rsp1)
@@ -850,7 +850,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreatePageReview_Ok() {
 	for _, v := range reviews {
 		assert.NotEmpty(suite.T(), v.UserId)
 		assert.NotEmpty(suite.T(), v.Review)
-		assert.NotEmpty(suite.T(), v.PageId)
+		assert.NotEmpty(suite.T(), v.Url)
 	}
 }
 
