@@ -233,18 +233,6 @@ func (m *Merchant) GetAddress() string {
 		m.Company.Country
 }
 
-func (pd *PayoutDocument) IsPaysuperSignatureId(signatureId string) bool {
-	return pd.SignatureData.PsSignatureId == signatureId
-}
-
-func (pd *PayoutDocument) IsMerchantSignature(signatureId string) bool {
-	return pd.SignatureData.MerchantSignatureId == signatureId
-}
-
-func (pd *PayoutDocument) IsFullySigned() bool {
-	return pd.HasMerchantSignature == true && pd.HasPspSignature == true
-}
-
 func (m *PaymentMethodParams) IsSettingComplete() bool {
 	return m.TerminalId != "" && m.Secret != "" && m.SecretCallback != ""
 }

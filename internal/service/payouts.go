@@ -10,8 +10,6 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/jinzhu/now"
-	documentSignerConst "github.com/paysuper/document-signer/pkg/constant"
-	"github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -42,14 +40,10 @@ var (
 	errorPayoutSourcesDispute          = newBillingServerErrorMsg("po000003", "you have at least one unclosed dispute in your royalty reports")
 	errorPayoutNotFound                = newBillingServerErrorMsg("po000004", "payout document not found")
 	errorPayoutAmountInvalid           = newBillingServerErrorMsg("po000005", "payout amount is invalid")
-	errorPayoutAlreadySigned           = newBillingServerErrorMsg("po000006", "payout already signed for this signer type")
-	errorPayoutCreateSignature         = newBillingServerErrorMsg("po000007", "create signature failed")
 	errorPayoutUpdateBalance           = newBillingServerErrorMsg("po000008", "balance update failed")
 	errorPayoutBalanceError            = newBillingServerErrorMsg("po000009", "getting balance failed")
 	errorPayoutNotEnoughBalance        = newBillingServerErrorMsg("po000010", "not enough balance for payout")
-	errorPayoutNotRendered             = newBillingServerErrorMsg("po000011", "payout document not rendered yet")
 	errorPayoutUpdateRoyaltyReports    = newBillingServerErrorMsg("po000012", "royalty reports update failed")
-	errorPayoutStatusRequiresFullSign  = newBillingServerErrorMsg("po000013", "requested status requires fully signed payout document")
 	errorPayoutStatusChangeIsForbidden = newBillingServerErrorMsg("po000014", "status change is forbidden")
 
 	statusForUpdateBalance = map[string]bool{
@@ -67,11 +61,6 @@ var (
 		pkg.PayoutDocumentStatusCanceled: true,
 	}
 
-	statusRequiresFullySigned = map[string]bool{
-		pkg.PayoutDocumentStatusInProgress: true,
-		pkg.PayoutDocumentStatusPaid:       true,
-	}
-
 	payoutDocumentStatusActive = []string{
 		pkg.PayoutDocumentStatusPending,
 		pkg.PayoutDocumentStatusInProgress,
@@ -83,15 +72,10 @@ type PayoutDocumentServiceInterface interface {
 	Insert(document *billing.PayoutDocument, ip, source string) error
 	Update(document *billing.PayoutDocument, ip, source string) error
 	GetById(id string) (*billing.PayoutDocument, error)
-	GetAllSourcesIdHex(merchantId, currency string) ([]string, error)
 	CountByQuery(query bson.M) (int, error)
 	FindByQuery(query bson.M, sorts []string, limit, offset int) ([]*billing.PayoutDocument, error)
 	GetBalanceAmount(merchantId, currency string) (float64, error)
 	GetLast(merchantId, currency string) (*billing.PayoutDocument, error)
-}
-
-type sources struct {
-	Items []string `bson:"sources"`
 }
 
 func newPayoutService(svc *Service) PayoutDocumentServiceInterface {
@@ -111,15 +95,13 @@ func (s *Service) CreatePayoutDocument(
 	}
 
 	pd := &billing.PayoutDocument{
-		Id:                   bson.NewObjectId().Hex(),
-		Status:               pkg.PayoutDocumentStatusPending,
-		SourceId:             []string{},
-		Description:          req.Description,
-		CreatedAt:            ptypes.TimestampNow(),
-		UpdatedAt:            ptypes.TimestampNow(),
-		ArrivalDate:          arrivalDate,
-		HasMerchantSignature: false,
-		HasPspSignature:      false,
+		Id:          bson.NewObjectId().Hex(),
+		Status:      pkg.PayoutDocumentStatusPending,
+		SourceId:    []string{},
+		Description: req.Description,
+		CreatedAt:   ptypes.TimestampNow(),
+		UpdatedAt:   ptypes.TimestampNow(),
+		ArrivalDate: arrivalDate,
 	}
 
 	merchant, err := s.merchant.GetById(req.MerchantId)
@@ -241,6 +223,14 @@ func (s *Service) CreatePayoutDocument(
 	return nil
 }
 
+func (s *Service) GetPayoutDocumentRoyaltyReports(context.Context, *grpc.GetPayoutDocumentsRequest, *grpc.ListRoyaltyReportsResponse) error {
+	panic("implement me")
+}
+
+func (s *Service) AutoCreatePayoutDocuments(context.Context, *grpc.EmptyRequest, *grpc.EmptyResponse) error {
+	panic("implement me")
+}
+
 func (s *Service) renderPayoutDocument(
 	ctx context.Context,
 	pd *billing.PayoutDocument,
@@ -274,61 +264,6 @@ func (s *Service) renderPayoutDocument(
 	return nil
 }
 
-func (s *Service) UpdatePayoutDocumentSignatures(
-	ctx context.Context,
-	req *grpc.UpdatePayoutDocumentSignaturesRequest,
-	res *grpc.PayoutDocumentResponse,
-) error {
-	pd, err := s.payoutDocument.GetById(req.PayoutDocumentId)
-	if err != nil {
-		if err == mgo.ErrNotFound {
-			res.Status = pkg.ResponseStatusNotFound
-			res.Message = errorPayoutNotFound
-			return nil
-		}
-		return err
-	}
-
-	pd.HasMerchantSignature = req.HasMerchantSignature
-	pd.HasPspSignature = req.HasPspSignature
-
-	if req.SignedDocumentFileUrl != "" {
-		pd.SignedDocumentFileUrl = req.SignedDocumentFileUrl
-	}
-
-	err = s.payoutDocument.Update(pd, "", payoutChangeSourceHellosign)
-	if err != nil {
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			res.Status = pkg.ResponseStatusSystemError
-			res.Message = e
-			return nil
-		}
-		return err
-	}
-
-	if pd.IsFullySigned() {
-		_, err = s.updateMerchantBalance(pd.MerchantId)
-		if err != nil {
-			res.Status = pkg.ResponseStatusSystemError
-			res.Message = errorPayoutUpdateBalance
-
-			return nil
-		}
-		err = s.royaltyReport.SetPayoutDocumentId(pd.SourceId, pd.Id, "", pkg.RoyaltyReportChangeSourceHellosign)
-		if err != nil {
-			res.Status = pkg.ResponseStatusSystemError
-			res.Message = errorPayoutUpdateRoyaltyReports
-
-			return nil
-		}
-	}
-
-	res.Status = pkg.ResponseStatusOk
-	res.Item = pd
-
-	return nil
-}
-
 func (s *Service) UpdatePayoutDocument(
 	ctx context.Context,
 	req *grpc.UpdatePayoutDocumentRequest,
@@ -347,20 +282,12 @@ func (s *Service) UpdatePayoutDocument(
 	isChanged := false
 	needBalanceUpdate := false
 
-	_, isReqStatusRequiresFullySigned := statusRequiresFullySigned[req.Status]
-	if isReqStatusRequiresFullySigned && pd.Status != req.Status && !pd.IsFullySigned() {
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorPayoutStatusRequiresFullSign
-
-		return nil
-	}
-
 	_, isReqStatusForBecomePaid := statusForBecomePaid[req.Status]
-	becomePaid := pd.IsFullySigned() && isReqStatusForBecomePaid && pd.Status != req.Status
+	becomePaid := isReqStatusForBecomePaid && pd.Status != req.Status
 
 	_, isReqStatusForBecomeFailed := statusForBecomeFailed[req.Status]
 	_, isPayoutStatusForBecomeFailed := statusForBecomeFailed[pd.Status]
-	becomeFailed := pd.IsFullySigned() && isReqStatusForBecomeFailed && !isPayoutStatusForBecomeFailed
+	becomeFailed := isReqStatusForBecomeFailed && !isPayoutStatusForBecomeFailed
 
 	if req.Status != "" && pd.Status != req.Status {
 		if pd.Status == pkg.PayoutDocumentStatusPaid || pd.Status == pkg.PayoutDocumentStatusFailed {
@@ -471,10 +398,6 @@ func (s *Service) GetPayoutDocuments(
 		if req.MerchantId != "" {
 			query["merchant_id"] = bson.ObjectIdHex(req.MerchantId)
 		}
-		if req.Signed == true {
-			query["has_merchant_signature"] = true
-			query["has_psp_signature"] = true
-		}
 	}
 
 	count, err := s.payoutDocument.CountByQuery(query)
@@ -504,67 +427,6 @@ func (s *Service) GetPayoutDocuments(
 		Count: int32(count),
 		Items: pds,
 	}
-	return nil
-}
-
-func (s *Service) GetPayoutDocumentSignUrl(
-	ctx context.Context,
-	req *grpc.GetPayoutDocumentSignUrlRequest,
-	res *grpc.GetPayoutDocumentSignUrlResponse,
-) error {
-
-	res.Status = pkg.ResponseStatusOk
-
-	pd, err := s.payoutDocument.GetById(req.PayoutDocumentId)
-	if err != nil {
-		if err == mgo.ErrNotFound {
-			res.Status = pkg.ResponseStatusNotFound
-			res.Message = errorPayoutNotFound
-			return nil
-		}
-		return err
-	}
-
-	if pd.SignatureData == nil {
-		pd.SignatureData, err = s.getPayoutSignature(ctx, pd)
-		if err != nil {
-			zap.L().Error(
-				"Getting signature data failed",
-				zap.Error(err),
-			)
-			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-				res.Status = pkg.ResponseStatusSystemError
-				res.Message = e
-				return nil
-			}
-			return err
-		}
-	}
-
-	if req.SignerType == pkg.SignerTypeMerchant && pd.HasMerchantSignature {
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorPayoutAlreadySigned
-
-		return nil
-	}
-
-	if req.SignerType != pkg.SignerTypeMerchant && pd.HasPspSignature {
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorPayoutAlreadySigned
-
-		return nil
-	}
-
-	res.Item, err = s.changePayoutDocumentSignUrl(ctx, req.SignerType, pd, req.Ip)
-	if err != nil {
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			res.Status = pkg.ResponseStatusSystemError
-			res.Message = e
-			return nil
-		}
-		return err
-	}
-
 	return nil
 }
 
@@ -600,36 +462,11 @@ func (s *Service) PayoutDocumentPdfUploaded(
 		return err
 	}
 
-	pd.SignatureData, err = s.getPayoutSignature(ctx, pd)
-	if err != nil {
-		zap.L().Error(
-			"Getting signature data failed",
-			zap.Error(err),
-		)
-		return err
-	}
-
-	// updating once again, to save signature data
-	err = s.payoutDocument.Update(pd, "", payoutChangeSourceReporter)
-	if err != nil {
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			res.Status = pkg.ResponseStatusSystemError
-			res.Message = e
-			return nil
-		}
-		return err
-	}
-
 	return nil
 }
 
 func (s *Service) getPayoutDocumentSources(merchant *billing.Merchant) ([]*billing.RoyaltyReport, error) {
-	excludeIdsString, err := s.payoutDocument.GetAllSourcesIdHex(merchant.Id, merchant.GetPayoutCurrency())
-	if err != nil {
-		return nil, err
-	}
-
-	result, err := s.royaltyReport.GetNonPayoutReports(merchant.Id, merchant.GetPayoutCurrency(), excludeIdsString)
+	result, err := s.royaltyReport.GetNonPayoutReports(merchant.Id, merchant.GetPayoutCurrency())
 
 	if err != nil && err != mgo.ErrNotFound {
 		return nil, err
@@ -649,173 +486,6 @@ func (s *Service) getPayoutDocumentSources(merchant *billing.Merchant) ([]*billi
 	}
 
 	return result, nil
-}
-
-func (s *Service) getPayoutSignature(
-	ctx context.Context,
-	pd *billing.PayoutDocument,
-) (*billing.PayoutDocumentSignatureData, error) {
-
-	merchant, err := s.merchant.GetById(pd.MerchantId)
-	if err != nil {
-		return nil, err
-	}
-
-	if pd.RenderedDocumentFileUrl == "" {
-		err = s.renderPayoutDocument(ctx, pd, merchant)
-		if err != nil {
-			return nil, err
-		}
-		return nil, errorPayoutNotRendered
-	}
-
-	req := &proto.CreateSignatureRequest{
-		RequestType: documentSignerConst.RequestTypeCreateEmbedded,
-		ClientId:    s.cfg.HelloSignPayoutsClientId,
-		Title:       s.cfg.HelloSignPayoutsTitle,
-		Subject:     s.cfg.HelloSignPayoutsSubject,
-		Message:     s.cfg.HelloSignPayoutsMessage,
-		Signers: []*proto.CreateSignatureRequestSigner{
-			{
-				Email:    merchant.GetAuthorizedEmail(),
-				Name:     merchant.GetAuthorizedName(),
-				RoleName: documentSignerConst.SignerRoleNameMerchant,
-			},
-			{
-				Email:    s.cfg.PaysuperDocumentSignerEmail,
-				Name:     s.cfg.PaysuperDocumentSignerName,
-				RoleName: documentSignerConst.SignerRoleNamePaysuper,
-			},
-		},
-		Metadata: map[string]string{
-			documentSignerConst.MetadataFieldPayoutDocumentId: pd.Id,
-		},
-		FileUrl: []*proto.CreateSignatureRequestFileUrl{
-			{
-				Name:    pd.RenderedDocumentFileUrl,
-				Storage: documentSignerConst.StorageTypeReport,
-			},
-		},
-	}
-
-	rsp, err := s.documentSigner.CreateSignature(ctx, req)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorGrpcServiceCallFailed,
-			zap.Error(err),
-			zap.String(errorFieldService, "DocumentSignerService"),
-			zap.String(errorFieldMethod, "CreateSignature"),
-			zap.Any(errorFieldRequest, req),
-		)
-
-		return nil, errorPayoutCreateSignature
-	}
-
-	if rsp.Status != pkg.ResponseStatusOk {
-		err = &grpc.ResponseErrorMessage{
-			Code:    rsp.Message.Code,
-			Message: rsp.Message.Message,
-			Details: rsp.Message.Details,
-		}
-
-		return nil, err
-	}
-
-	data := &billing.PayoutDocumentSignatureData{
-		DetailsUrl:          rsp.Item.DetailsUrl,
-		FilesUrl:            rsp.Item.FilesUrl,
-		SignatureRequestId:  rsp.Item.SignatureRequestId,
-		MerchantSignatureId: rsp.Item.MerchantSignatureId,
-		PsSignatureId:       rsp.Item.PsSignatureId,
-	}
-
-	return data, nil
-}
-
-func (s *Service) changePayoutDocumentSignUrl(
-	ctx context.Context,
-	signerType int32,
-	pd *billing.PayoutDocument,
-	ip string,
-) (*billing.PayoutDocumentSignatureDataSignUrl, error) {
-	var (
-		signUrl     *billing.PayoutDocumentSignatureDataSignUrl
-		signatureId string
-	)
-
-	if signerType == pkg.SignerTypeMerchant {
-		signUrl = pd.SignatureData.MerchantSignUrl
-		signatureId = pd.SignatureData.MerchantSignatureId
-	} else {
-		signUrl = pd.SignatureData.PsSignUrl
-		signatureId = pd.SignatureData.PsSignatureId
-	}
-
-	if signUrl != nil {
-		t, err := ptypes.Timestamp(signUrl.ExpiresAt)
-
-		if err != nil {
-			zap.L().Error(
-				`Merchant sign url contain broken value in "expires_at"" field`,
-				zap.Error(err),
-				zap.Any("data", pd),
-			)
-
-			return nil, err
-		}
-
-		if t.After(time.Now()) {
-			return signUrl, nil
-		}
-	}
-
-	req := &proto.GetSignatureUrlRequest{SignatureId: signatureId}
-	rsp, err := s.documentSigner.GetSignatureUrl(ctx, req)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorGrpcServiceCallFailed,
-			zap.Error(err),
-			zap.String(errorFieldService, "DocumentSignerService"),
-			zap.String(errorFieldMethod, "GetSignatureUrl"),
-			zap.Any(errorFieldRequest, req),
-		)
-
-		return nil, err
-	}
-
-	if rsp.Status != pkg.ResponseStatusOk {
-		err = &grpc.ResponseErrorMessage{
-			Code:    rsp.Message.Code,
-			Message: rsp.Message.Message,
-			Details: rsp.Message.Details,
-		}
-
-		return nil, err
-	}
-
-	signUrl = &billing.PayoutDocumentSignatureDataSignUrl{
-		SignUrl:   rsp.Item.SignUrl,
-		ExpiresAt: rsp.Item.ExpiresAt,
-	}
-
-	var source string
-
-	if signerType == pkg.SignerTypeMerchant {
-		pd.SignatureData.MerchantSignUrl = signUrl
-		source = payoutChangeSourceMerchant
-	} else {
-		pd.SignatureData.PsSignUrl = signUrl
-		source = payoutChangeSourceAdmin
-	}
-
-	err = s.payoutDocument.Update(pd, ip, source)
-	if err != nil {
-		return nil, err
-	}
-
-	return signUrl, nil
 }
 
 func (h *PayoutDocument) Insert(pd *billing.PayoutDocument, ip, source string) (err error) {
@@ -956,56 +626,6 @@ func (h *PayoutDocument) GetById(id string) (pd *billing.PayoutDocument, err err
 	return
 }
 
-func (h *PayoutDocument) GetAllSourcesIdHex(merchantId, currency string) ([]string, error) {
-	ids := []string{}
-
-	pdSourcesQuery := []bson.M{
-		{
-			"$match": bson.M{
-				"merchant_id":            bson.ObjectIdHex(merchantId),
-				"currency":               currency,
-				"has_merchant_signature": true,
-				"has_psp_signature":      true,
-				"status":                 bson.M{"$in": payoutDocumentStatusActive},
-			},
-		},
-		{
-			"$project": bson.M{
-				"_id":       0,
-				"source_id": 1,
-			},
-		},
-		{
-			"$unwind": "$source_id",
-		},
-		{
-			"$group": bson.M{
-				"_id":     nil,
-				"sources": bson.M{"$push": "$source_id"},
-			},
-		},
-	}
-
-	res := &sources{}
-	err := h.svc.db.Collection(collectionPayoutDocuments).Pipe(pdSourcesQuery).One(res)
-
-	if err != nil && err != mgo.ErrNotFound {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String("collection", collectionPayoutDocuments),
-			zap.Any("query", pdSourcesQuery),
-		)
-		return ids, err
-	}
-
-	if res.Items == nil {
-		return ids, nil
-	}
-
-	return res.Items, nil
-}
-
 func (h *PayoutDocument) CountByQuery(query bson.M) (count int, err error) {
 	count, err = h.svc.db.Collection(collectionPayoutDocuments).Find(query).Count()
 	if err != nil {
@@ -1045,11 +665,9 @@ func (h *PayoutDocument) GetBalanceAmount(merchantId, currency string) (float64,
 	query := []bson.M{
 		{
 			"$match": bson.M{
-				"merchant_id":            bson.ObjectIdHex(merchantId),
-				"currency":               currency,
-				"has_merchant_signature": true,
-				"has_psp_signature":      true,
-				"status":                 bson.M{"$in": payoutDocumentStatusActive},
+				"merchant_id": bson.ObjectIdHex(merchantId),
+				"currency":    currency,
+				"status":      bson.M{"$in": payoutDocumentStatusActive},
 			},
 		},
 		{
@@ -1078,11 +696,9 @@ func (h *PayoutDocument) GetBalanceAmount(merchantId, currency string) (float64,
 
 func (h *PayoutDocument) GetLast(merchantId, currency string) (pd *billing.PayoutDocument, err error) {
 	query := bson.M{
-		"merchant_id":            bson.ObjectIdHex(merchantId),
-		"currency":               currency,
-		"has_merchant_signature": true,
-		"has_psp_signature":      true,
-		"status":                 bson.M{"$in": payoutDocumentStatusActive},
+		"merchant_id": bson.ObjectIdHex(merchantId),
+		"currency":    currency,
+		"status":      bson.M{"$in": payoutDocumentStatusActive},
 	}
 
 	sorts := "-created_at"

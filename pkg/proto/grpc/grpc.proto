@@ -166,9 +166,9 @@ service BillingService {
     rpc CreatePayoutDocument (CreatePayoutDocumentRequest) returns (PayoutDocumentResponse) {}
     rpc UpdatePayoutDocument (UpdatePayoutDocumentRequest) returns (PayoutDocumentResponse) {}
     rpc GetPayoutDocuments (GetPayoutDocumentsRequest) returns (GetPayoutDocumentsResponse) {}
-    rpc GetPayoutDocumentSignUrl (GetPayoutDocumentSignUrlRequest) returns (GetPayoutDocumentSignUrlResponse) {}
-    rpc UpdatePayoutDocumentSignatures (UpdatePayoutDocumentSignaturesRequest) returns (PayoutDocumentResponse) {}
+    rpc GetPayoutDocumentRoyaltyReports (GetPayoutDocumentsRequest) returns (ListRoyaltyReportsResponse) {}
     rpc PayoutDocumentPdfUploaded (PayoutDocumentPdfUploadedRequest) returns (PayoutDocumentPdfUploadedResponse) {}
+    rpc AutoCreatePayoutDocuments(EmptyRequest) returns (EmptyResponse) {}
 
     rpc GetMerchantBalance (GetMerchantBalanceRequest) returns (GetMerchantBalanceResponse) {}
 
@@ -2023,21 +2023,6 @@ message GetPayoutDocumentsResponse {
     ResponseErrorMessage message = 2;
     // @inject_tag: json:"data"
     PayoutDocumentsPaginate data = 3;
-}
-
-message GetPayoutDocumentSignUrlRequest {
-    //@inject_tag: query:"payout_document_id" validate:"required,hexadecimal,len=24"
-    string payout_document_id = 1;
-    //@inject_tag: json:"signer_type" validate:"oneof=0 1"
-    int32 signer_type = 2;
-    //@inject_tag: json:"ip"
-    string ip = 3;
-}
-
-message GetPayoutDocumentSignUrlResponse {
-    int32 status = 1;
-    ResponseErrorMessage message = 2;
-    billing.PayoutDocumentSignatureDataSignUrl item = 3;
 }
 
 message UpdatePayoutDocumentSignaturesRequest {

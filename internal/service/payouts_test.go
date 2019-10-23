@@ -8,7 +8,6 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/uuid"
-	"github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -277,47 +276,41 @@ func (suite *PayoutsTestSuite) SetupTest() {
 	}
 
 	suite.payout1 = &billing.PayoutDocument{
-		Id:                   bson.NewObjectId().Hex(),
-		MerchantId:           suite.merchant.Id,
-		SourceId:             []string{suite.report1.Id, suite.report2.Id},
-		TotalFees:            765000,
-		Balance:              765000,
-		Currency:             "RUB",
-		Status:               pkg.PayoutDocumentStatusPending,
-		Description:          "test payout document",
-		Destination:          suite.merchant.Banking,
-		CreatedAt:            ptypes.TimestampNow(),
-		UpdatedAt:            ptypes.TimestampNow(),
-		ArrivalDate:          ptypes.TimestampNow(),
-		HasMerchantSignature: false,
-		HasPspSignature:      false,
-		SignatureData:        &billing.PayoutDocumentSignatureData{},
-		Transaction:          "",
-		FailureTransaction:   "",
-		FailureMessage:       "",
-		FailureCode:          "",
+		Id:                 bson.NewObjectId().Hex(),
+		MerchantId:         suite.merchant.Id,
+		SourceId:           []string{suite.report1.Id, suite.report2.Id},
+		TotalFees:          765000,
+		Balance:            765000,
+		Currency:           "RUB",
+		Status:             pkg.PayoutDocumentStatusPending,
+		Description:        "test payout document",
+		Destination:        suite.merchant.Banking,
+		CreatedAt:          ptypes.TimestampNow(),
+		UpdatedAt:          ptypes.TimestampNow(),
+		ArrivalDate:        ptypes.TimestampNow(),
+		Transaction:        "",
+		FailureTransaction: "",
+		FailureMessage:     "",
+		FailureCode:        "",
 	}
 
 	suite.payout2 = &billing.PayoutDocument{
-		Id:                   bson.NewObjectId().Hex(),
-		MerchantId:           suite.merchant.Id,
-		SourceId:             []string{suite.report6.Id},
-		TotalFees:            alreadyPaidRoyalty,
-		Balance:              alreadyPaidRoyalty,
-		Currency:             "RUB",
-		Status:               pkg.PayoutDocumentStatusPending,
-		Description:          "test payout document",
-		Destination:          suite.merchant.Banking,
-		CreatedAt:            date,
-		UpdatedAt:            ptypes.TimestampNow(),
-		ArrivalDate:          ptypes.TimestampNow(),
-		HasMerchantSignature: true,
-		HasPspSignature:      true,
-		SignatureData:        &billing.PayoutDocumentSignatureData{},
-		Transaction:          "124123",
-		FailureTransaction:   "",
-		FailureMessage:       "",
-		FailureCode:          "",
+		Id:                 bson.NewObjectId().Hex(),
+		MerchantId:         suite.merchant.Id,
+		SourceId:           []string{suite.report6.Id},
+		TotalFees:          alreadyPaidRoyalty,
+		Balance:            alreadyPaidRoyalty,
+		Currency:           "RUB",
+		Status:             pkg.PayoutDocumentStatusPending,
+		Description:        "test payout document",
+		Destination:        suite.merchant.Banking,
+		CreatedAt:          date,
+		UpdatedAt:          ptypes.TimestampNow(),
+		ArrivalDate:        ptypes.TimestampNow(),
+		Transaction:        "124123",
+		FailureTransaction: "",
+		FailureMessage:     "",
+		FailureCode:        "",
 	}
 
 	suite.payout3 = &billing.PayoutDocument{
@@ -325,39 +318,21 @@ func (suite *PayoutsTestSuite) SetupTest() {
 		MerchantId: suite.merchant.Id,
 	}
 
-	expires, err := ptypes.TimestampProto(time.Now().Add(1 * time.Hour))
 	assert.NoError(suite.T(), err, "Generate payout url expire date failed")
 
 	suite.payout4 = &billing.PayoutDocument{
-		Id:                   bson.NewObjectId().Hex(),
-		MerchantId:           suite.merchant.Id,
-		SourceId:             []string{bson.NewObjectId().Hex(), bson.NewObjectId().Hex(), bson.NewObjectId().Hex()},
-		TotalFees:            765000,
-		Balance:              765000,
-		Currency:             "RUB",
-		Status:               pkg.PayoutDocumentStatusPending,
-		Description:          "test payout document",
-		Destination:          suite.merchant.Banking,
-		CreatedAt:            ptypes.TimestampNow(),
-		UpdatedAt:            ptypes.TimestampNow(),
-		ArrivalDate:          ptypes.TimestampNow(),
-		HasMerchantSignature: false,
-		HasPspSignature:      false,
-		SignatureData: &billing.PayoutDocumentSignatureData{
-			DetailsUrl:          "http://127.0.0.1/details",
-			FilesUrl:            "http://127.0.0.1/files",
-			SignatureRequestId:  bson.NewObjectId().Hex(),
-			MerchantSignatureId: bson.NewObjectId().Hex(),
-			PsSignatureId:       bson.NewObjectId().Hex(),
-			MerchantSignUrl: &billing.PayoutDocumentSignatureDataSignUrl{
-				SignUrl:   "http://127.0.0.1/merchant",
-				ExpiresAt: expires,
-			},
-			PsSignUrl: &billing.PayoutDocumentSignatureDataSignUrl{
-				SignUrl:   "http://127.0.0.1/ps",
-				ExpiresAt: expires,
-			},
-		},
+		Id:                 bson.NewObjectId().Hex(),
+		MerchantId:         suite.merchant.Id,
+		SourceId:           []string{bson.NewObjectId().Hex(), bson.NewObjectId().Hex(), bson.NewObjectId().Hex()},
+		TotalFees:          765000,
+		Balance:            765000,
+		Currency:           "RUB",
+		Status:             pkg.PayoutDocumentStatusPending,
+		Description:        "test payout document",
+		Destination:        suite.merchant.Banking,
+		CreatedAt:          ptypes.TimestampNow(),
+		UpdatedAt:          ptypes.TimestampNow(),
+		ArrivalDate:        ptypes.TimestampNow(),
 		Transaction:        "",
 		FailureTransaction: "",
 		FailureMessage:     "",
@@ -365,35 +340,18 @@ func (suite *PayoutsTestSuite) SetupTest() {
 	}
 
 	suite.payout5 = &billing.PayoutDocument{
-		Id:                   bson.NewObjectId().Hex(),
-		MerchantId:           suite.merchant.Id,
-		SourceId:             []string{bson.NewObjectId().Hex(), bson.NewObjectId().Hex(), bson.NewObjectId().Hex()},
-		TotalFees:            765000,
-		Balance:              765000,
-		Currency:             "RUB",
-		Status:               pkg.PayoutDocumentStatusPending,
-		Description:          "test payout document",
-		Destination:          suite.merchant.Banking,
-		CreatedAt:            ptypes.TimestampNow(),
-		UpdatedAt:            ptypes.TimestampNow(),
-		ArrivalDate:          ptypes.TimestampNow(),
-		HasMerchantSignature: false,
-		HasPspSignature:      false,
-		SignatureData: &billing.PayoutDocumentSignatureData{
-			DetailsUrl:          "http://127.0.0.1/details",
-			FilesUrl:            "http://127.0.0.1/files",
-			SignatureRequestId:  bson.NewObjectId().Hex(),
-			MerchantSignatureId: bson.NewObjectId().Hex(),
-			PsSignatureId:       bson.NewObjectId().Hex(),
-			MerchantSignUrl: &billing.PayoutDocumentSignatureDataSignUrl{
-				SignUrl:   "http://127.0.0.1/merchant",
-				ExpiresAt: date,
-			},
-			PsSignUrl: &billing.PayoutDocumentSignatureDataSignUrl{
-				SignUrl:   "http://127.0.0.1/ps",
-				ExpiresAt: date,
-			},
-		},
+		Id:                 bson.NewObjectId().Hex(),
+		MerchantId:         suite.merchant.Id,
+		SourceId:           []string{bson.NewObjectId().Hex(), bson.NewObjectId().Hex(), bson.NewObjectId().Hex()},
+		TotalFees:          765000,
+		Balance:            765000,
+		Currency:           "RUB",
+		Status:             pkg.PayoutDocumentStatusPending,
+		Description:        "test payout document",
+		Destination:        suite.merchant.Banking,
+		CreatedAt:          ptypes.TimestampNow(),
+		UpdatedAt:          ptypes.TimestampNow(),
+		ArrivalDate:        ptypes.TimestampNow(),
 		Transaction:        "",
 		FailureTransaction: "",
 		FailureMessage:     "",
@@ -414,8 +372,6 @@ func (suite *PayoutsTestSuite) SetupTest() {
 		UpdatedAt:               ptypes.TimestampNow(),
 		ArrivalDate:             ptypes.TimestampNow(),
 		RenderedDocumentFileUrl: "http://localhost.rendered.pdf",
-		HasMerchantSignature:    false,
-		HasPspSignature:         false,
 		Transaction:             "",
 		FailureTransaction:      "",
 		FailureMessage:          "",
@@ -423,25 +379,22 @@ func (suite *PayoutsTestSuite) SetupTest() {
 	}
 
 	suite.payout7 = &billing.PayoutDocument{
-		Id:                   bson.NewObjectId().Hex(),
-		MerchantId:           suite.merchant.Id,
-		SourceId:             []string{suite.report6.Id},
-		TotalFees:            alreadyPaidRoyalty,
-		Balance:              alreadyPaidRoyalty,
-		Currency:             "RUB",
-		Status:               pkg.PayoutDocumentStatusPaid,
-		Description:          "test payout document",
-		Destination:          suite.merchant.Banking,
-		CreatedAt:            date,
-		UpdatedAt:            ptypes.TimestampNow(),
-		ArrivalDate:          ptypes.TimestampNow(),
-		HasMerchantSignature: true,
-		HasPspSignature:      true,
-		SignatureData:        &billing.PayoutDocumentSignatureData{},
-		Transaction:          "124123",
-		FailureTransaction:   "",
-		FailureMessage:       "",
-		FailureCode:          "",
+		Id:                 bson.NewObjectId().Hex(),
+		MerchantId:         suite.merchant.Id,
+		SourceId:           []string{suite.report6.Id},
+		TotalFees:          alreadyPaidRoyalty,
+		Balance:            alreadyPaidRoyalty,
+		Currency:           "RUB",
+		Status:             pkg.PayoutDocumentStatusPaid,
+		Description:        "test payout document",
+		Destination:        suite.merchant.Banking,
+		CreatedAt:          date,
+		UpdatedAt:          ptypes.TimestampNow(),
+		ArrivalDate:        ptypes.TimestampNow(),
+		Transaction:        "124123",
+		FailureTransaction: "",
+		FailureMessage:     "",
+		FailureCode:        "",
 	}
 
 	suite.log, err = zap.NewProduction()
@@ -515,15 +468,6 @@ func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Ok_NoPayouts
 	reports, err := suite.service.getPayoutDocumentSources(suite.merchant)
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), reports, 2)
-}
-
-func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Ok_AlreadyHasPayouts() {
-	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report1, suite.report6})
-	suite.helperInsertPayoutDocuments([]*billing.PayoutDocument{suite.payout1, suite.payout2})
-
-	reports, err := suite.service.getPayoutDocumentSources(suite.merchant)
-	assert.NoError(suite.T(), err)
-	assert.Len(suite.T(), reports, 1)
 }
 
 func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Ok_FilteringByCurrency() {
@@ -767,7 +711,6 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_InsertErr
 
 	pds := &mocks.PayoutDocumentServiceInterface{}
 	pds.On("Insert", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New(mocks.SomeError))
-	pds.On("GetAllSourcesIdHex", mock2.Anything, mock2.Anything).Return([]string{}, nil)
 	pds.On("GetBalanceAmount", mock2.Anything, mock2.Anything).Return(float64(0), nil)
 	pds.On("GetLast", mock2.Anything, mock2.Anything).Return(nil, nil)
 	suite.service.payoutDocument = pds
@@ -793,7 +736,6 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_InsertErr
 
 	pds := &mocks.PayoutDocumentServiceInterface{}
 	pds.On("Insert", mock2.Anything, mock2.Anything, mock2.Anything).Return(newBillingServerErrorMsg("0", "test"))
-	pds.On("GetAllSourcesIdHex", mock2.Anything, mock2.Anything).Return([]string{}, nil)
 	pds.On("GetBalanceAmount", mock2.Anything, mock2.Anything).Return(float64(0), nil)
 	pds.On("GetLast", mock2.Anything, mock2.Anything).Return(nil, nil)
 	suite.service.payoutDocument = pds
@@ -837,35 +779,11 @@ func (suite *PayoutsTestSuite) TestPayouts_UpdatePayoutDocument_Ok() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
 	assert.Equal(suite.T(), res.Item.Id, suite.payout2.Id)
-	assert.True(suite.T(), res.Item.HasMerchantSignature)
-	assert.True(suite.T(), res.Item.HasPspSignature)
 	assert.Equal(suite.T(), res.Item.Status, pkg.PayoutDocumentStatusInProgress)
 	assert.Equal(suite.T(), res.Item.Transaction, "transaction123")
 	assert.Equal(suite.T(), res.Item.FailureTransaction, "failure456")
 	assert.Equal(suite.T(), res.Item.FailureMessage, "bla-bla-bla")
 	assert.Equal(suite.T(), res.Item.FailureCode, "999")
-}
-
-func (suite *PayoutsTestSuite) TestPayouts_UpdatePayoutDocument_Failed_StatusRequiresFullSign() {
-
-	suite.helperInsertPayoutDocuments([]*billing.PayoutDocument{suite.payout1})
-
-	req := &grpc.UpdatePayoutDocumentRequest{
-		PayoutDocumentId:   suite.payout1.Id,
-		Status:             pkg.PayoutDocumentStatusInProgress,
-		Transaction:        "transaction123",
-		FailureTransaction: "failure456",
-		FailureMessage:     "bla-bla-bla",
-		FailureCode:        "999",
-		Ip:                 "192.168.1.1",
-	}
-
-	res := &grpc.PayoutDocumentResponse{}
-
-	err := suite.service.UpdatePayoutDocument(context.TODO(), req, res)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusBadData)
-	assert.Equal(suite.T(), res.Message, errorPayoutStatusRequiresFullSign)
 }
 
 func (suite *PayoutsTestSuite) TestPayouts_UpdatePayoutDocument_Ok_PaidOk() {
@@ -886,8 +804,6 @@ func (suite *PayoutsTestSuite) TestPayouts_UpdatePayoutDocument_Ok_PaidOk() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
 	assert.Equal(suite.T(), res.Item.Id, suite.payout2.Id)
-	assert.True(suite.T(), res.Item.HasMerchantSignature)
-	assert.True(suite.T(), res.Item.HasPspSignature)
 	assert.Equal(suite.T(), res.Item.Status, pkg.PayoutDocumentStatusPaid)
 	assert.Equal(suite.T(), res.Item.Transaction, "transaction123")
 
@@ -932,8 +848,6 @@ func (suite *PayoutsTestSuite) TestPayouts_UpdatePayoutDocument_Ok_NotModified()
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusNotModified)
 	assert.Equal(suite.T(), res.Item.Id, suite.payout1.Id)
-	assert.False(suite.T(), res.Item.HasMerchantSignature)
-	assert.False(suite.T(), res.Item.HasPspSignature)
 	assert.Equal(suite.T(), res.Item.Status, "pending")
 	assert.Equal(suite.T(), res.Item.Transaction, "")
 	assert.Equal(suite.T(), res.Item.FailureTransaction, "")
@@ -1047,312 +961,4 @@ func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocuments_Ok_NotFound() {
 	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
 	assert.Equal(suite.T(), res.Data.Count, int32(0))
 	assert.Nil(suite.T(), res.Data.Items)
-}
-
-func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocumentSignUrl_Ok_Merchant() {
-	suite.helperInsertPayoutDocuments([]*billing.PayoutDocument{suite.payout4})
-
-	req := &grpc.GetPayoutDocumentSignUrlRequest{
-		PayoutDocumentId: suite.payout4.Id,
-		SignerType:       pkg.SignerTypeMerchant,
-		Ip:               "127.0.0.1",
-	}
-
-	res := &grpc.GetPayoutDocumentSignUrlResponse{}
-
-	err := suite.service.GetPayoutDocumentSignUrl(context.TODO(), req, res)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
-	assert.Equal(suite.T(), res.Item.SignUrl, "http://127.0.0.1/merchant")
-}
-
-func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocumentSignUrl_Ok_Merchant_UrlRefreshed() {
-	suite.helperInsertPayoutDocuments([]*billing.PayoutDocument{suite.payout5})
-
-	req := &grpc.GetPayoutDocumentSignUrlRequest{
-		PayoutDocumentId: suite.payout5.Id,
-		SignerType:       pkg.SignerTypeMerchant,
-		Ip:               "127.0.0.1",
-	}
-
-	res := &grpc.GetPayoutDocumentSignUrlResponse{}
-
-	err := suite.service.GetPayoutDocumentSignUrl(context.TODO(), req, res)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
-	assert.Equal(suite.T(), res.Item.SignUrl, "http://127.0.0.1")
-}
-
-func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocumentSignUrl_Ok_Ps() {
-	suite.helperInsertPayoutDocuments([]*billing.PayoutDocument{suite.payout4})
-
-	req := &grpc.GetPayoutDocumentSignUrlRequest{
-		PayoutDocumentId: suite.payout4.Id,
-		SignerType:       pkg.SignerTypePs,
-		Ip:               "127.0.0.1",
-	}
-
-	res := &grpc.GetPayoutDocumentSignUrlResponse{}
-
-	err := suite.service.GetPayoutDocumentSignUrl(context.TODO(), req, res)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
-	assert.Equal(suite.T(), res.Item.SignUrl, "http://127.0.0.1/ps")
-}
-
-func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocumentSignUrl_Ok_PsUrlRefreshed() {
-
-	suite.helperInsertPayoutDocuments([]*billing.PayoutDocument{suite.payout5})
-
-	req := &grpc.GetPayoutDocumentSignUrlRequest{
-		PayoutDocumentId: suite.payout5.Id,
-		SignerType:       pkg.SignerTypePs,
-		Ip:               "127.0.0.1",
-	}
-
-	res := &grpc.GetPayoutDocumentSignUrlResponse{}
-
-	err := suite.service.GetPayoutDocumentSignUrl(context.TODO(), req, res)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
-	assert.Equal(suite.T(), res.Item.SignUrl, "http://127.0.0.1")
-}
-
-func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocumentSignUrl_Ok_SignetureCreated() {
-	reporting := &reportingMocks.ReporterService{}
-	reporting.On("CreateFile", mock2.Anything, mock2.Anything).Return(nil, nil)
-	suite.service.reporterService = reporting
-
-	suite.helperInsertPayoutDocuments([]*billing.PayoutDocument{suite.payout6})
-
-	req := &grpc.GetPayoutDocumentSignUrlRequest{
-		PayoutDocumentId: suite.payout6.Id,
-		SignerType:       pkg.SignerTypeMerchant,
-		Ip:               "127.0.0.1",
-	}
-
-	res := &grpc.GetPayoutDocumentSignUrlResponse{}
-
-	err := suite.service.GetPayoutDocumentSignUrl(context.TODO(), req, res)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
-	assert.Equal(suite.T(), res.Item.SignUrl, "http://127.0.0.1")
-}
-
-func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_CreateSignatureGrpcError() {
-	suite.helperInsertPayoutDocuments([]*billing.PayoutDocument{suite.payout6})
-
-	ds := &mocks.DocumentSignerService{}
-	ds.On("CreateSignature", mock2.Anything, mock2.Anything).
-		Return(nil, errors.New(mocks.SomeError))
-	suite.service.documentSigner = ds
-
-	req := &grpc.GetPayoutDocumentSignUrlRequest{
-		PayoutDocumentId: suite.payout6.Id,
-		SignerType:       pkg.SignerTypeMerchant,
-		Ip:               "127.0.0.1",
-	}
-
-	res := &grpc.GetPayoutDocumentSignUrlResponse{}
-
-	err := suite.service.GetPayoutDocumentSignUrl(context.TODO(), req, res)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusSystemError)
-	assert.Equal(suite.T(), res.Message, errorPayoutCreateSignature)
-}
-
-func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_CreateSignatureResponseError() {
-
-	suite.helperInsertPayoutDocuments([]*billing.PayoutDocument{suite.payout6})
-
-	ds := &mocks.DocumentSignerService{}
-	ds.On("CreateSignature", mock2.Anything, mock2.Anything).
-		Return(&proto.CreateSignatureResponse{
-			Status: pkg.ResponseStatusBadData,
-			Message: &proto.ResponseErrorMessage{
-				Message: "some error message",
-			},
-		}, nil)
-	suite.service.documentSigner = ds
-
-	req := &grpc.GetPayoutDocumentSignUrlRequest{
-		PayoutDocumentId: suite.payout6.Id,
-		SignerType:       pkg.SignerTypeMerchant,
-		Ip:               "127.0.0.1",
-	}
-
-	res := &grpc.GetPayoutDocumentSignUrlResponse{}
-
-	err := suite.service.GetPayoutDocumentSignUrl(context.TODO(), req, res)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusSystemError)
-	assert.Equal(suite.T(), res.Message.Message, "some error message")
-}
-
-func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocumentSignUrl_Failed_NotFound() {
-	req := &grpc.GetPayoutDocumentSignUrlRequest{
-		PayoutDocumentId: bson.NewObjectId().Hex(),
-		SignerType:       pkg.SignerTypeMerchant,
-		Ip:               "127.0.0.1",
-	}
-
-	res := &grpc.GetPayoutDocumentSignUrlResponse{}
-
-	err := suite.service.GetPayoutDocumentSignUrl(context.TODO(), req, res)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusNotFound)
-	assert.Equal(suite.T(), res.Message, errorPayoutNotFound)
-}
-
-func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocumentSignUrl_Failed_AlreadySignedByMerchant() {
-	suite.helperInsertPayoutDocuments([]*billing.PayoutDocument{suite.payout2})
-
-	req := &grpc.GetPayoutDocumentSignUrlRequest{
-		PayoutDocumentId: suite.payout2.Id,
-		SignerType:       pkg.SignerTypeMerchant,
-		Ip:               "127.0.0.1",
-	}
-
-	res := &grpc.GetPayoutDocumentSignUrlResponse{}
-
-	err := suite.service.GetPayoutDocumentSignUrl(context.TODO(), req, res)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusBadData)
-	assert.Equal(suite.T(), res.Message, errorPayoutAlreadySigned)
-}
-
-func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocumentSignUrl_Failed_AlreadySignedByPs() {
-	suite.helperInsertPayoutDocuments([]*billing.PayoutDocument{suite.payout2})
-
-	req := &grpc.GetPayoutDocumentSignUrlRequest{
-		PayoutDocumentId: suite.payout2.Id,
-		SignerType:       pkg.SignerTypePs,
-		Ip:               "127.0.0.1",
-	}
-
-	res := &grpc.GetPayoutDocumentSignUrlResponse{}
-
-	err := suite.service.GetPayoutDocumentSignUrl(context.TODO(), req, res)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusBadData)
-	assert.Equal(suite.T(), res.Message, errorPayoutAlreadySigned)
-}
-
-func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocumentSignUrl_Failed_RefreshSignatureUrl_AsError() {
-
-	suite.helperInsertPayoutDocuments([]*billing.PayoutDocument{suite.payout5})
-
-	ds := &mocks.DocumentSignerService{}
-	ds.On("GetSignatureUrl", mock2.Anything, mock2.Anything).Return(nil, errors.New(mocks.SomeError))
-	suite.service.documentSigner = ds
-
-	req := &grpc.GetPayoutDocumentSignUrlRequest{
-		PayoutDocumentId: suite.payout5.Id,
-		SignerType:       pkg.SignerTypePs,
-		Ip:               "127.0.0.1",
-	}
-
-	res := &grpc.GetPayoutDocumentSignUrlResponse{}
-
-	err := suite.service.GetPayoutDocumentSignUrl(context.TODO(), req, res)
-	assert.Error(suite.T(), err)
-}
-
-func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocumentSignUrl_Failed_RefreshSignatureUrl_AsResponse() {
-
-	suite.helperInsertPayoutDocuments([]*billing.PayoutDocument{suite.payout5})
-
-	ds := &mocks.DocumentSignerService{}
-	ds.On("GetSignatureUrl", mock2.Anything, mock2.Anything).
-		Return(&proto.GetSignatureUrlResponse{
-			Status:  pkg.ResponseStatusSystemError,
-			Message: &proto.ResponseErrorMessage{},
-		}, nil)
-	suite.service.documentSigner = ds
-
-	req := &grpc.GetPayoutDocumentSignUrlRequest{
-		PayoutDocumentId: suite.payout5.Id,
-		SignerType:       pkg.SignerTypePs,
-		Ip:               "127.0.0.1",
-	}
-
-	res := &grpc.GetPayoutDocumentSignUrlResponse{}
-
-	err := suite.service.GetPayoutDocumentSignUrl(context.TODO(), req, res)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusSystemError)
-}
-
-func (suite *PayoutsTestSuite) TestPayouts_UpdatePayoutDocumentSignatures_Ok() {
-
-	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report1, suite.report2})
-	suite.helperInsertPayoutDocuments([]*billing.PayoutDocument{suite.payout1})
-
-	req := &grpc.UpdatePayoutDocumentSignaturesRequest{
-		PayoutDocumentId:      suite.payout1.Id,
-		HasPspSignature:       true,
-		HasMerchantSignature:  true,
-		SignedDocumentFileUrl: "http://localhost/123.pdf",
-	}
-
-	res := &grpc.PayoutDocumentResponse{}
-
-	err := suite.service.UpdatePayoutDocumentSignatures(context.TODO(), req, res)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
-	assert.Equal(suite.T(), res.Item.Id, suite.payout1.Id)
-	assert.True(suite.T(), res.Item.HasMerchantSignature)
-	assert.True(suite.T(), res.Item.HasPspSignature)
-	assert.Equal(suite.T(), res.Item.SignedDocumentFileUrl, "http://localhost/123.pdf")
-
-	rr, err := suite.service.royaltyReport.GetById(suite.report1.Id)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), rr.Status, pkg.RoyaltyReportStatusWaitForPayment)
-	assert.Equal(suite.T(), rr.PayoutDocumentId, suite.payout1.Id)
-	assert.EqualValues(suite.T(), -62135596800, rr.PayoutDate.Seconds)
-
-	rr, err = suite.service.royaltyReport.GetById(suite.report2.Id)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), rr.Status, pkg.RoyaltyReportStatusWaitForPayment)
-	assert.Equal(suite.T(), rr.PayoutDocumentId, suite.payout1.Id)
-	assert.EqualValues(suite.T(), -62135596800, rr.PayoutDate.Seconds)
-}
-
-func (suite *PayoutsTestSuite) TestPayouts_UpdatePayoutDocumentSignatures_Failed_NotFound() {
-
-	req := &grpc.UpdatePayoutDocumentSignaturesRequest{
-		PayoutDocumentId:      bson.NewObjectId().Hex(),
-		HasPspSignature:       true,
-		HasMerchantSignature:  true,
-		SignedDocumentFileUrl: "http://localhost/123.pdf",
-	}
-
-	res := &grpc.PayoutDocumentResponse{}
-
-	err := suite.service.UpdatePayoutDocumentSignatures(context.TODO(), req, res)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusNotFound)
-	assert.Equal(suite.T(), res.Message, errorPayoutNotFound)
-}
-
-func (suite *PayoutsTestSuite) TestPayouts_UpdatePayoutDocumentSignatures_Failed_UpdateError() {
-
-	suite.helperInsertPayoutDocuments([]*billing.PayoutDocument{suite.payout1})
-
-	pds := &mocks.PayoutDocumentServiceInterface{}
-	pds.On("Update", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New(mocks.SomeError))
-	pds.On("GetById", mock2.Anything).Return(suite.payout1, nil)
-	suite.service.payoutDocument = pds
-
-	req := &grpc.UpdatePayoutDocumentSignaturesRequest{
-		PayoutDocumentId:      suite.payout1.Id,
-		HasPspSignature:       true,
-		HasMerchantSignature:  true,
-		SignedDocumentFileUrl: "http://localhost/123.pdf",
-	}
-
-	res := &grpc.PayoutDocumentResponse{}
-
-	err := suite.service.UpdatePayoutDocumentSignatures(context.TODO(), req, res)
-	assert.Error(suite.T(), err)
 }

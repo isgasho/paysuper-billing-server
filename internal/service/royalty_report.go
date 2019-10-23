@@ -73,7 +73,7 @@ type RoyaltyReportServiceInterface interface {
 	Insert(document *billing.RoyaltyReport, ip, source string) error
 	Update(document *billing.RoyaltyReport, ip, source string) error
 	GetById(id string) (*billing.RoyaltyReport, error)
-	GetNonPayoutReports(merchantId, currency string, excludeIdsString []string) ([]*billing.RoyaltyReport, error)
+	GetNonPayoutReports(merchantId, currency string) ([]*billing.RoyaltyReport, error)
 	GetBalanceAmount(merchantId, currency string) (float64, error)
 	CheckReportExists(merchantId, currency string, from, to time.Time) (exists bool, err error)
 	SetPayoutDocumentId(reportIds []string, payoutDocumentId, ip, source string) (err error)
@@ -730,21 +730,14 @@ func (s *Service) sendRoyaltyReportNotification(ctx context.Context, report *bil
 	return
 }
 
-func (r *RoyaltyReport) GetNonPayoutReports(merchantId, currency string, excludeIdsString []string) (result []*billing.RoyaltyReport, err error) {
+func (r *RoyaltyReport) GetNonPayoutReports(merchantId, currency string) (result []*billing.RoyaltyReport, err error) {
 	query := bson.M{
-		"merchant_id": bson.ObjectIdHex(merchantId),
-		"currency":    currency,
-		"status":      bson.M{"$in": royaltyReportsStatusActive},
+		"merchant_id":        bson.ObjectIdHex(merchantId),
+		"currency":           currency,
+		"status":             bson.M{"$in": royaltyReportsStatusActive},
+		"payout_document_id": "",
 	}
 
-	if len(excludeIdsString) > 0 {
-		excludeIds := []bson.ObjectId{}
-		for _, v := range excludeIdsString {
-			excludeIds = append(excludeIds, bson.ObjectIdHex(v))
-		}
-
-		query["_id"] = bson.M{"$nin": excludeIds}
-	}
 	sorts := "period_from"
 	err = r.svc.db.Collection(collectionRoyaltyReport).Find(query).Sort(sorts).All(&result)
 

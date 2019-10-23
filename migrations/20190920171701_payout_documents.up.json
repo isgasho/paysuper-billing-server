@@ -10,18 +10,6 @@
     "indexes": [
       {
         "key": {
-          "has_merchant_signature": 1,
-          "has_psp_signature": 1
-        },
-        "name": "signed"
-      }
-    ]
-  },
-  {
-    "createIndexes": "payout_documents",
-    "indexes": [
-      {
-        "key": {
           "status": 1
         },
         "name": "status"
