@@ -2563,6 +2563,7 @@ func (m *Notification) GetBSON() (interface{}, error) {
 		st.CreatedAt = t
 	} else {
 		st.CreatedAt = time.Now()
+		m.CreatedAt, _ = ptypes.TimestampProto(st.CreatedAt)
 	}
 
 	if m.UpdatedAt != nil {
@@ -2575,6 +2576,7 @@ func (m *Notification) GetBSON() (interface{}, error) {
 		st.UpdatedAt = t
 	} else {
 		st.UpdatedAt = time.Now()
+		m.UpdatedAt, _ = ptypes.TimestampProto(st.UpdatedAt)
 	}
 
 	return st, nil
