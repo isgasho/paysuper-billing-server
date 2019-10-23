@@ -9,7 +9,6 @@ import (
 	"github.com/ProtocolONE/geoip-service/pkg/proto"
 	metrics "github.com/ProtocolONE/go-micro-plugins/wrapper/monitoring/prometheus"
 	"github.com/go-redis/redis"
-	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/golang/protobuf/ptypes"
@@ -78,21 +77,20 @@ func (app *Application) Init() {
 
 	app.cfg = cfg
 
-	app.logger.Info("db migrations started")
-
-	migrations, err := migrate.New(pkg.MigrationSource, app.cfg.MongoDsn)
-
-	if err != nil {
-		app.logger.Fatal("Migrations initialization failed", zap.Error(err))
-	}
-
-	err = migrations.Up()
-
-	if err != nil && err != migrate.ErrNoChange && err != migrate.ErrNilVersion {
-		app.logger.Fatal("Migrations processing failed", zap.Error(err))
-	}
-
-	app.logger.Info("db migrations applied")
+	//app.logger.Info("db migrations started")
+	//migrations, err := migrate.New(pkg.MigrationSource, app.cfg.MongoDsn)
+	//
+	//if err != nil {
+	//	app.logger.Fatal("Migrations initialization failed", zap.Error(err))
+	//}
+	//
+	//err = migrations.Up()
+	//
+	//if err != nil && err != migrate.ErrNoChange && err != migrate.ErrNilVersion {
+	//	app.logger.Fatal("Migrations processing failed", zap.Error(err))
+	//}
+	//
+	//app.logger.Info("db migrations applied")
 
 	db, err := mongodb.NewDatabase()
 	if err != nil {
