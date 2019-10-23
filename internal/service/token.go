@@ -78,12 +78,52 @@ func (s *Service) CreateToken(
 		return nil
 	}
 
-	project, err := s.project.GetById(req.Settings.ProjectId)
+	processor := &OrderCreateRequestProcessor{
+		Service: s,
+		request: &billing.OrderCreateRequest{
+			ProjectId:  req.Settings.ProjectId,
+			Amount:     req.Settings.Amount,
+			Currency:   req.Settings.Currency,
+			Products:   req.Settings.ProductsIds,
+			PlatformId: req.Settings.PlatformId,
+		},
+		checked: &orderCreateRequestProcessorChecked{},
+	}
+
+	err := processor.processProject()
+
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = projectErrorNotFound
-
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
 		return nil
+	}
+
+	err = processor.processMerchant()
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
+		return nil
+	}
+
+	if req.Settings.Type == billing.OrderType_simple {
+		if req.Settings.Amount <= 0 || req.Settings.Currency == "" {
+
+		}
+	} else {
+		if len(req.Settings.ProductsIds) <= 0 {
+
+		}
+	}
+
+	switch req.Settings.Type {
+	case billing.OrderType_simple:
+
+		break
+	case billing.OrderType_product:
+		break
+	case billing.OrderType_key:
+		break
 	}
 
 	if project.IsProductsCheckout == true {
