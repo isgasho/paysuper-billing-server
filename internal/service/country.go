@@ -160,16 +160,7 @@ type CountryServiceInterface interface {
 	GetAll() (*billing.CountriesList, error)
 	IsRegionExists(string) (bool, error)
 	GetCountriesWithVatEnabled() (*billing.CountriesList, error)
-	GetCountriesAndRegionsByTariffRegion(tariffRegion string) ([]*CountryAndRegionItem, error)
-}
-
-type CountryAndRegionItem struct {
-	Country string `bson:"iso_code_a2"`
-	Region  string `bson:"region"`
-}
-
-type CountryAndRegionItems struct {
-	Items []*CountryAndRegionItem `json:"items"`
+	GetCountriesAndRegionsByTariffRegion(tariffRegion string) ([]*billing.CountryAndRegionItem, error)
 }
 
 func newCountryService(svc *Service) *Country {
@@ -369,8 +360,8 @@ func (h *Country) IsRegionExists(region string) (bool, error) {
 	return ok, nil
 }
 
-func (h *Country) GetCountriesAndRegionsByTariffRegion(tariffRegion string) ([]*CountryAndRegionItem, error) {
-	items := new(CountryAndRegionItems)
+func (h *Country) GetCountriesAndRegionsByTariffRegion(tariffRegion string) ([]*billing.CountryAndRegionItem, error) {
+	items := new(billing.CountryAndRegionItems)
 	key := fmt.Sprintf(cacheTariffRegionsCountriesAndRegions, tariffRegion)
 	err := h.svc.cacher.Get(key, items)
 

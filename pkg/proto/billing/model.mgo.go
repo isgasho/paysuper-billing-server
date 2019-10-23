@@ -848,12 +848,12 @@ type MgoUserRoleProfile struct {
 }
 
 type MgoUserRole struct {
-	Id          bson.ObjectId      `bson:"_id"`
-	User        *UserRoleProfile   `bson:"user"`
-	MerchantId  *bson.ObjectId      `bson:"merchant_id"`
-	Role        string             `bson:"role"`
-	CreatedAt   time.Time          `bson:"created_at"`
-	UpdatedAt   time.Time          `bson:"updated_at"`
+	Id         bson.ObjectId    `bson:"_id"`
+	User       *UserRoleProfile `bson:"user"`
+	MerchantId *bson.ObjectId   `bson:"merchant_id"`
+	Role       string           `bson:"role"`
+	CreatedAt  time.Time        `bson:"created_at"`
+	UpdatedAt  time.Time        `bson:"updated_at"`
 }
 
 func (m *PayoutDocument) GetBSON() (interface{}, error) {
@@ -4341,7 +4341,6 @@ func (k *UserRole) SetBSON(raw bson.Raw) error {
 	k.User = decoded.User
 	k.Role = decoded.Role
 
-
 	if decoded.MerchantId != nil {
 		k.MerchantId = decoded.MerchantId.Hex()
 	}
@@ -4355,4 +4354,13 @@ func (k *UserRole) SetBSON(raw bson.Raw) error {
 	}
 
 	return nil
+}
+
+type CountryAndRegionItem struct {
+	Country string `bson:"iso_code_a2"`
+	Region  string `bson:"region"`
+}
+
+type CountryAndRegionItems struct {
+	Items []*CountryAndRegionItem `json:"items"`
 }
