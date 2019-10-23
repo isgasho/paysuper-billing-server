@@ -127,6 +127,7 @@ var (
 	orderErrorMerchantForOrderNotFound                        = newBillingServerErrorMsg("fm000060", "merchant for order not found")
 	orderErrorPaymentMethodsNotFound                          = newBillingServerErrorMsg("fm000061", "payment methods for payment with specified currency not found")
 	orderErrorNoPlatforms                                     = newBillingServerErrorMsg("fm000062", "no available platforms")
+	orderCountryPaymentRestrictedEmailRequire                 = newBillingServerErrorMsg("fm000063", "payments from your country are not allowed")
 )
 
 type orderCreateRequestProcessorChecked struct {
@@ -616,7 +617,8 @@ func (s *Service) PaymentFormJsonDataProcess(
 	}
 	if restricted {
 		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = orderCountryPaymentRestrictedError
+		rsp.Message = orderCountryPaymentRestrictedEmailRequire
+		rsp.Item.Id = order.Uuid
 		return nil
 	}
 

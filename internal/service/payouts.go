@@ -370,6 +370,10 @@ func (s *Service) UpdatePayoutDocument(
 			return nil
 		}
 
+		if req.Status == pkg.PayoutDocumentStatusPaid {
+			pd.PaidAt = ptypes.TimestampNow()
+		}
+
 		isChanged = true
 		pd.Status = req.Status
 		if _, ok := statusForUpdateBalance[pd.Status]; ok {
