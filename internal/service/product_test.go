@@ -35,6 +35,7 @@ type ProductTestSuite struct {
 	project    *billing.Project
 	pmBankCard *billing.PaymentMethod
 	product    *grpc.Product
+	merchant   *billing.Merchant
 }
 
 func Test_Product(t *testing.T) {
@@ -96,6 +97,11 @@ func (suite *ProductTestSuite) SetupTest() {
 	pgs := []*billing.PriceGroup{pgRub, pgUsd}
 	if err := suite.service.priceGroup.MultipleInsert(pgs); err != nil {
 		suite.FailNow("Insert price group test data failed", "%v", err)
+	}
+
+	suite.merchant = &billing.Merchant{Id: bson.NewObjectId().Hex(), Banking: &billing.MerchantBanking{Currency: "RUB"}}
+	if err := suite.service.merchant.Insert(suite.merchant); err != nil {
+		suite.FailNow("Insert merchant test data failed", "%v", err)
 	}
 
 	suite.product = &grpc.Product{
@@ -511,7 +517,7 @@ func (suite *ProductTestSuite) TestProduct_UpdateProductPrices_Error_NotFound() 
 
 func (suite *ProductTestSuite) TestProduct_UpdateProductPrices_Error_DefaultCurrency() {
 	ps := &mocks.ProductServiceInterface{}
-	ps.On("GetById", mock2.Anything).Return(&grpc.Product{DefaultCurrency: "USD"}, nil)
+	ps.On("GetById", mock2.Anything).Return(&grpc.Product{DefaultCurrency: "USD", MerchantId: suite.merchant.Id}, nil)
 	ps.On("Upsert", mock2.Anything).Return(nil)
 	suite.service.productService = ps
 
@@ -525,7 +531,7 @@ func (suite *ProductTestSuite) TestProduct_UpdateProductPrices_Error_DefaultCurr
 
 func (suite *ProductTestSuite) TestProduct_UpdateProductPrices_Error_Upsert() {
 	ps := &mocks.ProductServiceInterface{}
-	ps.On("GetById", mock2.Anything).Return(&grpc.Product{DefaultCurrency: "RUB"}, nil)
+	ps.On("GetById", mock2.Anything).Return(&grpc.Product{DefaultCurrency: "RUB", MerchantId: suite.merchant.Id}, nil)
 	ps.On("Upsert", mock2.Anything).Return(errors.New(""))
 	suite.service.productService = ps
 
@@ -539,7 +545,7 @@ func (suite *ProductTestSuite) TestProduct_UpdateProductPrices_Error_Upsert() {
 
 func (suite *ProductTestSuite) TestProduct_UpdateProductPrices_Ok() {
 	ps := &mocks.ProductServiceInterface{}
-	ps.On("GetById", mock2.Anything).Return(&grpc.Product{DefaultCurrency: "RUB"}, nil)
+	ps.On("GetById", mock2.Anything).Return(&grpc.Product{DefaultCurrency: "RUB", MerchantId: suite.merchant.Id}, nil)
 	ps.On("Upsert", mock2.Anything).Return(nil)
 	suite.service.productService = ps
 
