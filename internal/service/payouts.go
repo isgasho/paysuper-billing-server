@@ -24,12 +24,11 @@ const (
 	collectionPayoutDocuments       = "payout_documents"
 	collectionPayoutDocumentChanges = "payout_documents_changes"
 
-	cacheKeyPayoutDocument = "payout_document:id:%s"
+	cacheKeyPayoutDocument         = "payout_document:id:%s"
+	cacheKeyPayoutDocumentMerchant = "payout_document:id:%s:merchant:id:%s"
 
-	payoutChangeSourceMerchant  = "merchant"
-	payoutChangeSourceAdmin     = "admin"
-	payoutChangeSourceReporter  = "reporter"
-	payoutChangeSourceHellosign = "hellosign"
+	payoutChangeSourceMerchant = "merchant"
+	payoutChangeSourceAdmin    = "admin"
 
 	payoutArrivalInDays = 5
 )
@@ -45,11 +44,12 @@ var (
 	errorPayoutNotEnoughBalance        = newBillingServerErrorMsg("po000010", "not enough balance for payout")
 	errorPayoutUpdateRoyaltyReports    = newBillingServerErrorMsg("po000012", "royalty reports update failed")
 	errorPayoutStatusChangeIsForbidden = newBillingServerErrorMsg("po000014", "status change is forbidden")
+	errorPayoutManualPayoutsDisabled   = newBillingServerErrorMsg("po000015", "manual payouts disabled")
+	errorPayoutAutoPayoutsDisabled     = newBillingServerErrorMsg("po000016", "auto payouts disabled")
 
 	statusForUpdateBalance = map[string]bool{
-		pkg.PayoutDocumentStatusPending:    true,
-		pkg.PayoutDocumentStatusInProgress: true,
-		pkg.PayoutDocumentStatusPaid:       true,
+		pkg.PayoutDocumentStatusPending: true,
+		pkg.PayoutDocumentStatusPaid:    true,
 	}
 
 	statusForBecomePaid = map[string]bool{
@@ -63,7 +63,6 @@ var (
 
 	payoutDocumentStatusActive = []string{
 		pkg.PayoutDocumentStatusPending,
-		pkg.PayoutDocumentStatusInProgress,
 		pkg.PayoutDocumentStatusPaid,
 	}
 )
@@ -72,6 +71,7 @@ type PayoutDocumentServiceInterface interface {
 	Insert(document *billing.PayoutDocument, ip, source string) error
 	Update(document *billing.PayoutDocument, ip, source string) error
 	GetById(id string) (*billing.PayoutDocument, error)
+	GetByIdAndMerchant(id, merchantId string) (*billing.PayoutDocument, error)
 	CountByQuery(query bson.M) (int, error)
 	FindByQuery(query bson.M, sorts []string, limit, offset int) ([]*billing.PayoutDocument, error)
 	GetBalanceAmount(merchantId, currency string) (float64, error)
@@ -107,6 +107,15 @@ func (s *Service) CreatePayoutDocument(
 	merchant, err := s.merchant.GetById(req.MerchantId)
 	if err != nil {
 		return err
+	}
+
+	if merchant.ManualPayoutsEnabled == req.IsAutoGeneration == true {
+		res.Status = pkg.ResponseStatusBadData
+		if req.IsAutoGeneration {
+			res.Message = errorPayoutAutoPayoutsDisabled
+		} else {
+			res.Message = errorPayoutManualPayoutsDisabled
+		}
 	}
 
 	pd.MerchantId = merchant.Id
@@ -213,6 +222,16 @@ func (s *Service) CreatePayoutDocument(
 		return err
 	}
 
+	err = s.royaltyReport.SetPayoutDocumentId(pd.SourceId, pd.Id, req.Ip, req.Initiator)
+	if err != nil {
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			res.Status = pkg.ResponseStatusSystemError
+			res.Message = e
+			return nil
+		}
+		return err
+	}
+
 	err = s.renderPayoutDocument(ctx, pd, merchant)
 	if err != nil {
 		return err
@@ -223,8 +242,57 @@ func (s *Service) CreatePayoutDocument(
 	return nil
 }
 
-func (s *Service) GetPayoutDocumentRoyaltyReports(context.Context, *grpc.GetPayoutDocumentsRequest, *grpc.ListRoyaltyReportsResponse) error {
-	panic("implement me")
+func (s *Service) GetPayoutDocument(
+	ctx context.Context,
+	req *grpc.GetPayoutDocumentRequest,
+	res *grpc.PayoutDocumentResponse,
+) (err error) {
+	res.Item, err = s.payoutDocument.GetByIdAndMerchant(req.PayoutDocumentId, req.MerchantId)
+	if err != nil {
+		if err == mgo.ErrNotFound {
+			res.Status = pkg.ResponseStatusNotFound
+			res.Message = errorPayoutNotFound
+			return nil
+		}
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			res.Status = pkg.ResponseStatusBadData
+			res.Message = e
+			return nil
+		}
+		return err
+	}
+
+	res.Status = pkg.ResponseStatusOk
+
+	return nil
+}
+
+func (s *Service) GetPayoutDocumentRoyaltyReports(
+	ctx context.Context,
+	req *grpc.GetPayoutDocumentRequest,
+	res *grpc.ListRoyaltyReportsResponse,
+) error {
+
+	pd, err := s.payoutDocument.GetByIdAndMerchant(req.PayoutDocumentId, req.MerchantId)
+	if err != nil {
+		if err == mgo.ErrNotFound {
+			res.Status = pkg.ResponseStatusNotFound
+			res.Message = errorPayoutNotFound
+			return nil
+		}
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			res.Status = pkg.ResponseStatusBadData
+			res.Message = e
+			return nil
+		}
+		return err
+	}
+
+	res.Data.Items, err = s.royaltyReport.GetByPayoutId(pd.Id)
+	res.Data.Count = int32(len(res.Data.Items))
+	res.Status = pkg.ResponseStatusOk
+
+	return nil
 }
 
 func (s *Service) AutoCreatePayoutDocuments(context.Context, *grpc.EmptyRequest, *grpc.EmptyResponse) error {
@@ -387,17 +455,23 @@ func (s *Service) GetPayoutDocuments(
 
 	res.Status = pkg.ResponseStatusOk
 
-	query := bson.M{}
+	query := bson.M{
+		"merchant_id": bson.ObjectIdHex(req.MerchantId),
+	}
 
-	if req.PayoutDocumentId != "" {
-		query["_id"] = bson.ObjectIdHex(req.PayoutDocumentId)
-	} else {
-		if len(req.Status) > 0 {
-			query["status"] = bson.M{"$in": req.Status}
+	if len(req.Status) > 0 {
+		query["status"] = bson.M{"$in": req.Status}
+	}
+
+	if req.PeriodFrom > 0 || req.PeriodTo > 0 {
+		date := bson.M{}
+		if req.PeriodFrom > 0 {
+			date["$gte"] = time.Unix(req.PeriodFrom, 0)
 		}
-		if req.MerchantId != "" {
-			query["merchant_id"] = bson.ObjectIdHex(req.MerchantId)
+		if req.PeriodTo > 0 {
+			date["$lte"] = time.Unix(req.PeriodTo, 0)
 		}
+		query["created_at"] = date
 	}
 
 	count, err := s.payoutDocument.CountByQuery(query)
@@ -415,7 +489,7 @@ func (s *Service) GetPayoutDocuments(
 		return nil
 	}
 
-	sorts := []string{"_id"}
+	sorts := []string{"-_id"}
 
 	pds, err := s.payoutDocument.FindByQuery(query, sorts, int(req.Limit), int(req.Offset))
 	if err != nil {
@@ -437,7 +511,7 @@ func (s *Service) PayoutDocumentPdfUploaded(
 ) error {
 	res.Status = pkg.ResponseStatusOk
 
-	pd, err := s.payoutDocument.GetById(req.PayoutId)
+	/*pd, err := s.payoutDocument.GetById(req.PayoutId)
 	if err != nil {
 		if err == mgo.ErrNotFound {
 			res.Status = pkg.ResponseStatusNotFound
@@ -445,21 +519,10 @@ func (s *Service) PayoutDocumentPdfUploaded(
 			return nil
 		}
 		return err
-	}
+	}*/
 
 	if req.Filename != "" {
-		pd.RenderedDocumentFileUrl = req.Filename
-	}
-
-	// update first to ensure save rendered document file url to db
-	err = s.payoutDocument.Update(pd, "", payoutChangeSourceReporter)
-	if err != nil {
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			res.Status = pkg.ResponseStatusSystemError
-			res.Message = e
-			return nil
-		}
-		return err
+		// todo: send by email
 	}
 
 	return nil
@@ -506,18 +569,7 @@ func (h *PayoutDocument) Insert(pd *billing.PayoutDocument, ip, source string) (
 		return
 	}
 
-	key := fmt.Sprintf(cacheKeyPayoutDocument, pd.Id)
-	err = h.svc.cacher.Set(key, pd, 0)
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorCacheQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
-			zap.String(pkg.ErrorCacheFieldKey, key),
-			zap.Any(pkg.ErrorCacheFieldData, pd),
-		)
-	}
-	return
+	return h.updateCaches(pd)
 }
 
 func (h *PayoutDocument) Update(pd *billing.PayoutDocument, ip, source string) error {
@@ -540,19 +592,7 @@ func (h *PayoutDocument) Update(pd *billing.PayoutDocument, ip, source string) e
 		return err
 	}
 
-	key := fmt.Sprintf(cacheKeyPayoutDocument, pd.Id)
-	err = h.svc.cacher.Set(fmt.Sprintf(cacheKeyPayoutDocument, pd.Id), pd, 0)
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorCacheQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
-			zap.String(pkg.ErrorCacheFieldKey, key),
-			zap.Any(pkg.ErrorCacheFieldData, pd),
-		)
-	}
-
-	return nil
+	return h.updateCaches(pd)
 }
 
 func (h *PayoutDocument) onPayoutDocumentChange(document *billing.PayoutDocument, ip, source string) (err error) {
@@ -611,19 +651,34 @@ func (h *PayoutDocument) GetById(id string) (pd *billing.PayoutDocument, err err
 		return
 	}
 
-	err = h.svc.cacher.Set(key, pd, 0)
+	return pd, h.updateCaches(pd)
+}
+
+func (h *PayoutDocument) GetByIdAndMerchant(id, merchantId string) (pd *billing.PayoutDocument, err error) {
+
+	var c billing.PayoutDocument
+	key := fmt.Sprintf(cacheKeyPayoutDocumentMerchant, id, merchantId)
+	if err := h.svc.cacher.Get(key, c); err == nil {
+		return &c, nil
+	}
+
+	query := bson.M{
+		"_id":         bson.ObjectIdHex(id),
+		"merchant_id": bson.ObjectIdHex(merchantId),
+	}
+
+	err = h.svc.db.Collection(collectionPayoutDocuments).Find(query).One(&pd)
 	if err != nil {
 		zap.L().Error(
-			pkg.ErrorCacheQueryFailed,
+			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
-			zap.String(pkg.ErrorCacheFieldKey, key),
-			zap.Any(pkg.ErrorCacheFieldData, pd),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionPayoutDocuments),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
-		// suppress error returning here
-		err = nil
+		return
 	}
-	return
+
+	return pd, h.updateCaches(pd)
 }
 
 func (h *PayoutDocument) CountByQuery(query bson.M) (count int, err error) {
@@ -715,5 +770,34 @@ func (h *PayoutDocument) GetLast(merchantId, currency string) (pd *billing.Payou
 		)
 	}
 
+	return
+}
+
+func (h *PayoutDocument) updateCaches(pd *billing.PayoutDocument) (err error) {
+	key1 := fmt.Sprintf(cacheKeyPayoutDocument, pd.Id)
+	key2 := fmt.Sprintf(cacheKeyPayoutDocumentMerchant, pd.Id, pd.MerchantId)
+
+	err = h.svc.cacher.Set(key1, pd, 0)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
+			zap.String(pkg.ErrorCacheFieldKey, key1),
+			zap.Any(pkg.ErrorCacheFieldData, pd),
+		)
+		return
+	}
+
+	err = h.svc.cacher.Set(key2, pd, 0)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
+			zap.String(pkg.ErrorCacheFieldKey, key2),
+			zap.Any(pkg.ErrorCacheFieldData, pd),
+		)
+	}
 	return
 }

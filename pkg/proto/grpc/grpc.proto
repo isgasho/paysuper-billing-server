@@ -166,7 +166,8 @@ service BillingService {
     rpc CreatePayoutDocument (CreatePayoutDocumentRequest) returns (PayoutDocumentResponse) {}
     rpc UpdatePayoutDocument (UpdatePayoutDocumentRequest) returns (PayoutDocumentResponse) {}
     rpc GetPayoutDocuments (GetPayoutDocumentsRequest) returns (GetPayoutDocumentsResponse) {}
-    rpc GetPayoutDocumentRoyaltyReports (GetPayoutDocumentsRequest) returns (ListRoyaltyReportsResponse) {}
+    rpc GetPayoutDocument (GetPayoutDocumentRequest) returns (PayoutDocumentResponse) {}
+    rpc GetPayoutDocumentRoyaltyReports (GetPayoutDocumentRequest) returns (ListRoyaltyReportsResponse) {}
     rpc PayoutDocumentPdfUploaded (PayoutDocumentPdfUploadedRequest) returns (PayoutDocumentPdfUploadedResponse) {}
     rpc AutoCreatePayoutDocuments(EmptyRequest) returns (EmptyResponse) {}
 
@@ -1967,6 +1968,10 @@ message CreatePayoutDocumentRequest {
     string merchant_id = 2;
     //@inject_tag: json:"ip" validate:"required"
     string ip = 3;
+    //@inject_tag: json:"-" validate:"required"
+    string initiator = 4;
+    //@inject_tag: json:"-"
+    bool is_auto_generation = 5;
 }
 
 message PayoutDocumentResponse {
@@ -1995,6 +2000,13 @@ message UpdatePayoutDocumentRequest {
     string ip = 7;
 }
 
+message GetPayoutDocumentRequest {
+    //@inject_tag: query:"payout_document_id" validate:"omitempty,hexadecimal,len=24"
+    string payout_document_id = 1;
+    //@inject_tag: query:"merchant_id" validate:"omitempty,hexadecimal,len=24"
+    string merchant_id = 2;
+}
+
 message GetPayoutDocumentsRequest {
     //@inject_tag: query:"payout_document_id" validate:"omitempty,hexadecimal,len=24"
     string payout_document_id = 1;
@@ -2002,12 +2014,14 @@ message GetPayoutDocumentsRequest {
     repeated string status = 2;
     //@inject_tag: query:"merchant_id" validate:"omitempty,hexadecimal,len=24"
     string merchant_id = 3;
-    //@inject_tag: query:"signed"
-    bool signed = 4;
+    // @inject_tag: query:"period_from" validate:"omitempty,numeric,gt=0"
+    int64 period_from = 4;
+    // @inject_tag: query:"period_to" validate:"omitempty,numeric,gt=0"
+    int64 period_to = 5;
     // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
-    int32 limit = 5;
+    int32 limit = 6;
     // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
-    int32 offset = 6;
+    int32 offset = 7;
 }
 
 message PayoutDocumentsPaginate {

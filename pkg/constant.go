@@ -251,10 +251,9 @@ const (
 
 	EmailRoyaltyReportMessage = "New royalty report wait for merchant owner approve"
 
-	RoyaltyReportChangeSourceAuto      = "auto"
-	RoyaltyReportChangeSourceMerchant  = "merchant"
-	RoyaltyReportChangeSourceHellosign = "hellosign"
-	RoyaltyReportChangeSourceAdmin     = "admin"
+	RoyaltyReportChangeSourceAuto     = "auto"
+	RoyaltyReportChangeSourceMerchant = "merchant"
+	RoyaltyReportChangeSourceAdmin    = "admin"
 
 	VatCurrencyRatesPolicyOnDay    = "on-day"
 	VatCurrencyRatesPolicyLastDay  = "last-day"
@@ -287,12 +286,11 @@ const (
 	DashboardPeriodPreviousYear    = "previous_year"
 	DashboardPeriodTwoYearsAgo     = "two_years_ago"
 
-	PayoutDocumentStatusSkip       = "skip"
-	PayoutDocumentStatusPending    = "pending"
-	PayoutDocumentStatusInProgress = "in_progress"
-	PayoutDocumentStatusPaid       = "paid"
-	PayoutDocumentStatusCanceled   = "canceled"
-	PayoutDocumentStatusFailed     = "failed"
+	PayoutDocumentStatusSkip     = "skip"
+	PayoutDocumentStatusPending  = "pending"
+	PayoutDocumentStatusPaid     = "paid"
+	PayoutDocumentStatusCanceled = "canceled"
+	PayoutDocumentStatusFailed   = "failed"
 
 	OrderIssuerReferenceTypePaylink = "paylink"
 

@@ -439,13 +439,33 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	count := suite.mbRecordsCount(suite.merchant.Id, suite.merchant.GetPayoutCurrency())
 	assert.Equal(suite.T(), count, 0)
 
+	report := &billing.RoyaltyReport{
+		Id:         bson.NewObjectId().Hex(),
+		MerchantId: suite.merchant.Id,
+		Totals: &billing.RoyaltyReportTotals{
+			TransactionsCount: 100,
+			PayoutAmount:      alreadyPaidRoyalty,
+			VatAmount:         100,
+			FeeAmount:         50,
+		},
+		Status:         pkg.RoyaltyReportStatusAccepted,
+		CreatedAt:      ptypes.TimestampNow(),
+		PeriodFrom:     ptypes.TimestampNow(),
+		PeriodTo:       ptypes.TimestampNow(),
+		AcceptExpireAt: ptypes.TimestampNow(),
+		Currency:       suite.merchant.GetPayoutCurrency(),
+	}
+
+	err := suite.service.db.Collection(collectionRoyaltyReport).Insert(report)
+	assert.NoError(suite.T(), err)
+
 	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -480))
 	assert.NoError(suite.T(), err, "Generate PayoutDocument date failed")
 
 	payout := &billing.PayoutDocument{
 		Id:                 bson.NewObjectId().Hex(),
 		MerchantId:         suite.merchant.Id,
-		SourceId:           []string{bson.NewObjectId().Hex()},
+		SourceId:           []string{report.Id},
 		TotalFees:          1000,
 		Balance:            1000,
 		Currency:           "RUB",
@@ -465,7 +485,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 
 	req3 := &grpc.UpdatePayoutDocumentRequest{
 		PayoutDocumentId: payout.Id,
-		Status:           pkg.PayoutDocumentStatusInProgress,
+		Status:           pkg.PayoutDocumentStatusPaid,
 		Transaction:      "transaction123",
 		Ip:               "192.168.1.1",
 	}

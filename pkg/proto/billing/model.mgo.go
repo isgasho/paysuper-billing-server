@@ -797,7 +797,6 @@ type MgoPayoutDocument struct {
 	FailureCode             string               `bson:"failure_code"`
 	FailureMessage          string               `bson:"failure_message"`
 	FailureTransaction      string               `bson:"failure_transaction"`
-	RenderedDocumentFileUrl string               `bson:"rendered_document_file_url"`
 	CreatedAt               time.Time            `bson:"created_at"`
 	UpdatedAt               time.Time            `bson:"updated_at"`
 	ArrivalDate             time.Time            `bson:"arrival_date"`
@@ -837,7 +836,6 @@ func (m *PayoutDocument) GetBSON() (interface{}, error) {
 		FailureCode:             m.FailureCode,
 		FailureMessage:          m.FailureMessage,
 		FailureTransaction:      m.FailureTransaction,
-		RenderedDocumentFileUrl: m.RenderedDocumentFileUrl,
 		Destination:             m.Destination,
 		Company:                 m.Company,
 	}
@@ -947,7 +945,6 @@ func (m *PayoutDocument) SetBSON(raw bson.Raw) error {
 	m.FailureCode = decoded.FailureCode
 	m.FailureMessage = decoded.FailureMessage
 	m.FailureTransaction = decoded.FailureTransaction
-	m.RenderedDocumentFileUrl = decoded.RenderedDocumentFileUrl
 	m.Destination = decoded.Destination
 	m.Company = decoded.Company
 

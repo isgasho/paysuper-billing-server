@@ -74,6 +74,7 @@ type RoyaltyReportServiceInterface interface {
 	Update(document *billing.RoyaltyReport, ip, source string) error
 	GetById(id string) (*billing.RoyaltyReport, error)
 	GetNonPayoutReports(merchantId, currency string) ([]*billing.RoyaltyReport, error)
+	GetByPayoutId(payoutId string) ([]*billing.RoyaltyReport, error)
 	GetBalanceAmount(merchantId, currency string) (float64, error)
 	CheckReportExists(merchantId, currency string, from, to time.Time) (exists bool, err error)
 	SetPayoutDocumentId(reportIds []string, payoutDocumentId, ip, source string) (err error)
@@ -752,7 +753,27 @@ func (r *RoyaltyReport) GetNonPayoutReports(merchantId, currency string) (result
 	}
 
 	return
+}
 
+func (r *RoyaltyReport) GetByPayoutId(payoutId string) (result []*billing.RoyaltyReport, err error) {
+	query := bson.M{
+		"payout_document_id": payoutId,
+	}
+
+	sorts := "period_from"
+	err = r.svc.db.Collection(collectionRoyaltyReport).Find(query).Sort(sorts).All(&result)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionRoyaltyReport),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			zap.Any(pkg.ErrorDatabaseFieldSorts, sorts),
+		)
+	}
+
+	return
 }
 
 func (r *RoyaltyReport) GetBalanceAmount(merchantId, currency string) (float64, error) {

@@ -359,23 +359,22 @@ func (suite *PayoutsTestSuite) SetupTest() {
 	}
 
 	suite.payout6 = &billing.PayoutDocument{
-		Id:                      bson.NewObjectId().Hex(),
-		MerchantId:              suite.merchant.Id,
-		SourceId:                []string{bson.NewObjectId().Hex(), bson.NewObjectId().Hex(), bson.NewObjectId().Hex()},
-		TotalFees:               765000,
-		Balance:                 765000,
-		Currency:                "RUB",
-		Status:                  pkg.PayoutDocumentStatusPending,
-		Description:             "test payout document",
-		Destination:             suite.merchant.Banking,
-		CreatedAt:               ptypes.TimestampNow(),
-		UpdatedAt:               ptypes.TimestampNow(),
-		ArrivalDate:             ptypes.TimestampNow(),
-		RenderedDocumentFileUrl: "http://localhost.rendered.pdf",
-		Transaction:             "",
-		FailureTransaction:      "",
-		FailureMessage:          "",
-		FailureCode:             "",
+		Id:                 bson.NewObjectId().Hex(),
+		MerchantId:         suite.merchant.Id,
+		SourceId:           []string{bson.NewObjectId().Hex(), bson.NewObjectId().Hex(), bson.NewObjectId().Hex()},
+		TotalFees:          765000,
+		Balance:            765000,
+		Currency:           "RUB",
+		Status:             pkg.PayoutDocumentStatusPending,
+		Description:        "test payout document",
+		Destination:        suite.merchant.Banking,
+		CreatedAt:          ptypes.TimestampNow(),
+		UpdatedAt:          ptypes.TimestampNow(),
+		ArrivalDate:        ptypes.TimestampNow(),
+		Transaction:        "",
+		FailureTransaction: "",
+		FailureMessage:     "",
+		FailureCode:        "",
 	}
 
 	suite.payout7 = &billing.PayoutDocument{
@@ -761,11 +760,12 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_InsertErr
 
 func (suite *PayoutsTestSuite) TestPayouts_UpdatePayoutDocument_Ok() {
 
+	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report6})
 	suite.helperInsertPayoutDocuments([]*billing.PayoutDocument{suite.payout2})
 
 	req := &grpc.UpdatePayoutDocumentRequest{
 		PayoutDocumentId:   suite.payout2.Id,
-		Status:             pkg.PayoutDocumentStatusInProgress,
+		Status:             pkg.PayoutDocumentStatusPaid,
 		Transaction:        "transaction123",
 		FailureTransaction: "failure456",
 		FailureMessage:     "bla-bla-bla",
@@ -779,7 +779,7 @@ func (suite *PayoutsTestSuite) TestPayouts_UpdatePayoutDocument_Ok() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
 	assert.Equal(suite.T(), res.Item.Id, suite.payout2.Id)
-	assert.Equal(suite.T(), res.Item.Status, pkg.PayoutDocumentStatusInProgress)
+	assert.Equal(suite.T(), res.Item.Status, pkg.PayoutDocumentStatusPaid)
 	assert.Equal(suite.T(), res.Item.Transaction, "transaction123")
 	assert.Equal(suite.T(), res.Item.FailureTransaction, "failure456")
 	assert.Equal(suite.T(), res.Item.FailureMessage, "bla-bla-bla")
@@ -880,7 +880,7 @@ func (suite *PayoutsTestSuite) TestPayouts_UpdatePayoutDocument_Failed_UpdateErr
 
 	req := &grpc.UpdatePayoutDocumentRequest{
 		PayoutDocumentId:   suite.payout2.Id,
-		Status:             pkg.PayoutDocumentStatusInProgress,
+		Status:             pkg.PayoutDocumentStatusPaid,
 		Transaction:        "transaction123",
 		FailureTransaction: "failure456",
 		FailureMessage:     "bla-bla-bla",
@@ -894,21 +894,20 @@ func (suite *PayoutsTestSuite) TestPayouts_UpdatePayoutDocument_Failed_UpdateErr
 	assert.Error(suite.T(), err)
 }
 
-func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocuments_ById_Ok() {
+func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocument_ById_Ok() {
 	suite.helperInsertPayoutDocuments([]*billing.PayoutDocument{suite.payout7})
 
-	req := &grpc.GetPayoutDocumentsRequest{
+	req := &grpc.GetPayoutDocumentRequest{
+		MerchantId:       suite.payout7.MerchantId,
 		PayoutDocumentId: suite.payout7.Id,
 	}
 
-	res := &grpc.GetPayoutDocumentsResponse{}
+	res := &grpc.PayoutDocumentResponse{}
 
-	err := suite.service.GetPayoutDocuments(context.TODO(), req, res)
+	err := suite.service.GetPayoutDocument(context.TODO(), req, res)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
-	assert.Equal(suite.T(), res.Data.Count, int32(1))
-	assert.Len(suite.T(), res.Data.Items, 1)
-	assert.Equal(suite.T(), res.Data.Items[0].Id, suite.payout7.Id)
+	assert.Equal(suite.T(), res.Item.Id, suite.payout7.Id)
 }
 
 func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocuments_ByQuery_Ok() {
@@ -916,7 +915,6 @@ func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocuments_ByQuery_Ok() {
 	suite.helperInsertPayoutDocuments([]*billing.PayoutDocument{suite.payout1, suite.payout2, suite.payout3, suite.payout4, suite.payout7})
 
 	req := &grpc.GetPayoutDocumentsRequest{
-		Signed:     true,
 		Status:     []string{"paid"},
 		MerchantId: suite.merchant.Id,
 		Limit:      10,
@@ -936,8 +934,9 @@ func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocuments_ByQuery_Ok() {
 func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocuments_AllWithPaging_Ok() {
 	suite.helperInsertPayoutDocuments([]*billing.PayoutDocument{suite.payout1, suite.payout2, suite.payout3, suite.payout4, suite.payout5})
 	req := &grpc.GetPayoutDocumentsRequest{
-		Limit:  1,
-		Offset: 0,
+		MerchantId: suite.payout1.MerchantId,
+		Limit:      1,
+		Offset:     0,
 	}
 
 	res := &grpc.GetPayoutDocumentsResponse{}
@@ -951,6 +950,7 @@ func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocuments_AllWithPaging_Ok()
 
 func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocuments_Ok_NotFound() {
 	req := &grpc.GetPayoutDocumentsRequest{
+		MerchantId:       bson.NewObjectId().Hex(),
 		PayoutDocumentId: bson.NewObjectId().Hex(),
 	}
 

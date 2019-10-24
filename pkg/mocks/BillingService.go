@@ -2474,8 +2474,38 @@ func (_m *BillingService) GetPaymentMethodTestSettings(ctx context.Context, in *
 	return r0, r1
 }
 
+// GetPayoutDocument provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) GetPayoutDocument(ctx context.Context, in *grpc.GetPayoutDocumentRequest, opts ...client.CallOption) (*grpc.PayoutDocumentResponse, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *grpc.PayoutDocumentResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.GetPayoutDocumentRequest, ...client.CallOption) *grpc.PayoutDocumentResponse); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*grpc.PayoutDocumentResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.GetPayoutDocumentRequest, ...client.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetPayoutDocumentRoyaltyReports provides a mock function with given fields: ctx, in, opts
-func (_m *BillingService) GetPayoutDocumentRoyaltyReports(ctx context.Context, in *grpc.GetPayoutDocumentsRequest, opts ...client.CallOption) (*grpc.ListRoyaltyReportsResponse, error) {
+func (_m *BillingService) GetPayoutDocumentRoyaltyReports(ctx context.Context, in *grpc.GetPayoutDocumentRequest, opts ...client.CallOption) (*grpc.ListRoyaltyReportsResponse, error) {
 	_va := make([]interface{}, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
@@ -2486,7 +2516,7 @@ func (_m *BillingService) GetPayoutDocumentRoyaltyReports(ctx context.Context, i
 	ret := _m.Called(_ca...)
 
 	var r0 *grpc.ListRoyaltyReportsResponse
-	if rf, ok := ret.Get(0).(func(context.Context, *grpc.GetPayoutDocumentsRequest, ...client.CallOption) *grpc.ListRoyaltyReportsResponse); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.GetPayoutDocumentRequest, ...client.CallOption) *grpc.ListRoyaltyReportsResponse); ok {
 		r0 = rf(ctx, in, opts...)
 	} else {
 		if ret.Get(0) != nil {
@@ -2495,7 +2525,7 @@ func (_m *BillingService) GetPayoutDocumentRoyaltyReports(ctx context.Context, i
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *grpc.GetPayoutDocumentsRequest, ...client.CallOption) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.GetPayoutDocumentRequest, ...client.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)

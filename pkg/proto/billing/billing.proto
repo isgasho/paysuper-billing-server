@@ -2020,8 +2020,6 @@ message PayoutDocument {
     string failure_message = 17;
     //@inject_tag: json:"failure_transaction" validate:"max=255"
     string failure_transaction = 18;
-    // @inject_tag: json:"rendered_document_file_url"
-    string rendered_document_file_url = 23;
     //@inject_tag: json:"created_at"
     google.protobuf.Timestamp created_at = 24;
     //@inject_tag: json:"updated_at"
