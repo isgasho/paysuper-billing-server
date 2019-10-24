@@ -152,6 +152,16 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 
 	countUserDefinedPlatforms := 0
 
+	merchant, err := s.merchant.GetById(product.MerchantId)
+	if err != nil {
+		res.Status = pkg.ResponseStatusNotFound
+		res.Message = merchantErrorNotFound
+
+		return nil
+	}
+
+	payoutCurrency := merchant.GetPayoutCurrency()
+
 	for _, platform := range req.Platforms {
 		available, ok := availablePlatforms[platform.Id]
 		if !ok {
@@ -191,7 +201,7 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 
 		// Check that user specified price in default currency
 		for _, price := range platform.Prices {
-			if price.Currency == req.DefaultCurrency {
+			if price.Currency == payoutCurrency {
 				isHaveDefaultPrice = true
 			}
 

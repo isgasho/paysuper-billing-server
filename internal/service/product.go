@@ -281,6 +281,22 @@ func (s *Service) UpdateProductPrices(ctx context.Context, req *grpc.UpdateProdu
 		}
 	}
 
+	merchant, err := s.merchant.GetById(product.MerchantId)
+	if err != nil {
+		res.Status = pkg.ResponseStatusNotFound
+		res.Message = merchantErrorNotFound
+
+		return nil
+	}
+
+	payoutCurrency := merchant.GetPayoutCurrency()
+	_, err = product.GetPriceInCurrency(&billing.PriceGroup{Currency: payoutCurrency})
+	
+	if err != nil {
+		zap.S().Errorw(productErrorPriceDefaultCurrency.Message, "data", req)
+		return productErrorPriceDefaultCurrency
+	}
+
 	if !product.IsPricesContainDefaultCurrency() {
 		zap.S().Errorf(productErrorPriceDefaultCurrency.Message, "data", req)
 		return productErrorPriceDefaultCurrency

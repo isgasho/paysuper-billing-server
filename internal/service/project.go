@@ -43,7 +43,8 @@ func (s *Service) ChangeProject(
 	var project *billing.Project
 	var err error
 
-	if _, err := s.merchant.GetById(req.MerchantId); err != nil {
+	var merchant = &billing.Merchant{}
+	if merchant, err = s.merchant.GetById(req.MerchantId); err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = merchantErrorNotFound
 
@@ -99,7 +100,8 @@ func (s *Service) ChangeProject(
 	}
 
 	if req.VirtualCurrency != nil {
-		err = s.validateProjectVirtualCurrency(req.VirtualCurrency)
+		payoutCurrency := merchant.GetPayoutCurrency()
+		err = s.validateProjectVirtualCurrency(req.VirtualCurrency, payoutCurrency)
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusBadData
@@ -438,7 +440,7 @@ func (s *Service) getProjectsCountByMerchant(merchantId string) int32 {
 	return int32(count)
 }
 
-func (s *Service) validateProjectVirtualCurrency(virtualCurrency *billing.ProjectVirtualCurrency) error {
+func (s *Service) validateProjectVirtualCurrency(virtualCurrency *billing.ProjectVirtualCurrency, payoutCurrency string) error {
 	if _, ok := virtualCurrency.Name[DefaultLanguage]; !ok {
 		return projectErrorVirtualCurrencyNameDefaultLangRequired
 	}
@@ -447,7 +449,10 @@ func (s *Service) validateProjectVirtualCurrency(virtualCurrency *billing.Projec
 		return projectErrorVirtualCurrencySuccessMessageDefaultLangRequired
 	}
 
+
 	if len(virtualCurrency.Price) > 0 {
+		currencies := make([]string, len(virtualCurrency.Price))
+
 		for _, v := range virtualCurrency.Price {
 			if !contains(s.supportedCurrencies, v.Currency) {
 				err := projectErrorVirtualCurrencyPriceCurrencyIsNotSupport
@@ -455,8 +460,17 @@ func (s *Service) validateProjectVirtualCurrency(virtualCurrency *billing.Projec
 
 				return err
 			}
+			currencies = append(currencies, v.Currency)
+		}
+
+		if !contains(currencies, payoutCurrency) {
+			err := projectErrorVirtualCurrencyPriceCurrencyIsNotSupport
+			err.Details = payoutCurrency
+
+			return err
 		}
 	}
+
 
 	if virtualCurrency.MinPurchaseValue > 0 && virtualCurrency.MaxPurchaseValue > 0 &&
 		virtualCurrency.MinPurchaseValue > virtualCurrency.MaxPurchaseValue {
