@@ -161,6 +161,12 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 	}
 
 	payoutCurrency := merchant.GetPayoutCurrency()
+	if len(payoutCurrency) == 0 {
+		zap.S().Errorw(merchantPayoutCurrencyMissed.Message, "data", req)
+		res.Status = http.StatusBadRequest
+		res.Message = merchantPayoutCurrencyMissed
+		return nil
+	}
 
 	for _, platform := range req.Platforms {
 		available, ok := availablePlatforms[platform.Id]

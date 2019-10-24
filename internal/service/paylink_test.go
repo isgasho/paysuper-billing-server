@@ -34,6 +34,7 @@ type PaylinkTestSuite struct {
 	cache   CacheInterface
 
 	merchant           *billing.Merchant
+	merchant2          *billing.Merchant
 	projectFixedAmount *billing.Project
 	paymentMethod      *billing.PaymentMethod
 	paymentSystem      *billing.PaymentSystem
@@ -120,6 +121,7 @@ func (suite *PaylinkTestSuite) SetupTest() {
 	}
 
 	suite.merchant, suite.projectFixedAmount, suite.paymentMethod, suite.paymentSystem = helperCreateEntitiesForTests(suite.Suite, suite.service)
+	suite.merchant2 = helperCreateMerchant(suite.Suite, suite.service, "USD", "RU", suite.paymentMethod, suite.merchant.MinPayoutAmount)
 
 	suite.product1 = &grpc.Product{
 		Id:              bson.NewObjectId().Hex(),
@@ -278,7 +280,7 @@ func (suite *PaylinkTestSuite) SetupTest() {
 				En: "/home/image.jpg",
 			},
 		},
-		MerchantId: bson.NewObjectId().Hex(),
+		MerchantId: suite.merchant2.Id,
 		ProjectId:  bson.NewObjectId().Hex(),
 		Platforms: []*grpc.PlatformPrice{
 			{
@@ -292,7 +294,7 @@ func (suite *PaylinkTestSuite) SetupTest() {
 	}
 	err = suite.service.CreateOrUpdateKeyProduct(context.TODO(), req, &response)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), response.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, response.Status)
 	suite.keyProduct3 = response.Product
 
 	bod, _ := ptypes.TimestampProto(now.BeginningOfDay())
