@@ -158,7 +158,7 @@ message Project {
     repeated HasCurrencyItem currencies = 33;
     //@inject_tag: json:"cover"
     ImageCollection cover = 35;
-    //@inject_tag: json:"currencies" validate:"omitempty,dive"
+    //@inject_tag: json:"virtual_currency" validate:"omitempty,dive"
     ProjectVirtualCurrency virtual_currency = 36;
 }
 
@@ -2163,7 +2163,7 @@ message LocalizedUrl {
 }
 
 message ImageCollection {
-    //@inject_tag: validate:"omitempty,uri" json:"images"
+    //@inject_tag: json:"images"
     LocalizedUrl images = 1;
     //@inject_tag: json:"use_one_for_all"
     bool use_one_for_all = 2;

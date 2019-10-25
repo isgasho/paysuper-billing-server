@@ -505,8 +505,8 @@ type Project struct {
 	Currencies []*HasCurrencyItem `protobuf:"bytes,33,rep,name=currencies,proto3" json:"currencies" validate:"omitempty,dive"`
 	//@inject_tag: json:"cover"
 	Cover *ImageCollection `protobuf:"bytes,35,opt,name=cover,proto3" json:"cover"`
-	//@inject_tag: json:"currencies" validate:"omitempty,dive"
-	VirtualCurrency      *ProjectVirtualCurrency `protobuf:"bytes,36,opt,name=virtual_currency,json=virtualCurrency,proto3" json:"currencies" validate:"omitempty,dive"`
+	//@inject_tag: json:"virtual_currency" validate:"omitempty,dive"
+	VirtualCurrency      *ProjectVirtualCurrency `protobuf:"bytes,36,opt,name=virtual_currency,json=virtualCurrency,proto3" json:"virtual_currency" validate:"omitempty,dive"`
 	XXX_NoUnkeyedLiteral struct{}                `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte                  `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32                   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -12432,8 +12432,8 @@ func (m *LocalizedUrl) GetTr() string {
 }
 
 type ImageCollection struct {
-	//@inject_tag: validate:"omitempty,uri" json:"images"
-	Images *LocalizedUrl `protobuf:"bytes,1,opt,name=images,proto3" json:"images" validate:"omitempty,uri"`
+	//@inject_tag: json:"images"
+	Images *LocalizedUrl `protobuf:"bytes,1,opt,name=images,proto3" json:"images"`
 	//@inject_tag: json:"use_one_for_all"
 	UseOneForAll         bool     `protobuf:"varint,2,opt,name=use_one_for_all,json=useOneForAll,proto3" json:"use_one_for_all"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
