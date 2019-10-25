@@ -2070,6 +2070,7 @@ message PayoutDocumentPdfUploadedRequest {
     int32 retention_time = 3;
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string payout_id = 4;
+    bytes content = 5;
 }
 
 message PayoutDocumentPdfUploadedResponse {

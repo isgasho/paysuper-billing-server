@@ -51,6 +51,7 @@ type Config struct {
 	EmailConfirmUrl                 string `envconfig:"EMAIL_CONFIRM_URL" default:"https://paysupermgmt.tst.protocol.one/confirm_email"`
 	EmailConfirmTemplate            string `envconfig:"EMAIL_CONFIRM_TEMPLATE" default:"p1_verify_letter"`
 	EmailNewRoyaltyReportTemplate   string `envconfig:"EMAIL_NEW_ROYALTY_REPORT_TEMPLATE" default:"p1_new_royalty_report"`
+	EmailNewPayoutTemplate          string `envconfig:"EMAIL_NEW_PAYOUT_TEMPLATE" default:"p1_new_payout"`
 	EmailVatReportTemplate          string `envconfig:"EMAIL_VAT_REPORT_TEMPLATE" default:"p1_vat_report"`
 	EmailGameCodeTemplate           string `envconfig:"EMAIL_ACTIVATION_CODE_TEMPLATE" default:"p1_verify_letter-2"`
 	EmailSuccessTransactionTemplate string `envconfig:"EMAIL_SUCCESS_TRANSACTION_TEMPLATE" default:"p1_verify_letter-4"`

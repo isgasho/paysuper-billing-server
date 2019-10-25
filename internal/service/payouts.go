@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"crypto/md5"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -15,7 +16,11 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	reporterConst "github.com/paysuper/paysuper-reporter/pkg"
 	reporterProto "github.com/paysuper/paysuper-reporter/pkg/proto"
+	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
+	"github.com/streadway/amqp"
 	"go.uber.org/zap"
+	"mime"
+	"path/filepath"
 	"sort"
 	"time"
 )
@@ -560,7 +565,7 @@ func (s *Service) PayoutDocumentPdfUploaded(
 ) error {
 	res.Status = pkg.ResponseStatusOk
 
-	/*pd, err := s.payoutDocument.GetById(req.PayoutId)
+	pd, err := s.payoutDocument.GetById(req.PayoutId)
 	if err != nil {
 		if err == mgo.ErrNotFound {
 			res.Status = pkg.ResponseStatusNotFound
@@ -568,10 +573,45 @@ func (s *Service) PayoutDocumentPdfUploaded(
 			return nil
 		}
 		return err
-	}*/
+	}
 
-	if req.Filename != "" {
-		// todo: send by email
+	merchant, err := s.merchant.GetById(pd.MerchantId)
+
+	if err != nil {
+		zap.L().Error("Merchant not found", zap.Error(err), zap.String("merchant_id", pd.MerchantId))
+		return err
+	}
+
+	if merchant.HasAuthorizedEmail() == true {
+
+		content := base64.StdEncoding.EncodeToString(req.Content)
+		contentType := mime.TypeByExtension(filepath.Ext(req.Filename))
+
+		payload := &postmarkSdrPkg.Payload{
+			TemplateAlias: s.cfg.EmailNewRoyaltyReportTemplate,
+			TemplateModel: map[string]string{
+				"merchant_id": merchant.Id,
+				"payout_id":   pd.Id,
+			},
+			To: merchant.GetAuthorizedEmail(),
+			Attachments: []*postmarkSdrPkg.PayloadAttachment{
+				{
+					Name:        req.Filename,
+					Content:     content,
+					ContentType: contentType,
+				},
+			},
+		}
+
+		err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+
+		if err != nil {
+			zap.L().Error(
+				"Publication message about merchant new payout document to queue failed",
+				zap.Error(err),
+				zap.Any("payout document", pd),
+			)
+		}
 	}
 
 	return nil
