@@ -290,8 +290,16 @@ func (s *Service) UpdateProductPrices(ctx context.Context, req *grpc.UpdateProdu
 	}
 
 	payoutCurrency := merchant.GetPayoutCurrency()
+
+	if len(payoutCurrency) == 0 {
+		zap.S().Errorw(merchantPayoutCurrencyMissed.Message, "data", req)
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = merchantPayoutCurrencyMissed
+		return nil
+	}
+
 	_, err = product.GetPriceInCurrency(&billing.PriceGroup{Currency: payoutCurrency})
-	
+
 	if err != nil {
 		zap.S().Errorw(productErrorPriceDefaultCurrency.Message, "data", req)
 		return productErrorPriceDefaultCurrency
