@@ -152,6 +152,22 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 
 	countUserDefinedPlatforms := 0
 
+	merchant, err := s.merchant.GetById(product.MerchantId)
+	if err != nil {
+		res.Status = pkg.ResponseStatusNotFound
+		res.Message = merchantErrorNotFound
+
+		return nil
+	}
+
+	payoutCurrency := merchant.GetPayoutCurrency()
+	if len(payoutCurrency) == 0 {
+		zap.S().Errorw(merchantPayoutCurrencyMissed.Message, "data", req)
+		res.Status = http.StatusBadRequest
+		res.Message = merchantPayoutCurrencyMissed
+		return nil
+	}
+
 	for _, platform := range req.Platforms {
 		available, ok := availablePlatforms[platform.Id]
 		if !ok {
@@ -191,7 +207,7 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 
 		// Check that user specified price in default currency
 		for _, price := range platform.Prices {
-			if price.Currency == req.DefaultCurrency {
+			if price.Currency == payoutCurrency {
 				isHaveDefaultPrice = true
 			}
 
@@ -726,7 +742,7 @@ func (s *Service) UnPublishKeyProduct(ctx context.Context, req *grpc.UnPublishKe
 	return nil
 }
 
-func getImageByLanguage(lng string, collection *grpc.ImageCollection) string {
+func getImageByLanguage(lng string, collection *billing.ImageCollection) string {
 	if collection == nil || collection.Images == nil {
 		return ""
 	}

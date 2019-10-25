@@ -22,21 +22,22 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type CreatePaylinkRequest struct {
-	//@inject_tag: validate:"omitempty,hexadecimal,len=24"
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty" validate:"omitempty,hexadecimal,len=24"`
+	//@inject_tag: json:"id" validate:"omitempty,hexadecimal,len=24"
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" validate:"omitempty,hexadecimal,len=24"`
 	// @inject_tag: json:"expires_at" validate:"omitempty,numeric,gte=0"
 	ExpiresAt int64 `protobuf:"varint,2,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at" validate:"omitempty,numeric,gte=0"`
-	//@inject_tag: validate:"required,gte=1,dive,hexadecimal,len=24"
-	Products []string `protobuf:"bytes,3,rep,name=products,proto3" json:"products,omitempty" validate:"required,gte=1,dive,hexadecimal,len=24"`
-	//@inject_tag: validate:"required,hexadecimal,len=24"
-	MerchantId string `protobuf:"bytes,4,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id,omitempty" validate:"required,hexadecimal,len=24"`
-	//@inject_tag: validate:"required,hexadecimal,len=24"
-	ProjectId string `protobuf:"bytes,5,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty" validate:"required,hexadecimal,len=24"`
-	// @inject_tag: validate:"required"
-	Name         string `protobuf:"bytes,6,opt,name=name,proto3" json:"name,omitempty" validate:"required"`
-	NoExpiryDate bool   `protobuf:"varint,7,opt,name=no_expiry_date,json=noExpiryDate,proto3" json:"no_expiry_date,omitempty"`
-	// @inject_tag: validate="required,oneof=product key"
-	ProductsType         string   `protobuf:"bytes,8,opt,name=products_type,json=productsType,proto3" json:"products_type,omitempty"`
+	//@inject_tag: json:"products" validate:"required,gte=1,dive,hexadecimal,len=24"
+	Products []string `protobuf:"bytes,3,rep,name=products,proto3" json:"products" validate:"required,gte=1,dive,hexadecimal,len=24"`
+	//@inject_tag: json:"merchant_id" validate:"required,hexadecimal,len=24"
+	MerchantId string `protobuf:"bytes,4,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id" validate:"required,hexadecimal,len=24"`
+	//@inject_tag: json:"project_id" validate:"required,hexadecimal,len=24"
+	ProjectId string `protobuf:"bytes,5,opt,name=project_id,json=projectId,proto3" json:"project_id" validate:"required,hexadecimal,len=24"`
+	// @inject_tag: json:"name" validate:"required"
+	Name string `protobuf:"bytes,6,opt,name=name,proto3" json:"name" validate:"required"`
+	// @inject_tag: json:"no_expiry_date"
+	NoExpiryDate bool `protobuf:"varint,7,opt,name=no_expiry_date,json=noExpiryDate,proto3" json:"no_expiry_date"`
+	// @inject_tag: json:"products_type" validate="required,oneof=product key"
+	ProductsType         string   `protobuf:"bytes,8,opt,name=products_type,json=productsType,proto3" json:"products_type"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`

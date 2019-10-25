@@ -20,12 +20,19 @@ const (
 )
 
 var (
-	projectErrorUnknown                   = newBillingServerErrorMsg("pr000001", "project unknown error")
-	projectErrorNotFound                  = newBillingServerErrorMsg("pr000002", "project with specified identifier not found")
-	projectErrorNameDefaultLangRequired   = newBillingServerErrorMsg("pr000003", "project name in \""+DefaultLanguage+"\" locale is required")
-	projectErrorCallbackCurrencyIncorrect = newBillingServerErrorMsg("pr000004", "project callback currency is incorrect")
-	projectErrorLimitCurrencyIncorrect    = newBillingServerErrorMsg("pr000005", "project limit currency is incorrect")
-	projectErrorLimitCurrencyRequired     = newBillingServerErrorMsg("pr000006", "project limit currency can't be empty if you send min or max payment amount")
+	projectErrorUnknown                                          = newBillingServerErrorMsg("pr000001", "project unknown error")
+	projectErrorNotFound                                         = newBillingServerErrorMsg("pr000002", "project with specified identifier not found")
+	projectErrorNameDefaultLangRequired                          = newBillingServerErrorMsg("pr000003", "project name in \""+DefaultLanguage+"\" locale is required")
+	projectErrorCallbackCurrencyIncorrect                        = newBillingServerErrorMsg("pr000004", "project callback currency is incorrect")
+	projectErrorLimitCurrencyIncorrect                           = newBillingServerErrorMsg("pr000005", "project limit currency is incorrect")
+	projectErrorLimitCurrencyRequired                            = newBillingServerErrorMsg("pr000006", "project limit currency can't be empty if you send min or max payment amount")
+	projectErrorCurrencyIsNotSupport                             = newBillingServerErrorMsg("pr000007", `project currency is not supported`)
+	projectErrorVirtualCurrencyNameDefaultLangRequired           = newBillingServerErrorMsg("pr000008", "project virtual currency name in \""+DefaultLanguage+"\" locale is required")
+	projectErrorVirtualCurrencySuccessMessageDefaultLangRequired = newBillingServerErrorMsg("pr000009", "project virtual currency success message in \""+DefaultLanguage+"\" locale is required")
+	projectErrorVirtualCurrencyPriceCurrencyIsNotSupport         = newBillingServerErrorMsg("pr000010", `project virtual currency price currency is not support`)
+	projectErrorVirtualCurrencyLimitsIncorrect                   = newBillingServerErrorMsg("pr000011", `project virtual currency purchase limits is incorrect`)
+	projectErrorShortDescriptionDefaultLangRequired              = newBillingServerErrorMsg("pr000012", "project short description in \""+DefaultLanguage+"\" locale is required")
+	projectErrorFullDescriptionDefaultLangRequired               = newBillingServerErrorMsg("pr000013", "project full description in \""+DefaultLanguage+"\" locale is required")
 )
 
 func (s *Service) ChangeProject(
@@ -36,7 +43,8 @@ func (s *Service) ChangeProject(
 	var project *billing.Project
 	var err error
 
-	if _, err := s.merchant.GetById(req.MerchantId); err != nil {
+	var merchant = &billing.Merchant{}
+	if merchant, err = s.merchant.GetById(req.MerchantId); err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = merchantErrorNotFound
 
@@ -74,6 +82,48 @@ func (s *Service) ChangeProject(
 		if !contains(s.supportedCurrencies, req.LimitsCurrency) {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = projectErrorLimitCurrencyIncorrect
+
+			return nil
+		}
+	}
+
+	if len(req.Currencies) > 0 {
+		for _, v := range req.Currencies {
+			if !contains(s.supportedCurrencies, v.Currency) {
+				rsp.Status = pkg.ResponseStatusBadData
+				rsp.Message = projectErrorCurrencyIsNotSupport
+				rsp.Message.Details = v.Currency
+
+				return nil
+			}
+		}
+	}
+
+	if req.VirtualCurrency != nil {
+		payoutCurrency := merchant.GetPayoutCurrency()
+		err = s.validateProjectVirtualCurrency(req.VirtualCurrency, payoutCurrency)
+
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = err.(*grpc.ResponseErrorMessage)
+
+			return nil
+		}
+	}
+
+	if len(req.ShortDescription) > 0 {
+		if _, ok := req.ShortDescription[DefaultLanguage]; !ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = projectErrorShortDescriptionDefaultLangRequired
+
+			return nil
+		}
+	}
+
+	if len(req.FullDescription) > 0 {
+		if _, ok := req.FullDescription[DefaultLanguage]; !ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = projectErrorFullDescriptionDefaultLangRequired
 
 			return nil
 		}
@@ -286,7 +336,7 @@ func (s *Service) createProject(req *billing.Project) (*billing.Project, error) 
 	project := &billing.Project{
 		Id:                       bson.NewObjectId().Hex(),
 		MerchantId:               req.MerchantId,
-		Image:                    req.Image,
+		Cover:                    req.Cover,
 		Name:                     req.Name,
 		CallbackCurrency:         req.CallbackCurrency,
 		CallbackProtocol:         req.CallbackProtocol,
@@ -310,6 +360,11 @@ func (s *Service) createProject(req *billing.Project) (*billing.Project, error) 
 		UrlFraudPayment:          req.UrlFraudPayment,
 		UrlRefundPayment:         req.UrlRefundPayment,
 		Status:                   pkg.ProjectStatusDraft,
+		Localizations:            req.Localizations,
+		FullDescription:          req.FullDescription,
+		ShortDescription:         req.ShortDescription,
+		Currencies:               req.Currencies,
+		VirtualCurrency:          req.VirtualCurrency,
 		CreatedAt:                ptypes.TimestampNow(),
 		UpdatedAt:                ptypes.TimestampNow(),
 	}
@@ -324,7 +379,6 @@ func (s *Service) createProject(req *billing.Project) (*billing.Project, error) 
 
 func (s *Service) updateProject(req *billing.Project, project *billing.Project) error {
 	project.Name = req.Name
-	project.Image = req.Image
 	project.CallbackCurrency = req.CallbackCurrency
 	project.CreateOrderAllowedUrls = req.CreateOrderAllowedUrls
 	project.AllowDynamicNotifyUrls = req.AllowDynamicNotifyUrls
@@ -353,9 +407,13 @@ func (s *Service) updateProject(req *billing.Project, project *billing.Project) 
 	project.UrlCancelPayment = req.UrlCancelPayment
 	project.UrlFraudPayment = req.UrlFraudPayment
 	project.UrlRefundPayment = req.UrlRefundPayment
+	project.Localizations = req.Localizations
+	project.FullDescription = req.FullDescription
+	project.ShortDescription = req.ShortDescription
+	project.Currencies = req.Currencies
+	project.VirtualCurrency = req.VirtualCurrency
 
 	if err := s.project.Update(project); err != nil {
-		zap.S().Errorf("Query to update project failed", "err", err.Error(), "data", project)
 		return projectErrorUnknown
 	}
 
@@ -382,17 +440,76 @@ func (s *Service) getProjectsCountByMerchant(merchantId string) int32 {
 	return int32(count)
 }
 
+func (s *Service) validateProjectVirtualCurrency(virtualCurrency *billing.ProjectVirtualCurrency, payoutCurrency string) error {
+	if _, ok := virtualCurrency.Name[DefaultLanguage]; !ok {
+		return projectErrorVirtualCurrencyNameDefaultLangRequired
+	}
+
+	if _, ok := virtualCurrency.SuccessMessage[DefaultLanguage]; !ok {
+		return projectErrorVirtualCurrencySuccessMessageDefaultLangRequired
+	}
+
+
+	if len(virtualCurrency.Price) > 0 {
+		currencies := make([]string, len(virtualCurrency.Price))
+
+		for _, v := range virtualCurrency.Price {
+			if !contains(s.supportedCurrencies, v.Currency) {
+				err := projectErrorVirtualCurrencyPriceCurrencyIsNotSupport
+				err.Details = v.Currency
+
+				return err
+			}
+			currencies = append(currencies, v.Currency)
+		}
+
+		if !contains(currencies, payoutCurrency) {
+			err := projectErrorVirtualCurrencyPriceCurrencyIsNotSupport
+			err.Details = payoutCurrency
+
+			return err
+		}
+	}
+
+
+	if virtualCurrency.MinPurchaseValue > 0 && virtualCurrency.MaxPurchaseValue > 0 &&
+		virtualCurrency.MinPurchaseValue > virtualCurrency.MaxPurchaseValue {
+		return projectErrorVirtualCurrencyLimitsIncorrect
+	}
+
+	return nil
+}
+
 func newProjectService(svc *Service) *Project {
 	s := &Project{svc: svc}
 	return s
 }
 
 func (h *Project) Insert(project *billing.Project) error {
-	if err := h.svc.db.Collection(collectionProject).Insert(project); err != nil {
+	err := h.svc.db.Collection(collectionProject).Insert(project)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionProject),
+			zap.String(pkg.ErrorDatabaseFieldOperation, pkg.ErrorDatabaseFieldOperationInsert),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, project),
+		)
 		return err
 	}
 
-	if err := h.svc.cacher.Set(fmt.Sprintf(cacheProjectId, project.Id), project, 0); err != nil {
+	key := fmt.Sprintf(cacheProjectId, project.Id)
+	err = h.svc.cacher.Set(key, project, 0)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
+			zap.String(pkg.ErrorCacheFieldKey, key),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, project),
+		)
 		return err
 	}
 
@@ -405,7 +522,16 @@ func (h *Project) MultipleInsert(projects []*billing.Project) error {
 		p[i] = v
 	}
 
-	if err := h.svc.db.Collection(collectionProject).Insert(p...); err != nil {
+	err := h.svc.db.Collection(collectionProject).Insert(p...)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionProject),
+			zap.String(pkg.ErrorDatabaseFieldOperation, pkg.ErrorDatabaseFieldOperationInsert),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, p),
+		)
 		return err
 	}
 
@@ -413,11 +539,30 @@ func (h *Project) MultipleInsert(projects []*billing.Project) error {
 }
 
 func (h *Project) Update(project *billing.Project) error {
-	if err := h.svc.db.Collection(collectionProject).UpdateId(bson.ObjectIdHex(project.Id), project); err != nil {
+	err := h.svc.db.Collection(collectionProject).UpdateId(bson.ObjectIdHex(project.Id), project)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionProject),
+			zap.String(pkg.ErrorDatabaseFieldOperation, pkg.ErrorDatabaseFieldOperationUpdate),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, project),
+		)
 		return err
 	}
 
-	if err := h.svc.cacher.Set(fmt.Sprintf(cacheProjectId, project.Id), project, 0); err != nil {
+	key := fmt.Sprintf(cacheProjectId, project.Id)
+	err = h.svc.cacher.Set(key, project, 0)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
+			zap.String(pkg.ErrorCacheFieldKey, key),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, project),
+		)
 		return err
 	}
 
@@ -427,19 +572,35 @@ func (h *Project) Update(project *billing.Project) error {
 func (h Project) GetById(id string) (*billing.Project, error) {
 	var c billing.Project
 	key := fmt.Sprintf(cacheProjectId, id)
+	err := h.svc.cacher.Get(key, c)
 
-	if err := h.svc.cacher.Get(key, c); err == nil {
+	if err == nil {
 		return &c, nil
 	}
 
-	if err := h.svc.db.Collection(collectionProject).
-		Find(bson.M{"_id": bson.ObjectIdHex(id)}).
-		One(&c); err != nil {
+	query := bson.M{"_id": bson.ObjectIdHex(id)}
+	err = h.svc.db.Collection(collectionProject).Find(query).One(&c)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionProject),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
 		return nil, fmt.Errorf(errorNotFound, collectionProject)
 	}
 
-	if err := h.svc.cacher.Set(key, c, 0); err != nil {
-		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", key, "data", c)
+	err = h.svc.cacher.Set(key, c, 0)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
+			zap.String(pkg.ErrorCacheFieldKey, key),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, c),
+		)
 	}
 
 	return &c, nil

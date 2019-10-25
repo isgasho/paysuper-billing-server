@@ -1053,12 +1053,12 @@ func (suite *OrderTestSuite) SetupTest() {
 
 		baseAmount := 37.00 * float64(i+1) // base amount in product's default currency
 
-		req.Prices = append(req.Prices, &grpc.ProductPrice{
+		req.Prices = append(req.Prices, &billing.ProductPrice{
 			Currency: "USD",
 			Region:   "USD",
 			Amount:   baseAmount,
 		})
-		req.Prices = append(req.Prices, &grpc.ProductPrice{
+		req.Prices = append(req.Prices, &billing.ProductPrice{
 			Currency: "RUB",
 			Region:   "RUB",
 			Amount:   baseAmount * 65.13,
@@ -1086,7 +1086,7 @@ func (suite *OrderTestSuite) SetupTest() {
 			Platforms: []*grpc.PlatformPrice{
 				{
 					Id: "gog",
-					Prices: []*grpc.ProductPrice{
+					Prices: []*billing.ProductPrice{
 						{
 							Currency: "USD",
 							Region:   "USD",
@@ -1101,7 +1101,7 @@ func (suite *OrderTestSuite) SetupTest() {
 				},
 				{
 					Id: "steam",
-					Prices: []*grpc.ProductPrice{
+					Prices: []*billing.ProductPrice{
 						{
 							Currency: "USD",
 							Region:   "USD",
@@ -1738,7 +1738,7 @@ func (suite *OrderTestSuite) TestOrder_ValidateProductsForOrder_OneProductIsInac
 		Description:     map[string]string{"en": n + " description"},
 		MerchantId:      suite.projectFixedAmount.MerchantId,
 		ProjectId:       suite.projectFixedAmount.Id,
-		Prices: []*grpc.ProductPrice{
+		Prices: []*billing.ProductPrice{
 			{
 				Currency: "USD",
 				Region:   "USD",
@@ -1803,7 +1803,7 @@ func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_DifferentCurrencie
 		Description:     map[string]string{"en": n1 + " description"},
 		MerchantId:      suite.projectFixedAmount.MerchantId,
 		ProjectId:       suite.projectFixedAmount.Id,
-		Prices: []*grpc.ProductPrice{
+		Prices: []*billing.ProductPrice{
 			{
 				Currency: "USD",
 				Region:   "USD",
@@ -1831,7 +1831,7 @@ func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_DifferentCurrencie
 		Description:     map[string]string{"en": n2 + " description"},
 		MerchantId:      suite.projectFixedAmount.MerchantId,
 		ProjectId:       suite.projectFixedAmount.Id,
-		Prices: []*grpc.ProductPrice{
+		Prices: []*billing.ProductPrice{
 			{
 				Currency: "USD",
 				Region:   "USD",
@@ -1867,7 +1867,7 @@ func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_DifferentCurrencie
 		Description:     map[string]string{"en": n1 + " description"},
 		MerchantId:      suite.projectFixedAmount.MerchantId,
 		ProjectId:       suite.projectFixedAmount.Id,
-		Prices: []*grpc.ProductPrice{
+		Prices: []*billing.ProductPrice{
 			{
 				Currency: "EUR",
 				Region:   "EUR",
@@ -1895,7 +1895,7 @@ func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_DifferentCurrencie
 		Description:     map[string]string{"en": n2 + " description"},
 		MerchantId:      suite.projectFixedAmount.MerchantId,
 		ProjectId:       suite.projectFixedAmount.Id,
-		Prices: []*grpc.ProductPrice{
+		Prices: []*billing.ProductPrice{
 			{
 				Currency: "EUR",
 				Region:   "EUR",
@@ -1947,7 +1947,7 @@ func (suite *OrderTestSuite) TestOrder_GetOrderProductsItems_DifferentCurrencies
 		Description:     map[string]string{"en": n1 + " description"},
 		MerchantId:      suite.projectFixedAmount.MerchantId,
 		ProjectId:       suite.projectFixedAmount.Id,
-		Prices: []*grpc.ProductPrice{
+		Prices: []*billing.ProductPrice{
 			{
 				Currency: "USD",
 				Region:   "USD",
@@ -1975,7 +1975,7 @@ func (suite *OrderTestSuite) TestOrder_GetOrderProductsItems_DifferentCurrencies
 		Description:     map[string]string{"en": n2 + " description"},
 		MerchantId:      suite.projectFixedAmount.MerchantId,
 		ProjectId:       suite.projectFixedAmount.Id,
-		Prices: []*grpc.ProductPrice{
+		Prices: []*billing.ProductPrice{
 			{
 				Currency: "USD",
 				Region:   "USD",
@@ -2011,7 +2011,7 @@ func (suite *OrderTestSuite) TestOrder_GetOrderProductsItems_ProductHasNoDescInS
 		Description:     map[string]string{"en": n1 + " description"},
 		MerchantId:      suite.projectFixedAmount.MerchantId,
 		ProjectId:       suite.projectFixedAmount.Id,
-		Prices: []*grpc.ProductPrice{
+		Prices: []*billing.ProductPrice{
 			{
 				Currency: "USD",
 				Region:   "USD",

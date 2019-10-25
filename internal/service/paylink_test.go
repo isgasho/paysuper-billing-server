@@ -34,6 +34,7 @@ type PaylinkTestSuite struct {
 	cache   CacheInterface
 
 	merchant           *billing.Merchant
+	merchant2          *billing.Merchant
 	projectFixedAmount *billing.Project
 	paymentMethod      *billing.PaymentMethod
 	paymentSystem      *billing.PaymentSystem
@@ -120,6 +121,7 @@ func (suite *PaylinkTestSuite) SetupTest() {
 	}
 
 	suite.merchant, suite.projectFixedAmount, suite.paymentMethod, suite.paymentSystem = helperCreateEntitiesForTests(suite.Suite, suite.service)
+	suite.merchant2 = helperCreateMerchant(suite.Suite, suite.service, "USD", "RU", suite.paymentMethod, suite.merchant.MinPayoutAmount)
 
 	suite.product1 = &grpc.Product{
 		Id:              bson.NewObjectId().Hex(),
@@ -131,7 +133,7 @@ func (suite *PaylinkTestSuite) SetupTest() {
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		MerchantId:      suite.merchant.Id,
 		ProjectId:       suite.projectFixedAmount.Id,
-		Prices: []*grpc.ProductPrice{{
+		Prices: []*billing.ProductPrice{{
 			Currency: "USD",
 			Region:   "USD",
 			Amount:   1005.00,
@@ -151,7 +153,7 @@ func (suite *PaylinkTestSuite) SetupTest() {
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		MerchantId:      suite.merchant.Id,
 		ProjectId:       suite.projectFixedAmount.Id,
-		Prices: []*grpc.ProductPrice{{
+		Prices: []*billing.ProductPrice{{
 			Currency: "USD",
 			Region:   "USD",
 			Amount:   1005.00,
@@ -171,7 +173,7 @@ func (suite *PaylinkTestSuite) SetupTest() {
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		MerchantId:      suite.merchant.Id,
 		ProjectId:       bson.NewObjectId().Hex(),
-		Prices: []*grpc.ProductPrice{{
+		Prices: []*billing.ProductPrice{{
 			Currency: "USD",
 			Region:   "USD",
 			Amount:   1005.00,
@@ -191,7 +193,7 @@ func (suite *PaylinkTestSuite) SetupTest() {
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		MerchantId:      bson.NewObjectId().Hex(),
 		ProjectId:       bson.NewObjectId().Hex(),
-		Prices: []*grpc.ProductPrice{{
+		Prices: []*billing.ProductPrice{{
 			Currency: "USD",
 			Region:   "USD",
 			Amount:   1005.00,
@@ -209,9 +211,9 @@ func (suite *PaylinkTestSuite) SetupTest() {
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		LongDescription: map[string]string{"en": "Super game steam keys 1"},
 		Url:             "http://test.ru/dffdsfsfs",
-		Cover: &grpc.ImageCollection{
+		Cover: &billing.ImageCollection{
 			UseOneForAll: false,
-			Images: &grpc.LocalizedUrl{
+			Images: &billing.LocalizedUrl{
 				En: "/home/image.jpg",
 			},
 		},
@@ -220,7 +222,7 @@ func (suite *PaylinkTestSuite) SetupTest() {
 		Platforms: []*grpc.PlatformPrice{
 			{
 				Id: "steam",
-				Prices: []*grpc.ProductPrice{
+				Prices: []*billing.ProductPrice{
 					{Region: "USD", Currency: "USD", Amount: 10},
 					{Region: "EUR", Currency: "EUR", Amount: 20},
 				},
@@ -241,9 +243,9 @@ func (suite *PaylinkTestSuite) SetupTest() {
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		LongDescription: map[string]string{"en": "Super game steam keys 2"},
 		Url:             "http://test.ru/dffdsfsfs",
-		Cover: &grpc.ImageCollection{
+		Cover: &billing.ImageCollection{
 			UseOneForAll: false,
-			Images: &grpc.LocalizedUrl{
+			Images: &billing.LocalizedUrl{
 				En: "/home/image.jpg",
 			},
 		},
@@ -252,7 +254,7 @@ func (suite *PaylinkTestSuite) SetupTest() {
 		Platforms: []*grpc.PlatformPrice{
 			{
 				Id: "steam",
-				Prices: []*grpc.ProductPrice{
+				Prices: []*billing.ProductPrice{
 					{Region: "USD", Currency: "USD", Amount: 10},
 					{Region: "EUR", Currency: "EUR", Amount: 20},
 				},
@@ -272,18 +274,18 @@ func (suite *PaylinkTestSuite) SetupTest() {
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		LongDescription: map[string]string{"en": "Super game steam keys 3"},
 		Url:             "http://test.ru/dffdsfsfs",
-		Cover: &grpc.ImageCollection{
+		Cover: &billing.ImageCollection{
 			UseOneForAll: false,
-			Images: &grpc.LocalizedUrl{
+			Images: &billing.LocalizedUrl{
 				En: "/home/image.jpg",
 			},
 		},
-		MerchantId: bson.NewObjectId().Hex(),
+		MerchantId: suite.merchant2.Id,
 		ProjectId:  bson.NewObjectId().Hex(),
 		Platforms: []*grpc.PlatformPrice{
 			{
 				Id: "steam",
-				Prices: []*grpc.ProductPrice{
+				Prices: []*billing.ProductPrice{
 					{Region: "USD", Currency: "USD", Amount: 10},
 					{Region: "EUR", Currency: "EUR", Amount: 20},
 				},
@@ -292,7 +294,7 @@ func (suite *PaylinkTestSuite) SetupTest() {
 	}
 	err = suite.service.CreateOrUpdateKeyProduct(context.TODO(), req, &response)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), response.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, response.Status)
 	suite.keyProduct3 = response.Product
 
 	bod, _ := ptypes.TimestampProto(now.BeginningOfDay())
