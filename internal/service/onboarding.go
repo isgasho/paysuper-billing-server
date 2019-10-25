@@ -358,12 +358,10 @@ func (s *Service) ChangeMerchant(
 			MerchantId: merchant.Id,
 			Status:     pkg.UserRoleStatusAccepted,
 			Role:       pkg.RoleMerchantOwner,
-			User: &billing.UserRoleProfile{
-				UserId:    merchant.User.Id,
-				Email:     merchant.User.Email,
-				FirstName: merchant.User.FirstName,
-				LastName:  merchant.User.LastName,
-			},
+			UserId:     merchant.User.Id,
+			Email:      merchant.User.Email,
+			FirstName:  merchant.User.FirstName,
+			LastName:   merchant.User.LastName,
 		})
 	}
 

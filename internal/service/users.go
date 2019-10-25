@@ -197,9 +197,7 @@ func (s *Service) InviteUserMerchant(
 		MerchantId: merchant.Id,
 		Role:       req.Role,
 		Status:     pkg.UserRoleStatusInvited,
-		User: &billing.UserRoleProfile{
-			Email: req.Email,
-		},
+		Email:      req.Email,
 	}
 
 	if err = s.userRoleRepository.AddMerchantUser(role); err != nil {
@@ -227,14 +225,14 @@ func (s *Service) InviteUserMerchant(
 		return nil
 	}
 
-	if err = s.sendInviteEmail(req.Email, owner.User.Email, owner.User.FirstName, owner.User.LastName, merchant.Company.Name, tokenString); err != nil {
+	if err = s.sendInviteEmail(req.Email, owner.Email, owner.FirstName, owner.LastName, merchant.Company.Name, tokenString); err != nil {
 		zap.L().Error(
 			errorUserUnableToSendInvite.Message,
 			zap.Error(err),
 			zap.String("receiverEmail", req.Email),
-			zap.String("senderEmail", owner.User.Email),
-			zap.String("senderFirstName", owner.User.FirstName),
-			zap.String("senderLastName", owner.User.LastName),
+			zap.String("senderEmail", owner.Email),
+			zap.String("senderFirstName", owner.FirstName),
+			zap.String("senderLastName", owner.LastName),
 			zap.String("senderCompany", merchant.Company.Name),
 			zap.String("token", tokenString),
 		)
@@ -279,9 +277,7 @@ func (s *Service) InviteUserAdmin(
 		Id:     bson.NewObjectId().Hex(),
 		Role:   req.Role,
 		Status: pkg.UserRoleStatusInvited,
-		User: &billing.UserRoleProfile{
-			Email: req.Email,
-		},
+		Email:  req.Email,
 	}
 
 	if err = s.userRoleRepository.AddAdminUser(role); err != nil {
@@ -309,14 +305,14 @@ func (s *Service) InviteUserAdmin(
 		return nil
 	}
 
-	if err = s.sendInviteEmail(req.Email, owner.User.Email, owner.User.FirstName, owner.User.LastName, defaultCompanyName, tokenString); err != nil {
+	if err = s.sendInviteEmail(req.Email, owner.Email, owner.FirstName, owner.LastName, defaultCompanyName, tokenString); err != nil {
 		zap.L().Error(
 			errorUserUnableToSendInvite.Message,
 			zap.Error(err),
 			zap.String("receiverEmail", req.Email),
-			zap.String("senderEmail", owner.User.Email),
-			zap.String("senderFirstName", owner.User.FirstName),
-			zap.String("senderLastName", owner.User.LastName),
+			zap.String("senderEmail", owner.Email),
+			zap.String("senderFirstName", owner.FirstName),
+			zap.String("senderLastName", owner.LastName),
 			zap.String("token", tokenString),
 		)
 		res.Status = pkg.ResponseStatusBadData
@@ -377,7 +373,7 @@ func (s *Service) ResendInviteMerchant(
 	expire := time.Now().Add(time.Hour * time.Duration(s.cfg.UserInviteTokenTimeout)).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		claimType:   pkg.RoleTypeMerchant,
-		claimEmail:  role.User.Email,
+		claimEmail:  role.Email,
 		claimRoleId: role.Id,
 		claimExpire: expire,
 	})
@@ -391,11 +387,11 @@ func (s *Service) ResendInviteMerchant(
 		return nil
 	}
 
-	if err = s.sendInviteEmail(role.User.Email, owner.User.Email, owner.User.FirstName, owner.User.LastName, merchant.Company.Name, tokenString); err != nil {
+	if err = s.sendInviteEmail(role.Email, owner.Email, owner.FirstName, owner.LastName, merchant.Company.Name, tokenString); err != nil {
 		zap.L().Error(
 			errorUserUnableToSendInvite.Message,
 			zap.Error(err),
-			zap.String("receiverEmail", role.User.Email),
+			zap.String("receiverEmail", role.Email),
 			zap.String("senderEmail", merchant.User.Email),
 			zap.String("senderFirstName", merchant.User.FirstName),
 			zap.String("senderLastName", merchant.User.LastName),
@@ -441,7 +437,7 @@ func (s *Service) ResendInviteAdmin(
 	expire := time.Now().Add(time.Hour * time.Duration(s.cfg.UserInviteTokenTimeout)).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		claimType:   pkg.RoleTypeSystem,
-		claimEmail:  role.User.Email,
+		claimEmail:  role.Email,
 		claimRoleId: role.Id,
 		claimExpire: expire,
 	})
@@ -455,14 +451,14 @@ func (s *Service) ResendInviteAdmin(
 		return nil
 	}
 
-	if err = s.sendInviteEmail(role.User.Email, owner.User.Email, owner.User.FirstName, owner.User.LastName, defaultCompanyName, tokenString); err != nil {
+	if err = s.sendInviteEmail(role.Email, owner.Email, owner.FirstName, owner.LastName, defaultCompanyName, tokenString); err != nil {
 		zap.L().Error(
 			errorUserUnableToSendInvite.Message,
 			zap.Error(err),
-			zap.String("receiverEmail", role.User.Email),
-			zap.String("senderEmail", owner.User.Email),
-			zap.String("senderFirstName", owner.User.FirstName),
-			zap.String("senderLastName", owner.User.LastName),
+			zap.String("receiverEmail", role.Email),
+			zap.String("senderEmail", owner.Email),
+			zap.String("senderFirstName", owner.FirstName),
+			zap.String("senderLastName", owner.LastName),
 			zap.String("tokenString", tokenString),
 		)
 		res.Status = pkg.ResponseStatusBadData
@@ -519,9 +515,9 @@ func (s *Service) AcceptInvite(
 	}
 
 	user.Status = pkg.UserRoleStatusAccepted
-	user.User.UserId = req.UserId
-	user.User.FirstName = req.FirstName
-	user.User.LastName = req.LastName
+	user.UserId = req.UserId
+	user.FirstName = req.FirstName
+	user.LastName = req.LastName
 
 	switch claims[claimType] {
 	case pkg.RoleTypeMerchant:
@@ -541,10 +537,10 @@ func (s *Service) AcceptInvite(
 		return nil
 	}
 
-	casbinUserId := user.User.UserId
+	casbinUserId := user.UserId
 
 	if claims[claimType] == pkg.RoleTypeMerchant {
-		casbinUserId = fmt.Sprintf(pkg.CasbinMerchantUserMask, user.MerchantId, user.User.UserId)
+		casbinUserId = fmt.Sprintf(pkg.CasbinMerchantUserMask, user.MerchantId, user.UserId)
 	}
 
 	_, err = s.casbinService.AddRoleForUser(ctx, &casbinProto.UserRoleRequest{
@@ -675,7 +671,7 @@ func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.Chang
 		return nil
 	}
 
-	casbinUserId := fmt.Sprintf(pkg.CasbinMerchantUserMask, user.MerchantId, user.User.UserId)
+	casbinUserId := fmt.Sprintf(pkg.CasbinMerchantUserMask, user.MerchantId, user.UserId)
 
 	_, err = s.casbinService.DeleteUser(ctx, &casbinProto.UserRoleRequest{User: casbinUserId})
 
@@ -734,7 +730,7 @@ func (s *Service) ChangeRoleForAdminUser(ctx context.Context, req *grpc.ChangeRo
 		return nil
 	}
 
-	_, err = s.casbinService.DeleteUser(ctx, &casbinProto.UserRoleRequest{User: user.User.UserId})
+	_, err = s.casbinService.DeleteUser(ctx, &casbinProto.UserRoleRequest{User: user.UserId})
 
 	if err != nil {
 		zap.L().Error(errorUserUnableToDeleteFromCasbin.Message, zap.Error(err), zap.Any("req", req))
@@ -744,7 +740,7 @@ func (s *Service) ChangeRoleForAdminUser(ctx context.Context, req *grpc.ChangeRo
 	}
 
 	_, err = s.casbinService.AddRoleForUser(ctx, &casbinProto.UserRoleRequest{
-		User: user.User.UserId,
+		User: user.UserId,
 		Role: req.Role,
 	})
 
@@ -797,7 +793,7 @@ func (s *Service) DeleteMerchantUser(
 	}
 
 	_, err = s.casbinService.DeleteUser(ctx, &casbinProto.UserRoleRequest{
-		User: fmt.Sprintf(pkg.CasbinMerchantUserMask, user.MerchantId, user.User.UserId),
+		User: fmt.Sprintf(pkg.CasbinMerchantUserMask, user.MerchantId, user.UserId),
 	})
 
 	if err != nil {
@@ -835,7 +831,7 @@ func (s *Service) DeleteAdminUser(
 		return nil
 	}
 
-	_, err = s.casbinService.DeleteUser(ctx, &casbinProto.UserRoleRequest{User: user.User.UserId})
+	_, err = s.casbinService.DeleteUser(ctx, &casbinProto.UserRoleRequest{User: user.UserId})
 
 	if err != nil {
 		zap.L().Error(errorUserUnableToDeleteFromCasbin.Message, zap.Error(err), zap.Any("req", req))
