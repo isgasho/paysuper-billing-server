@@ -235,6 +235,8 @@ It has these top-level messages:
 	GetPaylinkStatCommonRequest
 	GetPaylinkStatCommonResponse
 	GetPaylinkStatCommonGroupResponse
+	RoyaltyReportPdfUploadedRequest
+	RoyaltyReportPdfUploadedResponse
 */
 package grpc
 
@@ -255,8 +257,8 @@ import (
 var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
-var _ = billing.PaymentCostDeleteRequest{}
 var _ = paylink.CreatePaylinkRequest{}
+var _ = billing.PaymentCostDeleteRequest{}
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the proto package it is being compiled against.
@@ -371,6 +373,7 @@ type BillingService interface {
 	ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, opts ...client.CallOption) (*TransactionsResponse, error)
 	MerchantReviewRoyaltyReport(ctx context.Context, in *MerchantReviewRoyaltyReportRequest, opts ...client.CallOption) (*ResponseError, error)
 	AutoAcceptRoyaltyReports(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*EmptyResponse, error)
+	RoyaltyReportPdfUploaded(ctx context.Context, in *RoyaltyReportPdfUploadedRequest, opts ...client.CallOption) (*RoyaltyReportPdfUploadedResponse, error)
 	GetVatReportsDashboard(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*VatReportsResponse, error)
 	GetVatReportsForCountry(ctx context.Context, in *VatReportsRequest, opts ...client.CallOption) (*VatReportsResponse, error)
 	GetVatReportTransactions(ctx context.Context, in *VatTransactionsRequest, opts ...client.CallOption) (*TransactionsResponse, error)
@@ -1429,6 +1432,16 @@ func (c *billingService) AutoAcceptRoyaltyReports(ctx context.Context, in *Empty
 	return out, nil
 }
 
+func (c *billingService) RoyaltyReportPdfUploaded(ctx context.Context, in *RoyaltyReportPdfUploadedRequest, opts ...client.CallOption) (*RoyaltyReportPdfUploadedResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.RoyaltyReportPdfUploaded", in)
+	out := new(RoyaltyReportPdfUploadedResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *billingService) GetVatReportsDashboard(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*VatReportsResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.GetVatReportsDashboard", in)
 	out := new(VatReportsResponse)
@@ -2011,6 +2024,7 @@ type BillingServiceHandler interface {
 	ListRoyaltyReportOrders(context.Context, *ListRoyaltyReportOrdersRequest, *TransactionsResponse) error
 	MerchantReviewRoyaltyReport(context.Context, *MerchantReviewRoyaltyReportRequest, *ResponseError) error
 	AutoAcceptRoyaltyReports(context.Context, *EmptyRequest, *EmptyResponse) error
+	RoyaltyReportPdfUploaded(context.Context, *RoyaltyReportPdfUploadedRequest, *RoyaltyReportPdfUploadedResponse) error
 	GetVatReportsDashboard(context.Context, *EmptyRequest, *VatReportsResponse) error
 	GetVatReportsForCountry(context.Context, *VatReportsRequest, *VatReportsResponse) error
 	GetVatReportTransactions(context.Context, *VatTransactionsRequest, *TransactionsResponse) error
@@ -2162,6 +2176,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, out *TransactionsResponse) error
 		MerchantReviewRoyaltyReport(ctx context.Context, in *MerchantReviewRoyaltyReportRequest, out *ResponseError) error
 		AutoAcceptRoyaltyReports(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error
+		RoyaltyReportPdfUploaded(ctx context.Context, in *RoyaltyReportPdfUploadedRequest, out *RoyaltyReportPdfUploadedResponse) error
 		GetVatReportsDashboard(ctx context.Context, in *EmptyRequest, out *VatReportsResponse) error
 		GetVatReportsForCountry(ctx context.Context, in *VatReportsRequest, out *VatReportsResponse) error
 		GetVatReportTransactions(ctx context.Context, in *VatTransactionsRequest, out *TransactionsResponse) error
@@ -2616,6 +2631,10 @@ func (h *billingServiceHandler) MerchantReviewRoyaltyReport(ctx context.Context,
 
 func (h *billingServiceHandler) AutoAcceptRoyaltyReports(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error {
 	return h.BillingServiceHandler.AutoAcceptRoyaltyReports(ctx, in, out)
+}
+
+func (h *billingServiceHandler) RoyaltyReportPdfUploaded(ctx context.Context, in *RoyaltyReportPdfUploadedRequest, out *RoyaltyReportPdfUploadedResponse) error {
+	return h.BillingServiceHandler.RoyaltyReportPdfUploaded(ctx, in, out)
 }
 
 func (h *billingServiceHandler) GetVatReportsDashboard(ctx context.Context, in *EmptyRequest, out *VatReportsResponse) error {

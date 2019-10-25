@@ -6,6 +6,7 @@ package service
 import (
 	"context"
 	"crypto/md5"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -18,9 +19,13 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
+	reporterConst "github.com/paysuper/paysuper-reporter/pkg"
+	reporterProto "github.com/paysuper/paysuper-reporter/pkg/proto"
 	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
 	"github.com/streadway/amqp"
 	"go.uber.org/zap"
+	"mime"
+	"path/filepath"
 	"sync"
 	"time"
 )
@@ -681,9 +686,105 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(ctx context.Context, mercha
 
 	err = h.royaltyReport.Insert(report, "", pkg.RoyaltyReportChangeSourceAuto)
 
-	h.Service.sendRoyaltyReportNotification(ctx, report)
+	err = h.Service.renderRoyaltyReport(ctx, report, merchant)
+	if err != nil {
+		return err
+	}
 
 	zap.L().Info("generating royalty report for merchant finished", zap.String("merchant_id", merchantId.Hex()))
+
+	return nil
+}
+
+func (s *Service) renderRoyaltyReport(
+	ctx context.Context,
+	report *billing.RoyaltyReport,
+	merchant *billing.Merchant,
+) error {
+	params, err := json.Marshal(map[string]interface{}{reporterConst.ParamsFieldId: report.Id})
+	if err != nil {
+		zap.L().Error(
+			"Unable to marshal the params of royalty report for the reporting service.",
+			zap.Error(err),
+		)
+		return err
+	}
+
+	fileReq := &reporterProto.ReportFile{
+		UserId:           merchant.User.Id,
+		MerchantId:       merchant.Id,
+		ReportType:       reporterConst.ReportTypeRoyalty,
+		FileType:         reporterConst.OutputExtensionPdf,
+		Params:           params,
+		SendNotification: true,
+	}
+
+	if _, err = s.reporterService.CreateFile(ctx, fileReq); err != nil {
+		zap.L().Error(
+			"Unable to create file in the reporting service for royalty report.",
+			zap.Error(err),
+		)
+		return err
+	}
+	return nil
+}
+
+func (s *Service) RoyaltyReportPdfUploaded(
+	ctx context.Context,
+	req *grpc.RoyaltyReportPdfUploadedRequest,
+	res *grpc.RoyaltyReportPdfUploadedResponse,
+) error {
+
+	report, err := s.royaltyReport.GetById(req.RoyaltyReportId)
+	if err != nil {
+		if err == mgo.ErrNotFound {
+			res.Status = pkg.ResponseStatusNotFound
+			res.Message = royaltyReportErrorReportNotFound
+			return nil
+		}
+		return err
+	}
+
+	merchant, err := s.merchant.GetById(report.MerchantId)
+
+	if err != nil {
+		zap.L().Error("Merchant not found", zap.Error(err), zap.String("merchant_id", report.MerchantId))
+		return err
+	}
+
+	if merchant.HasAuthorizedEmail() == true {
+
+		content := base64.StdEncoding.EncodeToString(req.Content)
+		contentType := mime.TypeByExtension(filepath.Ext(req.Filename))
+
+		payload := &postmarkSdrPkg.Payload{
+			TemplateAlias: s.cfg.EmailNewRoyaltyReportTemplate,
+			TemplateModel: map[string]string{
+				"merchant_id":       merchant.Id,
+				"royalty_report_id": report.Id,
+			},
+			To: merchant.GetAuthorizedEmail(),
+			Attachments: []*postmarkSdrPkg.PayloadAttachment{
+				{
+					Name:        req.Filename,
+					Content:     content,
+					ContentType: contentType,
+				},
+			},
+		}
+
+		err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+
+		if err != nil {
+			zap.L().Error(
+				"Publication message about merchant new payout document to queue failed",
+				zap.Error(err),
+				zap.Any("report", report),
+			)
+		}
+	}
+
+	res.Status = pkg.ResponseStatusOk
 
 	return nil
 }

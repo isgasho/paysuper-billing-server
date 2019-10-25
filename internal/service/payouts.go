@@ -563,7 +563,6 @@ func (s *Service) PayoutDocumentPdfUploaded(
 	req *grpc.PayoutDocumentPdfUploadedRequest,
 	res *grpc.PayoutDocumentPdfUploadedResponse,
 ) error {
-	res.Status = pkg.ResponseStatusOk
 
 	pd, err := s.payoutDocument.GetById(req.PayoutId)
 	if err != nil {
@@ -613,6 +612,8 @@ func (s *Service) PayoutDocumentPdfUploaded(
 			)
 		}
 	}
+
+	res.Status = pkg.ResponseStatusOk
 
 	return nil
 }
