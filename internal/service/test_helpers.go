@@ -873,7 +873,7 @@ func createKeyProductsFroProject(
 	project *billing.Project,
 	productsCount int,
 ) []*grpc.KeyProduct {
-	products := make([]*grpc.KeyProduct, 1)
+	products := make([]*grpc.KeyProduct, 0)
 
 	for i := 0; i < productsCount; i++ {
 		baseAmount := 37.00 * float64(i+1)
