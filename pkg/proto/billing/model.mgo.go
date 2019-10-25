@@ -837,7 +837,6 @@ type MgoMerchantBalance struct {
 }
 
 type MgoUserRoleProfile struct {
-	Id        bson.ObjectId `bson:"_id"`
 	UserId    bson.ObjectId `bson:"user_id"`
 	FirstName string        `bson:"first_name"`
 	LastName  string        `bson:"last_name"`
@@ -4346,6 +4345,59 @@ func (k *UserRole) SetBSON(raw bson.Raw) error {
 	if decoded.MerchantId != nil {
 		k.MerchantId = decoded.MerchantId.Hex()
 	}
+
+	if k.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt); err != nil {
+		return err
+	}
+
+	if k.UpdatedAt, err = ptypes.TimestampProto(decoded.UpdatedAt); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *UserRoleProfile) GetBSON() (interface{}, error) {
+	var err error
+
+	st := &MgoUserRoleProfile{
+		UserId:    bson.ObjectIdHex(m.UserId),
+		Email:     m.Email,
+		FirstName: m.FirstName,
+		LastName:  m.LastName,
+	}
+
+	if m.CreatedAt != nil {
+		if st.CreatedAt, err = ptypes.Timestamp(m.CreatedAt); err != nil {
+			return nil, err
+		}
+	} else {
+		st.CreatedAt = time.Now()
+	}
+
+	if m.UpdatedAt != nil {
+		if st.UpdatedAt, err = ptypes.Timestamp(m.UpdatedAt); err != nil {
+			return nil, err
+		}
+	} else {
+		st.UpdatedAt = time.Now()
+	}
+
+	return st, nil
+}
+
+func (k *UserRoleProfile) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoUserRoleProfile)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	k.UserId = decoded.UserId.Hex()
+	k.Email = decoded.Email
+	k.FirstName = decoded.FirstName
+	k.LastName = decoded.LastName
 
 	if k.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt); err != nil {
 		return err
