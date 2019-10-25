@@ -89,6 +89,29 @@ func (s *Service) CreatePayoutDocument(
 	res *grpc.PayoutDocumentResponse,
 ) error {
 
+	merchant, err := s.merchant.GetById(req.MerchantId)
+	if err != nil {
+		return err
+	}
+
+	if merchant.ManualPayoutsEnabled == req.IsAutoGeneration == true {
+		res.Status = pkg.ResponseStatusBadData
+		if req.IsAutoGeneration {
+			res.Message = errorPayoutAutoPayoutsDisabled
+		} else {
+			res.Message = errorPayoutManualPayoutsDisabled
+		}
+	}
+
+	return s.createPayoutDocument(ctx, merchant, req, res)
+}
+
+func (s *Service) createPayoutDocument(
+	ctx context.Context,
+	merchant *billing.Merchant,
+	req *grpc.CreatePayoutDocumentRequest,
+	res *grpc.PayoutDocumentResponse,
+) error {
 	arrivalDate, err := ptypes.TimestampProto(now.EndOfDay().Add(time.Hour * 24 * payoutArrivalInDays))
 	if err != nil {
 		return err
@@ -102,20 +125,6 @@ func (s *Service) CreatePayoutDocument(
 		CreatedAt:   ptypes.TimestampNow(),
 		UpdatedAt:   ptypes.TimestampNow(),
 		ArrivalDate: arrivalDate,
-	}
-
-	merchant, err := s.merchant.GetById(req.MerchantId)
-	if err != nil {
-		return err
-	}
-
-	if merchant.ManualPayoutsEnabled == req.IsAutoGeneration == true {
-		res.Status = pkg.ResponseStatusBadData
-		if req.IsAutoGeneration {
-			res.Message = errorPayoutAutoPayoutsDisabled
-		} else {
-			res.Message = errorPayoutManualPayoutsDisabled
-		}
 	}
 
 	pd.MerchantId = merchant.Id
@@ -296,7 +305,47 @@ func (s *Service) GetPayoutDocumentRoyaltyReports(
 }
 
 func (s *Service) AutoCreatePayoutDocuments(context.Context, *grpc.EmptyRequest, *grpc.EmptyResponse) error {
-	panic("implement me")
+	zap.L().Info("start auto-creation of payout documents")
+
+	merchants, err := s.merchant.GetMerchantsWithAutoPayouts()
+	if err != nil {
+		zap.L().Error("GetMerchantsWithAutoPayouts failed", zap.Error(err))
+		return err
+	}
+
+	req := &grpc.CreatePayoutDocumentRequest{
+		Ip:               "0.0.0.0",
+		Initiator:        pkg.RoyaltyReportChangeSourceAuto,
+		IsAutoGeneration: true,
+	}
+	res := &grpc.PayoutDocumentResponse{}
+	ctx := context.TODO()
+
+	for _, m := range merchants {
+		req.MerchantId = m.Id
+		err = s.createPayoutDocument(ctx, m, req, res)
+		if err != nil {
+			zap.L().Error(
+				"auto createPayoutDocument failed with error",
+				zap.Error(err),
+				zap.String("merchantId", m.Id),
+			)
+			return err
+		}
+		if res.Status != pkg.ResponseStatusOk {
+			zap.L().Error(
+				"auto createPayoutDocument failed in response",
+				zap.Int32("code", res.Status),
+				zap.Any("message", res.Message),
+				zap.String("merchantId", m.Id),
+			)
+			return err
+		}
+	}
+
+	zap.L().Info("auto-creation of payout documents finished")
+
+	return nil
 }
 
 func (s *Service) renderPayoutDocument(
@@ -319,7 +368,7 @@ func (s *Service) renderPayoutDocument(
 		ReportType:       reporterConst.ReportTypePayout,
 		FileType:         reporterConst.OutputExtensionPdf,
 		Params:           params,
-		SendNotification: false,
+		SendNotification: merchant.ManualPayoutsEnabled,
 	}
 
 	if _, err = s.reporterService.CreateFile(ctx, fileReq); err != nil {

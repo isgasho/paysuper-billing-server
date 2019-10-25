@@ -12212,8 +12212,8 @@ func (m *DashboardBaseReports) GetSources() *DashboardSourcesReport {
 }
 
 type CreatePayoutDocumentRequest struct {
-	//@inject_tag: json:"description" validate:"required,max=255"
-	Description string `protobuf:"bytes,1,opt,name=description,proto3" json:"description" validate:"required,max=255"`
+	//@inject_tag: json:"description" validate:"max=255"
+	Description string `protobuf:"bytes,1,opt,name=description,proto3" json:"description" validate:"max=255"`
 	//@inject_tag: json:"merchant_id" validate:"required,hexadecimal,len=24"
 	MerchantId string `protobuf:"bytes,2,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id" validate:"required,hexadecimal,len=24"`
 	//@inject_tag: json:"ip" validate:"required"
