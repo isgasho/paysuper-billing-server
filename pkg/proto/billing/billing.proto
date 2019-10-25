@@ -2224,18 +2224,24 @@ message UserRoleProfile {
 message UserRole {
     //@inject_tag: json:"id" validate:"required,hexadecimal,len=24"
     string id = 1;
-    //@inject_tag: json:"user" validate:"required"
-    UserRoleProfile user = 2;
     //@inject_tag: json:"merchant_id" validate:"required,hexadecimal,len=24"
     string merchant_id = 3;
     //@inject_tag: json:"role" validate:"required"
     string role = 4;
     //@inject_tag: json:"status" bson:"status" validate="oneof=invited accepted"
     string status = 5;
+    //@inject_tag: json:"user_id" bson:"user_id" validate:"required,hexadecimal,len=24"
+    string user_id = 6;
+    //@inject_tag: json:"first_name" bson:"first_name"  validate:"required"
+    string first_name = 7;
+    //@inject_tag: json:"last_name" bson:"last_name" validate:"required"
+    string last_name = 8;
+    //@inject_tag: json:"email" bson:"email" validate:"required,email"
+    string email = 9;
     // @inject_tag: json:"created_at"
-    google.protobuf.Timestamp created_at = 6;
+    google.protobuf.Timestamp created_at = 10;
     // @inject_tag: json:"updated_at"
-    google.protobuf.Timestamp updated_at = 7;
+    google.protobuf.Timestamp updated_at = 11;
 }
 
 message RoleListItem {

@@ -127,7 +127,7 @@ func (h *UserRoleRepository) UpdateMerchantUser(u *billing.UserRole) error {
 		return err
 	}
 
-	if err := h.svc.cacher.Delete(fmt.Sprintf(cacheUserMerchants, u.User.UserId)); err != nil {
+	if err := h.svc.cacher.Delete(fmt.Sprintf(cacheUserMerchants, u.UserId)); err != nil {
 		return err
 	}
 
@@ -146,7 +146,7 @@ func (h *UserRoleRepository) GetAdminUserByEmail(email string) (*billing.UserRol
 	var user *billing.UserRole
 
 	err := h.svc.db.Collection(collectionAdminUsersTable).
-		Find(bson.M{"user.email": email}).
+		Find(bson.M{"email": email}).
 		One(&user)
 
 	if err != nil {
@@ -160,7 +160,7 @@ func (h *UserRoleRepository) GetMerchantUserByEmail(merchantId string, email str
 	var user *billing.UserRole
 
 	err := h.svc.db.Collection(collectionMerchantUsersTable).
-		Find(bson.M{"merchant_id": bson.ObjectIdHex(merchantId), "user.email": email}).
+		Find(bson.M{"merchant_id": bson.ObjectIdHex(merchantId), "email": email}).
 		One(&user)
 
 	if err != nil {
@@ -174,7 +174,7 @@ func (h *UserRoleRepository) GetAdminUserByUserId(userId string) (*billing.UserR
 	var user *billing.UserRole
 
 	err := h.svc.db.Collection(collectionAdminUsersTable).
-		Find(bson.M{"user.user_id": userId}).
+		Find(bson.M{"user_id": bson.ObjectIdHex(userId)}).
 		One(&user)
 
 	if err != nil {
@@ -188,7 +188,7 @@ func (h *UserRoleRepository) GetMerchantUserByUserId(merchantId string, id strin
 	var user *billing.UserRole
 
 	err := h.svc.db.Collection(collectionMerchantUsersTable).
-		Find(bson.M{"merchant_id": bson.ObjectIdHex(merchantId), "user.user_id": id}).
+		Find(bson.M{"merchant_id": bson.ObjectIdHex(merchantId), "user_id": bson.ObjectIdHex(id)}).
 		One(&user)
 
 	if err != nil {
@@ -235,7 +235,7 @@ func (h *UserRoleRepository) DeleteMerchantUser(u *billing.UserRole) error {
 		return err
 	}
 
-	if err := h.svc.cacher.Delete(fmt.Sprintf(cacheUserMerchants, u.User.UserId)); err != nil {
+	if err := h.svc.cacher.Delete(fmt.Sprintf(cacheUserMerchants, u.UserId)); err != nil {
 		return err
 	}
 

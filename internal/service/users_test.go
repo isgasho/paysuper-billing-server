@@ -22,10 +22,6 @@ type UsersTestSuite struct {
 	suite.Suite
 	service *Service
 	cache   CacheInterface
-
-	merchant  *billing.Merchant
-	user      *billing.UserRoleProfile
-	adminUser *billing.UserRoleProfile
 }
 
 func Test_Users(t *testing.T) {
@@ -261,7 +257,7 @@ func (suite *UsersTestSuite) TestChangeAdminUserRole_Error_DeleteFromCasbin() {
 	repository := &mocks.UserRoleServiceInterface{}
 	repository.
 		On("GetAdminUserByUserId", mock.Anything).
-		Return(&billing.UserRole{Role: "test", User: &billing.UserRoleProfile{UserId: bson.NewObjectId().Hex()}}, nil)
+		Return(&billing.UserRole{Role: "test", UserId: bson.NewObjectId().Hex()}, nil)
 	repository.On("UpdateAdminUser", mock.Anything).Return(nil)
 	suite.service.userRoleRepository = repository
 
@@ -284,7 +280,7 @@ func (suite *UsersTestSuite) TestChangeAdminUserRole_Error_AddRoleForUserCasbin(
 	repository := &mocks.UserRoleServiceInterface{}
 	repository.
 		On("GetAdminUserByUserId", mock.Anything).
-		Return(&billing.UserRole{Role: "test", User: &billing.UserRoleProfile{UserId: bson.NewObjectId().Hex()}}, nil)
+		Return(&billing.UserRole{Role: "test", UserId: bson.NewObjectId().Hex()}, nil)
 	repository.On("UpdateAdminUser", mock.Anything).Return(nil)
 	suite.service.userRoleRepository = repository
 
@@ -308,7 +304,7 @@ func (suite *UsersTestSuite) TestChangeAdminUserRole_Ok() {
 	repository := &mocks.UserRoleServiceInterface{}
 	repository.
 		On("GetAdminUserByUserId", mock.Anything).
-		Return(&billing.UserRole{Role: "test", User: &billing.UserRoleProfile{UserId: bson.NewObjectId().Hex()}}, nil)
+		Return(&billing.UserRole{Role: "test", UserId: bson.NewObjectId().Hex()}, nil)
 	repository.On("UpdateAdminUser", mock.Anything).Return(nil)
 	suite.service.userRoleRepository = repository
 
@@ -382,7 +378,7 @@ func (suite *UsersTestSuite) TestChangeMerchantUserRole_Error_DeleteFromCasbin()
 	repository := &mocks.UserRoleServiceInterface{}
 	repository.
 		On("GetMerchantUserByUserId", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{Role: "test", User: &billing.UserRoleProfile{UserId: bson.NewObjectId().Hex()}}, nil)
+		Return(&billing.UserRole{Role: "test", UserId: bson.NewObjectId().Hex()}, nil)
 	repository.On("UpdateMerchantUser", mock.Anything).Return(nil)
 	suite.service.userRoleRepository = repository
 
@@ -405,7 +401,7 @@ func (suite *UsersTestSuite) TestChangeMerchantUserRole_Error_AddRoleForUserCasb
 	repository := &mocks.UserRoleServiceInterface{}
 	repository.
 		On("GetMerchantUserByUserId", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{Role: "test", User: &billing.UserRoleProfile{UserId: bson.NewObjectId().Hex()}}, nil)
+		Return(&billing.UserRole{Role: "test", UserId: bson.NewObjectId().Hex()}, nil)
 	repository.On("UpdateMerchantUser", mock.Anything).Return(nil)
 	suite.service.userRoleRepository = repository
 
@@ -429,7 +425,7 @@ func (suite *UsersTestSuite) TestChangeMerchantUserRole_Ok() {
 	repository := &mocks.UserRoleServiceInterface{}
 	repository.
 		On("GetMerchantUserByUserId", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{Role: "test", User: &billing.UserRoleProfile{UserId: bson.NewObjectId().Hex()}}, nil)
+		Return(&billing.UserRole{Role: "test", UserId: bson.NewObjectId().Hex()}, nil)
 	repository.On("UpdateMerchantUser", mock.Anything).Return(nil)
 	suite.service.userRoleRepository = repository
 
