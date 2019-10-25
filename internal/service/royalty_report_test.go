@@ -18,6 +18,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
+	proto2 "github.com/paysuper/paysuper-reporter/pkg/proto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	mock2 "github.com/stretchr/testify/mock"
@@ -913,6 +914,11 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_SendRoyaltyReportNotifica
 }
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_AutoAcceptRoyaltyReports_Ok() {
+	reporterMock := &reportingMocks.ReporterService{}
+	reporterMock.On("CreateFile", mock2.Anything, mock2.Anything, mock2.Anything).
+		Return(&proto2.CreateFileResponse{Status: pkg.ResponseStatusOk}, nil)
+	suite.service.reporterService = reporterMock
+
 	projects := []*billing.Project{suite.project, suite.project1, suite.project2}
 
 	ci := &mocks.CentrifugoInterface{}
