@@ -982,6 +982,7 @@ message TokenUserValue {
 }
 
 message TokenUser {
+    //@inject_tag: validate:"required"
     string id = 1;
     TokenUserEmailValue email = 2;
     TokenUserPhoneValue phone = 4;
