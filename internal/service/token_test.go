@@ -254,7 +254,7 @@ func (suite *TokenTestSuite) SetupTest() {
 		Metadata: map[string]string{
 			"SomeKey": "SomeValue",
 		},
-		Prices: []*grpc.ProductPrice{{Currency: "RUB", Amount: 1005.00, Region: "RUB"}},
+		Prices: []*billing.ProductPrice{{Currency: "RUB", Amount: 1005.00, Region: "RUB"}},
 	}
 	product2 := &grpc.Product{
 		Id:              bson.NewObjectId().Hex(),
@@ -273,7 +273,7 @@ func (suite *TokenTestSuite) SetupTest() {
 		Metadata: map[string]string{
 			"SomeKey": "SomeValue",
 		},
-		Prices: []*grpc.ProductPrice{{Currency: "RUB", Amount: 1005.00, Region: "RUB"}},
+		Prices: []*billing.ProductPrice{{Currency: "RUB", Amount: 1005.00, Region: "RUB"}},
 	}
 
 	err = db.Collection(collectionProduct).Insert([]interface{}{product1, product2}...)

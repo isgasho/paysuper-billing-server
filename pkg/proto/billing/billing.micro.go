@@ -126,6 +126,11 @@ It has these top-level messages:
 	MerchantBalance
 	OrderReceipt
 	OrderReceiptItem
+	HasCurrencyItem
+	LocalizedUrl
+	ImageCollection
+	ProductPrice
+	ProjectVirtualCurrency
 	OrderCreateByPaylink
 */
 package billing
