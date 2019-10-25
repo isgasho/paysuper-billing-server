@@ -217,6 +217,11 @@ func (s *Service) ProcessRefundCallback(
 	h, err := s.NewPaymentSystem(s.cfg.PaymentSystemConfig, order)
 
 	if err != nil {
+		zap.L().Error(
+			"s.NewPaymentSystem method failed",
+			zap.Error(err),
+			zap.Any("order", order),
+		)
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Error = orderErrorUnknown.Error()
 
