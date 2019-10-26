@@ -101,6 +101,11 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 	redisdb := mocks.NewTestRedis()
 	suite.httpClient = mocks.NewClientStatusOk()
 	suite.cache = NewCacheRedis(redisdb)
+
+	reporterMock := &reportingMocks.ReporterService{}
+	reporterMock.On("CreateFile", mock2.Anything, mock2.Anything, mock2.Anything).
+		Return(&proto2.CreateFileResponse{Status: pkg.ResponseStatusOk}, nil)
+
 	suite.service = NewBillingService(
 		db,
 		cfg,
@@ -112,7 +117,7 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 		suite.cache,
 		mocks.NewCurrencyServiceMockOk(),
 		mocks.NewDocumentSignerMockOk(),
-		&reportingMocks.ReporterService{},
+		reporterMock,
 		mocks.NewFormatterOK(),
 		mocks.NewBrokerMockOk(),
 	)
@@ -914,11 +919,6 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_SendRoyaltyReportNotifica
 }
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_AutoAcceptRoyaltyReports_Ok() {
-	reporterMock := &reportingMocks.ReporterService{}
-	reporterMock.On("CreateFile", mock2.Anything, mock2.Anything, mock2.Anything).
-		Return(&proto2.CreateFileResponse{Status: pkg.ResponseStatusOk}, nil)
-	suite.service.reporterService = reporterMock
-
 	projects := []*billing.Project{suite.project, suite.project1, suite.project2}
 
 	ci := &mocks.CentrifugoInterface{}
