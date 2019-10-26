@@ -12853,8 +12853,8 @@ func (m *GetMerchantBalanceResponse) GetItem() *billing.MerchantBalance {
 type PayoutDocumentPdfUploadedRequest struct {
 	//@inject_tag: validate:"required,hexadecimal,len=24"
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty" validate:"required,hexadecimal,len=24"`
-	//@inject_tag: validate:"required,alpha"
-	Filename string `protobuf:"bytes,2,opt,name=filename,proto3" json:"filename,omitempty" validate:"required,alpha"`
+	//@inject_tag: validate:"required"
+	Filename string `protobuf:"bytes,2,opt,name=filename,proto3" json:"filename,omitempty" validate:"required"`
 	//@inject_tag: validate:"required,numeric,gte=0"
 	RetentionTime int32 `protobuf:"varint,3,opt,name=retention_time,json=retentionTime,proto3" json:"retention_time,omitempty" validate:"required,numeric,gte=0"`
 	//@inject_tag: validate:"required,hexadecimal,len=24"
@@ -13971,8 +13971,8 @@ func (m *GetPaylinkStatCommonGroupResponse) GetItem() *paylink.GroupStatCommon {
 type RoyaltyReportPdfUploadedRequest struct {
 	//@inject_tag: validate:"required,hexadecimal,len=24"
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty" validate:"required,hexadecimal,len=24"`
-	//@inject_tag: validate:"required,alpha"
-	Filename string `protobuf:"bytes,2,opt,name=filename,proto3" json:"filename,omitempty" validate:"required,alpha"`
+	//@inject_tag: validate:"required"
+	Filename string `protobuf:"bytes,2,opt,name=filename,proto3" json:"filename,omitempty" validate:"required"`
 	//@inject_tag: validate:"required,numeric,gte=0"
 	RetentionTime int32 `protobuf:"varint,3,opt,name=retention_time,json=retentionTime,proto3" json:"retention_time,omitempty" validate:"required,numeric,gte=0"`
 	//@inject_tag: validate:"required,hexadecimal,len=24"
