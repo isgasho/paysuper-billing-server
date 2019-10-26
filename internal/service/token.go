@@ -268,6 +268,11 @@ func (s *Service) getCustomerById(id string) (*billing.Customer, error) {
 
 	if err != nil {
 		if err != mgo.ErrNotFound {
+			zap.L().Error(
+				"find customer by id failed",
+				zap.Error(err),
+				zap.String("id", id),
+			)
 			return nil, orderErrorUnknown
 		}
 

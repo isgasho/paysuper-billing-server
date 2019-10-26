@@ -845,9 +845,19 @@ func (s *Service) PaymentCreateProcess(
 	err = s.updateOrder(order)
 
 	if err != nil {
-		rsp.Message = orderErrorUnknown
-		rsp.Status = pkg.ResponseStatusSystemError
-
+		zap.L().Error(
+			"s.updateOrder method failed",
+			zap.Error(err),
+			zap.Any("order", order),
+		)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = e
+			return nil
+		} else {
+			rsp.Message = orderErrorUnknown
+			rsp.Status = pkg.ResponseStatusSystemError
+		}
 		return nil
 	}
 
@@ -866,9 +876,19 @@ func (s *Service) PaymentCreateProcess(
 	url, err := h.CreatePayment(order, req.Data)
 
 	if err != nil {
-		rsp.Message = orderErrorUnknown
-		rsp.Status = pkg.ResponseStatusBadData
-
+		zap.L().Error(
+			"h.CreatePayment method failed",
+			zap.Error(err),
+			zap.Any("order", order),
+		)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = e
+			return nil
+		} else {
+			rsp.Message = orderErrorUnknown
+			rsp.Status = pkg.ResponseStatusBadData
+		}
 		return nil
 	}
 
@@ -1172,9 +1192,19 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 	restricted, err := s.applyCountryRestriction(order, country)
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = orderErrorUnknown
-
+		zap.L().Error(
+			"s.applyCountryRestriction method failed",
+			zap.Error(err),
+			zap.Any("order", order),
+		)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = e
+			return nil
+		} else {
+			rsp.Message = orderErrorUnknown
+			rsp.Status = pkg.ResponseStatusSystemError
+		}
 		return nil
 	}
 
@@ -1272,8 +1302,19 @@ func (s *Service) ProcessBillingAddress(
 
 	restricted, err := s.applyCountryRestriction(order, req.Country)
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = orderErrorUnknown
+		zap.L().Error(
+			"s.applyCountryRestriction method failed",
+			zap.Error(err),
+			zap.Any("order", order),
+		)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = e
+			return nil
+		} else {
+			rsp.Message = orderErrorUnknown
+			rsp.Status = pkg.ResponseStatusSystemError
+		}
 		return nil
 	}
 	if restricted {
@@ -2615,6 +2656,14 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 
 	restricted, err := v.service.applyCountryRestriction(order, order.GetCountry())
 	if err != nil {
+		zap.L().Error(
+			"v.service.applyCountryRestriction method failed",
+			zap.Error(err),
+			zap.Any("order", order),
+		)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			return e
+		}
 		return orderErrorUnknown
 	}
 	if restricted {
@@ -2734,6 +2783,13 @@ func (s *Service) GetOrderKeyProducts(ctx context.Context, projectId string, pro
 	}, &result)
 
 	if err != nil {
+		zap.L().Error(
+			"v.GetKeyProductsForOrder method failed",
+			zap.Error(err),
+		)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			return nil, e
+		}
 		return nil, orderErrorUnknown
 	}
 
@@ -2779,6 +2835,13 @@ func (s *Service) GetOrderProducts(projectId string, productIds []string) ([]*gr
 	}, &result)
 
 	if err != nil {
+		zap.L().Error(
+			"v.GetProductsForOrder method failed",
+			zap.Error(err),
+		)
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			return nil, e
+		}
 		return nil, orderErrorUnknown
 	}
 
