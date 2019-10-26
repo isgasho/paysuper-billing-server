@@ -144,7 +144,7 @@ func (s *Service) ChangeProject(
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
-		zap.S().Errorw("create or update project error", "err", err, "req", "req")
+		zap.S().Errorw("create or update project error", "err", err, "req", req)
 		rsp.Message = projectErrorUnknown
 
 		return nil
@@ -412,6 +412,7 @@ func (s *Service) updateProject(req *billing.Project, project *billing.Project) 
 	project.ShortDescription = req.ShortDescription
 	project.Currencies = req.Currencies
 	project.VirtualCurrency = req.VirtualCurrency
+	project.Cover = req.Cover
 
 	if err := s.project.Update(project); err != nil {
 		return projectErrorUnknown
