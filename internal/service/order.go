@@ -128,6 +128,7 @@ var (
 	orderErrorPaymentMethodsNotFound                          = newBillingServerErrorMsg("fm000061", "payment methods for payment with specified currency not found")
 	orderErrorNoPlatforms                                     = newBillingServerErrorMsg("fm000062", "no available platforms")
 	orderCountryPaymentRestrictedEmailRequire                 = newBillingServerErrorMsg("fm000063", "payments from your country are not allowed")
+	orderErrorCostsRatesNotFound                              = newBillingServerErrorMsg("fm000064", "settings to calculate commissions not found")
 )
 
 type orderCreateRequestProcessorChecked struct {
@@ -858,6 +859,12 @@ func (s *Service) PaymentCreateProcess(
 			rsp.Message = orderErrorUnknown
 			rsp.Status = pkg.ResponseStatusSystemError
 		}
+		return nil
+	}
+
+	if !s.hasPaymentCosts(order) {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = orderErrorCostsRatesNotFound
 		return nil
 	}
 
@@ -3884,4 +3891,35 @@ func intersect(a []string, b []string) []string {
 	}
 
 	return set
+}
+
+func (s *Service) hasPaymentCosts(order *billing.Order) bool {
+	country, err := s.country.GetByIsoCodeA2(order.GetCountry())
+
+	if err != nil {
+		return false
+	}
+
+	methodName, err := order.GetCostPaymentMethodName()
+
+	if err != nil {
+		return false
+	}
+
+	_, err = s.paymentChannelCostSystem.Get(methodName, country.Region, country.IsoCodeA2)
+
+	if err != nil {
+		return false
+	}
+
+	data := &billing.PaymentChannelCostMerchantRequest{
+		MerchantId:     order.GetMerchantId(),
+		Name:           methodName,
+		PayoutCurrency: order.GetMerchantRoyaltyCurrency(),
+		Amount:         order.TotalPaymentAmount,
+		Region:         country.Region,
+		Country:        country.IsoCodeA2,
+	}
+	_, err = s.getPaymentChannelCostMerchant(data)
+	return err == nil
 }
