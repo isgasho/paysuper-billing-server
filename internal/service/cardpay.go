@@ -9,7 +9,6 @@ import (
 	"errors"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -79,8 +78,7 @@ var (
 )
 
 type cardPay struct {
-	apiUrl string
-	mu     sync.Mutex
+	mu sync.Mutex
 }
 
 type cardPayTransport struct {
@@ -263,8 +261,8 @@ func (m *CardPayRefundResponse) IsSuccessStatus() bool {
 	return ok && v == true
 }
 
-func newCardPayHandler(cfg *config.PaymentSystemConfig) PaymentSystem {
-	return &cardPay{apiUrl: cfg.GetCardPayApiUrl()}
+func newCardPayHandler() PaymentSystem {
+	return &cardPay{}
 }
 
 func (h *cardPay) CreatePayment(order *billing.Order, requisites map[string]string) (string, error) {
@@ -286,7 +284,7 @@ func (h *cardPay) CreatePayment(order *billing.Order, requisites map[string]stri
 		action = cardPayActionRecurringPayment
 	}
 
-	u, err := h.getUrl(action)
+	u, err := h.getUrl(order.GetPaymentSystemApiUrl(), action)
 
 	if err != nil {
 		return "", err
@@ -498,7 +496,7 @@ func (h *cardPay) auth(order *billing.Order) error {
 		cardPayRequestFieldPassword:     []string{order.PaymentMethod.Params.Secret},
 	}
 
-	u, err := h.getUrl(cardPayActionAuthenticate)
+	u, err := h.getUrl(order.GetPaymentSystemApiUrl(), cardPayActionAuthenticate)
 
 	if err != nil {
 		return err
@@ -568,7 +566,7 @@ func (h *cardPay) refresh(order *billing.Order) error {
 		cardPayRequestFieldRefreshToken: []string{cardPayTokens[order.PaymentMethod.ExternalId].RefreshToken},
 	}
 
-	qUrl, err := h.getUrl(cardPayActionRefresh)
+	qUrl, err := h.getUrl(order.GetPaymentSystemApiUrl(), cardPayActionRefresh)
 
 	if err != nil {
 		return err
@@ -613,14 +611,14 @@ func (h *cardPay) refresh(order *billing.Order) error {
 	return nil
 }
 
-func (h *cardPay) getUrl(action string) (string, error) {
-	u, err := url.ParseRequestURI(h.apiUrl)
+func (h *cardPay) getUrl(apiUrl, action string) (string, error) {
+	u, err := url.ParseRequestURI(apiUrl)
 
 	if err != nil {
 		zap.L().Error(
 			"cardpay API: api url is invalid",
 			zap.Error(err),
-			zap.String("url", h.apiUrl),
+			zap.String("url", apiUrl),
 		)
 		return "", err
 	}
@@ -879,7 +877,7 @@ func (h *cardPay) CreateRefund(order *billing.Order, refund *billing.Refund) err
 		return errors.New(pkg.PaymentSystemErrorCreateRefundFailed)
 	}
 
-	u, err := h.getUrl(cardPayActionRefund)
+	u, err := h.getUrl(order.GetPaymentSystemApiUrl(), cardPayActionRefund)
 
 	if err != nil {
 		return err

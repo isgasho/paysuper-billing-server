@@ -663,6 +663,8 @@ message PaymentMethodParams {
     string secret = 3;
     // @inject_tag: bson:"secret_callback" json:"secret_callback" validate:"omitempty"
     string secret_callback = 5;
+    // @inject_tag: bson:"api_url" json:"-"
+    string api_url = 6;
 }
 
 message PaymentSystem {

@@ -5,7 +5,6 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -17,15 +16,15 @@ import (
 type PaymentSystemMockOk struct{}
 type PaymentSystemMockError struct{}
 
-func NewPaymentSystemMockOk(cfg *config.PaymentSystemConfig) PaymentSystem {
+func NewPaymentSystemMockOk() PaymentSystem {
 	return &PaymentSystemMockOk{}
 }
 
-func NewPaymentSystemMockError(cfg *config.PaymentSystemConfig) PaymentSystem {
+func NewPaymentSystemMockError() PaymentSystem {
 	return &PaymentSystemMockError{}
 }
 
-func NewCardPayMock(cfg *config.PaymentSystemConfig) PaymentSystem {
+func NewCardPayMock() PaymentSystem {
 	cpMock := &mocks.PaymentSystem{}
 	cpMock.On("CreatePayment", mock.Anything, mock.Anything).
 		Return(
