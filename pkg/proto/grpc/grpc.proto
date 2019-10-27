@@ -454,7 +454,7 @@ message PaymentFormJsonData {
     UserIpData user_ip_data = 13;
     // @inject_tag: json:"items" validate="omitempty,gte=1,dive"
     repeated billing.OrderItem items = 14;
-    // @inject_tag: json:"-"
+    // @inject_tag: json:"cookie"
     string cookie = 15;
     // @inject_tag: json:"email"
     string email = 16;
