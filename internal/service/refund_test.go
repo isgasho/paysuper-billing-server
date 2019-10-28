@@ -604,18 +604,30 @@ func (suite *RefundTestSuite) SetupTest() {
 		suite.FailNow("Insert MoneyBackCostMerchant test data failed", "%v", err)
 	}
 
-	bin := &BinData{
-		Id:                 bson.NewObjectId(),
-		CardBin:            400000,
-		CardBrand:          "VISA",
-		CardType:           "DEBIT",
-		CardCategory:       "WORLD",
-		BankName:           "ALFA BANK",
-		BankCountryName:    "UKRAINE",
-		BankCountryIsoCode: "US",
+	bins := []interface{}{
+		&BinData{
+			Id:                 bson.NewObjectId(),
+			CardBin:            400000,
+			CardBrand:          "VISA",
+			CardType:           "DEBIT",
+			CardCategory:       "WORLD",
+			BankName:           "ALFA BANK",
+			BankCountryName:    "UKRAINE",
+			BankCountryIsoCode: "US",
+		},
+		&BinData{
+			Id:                 bson.NewObjectId(),
+			CardBin:            500000,
+			CardBrand:          "JCB",
+			CardType:           "DEBIT",
+			CardCategory:       "WORLD",
+			BankName:           "ALFA BANK",
+			BankCountryName:    "UKRAINE",
+			BankCountryIsoCode: "US",
+		},
 	}
 
-	err = db.Collection(collectionBinData).Insert(bin)
+	err = db.Collection(collectionBinData).Insert(bins...)
 
 	if err != nil {
 		suite.FailNow("Insert BIN test data failed", "%v", err)
@@ -2641,4 +2653,72 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Chargeback_Ok() {
 		Find(bson.M{"source.id": bson.ObjectIdHex(refund.CreatedOrderId), "source.type": collectionRefund}).All(&accountingEntries)
 	assert.NoError(suite.T(), err)
 	assert.NotEmpty(suite.T(), accountingEntries)
+}
+
+func (suite *RefundTestSuite) TestRefund_CreateRefund_NotHasCostsRates() {
+	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
+		ProjectId:   suite.project.Id,
+		Currency:    "RUB",
+		Amount:      100,
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "some_email@unit.com",
+			Ip:    "127.0.0.1",
+			Phone: "123456789",
+		},
+	}
+
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
+
+	expireYear := time.Now().AddDate(1, 0, 0)
+
+	createPaymentRequest := &grpc.PaymentCreateRequest{
+		Data: map[string]string{
+			pkg.PaymentCreateFieldOrderId:         rsp.Uuid,
+			pkg.PaymentCreateFieldPaymentMethodId: suite.pmBankCard.Id,
+			pkg.PaymentCreateFieldEmail:           "test@unit.unit",
+			pkg.PaymentCreateFieldPan:             "5000000000000002",
+			pkg.PaymentCreateFieldCvv:             "123",
+			pkg.PaymentCreateFieldMonth:           "02",
+			pkg.PaymentCreateFieldYear:            expireYear.Format("2006"),
+			pkg.PaymentCreateFieldHolder:          "Mr. Card Holder",
+		},
+	}
+
+	rsp1 := &grpc.PaymentCreateResponse{}
+	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
+	assert.NoError(suite.T(), err)
+
+	var order *billing.Order
+	err = suite.service.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(rsp.Id)).One(&order)
+	assert.NotNil(suite.T(), order)
+
+	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
+	order.Tax = &billing.OrderTax{
+		Type:     taxTypeVat,
+		Rate:     20,
+		Amount:   10,
+		Currency: "RUB",
+	}
+	err = suite.service.updateOrder(order)
+
+	req2 := &grpc.CreateRefundRequest{
+		OrderId:   rsp.Uuid,
+		Amount:    10,
+		CreatorId: bson.NewObjectId().Hex(),
+		Reason:    "unit test",
+	}
+	rsp2 := &grpc.CreateRefundResponse{}
+	err = suite.service.CreateRefund(context.TODO(), req2, rsp2)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp2.Status)
+	assert.Equal(suite.T(), refundErrorCostsRatesNotFound, rsp2.Message)
+	assert.Nil(suite.T(), rsp2.Item)
 }

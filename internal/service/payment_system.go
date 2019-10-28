@@ -37,7 +37,7 @@ var (
 	paymentSystemErrorRequestTemporarySkipped                = newBillingServerErrorMsg("ph000013", "notification skipped with temporary status")
 	paymentSystemErrorRecurringFailed                        = newBillingServerErrorMsg("ph000014", "recurring payment failed")
 
-	paymentSystemHandlers = map[string]func(cfg *config.PaymentSystemConfig) PaymentSystem{
+	paymentSystemHandlers = map[string]func() PaymentSystem{
 		pkg.PaymentSystemHandlerCardPay: newCardPayHandler,
 		paymentSystemHandlerMockOk:      NewPaymentSystemMockOk,
 		paymentSystemHandlerMockError:   NewPaymentSystemMockError,
@@ -75,7 +75,7 @@ func (s *Service) NewPaymentSystem(
 		return nil, paymentSystemErrorHandlerNotFound
 	}
 
-	return h(cfg), nil
+	return h(), nil
 }
 
 type PaymentSystemServiceInterface interface {

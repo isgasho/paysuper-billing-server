@@ -663,6 +663,8 @@ message PaymentMethodParams {
     string secret = 3;
     // @inject_tag: bson:"secret_callback" json:"secret_callback" validate:"omitempty"
     string secret_callback = 5;
+    // @inject_tag: bson:"api_url" json:"-"
+    string api_url = 6;
 }
 
 message PaymentSystem {
@@ -984,6 +986,7 @@ message TokenUserValue {
 }
 
 message TokenUser {
+    //@inject_tag: validate:"required"
     string id = 1;
     TokenUserEmailValue email = 2;
     TokenUserPhoneValue phone = 4;
@@ -1025,8 +1028,6 @@ message TokenSettings {
     double amount = 5;
     //@inject_tag: json:"payment_method"
     string payment_method = 6;
-    //@inject_tag: json:"items"
-    repeated TokenSettingsItem items = 7;
     //@inject_tag: json:"description"
     string description = 8;
     //@inject_tag: json:"products_ids"
@@ -1035,7 +1036,7 @@ message TokenSettings {
     map<string, string> metadata = 10;
     //@inject_tag: json:"platform_id"
     string platform_id = 11;
-    //@inject_tag: json:"type"
+    //@inject_tag: json:"type" validate:"required,oneof=simple key product"
     string type = 12;
 }
 

@@ -54,6 +54,7 @@ type OrderTestSuite struct {
 	paymentMethodWithInactivePaymentSystem *billing.PaymentMethod
 	pmWebMoney                             *billing.PaymentMethod
 	pmBitcoin1                             *billing.PaymentMethod
+	pmBitcoin2                             *billing.PaymentMethod
 	productIds                             []string
 	keyProductIds                          []string
 	merchantDefaultCurrency                string
@@ -314,6 +315,36 @@ func (suite *OrderTestSuite) SetupTest() {
 		Id:               bson.NewObjectId().Hex(),
 		Name:             "Bitcoin",
 		Group:            "BITCOIN_1",
+		MinPaymentAmount: 0,
+		MaxPaymentAmount: 0,
+		ExternalId:       "BITCOIN",
+		ProductionSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				TerminalId:     "16007",
+				Secret:         "1234567890",
+				SecretCallback: "1234567890",
+			},
+			"USD": {
+				TerminalId:     "16007",
+				Secret:         "1234567890",
+				SecretCallback: "1234567890",
+			},
+		},
+		TestSettings: map[string]*billing.PaymentMethodParams{
+			"RUB": {
+				TerminalId:     "16007",
+				Secret:         "1234567890",
+				SecretCallback: "1234567890",
+			},
+		},
+		Type:            "crypto",
+		IsActive:        true,
+		PaymentSystemId: ps2.Id,
+	}
+	pmBitcoin2 := &billing.PaymentMethod{
+		Id:               bson.NewObjectId().Hex(),
+		Name:             "Bitcoin_2",
+		Group:            "BITCOIN_2",
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
 		ExternalId:       "BITCOIN",
@@ -1006,7 +1037,16 @@ func (suite *OrderTestSuite) SetupTest() {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 
-	pms := []*billing.PaymentMethod{pmBankCard, pmQiwi, pmBitcoin, pmWebMoney, pmWebMoneyWME, pmBitcoin1, pmBankCardNotUsed}
+	pms := []*billing.PaymentMethod{
+		pmBankCard,
+		pmQiwi,
+		pmBitcoin,
+		pmWebMoney,
+		pmWebMoneyWME,
+		pmBitcoin1,
+		pmBankCardNotUsed,
+		pmBitcoin2,
+	}
 	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {
 		suite.FailNow("Insert payment methods test data failed", "%v", err)
 	}
@@ -1248,7 +1288,6 @@ func (suite *OrderTestSuite) SetupTest() {
 		Percent:   1.5,
 		FixAmount: 5,
 	}
-
 	sysCost1 := &billing.PaymentChannelCostSystem{
 		Name:      "MASTERCARD",
 		Region:    "CIS",
@@ -1256,8 +1295,29 @@ func (suite *OrderTestSuite) SetupTest() {
 		Percent:   2.2,
 		FixAmount: 0,
 	}
+	sysCost2 := &billing.PaymentChannelCostSystem{
+		Name:      "MASTERCARD",
+		Region:    "North America",
+		Country:   "US",
+		Percent:   2.2,
+		FixAmount: 0,
+	}
+	sysCost3 := &billing.PaymentChannelCostSystem{
+		Name:      "Bitcoin",
+		Region:    "Russia",
+		Country:   "RU",
+		Percent:   2.2,
+		FixAmount: 0,
+	}
 
-	err = suite.service.paymentChannelCostSystem.MultipleInsert([]*billing.PaymentChannelCostSystem{sysCost, sysCost1})
+	err = suite.service.paymentChannelCostSystem.MultipleInsert(
+		[]*billing.PaymentChannelCostSystem{
+			sysCost,
+			sysCost1,
+			sysCost2,
+			sysCost3,
+		},
+	)
 
 	if err != nil {
 		suite.FailNow("Insert PaymentChannelCostSystem test data failed", "%v", err)
@@ -1433,6 +1493,7 @@ func (suite *OrderTestSuite) SetupTest() {
 	suite.paymentMethodWithInactivePaymentSystem = pmQiwi
 	suite.pmWebMoney = pmWebMoney
 	suite.pmBitcoin1 = pmBitcoin1
+	suite.pmBitcoin2 = pmBitcoin2
 	suite.productIds = productIds
 	suite.merchantDefaultCurrency = "USD"
 	suite.keyProductIds = keyProductIds
@@ -7046,7 +7107,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_AllPaymentMeth
 	assert.Nil(suite.T(), err)
 	assert.True(suite.T(), len(rsp.Item.PaymentMethods) > 0)
 	assert.True(suite.T(), len(rsp.Item.PaymentMethods[0].Id) > 0)
-	assert.Len(suite.T(), rsp.Item.PaymentMethods, 3)
+	assert.Len(suite.T(), rsp.Item.PaymentMethods, 4)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_OnePaymentMethods() {
@@ -7232,4 +7293,44 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateByPaylink_Fail_NotFound() {
 	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusNotFound)
 	assert.Equal(suite.T(), rsp.Message, errorPaylinkNotFound)
 	assert.Nil(suite.T(), rsp.Item)
+}
+
+func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_CostsNotFound_Error() {
+	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
+		ProjectId:   suite.project.Id,
+		Currency:    "RUB",
+		Amount:      100,
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+	}
+
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	order := rsp1.Item
+
+	createPaymentRequest := &grpc.PaymentCreateRequest{
+		Data: map[string]string{
+			pkg.PaymentCreateFieldOrderId:         order.Uuid,
+			pkg.PaymentCreateFieldPaymentMethodId: suite.pmBitcoin2.Id,
+			pkg.PaymentCreateFieldEmail:           "test@unit.unit",
+			pkg.PaymentCreateFieldEWallet:         "bitcoin_address",
+		},
+	}
+
+	rsp := &grpc.PaymentCreateResponse{}
+	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Empty(suite.T(), rsp.RedirectUrl)
+	assert.Equal(suite.T(), orderErrorCostsRatesNotFound, rsp.Message)
 }

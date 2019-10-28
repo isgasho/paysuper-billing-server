@@ -472,6 +472,12 @@ func (h *PaymentMethod) GetPaymentSettings(
 
 	setting.Currency = currency
 
+	if project.IsProduction() == true {
+		setting.ApiUrl = h.svc.cfg.CardPayApiUrl
+	} else {
+		setting.ApiUrl = h.svc.cfg.CardPayApiSandboxUrl
+	}
+
 	return setting, nil
 }
 
