@@ -2173,8 +2173,11 @@ message GetPaylinkURLRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string merchant_id = 2;
     string url_mask = 3;
+    // @inject_tag: query:"utm_source"
     string utm_source = 4;
+    // @inject_tag: query:"utm_medium"
     string utm_medium = 5;
+    // @inject_tag: query:"utm_campaign"
     string utm_campaign = 6;
 }
 
