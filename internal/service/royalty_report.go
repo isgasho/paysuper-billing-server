@@ -750,63 +750,66 @@ func (s *Service) RoyaltyReportPdfUploaded(
 		return err
 	}
 
-	if merchant.HasAuthorizedEmail() == true {
+	if merchant.HasAuthorizedEmail() == false {
+		zap.L().Warn("Merchant has no authorized email", zap.String("merchant_id", merchant.Id))
+		res.Status = pkg.ResponseStatusOk
+		return nil
+	}
 
-		content := base64.StdEncoding.EncodeToString(req.Content)
-		contentType := mime.TypeByExtension(filepath.Ext(req.Filename))
+	content := base64.StdEncoding.EncodeToString(req.Content)
+	contentType := mime.TypeByExtension(filepath.Ext(req.Filename))
 
-		periodFrom, err := ptypes.Timestamp(report.PeriodFrom)
-		if err != nil {
-			zap.L().Error(
-				pkg.ErrorTimeConversion,
-				zap.Any(pkg.ErrorTimeConversionMethod, "ptypes.Timestamp"),
-				zap.Any(pkg.ErrorTimeConversionValue, report.PeriodFrom),
-				zap.Error(err),
-			)
-			return err
-		}
-		periodTo, err := ptypes.Timestamp(report.PeriodTo)
-		if err != nil {
-			zap.L().Error(
-				pkg.ErrorTimeConversion,
-				zap.Any(pkg.ErrorTimeConversionMethod, "ptypes.Timestamp"),
-				zap.Any(pkg.ErrorTimeConversionValue, report.PeriodTo),
-				zap.Error(err),
-			)
-			return err
-		}
+	periodFrom, err := ptypes.Timestamp(report.PeriodFrom)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorTimeConversion,
+			zap.Any(pkg.ErrorTimeConversionMethod, "ptypes.Timestamp"),
+			zap.Any(pkg.ErrorTimeConversionValue, report.PeriodFrom),
+			zap.Error(err),
+		)
+		return err
+	}
+	periodTo, err := ptypes.Timestamp(report.PeriodTo)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorTimeConversion,
+			zap.Any(pkg.ErrorTimeConversionMethod, "ptypes.Timestamp"),
+			zap.Any(pkg.ErrorTimeConversionValue, report.PeriodTo),
+			zap.Error(err),
+		)
+		return err
+	}
 
-		payload := &postmarkSdrPkg.Payload{
-			TemplateAlias: s.cfg.EmailNewRoyaltyReportTemplate,
-			TemplateModel: map[string]string{
-				"merchant_id":         merchant.Id,
-				"royalty_report_id":   report.Id,
-				"period_from":         periodFrom.Format("2006-01-02"),
-				"period_to":           periodTo.Format("2006-01-02"),
-				"license_agreement":   merchant.AgreementNumber,
-				"status":              report.Status,
-				"merchant_greeting":   merchant.GetAuthorizedName(),
-				"royalty_reports_url": s.cfg.RoyaltyReportsUrl,
+	payload := &postmarkSdrPkg.Payload{
+		TemplateAlias: s.cfg.EmailNewRoyaltyReportTemplate,
+		TemplateModel: map[string]string{
+			"merchant_id":         merchant.Id,
+			"royalty_report_id":   report.Id,
+			"period_from":         periodFrom.Format("2006-01-02"),
+			"period_to":           periodTo.Format("2006-01-02"),
+			"license_agreement":   merchant.AgreementNumber,
+			"status":              report.Status,
+			"merchant_greeting":   merchant.GetAuthorizedName(),
+			"royalty_reports_url": s.cfg.RoyaltyReportsUrl,
+		},
+		To: merchant.GetAuthorizedEmail(),
+		Attachments: []*postmarkSdrPkg.PayloadAttachment{
+			{
+				Name:        req.Filename,
+				Content:     content,
+				ContentType: contentType,
 			},
-			To: merchant.GetAuthorizedEmail(),
-			Attachments: []*postmarkSdrPkg.PayloadAttachment{
-				{
-					Name:        req.Filename,
-					Content:     content,
-					ContentType: contentType,
-				},
-			},
-		}
+		},
+	}
 
-		err = s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+	err = s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 
-		if err != nil {
-			zap.L().Error(
-				"Publication message about merchant new payout document to queue failed",
-				zap.Error(err),
-				zap.Any("report", report),
-			)
-		}
+	if err != nil {
+		zap.L().Error(
+			"Publication message about merchant new payout document to queue failed",
+			zap.Error(err),
+			zap.Any("report", report),
+		)
 	}
 
 	res.Status = pkg.ResponseStatusOk

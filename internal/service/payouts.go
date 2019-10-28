@@ -99,7 +99,7 @@ func (s *Service) CreatePayoutDocument(
 		return err
 	}
 
-	if merchant.ManualPayoutsEnabled == req.IsAutoGeneration == true {
+	if merchant.ManualPayoutsEnabled == req.IsAutoGeneration {
 		res.Status = pkg.ResponseStatusBadData
 		if req.IsAutoGeneration {
 			res.Message = errorPayoutAutoPayoutsDisabled
@@ -330,6 +330,9 @@ func (s *Service) AutoCreatePayoutDocuments(context.Context, *grpc.EmptyRequest,
 		req.MerchantId = m.Id
 		err = s.createPayoutDocument(ctx, m, req, res)
 		if err != nil {
+			if err == errorPayoutSourcesNotFound {
+				continue
+			}
 			zap.L().Error(
 				"auto createPayoutDocument failed with error",
 				zap.Error(err),
@@ -338,6 +341,9 @@ func (s *Service) AutoCreatePayoutDocuments(context.Context, *grpc.EmptyRequest,
 			return err
 		}
 		if res.Status != pkg.ResponseStatusOk {
+			if res.Message == errorPayoutAmountInvalid {
+				continue
+			}
 			zap.L().Error(
 				"auto createPayoutDocument failed in response",
 				zap.Int32("code", res.Status),
@@ -577,67 +583,70 @@ func (s *Service) PayoutDocumentPdfUploaded(
 	merchant, err := s.merchant.GetById(pd.MerchantId)
 
 	if err != nil {
-		zap.L().Error("Merchant not found", zap.Error(err), zap.String("merchant_id", pd.MerchantId))
+
 		return err
 	}
 
-	if merchant.HasAuthorizedEmail() == true {
+	if merchant.HasAuthorizedEmail() == false {
+		zap.L().Warn("Merchant has no authorized email", zap.String("merchant_id", merchant.Id))
+		res.Status = pkg.ResponseStatusOk
+		return nil
+	}
 
-		content := base64.StdEncoding.EncodeToString(req.Content)
-		contentType := mime.TypeByExtension(filepath.Ext(req.Filename))
+	content := base64.StdEncoding.EncodeToString(req.Content)
+	contentType := mime.TypeByExtension(filepath.Ext(req.Filename))
 
-		periodFrom, err := ptypes.Timestamp(pd.PeriodFrom)
-		if err != nil {
-			zap.L().Error(
-				pkg.ErrorTimeConversion,
-				zap.Any(pkg.ErrorTimeConversionMethod, "ptypes.Timestamp"),
-				zap.Any(pkg.ErrorTimeConversionValue, pd.PeriodFrom),
-				zap.Error(err),
-			)
-			return err
-		}
-		periodTo, err := ptypes.Timestamp(pd.PeriodTo)
-		if err != nil {
-			zap.L().Error(
-				pkg.ErrorTimeConversion,
-				zap.Any(pkg.ErrorTimeConversionMethod, "ptypes.Timestamp"),
-				zap.Any(pkg.ErrorTimeConversionValue, pd.PeriodTo),
-				zap.Error(err),
-			)
-			return err
-		}
+	periodFrom, err := ptypes.Timestamp(pd.PeriodFrom)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorTimeConversion,
+			zap.Any(pkg.ErrorTimeConversionMethod, "ptypes.Timestamp"),
+			zap.Any(pkg.ErrorTimeConversionValue, pd.PeriodFrom),
+			zap.Error(err),
+		)
+		return err
+	}
+	periodTo, err := ptypes.Timestamp(pd.PeriodTo)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorTimeConversion,
+			zap.Any(pkg.ErrorTimeConversionMethod, "ptypes.Timestamp"),
+			zap.Any(pkg.ErrorTimeConversionValue, pd.PeriodTo),
+			zap.Error(err),
+		)
+		return err
+	}
 
-		payload := &postmarkSdrPkg.Payload{
-			TemplateAlias: s.cfg.EmailNewRoyaltyReportTemplate,
-			TemplateModel: map[string]string{
-				"merchant_id":       merchant.Id,
-				"payout_id":         pd.Id,
-				"period_from":       periodFrom.Format("2006-01-02"),
-				"period_to":         periodTo.Format("2006-01-02"),
-				"license_agreement": merchant.AgreementNumber,
-				"status":            pd.Status,
-				"merchant_greeting": merchant.GetAuthorizedName(),
-				"payouts_url":       s.cfg.PayoutsUrl,
+	payload := &postmarkSdrPkg.Payload{
+		TemplateAlias: s.cfg.EmailNewRoyaltyReportTemplate,
+		TemplateModel: map[string]string{
+			"merchant_id":       merchant.Id,
+			"payout_id":         pd.Id,
+			"period_from":       periodFrom.Format("2006-01-02"),
+			"period_to":         periodTo.Format("2006-01-02"),
+			"license_agreement": merchant.AgreementNumber,
+			"status":            pd.Status,
+			"merchant_greeting": merchant.GetAuthorizedName(),
+			"payouts_url":       s.cfg.PayoutsUrl,
+		},
+		To: merchant.GetAuthorizedEmail(),
+		Attachments: []*postmarkSdrPkg.PayloadAttachment{
+			{
+				Name:        req.Filename,
+				Content:     content,
+				ContentType: contentType,
 			},
-			To: merchant.GetAuthorizedEmail(),
-			Attachments: []*postmarkSdrPkg.PayloadAttachment{
-				{
-					Name:        req.Filename,
-					Content:     content,
-					ContentType: contentType,
-				},
-			},
-		}
+		},
+	}
 
-		err = s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+	err = s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 
-		if err != nil {
-			zap.L().Error(
-				"Publication message about merchant new payout document to queue failed",
-				zap.Error(err),
-				zap.Any("payout document", pd),
-			)
-		}
+	if err != nil {
+		zap.L().Error(
+			"Publication message about merchant new payout document to queue failed",
+			zap.Error(err),
+			zap.Any("payout document", pd),
+		)
 	}
 
 	res.Status = pkg.ResponseStatusOk
