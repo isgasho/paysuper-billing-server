@@ -278,7 +278,7 @@ func (c *Country) GetVatCurrencyCode() string {
 }
 
 func (m *Project) GetVirtualCurrencyRate(group *PriceGroup) (float64, error) {
-	for _, price := range m.VirtualCurrency.Price {
+	for _, price := range m.VirtualCurrency.Prices {
 		if group.Region != "" && price.Region == group.Region {
 			return price.Amount, nil
 		}

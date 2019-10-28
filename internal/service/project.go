@@ -460,12 +460,12 @@ func (s *Service) validateProjectVirtualCurrency(virtualCurrency *billing.Projec
 		return projectErrorVirtualCurrencySuccessMessageDefaultLangRequired
 	}
 
-	if len(virtualCurrency.Price) > 0 {
-		currencies := make([]string, len(virtualCurrency.Price))
+	if len(virtualCurrency.Prices) > 0 {
+		currencies := make([]string, len(virtualCurrency.Prices))
 
 		hasPriceInFallBackCurrency := false
 
-		for _, v := range virtualCurrency.Price {
+		for _, v := range virtualCurrency.Prices {
 			if v.Currency == pkg.FallbackCurrency && v.Region == pkg.FallbackCurrency {
 				hasPriceInFallBackCurrency = true
 			}
