@@ -37,6 +37,7 @@ const (
 	OrderType_key            = "key"
 	OrderType_product        = "product"
 	OrderTypeVirtualCurrency = "virtual_currency"
+	productNoPriceInCurrency = "no price in currency %s"
 )
 
 func (m *Merchant) ChangesAllowed() bool {
@@ -288,5 +289,5 @@ func (m *Project) GetVirtualCurrencyRate(group *PriceGroup) (float64, error) {
 		}
 	}
 
-	return 0, errors.New(fmt.Sprintf("productNoPriceInCurrency", group.Region))
+	return 0, errors.New(fmt.Sprintf(productNoPriceInCurrency, group.Region))
 }
