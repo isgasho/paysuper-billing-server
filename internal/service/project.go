@@ -229,7 +229,6 @@ func (s *Service) ListProjects(
 				"_id":                         "$_id",
 				"merchant_id":                 "$merchant_id",
 				"name":                        "$name",
-				"image":                       "$image",
 				"callback_protocol":           "$callback_protocol",
 				"callback_currency":           "$callback_currency",
 				"create_order_allowed_urls":   "$create_order_allowed_urls",
@@ -251,6 +250,12 @@ func (s *Service) ListProjects(
 				"created_at":                  "$created_at",
 				"updated_at":                  "$updated_at",
 				"products_count":              bson.M{"$size": "$products"},
+				"cover":                       "$cover",
+				"currencies":                  "$currencies",
+				"short_description":           "$short_description",
+				"full_description":            "$full_description",
+				"localizations":               "$localizations",
+				"virtual_currency":            "$virtual_currency",
 			},
 		},
 		{"$skip": req.Offset},
@@ -450,7 +455,6 @@ func (s *Service) validateProjectVirtualCurrency(virtualCurrency *billing.Projec
 		return projectErrorVirtualCurrencySuccessMessageDefaultLangRequired
 	}
 
-
 	if len(virtualCurrency.Price) > 0 {
 		currencies := make([]string, len(virtualCurrency.Price))
 
@@ -471,7 +475,6 @@ func (s *Service) validateProjectVirtualCurrency(virtualCurrency *billing.Projec
 			return err
 		}
 	}
-
 
 	if virtualCurrency.MinPurchaseValue > 0 && virtualCurrency.MaxPurchaseValue > 0 &&
 		virtualCurrency.MinPurchaseValue > virtualCurrency.MaxPurchaseValue {
@@ -606,7 +609,6 @@ func (h Project) GetById(id string) (*billing.Project, error) {
 
 	return &c, nil
 }
-
 
 func (s *Service) CheckSkuAndKeyProject(ctx context.Context, req *grpc.CheckSkuAndKeyProjectRequest, rsp *grpc.EmptyResponseWithStatus) error {
 	rsp.Status = pkg.ResponseStatusOk
