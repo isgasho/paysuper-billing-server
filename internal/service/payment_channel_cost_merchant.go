@@ -208,8 +208,8 @@ func newPaymentChannelCostMerchantService(svc *Service) *PaymentChannelCostMerch
 func (h *PaymentChannelCostMerchant) Insert(obj *billing.PaymentChannelCostMerchant) error {
 	obj.MinAmount = tools.FormatAmount(obj.MinAmount)
 	obj.MethodFixAmount = tools.FormatAmount(obj.MethodFixAmount)
-	obj.MethodPercent = tools.FormatAmount(obj.MethodPercent)
-	obj.PsPercent = tools.FormatAmount(obj.PsPercent)
+	obj.MethodPercent = tools.ToPrecise(obj.MethodPercent)
+	obj.PsPercent = tools.ToPrecise(obj.PsPercent)
 	obj.PsFixedFee = tools.FormatAmount(obj.PsFixedFee)
 	obj.CreatedAt = ptypes.TimestampNow()
 	obj.UpdatedAt = ptypes.TimestampNow()
@@ -236,8 +236,8 @@ func (h PaymentChannelCostMerchant) MultipleInsert(obj []*billing.PaymentChannel
 	for i, v := range obj {
 		v.MinAmount = tools.FormatAmount(v.MinAmount)
 		v.MethodFixAmount = tools.FormatAmount(v.MethodFixAmount)
-		v.MethodPercent = tools.FormatAmount(v.MethodPercent)
-		v.PsPercent = tools.FormatAmount(v.PsPercent)
+		v.MethodPercent = tools.ToPrecise(v.MethodPercent)
+		v.PsPercent = tools.ToPrecise(v.PsPercent)
 		v.PsFixedFee = tools.FormatAmount(v.PsFixedFee)
 		v.CreatedAt = ptypes.TimestampNow()
 		v.UpdatedAt = ptypes.TimestampNow()
@@ -260,8 +260,8 @@ func (h PaymentChannelCostMerchant) MultipleInsert(obj []*billing.PaymentChannel
 func (h PaymentChannelCostMerchant) Update(obj *billing.PaymentChannelCostMerchant) error {
 	obj.MinAmount = tools.FormatAmount(obj.MinAmount)
 	obj.MethodFixAmount = tools.FormatAmount(obj.MethodFixAmount)
-	obj.MethodPercent = tools.FormatAmount(obj.MethodPercent)
-	obj.PsPercent = tools.FormatAmount(obj.PsPercent)
+	obj.MethodPercent = tools.ToPrecise(obj.MethodPercent)
+	obj.PsPercent = tools.ToPrecise(obj.PsPercent)
 	obj.PsFixedFee = tools.FormatAmount(obj.PsFixedFee)
 	obj.UpdatedAt = ptypes.TimestampNow()
 	obj.IsActive = true

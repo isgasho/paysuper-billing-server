@@ -47,7 +47,8 @@ var (
 	merchantTariffsNotFound                   = newBillingServerErrorMsg("mr000023", "tariffs for merchant not found")
 	merchantPayoutCurrencyMissed              = newBillingServerErrorMsg("mr000024", "merchant don't have payout currency")
 
-	merchantSignAgreementMessage = map[string]string{"code": "mr000017", "message": "license agreement was signed by merchant"}
+	merchantSignAgreementMessage        = map[string]string{"code": "mr000017", "message": "license agreement was signed by merchant"}
+	merchantAgreementReadyToSignMessage = map[string]interface{}{"code": "mr000025", "generated": true, "message": "merchant license agreement ready to sign"}
 
 	merchantStatusChangesMessages = map[int32]string{
 		pkg.MerchantStatusAgreementSigning: merchantStatusSigningMessage,
@@ -562,9 +563,19 @@ func (s *Service) SetMerchantS3Agreement(
 		}
 	}
 
-	if err := s.merchant.Update(merchant); err != nil {
-		zap.S().Errorf("Query to change merchant data failed", "err", err.Error(), "data", merchant)
+	err = s.merchant.Update(merchant)
+
+	if err != nil {
 		return merchantErrorUnknown
+	}
+
+	channel := s.getMerchantCentrifugoChannel(merchant.Id)
+	err = s.centrifugo.Publish(ctx, channel, merchantAgreementReadyToSignMessage)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = merchantErrorUnknown
+		return nil
 	}
 
 	rsp.Status = pkg.ResponseStatusOk

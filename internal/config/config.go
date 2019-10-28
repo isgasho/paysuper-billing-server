@@ -10,7 +10,8 @@ import (
 )
 
 type PaymentSystemConfig struct {
-	CardPayApiUrl string `envconfig:"CARD_PAY_API_URL" required:"true"`
+	CardPayApiUrl        string `envconfig:"CARD_PAY_API_URL" required:"true"`
+	CardPayApiSandboxUrl string `envconfig:"CARD_PAY_API_SANDBOX_URL" required:"true"`
 }
 
 type CustomerTokenConfig struct {
@@ -157,8 +158,4 @@ func (cfg *Config) GetUserConfirmEmailUrl(params map[string]string) string {
 	cfg.EmailConfirmUrlParsed.RawQuery = query.Encode()
 
 	return cfg.EmailConfirmUrlParsed.String()
-}
-
-func (m *PaymentSystemConfig) GetCardPayApiUrl() string {
-	return m.CardPayApiUrl
 }

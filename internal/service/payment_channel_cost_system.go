@@ -165,7 +165,7 @@ func newPaymentChannelCostSystemService(svc *Service) *PaymentChannelCostSystem 
 
 func (h *PaymentChannelCostSystem) Insert(obj *billing.PaymentChannelCostSystem) error {
 	obj.FixAmount = tools.FormatAmount(obj.FixAmount)
-	obj.Percent = tools.FormatAmount(obj.Percent)
+	obj.Percent = tools.ToPrecise(obj.Percent)
 	obj.CreatedAt = ptypes.TimestampNow()
 	obj.UpdatedAt = ptypes.TimestampNow()
 	obj.IsActive = true
@@ -188,7 +188,7 @@ func (h PaymentChannelCostSystem) MultipleInsert(obj []*billing.PaymentChannelCo
 	c := make([]interface{}, len(obj))
 	for i, v := range obj {
 		v.FixAmount = tools.FormatAmount(v.FixAmount)
-		v.Percent = tools.FormatAmount(v.Percent)
+		v.Percent = tools.ToPrecise(v.Percent)
 		v.CreatedAt = ptypes.TimestampNow()
 		v.UpdatedAt = ptypes.TimestampNow()
 		v.IsActive = true
@@ -207,7 +207,7 @@ func (h PaymentChannelCostSystem) MultipleInsert(obj []*billing.PaymentChannelCo
 
 func (h PaymentChannelCostSystem) Update(obj *billing.PaymentChannelCostSystem) error {
 	obj.FixAmount = tools.FormatAmount(obj.FixAmount)
-	obj.Percent = tools.FormatAmount(obj.Percent)
+	obj.Percent = tools.ToPrecise(obj.Percent)
 	obj.UpdatedAt = ptypes.TimestampNow()
 	obj.IsActive = true
 	if err := h.svc.db.Collection(collectionPaymentChannelCostSystem).UpdateId(bson.ObjectIdHex(obj.Id), obj); err != nil {

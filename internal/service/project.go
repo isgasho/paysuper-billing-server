@@ -33,6 +33,7 @@ var (
 	projectErrorVirtualCurrencyLimitsIncorrect                   = newBillingServerErrorMsg("pr000011", `project virtual currency purchase limits is incorrect`)
 	projectErrorShortDescriptionDefaultLangRequired              = newBillingServerErrorMsg("pr000012", "project short description in \""+DefaultLanguage+"\" locale is required")
 	projectErrorFullDescriptionDefaultLangRequired               = newBillingServerErrorMsg("pr000013", "project full description in \""+DefaultLanguage+"\" locale is required")
+	projectErrorVirtualCurrencyPriceFallbackCurrencyRequired     = newBillingServerErrorMsg("pr000014", `virtual currency price in "`+pkg.FallbackCurrency+`" currency is required`)
 )
 
 func (s *Service) ChangeProject(
@@ -109,6 +110,10 @@ func (s *Service) ChangeProject(
 
 			return nil
 		}
+
+		if req.VirtualCurrency.SellCountType == "" {
+			req.VirtualCurrency.SellCountType = pkg.ProjectSellCountTypeFractional
+		}
 	}
 
 	if len(req.ShortDescription) > 0 {
@@ -144,7 +149,7 @@ func (s *Service) ChangeProject(
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
-		zap.S().Errorw("create or update project error", "err", err, "req", "req")
+		zap.S().Errorw("create or update project error", "err", err, "req", req)
 		rsp.Message = projectErrorUnknown
 
 		return nil
@@ -229,7 +234,6 @@ func (s *Service) ListProjects(
 				"_id":                         "$_id",
 				"merchant_id":                 "$merchant_id",
 				"name":                        "$name",
-				"image":                       "$image",
 				"callback_protocol":           "$callback_protocol",
 				"callback_currency":           "$callback_currency",
 				"create_order_allowed_urls":   "$create_order_allowed_urls",
@@ -251,6 +255,12 @@ func (s *Service) ListProjects(
 				"created_at":                  "$created_at",
 				"updated_at":                  "$updated_at",
 				"products_count":              bson.M{"$size": "$products"},
+				"cover":                       "$cover",
+				"currencies":                  "$currencies",
+				"short_description":           "$short_description",
+				"full_description":            "$full_description",
+				"localizations":               "$localizations",
+				"virtual_currency":            "$virtual_currency",
 			},
 		},
 		{"$skip": req.Offset},
@@ -412,6 +422,7 @@ func (s *Service) updateProject(req *billing.Project, project *billing.Project) 
 	project.ShortDescription = req.ShortDescription
 	project.Currencies = req.Currencies
 	project.VirtualCurrency = req.VirtualCurrency
+	project.Cover = req.Cover
 
 	if err := s.project.Update(project); err != nil {
 		return projectErrorUnknown
@@ -449,16 +460,25 @@ func (s *Service) validateProjectVirtualCurrency(virtualCurrency *billing.Projec
 		return projectErrorVirtualCurrencySuccessMessageDefaultLangRequired
 	}
 
+	if len(virtualCurrency.Prices) > 0 {
+		currencies := make([]string, len(virtualCurrency.Prices))
 
-	if len(virtualCurrency.Price) > 0 {
-		currencies := make([]string, len(virtualCurrency.Price))
+		hasPriceInFallBackCurrency := false
 
-		for _, v := range virtualCurrency.Price {
+		for _, v := range virtualCurrency.Prices {
+			if v.Currency == pkg.FallbackCurrency && v.Region == pkg.FallbackCurrency {
+				hasPriceInFallBackCurrency = true
+			}
+
 			if !contains(s.supportedCurrencies, v.Currency) {
 				err := projectErrorVirtualCurrencyPriceCurrencyIsNotSupport
 				err.Details = v.Currency
 
 				return err
+			}
+
+			if !hasPriceInFallBackCurrency {
+				return projectErrorVirtualCurrencyPriceFallbackCurrencyRequired
 			}
 			currencies = append(currencies, v.Currency)
 		}
@@ -470,7 +490,6 @@ func (s *Service) validateProjectVirtualCurrency(virtualCurrency *billing.Projec
 			return err
 		}
 	}
-
 
 	if virtualCurrency.MinPurchaseValue > 0 && virtualCurrency.MaxPurchaseValue > 0 &&
 		virtualCurrency.MinPurchaseValue > virtualCurrency.MaxPurchaseValue {
@@ -605,7 +624,6 @@ func (h Project) GetById(id string) (*billing.Project, error) {
 
 	return &c, nil
 }
-
 
 func (s *Service) CheckSkuAndKeyProject(ctx context.Context, req *grpc.CheckSkuAndKeyProjectRequest, rsp *grpc.EmptyResponseWithStatus) error {
 	rsp.Status = pkg.ResponseStatusOk

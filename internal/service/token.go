@@ -32,12 +32,15 @@ const (
 )
 
 var (
-	tokenErrorUnknown                = newBillingServerErrorMsg("tk000001", "unknown token error")
-	customerNotFound                 = newBillingServerErrorMsg("tk000002", "customer by specified data not found")
-	tokenErrorNotFound               = newBillingServerErrorMsg("tk000003", "token not found")
-	tokenErrorUserIdentityRequired   = newBillingServerErrorMsg("tk000004", "request must contain one or more parameters with user information")
-	tokenErrorSettingsItemsRequired  = newBillingServerErrorMsg("tk000005", "field settings.items required and can't be empty")
-	tokenErrorSettingsAmountRequired = newBillingServerErrorMsg("tk000006", "field settings.amount required and must be greater than 0")
+	tokenErrorUnknown              = newBillingServerErrorMsg("tk000001", "unknown token error")
+	customerNotFound               = newBillingServerErrorMsg("tk000002", "customer by specified data not found")
+	tokenErrorNotFound             = newBillingServerErrorMsg("tk000003", "token not found")
+	tokenErrorUserIdentityRequired = newBillingServerErrorMsg("tk000004", "request must contain one or more parameters with user information")
+
+	tokenErrorSettingsTypeRequired                          = newBillingServerErrorMsg("tk000005", `field settings.type is required`)
+	tokenErrorSettingsSimpleCheckoutParamsRequired          = newBillingServerErrorMsg("tk000006", `fields settings.amount and settings.currency is required for creating payment token with type "simple"`)
+	tokenErrorSettingsProductAndKeyProductIdsParamsRequired = newBillingServerErrorMsg("tk000007", `field settings.product_ids is required for creating payment token with type "product" or "key"`)
+	tokenErrorSettingsKeyPlatformParamRequired              = newBillingServerErrorMsg("tk000008", `field settings.platform_id is required for creating payment token with type "product" or "key"`)
 
 	tokenRandSource = rand.NewSource(time.Now().UnixNano())
 )
@@ -78,54 +81,118 @@ func (s *Service) CreateToken(
 		return nil
 	}
 
-	project, err := s.project.GetById(req.Settings.ProjectId)
+	processor := &OrderCreateRequestProcessor{
+		Service: s,
+		request: &billing.OrderCreateRequest{
+			ProjectId:  req.Settings.ProjectId,
+			Amount:     req.Settings.Amount,
+			Currency:   req.Settings.Currency,
+			Products:   req.Settings.ProductsIds,
+			PlatformId: req.Settings.PlatformId,
+		},
+		checked: &orderCreateRequestProcessorChecked{},
+	}
+
+	err := processor.processProject()
+
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = projectErrorNotFound
-
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
 		return nil
 	}
 
-	if project.IsProductsCheckout == true {
-		if len(req.Settings.Items) <= 0 {
+	err = processor.processMerchant()
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
+		return nil
+	}
+
+	if req.Settings.Type == billing.OrderType_product || req.Settings.Type == billing.OrderType_key {
+		if len(req.Settings.ProductsIds) <= 0 {
 			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = tokenErrorSettingsItemsRequired
-
-			return nil
-		}
-
-		pids, err := s.processTokenProducts(req)
-
-		if err != nil {
-			zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
-			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-				rsp.Status = pkg.ResponseStatusBadData
-				rsp.Message = e
-				return nil
-			}
-			return err
-		}
-
-		req.Settings.ProductsIds = pids
-	} else {
-		if req.Settings.Amount <= 0 {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = tokenErrorSettingsAmountRequired
-
+			rsp.Message = tokenErrorSettingsProductAndKeyProductIdsParamsRequired
 			return nil
 		}
 	}
 
+	switch req.Settings.Type {
+	case billing.OrderType_simple:
+		if req.Settings.Amount <= 0 || req.Settings.Currency == "" {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = tokenErrorSettingsSimpleCheckoutParamsRequired
+			return nil
+		}
+
+		err = processor.processCurrency()
+
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			return nil
+		}
+
+		processor.processAmount()
+		err = processor.processLimitAmounts()
+
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			return nil
+		}
+		break
+	case billing.OrderType_product:
+		err = processor.processPaylinkProducts()
+
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = tokenErrorUnknown
+
+			e, ok := err.(*grpc.ResponseErrorMessage)
+
+			if ok {
+				rsp.Message = e
+			}
+
+			return nil
+		}
+		break
+	case billing.OrderType_key:
+		if req.Settings.PlatformId == "" {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = tokenErrorSettingsKeyPlatformParamRequired
+			return nil
+		}
+
+		err = processor.processPaylinkKeyProducts()
+
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = tokenErrorUnknown
+
+			e, ok := err.(*grpc.ResponseErrorMessage)
+
+			if ok {
+				rsp.Message = e
+			}
+
+			return nil
+		}
+		break
+	default:
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = tokenErrorSettingsTypeRequired
+		return nil
+	}
+
+	project := processor.checked.project
 	customer, err := s.findCustomer(req, project)
 
 	if err != nil && err != customerNotFound {
-		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = e
-			return nil
-		}
-		return err
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
+		return nil
 	}
 
 	if customer == nil {
@@ -201,6 +268,11 @@ func (s *Service) getCustomerById(id string) (*billing.Customer, error) {
 
 	if err != nil {
 		if err != mgo.ErrNotFound {
+			zap.L().Error(
+				"find customer by id failed",
+				zap.Error(err),
+				zap.String("id", id),
+			)
 			return nil, orderErrorUnknown
 		}
 
@@ -276,7 +348,12 @@ func (s *Service) findCustomer(
 
 	if err != nil {
 		if err != mgo.ErrNotFound {
-			zap.S().Errorf("Query to find customer failed", "err", err.Error(), "query", query)
+			zap.L().Error(
+				pkg.ErrorDatabaseQueryFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, collectionCustomer),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			)
 			return nil, orderErrorUnknown
 		}
 

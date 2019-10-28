@@ -455,7 +455,7 @@ message PaymentFormJsonData {
     UserIpData user_ip_data = 13;
     // @inject_tag: json:"items" validate="omitempty,gte=1,dive"
     repeated billing.OrderItem items = 14;
-    // @inject_tag: json:"-"
+    // @inject_tag: json:"cookie"
     string cookie = 15;
     // @inject_tag: json:"email"
     string email = 16;
@@ -883,6 +883,8 @@ message KeyProduct {
     google.protobuf.Timestamp published_at = 18;
     // @inject_tag: json:"pricing" validate:"required,oneof=currency manual steam default"
     string pricing = 19;
+    // @inject_tag: json:"billing_type" validate:"required,oneof=real virtual"
+    string billing_type = 20;
 }
 
 message PlatformPrice {
@@ -951,6 +953,8 @@ message Product {
     bool deleted = 18;
     // @inject_tag: json:"pricing" validate:"required,oneof=currency manual steam default"
     string pricing = 19;
+    // @inject_tag: json:"billing_type" validate:"required,oneof=real virtual"
+    string billing_type = 20;
 }
 
 message ListProductsRequest {
@@ -2186,8 +2190,11 @@ message GetPaylinkURLRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string merchant_id = 2;
     string url_mask = 3;
+    // @inject_tag: query:"utm_source"
     string utm_source = 4;
+    // @inject_tag: query:"utm_medium"
     string utm_medium = 5;
+    // @inject_tag: query:"utm_campaign"
     string utm_campaign = 6;
 }
 

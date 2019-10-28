@@ -440,15 +440,17 @@ func (h *accountingEntry) processPaymentEvent() error {
 
 	// 10. merchantTaxFeeCentralBankFx
 	merchantTaxFeeCentralBankFx := h.newEntry(pkg.AccountingEntryTypeMerchantTaxFeeCentralBankFx)
-	amount, err = h.GetExchangeCbCurrentCommon(h.order.GetMerchantRoyaltyCurrency(), merchantTaxFeeCostValue.Amount)
-	if err != nil {
-		return err
+	if h.country.VatEnabled {
+		amount, err = h.GetExchangeCbCurrentCommon(h.order.GetMerchantRoyaltyCurrency(), merchantTaxFeeCostValue.Amount)
+		if err != nil {
+			return err
+		}
+		amount, err = h.GetExchangeStockCurrentCommon(h.country.GetVatCurrencyCode(), amount)
+		if err != nil {
+			return err
+		}
+		merchantTaxFeeCentralBankFx.Amount = amount - merchantTaxFeeCostValue.Amount
 	}
-	amount, err = h.GetExchangeStockCurrentCommon(h.country.GetVatCurrencyCode(), amount)
-	if err != nil {
-		return err
-	}
-	merchantTaxFeeCentralBankFx.Amount = amount - merchantTaxFeeCostValue.Amount
 	if err = h.addEntry(merchantTaxFeeCentralBankFx); err != nil {
 		return err
 	}
@@ -735,26 +737,28 @@ func (h *accountingEntry) processRefundEvent() error {
 	// calculated in order_view
 
 	// 13. reverseTaxFee
-	merchantTaxFeeCostValue := h.newEntry("")
-	query["type"] = pkg.AccountingEntryTypeMerchantTaxFeeCostValue
-	err = h.Service.db.Collection(collectionAccountingEntry).Find(query).One(&merchantTaxFeeCostValue)
-	if err != nil {
-		return err
-	}
-
-	merchantTaxFeeCentralBankFx := h.newEntry("")
-	query["type"] = pkg.AccountingEntryTypeMerchantTaxFeeCentralBankFx
-	err = h.Service.db.Collection(collectionAccountingEntry).Find(query).One(&merchantTaxFeeCentralBankFx)
-	if err != nil {
-		return err
-	}
-
 	reverseTaxFee := h.newEntry(pkg.AccountingEntryTypeReverseTaxFee)
-	reverseTaxFee.Amount = (merchantTaxFeeCostValue.Amount + merchantTaxFeeCentralBankFx.Amount) * partialRefundCorrection
-	reverseTaxFee.OriginalAmount = (merchantTaxFeeCostValue.OriginalAmount + merchantTaxFeeCentralBankFx.Amount) * partialRefundCorrection
-	reverseTaxFee.OriginalCurrency = merchantTaxFeeCostValue.OriginalCurrency
-	reverseTaxFee.LocalAmount = (merchantTaxFeeCostValue.LocalAmount + merchantTaxFeeCentralBankFx.Amount) * partialRefundCorrection
-	reverseTaxFee.LocalCurrency = merchantTaxFeeCostValue.LocalCurrency
+	merchantTaxFeeCentralBankFx := h.newEntry("")
+	if h.country.VatEnabled {
+		merchantTaxFeeCostValue := h.newEntry("")
+		query["type"] = pkg.AccountingEntryTypeMerchantTaxFeeCostValue
+		err = h.Service.db.Collection(collectionAccountingEntry).Find(query).One(&merchantTaxFeeCostValue)
+		if err != nil {
+			return err
+		}
+
+		query["type"] = pkg.AccountingEntryTypeMerchantTaxFeeCentralBankFx
+		err = h.Service.db.Collection(collectionAccountingEntry).Find(query).One(&merchantTaxFeeCentralBankFx)
+		if err != nil {
+			return err
+		}
+
+		reverseTaxFee.Amount = (merchantTaxFeeCostValue.Amount + merchantTaxFeeCentralBankFx.Amount) * partialRefundCorrection
+		reverseTaxFee.OriginalAmount = (merchantTaxFeeCostValue.OriginalAmount + merchantTaxFeeCentralBankFx.Amount) * partialRefundCorrection
+		reverseTaxFee.OriginalCurrency = merchantTaxFeeCostValue.OriginalCurrency
+		reverseTaxFee.LocalAmount = (merchantTaxFeeCostValue.LocalAmount + merchantTaxFeeCentralBankFx.Amount) * partialRefundCorrection
+		reverseTaxFee.LocalCurrency = merchantTaxFeeCostValue.LocalCurrency
+	}
 	if err = h.addEntry(reverseTaxFee); err != nil {
 		return err
 	}
@@ -764,28 +768,30 @@ func (h *accountingEntry) processRefundEvent() error {
 	reverseTaxFeeDelta := h.newEntry(pkg.AccountingEntryTypeReverseTaxFeeDelta)
 	psReverseTaxFeeDelta := h.newEntry(pkg.AccountingEntryTypePsReverseTaxFeeDelta)
 
-	// #192161 calculation rules changed:
-	// first, restoring tax amount from merchantRefund,
-	// then converting restored tax amount from merchant currency to vat currency by centralbank rate,
-	// after that converting it back from vat currency  to merchant currency by stock rate,
-	// next getting Centralbank fx for restored value as difference between converted and restored values,
-	// and finally getting difference between old merchantTaxFeeCentralBankFx amount and calculated new.
-	amountVatRestored := merchantRefund.Amount / (1 + h.order.Tax.Rate) * h.order.Tax.Rate
-	amountVatCb, err := h.GetExchangeCbCurrentCommon(h.order.GetMerchantRoyaltyCurrency(), amountVatRestored)
-	if err != nil {
-		return err
-	}
-	amountMerchantStock, err := h.GetExchangeStockCurrentCommon(h.country.GetVatCurrencyCode(), amountVatCb)
-	if err != nil {
-		return err
-	}
-	amountFxRestored := amountMerchantStock - amountVatRestored
-	amountResult := merchantTaxFeeCentralBankFx.Amount - amountFxRestored
+	if h.country.VatEnabled {
+		// #192161 calculation rules changed:
+		// first, restoring tax amount from merchantRefund,
+		// then converting restored tax amount from merchant currency to vat currency by centralbank rate,
+		// after that converting it back from vat currency  to merchant currency by stock rate,
+		// next getting Centralbank fx for restored value as difference between converted and restored values,
+		// and finally getting difference between old merchantTaxFeeCentralBankFx amount and calculated new.
+		amountVatRestored := merchantRefund.Amount / (1 + h.order.Tax.Rate) * h.order.Tax.Rate
+		amountVatCb, err := h.GetExchangeCbCurrentCommon(h.order.GetMerchantRoyaltyCurrency(), amountVatRestored)
+		if err != nil {
+			return err
+		}
+		amountMerchantStock, err := h.GetExchangeStockCurrentCommon(h.country.GetVatCurrencyCode(), amountVatCb)
+		if err != nil {
+			return err
+		}
+		amountFxRestored := amountMerchantStock - amountVatRestored
+		amountResult := merchantTaxFeeCentralBankFx.Amount - amountFxRestored
 
-	if amountResult < 0 {
-		psReverseTaxFeeDelta.Amount = -1 * amountResult
-	} else {
-		reverseTaxFeeDelta.Amount = amountResult
+		if amountResult < 0 {
+			psReverseTaxFeeDelta.Amount = -1 * amountResult
+		} else {
+			reverseTaxFeeDelta.Amount = amountResult
+		}
 	}
 
 	if err = h.addEntry(reverseTaxFeeDelta); err != nil {
@@ -941,7 +947,12 @@ func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
 			rateType = curPkg.RateTypeCentralbanks
 			rateSource = h.country.VatCurrencyRatesSource
 		} else {
-			entry.LocalCurrency = h.country.Currency
+			priceGroup, err := h.Service.priceGroup.GetById(h.country.PriceGroupId)
+			if err == nil {
+				entry.LocalCurrency = priceGroup.Currency
+			} else {
+				entry.LocalCurrency = h.country.Currency
+			}
 			rateType = curPkg.RateTypeOxr
 			rateSource = ""
 		}
