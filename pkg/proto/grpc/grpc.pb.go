@@ -13653,11 +13653,14 @@ type GetPaylinkURLRequest struct {
 	//@inject_tag: validate:"required,hexadecimal,len=24"
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty" validate:"required,hexadecimal,len=24"`
 	//@inject_tag: validate:"required,hexadecimal,len=24"
-	MerchantId           string   `protobuf:"bytes,2,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id,omitempty" validate:"required,hexadecimal,len=24"`
-	UrlMask              string   `protobuf:"bytes,3,opt,name=url_mask,json=urlMask,proto3" json:"url_mask,omitempty"`
-	UtmSource            string   `protobuf:"bytes,4,opt,name=utm_source,json=utmSource,proto3" json:"utm_source,omitempty"`
-	UtmMedium            string   `protobuf:"bytes,5,opt,name=utm_medium,json=utmMedium,proto3" json:"utm_medium,omitempty"`
-	UtmCampaign          string   `protobuf:"bytes,6,opt,name=utm_campaign,json=utmCampaign,proto3" json:"utm_campaign,omitempty"`
+	MerchantId string `protobuf:"bytes,2,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id,omitempty" validate:"required,hexadecimal,len=24"`
+	UrlMask    string `protobuf:"bytes,3,opt,name=url_mask,json=urlMask,proto3" json:"url_mask,omitempty"`
+	// @inject_tag: query:"utm_source"
+	UtmSource string `protobuf:"bytes,4,opt,name=utm_source,json=utmSource,proto3" json:"utm_source,omitempty" query:"utm_source"`
+	// @inject_tag: query:"utm_medium"
+	UtmMedium string `protobuf:"bytes,5,opt,name=utm_medium,json=utmMedium,proto3" json:"utm_medium,omitempty" query:"utm_medium"`
+	// @inject_tag: query:"utm_campaign"
+	UtmCampaign          string   `protobuf:"bytes,6,opt,name=utm_campaign,json=utmCampaign,proto3" json:"utm_campaign,omitempty" query:"utm_campaign"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`
