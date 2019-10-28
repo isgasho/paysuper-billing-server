@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/centrifugal/gocent"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
@@ -2097,6 +2099,18 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantS3Agreement_Ok() {
 	assert.Equal(suite.T(), pkg.MerchantStatusDraft, rsp.Status)
 	assert.Empty(suite.T(), rsp.S3AgreementName)
 
+	zap.ReplaceGlobals(suite.logObserver)
+	suite.service.centrifugo = &Centrifugo{
+		svc: suite.service,
+		centrifugoClient: gocent.New(
+			gocent.Config{
+				Addr:       "http://localhost",
+				Key:        "api_key",
+				HTTPClient: mocks.NewClientStatusOk(),
+			},
+		),
+	}
+
 	req1 := &grpc.SetMerchantS3AgreementRequest{
 		MerchantId:      rsp.Id,
 		S3AgreementName: "agreement_" + rsp.Id + ".pdf",
@@ -2107,6 +2121,24 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantS3Agreement_Ok() {
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)
 	assert.Equal(suite.T(), req1.S3AgreementName, rsp1.Item.S3AgreementName)
+
+	messages := suite.zapRecorder.All()
+	assert.Equal(suite.T(), zapcore.InfoLevel, messages[0].Level)
+	assert.Len(suite.T(), messages[0].Context, 2)
+	assert.Equal(suite.T(), "request_body", messages[0].Context[1].Key)
+
+	msg := make(map[string]interface{})
+	err = json.Unmarshal(messages[0].Context[1].Interface.([]byte), &msg)
+	assert.NoError(suite.T(), err)
+	assert.Contains(suite.T(), msg, "params")
+
+	params := msg["params"].(map[string]interface{})
+	assert.Contains(suite.T(), params, "channel")
+	assert.Contains(suite.T(), params, "data")
+	assert.Equal(suite.T(), suite.service.getMerchantCentrifugoChannel(rsp.Id), params["channel"])
+
+	data := params["data"].(map[string]interface{})
+	assert.Equal(suite.T(), merchantAgreementReadyToSignMessage, data)
 
 	merchant1, err := suite.service.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(rsp.Id)})
 	assert.NoError(suite.T(), err)
@@ -3964,4 +3996,61 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantManualPayouts_Mer
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, rsp1.Status)
 	assert.Equal(suite.T(), merchantErrorNotFound, rsp1.Message)
+}
+
+func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantS3Agreement_AgreementReadyToSign_CentrifigoError() {
+	req := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
+		Company: &billing.MerchantCompanyInfo{
+			Name:    "merchant1",
+			Country: "RU",
+			Zip:     "190000",
+			City:    "St.Petersburg",
+		},
+		Contacts: &billing.MerchantContact{
+			Authorized: &billing.MerchantContactAuthorized{
+				Name:     "Unit Test",
+				Email:    "test@unit.test",
+				Phone:    "1234567890",
+				Position: "Unit Test",
+			},
+			Technical: &billing.MerchantContactTechnical{
+				Name:  "Unit Test",
+				Email: "test@unit.test",
+				Phone: "1234567890",
+			},
+		},
+		Banking: &billing.MerchantBanking{
+			Currency:      "RUB",
+			Name:          "Bank name",
+			Address:       "Unknown",
+			AccountNumber: "1234567890",
+			Swift:         "TEST",
+			Details:       "",
+		},
+	}
+	rsp := &grpc.ChangeMerchantResponse{}
+	err := suite.service.ChangeMerchant(context.TODO(), req, rsp)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), pkg.MerchantStatusDraft, rsp.Item.Status)
+	assert.Empty(suite.T(), rsp.Item.S3AgreementName)
+
+	centrifugoMock := &mocks.CentrifugoInterface{}
+	centrifugoMock.On("GetChannelToken", mock2.Anything, mock2.Anything).Return("token")
+	centrifugoMock.On("Publish", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New("some error"))
+	suite.service.centrifugo = centrifugoMock
+
+	req1 := &grpc.SetMerchantS3AgreementRequest{
+		MerchantId:      rsp.Item.Id,
+		S3AgreementName: "agreement_" + rsp.Item.Id + ".pdf",
+	}
+	rsp1 := &grpc.ChangeMerchantDataResponse{}
+	err = suite.service.SetMerchantS3Agreement(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp1.Status)
+	assert.Equal(suite.T(), merchantErrorUnknown, rsp1.Message)
 }
