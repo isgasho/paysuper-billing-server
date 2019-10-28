@@ -94,27 +94,6 @@ func (_m *PriceGroupServiceInterface) GetByRegion(_a0 string) (*billing.PriceGro
 	return r0, r1
 }
 
-// GetRecommendedPriceForRegion provides a mock function with given fields: _a0, _a1, _a2
-func (_m *PriceGroupServiceInterface) GetRecommendedPriceForRegion(_a0 *billing.PriceTable, _a1 *billing.PriceGroup, _a2 float64) (float64, error) {
-	ret := _m.Called(_a0, _a1, _a2)
-
-	var r0 float64
-	if rf, ok := ret.Get(0).(func(*billing.PriceTable, *billing.PriceGroup, float64) float64); ok {
-		r0 = rf(_a0, _a1, _a2)
-	} else {
-		r0 = ret.Get(0).(float64)
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*billing.PriceTable, *billing.PriceGroup, float64) error); ok {
-		r1 = rf(_a0, _a1, _a2)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // Insert provides a mock function with given fields: _a0
 func (_m *PriceGroupServiceInterface) Insert(_a0 *billing.PriceGroup) error {
 	ret := _m.Called(_a0)

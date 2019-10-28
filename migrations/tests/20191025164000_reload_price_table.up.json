@@ -1,0 +1,1315 @@
+[
+  {
+    "drop": "price_table"
+  },
+  {
+    "create": "price_table"
+  },
+  {
+    "insert": "price_table",
+    "documents": [
+      {
+        "currency": "USD",
+        "range": [
+          {
+            "position": {
+              "$numberInt": "0"
+            },
+            "from": {
+              "$numberDouble": "0"
+            },
+            "to": {
+              "$numberDouble": "0.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "1"
+            },
+            "from": {
+              "$numberDouble": "0.99"
+            },
+            "to": {
+              "$numberDouble": "1.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "2"
+            },
+            "from": {
+              "$numberDouble": "1.99"
+            },
+            "to": {
+              "$numberDouble": "2.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "3"
+            },
+            "from": {
+              "$numberDouble": "2.99"
+            },
+            "to": {
+              "$numberDouble": "3.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "4"
+            },
+            "from": {
+              "$numberDouble": "3.99"
+            },
+            "to": {
+              "$numberDouble": "4.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "5"
+            },
+            "from": {
+              "$numberDouble": "4.99"
+            },
+            "to": {
+              "$numberDouble": "5.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "6"
+            },
+            "from": {
+              "$numberDouble": "5.99"
+            },
+            "to": {
+              "$numberDouble": "6.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "7"
+            },
+            "from": {
+              "$numberDouble": "6.99"
+            },
+            "to": {
+              "$numberDouble": "7.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "8"
+            },
+            "from": {
+              "$numberDouble": "7.99"
+            },
+            "to": {
+              "$numberDouble": "8.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "9"
+            },
+            "from": {
+              "$numberDouble": "8.99"
+            },
+            "to": {
+              "$numberDouble": "9.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "10"
+            },
+            "from": {
+              "$numberDouble": "9.99"
+            },
+            "to": {
+              "$numberDouble": "10.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "11"
+            },
+            "from": {
+              "$numberDouble": "10.99"
+            },
+            "to": {
+              "$numberDouble": "11.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "12"
+            },
+            "from": {
+              "$numberDouble": "11.99"
+            },
+            "to": {
+              "$numberDouble": "12.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "13"
+            },
+            "from": {
+              "$numberDouble": "12.99"
+            },
+            "to": {
+              "$numberDouble": "13.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "14"
+            },
+            "from": {
+              "$numberDouble": "13.99"
+            },
+            "to": {
+              "$numberDouble": "14.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "15"
+            },
+            "from": {
+              "$numberDouble": "14.99"
+            },
+            "to": {
+              "$numberDouble": "15.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "16"
+            },
+            "from": {
+              "$numberDouble": "15.99"
+            },
+            "to": {
+              "$numberDouble": "16.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "17"
+            },
+            "from": {
+              "$numberDouble": "16.99"
+            },
+            "to": {
+              "$numberDouble": "17.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "18"
+            },
+            "from": {
+              "$numberDouble": "17.99"
+            },
+            "to": {
+              "$numberDouble": "18.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "19"
+            },
+            "from": {
+              "$numberDouble": "18.99"
+            },
+            "to": {
+              "$numberDouble": "19.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "20"
+            },
+            "from": {
+              "$numberDouble": "19.99"
+            },
+            "to": {
+              "$numberDouble": "24.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "21"
+            },
+            "from": {
+              "$numberDouble": "24.99"
+            },
+            "to": {
+              "$numberDouble": "29.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "22"
+            },
+            "from": {
+              "$numberDouble": "29.99"
+            },
+            "to": {
+              "$numberDouble": "34.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "23"
+            },
+            "from": {
+              "$numberDouble": "34.99"
+            },
+            "to": {
+              "$numberDouble": "39.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "24"
+            },
+            "from": {
+              "$numberDouble": "39.99"
+            },
+            "to": {
+              "$numberDouble": "44.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "25"
+            },
+            "from": {
+              "$numberDouble": "44.99"
+            },
+            "to": {
+              "$numberDouble": "49.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "26"
+            },
+            "from": {
+              "$numberDouble": "49.99"
+            },
+            "to": {
+              "$numberDouble": "54.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "27"
+            },
+            "from": {
+              "$numberDouble": "54.99"
+            },
+            "to": {
+              "$numberDouble": "59.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "28"
+            },
+            "from": {
+              "$numberDouble": "59.99"
+            },
+            "to": {
+              "$numberDouble": "64.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "29"
+            },
+            "from": {
+              "$numberDouble": "64.99"
+            },
+            "to": {
+              "$numberDouble": "69.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "30"
+            },
+            "from": {
+              "$numberDouble": "69.99"
+            },
+            "to": {
+              "$numberDouble": "74.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "31"
+            },
+            "from": {
+              "$numberDouble": "74.99"
+            },
+            "to": {
+              "$numberDouble": "79.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "32"
+            },
+            "from": {
+              "$numberDouble": "79.99"
+            },
+            "to": {
+              "$numberDouble": "84.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "33"
+            },
+            "from": {
+              "$numberDouble": "84.99"
+            },
+            "to": {
+              "$numberDouble": "89.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "34"
+            },
+            "from": {
+              "$numberDouble": "89.99"
+            },
+            "to": {
+              "$numberDouble": "99.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "35"
+            },
+            "from": {
+              "$numberDouble": "99.99"
+            },
+            "to": {
+              "$numberDouble": "119.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "36"
+            },
+            "from": {
+              "$numberDouble": "119.99"
+            },
+            "to": {
+              "$numberDouble": "129.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "37"
+            },
+            "from": {
+              "$numberDouble": "129.99"
+            },
+            "to": {
+              "$numberDouble": "149.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "38"
+            },
+            "from": {
+              "$numberDouble": "149.99"
+            },
+            "to": {
+              "$numberDouble": "199.99"
+            }
+          }
+        ]
+      },
+      {
+        "currency": "EUR",
+        "range": [
+          {
+            "position": {
+              "$numberInt": "0"
+            },
+            "from": {
+              "$numberDouble": "0"
+            },
+            "to": {
+              "$numberDouble": "0.79"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "1"
+            },
+            "from": {
+              "$numberDouble": "0.79"
+            },
+            "to": {
+              "$numberDouble": "1.59"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "2"
+            },
+            "from": {
+              "$numberDouble": "1.59"
+            },
+            "to": {
+              "$numberDouble": "2.39"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "3"
+            },
+            "from": {
+              "$numberDouble": "2.39"
+            },
+            "to": {
+              "$numberDouble": "3.29"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "4"
+            },
+            "from": {
+              "$numberDouble": "3.29"
+            },
+            "to": {
+              "$numberDouble": "3.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "5"
+            },
+            "from": {
+              "$numberDouble": "3.99"
+            },
+            "to": {
+              "$numberDouble": "4.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "6"
+            },
+            "from": {
+              "$numberDouble": "4.99"
+            },
+            "to": {
+              "$numberDouble": "5.69"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "7"
+            },
+            "from": {
+              "$numberDouble": "5.69"
+            },
+            "to": {
+              "$numberDouble": "6.59"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "8"
+            },
+            "from": {
+              "$numberDouble": "6.59"
+            },
+            "to": {
+              "$numberDouble": "7.39"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "9"
+            },
+            "from": {
+              "$numberDouble": "7.39"
+            },
+            "to": {
+              "$numberDouble": "8.19"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "10"
+            },
+            "from": {
+              "$numberDouble": "8.19"
+            },
+            "to": {
+              "$numberDouble": "8.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "11"
+            },
+            "from": {
+              "$numberDouble": "8.99"
+            },
+            "to": {
+              "$numberDouble": "9.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "12"
+            },
+            "from": {
+              "$numberDouble": "9.99"
+            },
+            "to": {
+              "$numberDouble": "10.79"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "13"
+            },
+            "from": {
+              "$numberDouble": "10.79"
+            },
+            "to": {
+              "$numberDouble": "11.59"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "14"
+            },
+            "from": {
+              "$numberDouble": "11.59"
+            },
+            "to": {
+              "$numberDouble": "12.49"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "15"
+            },
+            "from": {
+              "$numberDouble": "12.49"
+            },
+            "to": {
+              "$numberDouble": "13.29"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "16"
+            },
+            "from": {
+              "$numberDouble": "13.29"
+            },
+            "to": {
+              "$numberDouble": "13.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "17"
+            },
+            "from": {
+              "$numberDouble": "13.99"
+            },
+            "to": {
+              "$numberDouble": "14.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "18"
+            },
+            "from": {
+              "$numberDouble": "14.99"
+            },
+            "to": {
+              "$numberDouble": "15.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "19"
+            },
+            "from": {
+              "$numberDouble": "15.99"
+            },
+            "to": {
+              "$numberDouble": "16.79"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "20"
+            },
+            "from": {
+              "$numberDouble": "16.79"
+            },
+            "to": {
+              "$numberDouble": "20.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "21"
+            },
+            "from": {
+              "$numberDouble": "20.99"
+            },
+            "to": {
+              "$numberDouble": "24.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "22"
+            },
+            "from": {
+              "$numberDouble": "24.99"
+            },
+            "to": {
+              "$numberDouble": "29.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "23"
+            },
+            "from": {
+              "$numberDouble": "29.99"
+            },
+            "to": {
+              "$numberDouble": "33.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "24"
+            },
+            "from": {
+              "$numberDouble": "33.99"
+            },
+            "to": {
+              "$numberDouble": "37.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "25"
+            },
+            "from": {
+              "$numberDouble": "37.99"
+            },
+            "to": {
+              "$numberDouble": "41.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "26"
+            },
+            "from": {
+              "$numberDouble": "41.99"
+            },
+            "to": {
+              "$numberDouble": "45.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "27"
+            },
+            "from": {
+              "$numberDouble": "45.99"
+            },
+            "to": {
+              "$numberDouble": "49.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "28"
+            },
+            "from": {
+              "$numberDouble": "49.99"
+            },
+            "to": {
+              "$numberDouble": "54.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "29"
+            },
+            "from": {
+              "$numberDouble": "54.99"
+            },
+            "to": {
+              "$numberDouble": "58.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "30"
+            },
+            "from": {
+              "$numberDouble": "58.99"
+            },
+            "to": {
+              "$numberDouble": "62.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "31"
+            },
+            "from": {
+              "$numberDouble": "62.99"
+            },
+            "to": {
+              "$numberDouble": "67.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "32"
+            },
+            "from": {
+              "$numberDouble": "67.99"
+            },
+            "to": {
+              "$numberDouble": "71.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "33"
+            },
+            "from": {
+              "$numberDouble": "71.99"
+            },
+            "to": {
+              "$numberDouble": "75.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "34"
+            },
+            "from": {
+              "$numberDouble": "75.99"
+            },
+            "to": {
+              "$numberDouble": "84.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "35"
+            },
+            "from": {
+              "$numberDouble": "84.99"
+            },
+            "to": {
+              "$numberDouble": "99.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "36"
+            },
+            "from": {
+              "$numberDouble": "99.99"
+            },
+            "to": {
+              "$numberDouble": "109.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "37"
+            },
+            "from": {
+              "$numberDouble": "109.99"
+            },
+            "to": {
+              "$numberDouble": "126.99"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "38"
+            },
+            "from": {
+              "$numberDouble": "126.99"
+            },
+            "to": {
+              "$numberDouble": "169.99"
+            }
+          }
+        ]
+      },
+      {
+        "currency": "RUB",
+        "range": [
+          {
+            "position": {
+              "$numberInt": "0"
+            },
+            "from": {
+              "$numberDouble": "0"
+            },
+            "to": {
+              "$numberDouble": "30"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "1"
+            },
+            "from": {
+              "$numberDouble": "30"
+            },
+            "to": {
+              "$numberDouble": "61"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "2"
+            },
+            "from": {
+              "$numberDouble": "61"
+            },
+            "to": {
+              "$numberDouble": "82"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "3"
+            },
+            "from": {
+              "$numberDouble": "82"
+            },
+            "to": {
+              "$numberDouble": "102"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "4"
+            },
+            "from": {
+              "$numberDouble": "102"
+            },
+            "to": {
+              "$numberDouble": "133"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "5"
+            },
+            "from": {
+              "$numberDouble": "133"
+            },
+            "to": {
+              "$numberDouble": "154"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "6"
+            },
+            "from": {
+              "$numberDouble": "154"
+            },
+            "to": {
+              "$numberDouble": "175"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "7"
+            },
+            "from": {
+              "$numberDouble": "175"
+            },
+            "to": {
+              "$numberDouble": "195"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "8"
+            },
+            "from": {
+              "$numberDouble": "195"
+            },
+            "to": {
+              "$numberDouble": "205"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "9"
+            },
+            "from": {
+              "$numberDouble": "205"
+            },
+            "to": {
+              "$numberDouble": "259"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "10"
+            },
+            "from": {
+              "$numberDouble": "259"
+            },
+            "to": {
+              "$numberDouble": "269"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "11"
+            },
+            "from": {
+              "$numberDouble": "269"
+            },
+            "to": {
+              "$numberDouble": "289"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "12"
+            },
+            "from": {
+              "$numberDouble": "289"
+            },
+            "to": {
+              "$numberDouble": "299"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "13"
+            },
+            "from": {
+              "$numberDouble": "299"
+            },
+            "to": {
+              "$numberDouble": "309"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "14"
+            },
+            "from": {
+              "$numberDouble": "309"
+            },
+            "to": {
+              "$numberDouble": "360"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "15"
+            },
+            "from": {
+              "$numberDouble": "360"
+            },
+            "to": {
+              "$numberDouble": "372"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "16"
+            },
+            "from": {
+              "$numberDouble": "372"
+            },
+            "to": {
+              "$numberDouble": "392"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "17"
+            },
+            "from": {
+              "$numberDouble": "392"
+            },
+            "to": {
+              "$numberDouble": "399"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "18"
+            },
+            "from": {
+              "$numberDouble": "399"
+            },
+            "to": {
+              "$numberDouble": "415"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "19"
+            },
+            "from": {
+              "$numberDouble": "415"
+            },
+            "to": {
+              "$numberDouble": "435"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "20"
+            },
+            "from": {
+              "$numberDouble": "435"
+            },
+            "to": {
+              "$numberDouble": "465"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "21"
+            },
+            "from": {
+              "$numberDouble": "465"
+            },
+            "to": {
+              "$numberDouble": "515"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "22"
+            },
+            "from": {
+              "$numberDouble": "515"
+            },
+            "to": {
+              "$numberDouble": "619"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "23"
+            },
+            "from": {
+              "$numberDouble": "619"
+            },
+            "to": {
+              "$numberDouble": "725"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "24"
+            },
+            "from": {
+              "$numberDouble": "725"
+            },
+            "to": {
+              "$numberDouble": "825"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "25"
+            },
+            "from": {
+              "$numberDouble": "825"
+            },
+            "to": {
+              "$numberDouble": "930"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "26"
+            },
+            "from": {
+              "$numberDouble": "930"
+            },
+            "to": {
+              "$numberDouble": "1035"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "27"
+            },
+            "from": {
+              "$numberDouble": "1035"
+            },
+            "to": {
+              "$numberDouble": "1085"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "28"
+            },
+            "from": {
+              "$numberDouble": "1085"
+            },
+            "to": {
+              "$numberDouble": "1190"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "29"
+            },
+            "from": {
+              "$numberDouble": "1190"
+            },
+            "to": {
+              "$numberDouble": "1239"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "30"
+            },
+            "from": {
+              "$numberDouble": "1239"
+            },
+            "to": {
+              "$numberDouble": "1289"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "31"
+            },
+            "from": {
+              "$numberDouble": "1289"
+            },
+            "to": {
+              "$numberDouble": "1389"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "32"
+            },
+            "from": {
+              "$numberDouble": "1389"
+            },
+            "to": {
+              "$numberDouble": "1449"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "33"
+            },
+            "from": {
+              "$numberDouble": "1449"
+            },
+            "to": {
+              "$numberDouble": "1549"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "34"
+            },
+            "from": {
+              "$numberDouble": "1549"
+            },
+            "to": {
+              "$numberDouble": "1659"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "35"
+            },
+            "from": {
+              "$numberDouble": "1659"
+            },
+            "to": {
+              "$numberDouble": "2129"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "36"
+            },
+            "from": {
+              "$numberDouble": "2129"
+            },
+            "to": {
+              "$numberDouble": "2319"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "37"
+            },
+            "from": {
+              "$numberDouble": "2319"
+            },
+            "to": {
+              "$numberDouble": "2669"
+            }
+          },
+          {
+            "position": {
+              "$numberInt": "38"
+            },
+            "from": {
+              "$numberDouble": "2669"
+            },
+            "to": {
+              "$numberDouble": "3499"
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -80,6 +80,7 @@ service BillingService {
     rpc GetPriceGroupCurrencyByRegion (PriceGroupByRegionRequest) returns (PriceGroupCurrenciesResponse) {}
     rpc GetRecommendedPriceByPriceGroup (RecommendedPriceRequest) returns (RecommendedPriceResponse) {}
     rpc GetRecommendedPriceByConversion (RecommendedPriceRequest) returns (RecommendedPriceResponse) {}
+    rpc GetRecommendedPriceTable (RecommendedPriceTableRequest) returns (RecommendedPriceTableResponse) {}
     rpc GetPriceGroupByRegion (GetPriceGroupByRegionRequest) returns (GetPriceGroupByRegionResponse) {}
 
     rpc SetUserNotifySales (SetUserNotifyRequest) returns (EmptyResponse) {}
@@ -1471,11 +1472,23 @@ message PriceGroupByRegionRequest {
 message RecommendedPriceRequest {
     // @inject_tag: validate:"required,numeric,gte=0"
     double amount = 1;
+    // @inject_tag: validate:"required,alpha,len=3"
+    string currency = 2;
 }
 
 message RecommendedPriceResponse {
     // @inject_tag: json:"recommended_price"
     repeated billing.RecommendedPrice recommended_price = 1;
+}
+
+message RecommendedPriceTableRequest {
+    // @inject_tag: validate:"required,alpha,len=3"
+    string currency = 1;
+}
+
+message RecommendedPriceTableResponse {
+    // @inject_tag: json:"ranges"
+    repeated billing.PriceTableRange ranges = 1;
 }
 
 message ProductPricesResponse {

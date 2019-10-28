@@ -1883,19 +1883,19 @@ message RecommendedPrice {
 message PriceTable {
     //@inject_tag: json:"id" bson:"_id" validate:"omitempty,hexadecimal,len=24"
     string id = 1;
-    // @inject_tag: json:"currencies"
-    map<string, PriceTableCurrency> currencies = 2;
+    //@inject_tag: json:"currency" bson:"currency" validate:"required,alpha,len=3"
+    string currency = 2;
+    // @inject_tag: json:"ranges"
+    repeated PriceTableRange ranges = 3;
+}
+
+message PriceTableRange {
+    //@inject_tag: json:"position" bson:"position"
+    int32 position = 1;
     // @inject_tag: json:"from"
     double from = 3;
     // @inject_tag: json:"to"
     double to = 4;
-}
-
-message PriceTableCurrency {
-    // @inject_tag: json:"from"
-    double from = 1;
-    // @inject_tag: json:"to"
-    double to = 2;
 }
 
 message Id {

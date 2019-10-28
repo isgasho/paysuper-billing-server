@@ -540,16 +540,15 @@ type MgoMoneyBackCostMerchant struct {
 }
 
 type MgoPriceTable struct {
-	Id         bson.ObjectId            `bson:"_id"`
-	Currencies []*MgoPriceTableCurrency `bson:"currencies"`
-	From       float64                  `bson:"from"`
-	To         float64                  `bson:"to"`
+	Id       bson.ObjectId         `bson:"_id"`
+	Currency string                `bson:"currency"`
+	Ranges   []*MgoPriceTableRange `bson:"ranges"`
 }
 
-type MgoPriceTableCurrency struct {
-	Currency string  `bson:"currency"`
+type MgoPriceTableRange struct {
 	From     float64 `bson:"from"`
 	To       float64 `bson:"to"`
+	Position int32   `bson:"position"`
 }
 
 type MgoAccountingEntrySource struct {
@@ -3423,14 +3422,13 @@ func (m *PayoutCostSystem) SetBSON(raw bson.Raw) error {
 
 func (m *PriceTable) GetBSON() (interface{}, error) {
 	st := &MgoPriceTable{
-		Id:   bson.ObjectIdHex(m.Id),
-		From: m.From,
-		To:   m.To,
+		Id:       bson.ObjectIdHex(m.Id),
+		Currency: m.Currency,
 	}
 
-	if len(m.Currencies) > 0 {
-		for k, v := range m.Currencies {
-			st.Currencies = append(st.Currencies, &MgoPriceTableCurrency{Currency: k, From: v.From, To: v.To})
+	if len(m.Ranges) > 0 {
+		for _, v := range m.Ranges {
+			st.Ranges = append(st.Ranges, &MgoPriceTableRange{From: v.From, To: v.To, Position: v.Position})
 		}
 	}
 
@@ -3446,19 +3444,19 @@ func (m *PriceTable) SetBSON(raw bson.Raw) error {
 	}
 
 	m.Id = decoded.Id.Hex()
-	m.From = decoded.From
-	m.To = decoded.To
+	m.Currency = decoded.Currency
 
-	currencyLen := len(decoded.Currencies)
+	rangesLen := len(decoded.Ranges)
 
-	if currencyLen > 0 {
-		m.Currencies = make(map[string]*PriceTableCurrency, currencyLen)
+	if rangesLen > 0 {
+		m.Ranges = make([]*PriceTableRange, rangesLen)
 
-		for _, v := range decoded.Currencies {
-			m.Currencies[v.Currency] = &PriceTableCurrency{
-				From: v.From,
-				To:   v.To,
-			}
+		for _, v := range decoded.Ranges {
+			m.Ranges = append(m.Ranges, &PriceTableRange{
+				From:     v.From,
+				To:       v.To,
+				Position: v.Position,
+			})
 		}
 	}
 
