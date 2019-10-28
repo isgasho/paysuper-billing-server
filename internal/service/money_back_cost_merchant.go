@@ -206,7 +206,7 @@ func newMoneyBackCostMerchantService(svc *Service) *MoneyBackCostMerchant {
 
 func (h *MoneyBackCostMerchant) Insert(obj *billing.MoneyBackCostMerchant) error {
 	obj.FixAmount = tools.FormatAmount(obj.FixAmount)
-	obj.Percent = tools.FormatAmount(obj.Percent)
+	obj.Percent = tools.ToPrecise(obj.Percent)
 	obj.IsActive = true
 	if err := h.svc.db.Collection(collectionMoneyBackCostMerchant).Insert(obj); err != nil {
 		return err
@@ -229,7 +229,7 @@ func (h MoneyBackCostMerchant) MultipleInsert(obj []*billing.MoneyBackCostMercha
 	c := make([]interface{}, len(obj))
 	for i, v := range obj {
 		v.FixAmount = tools.FormatAmount(v.FixAmount)
-		v.Percent = tools.FormatAmount(v.Percent)
+		v.Percent = tools.ToPrecise(v.Percent)
 		v.IsActive = true
 		c[i] = v
 
@@ -248,7 +248,7 @@ func (h MoneyBackCostMerchant) MultipleInsert(obj []*billing.MoneyBackCostMercha
 
 func (h MoneyBackCostMerchant) Update(obj *billing.MoneyBackCostMerchant) error {
 	obj.FixAmount = tools.FormatAmount(obj.FixAmount)
-	obj.Percent = tools.FormatAmount(obj.Percent)
+	obj.Percent = tools.ToPrecise(obj.Percent)
 	obj.IsActive = true
 	if err := h.svc.db.Collection(collectionMoneyBackCostMerchant).UpdateId(bson.ObjectIdHex(obj.Id), obj); err != nil {
 		return err
