@@ -305,7 +305,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_Ok()
 				"en": "It's english success message",
 				"ru": "Это сообщение о успешной покупке на русском языке",
 			},
-			Price: []*billing.ProductPrice{
+			Prices: []*billing.ProductPrice{
 				{Amount: 100, Currency: "USD", Region: "USD"},
 				{Amount: 1000, Currency: "RUB", Region: "Russia"},
 			},
@@ -992,7 +992,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_IncorrectCurren
 				"en": "It's english success message",
 				"ru": "Это сообщение о успешной покупке на русском языке",
 			},
-			Price: []*billing.ProductPrice{
+			Prices: []*billing.ProductPrice{
 				{Amount: 100, Currency: "USD", Region: "USD"},
 				{Amount: 1000, Currency: "RUB", Region: "Russia"},
 			},
@@ -1048,7 +1048,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_ShortDescriptio
 				"en": "It's english success message",
 				"ru": "Это сообщение о успешной покупке на русском языке",
 			},
-			Price: []*billing.ProductPrice{
+			Prices: []*billing.ProductPrice{
 				{Amount: 100, Currency: "USD", Region: "USD"},
 				{Amount: 1000, Currency: "RUB", Region: "Russia"},
 			},
@@ -1102,7 +1102,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_FullDescription
 				"en": "It's english success message",
 				"ru": "Это сообщение о успешной покупке на русском языке",
 			},
-			Price: []*billing.ProductPrice{
+			Prices: []*billing.ProductPrice{
 				{Amount: 100, Currency: "USD", Region: "USD"},
 				{Amount: 1000, Currency: "RUB", Region: "Russia"},
 			},
@@ -1156,7 +1156,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_VirtualCurrency
 				"en": "It's english success message",
 				"ru": "Это сообщение о успешной покупке на русском языке",
 			},
-			Price: []*billing.ProductPrice{
+			Prices: []*billing.ProductPrice{
 				{Amount: 100, Currency: "USD", Region: "USD"},
 				{Amount: 1000, Currency: "RUB", Region: "Russia"},
 			},
@@ -1210,7 +1210,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_VirtualCurrency
 			SuccessMessage: map[string]string{
 				"ru": "Это сообщение о успешной покупке на русском языке",
 			},
-			Price: []*billing.ProductPrice{
+			Prices: []*billing.ProductPrice{
 				{Amount: 100, Currency: "USD", Region: "USD"},
 				{Amount: 1000, Currency: "RUB", Region: "Russia"},
 			},
@@ -1266,7 +1266,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_VirtualCurrency
 				"en": "It's english success message",
 				"ru": "Это сообщение о успешной покупке на русском языке",
 			},
-			Price: []*billing.ProductPrice{
+			Prices: []*billing.ProductPrice{
 				{Amount: 100, Currency: "USD", Region: "USD"},
 				{Amount: 1000, Currency: "KZT", Region: "CIS"},
 			},
@@ -1323,7 +1323,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_VirtualCurrency
 				"en": "It's english success message",
 				"ru": "Это сообщение о успешной покупке на русском языке",
 			},
-			Price: []*billing.ProductPrice{
+			Prices: []*billing.ProductPrice{
 				{Amount: 100, Currency: "USD", Region: "USD"},
 				{Amount: 1000, Currency: "RUB", Region: "Russia"},
 			},
@@ -1378,7 +1378,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_LimitAmounts_Er
 				"en": "It's english success message",
 				"ru": "Это сообщение о успешной покупке на русском языке",
 			},
-			Price: []*billing.ProductPrice{
+			Prices: []*billing.ProductPrice{
 				{Amount: 100, Currency: "USD", Region: "USD"},
 				{Amount: 1000, Currency: "RUB", Region: "Russia"},
 			},
