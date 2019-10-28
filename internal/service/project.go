@@ -33,6 +33,7 @@ var (
 	projectErrorVirtualCurrencyLimitsIncorrect                   = newBillingServerErrorMsg("pr000011", `project virtual currency purchase limits is incorrect`)
 	projectErrorShortDescriptionDefaultLangRequired              = newBillingServerErrorMsg("pr000012", "project short description in \""+DefaultLanguage+"\" locale is required")
 	projectErrorFullDescriptionDefaultLangRequired               = newBillingServerErrorMsg("pr000013", "project full description in \""+DefaultLanguage+"\" locale is required")
+	projectErrorVirtualCurrencyPriceFallbackCurrencyRequired     = newBillingServerErrorMsg("pr000014", `virtual currency price in "`+pkg.FallbackCurrency+`" currency is required`)
 )
 
 func (s *Service) ChangeProject(
@@ -108,6 +109,10 @@ func (s *Service) ChangeProject(
 			rsp.Message = err.(*grpc.ResponseErrorMessage)
 
 			return nil
+		}
+
+		if req.VirtualCurrency.SellCountType == "" {
+			req.VirtualCurrency.SellCountType = pkg.ProjectSellCountTypeFractional
 		}
 	}
 
@@ -455,15 +460,25 @@ func (s *Service) validateProjectVirtualCurrency(virtualCurrency *billing.Projec
 		return projectErrorVirtualCurrencySuccessMessageDefaultLangRequired
 	}
 
-	if len(virtualCurrency.Price) > 0 {
-		currencies := make([]string, len(virtualCurrency.Price))
+	if len(virtualCurrency.Prices) > 0 {
+		currencies := make([]string, len(virtualCurrency.Prices))
 
-		for _, v := range virtualCurrency.Price {
+		hasPriceInFallBackCurrency := false
+
+		for _, v := range virtualCurrency.Prices {
+			if v.Currency == pkg.FallbackCurrency && v.Region == pkg.FallbackCurrency {
+				hasPriceInFallBackCurrency = true
+			}
+
 			if !contains(s.supportedCurrencies, v.Currency) {
 				err := projectErrorVirtualCurrencyPriceCurrencyIsNotSupport
 				err.Details = v.Currency
 
 				return err
+			}
+
+			if !hasPriceInFallBackCurrency {
+				return projectErrorVirtualCurrencyPriceFallbackCurrencyRequired
 			}
 			currencies = append(currencies, v.Currency)
 		}

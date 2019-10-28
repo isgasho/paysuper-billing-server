@@ -2921,7 +2921,6 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_Error_CheckoutWithoutP
 		ProjectId:     suite.project.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "USD",
-		Products:      []string{"item"},
 		Account:       "unit test",
 		Description:   "unit test",
 		OrderId:       bson.NewObjectId().Hex(),
