@@ -30,7 +30,6 @@ import (
     "github.com/ttacon/libphonenumber"
     "go.uber.org/zap"
     "golang.org/x/crypto/bcrypt"
-    "math"
     "regexp"
     "sort"
     "strconv"
@@ -3892,46 +3891,6 @@ func (v *OrderCreateRequestProcessor) UserCountryExists() bool {
         v.checked.user.Address.Country != ""
 }
 
-func (v *OrderCreateRequestProcessor) processVirtualCurrency() error {
-    virtualCurrency := v.checked.project.VirtualCurrency
-
-    if virtualCurrency == nil || len(virtualCurrency.Price) <= 0 {
-        // возвращаем ошибку о том, что виртуальная валюта не заполнена
-    }
-
-    _, frac := math.Modf(v.checked.amount)
-
-    if virtualCurrency.SellCountType == pkg.ProjectSellCountTypeIntegral && frac > 0 {
-        // возвращаем ошибку о том, что не разрешены платежи с дробной частью в сумме
-    }
-
-    if v.checked.amount < virtualCurrency.MinPurchaseValue ||
-        (virtualCurrency.MaxPurchaseValue > 0 && v.checked.amount > virtualCurrency.MaxPurchaseValue) {
-        // возвращаем ошибку о том, что сумма платежа в виртуальной валюте не проходит по лимитам
-    }
-
-    if v.checked.user == nil && v.checked.user.Address == nil {
-        return nil
-    }
-
-    return v.processVirtualCurrencyAmount()
-}
-
-func (s *Service) processVirtualCurrencyAmount(userCountry string) error {
-    country, err := s.country.GetByIsoCodeA2(userCountry)
-
-    if err != nil {
-        return err
-    }
-
-    group, err := s.priceGroup.GetById(country.PriceGroupId)
-
-    if err != nil {
-        return err
-    }
-
-    
-}
 func intersect(a []string, b []string) []string {
 	set := make([]string, 0)
 	hash := make(map[string]bool)
