@@ -387,7 +387,7 @@ func (s *Service) OrderCreateProcess(
             return nil
         }
 
-        processor.ProcessVirtualCurrency() 123
+        //processor.ProcessVirtualCurrency()
         break
     case billing.OrderType_product:
         if err := processor.processPaylinkProducts(); err != nil {

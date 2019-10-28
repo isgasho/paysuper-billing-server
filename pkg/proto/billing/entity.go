@@ -2,6 +2,7 @@ package billing
 
 import (
 	"errors"
+	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
@@ -287,5 +288,5 @@ func (m *Project) GetVirtualCurrencyRate(group *PriceGroup) (float64, error) {
 		}
 	}
 
-	return 0, errors.New(fmt.Sprintf(productNoPriceInCurrency, group.Region))
+	return 0, errors.New(fmt.Sprintf("productNoPriceInCurrency", group.Region))
 }
