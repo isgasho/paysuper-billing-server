@@ -219,7 +219,7 @@ message MerchantBanking {
     string name = 2;
     // @inject_tag: json:"address" validate:"required,max=60"
     string address = 3;
-    // @inject_tag: json:"account_number" bson:"account_number" validate:"required,numeric,max=30"
+    // @inject_tag: json:"account_number" bson:"account_number" validate:"required,iban"
     string account_number = 4;
     // @inject_tag: json:"swift" validate:"required,swift"
     string swift = 5;
