@@ -491,9 +491,7 @@ func (s *Service) ChangeRoyaltyReport(
 		return err
 	}
 
-	if req.Status == pkg.RoyaltyReportStatusPending {
-		s.sendRoyaltyReportNotification(ctx, report)
-	}
+	s.sendRoyaltyReportNotification(ctx, report)
 
 	_, err = s.updateMerchantBalance(report.MerchantId)
 	if err != nil {
@@ -757,11 +755,38 @@ func (s *Service) RoyaltyReportPdfUploaded(
 		content := base64.StdEncoding.EncodeToString(req.Content)
 		contentType := mime.TypeByExtension(filepath.Ext(req.Filename))
 
+		periodFrom, err := ptypes.Timestamp(report.PeriodFrom)
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorTimeConversion,
+				zap.Any(pkg.ErrorTimeConversionMethod, "ptypes.Timestamp"),
+				zap.Any(pkg.ErrorTimeConversionValue, report.PeriodFrom),
+				zap.Error(err),
+			)
+			return err
+		}
+		periodTo, err := ptypes.Timestamp(report.PeriodTo)
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorTimeConversion,
+				zap.Any(pkg.ErrorTimeConversionMethod, "ptypes.Timestamp"),
+				zap.Any(pkg.ErrorTimeConversionValue, report.PeriodTo),
+				zap.Error(err),
+			)
+			return err
+		}
+
 		payload := &postmarkSdrPkg.Payload{
 			TemplateAlias: s.cfg.EmailNewRoyaltyReportTemplate,
 			TemplateModel: map[string]string{
-				"merchant_id":       merchant.Id,
-				"royalty_report_id": report.Id,
+				"merchant_id":         merchant.Id,
+				"royalty_report_id":   report.Id,
+				"period_from":         periodFrom.Format("2006-01-02"),
+				"period_to":           periodTo.Format("2006-01-02"),
+				"license_agreement":   merchant.AgreementNumber,
+				"status":              report.Status,
+				"merchant_greeting":   merchant.GetAuthorizedName(),
+				"royalty_reports_url": s.cfg.RoyaltyReportsUrl,
 			},
 			To: merchant.GetAuthorizedEmail(),
 			Attachments: []*postmarkSdrPkg.PayloadAttachment{
@@ -773,7 +798,7 @@ func (s *Service) RoyaltyReportPdfUploaded(
 			},
 		}
 
-		err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+		err = s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 
 		if err != nil {
 			zap.L().Error(
@@ -798,16 +823,43 @@ func (s *Service) sendRoyaltyReportNotification(ctx context.Context, report *bil
 	}
 
 	if merchant.HasAuthorizedEmail() == true {
+		periodFrom, err := ptypes.Timestamp(report.PeriodFrom)
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorTimeConversion,
+				zap.Any(pkg.ErrorTimeConversionMethod, "ptypes.Timestamp"),
+				zap.Any(pkg.ErrorTimeConversionValue, report.PeriodFrom),
+				zap.Error(err),
+			)
+			return
+		}
+		periodTo, err := ptypes.Timestamp(report.PeriodTo)
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorTimeConversion,
+				zap.Any(pkg.ErrorTimeConversionMethod, "ptypes.Timestamp"),
+				zap.Any(pkg.ErrorTimeConversionValue, report.PeriodTo),
+				zap.Error(err),
+			)
+			return
+		}
+
 		payload := &postmarkSdrPkg.Payload{
-			TemplateAlias: s.cfg.EmailNewRoyaltyReportTemplate,
+			TemplateAlias: s.cfg.EmailUpdateRoyaltyReportTemplate,
 			TemplateModel: map[string]string{
-				"merchant_id":       merchant.Id,
-				"royalty_report_id": report.Id,
+				"merchant_id":         merchant.Id,
+				"royalty_report_id":   report.Id,
+				"period_from":         periodFrom.Format(time.RFC822),
+				"period_to":           periodTo.Format(time.RFC822),
+				"license_agreement":   merchant.AgreementNumber,
+				"status":              report.Status,
+				"merchant_greeting":   merchant.GetAuthorizedName(),
+				"royalty_reports_url": s.cfg.RoyaltyReportsUrl,
 			},
 			To: merchant.GetAuthorizedEmail(),
 		}
 
-		err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+		err = s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 
 		if err != nil {
 			zap.L().Error(

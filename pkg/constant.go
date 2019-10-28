@@ -249,7 +249,7 @@ const (
 	RoyaltyReportStatusWaitForPayment = "waiting_payment"
 	RoyaltyReportStatusPaid           = "paid"
 
-	EmailRoyaltyReportMessage = "New royalty report wait for merchant owner approve"
+	EmailRoyaltyReportMessage = "Royalty report updated"
 
 	RoyaltyReportChangeSourceAuto     = "auto"
 	RoyaltyReportChangeSourceMerchant = "merchant"

@@ -4,6 +4,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
+	"go.uber.org/zap"
 )
 
 var (
@@ -126,6 +127,13 @@ func (m *Merchant) GetAuthorizedEmail() string {
 }
 
 func (m *Merchant) GetAuthorizedName() string {
+	if m.Contacts == nil || m.Contacts.Authorized == nil || m.Contacts.Authorized.Name == "" {
+		zap.L().Warn(
+			"Merchant has no authorized name",
+			zap.Any("Merchant contacts are", m.Contacts),
+		)
+		return ""
+	}
 	return m.Contacts.Authorized.Name
 }
 

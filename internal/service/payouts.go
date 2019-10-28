@@ -586,11 +586,38 @@ func (s *Service) PayoutDocumentPdfUploaded(
 		content := base64.StdEncoding.EncodeToString(req.Content)
 		contentType := mime.TypeByExtension(filepath.Ext(req.Filename))
 
+		periodFrom, err := ptypes.Timestamp(pd.PeriodFrom)
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorTimeConversion,
+				zap.Any(pkg.ErrorTimeConversionMethod, "ptypes.Timestamp"),
+				zap.Any(pkg.ErrorTimeConversionValue, pd.PeriodFrom),
+				zap.Error(err),
+			)
+			return err
+		}
+		periodTo, err := ptypes.Timestamp(pd.PeriodTo)
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorTimeConversion,
+				zap.Any(pkg.ErrorTimeConversionMethod, "ptypes.Timestamp"),
+				zap.Any(pkg.ErrorTimeConversionValue, pd.PeriodTo),
+				zap.Error(err),
+			)
+			return err
+		}
+
 		payload := &postmarkSdrPkg.Payload{
 			TemplateAlias: s.cfg.EmailNewRoyaltyReportTemplate,
 			TemplateModel: map[string]string{
-				"merchant_id": merchant.Id,
-				"payout_id":   pd.Id,
+				"merchant_id":       merchant.Id,
+				"payout_id":         pd.Id,
+				"period_from":       periodFrom.Format("2006-01-02"),
+				"period_to":         periodTo.Format("2006-01-02"),
+				"license_agreement": merchant.AgreementNumber,
+				"status":            pd.Status,
+				"merchant_greeting": merchant.GetAuthorizedName(),
+				"payouts_url":       s.cfg.PayoutsUrl,
 			},
 			To: merchant.GetAuthorizedEmail(),
 			Attachments: []*postmarkSdrPkg.PayloadAttachment{
@@ -602,7 +629,7 @@ func (s *Service) PayoutDocumentPdfUploaded(
 			},
 		}
 
-		err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+		err = s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 
 		if err != nil {
 			zap.L().Error(
