@@ -1696,11 +1696,12 @@ func (m *PaymentFormJsonDataRequest) GetUtmCampaign() string {
 }
 
 type PaymentFormJsonDataProject struct {
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	// @inject_tag: json:"url_success,omitempty"
-	UrlSuccess string `protobuf:"bytes,2,opt,name=url_success,json=urlSuccess,proto3" json:"url_success,omitempty"`
-	// @inject_tag: json:"url_fail,omitempty"
-	UrlFail              string   `protobuf:"bytes,3,opt,name=url_fail,json=urlFail,proto3" json:"url_fail,omitempty"`
+	// @inject_tag: json:"name"
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name"`
+	// @inject_tag: json:"url_success"
+	UrlSuccess string `protobuf:"bytes,2,opt,name=url_success,json=urlSuccess,proto3" json:"url_success"`
+	// @inject_tag: json:"url_fail"
+	UrlFail              string   `protobuf:"bytes,3,opt,name=url_fail,json=urlFail,proto3" json:"url_fail"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`
