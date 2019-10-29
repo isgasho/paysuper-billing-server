@@ -2023,16 +2023,6 @@ message PayoutDocument {
     string failure_message = 17;
     //@inject_tag: json:"failure_transaction" validate:"max=255"
     string failure_transaction = 18;
-    //@inject_tag: json:"signature_data" bson:"signature_data"
-    PayoutDocumentSignatureData signature_data = 19;
-    // @inject_tag: json:"has_merchant_signature"
-    bool has_merchant_signature = 20;
-    // @inject_tag: json:"has_psp_signature"
-    bool has_psp_signature = 21;
-    // @inject_tag: json:"signed_document_file_url"
-    string signed_document_file_url = 22;
-    // @inject_tag: json:"rendered_document_file_url"
-    string rendered_document_file_url = 23;
     //@inject_tag: json:"created_at"
     google.protobuf.Timestamp created_at = 24;
     //@inject_tag: json:"updated_at"
@@ -2041,21 +2031,6 @@ message PayoutDocument {
     google.protobuf.Timestamp arrival_date = 26;
     //@inject_tag: json:"paid_at"
     google.protobuf.Timestamp paid_at = 27;
-}
-
-message PayoutDocumentSignatureDataSignUrl {
-    string sign_url = 1;
-    google.protobuf.Timestamp expires_at = 2;
-}
-
-message PayoutDocumentSignatureData {
-    string details_url = 1;
-    string files_url = 2;
-    string signature_request_id = 3;
-    string merchant_signature_id = 4;
-    string ps_signature_id = 5;
-    PayoutDocumentSignatureDataSignUrl merchant_sign_url = 6;
-    PayoutDocumentSignatureDataSignUrl ps_sign_url = 7;
 }
 
 message PayoutDocumentChanges {

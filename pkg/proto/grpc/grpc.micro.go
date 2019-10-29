@@ -210,11 +210,10 @@ It has these top-level messages:
 	CreatePayoutDocumentRequest
 	PayoutDocumentResponse
 	UpdatePayoutDocumentRequest
+	GetPayoutDocumentRequest
 	GetPayoutDocumentsRequest
 	PayoutDocumentsPaginate
 	GetPayoutDocumentsResponse
-	GetPayoutDocumentSignUrlRequest
-	GetPayoutDocumentSignUrlResponse
 	UpdatePayoutDocumentSignaturesRequest
 	GetMerchantBalanceRequest
 	GetMerchantBalanceResponse
@@ -238,6 +237,8 @@ It has these top-level messages:
 	GetPaylinkStatCommonRequest
 	GetPaylinkStatCommonResponse
 	GetPaylinkStatCommonGroupResponse
+	RoyaltyReportPdfUploadedRequest
+	RoyaltyReportPdfUploadedResponse
 */
 package grpc
 
@@ -375,6 +376,7 @@ type BillingService interface {
 	ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, opts ...client.CallOption) (*TransactionsResponse, error)
 	MerchantReviewRoyaltyReport(ctx context.Context, in *MerchantReviewRoyaltyReportRequest, opts ...client.CallOption) (*ResponseError, error)
 	AutoAcceptRoyaltyReports(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*EmptyResponse, error)
+	RoyaltyReportPdfUploaded(ctx context.Context, in *RoyaltyReportPdfUploadedRequest, opts ...client.CallOption) (*RoyaltyReportPdfUploadedResponse, error)
 	GetVatReportsDashboard(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*VatReportsResponse, error)
 	GetVatReportsForCountry(ctx context.Context, in *VatReportsRequest, opts ...client.CallOption) (*VatReportsResponse, error)
 	GetVatReportTransactions(ctx context.Context, in *VatTransactionsRequest, opts ...client.CallOption) (*TransactionsResponse, error)
@@ -405,9 +407,10 @@ type BillingService interface {
 	CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, opts ...client.CallOption) (*PayoutDocumentResponse, error)
 	UpdatePayoutDocument(ctx context.Context, in *UpdatePayoutDocumentRequest, opts ...client.CallOption) (*PayoutDocumentResponse, error)
 	GetPayoutDocuments(ctx context.Context, in *GetPayoutDocumentsRequest, opts ...client.CallOption) (*GetPayoutDocumentsResponse, error)
-	GetPayoutDocumentSignUrl(ctx context.Context, in *GetPayoutDocumentSignUrlRequest, opts ...client.CallOption) (*GetPayoutDocumentSignUrlResponse, error)
-	UpdatePayoutDocumentSignatures(ctx context.Context, in *UpdatePayoutDocumentSignaturesRequest, opts ...client.CallOption) (*PayoutDocumentResponse, error)
+	GetPayoutDocument(ctx context.Context, in *GetPayoutDocumentRequest, opts ...client.CallOption) (*PayoutDocumentResponse, error)
+	GetPayoutDocumentRoyaltyReports(ctx context.Context, in *GetPayoutDocumentRequest, opts ...client.CallOption) (*ListRoyaltyReportsResponse, error)
 	PayoutDocumentPdfUploaded(ctx context.Context, in *PayoutDocumentPdfUploadedRequest, opts ...client.CallOption) (*PayoutDocumentPdfUploadedResponse, error)
+	AutoCreatePayoutDocuments(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*EmptyResponse, error)
 	GetMerchantBalance(ctx context.Context, in *GetMerchantBalanceRequest, opts ...client.CallOption) (*GetMerchantBalanceResponse, error)
 	PaymentFormPlatformChanged(ctx context.Context, in *PaymentFormUserChangePlatformRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 	CheckSkuAndKeyProject(ctx context.Context, in *CheckSkuAndKeyProjectRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
@@ -1442,6 +1445,16 @@ func (c *billingService) AutoAcceptRoyaltyReports(ctx context.Context, in *Empty
 	return out, nil
 }
 
+func (c *billingService) RoyaltyReportPdfUploaded(ctx context.Context, in *RoyaltyReportPdfUploadedRequest, opts ...client.CallOption) (*RoyaltyReportPdfUploadedResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.RoyaltyReportPdfUploaded", in)
+	out := new(RoyaltyReportPdfUploadedResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *billingService) GetVatReportsDashboard(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*VatReportsResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.GetVatReportsDashboard", in)
 	out := new(VatReportsResponse)
@@ -1742,9 +1755,9 @@ func (c *billingService) GetPayoutDocuments(ctx context.Context, in *GetPayoutDo
 	return out, nil
 }
 
-func (c *billingService) GetPayoutDocumentSignUrl(ctx context.Context, in *GetPayoutDocumentSignUrlRequest, opts ...client.CallOption) (*GetPayoutDocumentSignUrlResponse, error) {
-	req := c.c.NewRequest(c.name, "BillingService.GetPayoutDocumentSignUrl", in)
-	out := new(GetPayoutDocumentSignUrlResponse)
+func (c *billingService) GetPayoutDocument(ctx context.Context, in *GetPayoutDocumentRequest, opts ...client.CallOption) (*PayoutDocumentResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetPayoutDocument", in)
+	out := new(PayoutDocumentResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1752,9 +1765,9 @@ func (c *billingService) GetPayoutDocumentSignUrl(ctx context.Context, in *GetPa
 	return out, nil
 }
 
-func (c *billingService) UpdatePayoutDocumentSignatures(ctx context.Context, in *UpdatePayoutDocumentSignaturesRequest, opts ...client.CallOption) (*PayoutDocumentResponse, error) {
-	req := c.c.NewRequest(c.name, "BillingService.UpdatePayoutDocumentSignatures", in)
-	out := new(PayoutDocumentResponse)
+func (c *billingService) GetPayoutDocumentRoyaltyReports(ctx context.Context, in *GetPayoutDocumentRequest, opts ...client.CallOption) (*ListRoyaltyReportsResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetPayoutDocumentRoyaltyReports", in)
+	out := new(ListRoyaltyReportsResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1765,6 +1778,16 @@ func (c *billingService) UpdatePayoutDocumentSignatures(ctx context.Context, in 
 func (c *billingService) PayoutDocumentPdfUploaded(ctx context.Context, in *PayoutDocumentPdfUploadedRequest, opts ...client.CallOption) (*PayoutDocumentPdfUploadedResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.PayoutDocumentPdfUploaded", in)
 	out := new(PayoutDocumentPdfUploadedResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) AutoCreatePayoutDocuments(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*EmptyResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.AutoCreatePayoutDocuments", in)
+	out := new(EmptyResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -2015,6 +2038,7 @@ type BillingServiceHandler interface {
 	ListRoyaltyReportOrders(context.Context, *ListRoyaltyReportOrdersRequest, *TransactionsResponse) error
 	MerchantReviewRoyaltyReport(context.Context, *MerchantReviewRoyaltyReportRequest, *ResponseError) error
 	AutoAcceptRoyaltyReports(context.Context, *EmptyRequest, *EmptyResponse) error
+	RoyaltyReportPdfUploaded(context.Context, *RoyaltyReportPdfUploadedRequest, *RoyaltyReportPdfUploadedResponse) error
 	GetVatReportsDashboard(context.Context, *EmptyRequest, *VatReportsResponse) error
 	GetVatReportsForCountry(context.Context, *VatReportsRequest, *VatReportsResponse) error
 	GetVatReportTransactions(context.Context, *VatTransactionsRequest, *TransactionsResponse) error
@@ -2045,9 +2069,10 @@ type BillingServiceHandler interface {
 	CreatePayoutDocument(context.Context, *CreatePayoutDocumentRequest, *PayoutDocumentResponse) error
 	UpdatePayoutDocument(context.Context, *UpdatePayoutDocumentRequest, *PayoutDocumentResponse) error
 	GetPayoutDocuments(context.Context, *GetPayoutDocumentsRequest, *GetPayoutDocumentsResponse) error
-	GetPayoutDocumentSignUrl(context.Context, *GetPayoutDocumentSignUrlRequest, *GetPayoutDocumentSignUrlResponse) error
-	UpdatePayoutDocumentSignatures(context.Context, *UpdatePayoutDocumentSignaturesRequest, *PayoutDocumentResponse) error
+	GetPayoutDocument(context.Context, *GetPayoutDocumentRequest, *PayoutDocumentResponse) error
+	GetPayoutDocumentRoyaltyReports(context.Context, *GetPayoutDocumentRequest, *ListRoyaltyReportsResponse) error
 	PayoutDocumentPdfUploaded(context.Context, *PayoutDocumentPdfUploadedRequest, *PayoutDocumentPdfUploadedResponse) error
+	AutoCreatePayoutDocuments(context.Context, *EmptyRequest, *EmptyResponse) error
 	GetMerchantBalance(context.Context, *GetMerchantBalanceRequest, *GetMerchantBalanceResponse) error
 	PaymentFormPlatformChanged(context.Context, *PaymentFormUserChangePlatformRequest, *EmptyResponseWithStatus) error
 	CheckSkuAndKeyProject(context.Context, *CheckSkuAndKeyProjectRequest, *EmptyResponseWithStatus) error
@@ -2166,6 +2191,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		ListRoyaltyReportOrders(ctx context.Context, in *ListRoyaltyReportOrdersRequest, out *TransactionsResponse) error
 		MerchantReviewRoyaltyReport(ctx context.Context, in *MerchantReviewRoyaltyReportRequest, out *ResponseError) error
 		AutoAcceptRoyaltyReports(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error
+		RoyaltyReportPdfUploaded(ctx context.Context, in *RoyaltyReportPdfUploadedRequest, out *RoyaltyReportPdfUploadedResponse) error
 		GetVatReportsDashboard(ctx context.Context, in *EmptyRequest, out *VatReportsResponse) error
 		GetVatReportsForCountry(ctx context.Context, in *VatReportsRequest, out *VatReportsResponse) error
 		GetVatReportTransactions(ctx context.Context, in *VatTransactionsRequest, out *TransactionsResponse) error
@@ -2196,9 +2222,10 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, out *PayoutDocumentResponse) error
 		UpdatePayoutDocument(ctx context.Context, in *UpdatePayoutDocumentRequest, out *PayoutDocumentResponse) error
 		GetPayoutDocuments(ctx context.Context, in *GetPayoutDocumentsRequest, out *GetPayoutDocumentsResponse) error
-		GetPayoutDocumentSignUrl(ctx context.Context, in *GetPayoutDocumentSignUrlRequest, out *GetPayoutDocumentSignUrlResponse) error
-		UpdatePayoutDocumentSignatures(ctx context.Context, in *UpdatePayoutDocumentSignaturesRequest, out *PayoutDocumentResponse) error
+		GetPayoutDocument(ctx context.Context, in *GetPayoutDocumentRequest, out *PayoutDocumentResponse) error
+		GetPayoutDocumentRoyaltyReports(ctx context.Context, in *GetPayoutDocumentRequest, out *ListRoyaltyReportsResponse) error
 		PayoutDocumentPdfUploaded(ctx context.Context, in *PayoutDocumentPdfUploadedRequest, out *PayoutDocumentPdfUploadedResponse) error
+		AutoCreatePayoutDocuments(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error
 		GetMerchantBalance(ctx context.Context, in *GetMerchantBalanceRequest, out *GetMerchantBalanceResponse) error
 		PaymentFormPlatformChanged(ctx context.Context, in *PaymentFormUserChangePlatformRequest, out *EmptyResponseWithStatus) error
 		CheckSkuAndKeyProject(ctx context.Context, in *CheckSkuAndKeyProjectRequest, out *EmptyResponseWithStatus) error
@@ -2625,6 +2652,10 @@ func (h *billingServiceHandler) AutoAcceptRoyaltyReports(ctx context.Context, in
 	return h.BillingServiceHandler.AutoAcceptRoyaltyReports(ctx, in, out)
 }
 
+func (h *billingServiceHandler) RoyaltyReportPdfUploaded(ctx context.Context, in *RoyaltyReportPdfUploadedRequest, out *RoyaltyReportPdfUploadedResponse) error {
+	return h.BillingServiceHandler.RoyaltyReportPdfUploaded(ctx, in, out)
+}
+
 func (h *billingServiceHandler) GetVatReportsDashboard(ctx context.Context, in *EmptyRequest, out *VatReportsResponse) error {
 	return h.BillingServiceHandler.GetVatReportsDashboard(ctx, in, out)
 }
@@ -2745,16 +2776,20 @@ func (h *billingServiceHandler) GetPayoutDocuments(ctx context.Context, in *GetP
 	return h.BillingServiceHandler.GetPayoutDocuments(ctx, in, out)
 }
 
-func (h *billingServiceHandler) GetPayoutDocumentSignUrl(ctx context.Context, in *GetPayoutDocumentSignUrlRequest, out *GetPayoutDocumentSignUrlResponse) error {
-	return h.BillingServiceHandler.GetPayoutDocumentSignUrl(ctx, in, out)
+func (h *billingServiceHandler) GetPayoutDocument(ctx context.Context, in *GetPayoutDocumentRequest, out *PayoutDocumentResponse) error {
+	return h.BillingServiceHandler.GetPayoutDocument(ctx, in, out)
 }
 
-func (h *billingServiceHandler) UpdatePayoutDocumentSignatures(ctx context.Context, in *UpdatePayoutDocumentSignaturesRequest, out *PayoutDocumentResponse) error {
-	return h.BillingServiceHandler.UpdatePayoutDocumentSignatures(ctx, in, out)
+func (h *billingServiceHandler) GetPayoutDocumentRoyaltyReports(ctx context.Context, in *GetPayoutDocumentRequest, out *ListRoyaltyReportsResponse) error {
+	return h.BillingServiceHandler.GetPayoutDocumentRoyaltyReports(ctx, in, out)
 }
 
 func (h *billingServiceHandler) PayoutDocumentPdfUploaded(ctx context.Context, in *PayoutDocumentPdfUploadedRequest, out *PayoutDocumentPdfUploadedResponse) error {
 	return h.BillingServiceHandler.PayoutDocumentPdfUploaded(ctx, in, out)
+}
+
+func (h *billingServiceHandler) AutoCreatePayoutDocuments(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error {
+	return h.BillingServiceHandler.AutoCreatePayoutDocuments(ctx, in, out)
 }
 
 func (h *billingServiceHandler) GetMerchantBalance(ctx context.Context, in *GetMerchantBalanceRequest, out *GetMerchantBalanceResponse) error {

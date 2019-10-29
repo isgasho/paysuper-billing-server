@@ -342,6 +342,10 @@ func (app *Application) TaskAutoAcceptRoyaltyReports() error {
 	return app.svc.AutoAcceptRoyaltyReports(context.TODO(), &grpc.EmptyRequest{}, &grpc.EmptyResponse{})
 }
 
+func (app *Application) TaskAutoCreatePayouts() error {
+	return app.svc.AutoCreatePayoutDocuments(context.TODO(), &grpc.EmptyRequest{}, &grpc.EmptyResponse{})
+}
+
 func (app *Application) TaskRebuildOrderView() error {
 	return app.svc.RebuildOrderView()
 }

@@ -120,8 +120,6 @@ It has these top-level messages:
 	MerchantTariffRatesSettings
 	Key
 	PayoutDocument
-	PayoutDocumentSignatureDataSignUrl
-	PayoutDocumentSignatureData
 	PayoutDocumentChanges
 	MerchantBalance
 	OrderReceipt

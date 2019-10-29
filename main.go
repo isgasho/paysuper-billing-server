@@ -29,6 +29,9 @@ func main() {
 		case "royalty_reports_accept":
 			err = app.TaskAutoAcceptRoyaltyReports()
 
+		case "create_payouts":
+			err = app.TaskAutoCreatePayouts()
+
 		case "rebuild_order_view":
 			err = app.TaskRebuildOrderView()
 		}

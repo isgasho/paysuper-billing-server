@@ -282,25 +282,22 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_updateMerchantBalance
 	assert.NoError(suite.T(), err, "Generate PayoutDocument date failed")
 
 	payout := &billing.PayoutDocument{
-		Id:                   bson.NewObjectId().Hex(),
-		MerchantId:           suite.merchant.Id,
-		SourceId:             []string{bson.NewObjectId().Hex()},
-		TotalFees:            1000,
-		Balance:              1000,
-		Currency:             "RUB",
-		Status:               pkg.PayoutDocumentStatusPending,
-		Description:          "test payout document",
-		Destination:          suite.merchant.Banking,
-		CreatedAt:            date,
-		UpdatedAt:            ptypes.TimestampNow(),
-		ArrivalDate:          ptypes.TimestampNow(),
-		HasMerchantSignature: true,
-		HasPspSignature:      true,
-		SignatureData:        &billing.PayoutDocumentSignatureData{},
-		Transaction:          "",
-		FailureTransaction:   "",
-		FailureMessage:       "",
-		FailureCode:          "",
+		Id:                 bson.NewObjectId().Hex(),
+		MerchantId:         suite.merchant.Id,
+		SourceId:           []string{bson.NewObjectId().Hex()},
+		TotalFees:          1000,
+		Balance:            1000,
+		Currency:           "RUB",
+		Status:             pkg.PayoutDocumentStatusPending,
+		Description:        "test payout document",
+		Destination:        suite.merchant.Banking,
+		CreatedAt:          date,
+		UpdatedAt:          ptypes.TimestampNow(),
+		ArrivalDate:        ptypes.TimestampNow(),
+		Transaction:        "",
+		FailureTransaction: "",
+		FailureMessage:     "",
+		FailureCode:        "",
 	}
 	err = suite.service.payoutDocument.Insert(payout, "127.0.0.1", payoutChangeSourceAdmin)
 	assert.NoError(suite.T(), err)
@@ -359,25 +356,22 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_getRollingReserveForB
 	assert.NoError(suite.T(), err, "Generate PayoutDocument date failed")
 
 	payout := &billing.PayoutDocument{
-		Id:                   bson.NewObjectId().Hex(),
-		MerchantId:           suite.merchant.Id,
-		SourceId:             []string{bson.NewObjectId().Hex()},
-		TotalFees:            1000,
-		Balance:              1000,
-		Currency:             "RUB",
-		Status:               pkg.PayoutDocumentStatusPending,
-		Description:          "test payout document",
-		Destination:          suite.merchant.Banking,
-		CreatedAt:            date,
-		UpdatedAt:            ptypes.TimestampNow(),
-		ArrivalDate:          ptypes.TimestampNow(),
-		HasMerchantSignature: true,
-		HasPspSignature:      true,
-		SignatureData:        &billing.PayoutDocumentSignatureData{},
-		Transaction:          "",
-		FailureTransaction:   "",
-		FailureMessage:       "",
-		FailureCode:          "",
+		Id:                 bson.NewObjectId().Hex(),
+		MerchantId:         suite.merchant.Id,
+		SourceId:           []string{bson.NewObjectId().Hex()},
+		TotalFees:          1000,
+		Balance:            1000,
+		Currency:           "RUB",
+		Status:             pkg.PayoutDocumentStatusPending,
+		Description:        "test payout document",
+		Destination:        suite.merchant.Banking,
+		CreatedAt:          date,
+		UpdatedAt:          ptypes.TimestampNow(),
+		ArrivalDate:        ptypes.TimestampNow(),
+		Transaction:        "",
+		FailureTransaction: "",
+		FailureMessage:     "",
+		FailureCode:        "",
 	}
 	err = suite.service.payoutDocument.Insert(payout, "127.0.0.1", payoutChangeSourceAdmin)
 	assert.NoError(suite.T(), err)
@@ -440,25 +434,20 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	assert.Equal(suite.T(), mbRes.Item.Total, float64(1234.5))
 }
 
-// 2. Triggering on payout sign
-func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeringOk_2() {
+// 2. Triggering on payout status change
+func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeringOk_3() {
 
 	count := suite.mbRecordsCount(suite.merchant.Id, suite.merchant.GetPayoutCurrency())
 	assert.Equal(suite.T(), count, 0)
 
-	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -480))
-	assert.NoError(suite.T(), err, "Generate PayoutDocument date failed")
-
-	royaltyReport := &billing.RoyaltyReport{
+	report := &billing.RoyaltyReport{
 		Id:         bson.NewObjectId().Hex(),
 		MerchantId: suite.merchant.Id,
 		Totals: &billing.RoyaltyReportTotals{
-			TransactionsCount:    0,
-			PayoutAmount:         0,
-			VatAmount:            0,
-			FeeAmount:            0,
-			RollingReserveAmount: 0,
-			CorrectionAmount:     0,
+			TransactionsCount: 100,
+			PayoutAmount:      alreadyPaidRoyalty,
+			VatAmount:         100,
+			FeeAmount:         50,
 		},
 		Status:         pkg.RoyaltyReportStatusAccepted,
 		CreatedAt:      ptypes.TimestampNow(),
@@ -468,103 +457,36 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 		Currency:       suite.merchant.GetPayoutCurrency(),
 	}
 
-	err = suite.service.royaltyReport.Insert(royaltyReport, "127.0.0.1", pkg.RoyaltyReportChangeSourceAdmin)
-
-	payout := &billing.PayoutDocument{
-		Id:                   bson.NewObjectId().Hex(),
-		MerchantId:           suite.merchant.Id,
-		SourceId:             []string{royaltyReport.Id},
-		TotalFees:            1000,
-		Balance:              1000,
-		Currency:             "RUB",
-		Status:               pkg.PayoutDocumentStatusPending,
-		Description:          "test payout document",
-		Destination:          suite.merchant.Banking,
-		CreatedAt:            date,
-		UpdatedAt:            ptypes.TimestampNow(),
-		ArrivalDate:          ptypes.TimestampNow(),
-		HasMerchantSignature: false,
-		HasPspSignature:      false,
-		SignatureData:        &billing.PayoutDocumentSignatureData{},
-		Transaction:          "",
-		FailureTransaction:   "",
-		FailureMessage:       "",
-		FailureCode:          "",
-	}
-	err = suite.service.payoutDocument.Insert(payout, "127.0.0.1", payoutChangeSourceAdmin)
+	err := suite.service.db.Collection(collectionRoyaltyReport).Insert(report)
 	assert.NoError(suite.T(), err)
-
-	req2 := &grpc.UpdatePayoutDocumentSignaturesRequest{
-		PayoutDocumentId:      payout.Id,
-		HasPspSignature:       true,
-		HasMerchantSignature:  true,
-		SignedDocumentFileUrl: "http://localhost/123.pdf",
-	}
-
-	res2 := &grpc.PayoutDocumentResponse{}
-
-	err = suite.service.UpdatePayoutDocumentSignatures(context.TODO(), req2, res2)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res2.Status, pkg.ResponseStatusOk)
-	assert.Equal(suite.T(), res2.Item.Id, payout.Id)
-	assert.True(suite.T(), res2.Item.HasMerchantSignature)
-	assert.True(suite.T(), res2.Item.HasPspSignature)
-	assert.Equal(suite.T(), res2.Item.SignedDocumentFileUrl, "http://localhost/123.pdf")
-
-	// control
-
-	count = suite.mbRecordsCount(suite.merchant.Id, suite.merchant.GetPayoutCurrency())
-	assert.Equal(suite.T(), count, 1)
-
-	mbReq := &grpc.GetMerchantBalanceRequest{MerchantId: suite.merchant.Id}
-	mbRes := &grpc.GetMerchantBalanceResponse{}
-	err = suite.service.GetMerchantBalance(context.TODO(), mbReq, mbRes)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), mbRes.Status, pkg.ResponseStatusOk)
-	assert.Equal(suite.T(), mbRes.Item.MerchantId, suite.merchant.Id)
-	assert.Equal(suite.T(), mbRes.Item.Currency, suite.merchant.GetPayoutCurrency())
-	assert.Equal(suite.T(), mbRes.Item.Debit, float64(0))
-	assert.Equal(suite.T(), mbRes.Item.Credit, float64(1000))
-	assert.Equal(suite.T(), mbRes.Item.RollingReserve, float64(0))
-	assert.Equal(suite.T(), mbRes.Item.Total, float64(-1000))
-}
-
-// 3. Triggering on payout status change
-func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeringOk_3() {
-
-	count := suite.mbRecordsCount(suite.merchant.Id, suite.merchant.GetPayoutCurrency())
-	assert.Equal(suite.T(), count, 0)
 
 	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -480))
 	assert.NoError(suite.T(), err, "Generate PayoutDocument date failed")
 
 	payout := &billing.PayoutDocument{
-		Id:                   bson.NewObjectId().Hex(),
-		MerchantId:           suite.merchant.Id,
-		SourceId:             []string{bson.NewObjectId().Hex()},
-		TotalFees:            1000,
-		Balance:              1000,
-		Currency:             "RUB",
-		Status:               pkg.PayoutDocumentStatusPending,
-		Description:          "test payout document",
-		Destination:          suite.merchant.Banking,
-		CreatedAt:            date,
-		UpdatedAt:            ptypes.TimestampNow(),
-		ArrivalDate:          ptypes.TimestampNow(),
-		HasMerchantSignature: true,
-		HasPspSignature:      true,
-		SignatureData:        &billing.PayoutDocumentSignatureData{},
-		Transaction:          "",
-		FailureTransaction:   "",
-		FailureMessage:       "",
-		FailureCode:          "",
+		Id:                 bson.NewObjectId().Hex(),
+		MerchantId:         suite.merchant.Id,
+		SourceId:           []string{report.Id},
+		TotalFees:          1000,
+		Balance:            1000,
+		Currency:           "RUB",
+		Status:             pkg.PayoutDocumentStatusPending,
+		Description:        "test payout document",
+		Destination:        suite.merchant.Banking,
+		CreatedAt:          date,
+		UpdatedAt:          ptypes.TimestampNow(),
+		ArrivalDate:        ptypes.TimestampNow(),
+		Transaction:        "",
+		FailureTransaction: "",
+		FailureMessage:     "",
+		FailureCode:        "",
 	}
 	err = suite.service.payoutDocument.Insert(payout, "127.0.0.1", payoutChangeSourceAdmin)
 	assert.NoError(suite.T(), err)
 
 	req3 := &grpc.UpdatePayoutDocumentRequest{
 		PayoutDocumentId: payout.Id,
-		Status:           pkg.PayoutDocumentStatusInProgress,
+		Status:           pkg.PayoutDocumentStatusPaid,
 		Transaction:      "transaction123",
 		Ip:               "192.168.1.1",
 	}
@@ -593,7 +515,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	assert.Equal(suite.T(), mbRes.Item.Total, float64(-1000))
 }
 
-// 4. Triggering on rolling reserve create
+// 3. Triggering on rolling reserve create
 func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeringOk_4() {
 
 	count := suite.mbRecordsCount(suite.merchant.Id, suite.merchant.GetPayoutCurrency())
@@ -633,7 +555,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	assert.Equal(suite.T(), mbRes.Item.Total, float64(-150))
 }
 
-// 5. Triggering on rolling reserve create
+// 4. Triggering on rolling reserve create
 func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeringOk_5() {
 
 	count := suite.mbRecordsCount(suite.merchant.Id, suite.merchant.GetPayoutCurrency())
@@ -673,7 +595,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	assert.Equal(suite.T(), mbRes.Item.Total, float64(50))
 }
 
-// 6. trigger on auto-accepting royalty report
+// 5. trigger on auto-accepting royalty report
 func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeringOk_6() {
 
 	count := suite.mbRecordsCount(suite.merchant.Id, suite.merchant.GetPayoutCurrency())
@@ -724,7 +646,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	assert.Equal(suite.T(), mbRes.Item.Total, float64(1000))
 }
 
-// 7. trigger on change royalty report with accepting
+// 6. trigger on change royalty report with accepting
 func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeringOk_7() {
 
 	count := suite.mbRecordsCount(suite.merchant.Id, suite.merchant.GetPayoutCurrency())
