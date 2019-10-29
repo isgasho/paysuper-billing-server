@@ -120,7 +120,8 @@ func (h *MerchantsTariffRatesRepository) GetPaymentTariffsBy(
 		query["max_amount"] = in.MaxAmount
 	}
 
-	err = h.svc.db.Collection(collectionMerchantsPaymentTariffs).Find(query).All(&item.Items)
+	err = h.svc.db.Collection(collectionMerchantsPaymentTariffs).Find(query).
+		Sort("min_amount", "max_amount", "payer_region", "position").All(&item.Items)
 
 	if err != nil {
 		zap.L().Error(

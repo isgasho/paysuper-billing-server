@@ -713,7 +713,7 @@ func (s *Service) decryptBrowserCookie(cookie string) (*BrowserCookieCustomer, e
 	res, err := rsa.DecryptOAEP(hash, cryptoRand.Reader, s.cfg.CookiePrivateKey, bCookie, nil)
 
 	if err != nil {
-		zap.S().Errorf("Customer cookie decrypt failed", "err", err.Error())
+		zap.L().Error("Customer cookie decrypt failed", zap.Error(err))
 		return nil, err
 	}
 
@@ -721,7 +721,7 @@ func (s *Service) decryptBrowserCookie(cookie string) (*BrowserCookieCustomer, e
 	err = json.Unmarshal(res, &customer)
 
 	if err != nil {
-		zap.S().Errorf("Customer cookie decrypt failed", "err", err.Error())
+		zap.L().Error("Customer cookie decrypt failed", zap.Error(err))
 		return nil, err
 	}
 
