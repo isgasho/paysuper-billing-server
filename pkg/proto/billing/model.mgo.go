@@ -542,7 +542,7 @@ type MgoMoneyBackCostMerchant struct {
 type MgoPriceTable struct {
 	Id       bson.ObjectId         `bson:"_id"`
 	Currency string                `bson:"currency"`
-	Ranges   []*MgoPriceTableRange `bson:"ranges"`
+	Ranges   []*MgoPriceTableRange `bson:"range"`
 }
 
 type MgoPriceTableRange struct {
@@ -3451,12 +3451,12 @@ func (m *PriceTable) SetBSON(raw bson.Raw) error {
 	if rangesLen > 0 {
 		m.Ranges = make([]*PriceTableRange, rangesLen)
 
-		for _, v := range decoded.Ranges {
-			m.Ranges = append(m.Ranges, &PriceTableRange{
+		for i, v := range decoded.Ranges {
+			m.Ranges[i] = &PriceTableRange{
 				From:     v.From,
 				To:       v.To,
 				Position: v.Position,
-			})
+			}
 		}
 	}
 
