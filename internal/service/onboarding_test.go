@@ -303,6 +303,9 @@ func (suite *OnboardingTestSuite) SetupTest() {
 	suite.log, err = zap.NewProduction()
 	assert.NoError(suite.T(), err, "Logger initialization failed")
 
+	casbin := &casbinMocks.CasbinService{}
+	casbin.On("AddRoleForUser", mock2.Anything, mock2.Anything).Return(nil, nil)
+
 	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
 	suite.service = NewBillingService(
@@ -319,7 +322,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 		&reportingMocks.ReporterService{},
 		mocks.NewFormatterOK(),
 		mocks.NewBrokerMockOk(),
-		&casbinMocks.CasbinService{},
+		casbin,
 	)
 
 	if err := suite.service.Init(); err != nil {

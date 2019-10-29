@@ -9,6 +9,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/micro/go-micro/client"
+	casbinProto "github.com/paysuper/casbin-server/pkg/generated/api/proto/casbinpb"
 	documentSignerConst "github.com/paysuper/document-signer/pkg/constant"
 	"github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -370,6 +371,13 @@ func (s *Service) ChangeMerchant(
 			FirstName:  merchant.User.FirstName,
 			LastName:   merchant.User.LastName,
 		})
+
+		if err == nil {
+			_, err = s.casbinService.AddRoleForUser(ctx, &casbinProto.UserRoleRequest{
+				User: fmt.Sprintf(pkg.CasbinMerchantUserMask, merchant.Id, merchant.User.Id),
+				Role: pkg.RoleMerchantOwner,
+			})
+		}
 	}
 
 	if err != nil {
