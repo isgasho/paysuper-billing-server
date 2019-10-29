@@ -428,10 +428,11 @@ message PaymentFormJsonDataRequest {
 }
 
 message PaymentFormJsonDataProject {
+    // @inject_tag: json:"name"
     string name = 1; // project name
-    // @inject_tag: json:"url_success,omitempty"
+    // @inject_tag: json:"url_success"
     string url_success = 2; // url to redirect user after successfully completed payment. may be NULL if not set in project settings
-    // @inject_tag: json:"url_fail,omitempty"
+    // @inject_tag: json:"url_fail"
     string url_fail = 3; // url to redirect user after failed payment. may be NULL if not set in project settings
 }
 
