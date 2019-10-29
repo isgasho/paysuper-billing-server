@@ -56,69 +56,6 @@ func (_m *MerchantRepositoryInterface) GetPaymentMethod(merchantId string, metho
 	return r0, r1
 }
 
-// GetPaymentMethodTerminalCallbackPassword provides a mock function with given fields: merchantId, pmId
-func (_m *MerchantRepositoryInterface) GetPaymentMethodTerminalCallbackPassword(merchantId string, pmId string) (string, error) {
-	ret := _m.Called(merchantId, pmId)
-
-	var r0 string
-	if rf, ok := ret.Get(0).(func(string, string) string); ok {
-		r0 = rf(merchantId, pmId)
-	} else {
-		r0 = ret.Get(0).(string)
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(merchantId, pmId)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// GetPaymentMethodTerminalId provides a mock function with given fields: merchantId, pmId
-func (_m *MerchantRepositoryInterface) GetPaymentMethodTerminalId(merchantId string, pmId string) (string, error) {
-	ret := _m.Called(merchantId, pmId)
-
-	var r0 string
-	if rf, ok := ret.Get(0).(func(string, string) string); ok {
-		r0 = rf(merchantId, pmId)
-	} else {
-		r0 = ret.Get(0).(string)
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(merchantId, pmId)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// GetPaymentMethodTerminalPassword provides a mock function with given fields: merchantId, pmId
-func (_m *MerchantRepositoryInterface) GetPaymentMethodTerminalPassword(merchantId string, pmId string) (string, error) {
-	ret := _m.Called(merchantId, pmId)
-
-	var r0 string
-	if rf, ok := ret.Get(0).(func(string, string) string); ok {
-		r0 = rf(merchantId, pmId)
-	} else {
-		r0 = ret.Get(0).(string)
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(merchantId, pmId)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // Insert provides a mock function with given fields: merchant
 func (_m *MerchantRepositoryInterface) Insert(merchant *billing.Merchant) error {
 	ret := _m.Called(merchant)

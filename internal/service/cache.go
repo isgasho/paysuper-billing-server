@@ -11,13 +11,6 @@ const (
 	CacheStorageKey = "cache:%s"
 )
 
-type CacheInterface interface {
-	Set(string, interface{}, time.Duration) error
-	Get(string, interface{}) error
-	Delete(string) error
-	Clean()
-}
-
 type Cache struct {
 	redis redis.Cmdable
 }

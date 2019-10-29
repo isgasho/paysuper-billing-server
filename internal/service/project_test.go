@@ -6,6 +6,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
+	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -20,7 +21,7 @@ import (
 type ProjectCRUDTestSuite struct {
 	suite.Suite
 	service *Service
-	cache   CacheInterface
+	cache   internalPkg.CacheInterface
 
 	merchant *billing.Merchant
 	project  *billing.Project
@@ -859,7 +860,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_DeleteDeletedProject_Ok() {
 type ProjectTestSuite struct {
 	suite.Suite
 	service *Service
-	cache   CacheInterface
+	cache   internalPkg.CacheInterface
 	log     *zap.Logger
 	project *billing.Project
 }
