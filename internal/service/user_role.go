@@ -47,7 +47,7 @@ func (h *UserRoleRepository) GetMerchantsForUser(userId string) ([]*billing.User
 		return users, nil
 	}
 
-	query := bson.M{"user.user_id": userId}
+	query := bson.M{"user_id": bson.ObjectIdHex(userId)}
 	err := h.svc.db.Collection(collectionMerchantUsersTable).Find(query).All(&users)
 	if err != nil {
 		zap.L().Error(
