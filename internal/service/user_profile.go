@@ -424,7 +424,7 @@ func (s *Service) sendUserEmailConfirmationToken(profile *grpc.UserProfile) erro
 		To: profile.Email.Email,
 	}
 
-	err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+	err := s.postmarkBroker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 
 	if err != nil {
 		zap.S().Error(
