@@ -1,13 +1,17 @@
 package service
 
 import (
+	"context"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
+	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"testing"
@@ -17,7 +21,7 @@ type PriceTableTestSuite struct {
 	suite.Suite
 	service *Service
 	log     *zap.Logger
-	cache   CacheInterface
+	cache   internalPkg.CacheInterface
 }
 
 func Test_PriceTable(t *testing.T) {
@@ -63,18 +67,6 @@ func (suite *PriceTableTestSuite) SetupTest() {
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
-
-	priceTable := &billing.PriceTable{
-		Id:   bson.NewObjectId().Hex(),
-		From: 0,
-		To:   3,
-		Currencies: map[string]*billing.PriceTableCurrency{
-			"USD": {From: float64(0), To: float64(10)},
-		},
-	}
-	if err := suite.service.priceTable.Insert(priceTable); err != nil {
-		suite.FailNow("Insert price table test data failed", "%v", err)
-	}
 }
 
 func (suite *PriceTableTestSuite) TearDownTest() {
@@ -89,37 +81,37 @@ func (suite *PriceTableTestSuite) TestPriceTable_Insert_Ok() {
 	assert.NoError(suite.T(), suite.service.priceTable.Insert(&billing.PriceTable{Id: bson.NewObjectId().Hex()}))
 }
 
-func (suite *PriceTableTestSuite) TestPriceTable_GetByAmount_Ok() {
-	price, err := suite.service.priceTable.GetByAmount(2)
+func (suite *PriceTableTestSuite) TestPriceTable_GetByRegion_Ok() {
+	table := &billing.PriceTable{Id: bson.NewObjectId().Hex(), Currency: "TST"}
+	assert.NoError(suite.T(), suite.service.priceTable.Insert(table))
+
+	t, err := suite.service.priceTable.GetByRegion(table.Currency)
 	assert.NoError(suite.T(), err)
-	assert.True(suite.T(), price.From <= 2)
-	assert.True(suite.T(), price.To >= 2)
+	assert.Equal(suite.T(), table.Id, t.Id)
+	assert.Equal(suite.T(), table.Currency, t.Currency)
 }
 
-func (suite *PriceTableTestSuite) TestPriceTable_GetByAmount_Error_NotFound() {
-	_, err := suite.service.priceTable.GetByAmount(1000)
+func (suite *PriceTableTestSuite) TestPriceTable_GetByRegion_Error_NotFound() {
+	_, err := suite.service.priceTable.GetByRegion("TST")
 	assert.Error(suite.T(), err)
 }
 
-func (suite *PriceTableTestSuite) TestPriceTable_GetLatest_Ok() {
-	price, err := suite.service.priceTable.GetLatest()
-	assert.NoError(suite.T(), err)
+func (suite *PriceTableTestSuite) TestPriceTable_GetRecommendedPriceTable_Ok() {
+	rep := &mocks.PriceTableServiceInterface{}
+	rep.
+		On("GetByRegion", mock.Anything).
+		Return(&billing.PriceTable{Ranges: []*billing.PriceTableRange{{From: 0, To: 0, Position: 0}}}, nil)
+	suite.service.priceTable = rep
 
-	_, err = suite.service.priceTable.GetByAmount(price.To + 1)
-	assert.Error(suite.T(), err)
+	res := grpc.RecommendedPriceTableResponse{}
+	err := suite.service.GetRecommendedPriceTable(context.TODO(), &grpc.RecommendedPriceTableRequest{}, &res)
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), res.Ranges, 1)
 }
 
-func (suite *PriceTableTestSuite) TestPriceTable_InterpolateByAmount_Ok() {
-	price := &billing.PriceTable{
-		From: 10,
-		To:   20,
-		Currencies: map[string]*billing.PriceTableCurrency{
-			"RUB": {From: 100, To: 150},
-		},
-	}
-	priceInterpolated := suite.service.priceTable.InterpolateByAmount(price, 25)
-	assert.Equal(suite.T(), float64(20), priceInterpolated.From)
-	assert.Equal(suite.T(), float64(30), priceInterpolated.To)
-	assert.Equal(suite.T(), float64(150), priceInterpolated.Currencies["RUB"].From)
-	assert.Equal(suite.T(), float64(200), priceInterpolated.Currencies["RUB"].To)
+func (suite *PriceTableTestSuite) TestPriceTable_GetRecommendedPriceTable_Ok_Empty() {
+	res := grpc.RecommendedPriceTableResponse{}
+	err := suite.service.GetRecommendedPriceTable(context.TODO(), &grpc.RecommendedPriceTableRequest{}, &res)
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), res.Ranges, 0)
 }

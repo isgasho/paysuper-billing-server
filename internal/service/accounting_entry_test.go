@@ -13,6 +13,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
+	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -31,7 +32,7 @@ type AccountingEntryTestSuite struct {
 	suite.Suite
 	service *Service
 	log     *zap.Logger
-	cache   CacheInterface
+	cache   internalPkg.CacheInterface
 
 	projectFixedAmount *billing.Project
 	paymentMethod      *billing.PaymentMethod
@@ -153,8 +154,8 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_RUB_RUB() {
 		"merchant_tax_fee_central_bank_fx":          0,
 		"merchant_tax_fee":                          20,
 		"ps_method_fee":                             6,
-		"merchant_method_fee":                       3.6,
-		"merchant_method_fee_cost_value":            2.4,
+		"merchant_method_fee":                       3,
+		"merchant_method_fee_cost_value":            1.8,
 		"ps_markup_merchant_method_fee":             1.2,
 		"merchant_method_fixed_fee":                 1.4688,
 		"real_merchant_method_fixed_fee":            1.44,
@@ -164,9 +165,9 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_RUB_RUB() {
 		"merchant_ps_fixed_fee":                     3.672,
 		"real_merchant_ps_fixed_fee":                3.6,
 		"markup_merchant_ps_fixed_fee":              0.072,
-		"ps_method_profit":                          6.622,
+		"ps_method_profit":                          7.222,
 		"merchant_net_revenue":                      90.328,
-		"ps_profit_total":                           6.622,
+		"ps_profit_total":                           7.222,
 	}
 
 	refundControlResults := map[string]float64{
@@ -206,7 +207,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_RUB_RUB() {
 	assert.Equal(suite.T(), merchantRoyaltyCurrency, "RUB")
 	for _, entry := range accountingEntries {
 		if !assert.Equal(suite.T(), entry.Amount, orderControlResults[entry.Type]) {
-			println(entry.Type)
+			fmt.Println(entry.Type, entry.Amount, orderControlResults[entry.Type])
 		}
 		assert.Equal(suite.T(), entry.Currency, merchantRoyaltyCurrency)
 	}
@@ -224,7 +225,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_RUB_RUB() {
 	assert.Equal(suite.T(), merchantRoyaltyCurrency, "RUB")
 	for _, entry := range refundAccountingEntries {
 		if !assert.Equal(suite.T(), entry.Amount, refundControlResults[entry.Type]) {
-			println(entry.Type)
+			fmt.Println(entry.Type, entry.Amount, refundControlResults[entry.Type])
 		}
 		assert.Equal(suite.T(), entry.Currency, merchantRoyaltyCurrency)
 	}
@@ -263,9 +264,9 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_RUB() {
 		"merchant_tax_fee_central_bank_fx":          0.045938,
 		"merchant_tax_fee":                          2.005938,
 		"ps_method_fee":                             0.588,
-		"merchant_method_fee":                       0.3528,
-		"merchant_method_fee_cost_value":            0.24,
-		"ps_markup_merchant_method_fee":             0.1128,
+		"merchant_method_fee":                       0.294,
+		"merchant_method_fee_cost_value":            0.18,
+		"ps_markup_merchant_method_fee":             0.114,
 		"merchant_method_fixed_fee":                 0.022597,
 		"real_merchant_method_fixed_fee":            0.022154,
 		"markup_merchant_method_fixed_fee_fx":       0.000443,
@@ -274,9 +275,9 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_RUB() {
 		"merchant_ps_fixed_fee":                     0.056492,
 		"real_merchant_ps_fixed_fee":                0.055385,
 		"markup_merchant_ps_fixed_fee":              0.001107,
-		"ps_method_profit":                          0.394492,
+		"ps_method_profit":                          0.454492,
 		"merchant_net_revenue":                      9.10957,
-		"ps_profit_total":                           0.594492,
+		"ps_profit_total":                           0.654492,
 	}
 
 	refundControlResults := map[string]float64{
@@ -315,7 +316,9 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_RUB() {
 	merchantRoyaltyCurrency := order.GetMerchantRoyaltyCurrency()
 	assert.Equal(suite.T(), merchantRoyaltyCurrency, "USD")
 	for _, entry := range orderAccountingEntries {
-		assert.Equal(suite.T(), entry.Amount, orderControlResults[entry.Type])
+		if !assert.Equal(suite.T(), entry.Amount, orderControlResults[entry.Type]) {
+			fmt.Println(entry.Type, entry.Amount, orderControlResults[entry.Type])
+		}
 		assert.Equal(suite.T(), entry.Currency, merchantRoyaltyCurrency)
 	}
 
@@ -332,7 +335,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_RUB() {
 	assert.Equal(suite.T(), merchantRoyaltyCurrency, "USD")
 	for _, entry := range refundAccountingEntries {
 		if !assert.Equal(suite.T(), entry.Amount, refundControlResults[entry.Type]) {
-			println(entry.Type)
+			fmt.Println(entry.Type, entry.Amount, refundControlResults[entry.Type])
 		}
 		assert.Equal(suite.T(), entry.Currency, merchantRoyaltyCurrency)
 	}
@@ -371,9 +374,9 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_USD() {
 		"merchant_tax_fee_central_bank_fx":          0,
 		"merchant_tax_fee":                          1.96,
 		"ps_method_fee":                             0.588,
-		"merchant_method_fee":                       0.3528,
-		"merchant_method_fee_cost_value":            0.24,
-		"ps_markup_merchant_method_fee":             0.1128,
+		"merchant_method_fee":                       0.294,
+		"merchant_method_fee_cost_value":            0.18,
+		"ps_markup_merchant_method_fee":             0.114,
 		"merchant_method_fixed_fee":                 0.022597,
 		"real_merchant_method_fixed_fee":            0.022154,
 		"markup_merchant_method_fixed_fee_fx":       0.000443,
@@ -382,9 +385,9 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_USD() {
 		"merchant_ps_fixed_fee":                     0.056492,
 		"real_merchant_ps_fixed_fee":                0.055385,
 		"markup_merchant_ps_fixed_fee":              0.001107,
-		"ps_method_profit":                          0.394492,
+		"ps_method_profit":                          0.454492,
 		"merchant_net_revenue":                      9.155508,
-		"ps_profit_total":                           0.594492,
+		"ps_profit_total":                           0.654492,
 	}
 
 	refundControlResults := map[string]float64{
@@ -424,7 +427,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_USD() {
 	assert.Equal(suite.T(), merchantRoyaltyCurrency, "USD")
 	for _, entry := range orderAccountingEntries {
 		if !assert.Equal(suite.T(), entry.Amount, orderControlResults[entry.Type]) {
-			fmt.Println(entry.Type)
+			fmt.Println(entry.Type, entry.Amount, orderControlResults[entry.Type])
 		}
 		assert.Equal(suite.T(), entry.Currency, merchantRoyaltyCurrency)
 	}
@@ -442,7 +445,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_USD() {
 	assert.Equal(suite.T(), merchantRoyaltyCurrency, "USD")
 	for _, entry := range refundAccountingEntries {
 		if !assert.Equal(suite.T(), entry.Amount, refundControlResults[entry.Type]) {
-			println(entry.Type)
+			fmt.Println(entry.Type, entry.Amount, refundControlResults[entry.Type])
 		}
 		assert.Equal(suite.T(), entry.Currency, merchantRoyaltyCurrency)
 	}
@@ -481,9 +484,9 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_EUR() {
 		"merchant_tax_fee_central_bank_fx":          0.004436,
 		"merchant_tax_fee":                          1.964436,
 		"ps_method_fee":                             0.588,
-		"merchant_method_fee":                       0.3528,
-		"merchant_method_fee_cost_value":            0.24,
-		"ps_markup_merchant_method_fee":             0.1128,
+		"merchant_method_fee":                       0.294,
+		"merchant_method_fee_cost_value":            0.18,
+		"ps_markup_merchant_method_fee":             0.114,
 		"merchant_method_fixed_fee":                 0.022597,
 		"real_merchant_method_fixed_fee":            0.022154,
 		"markup_merchant_method_fixed_fee_fx":       0.000443,
@@ -492,9 +495,9 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_EUR() {
 		"merchant_ps_fixed_fee":                     0.056492,
 		"real_merchant_ps_fixed_fee":                0.055385,
 		"markup_merchant_ps_fixed_fee":              0.001107,
-		"ps_method_profit":                          0.394492,
+		"ps_method_profit":                          0.454492,
 		"merchant_net_revenue":                      9.151072,
-		"ps_profit_total":                           0.5944923077,
+		"ps_profit_total":                           0.654492,
 	}
 
 	refundControlResults := map[string]float64{
@@ -534,7 +537,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_EUR() {
 	assert.Equal(suite.T(), merchantRoyaltyCurrency, "USD")
 	for _, entry := range orderAccountingEntries {
 		if !assert.Equal(suite.T(), entry.Amount, orderControlResults[entry.Type]) {
-			fmt.Println(entry.Type)
+			fmt.Println(entry.Type, entry.Amount, orderControlResults[entry.Type])
 		}
 		assert.Equal(suite.T(), entry.Currency, merchantRoyaltyCurrency)
 	}
@@ -552,7 +555,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_EUR() {
 	assert.Equal(suite.T(), merchantRoyaltyCurrency, "USD")
 	for _, entry := range refundAccountingEntries {
 		if !assert.Equal(suite.T(), entry.Amount, refundControlResults[entry.Type]) {
-			println(entry.Type)
+			fmt.Println(entry.Type, entry.Amount, refundControlResults[entry.Type])
 		}
 		assert.Equal(suite.T(), entry.Currency, merchantRoyaltyCurrency)
 	}
@@ -610,7 +613,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_PartialRefund_Ok_RUB_
 	assert.Equal(suite.T(), merchantRoyaltyCurrency, "USD")
 	for _, entry := range refundAccountingEntries {
 		if !assert.Equal(suite.T(), entry.Amount, refundControlResults[entry.Type]) {
-			println(entry.Type)
+			fmt.Println(entry.Type, entry.Amount, refundControlResults[entry.Type])
 		}
 		assert.Equal(suite.T(), entry.Currency, merchantRoyaltyCurrency)
 	}
@@ -686,7 +689,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_RUB
 	assert.Equal(suite.T(), merchantRoyaltyCurrency, "RUB")
 	for _, entry := range refundAccountingEntries {
 		if !assert.Equal(suite.T(), entry.Amount, refundControlResults[entry.Type]) {
-			println(entry.Type)
+			fmt.Println(entry.Type, entry.Amount, refundControlResults[entry.Type])
 		}
 		assert.Equal(suite.T(), entry.Currency, merchantRoyaltyCurrency)
 	}
@@ -747,7 +750,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_USD
 	assert.Equal(suite.T(), merchantRoyaltyCurrency, "USD")
 	for _, entry := range refundAccountingEntries {
 		if !assert.Equal(suite.T(), entry.Amount, refundControlResults[entry.Type]) {
-			println(entry.Type)
+			fmt.Println(entry.Type, entry.Amount, refundControlResults[entry.Type])
 		}
 		assert.Equal(suite.T(), entry.Currency, merchantRoyaltyCurrency)
 	}
@@ -808,7 +811,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_USD
 	assert.Equal(suite.T(), merchantRoyaltyCurrency, "USD")
 	for _, entry := range refundAccountingEntries {
 		if !assert.Equal(suite.T(), entry.Amount, refundControlResults[entry.Type]) {
-			println(entry.Type)
+			fmt.Println(entry.Type, entry.Amount, refundControlResults[entry.Type])
 		}
 		assert.Equal(suite.T(), entry.Currency, merchantRoyaltyCurrency)
 	}
@@ -869,7 +872,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_USD
 	assert.Equal(suite.T(), merchantRoyaltyCurrency, "USD")
 	for _, entry := range refundAccountingEntries {
 		if !assert.Equal(suite.T(), entry.Amount, refundControlResults[entry.Type]) {
-			println(entry.Type)
+			fmt.Println(entry.Type, entry.Amount, refundControlResults[entry.Type])
 		}
 		assert.Equal(suite.T(), entry.Currency, merchantRoyaltyCurrency)
 	}

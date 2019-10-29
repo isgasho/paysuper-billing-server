@@ -16,6 +16,7 @@ import (
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"go.uber.org/zap"
+	"time"
 )
 
 const (
@@ -25,12 +26,13 @@ const (
 )
 
 var (
-	refundErrorUnknown           = newBillingServerErrorMsg("rf000001", "refund can't be create. try request later")
-	refundErrorNotAllowed        = newBillingServerErrorMsg("rf000002", "create refund for order not allowed")
-	refundErrorAlreadyRefunded   = newBillingServerErrorMsg("rf000003", "amount by order was fully refunded")
-	refundErrorPaymentAmountLess = newBillingServerErrorMsg("rf000004", "refund unavailable, because payment amount less than total refunds amount")
-	refundErrorNotFound          = newBillingServerErrorMsg("rf000005", "refund with specified data not found")
-	refundErrorOrderNotFound     = newBillingServerErrorMsg("rf000006", "information about payment for refund with specified data not found")
+	refundErrorUnknown            = newBillingServerErrorMsg("rf000001", "refund can't be create. try request later")
+	refundErrorNotAllowed         = newBillingServerErrorMsg("rf000002", "create refund for order not allowed")
+	refundErrorAlreadyRefunded    = newBillingServerErrorMsg("rf000003", "amount by order was fully refunded")
+	refundErrorPaymentAmountLess  = newBillingServerErrorMsg("rf000004", "refund unavailable, because payment amount less than total refunds amount")
+	refundErrorNotFound           = newBillingServerErrorMsg("rf000005", "refund with specified data not found")
+	refundErrorOrderNotFound      = newBillingServerErrorMsg("rf000006", "information about payment for refund with specified data not found")
+	refundErrorCostsRatesNotFound = newBillingServerErrorMsg("rf000007", "settings to calculate commissions not found")
 )
 
 type createRefundChecked struct {
@@ -413,6 +415,10 @@ func (p *createRefundProcessor) processCreateRefund() (*billing.Refund, error) {
 		return nil, err
 	}
 
+	if !p.hasMoneyBackCosts(p.checked.order) {
+		return nil, newBillingServerResponseError(pkg.ResponseStatusBadData, refundErrorCostsRatesNotFound)
+	}
+
 	err = p.processRefundsByOrder()
 
 	if err != nil {
@@ -539,4 +545,54 @@ func (s *Service) getRefundById(id string) (*billing.Refund, error) {
 	}
 
 	return refund, nil
+}
+
+func (p *createRefundProcessor) hasMoneyBackCosts(order *billing.Order) bool {
+	country, err := p.service.country.GetByIsoCodeA2(order.GetCountry())
+
+	if err != nil {
+		return false
+	}
+
+	methodName, err := order.GetCostPaymentMethodName()
+
+	if err != nil {
+		return false
+	}
+
+	paymentAt, _ := ptypes.Timestamp(order.PaymentMethodOrderClosedAt)
+	refundAt := time.Now()
+	reason := pkg.UndoReasonReversal
+
+	if p.request.IsChargeback {
+		reason = pkg.UndoReasonChargeback
+	}
+
+	data := &billing.MoneyBackCostSystemRequest{
+		Name:           methodName,
+		PayoutCurrency: order.GetMerchantRoyaltyCurrency(),
+		Region:         country.Region,
+		Country:        country.IsoCodeA2,
+		PaymentStage:   1,
+		Days:           int32(refundAt.Sub(paymentAt).Hours() / 24),
+		UndoReason:     reason,
+	}
+	_, err = p.service.getMoneyBackCostSystem(data)
+
+	if err != nil {
+		return false
+	}
+
+	data1 := &billing.MoneyBackCostMerchantRequest{
+		MerchantId:     order.GetMerchantId(),
+		Name:           methodName,
+		PayoutCurrency: order.GetMerchantRoyaltyCurrency(),
+		UndoReason:     reason,
+		Region:         country.Region,
+		Country:        country.IsoCodeA2,
+		PaymentStage:   1,
+		Days:           int32(refundAt.Sub(paymentAt).Hours() / 24),
+	}
+	_, err = p.service.getMoneyBackCostMerchant(data1)
+	return err == nil
 }

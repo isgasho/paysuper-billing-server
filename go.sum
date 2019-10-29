@@ -778,6 +778,8 @@ github.com/paysuper/paysuper-i18n v0.0.0-20190926113224-7eaca4563c7b/go.mod h1:y
 github.com/paysuper/paysuper-payment-link v0.0.0-20191014102956-21b508fc9e9c/go.mod h1:xDwwsBb+B4pPXnjXOraOfXUUDwvr58jAYh7XhSMYefY=
 github.com/paysuper/paysuper-recurring-repository v1.0.123 h1:24cPUNrJTUXwFPI93fvqW30nA1omEwMxWY2YueiUnnc=
 github.com/paysuper/paysuper-recurring-repository v1.0.123/go.mod h1:J5qs2I+QNL09dzJeCOGT++zrOXMbJNrzGP62/B6ZaEg=
+github.com/paysuper/paysuper-recurring-repository v1.0.124 h1:unUHzvLD0J119K1QOHdD6MZM5eYYtLP7Ip9JwwN3cGA=
+github.com/paysuper/paysuper-recurring-repository v1.0.124/go.mod h1:J5qs2I+QNL09dzJeCOGT++zrOXMbJNrzGP62/B6ZaEg=
 github.com/paysuper/paysuper-reporter v0.0.0-20190923193057-f9fbc0ddd67c h1:vD8DTjgflquG6T63Iq8JFAhQW7zTDqZSI3lWh5LGTlM=
 github.com/paysuper/paysuper-reporter v0.0.0-20190923193057-f9fbc0ddd67c/go.mod h1:Jp1cfxAkeC9e9x6kylvm3m7aIEYbRF4/G39Y0VEg/+g=
 github.com/paysuper/paysuper-reporter v0.0.0-20190926070334-68df87eeae2b h1:Z0iLqHIUcthKk2eE4YoYaJuMgKdbWIXs/UmjxwBIdCM=

@@ -183,3 +183,7 @@ func (m *Order) GetCostPaymentMethodName() (string, error) {
 	}
 	return m.GetPaymentMethodName(), nil
 }
+
+func (m *Order) GetPaymentSystemApiUrl() string {
+	return m.PaymentMethod.Params.ApiUrl
+}

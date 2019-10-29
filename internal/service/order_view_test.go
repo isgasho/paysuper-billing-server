@@ -12,6 +12,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
+	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -31,7 +32,7 @@ type OrderViewTestSuite struct {
 	suite.Suite
 	service *Service
 	log     *zap.Logger
-	cache   CacheInterface
+	cache   internalPkg.CacheInterface
 
 	merchant            *billing.Merchant
 	projectFixedAmount  *billing.Project
@@ -369,9 +370,9 @@ func (suite *OrderViewTestSuite) Test_OrderView_GetRoyaltySummary_Ok_OnlySales()
 	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[0].GrossSalesAmount), float64(12))
 	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[0].GrossReturnsAmount), float64(0))
 	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[0].GrossTotalAmount), float64(12))
-	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[0].TotalFees), float64(0.66))
-	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[0].TotalVat), float64(2.01))
-	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[0].PayoutAmount), float64(9.34))
+	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[0].TotalFees), float64(0.65))
+	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[0].TotalVat), float64(2.0))
+	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[0].PayoutAmount), float64(9.33))
 
 	controlTotal0 := summaryItems[0].GrossSalesAmount - summaryItems[0].TotalFees - summaryItems[0].TotalVat
 	assert.Equal(suite.T(), summaryItems[0].PayoutAmount, controlTotal0)
@@ -384,9 +385,9 @@ func (suite *OrderViewTestSuite) Test_OrderView_GetRoyaltySummary_Ok_OnlySales()
 	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[1].GrossSalesAmount), float64(24))
 	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[1].GrossReturnsAmount), float64(0))
 	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[1].GrossTotalAmount), float64(24))
-	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[1].TotalFees), float64(1.32))
-	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[1].TotalVat), float64(4.1))
-	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[1].PayoutAmount), float64(18.6))
+	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[1].TotalFees), float64(1.31))
+	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[1].TotalVat), float64(4.09))
+	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[1].PayoutAmount), float64(18.59))
 
 	controlTotal1 := summaryItems[1].GrossSalesAmount - summaryItems[1].TotalFees - summaryItems[1].TotalVat
 	assert.Equal(suite.T(), summaryItems[1].PayoutAmount, controlTotal1)
@@ -400,9 +401,9 @@ func (suite *OrderViewTestSuite) Test_OrderView_GetRoyaltySummary_Ok_OnlySales()
 	assert.Equal(suite.T(), tools.FormatAmount(summaryTotal.GrossSalesAmount), float64(36))
 	assert.Equal(suite.T(), tools.FormatAmount(summaryTotal.GrossReturnsAmount), float64(0))
 	assert.Equal(suite.T(), tools.FormatAmount(summaryTotal.GrossTotalAmount), float64(36))
-	assert.Equal(suite.T(), tools.FormatAmount(summaryTotal.TotalFees), float64(1.97))
-	assert.Equal(suite.T(), tools.FormatAmount(summaryTotal.TotalVat), float64(6.10))
-	assert.Equal(suite.T(), tools.FormatAmount(summaryTotal.PayoutAmount), float64(27.94))
+	assert.Equal(suite.T(), tools.FormatAmount(summaryTotal.TotalFees), float64(1.96))
+	assert.Equal(suite.T(), tools.FormatAmount(summaryTotal.TotalVat), float64(6.09))
+	assert.Equal(suite.T(), tools.FormatAmount(summaryTotal.PayoutAmount), float64(27.93))
 
 	controlTotal := summaryTotal.GrossSalesAmount - summaryTotal.TotalFees - summaryTotal.TotalVat
 	assert.Equal(suite.T(), summaryTotal.PayoutAmount, controlTotal)
@@ -455,9 +456,9 @@ func (suite *OrderViewTestSuite) Test_OrderView_GetRoyaltySummary_Ok_SalesAndRef
 	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[0].GrossSalesAmount), float64(12))
 	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[0].GrossReturnsAmount), float64(12))
 	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[0].GrossTotalAmount), float64(0))
-	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[0].TotalFees), float64(0.66))
+	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[0].TotalFees), float64(0.65))
 	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[0].TotalVat), float64(0))
-	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[0].PayoutAmount), float64(-0.65))
+	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[0].PayoutAmount), float64(-0.66))
 
 	controlTotal0 := summaryItems[0].GrossTotalAmount - summaryItems[0].TotalFees - summaryItems[0].TotalVat
 	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[0].PayoutAmount), tools.FormatAmount(controlTotal0))
@@ -470,9 +471,9 @@ func (suite *OrderViewTestSuite) Test_OrderView_GetRoyaltySummary_Ok_SalesAndRef
 	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[1].GrossSalesAmount), float64(24))
 	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[1].GrossReturnsAmount), float64(24))
 	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[1].GrossTotalAmount), float64(0))
-	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[1].TotalFees), float64(1.32))
+	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[1].TotalFees), float64(1.31))
 	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[1].TotalVat), float64(0))
-	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[1].PayoutAmount), float64(-1.31))
+	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[1].PayoutAmount), float64(-1.32))
 
 	controlTotal1 := summaryItems[1].GrossTotalAmount - summaryItems[1].TotalFees - summaryItems[1].TotalVat
 	assert.Equal(suite.T(), tools.FormatAmount(summaryItems[1].PayoutAmount), tools.FormatAmount(controlTotal1))
@@ -486,9 +487,9 @@ func (suite *OrderViewTestSuite) Test_OrderView_GetRoyaltySummary_Ok_SalesAndRef
 	assert.Equal(suite.T(), tools.FormatAmount(summaryTotal.GrossSalesAmount), float64(36))
 	assert.Equal(suite.T(), tools.FormatAmount(summaryTotal.GrossReturnsAmount), float64(36))
 	assert.Equal(suite.T(), tools.FormatAmount(summaryTotal.GrossTotalAmount), float64(0))
-	assert.Equal(suite.T(), tools.FormatAmount(summaryTotal.TotalFees), float64(1.97))
+	assert.Equal(suite.T(), tools.FormatAmount(summaryTotal.TotalFees), float64(1.96))
 	assert.Equal(suite.T(), tools.FormatAmount(summaryTotal.TotalVat), float64(0))
-	assert.Equal(suite.T(), tools.FormatAmount(summaryTotal.PayoutAmount), float64(-1.96))
+	assert.Equal(suite.T(), tools.FormatAmount(summaryTotal.PayoutAmount), float64(-1.97))
 
 	controlTotal := summaryTotal.GrossTotalAmount - summaryTotal.TotalFees - summaryTotal.TotalVat
 	assert.Equal(suite.T(), tools.FormatAmount(summaryTotal.PayoutAmount), tools.FormatAmount(controlTotal))
@@ -574,9 +575,9 @@ func (suite *OrderViewTestSuite) Test_OrderView_PaylinkStat() {
 	assert.Equal(suite.T(), res.Item.ReturnsCount, int32(maxRefunds))
 	assert.Equal(suite.T(), res.Item.Conversion, tools.ToPrecise(float64(maxOrders)/float64(maxVisits+maxOrders)))
 	assert.Equal(suite.T(), res.Item.TransactionsCurrency, suite.merchant.Banking.Currency)
-	assert.Equal(suite.T(), res.Item.GrossSalesAmount, float64(176.020308))
-	assert.Equal(suite.T(), res.Item.GrossReturnsAmount, float64(45.378702))
-	assert.Equal(suite.T(), res.Item.GrossTotalAmount, float64(130.641606))
+	assert.Equal(suite.T(), res.Item.GrossSalesAmount, float64(175.953538))
+	assert.Equal(suite.T(), res.Item.GrossReturnsAmount, float64(45.378545))
+	assert.Equal(suite.T(), res.Item.GrossTotalAmount, float64(130.574993))
 
 	// stat by country
 
@@ -590,26 +591,26 @@ func (suite *OrderViewTestSuite) Test_OrderView_PaylinkStat() {
 	assert.Equal(suite.T(), stat.Top[0].SalesCount, int32(2))
 	assert.Equal(suite.T(), stat.Top[0].ReturnsCount, int32(0))
 	assert.Equal(suite.T(), stat.Top[0].TransactionsCurrency, suite.merchant.Banking.Currency)
-	assert.Equal(suite.T(), stat.Top[0].GrossSalesAmount, float64(87.042462))
+	assert.Equal(suite.T(), stat.Top[0].GrossSalesAmount, float64(86.976))
 	assert.Equal(suite.T(), stat.Top[0].GrossReturnsAmount, float64(0))
-	assert.Equal(suite.T(), stat.Top[0].GrossTotalAmount, float64(87.042462))
+	assert.Equal(suite.T(), stat.Top[0].GrossTotalAmount, float64(86.976))
 
 	assert.Equal(suite.T(), stat.Top[1].CountryCode, "RU")
 	assert.Equal(suite.T(), stat.Top[1].TotalTransactions, int32(3))
 	assert.Equal(suite.T(), stat.Top[1].SalesCount, int32(2))
 	assert.Equal(suite.T(), stat.Top[1].ReturnsCount, int32(1))
 	assert.Equal(suite.T(), stat.Top[1].TransactionsCurrency, suite.merchant.Banking.Currency)
-	assert.Equal(suite.T(), stat.Top[1].GrossSalesAmount, float64(88.977846))
-	assert.Equal(suite.T(), stat.Top[1].GrossReturnsAmount, float64(45.378702))
-	assert.Equal(suite.T(), stat.Top[1].GrossTotalAmount, float64(43.599144))
+	assert.Equal(suite.T(), stat.Top[1].GrossSalesAmount, float64(88.977538))
+	assert.Equal(suite.T(), stat.Top[1].GrossReturnsAmount, float64(45.378545))
+	assert.Equal(suite.T(), stat.Top[1].GrossTotalAmount, float64(43.598993))
 
 	assert.Equal(suite.T(), stat.Total.TotalTransactions, int32(maxOrders+maxRefunds))
 	assert.Equal(suite.T(), stat.Total.SalesCount, int32(maxOrders))
 	assert.Equal(suite.T(), stat.Total.ReturnsCount, int32(maxRefunds))
 	assert.Equal(suite.T(), stat.Total.TransactionsCurrency, suite.merchant.Banking.Currency)
-	assert.Equal(suite.T(), stat.Total.GrossSalesAmount, float64(176.020308))
-	assert.Equal(suite.T(), stat.Total.GrossReturnsAmount, float64(45.378702))
-	assert.Equal(suite.T(), stat.Total.GrossTotalAmount, float64(130.641606))
+	assert.Equal(suite.T(), stat.Total.GrossSalesAmount, float64(175.953538))
+	assert.Equal(suite.T(), stat.Total.GrossReturnsAmount, float64(45.378545))
+	assert.Equal(suite.T(), stat.Total.GrossTotalAmount, float64(130.574993))
 
 	// stat by referrer
 
@@ -623,26 +624,26 @@ func (suite *OrderViewTestSuite) Test_OrderView_PaylinkStat() {
 	assert.Equal(suite.T(), stat.Top[0].SalesCount, int32(2))
 	assert.Equal(suite.T(), stat.Top[0].ReturnsCount, int32(0))
 	assert.Equal(suite.T(), stat.Top[0].TransactionsCurrency, suite.merchant.Banking.Currency)
-	assert.Equal(suite.T(), stat.Top[0].GrossSalesAmount, float64(87.042462))
+	assert.Equal(suite.T(), stat.Top[0].GrossSalesAmount, float64(86.976))
 	assert.Equal(suite.T(), stat.Top[0].GrossReturnsAmount, float64(0))
-	assert.Equal(suite.T(), stat.Top[0].GrossTotalAmount, float64(87.042462))
+	assert.Equal(suite.T(), stat.Top[0].GrossTotalAmount, float64(86.976))
 
 	assert.Equal(suite.T(), stat.Top[1].ReferrerHost, "steam.com")
 	assert.Equal(suite.T(), stat.Top[1].TotalTransactions, int32(3))
 	assert.Equal(suite.T(), stat.Top[1].SalesCount, int32(2))
 	assert.Equal(suite.T(), stat.Top[1].ReturnsCount, int32(1))
 	assert.Equal(suite.T(), stat.Top[1].TransactionsCurrency, suite.merchant.Banking.Currency)
-	assert.Equal(suite.T(), stat.Top[1].GrossSalesAmount, float64(88.977846))
-	assert.Equal(suite.T(), stat.Top[1].GrossReturnsAmount, float64(45.378702))
-	assert.Equal(suite.T(), stat.Top[1].GrossTotalAmount, float64(43.599144))
+	assert.Equal(suite.T(), stat.Top[1].GrossSalesAmount, float64(88.977538))
+	assert.Equal(suite.T(), stat.Top[1].GrossReturnsAmount, float64(45.378545))
+	assert.Equal(suite.T(), stat.Top[1].GrossTotalAmount, float64(43.598993))
 
 	assert.Equal(suite.T(), stat.Total.TotalTransactions, int32(maxOrders+maxRefunds))
 	assert.Equal(suite.T(), stat.Total.SalesCount, int32(maxOrders))
 	assert.Equal(suite.T(), stat.Total.ReturnsCount, int32(maxRefunds))
 	assert.Equal(suite.T(), stat.Total.TransactionsCurrency, suite.merchant.Banking.Currency)
-	assert.Equal(suite.T(), stat.Total.GrossSalesAmount, float64(176.020308))
-	assert.Equal(suite.T(), stat.Total.GrossReturnsAmount, float64(45.378702))
-	assert.Equal(suite.T(), stat.Total.GrossTotalAmount, float64(130.641606))
+	assert.Equal(suite.T(), stat.Total.GrossSalesAmount, float64(175.953538))
+	assert.Equal(suite.T(), stat.Total.GrossReturnsAmount, float64(45.378545))
+	assert.Equal(suite.T(), stat.Total.GrossTotalAmount, float64(130.574993))
 
 	// stat by date
 
@@ -656,17 +657,17 @@ func (suite *OrderViewTestSuite) Test_OrderView_PaylinkStat() {
 	assert.Equal(suite.T(), stat.Top[0].SalesCount, int32(maxOrders))
 	assert.Equal(suite.T(), stat.Top[0].ReturnsCount, int32(maxRefunds))
 	assert.Equal(suite.T(), stat.Top[0].TransactionsCurrency, suite.merchant.Banking.Currency)
-	assert.Equal(suite.T(), stat.Top[0].GrossSalesAmount, float64(176.020308))
-	assert.Equal(suite.T(), stat.Top[0].GrossReturnsAmount, float64(45.378702))
-	assert.Equal(suite.T(), stat.Top[0].GrossTotalAmount, float64(130.641606))
+	assert.Equal(suite.T(), stat.Top[0].GrossSalesAmount, float64(175.953538))
+	assert.Equal(suite.T(), stat.Top[0].GrossReturnsAmount, float64(45.378545))
+	assert.Equal(suite.T(), stat.Top[0].GrossTotalAmount, float64(130.574993))
 
 	assert.Equal(suite.T(), stat.Total.TotalTransactions, int32(maxOrders+maxRefunds))
 	assert.Equal(suite.T(), stat.Total.SalesCount, int32(maxOrders))
 	assert.Equal(suite.T(), stat.Total.ReturnsCount, int32(maxRefunds))
 	assert.Equal(suite.T(), stat.Total.TransactionsCurrency, suite.merchant.Banking.Currency)
-	assert.Equal(suite.T(), stat.Total.GrossSalesAmount, float64(176.020308))
-	assert.Equal(suite.T(), stat.Total.GrossReturnsAmount, float64(45.378702))
-	assert.Equal(suite.T(), stat.Total.GrossTotalAmount, float64(130.641606))
+	assert.Equal(suite.T(), stat.Total.GrossSalesAmount, float64(175.953538))
+	assert.Equal(suite.T(), stat.Total.GrossReturnsAmount, float64(45.378545))
+	assert.Equal(suite.T(), stat.Total.GrossTotalAmount, float64(130.574993))
 
 	// stat by utm
 
@@ -683,9 +684,9 @@ func (suite *OrderViewTestSuite) Test_OrderView_PaylinkStat() {
 	assert.Equal(suite.T(), stat.Top[0].SalesCount, int32(2))
 	assert.Equal(suite.T(), stat.Top[0].ReturnsCount, int32(0))
 	assert.Equal(suite.T(), stat.Top[0].TransactionsCurrency, suite.merchant.Banking.Currency)
-	assert.Equal(suite.T(), stat.Top[0].GrossSalesAmount, float64(87.042462))
+	assert.Equal(suite.T(), stat.Top[0].GrossSalesAmount, float64(86.976))
 	assert.Equal(suite.T(), stat.Top[0].GrossReturnsAmount, float64(0))
-	assert.Equal(suite.T(), stat.Top[0].GrossTotalAmount, float64(87.042462))
+	assert.Equal(suite.T(), stat.Top[0].GrossTotalAmount, float64(86.976))
 
 	assert.NotNil(suite.T(), stat.Top[1].Utm)
 	assert.Equal(suite.T(), stat.Top[1].Utm.UtmSource, "yandex")
@@ -695,15 +696,15 @@ func (suite *OrderViewTestSuite) Test_OrderView_PaylinkStat() {
 	assert.Equal(suite.T(), stat.Top[1].SalesCount, int32(2))
 	assert.Equal(suite.T(), stat.Top[1].ReturnsCount, int32(1))
 	assert.Equal(suite.T(), stat.Top[1].TransactionsCurrency, suite.merchant.Banking.Currency)
-	assert.Equal(suite.T(), stat.Top[1].GrossSalesAmount, float64(88.977846))
-	assert.Equal(suite.T(), stat.Top[1].GrossReturnsAmount, float64(45.378702))
-	assert.Equal(suite.T(), stat.Top[1].GrossTotalAmount, float64(43.599144))
+	assert.Equal(suite.T(), stat.Top[1].GrossSalesAmount, float64(88.977538))
+	assert.Equal(suite.T(), stat.Top[1].GrossReturnsAmount, float64(45.378545))
+	assert.Equal(suite.T(), stat.Top[1].GrossTotalAmount, float64(43.598993))
 
 	assert.Equal(suite.T(), stat.Total.TotalTransactions, int32(maxOrders+maxRefunds))
 	assert.Equal(suite.T(), stat.Total.SalesCount, int32(maxOrders))
 	assert.Equal(suite.T(), stat.Total.ReturnsCount, int32(maxRefunds))
 	assert.Equal(suite.T(), stat.Total.TransactionsCurrency, suite.merchant.Banking.Currency)
-	assert.Equal(suite.T(), stat.Total.GrossSalesAmount, float64(176.020308))
-	assert.Equal(suite.T(), stat.Total.GrossReturnsAmount, float64(45.378702))
-	assert.Equal(suite.T(), stat.Total.GrossTotalAmount, float64(130.641606))
+	assert.Equal(suite.T(), stat.Total.GrossSalesAmount, float64(175.953538))
+	assert.Equal(suite.T(), stat.Total.GrossReturnsAmount, float64(45.378545))
+	assert.Equal(suite.T(), stat.Total.GrossTotalAmount, float64(130.574993))
 }

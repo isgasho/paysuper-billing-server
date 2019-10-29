@@ -10,12 +10,12 @@ type PriceTableServiceInterface struct {
 	mock.Mock
 }
 
-// GetByAmount provides a mock function with given fields: _a0
-func (_m *PriceTableServiceInterface) GetByAmount(_a0 float64) (*billing.PriceTable, error) {
+// GetByRegion provides a mock function with given fields: _a0
+func (_m *PriceTableServiceInterface) GetByRegion(_a0 string) (*billing.PriceTable, error) {
 	ret := _m.Called(_a0)
 
 	var r0 *billing.PriceTable
-	if rf, ok := ret.Get(0).(func(float64) *billing.PriceTable); ok {
+	if rf, ok := ret.Get(0).(func(string) *billing.PriceTable); ok {
 		r0 = rf(_a0)
 	} else {
 		if ret.Get(0) != nil {
@@ -24,31 +24,8 @@ func (_m *PriceTableServiceInterface) GetByAmount(_a0 float64) (*billing.PriceTa
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(float64) error); ok {
+	if rf, ok := ret.Get(1).(func(string) error); ok {
 		r1 = rf(_a0)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// GetLatest provides a mock function with given fields:
-func (_m *PriceTableServiceInterface) GetLatest() (*billing.PriceTable, error) {
-	ret := _m.Called()
-
-	var r0 *billing.PriceTable
-	if rf, ok := ret.Get(0).(func() *billing.PriceTable); ok {
-		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*billing.PriceTable)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -65,22 +42,6 @@ func (_m *PriceTableServiceInterface) Insert(_a0 *billing.PriceTable) error {
 		r0 = rf(_a0)
 	} else {
 		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// InterpolateByAmount provides a mock function with given fields: _a0, _a1
-func (_m *PriceTableServiceInterface) InterpolateByAmount(_a0 *billing.PriceTable, _a1 float64) *billing.PriceTable {
-	ret := _m.Called(_a0, _a1)
-
-	var r0 *billing.PriceTable
-	if rf, ok := ret.Get(0).(func(*billing.PriceTable, float64) *billing.PriceTable); ok {
-		r0 = rf(_a0, _a1)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*billing.PriceTable)
-		}
 	}
 
 	return r0

@@ -7,6 +7,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
+	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -21,13 +22,15 @@ import (
 type TokenTestSuite struct {
 	suite.Suite
 	service *Service
-	cache   CacheInterface
+	cache   internalPkg.CacheInterface
 
-	project             *billing.Project
-	projectWithProducts *billing.Project
+	project                           *billing.Project
+	projectWithProducts               *billing.Project
+	projectWithMerchantWithoutTariffs *billing.Project
 
-	product1 *grpc.Product
-	product2 *grpc.Product
+	product1    *grpc.Product
+	product2    *grpc.Product
+	keyProducts []*grpc.KeyProduct
 }
 
 func Test_Token(t *testing.T) {
@@ -43,6 +46,155 @@ func (suite *TokenTestSuite) SetupTest() {
 	db, err := mongodb.NewDatabase()
 	assert.NoError(suite.T(), err, "Database connection failed")
 
+	pgRub := &billing.PriceGroup{
+		Id:       bson.NewObjectId().Hex(),
+		Region:   "RUB",
+		Currency: "RUB",
+		IsActive: true,
+	}
+	pgUsd := &billing.PriceGroup{
+		Id:       bson.NewObjectId().Hex(),
+		Region:   "USD",
+		Currency: "USD",
+		IsActive: true,
+	}
+	ru := &billing.Country{
+		IsoCodeA2:       "RU",
+		Region:          "Russia",
+		Currency:        "RUB",
+		PaymentsAllowed: true,
+		ChangeAllowed:   true,
+		VatEnabled:      true,
+		PriceGroupId:    pgRub.Id,
+		VatCurrency:     "RUB",
+		VatThreshold: &billing.CountryVatThreshold{
+			Year:  0,
+			World: 0,
+		},
+		VatPeriodMonth:         3,
+		VatDeadlineDays:        25,
+		VatStoreYears:          5,
+		VatCurrencyRatesPolicy: "last-day",
+		VatCurrencyRatesSource: "cbrf",
+	}
+	us := &billing.Country{
+		IsoCodeA2:       "US",
+		Region:          "USD",
+		Currency:        "USD",
+		PaymentsAllowed: true,
+		ChangeAllowed:   true,
+		VatEnabled:      true,
+		PriceGroupId:    pgRub.Id,
+		VatCurrency:     "USD",
+		VatThreshold: &billing.CountryVatThreshold{
+			Year:  0,
+			World: 0,
+		},
+		VatPeriodMonth:         3,
+		VatDeadlineDays:        25,
+		VatStoreYears:          5,
+		VatCurrencyRatesPolicy: "last-day",
+		VatCurrencyRatesSource: "cbrf",
+	}
+
+	merchant := &billing.Merchant{
+		Id: bson.NewObjectId().Hex(),
+		Company: &billing.MerchantCompanyInfo{
+			Name:    "merchant1",
+			Country: "RU",
+			Zip:     "190000",
+			City:    "St.Petersburg",
+		},
+		Contacts: &billing.MerchantContact{
+			Authorized: &billing.MerchantContactAuthorized{
+				Name:     "Unit Test",
+				Email:    "test@unit.test",
+				Phone:    "123456789",
+				Position: "Unit Test",
+			},
+			Technical: &billing.MerchantContactTechnical{
+				Name:  "Unit Test",
+				Email: "test@unit.test",
+				Phone: "123456789",
+			},
+		},
+		Banking: &billing.MerchantBanking{
+			Currency: "RUB",
+			Name:     "Bank name",
+		},
+		IsVatEnabled:              true,
+		IsCommissionToUserEnabled: true,
+		Status:                    pkg.MerchantStatusAgreementSigned,
+		IsSigned:                  true,
+		Tariff: &billing.MerchantTariff{
+			Payment: []*billing.MerchantTariffRatesPayment{
+				{
+					MinAmount:              0,
+					MaxAmount:              4.99,
+					MethodName:             "VISA",
+					MethodPercentFee:       1.8,
+					MethodFixedFee:         0.2,
+					MethodFixedFeeCurrency: "USD",
+					PsPercentFee:           3.0,
+					PsFixedFee:             0.3,
+					PsFixedFeeCurrency:     "USD",
+					MerchantHomeRegion:     "russia_and_cis",
+					PayerRegion:            "europe",
+				},
+				{
+					MinAmount:              5,
+					MaxAmount:              999999999.99,
+					MethodName:             "MasterCard",
+					MethodPercentFee:       1.8,
+					MethodFixedFee:         0.2,
+					MethodFixedFeeCurrency: "USD",
+					PsPercentFee:           3.0,
+					PsFixedFee:             0.3,
+					PsFixedFeeCurrency:     "USD",
+					MerchantHomeRegion:     "russia_and_cis",
+					PayerRegion:            "europe",
+				},
+			},
+			Payout: &billing.MerchantTariffRatesSettingsItem{
+				MethodPercentFee:       0,
+				MethodFixedFee:         25.0,
+				MethodFixedFeeCurrency: "EUR",
+				IsPaidByMerchant:       true,
+			},
+			HomeRegion: "russia_and_cis",
+		},
+	}
+	merchantWithoutTariffs := &billing.Merchant{
+		Id: bson.NewObjectId().Hex(),
+		Company: &billing.MerchantCompanyInfo{
+			Name:    "merchant1",
+			Country: "RU",
+			Zip:     "190000",
+			City:    "St.Petersburg",
+		},
+		Contacts: &billing.MerchantContact{
+			Authorized: &billing.MerchantContactAuthorized{
+				Name:     "Unit Test",
+				Email:    "test@unit.test",
+				Phone:    "123456789",
+				Position: "Unit Test",
+			},
+			Technical: &billing.MerchantContactTechnical{
+				Name:  "Unit Test",
+				Email: "test@unit.test",
+				Phone: "123456789",
+			},
+		},
+		Banking: &billing.MerchantBanking{
+			Currency: "RUB",
+			Name:     "Bank name",
+		},
+		IsVatEnabled:              true,
+		IsCommissionToUserEnabled: true,
+		Status:                    pkg.MerchantStatusAgreementSigned,
+		IsSigned:                  true,
+	}
+
 	project := &billing.Project{
 		Id:                       bson.NewObjectId().Hex(),
 		CallbackCurrency:         "RUB",
@@ -55,7 +207,7 @@ func (suite *TokenTestSuite) SetupTest() {
 		AllowDynamicRedirectUrls: true,
 		SecretKey:                "test project 1 secret key",
 		Status:                   pkg.ProjectStatusInProduction,
-		MerchantId:               bson.NewObjectId().Hex(),
+		MerchantId:               merchant.Id,
 	}
 	projectWithProducts := &billing.Project{
 		Id:                       bson.NewObjectId().Hex(),
@@ -69,15 +221,30 @@ func (suite *TokenTestSuite) SetupTest() {
 		AllowDynamicRedirectUrls: true,
 		SecretKey:                "test project 1 secret key",
 		Status:                   pkg.ProjectStatusInProduction,
-		MerchantId:               bson.NewObjectId().Hex(),
+		MerchantId:               merchant.Id,
+	}
+	projectWithMerchantWithoutTariffs := &billing.Project{
+		Id:                       bson.NewObjectId().Hex(),
+		CallbackCurrency:         "RUB",
+		CallbackProtocol:         pkg.ProjectCallbackProtocolEmpty,
+		LimitsCurrency:           "RUB",
+		MaxPaymentAmount:         15000,
+		MinPaymentAmount:         1,
+		Name:                     map[string]string{"en": "test project 1"},
+		IsProductsCheckout:       true,
+		AllowDynamicRedirectUrls: true,
+		SecretKey:                "test project 1 secret key",
+		Status:                   pkg.ProjectStatusInProduction,
+		MerchantId:               merchantWithoutTariffs.Id,
 	}
 
 	product1 := &grpc.Product{
+		Id:              bson.NewObjectId().Hex(),
 		Object:          "product",
 		Type:            "simple_product",
 		Sku:             "ru_double_yeti",
 		Name:            map[string]string{"en": initialName},
-		DefaultCurrency: "USD",
+		DefaultCurrency: "RUB",
 		Enabled:         true,
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		LongDescription: map[string]string{"en": "Super game steam keys"},
@@ -88,14 +255,15 @@ func (suite *TokenTestSuite) SetupTest() {
 		Metadata: map[string]string{
 			"SomeKey": "SomeValue",
 		},
-		Prices: []*billing.ProductPrice{{Currency: "USD", Amount: 1005.00}},
+		Prices: []*billing.ProductPrice{{Currency: "RUB", Amount: 1005.00, Region: "RUB"}},
 	}
 	product2 := &grpc.Product{
+		Id:              bson.NewObjectId().Hex(),
 		Object:          "product1",
 		Type:            "simple_product",
 		Sku:             "ru_double_yeti1",
 		Name:            map[string]string{"en": initialName},
-		DefaultCurrency: "USD",
+		DefaultCurrency: "RUB",
 		Enabled:         true,
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		LongDescription: map[string]string{"en": "Super game steam keys"},
@@ -106,7 +274,7 @@ func (suite *TokenTestSuite) SetupTest() {
 		Metadata: map[string]string{
 			"SomeKey": "SomeValue",
 		},
-		Prices: []*billing.ProductPrice{{Currency: "USD", Amount: 1005.00}},
+		Prices: []*billing.ProductPrice{{Currency: "RUB", Amount: 1005.00, Region: "RUB"}},
 	}
 
 	err = db.Collection(collectionProduct).Insert([]interface{}{product1, product2}...)
@@ -121,24 +289,60 @@ func (suite *TokenTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, redisClient, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), nil)
+	suite.service = NewBillingService(
+		db,
+		cfg,
+		nil,
+		nil,
+		nil,
+		nil,
+		redisClient,
+		suite.cache,
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
+		&reportingMocks.ReporterService{},
+		mocks.NewFormatterOK(),
+		mocks.NewBrokerMockOk(),
+	)
 
-	if err := suite.service.Init(); err != nil {
+	err = suite.service.Init()
+
+	if err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 
-	projects := []*billing.Project{
-		project,
-		projectWithProducts,
+	err = suite.service.merchant.MultipleInsert([]*billing.Merchant{merchant, merchantWithoutTariffs})
+
+	if err != nil {
+		suite.FailNow("Insert merchant test data failed", "%v", err)
 	}
-	if err := suite.service.project.MultipleInsert(projects); err != nil {
+
+	projects := []*billing.Project{project, projectWithProducts, projectWithMerchantWithoutTariffs}
+	err = suite.service.project.MultipleInsert(projects)
+
+	if err != nil {
 		suite.FailNow("Insert project test data failed", "%v", err)
+	}
+
+	err = suite.service.country.MultipleInsert([]*billing.Country{ru, us})
+
+	if err != nil {
+		suite.FailNow("Insert country test data failed", "%v", err)
+	}
+
+	err = suite.service.priceGroup.MultipleInsert([]*billing.PriceGroup{pgRub, pgUsd})
+
+	if err != nil {
+		suite.FailNow("Insert price group test data failed", "%v", err)
 	}
 
 	suite.project = project
 	suite.projectWithProducts = projectWithProducts
+	suite.projectWithMerchantWithoutTariffs = projectWithMerchantWithoutTariffs
 	suite.product1 = product1
 	suite.product2 = product2
+
+	suite.keyProducts = createKeyProductsFroProject(suite.Suite, suite.service, suite.project, 3)
 }
 
 func (suite *TokenTestSuite) TearDownTest() {
@@ -165,6 +369,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_NewCustomer_Ok() {
 			ProjectId: suite.project.Id,
 			Amount:    100,
 			Currency:  "RUB",
+			Type:      billing.OrderType_simple,
 		},
 	}
 	rsp := &grpc.TokenResponse{}
@@ -234,6 +439,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_ExistCustomer_Ok() {
 			ProjectId: suite.project.Id,
 			Amount:    100,
 			Currency:  "RUB",
+			Type:      billing.OrderType_simple,
 		},
 	}
 	rsp := &grpc.TokenResponse{}
@@ -325,6 +531,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_ExistCustomer_UpdateExistIden
 			ProjectId: suite.project.Id,
 			Amount:    100,
 			Currency:  "RUB",
+			Type:      billing.OrderType_simple,
 		},
 	}
 	rsp := &grpc.TokenResponse{}
@@ -460,7 +667,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_ProjectNotFound_Error() {
 	err := suite.service.CreateToken(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
-	assert.Equal(suite.T(), projectErrorNotFound, rsp.Message)
+	assert.Equal(suite.T(), orderErrorProjectNotFound, rsp.Message)
 	assert.Empty(suite.T(), rsp.Token)
 }
 
@@ -476,17 +683,18 @@ func (suite *TokenTestSuite) TestToken_CreateToken_AmountIncorrect_Error() {
 			ProjectId: suite.project.Id,
 			Amount:    -100,
 			Currency:  "RUB",
+			Type:      billing.OrderType_simple,
 		},
 	}
 	rsp := &grpc.TokenResponse{}
 	err := suite.service.CreateToken(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
-	assert.Equal(suite.T(), tokenErrorSettingsAmountRequired, rsp.Message)
+	assert.Equal(suite.T(), tokenErrorSettingsSimpleCheckoutParamsRequired, rsp.Message)
 	assert.Empty(suite.T(), rsp.Token)
 }
 
-func (suite *TokenTestSuite) TestToken_CreateToken_ProjectIsProductCheckout_WithoutItems_Error() {
+func (suite *TokenTestSuite) TestToken_CreateToken_ProjectIsProductCheckout_ProductInvalid_Error() {
 	req := &grpc.TokenRequest{
 		User: &billing.TokenUser{
 			Id: bson.NewObjectId().Hex(),
@@ -495,147 +703,16 @@ func (suite *TokenTestSuite) TestToken_CreateToken_ProjectIsProductCheckout_With
 			},
 		},
 		Settings: &billing.TokenSettings{
-			ProjectId: suite.projectWithProducts.Id,
+			ProjectId:   suite.projectWithProducts.Id,
+			ProductsIds: []string{bson.NewObjectId().Hex(), bson.NewObjectId().Hex(), bson.NewObjectId().Hex()},
+			Type:        billing.OrderType_product,
 		},
 	}
 	rsp := &grpc.TokenResponse{}
 	err := suite.service.CreateToken(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
-	assert.Equal(suite.T(), tokenErrorSettingsItemsRequired, rsp.Message)
-	assert.Empty(suite.T(), rsp.Token)
-}
-
-func (suite *TokenTestSuite) TestToken_CreateToken_ProjectIsProductCheckout_ProductsNotFound_Error() {
-	req := &grpc.TokenRequest{
-		User: &billing.TokenUser{
-			Id: bson.NewObjectId().Hex(),
-			Locale: &billing.TokenUserLocaleValue{
-				Value: "en",
-			},
-		},
-		Settings: &billing.TokenSettings{
-			ProjectId: suite.projectWithProducts.Id,
-			Items: []*billing.TokenSettingsItem{
-				{
-					Sku:      bson.NewObjectId().Hex(),
-					Amount:   100,
-					Currency: "UAH",
-				},
-				{
-					Sku:      bson.NewObjectId().Hex(),
-					Amount:   200,
-					Currency: "UAH",
-				},
-				{
-					Sku:      bson.NewObjectId().Hex(),
-					Amount:   300,
-					Currency: "UAH",
-				},
-			},
-		},
-	}
-	rsp := &grpc.TokenResponse{}
-	err := suite.service.CreateToken(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
-	assert.Equal(suite.T(), productErrorNotFoundBySku, rsp.Message)
-	assert.Empty(suite.T(), rsp.Token)
-}
-
-func (suite *TokenTestSuite) TestToken_CreateToken_ProjectIsProductCheckout_ProductsCountNotMatch_Error() {
-	req := &grpc.TokenRequest{
-		User: &billing.TokenUser{
-			Id: bson.NewObjectId().Hex(),
-			Locale: &billing.TokenUserLocaleValue{
-				Value: "en",
-			},
-		},
-		Settings: &billing.TokenSettings{
-			ProjectId: suite.projectWithProducts.Id,
-			Items: []*billing.TokenSettingsItem{
-				{
-					Sku:      bson.NewObjectId().Hex(),
-					Amount:   100,
-					Currency: "UAH",
-				},
-				{
-					Sku:      suite.product1.Sku,
-					Amount:   suite.product1.Prices[0].Amount,
-					Currency: suite.product1.Prices[0].Currency,
-				},
-				{
-					Sku:      suite.product2.Sku,
-					Amount:   suite.product2.Prices[0].Amount,
-					Currency: suite.product2.Prices[0].Currency,
-				},
-			},
-		},
-	}
-	rsp := &grpc.TokenResponse{}
-	err := suite.service.CreateToken(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
-	assert.Equal(suite.T(), productErrorCountNotMatch, rsp.Message)
-	assert.Empty(suite.T(), rsp.Token)
-}
-
-func (suite *TokenTestSuite) TestToken_CreateToken_ProjectIsProductCheckout_ProductAmountNotMatch_Error() {
-	req := &grpc.TokenRequest{
-		User: &billing.TokenUser{
-			Id: bson.NewObjectId().Hex(),
-			Locale: &billing.TokenUserLocaleValue{
-				Value: "en",
-			},
-		},
-		Settings: &billing.TokenSettings{
-			ProjectId: suite.projectWithProducts.Id,
-			Items: []*billing.TokenSettingsItem{
-				{
-					Sku:      suite.product1.Sku,
-					Amount:   100,
-					Currency: suite.product1.Prices[0].Currency,
-				},
-				{
-					Sku:      suite.product2.Sku,
-					Amount:   suite.product2.Prices[0].Amount,
-					Currency: suite.product2.Prices[0].Currency,
-				},
-			},
-		},
-	}
-	rsp := &grpc.TokenResponse{}
-	err := suite.service.CreateToken(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
-	assert.Equal(suite.T(), productErrorAmountNotMatch, rsp.Message)
-	assert.Empty(suite.T(), rsp.Token)
-}
-
-func (suite *TokenTestSuite) TestToken_CreateToken_ProjectIsProductCheckout_ProductCurrencyNotMatch_Error() {
-	req := &grpc.TokenRequest{
-		User: &billing.TokenUser{
-			Id: bson.NewObjectId().Hex(),
-			Locale: &billing.TokenUserLocaleValue{
-				Value: "en",
-			},
-		},
-		Settings: &billing.TokenSettings{
-			ProjectId: suite.projectWithProducts.Id,
-			Items: []*billing.TokenSettingsItem{
-				{
-					Sku:      suite.product2.Sku,
-					Amount:   suite.product2.Prices[0].Amount,
-					Currency: "UAH",
-				},
-			},
-		},
-	}
-	rsp := &grpc.TokenResponse{}
-	err := suite.service.CreateToken(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
-	assert.Equal(suite.T(), productErrorCurrencyNotMatch, rsp.Message)
+	assert.Equal(suite.T(), orderErrorProductsInvalid, rsp.Message)
 	assert.Empty(suite.T(), rsp.Token)
 }
 
@@ -648,19 +725,9 @@ func (suite *TokenTestSuite) TestToken_CreateToken_ProjectIsProductCheckout_Ok()
 			},
 		},
 		Settings: &billing.TokenSettings{
-			ProjectId: suite.projectWithProducts.Id,
-			Items: []*billing.TokenSettingsItem{
-				{
-					Sku:      suite.product1.Sku,
-					Amount:   suite.product1.Prices[0].Amount,
-					Currency: suite.product1.Prices[0].Currency,
-				},
-				{
-					Sku:      suite.product2.Sku,
-					Amount:   suite.product2.Prices[0].Amount,
-					Currency: suite.product2.Prices[0].Currency,
-				},
-			},
+			ProjectId:   suite.projectWithProducts.Id,
+			ProductsIds: []string{suite.product1.Id, suite.product2.Id},
+			Type:        billing.OrderType_product,
 		},
 	}
 	rsp := &grpc.TokenResponse{}
@@ -678,4 +745,183 @@ func (suite *TokenTestSuite) TestToken_CreateToken_ProjectIsProductCheckout_Ok()
 	assert.NoError(suite.T(), err)
 
 	assert.Len(suite.T(), rep.token.Settings.ProductsIds, 2)
+}
+
+func (suite *TokenTestSuite) TestToken_CreateToken_MerchantWithoutTariffs_Error() {
+	req := &grpc.TokenRequest{
+		User: &billing.TokenUser{
+			Id: bson.NewObjectId().Hex(),
+			Locale: &billing.TokenUserLocaleValue{
+				Value: "en",
+			},
+		},
+		Settings: &billing.TokenSettings{
+			ProjectId: suite.projectWithMerchantWithoutTariffs.Id,
+			Amount:    100,
+			Currency:  "USD",
+			Type:      billing.OrderType_simple,
+		},
+	}
+	rsp := &grpc.TokenResponse{}
+	err := suite.service.CreateToken(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), orderErrorMerchantBadTariffs, rsp.Message)
+	assert.Empty(suite.T(), rsp.Token)
+}
+
+func (suite *TokenTestSuite) TestToken_CreateToken_ProductCheckout_ProductListEmpty_Error() {
+	req := &grpc.TokenRequest{
+		User: &billing.TokenUser{
+			Id: bson.NewObjectId().Hex(),
+			Locale: &billing.TokenUserLocaleValue{
+				Value: "en",
+			},
+		},
+		Settings: &billing.TokenSettings{
+			ProjectId: suite.project.Id,
+			Type:      billing.OrderType_product,
+		},
+	}
+	rsp := &grpc.TokenResponse{}
+	err := suite.service.CreateToken(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), tokenErrorSettingsProductAndKeyProductIdsParamsRequired, rsp.Message)
+	assert.Empty(suite.T(), rsp.Token)
+}
+
+func (suite *TokenTestSuite) TestToken_CreateToken_SimpleCheckout_InvalidCurrency_Error() {
+	req := &grpc.TokenRequest{
+		User: &billing.TokenUser{
+			Id: bson.NewObjectId().Hex(),
+			Locale: &billing.TokenUserLocaleValue{
+				Value: "en",
+			},
+		},
+		Settings: &billing.TokenSettings{
+			ProjectId: suite.project.Id,
+			Amount:    1000,
+			Currency:  "KZT",
+			Type:      billing.OrderType_simple,
+		},
+	}
+	rsp := &grpc.TokenResponse{}
+	err := suite.service.CreateToken(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), orderErrorCurrencyNotFound, rsp.Message)
+	assert.Empty(suite.T(), rsp.Token)
+}
+
+func (suite *TokenTestSuite) TestToken_CreateToken_SimpleCheckout_LimitsAmount_Error() {
+	req := &grpc.TokenRequest{
+		User: &billing.TokenUser{
+			Id: bson.NewObjectId().Hex(),
+			Locale: &billing.TokenUserLocaleValue{
+				Value: "en",
+			},
+		},
+		Settings: &billing.TokenSettings{
+			ProjectId: suite.project.Id,
+			Amount:    0.1,
+			Currency:  "RUB",
+			Type:      billing.OrderType_simple,
+		},
+	}
+	rsp := &grpc.TokenResponse{}
+	err := suite.service.CreateToken(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), orderErrorAmountLowerThanMinAllowed, rsp.Message)
+	assert.Empty(suite.T(), rsp.Token)
+}
+
+func (suite *TokenTestSuite) TestToken_CreateToken_KeyProductCheckout_Ok() {
+	req := &grpc.TokenRequest{
+		User: &billing.TokenUser{
+			Id: bson.NewObjectId().Hex(),
+			Locale: &billing.TokenUserLocaleValue{
+				Value: "en",
+			},
+		},
+		Settings: &billing.TokenSettings{
+			ProjectId:   suite.project.Id,
+			ProductsIds: []string{suite.keyProducts[0].Id, suite.keyProducts[1].Id},
+			PlatformId:  "steam",
+			Type:        billing.OrderType_key,
+		},
+	}
+	rsp := &grpc.TokenResponse{}
+	err := suite.service.CreateToken(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotEmpty(suite.T(), rsp.Token)
+}
+
+func (suite *TokenTestSuite) TestToken_CreateToken_KeyProductCheckout_PlatformIdNotFound_Error() {
+	req := &grpc.TokenRequest{
+		User: &billing.TokenUser{
+			Id: bson.NewObjectId().Hex(),
+			Locale: &billing.TokenUserLocaleValue{
+				Value: "en",
+			},
+		},
+		Settings: &billing.TokenSettings{
+			ProjectId:   suite.project.Id,
+			ProductsIds: []string{suite.keyProducts[0].Id, suite.keyProducts[1].Id},
+			Type:        billing.OrderType_key,
+		},
+	}
+	rsp := &grpc.TokenResponse{}
+	err := suite.service.CreateToken(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), tokenErrorSettingsKeyPlatformParamRequired, rsp.Message)
+	assert.Empty(suite.T(), rsp.Token)
+}
+
+func (suite *TokenTestSuite) TestToken_CreateToken_KeyProductCheckout_ProjectWithoutKeyProducts_Error() {
+	req := &grpc.TokenRequest{
+		User: &billing.TokenUser{
+			Id: bson.NewObjectId().Hex(),
+			Locale: &billing.TokenUserLocaleValue{
+				Value: "en",
+			},
+		},
+		Settings: &billing.TokenSettings{
+			ProjectId:   suite.projectWithProducts.Id,
+			ProductsIds: []string{suite.keyProducts[0].Id, suite.keyProducts[1].Id},
+			PlatformId:  "steam",
+			Type:        billing.OrderType_key,
+		},
+	}
+	rsp := &grpc.TokenResponse{}
+	err := suite.service.CreateToken(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), orderErrorProductsInvalid, rsp.Message)
+	assert.Empty(suite.T(), rsp.Token)
+}
+
+func (suite *TokenTestSuite) TestToken_CreateToken_UnknownType_Error() {
+	req := &grpc.TokenRequest{
+		User: &billing.TokenUser{
+			Id: bson.NewObjectId().Hex(),
+			Locale: &billing.TokenUserLocaleValue{
+				Value: "en",
+			},
+		},
+		Settings: &billing.TokenSettings{
+			ProjectId: suite.projectWithProducts.Id,
+			Type:      "unknown",
+		},
+	}
+	rsp := &grpc.TokenResponse{}
+	err := suite.service.CreateToken(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), tokenErrorSettingsTypeRequired, rsp.Message)
+	assert.Empty(suite.T(), rsp.Token)
 }

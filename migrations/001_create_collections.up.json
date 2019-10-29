@@ -28,5 +28,8 @@
   },
   {
     "create": "vat"
+  },
+  {
+    "create": "key"
   }
 ]

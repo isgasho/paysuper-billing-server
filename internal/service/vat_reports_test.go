@@ -12,6 +12,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
+	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -30,7 +31,7 @@ type VatReportsTestSuite struct {
 	suite.Suite
 	service *Service
 	log     *zap.Logger
-	cache   CacheInterface
+	cache   internalPkg.CacheInterface
 
 	projectFixedAmount *billing.Project
 	paymentMethod      *billing.PaymentMethod
@@ -259,10 +260,10 @@ func (suite *VatReportsTestSuite) TestVatReports_ProcessVatReports() {
 	assert.EqualValues(suite.T(), report.TransactionsCount, numberOfOrders)
 	assert.EqualValues(suite.T(), report.GrossRevenue, 900)
 	assert.EqualValues(suite.T(), report.VatAmount, 150)
-	assert.EqualValues(suite.T(), report.FeesAmount, 144.39)
+	assert.EqualValues(suite.T(), report.FeesAmount, 144.38)
 	assert.EqualValues(suite.T(), report.DeductionAmount, 0)
 	assert.EqualValues(suite.T(), report.CountryAnnualTurnover, 1800)
-	assert.EqualValues(suite.T(), report.WorldAnnualTurnover, 13183.80)
+	assert.EqualValues(suite.T(), report.WorldAnnualTurnover, 13183.1)
 	assert.Equal(suite.T(), report.Status, pkg.VatReportStatusThreshold)
 
 	err = suite.service.GetVatReportsForCountry(context.TODO(), &grpc.VatReportsRequest{Country: "FI"}, &repRes)
@@ -276,12 +277,12 @@ func (suite *VatReportsTestSuite) TestVatReports_ProcessVatReports() {
 	assert.Equal(suite.T(), report.Country, "FI")
 	assert.Equal(suite.T(), report.Currency, "EUR")
 	assert.Equal(suite.T(), report.TransactionsCount, int32(numberOfOrders))
-	assert.Equal(suite.T(), report.GrossRevenue, float64(81.32))
-	assert.Equal(suite.T(), report.VatAmount, float64(13.56))
-	assert.Equal(suite.T(), report.FeesAmount, float64(8.9))
+	assert.Equal(suite.T(), report.GrossRevenue, float64(81.31))
+	assert.Equal(suite.T(), report.VatAmount, float64(13.55))
+	assert.Equal(suite.T(), report.FeesAmount, float64(8.89))
 	assert.Equal(suite.T(), report.DeductionAmount, float64(0))
 	assert.Equal(suite.T(), report.CountryAnnualTurnover, float64(162))
-	assert.Equal(suite.T(), report.WorldAnnualTurnover, float64(188.34))
+	assert.Equal(suite.T(), report.WorldAnnualTurnover, float64(188.33))
 	assert.Equal(suite.T(), report.Status, pkg.VatReportStatusThreshold)
 
 	assert.NoError(suite.T(), err)

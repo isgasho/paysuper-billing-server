@@ -80,6 +80,7 @@ service BillingService {
     rpc GetPriceGroupCurrencyByRegion (PriceGroupByRegionRequest) returns (PriceGroupCurrenciesResponse) {}
     rpc GetRecommendedPriceByPriceGroup (RecommendedPriceRequest) returns (RecommendedPriceResponse) {}
     rpc GetRecommendedPriceByConversion (RecommendedPriceRequest) returns (RecommendedPriceResponse) {}
+    rpc GetRecommendedPriceTable (RecommendedPriceTableRequest) returns (RecommendedPriceTableResponse) {}
     rpc GetPriceGroupByRegion (GetPriceGroupByRegionRequest) returns (GetPriceGroupByRegionResponse) {}
 
     rpc SetUserNotifySales (SetUserNotifyRequest) returns (EmptyResponse) {}
@@ -456,7 +457,7 @@ message PaymentFormJsonData {
     UserIpData user_ip_data = 13;
     // @inject_tag: json:"items" validate="omitempty,gte=1,dive"
     repeated billing.OrderItem items = 14;
-    // @inject_tag: json:"-"
+    // @inject_tag: json:"cookie"
     string cookie = 15;
     // @inject_tag: json:"email"
     string email = 16;
@@ -884,6 +885,8 @@ message KeyProduct {
     google.protobuf.Timestamp published_at = 18;
     // @inject_tag: json:"pricing" validate:"required,oneof=currency manual steam default"
     string pricing = 19;
+    // @inject_tag: json:"billing_type" validate:"required,oneof=real virtual"
+    string billing_type = 20;
 }
 
 message PlatformPrice {
@@ -952,6 +955,8 @@ message Product {
     bool deleted = 18;
     // @inject_tag: json:"pricing" validate:"required,oneof=currency manual steam default"
     string pricing = 19;
+    // @inject_tag: json:"billing_type" validate:"required,oneof=real virtual"
+    string billing_type = 20;
 }
 
 message ListProductsRequest {
@@ -1469,11 +1474,23 @@ message PriceGroupByRegionRequest {
 message RecommendedPriceRequest {
     // @inject_tag: validate:"required,numeric,gte=0"
     double amount = 1;
+    // @inject_tag: validate:"required,alpha,len=3"
+    string currency = 2;
 }
 
 message RecommendedPriceResponse {
     // @inject_tag: json:"recommended_price"
     repeated billing.RecommendedPrice recommended_price = 1;
+}
+
+message RecommendedPriceTableRequest {
+    // @inject_tag: validate:"required,alpha,len=3"
+    string currency = 1;
+}
+
+message RecommendedPriceTableResponse {
+    // @inject_tag: json:"ranges"
+    repeated billing.PriceTableRange ranges = 1;
 }
 
 message ProductPricesResponse {

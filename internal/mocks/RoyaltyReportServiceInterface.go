@@ -77,13 +77,13 @@ func (_m *RoyaltyReportServiceInterface) GetById(id string) (*billing.RoyaltyRep
 	return r0, r1
 }
 
-// GetNonPayoutReports provides a mock function with given fields: merchantId, currency, excludeIdsString
-func (_m *RoyaltyReportServiceInterface) GetNonPayoutReports(merchantId string, currency string, excludeIdsString []string) ([]*billing.RoyaltyReport, error) {
-	ret := _m.Called(merchantId, currency, excludeIdsString)
+// GetByPayoutId provides a mock function with given fields: payoutId
+func (_m *RoyaltyReportServiceInterface) GetByPayoutId(payoutId string) ([]*billing.RoyaltyReport, error) {
+	ret := _m.Called(payoutId)
 
 	var r0 []*billing.RoyaltyReport
-	if rf, ok := ret.Get(0).(func(string, string, []string) []*billing.RoyaltyReport); ok {
-		r0 = rf(merchantId, currency, excludeIdsString)
+	if rf, ok := ret.Get(0).(func(string) []*billing.RoyaltyReport); ok {
+		r0 = rf(payoutId)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*billing.RoyaltyReport)
@@ -91,8 +91,31 @@ func (_m *RoyaltyReportServiceInterface) GetNonPayoutReports(merchantId string, 
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string, []string) error); ok {
-		r1 = rf(merchantId, currency, excludeIdsString)
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(payoutId)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetNonPayoutReports provides a mock function with given fields: merchantId, currency
+func (_m *RoyaltyReportServiceInterface) GetNonPayoutReports(merchantId string, currency string) ([]*billing.RoyaltyReport, error) {
+	ret := _m.Called(merchantId, currency)
+
+	var r0 []*billing.RoyaltyReport
+	if rf, ok := ret.Get(0).(func(string, string) []*billing.RoyaltyReport); ok {
+		r0 = rf(merchantId, currency)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*billing.RoyaltyReport)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string) error); ok {
+		r1 = rf(merchantId, currency)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -107,6 +130,62 @@ func (_m *RoyaltyReportServiceInterface) Insert(document *billing.RoyaltyReport,
 	var r0 error
 	if rf, ok := ret.Get(0).(func(*billing.RoyaltyReport, string, string) error); ok {
 		r0 = rf(document, ip, source)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// SetPaid provides a mock function with given fields: reportIds, payoutDocumentId, ip, source
+func (_m *RoyaltyReportServiceInterface) SetPaid(reportIds []string, payoutDocumentId string, ip string, source string) error {
+	ret := _m.Called(reportIds, payoutDocumentId, ip, source)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func([]string, string, string, string) error); ok {
+		r0 = rf(reportIds, payoutDocumentId, ip, source)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// SetPayoutDocumentId provides a mock function with given fields: reportIds, payoutDocumentId, ip, source
+func (_m *RoyaltyReportServiceInterface) SetPayoutDocumentId(reportIds []string, payoutDocumentId string, ip string, source string) error {
+	ret := _m.Called(reportIds, payoutDocumentId, ip, source)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func([]string, string, string, string) error); ok {
+		r0 = rf(reportIds, payoutDocumentId, ip, source)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// UnsetPaid provides a mock function with given fields: reportIds, ip, source
+func (_m *RoyaltyReportServiceInterface) UnsetPaid(reportIds []string, ip string, source string) error {
+	ret := _m.Called(reportIds, ip, source)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func([]string, string, string) error); ok {
+		r0 = rf(reportIds, ip, source)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// UnsetPayoutDocumentId provides a mock function with given fields: reportIds, ip, source
+func (_m *RoyaltyReportServiceInterface) UnsetPayoutDocumentId(reportIds []string, ip string, source string) error {
+	ret := _m.Called(reportIds, ip, source)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func([]string, string, string) error); ok {
+		r0 = rf(reportIds, ip, source)
 	} else {
 		r0 = ret.Error(0)
 	}

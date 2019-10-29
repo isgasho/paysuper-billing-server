@@ -1,16 +1,16 @@
 package service
 
 import (
+	"context"
 	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"math"
+	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"go.uber.org/zap"
 )
 
 type PriceTableServiceInterface interface {
 	Insert(*billing.PriceTable) error
-	GetByAmount(float64) (*billing.PriceTable, error)
-	GetLatest() (*billing.PriceTable, error)
-	InterpolateByAmount(*billing.PriceTable, float64) *billing.PriceTable
+	GetByRegion(string) (*billing.PriceTable, error)
 }
 
 func newPriceTableService(svc *Service) PriceTableServiceInterface {
@@ -26,13 +26,10 @@ func (h *PriceTable) Insert(pt *billing.PriceTable) error {
 	return nil
 }
 
-func (h *PriceTable) GetByAmount(amount float64) (*billing.PriceTable, error) {
+func (h *PriceTable) GetByRegion(region string) (*billing.PriceTable, error) {
 	var price *billing.PriceTable
 	err := h.svc.db.Collection(collectionPriceTable).
-		Find(bson.M{
-			"from": bson.M{"$lt": amount},
-			"to":   bson.M{"$gte": amount},
-		}).
+		Find(bson.M{"currency": region}).
 		One(&price)
 
 	if err != nil {
@@ -42,31 +39,19 @@ func (h *PriceTable) GetByAmount(amount float64) (*billing.PriceTable, error) {
 	return price, nil
 }
 
-func (h *PriceTable) GetLatest() (*billing.PriceTable, error) {
-	var price *billing.PriceTable
-	err := h.svc.db.Collection(collectionPriceTable).
-		Find(nil).
-		Sort("-to").
-		One(&price)
+func (s *Service) GetRecommendedPriceTable(
+	ctx context.Context,
+	req *grpc.RecommendedPriceTableRequest,
+	res *grpc.RecommendedPriceTableResponse,
+) error {
+	table, err := s.priceTable.GetByRegion(req.Currency)
 
 	if err != nil {
-		return nil, err
+		zap.L().Error("Price table not found", zap.Any("req", req))
+		return nil
 	}
 
-	return price, nil
-}
+	res.Ranges = table.Ranges
 
-func (h *PriceTable) InterpolateByAmount(price *billing.PriceTable, amount float64) *billing.PriceTable {
-	delta := price.To - price.From
-	step := math.Ceil((amount - price.To) / delta)
-	price.To += delta * step
-	price.From = price.To - delta
-
-	for idx, curr := range price.Currencies {
-		delta := curr.To - curr.From
-		price.Currencies[idx].To += delta * step
-		price.Currencies[idx].From = price.Currencies[idx].To - delta
-	}
-
-	return price
+	return nil
 }

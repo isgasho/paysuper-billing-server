@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -327,73 +326,6 @@ func (s *Service) getProductsCountByProject(projectId string) int32 {
 	}
 
 	return int32(count)
-}
-
-func (s *Service) processTokenProducts(req *grpc.TokenRequest) ([]string, error) {
-	var sku []string
-	var products []*grpc.Product
-	skuItemsMap := make(map[string]*billing.TokenSettingsItem, len(req.Settings.Items))
-
-	for _, v := range req.Settings.Items {
-		sku = append(sku, v.Sku)
-		skuItemsMap[v.Sku] = v
-	}
-
-	query := bson.M{
-		"project_id": bson.ObjectIdHex(req.Settings.ProjectId),
-		"sku":        bson.M{"$in": sku},
-		"deleted":    false,
-	}
-	err := s.db.Collection(collectionProduct).Find(query).All(&products)
-
-	if err != nil && err != mgo.ErrNotFound {
-		zap.S().Errorf("Query to find project products failed", "err", err.Error(), "query", query)
-		return nil, productErrorUnknown
-	}
-
-	if len(products) <= 0 {
-		return nil, productErrorNotFoundBySku
-	}
-
-	if len(sku) != len(products) {
-		return nil, productErrorCountNotMatch
-	}
-
-	var productsIds []string
-
-	for _, v := range products {
-		item, _ := skuItemsMap[v.Sku]
-
-		matchAmount := false
-		matchCurrency := false
-
-		for _, v1 := range v.Prices {
-			// todo: add support for virtual currencies?
-			if item.Amount != v1.Amount && item.Currency != v1.Currency {
-				continue
-			}
-
-			if item.Amount == v1.Amount {
-				matchAmount = true
-			}
-
-			if item.Currency == v1.Currency {
-				matchCurrency = true
-			}
-		}
-
-		if matchAmount == false {
-			return nil, productErrorAmountNotMatch
-		}
-
-		if matchCurrency == false && v.DefaultCurrency != item.Currency {
-			return nil, productErrorCurrencyNotMatch
-		}
-
-		productsIds = append(productsIds, v.Id)
-	}
-
-	return productsIds, nil
 }
 
 type ProductServiceInterface interface {

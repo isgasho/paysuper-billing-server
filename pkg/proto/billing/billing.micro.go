@@ -111,7 +111,7 @@ It has these top-level messages:
 	OrderViewPrivate
 	RecommendedPrice
 	PriceTable
-	PriceTableCurrency
+	PriceTableRange
 	Id
 	RangeInt
 	MerchantTariffRatesPayment
