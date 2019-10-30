@@ -642,9 +642,9 @@ func (s *Service) sendInviteEmail(receiverEmail, senderEmail, senderFirstName, s
 }
 
 func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.ChangeRoleForMerchantUserRequest, res *grpc.EmptyResponseWithStatus) error {
-	user, err := s.userRoleRepository.GetMerchantUserByUserId(req.MerchantId, req.UserId)
+	user, err := s.userRoleRepository.GetMerchantUserById(req.RoleId)
 
-	if err != nil {
+	if err != nil || user.MerchantId != req.MerchantId {
 		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserNotFound
@@ -700,7 +700,7 @@ func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.Chang
 }
 
 func (s *Service) ChangeRoleForAdminUser(ctx context.Context, req *grpc.ChangeRoleForAdminUserRequest, res *grpc.EmptyResponseWithStatus) error {
-	user, err := s.userRoleRepository.GetAdminUserByUserId(req.UserId)
+	user, err := s.userRoleRepository.GetAdminUserById(req.RoleId)
 
 	if err != nil {
 		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req))
@@ -774,9 +774,9 @@ func (s *Service) DeleteMerchantUser(
 	req *grpc.DeleteMerchantUserRequest,
 	res *grpc.EmptyResponseWithStatus,
 ) error {
-	user, err := s.userRoleRepository.GetMerchantUserByUserId(req.MerchantId, req.UserId)
+	user, err := s.userRoleRepository.GetMerchantUserById(req.RoleId)
 
-	if err != nil {
+	if err != nil || user.MerchantId != req.MerchantId {
 		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserNotFound
@@ -813,7 +813,7 @@ func (s *Service) DeleteAdminUser(
 	req *grpc.DeleteAdminUserRequest,
 	res *grpc.EmptyResponseWithStatus,
 ) error {
-	user, err := s.userRoleRepository.GetAdminUserByUserId(req.UserId)
+	user, err := s.userRoleRepository.GetAdminUserById(req.RoleId)
 
 	if err != nil {
 		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req))
