@@ -2188,3 +2188,24 @@ message OrderCreateByPaylink {
     //@inject_tag: bson:"utm_campaign" json:"utm_campaign"
     string utm_campaign = 7;
 }
+
+message OperatingCompany {
+    // @inject_tag: bson:"_id" json:"id"
+    string id = 1;
+    // @inject_tag: bson:"name" json:"name" validate:"required"
+    string name = 2;
+    // @inject_tag: bson:"country" json:"country" validate:"required,alpha,len=2"
+    string country = 3;
+    // @inject_tag: bson:"registration_number" json:"registration_number" validate:"required"
+    string registration_number = 4;
+    // @inject_tag: bson:"vat_number" json:"vat_number" validate:"required"
+    string vat_number = 5;
+    // @inject_tag: bson:"address" json:"address" validate:"required"
+    string address = 6;
+    // @inject_tag: bson:"signatory_name" json:"signatory_name" validate:"required"
+    string signatory_name = 7;
+    // @inject_tag: bson:"signatory_position" json:"signatory_position" validate:"required"
+    string signatory_position = 8;
+    // @inject_tag: bson:"banking_details" json:"banking_details" validate:"required"
+    string banking_details = 9;
+}

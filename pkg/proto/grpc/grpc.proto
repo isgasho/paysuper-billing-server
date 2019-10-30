@@ -190,6 +190,9 @@ service BillingService {
     rpc GetPaylinkStatByReferrer (GetPaylinkStatCommonRequest) returns (GetPaylinkStatCommonGroupResponse) {}
     rpc GetPaylinkStatByDate (GetPaylinkStatCommonRequest) returns (GetPaylinkStatCommonGroupResponse) {}
     rpc GetPaylinkStatByUtm (GetPaylinkStatCommonRequest) returns (GetPaylinkStatCommonGroupResponse) {}
+
+    rpc GetOperatingCompaniesList (EmptyRequest) returns (GetOperatingCompaniesListResponse) {}
+    rpc AddOperatingCompany (billing.OperatingCompany) returns (EmptyResponseWithStatus) {}
 }
 
 message EmptyRequest {
@@ -2252,4 +2255,12 @@ message RoyaltyReportPdfUploadedRequest {
 message RoyaltyReportPdfUploadedResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
+}
+
+message GetOperatingCompaniesListResponse {
+    int32 status = 1;
+    // @inject_tag: json:"message,omitempty"
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"items"
+    repeated billing.OperatingCompany items = 3;
 }

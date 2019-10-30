@@ -14,6 +14,36 @@ type BillingService struct {
 	mock.Mock
 }
 
+// AddOperatingCompany provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) AddOperatingCompany(ctx context.Context, in *billing.OperatingCompany, opts ...client.CallOption) (*grpc.EmptyResponseWithStatus, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *grpc.EmptyResponseWithStatus
+	if rf, ok := ret.Get(0).(func(context.Context, *billing.OperatingCompany, ...client.CallOption) *grpc.EmptyResponseWithStatus); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*grpc.EmptyResponseWithStatus)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *billing.OperatingCompany, ...client.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // AutoAcceptRoyaltyReports provides a mock function with given fields: ctx, in, opts
 func (_m *BillingService) AutoAcceptRoyaltyReports(ctx context.Context, in *grpc.EmptyRequest, opts ...client.CallOption) (*grpc.EmptyResponse, error) {
 	_va := make([]interface{}, len(opts))
@@ -2046,6 +2076,36 @@ func (_m *BillingService) GetNotification(ctx context.Context, in *grpc.GetNotif
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *grpc.GetNotificationRequest, ...client.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetOperatingCompaniesList provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) GetOperatingCompaniesList(ctx context.Context, in *grpc.EmptyRequest, opts ...client.CallOption) (*grpc.GetOperatingCompaniesListResponse, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *grpc.GetOperatingCompaniesListResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.EmptyRequest, ...client.CallOption) *grpc.GetOperatingCompaniesListResponse); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*grpc.GetOperatingCompaniesListResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.EmptyRequest, ...client.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)

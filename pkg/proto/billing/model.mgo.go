@@ -821,6 +821,18 @@ type MgoMerchantBalance struct {
 	CreatedAt      time.Time     `bson:"created_at"`
 }
 
+type MgoOperatingCompany struct {
+	Id                 bson.ObjectId `bson:"_id"`
+	Name               string        `bson:"name"`
+	Country            string        `bson:"country"`
+	RegistrationNumber string        `bson:"registration_number"`
+	VatNumber          string        `bson:"vat_number"`
+	Address            string        `bson:"address"`
+	SignatoryName      string        `bson:"signatory_name"`
+	SignatoryPosition  string        `bson:"signatory_position"`
+	BankingDetails     string        `bson:"banking_details"`
+}
+
 func (m *PayoutDocument) GetBSON() (interface{}, error) {
 	st := &MgoPayoutDocument{
 		SourceId:                m.SourceId,
@@ -4186,4 +4198,49 @@ func (m *Key) GetBSON() (interface{}, error) {
 	}
 
 	return st, nil
+}
+
+func (m *OperatingCompany) GetBSON() (interface{}, error) {
+	st := &MgoOperatingCompany{
+		Name:               m.Name,
+		Country:            m.Country,
+		RegistrationNumber: m.RegistrationNumber,
+		VatNumber:          m.VatNumber,
+		Address:            m.Address,
+		SignatoryName:      m.SignatoryName,
+		SignatoryPosition:  m.SignatoryPosition,
+		BankingDetails:     m.BankingDetails,
+	}
+	if len(m.Id) <= 0 {
+		st.Id = bson.NewObjectId()
+	} else {
+		if bson.IsObjectIdHex(m.Id) == false {
+			return nil, errors.New(errorInvalidObjectId)
+		}
+
+		st.Id = bson.ObjectIdHex(m.Id)
+	}
+
+	return st, nil
+}
+
+func (m *OperatingCompany) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoOperatingCompany)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.Name = decoded.Name
+	m.Country = decoded.Country
+	m.RegistrationNumber = decoded.RegistrationNumber
+	m.VatNumber = decoded.VatNumber
+	m.Address = decoded.Address
+	m.SignatoryName = decoded.SignatoryName
+	m.SignatoryPosition = decoded.SignatoryPosition
+	m.BankingDetails = decoded.BankingDetails
+
+	return nil
 }
