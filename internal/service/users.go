@@ -848,7 +848,7 @@ func (s *Service) DeleteAdminUser(
 func (s *Service) GetPermissionsForUser(ctx context.Context, req *grpc.GetPermissionsForUserRequest, res *grpc.GetPermissionsForUserResponse) error {
 	userId := req.UserId
 	if len(req.MerchantId) > 0 {
-		userId = fmt.Sprintf("%s_%s", req.MerchantId, req.UserId)
+		userId = fmt.Sprintf(pkg.CasbinMerchantUserMask, req.MerchantId, req.UserId)
 	}
 
 	rsp, err := s.casbinService.GetImplicitPermissionsForUser(ctx, &casbinProto.PermissionRequest{User: userId})
