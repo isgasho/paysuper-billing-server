@@ -130,6 +130,7 @@ service BillingService {
     rpc ListRoyaltyReportOrders (ListRoyaltyReportOrdersRequest) returns (TransactionsResponse) {}
     rpc MerchantReviewRoyaltyReport (MerchantReviewRoyaltyReportRequest) returns (ResponseError) {}
     rpc AutoAcceptRoyaltyReports (EmptyRequest) returns (EmptyResponse) {}
+    rpc RoyaltyReportPdfUploaded (RoyaltyReportPdfUploadedRequest) returns (RoyaltyReportPdfUploadedResponse) {}
 
     rpc GetVatReportsDashboard (EmptyRequest) returns (VatReportsResponse) {}
     rpc GetVatReportsForCountry (VatReportsRequest) returns (VatReportsResponse) {}
@@ -167,9 +168,10 @@ service BillingService {
     rpc CreatePayoutDocument (CreatePayoutDocumentRequest) returns (PayoutDocumentResponse) {}
     rpc UpdatePayoutDocument (UpdatePayoutDocumentRequest) returns (PayoutDocumentResponse) {}
     rpc GetPayoutDocuments (GetPayoutDocumentsRequest) returns (GetPayoutDocumentsResponse) {}
-    rpc GetPayoutDocumentSignUrl (GetPayoutDocumentSignUrlRequest) returns (GetPayoutDocumentSignUrlResponse) {}
-    rpc UpdatePayoutDocumentSignatures (UpdatePayoutDocumentSignaturesRequest) returns (PayoutDocumentResponse) {}
+    rpc GetPayoutDocument (GetPayoutDocumentRequest) returns (PayoutDocumentResponse) {}
+    rpc GetPayoutDocumentRoyaltyReports (GetPayoutDocumentRequest) returns (ListRoyaltyReportsResponse) {}
     rpc PayoutDocumentPdfUploaded (PayoutDocumentPdfUploadedRequest) returns (PayoutDocumentPdfUploadedResponse) {}
+    rpc AutoCreatePayoutDocuments(EmptyRequest) returns (EmptyResponse) {}
 
     rpc GetMerchantBalance (GetMerchantBalanceRequest) returns (GetMerchantBalanceResponse) {}
 
@@ -428,10 +430,11 @@ message PaymentFormJsonDataRequest {
 }
 
 message PaymentFormJsonDataProject {
+    // @inject_tag: json:"name"
     string name = 1; // project name
-    // @inject_tag: json:"url_success,omitempty"
+    // @inject_tag: json:"url_success"
     string url_success = 2; // url to redirect user after successfully completed payment. may be NULL if not set in project settings
-    // @inject_tag: json:"url_fail,omitempty"
+    // @inject_tag: json:"url_fail"
     string url_fail = 3; // url to redirect user after failed payment. may be NULL if not set in project settings
 }
 
@@ -1978,12 +1981,16 @@ message DashboardBaseReports {
 }
 
 message CreatePayoutDocumentRequest {
-    //@inject_tag: json:"description" validate:"required,max=255"
+    //@inject_tag: json:"description" validate:"max=255"
     string description = 1;
     //@inject_tag: json:"merchant_id" validate:"required,hexadecimal,len=24"
     string merchant_id = 2;
     //@inject_tag: json:"ip" validate:"required"
     string ip = 3;
+    //@inject_tag: json:"-" validate:"required"
+    string initiator = 4;
+    //@inject_tag: json:"-"
+    bool is_auto_generation = 5;
 }
 
 message PayoutDocumentResponse {
@@ -2012,6 +2019,13 @@ message UpdatePayoutDocumentRequest {
     string ip = 7;
 }
 
+message GetPayoutDocumentRequest {
+    //@inject_tag: query:"payout_document_id" validate:"omitempty,hexadecimal,len=24"
+    string payout_document_id = 1;
+    //@inject_tag: query:"merchant_id" validate:"omitempty,hexadecimal,len=24"
+    string merchant_id = 2;
+}
+
 message GetPayoutDocumentsRequest {
     //@inject_tag: query:"payout_document_id" validate:"omitempty,hexadecimal,len=24"
     string payout_document_id = 1;
@@ -2019,12 +2033,14 @@ message GetPayoutDocumentsRequest {
     repeated string status = 2;
     //@inject_tag: query:"merchant_id" validate:"omitempty,hexadecimal,len=24"
     string merchant_id = 3;
-    //@inject_tag: query:"signed"
-    bool signed = 4;
+    // @inject_tag: query:"period_from" validate:"omitempty,numeric,gt=0"
+    int64 period_from = 4;
+    // @inject_tag: query:"period_to" validate:"omitempty,numeric,gt=0"
+    int64 period_to = 5;
     // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
-    int32 limit = 5;
+    int32 limit = 6;
     // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
-    int32 offset = 6;
+    int32 offset = 7;
 }
 
 message PayoutDocumentsPaginate {
@@ -2040,21 +2056,6 @@ message GetPayoutDocumentsResponse {
     ResponseErrorMessage message = 2;
     // @inject_tag: json:"data"
     PayoutDocumentsPaginate data = 3;
-}
-
-message GetPayoutDocumentSignUrlRequest {
-    //@inject_tag: query:"payout_document_id" validate:"required,hexadecimal,len=24"
-    string payout_document_id = 1;
-    //@inject_tag: json:"signer_type" validate:"oneof=0 1"
-    int32 signer_type = 2;
-    //@inject_tag: json:"ip"
-    string ip = 3;
-}
-
-message GetPayoutDocumentSignUrlResponse {
-    int32 status = 1;
-    ResponseErrorMessage message = 2;
-    billing.PayoutDocumentSignatureDataSignUrl item = 3;
 }
 
 message UpdatePayoutDocumentSignaturesRequest {
@@ -2082,12 +2083,13 @@ message GetMerchantBalanceResponse {
 message PayoutDocumentPdfUploadedRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string id = 1;
-    //@inject_tag: validate:"required,alpha"
+    //@inject_tag: validate:"required"
     string filename = 2;
     //@inject_tag: validate:"required,numeric,gte=0"
     int32 retention_time = 3;
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string payout_id = 4;
+    bytes content = 5;
 }
 
 message PayoutDocumentPdfUploadedResponse {
@@ -2231,4 +2233,21 @@ message GetPaylinkStatCommonGroupResponse {
     ResponseErrorMessage message = 2;
     // @inject_tag: json:"item"
     paylink.GroupStatCommon item = 3;
+}
+
+message RoyaltyReportPdfUploadedRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string id = 1;
+    //@inject_tag: validate:"required"
+    string filename = 2;
+    //@inject_tag: validate:"required,numeric,gte=0"
+    int32 retention_time = 3;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string royalty_report_id = 4;
+    bytes content = 5;
+}
+
+message RoyaltyReportPdfUploadedResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
 }

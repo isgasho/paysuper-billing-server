@@ -66,6 +66,7 @@ import (
 	"github.com/jinzhu/now"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
+	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -83,7 +84,7 @@ import (
 type DashboardRepositoryTestSuite struct {
 	suite.Suite
 	service *Service
-	cache   CacheInterface
+	cache   internalPkg.CacheInterface
 	log     *zap.Logger
 
 	project       *billing.Project

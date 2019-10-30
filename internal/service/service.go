@@ -10,6 +10,7 @@ import (
 	"github.com/go-redis/redis"
 	documentSignerProto "github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
+	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -61,7 +62,7 @@ type Service struct {
 	tax                        tax_service.TaxService
 	broker                     rabbitmq.BrokerInterface
 	redis                      redis.Cmdable
-	cacher                     CacheInterface
+	cacher                     internalPkg.CacheInterface
 	curService                 currencies.CurrencyratesService
 	smtpCl                     gomail.SendCloser
 	supportedCurrencies        []string
@@ -122,7 +123,7 @@ func NewBillingService(
 	tax tax_service.TaxService,
 	broker rabbitmq.BrokerInterface,
 	redis redis.Cmdable,
-	cache CacheInterface,
+	cache internalPkg.CacheInterface,
 	curService currencies.CurrencyratesService,
 	documentSigner documentSignerProto.DocumentSignerService,
 	reporterService reporterProto.ReporterService,

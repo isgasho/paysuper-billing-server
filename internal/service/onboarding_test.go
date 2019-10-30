@@ -12,6 +12,7 @@ import (
 	"github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
+	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -33,7 +34,7 @@ type OnboardingTestSuite struct {
 	suite.Suite
 	service *Service
 	log     *zap.Logger
-	cache   CacheInterface
+	cache   internalPkg.CacheInterface
 
 	merchant          *billing.Merchant
 	merchantAgreement *billing.Merchant
@@ -3274,8 +3275,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantTariffRates_Ok() {
 	assert.NotEmpty(suite.T(), rsp.Items)
 	assert.NotEmpty(suite.T(), rsp.Items.Payment)
 	assert.Len(suite.T(), rsp.Items.Payment, 3)
-	assert.Equal(suite.T(), rsp.Items.Payment[0], suite.cisTariff[0])
-	assert.Equal(suite.T(), rsp.Items.Payment[1], suite.cisTariff[1])
+	assert.Equal(suite.T(), rsp.Items.Payment[0], suite.cisTariff[2])
+	assert.Equal(suite.T(), rsp.Items.Payment[1], suite.cisTariff[0])
 	assert.NotEmpty(suite.T(), rsp.Items.Chargeback)
 	assert.NotNil(suite.T(), rsp.Items.Chargeback)
 	assert.NotNil(suite.T(), rsp.Items.Payout)
@@ -3287,8 +3288,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantTariffRates_Ok() {
 	assert.NotEmpty(suite.T(), rsp.Items)
 	assert.NotEmpty(suite.T(), rsp.Items.Payment)
 	assert.Len(suite.T(), rsp.Items.Payment, 3)
-	assert.Equal(suite.T(), rsp.Items.Payment[0], suite.cisTariff[0])
-	assert.Equal(suite.T(), rsp.Items.Payment[1], suite.cisTariff[1])
+	assert.Equal(suite.T(), rsp.Items.Payment[0], suite.cisTariff[2])
+	assert.Equal(suite.T(), rsp.Items.Payment[1], suite.cisTariff[0])
 	assert.NotEmpty(suite.T(), rsp.Items.Chargeback)
 	assert.NotNil(suite.T(), rsp.Items.Chargeback)
 	assert.NotNil(suite.T(), rsp.Items.Payout)
@@ -3304,8 +3305,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantTariffRates_WithoutR
 	assert.NotNil(suite.T(), rsp.Items)
 	assert.NotEmpty(suite.T(), rsp.Items.Payment)
 	assert.Len(suite.T(), rsp.Items.Payment, 3)
-	assert.Equal(suite.T(), rsp.Items.Payment[0], suite.cisTariff[0])
-	assert.Equal(suite.T(), rsp.Items.Payment[1], suite.cisTariff[1])
+	assert.Equal(suite.T(), rsp.Items.Payment[0], suite.cisTariff[2])
+	assert.Equal(suite.T(), rsp.Items.Payment[1], suite.cisTariff[0])
 	assert.NotNil(suite.T(), rsp.Items.Chargeback)
 	assert.NotNil(suite.T(), rsp.Items.Payout)
 }

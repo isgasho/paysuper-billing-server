@@ -22,10 +22,28 @@ type MerchantRepositoryInterface interface {
 	MultipleInsert(merchants []*billing.Merchant) error
 	GetById(id string) (*billing.Merchant, error)
 	GetPaymentMethod(merchantId string, method string) (*billing.MerchantPaymentMethod, error)
+	GetMerchantsWithAutoPayouts() ([]*billing.Merchant, error)
 }
 
 func newMerchantService(svc *Service) MerchantRepositoryInterface {
 	return &Merchant{svc: svc}
+}
+
+func (h *Merchant) GetMerchantsWithAutoPayouts() (merchants []*billing.Merchant, err error) {
+	query := bson.M{
+		"manual_payouts_enabled": false,
+	}
+	err = h.svc.db.Collection(collectionMerchant).Find(query).All(&merchants)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+	}
+
+	return
 }
 
 func (h *Merchant) Update(merchant *billing.Merchant) error {

@@ -8,6 +8,7 @@ import (
 	"github.com/go-redis/redis"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
+	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -27,7 +28,7 @@ type UserProfileTestSuite struct {
 	suite.Suite
 	service *Service
 	log     *zap.Logger
-	cache   CacheInterface
+	cache   internalPkg.CacheInterface
 
 	merchant          *billing.Merchant
 	merchantAgreement *billing.Merchant
@@ -161,7 +162,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	assert.Equal(suite.T(), profile.Help.ProductPromotionAndDevelopment, rsp.Item.Help.ProductPromotionAndDevelopment)
 	assert.NotEmpty(suite.T(), rsp.Item.CentrifugoToken)
 
-	b, ok := suite.service.broker.(*mocks.BrokerMockOk)
+	b, ok := suite.service.postmarkBroker.(*mocks.BrokerMockOk)
 	assert.True(suite.T(), ok)
 	assert.False(suite.T(), b.IsSent)
 }
@@ -239,7 +240,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_Cha
 	assert.Equal(suite.T(), profile.Help.ProductPromotionAndDevelopment, rsp.Item.Help.ProductPromotionAndDevelopment)
 	assert.NotEmpty(suite.T(), rsp.Item.CentrifugoToken)
 
-	b, ok := suite.service.broker.(*mocks.BrokerMockOk)
+	b, ok := suite.service.postmarkBroker.(*mocks.BrokerMockOk)
 	assert.True(suite.T(), ok)
 	assert.True(suite.T(), b.IsSent)
 }
@@ -286,7 +287,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateOnboardingProfi
 	assert.IsType(suite.T(), &grpc.UserProfile{}, rsp.Item)
 	assert.NotEmpty(suite.T(), rsp.Item.CentrifugoToken)
 
-	b, ok := suite.service.broker.(*mocks.BrokerMockOk)
+	b, ok := suite.service.postmarkBroker.(*mocks.BrokerMockOk)
 	assert.True(suite.T(), ok)
 	assert.True(suite.T(), b.IsSent)
 
@@ -446,7 +447,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	profile := suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
 	assert.Nil(suite.T(), profile)
 
-	suite.service.broker = mocks.NewBrokerMockError()
+	suite.service.postmarkBroker = mocks.NewBrokerMockError()
 
 	core, recorded := observer.New(zapcore.ErrorLevel)
 	logger := zap.New(core)
