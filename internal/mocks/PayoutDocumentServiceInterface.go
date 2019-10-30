@@ -55,29 +55,6 @@ func (_m *PayoutDocumentServiceInterface) FindByQuery(query bson.M, sorts []stri
 	return r0, r1
 }
 
-// GetAllSourcesIdHex provides a mock function with given fields: merchantId, currency
-func (_m *PayoutDocumentServiceInterface) GetAllSourcesIdHex(merchantId string, currency string) ([]string, error) {
-	ret := _m.Called(merchantId, currency)
-
-	var r0 []string
-	if rf, ok := ret.Get(0).(func(string, string) []string); ok {
-		r0 = rf(merchantId, currency)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]string)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(merchantId, currency)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // GetBalanceAmount provides a mock function with given fields: merchantId, currency
 func (_m *PayoutDocumentServiceInterface) GetBalanceAmount(merchantId string, currency string) (float64, error) {
 	ret := _m.Called(merchantId, currency)
@@ -115,6 +92,29 @@ func (_m *PayoutDocumentServiceInterface) GetById(id string) (*billing.PayoutDoc
 	var r1 error
 	if rf, ok := ret.Get(1).(func(string) error); ok {
 		r1 = rf(id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetByIdAndMerchant provides a mock function with given fields: id, merchantId
+func (_m *PayoutDocumentServiceInterface) GetByIdAndMerchant(id string, merchantId string) (*billing.PayoutDocument, error) {
+	ret := _m.Called(id, merchantId)
+
+	var r0 *billing.PayoutDocument
+	if rf, ok := ret.Get(0).(func(string, string) *billing.PayoutDocument); ok {
+		r0 = rf(id, merchantId)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*billing.PayoutDocument)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string) error); ok {
+		r1 = rf(id, merchantId)
 	} else {
 		r1 = ret.Error(1)
 	}

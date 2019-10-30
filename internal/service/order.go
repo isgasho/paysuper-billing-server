@@ -30,6 +30,7 @@ import (
 	"github.com/ttacon/libphonenumber"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
+	"log"
 	"regexp"
 	"sort"
 	"strconv"
@@ -562,7 +563,6 @@ func (s *Service) PaymentFormJsonDataProcess(
 		customer, err := s.processCustomerData(order.User.Id, order, req, browserCustomer, loc)
 
 		if err == nil {
-			order.User.Id = customer.Id
 			browserCustomer.CustomerId = customer.Id
 		}
 	} else {
@@ -577,13 +577,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 				}
 
 				if decryptedBrowserCustomer.CustomerId != "" {
-					customer, err := s.processCustomerData(
-						decryptedBrowserCustomer.CustomerId,
-						order,
-						req,
-						decryptedBrowserCustomer,
-						loc,
-					)
+					customer, err := s.processCustomerData(decryptedBrowserCustomer.CustomerId, order, req, decryptedBrowserCustomer, loc)
 
 					if err != nil {
 						zap.L().Error("Customer by identifier in browser cookie not processed", zap.Error(err))
@@ -596,8 +590,12 @@ func (s *Service) PaymentFormJsonDataProcess(
 					} else {
 						browserCustomer.VirtualCustomerId = s.getTokenString(s.cfg.Length)
 					}
-				} else if browserCustomer.VirtualCustomerId == "" {
-					browserCustomer.VirtualCustomerId = s.getTokenString(s.cfg.Length)
+				} else {
+					if decryptedBrowserCustomer.VirtualCustomerId == "" {
+						browserCustomer.VirtualCustomerId = s.getTokenString(s.cfg.Length)
+					} else {
+						browserCustomer.VirtualCustomerId = decryptedBrowserCustomer.VirtualCustomerId
+					}
 				}
 			}
 		} else {

@@ -292,6 +292,9 @@ func helperCreateMerchant(
 
 	merchant := &billing.Merchant{
 		Id: bson.NewObjectId().Hex(),
+		User: &billing.MerchantUser{
+			Id: bson.NewObjectId().Hex(),
+		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "Unit test",
 			Country: country,

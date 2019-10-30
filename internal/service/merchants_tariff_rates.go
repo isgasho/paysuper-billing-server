@@ -111,8 +111,10 @@ func (h *MerchantsTariffRatesRepository) GetPaymentTariffsBy(
 
 	query := bson.M{"merchant_home_region": in.HomeRegion}
 
-	if in.PayerRegion != "" {
+	if in.PayerRegion == "" {
 		query["payer_region"] = in.HomeRegion
+	} else {
+		query["payer_region"] = in.PayerRegion
 	}
 
 	if in.MinAmount >= 0 && in.MaxAmount > in.MinAmount {
@@ -120,7 +122,8 @@ func (h *MerchantsTariffRatesRepository) GetPaymentTariffsBy(
 		query["max_amount"] = in.MaxAmount
 	}
 
-	err = h.svc.db.Collection(collectionMerchantsPaymentTariffs).Find(query).All(&item.Items)
+	err = h.svc.db.Collection(collectionMerchantsPaymentTariffs).Find(query).
+		Sort("min_amount", "max_amount", "payer_region", "position").All(&item.Items)
 
 	if err != nil {
 		zap.L().Error(

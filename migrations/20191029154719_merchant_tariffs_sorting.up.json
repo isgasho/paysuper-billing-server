@@ -1,0 +1,60 @@
+[
+  {
+    "delete": "merchants_payment_tariffs",
+    "deletes": [ {"q": {"method_name":  "Union Pay"}, "limit": 0 } ]
+  },
+  {
+    "update": "merchants_payment_tariffs",
+    "updates": [
+      {
+        "q": {"method_name": "VISA"},
+        "u": {"$set": {"position": 0}},
+        "multi": true
+      },
+      {
+        "q": {"method_name": "MasterCard"},
+        "u": {"$set": {"position": 1}},
+        "multi": true
+      },
+      {
+        "q": {"method_name": "JCB"},
+        "u": {"$set": {"position": 2}},
+        "multi": true
+      },
+      {
+        "q": {"method_name": "China UnionPay"},
+        "u": {"$set": {"position": 3}},
+        "multi": true
+      },
+      {
+        "q": {"method_name": "Alipay"},
+        "u": {"$set": {"position": 5}},
+        "multi": true
+      },
+      {
+        "q": {"method_name": "DirectBanking EU"},
+        "u": {"$set": {"position": 6}},
+        "multi": true
+      },
+      {
+        "q": {"method_name": "Bitcoin"},
+        "u": {"$set": {"position": 7}},
+        "multi": true
+      }
+    ]
+  },
+  {
+    "createIndexes": "merchants_payment_tariffs",
+    "indexes": [
+      {
+        "key": {
+          "position": 1,
+          "payer_region": 1,
+          "min_amount": 1,
+          "max_amount": 1
+        },
+        "name": "idx_merchants_payment_tariffs_position_payer_region_min_amount_max_amount"
+      }
+    ]
+  }
+]

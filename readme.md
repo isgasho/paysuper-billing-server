@@ -87,8 +87,9 @@ To run application as microservice simply don't pass any flags to command line :
 | EMAIL_CONFIRM_URL                    | Url to use in template of confirmation email                                                                                        |
 | EMAIL_CONFIRM_TEMPLATE               | Confirmation email template name                                                                                                    |
 | EMAIL_NEW_ROYALTY_REPORT_TEMPLATE    | New royalty report notification email template name                                                                                 |
+| EMAIL_UPDATE_ROYALTY_REPORT_TEMPLATE | Royalty report update notification email template name                                                                              |
 | EMAIL_VAT_REPORT_TEMPLATE            | New vat report notification email template name                                                                                     |
-| EMAIL_NEW_ROYALTY_REPORT_TEMPLATE    | New royalty report notification email template name                                                                                 |
+| EMAIL_NEW_PAYOUT_TEMPLATE            | New payout notification email template name                                                                                         |
 | PAYSUPER_DOCUMENT_SIGNER_EMAIL       | Paysuper signer email for sign license agreements                                                                                   |
 | PAYSUPER_DOCUMENT_SIGNER_NAME        | Paysuper signer name for sign license agreements                                                                                    |
 | HELLO_SIGN_DEFAULT_TEMPLATE          | License agreement template identifier in HelloSign                                                                                  |
@@ -101,6 +102,8 @@ To run application as microservice simply don't pass any flags to command line :
 | HELLO_SIGN_PAYOUTS_MESSAGE           | Hellosign prompt message for payout invoices                                                                                        |
 | PAYLINK_MIN_PRODUCTS                 | Minimum number of products allowed for one payment link (must be >= 1)                                                              |
 | PAYLINK_MAX_PRODUCTS                 | Maximum number of products allowed for one payment link                                                                             |
+| ROYALTY_REPORTS_URL                  | Url to use in template of royalty reports                                                                                           |
+| PAYOUTS_URL                          | Url to use in template of payouts                                                                                                   |
 
 
 ## Architecture
