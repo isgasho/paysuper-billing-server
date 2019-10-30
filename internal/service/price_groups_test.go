@@ -37,7 +37,6 @@ func (suite *PriceGroupTestSuite) SetupTest() {
 	if err != nil {
 		suite.FailNow("Config load failed", "%v", err)
 	}
-	cfg.AccountingCurrency = "RUB"
 
 	db, err := mongodb.NewDatabase()
 	if err != nil {

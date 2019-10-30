@@ -34,13 +34,12 @@ type CacheRedis struct {
 }
 
 type Config struct {
-	MongoDsn           string `envconfig:"MONGO_DSN" required:"true"`
-	MongoDialTimeout   string `envconfig:"MONGO_DIAL_TIMEOUT" required:"false" default:"10"`
-	AccountingCurrency string `envconfig:"PSP_ACCOUNTING_CURRENCY" default:"EUR"`
-	MetricsPort        string `envconfig:"METRICS_PORT" required:"false" default:"8086"`
-	Environment        string `envconfig:"ENVIRONMENT" default:"dev"`
-	RedisHost          string `envconfig:"REDIS_HOST" default:"127.0.0.1:6379"`
-	RedisPassword      string `envconfig:"REDIS_PASSWORD" default:""`
+	MongoDsn         string `envconfig:"MONGO_DSN" required:"true"`
+	MongoDialTimeout string `envconfig:"MONGO_DIAL_TIMEOUT" required:"false" default:"10"`
+	MetricsPort      string `envconfig:"METRICS_PORT" required:"false" default:"8086"`
+	Environment      string `envconfig:"ENVIRONMENT" default:"dev"`
+	RedisHost        string `envconfig:"REDIS_HOST" default:"127.0.0.1:6379"`
+	RedisPassword    string `envconfig:"REDIS_PASSWORD" default:""`
 
 	CentrifugoApiSecret string `envconfig:"CENTRIFUGO_API_SECRET" required:"true"`
 	CentrifugoSecret    string `envconfig:"CENTRIFUGO_SECRET" required:"true"`

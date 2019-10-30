@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha512"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"github.com/ProtocolONE/geoip-service/pkg/proto"
 	"github.com/globalsign/mgo/bson"
@@ -28,10 +27,9 @@ import (
 )
 
 const (
-	errorNotFound                   = "%s not found"
-	errorQueryMask                  = "Query from collection \"%s\" failed"
-	errorAccountingCurrencyNotFound = "accounting currency not found"
-	errorInterfaceCast              = "unable to cast interface to object %s"
+	errorNotFound      = "%s not found"
+	errorQueryMask     = "Query from collection \"%s\" failed"
+	errorInterfaceCast = "unable to cast interface to object %s"
 
 	errorBbNotFoundMessage = "not found"
 
@@ -175,10 +173,6 @@ func (s *Service) Init() (err error) {
 	s.orderRepository = newOrderRepository(s)
 	s.centrifugo = newCentrifugo(s)
 	s.paylinkService = newPaylinkService(s)
-
-	if s.cfg.AccountingCurrency == "" {
-		return errors.New(errorAccountingCurrencyNotFound)
-	}
 
 	sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currencies.EmptyRequest{})
 	if err != nil {

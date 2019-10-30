@@ -46,7 +46,6 @@ func (suite *VatReportsTestSuite) SetupTest() {
 	if err != nil {
 		suite.FailNow("Config load failed", "%v", err)
 	}
-	cfg.AccountingCurrency = "RUB"
 	cfg.CardPayApiUrl = "https://sandbox.cardpay.com"
 	cfg.OrderViewUpdateBatchSize = 20
 

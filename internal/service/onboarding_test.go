@@ -61,7 +61,6 @@ func (suite *OnboardingTestSuite) SetupTest() {
 
 	assert.NoError(suite.T(), err, "Config load failed")
 
-	cfg.AccountingCurrency = "RUB"
 	cfg.CardPayApiUrl = "https://sandbox.cardpay.com"
 
 	db, err := mongodb.NewDatabase()
