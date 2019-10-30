@@ -30,7 +30,6 @@ import (
 	"github.com/ttacon/libphonenumber"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
-	"log"
 	"regexp"
 	"sort"
 	"strconv"
