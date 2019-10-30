@@ -63,6 +63,7 @@ type MgoProduct struct {
 	MerchantId      bson.ObjectId           `bson:"merchant_id" json:"-"`
 	ProjectId       bson.ObjectId           `bson:"project_id" json:"project_id"`
 	Pricing         string                  `bson:"pricing" json:"pricing"`
+	BillingType     string                  `bson:"billing_type" json:"billing_type"`
 }
 
 type MgoUserProfileEmail struct {
@@ -149,6 +150,7 @@ func (p *Product) SetBSON(raw bson.Raw) error {
 	p.MerchantId = decoded.MerchantId.Hex()
 	p.ProjectId = decoded.ProjectId.Hex()
 	p.Pricing = decoded.Pricing
+	p.BillingType = decoded.BillingType
 
 	p.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 
@@ -184,6 +186,7 @@ func (p *Product) GetBSON() (interface{}, error) {
 		Metadata:        p.Metadata,
 		Deleted:         p.Deleted,
 		Pricing:         p.Pricing,
+		BillingType: 	 p.BillingType,
 	}
 
 	if len(p.Id) <= 0 {
