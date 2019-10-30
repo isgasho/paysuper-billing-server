@@ -57,13 +57,14 @@ type tokenRepository struct {
 }
 
 type BrowserCookieCustomer struct {
-	CustomerId     string    `json:"customer_id"`
-	Ip             string    `json:"ip"`
-	UserAgent      string    `json:"user_agent"`
-	AcceptLanguage string    `json:"accept_language"`
-	SessionCount   int32     `json:"session_count"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	CustomerId        string    `json:"customer_id"`
+	VirtualCustomerId string    `json:"virtual_customer_id"`
+	Ip                string    `json:"ip"`
+	UserAgent         string    `json:"user_agent"`
+	AcceptLanguage    string    `json:"accept_language"`
+	SessionCount      int32     `json:"session_count"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
 }
 
 func (s *Service) CreateToken(
