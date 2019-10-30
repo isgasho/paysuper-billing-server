@@ -59,6 +59,7 @@ type MgoProject struct {
 	ShortDescription map[string]string       `bson:"short_description"`
 	Currencies       []*HasCurrencyItem      `bson:"currencies"`
 	VirtualCurrency  *ProjectVirtualCurrency `bson:"virtual_currency"`
+
 }
 
 type MgoMerchantLastPayout struct {
