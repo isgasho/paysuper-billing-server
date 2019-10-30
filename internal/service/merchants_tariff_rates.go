@@ -111,8 +111,10 @@ func (h *MerchantsTariffRatesRepository) GetPaymentTariffsBy(
 
 	query := bson.M{"merchant_home_region": in.HomeRegion}
 
-	if in.PayerRegion != "" {
+	if in.PayerRegion == "" {
 		query["payer_region"] = in.HomeRegion
+	} else {
+		query["payer_region"] = in.PayerRegion
 	}
 
 	if in.MinAmount >= 0 && in.MaxAmount > in.MinAmount {
