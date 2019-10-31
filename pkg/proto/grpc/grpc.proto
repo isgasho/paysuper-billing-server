@@ -200,13 +200,11 @@ service BillingService {
     rpc AcceptInvite(AcceptInviteRequest) returns (AcceptInviteResponse) {}
     rpc CheckInviteToken(CheckInviteTokenRequest) returns (CheckInviteTokenResponse) {}
     rpc GetMerchantsForUser(GetMerchantsForUserRequest) returns (GetMerchantsForUserResponse) {}
-
     rpc ChangeRoleForMerchantUser(ChangeRoleForMerchantUserRequest) returns (EmptyResponseWithStatus) {}
     rpc ChangeRoleForAdminUser(ChangeRoleForAdminUserRequest) returns (EmptyResponseWithStatus) {}
     rpc GetRoleList(GetRoleListRequest) returns (GetRoleListResponse) {}
     rpc DeleteMerchantUser(DeleteMerchantUserRequest) returns (EmptyResponseWithStatus) {}
     rpc DeleteAdminUser(DeleteAdminUserRequest) returns (EmptyResponseWithStatus) {}
-
     rpc GetPermissionsForUser(GetPermissionsForUserRequest) returns (GetPermissionsForUserResponse) {}
 }
 
@@ -2399,7 +2397,7 @@ message AcceptInviteResponse {
 message GetAdminUsersResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
-    repeated billing.UserRoleAdmin users = 3;
+    repeated billing.UserRole users = 3;
 }
 
 message GetMerchantsForUserRequest {
