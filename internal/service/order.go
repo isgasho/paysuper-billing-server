@@ -622,13 +622,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 
 	if (order.User.Address != nil && ctr != order.User.Address.Country) || loc != order.User.Locale {
 		order.UserAddressDataRequired = true
-
 		rsp.Item.UserAddressDataRequired = order.UserAddressDataRequired
-		rsp.Item.UserIpData = &grpc.UserIpData{
-			Country: order.User.Address.Country,
-			City:    order.User.Address.City,
-			Zip:     order.User.Address.PostalCode,
-		}
 
 		if loc != order.User.Locale {
 			order.User.Locale = loc
@@ -767,6 +761,12 @@ func (s *Service) PaymentFormJsonDataProcess(
 	} else {
 		rsp.Item.CountryPaymentsAllowed = true
 		rsp.Item.CountryChangeAllowed = true
+	}
+
+	rsp.Item.UserIpData = &grpc.UserIpData{
+		Country: order.User.Address.Country,
+		City:    order.User.Address.City,
+		Zip:     order.User.Address.PostalCode,
 	}
 
 	cookie, err := s.generateBrowserCookie(browserCustomer)
