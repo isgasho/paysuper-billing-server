@@ -239,6 +239,7 @@ It has these top-level messages:
 	GetPaylinkStatCommonGroupResponse
 	RoyaltyReportPdfUploadedRequest
 	RoyaltyReportPdfUploadedResponse
+	DeleteSavedCardRequest
 */
 package grpc
 
@@ -425,6 +426,7 @@ type BillingService interface {
 	GetPaylinkStatByReferrer(ctx context.Context, in *GetPaylinkStatCommonRequest, opts ...client.CallOption) (*GetPaylinkStatCommonGroupResponse, error)
 	GetPaylinkStatByDate(ctx context.Context, in *GetPaylinkStatCommonRequest, opts ...client.CallOption) (*GetPaylinkStatCommonGroupResponse, error)
 	GetPaylinkStatByUtm(ctx context.Context, in *GetPaylinkStatCommonRequest, opts ...client.CallOption) (*GetPaylinkStatCommonGroupResponse, error)
+	DeleteSavedCard(ctx context.Context, in *DeleteSavedCardRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 }
 
 type billingService struct {
@@ -1935,6 +1937,16 @@ func (c *billingService) GetPaylinkStatByUtm(ctx context.Context, in *GetPaylink
 	return out, nil
 }
 
+func (c *billingService) DeleteSavedCard(ctx context.Context, in *DeleteSavedCardRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error) {
+	req := c.c.NewRequest(c.name, "BillingService.DeleteSavedCard", in)
+	out := new(EmptyResponseWithStatus)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for BillingService service
 
 type BillingServiceHandler interface {
@@ -2087,6 +2099,7 @@ type BillingServiceHandler interface {
 	GetPaylinkStatByReferrer(context.Context, *GetPaylinkStatCommonRequest, *GetPaylinkStatCommonGroupResponse) error
 	GetPaylinkStatByDate(context.Context, *GetPaylinkStatCommonRequest, *GetPaylinkStatCommonGroupResponse) error
 	GetPaylinkStatByUtm(context.Context, *GetPaylinkStatCommonRequest, *GetPaylinkStatCommonGroupResponse) error
+	DeleteSavedCard(context.Context, *DeleteSavedCardRequest, *EmptyResponseWithStatus) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -2240,6 +2253,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetPaylinkStatByReferrer(ctx context.Context, in *GetPaylinkStatCommonRequest, out *GetPaylinkStatCommonGroupResponse) error
 		GetPaylinkStatByDate(ctx context.Context, in *GetPaylinkStatCommonRequest, out *GetPaylinkStatCommonGroupResponse) error
 		GetPaylinkStatByUtm(ctx context.Context, in *GetPaylinkStatCommonRequest, out *GetPaylinkStatCommonGroupResponse) error
+		DeleteSavedCard(ctx context.Context, in *DeleteSavedCardRequest, out *EmptyResponseWithStatus) error
 	}
 	type BillingService struct {
 		billingService
@@ -2846,4 +2860,8 @@ func (h *billingServiceHandler) GetPaylinkStatByDate(ctx context.Context, in *Ge
 
 func (h *billingServiceHandler) GetPaylinkStatByUtm(ctx context.Context, in *GetPaylinkStatCommonRequest, out *GetPaylinkStatCommonGroupResponse) error {
 	return h.BillingServiceHandler.GetPaylinkStatByUtm(ctx, in, out)
+}
+
+func (h *billingServiceHandler) DeleteSavedCard(ctx context.Context, in *DeleteSavedCardRequest, out *EmptyResponseWithStatus) error {
+	return h.BillingServiceHandler.DeleteSavedCard(ctx, in, out)
 }
