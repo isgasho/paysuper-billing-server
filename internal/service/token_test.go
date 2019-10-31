@@ -41,8 +41,6 @@ func (suite *TokenTestSuite) SetupTest() {
 	cfg, err := config.NewConfig()
 	assert.NoError(suite.T(), err, "Config load failed")
 
-	cfg.AccountingCurrency = "RUB"
-
 	db, err := mongodb.NewDatabase()
 	assert.NoError(suite.T(), err, "Database connection failed")
 
@@ -860,28 +858,6 @@ func (suite *TokenTestSuite) TestToken_CreateToken_KeyProductCheckout_Ok() {
 	assert.NotEmpty(suite.T(), rsp.Token)
 }
 
-func (suite *TokenTestSuite) TestToken_CreateToken_KeyProductCheckout_PlatformIdNotFound_Error() {
-	req := &grpc.TokenRequest{
-		User: &billing.TokenUser{
-			Id: bson.NewObjectId().Hex(),
-			Locale: &billing.TokenUserLocaleValue{
-				Value: "en",
-			},
-		},
-		Settings: &billing.TokenSettings{
-			ProjectId:   suite.project.Id,
-			ProductsIds: []string{suite.keyProducts[0].Id, suite.keyProducts[1].Id},
-			Type:        billing.OrderType_key,
-		},
-	}
-	rsp := &grpc.TokenResponse{}
-	err := suite.service.CreateToken(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
-	assert.Equal(suite.T(), tokenErrorSettingsKeyPlatformParamRequired, rsp.Message)
-	assert.Empty(suite.T(), rsp.Token)
-}
-
 func (suite *TokenTestSuite) TestToken_CreateToken_KeyProductCheckout_ProjectWithoutKeyProducts_Error() {
 	req := &grpc.TokenRequest{
 		User: &billing.TokenUser{
@@ -923,5 +899,103 @@ func (suite *TokenTestSuite) TestToken_CreateToken_UnknownType_Error() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
 	assert.Equal(suite.T(), tokenErrorSettingsTypeRequired, rsp.Message)
+	assert.Empty(suite.T(), rsp.Token)
+}
+
+func (suite *TokenTestSuite) TestToken_CreateToken_KeyProductCheckout_WithAmount_Error() {
+	req := &grpc.TokenRequest{
+		User: &billing.TokenUser{
+			Id: bson.NewObjectId().Hex(),
+			Locale: &billing.TokenUserLocaleValue{
+				Value: "en",
+			},
+		},
+		Settings: &billing.TokenSettings{
+			ProjectId:   suite.project.Id,
+			ProductsIds: []string{suite.keyProducts[0].Id, suite.keyProducts[1].Id},
+			Type:        billing.OrderType_key,
+			Amount:      100,
+		},
+	}
+	rsp := &grpc.TokenResponse{}
+	err := suite.service.CreateToken(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), tokenErrorSettingsAmountAndCurrencyParamNotAllowedForType, rsp.Message)
+	assert.Empty(suite.T(), rsp.Token)
+}
+
+func (suite *TokenTestSuite) TestToken_CreateToken_KeyProductCheckout_WithCurrency_Error() {
+	req := &grpc.TokenRequest{
+		User: &billing.TokenUser{
+			Id: bson.NewObjectId().Hex(),
+			Locale: &billing.TokenUserLocaleValue{
+				Value: "en",
+			},
+		},
+		Settings: &billing.TokenSettings{
+			ProjectId:   suite.project.Id,
+			ProductsIds: []string{suite.keyProducts[0].Id, suite.keyProducts[1].Id},
+			Type:        billing.OrderType_key,
+			Currency:    "RUB",
+		},
+	}
+	rsp := &grpc.TokenResponse{}
+	err := suite.service.CreateToken(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), tokenErrorSettingsAmountAndCurrencyParamNotAllowedForType, rsp.Message)
+	assert.Empty(suite.T(), rsp.Token)
+}
+
+func (suite *TokenTestSuite) TestToken_CreateToken_KeyProductCheckout_WithAmountAndCurrency_Error() {
+	req := &grpc.TokenRequest{
+		User: &billing.TokenUser{
+			Id: bson.NewObjectId().Hex(),
+			Locale: &billing.TokenUserLocaleValue{
+				Value: "en",
+			},
+		},
+		Settings: &billing.TokenSettings{
+			ProjectId:   suite.project.Id,
+			ProductsIds: []string{suite.keyProducts[0].Id, suite.keyProducts[1].Id},
+			Type:        billing.OrderType_key,
+			Amount:      100,
+			Currency:    "RUB",
+		},
+	}
+	rsp := &grpc.TokenResponse{}
+	err := suite.service.CreateToken(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), tokenErrorSettingsAmountAndCurrencyParamNotAllowedForType, rsp.Message)
+	assert.Empty(suite.T(), rsp.Token)
+}
+
+func (suite *TokenTestSuite) TestToken_CreateToken_SimpleCheckout_WithProductIds_Error() {
+	req := &grpc.TokenRequest{
+		User: &billing.TokenUser{
+			Id: bson.NewObjectId().Hex(),
+			Email: &billing.TokenUserEmailValue{
+				Value:    "test@unit.test",
+				Verified: true,
+			},
+			Locale: &billing.TokenUserLocaleValue{
+				Value: "en",
+			},
+		},
+		Settings: &billing.TokenSettings{
+			ProjectId:   suite.project.Id,
+			Amount:      100,
+			Currency:    "RUB",
+			Type:        billing.OrderType_simple,
+			ProductsIds: []string{suite.keyProducts[0].Id, suite.keyProducts[1].Id},
+		},
+	}
+	rsp := &grpc.TokenResponse{}
+	err := suite.service.CreateToken(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), tokenErrorSettingsProductIdsParamNotAllowedForType, rsp.Message)
 	assert.Empty(suite.T(), rsp.Token)
 }

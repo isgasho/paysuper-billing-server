@@ -37,10 +37,11 @@ var (
 	tokenErrorNotFound             = newBillingServerErrorMsg("tk000003", "token not found")
 	tokenErrorUserIdentityRequired = newBillingServerErrorMsg("tk000004", "request must contain one or more parameters with user information")
 
-	tokenErrorSettingsTypeRequired                          = newBillingServerErrorMsg("tk000005", `field settings.type is required`)
-	tokenErrorSettingsSimpleCheckoutParamsRequired          = newBillingServerErrorMsg("tk000006", `fields settings.amount and settings.currency is required for creating payment token with type "simple"`)
-	tokenErrorSettingsProductAndKeyProductIdsParamsRequired = newBillingServerErrorMsg("tk000007", `field settings.product_ids is required for creating payment token with type "product" or "key"`)
-	tokenErrorSettingsKeyPlatformParamRequired              = newBillingServerErrorMsg("tk000008", `field settings.platform_id is required for creating payment token with type "product" or "key"`)
+	tokenErrorSettingsTypeRequired                            = newBillingServerErrorMsg("tk000005", `field settings.type is required`)
+	tokenErrorSettingsSimpleCheckoutParamsRequired            = newBillingServerErrorMsg("tk000006", `fields settings.amount and settings.currency is required for creating payment token with type "simple"`)
+	tokenErrorSettingsProductAndKeyProductIdsParamsRequired   = newBillingServerErrorMsg("tk000007", `field settings.product_ids is required for creating payment token with type "product" or "key"`)
+	tokenErrorSettingsAmountAndCurrencyParamNotAllowedForType = newBillingServerErrorMsg("tk000008", `fields settings.amount and settings.currency not allowed for creating payment token with types "product" or "key"`)
+	tokenErrorSettingsProductIdsParamNotAllowedForType        = newBillingServerErrorMsg("tk000009", `fields settings.product_ids not allowed for creating payment token with type "simple"`)
 
 	tokenRandSource = rand.NewSource(time.Now().UnixNano())
 )
@@ -111,6 +112,12 @@ func (s *Service) CreateToken(
 	}
 
 	if req.Settings.Type == billing.OrderType_product || req.Settings.Type == billing.OrderType_key {
+		if req.Settings.Amount > 0 || req.Settings.Currency != "" {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = tokenErrorSettingsAmountAndCurrencyParamNotAllowedForType
+			return nil
+		}
+
 		if len(req.Settings.ProductsIds) <= 0 {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = tokenErrorSettingsProductAndKeyProductIdsParamsRequired
@@ -120,6 +127,12 @@ func (s *Service) CreateToken(
 
 	switch req.Settings.Type {
 	case billing.OrderType_simple:
+		if len(req.Settings.ProductsIds) > 0 {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = tokenErrorSettingsProductIdsParamNotAllowedForType
+			return nil
+		}
+
 		if req.Settings.Amount <= 0 || req.Settings.Currency == "" {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = tokenErrorSettingsSimpleCheckoutParamsRequired
@@ -160,12 +173,6 @@ func (s *Service) CreateToken(
 		}
 		break
 	case billing.OrderType_key:
-		if req.Settings.PlatformId == "" {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = tokenErrorSettingsKeyPlatformParamRequired
-			return nil
-		}
-
 		err = processor.processPaylinkKeyProducts()
 
 		if err != nil {

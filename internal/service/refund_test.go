@@ -43,7 +43,6 @@ func Test_Refund(t *testing.T) {
 func (suite *RefundTestSuite) SetupTest() {
 	cfg, err := config.NewConfig()
 	assert.NoError(suite.T(), err, "Config load failed")
-	cfg.AccountingCurrency = "RUB"
 
 	db, err := mongodb.NewDatabase()
 	assert.NoError(suite.T(), err, "Database connection failed")

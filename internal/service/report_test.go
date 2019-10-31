@@ -51,7 +51,6 @@ func (suite *ReportTestSuite) SetupTest() {
 	cfg, err := config.NewConfig()
 	assert.NoError(suite.T(), err, "Config load failed")
 
-	cfg.AccountingCurrency = "RUB"
 	cfg.CardPayApiUrl = "https://sandbox.cardpay.com"
 	cfg.OrderViewUpdateBatchSize = 20
 

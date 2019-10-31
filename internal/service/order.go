@@ -2009,35 +2009,17 @@ func (v *OrderCreateRequestProcessor) processPaylinkKeyProducts() error {
 	}
 
 	pid := v.request.PrivateMetadata["PaylinkId"]
-
+	currency := v.checked.merchant.GetPayoutCurrency()
 	logInfo := processPaylinkKeyProductsTemplate
 
-	currency := v.cfg.AccountingCurrency
-	zap.S().Infow(fmt.Sprintf(logInfo, "accountingCurrency"), "currency", currency, "paylink", pid)
-
-	merchantPayoutCurrency := v.checked.merchant.GetPayoutCurrency()
-
-	if merchantPayoutCurrency != "" {
-		currency = merchantPayoutCurrency
-		zap.S().Infow(fmt.Sprintf(logInfo, "merchant payout currency"), "currency", currency, "paylink", pid)
-	} else {
-		zap.S().Infow(fmt.Sprintf(logInfo, "no merchant payout currency set"), "paylink", pid)
+	if currency == "" {
+		zap.S().Errorw(fmt.Sprintf(logInfo, "merchant payout currency not found"), "paylink", pid)
+		return orderErrorNoProductsCommonCurrency
 	}
 
 	zap.S().Infow(fmt.Sprintf(logInfo, "use currency"), "currency", currency, "paylink", pid)
 
 	priceGroup, err := v.priceGroup.GetByRegion(currency)
-
-	if v.checked.merchant.Company != nil && v.checked.merchant.Company.Country != "" {
-		country, err := v.country.GetByIsoCodeA2(v.checked.merchant.Company.Country)
-
-		if err != nil {
-			zap.S().Errorw("Country not found", "country", v.checked.merchant.Company.Country)
-			return errorCountryNotFound
-		}
-
-		priceGroup, err = v.priceGroup.GetById(country.PriceGroupId)
-	}
 
 	if err != nil {
 		zap.S().Errorw("Price group not found", "currency", currency)
@@ -2045,6 +2027,7 @@ func (v *OrderCreateRequestProcessor) processPaylinkKeyProducts() error {
 	}
 
 	platformId := v.request.PlatformId
+
 	if len(platformId) == 0 {
 		platforms := v.filterPlatforms(orderProducts)
 		if len(platforms) == 0 {
@@ -2085,36 +2068,18 @@ func (v *OrderCreateRequestProcessor) processPaylinkProducts() error {
 		return err
 	}
 
-	pid := v.request.PrivateMetadata["PaylinkId"]
-
 	logInfo := "[processPaylinkProducts] %s"
+	pid := v.request.PrivateMetadata["PaylinkId"]
+	currency := v.checked.merchant.GetPayoutCurrency()
 
-	currency := v.cfg.AccountingCurrency
-	zap.S().Infow(fmt.Sprintf(logInfo, "accountingCurrency"), "currency", currency, "paylink", pid)
-
-	merchantPayoutCurrency := v.checked.merchant.GetPayoutCurrency()
-
-	if merchantPayoutCurrency != "" {
-		currency = merchantPayoutCurrency
-		zap.S().Infow(fmt.Sprintf(logInfo, "merchant payout currency"), "currency", currency, "paylink", pid)
-	} else {
-		zap.S().Infow(fmt.Sprintf(logInfo, "no merchant payout currency set"), "paylink", pid)
+	if currency == "" {
+		zap.S().Errorw(fmt.Sprintf(logInfo, "merchant payout currency not found"), "paylink", pid)
+		return orderErrorNoProductsCommonCurrency
 	}
 
 	zap.S().Infow(fmt.Sprintf(logInfo, "use currency"), "currency", currency, "paylink", pid)
 
 	priceGroup, err := v.priceGroup.GetByRegion(currency)
-
-	if v.checked.merchant.Company != nil && v.checked.merchant.Company.Country != "" {
-		country, err := v.country.GetByIsoCodeA2(v.checked.merchant.Company.Country)
-
-		if err != nil {
-			zap.S().Errorw("Country not found", "country", v.checked.merchant.Company.Country)
-			return errorCountryNotFound
-		}
-
-		priceGroup, err = v.priceGroup.GetById(country.PriceGroupId)
-	}
 
 	if err != nil {
 		zap.S().Errorw("Price group not found", "currency", currency)
@@ -3111,17 +3076,12 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 		platformId = platforms[0].Id
 	}
 
-	defaultCurrency := s.cfg.AccountingCurrency
-	zap.S().Infow(fmt.Sprintf(logInfo, "accountingCurrency"), "currency", defaultCurrency, "order.Uuid", order.Uuid)
-
 	merchant, _ := s.merchant.GetById(order.Project.MerchantId)
-	merchantPayoutCurrency := merchant.GetPayoutCurrency()
+	defaultCurrency := merchant.GetPayoutCurrency()
 
-	if merchantPayoutCurrency != "" {
-		defaultCurrency = merchantPayoutCurrency
-		zap.S().Infow(fmt.Sprintf(logInfo, "merchant payout currency"), "currency", defaultCurrency, "order.Uuid", order.Uuid)
-	} else {
-		zap.S().Infow(fmt.Sprintf(logInfo, "no merchant payout currency set"))
+	if defaultCurrency == "" {
+		zap.S().Infow(fmt.Sprintf(logInfo, "merchant payout currency not found"), "order.Uuid", order.Uuid)
+		return nil, orderErrorNoProductsCommonCurrency
 	}
 
 	defaultPriceGroup, err := s.priceGroup.GetByRegion(defaultCurrency)
@@ -3200,10 +3160,10 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 	}
 
 	merAccAmount := amount
-	if merchantPayoutCurrency != "" && currency != merchantPayoutCurrency {
+	if currency != defaultCurrency {
 		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
 			From:       currency,
-			To:         merchantPayoutCurrency,
+			To:         defaultCurrency,
 			MerchantId: order.GetMerchantId(),
 			RateType:   curPkg.RateTypeOxr,
 			Amount:     amount,
@@ -3271,17 +3231,12 @@ func (s *Service) ProcessOrderProducts(order *billing.Order) error {
 		country = order.User.Address.Country
 	}
 
-	defaultCurrency := s.cfg.AccountingCurrency
-	zap.S().Infow(fmt.Sprintf(logInfo, "accountingCurrency"), "currency", defaultCurrency, "order.Uuid", order.Uuid)
-
 	merchant, _ := s.merchant.GetById(order.Project.MerchantId)
-	merchantPayoutCurrency := merchant.GetPayoutCurrency()
+	defaultCurrency := merchant.GetPayoutCurrency()
 
-	if merchantPayoutCurrency != "" {
-		defaultCurrency = merchantPayoutCurrency
-		zap.S().Infow(fmt.Sprintf(logInfo, "merchant payout currency"), "currency", defaultCurrency, "order.Uuid", order.Uuid)
-	} else {
-		zap.S().Infow(fmt.Sprintf(logInfo, "no merchant payout currency set"))
+	if defaultCurrency == "" {
+		zap.S().Infow(fmt.Sprintf(logInfo, "merchant payout currency not found"), "order.Uuid", order.Uuid)
+		return orderErrorNoProductsCommonCurrency
 	}
 
 	defaultPriceGroup, err := s.priceGroup.GetByRegion(defaultCurrency)
@@ -3361,10 +3316,10 @@ func (s *Service) ProcessOrderProducts(order *billing.Order) error {
 	}
 
 	merAccAmount := amount
-	if merchantPayoutCurrency != "" && currency != merchantPayoutCurrency {
+	if currency != defaultCurrency {
 		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
 			From:       currency,
-			To:         merchantPayoutCurrency,
+			To:         defaultCurrency,
 			MerchantId: order.GetMerchantId(),
 			RateType:   curPkg.RateTypeOxr,
 			Amount:     amount,
