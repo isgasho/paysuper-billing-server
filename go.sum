@@ -781,6 +781,8 @@ github.com/paysuper/casbin-server v0.0.0-20191016092241-d25e3cf41561 h1:TlTSsozB
 github.com/paysuper/casbin-server v0.0.0-20191016092241-d25e3cf41561/go.mod h1:kP4kntb1yUsWmPvPEnkWUbAs+yDd2yLwEhxJ923HCHI=
 github.com/paysuper/casbin-server v0.0.0-20191024232022-56aa72580bdb h1:wdW3DudqTMfyW0QtBsbN3PXRmgQf9IOnlBmmLFWoPrc=
 github.com/paysuper/casbin-server v0.0.0-20191024232022-56aa72580bdb/go.mod h1:mjk3u6CLdOVEQd8BZ3zkolnyqDy/oOCVNcav/ZGI70w=
+github.com/paysuper/casbin-server v0.0.0-20191031114753-f40b0e2b42ba h1:IB6GlieqPkAAuWprq40ryJybBlgBOK0y3OtKDm4GF5Q=
+github.com/paysuper/casbin-server v0.0.0-20191031114753-f40b0e2b42ba/go.mod h1:mjk3u6CLdOVEQd8BZ3zkolnyqDy/oOCVNcav/ZGI70w=
 github.com/paysuper/document-signer v0.0.0-20190903102235-df82efbb7d26 h1:VqVhx7K7gKDyDrAtPvrIX6t5F6XA5zPqFBYwCh+BvdQ=
 github.com/paysuper/document-signer v0.0.0-20190903102235-df82efbb7d26/go.mod h1:39VQOEQm+WdUrGOAHDGnE8ks86mAPEKpgBwxP9mQfSA=
 github.com/paysuper/document-signer v0.0.0-20190906075749-af06b306ee92 h1:OzcTm69qCoqQ2YqYjgf8zAmkjAVaEV0VmzRNMyePPUI=

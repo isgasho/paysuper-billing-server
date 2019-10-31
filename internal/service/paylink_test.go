@@ -115,7 +115,7 @@ func (suite *PaylinkTestSuite) SetupTest() {
 		&reportingMocks.ReporterService{},
 		mocks.NewFormatterOK(),
 		mocks.NewBrokerMockOk(),
-		casbinMocks.CasbinService{},
+		&casbinMocks.CasbinService{},
 	)
 
 	if err := suite.service.Init(); err != nil {
