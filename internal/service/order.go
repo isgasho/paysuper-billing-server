@@ -3159,33 +3159,7 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 		return nil, err
 	}
 
-	merAccAmount := amount
-	if currency != defaultCurrency {
-		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
-			From:       currency,
-			To:         defaultCurrency,
-			MerchantId: order.GetMerchantId(),
-			RateType:   curPkg.RateTypeOxr,
-			Amount:     amount,
-		}
-
-		rsp, err := s.curService.ExchangeCurrencyCurrentForMerchant(context.TODO(), req)
-
-		if err != nil {
-			zap.L().Error(
-				pkg.ErrorGrpcServiceCallFailed,
-				zap.Error(err),
-				zap.String(errorFieldService, "CurrencyRatesService"),
-				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
-			)
-
-			return nil, orderErrorConvertionCurrency
-		}
-		merAccAmount = rsp.ExchangedAmount
-	}
-
 	amount = tools.FormatAmount(amount)
-	merAccAmount = tools.FormatAmount(merAccAmount)
 
 	order.Currency = currency
 	order.OrderAmount = amount
@@ -3315,36 +3289,9 @@ func (s *Service) ProcessOrderProducts(order *billing.Order) error {
 		return err
 	}
 
-	merAccAmount := amount
-	if currency != defaultCurrency {
-		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
-			From:       currency,
-			To:         defaultCurrency,
-			MerchantId: order.GetMerchantId(),
-			RateType:   curPkg.RateTypeOxr,
-			Amount:     amount,
-		}
-
-		rsp, err := s.curService.ExchangeCurrencyCurrentForMerchant(context.TODO(), req)
-
-		if err != nil {
-			zap.S().Error(
-				pkg.ErrorGrpcServiceCallFailed,
-				zap.Error(err),
-				zap.String(errorFieldService, "CurrencyRatesService"),
-				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
-			)
-
-			return orderErrorConvertionCurrency
-		}
-		merAccAmount = rsp.ExchangedAmount
-	}
-
 	amount = tools.FormatAmount(amount)
-	merAccAmount = tools.FormatAmount(merAccAmount)
 
 	order.Currency = currency
-
 	order.OrderAmount = amount
 	order.TotalPaymentAmount = amount
 
