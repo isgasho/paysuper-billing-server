@@ -267,6 +267,14 @@ func (m *Merchant) IsBankingComplete() bool {
 		m.Banking.AccountNumber != "" && m.Banking.Swift != ""
 }
 
+func (m *UserRole) IsOwner() bool {
+	return m.Role == pkg.RoleMerchantOwner
+}
+
+func (m *UserRole) IsAdmin() bool {
+	return m.Role == pkg.RoleSystemAdmin
+}
+
 func (c *Country) GetVatCurrencyCode() string {
 	if c.VatEnabled {
 		return c.VatCurrency

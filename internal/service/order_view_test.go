@@ -7,6 +7,7 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/jinzhu/now"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"

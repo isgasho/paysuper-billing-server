@@ -50,6 +50,8 @@ type PaylinkTestSuite struct {
 	paylink1           *paylink.Paylink // normal paylink
 	paylink2           *paylink.Paylink // deleted paylink
 	paylink3           *paylink.Paylink // expired paylink
+	project2           *billing.Project
+	project3           *billing.Project
 }
 
 func Test_Paylink(t *testing.T) {

@@ -175,6 +175,21 @@ type BillingService interface {
 	GetMerchantBalance(ctx context.Context, in *GetMerchantBalanceRequest, opts ...client.CallOption) (*GetMerchantBalanceResponse, error)
 	PaymentFormPlatformChanged(ctx context.Context, in *PaymentFormUserChangePlatformRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 	CheckSkuAndKeyProject(ctx context.Context, in *CheckSkuAndKeyProjectRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
+	GetMerchantUsers(ctx context.Context, in *GetMerchantUsersRequest, opts ...client.CallOption) (*GetMerchantUsersResponse, error)
+	GetAdminUsers(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*GetAdminUsersResponse, error)
+	GetMerchantsForUser(ctx context.Context, in *GetMerchantsForUserRequest, opts ...client.CallOption) (*GetMerchantsForUserResponse, error)
+	InviteUserMerchant(ctx context.Context, in *InviteUserMerchantRequest, opts ...client.CallOption) (*InviteUserMerchantResponse, error)
+	InviteUserAdmin(ctx context.Context, in *InviteUserAdminRequest, opts ...client.CallOption) (*InviteUserAdminResponse, error)
+	ResendInviteMerchant(ctx context.Context, in *ResendInviteMerchantRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
+	ResendInviteAdmin(ctx context.Context, in *ResendInviteAdminRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
+	AcceptInvite(ctx context.Context, in *AcceptInviteRequest, opts ...client.CallOption) (*AcceptInviteResponse, error)
+	CheckInviteToken(ctx context.Context, in *CheckInviteTokenRequest, opts ...client.CallOption) (*CheckInviteTokenResponse, error)
+	ChangeRoleForMerchantUser(ctx context.Context, in *ChangeRoleForMerchantUserRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
+	ChangeRoleForAdminUser(ctx context.Context, in *ChangeRoleForAdminUserRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
+	GetRoleList(ctx context.Context, in *GetRoleListRequest, opts ...client.CallOption) (*GetRoleListResponse, error)
+	DeleteMerchantUser(ctx context.Context, in *DeleteMerchantUserRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
+	DeleteAdminUser(ctx context.Context, in *DeleteAdminUserRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
+	GetPermissionsForUser(ctx context.Context, in *GetPermissionsForUserRequest, opts ...client.CallOption) (*GetPermissionsForUserResponse, error)
 	GetPaylinks(ctx context.Context, in *GetPaylinksRequest, opts ...client.CallOption) (*GetPaylinksResponse, error)
 	GetPaylink(ctx context.Context, in *PaylinkRequest, opts ...client.CallOption) (*GetPaylinkResponse, error)
 	IncrPaylinkVisits(ctx context.Context, in *PaylinkRequestById, opts ...client.CallOption) (*EmptyResponse, error)
@@ -1601,6 +1616,156 @@ func (c *billingService) CheckSkuAndKeyProject(ctx context.Context, in *CheckSku
 	return out, nil
 }
 
+func (c *billingService) GetMerchantUsers(ctx context.Context, in *GetMerchantUsersRequest, opts ...client.CallOption) (*GetMerchantUsersResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetMerchantUsers", in)
+	out := new(GetMerchantUsersResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetAdminUsers(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*GetAdminUsersResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetAdminUsers", in)
+	out := new(GetAdminUsersResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetMerchantsForUser(ctx context.Context, in *GetMerchantsForUserRequest, opts ...client.CallOption) (*GetMerchantsForUserResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetMerchantsForUser", in)
+	out := new(GetMerchantsForUserResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) InviteUserMerchant(ctx context.Context, in *InviteUserMerchantRequest, opts ...client.CallOption) (*InviteUserMerchantResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.InviteUserMerchant", in)
+	out := new(InviteUserMerchantResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) InviteUserAdmin(ctx context.Context, in *InviteUserAdminRequest, opts ...client.CallOption) (*InviteUserAdminResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.InviteUserAdmin", in)
+	out := new(InviteUserAdminResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) ResendInviteMerchant(ctx context.Context, in *ResendInviteMerchantRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error) {
+	req := c.c.NewRequest(c.name, "BillingService.ResendInviteMerchant", in)
+	out := new(EmptyResponseWithStatus)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) ResendInviteAdmin(ctx context.Context, in *ResendInviteAdminRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error) {
+	req := c.c.NewRequest(c.name, "BillingService.ResendInviteAdmin", in)
+	out := new(EmptyResponseWithStatus)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) AcceptInvite(ctx context.Context, in *AcceptInviteRequest, opts ...client.CallOption) (*AcceptInviteResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.AcceptInvite", in)
+	out := new(AcceptInviteResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) CheckInviteToken(ctx context.Context, in *CheckInviteTokenRequest, opts ...client.CallOption) (*CheckInviteTokenResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.CheckInviteToken", in)
+	out := new(CheckInviteTokenResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) ChangeRoleForMerchantUser(ctx context.Context, in *ChangeRoleForMerchantUserRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error) {
+	req := c.c.NewRequest(c.name, "BillingService.ChangeRoleForMerchantUser", in)
+	out := new(EmptyResponseWithStatus)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) ChangeRoleForAdminUser(ctx context.Context, in *ChangeRoleForAdminUserRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error) {
+	req := c.c.NewRequest(c.name, "BillingService.ChangeRoleForAdminUser", in)
+	out := new(EmptyResponseWithStatus)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetRoleList(ctx context.Context, in *GetRoleListRequest, opts ...client.CallOption) (*GetRoleListResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetRoleList", in)
+	out := new(GetRoleListResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) DeleteMerchantUser(ctx context.Context, in *DeleteMerchantUserRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error) {
+	req := c.c.NewRequest(c.name, "BillingService.DeleteMerchantUser", in)
+	out := new(EmptyResponseWithStatus)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) DeleteAdminUser(ctx context.Context, in *DeleteAdminUserRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error) {
+	req := c.c.NewRequest(c.name, "BillingService.DeleteAdminUser", in)
+	out := new(EmptyResponseWithStatus)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetPermissionsForUser(ctx context.Context, in *GetPermissionsForUserRequest, opts ...client.CallOption) (*GetPermissionsForUserResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetPermissionsForUser", in)
+	out := new(GetPermissionsForUserResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *billingService) GetPaylinks(ctx context.Context, in *GetPaylinksRequest, opts ...client.CallOption) (*GetPaylinksResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.GetPaylinks", in)
 	out := new(GetPaylinksResponse)
@@ -2002,6 +2167,21 @@ type BillingServiceHandler interface {
 	GetMerchantBalance(context.Context, *GetMerchantBalanceRequest, *GetMerchantBalanceResponse) error
 	PaymentFormPlatformChanged(context.Context, *PaymentFormUserChangePlatformRequest, *EmptyResponseWithStatus) error
 	CheckSkuAndKeyProject(context.Context, *CheckSkuAndKeyProjectRequest, *EmptyResponseWithStatus) error
+	GetMerchantUsers(context.Context, *GetMerchantUsersRequest, *GetMerchantUsersResponse) error
+	GetAdminUsers(context.Context, *EmptyRequest, *GetAdminUsersResponse) error
+	GetMerchantsForUser(context.Context, *GetMerchantsForUserRequest, *GetMerchantsForUserResponse) error
+	InviteUserMerchant(context.Context, *InviteUserMerchantRequest, *InviteUserMerchantResponse) error
+	InviteUserAdmin(context.Context, *InviteUserAdminRequest, *InviteUserAdminResponse) error
+	ResendInviteMerchant(context.Context, *ResendInviteMerchantRequest, *EmptyResponseWithStatus) error
+	ResendInviteAdmin(context.Context, *ResendInviteAdminRequest, *EmptyResponseWithStatus) error
+	AcceptInvite(context.Context, *AcceptInviteRequest, *AcceptInviteResponse) error
+	CheckInviteToken(context.Context, *CheckInviteTokenRequest, *CheckInviteTokenResponse) error
+	ChangeRoleForMerchantUser(context.Context, *ChangeRoleForMerchantUserRequest, *EmptyResponseWithStatus) error
+	ChangeRoleForAdminUser(context.Context, *ChangeRoleForAdminUserRequest, *EmptyResponseWithStatus) error
+	GetRoleList(context.Context, *GetRoleListRequest, *GetRoleListResponse) error
+	DeleteMerchantUser(context.Context, *DeleteMerchantUserRequest, *EmptyResponseWithStatus) error
+	DeleteAdminUser(context.Context, *DeleteAdminUserRequest, *EmptyResponseWithStatus) error
+	GetPermissionsForUser(context.Context, *GetPermissionsForUserRequest, *GetPermissionsForUserResponse) error
 	GetPaylinks(context.Context, *GetPaylinksRequest, *GetPaylinksResponse) error
 	GetPaylink(context.Context, *PaylinkRequest, *GetPaylinkResponse) error
 	IncrPaylinkVisits(context.Context, *PaylinkRequestById, *EmptyResponse) error
@@ -2170,6 +2350,21 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetMerchantBalance(ctx context.Context, in *GetMerchantBalanceRequest, out *GetMerchantBalanceResponse) error
 		PaymentFormPlatformChanged(ctx context.Context, in *PaymentFormUserChangePlatformRequest, out *EmptyResponseWithStatus) error
 		CheckSkuAndKeyProject(ctx context.Context, in *CheckSkuAndKeyProjectRequest, out *EmptyResponseWithStatus) error
+		GetMerchantUsers(ctx context.Context, in *GetMerchantUsersRequest, out *GetMerchantUsersResponse) error
+		GetAdminUsers(ctx context.Context, in *EmptyRequest, out *GetAdminUsersResponse) error
+		GetMerchantsForUser(ctx context.Context, in *GetMerchantsForUserRequest, out *GetMerchantsForUserResponse) error
+		InviteUserMerchant(ctx context.Context, in *InviteUserMerchantRequest, out *InviteUserMerchantResponse) error
+		InviteUserAdmin(ctx context.Context, in *InviteUserAdminRequest, out *InviteUserAdminResponse) error
+		ResendInviteMerchant(ctx context.Context, in *ResendInviteMerchantRequest, out *EmptyResponseWithStatus) error
+		ResendInviteAdmin(ctx context.Context, in *ResendInviteAdminRequest, out *EmptyResponseWithStatus) error
+		AcceptInvite(ctx context.Context, in *AcceptInviteRequest, out *AcceptInviteResponse) error
+		CheckInviteToken(ctx context.Context, in *CheckInviteTokenRequest, out *CheckInviteTokenResponse) error
+		ChangeRoleForMerchantUser(ctx context.Context, in *ChangeRoleForMerchantUserRequest, out *EmptyResponseWithStatus) error
+		ChangeRoleForAdminUser(ctx context.Context, in *ChangeRoleForAdminUserRequest, out *EmptyResponseWithStatus) error
+		GetRoleList(ctx context.Context, in *GetRoleListRequest, out *GetRoleListResponse) error
+		DeleteMerchantUser(ctx context.Context, in *DeleteMerchantUserRequest, out *EmptyResponseWithStatus) error
+		DeleteAdminUser(ctx context.Context, in *DeleteAdminUserRequest, out *EmptyResponseWithStatus) error
+		GetPermissionsForUser(ctx context.Context, in *GetPermissionsForUserRequest, out *GetPermissionsForUserResponse) error
 		GetPaylinks(ctx context.Context, in *GetPaylinksRequest, out *GetPaylinksResponse) error
 		GetPaylink(ctx context.Context, in *PaylinkRequest, out *GetPaylinkResponse) error
 		IncrPaylinkVisits(ctx context.Context, in *PaylinkRequestById, out *EmptyResponse) error
@@ -2758,6 +2953,66 @@ func (h *billingServiceHandler) PaymentFormPlatformChanged(ctx context.Context, 
 
 func (h *billingServiceHandler) CheckSkuAndKeyProject(ctx context.Context, in *CheckSkuAndKeyProjectRequest, out *EmptyResponseWithStatus) error {
 	return h.BillingServiceHandler.CheckSkuAndKeyProject(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetMerchantUsers(ctx context.Context, in *GetMerchantUsersRequest, out *GetMerchantUsersResponse) error {
+	return h.BillingServiceHandler.GetMerchantUsers(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetAdminUsers(ctx context.Context, in *EmptyRequest, out *GetAdminUsersResponse) error {
+	return h.BillingServiceHandler.GetAdminUsers(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetMerchantsForUser(ctx context.Context, in *GetMerchantsForUserRequest, out *GetMerchantsForUserResponse) error {
+	return h.BillingServiceHandler.GetMerchantsForUser(ctx, in, out)
+}
+
+func (h *billingServiceHandler) InviteUserMerchant(ctx context.Context, in *InviteUserMerchantRequest, out *InviteUserMerchantResponse) error {
+	return h.BillingServiceHandler.InviteUserMerchant(ctx, in, out)
+}
+
+func (h *billingServiceHandler) InviteUserAdmin(ctx context.Context, in *InviteUserAdminRequest, out *InviteUserAdminResponse) error {
+	return h.BillingServiceHandler.InviteUserAdmin(ctx, in, out)
+}
+
+func (h *billingServiceHandler) ResendInviteMerchant(ctx context.Context, in *ResendInviteMerchantRequest, out *EmptyResponseWithStatus) error {
+	return h.BillingServiceHandler.ResendInviteMerchant(ctx, in, out)
+}
+
+func (h *billingServiceHandler) ResendInviteAdmin(ctx context.Context, in *ResendInviteAdminRequest, out *EmptyResponseWithStatus) error {
+	return h.BillingServiceHandler.ResendInviteAdmin(ctx, in, out)
+}
+
+func (h *billingServiceHandler) AcceptInvite(ctx context.Context, in *AcceptInviteRequest, out *AcceptInviteResponse) error {
+	return h.BillingServiceHandler.AcceptInvite(ctx, in, out)
+}
+
+func (h *billingServiceHandler) CheckInviteToken(ctx context.Context, in *CheckInviteTokenRequest, out *CheckInviteTokenResponse) error {
+	return h.BillingServiceHandler.CheckInviteToken(ctx, in, out)
+}
+
+func (h *billingServiceHandler) ChangeRoleForMerchantUser(ctx context.Context, in *ChangeRoleForMerchantUserRequest, out *EmptyResponseWithStatus) error {
+	return h.BillingServiceHandler.ChangeRoleForMerchantUser(ctx, in, out)
+}
+
+func (h *billingServiceHandler) ChangeRoleForAdminUser(ctx context.Context, in *ChangeRoleForAdminUserRequest, out *EmptyResponseWithStatus) error {
+	return h.BillingServiceHandler.ChangeRoleForAdminUser(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetRoleList(ctx context.Context, in *GetRoleListRequest, out *GetRoleListResponse) error {
+	return h.BillingServiceHandler.GetRoleList(ctx, in, out)
+}
+
+func (h *billingServiceHandler) DeleteMerchantUser(ctx context.Context, in *DeleteMerchantUserRequest, out *EmptyResponseWithStatus) error {
+	return h.BillingServiceHandler.DeleteMerchantUser(ctx, in, out)
+}
+
+func (h *billingServiceHandler) DeleteAdminUser(ctx context.Context, in *DeleteAdminUserRequest, out *EmptyResponseWithStatus) error {
+	return h.BillingServiceHandler.DeleteAdminUser(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetPermissionsForUser(ctx context.Context, in *GetPermissionsForUserRequest, out *GetPermissionsForUserResponse) error {
+	return h.BillingServiceHandler.GetPermissionsForUser(ctx, in, out)
 }
 
 func (h *billingServiceHandler) GetPaylinks(ctx context.Context, in *GetPaylinksRequest, out *GetPaylinksResponse) error {
