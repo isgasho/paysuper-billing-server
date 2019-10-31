@@ -3606,15 +3606,24 @@ func (s *Service) applyCountryRestriction(order *billing.Order, countryCode stri
 	if err != nil {
 		return
 	}
-	order.CountryRestriction = &billing.CountryRestriction{
-		IsoCodeA2:       countryCode,
-		PaymentsAllowed: country.PaymentsAllowed,
-		ChangeAllowed:   country.ChangeAllowed,
-	}
-	if country.PaymentsAllowed {
+
+	merchantId := order.GetMerchantId()
+	merchant, err := s.merchant.GetById(merchantId)
+	if err != nil {
 		return
 	}
-	if country.ChangeAllowed {
+
+	paymentsAllowed, changeAllowed := country.GetPaymentRestrictions(merchant.IsHighRisk())
+
+	order.CountryRestriction = &billing.CountryRestriction{
+		IsoCodeA2:       countryCode,
+		PaymentsAllowed: paymentsAllowed,
+		ChangeAllowed:   changeAllowed,
+	}
+	if paymentsAllowed {
+		return
+	}
+	if changeAllowed {
 		order.UserAddressDataRequired = true
 		return
 	}

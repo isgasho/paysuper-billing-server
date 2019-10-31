@@ -435,24 +435,26 @@ type MgoPriceGroup struct {
 }
 
 type MgoCountry struct {
-	Id                     bson.ObjectId        `bson:"_id"`
-	IsoCodeA2              string               `bson:"iso_code_a2"`
-	Region                 string               `bson:"region"`
-	Currency               string               `bson:"currency"`
-	PaymentsAllowed        bool                 `bson:"payments_allowed"`
-	ChangeAllowed          bool                 `bson:"change_allowed"`
-	VatEnabled             bool                 `bson:"vat_enabled"`
-	VatCurrency            string               `bson:"vat_currency"`
-	PriceGroupId           string               `bson:"price_group_id"`
-	VatThreshold           *CountryVatThreshold `bson:"vat_threshold"`
-	VatPeriodMonth         int32                `bson:"vat_period_month"`
-	VatDeadlineDays        int32                `bson:"vat_deadline_days"`
-	VatStoreYears          int32                `bson:"vat_store_years"`
-	VatCurrencyRatesPolicy string               `bson:"vat_currency_rates_policy"`
-	VatCurrencyRatesSource string               `bson:"vat_currency_rates_source"`
-	PayerTariffRegion      string               `bson:"payer_tariff_region"`
-	CreatedAt              time.Time            `bson:"created_at"`
-	UpdatedAt              time.Time            `bson:"updated_at"`
+	Id                      bson.ObjectId        `bson:"_id"`
+	IsoCodeA2               string               `bson:"iso_code_a2"`
+	Region                  string               `bson:"region"`
+	Currency                string               `bson:"currency"`
+	PaymentsAllowed         bool                 `bson:"payments_allowed"`
+	ChangeAllowed           bool                 `bson:"change_allowed"`
+	VatEnabled              bool                 `bson:"vat_enabled"`
+	VatCurrency             string               `bson:"vat_currency"`
+	PriceGroupId            string               `bson:"price_group_id"`
+	VatThreshold            *CountryVatThreshold `bson:"vat_threshold"`
+	VatPeriodMonth          int32                `bson:"vat_period_month"`
+	VatDeadlineDays         int32                `bson:"vat_deadline_days"`
+	VatStoreYears           int32                `bson:"vat_store_years"`
+	VatCurrencyRatesPolicy  string               `bson:"vat_currency_rates_policy"`
+	VatCurrencyRatesSource  string               `bson:"vat_currency_rates_source"`
+	PayerTariffRegion       string               `bson:"payer_tariff_region"`
+	CreatedAt               time.Time            `bson:"created_at"`
+	UpdatedAt               time.Time            `bson:"updated_at"`
+	HighRiskPaymentsAllowed bool                 `bson:"high_risk_payments_allowed"`
+	HighRiskChangeAllowed   bool                 `bson:"high_risk_change_allowed"`
 }
 
 type MgoPayoutCostSystem struct {
@@ -1113,20 +1115,22 @@ func (m *MerchantBalance) SetBSON(raw bson.Raw) error {
 
 func (m *Country) GetBSON() (interface{}, error) {
 	st := &MgoCountry{
-		IsoCodeA2:              m.IsoCodeA2,
-		Region:                 m.Region,
-		Currency:               m.Currency,
-		PaymentsAllowed:        m.PaymentsAllowed,
-		ChangeAllowed:          m.ChangeAllowed,
-		VatEnabled:             m.VatEnabled,
-		PriceGroupId:           m.PriceGroupId,
-		VatCurrency:            m.VatCurrency,
-		VatThreshold:           m.VatThreshold,
-		VatPeriodMonth:         m.VatPeriodMonth,
-		VatStoreYears:          m.VatStoreYears,
-		VatCurrencyRatesPolicy: m.VatCurrencyRatesPolicy,
-		VatCurrencyRatesSource: m.VatCurrencyRatesSource,
-		PayerTariffRegion:      m.PayerTariffRegion,
+		IsoCodeA2:               m.IsoCodeA2,
+		Region:                  m.Region,
+		Currency:                m.Currency,
+		PaymentsAllowed:         m.PaymentsAllowed,
+		ChangeAllowed:           m.ChangeAllowed,
+		VatEnabled:              m.VatEnabled,
+		PriceGroupId:            m.PriceGroupId,
+		VatCurrency:             m.VatCurrency,
+		VatThreshold:            m.VatThreshold,
+		VatPeriodMonth:          m.VatPeriodMonth,
+		VatStoreYears:           m.VatStoreYears,
+		VatCurrencyRatesPolicy:  m.VatCurrencyRatesPolicy,
+		VatCurrencyRatesSource:  m.VatCurrencyRatesSource,
+		PayerTariffRegion:       m.PayerTariffRegion,
+		HighRiskPaymentsAllowed: m.HighRiskPaymentsAllowed,
+		HighRiskChangeAllowed:   m.HighRiskChangeAllowed,
 	}
 	if len(m.Id) <= 0 {
 		st.Id = bson.NewObjectId()
@@ -1189,6 +1193,8 @@ func (m *Country) SetBSON(raw bson.Raw) error {
 	m.VatCurrencyRatesPolicy = decoded.VatCurrencyRatesPolicy
 	m.VatCurrencyRatesSource = decoded.VatCurrencyRatesSource
 	m.PayerTariffRegion = decoded.PayerTariffRegion
+	m.HighRiskPaymentsAllowed = decoded.HighRiskPaymentsAllowed
+	m.HighRiskChangeAllowed = decoded.HighRiskChangeAllowed
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 

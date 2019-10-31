@@ -1126,6 +1126,10 @@ message Country {
     google.protobuf.Timestamp updated_at = 17;
     //@inject_tag: json:"payer_tariff_region" bson:"payer_tariff_region"
     string payer_tariff_region = 18;
+    //@inject_tag: json:"high_risk_payments_allowed" bson:"high_risk_payments_allowed"
+    bool high_risk_payments_allowed = 19;
+    //@inject_tag: json:"high_risk_change_allowed" bson:"high_risk_change_allowed"
+    bool high_risk_change_allowed = 20;
 }
 
 message CountriesList {
