@@ -300,9 +300,20 @@ const (
 	ProjectSellCountTypeIntegral   = "integral"
 
 	FallbackCurrency = "USD"
+
+	MccCodeLowRisk  = "5816"
+	MccCodeHighRisk = "5967"
+
+	MerchantOperationTypeLowRisk  = "low-risk"
+	MerchantOperationTypeHighRisk = "high-risk"
 )
 
 var (
+	MerchantOperationsTypesToMccCodes = map[string]string{
+		MerchantOperationTypeLowRisk:  MccCodeLowRisk,
+		MerchantOperationTypeHighRisk: MccCodeHighRisk,
+	}
+
 	CountryPhoneCodes = map[int32]string{
 		7:    "RU",
 		375:  "BY",

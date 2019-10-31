@@ -203,7 +203,7 @@ func (m *Merchant) GetCompleteStepsCount() int32 {
 }
 
 func (m *Merchant) IsDataComplete() bool {
-	return m.IsCompanyComplete() && m.IsContactsComplete() && m.IsBankingComplete() && m.HasTariff()
+	return m.IsCompanyComplete() && m.IsContactsComplete() && m.IsBankingComplete() && m.IsMccComplete() && m.HasTariff()
 }
 
 func (m *Merchant) GetMerchantSignatureId() string {
@@ -267,6 +267,10 @@ func (m *Merchant) IsBankingComplete() bool {
 		m.Banking.AccountNumber != "" && m.Banking.Swift != ""
 }
 
+func (m *Merchant) IsMccComplete() bool {
+	return m.MccCode != ""
+}
+
 func (c *Country) GetVatCurrencyCode() string {
 	if c.VatEnabled && c.VatCurrency != "" {
 		return c.VatCurrency
@@ -286,4 +290,8 @@ func (m *Project) GetVirtualCurrencyRate(group *PriceGroup) (float64, error) {
 	}
 
 	return 0, errors.New(fmt.Sprintf(productNoPriceInCurrency, group.Region))
+}
+
+func (m *Merchant) IsHighRisk() bool {
+	return m.MccCode == pkg.MccCodeHighRisk
 }

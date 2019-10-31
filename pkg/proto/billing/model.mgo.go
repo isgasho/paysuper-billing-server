@@ -140,6 +140,7 @@ type MgoMerchant struct {
 	AgreementNumber                               string                               `bson:"agreement_number"`
 	MinimalPayoutLimit                            float32                              `bson:"minimal_payout_limit"`
 	ManualPayoutsEnabled                          bool                                 `bson:"manual_payouts_enabled"`
+	MccCode                                       string                               `bson:"mcc_code"`
 }
 
 type MgoCommission struct {
@@ -2139,6 +2140,7 @@ func (m *Merchant) GetBSON() (interface{}, error) {
 		AgreementNumber:      m.AgreementNumber,
 		MinimalPayoutLimit:   m.MinimalPayoutLimit,
 		ManualPayoutsEnabled: m.ManualPayoutsEnabled,
+		MccCode:              m.MccCode,
 	}
 
 	if len(m.Id) <= 0 {
@@ -2332,6 +2334,7 @@ func (m *Merchant) SetBSON(raw bson.Raw) error {
 	m.AgreementNumber = decoded.AgreementNumber
 	m.MinimalPayoutLimit = decoded.MinimalPayoutLimit
 	m.ManualPayoutsEnabled = decoded.ManualPayoutsEnabled
+	m.MccCode = decoded.MccCode
 
 	if decoded.User != nil {
 		m.User = &MerchantUser{

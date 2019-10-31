@@ -200,6 +200,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 				IsActive: true,
 			},
 		},
+		MccCode: pkg.MccCodeLowRisk,
 	}
 
 	date, err = ptypes.TimestampProto(time.Now().Add(time.Hour * -360))
@@ -244,6 +245,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 			Amount: 10000,
 		},
 		IsSigned: true,
+		MccCode:  pkg.MccCodeLowRisk,
 	}
 	merchant1 := &billing.Merchant{
 		Id: bson.NewObjectId().Hex(),
@@ -282,6 +284,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 			Amount: 100000,
 		},
 		IsSigned: false,
+		MccCode:  pkg.MccCodeLowRisk,
 	}
 
 	project := &billing.Project{
@@ -629,6 +632,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_NewMerchant_Ok()
 			Swift:         "TEST",
 			Details:       "",
 		},
+		MerchantOperationsType: pkg.MerchantOperationTypeLowRisk,
 	}
 
 	cmres := &grpc.ChangeMerchantResponse{}
@@ -2277,6 +2281,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_Ok() {
 			Zip:     "190000",
 			City:    "St.Petersburg",
 		},
+		MerchantOperationsType: pkg.MerchantOperationTypeLowRisk,
 	}
 	rsp0 := &grpc.ChangeMerchantResponse{}
 	err := suite.service.ChangeMerchant(context.TODO(), req0, rsp0)
@@ -2392,6 +2397,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_MerchantHasSignat
 			Zip:     "190000",
 			City:    "St.Petersburg",
 		},
+		MerchantOperationsType: pkg.MerchantOperationTypeLowRisk,
 	}
 	rsp0 := &grpc.ChangeMerchantResponse{}
 	err := suite.service.ChangeMerchant(context.TODO(), req0, rsp0)
@@ -2442,6 +2448,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_MerchantHasSignat
 			Swift:         "TEST",
 			Details:       "",
 		},
+		MerchantOperationsType: pkg.MerchantOperationTypeLowRisk,
 	}
 	rsp := &grpc.ChangeMerchantResponse{}
 	err = suite.service.ChangeMerchant(context.TODO(), req, rsp)
@@ -2486,6 +2493,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerSys
 			Zip:     "190000",
 			City:    "St.Petersburg",
 		},
+		MerchantOperationsType: pkg.MerchantOperationTypeLowRisk,
 	}
 	rsp0 := &grpc.ChangeMerchantResponse{}
 	err := suite.service.ChangeMerchant(context.TODO(), req0, rsp0)
@@ -2584,6 +2592,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerRes
 			Zip:     "190000",
 			City:    "St.Petersburg",
 		},
+		MerchantOperationsType: pkg.MerchantOperationTypeLowRisk,
 	}
 	rsp0 := &grpc.ChangeMerchantResponse{}
 	err := suite.service.ChangeMerchant(context.TODO(), req0, rsp0)
@@ -2634,6 +2643,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerRes
 			Swift:         "TEST",
 			Details:       "",
 		},
+		MerchantOperationsType: pkg.MerchantOperationTypeLowRisk,
 	}
 	rsp := &grpc.ChangeMerchantResponse{}
 	err = suite.service.ChangeMerchant(context.TODO(), req, rsp)
@@ -2676,6 +2686,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_UpdateError() {
 			Zip:     "190000",
 			City:    "St.Petersburg",
 		},
+		MerchantOperationsType: pkg.MerchantOperationTypeLowRisk,
 	}
 	rsp0 := &grpc.ChangeMerchantResponse{}
 	err := suite.service.ChangeMerchant(context.TODO(), req0, rsp0)
@@ -2726,6 +2737,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_UpdateError() {
 			Swift:         "TEST",
 			Details:       "",
 		},
+		MerchantOperationsType: pkg.MerchantOperationTypeLowRisk,
 	}
 	rsp := &grpc.ChangeMerchantResponse{}
 	err = suite.service.ChangeMerchant(context.TODO(), req, rsp)
@@ -2824,6 +2836,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantOnboardingCompleteDa
 			Zip:     "190000",
 			City:    "St.Petersburg",
 		},
+		MerchantOperationsType: pkg.MerchantOperationTypeLowRisk,
 	}
 	rsp0 := &grpc.ChangeMerchantResponse{}
 	err := suite.service.ChangeMerchant(context.TODO(), req0, rsp0)
@@ -2937,6 +2950,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_GetMerchantAgree
 			Zip:     "190000",
 			City:    "St.Petersburg",
 		},
+		MerchantOperationsType: pkg.MerchantOperationTypeLowRisk,
 	}
 	rsp0 := &grpc.ChangeMerchantResponse{}
 	err := suite.service.ChangeMerchant(context.TODO(), req0, rsp0)
@@ -2997,6 +3011,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_GetMerchantAgree
 			Swift:         "TEST",
 			Details:       "",
 		},
+		MerchantOperationsType: pkg.MerchantOperationTypeLowRisk,
 	}
 	rsp := &grpc.ChangeMerchantResponse{}
 	err = suite.service.ChangeMerchant(context.TODO(), req, rsp)
@@ -3105,6 +3120,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_GetMerchantAgree
 			Zip:     "190000",
 			City:    "St.Petersburg",
 		},
+		MerchantOperationsType: pkg.MerchantOperationTypeLowRisk,
 	}
 	rsp0 := &grpc.ChangeMerchantResponse{}
 	err := suite.service.ChangeMerchant(context.TODO(), req0, rsp0)
@@ -3170,6 +3186,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_GetMerchantAgree
 			Swift:         "TEST",
 			Details:       "",
 		},
+		MerchantOperationsType: pkg.MerchantOperationTypeLowRisk,
 	}
 	rsp := &grpc.ChangeMerchantResponse{}
 	err = suite.service.ChangeMerchant(context.TODO(), req, rsp)
@@ -3190,6 +3207,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_Pay
 			Zip:     "190000",
 			City:    "St.Petersburg",
 		},
+		MerchantOperationsType: pkg.MerchantOperationTypeLowRisk,
 	}
 	rsp0 := &grpc.ChangeMerchantResponse{}
 	err := suite.service.ChangeMerchant(context.TODO(), req0, rsp0)
@@ -3358,6 +3376,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_Ok() {
 			Swift:         "TEST",
 			Details:       "",
 		},
+		MerchantOperationsType: pkg.MerchantOperationTypeLowRisk,
 	}
 	rsp0 := &grpc.ChangeMerchantResponse{}
 	err := suite.service.ChangeMerchant(context.TODO(), req0, rsp0)

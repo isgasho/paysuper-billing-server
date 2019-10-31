@@ -505,6 +505,8 @@ message OnboardingRequest {
     billing.MerchantCompanyInfo company = 3;
     billing.MerchantContact contacts = 14;
     billing.MerchantBanking banking = 15;
+    // @inject_tag: json:"merchant_operations_type" validate:"oneof=high-risk low-risk"
+    string merchant_operations_type = 16;
 }
 
 message FindByIdRequest {
