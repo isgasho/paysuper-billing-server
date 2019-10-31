@@ -41,8 +41,6 @@ func (suite *TokenTestSuite) SetupTest() {
 	cfg, err := config.NewConfig()
 	assert.NoError(suite.T(), err, "Config load failed")
 
-	cfg.AccountingCurrency = "RUB"
-
 	db, err := mongodb.NewDatabase()
 	assert.NoError(suite.T(), err, "Database connection failed")
 

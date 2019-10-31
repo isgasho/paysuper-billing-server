@@ -44,7 +44,6 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		suite.FailNow("Config load failed", "%v", err)
 	}
 
-	cfg.AccountingCurrency = "RUB"
 	suite.cfg = cfg
 
 	db, err := mongodb.NewDatabase()
@@ -323,7 +322,6 @@ func (suite *BillingServiceTestSuite) TestBillingService_AccountingCurrencyInitE
 
 	assert.NoError(suite.T(), err)
 
-	cfg.AccountingCurrency = "AUD"
 	suite.cache = NewCacheRedis(mocks.NewTestRedis())
 	service := NewBillingService(
 		suite.db,

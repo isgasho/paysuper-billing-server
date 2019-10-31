@@ -51,7 +51,6 @@ func (suite *UserProfileTestSuite) SetupTest() {
 		suite.FailNow("Config load failed", "%v", err)
 	}
 
-	cfg.AccountingCurrency = "RUB"
 	cfg.CardPayApiUrl = "https://sandbox.cardpay.com"
 
 	db, err := mongodb.NewDatabase()

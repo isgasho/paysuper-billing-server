@@ -35,8 +35,6 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 	cfg, err := config.NewConfig()
 	assert.NoError(suite.T(), err, "Config load failed")
 
-	cfg.AccountingCurrency = "RUB"
-
 	db, err := mongodb.NewDatabase()
 	assert.NoError(suite.T(), err, "Database connection failed")
 	projectId := bson.NewObjectId().Hex()
@@ -874,7 +872,6 @@ func (suite *ProjectTestSuite) SetupTest() {
 	if err != nil {
 		suite.FailNow("Config load failed", "%v", err)
 	}
-	cfg.AccountingCurrency = "RUB"
 
 	db, err := mongodb.NewDatabase()
 	if err != nil {

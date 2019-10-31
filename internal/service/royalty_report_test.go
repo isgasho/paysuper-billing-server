@@ -61,7 +61,6 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 	if err != nil {
 		suite.FailNow("Config load failed", "%v", err)
 	}
-	cfg.AccountingCurrency = "RUB"
 	cfg.RoyaltyReportPeriodEndHour = 0
 	cfg.CardPayApiUrl = "https://sandbox.cardpay.com"
 

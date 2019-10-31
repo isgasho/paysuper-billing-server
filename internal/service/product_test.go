@@ -47,8 +47,6 @@ func (suite *ProductTestSuite) SetupTest() {
 	cfg, err := config.NewConfig()
 	assert.NoError(suite.T(), err, "Config load failed")
 
-	cfg.AccountingCurrency = "RUB"
-
 	db, err := mongodb.NewDatabase()
 	if err != nil {
 		suite.FailNow("Database connection failed", "%v", err)
