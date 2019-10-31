@@ -482,7 +482,7 @@ func (m *DashboardRepository) NewDashboardReportProcessor(
 		if period == pkg.DashboardPeriodTwoMonthsAgo {
 			decrement = decrement * 2
 		}
-		previousMonth := time.Now().AddDate(0, decrement, 0)
+		previousMonth := now.New(time.Now()).BeginningOfMonth().AddDate(0, decrement, 0)
 		gte := now.New(previousMonth).BeginningOfMonth()
 		lte := now.New(previousMonth).EndOfMonth()
 
