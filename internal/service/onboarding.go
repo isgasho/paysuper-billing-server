@@ -17,6 +17,7 @@ import (
 	reporterConst "github.com/paysuper/paysuper-reporter/pkg"
 	reporterProto "github.com/paysuper/paysuper-reporter/pkg/proto"
 	"go.uber.org/zap"
+	"strings"
 	"time"
 )
 
@@ -295,6 +296,10 @@ func (s *Service) ChangeMerchant(
 				rsp.Message = merchantErrorCurrencyNotFound
 				return nil
 			}
+		}
+
+		if req.Banking.AccountNumber != "" {
+			req.Banking.AccountNumber = strings.Join(strings.Fields(req.Banking.AccountNumber), "")
 		}
 
 		merchant.Banking = req.Banking
