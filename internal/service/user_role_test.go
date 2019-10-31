@@ -18,7 +18,7 @@ type UserRoleTestSuite struct {
 	suite.Suite
 	service *Service
 	log     *zap.Logger
-	cache   CacheInterface
+	cache   mocks.CacheInterface
 }
 
 func Test_UserRole(t *testing.T) {
@@ -30,7 +30,6 @@ func (suite *UserRoleTestSuite) SetupTest() {
 	if err != nil {
 		suite.FailNow("Config load failed", "%v", err)
 	}
-	cfg.AccountingCurrency = "RUB"
 
 	db, err := mongodb.NewDatabase()
 	if err != nil {

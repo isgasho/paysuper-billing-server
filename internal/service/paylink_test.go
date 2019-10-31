@@ -50,9 +50,6 @@ type PaylinkTestSuite struct {
 	paylink1           *paylink.Paylink // normal paylink
 	paylink2           *paylink.Paylink // deleted paylink
 	paylink3           *paylink.Paylink // expired paylink
-	merchant2          *billing.Merchant
-	project2           *billing.Project
-	project3           *billing.Project
 }
 
 func Test_Paylink(t *testing.T) {
@@ -118,7 +115,7 @@ func (suite *PaylinkTestSuite) SetupTest() {
 		&reportingMocks.ReporterService{},
 		mocks.NewFormatterOK(),
 		mocks.NewBrokerMockOk(),
-		&casbinMocks.CasbinService{},
+		casbinMocks.CasbinService{},
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -255,7 +252,7 @@ func (suite *PaylinkTestSuite) SetupTest() {
 			},
 		},
 		MerchantId: suite.merchant.Id,
-		ProjectId:  suite.project2.Id,
+		ProjectId:  bson.NewObjectId().Hex(),
 		Platforms: []*grpc.PlatformPrice{
 			{
 				Id: "steam",
@@ -618,8 +615,8 @@ func (suite *PaylinkTestSuite) Test_Paylink_Create_Fail_KeyProductFromAnotherMer
 	res := &grpc.GetPaylinkResponse{}
 	err := suite.service.CreateOrUpdatePaylink(context.TODO(), req, res)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, res.Status)
-	assert.Equal(suite.T(), errorPaylinkProductNotBelongToMerchant, res.Message)
+	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusBadData)
+	assert.Equal(suite.T(), res.Message, errorPaylinkProductNotBelongToMerchant)
 }
 
 func (suite *PaylinkTestSuite) Test_Paylink_Create_Fail_ExpiresInPast() {

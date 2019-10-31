@@ -21,7 +21,7 @@ import (
 type UsersTestSuite struct {
 	suite.Suite
 	service *Service
-	cache   CacheInterface
+	cache   mocks.CacheInterface
 }
 
 func Test_Users(t *testing.T) {

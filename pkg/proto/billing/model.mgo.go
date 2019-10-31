@@ -834,30 +834,6 @@ type MgoUserRole struct {
 	UpdatedAt  time.Time      `bson:"updated_at"`
 }
 
-type MgoUserRoleProfile struct {
-	UserId    bson.ObjectId `bson:"user_id"`
-	FirstName string        `bson:"first_name"`
-	LastName  string        `bson:"last_name"`
-	Email     string        `bson:"email"`
-	Status    string        `bson:"status"`
-	CreatedAt time.Time     `bson:"created_at"`
-	UpdatedAt time.Time     `bson:"updated_at"`
-}
-
-type MgoUserRoleProject struct {
-	ProjectId bson.ObjectId `bson:"project_id"`
-	Role      string        `bson:"role"`
-}
-
-type MgoUserRoleMerchant struct {
-	Id          bson.ObjectId      `bson:"_id"`
-	User        *UserRoleProfile   `bson:"user"`
-	MerchantId  *bson.ObjectId      `bson:"merchant_id"`
-	ProjectRole []*UserRoleProject `bson:"project_role"`
-	CreatedAt   time.Time          `bson:"created_at"`
-	UpdatedAt   time.Time          `bson:"updated_at"`
-}
-
 func (m *PayoutDocument) GetBSON() (interface{}, error) {
 	st := &MgoPayoutDocument{
 		SourceId:                m.SourceId,
