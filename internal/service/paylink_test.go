@@ -620,6 +620,24 @@ func (suite *PaylinkTestSuite) Test_Paylink_Create_Fail_KeyProductNotFound() {
 }
 
 func (suite *PaylinkTestSuite) Test_Paylink_Create_Fail_KeyProductFromAnotherMerchant() {
+	project := &billing.Project{
+		Id:                       bson.NewObjectId().Hex(),
+		CallbackCurrency:         "RUB",
+		CallbackProtocol:         "default",
+		LimitsCurrency:           "USD",
+		MaxPaymentAmount:         15000,
+		MinPaymentAmount:         1,
+		Name:                     map[string]string{"en": "test project 1"},
+		IsProductsCheckout:       false,
+		AllowDynamicRedirectUrls: true,
+		SecretKey:                "test project 1 secret key",
+		Status:                   pkg.ProjectStatusDraft,
+		MerchantId:               suite.merchant2.Id,
+	}
+	if err := suite.service.project.Insert(project); err != nil {
+		suite.FailNow("Insert project test data failed", "%v", err)
+	}
+
 	req := &paylink.CreatePaylinkRequest{
 		Name:         "Unit-test",
 		ProductsType: "key",
@@ -629,14 +647,14 @@ func (suite *PaylinkTestSuite) Test_Paylink_Create_Fail_KeyProductFromAnotherMer
 			suite.keyProduct3.Id,
 		},
 		MerchantId: suite.merchant2.Id,
-		ProjectId:  suite.projectFixedAmount.Id,
+		ProjectId:  project.Id,
 	}
 
 	res := &grpc.GetPaylinkResponse{}
 	err := suite.service.CreateOrUpdatePaylink(context.TODO(), req, res)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusBadData)
-	assert.Equal(suite.T(), res.Message, errorPaylinkProductNotBelongToMerchant)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, res.Status)
+	assert.Equal(suite.T(), errorPaylinkProductNotBelongToMerchant, res.Message)
 }
 
 func (suite *PaylinkTestSuite) Test_Paylink_Create_Fail_ExpiresInPast() {
