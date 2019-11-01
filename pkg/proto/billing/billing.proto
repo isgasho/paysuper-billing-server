@@ -260,7 +260,7 @@ message MerchantCompanyInfo {
     string website = 3;
     // @inject_tag: json:"country" validate:"required,alpha,len=2"
     string country = 4;
-    // @inject_tag: json:"state" validate:"required"
+    // @inject_tag: json:"state"
     string state = 5;
     // @inject_tag: json:"zip" validate:"required,max=30"
     string zip = 6;

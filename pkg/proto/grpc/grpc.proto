@@ -192,6 +192,8 @@ service BillingService {
     rpc GetPaylinkStatByDate (GetPaylinkStatCommonRequest) returns (GetPaylinkStatCommonGroupResponse) {}
     rpc GetPaylinkStatByUtm (GetPaylinkStatCommonRequest) returns (GetPaylinkStatCommonGroupResponse) {}
 
+    rpc DeleteSavedCard(DeleteSavedCardRequest) returns (EmptyResponseWithStatus) {}
+
     rpc GetOperatingCompaniesList (EmptyRequest) returns (GetOperatingCompaniesListResponse) {}
     rpc AddOperatingCompany (billing.OperatingCompany) returns (EmptyResponseWithStatus) {}
 }
@@ -2260,6 +2262,13 @@ message RoyaltyReportPdfUploadedRequest {
 message RoyaltyReportPdfUploadedResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
+}
+
+message DeleteSavedCardRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string id = 1;
+    //@inject_tag: validate:"required"
+    string cookie = 2;
 }
 
 message GetOperatingCompaniesListResponse {

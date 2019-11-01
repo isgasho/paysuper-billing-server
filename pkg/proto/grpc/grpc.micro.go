@@ -239,6 +239,7 @@ It has these top-level messages:
 	GetPaylinkStatCommonGroupResponse
 	RoyaltyReportPdfUploadedRequest
 	RoyaltyReportPdfUploadedResponse
+	DeleteSavedCardRequest
 	GetOperatingCompaniesListResponse
 	SetMerchantOperatingCompanyRequest
 	SetMerchantOperatingCompanyResponse
@@ -429,6 +430,7 @@ type BillingService interface {
 	GetPaylinkStatByReferrer(ctx context.Context, in *GetPaylinkStatCommonRequest, opts ...client.CallOption) (*GetPaylinkStatCommonGroupResponse, error)
 	GetPaylinkStatByDate(ctx context.Context, in *GetPaylinkStatCommonRequest, opts ...client.CallOption) (*GetPaylinkStatCommonGroupResponse, error)
 	GetPaylinkStatByUtm(ctx context.Context, in *GetPaylinkStatCommonRequest, opts ...client.CallOption) (*GetPaylinkStatCommonGroupResponse, error)
+	DeleteSavedCard(ctx context.Context, in *DeleteSavedCardRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 	GetOperatingCompaniesList(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*GetOperatingCompaniesListResponse, error)
 	AddOperatingCompany(ctx context.Context, in *billing.OperatingCompany, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 }
@@ -1951,6 +1953,16 @@ func (c *billingService) GetPaylinkStatByUtm(ctx context.Context, in *GetPaylink
 	return out, nil
 }
 
+func (c *billingService) DeleteSavedCard(ctx context.Context, in *DeleteSavedCardRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error) {
+	req := c.c.NewRequest(c.name, "BillingService.DeleteSavedCard", in)
+	out := new(EmptyResponseWithStatus)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *billingService) GetOperatingCompaniesList(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*GetOperatingCompaniesListResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.GetOperatingCompaniesList", in)
 	out := new(GetOperatingCompaniesListResponse)
@@ -2124,6 +2136,7 @@ type BillingServiceHandler interface {
 	GetPaylinkStatByReferrer(context.Context, *GetPaylinkStatCommonRequest, *GetPaylinkStatCommonGroupResponse) error
 	GetPaylinkStatByDate(context.Context, *GetPaylinkStatCommonRequest, *GetPaylinkStatCommonGroupResponse) error
 	GetPaylinkStatByUtm(context.Context, *GetPaylinkStatCommonRequest, *GetPaylinkStatCommonGroupResponse) error
+	DeleteSavedCard(context.Context, *DeleteSavedCardRequest, *EmptyResponseWithStatus) error
 	GetOperatingCompaniesList(context.Context, *EmptyRequest, *GetOperatingCompaniesListResponse) error
 	AddOperatingCompany(context.Context, *billing.OperatingCompany, *EmptyResponseWithStatus) error
 }
@@ -2280,6 +2293,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetPaylinkStatByReferrer(ctx context.Context, in *GetPaylinkStatCommonRequest, out *GetPaylinkStatCommonGroupResponse) error
 		GetPaylinkStatByDate(ctx context.Context, in *GetPaylinkStatCommonRequest, out *GetPaylinkStatCommonGroupResponse) error
 		GetPaylinkStatByUtm(ctx context.Context, in *GetPaylinkStatCommonRequest, out *GetPaylinkStatCommonGroupResponse) error
+		DeleteSavedCard(ctx context.Context, in *DeleteSavedCardRequest, out *EmptyResponseWithStatus) error
 		GetOperatingCompaniesList(ctx context.Context, in *EmptyRequest, out *GetOperatingCompaniesListResponse) error
 		AddOperatingCompany(ctx context.Context, in *billing.OperatingCompany, out *EmptyResponseWithStatus) error
 	}
@@ -2892,6 +2906,10 @@ func (h *billingServiceHandler) GetPaylinkStatByDate(ctx context.Context, in *Ge
 
 func (h *billingServiceHandler) GetPaylinkStatByUtm(ctx context.Context, in *GetPaylinkStatCommonRequest, out *GetPaylinkStatCommonGroupResponse) error {
 	return h.BillingServiceHandler.GetPaylinkStatByUtm(ctx, in, out)
+}
+
+func (h *billingServiceHandler) DeleteSavedCard(ctx context.Context, in *DeleteSavedCardRequest, out *EmptyResponseWithStatus) error {
+	return h.BillingServiceHandler.DeleteSavedCard(ctx, in, out)
 }
 
 func (h *billingServiceHandler) GetOperatingCompaniesList(ctx context.Context, in *EmptyRequest, out *GetOperatingCompaniesListResponse) error {

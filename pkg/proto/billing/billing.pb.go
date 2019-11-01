@@ -1363,8 +1363,8 @@ type MerchantCompanyInfo struct {
 	Website string `protobuf:"bytes,3,opt,name=website,proto3" json:"website" validate:"required,url"`
 	// @inject_tag: json:"country" validate:"required,alpha,len=2"
 	Country string `protobuf:"bytes,4,opt,name=country,proto3" json:"country" validate:"required,alpha,len=2"`
-	// @inject_tag: json:"state" validate:"required"
-	State string `protobuf:"bytes,5,opt,name=state,proto3" json:"state" validate:"required"`
+	// @inject_tag: json:"state"
+	State string `protobuf:"bytes,5,opt,name=state,proto3" json:"state"`
 	// @inject_tag: json:"zip" validate:"required,max=30"
 	Zip string `protobuf:"bytes,6,opt,name=zip,proto3" json:"zip" validate:"required,max=30"`
 	// @inject_tag: json:"city" validate:"required,city,max=60"
