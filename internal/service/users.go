@@ -905,7 +905,7 @@ func (s *Service) GetMerchantUserRole(
 
 func (s *Service) GetAdminUserRole(
 	ctx context.Context,
-	req *grpc.MerchantRoleRequest,
+	req *grpc.AdminRoleRequest,
 	res *grpc.UserRoleResponse,
 ) error {
 	user, err := s.userRoleRepository.GetAdminUserById(req.RoleId)
