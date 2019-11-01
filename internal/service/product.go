@@ -130,6 +130,7 @@ func (s *Service) CreateOrUpdateProduct(ctx context.Context, req *grpc.Product, 
 	res.MerchantId = req.MerchantId
 	res.ProjectId = req.ProjectId
 	res.Pricing = req.Pricing
+	res.BillingType = req.BillingType
 
 	return nil
 }
