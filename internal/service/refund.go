@@ -268,6 +268,14 @@ func (s *Service) ProcessRefundCallback(
 		err = s.onRefundNotify(ctx, refund, order)
 
 		if err != nil {
+			zap.L().Error(
+				pkg.MethodFinishedWithError,
+				zap.String("method", "onRefundNotify"),
+				zap.Error(err),
+				zap.String("refundId", refund.Id),
+				zap.String("refund-orderId", order.Id),
+			)
+
 			rsp.Error = err.Error()
 			rsp.Status = pkg.ResponseStatusSystemError
 

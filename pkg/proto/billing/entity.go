@@ -268,7 +268,7 @@ func (m *Merchant) IsBankingComplete() bool {
 }
 
 func (c *Country) GetVatCurrencyCode() string {
-	if c.VatEnabled {
+	if c.VatEnabled && c.VatCurrency != "" {
 		return c.VatCurrency
 	}
 	return c.Currency

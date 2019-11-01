@@ -1236,3 +1236,45 @@ func (suite *AccountingEntryTestSuite) helperCheckRefundView(orderId, orderCurre
 	assert.Equal(suite.T(), a, tools.ToPrecise(b))
 
 }
+
+func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_USD_EUR_None() {
+	// Order currency USD
+	// Royalty currency EUR
+	// VAT currency NONE
+
+	orderAmount := float64(650)
+	orderCountry := "AO"
+	orderCurrency := "USD"
+	royaltyCurrency := "EUR"
+	merchantCountry := "DE"
+
+	merchant := helperCreateMerchant(suite.Suite, suite.service, royaltyCurrency, merchantCountry, suite.paymentMethod, 0)
+	project := helperCreateProject(suite.Suite, suite.service, merchant.Id)
+
+	country, err := suite.service.country.GetByIsoCodeA2(orderCountry)
+	assert.NoError(suite.T(), err)
+
+	paymentMerCost := &billing.PaymentChannelCostMerchant{
+		MerchantId:              merchant.Id,
+		Name:                    "MASTERCARD",
+		PayoutCurrency:          royaltyCurrency,
+		MinAmount:               0,
+		Region:                  country.Region,
+		Country:                 country.IsoCodeA2,
+		MethodPercent:           0.025,
+		MethodFixAmount:         0.02,
+		MethodFixAmountCurrency: "EUR",
+		PsPercent:               0.05,
+		PsFixedFee:              0.05,
+		PsFixedFeeCurrency:      "EUR",
+	}
+
+	err = suite.service.paymentChannelCostMerchant.Insert(paymentMerCost)
+	assert.NoError(suite.T(), err)
+
+	order := helperCreateAndPayOrder(suite.Suite, suite.service, orderAmount, orderCurrency, orderCountry, project, suite.paymentMethod)
+	assert.NotNil(suite.T(), order)
+
+	orderAccountingEntries := suite.helperGetAccountingEntries(order.Id, collectionOrder)
+	assert.Equal(suite.T(), len(orderAccountingEntries), 15)
+}

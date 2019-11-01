@@ -87,20 +87,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 
 	merchant := helperCreateMerchant(suite, service, "USD", "RU", pmBankCard, 0)
 
-	projectFixedAmount := &billing.Project{
-		Id:                       bson.NewObjectId().Hex(),
-		CallbackCurrency:         "RUB",
-		CallbackProtocol:         "default",
-		LimitsCurrency:           "USD",
-		MaxPaymentAmount:         15000,
-		MinPaymentAmount:         1,
-		Name:                     map[string]string{"en": "test project 1"},
-		IsProductsCheckout:       false,
-		AllowDynamicRedirectUrls: true,
-		SecretKey:                "test project 1 secret key",
-		Status:                   pkg.ProjectStatusDraft,
-		MerchantId:               merchant.Id,
-	}
+	projectFixedAmount := helperCreateProject(suite, service, merchant.Id)
 
 	bin := &BinData{
 		Id:                 bson.NewObjectId(),
@@ -122,11 +109,6 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 	pms := []*billing.PaymentMethod{pmBankCard}
 	if err := service.paymentMethod.MultipleInsert(pms); err != nil {
 		suite.FailNow("Insert payment methods test data failed", "%v", err)
-	}
-
-	projects := []*billing.Project{projectFixedAmount}
-	if err := service.project.MultipleInsert(projects); err != nil {
-		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 
 	ps := []*billing.PaymentSystem{paymentSystem}
@@ -236,6 +218,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		Percent:           0.015,
 		FixAmount:         0.01,
 		FixAmountCurrency: "USD",
+		IsActive:          true,
 	}
 	paymentSysCost2 := &billing.PaymentChannelCostSystem{
 		Name:              "MASTERCARD",
@@ -244,6 +227,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		Percent:           0.015,
 		FixAmount:         0.01,
 		FixAmountCurrency: "USD",
+		IsActive:          true,
 	}
 	paymentSysCost3 := &billing.PaymentChannelCostSystem{
 		Name:              "MASTERCARD",
@@ -252,6 +236,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		Percent:           0.015,
 		FixAmount:         0.01,
 		FixAmountCurrency: "USD",
+		IsActive:          true,
 	}
 	paymentSysCost4 := &billing.PaymentChannelCostSystem{
 		Name:              "VISA",
@@ -260,6 +245,16 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		Percent:           0.015,
 		FixAmount:         0.01,
 		FixAmountCurrency: "USD",
+		IsActive:          true,
+	}
+	paymentSysCost5 := &billing.PaymentChannelCostSystem{
+		Name:              "MASTERCARD",
+		Region:            "Central Africa",
+		Country:           "AO",
+		Percent:           0.015,
+		FixAmount:         0.01,
+		FixAmountCurrency: "USD",
+		IsActive:          true,
 	}
 
 	err = service.paymentChannelCostSystem.MultipleInsert([]*billing.PaymentChannelCostSystem{
@@ -267,6 +262,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		paymentSysCost2,
 		paymentSysCost3,
 		paymentSysCost4,
+		paymentSysCost5,
 	})
 
 	if err != nil {
@@ -591,6 +587,33 @@ func helperCreateMerchant(
 	}
 
 	return merchant
+}
+
+func helperCreateProject(
+	suite suite.Suite,
+	service *Service,
+	merchantId string,
+) *billing.Project {
+	project := &billing.Project{
+		Id:                       bson.NewObjectId().Hex(),
+		CallbackCurrency:         "RUB",
+		CallbackProtocol:         "default",
+		LimitsCurrency:           "USD",
+		MaxPaymentAmount:         15000,
+		MinPaymentAmount:         1,
+		Name:                     map[string]string{"en": "test project 1"},
+		IsProductsCheckout:       false,
+		AllowDynamicRedirectUrls: true,
+		SecretKey:                "test project 1 secret key",
+		Status:                   pkg.ProjectStatusDraft,
+		MerchantId:               merchantId,
+	}
+
+	if err := service.project.Insert(project); err != nil {
+		suite.FailNow("Insert project test data failed", "%v", err)
+	}
+
+	return project
 }
 
 func helperCreateAndPayPaylinkOrder(
