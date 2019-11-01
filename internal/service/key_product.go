@@ -247,6 +247,7 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 	product.Url = req.Url
 	product.Pricing = req.Pricing
 	product.UpdatedAt = now
+	product.BillingType = req.BillingType
 
 	_, err = s.db.Collection(collectionKeyProduct).UpsertId(bson.ObjectIdHex(product.Id), product)
 
