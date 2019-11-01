@@ -522,7 +522,7 @@ func (suite *ProductTestSuite) TestProduct_UpdateProductPrices_Error_DefaultCurr
 	ps.On("Upsert", mock2.Anything).Return(nil)
 	suite.service.productService = ps
 
-	req := grpc.UpdateProductPricesRequest{Prices: []*billing.ProductPrice{{Currency: "RUB"}}}
+	req := grpc.UpdateProductPricesRequest{MerchantId: suite.merchant.Id, Prices: []*billing.ProductPrice{{Currency: "RUB"}}}
 	res := grpc.ResponseError{}
 	err := suite.service.UpdateProductPrices(context.TODO(), &req, &res)
 
@@ -536,7 +536,7 @@ func (suite *ProductTestSuite) TestProduct_UpdateProductPrices_Error_Upsert() {
 	ps.On("Upsert", mock2.Anything).Return(errors.New(""))
 	suite.service.productService = ps
 
-	req := grpc.UpdateProductPricesRequest{Prices: []*billing.ProductPrice{{Currency: "RUB", Region: "RUB"}}}
+	req := grpc.UpdateProductPricesRequest{MerchantId: suite.merchant.Id, Prices: []*billing.ProductPrice{{Currency: "RUB", Region: "RUB"}}}
 	res := grpc.ResponseError{}
 	err := suite.service.UpdateProductPrices(context.TODO(), &req, &res)
 
@@ -550,7 +550,7 @@ func (suite *ProductTestSuite) TestProduct_UpdateProductPrices_Ok() {
 	ps.On("Upsert", mock2.Anything).Return(nil)
 	suite.service.productService = ps
 
-	req := grpc.UpdateProductPricesRequest{Prices: []*billing.ProductPrice{{Currency: "RUB", Region: "RUB"}}}
+	req := grpc.UpdateProductPricesRequest{MerchantId: suite.merchant.Id, Prices: []*billing.ProductPrice{{Currency: "RUB", Region: "RUB"}}}
 	res := grpc.ResponseError{}
 	err := suite.service.UpdateProductPrices(context.TODO(), &req, &res)
 
