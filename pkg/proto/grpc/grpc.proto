@@ -22,6 +22,7 @@ service BillingService {
     rpc ListMerchants (MerchantListingRequest) returns (MerchantListingResponse) {}
     rpc ChangeMerchant (OnboardingRequest) returns (ChangeMerchantResponse) {}
     rpc ChangeMerchantStatus (MerchantChangeStatusRequest) returns (ChangeMerchantStatusResponse) {}
+    rpc SetMerchantOperatingCompany (SetMerchantOperatingCompanyRequest) returns (SetMerchantOperatingCompanyResponse) {}
     rpc ChangeMerchantData (ChangeMerchantDataRequest) returns (ChangeMerchantDataResponse) {}
     rpc SetMerchantS3Agreement (SetMerchantS3AgreementRequest) returns (ChangeMerchantDataResponse) {}
     rpc GetMerchantTariffRates (GetMerchantTariffRatesRequest) returns (GetMerchantTariffRatesResponse) {}
@@ -2265,4 +2266,17 @@ message GetOperatingCompaniesListResponse {
     ResponseErrorMessage message = 2;
     // @inject_tag: json:"items"
     repeated billing.OperatingCompany items = 3;
+}
+
+message SetMerchantOperatingCompanyRequest {
+    // @inject_tag: json:"id" validate:"required,hexadecimal,len=24"
+    string merchant_id = 1;
+    // @inject_tag: json:"operating_company_id" validate:"required,hexadecimal,len=24"
+    string operating_company_id = 2;
+}
+
+message SetMerchantOperatingCompanyResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.Merchant item = 3;
 }

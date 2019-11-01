@@ -519,6 +519,39 @@ func (s *Service) ChangeMerchantData(
 	return nil
 }
 
+func (s *Service) SetMerchantOperatingCompany(
+	ctx context.Context,
+	req *grpc.SetMerchantOperatingCompanyRequest,
+	rsp *grpc.SetMerchantOperatingCompanyResponse,
+) error {
+	merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
+
+		return nil
+	}
+
+	merchant.OperatingCompanyId = req.OperatingCompanyId
+
+	err = s.merchant.Update(merchant)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = merchantErrorUnknown
+
+		return nil
+	}
+
+	// todo: sent letter to merchant for ready to sign agreement
+
+	rsp.Status = pkg.ResponseStatusOk
+	rsp.Item = merchant
+
+	return nil
+}
+
 func (s *Service) ChangeMerchantManualPayouts(
 	ctx context.Context,
 	req *grpc.ChangeMerchantManualPayoutsRequest,
