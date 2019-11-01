@@ -767,6 +767,7 @@ github.com/paysuper/paysuper-billing-server v0.0.0-20190927123432-893bab0748f1/g
 github.com/paysuper/paysuper-billing-server v0.0.0-20191002130927-fb4dc5d0cb2c/go.mod h1:RsZbiKkMgJ/c4NDxCj2JnUpQs3Q7238HgvTSpuJvxEk=
 github.com/paysuper/paysuper-billing-server v0.0.0-20191020124804-ebda379fcb1a/go.mod h1:9QiSUsWYim3EjLC/eRgdM7Xovd8/A77L+pIfApBi0EI=
 github.com/paysuper/paysuper-billing-server v0.0.0-20191021125729-7bb90fb336aa/go.mod h1:epJRI1WusRkEkd5cR3f295XQTcianRZCLWNiaHF/s1Q=
+github.com/paysuper/paysuper-billing-server v0.0.0-20191031115520-5d2419c5f2cf/go.mod h1:gOX3JQfEkB6vdnQPmS5fH/Z2voMn+goLES5C2XnGb2I=
 github.com/paysuper/paysuper-currencies v0.0.0-20190903083641-668b8b2b997d h1:hoMkfdq4qEGOONvxajsZO0Mf6np++pGnrKVxegvplaw=
 github.com/paysuper/paysuper-currencies v0.0.0-20190903083641-668b8b2b997d/go.mod h1:C+QHdgbjIlAPxHD93/08yi+xWfUgk8maLY8FKFqNzMQ=
 github.com/paysuper/paysuper-database-mongo v0.1.0 h1:RMSIYB8rpTAAHc0wmIQz8XQVa8KB6/xX8iA8ceiDic8=
@@ -780,6 +781,10 @@ github.com/paysuper/paysuper-recurring-repository v1.0.123 h1:24cPUNrJTUXwFPI93f
 github.com/paysuper/paysuper-recurring-repository v1.0.123/go.mod h1:J5qs2I+QNL09dzJeCOGT++zrOXMbJNrzGP62/B6ZaEg=
 github.com/paysuper/paysuper-recurring-repository v1.0.124 h1:unUHzvLD0J119K1QOHdD6MZM5eYYtLP7Ip9JwwN3cGA=
 github.com/paysuper/paysuper-recurring-repository v1.0.124/go.mod h1:J5qs2I+QNL09dzJeCOGT++zrOXMbJNrzGP62/B6ZaEg=
+github.com/paysuper/paysuper-recurring-repository v1.0.125 h1:S+3hsWszpNq5cebzfXmMcosOU+oacVjpSIVEPDhiS14=
+github.com/paysuper/paysuper-recurring-repository v1.0.125/go.mod h1:uanExr/gUugfZT3B9ZpIxIKmElSZbQYl1ImrzOy1R+0=
+github.com/paysuper/paysuper-recurring-repository v1.0.126 h1:4+Qyv4QVQor2x6vjx+816tA5iVfsej02c4QHUi+GOh4=
+github.com/paysuper/paysuper-recurring-repository v1.0.126/go.mod h1:uanExr/gUugfZT3B9ZpIxIKmElSZbQYl1ImrzOy1R+0=
 github.com/paysuper/paysuper-reporter v0.0.0-20190923193057-f9fbc0ddd67c h1:vD8DTjgflquG6T63Iq8JFAhQW7zTDqZSI3lWh5LGTlM=
 github.com/paysuper/paysuper-reporter v0.0.0-20190923193057-f9fbc0ddd67c/go.mod h1:Jp1cfxAkeC9e9x6kylvm3m7aIEYbRF4/G39Y0VEg/+g=
 github.com/paysuper/paysuper-reporter v0.0.0-20190926070334-68df87eeae2b h1:Z0iLqHIUcthKk2eE4YoYaJuMgKdbWIXs/UmjxwBIdCM=
