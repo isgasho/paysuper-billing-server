@@ -198,9 +198,11 @@ type BillingService interface {
 	ChangeRoleForMerchantUser(ctx context.Context, in *ChangeRoleForMerchantUserRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 	ChangeRoleForAdminUser(ctx context.Context, in *ChangeRoleForAdminUserRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 	GetRoleList(ctx context.Context, in *GetRoleListRequest, opts ...client.CallOption) (*GetRoleListResponse, error)
-	DeleteMerchantUser(ctx context.Context, in *DeleteMerchantUserRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
-	DeleteAdminUser(ctx context.Context, in *DeleteAdminUserRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
+	DeleteMerchantUser(ctx context.Context, in *MerchantRoleRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
+	DeleteAdminUser(ctx context.Context, in *AdminRoleRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 	GetPermissionsForUser(ctx context.Context, in *GetPermissionsForUserRequest, opts ...client.CallOption) (*GetPermissionsForUserResponse, error)
+	GetMerchantUserRole(ctx context.Context, in *MerchantRoleRequest, opts ...client.CallOption) (*UserRoleResponse, error)
+	GetAdminUserRole(ctx context.Context, in *AdminRoleRequest, opts ...client.CallOption) (*UserRoleResponse, error)
 }
 
 type billingService struct {
@@ -1831,7 +1833,7 @@ func (c *billingService) GetRoleList(ctx context.Context, in *GetRoleListRequest
 	return out, nil
 }
 
-func (c *billingService) DeleteMerchantUser(ctx context.Context, in *DeleteMerchantUserRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error) {
+func (c *billingService) DeleteMerchantUser(ctx context.Context, in *MerchantRoleRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error) {
 	req := c.c.NewRequest(c.name, "BillingService.DeleteMerchantUser", in)
 	out := new(EmptyResponseWithStatus)
 	err := c.c.Call(ctx, req, out, opts...)
@@ -1841,7 +1843,7 @@ func (c *billingService) DeleteMerchantUser(ctx context.Context, in *DeleteMerch
 	return out, nil
 }
 
-func (c *billingService) DeleteAdminUser(ctx context.Context, in *DeleteAdminUserRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error) {
+func (c *billingService) DeleteAdminUser(ctx context.Context, in *AdminRoleRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error) {
 	req := c.c.NewRequest(c.name, "BillingService.DeleteAdminUser", in)
 	out := new(EmptyResponseWithStatus)
 	err := c.c.Call(ctx, req, out, opts...)
@@ -1854,6 +1856,26 @@ func (c *billingService) DeleteAdminUser(ctx context.Context, in *DeleteAdminUse
 func (c *billingService) GetPermissionsForUser(ctx context.Context, in *GetPermissionsForUserRequest, opts ...client.CallOption) (*GetPermissionsForUserResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.GetPermissionsForUser", in)
 	out := new(GetPermissionsForUserResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetMerchantUserRole(ctx context.Context, in *MerchantRoleRequest, opts ...client.CallOption) (*UserRoleResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetMerchantUserRole", in)
+	out := new(UserRoleResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetAdminUserRole(ctx context.Context, in *AdminRoleRequest, opts ...client.CallOption) (*UserRoleResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetAdminUserRole", in)
+	out := new(UserRoleResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -2025,9 +2047,11 @@ type BillingServiceHandler interface {
 	ChangeRoleForMerchantUser(context.Context, *ChangeRoleForMerchantUserRequest, *EmptyResponseWithStatus) error
 	ChangeRoleForAdminUser(context.Context, *ChangeRoleForAdminUserRequest, *EmptyResponseWithStatus) error
 	GetRoleList(context.Context, *GetRoleListRequest, *GetRoleListResponse) error
-	DeleteMerchantUser(context.Context, *DeleteMerchantUserRequest, *EmptyResponseWithStatus) error
-	DeleteAdminUser(context.Context, *DeleteAdminUserRequest, *EmptyResponseWithStatus) error
+	DeleteMerchantUser(context.Context, *MerchantRoleRequest, *EmptyResponseWithStatus) error
+	DeleteAdminUser(context.Context, *AdminRoleRequest, *EmptyResponseWithStatus) error
 	GetPermissionsForUser(context.Context, *GetPermissionsForUserRequest, *GetPermissionsForUserResponse) error
+	GetMerchantUserRole(context.Context, *MerchantRoleRequest, *UserRoleResponse) error
+	GetAdminUserRole(context.Context, *AdminRoleRequest, *UserRoleResponse) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -2193,9 +2217,11 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		ChangeRoleForMerchantUser(ctx context.Context, in *ChangeRoleForMerchantUserRequest, out *EmptyResponseWithStatus) error
 		ChangeRoleForAdminUser(ctx context.Context, in *ChangeRoleForAdminUserRequest, out *EmptyResponseWithStatus) error
 		GetRoleList(ctx context.Context, in *GetRoleListRequest, out *GetRoleListResponse) error
-		DeleteMerchantUser(ctx context.Context, in *DeleteMerchantUserRequest, out *EmptyResponseWithStatus) error
-		DeleteAdminUser(ctx context.Context, in *DeleteAdminUserRequest, out *EmptyResponseWithStatus) error
+		DeleteMerchantUser(ctx context.Context, in *MerchantRoleRequest, out *EmptyResponseWithStatus) error
+		DeleteAdminUser(ctx context.Context, in *AdminRoleRequest, out *EmptyResponseWithStatus) error
 		GetPermissionsForUser(ctx context.Context, in *GetPermissionsForUserRequest, out *GetPermissionsForUserResponse) error
+		GetMerchantUserRole(ctx context.Context, in *MerchantRoleRequest, out *UserRoleResponse) error
+		GetAdminUserRole(ctx context.Context, in *AdminRoleRequest, out *UserRoleResponse) error
 	}
 	type BillingService struct {
 		billingService
@@ -2852,14 +2878,22 @@ func (h *billingServiceHandler) GetRoleList(ctx context.Context, in *GetRoleList
 	return h.BillingServiceHandler.GetRoleList(ctx, in, out)
 }
 
-func (h *billingServiceHandler) DeleteMerchantUser(ctx context.Context, in *DeleteMerchantUserRequest, out *EmptyResponseWithStatus) error {
+func (h *billingServiceHandler) DeleteMerchantUser(ctx context.Context, in *MerchantRoleRequest, out *EmptyResponseWithStatus) error {
 	return h.BillingServiceHandler.DeleteMerchantUser(ctx, in, out)
 }
 
-func (h *billingServiceHandler) DeleteAdminUser(ctx context.Context, in *DeleteAdminUserRequest, out *EmptyResponseWithStatus) error {
+func (h *billingServiceHandler) DeleteAdminUser(ctx context.Context, in *AdminRoleRequest, out *EmptyResponseWithStatus) error {
 	return h.BillingServiceHandler.DeleteAdminUser(ctx, in, out)
 }
 
 func (h *billingServiceHandler) GetPermissionsForUser(ctx context.Context, in *GetPermissionsForUserRequest, out *GetPermissionsForUserResponse) error {
 	return h.BillingServiceHandler.GetPermissionsForUser(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetMerchantUserRole(ctx context.Context, in *MerchantRoleRequest, out *UserRoleResponse) error {
+	return h.BillingServiceHandler.GetMerchantUserRole(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetAdminUserRole(ctx context.Context, in *AdminRoleRequest, out *UserRoleResponse) error {
+	return h.BillingServiceHandler.GetAdminUserRole(ctx, in, out)
 }

@@ -57,7 +57,7 @@ var (
 	errorUserUnableToDeleteFromCasbin = newBillingServerErrorMsg("uu000017", "unable to delete user from the casbin server")
 	errorUserDontHaveRole             = newBillingServerErrorMsg("uu000018", "user dont have any role")
 	errorUserUnableResendInvite       = newBillingServerErrorMsg("uu000019", "unable to resend invite")
-	errorUserBelongAnotherMerchant    = newBillingServerErrorMsg("uu000020", "user belongs to another merchant")
+	errorUserGetImplicitPermissions   = newBillingServerErrorMsg("uu000020", "unable to get implicit permission for user")
 
 	merchantUserRoles = map[string][]*billing.RoleListItem{
 		pkg.RoleTypeMerchant: {
@@ -645,7 +645,7 @@ func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.Chang
 	user, err := s.userRoleRepository.GetMerchantUserById(req.RoleId)
 
 	if err != nil || user.MerchantId != req.MerchantId {
-		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req))
+		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserNotFound
 
@@ -664,7 +664,7 @@ func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.Chang
 	err = s.userRoleRepository.UpdateMerchantUser(user)
 
 	if err != nil {
-		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
+		zap.L().Error(errorUserUnableToSave.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusSystemError
 		res.Message = errorUserUnableToSave
 
@@ -703,7 +703,7 @@ func (s *Service) ChangeRoleForAdminUser(ctx context.Context, req *grpc.ChangeRo
 	user, err := s.userRoleRepository.GetAdminUserById(req.RoleId)
 
 	if err != nil {
-		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req))
+		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserNotFound
 
@@ -771,13 +771,13 @@ func (s *Service) GetRoleList(ctx context.Context, req *grpc.GetRoleListRequest,
 
 func (s *Service) DeleteMerchantUser(
 	ctx context.Context,
-	req *grpc.DeleteMerchantUserRequest,
+	req *grpc.MerchantRoleRequest,
 	res *grpc.EmptyResponseWithStatus,
 ) error {
 	user, err := s.userRoleRepository.GetMerchantUserById(req.RoleId)
 
 	if err != nil || user.MerchantId != req.MerchantId {
-		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req))
+		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserNotFound
 
@@ -810,13 +810,13 @@ func (s *Service) DeleteMerchantUser(
 
 func (s *Service) DeleteAdminUser(
 	ctx context.Context,
-	req *grpc.DeleteAdminUserRequest,
+	req *grpc.AdminRoleRequest,
 	res *grpc.EmptyResponseWithStatus,
 ) error {
 	user, err := s.userRoleRepository.GetAdminUserById(req.RoleId)
 
 	if err != nil {
-		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req))
+		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserNotFound
 
@@ -853,9 +853,9 @@ func (s *Service) GetPermissionsForUser(ctx context.Context, req *grpc.GetPermis
 
 	rsp, err := s.casbinService.GetImplicitPermissionsForUser(ctx, &casbinProto.PermissionRequest{User: userId})
 	if err != nil {
-		zap.L().Error(errorUserUnableToDeleteFromCasbin.Message, zap.Error(err), zap.Any("req", req))
+		zap.L().Error(errorUserGetImplicitPermissions.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserUnableToDeleteFromCasbin
+		res.Message = errorUserGetImplicitPermissions
 
 		return nil
 	}
@@ -878,6 +878,48 @@ func (s *Service) GetPermissionsForUser(ctx context.Context, req *grpc.GetPermis
 
 	res.Permissions = permissions
 	res.Status = pkg.ResponseStatusOk
+
+	return nil
+}
+
+func (s *Service) GetMerchantUserRole(
+	ctx context.Context,
+	req *grpc.MerchantRoleRequest,
+	res *grpc.UserRoleResponse,
+) error {
+	user, err := s.userRoleRepository.GetMerchantUserById(req.RoleId)
+
+	if err != nil || user.MerchantId != req.MerchantId {
+		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserNotFound
+
+		return nil
+	}
+
+	res.Status = pkg.ResponseStatusOk
+	res.UserRole = user
+
+	return nil
+}
+
+func (s *Service) GetAdminUserRole(
+	ctx context.Context,
+	req *grpc.MerchantRoleRequest,
+	res *grpc.UserRoleResponse,
+) error {
+	user, err := s.userRoleRepository.GetAdminUserById(req.RoleId)
+
+	if err != nil {
+		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserNotFound
+
+		return nil
+	}
+
+	res.Status = pkg.ResponseStatusOk
+	res.UserRole = user
 
 	return nil
 }

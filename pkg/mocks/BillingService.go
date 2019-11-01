@@ -1005,7 +1005,7 @@ func (_m *BillingService) CreateToken(ctx context.Context, in *grpc.TokenRequest
 }
 
 // DeleteAdminUser provides a mock function with given fields: ctx, in, opts
-func (_m *BillingService) DeleteAdminUser(ctx context.Context, in *grpc.DeleteAdminUserRequest, opts ...client.CallOption) (*grpc.EmptyResponseWithStatus, error) {
+func (_m *BillingService) DeleteAdminUser(ctx context.Context, in *grpc.AdminRoleRequest, opts ...client.CallOption) (*grpc.EmptyResponseWithStatus, error) {
 	_va := make([]interface{}, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
@@ -1016,7 +1016,7 @@ func (_m *BillingService) DeleteAdminUser(ctx context.Context, in *grpc.DeleteAd
 	ret := _m.Called(_ca...)
 
 	var r0 *grpc.EmptyResponseWithStatus
-	if rf, ok := ret.Get(0).(func(context.Context, *grpc.DeleteAdminUserRequest, ...client.CallOption) *grpc.EmptyResponseWithStatus); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.AdminRoleRequest, ...client.CallOption) *grpc.EmptyResponseWithStatus); ok {
 		r0 = rf(ctx, in, opts...)
 	} else {
 		if ret.Get(0) != nil {
@@ -1025,7 +1025,7 @@ func (_m *BillingService) DeleteAdminUser(ctx context.Context, in *grpc.DeleteAd
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *grpc.DeleteAdminUserRequest, ...client.CallOption) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.AdminRoleRequest, ...client.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)
@@ -1065,7 +1065,7 @@ func (_m *BillingService) DeleteKeyProduct(ctx context.Context, in *grpc.Request
 }
 
 // DeleteMerchantUser provides a mock function with given fields: ctx, in, opts
-func (_m *BillingService) DeleteMerchantUser(ctx context.Context, in *grpc.DeleteMerchantUserRequest, opts ...client.CallOption) (*grpc.EmptyResponseWithStatus, error) {
+func (_m *BillingService) DeleteMerchantUser(ctx context.Context, in *grpc.MerchantRoleRequest, opts ...client.CallOption) (*grpc.EmptyResponseWithStatus, error) {
 	_va := make([]interface{}, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
@@ -1076,7 +1076,7 @@ func (_m *BillingService) DeleteMerchantUser(ctx context.Context, in *grpc.Delet
 	ret := _m.Called(_ca...)
 
 	var r0 *grpc.EmptyResponseWithStatus
-	if rf, ok := ret.Get(0).(func(context.Context, *grpc.DeleteMerchantUserRequest, ...client.CallOption) *grpc.EmptyResponseWithStatus); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.MerchantRoleRequest, ...client.CallOption) *grpc.EmptyResponseWithStatus); ok {
 		r0 = rf(ctx, in, opts...)
 	} else {
 		if ret.Get(0) != nil {
@@ -1085,7 +1085,7 @@ func (_m *BillingService) DeleteMerchantUser(ctx context.Context, in *grpc.Delet
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *grpc.DeleteMerchantUserRequest, ...client.CallOption) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.MerchantRoleRequest, ...client.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)
@@ -1506,6 +1506,36 @@ func (_m *BillingService) FinishRedeemKeyForOrder(ctx context.Context, in *grpc.
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *grpc.KeyForOrderRequest, ...client.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetAdminUserRole provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) GetAdminUserRole(ctx context.Context, in *grpc.AdminRoleRequest, opts ...client.CallOption) (*grpc.UserRoleResponse, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *grpc.UserRoleResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.AdminRoleRequest, ...client.CallOption) *grpc.UserRoleResponse); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*grpc.UserRoleResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.AdminRoleRequest, ...client.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)
@@ -2166,6 +2196,36 @@ func (_m *BillingService) GetMerchantTariffRates(ctx context.Context, in *grpc.G
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *grpc.GetMerchantTariffRatesRequest, ...client.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetMerchantUserRole provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) GetMerchantUserRole(ctx context.Context, in *grpc.MerchantRoleRequest, opts ...client.CallOption) (*grpc.UserRoleResponse, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *grpc.UserRoleResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.MerchantRoleRequest, ...client.CallOption) *grpc.UserRoleResponse); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*grpc.UserRoleResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.MerchantRoleRequest, ...client.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)

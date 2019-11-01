@@ -46,16 +46,6 @@ type Config struct {
 	CentrifugoURL       string `envconfig:"CENTRIFUGO_URL" required:"false" default:"http://127.0.0.1:8000"`
 	BrokerAddress       string `envconfig:"BROKER_ADDRESS" default:"amqp://127.0.0.1:5672"`
 
-	CentrifugoUserChannel           string `envconfig:"CENTRIFUGO_USER_CHANNEL" default:"paysuper:user#%s"`
-	EmailConfirmTokenLifetime       int64  `envconfig:"EMAIL_CONFIRM_TOKEN_LIFETIME" default:"86400"`
-	EmailConfirmUrl                 string `envconfig:"EMAIL_CONFIRM_URL" default:"https://paysupermgmt.tst.protocol.one/confirm_email"`
-	EmailConfirmTemplate            string `envconfig:"EMAIL_CONFIRM_TEMPLATE" default:"p1_verify_letter"`
-	EmailNewRoyaltyReportTemplate   string `envconfig:"EMAIL_NEW_ROYALTY_REPORT_TEMPLATE" default:"p1_new_royalty_report"`
-	EmailVatReportTemplate          string `envconfig:"EMAIL_VAT_REPORT_TEMPLATE" default:"p1_vat_report"`
-	EmailGameCodeTemplate           string `envconfig:"EMAIL_ACTIVATION_CODE_TEMPLATE" default:"p1_verify_letter-2"`
-	EmailSuccessTransactionTemplate string `envconfig:"EMAIL_SUCCESS_TRANSACTION_TEMPLATE" default:"p1_verify_letter-4"`
-	EmailRefundTransactionTemplate  string `envconfig:"EMAIL_REFUND_TRANSACTION_TEMPLATE" default:"p1_verify_letter-5"`
-	EmailInviteTemplate             string `envconfig:"EMAIL_INVITE_TEMPLATE" default:"code-your-own"`
 	CentrifugoUserChannel            string `envconfig:"CENTRIFUGO_USER_CHANNEL" default:"paysuper:user#%s"`
 	EmailConfirmTokenLifetime        int64  `envconfig:"EMAIL_CONFIRM_TOKEN_LIFETIME" default:"86400"`
 	EmailConfirmUrl                  string `envconfig:"EMAIL_CONFIRM_URL" default:"https://paysupermgmt.tst.protocol.one/confirm_email"`
@@ -100,9 +90,6 @@ type Config struct {
 
 	KeyDaemonRestartInterval int64  `envconfig:"KEY_DAEMON_RESTART_INTERVAL" default:"60"`
 	DashboardProjectsUrl     string `envconfig:"DASHBOARD_PROJECTS_URL" default:"https://paysupermgmt.tst.protocol.one/projects"`
-
-	UserInviteTokenSecret  string `envconfig:"USER_INVITE_TOKEN_SECRET" required:"true"`
-	UserInviteTokenTimeout int64  `envconfig:"USER_INVITE_TOKEN_TIMEOUT" default:"48"`
 
 	PaylinkMinProducts int `envconfig:"PAYLINK_MIN_PRODUCTS" required:"false" default:"1"`
 	PaylinkMaxProducts int `envconfig:"PAYLINK_MAX_PRODUCTS" required:"false" default:"8"`
