@@ -27,6 +27,7 @@ type MoneyBackCostSystemTestSuite struct {
 	cache                 internalPkg.CacheInterface
 	moneyBackCostSystemId string
 	merchantId            string
+	operatingCompany      *billing.OperatingCompany
 }
 
 func Test_MoneyBackCostSystem(t *testing.T) {
@@ -71,6 +72,8 @@ func (suite *MoneyBackCostSystemTestSuite) SetupTest() {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 
+	suite.operatingCompany = helperOperatingCompany(suite.Suite, suite.service)
+
 	countryAz := &billing.Country{
 		Id:              bson.NewObjectId().Hex(),
 		IsoCodeA2:       "AZ",
@@ -102,40 +105,46 @@ func (suite *MoneyBackCostSystemTestSuite) SetupTest() {
 	suite.merchantId = bson.NewObjectId().Hex()
 
 	moneyBackCostSystem := &billing.MoneyBackCostSystem{
-		Id:             suite.moneyBackCostSystemId,
-		Name:           "VISA",
-		PayoutCurrency: "USD",
-		UndoReason:     "chargeback",
-		Region:         "CIS",
-		Country:        "AZ",
-		DaysFrom:       0,
-		PaymentStage:   1,
-		Percent:        3,
-		FixAmount:      5,
+		Id:                 suite.moneyBackCostSystemId,
+		Name:               "VISA",
+		PayoutCurrency:     "USD",
+		UndoReason:         "chargeback",
+		Region:             "CIS",
+		Country:            "AZ",
+		DaysFrom:           0,
+		PaymentStage:       1,
+		Percent:            3,
+		FixAmount:          5,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	moneyBackCostSystem2 := &billing.MoneyBackCostSystem{
-		Name:           "VISA",
-		PayoutCurrency: "USD",
-		UndoReason:     "chargeback",
-		Region:         "CIS",
-		Country:        "AZ",
-		DaysFrom:       30,
-		PaymentStage:   1,
-		Percent:        10,
-		FixAmount:      15,
+		Name:               "VISA",
+		PayoutCurrency:     "USD",
+		UndoReason:         "chargeback",
+		Region:             "CIS",
+		Country:            "AZ",
+		DaysFrom:           30,
+		PaymentStage:       1,
+		Percent:            10,
+		FixAmount:          15,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	anotherMoneyBackCostSystem := &billing.MoneyBackCostSystem{
-		Name:           "VISA",
-		PayoutCurrency: "USD",
-		UndoReason:     "chargeback",
-		Region:         "CIS",
-		Country:        "",
-		DaysFrom:       0,
-		PaymentStage:   1,
-		Percent:        2,
-		FixAmount:      3,
+		Name:               "VISA",
+		PayoutCurrency:     "USD",
+		UndoReason:         "chargeback",
+		Region:             "CIS",
+		Country:            "",
+		DaysFrom:           0,
+		PaymentStage:       1,
+		Percent:            2,
+		FixAmount:          3,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 	pucs := []*billing.MoneyBackCostSystem{moneyBackCostSystem, moneyBackCostSystem2, anotherMoneyBackCostSystem}
 	if err := suite.service.moneyBackCostSystem.MultipleInsert(pucs); err != nil {
@@ -183,16 +192,18 @@ func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_GrpcGet_Ok() 
 
 func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_GrpcSet_Ok() {
 	req := &billing.MoneyBackCostSystem{
-		Id:             suite.moneyBackCostSystemId,
-		Name:           "VISA",
-		PayoutCurrency: "USD",
-		UndoReason:     "chargeback",
-		Region:         "CIS",
-		Country:        "AZ",
-		DaysFrom:       0,
-		PaymentStage:   1,
-		Percent:        3.33,
-		FixAmount:      7.5,
+		Id:                 suite.moneyBackCostSystemId,
+		Name:               "VISA",
+		PayoutCurrency:     "USD",
+		UndoReason:         "chargeback",
+		Region:             "CIS",
+		Country:            "AZ",
+		DaysFrom:           0,
+		PaymentStage:       1,
+		Percent:            3.33,
+		FixAmount:          7.5,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	res := grpc.MoneyBackCostSystemResponse{}
@@ -207,15 +218,17 @@ func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_GrpcSet_Ok() 
 
 func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_Insert_Ok() {
 	req := &billing.MoneyBackCostSystem{
-		Name:           "MASTERCARD",
-		PayoutCurrency: "USD",
-		UndoReason:     "chargeback",
-		Region:         "US",
-		Country:        "",
-		DaysFrom:       0,
-		PaymentStage:   1,
-		Percent:        3.33,
-		FixAmount:      7.5,
+		Name:               "MASTERCARD",
+		PayoutCurrency:     "USD",
+		UndoReason:         "chargeback",
+		Region:             "US",
+		Country:            "",
+		DaysFrom:           0,
+		PaymentStage:       1,
+		Percent:            3.33,
+		FixAmount:          7.5,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	assert.NoError(suite.T(), suite.service.moneyBackCostSystem.Insert(req))
@@ -234,7 +247,7 @@ func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_Insert_ErrorC
 		Percent:        3.33,
 		FixAmount:      7.5,
 	}
-	key := fmt.Sprintf(cacheMoneyBackCostSystemKey, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, obj.Country, obj.PaymentStage)
+	key := fmt.Sprintf(cacheMoneyBackCostSystemKey, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, obj.Country, obj.PaymentStage, obj.MccCode, obj.OperatingCompanyId)
 	ci.On("Set", key, mock2.Anything, mock2.Anything).
 		Return(errors.New("service unavailable"))
 	suite.service.cacher = ci
@@ -246,29 +259,31 @@ func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_Insert_ErrorC
 
 func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_UpdateOk() {
 	obj := &billing.MoneyBackCostSystem{
-		Id:             suite.moneyBackCostSystemId,
-		Name:           "VISA",
-		PayoutCurrency: "USD",
-		UndoReason:     "chargeback",
-		Region:         "CIS",
-		Country:        "AZ",
-		DaysFrom:       0,
-		PaymentStage:   2,
-		Percent:        4,
-		FixAmount:      7,
+		Id:                 suite.moneyBackCostSystemId,
+		Name:               "VISA",
+		PayoutCurrency:     "USD",
+		UndoReason:         "chargeback",
+		Region:             "CIS",
+		Country:            "AZ",
+		DaysFrom:           0,
+		PaymentStage:       2,
+		Percent:            4,
+		FixAmount:          7,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	assert.NoError(suite.T(), suite.service.moneyBackCostSystem.Update(obj))
 }
 
 func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_Get_Ok() {
-	val, err := suite.service.moneyBackCostSystem.Get("VISA", "USD", "chargeback", "CIS", "AZ", 1)
+	val, err := suite.service.moneyBackCostSystem.Get("VISA", "USD", "chargeback", "CIS", "AZ", 1, pkg.MccCodeLowRisk, suite.operatingCompany.Id)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), len(val.Items), 2)
 	assert.Equal(suite.T(), val.Items[0].Country, "AZ")
 	assert.Equal(suite.T(), val.Items[0].FixAmount, float64(5))
 
-	val, err = suite.service.moneyBackCostSystem.Get("VISA", "USD", "chargeback", "CIS", "", 1)
+	val, err = suite.service.moneyBackCostSystem.Get("VISA", "USD", "chargeback", "CIS", "", 1, pkg.MccCodeLowRisk, suite.operatingCompany.Id)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), len(val.Items), 1)
 	assert.Equal(suite.T(), val.Items[0].Country, "")

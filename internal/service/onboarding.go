@@ -48,7 +48,6 @@ var (
 	merchantTariffsNotFound                   = newBillingServerErrorMsg("mr000023", "tariffs for merchant not found")
 	merchantPayoutCurrencyMissed              = newBillingServerErrorMsg("mr000024", "merchant don't have payout currency")
 	merchantErrorOperationsTypeNotSupported   = newBillingServerErrorMsg("mr000025", "merchant operations type not supported")
-	merchantErrorOperationsTypeNotConfigured  = newBillingServerErrorMsg("mr000026", "merchant operations type not configured")
 
 	merchantSignAgreementMessage        = map[string]string{"code": "mr000017", "message": "license agreement was signed by merchant"}
 	merchantAgreementReadyToSignMessage = map[string]interface{}{"code": "mr000025", "generated": true, "message": "merchant license agreement ready to sign"}
@@ -311,16 +310,6 @@ func (s *Service) ChangeMerchant(
 		merchant.Contacts = req.Contacts
 	}
 
-	if req.MerchantOperationsType != "" {
-		mccCode, ok := pkg.MerchantOperationsTypesToMccCodes[req.MerchantOperationsType]
-		if !ok {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = merchantErrorOperationsTypeNotSupported
-			return nil
-		}
-		merchant.MccCode = mccCode
-	}
-
 	if merchant.IsDataComplete() {
 		err = s.generateMerchantAgreement(ctx, merchant)
 
@@ -341,7 +330,6 @@ func (s *Service) ChangeMerchant(
 	merchant.Steps.Company = merchant.IsCompanyComplete()
 	merchant.Steps.Contacts = merchant.IsContactsComplete()
 	merchant.Steps.Banking = merchant.IsBankingComplete()
-	merchant.Steps.Mcc = merchant.IsMccComplete()
 
 	if !merchant.HasPrimaryOnboardingUserName() {
 		profile := s.getOnboardingProfileBy(bson.M{"user_id": req.User.Id})
@@ -1298,6 +1286,16 @@ func (s *Service) SetMerchantTariffRates(
 	req *grpc.SetMerchantTariffRatesRequest,
 	rsp *grpc.CheckProjectRequestSignatureResponse,
 ) error {
+	mccCode, err := getMccByOperationsType(req.MerchantOperationsType)
+	if err != nil {
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
+	}
+
 	merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
 
 	if err != nil {
@@ -1318,13 +1316,6 @@ func (s *Service) SetMerchantTariffRates(
 		return nil
 	}
 
-	if !merchant.IsMccComplete() {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = merchantErrorOperationsTypeNotConfigured
-
-		return nil
-	}
-
 	if merchant.IsAgreementSigningStarted() {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = merchantErrorChangeNotAllowed
@@ -1332,7 +1323,10 @@ func (s *Service) SetMerchantTariffRates(
 		return nil
 	}
 
-	query := &grpc.GetMerchantTariffRatesRequest{HomeRegion: req.HomeRegion}
+	query := &grpc.GetMerchantTariffRatesRequest{
+		HomeRegion:             req.HomeRegion,
+		MerchantOperationsType: req.MerchantOperationsType,
+	}
 	tariffs, err := s.merchantTariffRates.GetBy(query)
 
 	if err != nil {
@@ -1372,6 +1366,7 @@ func (s *Service) SetMerchantTariffRates(
 					CreatedAt:               ptypes.TimestampNow(),
 					UpdatedAt:               ptypes.TimestampNow(),
 					IsActive:                true,
+					MccCode:                 mccCode,
 				}
 
 				costs = append(costs, cost)
@@ -1424,6 +1419,7 @@ func (s *Service) SetMerchantTariffRates(
 				CreatedAt:         ptypes.TimestampNow(),
 				UpdatedAt:         ptypes.TimestampNow(),
 				IsActive:          true,
+				MccCode:           mccCode,
 			}
 			costs = append(costs, cost)
 
@@ -1443,6 +1439,7 @@ func (s *Service) SetMerchantTariffRates(
 				CreatedAt:         ptypes.TimestampNow(),
 				UpdatedAt:         ptypes.TimestampNow(),
 				IsActive:          true,
+				MccCode:           mccCode,
 			}
 			costs = append(costs, cost)
 		}
@@ -1457,6 +1454,8 @@ func (s *Service) SetMerchantTariffRates(
 			return nil
 		}
 	}
+
+	merchant.MccCode = mccCode
 
 	merchant.Tariff = &billing.MerchantTariff{
 		Payment:    tariffs.Payment,

@@ -264,11 +264,17 @@ func (s *Service) onPaymentNotify(ctx context.Context, order *billing.Order) err
 		return err
 	}
 
+	merchant, err := s.merchant.GetById(order.GetMerchantId())
+	if err != nil {
+		return err
+	}
+
 	handler := &accountingEntry{
-		Service: s,
-		order:   order,
-		ctx:     ctx,
-		country: country,
+		Service:  s,
+		order:    order,
+		ctx:      ctx,
+		country:  country,
+		merchant: merchant,
 	}
 
 	return s.processEvent(handler, accountingEventTypePayment)
@@ -287,6 +293,11 @@ func (s *Service) onRefundNotify(ctx context.Context, refund *billing.Refund, or
 		return err
 	}
 
+	merchant, err := s.merchant.GetById(refundOrder.GetMerchantId())
+	if err != nil {
+		return err
+	}
+
 	handler := &accountingEntry{
 		Service:     s,
 		refund:      refund,
@@ -294,6 +305,7 @@ func (s *Service) onRefundNotify(ctx context.Context, refund *billing.Refund, or
 		refundOrder: refundOrder,
 		ctx:         ctx,
 		country:     country,
+		merchant:    merchant,
 	}
 
 	return s.processEvent(handler, accountingEventTypeRefund)
@@ -1125,7 +1137,7 @@ func (h *accountingEntry) getPaymentChannelCostSystem() (*billing.PaymentChannel
 		return nil, err
 	}
 
-	cost, err := h.Service.paymentChannelCostSystem.Get(name, h.country.Region, h.country.IsoCodeA2)
+	cost, err := h.Service.paymentChannelCostSystem.Get(name, h.country.Region, h.country.IsoCodeA2, h.merchant.MccCode, h.merchant.OperatingCompanyId)
 
 	if err != nil {
 		zap.L().Error(
@@ -1154,6 +1166,7 @@ func (h *accountingEntry) getPaymentChannelCostMerchant(amount float64) (*billin
 		Amount:         amount,
 		Region:         h.country.Region,
 		Country:        h.country.IsoCodeA2,
+		MccCode:        h.merchant.MccCode,
 	}
 	cost, err := h.Service.getPaymentChannelCostMerchant(req)
 
@@ -1189,6 +1202,7 @@ func (h *accountingEntry) getMoneyBackCostMerchant(reason string) (*billing.Mone
 		Country:        h.country.IsoCodeA2,
 		PaymentStage:   1,
 		Days:           int32(refundAt.Sub(paymentAt).Hours() / 24),
+		MccCode:        h.merchant.MccCode,
 	}
 	return h.Service.getMoneyBackCostMerchant(data)
 }
@@ -1204,13 +1218,15 @@ func (h *accountingEntry) getMoneyBackCostSystem(reason string) (*billing.MoneyB
 	refundAt, _ := ptypes.Timestamp(h.refund.CreatedAt)
 
 	data := &billing.MoneyBackCostSystemRequest{
-		Name:           name,
-		PayoutCurrency: h.order.GetMerchantRoyaltyCurrency(),
-		Region:         h.country.Region,
-		Country:        h.country.IsoCodeA2,
-		PaymentStage:   1,
-		Days:           int32(refundAt.Sub(paymentAt).Hours() / 24),
-		UndoReason:     reason,
+		Name:               name,
+		PayoutCurrency:     h.order.GetMerchantRoyaltyCurrency(),
+		Region:             h.country.Region,
+		Country:            h.country.IsoCodeA2,
+		PaymentStage:       1,
+		Days:               int32(refundAt.Sub(paymentAt).Hours() / 24),
+		UndoReason:         reason,
+		MccCode:            h.merchant.MccCode,
+		OperatingCompanyId: h.merchant.OperatingCompanyId,
 	}
 	return h.Service.getMoneyBackCostSystem(data)
 }

@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	cacheMoneyBackCostMerchantKey   = "pucm:m:%s:n:%s:pc:%s:ur:%s:r:%s:c:%s:ps:%d"
+	cacheMoneyBackCostMerchantKey   = "pucm:m:%s:n:%s:pc:%s:ur:%s:r:%s:c:%s:ps:%d:mcc:%s"
 	cacheMoneyBackCostMerchantKeyId = "pucm:id:%s"
 	cacheMoneyBackCostMerchantAll   = "pucm:all:m:%s"
 
@@ -31,6 +31,7 @@ var (
 	errorMoneybackMerchantDelete           = newBillingServerErrorMsg("mbm000004", "can't delete money back setting for merchant")
 	errorMoneybackMerchantCurrency         = newBillingServerErrorMsg("mbm000005", "currency not supported")
 	errorMoneybackMerchantCostAlreadyExist = newBillingServerErrorMsg("mbm000006", "cost with specified parameters already exist")
+	errorMoneybackMerchantMccCode          = newBillingServerErrorMsg("mbm000007", "mcc code not supported")
 	errorCostRateNotFound                  = newBillingServerErrorMsg("cr000001", "cost rate with specified identifier not found")
 )
 
@@ -117,6 +118,11 @@ func (s *Service) SetMoneyBackCostMerchant(
 		res.Message = errorMoneybackMerchantCurrency
 		return nil
 	}
+	if !contains(pkg.SupportedMccCodes, req.MccCode) {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorMoneybackMerchantMccCode
+		return nil
+	}
 
 	req.UpdatedAt = ptypes.TimestampNow()
 	req.IsActive = true
@@ -178,7 +184,7 @@ func (s *Service) DeleteMoneyBackCostMerchant(
 }
 
 func (s *Service) getMoneyBackCostMerchant(req *billing.MoneyBackCostMerchantRequest) (*billing.MoneyBackCostMerchant, error) {
-	val, err := s.moneyBackCostMerchant.Get(req.MerchantId, req.Name, req.PayoutCurrency, req.UndoReason, req.Region, req.Country, req.PaymentStage)
+	val, err := s.moneyBackCostMerchant.Get(req.MerchantId, req.Name, req.PayoutCurrency, req.UndoReason, req.Region, req.Country, req.PaymentStage, req.MccCode)
 	if err != nil {
 		return nil, err
 	}
@@ -212,11 +218,14 @@ func (h *MoneyBackCostMerchant) Insert(obj *billing.MoneyBackCostMerchant) error
 		return err
 	}
 
-	key := fmt.Sprintf(cacheMoneyBackCostMerchantKey, obj.MerchantId, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, obj.Country, obj.PaymentStage)
+	key := fmt.Sprintf(cacheMoneyBackCostMerchantKey, obj.MerchantId, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, obj.Country, obj.PaymentStage, obj.MccCode)
 	if err := h.svc.cacher.Set(key, obj, 0); err != nil {
 		return err
 	}
-
+	key = fmt.Sprintf(cacheMoneyBackCostMerchantKeyId, obj.Id)
+	if err := h.svc.cacher.Set(key, obj, 0); err != nil {
+		return err
+	}
 	key = fmt.Sprintf(cacheMoneyBackCostMerchantAll, obj.MerchantId)
 	if err := h.svc.cacher.Delete(key); err != nil {
 		return err
@@ -253,11 +262,14 @@ func (h MoneyBackCostMerchant) Update(obj *billing.MoneyBackCostMerchant) error 
 	if err := h.svc.db.Collection(collectionMoneyBackCostMerchant).UpdateId(bson.ObjectIdHex(obj.Id), obj); err != nil {
 		return err
 	}
-	key := fmt.Sprintf(cacheMoneyBackCostMerchantKey, obj.MerchantId, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, obj.Country, obj.PaymentStage)
+	key := fmt.Sprintf(cacheMoneyBackCostMerchantKey, obj.MerchantId, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, obj.Country, obj.PaymentStage, obj.MccCode)
 	if err := h.svc.cacher.Set(key, obj, 0); err != nil {
 		return err
 	}
-
+	key = fmt.Sprintf(cacheMoneyBackCostMerchantKeyId, obj.Id)
+	if err := h.svc.cacher.Set(key, obj, 0); err != nil {
+		return err
+	}
 	key = fmt.Sprintf(cacheMoneyBackCostMerchantAll, obj.MerchantId)
 	if err := h.svc.cacher.Delete(key); err != nil {
 		return err
@@ -274,9 +286,10 @@ func (h MoneyBackCostMerchant) Get(
 	region string,
 	country string,
 	paymentStage int32,
+	mccCode string,
 ) (*billing.MoneyBackCostMerchantList, error) {
 	var c billing.MoneyBackCostMerchantList
-	key := fmt.Sprintf(cacheMoneyBackCostMerchantKey, merchantId, name, payoutCurrency, undoReason, region, country, paymentStage)
+	key := fmt.Sprintf(cacheMoneyBackCostMerchantKey, merchantId, name, payoutCurrency, undoReason, region, country, paymentStage, mccCode)
 
 	if err := h.svc.cacher.Get(key, c); err == nil {
 		return &c, nil
@@ -291,6 +304,7 @@ func (h MoneyBackCostMerchant) Get(
 		"country":         country,
 		"payment_stage":   paymentStage,
 		"is_active":       true,
+		"mcc_code":        mccCode,
 	}
 
 	if err := h.svc.db.Collection(collectionMoneyBackCostMerchant).
@@ -334,7 +348,20 @@ func (h MoneyBackCostMerchant) Delete(obj *billing.MoneyBackCostMerchant) error 
 
 		return err
 	}
-	key := fmt.Sprintf(cacheMoneyBackCostMerchantKey, obj.MerchantId, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, obj.Country, obj.PaymentStage)
+	key := fmt.Sprintf(cacheMoneyBackCostMerchantKey, obj.MerchantId, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, obj.Country, obj.PaymentStage, obj.MccCode)
+	if err := h.svc.cacher.Delete(key); err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldKey, key),
+			zap.String(pkg.ErrorCacheFieldCmd, "DELETE"),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, obj),
+		)
+
+		return err
+	}
+
+	key = fmt.Sprintf(cacheMoneyBackCostMerchantKeyId, obj.Id)
 	if err := h.svc.cacher.Delete(key); err != nil {
 		zap.L().Error(
 			pkg.ErrorCacheQueryFailed,
@@ -371,7 +398,7 @@ func (h MoneyBackCostMerchant) GetAllForMerchant(merchant_id string) (*billing.M
 	if err := h.svc.cacher.Get(key, c); err != nil {
 		err = h.svc.db.Collection(collectionMoneyBackCostMerchant).
 			Find(bson.M{"merchant_id": bson.ObjectIdHex(merchant_id), "is_active": true}).
-			Sort("name", "payout_currency", "undo_reason", "region", "country", "payment_stage").
+			Sort("name", "payout_currency", "undo_reason", "region", "country", "payment_stage", "mcc_code").
 			All(&c.Items)
 		if err != nil {
 			return nil, err

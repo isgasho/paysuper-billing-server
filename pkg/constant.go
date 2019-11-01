@@ -314,6 +314,8 @@ var (
 		MerchantOperationTypeHighRisk: MccCodeHighRisk,
 	}
 
+	SupportedMccCodes = []string{MccCodeLowRisk, MccCodeHighRisk}
+
 	CountryPhoneCodes = map[int32]string{
 		7:    "RU",
 		375:  "BY",

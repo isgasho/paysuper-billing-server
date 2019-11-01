@@ -506,8 +506,6 @@ message OnboardingRequest {
     billing.MerchantCompanyInfo company = 3;
     billing.MerchantContact contacts = 14;
     billing.MerchantBanking banking = 15;
-    // @inject_tag: json:"merchant_operations_type" validate:"oneof=high-risk low-risk"
-    string merchant_operations_type = 16;
 }
 
 message FindByIdRequest {
@@ -1754,6 +1752,8 @@ message GetMerchantTariffRatesRequest {
     double min_amount = 3;
     // @inject_tag: query:"max_amount" validate:"omitempty,numeric,gt=0"
     double max_amount = 4;
+    // @inject_tag: json:"merchant_operations_type" validate:"oneof=high-risk low-risk"
+    string merchant_operations_type = 5;
 }
 
 message GetMerchantTariffRatesResponseItems {
@@ -1777,6 +1777,8 @@ message SetMerchantTariffRatesRequest {
     string merchant_id = 1;
     // @inject_tag: json:"home_region" validate:"required,tariff_region"
     string home_region = 2;
+    // @inject_tag: json:"merchant_operations_type" validate:"oneof=high-risk low-risk"
+    string merchant_operations_type = 3;
 }
 
 message ListOrdersPublicResponseItem {

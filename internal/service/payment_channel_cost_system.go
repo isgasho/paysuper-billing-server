@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	cachePaymentChannelCostSystemKey   = "pccs:n:%s:r:%s:c:%s"
+	cachePaymentChannelCostSystemKey   = "pccs:n:%s:r:%s:c:%s:mcc:%s:oc:%s"
 	cachePaymentChannelCostSystemKeyId = "pccs:id:%s"
 	cachePaymentChannelCostSystemAll   = "pccs:all"
 
@@ -22,12 +22,14 @@ const (
 )
 
 var (
-	errorPaymentChannelSystemGetAll           = newBillingServerErrorMsg("pcs000001", "can't get list of payment channel setting for system")
-	errorPaymentChannelSystemGet              = newBillingServerErrorMsg("pcs000002", "can't get payment channel setting for system")
-	errorPaymentChannelSystemSetFailed        = newBillingServerErrorMsg("pcs000003", "can't set payment channel setting for system")
-	errorPaymentChannelSystemDelete           = newBillingServerErrorMsg("pcs000004", "can't delete payment channel setting for system")
-	errorPaymentChannelSystemCurrency         = newBillingServerErrorMsg("pcs000005", "currency not supported")
-	errorPaymentChannelSystemCostAlreadyExist = newBillingServerErrorMsg("pcs000006", "cost with specified parameters already exist")
+	errorPaymentChannelSystemGetAll                    = newBillingServerErrorMsg("pcs000001", "can't get list of payment channel setting for system")
+	errorPaymentChannelSystemGet                       = newBillingServerErrorMsg("pcs000002", "can't get payment channel setting for system")
+	errorPaymentChannelSystemSetFailed                 = newBillingServerErrorMsg("pcs000003", "can't set payment channel setting for system")
+	errorPaymentChannelSystemDelete                    = newBillingServerErrorMsg("pcs000004", "can't delete payment channel setting for system")
+	errorPaymentChannelSystemCurrency                  = newBillingServerErrorMsg("pcs000005", "currency not supported")
+	errorPaymentChannelSystemCostAlreadyExist          = newBillingServerErrorMsg("pcs000006", "cost with specified parameters already exist")
+	errorPaymentChannelSystemMccCode                   = newBillingServerErrorMsg("pcs000007", "mcc code not supported")
+	errorPaymentChannelSystemOperatingCompanyNotExists = newBillingServerErrorMsg("pcs000008", "operating company not exists")
 )
 
 func (s *Service) GetAllPaymentChannelCostSystem(
@@ -53,7 +55,7 @@ func (s *Service) GetPaymentChannelCostSystem(
 	req *billing.PaymentChannelCostSystemRequest,
 	res *grpc.PaymentChannelCostSystemResponse,
 ) error {
-	val, err := s.paymentChannelCostSystem.Get(req.Name, req.Region, req.Country)
+	val, err := s.paymentChannelCostSystem.Get(req.Name, req.Region, req.Country, req.MccCode, req.OperatingCompanyId)
 	if err != nil {
 		res.Status = pkg.ResponseStatusNotFound
 		res.Message = errorPaymentChannelSystemGet
@@ -72,7 +74,7 @@ func (s *Service) SetPaymentChannelCostSystem(
 	res *grpc.PaymentChannelCostSystemResponse,
 ) error {
 
-	val, err := s.paymentChannelCostSystem.Get(req.Name, req.Region, req.Country)
+	val, err := s.paymentChannelCostSystem.Get(req.Name, req.Region, req.Country, req.MccCode, req.OperatingCompanyId)
 	if err != nil && err.Error() != fmt.Sprintf(errorNotFound, collectionPaymentChannelCostSystem) {
 		res.Status = pkg.ResponseStatusSystemError
 		res.Message = errorPaymentChannelSystemSetFailed
@@ -107,6 +109,16 @@ func (s *Service) SetPaymentChannelCostSystem(
 	if !contains(sCurr.Currencies, req.FixAmountCurrency) {
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorPaymentChannelSystemCurrency
+		return nil
+	}
+	if !contains(pkg.SupportedMccCodes, req.MccCode) {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorPaymentChannelSystemMccCode
+		return nil
+	}
+	if !s.operatingCompany.Exists(req.OperatingCompanyId) {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorPaymentChannelSystemOperatingCompanyNotExists
 		return nil
 	}
 
@@ -173,7 +185,11 @@ func (h *PaymentChannelCostSystem) Insert(obj *billing.PaymentChannelCostSystem)
 		return err
 	}
 
-	key := fmt.Sprintf(cachePaymentChannelCostSystemKey, obj.Name, obj.Region, obj.Country)
+	key := fmt.Sprintf(cachePaymentChannelCostSystemKey, obj.Name, obj.Region, obj.Country, obj.MccCode, obj.OperatingCompanyId)
+	if err := h.svc.cacher.Set(key, obj, 0); err != nil {
+		return err
+	}
+	key = fmt.Sprintf(cachePaymentChannelCostSystemKeyId, obj.Id)
 	if err := h.svc.cacher.Set(key, obj, 0); err != nil {
 		return err
 	}
@@ -213,7 +229,11 @@ func (h PaymentChannelCostSystem) Update(obj *billing.PaymentChannelCostSystem) 
 	if err := h.svc.db.Collection(collectionPaymentChannelCostSystem).UpdateId(bson.ObjectIdHex(obj.Id), obj); err != nil {
 		return err
 	}
-	key := fmt.Sprintf(cachePaymentChannelCostSystemKey, obj.Name, obj.Region, obj.Country)
+	key := fmt.Sprintf(cachePaymentChannelCostSystemKey, obj.Name, obj.Region, obj.Country, obj.MccCode, obj.OperatingCompanyId)
+	if err := h.svc.cacher.Set(key, obj, 0); err != nil {
+		return err
+	}
+	key = fmt.Sprintf(cachePaymentChannelCostSystemKeyId, obj.Id)
 	if err := h.svc.cacher.Set(key, obj, 0); err != nil {
 		return err
 	}
@@ -242,9 +262,9 @@ func (h PaymentChannelCostSystem) GetById(id string) (*billing.PaymentChannelCos
 	return &c, nil
 }
 
-func (h PaymentChannelCostSystem) Get(name string, region string, country string) (*billing.PaymentChannelCostSystem, error) {
+func (h PaymentChannelCostSystem) Get(name, region, country, mccCode, operatingCompanyId string) (*billing.PaymentChannelCostSystem, error) {
 	var c billing.PaymentChannelCostSystem
-	key := fmt.Sprintf(cachePaymentChannelCostSystemKey, name, region, country)
+	key := fmt.Sprintf(cachePaymentChannelCostSystemKey, name, region, country, mccCode, operatingCompanyId)
 
 	if err := h.svc.cacher.Get(key, c); err == nil {
 		return &c, nil
@@ -266,7 +286,11 @@ func (h PaymentChannelCostSystem) Delete(obj *billing.PaymentChannelCostSystem) 
 	if err := h.svc.db.Collection(collectionPaymentChannelCostSystem).UpdateId(bson.ObjectIdHex(obj.Id), obj); err != nil {
 		return err
 	}
-	key := fmt.Sprintf(cachePaymentChannelCostSystemKey, obj.Name, obj.Region, obj.Country)
+	key := fmt.Sprintf(cachePaymentChannelCostSystemKey, obj.Name, obj.Region, obj.Country, obj.MccCode, obj.OperatingCompanyId)
+	if err := h.svc.cacher.Delete(key); err != nil {
+		return err
+	}
+	key = fmt.Sprintf(cachePaymentChannelCostSystemKeyId, obj.Id)
 	if err := h.svc.cacher.Delete(key); err != nil {
 		return err
 	}

@@ -1,0 +1,138 @@
+[
+  {
+    "dropIndexes": "payment_channel_cost_system", "index": "*"
+  },
+  {
+    "dropIndexes": "payment_channel_cost_merchant", "index": "*"
+  },
+  {
+    "dropIndexes": "money_back_cost_system", "index": "*"
+  },
+  {
+    "dropIndexes": "money_back_cost_merchant", "index": "*"
+  },
+  {
+    "createIndexes": "payment_channel_cost_system",
+    "indexes": [
+      {
+        "key": {
+          "name": 1,
+          "region": 1,
+          "country": 1,
+          "is_active": 1,
+          "mcc_code": 1,
+          "operating_company_id": 1
+        },
+        "name": "nrcamo",
+        "unique": true,
+        "partialFilterExpression": {
+          "is_active": true
+        }
+      },
+      {
+        "key": {
+          "is_active": 1
+        },
+        "name": "is_active"
+      }
+    ]
+  },
+  {
+    "createIndexes": "payment_channel_cost_merchant",
+    "indexes": [
+      {
+        "key": {
+          "merchant_id": 1,
+          "name": 1,
+          "payout_currency": 1,
+          "min_amount": 1,
+          "region": 1,
+          "country": 1,
+          "is_active": 1,
+          "mcc_code": 1
+        },
+        "name": "mnpmrcam",
+        "unique": true,
+        "partialFilterExpression": {
+          "is_active": true
+        }
+      },
+      {
+        "key": {
+          "merchant_id": 1,
+          "name": 1,
+          "payout_currency": 1,
+          "region": 1,
+          "country": 1
+        },
+        "name": "mnprc"
+      },
+      {
+        "key": {
+          "is_active": 1
+        },
+        "name": "is_active"
+      }
+    ]
+  },
+  {
+    "createIndexes": "money_back_cost_system",
+    "indexes": [
+      {
+        "key": {
+          "name": 1,
+          "payout_currency": 1,
+          "undo_reason": 1,
+          "region": 1,
+          "country": 1,
+          "days_from": 1,
+          "payment_stage": 1,
+          "is_active": 1,
+          "mcc_code": 1,
+          "operating_company_id": 1
+        },
+        "name": "npurcdpamo",
+        "unique": true,
+        "partialFilterExpression": {
+          "is_active": true
+        }
+      },
+      {
+        "key": {
+          "is_active": 1
+        },
+        "name": "is_active"
+      }
+    ]
+  },
+  {
+    "createIndexes": "money_back_cost_merchant",
+    "indexes": [
+      {
+        "key": {
+          "merchant_id": 1,
+          "name": 1,
+          "payout_currency": 1,
+          "undo_reason": 1,
+          "region": 1,
+          "country": 1,
+          "days_from": 1,
+          "payment_stage": 1,
+          "is_active": 1,
+          "mcc_code": 1
+        },
+        "name": "mnpurcdpam",
+        "unique": true,
+        "partialFilterExpression": {
+          "is_active": true
+        }
+      },
+      {
+        "key": {
+          "is_active": 1
+        },
+        "name": "is_active"
+      }
+    ]
+  }
+]

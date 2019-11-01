@@ -477,16 +477,18 @@ type MgoZipCode struct {
 }
 
 type MgoPaymentChannelCostSystem struct {
-	Id                bson.ObjectId `bson:"_id"`
-	Name              string        `bson:"name"`
-	Region            string        `bson:"region"`
-	Country           string        `bson:"country"`
-	Percent           float64       `bson:"percent"`
-	FixAmount         float64       `bson:"fix_amount"`
-	FixAmountCurrency string        `bson:"fix_amount_currency"`
-	CreatedAt         time.Time     `bson:"created_at"`
-	UpdatedAt         time.Time     `bson:"updated_at"`
-	IsActive          bool          `bson:"is_active"`
+	Id                 bson.ObjectId `bson:"_id"`
+	Name               string        `bson:"name"`
+	Region             string        `bson:"region"`
+	Country            string        `bson:"country"`
+	Percent            float64       `bson:"percent"`
+	FixAmount          float64       `bson:"fix_amount"`
+	FixAmountCurrency  string        `bson:"fix_amount_currency"`
+	CreatedAt          time.Time     `bson:"created_at"`
+	UpdatedAt          time.Time     `bson:"updated_at"`
+	IsActive           bool          `bson:"is_active"`
+	MccCode            string        `bson:"mcc_code"`
+	OperatingCompanyId string        `bson:"operating_company_id"`
 }
 
 type MgoPaymentChannelCostMerchant struct {
@@ -506,22 +508,25 @@ type MgoPaymentChannelCostMerchant struct {
 	CreatedAt               time.Time     `bson:"created_at"`
 	UpdatedAt               time.Time     `bson:"updated_at"`
 	IsActive                bool          `bson:"is_active"`
+	MccCode                 string        `bson:"mcc_code"`
 }
 
 type MgoMoneyBackCostSystem struct {
-	Id             bson.ObjectId `bson:"_id"`
-	Name           string        `bson:"name"`
-	PayoutCurrency string        `bson:"payout_currency"`
-	UndoReason     string        `bson:"undo_reason"`
-	Region         string        `bson:"region"`
-	Country        string        `bson:"country"`
-	DaysFrom       int32         `bson:"days_from"`
-	PaymentStage   int32         `bson:"payment_stage"`
-	Percent        float64       `bson:"percent"`
-	FixAmount      float64       `bson:"fix_amount"`
-	CreatedAt      time.Time     `bson:"created_at"`
-	UpdatedAt      time.Time     `bson:"updated_at"`
-	IsActive       bool          `bson:"is_active"`
+	Id                 bson.ObjectId `bson:"_id"`
+	Name               string        `bson:"name"`
+	PayoutCurrency     string        `bson:"payout_currency"`
+	UndoReason         string        `bson:"undo_reason"`
+	Region             string        `bson:"region"`
+	Country            string        `bson:"country"`
+	DaysFrom           int32         `bson:"days_from"`
+	PaymentStage       int32         `bson:"payment_stage"`
+	Percent            float64       `bson:"percent"`
+	FixAmount          float64       `bson:"fix_amount"`
+	CreatedAt          time.Time     `bson:"created_at"`
+	UpdatedAt          time.Time     `bson:"updated_at"`
+	IsActive           bool          `bson:"is_active"`
+	MccCode            string        `bson:"mcc_code"`
+	OperatingCompanyId string        `bson:"operating_company_id"`
 }
 
 type MgoMoneyBackCostMerchant struct {
@@ -541,6 +546,7 @@ type MgoMoneyBackCostMerchant struct {
 	CreatedAt         time.Time     `bson:"created_at"`
 	UpdatedAt         time.Time     `bson:"updated_at"`
 	IsActive          bool          `bson:"is_active"`
+	MccCode           string        `bson:"mcc_code"`
 }
 
 type MgoPriceTable struct {
@@ -2939,13 +2945,15 @@ func (m *Customer) SetBSON(raw bson.Raw) error {
 
 func (m *PaymentChannelCostSystem) GetBSON() (interface{}, error) {
 	st := &MgoPaymentChannelCostSystem{
-		Name:              m.Name,
-		Region:            m.Region,
-		Country:           m.Country,
-		Percent:           m.Percent,
-		FixAmount:         m.FixAmount,
-		FixAmountCurrency: m.FixAmountCurrency,
-		IsActive:          m.IsActive,
+		Name:               m.Name,
+		Region:             m.Region,
+		Country:            m.Country,
+		Percent:            m.Percent,
+		FixAmount:          m.FixAmount,
+		FixAmountCurrency:  m.FixAmountCurrency,
+		IsActive:           m.IsActive,
+		MccCode:            m.MccCode,
+		OperatingCompanyId: m.OperatingCompanyId,
 	}
 	if len(m.Id) <= 0 {
 		st.Id = bson.NewObjectId()
@@ -2993,6 +3001,8 @@ func (m *PaymentChannelCostSystem) SetBSON(raw bson.Raw) error {
 	m.FixAmount = decoded.FixAmount
 	m.FixAmountCurrency = decoded.FixAmountCurrency
 	m.IsActive = decoded.IsActive
+	m.MccCode = decoded.MccCode
+	m.OperatingCompanyId = decoded.OperatingCompanyId
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {
@@ -3022,6 +3032,7 @@ func (m *PaymentChannelCostMerchant) GetBSON() (interface{}, error) {
 		PsFixedFee:              m.PsFixedFee,
 		PsFixedFeeCurrency:      m.PsFixedFeeCurrency,
 		IsActive:                m.IsActive,
+		MccCode:                 m.MccCode,
 	}
 
 	if len(m.Id) <= 0 {
@@ -3076,6 +3087,7 @@ func (m *PaymentChannelCostMerchant) SetBSON(raw bson.Raw) error {
 	m.PsFixedFee = decoded.PsFixedFee
 	m.PsFixedFeeCurrency = decoded.PsFixedFeeCurrency
 	m.IsActive = decoded.IsActive
+	m.MccCode = decoded.MccCode
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {
@@ -3092,16 +3104,18 @@ func (m *PaymentChannelCostMerchant) SetBSON(raw bson.Raw) error {
 
 func (m *MoneyBackCostSystem) GetBSON() (interface{}, error) {
 	st := &MgoMoneyBackCostSystem{
-		Name:           m.Name,
-		PayoutCurrency: m.PayoutCurrency,
-		UndoReason:     m.UndoReason,
-		Region:         m.Region,
-		Country:        m.Country,
-		DaysFrom:       m.DaysFrom,
-		PaymentStage:   m.PaymentStage,
-		Percent:        m.Percent,
-		FixAmount:      m.FixAmount,
-		IsActive:       m.IsActive,
+		Name:               m.Name,
+		PayoutCurrency:     m.PayoutCurrency,
+		UndoReason:         m.UndoReason,
+		Region:             m.Region,
+		Country:            m.Country,
+		DaysFrom:           m.DaysFrom,
+		PaymentStage:       m.PaymentStage,
+		Percent:            m.Percent,
+		FixAmount:          m.FixAmount,
+		IsActive:           m.IsActive,
+		MccCode:            m.MccCode,
+		OperatingCompanyId: m.OperatingCompanyId,
 	}
 	if len(m.Id) <= 0 {
 		st.Id = bson.NewObjectId()
@@ -3152,6 +3166,8 @@ func (m *MoneyBackCostSystem) SetBSON(raw bson.Raw) error {
 	m.Percent = decoded.Percent
 	m.FixAmount = decoded.FixAmount
 	m.IsActive = decoded.IsActive
+	m.MccCode = decoded.MccCode
+	m.OperatingCompanyId = decoded.OperatingCompanyId
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {
@@ -3181,6 +3197,7 @@ func (m *MoneyBackCostMerchant) GetBSON() (interface{}, error) {
 		FixAmountCurrency: m.FixAmountCurrency,
 		IsPaidByMerchant:  m.IsPaidByMerchant,
 		IsActive:          m.IsActive,
+		MccCode:           m.MccCode,
 	}
 	if len(m.Id) <= 0 {
 		st.Id = bson.NewObjectId()
@@ -3234,6 +3251,7 @@ func (m *MoneyBackCostMerchant) SetBSON(raw bson.Raw) error {
 	m.FixAmountCurrency = decoded.FixAmountCurrency
 	m.IsPaidByMerchant = decoded.IsPaidByMerchant
 	m.IsActive = decoded.IsActive
+	m.MccCode = decoded.MccCode
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {

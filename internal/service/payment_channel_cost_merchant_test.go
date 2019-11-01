@@ -147,6 +147,7 @@ func (suite *PaymentChannelCostMerchantTestSuite) SetupTest() {
 		PsPercent:          3,
 		PsFixedFee:         0.01,
 		PsFixedFeeCurrency: "EUR",
+		MccCode:            pkg.MccCodeLowRisk,
 	}
 
 	paymentChannelCostMerchant2 := &billing.PaymentChannelCostMerchant{
@@ -161,6 +162,7 @@ func (suite *PaymentChannelCostMerchantTestSuite) SetupTest() {
 		PsPercent:          5,
 		PsFixedFee:         0.05,
 		PsFixedFeeCurrency: "EUR",
+		MccCode:            pkg.MccCodeLowRisk,
 	}
 
 	anotherPaymentChannelCostMerchant := &billing.PaymentChannelCostMerchant{
@@ -175,6 +177,7 @@ func (suite *PaymentChannelCostMerchantTestSuite) SetupTest() {
 		PsPercent:          5,
 		PsFixedFee:         0.05,
 		PsFixedFeeCurrency: "EUR",
+		MccCode:            pkg.MccCodeLowRisk,
 	}
 	pccm := []*billing.PaymentChannelCostMerchant{paymentChannelCostMerchant, paymentChannelCostMerchant2, anotherPaymentChannelCostMerchant}
 	if err := suite.service.paymentChannelCostMerchant.MultipleInsert(pccm); err != nil {
@@ -199,6 +202,7 @@ func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant
 		Region:         "CIS",
 		Country:        "AZ",
 		Amount:         10,
+		MccCode:        pkg.MccCodeLowRisk,
 	}
 
 	res := &grpc.PaymentChannelCostMerchantResponse{}
@@ -233,6 +237,7 @@ func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant
 		PsPercent:               2,
 		PsFixedFee:              0.01,
 		PsFixedFeeCurrency:      "EUR",
+		MccCode:                 pkg.MccCodeLowRisk,
 	}
 
 	res := grpc.PaymentChannelCostMerchantResponse{}
@@ -253,6 +258,7 @@ func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant
 		Country:         "",
 		MethodPercent:   2.2,
 		MethodFixAmount: 0,
+		MccCode:         pkg.MccCodeLowRisk,
 	}
 
 	assert.NoError(suite.T(), suite.service.paymentChannelCostMerchant.Insert(req))
@@ -267,8 +273,9 @@ func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant
 		Country:         "",
 		MethodPercent:   2.1,
 		MethodFixAmount: 0,
+		MccCode:         pkg.MccCodeLowRisk,
 	}
-	key := fmt.Sprintf(cachePaymentChannelCostMerchantKey, obj.MerchantId, obj.Name, obj.PayoutCurrency, obj.Region, obj.Country)
+	key := fmt.Sprintf(cachePaymentChannelCostMerchantKey, obj.MerchantId, obj.Name, obj.PayoutCurrency, obj.Region, obj.Country, obj.MccCode)
 	ci.On("Set", key, mock2.Anything, mock2.Anything).
 		Return(errors.New("service unavailable"))
 	suite.service.cacher = ci
@@ -287,19 +294,20 @@ func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant
 		Country:         "",
 		MethodPercent:   2.1,
 		MethodFixAmount: 0,
+		MccCode:         pkg.MccCodeLowRisk,
 	}
 
 	assert.NoError(suite.T(), suite.service.paymentChannelCostMerchant.Update(obj))
 }
 
 func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant_Get_Ok() {
-	val, err := suite.service.paymentChannelCostMerchant.Get(suite.merchantId, "VISA", "USD", "CIS", "AZ")
+	val, err := suite.service.paymentChannelCostMerchant.Get(suite.merchantId, "VISA", "USD", "CIS", "AZ", pkg.MccCodeLowRisk)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), len(val.Items), 2)
 	assert.Equal(suite.T(), val.Items[0].Country, "AZ")
 	assert.Equal(suite.T(), val.Items[0].MethodFixAmount, float64(0.01))
 
-	val, err = suite.service.paymentChannelCostMerchant.Get(suite.merchantId, "VISA", "USD", "CIS", "")
+	val, err = suite.service.paymentChannelCostMerchant.Get(suite.merchantId, "VISA", "USD", "CIS", "", pkg.MccCodeLowRisk)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), len(val.Items), 1)
 	assert.Equal(suite.T(), val.Items[0].Country, "")
@@ -314,6 +322,7 @@ func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant
 		Region:         "CIS",
 		Country:        "AZ",
 		Amount:         0,
+		MccCode:        pkg.MccCodeLowRisk,
 	}
 
 	_, err := suite.service.getPaymentChannelCostMerchant(req)

@@ -568,6 +568,12 @@ func (p *createRefundProcessor) hasMoneyBackCosts(order *billing.Order) bool {
 		return false
 	}
 
+	merchantId := order.GetMerchantId()
+	merchant, err := p.service.merchant.GetById(merchantId)
+	if err != nil {
+		return false
+	}
+
 	paymentAt, _ := ptypes.Timestamp(order.PaymentMethodOrderClosedAt)
 	refundAt := time.Now()
 	reason := pkg.UndoReasonReversal
@@ -577,13 +583,15 @@ func (p *createRefundProcessor) hasMoneyBackCosts(order *billing.Order) bool {
 	}
 
 	data := &billing.MoneyBackCostSystemRequest{
-		Name:           methodName,
-		PayoutCurrency: order.GetMerchantRoyaltyCurrency(),
-		Region:         country.Region,
-		Country:        country.IsoCodeA2,
-		PaymentStage:   1,
-		Days:           int32(refundAt.Sub(paymentAt).Hours() / 24),
-		UndoReason:     reason,
+		Name:               methodName,
+		PayoutCurrency:     order.GetMerchantRoyaltyCurrency(),
+		Region:             country.Region,
+		Country:            country.IsoCodeA2,
+		PaymentStage:       1,
+		Days:               int32(refundAt.Sub(paymentAt).Hours() / 24),
+		UndoReason:         reason,
+		MccCode:            merchant.MccCode,
+		OperatingCompanyId: merchant.OperatingCompanyId,
 	}
 	_, err = p.service.getMoneyBackCostSystem(data)
 
@@ -600,6 +608,7 @@ func (p *createRefundProcessor) hasMoneyBackCosts(order *billing.Order) bool {
 		Country:        country.IsoCodeA2,
 		PaymentStage:   1,
 		Days:           int32(refundAt.Sub(paymentAt).Hours() / 24),
+		MccCode:        merchant.MccCode,
 	}
 	_, err = p.service.getMoneyBackCostMerchant(data1)
 	return err == nil

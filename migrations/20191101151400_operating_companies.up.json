@@ -1,0 +1,21 @@
+[
+  {
+    "create": "operating_companies"
+  },
+  {
+    "insert": "operating_companies",
+    "documents": [
+      {
+        "_id": {"$oid": "5dbc50d486616113a1cefe16"},
+        "name" : "Paysuper",
+        "country" : "CY",
+        "registration_number" : "some number",
+        "vat_number" : "some vat number",
+        "address" : "Cyprus",
+        "signatory_name" : "Vassiliy Poupkine",
+        "signatory_position" : "CEO",
+        "banking_details" : "bank details including bank, bank address, account number, swift/ bic, intermediary bank"
+      }
+    ]
+  }
+]

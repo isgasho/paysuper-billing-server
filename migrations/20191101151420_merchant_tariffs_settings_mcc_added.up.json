@@ -1,0 +1,19 @@
+[
+  {
+    "update": "merchant_tariffs_settings",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$set": {
+            "mcc_code": "5816"
+          },
+          "$currentDate": {
+            "updated_at": true
+          }
+        },
+        "multi": true
+      }
+    ]
+  }
+]

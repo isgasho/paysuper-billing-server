@@ -148,6 +148,7 @@ func (suite *MoneyBackCostMerchantTestSuite) SetupTest() {
 		FixAmount:         5,
 		FixAmountCurrency: "USD",
 		IsPaidByMerchant:  true,
+		MccCode:           pkg.MccCodeLowRisk,
 	}
 
 	moneyBackCostMerchant2 := &billing.MoneyBackCostMerchant{
@@ -163,6 +164,7 @@ func (suite *MoneyBackCostMerchantTestSuite) SetupTest() {
 		FixAmount:         15,
 		FixAmountCurrency: "USD",
 		IsPaidByMerchant:  true,
+		MccCode:           pkg.MccCodeLowRisk,
 	}
 
 	anotherMoneyBackCostMerchant := &billing.MoneyBackCostMerchant{
@@ -178,6 +180,7 @@ func (suite *MoneyBackCostMerchantTestSuite) SetupTest() {
 		FixAmount:         3,
 		FixAmountCurrency: "USD",
 		IsPaidByMerchant:  true,
+		MccCode:           pkg.MccCodeLowRisk,
 	}
 	pucs := []*billing.MoneyBackCostMerchant{moneyBackCostMerchant, moneyBackCostMerchant2, anotherMoneyBackCostMerchant}
 	if err := suite.service.moneyBackCostMerchant.MultipleInsert(pucs); err != nil {
@@ -204,6 +207,7 @@ func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_GrpcGet_O
 		Country:        "AZ",
 		Days:           10,
 		PaymentStage:   1,
+		MccCode:        pkg.MccCodeLowRisk,
 	}
 
 	res := &grpc.MoneyBackCostMerchantResponse{}
@@ -238,6 +242,7 @@ func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_GrpcSet_O
 		Percent:           3.33,
 		FixAmount:         7.5,
 		FixAmountCurrency: "USD",
+		MccCode:           pkg.MccCodeLowRisk,
 	}
 
 	res := grpc.MoneyBackCostMerchantResponse{}
@@ -262,6 +267,7 @@ func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_Insert_Ok
 		PaymentStage:   1,
 		Percent:        3.33,
 		FixAmount:      7.5,
+		MccCode:        pkg.MccCodeLowRisk,
 	}
 
 	assert.NoError(suite.T(), suite.service.moneyBackCostMerchant.Insert(req))
@@ -280,8 +286,9 @@ func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_Insert_Er
 		PaymentStage:   1,
 		Percent:        3.33,
 		FixAmount:      7.5,
+		MccCode:        pkg.MccCodeLowRisk,
 	}
-	key := fmt.Sprintf(cacheMoneyBackCostMerchantKey, obj.MerchantId, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, obj.Country, obj.PaymentStage)
+	key := fmt.Sprintf(cacheMoneyBackCostMerchantKey, obj.MerchantId, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, obj.Country, obj.PaymentStage, obj.MccCode)
 	ci.On("Set", key, mock2.Anything, mock2.Anything).
 		Return(errors.New("service unavailable"))
 	suite.service.cacher = ci
@@ -304,19 +311,20 @@ func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_UpdateOk(
 		PaymentStage:   2,
 		Percent:        4,
 		FixAmount:      7,
+		MccCode:        pkg.MccCodeLowRisk,
 	}
 
 	assert.NoError(suite.T(), suite.service.moneyBackCostMerchant.Update(obj))
 }
 
 func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_Get_Ok() {
-	val, err := suite.service.moneyBackCostMerchant.Get(suite.merchantId, "VISA", "USD", "chargeback", "CIS", "AZ", 1)
+	val, err := suite.service.moneyBackCostMerchant.Get(suite.merchantId, "VISA", "USD", "chargeback", "CIS", "AZ", 1, pkg.MccCodeLowRisk)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), len(val.Items), 2)
 	assert.Equal(suite.T(), val.Items[0].Country, "AZ")
 	assert.Equal(suite.T(), val.Items[0].FixAmount, float64(5))
 
-	val, err = suite.service.moneyBackCostMerchant.Get(suite.merchantId, "VISA", "USD", "chargeback", "CIS", "", 1)
+	val, err = suite.service.moneyBackCostMerchant.Get(suite.merchantId, "VISA", "USD", "chargeback", "CIS", "", 1, pkg.MccCodeLowRisk)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), len(val.Items), 1)
 	assert.Equal(suite.T(), val.Items[0].Country, "")
@@ -333,6 +341,7 @@ func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_getMoneyB
 		Country:        "AZ",
 		Days:           5,
 		PaymentStage:   1,
+		MccCode:        pkg.MccCodeLowRisk,
 	}
 
 	val, err := suite.service.getMoneyBackCostMerchant(req)

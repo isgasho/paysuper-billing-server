@@ -3858,19 +3858,26 @@ func (s *Service) hasPaymentCosts(order *billing.Order) bool {
 		return false
 	}
 
-	_, err = s.paymentChannelCostSystem.Get(methodName, country.Region, country.IsoCodeA2)
+	merchantId := order.GetMerchantId()
+	merchant, err := s.merchant.GetById(merchantId)
+	if err != nil {
+		return false
+	}
+
+	_, err = s.paymentChannelCostSystem.Get(methodName, country.Region, country.IsoCodeA2, merchant.MccCode, merchant.OperatingCompanyId)
 
 	if err != nil {
 		return false
 	}
 
 	data := &billing.PaymentChannelCostMerchantRequest{
-		MerchantId:     order.GetMerchantId(),
+		MerchantId:     merchantId,
 		Name:           methodName,
 		PayoutCurrency: order.GetMerchantRoyaltyCurrency(),
 		Amount:         order.TotalPaymentAmount,
 		Region:         country.Region,
 		Country:        country.IsoCodeA2,
+		MccCode:        merchant.MccCode,
 	}
 	_, err = s.getPaymentChannelCostMerchant(data)
 	return err == nil

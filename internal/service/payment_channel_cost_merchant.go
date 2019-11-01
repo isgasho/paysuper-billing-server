@@ -16,7 +16,7 @@ import (
 
 const (
 	cachePaymentChannelCostMerchantKeyId = "pccm:id:%s"
-	cachePaymentChannelCostMerchantKey   = "pccm:m:%s:n:%s:pc:%s:r:%s:c:%s"
+	cachePaymentChannelCostMerchantKey   = "pccm:m:%s:n:%s:pc:%s:r:%s:c:%s:mcc:%s"
 	cachePaymentChannelCostMerchantAll   = "pccm:all:m:%s"
 
 	collectionPaymentChannelCostMerchant = "payment_channel_cost_merchant"
@@ -30,6 +30,7 @@ var (
 	errorPaymentChannelMerchantCurrency         = newBillingServerErrorMsg("pcm000005", "currency not supported")
 	errorPaymentChannelMerchantCostAlreadyExist = newBillingServerErrorMsg("pcm000006", "cost with specified parameters already exist")
 	errorCostMatchedToAmountNotFound            = newBillingServerErrorMsg("pcm000007", "cost matched to amount not found")
+	errorPaymentChannelMccCode                  = newBillingServerErrorMsg("pcm000008", "mcc code not supported")
 )
 
 func (s *Service) GetAllPaymentChannelCostMerchant(
@@ -120,6 +121,11 @@ func (s *Service) SetPaymentChannelCostMerchant(
 		res.Message = errorPaymentChannelMerchantCurrency
 		return nil
 	}
+	if !contains(pkg.SupportedMccCodes, req.MccCode) {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorPaymentChannelMccCode
+		return nil
+	}
 
 	req.IsActive = true
 
@@ -179,7 +185,7 @@ func (s *Service) DeletePaymentChannelCostMerchant(
 }
 
 func (s *Service) getPaymentChannelCostMerchant(req *billing.PaymentChannelCostMerchantRequest) (*billing.PaymentChannelCostMerchant, error) {
-	val, err := s.paymentChannelCostMerchant.Get(req.MerchantId, req.Name, req.PayoutCurrency, req.Region, req.Country)
+	val, err := s.paymentChannelCostMerchant.Get(req.MerchantId, req.Name, req.PayoutCurrency, req.Region, req.Country, req.MccCode)
 	if err != nil {
 		return nil, err
 	}
@@ -218,11 +224,14 @@ func (h *PaymentChannelCostMerchant) Insert(obj *billing.PaymentChannelCostMerch
 		return err
 	}
 
-	key := fmt.Sprintf(cachePaymentChannelCostMerchantKey, obj.MerchantId, obj.Name, obj.PayoutCurrency, obj.Region, obj.Country)
+	key := fmt.Sprintf(cachePaymentChannelCostMerchantKey, obj.MerchantId, obj.Name, obj.PayoutCurrency, obj.Region, obj.Country, obj.MccCode)
 	if err := h.svc.cacher.Set(key, obj, 0); err != nil {
 		return err
 	}
-
+	key = fmt.Sprintf(cachePaymentChannelCostMerchantKeyId, obj.Id)
+	if err := h.svc.cacher.Set(key, obj, 0); err != nil {
+		return err
+	}
 	key = fmt.Sprintf(cachePaymentChannelCostMerchantAll, obj.MerchantId)
 	if err := h.svc.cacher.Delete(key); err != nil {
 		return err
@@ -268,11 +277,14 @@ func (h PaymentChannelCostMerchant) Update(obj *billing.PaymentChannelCostMercha
 	if err := h.svc.db.Collection(collectionPaymentChannelCostMerchant).UpdateId(bson.ObjectIdHex(obj.Id), obj); err != nil {
 		return err
 	}
-	key := fmt.Sprintf(cachePaymentChannelCostMerchantKey, obj.MerchantId, obj.Name, obj.PayoutCurrency, obj.Region, obj.Country)
+	key := fmt.Sprintf(cachePaymentChannelCostMerchantKey, obj.MerchantId, obj.Name, obj.PayoutCurrency, obj.Region, obj.Country, obj.MccCode)
 	if err := h.svc.cacher.Set(key, obj, 0); err != nil {
 		return err
 	}
-
+	key = fmt.Sprintf(cachePaymentChannelCostMerchantKeyId, obj.Id)
+	if err := h.svc.cacher.Set(key, obj, 0); err != nil {
+		return err
+	}
 	key = fmt.Sprintf(cachePaymentChannelCostMerchantAll, obj.MerchantId)
 	if err := h.svc.cacher.Delete(key); err != nil {
 		return err
@@ -305,9 +317,10 @@ func (h PaymentChannelCostMerchant) Get(
 	payoutCurrency string,
 	region string,
 	country string,
+	mccCode string,
 ) (*billing.PaymentChannelCostMerchantList, error) {
 	var c billing.PaymentChannelCostMerchantList
-	key := fmt.Sprintf(cachePaymentChannelCostMerchantKey, merchantId, name, payoutCurrency, region, country)
+	key := fmt.Sprintf(cachePaymentChannelCostMerchantKey, merchantId, name, payoutCurrency, region, country, mccCode)
 
 	if err := h.svc.cacher.Get(key, c); err == nil {
 		return &c, nil
@@ -320,6 +333,7 @@ func (h PaymentChannelCostMerchant) Get(
 		"region":          region,
 		"country":         country,
 		"is_active":       true,
+		"mcc_code":        mccCode,
 	}
 
 	if err := h.svc.db.Collection(collectionPaymentChannelCostMerchant).
@@ -338,11 +352,14 @@ func (h PaymentChannelCostMerchant) Delete(obj *billing.PaymentChannelCostMercha
 	if err := h.svc.db.Collection(collectionPaymentChannelCostMerchant).UpdateId(bson.ObjectIdHex(obj.Id), obj); err != nil {
 		return err
 	}
-	key := fmt.Sprintf(cachePaymentChannelCostMerchantKey, obj.MerchantId, obj.Name, obj.PayoutCurrency, obj.Region, obj.Country)
+	key := fmt.Sprintf(cachePaymentChannelCostMerchantKey, obj.MerchantId, obj.Name, obj.PayoutCurrency, obj.Region, obj.Country, obj.MccCode)
 	if err := h.svc.cacher.Delete(key); err != nil {
 		return err
 	}
-
+	key = fmt.Sprintf(cachePaymentChannelCostMerchantKeyId, obj.Id)
+	if err := h.svc.cacher.Delete(key); err != nil {
+		return err
+	}
 	key = fmt.Sprintf(cachePaymentChannelCostMerchantAll, obj.MerchantId)
 	if err := h.svc.cacher.Delete(key); err != nil {
 		return err
@@ -359,7 +376,7 @@ func (h PaymentChannelCostMerchant) GetAllForMerchant(merchant_id string) (*bill
 	if err := h.svc.cacher.Get(key, c); err != nil {
 		err = h.svc.db.Collection(collectionPaymentChannelCostMerchant).
 			Find(bson.M{"merchant_id": bson.ObjectIdHex(merchant_id), "is_active": true}).
-			Sort("name", "payout_currency", "region", "country").
+			Sort("name", "payout_currency", "region", "country", "mcc_code").
 			All(&c.Items)
 		if err != nil {
 			return nil, err

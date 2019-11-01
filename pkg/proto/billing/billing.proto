@@ -280,8 +280,7 @@ message MerchantCompletedSteps {
     bool company = 1;
     bool contacts = 2;
     bool banking = 3;
-    bool mcc = 4;
-    bool tariff = 5;
+    bool tariff = 4;
 }
 
 message MerchantAgreementSignatureDataSignUrl {
@@ -1198,6 +1197,10 @@ message PaymentChannelCostSystem {
     google.protobuf.Timestamp updated_at = 9;
     // @inject_tag: json:"is_active" bson:"is_active"
     bool is_active = 10;
+    // @inject_tag: json:"mcc_code" bson:"mcc_code"
+    string mcc_code = 11;
+    // @inject_tag: json:"operating_company_id" bson:"operating_company_id"
+    string operating_company_id = 12;
 }
 
 message PaymentChannelCostSystemRequest {
@@ -1207,6 +1210,10 @@ message PaymentChannelCostSystemRequest {
     string region = 2;
     //@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
     string country = 3;
+    //@inject_tag: json:"mcc_code" bson:"mcc_code" validate:"required,numeric,len=4" query:"mcc_code"
+    string mcc_code = 4;
+    //@inject_tag: json:"operating_company_id" bson:"operating_company_id" validate:"required,hexadecimal,len=24" query:"operating_company_id"
+    string operating_company_id = 5;
 }
 
 message PaymentChannelCostSystemList {
@@ -1246,6 +1253,8 @@ message PaymentChannelCostMerchant {
     google.protobuf.Timestamp updated_at = 15;
     // @inject_tag: json:"is_active" bson:"is_active"
     bool is_active = 16;
+    // @inject_tag: json:"mcc_code" bson:"mcc_code"
+    string mcc_code = 17;
 }
 
 message PaymentChannelCostMerchantRequest {
@@ -1261,6 +1270,8 @@ message PaymentChannelCostMerchantRequest {
     string region = 5;
     //@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2" query:"country"
     string country = 6;
+    //@inject_tag: json:"mcc_code" bson:"mcc_code" validate:"required,numeric,len=4" query:"mcc_code"
+    string mcc_code = 7;
 }
 
 message PaymentChannelCostMerchantList {
@@ -1299,6 +1310,10 @@ message MoneyBackCostSystem {
     google.protobuf.Timestamp updated_at = 12;
     // @inject_tag: json:"is_active" bson:"is_active"
     bool is_active = 13;
+    // @inject_tag: json:"mcc_code" bson:"mcc_code"
+    string mcc_code = 14;
+    // @inject_tag: json:"operating_company_id" bson:"operating_company_id"
+    string operating_company_id = 15;
 }
 
 message MoneyBackCostSystemRequest {
@@ -1316,6 +1331,10 @@ message MoneyBackCostSystemRequest {
     int32 days = 6;
     // @inject_tag: json:"payment_stage" bson:"payment_stage" validate:"numeric,gte=1" query:"payment_stage"
     int32 payment_stage = 7;
+    //@inject_tag: json:"mcc_code" bson:"mcc_code" validate:"required,numeric,len=4" query:"mcc_code"
+    string mcc_code = 8;
+    //@inject_tag: json:"operating_company_id" bson:"operating_company_id" validate:"required,,hexadecimal,len=24" query:"operating_company_id"
+    string operating_company_id = 9;
 }
 
 message MoneyBackCostSystemList {
@@ -1355,6 +1374,8 @@ message MoneyBackCostMerchant {
     google.protobuf.Timestamp updated_at = 15;
     // @inject_tag: json:"is_active" bson:"is_active"
     bool is_active = 16;
+    // @inject_tag: json:"mcc_code" bson:"mcc_code"
+    string mcc_code = 17;
 }
 
 message MoneyBackCostMerchantRequest {
@@ -1374,6 +1395,8 @@ message MoneyBackCostMerchantRequest {
     int32 days = 7;
     // @inject_tag: json:"payment_stage" bson:"payment_stage" validate:"numeric,gte=1" query:"payment_stage"
     int32 payment_stage = 8;
+    //@inject_tag: json:"mcc_code" bson:"mcc_code" validate:"required,numeric,len=4" query:"mcc_code"
+    string mcc_code = 9;
 }
 
 message PaymentCostDeleteRequest {
@@ -1941,6 +1964,8 @@ message MerchantTariffRatesPayment {
     string merchant_home_region = 10;
     //@inject_tag: json:"payer_region" bson:"payer_region"
     string payer_region = 11;
+    // @inject_tag: json:"mcc_code" bson:"mcc_code"
+    string mcc_code = 12;
 }
 
 message MerchantTariffRatesSettingsRefundItem {
@@ -1974,6 +1999,8 @@ message MerchantTariffRatesSettings {
     MerchantTariffRatesSettingsItem chargeback = 2;
     //@inject_tag: json:"payout" bson:"payout"
     MerchantTariffRatesSettingsItem payout = 3;
+    //@inject_tag: json:"mcc_code" bson:"mcc_code"
+    string mcc_code = 4;
 }
 
 message Key {

@@ -10,6 +10,20 @@ type OperatingCompanyInterface struct {
 	mock.Mock
 }
 
+// Exists provides a mock function with given fields: id
+func (_m *OperatingCompanyInterface) Exists(id string) bool {
+	ret := _m.Called(id)
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(string) bool); ok {
+		r0 = rf(id)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	return r0
+}
+
 // GetAll provides a mock function with given fields:
 func (_m *OperatingCompanyInterface) GetAll() ([]*billing.OperatingCompany, error) {
 	ret := _m.Called()

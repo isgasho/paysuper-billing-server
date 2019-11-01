@@ -203,7 +203,7 @@ func (m *Merchant) GetCompleteStepsCount() int32 {
 }
 
 func (m *Merchant) IsDataComplete() bool {
-	return m.IsCompanyComplete() && m.IsContactsComplete() && m.IsBankingComplete() && m.IsMccComplete() && m.HasTariff()
+	return m.IsCompanyComplete() && m.IsContactsComplete() && m.IsBankingComplete() && m.HasTariff()
 }
 
 func (m *Merchant) GetMerchantSignatureId() string {
@@ -265,10 +265,6 @@ func (m *Merchant) IsContactsComplete() bool {
 func (m *Merchant) IsBankingComplete() bool {
 	return m.Banking != nil && m.Banking.Currency != "" && m.Banking.Name != "" && m.Banking.Address != "" &&
 		m.Banking.AccountNumber != "" && m.Banking.Swift != ""
-}
-
-func (m *Merchant) IsMccComplete() bool {
-	return m.MccCode != ""
 }
 
 func (c *Country) GetVatCurrencyCode() string {

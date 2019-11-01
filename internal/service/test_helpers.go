@@ -85,7 +85,9 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		PaymentSystemId: paymentSystem.Id,
 	}
 
-	merchant := helperCreateMerchant(suite, service, "USD", "RU", pmBankCard, 0)
+	operatingCompany := helperOperatingCompany(suite, service)
+
+	merchant := helperCreateMerchant(suite, service, "USD", "RU", pmBankCard, 0, operatingCompany.Id)
 
 	projectFixedAmount := helperCreateProject(suite, service, merchant.Id)
 
@@ -117,92 +119,108 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 	}
 
 	sysCost := &billing.MoneyBackCostSystem{
-		Name:           "MASTERCARD",
-		PayoutCurrency: "USD",
-		UndoReason:     "reversal",
-		Region:         "Russia",
-		Country:        "RU",
-		DaysFrom:       0,
-		PaymentStage:   1,
-		Percent:        0.10,
-		FixAmount:      0.15,
+		Name:               "MASTERCARD",
+		PayoutCurrency:     "USD",
+		UndoReason:         "reversal",
+		Region:             "Russia",
+		Country:            "RU",
+		DaysFrom:           0,
+		PaymentStage:       1,
+		Percent:            0.10,
+		FixAmount:          0.15,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: operatingCompany.Id,
 	}
 	sysCost2 := &billing.MoneyBackCostSystem{
-		Name:           "MASTERCARD",
-		PayoutCurrency: "RUB",
-		UndoReason:     "reversal",
-		Region:         "Russia",
-		Country:        "RU",
-		DaysFrom:       0,
-		PaymentStage:   1,
-		Percent:        0.10,
-		FixAmount:      0.15,
+		Name:               "MASTERCARD",
+		PayoutCurrency:     "RUB",
+		UndoReason:         "reversal",
+		Region:             "Russia",
+		Country:            "RU",
+		DaysFrom:           0,
+		PaymentStage:       1,
+		Percent:            0.10,
+		FixAmount:          0.15,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: operatingCompany.Id,
 	}
 	sysCost3 := &billing.MoneyBackCostSystem{
-		Name:           "MASTERCARD",
-		PayoutCurrency: "USD",
-		UndoReason:     "reversal",
-		Region:         "North America",
-		Country:        "US",
-		DaysFrom:       0,
-		PaymentStage:   1,
-		Percent:        0.10,
-		FixAmount:      0.15,
+		Name:               "MASTERCARD",
+		PayoutCurrency:     "USD",
+		UndoReason:         "reversal",
+		Region:             "North America",
+		Country:            "US",
+		DaysFrom:           0,
+		PaymentStage:       1,
+		Percent:            0.10,
+		FixAmount:          0.15,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: operatingCompany.Id,
 	}
 	sysCost4 := &billing.MoneyBackCostSystem{
-		Name:           "MASTERCARD",
-		PayoutCurrency: "USD",
-		UndoReason:     "reversal",
-		Region:         "EU",
-		Country:        "FI",
-		DaysFrom:       0,
-		PaymentStage:   1,
-		Percent:        0.10,
-		FixAmount:      0.15,
+		Name:               "MASTERCARD",
+		PayoutCurrency:     "USD",
+		UndoReason:         "reversal",
+		Region:             "EU",
+		Country:            "FI",
+		DaysFrom:           0,
+		PaymentStage:       1,
+		Percent:            0.10,
+		FixAmount:          0.15,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: operatingCompany.Id,
 	}
 	sysCost5 := &billing.MoneyBackCostSystem{
-		Name:           "MASTERCARD",
-		PayoutCurrency: "USD",
-		UndoReason:     "chargeback",
-		Region:         "Russia",
-		Country:        "RU",
-		DaysFrom:       0,
-		PaymentStage:   1,
-		Percent:        0.10,
-		FixAmount:      0.15,
+		Name:               "MASTERCARD",
+		PayoutCurrency:     "USD",
+		UndoReason:         "chargeback",
+		Region:             "Russia",
+		Country:            "RU",
+		DaysFrom:           0,
+		PaymentStage:       1,
+		Percent:            0.10,
+		FixAmount:          0.15,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: operatingCompany.Id,
 	}
 	sysCost6 := &billing.MoneyBackCostSystem{
-		Name:           "MASTERCARD",
-		PayoutCurrency: "RUB",
-		UndoReason:     "chargeback",
-		Region:         "Russia",
-		Country:        "RU",
-		DaysFrom:       0,
-		PaymentStage:   1,
-		Percent:        0.10,
-		FixAmount:      0.15,
+		Name:               "MASTERCARD",
+		PayoutCurrency:     "RUB",
+		UndoReason:         "chargeback",
+		Region:             "Russia",
+		Country:            "RU",
+		DaysFrom:           0,
+		PaymentStage:       1,
+		Percent:            0.10,
+		FixAmount:          0.15,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: operatingCompany.Id,
 	}
 	sysCost7 := &billing.MoneyBackCostSystem{
-		Name:           "MASTERCARD",
-		PayoutCurrency: "USD",
-		UndoReason:     "chargeback",
-		Region:         "North America",
-		Country:        "US",
-		DaysFrom:       0,
-		PaymentStage:   1,
-		Percent:        0.10,
-		FixAmount:      0.15,
+		Name:               "MASTERCARD",
+		PayoutCurrency:     "USD",
+		UndoReason:         "chargeback",
+		Region:             "North America",
+		Country:            "US",
+		DaysFrom:           0,
+		PaymentStage:       1,
+		Percent:            0.10,
+		FixAmount:          0.15,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: operatingCompany.Id,
 	}
 	sysCost8 := &billing.MoneyBackCostSystem{
-		Name:           "MASTERCARD",
-		PayoutCurrency: "USD",
-		UndoReason:     "chargeback",
-		Region:         "EU",
-		Country:        "FI",
-		DaysFrom:       0,
-		PaymentStage:   1,
-		Percent:        0.10,
-		FixAmount:      0.15,
+		Name:               "MASTERCARD",
+		PayoutCurrency:     "USD",
+		UndoReason:         "chargeback",
+		Region:             "EU",
+		Country:            "FI",
+		DaysFrom:           0,
+		PaymentStage:       1,
+		Percent:            0.10,
+		FixAmount:          0.15,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: operatingCompany.Id,
 	}
 
 	err = service.moneyBackCostSystem.MultipleInsert([]*billing.MoneyBackCostSystem{sysCost, sysCost2, sysCost3, sysCost4, sysCost5, sysCost6, sysCost7, sysCost8})
@@ -212,49 +230,59 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 	}
 
 	paymentSysCost1 := &billing.PaymentChannelCostSystem{
-		Name:              "MASTERCARD",
-		Region:            "Russia",
-		Country:           "RU",
-		Percent:           0.015,
-		FixAmount:         0.01,
-		FixAmountCurrency: "USD",
-		IsActive:          true,
+		Name:               "MASTERCARD",
+		Region:             "Russia",
+		Country:            "RU",
+		Percent:            0.015,
+		FixAmount:          0.01,
+		FixAmountCurrency:  "USD",
+		IsActive:           true,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: operatingCompany.Id,
 	}
 	paymentSysCost2 := &billing.PaymentChannelCostSystem{
-		Name:              "MASTERCARD",
-		Region:            "North America",
-		Country:           "US",
-		Percent:           0.015,
-		FixAmount:         0.01,
-		FixAmountCurrency: "USD",
-		IsActive:          true,
+		Name:               "MASTERCARD",
+		Region:             "North America",
+		Country:            "US",
+		Percent:            0.015,
+		FixAmount:          0.01,
+		FixAmountCurrency:  "USD",
+		IsActive:           true,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: operatingCompany.Id,
 	}
 	paymentSysCost3 := &billing.PaymentChannelCostSystem{
-		Name:              "MASTERCARD",
-		Region:            "EU",
-		Country:           "FI",
-		Percent:           0.015,
-		FixAmount:         0.01,
-		FixAmountCurrency: "USD",
-		IsActive:          true,
+		Name:               "MASTERCARD",
+		Region:             "EU",
+		Country:            "FI",
+		Percent:            0.015,
+		FixAmount:          0.01,
+		FixAmountCurrency:  "USD",
+		IsActive:           true,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: operatingCompany.Id,
 	}
 	paymentSysCost4 := &billing.PaymentChannelCostSystem{
-		Name:              "VISA",
-		Region:            "Russia",
-		Country:           "RU",
-		Percent:           0.015,
-		FixAmount:         0.01,
-		FixAmountCurrency: "USD",
-		IsActive:          true,
+		Name:               "VISA",
+		Region:             "Russia",
+		Country:            "RU",
+		Percent:            0.015,
+		FixAmount:          0.01,
+		FixAmountCurrency:  "USD",
+		IsActive:           true,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: operatingCompany.Id,
 	}
 	paymentSysCost5 := &billing.PaymentChannelCostSystem{
-		Name:              "MASTERCARD",
-		Region:            "Central Africa",
-		Country:           "AO",
-		Percent:           0.015,
-		FixAmount:         0.01,
-		FixAmountCurrency: "USD",
-		IsActive:          true,
+		Name:               "MASTERCARD",
+		Region:             "Central Africa",
+		Country:            "AO",
+		Percent:            0.015,
+		FixAmount:          0.01,
+		FixAmountCurrency:  "USD",
+		IsActive:           true,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: operatingCompany.Id,
 	}
 
 	err = service.paymentChannelCostSystem.MultipleInsert([]*billing.PaymentChannelCostSystem{
@@ -272,6 +300,30 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 	return merchant, projectFixedAmount, pmBankCard, paymentSystem
 }
 
+func helperOperatingCompany(
+	suite suite.Suite,
+	service *Service,
+) *billing.OperatingCompany {
+
+	operatingCompany := &billing.OperatingCompany{
+		Id:                 bson.NewObjectId().Hex(),
+		Name:               "Legal name",
+		Country:            "RU",
+		RegistrationNumber: "some number",
+		VatNumber:          "some vat number",
+		Address:            "Home, home 0",
+		SignatoryName:      "Vassiliy Poupkine",
+		SignatoryPosition:  "CEO",
+		BankingDetails:     "bank details including bank, bank address, account number, swift/ bic, intermediary bank",
+	}
+
+	err := service.operatingCompany.Insert(operatingCompany)
+	if err != nil {
+		suite.FailNow("Insert operatingCompany failed", "%v", err)
+	}
+	return operatingCompany
+}
+
 func helperCreateMerchant(
 	suite suite.Suite,
 	service *Service,
@@ -279,6 +331,7 @@ func helperCreateMerchant(
 	country string,
 	paymentMethod *billing.PaymentMethod,
 	minPayoutAmount float64,
+	operatingCompanyId string,
 ) *billing.Merchant {
 	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -360))
 
@@ -359,6 +412,8 @@ func helperCreateMerchant(
 			},
 			HomeRegion: "russia_and_cis",
 		},
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: operatingCompanyId,
 	}
 
 	if paymentMethod != nil {
@@ -403,6 +458,7 @@ func helperCreateMerchant(
 		FixAmount:         0.15,
 		FixAmountCurrency: "EUR",
 		IsPaidByMerchant:  false,
+		MccCode:           pkg.MccCodeLowRisk,
 	}
 
 	merCost2 := &billing.MoneyBackCostMerchant{
@@ -419,6 +475,7 @@ func helperCreateMerchant(
 		FixAmount:         0.15,
 		FixAmountCurrency: "EUR",
 		IsPaidByMerchant:  false,
+		MccCode:           pkg.MccCodeLowRisk,
 	}
 
 	merCost3 := &billing.MoneyBackCostMerchant{
@@ -435,6 +492,7 @@ func helperCreateMerchant(
 		FixAmount:         0.15,
 		FixAmountCurrency: "EUR",
 		IsPaidByMerchant:  false,
+		MccCode:           pkg.MccCodeLowRisk,
 	}
 
 	merCost4 := &billing.MoneyBackCostMerchant{
@@ -451,6 +509,7 @@ func helperCreateMerchant(
 		FixAmount:         0.15,
 		FixAmountCurrency: "EUR",
 		IsPaidByMerchant:  false,
+		MccCode:           pkg.MccCodeLowRisk,
 	}
 
 	merCost5 := &billing.MoneyBackCostMerchant{
@@ -467,6 +526,7 @@ func helperCreateMerchant(
 		FixAmount:         0.15,
 		FixAmountCurrency: "EUR",
 		IsPaidByMerchant:  true,
+		MccCode:           pkg.MccCodeLowRisk,
 	}
 
 	merCost6 := &billing.MoneyBackCostMerchant{
@@ -483,6 +543,7 @@ func helperCreateMerchant(
 		FixAmount:         0.15,
 		FixAmountCurrency: "EUR",
 		IsPaidByMerchant:  true,
+		MccCode:           pkg.MccCodeLowRisk,
 	}
 
 	merCost7 := &billing.MoneyBackCostMerchant{
@@ -499,6 +560,7 @@ func helperCreateMerchant(
 		FixAmount:         0.15,
 		FixAmountCurrency: "EUR",
 		IsPaidByMerchant:  true,
+		MccCode:           pkg.MccCodeLowRisk,
 	}
 
 	merCost8 := &billing.MoneyBackCostMerchant{
@@ -515,6 +577,7 @@ func helperCreateMerchant(
 		FixAmount:         0.15,
 		FixAmountCurrency: "EUR",
 		IsPaidByMerchant:  true,
+		MccCode:           pkg.MccCodeLowRisk,
 	}
 
 	err = service.moneyBackCostMerchant.MultipleInsert([]*billing.MoneyBackCostMerchant{merCost1, merCost2, merCost3, merCost4, merCost5, merCost6, merCost7, merCost8})
@@ -536,6 +599,7 @@ func helperCreateMerchant(
 		PsPercent:               0.05,
 		PsFixedFee:              0.05,
 		PsFixedFeeCurrency:      "EUR",
+		MccCode:                 pkg.MccCodeLowRisk,
 	}
 	paymentMerCost2 := &billing.PaymentChannelCostMerchant{
 		MerchantId:              merchant.Id,
@@ -550,6 +614,7 @@ func helperCreateMerchant(
 		PsPercent:               0.05,
 		PsFixedFee:              0.05,
 		PsFixedFeeCurrency:      "EUR",
+		MccCode:                 pkg.MccCodeLowRisk,
 	}
 	paymentMerCost3 := &billing.PaymentChannelCostMerchant{
 		MerchantId:              merchant.Id,
@@ -564,6 +629,7 @@ func helperCreateMerchant(
 		PsPercent:               0.05,
 		PsFixedFee:              0.05,
 		PsFixedFeeCurrency:      "EUR",
+		MccCode:                 pkg.MccCodeLowRisk,
 	}
 	paymentMerCost4 := &billing.PaymentChannelCostMerchant{
 		MerchantId:              merchant.Id,
@@ -578,6 +644,7 @@ func helperCreateMerchant(
 		PsPercent:               0.05,
 		PsFixedFee:              0.05,
 		PsFixedFeeCurrency:      "EUR",
+		MccCode:                 pkg.MccCodeLowRisk,
 	}
 
 	err = service.paymentChannelCostMerchant.MultipleInsert([]*billing.PaymentChannelCostMerchant{paymentMerCost1, paymentMerCost2, paymentMerCost3, paymentMerCost4})

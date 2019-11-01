@@ -121,7 +121,7 @@ func (suite *PaylinkTestSuite) SetupTest() {
 	}
 
 	suite.merchant, suite.projectFixedAmount, suite.paymentMethod, suite.paymentSystem = helperCreateEntitiesForTests(suite.Suite, suite.service)
-	suite.merchant2 = helperCreateMerchant(suite.Suite, suite.service, "USD", "RU", suite.paymentMethod, suite.merchant.MinPayoutAmount)
+	suite.merchant2 = helperCreateMerchant(suite.Suite, suite.service, "USD", "RU", suite.paymentMethod, suite.merchant.MinPayoutAmount, suite.merchant.OperatingCompanyId)
 
 	suite.product1 = &grpc.Product{
 		Id:              bson.NewObjectId().Hex(),

@@ -1,0 +1,20 @@
+[
+  {
+    "update": "merchant",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$set": {
+            "mcc_code": "5816",
+            "operating_company_id": "5dbc50d486616113a1cefe16"
+          },
+          "$currentDate": {
+            "updated_at": true
+          }
+        },
+        "multi": true
+      }
+    ]
+  }
+]

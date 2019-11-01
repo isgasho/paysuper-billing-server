@@ -37,6 +37,7 @@ type AccountingEntryTestSuite struct {
 	projectFixedAmount *billing.Project
 	paymentMethod      *billing.PaymentMethod
 	paymentSystem      *billing.PaymentSystem
+	merchant           *billing.Merchant
 }
 
 func Test_AccountingEntry(t *testing.T) {
@@ -106,7 +107,7 @@ func (suite *AccountingEntryTestSuite) SetupTest() {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 
-	_, suite.projectFixedAmount, suite.paymentMethod, suite.paymentSystem = helperCreateEntitiesForTests(suite.Suite, suite.service)
+	suite.merchant, suite.projectFixedAmount, suite.paymentMethod, suite.paymentSystem = helperCreateEntitiesForTests(suite.Suite, suite.service)
 }
 
 func (suite *AccountingEntryTestSuite) TearDownTest() {
@@ -1248,7 +1249,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_USD_EUR_None() {
 	royaltyCurrency := "EUR"
 	merchantCountry := "DE"
 
-	merchant := helperCreateMerchant(suite.Suite, suite.service, royaltyCurrency, merchantCountry, suite.paymentMethod, 0)
+	merchant := helperCreateMerchant(suite.Suite, suite.service, royaltyCurrency, merchantCountry, suite.paymentMethod, 0, suite.merchant.OperatingCompanyId)
 	project := helperCreateProject(suite.Suite, suite.service, merchant.Id)
 
 	country, err := suite.service.country.GetByIsoCodeA2(orderCountry)
@@ -1267,6 +1268,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_USD_EUR_None() {
 		PsPercent:               0.05,
 		PsFixedFee:              0.05,
 		PsFixedFeeCurrency:      "EUR",
+		MccCode:                 pkg.MccCodeLowRisk,
 	}
 
 	err = suite.service.paymentChannelCostMerchant.Insert(paymentMerCost)

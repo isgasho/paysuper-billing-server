@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	cacheMoneyBackCostSystemKey   = "pucs:n:%s:pc:%s:ur:%s:r:%s:c:%s:ps:%d"
+	cacheMoneyBackCostSystemKey   = "pucs:n:%s:pc:%s:ur:%s:r:%s:c:%s:ps:%d:mcc:%s:oc:%s"
 	cacheMoneyBackCostSystemKeyId = "pucs:id:%s"
 	cacheMoneyBackCostSystemAll   = "pucs:all"
 
@@ -27,12 +27,14 @@ const (
 )
 
 var (
-	errorMoneybackSystemGetAll     = newBillingServerErrorMsg("mbs000001", "can't get list of money back setting for system")
-	errorMoneybackSystemGet        = newBillingServerErrorMsg("mbs000002", "can't get money back setting for system")
-	errorMoneybackSystemSetFailed  = newBillingServerErrorMsg("mbs000003", "can't set money back setting for system")
-	errorMoneybackSystemDelete     = newBillingServerErrorMsg("mbs000004", "can't delete money back setting for system")
-	errorMoneybackSystemCurrency   = newBillingServerErrorMsg("mbs000005", "currency not supported")
-	errorMoneybackCostAlreadyExist = newBillingServerErrorMsg("mbs000006", "cost with specified parameters already exist")
+	errorMoneybackSystemGetAll                    = newBillingServerErrorMsg("mbs000001", "can't get list of money back setting for system")
+	errorMoneybackSystemGet                       = newBillingServerErrorMsg("mbs000002", "can't get money back setting for system")
+	errorMoneybackSystemSetFailed                 = newBillingServerErrorMsg("mbs000003", "can't set money back setting for system")
+	errorMoneybackSystemDelete                    = newBillingServerErrorMsg("mbs000004", "can't delete money back setting for system")
+	errorMoneybackSystemCurrency                  = newBillingServerErrorMsg("mbs000005", "currency not supported")
+	errorMoneybackCostAlreadyExist                = newBillingServerErrorMsg("mbs000006", "cost with specified parameters already exist")
+	errorMoneybackSystemMccCode                   = newBillingServerErrorMsg("mbs000007", "mcc code not supported")
+	errorMoneybackSystemOperatingCompanyNotExists = newBillingServerErrorMsg("mbs000008", "operating company not exists")
 )
 
 type moneyBackCostSystems struct {
@@ -111,6 +113,16 @@ func (s *Service) SetMoneyBackCostSystem(
 		res.Message = errorMoneybackSystemCurrency
 		return nil
 	}
+	if !contains(pkg.SupportedMccCodes, req.MccCode) {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorMoneybackSystemMccCode
+		return nil
+	}
+	if !s.operatingCompany.Exists(req.OperatingCompanyId) {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorMoneybackSystemOperatingCompanyNotExists
+		return nil
+	}
 
 	req.UpdatedAt = ptypes.TimestampNow()
 	req.IsActive = true
@@ -170,7 +182,7 @@ func (s *Service) DeleteMoneyBackCostSystem(
 }
 
 func (s *Service) getMoneyBackCostSystem(req *billing.MoneyBackCostSystemRequest) (*billing.MoneyBackCostSystem, error) {
-	val, err := s.moneyBackCostSystem.Get(req.Name, req.PayoutCurrency, req.UndoReason, req.Region, req.Country, req.PaymentStage)
+	val, err := s.moneyBackCostSystem.Get(req.Name, req.PayoutCurrency, req.UndoReason, req.Region, req.Country, req.PaymentStage, req.MccCode, req.OperatingCompanyId)
 	if err != nil {
 		return nil, err
 	}
@@ -214,7 +226,20 @@ func (h *MoneyBackCostSystem) Insert(obj *billing.MoneyBackCostSystem) error {
 		return err
 	}
 
-	key := fmt.Sprintf(cacheMoneyBackCostSystemKey, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, obj.Country, obj.PaymentStage)
+	key := fmt.Sprintf(cacheMoneyBackCostSystemKey, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, obj.Country, obj.PaymentStage, obj.MccCode, obj.OperatingCompanyId)
+	if err := h.svc.cacher.Set(key, obj, 0); err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
+			zap.String(pkg.ErrorCacheFieldKey, key),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, obj),
+		)
+
+		return err
+	}
+
+	key = fmt.Sprintf(cacheMoneyBackCostSystemKeyId, obj.Id)
 	if err := h.svc.cacher.Set(key, obj, 0); err != nil {
 		zap.L().Error(
 			pkg.ErrorCacheQueryFailed,
@@ -271,11 +296,29 @@ func (h MoneyBackCostSystem) Update(obj *billing.MoneyBackCostSystem) error {
 	if err := h.svc.db.Collection(collectionMoneyBackCostSystem).UpdateId(bson.ObjectIdHex(obj.Id), obj); err != nil {
 		return err
 	}
-	key := fmt.Sprintf(cacheMoneyBackCostSystemKey, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, obj.Country, obj.PaymentStage)
+	key := fmt.Sprintf(cacheMoneyBackCostSystemKey, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, obj.Country, obj.PaymentStage, obj.MccCode, obj.OperatingCompanyId)
 	if err := h.svc.cacher.Set(key, obj, 0); err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
+			zap.String(pkg.ErrorCacheFieldKey, key),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, obj),
+		)
 		return err
 	}
+	key = fmt.Sprintf(cacheMoneyBackCostSystemKeyId, obj.Id)
+	if err := h.svc.cacher.Set(key, obj, 0); err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
+			zap.String(pkg.ErrorCacheFieldKey, key),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, obj),
+		)
 
+		return err
+	}
 	if err := h.svc.cacher.Delete(cacheMoneyBackCostSystemAll); err != nil {
 		return err
 	}
@@ -290,9 +333,11 @@ func (h MoneyBackCostSystem) Get(
 	region string,
 	country string,
 	payment_stage int32,
+	mcc_code string,
+	operating_company_id string,
 ) (*moneyBackCostSystems, error) {
 	var c moneyBackCostSystems
-	key := fmt.Sprintf(cacheMoneyBackCostSystemKey, name, payout_currency, undo_reason, region, country, payment_stage)
+	key := fmt.Sprintf(cacheMoneyBackCostSystemKey, name, payout_currency, undo_reason, region, country, payment_stage, mcc_code, operating_company_id)
 
 	if err := h.svc.cacher.Get(key, c); err == nil {
 		return &c, nil
@@ -342,11 +387,20 @@ func (h MoneyBackCostSystem) Delete(obj *billing.MoneyBackCostSystem) error {
 	if err := h.svc.db.Collection(collectionMoneyBackCostSystem).UpdateId(bson.ObjectIdHex(obj.Id), obj); err != nil {
 		return err
 	}
-	key := fmt.Sprintf(cacheMoneyBackCostSystemKey, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, obj.Country, obj.PaymentStage)
+	key := fmt.Sprintf(cacheMoneyBackCostSystemKey, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, obj.Country, obj.PaymentStage, obj.MccCode, obj.OperatingCompanyId)
 	if err := h.svc.cacher.Delete(key); err != nil {
 		return err
 	}
-
+	key = fmt.Sprintf(cacheMoneyBackCostSystemKeyId, obj.Id)
+	if err := h.svc.cacher.Delete(key); err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldCmd, "DELETE"),
+			zap.String(pkg.ErrorCacheFieldKey, key),
+		)
+		return err
+	}
 	if err := h.svc.cacher.Delete(cacheMoneyBackCostSystemAll); err != nil {
 		return err
 	}

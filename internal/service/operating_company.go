@@ -21,6 +21,7 @@ type OperatingCompanyInterface interface {
 	GetById(id string) (oc *billing.OperatingCompany, err error)
 	GetAll() (result []*billing.OperatingCompany, err error)
 	Insert(oc *billing.OperatingCompany) (err error)
+	Exists(id string) bool
 }
 
 func newOperatingCompanyService(svc *Service) OperatingCompanyInterface {
@@ -165,4 +166,12 @@ func (o OperatingCompany) Insert(oc *billing.OperatingCompany) (err error) {
 	}
 
 	return
+}
+
+func (o OperatingCompany) Exists(id string) bool {
+	_, err := o.GetById(id)
+	if err != nil {
+		return false
+	}
+	return true
 }
