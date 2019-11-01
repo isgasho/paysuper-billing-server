@@ -16,10 +16,11 @@ import (
 )
 
 const (
-	errorFieldService = "service"
-	errorFieldMethod  = "method"
-	errorFieldEntry   = "entry"
-	errorFieldRequest = "request"
+	errorFieldService     = "service"
+	errorFieldMethod      = "method"
+	errorFieldEntry       = "entry"
+	errorFieldRequest     = "request"
+	errorFieldEntrySource = "source_id"
 
 	collectionAccountingEntry = "accounting_entry"
 
@@ -888,6 +889,7 @@ func (h *accountingEntry) GetExchangeCurrentMerchant(req *currencies.ExchangeCur
 			zap.String(errorFieldService, "CurrencyRatesService"),
 			zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchantRequest"),
 			zap.Any(errorFieldRequest, req),
+			zap.Any(errorFieldEntrySource, h.order.Id),
 		)
 
 		return 0, accountingEntryErrorExchangeFailed
@@ -911,6 +913,7 @@ func (h *accountingEntry) GetExchangeCurrentCommon(req *currencies.ExchangeCurre
 			zap.String(errorFieldService, "CurrencyRatesService"),
 			zap.String(errorFieldMethod, "ExchangeCurrencyCurrentCommon"),
 			zap.Any(errorFieldRequest, req),
+			zap.Any(errorFieldEntrySource, h.order.Id),
 		)
 
 		return 0, accountingEntryErrorExchangeFailed
@@ -980,6 +983,7 @@ func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
 						zap.String(errorFieldMethod, "ExchangeCurrencyCurrentCommon"),
 						zap.String(errorFieldEntry, entry.Type),
 						zap.Any(errorFieldRequest, req),
+						zap.Any(errorFieldEntrySource, entry.Source),
 					)
 
 					return accountingEntryErrorExchangeFailed
