@@ -97,7 +97,6 @@ type Service struct {
 	formatter                  paysuper_i18n.Formatter
 	reporterService            reporterProto.ReporterService
 	postmarkBroker             rabbitmq.BrokerInterface
-	casbinService              casbinProto.CasbinService
 	paylinkService             PaylinkServiceInterface
 	casbinService              casbinProto.CasbinService
 }

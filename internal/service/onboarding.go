@@ -46,7 +46,6 @@ var (
 	merchantErrorOnboardingTariffAlreadyExist = newBillingServerErrorMsg("mr000020", "merchant tariffs already sets")
 	merchantStatusChangeNotPossible           = newBillingServerErrorMsg("mr000021", "change status not possible by merchant flow")
 	merchantNotificationSettingNotFound       = newBillingServerErrorMsg("mr000022", "setting for create notification for status change not found")
-	merchantUnableToAddMerchantUserRole       = newBillingServerErrorMsg("mr000023", "unable to add user role to merchant")
 	merchantTariffsNotFound                   = newBillingServerErrorMsg("mr000023", "tariffs for merchant not found")
 	merchantPayoutCurrencyMissed              = newBillingServerErrorMsg("mr000024", "merchant don't have payout currency")
 	merchantUnableToAddMerchantUserRole       = newBillingServerErrorMsg("mr000025", "unable to add user role to merchant")

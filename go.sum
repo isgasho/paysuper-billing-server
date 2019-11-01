@@ -644,6 +644,8 @@ github.com/patrickmn/go-cache v0.0.0-20180527043350-9f6ff22cfff8/go.mod h1:3Qf8k
 github.com/patrickmn/go-cache v2.1.0+incompatible/go.mod h1:3Qf8kWWT7OJRJbdiICTKqZju1ZixQ/KpMGzzAfe6+WQ=
 github.com/paysuper/casbin-server v0.0.0-20191016092241-d25e3cf41561 h1:TlTSsozB3VlekDb/g0nlKmv9+JjgOCx544zGvLjCVLU=
 github.com/paysuper/casbin-server v0.0.0-20191016092241-d25e3cf41561/go.mod h1:kP4kntb1yUsWmPvPEnkWUbAs+yDd2yLwEhxJ923HCHI=
+github.com/paysuper/casbin-server v0.0.0-20191031114753-f40b0e2b42ba h1:IB6GlieqPkAAuWprq40ryJybBlgBOK0y3OtKDm4GF5Q=
+github.com/paysuper/casbin-server v0.0.0-20191031114753-f40b0e2b42ba/go.mod h1:mjk3u6CLdOVEQd8BZ3zkolnyqDy/oOCVNcav/ZGI70w=
 github.com/paysuper/document-signer v0.0.0-20190903102235-df82efbb7d26/go.mod h1:39VQOEQm+WdUrGOAHDGnE8ks86mAPEKpgBwxP9mQfSA=
 github.com/paysuper/document-signer v0.0.0-20190906075749-af06b306ee92/go.mod h1:gqEKigUzMNjJ9P+OYeKCu+wOA17/Q2EElpJnd6O3Zr4=
 github.com/paysuper/document-signer v0.0.0-20190923080905-cb9cc2665d8b/go.mod h1:3yaO+xYLvqjkj7mJqNKuzp8ncd7gj75jud4KIkiLMzc=
@@ -669,6 +671,8 @@ github.com/paysuper/paysuper-i18n v0.0.0-20190926113224-7eaca4563c7b h1:X4JLXz47
 github.com/paysuper/paysuper-i18n v0.0.0-20190926113224-7eaca4563c7b/go.mod h1:ylOwG4lTgHfMviuc16JFhbchWF8aBAGEuoGEX6HSOTE=
 github.com/paysuper/paysuper-recurring-repository v1.0.123 h1:24cPUNrJTUXwFPI93fvqW30nA1omEwMxWY2YueiUnnc=
 github.com/paysuper/paysuper-recurring-repository v1.0.123/go.mod h1:J5qs2I+QNL09dzJeCOGT++zrOXMbJNrzGP62/B6ZaEg=
+github.com/paysuper/paysuper-recurring-repository v1.0.124 h1:unUHzvLD0J119K1QOHdD6MZM5eYYtLP7Ip9JwwN3cGA=
+github.com/paysuper/paysuper-recurring-repository v1.0.124/go.mod h1:J5qs2I+QNL09dzJeCOGT++zrOXMbJNrzGP62/B6ZaEg=
 github.com/paysuper/paysuper-reporter v0.0.0-20190923193057-f9fbc0ddd67c/go.mod h1:Jp1cfxAkeC9e9x6kylvm3m7aIEYbRF4/G39Y0VEg/+g=
 github.com/paysuper/paysuper-reporter v0.0.0-20190926070334-68df87eeae2b/go.mod h1:ZSS1+yQ52jJjwJaSgvaARQpPxx+8bL5cFAzPu4MZZAc=
 github.com/paysuper/paysuper-reporter v0.0.0-20190926160409-3dfa3c2d811f/go.mod h1:nqWCL/fCIC9ESkK1q2K5vWiGYp7HR0NFuj9+x0Vr9Fo=
