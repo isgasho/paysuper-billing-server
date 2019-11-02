@@ -872,6 +872,15 @@ func (s *Service) PaymentCreateProcess(
 		delete(order.PaymentRequisites, pkg.PaymentCreateFieldRecurringId)
 	}
 
+	merchantId := order.GetMerchantId()
+	merchant, err := s.merchant.GetById(merchantId)
+	if err != nil {
+		return err
+	}
+	order.MccCode = merchant.MccCode
+	order.IsHighRisk = merchant.IsHighRisk()
+	order.OperatingCompanyId = merchant.OperatingCompanyId
+
 	err = s.updateOrder(order)
 
 	if err != nil {
@@ -3858,26 +3867,20 @@ func (s *Service) hasPaymentCosts(order *billing.Order) bool {
 		return false
 	}
 
-	merchantId := order.GetMerchantId()
-	merchant, err := s.merchant.GetById(merchantId)
-	if err != nil {
-		return false
-	}
-
-	_, err = s.paymentChannelCostSystem.Get(methodName, country.Region, country.IsoCodeA2, merchant.MccCode, merchant.OperatingCompanyId)
+	_, err = s.paymentChannelCostSystem.Get(methodName, country.Region, country.IsoCodeA2, order.MccCode, order.OperatingCompanyId)
 
 	if err != nil {
 		return false
 	}
 
 	data := &billing.PaymentChannelCostMerchantRequest{
-		MerchantId:     merchantId,
+		MerchantId:     order.GetMerchantId(),
 		Name:           methodName,
 		PayoutCurrency: order.GetMerchantRoyaltyCurrency(),
 		Amount:         order.TotalPaymentAmount,
 		Region:         country.Region,
 		Country:        country.IsoCodeA2,
-		MccCode:        merchant.MccCode,
+		MccCode:        order.MccCode,
 	}
 	_, err = s.getPaymentChannelCostMerchant(data)
 	return err == nil

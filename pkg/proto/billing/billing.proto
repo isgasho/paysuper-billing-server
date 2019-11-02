@@ -584,6 +584,12 @@ message Order {
     bool is_key_product_notified = 72;
     // @inject_tag: json:"receipt_id" bson:"receipt_id"
     string receipt_id = 73; // unique public receipt identifier
+    // @inject_tag: json:"-"
+    string mcc_code = 74;
+    // @inject_tag: json:"-"
+    string operating_company_id = 75;
+    // @inject_tag: json:"-"
+    bool is_high_risk = 76;
 }
 
 message CountryRestriction {
@@ -1752,6 +1758,8 @@ message OrderViewPublic {
     repeated OrderItem items = 39;
     //@inject_tag: json:"merchant_payout_currency" bson:"merchant_payout_currency"
     string merchant_payout_currency = 40;
+    // @inject_tag: json:"operating_company_id"
+    string operating_company_id = 41;
 }
 
 message OrderViewPrivate {
@@ -1901,6 +1909,12 @@ message OrderViewPrivate {
     repeated OrderItem items = 72;
     //@inject_tag: json:"merchant_payout_currency" bson:"merchant_payout_currency"
     string merchant_payout_currency = 73;
+    // @inject_tag: json:"mcc_code"
+    string mcc_code = 74;
+    // @inject_tag: json:"operating_company_id
+    string operating_company_id = 75;
+    // @inject_tag: json:"is_high_risk"
+    bool is_high_risk = 76;
 }
 
 message RecommendedPrice {

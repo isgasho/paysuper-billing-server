@@ -1,0 +1,34 @@
+[
+  {
+    "update": "order",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$set": {
+            "mcc_code": "5816",
+            "is_high_risk": false,
+            "operating_company_id": "5dbc50d486616113a1cefe16"
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "update": "order_view",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$set": {
+            "mcc_code": "5816",
+            "is_high_risk": false,
+            "operating_company_id": "5dbc50d486616113a1cefe16"
+          }
+        },
+        "multi": true
+      }
+    ]
+  }
+]

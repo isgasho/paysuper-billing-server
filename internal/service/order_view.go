@@ -3129,6 +3129,9 @@ func (s *Service) doUpdateOrderView(match bson.M) error {
 				"paysuper_refund_total_profit":                      1,
 				"issuer":                                            1,
 				"items":                                             1,
+				"mcc_code":                                          1,
+				"operating_company_id":                              1,
+				"is_high_risk":                                      1,
 				"merchant_payout_currency": bson.M{
 					"$ifNull": list{"$net_revenue.currency", "$refund_reverse_revenue.currency"},
 				},

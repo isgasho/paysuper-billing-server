@@ -1137,7 +1137,7 @@ func (h *accountingEntry) getPaymentChannelCostSystem() (*billing.PaymentChannel
 		return nil, err
 	}
 
-	cost, err := h.Service.paymentChannelCostSystem.Get(name, h.country.Region, h.country.IsoCodeA2, h.merchant.MccCode, h.merchant.OperatingCompanyId)
+	cost, err := h.Service.paymentChannelCostSystem.Get(name, h.country.Region, h.country.IsoCodeA2, h.getMccCode(), h.getOperatingCompanyId())
 
 	if err != nil {
 		zap.L().Error(
@@ -1166,7 +1166,7 @@ func (h *accountingEntry) getPaymentChannelCostMerchant(amount float64) (*billin
 		Amount:         amount,
 		Region:         h.country.Region,
 		Country:        h.country.IsoCodeA2,
-		MccCode:        h.merchant.MccCode,
+		MccCode:        h.getMccCode(),
 	}
 	cost, err := h.Service.getPaymentChannelCostMerchant(req)
 
@@ -1202,7 +1202,7 @@ func (h *accountingEntry) getMoneyBackCostMerchant(reason string) (*billing.Mone
 		Country:        h.country.IsoCodeA2,
 		PaymentStage:   1,
 		Days:           int32(refundAt.Sub(paymentAt).Hours() / 24),
-		MccCode:        h.merchant.MccCode,
+		MccCode:        h.getMccCode(),
 	}
 	return h.Service.getMoneyBackCostMerchant(data)
 }
@@ -1225,10 +1225,36 @@ func (h *accountingEntry) getMoneyBackCostSystem(reason string) (*billing.MoneyB
 		PaymentStage:       1,
 		Days:               int32(refundAt.Sub(paymentAt).Hours() / 24),
 		UndoReason:         reason,
-		MccCode:            h.merchant.MccCode,
-		OperatingCompanyId: h.merchant.OperatingCompanyId,
+		MccCode:            h.getMccCode(),
+		OperatingCompanyId: h.getOperatingCompanyId(),
 	}
 	return h.Service.getMoneyBackCostSystem(data)
+}
+
+func (h *accountingEntry) getMccCode() string {
+	if h.refundOrder != nil && h.refundOrder.MccCode != "" {
+		return h.refundOrder.MccCode
+	}
+	if h.order != nil && h.order.MccCode != "" {
+		return h.order.MccCode
+	}
+	if h.merchant != nil && h.merchant.MccCode != "" {
+		return h.merchant.MccCode
+	}
+	return ""
+}
+
+func (h *accountingEntry) getOperatingCompanyId() string {
+	if h.refundOrder != nil && h.refundOrder.OperatingCompanyId != "" {
+		return h.refundOrder.OperatingCompanyId
+	}
+	if h.order != nil && h.order.OperatingCompanyId != "" {
+		return h.order.OperatingCompanyId
+	}
+	if h.merchant != nil && h.merchant.OperatingCompanyId != "" {
+		return h.merchant.OperatingCompanyId
+	}
+	return ""
 }
 
 func (a Accounting) GetCorrectionsForRoyaltyReport(merchantId, currency string, from, to time.Time) (items []*billing.AccountingEntry, err error) {

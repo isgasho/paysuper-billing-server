@@ -270,6 +270,9 @@ type MgoOrder struct {
 	Keys                       []string                    `bson:"keys"`
 	IsKeyProductNotified       bool                        `bson:"is_key_product_notified"`
 	ReceiptId                  string                      `bson:"receipt_id"`
+	MccCode                    string                      `bson:"mcc_code"`
+	OperatingCompanyId         string                      `bson:"operating_company_id"`
+	IsHighRisk                 bool                        `bson:"is_high_risk"`
 }
 
 type MgoOrderItem struct {
@@ -720,6 +723,9 @@ type MgoOrderViewPrivate struct {
 	Issuer                                     *OrderIssuer           `bson:"issuer"`
 	Items                                      []*MgoOrderItem        `bson:"items"`
 	MerchantPayoutCurrency                     string                 `bson:"merchant_payout_currency"`
+	MccCode                                    string                 `bson:"mcc_code"`
+	OperatingCompanyId                         string                 `bson:"operating_company_id"`
+	IsHighRisk                                 bool                   `bson:"is_high_risk"`
 }
 
 type MgoOrderViewPublic struct {
@@ -763,6 +769,7 @@ type MgoOrderViewPublic struct {
 	Issuer                                  *OrderIssuer           `bson:"issuer"`
 	Items                                   []*MgoOrderItem        `bson:"items"`
 	MerchantPayoutCurrency                  string                 `bson:"merchant_payout_currency"`
+	OperatingCompanyId                      string                 `bson:"operating_company_id"`
 }
 
 /*type MgoMerchantTariffRates struct {
@@ -1592,6 +1599,9 @@ func (m *Order) GetBSON() (interface{}, error) {
 		Keys:                      m.Keys,
 		IsKeyProductNotified:      m.IsKeyProductNotified,
 		ReceiptId:                 m.ReceiptId,
+		MccCode:                   m.MccCode,
+		OperatingCompanyId:        m.OperatingCompanyId,
+		IsHighRisk:                m.IsHighRisk,
 	}
 
 	if m.Refund != nil {
@@ -1801,6 +1811,9 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.Keys = decoded.Keys
 	m.IsKeyProductNotified = decoded.IsKeyProductNotified
 	m.ReceiptId = decoded.ReceiptId
+	m.MccCode = decoded.MccCode
+	m.OperatingCompanyId = decoded.OperatingCompanyId
+	m.IsHighRisk = decoded.IsHighRisk
 
 	if decoded.Refund != nil {
 		m.Refund = &OrderNotificationRefund{
@@ -3941,6 +3954,9 @@ func (m *OrderViewPrivate) SetBSON(raw bson.Raw) error {
 	m.RefundFeesTotalLocal = getOrderViewMoney(decoded.RefundFeesTotalLocal)
 	m.PaysuperRefundTotalProfit = getOrderViewMoney(decoded.PaysuperRefundTotalProfit)
 	m.Items = getOrderViewItems(decoded.Items)
+	m.MccCode = decoded.MccCode
+	m.OperatingCompanyId = decoded.OperatingCompanyId
+	m.IsHighRisk = decoded.IsHighRisk
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {
@@ -4002,6 +4018,7 @@ func (m *OrderViewPublic) SetBSON(raw bson.Raw) error {
 	m.RefundFeesTotal = getOrderViewMoney(decoded.RefundFeesTotal)
 	m.RefundFeesTotalLocal = getOrderViewMoney(decoded.RefundFeesTotalLocal)
 	m.Items = getOrderViewItems(decoded.Items)
+	m.OperatingCompanyId = decoded.OperatingCompanyId
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {
