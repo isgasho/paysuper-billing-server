@@ -48,6 +48,7 @@ var (
 	merchantTariffsNotFound                   = newBillingServerErrorMsg("mr000023", "tariffs for merchant not found")
 	merchantPayoutCurrencyMissed              = newBillingServerErrorMsg("mr000024", "merchant don't have payout currency")
 	merchantErrorOperationsTypeNotSupported   = newBillingServerErrorMsg("mr000025", "merchant operations type not supported")
+	merchantErrorOperatingCompanyNotExists    = newBillingServerErrorMsg("mr000026", "operating company not exists")
 
 	merchantSignAgreementMessage        = map[string]string{"code": "mr000017", "message": "license agreement was signed by merchant"}
 	merchantAgreementReadyToSignMessage = map[string]interface{}{"code": "mr000025", "generated": true, "message": "merchant license agreement ready to sign"}
@@ -518,6 +519,12 @@ func (s *Service) SetMerchantOperatingCompany(
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = err.(*grpc.ResponseErrorMessage)
 
+		return nil
+	}
+
+	if !s.operatingCompany.Exists(req.OperatingCompanyId) {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = merchantErrorOperatingCompanyNotExists
 		return nil
 	}
 
