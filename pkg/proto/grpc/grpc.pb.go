@@ -10592,8 +10592,8 @@ type GetMerchantTariffRatesRequest struct {
 	MinAmount float64 `protobuf:"fixed64,3,opt,name=min_amount,json=minAmount,proto3" json:"min_amount,omitempty" query:"min_amount" validate:"omitempty,numeric,gte=0"`
 	// @inject_tag: query:"max_amount" validate:"omitempty,numeric,gt=0"
 	MaxAmount float64 `protobuf:"fixed64,4,opt,name=max_amount,json=maxAmount,proto3" json:"max_amount,omitempty" query:"max_amount" validate:"omitempty,numeric,gt=0"`
-	// @inject_tag: json:"merchant_operations_type" validate:"oneof=high-risk low-risk"
-	MerchantOperationsType string   `protobuf:"bytes,5,opt,name=merchant_operations_type,json=merchantOperationsType,proto3" json:"merchant_operations_type" validate:"oneof=high-risk low-risk"`
+	// @inject_tag: query:"merchant_operations_type" json:"merchant_operations_type" validate:"oneof=high-risk low-risk"
+	MerchantOperationsType string   `protobuf:"bytes,5,opt,name=merchant_operations_type,json=merchantOperationsType,proto3" json:"merchant_operations_type" query:"merchant_operations_type" validate:"oneof=high-risk low-risk"`
 	XXX_NoUnkeyedLiteral   struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized       []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache          int32    `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -10785,8 +10785,8 @@ type SetMerchantTariffRatesRequest struct {
 	MerchantId string `protobuf:"bytes,1,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id" validate:"required,hexadecimal,len=24"`
 	// @inject_tag: json:"home_region" validate:"required,tariff_region"
 	HomeRegion string `protobuf:"bytes,2,opt,name=home_region,json=homeRegion,proto3" json:"home_region" validate:"required,tariff_region"`
-	// @inject_tag: json:"merchant_operations_type" validate:"oneof=high-risk low-risk"
-	MerchantOperationsType string   `protobuf:"bytes,3,opt,name=merchant_operations_type,json=merchantOperationsType,proto3" json:"merchant_operations_type" validate:"oneof=high-risk low-risk"`
+	// @inject_tag: query:"merchant_operations_type" json:"merchant_operations_type" validate:"oneof=high-risk low-risk"
+	MerchantOperationsType string   `protobuf:"bytes,3,opt,name=merchant_operations_type,json=merchantOperationsType,proto3" json:"merchant_operations_type" query:"merchant_operations_type" validate:"oneof=high-risk low-risk"`
 	XXX_NoUnkeyedLiteral   struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized       []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache          int32    `json:"-" bson:"-" structure:"-" validate:"-"`

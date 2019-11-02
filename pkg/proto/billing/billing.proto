@@ -1343,7 +1343,7 @@ message MoneyBackCostSystemRequest {
     int32 payment_stage = 7;
     //@inject_tag: json:"mcc_code" bson:"mcc_code" validate:"required,numeric,len=4" query:"mcc_code"
     string mcc_code = 8;
-    //@inject_tag: json:"operating_company_id" bson:"operating_company_id" validate:"required,,hexadecimal,len=24" query:"operating_company_id"
+    //@inject_tag: json:"operating_company_id" bson:"operating_company_id" validate:"required,hexadecimal,len=24" query:"operating_company_id"
     string operating_company_id = 9;
 }
 

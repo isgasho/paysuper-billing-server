@@ -7805,8 +7805,8 @@ type MoneyBackCostSystemRequest struct {
 	PaymentStage int32 `protobuf:"varint,7,opt,name=payment_stage,json=paymentStage,proto3" json:"payment_stage" bson:"payment_stage" validate:"numeric,gte=1" query:"payment_stage"`
 	//@inject_tag: json:"mcc_code" bson:"mcc_code" validate:"required,numeric,len=4" query:"mcc_code"
 	MccCode string `protobuf:"bytes,8,opt,name=mcc_code,json=mccCode,proto3" json:"mcc_code" bson:"mcc_code" validate:"required,numeric,len=4" query:"mcc_code"`
-	//@inject_tag: json:"operating_company_id" bson:"operating_company_id" validate:"required,,hexadecimal,len=24" query:"operating_company_id"
-	OperatingCompanyId   string   `protobuf:"bytes,9,opt,name=operating_company_id,json=operatingCompanyId,proto3" json:"operating_company_id" bson:"operating_company_id" validate:"required,,hexadecimal,len=24" query:"operating_company_id"`
+	//@inject_tag: json:"operating_company_id" bson:"operating_company_id" validate:"required,hexadecimal,len=24" query:"operating_company_id"
+	OperatingCompanyId   string   `protobuf:"bytes,9,opt,name=operating_company_id,json=operatingCompanyId,proto3" json:"operating_company_id" bson:"operating_company_id" validate:"required,hexadecimal,len=24" query:"operating_company_id"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`
