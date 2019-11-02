@@ -662,6 +662,8 @@ message PaymentMethodOrder {
     PaymentMethodCrypto crypto_currency = 10;
     // @inject_tag: json:"type" bson:"group_alias"
     string handler = 11;
+    // @inject_tag: json:"refund_allowed" bson:"refund_allowed"
+    bool refund_allowed = 12;
 }
 
 message PaymentMethodParams {
@@ -772,6 +774,8 @@ message PaymentMethod {
     google.protobuf.Timestamp created_at = 15;
     // @inject_tag: bson:"updated_at" json:"max_payment_amount" validate:"omitempty"
     google.protobuf.Timestamp updated_at = 16;
+    // @inject_tag: json:"refund_allowed" bson:"refund_allowed"
+    bool refund_allowed = 17;
 }
 
 message Commission {
@@ -1760,6 +1764,8 @@ message OrderViewPublic {
     string merchant_payout_currency = 40;
     // @inject_tag: json:"operating_company_id"
     string operating_company_id = 41;
+    // @inject_tag: json:"refund_allowed"
+    bool refund_allowed = 42;
 }
 
 message OrderViewPrivate {
@@ -1915,6 +1921,8 @@ message OrderViewPrivate {
     string operating_company_id = 75;
     // @inject_tag: json:"is_high_risk"
     bool is_high_risk = 76;
+    // @inject_tag: json:"refund_allowed"
+    bool refund_allowed = 77;
 }
 
 message RecommendedPrice {

@@ -199,6 +199,7 @@ type MgoOrderPaymentMethod struct {
 	Card            *PaymentMethodCard   `bson:"card,omitempty"`
 	Wallet          *PaymentMethodWallet `bson:"wallet,omitempty"`
 	CryptoCurrency  *PaymentMethodCrypto `bson:"crypto_currency,omitempty"`
+	RefundAllowed   bool                 `bson:"refund_allowed"`
 }
 
 type MgoOrderNotificationRefund struct {
@@ -321,6 +322,7 @@ type MgoPaymentMethod struct {
 	Currencies         []string                 `bson:"currencies"`
 	Type               string                   `bson:"type"`
 	AccountRegexp      string                   `bson:"account_regexp"`
+	RefundAllowed      bool                     `bson:"refund_allowed"`
 }
 
 type MgoPaymentMethodParam struct {
@@ -726,6 +728,7 @@ type MgoOrderViewPrivate struct {
 	MccCode                                    string                 `bson:"mcc_code"`
 	OperatingCompanyId                         string                 `bson:"operating_company_id"`
 	IsHighRisk                                 bool                   `bson:"is_high_risk"`
+	RefundAllowed                              bool                   `bson:"refund_allowed"`
 }
 
 type MgoOrderViewPublic struct {
@@ -770,6 +773,7 @@ type MgoOrderViewPublic struct {
 	Items                                   []*MgoOrderItem        `bson:"items"`
 	MerchantPayoutCurrency                  string                 `bson:"merchant_payout_currency"`
 	OperatingCompanyId                      string                 `bson:"operating_company_id"`
+	RefundAllowed                           bool                   `bson:"refund_allowed"`
 }
 
 /*type MgoMerchantTariffRates struct {
@@ -1654,6 +1658,7 @@ func (m *Order) GetBSON() (interface{}, error) {
 			Group:           m.PaymentMethod.Group,
 			Saved:           m.PaymentMethod.Saved,
 			Handler:         m.PaymentMethod.Handler,
+			RefundAllowed:   m.PaymentMethod.RefundAllowed,
 		}
 
 		if m.PaymentMethod.Card != nil {
@@ -1930,6 +1935,7 @@ func (m *PaymentMethod) GetBSON() (interface{}, error) {
 		Type:             m.Type,
 		AccountRegexp:    m.AccountRegexp,
 		IsActive:         m.IsActive,
+		RefundAllowed:    m.RefundAllowed,
 	}
 
 	if len(m.Id) <= 0 {
@@ -2016,6 +2022,7 @@ func (m *PaymentMethod) SetBSON(raw bson.Raw) error {
 	m.Type = decoded.Type
 	m.AccountRegexp = decoded.AccountRegexp
 	m.IsActive = decoded.IsActive
+	m.RefundAllowed = decoded.RefundAllowed
 	m.PaymentSystemId = decoded.PaymentSystemId.Hex()
 
 	if decoded.TestSettings != nil {
@@ -3957,6 +3964,7 @@ func (m *OrderViewPrivate) SetBSON(raw bson.Raw) error {
 	m.MccCode = decoded.MccCode
 	m.OperatingCompanyId = decoded.OperatingCompanyId
 	m.IsHighRisk = decoded.IsHighRisk
+	m.RefundAllowed = decoded.RefundAllowed
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {
@@ -4019,6 +4027,7 @@ func (m *OrderViewPublic) SetBSON(raw bson.Raw) error {
 	m.RefundFeesTotalLocal = getOrderViewMoney(decoded.RefundFeesTotalLocal)
 	m.Items = getOrderViewItems(decoded.Items)
 	m.OperatingCompanyId = decoded.OperatingCompanyId
+	m.RefundAllowed = decoded.RefundAllowed
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {
@@ -4046,6 +4055,7 @@ func getPaymentMethodOrder(in *MgoOrderPaymentMethod) *PaymentMethodOrder {
 		PaymentSystemId: in.PaymentSystemId.Hex(),
 		Group:           in.Group,
 		Saved:           in.Saved,
+		RefundAllowed:   in.RefundAllowed,
 	}
 
 	if in.Card != nil {

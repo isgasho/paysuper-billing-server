@@ -3135,6 +3135,18 @@ func (s *Service) doUpdateOrderView(match bson.M) error {
 				"merchant_payout_currency": bson.M{
 					"$ifNull": list{"$net_revenue.currency", "$refund_reverse_revenue.currency"},
 				},
+				"refund_allowed": bson.M{
+					"$cond": list{
+						bson.M{
+							"$and": []bson.M{
+								{"$eq": list{"$payment_method.refund_allowed", true}},
+								{"$eq": list{"$type", "order"}},
+							},
+						},
+						true,
+						false,
+					},
+				},
 			},
 		},
 		{

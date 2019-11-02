@@ -1,0 +1,123 @@
+[
+  {
+    "update": "payment_method",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$set": {
+            "refund_allowed": false
+          },
+          "$currentDate": {
+            "updated_at": true
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "update": "payment_method",
+    "updates": [
+      {
+        "q": {
+          "group_alias": "BANKCARD"
+        },
+        "u": {
+          "$set": {
+            "refund_allowed": true
+          },
+          "$currentDate": {
+            "updated_at": true
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "update": "order",
+    "updates": [
+      {
+        "q": {
+          "payment_method": {"$exists": true}
+        },
+        "u": {
+          "$set": {
+            "payment_method.refund_allowed": false
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "update": "order",
+    "updates": [
+      {
+        "q": {
+          "payment_method": {"$exists": true},
+          "payment_method.group_alias": "BANKCARD"
+        },
+        "u": {
+          "$set": {
+            "payment_method.refund_allowed": true
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "update": "order_view",
+    "updates": [
+      {
+        "q": {
+          "payment_method": {"$exists": true}
+        },
+        "u": {
+          "$set": {
+            "refund_allowed": false,
+            "payment_method.refund_allowed": false
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "update": "order_view",
+    "updates": [
+      {
+        "q": {
+          "payment_method": {"$exists": true},
+          "payment_method.group_alias": "BANKCARD"
+        },
+        "u": {
+          "$set": {
+            "payment_method.refund_allowed": true
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "update": "order_view",
+    "updates": [
+      {
+        "q": {
+          "type": "order",
+          "payment_method": {"$exists": true},
+          "payment_method.group_alias": "BANKCARD"
+        },
+        "u": {
+          "$set": {
+            "refund_allowed": true
+          }
+        },
+        "multi": true
+      }
+    ]
+  }
+]

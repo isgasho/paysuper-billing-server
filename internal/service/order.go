@@ -862,6 +862,7 @@ func (s *Service) PaymentCreateProcess(
 		Group:           processor.checked.paymentMethod.Group,
 		ExternalId:      processor.checked.paymentMethod.ExternalId,
 		Handler:         ps.Handler,
+		RefundAllowed:   processor.checked.paymentMethod.RefundAllowed,
 	}
 
 	p1 := &OrderCreateRequestProcessor{Service: s}
