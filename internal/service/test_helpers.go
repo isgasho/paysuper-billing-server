@@ -10,11 +10,13 @@ import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"math/rand"
 	"strconv"
@@ -623,6 +625,11 @@ func helperCreateAndPayPaylinkOrder(
 	paymentMethod *billing.PaymentMethod,
 	issuer *billing.OrderIssuer,
 ) *billing.Order {
+	centrifugoMock := &mocks.CentrifugoInterface{}
+	centrifugoMock.On("GetChannelToken", mock.Anything, mock.Anything).Return("token")
+	centrifugoMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	service.centrifugo = centrifugoMock
+
 	req := &billing.OrderCreateByPaylink{
 		PaylinkId: paylinkId,
 		PayerIp:   "127.0.0.1",
@@ -667,6 +674,11 @@ func helperCreateAndPayOrder(
 	project *billing.Project,
 	paymentMethod *billing.PaymentMethod,
 ) *billing.Order {
+	centrifugoMock := &mocks.CentrifugoInterface{}
+	centrifugoMock.On("GetChannelToken", mock.Anything, mock.Anything).Return("token")
+	centrifugoMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	service.centrifugo = centrifugoMock
+
 	req := &billing.OrderCreateRequest{
 		Type:        billing.OrderType_simple,
 		ProjectId:   project.Id,
@@ -699,6 +711,11 @@ func helperPayOrder(
 	paymentMethod *billing.PaymentMethod,
 	country string,
 ) *billing.Order {
+	centrifugoMock := &mocks.CentrifugoInterface{}
+	centrifugoMock.On("GetChannelToken", mock.Anything, mock.Anything).Return("token")
+	centrifugoMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	service.centrifugo = centrifugoMock
+
 	req1 := &grpc.PaymentCreateRequest{
 		Data: map[string]string{
 			pkg.PaymentCreateFieldOrderId:         order.Uuid,
@@ -983,6 +1000,11 @@ func helperCreateAndPayOrder2(
 	keyProduct *grpc.KeyProduct,
 	issuerUrl string,
 ) *billing.Order {
+	centrifugoMock := &mocks.CentrifugoInterface{}
+	centrifugoMock.On("GetChannelToken", mock.Anything, mock.Anything).Return("token")
+	centrifugoMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	service.centrifugo = centrifugoMock
+
 	req := &billing.OrderCreateRequest{
 		ProjectId:   project.Id,
 		Account:     "unit test",

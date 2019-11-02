@@ -33,40 +33,12 @@ const (
 	cardPayGrantTypePassword     = "password"
 	cardPayGrantTypeRefreshToken = "refresh_token"
 
-	cardPayActionAuthenticate     = "auth"
-	cardPayActionRefresh          = "refresh"
-	cardPayActionCreatePayment    = "create_payment"
-	cardPayActionRecurringPayment = "recurring_payment"
-	cardPayActionRefund           = "refund"
-
 	cardPayDateFormat          = "2006-01-02T15:04:05Z"
 	cardPayInitiatorCardholder = "cit"
 )
 
 var (
 	cardPayTokens = map[string]*cardPayToken{}
-	cardPayPaths  = map[string]*Path{
-		cardPayActionAuthenticate: {
-			path:   "/api/auth/token",
-			method: http.MethodPost,
-		},
-		cardPayActionRefresh: {
-			path:   "/api/auth/token",
-			method: http.MethodPost,
-		},
-		cardPayActionCreatePayment: {
-			path:   "/api/payments",
-			method: http.MethodPost,
-		},
-		cardPayActionRecurringPayment: {
-			path:   "/api/recurrings",
-			method: http.MethodPost,
-		},
-		cardPayActionRefund: {
-			path:   "/api/refunds",
-			method: http.MethodPost,
-		},
-	}
 
 	successRefundResponseStatuses = map[string]bool{
 		pkg.CardPayPaymentResponseStatusAuthorized: true,
@@ -78,7 +50,8 @@ var (
 )
 
 type cardPay struct {
-	mu sync.Mutex
+	mu         sync.Mutex
+	httpClient *http.Client
 }
 
 type cardPayTransport struct {
@@ -262,26 +235,35 @@ func (m *CardPayRefundResponse) IsSuccessStatus() bool {
 }
 
 func newCardPayHandler() PaymentSystem {
-	return &cardPay{}
+	return &cardPay{
+		httpClient: &http.Client{
+			Transport: &cardPayTransport{},
+			Timeout:   defaultHttpClientTimeout * time.Second,
+		},
+	}
 }
 
-func (h *cardPay) CreatePayment(order *billing.Order, requisites map[string]string) (string, error) {
+func (h *cardPay) CreatePayment(
+	order *billing.Order,
+	successUrl, failUrl string,
+	requisites map[string]string,
+) (string, error) {
 	err := h.auth(order)
 
 	if err != nil {
 		return "", err
 	}
 
-	request, err := h.getCardPayOrder(order, requisites)
+	request, err := h.getCardPayOrder(order, successUrl, failUrl, requisites)
 
 	if err != nil {
 		return "", nil
 	}
 
-	action := cardPayActionCreatePayment
+	action := pkg.PaymentSystemActionCreatePayment
 
 	if request.RecurringData != nil {
-		action = cardPayActionRecurringPayment
+		action = pkg.PaymentSystemActionRecurringPayment
 	}
 
 	u, err := h.getUrl(order.GetPaymentSystemApiUrl(), action)
@@ -293,17 +275,13 @@ func (h *cardPay) CreatePayment(order *billing.Order, requisites map[string]stri
 	order.PrivateStatus = constant.OrderStatusPaymentSystemRejectOnCreate
 
 	b, _ := json.Marshal(request)
-	client := &http.Client{
-		Transport: &cardPayTransport{},
-		Timeout:   defaultHttpClientTimeout * time.Second,
-	}
+	req, err := http.NewRequest(pkg.CardPayPaths[action].Method, u, bytes.NewBuffer(b))
 
-	req, err := http.NewRequest(cardPayPaths[action].method, u, bytes.NewBuffer(b))
 	if err != nil {
 		zap.L().Error(
 			"cardpay API: create payment request failed",
 			zap.Error(err),
-			zap.String("method", cardPayPaths[cardPayActionAuthenticate].method),
+			zap.String("method", pkg.CardPayPaths[pkg.PaymentSystemActionAuthenticate].Method),
 			zap.String("url", u),
 			zap.Any("order", order),
 			zap.ByteString(pkg.LogFieldRequest, b),
@@ -317,13 +295,13 @@ func (h *cardPay) CreatePayment(order *billing.Order, requisites map[string]stri
 	req.Header.Add(HeaderContentType, MIMEApplicationJSON)
 	req.Header.Add(HeaderAuthorization, auth)
 
-	resp, err := client.Do(req)
+	resp, err := h.httpClient.Do(req)
 
 	if err != nil {
 		zap.L().Error(
 			"cardpay API: send payment request failed",
 			zap.Error(err),
-			zap.String("method", cardPayPaths[cardPayActionAuthenticate].method),
+			zap.String("method", pkg.CardPayPaths[pkg.PaymentSystemActionAuthenticate].Method),
 			zap.String("url", u),
 			zap.Any("order", order),
 			zap.ByteString(pkg.LogFieldRequest, b),
@@ -335,7 +313,7 @@ func (h *cardPay) CreatePayment(order *billing.Order, requisites map[string]stri
 		zap.L().Error(
 			"payment response returned with bad http status",
 			zap.Error(err),
-			zap.String("method", cardPayPaths[cardPayActionAuthenticate].method),
+			zap.String("method", pkg.CardPayPaths[pkg.PaymentSystemActionAuthenticate].Method),
 			zap.String("url", u),
 			zap.Any("order", order),
 			zap.ByteString(pkg.LogFieldRequest, b),
@@ -349,7 +327,7 @@ func (h *cardPay) CreatePayment(order *billing.Order, requisites map[string]stri
 		zap.L().Error(
 			"payment response body can't be read",
 			zap.Error(err),
-			zap.String("method", cardPayPaths[cardPayActionAuthenticate].method),
+			zap.String("method", pkg.CardPayPaths[pkg.PaymentSystemActionAuthenticate].Method),
 			zap.String("url", u),
 			zap.Any("order", order),
 			zap.ByteString(pkg.LogFieldRequest, b),
@@ -365,7 +343,7 @@ func (h *cardPay) CreatePayment(order *billing.Order, requisites map[string]stri
 			zap.L().Error(
 				"payment response contain invalid json",
 				zap.Error(err),
-				zap.String("method", cardPayPaths[cardPayActionAuthenticate].method),
+				zap.String("method", pkg.CardPayPaths[pkg.PaymentSystemActionAuthenticate].Method),
 				zap.String("url", u),
 				zap.Any("order", order),
 				zap.ByteString(pkg.LogFieldRequest, b),
@@ -385,7 +363,7 @@ func (h *cardPay) CreatePayment(order *billing.Order, requisites map[string]stri
 		zap.L().Error(
 			"payment response contain invalid json",
 			zap.Error(err),
-			zap.String("method", cardPayPaths[cardPayActionAuthenticate].method),
+			zap.String("Method", pkg.CardPayPaths[pkg.PaymentSystemActionAuthenticate].Method),
 			zap.String("url", u),
 			zap.Any("order", order),
 			zap.ByteString(pkg.LogFieldRequest, b),
@@ -496,20 +474,19 @@ func (h *cardPay) auth(order *billing.Order) error {
 		cardPayRequestFieldPassword:     []string{order.PaymentMethod.Params.Secret},
 	}
 
-	u, err := h.getUrl(order.GetPaymentSystemApiUrl(), cardPayActionAuthenticate)
+	u, err := h.getUrl(order.GetPaymentSystemApiUrl(), pkg.PaymentSystemActionAuthenticate)
 
 	if err != nil {
 		return err
 	}
 
-	client := tools.NewLoggedHttpClient(zap.S())
-	req, err := http.NewRequest(cardPayPaths[cardPayActionAuthenticate].method, u, strings.NewReader(data.Encode()))
+	req, err := http.NewRequest(pkg.CardPayPaths[pkg.PaymentSystemActionAuthenticate].Method, u, strings.NewReader(data.Encode()))
 
 	if err != nil {
 		zap.L().Error(
 			"cardpay API: create auth request failed",
 			zap.Error(err),
-			zap.String("method", cardPayPaths[cardPayActionAuthenticate].method),
+			zap.String("method", pkg.CardPayPaths[pkg.PaymentSystemActionAuthenticate].Method),
 			zap.String("url", u),
 			zap.Any(pkg.LogFieldRequest, data),
 		)
@@ -519,13 +496,13 @@ func (h *cardPay) auth(order *billing.Order) error {
 	req.Header.Add(HeaderContentType, MIMEApplicationForm)
 	req.Header.Add(HeaderContentLength, strconv.Itoa(len(data.Encode())))
 
-	rsp, err := client.Do(req)
+	rsp, err := h.httpClient.Do(req)
 
 	if err != nil {
 		zap.L().Error(
 			"cardpay API: send auth request failed",
 			zap.Error(err),
-			zap.String("method", cardPayPaths[cardPayActionAuthenticate].method),
+			zap.String("method", pkg.CardPayPaths[pkg.PaymentSystemActionAuthenticate].Method),
 			zap.String("url", u),
 			zap.Any(pkg.LogFieldRequest, data),
 		)
@@ -543,7 +520,7 @@ func (h *cardPay) auth(order *billing.Order) error {
 		zap.L().Error(
 			"cardpay API: reading auth response failed",
 			zap.Error(err),
-			zap.String("method", cardPayPaths[cardPayActionAuthenticate].method),
+			zap.String("method", pkg.CardPayPaths[pkg.PaymentSystemActionAuthenticate].Method),
 			zap.String("url", u),
 			zap.Any(pkg.LogFieldRequest, data),
 		)
@@ -566,14 +543,13 @@ func (h *cardPay) refresh(order *billing.Order) error {
 		cardPayRequestFieldRefreshToken: []string{cardPayTokens[order.PaymentMethod.ExternalId].RefreshToken},
 	}
 
-	qUrl, err := h.getUrl(order.GetPaymentSystemApiUrl(), cardPayActionRefresh)
+	qUrl, err := h.getUrl(order.GetPaymentSystemApiUrl(), pkg.PaymentSystemActionRefresh)
 
 	if err != nil {
 		return err
 	}
 
-	client := tools.NewLoggedHttpClient(zap.S())
-	req, err := http.NewRequest(cardPayPaths[cardPayActionRefresh].method, qUrl, strings.NewReader(data.Encode()))
+	req, err := http.NewRequest(pkg.CardPayPaths[pkg.PaymentSystemActionRefresh].Method, qUrl, strings.NewReader(data.Encode()))
 
 	if err != nil {
 		return err
@@ -582,7 +558,7 @@ func (h *cardPay) refresh(order *billing.Order) error {
 	req.Header.Add(HeaderContentType, MIMEApplicationForm)
 	req.Header.Add(HeaderContentLength, strconv.Itoa(len(data.Encode())))
 
-	resp, err := client.Do(req)
+	resp, err := h.httpClient.Do(req)
 
 	if err != nil {
 		return err
@@ -623,7 +599,7 @@ func (h *cardPay) getUrl(apiUrl, action string) (string, error) {
 		return "", err
 	}
 
-	u.Path = cardPayPaths[action].path
+	u.Path = pkg.CardPayPaths[action].Path
 
 	return u.String(), nil
 }
@@ -672,7 +648,11 @@ func (h *cardPay) getToken(order *billing.Order) *cardPayToken {
 	return cardPayTokens[order.PaymentMethod.ExternalId]
 }
 
-func (h *cardPay) getCardPayOrder(order *billing.Order, requisites map[string]string) (*CardPayOrder, error) {
+func (h *cardPay) getCardPayOrder(
+	order *billing.Order,
+	successUrl, failUrl string,
+	requisites map[string]string,
+) (*CardPayOrder, error) {
 	var items []*CardPayItem
 
 	for _, it := range order.Items {
@@ -701,19 +681,11 @@ func (h *cardPay) getCardPayOrder(order *billing.Order, requisites map[string]st
 			Account: order.User.Id,
 			Email:   order.User.TechEmail,
 		},
-	}
-
-	if order.Project.UrlSuccess != "" || order.Project.UrlFail != "" {
-		cardPayOrder.ReturnUrls = &CardPayReturnUrls{}
-
-		if order.Project.UrlSuccess != "" {
-			cardPayOrder.ReturnUrls.SuccessUrl = order.Project.UrlSuccess
-		}
-
-		if order.Project.UrlFail != "" {
-			cardPayOrder.ReturnUrls.DeclineUrl = order.Project.UrlFail
-			cardPayOrder.ReturnUrls.CancelUrl = order.Project.UrlFail
-		}
+		ReturnUrls: &CardPayReturnUrls{
+			SuccessUrl: successUrl,
+			DeclineUrl: failUrl,
+			CancelUrl:  failUrl,
+		},
 	}
 
 	storeData, okStoreData := requisites[pkg.PaymentCreateFieldStoreData]
@@ -756,7 +728,7 @@ func (h *cardPay) getCardPayOrder(order *billing.Order, requisites map[string]st
 		break
 	default:
 		zap.L().Error(
-			"cardpay API: requested create payment for unknown payment method",
+			"cardpay API: requested create payment for unknown payment Method",
 			zap.Any("order", order),
 		)
 		return nil, paymentSystemErrorUnknownPaymentMethod
@@ -844,20 +816,19 @@ func (t *cardPayTransport) log(reqUrl string, reqHeader http.Header, reqBody []b
 
 	cpOrder := &CardPayOrder{}
 	err := json.Unmarshal(reqBody, cpOrder)
+	request := reqBody
 
-	if err != nil {
-		return
-	}
+	if err == nil {
+		if cpOrder.CardAccount != nil {
+			cpOrder.CardAccount.Card.Pan = tools.MaskBankCardNumber(cpOrder.CardAccount.Card.Pan)
+			cpOrder.CardAccount.Card.Cvv = "***"
+		}
 
-	if cpOrder.CardAccount != nil {
-		cpOrder.CardAccount.Card.Pan = tools.MaskBankCardNumber(cpOrder.CardAccount.Card.Pan)
-		cpOrder.CardAccount.Card.Cvv = "***"
-	}
+		request, err = json.Marshal(cpOrder)
 
-	request, err := json.Marshal(cpOrder)
-
-	if err != nil {
-		return
+		if err != nil {
+			return
+		}
 	}
 
 	zap.L().Info(
@@ -877,7 +848,7 @@ func (h *cardPay) CreateRefund(order *billing.Order, refund *billing.Refund) err
 		return errors.New(pkg.PaymentSystemErrorCreateRefundFailed)
 	}
 
-	u, err := h.getUrl(order.GetPaymentSystemApiUrl(), cardPayActionRefund)
+	u, err := h.getUrl(order.GetPaymentSystemApiUrl(), pkg.PaymentSystemActionRefund)
 
 	if err != nil {
 		return err
@@ -914,14 +885,13 @@ func (h *cardPay) CreateRefund(order *billing.Order, refund *billing.Refund) err
 		return errors.New(pkg.PaymentSystemErrorCreateRefundFailed)
 	}
 
-	client := tools.NewLoggedHttpClient(zap.S())
-	req, err := http.NewRequest(cardPayPaths[cardPayActionRefund].method, u, bytes.NewBuffer(b))
+	req, err := http.NewRequest(pkg.CardPayPaths[pkg.PaymentSystemActionRefund].Method, u, bytes.NewBuffer(b))
 
 	if err != nil {
 		zap.L().Error(
 			"create refund request failed",
 			zap.Error(err),
-			zap.String("method", cardPayPaths[cardPayActionRefund].method),
+			zap.String("method", pkg.CardPayPaths[pkg.PaymentSystemActionRefund].Method),
 			zap.String("url", u),
 			zap.String(pkg.LogFieldHandler, pkg.PaymentSystemHandlerCardPay),
 			zap.ByteString(pkg.LogFieldRequest, b),
@@ -937,7 +907,7 @@ func (h *cardPay) CreateRefund(order *billing.Order, refund *billing.Refund) err
 	req.Header.Add(HeaderAuthorization, auth)
 
 	refund.Status = pkg.RefundStatusRejected
-	resp, err := client.Do(req)
+	resp, err := h.httpClient.Do(req)
 
 	if err != nil {
 		zap.L().Error(

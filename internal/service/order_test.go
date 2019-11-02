@@ -23,6 +23,7 @@ import (
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/stoewer/go-strcase"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
@@ -776,9 +777,9 @@ func (suite *OrderTestSuite) SetupTest() {
 		LimitsCurrency:     "RUB",
 		MaxPaymentAmount:   15000,
 		MinPaymentAmount:   0,
-		Name:               map[string]string{"en": "project incorrect payment method id"},
+		Name:               map[string]string{"en": "project incorrect payment Method id"},
 		IsProductsCheckout: true,
-		SecretKey:          "project incorrect payment method id secret key",
+		SecretKey:          "project incorrect payment Method id secret key",
 		Status:             pkg.ProjectStatusInProduction,
 		MerchantId:         merchant1.Id,
 	}
@@ -790,9 +791,9 @@ func (suite *OrderTestSuite) SetupTest() {
 		LimitsCurrency:     "RUB",
 		MaxPaymentAmount:   15000,
 		MinPaymentAmount:   0,
-		Name:               map[string]string{"en": "project incorrect payment method id"},
+		Name:               map[string]string{"en": "project incorrect payment Method id"},
 		IsProductsCheckout: false,
-		SecretKey:          "project incorrect payment method id secret key",
+		SecretKey:          "project incorrect payment Method id secret key",
 		Status:             pkg.ProjectStatusInProduction,
 	}
 	projectWithoutPaymentMethods := &billing.Project{
@@ -1548,6 +1549,10 @@ func (suite *OrderTestSuite) SetupTest() {
 		suite.FailNow("Insert PaymentChannelCostMerchant test data failed", "%v", err)
 	}
 
+	centrifugoMock := &mocks.CentrifugoInterface{}
+	centrifugoMock.On("GetChannelToken", mock.Anything, mock.Anything).Return("token")
+	centrifugoMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	suite.service.centrifugo = centrifugoMock
 }
 
 func (suite *OrderTestSuite) TearDownTest() {
