@@ -596,6 +596,8 @@ func (s *Service) PaymentFormJsonDataProcess(
 						browserCustomer.VirtualCustomerId = decryptedBrowserCustomer.VirtualCustomerId
 					}
 				}
+			} else {
+				browserCustomer.VirtualCustomerId = s.getTokenString(s.cfg.Length)
 			}
 		} else {
 			browserCustomer.VirtualCustomerId = s.getTokenString(s.cfg.Length)
