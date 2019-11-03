@@ -1041,7 +1041,14 @@ func (s *Service) PaymentCallbackProcess(
 		err = s.onPaymentNotify(ctx, order)
 
 		if err != nil {
-			zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
+			zap.L().Error(
+				pkg.MethodFinishedWithError,
+				zap.String("method", "onPaymentNotify"),
+				zap.Error(err),
+				zap.String("orderId", order.Id),
+				zap.String("orderUuid", order.Uuid),
+			)
+
 			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 				rsp.Status = pkg.StatusErrorSystem
 				rsp.Error = e.Message

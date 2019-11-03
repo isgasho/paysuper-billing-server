@@ -46,6 +46,7 @@ var (
 	accountingEntryAlreadyCreated                  = newBillingServerErrorMsg("ae00014", "accounting entries already created")
 	accountingEntryBalanceUpdateFailed             = newBillingServerErrorMsg("ae00015", "balance update failed after create accounting entry")
 	accountingEntryOriginalTaxNotFound             = newBillingServerErrorMsg("ae00016", "real_tax_fee entry from original order not found, refund processing failed")
+	accountingEntryVatCurrencyNotSet               = newBillingServerErrorMsg("ae00017", "vat currency not set")
 
 	availableAccountingEntries = map[string]bool{
 		pkg.AccountingEntryTypeRealGrossRevenue:                    true,
@@ -227,6 +228,13 @@ func (s *Service) CreateAccountingEntry(
 
 	err = s.processEvent(handler, accountingEventTypeManualCorrection)
 	if err != nil {
+		zap.L().Error(
+			pkg.MethodFinishedWithError,
+			zap.String("method", "CreateAccountingEntry"),
+			zap.Error(err),
+			zap.Any("request", req),
+		)
+
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = accountingEntryErrorUnknown
 
@@ -946,16 +954,18 @@ func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
 			// Use VatCurrency as local currency, instead of country currency.
 			// It because of some countries of EU,
 			// that use national currencies but pays vat in euro
+			if h.country.VatCurrency == "" {
+				return accountingEntryVatCurrencyNotSet
+			}
 			entry.LocalCurrency = h.country.VatCurrency
 			rateType = curPkg.RateTypeCentralbanks
 			rateSource = h.country.VatCurrencyRatesSource
 		} else {
 			priceGroup, err := h.Service.priceGroup.GetById(h.country.PriceGroupId)
-			if err == nil {
-				entry.LocalCurrency = priceGroup.Currency
-			} else {
-				entry.LocalCurrency = h.country.Currency
+			if err != nil {
+				return err
 			}
+			entry.LocalCurrency = priceGroup.Currency
 			rateType = curPkg.RateTypeOxr
 			rateSource = ""
 		}

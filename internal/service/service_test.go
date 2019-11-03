@@ -2,8 +2,6 @@ package service
 
 import (
 	"context"
-	"crypto/sha512"
-	"encoding/hex"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
@@ -373,11 +371,7 @@ func (suite *BillingServiceTestSuite) TestBillingService_CheckProjectRequestSign
 	}
 	rsp := &grpc.CheckProjectRequestSignatureResponse{}
 
-	hashString := req.Body + suite.project.SecretKey
-	h := sha512.New()
-	h.Write([]byte(hashString))
-
-	req.Signature = hex.EncodeToString(h.Sum(nil))
+	req.Signature = suite.project.SecretKey
 
 	err := suite.service.CheckProjectRequestSignature(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
@@ -404,11 +398,7 @@ func (suite *BillingServiceTestSuite) TestBillingService_CheckProjectRequestSign
 	}
 	rsp := &grpc.CheckProjectRequestSignatureResponse{}
 
-	hashString := req.Body + "some_random_string"
-	h := sha512.New()
-	h.Write([]byte(hashString))
-
-	req.Signature = hex.EncodeToString(h.Sum(nil))
+	req.Signature = "some_random_string"
 
 	err := suite.service.CheckProjectRequestSignature(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
