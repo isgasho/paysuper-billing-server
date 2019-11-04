@@ -72,12 +72,12 @@ var (
 	orderErrorProjectNotFound                                 = newBillingServerErrorMsg("fm000002", "project with specified identifier not found")
 	orderErrorProjectInactive                                 = newBillingServerErrorMsg("fm000003", "project with specified identifier is inactive")
 	orderErrorProjectMerchantInactive                         = newBillingServerErrorMsg("fm000004", "merchant for project with specified identifier is inactive")
-	orderErrorPaymentMethodNotAllowed                         = newBillingServerErrorMsg("fm000005", "payment method not available for project")
-	orderErrorPaymentMethodNotFound                           = newBillingServerErrorMsg("fm000006", "payment method with specified identifier not found")
-	orderErrorPaymentMethodInactive                           = newBillingServerErrorMsg("fm000007", "payment method with specified identifier is inactive")
+	orderErrorPaymentMethodNotAllowed                         = newBillingServerErrorMsg("fm000005", "payment Method not available for project")
+	orderErrorPaymentMethodNotFound                           = newBillingServerErrorMsg("fm000006", "payment Method with specified identifier not found")
+	orderErrorPaymentMethodInactive                           = newBillingServerErrorMsg("fm000007", "payment Method with specified identifier is inactive")
 	orderErrorConvertionCurrency                              = newBillingServerErrorMsg("fm000008", "currency convertion error")
-	orderErrorPaymentMethodEmptySettings                      = newBillingServerErrorMsg("fm000009", "payment method setting for project is empty")
-	orderErrorPaymentSystemInactive                           = newBillingServerErrorMsg("fm000010", "payment system for specified payment method is inactive")
+	orderErrorPaymentMethodEmptySettings                      = newBillingServerErrorMsg("fm000009", "payment Method setting for project is empty")
+	orderErrorPaymentSystemInactive                           = newBillingServerErrorMsg("fm000010", "payment system for specified payment Method is inactive")
 	orderErrorPayerRegionUnknown                              = newBillingServerErrorMsg("fm000011", "payer region can't be found")
 	orderErrorProjectOrderIdIsDuplicate                       = newBillingServerErrorMsg("fm000012", "request with specified project order identifier processed early")
 	orderErrorDynamicNotifyUrlsNotAllowed                     = newBillingServerErrorMsg("fm000013", "dynamic verify url or notify url not allowed for project")
@@ -85,8 +85,8 @@ var (
 	orderErrorCurrencyNotFound                                = newBillingServerErrorMsg("fm000015", "currency received from request not found")
 	orderErrorAmountLowerThanMinAllowed                       = newBillingServerErrorMsg("fm000016", "order amount is lower than min allowed payment amount for project")
 	orderErrorAmountGreaterThanMaxAllowed                     = newBillingServerErrorMsg("fm000017", "order amount is greater than max allowed payment amount for project")
-	orderErrorAmountLowerThanMinAllowedPaymentMethod          = newBillingServerErrorMsg("fm000018", "order amount is lower than min allowed payment amount for payment method")
-	orderErrorAmountGreaterThanMaxAllowedPaymentMethod        = newBillingServerErrorMsg("fm000019", "order amount is greater than max allowed payment amount for payment method")
+	orderErrorAmountLowerThanMinAllowedPaymentMethod          = newBillingServerErrorMsg("fm000018", "order amount is lower than min allowed payment amount for payment Method")
+	orderErrorAmountGreaterThanMaxAllowedPaymentMethod        = newBillingServerErrorMsg("fm000019", "order amount is greater than max allowed payment amount for payment Method")
 	orderErrorCanNotCreate                                    = newBillingServerErrorMsg("fm000020", "order can't create. try request later")
 	orderErrorNotFound                                        = newBillingServerErrorMsg("fm000021", "order with specified identifier not found")
 	orderErrorOrderCreatedAnotherProject                      = newBillingServerErrorMsg("fm000022", "order created for another project")
@@ -109,7 +109,7 @@ var (
 	orderErrorNotRestricted                                   = newBillingServerErrorMsg("fm000040", "order country not restricted")
 	orderErrorEmailRequired                                   = newBillingServerErrorMsg("fm000041", "email is required")
 	orderErrorCreatePaymentRequiredFieldIdNotFound            = newBillingServerErrorMsg("fm000042", "required field with order identifier not found")
-	orderErrorCreatePaymentRequiredFieldPaymentMethodNotFound = newBillingServerErrorMsg("fm000043", "required field with payment method identifier not found")
+	orderErrorCreatePaymentRequiredFieldPaymentMethodNotFound = newBillingServerErrorMsg("fm000043", "required field with payment Method identifier not found")
 	orderErrorCreatePaymentRequiredFieldEmailNotFound         = newBillingServerErrorMsg("fm000044", "required field \"email\" not found")
 	orderErrorCreatePaymentRequiredFieldUserCountryNotFound   = newBillingServerErrorMsg("fm000045", "user country is required")
 	orderErrorCreatePaymentRequiredFieldUserZipNotFound       = newBillingServerErrorMsg("fm000046", "user zip is required")
@@ -131,6 +131,8 @@ var (
 	orderErrorNoPlatforms                                     = newBillingServerErrorMsg("fm000062", "no available platforms")
 	orderCountryPaymentRestrictedEmailRequire                 = newBillingServerErrorMsg("fm000063", "payments from your country are not allowed")
 	orderErrorCostsRatesNotFound                              = newBillingServerErrorMsg("fm000064", "settings to calculate commissions not found")
+
+	paymentSystemPaymentProcessingSuccessStatus = "PAYMENT_SYSTEM_PROCESSING_SUCCESS"
 )
 
 type orderCreateRequestProcessorChecked struct {
@@ -878,7 +880,7 @@ func (s *Service) PaymentCreateProcess(
 
 	if err != nil {
 		zap.L().Error(
-			"s.updateOrder method failed",
+			"s.updateOrder Method failed",
 			zap.Error(err),
 			zap.Any("order", order),
 		)
@@ -911,11 +913,11 @@ func (s *Service) PaymentCreateProcess(
 		return err
 	}
 
-	url, err := h.CreatePayment(order, req.Data)
+	url, err := h.CreatePayment(order, s.cfg.GetRedirectUrlSuccess(nil), s.cfg.GetRedirectUrlFail(nil), req.Data)
 
 	if err != nil {
 		zap.L().Error(
-			"h.CreatePayment method failed",
+			"h.CreatePayment Method failed",
 			zap.Error(err),
 			zap.Any("order", order),
 		)
@@ -1038,12 +1040,20 @@ func (s *Service) PaymentCallbackProcess(
 	}
 
 	if pErr == nil {
+		err = s.paymentSystemPaymentCallbackComplete(ctx, order)
+
+		if err != nil {
+			rsp.Status = pkg.StatusErrorSystem
+			rsp.Error = err.Error()
+			return nil
+		}
+
 		err = s.onPaymentNotify(ctx, order)
 
 		if err != nil {
 			zap.L().Error(
 				pkg.MethodFinishedWithError,
-				zap.String("method", "onPaymentNotify"),
+				zap.String("Method", "onPaymentNotify"),
 				zap.Error(err),
 				zap.String("orderId", order.Id),
 				zap.String("orderUuid", order.Uuid),
@@ -1238,7 +1248,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 
 	if err != nil {
 		zap.L().Error(
-			"s.applyCountryRestriction method failed",
+			"s.applyCountryRestriction Method failed",
 			zap.Error(err),
 			zap.Any("order", order),
 		)
@@ -1348,7 +1358,7 @@ func (s *Service) ProcessBillingAddress(
 	restricted, err := s.applyCountryRestriction(order, req.Country)
 	if err != nil {
 		zap.L().Error(
-			"s.applyCountryRestriction method failed",
+			"s.applyCountryRestriction Method failed",
 			zap.Error(err),
 			zap.Any("order", order),
 		)
@@ -2428,7 +2438,7 @@ func (v *PaymentFormProcessor) processRenderFormPaymentMethods(
 
 		if err != nil {
 			zap.S().Errorw(
-				"Process payment method data failed",
+				"Process payment Method data failed",
 				"error", err,
 				"order_id", v.order.Id,
 			)
@@ -2667,7 +2677,7 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 	restricted, err := v.service.applyCountryRestriction(order, order.GetCountry())
 	if err != nil {
 		zap.L().Error(
-			"v.service.applyCountryRestriction method failed",
+			"v.service.applyCountryRestriction Method failed",
 			zap.Error(err),
 			zap.Any("order", order),
 		)
@@ -2794,7 +2804,7 @@ func (s *Service) GetOrderKeyProducts(ctx context.Context, projectId string, pro
 
 	if err != nil {
 		zap.L().Error(
-			"v.GetKeyProductsForOrder method failed",
+			"v.GetKeyProductsForOrder Method failed",
 			zap.Error(err),
 		)
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
@@ -2846,7 +2856,7 @@ func (s *Service) GetOrderProducts(projectId string, productIds []string) ([]*gr
 
 	if err != nil {
 		zap.L().Error(
-			"v.GetProductsForOrder method failed",
+			"v.GetProductsForOrder Method failed",
 			zap.Error(err),
 		)
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
@@ -3867,4 +3877,14 @@ func (s *Service) hasPaymentCosts(order *billing.Order) bool {
 	}
 	_, err = s.getPaymentChannelCostMerchant(data)
 	return err == nil
+}
+
+func (s *Service) paymentSystemPaymentCallbackComplete(ctx context.Context, order *billing.Order) error {
+	ch := s.cfg.GetCentrifugoOrderChannel(order.Uuid)
+	message := map[string]string{
+		pkg.PaymentCreateFieldOrderId: order.Uuid,
+		"status":                      paymentSystemPaymentProcessingSuccessStatus,
+	}
+
+	return s.centrifugo.Publish(ctx, ch, message)
 }

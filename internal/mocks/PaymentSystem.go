@@ -11,20 +11,20 @@ type PaymentSystem struct {
 	mock.Mock
 }
 
-// CreatePayment provides a mock function with given fields: order, requisites
-func (_m *PaymentSystem) CreatePayment(order *billing.Order, requisites map[string]string) (string, error) {
-	ret := _m.Called(order, requisites)
+// CreatePayment provides a mock function with given fields: order, successUrl, failUrl, requisites
+func (_m *PaymentSystem) CreatePayment(order *billing.Order, successUrl string, failUrl string, requisites map[string]string) (string, error) {
+	ret := _m.Called(order, successUrl, failUrl, requisites)
 
 	var r0 string
-	if rf, ok := ret.Get(0).(func(*billing.Order, map[string]string) string); ok {
-		r0 = rf(order, requisites)
+	if rf, ok := ret.Get(0).(func(*billing.Order, string, string, map[string]string) string); ok {
+		r0 = rf(order, successUrl, failUrl, requisites)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*billing.Order, map[string]string) error); ok {
-		r1 = rf(order, requisites)
+	if rf, ok := ret.Get(1).(func(*billing.Order, string, string, map[string]string) error); ok {
+		r1 = rf(order, successUrl, failUrl, requisites)
 	} else {
 		r1 = ret.Error(1)
 	}
