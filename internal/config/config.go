@@ -3,6 +3,7 @@ package config
 import (
 	"crypto/rsa"
 	"encoding/base64"
+	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/kelseyhightower/envconfig"
 	"net/url"
@@ -12,6 +13,8 @@ import (
 type PaymentSystemConfig struct {
 	CardPayApiUrl        string `envconfig:"CARD_PAY_API_URL" required:"true"`
 	CardPayApiSandboxUrl string `envconfig:"CARD_PAY_API_SANDBOX_URL" required:"true"`
+	RedirectUrlSuccess   string `envconfig:"REDIRECT_URL_SUCCESS" default:"https://order.pay.super.com/?result=success"`
+	RedirectUrlFail      string `envconfig:"REDIRECT_URL_FAIL" default:"https://order.pay.super.com/?result=fail"`
 }
 
 type CustomerTokenConfig struct {
@@ -93,11 +96,15 @@ type Config struct {
 	PaylinkMinProducts int `envconfig:"PAYLINK_MIN_PRODUCTS" required:"false" default:"1"`
 	PaylinkMaxProducts int `envconfig:"PAYLINK_MAX_PRODUCTS" required:"false" default:"8"`
 
+	CentrifugoOrderChannel string `envconfig:"CENTRIFUGO_ORDER_CHANNEL" default:"paysuper:order#%s"`
+
 	*PaymentSystemConfig
 	*CustomerTokenConfig
 	*CacheRedis
 
-	EmailConfirmUrlParsed *url.URL
+	EmailConfirmUrlParsed    *url.URL
+	RedirectUrlSuccessParsed *url.URL
+	RedirectUrlFailParsed    *url.URL
 }
 
 func NewConfig() (*Config, error) {
@@ -137,6 +144,18 @@ func NewConfig() (*Config, error) {
 		return nil, err
 	}
 
+	cfg.RedirectUrlSuccessParsed, err = url.Parse(cfg.RedirectUrlSuccess)
+
+	if err != nil {
+		return nil, err
+	}
+
+	cfg.RedirectUrlFailParsed, err = url.Parse(cfg.RedirectUrlFail)
+
+	if err != nil {
+		return nil, err
+	}
+
 	return cfg, err
 }
 
@@ -162,4 +181,30 @@ func (cfg *Config) GetUserConfirmEmailUrl(params map[string]string) string {
 	cfg.EmailConfirmUrlParsed.RawQuery = query.Encode()
 
 	return cfg.EmailConfirmUrlParsed.String()
+}
+
+func (cfg *Config) GetRedirectUrlSuccess(params map[string]string) string {
+	query := cfg.RedirectUrlSuccessParsed.Query()
+
+	for k, v := range params {
+		query.Set(k, v)
+	}
+
+	cfg.RedirectUrlSuccessParsed.RawQuery = query.Encode()
+	return cfg.RedirectUrlSuccessParsed.String()
+}
+
+func (cfg *Config) GetRedirectUrlFail(params map[string]string) string {
+	query := cfg.RedirectUrlFailParsed.Query()
+
+	for k, v := range params {
+		query.Set(k, v)
+	}
+
+	cfg.RedirectUrlFailParsed.RawQuery = query.Encode()
+	return cfg.RedirectUrlFailParsed.String()
+}
+
+func (cfg *Config) GetCentrifugoOrderChannel(orderUuid string) string {
+	return fmt.Sprintf(cfg.CentrifugoOrderChannel, orderUuid)
 }

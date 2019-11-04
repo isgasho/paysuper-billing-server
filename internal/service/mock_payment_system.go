@@ -26,9 +26,9 @@ func NewPaymentSystemMockError() PaymentSystem {
 
 func NewCardPayMock() PaymentSystem {
 	cpMock := &mocks.PaymentSystem{}
-	cpMock.On("CreatePayment", mock.Anything, mock.Anything).
+	cpMock.On("CreatePayment", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(
-			func(order *billing.Order, requisites map[string]string) string {
+			func(order *billing.Order, successUrl, failUrl string, requisites map[string]string) string {
 				order.PrivateStatus = constant.OrderStatusPaymentSystemCreate
 				return "http://localhost"
 			},
@@ -87,7 +87,7 @@ func NewCardPayMock() PaymentSystem {
 	return cpMock
 }
 
-func (m *PaymentSystemMockOk) CreatePayment(order *billing.Order, requisites map[string]string) (string, error) {
+func (m *PaymentSystemMockOk) CreatePayment(order *billing.Order, successUrl, failUrl string, requisites map[string]string) (string, error) {
 	return "", nil
 }
 
@@ -117,7 +117,7 @@ func (m *PaymentSystemMockOk) ProcessRefund(order *billing.Order, refund *billin
 	return nil
 }
 
-func (m *PaymentSystemMockError) CreatePayment(order *billing.Order, requisites map[string]string) (string, error) {
+func (m *PaymentSystemMockError) CreatePayment(order *billing.Order, successUrl, failUrl string, requisites map[string]string) (string, error) {
 	return "", nil
 }
 
