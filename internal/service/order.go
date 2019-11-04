@@ -2127,8 +2127,6 @@ func (v *OrderCreateRequestProcessor) processPaylinkProducts() error {
 		return priceGroupErrorNotFound
 	}
 
-	//v.request.Currency
-
 	amount, err := v.GetOrderProductsAmount(orderProducts, priceGroup)
 	if err != nil {
 		return err
@@ -3384,7 +3382,10 @@ func (s *Service) ProcessOrderProducts(ctx context.Context, order *billing.Order
 
 	items, err := s.GetOrderProductsItems(orderProducts, locale, priceGroup)
 	if err != nil {
-		return err
+		items, err = s.GetOrderProductsItems(orderProducts, locale, defaultPriceGroup)
+		if err != nil {
+			return err
+		}
 	}
 
 	amount = tools.FormatAmount(amount)
