@@ -251,7 +251,7 @@ func (m *PaymentMethodParams) IsSettingComplete() bool {
 
 func (m *Merchant) IsCompanyComplete() bool {
 	return m.Company != nil && m.Company.Name != "" && m.Company.AlternativeName != "" && m.Company.Website != "" &&
-		m.Company.Country != "" && m.Company.State != "" && m.Company.Zip != "" && m.Company.City != "" &&
+		m.Company.Country != "" && m.Company.Zip != "" && m.Company.City != "" &&
 		m.Company.Address != "" && m.Company.RegistrationNumber != ""
 }
 
