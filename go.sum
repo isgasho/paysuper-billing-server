@@ -774,6 +774,10 @@ github.com/paysuper/paysuper-database-mongo v0.1.0 h1:RMSIYB8rpTAAHc0wmIQz8XQVa8
 github.com/paysuper/paysuper-database-mongo v0.1.0/go.mod h1:IZu996j//Qoq+uzzCBL5GEYisfF4di/fwedWHlLz7sc=
 github.com/paysuper/paysuper-database-mongo v0.1.1 h1:xkdlYdVtBVxONka9O/kVH6VMeiu1mCJAIaJA21LFLFg=
 github.com/paysuper/paysuper-database-mongo v0.1.1/go.mod h1:IZu996j//Qoq+uzzCBL5GEYisfF4di/fwedWHlLz7sc=
+github.com/paysuper/paysuper-database-mongo v0.1.2 h1:kbZ2z13Txw/YlqKlgxPpvDaDrbyfzrgE8Ul9/+NNMNo=
+github.com/paysuper/paysuper-database-mongo v0.1.2/go.mod h1:3ky+n8JMIOPlDG5oz8ATzSEQx9J4lZrg6+9P9gvtq6Q=
+github.com/paysuper/paysuper-database-mongo v0.1.3 h1:ftHxVMqxdZ7T2RhL/s1b0yu0TfL+yJ0zOZz7Dr7Ca6Q=
+github.com/paysuper/paysuper-database-mongo v0.1.3/go.mod h1:3ky+n8JMIOPlDG5oz8ATzSEQx9J4lZrg6+9P9gvtq6Q=
 github.com/paysuper/paysuper-i18n v0.0.0-20190926113224-7eaca4563c7b h1:X4JLXz47Uzl2jM0jegSGv/SVKzWZ491lTRA9mIgiMyU=
 github.com/paysuper/paysuper-i18n v0.0.0-20190926113224-7eaca4563c7b/go.mod h1:ylOwG4lTgHfMviuc16JFhbchWF8aBAGEuoGEX6HSOTE=
 github.com/paysuper/paysuper-payment-link v0.0.0-20191014102956-21b508fc9e9c/go.mod h1:xDwwsBb+B4pPXnjXOraOfXUUDwvr58jAYh7XhSMYefY=
