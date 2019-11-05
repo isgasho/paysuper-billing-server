@@ -13,6 +13,8 @@ var (
 	productNoLongDescriptionInLanguage = "no long description in language %s"
 )
 
+const VirtualCurrencyPriceGroup = "virtual"
+
 func (m *MerchantPaymentMethodRequest) GetPerTransactionCurrency() string {
 	return m.Commission.PerTransaction.Currency
 }
@@ -36,9 +38,11 @@ func (p *Product) IsPricesContainDefaultCurrency() bool {
 }
 
 func (p *Product) GetPriceInCurrency(group *billing.PriceGroup) (float64, error) {
-	// todo: add support for virtual currencies here?
-	// note: virtual currency has IsVirtualCurrency=true && Currency=""
 	for _, price := range p.Prices {
+		if group.Currency == VirtualCurrencyPriceGroup && price.IsVirtualCurrency {
+			return price.Amount, nil
+		}
+
 		if group.Region != "" && price.Region == group.Region {
 			return price.Amount, nil
 		}
