@@ -2164,7 +2164,7 @@ message ProductPrice {
     string currency = 2;
     //@inject_tag: json:"region" validate:"region_price"
     string region = 3;
-    //@inject_tag: json:"is_virtual_currency"
+    //@inject_tag: json:"is_virtual_currency" bson:"is_virtual_currency"
     bool is_virtual_currency = 4;
 }
 

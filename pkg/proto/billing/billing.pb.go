@@ -12356,8 +12356,8 @@ type ProductPrice struct {
 	Currency string `protobuf:"bytes,2,opt,name=currency,proto3" json:"currency" validate:"alpha,len=3"`
 	//@inject_tag: json:"region" validate:"region_price"
 	Region string `protobuf:"bytes,3,opt,name=region,proto3" json:"region" validate:"region_price"`
-	//@inject_tag: json:"is_virtual_currency"
-	IsVirtualCurrency    bool     `protobuf:"varint,4,opt,name=is_virtual_currency,json=isVirtualCurrency,proto3" json:"is_virtual_currency"`
+	//@inject_tag: json:"is_virtual_currency" bson:"is_virtual_currency"
+	IsVirtualCurrency    bool     `protobuf:"varint,4,opt,name=is_virtual_currency,json=isVirtualCurrency,proto3" json:"is_virtual_currency" bson:"is_virtual_currency"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`
