@@ -516,10 +516,8 @@ func (s *Service) GetCommonUserProfile(
 		return nil
 	}
 
-	rsp = &grpc.CommonUserProfileResponse{
-		Profile: &grpc.CommonUserProfile{
-			UserProfile: profile,
-		},
+	rsp.Profile = &grpc.CommonUserProfile{
+		UserProfile: profile,
 	}
 
 	if req.MerchantId != "" {
