@@ -323,7 +323,6 @@ func (s *Service) ConfirmUserEmail(
 	rsp.Profile, err = s.userProfileRepository.GetByUserId(userId)
 
 	if err != nil {
-		fmt.Println(userId)
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = userProfileErrorUnknown
 
