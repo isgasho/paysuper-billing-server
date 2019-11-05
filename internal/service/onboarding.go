@@ -335,7 +335,7 @@ func (s *Service) ChangeMerchant(
 	merchant.Steps.Banking = merchant.IsBankingComplete()
 
 	if !merchant.HasPrimaryOnboardingUserName() {
-		profile := s.getOnboardingProfileBy(bson.M{"user_id": req.User.Id})
+		profile, _ := s.userProfileRepository.GetByUserId(req.User.Id)
 
 		if profile != nil {
 			merchant.User.ProfileId = profile.Id

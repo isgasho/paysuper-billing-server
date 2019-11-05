@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -44,7 +43,8 @@ func (s *Service) CreateOrUpdateUserProfile(
 	rsp *grpc.GetUserProfileResponse,
 ) error {
 	var err error
-	profile := s.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
+
+	profile, err := s.userProfileRepository.GetByUserId(req.UserId)
 
 	if profile == nil {
 		profile = req
@@ -111,15 +111,16 @@ func (s *Service) GetUserProfile(
 	req *grpc.GetUserProfileRequest,
 	rsp *grpc.GetUserProfileResponse,
 ) error {
-	query := bson.M{"user_id": req.UserId}
+	var err error
+	var profile *grpc.UserProfile
 
 	if req.ProfileId != "" {
-		query = bson.M{"_id": bson.ObjectIdHex(req.ProfileId)}
+		profile, err = s.userProfileRepository.GetById(req.ProfileId)
+	} else {
+		profile, err = s.userProfileRepository.GetByUserId(req.UserId)
 	}
 
-	profile := s.getOnboardingProfileBy(query)
-
-	if profile == nil {
+	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = userProfileErrorNotFound
 
@@ -141,21 +142,6 @@ func (s *Service) GetUserProfile(
 	rsp.Item = profile
 
 	return nil
-}
-
-func (s *Service) getOnboardingProfileBy(query bson.M) (profile *grpc.UserProfile) {
-	err := s.db.Collection(collectionUserProfile).Find(query).One(&profile)
-
-	if err != nil && err != mgo.ErrNotFound {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionUserProfile),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
-		)
-	}
-
-	return profile
 }
 
 func (s *Service) updateOnboardingProfile(profile, profileReq *grpc.UserProfile) *grpc.UserProfile {
@@ -334,9 +320,10 @@ func (s *Service) ConfirmUserEmail(
 		return nil
 	}
 
-	rsp.Profile = s.getOnboardingProfileBy(bson.M{"user_id": userId})
+	rsp.Profile, err = s.userProfileRepository.GetByUserId(userId)
 
-	if rsp.Profile == nil {
+	if err != nil {
+		fmt.Println(userId)
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = userProfileErrorUnknown
 
@@ -514,4 +501,48 @@ func (s *Service) CreatePageReview(
 	rsp.Status = pkg.ResponseStatusOk
 
 	return nil
+}
+
+type UserProfileRepositoryInterface interface {
+	GetById(string) (*grpc.UserProfile, error)
+	GetByUserId(string) (*grpc.UserProfile, error)
+}
+
+func newUserProfileRepository(svc *Service) UserProfileRepositoryInterface {
+	s := &UserProfileRepository{svc: svc}
+	return s
+}
+
+func (r *UserProfileRepository) GetById(id string) (*grpc.UserProfile, error) {
+	var c *grpc.UserProfile
+
+	err := r.svc.db.Collection(collectionUserProfile).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&c)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionUserProfile),
+		)
+		return nil, fmt.Errorf(errorNotFound, collectionUserProfile)
+	}
+
+	return c, nil
+}
+
+func (r *UserProfileRepository) GetByUserId(userId string) (*grpc.UserProfile, error) {
+	var c *grpc.UserProfile
+
+	err := r.svc.db.Collection(collectionUserProfile).Find(bson.M{"user_id": userId}).One(&c)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionUserProfile),
+		)
+		return nil, fmt.Errorf(errorNotFound, collectionUserProfile)
+	}
+
+	return c, nil
 }

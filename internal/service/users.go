@@ -58,6 +58,8 @@ var (
 	errorUserDontHaveRole             = newBillingServerErrorMsg("uu000018", "user dont have any role")
 	errorUserUnableResendInvite       = newBillingServerErrorMsg("uu000019", "unable to resend invite")
 	errorUserGetImplicitPermissions   = newBillingServerErrorMsg("uu000020", "unable to get implicit permission for user")
+	errorUserProfileNotFound          = newBillingServerErrorMsg("uu000021", "unable to get user profile")
+	errorUserEmptyNames               = newBillingServerErrorMsg("uu000022", "first and last names cannot be empty")
 
 	merchantUserRoles = map[string][]*billing.RoleListItem{
 		pkg.RoleTypeMerchant: {
@@ -487,6 +489,24 @@ func (s *Service) AcceptInvite(
 		return nil
 	}
 
+	profile, err := s.userProfileRepository.GetByUserId(req.UserId)
+
+	if err != nil {
+		zap.L().Error(errorUserProfileNotFound.Message, zap.Error(err), zap.String("user_id", req.UserId))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserProfileNotFound
+
+		return nil
+	}
+
+	if profile.Personal == nil || profile.Personal.FirstName == "" || profile.Personal.LastName == "" {
+		zap.L().Error(errorUserEmptyNames.Message, zap.Error(err), zap.String("user_id", req.UserId))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserEmptyNames
+
+		return nil
+	}
+
 	var user *billing.UserRole
 
 	switch claims[claimType] {
@@ -516,8 +536,8 @@ func (s *Service) AcceptInvite(
 
 	user.Status = pkg.UserRoleStatusAccepted
 	user.UserId = req.UserId
-	user.FirstName = req.FirstName
-	user.LastName = req.LastName
+	user.FirstName = profile.Personal.FirstName
+	user.LastName = profile.Personal.LastName
 
 	switch claims[claimType] {
 	case pkg.RoleTypeMerchant:

@@ -136,10 +136,11 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	}
 	rsp := &grpc.GetUserProfileResponse{}
 
-	profile := suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
+	profile, err := suite.service.userProfileRepository.GetByUserId(req.UserId)
+	assert.NotNil(suite.T(), err)
 	assert.Nil(suite.T(), profile)
 
-	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
+	err = suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 	assert.Empty(suite.T(), rsp.Message)
@@ -149,7 +150,9 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	assert.NotEmpty(suite.T(), rsp.Item.CreatedAt)
 	assert.NotEmpty(suite.T(), rsp.Item.UpdatedAt)
 
-	profile = suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
+	profile, err = suite.service.userProfileRepository.GetByUserId(req.UserId)
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), profile)
 	assert.NotNil(suite.T(), rsp.Item)
 	assert.IsType(suite.T(), &grpc.UserProfile{}, rsp.Item)
 
@@ -190,10 +193,11 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_Cha
 	}
 	rsp := &grpc.GetUserProfileResponse{}
 
-	profile := suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
+	profile, err := suite.service.userProfileRepository.GetByUserId(req.UserId)
+	assert.NotNil(suite.T(), err)
 	assert.Nil(suite.T(), profile)
 
-	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
+	err = suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 	assert.Empty(suite.T(), rsp.Message)
@@ -227,7 +231,9 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_Cha
 	assert.Empty(suite.T(), rsp.Message)
 	assert.NotNil(suite.T(), rsp.Item)
 
-	profile = suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
+	profile, err = suite.service.userProfileRepository.GetByUserId(req.UserId)
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), profile)
 	assert.NotNil(suite.T(), rsp.Item)
 	assert.IsType(suite.T(), &grpc.UserProfile{}, rsp.Item)
 
@@ -344,7 +350,8 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateOnboardingProfi
 	assert.NotEqual(suite.T(), rsp.Item.Help, rsp1.Item.Help)
 	assert.NotEqual(suite.T(), rsp.Item.Company, rsp1.Item.Company)
 
-	profile := suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
+	profile, err := suite.service.userProfileRepository.GetByUserId(req.UserId)
+	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), profile)
 
 	assert.Equal(suite.T(), profile.UserId, rsp1.Item.UserId)
@@ -390,7 +397,8 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	}
 	rsp := &grpc.GetUserProfileResponse{}
 
-	profile := suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
+	profile, err := suite.service.userProfileRepository.GetByUserId(req.UserId)
+	assert.NotNil(suite.T(), err)
 	assert.Nil(suite.T(), profile)
 
 	redisCl, ok := suite.service.redis.(*redismock.ClientMock)
@@ -403,13 +411,13 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	redisCl.On("Set").
 		Return(redis.NewStatusResult("", errors.New("server not available")))
 
-	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
+	err = suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp.Status)
 	assert.Equal(suite.T(), userProfileErrorUnknown, rsp.Message)
 
 	messages := recorded.All()
-	assert.Contains(suite.T(), messages[0].Message, "Save confirm email token to Redis failed")
+	assert.Contains(suite.T(), messages[1].Message, "Save confirm email token to Redis failed")
 }
 
 func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_NewProfile_SendUserEmailConfirmationToken_Error() {
@@ -446,7 +454,8 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	}
 	rsp := &grpc.GetUserProfileResponse{}
 
-	profile := suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
+	profile, err := suite.service.userProfileRepository.GetByUserId(req.UserId)
+	assert.NotNil(suite.T(), err)
 	assert.Nil(suite.T(), profile)
 
 	suite.service.postmarkBroker = mocks.NewBrokerMockError()
@@ -455,13 +464,13 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	logger := zap.New(core)
 	zap.ReplaceGlobals(logger)
 
-	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
+	err = suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp.Status)
 	assert.Equal(suite.T(), userProfileErrorUnknown, rsp.Message)
 
 	messages := recorded.All()
-	assert.Contains(suite.T(), messages[0].Message, "Publication message to user email confirmation to queue failed")
+	assert.Contains(suite.T(), messages[1].Message, "Publication message to user email confirmation to queue failed")
 }
 
 func (suite *UserProfileTestSuite) TestUserProfile_GetOnboardingProfile_Ok() {
@@ -586,7 +595,8 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_Ok() {
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
 	assert.Empty(suite.T(), rsp2.Message)
 
-	profile := suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
+	profile, err := suite.service.userProfileRepository.GetByUserId(req.UserId)
+	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), profile)
 	assert.True(suite.T(), profile.Email.Confirmed)
 	assert.NotNil(suite.T(), profile.Email.ConfirmedAt)
