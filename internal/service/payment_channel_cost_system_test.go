@@ -75,26 +75,28 @@ func (suite *PaymentChannelCostSystemTestSuite) SetupTest() {
 	suite.operatingCompany = helperOperatingCompany(suite.Suite, suite.service)
 
 	countryAz := &billing.Country{
-		Id:              bson.NewObjectId().Hex(),
-		IsoCodeA2:       "AZ",
-		Region:          "CIS",
-		Currency:        "AZN",
-		PaymentsAllowed: true,
-		ChangeAllowed:   true,
-		VatEnabled:      true,
-		PriceGroupId:    "",
-		VatCurrency:     "AZN",
+		Id:                bson.NewObjectId().Hex(),
+		IsoCodeA2:         "AZ",
+		Region:            "CIS",
+		Currency:          "AZN",
+		PaymentsAllowed:   true,
+		ChangeAllowed:     true,
+		VatEnabled:        true,
+		PriceGroupId:      "",
+		VatCurrency:       "AZN",
+		PayerTariffRegion: pkg.TariffRegionRussiaAndCis,
 	}
 	countryUs := &billing.Country{
-		Id:              bson.NewObjectId().Hex(),
-		IsoCodeA2:       "US",
-		Region:          "US",
-		Currency:        "USD",
-		PaymentsAllowed: true,
-		ChangeAllowed:   true,
-		VatEnabled:      true,
-		PriceGroupId:    "",
-		VatCurrency:     "USD",
+		Id:                bson.NewObjectId().Hex(),
+		IsoCodeA2:         "US",
+		Region:            "US",
+		Currency:          "USD",
+		PaymentsAllowed:   true,
+		ChangeAllowed:     true,
+		VatEnabled:        true,
+		PriceGroupId:      "",
+		VatCurrency:       "USD",
+		PayerTariffRegion: pkg.TariffRegionWorldwide,
 	}
 	countries := []*billing.Country{countryAz, countryUs}
 	if err := suite.service.country.MultipleInsert(countries); err != nil {
@@ -106,20 +108,23 @@ func (suite *PaymentChannelCostSystemTestSuite) SetupTest() {
 	paymentChannelCostSystem := &billing.PaymentChannelCostSystem{
 		Id:                 suite.paymentChannelCostSystemId,
 		Name:               "VISA",
-		Region:             "CIS",
+		Region:             pkg.TariffRegionRussiaAndCis,
 		Country:            "AZ",
 		Percent:            1.5,
 		FixAmount:          5,
+		FixAmountCurrency:  "USD",
+		IsActive:           false,
 		MccCode:            pkg.MccCodeLowRisk,
 		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	anotherPaymentChannelCostSystem := &billing.PaymentChannelCostSystem{
 		Name:               "VISA",
-		Region:             "CIS",
+		Region:             pkg.TariffRegionRussiaAndCis,
 		Country:            "",
 		Percent:            2.2,
 		FixAmount:          0,
+		FixAmountCurrency:  "USD",
 		MccCode:            pkg.MccCodeLowRisk,
 		OperatingCompanyId: suite.operatingCompany.Id,
 	}
@@ -141,7 +146,7 @@ func (suite *PaymentChannelCostSystemTestSuite) TearDownTest() {
 func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_GrpcGet_Ok() {
 	req := &billing.PaymentChannelCostSystemRequest{
 		Name:    "VISA",
-		Region:  "CIS",
+		Region:  pkg.TariffRegionRussiaAndCis,
 		Country: "AZ",
 	}
 
@@ -164,7 +169,7 @@ func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_Grp
 func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_GrpcSet_Ok() {
 	req := &billing.PaymentChannelCostSystem{
 		Name:               "VISA",
-		Region:             "CIS",
+		Region:             pkg.TariffRegionRussiaAndCis,
 		Country:            "AZ",
 		Percent:            1.7,
 		FixAmount:          4,
@@ -184,7 +189,7 @@ func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_Grp
 
 	req2 := &billing.PaymentChannelCostSystem{
 		Name:               "MASTERCARD",
-		Region:             "US",
+		Region:             pkg.TariffRegionWorldwide,
 		Country:            "",
 		Percent:            2.2,
 		FixAmount:          1,
@@ -198,7 +203,7 @@ func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_Grp
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
 	assert.Equal(suite.T(), res2.Item.Country, "")
-	assert.Equal(suite.T(), res2.Item.Region, "US")
+	assert.Equal(suite.T(), res2.Item.Region, pkg.TariffRegionWorldwide)
 	assert.Equal(suite.T(), res2.Item.FixAmount, float64(1))
 	assert.NotEqual(suite.T(), res2.Item.Id, suite.paymentChannelCostSystemId)
 }
@@ -206,7 +211,7 @@ func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_Grp
 func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_Insert_Ok() {
 	req := &billing.PaymentChannelCostSystem{
 		Name:               "MASTERCARD",
-		Region:             "US",
+		Region:             pkg.TariffRegionWorldwide,
 		Country:            "",
 		Percent:            2.2,
 		FixAmount:          0,
@@ -219,19 +224,19 @@ func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_Ins
 
 func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_Insert_ErrorCacheUpdate() {
 	ci := &mocks.CacheInterface{}
+	ci.On("Set", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New("service unavailable"))
+	ci.On("Delete", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New("service unavailable"))
+	suite.service.cacher = ci
+
 	obj := &billing.PaymentChannelCostSystem{
 		Name:               "Mastercard",
-		Region:             "US",
+		Region:             pkg.TariffRegionWorldwide,
 		Country:            "",
 		Percent:            2.1,
 		FixAmount:          0,
 		MccCode:            pkg.MccCodeLowRisk,
 		OperatingCompanyId: suite.operatingCompany.Id,
 	}
-	key := fmt.Sprintf(cachePaymentChannelCostSystemKey, obj.Name, obj.Region, obj.Country, obj.MccCode, obj.OperatingCompanyId)
-	ci.On("Set", key, mock2.Anything, mock2.Anything).
-		Return(errors.New("service unavailable"))
-	suite.service.cacher = ci
 	err := suite.service.paymentChannelCostSystem.Insert(obj)
 
 	assert.Error(suite.T(), err)
@@ -242,7 +247,7 @@ func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_Upd
 	obj := &billing.PaymentChannelCostSystem{
 		Id:                 suite.paymentChannelCostSystemId,
 		Name:               "Mastercard",
-		Region:             "US",
+		Region:             pkg.TariffRegionWorldwide,
 		Country:            "",
 		Percent:            2.1,
 		FixAmount:          0,
@@ -254,12 +259,12 @@ func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_Upd
 }
 
 func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_Get_Ok() {
-	val, err := suite.service.paymentChannelCostSystem.Get("VISA", "CIS", "AZ", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
+	val, err := suite.service.paymentChannelCostSystem.Get("VISA", pkg.TariffRegionRussiaAndCis, "AZ", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), val.Country, "AZ")
 	assert.Equal(suite.T(), val.FixAmount, float64(5))
 
-	val, err = suite.service.paymentChannelCostSystem.Get("VISA", "CIS", "", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
+	val, err = suite.service.paymentChannelCostSystem.Get("VISA", pkg.TariffRegionRussiaAndCis, "", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), val.Country, "")
 	assert.Equal(suite.T(), val.FixAmount, float64(0))

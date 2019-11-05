@@ -125,6 +125,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		VatStoreYears:          5,
 		VatCurrencyRatesPolicy: "last-day",
 		VatCurrencyRatesSource: "cbrf",
+		PayerTariffRegion:      pkg.TariffRegionRussiaAndCis,
 	}
 	us := &billing.Country{
 		IsoCodeA2:       "US",
@@ -144,6 +145,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		VatStoreYears:          0,
 		VatCurrencyRatesPolicy: "",
 		VatCurrencyRatesSource: "",
+		PayerTariffRegion:      pkg.TariffRegionWorldwide,
 	}
 	by := &billing.Country{
 		IsoCodeA2:       "BY",
@@ -163,6 +165,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		VatStoreYears:          5,
 		VatCurrencyRatesPolicy: "last-day",
 		VatCurrencyRatesSource: "cbrf",
+		PayerTariffRegion:      pkg.TariffRegionRussiaAndCis,
 	}
 	ua := &billing.Country{
 		IsoCodeA2:       "UA",
@@ -182,6 +185,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		VatStoreYears:          5,
 		VatCurrencyRatesPolicy: "last-day",
 		VatCurrencyRatesSource: "cbrf",
+		PayerTariffRegion:      pkg.TariffRegionRussiaAndCis,
 	}
 	it := &billing.Country{
 		IsoCodeA2:       "IT",
@@ -201,6 +205,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		VatStoreYears:          5,
 		VatCurrencyRatesPolicy: "last-day",
 		VatCurrencyRatesSource: "cbrf",
+		PayerTariffRegion:      pkg.TariffRegionRussiaAndCis,
 	}
 
 	ps0 := &billing.PaymentSystem{
@@ -1284,28 +1289,28 @@ func (suite *OrderTestSuite) SetupTest() {
 	sysCost := &billing.PaymentChannelCostSystem{
 		Id:        bson.NewObjectId().Hex(),
 		Name:      "MASTERCARD",
-		Region:    "CIS",
+		Region:    pkg.TariffRegionRussiaAndCis,
 		Country:   "AZ",
 		Percent:   1.5,
 		FixAmount: 5,
 	}
 	sysCost1 := &billing.PaymentChannelCostSystem{
 		Name:      "MASTERCARD",
-		Region:    "CIS",
+		Region:    pkg.TariffRegionRussiaAndCis,
 		Country:   "",
 		Percent:   2.2,
 		FixAmount: 0,
 	}
 	sysCost2 := &billing.PaymentChannelCostSystem{
 		Name:      "MASTERCARD",
-		Region:    "North America",
+		Region:    pkg.TariffRegionWorldwide,
 		Country:   "US",
 		Percent:   2.2,
 		FixAmount: 0,
 	}
 	sysCost3 := &billing.PaymentChannelCostSystem{
 		Name:      "Bitcoin",
-		Region:    "Russia",
+		Region:    pkg.TariffRegionRussiaAndCis,
 		Country:   "RU",
 		Percent:   2.2,
 		FixAmount: 0,
@@ -1330,7 +1335,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		Name:               "MASTERCARD",
 		PayoutCurrency:     "USD",
 		MinAmount:          0.75,
-		Region:             "CIS",
+		Region:             pkg.TariffRegionRussiaAndCis,
 		Country:            "AZ",
 		MethodPercent:      1.5,
 		MethodFixAmount:    0.01,
@@ -1344,7 +1349,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		Name:               "MASTERCARD",
 		PayoutCurrency:     "USD",
 		MinAmount:          5,
-		Region:             "Russia",
+		Region:             pkg.TariffRegionRussiaAndCis,
 		Country:            "RU",
 		MethodPercent:      2.5,
 		MethodFixAmount:    2,
@@ -1358,7 +1363,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		Name:               "MASTERCARD",
 		PayoutCurrency:     "USD",
 		MinAmount:          0,
-		Region:             "CIS",
+		Region:             pkg.TariffRegionRussiaAndCis,
 		Country:            "",
 		MethodPercent:      2.2,
 		MethodFixAmount:    0,
@@ -1372,7 +1377,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		Name:               "Bitcoin",
 		PayoutCurrency:     "USD",
 		MinAmount:          5,
-		Region:             "Russia",
+		Region:             pkg.TariffRegionRussiaAndCis,
 		Country:            "RU",
 		MethodPercent:      2.5,
 		MethodFixAmount:    2,
@@ -1386,7 +1391,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		Name:               "MASTERCARD",
 		PayoutCurrency:     "USD",
 		MinAmount:          5,
-		Region:             "North America",
+		Region:             pkg.TariffRegionWorldwide,
 		Country:            "US",
 		MethodPercent:      2.5,
 		MethodFixAmount:    2,
@@ -1400,7 +1405,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		Name:               "MASTERCARD",
 		PayoutCurrency:     "RUB",
 		MinAmount:          0.75,
-		Region:             "CIS",
+		Region:             pkg.TariffRegionRussiaAndCis,
 		Country:            "AZ",
 		MethodPercent:      1.5,
 		MethodFixAmount:    0.01,
@@ -1413,7 +1418,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		Name:               "MASTERCARD",
 		PayoutCurrency:     "RUB",
 		MinAmount:          5,
-		Region:             "Russia",
+		Region:             pkg.TariffRegionRussiaAndCis,
 		Country:            "RU",
 		MethodPercent:      2.5,
 		MethodFixAmount:    2,
@@ -1426,7 +1431,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		Name:               "MASTERCARD",
 		PayoutCurrency:     "RUB",
 		MinAmount:          0,
-		Region:             "CIS",
+		Region:             pkg.TariffRegionRussiaAndCis,
 		Country:            "",
 		MethodPercent:      2.2,
 		MethodFixAmount:    0,
@@ -1439,7 +1444,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		Name:               "Bitcoin",
 		PayoutCurrency:     "RUB",
 		MinAmount:          5,
-		Region:             "Russia",
+		Region:             pkg.TariffRegionRussiaAndCis,
 		Country:            "RU",
 		MethodPercent:      2.5,
 		MethodFixAmount:    2,
@@ -1452,7 +1457,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		Name:               "MASTERCARD",
 		PayoutCurrency:     "RUB",
 		MinAmount:          5,
-		Region:             "North America",
+		Region:             pkg.TariffRegionWorldwide,
 		Country:            "US",
 		MethodPercent:      2.5,
 		MethodFixAmount:    2,
@@ -1501,7 +1506,7 @@ func (suite *OrderTestSuite) SetupTest() {
 
 	paymentSysCost1 := &billing.PaymentChannelCostSystem{
 		Name:              "MASTERCARD",
-		Region:            "Russia",
+		Region:            pkg.TariffRegionRussiaAndCis,
 		Country:           "RU",
 		Percent:           0.015,
 		FixAmount:         0.01,
@@ -1519,7 +1524,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		Name:                    "MASTERCARD",
 		PayoutCurrency:          "USD",
 		MinAmount:               0.75,
-		Region:                  "Russia",
+		Region:                  pkg.TariffRegionRussiaAndCis,
 		Country:                 "RU",
 		MethodPercent:           0.025,
 		MethodFixAmount:         0.01,
@@ -1533,7 +1538,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		Name:                    "MASTERCARD",
 		PayoutCurrency:          "USD",
 		MinAmount:               5,
-		Region:                  "Russia",
+		Region:                  pkg.TariffRegionRussiaAndCis,
 		Country:                 "RU",
 		MethodPercent:           0.025,
 		MethodFixAmount:         0.02,

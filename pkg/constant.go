@@ -317,6 +317,12 @@ const (
 
 	MerchantOperationTypeLowRisk  = "low-risk"
 	MerchantOperationTypeHighRisk = "high-risk"
+
+	TariffRegionRussiaAndCis = "russia_and_cis"
+	TariffRegionEurope       = "europe"
+	TariffRegionAsia         = "asia"
+	TariffRegionLatAm        = "latam"
+	TariffRegionWorldwide    = "worldwide"
 )
 
 var (
@@ -326,6 +332,8 @@ var (
 	}
 
 	SupportedMccCodes = []string{MccCodeLowRisk, MccCodeHighRisk}
+
+	SupportedTariffRegions = []string{TariffRegionRussiaAndCis, TariffRegionEurope, TariffRegionAsia, TariffRegionLatAm, TariffRegionWorldwide}
 
 	CountryPhoneCodes = map[int32]string{
 		7:    "RU",

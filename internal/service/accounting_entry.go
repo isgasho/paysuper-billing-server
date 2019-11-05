@@ -1137,14 +1137,14 @@ func (h *accountingEntry) getPaymentChannelCostSystem() (*billing.PaymentChannel
 		return nil, err
 	}
 
-	cost, err := h.Service.paymentChannelCostSystem.Get(name, h.country.Region, h.country.IsoCodeA2, h.getMccCode(), h.getOperatingCompanyId())
+	cost, err := h.Service.paymentChannelCostSystem.Get(name, h.country.PayerTariffRegion, h.country.IsoCodeA2, h.getMccCode(), h.getOperatingCompanyId())
 
 	if err != nil {
 		zap.L().Error(
 			accountingEntryErrorSystemCommissionNotFound.Message,
 			zap.Error(err),
 			zap.String("payment_method", name),
-			zap.String("region", h.country.Region),
+			zap.String("region", h.country.PayerTariffRegion),
 			zap.String("country", h.country.IsoCodeA2),
 		)
 
@@ -1164,7 +1164,7 @@ func (h *accountingEntry) getPaymentChannelCostMerchant(amount float64) (*billin
 		Name:           name,
 		PayoutCurrency: h.order.GetMerchantRoyaltyCurrency(),
 		Amount:         amount,
-		Region:         h.country.Region,
+		Region:         h.country.PayerTariffRegion,
 		Country:        h.country.IsoCodeA2,
 		MccCode:        h.getMccCode(),
 	}
@@ -1198,7 +1198,7 @@ func (h *accountingEntry) getMoneyBackCostMerchant(reason string) (*billing.Mone
 		Name:           name,
 		PayoutCurrency: h.order.GetMerchantRoyaltyCurrency(),
 		UndoReason:     reason,
-		Region:         h.country.Region,
+		Region:         h.country.PayerTariffRegion,
 		Country:        h.country.IsoCodeA2,
 		PaymentStage:   1,
 		Days:           int32(refundAt.Sub(paymentAt).Hours() / 24),
@@ -1220,7 +1220,7 @@ func (h *accountingEntry) getMoneyBackCostSystem(reason string) (*billing.MoneyB
 	data := &billing.MoneyBackCostSystemRequest{
 		Name:               name,
 		PayoutCurrency:     h.order.GetMerchantRoyaltyCurrency(),
-		Region:             h.country.Region,
+		Region:             h.country.PayerTariffRegion,
 		Country:            h.country.IsoCodeA2,
 		PaymentStage:       1,
 		Days:               int32(refundAt.Sub(paymentAt).Hours() / 24),

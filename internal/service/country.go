@@ -76,6 +76,7 @@ func (s *Service) GetCountry(
 	res.VatCurrencyRatesSource = country.VatCurrencyRatesSource
 	res.CreatedAt = country.CreatedAt
 	res.UpdatedAt = country.UpdatedAt
+	res.PayerTariffRegion = country.PayerTariffRegion
 	res.HighRiskPaymentsAllowed = country.HighRiskPaymentsAllowed
 	res.HighRiskChangeAllowed = country.HighRiskChangeAllowed
 
@@ -166,6 +167,7 @@ type CountryServiceInterface interface {
 	GetByIsoCodeA2(string) (*billing.Country, error)
 	GetAll() (*billing.CountriesList, error)
 	IsRegionExists(string) (bool, error)
+	IsTariffRegionExists(string) bool
 	GetCountriesWithVatEnabled() (*billing.CountriesList, error)
 	GetCountriesAndRegionsByTariffRegion(tariffRegion string) ([]*internalPkg.CountryAndRegionItem, error)
 }
@@ -365,6 +367,10 @@ func (h *Country) IsRegionExists(region string) (bool, error) {
 
 	_, ok := c.Regions[region]
 	return ok, nil
+}
+
+func (h *Country) IsTariffRegionExists(region string) bool {
+	return contains(pkg.SupportedTariffRegions, region)
 }
 
 func (h *Country) GetCountriesAndRegionsByTariffRegion(tariffRegion string) ([]*internalPkg.CountryAndRegionItem, error) {

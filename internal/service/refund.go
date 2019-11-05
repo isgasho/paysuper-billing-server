@@ -585,7 +585,7 @@ func (p *createRefundProcessor) hasMoneyBackCosts(order *billing.Order) bool {
 	data := &billing.MoneyBackCostSystemRequest{
 		Name:               methodName,
 		PayoutCurrency:     order.GetMerchantRoyaltyCurrency(),
-		Region:             country.Region,
+		Region:             country.PayerTariffRegion,
 		Country:            country.IsoCodeA2,
 		PaymentStage:       1,
 		Days:               int32(refundAt.Sub(paymentAt).Hours() / 24),
@@ -604,7 +604,7 @@ func (p *createRefundProcessor) hasMoneyBackCosts(order *billing.Order) bool {
 		Name:           methodName,
 		PayoutCurrency: order.GetMerchantRoyaltyCurrency(),
 		UndoReason:     reason,
-		Region:         country.Region,
+		Region:         country.PayerTariffRegion,
 		Country:        country.IsoCodeA2,
 		PaymentStage:   1,
 		Days:           int32(refundAt.Sub(paymentAt).Hours() / 24),

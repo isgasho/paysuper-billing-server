@@ -136,7 +136,7 @@ var (
 	orderErrorVirtualCurrencyUserCountryRequired              = newBillingServerErrorMsg("fm000068", "request for create payment by project virtual currency must contain user data with required field country")
 	orderErrorCheckoutWithProducts                            = newBillingServerErrorMsg("fm000069", "request to processing simple payment can't contain products list")
 
-	virtualCurrencyPayoutCurrencyMissed       = newBillingServerErrorMsg("vc000001", "virtual currency don't have price in merchant payout currency")
+	virtualCurrencyPayoutCurrencyMissed = newBillingServerErrorMsg("vc000001", "virtual currency don't have price in merchant payout currency")
 
 	paymentSystemPaymentProcessingSuccessStatus = "PAYMENT_SYSTEM_PROCESSING_SUCCESS"
 )
@@ -391,16 +391,16 @@ func (s *Service) OrderCreateProcess(
 		break
 	case billing.OrderTypeVirtualCurrency:
 		err := processor.processVirtualCurrency()
-        if err != nil {
-            zap.L().Error(
-                pkg.MethodFinishedWithError,
-                zap.Error(err),
-            )
+		if err != nil {
+			zap.L().Error(
+				pkg.MethodFinishedWithError,
+				zap.Error(err),
+			)
 
-            rsp.Status = pkg.ResponseStatusBadData
-            rsp.Message = err.(*grpc.ResponseErrorMessage)
-            return nil
-        }
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			return nil
+		}
 		break
 	case billing.OrderType_product:
 		if err := processor.processPaylinkProducts(); err != nil {
@@ -1884,8 +1884,8 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 			PaymentsAllowed: true,
 			ChangeAllowed:   true,
 		},
-		PlatformId:  v.request.PlatformId,
-		ProductType: v.request.Type,
+		PlatformId:              v.request.PlatformId,
+		ProductType:             v.request.Type,
 		IsBuyForVirtualCurrency: v.request.IsBuyForVirtualCurrency,
 	}
 
@@ -3330,7 +3330,7 @@ func (s *Service) ProcessOrderProducts(ctx context.Context, order *billing.Order
 		priceGroup *billing.PriceGroup
 		locale     string
 		logInfo    = "[ProcessOrderProducts] %s"
-		amount 	   float64
+		amount     float64
 	)
 
 	if order.BillingAddress != nil && order.BillingAddress.Country != "" {
@@ -4057,7 +4057,7 @@ func (s *Service) hasPaymentCosts(order *billing.Order) bool {
 		return false
 	}
 
-	_, err = s.paymentChannelCostSystem.Get(methodName, country.Region, country.IsoCodeA2, order.MccCode, order.OperatingCompanyId)
+	_, err = s.paymentChannelCostSystem.Get(methodName, country.PayerTariffRegion, country.IsoCodeA2, order.MccCode, order.OperatingCompanyId)
 
 	if err != nil {
 		return false
@@ -4068,7 +4068,7 @@ func (s *Service) hasPaymentCosts(order *billing.Order) bool {
 		Name:           methodName,
 		PayoutCurrency: order.GetMerchantRoyaltyCurrency(),
 		Amount:         order.TotalPaymentAmount,
-		Region:         country.Region,
+		Region:         country.PayerTariffRegion,
 		Country:        country.IsoCodeA2,
 		MccCode:        order.MccCode,
 	}

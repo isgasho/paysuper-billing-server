@@ -1,0 +1,67 @@
+[
+  {
+    "update": "country",
+    "updates": [
+      {
+        "q": {"$or":  [{"region":  "Russia"}, {"region":  "CIS"}]},
+        "u": {
+          "$currentDate": {
+            "updated_at": true
+          },
+          "$set": { "payer_tariff_region": "russia_and_cis" }
+        },
+        "multi": true
+      },
+      {
+        "q": {"region":  "EU"},
+        "u": {
+          "$currentDate": {
+            "updated_at": true
+          },
+          "$set": { "payer_tariff_region": "europe" }
+        },
+        "multi": true
+      },
+      {
+        "q": {"region": {"$regularExpression": {"pattern": "Europe", "options": "i"}}},
+        "u": {
+          "$currentDate": {
+            "updated_at": true
+          },
+          "$set": { "payer_tariff_region": "europe" }
+        },
+        "multi": true
+      },
+      {
+        "q": {"region": {"$regularExpression": {"pattern": "Asia", "options" : "i"}}},
+        "u": {
+          "$currentDate": {
+            "updated_at": true
+          },
+          "$set": { "payer_tariff_region": "asia" }
+        },
+        "multi": true
+      },
+      {
+        "q": {"region":  "Latin America"},
+        "u": {
+          "$currentDate": {
+            "updated_at": true
+          },
+          "$set": { "payer_tariff_region": "latin_america" }
+        },
+        "multi": true
+      },
+      {
+        "q": {"payer_tariff_region": {"$nin": ["europe", "russia_and_cis", "latin_america", "asia"]}},
+        "u": {
+          "$currentDate": {
+            "updated_at": true
+          },
+          "$set": { "payer_tariff_region": "worldwide" }
+        },
+        "multi": true
+      }
+    ]
+  }
+]

@@ -2,11 +2,11 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
+	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -22,8 +22,6 @@ const (
 	cacheMoneyBackCostSystemAll   = "pucs:all"
 
 	collectionMoneyBackCostSystem = "money_back_cost_system"
-
-	errorDaysMatchedNotFound = "days matched not found"
 )
 
 var (
@@ -35,10 +33,16 @@ var (
 	errorMoneybackCostAlreadyExist                = newBillingServerErrorMsg("mbs000006", "cost with specified parameters already exist")
 	errorMoneybackSystemMccCode                   = newBillingServerErrorMsg("mbs000007", "mcc code not supported")
 	errorMoneybackSystemOperatingCompanyNotExists = newBillingServerErrorMsg("mbs000008", "operating company not exists")
+	errorMoneybackSystemDaysMatchedNotFound       = newBillingServerErrorMsg("mbs000009", "days matched not found")
 )
 
-type moneyBackCostSystems struct {
-	Items []*billing.MoneyBackCostSystem
+type MoneyBackCostSystemInterface interface {
+	MultipleInsert(obj []*billing.MoneyBackCostSystem) error
+	Update(obj *billing.MoneyBackCostSystem) error
+	Get(name, payout_currency, undo_reason, region, country, mcc_code, operating_company_id string, payment_stage int32) (c []*internalPkg.MoneyBackCostSystemSet, err error)
+	GetById(id string) (*billing.MoneyBackCostSystem, error)
+	Delete(obj *billing.MoneyBackCostSystem) error
+	GetAll() (*billing.MoneyBackCostSystemList, error)
 }
 
 func (s *Service) GetAllMoneyBackCostSystem(
@@ -92,10 +96,10 @@ func (s *Service) SetMoneyBackCostSystem(
 			res.Message = errorCountryNotFound
 			return nil
 		}
-		req.Region = country.Region
+		req.Region = country.PayerTariffRegion
 	} else {
-		exists, err := s.country.IsRegionExists(req.Region)
-		if err != nil || !exists {
+		exists := s.country.IsTariffRegionExists(req.Region)
+		if !exists {
 			res.Status = pkg.ResponseStatusNotFound
 			res.Message = errorCountryRegionNotExists
 			return nil
@@ -182,25 +186,33 @@ func (s *Service) DeleteMoneyBackCostSystem(
 }
 
 func (s *Service) getMoneyBackCostSystem(req *billing.MoneyBackCostSystemRequest) (*billing.MoneyBackCostSystem, error) {
-	val, err := s.moneyBackCostSystem.Get(req.Name, req.PayoutCurrency, req.UndoReason, req.Region, req.Country, req.PaymentStage, req.MccCode, req.OperatingCompanyId)
+	val, err := s.moneyBackCostSystem.Get(req.Name, req.PayoutCurrency, req.UndoReason, req.Region, req.Country, req.MccCode, req.OperatingCompanyId, req.PaymentStage)
 	if err != nil {
 		return nil, err
 	}
 
-	var matchedDays []*kvIntInt
-	for k, i := range val.Items {
-		if req.Days >= i.DaysFrom {
-			matchedDays = append(matchedDays, &kvIntInt{k, i.DaysFrom})
-		}
-	}
-	if len(matchedDays) == 0 {
-		return nil, errors.New(errorDaysMatchedNotFound)
+	if val == nil {
+		return nil, errorMoneybackSystemDaysMatchedNotFound
 	}
 
-	sort.Slice(matchedDays, func(i, j int) bool {
-		return matchedDays[i].Value > matchedDays[j].Value
-	})
-	return val.Items[matchedDays[0].Key], nil
+	var matched []*kvIntInt
+	for _, set := range val {
+		for k, i := range set.Set {
+			if req.Days >= i.DaysFrom {
+				matched = append(matched, &kvIntInt{k, i.DaysFrom})
+			}
+		}
+		if len(matched) == 0 {
+			continue
+		}
+
+		sort.Slice(matched, func(i, j int) bool {
+			return matched[i].Value > matched[j].Value
+		})
+		return set.Set[matched[0].Key], nil
+	}
+
+	return nil, errorMoneybackSystemDaysMatchedNotFound
 }
 
 func newMoneyBackCostSystemService(svc *Service) *MoneyBackCostSystem {
@@ -226,49 +238,15 @@ func (h *MoneyBackCostSystem) Insert(obj *billing.MoneyBackCostSystem) error {
 		return err
 	}
 
-	key := fmt.Sprintf(cacheMoneyBackCostSystemKey, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, obj.Country, obj.PaymentStage, obj.MccCode, obj.OperatingCompanyId)
-	if err := h.svc.cacher.Set(key, obj, 0); err != nil {
-		zap.L().Error(
-			pkg.ErrorCacheQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
-			zap.String(pkg.ErrorCacheFieldKey, key),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, obj),
-		)
-
-		return err
-	}
-
-	key = fmt.Sprintf(cacheMoneyBackCostSystemKeyId, obj.Id)
-	if err := h.svc.cacher.Set(key, obj, 0); err != nil {
-		zap.L().Error(
-			pkg.ErrorCacheQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
-			zap.String(pkg.ErrorCacheFieldKey, key),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, obj),
-		)
-
-		return err
-	}
-
-	if err := h.svc.cacher.Delete(cacheMoneyBackCostSystemAll); err != nil {
-		zap.L().Error(
-			pkg.ErrorCacheQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorCacheFieldCmd, "DELETE"),
-			zap.String(pkg.ErrorCacheFieldKey, key),
-		)
-
-		return err
-	}
-
-	return nil
+	return h.updateCaches(obj)
 }
 
 func (h MoneyBackCostSystem) MultipleInsert(obj []*billing.MoneyBackCostSystem) error {
 	c := make([]interface{}, len(obj))
 	for i, v := range obj {
+		if v.Id == "" {
+			v.Id = bson.NewObjectId().Hex()
+		}
 		v.FixAmount = tools.FormatAmount(v.FixAmount)
 		v.Percent = tools.ToPrecise(v.Percent)
 		v.CreatedAt = ptypes.TimestampNow()
@@ -281,8 +259,10 @@ func (h MoneyBackCostSystem) MultipleInsert(obj []*billing.MoneyBackCostSystem) 
 		return err
 	}
 
-	if err := h.svc.cacher.Delete(cacheMoneyBackCostSystemAll); err != nil {
-		return err
+	for _, v := range obj {
+		if err := h.updateCaches(v); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -296,34 +276,7 @@ func (h MoneyBackCostSystem) Update(obj *billing.MoneyBackCostSystem) error {
 	if err := h.svc.db.Collection(collectionMoneyBackCostSystem).UpdateId(bson.ObjectIdHex(obj.Id), obj); err != nil {
 		return err
 	}
-	key := fmt.Sprintf(cacheMoneyBackCostSystemKey, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, obj.Country, obj.PaymentStage, obj.MccCode, obj.OperatingCompanyId)
-	if err := h.svc.cacher.Set(key, obj, 0); err != nil {
-		zap.L().Error(
-			pkg.ErrorCacheQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
-			zap.String(pkg.ErrorCacheFieldKey, key),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, obj),
-		)
-		return err
-	}
-	key = fmt.Sprintf(cacheMoneyBackCostSystemKeyId, obj.Id)
-	if err := h.svc.cacher.Set(key, obj, 0); err != nil {
-		zap.L().Error(
-			pkg.ErrorCacheQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
-			zap.String(pkg.ErrorCacheFieldKey, key),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, obj),
-		)
-
-		return err
-	}
-	if err := h.svc.cacher.Delete(cacheMoneyBackCostSystemAll); err != nil {
-		return err
-	}
-
-	return nil
+	return h.updateCaches(obj)
 }
 
 func (h MoneyBackCostSystem) Get(
@@ -332,35 +285,74 @@ func (h MoneyBackCostSystem) Get(
 	undo_reason string,
 	region string,
 	country string,
-	payment_stage int32,
 	mcc_code string,
 	operating_company_id string,
-) (*moneyBackCostSystems, error) {
-	var c moneyBackCostSystems
+	payment_stage int32,
+) (c []*internalPkg.MoneyBackCostSystemSet, err error) {
 	key := fmt.Sprintf(cacheMoneyBackCostSystemKey, name, payout_currency, undo_reason, region, country, payment_stage, mcc_code, operating_company_id)
 
 	if err := h.svc.cacher.Get(key, c); err == nil {
-		return &c, nil
+		return c, nil
 	}
 
-	query := bson.M{
+	matchQuery := bson.M{
 		"name":            name,
 		"payout_currency": payout_currency,
 		"undo_reason":     undo_reason,
-		"region":          region,
-		"country":         country,
 		"payment_stage":   payment_stage,
 		"is_active":       true,
+		"$or": []bson.M{
+			{
+				"country": country,
+				"region":  region,
+			},
+			{
+				"$or": []bson.M{
+					{"country": ""},
+					{"country": bson.M{"exists": false}},
+				},
+				"region": region,
+			},
+		},
 	}
 
-	if err := h.svc.db.Collection(collectionMoneyBackCostSystem).
-		Find(query).
-		All(&c.Items); err != nil {
+	query := []bson.M{
+		{
+			"$match": matchQuery,
+		},
+		{
+			"$group": bson.M{
+				"_id": "$country",
+				"set": bson.M{"$push": "$$ROOT"},
+			},
+		},
+		{
+			"$sort": bson.M{"_id": -1},
+		},
+	}
+
+	err = h.svc.db.Collection(collectionMoneyBackCostSystem).Pipe(query).All(&c)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String("collection", collectionMoneyBackCostSystem),
+			zap.Any("query", query),
+		)
 		return nil, fmt.Errorf(errorNotFound, collectionMoneyBackCostSystem)
 	}
 
-	_ = h.svc.cacher.Set(key, c, 0)
-	return &c, nil
+	err = h.svc.cacher.Set(key, c, 0)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
+			zap.String(pkg.ErrorCacheFieldKey, key),
+			zap.Any(pkg.ErrorCacheFieldData, c),
+		)
+	}
+	return c, nil
 }
 
 func (h MoneyBackCostSystem) GetById(id string) (*billing.MoneyBackCostSystem, error) {
@@ -387,25 +379,7 @@ func (h MoneyBackCostSystem) Delete(obj *billing.MoneyBackCostSystem) error {
 	if err := h.svc.db.Collection(collectionMoneyBackCostSystem).UpdateId(bson.ObjectIdHex(obj.Id), obj); err != nil {
 		return err
 	}
-	key := fmt.Sprintf(cacheMoneyBackCostSystemKey, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, obj.Country, obj.PaymentStage, obj.MccCode, obj.OperatingCompanyId)
-	if err := h.svc.cacher.Delete(key); err != nil {
-		return err
-	}
-	key = fmt.Sprintf(cacheMoneyBackCostSystemKeyId, obj.Id)
-	if err := h.svc.cacher.Delete(key); err != nil {
-		zap.L().Error(
-			pkg.ErrorCacheQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorCacheFieldCmd, "DELETE"),
-			zap.String(pkg.ErrorCacheFieldKey, key),
-		)
-		return err
-	}
-	if err := h.svc.cacher.Delete(cacheMoneyBackCostSystemAll); err != nil {
-		return err
-	}
-
-	return nil
+	return h.updateCaches(obj)
 }
 
 func (h MoneyBackCostSystem) GetAll() (*billing.MoneyBackCostSystemList, error) {
@@ -424,4 +398,47 @@ func (h MoneyBackCostSystem) GetAll() (*billing.MoneyBackCostSystemList, error) 
 	}
 
 	return c, nil
+}
+
+func (h MoneyBackCostSystem) updateCaches(obj *billing.MoneyBackCostSystem) (err error) {
+	groupKeys := []string{
+		fmt.Sprintf(cacheMoneyBackCostSystemKey, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, obj.Country, obj.PaymentStage, obj.MccCode, obj.OperatingCompanyId),
+		fmt.Sprintf(cacheMoneyBackCostSystemKey, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, "", obj.PaymentStage, obj.MccCode, obj.OperatingCompanyId),
+		cacheMoneyBackCostSystemAll,
+	}
+	for _, key := range groupKeys {
+		err = h.svc.cacher.Delete(key)
+		if err != nil {
+			return
+		}
+	}
+
+	keys := []string{
+		fmt.Sprintf(cacheMoneyBackCostSystemKeyId, obj.Id),
+	}
+
+	if obj.IsActive {
+		for _, key := range keys {
+			err = h.svc.cacher.Set(key, obj, 0)
+			if err != nil {
+				zap.L().Error(
+					pkg.ErrorCacheQueryFailed,
+					zap.Error(err),
+					zap.String(pkg.ErrorCacheFieldCmd, "SET"),
+					zap.String(pkg.ErrorCacheFieldKey, key),
+					zap.Any(pkg.ErrorCacheFieldData, obj),
+				)
+				return
+			}
+		}
+		return
+	}
+
+	for _, key := range keys {
+		err = h.svc.cacher.Delete(key)
+		if err != nil {
+			return
+		}
+	}
+	return
 }

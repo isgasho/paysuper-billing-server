@@ -138,6 +138,20 @@ func (_m *CountryServiceInterface) IsRegionExists(_a0 string) (bool, error) {
 	return r0, r1
 }
 
+// IsTariffRegionExists provides a mock function with given fields: _a0
+func (_m *CountryServiceInterface) IsTariffRegionExists(_a0 string) bool {
+	ret := _m.Called(_a0)
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(string) bool); ok {
+		r0 = rf(_a0)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	return r0
+}
+
 // MultipleInsert provides a mock function with given fields: _a0
 func (_m *CountryServiceInterface) MultipleInsert(_a0 []*billing.Country) error {
 	ret := _m.Called(_a0)

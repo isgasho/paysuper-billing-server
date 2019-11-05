@@ -73,26 +73,28 @@ func (suite *PaymentChannelCostMerchantTestSuite) SetupTest() {
 	}
 
 	countryAz := &billing.Country{
-		Id:              bson.NewObjectId().Hex(),
-		IsoCodeA2:       "AZ",
-		Region:          "CIS",
-		Currency:        "AZN",
-		PaymentsAllowed: true,
-		ChangeAllowed:   true,
-		VatEnabled:      true,
-		PriceGroupId:    "",
-		VatCurrency:     "AZN",
+		Id:                bson.NewObjectId().Hex(),
+		IsoCodeA2:         "AZ",
+		Region:            "CIS",
+		Currency:          "AZN",
+		PaymentsAllowed:   true,
+		ChangeAllowed:     true,
+		VatEnabled:        true,
+		PriceGroupId:      "",
+		VatCurrency:       "AZN",
+		PayerTariffRegion: pkg.TariffRegionRussiaAndCis,
 	}
 	countryUs := &billing.Country{
-		Id:              bson.NewObjectId().Hex(),
-		IsoCodeA2:       "US",
-		Region:          "US",
-		Currency:        "USD",
-		PaymentsAllowed: true,
-		ChangeAllowed:   true,
-		VatEnabled:      true,
-		PriceGroupId:    "",
-		VatCurrency:     "USD",
+		Id:                bson.NewObjectId().Hex(),
+		IsoCodeA2:         "US",
+		Region:            "US",
+		Currency:          "USD",
+		PaymentsAllowed:   true,
+		ChangeAllowed:     true,
+		VatEnabled:        true,
+		PriceGroupId:      "",
+		VatCurrency:       "USD",
+		PayerTariffRegion: pkg.TariffRegionWorldwide,
 	}
 	countries := []*billing.Country{countryAz, countryUs}
 	if err := suite.service.country.MultipleInsert(countries); err != nil {
@@ -135,49 +137,52 @@ func (suite *PaymentChannelCostMerchantTestSuite) SetupTest() {
 	}
 
 	paymentChannelCostMerchant := &billing.PaymentChannelCostMerchant{
-		Id:                 suite.paymentChannelCostMerchantId,
-		MerchantId:         suite.merchantId,
-		Name:               "VISA",
-		PayoutCurrency:     "USD",
-		MinAmount:          0.75,
-		Region:             "CIS",
-		Country:            "AZ",
-		MethodPercent:      1.5,
-		MethodFixAmount:    0.01,
-		PsPercent:          3,
-		PsFixedFee:         0.01,
-		PsFixedFeeCurrency: "EUR",
-		MccCode:            pkg.MccCodeLowRisk,
+		Id:                      suite.paymentChannelCostMerchantId,
+		MerchantId:              suite.merchantId,
+		Name:                    "VISA",
+		PayoutCurrency:          "USD",
+		MinAmount:               0.75,
+		Region:                  pkg.TariffRegionRussiaAndCis,
+		Country:                 "AZ",
+		MethodPercent:           1.5,
+		MethodFixAmount:         0.01,
+		MethodFixAmountCurrency: "USD",
+		PsPercent:               3,
+		PsFixedFee:              0.01,
+		PsFixedFeeCurrency:      "EUR",
+		MccCode:                 pkg.MccCodeLowRisk,
 	}
 
 	paymentChannelCostMerchant2 := &billing.PaymentChannelCostMerchant{
-		MerchantId:         suite.merchantId,
-		Name:               "VISA",
-		PayoutCurrency:     "USD",
-		MinAmount:          5,
-		Region:             "CIS",
-		Country:            "AZ",
-		MethodPercent:      2.5,
-		MethodFixAmount:    2,
-		PsPercent:          5,
-		PsFixedFee:         0.05,
-		PsFixedFeeCurrency: "EUR",
-		MccCode:            pkg.MccCodeLowRisk,
+		MerchantId:              suite.merchantId,
+		Name:                    "VISA",
+		PayoutCurrency:          "USD",
+		MinAmount:               5,
+		Region:                  pkg.TariffRegionRussiaAndCis,
+		Country:                 "AZ",
+		MethodPercent:           2.5,
+		MethodFixAmount:         2,
+		MethodFixAmountCurrency: "USD",
+		PsPercent:               5,
+		PsFixedFee:              0.05,
+		PsFixedFeeCurrency:      "EUR",
+		MccCode:                 pkg.MccCodeLowRisk,
 	}
 
 	anotherPaymentChannelCostMerchant := &billing.PaymentChannelCostMerchant{
-		MerchantId:         suite.merchantId,
-		Name:               "VISA",
-		PayoutCurrency:     "USD",
-		MinAmount:          0,
-		Region:             "CIS",
-		Country:            "",
-		MethodPercent:      2.2,
-		MethodFixAmount:    0,
-		PsPercent:          5,
-		PsFixedFee:         0.05,
-		PsFixedFeeCurrency: "EUR",
-		MccCode:            pkg.MccCodeLowRisk,
+		MerchantId:              suite.merchantId,
+		Name:                    "VISA",
+		PayoutCurrency:          "USD",
+		MinAmount:               0,
+		Region:                  pkg.TariffRegionRussiaAndCis,
+		Country:                 "",
+		MethodPercent:           2.2,
+		MethodFixAmount:         0,
+		MethodFixAmountCurrency: "USD",
+		PsPercent:               5,
+		PsFixedFee:              0.05,
+		PsFixedFeeCurrency:      "EUR",
+		MccCode:                 pkg.MccCodeLowRisk,
 	}
 	pccm := []*billing.PaymentChannelCostMerchant{paymentChannelCostMerchant, paymentChannelCostMerchant2, anotherPaymentChannelCostMerchant}
 	if err := suite.service.paymentChannelCostMerchant.MultipleInsert(pccm); err != nil {
@@ -199,7 +204,7 @@ func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant
 		MerchantId:     suite.merchantId,
 		PayoutCurrency: "USD",
 		Name:           "VISA",
-		Region:         "CIS",
+		Region:         pkg.TariffRegionRussiaAndCis,
 		Country:        "AZ",
 		Amount:         10,
 		MccCode:        pkg.MccCodeLowRisk,
@@ -229,7 +234,7 @@ func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant
 		Name:                    "VISA",
 		PayoutCurrency:          "USD",
 		MinAmount:               1.75,
-		Region:                  "CIS",
+		Region:                  pkg.TariffRegionRussiaAndCis,
 		Country:                 "AZ",
 		MethodPercent:           2.5,
 		MethodFixAmount:         1.01,
@@ -266,19 +271,19 @@ func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant
 
 func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant_Insert_ErrorCacheUpdate() {
 	ci := &mocks.CacheInterface{}
+	ci.On("Set", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New("service unavailable"))
+	ci.On("Delete", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New("service unavailable"))
+	suite.service.cacher = ci
+
 	obj := &billing.PaymentChannelCostMerchant{
 		MerchantId:      suite.merchantId,
 		Name:            "Mastercard",
-		Region:          "US",
+		Region:          pkg.TariffRegionWorldwide,
 		Country:         "",
 		MethodPercent:   2.1,
 		MethodFixAmount: 0,
 		MccCode:         pkg.MccCodeLowRisk,
 	}
-	key := fmt.Sprintf(cachePaymentChannelCostMerchantKey, obj.MerchantId, obj.Name, obj.PayoutCurrency, obj.Region, obj.Country, obj.MccCode)
-	ci.On("Set", key, mock2.Anything, mock2.Anything).
-		Return(errors.New("service unavailable"))
-	suite.service.cacher = ci
 	err := suite.service.paymentChannelCostMerchant.Insert(obj)
 
 	assert.Error(suite.T(), err)
@@ -290,7 +295,7 @@ func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant
 		Id:              suite.paymentChannelCostMerchantId,
 		MerchantId:      suite.merchantId,
 		Name:            "Mastercard",
-		Region:          "US",
+		Region:          pkg.TariffRegionWorldwide,
 		Country:         "",
 		MethodPercent:   2.1,
 		MethodFixAmount: 0,
@@ -301,17 +306,18 @@ func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant
 }
 
 func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant_Get_Ok() {
-	val, err := suite.service.paymentChannelCostMerchant.Get(suite.merchantId, "VISA", "USD", "CIS", "AZ", pkg.MccCodeLowRisk)
+	val, err := suite.service.paymentChannelCostMerchant.Get(suite.merchantId, "VISA", "USD", pkg.TariffRegionRussiaAndCis, "AZ", pkg.MccCodeLowRisk)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), len(val.Items), 2)
-	assert.Equal(suite.T(), val.Items[0].Country, "AZ")
-	assert.Equal(suite.T(), val.Items[0].MethodFixAmount, float64(0.01))
+	assert.Equal(suite.T(), len(val), 2)
+	assert.Equal(suite.T(), val[0].Set[0].Country, "AZ")
+	assert.Equal(suite.T(), val[0].Set[0].MethodFixAmount, float64(0.01))
+	assert.Equal(suite.T(), val[1].Set[0].Country, "")
 
-	val, err = suite.service.paymentChannelCostMerchant.Get(suite.merchantId, "VISA", "USD", "CIS", "", pkg.MccCodeLowRisk)
+	val, err = suite.service.paymentChannelCostMerchant.Get(suite.merchantId, "VISA", "USD", pkg.TariffRegionRussiaAndCis, "", pkg.MccCodeLowRisk)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), len(val.Items), 1)
-	assert.Equal(suite.T(), val.Items[0].Country, "")
-	assert.Equal(suite.T(), val.Items[0].MethodFixAmount, float64(0))
+	assert.Equal(suite.T(), len(val), 1)
+	assert.Equal(suite.T(), val[0].Set[0].Country, "")
+	assert.Equal(suite.T(), val[0].Set[0].MethodFixAmount, float64(0))
 }
 
 func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant_getPaymentChannelCostMerchant() {
@@ -319,18 +325,25 @@ func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant
 		MerchantId:     suite.merchantId,
 		PayoutCurrency: "USD",
 		Name:           "VISA",
-		Region:         "CIS",
+		Region:         pkg.TariffRegionRussiaAndCis,
 		Country:        "AZ",
 		Amount:         0,
 		MccCode:        pkg.MccCodeLowRisk,
 	}
 
-	_, err := suite.service.getPaymentChannelCostMerchant(req)
-	assert.Error(suite.T(), err)
-
-	req.Amount = 1
 	val, err := suite.service.getPaymentChannelCostMerchant(req)
 	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), val.Country, "")
+	assert.Equal(suite.T(), val.MinAmount, float64(0))
+	assert.Equal(suite.T(), val.MethodPercent, float64(2.2))
+	assert.Equal(suite.T(), val.MethodFixAmount, float64(0.))
+	assert.Equal(suite.T(), val.PsPercent, float64(5))
+	assert.Equal(suite.T(), val.PsFixedFee, float64(0.05))
+
+	req.Amount = 1
+	val, err = suite.service.getPaymentChannelCostMerchant(req)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), val.Country, "AZ")
 	assert.Equal(suite.T(), val.MinAmount, float64(0.75))
 	assert.Equal(suite.T(), val.MethodPercent, float64(1.5))
 	assert.Equal(suite.T(), val.MethodFixAmount, float64(0.01))
@@ -340,6 +353,7 @@ func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant
 	req.Amount = 10
 	val, err = suite.service.getPaymentChannelCostMerchant(req)
 	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), val.Country, "AZ")
 	assert.Equal(suite.T(), val.MinAmount, float64(5))
 	assert.Equal(suite.T(), val.MethodPercent, float64(2.5))
 	assert.Equal(suite.T(), val.MethodFixAmount, float64(2))

@@ -1347,23 +1347,14 @@ func (s *Service) SetMerchantTariffRates(
 		var costs []*billing.PaymentChannelCostMerchant
 
 		for _, v := range tariffs.Payment {
-			tariffRegions, err := s.country.GetCountriesAndRegionsByTariffRegion(v.PayerRegion)
-
-			if err != nil {
-				rsp.Status = pkg.ResponseStatusSystemError
-				rsp.Message = merchantErrorUnknown
-				return nil
-			}
-
-			for _, v1 := range tariffRegions {
+			for _, tariffRegion := range pkg.SupportedTariffRegions {
 				cost := &billing.PaymentChannelCostMerchant{
 					Id:                      bson.NewObjectId().Hex(),
 					MerchantId:              req.MerchantId,
 					Name:                    v.MethodName,
 					PayoutCurrency:          merchant.GetPayoutCurrency(),
 					MinAmount:               v.MinAmount,
-					Region:                  v1.Region,
-					Country:                 v1.Country,
+					Region:                  tariffRegion,
 					MethodPercent:           v.MethodPercentFee / 100,
 					MethodFixAmount:         v.MethodFixedFee,
 					MethodFixAmountCurrency: v.MethodFixedFeeCurrency,
@@ -1408,7 +1399,7 @@ func (s *Service) SetMerchantTariffRates(
 		costs []*billing.MoneyBackCostMerchant
 	)
 
-	for _, region := range regions.Countries {
+	for _, tariffRegion := range pkg.SupportedTariffRegions {
 		for _, v := range tariffs.Refund {
 			cost = &billing.MoneyBackCostMerchant{
 				Id:                bson.NewObjectId().Hex(),
@@ -1416,8 +1407,7 @@ func (s *Service) SetMerchantTariffRates(
 				Name:              v.MethodName,
 				PayoutCurrency:    merchant.GetPayoutCurrency(),
 				UndoReason:        pkg.UndoReasonReversal,
-				Region:            region.Region,
-				Country:           region.IsoCodeA2,
+				Region:            tariffRegion,
 				PaymentStage:      1,
 				Percent:           v.MethodPercentFee / 100,
 				FixAmount:         v.MethodFixedFee,
@@ -1436,8 +1426,7 @@ func (s *Service) SetMerchantTariffRates(
 				Name:              v.MethodName,
 				PayoutCurrency:    merchant.GetPayoutCurrency(),
 				UndoReason:        pkg.UndoReasonChargeback,
-				Region:            region.Region,
-				Country:           region.IsoCodeA2,
+				Region:            tariffRegion,
 				PaymentStage:      1,
 				Percent:           tariffs.Chargeback.MethodPercentFee / 100,
 				FixAmount:         tariffs.Chargeback.MethodFixedFee,

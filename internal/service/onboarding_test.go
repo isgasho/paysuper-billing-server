@@ -3405,11 +3405,11 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_Ok() {
 
 	paymentCosts, err := suite.service.paymentChannelCostMerchant.GetAllForMerchant(rsp0.Item.Id)
 	assert.NoError(suite.T(), err)
-	assert.Nil(suite.T(), paymentCosts.Items)
+	assert.Len(suite.T(), paymentCosts.Items, 0)
 
 	moneyBackCosts, err := suite.service.moneyBackCostMerchant.GetAllForMerchant(rsp0.Item.Id)
 	assert.NoError(suite.T(), err)
-	assert.Nil(suite.T(), moneyBackCosts.Items)
+	assert.Len(suite.T(), moneyBackCosts.Items, 0)
 
 	req := &grpc.GetMerchantTariffRatesRequest{
 		HomeRegion:             "russia_and_cis",
@@ -3436,12 +3436,12 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_Ok() {
 	paymentCosts, err = suite.service.paymentChannelCostMerchant.GetAllForMerchant(rsp0.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), paymentCosts.Items)
-	assert.Len(suite.T(), paymentCosts.Items, 2)
+	assert.Len(suite.T(), paymentCosts.Items, 10)
 
 	moneyBackCosts, err = suite.service.moneyBackCostMerchant.GetAllForMerchant(rsp0.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), moneyBackCosts.Items)
-	assert.Len(suite.T(), moneyBackCosts.Items, len(rsp.Items.Refund)*6)
+	assert.Len(suite.T(), moneyBackCosts.Items, len(rsp.Items.Refund)*10)
 
 	merchant, err = suite.service.merchant.GetById(rsp0.Item.Id)
 	assert.NoError(suite.T(), err)
@@ -3490,8 +3490,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_InsertPa
 	ci := &mocks.CacheInterface{}
 	ci.On("Get", mock2.Anything, mock2.Anything).Return(errors.New(mocks.SomeError))
 	ci.On("Set", mock2.Anything, mock2.Anything, mock2.Anything).Return(nil)
-	ci.On("Delete", fmt.Sprintf(cachePaymentChannelCostMerchantAll, suite.merchant.Id)).
-		Return(errors.New(mocks.SomeError))
+	ci.On("Delete", mock2.Anything).Return(errors.New(mocks.SomeError))
 	suite.service.cacher = ci
 
 	req := &grpc.SetMerchantTariffRatesRequest{
@@ -3509,10 +3508,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_InsertPa
 func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_InsertMoneyBackCosts_Error() {
 	ci := &mocks.CacheInterface{}
 	ci.On("Get", mock2.Anything, mock2.Anything).Return(errors.New(mocks.SomeError))
-	ci.On("Set", mock2.Anything, mock2.Anything, mock2.Anything).Return(nil)
-	ci.On("Delete", fmt.Sprintf(cachePaymentChannelCostMerchantAll, suite.merchant.Id)).Return(nil)
-	ci.On("Delete", fmt.Sprintf(cacheMoneyBackCostMerchantAll, suite.merchant.Id)).
-		Return(errors.New(mocks.SomeError))
+	ci.On("Set", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New(mocks.SomeError))
+	ci.On("Delete", mock2.Anything).Return(errors.New(mocks.SomeError))
 	suite.service.cacher = ci
 
 	req := &grpc.SetMerchantTariffRatesRequest{
@@ -3553,11 +3550,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_ChangeTa
 func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_MerchantUpdate_Error() {
 	ci := &mocks.CacheInterface{}
 	ci.On("Get", mock2.Anything, mock2.Anything).Return(errors.New(mocks.SomeError))
-	ci.On("Set", fmt.Sprintf(cacheMerchantId, suite.merchant.Id), mock2.Anything, mock2.Anything).
-		Return(errors.New(mocks.SomeError))
 	ci.On("Set", mock2.Anything, mock2.Anything, mock2.Anything).Return(nil)
-	ci.On("Delete", fmt.Sprintf(cachePaymentChannelCostMerchantAll, suite.merchant.Id)).Return(nil)
-	ci.On("Delete", fmt.Sprintf(cacheMoneyBackCostMerchantAll, suite.merchant.Id)).Return(nil)
+	ci.On("Delete", mock2.Anything).Return(errors.New(mocks.SomeError))
 	suite.service.cacher = ci
 
 	req := &grpc.SetMerchantTariffRatesRequest{

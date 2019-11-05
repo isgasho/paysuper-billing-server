@@ -1260,7 +1260,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_USD_EUR_None() {
 		Name:                    "MASTERCARD",
 		PayoutCurrency:          royaltyCurrency,
 		MinAmount:               0,
-		Region:                  country.Region,
+		Region:                  country.PayerTariffRegion,
 		Country:                 country.IsoCodeA2,
 		MethodPercent:           0.025,
 		MethodFixAmount:         0.02,
