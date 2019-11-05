@@ -89,6 +89,8 @@ message OrderCreateRequest {
     string utm_medium = 37;
     //@inject_tag: bson:"utm_campaign" json:"utm_campaign"
     string utm_campaign = 38;
+    //@inject_tag: bson:"is_buy_for_virtual_currency" json:"is_buy_for_virtual_currency"
+    bool is_buy_for_virtual_currency = 39;
 }
 
 message Project {
@@ -580,6 +582,10 @@ message Order {
     bool is_key_product_notified = 72;
     // @inject_tag: json:"receipt_id" bson:"receipt_id"
     string receipt_id = 73; // unique public receipt identifier
+    // @inject_tag: json:"virtual_currency_amount" bson:"virtual_currency_amount"
+    double virtual_currency_amount = 74;
+    // @inject_tag: json:"is_buy_for_virtual_currency" bson:"is_buy_for_virtual_currency"
+    bool is_buy_for_virtual_currency = 75;
 }
 
 message CountryRestriction {
@@ -1036,8 +1042,10 @@ message TokenSettings {
     map<string, string> metadata = 10;
     //@inject_tag: json:"platform_id"
     string platform_id = 11;
-    //@inject_tag: json:"type" validate:"required,oneof=simple key product"
+    //@inject_tag: json:"type" validate:"required,oneof=simple key product virtual_currency"
     string type = 12;
+    //@inject_tag: json:"is_buy_for_virtual_currency"
+    bool is_buy_for_virtual_currency = 13;
 }
 
 message OrderIssuer {
