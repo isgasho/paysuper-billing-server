@@ -1653,8 +1653,8 @@ message CommonUserProfileResponse {
 }
 
 message CommonUserProfile {
-    UserProfile user_profile = 1;
-    billing.UserRole user_role = 2;
+    UserProfile profile = 1;
+    billing.UserRole role = 2;
     repeated Permission permissions = 3;
 }
 

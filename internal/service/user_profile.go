@@ -517,28 +517,28 @@ func (s *Service) GetCommonUserProfile(
 	}
 
 	rsp.Profile = &grpc.CommonUserProfile{
-		UserProfile: profile,
+		Profile: profile,
 	}
 
 	if req.MerchantId != "" {
 		role, _ := s.userRoleRepository.GetMerchantUserByUserId(req.MerchantId, req.UserId)
 
 		if role != nil {
-			rsp.Profile.UserRole = role
+			rsp.Profile.Role = role
 		}
 	} else {
 		role, _ := s.userRoleRepository.GetAdminUserByUserId(req.UserId)
 
 		if role != nil {
-			rsp.Profile.UserRole = role
+			rsp.Profile.Role = role
 		}
 	}
 
-	if rsp.Profile.UserRole != nil {
+	if rsp.Profile.Role != nil {
 		res := &grpc.GetPermissionsForUserResponse{}
 		err = s.GetPermissionsForUser(ctx, &grpc.GetPermissionsForUserRequest{UserId: req.UserId, MerchantId: req.MerchantId}, res)
 
-		if err != nil && len(res.Permissions) > 0 {
+		if err != nil {
 			rsp.Profile.Permissions = res.Permissions
 		}
 	}
