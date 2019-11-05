@@ -854,26 +854,38 @@ func (s *Service) DeleteAdminUser(
 }
 
 func (s *Service) GetPermissionsForUser(ctx context.Context, req *grpc.GetPermissionsForUserRequest, res *grpc.GetPermissionsForUserResponse) error {
-	userId := req.UserId
-	if len(req.MerchantId) > 0 {
-		userId = fmt.Sprintf(pkg.CasbinMerchantUserMask, req.MerchantId, req.UserId)
-	}
+	permissions, err := s.getUserPermissions(ctx, req.UserId, req.MerchantId)
 
-	rsp, err := s.casbinService.GetImplicitPermissionsForUser(ctx, &casbinProto.PermissionRequest{User: userId})
 	if err != nil {
-		zap.L().Error(errorUserGetImplicitPermissions.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserGetImplicitPermissions
 
 		return nil
 	}
 
-	if len(rsp.D2) == 0 {
-		zap.L().Error(errorUserDontHaveRole.Message, zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserDontHaveRole
+	res.Permissions = permissions
+	res.Status = pkg.ResponseStatusOk
 
-		return nil
+	return nil
+}
+
+func (s *Service) getUserPermissions(ctx context.Context, userId string, merchantId string) ([]*grpc.Permission, error) {
+	id := userId
+
+	if len(merchantId) > 0 {
+		id = fmt.Sprintf(pkg.CasbinMerchantUserMask, merchantId, userId)
+	}
+
+	rsp, err := s.casbinService.GetImplicitPermissionsForUser(ctx, &casbinProto.PermissionRequest{User: id})
+
+	if err != nil {
+		zap.L().Error(errorUserGetImplicitPermissions.Message, zap.Error(err), zap.String("userId", id))
+		return nil, errorUserGetImplicitPermissions
+	}
+
+	if len(rsp.D2) == 0 {
+		zap.L().Error(errorUserDontHaveRole.Message, zap.String("userId", id))
+		return nil, errorUserDontHaveRole
 	}
 
 	permissions := make([]*grpc.Permission, len(rsp.D2))
@@ -884,10 +896,7 @@ func (s *Service) GetPermissionsForUser(ctx context.Context, req *grpc.GetPermis
 		}
 	}
 
-	res.Permissions = permissions
-	res.Status = pkg.ResponseStatusOk
-
-	return nil
+	return permissions, nil
 }
 
 func (s *Service) GetMerchantUserRole(

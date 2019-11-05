@@ -535,9 +535,7 @@ func (s *Service) GetCommonUserProfile(
 	}
 
 	if rsp.Profile.Role != nil {
-		req := &grpc.GetPermissionsForUserRequest{UserId: req.UserId, MerchantId: req.MerchantId}
-		res := &grpc.GetPermissionsForUserResponse{}
-		err = s.GetPermissionsForUser(ctx, req, res)
+		rsp.Profile.Permissions, err = s.getUserPermissions(ctx, req.UserId, req.MerchantId)
 
 		if err != nil {
 			zap.S().Error(
@@ -546,8 +544,6 @@ func (s *Service) GetCommonUserProfile(
 				zap.Any("req", req),
 			)
 		}
-
-		rsp.Profile.Permissions = res.Permissions
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
