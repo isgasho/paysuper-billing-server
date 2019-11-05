@@ -535,12 +535,19 @@ func (s *Service) GetCommonUserProfile(
 	}
 
 	if rsp.Profile.Role != nil {
+		req := &grpc.GetPermissionsForUserRequest{UserId: req.UserId, MerchantId: req.MerchantId}
 		res := &grpc.GetPermissionsForUserResponse{}
-		err = s.GetPermissionsForUser(ctx, &grpc.GetPermissionsForUserRequest{UserId: req.UserId, MerchantId: req.MerchantId}, res)
+		err = s.GetPermissionsForUser(ctx, req, res)
 
 		if err != nil {
-			rsp.Profile.Permissions = res.Permissions
+			zap.S().Error(
+				"unable to get user permissions",
+				zap.Error(err),
+				zap.Any("req", req),
+			)
 		}
+
+		rsp.Profile.Permissions = res.Permissions
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
