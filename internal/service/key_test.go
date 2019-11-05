@@ -147,6 +147,7 @@ func (suite *KeyTestSuite) TestKey_ReserveKey_Ok() {
 	orderId := bson.NewObjectId().Hex()
 	assert.NoError(suite.T(), suite.service.keyRepository.Insert(key))
 
+	now := time.Now().UTC()
 	k, err := suite.service.keyRepository.ReserveKey(key.KeyProductId, key.PlatformId, orderId, duration)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), key.Id, k.Id)
@@ -167,7 +168,7 @@ func (suite *KeyTestSuite) TestKey_ReserveKey_Ok() {
 	}
 	assert.Equal(
 		suite.T(),
-		time.Now().UTC().Add(time.Second*time.Duration(duration)).Format("2006-01-02T15:04:05"),
+		now.Add(time.Second*time.Duration(duration)).Format("2006-01-02T15:04:05"),
 		reservedTo.Format("2006-01-02T15:04:05"),
 	)
 }

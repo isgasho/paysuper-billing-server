@@ -89,6 +89,8 @@ message OrderCreateRequest {
     string utm_medium = 37;
     //@inject_tag: bson:"utm_campaign" json:"utm_campaign"
     string utm_campaign = 38;
+    //@inject_tag: bson:"is_buy_for_virtual_currency" json:"is_buy_for_virtual_currency"
+    bool is_buy_for_virtual_currency = 39;
 }
 
 message Project {
@@ -584,12 +586,16 @@ message Order {
     bool is_key_product_notified = 72;
     // @inject_tag: json:"receipt_id" bson:"receipt_id"
     string receipt_id = 73; // unique public receipt identifier
+    // @inject_tag: json:"virtual_currency_amount" bson:"virtual_currency_amount"
+    double virtual_currency_amount = 74;
+    // @inject_tag: json:"is_buy_for_virtual_currency" bson:"is_buy_for_virtual_currency"
+    bool is_buy_for_virtual_currency = 75;
     // @inject_tag: json:"-"
-    string mcc_code = 74;
+    string mcc_code = 76;
     // @inject_tag: json:"-"
-    string operating_company_id = 75;
+    string operating_company_id = 77;
     // @inject_tag: json:"-"
-    bool is_high_risk = 76;
+    bool is_high_risk = 78;
 }
 
 message CountryRestriction {
@@ -646,7 +652,7 @@ message PaymentMethodOrder {
     string name = 2;
     // @inject_tag: bson:"external_id" json:"external_id"
     string external_id = 3;
-    // @inject_tag: bson:"params"
+    // @inject_tag: json:"params,omitempty" bson:"params"
     PaymentMethodParams params = 4;
     // @inject_tag: bson:"payment_system_id" json:"payment_system_id"
     string payment_system_id = 5;
@@ -1050,8 +1056,10 @@ message TokenSettings {
     map<string, string> metadata = 10;
     //@inject_tag: json:"platform_id"
     string platform_id = 11;
-    //@inject_tag: json:"type" validate:"required,oneof=simple key product"
+    //@inject_tag: json:"type" validate:"required,oneof=simple key product virtual_currency"
     string type = 12;
+    //@inject_tag: json:"is_buy_for_virtual_currency"
+    bool is_buy_for_virtual_currency = 13;
 }
 
 message OrderIssuer {
@@ -1678,7 +1686,9 @@ message AnnualTurnover {
 }
 
 message OrderViewMoney {
+    //@inject_tag: json:"amount"
     double amount = 1;
+    //@inject_tag: json:"currency"
     string currency = 2;
 }
 

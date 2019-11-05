@@ -1,5 +1,12 @@
 package pkg
 
+import "net/http"
+
+type Path struct {
+	Path   string
+	Method string
+}
+
 const (
 	ServiceName    = "p1paybilling"
 	ServiceVersion = "latest"
@@ -299,7 +306,11 @@ const (
 	ProjectSellCountTypeFractional = "fractional"
 	ProjectSellCountTypeIntegral   = "integral"
 
-	FallbackCurrency = "USD"
+	PaymentSystemActionAuthenticate     = "auth"
+	PaymentSystemActionRefresh          = "refresh"
+	PaymentSystemActionCreatePayment    = "create_payment"
+	PaymentSystemActionRecurringPayment = "recurring_payment"
+	PaymentSystemActionRefund           = "refund"
 
 	MccCodeLowRisk  = "5816"
 	MccCodeHighRisk = "5967"
@@ -369,5 +380,28 @@ var (
 		"latin_america":  "Latin America",
 		"russia_and_cis": "Russia & CIS",
 		"worldwide":      "Worldwide",
+	}
+
+	CardPayPaths = map[string]*Path{
+		PaymentSystemActionAuthenticate: {
+			Path:   "/api/auth/token",
+			Method: http.MethodPost,
+		},
+		PaymentSystemActionRefresh: {
+			Path:   "/api/auth/token",
+			Method: http.MethodPost,
+		},
+		PaymentSystemActionCreatePayment: {
+			Path:   "/api/payments",
+			Method: http.MethodPost,
+		},
+		PaymentSystemActionRecurringPayment: {
+			Path:   "/api/recurrings",
+			Method: http.MethodPost,
+		},
+		PaymentSystemActionRefund: {
+			Path:   "/api/refunds",
+			Method: http.MethodPost,
+		},
 	}
 )
