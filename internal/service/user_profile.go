@@ -502,6 +502,50 @@ func (s *Service) CreatePageReview(
 	return nil
 }
 
+func (s *Service) GetCommonUserProfile(
+	ctx context.Context,
+	req *grpc.CommonUserProfileRequest,
+	rsp *grpc.CommonUserProfileResponse,
+) error {
+	profile, err := s.userProfileRepository.GetByUserId(req.UserId)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = userProfileErrorNotFound
+
+		return nil
+	}
+
+	rsp.Profile.UserProfile = profile
+
+	if req.MerchantId != "" {
+		role, _ := s.userRoleRepository.GetMerchantUserByUserId(req.MerchantId, req.UserId)
+
+		if role != nil {
+			rsp.Profile.UserRole = role
+		}
+	} else {
+		role, _ := s.userRoleRepository.GetAdminUserByUserId(req.UserId)
+
+		if role != nil {
+			rsp.Profile.UserRole = role
+		}
+	}
+
+	if rsp.Profile.UserRole != nil {
+		res := &grpc.GetPermissionsForUserResponse{}
+		err = s.GetPermissionsForUser(ctx, &grpc.GetPermissionsForUserRequest{UserId: req.UserId, MerchantId: req.MerchantId}, res)
+
+		if err != nil && len(res.Permissions) > 0 {
+			rsp.Profile.Permissions = res.Permissions
+		}
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
+
+	return nil
+}
+
 type UserProfileRepositoryInterface interface {
 	GetById(string) (*grpc.UserProfile, error)
 	GetByUserId(string) (*grpc.UserProfile, error)

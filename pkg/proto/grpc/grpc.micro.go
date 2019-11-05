@@ -203,6 +203,7 @@ type BillingService interface {
 	GetPermissionsForUser(ctx context.Context, in *GetPermissionsForUserRequest, opts ...client.CallOption) (*GetPermissionsForUserResponse, error)
 	GetMerchantUserRole(ctx context.Context, in *MerchantRoleRequest, opts ...client.CallOption) (*UserRoleResponse, error)
 	GetAdminUserRole(ctx context.Context, in *AdminRoleRequest, opts ...client.CallOption) (*UserRoleResponse, error)
+	GetCommonUserProfile(ctx context.Context, in *CommonUserProfileRequest, opts ...client.CallOption) (*CommonUserProfileResponse, error)
 }
 
 type billingService struct {
@@ -1883,6 +1884,16 @@ func (c *billingService) GetAdminUserRole(ctx context.Context, in *AdminRoleRequ
 	return out, nil
 }
 
+func (c *billingService) GetCommonUserProfile(ctx context.Context, in *CommonUserProfileRequest, opts ...client.CallOption) (*CommonUserProfileResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetCommonUserProfile", in)
+	out := new(CommonUserProfileResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for BillingService service
 
 type BillingServiceHandler interface {
@@ -2052,6 +2063,7 @@ type BillingServiceHandler interface {
 	GetPermissionsForUser(context.Context, *GetPermissionsForUserRequest, *GetPermissionsForUserResponse) error
 	GetMerchantUserRole(context.Context, *MerchantRoleRequest, *UserRoleResponse) error
 	GetAdminUserRole(context.Context, *AdminRoleRequest, *UserRoleResponse) error
+	GetCommonUserProfile(context.Context, *CommonUserProfileRequest, *CommonUserProfileResponse) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -2222,6 +2234,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetPermissionsForUser(ctx context.Context, in *GetPermissionsForUserRequest, out *GetPermissionsForUserResponse) error
 		GetMerchantUserRole(ctx context.Context, in *MerchantRoleRequest, out *UserRoleResponse) error
 		GetAdminUserRole(ctx context.Context, in *AdminRoleRequest, out *UserRoleResponse) error
+		GetCommonUserProfile(ctx context.Context, in *CommonUserProfileRequest, out *CommonUserProfileResponse) error
 	}
 	type BillingService struct {
 		billingService
@@ -2896,4 +2909,8 @@ func (h *billingServiceHandler) GetMerchantUserRole(ctx context.Context, in *Mer
 
 func (h *billingServiceHandler) GetAdminUserRole(ctx context.Context, in *AdminRoleRequest, out *UserRoleResponse) error {
 	return h.BillingServiceHandler.GetAdminUserRole(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetCommonUserProfile(ctx context.Context, in *CommonUserProfileRequest, out *CommonUserProfileResponse) error {
+	return h.BillingServiceHandler.GetCommonUserProfile(ctx, in, out)
 }

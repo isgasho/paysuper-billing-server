@@ -208,6 +208,7 @@ service BillingService {
     rpc GetPermissionsForUser(GetPermissionsForUserRequest) returns (GetPermissionsForUserResponse) {}
     rpc GetMerchantUserRole(MerchantRoleRequest) returns (UserRoleResponse) {}
     rpc GetAdminUserRole(AdminRoleRequest) returns (UserRoleResponse) {}
+    rpc GetCommonUserProfile(CommonUserProfileRequest) returns (CommonUserProfileResponse) {}
 }
 
 message EmptyRequest {
@@ -1636,6 +1637,25 @@ message UserProfile {
     google.protobuf.Timestamp created_at = 9;
     // @inject_tag: json:"updated_at"
     google.protobuf.Timestamp updated_at = 10;
+}
+
+message CommonUserProfileRequest {
+    //@inject_tag: json:"user_id" validate:"required,hexadecimal,len=24"
+    string user_id = 1;
+    //@inject_tag: json:"merchant_id" validate:"omitempty,hexadecimal,len=24"
+    string merchant_id = 2;
+}
+
+message CommonUserProfileResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    CommonUserProfile profile = 3;
+}
+
+message CommonUserProfile {
+    UserProfile user_profile = 1;
+    billing.UserRole user_role = 2;
+    repeated Permission permissions = 3;
 }
 
 message GetUserProfileRequest {
