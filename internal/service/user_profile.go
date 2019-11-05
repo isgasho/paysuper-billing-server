@@ -516,7 +516,11 @@ func (s *Service) GetCommonUserProfile(
 		return nil
 	}
 
-	rsp.Profile.UserProfile = profile
+	rsp = &grpc.CommonUserProfileResponse{
+		Profile: &grpc.CommonUserProfile{
+			UserProfile: profile,
+		},
+	}
 
 	if req.MerchantId != "" {
 		role, _ := s.userRoleRepository.GetMerchantUserByUserId(req.MerchantId, req.UserId)
