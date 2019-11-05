@@ -672,14 +672,6 @@ func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.Chang
 		return nil
 	}
 
-	if user.Role == req.Role {
-		zap.L().Error(errorUserAlreadyHasRole.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserAlreadyHasRole
-
-		return nil
-	}
-
 	user.Role = req.Role
 	err = s.userRoleRepository.UpdateMerchantUser(user)
 
@@ -726,14 +718,6 @@ func (s *Service) ChangeRoleForAdminUser(ctx context.Context, req *grpc.ChangeRo
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserNotFound
-
-		return nil
-	}
-
-	if user.Role == req.Role {
-		zap.L().Error(errorUserAlreadyHasRole.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserAlreadyHasRole
 
 		return nil
 	}

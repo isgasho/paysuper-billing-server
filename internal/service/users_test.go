@@ -218,22 +218,6 @@ func (suite *UsersTestSuite) TestChangeAdminUserRole_Error_GetUser() {
 	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
 }
 
-func (suite *UsersTestSuite) TestChangeAdminUserRole_Error_ExistRole() {
-	shouldBe := require.New(suite.T())
-
-	repository := &mocks.UserRoleServiceInterface{}
-	repository.On("GetAdminUserById", mock.Anything).Return(&billing.UserRole{Role: "test_role"}, nil)
-	suite.service.userRoleRepository = repository
-
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.ChangeRoleForAdminUser(context.TODO(), &grpc.ChangeRoleForAdminUserRequest{
-		RoleId: bson.NewObjectId().Hex(),
-		Role:   "test_role",
-	}, res)
-	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
-}
-
 func (suite *UsersTestSuite) TestChangeAdminUserRole_Error_Update() {
 	shouldBe := require.New(suite.T())
 
@@ -328,22 +312,6 @@ func (suite *UsersTestSuite) TestChangeMerchantUserRole_Error_GetUser() {
 
 	repository := &mocks.UserRoleServiceInterface{}
 	repository.On("GetMerchantUserById", mock.Anything).Return(nil, errors.New("error"))
-	suite.service.userRoleRepository = repository
-
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.ChangeRoleForMerchantUser(context.TODO(), &grpc.ChangeRoleForMerchantUserRequest{
-		RoleId: bson.NewObjectId().Hex(),
-		Role:   "test_role",
-	}, res)
-	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
-}
-
-func (suite *UsersTestSuite) TestChangeMerchantUserRole_Error_ExistRole() {
-	shouldBe := require.New(suite.T())
-
-	repository := &mocks.UserRoleServiceInterface{}
-	repository.On("GetMerchantUserById", mock.Anything).Return(&billing.UserRole{Role: "test_role"}, nil)
 	suite.service.userRoleRepository = repository
 
 	res := &grpc.EmptyResponseWithStatus{}
