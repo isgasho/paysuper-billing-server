@@ -1636,7 +1636,9 @@ message AnnualTurnover {
 }
 
 message OrderViewMoney {
+    //@inject_tag: json:"amount"
     double amount = 1;
+    //@inject_tag: json:"currency"
     string currency = 2;
 }
 
