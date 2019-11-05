@@ -253,6 +253,7 @@ func (p *Product) GetBSON() (interface{}, error) {
 			Currency: price.Currency,
 			Region:   price.Region,
 			Amount:   tools.FormatAmount(price.Amount),
+			IsVirtualCurrency: price.IsVirtualCurrency,
 		})
 	}
 
@@ -573,6 +574,7 @@ func (p *KeyProduct) GetBSON() (interface{}, error) {
 				Currency: price.Currency,
 				Region:   price.Region,
 				Amount:   tools.FormatAmount(price.Amount),
+				IsVirtualCurrency: price.IsVirtualCurrency,
 			}
 		}
 		st.Platforms[i] = &MgoPlatformPrice{
