@@ -336,8 +336,6 @@ message CreateOrUpdateKeyProductRequest {
     repeated PlatformPrice platforms = 13;
     // @inject_tag: json:"pricing" validate:"required,oneof=currency manual steam default"
     string pricing = 14;
-    // @inject_tag: json:"billing_type" validate:"required,oneof=real virtual"
-    string billing_type = 15;
 }
 
 message UnPublishKeyProductRequest {
@@ -890,8 +888,6 @@ message KeyProduct {
     google.protobuf.Timestamp published_at = 18;
     // @inject_tag: json:"pricing" validate:"required,oneof=currency manual steam default"
     string pricing = 19;
-    // @inject_tag: json:"billing_type" validate:"required,oneof=real virtual"
-    string billing_type = 20;
 }
 
 message PlatformPrice {
