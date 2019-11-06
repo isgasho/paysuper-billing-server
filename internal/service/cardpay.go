@@ -456,11 +456,16 @@ func (h *cardPay) ProcessPayment(order *billing.Order, message proto.Message, ra
 		declineCode, hasDeclineCode := order.PaymentMethodTxnParams[pkg.TxnParamsFieldDeclineCode]
 		declineReason, hasDeclineReason := order.PaymentMethodTxnParams[pkg.TxnParamsFieldDeclineReason]
 
-		if hasDeclineCode && hasDeclineReason && declineCode != "" && declineReason != "" {
-			order.Cancellation = &billing.OrderNotificationCancellation{
-				Code:   declineCode,
-				Reason: declineReason,
-			}
+		if hasDeclineCode || hasDeclineReason {
+			order.Cancellation = &billing.OrderNotificationCancellation{}
+		}
+
+		if declineCode != "" {
+			order.Cancellation.Code = declineCode
+		}
+
+		if declineReason != "" {
+			order.Cancellation.Reason = declineReason
 		}
 	}
 
