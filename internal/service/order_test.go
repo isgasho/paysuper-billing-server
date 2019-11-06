@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
+	"github.com/gogo/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
 	"github.com/jinzhu/now"
@@ -21,12 +22,16 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/paylink"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
+	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
 	"github.com/stoewer/go-strcase"
+	"github.com/streadway/amqp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"go.uber.org/zap/zaptest/observer"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
 	"net"
 	"sort"
@@ -64,6 +69,9 @@ type OrderTestSuite struct {
 	paylink1                               *paylink.Paylink
 	paylink2                               *paylink.Paylink // deleted paylink
 	paylink3                               *paylink.Paylink // expired paylink
+
+	logObserver *zap.Logger
+	zapRecorder *observer.ObservedLogs
 }
 
 func Test_Order(t *testing.T) {
@@ -1553,6 +1561,115 @@ func (suite *OrderTestSuite) SetupTest() {
 	centrifugoMock.On("GetChannelToken", mock.Anything, mock.Anything).Return("token")
 	centrifugoMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	suite.service.centrifugo = centrifugoMock
+
+	var core zapcore.Core
+
+	lvl := zap.NewAtomicLevel()
+	core, suite.zapRecorder = observer.New(lvl)
+	suite.logObserver = zap.New(core)
+
+	mbSysCost := &billing.MoneyBackCostSystem{
+		Name:           "VISA",
+		PayoutCurrency: "RUB",
+		UndoReason:     "chargeback",
+		Region:         "CIS",
+		Country:        "AZ",
+		DaysFrom:       0,
+		PaymentStage:   1,
+		Percent:        3,
+		FixAmount:      5,
+	}
+	mbSysCost1 := &billing.MoneyBackCostSystem{
+		Name:           "VISA",
+		PayoutCurrency: "RUB",
+		UndoReason:     "chargeback",
+		Region:         "Russia",
+		Country:        "RU",
+		DaysFrom:       0,
+		PaymentStage:   1,
+		Percent:        10,
+		FixAmount:      15,
+	}
+	mbSysCost2 := &billing.MoneyBackCostSystem{
+		Name:           "VISA",
+		PayoutCurrency: "RUB",
+		UndoReason:     "chargeback",
+		Region:         "Russia",
+		Country:        "RU",
+		DaysFrom:       0,
+		PaymentStage:   1,
+		Percent:        10,
+		FixAmount:      15,
+	}
+	mbSysCost3 := &billing.MoneyBackCostSystem{
+		Name:           "MasterCard",
+		PayoutCurrency: "USD",
+		UndoReason:     "reversal",
+		Region:         "Russia",
+		Country:        "RU",
+		DaysFrom:       0,
+		PaymentStage:   1,
+		Percent:        10,
+		FixAmount:      15,
+	}
+
+	err = suite.service.moneyBackCostSystem.MultipleInsert([]*billing.MoneyBackCostSystem{mbSysCost, mbSysCost1, mbSysCost2, mbSysCost3})
+
+	if err != nil {
+		suite.FailNow("Insert MoneyBackCostSystem test data failed", "%v", err)
+	}
+
+	mbMerCost := &billing.MoneyBackCostMerchant{
+		Id:                bson.NewObjectId().Hex(),
+		MerchantId:        project.GetMerchantId(),
+		Name:              "VISA",
+		PayoutCurrency:    "RUB",
+		UndoReason:        "chargeback",
+		Region:            "CIS",
+		Country:           "AZ",
+		DaysFrom:          0,
+		PaymentStage:      1,
+		Percent:           3,
+		FixAmount:         5,
+		FixAmountCurrency: "USD",
+		IsPaidByMerchant:  true,
+	}
+	mbMerCost1 := &billing.MoneyBackCostMerchant{
+		Id:                bson.NewObjectId().Hex(),
+		MerchantId:        project.GetMerchantId(),
+		Name:              "VISA",
+		PayoutCurrency:    "RUB",
+		UndoReason:        "chargeback",
+		Region:            "Russia",
+		Country:           "RU",
+		DaysFrom:          0,
+		PaymentStage:      1,
+		Percent:           10,
+		FixAmount:         15,
+		FixAmountCurrency: "USD",
+		IsPaidByMerchant:  true,
+	}
+	mbMerCost2 := &billing.MoneyBackCostMerchant{
+		Id:                bson.NewObjectId().Hex(),
+		MerchantId:        project.GetMerchantId(),
+		Name:              "MasterCard",
+		PayoutCurrency:    "USD",
+		UndoReason:        "reversal",
+		Region:            "Russia",
+		Country:           "RU",
+		DaysFrom:          0,
+		PaymentStage:      1,
+		Percent:           2,
+		FixAmount:         3,
+		FixAmountCurrency: "USD",
+		IsPaidByMerchant:  true,
+	}
+
+	err = suite.service.moneyBackCostMerchant.MultipleInsert([]*billing.MoneyBackCostMerchant{mbMerCost, mbMerCost1, mbMerCost2})
+
+	if err != nil {
+		suite.FailNow("Insert MoneyBackCostMerchant test data failed", "%v", err)
+	}
 }
 
 func (suite *OrderTestSuite) TearDownTest() {
@@ -7338,4 +7455,322 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_CostsNotFound_Error(
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
 	assert.Empty(suite.T(), rsp.RedirectUrl)
 	assert.Equal(suite.T(), orderErrorCostsRatesNotFound, rsp.Message)
+}
+
+func (suite *OrderTestSuite) TestOrder_PurchaseReceipt_Ok() {
+	zap.ReplaceGlobals(suite.logObserver)
+	postmarkBrokerMockFn := func(topicName string, payload proto.Message, t amqp.Table) error {
+		msg := payload.(*postmarkSdrPkg.Payload)
+		zap.L().Info("order_test", zap.String("url", msg.TemplateModel["url"]))
+
+		return nil
+	}
+	postmarkBrokerMock := &mocks.BrokerInterface{}
+	postmarkBrokerMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(postmarkBrokerMockFn, nil)
+	suite.service.postmarkBroker = postmarkBrokerMock
+	order := helperCreateAndPayOrder(suite.Suite, suite.service, 100, "RUB", "RU", suite.project, suite.paymentMethod)
+	assert.NotNil(suite.T(), order)
+	assert.Equal(suite.T(), order.ReceiptUrl, suite.service.cfg.GetReceiptPurchaseUrl(order.Uuid, order.ReceiptId))
+	assert.Nil(suite.T(), order.Cancellation)
+
+	messages := suite.zapRecorder.All()
+
+	for _, v := range messages {
+		if v.Entry.Message == "order_test" {
+			assert.Equal(suite.T(), zapcore.InfoLevel, v.Level)
+			assert.Equal(suite.T(), v.Context[0].String, order.ReceiptUrl)
+		}
+	}
+}
+
+func (suite *OrderTestSuite) TestOrder_RefundReceipt_Ok() {
+	zap.ReplaceGlobals(suite.logObserver)
+	postmarkBrokerMockFn := func(topicName string, payload proto.Message, t amqp.Table) error {
+		msg := payload.(*postmarkSdrPkg.Payload)
+		zap.L().Info("order_test_refund", zap.String("url", msg.TemplateModel["url"]))
+
+		return nil
+	}
+
+	order := helperCreateAndPayOrder(suite.Suite, suite.service, 100, "RUB", "RU", suite.project, suite.paymentMethod)
+	assert.NotNil(suite.T(), order)
+	assert.Equal(suite.T(), order.ReceiptUrl, suite.service.cfg.GetReceiptPurchaseUrl(order.Uuid, order.ReceiptId))
+	assert.Nil(suite.T(), order.Cancellation)
+
+	postmarkBrokerMock := &mocks.BrokerInterface{}
+	postmarkBrokerMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(postmarkBrokerMockFn, nil)
+	suite.service.postmarkBroker = postmarkBrokerMock
+	refund := helperMakeRefund(suite.Suite, suite.service, order, order.TotalPaymentAmount, false)
+	assert.NotNil(suite.T(), refund)
+
+	order, err := suite.service.getOrderById(order.Id)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), order)
+	assert.Equal(suite.T(), order.ReceiptUrl, suite.service.cfg.GetReceiptRefundUrl(order.Uuid, order.ReceiptId))
+	assert.Nil(suite.T(), order.Cancellation)
+
+	messages := suite.zapRecorder.All()
+
+	for _, v := range messages {
+		if v.Entry.Message != "order_test_refund" {
+			continue
+		}
+
+		assert.Equal(suite.T(), zapcore.InfoLevel, v.Level)
+		assert.Equal(suite.T(), v.Context[0].String, order.ReceiptUrl)
+	}
+}
+
+func (suite *OrderTestSuite) TestOrder_DeclineOrder_Ok() {
+	req := &billing.OrderCreateRequest{
+		ProjectId:   suite.project.Id,
+		Amount:      100,
+		Currency:    "RUB",
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+		Type: billing.OrderType_simple,
+	}
+
+	rsp := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
+
+	expireYear := time.Now().AddDate(1, 0, 0)
+
+	req1 := &grpc.PaymentCreateRequest{
+		Data: map[string]string{
+			pkg.PaymentCreateFieldOrderId:         rsp.Item.Uuid,
+			pkg.PaymentCreateFieldPaymentMethodId: suite.paymentMethod.Id,
+			pkg.PaymentCreateFieldEmail:           "test@unit.unit",
+			pkg.PaymentCreateFieldPan:             "4000000000000002",
+			pkg.PaymentCreateFieldCvv:             "123",
+			pkg.PaymentCreateFieldMonth:           "02",
+			pkg.PaymentCreateFieldYear:            expireYear.Format("2006"),
+			pkg.PaymentCreateFieldHolder:          "Mr. Card Holder",
+		},
+		Ip: "127.0.0.1",
+	}
+	rsp1 := &grpc.PaymentCreateResponse{}
+	err = suite.service.PaymentCreateProcess(context.TODO(), req1, rsp1)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+
+	order, err := suite.service.getOrderById(rsp.Item.Id)
+	assert.NoError(suite.T(), err)
+	suite.NotNil(suite.T(), order)
+	assert.Empty(suite.T(), order.ReceiptUrl)
+
+	req2 := &billing.CardPayPaymentCallback{
+		PaymentMethod: suite.paymentMethod.ExternalId,
+		CallbackTime:  time.Now().Format("2006-01-02T15:04:05Z"),
+		MerchantOrder: &billing.CardPayMerchantOrder{
+			Id:          order.Id,
+			Description: order.Description,
+		},
+		CardAccount: &billing.CallbackCardPayBankCardAccount{
+			Holder:             order.PaymentRequisites[pkg.PaymentCreateFieldHolder],
+			IssuingCountryCode: "RU",
+			MaskedPan:          order.PaymentRequisites[pkg.PaymentCreateFieldPan],
+			Token:              bson.NewObjectId().Hex(),
+		},
+		Customer: &billing.CardPayCustomer{
+			Email:  order.User.Email,
+			Ip:     order.User.Ip,
+			Id:     order.ProjectAccount,
+			Locale: "Europe/Moscow",
+		},
+		PaymentData: &billing.CallbackCardPayPaymentData{
+			Id:            bson.NewObjectId().Hex(),
+			Amount:        order.TotalPaymentAmount,
+			Currency:      order.Currency,
+			Description:   order.Description,
+			Is_3D:         true,
+			Rrn:           bson.NewObjectId().Hex(),
+			Status:        pkg.CardPayPaymentResponseStatusDeclined,
+			DeclineCode:   "00000001",
+			DeclineReason: "some decline reason",
+		},
+	}
+
+	buf, err := json.Marshal(req2)
+	assert.Nil(suite.T(), err)
+
+	paymentSystem, err := suite.service.paymentSystem.GetById(suite.paymentMethod.PaymentSystemId)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), paymentSystem)
+	paymentSystem.Handler = pkg.PaymentSystemHandlerCardPay
+	err = suite.service.paymentSystem.Update(paymentSystem)
+	assert.NoError(suite.T(), err)
+
+	hash := sha512.New()
+	hash.Write([]byte(string(buf) + order.PaymentMethod.Params.SecretCallback))
+
+	zap.ReplaceGlobals(suite.logObserver)
+	centrifugoPublishMockFn := func(ctx context.Context, channel string, msg interface{}) error {
+		zap.L().Info("order_test_centrifugo_payment_system_complete")
+		return nil
+	}
+	centrifugoMock := &mocks.CentrifugoInterface{}
+	centrifugoMock.On("GetChannelToken", mock.Anything, mock.Anything).Return("token")
+	centrifugoMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(centrifugoPublishMockFn)
+	suite.service.centrifugo = centrifugoMock
+
+	req3 := &grpc.PaymentNotifyRequest{
+		OrderId:   order.Id,
+		Request:   buf,
+		Signature: hex.EncodeToString(hash.Sum(nil)),
+	}
+	rsp3 := &grpc.PaymentNotifyResponse{}
+	err = suite.service.PaymentCallbackProcess(context.TODO(), req3, rsp3)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), pkg.StatusOK, rsp3.Status)
+
+	order, err = suite.service.getOrderById(rsp.Item.Id)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), order)
+	assert.Empty(suite.T(), order.ReceiptUrl)
+	assert.NotNil(suite.T(), order.Cancellation)
+	assert.Equal(suite.T(), order.Cancellation.Code, req2.PaymentData.DeclineCode)
+	assert.Equal(suite.T(), order.Cancellation.Reason, req2.PaymentData.DeclineReason)
+
+	messages := suite.zapRecorder.All()
+	hasCentrifugoMessage := false
+
+	for _, v := range messages {
+		if v.Entry.Message == "order_test_centrifugo_payment_system_complete" {
+			hasCentrifugoMessage = true
+		}
+	}
+	assert.False(suite.T(), hasCentrifugoMessage)
+}
+
+func (suite *OrderTestSuite) TestOrder_SuccessOrderCentrifugoPaymentSystemError_Ok() {
+	req := &billing.OrderCreateRequest{
+		ProjectId:   suite.project.Id,
+		Amount:      100,
+		Currency:    "RUB",
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+		Type: billing.OrderType_simple,
+	}
+
+	rsp := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
+
+	expireYear := time.Now().AddDate(1, 0, 0)
+
+	req1 := &grpc.PaymentCreateRequest{
+		Data: map[string]string{
+			pkg.PaymentCreateFieldOrderId:         rsp.Item.Uuid,
+			pkg.PaymentCreateFieldPaymentMethodId: suite.paymentMethod.Id,
+			pkg.PaymentCreateFieldEmail:           "test@unit.unit",
+			pkg.PaymentCreateFieldPan:             "4000000000000002",
+			pkg.PaymentCreateFieldCvv:             "123",
+			pkg.PaymentCreateFieldMonth:           "02",
+			pkg.PaymentCreateFieldYear:            expireYear.Format("2006"),
+			pkg.PaymentCreateFieldHolder:          "Mr. Card Holder",
+		},
+		Ip: "127.0.0.1",
+	}
+	rsp1 := &grpc.PaymentCreateResponse{}
+	err = suite.service.PaymentCreateProcess(context.TODO(), req1, rsp1)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+
+	order, err := suite.service.getOrderById(rsp.Item.Id)
+	assert.NoError(suite.T(), err)
+	suite.NotNil(suite.T(), order)
+	assert.Empty(suite.T(), order.ReceiptUrl)
+
+	req2 := &billing.CardPayPaymentCallback{
+		PaymentMethod: suite.paymentMethod.ExternalId,
+		CallbackTime:  time.Now().Format("2006-01-02T15:04:05Z"),
+		MerchantOrder: &billing.CardPayMerchantOrder{
+			Id:          order.Id,
+			Description: order.Description,
+		},
+		CardAccount: &billing.CallbackCardPayBankCardAccount{
+			Holder:             order.PaymentRequisites[pkg.PaymentCreateFieldHolder],
+			IssuingCountryCode: "RU",
+			MaskedPan:          order.PaymentRequisites[pkg.PaymentCreateFieldPan],
+			Token:              bson.NewObjectId().Hex(),
+		},
+		Customer: &billing.CardPayCustomer{
+			Email:  order.User.Email,
+			Ip:     order.User.Ip,
+			Id:     order.ProjectAccount,
+			Locale: "Europe/Moscow",
+		},
+		PaymentData: &billing.CallbackCardPayPaymentData{
+			Id:          bson.NewObjectId().Hex(),
+			Amount:      order.TotalPaymentAmount,
+			Currency:    order.Currency,
+			Description: order.Description,
+			Is_3D:       true,
+			Rrn:         bson.NewObjectId().Hex(),
+			Status:      pkg.CardPayPaymentResponseStatusCompleted,
+		},
+	}
+
+	buf, err := json.Marshal(req2)
+	assert.Nil(suite.T(), err)
+
+	paymentSystem, err := suite.service.paymentSystem.GetById(suite.paymentMethod.PaymentSystemId)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), paymentSystem)
+	paymentSystem.Handler = pkg.PaymentSystemHandlerCardPay
+	err = suite.service.paymentSystem.Update(paymentSystem)
+	assert.NoError(suite.T(), err)
+
+	hash := sha512.New()
+	hash.Write([]byte(string(buf) + order.PaymentMethod.Params.SecretCallback))
+
+	zap.ReplaceGlobals(suite.logObserver)
+	centrifugoPublishMockFn := func(ctx context.Context, channel string, msg interface{}) error {
+		zap.L().Info("order_test_centrifugo_payment_system_complete")
+		return nil
+	}
+	centrifugoMock := &mocks.CentrifugoInterface{}
+	centrifugoMock.On("GetChannelToken", mock.Anything, mock.Anything).Return("token")
+	centrifugoMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(centrifugoPublishMockFn)
+	suite.service.centrifugo = centrifugoMock
+
+	req3 := &grpc.PaymentNotifyRequest{
+		OrderId:   order.Id,
+		Request:   buf,
+		Signature: hex.EncodeToString(hash.Sum(nil)),
+	}
+	rsp3 := &grpc.PaymentNotifyResponse{}
+	err = suite.service.PaymentCallbackProcess(context.TODO(), req3, rsp3)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), pkg.StatusOK, rsp3.Status)
+
+	order, err = suite.service.getOrderById(rsp.Item.Id)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), order)
+	assert.Equal(suite.T(), order.ReceiptUrl, suite.service.cfg.GetReceiptPurchaseUrl(order.Uuid, order.ReceiptId))
+	assert.Nil(suite.T(), order.Cancellation)
+
+	messages := suite.zapRecorder.All()
+	hasCentrifugoMessage := false
+
+	for _, v := range messages {
+		if v.Entry.Message == "order_test_centrifugo_payment_system_complete" {
+			hasCentrifugoMessage = true
+		}
+	}
+	assert.True(suite.T(), hasCentrifugoMessage)
 }

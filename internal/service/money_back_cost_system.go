@@ -285,32 +285,32 @@ func (h MoneyBackCostSystem) Update(obj *billing.MoneyBackCostSystem) error {
 
 func (h MoneyBackCostSystem) Get(
 	name string,
-	payout_currency string,
-	undo_reason string,
+	payoutCurrency string,
+	undoReason string,
 	region string,
 	country string,
-	payment_stage int32,
+	paymentStage int32,
 ) (*moneyBackCostSystems, error) {
 	var c moneyBackCostSystems
-	key := fmt.Sprintf(cacheMoneyBackCostSystemKey, name, payout_currency, undo_reason, region, country, payment_stage)
+	key := fmt.Sprintf(cacheMoneyBackCostSystemKey, name, payoutCurrency, undoReason, region, country, paymentStage)
+	err := h.svc.cacher.Get(key, c)
 
-	if err := h.svc.cacher.Get(key, c); err == nil {
+	if err == nil {
 		return &c, nil
 	}
 
 	query := bson.M{
-		"name":            name,
-		"payout_currency": payout_currency,
-		"undo_reason":     undo_reason,
+		"name":            bson.RegEx{Pattern: "^" + name + "$", Options: "i"},
+		"payout_currency": payoutCurrency,
+		"undo_reason":     undoReason,
 		"region":          region,
 		"country":         country,
-		"payment_stage":   payment_stage,
+		"payment_stage":   paymentStage,
 		"is_active":       true,
 	}
+	err = h.svc.db.Collection(collectionMoneyBackCostSystem).Find(query).All(&c.Items)
 
-	if err := h.svc.db.Collection(collectionMoneyBackCostSystem).
-		Find(query).
-		All(&c.Items); err != nil {
+	if err != nil {
 		return nil, fmt.Errorf(errorNotFound, collectionMoneyBackCostSystem)
 	}
 

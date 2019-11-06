@@ -245,14 +245,21 @@ func (h PaymentChannelCostSystem) GetById(id string) (*billing.PaymentChannelCos
 func (h PaymentChannelCostSystem) Get(name string, region string, country string) (*billing.PaymentChannelCostSystem, error) {
 	var c billing.PaymentChannelCostSystem
 	key := fmt.Sprintf(cachePaymentChannelCostSystemKey, name, region, country)
+	err := h.svc.cacher.Get(key, c)
 
-	if err := h.svc.cacher.Get(key, c); err == nil {
+	if err == nil {
 		return &c, nil
 	}
 
-	if err := h.svc.db.Collection(collectionPaymentChannelCostSystem).
-		Find(bson.M{"name": name, "region": region, "country": country, "is_active": true}).
-		One(&c); err != nil {
+	query := bson.M{
+		"name":      bson.RegEx{Pattern: "^" + name + "$", Options: "i"},
+		"region":    region,
+		"country":   country,
+		"is_active": true,
+	}
+	err = h.svc.db.Collection(collectionPaymentChannelCostSystem).Find(query).One(&c)
+
+	if err != nil {
 		return nil, fmt.Errorf(errorNotFound, collectionPaymentChannelCostSystem)
 	}
 
