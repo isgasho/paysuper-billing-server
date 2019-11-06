@@ -299,6 +299,9 @@ func (s *Service) UpdateProductPrices(ctx context.Context, req *grpc.UpdateProdu
 	}
 
 	_, err = product.GetPriceInCurrency(&billing.PriceGroup{Currency: payoutCurrency})
+	if err != nil {
+		_, err = product.GetPriceInCurrency(&billing.PriceGroup{Currency: grpc.VirtualCurrencyPriceGroup})
+	}
 
 	if err != nil {
 		zap.S().Errorw(productErrorPriceDefaultCurrency.Message, "data", req)
