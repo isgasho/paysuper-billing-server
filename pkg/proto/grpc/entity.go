@@ -34,6 +34,9 @@ func (m *MerchantPaymentMethodRequest) HasIntegration() bool {
 
 func (p *Product) IsPricesContainDefaultCurrency() bool {
 	_, err := p.GetPriceInCurrency(&billing.PriceGroup{Currency: p.DefaultCurrency})
+	if err != nil {
+		_, err = p.GetPriceInCurrency(&billing.PriceGroup{Currency: VirtualCurrencyPriceGroup})
+	}
 	return err == nil
 }
 
