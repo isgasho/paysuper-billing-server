@@ -12352,10 +12352,10 @@ func (m *ImageCollection) GetUseOneForAll() bool {
 type ProductPrice struct {
 	// @inject_tag: json:"amount" validate:"required,numeric,gt=0"
 	Amount float64 `protobuf:"fixed64,1,opt,name=amount,proto3" json:"amount" validate:"required,numeric,gt=0"`
-	//@inject_tag: json:"currency" validate:"alpha,len=3"
-	Currency string `protobuf:"bytes,2,opt,name=currency,proto3" json:"currency" validate:"alpha,len=3"`
-	//@inject_tag: json:"region" validate:"region_price"
-	Region string `protobuf:"bytes,3,opt,name=region,proto3" json:"region" validate:"region_price"`
+	//@inject_tag: json:"currency" validate:"omitempty,alpha,len=3"
+	Currency string `protobuf:"bytes,2,opt,name=currency,proto3" json:"currency" validate:"omitempty,alpha,len=3"`
+	//@inject_tag: json:"region" validate:"omitempty,region_price"
+	Region string `protobuf:"bytes,3,opt,name=region,proto3" json:"region" validate:"omitempty,region_price"`
 	//@inject_tag: json:"is_virtual_currency" bson:"is_virtual_currency"
 	IsVirtualCurrency    bool     `protobuf:"varint,4,opt,name=is_virtual_currency,json=isVirtualCurrency,proto3" json:"is_virtual_currency" bson:"is_virtual_currency"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
