@@ -325,6 +325,13 @@ const (
 	TariffRegionWorldwide    = "worldwide"
 
 	PaymentMethodKey = "%s:%s:%s" // currency:mcc_code:operating_company_id, for example: "USD:5816:5dc3f70deb494903d835f28a"
+
+	UnknownTypeError = "unknown type in request"
+
+	TestCaseNonExistingUser = "non_existing_user"
+	TestCaseExistingUser = "existing_user"
+	TestCaseCorrectPayment = "correct_payment"
+	TestCaseIncorrectPayment = "incorrect_payment"
 )
 
 var (

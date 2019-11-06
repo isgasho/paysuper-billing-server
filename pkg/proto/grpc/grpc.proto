@@ -200,6 +200,9 @@ service BillingService {
 
     rpc GetPaymentMinLimitsSystem (EmptyRequest) returns (GetPaymentMinLimitsSystemResponse) {}
     rpc SetPaymentMinLimitSystem (billing.PaymentMinLimitSystem) returns (EmptyResponseWithStatus) {}
+
+    rpc SendWebhookToMerchant(billing.OrderCreateRequest) returns (SendWebhookToMerchantResponse) {}
+    rpc NotifyWebhookTestResults(NotifyWebhookTestResultsRequest) returns (EmptyResponseWithStatus) {}
 }
 
 message EmptyRequest {
@@ -2311,4 +2314,17 @@ message GetOperatingCompanyResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     billing.OperatingCompany company = 3;
+}
+
+message SendWebhookToMerchantResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    string notify_id = 3;
+}
+
+message NotifyWebhookTestResultsRequest {
+    string type = 1;
+    string project_id = 2;
+    bool is_passed = 3;
+    string test_case = 4;
 }

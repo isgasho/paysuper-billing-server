@@ -164,6 +164,35 @@ message Project {
     ImageCollection cover = 34;
     //@inject_tag: json:"virtual_currency" validate:"omitempty,dive"
     ProjectVirtualCurrency virtual_currency = 35;
+    //@inject_tag: json:"webhook_testing"
+    WebHookTesting webhook_testing = 36;
+}
+
+message WebHookTesting {
+    //@inject_tag: json:"products" bson:"products"
+    ProductsTesting products = 1;
+    //@inject_tag: json:"virtual_currency" bson:"virtual_currency"
+    VirtualCurrencyTesting virtual_currency = 2;
+    //@inject_tag: json:"keys" bson:"keys"
+    KeysTesting keys = 3;
+}
+
+message ProductsTesting {
+    bool non_existing_user = 1;
+    bool existing_user = 2;
+    bool correct_payment = 3;
+    bool incorrect_payment = 4;
+}
+
+message VirtualCurrencyTesting {
+    bool non_existing_user = 1;
+    bool existing_user = 2;
+    bool correct_payment = 3;
+    bool incorrect_payment = 4;
+}
+
+message KeysTesting  {
+    bool is_passed = 1;
 }
 
 message ProjectOrder {
@@ -610,6 +639,8 @@ message Order {
     string operating_company_id = 77;
     // @inject_tag: json:"-"
     bool is_high_risk = 78;
+    // @inject_tag: json:"is_testing"
+    bool is_testing = 76;
 }
 
 message ParentOrder {

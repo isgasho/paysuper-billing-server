@@ -61,6 +61,7 @@ type MgoProject struct {
 	ShortDescription map[string]string       `bson:"short_description"`
 	Currencies       []*HasCurrencyItem      `bson:"currencies"`
 	VirtualCurrency  *ProjectVirtualCurrency `bson:"virtual_currency"`
+	WebHookTesting   *WebHookTesting		 `bson:"webhook_testing"`
 }
 
 type MgoMerchantLastPayout struct {
@@ -1367,6 +1368,7 @@ func (m *Project) GetBSON() (interface{}, error) {
 		ShortDescription:         m.ShortDescription,
 		Currencies:               m.Currencies,
 		VirtualCurrency:          m.VirtualCurrency,
+		WebHookTesting: 		  m.WebhookTesting,
 	}
 
 	if len(m.Name) > 0 {
@@ -1452,6 +1454,7 @@ func (m *Project) SetBSON(raw bson.Raw) error {
 	m.ShortDescription = decoded.ShortDescription
 	m.Currencies = decoded.Currencies
 	m.VirtualCurrency = decoded.VirtualCurrency
+	m.WebhookTesting = decoded.WebHookTesting
 
 	nameLen := len(decoded.Name)
 

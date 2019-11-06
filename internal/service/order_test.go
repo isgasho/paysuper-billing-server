@@ -8444,3 +8444,4 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_MinSystemLimit
 	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusBadData)
 	assert.Equal(suite.T(), errorPaymentMinLimitSystemNotFound, rsp1.Message)
 }
+
