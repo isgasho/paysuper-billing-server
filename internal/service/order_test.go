@@ -7339,3 +7339,75 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_CostsNotFound_Error(
 	assert.Empty(suite.T(), rsp.RedirectUrl)
 	assert.Equal(suite.T(), orderErrorCostsRatesNotFound, rsp.Message)
 }
+
+func (suite *OrderTestSuite) TestOrder_KeyProductWithoutPriceDifferentRegion_Ok() {
+	shouldBe := require.New(suite.T())
+
+	req := &billing.OrderCreateRequest{
+		ProjectId:     suite.projectWithKeyProducts.Id,
+		PaymentMethod: suite.paymentMethod.Group,
+		Account:       "unit test",
+		Description:   "unit test",
+		OrderId:       bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.2",
+		},
+		Products: suite.keyProductIds,
+		Type:     billing.OrderType_key,
+	}
+
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	order := rsp1.Item
+
+	rsp2 := &grpc.ProcessBillingAddressResponse{}
+	err = suite.service.ProcessBillingAddress(context.TODO(), &grpc.ProcessBillingAddressRequest{
+		OrderId: order.Uuid,
+		Country: "UA",
+	}, rsp2)
+
+	shouldBe.Equal(rsp2.Item.Currency, "USD")
+	for _, v := range rsp2.Item.Items {
+		shouldBe.Equal(rsp2.Item.Currency, v.Currency)
+	}
+}
+
+func (suite *OrderTestSuite) TestOrder_ProductWithoutPriceDifferentRegion_Ok() {
+	shouldBe := require.New(suite.T())
+
+	req := &billing.OrderCreateRequest{
+		ProjectId:     suite.projectWithProducts.Id,
+		PaymentMethod: suite.paymentMethod.Group,
+		Account:       "unit test",
+		Description:   "unit test",
+		OrderId:       bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.2",
+		},
+		Products: suite.productIds,
+		Type:     billing.OrderType_product,
+	}
+
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	order := rsp1.Item
+
+	rsp2 := &grpc.ProcessBillingAddressResponse{}
+	err = suite.service.ProcessBillingAddress(context.TODO(), &grpc.ProcessBillingAddressRequest{
+		OrderId: order.Uuid,
+		Country: "UA",
+	}, rsp2)
+
+	shouldBe.Equal(rsp2.Item.Currency, "USD")
+	for _, v := range rsp2.Item.Items {
+		shouldBe.Equal(rsp2.Item.Currency, v.Currency)
+	}
+}
