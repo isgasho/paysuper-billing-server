@@ -133,10 +133,9 @@ var (
 	orderErrorVirtualCurrencyNotFilled                        = newBillingServerErrorMsg("fm000065", "virtual currency is not filled")
 	orderErrorVirtualCurrencyFracNotSupported                 = newBillingServerErrorMsg("fm000066", "fractional numbers is not supported for this virtual currency")
 	orderErrorVirtualCurrencyLimits                           = newBillingServerErrorMsg("fm000067", "amount of order is more than max amount or less than minimal amount for virtual currency")
-	orderErrorVirtualCurrencyUserCountryRequired              = newBillingServerErrorMsg("fm000068", "request for create payment by project virtual currency must contain user data with required field country")
 	orderErrorCheckoutWithProducts                            = newBillingServerErrorMsg("fm000069", "request to processing simple payment can't contain products list")
 
-	virtualCurrencyPayoutCurrencyMissed       = newBillingServerErrorMsg("vc000001", "virtual currency don't have price in merchant payout currency")
+	virtualCurrencyPayoutCurrencyMissed = newBillingServerErrorMsg("vc000001", "virtual currency don't have price in merchant payout currency")
 
 	paymentSystemPaymentProcessingSuccessStatus = "PAYMENT_SYSTEM_PROCESSING_SUCCESS"
 )
@@ -391,16 +390,16 @@ func (s *Service) OrderCreateProcess(
 		break
 	case billing.OrderTypeVirtualCurrency:
 		err := processor.processVirtualCurrency()
-        if err != nil {
-            zap.L().Error(
-                pkg.MethodFinishedWithError,
-                zap.Error(err),
-            )
+		if err != nil {
+			zap.L().Error(
+				pkg.MethodFinishedWithError,
+				zap.Error(err),
+			)
 
-            rsp.Status = pkg.ResponseStatusBadData
-            rsp.Message = err.(*grpc.ResponseErrorMessage)
-            return nil
-        }
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			return nil
+		}
 		break
 	case billing.OrderType_product:
 		if err := processor.processPaylinkProducts(); err != nil {
@@ -691,6 +690,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 	}
 	if order.Issuer.Url == "" {
 		order.Issuer.Url = req.Referer
+		order.Issuer.ReferrerHost = getHostFromUrl(req.Referer)
 	}
 	if order.Issuer.ReferenceType == "" {
 		order.Issuer.ReferenceType = req.IssuerReferenceType
@@ -1057,12 +1057,14 @@ func (s *Service) PaymentCallbackProcess(
 	}
 
 	if pErr == nil {
-		err = s.paymentSystemPaymentCallbackComplete(ctx, order)
+		if order.PrivateStatus == constant.OrderStatusPaymentSystemComplete {
+			err = s.paymentSystemPaymentCallbackComplete(ctx, order)
 
-		if err != nil {
-			rsp.Status = pkg.StatusErrorSystem
-			rsp.Error = err.Error()
-			return nil
+			if err != nil {
+				rsp.Status = pkg.StatusErrorSystem
+				rsp.Error = err.Error()
+				return nil
+			}
 		}
 
 		err = s.onPaymentNotify(ctx, order)
@@ -1485,6 +1487,17 @@ func (s *Service) updateOrder(order *billing.Order) error {
 		zap.S().Debug("[updateOrder] no original order found", "order_id", order.Id)
 	}
 
+	needReceipt := statusChanged && ps != constant.OrderPublicStatusCreated && ps != constant.OrderPublicStatusPending
+
+	if needReceipt {
+		switch ps {
+		case constant.OrderPublicStatusRefunded:
+			order.ReceiptUrl = s.cfg.GetReceiptRefundUrl(order.Uuid, order.ReceiptId)
+		case constant.OrderPublicStatusProcessed:
+			order.ReceiptUrl = s.cfg.GetReceiptPurchaseUrl(order.Uuid, order.ReceiptId)
+		}
+	}
+
 	err := s.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
 
 	if err != nil {
@@ -1501,7 +1514,7 @@ func (s *Service) updateOrder(order *billing.Order) error {
 		s.orderNotifyKeyProducts(context.TODO(), order)
 	}
 
-	if statusChanged && ps != constant.OrderPublicStatusCreated && ps != constant.OrderPublicStatusPending {
+	if needReceipt {
 		zap.S().Infow("[updateOrder] notify merchant", "order_id", order.Id, "status", ps)
 
 		switch ps {
@@ -1634,6 +1647,7 @@ func (s *Service) getPayloadForReceipt(order *billing.Order) *postmarkSdrPkg.Pay
 			"project_name":     order.Project.Name[DefaultLanguage],
 			"receipt_id":       order.ReceiptId,
 			"merchant_name":    merchantName,
+			"url":              order.ReceiptUrl,
 		},
 		To: order.ReceiptEmail,
 	}
@@ -1874,8 +1888,8 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 			PaymentsAllowed: true,
 			ChangeAllowed:   true,
 		},
-		PlatformId:  v.request.PlatformId,
-		ProductType: v.request.Type,
+		PlatformId:              v.request.PlatformId,
+		ProductType:             v.request.Type,
 		IsBuyForVirtualCurrency: v.request.IsBuyForVirtualCurrency,
 	}
 
@@ -3321,7 +3335,7 @@ func (s *Service) ProcessOrderProducts(ctx context.Context, order *billing.Order
 		priceGroup *billing.PriceGroup
 		locale     string
 		logInfo    = "[ProcessOrderProducts] %s"
-		amount 	   float64
+		amount     float64
 	)
 
 	if order.BillingAddress != nil && order.BillingAddress.Country != "" {

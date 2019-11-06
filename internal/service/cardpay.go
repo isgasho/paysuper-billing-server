@@ -435,7 +435,9 @@ func (h *cardPay) ProcessPayment(order *billing.Order, message proto.Message, ra
 		return newBillingServerResponseError(pkg.StatusErrorValidation, paymentSystemErrorRequestPaymentMethodIsInvalid)
 	}
 
-	switch req.GetStatus() {
+	status := req.GetStatus()
+
+	switch status {
 	case pkg.CardPayPaymentResponseStatusDeclined:
 		order.PrivateStatus = constant.OrderStatusPaymentSystemDeclined
 		break
@@ -448,6 +450,23 @@ func (h *cardPay) ProcessPayment(order *billing.Order, message proto.Message, ra
 		break
 	default:
 		return newBillingServerResponseError(pkg.StatusTemporary, paymentSystemErrorRequestTemporarySkipped)
+	}
+
+	if status == pkg.CardPayPaymentResponseStatusDeclined || status == pkg.CardPayPaymentResponseStatusCancelled {
+		declineCode, hasDeclineCode := order.PaymentMethodTxnParams[pkg.TxnParamsFieldDeclineCode]
+		declineReason, hasDeclineReason := order.PaymentMethodTxnParams[pkg.TxnParamsFieldDeclineReason]
+
+		if hasDeclineCode || hasDeclineReason {
+			order.Cancellation = &billing.OrderNotificationCancellation{}
+		}
+
+		if declineCode != "" {
+			order.Cancellation.Code = declineCode
+		}
+
+		if declineReason != "" {
+			order.Cancellation.Reason = declineReason
+		}
 	}
 
 	order.Transaction = req.GetId()
