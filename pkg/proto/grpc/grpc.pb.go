@@ -4974,8 +4974,8 @@ type PlatformPrice struct {
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" validate:"required"`
 	//@inject_tag: json:"name"
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name"`
-	//@inject_tag: validate:"required,min=1,dive" json:"prices"
-	Prices []*billing.ProductPrice `protobuf:"bytes,3,rep,name=prices,proto3" json:"prices" validate:"required,min=1,dive"`
+	//@inject_tag: validate:"required,min=1,currency_price,dive" json:"prices"
+	Prices []*billing.ProductPrice `protobuf:"bytes,3,rep,name=prices,proto3" json:"prices" validate:"required,min=1,currency_price,dive"`
 	//@inject_tag: validate:"omitempty,url" json:"eula_url"
 	EulaUrl string `protobuf:"bytes,4,opt,name=eula_url,json=eulaUrl,proto3" json:"eula_url" validate:"omitempty,url"`
 	//@inject_tag: validate:"omitempty,url" json:"activation_url"
@@ -5141,8 +5141,8 @@ type Product struct {
 	DefaultCurrency string `protobuf:"bytes,8,opt,name=default_currency,json=defaultCurrency,proto3" json:"default_currency" validate:"required,alpha,len=3"`
 	//@inject_tag: json:"enabled"
 	Enabled bool `protobuf:"varint,9,opt,name=enabled,proto3" json:"enabled"`
-	//@inject_tag: validate:"required,min=1,dive" json:"prices"
-	Prices []*billing.ProductPrice `protobuf:"bytes,10,rep,name=prices,proto3" json:"prices" validate:"required,min=1,dive"`
+	//@inject_tag: validate:"required,min=1,currency_price,dive" json:"prices"
+	Prices []*billing.ProductPrice `protobuf:"bytes,10,rep,name=prices,proto3" json:"prices" validate:"required,min=1,currency_price,dive"`
 	//@inject_tag: validate:"required" json:"description"
 	Description map[string]string `protobuf:"bytes,11,rep,name=description,proto3" json:"description" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3" validate:"required"`
 	//@inject_tag: validate:"omitempty" json:"long_description"
@@ -9020,8 +9020,8 @@ func (m *ProductPricesResponse) GetProductPrice() []*billing.ProductPrice {
 type UpdateProductPricesRequest struct {
 	//@inject_tag: validate:"required,hexadecimal,len=24" json:"product_id"
 	ProductId string `protobuf:"bytes,1,opt,name=product_id,json=productId,proto3" json:"product_id" validate:"required,hexadecimal,len=24"`
-	//@inject_tag: validate:"required,min=1,dive" json:"prices"
-	Prices               []*billing.ProductPrice `protobuf:"bytes,2,rep,name=prices,proto3" json:"prices" validate:"required,min=1,dive"`
+	//@inject_tag: validate:"required,min=1,currency_price,dive" json:"prices"
+	Prices               []*billing.ProductPrice `protobuf:"bytes,2,rep,name=prices,proto3" json:"prices" validate:"required,min=1,currency_price,dive"`
 	XXX_NoUnkeyedLiteral struct{}                `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte                  `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32                   `json:"-" bson:"-" structure:"-" validate:"-"`

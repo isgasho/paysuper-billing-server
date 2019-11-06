@@ -2218,11 +2218,11 @@ message ImageCollection {
 message ProductPrice {
     // @inject_tag: json:"amount" validate:"required,numeric,gt=0"
     double amount = 1;
-    //@inject_tag: json:"currency" validate:"required,alpha,len=3"
+    //@inject_tag: json:"currency" validate:"omitempty,alpha,len=3"
     string currency = 2;
-    //@inject_tag: json:"region" validate:"required,region_price"
+    //@inject_tag: json:"region" validate:"omitempty,region_price"
     string region = 3;
-    //@inject_tag: json:"is_virtual_currency"
+    //@inject_tag: json:"is_virtual_currency" bson:"is_virtual_currency"
     bool is_virtual_currency = 4;
 }
 
@@ -2233,7 +2233,7 @@ message ProjectVirtualCurrency {
     map<string, string> name = 2;
     // @inject_tag: json:"success_message" validate:"required,min=1"
     map<string, string> success_message = 3;
-    //@inject_tag: json:"prices" validate:"required,min=1,dive"
+    //@inject_tag: json:"prices" validate:"required,min=1,currency_price,dive"
     repeated ProductPrice prices = 4;
     //@inject_tag: json:"min_purchase_value"
     double min_purchase_value = 5;

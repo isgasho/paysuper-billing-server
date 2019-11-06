@@ -9,6 +9,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
+	"github.com/micro/go-micro/client"
 	"github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
@@ -17,6 +18,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
+	reporterConst "github.com/paysuper/paysuper-reporter/pkg"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	proto2 "github.com/paysuper/paysuper-reporter/pkg/proto"
 	"github.com/stretchr/testify/assert"
@@ -2038,7 +2040,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantData_Ok() {
 
 	req1 := &grpc.ChangeMerchantDataRequest{
 		MerchantId:           merchant.Id,
-		HasPspSignature:      true,
+		HasPspSignature:      false,
 		HasMerchantSignature: true,
 	}
 	rsp1 := &grpc.ChangeMerchantDataResponse{}
@@ -2050,12 +2052,42 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantData_Ok() {
 	merchant1, err := suite.service.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(rsp.Id)})
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), merchant)
+	assert.False(suite.T(), merchant1.HasPspSignature)
+	assert.True(suite.T(), merchant1.HasMerchantSignature)
+	assert.Equal(suite.T(), pkg.MerchantStatusAgreementSigning, merchant1.Status)
+	assert.NotEmpty(suite.T(), merchant1.ReceivedDate)
+	assert.NotZero(suite.T(), merchant1.ReceivedDate.Seconds)
+	assert.NotZero(suite.T(), merchant1.StatusLastUpdatedAt.Seconds)
+
+	req1.HasPspSignature = true
+	err = suite.service.ChangeMerchantData(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.Empty(suite.T(), rsp1.Message)
+
+	merchant1, err = suite.service.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(rsp.Id)})
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), merchant)
 	assert.True(suite.T(), merchant1.HasPspSignature)
 	assert.True(suite.T(), merchant1.HasMerchantSignature)
 	assert.Equal(suite.T(), pkg.MerchantStatusAgreementSigned, merchant1.Status)
 	assert.NotEmpty(suite.T(), merchant1.ReceivedDate)
 	assert.NotZero(suite.T(), merchant1.ReceivedDate.Seconds)
 	assert.NotZero(suite.T(), merchant1.StatusLastUpdatedAt.Seconds)
+
+	err = suite.service.ChangeMerchantData(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.Empty(suite.T(), rsp1.Message)
+
+	req2 := &grpc.ListingNotificationRequest{
+		MerchantId: merchant.Id,
+	}
+	rsp2 := &grpc.Notifications{}
+	err = suite.service.ListNotifications(context.TODO(), req2, rsp2)
+	assert.NoError(suite.T(), err)
+	assert.EqualValues(suite.T(), rsp2.Count, 2)
+	assert.Len(suite.T(), rsp2.Items, 2)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantData_MerchantNotFound_Error() {
@@ -4089,4 +4121,175 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantS3Agreement_Agreemen
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp1.Status)
 	assert.Equal(suite.T(), merchantErrorUnknown, rsp1.Message)
+}
+
+func (suite *OnboardingTestSuite) TestOnboarding_GenerateMerchantAgreement_CheckFullAddress_Ok() {
+	req := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
+		Company: &billing.MerchantCompanyInfo{
+			Name:              "merchant1",
+			Country:           "RU",
+			Zip:               "190000",
+			City:              "St.Petersburg",
+			Address:           "address",
+			AddressAdditional: "address_additional",
+			State:             "SPE",
+		},
+		Contacts: &billing.MerchantContact{
+			Authorized: &billing.MerchantContactAuthorized{
+				Name:     "Unit Test",
+				Email:    "test@unit.test",
+				Phone:    "1234567890",
+				Position: "Unit Test",
+			},
+			Technical: &billing.MerchantContactTechnical{
+				Name:  "Unit Test",
+				Email: "test@unit.test",
+				Phone: "1234567890",
+			},
+		},
+		Banking: &billing.MerchantBanking{
+			Currency:      "RUB",
+			Name:          "Bank name",
+			Address:       "Unknown",
+			AccountNumber: "1234567890",
+			Swift:         "TEST",
+			Details:       "",
+		},
+	}
+	rsp := &grpc.ChangeMerchantResponse{}
+	err := suite.service.ChangeMerchant(context.TODO(), req, rsp)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), pkg.MerchantStatusDraft, rsp.Item.Status)
+
+	req1 := &grpc.SetMerchantTariffRatesRequest{
+		MerchantId: rsp.Item.Id,
+		HomeRegion: "russia_and_cis",
+	}
+	rsp1 := &grpc.CheckProjectRequestSignatureResponse{}
+	err = suite.service.SetMerchantTariffRates(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.Empty(suite.T(), rsp1.Message)
+
+	merchant, err := suite.service.merchant.GetById(rsp.Item.Id)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), merchant)
+
+	createFileMockFn := func(
+		ctx context.Context,
+		in *proto2.ReportFile,
+		opts ...client.CallOption,
+	) *proto2.CreateFileResponse {
+		params := make(map[string]interface{})
+		err := json.Unmarshal(in.Params, &params)
+
+		if err != nil {
+			return nil
+		}
+
+		zap.L().Info("message", zap.Any("address", params[reporterConst.RequestParameterAgreementAddress]))
+		return &proto2.CreateFileResponse{Status: pkg.ResponseStatusOk}
+	}
+
+	zap.ReplaceGlobals(suite.logObserver)
+	reporterMock := &reportingMocks.ReporterService{}
+	reporterMock.On("CreateFile", mock2.Anything, mock2.Anything, mock2.Anything).Return(createFileMockFn, nil)
+	suite.service.reporterService = reporterMock
+
+	err = suite.service.generateMerchantAgreement(context.TODO(), merchant)
+	assert.NoError(suite.T(), err)
+
+	messages := suite.zapRecorder.All()
+	assert.Equal(suite.T(), zapcore.InfoLevel, messages[0].Level)
+	assert.Contains(suite.T(), messages[0].Context[0].String, "address, address_additional, SPE, St.Petersburg, RU, 190000")
+}
+
+func (suite *OnboardingTestSuite) TestOnboarding_GenerateMerchantAgreement_CheckWithoutStateAddress_Ok() {
+	req := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
+		Company: &billing.MerchantCompanyInfo{
+			Name:              "merchant1",
+			Country:           "RU",
+			Zip:               "190000",
+			City:              "St.Petersburg",
+			Address:           "address",
+			AddressAdditional: "address_additional",
+		},
+		Contacts: &billing.MerchantContact{
+			Authorized: &billing.MerchantContactAuthorized{
+				Name:     "Unit Test",
+				Email:    "test@unit.test",
+				Phone:    "1234567890",
+				Position: "Unit Test",
+			},
+			Technical: &billing.MerchantContactTechnical{
+				Name:  "Unit Test",
+				Email: "test@unit.test",
+				Phone: "1234567890",
+			},
+		},
+		Banking: &billing.MerchantBanking{
+			Currency:      "RUB",
+			Name:          "Bank name",
+			Address:       "Unknown",
+			AccountNumber: "1234567890",
+			Swift:         "TEST",
+			Details:       "",
+		},
+	}
+	rsp := &grpc.ChangeMerchantResponse{}
+	err := suite.service.ChangeMerchant(context.TODO(), req, rsp)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), pkg.MerchantStatusDraft, rsp.Item.Status)
+
+	req1 := &grpc.SetMerchantTariffRatesRequest{
+		MerchantId: rsp.Item.Id,
+		HomeRegion: "russia_and_cis",
+	}
+	rsp1 := &grpc.CheckProjectRequestSignatureResponse{}
+	err = suite.service.SetMerchantTariffRates(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.Empty(suite.T(), rsp1.Message)
+
+	merchant, err := suite.service.merchant.GetById(rsp.Item.Id)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), merchant)
+
+	createFileMockFn := func(
+		ctx context.Context,
+		in *proto2.ReportFile,
+		opts ...client.CallOption,
+	) *proto2.CreateFileResponse {
+		params := make(map[string]interface{})
+		err := json.Unmarshal(in.Params, &params)
+
+		if err != nil {
+			return nil
+		}
+
+		zap.L().Info("message", zap.Any("address", params[reporterConst.RequestParameterAgreementAddress]))
+		return &proto2.CreateFileResponse{Status: pkg.ResponseStatusOk}
+	}
+
+	zap.ReplaceGlobals(suite.logObserver)
+	reporterMock := &reportingMocks.ReporterService{}
+	reporterMock.On("CreateFile", mock2.Anything, mock2.Anything, mock2.Anything).Return(createFileMockFn, nil)
+	suite.service.reporterService = reporterMock
+
+	err = suite.service.generateMerchantAgreement(context.TODO(), merchant)
+	assert.NoError(suite.T(), err)
+
+	messages := suite.zapRecorder.All()
+	assert.Equal(suite.T(), zapcore.InfoLevel, messages[0].Level)
+	assert.Contains(suite.T(), messages[0].Context[0].String, "address, address_additional, St.Petersburg, RU, 190000")
 }

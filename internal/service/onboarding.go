@@ -441,7 +441,12 @@ func (s *Service) ChangeMerchantData(
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = err.(*grpc.ResponseErrorMessage)
+		return nil
+	}
 
+	if merchant.IsSigned && merchant.HasMerchantSignature && merchant.HasPspSignature {
+		rsp.Status = pkg.ResponseStatusOk
+		rsp.Item = merchant
 		return nil
 	}
 
@@ -480,7 +485,6 @@ func (s *Service) ChangeMerchantData(
 	if !ok {
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = merchantNotificationSettingNotFound
-
 		return nil
 	}
 
@@ -489,7 +493,6 @@ func (s *Service) ChangeMerchantData(
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = err.(*grpc.ResponseErrorMessage)
-
 		return nil
 	}
 
@@ -498,13 +501,11 @@ func (s *Service) ChangeMerchantData(
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = merchantErrorUnknown
-
 		return nil
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = merchant
-
 	return nil
 }
 

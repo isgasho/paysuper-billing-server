@@ -903,7 +903,7 @@ message PlatformPrice {
     string id = 1;
     //@inject_tag: json:"name"
     string name = 2;
-    //@inject_tag: validate:"required,min=1,dive" json:"prices"
+    //@inject_tag: validate:"required,min=1,currency_price,dive" json:"prices"
     repeated billing.ProductPrice prices = 3;
     //@inject_tag: validate:"omitempty,url" json:"eula_url"
     string eula_url = 4;
@@ -944,7 +944,7 @@ message Product {
     string default_currency = 8;
     //@inject_tag: json:"enabled"
     bool enabled = 9;
-    //@inject_tag: validate:"required,min=1,dive" json:"prices"
+    //@inject_tag: validate:"required,min=1,currency_price,dive" json:"prices"
     repeated billing.ProductPrice prices = 10;
     //@inject_tag: validate:"required" json:"description"
     map<string, string> description = 11;
@@ -1510,7 +1510,7 @@ message ProductPricesResponse {
 message UpdateProductPricesRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24" json:"product_id"
     string product_id = 1;
-    //@inject_tag: validate:"required,min=1,dive" json:"prices"
+    //@inject_tag: validate:"required,min=1,currency_price,dive" json:"prices"
     repeated billing.ProductPrice prices = 2;
 }
 

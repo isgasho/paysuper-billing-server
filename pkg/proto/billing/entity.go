@@ -241,8 +241,15 @@ func (m *Merchant) HasPrimaryOnboardingUserName() bool {
 }
 
 func (m *Merchant) GetAddress() string {
-	return m.Company.Address + " " + m.Company.AddressAdditional + " " + m.Company.Zip + " " +
-		m.Company.Country
+	address := m.Company.Address + ", " + m.Company.AddressAdditional
+
+	if m.Company.State != "" {
+		address += ", " + m.Company.State
+	}
+
+	address += ", " + m.Company.City + ", " + m.Company.Country + ", " + m.Company.Zip
+
+	return address
 }
 
 func (m *PaymentMethodParams) IsSettingComplete() bool {

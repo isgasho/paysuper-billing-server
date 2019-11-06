@@ -12613,12 +12613,12 @@ func (m *ImageCollection) GetUseOneForAll() bool {
 type ProductPrice struct {
 	// @inject_tag: json:"amount" validate:"required,numeric,gt=0"
 	Amount float64 `protobuf:"fixed64,1,opt,name=amount,proto3" json:"amount" validate:"required,numeric,gt=0"`
-	//@inject_tag: json:"currency" validate:"required,alpha,len=3"
-	Currency string `protobuf:"bytes,2,opt,name=currency,proto3" json:"currency" validate:"required,alpha,len=3"`
-	//@inject_tag: json:"region" validate:"required,region_price"
-	Region string `protobuf:"bytes,3,opt,name=region,proto3" json:"region" validate:"required,region_price"`
-	//@inject_tag: json:"is_virtual_currency"
-	IsVirtualCurrency    bool     `protobuf:"varint,4,opt,name=is_virtual_currency,json=isVirtualCurrency,proto3" json:"is_virtual_currency"`
+	//@inject_tag: json:"currency" validate:"omitempty,alpha,len=3"
+	Currency string `protobuf:"bytes,2,opt,name=currency,proto3" json:"currency" validate:"omitempty,alpha,len=3"`
+	//@inject_tag: json:"region" validate:"omitempty,region_price"
+	Region string `protobuf:"bytes,3,opt,name=region,proto3" json:"region" validate:"omitempty,region_price"`
+	//@inject_tag: json:"is_virtual_currency" bson:"is_virtual_currency"
+	IsVirtualCurrency    bool     `protobuf:"varint,4,opt,name=is_virtual_currency,json=isVirtualCurrency,proto3" json:"is_virtual_currency" bson:"is_virtual_currency"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -12684,8 +12684,8 @@ type ProjectVirtualCurrency struct {
 	Name map[string]string `protobuf:"bytes,2,rep,name=name,proto3" json:"name" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3" validate:"required,min=1"`
 	// @inject_tag: json:"success_message" validate:"required,min=1"
 	SuccessMessage map[string]string `protobuf:"bytes,3,rep,name=success_message,json=successMessage,proto3" json:"success_message" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3" validate:"required,min=1"`
-	//@inject_tag: json:"prices" validate:"required,min=1,dive"
-	Prices []*ProductPrice `protobuf:"bytes,4,rep,name=prices,proto3" json:"prices" validate:"required,min=1,dive"`
+	//@inject_tag: json:"prices" validate:"required,min=1,currency_price,dive"
+	Prices []*ProductPrice `protobuf:"bytes,4,rep,name=prices,proto3" json:"prices" validate:"required,min=1,currency_price,dive"`
 	//@inject_tag: json:"min_purchase_value"
 	MinPurchaseValue float64 `protobuf:"fixed64,5,opt,name=min_purchase_value,json=minPurchaseValue,proto3" json:"min_purchase_value"`
 	//@inject_tag: json:"max_purchase_value"
