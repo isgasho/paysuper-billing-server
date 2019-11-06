@@ -1654,8 +1654,15 @@ func (s *Service) getPayloadForReceipt(order *billing.Order) *postmarkSdrPkg.Pay
 
 	var items []*structpb.Value
 
+	currency := order.Currency
+
+	if order.IsBuyForVirtualCurrency {
+		project, _ := s.project.GetById(order.GetProjectId())
+		currency, _ = project.VirtualCurrency.Name[DefaultLanguage]
+	}
+
 	for _, item := range order.Items {
-		price, err := s.formatter.FormatCurrency("en", item.Amount, item.Currency)
+		price, err := s.formatter.FormatCurrency("en", item.Amount, currency)
 		if err != nil {
 			zap.S().Errorw("Error during formatting currency", "price", item.Amount, "locale", "en", "currency", item.Currency)
 		}
@@ -2141,12 +2148,34 @@ func (v *OrderCreateRequestProcessor) processPaylinkProducts() error {
 		return priceGroupErrorNotFound
 	}
 
-	amount, err := v.GetOrderProductsAmount(orderProducts, priceGroup)
-	if err != nil {
-		return err
+	var amount float64
+	if v.request.IsBuyForVirtualCurrency {
+		if v.checked.project.VirtualCurrency == nil || len(v.checked.project.VirtualCurrency.Prices) == 0 {
+			return orderErrorVirtualCurrencyNotFilled
+		}
+
+		virtualAmount, err := v.GetOrderProductsAmount(orderProducts, &billing.PriceGroup{Currency: grpc.VirtualCurrencyPriceGroup})
+		if err != nil {
+			return err
+		}
+		amount, err = v.GetAmountForVirtualCurrency(virtualAmount, priceGroup, v.checked.project.VirtualCurrency.Prices)
+		if err != nil {
+			return err
+		}
+	} else {
+		amount, err = v.GetOrderProductsAmount(orderProducts, priceGroup)
+		if err != nil {
+			return err
+		}
 	}
 
-	items, err := v.GetOrderProductsItems(orderProducts, DefaultLanguage, priceGroup)
+	var items []*billing.OrderItem
+	if v.request.IsBuyForVirtualCurrency {
+		items, err = v.GetOrderProductsItems(orderProducts, DefaultLanguage, &billing.PriceGroup{Currency: grpc.VirtualCurrencyPriceGroup})
+	} else {
+		items, err = v.GetOrderProductsItems(orderProducts, DefaultLanguage, priceGroup)
+	}
+
 	if err != nil {
 		return err
 	}
@@ -3395,7 +3424,13 @@ func (s *Service) ProcessOrderProducts(ctx context.Context, order *billing.Order
 		locale = DefaultLanguage
 	}
 
-	items, err := s.GetOrderProductsItems(orderProducts, locale, priceGroup)
+	var items []*billing.OrderItem
+	if order.IsBuyForVirtualCurrency {
+		items, err = s.GetOrderProductsItems(orderProducts, locale, &billing.PriceGroup{Currency: grpc.VirtualCurrencyPriceGroup})
+	} else {
+		items, err = s.GetOrderProductsItems(orderProducts, locale, priceGroup)
+	}
+
 	if err != nil {
 		return err
 	}

@@ -50,6 +50,7 @@ type OrderTestSuite struct {
 	project                                *billing.Project
 	projectFixedAmount                     *billing.Project
 	projectWithProducts                    *billing.Project
+	projectWithProductsInVirtualCurrency   *billing.Project
 	projectWithKeyProducts                 *billing.Project
 	inactiveProject                        *billing.Project
 	projectWithoutPaymentMethods           *billing.Project
@@ -63,6 +64,7 @@ type OrderTestSuite struct {
 	pmBitcoin1                             *billing.PaymentMethod
 	pmBitcoin2                             *billing.PaymentMethod
 	productIds                             []string
+	productIdsWithVirtualCurrency          []string
 	keyProductIds                          []string
 	merchantDefaultCurrency                string
 	paymentMethodWithoutCommission         *billing.PaymentMethod
@@ -737,6 +739,32 @@ func (suite *OrderTestSuite) SetupTest() {
 		Status:                   pkg.ProjectStatusDraft,
 		MerchantId:               merchant.Id,
 	}
+
+	projectWithProductsInVirtualCurrency := &billing.Project{
+		Id:                       bson.NewObjectId().Hex(),
+		CallbackCurrency:         "RUB",
+		CallbackProtocol:         "default",
+		LimitsCurrency:           "USD",
+		MaxPaymentAmount:         15000,
+		MinPaymentAmount:         1,
+		Name:                     map[string]string{"en": "test project 1"},
+		IsProductsCheckout:       true,
+		AllowDynamicRedirectUrls: true,
+		SecretKey:                "test project X secret key",
+		Status:                   pkg.ProjectStatusInProduction,
+		MerchantId:               merchant.Id,
+		VirtualCurrency: &billing.ProjectVirtualCurrency{
+			Name: map[string]string{"en": "test project 1"},
+			Prices: []*billing.ProductPrice{
+				{
+					Currency: "USD",
+					Region: "USD",
+					Amount: 10,
+				},
+			},
+		},
+	}
+
 	projectWithProducts := &billing.Project{
 		Id:                       bson.NewObjectId().Hex(),
 		CallbackCurrency:         "RUB",
@@ -840,6 +868,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		projectEmptyPaymentMethodTerminal,
 		projectUahLimitCurrency,
 		projectWithKeyProducts,
+		projectWithProductsInVirtualCurrency,
 	}
 
 	ps4 := &billing.PaymentSystem{
@@ -1118,6 +1147,31 @@ func (suite *OrderTestSuite) SetupTest() {
 		assert.NoError(suite.T(), suite.service.CreateOrUpdateProduct(context.TODO(), req, &prod))
 
 		productIds = append(productIds, prod.Id)
+	}
+
+	var productIdsWithVirtualCurrency []string
+	for i, n := range names {
+		req := &grpc.Product{
+			Object:          "product",
+			Type:            "simple_product",
+			Sku:             "test_" + strconv.Itoa(i) + "_" + strcase.SnakeCase(n),
+			Name:            map[string]string{"en": n},
+			DefaultCurrency: "USD",
+			Enabled:         true,
+			Description:     map[string]string{"en": n + " description"},
+			MerchantId:      projectWithProductsInVirtualCurrency.MerchantId,
+			ProjectId:       projectWithProductsInVirtualCurrency.Id,
+		}
+
+		req.Prices = append(req.Prices, &billing.ProductPrice{
+			Amount:   100,
+			IsVirtualCurrency: true,
+		})
+
+		prod := grpc.Product{}
+		assert.NoError(suite.T(), suite.service.CreateOrUpdateProduct(context.TODO(), req, &prod))
+
+		productIdsWithVirtualCurrency = append(productIdsWithVirtualCurrency, prod.Id)
 	}
 
 	var keyProductIds []string
@@ -1489,6 +1543,7 @@ func (suite *OrderTestSuite) SetupTest() {
 
 	suite.project = project
 	suite.projectFixedAmount = projectFixedAmount
+	suite.projectWithProductsInVirtualCurrency = projectWithProductsInVirtualCurrency
 	suite.projectWithProducts = projectWithProducts
 	suite.projectWithKeyProducts = projectWithKeyProducts
 	suite.inactiveProject = inactiveProject
@@ -1504,6 +1559,7 @@ func (suite *OrderTestSuite) SetupTest() {
 	suite.pmBitcoin1 = pmBitcoin1
 	suite.pmBitcoin2 = pmBitcoin2
 	suite.productIds = productIds
+	suite.productIdsWithVirtualCurrency = productIdsWithVirtualCurrency
 	suite.merchantDefaultCurrency = "USD"
 	suite.keyProductIds = keyProductIds
 
@@ -7845,4 +7901,56 @@ func (suite *OrderTestSuite) TestOrder_ProductWithoutPriceDifferentRegion_Ok() {
 	for _, v := range rsp2.Item.Items {
 		shouldBe.Equal(rsp2.Item.Currency, v.Currency)
 	}
+}
+
+func (suite *OrderTestSuite) TestOrder_OrderCreateProcessVirtualCurrency_Ok() {
+	req := &billing.OrderCreateRequest{
+		Type:          billing.OrderType_product,
+		ProjectId:     suite.projectWithProductsInVirtualCurrency.Id,
+		PaymentMethod: suite.paymentMethod.Group,
+		Account:       "unit test",
+		Description:   "unit test",
+		Products: 	   suite.productIdsWithVirtualCurrency,
+		OrderId:       bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+		IsBuyForVirtualCurrency: true,
+	}
+
+	rsp := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
+	assert.True(suite.T(), len(rsp.Item.Id) > 0)
+	assert.EqualValues(suite.T(), 2000, rsp.Item.OrderAmount)
+	assert.Equal(suite.T(), "USD", rsp.Item.Currency)
+	assert.Equal(suite.T(), "virtual", rsp.Item.Items[0].Currency)
+	assert.EqualValues(suite.T(), 100, rsp.Item.Items[0].Amount)
+}
+
+func (suite *OrderTestSuite) TestOrder_OrderCreateProcessVirtualCurrency_Fail() {
+	req := &billing.OrderCreateRequest{
+		Type:          billing.OrderType_product,
+		ProjectId:     suite.projectWithProducts.Id,
+		PaymentMethod: suite.paymentMethod.Group,
+		Account:       "unit test",
+		Description:   "unit test",
+		Products: 	   suite.productIds,
+		OrderId:       bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+		IsBuyForVirtualCurrency: true,
+	}
+
+	rsp := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), orderErrorVirtualCurrencyNotFilled, rsp.Message)
 }
