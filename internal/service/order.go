@@ -901,7 +901,16 @@ func (s *Service) PaymentCreateProcess(
 	}
 	order.MccCode = merchant.MccCode
 	order.IsHighRisk = merchant.IsHighRisk()
-	order.OperatingCompanyId = merchant.OperatingCompanyId
+
+	order.OperatingCompanyId, err = s.getOrderOperatingCompanyId(order.GetCountry(), merchant)
+	if err != nil {
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
+	}
 
 	err = s.updateOrder(order)
 
@@ -981,6 +990,18 @@ func (s *Service) PaymentCreateProcess(
 	}
 
 	return nil
+}
+
+func (s *Service) getOrderOperatingCompanyId(orderCountry string, merchant *billing.Merchant) (string, error) {
+	orderOperatingCompany, err := s.operatingCompany.GetByPaymentCountry(orderCountry)
+	if err != nil {
+		if err == errorOperatingCompanyNotFound {
+			return merchant.OperatingCompanyId, nil
+		}
+
+		return "", err
+	}
+	return orderOperatingCompany.Id, nil
 }
 
 func (s *Service) PaymentCallbackProcess(
