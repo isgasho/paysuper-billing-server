@@ -2023,7 +2023,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantData_Ok() {
 
 	req1 := &grpc.ChangeMerchantDataRequest{
 		MerchantId:           merchant.Id,
-		HasPspSignature:      true,
+		HasPspSignature:      false,
 		HasMerchantSignature: true,
 	}
 	rsp1 := &grpc.ChangeMerchantDataResponse{}
@@ -2035,12 +2035,42 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantData_Ok() {
 	merchant1, err := suite.service.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(rsp.Id)})
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), merchant)
+	assert.False(suite.T(), merchant1.HasPspSignature)
+	assert.True(suite.T(), merchant1.HasMerchantSignature)
+	assert.Equal(suite.T(), pkg.MerchantStatusAgreementSigning, merchant1.Status)
+	assert.NotEmpty(suite.T(), merchant1.ReceivedDate)
+	assert.NotZero(suite.T(), merchant1.ReceivedDate.Seconds)
+	assert.NotZero(suite.T(), merchant1.StatusLastUpdatedAt.Seconds)
+
+	req1.HasPspSignature = true
+	err = suite.service.ChangeMerchantData(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.Empty(suite.T(), rsp1.Message)
+
+	merchant1, err = suite.service.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(rsp.Id)})
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), merchant)
 	assert.True(suite.T(), merchant1.HasPspSignature)
 	assert.True(suite.T(), merchant1.HasMerchantSignature)
 	assert.Equal(suite.T(), pkg.MerchantStatusAgreementSigned, merchant1.Status)
 	assert.NotEmpty(suite.T(), merchant1.ReceivedDate)
 	assert.NotZero(suite.T(), merchant1.ReceivedDate.Seconds)
 	assert.NotZero(suite.T(), merchant1.StatusLastUpdatedAt.Seconds)
+
+	err = suite.service.ChangeMerchantData(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.Empty(suite.T(), rsp1.Message)
+
+	req2 := &grpc.ListingNotificationRequest{
+		MerchantId: merchant.Id,
+	}
+	rsp2 := &grpc.Notifications{}
+	err = suite.service.ListNotifications(context.TODO(), req2, rsp2)
+	assert.NoError(suite.T(), err)
+	assert.EqualValues(suite.T(), rsp2.Count, 2)
+	assert.Len(suite.T(), rsp2.Items, 2)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantData_MerchantNotFound_Error() {
