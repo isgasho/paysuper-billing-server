@@ -70,8 +70,31 @@ func (_m *OperatingCompanyInterface) GetById(id string) (*billing.OperatingCompa
 	return r0, r1
 }
 
-// Insert provides a mock function with given fields: oc
-func (_m *OperatingCompanyInterface) Insert(oc *billing.OperatingCompany) error {
+// GetByPaymentCountry provides a mock function with given fields: countryCode
+func (_m *OperatingCompanyInterface) GetByPaymentCountry(countryCode string) (*billing.OperatingCompany, error) {
+	ret := _m.Called(countryCode)
+
+	var r0 *billing.OperatingCompany
+	if rf, ok := ret.Get(0).(func(string) *billing.OperatingCompany); ok {
+		r0 = rf(countryCode)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*billing.OperatingCompany)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(countryCode)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Upsert provides a mock function with given fields: oc
+func (_m *OperatingCompanyInterface) Upsert(oc *billing.OperatingCompany) error {
 	ret := _m.Called(oc)
 
 	var r0 error

@@ -2276,4 +2276,10 @@ message OperatingCompany {
     string signatory_position = 8;
     // @inject_tag: bson:"banking_details" json:"banking_details" validate:"required"
     string banking_details = 9;
+    // @inject_tag: bson:"payment_countries" json:"payment_countries" validate:"omitempty,dive,alpha,len=2"
+    repeated string payment_countries = 10;
+    // @inject_tag: json:"created_at"
+    google.protobuf.Timestamp created_at = 11;
+    // @inject_tag: json:"updated_at"
+    google.protobuf.Timestamp updated_at = 12;
 }

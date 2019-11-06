@@ -14,7 +14,35 @@
         "address" : "Cyprus",
         "signatory_name" : "Vassiliy Poupkine",
         "signatory_position" : "CEO",
-        "banking_details" : "bank details including bank, bank address, account number, swift/ bic, intermediary bank"
+        "banking_details" : "bank details including bank, bank address, account number, swift/ bic, intermediary bank",
+        "payment_countries": []
+      },
+      {
+        "_id": {"$oid": "5dc2a41f4bc54ab6c4ce79f8"},
+        "name" : "Paysuper-2",
+        "country" : "MT",
+        "registration_number" : "another number",
+        "vat_number" : "another vat number",
+        "address" : "Malta",
+        "signatory_name" : "Vassiliy Poupkine",
+        "signatory_position" : "CEO",
+        "banking_details" : "bank details including bank, bank address, account number, swift/ bic, intermediary bank",
+        "payment_countries": ["RU", "UA"]
+      }
+    ]
+  },
+  {
+    "update": "operating_companies",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$currentDate": {
+            "created_at": true,
+            "updated_at": true
+          }
+        },
+        "multi": true
       }
     ]
   }

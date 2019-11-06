@@ -318,9 +318,10 @@ func helperOperatingCompany(
 		SignatoryName:      "Vassiliy Poupkine",
 		SignatoryPosition:  "CEO",
 		BankingDetails:     "bank details including bank, bank address, account number, swift/ bic, intermediary bank",
+		PaymentCountries:   []string{},
 	}
 
-	err := service.operatingCompany.Insert(operatingCompany)
+	err := service.operatingCompany.Upsert(operatingCompany)
 	if err != nil {
 		suite.FailNow("Insert operatingCompany failed", "%v", err)
 	}

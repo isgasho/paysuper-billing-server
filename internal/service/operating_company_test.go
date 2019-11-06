@@ -19,10 +19,11 @@ import (
 
 type OperatingCompanyTestSuite struct {
 	suite.Suite
-	service          *Service
-	log              *zap.Logger
-	cache            internalPkg.CacheInterface
-	operatingCompany *billing.OperatingCompany
+	service           *Service
+	log               *zap.Logger
+	cache             internalPkg.CacheInterface
+	operatingCompany  *billing.OperatingCompany
+	operatingCompany2 *billing.OperatingCompany
 }
 
 func Test_OperatingCompany(t *testing.T) {
@@ -68,8 +69,36 @@ func (suite *OperatingCompanyTestSuite) SetupTest() {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 
+	countryRu := &billing.Country{
+		Id:                bson.NewObjectId().Hex(),
+		IsoCodeA2:         "RU",
+		Region:            "Russia",
+		Currency:          "RUB",
+		PaymentsAllowed:   true,
+		ChangeAllowed:     true,
+		VatEnabled:        true,
+		PriceGroupId:      bson.NewObjectId().Hex(),
+		VatCurrency:       "RUB",
+		PayerTariffRegion: pkg.TariffRegionRussiaAndCis,
+	}
+	countryUa := &billing.Country{
+		Id:                bson.NewObjectId().Hex(),
+		IsoCodeA2:         "UA",
+		Region:            "UA",
+		Currency:          "UAH",
+		PaymentsAllowed:   true,
+		ChangeAllowed:     true,
+		VatEnabled:        false,
+		PriceGroupId:      "",
+		VatCurrency:       "",
+		PayerTariffRegion: pkg.TariffRegionRussiaAndCis,
+	}
+	countries := []*billing.Country{countryRu, countryUa}
+	if err := suite.service.country.MultipleInsert(countries); err != nil {
+		suite.FailNow("Insert country test data failed", "%v", err)
+	}
+
 	suite.operatingCompany = &billing.OperatingCompany{
-		Id:                 bson.NewObjectId().Hex(),
 		Name:               "Legal name",
 		Country:            "RU",
 		RegistrationNumber: "some number",
@@ -78,6 +107,19 @@ func (suite *OperatingCompanyTestSuite) SetupTest() {
 		SignatoryName:      "Vassiliy Poupkine",
 		SignatoryPosition:  "CEO",
 		BankingDetails:     "bank details including bank, bank address, account number, swift/ bic, intermediary bank",
+		PaymentCountries:   []string{},
+	}
+
+	suite.operatingCompany2 = &billing.OperatingCompany{
+		Name:               "Legal name 2",
+		Country:            "ML",
+		RegistrationNumber: "some number 2",
+		VatNumber:          "some vat number 2",
+		Address:            "Home, home 1",
+		SignatoryName:      "Ivan Petroff",
+		SignatoryPosition:  "CEO",
+		BankingDetails:     "bank details including bank, bank address, account number, swift/ bic, intermediary bank",
+		PaymentCountries:   []string{"RU", "UA"},
 	}
 }
 
@@ -115,4 +157,68 @@ func (suite *OperatingCompanyTestSuite) Test_OperatingCompany_ListOk() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
 	assert.Len(suite.T(), res2.Items, 1)
+}
+
+func (suite *OperatingCompanyTestSuite) Test_OperatingCompany_AddFail_DuplicatePaymentCountry() {
+	count, err := suite.service.db.Collection(collectionOperatingCompanies).Find(nil).Count()
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), count, 0)
+
+	res := &grpc.EmptyResponseWithStatus{}
+	err = suite.service.AddOperatingCompany(context.TODO(), suite.operatingCompany, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
+
+	count, err = suite.service.db.Collection(collectionOperatingCompanies).Find(nil).Count()
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), count, 1)
+
+	err = suite.service.AddOperatingCompany(context.TODO(), suite.operatingCompany, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusBadData)
+	assert.Equal(suite.T(), res.Message, errorOperatingCompanyCountryAlreadyExists)
+}
+
+func (suite *OperatingCompanyTestSuite) Test_OperatingCompany_AddFail_PaymentCountryUnknown() {
+	count, err := suite.service.db.Collection(collectionOperatingCompanies).Find(nil).Count()
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), count, 0)
+
+	suite.operatingCompany.PaymentCountries = []string{"RU", "UA", "XXX"}
+
+	res := &grpc.EmptyResponseWithStatus{}
+	err = suite.service.AddOperatingCompany(context.TODO(), suite.operatingCompany, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusBadData)
+	assert.Equal(suite.T(), res.Message, errorOperatingCompanyCountryUnknown)
+}
+
+func (suite *OperatingCompanyTestSuite) Test_OperatingCompany_GetByPaymentCountry() {
+	count, err := suite.service.db.Collection(collectionOperatingCompanies).Find(nil).Count()
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), count, 0)
+
+	suite.operatingCompany.Id = bson.NewObjectId().Hex()
+	err = suite.service.operatingCompany.Upsert(suite.operatingCompany)
+	assert.NoError(suite.T(), err)
+
+	suite.operatingCompany2.Id = bson.NewObjectId().Hex()
+	err = suite.service.operatingCompany.Upsert(suite.operatingCompany2)
+	assert.NoError(suite.T(), err)
+
+	count, err = suite.service.db.Collection(collectionOperatingCompanies).Find(nil).Count()
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), count, 2)
+
+	oc, err := suite.service.operatingCompany.GetByPaymentCountry("")
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), oc.Id, suite.operatingCompany.Id)
+
+	oc, err = suite.service.operatingCompany.GetByPaymentCountry("RU")
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), oc.Id, suite.operatingCompany2.Id)
+
+	oc, err = suite.service.operatingCompany.GetByPaymentCountry("XXX")
+	assert.Error(suite.T(), err)
+	assert.EqualError(suite.T(), err, errorOperatingCompanyCountryUnknown.Error())
 }
