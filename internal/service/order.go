@@ -3269,6 +3269,7 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 			return nil, orderErrorConvertionCurrency
 		}
 		amount = rsp.ExchangedAmount
+		priceGroup = defaultPriceGroup
 	}
 
 	if order.User != nil && order.User.Locale != "" {
@@ -3284,7 +3285,7 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 
 	amount = tools.FormatAmount(amount)
 
-	order.Currency = currency
+	order.Currency = priceGroup.Currency
 	order.OrderAmount = amount
 	order.TotalPaymentAmount = amount
 	order.Items = items
@@ -3365,9 +3366,9 @@ func (s *Service) ProcessOrderProducts(ctx context.Context, order *billing.Order
 	zap.S().Infow(fmt.Sprintf(logInfo, "try to use detected currency for order amount"), "currency", currency, "order.Uuid", order.Uuid)
 
 	if order.IsBuyForVirtualCurrency {
-		amount, err = s.processAmountForVirtualCurrency(ctx, order, orderProducts, priceGroup, defaultPriceGroup)
+		amount, priceGroup, err = s.processAmountForVirtualCurrency(ctx, order, orderProducts, priceGroup, defaultPriceGroup)
 	} else {
-		amount, err = s.processAmountForFiatCurrency(ctx, order, orderProducts, priceGroup, defaultPriceGroup, logInfo)
+		amount, priceGroup, err = s.processAmountForFiatCurrency(ctx, order, orderProducts, priceGroup, defaultPriceGroup, logInfo)
 	}
 
 	if err != nil {
@@ -3382,15 +3383,12 @@ func (s *Service) ProcessOrderProducts(ctx context.Context, order *billing.Order
 
 	items, err := s.GetOrderProductsItems(orderProducts, locale, priceGroup)
 	if err != nil {
-		items, err = s.GetOrderProductsItems(orderProducts, locale, defaultPriceGroup)
-		if err != nil {
-			return err
-		}
+		return err
 	}
 
 	amount = tools.FormatAmount(amount)
 
-	order.Currency = currency
+	order.Currency = priceGroup.Currency
 	order.OrderAmount = amount
 	order.TotalPaymentAmount = amount
 
@@ -3399,7 +3397,7 @@ func (s *Service) ProcessOrderProducts(ctx context.Context, order *billing.Order
 	return nil
 }
 
-func (s *Service) processAmountForFiatCurrency(ctx context.Context, order *billing.Order, orderProducts []*grpc.Product, priceGroup *billing.PriceGroup, defaultPriceGroup *billing.PriceGroup, logInfo string) (float64, error) {
+func (s *Service) processAmountForFiatCurrency(ctx context.Context, order *billing.Order, orderProducts []*grpc.Product, priceGroup *billing.PriceGroup, defaultPriceGroup *billing.PriceGroup, logInfo string) (float64, *billing.PriceGroup, error) {
 	currency := priceGroup.Currency
 	defaultCurrency := defaultPriceGroup.Currency
 
@@ -3407,12 +3405,12 @@ func (s *Service) processAmountForFiatCurrency(ctx context.Context, order *billi
 	amount, err := s.GetOrderProductsAmount(orderProducts, priceGroup)
 	if err != nil {
 		if priceGroup.Id == defaultPriceGroup.Id {
-			return 0, err
+			return 0, nil, err
 		}
 		// try to get order Amount in default currency, if it differs from requested one
 		amount, err = s.GetOrderProductsAmount(orderProducts, defaultPriceGroup)
 		if err != nil {
-			return 0, err
+			return 0, nil, err
 		}
 		zap.S().Infow(fmt.Sprintf(logInfo, "try to use default currency for order amount"), "currency", defaultCurrency, "order.Uuid", order.Uuid)
 
@@ -3435,38 +3433,39 @@ func (s *Service) processAmountForFiatCurrency(ctx context.Context, order *billi
 				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
 			)
 
-			return 0, orderErrorConvertionCurrency
+			return 0, nil, orderErrorConvertionCurrency
 		}
 		amount = rsp.ExchangedAmount
+		return amount, defaultPriceGroup, nil
 	}
 
-	return amount, nil
+	return amount, priceGroup, nil
 }
 
-func (s *Service) processAmountForVirtualCurrency(ctx context.Context, order *billing.Order, orderProducts []*grpc.Product, priceGroup *billing.PriceGroup, defaultPriceGroup *billing.PriceGroup) (float64, error) {
+func (s *Service) processAmountForVirtualCurrency(ctx context.Context, order *billing.Order, orderProducts []*grpc.Product, priceGroup *billing.PriceGroup, defaultPriceGroup *billing.PriceGroup) (float64, *billing.PriceGroup, error) {
 	var amount float64
 	currency := priceGroup.Currency
 	defaultCurrency := defaultPriceGroup.Currency
 
 	virtualAmount, err := s.GetOrderProductsAmount(orderProducts, &billing.PriceGroup{Currency: grpc.VirtualCurrencyPriceGroup})
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 
 	project, err := s.project.GetById(order.GetProjectId())
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 
 	if project.VirtualCurrency == nil || len(project.VirtualCurrency.Prices) == 0 {
-		return 0, orderErrorVirtualCurrencyNotFilled
+		return 0, nil, orderErrorVirtualCurrencyNotFilled
 	}
 
 	amount, err = s.GetAmountForVirtualCurrency(virtualAmount, priceGroup, project.VirtualCurrency.Prices)
 	if err != nil {
 		amount, err = s.GetAmountForVirtualCurrency(virtualAmount, defaultPriceGroup, project.VirtualCurrency.Prices)
 		if err != nil {
-			return 0, err
+			return 0, nil, err
 		}
 
 		// converting Amount from default currency to requested
@@ -3488,12 +3487,13 @@ func (s *Service) processAmountForVirtualCurrency(ctx context.Context, order *bi
 				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
 			)
 
-			return 0, orderErrorConvertionCurrency
+			return 0, nil, orderErrorConvertionCurrency
 		}
 		amount = rsp.ExchangedAmount
+		return amount, defaultPriceGroup, nil
 	}
 
-	return amount, nil
+	return amount, priceGroup, nil
 }
 
 func (s *Service) notifyPaylinkError(ctx context.Context, paylinkId string, err error, req interface{}, order interface{}) {
