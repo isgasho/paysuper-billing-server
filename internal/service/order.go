@@ -1411,10 +1411,7 @@ func (s *Service) ProcessBillingAddress(
 	}
 
 	processor := &OrderCreateRequestProcessor{Service: s}
-	fmt.Println(order.BillingAddress)
-	fmt.Println(order.User.Address)
 	processor.processOrderVat(order)
-	fmt.Println(order.Tax.Amount)
 
 	err = s.updateOrder(order)
 
@@ -2322,9 +2319,9 @@ func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) {
 		req.UserData.City = order.BillingAddress.City
 		req.UserData.State = order.BillingAddress.State
 	}
-	fmt.Println(req)
+
 	rsp, err := v.tax.GetRate(context.TODO(), req)
-	fmt.Println(rsp)
+
 	if err != nil {
 		v.logError("Tax service return error", []interface{}{"error", err.Error(), "request", req})
 		return
