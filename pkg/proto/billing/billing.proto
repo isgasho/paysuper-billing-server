@@ -649,7 +649,7 @@ message PaymentMethodOrder {
     string name = 2;
     // @inject_tag: bson:"external_id" json:"external_id"
     string external_id = 3;
-    // @inject_tag: json:"params,omitempty" bson:"params"
+    // @inject_tag: json:"-" bson:"params"
     PaymentMethodParams params = 4;
     // @inject_tag: bson:"payment_system_id" json:"payment_system_id"
     string payment_system_id = 5;
