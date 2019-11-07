@@ -4,7 +4,9 @@
     "updates": [
       {
         "q": {
-          "parent_id": {"$exists":  true}
+          "parent_id": {
+            "$exists": true
+          }
         },
         "u": {
           "$set": {
@@ -13,9 +15,9 @@
               "uuid": ""
             }
           },
-          "$unset": [
-            "parent_id"
-          ]
+          "$unset": {
+            "parent_id": ""
+          }
         },
         "multi": true
       }
