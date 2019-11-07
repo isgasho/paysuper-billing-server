@@ -4167,8 +4167,9 @@ func (suite *OnboardingTestSuite) TestOnboarding_GenerateMerchantAgreement_Check
 	assert.Equal(suite.T(), pkg.MerchantStatusDraft, rsp.Item.Status)
 
 	req1 := &grpc.SetMerchantTariffRatesRequest{
-		MerchantId: rsp.Item.Id,
-		HomeRegion: "russia_and_cis",
+		MerchantId:             rsp.Item.Id,
+		HomeRegion:             "russia_and_cis",
+		MerchantOperationsType: pkg.MerchantOperationTypeLowRisk,
 	}
 	rsp1 := &grpc.CheckProjectRequestSignatureResponse{}
 	err = suite.service.SetMerchantTariffRates(context.TODO(), req1, rsp1)
@@ -4252,8 +4253,9 @@ func (suite *OnboardingTestSuite) TestOnboarding_GenerateMerchantAgreement_Check
 	assert.Equal(suite.T(), pkg.MerchantStatusDraft, rsp.Item.Status)
 
 	req1 := &grpc.SetMerchantTariffRatesRequest{
-		MerchantId: rsp.Item.Id,
-		HomeRegion: "russia_and_cis",
+		MerchantId:             rsp.Item.Id,
+		HomeRegion:             "russia_and_cis",
+		MerchantOperationsType: pkg.MerchantOperationTypeLowRisk,
 	}
 	rsp1 := &grpc.CheckProjectRequestSignatureResponse{}
 	err = suite.service.SetMerchantTariffRates(context.TODO(), req1, rsp1)

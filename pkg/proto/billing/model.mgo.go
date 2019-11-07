@@ -2,8 +2,10 @@ package billing
 
 import (
 	"errors"
+	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"time"
@@ -326,10 +328,13 @@ type MgoPaymentMethod struct {
 }
 
 type MgoPaymentMethodParam struct {
-	TerminalId     string `bson:"terminal_id"`
-	Secret         string `bson:"secret"`
-	SecretCallback string `bson:"secret_callback"`
-	Currency       string `bson:"currency"`
+	TerminalId         string `bson:"terminal_id"`
+	Secret             string `bson:"secret"`
+	SecretCallback     string `bson:"secret_callback"`
+	Currency           string `bson:"currency"`
+	ApiUrl             string `bson:"api_url"`
+	MccCode            string `bson:"mcc_code"`
+	OperatingCompanyId string `bson:"operating_company_id"`
 }
 
 type MgoNotification struct {
@@ -1952,23 +1957,29 @@ func (m *PaymentMethod) GetBSON() (interface{}, error) {
 	}
 
 	if m.TestSettings != nil {
-		for key, value := range m.TestSettings {
+		for _, value := range m.TestSettings {
 			st.TestSettings = append(st.TestSettings, &MgoPaymentMethodParam{
-				Currency:       key,
-				TerminalId:     value.TerminalId,
-				Secret:         value.Secret,
-				SecretCallback: value.SecretCallback,
+				Currency:           value.Currency,
+				TerminalId:         value.TerminalId,
+				Secret:             value.Secret,
+				SecretCallback:     value.SecretCallback,
+				ApiUrl:             value.ApiUrl,
+				MccCode:            value.MccCode,
+				OperatingCompanyId: value.OperatingCompanyId,
 			})
 		}
 	}
 
 	if m.ProductionSettings != nil {
-		for key, value := range m.ProductionSettings {
+		for _, value := range m.ProductionSettings {
 			st.ProductionSettings = append(st.ProductionSettings, &MgoPaymentMethodParam{
-				Currency:       key,
-				TerminalId:     value.TerminalId,
-				Secret:         value.Secret,
-				SecretCallback: value.SecretCallback,
+				Currency:           value.Currency,
+				TerminalId:         value.TerminalId,
+				Secret:             value.Secret,
+				SecretCallback:     value.SecretCallback,
+				ApiUrl:             value.ApiUrl,
+				MccCode:            value.MccCode,
+				OperatingCompanyId: value.OperatingCompanyId,
 			})
 		}
 	}
@@ -2031,11 +2042,17 @@ func (m *PaymentMethod) SetBSON(raw bson.Raw) error {
 	if decoded.TestSettings != nil {
 		pmp := make(map[string]*PaymentMethodParams, len(decoded.TestSettings))
 		for _, value := range decoded.TestSettings {
-			pmp[value.Currency] = &PaymentMethodParams{
-				Currency:       value.Currency,
-				TerminalId:     value.TerminalId,
-				Secret:         value.Secret,
-				SecretCallback: value.SecretCallback,
+
+			key := fmt.Sprintf(pkg.PaymentMethodKey, value.Currency, value.MccCode, value.OperatingCompanyId)
+
+			pmp[key] = &PaymentMethodParams{
+				Currency:           value.Currency,
+				TerminalId:         value.TerminalId,
+				Secret:             value.Secret,
+				SecretCallback:     value.SecretCallback,
+				ApiUrl:             value.ApiUrl,
+				MccCode:            value.MccCode,
+				OperatingCompanyId: value.OperatingCompanyId,
 			}
 		}
 		m.TestSettings = pmp
@@ -2044,11 +2061,17 @@ func (m *PaymentMethod) SetBSON(raw bson.Raw) error {
 	if decoded.ProductionSettings != nil {
 		pmp := make(map[string]*PaymentMethodParams, len(decoded.ProductionSettings))
 		for _, value := range decoded.ProductionSettings {
-			pmp[value.Currency] = &PaymentMethodParams{
-				Currency:       value.Currency,
-				TerminalId:     value.TerminalId,
-				Secret:         value.Secret,
-				SecretCallback: value.SecretCallback,
+
+			key := fmt.Sprintf(pkg.PaymentMethodKey, value.Currency, value.MccCode, value.OperatingCompanyId)
+
+			pmp[key] = &PaymentMethodParams{
+				Currency:           value.Currency,
+				TerminalId:         value.TerminalId,
+				Secret:             value.Secret,
+				SecretCallback:     value.SecretCallback,
+				ApiUrl:             value.ApiUrl,
+				MccCode:            value.MccCode,
+				OperatingCompanyId: value.OperatingCompanyId,
 			}
 		}
 		m.ProductionSettings = pmp

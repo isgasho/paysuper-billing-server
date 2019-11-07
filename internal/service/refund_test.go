@@ -5,6 +5,7 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
@@ -31,9 +32,10 @@ type RefundTestSuite struct {
 	log     *zap.Logger
 	cache   internalPkg.CacheInterface
 
-	paySys     *billing.PaymentSystem
-	project    *billing.Project
-	pmBankCard *billing.PaymentMethod
+	paySys           *billing.PaymentSystem
+	project          *billing.Project
+	pmBankCard       *billing.PaymentMethod
+	operatingCompany *billing.OperatingCompany
 }
 
 func Test_Refund(t *testing.T) {
@@ -49,6 +51,26 @@ func (suite *RefundTestSuite) SetupTest() {
 
 	suite.log, err = zap.NewProduction()
 	assert.NoError(suite.T(), err, "Logger initialization failed")
+
+	suite.operatingCompany = &billing.OperatingCompany{
+		Id:                 bson.NewObjectId().Hex(),
+		Name:               "Legal name",
+		Country:            "RU",
+		RegistrationNumber: "some number",
+		VatNumber:          "some vat number",
+		Address:            "Home, home 0",
+		SignatoryName:      "Vassiliy Poupkine",
+		SignatoryPosition:  "CEO",
+		BankingDetails:     "bank details including bank, bank address, account number, swift/ bic, intermediary bank",
+		PaymentCountries:   []string{},
+	}
+
+	err = db.Collection(collectionOperatingCompanies).Insert(suite.operatingCompany)
+	if err != nil {
+		suite.FailNow("Insert operatingCompany test data failed", "%v", err)
+	}
+
+	keyRub := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
 
 	country := &billing.Country{
 		IsoCodeA2:       "RU",
@@ -90,18 +112,23 @@ func (suite *RefundTestSuite) SetupTest() {
 		MaxPaymentAmount: 15000,
 		ExternalId:       "BANKCARD",
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				Currency:       "RUB",
-				TerminalId:     "15985",
-				Secret:         "A1tph4I6BD0f",
-				SecretCallback: "0V1rJ7t4jCRv",
+			keyRub: {
+				Currency:           "RUB",
+				TerminalId:         "15985",
+				Secret:             "A1tph4I6BD0f",
+				SecretCallback:     "0V1rJ7t4jCRv",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
 		},
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				TerminalId:     "15985",
-				Secret:         "A1tph4I6BD0f",
-				SecretCallback: "0V1rJ7t4jCRv",
+			keyRub: {
+				TerminalId:         "15985",
+				Secret:             "A1tph4I6BD0f",
+				SecretCallback:     "0V1rJ7t4jCRv",
+				Currency:           "RUB",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			}},
 		Type:            "bank_card",
 		IsActive:        true,
@@ -203,7 +230,7 @@ func (suite *RefundTestSuite) SetupTest() {
 			HomeRegion: "russia_and_cis",
 		},
 		MccCode:            pkg.MccCodeLowRisk,
-		OperatingCompanyId: bson.NewObjectId().Hex(),
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	project := &billing.Project{
@@ -237,9 +264,11 @@ func (suite *RefundTestSuite) SetupTest() {
 		MaxPaymentAmount: 0,
 		ExternalId:       "QIWI",
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				Currency:   "RUB",
-				TerminalId: "15993",
+			keyRub: {
+				Currency:           "RUB",
+				TerminalId:         "15993",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
 		},
 		Type:            "ewallet",
@@ -254,14 +283,19 @@ func (suite *RefundTestSuite) SetupTest() {
 		MaxPaymentAmount: 0,
 		ExternalId:       "BITCOIN",
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				Currency:   "RUB",
-				TerminalId: "16007",
+			keyRub: {
+				Currency:           "RUB",
+				TerminalId:         "16007",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
 		},
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				TerminalId: "16007",
+			keyRub: {
+				TerminalId:         "16007",
+				Currency:           "RUB",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			}},
 		Type:            "crypto",
 		IsActive:        true,
@@ -300,7 +334,9 @@ func (suite *RefundTestSuite) SetupTest() {
 			Date:   date,
 			Amount: 10000,
 		},
-		IsSigned: true,
+		IsSigned:           true,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 	merchant1 := &billing.Merchant{
 		Id: bson.NewObjectId().Hex(),
@@ -334,7 +370,9 @@ func (suite *RefundTestSuite) SetupTest() {
 			Date:   date,
 			Amount: 100000,
 		},
-		IsSigned: false,
+		IsSigned:           false,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	broker, err := rabbitmq.NewBroker(cfg.BrokerAddress)
@@ -386,7 +424,7 @@ func (suite *RefundTestSuite) SetupTest() {
 
 	sysCost := &billing.PaymentChannelCostSystem{
 		Id:                 bson.NewObjectId().Hex(),
-		Name:               "MASTERCARD",
+		Name:               "VISA",
 		Region:             pkg.TariffRegionRussiaAndCis,
 		Country:            "AZ",
 		Percent:            1.5,
@@ -399,7 +437,7 @@ func (suite *RefundTestSuite) SetupTest() {
 
 	sysCost1 := &billing.PaymentChannelCostSystem{
 		Id:                 "",
-		Name:               "MASTERCARD",
+		Name:               "VISA",
 		Region:             pkg.TariffRegionRussiaAndCis,
 		Country:            "",
 		Percent:            2.2,

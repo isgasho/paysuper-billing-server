@@ -23,7 +23,6 @@ const (
 	paymentMethodErrorPaymentSystem              = "payment method must contain of payment system"
 	paymentMethodErrorUnknownMethod              = "payment method is unknown"
 	paymentMethodErrorNotFoundProductionSettings = "payment method is not contain requesting settings"
-	paymentMethodErrorSettings                   = "payment method is not contain settings for test"
 )
 
 type PaymentMethods struct {
@@ -120,10 +119,12 @@ func (s *Service) CreateOrUpdatePaymentMethodProductionSettings(
 	}
 
 	pm.ProductionSettings[req.Params.Currency] = &billing.PaymentMethodParams{
-		Currency:       req.Params.Currency,
-		Secret:         req.Params.Secret,
-		SecretCallback: req.Params.SecretCallback,
-		TerminalId:     req.Params.TerminalId,
+		Currency:           req.Params.Currency,
+		Secret:             req.Params.Secret,
+		SecretCallback:     req.Params.SecretCallback,
+		TerminalId:         req.Params.TerminalId,
+		MccCode:            req.Params.MccCode,
+		OperatingCompanyId: req.Params.OperatingCompanyId,
 	}
 	if err := s.paymentMethod.Update(pm); err != nil {
 		zap.S().Errorf("Query to update production settings of project method is failed", "err", err.Error(), "data", req)
@@ -151,10 +152,12 @@ func (s *Service) GetPaymentMethodProductionSettings(
 
 	for key, param := range pm.ProductionSettings {
 		rsp.Params = append(rsp.Params, &billing.PaymentMethodParams{
-			Currency:       key,
-			TerminalId:     param.TerminalId,
-			Secret:         param.Secret,
-			SecretCallback: param.SecretCallback,
+			Currency:           key,
+			TerminalId:         param.TerminalId,
+			Secret:             param.Secret,
+			SecretCallback:     param.SecretCallback,
+			MccCode:            param.MccCode,
+			OperatingCompanyId: param.OperatingCompanyId,
 		})
 	}
 
@@ -220,10 +223,12 @@ func (s *Service) CreateOrUpdatePaymentMethodTestSettings(
 	}
 
 	pm.TestSettings[req.Params.Currency] = &billing.PaymentMethodParams{
-		Currency:       req.Params.Currency,
-		Secret:         req.Params.Secret,
-		SecretCallback: req.Params.SecretCallback,
-		TerminalId:     req.Params.TerminalId,
+		Currency:           req.Params.Currency,
+		Secret:             req.Params.Secret,
+		SecretCallback:     req.Params.SecretCallback,
+		TerminalId:         req.Params.TerminalId,
+		MccCode:            req.Params.MccCode,
+		OperatingCompanyId: req.Params.OperatingCompanyId,
 	}
 	if err := s.paymentMethod.Update(pm); err != nil {
 		zap.S().Errorf("Query to update production settings of project method is failed", "err", err.Error(), "data", req)
@@ -251,10 +256,12 @@ func (s *Service) GetPaymentMethodTestSettings(
 
 	for key, param := range pm.TestSettings {
 		rsp.Params = append(rsp.Params, &billing.PaymentMethodParams{
-			Currency:       key,
-			TerminalId:     param.TerminalId,
-			Secret:         param.Secret,
-			SecretCallback: param.SecretCallback,
+			Currency:           key,
+			TerminalId:         param.TerminalId,
+			Secret:             param.Secret,
+			SecretCallback:     param.SecretCallback,
+			MccCode:            param.MccCode,
+			OperatingCompanyId: param.OperatingCompanyId,
 		})
 	}
 
@@ -305,8 +312,8 @@ type PaymentMethodInterface interface {
 	MultipleInsert([]*billing.PaymentMethod) error
 	Insert(*billing.PaymentMethod) error
 	Update(*billing.PaymentMethod) error
-	GetPaymentSettings(paymentMethod *billing.PaymentMethod, currency string, project *billing.Project) (*billing.PaymentMethodParams, error)
-	ListByCurrency(project *billing.Project, currency string) ([]*billing.PaymentMethod, error)
+	GetPaymentSettings(paymentMethod *billing.PaymentMethod, currency, mccCode, operatingCompanyId string, project *billing.Project) (*billing.PaymentMethodParams, error)
+	ListByParams(project *billing.Project, currency, mccCode, operatingCompanyId string) ([]*billing.PaymentMethod, error)
 }
 
 type paymentMethods struct {
@@ -363,7 +370,14 @@ func (h *PaymentMethod) GetByGroupAndCurrency(
 		field = "production_settings"
 	}
 
-	query := bson.M{"group_alias": group, field: bson.M{"$elemMatch": bson.M{"currency": currency}}}
+	query := bson.M{
+		"group_alias": group,
+		field: bson.M{
+			"$elemMatch": bson.M{
+				"currency": currency,
+			},
+		},
+	}
 	err = h.svc.db.Collection(collectionPaymentMethod).Find(query).One(&c)
 
 	if err != nil {
@@ -452,6 +466,8 @@ func (h *PaymentMethod) Update(pm *billing.PaymentMethod) error {
 func (h *PaymentMethod) GetPaymentSettings(
 	paymentMethod *billing.PaymentMethod,
 	currency string,
+	mccCode string,
+	operatingCompanyId string,
 	project *billing.Project,
 ) (*billing.PaymentMethodParams, error) {
 	settings := paymentMethod.TestSettings
@@ -464,7 +480,9 @@ func (h *PaymentMethod) GetPaymentSettings(
 		return nil, orderErrorPaymentMethodEmptySettings
 	}
 
-	setting, ok := settings[currency]
+	key := fmt.Sprintf(pkg.PaymentMethodKey, currency, mccCode, operatingCompanyId)
+
+	setting, ok := settings[key]
 
 	if !ok || !setting.IsSettingComplete() {
 		return nil, orderErrorPaymentMethodEmptySettings
@@ -481,7 +499,7 @@ func (h *PaymentMethod) GetPaymentSettings(
 	return setting, nil
 }
 
-func (h *PaymentMethod) ListByCurrency(project *billing.Project, currency string) ([]*billing.PaymentMethod, error) {
+func (h *PaymentMethod) ListByParams(project *billing.Project, currency, mccCode, operatingCompanyId string) ([]*billing.PaymentMethod, error) {
 	val := new(PaymentMethods)
 	key := fmt.Sprintf(cachePaymentMethodCurrency, currency)
 	err := h.svc.cacher.Get(key, &val)
@@ -496,7 +514,15 @@ func (h *PaymentMethod) ListByCurrency(project *billing.Project, currency string
 		field = "production_settings"
 	}
 
-	query := bson.M{field: bson.M{"$elemMatch": bson.M{"currency": currency}}}
+	query := bson.M{
+		field: bson.M{
+			"$elemMatch": bson.M{
+				"currency":             currency,
+				"mcc_code":             mccCode,
+				"operating_company_id": operatingCompanyId,
+			},
+		},
+	}
 	err = h.svc.db.Collection(collectionPaymentMethod).Find(query).All(&val.PaymentMethods)
 
 	if err != nil {

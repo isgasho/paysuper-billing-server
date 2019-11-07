@@ -142,18 +142,20 @@ var (
 )
 
 type orderCreateRequestProcessorChecked struct {
-	id              string
-	project         *billing.Project
-	merchant        *billing.Merchant
-	currency        string
-	amount          float64
-	paymentMethod   *billing.PaymentMethod
-	products        []string
-	items           []*billing.OrderItem
-	metadata        map[string]string
-	privateMetadata map[string]string
-	user            *billing.OrderUser
-	virtualAmount   float64
+	id                 string
+	project            *billing.Project
+	merchant           *billing.Merchant
+	currency           string
+	amount             float64
+	paymentMethod      *billing.PaymentMethod
+	products           []string
+	items              []*billing.OrderItem
+	metadata           map[string]string
+	privateMetadata    map[string]string
+	user               *billing.OrderUser
+	virtualAmount      float64
+	mccCode            string
+	operatingCompanyId string
 }
 
 type OrderCreateRequestProcessor struct {
@@ -302,6 +304,13 @@ func (s *Service) OrderCreateProcess(
 			return nil
 		}
 		return err
+	}
+
+	if processor.checked.mccCode == "" {
+		processor.checked.mccCode = processor.checked.merchant.MccCode
+	}
+	if processor.checked.operatingCompanyId == "" {
+		processor.checked.operatingCompanyId = processor.checked.merchant.OperatingCompanyId
 	}
 
 	if req.Signature != "" || processor.checked.project.SignatureRequired == true {
@@ -857,6 +866,8 @@ func (s *Service) PaymentCreateProcess(
 	settings, err := s.paymentMethod.GetPaymentSettings(
 		processor.checked.paymentMethod,
 		order.Currency,
+		order.MccCode,
+		order.OperatingCompanyId,
 		processor.checked.project,
 	)
 
@@ -1908,6 +1919,9 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 		PlatformId:              v.request.PlatformId,
 		ProductType:             v.request.Type,
 		IsBuyForVirtualCurrency: v.request.IsBuyForVirtualCurrency,
+		MccCode:                 v.checked.merchant.MccCode,
+		OperatingCompanyId:      v.checked.merchant.OperatingCompanyId,
+		IsHighRisk:              v.checked.merchant.IsHighRisk(),
 	}
 
 	if v.checked.virtualAmount > 0 {
@@ -1953,6 +1967,8 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 		settings, err := v.paymentMethod.GetPaymentSettings(
 			v.checked.paymentMethod,
 			v.checked.currency,
+			v.checked.mccCode,
+			v.checked.operatingCompanyId,
 			v.checked.project,
 		)
 
@@ -2207,7 +2223,7 @@ func (v *OrderCreateRequestProcessor) processPaymentMethod(pm *billing.PaymentMe
 		return orderErrorPaymentSystemInactive
 	}
 
-	_, err := v.Service.paymentMethod.GetPaymentSettings(pm, v.checked.currency, v.checked.project)
+	_, err := v.Service.paymentMethod.GetPaymentSettings(pm, v.checked.currency, v.checked.mccCode, v.checked.operatingCompanyId, v.checked.project)
 
 	if err != nil {
 		return err
@@ -2451,7 +2467,7 @@ func (v *PaymentFormProcessor) processRenderFormPaymentMethods(
 ) ([]*billing.PaymentFormPaymentMethod, error) {
 	var projectPms []*billing.PaymentFormPaymentMethod
 
-	paymentMethods, err := v.service.paymentMethod.ListByCurrency(project, v.order.Currency)
+	paymentMethods, err := v.service.paymentMethod.ListByParams(project, v.order.Currency, v.order.MccCode, v.order.OperatingCompanyId)
 
 	if err != nil {
 		return nil, err
@@ -2473,7 +2489,7 @@ func (v *PaymentFormProcessor) processRenderFormPaymentMethods(
 			continue
 		}
 
-		_, err = v.service.paymentMethod.GetPaymentSettings(pm, v.order.Currency, project)
+		_, err = v.service.paymentMethod.GetPaymentSettings(pm, v.order.Currency, v.order.MccCode, v.order.OperatingCompanyId, project)
 
 		if err != nil {
 			continue
@@ -2652,6 +2668,22 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 		}
 	}
 
+	merchantId := order.GetMerchantId()
+	merchant, err := v.service.merchant.GetById(merchantId)
+	if err != nil {
+		return err
+	}
+
+	if order.MccCode == "" {
+		order.MccCode = merchant.MccCode
+		order.IsHighRisk = merchant.IsHighRisk()
+	}
+
+	order.OperatingCompanyId, err = v.service.getOrderOperatingCompanyId(order.GetCountry(), merchant)
+	if err != nil {
+		return err
+	}
+
 	processor := &OrderCreateRequestProcessor{
 		Service: v.service,
 		request: &billing.OrderCreateRequest{
@@ -2659,8 +2691,10 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 			Amount:    order.OrderAmount,
 		},
 		checked: &orderCreateRequestProcessorChecked{
-			currency: order.Currency,
-			amount:   order.OrderAmount,
+			currency:           order.Currency,
+			amount:             order.OrderAmount,
+			mccCode:            order.MccCode,
+			operatingCompanyId: order.OperatingCompanyId,
 		},
 	}
 

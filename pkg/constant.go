@@ -323,6 +323,8 @@ const (
 	TariffRegionAsia         = "asia"
 	TariffRegionLatAm        = "latam"
 	TariffRegionWorldwide    = "worldwide"
+
+	PaymentMethodKey = "cur:%s:mcc:%s:oc:%s"
 )
 
 var (

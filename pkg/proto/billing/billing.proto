@@ -683,6 +683,10 @@ message PaymentMethodParams {
     string secret_callback = 5;
     // @inject_tag: bson:"api_url" json:"-"
     string api_url = 6;
+    // @inject_tag: bson:"mcc_code" json:"mcc_code" validate:"required,numeric,len=4"
+    string mcc_code = 7;
+    // @inject_tag: bson:"operating_company_id" json:"operating_company_id" validate:"required,hexadecimal,len=24"
+    string operating_company_id = 8;
 }
 
 message PaymentSystem {

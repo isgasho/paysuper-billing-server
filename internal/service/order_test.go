@@ -64,6 +64,7 @@ type OrderTestSuite struct {
 	paylink1                               *paylink.Paylink
 	paylink2                               *paylink.Paylink // deleted paylink
 	paylink3                               *paylink.Paylink // expired paylink
+	operatingCompany                       *billing.OperatingCompany
 }
 
 func Test_Order(t *testing.T) {
@@ -81,6 +82,28 @@ func (suite *OrderTestSuite) SetupTest() {
 	if err != nil {
 		suite.FailNow("Database connection failed", "%v", err)
 	}
+
+	suite.operatingCompany = &billing.OperatingCompany{
+		Id:                 bson.NewObjectId().Hex(),
+		Name:               "Legal name",
+		Country:            "RU",
+		RegistrationNumber: "some number",
+		VatNumber:          "some vat number",
+		Address:            "Home, home 0",
+		SignatoryName:      "Vassiliy Poupkine",
+		SignatoryPosition:  "CEO",
+		BankingDetails:     "bank details including bank, bank address, account number, swift/ bic, intermediary bank",
+		PaymentCountries:   []string{},
+	}
+
+	err = db.Collection(collectionOperatingCompanies).Insert(suite.operatingCompany)
+	if err != nil {
+		suite.FailNow("Insert operatingCompany test data failed", "%v", err)
+	}
+
+	keyRub := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
+	keyUsd := fmt.Sprintf(pkg.PaymentMethodKey, "USD", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
+	keyUah := fmt.Sprintf(pkg.PaymentMethodKey, "UAH", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
 
 	pgRub := &billing.PriceGroup{
 		Id:       bson.NewObjectId().Hex(),
@@ -226,22 +249,31 @@ func (suite *OrderTestSuite) SetupTest() {
 		MaxPaymentAmount: 15000,
 		ExternalId:       "BANKCARD",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				TerminalId:     "15985",
-				Secret:         "A1tph4I6BD0f",
-				SecretCallback: "0V1rJ7t4jCRv",
+			keyRub: {
+				TerminalId:         "15985",
+				Secret:             "A1tph4I6BD0f",
+				SecretCallback:     "0V1rJ7t4jCRv",
+				Currency:           "RUB",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
-			"USD": {
-				TerminalId:     "15985",
-				Secret:         "A1tph4I6BD0f",
-				SecretCallback: "0V1rJ7t4jCRv",
+			keyUsd: {
+				TerminalId:         "15985",
+				Secret:             "A1tph4I6BD0f",
+				SecretCallback:     "0V1rJ7t4jCRv",
+				Currency:           "USD",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
 		},
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			"USD": {
-				TerminalId:     "15985",
-				Secret:         "A1tph4I6BD0f",
-				SecretCallback: "0V1rJ7t4jCRv",
+			keyUsd: {
+				TerminalId:         "15985",
+				Secret:             "A1tph4I6BD0f",
+				SecretCallback:     "0V1rJ7t4jCRv",
+				Currency:           "USD",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
 		},
 		Type:            "bank_card",
@@ -268,37 +300,55 @@ func (suite *OrderTestSuite) SetupTest() {
 		MaxPaymentAmount: 15000,
 		ExternalId:       "BANKCARD",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				TerminalId:     "15985",
-				Secret:         "A1tph4I6BD0f",
-				SecretCallback: "0V1rJ7t4jCRv",
+			keyRub: {
+				TerminalId:         "15985",
+				Secret:             "A1tph4I6BD0f",
+				SecretCallback:     "0V1rJ7t4jCRv",
+				Currency:           "RUB",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
-			"USD": {
-				TerminalId:     "15985",
-				Secret:         "A1tph4I6BD0f",
-				SecretCallback: "0V1rJ7t4jCRv",
+			keyUsd: {
+				TerminalId:         "15985",
+				Secret:             "A1tph4I6BD0f",
+				SecretCallback:     "0V1rJ7t4jCRv",
+				Currency:           "USD",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
-			"UAH": {
-				TerminalId:     "15985",
-				Secret:         "A1tph4I6BD0f",
-				SecretCallback: "0V1rJ7t4jCRv",
+			keyUah: {
+				TerminalId:         "15985",
+				Secret:             "A1tph4I6BD0f",
+				SecretCallback:     "0V1rJ7t4jCRv",
+				Currency:           "UAH",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
 		},
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			"USD": {
-				TerminalId:     "15985",
-				Secret:         "A1tph4I6BD0f",
-				SecretCallback: "0V1rJ7t4jCRv",
+			keyUsd: {
+				TerminalId:         "15985",
+				Secret:             "A1tph4I6BD0f",
+				SecretCallback:     "0V1rJ7t4jCRv",
+				Currency:           "USD",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
-			"RUB": {
-				TerminalId:     "15985",
-				Secret:         "A1tph4I6BD0f",
-				SecretCallback: "0V1rJ7t4jCRv",
+			keyRub: {
+				TerminalId:         "15985",
+				Secret:             "A1tph4I6BD0f",
+				SecretCallback:     "0V1rJ7t4jCRv",
+				Currency:           "RUB",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
-			"UAH": {
-				TerminalId:     "15985",
-				Secret:         "A1tph4I6BD0f",
-				SecretCallback: "0V1rJ7t4jCRv",
+			keyUah: {
+				TerminalId:         "15985",
+				Secret:             "A1tph4I6BD0f",
+				SecretCallback:     "0V1rJ7t4jCRv",
+				Currency:           "UAH",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
 		},
 		Type:            "bank_card",
@@ -325,22 +375,31 @@ func (suite *OrderTestSuite) SetupTest() {
 		MaxPaymentAmount: 0,
 		ExternalId:       "BITCOIN",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				TerminalId:     "16007",
-				Secret:         "1234567890",
-				SecretCallback: "1234567890",
+			keyRub: {
+				TerminalId:         "16007",
+				Secret:             "1234567890",
+				SecretCallback:     "1234567890",
+				Currency:           "RUB",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
-			"USD": {
-				TerminalId:     "16007",
-				Secret:         "1234567890",
-				SecretCallback: "1234567890",
+			keyUsd: {
+				TerminalId:         "16007",
+				Secret:             "1234567890",
+				SecretCallback:     "1234567890",
+				Currency:           "USD",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
 		},
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				TerminalId:     "16007",
-				Secret:         "1234567890",
-				SecretCallback: "1234567890",
+			keyRub: {
+				TerminalId:         "16007",
+				Secret:             "1234567890",
+				SecretCallback:     "1234567890",
+				Currency:           "RUB",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
 		},
 		Type:            "crypto",
@@ -355,22 +414,31 @@ func (suite *OrderTestSuite) SetupTest() {
 		MaxPaymentAmount: 0,
 		ExternalId:       "BITCOIN",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				TerminalId:     "16007",
-				Secret:         "1234567890",
-				SecretCallback: "1234567890",
+			keyRub: {
+				TerminalId:         "16007",
+				Secret:             "1234567890",
+				SecretCallback:     "1234567890",
+				Currency:           "RUB",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
-			"USD": {
-				TerminalId:     "16007",
-				Secret:         "1234567890",
-				SecretCallback: "1234567890",
+			keyUsd: {
+				TerminalId:         "16007",
+				Secret:             "1234567890",
+				SecretCallback:     "1234567890",
+				Currency:           "USD",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
 		},
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				TerminalId:     "16007",
-				Secret:         "1234567890",
-				SecretCallback: "1234567890",
+			keyRub: {
+				TerminalId:         "16007",
+				Secret:             "1234567890",
+				SecretCallback:     "1234567890",
+				Currency:           "RUB",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
 		},
 		Type:            "crypto",
@@ -396,27 +464,39 @@ func (suite *OrderTestSuite) SetupTest() {
 		MaxPaymentAmount: 0,
 		ExternalId:       "QIWI",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				TerminalId:     "15993",
-				Secret:         "1234567890",
-				SecretCallback: "1234567890",
+			keyRub: {
+				TerminalId:         "15993",
+				Secret:             "1234567890",
+				SecretCallback:     "1234567890",
+				Currency:           "RUB",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
-			"USD": {
-				TerminalId:     "16007",
-				Secret:         "1234567890",
-				SecretCallback: "1234567890",
+			keyUsd: {
+				TerminalId:         "16007",
+				Secret:             "1234567890",
+				SecretCallback:     "1234567890",
+				Currency:           "USD",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
 		},
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				TerminalId:     "15993",
-				Secret:         "1234567890",
-				SecretCallback: "1234567890",
+			keyRub: {
+				TerminalId:         "15993",
+				Secret:             "1234567890",
+				SecretCallback:     "1234567890",
+				Currency:           "RUB",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
-			"UAH": {
-				TerminalId:     "15993",
-				Secret:         "1234567890",
-				SecretCallback: "1234567890",
+			keyUah: {
+				TerminalId:         "15993",
+				Secret:             "1234567890",
+				SecretCallback:     "1234567890",
+				Currency:           "UAH",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
 		},
 		Type:            "ewallet",
@@ -561,6 +641,8 @@ func (suite *OrderTestSuite) SetupTest() {
 			},
 			HomeRegion: "russia_and_cis",
 		},
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	merchantAgreement := &billing.Merchant{
@@ -633,6 +715,8 @@ func (suite *OrderTestSuite) SetupTest() {
 			},
 			HomeRegion: "russia_and_cis",
 		},
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 	merchant1 := &billing.Merchant{
 		Id: bson.NewObjectId().Hex(),
@@ -704,6 +788,8 @@ func (suite *OrderTestSuite) SetupTest() {
 			},
 			HomeRegion: "russia_and_cis",
 		},
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	project := &billing.Project{
@@ -857,18 +943,31 @@ func (suite *OrderTestSuite) SetupTest() {
 		MaxPaymentAmount: 0,
 		ExternalId:       "WEBMONEY",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				TerminalId: "15985",
+			keyRub: {
+				TerminalId:         "15985",
+				Secret:             "1234567890",
+				SecretCallback:     "1234567890",
+				Currency:           "RUB",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
-			"USD": {
-				TerminalId: "15985",
+			keyUsd: {
+				TerminalId:         "15985",
+				Secret:             "1234567890",
+				SecretCallback:     "1234567890",
+				Currency:           "USD",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
 		},
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				TerminalId:     "15985",
-				Secret:         "1234567890",
-				SecretCallback: "1234567890",
+			keyRub: {
+				TerminalId:         "15985",
+				Secret:             "1234567890",
+				SecretCallback:     "1234567890",
+				Currency:           "RUB",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
 		},
 		Type:            "ewallet",
@@ -894,24 +993,37 @@ func (suite *OrderTestSuite) SetupTest() {
 		MaxPaymentAmount: 0,
 		ExternalId:       "WEBMONEY",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				TerminalId: "15985",
+			keyRub: {
+				TerminalId:         "15985",
+				Secret:             "1234567890",
+				SecretCallback:     "1234567890",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
-			"USD": {
-				TerminalId: "15985",
+			keyUsd: {
+				TerminalId:         "15985",
+				Secret:             "1234567890",
+				SecretCallback:     "1234567890",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
 		},
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				TerminalId:     "15985",
-				Secret:         "1234567890",
-				SecretCallback: "1234567890",
+			keyRub: {
+				TerminalId:         "15985",
+				Secret:             "1234567890",
+				SecretCallback:     "1234567890",
+				Currency:           "RUB",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
-			"UAH": {
-				Currency:       "UAH",
-				TerminalId:     "16007",
-				Secret:         "A1tph4I6BD0f",
-				SecretCallback: "0V1rJ7t4jCRv",
+			keyUah: {
+				Currency:           "UAH",
+				TerminalId:         "16007",
+				Secret:             "A1tph4I6BD0f",
+				SecretCallback:     "0V1rJ7t4jCRv",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
 		},
 		Type:            "ewallet",
@@ -926,25 +1038,39 @@ func (suite *OrderTestSuite) SetupTest() {
 		MaxPaymentAmount: 0,
 		ExternalId:       "BITCOIN",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				TerminalId: "16007",
+			keyRub: {
+				TerminalId:         "16007",
+				Secret:             "1234567890",
+				SecretCallback:     "1234567890",
+				Currency:           "RUB",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
-			"USD": {
-				TerminalId: "16007",
+			keyUsd: {
+				TerminalId:         "16007",
+				Secret:             "1234567890",
+				SecretCallback:     "1234567890",
+				Currency:           "USD",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
 		},
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				Currency:       "RUB",
-				TerminalId:     "16007",
-				Secret:         "A1tph4I6BD0f",
-				SecretCallback: "0V1rJ7t4jCRv",
+			keyRub: {
+				Currency:           "RUB",
+				TerminalId:         "16007",
+				Secret:             "A1tph4I6BD0f",
+				SecretCallback:     "0V1rJ7t4jCRv",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
-			"UAH": {
-				Currency:       "UAH",
-				TerminalId:     "16007",
-				Secret:         "A1tph4I6BD0f",
-				SecretCallback: "0V1rJ7t4jCRv",
+			keyUah: {
+				Currency:           "UAH",
+				TerminalId:         "16007",
+				Secret:             "A1tph4I6BD0f",
+				SecretCallback:     "0V1rJ7t4jCRv",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
 		},
 		Type:            "crypto",
@@ -1287,33 +1413,49 @@ func (suite *OrderTestSuite) SetupTest() {
 	assert.NoError(suite.T(), err)
 
 	sysCost := &billing.PaymentChannelCostSystem{
-		Id:        bson.NewObjectId().Hex(),
-		Name:      "MASTERCARD",
-		Region:    pkg.TariffRegionRussiaAndCis,
-		Country:   "AZ",
-		Percent:   1.5,
-		FixAmount: 5,
+		Id:                 bson.NewObjectId().Hex(),
+		Name:               "MASTERCARD",
+		Region:             pkg.TariffRegionRussiaAndCis,
+		Country:            "AZ",
+		Percent:            1.5,
+		FixAmount:          5,
+		FixAmountCurrency:  "USD",
+		IsActive:           true,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 	sysCost1 := &billing.PaymentChannelCostSystem{
-		Name:      "MASTERCARD",
-		Region:    pkg.TariffRegionRussiaAndCis,
-		Country:   "",
-		Percent:   2.2,
-		FixAmount: 0,
+		Name:               "MASTERCARD",
+		Region:             pkg.TariffRegionRussiaAndCis,
+		Country:            "",
+		Percent:            2.2,
+		FixAmount:          0,
+		FixAmountCurrency:  "USD",
+		IsActive:           true,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 	sysCost2 := &billing.PaymentChannelCostSystem{
-		Name:      "MASTERCARD",
-		Region:    pkg.TariffRegionWorldwide,
-		Country:   "US",
-		Percent:   2.2,
-		FixAmount: 0,
+		Name:               "MASTERCARD",
+		Region:             pkg.TariffRegionWorldwide,
+		Country:            "US",
+		Percent:            2.2,
+		FixAmount:          0,
+		FixAmountCurrency:  "USD",
+		IsActive:           true,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 	sysCost3 := &billing.PaymentChannelCostSystem{
-		Name:      "Bitcoin",
-		Region:    pkg.TariffRegionRussiaAndCis,
-		Country:   "RU",
-		Percent:   2.2,
-		FixAmount: 0,
+		Name:               "Bitcoin",
+		Region:             pkg.TariffRegionRussiaAndCis,
+		Country:            "RU",
+		Percent:            2.2,
+		FixAmount:          0,
+		FixAmountCurrency:  "USD",
+		IsActive:           true,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	err = suite.service.paymentChannelCostSystem.MultipleInsert(
@@ -1330,140 +1472,170 @@ func (suite *OrderTestSuite) SetupTest() {
 	}
 
 	merCost := &billing.PaymentChannelCostMerchant{
-		Id:                 bson.NewObjectId().Hex(),
-		MerchantId:         project.GetMerchantId(),
-		Name:               "MASTERCARD",
-		PayoutCurrency:     "USD",
-		MinAmount:          0.75,
-		Region:             pkg.TariffRegionRussiaAndCis,
-		Country:            "AZ",
-		MethodPercent:      1.5,
-		MethodFixAmount:    0.01,
-		PsPercent:          3,
-		PsFixedFee:         0.01,
-		PsFixedFeeCurrency: "EUR",
+		Id:                      bson.NewObjectId().Hex(),
+		MerchantId:              project.GetMerchantId(),
+		Name:                    "MASTERCARD",
+		PayoutCurrency:          "USD",
+		MinAmount:               0.75,
+		Region:                  pkg.TariffRegionRussiaAndCis,
+		Country:                 "AZ",
+		MethodPercent:           1.5,
+		MethodFixAmount:         0.01,
+		PsPercent:               3,
+		PsFixedFee:              0.01,
+		PsFixedFeeCurrency:      "EUR",
+		MethodFixAmountCurrency: "USD",
+		IsActive:                true,
+		MccCode:                 pkg.MccCodeLowRisk,
 	}
 
 	merCost1 := &billing.PaymentChannelCostMerchant{
-		MerchantId:         project.GetMerchantId(),
-		Name:               "MASTERCARD",
-		PayoutCurrency:     "USD",
-		MinAmount:          5,
-		Region:             pkg.TariffRegionRussiaAndCis,
-		Country:            "RU",
-		MethodPercent:      2.5,
-		MethodFixAmount:    2,
-		PsPercent:          5,
-		PsFixedFee:         0.05,
-		PsFixedFeeCurrency: "EUR",
+		MerchantId:              project.GetMerchantId(),
+		Name:                    "MASTERCARD",
+		PayoutCurrency:          "USD",
+		MinAmount:               5,
+		Region:                  pkg.TariffRegionRussiaAndCis,
+		Country:                 "RU",
+		MethodPercent:           2.5,
+		MethodFixAmount:         2,
+		PsPercent:               5,
+		PsFixedFee:              0.05,
+		PsFixedFeeCurrency:      "EUR",
+		MethodFixAmountCurrency: "USD",
+		IsActive:                true,
+		MccCode:                 pkg.MccCodeLowRisk,
 	}
 
 	merCost2 := &billing.PaymentChannelCostMerchant{
-		MerchantId:         project.GetMerchantId(),
-		Name:               "MASTERCARD",
-		PayoutCurrency:     "USD",
-		MinAmount:          0,
-		Region:             pkg.TariffRegionRussiaAndCis,
-		Country:            "",
-		MethodPercent:      2.2,
-		MethodFixAmount:    0,
-		PsPercent:          5,
-		PsFixedFee:         0.05,
-		PsFixedFeeCurrency: "EUR",
+		MerchantId:              project.GetMerchantId(),
+		Name:                    "MASTERCARD",
+		PayoutCurrency:          "USD",
+		MinAmount:               0,
+		Region:                  pkg.TariffRegionRussiaAndCis,
+		Country:                 "",
+		MethodPercent:           2.2,
+		MethodFixAmount:         0,
+		PsPercent:               5,
+		PsFixedFee:              0.05,
+		PsFixedFeeCurrency:      "EUR",
+		MethodFixAmountCurrency: "USD",
+		IsActive:                true,
+		MccCode:                 pkg.MccCodeLowRisk,
 	}
 
 	merCost3 := &billing.PaymentChannelCostMerchant{
-		MerchantId:         project.GetMerchantId(),
-		Name:               "Bitcoin",
-		PayoutCurrency:     "USD",
-		MinAmount:          5,
-		Region:             pkg.TariffRegionRussiaAndCis,
-		Country:            "RU",
-		MethodPercent:      2.5,
-		MethodFixAmount:    2,
-		PsPercent:          5,
-		PsFixedFee:         0.05,
-		PsFixedFeeCurrency: "EUR",
+		MerchantId:              project.GetMerchantId(),
+		Name:                    "Bitcoin",
+		PayoutCurrency:          "USD",
+		MinAmount:               5,
+		Region:                  pkg.TariffRegionRussiaAndCis,
+		Country:                 "RU",
+		MethodPercent:           2.5,
+		MethodFixAmount:         2,
+		PsPercent:               5,
+		PsFixedFee:              0.05,
+		PsFixedFeeCurrency:      "EUR",
+		MethodFixAmountCurrency: "USD",
+		IsActive:                true,
+		MccCode:                 pkg.MccCodeLowRisk,
 	}
 
 	merCost4 := &billing.PaymentChannelCostMerchant{
-		MerchantId:         project.GetMerchantId(),
-		Name:               "MASTERCARD",
-		PayoutCurrency:     "USD",
-		MinAmount:          5,
-		Region:             pkg.TariffRegionWorldwide,
-		Country:            "US",
-		MethodPercent:      2.5,
-		MethodFixAmount:    2,
-		PsPercent:          5,
-		PsFixedFee:         0.05,
-		PsFixedFeeCurrency: "EUR",
+		MerchantId:              project.GetMerchantId(),
+		Name:                    "MASTERCARD",
+		PayoutCurrency:          "USD",
+		MinAmount:               5,
+		Region:                  pkg.TariffRegionWorldwide,
+		Country:                 "US",
+		MethodPercent:           2.5,
+		MethodFixAmount:         2,
+		PsPercent:               5,
+		PsFixedFee:              0.05,
+		PsFixedFeeCurrency:      "EUR",
+		MethodFixAmountCurrency: "USD",
+		IsActive:                true,
+		MccCode:                 pkg.MccCodeLowRisk,
 	}
 	merCost5 := &billing.PaymentChannelCostMerchant{
-		Id:                 bson.NewObjectId().Hex(),
-		MerchantId:         project.GetMerchantId(),
-		Name:               "MASTERCARD",
-		PayoutCurrency:     "RUB",
-		MinAmount:          0.75,
-		Region:             pkg.TariffRegionRussiaAndCis,
-		Country:            "AZ",
-		MethodPercent:      1.5,
-		MethodFixAmount:    0.01,
-		PsPercent:          3,
-		PsFixedFee:         0.01,
-		PsFixedFeeCurrency: "EUR",
+		Id:                      bson.NewObjectId().Hex(),
+		MerchantId:              project.GetMerchantId(),
+		Name:                    "MASTERCARD",
+		PayoutCurrency:          "RUB",
+		MinAmount:               0.75,
+		Region:                  pkg.TariffRegionRussiaAndCis,
+		Country:                 "AZ",
+		MethodPercent:           1.5,
+		MethodFixAmount:         0.01,
+		PsPercent:               3,
+		PsFixedFee:              0.01,
+		PsFixedFeeCurrency:      "EUR",
+		MethodFixAmountCurrency: "USD",
+		IsActive:                true,
+		MccCode:                 pkg.MccCodeLowRisk,
 	}
 	merCost6 := &billing.PaymentChannelCostMerchant{
-		MerchantId:         project.GetMerchantId(),
-		Name:               "MASTERCARD",
-		PayoutCurrency:     "RUB",
-		MinAmount:          5,
-		Region:             pkg.TariffRegionRussiaAndCis,
-		Country:            "RU",
-		MethodPercent:      2.5,
-		MethodFixAmount:    2,
-		PsPercent:          5,
-		PsFixedFee:         0.05,
-		PsFixedFeeCurrency: "EUR",
+		MerchantId:              project.GetMerchantId(),
+		Name:                    "MASTERCARD",
+		PayoutCurrency:          "RUB",
+		MinAmount:               5,
+		Region:                  pkg.TariffRegionRussiaAndCis,
+		Country:                 "RU",
+		MethodPercent:           2.5,
+		MethodFixAmount:         2,
+		PsPercent:               5,
+		PsFixedFee:              0.05,
+		PsFixedFeeCurrency:      "EUR",
+		MethodFixAmountCurrency: "USD",
+		IsActive:                true,
+		MccCode:                 pkg.MccCodeLowRisk,
 	}
 	merCost7 := &billing.PaymentChannelCostMerchant{
-		MerchantId:         project.GetMerchantId(),
-		Name:               "MASTERCARD",
-		PayoutCurrency:     "RUB",
-		MinAmount:          0,
-		Region:             pkg.TariffRegionRussiaAndCis,
-		Country:            "",
-		MethodPercent:      2.2,
-		MethodFixAmount:    0,
-		PsPercent:          5,
-		PsFixedFee:         0.05,
-		PsFixedFeeCurrency: "EUR",
+		MerchantId:              project.GetMerchantId(),
+		Name:                    "MASTERCARD",
+		PayoutCurrency:          "RUB",
+		MinAmount:               0,
+		Region:                  pkg.TariffRegionRussiaAndCis,
+		Country:                 "",
+		MethodPercent:           2.2,
+		MethodFixAmount:         0,
+		PsPercent:               5,
+		PsFixedFee:              0.05,
+		PsFixedFeeCurrency:      "EUR",
+		MethodFixAmountCurrency: "USD",
+		IsActive:                true,
+		MccCode:                 pkg.MccCodeLowRisk,
 	}
 	merCost8 := &billing.PaymentChannelCostMerchant{
-		MerchantId:         project.GetMerchantId(),
-		Name:               "Bitcoin",
-		PayoutCurrency:     "RUB",
-		MinAmount:          5,
-		Region:             pkg.TariffRegionRussiaAndCis,
-		Country:            "RU",
-		MethodPercent:      2.5,
-		MethodFixAmount:    2,
-		PsPercent:          5,
-		PsFixedFee:         0.05,
-		PsFixedFeeCurrency: "EUR",
+		MerchantId:              project.GetMerchantId(),
+		Name:                    "Bitcoin",
+		PayoutCurrency:          "RUB",
+		MinAmount:               5,
+		Region:                  pkg.TariffRegionRussiaAndCis,
+		Country:                 "RU",
+		MethodPercent:           2.5,
+		MethodFixAmount:         2,
+		PsPercent:               5,
+		PsFixedFee:              0.05,
+		PsFixedFeeCurrency:      "EUR",
+		MethodFixAmountCurrency: "USD",
+		IsActive:                true,
+		MccCode:                 pkg.MccCodeLowRisk,
 	}
 	merCost9 := &billing.PaymentChannelCostMerchant{
-		MerchantId:         project.GetMerchantId(),
-		Name:               "MASTERCARD",
-		PayoutCurrency:     "RUB",
-		MinAmount:          5,
-		Region:             pkg.TariffRegionWorldwide,
-		Country:            "US",
-		MethodPercent:      2.5,
-		MethodFixAmount:    2,
-		PsPercent:          5,
-		PsFixedFee:         0.05,
-		PsFixedFeeCurrency: "EUR",
+		MerchantId:              project.GetMerchantId(),
+		Name:                    "MASTERCARD",
+		PayoutCurrency:          "RUB",
+		MinAmount:               5,
+		Region:                  pkg.TariffRegionWorldwide,
+		Country:                 "US",
+		MethodPercent:           2.5,
+		MethodFixAmount:         2,
+		PsPercent:               5,
+		PsFixedFee:              0.05,
+		PsFixedFeeCurrency:      "EUR",
+		MethodFixAmountCurrency: "USD",
+		IsActive:                true,
+		MccCode:                 pkg.MccCodeLowRisk,
 	}
 
 	err = suite.service.paymentChannelCostMerchant.
@@ -2200,7 +2372,10 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethod_Ok() {
 	processor := &OrderCreateRequestProcessor{
 		Service: suite.service,
 		request: req,
-		checked: &orderCreateRequestProcessorChecked{},
+		checked: &orderCreateRequestProcessorChecked{
+			mccCode:            pkg.MccCodeLowRisk,
+			operatingCompanyId: suite.operatingCompany.Id,
+		},
 	}
 	assert.Nil(suite.T(), processor.checked.paymentMethod)
 
@@ -2282,7 +2457,10 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_Ok() {
 	processor := &OrderCreateRequestProcessor{
 		Service: suite.service,
 		request: req,
-		checked: &orderCreateRequestProcessorChecked{},
+		checked: &orderCreateRequestProcessorChecked{
+			mccCode:            pkg.MccCodeLowRisk,
+			operatingCompanyId: suite.operatingCompany.Id,
+		},
 	}
 	assert.Nil(suite.T(), processor.checked.paymentMethod)
 
@@ -2316,7 +2494,10 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_ConvertAmount_Ok() {
 	processor := &OrderCreateRequestProcessor{
 		Service: suite.service,
 		request: req,
-		checked: &orderCreateRequestProcessorChecked{},
+		checked: &orderCreateRequestProcessorChecked{
+			mccCode:            pkg.MccCodeLowRisk,
+			operatingCompanyId: suite.operatingCompany.Id,
+		},
 	}
 	assert.Nil(suite.T(), processor.checked.paymentMethod)
 
@@ -2350,7 +2531,10 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_ProjectMinAmount_Erro
 	processor := &OrderCreateRequestProcessor{
 		Service: suite.service,
 		request: req,
-		checked: &orderCreateRequestProcessorChecked{},
+		checked: &orderCreateRequestProcessorChecked{
+			mccCode:            pkg.MccCodeLowRisk,
+			operatingCompanyId: suite.operatingCompany.Id,
+		},
 	}
 	assert.Nil(suite.T(), processor.checked.paymentMethod)
 
@@ -2383,7 +2567,10 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_ProjectMaxAmount_Erro
 	processor := &OrderCreateRequestProcessor{
 		Service: suite.service,
 		request: req,
-		checked: &orderCreateRequestProcessorChecked{},
+		checked: &orderCreateRequestProcessorChecked{
+			mccCode:            pkg.MccCodeLowRisk,
+			operatingCompanyId: suite.operatingCompany.Id,
+		},
 	}
 	assert.Nil(suite.T(), processor.checked.paymentMethod)
 
@@ -2418,7 +2605,10 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_PaymentMethodMinAmoun
 	processor := &OrderCreateRequestProcessor{
 		Service: suite.service,
 		request: req,
-		checked: &orderCreateRequestProcessorChecked{},
+		checked: &orderCreateRequestProcessorChecked{
+			mccCode:            pkg.MccCodeLowRisk,
+			operatingCompanyId: suite.operatingCompany.Id,
+		},
 	}
 	assert.Nil(suite.T(), processor.checked.paymentMethod)
 
@@ -2453,7 +2643,10 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_PaymentMethodMaxAmoun
 	processor := &OrderCreateRequestProcessor{
 		Service: suite.service,
 		request: req,
-		checked: &orderCreateRequestProcessorChecked{},
+		checked: &orderCreateRequestProcessorChecked{
+			mccCode:            pkg.MccCodeLowRisk,
+			operatingCompanyId: suite.operatingCompany.Id,
+		},
 	}
 	assert.Nil(suite.T(), processor.checked.paymentMethod)
 
@@ -2694,7 +2887,10 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_PaymentMethod_Ok() {
 	processor := &OrderCreateRequestProcessor{
 		Service: suite.service,
 		request: req,
-		checked: &orderCreateRequestProcessorChecked{},
+		checked: &orderCreateRequestProcessorChecked{
+			mccCode:            pkg.MccCodeLowRisk,
+			operatingCompanyId: suite.operatingCompany.Id,
+		},
 	}
 
 	err := processor.processProject()
@@ -7117,7 +7313,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_AllPaymentMeth
 	assert.Nil(suite.T(), err)
 	assert.True(suite.T(), len(rsp.Item.PaymentMethods) > 0)
 	assert.True(suite.T(), len(rsp.Item.PaymentMethods[0].Id) > 0)
-	assert.Len(suite.T(), rsp.Item.PaymentMethods, 4)
+	assert.Len(suite.T(), rsp.Item.PaymentMethods, 5)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_OnePaymentMethods() {
