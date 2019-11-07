@@ -572,7 +572,7 @@ message Order {
     //@inject_tag: json:"country" bson:"country" validate:"omitempty,alpha,len=2"
     string country_code = 50;
     // @inject_tag: json:"-"
-    string parent_id = 51;
+    ParentOrder parent_order = 51;
     // @inject_tag: json:"-"
     google.protobuf.Timestamp parent_payment_at = 52;
     // @inject_tag: json:"-"
@@ -593,6 +593,13 @@ message Order {
     double virtual_currency_amount = 74;
     // @inject_tag: json:"is_buy_for_virtual_currency" bson:"is_buy_for_virtual_currency"
     bool is_buy_for_virtual_currency = 75;
+}
+
+message ParentOrder {
+    // @inject_tag: json:"id"
+    string id = 51;
+    // @inject_tag: json:"uuid"
+    string uuid = 52;
 }
 
 message CountryRestriction {
@@ -1737,6 +1744,12 @@ message OrderViewPublic {
     repeated OrderItem items = 39;
     //@inject_tag: json:"merchant_payout_currency" bson:"merchant_payout_currency"
     string merchant_payout_currency = 40;
+    //@inject_tag: json:"parent_order" bson:"parent_order"
+    ParentOrder parent_order = 41;
+    //@inject_tag: json:"refund" bson:"refund"
+    OrderNotificationRefund refund = 42;
+    //@inject_tag: json:"cancellation" bson:"cancellation"
+    OrderNotificationCancellation cancellation = 43;
 }
 
 message OrderViewPrivate {
@@ -1886,6 +1899,12 @@ message OrderViewPrivate {
     repeated OrderItem items = 72;
     //@inject_tag: json:"merchant_payout_currency" bson:"merchant_payout_currency"
     string merchant_payout_currency = 73;
+    //@inject_tag: json:"parent_order" bson:"parent_order"
+    ParentOrder parent_order = 74;
+    //@inject_tag: json:"refund" bson:"refund"
+    OrderNotificationRefund refund = 75;
+    //@inject_tag: json:"cancellation" bson:"cancellation"
+    OrderNotificationCancellation cancellation = 76;
 }
 
 message RecommendedPrice {
