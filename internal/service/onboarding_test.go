@@ -38,6 +38,8 @@ type OnboardingTestSuite struct {
 	log     *zap.Logger
 	cache   internalPkg.CacheInterface
 
+	operatingCompany *billing.OperatingCompany
+
 	merchant          *billing.Merchant
 	merchantAgreement *billing.Merchant
 	merchant1         *billing.Merchant
@@ -68,6 +70,24 @@ func (suite *OnboardingTestSuite) SetupTest() {
 
 	db, err := mongodb.NewDatabase()
 	assert.NoError(suite.T(), err, "Database connection failed")
+
+	suite.operatingCompany = &billing.OperatingCompany{
+		Id:                 bson.NewObjectId().Hex(),
+		Name:               "Legal name",
+		Country:            "RU",
+		RegistrationNumber: "some number",
+		VatNumber:          "some vat number",
+		Address:            "Home, home 0",
+		SignatoryName:      "Vassiliy Poupkine",
+		SignatoryPosition:  "CEO",
+		BankingDetails:     "bank details including bank, bank address, account number, swift/ bic, intermediary bank",
+		PaymentCountries:   []string{},
+	}
+
+	err = db.Collection(collectionOperatingCompanies).Insert(suite.operatingCompany)
+	if err != nil {
+		suite.FailNow("Insert operatingCompany test data failed", "%v", err)
+	}
 
 	country := &billing.Country{
 		IsoCodeA2:         "RU",
@@ -3055,8 +3075,16 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_GetMerchantAgree
 	rsp := &grpc.ChangeMerchantResponse{}
 	err = suite.service.ChangeMerchant(context.TODO(), req, rsp)
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp.Status)
-	assert.Equal(suite.T(), merchantErrorUnknown, rsp.Message)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+
+	req3 := &grpc.SetMerchantOperatingCompanyRequest{
+		MerchantId:         req2.MerchantId,
+		OperatingCompanyId: suite.operatingCompany.Id,
+	}
+	rsp3 := &grpc.SetMerchantOperatingCompanyResponse{}
+	err = suite.service.SetMerchantOperatingCompany(context.TODO(), req3, rsp3)
+	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp3.Status)
+	assert.Equal(suite.T(), merchantErrorUnknown, rsp3.Message)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_Upsert_Error() {
@@ -3229,8 +3257,16 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_GetMerchantAgree
 	rsp := &grpc.ChangeMerchantResponse{}
 	err = suite.service.ChangeMerchant(context.TODO(), req, rsp)
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp.Status)
-	assert.Equal(suite.T(), mocks.SomeError, rsp.Message.Message)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+
+	req3 := &grpc.SetMerchantOperatingCompanyRequest{
+		MerchantId:         req1.MerchantId,
+		OperatingCompanyId: suite.operatingCompany.Id,
+	}
+	rsp3 := &grpc.SetMerchantOperatingCompanyResponse{}
+	err = suite.service.SetMerchantOperatingCompany(context.TODO(), req3, rsp3)
+	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp3.Status)
+	assert.Equal(suite.T(), mocks.SomeError, rsp3.Message.Message)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_PaysuperSign_Ok() {
@@ -3598,7 +3634,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_Merchant
 	assert.Equal(suite.T(), merchantErrorUnknown, rsp.Message)
 }
 
-func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_GetMerchantAgreementSignature_Error() {
+func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantOperatingCompany_GetMerchantAgreementSignature_Error() {
 	rs := &reportingMocks.ReporterService{}
 	rs.On("CreateFile", mock2.Anything, mock2.Anything, mock2.Anything).
 		Return(
@@ -3618,8 +3654,16 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_GetMerch
 	rsp := &grpc.CheckProjectRequestSignatureResponse{}
 	err := suite.service.SetMerchantTariffRates(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp.Status)
-	assert.Equal(suite.T(), mocks.SomeError, rsp.Message.Message)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+
+	req3 := &grpc.SetMerchantOperatingCompanyRequest{
+		MerchantId:         suite.merchant.Id,
+		OperatingCompanyId: suite.operatingCompany.Id,
+	}
+	rsp3 := &grpc.SetMerchantOperatingCompanyResponse{}
+	err = suite.service.SetMerchantOperatingCompany(context.TODO(), req3, rsp3)
+	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp3.Status)
+	assert.Equal(suite.T(), mocks.SomeError, rsp3.Message.Message)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_MerchantHasTariff_Error() {

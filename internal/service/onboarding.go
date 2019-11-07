@@ -312,14 +312,7 @@ func (s *Service) ChangeMerchant(
 	}
 
 	if merchant.IsDataComplete() {
-		err = s.generateMerchantAgreement(ctx, merchant)
-
-		if err != nil {
-			rsp.Status = pkg.ResponseStatusSystemError
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
-
-			return nil
-		}
+		// todo: send letters to admin and merchant
 	}
 
 	merchant.UpdatedAt = ptypes.TimestampNow()
@@ -536,6 +529,15 @@ func (s *Service) SetMerchantOperatingCompany(
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = merchantErrorUnknown
+
+		return nil
+	}
+
+	err = s.generateMerchantAgreement(ctx, merchant)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
 
 		return nil
 	}
@@ -1467,14 +1469,7 @@ func (s *Service) SetMerchantTariffRates(
 	merchant.Steps.Tariff = true
 
 	if merchant.IsDataComplete() {
-		err = s.generateMerchantAgreement(ctx, merchant)
-
-		if err != nil {
-			rsp.Status = pkg.ResponseStatusSystemError
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
-
-			return nil
-		}
+		// todo: send letters to admin and merchant
 	}
 
 	err = s.merchant.Update(merchant)
