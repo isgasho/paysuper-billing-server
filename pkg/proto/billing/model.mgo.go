@@ -578,43 +578,45 @@ type MgoAccountingEntrySource struct {
 }
 
 type MgoAccountingEntry struct {
-	Id               bson.ObjectId             `bson:"_id"`
-	Object           string                    `bson:"object"`
-	Type             string                    `bson:"type"`
-	Source           *MgoAccountingEntrySource `bson:"source"`
-	MerchantId       bson.ObjectId             `bson:"merchant_id"`
-	Amount           float64                   `bson:"amount"`
-	Currency         string                    `bson:"currency"`
-	Reason           string                    `bson:"reason"`
-	Status           string                    `bson:"status"`
-	Country          string                    `bson:"country"`
-	OriginalAmount   float64                   `bson:"original_amount"`
-	OriginalCurrency string                    `bson:"original_currency"`
-	LocalAmount      float64                   `bson:"local_amount"`
-	LocalCurrency    string                    `bson:"local_currency"`
-	CreatedAt        time.Time                 `bson:"created_at"`
-	AvailableOn      time.Time                 `bson:"available_on"`
+	Id                 bson.ObjectId             `bson:"_id"`
+	Object             string                    `bson:"object"`
+	Type               string                    `bson:"type"`
+	Source             *MgoAccountingEntrySource `bson:"source"`
+	MerchantId         bson.ObjectId             `bson:"merchant_id"`
+	Amount             float64                   `bson:"amount"`
+	Currency           string                    `bson:"currency"`
+	Reason             string                    `bson:"reason"`
+	Status             string                    `bson:"status"`
+	Country            string                    `bson:"country"`
+	OriginalAmount     float64                   `bson:"original_amount"`
+	OriginalCurrency   string                    `bson:"original_currency"`
+	LocalAmount        float64                   `bson:"local_amount"`
+	LocalCurrency      string                    `bson:"local_currency"`
+	CreatedAt          time.Time                 `bson:"created_at"`
+	AvailableOn        time.Time                 `bson:"available_on"`
+	OperatingCompanyId string                    `bson:"operating_company_id"`
 }
 
 type MgoRoyaltyReport struct {
-	Id               bson.ObjectId         `bson:"_id"`
-	MerchantId       bson.ObjectId         `bson:"merchant_id"`
-	CreatedAt        time.Time             `bson:"created_at"`
-	UpdatedAt        time.Time             `bson:"updated_at"`
-	PayoutDate       time.Time             `bson:"payout_date"`
-	Status           string                `bson:"status"`
-	PeriodFrom       time.Time             `bson:"period_from"`
-	PeriodTo         time.Time             `bson:"period_to"`
-	AcceptExpireAt   time.Time             `bson:"accept_expire_at"`
-	AcceptedAt       time.Time             `bson:"accepted_at"`
-	Totals           *RoyaltyReportTotals  `bson:"totals"`
-	Currency         string                `bson:"currency"`
-	Summary          *RoyaltyReportSummary `bson:"summary"`
-	DisputeReason    string                `bson:"dispute_reason"`
-	DisputeStartedAt time.Time             `bson:"dispute_started_at"`
-	DisputeClosedAt  time.Time             `bson:"dispute_closed_at"`
-	IsAutoAccepted   bool                  `bson:"is_auto_accepted"`
-	PayoutDocumentId string                `bson:"payout_document_id"`
+	Id                 bson.ObjectId         `bson:"_id"`
+	MerchantId         bson.ObjectId         `bson:"merchant_id"`
+	CreatedAt          time.Time             `bson:"created_at"`
+	UpdatedAt          time.Time             `bson:"updated_at"`
+	PayoutDate         time.Time             `bson:"payout_date"`
+	Status             string                `bson:"status"`
+	PeriodFrom         time.Time             `bson:"period_from"`
+	PeriodTo           time.Time             `bson:"period_to"`
+	AcceptExpireAt     time.Time             `bson:"accept_expire_at"`
+	AcceptedAt         time.Time             `bson:"accepted_at"`
+	Totals             *RoyaltyReportTotals  `bson:"totals"`
+	Currency           string                `bson:"currency"`
+	Summary            *RoyaltyReportSummary `bson:"summary"`
+	DisputeReason      string                `bson:"dispute_reason"`
+	DisputeStartedAt   time.Time             `bson:"dispute_started_at"`
+	DisputeClosedAt    time.Time             `bson:"dispute_closed_at"`
+	IsAutoAccepted     bool                  `bson:"is_auto_accepted"`
+	PayoutDocumentId   string                `bson:"payout_document_id"`
+	OperatingCompanyId string                `bson:"operating_company_id"`
 }
 
 type MgoRoyaltyReportCorrectionItem struct {
@@ -655,6 +657,7 @@ type MgoVatReport struct {
 	CreatedAt             time.Time     `bson:"created_at"`
 	UpdatedAt             time.Time     `bson:"updated_at"`
 	PaidAt                time.Time     `bson:"paid_at"`
+	OperatingCompanyId    string        `bson:"operating_company_id"`
 }
 
 type MgoOrderViewPrivate struct {
@@ -833,6 +836,7 @@ type MgoPayoutDocument struct {
 	UpdatedAt               time.Time            `bson:"updated_at"`
 	ArrivalDate             time.Time            `bson:"arrival_date"`
 	PaidAt                  time.Time            `bson:"paid_at"`
+	OperatingCompanyId      string               `bson:"operating_company_id"`
 }
 
 type MgoPayoutDocumentChanges struct {
@@ -885,6 +889,7 @@ func (m *PayoutDocument) GetBSON() (interface{}, error) {
 		FailureTransaction:      m.FailureTransaction,
 		Destination:             m.Destination,
 		Company:                 m.Company,
+		OperatingCompanyId:      m.OperatingCompanyId,
 	}
 	if len(m.Id) <= 0 {
 		st.Id = bson.NewObjectId()
@@ -994,6 +999,7 @@ func (m *PayoutDocument) SetBSON(raw bson.Raw) error {
 	m.FailureTransaction = decoded.FailureTransaction
 	m.Destination = decoded.Destination
 	m.Company = decoded.Company
+	m.OperatingCompanyId = decoded.OperatingCompanyId
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {
@@ -3471,6 +3477,7 @@ func (m *VatReport) GetBSON() (interface{}, error) {
 		WorldAnnualTurnover:   m.WorldAnnualTurnover,
 		AmountsApproximate:    m.AmountsApproximate,
 		Status:                m.Status,
+		OperatingCompanyId:    m.OperatingCompanyId,
 	}
 
 	if len(m.Id) <= 0 {
@@ -3540,6 +3547,7 @@ func (m *VatReport) SetBSON(raw bson.Raw) error {
 	m.WorldAnnualTurnover = decoded.WorldAnnualTurnover
 	m.AmountsApproximate = decoded.AmountsApproximate
 	m.Status = decoded.Status
+	m.OperatingCompanyId = decoded.OperatingCompanyId
 
 	m.DateFrom, err = ptypes.TimestampProto(decoded.DateFrom)
 	if err != nil {
@@ -3583,16 +3591,17 @@ func (m *AccountingEntry) GetBSON() (interface{}, error) {
 			Id:   bson.ObjectIdHex(m.Source.Id),
 			Type: m.Source.Type,
 		},
-		MerchantId:       bson.ObjectIdHex(m.MerchantId),
-		Amount:           m.Amount,
-		Currency:         m.Currency,
-		OriginalAmount:   m.OriginalAmount,
-		OriginalCurrency: m.OriginalCurrency,
-		LocalAmount:      m.LocalAmount,
-		LocalCurrency:    m.LocalCurrency,
-		Country:          m.Country,
-		Reason:           m.Reason,
-		Status:           m.Status,
+		MerchantId:         bson.ObjectIdHex(m.MerchantId),
+		Amount:             m.Amount,
+		Currency:           m.Currency,
+		OriginalAmount:     m.OriginalAmount,
+		OriginalCurrency:   m.OriginalCurrency,
+		LocalAmount:        m.LocalAmount,
+		LocalCurrency:      m.LocalCurrency,
+		Country:            m.Country,
+		Reason:             m.Reason,
+		Status:             m.Status,
+		OperatingCompanyId: m.OperatingCompanyId,
 	}
 
 	if m.CreatedAt != nil {
@@ -3645,6 +3654,7 @@ func (m *AccountingEntry) SetBSON(raw bson.Raw) error {
 	m.Country = decoded.Country
 	m.Reason = decoded.Reason
 	m.Status = decoded.Status
+	m.OperatingCompanyId = decoded.OperatingCompanyId
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 
@@ -3663,15 +3673,16 @@ func (m *AccountingEntry) SetBSON(raw bson.Raw) error {
 
 func (m *RoyaltyReport) GetBSON() (interface{}, error) {
 	st := &MgoRoyaltyReport{
-		Id:               bson.ObjectIdHex(m.Id),
-		MerchantId:       bson.ObjectIdHex(m.MerchantId),
-		Status:           m.Status,
-		Totals:           m.Totals,
-		Currency:         m.Currency,
-		Summary:          m.Summary,
-		DisputeReason:    m.DisputeReason,
-		IsAutoAccepted:   m.IsAutoAccepted,
-		PayoutDocumentId: m.PayoutDocumentId,
+		Id:                 bson.ObjectIdHex(m.Id),
+		MerchantId:         bson.ObjectIdHex(m.MerchantId),
+		Status:             m.Status,
+		Totals:             m.Totals,
+		Currency:           m.Currency,
+		Summary:            m.Summary,
+		DisputeReason:      m.DisputeReason,
+		IsAutoAccepted:     m.IsAutoAccepted,
+		PayoutDocumentId:   m.PayoutDocumentId,
+		OperatingCompanyId: m.OperatingCompanyId,
 	}
 
 	if m.PayoutDate != nil {
@@ -3780,6 +3791,7 @@ func (m *RoyaltyReport) SetBSON(raw bson.Raw) error {
 	m.DisputeReason = decoded.DisputeReason
 	m.IsAutoAccepted = decoded.IsAutoAccepted
 	m.PayoutDocumentId = decoded.PayoutDocumentId
+	m.OperatingCompanyId = decoded.OperatingCompanyId
 
 	m.PayoutDate, err = ptypes.TimestampProto(decoded.PayoutDate)
 	if err != nil {

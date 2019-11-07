@@ -1488,6 +1488,7 @@ message AccountingEntry {
     string local_currency = 14;
     google.protobuf.Timestamp created_at = 15;
     google.protobuf.Timestamp available_on = 16;
+    string operating_company_id = 17;
 }
 
 message RoyaltyReportTotals {
@@ -1591,6 +1592,8 @@ message RoyaltyReport {
     bool is_auto_accepted = 17;
     //@inject_tag: bson:"payout_document_id" json:"payout_document_id"
     string payout_document_id = 18;
+    // @inject_tag: json:"operating_company_id" bson:"operating_company_id"
+    string operating_company_id = 19;
 }
 
 message RoyaltyReportChanges {
@@ -1690,6 +1693,8 @@ message VatReport {
     google.protobuf.Timestamp updated_at = 19;
     //@inject_tag: json:"paid_at" bson:"paid_at"
     google.protobuf.Timestamp paid_at = 20;
+    // @inject_tag: json:"operating_company_id" bson:"operating_company_id"
+    string operating_company_id = 21;
 }
 
 message AnnualTurnover {
@@ -1701,6 +1706,8 @@ message AnnualTurnover {
     double amount = 3;
     //@inject_tag: json:"currency" bson:"currency" validate:"required,alpha,len=3"
     string currency = 4;
+    // @inject_tag: json:"operating_company_id" bson:"operating_company_id"
+    string operating_company_id = 5;
 }
 
 message OrderViewMoney {
@@ -2129,6 +2136,8 @@ message PayoutDocument {
     google.protobuf.Timestamp arrival_date = 26;
     //@inject_tag: json:"paid_at"
     google.protobuf.Timestamp paid_at = 27;
+    // @inject_tag: json:"operating_company_id" bson:"operating_company_id"
+    string operating_company_id = 28;
 }
 
 message PayoutDocumentChanges {

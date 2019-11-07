@@ -209,6 +209,7 @@ It has these top-level messages:
 	DashboardBaseReports
 	CreatePayoutDocumentRequest
 	PayoutDocumentResponse
+	CreatePayoutDocumentResponse
 	UpdatePayoutDocumentRequest
 	GetPayoutDocumentRequest
 	GetPayoutDocumentsRequest
@@ -409,7 +410,7 @@ type BillingService interface {
 	GetDashboardMainReport(ctx context.Context, in *GetDashboardMainRequest, opts ...client.CallOption) (*GetDashboardMainResponse, error)
 	GetDashboardRevenueDynamicsReport(ctx context.Context, in *GetDashboardMainRequest, opts ...client.CallOption) (*GetDashboardRevenueDynamicsReportResponse, error)
 	GetDashboardBaseReport(ctx context.Context, in *GetDashboardBaseReportRequest, opts ...client.CallOption) (*GetDashboardBaseReportResponse, error)
-	CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, opts ...client.CallOption) (*PayoutDocumentResponse, error)
+	CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, opts ...client.CallOption) (*CreatePayoutDocumentResponse, error)
 	UpdatePayoutDocument(ctx context.Context, in *UpdatePayoutDocumentRequest, opts ...client.CallOption) (*PayoutDocumentResponse, error)
 	GetPayoutDocuments(ctx context.Context, in *GetPayoutDocumentsRequest, opts ...client.CallOption) (*GetPayoutDocumentsResponse, error)
 	GetPayoutDocument(ctx context.Context, in *GetPayoutDocumentRequest, opts ...client.CallOption) (*PayoutDocumentResponse, error)
@@ -1743,9 +1744,9 @@ func (c *billingService) GetDashboardBaseReport(ctx context.Context, in *GetDash
 	return out, nil
 }
 
-func (c *billingService) CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, opts ...client.CallOption) (*PayoutDocumentResponse, error) {
+func (c *billingService) CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, opts ...client.CallOption) (*CreatePayoutDocumentResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.CreatePayoutDocument", in)
-	out := new(PayoutDocumentResponse)
+	out := new(CreatePayoutDocumentResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -2115,7 +2116,7 @@ type BillingServiceHandler interface {
 	GetDashboardMainReport(context.Context, *GetDashboardMainRequest, *GetDashboardMainResponse) error
 	GetDashboardRevenueDynamicsReport(context.Context, *GetDashboardMainRequest, *GetDashboardRevenueDynamicsReportResponse) error
 	GetDashboardBaseReport(context.Context, *GetDashboardBaseReportRequest, *GetDashboardBaseReportResponse) error
-	CreatePayoutDocument(context.Context, *CreatePayoutDocumentRequest, *PayoutDocumentResponse) error
+	CreatePayoutDocument(context.Context, *CreatePayoutDocumentRequest, *CreatePayoutDocumentResponse) error
 	UpdatePayoutDocument(context.Context, *UpdatePayoutDocumentRequest, *PayoutDocumentResponse) error
 	GetPayoutDocuments(context.Context, *GetPayoutDocumentsRequest, *GetPayoutDocumentsResponse) error
 	GetPayoutDocument(context.Context, *GetPayoutDocumentRequest, *PayoutDocumentResponse) error
@@ -2272,7 +2273,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetDashboardMainReport(ctx context.Context, in *GetDashboardMainRequest, out *GetDashboardMainResponse) error
 		GetDashboardRevenueDynamicsReport(ctx context.Context, in *GetDashboardMainRequest, out *GetDashboardRevenueDynamicsReportResponse) error
 		GetDashboardBaseReport(ctx context.Context, in *GetDashboardBaseReportRequest, out *GetDashboardBaseReportResponse) error
-		CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, out *PayoutDocumentResponse) error
+		CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, out *CreatePayoutDocumentResponse) error
 		UpdatePayoutDocument(ctx context.Context, in *UpdatePayoutDocumentRequest, out *PayoutDocumentResponse) error
 		GetPayoutDocuments(ctx context.Context, in *GetPayoutDocumentsRequest, out *GetPayoutDocumentsResponse) error
 		GetPayoutDocument(ctx context.Context, in *GetPayoutDocumentRequest, out *PayoutDocumentResponse) error
@@ -2824,7 +2825,7 @@ func (h *billingServiceHandler) GetDashboardBaseReport(ctx context.Context, in *
 	return h.BillingServiceHandler.GetDashboardBaseReport(ctx, in, out)
 }
 
-func (h *billingServiceHandler) CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, out *PayoutDocumentResponse) error {
+func (h *billingServiceHandler) CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, out *CreatePayoutDocumentResponse) error {
 	return h.BillingServiceHandler.CreatePayoutDocument(ctx, in, out)
 }
 

@@ -91,7 +91,7 @@ func newPayoutService(svc *Service) PayoutDocumentServiceInterface {
 func (s *Service) CreatePayoutDocument(
 	ctx context.Context,
 	req *grpc.CreatePayoutDocumentRequest,
-	res *grpc.PayoutDocumentResponse,
+	res *grpc.CreatePayoutDocumentResponse,
 ) error {
 
 	merchant, err := s.merchant.GetById(req.MerchantId)
@@ -106,6 +106,7 @@ func (s *Service) CreatePayoutDocument(
 		} else {
 			res.Message = errorPayoutManualPayoutsDisabled
 		}
+		return nil
 	}
 
 	return s.createPayoutDocument(ctx, merchant, req, res)
@@ -115,144 +116,161 @@ func (s *Service) createPayoutDocument(
 	ctx context.Context,
 	merchant *billing.Merchant,
 	req *grpc.CreatePayoutDocumentRequest,
-	res *grpc.PayoutDocumentResponse,
+	res *grpc.CreatePayoutDocumentResponse,
 ) error {
+	operatingCompaniesIds, err := s.royaltyReport.GetNonPayoutReportsOperatingCompaniesIds(merchant.Id, merchant.GetPayoutCurrency())
+	if err != nil {
+		return err
+	}
+
+	if len(operatingCompaniesIds) == 0 {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorPayoutSourcesNotFound
+		return nil
+	}
+
 	arrivalDate, err := ptypes.TimestampProto(now.EndOfDay().Add(time.Hour * 24 * payoutArrivalInDays))
 	if err != nil {
 		return err
 	}
 
-	pd := &billing.PayoutDocument{
-		Id:          bson.NewObjectId().Hex(),
-		Status:      pkg.PayoutDocumentStatusPending,
-		SourceId:    []string{},
-		Description: req.Description,
-		CreatedAt:   ptypes.TimestampNow(),
-		UpdatedAt:   ptypes.TimestampNow(),
-		ArrivalDate: arrivalDate,
-	}
+	for _, operatingCompanyId := range operatingCompaniesIds {
 
-	pd.MerchantId = merchant.Id
-	pd.Destination = merchant.Banking
-	pd.Company = merchant.Company
-	pd.MerchantAgreementNumber = merchant.AgreementNumber
+		pd := &billing.PayoutDocument{
+			Id:                 bson.NewObjectId().Hex(),
+			Status:             pkg.PayoutDocumentStatusPending,
+			SourceId:           []string{},
+			Description:        req.Description,
+			CreatedAt:          ptypes.TimestampNow(),
+			UpdatedAt:          ptypes.TimestampNow(),
+			ArrivalDate:        arrivalDate,
+			OperatingCompanyId: operatingCompanyId,
+		}
 
-	reports, err := s.getPayoutDocumentSources(merchant)
+		pd.MerchantId = merchant.Id
+		pd.Destination = merchant.Banking
+		pd.Company = merchant.Company
+		pd.MerchantAgreementNumber = merchant.AgreementNumber
 
-	if err != nil {
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+		reports, err := s.getPayoutDocumentSources(merchant, operatingCompanyId)
+
+		if err != nil {
+			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+				res.Status = pkg.ResponseStatusBadData
+				res.Message = e
+				return nil
+			}
+			return err
+		}
+
+		pd.Currency = reports[0].Currency
+
+		var times []time.Time
+
+		for _, r := range reports {
+			pd.TotalFees += r.Totals.PayoutAmount - r.Totals.CorrectionAmount
+			pd.Balance += r.Totals.PayoutAmount - r.Totals.CorrectionAmount - r.Totals.RollingReserveAmount
+			pd.TotalTransactions += r.Totals.TransactionsCount
+			pd.SourceId = append(pd.SourceId, r.Id)
+
+			from, err := ptypes.Timestamp(r.PeriodFrom)
+
+			if err != nil {
+				zap.L().Error(
+					"Time conversion error",
+					zap.Error(err),
+				)
+				return err
+			}
+
+			to, err := ptypes.Timestamp(r.PeriodTo)
+			if err != nil {
+				zap.L().Error(
+					"Payout source time conversion error",
+					zap.Error(err),
+				)
+				return err
+			}
+			times = append(times, from, to)
+		}
+
+		if pd.Balance <= 0 {
 			res.Status = pkg.ResponseStatusBadData
-			res.Message = e
+			res.Message = errorPayoutAmountInvalid
 			return nil
 		}
-		return err
-	}
 
-	pd.Currency = reports[0].Currency
+		balance, err := s.getMerchantBalance(merchant.Id)
+		if err != nil {
+			res.Status = pkg.ResponseStatusSystemError
+			res.Message = errorPayoutBalanceError
+			return nil
+		}
 
-	var times []time.Time
+		if pd.Balance > (balance.Debit - balance.Credit) {
+			res.Status = pkg.ResponseStatusBadData
+			res.Message = errorPayoutNotEnoughBalance
+			return nil
+		}
 
-	for _, r := range reports {
-		pd.TotalFees += r.Totals.PayoutAmount - r.Totals.CorrectionAmount
-		pd.Balance += r.Totals.PayoutAmount - r.Totals.CorrectionAmount - r.Totals.RollingReserveAmount
-		pd.TotalTransactions += r.Totals.TransactionsCount
-		pd.SourceId = append(pd.SourceId, r.Id)
+		if pd.Balance < merchant.MinPayoutAmount {
+			pd.Status = pkg.PayoutDocumentStatusSkip
+		}
 
-		from, err := ptypes.Timestamp(r.PeriodFrom)
+		sort.Slice(times, func(i, j int) bool {
+			return times[i].Before(times[j])
+		})
 
+		from := times[0]
+		to := times[len(times)-1]
+
+		pd.PeriodFrom, err = ptypes.TimestampProto(from)
 		if err != nil {
 			zap.L().Error(
-				"Time conversion error",
+				"Payout PeriodFrom time conversion error",
+				zap.Error(err),
+			)
+			return err
+		}
+		pd.PeriodTo, err = ptypes.TimestampProto(to)
+		if err != nil {
+			zap.L().Error(
+				"Payout PeriodTo time conversion error",
 				zap.Error(err),
 			)
 			return err
 		}
 
-		to, err := ptypes.Timestamp(r.PeriodTo)
+		err = s.payoutDocument.Insert(pd, req.Ip, payoutChangeSourceMerchant)
 		if err != nil {
-			zap.L().Error(
-				"Payout source time conversion error",
-				zap.Error(err),
-			)
+			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+				res.Status = pkg.ResponseStatusSystemError
+				res.Message = e
+				return nil
+			}
 			return err
 		}
-		times = append(times, from, to)
-	}
 
-	if pd.Balance <= 0 {
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorPayoutAmountInvalid
-		return nil
-	}
-
-	balance, err := s.getMerchantBalance(merchant.Id)
-	if err != nil {
-		res.Status = pkg.ResponseStatusSystemError
-		res.Message = errorPayoutBalanceError
-		return nil
-	}
-
-	if pd.Balance > (balance.Debit - balance.Credit) {
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorPayoutNotEnoughBalance
-		return nil
-	}
-
-	if pd.Balance < merchant.MinPayoutAmount {
-		pd.Status = pkg.PayoutDocumentStatusSkip
-	}
-
-	sort.Slice(times, func(i, j int) bool {
-		return times[i].Before(times[j])
-	})
-
-	from := times[0]
-	to := times[len(times)-1]
-
-	pd.PeriodFrom, err = ptypes.TimestampProto(from)
-	if err != nil {
-		zap.L().Error(
-			"Payout PeriodFrom time conversion error",
-			zap.Error(err),
-		)
-		return err
-	}
-	pd.PeriodTo, err = ptypes.TimestampProto(to)
-	if err != nil {
-		zap.L().Error(
-			"Payout PeriodTo time conversion error",
-			zap.Error(err),
-		)
-		return err
-	}
-
-	err = s.payoutDocument.Insert(pd, req.Ip, payoutChangeSourceMerchant)
-	if err != nil {
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			res.Status = pkg.ResponseStatusSystemError
-			res.Message = e
-			return nil
+		err = s.royaltyReport.SetPayoutDocumentId(pd.SourceId, pd.Id, req.Ip, req.Initiator)
+		if err != nil {
+			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+				res.Status = pkg.ResponseStatusSystemError
+				res.Message = e
+				return nil
+			}
+			return err
 		}
-		return err
-	}
 
-	err = s.royaltyReport.SetPayoutDocumentId(pd.SourceId, pd.Id, req.Ip, req.Initiator)
-	if err != nil {
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			res.Status = pkg.ResponseStatusSystemError
-			res.Message = e
-			return nil
+		err = s.renderPayoutDocument(ctx, pd, merchant)
+		if err != nil {
+			return err
 		}
-		return err
-	}
 
-	err = s.renderPayoutDocument(ctx, pd, merchant)
-	if err != nil {
-		return err
+		res.Items = append(res.Items, pd)
 	}
 
 	res.Status = pkg.ResponseStatusOk
-	res.Item = pd
+
 	return nil
 }
 
@@ -323,7 +341,7 @@ func (s *Service) AutoCreatePayoutDocuments(context.Context, *grpc.EmptyRequest,
 		Initiator:        pkg.RoyaltyReportChangeSourceAuto,
 		IsAutoGeneration: true,
 	}
-	res := &grpc.PayoutDocumentResponse{}
+	res := &grpc.CreatePayoutDocumentResponse{}
 	ctx := context.TODO()
 
 	for _, m := range merchants {
@@ -617,17 +635,24 @@ func (s *Service) PayoutDocumentPdfUploaded(
 		return err
 	}
 
+	operatingCompany, err := s.operatingCompany.GetById(pd.OperatingCompanyId)
+	if err != nil {
+		zap.L().Error("Operating company not found", zap.Error(err), zap.String("operating_company_id", pd.OperatingCompanyId))
+		return err
+	}
+
 	payload := &postmarkSdrPkg.Payload{
 		TemplateAlias: s.cfg.EmailNewRoyaltyReportTemplate,
 		TemplateModel: map[string]string{
-			"merchant_id":       merchant.Id,
-			"payout_id":         pd.Id,
-			"period_from":       periodFrom.Format("2006-01-02"),
-			"period_to":         periodTo.Format("2006-01-02"),
-			"license_agreement": merchant.AgreementNumber,
-			"status":            pd.Status,
-			"merchant_greeting": merchant.GetAuthorizedName(),
-			"payouts_url":       s.cfg.PayoutsUrl,
+			"merchant_id":            merchant.Id,
+			"payout_id":              pd.Id,
+			"period_from":            periodFrom.Format("2006-01-02"),
+			"period_to":              periodTo.Format("2006-01-02"),
+			"license_agreement":      merchant.AgreementNumber,
+			"status":                 pd.Status,
+			"merchant_greeting":      merchant.GetAuthorizedName(),
+			"payouts_url":            s.cfg.PayoutsUrl,
+			"operating_company_name": operatingCompany.Name,
 		},
 		To: merchant.GetAuthorizedEmail(),
 		Attachments: []*postmarkSdrPkg.PayloadAttachment{
@@ -654,8 +679,8 @@ func (s *Service) PayoutDocumentPdfUploaded(
 	return nil
 }
 
-func (s *Service) getPayoutDocumentSources(merchant *billing.Merchant) ([]*billing.RoyaltyReport, error) {
-	result, err := s.royaltyReport.GetNonPayoutReports(merchant.Id, merchant.GetPayoutCurrency())
+func (s *Service) getPayoutDocumentSources(merchant *billing.Merchant, operatingCompanyId string) ([]*billing.RoyaltyReport, error) {
+	result, err := s.royaltyReport.GetNonPayoutReports(merchant.Id, operatingCompanyId, merchant.GetPayoutCurrency())
 
 	if err != nil && err != mgo.ErrNotFound {
 		return nil, err

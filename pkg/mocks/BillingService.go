@@ -795,7 +795,7 @@ func (_m *BillingService) CreatePageReview(ctx context.Context, in *grpc.CreateP
 }
 
 // CreatePayoutDocument provides a mock function with given fields: ctx, in, opts
-func (_m *BillingService) CreatePayoutDocument(ctx context.Context, in *grpc.CreatePayoutDocumentRequest, opts ...client.CallOption) (*grpc.PayoutDocumentResponse, error) {
+func (_m *BillingService) CreatePayoutDocument(ctx context.Context, in *grpc.CreatePayoutDocumentRequest, opts ...client.CallOption) (*grpc.CreatePayoutDocumentResponse, error) {
 	_va := make([]interface{}, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
@@ -805,12 +805,12 @@ func (_m *BillingService) CreatePayoutDocument(ctx context.Context, in *grpc.Cre
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
 
-	var r0 *grpc.PayoutDocumentResponse
-	if rf, ok := ret.Get(0).(func(context.Context, *grpc.CreatePayoutDocumentRequest, ...client.CallOption) *grpc.PayoutDocumentResponse); ok {
+	var r0 *grpc.CreatePayoutDocumentResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.CreatePayoutDocumentRequest, ...client.CallOption) *grpc.CreatePayoutDocumentResponse); ok {
 		r0 = rf(ctx, in, opts...)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*grpc.PayoutDocumentResponse)
+			r0 = ret.Get(0).(*grpc.CreatePayoutDocumentResponse)
 		}
 	}
 

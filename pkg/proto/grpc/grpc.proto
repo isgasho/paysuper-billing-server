@@ -166,7 +166,7 @@ service BillingService {
     rpc GetDashboardRevenueDynamicsReport (GetDashboardMainRequest) returns (GetDashboardRevenueDynamicsReportResponse) {}
     rpc GetDashboardBaseReport (GetDashboardBaseReportRequest) returns (GetDashboardBaseReportResponse) {}
 
-    rpc CreatePayoutDocument (CreatePayoutDocumentRequest) returns (PayoutDocumentResponse) {}
+    rpc CreatePayoutDocument (CreatePayoutDocumentRequest) returns (CreatePayoutDocumentResponse) {}
     rpc UpdatePayoutDocument (UpdatePayoutDocumentRequest) returns (PayoutDocumentResponse) {}
     rpc GetPayoutDocuments (GetPayoutDocumentsRequest) returns (GetPayoutDocumentsResponse) {}
     rpc GetPayoutDocument (GetPayoutDocumentRequest) returns (PayoutDocumentResponse) {}
@@ -2008,6 +2008,15 @@ message PayoutDocumentResponse {
     ResponseErrorMessage message = 2;
     //@inject_tag: json:"item"
     billing.PayoutDocument item = 3;
+}
+
+message CreatePayoutDocumentResponse {
+    //@inject_tag: json:"status"
+    int32 status = 1;
+    //@inject_tag: json:"message"
+    ResponseErrorMessage message = 2;
+    //@inject_tag: json:"item"
+    repeated billing.PayoutDocument items = 3;
 }
 
 message UpdatePayoutDocumentRequest {

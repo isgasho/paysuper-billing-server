@@ -129,8 +129,8 @@ type accountingEntry struct {
 }
 
 type AccountingServiceInterface interface {
-	GetCorrectionsForRoyaltyReport(merchantId, currency string, from, to time.Time) (items []*billing.AccountingEntry, err error)
-	GetRollingReservesForRoyaltyReport(merchantId, currency string, from, to time.Time) (items []*billing.AccountingEntry, err error)
+	GetCorrectionsForRoyaltyReport(merchantId, operatingCompanyId, currency string, from, to time.Time) (items []*billing.AccountingEntry, err error)
+	GetRollingReservesForRoyaltyReport(merchantId, operatingCompanyId, currency string, from, to time.Time) (items []*billing.AccountingEntry, err error)
 }
 
 func newAccounting(svc *Service) AccountingServiceInterface {
@@ -1076,17 +1076,19 @@ func (h *accountingEntry) saveAccountingEntries() error {
 func (h *accountingEntry) newEntry(entryType string) *billing.AccountingEntry {
 
 	var (
-		createdTime = ptypes.TimestampNow()
-		source      *billing.AccountingEntrySource
-		merchantId  = ""
-		currency    = ""
-		country     = ""
+		createdTime        = ptypes.TimestampNow()
+		source             *billing.AccountingEntrySource
+		merchantId         = ""
+		currency           = ""
+		country            = ""
+		operatingCompanyId = ""
 	)
 	if h.refund != nil {
 		if h.refundOrder != nil {
 			createdTime = h.refundOrder.PaymentMethodOrderClosedAt
 			merchantId = h.refundOrder.GetMerchantId()
 			currency = h.refundOrder.GetMerchantRoyaltyCurrency()
+			operatingCompanyId = h.refundOrder.OperatingCompanyId
 		}
 		source = &billing.AccountingEntrySource{
 			Id:   h.refund.CreatedOrderId,
@@ -1101,6 +1103,7 @@ func (h *accountingEntry) newEntry(entryType string) *billing.AccountingEntry {
 			}
 			merchantId = h.order.GetMerchantId()
 			currency = h.order.GetMerchantRoyaltyCurrency()
+			operatingCompanyId = h.order.OperatingCompanyId
 		} else {
 			if h.merchant != nil {
 				createdTime = ptypes.TimestampNow()
@@ -1110,6 +1113,7 @@ func (h *accountingEntry) newEntry(entryType string) *billing.AccountingEntry {
 				}
 				merchantId = h.merchant.Id
 				currency = h.merchant.GetPayoutCurrency()
+				operatingCompanyId = h.merchant.OperatingCompanyId
 			}
 		}
 	}
@@ -1119,15 +1123,16 @@ func (h *accountingEntry) newEntry(entryType string) *billing.AccountingEntry {
 	}
 
 	return &billing.AccountingEntry{
-		Id:         bson.NewObjectId().Hex(),
-		Object:     pkg.ObjectTypeBalanceTransaction,
-		Type:       entryType,
-		Source:     source,
-		MerchantId: merchantId,
-		Status:     pkg.BalanceTransactionStatusAvailable,
-		CreatedAt:  createdTime,
-		Country:    country,
-		Currency:   currency,
+		Id:                 bson.NewObjectId().Hex(),
+		Object:             pkg.ObjectTypeBalanceTransaction,
+		Type:               entryType,
+		Source:             source,
+		MerchantId:         merchantId,
+		Status:             pkg.BalanceTransactionStatusAvailable,
+		CreatedAt:          createdTime,
+		Country:            country,
+		Currency:           currency,
+		OperatingCompanyId: operatingCompanyId,
 	}
 }
 
@@ -1257,12 +1262,16 @@ func (h *accountingEntry) getOperatingCompanyId() string {
 	return ""
 }
 
-func (a Accounting) GetCorrectionsForRoyaltyReport(merchantId, currency string, from, to time.Time) (items []*billing.AccountingEntry, err error) {
+func (a Accounting) GetCorrectionsForRoyaltyReport(
+	merchantId, operatingCompanyId, currency string,
+	from, to time.Time,
+) (items []*billing.AccountingEntry, err error) {
 	query := bson.M{
-		"merchant_id": bson.ObjectIdHex(merchantId),
-		"currency":    currency,
-		"created_at":  bson.M{"$gte": from, "$lte": to},
-		"type":        pkg.AccountingEntryTypeMerchantRoyaltyCorrection,
+		"merchant_id":          bson.ObjectIdHex(merchantId),
+		"currency":             currency,
+		"created_at":           bson.M{"$gte": from, "$lte": to},
+		"type":                 pkg.AccountingEntryTypeMerchantRoyaltyCorrection,
+		"operating_company_id": operatingCompanyId,
 	}
 
 	sorts := "created_at"
@@ -1281,12 +1290,16 @@ func (a Accounting) GetCorrectionsForRoyaltyReport(merchantId, currency string, 
 	return
 }
 
-func (a Accounting) GetRollingReservesForRoyaltyReport(merchantId, currency string, from, to time.Time) (items []*billing.AccountingEntry, err error) {
+func (a Accounting) GetRollingReservesForRoyaltyReport(
+	merchantId, operatingCompanyId, currency string,
+	from, to time.Time,
+) (items []*billing.AccountingEntry, err error) {
 	query := bson.M{
-		"merchant_id": bson.ObjectIdHex(merchantId),
-		"currency":    currency,
-		"created_at":  bson.M{"$gte": from, "$lte": to},
-		"type":        bson.M{"$in": rollingReserveAccountingEntriesList},
+		"merchant_id":          bson.ObjectIdHex(merchantId),
+		"currency":             currency,
+		"created_at":           bson.M{"$gte": from, "$lte": to},
+		"type":                 bson.M{"$in": rollingReserveAccountingEntriesList},
+		"operating_company_id": operatingCompanyId,
 	}
 
 	sorts := "created_at"
