@@ -389,7 +389,10 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 		Reason:        refund.Reason,
 		ReceiptNumber: refund.Id,
 	}
-	refundOrder.ParentId = order.Id
+	refundOrder.ParentOrder = &billing.ParentOrder{
+		Id:   order.Id,
+		Uuid: order.Uuid,
+	}
 	refundOrder.IsVatDeduction = isVatDeduction
 	refundOrder.ParentPaymentAt = refundOrder.PaymentMethodOrderClosedAt
 	refundOrder.PaymentMethodOrderClosedAt = ptypes.TimestampNow()

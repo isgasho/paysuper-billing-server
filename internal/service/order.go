@@ -3474,6 +3474,7 @@ func (s *Service) ProcessOrderProducts(ctx context.Context, order *billing.Order
 	zap.S().Infow(fmt.Sprintf(logInfo, "try to use detected currency for order amount"), "currency", currency, "order.Uuid", order.Uuid)
 
 	if order.IsBuyForVirtualCurrency {
+		zap.S().Infow("payment in virtual currency", "order.Uuid", order.Uuid)
 		amount, priceGroup, err = s.processAmountForVirtualCurrency(ctx, order, orderProducts, priceGroup, defaultPriceGroup)
 	} else {
 		amount, priceGroup, err = s.processAmountForFiatCurrency(ctx, order, orderProducts, priceGroup, defaultPriceGroup, logInfo)

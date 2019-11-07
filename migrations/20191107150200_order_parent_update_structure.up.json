@@ -1,0 +1,22 @@
+[
+  {
+    "update": "order",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$set": {
+            "parent_order": {
+              "id": "$parent_id",
+              "uuid": ""
+            }
+          },
+          "$unset": [
+            "parent_id"
+          ]
+        },
+        "multi": true
+      }
+    ]
+  }
+]

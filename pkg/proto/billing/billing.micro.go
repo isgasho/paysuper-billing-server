@@ -32,6 +32,7 @@ It has these top-level messages:
 	OrderUser
 	OrderNotificationCancellation
 	Order
+	ParentOrder
 	CountryRestriction
 	OrderItem
 	OrderPaginate
