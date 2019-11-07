@@ -3,7 +3,9 @@
     "update": "order",
     "updates": [
       {
-        "q": {},
+        "q": {
+          "parent_id": {"$exists":  true}
+        },
         "u": {
           "$set": {
             "parent_order": {
