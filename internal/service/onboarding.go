@@ -16,6 +16,8 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	reporterConst "github.com/paysuper/paysuper-reporter/pkg"
 	reporterProto "github.com/paysuper/paysuper-reporter/pkg/proto"
+	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
+	"github.com/streadway/amqp"
 	"go.uber.org/zap"
 	"strings"
 	"time"
@@ -312,7 +314,25 @@ func (s *Service) ChangeMerchant(
 	}
 
 	if merchant.IsDataComplete() {
-		// todo: send letters to admin and merchant
+		err = s.sendOnboardingLetter(merchant, s.cfg.EmailMerchantNewOnboardingRequestTemplate, merchant.GetAuthorizedEmail())
+		if err != nil {
+			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+				rsp.Status = pkg.ResponseStatusSystemError
+				rsp.Message = e
+				return nil
+			}
+			return err
+		}
+
+		err = s.sendOnboardingLetter(merchant, s.cfg.EmailAdminNewOnboardingRequestTemplate, s.cfg.EmailOnboardingAdminRecipient)
+		if err != nil {
+			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+				rsp.Status = pkg.ResponseStatusSystemError
+				rsp.Message = e
+				return nil
+			}
+			return err
+		}
 	}
 
 	merchant.UpdatedAt = ptypes.TimestampNow()
@@ -542,7 +562,15 @@ func (s *Service) SetMerchantOperatingCompany(
 		return nil
 	}
 
-	// todo: sent letter to merchant for ready to sign agreement
+	err = s.sendOnboardingLetter(merchant, s.cfg.EmailMerchantOnboardingRequestCompleteTemplate, merchant.GetAuthorizedEmail())
+	if err != nil {
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = e
+			return nil
+		}
+		return err
+	}
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = merchant
@@ -1469,7 +1497,25 @@ func (s *Service) SetMerchantTariffRates(
 	merchant.Steps.Tariff = true
 
 	if merchant.IsDataComplete() {
-		// todo: send letters to admin and merchant
+		err = s.sendOnboardingLetter(merchant, s.cfg.EmailMerchantNewOnboardingRequestTemplate, merchant.GetAuthorizedEmail())
+		if err != nil {
+			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+				rsp.Status = pkg.ResponseStatusSystemError
+				rsp.Message = e
+				return nil
+			}
+			return err
+		}
+
+		err = s.sendOnboardingLetter(merchant, s.cfg.EmailAdminNewOnboardingRequestTemplate, s.cfg.EmailOnboardingAdminRecipient)
+		if err != nil {
+			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+				rsp.Status = pkg.ResponseStatusSystemError
+				rsp.Message = e
+				return nil
+			}
+			return err
+		}
 	}
 
 	err = s.merchant.Update(merchant)
@@ -1557,4 +1603,30 @@ func (s *Service) generateMerchantAgreement(ctx context.Context, merchant *billi
 func (s *Service) getMerchantAgreementNumber(merchantId string) string {
 	now := time.Now()
 	return fmt.Sprintf("%s%s-%03d", now.Format("01"), now.Format("02"), bson.ObjectIdHex(merchantId).Counter())
+}
+
+func (s *Service) sendOnboardingLetter(merchant *billing.Merchant, template, recipientEmail string) (err error) {
+	payload := &postmarkSdrPkg.Payload{
+		TemplateAlias: template,
+		TemplateModel: map[string]string{
+			"merchant_id":                   merchant.Id,
+			"merchant_agreement_sign_url":   s.cfg.MerchantsAgreementSignatureUrl,
+			"admin_onboarding_requests_url": s.cfg.AdminOnboardingRequestsUrl,
+		},
+		To: recipientEmail,
+	}
+
+	err = s.postmarkBroker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+
+	if err != nil {
+		zap.L().Error(
+			"Publication message during merchant onboarding failed",
+			zap.Error(err),
+			zap.String("template", template),
+			zap.String("recipientEmail", recipientEmail),
+			zap.Any("merchant", merchant),
+		)
+	}
+
+	return
 }
