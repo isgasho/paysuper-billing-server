@@ -268,6 +268,7 @@ type MgoOrder struct {
 	Keys                       []string                       `bson:"keys"`
 	IsKeyProductNotified       bool                           `bson:"is_key_product_notified"`
 	ReceiptId                  string                         `bson:"receipt_id"`
+	IsBuyForVirtualCurrency    bool							  `bson:"is_buy_for_virtual_currency"`
 }
 
 type MgoOrderItem struct {
@@ -1566,6 +1567,7 @@ func (m *Order) GetBSON() (interface{}, error) {
 		Keys:                      m.Keys,
 		IsKeyProductNotified:      m.IsKeyProductNotified,
 		ReceiptId:                 m.ReceiptId,
+		IsBuyForVirtualCurrency:   m.IsBuyForVirtualCurrency,
 	}
 
 	if m.Refund != nil {
@@ -1775,6 +1777,7 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.Keys = decoded.Keys
 	m.IsKeyProductNotified = decoded.IsKeyProductNotified
 	m.ReceiptId = decoded.ReceiptId
+	m.IsBuyForVirtualCurrency = decoded.IsBuyForVirtualCurrency
 
 	if decoded.Refund != nil {
 		m.Refund = &OrderNotificationRefund{
