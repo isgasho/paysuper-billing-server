@@ -3145,6 +3145,7 @@ func (s *Service) doUpdateOrderView(match bson.M) error {
 							"$and": []bson.M{
 								{"$eq": list{"$payment_method.refund_allowed", true}},
 								{"$eq": list{"$type", "order"}},
+								{"$eq": list{"$refunded", false}},
 							},
 						},
 						true,
