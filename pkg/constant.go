@@ -324,7 +324,7 @@ const (
 	TariffRegionLatAm        = "latam"
 	TariffRegionWorldwide    = "worldwide"
 
-	PaymentMethodKey = "cur:%s:mcc:%s:oc:%s"
+	PaymentMethodKey = "%s:%s:%s" // currency:mcc_code:operating_company_id, for example: "USD:5816:5dc3f70deb494903d835f28a"
 )
 
 var (

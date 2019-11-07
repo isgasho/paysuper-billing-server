@@ -467,6 +467,13 @@ message OrderUser {
     string notify_new_region_email = 15;
 }
 
+message OrderNotificationCancellation {
+    //@inject_tag: json:"code" bson:"code"
+    string code = 1;
+    //@inject_tag: json:"reason" bson:"reason"
+    string reason = 2;
+}
+
 message Order {
     // @inject_tag: json:"-" bson:"_id"
     string id = 1; // unique internal order identifier in Protocol One
@@ -490,8 +497,8 @@ message Order {
     google.protobuf.Timestamp canceled_at = 10;
     //@inject_tag: json:"canceled" bson:"canceled"
     bool canceled = 11;
-    //@inject_tag: json:"cancellation_reason" bson:"cancellation_reason"
-    string cancellation_reason = 12;
+    //@inject_tag: json:"cancellation" bson:"cancellation"
+    OrderNotificationCancellation cancellation = 12;
     //@inject_tag: json:"refunded" bson:"refunded"
     bool refunded = 13;
     //@inject_tag: json:"refunded_at" bson:"refunded_at"
@@ -652,7 +659,7 @@ message PaymentMethodOrder {
     string name = 2;
     // @inject_tag: bson:"external_id" json:"external_id"
     string external_id = 3;
-    // @inject_tag: json:"params,omitempty" bson:"params"
+    // @inject_tag: json:"-" bson:"params"
     PaymentMethodParams params = 4;
     // @inject_tag: bson:"payment_system_id" json:"payment_system_id"
     string payment_system_id = 5;

@@ -32,7 +32,7 @@ var (
 	refundErrorPaymentAmountLess  = newBillingServerErrorMsg("rf000004", "refund unavailable, because payment amount less than total refunds amount")
 	refundErrorNotFound           = newBillingServerErrorMsg("rf000005", "refund with specified data not found")
 	refundErrorOrderNotFound      = newBillingServerErrorMsg("rf000006", "information about payment for refund with specified data not found")
-	refundErrorCostsRatesNotFound = newBillingServerErrorMsg("rf000007", "settings to calculate commissions not found")
+	refundErrorCostsRatesNotFound = newBillingServerErrorMsg("rf000007", "settings to calculate commissions for refund not found")
 )
 
 type createRefundChecked struct {

@@ -263,8 +263,10 @@ func (h PaymentChannelCostSystem) Get(name, region, country, mccCode, operatingC
 	}
 
 	matchQuery := bson.M{
-		"name":      name,
-		"is_active": true,
+		"name":                 bson.RegEx{Pattern: "^" + name + "$", Options: "i"},
+		"mcc_code":             mccCode,
+		"operating_company_id": operatingCompanyId,
+		"is_active":            true,
 		"$or": []bson.M{
 			{
 				"country": country,

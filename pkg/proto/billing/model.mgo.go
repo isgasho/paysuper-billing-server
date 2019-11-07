@@ -214,68 +214,68 @@ type MgoOrderNotificationRefund struct {
 }
 
 type MgoOrder struct {
-	Id                         bson.ObjectId               `bson:"_id"`
-	Uuid                       string                      `bson:"uuid"`
-	Transaction                string                      `bson:"pm_order_id"`
-	Object                     string                      `bson:"object"`
-	Status                     string                      `bson:"status"`
-	PrivateStatus              int32                       `bson:"private_status"`
-	Description                string                      `bson:"description"`
-	CreatedAt                  time.Time                   `bson:"created_at"`
-	UpdatedAt                  time.Time                   `bson:"updated_at"`
-	CanceledAt                 time.Time                   `bson:"canceled_at"`
-	Canceled                   bool                        `bson:"canceled"`
-	CancellationReason         string                      `bson:"cancellation_reason"`
-	Refunded                   bool                        `bson:"refunded"`
-	RefundedAt                 time.Time                   `bson:"refunded_at"`
-	ReceiptEmail               string                      `bson:"receipt_email"`
-	ReceiptPhone               string                      `bson:"receipt_phone"`
-	ReceiptNumber              string                      `bson:"receipt_number"`
-	ReceiptUrl                 string                      `bson:"receipt_url"`
-	AgreementVersion           string                      `bson:"agreement_version"`
-	AgreementAccepted          bool                        `bson:"agreement_accepted"`
-	NotifySale                 bool                        `bson:"notify_sale"`
-	NotifySaleEmail            string                      `bson:"notify_sale_email"`
-	Issuer                     *OrderIssuer                `bson:"issuer"`
-	TotalPaymentAmount         float64                     `bson:"total_payment_amount"`
-	Currency                   string                      `bson:"currency"`
-	User                       *OrderUser                  `bson:"user"`
-	BillingAddress             *OrderBillingAddress        `bson:"billing_address"`
-	Tax                        *OrderTax                   `bson:"tax"`
-	PaymentMethod              *MgoOrderPaymentMethod      `bson:"payment_method"`
-	Items                      []*MgoOrderItem             `bson:"items"`
-	Refund                     *MgoOrderNotificationRefund `bson:"refund"`
-	Metadata                   map[string]string           `bson:"metadata"`
-	PrivateMetadata            map[string]string           `bson:"private_metadata"`
-	Project                    *MgoOrderProject            `bson:"project"`
-	ProjectOrderId             string                      `bson:"project_order_id"`
-	ProjectAccount             string                      `bson:"project_account"`
-	ProjectLastRequestedAt     time.Time                   `bson:"project_last_requested_at"`
-	ProjectParams              map[string]string           `bson:"project_params"`
-	PaymentMethodOrderClosedAt time.Time                   `bson:"pm_order_close_date"`
-	IsJsonRequest              bool                        `bson:"created_by_json"`
-	OrderAmount                float64                     `bson:"private_amount"`
-	PaymentMethodPayerAccount  string                      `bson:"pm_account"`
-	PaymentMethodTxnParams     map[string]string           `bson:"pm_txn_params"`
-	PaymentRequisites          map[string]string           `bson:"payment_requisites"`
-	ExpireDateToFormInput      time.Time                   `bson:"expire_date_to_form_input"`
-	UserAddressDataRequired    bool                        `bson:"user_address_data_required"`
-	Products                   []string                    `bson:"products"`
-	IsNotificationsSent        map[string]bool             `bson:"is_notifications_sent"`
-	CountryRestriction         *CountryRestriction         `bson:"country_restriction"`
-	ParentId                   string                      `bson:"parent_id"`
-	ParentPaymentAt            time.Time                   `bson:"parent_payment_at"`
-	Type                       string                      `bson:"type"`
-	IsVatDeduction             bool                        `bson:"is_vat_deduction"`
-	CountryCode                string                      `bson:"country_code"`
-	PlatformId                 string                      `bson:"platform_id"`
-	ProductType                string                      `bson:"product_type"`
-	Keys                       []string                    `bson:"keys"`
-	IsKeyProductNotified       bool                        `bson:"is_key_product_notified"`
-	ReceiptId                  string                      `bson:"receipt_id"`
-	MccCode                    string                      `bson:"mcc_code"`
-	OperatingCompanyId         string                      `bson:"operating_company_id"`
-	IsHighRisk                 bool                        `bson:"is_high_risk"`
+	Id                         bson.ObjectId                  `bson:"_id"`
+	Uuid                       string                         `bson:"uuid"`
+	Transaction                string                         `bson:"pm_order_id"`
+	Object                     string                         `bson:"object"`
+	Status                     string                         `bson:"status"`
+	PrivateStatus              int32                          `bson:"private_status"`
+	Description                string                         `bson:"description"`
+	CreatedAt                  time.Time                      `bson:"created_at"`
+	UpdatedAt                  time.Time                      `bson:"updated_at"`
+	CanceledAt                 time.Time                      `bson:"canceled_at"`
+	Canceled                   bool                           `bson:"canceled"`
+	Cancellation               *OrderNotificationCancellation `bson:"cancellation"`
+	Refunded                   bool                           `bson:"refunded"`
+	RefundedAt                 time.Time                      `bson:"refunded_at"`
+	ReceiptEmail               string                         `bson:"receipt_email"`
+	ReceiptPhone               string                         `bson:"receipt_phone"`
+	ReceiptNumber              string                         `bson:"receipt_number"`
+	ReceiptUrl                 string                         `bson:"receipt_url"`
+	AgreementVersion           string                         `bson:"agreement_version"`
+	AgreementAccepted          bool                           `bson:"agreement_accepted"`
+	NotifySale                 bool                           `bson:"notify_sale"`
+	NotifySaleEmail            string                         `bson:"notify_sale_email"`
+	Issuer                     *OrderIssuer                   `bson:"issuer"`
+	TotalPaymentAmount         float64                        `bson:"total_payment_amount"`
+	Currency                   string                         `bson:"currency"`
+	User                       *OrderUser                     `bson:"user"`
+	BillingAddress             *OrderBillingAddress           `bson:"billing_address"`
+	Tax                        *OrderTax                      `bson:"tax"`
+	PaymentMethod              *MgoOrderPaymentMethod         `bson:"payment_method"`
+	Items                      []*MgoOrderItem                `bson:"items"`
+	Refund                     *MgoOrderNotificationRefund    `bson:"refund"`
+	Metadata                   map[string]string              `bson:"metadata"`
+	PrivateMetadata            map[string]string              `bson:"private_metadata"`
+	Project                    *MgoOrderProject               `bson:"project"`
+	ProjectOrderId             string                         `bson:"project_order_id"`
+	ProjectAccount             string                         `bson:"project_account"`
+	ProjectLastRequestedAt     time.Time                      `bson:"project_last_requested_at"`
+	ProjectParams              map[string]string              `bson:"project_params"`
+	PaymentMethodOrderClosedAt time.Time                      `bson:"pm_order_close_date"`
+	IsJsonRequest              bool                           `bson:"created_by_json"`
+	OrderAmount                float64                        `bson:"private_amount"`
+	PaymentMethodPayerAccount  string                         `bson:"pm_account"`
+	PaymentMethodTxnParams     map[string]string              `bson:"pm_txn_params"`
+	PaymentRequisites          map[string]string              `bson:"payment_requisites"`
+	ExpireDateToFormInput      time.Time                      `bson:"expire_date_to_form_input"`
+	UserAddressDataRequired    bool                           `bson:"user_address_data_required"`
+	Products                   []string                       `bson:"products"`
+	IsNotificationsSent        map[string]bool                `bson:"is_notifications_sent"`
+	CountryRestriction         *CountryRestriction            `bson:"country_restriction"`
+	ParentId                   string                         `bson:"parent_id"`
+	ParentPaymentAt            time.Time                      `bson:"parent_payment_at"`
+	Type                       string                         `bson:"type"`
+	IsVatDeduction             bool                           `bson:"is_vat_deduction"`
+	CountryCode                string                         `bson:"country_code"`
+	PlatformId                 string                         `bson:"platform_id"`
+	ProductType                string                         `bson:"product_type"`
+	Keys                       []string                       `bson:"keys"`
+	IsKeyProductNotified       bool                           `bson:"is_key_product_notified"`
+	ReceiptId                  string                         `bson:"receipt_id"`
+	MccCode                    string                         `bson:"mcc_code"`
+	OperatingCompanyId         string                         `bson:"operating_company_id"`
+	IsHighRisk                 bool                           `bson:"is_high_risk"`
 }
 
 type MgoOrderItem struct {
@@ -1553,7 +1553,7 @@ func (m *Order) GetBSON() (interface{}, error) {
 		PrivateStatus:      m.PrivateStatus,
 		Description:        m.Description,
 		Canceled:           m.PrivateStatus == constant.OrderStatusPaymentSystemCanceled,
-		CancellationReason: m.CancellationReason,
+		Cancellation:       m.Cancellation,
 		Refunded:           m.PrivateStatus == constant.OrderStatusRefund,
 		ReceiptEmail:       m.GetReceiptUserEmail(),
 		ReceiptPhone:       m.GetReceiptUserPhone(),
@@ -1801,7 +1801,7 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.PrivateStatus = decoded.PrivateStatus
 	m.Description = decoded.Description
 	m.Canceled = decoded.Canceled
-	m.CancellationReason = decoded.CancellationReason
+	m.Cancellation = decoded.Cancellation
 	m.Refunded = decoded.Refunded
 	m.ReceiptEmail = decoded.ReceiptEmail
 	m.ReceiptPhone = decoded.ReceiptPhone

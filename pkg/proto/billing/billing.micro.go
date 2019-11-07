@@ -30,6 +30,7 @@ It has these top-level messages:
 	OrderTax
 	OrderBillingAddress
 	OrderUser
+	OrderNotificationCancellation
 	Order
 	CountryRestriction
 	OrderItem

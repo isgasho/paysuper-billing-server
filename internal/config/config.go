@@ -98,6 +98,9 @@ type Config struct {
 
 	CentrifugoOrderChannel string `envconfig:"CENTRIFUGO_ORDER_CHANNEL" default:"paysuper:order#%s"`
 
+	ReceiptPurchaseUrl string `envconfig:"RECEIPT_PURCHASE_URL" default:"https://dashboard.pay.super.com/receipt/purchase/%s/%s"`
+	ReceiptRefundUrl   string `envconfig:"RECEIPT_REFUND_URL" default:"https://dashboard.pay.super.com/orders/receipt/refund/%s/%s"`
+
 	*PaymentSystemConfig
 	*CustomerTokenConfig
 	*CacheRedis
@@ -207,4 +210,12 @@ func (cfg *Config) GetRedirectUrlFail(params map[string]string) string {
 
 func (cfg *Config) GetCentrifugoOrderChannel(orderUuid string) string {
 	return fmt.Sprintf(cfg.CentrifugoOrderChannel, orderUuid)
+}
+
+func (cfg *Config) GetReceiptPurchaseUrl(transactionId, receiptId string) string {
+	return fmt.Sprintf(cfg.ReceiptPurchaseUrl, receiptId, transactionId)
+}
+
+func (cfg *Config) GetReceiptRefundUrl(transactionId, receiptId string) string {
+	return fmt.Sprintf(cfg.ReceiptRefundUrl, receiptId, transactionId)
 }
