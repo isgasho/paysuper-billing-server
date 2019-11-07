@@ -7954,3 +7954,60 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcessVirtualCurrency_Fail() 
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
 	assert.Equal(suite.T(), orderErrorVirtualCurrencyNotFilled, rsp.Message)
 }
+
+func (suite *OrderTestSuite) TestOrder_CreateOrderByTokenWithVirtualCurrency_Ok() {
+	req := &grpc.TokenRequest{
+		User: &billing.TokenUser{
+			Id: bson.NewObjectId().Hex(),
+			Email: &billing.TokenUserEmailValue{
+				Value: "test@unit.test",
+			},
+			Phone: &billing.TokenUserPhoneValue{
+				Value: "1234567890",
+			},
+			Name: &billing.TokenUserValue{
+				Value: "Unit Test",
+			},
+			Ip: &billing.TokenUserIpValue{
+				Value: "127.0.0.1",
+			},
+			Locale: &billing.TokenUserLocaleValue{
+				Value: "ru",
+			},
+			Address: &billing.OrderBillingAddress{
+				Country:    "RU",
+				City:       "St.Petersburg",
+				PostalCode: "190000",
+				State:      "SPE",
+			},
+		},
+		Settings: &billing.TokenSettings{
+			ProjectId:   suite.projectWithProductsInVirtualCurrency.Id,
+			Description: "test payment",
+			Type:        billing.OrderType_product,
+			ProductsIds: suite.productIdsWithVirtualCurrency,
+			IsBuyForVirtualCurrency: true,
+		},
+	}
+	rsp := &grpc.TokenResponse{}
+	err := suite.service.CreateToken(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotEmpty(suite.T(), rsp.Token)
+
+	req1 := &billing.OrderCreateRequest{
+		Token: rsp.Token,
+	}
+
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err = suite.service.OrderCreateProcess(context.TODO(), req1, rsp0)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp1 := rsp0.Item
+	assert.NotEmpty(suite.T(), rsp1.Id)
+	assert.Equal(suite.T(), req.Settings.ProjectId, rsp1.Project.Id)
+	assert.Equal(suite.T(), req.Settings.Description, rsp1.Description)
+	assert.True(suite.T(), rsp1.IsBuyForVirtualCurrency)
+}
