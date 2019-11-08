@@ -50,10 +50,12 @@ func (h *MerchantsTariffRatesRepository) GetBy(
 	}
 
 	tariffs := &grpc.GetMerchantTariffRatesResponseItems{
-		Payment:    payment,
-		Refund:     settings.Refund,
-		Chargeback: settings.Chargeback,
-		Payout:     settings.Payout,
+		Payment:       payment,
+		Refund:        settings.Refund,
+		Chargeback:    settings.Chargeback,
+		Payout:        settings.Payout,
+		MinimalPayout: settings.MinimalPayout,
+		MccCode:       settings.MccCode,
 	}
 
 	return tariffs, nil
@@ -73,7 +75,9 @@ func (h *MerchantsTariffRatesRepository) GetTariffsSettings(in *grpc.GetMerchant
 		return item, nil
 	}
 
-	query := bson.M{}
+	query := bson.M{
+		"mcc_code": mccCode,
+	}
 	err = h.svc.db.Collection(collectionMerchantTariffsSettings).Find(query).One(item)
 
 	if err != nil {

@@ -6,6 +6,38 @@
         "q": {},
         "u": {
           "$set": {
+            "payout" : {
+              "EUR" : {
+                "method_percent_fee" : 0.0,
+                "method_fixed_fee" : 25.0,
+                "method_fixed_fee_currency" : "EUR",
+                "is_paid_by_merchant" : true
+              },
+              "RUB" : {
+                "method_percent_fee" : 0.0,
+                "method_fixed_fee" : 2500.0,
+                "method_fixed_fee_currency" : "RUB",
+                "is_paid_by_merchant" : true
+              },
+              "GBP" : {
+                "method_percent_fee" : 0.0,
+                "method_fixed_fee" : 20.0,
+                "method_fixed_fee_currency" : "GBP",
+                "is_paid_by_merchant" : true
+              },
+              "USD" : {
+                "method_percent_fee" : 0.0,
+                "method_fixed_fee" : 25.0,
+                "method_fixed_fee_currency" : "USD",
+                "is_paid_by_merchant" : true
+              }
+            },
+            "minimal_payout" : {
+              "USD" : 100.0,
+              "EUR" : 100.0,
+              "RUB" : 10000.0,
+              "GBP" : 100.0
+            },
             "mcc_code": "5816"
           },
           "$currentDate": {

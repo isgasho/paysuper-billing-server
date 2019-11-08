@@ -1761,7 +1761,11 @@ message GetMerchantTariffRatesResponseItems {
     //@inject_tag: json:"chargeback"
     billing.MerchantTariffRatesSettingsItem chargeback = 3;
     //@inject_tag: json:"payout"
-    billing.MerchantTariffRatesSettingsItem payout = 4;
+    map<string, billing.MerchantTariffRatesSettingsItem> payout = 4;
+    //@inject_tag: json:"minimal_payout"
+    map<string, float> minimal_payout = 5;
+    //@inject_tag: json:"mcc_code"
+    string mcc_code = 6;
 }
 
 message GetMerchantTariffRatesResponse {

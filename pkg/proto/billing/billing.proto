@@ -2067,9 +2067,11 @@ message MerchantTariffRatesSettings {
     //@inject_tag: json:"chargeback" bson:"chargeback"
     MerchantTariffRatesSettingsItem chargeback = 2;
     //@inject_tag: json:"payout" bson:"payout"
-    MerchantTariffRatesSettingsItem payout = 3;
+    map<string, MerchantTariffRatesSettingsItem> payout = 3;
+    //@inject_tag: json:"minimal_payout" bson:"minimal_payout"
+    map<string, float> minimal_payout = 4;
     //@inject_tag: json:"mcc_code" bson:"mcc_code"
-    string mcc_code = 4;
+    string mcc_code = 5;
 }
 
 message Key {

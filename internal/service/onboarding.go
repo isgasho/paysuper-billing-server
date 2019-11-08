@@ -51,6 +51,8 @@ var (
 	merchantPayoutCurrencyMissed              = newBillingServerErrorMsg("mr000024", "merchant don't have payout currency")
 	merchantErrorOperationsTypeNotSupported   = newBillingServerErrorMsg("mr000025", "merchant operations type not supported")
 	merchantErrorOperatingCompanyNotExists    = newBillingServerErrorMsg("mr000026", "operating company not exists")
+	merchantErrorCurrencyNotSet               = newBillingServerErrorMsg("mr000027", "merchant payout currency not set")
+	merchantErrorNoTariffsInPayoutCurrency    = newBillingServerErrorMsg("mr000028", "no tariffs found for merchant payout currency")
 
 	merchantSignAgreementMessage        = map[string]string{"code": "mr000017", "message": "license agreement was signed by merchant"}
 	merchantAgreementReadyToSignMessage = map[string]interface{}{"code": "mr000025", "generated": true, "message": "merchant license agreement ready to sign"}
@@ -1361,6 +1363,14 @@ func (s *Service) SetMerchantTariffRates(
 		return nil
 	}
 
+	marchantPayoutCurrency := merchant.GetPayoutCurrency()
+	if marchantPayoutCurrency == "" {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = merchantErrorCurrencyNotSet
+
+		return nil
+	}
+
 	query := &grpc.GetMerchantTariffRatesRequest{
 		HomeRegion:             req.HomeRegion,
 		MerchantOperationsType: req.MerchantOperationsType,
@@ -1373,6 +1383,30 @@ func (s *Service) SetMerchantTariffRates(
 
 		return nil
 	}
+
+	payoutTariff, ok := tariffs.Payout[marchantPayoutCurrency]
+	if !ok {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = merchantErrorNoTariffsInPayoutCurrency
+
+		return nil
+	}
+
+	minimalPayoutLimit, ok := tariffs.MinimalPayout[marchantPayoutCurrency]
+	if !ok {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = merchantErrorNoTariffsInPayoutCurrency
+
+		return nil
+	}
+
+	merchant.Tariff = &billing.MerchantTariff{
+		Payment:    tariffs.Payment,
+		Payout:     payoutTariff,
+		HomeRegion: req.HomeRegion,
+	}
+
+	merchant.MinimalPayoutLimit = minimalPayoutLimit
 
 	if len(tariffs.Payment) > 0 {
 		var costs []*billing.PaymentChannelCostMerchant
@@ -1483,12 +1517,6 @@ func (s *Service) SetMerchantTariffRates(
 	}
 
 	merchant.MccCode = mccCode
-
-	merchant.Tariff = &billing.MerchantTariff{
-		Payment:    tariffs.Payment,
-		Payout:     tariffs.Payout,
-		HomeRegion: req.HomeRegion,
-	}
 
 	if merchant.Steps == nil {
 		merchant.Steps = &billing.MerchantCompletedSteps{}
