@@ -1681,6 +1681,15 @@ func (s *Service) getPayloadForReceipt(order *billing.Order) *postmarkSdrPkg.Pay
 		merchantName = merchant.Company.Name
 	}
 
+	paymentPartner := "PaySuper"
+	oc, err := s.operatingCompany.GetById(order.OperatingCompanyId)
+
+	if err != nil {
+		zap.L().Error("unable to get operating company", zap.Error(err))
+	} else {
+		paymentPartner = oc.Name
+	}
+
 	payload := &postmarkSdrPkg.Payload{
 		TemplateAlias: s.cfg.EmailSuccessTransactionTemplate,
 		TemplateModel: map[string]string{
@@ -1691,6 +1700,7 @@ func (s *Service) getPayloadForReceipt(order *billing.Order) *postmarkSdrPkg.Pay
 			"receipt_id":       order.ReceiptId,
 			"merchant_name":    merchantName,
 			"url":              order.ReceiptUrl,
+			"payment_partner":  paymentPartner,
 		},
 		To: order.ReceiptEmail,
 	}
@@ -4101,6 +4111,17 @@ func (s *Service) OrderReceipt(
 		platformName = platform.Name
 	}
 
+	oc, err := s.operatingCompany.GetById(order.OperatingCompanyId)
+
+	if err != nil {
+		zap.L().Error(pkg.MethodFinishedWithError, zap.Error(err))
+
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
+
+		return nil
+	}
+
 	receipt := &billing.OrderReceipt{
 		TotalPrice:      totalPrice,
 		TransactionId:   order.Uuid,
@@ -4110,6 +4131,7 @@ func (s *Service) OrderReceipt(
 		OrderType:       order.Type,
 		Items:           items,
 		PlatformName:    platformName,
+		PaymentPartner:  oc.Name,
 	}
 
 	rsp.Status = pkg.ResponseStatusOk

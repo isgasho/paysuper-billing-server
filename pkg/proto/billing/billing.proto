@@ -2186,6 +2186,8 @@ message OrderReceipt {
     string order_type = 7;
     //@inject_tag: json:"platform_name"
     string platform_name = 8;
+    //@inject_tag: json:"payment_partner"
+    string payment_partner = 9;
 }
 
 message OrderReceiptItem {
