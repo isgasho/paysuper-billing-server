@@ -1,0 +1,2755 @@
+[
+  {
+    "update": "country",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$set": {
+            "high_risk_change_allowed": false
+          }
+        },
+        "multi": true
+      },
+      {
+        "q": {
+          "iso_code_a2": "AU"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MU"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MR"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MG"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "YT"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MO"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MW"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MY"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "ML"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MV"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GE"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "russia_and_cis"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GU"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CA"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "RE"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "KR"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "QA"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "RU"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "russia_and_cis"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "RW"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TR"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "UG"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AT"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "UZ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "russia_and_cis"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "UA"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "russia_and_cis"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "WF"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AZ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "russia_and_cis"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AX"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BE"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BG"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BJ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BO"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "latam"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GB"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BQ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BM"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BA"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "HU"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "VE"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "latam"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "VG"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "VI"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "UM"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TL"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "VN"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GA"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "HT"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BW"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GY"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "latam"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "DE"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GG"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GI"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "HN"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "latam"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "HK"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GM"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "PS"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GR"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GD"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GL"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "DK"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "JE"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "DJ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "DM"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "DO"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CD"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "IE"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "ES"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "IT"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "YE"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CY"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "KG"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "russia_and_cis"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "KI"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CN"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "KP"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CV"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CC"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "KZ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "russia_and_cis"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "KH"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "LV"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CM"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "LT"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "LU"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MT"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MA"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "NL"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "NI"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "latam"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "NU"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MQ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MH"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MX"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "latam"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "FM"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MZ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MD"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "russia_and_cis"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MC"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MN"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MS"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MM"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "NA"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "NR"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "NP"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "PL"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "NE"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "PT"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "PR"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CG"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "RO"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "EH"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SV"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "latam"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "WS"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SM"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "ST"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SK"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SI"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SB"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "FI"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "FK"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "latam"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SO"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SD"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "FR"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "PF"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TF"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "HM"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SR"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "latam"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "HR"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CF"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TD"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CZ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CL"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "latam"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "ME"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SE"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SJ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "LK"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "EC"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "latam"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GQ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "ER"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SZ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "EE"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "ET"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "IS"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "NZ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "NC"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "NO"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SG"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "JP"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SX"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SY"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "LI"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CH"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AR"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "latam"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BY"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "russia_and_cis"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AE"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "OM"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "LS"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BV"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "latam"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "IM"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "NF"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CX"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "KY"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CK"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "PN"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SH"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "LR"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SA"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "RS"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MK"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MP"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SC"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BL"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MF"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "PM"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SN"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "VC"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "KN"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "LC"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TW"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "ZA"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AM"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "russia_and_cis"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GS"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "latam"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AW"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AF"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BS"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BD"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "LB"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "LY"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BB"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BH"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BZ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "latam"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "EG"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "IN"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "ZM"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "ID"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "JO"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "IQ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "IR"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "ZW"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "IL"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TZ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TC"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TG"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TK"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TO"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TT"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TV"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "UY"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "latam"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "FO"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "FJ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AL"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "DZ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AS"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AI"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AO"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AD"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AQ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AG"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BR"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "latam"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "IO"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BN"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BT"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "VA"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "europe"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BF"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "VU"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BI"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GH"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GP"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GT"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "latam"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GF"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "latam"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GN"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GW"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "KE"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CO"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "latam"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "KM"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CR"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "latam"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CI"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CW"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "LA"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "PW"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "PA"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "latam"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "PY"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "latam"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "PE"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "latam"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SL"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TJ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "russia_and_cis"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TH"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CU"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "PG"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "KW"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TN"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TM"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "russia_and_cis"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "NG"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SS"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "JM"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "PK"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "PH"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "asia"
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "US"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false,
+            "payer_tariff_region": "worldwide"
+          }
+        }
+      }
+    ]
+  }
+]
