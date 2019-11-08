@@ -37,6 +37,7 @@ const (
 	cardPayInitiatorCardholder = "cit"
 
 	cardPayMaxItemNameLength = 50
+	cardPayMaxItemDescriptionLength = 200
 )
 
 var (
@@ -678,14 +679,19 @@ func (h *cardPay) getCardPayOrder(
 
 	for _, it := range order.Items {
 		name := []rune(it.Name)
+		description := []rune(it.Description)
 
 		if len(name) > cardPayMaxItemNameLength {
 			name = name[:cardPayMaxItemNameLength]
 		}
 
+		if len(description) > cardPayMaxItemDescriptionLength {
+			description = description[:cardPayMaxItemDescriptionLength]
+		}
+
 		items = append(items, &CardPayItem{
 			Name:        string(name),
-			Description: it.Description,
+			Description: string(description),
 			Count:       1,
 			Price:       it.Amount,
 		})
