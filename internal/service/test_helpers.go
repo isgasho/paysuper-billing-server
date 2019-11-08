@@ -30,6 +30,25 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 	*billing.PaymentSystem,
 ) {
 
+	paymentMinLimitsSystem := []*billing.PaymentMinLimitSystem{
+		{
+			Currency: "RUB",
+			Amount:   0.01,
+		},
+		{
+			Currency: "USD",
+			Amount:   0.01,
+		},
+		{
+			Currency: "EUR",
+			Amount:   0.01,
+		},
+	}
+	err := service.paymentMinLimitSystem.MultipleInsert(paymentMinLimitsSystem)
+	if err != nil {
+		suite.FailNow("Insert PaymentMinLimitSystem test data failed", "%v", err)
+	}
+
 	operatingCompany := helperOperatingCompany(suite, service)
 
 	keyRub := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, operatingCompany.Id)
@@ -127,7 +146,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		BankCountryIsoCode: "US",
 	}
 
-	err := service.db.Collection(collectionBinData).Insert(bin)
+	err = service.db.Collection(collectionBinData).Insert(bin)
 
 	if err != nil {
 		suite.FailNow("Insert BIN test data failed", "%v", err)

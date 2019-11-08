@@ -93,6 +93,46 @@ func (suite *OrderTestSuite) SetupTest() {
 		suite.FailNow("Database connection failed", "%v", err)
 	}
 
+	paymentMinLimitSystem1 := &billing.PaymentMinLimitSystem{
+		Id:        bson.NewObjectId().Hex(),
+		Currency:  "RUB",
+		Amount:    0.01,
+		CreatedAt: ptypes.TimestampNow(),
+		UpdatedAt: ptypes.TimestampNow(),
+	}
+
+	paymentMinLimitSystem2 := &billing.PaymentMinLimitSystem{
+		Id:        bson.NewObjectId().Hex(),
+		Currency:  "USD",
+		Amount:    0.01,
+		CreatedAt: ptypes.TimestampNow(),
+		UpdatedAt: ptypes.TimestampNow(),
+	}
+
+	paymentMinLimitSystem3 := &billing.PaymentMinLimitSystem{
+		Id:        bson.NewObjectId().Hex(),
+		Currency:  "UAH",
+		Amount:    0.01,
+		CreatedAt: ptypes.TimestampNow(),
+		UpdatedAt: ptypes.TimestampNow(),
+	}
+
+	paymentMinLimitSystem4 := &billing.PaymentMinLimitSystem{
+		Id:        bson.NewObjectId().Hex(),
+		Currency:  "KZT",
+		Amount:    0.01,
+		CreatedAt: ptypes.TimestampNow(),
+		UpdatedAt: ptypes.TimestampNow(),
+	}
+
+	paymentMinLimitSystem5 := &billing.PaymentMinLimitSystem{
+		Id:        bson.NewObjectId().Hex(),
+		Currency:  "EUR",
+		Amount:    90,
+		CreatedAt: ptypes.TimestampNow(),
+		UpdatedAt: ptypes.TimestampNow(),
+	}
+
 	suite.operatingCompany = &billing.OperatingCompany{
 		Id:                 bson.NewObjectId().Hex(),
 		Name:               "Legal name",
@@ -1205,6 +1245,10 @@ func (suite *OrderTestSuite) SetupTest() {
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
+
+	limits := []interface{}{paymentMinLimitSystem1, paymentMinLimitSystem2, paymentMinLimitSystem3, paymentMinLimitSystem4, paymentMinLimitSystem5}
+	err = suite.service.db.Collection(collectionPaymentMinLimitSystem).Insert(limits...)
+	assert.NoError(suite.T(), err)
 
 	pms := []*billing.PaymentMethod{
 		pmBankCard,
@@ -2728,6 +2772,8 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_ProjectMinAmount_Erro
 		},
 	}
 	assert.Nil(suite.T(), processor.checked.paymentMethod)
+
+	processor.processAmount()
 
 	err := processor.processProject()
 	assert.Nil(suite.T(), err)
@@ -8201,10 +8247,10 @@ func (suite *OrderTestSuite) TestOrder_CreateOrderByTokenWithVirtualCurrency_Ok(
 			},
 		},
 		Settings: &billing.TokenSettings{
-			ProjectId:   suite.projectWithProductsInVirtualCurrency.Id,
-			Description: "test payment",
-			Type:        billing.OrderType_product,
-			ProductsIds: suite.productIdsWithVirtualCurrency,
+			ProjectId:               suite.projectWithProductsInVirtualCurrency.Id,
+			Description:             "test payment",
+			Type:                    billing.OrderType_product,
+			ProductsIds:             suite.productIdsWithVirtualCurrency,
 			IsBuyForVirtualCurrency: true,
 		},
 	}
@@ -8229,4 +8275,84 @@ func (suite *OrderTestSuite) TestOrder_CreateOrderByTokenWithVirtualCurrency_Ok(
 	assert.Equal(suite.T(), req.Settings.ProjectId, rsp1.Project.Id)
 	assert.Equal(suite.T(), req.Settings.Description, rsp1.Description)
 	assert.True(suite.T(), rsp1.IsBuyForVirtualCurrency)
+}
+
+func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_MinSystemLimitOk() {
+	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
+		ProjectId:   suite.project.Id,
+		Currency:    "EUR",
+		Amount:      100,
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+			Address: &billing.OrderBillingAddress{
+				Country: "RU",
+			},
+		},
+	}
+
+	suite.service.supportedCurrencies = append(suite.service.supportedCurrencies, "EUR")
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+}
+
+func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_LowerThanMinSystemLimit() {
+	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
+		ProjectId:   suite.project.Id,
+		Currency:    "EUR",
+		Amount:      10,
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+			Address: &billing.OrderBillingAddress{
+				Country: "RU",
+			},
+		},
+	}
+
+	suite.service.supportedCurrencies = append(suite.service.supportedCurrencies, "EUR")
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusBadData)
+	assert.Equal(suite.T(), orderErrorAmountLowerThanMinLimitSystem, rsp1.Message)
+}
+
+func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_MinSystemLimitNotSet() {
+	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
+		ProjectId:   suite.project.Id,
+		Currency:    "DKK",
+		Amount:      10,
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+			Address: &billing.OrderBillingAddress{
+				Country: "RU",
+			},
+		},
+	}
+
+	suite.service.supportedCurrencies = append(suite.service.supportedCurrencies, "DKK")
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusBadData)
+	assert.Equal(suite.T(), errorPaymentMinLimitSystemNotFound, rsp1.Message)
 }

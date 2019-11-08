@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
@@ -45,6 +46,14 @@ func (suite *TokenTestSuite) SetupTest() {
 
 	db, err := mongodb.NewDatabase()
 	assert.NoError(suite.T(), err, "Database connection failed")
+
+	paymentMinLimitSystem1 := &billing.PaymentMinLimitSystem{
+		Id:        bson.NewObjectId().Hex(),
+		Currency:  "RUB",
+		Amount:    0.01,
+		CreatedAt: ptypes.TimestampNow(),
+		UpdatedAt: ptypes.TimestampNow(),
+	}
 
 	pgRub := &billing.PriceGroup{
 		Id:       bson.NewObjectId().Hex(),
@@ -351,6 +360,10 @@ func (suite *TokenTestSuite) SetupTest() {
 	if err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
+
+	limits := []interface{}{paymentMinLimitSystem1}
+	err = suite.service.db.Collection(collectionPaymentMinLimitSystem).Insert(limits...)
+	assert.NoError(suite.T(), err)
 
 	err = suite.service.merchant.MultipleInsert([]*billing.Merchant{merchant, merchantWithoutTariffs})
 

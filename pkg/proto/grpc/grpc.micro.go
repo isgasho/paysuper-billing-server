@@ -242,6 +242,7 @@ It has these top-level messages:
 	RoyaltyReportPdfUploadedResponse
 	DeleteSavedCardRequest
 	GetOperatingCompaniesListResponse
+	GetPaymentMinLimitsSystemResponse
 	SetMerchantOperatingCompanyRequest
 	SetMerchantOperatingCompanyResponse
 */
@@ -264,8 +265,8 @@ import (
 var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
-var _ = billing.OperatingCompany{}
 var _ = paylink.CreatePaylinkRequest{}
+var _ = billing.PaymentMinLimitSystem{}
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the proto package it is being compiled against.
@@ -434,6 +435,8 @@ type BillingService interface {
 	DeleteSavedCard(ctx context.Context, in *DeleteSavedCardRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 	GetOperatingCompaniesList(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*GetOperatingCompaniesListResponse, error)
 	AddOperatingCompany(ctx context.Context, in *billing.OperatingCompany, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
+	GetPaymentMinLimitsSystem(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*GetPaymentMinLimitsSystemResponse, error)
+	SetPaymentMinLimitSystem(ctx context.Context, in *billing.PaymentMinLimitSystem, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 }
 
 type billingService struct {
@@ -1984,6 +1987,26 @@ func (c *billingService) AddOperatingCompany(ctx context.Context, in *billing.Op
 	return out, nil
 }
 
+func (c *billingService) GetPaymentMinLimitsSystem(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*GetPaymentMinLimitsSystemResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetPaymentMinLimitsSystem", in)
+	out := new(GetPaymentMinLimitsSystemResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) SetPaymentMinLimitSystem(ctx context.Context, in *billing.PaymentMinLimitSystem, opts ...client.CallOption) (*EmptyResponseWithStatus, error) {
+	req := c.c.NewRequest(c.name, "BillingService.SetPaymentMinLimitSystem", in)
+	out := new(EmptyResponseWithStatus)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for BillingService service
 
 type BillingServiceHandler interface {
@@ -2140,6 +2163,8 @@ type BillingServiceHandler interface {
 	DeleteSavedCard(context.Context, *DeleteSavedCardRequest, *EmptyResponseWithStatus) error
 	GetOperatingCompaniesList(context.Context, *EmptyRequest, *GetOperatingCompaniesListResponse) error
 	AddOperatingCompany(context.Context, *billing.OperatingCompany, *EmptyResponseWithStatus) error
+	GetPaymentMinLimitsSystem(context.Context, *EmptyRequest, *GetPaymentMinLimitsSystemResponse) error
+	SetPaymentMinLimitSystem(context.Context, *billing.PaymentMinLimitSystem, *EmptyResponseWithStatus) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -2297,6 +2322,8 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		DeleteSavedCard(ctx context.Context, in *DeleteSavedCardRequest, out *EmptyResponseWithStatus) error
 		GetOperatingCompaniesList(ctx context.Context, in *EmptyRequest, out *GetOperatingCompaniesListResponse) error
 		AddOperatingCompany(ctx context.Context, in *billing.OperatingCompany, out *EmptyResponseWithStatus) error
+		GetPaymentMinLimitsSystem(ctx context.Context, in *EmptyRequest, out *GetPaymentMinLimitsSystemResponse) error
+		SetPaymentMinLimitSystem(ctx context.Context, in *billing.PaymentMinLimitSystem, out *EmptyResponseWithStatus) error
 	}
 	type BillingService struct {
 		billingService
@@ -2919,4 +2946,12 @@ func (h *billingServiceHandler) GetOperatingCompaniesList(ctx context.Context, i
 
 func (h *billingServiceHandler) AddOperatingCompany(ctx context.Context, in *billing.OperatingCompany, out *EmptyResponseWithStatus) error {
 	return h.BillingServiceHandler.AddOperatingCompany(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetPaymentMinLimitsSystem(ctx context.Context, in *EmptyRequest, out *GetPaymentMinLimitsSystemResponse) error {
+	return h.BillingServiceHandler.GetPaymentMinLimitsSystem(ctx, in, out)
+}
+
+func (h *billingServiceHandler) SetPaymentMinLimitSystem(ctx context.Context, in *billing.PaymentMinLimitSystem, out *EmptyResponseWithStatus) error {
+	return h.BillingServiceHandler.SetPaymentMinLimitSystem(ctx, in, out)
 }

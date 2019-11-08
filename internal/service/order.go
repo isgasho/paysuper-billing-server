@@ -134,6 +134,7 @@ var (
 	orderErrorVirtualCurrencyFracNotSupported                 = newBillingServerErrorMsg("fm000066", "fractional numbers is not supported for this virtual currency")
 	orderErrorVirtualCurrencyLimits                           = newBillingServerErrorMsg("fm000067", "amount of order is more than max amount or less than minimal amount for virtual currency")
 	orderErrorCheckoutWithProducts                            = newBillingServerErrorMsg("fm000069", "request to processing simple payment can't contain products list")
+	orderErrorAmountLowerThanMinLimitSystem                   = newBillingServerErrorMsg("fm000070", "order amount is lower than min system limit")
 
 	virtualCurrencyPayoutCurrencyMissed = newBillingServerErrorMsg("vc000001", "virtual currency don't have price in merchant payout currency")
 
@@ -2279,6 +2280,15 @@ func (v *OrderCreateRequestProcessor) processPaymentMethod(pm *billing.PaymentMe
 
 func (v *OrderCreateRequestProcessor) processLimitAmounts() (err error) {
 	amount := v.checked.amount
+
+	pmls, err := v.paymentMinLimitSystem.GetByCurrency(v.checked.currency)
+	if err != nil {
+		return err
+	}
+
+	if amount < pmls.Amount {
+		return orderErrorAmountLowerThanMinLimitSystem
+	}
 
 	if v.checked.project.LimitsCurrency != "" && v.checked.project.LimitsCurrency != v.checked.currency {
 		if !contains(v.supportedCurrencies, v.checked.project.LimitsCurrency) {

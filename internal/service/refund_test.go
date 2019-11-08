@@ -52,6 +52,14 @@ func (suite *RefundTestSuite) SetupTest() {
 	suite.log, err = zap.NewProduction()
 	assert.NoError(suite.T(), err, "Logger initialization failed")
 
+	paymentMinLimitSystem1 := &billing.PaymentMinLimitSystem{
+		Id:        bson.NewObjectId().Hex(),
+		Currency:  "RUB",
+		Amount:    0.01,
+		CreatedAt: ptypes.TimestampNow(),
+		UpdatedAt: ptypes.TimestampNow(),
+	}
+
 	suite.operatingCompany = &billing.OperatingCompany{
 		Id:                 bson.NewObjectId().Hex(),
 		Name:               "Legal name",
@@ -399,6 +407,10 @@ func (suite *RefundTestSuite) SetupTest() {
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
+
+	limits := []interface{}{paymentMinLimitSystem1}
+	err = suite.service.db.Collection(collectionPaymentMinLimitSystem).Insert(limits...)
+	assert.NoError(suite.T(), err)
 
 	pms := []*billing.PaymentMethod{pmBankCard, pmQiwi, pmBitcoin}
 	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {

@@ -133,6 +133,7 @@ It has these top-level messages:
 	ProjectVirtualCurrency
 	OrderCreateByPaylink
 	OperatingCompany
+	PaymentMinLimitSystem
 */
 package billing
 

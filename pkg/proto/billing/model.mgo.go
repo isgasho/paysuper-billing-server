@@ -873,6 +873,14 @@ type MgoOperatingCompany struct {
 	UpdatedAt          time.Time     `bson:"updated_at"`
 }
 
+type MgoPaymentMinLimitSystem struct {
+	Id        bson.ObjectId `bson:"_id"`
+	Currency  string        `bson:"currency"`
+	Amount    float64       `bson:"amount"`
+	CreatedAt time.Time     `bson:"created_at"`
+	UpdatedAt time.Time     `bson:"updated_at"`
+}
+
 func (m *PayoutDocument) GetBSON() (interface{}, error) {
 	st := &MgoPayoutDocument{
 		SourceId:                m.SourceId,
@@ -4391,6 +4399,68 @@ func (m *OperatingCompany) SetBSON(raw bson.Raw) error {
 	m.SignatoryPosition = decoded.SignatoryPosition
 	m.BankingDetails = decoded.BankingDetails
 	m.PaymentCountries = decoded.PaymentCountries
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	m.UpdatedAt, err = ptypes.TimestampProto(decoded.UpdatedAt)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *PaymentMinLimitSystem) GetBSON() (interface{}, error) {
+	st := &MgoPaymentMinLimitSystem{
+		Currency: m.Currency,
+		Amount:   m.Amount,
+	}
+
+	if len(m.Id) <= 0 {
+		st.Id = bson.NewObjectId()
+	} else {
+		if bson.IsObjectIdHex(m.Id) == false {
+			return nil, errors.New(errorInvalidObjectId)
+		}
+
+		st.Id = bson.ObjectIdHex(m.Id)
+	}
+
+	var err error
+
+	if m.CreatedAt != nil {
+		if st.CreatedAt, err = ptypes.Timestamp(m.CreatedAt); err != nil {
+			return nil, err
+		}
+	} else {
+		st.CreatedAt = time.Now()
+	}
+
+	if m.UpdatedAt != nil {
+		if st.UpdatedAt, err = ptypes.Timestamp(m.UpdatedAt); err != nil {
+			return nil, err
+		}
+	} else {
+		st.UpdatedAt = time.Now()
+	}
+
+	return st, nil
+}
+
+func (m *PaymentMinLimitSystem) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoPaymentMinLimitSystem)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.Currency = decoded.Currency
+	m.Amount = decoded.Amount
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {
