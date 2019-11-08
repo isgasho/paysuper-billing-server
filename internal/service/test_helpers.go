@@ -30,6 +30,31 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 	*billing.PaymentSystem,
 ) {
 
+	paymentMinLimitsSystem := []*billing.PaymentMinLimitSystem{
+		{
+			Currency: "RUB",
+			Amount:   0.01,
+		},
+		{
+			Currency: "USD",
+			Amount:   0.01,
+		},
+		{
+			Currency: "EUR",
+			Amount:   0.01,
+		},
+	}
+	err := service.paymentMinLimitSystem.MultipleInsert(paymentMinLimitsSystem)
+	if err != nil {
+		suite.FailNow("Insert PaymentMinLimitSystem test data failed", "%v", err)
+	}
+
+	operatingCompany := helperOperatingCompany(suite, service)
+
+	keyRub := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, operatingCompany.Id)
+	keyUsd := fmt.Sprintf(pkg.PaymentMethodKey, "USD", pkg.MccCodeLowRisk, operatingCompany.Id)
+	keyEur := fmt.Sprintf(pkg.PaymentMethodKey, "EUR", pkg.MccCodeLowRisk, operatingCompany.Id)
+
 	paymentSystem := &billing.PaymentSystem{
 		Id:                 bson.NewObjectId().Hex(),
 		Name:               "CardPay",
@@ -48,37 +73,55 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		MaxPaymentAmount: 15000,
 		ExternalId:       "BANKCARD",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				TerminalId:     "15985",
-				Secret:         "A1tph4I6BD0f",
-				SecretCallback: "0V1rJ7t4jCRv",
+			keyRub: {
+				TerminalId:         "15985",
+				Secret:             "A1tph4I6BD0f",
+				SecretCallback:     "0V1rJ7t4jCRv",
+				Currency:           "RUB",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: operatingCompany.Id,
 			},
-			"USD": {
-				TerminalId:     "15985",
-				Secret:         "A1tph4I6BD0f",
-				SecretCallback: "0V1rJ7t4jCRv",
+			keyUsd: {
+				TerminalId:         "15985",
+				Secret:             "A1tph4I6BD0f",
+				SecretCallback:     "0V1rJ7t4jCRv",
+				Currency:           "USD",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: operatingCompany.Id,
 			},
-			"EUR": {
-				TerminalId:     "15985",
-				Secret:         "A1tph4I6BD0f",
-				SecretCallback: "0V1rJ7t4jCRv",
+			keyEur: {
+				TerminalId:         "15985",
+				Secret:             "A1tph4I6BD0f",
+				SecretCallback:     "0V1rJ7t4jCRv",
+				Currency:           "EUR",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: operatingCompany.Id,
 			},
 		},
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				TerminalId:     "15985",
-				Secret:         "A1tph4I6BD0f",
-				SecretCallback: "0V1rJ7t4jCRv",
+			keyRub: {
+				TerminalId:         "15985",
+				Secret:             "A1tph4I6BD0f",
+				SecretCallback:     "0V1rJ7t4jCRv",
+				Currency:           "RUB",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: operatingCompany.Id,
 			},
-			"USD": {
-				TerminalId:     "15985",
-				Secret:         "A1tph4I6BD0f",
-				SecretCallback: "0V1rJ7t4jCRv",
+			keyUsd: {
+				TerminalId:         "15985",
+				Secret:             "A1tph4I6BD0f",
+				SecretCallback:     "0V1rJ7t4jCRv",
+				Currency:           "USD",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: operatingCompany.Id,
 			},
-			"EUR": {
-				TerminalId:     "15985",
-				Secret:         "A1tph4I6BD0f",
-				SecretCallback: "0V1rJ7t4jCRv",
+			keyEur: {
+				TerminalId:         "15985",
+				Secret:             "A1tph4I6BD0f",
+				SecretCallback:     "0V1rJ7t4jCRv",
+				Currency:           "EUR",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: operatingCompany.Id,
 			},
 		},
 		Type:            "bank_card",
@@ -87,8 +130,6 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		PaymentSystemId: paymentSystem.Id,
 		RefundAllowed:   true,
 	}
-
-	operatingCompany := helperOperatingCompany(suite, service)
 
 	merchant := helperCreateMerchant(suite, service, "USD", "RU", pmBankCard, 0, operatingCompany.Id)
 
@@ -105,7 +146,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		BankCountryIsoCode: "US",
 	}
 
-	err := service.db.Collection(collectionBinData).Insert(bin)
+	err = service.db.Collection(collectionBinData).Insert(bin)
 
 	if err != nil {
 		suite.FailNow("Insert BIN test data failed", "%v", err)

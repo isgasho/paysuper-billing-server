@@ -281,26 +281,28 @@ func (h MoneyBackCostSystem) Update(obj *billing.MoneyBackCostSystem) error {
 
 func (h MoneyBackCostSystem) Get(
 	name string,
-	payout_currency string,
-	undo_reason string,
+	payoutCurrency string,
+	undoReason string,
 	region string,
 	country string,
-	mcc_code string,
-	operating_company_id string,
-	payment_stage int32,
+	mccCode string,
+	operatingCompanyId string,
+	paymentStage int32,
 ) (c []*internalPkg.MoneyBackCostSystemSet, err error) {
-	key := fmt.Sprintf(cacheMoneyBackCostSystemKey, name, payout_currency, undo_reason, region, country, payment_stage, mcc_code, operating_company_id)
+	key := fmt.Sprintf(cacheMoneyBackCostSystemKey, name, payoutCurrency, undoReason, region, country, paymentStage, mccCode, operatingCompanyId)
 
 	if err := h.svc.cacher.Get(key, c); err == nil {
 		return c, nil
 	}
 
 	matchQuery := bson.M{
-		"name":            name,
-		"payout_currency": payout_currency,
-		"undo_reason":     undo_reason,
-		"payment_stage":   payment_stage,
-		"is_active":       true,
+		"name":                 bson.RegEx{Pattern: "^" + name + "$", Options: "i"},
+		"payout_currency":      payoutCurrency,
+		"undo_reason":          undoReason,
+		"payment_stage":        paymentStage,
+		"is_active":            true,
+		"mcc_code":             mccCode,
+		"operating_company_id": operatingCompanyId,
 		"$or": []bson.M{
 			{
 				"country": country,

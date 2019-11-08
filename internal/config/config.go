@@ -49,17 +49,20 @@ type Config struct {
 	CentrifugoURL       string `envconfig:"CENTRIFUGO_URL" required:"false" default:"http://127.0.0.1:8000"`
 	BrokerAddress       string `envconfig:"BROKER_ADDRESS" default:"amqp://127.0.0.1:5672"`
 
-	CentrifugoUserChannel            string `envconfig:"CENTRIFUGO_USER_CHANNEL" default:"paysuper:user#%s"`
-	EmailConfirmTokenLifetime        int64  `envconfig:"EMAIL_CONFIRM_TOKEN_LIFETIME" default:"86400"`
-	EmailConfirmUrl                  string `envconfig:"EMAIL_CONFIRM_URL" default:"https://paysupermgmt.tst.protocol.one/confirm_email"`
-	EmailConfirmTemplate             string `envconfig:"EMAIL_CONFIRM_TEMPLATE" default:"p1_verify_letter"`
-	EmailNewRoyaltyReportTemplate    string `envconfig:"EMAIL_NEW_ROYALTY_REPORT_TEMPLATE" default:"p1_new_royalty_report"`
-	EmailUpdateRoyaltyReportTemplate string `envconfig:"EMAIL_UPDATE_ROYALTY_REPORT_TEMPLATE" default:"p1_update_royalty_report"`
-	EmailNewPayoutTemplate           string `envconfig:"EMAIL_NEW_PAYOUT_TEMPLATE" default:"p1_new_payout"`
-	EmailVatReportTemplate           string `envconfig:"EMAIL_VAT_REPORT_TEMPLATE" default:"p1_vat_report"`
-	EmailGameCodeTemplate            string `envconfig:"EMAIL_ACTIVATION_CODE_TEMPLATE" default:"p1_verify_letter-2"`
-	EmailSuccessTransactionTemplate  string `envconfig:"EMAIL_SUCCESS_TRANSACTION_TEMPLATE" default:"p1_verify_letter-4"`
-	EmailRefundTransactionTemplate   string `envconfig:"EMAIL_REFUND_TRANSACTION_TEMPLATE" default:"p1_verify_letter-5"`
+	CentrifugoUserChannel                          string `envconfig:"CENTRIFUGO_USER_CHANNEL" default:"paysuper:user#%s"`
+	EmailConfirmTokenLifetime                      int64  `envconfig:"EMAIL_CONFIRM_TOKEN_LIFETIME" default:"86400"`
+	EmailConfirmUrl                                string `envconfig:"EMAIL_CONFIRM_URL" default:"https://paysupermgmt.tst.protocol.one/confirm_email"`
+	EmailConfirmTemplate                           string `envconfig:"EMAIL_CONFIRM_TEMPLATE" default:"p1_verify_letter"`
+	EmailNewRoyaltyReportTemplate                  string `envconfig:"EMAIL_NEW_ROYALTY_REPORT_TEMPLATE" default:"p1_new_royalty_report"`
+	EmailUpdateRoyaltyReportTemplate               string `envconfig:"EMAIL_UPDATE_ROYALTY_REPORT_TEMPLATE" default:"p1_update_royalty_report"`
+	EmailNewPayoutTemplate                         string `envconfig:"EMAIL_NEW_PAYOUT_TEMPLATE" default:"p1_new_payout"`
+	EmailVatReportTemplate                         string `envconfig:"EMAIL_VAT_REPORT_TEMPLATE" default:"p1_vat_report"`
+	EmailGameCodeTemplate                          string `envconfig:"EMAIL_ACTIVATION_CODE_TEMPLATE" default:"p1_verify_letter-2"`
+	EmailSuccessTransactionTemplate                string `envconfig:"EMAIL_SUCCESS_TRANSACTION_TEMPLATE" default:"p1_verify_letter-4"`
+	EmailRefundTransactionTemplate                 string `envconfig:"EMAIL_REFUND_TRANSACTION_TEMPLATE" default:"p1_verify_letter-5"`
+	EmailMerchantNewOnboardingRequestTemplate      string `envconfig:"EMAIL_MERCHANT_NEW_ONBOARDING_REQUEST_TEMPLATE" default:"p1_email_merchant_new_onboarding_request_template"`
+	EmailAdminNewOnboardingRequestTemplate         string `envconfig:"EMAIL_ADMIN_NEW_ONBOARDING_REQUEST_TEMPLATE" default:"p1_email_admin_new_onboarding_request_template"`
+	EmailMerchantOnboardingRequestCompleteTemplate string `envconfig:"EMAIL_MERCHANT_ONBOARDING_REQUEST_COMPLETE_TEMPLATE" default:"p1_email_merchant_onboarding_request_complete_template"`
 
 	RoyaltyReportsUrl string `envconfig:"ROYALTY_REPORTS_URL" default:"https://paysupermgmt.tst.protocol.one/royalty_reports"`
 	PayoutsUrl        string `envconfig:"PAYOUTS_URL" default:"https://paysupermgmt.tst.protocol.one/payout_documents"`
@@ -78,6 +81,7 @@ type Config struct {
 	CentrifugoAdminChannel     string `envconfig:"CENTRIFUGO_ADMIN_CHANNEL" default:"paysuper:admin"`
 
 	EmailNotificationFinancierRecipient string `envconfig:"EMAIL_NOTIFICATION_FINANCIER_RECIPIENT" required:"true"`
+	EmailOnboardingAdminRecipient       string `envconfig:"EMAIL_ONBOARDING_ADMIN_RECIPIENT" required:"true"`
 
 	OrderViewUpdateBatchSize int `envconfig:"ORDER_VIEW_UPDATE_BATCH_SIZE" default:"200"`
 
@@ -97,6 +101,12 @@ type Config struct {
 	PaylinkMaxProducts int `envconfig:"PAYLINK_MAX_PRODUCTS" required:"false" default:"8"`
 
 	CentrifugoOrderChannel string `envconfig:"CENTRIFUGO_ORDER_CHANNEL" default:"paysuper:order#%s"`
+
+	ReceiptPurchaseUrl string `envconfig:"RECEIPT_PURCHASE_URL" default:"https://dashboard.pay.super.com/receipt/purchase/%s/%s"`
+	ReceiptRefundUrl   string `envconfig:"RECEIPT_REFUND_URL" default:"https://dashboard.pay.super.com/orders/receipt/refund/%s/%s"`
+
+	MerchantsAgreementSignatureUrl string `envconfig:"MERCHANTS_AGREEMENT_SIGNATURE_URL" default:"https://dashboard.pay.super.com/company"`
+	AdminOnboardingRequestsUrl     string `envconfig:"ADMIN_ONBOARDING_REQUESTS_URL" default:"https://dashboard.pay.super.com/agreement-requests"`
 
 	*PaymentSystemConfig
 	*CustomerTokenConfig
@@ -207,4 +217,12 @@ func (cfg *Config) GetRedirectUrlFail(params map[string]string) string {
 
 func (cfg *Config) GetCentrifugoOrderChannel(orderUuid string) string {
 	return fmt.Sprintf(cfg.CentrifugoOrderChannel, orderUuid)
+}
+
+func (cfg *Config) GetReceiptPurchaseUrl(transactionId, receiptId string) string {
+	return fmt.Sprintf(cfg.ReceiptPurchaseUrl, receiptId, transactionId)
+}
+
+func (cfg *Config) GetReceiptRefundUrl(transactionId, receiptId string) string {
+	return fmt.Sprintf(cfg.ReceiptRefundUrl, receiptId, transactionId)
 }

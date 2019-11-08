@@ -1,0 +1,72 @@
+[
+  {
+    "update": "accounting_entry",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$set": {
+            "operating_company_id": "5dbc50d486616113a1cefe16"
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "update": "annual_turnovers",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$set": {
+            "operating_company_id": "5dbc50d486616113a1cefe16"
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "update": "vat_reports",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$set": {
+            "operating_company_id": "5dbc50d486616113a1cefe16"
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "update": "royalty_report",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$set": {
+            "operating_company_id": "5dbc50d486616113a1cefe16"
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "update": "payout_documents",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$set": {
+            "operating_company_id": "5dbc50d486616113a1cefe16"
+          }
+        },
+        "multi": true
+      }
+    ]
+  }
+]

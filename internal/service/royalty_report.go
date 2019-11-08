@@ -78,10 +78,11 @@ type RoyaltyReportServiceInterface interface {
 	Insert(document *billing.RoyaltyReport, ip, source string) error
 	Update(document *billing.RoyaltyReport, ip, source string) error
 	GetById(id string) (*billing.RoyaltyReport, error)
-	GetNonPayoutReports(merchantId, currency string) ([]*billing.RoyaltyReport, error)
+	GetNonPayoutReports(merchantId, operatingCompanyId, currency string) ([]*billing.RoyaltyReport, error)
+	GetNonPayoutReportsOperatingCompaniesIds(merchantId, currency string) ([]string, error)
 	GetByPayoutId(payoutId string) ([]*billing.RoyaltyReport, error)
 	GetBalanceAmount(merchantId, currency string) (float64, error)
-	CheckReportExists(merchantId, currency string, from, to time.Time) (exists bool, err error)
+	CheckReportExists(merchantId, operatingCompanyId, currency string, from, to time.Time) (exists bool, err error)
 	SetPayoutDocumentId(reportIds []string, payoutDocumentId, ip, source string) (err error)
 	UnsetPayoutDocumentId(reportIds []string, ip, source string) (err error)
 	SetPaid(reportIds []string, payoutDocumentId, ip, source string) (err error)
@@ -449,7 +450,7 @@ func (s *Service) ChangeRoyaltyReport(
 			from:    from,
 			to:      to,
 		}
-		report.Summary.Corrections, report.Totals.CorrectionAmount, err = handler.getRoyaltyReportCorrections(report.MerchantId, report.Currency)
+		report.Summary.Corrections, report.Totals.CorrectionAmount, err = handler.getRoyaltyReportCorrections(report.MerchantId, report.OperatingCompanyId, report.Currency)
 		if err != nil {
 			zap.L().Error("get royalty report corrections error", zap.Error(err))
 			rsp.Status = pkg.ResponseStatusSystemError
@@ -571,12 +572,12 @@ func (s *Service) getRoyaltyReportMerchantsByPeriod(from, to time.Time) []*Royal
 	return merchants
 }
 
-func (h *royaltyHandler) getRoyaltyReportCorrections(merchantId, currency string) (
+func (h *royaltyHandler) getRoyaltyReportCorrections(merchantId, operatingCompanyId, currency string) (
 	entries []*billing.RoyaltyReportCorrectionItem,
 	total float64,
 	err error) {
 
-	accountingEntries, err := h.accounting.GetCorrectionsForRoyaltyReport(merchantId, currency, h.from, h.to)
+	accountingEntries, err := h.accounting.GetCorrectionsForRoyaltyReport(merchantId, operatingCompanyId, currency, h.from, h.to)
 	if err != nil {
 		return
 	}
@@ -594,12 +595,12 @@ func (h *royaltyHandler) getRoyaltyReportCorrections(merchantId, currency string
 	return
 }
 
-func (h *royaltyHandler) getRoyaltyReportRollingReserves(merchantId, currency string) (
+func (h *royaltyHandler) getRoyaltyReportRollingReserves(merchantId, operatingCompanyId, currency string) (
 	entries []*billing.RoyaltyReportCorrectionItem,
 	total float64,
 	err error) {
 
-	accountingEntries, err := h.accounting.GetRollingReservesForRoyaltyReport(merchantId, currency, h.from, h.to)
+	accountingEntries, err := h.accounting.GetRollingReservesForRoyaltyReport(merchantId, operatingCompanyId, currency, h.from, h.to)
 	if err != nil {
 		return
 	}
@@ -618,78 +619,85 @@ func (h *royaltyHandler) getRoyaltyReportRollingReserves(merchantId, currency st
 }
 
 func (h *royaltyHandler) createMerchantRoyaltyReport(ctx context.Context, merchantId bson.ObjectId) error {
-	zap.L().Info("generating royalty report for merchant", zap.String("merchant_id", merchantId.Hex()))
+	zap.L().Info("generating royalty reports for merchant", zap.String("merchant_id", merchantId.Hex()))
 
 	merchant, err := h.merchant.GetById(merchantId.Hex())
 	if err != nil {
 		return err
 	}
 
-	isExists, err := h.royaltyReport.CheckReportExists(merchant.Id, merchant.GetPayoutCurrency(), h.from, h.to)
-	if isExists {
-		return royaltyReportErrorAlreadyExists
+	ocIds, err := h.orderView.GetRoyaltyOperatingCompaniesIds(merchant.Id, merchant.GetPayoutCurrency(), h.from, h.to)
+
+	for _, operatingCompanyId := range ocIds {
+
+		isExists, err := h.royaltyReport.CheckReportExists(merchant.Id, operatingCompanyId, merchant.GetPayoutCurrency(), h.from, h.to)
+		if isExists {
+			return royaltyReportErrorAlreadyExists
+		}
+
+		summaryItems, summaryTotal, err := h.orderView.GetRoyaltySummary(merchant.Id, operatingCompanyId, merchant.GetPayoutCurrency(), h.from, h.to)
+		if err != nil {
+			return err
+		}
+
+		corrections, correctionsTotal, err := h.getRoyaltyReportCorrections(merchant.Id, operatingCompanyId, merchant.GetPayoutCurrency())
+		if err != nil {
+			return err
+		}
+
+		reserves, reservesTotal, err := h.getRoyaltyReportRollingReserves(merchant.Id, operatingCompanyId, merchant.GetPayoutCurrency())
+		if err != nil {
+			return err
+		}
+
+		report := &billing.RoyaltyReport{
+			Id:                 bson.NewObjectId().Hex(),
+			MerchantId:         merchantId.Hex(),
+			OperatingCompanyId: operatingCompanyId,
+			Currency:           merchant.GetPayoutCurrency(),
+			Status:             pkg.RoyaltyReportStatusPending,
+			CreatedAt:          ptypes.TimestampNow(),
+			Totals: &billing.RoyaltyReportTotals{
+				TransactionsCount:    summaryTotal.TotalTransactions,
+				FeeAmount:            summaryTotal.TotalFees,
+				VatAmount:            summaryTotal.TotalVat,
+				PayoutAmount:         summaryTotal.PayoutAmount,
+				CorrectionAmount:     tools.ToPrecise(correctionsTotal),
+				RollingReserveAmount: tools.ToPrecise(reservesTotal),
+			},
+			Summary: &billing.RoyaltyReportSummary{
+				ProductsItems:   summaryItems,
+				ProductsTotal:   summaryTotal,
+				Corrections:     corrections,
+				RollingReserves: reserves,
+			},
+		}
+
+		report.PeriodFrom, err = ptypes.TimestampProto(h.from)
+		if err != nil {
+			return err
+		}
+
+		report.PeriodTo, err = ptypes.TimestampProto(h.to)
+		if err != nil {
+			return err
+		}
+
+		report.AcceptExpireAt, err = ptypes.TimestampProto(time.Now().Add(time.Duration(h.cfg.RoyaltyReportAcceptTimeout) * time.Second))
+		if err != nil {
+			return err
+		}
+
+		err = h.royaltyReport.Insert(report, "", pkg.RoyaltyReportChangeSourceAuto)
+
+		err = h.Service.renderRoyaltyReport(ctx, report, merchant)
+		if err != nil {
+			return err
+		}
+
 	}
 
-	summaryItems, summaryTotal, err := h.orderView.GetRoyaltySummary(merchant.Id, merchant.GetPayoutCurrency(), h.from, h.to)
-	if err != nil {
-		return err
-	}
-
-	corrections, correctionsTotal, err := h.getRoyaltyReportCorrections(merchant.Id, merchant.GetPayoutCurrency())
-	if err != nil {
-		return err
-	}
-
-	reserves, reservesTotal, err := h.getRoyaltyReportRollingReserves(merchant.Id, merchant.GetPayoutCurrency())
-	if err != nil {
-		return err
-	}
-
-	report := &billing.RoyaltyReport{
-		Id:         bson.NewObjectId().Hex(),
-		MerchantId: merchantId.Hex(),
-		Currency:   merchant.GetPayoutCurrency(),
-		Status:     pkg.RoyaltyReportStatusPending,
-		CreatedAt:  ptypes.TimestampNow(),
-		Totals: &billing.RoyaltyReportTotals{
-			TransactionsCount:    summaryTotal.TotalTransactions,
-			FeeAmount:            summaryTotal.TotalFees,
-			VatAmount:            summaryTotal.TotalVat,
-			PayoutAmount:         summaryTotal.PayoutAmount,
-			CorrectionAmount:     tools.ToPrecise(correctionsTotal),
-			RollingReserveAmount: tools.ToPrecise(reservesTotal),
-		},
-		Summary: &billing.RoyaltyReportSummary{
-			ProductsItems:   summaryItems,
-			ProductsTotal:   summaryTotal,
-			Corrections:     corrections,
-			RollingReserves: reserves,
-		},
-	}
-
-	report.PeriodFrom, err = ptypes.TimestampProto(h.from)
-	if err != nil {
-		return err
-	}
-
-	report.PeriodTo, err = ptypes.TimestampProto(h.to)
-	if err != nil {
-		return err
-	}
-
-	report.AcceptExpireAt, err = ptypes.TimestampProto(time.Now().Add(time.Duration(h.cfg.RoyaltyReportAcceptTimeout) * time.Second))
-	if err != nil {
-		return err
-	}
-
-	err = h.royaltyReport.Insert(report, "", pkg.RoyaltyReportChangeSourceAuto)
-
-	err = h.Service.renderRoyaltyReport(ctx, report, merchant)
-	if err != nil {
-		return err
-	}
-
-	zap.L().Info("generating royalty report for merchant finished", zap.String("merchant_id", merchantId.Hex()))
+	zap.L().Info("generating royalty reports for merchant finished", zap.String("merchant_id", merchantId.Hex()))
 
 	return nil
 }
@@ -780,17 +788,24 @@ func (s *Service) RoyaltyReportPdfUploaded(
 		return err
 	}
 
+	operatingCompany, err := s.operatingCompany.GetById(report.OperatingCompanyId)
+	if err != nil {
+		zap.L().Error("Operating company not found", zap.Error(err), zap.String("operating_company_id", report.OperatingCompanyId))
+		return err
+	}
+
 	payload := &postmarkSdrPkg.Payload{
 		TemplateAlias: s.cfg.EmailNewRoyaltyReportTemplate,
 		TemplateModel: map[string]string{
-			"merchant_id":         merchant.Id,
-			"royalty_report_id":   report.Id,
-			"period_from":         periodFrom.Format("2006-01-02"),
-			"period_to":           periodTo.Format("2006-01-02"),
-			"license_agreement":   merchant.AgreementNumber,
-			"status":              report.Status,
-			"merchant_greeting":   merchant.GetAuthorizedName(),
-			"royalty_reports_url": s.cfg.RoyaltyReportsUrl,
+			"merchant_id":            merchant.Id,
+			"royalty_report_id":      report.Id,
+			"period_from":            periodFrom.Format("2006-01-02"),
+			"period_to":              periodTo.Format("2006-01-02"),
+			"license_agreement":      merchant.AgreementNumber,
+			"status":                 report.Status,
+			"merchant_greeting":      merchant.GetAuthorizedName(),
+			"royalty_reports_url":    s.cfg.RoyaltyReportsUrl,
+			"operating_company_name": operatingCompany.Name,
 		},
 		To: merchant.GetAuthorizedEmail(),
 		Attachments: []*postmarkSdrPkg.PayloadAttachment{
@@ -802,7 +817,7 @@ func (s *Service) RoyaltyReportPdfUploaded(
 		},
 	}
 
-	err = s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+	err = s.postmarkBroker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 
 	if err != nil {
 		zap.L().Error(
@@ -862,7 +877,7 @@ func (s *Service) sendRoyaltyReportNotification(ctx context.Context, report *bil
 			To: merchant.GetAuthorizedEmail(),
 		}
 
-		err = s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+		err = s.postmarkBroker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 
 		if err != nil {
 			zap.L().Error(
@@ -887,12 +902,13 @@ func (s *Service) sendRoyaltyReportNotification(ctx context.Context, report *bil
 	return
 }
 
-func (r *RoyaltyReport) GetNonPayoutReports(merchantId, currency string) (result []*billing.RoyaltyReport, err error) {
+func (r *RoyaltyReport) GetNonPayoutReports(merchantId, operatingCompanyId, currency string) (result []*billing.RoyaltyReport, err error) {
 	query := bson.M{
-		"merchant_id":        bson.ObjectIdHex(merchantId),
-		"currency":           currency,
-		"status":             bson.M{"$in": royaltyReportsStatusActive},
-		"payout_document_id": "",
+		"merchant_id":          bson.ObjectIdHex(merchantId),
+		"currency":             currency,
+		"status":               bson.M{"$in": royaltyReportsStatusActive},
+		"operating_company_id": operatingCompanyId,
+		"payout_document_id":   "",
 	}
 
 	sorts := "period_from"
@@ -905,6 +921,27 @@ func (r *RoyaltyReport) GetNonPayoutReports(merchantId, currency string) (result
 			zap.String(pkg.ErrorDatabaseFieldCollection, collectionRoyaltyReport),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 			zap.Any(pkg.ErrorDatabaseFieldSorts, sorts),
+		)
+	}
+
+	return
+}
+
+func (r *RoyaltyReport) GetNonPayoutReportsOperatingCompaniesIds(merchantId, currency string) (result []string, err error) {
+	query := bson.M{
+		"merchant_id":        bson.ObjectIdHex(merchantId),
+		"currency":           currency,
+		"status":             bson.M{"$in": royaltyReportsStatusActive},
+		"payout_document_id": "",
+	}
+
+	err = r.svc.db.Collection(collectionRoyaltyReport).Find(query).Distinct("operating_company_id", &result)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionRoyaltyReport),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
 	}
 
@@ -972,12 +1009,13 @@ func (r *RoyaltyReport) GetBalanceAmount(merchantId, currency string) (float64, 
 	return res.Amount, nil
 }
 
-func (r *RoyaltyReport) CheckReportExists(merchantId, currency string, from, to time.Time) (bool, error) {
+func (r *RoyaltyReport) CheckReportExists(merchantId, operatingCompanyId, currency string, from, to time.Time) (bool, error) {
 	query := bson.M{
-		"merchant_id": bson.ObjectIdHex(merchantId),
-		"period_from": bson.M{"$gte": from},
-		"period_to":   bson.M{"$lte": to},
-		"currency":    currency,
+		"merchant_id":          bson.ObjectIdHex(merchantId),
+		"period_from":          bson.M{"$gte": from},
+		"period_to":            bson.M{"$lte": to},
+		"currency":             currency,
+		"operating_company_id": operatingCompanyId,
 	}
 	var report *billing.RoyaltyReport
 	err := r.svc.db.Collection(collectionRoyaltyReport).Find(query).One(&report)

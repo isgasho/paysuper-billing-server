@@ -34,6 +34,9 @@ func (m *MerchantPaymentMethodRequest) HasIntegration() bool {
 
 func (p *Product) IsPricesContainDefaultCurrency() bool {
 	_, err := p.GetPriceInCurrency(&billing.PriceGroup{Currency: p.DefaultCurrency})
+	if err != nil {
+		_, err = p.GetPriceInCurrency(&billing.PriceGroup{Currency: VirtualCurrencyPriceGroup})
+	}
 	return err == nil
 }
 
@@ -56,7 +59,7 @@ func (p *Product) GetPriceInCurrency(group *billing.PriceGroup) (float64, error)
 
 func (p *Product) GetLocalizedName(lang string) (string, error) {
 	v, ok := p.Name[lang]
-	if !ok {
+	if !ok || len(v) == 0 {
 		return "", errors.New(fmt.Sprintf(productNoNameInLanguage, lang))
 	}
 	return v, nil
@@ -64,7 +67,7 @@ func (p *Product) GetLocalizedName(lang string) (string, error) {
 
 func (p *Product) GetLocalizedDescription(lang string) (string, error) {
 	v, ok := p.Description[lang]
-	if !ok {
+	if !ok || len(v) == 0 {
 		return "", errors.New(fmt.Sprintf(productNoDescriptionInLanguage, lang))
 	}
 	return v, nil
@@ -72,7 +75,7 @@ func (p *Product) GetLocalizedDescription(lang string) (string, error) {
 
 func (p *Product) GetLocalizedLongDescription(lang string) (string, error) {
 	v, ok := p.LongDescription[lang]
-	if !ok {
+	if !ok || len(v) == 0  {
 		return "", errors.New(fmt.Sprintf(productNoLongDescriptionInLanguage, lang))
 	}
 	return v, nil
@@ -151,7 +154,7 @@ func (m *OnboardingRequest) HasIdentificationFields() bool {
 
 func (p *KeyProduct) GetLocalizedName(lang string) (string, error) {
 	v, ok := p.Name[lang]
-	if !ok {
+	if !ok || len(v) == 0 {
 		return "", errors.New(fmt.Sprintf(productNoNameInLanguage, lang))
 	}
 	return v, nil
@@ -159,7 +162,7 @@ func (p *KeyProduct) GetLocalizedName(lang string) (string, error) {
 
 func (p *KeyProduct) GetLocalizedDescription(lang string) (string, error) {
 	v, ok := p.Description[lang]
-	if !ok {
+	if !ok || len(v) == 0  {
 		return "", errors.New(fmt.Sprintf(productNoDescriptionInLanguage, lang))
 	}
 	return v, nil
@@ -167,7 +170,7 @@ func (p *KeyProduct) GetLocalizedDescription(lang string) (string, error) {
 
 func (p *KeyProduct) GetLocalizedLongDescription(lang string) (string, error) {
 	v, ok := p.LongDescription[lang]
-	if !ok {
+	if !ok || len(v) == 0 {
 		return "", errors.New(fmt.Sprintf(productNoLongDescriptionInLanguage, lang))
 	}
 	return v, nil

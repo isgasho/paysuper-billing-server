@@ -37,6 +37,7 @@ const (
 	cardPayInitiatorCardholder = "cit"
 
 	cardPayMaxItemNameLength = 50
+	cardPayMaxItemDescriptionLength = 200
 )
 
 var (
@@ -435,7 +436,9 @@ func (h *cardPay) ProcessPayment(order *billing.Order, message proto.Message, ra
 		return newBillingServerResponseError(pkg.StatusErrorValidation, paymentSystemErrorRequestPaymentMethodIsInvalid)
 	}
 
-	switch req.GetStatus() {
+	status := req.GetStatus()
+
+	switch status {
 	case pkg.CardPayPaymentResponseStatusDeclined:
 		order.PrivateStatus = constant.OrderStatusPaymentSystemDeclined
 		break
@@ -448,6 +451,23 @@ func (h *cardPay) ProcessPayment(order *billing.Order, message proto.Message, ra
 		break
 	default:
 		return newBillingServerResponseError(pkg.StatusTemporary, paymentSystemErrorRequestTemporarySkipped)
+	}
+
+	if status == pkg.CardPayPaymentResponseStatusDeclined || status == pkg.CardPayPaymentResponseStatusCancelled {
+		declineCode, hasDeclineCode := order.PaymentMethodTxnParams[pkg.TxnParamsFieldDeclineCode]
+		declineReason, hasDeclineReason := order.PaymentMethodTxnParams[pkg.TxnParamsFieldDeclineReason]
+
+		if hasDeclineCode || hasDeclineReason {
+			order.Cancellation = &billing.OrderNotificationCancellation{}
+		}
+
+		if declineCode != "" {
+			order.Cancellation.Code = declineCode
+		}
+
+		if declineReason != "" {
+			order.Cancellation.Reason = declineReason
+		}
 	}
 
 	order.Transaction = req.GetId()
@@ -659,14 +679,19 @@ func (h *cardPay) getCardPayOrder(
 
 	for _, it := range order.Items {
 		name := []rune(it.Name)
+		description := []rune(it.Description)
 
 		if len(name) > cardPayMaxItemNameLength {
 			name = name[:cardPayMaxItemNameLength]
 		}
 
+		if len(description) > cardPayMaxItemDescriptionLength {
+			description = description[:cardPayMaxItemDescriptionLength]
+		}
+
 		items = append(items, &CardPayItem{
 			Name:        string(name),
-			Description: it.Description,
+			Description: string(description),
 			Count:       1,
 			Price:       it.Amount,
 		})

@@ -34,6 +34,7 @@ type MoneyBackCostSystem Entity
 type MoneyBackCostMerchant Entity
 type Paylink Entity
 type OperatingCompany Entity
+type PaymentMinLimitSystem Entity
 type PayoutCostSystem Entity
 type PriceTable Entity
 type Product Entity

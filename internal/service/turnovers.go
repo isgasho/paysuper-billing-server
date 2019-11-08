@@ -19,7 +19,7 @@ import (
 
 const (
 	collectionAnnualTurnovers = "annual_turnovers"
-	cacheTurnoverKey          = "turnover:country:%s:year:%d"
+	cacheTurnoverKey          = "turnover:company:%s:country:%s:year:%d"
 
 	errorCannotCalculateTurnoverCountry = "can not calculate turnover for country"
 	errorCannotCalculateTurnoverWorld   = "can not calculate turnover for world"
@@ -40,35 +40,54 @@ type turnoverQueryResItem struct {
 }
 
 func (s *Service) CalcAnnualTurnovers(ctx context.Context, req *grpc.EmptyRequest, res *grpc.EmptyResponse) error {
+	operatingCompanies, err := s.operatingCompany.GetAll()
+	if err != nil {
+		return err
+	}
+
 	countries, err := s.country.GetCountriesWithVatEnabled()
 	if err != nil {
 		return err
 	}
-	for _, country := range countries.Countries {
-		err = s.calcAnnualTurnover(ctx, country.IsoCodeA2)
-		if err != nil {
-			if err != errorTurnoversCurrencyRatesPolicyNotSupported {
-				zap.L().Error(errorCannotCalculateTurnoverCountry,
+	for _, operatingCompany := range operatingCompanies {
+		cnt := []*billing.Country{}
+		if len(operatingCompany.PaymentCountries) == 0 {
+			cnt = countries.Countries
+		} else {
+			for _, countryCode := range operatingCompany.PaymentCountries {
+				country, err := s.country.GetByIsoCodeA2(countryCode)
+				if err != nil {
+					return err
+				}
+				cnt = append(cnt, country)
+			}
+		}
+		for _, country := range cnt {
+			err = s.calcAnnualTurnover(ctx, country.IsoCodeA2, operatingCompany.Id)
+			if err != nil {
+				if err != errorTurnoversCurrencyRatesPolicyNotSupported {
+					zap.L().Error(errorCannotCalculateTurnoverCountry,
+						zap.String("country", country.IsoCodeA2),
+						zap.Error(err))
+					return err
+				}
+				zap.L().Warn(errorCannotCalculateTurnoverCountry,
 					zap.String("country", country.IsoCodeA2),
 					zap.Error(err))
-				return err
 			}
-			zap.L().Warn(errorCannotCalculateTurnoverCountry,
-				zap.String("country", country.IsoCodeA2),
-				zap.Error(err))
 		}
-	}
 
-	err = s.calcAnnualTurnover(ctx, "")
-	if err != nil {
-		zap.L().Error(errorCannotCalculateTurnoverWorld, zap.Error(err))
-		return err
+		err = s.calcAnnualTurnover(ctx, "", operatingCompany.Id)
+		if err != nil {
+			zap.L().Error(errorCannotCalculateTurnoverWorld, zap.Error(err))
+			return err
+		}
 	}
 
 	return nil
 }
 
-func (s *Service) calcAnnualTurnover(ctx context.Context, countryCode string) error {
+func (s *Service) calcAnnualTurnover(ctx context.Context, countryCode, operatingCompanyId string) error {
 
 	var (
 		targetCurrency = "EUR"
@@ -102,7 +121,7 @@ func (s *Service) calcAnnualTurnover(ctx context.Context, countryCode string) er
 
 	switch currencyPolicy {
 	case pkg.VatCurrencyRatesPolicyOnDay:
-		amount, err = s.getTurnover(ctx, from, to, countryCode, targetCurrency, currencyPolicy, ratesType, ratesSource)
+		amount, err = s.getTurnover(ctx, from, to, countryCode, targetCurrency, currencyPolicy, ratesType, ratesSource, operatingCompanyId)
 		break
 	case pkg.VatCurrencyRatesPolicyLastDay:
 		from, to, err = s.getLastVatReportTime(VatPeriodMonth)
@@ -111,7 +130,7 @@ func (s *Service) calcAnnualTurnover(ctx context.Context, countryCode string) er
 		}
 		count := 0
 		for from.Unix() >= year.Unix() {
-			amnt, err := s.getTurnover(ctx, from, to, countryCode, targetCurrency, currencyPolicy, ratesType, ratesSource)
+			amnt, err := s.getTurnover(ctx, from, to, countryCode, targetCurrency, currencyPolicy, ratesType, ratesSource, operatingCompanyId)
 			if err != nil {
 				return err
 			}
@@ -129,10 +148,11 @@ func (s *Service) calcAnnualTurnover(ctx context.Context, countryCode string) er
 	}
 
 	at := &billing.AnnualTurnover{
-		Year:     int32(year.Year()),
-		Country:  countryCode,
-		Amount:   tools.FormatAmount(amount),
-		Currency: targetCurrency,
+		Year:               int32(year.Year()),
+		Country:            countryCode,
+		Amount:             tools.FormatAmount(amount),
+		Currency:           targetCurrency,
+		OperatingCompanyId: operatingCompanyId,
 	}
 
 	err = s.turnover.Insert(at)
@@ -149,11 +169,16 @@ func (s *Service) calcAnnualTurnover(ctx context.Context, countryCode string) er
 
 }
 
-func (s *Service) getTurnover(ctx context.Context, from, to time.Time, countryCode, targetCurrency, currencyPolicy, ratesType, ratesSource string) (amount float64, err error) {
+func (s *Service) getTurnover(
+	ctx context.Context,
+	from, to time.Time,
+	countryCode, targetCurrency, currencyPolicy, ratesType, ratesSource, operatingCompanyId string,
+) (amount float64, err error) {
 
 	matchQuery := bson.M{
-		"created_at": bson.M{"$gte": from, "$lte": to},
-		"type":       bson.M{"$in": accountingEntriesForTurnover},
+		"created_at":           bson.M{"$gte": from, "$lte": to},
+		"type":                 bson.M{"$in": accountingEntriesForTurnover},
+		"operating_company_id": operatingCompanyId,
 	}
 	if countryCode != "" {
 		matchQuery["country"] = countryCode
@@ -256,7 +281,7 @@ func (h *Turnover) Insert(turnover *billing.AnnualTurnover) error {
 		return err
 	}
 
-	key := fmt.Sprintf(cacheTurnoverKey, turnover.Country, turnover.Year)
+	key := fmt.Sprintf(cacheTurnoverKey, turnover.OperatingCompanyId, turnover.Country, turnover.Year)
 	err = h.svc.cacher.Set(key, turnover, 0)
 	if err != nil {
 		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", key, "data", turnover)
@@ -269,15 +294,15 @@ func (h *Turnover) Update(turnover *billing.AnnualTurnover) error {
 	return h.Insert(turnover)
 }
 
-func (h *Turnover) Get(country string, year int) (*billing.AnnualTurnover, error) {
+func (h *Turnover) Get(operatingCompanyId, country string, year int) (*billing.AnnualTurnover, error) {
 	var c billing.AnnualTurnover
-	key := fmt.Sprintf(cacheTurnoverKey, country, year)
+	key := fmt.Sprintf(cacheTurnoverKey, operatingCompanyId, country, year)
 
 	if err := h.svc.cacher.Get(key, c); err == nil {
 		return &c, nil
 	}
 
-	query := bson.M{"country": country, "year": year}
+	query := bson.M{"operating_company_id": operatingCompanyId, "country": country, "year": year}
 
 	err := h.svc.db.Collection(collectionAnnualTurnovers).
 		Find(query).

@@ -2,8 +2,10 @@ package billing
 
 import (
 	"errors"
+	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"time"
@@ -212,68 +214,69 @@ type MgoOrderNotificationRefund struct {
 }
 
 type MgoOrder struct {
-	Id                         bson.ObjectId               `bson:"_id"`
-	Uuid                       string                      `bson:"uuid"`
-	Transaction                string                      `bson:"pm_order_id"`
-	Object                     string                      `bson:"object"`
-	Status                     string                      `bson:"status"`
-	PrivateStatus              int32                       `bson:"private_status"`
-	Description                string                      `bson:"description"`
-	CreatedAt                  time.Time                   `bson:"created_at"`
-	UpdatedAt                  time.Time                   `bson:"updated_at"`
-	CanceledAt                 time.Time                   `bson:"canceled_at"`
-	Canceled                   bool                        `bson:"canceled"`
-	CancellationReason         string                      `bson:"cancellation_reason"`
-	Refunded                   bool                        `bson:"refunded"`
-	RefundedAt                 time.Time                   `bson:"refunded_at"`
-	ReceiptEmail               string                      `bson:"receipt_email"`
-	ReceiptPhone               string                      `bson:"receipt_phone"`
-	ReceiptNumber              string                      `bson:"receipt_number"`
-	ReceiptUrl                 string                      `bson:"receipt_url"`
-	AgreementVersion           string                      `bson:"agreement_version"`
-	AgreementAccepted          bool                        `bson:"agreement_accepted"`
-	NotifySale                 bool                        `bson:"notify_sale"`
-	NotifySaleEmail            string                      `bson:"notify_sale_email"`
-	Issuer                     *OrderIssuer                `bson:"issuer"`
-	TotalPaymentAmount         float64                     `bson:"total_payment_amount"`
-	Currency                   string                      `bson:"currency"`
-	User                       *OrderUser                  `bson:"user"`
-	BillingAddress             *OrderBillingAddress        `bson:"billing_address"`
-	Tax                        *OrderTax                   `bson:"tax"`
-	PaymentMethod              *MgoOrderPaymentMethod      `bson:"payment_method"`
-	Items                      []*MgoOrderItem             `bson:"items"`
-	Refund                     *MgoOrderNotificationRefund `bson:"refund"`
-	Metadata                   map[string]string           `bson:"metadata"`
-	PrivateMetadata            map[string]string           `bson:"private_metadata"`
-	Project                    *MgoOrderProject            `bson:"project"`
-	ProjectOrderId             string                      `bson:"project_order_id"`
-	ProjectAccount             string                      `bson:"project_account"`
-	ProjectLastRequestedAt     time.Time                   `bson:"project_last_requested_at"`
-	ProjectParams              map[string]string           `bson:"project_params"`
-	PaymentMethodOrderClosedAt time.Time                   `bson:"pm_order_close_date"`
-	IsJsonRequest              bool                        `bson:"created_by_json"`
-	OrderAmount                float64                     `bson:"private_amount"`
-	PaymentMethodPayerAccount  string                      `bson:"pm_account"`
-	PaymentMethodTxnParams     map[string]string           `bson:"pm_txn_params"`
-	PaymentRequisites          map[string]string           `bson:"payment_requisites"`
-	ExpireDateToFormInput      time.Time                   `bson:"expire_date_to_form_input"`
-	UserAddressDataRequired    bool                        `bson:"user_address_data_required"`
-	Products                   []string                    `bson:"products"`
-	IsNotificationsSent        map[string]bool             `bson:"is_notifications_sent"`
-	CountryRestriction         *CountryRestriction         `bson:"country_restriction"`
-	ParentId                   string                      `bson:"parent_id"`
-	ParentPaymentAt            time.Time                   `bson:"parent_payment_at"`
-	Type                       string                      `bson:"type"`
-	IsVatDeduction             bool                        `bson:"is_vat_deduction"`
-	CountryCode                string                      `bson:"country_code"`
-	PlatformId                 string                      `bson:"platform_id"`
-	ProductType                string                      `bson:"product_type"`
-	Keys                       []string                    `bson:"keys"`
-	IsKeyProductNotified       bool                        `bson:"is_key_product_notified"`
-	ReceiptId                  string                      `bson:"receipt_id"`
-	MccCode                    string                      `bson:"mcc_code"`
-	OperatingCompanyId         string                      `bson:"operating_company_id"`
-	IsHighRisk                 bool                        `bson:"is_high_risk"`
+	Id                         bson.ObjectId                  `bson:"_id"`
+	Uuid                       string                         `bson:"uuid"`
+	Transaction                string                         `bson:"pm_order_id"`
+	Object                     string                         `bson:"object"`
+	Status                     string                         `bson:"status"`
+	PrivateStatus              int32                          `bson:"private_status"`
+	Description                string                         `bson:"description"`
+	CreatedAt                  time.Time                      `bson:"created_at"`
+	UpdatedAt                  time.Time                      `bson:"updated_at"`
+	CanceledAt                 time.Time                      `bson:"canceled_at"`
+	Canceled                   bool                           `bson:"canceled"`
+	Cancellation               *OrderNotificationCancellation `bson:"cancellation"`
+	Refunded                   bool                           `bson:"refunded"`
+	RefundedAt                 time.Time                      `bson:"refunded_at"`
+	ReceiptEmail               string                         `bson:"receipt_email"`
+	ReceiptPhone               string                         `bson:"receipt_phone"`
+	ReceiptNumber              string                         `bson:"receipt_number"`
+	ReceiptUrl                 string                         `bson:"receipt_url"`
+	AgreementVersion           string                         `bson:"agreement_version"`
+	AgreementAccepted          bool                           `bson:"agreement_accepted"`
+	NotifySale                 bool                           `bson:"notify_sale"`
+	NotifySaleEmail            string                         `bson:"notify_sale_email"`
+	Issuer                     *OrderIssuer                   `bson:"issuer"`
+	TotalPaymentAmount         float64                        `bson:"total_payment_amount"`
+	Currency                   string                         `bson:"currency"`
+	User                       *OrderUser                     `bson:"user"`
+	BillingAddress             *OrderBillingAddress           `bson:"billing_address"`
+	Tax                        *OrderTax                      `bson:"tax"`
+	PaymentMethod              *MgoOrderPaymentMethod         `bson:"payment_method"`
+	Items                      []*MgoOrderItem                `bson:"items"`
+	Refund                     *MgoOrderNotificationRefund    `bson:"refund"`
+	Metadata                   map[string]string              `bson:"metadata"`
+	PrivateMetadata            map[string]string              `bson:"private_metadata"`
+	Project                    *MgoOrderProject               `bson:"project"`
+	ProjectOrderId             string                         `bson:"project_order_id"`
+	ProjectAccount             string                         `bson:"project_account"`
+	ProjectLastRequestedAt     time.Time                      `bson:"project_last_requested_at"`
+	ProjectParams              map[string]string              `bson:"project_params"`
+	PaymentMethodOrderClosedAt time.Time                      `bson:"pm_order_close_date"`
+	IsJsonRequest              bool                           `bson:"created_by_json"`
+	OrderAmount                float64                        `bson:"private_amount"`
+	PaymentMethodPayerAccount  string                         `bson:"pm_account"`
+	PaymentMethodTxnParams     map[string]string              `bson:"pm_txn_params"`
+	PaymentRequisites          map[string]string              `bson:"payment_requisites"`
+	ExpireDateToFormInput      time.Time                      `bson:"expire_date_to_form_input"`
+	UserAddressDataRequired    bool                           `bson:"user_address_data_required"`
+	Products                   []string                       `bson:"products"`
+	IsNotificationsSent        map[string]bool                `bson:"is_notifications_sent"`
+	CountryRestriction         *CountryRestriction            `bson:"country_restriction"`
+	ParentOrder                *ParentOrder                   `bson:"parent_order"`
+	ParentPaymentAt            time.Time                      `bson:"parent_payment_at"`
+	Type                       string                         `bson:"type"`
+	IsVatDeduction             bool                           `bson:"is_vat_deduction"`
+	CountryCode                string                         `bson:"country_code"`
+	PlatformId                 string                         `bson:"platform_id"`
+	ProductType                string                         `bson:"product_type"`
+	Keys                       []string                       `bson:"keys"`
+	IsKeyProductNotified       bool                           `bson:"is_key_product_notified"`
+	ReceiptId                  string                         `bson:"receipt_id"`
+	IsBuyForVirtualCurrency    bool                           `bson:"is_buy_for_virtual_currency"`
+	MccCode                    string                         `bson:"mcc_code"`
+	OperatingCompanyId         string                         `bson:"operating_company_id"`
+	IsHighRisk                 bool                           `bson:"is_high_risk"`
 }
 
 type MgoOrderItem struct {
@@ -326,10 +329,13 @@ type MgoPaymentMethod struct {
 }
 
 type MgoPaymentMethodParam struct {
-	TerminalId     string `bson:"terminal_id"`
-	Secret         string `bson:"secret"`
-	SecretCallback string `bson:"secret_callback"`
-	Currency       string `bson:"currency"`
+	TerminalId         string `bson:"terminal_id"`
+	Secret             string `bson:"secret"`
+	SecretCallback     string `bson:"secret_callback"`
+	Currency           string `bson:"currency"`
+	ApiUrl             string `bson:"api_url"`
+	MccCode            string `bson:"mcc_code"`
+	OperatingCompanyId string `bson:"operating_company_id"`
 }
 
 type MgoNotification struct {
@@ -572,43 +578,45 @@ type MgoAccountingEntrySource struct {
 }
 
 type MgoAccountingEntry struct {
-	Id               bson.ObjectId             `bson:"_id"`
-	Object           string                    `bson:"object"`
-	Type             string                    `bson:"type"`
-	Source           *MgoAccountingEntrySource `bson:"source"`
-	MerchantId       bson.ObjectId             `bson:"merchant_id"`
-	Amount           float64                   `bson:"amount"`
-	Currency         string                    `bson:"currency"`
-	Reason           string                    `bson:"reason"`
-	Status           string                    `bson:"status"`
-	Country          string                    `bson:"country"`
-	OriginalAmount   float64                   `bson:"original_amount"`
-	OriginalCurrency string                    `bson:"original_currency"`
-	LocalAmount      float64                   `bson:"local_amount"`
-	LocalCurrency    string                    `bson:"local_currency"`
-	CreatedAt        time.Time                 `bson:"created_at"`
-	AvailableOn      time.Time                 `bson:"available_on"`
+	Id                 bson.ObjectId             `bson:"_id"`
+	Object             string                    `bson:"object"`
+	Type               string                    `bson:"type"`
+	Source             *MgoAccountingEntrySource `bson:"source"`
+	MerchantId         bson.ObjectId             `bson:"merchant_id"`
+	Amount             float64                   `bson:"amount"`
+	Currency           string                    `bson:"currency"`
+	Reason             string                    `bson:"reason"`
+	Status             string                    `bson:"status"`
+	Country            string                    `bson:"country"`
+	OriginalAmount     float64                   `bson:"original_amount"`
+	OriginalCurrency   string                    `bson:"original_currency"`
+	LocalAmount        float64                   `bson:"local_amount"`
+	LocalCurrency      string                    `bson:"local_currency"`
+	CreatedAt          time.Time                 `bson:"created_at"`
+	AvailableOn        time.Time                 `bson:"available_on"`
+	OperatingCompanyId string                    `bson:"operating_company_id"`
 }
 
 type MgoRoyaltyReport struct {
-	Id               bson.ObjectId         `bson:"_id"`
-	MerchantId       bson.ObjectId         `bson:"merchant_id"`
-	CreatedAt        time.Time             `bson:"created_at"`
-	UpdatedAt        time.Time             `bson:"updated_at"`
-	PayoutDate       time.Time             `bson:"payout_date"`
-	Status           string                `bson:"status"`
-	PeriodFrom       time.Time             `bson:"period_from"`
-	PeriodTo         time.Time             `bson:"period_to"`
-	AcceptExpireAt   time.Time             `bson:"accept_expire_at"`
-	AcceptedAt       time.Time             `bson:"accepted_at"`
-	Totals           *RoyaltyReportTotals  `bson:"totals"`
-	Currency         string                `bson:"currency"`
-	Summary          *RoyaltyReportSummary `bson:"summary"`
-	DisputeReason    string                `bson:"dispute_reason"`
-	DisputeStartedAt time.Time             `bson:"dispute_started_at"`
-	DisputeClosedAt  time.Time             `bson:"dispute_closed_at"`
-	IsAutoAccepted   bool                  `bson:"is_auto_accepted"`
-	PayoutDocumentId string                `bson:"payout_document_id"`
+	Id                 bson.ObjectId         `bson:"_id"`
+	MerchantId         bson.ObjectId         `bson:"merchant_id"`
+	CreatedAt          time.Time             `bson:"created_at"`
+	UpdatedAt          time.Time             `bson:"updated_at"`
+	PayoutDate         time.Time             `bson:"payout_date"`
+	Status             string                `bson:"status"`
+	PeriodFrom         time.Time             `bson:"period_from"`
+	PeriodTo           time.Time             `bson:"period_to"`
+	AcceptExpireAt     time.Time             `bson:"accept_expire_at"`
+	AcceptedAt         time.Time             `bson:"accepted_at"`
+	Totals             *RoyaltyReportTotals  `bson:"totals"`
+	Currency           string                `bson:"currency"`
+	Summary            *RoyaltyReportSummary `bson:"summary"`
+	DisputeReason      string                `bson:"dispute_reason"`
+	DisputeStartedAt   time.Time             `bson:"dispute_started_at"`
+	DisputeClosedAt    time.Time             `bson:"dispute_closed_at"`
+	IsAutoAccepted     bool                  `bson:"is_auto_accepted"`
+	PayoutDocumentId   string                `bson:"payout_document_id"`
+	OperatingCompanyId string                `bson:"operating_company_id"`
 }
 
 type MgoRoyaltyReportCorrectionItem struct {
@@ -649,131 +657,138 @@ type MgoVatReport struct {
 	CreatedAt             time.Time     `bson:"created_at"`
 	UpdatedAt             time.Time     `bson:"updated_at"`
 	PaidAt                time.Time     `bson:"paid_at"`
+	OperatingCompanyId    string        `bson:"operating_company_id"`
 }
 
 type MgoOrderViewPrivate struct {
-	Id                                         bson.ObjectId          `bson:"_id" json:"-"`
-	Uuid                                       string                 `bson:"uuid" json:"uuid"`
-	TotalPaymentAmount                         float64                `bson:"total_payment_amount" json:"total_payment_amount"`
-	Currency                                   string                 `bson:"currency" json:"currency"`
-	Project                                    *MgoOrderProject       `bson:"project" json:"project"`
-	CreatedAt                                  time.Time              `bson:"created_at" json:"created_at"`
-	Transaction                                string                 `bson:"pm_order_id" json:"transaction"`
-	PaymentMethod                              *MgoOrderPaymentMethod `bson:"payment_method" json:"payment_method"`
-	CountryCode                                string                 `bson:"country_code" json:"country_code"`
-	MerchantId                                 bson.ObjectId          `bson:"merchant_id" json:"merchant_id"`
-	Locale                                     string                 `bson:"locale" json:"locale"`
-	Status                                     string                 `bson:"status" json:"status"`
-	TransactionDate                            time.Time              `bson:"pm_order_close_date" json:"transaction_date"`
-	User                                       *OrderUser             `bson:"user" json:"user"`
-	BillingAddress                             *OrderBillingAddress   `bson:"billing_address" json:"billing_address"`
-	Type                                       string                 `bson:"type" json:"type"`
-	IsVatDeduction                             bool                   `bson:"is_vat_deduction" json:"is_vat_deduction"`
-	PaymentGrossRevenueLocal                   *OrderViewMoney        `bson:"payment_gross_revenue_local" json:"payment_gross_revenue_local"`
-	PaymentGrossRevenueOrigin                  *OrderViewMoney        `bson:"payment_gross_revenue_origin" json:"payment_gross_revenue_origin"`
-	PaymentGrossRevenue                        *OrderViewMoney        `bson:"payment_gross_revenue" json:"payment_gross_revenue"`
-	PaymentTaxFee                              *OrderViewMoney        `bson:"payment_tax_fee" json:"payment_tax_fee"`
-	PaymentTaxFeeLocal                         *OrderViewMoney        `bson:"payment_tax_fee_local" json:"payment_tax_fee_local"`
-	PaymentTaxFeeOrigin                        *OrderViewMoney        `bson:"payment_tax_fee_origin" json:"payment_tax_fee_origin"`
-	PaymentTaxFeeCurrencyExchangeFee           *OrderViewMoney        `bson:"payment_tax_fee_currency_exchange_fee" json:"payment_tax_fee_currency_exchange_fee"`
-	PaymentTaxFeeTotal                         *OrderViewMoney        `bson:"payment_tax_fee_total" json:"payment_tax_fee_total"`
-	PaymentGrossRevenueFx                      *OrderViewMoney        `bson:"payment_gross_revenue_fx" json:"payment_gross_revenue_fx"`
-	PaymentGrossRevenueFxTaxFee                *OrderViewMoney        `bson:"payment_gross_revenue_fx_tax_fee" json:"payment_gross_revenue_fx_tax_fee"`
-	PaymentGrossRevenueFxProfit                *OrderViewMoney        `bson:"payment_gross_revenue_fx_profit" json:"payment_gross_revenue_fx_profit"`
-	GrossRevenue                               *OrderViewMoney        `bson:"gross_revenue" json:"gross_revenue"`
-	TaxFee                                     *OrderViewMoney        `bson:"tax_fee" json:"tax_fee"`
-	TaxFeeCurrencyExchangeFee                  *OrderViewMoney        `bson:"tax_fee_currency_exchange_fee" json:"tax_fee_currency_exchange_fee"`
-	TaxFeeTotal                                *OrderViewMoney        `bson:"tax_fee_total" json:"tax_fee_total"`
-	MethodFeeTotal                             *OrderViewMoney        `bson:"method_fee_total" json:"method_fee_total"`
-	MethodFeeTariff                            *OrderViewMoney        `bson:"method_fee_tariff" json:"method_fee_tariff"`
-	PaysuperMethodFeeTariffSelfCost            *OrderViewMoney        `bson:"paysuper_method_fee_tariff_self_cost" json:"paysuper_method_fee_tariff_self_cost"`
-	PaysuperMethodFeeProfit                    *OrderViewMoney        `bson:"paysuper_method_fee_profit" json:"paysuper_method_fee_profit"`
-	MethodFixedFeeTariff                       *OrderViewMoney        `bson:"method_fixed_fee_tariff" json:"method_fixed_fee_tariff"`
-	PaysuperMethodFixedFeeTariffFxProfit       *OrderViewMoney        `bson:"paysuper_method_fixed_fee_tariff_fx_profit" json:"paysuper_method_fixed_fee_tariff_fx_profit"`
-	PaysuperMethodFixedFeeTariffSelfCost       *OrderViewMoney        `bson:"paysuper_method_fixed_fee_tariff_self_cost" json:"paysuper_method_fixed_fee_tariff_self_cost"`
-	PaysuperMethodFixedFeeTariffTotalProfit    *OrderViewMoney        `bson:"paysuper_method_fixed_fee_tariff_total_profit" json:"paysuper_method_fixed_fee_tariff_total_profit"`
-	PaysuperFixedFee                           *OrderViewMoney        `bson:"paysuper_fixed_fee" json:"paysuper_fixed_fee"`
-	PaysuperFixedFeeFxProfit                   *OrderViewMoney        `bson:"paysuper_fixed_fee_fx_profit" json:"paysuper_fixed_fee_fx_profit"`
-	FeesTotal                                  *OrderViewMoney        `bson:"fees_total" json:"fees_total"`
-	FeesTotalLocal                             *OrderViewMoney        `bson:"fees_total_local" json:"fees_total_local"`
-	NetRevenue                                 *OrderViewMoney        `bson:"net_revenue" json:"net_revenue"`
-	PaysuperMethodTotalProfit                  *OrderViewMoney        `bson:"paysuper_method_total_profit" json:"paysuper_method_total_profit"`
-	PaysuperTotalProfit                        *OrderViewMoney        `bson:"paysuper_total_profit" json:"paysuper_total_profit"`
-	PaymentRefundGrossRevenueLocal             *OrderViewMoney        `bson:"payment_refund_gross_revenue_local" json:"payment_refund_gross_revenue_local"`
-	PaymentRefundGrossRevenueOrigin            *OrderViewMoney        `bson:"payment_refund_gross_revenue_origin" json:"payment_refund_gross_revenue_origin"`
-	PaymentRefundGrossRevenue                  *OrderViewMoney        `bson:"payment_refund_gross_revenue" json:"payment_refund_gross_revenue"`
-	PaymentRefundTaxFee                        *OrderViewMoney        `bson:"payment_refund_tax_fee" json:"payment_refund_tax_fee"`
-	PaymentRefundTaxFeeLocal                   *OrderViewMoney        `bson:"payment_refund_tax_fee_local" json:"payment_refund_tax_fee_local"`
-	PaymentRefundTaxFeeOrigin                  *OrderViewMoney        `bson:"payment_refund_tax_fee_origin" json:"payment_refund_tax_fee_origin"`
-	PaymentRefundFeeTariff                     *OrderViewMoney        `bson:"payment_refund_fee_tariff" json:"payment_refund_fee_tariff"`
-	MethodRefundFixedFeeTariff                 *OrderViewMoney        `bson:"method_refund_fixed_fee_tariff" json:"method_refund_fixed_fee_tariff"`
-	RefundGrossRevenue                         *OrderViewMoney        `bson:"refund_gross_revenue" json:"refund_gross_revenue"`
-	RefundGrossRevenueFx                       *OrderViewMoney        `bson:"refund_gross_revenue_fx" json:"refund_gross_revenue_fx"`
-	MethodRefundFeeTariff                      *OrderViewMoney        `bson:"method_refund_fee_tariff" json:"method_refund_fee_tariff"`
-	PaysuperMethodRefundFeeTariffProfit        *OrderViewMoney        `bson:"paysuper_method_refund_fee_tariff_profit" json:"paysuper_method_refund_fee_tariff_profit"`
-	PaysuperMethodRefundFixedFeeTariffSelfCost *OrderViewMoney        `bson:"paysuper_method_refund_fixed_fee_tariff_self_cost" json:"paysuper_method_refund_fixed_fee_tariff_self_cost"`
-	MerchantRefundFixedFeeTariff               *OrderViewMoney        `bson:"merchant_refund_fixed_fee_tariff" json:"merchant_refund_fixed_fee_tariff"`
-	PaysuperMethodRefundFixedFeeTariffProfit   *OrderViewMoney        `bson:"paysuper_method_refund_fixed_fee_tariff_profit" json:"paysuper_method_refund_fixed_fee_tariff_profit"`
-	RefundTaxFee                               *OrderViewMoney        `bson:"refund_tax_fee" json:"refund_tax_fee"`
-	RefundTaxFeeCurrencyExchangeFee            *OrderViewMoney        `bson:"refund_tax_fee_currency_exchange_fee" json:"refund_tax_fee_currency_exchange_fee"`
-	PaysuperRefundTaxFeeCurrencyExchangeFee    *OrderViewMoney        `bson:"paysuper_refund_tax_fee_currency_exchange_fee" json:"paysuper_refund_tax_fee_currency_exchange_fee"`
-	RefundTaxFeeTotal                          *OrderViewMoney        `bson:"refund_tax_fee_total" json:"refund_tax_fee_total"`
-	RefundReverseRevenue                       *OrderViewMoney        `bson:"refund_reverse_revenue" json:"refund_reverse_revenue"`
-	RefundFeesTotal                            *OrderViewMoney        `bson:"refund_fees_total" json:"refund_fees_total"`
-	RefundFeesTotalLocal                       *OrderViewMoney        `bson:"refund_fees_total_local" json:"refund_fees_total_local"`
-	PaysuperRefundTotalProfit                  *OrderViewMoney        `bson:"paysuper_refund_total_profit" json:"paysuper_refund_total_profit"`
-	Issuer                                     *OrderIssuer           `bson:"issuer"`
-	Items                                      []*MgoOrderItem        `bson:"items"`
-	MerchantPayoutCurrency                     string                 `bson:"merchant_payout_currency"`
-	MccCode                                    string                 `bson:"mcc_code"`
-	OperatingCompanyId                         string                 `bson:"operating_company_id"`
-	IsHighRisk                                 bool                   `bson:"is_high_risk"`
-	RefundAllowed                              bool                   `bson:"refund_allowed"`
+	Id                                         bson.ObjectId                  `bson:"_id" json:"-"`
+	Uuid                                       string                         `bson:"uuid" json:"uuid"`
+	TotalPaymentAmount                         float64                        `bson:"total_payment_amount" json:"total_payment_amount"`
+	Currency                                   string                         `bson:"currency" json:"currency"`
+	Project                                    *MgoOrderProject               `bson:"project" json:"project"`
+	CreatedAt                                  time.Time                      `bson:"created_at" json:"created_at"`
+	Transaction                                string                         `bson:"pm_order_id" json:"transaction"`
+	PaymentMethod                              *MgoOrderPaymentMethod         `bson:"payment_method" json:"payment_method"`
+	CountryCode                                string                         `bson:"country_code" json:"country_code"`
+	MerchantId                                 bson.ObjectId                  `bson:"merchant_id" json:"merchant_id"`
+	Locale                                     string                         `bson:"locale" json:"locale"`
+	Status                                     string                         `bson:"status" json:"status"`
+	TransactionDate                            time.Time                      `bson:"pm_order_close_date" json:"transaction_date"`
+	User                                       *OrderUser                     `bson:"user" json:"user"`
+	BillingAddress                             *OrderBillingAddress           `bson:"billing_address" json:"billing_address"`
+	Type                                       string                         `bson:"type" json:"type"`
+	IsVatDeduction                             bool                           `bson:"is_vat_deduction" json:"is_vat_deduction"`
+	PaymentGrossRevenueLocal                   *OrderViewMoney                `bson:"payment_gross_revenue_local" json:"payment_gross_revenue_local"`
+	PaymentGrossRevenueOrigin                  *OrderViewMoney                `bson:"payment_gross_revenue_origin" json:"payment_gross_revenue_origin"`
+	PaymentGrossRevenue                        *OrderViewMoney                `bson:"payment_gross_revenue" json:"payment_gross_revenue"`
+	PaymentTaxFee                              *OrderViewMoney                `bson:"payment_tax_fee" json:"payment_tax_fee"`
+	PaymentTaxFeeLocal                         *OrderViewMoney                `bson:"payment_tax_fee_local" json:"payment_tax_fee_local"`
+	PaymentTaxFeeOrigin                        *OrderViewMoney                `bson:"payment_tax_fee_origin" json:"payment_tax_fee_origin"`
+	PaymentTaxFeeCurrencyExchangeFee           *OrderViewMoney                `bson:"payment_tax_fee_currency_exchange_fee" json:"payment_tax_fee_currency_exchange_fee"`
+	PaymentTaxFeeTotal                         *OrderViewMoney                `bson:"payment_tax_fee_total" json:"payment_tax_fee_total"`
+	PaymentGrossRevenueFx                      *OrderViewMoney                `bson:"payment_gross_revenue_fx" json:"payment_gross_revenue_fx"`
+	PaymentGrossRevenueFxTaxFee                *OrderViewMoney                `bson:"payment_gross_revenue_fx_tax_fee" json:"payment_gross_revenue_fx_tax_fee"`
+	PaymentGrossRevenueFxProfit                *OrderViewMoney                `bson:"payment_gross_revenue_fx_profit" json:"payment_gross_revenue_fx_profit"`
+	GrossRevenue                               *OrderViewMoney                `bson:"gross_revenue" json:"gross_revenue"`
+	TaxFee                                     *OrderViewMoney                `bson:"tax_fee" json:"tax_fee"`
+	TaxFeeCurrencyExchangeFee                  *OrderViewMoney                `bson:"tax_fee_currency_exchange_fee" json:"tax_fee_currency_exchange_fee"`
+	TaxFeeTotal                                *OrderViewMoney                `bson:"tax_fee_total" json:"tax_fee_total"`
+	MethodFeeTotal                             *OrderViewMoney                `bson:"method_fee_total" json:"method_fee_total"`
+	MethodFeeTariff                            *OrderViewMoney                `bson:"method_fee_tariff" json:"method_fee_tariff"`
+	PaysuperMethodFeeTariffSelfCost            *OrderViewMoney                `bson:"paysuper_method_fee_tariff_self_cost" json:"paysuper_method_fee_tariff_self_cost"`
+	PaysuperMethodFeeProfit                    *OrderViewMoney                `bson:"paysuper_method_fee_profit" json:"paysuper_method_fee_profit"`
+	MethodFixedFeeTariff                       *OrderViewMoney                `bson:"method_fixed_fee_tariff" json:"method_fixed_fee_tariff"`
+	PaysuperMethodFixedFeeTariffFxProfit       *OrderViewMoney                `bson:"paysuper_method_fixed_fee_tariff_fx_profit" json:"paysuper_method_fixed_fee_tariff_fx_profit"`
+	PaysuperMethodFixedFeeTariffSelfCost       *OrderViewMoney                `bson:"paysuper_method_fixed_fee_tariff_self_cost" json:"paysuper_method_fixed_fee_tariff_self_cost"`
+	PaysuperMethodFixedFeeTariffTotalProfit    *OrderViewMoney                `bson:"paysuper_method_fixed_fee_tariff_total_profit" json:"paysuper_method_fixed_fee_tariff_total_profit"`
+	PaysuperFixedFee                           *OrderViewMoney                `bson:"paysuper_fixed_fee" json:"paysuper_fixed_fee"`
+	PaysuperFixedFeeFxProfit                   *OrderViewMoney                `bson:"paysuper_fixed_fee_fx_profit" json:"paysuper_fixed_fee_fx_profit"`
+	FeesTotal                                  *OrderViewMoney                `bson:"fees_total" json:"fees_total"`
+	FeesTotalLocal                             *OrderViewMoney                `bson:"fees_total_local" json:"fees_total_local"`
+	NetRevenue                                 *OrderViewMoney                `bson:"net_revenue" json:"net_revenue"`
+	PaysuperMethodTotalProfit                  *OrderViewMoney                `bson:"paysuper_method_total_profit" json:"paysuper_method_total_profit"`
+	PaysuperTotalProfit                        *OrderViewMoney                `bson:"paysuper_total_profit" json:"paysuper_total_profit"`
+	PaymentRefundGrossRevenueLocal             *OrderViewMoney                `bson:"payment_refund_gross_revenue_local" json:"payment_refund_gross_revenue_local"`
+	PaymentRefundGrossRevenueOrigin            *OrderViewMoney                `bson:"payment_refund_gross_revenue_origin" json:"payment_refund_gross_revenue_origin"`
+	PaymentRefundGrossRevenue                  *OrderViewMoney                `bson:"payment_refund_gross_revenue" json:"payment_refund_gross_revenue"`
+	PaymentRefundTaxFee                        *OrderViewMoney                `bson:"payment_refund_tax_fee" json:"payment_refund_tax_fee"`
+	PaymentRefundTaxFeeLocal                   *OrderViewMoney                `bson:"payment_refund_tax_fee_local" json:"payment_refund_tax_fee_local"`
+	PaymentRefundTaxFeeOrigin                  *OrderViewMoney                `bson:"payment_refund_tax_fee_origin" json:"payment_refund_tax_fee_origin"`
+	PaymentRefundFeeTariff                     *OrderViewMoney                `bson:"payment_refund_fee_tariff" json:"payment_refund_fee_tariff"`
+	MethodRefundFixedFeeTariff                 *OrderViewMoney                `bson:"method_refund_fixed_fee_tariff" json:"method_refund_fixed_fee_tariff"`
+	RefundGrossRevenue                         *OrderViewMoney                `bson:"refund_gross_revenue" json:"refund_gross_revenue"`
+	RefundGrossRevenueFx                       *OrderViewMoney                `bson:"refund_gross_revenue_fx" json:"refund_gross_revenue_fx"`
+	MethodRefundFeeTariff                      *OrderViewMoney                `bson:"method_refund_fee_tariff" json:"method_refund_fee_tariff"`
+	PaysuperMethodRefundFeeTariffProfit        *OrderViewMoney                `bson:"paysuper_method_refund_fee_tariff_profit" json:"paysuper_method_refund_fee_tariff_profit"`
+	PaysuperMethodRefundFixedFeeTariffSelfCost *OrderViewMoney                `bson:"paysuper_method_refund_fixed_fee_tariff_self_cost" json:"paysuper_method_refund_fixed_fee_tariff_self_cost"`
+	MerchantRefundFixedFeeTariff               *OrderViewMoney                `bson:"merchant_refund_fixed_fee_tariff" json:"merchant_refund_fixed_fee_tariff"`
+	PaysuperMethodRefundFixedFeeTariffProfit   *OrderViewMoney                `bson:"paysuper_method_refund_fixed_fee_tariff_profit" json:"paysuper_method_refund_fixed_fee_tariff_profit"`
+	RefundTaxFee                               *OrderViewMoney                `bson:"refund_tax_fee" json:"refund_tax_fee"`
+	RefundTaxFeeCurrencyExchangeFee            *OrderViewMoney                `bson:"refund_tax_fee_currency_exchange_fee" json:"refund_tax_fee_currency_exchange_fee"`
+	PaysuperRefundTaxFeeCurrencyExchangeFee    *OrderViewMoney                `bson:"paysuper_refund_tax_fee_currency_exchange_fee" json:"paysuper_refund_tax_fee_currency_exchange_fee"`
+	RefundTaxFeeTotal                          *OrderViewMoney                `bson:"refund_tax_fee_total" json:"refund_tax_fee_total"`
+	RefundReverseRevenue                       *OrderViewMoney                `bson:"refund_reverse_revenue" json:"refund_reverse_revenue"`
+	RefundFeesTotal                            *OrderViewMoney                `bson:"refund_fees_total" json:"refund_fees_total"`
+	RefundFeesTotalLocal                       *OrderViewMoney                `bson:"refund_fees_total_local" json:"refund_fees_total_local"`
+	PaysuperRefundTotalProfit                  *OrderViewMoney                `bson:"paysuper_refund_total_profit" json:"paysuper_refund_total_profit"`
+	Issuer                                     *OrderIssuer                   `bson:"issuer"`
+	Items                                      []*MgoOrderItem                `bson:"items"`
+	MerchantPayoutCurrency                     string                         `bson:"merchant_payout_currency"`
+	ParentOrder                                *ParentOrder                   `bson:"parent_order"`
+	Refund                                     *MgoOrderNotificationRefund    `bson:"refund"`
+	Cancellation                               *OrderNotificationCancellation `bson:"cancellation"`
+	MccCode                                    string                         `bson:"mcc_code"`
+	OperatingCompanyId                         string                         `bson:"operating_company_id"`
+	IsHighRisk                                 bool                           `bson:"is_high_risk"`
+	RefundAllowed                              bool                           `bson:"refund_allowed"`
 }
 
 type MgoOrderViewPublic struct {
-	Id                                      bson.ObjectId          `bson:"_id"`
-	Uuid                                    string                 `bson:"uuid"`
-	TotalPaymentAmount                      float64                `bson:"total_payment_amount"`
-	Currency                                string                 `bson:"currency"`
-	Project                                 *MgoOrderProject       `bson:"project"`
-	CreatedAt                               time.Time              `bson:"created_at"`
-	Transaction                             string                 `bson:"pm_order_id"`
-	PaymentMethod                           *MgoOrderPaymentMethod `bson:"payment_method"`
-	CountryCode                             string                 `bson:"country_code"`
-	MerchantId                              bson.ObjectId          `bson:"merchant_id"`
-	Locale                                  string                 `bson:"locale"`
-	Status                                  string                 `bson:"status"`
-	TransactionDate                         time.Time              `bson:"pm_order_close_date"`
-	User                                    *OrderUser             `bson:"user"`
-	BillingAddress                          *OrderBillingAddress   `bson:"billing_address"`
-	Type                                    string                 `bson:"type"`
-	IsVatDeduction                          bool                   `bson:"is_vat_deduction"`
-	GrossRevenue                            *OrderViewMoney        `bson:"gross_revenue"`
-	TaxFee                                  *OrderViewMoney        `bson:"tax_fee"`
-	TaxFeeCurrencyExchangeFee               *OrderViewMoney        `bson:"tax_fee_currency_exchange_fee"`
-	TaxFeeTotal                             *OrderViewMoney        `bson:"tax_fee_total"`
-	MethodFeeTotal                          *OrderViewMoney        `bson:"method_fee_total"`
-	MethodFeeTariff                         *OrderViewMoney        `bson:"method_fee_tariff"`
-	MethodFixedFeeTariff                    *OrderViewMoney        `bson:"method_fixed_fee_tariff"`
-	PaysuperFixedFee                        *OrderViewMoney        `bson:"paysuper_fixed_fee"`
-	FeesTotal                               *OrderViewMoney        `bson:"fees_total"`
-	FeesTotalLocal                          *OrderViewMoney        `bson:"fees_total_local"`
-	NetRevenue                              *OrderViewMoney        `bson:"net_revenue"`
-	RefundGrossRevenue                      *OrderViewMoney        `bson:"refund_gross_revenue"`
-	MethodRefundFeeTariff                   *OrderViewMoney        `bson:"method_refund_fee_tariff"`
-	MerchantRefundFixedFeeTariff            *OrderViewMoney        `bson:"merchant_refund_fixed_fee_tariff"`
-	RefundTaxFee                            *OrderViewMoney        `bson:"refund_tax_fee"`
-	RefundTaxFeeCurrencyExchangeFee         *OrderViewMoney        `bson:"refund_tax_fee_currency_exchange_fee"`
-	PaysuperRefundTaxFeeCurrencyExchangeFee *OrderViewMoney        `bson:"paysuper_refund_tax_fee_currency_exchange_fee"`
-	RefundReverseRevenue                    *OrderViewMoney        `bson:"refund_reverse_revenue"`
-	RefundFeesTotal                         *OrderViewMoney        `bson:"refund_fees_total"`
-	RefundFeesTotalLocal                    *OrderViewMoney        `bson:"refund_fees_total_local"`
-	Issuer                                  *OrderIssuer           `bson:"issuer"`
-	Items                                   []*MgoOrderItem        `bson:"items"`
-	MerchantPayoutCurrency                  string                 `bson:"merchant_payout_currency"`
-	OperatingCompanyId                      string                 `bson:"operating_company_id"`
-	RefundAllowed                           bool                   `bson:"refund_allowed"`
+	Id                                      bson.ObjectId                  `bson:"_id"`
+	Uuid                                    string                         `bson:"uuid"`
+	TotalPaymentAmount                      float64                        `bson:"total_payment_amount"`
+	Currency                                string                         `bson:"currency"`
+	Project                                 *MgoOrderProject               `bson:"project"`
+	CreatedAt                               time.Time                      `bson:"created_at"`
+	Transaction                             string                         `bson:"pm_order_id"`
+	PaymentMethod                           *MgoOrderPaymentMethod         `bson:"payment_method"`
+	CountryCode                             string                         `bson:"country_code"`
+	MerchantId                              bson.ObjectId                  `bson:"merchant_id"`
+	Locale                                  string                         `bson:"locale"`
+	Status                                  string                         `bson:"status"`
+	TransactionDate                         time.Time                      `bson:"pm_order_close_date"`
+	User                                    *OrderUser                     `bson:"user"`
+	BillingAddress                          *OrderBillingAddress           `bson:"billing_address"`
+	Type                                    string                         `bson:"type"`
+	IsVatDeduction                          bool                           `bson:"is_vat_deduction"`
+	GrossRevenue                            *OrderViewMoney                `bson:"gross_revenue"`
+	TaxFee                                  *OrderViewMoney                `bson:"tax_fee"`
+	TaxFeeCurrencyExchangeFee               *OrderViewMoney                `bson:"tax_fee_currency_exchange_fee"`
+	TaxFeeTotal                             *OrderViewMoney                `bson:"tax_fee_total"`
+	MethodFeeTotal                          *OrderViewMoney                `bson:"method_fee_total"`
+	MethodFeeTariff                         *OrderViewMoney                `bson:"method_fee_tariff"`
+	MethodFixedFeeTariff                    *OrderViewMoney                `bson:"method_fixed_fee_tariff"`
+	PaysuperFixedFee                        *OrderViewMoney                `bson:"paysuper_fixed_fee"`
+	FeesTotal                               *OrderViewMoney                `bson:"fees_total"`
+	FeesTotalLocal                          *OrderViewMoney                `bson:"fees_total_local"`
+	NetRevenue                              *OrderViewMoney                `bson:"net_revenue"`
+	RefundGrossRevenue                      *OrderViewMoney                `bson:"refund_gross_revenue"`
+	MethodRefundFeeTariff                   *OrderViewMoney                `bson:"method_refund_fee_tariff"`
+	MerchantRefundFixedFeeTariff            *OrderViewMoney                `bson:"merchant_refund_fixed_fee_tariff"`
+	RefundTaxFee                            *OrderViewMoney                `bson:"refund_tax_fee"`
+	RefundTaxFeeCurrencyExchangeFee         *OrderViewMoney                `bson:"refund_tax_fee_currency_exchange_fee"`
+	PaysuperRefundTaxFeeCurrencyExchangeFee *OrderViewMoney                `bson:"paysuper_refund_tax_fee_currency_exchange_fee"`
+	RefundReverseRevenue                    *OrderViewMoney                `bson:"refund_reverse_revenue"`
+	RefundFeesTotal                         *OrderViewMoney                `bson:"refund_fees_total"`
+	RefundFeesTotalLocal                    *OrderViewMoney                `bson:"refund_fees_total_local"`
+	Issuer                                  *OrderIssuer                   `bson:"issuer"`
+	Items                                   []*MgoOrderItem                `bson:"items"`
+	MerchantPayoutCurrency                  string                         `bson:"merchant_payout_currency"`
+	ParentOrder                             *ParentOrder                   `bson:"parent_order"`
+	Refund                                  *MgoOrderNotificationRefund    `bson:"refund"`
+	Cancellation                            *OrderNotificationCancellation `bson:"cancellation"`
+	OperatingCompanyId                      string                         `bson:"operating_company_id"`
+	RefundAllowed                           bool                           `bson:"refund_allowed"`
 }
 
 /*type MgoMerchantTariffRates struct {
@@ -821,6 +836,7 @@ type MgoPayoutDocument struct {
 	UpdatedAt               time.Time            `bson:"updated_at"`
 	ArrivalDate             time.Time            `bson:"arrival_date"`
 	PaidAt                  time.Time            `bson:"paid_at"`
+	OperatingCompanyId      string               `bson:"operating_company_id"`
 }
 
 type MgoPayoutDocumentChanges struct {
@@ -857,6 +873,14 @@ type MgoOperatingCompany struct {
 	UpdatedAt          time.Time     `bson:"updated_at"`
 }
 
+type MgoPaymentMinLimitSystem struct {
+	Id        bson.ObjectId `bson:"_id"`
+	Currency  string        `bson:"currency"`
+	Amount    float64       `bson:"amount"`
+	CreatedAt time.Time     `bson:"created_at"`
+	UpdatedAt time.Time     `bson:"updated_at"`
+}
+
 func (m *PayoutDocument) GetBSON() (interface{}, error) {
 	st := &MgoPayoutDocument{
 		SourceId:                m.SourceId,
@@ -873,6 +897,7 @@ func (m *PayoutDocument) GetBSON() (interface{}, error) {
 		FailureTransaction:      m.FailureTransaction,
 		Destination:             m.Destination,
 		Company:                 m.Company,
+		OperatingCompanyId:      m.OperatingCompanyId,
 	}
 	if len(m.Id) <= 0 {
 		st.Id = bson.NewObjectId()
@@ -982,6 +1007,7 @@ func (m *PayoutDocument) SetBSON(raw bson.Raw) error {
 	m.FailureTransaction = decoded.FailureTransaction
 	m.Destination = decoded.Destination
 	m.Company = decoded.Company
+	m.OperatingCompanyId = decoded.OperatingCompanyId
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {
@@ -1548,7 +1574,7 @@ func (m *Order) GetBSON() (interface{}, error) {
 		PrivateStatus:      m.PrivateStatus,
 		Description:        m.Description,
 		Canceled:           m.PrivateStatus == constant.OrderStatusPaymentSystemCanceled,
-		CancellationReason: m.CancellationReason,
+		Cancellation:       m.Cancellation,
 		Refunded:           m.PrivateStatus == constant.OrderStatusRefund,
 		ReceiptEmail:       m.GetReceiptUserEmail(),
 		ReceiptPhone:       m.GetReceiptUserPhone(),
@@ -1597,7 +1623,7 @@ func (m *Order) GetBSON() (interface{}, error) {
 		Products:                  m.Products,
 		IsNotificationsSent:       m.IsNotificationsSent,
 		CountryRestriction:        m.CountryRestriction,
-		ParentId:                  m.ParentId,
+		ParentOrder:               m.ParentOrder,
 		Type:                      m.Type,
 		IsVatDeduction:            m.IsVatDeduction,
 		CountryCode:               m.GetCountry(),
@@ -1606,6 +1632,7 @@ func (m *Order) GetBSON() (interface{}, error) {
 		Keys:                      m.Keys,
 		IsKeyProductNotified:      m.IsKeyProductNotified,
 		ReceiptId:                 m.ReceiptId,
+		IsBuyForVirtualCurrency:   m.IsBuyForVirtualCurrency,
 		MccCode:                   m.MccCode,
 		OperatingCompanyId:        m.OperatingCompanyId,
 		IsHighRisk:                m.IsHighRisk,
@@ -1796,7 +1823,7 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.PrivateStatus = decoded.PrivateStatus
 	m.Description = decoded.Description
 	m.Canceled = decoded.Canceled
-	m.CancellationReason = decoded.CancellationReason
+	m.Cancellation = decoded.Cancellation
 	m.Refunded = decoded.Refunded
 	m.ReceiptEmail = decoded.ReceiptEmail
 	m.ReceiptPhone = decoded.ReceiptPhone
@@ -1819,6 +1846,7 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.Keys = decoded.Keys
 	m.IsKeyProductNotified = decoded.IsKeyProductNotified
 	m.ReceiptId = decoded.ReceiptId
+	m.IsBuyForVirtualCurrency = decoded.IsBuyForVirtualCurrency
 	m.MccCode = decoded.MccCode
 	m.OperatingCompanyId = decoded.OperatingCompanyId
 	m.IsHighRisk = decoded.IsHighRisk
@@ -1880,7 +1908,7 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.Products = decoded.Products
 	m.IsNotificationsSent = decoded.IsNotificationsSent
 	m.CountryRestriction = decoded.CountryRestriction
-	m.ParentId = decoded.ParentId
+	m.ParentOrder = decoded.ParentOrder
 	m.Type = decoded.Type
 	m.IsVatDeduction = decoded.IsVatDeduction
 	m.CountryCode = decoded.CountryCode
@@ -1952,23 +1980,29 @@ func (m *PaymentMethod) GetBSON() (interface{}, error) {
 	}
 
 	if m.TestSettings != nil {
-		for key, value := range m.TestSettings {
+		for _, value := range m.TestSettings {
 			st.TestSettings = append(st.TestSettings, &MgoPaymentMethodParam{
-				Currency:       key,
-				TerminalId:     value.TerminalId,
-				Secret:         value.Secret,
-				SecretCallback: value.SecretCallback,
+				Currency:           value.Currency,
+				TerminalId:         value.TerminalId,
+				Secret:             value.Secret,
+				SecretCallback:     value.SecretCallback,
+				ApiUrl:             value.ApiUrl,
+				MccCode:            value.MccCode,
+				OperatingCompanyId: value.OperatingCompanyId,
 			})
 		}
 	}
 
 	if m.ProductionSettings != nil {
-		for key, value := range m.ProductionSettings {
+		for _, value := range m.ProductionSettings {
 			st.ProductionSettings = append(st.ProductionSettings, &MgoPaymentMethodParam{
-				Currency:       key,
-				TerminalId:     value.TerminalId,
-				Secret:         value.Secret,
-				SecretCallback: value.SecretCallback,
+				Currency:           value.Currency,
+				TerminalId:         value.TerminalId,
+				Secret:             value.Secret,
+				SecretCallback:     value.SecretCallback,
+				ApiUrl:             value.ApiUrl,
+				MccCode:            value.MccCode,
+				OperatingCompanyId: value.OperatingCompanyId,
 			})
 		}
 	}
@@ -2031,11 +2065,17 @@ func (m *PaymentMethod) SetBSON(raw bson.Raw) error {
 	if decoded.TestSettings != nil {
 		pmp := make(map[string]*PaymentMethodParams, len(decoded.TestSettings))
 		for _, value := range decoded.TestSettings {
-			pmp[value.Currency] = &PaymentMethodParams{
-				Currency:       value.Currency,
-				TerminalId:     value.TerminalId,
-				Secret:         value.Secret,
-				SecretCallback: value.SecretCallback,
+
+			key := fmt.Sprintf(pkg.PaymentMethodKey, value.Currency, value.MccCode, value.OperatingCompanyId)
+
+			pmp[key] = &PaymentMethodParams{
+				Currency:           value.Currency,
+				TerminalId:         value.TerminalId,
+				Secret:             value.Secret,
+				SecretCallback:     value.SecretCallback,
+				ApiUrl:             value.ApiUrl,
+				MccCode:            value.MccCode,
+				OperatingCompanyId: value.OperatingCompanyId,
 			}
 		}
 		m.TestSettings = pmp
@@ -2044,11 +2084,17 @@ func (m *PaymentMethod) SetBSON(raw bson.Raw) error {
 	if decoded.ProductionSettings != nil {
 		pmp := make(map[string]*PaymentMethodParams, len(decoded.ProductionSettings))
 		for _, value := range decoded.ProductionSettings {
-			pmp[value.Currency] = &PaymentMethodParams{
-				Currency:       value.Currency,
-				TerminalId:     value.TerminalId,
-				Secret:         value.Secret,
-				SecretCallback: value.SecretCallback,
+
+			key := fmt.Sprintf(pkg.PaymentMethodKey, value.Currency, value.MccCode, value.OperatingCompanyId)
+
+			pmp[key] = &PaymentMethodParams{
+				Currency:           value.Currency,
+				TerminalId:         value.TerminalId,
+				Secret:             value.Secret,
+				SecretCallback:     value.SecretCallback,
+				ApiUrl:             value.ApiUrl,
+				MccCode:            value.MccCode,
+				OperatingCompanyId: value.OperatingCompanyId,
 			}
 		}
 		m.ProductionSettings = pmp
@@ -3439,6 +3485,7 @@ func (m *VatReport) GetBSON() (interface{}, error) {
 		WorldAnnualTurnover:   m.WorldAnnualTurnover,
 		AmountsApproximate:    m.AmountsApproximate,
 		Status:                m.Status,
+		OperatingCompanyId:    m.OperatingCompanyId,
 	}
 
 	if len(m.Id) <= 0 {
@@ -3508,6 +3555,7 @@ func (m *VatReport) SetBSON(raw bson.Raw) error {
 	m.WorldAnnualTurnover = decoded.WorldAnnualTurnover
 	m.AmountsApproximate = decoded.AmountsApproximate
 	m.Status = decoded.Status
+	m.OperatingCompanyId = decoded.OperatingCompanyId
 
 	m.DateFrom, err = ptypes.TimestampProto(decoded.DateFrom)
 	if err != nil {
@@ -3551,16 +3599,17 @@ func (m *AccountingEntry) GetBSON() (interface{}, error) {
 			Id:   bson.ObjectIdHex(m.Source.Id),
 			Type: m.Source.Type,
 		},
-		MerchantId:       bson.ObjectIdHex(m.MerchantId),
-		Amount:           m.Amount,
-		Currency:         m.Currency,
-		OriginalAmount:   m.OriginalAmount,
-		OriginalCurrency: m.OriginalCurrency,
-		LocalAmount:      m.LocalAmount,
-		LocalCurrency:    m.LocalCurrency,
-		Country:          m.Country,
-		Reason:           m.Reason,
-		Status:           m.Status,
+		MerchantId:         bson.ObjectIdHex(m.MerchantId),
+		Amount:             m.Amount,
+		Currency:           m.Currency,
+		OriginalAmount:     m.OriginalAmount,
+		OriginalCurrency:   m.OriginalCurrency,
+		LocalAmount:        m.LocalAmount,
+		LocalCurrency:      m.LocalCurrency,
+		Country:            m.Country,
+		Reason:             m.Reason,
+		Status:             m.Status,
+		OperatingCompanyId: m.OperatingCompanyId,
 	}
 
 	if m.CreatedAt != nil {
@@ -3613,6 +3662,7 @@ func (m *AccountingEntry) SetBSON(raw bson.Raw) error {
 	m.Country = decoded.Country
 	m.Reason = decoded.Reason
 	m.Status = decoded.Status
+	m.OperatingCompanyId = decoded.OperatingCompanyId
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 
@@ -3631,15 +3681,16 @@ func (m *AccountingEntry) SetBSON(raw bson.Raw) error {
 
 func (m *RoyaltyReport) GetBSON() (interface{}, error) {
 	st := &MgoRoyaltyReport{
-		Id:               bson.ObjectIdHex(m.Id),
-		MerchantId:       bson.ObjectIdHex(m.MerchantId),
-		Status:           m.Status,
-		Totals:           m.Totals,
-		Currency:         m.Currency,
-		Summary:          m.Summary,
-		DisputeReason:    m.DisputeReason,
-		IsAutoAccepted:   m.IsAutoAccepted,
-		PayoutDocumentId: m.PayoutDocumentId,
+		Id:                 bson.ObjectIdHex(m.Id),
+		MerchantId:         bson.ObjectIdHex(m.MerchantId),
+		Status:             m.Status,
+		Totals:             m.Totals,
+		Currency:           m.Currency,
+		Summary:            m.Summary,
+		DisputeReason:      m.DisputeReason,
+		IsAutoAccepted:     m.IsAutoAccepted,
+		PayoutDocumentId:   m.PayoutDocumentId,
+		OperatingCompanyId: m.OperatingCompanyId,
 	}
 
 	if m.PayoutDate != nil {
@@ -3748,6 +3799,7 @@ func (m *RoyaltyReport) SetBSON(raw bson.Raw) error {
 	m.DisputeReason = decoded.DisputeReason
 	m.IsAutoAccepted = decoded.IsAutoAccepted
 	m.PayoutDocumentId = decoded.PayoutDocumentId
+	m.OperatingCompanyId = decoded.OperatingCompanyId
 
 	m.PayoutDate, err = ptypes.TimestampProto(decoded.PayoutDate)
 	if err != nil {
@@ -3909,6 +3961,19 @@ func (m *OrderViewPrivate) SetBSON(raw bson.Raw) error {
 	m.Issuer = decoded.Issuer
 	m.MerchantPayoutCurrency = decoded.MerchantPayoutCurrency
 	m.IsVatDeduction = decoded.IsVatDeduction
+	m.ParentOrder = decoded.ParentOrder
+	m.Cancellation = decoded.Cancellation
+
+	if decoded.Refund != nil {
+		m.Refund = &OrderNotificationRefund{
+			Amount:        decoded.Refund.Amount,
+			Currency:      decoded.Refund.Currency,
+			Reason:        decoded.Refund.Reason,
+			Code:          decoded.Refund.Code,
+			ReceiptNumber: decoded.Refund.ReceiptNumber,
+			ReceiptUrl:    decoded.Refund.ReceiptUrl,
+		}
+	}
 
 	m.PaymentGrossRevenueLocal = getOrderViewMoney(decoded.PaymentGrossRevenueLocal)
 	m.PaymentGrossRevenueOrigin = getOrderViewMoney(decoded.PaymentGrossRevenueOrigin)
@@ -4007,6 +4072,19 @@ func (m *OrderViewPublic) SetBSON(raw bson.Raw) error {
 	m.Issuer = decoded.Issuer
 	m.MerchantPayoutCurrency = decoded.MerchantPayoutCurrency
 	m.IsVatDeduction = decoded.IsVatDeduction
+	m.ParentOrder = decoded.ParentOrder
+	m.Cancellation = decoded.Cancellation
+
+	if decoded.Refund != nil {
+		m.Refund = &OrderNotificationRefund{
+			Amount:        decoded.Refund.Amount,
+			Currency:      decoded.Refund.Currency,
+			Reason:        decoded.Refund.Reason,
+			Code:          decoded.Refund.Code,
+			ReceiptNumber: decoded.Refund.ReceiptNumber,
+			ReceiptUrl:    decoded.Refund.ReceiptUrl,
+		}
+	}
 
 	m.GrossRevenue = getOrderViewMoney(decoded.GrossRevenue)
 	m.TaxFee = getOrderViewMoney(decoded.TaxFee)
@@ -4321,6 +4399,68 @@ func (m *OperatingCompany) SetBSON(raw bson.Raw) error {
 	m.SignatoryPosition = decoded.SignatoryPosition
 	m.BankingDetails = decoded.BankingDetails
 	m.PaymentCountries = decoded.PaymentCountries
+
+	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	m.UpdatedAt, err = ptypes.TimestampProto(decoded.UpdatedAt)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *PaymentMinLimitSystem) GetBSON() (interface{}, error) {
+	st := &MgoPaymentMinLimitSystem{
+		Currency: m.Currency,
+		Amount:   m.Amount,
+	}
+
+	if len(m.Id) <= 0 {
+		st.Id = bson.NewObjectId()
+	} else {
+		if bson.IsObjectIdHex(m.Id) == false {
+			return nil, errors.New(errorInvalidObjectId)
+		}
+
+		st.Id = bson.ObjectIdHex(m.Id)
+	}
+
+	var err error
+
+	if m.CreatedAt != nil {
+		if st.CreatedAt, err = ptypes.Timestamp(m.CreatedAt); err != nil {
+			return nil, err
+		}
+	} else {
+		st.CreatedAt = time.Now()
+	}
+
+	if m.UpdatedAt != nil {
+		if st.UpdatedAt, err = ptypes.Timestamp(m.UpdatedAt); err != nil {
+			return nil, err
+		}
+	} else {
+		st.UpdatedAt = time.Now()
+	}
+
+	return st, nil
+}
+
+func (m *PaymentMinLimitSystem) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoPaymentMinLimitSystem)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.Currency = decoded.Currency
+	m.Amount = decoded.Amount
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {

@@ -209,6 +209,7 @@ It has these top-level messages:
 	DashboardBaseReports
 	CreatePayoutDocumentRequest
 	PayoutDocumentResponse
+	CreatePayoutDocumentResponse
 	UpdatePayoutDocumentRequest
 	GetPayoutDocumentRequest
 	GetPayoutDocumentsRequest
@@ -241,6 +242,7 @@ It has these top-level messages:
 	RoyaltyReportPdfUploadedResponse
 	DeleteSavedCardRequest
 	GetOperatingCompaniesListResponse
+	GetPaymentMinLimitsSystemResponse
 	SetMerchantOperatingCompanyRequest
 	SetMerchantOperatingCompanyResponse
 */
@@ -263,7 +265,7 @@ import (
 var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
-var _ = billing.OperatingCompany{}
+var _ = billing.PaymentMinLimitSystem{}
 var _ = paylink.CreatePaylinkRequest{}
 
 // This is a compile-time assertion to ensure that this generated file
@@ -409,7 +411,7 @@ type BillingService interface {
 	GetDashboardMainReport(ctx context.Context, in *GetDashboardMainRequest, opts ...client.CallOption) (*GetDashboardMainResponse, error)
 	GetDashboardRevenueDynamicsReport(ctx context.Context, in *GetDashboardMainRequest, opts ...client.CallOption) (*GetDashboardRevenueDynamicsReportResponse, error)
 	GetDashboardBaseReport(ctx context.Context, in *GetDashboardBaseReportRequest, opts ...client.CallOption) (*GetDashboardBaseReportResponse, error)
-	CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, opts ...client.CallOption) (*PayoutDocumentResponse, error)
+	CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, opts ...client.CallOption) (*CreatePayoutDocumentResponse, error)
 	UpdatePayoutDocument(ctx context.Context, in *UpdatePayoutDocumentRequest, opts ...client.CallOption) (*PayoutDocumentResponse, error)
 	GetPayoutDocuments(ctx context.Context, in *GetPayoutDocumentsRequest, opts ...client.CallOption) (*GetPayoutDocumentsResponse, error)
 	GetPayoutDocument(ctx context.Context, in *GetPayoutDocumentRequest, opts ...client.CallOption) (*PayoutDocumentResponse, error)
@@ -433,6 +435,8 @@ type BillingService interface {
 	DeleteSavedCard(ctx context.Context, in *DeleteSavedCardRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 	GetOperatingCompaniesList(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*GetOperatingCompaniesListResponse, error)
 	AddOperatingCompany(ctx context.Context, in *billing.OperatingCompany, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
+	GetPaymentMinLimitsSystem(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*GetPaymentMinLimitsSystemResponse, error)
+	SetPaymentMinLimitSystem(ctx context.Context, in *billing.PaymentMinLimitSystem, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 }
 
 type billingService struct {
@@ -1743,9 +1747,9 @@ func (c *billingService) GetDashboardBaseReport(ctx context.Context, in *GetDash
 	return out, nil
 }
 
-func (c *billingService) CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, opts ...client.CallOption) (*PayoutDocumentResponse, error) {
+func (c *billingService) CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, opts ...client.CallOption) (*CreatePayoutDocumentResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.CreatePayoutDocument", in)
-	out := new(PayoutDocumentResponse)
+	out := new(CreatePayoutDocumentResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1983,6 +1987,26 @@ func (c *billingService) AddOperatingCompany(ctx context.Context, in *billing.Op
 	return out, nil
 }
 
+func (c *billingService) GetPaymentMinLimitsSystem(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*GetPaymentMinLimitsSystemResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetPaymentMinLimitsSystem", in)
+	out := new(GetPaymentMinLimitsSystemResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) SetPaymentMinLimitSystem(ctx context.Context, in *billing.PaymentMinLimitSystem, opts ...client.CallOption) (*EmptyResponseWithStatus, error) {
+	req := c.c.NewRequest(c.name, "BillingService.SetPaymentMinLimitSystem", in)
+	out := new(EmptyResponseWithStatus)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for BillingService service
 
 type BillingServiceHandler interface {
@@ -2115,7 +2139,7 @@ type BillingServiceHandler interface {
 	GetDashboardMainReport(context.Context, *GetDashboardMainRequest, *GetDashboardMainResponse) error
 	GetDashboardRevenueDynamicsReport(context.Context, *GetDashboardMainRequest, *GetDashboardRevenueDynamicsReportResponse) error
 	GetDashboardBaseReport(context.Context, *GetDashboardBaseReportRequest, *GetDashboardBaseReportResponse) error
-	CreatePayoutDocument(context.Context, *CreatePayoutDocumentRequest, *PayoutDocumentResponse) error
+	CreatePayoutDocument(context.Context, *CreatePayoutDocumentRequest, *CreatePayoutDocumentResponse) error
 	UpdatePayoutDocument(context.Context, *UpdatePayoutDocumentRequest, *PayoutDocumentResponse) error
 	GetPayoutDocuments(context.Context, *GetPayoutDocumentsRequest, *GetPayoutDocumentsResponse) error
 	GetPayoutDocument(context.Context, *GetPayoutDocumentRequest, *PayoutDocumentResponse) error
@@ -2139,6 +2163,8 @@ type BillingServiceHandler interface {
 	DeleteSavedCard(context.Context, *DeleteSavedCardRequest, *EmptyResponseWithStatus) error
 	GetOperatingCompaniesList(context.Context, *EmptyRequest, *GetOperatingCompaniesListResponse) error
 	AddOperatingCompany(context.Context, *billing.OperatingCompany, *EmptyResponseWithStatus) error
+	GetPaymentMinLimitsSystem(context.Context, *EmptyRequest, *GetPaymentMinLimitsSystemResponse) error
+	SetPaymentMinLimitSystem(context.Context, *billing.PaymentMinLimitSystem, *EmptyResponseWithStatus) error
 }
 
 func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, opts ...server.HandlerOption) error {
@@ -2272,7 +2298,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetDashboardMainReport(ctx context.Context, in *GetDashboardMainRequest, out *GetDashboardMainResponse) error
 		GetDashboardRevenueDynamicsReport(ctx context.Context, in *GetDashboardMainRequest, out *GetDashboardRevenueDynamicsReportResponse) error
 		GetDashboardBaseReport(ctx context.Context, in *GetDashboardBaseReportRequest, out *GetDashboardBaseReportResponse) error
-		CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, out *PayoutDocumentResponse) error
+		CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, out *CreatePayoutDocumentResponse) error
 		UpdatePayoutDocument(ctx context.Context, in *UpdatePayoutDocumentRequest, out *PayoutDocumentResponse) error
 		GetPayoutDocuments(ctx context.Context, in *GetPayoutDocumentsRequest, out *GetPayoutDocumentsResponse) error
 		GetPayoutDocument(ctx context.Context, in *GetPayoutDocumentRequest, out *PayoutDocumentResponse) error
@@ -2296,6 +2322,8 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		DeleteSavedCard(ctx context.Context, in *DeleteSavedCardRequest, out *EmptyResponseWithStatus) error
 		GetOperatingCompaniesList(ctx context.Context, in *EmptyRequest, out *GetOperatingCompaniesListResponse) error
 		AddOperatingCompany(ctx context.Context, in *billing.OperatingCompany, out *EmptyResponseWithStatus) error
+		GetPaymentMinLimitsSystem(ctx context.Context, in *EmptyRequest, out *GetPaymentMinLimitsSystemResponse) error
+		SetPaymentMinLimitSystem(ctx context.Context, in *billing.PaymentMinLimitSystem, out *EmptyResponseWithStatus) error
 	}
 	type BillingService struct {
 		billingService
@@ -2824,7 +2852,7 @@ func (h *billingServiceHandler) GetDashboardBaseReport(ctx context.Context, in *
 	return h.BillingServiceHandler.GetDashboardBaseReport(ctx, in, out)
 }
 
-func (h *billingServiceHandler) CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, out *PayoutDocumentResponse) error {
+func (h *billingServiceHandler) CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, out *CreatePayoutDocumentResponse) error {
 	return h.BillingServiceHandler.CreatePayoutDocument(ctx, in, out)
 }
 
@@ -2918,4 +2946,12 @@ func (h *billingServiceHandler) GetOperatingCompaniesList(ctx context.Context, i
 
 func (h *billingServiceHandler) AddOperatingCompany(ctx context.Context, in *billing.OperatingCompany, out *EmptyResponseWithStatus) error {
 	return h.BillingServiceHandler.AddOperatingCompany(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetPaymentMinLimitsSystem(ctx context.Context, in *EmptyRequest, out *GetPaymentMinLimitsSystemResponse) error {
+	return h.BillingServiceHandler.GetPaymentMinLimitsSystem(ctx, in, out)
+}
+
+func (h *billingServiceHandler) SetPaymentMinLimitSystem(ctx context.Context, in *billing.PaymentMinLimitSystem, out *EmptyResponseWithStatus) error {
+	return h.BillingServiceHandler.SetPaymentMinLimitSystem(ctx, in, out)
 }

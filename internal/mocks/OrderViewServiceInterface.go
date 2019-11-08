@@ -173,13 +173,36 @@ func (_m *OrderViewServiceInterface) GetPaylinkStatByUtm(paylinkId string, merch
 	return r0, r1
 }
 
-// GetRoyaltySummary provides a mock function with given fields: merchantId, currency, from, to
-func (_m *OrderViewServiceInterface) GetRoyaltySummary(merchantId string, currency string, from time.Time, to time.Time) ([]*billing.RoyaltyReportProductSummaryItem, *billing.RoyaltyReportProductSummaryItem, error) {
+// GetRoyaltyOperatingCompaniesIds provides a mock function with given fields: merchantId, currency, from, to
+func (_m *OrderViewServiceInterface) GetRoyaltyOperatingCompaniesIds(merchantId string, currency string, from time.Time, to time.Time) ([]string, error) {
 	ret := _m.Called(merchantId, currency, from, to)
 
-	var r0 []*billing.RoyaltyReportProductSummaryItem
-	if rf, ok := ret.Get(0).(func(string, string, time.Time, time.Time) []*billing.RoyaltyReportProductSummaryItem); ok {
+	var r0 []string
+	if rf, ok := ret.Get(0).(func(string, string, time.Time, time.Time) []string); ok {
 		r0 = rf(merchantId, currency, from, to)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string, time.Time, time.Time) error); ok {
+		r1 = rf(merchantId, currency, from, to)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetRoyaltySummary provides a mock function with given fields: merchantId, operatingCompanyId, currency, from, to
+func (_m *OrderViewServiceInterface) GetRoyaltySummary(merchantId string, operatingCompanyId string, currency string, from time.Time, to time.Time) ([]*billing.RoyaltyReportProductSummaryItem, *billing.RoyaltyReportProductSummaryItem, error) {
+	ret := _m.Called(merchantId, operatingCompanyId, currency, from, to)
+
+	var r0 []*billing.RoyaltyReportProductSummaryItem
+	if rf, ok := ret.Get(0).(func(string, string, string, time.Time, time.Time) []*billing.RoyaltyReportProductSummaryItem); ok {
+		r0 = rf(merchantId, operatingCompanyId, currency, from, to)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*billing.RoyaltyReportProductSummaryItem)
@@ -187,8 +210,8 @@ func (_m *OrderViewServiceInterface) GetRoyaltySummary(merchantId string, curren
 	}
 
 	var r1 *billing.RoyaltyReportProductSummaryItem
-	if rf, ok := ret.Get(1).(func(string, string, time.Time, time.Time) *billing.RoyaltyReportProductSummaryItem); ok {
-		r1 = rf(merchantId, currency, from, to)
+	if rf, ok := ret.Get(1).(func(string, string, string, time.Time, time.Time) *billing.RoyaltyReportProductSummaryItem); ok {
+		r1 = rf(merchantId, operatingCompanyId, currency, from, to)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(*billing.RoyaltyReportProductSummaryItem)
@@ -196,8 +219,8 @@ func (_m *OrderViewServiceInterface) GetRoyaltySummary(merchantId string, curren
 	}
 
 	var r2 error
-	if rf, ok := ret.Get(2).(func(string, string, time.Time, time.Time) error); ok {
-		r2 = rf(merchantId, currency, from, to)
+	if rf, ok := ret.Get(2).(func(string, string, string, time.Time, time.Time) error); ok {
+		r2 = rf(merchantId, operatingCompanyId, currency, from, to)
 	} else {
 		r2 = ret.Error(2)
 	}

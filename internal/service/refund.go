@@ -32,7 +32,7 @@ var (
 	refundErrorPaymentAmountLess  = newBillingServerErrorMsg("rf000004", "refund unavailable, because payment amount less than total refunds amount")
 	refundErrorNotFound           = newBillingServerErrorMsg("rf000005", "refund with specified data not found")
 	refundErrorOrderNotFound      = newBillingServerErrorMsg("rf000006", "information about payment for refund with specified data not found")
-	refundErrorCostsRatesNotFound = newBillingServerErrorMsg("rf000007", "settings to calculate commissions not found")
+	refundErrorCostsRatesNotFound = newBillingServerErrorMsg("rf000007", "settings to calculate commissions for refund not found")
 )
 
 type createRefundChecked struct {
@@ -389,7 +389,10 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 		Reason:        refund.Reason,
 		ReceiptNumber: refund.Id,
 	}
-	refundOrder.ParentId = order.Id
+	refundOrder.ParentOrder = &billing.ParentOrder{
+		Id:   order.Id,
+		Uuid: order.Uuid,
+	}
 	refundOrder.IsVatDeduction = isVatDeduction
 	refundOrder.ParentPaymentAt = refundOrder.PaymentMethodOrderClosedAt
 	refundOrder.PaymentMethodOrderClosedAt = ptypes.TimestampNow()
@@ -568,12 +571,6 @@ func (p *createRefundProcessor) hasMoneyBackCosts(order *billing.Order) bool {
 		return false
 	}
 
-	merchantId := order.GetMerchantId()
-	merchant, err := p.service.merchant.GetById(merchantId)
-	if err != nil {
-		return false
-	}
-
 	paymentAt, _ := ptypes.Timestamp(order.PaymentMethodOrderClosedAt)
 	refundAt := time.Now()
 	reason := pkg.UndoReasonReversal
@@ -590,8 +587,8 @@ func (p *createRefundProcessor) hasMoneyBackCosts(order *billing.Order) bool {
 		PaymentStage:       1,
 		Days:               int32(refundAt.Sub(paymentAt).Hours() / 24),
 		UndoReason:         reason,
-		MccCode:            merchant.MccCode,
-		OperatingCompanyId: merchant.OperatingCompanyId,
+		MccCode:            order.MccCode,
+		OperatingCompanyId: order.OperatingCompanyId,
 	}
 	_, err = p.service.getMoneyBackCostSystem(data)
 
@@ -608,7 +605,7 @@ func (p *createRefundProcessor) hasMoneyBackCosts(order *billing.Order) bool {
 		Country:        country.IsoCodeA2,
 		PaymentStage:   1,
 		Days:           int32(refundAt.Sub(paymentAt).Hours() / 24),
-		MccCode:        merchant.MccCode,
+		MccCode:        order.MccCode,
 	}
 	_, err = p.service.getMoneyBackCostMerchant(data1)
 	return err == nil

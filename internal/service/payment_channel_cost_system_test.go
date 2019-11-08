@@ -145,9 +145,11 @@ func (suite *PaymentChannelCostSystemTestSuite) TearDownTest() {
 
 func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_GrpcGet_Ok() {
 	req := &billing.PaymentChannelCostSystemRequest{
-		Name:    "VISA",
-		Region:  pkg.TariffRegionRussiaAndCis,
-		Country: "AZ",
+		Name:               "VISA",
+		Region:             pkg.TariffRegionRussiaAndCis,
+		Country:            "AZ",
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	res := &grpc.PaymentChannelCostSystemResponse{}

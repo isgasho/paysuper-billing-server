@@ -30,7 +30,9 @@ It has these top-level messages:
 	OrderTax
 	OrderBillingAddress
 	OrderUser
+	OrderNotificationCancellation
 	Order
+	ParentOrder
 	CountryRestriction
 	OrderItem
 	OrderPaginate
@@ -131,6 +133,7 @@ It has these top-level messages:
 	ProjectVirtualCurrency
 	OrderCreateByPaylink
 	OperatingCompany
+	PaymentMinLimitSystem
 */
 package billing
 

@@ -168,13 +168,15 @@ func (suite *MoneyBackCostSystemTestSuite) TearDownTest() {
 
 func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_GrpcGet_Ok() {
 	req := &billing.MoneyBackCostSystemRequest{
-		Name:           "VISA",
-		PayoutCurrency: "USD",
-		UndoReason:     "chargeback",
-		Region:         pkg.TariffRegionRussiaAndCis,
-		Country:        "AZ",
-		Days:           10,
-		PaymentStage:   1,
+		Name:               "VISA",
+		PayoutCurrency:     "USD",
+		UndoReason:         "chargeback",
+		Region:             pkg.TariffRegionRussiaAndCis,
+		Country:            "AZ",
+		Days:               10,
+		PaymentStage:       1,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	res := &grpc.MoneyBackCostSystemResponse{}

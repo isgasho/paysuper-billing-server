@@ -24,9 +24,10 @@ type EntityTestSuite struct {
 	log     *zap.Logger
 	cache   internalPkg.CacheInterface
 
-	projectId     string
-	project       *billing.Project
-	paymentMethod *billing.PaymentMethod
+	projectId        string
+	project          *billing.Project
+	paymentMethod    *billing.PaymentMethod
+	operatingCompany *billing.OperatingCompany
 }
 
 func Test_Entity(t *testing.T) {
@@ -49,6 +50,24 @@ func (suite *EntityTestSuite) SetupTest() {
 
 	if err != nil {
 		suite.FailNow("Logger initialization failed", "%v", err)
+	}
+
+	suite.operatingCompany = &billing.OperatingCompany{
+		Id:                 bson.NewObjectId().Hex(),
+		Name:               "Legal name",
+		Country:            "RU",
+		RegistrationNumber: "some number",
+		VatNumber:          "some vat number",
+		Address:            "Home, home 0",
+		SignatoryName:      "Vassiliy Poupkine",
+		SignatoryPosition:  "CEO",
+		BankingDetails:     "bank details including bank, bank address, account number, swift/ bic, intermediary bank",
+		PaymentCountries:   []string{},
+	}
+
+	err = db.Collection(collectionOperatingCompanies).Insert(suite.operatingCompany)
+	if err != nil {
+		suite.FailNow("Insert operatingCompany test data failed", "%v", err)
 	}
 
 	ps1 := &billing.PaymentSystem{
@@ -74,6 +93,8 @@ func (suite *EntityTestSuite) SetupTest() {
 		Status:             pkg.ProjectStatusInProduction,
 	}
 
+	keyRub := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
+
 	pmBankCard := &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
 		Name:             "Bank card",
@@ -82,8 +103,13 @@ func (suite *EntityTestSuite) SetupTest() {
 		MaxPaymentAmount: 0,
 		ExternalId:       "BANKCARD",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				TerminalId: "15985",
+			keyRub: {
+				TerminalId:         "15985",
+				Secret:             "A1tph4I6BD0f",
+				SecretCallback:     "0V1rJ7t4jCRv",
+				Currency:           "RUB",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			}},
 		Type:            "bank_card",
 		IsActive:        true,
@@ -121,14 +147,15 @@ func (suite *EntityTestSuite) SetupTest() {
 	}
 
 	country := &billing.Country{
-		IsoCodeA2:       "RU",
-		Region:          "Russia",
-		Currency:        "RUB",
-		PaymentsAllowed: true,
-		ChangeAllowed:   true,
-		VatEnabled:      true,
-		PriceGroupId:    "",
-		VatCurrency:     "RUB",
+		IsoCodeA2:         "RU",
+		Region:            "Russia",
+		Currency:          "RUB",
+		PaymentsAllowed:   true,
+		ChangeAllowed:     true,
+		VatEnabled:        true,
+		PriceGroupId:      "",
+		VatCurrency:       "RUB",
+		PayerTariffRegion: pkg.TariffRegionRussiaAndCis,
 	}
 
 	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -360))
@@ -191,6 +218,8 @@ func (suite *EntityTestSuite) SetupTest() {
 				IsActive: true,
 			},
 		},
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	merchantAgreement := &billing.Merchant{
@@ -225,7 +254,9 @@ func (suite *EntityTestSuite) SetupTest() {
 			Date:   date,
 			Amount: 10000,
 		},
-		IsSigned: true,
+		IsSigned:           true,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 	merchant1 := &billing.Merchant{
 		Id: bson.NewObjectId().Hex(),
@@ -259,7 +290,9 @@ func (suite *EntityTestSuite) SetupTest() {
 			Date:   date,
 			Amount: 100000,
 		},
-		IsSigned: false,
+		IsSigned:           false,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	suite.projectId = project.Id

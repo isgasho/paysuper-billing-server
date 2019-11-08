@@ -166,7 +166,7 @@ service BillingService {
     rpc GetDashboardRevenueDynamicsReport (GetDashboardMainRequest) returns (GetDashboardRevenueDynamicsReportResponse) {}
     rpc GetDashboardBaseReport (GetDashboardBaseReportRequest) returns (GetDashboardBaseReportResponse) {}
 
-    rpc CreatePayoutDocument (CreatePayoutDocumentRequest) returns (PayoutDocumentResponse) {}
+    rpc CreatePayoutDocument (CreatePayoutDocumentRequest) returns (CreatePayoutDocumentResponse) {}
     rpc UpdatePayoutDocument (UpdatePayoutDocumentRequest) returns (PayoutDocumentResponse) {}
     rpc GetPayoutDocuments (GetPayoutDocumentsRequest) returns (GetPayoutDocumentsResponse) {}
     rpc GetPayoutDocument (GetPayoutDocumentRequest) returns (PayoutDocumentResponse) {}
@@ -196,6 +196,9 @@ service BillingService {
 
     rpc GetOperatingCompaniesList (EmptyRequest) returns (GetOperatingCompaniesListResponse) {}
     rpc AddOperatingCompany (billing.OperatingCompany) returns (EmptyResponseWithStatus) {}
+
+    rpc GetPaymentMinLimitsSystem (EmptyRequest) returns (GetPaymentMinLimitsSystemResponse) {}
+    rpc SetPaymentMinLimitSystem (billing.PaymentMinLimitSystem) returns (EmptyResponseWithStatus) {}
 }
 
 message EmptyRequest {
@@ -340,8 +343,6 @@ message CreateOrUpdateKeyProductRequest {
     repeated PlatformPrice platforms = 13;
     // @inject_tag: json:"pricing" validate:"required,oneof=currency manual steam default"
     string pricing = 14;
-    // @inject_tag: json:"billing_type" validate:"required,oneof=real virtual"
-    string billing_type = 15;
 }
 
 message UnPublishKeyProductRequest {
@@ -894,8 +895,6 @@ message KeyProduct {
     google.protobuf.Timestamp published_at = 18;
     // @inject_tag: json:"pricing" validate:"required,oneof=currency manual steam default"
     string pricing = 19;
-    // @inject_tag: json:"billing_type" validate:"required,oneof=real virtual"
-    string billing_type = 20;
 }
 
 message PlatformPrice {
@@ -1765,7 +1764,11 @@ message GetMerchantTariffRatesResponseItems {
     //@inject_tag: json:"chargeback"
     billing.MerchantTariffRatesSettingsItem chargeback = 3;
     //@inject_tag: json:"payout"
-    billing.MerchantTariffRatesSettingsItem payout = 4;
+    map<string, billing.MerchantTariffRatesSettingsItem> payout = 4;
+    //@inject_tag: json:"minimal_payout"
+    map<string, float> minimal_payout = 5;
+    //@inject_tag: json:"mcc_code"
+    string mcc_code = 6;
 }
 
 message GetMerchantTariffRatesResponse {
@@ -2012,6 +2015,15 @@ message PayoutDocumentResponse {
     ResponseErrorMessage message = 2;
     //@inject_tag: json:"item"
     billing.PayoutDocument item = 3;
+}
+
+message CreatePayoutDocumentResponse {
+    //@inject_tag: json:"status"
+    int32 status = 1;
+    //@inject_tag: json:"message"
+    ResponseErrorMessage message = 2;
+    //@inject_tag: json:"item"
+    repeated billing.PayoutDocument items = 3;
 }
 
 message UpdatePayoutDocumentRequest {
@@ -2277,6 +2289,14 @@ message GetOperatingCompaniesListResponse {
     ResponseErrorMessage message = 2;
     // @inject_tag: json:"items"
     repeated billing.OperatingCompany items = 3;
+}
+
+message GetPaymentMinLimitsSystemResponse {
+    int32 status = 1;
+    // @inject_tag: json:"message,omitempty"
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"items"
+    repeated billing.PaymentMinLimitSystem items = 3;
 }
 
 message SetMerchantOperatingCompanyRequest {
