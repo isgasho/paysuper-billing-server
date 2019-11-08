@@ -56,6 +56,20 @@ func (_m *PaymentMinLimitSystemInterface) GetByCurrency(currency string) (*billi
 	return r0, r1
 }
 
+// MultipleInsert provides a mock function with given fields: pmlsArray
+func (_m *PaymentMinLimitSystemInterface) MultipleInsert(pmlsArray []*billing.PaymentMinLimitSystem) error {
+	ret := _m.Called(pmlsArray)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func([]*billing.PaymentMinLimitSystem) error); ok {
+		r0 = rf(pmlsArray)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // Upsert provides a mock function with given fields: pmls
 func (_m *PaymentMinLimitSystemInterface) Upsert(pmls *billing.PaymentMinLimitSystem) error {
 	ret := _m.Called(pmls)

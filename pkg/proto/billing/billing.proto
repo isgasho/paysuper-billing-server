@@ -2326,7 +2326,7 @@ message OperatingCompany {
 }
 
 message PaymentMinLimitSystem {
-    // @inject_tag: bson:"_id" json:"id"
+    // @inject_tag: bson:"_id" json:"-"
     string id = 1;
     //@inject_tag: validate:"required,alpha,len=3" json:"currency" bson:"currency"
     string currency = 2;

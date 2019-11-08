@@ -13226,8 +13226,8 @@ func (m *OperatingCompany) GetUpdatedAt() *timestamp.Timestamp {
 }
 
 type PaymentMinLimitSystem struct {
-	// @inject_tag: bson:"_id" json:"id"
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" bson:"_id"`
+	// @inject_tag: bson:"_id" json:"-"
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"-" bson:"_id"`
 	//@inject_tag: validate:"required,alpha,len=3" json:"currency" bson:"currency"
 	Currency string `protobuf:"bytes,2,opt,name=currency,proto3" json:"currency" validate:"required,alpha,len=3" bson:"currency"`
 	// @inject_tag: validate:"required,numeric,gt=0" json:"amount" bson:"amount"
