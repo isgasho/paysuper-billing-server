@@ -146,6 +146,25 @@ func (s *Service) AddOperatingCompany(
 	return
 }
 
+func (s *Service) GetOperatingCompany(
+	ctx context.Context,
+	req *grpc.GetOperatingCompanyRequest,
+	res *grpc.GetOperatingCompanyResponse,
+) (err error) {
+	oc, err := s.operatingCompany.GetById(req.Id)
+
+	if err != nil {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorOperatingCompanyNotFound
+		return nil
+	}
+
+	res.Status = pkg.ResponseStatusOk
+	res.Company = oc
+
+	return
+}
+
 func (o OperatingCompany) GetById(id string) (oc *billing.OperatingCompany, err error) {
 	key := fmt.Sprintf(cacheKeyOperatingCompany, id)
 	if err = o.svc.cacher.Get(key, &oc); err == nil {

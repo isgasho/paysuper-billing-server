@@ -196,6 +196,7 @@ service BillingService {
 
     rpc GetOperatingCompaniesList (EmptyRequest) returns (GetOperatingCompaniesListResponse) {}
     rpc AddOperatingCompany (billing.OperatingCompany) returns (EmptyResponseWithStatus) {}
+    rpc GetOperatingCompany (GetOperatingCompanyRequest) returns (GetOperatingCompanyResponse) {}
 
     rpc GetPaymentMinLimitsSystem (EmptyRequest) returns (GetPaymentMinLimitsSystemResponse) {}
     rpc SetPaymentMinLimitSystem (billing.PaymentMinLimitSystem) returns (EmptyResponseWithStatus) {}
@@ -2310,4 +2311,15 @@ message SetMerchantOperatingCompanyResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     billing.Merchant item = 3;
+}
+
+message GetOperatingCompanyRequest {
+    // @inject_tag: json:"id" validate:"required,hexadecimal,len=24"
+    string id = 2;
+}
+
+message GetOperatingCompanyResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.OperatingCompany company = 3;
 }
