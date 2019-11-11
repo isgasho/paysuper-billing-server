@@ -549,7 +549,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 	}
 
 	tariffsSettings := &billing.MerchantTariffRatesSettings{
-		Refund: []*billing.MerchantTariffRatesSettingsRefundItem{
+		Refund: []*billing.MerchantTariffRatesSettingsItem{
 			{
 				MethodName:             "MasterCard",
 				MethodPercentFee:       0.059757,
@@ -565,11 +565,14 @@ func (suite *OnboardingTestSuite) SetupTest() {
 				IsPaidByMerchant:       false,
 			},
 		},
-		Chargeback: &billing.MerchantTariffRatesSettingsItem{
-			MethodPercentFee:       0.00,
-			MethodFixedFee:         25.00,
-			MethodFixedFeeCurrency: "EUR",
-			IsPaidByMerchant:       true,
+		Chargeback: []*billing.MerchantTariffRatesSettingsItem{
+			{
+				MethodName:             "MasterCard",
+				MethodPercentFee:       0.00,
+				MethodFixedFee:         25.00,
+				MethodFixedFeeCurrency: "EUR",
+				IsPaidByMerchant:       true,
+			},
 		},
 		Payout: map[string]*billing.MerchantTariffRatesSettingsItem{
 			"USD": {
@@ -3531,12 +3534,12 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_Ok() {
 	paymentCosts, err = suite.service.paymentChannelCostMerchant.GetAllForMerchant(rsp0.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), paymentCosts.Items)
-	assert.Len(suite.T(), paymentCosts.Items, 10)
+	assert.Len(suite.T(), paymentCosts.Items, 2)
 
 	moneyBackCosts, err = suite.service.moneyBackCostMerchant.GetAllForMerchant(rsp0.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), moneyBackCosts.Items)
-	assert.Len(suite.T(), moneyBackCosts.Items, len(rsp.Items.Refund)*10)
+	assert.Len(suite.T(), moneyBackCosts.Items, 15)
 
 	merchant, err = suite.service.merchant.GetById(rsp0.Item.Id)
 	assert.NoError(suite.T(), err)

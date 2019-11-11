@@ -1761,9 +1761,9 @@ message GetMerchantTariffRatesRequest {
 message GetMerchantTariffRatesResponseItems {
     repeated billing.MerchantTariffRatesPayment payment = 1;
     //@inject_tag: json:"-"
-    repeated billing.MerchantTariffRatesSettingsRefundItem refund = 2;
+    repeated billing.MerchantTariffRatesSettingsItem refund = 2;
     //@inject_tag: json:"chargeback"
-    billing.MerchantTariffRatesSettingsItem chargeback = 3;
+    repeated billing.MerchantTariffRatesSettingsItem chargeback = 3;
     //@inject_tag: json:"payout"
     map<string, billing.MerchantTariffRatesSettingsItem> payout = 4;
     //@inject_tag: json:"minimal_payout"

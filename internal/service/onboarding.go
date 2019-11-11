@@ -1363,8 +1363,8 @@ func (s *Service) SetMerchantTariffRates(
 		return nil
 	}
 
-	marchantPayoutCurrency := merchant.GetPayoutCurrency()
-	if marchantPayoutCurrency == "" {
+	merchantPayoutCurrency := merchant.GetPayoutCurrency()
+	if merchantPayoutCurrency == "" {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = merchantErrorCurrencyNotSet
 
@@ -1384,7 +1384,7 @@ func (s *Service) SetMerchantTariffRates(
 		return nil
 	}
 
-	payoutTariff, ok := tariffs.Payout[marchantPayoutCurrency]
+	payoutTariff, ok := tariffs.Payout[merchantPayoutCurrency]
 	if !ok {
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = merchantErrorNoTariffsInPayoutCurrency
@@ -1392,13 +1392,15 @@ func (s *Service) SetMerchantTariffRates(
 		return nil
 	}
 
-	minimalPayoutLimit, ok := tariffs.MinimalPayout[marchantPayoutCurrency]
+	minimalPayoutLimit, ok := tariffs.MinimalPayout[merchantPayoutCurrency]
 	if !ok {
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = merchantErrorNoTariffsInPayoutCurrency
 
 		return nil
 	}
+
+	timestampNow := ptypes.TimestampNow()
 
 	merchant.Tariff = &billing.MerchantTariff{
 		Payment:    tariffs.Payment,
@@ -1412,28 +1414,26 @@ func (s *Service) SetMerchantTariffRates(
 		var costs []*billing.PaymentChannelCostMerchant
 
 		for _, v := range tariffs.Payment {
-			for _, tariffRegion := range pkg.SupportedTariffRegions {
-				cost := &billing.PaymentChannelCostMerchant{
-					Id:                      bson.NewObjectId().Hex(),
-					MerchantId:              req.MerchantId,
-					Name:                    v.MethodName,
-					PayoutCurrency:          merchant.GetPayoutCurrency(),
-					MinAmount:               v.MinAmount,
-					Region:                  tariffRegion,
-					MethodPercent:           v.MethodPercentFee / 100,
-					MethodFixAmount:         v.MethodFixedFee,
-					MethodFixAmountCurrency: v.MethodFixedFeeCurrency,
-					PsPercent:               v.PsPercentFee / 100,
-					PsFixedFee:              v.PsFixedFee,
-					PsFixedFeeCurrency:      v.PsFixedFeeCurrency,
-					CreatedAt:               ptypes.TimestampNow(),
-					UpdatedAt:               ptypes.TimestampNow(),
-					IsActive:                true,
-					MccCode:                 mccCode,
-				}
-
-				costs = append(costs, cost)
+			cost := &billing.PaymentChannelCostMerchant{
+				Id:                      bson.NewObjectId().Hex(),
+				MerchantId:              req.MerchantId,
+				Name:                    strings.ToUpper(v.MethodName),
+				PayoutCurrency:          merchantPayoutCurrency,
+				MinAmount:               v.MinAmount,
+				Region:                  v.PayerRegion,
+				MethodPercent:           v.MethodPercentFee,
+				MethodFixAmount:         v.MethodFixedFee,
+				MethodFixAmountCurrency: v.MethodFixedFeeCurrency,
+				PsPercent:               v.PsPercentFee,
+				PsFixedFee:              v.PsFixedFee,
+				PsFixedFeeCurrency:      v.PsFixedFeeCurrency,
+				CreatedAt:               timestampNow,
+				UpdatedAt:               timestampNow,
+				IsActive:                true,
+				MccCode:                 mccCode,
 			}
+
+			costs = append(costs, cost)
 		}
 
 		if len(costs) <= 0 {
@@ -1469,36 +1469,41 @@ func (s *Service) SetMerchantTariffRates(
 			cost = &billing.MoneyBackCostMerchant{
 				Id:                bson.NewObjectId().Hex(),
 				MerchantId:        req.MerchantId,
-				Name:              v.MethodName,
-				PayoutCurrency:    merchant.GetPayoutCurrency(),
+				Name:              strings.ToUpper(v.MethodName),
+				PayoutCurrency:    merchantPayoutCurrency,
 				UndoReason:        pkg.UndoReasonReversal,
 				Region:            tariffRegion,
+				Country:           "",
+				DaysFrom:          0,
 				PaymentStage:      1,
-				Percent:           v.MethodPercentFee / 100,
+				Percent:           v.MethodPercentFee,
 				FixAmount:         v.MethodFixedFee,
 				FixAmountCurrency: v.MethodFixedFeeCurrency,
 				IsPaidByMerchant:  v.IsPaidByMerchant,
-				CreatedAt:         ptypes.TimestampNow(),
-				UpdatedAt:         ptypes.TimestampNow(),
+				CreatedAt:         timestampNow,
+				UpdatedAt:         timestampNow,
 				IsActive:          true,
 				MccCode:           mccCode,
 			}
 			costs = append(costs, cost)
-
+		}
+		for _, v := range tariffs.Chargeback {
 			cost = &billing.MoneyBackCostMerchant{
 				Id:                bson.NewObjectId().Hex(),
 				MerchantId:        req.MerchantId,
-				Name:              v.MethodName,
-				PayoutCurrency:    merchant.GetPayoutCurrency(),
+				Name:              strings.ToUpper(v.MethodName),
+				PayoutCurrency:    merchantPayoutCurrency,
 				UndoReason:        pkg.UndoReasonChargeback,
 				Region:            tariffRegion,
+				Country:           "",
+				DaysFrom:          0,
 				PaymentStage:      1,
-				Percent:           tariffs.Chargeback.MethodPercentFee / 100,
-				FixAmount:         tariffs.Chargeback.MethodFixedFee,
-				FixAmountCurrency: tariffs.Chargeback.MethodFixedFeeCurrency,
-				IsPaidByMerchant:  tariffs.Chargeback.IsPaidByMerchant,
-				CreatedAt:         ptypes.TimestampNow(),
-				UpdatedAt:         ptypes.TimestampNow(),
+				Percent:           v.MethodPercentFee,
+				FixAmount:         v.MethodFixedFee,
+				FixAmountCurrency: v.MethodFixedFeeCurrency,
+				IsPaidByMerchant:  v.IsPaidByMerchant,
+				CreatedAt:         timestampNow,
+				UpdatedAt:         timestampNow,
 				IsActive:          true,
 				MccCode:           mccCode,
 			}

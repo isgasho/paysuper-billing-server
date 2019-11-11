@@ -2037,7 +2037,7 @@ message MerchantTariffRatesPayment {
     string mcc_code = 12;
 }
 
-message MerchantTariffRatesSettingsRefundItem {
+message MerchantTariffRatesSettingsItem {
     //@inject_tag: json:"method_name" bson:"method_name"
     string method_name = 1;
     //@inject_tag: json:"method_percent_fee" bson:"method_percent_fee"
@@ -2050,22 +2050,11 @@ message MerchantTariffRatesSettingsRefundItem {
 	bool is_paid_by_merchant = 5;
 }
 
-message MerchantTariffRatesSettingsItem {
-    //@inject_tag: json:"method_percent_fee" bson:"method_percent_fee"
-    double method_percent_fee = 1;
-    //@inject_tag: json:"method_fixed_fee" bson:"method_fixed_fee"
-	double method_fixed_fee = 2;
-    //@inject_tag: json:"method_fixed_fee_currency" bson:"method_fixed_fee_currency"
-	string method_fixed_fee_currency = 3;
-    //@inject_tag: json:"is_paid_by_merchant" bson:"is_paid_by_merchant"
-	bool is_paid_by_merchant = 4;
-}
-
 message MerchantTariffRatesSettings {
     //@inject_tag: json:"refund" bson:"refund"
-    repeated MerchantTariffRatesSettingsRefundItem refund = 1;
+    repeated MerchantTariffRatesSettingsItem refund = 1;
     //@inject_tag: json:"chargeback" bson:"chargeback"
-    MerchantTariffRatesSettingsItem chargeback = 2;
+    repeated MerchantTariffRatesSettingsItem chargeback = 2;
     //@inject_tag: json:"payout" bson:"payout"
     map<string, MerchantTariffRatesSettingsItem> payout = 3;
     //@inject_tag: json:"minimal_payout" bson:"minimal_payout"
