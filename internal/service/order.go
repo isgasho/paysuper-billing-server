@@ -134,6 +134,8 @@ var (
 	orderErrorVirtualCurrencyFracNotSupported                 = newBillingServerErrorMsg("fm000066", "fractional numbers is not supported for this virtual currency")
 	orderErrorVirtualCurrencyLimits                           = newBillingServerErrorMsg("fm000067", "amount of order is more than max amount or less than minimal amount for virtual currency")
 	orderErrorCheckoutWithProducts                            = newBillingServerErrorMsg("fm000069", "request to processing simple payment can't contain products list")
+	orderErrorMerchantDoNotHaveCompanyInfo                    = newBillingServerErrorMsg("fm000070", "merchant don't have completed company info")
+	orderErrorMerchantDoNotHaveBanking                        = newBillingServerErrorMsg("fm000071", "merchant don't have completed banking info")
 
 	virtualCurrencyPayoutCurrencyMissed = newBillingServerErrorMsg("vc000001", "virtual currency don't have price in merchant payout currency")
 
@@ -1965,6 +1967,14 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 }
 
 func (v *OrderCreateRequestProcessor) processMerchant() error {
+	if !v.checked.merchant.IsBankingComplete() {
+		return orderErrorMerchantDoNotHaveBanking
+	}
+
+	if !v.checked.merchant.IsCompanyComplete() {
+		return orderErrorMerchantDoNotHaveCompanyInfo
+	}
+
 	if v.checked.merchant.HasTariff() == false {
 		return orderErrorMerchantBadTariffs
 	}
