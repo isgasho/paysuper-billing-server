@@ -802,7 +802,7 @@ func (s *Service) RoyaltyReportPdfUploaded(
 		},
 	}
 
-	err = s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+	err = s.postmarkBroker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 
 	if err != nil {
 		zap.L().Error(
@@ -862,7 +862,7 @@ func (s *Service) sendRoyaltyReportNotification(ctx context.Context, report *bil
 			To: merchant.GetAuthorizedEmail(),
 		}
 
-		err = s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+		err = s.postmarkBroker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 
 		if err != nil {
 			zap.L().Error(

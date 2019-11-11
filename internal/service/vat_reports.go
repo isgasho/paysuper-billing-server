@@ -424,7 +424,7 @@ func (s *Service) updateVatReport(ctx context.Context, vr *billing.VatReport) er
 			To: s.cfg.EmailNotificationFinancierRecipient,
 		}
 
-		err := s.broker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+		err := s.postmarkBroker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 
 		if err != nil {
 			zap.L().Error(
