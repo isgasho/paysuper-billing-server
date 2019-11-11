@@ -624,7 +624,8 @@ func (s *Service) PaymentFormJsonDataProcess(
 		}
 	}
 
-	if order.User.Ip == "" || req.Ip != order.User.Ip {
+	if order.User.Ip == "" || req.Ip != order.User.Ip ||
+		(order.User.Address != nil && order.User.Address.Country != p1.checked.user.Address.Country) {
 		order.User.Ip = p1.checked.user.Ip
 		order.User.Address = &billing.OrderBillingAddress{
 			Country:    p1.checked.user.Address.Country,
