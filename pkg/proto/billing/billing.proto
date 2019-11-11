@@ -2313,18 +2313,20 @@ message OperatingCompany {
     string vat_number = 5;
     // @inject_tag: bson:"address" json:"address" validate:"required"
     string address = 6;
+    // @inject_tag: bson:"vat_address" json:"vat_address" validate:"required"
+    string vat_address = 7;
     // @inject_tag: bson:"signatory_name" json:"signatory_name" validate:"required"
-    string signatory_name = 7;
+    string signatory_name = 8;
     // @inject_tag: bson:"signatory_position" json:"signatory_position" validate:"required"
-    string signatory_position = 8;
+    string signatory_position = 9;
     // @inject_tag: bson:"banking_details" json:"banking_details" validate:"required"
-    string banking_details = 9;
+    string banking_details = 10;
     // @inject_tag: bson:"payment_countries" json:"payment_countries" validate:"omitempty,dive,alpha,len=2"
-    repeated string payment_countries = 10;
+    repeated string payment_countries = 11;
     // @inject_tag: json:"created_at"
-    google.protobuf.Timestamp created_at = 11;
+    google.protobuf.Timestamp created_at = 12;
     // @inject_tag: json:"updated_at"
-    google.protobuf.Timestamp updated_at = 12;
+    google.protobuf.Timestamp updated_at = 13;
 }
 
 message PaymentMinLimitSystem {

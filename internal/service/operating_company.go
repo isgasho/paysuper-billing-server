@@ -131,6 +131,7 @@ func (s *Service) AddOperatingCompany(
 	oc.SignatoryName = req.SignatoryName
 	oc.SignatoryPosition = req.SignatoryPosition
 	oc.BankingDetails = req.BankingDetails
+	oc.VatAddress = req.VatAddress
 
 	err = s.operatingCompany.Upsert(oc)
 	if err != nil {

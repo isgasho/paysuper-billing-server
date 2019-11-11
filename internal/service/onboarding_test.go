@@ -78,6 +78,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 		RegistrationNumber: "some number",
 		VatNumber:          "some vat number",
 		Address:            "Home, home 0",
+		VatAddress:         "Address for VAT purposes",
 		SignatoryName:      "Vassiliy Poupkine",
 		SignatoryPosition:  "CEO",
 		BankingDetails:     "bank details including bank, bank address, account number, swift/ bic, intermediary bank",
