@@ -134,7 +134,9 @@ var (
 	orderErrorVirtualCurrencyFracNotSupported                 = newBillingServerErrorMsg("fm000066", "fractional numbers is not supported for this virtual currency")
 	orderErrorVirtualCurrencyLimits                           = newBillingServerErrorMsg("fm000067", "amount of order is more than max amount or less than minimal amount for virtual currency")
 	orderErrorCheckoutWithProducts                            = newBillingServerErrorMsg("fm000069", "request to processing simple payment can't contain products list")
-	orderErrorAmountLowerThanMinLimitSystem                   = newBillingServerErrorMsg("fm000070", "order amount is lower than min system limit")
+	orderErrorMerchantDoNotHaveCompanyInfo                    = newBillingServerErrorMsg("fm000070", "merchant don't have completed company info")
+	orderErrorMerchantDoNotHaveBanking                        = newBillingServerErrorMsg("fm000071", "merchant don't have completed banking info")
+	orderErrorAmountLowerThanMinLimitSystem                   = newBillingServerErrorMsg("fm000072", "order amount is lower than min system limit")
 
 	virtualCurrencyPayoutCurrencyMissed = newBillingServerErrorMsg("vc000001", "virtual currency don't have price in merchant payout currency")
 
@@ -2023,6 +2025,14 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 }
 
 func (v *OrderCreateRequestProcessor) processMerchant() error {
+	if !v.checked.merchant.IsBankingComplete() {
+		return orderErrorMerchantDoNotHaveBanking
+	}
+
+	if !v.checked.merchant.IsCompanyComplete() {
+		return orderErrorMerchantDoNotHaveCompanyInfo
+	}
+
 	if v.checked.merchant.HasTariff() == false {
 		return orderErrorMerchantBadTariffs
 	}
@@ -3368,36 +3378,12 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 		if priceGroup.Id == defaultPriceGroup.Id {
 			return nil, err
 		}
+		zap.S().Infow(fmt.Sprintf(logInfo, "try to use default currency for order amount"), "currency", defaultCurrency, "order.Uuid", order.Uuid, "platform_id", platformId)
 		// try to get order Amount in default currency, if it differs from requested one
 		amount, err = s.GetOrderKeyProductsAmount(orderProducts, defaultPriceGroup, platformId)
 		if err != nil {
 			return nil, err
 		}
-		zap.S().Infow(fmt.Sprintf(logInfo, "try to use default currency for order amount"), "currency", defaultCurrency, "order.Uuid", order.Uuid, "platform_id", platformId)
-
-		priceGroup = defaultPriceGroup
-		// converting Amount from default currency to requested
-		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
-			From:       defaultCurrency,
-			To:         currency,
-			MerchantId: order.GetMerchantId(),
-			RateType:   curPkg.RateTypeOxr,
-			Amount:     amount,
-		}
-
-		rsp, err := s.curService.ExchangeCurrencyCurrentForMerchant(ctx, req)
-
-		if err != nil {
-			zap.L().Error(
-				pkg.ErrorGrpcServiceCallFailed,
-				zap.Error(err),
-				zap.String(errorFieldService, "CurrencyRatesService"),
-				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
-			)
-
-			return nil, orderErrorConvertionCurrency
-		}
-		amount = rsp.ExchangedAmount
 		priceGroup = defaultPriceGroup
 	}
 
@@ -3534,44 +3520,18 @@ func (s *Service) ProcessOrderProducts(ctx context.Context, order *billing.Order
 }
 
 func (s *Service) processAmountForFiatCurrency(ctx context.Context, order *billing.Order, orderProducts []*grpc.Product, priceGroup *billing.PriceGroup, defaultPriceGroup *billing.PriceGroup, logInfo string) (float64, *billing.PriceGroup, error) {
-	currency := priceGroup.Currency
-	defaultCurrency := defaultPriceGroup.Currency
-
 	// try to get order Amount in requested currency
 	amount, err := s.GetOrderProductsAmount(orderProducts, priceGroup)
 	if err != nil {
 		if priceGroup.Id == defaultPriceGroup.Id {
 			return 0, nil, err
 		}
+		zap.S().Infow(fmt.Sprintf(logInfo, "try to use default currency for order amount"), "currency", defaultPriceGroup.Currency, "order.Uuid", order.Uuid)
 		// try to get order Amount in default currency, if it differs from requested one
 		amount, err = s.GetOrderProductsAmount(orderProducts, defaultPriceGroup)
 		if err != nil {
 			return 0, nil, err
 		}
-		zap.S().Infow(fmt.Sprintf(logInfo, "try to use default currency for order amount"), "currency", defaultCurrency, "order.Uuid", order.Uuid)
-
-		// converting Amount from default currency to requested
-		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
-			From:       defaultCurrency,
-			To:         currency,
-			MerchantId: order.GetMerchantId(),
-			RateType:   curPkg.RateTypeOxr,
-			Amount:     amount,
-		}
-
-		rsp, err := s.curService.ExchangeCurrencyCurrentForMerchant(ctx, req)
-
-		if err != nil {
-			zap.S().Error(
-				pkg.ErrorGrpcServiceCallFailed,
-				zap.Error(err),
-				zap.String(errorFieldService, "CurrencyRatesService"),
-				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
-			)
-
-			return 0, nil, orderErrorConvertionCurrency
-		}
-		amount = rsp.ExchangedAmount
 		return amount, defaultPriceGroup, nil
 	}
 
@@ -3580,8 +3540,6 @@ func (s *Service) processAmountForFiatCurrency(ctx context.Context, order *billi
 
 func (s *Service) processAmountForVirtualCurrency(ctx context.Context, order *billing.Order, orderProducts []*grpc.Product, priceGroup *billing.PriceGroup, defaultPriceGroup *billing.PriceGroup) (float64, *billing.PriceGroup, error) {
 	var amount float64
-	currency := priceGroup.Currency
-	defaultCurrency := defaultPriceGroup.Currency
 
 	virtualAmount, err := s.GetOrderProductsAmount(orderProducts, &billing.PriceGroup{Currency: grpc.VirtualCurrencyPriceGroup})
 	if err != nil {
@@ -3599,33 +3557,11 @@ func (s *Service) processAmountForVirtualCurrency(ctx context.Context, order *bi
 
 	amount, err = s.GetAmountForVirtualCurrency(virtualAmount, priceGroup, project.VirtualCurrency.Prices)
 	if err != nil {
+		zap.S().Infow("try to use default currency for order amount", "currency", defaultPriceGroup.Currency, "order.Uuid", order.Uuid)
 		amount, err = s.GetAmountForVirtualCurrency(virtualAmount, defaultPriceGroup, project.VirtualCurrency.Prices)
 		if err != nil {
 			return 0, nil, err
 		}
-
-		// converting Amount from default currency to requested
-		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
-			From:       defaultCurrency,
-			To:         currency,
-			MerchantId: order.GetMerchantId(),
-			RateType:   curPkg.RateTypeOxr,
-			Amount:     amount,
-		}
-
-		rsp, err := s.curService.ExchangeCurrencyCurrentForMerchant(ctx, req)
-
-		if err != nil {
-			zap.S().Error(
-				pkg.ErrorGrpcServiceCallFailed,
-				zap.Error(err),
-				zap.String(errorFieldService, "CurrencyRatesService"),
-				zap.String(errorFieldMethod, "ExchangeCurrencyCurrentForMerchant"),
-			)
-
-			return 0, nil, orderErrorConvertionCurrency
-		}
-		amount = rsp.ExchangedAmount
 		return amount, defaultPriceGroup, nil
 	}
 

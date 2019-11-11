@@ -391,8 +391,15 @@ func helperCreateMerchant(
 			Id: bson.NewObjectId().Hex(),
 		},
 		Company: &billing.MerchantCompanyInfo{
-			Name:    "Unit test",
-			Country: country,
+			Name:               "Unit test",
+			AlternativeName:    "merchant1",
+			Website:            "http://localhost",
+			Country:            country,
+			Zip:                "190000",
+			City:               "St.Petersburg",
+			Address:            "address",
+			AddressAdditional:  "address_additional",
+			RegistrationNumber: "registration_number",
 		},
 		Contacts: &billing.MerchantContact{
 			Authorized: &billing.MerchantContactAuthorized{
@@ -408,8 +415,13 @@ func helperCreateMerchant(
 			},
 		},
 		Banking: &billing.MerchantBanking{
-			Currency: currency,
-			Name:     "Bank name",
+			Currency:             currency,
+			Name:                 "Bank name",
+			Address:              "address",
+			AccountNumber:        "0000001",
+			Swift:                "swift",
+			CorrespondentAccount: "correspondent_account",
+			Details:              "details",
 		},
 		IsVatEnabled:              true,
 		MinPayoutAmount:           minPayoutAmount,

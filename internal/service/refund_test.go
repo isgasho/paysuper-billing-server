@@ -150,10 +150,15 @@ func (suite *RefundTestSuite) SetupTest() {
 	merchant := &billing.Merchant{
 		Id: bson.NewObjectId().Hex(),
 		Company: &billing.MerchantCompanyInfo{
-			Name:    "merchant1",
-			Country: "RU",
-			Zip:     "190000",
-			City:    "St.Petersburg",
+			Name:               "Unit test",
+			AlternativeName:    "merchant1",
+			Website:            "http://localhost",
+			Country:            "RU",
+			Zip:                "190000",
+			City:               "St.Petersburg",
+			Address:            "address",
+			AddressAdditional:  "address_additional",
+			RegistrationNumber: "registration_number",
 		},
 		Contacts: &billing.MerchantContact{
 			Authorized: &billing.MerchantContactAuthorized{
@@ -169,8 +174,13 @@ func (suite *RefundTestSuite) SetupTest() {
 			},
 		},
 		Banking: &billing.MerchantBanking{
-			Currency: "RUB",
-			Name:     "Bank name",
+			Currency:             "RUB",
+			Name:                 "Bank name",
+			Address:              "address",
+			AccountNumber:        "0000001",
+			Swift:                "swift",
+			CorrespondentAccount: "correspondent_account",
+			Details:              "details",
 		},
 		IsVatEnabled:              false,
 		IsCommissionToUserEnabled: false,
@@ -314,10 +324,15 @@ func (suite *RefundTestSuite) SetupTest() {
 	merchantAgreement := &billing.Merchant{
 		Id: bson.NewObjectId().Hex(),
 		Company: &billing.MerchantCompanyInfo{
-			Name:    "merchant1",
-			Country: "RU",
-			Zip:     "190000",
-			City:    "St.Petersburg",
+			Name:               "Unit test",
+			AlternativeName:    "merchant1",
+			Website:            "http://localhost",
+			Country:            "RU",
+			Zip:                "190000",
+			City:               "St.Petersburg",
+			Address:            "address",
+			AddressAdditional:  "address_additional",
+			RegistrationNumber: "registration_number",
 		},
 		Contacts: &billing.MerchantContact{
 			Authorized: &billing.MerchantContactAuthorized{
@@ -333,8 +348,13 @@ func (suite *RefundTestSuite) SetupTest() {
 			},
 		},
 		Banking: &billing.MerchantBanking{
-			Currency: "RUB",
-			Name:     "Bank name",
+			Currency:             "RUB",
+			Name:                 "Bank name",
+			Address:              "address",
+			AccountNumber:        "0000001",
+			Swift:                "swift",
+			CorrespondentAccount: "correspondent_account",
+			Details:              "details",
 		},
 		IsVatEnabled:              true,
 		IsCommissionToUserEnabled: true,
@@ -350,10 +370,15 @@ func (suite *RefundTestSuite) SetupTest() {
 	merchant1 := &billing.Merchant{
 		Id: bson.NewObjectId().Hex(),
 		Company: &billing.MerchantCompanyInfo{
-			Name:    "merchant1",
-			Country: "RU",
-			Zip:     "190000",
-			City:    "St.Petersburg",
+			Name:               "Unit test",
+			AlternativeName:    "merchant1",
+			Website:            "http://localhost",
+			Country:            "RU",
+			Zip:                "190000",
+			City:               "St.Petersburg",
+			Address:            "address",
+			AddressAdditional:  "address_additional",
+			RegistrationNumber: "registration_number",
 		},
 		Contacts: &billing.MerchantContact{
 			Authorized: &billing.MerchantContactAuthorized{
@@ -369,8 +394,13 @@ func (suite *RefundTestSuite) SetupTest() {
 			},
 		},
 		Banking: &billing.MerchantBanking{
-			Currency: "RUB",
-			Name:     "Bank name",
+			Currency:             "RUB",
+			Name:                 "Bank name",
+			Address:              "address",
+			AccountNumber:        "0000001",
+			Swift:                "swift",
+			CorrespondentAccount: "correspondent_account",
+			Details:              "details",
 		},
 		IsVatEnabled:              true,
 		IsCommissionToUserEnabled: true,
