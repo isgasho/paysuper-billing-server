@@ -1,0 +1,13 @@
+[
+  {
+    "createIndexes": "bank_bin",
+    "indexes": [
+      {
+        "key": {
+          "card_bin": 1
+        },
+        "name": "idx_bank_bin_card_bin"
+      }
+    ]
+  }
+]
