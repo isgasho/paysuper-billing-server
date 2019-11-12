@@ -794,7 +794,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 		rsp.Item.CountryChangeAllowed = true
 	}
 
-	rsp.Item.UserIpData = &grpc.UserIpData{
+	rsp.Item.UserIpData = &billing.UserIpData{
 		Country: order.User.Address.Country,
 		City:    order.User.Address.City,
 		Zip:     order.User.Address.PostalCode,
@@ -1159,7 +1159,7 @@ func (s *Service) PaymentFormLanguageChanged(
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
-	rsp.Item = &grpc.PaymentFormDataChangeResponseItem{
+	rsp.Item = &billing.PaymentFormDataChangeResponseItem{
 		UserAddressDataRequired: false,
 	}
 
@@ -1206,7 +1206,7 @@ func (s *Service) PaymentFormLanguageChanged(
 	}
 
 	rsp.Item.UserAddressDataRequired = true
-	rsp.Item.UserIpData = &grpc.UserIpData{
+	rsp.Item.UserIpData = &billing.UserIpData{
 		Country: order.User.Address.Country,
 		City:    order.User.Address.City,
 		Zip:     order.User.Address.PostalCode,
@@ -1223,13 +1223,9 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 	order, err := s.getOrderByUuidToForm(req.OrderId)
 
 	if err != nil {
-		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = e
-			return nil
-		}
-		return err
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
+		return nil
 	}
 
 	pm, err := s.paymentMethod.GetById(req.MethodId)
@@ -1237,7 +1233,6 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = orderErrorPaymentMethodNotFound
-
 		return nil
 	}
 
@@ -1252,7 +1247,6 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 	if match == false || err != nil {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = orderErrorPaymentAccountIncorrect
-
 		return nil
 	}
 
@@ -1260,7 +1254,6 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 	country := ""
 
 	rsp.Status = pkg.ResponseStatusOk
-	rsp.Item = &grpc.PaymentFormDataChangeResponseItem{}
 
 	switch pm.ExternalId {
 	case constant.PaymentSystemGroupAliasBankCard:
@@ -1269,7 +1262,6 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		if data == nil {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = orderErrorCountryByPaymentAccountNotFound
-
 			return nil
 		}
 
@@ -1292,16 +1284,16 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		if !ok {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = orderErrorCountryByPaymentAccountNotFound
-
 			return nil
 		}
-
 		break
 	default:
+		rsp.Item = order.GetPaymentFormDataChangeResult(brand)
 		return nil
 	}
 
 	if order.User.Address.Country == country {
+		rsp.Item = order.GetPaymentFormDataChangeResult(brand)
 		return nil
 	}
 
@@ -1330,7 +1322,6 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 	if restricted == true {
 		rsp.Status = pkg.ResponseStatusForbidden
 		rsp.Message = orderCountryPaymentRestrictedError
-
 		return nil
 	}
 
@@ -1346,22 +1337,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		return err
 	}
 
-	rsp.Item.UserAddressDataRequired = true
-	rsp.Item.UserIpData = &grpc.UserIpData{
-		Country: order.User.Address.Country,
-		City:    order.User.Address.City,
-		Zip:     order.User.Address.PostalCode,
-	}
-	rsp.Item.Brand = brand
-
-	if order.CountryRestriction != nil {
-		rsp.Item.CountryPaymentsAllowed = order.CountryRestriction.PaymentsAllowed
-		rsp.Item.CountryChangeAllowed = order.CountryRestriction.ChangeAllowed
-	} else {
-		rsp.Item.CountryPaymentsAllowed = true
-		rsp.Item.CountryChangeAllowed = true
-	}
-
+	rsp.Item = order.GetPaymentFormDataChangeResult(brand)
 	return nil
 }
 

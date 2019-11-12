@@ -65,8 +65,6 @@ It has these top-level messages:
 	PaymentFormUserChangePlatformRequest
 	PaymentFormUserChangeLangRequest
 	PaymentFormUserChangePaymentAccountRequest
-	UserIpData
-	PaymentFormDataChangeResponseItem
 	PaymentFormDataChangeResponse
 	ProcessBillingAddressRequest
 	ProcessBillingAddressResponseItem
