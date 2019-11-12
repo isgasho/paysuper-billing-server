@@ -187,7 +187,7 @@ func (s *Service) InviteUserMerchant(
 	user, err := s.userRoleRepository.GetMerchantUserByEmail(merchant.Id, req.Email)
 
 	if (err != nil && err != mgo.ErrNotFound) || user != nil {
-		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req))
+		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req), zap.Any("user", user))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserAlreadyExist
 
@@ -428,10 +428,10 @@ func (s *Service) ResendInviteAdmin(
 
 	role, err := s.userRoleRepository.GetAdminUserByEmail(req.Email)
 
-	if (err != nil && err != mgo.ErrNotFound) || role != nil {
-		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req))
+	if err != nil {
+		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserAlreadyExist
+		res.Message = errorUserNotFound
 
 		return nil
 	}
