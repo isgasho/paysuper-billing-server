@@ -185,7 +185,7 @@ func (s *Service) InviteUserMerchant(
 	}
 
 	user, err := s.userRoleRepository.GetMerchantUserByEmail(merchant.Id, req.Email)
-
+	zap.L().Error("[InviteUserMerchant] GetMerchantUserByEmail", zap.Error(err), zap.Any("req", req), zap.Any("user", user))
 	if (err != nil && err != mgo.ErrNotFound) || user != nil {
 		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req), zap.Any("user", user))
 		res.Status = pkg.ResponseStatusBadData
