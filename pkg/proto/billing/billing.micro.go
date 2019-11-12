@@ -132,6 +132,8 @@ It has these top-level messages:
 	ProductPrice
 	ProjectVirtualCurrency
 	OrderCreateByPaylink
+	UserIpData
+	PaymentFormDataChangeResponseItem
 */
 package billing
 
