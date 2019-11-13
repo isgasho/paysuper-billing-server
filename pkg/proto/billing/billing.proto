@@ -91,6 +91,8 @@ message OrderCreateRequest {
     string utm_campaign = 38;
     //@inject_tag: bson:"is_buy_for_virtual_currency" json:"is_buy_for_virtual_currency"
     bool is_buy_for_virtual_currency = 39;
+    //@inject_tag: bson:"testing_case" json:"testing_case"
+    string testing_case = 40;
 }
 
 message Project {
