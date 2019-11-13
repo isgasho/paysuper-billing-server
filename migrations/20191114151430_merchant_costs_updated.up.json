@@ -72,5 +72,39 @@
         "name": "is_active"
       }
     ]
+  },
+  {
+    "update": "payment_channel_cost_merchant",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$set": {
+            "mcc_code": "5816"
+          },
+          "$currentDate": {
+            "updated_at": true
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "update": "money_back_cost_merchant",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$set": {
+            "mcc_code": "5816"
+          },
+          "$currentDate": {
+            "updated_at": true
+          }
+        },
+        "multi": true
+      }
+    ]
   }
 ]

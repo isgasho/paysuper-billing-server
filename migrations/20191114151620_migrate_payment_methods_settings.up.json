@@ -1,0 +1,40 @@
+[
+  {
+    "update": "payment_method",
+    "updates": [
+      {
+        "q": {
+          "test_settings": {
+            "$ne": null
+          }
+        },
+        "u": {
+          "$set": {
+            "test_settings.$[].mcc_code": "5816",
+            "test_settings.$[].operating_company_id": "5dbc50d486616113a1cefe16"
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "update": "payment_method",
+    "updates": [
+      {
+        "q": {
+          "production_settings": {
+            "$ne": null
+          }
+        },
+        "u": {
+          "$set": {
+            "production_settings.$[].mcc_code": "5816",
+            "production_settings.$[].operating_company_id": "5dbc50d486616113a1cefe16"
+          }
+        },
+        "multi": true
+      }
+    ]
+  }
+]
