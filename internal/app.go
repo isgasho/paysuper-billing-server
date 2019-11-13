@@ -37,6 +37,7 @@ import (
 	reporterService "github.com/paysuper/paysuper-reporter/pkg/proto"
 	taxPkg "github.com/paysuper/paysuper-tax-service/pkg"
 	"github.com/paysuper/paysuper-tax-service/proto"
+	notifier "github.com/paysuper/paysuper-webhook-notifier/pkg/proto/grpc"
 	postmarkPkg "github.com/paysuper/postmark-sender/pkg"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
@@ -183,6 +184,7 @@ func (app *Application) Init() {
 	curService := currencies.NewCurrencyratesService(curPkg.ServiceName, app.service.Client())
 	documentSignerService := documentSignerProto.NewDocumentSignerService(documentSignerConst.ServiceName, app.service.Client())
 	reporter := reporterService.NewReporterService(reporterServiceConst.ServiceName, app.service.Client())
+	webHookNotifier := notifier.NewNotifierService(notifier.ServiceName, app.service.Client())
 
 	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
 		Addrs:        cfg.CacheRedis.Address,
@@ -198,21 +200,7 @@ func (app *Application) Init() {
 		app.logger.Fatal("Create il8n formatter failed", zap.Error(err))
 	}
 
-	app.svc = service.NewBillingService(
-		app.database,
-		app.cfg,
-		geoService,
-		repService,
-		taxService,
-		broker,
-		app.redis,
-		service.NewCacheRedis(redisdb),
-		curService,
-		documentSignerService,
-		reporter,
-		formatter,
-		postmarkBroker,
-	)
+	app.svc = service.NewBillingService(app.database, app.cfg, geoService, repService, taxService, broker, app.redis, service.NewCacheRedis(redisdb), curService, documentSignerService, reporter, formatter, postmarkBroker, webHookNotifier, )
 
 	if err := app.svc.Init(); err != nil {
 		app.logger.Fatal("Create service instance failed", zap.Error(err))

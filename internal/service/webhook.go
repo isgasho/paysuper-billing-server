@@ -55,7 +55,7 @@ func (s *Service) SendWebhookToMerchant(ctx context.Context, req *billing.OrderC
 		}
 		break
 	case billing.OrderType_product:
-		if err := processor.processPaylinkProducts(); err != nil {
+		if err := processor.processPaylinkProducts(ctx); err != nil {
 			if pid := req.PrivateMetadata["PaylinkId"]; pid != "" {
 				s.notifyPaylinkError(ctx, pid, err, req, nil)
 			}
@@ -69,7 +69,7 @@ func (s *Service) SendWebhookToMerchant(ctx context.Context, req *billing.OrderC
 		}
 		break
 	case billing.OrderTypeVirtualCurrency:
-		err := processor.processVirtualCurrency()
+		err := processor.processVirtualCurrency(ctx)
 		if err != nil {
 			zap.L().Error(
 				pkg.MethodFinishedWithError,

@@ -25,6 +25,7 @@ import (
 	repo "github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"github.com/paysuper/paysuper-tax-service/proto"
+	grpc2 "github.com/paysuper/paysuper-webhook-notifier/pkg/proto/grpc"
 	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
 	"github.com/streadway/amqp"
 	"github.com/ttacon/libphonenumber"
@@ -136,6 +137,9 @@ var (
 	orderErrorCheckoutWithProducts                            = newBillingServerErrorMsg("fm000069", "request to processing simple payment can't contain products list")
 	orderErrorMerchantDoNotHaveCompanyInfo                    = newBillingServerErrorMsg("fm000070", "merchant don't have completed company info")
 	orderErrorMerchantDoNotHaveBanking                        = newBillingServerErrorMsg("fm000071", "merchant don't have completed banking info")
+	orderErrorMerchantWebHookTestingNotPassed                 = newBillingServerErrorMsg("fm000072", "merchant don't passed webhook api testing")
+	orderErrorMerchantUserAccountNotChecked                   = newBillingServerErrorMsg("fm000073", "failed to check user account")
+	orderErrorMerchantUserAccountNotPassed                  = newBillingServerErrorMsg("fm000074", "project account is required for request")
 	orderErrorAmountLowerThanMinLimitSystem                   = newBillingServerErrorMsg("fm000072", "order amount is lower than min system limit")
 	orderErrorAlreadyProcessed                                = newBillingServerErrorMsg("fm000073", "order is already processed")
 	orderErrorDontHaveReceiptUrl                                = newBillingServerErrorMsg("fm000074", "processed order don't have receipt url")
@@ -403,7 +407,7 @@ func (s *Service) OrderCreateProcess(
 		}
 		break
 	case billing.OrderTypeVirtualCurrency:
-		err := processor.processVirtualCurrency()
+		err := processor.processVirtualCurrency(ctx)
 		if err != nil {
 			zap.L().Error(
 				pkg.MethodFinishedWithError,
@@ -416,7 +420,7 @@ func (s *Service) OrderCreateProcess(
 		}
 		break
 	case billing.OrderType_product:
-		if err := processor.processPaylinkProducts(); err != nil {
+		if err := processor.processPaylinkProducts(ctx); err != nil {
 			if pid := req.PrivateMetadata["PaylinkId"]; pid != "" {
 				s.notifyPaylinkError(ctx, pid, err, req, nil)
 			}
@@ -1950,6 +1954,7 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 		MccCode:                 v.checked.merchant.MccCode,
 		OperatingCompanyId:      v.checked.merchant.OperatingCompanyId,
 		IsHighRisk:              v.checked.merchant.IsHighRisk(),
+		TestingCase:             v.request.TestingCase,
 	}
 
 	if v.checked.virtualAmount > 0 {
@@ -2174,6 +2179,13 @@ func (v *OrderCreateRequestProcessor) processPaylinkKeyProducts() error {
 		return err
 	}
 
+	if v.checked.project.CallbackProtocol == pkg.ProjectCallbackProtocolDefault {
+		if v.checked.project.WebhookTesting == nil ||
+			!(v.checked.project.WebhookTesting.Keys.IsPassed) {
+			return orderErrorMerchantWebHookTestingNotPassed
+		}
+	}
+
 	v.checked.products = v.request.Products
 	v.checked.currency = currency
 	v.checked.amount = amount
@@ -2182,7 +2194,7 @@ func (v *OrderCreateRequestProcessor) processPaylinkKeyProducts() error {
 	return nil
 }
 
-func (v *OrderCreateRequestProcessor) processPaylinkProducts() error {
+func (v *OrderCreateRequestProcessor) processPaylinkProducts(ctx context.Context) error {
 	if len(v.request.Products) == 0 {
 		return nil
 	}
@@ -2240,6 +2252,35 @@ func (v *OrderCreateRequestProcessor) processPaylinkProducts() error {
 
 	if err != nil {
 		return err
+	}
+
+	if v.checked.project.CallbackProtocol == pkg.ProjectCallbackProtocolDefault {
+		if len(v.request.Account) == 0 {
+			return orderErrorMerchantUserAccountNotPassed
+		}
+
+		if v.checked.project.WebhookTesting == nil ||
+			!(v.checked.project.WebhookTesting.Products.IncorrectPayment &&
+				v.checked.project.WebhookTesting.Products.CorrectPayment &&
+				v.checked.project.WebhookTesting.Products.ExistingUser &&
+				v.checked.project.WebhookTesting.Products.NonExistingUser) {
+			return orderErrorMerchantWebHookTestingNotPassed
+		}
+
+		resp, err := v.notifier.CheckUser(ctx, &grpc2.CheckUserRequest{UserId: v.request.Account, Url: v.checked.project.UrlCheckAccount})
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorGrpcServiceCallFailed,
+				zap.Error(err),
+				zap.String(errorFieldService, "Notifier"),
+				zap.String(errorFieldMethod, "CheckUser"),
+			)
+			return orderErrorMerchantUserAccountNotChecked
+		}
+
+		if resp.Status != pkg.ResponseStatusOk {
+			return orderErrorMerchantUserAccountNotChecked
+		}
 	}
 
 	v.checked.products = v.request.Products
@@ -4156,7 +4197,7 @@ func (s *Service) paymentSystemPaymentCallbackComplete(ctx context.Context, orde
 	return s.centrifugo.Publish(ctx, ch, message)
 }
 
-func (v *OrderCreateRequestProcessor) processVirtualCurrency() error {
+func (v *OrderCreateRequestProcessor) processVirtualCurrency(ctx context.Context) error {
 	amount := v.request.Amount
 	virtualCurrency := v.checked.project.VirtualCurrency
 
@@ -4176,5 +4217,35 @@ func (v *OrderCreateRequestProcessor) processVirtualCurrency() error {
 	}
 
 	v.checked.virtualAmount = amount
+
+	if v.checked.project.CallbackProtocol == pkg.ProjectCallbackProtocolDefault {
+		if len(v.request.Account) == 0 {
+			return orderErrorMerchantUserAccountNotPassed
+		}
+
+		if v.checked.project.WebhookTesting == nil ||
+			!(v.checked.project.WebhookTesting.VirtualCurrency.IncorrectPayment &&
+				v.checked.project.WebhookTesting.VirtualCurrency.CorrectPayment &&
+				v.checked.project.WebhookTesting.VirtualCurrency.ExistingUser &&
+				v.checked.project.WebhookTesting.VirtualCurrency.NonExistingUser) {
+			return orderErrorMerchantWebHookTestingNotPassed
+		}
+
+		resp, err := v.notifier.CheckUser(ctx, &grpc2.CheckUserRequest{UserId: v.request.Account, Url: v.checked.project.UrlCheckAccount})
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorGrpcServiceCallFailed,
+				zap.Error(err),
+				zap.String(errorFieldService, "Notifier"),
+				zap.String(errorFieldMethod, "CheckUser"),
+			)
+			return orderErrorMerchantUserAccountNotChecked
+		}
+
+		if resp.Status != pkg.ResponseStatusOk {
+			return orderErrorMerchantUserAccountNotChecked
+		}
+	}
+
 	return nil
 }

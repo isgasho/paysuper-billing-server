@@ -1257,21 +1257,7 @@ func (suite *OrderTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(
-		db,
-		cfg,
-		mocks.NewGeoIpServiceTestOk(),
-		mocks.NewRepositoryServiceOk(),
-		mocks.NewTaxServiceOkMock(),
-		broker,
-		redisClient,
-		suite.cache,
-		mocks.NewCurrencyServiceMockOk(),
-		mocks.NewDocumentSignerMockOk(),
-		nil,
-		mocks.NewFormatterOK(),
-		mocks.NewBrokerMockOk(),
-	)
+	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), broker, redisClient, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), nil, mocks.NewFormatterOK(), mocks.NewBrokerMockOk(), nil, )
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -2595,7 +2581,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessProjectOrderId_Duplicate_Error() {
 	err = processor.processPayerIp()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processPaylinkProducts()
+	err = processor.processPaylinkProducts(context.TODO())
 	assert.Nil(suite.T(), err)
 
 	id := bson.NewObjectId().Hex()
@@ -3123,7 +3109,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_Ok() {
 	err = processor.processCurrency()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processPaylinkProducts()
+	err = processor.processPaylinkProducts(context.TODO())
 	assert.Nil(suite.T(), err)
 
 	err = processor.processProjectOrderId()
@@ -3177,7 +3163,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_PaymentMethod_Ok() {
 	err = processor.processCurrency()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processPaylinkProducts()
+	err = processor.processPaylinkProducts(context.TODO())
 	assert.Nil(suite.T(), err)
 
 	err = processor.processProjectOrderId()
@@ -3240,7 +3226,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_UrlVerify_Error() {
 	err = processor.processCurrency()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processPaylinkProducts()
+	err = processor.processPaylinkProducts(context.TODO())
 	assert.Nil(suite.T(), err)
 
 	err = processor.processProjectOrderId()
@@ -3291,7 +3277,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_UrlRedirect_Error() {
 	err = processor.processCurrency()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processPaylinkProducts()
+	err = processor.processPaylinkProducts(context.TODO())
 	assert.Nil(suite.T(), err)
 
 	err = processor.processProjectOrderId()

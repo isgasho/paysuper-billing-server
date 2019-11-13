@@ -61,7 +61,7 @@ type MgoProject struct {
 	ShortDescription map[string]string       `bson:"short_description"`
 	Currencies       []*HasCurrencyItem      `bson:"currencies"`
 	VirtualCurrency  *ProjectVirtualCurrency `bson:"virtual_currency"`
-	WebHookTesting   *WebHookTesting		 `bson:"webhook_testing"`
+	WebHookTesting   *WebHookTesting         `bson:"webhook_testing"`
 }
 
 type MgoMerchantLastPayout struct {
@@ -278,6 +278,7 @@ type MgoOrder struct {
 	MccCode                    string                         `bson:"mcc_code"`
 	OperatingCompanyId         string                         `bson:"operating_company_id"`
 	IsHighRisk                 bool                           `bson:"is_high_risk"`
+	TestingCase                string                         `bson:"testing_case"`
 }
 
 type MgoOrderItem struct {
@@ -1368,7 +1369,7 @@ func (m *Project) GetBSON() (interface{}, error) {
 		ShortDescription:         m.ShortDescription,
 		Currencies:               m.Currencies,
 		VirtualCurrency:          m.VirtualCurrency,
-		WebHookTesting: 		  m.WebhookTesting,
+		WebHookTesting:           m.WebhookTesting,
 	}
 
 	if len(m.Name) > 0 {
@@ -1642,6 +1643,7 @@ func (m *Order) GetBSON() (interface{}, error) {
 		MccCode:                   m.MccCode,
 		OperatingCompanyId:        m.OperatingCompanyId,
 		IsHighRisk:                m.IsHighRisk,
+		TestingCase: m.TestingCase,
 	}
 
 	if m.Refund != nil {
@@ -1856,6 +1858,7 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.MccCode = decoded.MccCode
 	m.OperatingCompanyId = decoded.OperatingCompanyId
 	m.IsHighRisk = decoded.IsHighRisk
+	m.TestingCase = decoded.TestingCase
 
 	if decoded.Refund != nil {
 		m.Refund = &OrderNotificationRefund{

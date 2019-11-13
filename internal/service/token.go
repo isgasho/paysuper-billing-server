@@ -158,7 +158,7 @@ func (s *Service) CreateToken(
 		}
 		break
 	case billing.OrderType_product:
-		err = processor.processPaylinkProducts()
+		err = processor.processPaylinkProducts(ctx)
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusBadData
@@ -190,7 +190,7 @@ func (s *Service) CreateToken(
 		}
 		break
 	case billing.OrderTypeVirtualCurrency:
-		err := processor.processVirtualCurrency()
+		err := processor.processVirtualCurrency(ctx)
 		if err != nil {
 			zap.L().Error(
 				pkg.MethodFinishedWithError,

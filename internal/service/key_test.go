@@ -53,21 +53,7 @@ func (suite *KeyTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(
-		db,
-		cfg,
-		mocks.NewGeoIpServiceTestOk(),
-		mocks.NewRepositoryServiceOk(),
-		mocks.NewTaxServiceOkMock(),
-		nil,
-		nil,
-		suite.cache,
-		mocks.NewCurrencyServiceMockOk(),
-		mocks.NewDocumentSignerMockOk(),
-		&reportingMocks.ReporterService{},
-		mocks.NewFormatterOK(),
-		mocks.NewBrokerMockOk(),
-	)
+	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), nil, nil, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), mocks.NewBrokerMockOk(), nil, )
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)

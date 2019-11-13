@@ -18,6 +18,7 @@ import (
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
 	reporterProto "github.com/paysuper/paysuper-reporter/pkg/proto"
 	"github.com/paysuper/paysuper-tax-service/proto"
+	notifier "github.com/paysuper/paysuper-webhook-notifier/pkg/proto/grpc"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
 	"gopkg.in/gomail.v2"
@@ -96,6 +97,7 @@ type Service struct {
 	paylinkService             PaylinkServiceInterface
 	operatingCompany           OperatingCompanyInterface
 	paymentMinLimitSystem      PaymentMinLimitSystemInterface
+	notifier                   notifier.NotifierService
 }
 
 func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {
@@ -115,21 +117,7 @@ func newBillingServerErrorMsg(code, msg string, details ...string) *grpc.Respons
 	return &grpc.ResponseErrorMessage{Code: code, Message: msg, Details: det}
 }
 
-func NewBillingService(
-	db *mongodb.Source,
-	cfg *config.Config,
-	geo proto.GeoIpService,
-	rep repository.RepositoryService,
-	tax tax_service.TaxService,
-	broker rabbitmq.BrokerInterface,
-	redis redis.Cmdable,
-	cache internalPkg.CacheInterface,
-	curService currencies.CurrencyratesService,
-	documentSigner documentSignerProto.DocumentSignerService,
-	reporterService reporterProto.ReporterService,
-	formatter paysuper_i18n.Formatter,
-	postmarkBroker rabbitmq.BrokerInterface,
-) *Service {
+func NewBillingService(db *mongodb.Source, cfg *config.Config, geo proto.GeoIpService, rep repository.RepositoryService, tax tax_service.TaxService, broker rabbitmq.BrokerInterface, redis redis.Cmdable, cache internalPkg.CacheInterface, curService currencies.CurrencyratesService, documentSigner documentSignerProto.DocumentSignerService, reporterService reporterProto.ReporterService, formatter paysuper_i18n.Formatter, postmarkBroker rabbitmq.BrokerInterface, notifier notifier.NotifierService) *Service {
 	return &Service{
 		db:              db,
 		cfg:             cfg,
@@ -144,6 +132,7 @@ func NewBillingService(
 		reporterService: reporterService,
 		formatter:       formatter,
 		postmarkBroker:  postmarkBroker,
+		notifier:        notifier,
 	}
 }
 

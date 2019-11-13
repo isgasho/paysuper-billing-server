@@ -359,21 +359,7 @@ func (suite *TokenTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(
-		db,
-		cfg,
-		nil,
-		nil,
-		nil,
-		nil,
-		redisClient,
-		suite.cache,
-		mocks.NewCurrencyServiceMockOk(),
-		mocks.NewDocumentSignerMockOk(),
-		&reportingMocks.ReporterService{},
-		mocks.NewFormatterOK(),
-		mocks.NewBrokerMockOk(),
-	)
+	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, redisClient, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), mocks.NewBrokerMockOk(), nil, )
 
 	err = suite.service.Init()
 
