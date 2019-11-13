@@ -4276,6 +4276,18 @@ func (suite *OnboardingTestSuite) TestOnboarding_GenerateMerchantAgreement_Check
 	reporterMock.On("CreateFile", mock2.Anything, mock2.Anything, mock2.Anything).Return(createFileMockFn, nil)
 	suite.service.reporterService = reporterMock
 
+	ocMock := &mocks.OperatingCompanyInterface{}
+	ocMock.
+		On("GetById", mock2.Anything).
+		Return(&billing.OperatingCompany{
+			Name:               "name",
+			Address:            "address",
+			RegistrationNumber: "number",
+			SignatoryName:      "sig name",
+			SignatoryPosition:  "sig position",
+		}, nil)
+	suite.service.operatingCompany = ocMock
+
 	err = suite.service.generateMerchantAgreement(context.TODO(), merchant)
 	assert.NoError(suite.T(), err)
 
@@ -4361,6 +4373,18 @@ func (suite *OnboardingTestSuite) TestOnboarding_GenerateMerchantAgreement_Check
 	reporterMock := &reportingMocks.ReporterService{}
 	reporterMock.On("CreateFile", mock2.Anything, mock2.Anything, mock2.Anything).Return(createFileMockFn, nil)
 	suite.service.reporterService = reporterMock
+
+	ocMock := &mocks.OperatingCompanyInterface{}
+	ocMock.
+		On("GetById", mock2.Anything).
+		Return(&billing.OperatingCompany{
+			Name:               "name",
+			Address:            "address",
+			RegistrationNumber: "number",
+			SignatoryName:      "sig name",
+			SignatoryPosition:  "sig position",
+		}, nil)
+	suite.service.operatingCompany = ocMock
 
 	err = suite.service.generateMerchantAgreement(context.TODO(), merchant)
 	assert.NoError(suite.T(), err)

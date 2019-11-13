@@ -1572,19 +1572,29 @@ func (s *Service) generateMerchantAgreement(ctx context.Context, merchant *billi
 	payoutCost := fmt.Sprintf("%s (%d) %s", payoutCostWord, payoutCostInt, merchant.Tariff.Payout.MethodFixedFeeCurrency)
 	minPayoutLimit := fmt.Sprintf("%s (%d) %s", minPayoutLimitWord, minPayoutLimitInt, merchant.GetPayoutCurrency())
 
+	operatingCompany, err := s.operatingCompany.GetById(merchant.OperatingCompanyId)
+	if err != nil {
+		zap.L().Error("Operating company not found", zap.Error(err), zap.String("operating_company_id", merchant.OperatingCompanyId))
+		return err
+	}
+
 	params := map[string]interface{}{
-		reporterConst.RequestParameterAgreementNumber:                     merchant.AgreementNumber,
-		reporterConst.RequestParameterAgreementLegalName:                  merchant.Company.Name,
-		reporterConst.RequestParameterAgreementAddress:                    merchant.GetAddress(),
-		reporterConst.RequestParameterAgreementRegistrationNumber:         merchant.Company.RegistrationNumber,
-		reporterConst.RequestParameterAgreementPayoutCost:                 payoutCost,
-		reporterConst.RequestParameterAgreementMinimalPayoutLimit:         minPayoutLimit,
-		reporterConst.RequestParameterAgreementPayoutCurrency:             merchant.GetPayoutCurrency(),
-		reporterConst.RequestParameterAgreementPSRate:                     merchant.Tariff.Payment,
-		reporterConst.RequestParameterAgreementHomeRegion:                 pkg.HomeRegions[merchant.Tariff.HomeRegion],
-		reporterConst.RequestParameterAgreementMerchantAuthorizedName:     merchant.Contacts.Authorized.Name,
-		reporterConst.RequestParameterAgreementMerchantAuthorizedPosition: merchant.Contacts.Authorized.Position,
-		reporterConst.RequestParameterAgreementProjectsLink:               s.cfg.DashboardProjectsUrl,
+		reporterConst.RequestParameterAgreementNumber:                             merchant.AgreementNumber,
+		reporterConst.RequestParameterAgreementLegalName:                          merchant.Company.Name,
+		reporterConst.RequestParameterAgreementAddress:                            merchant.GetAddress(),
+		reporterConst.RequestParameterAgreementRegistrationNumber:                 merchant.Company.RegistrationNumber,
+		reporterConst.RequestParameterAgreementPayoutCost:                         payoutCost,
+		reporterConst.RequestParameterAgreementMinimalPayoutLimit:                 minPayoutLimit,
+		reporterConst.RequestParameterAgreementPayoutCurrency:                     merchant.GetPayoutCurrency(),
+		reporterConst.RequestParameterAgreementPSRate:                             merchant.Tariff.Payment,
+		reporterConst.RequestParameterAgreementHomeRegion:                         pkg.HomeRegions[merchant.Tariff.HomeRegion],
+		reporterConst.RequestParameterAgreementMerchantAuthorizedName:             merchant.Contacts.Authorized.Name,
+		reporterConst.RequestParameterAgreementMerchantAuthorizedPosition:         merchant.Contacts.Authorized.Position,
+		reporterConst.RequestParameterAgreementOperatingCompanyLegalName:          operatingCompany.Name,
+		reporterConst.RequestParameterAgreementOperatingCompanyAddress:            operatingCompany.Address,
+		reporterConst.RequestParameterAgreementOperatingCompanyRegistrationNumber: operatingCompany.RegistrationNumber,
+		reporterConst.RequestParameterAgreementOperatingCompanyAuthorizedName:     operatingCompany.SignatoryName,
+		reporterConst.RequestParameterAgreementOperatingCompanyAuthorizedPosition: operatingCompany.SignatoryPosition,
 	}
 
 	b, err := json.Marshal(params)
