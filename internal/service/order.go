@@ -139,7 +139,7 @@ var (
 	orderErrorMerchantDoNotHaveBanking                        = newBillingServerErrorMsg("fm000071", "merchant don't have completed banking info")
 	orderErrorMerchantWebHookTestingNotPassed                 = newBillingServerErrorMsg("fm000072", "merchant don't passed webhook api testing")
 	orderErrorMerchantUserAccountNotChecked                   = newBillingServerErrorMsg("fm000073", "failed to check user account")
-	orderErrorMerchantUserAccountNotPassed                  = newBillingServerErrorMsg("fm000074", "project account is required for request")
+	orderErrorMerchantUserAccountNotPassed                    = newBillingServerErrorMsg("fm000074", "project account is required for request")
 	orderErrorAmountLowerThanMinLimitSystem                   = newBillingServerErrorMsg("fm000072", "order amount is lower than min system limit")
 	orderErrorAlreadyProcessed                                = newBillingServerErrorMsg("fm000073", "order is already processed")
 	orderErrorDontHaveReceiptUrl                                = newBillingServerErrorMsg("fm000074", "processed order don't have receipt url")
@@ -189,6 +189,7 @@ type PaymentCreateProcessor struct {
 		project       *billing.Project
 		paymentMethod *billing.PaymentMethod
 	}
+	notifier grpc2.NotifierService
 }
 
 type BinData struct {
@@ -2255,31 +2256,12 @@ func (v *OrderCreateRequestProcessor) processPaylinkProducts(ctx context.Context
 	}
 
 	if v.checked.project.CallbackProtocol == pkg.ProjectCallbackProtocolDefault {
-		if len(v.request.Account) == 0 {
-			return orderErrorMerchantUserAccountNotPassed
-		}
-
 		if v.checked.project.WebhookTesting == nil ||
 			!(v.checked.project.WebhookTesting.Products.IncorrectPayment &&
 				v.checked.project.WebhookTesting.Products.CorrectPayment &&
 				v.checked.project.WebhookTesting.Products.ExistingUser &&
 				v.checked.project.WebhookTesting.Products.NonExistingUser) {
 			return orderErrorMerchantWebHookTestingNotPassed
-		}
-
-		resp, err := v.notifier.CheckUser(ctx, &grpc2.CheckUserRequest{UserId: v.request.Account, Url: v.checked.project.UrlCheckAccount})
-		if err != nil {
-			zap.L().Error(
-				pkg.ErrorGrpcServiceCallFailed,
-				zap.Error(err),
-				zap.String(errorFieldService, "Notifier"),
-				zap.String(errorFieldMethod, "CheckUser"),
-			)
-			return orderErrorMerchantUserAccountNotChecked
-		}
-
-		if resp.Status != pkg.ResponseStatusOk {
-			return orderErrorMerchantUserAccountNotChecked
 		}
 	}
 
@@ -2984,6 +2966,39 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 
 	if order.ProjectAccount == "" {
 		order.ProjectAccount = order.User.Email
+	}
+
+	if v.checked.project.CallbackProtocol == pkg.ProjectCallbackProtocolDefault {
+		checkReq := &grpc2.CheckUserRequest{Url: v.checked.project.UrlCheckAccount,
+			SecretKey: v.checked.project.GetSecretKey(),
+			User: &grpc2.User{
+				ProjectAccount: order.ProjectAccount,
+				Email:          order.User.Email,
+				Name:           order.User.Name,
+				Metadata:       order.User.Metadata,
+				Phone:          order.User.Phone,
+			},
+		}
+
+		resp, err := v.notifier.CheckUser(context.TODO(), checkReq)
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorGrpcServiceCallFailed,
+				zap.Error(err),
+				zap.String(errorFieldService, "Notifier"),
+				zap.String(errorFieldMethod, "CheckUser"),
+			)
+			return orderErrorMerchantUserAccountNotChecked
+		}
+
+		if resp.Status != pkg.ResponseStatusOk {
+			zap.L().Error(
+				pkg.ErrorUserCheckFailed,
+				zap.String(errorFieldStatus, string(resp.Status)),
+				zap.String(errorFieldMessage, resp.Message),
+			)
+			return orderErrorMerchantUserAccountNotChecked
+		}
 	}
 
 	return nil
@@ -4219,31 +4234,12 @@ func (v *OrderCreateRequestProcessor) processVirtualCurrency(ctx context.Context
 	v.checked.virtualAmount = amount
 
 	if v.checked.project.CallbackProtocol == pkg.ProjectCallbackProtocolDefault {
-		if len(v.request.Account) == 0 {
-			return orderErrorMerchantUserAccountNotPassed
-		}
-
 		if v.checked.project.WebhookTesting == nil ||
 			!(v.checked.project.WebhookTesting.VirtualCurrency.IncorrectPayment &&
 				v.checked.project.WebhookTesting.VirtualCurrency.CorrectPayment &&
 				v.checked.project.WebhookTesting.VirtualCurrency.ExistingUser &&
 				v.checked.project.WebhookTesting.VirtualCurrency.NonExistingUser) {
 			return orderErrorMerchantWebHookTestingNotPassed
-		}
-
-		resp, err := v.notifier.CheckUser(ctx, &grpc2.CheckUserRequest{UserId: v.request.Account, Url: v.checked.project.UrlCheckAccount})
-		if err != nil {
-			zap.L().Error(
-				pkg.ErrorGrpcServiceCallFailed,
-				zap.Error(err),
-				zap.String(errorFieldService, "Notifier"),
-				zap.String(errorFieldMethod, "CheckUser"),
-			)
-			return orderErrorMerchantUserAccountNotChecked
-		}
-
-		if resp.Status != pkg.ResponseStatusOk {
-			return orderErrorMerchantUserAccountNotChecked
 		}
 	}
 

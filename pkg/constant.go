@@ -193,6 +193,8 @@ const (
 	ErrorCacheFieldData   = "data"
 	ErrorCacheFieldCmd    = "command"
 
+	ErrorUserCheckFailed = "failed to check user"
+
 	ErrorRoyaltyReportGenerationFailed = "royalty report generation failed"
 	ErrorRoyaltyReportFieldMerchantId  = "merchant_id"
 	ErrorRoyaltyReportFieldFrom        = "from"

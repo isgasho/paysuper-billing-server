@@ -769,6 +769,8 @@ github.com/paysuper/paysuper-tax-service v0.0.0-20190903084038-7849f394f122 h1:4
 github.com/paysuper/paysuper-tax-service v0.0.0-20190903084038-7849f394f122/go.mod h1:QK6czJ8ge3pF/QbFlRXuYfPRrm/90qubdWQ9OWKfeUs=
 github.com/paysuper/paysuper-webhook-notifier v0.0.0-20191113083001-f9f59eacecba h1:lcaj5GIZFSIhr+EY+zGJ7ouqvzCMFPbPkYMZ9W0Neh8=
 github.com/paysuper/paysuper-webhook-notifier v0.0.0-20191113083001-f9f59eacecba/go.mod h1:SBc8vh7xmAP6/yyYJS1iK4ynWWF/CPf7pga3YM9J4GI=
+github.com/paysuper/paysuper-webhook-notifier v0.0.0-20191113161939-8b945dec9e7c h1:UzlqTB2V7HP7z3gMuWGP1E1G0dQ1ppm2C9E7gtc3X4w=
+github.com/paysuper/paysuper-webhook-notifier v0.0.0-20191113161939-8b945dec9e7c/go.mod h1:SBc8vh7xmAP6/yyYJS1iK4ynWWF/CPf7pga3YM9J4GI=
 github.com/paysuper/postmark-sender v0.0.0-20190903075212-a210e35789fc h1:LPZzsbFRq04SkYik74jOvu9pVpHWsjoELbxXkSx18D0=
 github.com/paysuper/postmark-sender v0.0.0-20190903075212-a210e35789fc/go.mod h1:uUqo1eEOgjNFl9JaCrkbZNl5MYFMi6i0arXcptMEDUo=
 github.com/paysuper/postmark-sender v0.0.0-20190926173213-1b6244122c49 h1:nUPxqp4LmKgcQzwAUkpzSIMe48cloz53f/zBqoaXV/s=
