@@ -1350,6 +1350,8 @@ message MoneyBackCostSystem {
     string mcc_code = 14;
     // @inject_tag: json:"operating_company_id" bson:"operating_company_id"
     string operating_company_id = 15;
+    // @inject_tag: json:"fix_amount_currency" bson:"fix_amount_currency" validate:"required,alpha,len=3"
+    string fix_amount_currency = 16;
 }
 
 message MoneyBackCostSystemRequest {

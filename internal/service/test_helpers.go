@@ -172,6 +172,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		PaymentStage:       1,
 		Percent:            0.10,
 		FixAmount:          0.15,
+		FixAmountCurrency:  "EUR",
 		MccCode:            pkg.MccCodeLowRisk,
 		OperatingCompanyId: operatingCompany.Id,
 	}
@@ -185,6 +186,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		PaymentStage:       1,
 		Percent:            0.10,
 		FixAmount:          0.15,
+		FixAmountCurrency:  "EUR",
 		MccCode:            pkg.MccCodeLowRisk,
 		OperatingCompanyId: operatingCompany.Id,
 	}
@@ -198,6 +200,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		PaymentStage:       1,
 		Percent:            0.10,
 		FixAmount:          0.15,
+		FixAmountCurrency:  "EUR",
 		MccCode:            pkg.MccCodeLowRisk,
 		OperatingCompanyId: operatingCompany.Id,
 	}
@@ -211,6 +214,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		PaymentStage:       1,
 		Percent:            0.10,
 		FixAmount:          0.15,
+		FixAmountCurrency:  "EUR",
 		MccCode:            pkg.MccCodeLowRisk,
 		OperatingCompanyId: operatingCompany.Id,
 	}
@@ -224,6 +228,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		PaymentStage:       1,
 		Percent:            0.10,
 		FixAmount:          0.15,
+		FixAmountCurrency:  "EUR",
 		MccCode:            pkg.MccCodeLowRisk,
 		OperatingCompanyId: operatingCompany.Id,
 	}
@@ -237,6 +242,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		PaymentStage:       1,
 		Percent:            0.10,
 		FixAmount:          0.15,
+		FixAmountCurrency:  "EUR",
 		MccCode:            pkg.MccCodeLowRisk,
 		OperatingCompanyId: operatingCompany.Id,
 	}
@@ -250,6 +256,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		PaymentStage:       1,
 		Percent:            0.10,
 		FixAmount:          0.15,
+		FixAmountCurrency:  "EUR",
 		MccCode:            pkg.MccCodeLowRisk,
 		OperatingCompanyId: operatingCompany.Id,
 	}
@@ -263,6 +270,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		PaymentStage:       1,
 		Percent:            0.10,
 		FixAmount:          0.15,
+		FixAmountCurrency:  "EUR",
 		MccCode:            pkg.MccCodeLowRisk,
 		OperatingCompanyId: operatingCompany.Id,
 	}

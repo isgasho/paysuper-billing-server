@@ -117,6 +117,11 @@ func (s *Service) SetMoneyBackCostSystem(
 		res.Message = errorMoneybackSystemCurrency
 		return nil
 	}
+	if !contains(sCurr.Currencies, req.FixAmountCurrency) {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorMoneybackSystemCurrency
+		return nil
+	}
 	if !contains(pkg.SupportedMccCodes, req.MccCode) {
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorMoneybackSystemMccCode

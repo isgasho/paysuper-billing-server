@@ -538,6 +538,7 @@ type MgoMoneyBackCostSystem struct {
 	IsActive           bool          `bson:"is_active"`
 	MccCode            string        `bson:"mcc_code"`
 	OperatingCompanyId string        `bson:"operating_company_id"`
+	FixAmountCurrency  string        `bson:"fix_amount_currency"`
 }
 
 type MgoMoneyBackCostMerchant struct {
@@ -3186,6 +3187,7 @@ func (m *MoneyBackCostSystem) GetBSON() (interface{}, error) {
 		IsActive:           m.IsActive,
 		MccCode:            m.MccCode,
 		OperatingCompanyId: m.OperatingCompanyId,
+		FixAmountCurrency:  m.FixAmountCurrency,
 	}
 	if len(m.Id) <= 0 {
 		st.Id = bson.NewObjectId()
@@ -3238,6 +3240,7 @@ func (m *MoneyBackCostSystem) SetBSON(raw bson.Raw) error {
 	m.IsActive = decoded.IsActive
 	m.MccCode = decoded.MccCode
 	m.OperatingCompanyId = decoded.OperatingCompanyId
+	m.FixAmountCurrency = decoded.FixAmountCurrency
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {

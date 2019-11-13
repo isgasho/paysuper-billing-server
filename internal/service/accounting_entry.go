@@ -696,7 +696,7 @@ func (h *accountingEntry) processRefundEvent() error {
 
 	// 4. realRefundFixedFee
 	realRefundFixedFee := h.newEntry(pkg.AccountingEntryTypeRealRefundFixedFee)
-	realRefundFixedFee.Amount, err = h.GetExchangePsCurrentCommon(moneyBackCostSystem.PayoutCurrency, moneyBackCostSystem.FixAmount)
+	realRefundFixedFee.Amount, err = h.GetExchangePsCurrentCommon(moneyBackCostSystem.FixAmountCurrency, moneyBackCostSystem.FixAmount)
 	if err = h.addEntry(realRefundFixedFee); err != nil {
 		return err
 	}
