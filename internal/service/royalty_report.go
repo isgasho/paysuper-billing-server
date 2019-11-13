@@ -62,6 +62,12 @@ var (
 		pkg.RoyaltyReportStatusAccepted,
 		pkg.RoyaltyReportStatusDispute,
 	}
+
+	royaltyReportsStatusForBalance = []string{
+		pkg.RoyaltyReportStatusAccepted,
+		pkg.RoyaltyReportStatusWaitForPayment,
+		pkg.RoyaltyReportStatusPaid,
+	}
 )
 
 type RoyaltyReportMerchant struct {
@@ -975,7 +981,7 @@ func (r *RoyaltyReport) GetBalanceAmount(merchantId, currency string) (float64, 
 			"$match": bson.M{
 				"merchant_id": bson.ObjectIdHex(merchantId),
 				"currency":    currency,
-				"status":      pkg.RoyaltyReportStatusAccepted,
+				"status":      bson.M{"$in": royaltyReportsStatusForBalance},
 			},
 		},
 		{
