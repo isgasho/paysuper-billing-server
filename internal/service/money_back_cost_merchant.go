@@ -306,7 +306,7 @@ func (h MoneyBackCostMerchant) Get(
 			{
 				"$or": []bson.M{
 					{"country": ""},
-					{"country": bson.M{"exists": false}},
+					{"country": bson.M{"$exists": false}},
 				},
 				"region": region,
 			},
