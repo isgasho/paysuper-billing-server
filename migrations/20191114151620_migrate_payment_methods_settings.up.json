@@ -4,10 +4,33 @@
     "updates": [
       {
         "q": {
-          "test_settings": {
-            "$ne": null
+          "$or": [
+            {
+              "test_settings": {
+                "$exists": false
+              }
+            },
+            {
+              "test_settings": {
+                "$eq": null
+              }
+            }
+          ]
+        },
+        "u": {
+          "$set": {
+            "test_settings": []
           }
         },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "update": "payment_method",
+    "updates": [
+      {
+        "q": {},
         "u": {
           "$set": {
             "test_settings.$[].mcc_code": "5816",
@@ -19,18 +42,163 @@
     ]
   },
   {
+    "aggregate": "payment_method",
+    "pipeline": [
+      {
+        "$addFields": {
+          "test_settings_tmp": "$test_settings"
+        }
+      },
+      {
+        "$out": "payment_method"
+      }
+    ],
+    "cursor": {}
+  },
+  {
+    "update": "payment_method",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$set": {
+            "test_settings_tmp.$[].operating_company_id": "5dc2a41f4bc54ab6c4ce79f8"
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "aggregate": "payment_method",
+    "pipeline": [
+      {
+        "$set": {
+          "test_settings": {
+            "$concatArrays": [
+              "$test_settings",
+              "$test_settings_tmp"
+            ]
+          }
+        }
+      },
+      {
+        "$out": "payment_method"
+      }
+    ],
+    "cursor": {}
+  },
+  {
+    "update": "payment_method",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$unset": {
+            "test_settings_tmp": ""
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
     "update": "payment_method",
     "updates": [
       {
         "q": {
-          "production_settings": {
-            "$ne": null
+          "$or": [
+            {
+              "production_settings": {
+                "$exists": false
+              }
+            },
+            {
+              "production_settings": {
+                "$eq": null
+              }
+            }
+          ]
+        },
+        "u": {
+          "$set": {
+            "production_settings": []
           }
         },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "update": "payment_method",
+    "updates": [
+      {
+        "q": {},
         "u": {
           "$set": {
             "production_settings.$[].mcc_code": "5816",
             "production_settings.$[].operating_company_id": "5dbc50d486616113a1cefe16"
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "aggregate": "payment_method",
+    "pipeline": [
+      {
+        "$addFields": {
+          "production_settings_tmp": "$production_settings"
+        }
+      },
+      {
+        "$out": "payment_method"
+      }
+    ],
+    "cursor": {}
+  },
+  {
+    "update": "payment_method",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$set": {
+            "production_settings_tmp.$[].operating_company_id": "5dc2a41f4bc54ab6c4ce79f8"
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "aggregate": "payment_method",
+    "pipeline": [
+      {
+        "$set": {
+          "production_settings": {
+            "$concatArrays": [
+              "$production_settings",
+              "$production_settings_tmp"
+            ]
+          }
+        }
+      },
+      {
+        "$out": "payment_method"
+      }
+    ],
+    "cursor": {}
+  },
+  {
+    "update": "payment_method",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$unset": {
+            "production_settings_tmp": ""
           }
         },
         "multi": true
