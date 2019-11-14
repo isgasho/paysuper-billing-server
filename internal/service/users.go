@@ -64,18 +64,17 @@ var (
 	merchantUserRoles = map[string][]*billing.RoleListItem{
 		pkg.RoleTypeMerchant: {
 			{Id: pkg.RoleMerchantOwner, Name: roleNameMerchantOwner},
-			{Id: pkg.RoleMerchantOwner, Name: roleNameMerchantDeveloper},
-			{Id: pkg.RoleMerchantOwner, Name: roleNameMerchantAccounting},
-			{Id: pkg.RoleMerchantOwner, Name: roleNameMerchantSupport},
-			{Id: pkg.RoleMerchantOwner, Name: roleNameMerchantSupport},
-			{Id: pkg.RoleMerchantOwner, Name: roleNameMerchantViewOnly},
+			{Id: pkg.RoleMerchantDeveloper, Name: roleNameMerchantDeveloper},
+			{Id: pkg.RoleMerchantAccounting, Name: roleNameMerchantAccounting},
+			{Id: pkg.RoleMerchantSupport, Name: roleNameMerchantSupport},
+			{Id: pkg.RoleMerchantViewOnly, Name: roleNameMerchantViewOnly},
 		},
 		pkg.RoleTypeSystem: {
-			{Id: pkg.RoleMerchantOwner, Name: roleNameSystemAdmin},
-			{Id: pkg.RoleMerchantOwner, Name: roleNameSystemRiskManager},
-			{Id: pkg.RoleMerchantOwner, Name: roleNameSystemFinancial},
-			{Id: pkg.RoleMerchantOwner, Name: roleNameSystemSupport},
-			{Id: pkg.RoleMerchantOwner, Name: roleNameSystemViewOnly},
+			{Id: pkg.RoleSystemAdmin, Name: roleNameSystemAdmin},
+			{Id: pkg.RoleSystemRiskManager, Name: roleNameSystemRiskManager},
+			{Id: pkg.RoleSystemFinancial, Name: roleNameSystemFinancial},
+			{Id: pkg.RoleSystemSupport, Name: roleNameSystemSupport},
+			{Id: pkg.RoleSystemViewOnly, Name: roleNameSystemViewOnly},
 		},
 	}
 )
