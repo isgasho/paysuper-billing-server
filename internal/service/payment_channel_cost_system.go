@@ -275,7 +275,7 @@ func (h PaymentChannelCostSystem) Get(name, region, country, mccCode, operatingC
 			{
 				"$or": []bson.M{
 					{"country": ""},
-					{"country": bson.M{"exists": false}},
+					{"country": bson.M{"$exists": false}},
 				},
 				"region": region,
 			},
