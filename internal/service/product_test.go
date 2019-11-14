@@ -556,7 +556,7 @@ func (suite *ProductTestSuite) TestProduct_UpdateProductPrices_Ok() {
 
 	assert.NoError(suite.T(), err)
 
-	req = grpc.UpdateProductPricesRequest{Prices: []*billing.ProductPrice{{IsVirtualCurrency: true}}}
+	req = grpc.UpdateProductPricesRequest{MerchantId: suite.merchant.Id, Prices: []*billing.ProductPrice{{IsVirtualCurrency: true}}}
 	res = grpc.ResponseError{}
 	err = suite.service.UpdateProductPrices(context.TODO(), &req, &res)
 
