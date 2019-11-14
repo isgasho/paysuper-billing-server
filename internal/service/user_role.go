@@ -245,7 +245,7 @@ func (h *UserRoleRepository) DeleteMerchantUser(u *billing.UserRole) error {
 func (h *UserRoleRepository) GetSystemAdmin() (*billing.UserRole, error) {
 	var user *billing.UserRole
 
-	err := h.svc.db.Collection(collectionMerchantUsersTable).Find(bson.M{"role": pkg.RoleSystemAdmin}).One(&user)
+	err := h.svc.db.Collection(collectionAdminUsersTable).Find(bson.M{"role": pkg.RoleSystemAdmin}).One(&user)
 
 	if err != nil {
 		return nil, err
