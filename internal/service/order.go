@@ -908,8 +908,7 @@ func (s *Service) PaymentCreateProcess(
 		delete(order.PaymentRequisites, pkg.PaymentCreateFieldRecurringId)
 	}
 
-	merchantId := order.GetMerchantId()
-	merchant, err := s.merchant.GetById(merchantId)
+	merchant, err := s.merchant.GetById(order.GetMerchantId())
 	if err != nil {
 		return err
 	}
@@ -2718,8 +2717,7 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 		}
 	}
 
-	merchantId := order.GetMerchantId()
-	merchant, err := v.service.merchant.GetById(merchantId)
+	merchant, err := v.service.merchant.GetById(order.GetMerchantId())
 	if err != nil {
 		return err
 	}
@@ -3844,8 +3842,7 @@ func (s *Service) applyCountryRestriction(order *billing.Order, countryCode stri
 		return
 	}
 
-	merchantId := order.GetMerchantId()
-	merchant, err := s.merchant.GetById(merchantId)
+	merchant, err := s.merchant.GetById(order.GetMerchantId())
 	if err != nil {
 		return
 	}

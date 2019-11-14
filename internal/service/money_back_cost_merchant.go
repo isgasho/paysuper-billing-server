@@ -450,6 +450,13 @@ func (h MoneyBackCostMerchant) updateCaches(obj *billing.MoneyBackCostMerchant) 
 		fmt.Sprintf(cacheMoneyBackCostMerchantKeyId, obj.Id),
 	}
 
+	for _, key := range keys {
+		err = h.svc.cacher.Delete(key)
+		if err != nil {
+			return
+		}
+	}
+
 	if obj.IsActive {
 		for _, key := range keys {
 			err = h.svc.cacher.Set(key, obj, 0)
@@ -465,13 +472,6 @@ func (h MoneyBackCostMerchant) updateCaches(obj *billing.MoneyBackCostMerchant) 
 			}
 		}
 		return
-	}
-
-	for _, key := range keys {
-		err = h.svc.cacher.Delete(key)
-		if err != nil {
-			return
-		}
 	}
 	return
 }

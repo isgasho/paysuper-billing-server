@@ -306,6 +306,36 @@ func (o OperatingCompany) Upsert(oc *billing.OperatingCompany) (err error) {
 		return
 	}
 
+	if len(oc.Country) == 0 {
+		key = fmt.Sprintf(cacheKeyOperatingCompanyByPaymentCountry, "")
+		err = o.svc.cacher.Set(key, oc, 0)
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorCacheQueryFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorCacheFieldCmd, "SET"),
+				zap.String(pkg.ErrorCacheFieldKey, key),
+				zap.Any(pkg.ErrorCacheFieldData, oc),
+			)
+			return
+		}
+	} else {
+		for _, countryCode := range oc.PaymentCountries {
+			key = fmt.Sprintf(cacheKeyOperatingCompanyByPaymentCountry, countryCode)
+			err = o.svc.cacher.Set(key, oc, 0)
+			if err != nil {
+				zap.L().Error(
+					pkg.ErrorCacheQueryFailed,
+					zap.Error(err),
+					zap.String(pkg.ErrorCacheFieldCmd, "SET"),
+					zap.String(pkg.ErrorCacheFieldKey, key),
+					zap.Any(pkg.ErrorCacheFieldData, oc),
+				)
+				return
+			}
+		}
+	}
+
 	err = o.svc.cacher.Delete(cacheKeyAllOperatingCompanies)
 	if err != nil {
 		zap.L().Error(
