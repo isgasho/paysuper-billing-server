@@ -187,3 +187,25 @@ func (m *Order) GetCostPaymentMethodName() (string, error) {
 func (m *Order) GetPaymentSystemApiUrl() string {
 	return m.PaymentMethod.Params.ApiUrl
 }
+
+func (m *Order) GetPaymentFormDataChangeResult(brand string) *PaymentFormDataChangeResponseItem {
+	item := &PaymentFormDataChangeResponseItem{
+		UserAddressDataRequired: m.UserAddressDataRequired,
+		UserIpData: &UserIpData{
+			Country: m.User.Address.Country,
+			City:    m.User.Address.City,
+			Zip:     m.User.Address.PostalCode,
+		},
+		Brand: brand,
+	}
+
+	if m.CountryRestriction != nil {
+		item.CountryPaymentsAllowed = m.CountryRestriction.PaymentsAllowed
+		item.CountryChangeAllowed = m.CountryRestriction.ChangeAllowed
+	} else {
+		item.CountryPaymentsAllowed = true
+		item.CountryChangeAllowed = true
+	}
+
+	return item
+}

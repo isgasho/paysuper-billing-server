@@ -79,13 +79,13 @@ func (_m *PaymentMethodInterface) GetById(_a0 string) (*billing.PaymentMethod, e
 	return r0, r1
 }
 
-// GetPaymentSettings provides a mock function with given fields: paymentMethod, currency, project
-func (_m *PaymentMethodInterface) GetPaymentSettings(paymentMethod *billing.PaymentMethod, currency string, project *billing.Project) (*billing.PaymentMethodParams, error) {
-	ret := _m.Called(paymentMethod, currency, project)
+// GetPaymentSettings provides a mock function with given fields: paymentMethod, currency, mccCode, operatingCompanyId, project
+func (_m *PaymentMethodInterface) GetPaymentSettings(paymentMethod *billing.PaymentMethod, currency string, mccCode string, operatingCompanyId string, project *billing.Project) (*billing.PaymentMethodParams, error) {
+	ret := _m.Called(paymentMethod, currency, mccCode, operatingCompanyId, project)
 
 	var r0 *billing.PaymentMethodParams
-	if rf, ok := ret.Get(0).(func(*billing.PaymentMethod, string, *billing.Project) *billing.PaymentMethodParams); ok {
-		r0 = rf(paymentMethod, currency, project)
+	if rf, ok := ret.Get(0).(func(*billing.PaymentMethod, string, string, string, *billing.Project) *billing.PaymentMethodParams); ok {
+		r0 = rf(paymentMethod, currency, mccCode, operatingCompanyId, project)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*billing.PaymentMethodParams)
@@ -93,8 +93,8 @@ func (_m *PaymentMethodInterface) GetPaymentSettings(paymentMethod *billing.Paym
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*billing.PaymentMethod, string, *billing.Project) error); ok {
-		r1 = rf(paymentMethod, currency, project)
+	if rf, ok := ret.Get(1).(func(*billing.PaymentMethod, string, string, string, *billing.Project) error); ok {
+		r1 = rf(paymentMethod, currency, mccCode, operatingCompanyId, project)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -116,13 +116,13 @@ func (_m *PaymentMethodInterface) Insert(_a0 *billing.PaymentMethod) error {
 	return r0
 }
 
-// ListByCurrency provides a mock function with given fields: project, currency
-func (_m *PaymentMethodInterface) ListByCurrency(project *billing.Project, currency string) ([]*billing.PaymentMethod, error) {
-	ret := _m.Called(project, currency)
+// ListByParams provides a mock function with given fields: project, currency, mccCode, operatingCompanyId
+func (_m *PaymentMethodInterface) ListByParams(project *billing.Project, currency string, mccCode string, operatingCompanyId string) ([]*billing.PaymentMethod, error) {
+	ret := _m.Called(project, currency, mccCode, operatingCompanyId)
 
 	var r0 []*billing.PaymentMethod
-	if rf, ok := ret.Get(0).(func(*billing.Project, string) []*billing.PaymentMethod); ok {
-		r0 = rf(project, currency)
+	if rf, ok := ret.Get(0).(func(*billing.Project, string, string, string) []*billing.PaymentMethod); ok {
+		r0 = rf(project, currency, mccCode, operatingCompanyId)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*billing.PaymentMethod)
@@ -130,8 +130,8 @@ func (_m *PaymentMethodInterface) ListByCurrency(project *billing.Project, curre
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*billing.Project, string) error); ok {
-		r1 = rf(project, currency)
+	if rf, ok := ret.Get(1).(func(*billing.Project, string, string, string) error); ok {
+		r1 = rf(project, currency, mccCode, operatingCompanyId)
 	} else {
 		r1 = ret.Error(1)
 	}

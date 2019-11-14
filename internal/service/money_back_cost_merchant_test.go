@@ -75,26 +75,28 @@ func (suite *MoneyBackCostMerchantTestSuite) SetupTest() {
 	}
 
 	countryAz := &billing.Country{
-		Id:              bson.NewObjectId().Hex(),
-		IsoCodeA2:       "AZ",
-		Region:          "CIS",
-		Currency:        "AZN",
-		PaymentsAllowed: true,
-		ChangeAllowed:   true,
-		VatEnabled:      true,
-		PriceGroupId:    "",
-		VatCurrency:     "AZN",
+		Id:                bson.NewObjectId().Hex(),
+		IsoCodeA2:         "AZ",
+		Region:            "CIS",
+		Currency:          "AZN",
+		PaymentsAllowed:   true,
+		ChangeAllowed:     true,
+		VatEnabled:        true,
+		PriceGroupId:      "",
+		VatCurrency:       "AZN",
+		PayerTariffRegion: pkg.TariffRegionRussiaAndCis,
 	}
 	countryUs := &billing.Country{
-		Id:              bson.NewObjectId().Hex(),
-		IsoCodeA2:       "US",
-		Region:          "US",
-		Currency:        "USD",
-		PaymentsAllowed: true,
-		ChangeAllowed:   true,
-		VatEnabled:      true,
-		PriceGroupId:    "",
-		VatCurrency:     "USD",
+		Id:                bson.NewObjectId().Hex(),
+		IsoCodeA2:         "US",
+		Region:            "US",
+		Currency:          "USD",
+		PaymentsAllowed:   true,
+		ChangeAllowed:     true,
+		VatEnabled:        true,
+		PriceGroupId:      "",
+		VatCurrency:       "USD",
+		PayerTariffRegion: pkg.TariffRegionWorldwide,
 	}
 	countries := []*billing.Country{countryAz, countryUs}
 	if err := suite.service.country.MultipleInsert(countries); err != nil {
@@ -142,7 +144,7 @@ func (suite *MoneyBackCostMerchantTestSuite) SetupTest() {
 		Name:              "VISA",
 		PayoutCurrency:    "USD",
 		UndoReason:        "chargeback",
-		Region:            "CIS",
+		Region:            pkg.TariffRegionRussiaAndCis,
 		Country:           "AZ",
 		DaysFrom:          0,
 		PaymentStage:      1,
@@ -150,6 +152,8 @@ func (suite *MoneyBackCostMerchantTestSuite) SetupTest() {
 		FixAmount:         5,
 		FixAmountCurrency: "USD",
 		IsPaidByMerchant:  true,
+		IsActive:          true,
+		MccCode:           pkg.MccCodeLowRisk,
 	}
 
 	moneyBackCostMerchant2 := &billing.MoneyBackCostMerchant{
@@ -157,7 +161,7 @@ func (suite *MoneyBackCostMerchantTestSuite) SetupTest() {
 		Name:              "VISA",
 		PayoutCurrency:    "USD",
 		UndoReason:        "chargeback",
-		Region:            "CIS",
+		Region:            pkg.TariffRegionRussiaAndCis,
 		Country:           "AZ",
 		DaysFrom:          30,
 		PaymentStage:      1,
@@ -165,6 +169,8 @@ func (suite *MoneyBackCostMerchantTestSuite) SetupTest() {
 		FixAmount:         15,
 		FixAmountCurrency: "USD",
 		IsPaidByMerchant:  true,
+		IsActive:          true,
+		MccCode:           pkg.MccCodeLowRisk,
 	}
 
 	anotherMoneyBackCostMerchant := &billing.MoneyBackCostMerchant{
@@ -172,7 +178,7 @@ func (suite *MoneyBackCostMerchantTestSuite) SetupTest() {
 		Name:              "VISA",
 		PayoutCurrency:    "USD",
 		UndoReason:        "chargeback",
-		Region:            "CIS",
+		Region:            pkg.TariffRegionRussiaAndCis,
 		Country:           "",
 		DaysFrom:          0,
 		PaymentStage:      1,
@@ -180,6 +186,8 @@ func (suite *MoneyBackCostMerchantTestSuite) SetupTest() {
 		FixAmount:         3,
 		FixAmountCurrency: "USD",
 		IsPaidByMerchant:  true,
+		IsActive:          true,
+		MccCode:           pkg.MccCodeLowRisk,
 	}
 	pucs := []*billing.MoneyBackCostMerchant{moneyBackCostMerchant, moneyBackCostMerchant2, anotherMoneyBackCostMerchant}
 	if err := suite.service.moneyBackCostMerchant.MultipleInsert(pucs); err != nil {
@@ -202,10 +210,11 @@ func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_GrpcGet_O
 		Name:           "VISA",
 		PayoutCurrency: "USD",
 		UndoReason:     "chargeback",
-		Region:         "CIS",
+		Region:         pkg.TariffRegionRussiaAndCis,
 		Country:        "AZ",
 		Days:           10,
 		PaymentStage:   1,
+		MccCode:        pkg.MccCodeLowRisk,
 	}
 
 	res := &grpc.MoneyBackCostMerchantResponse{}
@@ -233,13 +242,15 @@ func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_GrpcSet_O
 		Name:              "VISA",
 		PayoutCurrency:    "USD",
 		UndoReason:        "chargeback",
-		Region:            "CIS",
+		Region:            pkg.TariffRegionRussiaAndCis,
 		Country:           "AZ",
 		DaysFrom:          0,
 		PaymentStage:      1,
 		Percent:           3.33,
 		FixAmount:         7.5,
 		FixAmountCurrency: "USD",
+		IsActive:          true,
+		MccCode:           pkg.MccCodeLowRisk,
 	}
 
 	res := grpc.MoneyBackCostMerchantResponse{}
@@ -258,12 +269,14 @@ func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_Insert_Ok
 		Name:           "MASTERCARD",
 		PayoutCurrency: "USD",
 		UndoReason:     "chargeback",
-		Region:         "US",
+		Region:         pkg.TariffRegionWorldwide,
 		Country:        "",
 		DaysFrom:       0,
 		PaymentStage:   1,
 		Percent:        3.33,
 		FixAmount:      7.5,
+		IsActive:       true,
+		MccCode:        pkg.MccCodeLowRisk,
 	}
 
 	assert.NoError(suite.T(), suite.service.moneyBackCostMerchant.Insert(req))
@@ -271,22 +284,24 @@ func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_Insert_Ok
 
 func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_Insert_ErrorCacheUpdate() {
 	ci := &mocks.CacheInterface{}
+	ci.On("Set", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New("service unavailable"))
+	ci.On("Delete", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New("service unavailable"))
+	suite.service.cacher = ci
+
 	obj := &billing.MoneyBackCostMerchant{
 		MerchantId:     suite.merchantId,
 		Name:           "MASTERCARD",
 		PayoutCurrency: "USD",
 		UndoReason:     "chargeback",
-		Region:         "US",
+		Region:         pkg.TariffRegionWorldwide,
 		Country:        "",
 		DaysFrom:       0,
 		PaymentStage:   1,
 		Percent:        3.33,
 		FixAmount:      7.5,
+		IsActive:       true,
+		MccCode:        pkg.MccCodeLowRisk,
 	}
-	key := fmt.Sprintf(cacheMoneyBackCostMerchantKey, obj.MerchantId, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, obj.Country, obj.PaymentStage)
-	ci.On("Set", key, mock2.Anything, mock2.Anything).
-		Return(errors.New("service unavailable"))
-	suite.service.cacher = ci
 	err := suite.service.moneyBackCostMerchant.Insert(obj)
 
 	assert.Error(suite.T(), err)
@@ -300,29 +315,31 @@ func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_UpdateOk(
 		Name:           "VISA",
 		PayoutCurrency: "USD",
 		UndoReason:     "chargeback",
-		Region:         "CIS",
+		Region:         pkg.TariffRegionRussiaAndCis,
 		Country:        "AZ",
 		DaysFrom:       0,
 		PaymentStage:   2,
 		Percent:        4,
 		FixAmount:      7,
+		IsActive:       true,
+		MccCode:        pkg.MccCodeLowRisk,
 	}
 
 	assert.NoError(suite.T(), suite.service.moneyBackCostMerchant.Update(obj))
 }
 
 func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_Get_Ok() {
-	val, err := suite.service.moneyBackCostMerchant.Get(suite.merchantId, "VISA", "USD", "chargeback", "CIS", "AZ", 1)
+	val, err := suite.service.moneyBackCostMerchant.Get(suite.merchantId, "VISA", "USD", "chargeback", pkg.TariffRegionRussiaAndCis, "AZ", pkg.MccCodeLowRisk, 1)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), len(val.Items), 2)
-	assert.Equal(suite.T(), val.Items[0].Country, "AZ")
-	assert.Equal(suite.T(), val.Items[0].FixAmount, float64(5))
+	assert.Equal(suite.T(), len(val), 2)
+	assert.Equal(suite.T(), val[0].Set[0].Country, "AZ")
+	assert.Equal(suite.T(), val[0].Set[0].FixAmount, float64(5))
 
-	val, err = suite.service.moneyBackCostMerchant.Get(suite.merchantId, "VISA", "USD", "chargeback", "CIS", "", 1)
+	val, err = suite.service.moneyBackCostMerchant.Get(suite.merchantId, "VISA", "USD", "chargeback", pkg.TariffRegionRussiaAndCis, "", pkg.MccCodeLowRisk, 1)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), len(val.Items), 1)
-	assert.Equal(suite.T(), val.Items[0].Country, "")
-	assert.Equal(suite.T(), val.Items[0].FixAmount, float64(3))
+	assert.Equal(suite.T(), len(val), 1)
+	assert.Equal(suite.T(), val[0].Set[0].Country, "")
+	assert.Equal(suite.T(), val[0].Set[0].FixAmount, float64(3))
 }
 
 func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_getMoneyBackCostMerchant() {
@@ -331,10 +348,11 @@ func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_getMoneyB
 		Name:           "VISA",
 		PayoutCurrency: "USD",
 		UndoReason:     "chargeback",
-		Region:         "CIS",
+		Region:         pkg.TariffRegionRussiaAndCis,
 		Country:        "AZ",
 		Days:           5,
 		PaymentStage:   1,
+		MccCode:        pkg.MccCodeLowRisk,
 	}
 
 	val, err := suite.service.getMoneyBackCostMerchant(req)

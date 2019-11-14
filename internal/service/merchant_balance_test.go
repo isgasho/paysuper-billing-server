@@ -119,8 +119,10 @@ func (suite *MerchantBalanceTestSuite) SetupTest() {
 	core, suite.zapRecorder = observer.New(lvl)
 	suite.logObserver = zap.New(core)
 
-	suite.merchant = helperCreateMerchant(suite.Suite, suite.service, "RUB", "RU", nil, 13000)
-	suite.merchant2 = helperCreateMerchant(suite.Suite, suite.service, "", "RU", nil, 0)
+	operatingCompany := helperOperatingCompany(suite.Suite, suite.service)
+
+	suite.merchant = helperCreateMerchant(suite.Suite, suite.service, "RUB", "RU", nil, 13000, operatingCompany.Id)
+	suite.merchant2 = helperCreateMerchant(suite.Suite, suite.service, "", "RU", nil, 0, operatingCompany.Id)
 }
 
 func (suite *MerchantBalanceTestSuite) TearDownTest() {
@@ -511,10 +513,10 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	assert.Equal(suite.T(), mbRes.Status, pkg.ResponseStatusOk)
 	assert.Equal(suite.T(), mbRes.Item.MerchantId, suite.merchant.Id)
 	assert.Equal(suite.T(), mbRes.Item.Currency, suite.merchant.GetPayoutCurrency())
-	assert.Equal(suite.T(), mbRes.Item.Debit, float64(0))
+	assert.Equal(suite.T(), mbRes.Item.Debit, float64(10432))
 	assert.Equal(suite.T(), mbRes.Item.Credit, float64(1000))
 	assert.Equal(suite.T(), mbRes.Item.RollingReserve, float64(0))
-	assert.Equal(suite.T(), mbRes.Item.Total, float64(-1000))
+	assert.Equal(suite.T(), mbRes.Item.Total, float64(9432))
 }
 
 // 3. Triggering on rolling reserve create

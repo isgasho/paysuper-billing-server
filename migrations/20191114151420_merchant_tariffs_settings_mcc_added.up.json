@@ -1,0 +1,156 @@
+[
+  {
+    "update": "merchant_tariffs_settings",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$set": {
+            "chargeback": [
+              {
+                "method_name": "MasterCard",
+                "method_percent_fee": 0.00,
+                "method_fixed_fee": 25.00,
+                "method_fixed_fee_currency": "EUR",
+                "is_paid_by_merchant": true
+              },
+              {
+                "method_name": "VISA",
+                "method_percent_fee": 0.00,
+                "method_fixed_fee": 25.00,
+                "method_fixed_fee_currency": "EUR",
+                "is_paid_by_merchant": true
+              }
+            ],
+            "payout": {
+              "EUR": {
+                "method_percent_fee": 0.0,
+                "method_fixed_fee": 25.0,
+                "method_fixed_fee_currency": "EUR",
+                "is_paid_by_merchant": true
+              },
+              "RUB": {
+                "method_percent_fee": 0.0,
+                "method_fixed_fee": 2500.0,
+                "method_fixed_fee_currency": "RUB",
+                "is_paid_by_merchant": true
+              },
+              "GBP": {
+                "method_percent_fee": 0.0,
+                "method_fixed_fee": 20.0,
+                "method_fixed_fee_currency": "GBP",
+                "is_paid_by_merchant": true
+              },
+              "USD": {
+                "method_percent_fee": 0.0,
+                "method_fixed_fee": 25.0,
+                "method_fixed_fee_currency": "USD",
+                "is_paid_by_merchant": true
+              }
+            },
+            "minimal_payout": {
+              "USD": 100.0,
+              "EUR": 100.0,
+              "RUB": 10000.0,
+              "GBP": 100.0
+            },
+            "mcc_code": "5816"
+          },
+          "$currentDate": {
+            "updated_at": true
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "insert": "merchant_tariffs_settings",
+    "documents": [
+      {
+        "refund": [
+          {
+            "method_name": "MasterCard",
+            "method_percent_fee": 0.059757,
+            "method_fixed_fee": 0.03916,
+            "method_fixed_fee_currency": "EUR",
+            "is_paid_by_merchant": false
+          },
+          {
+            "method_name": "VISA",
+            "method_percent_fee": 0.00,
+            "method_fixed_fee": 0.27115,
+            "method_fixed_fee_currency": "EUR",
+            "is_paid_by_merchant": false
+          }
+        ],
+        "chargeback": [
+          {
+            "method_name": "MasterCard",
+            "method_percent_fee": 0.00,
+            "method_fixed_fee": 50.00,
+            "method_fixed_fee_currency": "EUR",
+            "is_paid_by_merchant": true
+          },
+          {
+            "method_name": "VISA",
+            "method_percent_fee": 0.00,
+            "method_fixed_fee": 50.00,
+            "method_fixed_fee_currency": "EUR",
+            "is_paid_by_merchant": true
+          }
+        ],
+        "payout": {
+          "EUR": {
+            "method_percent_fee": 0.0,
+            "method_fixed_fee": 25.0,
+            "method_fixed_fee_currency": "EUR",
+            "is_paid_by_merchant": true
+          },
+          "RUB": {
+            "method_percent_fee": 0.0,
+            "method_fixed_fee": 2500.0,
+            "method_fixed_fee_currency": "RUB",
+            "is_paid_by_merchant": true
+          },
+          "GBP": {
+            "method_percent_fee": 0.0,
+            "method_fixed_fee": 20.0,
+            "method_fixed_fee_currency": "GBP",
+            "is_paid_by_merchant": true
+          },
+          "USD": {
+            "method_percent_fee": 0.0,
+            "method_fixed_fee": 25.0,
+            "method_fixed_fee_currency": "USD",
+            "is_paid_by_merchant": true
+          }
+        },
+        "minimal_payout": {
+          "USD": 100.0,
+          "EUR": 100.0,
+          "RUB": 10000.0,
+          "GBP": 100.0
+        },
+        "mcc_code": "5967"
+      }
+    ]
+  },
+  {
+    "update": "merchant_tariffs_settings",
+    "updates": [
+      {
+        "q": {
+          "mcc_code": "5967"
+        },
+        "u": {
+          "$currentDate": {
+            "created_at": true,
+            "updated_at": true
+          }
+        },
+        "multi": true
+      }
+    ]
+  }
+]

@@ -2,8 +2,6 @@ package service
 
 import (
 	"context"
-	"crypto/sha512"
-	"encoding/hex"
 	"fmt"
 	"github.com/ProtocolONE/geoip-service/pkg/proto"
 	"github.com/globalsign/mgo/bson"
@@ -99,6 +97,8 @@ type Service struct {
 	reporterService            reporterProto.ReporterService
 	postmarkBroker             rabbitmq.BrokerInterface
 	paylinkService             PaylinkServiceInterface
+	operatingCompany           OperatingCompanyInterface
+	paymentMinLimitSystem      PaymentMinLimitSystemInterface
 	casbinService              casbinProto.CasbinService
 }
 
@@ -182,6 +182,8 @@ func (s *Service) Init() (err error) {
 	s.userProfileRepository = newUserProfileRepository(s)
 	s.centrifugo = newCentrifugo(s)
 	s.paylinkService = newPaylinkService(s)
+	s.operatingCompany = newOperatingCompanyService(s)
+	s.paymentMinLimitSystem = newPaymentMinLimitSystem(s)
 
 	sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currencies.EmptyRequest{})
 	if err != nil {
@@ -300,12 +302,7 @@ func (s *Service) CheckProjectRequestSignature(
 		return err
 	}
 
-	hashString := req.Body + p.checked.project.SecretKey
-
-	h := sha512.New()
-	h.Write([]byte(hashString))
-
-	if hex.EncodeToString(h.Sum(nil)) != req.Signature {
+	if p.checked.project.SecretKey != req.Signature {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = orderErrorSignatureInvalid
 

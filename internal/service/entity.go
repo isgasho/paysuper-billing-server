@@ -1,6 +1,7 @@
 package service
 
 import (
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"go.uber.org/zap"
 	"net"
 	"net/url"
@@ -32,6 +33,8 @@ type PaymentChannelCostMerchant Entity
 type MoneyBackCostSystem Entity
 type MoneyBackCostMerchant Entity
 type Paylink Entity
+type OperatingCompany Entity
+type PaymentMinLimitSystem Entity
 type PayoutCostSystem Entity
 type PriceTable Entity
 type Product Entity
@@ -94,4 +97,12 @@ func getHostFromUrl(urlString string) string {
 		return u.Host
 	}
 	return host
+}
+
+func getMccByOperationsType(operationsType string) (string, error) {
+	mccCode, ok := pkg.MerchantOperationsTypesToMccCodes[operationsType]
+	if !ok {
+		return "", merchantErrorOperationsTypeNotSupported
+	}
+	return mccCode, nil
 }

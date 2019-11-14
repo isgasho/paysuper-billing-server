@@ -12,20 +12,20 @@ type RoyaltyReportServiceInterface struct {
 	mock.Mock
 }
 
-// CheckReportExists provides a mock function with given fields: merchantId, currency, from, to
-func (_m *RoyaltyReportServiceInterface) CheckReportExists(merchantId string, currency string, from time.Time, to time.Time) (bool, error) {
-	ret := _m.Called(merchantId, currency, from, to)
+// CheckReportExists provides a mock function with given fields: merchantId, operatingCompanyId, currency, from, to
+func (_m *RoyaltyReportServiceInterface) CheckReportExists(merchantId string, operatingCompanyId string, currency string, from time.Time, to time.Time) (bool, error) {
+	ret := _m.Called(merchantId, operatingCompanyId, currency, from, to)
 
 	var r0 bool
-	if rf, ok := ret.Get(0).(func(string, string, time.Time, time.Time) bool); ok {
-		r0 = rf(merchantId, currency, from, to)
+	if rf, ok := ret.Get(0).(func(string, string, string, time.Time, time.Time) bool); ok {
+		r0 = rf(merchantId, operatingCompanyId, currency, from, to)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string, time.Time, time.Time) error); ok {
-		r1 = rf(merchantId, currency, from, to)
+	if rf, ok := ret.Get(1).(func(string, string, string, time.Time, time.Time) error); ok {
+		r1 = rf(merchantId, operatingCompanyId, currency, from, to)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -100,16 +100,39 @@ func (_m *RoyaltyReportServiceInterface) GetByPayoutId(payoutId string) ([]*bill
 	return r0, r1
 }
 
-// GetNonPayoutReports provides a mock function with given fields: merchantId, currency
-func (_m *RoyaltyReportServiceInterface) GetNonPayoutReports(merchantId string, currency string) ([]*billing.RoyaltyReport, error) {
-	ret := _m.Called(merchantId, currency)
+// GetNonPayoutReports provides a mock function with given fields: merchantId, operatingCompanyId, currency
+func (_m *RoyaltyReportServiceInterface) GetNonPayoutReports(merchantId string, operatingCompanyId string, currency string) ([]*billing.RoyaltyReport, error) {
+	ret := _m.Called(merchantId, operatingCompanyId, currency)
 
 	var r0 []*billing.RoyaltyReport
-	if rf, ok := ret.Get(0).(func(string, string) []*billing.RoyaltyReport); ok {
-		r0 = rf(merchantId, currency)
+	if rf, ok := ret.Get(0).(func(string, string, string) []*billing.RoyaltyReport); ok {
+		r0 = rf(merchantId, operatingCompanyId, currency)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*billing.RoyaltyReport)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string, string) error); ok {
+		r1 = rf(merchantId, operatingCompanyId, currency)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetNonPayoutReportsOperatingCompaniesIds provides a mock function with given fields: merchantId, currency
+func (_m *RoyaltyReportServiceInterface) GetNonPayoutReportsOperatingCompaniesIds(merchantId string, currency string) ([]string, error) {
+	ret := _m.Called(merchantId, currency)
+
+	var r0 []string
+	if rf, ok := ret.Get(0).(func(string, string) []string); ok {
+		r0 = rf(merchantId, currency)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
 		}
 	}
 

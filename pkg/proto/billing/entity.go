@@ -241,8 +241,15 @@ func (m *Merchant) HasPrimaryOnboardingUserName() bool {
 }
 
 func (m *Merchant) GetAddress() string {
-	return m.Company.Address + " " + m.Company.AddressAdditional + " " + m.Company.Zip + " " +
-		m.Company.Country
+	address := m.Company.Address + ", " + m.Company.AddressAdditional
+
+	if m.Company.State != "" {
+		address += ", " + m.Company.State
+	}
+
+	address += ", " + m.Company.City + ", " + m.Company.Country + ", " + m.Company.Zip
+
+	return address
 }
 
 func (m *PaymentMethodParams) IsSettingComplete() bool {
@@ -251,7 +258,7 @@ func (m *PaymentMethodParams) IsSettingComplete() bool {
 
 func (m *Merchant) IsCompanyComplete() bool {
 	return m.Company != nil && m.Company.Name != "" && m.Company.AlternativeName != "" && m.Company.Website != "" &&
-		m.Company.Country != "" && m.Company.State != "" && m.Company.Zip != "" && m.Company.City != "" &&
+		m.Company.Country != "" && m.Company.Zip != "" && m.Company.City != "" &&
 		m.Company.Address != "" && m.Company.RegistrationNumber != ""
 }
 
@@ -268,10 +275,18 @@ func (m *Merchant) IsBankingComplete() bool {
 }
 
 func (c *Country) GetVatCurrencyCode() string {
-	if c.VatEnabled {
+	if c.VatEnabled && c.VatCurrency != "" {
 		return c.VatCurrency
 	}
 	return c.Currency
+}
+
+func (c *Country) GetPaymentRestrictions(isForHighRisk bool) (bool, bool) {
+	if isForHighRisk {
+		return c.HighRiskPaymentsAllowed, c.HighRiskChangeAllowed
+	}
+
+	return c.PaymentsAllowed, c.ChangeAllowed
 }
 
 func (m *Project) GetVirtualCurrencyRate(group *PriceGroup) (float64, error) {
@@ -286,6 +301,10 @@ func (m *Project) GetVirtualCurrencyRate(group *PriceGroup) (float64, error) {
 	}
 
 	return 0, errors.New(fmt.Sprintf(productNoPriceInCurrency, group.Region))
+}
+
+func (m *Merchant) IsHighRisk() bool {
+	return m.MccCode == pkg.MccCodeHighRisk
 }
 
 func (m *UserRole) IsOwner() bool {

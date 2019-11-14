@@ -40,7 +40,8 @@ type OrderViewServiceInterface interface {
 	CountTransactions(match bson.M) (n int, err error)
 	GetTransactionsPublic(match bson.M, limit, offset int) (result []*billing.OrderViewPublic, err error)
 	GetTransactionsPrivate(match bson.M, limit, offset int) (result []*billing.OrderViewPrivate, err error)
-	GetRoyaltySummary(merchantId, currency string, from, to time.Time) (items []*billing.RoyaltyReportProductSummaryItem, total *billing.RoyaltyReportProductSummaryItem, err error)
+	GetRoyaltyOperatingCompaniesIds(merchantId, currency string, from, to time.Time) (ids []string, err error)
+	GetRoyaltySummary(merchantId, operatingCompanyId, currency string, from, to time.Time) (items []*billing.RoyaltyReportProductSummaryItem, total *billing.RoyaltyReportProductSummaryItem, err error)
 	GetOrderBy(id, uuid, merchantId string, receiver interface{}) (interface{}, error)
 	GetPaylinkStat(paylinkId, merchantId string, from, to int64) (*paylink.StatCommon, error)
 	GetPaylinkStatByCountry(paylinkId, merchantId string, from, to int64) (result *paylink.GroupStatCommon, err error)
@@ -3129,8 +3130,27 @@ func (s *Service) doUpdateOrderView(match bson.M) error {
 				"paysuper_refund_total_profit":                      1,
 				"issuer":                                            1,
 				"items":                                             1,
+				"parent_order":                                      1,
+				"refund":                                            1,
+				"cancellation":                                      1,
+				"mcc_code":                                          1,
+				"operating_company_id":                              1,
+				"is_high_risk":                                      1,
 				"merchant_payout_currency": bson.M{
 					"$ifNull": list{"$net_revenue.currency", "$refund_reverse_revenue.currency"},
+				},
+				"refund_allowed": bson.M{
+					"$cond": list{
+						bson.M{
+							"$and": []bson.M{
+								{"$eq": list{"$payment_method.refund_allowed", true}},
+								{"$eq": list{"$type", "order"}},
+								{"$eq": list{"$refunded", false}},
+							},
+						},
+						true,
+						false,
+					},
 				},
 			},
 		},
@@ -3274,7 +3294,7 @@ func (ow *OrderView) getRoyaltySummaryGroupingQuery(isTotal bool) []bson.M {
 	}
 }
 
-func (ow *OrderView) GetRoyaltySummary(merchantId, currency string, from, to time.Time) (items []*billing.RoyaltyReportProductSummaryItem, total *billing.RoyaltyReportProductSummaryItem, err error) {
+func (ow *OrderView) GetRoyaltySummary(merchantId, operatingCompanyId, currency string, from, to time.Time) (items []*billing.RoyaltyReportProductSummaryItem, total *billing.RoyaltyReportProductSummaryItem, err error) {
 	items = []*billing.RoyaltyReportProductSummaryItem{}
 	total = &billing.RoyaltyReportProductSummaryItem{}
 
@@ -3285,6 +3305,7 @@ func (ow *OrderView) GetRoyaltySummary(merchantId, currency string, from, to tim
 				"merchant_payout_currency": currency,
 				"pm_order_close_date":      bson.M{"$gte": from, "$lte": to},
 				"status":                   bson.M{"$in": statusForRoyatySummary},
+				"operating_company_id":     operatingCompanyId,
 			},
 		},
 		{
@@ -3647,4 +3668,26 @@ func (ow *OrderView) paylinkStatItemPrecise(item *paylink.StatCommon) {
 	item.GrossSalesAmount = tools.ToPrecise(item.GrossSalesAmount)
 	item.GrossReturnsAmount = tools.ToPrecise(item.GrossReturnsAmount)
 	item.GrossTotalAmount = tools.ToPrecise(item.GrossTotalAmount)
+}
+
+func (ow *OrderView) GetRoyaltyOperatingCompaniesIds(merchantId, currency string, from, to time.Time) (ids []string, err error) {
+	query := bson.M{
+		"merchant_id":              bson.ObjectIdHex(merchantId),
+		"merchant_payout_currency": currency,
+		"pm_order_close_date":      bson.M{"$gte": from, "$lte": to},
+		"status":                   bson.M{"$in": statusForRoyatySummary},
+	}
+
+	err = ow.svc.db.Collection(collectionOrderView).Find(query).Distinct("operating_company_id", &ids)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String("collection", collectionOrderView),
+			zap.Any("query", query),
+		)
+		return
+	}
+
+	return
 }

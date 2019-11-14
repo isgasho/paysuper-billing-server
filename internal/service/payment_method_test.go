@@ -23,11 +23,12 @@ import (
 
 type PaymentMethodTestSuite struct {
 	suite.Suite
-	service *Service
-	log     *zap.Logger
-	cache   internalPkg.CacheInterface
-	pmQiwi  *billing.PaymentMethod
-	project *billing.Project
+	service          *Service
+	log              *zap.Logger
+	cache            internalPkg.CacheInterface
+	pmQiwi           *billing.PaymentMethod
+	project          *billing.Project
+	operatingCompany *billing.OperatingCompany
 }
 
 func Test_PaymentMethod(t *testing.T) {
@@ -45,6 +46,25 @@ func (suite *PaymentMethodTestSuite) SetupTest() {
 		suite.FailNow("Database connection failed", "%v", err)
 	}
 
+	suite.operatingCompany = &billing.OperatingCompany{
+		Id:                 bson.NewObjectId().Hex(),
+		Name:               "Legal name",
+		Country:            "RU",
+		RegistrationNumber: "some number",
+		VatNumber:          "some vat number",
+		Address:            "Home, home 0",
+		VatAddress:         "Address for VAT purposes",
+		SignatoryName:      "Vassiliy Poupkine",
+		SignatoryPosition:  "CEO",
+		BankingDetails:     "bank details including bank, bank address, account number, swift/ bic, intermediary bank",
+		PaymentCountries:   []string{},
+	}
+
+	err = db.Collection(collectionOperatingCompanies).Insert(suite.operatingCompany)
+	if err != nil {
+		suite.FailNow("Insert operatingCompany test data failed", "%v", err)
+	}
+
 	ps := &billing.PaymentSystem{
 		Id:                 bson.NewObjectId().Hex(),
 		Name:               "CardPay",
@@ -54,6 +74,9 @@ func (suite *PaymentMethodTestSuite) SetupTest() {
 		IsActive:           true,
 		Handler:            "cardpay",
 	}
+
+	key := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
+
 	suite.pmQiwi = &billing.PaymentMethod{
 		Id:               bson.NewObjectId().Hex(),
 		Name:             "Qiwi",
@@ -62,10 +85,12 @@ func (suite *PaymentMethodTestSuite) SetupTest() {
 		MaxPaymentAmount: 0,
 		ExternalId:       "QIWI",
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				Currency:   "RUB",
-				TerminalId: "15993",
-				Secret:     "A1tph4I6BD0f",
+			key: {
+				Currency:           "RUB",
+				TerminalId:         "15993",
+				Secret:             "A1tph4I6BD0f",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
 		},
 		Type:            "ewallet",
@@ -192,7 +217,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_Insert_Ok() {
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_Insert_ErrorCacheUpdate() {
 	id := bson.NewObjectId().Hex()
 	ci := &mocks.CacheInterface{}
-	ci.On("Delete", "payment_method:all").Return(nil)
+	ci.On("Delete", mock2.Anything).Return(nil)
 	ci.On("Set", "payment_method:id:"+id, mock2.Anything, mock2.Anything).
 		Return(errors.New("service unavailable"))
 	suite.service.cacher = ci
@@ -220,7 +245,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_NotFound() {
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_Update_ErrorCacheUpdate() {
 	id := bson.NewObjectId().Hex()
 	ci := &mocks.CacheInterface{}
-	ci.On("Delete", "payment_method:all").Return(nil)
+	ci.On("Delete", mock2.Anything).Return(nil)
 	ci.On("Set", "payment_method:id:"+id, mock2.Anything, mock2.Anything).
 		Return(errors.New("service unavailable"))
 	suite.service.cacher = ci
@@ -234,24 +259,28 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_Update_ErrorCacheUpdate()
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_ErrorNoTestSettings() {
 	method := &billing.PaymentMethod{}
 	project := &billing.Project{}
-	_, err := suite.service.paymentMethod.GetPaymentSettings(method, "RUB", project)
+	_, err := suite.service.paymentMethod.GetPaymentSettings(method, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, project)
 
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), err, orderErrorPaymentMethodEmptySettings)
 }
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_OkTestSettings() {
+	key := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
+
 	method := &billing.PaymentMethod{
 		Id:         bson.NewObjectId().Hex(),
 		Name:       "Unit Test",
 		Group:      "Unit",
 		ExternalId: "Unit",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				Currency:       "RUB",
-				TerminalId:     "15993",
-				Secret:         "A1tph4I6BD0f",
-				SecretCallback: "A1tph4I6BD0f",
+			key: {
+				Currency:           "RUB",
+				TerminalId:         "15993",
+				Secret:             "A1tph4I6BD0f",
+				SecretCallback:     "A1tph4I6BD0f",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
 		},
 		Type:            "ewallet",
@@ -265,9 +294,9 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_OkTest
 	err = suite.service.project.Update(suite.project)
 	assert.NoError(suite.T(), err)
 
-	settings, err := suite.service.paymentMethod.GetPaymentSettings(method, "RUB", suite.project)
+	settings, err := suite.service.paymentMethod.GetPaymentSettings(method, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, suite.project)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), method.ProductionSettings["RUB"].Secret, settings.Secret)
+	assert.Equal(suite.T(), method.ProductionSettings[key].Secret, settings.Secret)
 }
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_ErrorNoPaymentCurrency() {
@@ -279,23 +308,27 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_ErrorN
 	project := &billing.Project{
 		Status: pkg.ProjectStatusInProduction,
 	}
-	_, err := suite.service.paymentMethod.GetPaymentSettings(method, "EUR", project)
+	_, err := suite.service.paymentMethod.GetPaymentSettings(method, "EUR", pkg.MccCodeLowRisk, suite.operatingCompany.Id, project)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), err, orderErrorPaymentMethodEmptySettings)
 }
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_Ok() {
+	key := fmt.Sprintf(pkg.PaymentMethodKey, "EUR", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
+
 	method := &billing.PaymentMethod{
 		Id:         bson.NewObjectId().Hex(),
 		Name:       "Unit Test",
 		Group:      "Unit",
 		ExternalId: "Unit",
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			"EUR": {
-				Currency:       "EUR",
-				TerminalId:     "15993",
-				Secret:         "A1tph4I6BD0f",
-				SecretCallback: "A1tph4I6BD0f",
+			key: {
+				Currency:           "EUR",
+				TerminalId:         "15993",
+				Secret:             "A1tph4I6BD0f",
+				SecretCallback:     "A1tph4I6BD0f",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
 		},
 		Type:            "ewallet",
@@ -305,9 +338,9 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_Ok() {
 	err := suite.service.paymentMethod.Insert(method)
 	assert.NoError(suite.T(), err)
 
-	settings, err := suite.service.paymentMethod.GetPaymentSettings(method, "EUR", suite.project)
+	settings, err := suite.service.paymentMethod.GetPaymentSettings(method, "EUR", pkg.MccCodeLowRisk, suite.operatingCompany.Id, suite.project)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), method.TestSettings["EUR"].Secret, settings.Secret)
+	assert.Equal(suite.T(), method.TestSettings[key].Secret, settings.Secret)
 }
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMethod_ErrorPaymentSystem() {
@@ -517,9 +550,17 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodProductio
 	rsp := &grpc.GetPaymentMethodSettingsResponse{}
 	method := &mocks.PaymentMethodInterface{}
 
+	key := fmt.Sprintf(pkg.PaymentMethodKey, "EUR", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
 	method.On("GetById", req.PaymentMethodId).Return(&billing.PaymentMethod{
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			"EUR": {Secret: "secret", SecretCallback: "secret_callback", TerminalId: "terminal_id"},
+			key: {
+				Currency:           "EUR",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
+				Secret:             "secret",
+				SecretCallback:     "secret_callback",
+				TerminalId:         "terminal_id",
+			},
 		},
 	}, nil)
 	suite.service.paymentMethod = method
@@ -551,15 +592,18 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodProduc
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodProductionSettings_ErrorNoSettings() {
 	req := &grpc.GetPaymentMethodSettingsRequest{
-		PaymentMethodId: bson.NewObjectId().Hex(),
-		CurrencyA3:      "EUR",
+		PaymentMethodId:    bson.NewObjectId().Hex(),
+		CurrencyA3:         "EUR",
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
 	method := &mocks.PaymentMethodInterface{}
 
+	key := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
 	method.On("GetById", req.PaymentMethodId).Return(&billing.PaymentMethod{
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {Currency: "RUB", Secret: "unit_test"},
+			key: {Currency: "RUB", Secret: "unit_test"},
 		},
 	}, nil)
 	suite.service.paymentMethod = method
@@ -572,15 +616,18 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodProduc
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodProductionSettings_ErrorUpdate() {
 	req := &grpc.GetPaymentMethodSettingsRequest{
-		PaymentMethodId: bson.NewObjectId().Hex(),
-		CurrencyA3:      "RUB",
+		PaymentMethodId:    bson.NewObjectId().Hex(),
+		CurrencyA3:         "RUB",
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
 	method := &mocks.PaymentMethodInterface{}
 
+	key := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
 	method.On("GetById", req.PaymentMethodId).Return(&billing.PaymentMethod{
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {Currency: "RUB", Secret: "unit_test"},
+			key: {Currency: "RUB", Secret: "unit_test"},
 		},
 	}, nil)
 	method.On("Update", mock2.Anything).Return(errors.New("service unavailable"))
@@ -594,15 +641,18 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodProduc
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodProductionSettings_Ok() {
 	req := &grpc.GetPaymentMethodSettingsRequest{
-		PaymentMethodId: bson.NewObjectId().Hex(),
-		CurrencyA3:      "RUB",
+		PaymentMethodId:    bson.NewObjectId().Hex(),
+		CurrencyA3:         "RUB",
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
 	method := &mocks.PaymentMethodInterface{}
 
+	key := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
 	method.On("GetById", req.PaymentMethodId).Return(&billing.PaymentMethod{
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {Currency: "RUB", Secret: "unit_test"},
+			key: {Currency: "RUB", Secret: "unit_test"},
 		},
 	}, nil)
 	method.On("Update", mock2.Anything).Return(nil)
@@ -697,9 +747,17 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodTestSetti
 	rsp := &grpc.GetPaymentMethodSettingsResponse{}
 	method := &mocks.PaymentMethodInterface{}
 
+	key := fmt.Sprintf(pkg.PaymentMethodKey, "EUR", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
 	method.On("GetById", req.PaymentMethodId).Return(&billing.PaymentMethod{
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			"EUR": {Secret: "secret", SecretCallback: "secret_callback", TerminalId: "terminal_id"},
+			key: {
+				Currency:           "EUR",
+				Secret:             "secret",
+				SecretCallback:     "secret_callback",
+				TerminalId:         "terminal_id",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
+			},
 		},
 	}, nil)
 	suite.service.paymentMethod = method
@@ -731,15 +789,23 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodTestSe
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodTestSettings_ErrorNoSettings() {
 	req := &grpc.GetPaymentMethodSettingsRequest{
-		PaymentMethodId: bson.NewObjectId().Hex(),
-		CurrencyA3:      "EUR",
+		PaymentMethodId:    bson.NewObjectId().Hex(),
+		CurrencyA3:         "EUR",
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
 	method := &mocks.PaymentMethodInterface{}
 
+	key := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
 	method.On("GetById", req.PaymentMethodId).Return(&billing.PaymentMethod{
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {Currency: "RUB", Secret: "unit_test"},
+			key: {
+				Currency:           "RUB",
+				Secret:             "unit_test",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
+			},
 		},
 	}, nil)
 	suite.service.paymentMethod = method
@@ -752,15 +818,23 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodTestSe
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodTestSettings_ErrorUpdate() {
 	req := &grpc.GetPaymentMethodSettingsRequest{
-		PaymentMethodId: bson.NewObjectId().Hex(),
-		CurrencyA3:      "RUB",
+		PaymentMethodId:    bson.NewObjectId().Hex(),
+		CurrencyA3:         "RUB",
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
 	method := &mocks.PaymentMethodInterface{}
 
+	key := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
 	method.On("GetById", req.PaymentMethodId).Return(&billing.PaymentMethod{
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {Currency: "RUB", Secret: "unit_test"},
+			key: {
+				Currency:           "RUB",
+				Secret:             "unit_test",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
+			},
 		},
 	}, nil)
 	method.On("Update", mock2.Anything).Return(errors.New("service unavailable"))
@@ -774,15 +848,23 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodTestSe
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodTestSettings_Ok() {
 	req := &grpc.GetPaymentMethodSettingsRequest{
-		PaymentMethodId: bson.NewObjectId().Hex(),
-		CurrencyA3:      "RUB",
+		PaymentMethodId:    bson.NewObjectId().Hex(),
+		CurrencyA3:         "RUB",
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
 	method := &mocks.PaymentMethodInterface{}
 
+	key := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
 	method.On("GetById", req.PaymentMethodId).Return(&billing.PaymentMethod{
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {Currency: "RUB", Secret: "unit_test"},
+			key: {
+				Currency:           "RUB",
+				Secret:             "unit_test",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
+			},
 		},
 	}, nil)
 	method.On("Update", mock2.Anything).Return(nil)

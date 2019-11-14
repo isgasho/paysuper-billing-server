@@ -5,6 +5,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
@@ -25,13 +26,15 @@ type TokenTestSuite struct {
 	service *Service
 	cache   internalPkg.CacheInterface
 
-	project                           *billing.Project
-	projectWithProducts               *billing.Project
-	projectWithMerchantWithoutTariffs *billing.Project
+	project                            *billing.Project
+	projectWithProducts                *billing.Project
+	projectWithVirtualCurrencyProducts *billing.Project
+	projectWithMerchantWithoutTariffs  *billing.Project
 
 	product1    *grpc.Product
 	product2    *grpc.Product
 	keyProducts []*grpc.KeyProduct
+	product3    *grpc.Product
 }
 
 func Test_Token(t *testing.T) {
@@ -44,6 +47,14 @@ func (suite *TokenTestSuite) SetupTest() {
 
 	db, err := mongodb.NewDatabase()
 	assert.NoError(suite.T(), err, "Database connection failed")
+
+	paymentMinLimitSystem1 := &billing.PaymentMinLimitSystem{
+		Id:        bson.NewObjectId().Hex(),
+		Currency:  "RUB",
+		Amount:    0.01,
+		CreatedAt: ptypes.TimestampNow(),
+		UpdatedAt: ptypes.TimestampNow(),
+	}
 
 	pgRub := &billing.PriceGroup{
 		Id:       bson.NewObjectId().Hex(),
@@ -99,10 +110,15 @@ func (suite *TokenTestSuite) SetupTest() {
 	merchant := &billing.Merchant{
 		Id: bson.NewObjectId().Hex(),
 		Company: &billing.MerchantCompanyInfo{
-			Name:    "merchant1",
-			Country: "RU",
-			Zip:     "190000",
-			City:    "St.Petersburg",
+			Name:               "Unit test",
+			AlternativeName:    "merchant1",
+			Website:            "http://localhost",
+			Country:            "RU",
+			Zip:                "190000",
+			City:               "St.Petersburg",
+			Address:            "address",
+			AddressAdditional:  "address_additional",
+			RegistrationNumber: "registration_number",
 		},
 		Contacts: &billing.MerchantContact{
 			Authorized: &billing.MerchantContactAuthorized{
@@ -118,8 +134,13 @@ func (suite *TokenTestSuite) SetupTest() {
 			},
 		},
 		Banking: &billing.MerchantBanking{
-			Currency: "RUB",
-			Name:     "Bank name",
+			Currency:             "RUB",
+			Name:                 "Bank name",
+			Address:              "address",
+			AccountNumber:        "0000001",
+			Swift:                "swift",
+			CorrespondentAccount: "correspondent_account",
+			Details:              "details",
 		},
 		IsVatEnabled:              true,
 		IsCommissionToUserEnabled: true,
@@ -166,10 +187,15 @@ func (suite *TokenTestSuite) SetupTest() {
 	merchantWithoutTariffs := &billing.Merchant{
 		Id: bson.NewObjectId().Hex(),
 		Company: &billing.MerchantCompanyInfo{
-			Name:    "merchant1",
-			Country: "RU",
-			Zip:     "190000",
-			City:    "St.Petersburg",
+			Name:               "Unit test",
+			AlternativeName:    "merchant1",
+			Website:            "http://localhost",
+			Country:            "RU",
+			Zip:                "190000",
+			City:               "St.Petersburg",
+			Address:            "address",
+			AddressAdditional:  "address_additional",
+			RegistrationNumber: "registration_number",
 		},
 		Contacts: &billing.MerchantContact{
 			Authorized: &billing.MerchantContactAuthorized{
@@ -185,8 +211,13 @@ func (suite *TokenTestSuite) SetupTest() {
 			},
 		},
 		Banking: &billing.MerchantBanking{
-			Currency: "RUB",
-			Name:     "Bank name",
+			Currency:             "RUB",
+			Name:                 "Bank name",
+			Address:              "address",
+			AccountNumber:        "0000001",
+			Swift:                "swift",
+			CorrespondentAccount: "correspondent_account",
+			Details:              "details",
 		},
 		IsVatEnabled:              true,
 		IsCommissionToUserEnabled: true,
@@ -236,6 +267,47 @@ func (suite *TokenTestSuite) SetupTest() {
 		Status:                   pkg.ProjectStatusInProduction,
 		MerchantId:               merchantWithoutTariffs.Id,
 	}
+	projectWithVirtualCurrencyProducts := &billing.Project{
+		Id:                       bson.NewObjectId().Hex(),
+		CallbackCurrency:         "RUB",
+		CallbackProtocol:         pkg.ProjectCallbackProtocolEmpty,
+		LimitsCurrency:           "RUB",
+		MaxPaymentAmount:         15000,
+		MinPaymentAmount:         1,
+		Name:                     map[string]string{"en": "test project 1"},
+		IsProductsCheckout:       true,
+		AllowDynamicRedirectUrls: true,
+		SecretKey:                "test project 1 secret key",
+		Status:                   pkg.ProjectStatusInProduction,
+		MerchantId:               merchant.Id,
+		VirtualCurrency: &billing.ProjectVirtualCurrency{
+			Name: map[string]string{"en": "test project 1"},
+			Prices: []*billing.ProductPrice{
+				{Amount: 100, Currency: "RUB", Region: "RUB"},
+				{Amount: 10, Currency: "USD", Region: "USD"},
+			},
+		},
+	}
+
+	product3 := &grpc.Product{
+		Id:              bson.NewObjectId().Hex(),
+		Object:          "product",
+		Type:            "simple_product",
+		Sku:             "ru_double_yeti",
+		Name:            map[string]string{"en": initialName},
+		DefaultCurrency: "RUB",
+		Enabled:         true,
+		Description:     map[string]string{"en": "blah-blah-blah"},
+		LongDescription: map[string]string{"en": "Super game steam keys"},
+		Url:             "http://test.ru/dffdsfsfs",
+		Images:          []string{"/home/image.jpg"},
+		MerchantId:      projectWithVirtualCurrencyProducts.MerchantId,
+		ProjectId:       projectWithVirtualCurrencyProducts.Id,
+		Metadata: map[string]string{
+			"SomeKey": "SomeValue",
+		},
+		Prices: []*billing.ProductPrice{{Amount: 10.00, IsVirtualCurrency: true}},
+	}
 
 	product1 := &grpc.Product{
 		Id:              bson.NewObjectId().Hex(),
@@ -276,7 +348,7 @@ func (suite *TokenTestSuite) SetupTest() {
 		Prices: []*billing.ProductPrice{{Currency: "RUB", Amount: 1005.00, Region: "RUB"}},
 	}
 
-	err = db.Collection(collectionProduct).Insert([]interface{}{product1, product2}...)
+	err = db.Collection(collectionProduct).Insert([]interface{}{product1, product2, product3}...)
 	assert.NoError(suite.T(), err, "Insert product test data failed")
 
 	redisClient := database.NewRedis(
@@ -311,13 +383,17 @@ func (suite *TokenTestSuite) SetupTest() {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 
+	limits := []interface{}{paymentMinLimitSystem1}
+	err = suite.service.db.Collection(collectionPaymentMinLimitSystem).Insert(limits...)
+	assert.NoError(suite.T(), err)
+
 	err = suite.service.merchant.MultipleInsert([]*billing.Merchant{merchant, merchantWithoutTariffs})
 
 	if err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
 	}
 
-	projects := []*billing.Project{project, projectWithProducts, projectWithMerchantWithoutTariffs}
+	projects := []*billing.Project{project, projectWithProducts, projectWithMerchantWithoutTariffs, projectWithVirtualCurrencyProducts}
 	err = suite.service.project.MultipleInsert(projects)
 
 	if err != nil {
@@ -338,9 +414,11 @@ func (suite *TokenTestSuite) SetupTest() {
 
 	suite.project = project
 	suite.projectWithProducts = projectWithProducts
+	suite.projectWithVirtualCurrencyProducts = projectWithVirtualCurrencyProducts
 	suite.projectWithMerchantWithoutTariffs = projectWithMerchantWithoutTariffs
 	suite.product1 = product1
 	suite.product2 = product2
+	suite.product3 = product3
 
 	suite.keyProducts = createKeyProductsFroProject(suite.Suite, suite.service, suite.project, 3)
 }
@@ -1000,4 +1078,37 @@ func (suite *TokenTestSuite) TestToken_CreateToken_SimpleCheckout_WithProductIds
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
 	assert.Equal(suite.T(), tokenErrorSettingsProductIdsParamNotAllowedForType, rsp.Message)
 	assert.Empty(suite.T(), rsp.Token)
+}
+
+func (suite *TokenTestSuite) TestToken_CreateToken_ProjectWithVirtualCurrency_Ok() {
+	req := &grpc.TokenRequest{
+		User: &billing.TokenUser{
+			Id: bson.NewObjectId().Hex(),
+			Locale: &billing.TokenUserLocaleValue{
+				Value: "en",
+			},
+		},
+		Settings: &billing.TokenSettings{
+			ProjectId:               suite.projectWithVirtualCurrencyProducts.Id,
+			ProductsIds:             []string{suite.product3.Id},
+			Type:                    billing.OrderType_product,
+			IsBuyForVirtualCurrency: true,
+		},
+	}
+	rsp := &grpc.TokenResponse{}
+	err := suite.service.CreateToken(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotEmpty(suite.T(), rsp.Token)
+
+	rep := &tokenRepository{
+		service: suite.service,
+		token:   &Token{},
+	}
+	err = rep.getToken(rsp.Token)
+	assert.NoError(suite.T(), err)
+
+	assert.Len(suite.T(), rep.token.Settings.ProductsIds, 1)
+	assert.True(suite.T(), rep.token.Settings.IsBuyForVirtualCurrency)
 }

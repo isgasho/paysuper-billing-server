@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/globalsign/mgo/bson"
 	"github.com/micro/go-micro/client"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/entity"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
 )
@@ -35,10 +36,10 @@ func (r *RepositoryServiceOk) InsertSavedCard(
 
 func (r *RepositoryServiceOk) DeleteSavedCard(
 	ctx context.Context,
-	in *repository.FindByStringValue,
+	in *repository.DeleteSavedCardRequest,
 	opts ...client.CallOption,
-) (*repository.Result, error) {
-	return &repository.Result{}, nil
+) (*repository.DeleteSavedCardResponse, error) {
+	return &repository.DeleteSavedCardResponse{Status: pkg.ResponseStatusOk}, nil
 }
 
 func (r *RepositoryServiceOk) FindSavedCards(
@@ -97,10 +98,19 @@ func (r *RepositoryServiceEmpty) InsertSavedCard(
 
 func (r *RepositoryServiceEmpty) DeleteSavedCard(
 	ctx context.Context,
-	in *repository.FindByStringValue,
+	in *repository.DeleteSavedCardRequest,
 	opts ...client.CallOption,
-) (*repository.Result, error) {
-	return &repository.Result{}, nil
+) (*repository.DeleteSavedCardResponse, error) {
+	rsp := &repository.DeleteSavedCardResponse{
+		Status:  pkg.ResponseStatusBadData,
+		Message: "some error",
+	}
+
+	if in.Token == "ffffffffffffffffffffffff" {
+		rsp.Status = pkg.ResponseStatusSystemError
+	}
+
+	return rsp, nil
 }
 
 func (r *RepositoryServiceEmpty) FindSavedCards(
@@ -129,10 +139,10 @@ func (r *RepositoryServiceError) InsertSavedCard(
 
 func (r *RepositoryServiceError) DeleteSavedCard(
 	ctx context.Context,
-	in *repository.FindByStringValue,
+	in *repository.DeleteSavedCardRequest,
 	opts ...client.CallOption,
-) (*repository.Result, error) {
-	return &repository.Result{}, nil
+) (*repository.DeleteSavedCardResponse, error) {
+	return nil, errors.New("some error")
 }
 
 func (r *RepositoryServiceError) FindSavedCards(

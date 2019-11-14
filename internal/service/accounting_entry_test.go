@@ -38,6 +38,7 @@ type AccountingEntryTestSuite struct {
 	projectFixedAmount *billing.Project
 	paymentMethod      *billing.PaymentMethod
 	paymentSystem      *billing.PaymentSystem
+	merchant           *billing.Merchant
 }
 
 func Test_AccountingEntry(t *testing.T) {
@@ -108,7 +109,7 @@ func (suite *AccountingEntryTestSuite) SetupTest() {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 
-	_, suite.projectFixedAmount, suite.paymentMethod, suite.paymentSystem = helperCreateEntitiesForTests(suite.Suite, suite.service)
+	suite.merchant, suite.projectFixedAmount, suite.paymentMethod, suite.paymentSystem = helperCreateEntitiesForTests(suite.Suite, suite.service)
 }
 
 func (suite *AccountingEntryTestSuite) TearDownTest() {
@@ -175,7 +176,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_RUB_RUB() {
 		"real_refund":                          120,
 		"real_refund_tax_fee":                  20,
 		"real_refund_fee":                      12,
-		"real_refund_fixed_fee":                0.15,
+		"real_refund_fixed_fee":                10.8,
 		"merchant_refund":                      120,
 		"ps_merchant_refund_fx":                0,
 		"merchant_refund_fee":                  0,
@@ -285,7 +286,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_RUB() {
 		"real_refund":                          12,
 		"real_refund_tax_fee":                  2,
 		"real_refund_fee":                      1.2,
-		"real_refund_fixed_fee":                0.15,
+		"real_refund_fixed_fee":                0.166154,
 		"merchant_refund":                      12.24,
 		"ps_merchant_refund_fx":                0.24,
 		"merchant_refund_fee":                  0,
@@ -395,7 +396,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_USD() {
 		"real_refund":                          12,
 		"real_refund_tax_fee":                  2,
 		"real_refund_fee":                      1.2,
-		"real_refund_fixed_fee":                0.15,
+		"real_refund_fixed_fee":                0.166154,
 		"merchant_refund":                      12.24,
 		"ps_merchant_refund_fx":                0.24,
 		"merchant_refund_fee":                  0,
@@ -505,7 +506,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_EUR() {
 		"real_refund":                          12,
 		"real_refund_tax_fee":                  2,
 		"real_refund_fee":                      1.2,
-		"real_refund_fixed_fee":                0.15,
+		"real_refund_fixed_fee":                0.166154,
 		"merchant_refund":                      12.24,
 		"ps_merchant_refund_fx":                0.24,
 		"merchant_refund_fee":                  0,
@@ -582,7 +583,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_PartialRefund_Ok_RUB_
 		"real_refund":                          6,
 		"real_refund_tax_fee":                  1,
 		"real_refund_fee":                      0.6,
-		"real_refund_fixed_fee":                0.15,
+		"real_refund_fixed_fee":                0.166154,
 		"merchant_refund":                      6.12,
 		"ps_merchant_refund_fx":                0.12,
 		"merchant_refund_fee":                  0,
@@ -658,7 +659,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_RUB
 		"real_refund":                          120,
 		"real_refund_tax_fee":                  20,
 		"real_refund_fee":                      12,
-		"real_refund_fixed_fee":                0.15,
+		"real_refund_fixed_fee":                10.8,
 		"merchant_refund":                      120,
 		"ps_merchant_refund_fx":                0,
 		"merchant_refund_fee":                  24,
@@ -719,7 +720,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_USD
 		"real_refund":                          12,
 		"real_refund_tax_fee":                  2,
 		"real_refund_fee":                      1.2,
-		"real_refund_fixed_fee":                0.15,
+		"real_refund_fixed_fee":                0.166154,
 		"merchant_refund":                      12.24,
 		"ps_merchant_refund_fx":                0.24,
 		"merchant_refund_fee":                  2.448,
@@ -780,7 +781,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_USD
 		"real_refund":                          12,
 		"real_refund_tax_fee":                  2,
 		"real_refund_fee":                      1.2,
-		"real_refund_fixed_fee":                0.15,
+		"real_refund_fixed_fee":                0.166154,
 		"merchant_refund":                      12.24,
 		"ps_merchant_refund_fx":                0.24,
 		"merchant_refund_fee":                  2.448,
@@ -841,7 +842,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_USD
 		"real_refund":                          12,
 		"real_refund_tax_fee":                  2,
 		"real_refund_fee":                      1.2,
-		"real_refund_fixed_fee":                0.15,
+		"real_refund_fixed_fee":                0.166154,
 		"merchant_refund":                      12.24,
 		"ps_merchant_refund_fx":                0.24,
 		"merchant_refund_fee":                  2.448,
@@ -1237,4 +1238,47 @@ func (suite *AccountingEntryTestSuite) helperCheckRefundView(orderId, orderCurre
 	b = refundControlResults["merchant_refund_fee"] + refundControlResults["merchant_refund_fixed_fee"] + refundControlResults["ps_reverse_tax_fee_delta"] - refundControlResults["real_refund_fixed_fee"] - refundControlResults["real_refund_fee"]
 	assert.Equal(suite.T(), a, tools.ToPrecise(b))
 
+}
+
+func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_USD_EUR_None() {
+	// Order currency USD
+	// Royalty currency EUR
+	// VAT currency NONE
+
+	orderAmount := float64(650)
+	orderCountry := "AO"
+	orderCurrency := "USD"
+	royaltyCurrency := "EUR"
+	merchantCountry := "DE"
+
+	merchant := helperCreateMerchant(suite.Suite, suite.service, royaltyCurrency, merchantCountry, suite.paymentMethod, 0, suite.merchant.OperatingCompanyId)
+	project := helperCreateProject(suite.Suite, suite.service, merchant.Id)
+
+	country, err := suite.service.country.GetByIsoCodeA2(orderCountry)
+	assert.NoError(suite.T(), err)
+
+	paymentMerCost := &billing.PaymentChannelCostMerchant{
+		MerchantId:              merchant.Id,
+		Name:                    "MASTERCARD",
+		PayoutCurrency:          royaltyCurrency,
+		MinAmount:               0,
+		Region:                  country.PayerTariffRegion,
+		Country:                 country.IsoCodeA2,
+		MethodPercent:           0.025,
+		MethodFixAmount:         0.02,
+		MethodFixAmountCurrency: "EUR",
+		PsPercent:               0.05,
+		PsFixedFee:              0.05,
+		PsFixedFeeCurrency:      "EUR",
+		MccCode:                 pkg.MccCodeLowRisk,
+	}
+
+	err = suite.service.paymentChannelCostMerchant.Insert(paymentMerCost)
+	assert.NoError(suite.T(), err)
+
+	order := helperCreateAndPayOrder(suite.Suite, suite.service, orderAmount, orderCurrency, orderCountry, project, suite.paymentMethod)
+	assert.NotNil(suite.T(), order)
+
+	orderAccountingEntries := suite.helperGetAccountingEntries(order.Id, collectionOrder)
+	assert.Equal(suite.T(), len(orderAccountingEntries), 15)
 }

@@ -3,6 +3,7 @@ package mocks
 import (
 	"bytes"
 	"context"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"go.uber.org/zap"
 	"io/ioutil"
 	"net/http"
@@ -19,6 +20,10 @@ type TransportStatusOk struct {
 	Err       error
 }
 
+type TransportCardPayOk struct {
+	Transport http.RoundTripper
+}
+
 type TransportStatusError struct {
 	Transport http.RoundTripper
 }
@@ -29,9 +34,9 @@ func NewClientStatusOk() *http.Client {
 	}
 }
 
-func NewClientStatusError() *http.Client {
+func NewCardPayHttpClientStatusOk() *http.Client {
 	return &http.Client{
-		Transport: &TransportStatusError{},
+		Transport: &TransportCardPayOk{},
 	}
 }
 
@@ -56,6 +61,24 @@ func (h *TransportStatusOk) RoundTrip(req *http.Request) (*http.Response, error)
 	return &http.Response{
 		StatusCode: http.StatusOK,
 		Body:       ioutil.NopCloser(strings.NewReader("{}")),
+		Header:     make(http.Header),
+	}, nil
+}
+
+func (h *TransportCardPayOk) RoundTrip(req *http.Request) (*http.Response, error) {
+	body := []byte("{}")
+
+	if req.URL.Path == pkg.CardPayPaths[pkg.PaymentSystemActionAuthenticate].Path {
+		body = []byte(`{"token_type": "bearer", "access_token": "123", "refresh_token": "123", "expires_in": 300, "refresh_expires_in": 900}`)
+	}
+
+	if req.URL.Path == pkg.CardPayPaths[pkg.PaymentSystemActionCreatePayment].Path {
+		body = []byte(`{"redirect_url": "http://localhost"}`)
+	}
+
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       ioutil.NopCloser(bytes.NewReader(body)),
 		Header:     make(http.Header),
 	}, nil
 }

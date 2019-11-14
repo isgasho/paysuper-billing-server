@@ -32,7 +32,7 @@ var (
 	refundErrorPaymentAmountLess  = newBillingServerErrorMsg("rf000004", "refund unavailable, because payment amount less than total refunds amount")
 	refundErrorNotFound           = newBillingServerErrorMsg("rf000005", "refund with specified data not found")
 	refundErrorOrderNotFound      = newBillingServerErrorMsg("rf000006", "information about payment for refund with specified data not found")
-	refundErrorCostsRatesNotFound = newBillingServerErrorMsg("rf000007", "settings to calculate commissions not found")
+	refundErrorCostsRatesNotFound = newBillingServerErrorMsg("rf000007", "settings to calculate commissions for refund not found")
 )
 
 type createRefundChecked struct {
@@ -298,6 +298,14 @@ func (s *Service) ProcessRefundCallback(
 		err = s.onRefundNotify(ctx, refund, order)
 
 		if err != nil {
+			zap.L().Error(
+				pkg.MethodFinishedWithError,
+				zap.String("method", "onRefundNotify"),
+				zap.Error(err),
+				zap.String("refundId", refund.Id),
+				zap.String("refund-orderId", order.Id),
+			)
+
 			rsp.Error = err.Error()
 			rsp.Status = pkg.ResponseStatusSystemError
 
@@ -411,7 +419,10 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 		Reason:        refund.Reason,
 		ReceiptNumber: refund.Id,
 	}
-	refundOrder.ParentId = order.Id
+	refundOrder.ParentOrder = &billing.ParentOrder{
+		Id:   order.Id,
+		Uuid: order.Uuid,
+	}
 	refundOrder.IsVatDeduction = isVatDeduction
 	refundOrder.ParentPaymentAt = refundOrder.PaymentMethodOrderClosedAt
 	refundOrder.PaymentMethodOrderClosedAt = ptypes.TimestampNow()
@@ -599,13 +610,15 @@ func (p *createRefundProcessor) hasMoneyBackCosts(order *billing.Order) bool {
 	}
 
 	data := &billing.MoneyBackCostSystemRequest{
-		Name:           methodName,
-		PayoutCurrency: order.GetMerchantRoyaltyCurrency(),
-		Region:         country.Region,
-		Country:        country.IsoCodeA2,
-		PaymentStage:   1,
-		Days:           int32(refundAt.Sub(paymentAt).Hours() / 24),
-		UndoReason:     reason,
+		Name:               methodName,
+		PayoutCurrency:     order.GetMerchantRoyaltyCurrency(),
+		Region:             country.PayerTariffRegion,
+		Country:            country.IsoCodeA2,
+		PaymentStage:       1,
+		Days:               int32(refundAt.Sub(paymentAt).Hours() / 24),
+		UndoReason:         reason,
+		MccCode:            order.MccCode,
+		OperatingCompanyId: order.OperatingCompanyId,
 	}
 	_, err = p.service.getMoneyBackCostSystem(data)
 
@@ -618,10 +631,11 @@ func (p *createRefundProcessor) hasMoneyBackCosts(order *billing.Order) bool {
 		Name:           methodName,
 		PayoutCurrency: order.GetMerchantRoyaltyCurrency(),
 		UndoReason:     reason,
-		Region:         country.Region,
+		Region:         country.PayerTariffRegion,
 		Country:        country.IsoCodeA2,
 		PaymentStage:   1,
 		Days:           int32(refundAt.Sub(paymentAt).Hours() / 24),
+		MccCode:        order.MccCode,
 	}
 	_, err = p.service.getMoneyBackCostMerchant(data1)
 	return err == nil

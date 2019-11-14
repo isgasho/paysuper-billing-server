@@ -130,6 +130,7 @@ func (s *Service) CreateOrUpdateProduct(ctx context.Context, req *grpc.Product, 
 	res.MerchantId = req.MerchantId
 	res.ProjectId = req.ProjectId
 	res.Pricing = req.Pricing
+	res.BillingType = req.BillingType
 
 	return nil
 }
@@ -308,6 +309,9 @@ func (s *Service) UpdateProductPrices(ctx context.Context, req *grpc.UpdateProdu
 	}
 
 	_, err = product.GetPriceInCurrency(&billing.PriceGroup{Currency: payoutCurrency})
+	if err != nil {
+		_, err = product.GetPriceInCurrency(&billing.PriceGroup{Currency: grpc.VirtualCurrencyPriceGroup})
+	}
 
 	if err != nil {
 		zap.S().Errorw(productErrorPriceDefaultCurrency.Message, "data", req)

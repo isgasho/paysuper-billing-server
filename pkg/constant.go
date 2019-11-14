@@ -1,5 +1,12 @@
 package pkg
 
+import "net/http"
+
+type Path struct {
+	Path   string
+	Method string
+}
+
 const (
 	ServiceName    = "p1paybilling"
 	ServiceVersion = "latest"
@@ -290,6 +297,35 @@ const (
 	PayoutDocumentStatusCanceled = "canceled"
 	PayoutDocumentStatusFailed   = "failed"
 
+	OrderIssuerReferenceTypePaylink = "paylink"
+
+	PaylinkUrlDefaultMask = "/paylink/%s"
+
+	DatabaseRequestDefaultLimit = int(100)
+
+	ProjectSellCountTypeFractional = "fractional"
+	ProjectSellCountTypeIntegral   = "integral"
+
+	PaymentSystemActionAuthenticate     = "auth"
+	PaymentSystemActionRefresh          = "refresh"
+	PaymentSystemActionCreatePayment    = "create_payment"
+	PaymentSystemActionRecurringPayment = "recurring_payment"
+	PaymentSystemActionRefund           = "refund"
+
+	MccCodeLowRisk  = "5816"
+	MccCodeHighRisk = "5967"
+
+	MerchantOperationTypeLowRisk  = "low-risk"
+	MerchantOperationTypeHighRisk = "high-risk"
+
+	TariffRegionRussiaAndCis = "russia_and_cis"
+	TariffRegionEurope       = "europe"
+	TariffRegionAsia         = "asia"
+	TariffRegionLatAm        = "latam"
+	TariffRegionWorldwide    = "worldwide"
+
+	PaymentMethodKey = "%s:%s:%s" // currency:mcc_code:operating_company_id, for example: "USD:5816:5dc3f70deb494903d835f28a"
+
 	RoleTypeMerchant = "merchant"
 	RoleTypeSystem   = "system"
 
@@ -304,17 +340,6 @@ const (
 	RoleSystemSupport      = "system_support"
 	RoleSystemViewOnly     = "system_view_only"
 
-	OrderIssuerReferenceTypePaylink = "paylink"
-
-	PaylinkUrlDefaultMask = "/paylink/%s"
-
-	DatabaseRequestDefaultLimit = int(100)
-
-	ProjectSellCountTypeFractional = "fractional"
-	ProjectSellCountTypeIntegral   = "integral"
-
-	FallbackCurrency = "USD"
-
 	UserRoleStatusInvited  = "invited"
 	UserRoleStatusAccepted = "accepted"
 
@@ -323,6 +348,15 @@ const (
 )
 
 var (
+	MerchantOperationsTypesToMccCodes = map[string]string{
+		MerchantOperationTypeLowRisk:  MccCodeLowRisk,
+		MerchantOperationTypeHighRisk: MccCodeHighRisk,
+	}
+
+	SupportedMccCodes = []string{MccCodeLowRisk, MccCodeHighRisk}
+
+	SupportedTariffRegions = []string{TariffRegionRussiaAndCis, TariffRegionEurope, TariffRegionAsia, TariffRegionLatAm, TariffRegionWorldwide}
+
 	CountryPhoneCodes = map[int32]string{
 		7:    "RU",
 		375:  "BY",
@@ -376,5 +410,28 @@ var (
 		"latin_america":  "Latin America",
 		"russia_and_cis": "Russia & CIS",
 		"worldwide":      "Worldwide",
+	}
+
+	CardPayPaths = map[string]*Path{
+		PaymentSystemActionAuthenticate: {
+			Path:   "/api/auth/token",
+			Method: http.MethodPost,
+		},
+		PaymentSystemActionRefresh: {
+			Path:   "/api/auth/token",
+			Method: http.MethodPost,
+		},
+		PaymentSystemActionCreatePayment: {
+			Path:   "/api/payments",
+			Method: http.MethodPost,
+		},
+		PaymentSystemActionRecurringPayment: {
+			Path:   "/api/recurrings",
+			Method: http.MethodPost,
+		},
+		PaymentSystemActionRefund: {
+			Path:   "/api/refunds",
+			Method: http.MethodPost,
+		},
 	}
 )

@@ -8,6 +8,7 @@ import (
 	"github.com/ProtocolONE/geoip-service/pkg"
 	"github.com/ProtocolONE/geoip-service/pkg/proto"
 	metrics "github.com/ProtocolONE/go-micro-plugins/wrapper/monitoring/prometheus"
+	"github.com/globalsign/mgo"
 	"github.com/go-redis/redis"
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -92,7 +93,8 @@ func (app *Application) Init() {
 	//
 	//app.logger.Info("db migrations applied")
 
-	db, err := mongodb.NewDatabase()
+	opts := []mongodb.Option{mongodb.Mode(mgo.Primary)}
+	db, err := mongodb.NewDatabase(opts...)
 	if err != nil {
 		app.logger.Fatal("Database connection failed", zap.Error(err))
 	}

@@ -22,6 +22,7 @@ service BillingService {
     rpc ListMerchants (MerchantListingRequest) returns (MerchantListingResponse) {}
     rpc ChangeMerchant (OnboardingRequest) returns (ChangeMerchantResponse) {}
     rpc ChangeMerchantStatus (MerchantChangeStatusRequest) returns (ChangeMerchantStatusResponse) {}
+    rpc SetMerchantOperatingCompany (SetMerchantOperatingCompanyRequest) returns (SetMerchantOperatingCompanyResponse) {}
     rpc ChangeMerchantData (ChangeMerchantDataRequest) returns (ChangeMerchantDataResponse) {}
     rpc SetMerchantS3Agreement (SetMerchantS3AgreementRequest) returns (ChangeMerchantDataResponse) {}
     rpc GetMerchantTariffRates (GetMerchantTariffRatesRequest) returns (GetMerchantTariffRatesResponse) {}
@@ -165,7 +166,7 @@ service BillingService {
     rpc GetDashboardRevenueDynamicsReport (GetDashboardMainRequest) returns (GetDashboardRevenueDynamicsReportResponse) {}
     rpc GetDashboardBaseReport (GetDashboardBaseReportRequest) returns (GetDashboardBaseReportResponse) {}
 
-    rpc CreatePayoutDocument (CreatePayoutDocumentRequest) returns (PayoutDocumentResponse) {}
+    rpc CreatePayoutDocument (CreatePayoutDocumentRequest) returns (CreatePayoutDocumentResponse) {}
     rpc UpdatePayoutDocument (UpdatePayoutDocumentRequest) returns (PayoutDocumentResponse) {}
     rpc GetPayoutDocuments (GetPayoutDocumentsRequest) returns (GetPayoutDocumentsResponse) {}
     rpc GetPayoutDocument (GetPayoutDocumentRequest) returns (PayoutDocumentResponse) {}
@@ -190,6 +191,15 @@ service BillingService {
     rpc GetPaylinkStatByReferrer (GetPaylinkStatCommonRequest) returns (GetPaylinkStatCommonGroupResponse) {}
     rpc GetPaylinkStatByDate (GetPaylinkStatCommonRequest) returns (GetPaylinkStatCommonGroupResponse) {}
     rpc GetPaylinkStatByUtm (GetPaylinkStatCommonRequest) returns (GetPaylinkStatCommonGroupResponse) {}
+
+    rpc DeleteSavedCard(DeleteSavedCardRequest) returns (EmptyResponseWithStatus) {}
+
+    rpc GetOperatingCompaniesList (EmptyRequest) returns (GetOperatingCompaniesListResponse) {}
+    rpc AddOperatingCompany (billing.OperatingCompany) returns (EmptyResponseWithStatus) {}
+    rpc GetOperatingCompany (GetOperatingCompanyRequest) returns (GetOperatingCompanyResponse) {}
+
+    rpc GetPaymentMinLimitsSystem (EmptyRequest) returns (GetPaymentMinLimitsSystemResponse) {}
+    rpc SetPaymentMinLimitSystem (billing.PaymentMinLimitSystem) returns (EmptyResponseWithStatus) {}
 
     rpc GetMerchantUsers(GetMerchantUsersRequest) returns (GetMerchantUsersResponse) {}
     rpc GetAdminUsers(EmptyRequest) returns (GetAdminUsersResponse) {}
@@ -475,7 +485,7 @@ message PaymentFormJsonData {
     // @inject_tag: json:"user_address_data_required"
     bool user_address_data_required = 12;
     // @inject_tag: json:"user_ip_data"
-    UserIpData user_ip_data = 13;
+    billing.UserIpData user_ip_data = 13;
     // @inject_tag: json:"items" validate="omitempty,gte=1,dive"
     repeated billing.OrderItem items = 14;
     // @inject_tag: json:"cookie"
@@ -742,31 +752,10 @@ message PaymentFormUserChangePaymentAccountRequest {
     string user_agent = 6;
 }
 
-message UserIpData {
-    // @inject_tag: json:"country"
-    string country = 1;
-    // @inject_tag: json:"city"
-    string city = 2;
-    // @inject_tag: json:"zip"
-    string zip = 3;
-}
-
-message PaymentFormDataChangeResponseItem {
-    // @inject_tag: json:"user_address_data_required"
-    bool user_address_data_required = 1;
-    // @inject_tag: json:"user_ip_data"
-    UserIpData user_ip_data = 2;
-    string brand = 3;
-    //@inject_tag: json:"country_payments_allowed"
-    bool country_payments_allowed = 18;
-    //@inject_tag: json:"country_change_allowed"
-    bool country_change_allowed = 19;
-}
-
 message PaymentFormDataChangeResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
-    PaymentFormDataChangeResponseItem item = 3;
+    billing.PaymentFormDataChangeResponseItem item = 3;
 }
 
 message ProcessBillingAddressRequest {
@@ -910,8 +899,6 @@ message KeyProduct {
     google.protobuf.Timestamp published_at = 18;
     // @inject_tag: json:"pricing" validate:"required,oneof=currency manual steam default"
     string pricing = 19;
-    // @inject_tag: json:"billing_type" validate:"required,oneof=real virtual"
-    string billing_type = 20;
 }
 
 message PlatformPrice {
@@ -919,7 +906,7 @@ message PlatformPrice {
     string id = 1;
     //@inject_tag: json:"name"
     string name = 2;
-    //@inject_tag: validate:"required,min=1,dive" json:"prices"
+    //@inject_tag: validate:"required,min=1,currency_price,dive" json:"prices"
     repeated billing.ProductPrice prices = 3;
     //@inject_tag: validate:"omitempty,url" json:"eula_url"
     string eula_url = 4;
@@ -960,7 +947,7 @@ message Product {
     string default_currency = 8;
     //@inject_tag: json:"enabled"
     bool enabled = 9;
-    //@inject_tag: validate:"required,min=1,dive" json:"prices"
+    //@inject_tag: validate:"required,min=1,currency_price,dive" json:"prices"
     repeated billing.ProductPrice prices = 10;
     //@inject_tag: validate:"required" json:"description"
     map<string, string> description = 11;
@@ -1221,6 +1208,10 @@ message GetPaymentMethodSettingsRequest {
     string payment_method_id = 1;
     // @inject_tag: query:"currency_a3" validate:"omitempty,alpha,len=3"
     string currency_a3 = 2;
+    // @inject_tag: query:"mcc_code" validate:"omitempty,numeric,len=4"
+    string mcc_code = 3;
+    // @inject_tag: query:"operating_company_id" validate:"omitempty,hexadecimal,len=24"
+    string operating_company_id = 4;
 }
 
 message GetPaymentMethodSettingsResponse {
@@ -1534,7 +1525,7 @@ message ProductPricesResponse {
 message UpdateProductPricesRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24" json:"product_id" param:"product_id"
     string product_id = 1;
-    //@inject_tag: validate:"required,min=1,dive" json:"prices"
+    //@inject_tag: validate:"required,min=1,currency_price,dive" json:"prices"
     repeated billing.ProductPrice prices = 2;
     //@inject_tag: validate:"hexadecimal,len=24"
     string merchant_id = 3;
@@ -1804,16 +1795,22 @@ message GetMerchantTariffRatesRequest {
     double min_amount = 3;
     // @inject_tag: query:"max_amount" validate:"omitempty,numeric,gt=0"
     double max_amount = 4;
+    // @inject_tag: query:"merchant_operations_type" json:"merchant_operations_type" validate:"oneof=high-risk low-risk"
+    string merchant_operations_type = 5;
 }
 
 message GetMerchantTariffRatesResponseItems {
     repeated billing.MerchantTariffRatesPayment payment = 1;
     //@inject_tag: json:"-"
-    repeated billing.MerchantTariffRatesSettingsRefundItem refund = 2;
+    repeated billing.MerchantTariffRatesSettingsItem refund = 2;
     //@inject_tag: json:"chargeback"
-    billing.MerchantTariffRatesSettingsItem chargeback = 3;
+    repeated billing.MerchantTariffRatesSettingsItem chargeback = 3;
     //@inject_tag: json:"payout"
-    billing.MerchantTariffRatesSettingsItem payout = 4;
+    map<string, billing.MerchantTariffRatesSettingsItem> payout = 4;
+    //@inject_tag: json:"minimal_payout"
+    map<string, float> minimal_payout = 5;
+    //@inject_tag: json:"mcc_code"
+    string mcc_code = 6;
 }
 
 message GetMerchantTariffRatesResponse {
@@ -1827,6 +1824,8 @@ message SetMerchantTariffRatesRequest {
     string merchant_id = 1;
     // @inject_tag: json:"home_region" validate:"required,tariff_region"
     string home_region = 2;
+    // @inject_tag: query:"merchant_operations_type" json:"merchant_operations_type" validate:"oneof=high-risk low-risk"
+    string merchant_operations_type = 3;
 }
 
 message ListOrdersPublicResponseItem {
@@ -2058,6 +2057,15 @@ message PayoutDocumentResponse {
     ResponseErrorMessage message = 2;
     //@inject_tag: json:"item"
     billing.PayoutDocument item = 3;
+}
+
+message CreatePayoutDocumentResponse {
+    //@inject_tag: json:"status"
+    int32 status = 1;
+    //@inject_tag: json:"message"
+    ResponseErrorMessage message = 2;
+    //@inject_tag: json:"item"
+    repeated billing.PayoutDocument items = 3;
 }
 
 message UpdatePayoutDocumentRequest {
@@ -2309,6 +2317,54 @@ message RoyaltyReportPdfUploadedResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
 }
+
+message DeleteSavedCardRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string id = 1;
+    //@inject_tag: validate:"required"
+    string cookie = 2;
+}
+
+message GetOperatingCompaniesListResponse {
+    int32 status = 1;
+    // @inject_tag: json:"message,omitempty"
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"items"
+    repeated billing.OperatingCompany items = 3;
+}
+
+message GetPaymentMinLimitsSystemResponse {
+    int32 status = 1;
+    // @inject_tag: json:"message,omitempty"
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"items"
+    repeated billing.PaymentMinLimitSystem items = 3;
+}
+
+message SetMerchantOperatingCompanyRequest {
+    // @inject_tag: json:"id" validate:"required,hexadecimal,len=24"
+    string merchant_id = 1;
+    // @inject_tag: json:"operating_company_id" validate:"required,hexadecimal,len=24"
+    string operating_company_id = 2;
+}
+
+message SetMerchantOperatingCompanyResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.Merchant item = 3;
+}
+
+message GetOperatingCompanyRequest {
+    // @inject_tag: json:"id" validate:"required,hexadecimal,len=24"
+    string id = 2;
+}
+
+message GetOperatingCompanyResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.OperatingCompany company = 3;
+}
+
 
 message GetMerchantUsersRequest {
     //@inject_tag: json:"merchant_id" validate:"required"
