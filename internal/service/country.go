@@ -76,6 +76,9 @@ func (s *Service) GetCountry(
 	res.VatCurrencyRatesSource = country.VatCurrencyRatesSource
 	res.CreatedAt = country.CreatedAt
 	res.UpdatedAt = country.UpdatedAt
+	res.PayerTariffRegion = country.PayerTariffRegion
+	res.HighRiskPaymentsAllowed = country.HighRiskPaymentsAllowed
+	res.HighRiskChangeAllowed = country.HighRiskChangeAllowed
 
 	return nil
 }
@@ -108,23 +111,25 @@ func (s *Service) UpdateCountry(
 	}
 
 	update := &billing.Country{
-		Id:                     country.Id,
-		IsoCodeA2:              country.IsoCodeA2,
-		Region:                 req.Region,
-		Currency:               req.Currency,
-		PaymentsAllowed:        req.PaymentsAllowed,
-		ChangeAllowed:          req.ChangeAllowed,
-		VatEnabled:             req.VatEnabled,
-		VatCurrency:            req.VatCurrency,
-		PriceGroupId:           pg.Id,
-		VatThreshold:           threshold,
-		VatPeriodMonth:         req.VatPeriodMonth,
-		VatDeadlineDays:        req.VatDeadlineDays,
-		VatStoreYears:          req.VatStoreYears,
-		VatCurrencyRatesPolicy: req.VatCurrencyRatesPolicy,
-		VatCurrencyRatesSource: req.VatCurrencyRatesSource,
-		CreatedAt:              country.CreatedAt,
-		UpdatedAt:              ptypes.TimestampNow(),
+		Id:                      country.Id,
+		IsoCodeA2:               country.IsoCodeA2,
+		Region:                  req.Region,
+		Currency:                req.Currency,
+		PaymentsAllowed:         req.PaymentsAllowed,
+		ChangeAllowed:           req.ChangeAllowed,
+		VatEnabled:              req.VatEnabled,
+		VatCurrency:             req.VatCurrency,
+		PriceGroupId:            pg.Id,
+		VatThreshold:            threshold,
+		VatPeriodMonth:          req.VatPeriodMonth,
+		VatDeadlineDays:         req.VatDeadlineDays,
+		VatStoreYears:           req.VatStoreYears,
+		VatCurrencyRatesPolicy:  req.VatCurrencyRatesPolicy,
+		VatCurrencyRatesSource:  req.VatCurrencyRatesSource,
+		CreatedAt:               country.CreatedAt,
+		UpdatedAt:               ptypes.TimestampNow(),
+		HighRiskPaymentsAllowed: req.HighRiskPaymentsAllowed,
+		HighRiskChangeAllowed:   req.HighRiskChangeAllowed,
 	}
 
 	err = s.country.Update(update)
@@ -149,6 +154,8 @@ func (s *Service) UpdateCountry(
 	res.VatCurrencyRatesSource = update.VatCurrencyRatesSource
 	res.CreatedAt = update.CreatedAt
 	res.UpdatedAt = update.UpdatedAt
+	res.HighRiskPaymentsAllowed = update.HighRiskPaymentsAllowed
+	res.HighRiskChangeAllowed = update.HighRiskChangeAllowed
 
 	return nil
 }
@@ -160,6 +167,7 @@ type CountryServiceInterface interface {
 	GetByIsoCodeA2(string) (*billing.Country, error)
 	GetAll() (*billing.CountriesList, error)
 	IsRegionExists(string) (bool, error)
+	IsTariffRegionExists(string) bool
 	GetCountriesWithVatEnabled() (*billing.CountriesList, error)
 	GetCountriesAndRegionsByTariffRegion(tariffRegion string) ([]*internalPkg.CountryAndRegionItem, error)
 }
@@ -359,6 +367,10 @@ func (h *Country) IsRegionExists(region string) (bool, error) {
 
 	_, ok := c.Regions[region]
 	return ok, nil
+}
+
+func (h *Country) IsTariffRegionExists(region string) bool {
+	return contains(pkg.SupportedTariffRegions, region)
 }
 
 func (h *Country) GetCountriesAndRegionsByTariffRegion(tariffRegion string) ([]*internalPkg.CountryAndRegionItem, error) {

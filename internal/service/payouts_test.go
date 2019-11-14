@@ -36,7 +36,8 @@ type PayoutsTestSuite struct {
 	log     *zap.Logger
 	cache   internalPkg.CacheInterface
 
-	merchant *billing.Merchant
+	merchant         *billing.Merchant
+	operatingCompany *billing.OperatingCompany
 
 	logObserver *zap.Logger
 	zapRecorder *observer.ObservedLogs
@@ -76,6 +77,25 @@ func (suite *PayoutsTestSuite) SetupTest() {
 
 	db, err := mongodb.NewDatabase()
 	assert.NoError(suite.T(), err, "Database connection failed")
+
+	suite.operatingCompany = &billing.OperatingCompany{
+		Id:                 bson.NewObjectId().Hex(),
+		Name:               "Legal name",
+		Country:            "RU",
+		RegistrationNumber: "some number",
+		VatNumber:          "some vat number",
+		Address:            "Home, home 0",
+		VatAddress:         "Address for VAT purposes",
+		SignatoryName:      "Vassiliy Poupkine",
+		SignatoryPosition:  "CEO",
+		BankingDetails:     "bank details including bank, bank address, account number, swift/ bic, intermediary bank",
+		PaymentCountries:   []string{},
+	}
+
+	err = db.Collection(collectionOperatingCompanies).Insert(suite.operatingCompany)
+	if err != nil {
+		suite.FailNow("Insert operatingCompany test data failed", "%v", err)
+	}
 
 	country := &billing.Country{
 		IsoCodeA2:       "RU",
@@ -128,8 +148,11 @@ func (suite *PayoutsTestSuite) SetupTest() {
 			Date:   date,
 			Amount: 999999,
 		},
-		IsSigned:       true,
-		PaymentMethods: map[string]*billing.MerchantPaymentMethod{},
+		IsSigned:             true,
+		PaymentMethods:       map[string]*billing.MerchantPaymentMethod{},
+		ManualPayoutsEnabled: true,
+		MccCode:              pkg.MccCodeLowRisk,
+		OperatingCompanyId:   suite.operatingCompany.Id,
 	}
 
 	layout := "2006-01-02T15:04:05.000Z"
@@ -165,12 +188,13 @@ func (suite *PayoutsTestSuite) SetupTest() {
 			RollingReserveAmount: 0,
 			CorrectionAmount:     0,
 		},
-		Status:         pkg.RoyaltyReportStatusAccepted,
-		CreatedAt:      ptypes.TimestampNow(),
-		PeriodFrom:     suite.dateFrom1,
-		PeriodTo:       suite.dateTo1,
-		AcceptExpireAt: ptypes.TimestampNow(),
-		Currency:       suite.merchant.GetPayoutCurrency(),
+		Status:             pkg.RoyaltyReportStatusAccepted,
+		CreatedAt:          ptypes.TimestampNow(),
+		PeriodFrom:         suite.dateFrom1,
+		PeriodTo:           suite.dateTo1,
+		AcceptExpireAt:     ptypes.TimestampNow(),
+		Currency:           suite.merchant.GetPayoutCurrency(),
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	suite.report2 = &billing.RoyaltyReport{
@@ -182,12 +206,13 @@ func (suite *PayoutsTestSuite) SetupTest() {
 			VatAmount:         10,
 			FeeAmount:         5,
 		},
-		Status:         pkg.RoyaltyReportStatusAccepted,
-		CreatedAt:      ptypes.TimestampNow(),
-		PeriodFrom:     suite.dateFrom2,
-		PeriodTo:       suite.dateTo2,
-		AcceptExpireAt: ptypes.TimestampNow(),
-		Currency:       suite.merchant.GetPayoutCurrency(),
+		Status:             pkg.RoyaltyReportStatusAccepted,
+		CreatedAt:          ptypes.TimestampNow(),
+		PeriodFrom:         suite.dateFrom2,
+		PeriodTo:           suite.dateTo2,
+		AcceptExpireAt:     ptypes.TimestampNow(),
+		Currency:           suite.merchant.GetPayoutCurrency(),
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	suite.report3 = &billing.RoyaltyReport{
@@ -199,12 +224,13 @@ func (suite *PayoutsTestSuite) SetupTest() {
 			VatAmount:         10,
 			FeeAmount:         5,
 		},
-		Status:         pkg.RoyaltyReportStatusPending,
-		CreatedAt:      ptypes.TimestampNow(),
-		PeriodFrom:     ptypes.TimestampNow(),
-		PeriodTo:       ptypes.TimestampNow(),
-		AcceptExpireAt: ptypes.TimestampNow(),
-		Currency:       suite.merchant.GetPayoutCurrency(),
+		Status:             pkg.RoyaltyReportStatusPending,
+		CreatedAt:          ptypes.TimestampNow(),
+		PeriodFrom:         ptypes.TimestampNow(),
+		PeriodTo:           ptypes.TimestampNow(),
+		AcceptExpireAt:     ptypes.TimestampNow(),
+		Currency:           suite.merchant.GetPayoutCurrency(),
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	suite.report4 = &billing.RoyaltyReport{
@@ -216,12 +242,13 @@ func (suite *PayoutsTestSuite) SetupTest() {
 			VatAmount:         0,
 			FeeAmount:         0,
 		},
-		Status:         pkg.RoyaltyReportStatusAccepted,
-		CreatedAt:      ptypes.TimestampNow(),
-		PeriodFrom:     ptypes.TimestampNow(),
-		PeriodTo:       ptypes.TimestampNow(),
-		AcceptExpireAt: ptypes.TimestampNow(),
-		Currency:       suite.merchant.GetPayoutCurrency(),
+		Status:             pkg.RoyaltyReportStatusAccepted,
+		CreatedAt:          ptypes.TimestampNow(),
+		PeriodFrom:         ptypes.TimestampNow(),
+		PeriodTo:           ptypes.TimestampNow(),
+		AcceptExpireAt:     ptypes.TimestampNow(),
+		Currency:           suite.merchant.GetPayoutCurrency(),
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	suite.report5 = &billing.RoyaltyReport{
@@ -233,12 +260,13 @@ func (suite *PayoutsTestSuite) SetupTest() {
 			VatAmount:         40,
 			FeeAmount:         50,
 		},
-		Status:         pkg.RoyaltyReportStatusAccepted,
-		CreatedAt:      ptypes.TimestampNow(),
-		PeriodFrom:     ptypes.TimestampNow(),
-		PeriodTo:       ptypes.TimestampNow(),
-		AcceptExpireAt: ptypes.TimestampNow(),
-		Currency:       "USD",
+		Status:             pkg.RoyaltyReportStatusAccepted,
+		CreatedAt:          ptypes.TimestampNow(),
+		PeriodFrom:         ptypes.TimestampNow(),
+		PeriodTo:           ptypes.TimestampNow(),
+		AcceptExpireAt:     ptypes.TimestampNow(),
+		Currency:           "USD",
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	suite.report6 = &billing.RoyaltyReport{
@@ -250,12 +278,13 @@ func (suite *PayoutsTestSuite) SetupTest() {
 			VatAmount:         100,
 			FeeAmount:         50,
 		},
-		Status:         pkg.RoyaltyReportStatusAccepted,
-		CreatedAt:      ptypes.TimestampNow(),
-		PeriodFrom:     ptypes.TimestampNow(),
-		PeriodTo:       ptypes.TimestampNow(),
-		AcceptExpireAt: ptypes.TimestampNow(),
-		Currency:       suite.merchant.GetPayoutCurrency(),
+		Status:             pkg.RoyaltyReportStatusAccepted,
+		CreatedAt:          ptypes.TimestampNow(),
+		PeriodFrom:         ptypes.TimestampNow(),
+		PeriodTo:           ptypes.TimestampNow(),
+		AcceptExpireAt:     ptypes.TimestampNow(),
+		Currency:           suite.merchant.GetPayoutCurrency(),
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	suite.report7 = &billing.RoyaltyReport{
@@ -267,12 +296,13 @@ func (suite *PayoutsTestSuite) SetupTest() {
 			VatAmount:         100,
 			FeeAmount:         50,
 		},
-		Status:         pkg.RoyaltyReportStatusDispute,
-		CreatedAt:      ptypes.TimestampNow(),
-		PeriodFrom:     ptypes.TimestampNow(),
-		PeriodTo:       ptypes.TimestampNow(),
-		AcceptExpireAt: ptypes.TimestampNow(),
-		Currency:       suite.merchant.GetPayoutCurrency(),
+		Status:             pkg.RoyaltyReportStatusDispute,
+		CreatedAt:          ptypes.TimestampNow(),
+		PeriodFrom:         ptypes.TimestampNow(),
+		PeriodTo:           ptypes.TimestampNow(),
+		AcceptExpireAt:     ptypes.TimestampNow(),
+		Currency:           suite.merchant.GetPayoutCurrency(),
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	suite.payout1 = &billing.PayoutDocument{
@@ -292,6 +322,7 @@ func (suite *PayoutsTestSuite) SetupTest() {
 		FailureTransaction: "",
 		FailureMessage:     "",
 		FailureCode:        "",
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	suite.payout2 = &billing.PayoutDocument{
@@ -311,11 +342,13 @@ func (suite *PayoutsTestSuite) SetupTest() {
 		FailureTransaction: "",
 		FailureMessage:     "",
 		FailureCode:        "",
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	suite.payout3 = &billing.PayoutDocument{
-		Id:         bson.NewObjectId().Hex(),
-		MerchantId: suite.merchant.Id,
+		Id:                 bson.NewObjectId().Hex(),
+		MerchantId:         suite.merchant.Id,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	assert.NoError(suite.T(), err, "Generate payout url expire date failed")
@@ -337,6 +370,7 @@ func (suite *PayoutsTestSuite) SetupTest() {
 		FailureTransaction: "",
 		FailureMessage:     "",
 		FailureCode:        "",
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	suite.payout5 = &billing.PayoutDocument{
@@ -356,6 +390,7 @@ func (suite *PayoutsTestSuite) SetupTest() {
 		FailureTransaction: "",
 		FailureMessage:     "",
 		FailureCode:        "",
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	suite.payout6 = &billing.PayoutDocument{
@@ -375,6 +410,7 @@ func (suite *PayoutsTestSuite) SetupTest() {
 		FailureTransaction: "",
 		FailureMessage:     "",
 		FailureCode:        "",
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	suite.payout7 = &billing.PayoutDocument{
@@ -394,6 +430,7 @@ func (suite *PayoutsTestSuite) SetupTest() {
 		FailureTransaction: "",
 		FailureMessage:     "",
 		FailureCode:        "",
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	suite.log, err = zap.NewProduction()
@@ -464,7 +501,7 @@ func (suite *PayoutsTestSuite) helperInsertPayoutDocuments(data []*billing.Payou
 func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Ok_NoPayoutsYet() {
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report1, suite.report6})
 
-	reports, err := suite.service.getPayoutDocumentSources(suite.merchant)
+	reports, err := suite.service.getPayoutDocumentSources(suite.merchant, suite.operatingCompany.Id)
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), reports, 2)
 }
@@ -472,20 +509,20 @@ func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Ok_NoPayouts
 func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Ok_FilteringByCurrency() {
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report1, suite.report5, suite.report6})
 
-	reports, err := suite.service.getPayoutDocumentSources(suite.merchant)
+	reports, err := suite.service.getPayoutDocumentSources(suite.merchant, suite.operatingCompany.Id)
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), reports, 2)
 }
 
 func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Fail_NotFound() {
-	reports, err := suite.service.getPayoutDocumentSources(suite.merchant)
+	reports, err := suite.service.getPayoutDocumentSources(suite.merchant, suite.operatingCompany.Id)
 	assert.EqualError(suite.T(), err, errorPayoutSourcesNotFound.Error())
 	assert.Len(suite.T(), reports, 0)
 }
 
 func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Fail_MerchantNotFound() {
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report1, suite.report6})
-	reports, err := suite.service.getPayoutDocumentSources(&billing.Merchant{Id: bson.NewObjectId().Hex()})
+	reports, err := suite.service.getPayoutDocumentSources(&billing.Merchant{Id: bson.NewObjectId().Hex()}, suite.operatingCompany.Id)
 	assert.EqualError(suite.T(), err, errorPayoutSourcesNotFound.Error())
 	assert.Len(suite.T(), reports, 0)
 }
@@ -493,7 +530,7 @@ func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Fail_Merchan
 func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Fail_HasPendingReports() {
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report1, suite.report3})
 
-	reports, err := suite.service.getPayoutDocumentSources(suite.merchant)
+	reports, err := suite.service.getPayoutDocumentSources(suite.merchant, suite.operatingCompany.Id)
 	assert.EqualError(suite.T(), err, errorPayoutSourcesPending.Error())
 	assert.Len(suite.T(), reports, 0)
 }
@@ -501,7 +538,7 @@ func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Fail_HasPend
 func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Fail_HasDisputingReports() {
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report1, suite.report7})
 
-	reports, err := suite.service.getPayoutDocumentSources(suite.merchant)
+	reports, err := suite.service.getPayoutDocumentSources(suite.merchant, suite.operatingCompany.Id)
 	assert.EqualError(suite.T(), err, errorPayoutSourcesDispute.Error())
 	assert.Len(suite.T(), reports, 0)
 }
@@ -522,19 +559,19 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Ok_Pending() {
 		Ip:          "127.0.0.1",
 	}
 
-	res := &grpc.PayoutDocumentResponse{}
+	res := &grpc.CreatePayoutDocumentResponse{}
 
 	err = suite.service.CreatePayoutDocument(context.TODO(), req, res)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
 	controlAmount := suite.report1.Totals.PayoutAmount + suite.report2.Totals.PayoutAmount
-	assert.Equal(suite.T(), res.Item.Balance, controlAmount)
-	assert.Equal(suite.T(), res.Item.Balance, float64(13579.5))
+	assert.Equal(suite.T(), res.Items[0].Balance, controlAmount)
+	assert.Equal(suite.T(), res.Items[0].Balance, float64(13579.5))
 	assert.True(suite.T(), suite.merchant.MinPayoutAmount < controlAmount)
-	assert.Equal(suite.T(), res.Item.Status, pkg.PayoutDocumentStatusPending)
-	assert.Len(suite.T(), res.Item.SourceId, 2)
-	assert.Equal(suite.T(), res.Item.PeriodFrom, suite.dateFrom1)
-	assert.Equal(suite.T(), res.Item.PeriodTo, suite.dateTo2)
+	assert.Equal(suite.T(), res.Items[0].Status, pkg.PayoutDocumentStatusPending)
+	assert.Len(suite.T(), res.Items[0].SourceId, 2)
+	assert.Equal(suite.T(), res.Items[0].PeriodFrom, suite.dateFrom1)
+	assert.Equal(suite.T(), res.Items[0].PeriodTo, suite.dateTo2)
 }
 
 func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Ok_SkipByAmount() {
@@ -553,19 +590,19 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Ok_SkipByAmount(
 		Ip:          "127.0.0.1",
 	}
 
-	res := &grpc.PayoutDocumentResponse{}
+	res := &grpc.CreatePayoutDocumentResponse{}
 
 	err = suite.service.CreatePayoutDocument(context.TODO(), req, res)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
 	controlAmount := suite.report2.Totals.PayoutAmount
-	assert.Equal(suite.T(), res.Item.Balance, controlAmount)
-	assert.Equal(suite.T(), res.Item.Balance, float64(1234.5))
+	assert.Equal(suite.T(), res.Items[0].Balance, controlAmount)
+	assert.Equal(suite.T(), res.Items[0].Balance, float64(1234.5))
 	assert.True(suite.T(), suite.merchant.MinPayoutAmount > controlAmount)
-	assert.Equal(suite.T(), res.Item.Status, pkg.PayoutDocumentStatusSkip)
-	assert.Len(suite.T(), res.Item.SourceId, 1)
-	assert.Equal(suite.T(), res.Item.PeriodFrom, suite.dateFrom2)
-	assert.Equal(suite.T(), res.Item.PeriodTo, suite.dateTo2)
+	assert.Equal(suite.T(), res.Items[0].Status, pkg.PayoutDocumentStatusSkip)
+	assert.Len(suite.T(), res.Items[0].SourceId, 1)
+	assert.Equal(suite.T(), res.Items[0].PeriodFrom, suite.dateFrom2)
+	assert.Equal(suite.T(), res.Items[0].PeriodTo, suite.dateTo2)
 }
 
 func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Ok_SkipByRollingReserve() {
@@ -586,20 +623,20 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Ok_SkipByRolling
 		Ip:          "127.0.0.1",
 	}
 
-	res1 := &grpc.PayoutDocumentResponse{}
+	res1 := &grpc.CreatePayoutDocumentResponse{}
 
 	err = suite.service.CreatePayoutDocument(context.TODO(), req1, res1)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res1.Status, pkg.ResponseStatusOk)
 	controlAmount := (suite.report1.Totals.PayoutAmount - suite.report1.Totals.CorrectionAmount - suite.report1.Totals.RollingReserveAmount) +
 		(suite.report2.Totals.PayoutAmount - suite.report2.Totals.CorrectionAmount - suite.report2.Totals.RollingReserveAmount)
-	assert.Equal(suite.T(), res1.Item.Balance, controlAmount)
-	assert.Equal(suite.T(), res1.Item.Balance, float64(12979.5))
+	assert.Equal(suite.T(), res1.Items[0].Balance, controlAmount)
+	assert.Equal(suite.T(), res1.Items[0].Balance, float64(12979.5))
 	assert.True(suite.T(), suite.merchant.MinPayoutAmount > controlAmount)
-	assert.Equal(suite.T(), res1.Item.Status, pkg.PayoutDocumentStatusSkip)
-	assert.Len(suite.T(), res1.Item.SourceId, 2)
-	assert.Equal(suite.T(), res1.Item.PeriodFrom, suite.dateFrom1)
-	assert.Equal(suite.T(), res1.Item.PeriodTo, suite.dateTo2)
+	assert.Equal(suite.T(), res1.Items[0].Status, pkg.PayoutDocumentStatusSkip)
+	assert.Len(suite.T(), res1.Items[0].SourceId, 2)
+	assert.Equal(suite.T(), res1.Items[0].PeriodFrom, suite.dateFrom1)
+	assert.Equal(suite.T(), res1.Items[0].PeriodTo, suite.dateTo2)
 }
 
 func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_NoSources() {
@@ -610,7 +647,7 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_NoSources
 		Ip:          "127.0.0.1",
 	}
 
-	res := &grpc.PayoutDocumentResponse{}
+	res := &grpc.CreatePayoutDocumentResponse{}
 
 	err := suite.service.CreatePayoutDocument(context.TODO(), req, res)
 	assert.NoError(suite.T(), err)
@@ -626,7 +663,7 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_MerchantN
 		Ip:          "127.0.0.1",
 	}
 
-	res := &grpc.PayoutDocumentResponse{}
+	res := &grpc.CreatePayoutDocumentResponse{}
 
 	err := suite.service.CreatePayoutDocument(context.TODO(), req, res)
 	assert.Error(suite.T(), err)
@@ -645,7 +682,7 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_ZeroAmoun
 		Ip:          "127.0.0.1",
 	}
 
-	res := &grpc.PayoutDocumentResponse{}
+	res := &grpc.CreatePayoutDocumentResponse{}
 
 	err = suite.service.CreatePayoutDocument(context.TODO(), req, res)
 	assert.NoError(suite.T(), err)
@@ -662,7 +699,7 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_NoBalance
 		Ip:          "127.0.0.1",
 	}
 
-	res := &grpc.PayoutDocumentResponse{}
+	res := &grpc.CreatePayoutDocumentResponse{}
 
 	err := suite.service.CreatePayoutDocument(context.TODO(), req, res)
 	assert.NoError(suite.T(), err)
@@ -698,7 +735,7 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_NotEnough
 		Ip:          "127.0.0.1",
 	}
 
-	res1 := &grpc.PayoutDocumentResponse{}
+	res1 := &grpc.CreatePayoutDocumentResponse{}
 
 	err = suite.service.CreatePayoutDocument(context.TODO(), req1, res1)
 	assert.NoError(suite.T(), err)
@@ -725,7 +762,7 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_InsertErr
 		Ip:          "127.0.0.1",
 	}
 
-	res := &grpc.PayoutDocumentResponse{}
+	res := &grpc.CreatePayoutDocumentResponse{}
 
 	err = suite.service.CreatePayoutDocument(context.TODO(), req, res)
 	assert.Error(suite.T(), err)
@@ -750,7 +787,7 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_InsertErr
 		Ip:          "127.0.0.1",
 	}
 
-	res := &grpc.PayoutDocumentResponse{}
+	res := &grpc.CreatePayoutDocumentResponse{}
 
 	err = suite.service.CreatePayoutDocument(context.TODO(), req, res)
 	assert.NoError(suite.T(), err)

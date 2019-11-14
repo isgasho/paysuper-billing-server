@@ -311,9 +311,32 @@ const (
 	PaymentSystemActionCreatePayment    = "create_payment"
 	PaymentSystemActionRecurringPayment = "recurring_payment"
 	PaymentSystemActionRefund           = "refund"
+
+	MccCodeLowRisk  = "5816"
+	MccCodeHighRisk = "5967"
+
+	MerchantOperationTypeLowRisk  = "low-risk"
+	MerchantOperationTypeHighRisk = "high-risk"
+
+	TariffRegionRussiaAndCis = "russia_and_cis"
+	TariffRegionEurope       = "europe"
+	TariffRegionAsia         = "asia"
+	TariffRegionLatAm        = "latam"
+	TariffRegionWorldwide    = "worldwide"
+
+	PaymentMethodKey = "%s:%s:%s" // currency:mcc_code:operating_company_id, for example: "USD:5816:5dc3f70deb494903d835f28a"
 )
 
 var (
+	MerchantOperationsTypesToMccCodes = map[string]string{
+		MerchantOperationTypeLowRisk:  MccCodeLowRisk,
+		MerchantOperationTypeHighRisk: MccCodeHighRisk,
+	}
+
+	SupportedMccCodes = []string{MccCodeLowRisk, MccCodeHighRisk}
+
+	SupportedTariffRegions = []string{TariffRegionRussiaAndCis, TariffRegionEurope, TariffRegionAsia, TariffRegionLatAm, TariffRegionWorldwide}
+
 	CountryPhoneCodes = map[int32]string{
 		7:    "RU",
 		375:  "BY",

@@ -267,7 +267,8 @@ func (s *Service) GetVatReportTransactions(
 			"$gte": now.New(from).BeginningOfDay(),
 			"$lte": now.New(to).EndOfDay(),
 		},
-		"country_code": vr.Country,
+		"country_code":         vr.Country,
+		"operating_company_id": vr.OperatingCompanyId,
 	}
 
 	n, err := s.orderView.CountTransactions(match)
@@ -555,10 +556,29 @@ func (h *vatReportProcessor) getCountry(countryCode string) *billing.Country {
 }
 
 func (h *vatReportProcessor) ProcessVatReports(ctx context.Context) error {
-	for _, c := range h.countries {
-		err := h.processVatReportForPeriod(ctx, c)
-		if err != nil {
-			return err
+	operatingCompanies, err := h.Service.operatingCompany.GetAll()
+	if err != nil {
+		return err
+	}
+
+	for _, oc := range operatingCompanies {
+		countries := []*billing.Country{}
+		if len(oc.PaymentCountries) == 0 {
+			countries = h.countries
+		} else {
+			for _, countryCode := range oc.PaymentCountries {
+				country, err := h.Service.country.GetByIsoCodeA2(countryCode)
+				if err != nil {
+					return err
+				}
+				countries = append(countries, country)
+			}
+		}
+		for _, c := range h.countries {
+			err := h.processVatReportForPeriod(ctx, c, oc.Id)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -593,7 +613,7 @@ func (h *vatReportProcessor) UpdateOrderView() error {
 	return nil
 }
 
-func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, country *billing.Country) error {
+func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, country *billing.Country, operatingCompanyId string) error {
 
 	from, to, err := h.Service.getVatReportTimeForDate(country.VatPeriodMonth, h.date)
 	if err != nil {
@@ -623,14 +643,15 @@ func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, coun
 	rate := rsp.Rate.Rate
 
 	report := &billing.VatReport{
-		Id:               bson.NewObjectId().Hex(),
-		Country:          country.IsoCodeA2,
-		VatRate:          rate,
-		Currency:         country.Currency,
-		Status:           pkg.VatReportStatusThreshold,
-		CorrectionAmount: 0,
-		CreatedAt:        ptypes.TimestampNow(),
-		UpdatedAt:        ptypes.TimestampNow(),
+		Id:                 bson.NewObjectId().Hex(),
+		Country:            country.IsoCodeA2,
+		VatRate:            rate,
+		Currency:           country.Currency,
+		Status:             pkg.VatReportStatusThreshold,
+		CorrectionAmount:   0,
+		CreatedAt:          ptypes.TimestampNow(),
+		UpdatedAt:          ptypes.TimestampNow(),
+		OperatingCompanyId: operatingCompanyId,
 	}
 
 	report.DateFrom, err = ptypes.TimestampProto(from)
@@ -646,7 +667,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, coun
 		return err
 	}
 
-	countryTurnover, err := h.Service.turnover.Get(country.IsoCodeA2, from.Year())
+	countryTurnover, err := h.Service.turnover.Get(operatingCompanyId, country.IsoCodeA2, from.Year())
 	if err != nil {
 		zap.S().Warn(
 			errorMsgVatReportTurnoverNotFound,
@@ -658,7 +679,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, coun
 	}
 	report.CountryAnnualTurnover = tools.FormatAmount(countryTurnover.Amount)
 
-	worldTurnover, err := h.Service.turnover.Get("", from.Year())
+	worldTurnover, err := h.Service.turnover.Get(operatingCompanyId, "", from.Year())
 	if err != nil {
 		return err
 	}
@@ -689,8 +710,9 @@ func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, coun
 			"$gte": now.New(from).BeginningOfDay(),
 			"$lte": now.New(to).EndOfDay(),
 		},
-		"country_code":     country.IsoCodeA2,
-		"is_vat_deduction": false,
+		"country_code":         country.IsoCodeA2,
+		"is_vat_deduction":     false,
+		"operating_company_id": operatingCompanyId,
 	}
 
 	query := []bson.M{
@@ -749,8 +771,6 @@ func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, coun
 	}
 
 	report.FeesAmount = tools.FormatAmount(report.FeesAmount)
-
-	// todo: implement calculation of correction amount after CP settlements support
 
 	selector := bson.M{
 		"country":   report.Country,

@@ -281,6 +281,14 @@ func (c *Country) GetVatCurrencyCode() string {
 	return c.Currency
 }
 
+func (c *Country) GetPaymentRestrictions(isForHighRisk bool) (bool, bool) {
+	if isForHighRisk {
+		return c.HighRiskPaymentsAllowed, c.HighRiskChangeAllowed
+	}
+
+	return c.PaymentsAllowed, c.ChangeAllowed
+}
+
 func (m *Project) GetVirtualCurrencyRate(group *PriceGroup) (float64, error) {
 	for _, price := range m.VirtualCurrency.Prices {
 		if group.Region != "" && price.Region == group.Region {
@@ -293,4 +301,8 @@ func (m *Project) GetVirtualCurrencyRate(group *PriceGroup) (float64, error) {
 	}
 
 	return 0, errors.New(fmt.Sprintf(productNoPriceInCurrency, group.Region))
+}
+
+func (m *Merchant) IsHighRisk() bool {
+	return m.MccCode == pkg.MccCodeHighRisk
 }

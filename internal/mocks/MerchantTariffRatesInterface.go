@@ -78,13 +78,13 @@ func (_m *MerchantTariffRatesInterface) GetPaymentTariffsBy(_a0 *grpc.GetMerchan
 	return r0, r1
 }
 
-// GetTariffsSettings provides a mock function with given fields:
-func (_m *MerchantTariffRatesInterface) GetTariffsSettings() (*billing.MerchantTariffRatesSettings, error) {
-	ret := _m.Called()
+// GetTariffsSettings provides a mock function with given fields: in
+func (_m *MerchantTariffRatesInterface) GetTariffsSettings(in *grpc.GetMerchantTariffRatesRequest) (*billing.MerchantTariffRatesSettings, error) {
+	ret := _m.Called(in)
 
 	var r0 *billing.MerchantTariffRatesSettings
-	if rf, ok := ret.Get(0).(func() *billing.MerchantTariffRatesSettings); ok {
-		r0 = rf()
+	if rf, ok := ret.Get(0).(func(*grpc.GetMerchantTariffRatesRequest) *billing.MerchantTariffRatesSettings); ok {
+		r0 = rf(in)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*billing.MerchantTariffRatesSettings)
@@ -92,8 +92,8 @@ func (_m *MerchantTariffRatesInterface) GetTariffsSettings() (*billing.MerchantT
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
+	if rf, ok := ret.Get(1).(func(*grpc.GetMerchantTariffRatesRequest) error); ok {
+		r1 = rf(in)
 	} else {
 		r1 = ret.Error(1)
 	}

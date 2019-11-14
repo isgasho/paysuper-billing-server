@@ -94,6 +94,8 @@ type Service struct {
 	reporterService            reporterProto.ReporterService
 	postmarkBroker             rabbitmq.BrokerInterface
 	paylinkService             PaylinkServiceInterface
+	operatingCompany           OperatingCompanyInterface
+	paymentMinLimitSystem      PaymentMinLimitSystemInterface
 }
 
 func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {
@@ -172,6 +174,8 @@ func (s *Service) Init() (err error) {
 	s.orderRepository = newOrderRepository(s)
 	s.centrifugo = newCentrifugo(s)
 	s.paylinkService = newPaylinkService(s)
+	s.operatingCompany = newOperatingCompanyService(s)
+	s.paymentMinLimitSystem = newPaymentMinLimitSystem(s)
 
 	sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currencies.EmptyRequest{})
 	if err != nil {

@@ -12,8 +12,10 @@ import (
 )
 
 const (
-	collectionMerchantsPaymentTariffs  = "merchants_payment_tariffs"
-	collectionMerchantTariffsSettings  = "merchant_tariffs_settings"
+	collectionMerchantsPaymentTariffs = "merchants_payment_tariffs"
+	collectionMerchantTariffsSettings = "merchant_tariffs_settings"
+
+	merchantTariffsSettingsKey         = "merchant_tariffs_settings:mcc:%s"
 	onboardingTariffRatesCacheKeyGetBy = "onboarding_tariff_rates:%x"
 )
 
@@ -23,7 +25,7 @@ type TariffRates struct {
 
 type MerchantTariffRatesInterface interface {
 	GetPaymentTariffsBy(*grpc.GetMerchantTariffRatesRequest) ([]*billing.MerchantTariffRatesPayment, error)
-	GetTariffsSettings() (*billing.MerchantTariffRatesSettings, error)
+	GetTariffsSettings(in *grpc.GetMerchantTariffRatesRequest) (*billing.MerchantTariffRatesSettings, error)
 	GetBy(in *grpc.GetMerchantTariffRatesRequest) (*grpc.GetMerchantTariffRatesResponseItems, error)
 	GetCacheKeyForGetBy(*grpc.GetMerchantTariffRatesRequest) (string, error)
 }
@@ -41,31 +43,41 @@ func (h *MerchantsTariffRatesRepository) GetBy(
 		return nil, err
 	}
 
-	settings, err := h.GetTariffsSettings()
+	settings, err := h.GetTariffsSettings(in)
 
 	if err != nil {
 		return nil, err
 	}
 
 	tariffs := &grpc.GetMerchantTariffRatesResponseItems{
-		Payment:    payment,
-		Refund:     settings.Refund,
-		Chargeback: settings.Chargeback,
-		Payout:     settings.Payout,
+		Payment:       payment,
+		Refund:        settings.Refund,
+		Chargeback:    settings.Chargeback,
+		Payout:        settings.Payout,
+		MinimalPayout: settings.MinimalPayout,
+		MccCode:       settings.MccCode,
 	}
 
 	return tariffs, nil
 }
 
-func (h *MerchantsTariffRatesRepository) GetTariffsSettings() (*billing.MerchantTariffRatesSettings, error) {
+func (h *MerchantsTariffRatesRepository) GetTariffsSettings(in *grpc.GetMerchantTariffRatesRequest) (*billing.MerchantTariffRatesSettings, error) {
+	mccCode, err := getMccByOperationsType(in.MerchantOperationsType)
+	if err != nil {
+		return nil, err
+	}
+
 	item := new(billing.MerchantTariffRatesSettings)
-	err := h.svc.cacher.Get(collectionMerchantTariffsSettings, &item)
+	key := fmt.Sprintf(merchantTariffsSettingsKey, mccCode)
+	err = h.svc.cacher.Get(key, &item)
 
 	if err == nil {
 		return item, nil
 	}
 
-	query := bson.M{}
+	query := bson.M{
+		"mcc_code": mccCode,
+	}
 	err = h.svc.db.Collection(collectionMerchantTariffsSettings).Find(query).One(item)
 
 	if err != nil {
@@ -78,14 +90,14 @@ func (h *MerchantsTariffRatesRepository) GetTariffsSettings() (*billing.Merchant
 		return nil, merchantTariffsNotFound
 	}
 
-	err = h.svc.cacher.Set(collectionMerchantTariffsSettings, item, 0)
+	err = h.svc.cacher.Set(key, item, 0)
 
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorCacheQueryFailed,
 			zap.Error(err),
 			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
-			zap.String(pkg.ErrorCacheFieldKey, collectionMerchantTariffsSettings),
+			zap.String(pkg.ErrorCacheFieldKey, key),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, item),
 		)
 	}
@@ -109,7 +121,12 @@ func (h *MerchantsTariffRatesRepository) GetPaymentTariffsBy(
 		return item.Items, nil
 	}
 
-	query := bson.M{"merchant_home_region": in.HomeRegion}
+	mccCode, err := getMccByOperationsType(in.MerchantOperationsType)
+	if err != nil {
+		return nil, err
+	}
+
+	query := bson.M{"merchant_home_region": in.HomeRegion, "mcc_code": mccCode}
 
 	if in.PayerRegion == "" {
 		query["payer_region"] = in.HomeRegion

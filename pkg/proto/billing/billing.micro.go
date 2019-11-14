@@ -117,7 +117,6 @@ It has these top-level messages:
 	Id
 	RangeInt
 	MerchantTariffRatesPayment
-	MerchantTariffRatesSettingsRefundItem
 	MerchantTariffRatesSettingsItem
 	MerchantTariffRatesSettings
 	Key
@@ -134,6 +133,8 @@ It has these top-level messages:
 	OrderCreateByPaylink
 	UserIpData
 	PaymentFormDataChangeResponseItem
+	OperatingCompany
+	PaymentMinLimitSystem
 */
 package billing
 

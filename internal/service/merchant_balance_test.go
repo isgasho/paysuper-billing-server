@@ -117,8 +117,10 @@ func (suite *MerchantBalanceTestSuite) SetupTest() {
 	core, suite.zapRecorder = observer.New(lvl)
 	suite.logObserver = zap.New(core)
 
-	suite.merchant = helperCreateMerchant(suite.Suite, suite.service, "RUB", "RU", nil, 13000)
-	suite.merchant2 = helperCreateMerchant(suite.Suite, suite.service, "", "RU", nil, 0)
+	operatingCompany := helperOperatingCompany(suite.Suite, suite.service)
+
+	suite.merchant = helperCreateMerchant(suite.Suite, suite.service, "RUB", "RU", nil, 13000, operatingCompany.Id)
+	suite.merchant2 = helperCreateMerchant(suite.Suite, suite.service, "", "RU", nil, 0, operatingCompany.Id)
 }
 
 func (suite *MerchantBalanceTestSuite) TearDownTest() {

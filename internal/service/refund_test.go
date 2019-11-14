@@ -5,6 +5,7 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
@@ -31,9 +32,10 @@ type RefundTestSuite struct {
 	log     *zap.Logger
 	cache   internalPkg.CacheInterface
 
-	paySys     *billing.PaymentSystem
-	project    *billing.Project
-	pmBankCard *billing.PaymentMethod
+	paySys           *billing.PaymentSystem
+	project          *billing.Project
+	pmBankCard       *billing.PaymentMethod
+	operatingCompany *billing.OperatingCompany
 }
 
 func Test_Refund(t *testing.T) {
@@ -50,6 +52,35 @@ func (suite *RefundTestSuite) SetupTest() {
 	suite.log, err = zap.NewProduction()
 	assert.NoError(suite.T(), err, "Logger initialization failed")
 
+	paymentMinLimitSystem1 := &billing.PaymentMinLimitSystem{
+		Id:        bson.NewObjectId().Hex(),
+		Currency:  "RUB",
+		Amount:    0.01,
+		CreatedAt: ptypes.TimestampNow(),
+		UpdatedAt: ptypes.TimestampNow(),
+	}
+
+	suite.operatingCompany = &billing.OperatingCompany{
+		Id:                 bson.NewObjectId().Hex(),
+		Name:               "Legal name",
+		Country:            "RU",
+		RegistrationNumber: "some number",
+		VatNumber:          "some vat number",
+		Address:            "Home, home 0",
+		VatAddress:         "Address for VAT purposes",
+		SignatoryName:      "Vassiliy Poupkine",
+		SignatoryPosition:  "CEO",
+		BankingDetails:     "bank details including bank, bank address, account number, swift/ bic, intermediary bank",
+		PaymentCountries:   []string{},
+	}
+
+	err = db.Collection(collectionOperatingCompanies).Insert(suite.operatingCompany)
+	if err != nil {
+		suite.FailNow("Insert operatingCompany test data failed", "%v", err)
+	}
+
+	keyRub := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
+
 	country := &billing.Country{
 		IsoCodeA2:       "RU",
 		Region:          "Russia",
@@ -63,11 +94,14 @@ func (suite *RefundTestSuite) SetupTest() {
 			Year:  0,
 			World: 0,
 		},
-		VatPeriodMonth:         3,
-		VatDeadlineDays:        25,
-		VatStoreYears:          5,
-		VatCurrencyRatesPolicy: "last-day",
-		VatCurrencyRatesSource: "cbrf",
+		VatPeriodMonth:          3,
+		VatDeadlineDays:         25,
+		VatStoreYears:           5,
+		VatCurrencyRatesPolicy:  "last-day",
+		VatCurrencyRatesSource:  "cbrf",
+		PayerTariffRegion:       pkg.TariffRegionRussiaAndCis,
+		HighRiskPaymentsAllowed: false,
+		HighRiskChangeAllowed:   false,
 	}
 
 	suite.paySys = &billing.PaymentSystem{
@@ -87,18 +121,23 @@ func (suite *RefundTestSuite) SetupTest() {
 		MaxPaymentAmount: 15000,
 		ExternalId:       "BANKCARD",
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				Currency:       "RUB",
-				TerminalId:     "15985",
-				Secret:         "A1tph4I6BD0f",
-				SecretCallback: "0V1rJ7t4jCRv",
+			keyRub: {
+				Currency:           "RUB",
+				TerminalId:         "15985",
+				Secret:             "A1tph4I6BD0f",
+				SecretCallback:     "0V1rJ7t4jCRv",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
 		},
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				TerminalId:     "15985",
-				Secret:         "A1tph4I6BD0f",
-				SecretCallback: "0V1rJ7t4jCRv",
+			keyRub: {
+				TerminalId:         "15985",
+				Secret:             "A1tph4I6BD0f",
+				SecretCallback:     "0V1rJ7t4jCRv",
+				Currency:           "RUB",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			}},
 		Type:            "bank_card",
 		IsActive:        true,
@@ -209,6 +248,8 @@ func (suite *RefundTestSuite) SetupTest() {
 			},
 			HomeRegion: "russia_and_cis",
 		},
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	project := &billing.Project{
@@ -242,9 +283,11 @@ func (suite *RefundTestSuite) SetupTest() {
 		MaxPaymentAmount: 0,
 		ExternalId:       "QIWI",
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				Currency:   "RUB",
-				TerminalId: "15993",
+			keyRub: {
+				Currency:           "RUB",
+				TerminalId:         "15993",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
 		},
 		Type:            "ewallet",
@@ -259,14 +302,19 @@ func (suite *RefundTestSuite) SetupTest() {
 		MaxPaymentAmount: 0,
 		ExternalId:       "BITCOIN",
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				Currency:   "RUB",
-				TerminalId: "16007",
+			keyRub: {
+				Currency:           "RUB",
+				TerminalId:         "16007",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			},
 		},
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			"RUB": {
-				TerminalId: "16007",
+			keyRub: {
+				TerminalId:         "16007",
+				Currency:           "RUB",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
 			}},
 		Type:            "crypto",
 		IsActive:        true,
@@ -315,7 +363,9 @@ func (suite *RefundTestSuite) SetupTest() {
 			Date:   date,
 			Amount: 10000,
 		},
-		IsSigned: true,
+		IsSigned:           true,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 	merchant1 := &billing.Merchant{
 		Id: bson.NewObjectId().Hex(),
@@ -359,7 +409,9 @@ func (suite *RefundTestSuite) SetupTest() {
 			Date:   date,
 			Amount: 100000,
 		},
-		IsSigned: false,
+		IsSigned:           false,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
 	broker, err := rabbitmq.NewBroker(cfg.BrokerAddress)
@@ -387,6 +439,10 @@ func (suite *RefundTestSuite) SetupTest() {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 
+	limits := []interface{}{paymentMinLimitSystem1}
+	err = suite.service.db.Collection(collectionPaymentMinLimitSystem).Insert(limits...)
+	assert.NoError(suite.T(), err)
+
 	pms := []*billing.PaymentMethod{pmBankCard, pmQiwi, pmBitcoin}
 	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {
 		suite.FailNow("Insert payment methods test data failed", "%v", err)
@@ -410,20 +466,29 @@ func (suite *RefundTestSuite) SetupTest() {
 	}
 
 	sysCost := &billing.PaymentChannelCostSystem{
-		Id:        bson.NewObjectId().Hex(),
-		Name:      "MASTERCARD",
-		Region:    "CIS",
-		Country:   "AZ",
-		Percent:   1.5,
-		FixAmount: 5,
+		Id:                 bson.NewObjectId().Hex(),
+		Name:               "VISA",
+		Region:             pkg.TariffRegionRussiaAndCis,
+		Country:            "AZ",
+		Percent:            1.5,
+		FixAmount:          5,
+		FixAmountCurrency:  "USD",
+		IsActive:           true,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: merchant.OperatingCompanyId,
 	}
 
 	sysCost1 := &billing.PaymentChannelCostSystem{
-		Name:      "MASTERCARD",
-		Region:    "CIS",
-		Country:   "",
-		Percent:   2.2,
-		FixAmount: 0,
+		Id:                 "",
+		Name:               "VISA",
+		Region:             pkg.TariffRegionRussiaAndCis,
+		Country:            "",
+		Percent:            2.2,
+		FixAmount:          0,
+		FixAmountCurrency:  "USD",
+		IsActive:           true,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: merchant.OperatingCompanyId,
 	}
 
 	err = suite.service.paymentChannelCostSystem.MultipleInsert([]*billing.PaymentChannelCostSystem{sysCost, sysCost1})
@@ -433,46 +498,59 @@ func (suite *RefundTestSuite) SetupTest() {
 	}
 
 	merCost := &billing.PaymentChannelCostMerchant{
-		Id:                 bson.NewObjectId().Hex(),
-		MerchantId:         project.GetMerchantId(),
-		Name:               "VISA",
-		PayoutCurrency:     "RUB",
-		MinAmount:          0.75,
-		Region:             "Russia",
-		Country:            "RU",
-		MethodPercent:      1.5,
-		MethodFixAmount:    0.01,
-		PsPercent:          3,
-		PsFixedFee:         0.01,
-		PsFixedFeeCurrency: "EUR",
+		Id:                      bson.NewObjectId().Hex(),
+		MerchantId:              project.GetMerchantId(),
+		Name:                    "VISA",
+		PayoutCurrency:          "RUB",
+		MinAmount:               0.75,
+		Region:                  pkg.TariffRegionRussiaAndCis,
+		Country:                 "RU",
+		MethodPercent:           1.5,
+		MethodFixAmount:         0.01,
+		MethodFixAmountCurrency: "EUR",
+		PsPercent:               3,
+		PsFixedFee:              0.01,
+		PsFixedFeeCurrency:      "EUR",
+		CreatedAt:               nil,
+		UpdatedAt:               nil,
+		IsActive:                true,
+		MccCode:                 pkg.MccCodeLowRisk,
 	}
 
 	merCost1 := &billing.PaymentChannelCostMerchant{
-		MerchantId:         project.GetMerchantId(),
-		Name:               "MASTERCARD",
-		PayoutCurrency:     "USD",
-		MinAmount:          5,
-		Region:             "Russia",
-		Country:            "RU",
-		MethodPercent:      2.5,
-		MethodFixAmount:    2,
-		PsPercent:          5,
-		PsFixedFee:         0.05,
-		PsFixedFeeCurrency: "EUR",
+		Id:                      bson.NewObjectId().Hex(),
+		MerchantId:              project.GetMerchantId(),
+		Name:                    "MASTERCARD",
+		PayoutCurrency:          "USD",
+		MinAmount:               5,
+		Region:                  pkg.TariffRegionRussiaAndCis,
+		Country:                 "RU",
+		MethodPercent:           2.5,
+		MethodFixAmount:         2,
+		MethodFixAmountCurrency: "EUR",
+		PsPercent:               5,
+		PsFixedFee:              0.05,
+		PsFixedFeeCurrency:      "EUR",
+		IsActive:                true,
+		MccCode:                 pkg.MccCodeLowRisk,
 	}
 
 	merCost2 := &billing.PaymentChannelCostMerchant{
-		MerchantId:         project.GetMerchantId(),
-		Name:               "MASTERCARD",
-		PayoutCurrency:     "USD",
-		MinAmount:          0,
-		Region:             "CIS",
-		Country:            "",
-		MethodPercent:      2.2,
-		MethodFixAmount:    0,
-		PsPercent:          5,
-		PsFixedFee:         0.05,
-		PsFixedFeeCurrency: "EUR",
+		Id:                      bson.NewObjectId().Hex(),
+		MerchantId:              project.GetMerchantId(),
+		Name:                    "MASTERCARD",
+		PayoutCurrency:          "USD",
+		MinAmount:               0,
+		Region:                  pkg.TariffRegionRussiaAndCis,
+		Country:                 "",
+		MethodPercent:           2.2,
+		MethodFixAmount:         0,
+		MethodFixAmountCurrency: "EUR",
+		PsPercent:               5,
+		PsFixedFee:              0.05,
+		PsFixedFeeCurrency:      "EUR",
+		IsActive:                true,
+		MccCode:                 pkg.MccCodeLowRisk,
 	}
 
 	err = suite.service.paymentChannelCostMerchant.MultipleInsert([]*billing.PaymentChannelCostMerchant{merCost, merCost1, merCost2})
@@ -482,51 +560,68 @@ func (suite *RefundTestSuite) SetupTest() {
 	}
 
 	mbSysCost := &billing.MoneyBackCostSystem{
-		Name:           "VISA",
-		PayoutCurrency: "RUB",
-		UndoReason:     "chargeback",
-		Region:         "CIS",
-		Country:        "AZ",
-		DaysFrom:       0,
-		PaymentStage:   1,
-		Percent:        3,
-		FixAmount:      5,
+		Id:                 bson.NewObjectId().Hex(),
+		Name:               "VISA",
+		PayoutCurrency:     "RUB",
+		UndoReason:         "chargeback",
+		Region:             pkg.TariffRegionRussiaAndCis,
+		Country:            "AZ",
+		DaysFrom:           0,
+		PaymentStage:       1,
+		Percent:            3,
+		FixAmount:          5,
+		FixAmountCurrency:  "EUR",
+		IsActive:           true,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: merchant.OperatingCompanyId,
 	}
 
 	mbSysCost1 := &billing.MoneyBackCostSystem{
-		Name:           "VISA",
-		PayoutCurrency: "RUB",
-		UndoReason:     "chargeback",
-		Region:         "Russia",
-		Country:        "RU",
-		DaysFrom:       0,
-		PaymentStage:   1,
-		Percent:        10,
-		FixAmount:      15,
+		Name:               "VISA",
+		PayoutCurrency:     "RUB",
+		UndoReason:         "chargeback",
+		Region:             pkg.TariffRegionRussiaAndCis,
+		Country:            "RU",
+		DaysFrom:           0,
+		PaymentStage:       1,
+		Percent:            10,
+		FixAmount:          15,
+		FixAmountCurrency:  "EUR",
+		IsActive:           true,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: merchant.OperatingCompanyId,
 	}
 
 	mbSysCost2 := &billing.MoneyBackCostSystem{
-		Name:           "VISA",
-		PayoutCurrency: "RUB",
-		UndoReason:     "chargeback",
-		Region:         "Russia",
-		Country:        "RU",
-		DaysFrom:       0,
-		PaymentStage:   1,
-		Percent:        10,
-		FixAmount:      15,
+		Name:               "VISA",
+		PayoutCurrency:     "RUB",
+		UndoReason:         "chargeback",
+		Region:             pkg.TariffRegionRussiaAndCis,
+		Country:            "RU",
+		DaysFrom:           0,
+		PaymentStage:       1,
+		Percent:            10,
+		FixAmount:          15,
+		FixAmountCurrency:  "EUR",
+		IsActive:           true,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: merchant.OperatingCompanyId,
 	}
 
 	mbSysCost3 := &billing.MoneyBackCostSystem{
-		Name:           "VISA",
-		PayoutCurrency: "RUB",
-		UndoReason:     "reversal",
-		Region:         "Russia",
-		Country:        "RU",
-		DaysFrom:       0,
-		PaymentStage:   1,
-		Percent:        10,
-		FixAmount:      15,
+		Name:               "VISA",
+		PayoutCurrency:     "RUB",
+		UndoReason:         "reversal",
+		Region:             pkg.TariffRegionRussiaAndCis,
+		Country:            "RU",
+		DaysFrom:           0,
+		PaymentStage:       1,
+		Percent:            10,
+		FixAmount:          15,
+		FixAmountCurrency:  "EUR",
+		IsActive:           true,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: merchant.OperatingCompanyId,
 	}
 
 	err = suite.service.moneyBackCostSystem.MultipleInsert([]*billing.MoneyBackCostSystem{mbSysCost, mbSysCost1, mbSysCost2, mbSysCost3})
@@ -541,7 +636,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		Name:              "VISA",
 		PayoutCurrency:    "RUB",
 		UndoReason:        "chargeback",
-		Region:            "CIS",
+		Region:            pkg.TariffRegionRussiaAndCis,
 		Country:           "AZ",
 		DaysFrom:          0,
 		PaymentStage:      1,
@@ -549,6 +644,8 @@ func (suite *RefundTestSuite) SetupTest() {
 		FixAmount:         5,
 		FixAmountCurrency: "USD",
 		IsPaidByMerchant:  true,
+		IsActive:          true,
+		MccCode:           pkg.MccCodeLowRisk,
 	}
 
 	mbMerCost1 := &billing.MoneyBackCostMerchant{
@@ -557,7 +654,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		Name:              "VISA",
 		PayoutCurrency:    "RUB",
 		UndoReason:        "chargeback",
-		Region:            "Russia",
+		Region:            pkg.TariffRegionRussiaAndCis,
 		Country:           "RU",
 		DaysFrom:          0,
 		PaymentStage:      1,
@@ -565,6 +662,8 @@ func (suite *RefundTestSuite) SetupTest() {
 		FixAmount:         15,
 		FixAmountCurrency: "USD",
 		IsPaidByMerchant:  true,
+		IsActive:          true,
+		MccCode:           pkg.MccCodeLowRisk,
 	}
 
 	mbMerCost2 := &billing.MoneyBackCostMerchant{
@@ -573,7 +672,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		Name:              "VISA",
 		PayoutCurrency:    "RUB",
 		UndoReason:        "chargeback",
-		Region:            "CIS",
+		Region:            pkg.TariffRegionRussiaAndCis,
 		Country:           "",
 		DaysFrom:          0,
 		PaymentStage:      1,
@@ -581,6 +680,8 @@ func (suite *RefundTestSuite) SetupTest() {
 		FixAmount:         3,
 		FixAmountCurrency: "USD",
 		IsPaidByMerchant:  true,
+		IsActive:          true,
+		MccCode:           pkg.MccCodeLowRisk,
 	}
 	mbMerCost3 := &billing.MoneyBackCostMerchant{
 		Id:                bson.NewObjectId().Hex(),
@@ -588,7 +689,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		Name:              "VISA",
 		PayoutCurrency:    "RUB",
 		UndoReason:        "reversal",
-		Region:            "CIS",
+		Region:            pkg.TariffRegionRussiaAndCis,
 		Country:           "AZ",
 		DaysFrom:          0,
 		PaymentStage:      1,
@@ -596,6 +697,8 @@ func (suite *RefundTestSuite) SetupTest() {
 		FixAmount:         5,
 		FixAmountCurrency: "USD",
 		IsPaidByMerchant:  true,
+		IsActive:          true,
+		MccCode:           pkg.MccCodeLowRisk,
 	}
 	mbMerCost4 := &billing.MoneyBackCostMerchant{
 		Id:                bson.NewObjectId().Hex(),
@@ -603,7 +706,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		Name:              "VISA",
 		PayoutCurrency:    "RUB",
 		UndoReason:        "reversal",
-		Region:            "Russia",
+		Region:            pkg.TariffRegionRussiaAndCis,
 		Country:           "RU",
 		DaysFrom:          0,
 		PaymentStage:      1,
@@ -611,6 +714,8 @@ func (suite *RefundTestSuite) SetupTest() {
 		FixAmount:         15,
 		FixAmountCurrency: "USD",
 		IsPaidByMerchant:  true,
+		IsActive:          true,
+		MccCode:           pkg.MccCodeLowRisk,
 	}
 	mbMerCost5 := &billing.MoneyBackCostMerchant{
 		Id:                bson.NewObjectId().Hex(),
@@ -618,7 +723,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		Name:              "VISA",
 		PayoutCurrency:    "RUB",
 		UndoReason:        "reversal",
-		Region:            "CIS",
+		Region:            pkg.TariffRegionRussiaAndCis,
 		Country:           "",
 		DaysFrom:          0,
 		PaymentStage:      1,
@@ -626,6 +731,8 @@ func (suite *RefundTestSuite) SetupTest() {
 		FixAmount:         3,
 		FixAmountCurrency: "USD",
 		IsPaidByMerchant:  true,
+		IsActive:          true,
+		MccCode:           pkg.MccCodeLowRisk,
 	}
 
 	err = suite.service.moneyBackCostMerchant.MultipleInsert([]*billing.MoneyBackCostMerchant{mbMerCost, mbMerCost1, mbMerCost2, mbMerCost3, mbMerCost4, mbMerCost5})

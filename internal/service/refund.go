@@ -32,7 +32,7 @@ var (
 	refundErrorPaymentAmountLess  = newBillingServerErrorMsg("rf000004", "refund unavailable, because payment amount less than total refunds amount")
 	refundErrorNotFound           = newBillingServerErrorMsg("rf000005", "refund with specified data not found")
 	refundErrorOrderNotFound      = newBillingServerErrorMsg("rf000006", "information about payment for refund with specified data not found")
-	refundErrorCostsRatesNotFound = newBillingServerErrorMsg("rf000007", "settings to calculate commissions not found")
+	refundErrorCostsRatesNotFound = newBillingServerErrorMsg("rf000007", "settings to calculate commissions for refund not found")
 )
 
 type createRefundChecked struct {
@@ -580,13 +580,15 @@ func (p *createRefundProcessor) hasMoneyBackCosts(order *billing.Order) bool {
 	}
 
 	data := &billing.MoneyBackCostSystemRequest{
-		Name:           methodName,
-		PayoutCurrency: order.GetMerchantRoyaltyCurrency(),
-		Region:         country.Region,
-		Country:        country.IsoCodeA2,
-		PaymentStage:   1,
-		Days:           int32(refundAt.Sub(paymentAt).Hours() / 24),
-		UndoReason:     reason,
+		Name:               methodName,
+		PayoutCurrency:     order.GetMerchantRoyaltyCurrency(),
+		Region:             country.PayerTariffRegion,
+		Country:            country.IsoCodeA2,
+		PaymentStage:       1,
+		Days:               int32(refundAt.Sub(paymentAt).Hours() / 24),
+		UndoReason:         reason,
+		MccCode:            order.MccCode,
+		OperatingCompanyId: order.OperatingCompanyId,
 	}
 	_, err = p.service.getMoneyBackCostSystem(data)
 
@@ -599,10 +601,11 @@ func (p *createRefundProcessor) hasMoneyBackCosts(order *billing.Order) bool {
 		Name:           methodName,
 		PayoutCurrency: order.GetMerchantRoyaltyCurrency(),
 		UndoReason:     reason,
-		Region:         country.Region,
+		Region:         country.PayerTariffRegion,
 		Country:        country.IsoCodeA2,
 		PaymentStage:   1,
 		Days:           int32(refundAt.Sub(paymentAt).Hours() / 24),
+		MccCode:        order.MccCode,
 	}
 	_, err = p.service.getMoneyBackCostMerchant(data1)
 	return err == nil
