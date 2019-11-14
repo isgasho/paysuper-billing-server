@@ -13,16 +13,19 @@ import (
 )
 
 const (
-	cachePaymentMethodId       = "payment_method:id:%s"
-	cachePaymentMethodGroup    = "payment_method:group:%s"
-	cachePaymentMethodAll      = "payment_method:all"
-	cachePaymentMethodCurrency = "payment_method:currency:%s"
+	cachePaymentMethodId                     = "payment_method:id:%s"
+	cachePaymentMethodGroup                  = "payment_method:group:%s"
+	cachePaymentMethodAll                    = "payment_method:all"
+	cachePaymentMethodModeCurrencyMccCompany = "payment_method:mode:%s:currency:%s:mcc:%s:oc:%s"
 
 	collectionPaymentMethod = "payment_method"
 
 	paymentMethodErrorPaymentSystem              = "payment method must contain of payment system"
 	paymentMethodErrorUnknownMethod              = "payment method is unknown"
 	paymentMethodErrorNotFoundProductionSettings = "payment method is not contain requesting settings"
+
+	fieldTestSettings       = "test_settings"
+	fieldProductionSettings = "production_settings"
 )
 
 type PaymentMethods struct {
@@ -118,7 +121,9 @@ func (s *Service) CreateOrUpdatePaymentMethodProductionSettings(
 		pm.ProductionSettings = map[string]*billing.PaymentMethodParams{}
 	}
 
-	pm.ProductionSettings[req.Params.Currency] = &billing.PaymentMethodParams{
+	key := fmt.Sprintf(pkg.PaymentMethodKey, req.Params.Currency, req.Params.MccCode, req.Params.OperatingCompanyId)
+
+	pm.ProductionSettings[key] = &billing.PaymentMethodParams{
 		Currency:           req.Params.Currency,
 		Secret:             req.Params.Secret,
 		SecretCallback:     req.Params.SecretCallback,
@@ -150,9 +155,9 @@ func (s *Service) GetPaymentMethodProductionSettings(
 		return nil
 	}
 
-	for key, param := range pm.ProductionSettings {
+	for _, param := range pm.ProductionSettings {
 		rsp.Params = append(rsp.Params, &billing.PaymentMethodParams{
-			Currency:           key,
+			Currency:           param.Currency,
 			TerminalId:         param.TerminalId,
 			Secret:             param.Secret,
 			SecretCallback:     param.SecretCallback,
@@ -178,7 +183,9 @@ func (s *Service) DeletePaymentMethodProductionSettings(
 		return nil
 	}
 
-	if _, ok := pm.ProductionSettings[req.CurrencyA3]; !ok {
+	key := fmt.Sprintf(pkg.PaymentMethodKey, req.CurrencyA3, req.MccCode, req.OperatingCompanyId)
+
+	if _, ok := pm.ProductionSettings[key]; !ok {
 		zap.S().Errorf("Unable to get production settings for currency", "data", req)
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = paymentMethodErrorNotFoundProductionSettings
@@ -186,7 +193,7 @@ func (s *Service) DeletePaymentMethodProductionSettings(
 		return nil
 	}
 
-	delete(pm.ProductionSettings, req.CurrencyA3)
+	delete(pm.ProductionSettings, key)
 
 	if err := s.paymentMethod.Update(pm); err != nil {
 		zap.S().Errorf("Query to delete production settings of project method is failed", "err", err.Error(), "data", req)
@@ -222,7 +229,9 @@ func (s *Service) CreateOrUpdatePaymentMethodTestSettings(
 		pm.TestSettings = map[string]*billing.PaymentMethodParams{}
 	}
 
-	pm.TestSettings[req.Params.Currency] = &billing.PaymentMethodParams{
+	key := fmt.Sprintf(pkg.PaymentMethodKey, req.Params.Currency, req.Params.MccCode, req.Params.OperatingCompanyId)
+
+	pm.TestSettings[key] = &billing.PaymentMethodParams{
 		Currency:           req.Params.Currency,
 		Secret:             req.Params.Secret,
 		SecretCallback:     req.Params.SecretCallback,
@@ -254,9 +263,9 @@ func (s *Service) GetPaymentMethodTestSettings(
 		return nil
 	}
 
-	for key, param := range pm.TestSettings {
+	for _, param := range pm.TestSettings {
 		rsp.Params = append(rsp.Params, &billing.PaymentMethodParams{
-			Currency:           key,
+			Currency:           param.Currency,
 			TerminalId:         param.TerminalId,
 			Secret:             param.Secret,
 			SecretCallback:     param.SecretCallback,
@@ -282,7 +291,9 @@ func (s *Service) DeletePaymentMethodTestSettings(
 		return nil
 	}
 
-	if _, ok := pm.TestSettings[req.CurrencyA3]; !ok {
+	key := fmt.Sprintf(pkg.PaymentMethodKey, req.CurrencyA3, req.MccCode, req.OperatingCompanyId)
+
+	if _, ok := pm.TestSettings[key]; !ok {
 		zap.S().Errorf("Unable to get production settings for currency", "data", req)
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = paymentMethodErrorNotFoundProductionSettings
@@ -290,7 +301,7 @@ func (s *Service) DeletePaymentMethodTestSettings(
 		return nil
 	}
 
-	delete(pm.TestSettings, req.CurrencyA3)
+	delete(pm.TestSettings, key)
 
 	if err := s.paymentMethod.Update(pm); err != nil {
 		zap.S().Errorf("Query to delete production settings of project method is failed", "err", err.Error(), "data", req)
@@ -364,10 +375,10 @@ func (h *PaymentMethod) GetByGroupAndCurrency(
 		return c, nil
 	}
 
-	field := "test_settings"
+	field := fieldTestSettings
 
 	if project.IsProduction() {
-		field = "production_settings"
+		field = fieldProductionSettings
 	}
 
 	query := bson.M{
@@ -435,7 +446,8 @@ func (h *PaymentMethod) Insert(pm *billing.PaymentMethod) error {
 		return err
 	}
 
-	if err := h.svc.cacher.Delete(cachePaymentMethodAll); err != nil {
+	err := h.resetCaches(pm)
+	if err != nil {
 		return err
 	}
 
@@ -452,7 +464,8 @@ func (h *PaymentMethod) Update(pm *billing.PaymentMethod) error {
 		return err
 	}
 
-	if err := h.svc.cacher.Delete(cachePaymentMethodAll); err != nil {
+	err = h.resetCaches(pm)
+	if err != nil {
 		return err
 	}
 
@@ -501,17 +514,18 @@ func (h *PaymentMethod) GetPaymentSettings(
 
 func (h *PaymentMethod) ListByParams(project *billing.Project, currency, mccCode, operatingCompanyId string) ([]*billing.PaymentMethod, error) {
 	val := new(PaymentMethods)
-	key := fmt.Sprintf(cachePaymentMethodCurrency, currency)
-	err := h.svc.cacher.Get(key, &val)
-
-	if err == nil {
-		return val.PaymentMethods, nil
-	}
 
 	field := "test_settings"
 
 	if project.IsProduction() {
 		field = "production_settings"
+	}
+
+	key := fmt.Sprintf(cachePaymentMethodModeCurrencyMccCompany, field, currency, mccCode, operatingCompanyId)
+	err := h.svc.cacher.Get(key, &val)
+
+	if err == nil {
+		return val.PaymentMethods, nil
 	}
 
 	query := bson.M{
@@ -554,4 +568,37 @@ func (h *PaymentMethod) ListByParams(project *billing.Project, currency, mccCode
 	}
 
 	return val.PaymentMethods, nil
+}
+
+func (h *PaymentMethod) resetCaches(pm *billing.PaymentMethod) error {
+
+	if err := h.svc.cacher.Delete(cachePaymentMethodAll); err != nil {
+		return err
+	}
+
+	key := fmt.Sprintf(cachePaymentMethodId, pm.Id)
+	if err := h.svc.cacher.Delete(key); err != nil {
+		return err
+	}
+
+	key = fmt.Sprintf(cachePaymentMethodGroup, pm.Group)
+	if err := h.svc.cacher.Delete(key); err != nil {
+		return err
+	}
+
+	for _, param := range pm.TestSettings {
+		key := fmt.Sprintf(cachePaymentMethodModeCurrencyMccCompany, fieldTestSettings, param.Currency, param.MccCode, param.OperatingCompanyId)
+		if err := h.svc.cacher.Delete(key); err != nil {
+			return err
+		}
+	}
+
+	for _, param := range pm.ProductionSettings {
+		key := fmt.Sprintf(cachePaymentMethodModeCurrencyMccCompany, fieldProductionSettings, param.Currency, param.MccCode, param.OperatingCompanyId)
+		if err := h.svc.cacher.Delete(key); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

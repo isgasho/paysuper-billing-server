@@ -1184,6 +1184,10 @@ message GetPaymentMethodSettingsRequest {
     string payment_method_id = 1;
     // @inject_tag: query:"currency_a3" validate:"omitempty,alpha,len=3"
     string currency_a3 = 2;
+    // @inject_tag: query:"mcc_code" validate:"omitempty,numeric,len=4"
+    string mcc_code = 3;
+    // @inject_tag: query:"operating_company_id" validate:"omitempty,hexadecimal,len=24"
+    string operating_company_id = 4;
 }
 
 message GetPaymentMethodSettingsResponse {
