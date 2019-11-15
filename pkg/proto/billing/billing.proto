@@ -1018,7 +1018,7 @@ message TokenUserIpValue {
 }
 
 message TokenUserLocaleValue {
-    //@inject_tag: validate:"omitempty,locale,len=5"
+    //@inject_tag: validate:"omitempty,locale,min=5"
     string value = 1;
 }
 
