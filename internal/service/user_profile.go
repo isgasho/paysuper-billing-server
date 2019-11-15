@@ -521,17 +521,10 @@ func (s *Service) GetCommonUserProfile(
 	}
 
 	if req.MerchantId != "" {
-		role, _ := s.userRoleRepository.GetMerchantUserByUserId(req.MerchantId, req.UserId)
-
-		if role != nil {
-			rsp.Profile.Role = role
-		}
+		rsp.Profile.Role, _ = s.userRoleRepository.GetMerchantUserByUserId(req.MerchantId, req.UserId)
+		rsp.Profile.Merchant, _ = s.merchant.GetCommonById(req.MerchantId)
 	} else {
-		role, _ := s.userRoleRepository.GetAdminUserByUserId(req.UserId)
-
-		if role != nil {
-			rsp.Profile.Role = role
-		}
+		rsp.Profile.Role, _ = s.userRoleRepository.GetAdminUserByUserId(req.UserId)
 	}
 
 	if rsp.Profile.Role != nil {

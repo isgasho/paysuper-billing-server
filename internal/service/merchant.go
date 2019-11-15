@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	cacheMerchantId = "merchant:id:%s"
+	cacheMerchantId       = "merchant:id:%s"
+	cacheMerchantCommonId = "merchant:common:id:%s"
 
 	collectionMerchant                     = "merchant"
 	collectionMerchantPaymentMethodHistory = "payment_method_history"
@@ -21,6 +22,7 @@ type MerchantRepositoryInterface interface {
 	Upsert(merchant *billing.Merchant) error
 	MultipleInsert(merchants []*billing.Merchant) error
 	GetById(id string) (*billing.Merchant, error)
+	GetCommonById(id string) (*billing.MerchantCommon, error)
 	GetPaymentMethod(merchantId string, method string) (*billing.MerchantPaymentMethod, error)
 	GetMerchantsWithAutoPayouts() ([]*billing.Merchant, error)
 }
@@ -141,6 +143,39 @@ func (h *Merchant) MultipleInsert(merchants []*billing.Merchant) error {
 func (h *Merchant) GetById(id string) (*billing.Merchant, error) {
 	var c billing.Merchant
 	key := fmt.Sprintf(cacheMerchantId, id)
+
+	if err := h.svc.cacher.Get(key, c); err == nil {
+		return &c, nil
+	}
+
+	query := bson.M{"_id": bson.ObjectIdHex(id)}
+	err := h.svc.db.Collection(collectionMerchant).Find(query).One(&c)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return nil, fmt.Errorf(errorNotFound, collectionMerchant)
+	}
+
+	if err := h.svc.cacher.Set(key, c, 0); err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
+			zap.String(pkg.ErrorCacheFieldKey, key),
+			zap.Any(pkg.ErrorCacheFieldData, c),
+		)
+	}
+
+	return &c, nil
+}
+
+func (h *Merchant) GetCommonById(id string) (*billing.MerchantCommon, error) {
+	var c billing.MerchantCommon
+	key := fmt.Sprintf(cacheMerchantCommonId, id)
 
 	if err := h.svc.cacher.Get(key, c); err == nil {
 		return &c, nil

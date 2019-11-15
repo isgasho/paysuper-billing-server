@@ -390,6 +390,21 @@ message Merchant {
     string operating_company_id = 56;
 }
 
+message MerchantCommon {
+    // @inject_tag: bson:"_id"
+    string id = 1;
+    // @inject_tag: json:"name"
+    string name = 2;
+    // @inject_tag: json:"currency"
+    string currency = 3;
+    // @inject_tag: json:"status"
+    int32 status = 4;
+    // @inject_tag: json:"centrifugo_token"
+    string centrifugo_token = 5;
+    // @inject_tag: json:"has_projects"
+    bool has_projects = 6;
+}
+
 message SystemNotificationStatuses {
     int32 from = 1;
     int32 to = 2;

@@ -146,6 +146,13 @@ type MgoMerchant struct {
 	OperatingCompanyId                            string                               `bson:"operating_company_id"`
 }
 
+type MgoMerchantCommon struct {
+	Id      bson.ObjectId        `bson:"_id"`
+	Company *MerchantCompanyInfo `bson:"company"`
+	Banking *MerchantBanking     `bson:"banking"`
+	Status  int32                `bson:"status"`
+}
+
 type MgoCommission struct {
 	Id struct {
 		PaymentMethodId bson.ObjectId `bson:"pm_id"`
@@ -2553,6 +2560,28 @@ func (m *Merchant) SetBSON(raw bson.Raw) error {
 
 			m.AgreementSignatureData.PsSignUrl.ExpiresAt = t
 		}
+	}
+
+	return nil
+}
+
+func (m *MerchantCommon) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoMerchantCommon)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.Status = decoded.Status
+
+	if decoded.Company != nil {
+		m.Name = decoded.Company.Name
+	}
+
+	if decoded.Banking != nil {
+		m.Currency = decoded.Banking.Currency
 	}
 
 	return nil
