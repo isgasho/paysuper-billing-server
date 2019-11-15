@@ -852,24 +852,6 @@ func (s *Service) DeleteAdminUser(
 	return nil
 }
 
-func (s *Service) GetPermissionsForUser(ctx context.Context, req *grpc.GetPermissionsForUserRequest, res *grpc.GetPermissionsForUserResponse) error {
-	zap.S().Infow("GetPermissionsForUser called", "req.UserId", req.UserId, "req.MerchantId", req.MerchantId)
-
-	permissions, err := s.getUserPermissions(ctx, req.UserId, req.MerchantId)
-
-	if err != nil {
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserGetImplicitPermissions
-
-		return nil
-	}
-
-	res.Permissions = permissions
-	res.Status = pkg.ResponseStatusOk
-
-	return nil
-}
-
 func (s *Service) getUserPermissions(ctx context.Context, userId string, merchantId string) ([]*grpc.Permission, error) {
 	id := userId
 
