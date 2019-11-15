@@ -634,10 +634,10 @@ func (s *Service) parseInviteToken(t string, email string) (jwt.MapClaims, error
 
 func (s *Service) sendInviteEmail(receiverEmail, senderEmail, senderFirstName, senderLastName, senderCompany, token string) error {
 	// TODO: What will be the address of the links? How do we transfer the parameters (to the public or to the JWT key)?
-	inviteLink := "/user/invite/member?key=" + token
+	inviteLink := "/login?invite_token=" + token
 
 	if senderCompany != defaultCompanyName {
-		inviteLink = "/user/invite/merchant?key=" + token
+		inviteLink = "/login?invite_token=" + token
 	}
 
 	payload := &postmarkSdrPkg.Payload{
