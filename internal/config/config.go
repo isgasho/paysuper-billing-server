@@ -111,6 +111,7 @@ type Config struct {
 
 	UserInviteTokenSecret  string `envconfig:"USER_INVITE_TOKEN_SECRET" required:"true"`
 	UserInviteTokenTimeout int64  `envconfig:"USER_INVITE_TOKEN_TIMEOUT" default:"48"`
+	UserInviteUrl          string `envconfig:"USER_INVITE_URL" default:"https://paysupermgmt.tst.protocol.one/login?invite_token=%s"`
 
 	*PaymentSystemConfig
 	*CustomerTokenConfig

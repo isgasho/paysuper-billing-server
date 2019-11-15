@@ -422,6 +422,7 @@ github.com/gurukami/typ/v2 v2.0.1/go.mod h1:/Rvw4v0yqZKMPi4r1kc9LPnwXj/BdeTgOAtx
 github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed/go.mod h1:tMWxXQ9wFIaZeTI9F+hmhFiGpFmhOHzyShyFUhRm0H4=
 github.com/hashicorp/consul v1.5.1 h1:p7tRmQ4m3ZMYkGQkuyjLXKbdU1weeumgZFqZOvw7o4c=
 github.com/hashicorp/consul v1.5.1/go.mod h1:QsmgXh2YA9Njv6y3/FHXqHYhsMye++3oBoAZ6SR8R8I=
+github.com/hashicorp/consul v1.5.2 h1:/FN0sSinNNJHVmby8aZfT2hOzeX0/fxFb7/1rH1Ati0=
 github.com/hashicorp/consul v1.5.2/go.mod h1:Zbvyz3buCZQMF5YyCbu5DgHua7HZLDqheJdcADGBHmc=
 github.com/hashicorp/consul/api v1.1.0 h1:BNQPM9ytxj6jbjjdRPioQ94T6YXriSopn0i8COv6SRA=
 github.com/hashicorp/consul/api v1.1.0/go.mod h1:VmuI/Lkw1nC05EYQWNKwWGbkg+FbDBtguAZLlVdkD9Q=

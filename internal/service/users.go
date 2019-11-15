@@ -633,13 +633,6 @@ func (s *Service) parseInviteToken(t string, email string) (jwt.MapClaims, error
 }
 
 func (s *Service) sendInviteEmail(receiverEmail, senderEmail, senderFirstName, senderLastName, senderCompany, token string) error {
-	// TODO: What will be the address of the links? How do we transfer the parameters (to the public or to the JWT key)?
-	inviteLink := "/login?invite_token=" + token
-
-	if senderCompany != defaultCompanyName {
-		inviteLink = "/login?invite_token=" + token
-	}
-
 	payload := &postmarkSdrPkg.Payload{
 		TemplateAlias: s.cfg.EmailInviteTemplate,
 		TemplateModel: map[string]string{
@@ -647,7 +640,7 @@ func (s *Service) sendInviteEmail(receiverEmail, senderEmail, senderFirstName, s
 			"sender_last_name":  senderLastName,
 			"sender_email":      senderEmail,
 			"sender_company":    senderCompany,
-			"invite_link":       inviteLink,
+			"invite_link":       fmt.Sprintf(s.cfg.UserInviteUrl, token),
 		},
 		To: receiverEmail,
 	}
