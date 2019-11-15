@@ -810,6 +810,50 @@ func (s *Service) PaymentFormJsonDataProcess(
 	return nil
 }
 
+func (s *Service) fillPaymentFormJsonData(order *billing.Order, rsp *grpc.PaymentFormJsonDataResponse) {
+	projectName, ok := order.Project.Name[order.User.Locale]
+
+	if !ok {
+		projectName = order.Project.Name[DefaultLanguage]
+	}
+
+	expire := time.Now().Add(time.Minute * 30).Unix()
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": order.Uuid, "exp": expire})
+
+	rsp.Item.Id = order.Uuid
+	rsp.Item.Account = order.ProjectAccount
+	rsp.Item.Description = order.Description
+	rsp.Item.HasVat = order.Tax.Amount > 0
+	rsp.Item.Vat = order.Tax.Amount
+	rsp.Item.Currency = order.Currency
+	rsp.Item.Project = &grpc.PaymentFormJsonDataProject{
+		Name:       projectName,
+		UrlSuccess: order.Project.UrlSuccess,
+		UrlFail:    order.Project.UrlFail,
+	}
+	rsp.Item.PaymentMethods = pms
+	rsp.Item.Token, _ = token.SignedString([]byte(s.cfg.CentrifugoSecret))
+	rsp.Item.Amount = order.OrderAmount
+	rsp.Item.TotalAmount = order.TotalPaymentAmount
+	rsp.Item.Items = order.Items
+	rsp.Item.Email = order.User.Email
+
+	if order.CountryRestriction != nil {
+		rsp.Item.CountryPaymentsAllowed = order.CountryRestriction.PaymentsAllowed
+		rsp.Item.CountryChangeAllowed = order.CountryRestriction.ChangeAllowed
+	} else {
+		rsp.Item.CountryPaymentsAllowed = true
+		rsp.Item.CountryChangeAllowed = true
+	}
+
+	rsp.Item.UserIpData = &billing.UserIpData{
+		Country: order.User.Address.Country,
+		City:    order.User.Address.City,
+		Zip:     order.User.Address.PostalCode,
+	}
+	rsp.Item.Lang = order.User.Locale
+}
+
 func (s *Service) PaymentCreateProcess(
 	ctx context.Context,
 	req *grpc.PaymentCreateRequest,
