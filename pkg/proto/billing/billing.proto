@@ -422,9 +422,13 @@ message OrderPlatformFee {
 }
 
 message OrderTax {
+    // @inject_tag: json:"type"
     string type = 1;
+    // @inject_tag: json:"rate"
     double rate = 2;
+    // @inject_tag: json:"amount"
     double amount = 3;
+    // @inject_tag: json:"currency"
     string currency = 4;
 }
 
@@ -558,7 +562,7 @@ message Order {
     google.protobuf.Timestamp payment_method_order_closed_at = 39; // date of ended payment operation in payment system
     // @inject_tag: json:"-" bson:"created_by_json"
     bool is_json_request = 40; // is order create by json request
-    // @inject_tag: json:"-" bson:"private_amount" validate:"required,numeric,gt=0"
+    // @inject_tag: json:"original_amount" bson:"private_amount" validate:"required,numeric,gt=0"
     double order_amount = 41;
     // @inject_tag: json:"-" bson:"pm_account"
     string payment_method_payer_account = 42; // account of payer in payment system
