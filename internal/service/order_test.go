@@ -3895,6 +3895,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_Ok() {
 			Address: &billing.OrderBillingAddress{
 				Country: "RU",
 			},
+			Locale: "ru-RU",
 		},
 	}
 
@@ -3924,6 +3925,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_Ok() {
 	assert.Equal(suite.T(), req.Description, rsp.Item.Description)
 	assert.False(suite.T(), rsp.Item.CountryPaymentsAllowed)
 	assert.True(suite.T(), rsp.Item.CountryChangeAllowed)
+	assert.Equal(suite.T(), req.User.Locale, rsp.Item.Lang)
 
 	order, err = suite.service.getOrderByUuid(order.Uuid)
 	assert.Nil(suite.T(), err)

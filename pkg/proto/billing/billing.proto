@@ -301,8 +301,11 @@ message MerchantAgreementSignatureData {
 }
 
 message MerchantTariff {
+    // @inject_tag: json:"-"
     repeated billing.MerchantTariffRatesPayment payment = 1;
+    // @inject_tag: json:"-"
     MerchantTariffRatesSettingsItem payout = 2;
+    // @inject_tag: json:"home_region"
     string home_region = 3;
 }
 
@@ -380,7 +383,7 @@ message Merchant {
     string agreement_number = 51;
     // @inject_tag: json:"minimal_payout_limit"
     float minimal_payout_limit = 52;
-    // @inject_tag: json:"-"
+    // @inject_tag: json:"tariff"
     MerchantTariff tariff = 53;
     // @inject_tag: json:"manual_payouts_enabled"
     bool manual_payouts_enabled = 54;
@@ -1015,7 +1018,7 @@ message TokenUserIpValue {
 }
 
 message TokenUserLocaleValue {
-    //@inject_tag: validate:"omitempty,alpha,len=2"
+    //@inject_tag: validate:"omitempty,locale,len=5"
     string value = 1;
 }
 
