@@ -215,7 +215,6 @@ service BillingService {
     rpc GetRoleList(GetRoleListRequest) returns (GetRoleListResponse) {}
     rpc DeleteMerchantUser(MerchantRoleRequest) returns (EmptyResponseWithStatus) {}
     rpc DeleteAdminUser(AdminRoleRequest) returns (EmptyResponseWithStatus) {}
-    rpc GetPermissionsForUser(GetPermissionsForUserRequest) returns (GetPermissionsForUserResponse) {}
     rpc GetMerchantUserRole(MerchantRoleRequest) returns (UserRoleResponse) {}
     rpc GetAdminUserRole(AdminRoleRequest) returns (UserRoleResponse) {}
     rpc GetCommonUserProfile(CommonUserProfileRequest) returns (CommonUserProfileResponse) {}
@@ -2527,19 +2526,6 @@ message MerchantRoleRequest {
     string role_id = 1;
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string merchant_id = 2;
-}
-
-message GetPermissionsForUserRequest {
-    //@inject_tag: json:"user_id" validate:"required,hexadecimal,len=24"
-    string user_id = 1;
-    //@inject_tag: json:"merchant_id" validate:"omitempty,hexadecimal,len=24"
-    string merchant_id = 2;
-}
-
-message GetPermissionsForUserResponse {
-    int32 status = 1;
-    ResponseErrorMessage message = 2;
-    repeated Permission permissions = 3;
 }
 
 message Permission {

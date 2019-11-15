@@ -33,6 +33,29 @@ func (_m *MerchantRepositoryInterface) GetById(id string) (*billing.Merchant, er
 	return r0, r1
 }
 
+// GetCommonById provides a mock function with given fields: id
+func (_m *MerchantRepositoryInterface) GetCommonById(id string) (*billing.MerchantCommon, error) {
+	ret := _m.Called(id)
+
+	var r0 *billing.MerchantCommon
+	if rf, ok := ret.Get(0).(func(string) *billing.MerchantCommon); ok {
+		r0 = rf(id)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*billing.MerchantCommon)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetMerchantsWithAutoPayouts provides a mock function with given fields:
 func (_m *MerchantRepositoryInterface) GetMerchantsWithAutoPayouts() ([]*billing.Merchant, error) {
 	ret := _m.Called()
