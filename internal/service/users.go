@@ -853,6 +853,8 @@ func (s *Service) DeleteAdminUser(
 }
 
 func (s *Service) GetPermissionsForUser(ctx context.Context, req *grpc.GetPermissionsForUserRequest, res *grpc.GetPermissionsForUserResponse) error {
+	zap.S().Infow("GetPermissionsForUser called", "req.UserId", req.UserId, "req.MerchantId", req.MerchantId)
+
 	permissions, err := s.getUserPermissions(ctx, req.UserId, req.MerchantId)
 
 	if err != nil {
