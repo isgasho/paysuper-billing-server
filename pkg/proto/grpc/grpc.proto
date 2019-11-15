@@ -482,6 +482,10 @@ message PaymentFormJsonData {
     repeated Platform platforms = 20;
     //@inject_tag: json:"lang"
     string lang = 21;
+    //@inject_tag: json:"is_already_processed"
+    bool is_already_processed = 22;
+    //@inject_tag: json:"receipt_url"
+    string receipt_url = 23;
 }
 
 message PaymentFormJsonDataResponse {
