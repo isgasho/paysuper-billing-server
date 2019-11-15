@@ -2342,6 +2342,8 @@ message OperatingCompany {
     google.protobuf.Timestamp created_at = 12;
     // @inject_tag: json:"updated_at"
     google.protobuf.Timestamp updated_at = 13;
+    // @inject_tag: bson:"registration_date" json:"registration_date" validate:"required"
+    string registration_date = 14;
 }
 
 message PaymentMinLimitSystem {
