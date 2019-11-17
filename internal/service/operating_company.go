@@ -126,6 +126,7 @@ func (s *Service) AddOperatingCompany(
 	oc.Name = req.Name
 	oc.Country = req.Country
 	oc.RegistrationNumber = req.RegistrationNumber
+	oc.RegistrationDate = req.RegistrationDate
 	oc.VatNumber = req.VatNumber
 	oc.Address = req.Address
 	oc.SignatoryName = req.SignatoryName

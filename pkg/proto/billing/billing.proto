@@ -301,8 +301,11 @@ message MerchantAgreementSignatureData {
 }
 
 message MerchantTariff {
+    // @inject_tag: json:"-"
     repeated billing.MerchantTariffRatesPayment payment = 1;
+    // @inject_tag: json:"-"
     MerchantTariffRatesSettingsItem payout = 2;
+    // @inject_tag: json:"home_region"
     string home_region = 3;
 }
 
@@ -380,7 +383,7 @@ message Merchant {
     string agreement_number = 51;
     // @inject_tag: json:"minimal_payout_limit"
     float minimal_payout_limit = 52;
-    // @inject_tag: json:"-"
+    // @inject_tag: json:"tariff"
     MerchantTariff tariff = 53;
     // @inject_tag: json:"manual_payouts_enabled"
     bool manual_payouts_enabled = 54;
@@ -434,9 +437,13 @@ message OrderPlatformFee {
 }
 
 message OrderTax {
+    // @inject_tag: json:"type"
     string type = 1;
+    // @inject_tag: json:"rate"
     double rate = 2;
+    // @inject_tag: json:"amount"
     double amount = 3;
+    // @inject_tag: json:"currency"
     string currency = 4;
 }
 
@@ -570,7 +577,7 @@ message Order {
     google.protobuf.Timestamp payment_method_order_closed_at = 39; // date of ended payment operation in payment system
     // @inject_tag: json:"-" bson:"created_by_json"
     bool is_json_request = 40; // is order create by json request
-    // @inject_tag: json:"-" bson:"private_amount" validate:"required,numeric,gt=0"
+    // @inject_tag: json:"original_amount" bson:"private_amount" validate:"required,numeric,gt=0"
     double order_amount = 41;
     // @inject_tag: json:"-" bson:"pm_account"
     string payment_method_payer_account = 42; // account of payer in payment system
@@ -1030,7 +1037,7 @@ message TokenUserIpValue {
 }
 
 message TokenUserLocaleValue {
-    //@inject_tag: validate:"omitempty,alpha,len=2"
+    //@inject_tag: validate:"omitempty,locale,min=5"
     string value = 1;
 }
 
@@ -2354,6 +2361,8 @@ message OperatingCompany {
     google.protobuf.Timestamp created_at = 12;
     // @inject_tag: json:"updated_at"
     google.protobuf.Timestamp updated_at = 13;
+    // @inject_tag: bson:"registration_date" json:"registration_date" validate:"required"
+    string registration_date = 14;
 }
 
 message PaymentMinLimitSystem {

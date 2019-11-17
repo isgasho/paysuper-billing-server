@@ -650,7 +650,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 		order.UserAddressDataRequired = true
 		rsp.Item.UserAddressDataRequired = order.UserAddressDataRequired
 
-		if loc != order.User.Locale {
+		if loc != "" && loc != order.User.Locale {
 			order.User.Locale = loc
 		}
 	}
@@ -799,6 +799,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 		City:    order.User.Address.City,
 		Zip:     order.User.Address.PostalCode,
 	}
+	rsp.Item.Lang = order.User.Locale
 
 	cookie, err := s.generateBrowserCookie(browserCustomer)
 
