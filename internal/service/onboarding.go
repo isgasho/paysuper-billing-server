@@ -19,6 +19,7 @@ import (
 	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
 	"github.com/streadway/amqp"
 	"go.uber.org/zap"
+	"log"
 	"strings"
 	"time"
 )
@@ -1441,6 +1442,8 @@ func (s *Service) SetMerchantTariffRates(
 			rsp.Message = merchantErrorUnknown
 			return nil
 		}
+
+		log.Println(costs)
 
 		err = s.paymentChannelCostMerchant.MultipleInsert(costs)
 

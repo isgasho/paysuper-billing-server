@@ -1,0 +1,14 @@
+[
+  {
+    "createIndexes": "order",
+    "indexes": [
+      {
+        "key": {
+          "uuid": 1
+        },
+        "name": "uniq_order_uuid",
+        "unique": true
+      }
+    ]
+  }
+]
