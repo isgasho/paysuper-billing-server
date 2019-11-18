@@ -137,6 +137,8 @@ var (
 	orderErrorMerchantDoNotHaveCompanyInfo                    = newBillingServerErrorMsg("fm000070", "merchant don't have completed company info")
 	orderErrorMerchantDoNotHaveBanking                        = newBillingServerErrorMsg("fm000071", "merchant don't have completed banking info")
 	orderErrorAmountLowerThanMinLimitSystem                   = newBillingServerErrorMsg("fm000072", "order amount is lower than min system limit")
+	orderErrorAlreadyProcessed                                = newBillingServerErrorMsg("fm000073", "order is already processed")
+	orderErrorDontHaveReceiptUrl                                = newBillingServerErrorMsg("fm000074", "processed order don't have receipt url")
 
 	virtualCurrencyPayoutCurrencyMissed = newBillingServerErrorMsg("vc000001", "virtual currency don't have price in merchant payout currency")
 
@@ -547,6 +549,18 @@ func (s *Service) PaymentFormJsonDataProcess(
 		return err
 	}
 
+	if order.PrivateStatus != constant.OrderStatusNew && order.PrivateStatus != constant.OrderStatusPaymentSystemComplete {
+		if len(order.ReceiptUrl) == 0 {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = orderErrorDontHaveReceiptUrl
+			return nil
+		}
+		s.fillPaymentFormJsonData(order, rsp)
+		rsp.Item.IsAlreadyProcessed = true
+		rsp.Item.ReceiptUrl = order.ReceiptUrl
+		return nil
+	}
+
 	p := &PaymentFormProcessor{service: s, order: order, request: req}
 	p1 := &OrderCreateRequestProcessor{
 		Service: s,
@@ -759,6 +773,19 @@ func (s *Service) PaymentFormJsonDataProcess(
 		return err
 	}
 
+	s.fillPaymentFormJsonData(order, rsp)
+	rsp.Item.PaymentMethods = pms
+
+	cookie, err := s.generateBrowserCookie(browserCustomer)
+
+	if err == nil {
+		rsp.Item.Cookie = cookie
+	}
+
+	return nil
+}
+
+func (s *Service) fillPaymentFormJsonData(order *billing.Order, rsp *grpc.PaymentFormJsonDataResponse) {
 	projectName, ok := order.Project.Name[order.User.Locale]
 
 	if !ok {
@@ -779,7 +806,6 @@ func (s *Service) PaymentFormJsonDataProcess(
 		UrlSuccess: order.Project.UrlSuccess,
 		UrlFail:    order.Project.UrlFail,
 	}
-	rsp.Item.PaymentMethods = pms
 	rsp.Item.Token, _ = token.SignedString([]byte(s.cfg.CentrifugoSecret))
 	rsp.Item.Amount = order.OrderAmount
 	rsp.Item.TotalAmount = order.TotalPaymentAmount
@@ -800,14 +826,6 @@ func (s *Service) PaymentFormJsonDataProcess(
 		Zip:     order.User.Address.PostalCode,
 	}
 	rsp.Item.Lang = order.User.Locale
-
-	cookie, err := s.generateBrowserCookie(browserCustomer)
-
-	if err == nil {
-		rsp.Item.Cookie = cookie
-	}
-
-	return nil
 }
 
 func (s *Service) PaymentCreateProcess(
@@ -2691,6 +2709,10 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 
 	if err != nil {
 		return err
+	}
+
+	if order.PrivateStatus != constant.OrderStatusNew && order.PrivateStatus != constant.OrderStatusPaymentSystemComplete {
+		return orderErrorAlreadyProcessed
 	}
 
 	if order.UserAddressDataRequired == true {
