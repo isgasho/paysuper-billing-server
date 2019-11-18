@@ -2319,7 +2319,7 @@ message GetOperatingCompanyResponse {
 message SendWebhookToMerchantResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
-    string notify_id = 3;
+    string order_id = 3;
 }
 
 message NotifyWebhookTestResultsRequest {

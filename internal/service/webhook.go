@@ -137,8 +137,7 @@ func (s *Service) SendWebhookToMerchant(ctx context.Context, req *billing.OrderC
 		zap.S().Debug("[orderNotifyMerchant] send notify merchant to rmq failed", "order_id", order.Id)
 	}
 
-	//TODO: подумать над тем, чтобы использовать другую строку для этого
-	res.NotifyId = order.Uuid
+	res.OrderId = order.GetMerchantId()
 
 	return nil
 }
