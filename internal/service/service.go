@@ -92,6 +92,7 @@ type Service struct {
 	orderRepository            OrderRepositoryInterface
 	userRoleRepository         UserRoleServiceInterface
 	userProfileRepository      UserProfileRepositoryInterface
+	keyProductRepository       KeyProductRepositoryInterface
 	centrifugo                 CentrifugoInterface
 	formatter                  paysuper_i18n.Formatter
 	reporterService            reporterProto.ReporterService
@@ -180,6 +181,7 @@ func (s *Service) Init() (err error) {
 	s.orderRepository = newOrderRepository(s)
 	s.userRoleRepository = newUserRoleRepository(s)
 	s.userProfileRepository = newUserProfileRepository(s)
+	s.keyProductRepository = newKeyProductRepository(s)
 	s.centrifugo = newCentrifugo(s)
 	s.paylinkService = newPaylinkService(s)
 	s.operatingCompany = newOperatingCompanyService(s)

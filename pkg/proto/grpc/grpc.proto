@@ -679,6 +679,8 @@ message CreateRefundRequest {
     string creator_id = 3;
     string reason = 4;
     bool is_chargeback = 5;
+    // @inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 6;
 }
 
 message CreateRefundResponse {

@@ -468,6 +468,10 @@ func (p *createRefundProcessor) processCreateRefund() (*billing.Refund, error) {
 
 	order := p.checked.order
 
+	if order.GetMerchantId() != p.request.MerchantId {
+		return nil, newBillingServerResponseError(pkg.ResponseStatusBadData, refundErrorOrderNotFound)
+	}
+
 	refund := &billing.Refund{
 		Id: bson.NewObjectId().Hex(),
 		OriginalOrder: &billing.RefundOrder{
