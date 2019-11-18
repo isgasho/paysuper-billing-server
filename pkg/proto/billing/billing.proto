@@ -91,7 +91,7 @@ message OrderCreateRequest {
     string utm_campaign = 38;
     //@inject_tag: bson:"is_buy_for_virtual_currency" json:"is_buy_for_virtual_currency"
     bool is_buy_for_virtual_currency = 39;
-    //@inject_tag: bson:"testing_case" json:"testing_case"
+    //@inject_tag: bson:"testing_case" json:"testing_case" validate:"omitempty,oneof=keys non_existing_user existing_user incorrect_payment"
     string testing_case = 40;
 }
 

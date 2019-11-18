@@ -144,8 +144,8 @@ type OrderCreateRequest struct {
 	UtmCampaign string `protobuf:"bytes,38,opt,name=utm_campaign,json=utmCampaign,proto3" json:"utm_campaign" bson:"utm_campaign"`
 	//@inject_tag: bson:"is_buy_for_virtual_currency" json:"is_buy_for_virtual_currency"
 	IsBuyForVirtualCurrency bool `protobuf:"varint,39,opt,name=is_buy_for_virtual_currency,json=isBuyForVirtualCurrency,proto3" json:"is_buy_for_virtual_currency" bson:"is_buy_for_virtual_currency"`
-	//@inject_tag: bson:"testing_case" json:"testing_case"
-	TestingCase          string   `protobuf:"bytes,40,opt,name=testing_case,json=testingCase,proto3" json:"testing_case" bson:"testing_case"`
+	//@inject_tag: bson:"testing_case" json:"testing_case" validate:"omitempty,oneof=keys non_existing_user existing_user incorrect_payment"
+	TestingCase          string   `protobuf:"bytes,40,opt,name=testing_case,json=testingCase,proto3" json:"testing_case" bson:"testing_case" validate:"omitempty,oneof=keys non_existing_user existing_user incorrect_payment"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`

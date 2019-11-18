@@ -63,6 +63,7 @@ func (suite *OperatingCompanyTestSuite) SetupTest() {
 		&reportingMocks.ReporterService{},
 		mocks.NewFormatterOK(),
 		mocks.NewBrokerMockOk(),
+		nil,
 	)
 
 	if err := suite.service.Init(); err != nil {

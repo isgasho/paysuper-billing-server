@@ -30,7 +30,7 @@ require (
 	github.com/paysuper/paysuper-recurring-repository v1.0.126
 	github.com/paysuper/paysuper-reporter v0.0.0-20191113111020-e3a5369c6d6a
 	github.com/paysuper/paysuper-tax-service v0.0.0-20190903084038-7849f394f122
-	github.com/paysuper/paysuper-webhook-notifier v0.0.0-20191118130656-224b50046f34 // indirect
+	github.com/paysuper/paysuper-webhook-notifier v0.0.0-20191118130656-224b50046f34
 	github.com/paysuper/postmark-sender v0.0.0-20190926173213-1b6244122c49
 	github.com/prometheus/client_golang v1.1.0
 	github.com/stoewer/go-strcase v1.0.2
