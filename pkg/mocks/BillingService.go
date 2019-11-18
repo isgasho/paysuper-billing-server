@@ -3644,6 +3644,36 @@ func (_m *BillingService) MerchantReviewRoyaltyReport(ctx context.Context, in *g
 	return r0, r1
 }
 
+// NotifyWebhookTestResults provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) NotifyWebhookTestResults(ctx context.Context, in *grpc.NotifyWebhookTestResultsRequest, opts ...client.CallOption) (*grpc.EmptyResponseWithStatus, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *grpc.EmptyResponseWithStatus
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.NotifyWebhookTestResultsRequest, ...client.CallOption) *grpc.EmptyResponseWithStatus); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*grpc.EmptyResponseWithStatus)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *grpc.NotifyWebhookTestResultsRequest, ...client.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // OrderCreateByPaylink provides a mock function with given fields: ctx, in, opts
 func (_m *BillingService) OrderCreateByPaylink(ctx context.Context, in *billing.OrderCreateByPaylink, opts ...client.CallOption) (*grpc.OrderCreateProcessResponse, error) {
 	_va := make([]interface{}, len(opts))
@@ -4116,6 +4146,36 @@ func (_m *BillingService) RoyaltyReportPdfUploaded(ctx context.Context, in *grpc
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *grpc.RoyaltyReportPdfUploadedRequest, ...client.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// SendWebhookToMerchant provides a mock function with given fields: ctx, in, opts
+func (_m *BillingService) SendWebhookToMerchant(ctx context.Context, in *billing.OrderCreateRequest, opts ...client.CallOption) (*grpc.SendWebhookToMerchantResponse, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *grpc.SendWebhookToMerchantResponse
+	if rf, ok := ret.Get(0).(func(context.Context, *billing.OrderCreateRequest, ...client.CallOption) *grpc.SendWebhookToMerchantResponse); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*grpc.SendWebhookToMerchantResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *billing.OrderCreateRequest, ...client.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)
