@@ -886,6 +886,21 @@ func (suite *OrderTestSuite) SetupTest() {
 		SecretKey:                "test project 1 secret key",
 		Status:                   pkg.ProjectStatusInProduction,
 		MerchantId:               merchant.Id,
+		WebhookTesting: &billing.WebHookTesting {
+			Products:             &billing.ProductsTesting{
+				NonExistingUser:      true,
+				ExistingUser:         true,
+				CorrectPayment:       true,
+				IncorrectPayment:     true,
+			},
+			VirtualCurrency:      &billing.VirtualCurrencyTesting{
+				NonExistingUser:      true,
+				ExistingUser:         true,
+				CorrectPayment:       true,
+				IncorrectPayment:     true,
+			},
+			Keys:                 &billing.KeysTesting{IsPassed: true},
+		},
 	}
 	projectFixedAmount := &billing.Project{
 		Id:                       bson.NewObjectId().Hex(),
@@ -900,6 +915,21 @@ func (suite *OrderTestSuite) SetupTest() {
 		SecretKey:                "test project 1 secret key",
 		Status:                   pkg.ProjectStatusDraft,
 		MerchantId:               merchant.Id,
+		WebhookTesting: &billing.WebHookTesting {
+			Products:             &billing.ProductsTesting{
+				NonExistingUser:      true,
+				ExistingUser:         true,
+				CorrectPayment:       true,
+				IncorrectPayment:     true,
+			},
+			VirtualCurrency:      &billing.VirtualCurrencyTesting{
+				NonExistingUser:      true,
+				ExistingUser:         true,
+				CorrectPayment:       true,
+				IncorrectPayment:     true,
+			},
+			Keys:                 &billing.KeysTesting{IsPassed: true},
+		},
 	}
 
 	projectWithProductsInVirtualCurrency := &billing.Project{
@@ -915,6 +945,21 @@ func (suite *OrderTestSuite) SetupTest() {
 		SecretKey:                "test project X secret key",
 		Status:                   pkg.ProjectStatusInProduction,
 		MerchantId:               merchant.Id,
+		WebhookTesting: &billing.WebHookTesting {
+			Products:             &billing.ProductsTesting{
+				NonExistingUser:      true,
+				ExistingUser:         true,
+				CorrectPayment:       true,
+				IncorrectPayment:     true,
+			},
+			VirtualCurrency:      &billing.VirtualCurrencyTesting{
+				NonExistingUser:      true,
+				ExistingUser:         true,
+				CorrectPayment:       true,
+				IncorrectPayment:     true,
+			},
+			Keys:                 &billing.KeysTesting{IsPassed: true},
+		},
 		VirtualCurrency: &billing.ProjectVirtualCurrency{
 			Name: map[string]string{"en": "test project 1"},
 			Prices: []*billing.ProductPrice{
@@ -930,7 +975,7 @@ func (suite *OrderTestSuite) SetupTest() {
 	projectWithProducts := &billing.Project{
 		Id:                       bson.NewObjectId().Hex(),
 		CallbackCurrency:         "RUB",
-		CallbackProtocol:         "default",
+		CallbackProtocol:         "empty",
 		LimitsCurrency:           "USD",
 		MaxPaymentAmount:         15000,
 		MinPaymentAmount:         1,
@@ -944,7 +989,7 @@ func (suite *OrderTestSuite) SetupTest() {
 	projectWithKeyProducts := &billing.Project{
 		Id:                       bson.NewObjectId().Hex(),
 		CallbackCurrency:         "RUB",
-		CallbackProtocol:         "default",
+		CallbackProtocol:         "empty",
 		LimitsCurrency:           "USD",
 		MaxPaymentAmount:         15000,
 		MinPaymentAmount:         1,
@@ -958,7 +1003,7 @@ func (suite *OrderTestSuite) SetupTest() {
 	projectUahLimitCurrency := &billing.Project{
 		Id:                 bson.NewObjectId().Hex(),
 		CallbackCurrency:   "RUB",
-		CallbackProtocol:   "default",
+		CallbackProtocol:   "empty",
 		LimitsCurrency:     "UAH",
 		MaxPaymentAmount:   15000,
 		MinPaymentAmount:   0,
@@ -971,7 +1016,7 @@ func (suite *OrderTestSuite) SetupTest() {
 	projectIncorrectPaymentMethodId := &billing.Project{
 		Id:                 bson.NewObjectId().Hex(),
 		CallbackCurrency:   "RUB",
-		CallbackProtocol:   "default",
+		CallbackProtocol:   "empty",
 		LimitsCurrency:     "RUB",
 		MaxPaymentAmount:   15000,
 		MinPaymentAmount:   0,
@@ -985,7 +1030,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		Id:                 bson.NewObjectId().Hex(),
 		MerchantId:         merchant1.Id,
 		CallbackCurrency:   "RUB",
-		CallbackProtocol:   "default",
+		CallbackProtocol:   "empty",
 		LimitsCurrency:     "RUB",
 		MaxPaymentAmount:   15000,
 		MinPaymentAmount:   0,
@@ -998,7 +1043,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		Id:                 bson.NewObjectId().Hex(),
 		MerchantId:         merchant1.Id,
 		CallbackCurrency:   "RUB",
-		CallbackProtocol:   "default",
+		CallbackProtocol:   "empty",
 		LimitsCurrency:     "RUB",
 		MaxPaymentAmount:   15000,
 		MinPaymentAmount:   0,
@@ -1257,7 +1302,7 @@ func (suite *OrderTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), broker, redisClient, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), nil, mocks.NewFormatterOK(), mocks.NewBrokerMockOk(), nil, )
+	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), broker, redisClient, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), nil, mocks.NewFormatterOK(), mocks.NewBrokerMockOk(), mocks.NewNotifierOk(), )
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)

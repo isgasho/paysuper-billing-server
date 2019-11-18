@@ -740,6 +740,21 @@ func helperCreateProject(
 		SecretKey:                "test project 1 secret key",
 		Status:                   pkg.ProjectStatusDraft,
 		MerchantId:               merchantId,
+		WebhookTesting: &billing.WebHookTesting {
+			Products:             &billing.ProductsTesting{
+				NonExistingUser:      true,
+				ExistingUser:         true,
+				CorrectPayment:       true,
+				IncorrectPayment:     true,
+			},
+			VirtualCurrency:      &billing.VirtualCurrencyTesting{
+				NonExistingUser:      true,
+				ExistingUser:         true,
+				CorrectPayment:       true,
+				IncorrectPayment:     true,
+			},
+			Keys:                 &billing.KeysTesting{IsPassed: true},
+		},
 	}
 
 	if err := service.project.Insert(project); err != nil {

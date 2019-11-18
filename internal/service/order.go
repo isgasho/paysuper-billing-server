@@ -189,7 +189,6 @@ type PaymentCreateProcessor struct {
 		project       *billing.Project
 		paymentMethod *billing.PaymentMethod
 	}
-	notifier grpc2.NotifierService
 }
 
 type BinData struct {
@@ -2980,7 +2979,7 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 			},
 		}
 
-		resp, err := v.notifier.CheckUser(context.TODO(), checkReq)
+		resp, err := v.service.notifier.CheckUser(context.TODO(), checkReq)
 		if err != nil {
 			zap.L().Error(
 				pkg.ErrorGrpcServiceCallFailed,

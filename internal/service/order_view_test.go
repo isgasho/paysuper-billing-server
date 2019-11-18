@@ -91,7 +91,7 @@ func (suite *OrderViewTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), broker, redisClient, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), mocks.NewBrokerMockOk(), nil, )
+	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), broker, redisClient, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), mocks.NewBrokerMockOk(), mocks.NewNotifierOk(), )
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -112,6 +112,21 @@ func (suite *OrderViewTestSuite) SetupTest() {
 		SecretKey:                "test project 1 secret key",
 		Status:                   pkg.ProjectStatusDraft,
 		MerchantId:               suite.merchant.Id,
+		WebhookTesting: &billing.WebHookTesting {
+			Products:             &billing.ProductsTesting{
+				NonExistingUser:      true,
+				ExistingUser:         true,
+				CorrectPayment:       true,
+				IncorrectPayment:     true,
+			},
+			VirtualCurrency:      &billing.VirtualCurrencyTesting{
+				NonExistingUser:      true,
+				ExistingUser:         true,
+				CorrectPayment:       true,
+				IncorrectPayment:     true,
+			},
+			Keys:                 &billing.KeysTesting{IsPassed: true},
+		},
 	}
 
 	if err := suite.service.project.Insert(suite.projectWithProducts); err != nil {
