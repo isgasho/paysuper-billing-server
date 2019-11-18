@@ -137,7 +137,8 @@ var (
 	orderErrorMerchantDoNotHaveCompanyInfo                    = newBillingServerErrorMsg("fm000070", "merchant don't have completed company info")
 	orderErrorMerchantDoNotHaveBanking                        = newBillingServerErrorMsg("fm000071", "merchant don't have completed banking info")
 	orderErrorAmountLowerThanMinLimitSystem                   = newBillingServerErrorMsg("fm000072", "order amount is lower than min system limit")
-	orderErrorAlreadyProcessed                   			  = newBillingServerErrorMsg("fm000073", "order is already processed")
+	orderErrorAlreadyProcessed                                = newBillingServerErrorMsg("fm000073", "order is already processed")
+	orderErrorDontHaveReceiptUrl                                = newBillingServerErrorMsg("fm000074", "processed order don't have receipt url")
 
 	virtualCurrencyPayoutCurrencyMissed = newBillingServerErrorMsg("vc000001", "virtual currency don't have price in merchant payout currency")
 
@@ -548,7 +549,12 @@ func (s *Service) PaymentFormJsonDataProcess(
 		return err
 	}
 
-	if len(order.ReceiptUrl) > 0 {
+	if order.PrivateStatus != constant.OrderStatusNew && order.PrivateStatus != constant.OrderStatusPaymentSystemComplete {
+		if len(order.ReceiptUrl) == 0 {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = orderErrorDontHaveReceiptUrl
+			return nil
+		}
 		s.fillPaymentFormJsonData(order, rsp)
 		rsp.Item.IsAlreadyProcessed = true
 		rsp.Item.ReceiptUrl = order.ReceiptUrl
@@ -835,14 +841,6 @@ func (s *Service) PaymentCreateProcess(
 		userAgent:      req.UserAgent,
 	}
 
-	order := processor.checked.order
-
-	if len(order.ReceiptUrl) > 0 {
-		rsp.Message = orderErrorAlreadyProcessed
-		rsp.Status = pkg.ResponseStatusBadData
-		return nil
-	}
-
 	err := processor.processPaymentFormData()
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
@@ -853,6 +851,8 @@ func (s *Service) PaymentCreateProcess(
 		}
 		return err
 	}
+
+	order := processor.checked.order
 
 	if !order.CountryRestriction.PaymentsAllowed {
 		rsp.Message = orderCountryPaymentRestrictedError
@@ -2709,6 +2709,10 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 
 	if err != nil {
 		return err
+	}
+
+	if order.PrivateStatus != constant.OrderStatusNew && order.PrivateStatus != constant.OrderStatusPaymentSystemComplete {
+		return orderErrorAlreadyProcessed
 	}
 
 	if order.UserAddressDataRequired == true {
