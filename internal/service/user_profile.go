@@ -510,7 +510,7 @@ func (s *Service) GetCommonUserProfile(
 	profile, err := s.userProfileRepository.GetByUserId(req.UserId)
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = userProfileErrorNotFound
 
 		return nil
