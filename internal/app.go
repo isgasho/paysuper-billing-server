@@ -38,6 +38,7 @@ import (
 	taxPkg "github.com/paysuper/paysuper-tax-service/pkg"
 	"github.com/paysuper/paysuper-tax-service/proto"
 	notifier "github.com/paysuper/paysuper-webhook-notifier/pkg/proto/grpc"
+	notifierPkg "github.com/paysuper/paysuper-webhook-notifier/pkg"
 	postmarkPkg "github.com/paysuper/postmark-sender/pkg"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
@@ -184,7 +185,7 @@ func (app *Application) Init() {
 	curService := currencies.NewCurrencyratesService(curPkg.ServiceName, app.service.Client())
 	documentSignerService := documentSignerProto.NewDocumentSignerService(documentSignerConst.ServiceName, app.service.Client())
 	reporter := reporterService.NewReporterService(reporterServiceConst.ServiceName, app.service.Client())
-	webHookNotifier := notifier.NewNotifierService(notifier.ServiceName, app.service.Client())
+	webHookNotifier := notifier.NewNotifierService(notifierPkg.ServiceName, app.service.Client())
 
 	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
 		Addrs:        cfg.CacheRedis.Address,

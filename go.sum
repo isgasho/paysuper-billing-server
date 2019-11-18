@@ -640,6 +640,7 @@ github.com/paysuper/paysuper-billing-server v0.0.0-20191020124804-ebda379fcb1a/g
 github.com/paysuper/paysuper-billing-server v0.0.0-20191021125729-7bb90fb336aa/go.mod h1:epJRI1WusRkEkd5cR3f295XQTcianRZCLWNiaHF/s1Q=
 github.com/paysuper/paysuper-billing-server v0.0.0-20191031115520-5d2419c5f2cf/go.mod h1:gOX3JQfEkB6vdnQPmS5fH/Z2voMn+goLES5C2XnGb2I=
 github.com/paysuper/paysuper-billing-server v0.0.0-20191111090538-4a75afd2a960/go.mod h1:CYx7c60OPthc8ZlTqiknrhgQwX1QzAkGEghubJP1z1E=
+github.com/paysuper/paysuper-billing-server v0.0.0-20191118105056-1664bb247864/go.mod h1:RrTEhsH+Amw+sTOLm2vYLZRwrrBy8hN5uEZvI5z3Gy8=
 github.com/paysuper/paysuper-currencies v0.0.0-20190903083641-668b8b2b997d/go.mod h1:C+QHdgbjIlAPxHD93/08yi+xWfUgk8maLY8FKFqNzMQ=
 github.com/paysuper/paysuper-database-mongo v0.1.0/go.mod h1:IZu996j//Qoq+uzzCBL5GEYisfF4di/fwedWHlLz7sc=
 github.com/paysuper/paysuper-database-mongo v0.1.1/go.mod h1:IZu996j//Qoq+uzzCBL5GEYisfF4di/fwedWHlLz7sc=
@@ -659,6 +660,8 @@ github.com/paysuper/paysuper-reporter v0.0.0-20191113111020-e3a5369c6d6a/go.mod 
 github.com/paysuper/paysuper-tax-service v0.0.0-20190903084038-7849f394f122/go.mod h1:QK6czJ8ge3pF/QbFlRXuYfPRrm/90qubdWQ9OWKfeUs=
 github.com/paysuper/paysuper-webhook-notifier v0.0.0-20191118104145-628f70d6ad6a h1:h3Y+D1KDkawihtfP8XRSJL37EyteKP/IGemnrUSLWAQ=
 github.com/paysuper/paysuper-webhook-notifier v0.0.0-20191118104145-628f70d6ad6a/go.mod h1:Qlb+Mz7i8oSSeJ/t+CZffcC4haNOn9fB9HeWWBeJiJI=
+github.com/paysuper/paysuper-webhook-notifier v0.0.0-20191118130656-224b50046f34 h1:iDJDF5hD0rHpBxugEhiz9HyLDcPjlUEfnczslMrIxMQ=
+github.com/paysuper/paysuper-webhook-notifier v0.0.0-20191118130656-224b50046f34/go.mod h1:Vw+l9M8sX3eJ22BZoixuK0RhxJC6hL5yLnSQIrWjp8c=
 github.com/paysuper/postmark-sender v0.0.0-20190903075212-a210e35789fc/go.mod h1:uUqo1eEOgjNFl9JaCrkbZNl5MYFMi6i0arXcptMEDUo=
 github.com/paysuper/postmark-sender v0.0.0-20190926173213-1b6244122c49/go.mod h1:uySKCRnArgTq+mivEN/Gdcxri2lyN2PEOfibHOob4DA=
 github.com/pborman/uuid v1.2.0/go.mod h1:X/NO0urCmaxf9VXbdlT7C2Yzkj2IKimNn4k+gtPdI/k=
