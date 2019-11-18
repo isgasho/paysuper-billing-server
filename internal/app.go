@@ -86,6 +86,8 @@ func (app *Application) Init() {
 		app.logger.Fatal("Migrations initialization failed", zap.Error(err))
 	}
 
+	migrations.LockTimeout = time.Duration(cfg.MigrationsLockTimeout) * time.Second
+
 	err = migrations.Up()
 
 	if err != nil && err != migrate.ErrNoChange && err != migrate.ErrNilVersion {

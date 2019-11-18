@@ -115,6 +115,8 @@ type Config struct {
 	EmailConfirmUrlParsed    *url.URL
 	RedirectUrlSuccessParsed *url.URL
 	RedirectUrlFailParsed    *url.URL
+
+	MigrationsLockTimeout int64 `envconfig:"MIGRATIONS_LOCK_TIMEOUT" default:"60"`
 }
 
 func NewConfig() (*Config, error) {
