@@ -94,12 +94,8 @@ To run application as microservice simply don't pass any flags to command line :
 | PAYSUPER_DOCUMENT_SIGNER_NAME                       | Paysuper signer name for sign license agreements                                                                                    |
 | HELLO_SIGN_DEFAULT_TEMPLATE                         | License agreement template identifier in HelloSign                                                                                  |
 | HELLO_SIGN_AGREEMENT_CLIENT_ID                      | Client application identifier in HelloSign for Merchant Agreement sign                                                              |
-| HELLO_SIGN_PAYOUTS_CLIENT_ID                        | Client application identifier in HelloSign for Payout Invoice sign                                                                  |
 | KEY_DAEMON_RESTART_INTERVAL                         | Starting frequency in seconds of the script to check the locked keys and return them to the stack.                                  |
 | EMAIL_ACTIVATION_CODE_TEMPLATE                      | Postmark Email template id for sending to user with activation code                                                                 |
-| HELLO_SIGN_PAYOUTS_TITLE                            | Hellosign title for payout invoices                                                                                                 |
-| HELLO_SIGN_PAYOUTS_SUBJECT                          | Hellosign subject for payout invoices                                                                                               |
-| HELLO_SIGN_PAYOUTS_MESSAGE                          | Hellosign prompt message for payout invoices                                                                                        |
 | PAYLINK_MIN_PRODUCTS                                | Minimum number of products allowed for one payment link (must be >= 1)                                                              |
 | PAYLINK_MAX_PRODUCTS                                | Maximum number of products allowed for one payment link                                                                             |
 | ROYALTY_REPORTS_URL                                 | Url to use in template of royalty reports                                                                                           |
