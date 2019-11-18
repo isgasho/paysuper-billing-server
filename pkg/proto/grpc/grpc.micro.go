@@ -49,6 +49,7 @@ type BillingService interface {
 	ListMerchants(ctx context.Context, in *MerchantListingRequest, opts ...client.CallOption) (*MerchantListingResponse, error)
 	ChangeMerchant(ctx context.Context, in *OnboardingRequest, opts ...client.CallOption) (*ChangeMerchantResponse, error)
 	ChangeMerchantStatus(ctx context.Context, in *MerchantChangeStatusRequest, opts ...client.CallOption) (*ChangeMerchantStatusResponse, error)
+	SetMerchantOperatingCompany(ctx context.Context, in *SetMerchantOperatingCompanyRequest, opts ...client.CallOption) (*SetMerchantOperatingCompanyResponse, error)
 	ChangeMerchantData(ctx context.Context, in *ChangeMerchantDataRequest, opts ...client.CallOption) (*ChangeMerchantDataResponse, error)
 	SetMerchantS3Agreement(ctx context.Context, in *SetMerchantS3AgreementRequest, opts ...client.CallOption) (*ChangeMerchantDataResponse, error)
 	GetMerchantTariffRates(ctx context.Context, in *GetMerchantTariffRatesRequest, opts ...client.CallOption) (*GetMerchantTariffRatesResponse, error)
@@ -165,7 +166,7 @@ type BillingService interface {
 	GetDashboardMainReport(ctx context.Context, in *GetDashboardMainRequest, opts ...client.CallOption) (*GetDashboardMainResponse, error)
 	GetDashboardRevenueDynamicsReport(ctx context.Context, in *GetDashboardMainRequest, opts ...client.CallOption) (*GetDashboardRevenueDynamicsReportResponse, error)
 	GetDashboardBaseReport(ctx context.Context, in *GetDashboardBaseReportRequest, opts ...client.CallOption) (*GetDashboardBaseReportResponse, error)
-	CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, opts ...client.CallOption) (*PayoutDocumentResponse, error)
+	CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, opts ...client.CallOption) (*CreatePayoutDocumentResponse, error)
 	UpdatePayoutDocument(ctx context.Context, in *UpdatePayoutDocumentRequest, opts ...client.CallOption) (*PayoutDocumentResponse, error)
 	GetPayoutDocuments(ctx context.Context, in *GetPayoutDocumentsRequest, opts ...client.CallOption) (*GetPayoutDocumentsResponse, error)
 	GetPayoutDocument(ctx context.Context, in *GetPayoutDocumentRequest, opts ...client.CallOption) (*PayoutDocumentResponse, error)
@@ -187,6 +188,11 @@ type BillingService interface {
 	GetPaylinkStatByDate(ctx context.Context, in *GetPaylinkStatCommonRequest, opts ...client.CallOption) (*GetPaylinkStatCommonGroupResponse, error)
 	GetPaylinkStatByUtm(ctx context.Context, in *GetPaylinkStatCommonRequest, opts ...client.CallOption) (*GetPaylinkStatCommonGroupResponse, error)
 	DeleteSavedCard(ctx context.Context, in *DeleteSavedCardRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
+	GetOperatingCompaniesList(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*GetOperatingCompaniesListResponse, error)
+	AddOperatingCompany(ctx context.Context, in *billing.OperatingCompany, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
+	GetOperatingCompany(ctx context.Context, in *GetOperatingCompanyRequest, opts ...client.CallOption) (*GetOperatingCompanyResponse, error)
+	GetPaymentMinLimitsSystem(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*GetPaymentMinLimitsSystemResponse, error)
+	SetPaymentMinLimitSystem(ctx context.Context, in *billing.PaymentMinLimitSystem, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 	SendWebhookToMerchant(ctx context.Context, in *billing.OrderCreateRequest, opts ...client.CallOption) (*SendWebhookToMerchantResponse, error)
 	NotifyWebhookTestResults(ctx context.Context, in *NotifyWebhookTestResultsRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 }
@@ -322,6 +328,16 @@ func (c *billingService) ChangeMerchant(ctx context.Context, in *OnboardingReque
 func (c *billingService) ChangeMerchantStatus(ctx context.Context, in *MerchantChangeStatusRequest, opts ...client.CallOption) (*ChangeMerchantStatusResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.ChangeMerchantStatus", in)
 	out := new(ChangeMerchantStatusResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) SetMerchantOperatingCompany(ctx context.Context, in *SetMerchantOperatingCompanyRequest, opts ...client.CallOption) (*SetMerchantOperatingCompanyResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.SetMerchantOperatingCompany", in)
+	out := new(SetMerchantOperatingCompanyResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1489,9 +1505,9 @@ func (c *billingService) GetDashboardBaseReport(ctx context.Context, in *GetDash
 	return out, nil
 }
 
-func (c *billingService) CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, opts ...client.CallOption) (*PayoutDocumentResponse, error) {
+func (c *billingService) CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, opts ...client.CallOption) (*CreatePayoutDocumentResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.CreatePayoutDocument", in)
-	out := new(PayoutDocumentResponse)
+	out := new(CreatePayoutDocumentResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1709,6 +1725,56 @@ func (c *billingService) DeleteSavedCard(ctx context.Context, in *DeleteSavedCar
 	return out, nil
 }
 
+func (c *billingService) GetOperatingCompaniesList(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*GetOperatingCompaniesListResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetOperatingCompaniesList", in)
+	out := new(GetOperatingCompaniesListResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) AddOperatingCompany(ctx context.Context, in *billing.OperatingCompany, opts ...client.CallOption) (*EmptyResponseWithStatus, error) {
+	req := c.c.NewRequest(c.name, "BillingService.AddOperatingCompany", in)
+	out := new(EmptyResponseWithStatus)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetOperatingCompany(ctx context.Context, in *GetOperatingCompanyRequest, opts ...client.CallOption) (*GetOperatingCompanyResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetOperatingCompany", in)
+	out := new(GetOperatingCompanyResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetPaymentMinLimitsSystem(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*GetPaymentMinLimitsSystemResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetPaymentMinLimitsSystem", in)
+	out := new(GetPaymentMinLimitsSystemResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) SetPaymentMinLimitSystem(ctx context.Context, in *billing.PaymentMinLimitSystem, opts ...client.CallOption) (*EmptyResponseWithStatus, error) {
+	req := c.c.NewRequest(c.name, "BillingService.SetPaymentMinLimitSystem", in)
+	out := new(EmptyResponseWithStatus)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *billingService) SendWebhookToMerchant(ctx context.Context, in *billing.OrderCreateRequest, opts ...client.CallOption) (*SendWebhookToMerchantResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.SendWebhookToMerchant", in)
 	out := new(SendWebhookToMerchantResponse)
@@ -1744,6 +1810,7 @@ type BillingServiceHandler interface {
 	ListMerchants(context.Context, *MerchantListingRequest, *MerchantListingResponse) error
 	ChangeMerchant(context.Context, *OnboardingRequest, *ChangeMerchantResponse) error
 	ChangeMerchantStatus(context.Context, *MerchantChangeStatusRequest, *ChangeMerchantStatusResponse) error
+	SetMerchantOperatingCompany(context.Context, *SetMerchantOperatingCompanyRequest, *SetMerchantOperatingCompanyResponse) error
 	ChangeMerchantData(context.Context, *ChangeMerchantDataRequest, *ChangeMerchantDataResponse) error
 	SetMerchantS3Agreement(context.Context, *SetMerchantS3AgreementRequest, *ChangeMerchantDataResponse) error
 	GetMerchantTariffRates(context.Context, *GetMerchantTariffRatesRequest, *GetMerchantTariffRatesResponse) error
@@ -1860,7 +1927,7 @@ type BillingServiceHandler interface {
 	GetDashboardMainReport(context.Context, *GetDashboardMainRequest, *GetDashboardMainResponse) error
 	GetDashboardRevenueDynamicsReport(context.Context, *GetDashboardMainRequest, *GetDashboardRevenueDynamicsReportResponse) error
 	GetDashboardBaseReport(context.Context, *GetDashboardBaseReportRequest, *GetDashboardBaseReportResponse) error
-	CreatePayoutDocument(context.Context, *CreatePayoutDocumentRequest, *PayoutDocumentResponse) error
+	CreatePayoutDocument(context.Context, *CreatePayoutDocumentRequest, *CreatePayoutDocumentResponse) error
 	UpdatePayoutDocument(context.Context, *UpdatePayoutDocumentRequest, *PayoutDocumentResponse) error
 	GetPayoutDocuments(context.Context, *GetPayoutDocumentsRequest, *GetPayoutDocumentsResponse) error
 	GetPayoutDocument(context.Context, *GetPayoutDocumentRequest, *PayoutDocumentResponse) error
@@ -1882,6 +1949,11 @@ type BillingServiceHandler interface {
 	GetPaylinkStatByDate(context.Context, *GetPaylinkStatCommonRequest, *GetPaylinkStatCommonGroupResponse) error
 	GetPaylinkStatByUtm(context.Context, *GetPaylinkStatCommonRequest, *GetPaylinkStatCommonGroupResponse) error
 	DeleteSavedCard(context.Context, *DeleteSavedCardRequest, *EmptyResponseWithStatus) error
+	GetOperatingCompaniesList(context.Context, *EmptyRequest, *GetOperatingCompaniesListResponse) error
+	AddOperatingCompany(context.Context, *billing.OperatingCompany, *EmptyResponseWithStatus) error
+	GetOperatingCompany(context.Context, *GetOperatingCompanyRequest, *GetOperatingCompanyResponse) error
+	GetPaymentMinLimitsSystem(context.Context, *EmptyRequest, *GetPaymentMinLimitsSystemResponse) error
+	SetPaymentMinLimitSystem(context.Context, *billing.PaymentMinLimitSystem, *EmptyResponseWithStatus) error
 	SendWebhookToMerchant(context.Context, *billing.OrderCreateRequest, *SendWebhookToMerchantResponse) error
 	NotifyWebhookTestResults(context.Context, *NotifyWebhookTestResultsRequest, *EmptyResponseWithStatus) error
 }
@@ -1900,6 +1972,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		ListMerchants(ctx context.Context, in *MerchantListingRequest, out *MerchantListingResponse) error
 		ChangeMerchant(ctx context.Context, in *OnboardingRequest, out *ChangeMerchantResponse) error
 		ChangeMerchantStatus(ctx context.Context, in *MerchantChangeStatusRequest, out *ChangeMerchantStatusResponse) error
+		SetMerchantOperatingCompany(ctx context.Context, in *SetMerchantOperatingCompanyRequest, out *SetMerchantOperatingCompanyResponse) error
 		ChangeMerchantData(ctx context.Context, in *ChangeMerchantDataRequest, out *ChangeMerchantDataResponse) error
 		SetMerchantS3Agreement(ctx context.Context, in *SetMerchantS3AgreementRequest, out *ChangeMerchantDataResponse) error
 		GetMerchantTariffRates(ctx context.Context, in *GetMerchantTariffRatesRequest, out *GetMerchantTariffRatesResponse) error
@@ -2016,7 +2089,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetDashboardMainReport(ctx context.Context, in *GetDashboardMainRequest, out *GetDashboardMainResponse) error
 		GetDashboardRevenueDynamicsReport(ctx context.Context, in *GetDashboardMainRequest, out *GetDashboardRevenueDynamicsReportResponse) error
 		GetDashboardBaseReport(ctx context.Context, in *GetDashboardBaseReportRequest, out *GetDashboardBaseReportResponse) error
-		CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, out *PayoutDocumentResponse) error
+		CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, out *CreatePayoutDocumentResponse) error
 		UpdatePayoutDocument(ctx context.Context, in *UpdatePayoutDocumentRequest, out *PayoutDocumentResponse) error
 		GetPayoutDocuments(ctx context.Context, in *GetPayoutDocumentsRequest, out *GetPayoutDocumentsResponse) error
 		GetPayoutDocument(ctx context.Context, in *GetPayoutDocumentRequest, out *PayoutDocumentResponse) error
@@ -2038,6 +2111,11 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetPaylinkStatByDate(ctx context.Context, in *GetPaylinkStatCommonRequest, out *GetPaylinkStatCommonGroupResponse) error
 		GetPaylinkStatByUtm(ctx context.Context, in *GetPaylinkStatCommonRequest, out *GetPaylinkStatCommonGroupResponse) error
 		DeleteSavedCard(ctx context.Context, in *DeleteSavedCardRequest, out *EmptyResponseWithStatus) error
+		GetOperatingCompaniesList(ctx context.Context, in *EmptyRequest, out *GetOperatingCompaniesListResponse) error
+		AddOperatingCompany(ctx context.Context, in *billing.OperatingCompany, out *EmptyResponseWithStatus) error
+		GetOperatingCompany(ctx context.Context, in *GetOperatingCompanyRequest, out *GetOperatingCompanyResponse) error
+		GetPaymentMinLimitsSystem(ctx context.Context, in *EmptyRequest, out *GetPaymentMinLimitsSystemResponse) error
+		SetPaymentMinLimitSystem(ctx context.Context, in *billing.PaymentMinLimitSystem, out *EmptyResponseWithStatus) error
 		SendWebhookToMerchant(ctx context.Context, in *billing.OrderCreateRequest, out *SendWebhookToMerchantResponse) error
 		NotifyWebhookTestResults(ctx context.Context, in *NotifyWebhookTestResultsRequest, out *EmptyResponseWithStatus) error
 	}
@@ -2098,6 +2176,10 @@ func (h *billingServiceHandler) ChangeMerchant(ctx context.Context, in *Onboardi
 
 func (h *billingServiceHandler) ChangeMerchantStatus(ctx context.Context, in *MerchantChangeStatusRequest, out *ChangeMerchantStatusResponse) error {
 	return h.BillingServiceHandler.ChangeMerchantStatus(ctx, in, out)
+}
+
+func (h *billingServiceHandler) SetMerchantOperatingCompany(ctx context.Context, in *SetMerchantOperatingCompanyRequest, out *SetMerchantOperatingCompanyResponse) error {
+	return h.BillingServiceHandler.SetMerchantOperatingCompany(ctx, in, out)
 }
 
 func (h *billingServiceHandler) ChangeMerchantData(ctx context.Context, in *ChangeMerchantDataRequest, out *ChangeMerchantDataResponse) error {
@@ -2564,7 +2646,7 @@ func (h *billingServiceHandler) GetDashboardBaseReport(ctx context.Context, in *
 	return h.BillingServiceHandler.GetDashboardBaseReport(ctx, in, out)
 }
 
-func (h *billingServiceHandler) CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, out *PayoutDocumentResponse) error {
+func (h *billingServiceHandler) CreatePayoutDocument(ctx context.Context, in *CreatePayoutDocumentRequest, out *CreatePayoutDocumentResponse) error {
 	return h.BillingServiceHandler.CreatePayoutDocument(ctx, in, out)
 }
 
@@ -2650,6 +2732,26 @@ func (h *billingServiceHandler) GetPaylinkStatByUtm(ctx context.Context, in *Get
 
 func (h *billingServiceHandler) DeleteSavedCard(ctx context.Context, in *DeleteSavedCardRequest, out *EmptyResponseWithStatus) error {
 	return h.BillingServiceHandler.DeleteSavedCard(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetOperatingCompaniesList(ctx context.Context, in *EmptyRequest, out *GetOperatingCompaniesListResponse) error {
+	return h.BillingServiceHandler.GetOperatingCompaniesList(ctx, in, out)
+}
+
+func (h *billingServiceHandler) AddOperatingCompany(ctx context.Context, in *billing.OperatingCompany, out *EmptyResponseWithStatus) error {
+	return h.BillingServiceHandler.AddOperatingCompany(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetOperatingCompany(ctx context.Context, in *GetOperatingCompanyRequest, out *GetOperatingCompanyResponse) error {
+	return h.BillingServiceHandler.GetOperatingCompany(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetPaymentMinLimitsSystem(ctx context.Context, in *EmptyRequest, out *GetPaymentMinLimitsSystemResponse) error {
+	return h.BillingServiceHandler.GetPaymentMinLimitsSystem(ctx, in, out)
+}
+
+func (h *billingServiceHandler) SetPaymentMinLimitSystem(ctx context.Context, in *billing.PaymentMinLimitSystem, out *EmptyResponseWithStatus) error {
+	return h.BillingServiceHandler.SetPaymentMinLimitSystem(ctx, in, out)
 }
 
 func (h *billingServiceHandler) SendWebhookToMerchant(ctx context.Context, in *billing.OrderCreateRequest, out *SendWebhookToMerchantResponse) error {

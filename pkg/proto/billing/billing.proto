@@ -641,8 +641,8 @@ message Order {
     string operating_company_id = 77;
     // @inject_tag: json:"-"
     bool is_high_risk = 78;
-    // @inject_tag: json:"is_testing"
-    bool is_testing = 76;
+    // @inject_tag: json:"testing_case"
+    string testing_case = 79;
 }
 
 message ParentOrder {
