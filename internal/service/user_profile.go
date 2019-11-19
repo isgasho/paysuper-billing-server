@@ -468,6 +468,29 @@ func (s *Service) emailConfirmedSuccessfully(ctx context.Context, profile *grpc.
 	return s.centrifugo.Publish(ctx, ch, msg)
 }
 
+func (s *Service) emailConfirmedTruncate(ctx context.Context, profile *grpc.UserProfile) error {
+	profile.Email.Confirmed = false
+	profile.Email.ConfirmedAt = nil
+
+	err := s.db.Collection(collectionUserProfile).UpdateId(bson.ObjectIdHex(profile.Id), profile)
+
+	if err != nil {
+		zap.S().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String("collection", collectionUserProfile),
+			zap.Any("query", profile),
+		)
+
+		return err
+	}
+
+	msg := map[string]string{"code": "op000005", "message": "user email confirmed successfully"}
+	ch := fmt.Sprintf(s.cfg.CentrifugoUserChannel, profile.Id)
+
+	return s.centrifugo.Publish(ctx, ch, msg)
+}
+
 func (s *Service) CreatePageReview(
 	ctx context.Context,
 	req *grpc.CreatePageReviewRequest,
@@ -529,9 +552,22 @@ func (s *Service) GetCommonUserProfile(
 		return nil
 	}
 
-	if req.MerchantId != "" {
-		rsp.Profile.Role, _ = s.userRoleRepository.GetMerchantUserByUserId(req.MerchantId, req.UserId)
-		rsp.Profile.Merchant, _ = s.merchant.GetCommonById(req.MerchantId)
+	role := s.findRoleForUser(req.MerchantId, req.UserId)
+
+	if role != nil {
+		rsp.Profile.Role = role
+		rsp.Profile.Merchant, _ = s.merchant.GetById(req.MerchantId)
+
+		if role.Role != pkg.RoleMerchantOwner {
+			merchant := &billing.Merchant{
+				Id:          rsp.Profile.Merchant.Id,
+				Company:     &billing.MerchantCompanyInfo{Name: rsp.Profile.Merchant.Company.Name},
+				Banking:     &billing.MerchantBanking{Currency: rsp.Profile.Merchant.Banking.Currency},
+				Status:      rsp.Profile.Merchant.Status,
+				HasProjects: rsp.Profile.Merchant.HasProjects,
+			}
+			rsp.Profile.Merchant = merchant
+		}
 	} else {
 		rsp.Profile.Role, _ = s.userRoleRepository.GetAdminUserByUserId(req.UserId)
 	}
@@ -549,6 +585,20 @@ func (s *Service) GetCommonUserProfile(
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
+
+	return nil
+}
+
+func (s *Service) findRoleForUser(merchantId string, userId string) *billing.UserRole {
+	if merchantId != "" {
+		role, _ := s.userRoleRepository.GetMerchantUserByUserId(merchantId, userId)
+		return role
+	}
+
+	roles, _ := s.userRoleRepository.GetMerchantsForUser(userId)
+	if len(roles) > 0 {
+		return roles[0]
+	}
 
 	return nil
 }

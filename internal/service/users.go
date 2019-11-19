@@ -61,6 +61,7 @@ var (
 	errorUserProfileNotFound          = newBillingServerErrorMsg("uu000021", "unable to get user profile")
 	errorUserEmptyNames               = newBillingServerErrorMsg("uu000022", "first and last names cannot be empty")
 	errorUserEmptyCompanyName         = newBillingServerErrorMsg("uu000023", "company name cannot be empty")
+	errorUserConfirmEmail             = newBillingServerErrorMsg("uu000023", "unable to confirm email")
 
 	merchantUserRoles = map[string][]*billing.RoleListItem{
 		pkg.RoleTypeMerchant: {
@@ -591,6 +592,13 @@ func (s *Service) AcceptInvite(
 		return nil
 	}
 
+	if err = s.emailConfirmedSuccessfully(ctx, profile); err != nil {
+		zap.L().Error(errorUserConfirmEmail.Message, zap.Error(err), zap.Any("profile", profile))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserConfirmEmail
+		return nil
+	}
+
 	res.Status = pkg.ResponseStatusOk
 	res.Role = user
 
@@ -826,6 +834,23 @@ func (s *Service) DeleteMerchantUser(
 		}
 	}
 
+	profile, err := s.userProfileRepository.GetByUserId(user.UserId)
+
+	if err != nil {
+		zap.L().Error(errorUserProfileNotFound.Message, zap.Error(err), zap.String("user_id", user.UserId))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserProfileNotFound
+
+		return nil
+	}
+
+	if err = s.emailConfirmedTruncate(ctx, profile); err != nil {
+		zap.L().Error(errorUserConfirmEmail.Message, zap.Error(err), zap.Any("profile", profile))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserConfirmEmail
+		return nil
+	}
+
 	res.Status = pkg.ResponseStatusOk
 
 	return nil
@@ -863,6 +888,23 @@ func (s *Service) DeleteAdminUser(
 			res.Message = errorUserUnableToDeleteFromCasbin
 			return nil
 		}
+	}
+
+	profile, err := s.userProfileRepository.GetByUserId(user.UserId)
+
+	if err != nil {
+		zap.L().Error(errorUserProfileNotFound.Message, zap.Error(err), zap.String("user_id", user.UserId))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserProfileNotFound
+
+		return nil
+	}
+
+	if err = s.emailConfirmedTruncate(ctx, profile); err != nil {
+		zap.L().Error(errorUserConfirmEmail.Message, zap.Error(err), zap.Any("profile", profile))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserConfirmEmail
+		return nil
 	}
 
 	res.Status = pkg.ResponseStatusOk

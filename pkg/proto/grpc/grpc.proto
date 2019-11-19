@@ -1650,7 +1650,7 @@ message CommonUserProfile {
     UserProfile profile = 1;
     billing.UserRole role = 2;
     repeated Permission permissions = 3;
-    billing.MerchantCommon merchant = 4;
+    billing.Merchant merchant = 4;
 }
 
 message GetUserProfileRequest {

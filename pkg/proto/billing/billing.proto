@@ -402,10 +402,8 @@ message MerchantCommon {
     string currency = 3;
     // @inject_tag: json:"status"
     int32 status = 4;
-    // @inject_tag: json:"centrifugo_token"
-    string centrifugo_token = 5;
     // @inject_tag: json:"has_projects"
-    bool has_projects = 6;
+    bool has_projects = 5;
 }
 
 message SystemNotificationStatuses {
