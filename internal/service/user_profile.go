@@ -556,7 +556,7 @@ func (s *Service) GetCommonUserProfile(
 
 	if role != nil {
 		rsp.Profile.Role = role
-		rsp.Profile.Merchant, _ = s.merchant.GetById(req.MerchantId)
+		rsp.Profile.Merchant, _ = s.merchant.GetById(role.MerchantId)
 
 		if role.Role != pkg.RoleMerchantOwner {
 			merchant := &billing.Merchant{
