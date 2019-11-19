@@ -321,7 +321,7 @@ const (
 	TariffRegionRussiaAndCis = "russia_and_cis"
 	TariffRegionEurope       = "europe"
 	TariffRegionAsia         = "asia"
-	TariffRegionLatAm        = "latam"
+	TariffRegionLatAm        = "latin_america"
 	TariffRegionWorldwide    = "worldwide"
 
 	PaymentMethodKey = "%s:%s:%s" // currency:mcc_code:operating_company_id, for example: "USD:5816:5dc3f70deb494903d835f28a"
@@ -385,11 +385,11 @@ var (
 	}
 
 	HomeRegions = map[string]string{
-		"asia":           "Asia",
-		"europe":         "Europe",
-		"latin_america":  "Latin America",
-		"russia_and_cis": "Russia & CIS",
-		"worldwide":      "Worldwide",
+		TariffRegionAsia:         "Asia",
+		TariffRegionEurope:       "Europe",
+		TariffRegionLatAm:        "Latin America",
+		TariffRegionRussiaAndCis: "Russia & CIS",
+		TariffRegionWorldwide:    "Worldwide",
 	}
 
 	CardPayPaths = map[string]*Path{
