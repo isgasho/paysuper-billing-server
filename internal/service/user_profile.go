@@ -520,6 +520,15 @@ func (s *Service) GetCommonUserProfile(
 		Profile: profile,
 	}
 
+	rsp.Profile.Profile.CentrifugoToken, err = s.getUserCentrifugoToken(profile)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = userProfileErrorUnknown
+
+		return nil
+	}
+
 	if req.MerchantId != "" {
 		rsp.Profile.Role, _ = s.userRoleRepository.GetMerchantUserByUserId(req.MerchantId, req.UserId)
 		rsp.Profile.Merchant, _ = s.merchant.GetCommonById(req.MerchantId)
