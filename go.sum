@@ -729,6 +729,7 @@ github.com/paysuper/paysuper-billing-server v0.0.0-20191111090538-4a75afd2a960/g
 github.com/paysuper/paysuper-billing-server v0.0.0-20191118105056-1664bb247864/go.mod h1:RrTEhsH+Amw+sTOLm2vYLZRwrrBy8hN5uEZvI5z3Gy8=
 github.com/paysuper/paysuper-billing-server v0.0.0-20191119073629-e20c72d4e035/go.mod h1:ZvxARPtPqXZ+mlZNrpbk5/XztTLF1Mv+n14BPiISMHs=
 github.com/paysuper/paysuper-billing-server v0.0.0-20191119084605-a4dc10204b87/go.mod h1:wp6VGvf/li8zz8RKXk8dK2IVArgD5gnz78Uw8sx0rNU=
+github.com/paysuper/paysuper-billing-server v0.0.0-20191119091147-804121c4b9f1/go.mod h1:5rDu6gPjMDQu8vY+jMFP2V3Bl8il2JqxVR2x6rOcjbs=
 github.com/paysuper/paysuper-currencies v0.0.0-20190903083641-668b8b2b997d h1:hoMkfdq4qEGOONvxajsZO0Mf6np++pGnrKVxegvplaw=
 github.com/paysuper/paysuper-currencies v0.0.0-20190903083641-668b8b2b997d/go.mod h1:C+QHdgbjIlAPxHD93/08yi+xWfUgk8maLY8FKFqNzMQ=
 github.com/paysuper/paysuper-database-mongo v0.1.0/go.mod h1:IZu996j//Qoq+uzzCBL5GEYisfF4di/fwedWHlLz7sc=
@@ -739,6 +740,8 @@ github.com/paysuper/paysuper-i18n v0.0.0-20190926113224-7eaca4563c7b h1:X4JLXz47
 github.com/paysuper/paysuper-i18n v0.0.0-20190926113224-7eaca4563c7b/go.mod h1:ylOwG4lTgHfMviuc16JFhbchWF8aBAGEuoGEX6HSOTE=
 github.com/paysuper/paysuper-management-api v0.0.0-20191119085608-28f5a76d391a h1:QFkVJrTJ1ENw7Vl4kNZBLQ6ClUIqoYgVZB3rWKs+Uz8=
 github.com/paysuper/paysuper-management-api v0.0.0-20191119085608-28f5a76d391a/go.mod h1:bXPw/plHj1D8/gTvxplRtcU75S1+a/Vz5SBVozC7n+8=
+github.com/paysuper/paysuper-management-api v0.0.0-20191119092732-f6d0d01174da h1:oAM+b8W9K4p9U+HaonSk7Qybf6Flbxah4CYHszwONs4=
+github.com/paysuper/paysuper-management-api v0.0.0-20191119092732-f6d0d01174da/go.mod h1:8gHsbTF53mLaydpHJECVAIddTJJIA7eH02sYH6IHdxs=
 github.com/paysuper/paysuper-recurring-repository v1.0.123/go.mod h1:J5qs2I+QNL09dzJeCOGT++zrOXMbJNrzGP62/B6ZaEg=
 github.com/paysuper/paysuper-recurring-repository v1.0.124/go.mod h1:J5qs2I+QNL09dzJeCOGT++zrOXMbJNrzGP62/B6ZaEg=
 github.com/paysuper/paysuper-recurring-repository v1.0.126 h1:4+Qyv4QVQor2x6vjx+816tA5iVfsej02c4QHUi+GOh4=

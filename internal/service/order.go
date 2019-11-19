@@ -2967,7 +2967,8 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 		order.ProjectAccount = order.User.Email
 	}
 
-	if v.checked.project.CallbackProtocol == pkg.ProjectCallbackProtocolDefault {
+	if v.checked.project.CallbackProtocol == pkg.ProjectCallbackProtocolDefault &&
+		v.checked.project.WebhookMode == pkg.ProjectWebhookPreApproval {
 		checkReq := &grpc2.CheckUserRequest{Url: v.checked.project.UrlCheckAccount,
 			SecretKey: v.checked.project.GetSecretKey(),
 			User: &grpc2.User{

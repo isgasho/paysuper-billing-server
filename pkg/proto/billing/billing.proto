@@ -168,6 +168,8 @@ message Project {
     ProjectVirtualCurrency virtual_currency = 35;
     //@inject_tag: json:"webhook_testing"
     WebHookTesting webhook_testing = 36;
+    //@inject_tag: json:"webhook_mode" validate:"omitempty,oneof=default pre_approval"
+    string webhook_mode = 37;
 }
 
 message WebHookTesting {

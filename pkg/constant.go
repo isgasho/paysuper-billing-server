@@ -97,6 +97,9 @@ const (
 	ProjectCallbackProtocolEmpty   = "empty"
 	ProjectCallbackProtocolDefault = "default"
 
+	ProjectWebhookPreApproval   = "pre_approval"
+	ProjectWebhookDefault = "default"
+
 	ObjectTypeUser = "user"
 
 	UserIdentityTypeEmail    = "email"
