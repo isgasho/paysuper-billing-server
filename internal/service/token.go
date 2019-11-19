@@ -61,6 +61,8 @@ type BrowserCookieCustomer struct {
 	CustomerId        string    `json:"customer_id"`
 	VirtualCustomerId string    `json:"virtual_customer_id"`
 	Ip                string    `json:"ip"`
+	IpCountry         string    `json:"ip_country"`
+	SelectedCountry   string    `json:"selected_country"`
 	UserAgent         string    `json:"user_agent"`
 	AcceptLanguage    string    `json:"accept_language"`
 	SessionCount      int32     `json:"session_count"`
@@ -83,17 +85,26 @@ func (s *Service) CreateToken(
 		return nil
 	}
 
+	userIp := ""
+	if req.User != nil && req.User.Ip != nil {
+		userIp = req.User.Ip.Value
+	}
+
 	processor := &OrderCreateRequestProcessor{
 		Service: s,
 		request: &billing.OrderCreateRequest{
-			ProjectId:  req.Settings.ProjectId,
-			Amount:     req.Settings.Amount,
-			Currency:   req.Settings.Currency,
-			Products:   req.Settings.ProductsIds,
-			PlatformId: req.Settings.PlatformId,
+			ProjectId:               req.Settings.ProjectId,
+			Amount:                  req.Settings.Amount,
+			Currency:                req.Settings.Currency,
+			Products:                req.Settings.ProductsIds,
+			PlatformId:              req.Settings.PlatformId,
 			IsBuyForVirtualCurrency: req.Settings.IsBuyForVirtualCurrency,
 		},
-		checked: &orderCreateRequestProcessorChecked{},
+		checked: &orderCreateRequestProcessorChecked{
+			user: &billing.OrderUser{
+				Ip: userIp,
+			},
+		},
 	}
 
 	err := processor.processProject()
@@ -126,6 +137,30 @@ func (s *Service) CreateToken(
 		}
 	}
 
+	if processor.checked.user.Ip != "" {
+		err = processor.processPayerIp()
+		if err != nil {
+			zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
+			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+				rsp.Status = pkg.ResponseStatusBadData
+				rsp.Message = e
+				return nil
+			}
+			return err
+		}
+	}
+
+	if req.User.Address != nil && req.User.Address.Country != "" {
+		processor.checked.user.Address = req.User.Address
+	}
+
+	err = processor.processCurrency(req.Settings.Type == billing.OrderType_simple)
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
+		return nil
+	}
+
 	switch req.Settings.Type {
 	case billing.OrderType_simple:
 		if len(req.Settings.ProductsIds) > 0 {
@@ -137,14 +172,6 @@ func (s *Service) CreateToken(
 		if req.Settings.Amount <= 0 || req.Settings.Currency == "" {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = tokenErrorSettingsSimpleCheckoutParamsRequired
-			return nil
-		}
-
-		err = processor.processCurrency()
-
-		if err != nil {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
 			return nil
 		}
 

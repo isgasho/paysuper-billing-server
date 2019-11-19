@@ -44,7 +44,8 @@ const (
 	DefaultPaymentMethodPerTransactionFee = float64(0)
 	DefaultPaymentMethodCurrency          = ""
 
-	CountryCodeUSA = "US"
+	CountryCodeUSA    = "US"
+	DefaultTaxRateUSA = float64(0.19)
 
 	DefaultLanguage = "en"
 

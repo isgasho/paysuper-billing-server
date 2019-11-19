@@ -810,6 +810,11 @@ func helperCreateAndPayOrder(
 	centrifugoMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	service.centrifugo = centrifugoMock
 
+	zip := ""
+	if country == CountryCodeUSA {
+		zip = "98001"
+	}
+
 	req := &billing.OrderCreateRequest{
 		Type:        billing.OrderType_simple,
 		ProjectId:   project.Id,
@@ -819,10 +824,12 @@ func helperCreateAndPayOrder(
 		Description: "unit test",
 		OrderId:     bson.NewObjectId().Hex(),
 		User: &billing.OrderUser{
+			Id:    bson.NewObjectId().Hex(),
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 			Address: &billing.OrderBillingAddress{
-				Country: country,
+				Country:    country,
+				PostalCode: zip,
 			},
 		},
 	}
@@ -1024,6 +1031,11 @@ func createProductsForProject(
 			Amount:   baseAmount,
 		})
 		req.Prices = append(req.Prices, &billing.ProductPrice{
+			Currency: "EUR",
+			Region:   "EUR",
+			Amount:   baseAmount * 0.9,
+		})
+		req.Prices = append(req.Prices, &billing.ProductPrice{
 			Currency: "RUB",
 			Region:   "RUB",
 			Amount:   baseAmount * 65.13,
@@ -1042,7 +1054,7 @@ func createProductsForProject(
 	return products
 }
 
-func createKeyProductsFroProject(
+func createKeyProductsForProject(
 	suite suite.Suite,
 	service *Service,
 	project *billing.Project,

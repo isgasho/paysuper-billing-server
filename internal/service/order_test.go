@@ -924,6 +924,11 @@ func (suite *OrderTestSuite) SetupTest() {
 					Region:   "USD",
 					Amount:   10,
 				},
+				{
+					Currency: "RUB",
+					Region:   "RUB",
+					Amount:   650,
+				},
 			},
 		},
 	}
@@ -1349,6 +1354,11 @@ func (suite *OrderTestSuite) SetupTest() {
 			Region:   "RUB",
 			Amount:   baseAmount * 65.13,
 		})
+		req.Prices = append(req.Prices, &billing.ProductPrice{
+			Currency: "USD",
+			Region:   "CIS",
+			Amount:   baseAmount * 24.17,
+		})
 
 		prod := grpc.Product{}
 
@@ -1417,6 +1427,11 @@ func (suite *OrderTestSuite) SetupTest() {
 							Currency: "USD",
 							Region:   "USD",
 							Amount:   baseAmount,
+						},
+						{
+							Currency: "USD",
+							Region:   "CIS",
+							Amount:   baseAmount * 24.17,
 						},
 						{
 							Currency: "RUB",
@@ -2081,7 +2096,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessCurrency_Ok() {
 	}
 	assert.Empty(suite.T(), processor.checked.currency)
 
-	err := processor.processCurrency()
+	err := processor.processCurrency(req.Type == billing.OrderType_simple)
 
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), processor.checked.currency)
@@ -2103,7 +2118,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessCurrency_Error() {
 	suite.service.curService = mocks.NewCurrencyServiceMockError()
 	suite.service.supportedCurrencies = []string{}
 
-	err := processor.processCurrency()
+	err := processor.processCurrency(req.Type == billing.OrderType_simple)
 
 	assert.Error(suite.T(), err)
 	assert.Empty(suite.T(), processor.checked.currency)
@@ -2591,14 +2606,14 @@ func (suite *OrderTestSuite) TestOrder_ProcessProjectOrderId_Duplicate_Error() {
 	err = processor.processUserData()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processCurrency()
+	err = processor.processCurrency(req.Type == billing.OrderType_simple)
 	assert.Nil(suite.T(), err)
 
 	err = processor.processPayerIp()
 	assert.Nil(suite.T(), err)
 
 	err = processor.processPaylinkProducts()
-	assert.Nil(suite.T(), err)
+	assert.Error(suite.T(), err)
 
 	id := bson.NewObjectId().Hex()
 
@@ -2654,7 +2669,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethod_Ok() {
 	err := processor.processProject()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processCurrency()
+	err = processor.processCurrency(req.Type == billing.OrderType_simple)
 	assert.Nil(suite.T(), err)
 
 	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(suite.project, req.PaymentMethod, processor.checked.currency)
@@ -2679,7 +2694,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethod_PaymentMethodInactiv
 	}
 	assert.Nil(suite.T(), processor.checked.paymentMethod)
 
-	err := processor.processCurrency()
+	err := processor.processCurrency(req.Type == billing.OrderType_simple)
 	assert.Nil(suite.T(), err)
 
 	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(suite.project, req.PaymentMethod, processor.checked.currency)
@@ -2705,7 +2720,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethod_PaymentSystemInactiv
 	}
 	assert.Nil(suite.T(), processor.checked.paymentMethod)
 
-	err := processor.processCurrency()
+	err := processor.processCurrency(req.Type == billing.OrderType_simple)
 	assert.Nil(suite.T(), err)
 
 	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(suite.project, req.PaymentMethod, processor.checked.currency)
@@ -2739,7 +2754,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_Ok() {
 	err := processor.processProject()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processCurrency()
+	err = processor.processCurrency(req.Type == billing.OrderType_simple)
 	assert.Nil(suite.T(), err)
 
 	processor.processAmount()
@@ -2776,7 +2791,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_ConvertAmount_Ok() {
 	err := processor.processProject()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processCurrency()
+	err = processor.processCurrency(req.Type == billing.OrderType_simple)
 	assert.Nil(suite.T(), err)
 
 	processor.processAmount()
@@ -2815,7 +2830,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_ProjectMinAmount_Erro
 	err := processor.processProject()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processCurrency()
+	err = processor.processCurrency(req.Type == billing.OrderType_simple)
 	assert.Nil(suite.T(), err)
 
 	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(suite.project, req.PaymentMethod, processor.checked.currency)
@@ -2851,7 +2866,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_ProjectMaxAmount_Erro
 	err := processor.processProject()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processCurrency()
+	err = processor.processCurrency(req.Type == billing.OrderType_simple)
 	assert.Nil(suite.T(), err)
 
 	processor.processAmount()
@@ -2889,7 +2904,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_PaymentMethodMinAmoun
 	err := processor.processProject()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processCurrency()
+	err = processor.processCurrency(req.Type == billing.OrderType_simple)
 	assert.Nil(suite.T(), err)
 
 	processor.processAmount()
@@ -2927,7 +2942,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_PaymentMethodMaxAmoun
 	err := processor.processProject()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processCurrency()
+	err = processor.processCurrency(req.Type == billing.OrderType_simple)
 	assert.Nil(suite.T(), err)
 
 	processor.processAmount()
@@ -3122,7 +3137,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_Ok() {
 	err = processor.processPayerIp()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processCurrency()
+	err = processor.processCurrency(req.Type == billing.OrderType_simple)
 	assert.Nil(suite.T(), err)
 
 	err = processor.processPaylinkProducts()
@@ -3176,7 +3191,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_PaymentMethod_Ok() {
 	err = processor.processPayerIp()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processCurrency()
+	err = processor.processCurrency(req.Type == billing.OrderType_simple)
 	assert.Nil(suite.T(), err)
 
 	err = processor.processPaylinkProducts()
@@ -3239,7 +3254,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_UrlVerify_Error() {
 	err = processor.processPayerIp()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processCurrency()
+	err = processor.processCurrency(req.Type == billing.OrderType_simple)
 	assert.Nil(suite.T(), err)
 
 	err = processor.processPaylinkProducts()
@@ -3290,7 +3305,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_UrlRedirect_Error() {
 	err = processor.processPayerIp()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processCurrency()
+	err = processor.processCurrency(req.Type == billing.OrderType_simple)
 	assert.Nil(suite.T(), err)
 
 	err = processor.processPaylinkProducts()
@@ -3374,8 +3389,10 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_SignatureInvalid_Error
 		Description:   "unit test",
 		OrderId:       bson.NewObjectId().Hex(),
 		PayerEmail:    "test@unit.unit",
-		PayerIp:       "127.0.0.1",
-		IsJson:        true,
+		User: &billing.OrderUser{
+			Ip: "127.0.0.1",
+		},
+		IsJson: true,
 	}
 
 	req.RawBody = `{"project":"` + suite.project.Id + `","amount":` + fmt.Sprintf("%f", req.Amount) +
@@ -8216,6 +8233,7 @@ func (suite *OrderTestSuite) TestOrder_KeyProductWithoutPriceDifferentRegion_Ok(
 		Country: "UA",
 	}, rsp2)
 
+	assert.NoError(suite.T(), err)
 	shouldBe.Equal(rsp2.Item.Currency, "USD")
 	for _, v := range rsp2.Item.Items {
 		shouldBe.Equal(rsp2.Item.Currency, v.Currency)
@@ -8252,6 +8270,7 @@ func (suite *OrderTestSuite) TestOrder_ProductWithoutPriceDifferentRegion_Ok() {
 		Country: "UA",
 	}, rsp2)
 
+	assert.NoError(suite.T(), err)
 	shouldBe.Equal(rsp2.Item.Currency, "USD")
 	for _, v := range rsp2.Item.Items {
 		shouldBe.Equal(rsp2.Item.Currency, v.Currency)
@@ -8280,8 +8299,8 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcessVirtualCurrency_Ok() {
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
 	assert.True(suite.T(), len(rsp.Item.Id) > 0)
-	assert.EqualValues(suite.T(), 2000, rsp.Item.OrderAmount)
-	assert.Equal(suite.T(), "USD", rsp.Item.Currency)
+	assert.EqualValues(suite.T(), 130000, rsp.Item.OrderAmount)
+	assert.Equal(suite.T(), "RUB", rsp.Item.Currency)
 	assert.Equal(suite.T(), "virtual", rsp.Item.Items[0].Currency)
 	assert.EqualValues(suite.T(), 100, rsp.Item.Items[0].Amount)
 }

@@ -29,7 +29,8 @@ func (s *GeoIpServiceTestOk) GetIpData(
 ) (*proto.GeoIpDataResponse, error) {
 	var data = &proto.GeoIpDataResponse{}
 
-	if in.IP == "127.0.0.1" {
+	switch in.IP {
+	case "127.0.0.1":
 		data = &proto.GeoIpDataResponse{
 			Country: &proto.GeoIpCountry{
 				IsoCode: "RU",
@@ -49,7 +50,31 @@ func (s *GeoIpServiceTestOk) GetIpData(
 				},
 			},
 		}
-	} else {
+		break
+
+	case "127.0.0.2":
+		data = &proto.GeoIpDataResponse{
+			Country: &proto.GeoIpCountry{
+				IsoCode: "US",
+				Names:   map[string]string{"en": "United States of America", "ru": "США"},
+			},
+			City: &proto.GeoIpCity{
+				Names: map[string]string{"en": "New York", "ru": "Нью-Йорк"},
+			},
+			Location: &proto.GeoIpLocation{
+				TimeZone: "America/New_York",
+			},
+			Subdivisions: []*proto.GeoIpSubdivision{
+				{
+					GeoNameID: uint32(1),
+					IsoCode:   "NY",
+					Names:     map[string]string{"en": "New York", "ru": "Нью-Йорк"},
+				},
+			},
+		}
+		break
+
+	default:
 		data = &proto.GeoIpDataResponse{
 			Country: &proto.GeoIpCountry{
 				IsoCode: "UA",
@@ -59,7 +84,7 @@ func (s *GeoIpServiceTestOk) GetIpData(
 				Names: map[string]string{"en": "Kiev", "ru": "Киев"},
 			},
 			Location: &proto.GeoIpLocation{
-				TimeZone: "Europe/Moscow",
+				TimeZone: "Europe/Kiev",
 			},
 			Subdivisions: []*proto.GeoIpSubdivision{
 				{

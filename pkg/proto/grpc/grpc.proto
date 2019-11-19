@@ -779,6 +779,8 @@ message ProcessBillingAddressRequest {
     string country = 2;
     // @inject_tag: validate:"omitempty,zip_usa"
     string zip = 4;
+    string ip = 5;
+    string cookie = 6;
 }
 
 message ProcessBillingAddressResponseItem {
@@ -794,6 +796,8 @@ message ProcessBillingAddressResponseItem {
     string currency = 6;
     // @inject_tag: json:"items"
     repeated billing.OrderItem items = 7;
+    // @inject_tag: json:"-"
+    string cookie = 8;
 }
 
 message ProcessBillingAddressResponse {

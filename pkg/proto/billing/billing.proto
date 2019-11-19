@@ -43,7 +43,6 @@ message OrderCreateRequest {
     string payer_phone = 14;
     // @inject_tag: query:"PO_REGION" form:"PO_REGION" json:"region" validate:"omitempty,alpha,len=2"
     string region = 15;
-    string payer_ip = 16;
     map<string, string> other = 17;
     // @inject_tag: json:"-"
     map<string, string> raw_params = 18;
@@ -91,6 +90,7 @@ message OrderCreateRequest {
     string utm_campaign = 38;
     //@inject_tag: bson:"is_buy_for_virtual_currency" json:"is_buy_for_virtual_currency"
     bool is_buy_for_virtual_currency = 39;
+    string cookie = 40;
 }
 
 message Project {
@@ -623,6 +623,8 @@ message Order {
     string operating_company_id = 77;
     // @inject_tag: json:"-"
     bool is_high_risk = 78;
+    // @inject_tag: json:"-"
+    bool is_currency_predefined = 79;
 }
 
 message ParentOrder {
@@ -2313,6 +2315,7 @@ message OrderCreateByPaylink {
     string utm_medium = 6;
     //@inject_tag: bson:"utm_campaign" json:"utm_campaign"
     string utm_campaign = 7;
+    string cookie = 8;
 }
 
 message UserIpData {

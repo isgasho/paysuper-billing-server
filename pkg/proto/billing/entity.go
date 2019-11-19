@@ -336,3 +336,7 @@ func (m *Merchant) CanChangeStatusTo(status int32) bool {
 
 	return false
 }
+
+func (ou *OrderUser) HasTrustedAddress() bool {
+	return ou.Id != "" && ou.Address != nil && ou.Address.Country != ""
+}
