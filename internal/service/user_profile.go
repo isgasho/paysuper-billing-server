@@ -573,7 +573,7 @@ func (s *Service) GetCommonUserProfile(
 	}
 
 	if rsp.Profile.Role != nil {
-		rsp.Profile.Permissions, err = s.getUserPermissions(ctx, req.UserId, req.MerchantId)
+		rsp.Profile.Permissions, err = s.getUserPermissions(ctx, req.UserId, rsp.Profile.Role.MerchantId)
 
 		if err != nil {
 			zap.S().Error(
