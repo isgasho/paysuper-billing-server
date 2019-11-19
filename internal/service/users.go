@@ -60,6 +60,7 @@ var (
 	errorUserGetImplicitPermissions   = newBillingServerErrorMsg("uu000020", "unable to get implicit permission for user")
 	errorUserProfileNotFound          = newBillingServerErrorMsg("uu000021", "unable to get user profile")
 	errorUserEmptyNames               = newBillingServerErrorMsg("uu000022", "first and last names cannot be empty")
+	errorUserEmptyCompanyName         = newBillingServerErrorMsg("uu000023", "company name cannot be empty")
 
 	merchantUserRoles = map[string][]*billing.RoleListItem{
 		pkg.RoleTypeMerchant: {
@@ -169,6 +170,14 @@ func (s *Service) InviteUserMerchant(
 		zap.L().Error(errorUserMerchantNotFound.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserMerchantNotFound
+
+		return nil
+	}
+
+	if merchant.Company == nil || merchant.Company.Name == "" {
+		zap.L().Error(errorUserEmptyCompanyName.Message, zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserEmptyCompanyName
 
 		return nil
 	}
@@ -792,15 +801,17 @@ func (s *Service) DeleteMerchantUser(
 		return nil
 	}
 
-	_, err = s.casbinService.DeleteUser(ctx, &casbinProto.UserRoleRequest{
-		User: fmt.Sprintf(pkg.CasbinMerchantUserMask, user.MerchantId, user.UserId),
-	})
+	if user.UserId != "" {
+		_, err = s.casbinService.DeleteUser(ctx, &casbinProto.UserRoleRequest{
+			User: fmt.Sprintf(pkg.CasbinMerchantUserMask, user.MerchantId, user.UserId),
+		})
 
-	if err != nil {
-		zap.L().Error(errorUserUnableToDeleteFromCasbin.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserUnableToDeleteFromCasbin
-		return nil
+		if err != nil {
+			zap.L().Error(errorUserUnableToDeleteFromCasbin.Message, zap.Error(err), zap.Any("req", req))
+			res.Status = pkg.ResponseStatusBadData
+			res.Message = errorUserUnableToDeleteFromCasbin
+			return nil
+		}
 	}
 
 	res.Status = pkg.ResponseStatusOk
@@ -831,13 +842,15 @@ func (s *Service) DeleteAdminUser(
 		return nil
 	}
 
-	_, err = s.casbinService.DeleteUser(ctx, &casbinProto.UserRoleRequest{User: user.UserId})
+	if user.UserId != "" {
+		_, err = s.casbinService.DeleteUser(ctx, &casbinProto.UserRoleRequest{User: user.UserId})
 
-	if err != nil {
-		zap.L().Error(errorUserUnableToDeleteFromCasbin.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserUnableToDeleteFromCasbin
-		return nil
+		if err != nil {
+			zap.L().Error(errorUserUnableToDeleteFromCasbin.Message, zap.Error(err), zap.Any("req", req))
+			res.Status = pkg.ResponseStatusBadData
+			res.Message = errorUserUnableToDeleteFromCasbin
+			return nil
+		}
 	}
 
 	res.Status = pkg.ResponseStatusOk
