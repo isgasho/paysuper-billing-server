@@ -4,7 +4,7 @@ require (
 	github.com/InVisionApp/go-health v2.1.0+incompatible
 	github.com/ProtocolONE/geoip-service v0.0.0-20190903084234-1d5ae6b96679
 	github.com/ProtocolONE/go-micro-plugins v0.3.0
-	github.com/PuerkitoBio/purell v1.0.0
+	github.com/PuerkitoBio/purell v1.1.1
 	github.com/alicebob/miniredis v2.5.0+incompatible
 	github.com/centrifugal/gocent v2.0.2+incompatible
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -27,10 +27,11 @@ require (
 	github.com/paysuper/paysuper-currencies v0.0.0-20190903083641-668b8b2b997d
 	github.com/paysuper/paysuper-database-mongo v0.1.3
 	github.com/paysuper/paysuper-i18n v0.0.0-20190926113224-7eaca4563c7b
+	github.com/paysuper/paysuper-management-api v0.0.0-20191119085608-28f5a76d391a // indirect
 	github.com/paysuper/paysuper-recurring-repository v1.0.126
 	github.com/paysuper/paysuper-reporter v0.0.0-20191113111020-e3a5369c6d6a
 	github.com/paysuper/paysuper-tax-service v0.0.0-20190903084038-7849f394f122
-	github.com/paysuper/paysuper-webhook-notifier v0.0.0-20191118130656-224b50046f34
+	github.com/paysuper/paysuper-webhook-notifier v0.0.0-20191119084505-cfe05dc17508
 	github.com/paysuper/postmark-sender v0.0.0-20190926173213-1b6244122c49
 	github.com/prometheus/client_golang v1.1.0
 	github.com/stoewer/go-strcase v1.0.2
