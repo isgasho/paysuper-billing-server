@@ -487,12 +487,20 @@ func (s *Service) AcceptInvite(
 	req *grpc.AcceptInviteRequest,
 	res *grpc.AcceptInviteResponse,
 ) error {
-	claims, err := s.parseInviteToken(req.Token, req.Email)
+	claims, err := s.parseInviteToken(req.Token)
 
 	if err != nil {
 		zap.L().Error("Error on parse invite token", zap.Error(err), zap.String("token", req.Token), zap.String("email", req.Email))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserInvalidToken
+
+		return nil
+	}
+
+	if claims[claimEmail] != req.Email {
+		zap.L().Error(errorUserInvalidInviteEmail.Message, zap.String("token email", claims[claimEmail].(string)), zap.String("email", req.Email))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserInvalidInviteEmail
 
 		return nil
 	}
@@ -594,12 +602,20 @@ func (s *Service) CheckInviteToken(
 	req *grpc.CheckInviteTokenRequest,
 	res *grpc.CheckInviteTokenResponse,
 ) error {
-	claims, err := s.parseInviteToken(req.Token, req.Email)
+	claims, err := s.parseInviteToken(req.Token)
 
 	if err != nil {
 		zap.L().Error("Error on parse invite token", zap.Error(err), zap.String("token", req.Token), zap.String("email", req.Email))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserInvalidToken
+
+		return nil
+	}
+
+	if claims[claimEmail] != req.Email {
+		zap.L().Error(errorUserInvalidInviteEmail.Message, zap.String("token email", claims[claimEmail].(string)), zap.String("email", req.Email))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserInvalidInviteEmail
 
 		return nil
 	}
@@ -611,7 +627,7 @@ func (s *Service) CheckInviteToken(
 	return nil
 }
 
-func (s *Service) parseInviteToken(t string, email string) (jwt.MapClaims, error) {
+func (s *Service) parseInviteToken(t string) (jwt.MapClaims, error) {
 	token, err := jwt.Parse(t, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New(errorUserInvalidToken.Message)
@@ -632,10 +648,6 @@ func (s *Service) parseInviteToken(t string, email string) (jwt.MapClaims, error
 
 	if !ok {
 		return nil, errors.New("cannot read claims")
-	}
-
-	if claims[claimEmail] != email {
-		return nil, errors.New(errorUserInvalidInviteEmail.Message)
 	}
 
 	return claims, nil
