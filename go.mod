@@ -19,10 +19,7 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/jinzhu/copier v0.0.0-20190625015134-976e0346caa8
 	github.com/jinzhu/now v1.0.1
-	github.com/karlseguin/expect v1.0.1 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/mattn/go-colorable v0.1.4 // indirect
-	github.com/mattn/go-isatty v0.0.9 // indirect
 	github.com/micro/cli v0.2.0
 	github.com/micro/go-micro v1.8.0
 	github.com/micro/go-plugins v1.2.0
@@ -30,23 +27,20 @@ require (
 	github.com/paysuper/paysuper-currencies v0.0.0-20190903083641-668b8b2b997d
 	github.com/paysuper/paysuper-database-mongo v0.1.3
 	github.com/paysuper/paysuper-i18n v0.0.0-20190926113224-7eaca4563c7b
-	github.com/paysuper/paysuper-management-api v0.0.0-20191119092732-f6d0d01174da // indirect
 	github.com/paysuper/paysuper-recurring-repository v1.0.126
 	github.com/paysuper/paysuper-reporter v0.0.0-20191113111020-e3a5369c6d6a
 	github.com/paysuper/paysuper-tax-service v0.0.0-20190903084038-7849f394f122
-	github.com/paysuper/paysuper-webhook-notifier v0.0.0-20191119084505-cfe05dc17508
+	github.com/paysuper/paysuper-webhook-notifier v0.0.0-20191119100139-4abb03130bed
 	github.com/paysuper/postmark-sender v0.0.0-20190926173213-1b6244122c49
 	github.com/prometheus/client_golang v1.1.0
 	github.com/stoewer/go-strcase v1.0.2
 	github.com/streadway/amqp v0.0.0-20190827072141-edfb9018d271
 	github.com/stretchr/testify v1.4.0
 	github.com/ttacon/libphonenumber v1.0.1
-	github.com/wsxiaoys/terminal v0.0.0-20160513160801-0940f3fc43a0 // indirect
 	go.uber.org/zap v1.10.0
 	golang.org/x/crypto v0.0.0-20190926114937-fa1a29108794
 	gopkg.in/ProtocolONE/rabbitmq.v1 v1.0.0-20190719062839-9858d727f3ef
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
-	gopkg.in/karlseguin/expect.v1 v1.0.1 // indirect
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce
 )
 
