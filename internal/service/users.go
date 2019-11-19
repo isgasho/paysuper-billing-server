@@ -372,7 +372,7 @@ func (s *Service) ResendInviteMerchant(
 		return nil
 	}
 
-	if role.Status == pkg.UserRoleStatusInvited {
+	if role.Status != pkg.UserRoleStatusInvited {
 		zap.L().Error(errorUserUnableResendInvite.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserUnableResendInvite
