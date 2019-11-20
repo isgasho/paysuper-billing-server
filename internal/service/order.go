@@ -138,7 +138,8 @@ var (
 	orderErrorMerchantDoNotHaveBanking                        = newBillingServerErrorMsg("fm000071", "merchant don't have completed banking info")
 	orderErrorAmountLowerThanMinLimitSystem                   = newBillingServerErrorMsg("fm000072", "order amount is lower than min system limit")
 	orderErrorAlreadyProcessed                                = newBillingServerErrorMsg("fm000073", "order is already processed")
-	orderErrorDontHaveReceiptUrl                                = newBillingServerErrorMsg("fm000074", "processed order don't have receipt url")
+	orderErrorDontHaveReceiptUrl                              = newBillingServerErrorMsg("fm000074", "processed order don't have receipt url")
+	orderErrorWrongPrivateStatus                              = newBillingServerErrorMsg("fm000075", "order has wrong private status and cannot be recreated")
 
 	virtualCurrencyPayoutCurrencyMissed = newBillingServerErrorMsg("vc000001", "virtual currency don't have price in merchant payout currency")
 
@@ -4176,5 +4177,53 @@ func (v *OrderCreateRequestProcessor) processVirtualCurrency() error {
 	}
 
 	v.checked.virtualAmount = amount
+	return nil
+}
+
+func (s *Service) OrderReCreateProcess(ctx context.Context, req *grpc.OrderReCreateProcessRequest, res *grpc.OrderCreateProcessResponse) error {
+	res.Status = pkg.ResponseStatusOk
+
+	order, err := s.orderRepository.GetByUuid(req.OrderId)
+	if err != nil {
+		zap.S().Errorw(pkg.ErrorGrpcServiceCallFailed, "err", err.Error(), "data", req)
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = orderErrorUnknown
+		return nil
+	}
+
+	if order.PrivateStatus != constant.OrderStatusPaymentSystemRejectOnCreate &&
+		order.PrivateStatus != constant.OrderStatusPaymentSystemReject &&
+		order.PrivateStatus != constant.OrderStatusProjectReject &&
+		order.PrivateStatus != constant.OrderStatusPaymentSystemDeclined &&
+		order.PrivateStatus != constant.OrderStatusPaymentSystemCanceled {
+
+		zap.S().Errorw(orderErrorWrongPrivateStatus.Message, "data", req, "status", order.PrivateStatus)
+
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = orderErrorWrongPrivateStatus
+		return nil
+	}
+
+	order.PrivateStatus = constant.OrderStatusNew
+	order.Status = constant.OrderPublicStatusCreated
+	order.Id = bson.NewObjectId().Hex()
+	order.Uuid = uuid.New().String()
+	order.ReceiptId = uuid.New().String()
+	order.CreatedAt = ptypes.TimestampNow()
+	order.UpdatedAt = ptypes.TimestampNow()
+	order.Canceled = false
+	order.CanceledAt = nil
+	order.ReceiptUrl = ""
+	order.PaymentMethod = nil
+
+	if err := s.updateOrder(order); err != nil {
+		zap.S().Errorw(pkg.ErrorGrpcServiceCallFailed, "err", err.Error(), "data", req)
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = orderErrorUnknown
+		return nil
+	}
+
+	res.Item = order
+
 	return nil
 }
