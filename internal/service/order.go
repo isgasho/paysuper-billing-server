@@ -4216,10 +4216,12 @@ func (s *Service) OrderReCreateProcess(ctx context.Context, req *grpc.OrderReCre
 	order.ReceiptUrl = ""
 	order.PaymentMethod = nil
 
-	if err := s.updateOrder(order); err != nil {
-		zap.S().Errorw(pkg.ErrorGrpcServiceCallFailed, "err", err.Error(), "data", req)
-		res.Status = pkg.ResponseStatusSystemError
-		res.Message = orderErrorUnknown
+	err = s.db.Collection(collectionOrder).Insert(order)
+
+	if err != nil {
+		zap.S().Errorw(fmt.Sprintf(errorQueryMask, collectionOrder), "err", err.Error(), "inserted_data", order)
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = orderErrorCanNotCreate
 		return nil
 	}
 

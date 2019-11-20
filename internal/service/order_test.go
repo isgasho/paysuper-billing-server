@@ -8474,7 +8474,7 @@ func (suite *OrderTestSuite) TestOrder_ReCreateOrder_Ok() {
 	shouldBe.NotEqual(order.Uuid, rsp1.Item.Uuid)
 	shouldBe.NotEqual(order.Status, rsp1.Item.Status)
 	shouldBe.NotEqual(order.PrivateStatus, rsp1.Item.PrivateStatus)
-	shouldBe.NotEqual(order.ReceiptUrl, rsp1.Item.ReceiptUrl)
+	shouldBe.Empty(rsp1.Item.ReceiptUrl)
 	shouldBe.NotEqual(order.ReceiptId, rsp1.Item.ReceiptId)
 }
 
