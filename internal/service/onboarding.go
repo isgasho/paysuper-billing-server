@@ -557,6 +557,12 @@ func (s *Service) SetMerchantOperatingCompany(
 		return nil
 	}
 
+	if !merchant.IsDataComplete() {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = merchantErrorOnboardingNotComplete
+		return nil
+	}
+
 	if !s.operatingCompany.Exists(req.OperatingCompanyId) {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = merchantErrorOperatingCompanyNotExists

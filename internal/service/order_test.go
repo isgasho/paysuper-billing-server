@@ -3879,6 +3879,57 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethodsData_GetSavedCards_E
 	assert.Len(suite.T(), pm.SavedCards, 0)
 }
 
+func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcessAlreadyProcessed_Error() {
+	req := &billing.OrderCreateRequest{
+		Type:          billing.OrderType_simple,
+		ProjectId:     suite.project.Id,
+		PaymentMethod: suite.paymentMethod.Group,
+		Currency:      "RUB",
+		Amount:        100,
+		Account:       "unit test",
+		Description:   "unit test",
+		OrderId:       bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+			Address: &billing.OrderBillingAddress{
+				Country: "RU",
+			},
+			Locale: "ru-RU",
+		},
+	}
+
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+
+	order := rsp1.Item
+	order.PrivateStatus = constant.OrderStatusPaymentSystemCanceled
+	assert.NoError(suite.T(), suite.service.updateOrder(order))
+
+	req1 := &grpc.PaymentFormJsonDataRequest{OrderId: order.Uuid, Scheme: "https", Host: "unit.test",
+		Ip: "127.0.0.1",
+	}
+
+	rsp2 := &grpc.PaymentFormJsonDataResponse{}
+	err = suite.service.PaymentFormJsonDataProcess(context.TODO(), req1, rsp2)
+	assert.Nil(suite.T(), err)
+	assert.EqualValues(suite.T(), 400, rsp2.Status)
+	assert.Equal(suite.T(), orderErrorDontHaveReceiptUrl, rsp2.Message)
+
+	order.ReceiptUrl = "http://test.test"
+	assert.NoError(suite.T(), suite.service.updateOrder(order))
+
+	rsp2 = &grpc.PaymentFormJsonDataResponse{}
+	err = suite.service.PaymentFormJsonDataProcess(context.TODO(), req1, rsp2)
+	assert.Nil(suite.T(), err)
+	assert.EqualValues(suite.T(), 200, rsp2.Status)
+	assert.True(suite.T(), rsp2.Item.IsAlreadyProcessed)
+	assert.EqualValues(suite.T(), order.ReceiptUrl, rsp2.Item.ReceiptUrl)
+}
+
 func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_Ok() {
 	req := &billing.OrderCreateRequest{
 		Type:          billing.OrderType_simple,
