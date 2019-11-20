@@ -90,8 +90,6 @@ To run application as microservice simply don't pass any flags to command line :
 | EMAIL_UPDATE_ROYALTY_REPORT_TEMPLATE                | Royalty report update notification email template name                                                                              |
 | EMAIL_VAT_REPORT_TEMPLATE                           | New vat report notification email template name                                                                                     |
 | EMAIL_NEW_PAYOUT_TEMPLATE                           | New payout notification email template name                                                                                         |
-| PAYSUPER_DOCUMENT_SIGNER_EMAIL                      | Paysuper signer email for sign license agreements                                                                                   |
-| PAYSUPER_DOCUMENT_SIGNER_NAME                       | Paysuper signer name for sign license agreements                                                                                    |
 | HELLO_SIGN_DEFAULT_TEMPLATE                         | License agreement template identifier in HelloSign                                                                                  |
 | HELLO_SIGN_AGREEMENT_CLIENT_ID                      | Client application identifier in HelloSign for Merchant Agreement sign                                                              |
 | KEY_DAEMON_RESTART_INTERVAL                         | Starting frequency in seconds of the script to check the locked keys and return them to the stack.                                  |

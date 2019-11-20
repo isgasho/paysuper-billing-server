@@ -1101,7 +1101,7 @@ func (s *Service) GetMerchantAgreementSignUrl(
 	req *grpc.GetMerchantAgreementSignUrlRequest,
 	rsp *grpc.GetMerchantAgreementSignUrlResponse,
 ) error {
-	merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
+	merchant, err := s.merchant.GetById(req.MerchantId)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -1180,6 +1180,12 @@ func (s *Service) getMerchantAgreementSignature(
 	ctx context.Context,
 	merchant *billing.Merchant,
 ) (*billing.MerchantAgreementSignatureData, error) {
+	op, err := s.operatingCompany.GetById(merchant.OperatingCompanyId)
+
+	if err != nil {
+		return nil, err
+	}
+
 	req := &proto.CreateSignatureRequest{
 		RequestType: documentSignerConst.RequestTypeCreateEmbedded,
 		ClientId:    s.cfg.HelloSignAgreementClientId,
@@ -1190,8 +1196,8 @@ func (s *Service) getMerchantAgreementSignature(
 				RoleName: documentSignerConst.SignerRoleNameMerchant,
 			},
 			{
-				Email:    s.cfg.PaysuperDocumentSignerEmail,
-				Name:     s.cfg.PaysuperDocumentSignerName,
+				Email:    op.Email,
+				Name:     op.SignatoryName,
 				RoleName: documentSignerConst.SignerRoleNamePaysuper,
 			},
 		},
