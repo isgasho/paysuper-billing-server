@@ -667,7 +667,9 @@ message GetMerchantResponse {
 }
 
 message GetNotificationRequest {
+    // @inject_tag: validate:"required,hexadecimal,len=24" param:"merchant_id"
     string merchant_id = 1;
+    // @inject_tag: validate:"required,hexadecimal,len=24" param:"notification_id"
     string notification_id = 2;
 }
 

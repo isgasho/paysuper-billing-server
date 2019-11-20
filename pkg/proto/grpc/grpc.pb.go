@@ -3103,8 +3103,10 @@ func (m *GetMerchantResponse) GetItem() *billing.Merchant {
 }
 
 type GetNotificationRequest struct {
-	MerchantId           string   `protobuf:"bytes,1,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id,omitempty"`
-	NotificationId       string   `protobuf:"bytes,2,opt,name=notification_id,json=notificationId,proto3" json:"notification_id,omitempty"`
+	// @inject_tag: validate:"required,hexadecimal,len=24" param:"merchant_id"
+	MerchantId string `protobuf:"bytes,1,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id,omitempty" validate:"required,hexadecimal,len=24" param:"merchant_id"`
+	// @inject_tag: validate:"required,hexadecimal,len=24" param:"notification_id"
+	NotificationId       string   `protobuf:"bytes,2,opt,name=notification_id,json=notificationId,proto3" json:"notification_id,omitempty" validate:"required,hexadecimal,len=24" param:"notification_id"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`
