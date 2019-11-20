@@ -9,7 +9,7 @@ addons:
 stages:
   - test
   - name: deploy
-    if: branch IN (master, feature/PAY-261)
+    if: branch IN (master, feature/190525-webhook-api)
 jobs:
   include:
   - stage: test
