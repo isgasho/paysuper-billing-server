@@ -1,10 +1,13 @@
 package service
 
 import (
+	"context"
 	"fmt"
-	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 )
 
@@ -16,24 +19,23 @@ const (
 )
 
 type MerchantRepositoryInterface interface {
-	Update(merchant *billing.Merchant) error
-	Insert(merchant *billing.Merchant) error
-	Upsert(merchant *billing.Merchant) error
-	MultipleInsert(merchants []*billing.Merchant) error
-	GetById(id string) (*billing.Merchant, error)
-	GetPaymentMethod(merchantId string, method string) (*billing.MerchantPaymentMethod, error)
-	GetMerchantsWithAutoPayouts() ([]*billing.Merchant, error)
+	Update(ctx context.Context, merchant *billing.Merchant) error
+	Insert(ctx context.Context, merchant *billing.Merchant) error
+	Upsert(ctx context.Context, merchant *billing.Merchant) error
+	MultipleInsert(ctx context.Context, merchants []*billing.Merchant) error
+	GetById(ctx context.Context, id string) (*billing.Merchant, error)
+	GetPaymentMethod(ctx context.Context, merchantId string, method string) (*billing.MerchantPaymentMethod, error)
+	GetMerchantsWithAutoPayouts(ctx context.Context) ([]*billing.Merchant, error)
 }
 
 func newMerchantService(svc *Service) MerchantRepositoryInterface {
 	return &Merchant{svc: svc}
 }
 
-func (h *Merchant) GetMerchantsWithAutoPayouts() (merchants []*billing.Merchant, err error) {
-	query := bson.M{
-		"manual_payouts_enabled": false,
-	}
-	err = h.svc.db.Collection(collectionMerchant).Find(query).All(&merchants)
+func (h *Merchant) GetMerchantsWithAutoPayouts(ctx context.Context) ([]*billing.Merchant, error) {
+	query := bson.M{"manual_payouts_enabled": false}
+	cursor, err := h.svc.db.Collection(collectionMerchant).Find(ctx, query)
+
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
@@ -41,13 +43,29 @@ func (h *Merchant) GetMerchantsWithAutoPayouts() (merchants []*billing.Merchant,
 			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
+		return nil, err
 	}
 
-	return
+	var merchants []*billing.Merchant
+	err = cursor.All(ctx, &merchants)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorQueryCursorExecutionFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return nil, err
+	}
+
+	return merchants, nil
 }
 
-func (h *Merchant) Update(merchant *billing.Merchant) error {
-	err := h.svc.db.Collection(collectionMerchant).UpdateId(bson.ObjectIdHex(merchant.Id), merchant)
+func (h *Merchant) Update(ctx context.Context, merchant *billing.Merchant) error {
+	oid, _ := primitive.ObjectIDFromHex(merchant.Id)
+	filter := bson.M{"_id": oid}
+	_, err := h.svc.db.Collection(collectionMerchant).UpdateOne(ctx, filter, merchant)
 
 	if err != nil {
 		zap.L().Error(
@@ -78,8 +96,9 @@ func (h *Merchant) Update(merchant *billing.Merchant) error {
 	return nil
 }
 
-func (h *Merchant) Insert(merchant *billing.Merchant) error {
-	err := h.svc.db.Collection(collectionMerchant).Insert(merchant)
+func (h *Merchant) Insert(ctx context.Context, merchant *billing.Merchant) error {
+	_, err := h.svc.db.Collection(collectionMerchant).InsertOne(ctx, merchant)
+
 	if err != nil {
 		return err
 	}
@@ -93,8 +112,11 @@ func (h *Merchant) Insert(merchant *billing.Merchant) error {
 	return nil
 }
 
-func (h *Merchant) Upsert(merchant *billing.Merchant) error {
-	_, err := h.svc.db.Collection(collectionMerchant).UpsertId(bson.ObjectIdHex(merchant.Id), merchant)
+func (h *Merchant) Upsert(ctx context.Context, merchant *billing.Merchant) error {
+	oid, _ := primitive.ObjectIDFromHex(merchant.Id)
+	filter := bson.M{"_id": oid}
+	opts := options.FindOneAndUpdate().SetUpsert(true)
+	err := h.svc.db.Collection(collectionMerchant).FindOneAndUpdate(ctx, filter, merchant, opts).Err()
 
 	if err != nil {
 		zap.L().Error(
@@ -125,20 +147,22 @@ func (h *Merchant) Upsert(merchant *billing.Merchant) error {
 	return nil
 }
 
-func (h *Merchant) MultipleInsert(merchants []*billing.Merchant) error {
+func (h *Merchant) MultipleInsert(ctx context.Context, merchants []*billing.Merchant) error {
 	m := make([]interface{}, len(merchants))
 	for i, v := range merchants {
 		m[i] = v
 	}
 
-	if err := h.svc.db.Collection(collectionMerchant).Insert(m...); err != nil {
+	_, err := h.svc.db.Collection(collectionMerchant).InsertMany(ctx, m)
+
+	if err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (h *Merchant) GetById(id string) (*billing.Merchant, error) {
+func (h *Merchant) GetById(ctx context.Context, id string) (*billing.Merchant, error) {
 	var c billing.Merchant
 	key := fmt.Sprintf(cacheMerchantId, id)
 
@@ -146,8 +170,10 @@ func (h *Merchant) GetById(id string) (*billing.Merchant, error) {
 		return &c, nil
 	}
 
-	query := bson.M{"_id": bson.ObjectIdHex(id)}
-	err := h.svc.db.Collection(collectionMerchant).Find(query).One(&c)
+	oid, _ := primitive.ObjectIDFromHex(id)
+	query := bson.M{"_id": oid}
+	err := h.svc.db.Collection(collectionMerchant).FindOne(ctx, query).Decode(&c)
+
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
@@ -171,8 +197,8 @@ func (h *Merchant) GetById(id string) (*billing.Merchant, error) {
 	return &c, nil
 }
 
-func (h Merchant) GetPaymentMethod(merchantId string, method string) (*billing.MerchantPaymentMethod, error) {
-	m, err := h.GetById(merchantId)
+func (h Merchant) GetPaymentMethod(ctx context.Context, merchantId string, method string) (*billing.MerchantPaymentMethod, error) {
+	m, err := h.GetById(ctx, merchantId)
 	if err != nil {
 		return nil, err
 	}

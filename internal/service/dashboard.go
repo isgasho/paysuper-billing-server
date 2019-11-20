@@ -29,7 +29,7 @@ func (s *Service) GetDashboardMainReport(
 		return nil
 	}
 
-	report, err := s.dashboardRepository.GetMainReport(req.MerchantId, req.Period)
+	report, err := s.dashboardRepository.GetMainReport(ctx, req.MerchantId, req.Period)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -62,7 +62,7 @@ func (s *Service) GetDashboardRevenueDynamicsReport(
 		return nil
 	}
 
-	report, err := s.dashboardRepository.GetRevenueDynamicsReport(req.MerchantId, req.Period)
+	report, err := s.dashboardRepository.GetRevenueDynamicsReport(ctx, req.MerchantId, req.Period)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -95,7 +95,7 @@ func (s *Service) GetDashboardBaseReport(
 		return nil
 	}
 
-	report, err := s.dashboardRepository.GetBaseReport(req.MerchantId, req.Period)
+	report, err := s.dashboardRepository.GetBaseReport(ctx, req.MerchantId, req.Period)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError

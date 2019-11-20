@@ -3,12 +3,11 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.uber.org/zap"
 	"net/http"
 )
@@ -328,7 +327,7 @@ func (s *Service) DeleteProject(
 	return nil
 }
 
-func (s *Service) getProjectBy(query bson.M) (project *billing.Project, err error) {
+func (s *Service) getProjectBy(ctx context.Context, query bson.M) (project *billing.Project, err error) {
 	err = s.db.Collection(collectionProject).Find(query).One(&project)
 
 	if err != nil {

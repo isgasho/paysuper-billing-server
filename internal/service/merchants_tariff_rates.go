@@ -1,13 +1,15 @@
 package service
 
 import (
+	"context"
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
-	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 )
 
@@ -24,9 +26,9 @@ type TariffRates struct {
 }
 
 type MerchantTariffRatesInterface interface {
-	GetPaymentTariffsBy(*grpc.GetMerchantTariffRatesRequest) ([]*billing.MerchantTariffRatesPayment, error)
-	GetTariffsSettings(in *grpc.GetMerchantTariffRatesRequest) (*billing.MerchantTariffRatesSettings, error)
-	GetBy(in *grpc.GetMerchantTariffRatesRequest) (*grpc.GetMerchantTariffRatesResponseItems, error)
+	GetPaymentTariffsBy(context.Context, *grpc.GetMerchantTariffRatesRequest) ([]*billing.MerchantTariffRatesPayment, error)
+	GetTariffsSettings(ctx context.Context, in *grpc.GetMerchantTariffRatesRequest) (*billing.MerchantTariffRatesSettings, error)
+	GetBy(ctx context.Context, in *grpc.GetMerchantTariffRatesRequest) (*grpc.GetMerchantTariffRatesResponseItems, error)
 	GetCacheKeyForGetBy(*grpc.GetMerchantTariffRatesRequest) (string, error)
 }
 
@@ -35,15 +37,16 @@ func newMerchantsTariffRatesRepository(s *Service) *MerchantsTariffRatesReposito
 }
 
 func (h *MerchantsTariffRatesRepository) GetBy(
+	ctx context.Context,
 	in *grpc.GetMerchantTariffRatesRequest,
 ) (*grpc.GetMerchantTariffRatesResponseItems, error) {
-	payment, err := h.GetPaymentTariffsBy(in)
+	payment, err := h.GetPaymentTariffsBy(ctx, in)
 
 	if err != nil {
 		return nil, err
 	}
 
-	settings, err := h.GetTariffsSettings(in)
+	settings, err := h.GetTariffsSettings(ctx, in)
 
 	if err != nil {
 		return nil, err
@@ -61,7 +64,10 @@ func (h *MerchantsTariffRatesRepository) GetBy(
 	return tariffs, nil
 }
 
-func (h *MerchantsTariffRatesRepository) GetTariffsSettings(in *grpc.GetMerchantTariffRatesRequest) (*billing.MerchantTariffRatesSettings, error) {
+func (h *MerchantsTariffRatesRepository) GetTariffsSettings(
+	ctx context.Context,
+	in *grpc.GetMerchantTariffRatesRequest,
+) (*billing.MerchantTariffRatesSettings, error) {
 	mccCode, err := getMccByOperationsType(in.MerchantOperationsType)
 	if err != nil {
 		return nil, err
@@ -75,10 +81,8 @@ func (h *MerchantsTariffRatesRepository) GetTariffsSettings(in *grpc.GetMerchant
 		return item, nil
 	}
 
-	query := bson.M{
-		"mcc_code": mccCode,
-	}
-	err = h.svc.db.Collection(collectionMerchantTariffsSettings).Find(query).One(item)
+	query := bson.M{"mcc_code": mccCode}
+	err = h.svc.db.Collection(collectionMerchantTariffsSettings).FindOne(ctx, query).Decode(item)
 
 	if err != nil {
 		zap.L().Error(
@@ -106,6 +110,7 @@ func (h *MerchantsTariffRatesRepository) GetTariffsSettings(in *grpc.GetMerchant
 }
 
 func (h *MerchantsTariffRatesRepository) GetPaymentTariffsBy(
+	ctx context.Context,
 	in *grpc.GetMerchantTariffRatesRequest,
 ) ([]*billing.MerchantTariffRatesPayment, error) {
 	item := new(TariffRates)
@@ -139,12 +144,25 @@ func (h *MerchantsTariffRatesRepository) GetPaymentTariffsBy(
 		query["max_amount"] = in.MaxAmount
 	}
 
-	err = h.svc.db.Collection(collectionMerchantsPaymentTariffs).Find(query).
-		Sort("min_amount", "max_amount", "payer_region", "position").All(&item.Items)
+	opts := options.Find().
+		SetSort(bson.M{"min_amount": 1, "max_amount": 1, "payer_region": 1, "position": 1})
+	cursor, err := h.svc.db.Collection(collectionMerchantsPaymentTariffs).Find(ctx, query, opts)
 
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchantsPaymentTariffs),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return nil, merchantErrorUnknown
+	}
+
+	err = cursor.All(ctx, &item.Items)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorQueryCursorExecutionFailed,
 			zap.Error(err),
 			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchantsPaymentTariffs),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),

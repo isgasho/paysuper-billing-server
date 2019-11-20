@@ -8,7 +8,6 @@ import (
 	"github.com/ProtocolONE/geoip-service/pkg"
 	"github.com/ProtocolONE/geoip-service/pkg/proto"
 	metrics "github.com/ProtocolONE/go-micro-plugins/wrapper/monitoring/prometheus"
-	"github.com/globalsign/mgo"
 	"github.com/go-redis/redis"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
@@ -29,7 +28,6 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	curPkg "github.com/paysuper/paysuper-currencies/pkg"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	paysuperI18n "github.com/paysuper/paysuper-i18n"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
@@ -41,6 +39,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"log"
 	"net/http"
 	"os"
@@ -94,8 +93,7 @@ func (app *Application) Init() {
 
 	app.logger.Info("db migrations applied")
 
-	opts := []mongodb.Option{mongodb.Mode(mgo.Primary)}
-	db, err := mongodb.NewDatabase(opts...)
+	db, err := mongodb.NewDatabase()
 	if err != nil {
 		app.logger.Fatal("Database connection failed", zap.Error(err))
 	}
@@ -299,7 +297,7 @@ func (app *Application) Stop() {
 		app.logger.Info("Http server stopped")
 	}
 
-	app.database.Close()
+	_ = app.database.Close()
 	app.logger.Info("Database connection closed")
 
 	if err := app.redis.Close(); err != nil {

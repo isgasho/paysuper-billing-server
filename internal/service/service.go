@@ -13,7 +13,6 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/paysuper/paysuper-i18n"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
 	reporterProto "github.com/paysuper/paysuper-reporter/pkg/proto"
@@ -21,6 +20,7 @@ import (
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
 	"gopkg.in/gomail.v2"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"strings"
 	"sync"
 )

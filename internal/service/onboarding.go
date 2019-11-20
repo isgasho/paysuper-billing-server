@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/divan/num2words"
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/micro/go-micro/client"
 	documentSignerConst "github.com/paysuper/document-signer/pkg/constant"
@@ -18,7 +16,12 @@ import (
 	reporterProto "github.com/paysuper/paysuper-reporter/pkg/proto"
 	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
 	"github.com/streadway/amqp"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"log"
 	"strings"
 	"time"
@@ -81,14 +84,14 @@ func (s *Service) GetMerchantBy(
 	query := make(bson.M)
 
 	if req.MerchantId != "" {
-		query["_id"] = bson.ObjectIdHex(req.MerchantId)
+		query["_id"], _ = primitive.ObjectIDFromHex(req.MerchantId)
 	}
 
 	if req.UserId != "" {
 		query["user.id"] = req.UserId
 	}
 
-	merchant, err := s.getMerchantBy(query)
+	merchant, err := s.getMerchantBy(ctx, query)
 
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
@@ -124,14 +127,14 @@ func (s *Service) ListMerchants(
 
 	if req.QuickSearch != "" {
 		query["$or"] = []bson.M{
-			{"company.name": bson.RegEx{Pattern: ".*" + req.QuickSearch + ".*", Options: "i"}},
-			{"user.email": bson.RegEx{Pattern: ".*" + req.QuickSearch + ".*", Options: "i"}},
-			{"user.first_name": bson.RegEx{Pattern: ".*" + req.QuickSearch + ".*", Options: "i"}},
-			{"user.last_name": bson.RegEx{Pattern: ".*" + req.QuickSearch + ".*", Options: "i"}},
+			{"company.name": primitive.Regex{Pattern: ".*" + req.QuickSearch + ".*", Options: "i"}},
+			{"user.email": primitive.Regex{Pattern: ".*" + req.QuickSearch + ".*", Options: "i"}},
+			{"user.first_name": primitive.Regex{Pattern: ".*" + req.QuickSearch + ".*", Options: "i"}},
+			{"user.last_name": primitive.Regex{Pattern: ".*" + req.QuickSearch + ".*", Options: "i"}},
 		}
 	} else {
 		if req.Name != "" {
-			query["company.name"] = bson.RegEx{Pattern: ".*" + req.Name + ".*", Options: "i"}
+			query["company.name"] = primitive.Regex{Pattern: ".*" + req.Name + ".*", Options: "i"}
 		}
 
 		if req.LastPayoutDateFrom > 0 || req.LastPayoutDateTo > 0 {
@@ -193,7 +196,7 @@ func (s *Service) ListMerchants(
 		query["status"] = bson.M{"$in": req.Statuses}
 	}
 
-	count, err := s.db.Collection(collectionMerchant).Find(query).Count()
+	count, err := s.db.Collection(collectionMerchant).CountDocuments(ctx, query)
 
 	if err != nil {
 		zap.L().Error(
@@ -206,8 +209,11 @@ func (s *Service) ListMerchants(
 		return merchantErrorUnknown
 	}
 
-	err = s.db.Collection(collectionMerchant).Find(query).Sort(req.Sort...).Limit(int(req.Limit)).
-		Skip(int(req.Offset)).All(&merchants)
+	opts := options.Find().
+		SetSort(mongodb.ToSortOption(req.Sort)).
+		SetLimit(req.Limit).
+		SetSkip(req.Offset)
+	cursor, err := s.db.Collection(collectionMerchant).Find(ctx, query, opts)
 
 	if err != nil {
 		zap.L().Error(
@@ -216,11 +222,22 @@ func (s *Service) ListMerchants(
 			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
-
 		return merchantErrorUnknown
 	}
 
-	rsp.Count = int32(count)
+	err = cursor.All(ctx, &merchants)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorQueryCursorExecutionFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return merchantErrorUnknown
+	}
+
+	rsp.Count = count
 	rsp.Items = []*billing.Merchant{}
 
 	if len(merchants) > 0 {
@@ -244,10 +261,11 @@ func (s *Service) ChangeMerchant(
 		query := make(bson.M)
 
 		if req.Id != "" && req.User != nil && req.User.Id != "" {
-			query["$or"] = []bson.M{{"_id": bson.ObjectIdHex(req.Id)}, {"user.id": req.User.Id}}
+			oid, _ := primitive.ObjectIDFromHex(req.Id)
+			query["$or"] = []bson.M{{"_id": oid}, {"user.id": req.User.Id}}
 		} else {
 			if req.Id != "" {
-				query["_id"] = bson.ObjectIdHex(req.Id)
+				query["_id"], _ = primitive.ObjectIDFromHex(req.Id)
 			}
 
 			if req.User != nil && req.User.Id != "" {
@@ -255,7 +273,7 @@ func (s *Service) ChangeMerchant(
 			}
 		}
 
-		merchant, err = s.getMerchantBy(query)
+		merchant, err = s.getMerchantBy(ctx, query)
 
 		if err != nil && err != merchantErrorNotFound {
 			rsp.Status = pkg.ResponseStatusSystemError
@@ -267,7 +285,7 @@ func (s *Service) ChangeMerchant(
 
 	if merchant == nil {
 		merchant = &billing.Merchant{
-			Id:                 bson.NewObjectId().Hex(),
+			Id:                 primitive.NewObjectID().Hex(),
 			User:               req.User,
 			MinimalPayoutLimit: pkg.MerchantMinimalPayoutLimit,
 			Status:             pkg.MerchantStatusDraft,
@@ -365,7 +383,7 @@ func (s *Service) ChangeMerchant(
 		}
 	}
 
-	err = s.merchant.Upsert(merchant)
+	err = s.merchant.Upsert(ctx, merchant)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -387,7 +405,7 @@ func (s *Service) ChangeMerchantStatus(
 	req *grpc.MerchantChangeStatusRequest,
 	rsp *grpc.ChangeMerchantStatusResponse,
 ) error {
-	merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
+	merchant, err := s.merchant.GetById(ctx, req.MerchantId)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusBadData
@@ -432,7 +450,7 @@ func (s *Service) ChangeMerchantStatus(
 	}
 
 	merchant.StatusLastUpdatedAt = ptypes.TimestampNow()
-	err = s.merchant.Update(merchant)
+	err = s.merchant.Update(ctx, merchant)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -452,7 +470,7 @@ func (s *Service) ChangeMerchantData(
 	req *grpc.ChangeMerchantDataRequest,
 	rsp *grpc.ChangeMerchantDataResponse,
 ) error {
-	merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
+	merchant, err := s.merchant.GetById(ctx, req.MerchantId)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -512,7 +530,7 @@ func (s *Service) ChangeMerchantData(
 		return nil
 	}
 
-	err = s.merchant.Update(merchant)
+	err = s.merchant.Update(ctx, merchant)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -530,7 +548,7 @@ func (s *Service) SetMerchantOperatingCompany(
 	req *grpc.SetMerchantOperatingCompanyRequest,
 	rsp *grpc.SetMerchantOperatingCompanyResponse,
 ) error {
-	merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
+	merchant, err := s.merchant.GetById(ctx, req.MerchantId)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -547,7 +565,7 @@ func (s *Service) SetMerchantOperatingCompany(
 
 	merchant.OperatingCompanyId = req.OperatingCompanyId
 
-	err = s.merchant.Update(merchant)
+	err = s.merchant.Update(ctx, merchant)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -565,7 +583,12 @@ func (s *Service) SetMerchantOperatingCompany(
 		return nil
 	}
 
-	err = s.sendOnboardingLetter(merchant, s.cfg.EmailMerchantOnboardingRequestCompleteTemplate, merchant.GetAuthorizedEmail())
+	err = s.sendOnboardingLetter(
+		merchant,
+		s.cfg.EmailMerchantOnboardingRequestCompleteTemplate,
+		merchant.GetAuthorizedEmail(),
+	)
+
 	if err != nil {
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusSystemError
@@ -586,7 +609,7 @@ func (s *Service) ChangeMerchantManualPayouts(
 	req *grpc.ChangeMerchantManualPayoutsRequest,
 	rsp *grpc.ChangeMerchantManualPayoutsResponse,
 ) error {
-	merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
+	merchant, err := s.merchant.GetById(ctx, req.MerchantId)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -602,7 +625,7 @@ func (s *Service) ChangeMerchantManualPayouts(
 
 	merchant.ManualPayoutsEnabled = req.ManualPayoutsEnabled
 
-	err = s.merchant.Update(merchant)
+	err = s.merchant.Update(ctx, merchant)
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = merchantErrorUnknown
@@ -621,7 +644,7 @@ func (s *Service) SetMerchantS3Agreement(
 	req *grpc.SetMerchantS3AgreementRequest,
 	rsp *grpc.ChangeMerchantDataResponse,
 ) error {
-	merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
+	merchant, err := s.merchant.GetById(ctx, req.MerchantId)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -643,7 +666,7 @@ func (s *Service) SetMerchantS3Agreement(
 		}
 	}
 
-	err = s.merchant.Update(merchant)
+	err = s.merchant.Update(ctx, merchant)
 
 	if err != nil {
 		return merchantErrorUnknown
@@ -670,8 +693,7 @@ func (s *Service) CreateNotification(
 	rsp *grpc.CreateNotificationResponse,
 ) error {
 	rsp.Status = pkg.ResponseStatusOk
-
-	_, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
+	_, err := s.merchant.GetById(ctx, req.MerchantId)
 
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
@@ -711,7 +733,7 @@ func (s *Service) GetNotification(
 	req *grpc.GetNotificationRequest,
 	rsp *billing.Notification,
 ) error {
-	notification, err := s.getNotificationById(req.MerchantId, req.NotificationId)
+	notification, err := s.getNotificationById(ctx, req.MerchantId, req.NotificationId)
 
 	if err != nil {
 		return err
@@ -728,11 +750,14 @@ func (s *Service) ListNotifications(
 	rsp *grpc.Notifications,
 ) error {
 	var notifications []*billing.Notification
-
 	query := make(bson.M)
 
-	if req.MerchantId != "" && bson.IsObjectIdHex(req.MerchantId) == true {
-		query["merchant_id"] = bson.ObjectIdHex(req.MerchantId)
+	if req.MerchantId != "" {
+		merchantOid, err := primitive.ObjectIDFromHex(req.MerchantId)
+
+		if err != nil {
+			query["merchant_id"] = merchantOid
+		}
 	}
 
 	if req.UserId != "" {
@@ -747,26 +772,50 @@ func (s *Service) ListNotifications(
 		}
 	}
 
-	count, err := s.db.Collection(collectionNotification).Find(query).Count()
+	count, err := s.db.Collection(collectionNotification).CountDocuments(ctx, query)
 
 	if err != nil {
-		zap.S().Errorf("Query to count merchant notifications failed", "err", err.Error(), "query", query)
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionNotification),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
 		return merchantErrorUnknown
 	}
 
-	err = s.db.Collection(collectionNotification).Find(query).Sort(req.Sort...).
-		Limit(int(req.Limit)).Skip(int(req.Offset)).All(&notifications)
+	opts := options.Find().
+		SetSort(mongodb.ToSortOption(req.Sort)).
+		SetLimit(req.Limit).
+		SetSkip(req.Offset)
+	cursor, err := s.db.Collection(collectionNotification).Find(ctx, query, opts)
 
 	if err != nil {
-		if err != mgo.ErrNotFound {
-			zap.S().Errorf("Query to find notifications failed", "err", err.Error(), "query", query)
+		if err != mongo.ErrNoDocuments {
+			zap.L().Error(
+				pkg.ErrorDatabaseQueryFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, collectionNotification),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			)
 			return merchantErrorUnknown
 		}
-
 		return nil
 	}
 
-	rsp.Count = int32(count)
+	err = cursor.All(ctx, &notifications)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorQueryCursorExecutionFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionNotification),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return merchantErrorUnknown
+	}
+
+	rsp.Count = count
 	rsp.Items = []*billing.Notification{}
 
 	if len(notifications) > 0 {
@@ -781,7 +830,7 @@ func (s *Service) MarkNotificationAsRead(
 	req *grpc.GetNotificationRequest,
 	rsp *billing.Notification,
 ) error {
-	notification, err := s.getNotificationById(req.MerchantId, req.NotificationId)
+	notification, err := s.getNotificationById(ctx, req.MerchantId, req.NotificationId)
 
 	if err != nil {
 		return err
@@ -789,15 +838,27 @@ func (s *Service) MarkNotificationAsRead(
 
 	notification.IsRead = true
 
-	err = s.db.Collection(collectionNotification).UpdateId(bson.ObjectIdHex(notification.Id), notification)
+	oid, err := primitive.ObjectIDFromHex(notification.Id)
 
 	if err != nil {
-		zap.S().Errorf("Update notification failed", "err", err.Error(), "query", notification)
+		return err
+	}
+
+	filter := bson.M{"_id": oid}
+	_, err = s.db.Collection(collectionNotification).UpdateOne(ctx, filter, notification)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionCountry),
+			zap.String(pkg.ErrorDatabaseFieldOperation, pkg.ErrorDatabaseFieldOperationUpdate),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, filter),
+		)
 		return merchantErrorUnknown
 	}
 
 	s.mapNotificationData(rsp, notification)
-
 	return nil
 }
 
@@ -806,7 +867,7 @@ func (s *Service) GetMerchantPaymentMethod(
 	req *grpc.GetMerchantPaymentMethodRequest,
 	rsp *grpc.GetMerchantPaymentMethodResponse,
 ) error {
-	_, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
+	_, err := s.merchant.GetById(ctx, req.MerchantId)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -816,7 +877,7 @@ func (s *Service) GetMerchantPaymentMethod(
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
-	pms, err := s.merchant.GetPaymentMethod(req.MerchantId, req.PaymentMethodId)
+	pms, err := s.merchant.GetPaymentMethod(ctx, req.MerchantId, req.PaymentMethodId)
 	if err == nil {
 		rsp.Item = pms
 
@@ -858,7 +919,7 @@ func (s *Service) ListMerchantPaymentMethods(
 	req *grpc.ListMerchantPaymentMethodsRequest,
 	rsp *grpc.ListingMerchantPaymentMethod,
 ) error {
-	_, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
+	_, err := s.merchant.GetById(ctx, req.MerchantId)
 
 	if err != nil {
 		return nil
@@ -869,13 +930,32 @@ func (s *Service) ListMerchantPaymentMethods(
 	query := bson.M{"is_active": true}
 
 	if req.PaymentMethodName != "" {
-		query["name"] = bson.RegEx{Pattern: ".*" + req.PaymentMethodName + ".*", Options: "i"}
+		query["name"] = primitive.Regex{Pattern: ".*" + req.PaymentMethodName + ".*", Options: "i"}
 	}
 
-	err = s.db.Collection(collectionPaymentMethod).Find(query).Sort(req.Sort...).All(&pms)
+	opts := options.Find().
+		SetSort(mongodb.ToSortOption(req.Sort))
+	cursor, err := s.db.Collection(collectionPaymentMethod).Find(ctx, query, opts)
 
 	if err != nil {
-		zap.S().Errorf("Query to find payment methods failed", "err", err.Error(), "query", query)
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionPaymentMethod),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return nil
+	}
+
+	err = cursor.All(ctx, &pms)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorQueryCursorExecutionFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionPaymentMethod),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
 		return nil
 	}
 
@@ -884,7 +964,7 @@ func (s *Service) ListMerchantPaymentMethods(
 	}
 
 	for _, pm := range pms {
-		mPm, err := s.merchant.GetPaymentMethod(req.MerchantId, pm.Id)
+		mPm, err := s.merchant.GetPaymentMethod(ctx, req.MerchantId, pm.Id)
 
 		paymentMethod := &billing.MerchantPaymentMethod{
 			PaymentMethod: &billing.MerchantPaymentMethodIdentification{
@@ -913,7 +993,7 @@ func (s *Service) ChangeMerchantPaymentMethod(
 	req *grpc.MerchantPaymentMethodRequest,
 	rsp *grpc.MerchantPaymentMethodResponse,
 ) (err error) {
-	merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
+	merchant, err := s.merchant.GetById(ctx, req.MerchantId)
 
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
@@ -958,15 +1038,23 @@ func (s *Service) ChangeMerchantPaymentMethod(
 
 	// insert in history collection first than really update merchant
 	history := &billing.MerchantPaymentMethodHistory{
-		Id:            bson.NewObjectId().Hex(),
+		Id:            primitive.NewObjectID().Hex(),
 		MerchantId:    merchant.Id,
 		UserId:        req.UserId,
 		CreatedAt:     ptypes.TimestampNow(),
 		PaymentMethod: mpm,
 	}
-	err = s.db.Collection(collectionMerchantPaymentMethodHistory).Insert(history)
+
+	_, err = s.db.Collection(collectionMerchantPaymentMethodHistory).InsertOne(ctx, history)
+
 	if err != nil {
-		zap.S().Errorf("Query to update merchant payment methods history", "err", err.Error(), "data", merchant)
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchantPaymentMethodHistory),
+			zap.String(pkg.ErrorDatabaseFieldOperation, pkg.ErrorDatabaseFieldOperationInsert),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, history),
+		)
 
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = orderErrorUnknown
@@ -974,8 +1062,16 @@ func (s *Service) ChangeMerchantPaymentMethod(
 		return nil
 	}
 
-	if err := s.merchant.Update(merchant); err != nil {
-		zap.S().Errorf("Query to update merchant payment methods failed", "err", err.Error(), "data", merchant)
+	err = s.merchant.Update(ctx, merchant)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchantPaymentMethodHistory),
+			zap.String(pkg.ErrorDatabaseFieldOperation, pkg.ErrorDatabaseFieldOperationInsert),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, merchant),
+		)
 
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = orderErrorUnknown
@@ -985,15 +1081,14 @@ func (s *Service) ChangeMerchantPaymentMethod(
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = merchant.PaymentMethods[pm.Id]
-
 	return nil
 }
 
-func (s *Service) getMerchantBy(query bson.M) (*billing.Merchant, error) {
-	var merchant *billing.Merchant
-	err := s.db.Collection(collectionMerchant).Find(query).One(&merchant)
+func (s *Service) getMerchantBy(ctx context.Context, query bson.M) (*billing.Merchant, error) {
+	merchant := new(billing.Merchant)
+	err := s.db.Collection(collectionMerchant).FindOne(ctx, query).Decode(&merchant)
 
-	if err != nil && err != mgo.ErrNotFound {
+	if err != nil && err != mongo.ErrNoDocuments {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
@@ -1016,12 +1111,18 @@ func (s *Service) addNotification(
 	msg, merchantId, userId string,
 	nStatuses *billing.SystemNotificationStatuses,
 ) (*billing.Notification, error) {
-	if merchantId == "" || bson.IsObjectIdHex(merchantId) == false {
+	if merchantId == "" {
+		return nil, notificationErrorMerchantIdIncorrect
+	}
+
+	_, err := primitive.ObjectIDFromHex(merchantId)
+
+	if err != nil {
 		return nil, notificationErrorMerchantIdIncorrect
 	}
 
 	notification := &billing.Notification{
-		Id:         bson.NewObjectId().Hex(),
+		Id:         primitive.NewObjectID().Hex(),
 		Message:    msg,
 		MerchantId: merchantId,
 		IsRead:     false,
@@ -1034,7 +1135,7 @@ func (s *Service) addNotification(
 		notification.UserId = userId
 	}
 
-	err := s.db.Collection(collectionNotification).Insert(notification)
+	_, err = s.db.Collection(collectionNotification).InsertOne(ctx, notification)
 
 	if err != nil {
 		zap.L().Error(
@@ -1056,19 +1157,24 @@ func (s *Service) addNotification(
 }
 
 func (s *Service) getNotificationById(
+	ctx context.Context,
 	merchantId, notificationId string,
 ) (notification *billing.Notification, err error) {
-	query := bson.M{
-		"merchant_id": bson.ObjectIdHex(merchantId),
-		"_id":         bson.ObjectIdHex(notificationId),
-	}
-	err = s.db.Collection(collectionNotification).Find(query).One(&notification)
+	merchantOid, _ := primitive.ObjectIDFromHex(merchantId)
+	notificationOid, _ := primitive.ObjectIDFromHex(notificationId)
+
+	query := bson.M{"merchant_id": merchantOid, "_id": notificationOid}
+	err = s.db.Collection(collectionNotification).FindOne(ctx, query).Decode(&notification)
 
 	if err != nil {
-		if err != mgo.ErrNotFound {
-			zap.S().Errorf("Query to find notification by id failed", "err", err.Error(), "query", query)
+		if err != mongo.ErrNoDocuments {
+			zap.L().Error(
+				pkg.ErrorDatabaseQueryFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, collectionNotification),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			)
 		}
-
 		return notification, notificationErrorNotFound
 	}
 
@@ -1095,7 +1201,7 @@ func (s *Service) GetMerchantAgreementSignUrl(
 	req *grpc.GetMerchantAgreementSignUrlRequest,
 	rsp *grpc.GetMerchantAgreementSignUrlResponse,
 ) error {
-	merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
+	merchant, err := s.merchant.GetById(ctx, req.MerchantId)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -1151,7 +1257,7 @@ func (s *Service) GetMerchantOnboardingCompleteData(
 	req *grpc.SetMerchantS3AgreementRequest,
 	rsp *grpc.GetMerchantOnboardingCompleteDataResponse,
 ) error {
-	merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
+	merchant, err := s.merchant.GetById(ctx, req.MerchantId)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -1289,7 +1395,7 @@ func (s *Service) changeMerchantAgreementSingUrl(
 		merchant.AgreementSignatureData.PsSignUrl = signUrl
 	}
 
-	err = s.merchant.Update(merchant)
+	err = s.merchant.Update(ctx, merchant)
 
 	if err != nil {
 		return nil, merchantErrorUnknown
@@ -1303,7 +1409,7 @@ func (s *Service) GetMerchantTariffRates(
 	req *grpc.GetMerchantTariffRatesRequest,
 	rsp *grpc.GetMerchantTariffRatesResponse,
 ) error {
-	tariffs, err := s.merchantTariffRates.GetBy(req)
+	tariffs, err := s.merchantTariffRates.GetBy(ctx, req)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -1337,7 +1443,7 @@ func (s *Service) SetMerchantTariffRates(
 		return err
 	}
 
-	merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
+	merchant, err := s.merchant.GetById(ctx, req.MerchantId)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -1376,7 +1482,7 @@ func (s *Service) SetMerchantTariffRates(
 		HomeRegion:             req.HomeRegion,
 		MerchantOperationsType: req.MerchantOperationsType,
 	}
-	tariffs, err := s.merchantTariffRates.GetBy(query)
+	tariffs, err := s.merchantTariffRates.GetBy(ctx, query)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -1416,7 +1522,7 @@ func (s *Service) SetMerchantTariffRates(
 
 		for _, v := range tariffs.Payment {
 			cost := &billing.PaymentChannelCostMerchant{
-				Id:                      bson.NewObjectId().Hex(),
+				Id:                      primitive.NewObjectID().Hex(),
 				MerchantId:              req.MerchantId,
 				Name:                    strings.ToUpper(v.MethodName),
 				PayoutCurrency:          merchantPayoutCurrency,
@@ -1470,7 +1576,7 @@ func (s *Service) SetMerchantTariffRates(
 	for _, tariffRegion := range pkg.SupportedTariffRegions {
 		for _, v := range tariffs.Refund {
 			cost = &billing.MoneyBackCostMerchant{
-				Id:                bson.NewObjectId().Hex(),
+				Id:                primitive.NewObjectID().Hex(),
 				MerchantId:        req.MerchantId,
 				Name:              strings.ToUpper(v.MethodName),
 				PayoutCurrency:    merchantPayoutCurrency,
@@ -1492,7 +1598,7 @@ func (s *Service) SetMerchantTariffRates(
 		}
 		for _, v := range tariffs.Chargeback {
 			cost = &billing.MoneyBackCostMerchant{
-				Id:                bson.NewObjectId().Hex(),
+				Id:                primitive.NewObjectID().Hex(),
 				MerchantId:        req.MerchantId,
 				Name:              strings.ToUpper(v.MethodName),
 				PayoutCurrency:    merchantPayoutCurrency,
@@ -1515,7 +1621,7 @@ func (s *Service) SetMerchantTariffRates(
 	}
 
 	if len(costs) > 0 {
-		err = s.moneyBackCostMerchant.MultipleInsert(costs)
+		err = s.moneyBackCostMerchant.MultipleInsert(ctx, costs)
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusSystemError
@@ -1554,7 +1660,7 @@ func (s *Service) SetMerchantTariffRates(
 		}
 	}
 
-	err = s.merchant.Update(merchant)
+	err = s.merchant.Update(ctx, merchant)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -1647,8 +1753,9 @@ func (s *Service) generateMerchantAgreement(ctx context.Context, merchant *billi
 }
 
 func (s *Service) getMerchantAgreementNumber(merchantId string) string {
+	oid, _ := primitive.ObjectIDFromHex(merchantId)
 	now := time.Now()
-	return fmt.Sprintf("%s%s-%03d", now.Format("01"), now.Format("02"), bson.ObjectIdHex(merchantId).Counter())
+	return fmt.Sprintf("%s%s-%03d", now.Format("01"), now.Format("02"), mongodb.GetObjectIDCounter(oid))
 }
 
 func (s *Service) sendOnboardingLetter(merchant *billing.Merchant, template, recipientEmail string) (err error) {

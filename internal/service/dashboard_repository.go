@@ -1,16 +1,18 @@
 package service
 
 import (
+	"context"
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
-	"github.com/globalsign/mgo/bson"
 	"github.com/jinzhu/now"
 	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"time"
 )
 
@@ -45,13 +47,13 @@ var (
 )
 
 type DashboardRepositoryInterface interface {
-	NewDashboardReportProcessor(string, string, string, interface{}, *mongodb.Source, internalPkg.CacheInterface) (*internalPkg.DashboardReportProcessor, error)
-	GetMainReport(string, string) (*grpc.DashboardMainReport, error)
-	GetRevenueDynamicsReport(string, string) (*grpc.DashboardRevenueDynamicReport, error)
-	GetBaseReport(string, string) (*grpc.DashboardBaseReports, error)
-	GetBaseRevenueByCountryReport(string, string) (*grpc.DashboardRevenueByCountryReport, error)
-	GetBaseSalesTodayReport(string, string) (*grpc.DashboardSalesTodayReport, error)
-	GetBaseSourcesReport(string, string) (*grpc.DashboardSourcesReport, error)
+	NewDashboardReportProcessor(string, string, string, interface{}, *mongodb.Source, internalPkg.CacheInterface, context.Context) (*internalPkg.DashboardReportProcessor, error)
+	GetMainReport(context.Context, string, string) (*grpc.DashboardMainReport, error)
+	GetRevenueDynamicsReport(context.Context, string, string) (*grpc.DashboardRevenueDynamicReport, error)
+	GetBaseReport(context.Context, string, string) (*grpc.DashboardBaseReports, error)
+	GetBaseRevenueByCountryReport(context.Context, string, string) (*grpc.DashboardRevenueByCountryReport, error)
+	GetBaseSalesTodayReport(context.Context, string, string) (*grpc.DashboardSalesTodayReport, error)
+	GetBaseSourcesReport(context.Context, string, string) (*grpc.DashboardSourcesReport, error)
 }
 
 type DashboardReportProcessorInterface interface {
@@ -78,7 +80,10 @@ func newDashboardRepository(s *Service) DashboardRepositoryInterface {
 	return &DashboardRepository{svc: s}
 }
 
-func (m *DashboardRepository) GetMainReport(merchantId, period string) (*grpc.DashboardMainReport, error) {
+func (m *DashboardRepository) GetMainReport(
+	ctx context.Context,
+	merchantId, period string,
+) (*grpc.DashboardMainReport, error) {
 	processorGrossRevenueAndVatCurrent, err := m.NewDashboardReportProcessor(
 		merchantId,
 		period,
@@ -86,6 +91,7 @@ func (m *DashboardRepository) GetMainReport(merchantId, period string) (*grpc.Da
 		"processed",
 		m.svc.db,
 		m.svc.cacher,
+		ctx,
 	)
 
 	if err != nil {
@@ -106,6 +112,7 @@ func (m *DashboardRepository) GetMainReport(merchantId, period string) (*grpc.Da
 		"processed",
 		m.svc.db,
 		m.svc.cacher,
+		ctx,
 	)
 
 	if err != nil {
@@ -126,6 +133,7 @@ func (m *DashboardRepository) GetMainReport(merchantId, period string) (*grpc.Da
 		bson.M{"$in": []string{"processed", "refunded", "chargeback"}},
 		m.svc.db,
 		m.svc.cacher,
+		ctx,
 	)
 
 	if err != nil {
@@ -146,6 +154,7 @@ func (m *DashboardRepository) GetMainReport(merchantId, period string) (*grpc.Da
 		bson.M{"$in": []string{"processed", "refunded", "chargeback"}},
 		m.svc.db,
 		m.svc.cacher,
+		ctx,
 	)
 
 	if err != nil {
@@ -194,6 +203,7 @@ func (m *DashboardRepository) GetMainReport(merchantId, period string) (*grpc.Da
 }
 
 func (m *DashboardRepository) GetRevenueDynamicsReport(
+	ctx context.Context,
 	merchantId, period string,
 ) (*grpc.DashboardRevenueDynamicReport, error) {
 	processor, err := m.NewDashboardReportProcessor(
@@ -203,6 +213,7 @@ func (m *DashboardRepository) GetRevenueDynamicsReport(
 		"processed",
 		m.svc.db,
 		m.svc.cacher,
+		ctx,
 	)
 
 	if err != nil {
@@ -225,20 +236,23 @@ func (m *DashboardRepository) GetRevenueDynamicsReport(
 	return dataTyped, nil
 }
 
-func (m *DashboardRepository) GetBaseReport(merchantId, period string) (*grpc.DashboardBaseReports, error) {
-	revenueByCountryReport, err := m.GetBaseRevenueByCountryReport(merchantId, period)
+func (m *DashboardRepository) GetBaseReport(
+	ctx context.Context,
+	merchantId, period string,
+) (*grpc.DashboardBaseReports, error) {
+	revenueByCountryReport, err := m.GetBaseRevenueByCountryReport(ctx, merchantId, period)
 
 	if err != nil {
 		return nil, err
 	}
 
-	salesTodayReport, err := m.GetBaseSalesTodayReport(merchantId, period)
+	salesTodayReport, err := m.GetBaseSalesTodayReport(ctx, merchantId, period)
 
 	if err != nil {
 		return nil, err
 	}
 
-	sourcesReport, err := m.GetBaseSourcesReport(merchantId, period)
+	sourcesReport, err := m.GetBaseSourcesReport(ctx, merchantId, period)
 
 	if err != nil {
 		return nil, err
@@ -254,6 +268,7 @@ func (m *DashboardRepository) GetBaseReport(merchantId, period string) (*grpc.Da
 }
 
 func (m *DashboardRepository) GetBaseRevenueByCountryReport(
+	ctx context.Context,
 	merchantId, period string,
 ) (*grpc.DashboardRevenueByCountryReport, error) {
 	processorCurrent, err := m.NewDashboardReportProcessor(
@@ -263,6 +278,7 @@ func (m *DashboardRepository) GetBaseRevenueByCountryReport(
 		"processed",
 		m.svc.db,
 		m.svc.cacher,
+		ctx,
 	)
 
 	if err != nil {
@@ -276,6 +292,7 @@ func (m *DashboardRepository) GetBaseRevenueByCountryReport(
 		"processed",
 		m.svc.db,
 		m.svc.cacher,
+		ctx,
 	)
 
 	if err != nil {
@@ -314,6 +331,7 @@ func (m *DashboardRepository) GetBaseRevenueByCountryReport(
 }
 
 func (m *DashboardRepository) GetBaseSalesTodayReport(
+	ctx context.Context,
 	merchantId, period string,
 ) (*grpc.DashboardSalesTodayReport, error) {
 	processorCurrent, err := m.NewDashboardReportProcessor(
@@ -323,6 +341,7 @@ func (m *DashboardRepository) GetBaseSalesTodayReport(
 		"processed",
 		m.svc.db,
 		m.svc.cacher,
+		ctx,
 	)
 
 	if err != nil {
@@ -336,6 +355,7 @@ func (m *DashboardRepository) GetBaseSalesTodayReport(
 		"processed",
 		m.svc.db,
 		m.svc.cacher,
+		ctx,
 	)
 
 	if err != nil {
@@ -364,6 +384,7 @@ func (m *DashboardRepository) GetBaseSalesTodayReport(
 }
 
 func (m *DashboardRepository) GetBaseSourcesReport(
+	ctx context.Context,
 	merchantId, period string,
 ) (*grpc.DashboardSourcesReport, error) {
 	processorCurrent, err := m.NewDashboardReportProcessor(
@@ -373,6 +394,7 @@ func (m *DashboardRepository) GetBaseSourcesReport(
 		"processed",
 		m.svc.db,
 		m.svc.cacher,
+		ctx,
 	)
 
 	if err != nil {
@@ -386,6 +408,7 @@ func (m *DashboardRepository) GetBaseSourcesReport(
 		"processed",
 		m.svc.db,
 		m.svc.cacher,
+		ctx,
 	)
 
 	if err != nil {
@@ -418,10 +441,17 @@ func (m *DashboardRepository) NewDashboardReportProcessor(
 	status interface{},
 	db *mongodb.Source,
 	cache internalPkg.CacheInterface,
+	ctx context.Context,
 ) (*internalPkg.DashboardReportProcessor, error) {
 	current := time.Now()
+	merchantOid, err := primitive.ObjectIDFromHex(merchantId)
+
+	if err != nil {
+		return nil, dashboardErrorUnknown
+	}
+
 	processor := &internalPkg.DashboardReportProcessor{
-		Match:       bson.M{"merchant_id": bson.ObjectIdHex(merchantId), "status": status, "type": "order"},
+		Match:       bson.M{"merchant_id": merchantOid, "status": status, "type": "order"},
 		Db:          db,
 		Collection:  collectionOrderView,
 		Cache:       cache,
@@ -429,6 +459,7 @@ func (m *DashboardRepository) NewDashboardReportProcessor(
 		Errors: map[string]*grpc.ResponseErrorMessage{
 			"unknown": dashboardErrorUnknown,
 		},
+		Ctx: ctx,
 	}
 
 	switch period {
