@@ -138,7 +138,7 @@ var (
 	orderErrorMerchantDoNotHaveBanking                        = newBillingServerErrorMsg("fm000071", "merchant don't have completed banking info")
 	orderErrorAmountLowerThanMinLimitSystem                   = newBillingServerErrorMsg("fm000072", "order amount is lower than min system limit")
 	orderErrorAlreadyProcessed                                = newBillingServerErrorMsg("fm000073", "order is already processed")
-	orderErrorDontHaveReceiptUrl                                = newBillingServerErrorMsg("fm000074", "processed order don't have receipt url")
+	orderErrorDontHaveReceiptUrl                              = newBillingServerErrorMsg("fm000074", "processed order don't have receipt url")
 
 	virtualCurrencyPayoutCurrencyMissed = newBillingServerErrorMsg("vc000001", "virtual currency don't have price in merchant payout currency")
 
@@ -2393,6 +2393,13 @@ func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) {
 		Type:     taxTypeVat,
 		Currency: order.Currency,
 	}
+	order.TotalPaymentAmount = order.OrderAmount
+
+	country, err := v.country.GetByIsoCodeA2(order.GetCountry())
+	if err == nil && country.VatEnabled == false {
+		return
+	}
+
 	req := &tax_service.GetRateRequest{
 		IpData:   &tax_service.GeoIdentity{},
 		UserData: &tax_service.GeoIdentity{},
