@@ -836,19 +836,13 @@ func (s *Service) DeleteMerchantUser(
 
 	profile, err := s.userProfileRepository.GetByUserId(user.UserId)
 
-	if err != nil {
-		zap.L().Error(errorUserProfileNotFound.Message, zap.Error(err), zap.String("user_id", user.UserId))
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserProfileNotFound
-
-		return nil
-	}
-
-	if err = s.emailConfirmedTruncate(ctx, profile); err != nil {
-		zap.L().Error(errorUserConfirmEmail.Message, zap.Error(err), zap.Any("profile", profile))
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserConfirmEmail
-		return nil
+	if profile != nil {
+		if err = s.emailConfirmedTruncate(ctx, profile); err != nil {
+			zap.L().Error(errorUserConfirmEmail.Message, zap.Error(err), zap.Any("profile", profile))
+			res.Status = pkg.ResponseStatusBadData
+			res.Message = errorUserConfirmEmail
+			return nil
+		}
 	}
 
 	res.Status = pkg.ResponseStatusOk
@@ -892,19 +886,13 @@ func (s *Service) DeleteAdminUser(
 
 	profile, err := s.userProfileRepository.GetByUserId(user.UserId)
 
-	if err != nil {
-		zap.L().Error(errorUserProfileNotFound.Message, zap.Error(err), zap.String("user_id", user.UserId))
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserProfileNotFound
-
-		return nil
-	}
-
-	if err = s.emailConfirmedTruncate(ctx, profile); err != nil {
-		zap.L().Error(errorUserConfirmEmail.Message, zap.Error(err), zap.Any("profile", profile))
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserConfirmEmail
-		return nil
+	if profile != nil {
+		if err = s.emailConfirmedTruncate(ctx, profile); err != nil {
+			zap.L().Error(errorUserConfirmEmail.Message, zap.Error(err), zap.Any("profile", profile))
+			res.Status = pkg.ResponseStatusBadData
+			res.Message = errorUserConfirmEmail
+			return nil
+		}
 	}
 
 	res.Status = pkg.ResponseStatusOk
