@@ -866,6 +866,7 @@ type MgoOperatingCompany struct {
 	RegistrationNumber string        `bson:"registration_number"`
 	RegistrationDate   string        `bson:"registration_date"`
 	VatNumber          string        `bson:"vat_number"`
+	Email              string        `bson:"email"`
 	Address            string        `bson:"address"`
 	VatAddress         string        `bson:"vat_address"`
 	SignatoryName      string        `bson:"signatory_name"`
@@ -4350,6 +4351,7 @@ func (m *OperatingCompany) GetBSON() (interface{}, error) {
 		RegistrationNumber: m.RegistrationNumber,
 		RegistrationDate:   m.RegistrationDate,
 		VatNumber:          m.VatNumber,
+		Email:              m.Email,
 		Address:            m.Address,
 		VatAddress:         m.VatAddress,
 		SignatoryName:      m.SignatoryName,
@@ -4402,6 +4404,7 @@ func (m *OperatingCompany) SetBSON(raw bson.Raw) error {
 	m.RegistrationNumber = decoded.RegistrationNumber
 	m.RegistrationDate = decoded.RegistrationDate
 	m.VatNumber = decoded.VatNumber
+	m.Email = decoded.Email
 	m.Address = decoded.Address
 	m.VatAddress = decoded.VatAddress
 	m.SignatoryName = decoded.SignatoryName
