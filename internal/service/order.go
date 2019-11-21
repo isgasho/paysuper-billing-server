@@ -4226,7 +4226,7 @@ func (s *Service) OrderReCreateProcess(ctx context.Context, req *grpc.OrderReCre
 	newOrder.ReceiptUrl = ""
 	newOrder.PaymentMethod = nil
 
-	err = s.db.Collection(collectionOrder).Insert(order)
+	err = s.db.Collection(collectionOrder).Insert(newOrder)
 
 	if err != nil {
 		zap.L().Error(
@@ -4239,7 +4239,7 @@ func (s *Service) OrderReCreateProcess(ctx context.Context, req *grpc.OrderReCre
 		return nil
 	}
 
-	res.Item = order
+	res.Item = newOrder
 
 	return nil
 }
