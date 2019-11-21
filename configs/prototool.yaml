@@ -1,0 +1,24 @@
+protoc:
+  version: 3.9.1
+  includes:
+    - api/proto
+
+generate:
+  go_options:
+    import_path: github.com/paysuper/paysuper-billing-server
+
+  plugins:
+    - name: swagger
+      type: go
+      flags: allow_delete_body=true,logtostderr=true
+      output: pkg/proto
+
+    - name: go
+      type: go
+      flags: paths=source_relative
+      output: pkg/proto
+
+    - name: micro
+      type: go
+      flags: paths=source_relative
+      output: pkg/proto
