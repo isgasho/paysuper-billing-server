@@ -166,15 +166,15 @@ func (s *Service) UpdateCountry(
 }
 
 type CountryServiceInterface interface {
-	Insert(*billing.Country) error
-	MultipleInsert([]*billing.Country) error
-	Update(*billing.Country) error
-	GetByIsoCodeA2(string) (*billing.Country, error)
-	GetAll() (*billing.CountriesList, error)
-	IsRegionExists(string) (bool, error)
+	Insert(context.Context, *billing.Country) error
+	MultipleInsert(context.Context, []*billing.Country) error
+	Update(context.Context, *billing.Country) error
+	GetByIsoCodeA2(context.Context, string) (*billing.Country, error)
+	GetAll(context.Context) (*billing.CountriesList, error)
+	IsRegionExists(context.Context, string) (bool, error)
 	IsTariffRegionExists(string) bool
-	GetCountriesWithVatEnabled() (*billing.CountriesList, error)
-	GetCountriesAndRegionsByTariffRegion(tariffRegion string) ([]*internalPkg.CountryAndRegionItem, error)
+	GetCountriesWithVatEnabled(context.Context) (*billing.CountriesList, error)
+	GetCountriesAndRegionsByTariffRegion(ctx context.Context, tariffRegion string) ([]*internalPkg.CountryAndRegionItem, error)
 }
 
 func newCountryService(svc *Service) *Country {

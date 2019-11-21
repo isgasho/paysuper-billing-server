@@ -341,12 +341,12 @@ func (s *Service) getPriceInCurrencyByAmount(targetCurrency string, originalCurr
 }
 
 type PriceGroupServiceInterface interface {
-	Insert(*billing.PriceGroup) error
-	MultipleInsert([]*billing.PriceGroup) error
-	Update(*billing.PriceGroup) error
-	GetById(string) (*billing.PriceGroup, error)
-	GetByRegion(string) (*billing.PriceGroup, error)
-	GetAll() ([]*billing.PriceGroup, error)
+	Insert(context.Context, *billing.PriceGroup) error
+	MultipleInsert(context.Context, []*billing.PriceGroup) error
+	Update(context.Context, *billing.PriceGroup) error
+	GetById(context.Context, string) (*billing.PriceGroup, error)
+	GetByRegion(context.Context, string) (*billing.PriceGroup, error)
+	GetAll(context.Context) ([]*billing.PriceGroup, error)
 	MakeCurrencyList([]*billing.PriceGroup, *billing.CountriesList) []*grpc.PriceGroupRegions
 	CalculatePriceWithFraction(float64, float64) float64
 }

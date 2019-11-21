@@ -27,7 +27,6 @@ import (
 
 const (
 	errorNotFound      = "%s not found"
-	errorQueryMask     = "Query from collection \"%s\" failed"
 	errorInterfaceCast = "unable to cast interface to object %s"
 
 	errorBbNotFoundMessage = "not found"
@@ -199,7 +198,7 @@ func (s *Service) logError(msg string, data []interface{}) {
 }
 
 func (s *Service) UpdateOrder(ctx context.Context, req *billing.Order, rsp *grpc.EmptyResponse) error {
-	err := s.updateOrder(req)
+	err := s.updateOrder(ctx, req)
 
 	if err != nil {
 		return err
@@ -209,7 +208,7 @@ func (s *Service) UpdateOrder(ctx context.Context, req *billing.Order, rsp *grpc
 }
 
 func (s *Service) UpdateMerchant(ctx context.Context, req *billing.Merchant, rsp *grpc.EmptyResponse) error {
-	err := s.merchant.Update(req)
+	err := s.merchant.Update(ctx, req)
 
 	if err != nil {
 		zap.S().Errorf("Update merchant failed", "err", err.Error(), "order", req)

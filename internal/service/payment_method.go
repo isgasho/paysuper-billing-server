@@ -319,13 +319,13 @@ func (s *Service) DeletePaymentMethodTestSettings(
 
 type PaymentMethodInterface interface {
 	GetAll(ctx context.Context) (map[string]*billing.PaymentMethod, error)
-	GetByGroupAndCurrency(project *billing.Project, group string, currency string) (*billing.PaymentMethod, error)
-	GetById(string) (*billing.PaymentMethod, error)
-	MultipleInsert([]*billing.PaymentMethod) error
-	Insert(*billing.PaymentMethod) error
-	Update(*billing.PaymentMethod) error
+	GetByGroupAndCurrency(ctx context.Context, project *billing.Project, group string, currency string) (*billing.PaymentMethod, error)
+	GetById(context.Context, string) (*billing.PaymentMethod, error)
+	MultipleInsert(context.Context, []*billing.PaymentMethod) error
+	Insert(context.Context, *billing.PaymentMethod) error
+	Update(context.Context, *billing.PaymentMethod) error
 	GetPaymentSettings(paymentMethod *billing.PaymentMethod, currency, mccCode, operatingCompanyId string, project *billing.Project) (*billing.PaymentMethodParams, error)
-	ListByParams(project *billing.Project, currency, mccCode, operatingCompanyId string) ([]*billing.PaymentMethod, error)
+	ListByParams(ctx context.Context, project *billing.Project, currency, mccCode, operatingCompanyId string) ([]*billing.PaymentMethod, error)
 }
 
 type paymentMethods struct {

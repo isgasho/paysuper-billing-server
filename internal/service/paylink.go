@@ -43,7 +43,7 @@ type PaylinkServiceInterface interface {
 	Insert(ctx context.Context, pl *paylink.Paylink) error
 	Update(ctx context.Context, pl *paylink.Paylink) error
 	UpdatePaylinkTotalStat(ctx context.Context, id, merchantId string) error
-	GetPaylinkVisits(ctx context.Context, id string, from, to int64) (int, error)
+	GetPaylinkVisits(ctx context.Context, id string, from, to int64) (int64, error)
 }
 
 const (
@@ -333,7 +333,7 @@ func (s *Service) CreateOrUpdatePaylink(
 		switch req.ProductsType {
 
 		case billing.OrderType_product:
-			product, err := s.productService.GetById(productId)
+			product, err := s.productService.GetById(ctx, productId)
 			if err != nil {
 				if err.Error() == "product not found" || err == mongo.ErrNoDocuments {
 					res.Status = pkg.ResponseStatusNotFound

@@ -226,7 +226,7 @@ func (s *Service) AutoAcceptRoyaltyReports(
 			return err
 		}
 
-		_, err = s.updateMerchantBalance(report.MerchantId)
+		_, err = s.updateMerchantBalance(ctx, report.MerchantId)
 		if err != nil {
 			return err
 		}
@@ -366,7 +366,7 @@ func (s *Service) MerchantReviewRoyaltyReport(
 	}
 
 	if req.IsAccepted {
-		_, err = s.updateMerchantBalance(report.MerchantId)
+		_, err = s.updateMerchantBalance(ctx, report.MerchantId)
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusSystemError
 			rsp.Message = royaltyReportUpdateBalanceError
@@ -541,7 +541,7 @@ func (s *Service) ChangeRoyaltyReport(
 
 	s.sendRoyaltyReportNotification(ctx, report)
 
-	_, err = s.updateMerchantBalance(report.MerchantId)
+	_, err = s.updateMerchantBalance(ctx, report.MerchantId)
 	if err != nil {
 		return err
 	}
@@ -687,7 +687,7 @@ func (h *royaltyHandler) getRoyaltyReportRollingReserves(merchantId, operatingCo
 func (h *royaltyHandler) createMerchantRoyaltyReport(ctx context.Context, merchantId primitive.ObjectID) error {
 	zap.L().Info("generating royalty reports for merchant", zap.String("merchant_id", merchantId.Hex()))
 
-	merchant, err := h.merchant.GetById(merchantId.Hex())
+	merchant, err := h.merchant.GetById(ctx, merchantId.Hex())
 	if err != nil {
 		return err
 	}
@@ -823,7 +823,7 @@ func (s *Service) RoyaltyReportPdfUploaded(
 		return err
 	}
 
-	merchant, err := s.merchant.GetById(report.MerchantId)
+	merchant, err := s.merchant.GetById(ctx, report.MerchantId)
 
 	if err != nil {
 		zap.L().Error("Merchant not found", zap.Error(err), zap.String("merchant_id", report.MerchantId))
@@ -860,7 +860,7 @@ func (s *Service) RoyaltyReportPdfUploaded(
 		return err
 	}
 
-	operatingCompany, err := s.operatingCompany.GetById(report.OperatingCompanyId)
+	operatingCompany, err := s.operatingCompany.GetById(ctx, report.OperatingCompanyId)
 	if err != nil {
 		zap.L().Error("Operating company not found", zap.Error(err), zap.String("operating_company_id", report.OperatingCompanyId))
 		return err
@@ -905,7 +905,7 @@ func (s *Service) RoyaltyReportPdfUploaded(
 }
 
 func (s *Service) sendRoyaltyReportNotification(ctx context.Context, report *billing.RoyaltyReport) {
-	merchant, err := s.merchant.GetById(report.MerchantId)
+	merchant, err := s.merchant.GetById(ctx, report.MerchantId)
 
 	if err != nil {
 		zap.L().Error("Merchant not found", zap.Error(err), zap.String("merchant_id", report.MerchantId))
