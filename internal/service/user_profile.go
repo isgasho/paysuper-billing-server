@@ -557,6 +557,10 @@ func (s *Service) GetCommonUserProfile(
 	if role != nil {
 		rsp.Profile.Role = role
 		rsp.Profile.Merchant, _ = s.merchant.GetById(role.MerchantId)
+		rsp.Profile.Merchant.CentrifugoToken = s.centrifugo.GetChannelToken(
+			rsp.Profile.Merchant.Id,
+			time.Now().Add(time.Hour*3).Unix(),
+		)
 
 		if role.Role != pkg.RoleMerchantOwner {
 			merchant := &billing.Merchant{
