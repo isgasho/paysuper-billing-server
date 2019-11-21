@@ -735,7 +735,17 @@ func (s *Service) PaymentFormJsonDataProcess(
 	}
 	order.Issuer.ReferrerHost = getHostFromUrl(order.Issuer.Url)
 
-	p1.processOrderVat(order)
+	err = p1.processOrderVat(order)
+	if err != nil {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error(), "method", "processOrderVat")
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = e
+			return nil
+		}
+		return err
+	}
+
 	err = s.updateOrder(order)
 
 	if err != nil {
@@ -920,7 +930,16 @@ func (s *Service) PaymentCreateProcess(
 	}
 
 	p1 := &OrderCreateRequestProcessor{Service: s}
-	p1.processOrderVat(order)
+	err = p1.processOrderVat(order)
+	if err != nil {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error(), "method", "processOrderVat")
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = e
+			return nil
+		}
+		return err
+	}
 
 	if _, ok := order.PaymentRequisites[pkg.PaymentCreateFieldRecurringId]; ok {
 		req.Data[pkg.PaymentCreateFieldRecurringId] = order.PaymentRequisites[pkg.PaymentCreateFieldRecurringId]
@@ -1450,7 +1469,16 @@ func (s *Service) ProcessBillingAddress(
 	}
 
 	processor := &OrderCreateRequestProcessor{Service: s}
-	processor.processOrderVat(order)
+	err = processor.processOrderVat(order)
+	if err != nil {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error(), "method", "processOrderVat")
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = e
+			return nil
+		}
+		return err
+	}
 
 	err = s.updateOrder(order)
 
@@ -1962,7 +1990,11 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 		}
 	} else {
 		if order.User.Address != nil {
-			v.processOrderVat(order)
+			err := v.processOrderVat(order)
+			if err != nil {
+				zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error(), "method", "processOrderVat")
+				return nil, err
+			}
 
 			restricted, err := v.applyCountryRestriction(order, order.GetCountry())
 			if err != nil {
@@ -2387,12 +2419,25 @@ func (v *OrderCreateRequestProcessor) processSignature() error {
 }
 
 // Calculate VAT for order
-func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) {
+func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) error {
 
 	order.Tax = &billing.OrderTax{
 		Type:     taxTypeVat,
 		Currency: order.Currency,
 	}
+	order.TotalPaymentAmount = order.OrderAmount
+
+	countryCode := order.GetCountry()
+	if countryCode != "" {
+		country, err := v.country.GetByIsoCodeA2(countryCode)
+		if err != nil {
+			return err
+		}
+		if country.VatEnabled == false {
+			return nil
+		}
+	}
+
 	req := &tax_service.GetRateRequest{
 		IpData:   &tax_service.GeoIdentity{},
 		UserData: &tax_service.GeoIdentity{},
@@ -2424,7 +2469,7 @@ func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) {
 
 	if err != nil {
 		v.logError("Tax service return error", []interface{}{"error", err.Error(), "request", req})
-		return
+		return err
 	}
 
 	if order.BillingAddress != nil {
@@ -2435,7 +2480,7 @@ func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) {
 	order.Tax.Amount = tools.FormatAmount(order.OrderAmount * order.Tax.Rate)
 	order.TotalPaymentAmount = tools.FormatAmount(order.OrderAmount + order.Tax.Amount)
 
-	return
+	return nil
 }
 
 func (v *OrderCreateRequestProcessor) processCustomerToken() error {
@@ -2828,7 +2873,11 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 			}
 		}
 
-		processor.processOrderVat(order)
+		err = processor.processOrderVat(order)
+		if err != nil {
+			zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error(), "method", "processOrderVat")
+			return err
+		}
 		updCustomerReq.User.Address = order.BillingAddress
 	}
 
