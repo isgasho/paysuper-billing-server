@@ -7386,7 +7386,8 @@ func (m *PaymentChannelCostSystemRequest) GetOperatingCompanyId() string {
 }
 
 type PaymentChannelCostSystemList struct {
-	Items                []*PaymentChannelCostSystem `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	//@inject_tag: json:"items"
+	Items                []*PaymentChannelCostSystem `protobuf:"bytes,1,rep,name=items,proto3" json:"items"`
 	XXX_NoUnkeyedLiteral struct{}                    `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte                      `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32                       `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -7703,7 +7704,8 @@ func (m *PaymentChannelCostMerchantRequest) GetMccCode() string {
 }
 
 type PaymentChannelCostMerchantList struct {
-	Items                []*PaymentChannelCostMerchant `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	//@inject_tag: json:"items"
+	Items                []*PaymentChannelCostMerchant `protobuf:"bytes,1,rep,name=items,proto3" json:"items"`
 	XXX_NoUnkeyedLiteral struct{}                      `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte                        `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32                         `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -8069,7 +8071,8 @@ func (m *MoneyBackCostSystemRequest) GetOperatingCompanyId() string {
 }
 
 type MoneyBackCostSystemList struct {
-	Items                []*MoneyBackCostSystem `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	//@inject_tag: json:"items"
+	Items                []*MoneyBackCostSystem `protobuf:"bytes,1,rep,name=items,proto3" json:"items"`
 	XXX_NoUnkeyedLiteral struct{}               `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte                 `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32                  `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -8444,7 +8447,8 @@ func (m *PaymentCostDeleteRequest) GetId() string {
 }
 
 type MoneyBackCostMerchantList struct {
-	Items                []*MoneyBackCostMerchant `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	//@inject_tag: json:"items"
+	Items                []*MoneyBackCostMerchant `protobuf:"bytes,1,rep,name=items,proto3" json:"items"`
 	XXX_NoUnkeyedLiteral struct{}                 `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte                   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32                    `json:"-" bson:"-" structure:"-" validate:"-"`

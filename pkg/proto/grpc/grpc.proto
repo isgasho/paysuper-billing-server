@@ -579,7 +579,9 @@ message NotificationRequest {
 }
 
 message Notifications {
+    // @inject_tag: json:"count"
     int32 count = 1;
+    // @inject_tag: json:"items"
     repeated billing.Notification items = 2;
 }
 
@@ -682,7 +684,9 @@ message ListRefundsRequest {
 }
 
 message ListRefundsResponse {
+    // @inject_tag: json:"count"
     int32 count = 1;
+    // @inject_tag: json:"items"
     repeated billing.Refund items = 2;
 }
 
@@ -1237,7 +1241,9 @@ message FindByZipCodeRequest {
 }
 
 message FindByZipCodeResponse {
+    // @inject_tag: json:"count"
     int32 count = 1;
+    // @inject_tag: json:"items"
     repeated billing.ZipCode items = 2;
 }
 
@@ -1804,6 +1810,7 @@ message ListOrdersPrivateResponse {
 
 message ListOrdersResponseItem {
     int32 count = 1;
+    // @inject_tag: json:"items"
     repeated billing.Order items = 2;
 }
 
@@ -2012,7 +2019,7 @@ message CreatePayoutDocumentResponse {
     int32 status = 1;
     //@inject_tag: json:"message"
     ResponseErrorMessage message = 2;
-    //@inject_tag: json:"item"
+    //@inject_tag: json:"items"
     repeated billing.PayoutDocument items = 3;
 }
 

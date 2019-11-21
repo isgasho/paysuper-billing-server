@@ -2584,8 +2584,10 @@ func (m *NotificationRequest) GetMessage() string {
 }
 
 type Notifications struct {
-	Count                int32                   `protobuf:"varint,1,opt,name=count,proto3" json:"count,omitempty"`
-	Items                []*billing.Notification `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
+	// @inject_tag: json:"count"
+	Count int32 `protobuf:"varint,1,opt,name=count,proto3" json:"count"`
+	// @inject_tag: json:"items"
+	Items                []*billing.Notification `protobuf:"bytes,2,rep,name=items,proto3" json:"items"`
 	XXX_NoUnkeyedLiteral struct{}                `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte                  `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32                   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -3345,8 +3347,10 @@ func (m *ListRefundsRequest) GetOffset() int32 {
 }
 
 type ListRefundsResponse struct {
-	Count                int32             `protobuf:"varint,1,opt,name=count,proto3" json:"count,omitempty"`
-	Items                []*billing.Refund `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
+	// @inject_tag: json:"count"
+	Count int32 `protobuf:"varint,1,opt,name=count,proto3" json:"count"`
+	// @inject_tag: json:"items"
+	Items                []*billing.Refund `protobuf:"bytes,2,rep,name=items,proto3" json:"items"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte            `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32             `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -7124,8 +7128,10 @@ func (m *FindByZipCodeRequest) GetOffset() int32 {
 }
 
 type FindByZipCodeResponse struct {
-	Count                int32              `protobuf:"varint,1,opt,name=count,proto3" json:"count,omitempty"`
-	Items                []*billing.ZipCode `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
+	// @inject_tag: json:"count"
+	Count int32 `protobuf:"varint,1,opt,name=count,proto3" json:"count"`
+	// @inject_tag: json:"items"
+	Items                []*billing.ZipCode `protobuf:"bytes,2,rep,name=items,proto3" json:"items"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte             `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32              `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -10959,8 +10965,9 @@ func (m *ListOrdersPrivateResponse) GetItem() *ListOrdersPrivateResponseItem {
 }
 
 type ListOrdersResponseItem struct {
-	Count                int32            `protobuf:"varint,1,opt,name=count,proto3" json:"count,omitempty"`
-	Items                []*billing.Order `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
+	Count int32 `protobuf:"varint,1,opt,name=count,proto3" json:"count,omitempty"`
+	// @inject_tag: json:"items"
+	Items                []*billing.Order `protobuf:"bytes,2,rep,name=items,proto3" json:"items"`
 	XXX_NoUnkeyedLiteral struct{}         `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte           `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32            `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -12397,8 +12404,8 @@ type CreatePayoutDocumentResponse struct {
 	Status int32 `protobuf:"varint,1,opt,name=status,proto3" json:"status"`
 	//@inject_tag: json:"message"
 	Message *ResponseErrorMessage `protobuf:"bytes,2,opt,name=message,proto3" json:"message"`
-	//@inject_tag: json:"item"
-	Items                []*billing.PayoutDocument `protobuf:"bytes,3,rep,name=items,proto3" json:"item"`
+	//@inject_tag: json:"items"
+	Items                []*billing.PayoutDocument `protobuf:"bytes,3,rep,name=items,proto3" json:"items"`
 	XXX_NoUnkeyedLiteral struct{}                  `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte                    `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32                     `json:"-" bson:"-" structure:"-" validate:"-"`
