@@ -1235,9 +1235,9 @@ message FindByZipCodeRequest {
     // @inject_tag: query:"zip" validate:"required,gte=2"
     string zip = 2;
     // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
-    int32 limit = 3;
+    int64 limit = 3;
     // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
-    int32 offset = 4;
+    int64 offset = 4;
 }
 
 message FindByZipCodeResponse {

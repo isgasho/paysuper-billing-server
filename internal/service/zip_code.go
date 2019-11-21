@@ -3,11 +3,12 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 )
 
@@ -31,8 +32,8 @@ func (s *Service) FindByZipCode(
 
 	var data []*billing.ZipCode
 
-	query := bson.M{"zip": bson.RegEx{Pattern: req.Zip}, "country": req.Country}
-	count, err := s.db.Collection(collectionZipCode).Find(query).Count()
+	query := bson.D{{"zip", primitive.Regex{Pattern: req.Zip}}, {"country", req.Country}}
+	count, err := s.db.Collection(collectionZipCode).CountDocuments(ctx, query)
 
 	if err != nil {
 		zap.S().Error(
@@ -49,19 +50,31 @@ func (s *Service) FindByZipCode(
 		return nil
 	}
 
-	err = s.db.Collection(collectionZipCode).Find(query).Limit(int(req.Limit)).Skip(int(req.Offset)).All(&data)
+	opts := options.Find().
+		SetLimit(req.Limit).
+		SetSkip(req.Offset)
+	cursor, err := s.db.Collection(collectionZipCode).Find(ctx, query, opts)
 
 	if err != nil {
-		if err != mgo.ErrNotFound {
-			zap.S().Error(
-				pkg.ErrorDatabaseQueryFailed,
-				zap.Error(err),
-				zap.String("collection", collectionZipCode),
-				zap.Any("query", query),
-			)
-		}
-
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionZipCode),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
 		return orderErrorUnknown
+	}
+
+	err = cursor.All(ctx, &data)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorQueryCursorExecutionFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return err
 	}
 
 	rsp.Count = int32(count)
@@ -70,7 +83,7 @@ func (s *Service) FindByZipCode(
 	return nil
 }
 
-func (h *ZipCode) getByZipAndCountry(zip, country string) (*billing.ZipCode, error) {
+func (h *ZipCode) getByZipAndCountry(ctx context.Context, zip, country string) (*billing.ZipCode, error) {
 	data := new(billing.ZipCode)
 	key := fmt.Sprintf(cacheZipCodeByZipAndCountry, zip, country)
 
@@ -81,17 +94,15 @@ func (h *ZipCode) getByZipAndCountry(zip, country string) (*billing.ZipCode, err
 	}
 
 	query := bson.M{"zip": zip, "country": country}
-	err = h.svc.db.Collection(collectionZipCode).Find(query).One(&data)
+	err = h.svc.db.Collection(collectionZipCode).FindOne(ctx, query).Decode(data)
 
 	if err != nil {
-		if err != mgo.ErrNotFound {
-			zap.S().Error(
-				pkg.ErrorDatabaseQueryFailed,
-				zap.Error(err),
-				zap.String("collection", collectionZipCode),
-				zap.Any("query", query),
-			)
-		}
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionZipCode),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
 
 		return nil, fmt.Errorf(errorNotFound, collectionZipCode)
 	}
