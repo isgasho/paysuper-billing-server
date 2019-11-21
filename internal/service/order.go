@@ -15,6 +15,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/google/uuid"
+	"github.com/jinzhu/copier"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -4186,40 +4187,53 @@ func (s *Service) OrderReCreateProcess(ctx context.Context, req *grpc.OrderReCre
 	order, err := s.orderRepository.GetByUuid(req.OrderId)
 	if err != nil {
 		zap.S().Errorw(pkg.ErrorGrpcServiceCallFailed, "err", err.Error(), "data", req)
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = pkg.ResponseStatusNotFound
 		res.Message = orderErrorUnknown
 		return nil
 	}
 
-	if order.PrivateStatus != constant.OrderStatusPaymentSystemRejectOnCreate &&
-		order.PrivateStatus != constant.OrderStatusPaymentSystemReject &&
-		order.PrivateStatus != constant.OrderStatusProjectReject &&
-		order.PrivateStatus != constant.OrderStatusPaymentSystemDeclined &&
-		order.PrivateStatus != constant.OrderStatusPaymentSystemCanceled {
-
-		zap.S().Errorw(orderErrorWrongPrivateStatus.Message, "data", req, "status", order.PrivateStatus)
-
+	if !order.CanBeRecreated() {
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = orderErrorWrongPrivateStatus
 		return nil
 	}
 
-	order.PrivateStatus = constant.OrderStatusNew
-	order.Status = constant.OrderPublicStatusCreated
-	order.Id = bson.NewObjectId().Hex()
-	order.Uuid = uuid.New().String()
-	order.ReceiptId = uuid.New().String()
-	order.CreatedAt = ptypes.TimestampNow()
-	order.UpdatedAt = ptypes.TimestampNow()
-	order.Canceled = false
-	order.CanceledAt = nil
-	order.ReceiptUrl = ""
-	order.PaymentMethod = nil
+	newOrder := new(billing.Order)
+	err = copier.Copy(&newOrder, &order)
+
+	if err != nil {
+		zap.S().Error(
+			"Copy order to new structure order by refund failed",
+			zap.Error(err),
+			zap.Any("order", order),
+		)
+
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = orderErrorUnknown
+
+		return nil
+	}
+
+	newOrder.PrivateStatus = constant.OrderStatusNew
+	newOrder.Status = constant.OrderPublicStatusCreated
+	newOrder.Id = bson.NewObjectId().Hex()
+	newOrder.Uuid = uuid.New().String()
+	newOrder.ReceiptId = uuid.New().String()
+	newOrder.CreatedAt = ptypes.TimestampNow()
+	newOrder.UpdatedAt = ptypes.TimestampNow()
+	newOrder.Canceled = false
+	newOrder.CanceledAt = nil
+	newOrder.ReceiptUrl = ""
+	newOrder.PaymentMethod = nil
 
 	err = s.db.Collection(collectionOrder).Insert(order)
 
 	if err != nil {
-		zap.S().Errorw(fmt.Sprintf(errorQueryMask, collectionOrder), "err", err.Error(), "inserted_data", order)
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrder),
+		)
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = orderErrorCanNotCreate
 		return nil
