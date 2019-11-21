@@ -1,11 +1,12 @@
 package service
 
 import (
+	"context"
 	"fmt"
-	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 const (
@@ -19,11 +20,12 @@ func newPayoutCostSystemService(svc *Service) *PayoutCostSystem {
 	return s
 }
 
-func (h *PayoutCostSystem) Set(obj *billing.PayoutCostSystem) error {
-
+func (h *PayoutCostSystem) Set(ctx context.Context, obj *billing.PayoutCostSystem) error {
 	// disable all previous settings
-	_, err := h.svc.db.Collection(collectionPayoutCostSystem).
-		UpdateAll(bson.M{"is_active": true}, bson.M{"$set": bson.M{"is_active": false}})
+	filter := bson.M{"is_active": true}
+	update := bson.M{"$set": bson.M{"is_active": false}}
+	_, err := h.svc.db.Collection(collectionPayoutCostSystem).UpdateMany(ctx, filter, update)
+
 	if err != nil {
 		return err
 	}
@@ -33,7 +35,10 @@ func (h *PayoutCostSystem) Set(obj *billing.PayoutCostSystem) error {
 	obj.InterbankCostAmount = tools.FormatAmount(obj.InterbankCostAmount)
 	obj.CreatedAt = ptypes.TimestampNow()
 	obj.IsActive = true
-	if err := h.svc.db.Collection(collectionPayoutCostSystem).Insert(obj); err != nil {
+
+	_, err = h.svc.db.Collection(collectionPayoutCostSystem).InsertOne(ctx, obj)
+
+	if err != nil {
 		return err
 	}
 
@@ -44,16 +49,16 @@ func (h *PayoutCostSystem) Set(obj *billing.PayoutCostSystem) error {
 	return nil
 }
 
-func (h PayoutCostSystem) Get() (*billing.PayoutCostSystem, error) {
+func (h PayoutCostSystem) Get(ctx context.Context) (*billing.PayoutCostSystem, error) {
 	var c billing.PayoutCostSystem
 
 	if err := h.svc.cacher.Get(cachePayoutCostSystemKey, c); err == nil {
 		return &c, nil
 	}
 
-	if err := h.svc.db.Collection(collectionPayoutCostSystem).
-		Find(bson.M{"is_active": true}).
-		One(&c); err != nil {
+	err := h.svc.db.Collection(collectionPayoutCostSystem).FindOne(ctx, bson.M{"is_active": true}).Decode(&c)
+
+	if err != nil {
 		return nil, fmt.Errorf(errorNotFound, collectionPayoutCostSystem)
 	}
 

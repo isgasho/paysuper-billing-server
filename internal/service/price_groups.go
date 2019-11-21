@@ -3,13 +3,14 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	our "github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-currencies/pkg"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	"math"
 	"strconv"
@@ -78,7 +79,7 @@ func (s *Service) UpdatePriceGroup(
 		pg.UpdatedAt = ptypes.TimestampNow()
 		err = s.priceGroup.Update(pg)
 	} else {
-		pg.Id = bson.NewObjectId().Hex()
+		pg.Id = primitive.NewObjectID().Hex()
 		pg.CreatedAt = ptypes.TimestampNow()
 		err = s.priceGroup.Insert(pg)
 	}
@@ -355,8 +356,10 @@ func newPriceGroupService(svc *Service) *PriceGroup {
 	return s
 }
 
-func (h *PriceGroup) Insert(pg *billing.PriceGroup) error {
-	if err := h.svc.db.Collection(collectionPriceGroup).Insert(pg); err != nil {
+func (h *PriceGroup) Insert(ctx context.Context, pg *billing.PriceGroup) error {
+	_, err := h.svc.db.Collection(collectionPriceGroup).InsertOne(ctx, pg)
+
+	if err != nil {
 		return err
 	}
 
@@ -367,21 +370,27 @@ func (h *PriceGroup) Insert(pg *billing.PriceGroup) error {
 	return nil
 }
 
-func (h PriceGroup) MultipleInsert(pg []*billing.PriceGroup) error {
+func (h PriceGroup) MultipleInsert(ctx context.Context, pg []*billing.PriceGroup) error {
 	c := make([]interface{}, len(pg))
 	for i, v := range pg {
 		c[i] = v
 	}
 
-	if err := h.svc.db.Collection(collectionPriceGroup).Insert(c...); err != nil {
+	_, err := h.svc.db.Collection(collectionPriceGroup).InsertMany(ctx, c)
+
+	if err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (h PriceGroup) Update(pg *billing.PriceGroup) error {
-	if err := h.svc.db.Collection(collectionPriceGroup).UpdateId(bson.ObjectIdHex(pg.Id), pg); err != nil {
+func (h PriceGroup) Update(ctx context.Context, pg *billing.PriceGroup) error {
+	oid, _ := primitive.ObjectIDFromHex(pg.Id)
+	filter := bson.M{"_id": oid}
+	_, err := h.svc.db.Collection(collectionPriceGroup).UpdateOne(ctx, filter, pg)
+
+	if err != nil {
 		return err
 	}
 
@@ -392,7 +401,7 @@ func (h PriceGroup) Update(pg *billing.PriceGroup) error {
 	return nil
 }
 
-func (h PriceGroup) GetById(id string) (*billing.PriceGroup, error) {
+func (h PriceGroup) GetById(ctx context.Context, id string) (*billing.PriceGroup, error) {
 	var c billing.PriceGroup
 	key := fmt.Sprintf(cachePriceGroupId, id)
 	err := h.svc.cacher.Get(key, c)
@@ -401,8 +410,9 @@ func (h PriceGroup) GetById(id string) (*billing.PriceGroup, error) {
 		return &c, nil
 	}
 
-	query := bson.M{"_id": bson.ObjectIdHex(id), "is_active": true}
-	err = h.svc.db.Collection(collectionPriceGroup).Find(query).One(&c)
+	oid, _ := primitive.ObjectIDFromHex(id)
+	query := bson.M{"_id": oid, "is_active": true}
+	err = h.svc.db.Collection(collectionPriceGroup).FindOne(ctx, query).Decode(&c)
 
 	if err != nil {
 		zap.L().Error(
@@ -429,7 +439,7 @@ func (h PriceGroup) GetById(id string) (*billing.PriceGroup, error) {
 	return &c, nil
 }
 
-func (h PriceGroup) GetByRegion(region string) (*billing.PriceGroup, error) {
+func (h PriceGroup) GetByRegion(ctx context.Context, region string) (*billing.PriceGroup, error) {
 	var c billing.PriceGroup
 	key := fmt.Sprintf(cachePriceGroupRegion, region)
 
@@ -437,7 +447,7 @@ func (h PriceGroup) GetByRegion(region string) (*billing.PriceGroup, error) {
 		return &c, nil
 	}
 
-	err := h.svc.db.Collection(collectionPriceGroup).Find(bson.M{"region": region, "is_active": true}).One(&c)
+	err := h.svc.db.Collection(collectionPriceGroup).FindOne(ctx, bson.M{"region": region, "is_active": true}).Decode(&c)
 
 	if err != nil {
 		return nil, fmt.Errorf(errorNotFound, collectionPriceGroup)
@@ -450,14 +460,21 @@ func (h PriceGroup) GetByRegion(region string) (*billing.PriceGroup, error) {
 	return &c, nil
 }
 
-func (h PriceGroup) GetAll() ([]*billing.PriceGroup, error) {
+func (h PriceGroup) GetAll(ctx context.Context) ([]*billing.PriceGroup, error) {
 	var c []*billing.PriceGroup
 
 	if err := h.svc.cacher.Get(cachePriceGroupAll, c); err == nil {
 		return c, nil
 	}
 
-	err := h.svc.db.Collection(collectionPriceGroup).Find(bson.M{"is_active": true}).All(&c)
+	cursor, err := h.svc.db.Collection(collectionPriceGroup).Find(ctx, bson.M{"is_active": true})
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = cursor.All(ctx, &c)
+
 	if err != nil {
 		return nil, err
 	}

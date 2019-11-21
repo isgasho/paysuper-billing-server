@@ -3,13 +3,15 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 )
 
@@ -27,10 +29,10 @@ var (
 )
 
 type PaymentMinLimitSystemInterface interface {
-	GetByCurrency(currency string) (pmls *billing.PaymentMinLimitSystem, err error)
-	GetAll() (result []*billing.PaymentMinLimitSystem, err error)
-	Upsert(pmls *billing.PaymentMinLimitSystem) (err error)
-	MultipleInsert(pmlsArray []*billing.PaymentMinLimitSystem) (err error)
+	GetByCurrency(ctx context.Context, currency string) (pmls *billing.PaymentMinLimitSystem, err error)
+	GetAll(ctx context.Context) (result []*billing.PaymentMinLimitSystem, err error)
+	Upsert(ctx context.Context, pmls *billing.PaymentMinLimitSystem) (err error)
+	MultipleInsert(ctx context.Context, pmlsArray []*billing.PaymentMinLimitSystem) (err error)
 }
 
 func newPaymentMinLimitSystem(svc *Service) PaymentMinLimitSystemInterface {
@@ -43,7 +45,7 @@ func (s *Service) GetPaymentMinLimitsSystem(
 	req *grpc.EmptyRequest,
 	res *grpc.GetPaymentMinLimitsSystemResponse,
 ) (err error) {
-	res.Items, err = s.paymentMinLimitSystem.GetAll()
+	res.Items, err = s.paymentMinLimitSystem.GetAll(ctx)
 	if err != nil {
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			res.Status = pkg.ResponseStatusBadData
@@ -62,7 +64,7 @@ func (s *Service) SetPaymentMinLimitSystem(
 	req *billing.PaymentMinLimitSystem,
 	res *grpc.EmptyResponseWithStatus,
 ) (err error) {
-	pmls, err := s.paymentMinLimitSystem.GetByCurrency(req.Currency)
+	pmls, err := s.paymentMinLimitSystem.GetByCurrency(ctx, req.Currency)
 	if err != nil && err != errorPaymentMinLimitSystemNotFound {
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			res.Status = pkg.ResponseStatusBadData
@@ -80,7 +82,7 @@ func (s *Service) SetPaymentMinLimitSystem(
 		}
 
 		pmls = &billing.PaymentMinLimitSystem{
-			Id:        bson.NewObjectId().Hex(),
+			Id:        primitive.NewObjectID().Hex(),
 			Currency:  req.Currency,
 			CreatedAt: ptypes.TimestampNow(),
 		}
@@ -95,7 +97,7 @@ func (s *Service) SetPaymentMinLimitSystem(
 	pmls.Amount = req.Amount
 	pmls.UpdatedAt = ptypes.TimestampNow()
 
-	err = s.paymentMinLimitSystem.Upsert(pmls)
+	err = s.paymentMinLimitSystem.Upsert(ctx, pmls)
 	if err != nil {
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			res.Status = pkg.ResponseStatusBadData
@@ -109,19 +111,20 @@ func (s *Service) SetPaymentMinLimitSystem(
 	return
 }
 
-func (p PaymentMinLimitSystem) GetByCurrency(currency string) (pmls *billing.PaymentMinLimitSystem, err error) {
+func (p PaymentMinLimitSystem) GetByCurrency(
+	ctx context.Context,
+	currency string,
+) (pmls *billing.PaymentMinLimitSystem, err error) {
 	key := fmt.Sprintf(cacheKeyPaymentMinLimitSystem, currency)
 	if err = p.svc.cacher.Get(key, &pmls); err == nil {
 		return pmls, nil
 	}
 
-	query := bson.M{
-		"currency": currency,
-	}
+	query := bson.M{"currency": currency}
+	err = p.svc.db.Collection(collectionPaymentMinLimitSystem).FindOne(ctx, query).Decode(&pmls)
 
-	err = p.svc.db.Collection(collectionPaymentMinLimitSystem).Find(query).One(&pmls)
 	if err != nil {
-		if err == mgo.ErrNotFound {
+		if err == mongo.ErrNoDocuments {
 			return nil, errorPaymentMinLimitSystemNotFound
 		}
 		zap.L().Error(
@@ -147,15 +150,28 @@ func (p PaymentMinLimitSystem) GetByCurrency(currency string) (pmls *billing.Pay
 	return
 }
 
-func (p PaymentMinLimitSystem) GetAll() (result []*billing.PaymentMinLimitSystem, err error) {
+func (p PaymentMinLimitSystem) GetAll(ctx context.Context) (result []*billing.PaymentMinLimitSystem, err error) {
 	if err = p.svc.cacher.Get(cacheKeyAllPaymentMinLimitSystem, &result); err == nil {
 		return result, nil
 	}
 
-	err = p.svc.db.Collection(collectionPaymentMinLimitSystem).Find(nil).All(&result)
+	cursor, err := p.svc.db.Collection(collectionPaymentMinLimitSystem).Find(ctx, bson.M{})
+
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionPaymentMinLimitSystem),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, nil),
+		)
+		return
+	}
+
+	err = cursor.All(ctx, &result)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorQueryCursorExecutionFailed,
 			zap.Error(err),
 			zap.String(pkg.ErrorDatabaseFieldCollection, collectionPaymentMinLimitSystem),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, nil),
@@ -177,10 +193,12 @@ func (p PaymentMinLimitSystem) GetAll() (result []*billing.PaymentMinLimitSystem
 	return
 }
 
-func (p PaymentMinLimitSystem) Upsert(pmls *billing.PaymentMinLimitSystem) (err error) {
+func (p PaymentMinLimitSystem) Upsert(ctx context.Context, pmls *billing.PaymentMinLimitSystem) (err error) {
 	pmls.Amount = tools.FormatAmount(pmls.Amount)
-
-	_, err = p.svc.db.Collection(collectionPaymentMinLimitSystem).UpsertId(bson.ObjectIdHex(pmls.Id), pmls)
+	oid, _ := primitive.ObjectIDFromHex(pmls.Id)
+	filter := bson.M{"_id": oid}
+	opts := options.FindOneAndUpdate().SetUpsert(true)
+	err = p.svc.db.Collection(collectionPaymentMinLimitSystem).FindOneAndUpdate(ctx, filter, pmls, opts).Err()
 
 	if err != nil {
 		zap.S().Error(
@@ -219,17 +237,22 @@ func (p PaymentMinLimitSystem) Upsert(pmls *billing.PaymentMinLimitSystem) (err 
 	return
 }
 
-func (p PaymentMinLimitSystem) MultipleInsert(pmlsArray []*billing.PaymentMinLimitSystem) (err error) {
+func (p PaymentMinLimitSystem) MultipleInsert(
+	ctx context.Context,
+	pmlsArray []*billing.PaymentMinLimitSystem,
+) (err error) {
 	c := make([]interface{}, len(pmlsArray))
 	for i, v := range pmlsArray {
 		if v.Id == "" {
-			v.Id = bson.NewObjectId().Hex()
+			v.Id = primitive.NewObjectID().Hex()
 		}
 		v.Amount = tools.FormatAmount(v.Amount)
 		c[i] = v
 	}
 
-	if err := p.svc.db.Collection(collectionPaymentMinLimitSystem).Insert(c...); err != nil {
+	_, err = p.svc.db.Collection(collectionPaymentMinLimitSystem).InsertMany(ctx, c)
+
+	if err != nil {
 		return err
 	}
 

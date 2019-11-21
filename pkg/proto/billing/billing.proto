@@ -143,7 +143,7 @@ message Project {
     // @inject_tag: json:"updated_at"
     google.protobuf.Timestamp updated_at = 24;
     // @inject_tag: json:"products_count"
-    int32 products_count = 25;
+    int64 products_count = 25;
     // @inject_tag: json:"url_chargeback_payment" validate:"omitempty,url"
     string url_chargeback_payment = 26;
     // @inject_tag: json:"url_cancel_payment" validate:"omitempty,url"

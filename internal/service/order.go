@@ -138,7 +138,7 @@ var (
 	orderErrorMerchantDoNotHaveBanking                        = newBillingServerErrorMsg("fm000071", "merchant don't have completed banking info")
 	orderErrorAmountLowerThanMinLimitSystem                   = newBillingServerErrorMsg("fm000072", "order amount is lower than min system limit")
 	orderErrorAlreadyProcessed                                = newBillingServerErrorMsg("fm000073", "order is already processed")
-	orderErrorDontHaveReceiptUrl                                = newBillingServerErrorMsg("fm000074", "processed order don't have receipt url")
+	orderErrorDontHaveReceiptUrl                              = newBillingServerErrorMsg("fm000074", "processed order don't have receipt url")
 
 	virtualCurrencyPayoutCurrencyMissed = newBillingServerErrorMsg("vc000001", "virtual currency don't have price in merchant payout currency")
 
@@ -206,7 +206,7 @@ func (s *Service) OrderCreateByPaylink(
 	req *billing.OrderCreateByPaylink,
 	rsp *grpc.OrderCreateProcessResponse,
 ) error {
-	pl, err := s.paylinkService.GetById(req.PaylinkId)
+	pl, err := s.paylinkService.GetById(ctx, req.PaylinkId)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			rsp.Status = pkg.ResponseStatusNotFound

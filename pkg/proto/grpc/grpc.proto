@@ -959,9 +959,9 @@ message ListProductsRequest {
     //@inject_tag: json:"sku"
     string sku = 2;
     // @inject_tag: validate:"required,numeric,gt=0" json:"limit"
-    int32 limit = 3;
+    int64 limit = 3;
     // @inject_tag: validate:"omitempty,numeric,gte=0" json:"offset"
-    int32 offset = 4;
+    int64 offset = 4;
     //@inject_tag: validate:"required,hexadecimal,len=24" json:"merchant_id" bson:"merchant_id"
     string merchant_id = 5;
     //@inject_tag: validate:"omitempty,hexadecimal,len=24" json:"project_id" bson:"project_id"
@@ -1003,11 +1003,11 @@ message GetKeyProductsForOrderRequest {
 
 message ListProductsResponse {
     // @inject_tag: json:"limit"
-    int32 limit = 1;
+    int64 limit = 1;
     // @inject_tag: json:"offset"
-    int32 offset = 2;
+    int64 offset = 2;
     // @inject_tag: json:"count"
-    int32 total = 3;
+    int64 total = 3;
     // @inject_tag: json:"items"
     repeated Product products = 5;
 }
@@ -1068,7 +1068,7 @@ message ListProjectsRequest {
 
 message ListProjectsResponse {
     //@inject_tag: json:"count"
-    int32 count = 1;
+    int64 count = 1;
     //@inject_tag: json:"items"
     repeated billing.Project items = 2;
 }
@@ -2052,9 +2052,9 @@ message GetPayoutDocumentsRequest {
     // @inject_tag: query:"period_to" validate:"omitempty,numeric,gt=0"
     int64 period_to = 5;
     // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
-    int32 limit = 6;
+    int64 limit = 6;
     // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
-    int32 offset = 7;
+    int64 offset = 7;
 }
 
 message PayoutDocumentsPaginate {

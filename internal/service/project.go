@@ -8,6 +8,8 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
 	"net/http"
 )
@@ -32,7 +34,6 @@ var (
 	projectErrorVirtualCurrencyLimitsIncorrect                   = newBillingServerErrorMsg("pr000011", `project virtual currency purchase limits is incorrect`)
 	projectErrorShortDescriptionDefaultLangRequired              = newBillingServerErrorMsg("pr000012", "project short description in \""+DefaultLanguage+"\" locale is required")
 	projectErrorFullDescriptionDefaultLangRequired               = newBillingServerErrorMsg("pr000013", "project full description in \""+DefaultLanguage+"\" locale is required")
-	projectErrorVirtualCurrencyPriceFallbackCurrencyRequired     = newBillingServerErrorMsg("pr000014", `virtual currency price in "%s" currency is required`)
 )
 
 func (s *Service) ChangeProject(
@@ -44,7 +45,7 @@ func (s *Service) ChangeProject(
 	var err error
 
 	var merchant = &billing.Merchant{}
-	if merchant, err = s.merchant.GetById(req.MerchantId); err != nil {
+	if merchant, err = s.merchant.GetById(ctx, req.MerchantId); err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = merchantErrorNotFound
 
@@ -52,7 +53,10 @@ func (s *Service) ChangeProject(
 	}
 
 	if req.Id != "" {
-		project, err = s.getProjectBy(bson.M{"_id": bson.ObjectIdHex(req.Id), "merchant_id": bson.ObjectIdHex(req.MerchantId)})
+		oid, _ := primitive.ObjectIDFromHex(req.Id)
+		merchantOid, _ := primitive.ObjectIDFromHex(req.MerchantId)
+		filter := bson.M{"_id": oid, "merchant_id": merchantOid}
+		project, err = s.getProjectBy(ctx, filter)
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusNotFound
@@ -141,9 +145,9 @@ func (s *Service) ChangeProject(
 	}
 
 	if project == nil {
-		project, err = s.createProject(req)
+		project, err = s.createProject(ctx, req)
 	} else {
-		err = s.updateProject(req, project)
+		err = s.updateProject(ctx, req, project)
 	}
 
 	if err != nil {
@@ -165,13 +169,14 @@ func (s *Service) GetProject(
 	req *grpc.GetProjectRequest,
 	rsp *grpc.ChangeProjectResponse,
 ) error {
-	query := bson.M{"_id": bson.ObjectIdHex(req.ProjectId)}
+	projectOid, _ := primitive.ObjectIDFromHex(req.ProjectId)
+	query := bson.M{"_id": projectOid}
 
 	if req.MerchantId != "" {
-		query["merchant_id"] = bson.ObjectIdHex(req.MerchantId)
+		query["merchant_id"], _ = primitive.ObjectIDFromHex(req.MerchantId)
 	}
 
-	project, err := s.getProjectBy(query)
+	project, err := s.getProjectBy(ctx, query)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -180,7 +185,7 @@ func (s *Service) GetProject(
 		return nil
 	}
 
-	project.ProductsCount = s.getProductsCountByProject(project.Id)
+	project.ProductsCount = s.getProductsCountByProject(ctx, project.Id)
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = project
@@ -197,13 +202,13 @@ func (s *Service) ListProjects(
 	query := make(bson.M)
 
 	if req.MerchantId != "" {
-		query["merchant_id"] = bson.ObjectIdHex(req.MerchantId)
+		query["merchant_id"], _ = primitive.ObjectIDFromHex(req.MerchantId)
 	}
 
 	if req.QuickSearch != "" {
 		query["$or"] = []bson.M{
-			{"name": bson.M{"$elemMatch": bson.M{"value": bson.RegEx{Pattern: req.QuickSearch, Options: "i"}}}},
-			{"id_string": bson.RegEx{Pattern: req.QuickSearch, Options: "i"}},
+			{"name": bson.M{"$elemMatch": bson.M{"value": primitive.Regex{Pattern: req.QuickSearch, Options: "i"}}}},
+			{"id_string": primitive.Regex{Pattern: req.QuickSearch, Options: "i"}},
 		}
 	}
 
@@ -211,10 +216,15 @@ func (s *Service) ListProjects(
 		query["status"] = bson.M{"$in": req.Statuses}
 	}
 
-	count, err := s.db.Collection(collectionProject).Find(query).Count()
+	count, err := s.db.Collection(collectionProject).CountDocuments(ctx, query)
 
 	if err != nil {
-		zap.S().Errorf("Query to count projects failed", "err", err.Error(), "query", query)
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionProject),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
 		return projectErrorUnknown
 	}
 
@@ -270,14 +280,31 @@ func (s *Service) ListProjects(
 		afQuery = s.mgoPipeSort(afQuery, req.Sort)
 	}
 
-	err = s.db.Collection(collectionProject).Pipe(afQuery).All(&projects)
+	cursor, err := s.db.Collection(collectionProject).Aggregate(ctx, afQuery)
 
 	if err != nil {
-		zap.S().Errorf("Query to find projects failed", "err", err.Error(), "query", afQuery)
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionProject),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, afQuery),
+		)
 		return projectErrorUnknown
 	}
 
-	rsp.Count = int32(count)
+	err = cursor.All(ctx, &projects)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorQueryCursorExecutionFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionProject),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, afQuery),
+		)
+		return projectErrorUnknown
+	}
+
+	rsp.Count = count
 	rsp.Items = []*billing.Project{}
 
 	if count > 0 {
@@ -292,13 +319,14 @@ func (s *Service) DeleteProject(
 	req *grpc.GetProjectRequest,
 	rsp *grpc.ChangeProjectResponse,
 ) error {
-	query := bson.M{"_id": bson.ObjectIdHex(req.ProjectId)}
+	projectOid, _ := primitive.ObjectIDFromHex(req.ProjectId)
+	query := bson.M{"_id": projectOid}
 
 	if req.MerchantId != "" {
-		query["merchant_id"] = bson.ObjectIdHex(req.MerchantId)
+		query["merchant_id"], _ = primitive.ObjectIDFromHex(req.MerchantId)
 	}
 
-	project, err := s.getProjectBy(query)
+	project, err := s.getProjectBy(ctx, query)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -315,7 +343,7 @@ func (s *Service) DeleteProject(
 
 	project.Status = pkg.ProjectStatusDeleted
 
-	if err := s.project.Update(project); err != nil {
+	if err := s.project.Update(ctx, project); err != nil {
 		zap.S().Errorf("Query to delete project failed", "err", err.Error(), "data", project)
 
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -328,10 +356,10 @@ func (s *Service) DeleteProject(
 }
 
 func (s *Service) getProjectBy(ctx context.Context, query bson.M) (project *billing.Project, err error) {
-	err = s.db.Collection(collectionProject).Find(query).One(&project)
+	err = s.db.Collection(collectionProject).FindOne(ctx, query).Decode(&project)
 
 	if err != nil {
-		if err != mgo.ErrNotFound {
+		if err != mongo.ErrNoDocuments {
 			zap.S().Errorf("Query to find project failed", "err", err.Error(), "query", query)
 		}
 
@@ -341,9 +369,9 @@ func (s *Service) getProjectBy(ctx context.Context, query bson.M) (project *bill
 	return
 }
 
-func (s *Service) createProject(req *billing.Project) (*billing.Project, error) {
+func (s *Service) createProject(ctx context.Context, req *billing.Project) (*billing.Project, error) {
 	project := &billing.Project{
-		Id:                       bson.NewObjectId().Hex(),
+		Id:                       primitive.NewObjectID().Hex(),
 		MerchantId:               req.MerchantId,
 		Cover:                    req.Cover,
 		Name:                     req.Name,
@@ -378,7 +406,7 @@ func (s *Service) createProject(req *billing.Project) (*billing.Project, error) 
 		UpdatedAt:                ptypes.TimestampNow(),
 	}
 
-	if err := s.project.Insert(project); err != nil {
+	if err := s.project.Insert(ctx, project); err != nil {
 		zap.S().Errorf("Query to create project failed", "err", err.Error(), "data", project)
 		return nil, projectErrorUnknown
 	}
@@ -386,7 +414,7 @@ func (s *Service) createProject(req *billing.Project) (*billing.Project, error) 
 	return project, nil
 }
 
-func (s *Service) updateProject(req *billing.Project, project *billing.Project) error {
+func (s *Service) updateProject(ctx context.Context, req *billing.Project, project *billing.Project) error {
 	project.Name = req.Name
 	project.CallbackCurrency = req.CallbackCurrency
 	project.CreateOrderAllowedUrls = req.CreateOrderAllowedUrls
@@ -423,18 +451,19 @@ func (s *Service) updateProject(req *billing.Project, project *billing.Project) 
 	project.VirtualCurrency = req.VirtualCurrency
 	project.Cover = req.Cover
 
-	if err := s.project.Update(project); err != nil {
+	if err := s.project.Update(ctx, project); err != nil {
 		return projectErrorUnknown
 	}
 
-	project.ProductsCount = s.getProductsCountByProject(project.Id)
+	project.ProductsCount = s.getProductsCountByProject(ctx, project.Id)
 
 	return nil
 }
 
-func (s *Service) getProjectsCountByMerchant(merchantId string) int32 {
-	query := bson.M{"merchant_id": bson.ObjectIdHex(merchantId)}
-	count, err := s.db.Collection(collectionProject).Find(query).Count()
+func (s *Service) getProjectsCountByMerchant(ctx context.Context, merchantId string) int64 {
+	oid, _ := primitive.ObjectIDFromHex(merchantId)
+	query := bson.M{"merchant_id": oid}
+	count, err := s.db.Collection(collectionProject).CountDocuments(ctx, query)
 
 	if err != nil {
 		zap.L().Error(
@@ -447,7 +476,7 @@ func (s *Service) getProjectsCountByMerchant(merchantId string) int32 {
 		return 0
 	}
 
-	return int32(count)
+	return count
 }
 
 func (s *Service) validateProjectVirtualCurrency(virtualCurrency *billing.ProjectVirtualCurrency, payoutCurrency string) error {
@@ -493,8 +522,8 @@ func newProjectService(svc *Service) *Project {
 	return s
 }
 
-func (h *Project) Insert(project *billing.Project) error {
-	err := h.svc.db.Collection(collectionProject).Insert(project)
+func (h *Project) Insert(ctx context.Context, project *billing.Project) error {
+	_, err := h.svc.db.Collection(collectionProject).InsertOne(ctx, project)
 
 	if err != nil {
 		zap.L().Error(
@@ -524,13 +553,13 @@ func (h *Project) Insert(project *billing.Project) error {
 	return nil
 }
 
-func (h *Project) MultipleInsert(projects []*billing.Project) error {
+func (h *Project) MultipleInsert(ctx context.Context, projects []*billing.Project) error {
 	p := make([]interface{}, len(projects))
 	for i, v := range projects {
 		p[i] = v
 	}
 
-	err := h.svc.db.Collection(collectionProject).Insert(p...)
+	_, err := h.svc.db.Collection(collectionProject).InsertMany(ctx, p)
 
 	if err != nil {
 		zap.L().Error(
@@ -546,8 +575,10 @@ func (h *Project) MultipleInsert(projects []*billing.Project) error {
 	return nil
 }
 
-func (h *Project) Update(project *billing.Project) error {
-	err := h.svc.db.Collection(collectionProject).UpdateId(bson.ObjectIdHex(project.Id), project)
+func (h *Project) Update(ctx context.Context, project *billing.Project) error {
+	oid, _ := primitive.ObjectIDFromHex(project.Id)
+	filter := bson.M{"_id": oid}
+	_, err := h.svc.db.Collection(collectionProject).UpdateOne(ctx, filter, project)
 
 	if err != nil {
 		zap.L().Error(
@@ -577,7 +608,7 @@ func (h *Project) Update(project *billing.Project) error {
 	return nil
 }
 
-func (h Project) GetById(id string) (*billing.Project, error) {
+func (h Project) GetById(ctx context.Context, id string) (*billing.Project, error) {
 	var c billing.Project
 	key := fmt.Sprintf(cacheProjectId, id)
 	err := h.svc.cacher.Get(key, c)
@@ -586,8 +617,9 @@ func (h Project) GetById(id string) (*billing.Project, error) {
 		return &c, nil
 	}
 
-	query := bson.M{"_id": bson.ObjectIdHex(id)}
-	err = h.svc.db.Collection(collectionProject).Find(query).One(&c)
+	oid, _ := primitive.ObjectIDFromHex(id)
+	query := bson.M{"_id": oid}
+	err = h.svc.db.Collection(collectionProject).FindOne(ctx, query).Decode(&c)
 
 	if err != nil {
 		zap.L().Error(
@@ -617,8 +649,10 @@ func (h Project) GetById(id string) (*billing.Project, error) {
 func (s *Service) CheckSkuAndKeyProject(ctx context.Context, req *grpc.CheckSkuAndKeyProjectRequest, rsp *grpc.EmptyResponseWithStatus) error {
 	rsp.Status = pkg.ResponseStatusOk
 
-	dupQuery := bson.M{"project_id": bson.ObjectIdHex(req.ProjectId), "sku": req.Sku, "deleted": false}
-	found, err := s.db.Collection(collectionKeyProduct).Find(dupQuery).Count()
+	projectOid, _ := primitive.ObjectIDFromHex(req.ProjectId)
+	dupQuery := bson.M{"project_id": projectOid, "sku": req.Sku, "deleted": false}
+	found, err := s.db.Collection(collectionKeyProduct).CountDocuments(ctx, dupQuery)
+
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
@@ -636,8 +670,9 @@ func (s *Service) CheckSkuAndKeyProject(ctx context.Context, req *grpc.CheckSkuA
 		return nil
 	}
 
-	dupQuery = bson.M{"project_id": bson.ObjectIdHex(req.ProjectId), "sku": req.Sku, "deleted": false}
-	found, err = s.db.Collection(collectionProduct).Find(dupQuery).Count()
+	dupQuery = bson.M{"project_id": projectOid, "sku": req.Sku, "deleted": false}
+	found, err = s.db.Collection(collectionProduct).CountDocuments(ctx, dupQuery)
+
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
