@@ -46,7 +46,7 @@ func (s *Service) GetCountriesList(
 	req *grpc.EmptyRequest,
 	res *billing.CountriesList,
 ) error {
-	countries, err := s.country.GetAll()
+	countries, err := s.country.GetAll(ctx)
 	if err != nil {
 		return err
 	}
@@ -61,7 +61,7 @@ func (s *Service) GetCountry(
 	req *billing.GetCountryRequest,
 	res *billing.Country,
 ) error {
-	country, err := s.country.GetByIsoCodeA2(req.IsoCode)
+	country, err := s.country.GetByIsoCodeA2(ctx, req.IsoCode)
 	if err != nil {
 		return err
 	}
@@ -94,12 +94,12 @@ func (s *Service) UpdateCountry(
 	res *billing.Country,
 ) error {
 
-	country, err := s.country.GetByIsoCodeA2(req.IsoCodeA2)
+	country, err := s.country.GetByIsoCodeA2(ctx, req.IsoCodeA2)
 	if err != nil {
 		return err
 	}
 
-	pg, err := s.priceGroup.GetById(req.PriceGroupId)
+	pg, err := s.priceGroup.GetById(ctx, req.PriceGroupId)
 	if err != nil {
 		return err
 	}
@@ -137,7 +137,7 @@ func (s *Service) UpdateCountry(
 		HighRiskChangeAllowed:   req.HighRiskChangeAllowed,
 	}
 
-	err = s.country.Update(update)
+	err = s.country.Update(ctx, update)
 	if err != nil {
 		zap.S().Errorf("update country failed", "err", err.Error(), "data", update)
 		return err
