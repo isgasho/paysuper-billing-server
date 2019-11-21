@@ -59,6 +59,8 @@ const (
 	MerchantStatusAgreementSigned  = int32(4)
 	MerchantStatusDeleted          = int32(5)
 	MerchantStatusRejected         = int32(6)
+	MerchantStatusPending          = int32(7)
+	MerchantStatusAccepted         = int32(8)
 
 	MerchantMinimalPayoutLimit = float32(1000)
 
