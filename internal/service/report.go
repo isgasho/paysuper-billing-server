@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"time"
 )
 
@@ -95,7 +96,7 @@ func (s *Service) GetOrderPublic(
 	req *grpc.GetOrderRequest,
 	rsp *grpc.GetOrderPublicResponse,
 ) error {
-	order, err := s.orderView.GetOrderBy("", req.Id, req.Merchant, new(billing.OrderViewPublic))
+	order, err := s.orderView.GetOrderBy(ctx, "", req.Id, req.Merchant, new(billing.OrderViewPublic))
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -119,7 +120,7 @@ func (s *Service) GetOrderPrivate(
 	req *grpc.GetOrderRequest,
 	rsp *grpc.GetOrderPrivateResponse,
 ) error {
-	order, err := s.orderView.GetOrderBy("", req.Id, req.Merchant, new(billing.OrderViewPrivate))
+	order, err := s.orderView.GetOrderBy(ctx, "", req.Id, req.Merchant, new(billing.OrderViewPrivate))
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -277,7 +278,7 @@ func (s *Service) getOrdersList(
 	}
 
 	opts := options.Find()
-	opts.SetSort(s.db.ToSortOption(req.Sort))
+	opts.SetSort(mongodb.ToSortOption(req.Sort))
 	opts.SetLimit(req.Limit)
 	opts.SetSkip(req.Offset)
 

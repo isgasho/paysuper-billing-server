@@ -678,14 +678,14 @@ message ListRefundsRequest {
     // @inject_tag: validate:"required,uuid"
     string order_id = 1;
     // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
-    int32 limit = 7;
+    int64 limit = 7;
     // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
-    int32 offset = 8;
+    int64 offset = 8;
 }
 
 message ListRefundsResponse {
     // @inject_tag: json:"count"
-    int32 count = 1;
+    int64 count = 1;
     // @inject_tag: json:"items"
     repeated billing.Refund items = 2;
 }
