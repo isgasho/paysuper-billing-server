@@ -160,7 +160,7 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 
 	countUserDefinedPlatforms := 0
 
-	merchant, err := s.merchant.GetById(product.MerchantId)
+	merchant, err := s.merchant.GetById(ctx, product.MerchantId)
 	if err != nil {
 		res.Status = pkg.ResponseStatusNotFound
 		res.Message = merchantErrorNotFound
@@ -219,7 +219,7 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 				isHaveDefaultPrice = true
 			}
 
-			pr, err := s.priceGroup.GetByRegion(price.Region)
+			pr, err := s.priceGroup.GetByRegion(ctx, price.Region)
 			if err != nil {
 				zap.S().Errorw("Failed to get price group for region", "price", price)
 				res.Status = pkg.ResponseStatusBadData
@@ -285,7 +285,7 @@ func (s *Service) GetKeyProducts(
 	res *grpc.ListKeyProductsResponse,
 ) error {
 	res.Status = pkg.ResponseStatusOk
-	merchant, err := s.merchant.GetById(req.MerchantId)
+	merchant, err := s.merchant.GetById(ctx, req.MerchantId)
 
 	if merchant == nil || err != nil {
 		if err != nil {
@@ -443,7 +443,7 @@ func (s *Service) GetKeyProductInfo(
 		res.KeyProduct.LongDescription, _ = product.GetLocalizedLongDescription(DefaultLanguage)
 	}
 
-	defaultPriceGroup, err := s.priceGroup.GetByRegion(product.DefaultCurrency)
+	defaultPriceGroup, err := s.priceGroup.GetByRegion(ctx, product.DefaultCurrency)
 	if err != nil {
 		zap.S().Errorw("Failed to get price group for default currency", "currency", product.DefaultCurrency)
 		return keyProductInternalError
@@ -452,7 +452,7 @@ func (s *Service) GetKeyProductInfo(
 	priceGroup := &billing.PriceGroup{}
 	globalIsFallback := false
 	if req.Currency != "" {
-		priceGroup, err = s.priceGroup.GetByRegion(req.Currency)
+		priceGroup, err = s.priceGroup.GetByRegion(ctx, req.Currency)
 		if err != nil {
 			zap.S().Errorw("Failed to get price group for specified currency", "currency", req.Currency)
 			priceGroup = defaultPriceGroup
@@ -793,7 +793,7 @@ func (s *Service) ChangeCodeInOrder(ctx context.Context, req *grpc.ChangeCodeInO
 	s.sendMailWithCode(ctx, order, keyRsp.Key)
 	order.PrivateStatus = constant.OrderStatusItemReplaced
 
-	err = s.updateOrder(order)
+	err = s.updateOrder(ctx, order)
 	if err != nil {
 		zap.S().Error("Error during updating order", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
@@ -802,7 +802,7 @@ func (s *Service) ChangeCodeInOrder(ctx context.Context, req *grpc.ChangeCodeInO
 		return nil
 	}
 
-	s.orderNotifyMerchant(order)
+	s.orderNotifyMerchant(ctx, order)
 
 	res.Order = order
 	return nil
