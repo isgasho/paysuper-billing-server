@@ -9,6 +9,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/micro/go-micro/client"
+	casbinProto "github.com/paysuper/casbin-server/pkg/generated/api/proto/casbinpb"
 	documentSignerConst "github.com/paysuper/document-signer/pkg/constant"
 	"github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -54,6 +55,7 @@ var (
 	merchantErrorOperatingCompanyNotExists    = newBillingServerErrorMsg("mr000026", "operating company not exists")
 	merchantErrorCurrencyNotSet               = newBillingServerErrorMsg("mr000027", "merchant payout currency not set")
 	merchantErrorNoTariffsInPayoutCurrency    = newBillingServerErrorMsg("mr000028", "no tariffs found for merchant payout currency")
+	merchantUnableToAddMerchantUserRole       = newBillingServerErrorMsg("mr000029", "unable to add user role to merchant")
 
 	merchantSignAgreementMessage        = map[string]string{"code": "mr000017", "message": "license agreement was signed by merchant"}
 	merchantAgreementReadyToSignMessage = map[string]interface{}{"code": "mr000025", "generated": true, "message": "merchant license agreement ready to sign"}
@@ -236,8 +238,9 @@ func (s *Service) ChangeMerchant(
 	rsp *grpc.ChangeMerchantResponse,
 ) error {
 	var (
-		merchant *billing.Merchant
-		err      error
+		merchant      *billing.Merchant
+		err           error
+		isNewMerchant bool
 	)
 
 	if req.HasIdentificationFields() {
@@ -274,6 +277,7 @@ func (s *Service) ChangeMerchant(
 			CreatedAt:          ptypes.TimestampNow(),
 		}
 		merchant.AgreementNumber = s.getMerchantAgreementNumber(merchant.Id)
+		isNewMerchant = true
 	}
 
 	if !s.IsChangeDataAllow(merchant, req) {
@@ -349,7 +353,7 @@ func (s *Service) ChangeMerchant(
 	merchant.Steps.Banking = merchant.IsBankingComplete()
 
 	if !merchant.HasPrimaryOnboardingUserName() {
-		profile := s.getOnboardingProfileBy(bson.M{"user_id": req.User.Id})
+		profile, _ := s.userProfileRepository.GetByUserId(req.User.Id)
 
 		if profile != nil {
 			merchant.User.ProfileId = profile.Id
@@ -370,6 +374,33 @@ func (s *Service) ChangeMerchant(
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = merchantErrorUnknown
+
+		return nil
+	}
+
+	if isNewMerchant == true {
+		err = s.userRoleRepository.AddMerchantUser(&billing.UserRole{
+			Id:         bson.NewObjectId().Hex(),
+			MerchantId: merchant.Id,
+			Status:     pkg.UserRoleStatusAccepted,
+			Role:       pkg.RoleMerchantOwner,
+			UserId:     merchant.User.Id,
+			Email:      merchant.User.Email,
+			FirstName:  merchant.User.FirstName,
+			LastName:   merchant.User.LastName,
+		})
+
+		if err == nil {
+			_, err = s.casbinService.AddRoleForUser(ctx, &casbinProto.UserRoleRequest{
+				User: fmt.Sprintf(pkg.CasbinMerchantUserMask, merchant.Id, merchant.User.Id),
+				Role: pkg.RoleMerchantOwner,
+			})
+		}
+	}
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = merchantUnableToAddMerchantUserRole
 
 		return nil
 	}

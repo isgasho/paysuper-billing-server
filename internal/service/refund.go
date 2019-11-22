@@ -110,14 +110,22 @@ func (s *Service) ListRefunds(
 ) error {
 	var refunds []*billing.Refund
 
+	order := &billing.OrderViewPublic{}
+	err := s.db.Collection(collectionOrderView).Find(bson.M{"uuid": req.OrderId}).One(order)
+
 	query := bson.M{"original_order.uuid": req.OrderId}
-	err := s.db.Collection(collectionRefund).Find(query).Limit(int(req.Limit)).Skip(int(req.Offset)).All(&refunds)
+	err = s.db.Collection(collectionRefund).Find(query).Limit(int(req.Limit)).Skip(int(req.Offset)).All(&refunds)
 
 	if err != nil {
 		if err != mgo.ErrNotFound {
-			zap.S().Errorf("Query to find refunds by order failed", "err", err.Error(), "query", query)
+			zap.S().Errorw("Query to find refunds by order failed", "err", err.Error(), "query", query)
 		}
 
+		return nil
+	}
+
+	if order.MerchantId != req.MerchantId {
+		zap.S().Errorw("Unable to get original order on refund", "uuid", req.OrderId, "merchantId", req.MerchantId)
 		return nil
 	}
 
@@ -143,8 +151,30 @@ func (s *Service) GetRefund(
 ) error {
 	var refund *billing.Refund
 
+	order := &billing.Order{}
+	err := s.db.Collection(collectionOrder).Find(bson.M{"uuid": req.OrderId}).One(order)
+
+	if err != nil {
+		if err != mgo.ErrNotFound {
+			zap.S().Errorf("Query to find refund by id failed", "err", err.Error(), "uuid", req.OrderId)
+		}
+
+		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Message = refundErrorNotFound
+
+		return nil
+	}
+
+	if order.GetMerchantId() != req.MerchantId {
+		zap.S().Errorw("Unable to get original order on refund", "uuid", req.OrderId, "merchantId", req.MerchantId)
+		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Message = refundErrorNotFound
+
+		return nil
+	}
+
 	query := bson.M{"_id": bson.ObjectIdHex(req.RefundId), "original_order.uuid": req.OrderId}
-	err := s.db.Collection(collectionRefund).Find(query).One(&refund)
+	err = s.db.Collection(collectionRefund).Find(query).One(&refund)
 
 	if err != nil {
 		if err != mgo.ErrNotFound {
@@ -437,6 +467,10 @@ func (p *createRefundProcessor) processCreateRefund() (*billing.Refund, error) {
 	}
 
 	order := p.checked.order
+
+	if order.GetMerchantId() != p.request.MerchantId {
+		return nil, newBillingServerResponseError(pkg.ResponseStatusBadData, refundErrorOrderNotFound)
+	}
 
 	refund := &billing.Refund{
 		Id: bson.NewObjectId().Hex(),

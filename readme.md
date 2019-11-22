@@ -105,6 +105,8 @@ To run application as microservice simply don't pass any flags to command line :
 | MERCHANTS_AGREEMENT_SIGNATURE_URL                   | Merchant license agreement page url                                                                                                 |
 | ADMIN_ONBOARDING_REQUESTS_URL                       | Onboarding administrator agreement requests page url                                                                                |
 | MIGRATIONS_LOCK_TIMEOUT                             | Timeout for process db migrations on app start                                                                                       |
+| USER_INVITE_TOKEN_SECRET                            | Secret key for generation invitation token of user                                                                                  |
+| USER_INVITE_TOKEN_TIMEOUT                           | Timeout in hours for lifetime of invitation token of user                                                                           |
 
 
 ## Architecture

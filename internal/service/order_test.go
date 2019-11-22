@@ -12,6 +12,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
 	"github.com/jinzhu/now"
+	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
@@ -1271,6 +1272,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		nil,
 		mocks.NewFormatterOK(),
 		mocks.NewBrokerMockOk(),
+		&casbinMocks.CasbinService{},
 	)
 
 	if err := suite.service.Init(); err != nil {

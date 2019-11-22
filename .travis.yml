@@ -9,7 +9,7 @@ addons:
 stages:
   - test
   - name: deploy
-    if: branch IN (master, feature/PAY-261)
+    if: branch in (master, 190482)
 jobs:
   include:
   - stage: test
@@ -30,6 +30,7 @@ jobs:
     - EMAIL_NOTIFICATION_FINANCIER_RECIPIENT=finance@paysuper.com
     - CACHE_REDIS_ADDRESS="127.0.0.1:6379"
     - EMAIL_ONBOARDING_ADMIN_RECIPIENT=test@protocol.one
+    - USER_INVITE_TOKEN_SECRET=Secret
     install:
     - wget https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-${MONGODB}.tgz
     - tar xzf mongodb-linux-x86_64-${MONGODB}.tgz

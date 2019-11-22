@@ -20,6 +20,7 @@ import (
 	"github.com/micro/go-micro/config/source"
 	goConfigCli "github.com/micro/go-micro/config/source/cli"
 	"github.com/micro/go-plugins/client/selector/static"
+	casbinProto "github.com/paysuper/casbin-server/pkg/generated/api/proto/casbinpb"
 	documentSignerConst "github.com/paysuper/document-signer/pkg/constant"
 	documentSignerProto "github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
@@ -183,6 +184,7 @@ func (app *Application) Init() {
 	curService := currencies.NewCurrencyratesService(curPkg.ServiceName, app.service.Client())
 	documentSignerService := documentSignerProto.NewDocumentSignerService(documentSignerConst.ServiceName, app.service.Client())
 	reporter := reporterService.NewReporterService(reporterServiceConst.ServiceName, app.service.Client())
+	casbin := casbinProto.NewCasbinService("p1casbin", app.service.Client())
 
 	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
 		Addrs:        cfg.CacheRedis.Address,
@@ -212,6 +214,7 @@ func (app *Application) Init() {
 		reporter,
 		formatter,
 		postmarkBroker,
+		casbin,
 	)
 
 	if err := app.svc.Init(); err != nil {
@@ -352,6 +355,10 @@ func (app *Application) TaskAutoCreatePayouts() error {
 
 func (app *Application) TaskRebuildOrderView() error {
 	return app.svc.RebuildOrderView()
+}
+
+func (app *Application) TaskMerchantsMigrate() error {
+	return app.svc.MerchantsMigrate()
 }
 
 func (app *Application) KeyDaemonStart() {

@@ -356,7 +356,7 @@ func (s *Service) CreateOrUpdatePaylink(
 			break
 
 		case billing.OrderType_key:
-			product, err := s.getKeyProductById(productId)
+			product, err := s.keyProductRepository.GetById(productId)
 			if err != nil {
 				if err.Error() == "key_product not found" || err == mgo.ErrNotFound {
 					res.Status = pkg.ResponseStatusNotFound

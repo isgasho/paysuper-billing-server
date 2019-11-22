@@ -146,6 +146,13 @@ type MgoMerchant struct {
 	OperatingCompanyId                            string                               `bson:"operating_company_id"`
 }
 
+type MgoMerchantCommon struct {
+	Id      bson.ObjectId        `bson:"_id"`
+	Company *MerchantCompanyInfo `bson:"company"`
+	Banking *MerchantBanking     `bson:"banking"`
+	Status  int32                `bson:"status"`
+}
+
 type MgoCommission struct {
 	Id struct {
 		PaymentMethodId bson.ObjectId `bson:"pm_id"`
@@ -883,6 +890,19 @@ type MgoPaymentMinLimitSystem struct {
 	Amount    float64       `bson:"amount"`
 	CreatedAt time.Time     `bson:"created_at"`
 	UpdatedAt time.Time     `bson:"updated_at"`
+}
+
+type MgoUserRole struct {
+	Id         bson.ObjectId  `bson:"_id"`
+	MerchantId *bson.ObjectId `bson:"merchant_id"`
+	Role       string         `bson:"role"`
+	Status     string         `bson:"status"`
+	UserId     *bson.ObjectId `bson:"user_id"`
+	FirstName  string         `bson:"first_name"`
+	LastName   string         `bson:"last_name"`
+	Email      string         `bson:"email"`
+	CreatedAt  time.Time      `bson:"created_at"`
+	UpdatedAt  time.Time      `bson:"updated_at"`
 }
 
 func (m *PayoutDocument) GetBSON() (interface{}, error) {
@@ -2542,6 +2562,28 @@ func (m *Merchant) SetBSON(raw bson.Raw) error {
 
 			m.AgreementSignatureData.PsSignUrl.ExpiresAt = t
 		}
+	}
+
+	return nil
+}
+
+func (m *MerchantCommon) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoMerchantCommon)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	m.Id = decoded.Id.Hex()
+	m.Status = decoded.Status
+
+	if decoded.Company != nil {
+		m.Name = decoded.Company.Name
+	}
+
+	if decoded.Banking != nil {
+		m.Currency = decoded.Banking.Currency
 	}
 
 	return nil
@@ -4485,4 +4527,88 @@ func (m *PaymentMinLimitSystem) SetBSON(raw bson.Raw) error {
 	}
 
 	return nil
+}
+
+func (m *UserRole) GetBSON() (interface{}, error) {
+	var err error
+
+	st := &MgoUserRole{
+		Id:        bson.ObjectIdHex(m.Id),
+		Role:      m.Role,
+		Status:    m.Status,
+		Email:     m.Email,
+		FirstName: m.FirstName,
+		LastName:  m.LastName,
+	}
+
+	if bson.IsObjectIdHex(m.MerchantId) {
+		hex := bson.ObjectIdHex(m.MerchantId)
+		st.MerchantId = &hex
+	}
+
+	if bson.IsObjectIdHex(m.UserId) {
+		hex := bson.ObjectIdHex(m.UserId)
+		st.UserId = &hex
+	}
+
+	if m.CreatedAt != nil {
+		if st.CreatedAt, err = ptypes.Timestamp(m.CreatedAt); err != nil {
+			return nil, err
+		}
+	} else {
+		st.CreatedAt = time.Now()
+	}
+
+	if m.UpdatedAt != nil {
+		if st.UpdatedAt, err = ptypes.Timestamp(m.UpdatedAt); err != nil {
+			return nil, err
+		}
+	} else {
+		st.UpdatedAt = time.Now()
+	}
+
+	return st, nil
+}
+
+func (k *UserRole) SetBSON(raw bson.Raw) error {
+	decoded := new(MgoUserRole)
+	err := raw.Unmarshal(decoded)
+
+	if err != nil {
+		return err
+	}
+
+	k.Id = decoded.Id.Hex()
+	k.Role = decoded.Role
+	k.Status = decoded.Status
+	k.Email = decoded.Email
+	k.FirstName = decoded.FirstName
+	k.LastName = decoded.LastName
+
+	if decoded.MerchantId != nil {
+		k.MerchantId = decoded.MerchantId.Hex()
+	}
+
+	if decoded.UserId != nil {
+		k.UserId = decoded.UserId.Hex()
+	}
+
+	if k.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt); err != nil {
+		return err
+	}
+
+	if k.UpdatedAt, err = ptypes.TimestampProto(decoded.UpdatedAt); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type CountryAndRegionItem struct {
+	Country string `bson:"iso_code_a2"`
+	Region  string `bson:"region"`
+}
+
+type CountryAndRegionItems struct {
+	Items []*CountryAndRegionItem `json:"items"`
 }

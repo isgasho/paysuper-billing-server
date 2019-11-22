@@ -68,6 +68,22 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 	)
 	res.Status = pkg.ResponseStatusOk
 
+	project, err := s.project.GetById(req.ProjectId)
+
+	if err != nil {
+		zap.S().Errorw("internal error when getting project", "err", err)
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = keyProductInternalError
+		return nil
+	}
+
+	if project.MerchantId != req.MerchantId {
+		zap.S().Errorw("Merchant for project is mismatch with requested", "data", req)
+		res.Status = http.StatusBadRequest
+		res.Message = keyProductNotFound
+		return nil
+	}
+
 	if isNew {
 		product.Id = bson.NewObjectId().Hex()
 		product.CreatedAt = now
@@ -78,7 +94,7 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 		productResponse := &grpc.KeyProductResponse{}
 		err = s.GetKeyProduct(ctx, &grpc.RequestKeyProductMerchant{Id: req.Id, MerchantId: req.MerchantId}, productResponse)
 		if err != nil {
-			zap.S().Errorf("internal error when getting product", "err", err)
+			zap.S().Errorw("internal error when getting product", "err", err)
 			res.Status = pkg.ResponseStatusSystemError
 			res.Message = keyProductInternalError
 			return nil
@@ -87,7 +103,7 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 		product = productResponse.Product
 
 		if productResponse.Status != pkg.ResponseStatusOk {
-			zap.S().Errorf("failed to fetch key product", "message", productResponse.Message, "req", req)
+			zap.S().Errorw("failed to fetch key product", "message", productResponse.Message, "req", req)
 			res.Status = productResponse.Status
 			res.Message = productResponse.Message
 			return nil
@@ -366,7 +382,7 @@ func (s *Service) GetKeyProducts(ctx context.Context, req *grpc.ListKeyProductsR
 
 func (s *Service) GetKeyProductInfo(ctx context.Context, req *grpc.GetKeyProductInfoRequest, res *grpc.GetKeyProductInfoResponse) error {
 	res.Status = pkg.ResponseStatusOk
-	product, err := s.getKeyProductById(req.KeyProductId)
+	product, err := s.keyProductRepository.GetById(req.KeyProductId)
 
 	if err != nil {
 		if err.Error() == mgo.ErrNotFound.Error() {
@@ -485,7 +501,7 @@ func (s *Service) GetKeyProductInfo(ctx context.Context, req *grpc.GetKeyProduct
 
 func (s *Service) GetKeyProduct(ctx context.Context, req *grpc.RequestKeyProductMerchant, res *grpc.KeyProductResponse) error {
 	res.Status = pkg.ResponseStatusOk
-	product, err := s.getKeyProductById(req.Id)
+	product, err := s.keyProductRepository.GetById(req.Id)
 
 	if err != nil {
 		if err.Error() == mgo.ErrNotFound.Error() {
@@ -494,9 +510,16 @@ func (s *Service) GetKeyProduct(ctx context.Context, req *grpc.RequestKeyProduct
 			return nil
 		}
 
-		zap.S().Errorf("Query to find key product by id failed", "err", err.Error(), "data", req)
+		zap.S().Errorw("Query to find key product by id failed", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
 		res.Message = keyProductRetrieveError
+		return nil
+	}
+
+	if product.MerchantId != req.MerchantId {
+		zap.S().Errorw("Merchant for product is mismatch with requested", "data", req)
+		res.Status = http.StatusBadRequest
+		res.Message = keyProductNotFound
 		return nil
 	}
 
@@ -505,19 +528,8 @@ func (s *Service) GetKeyProduct(ctx context.Context, req *grpc.RequestKeyProduct
 	return nil
 }
 
-func (s *Service) getKeyProductById(id string) (*grpc.KeyProduct, error) {
-	query := bson.M{
-		"_id":     bson.ObjectIdHex(id),
-		"deleted": false,
-	}
-
-	product := &grpc.KeyProduct{}
-	err := s.db.Collection(collectionKeyProduct).Find(query).One(product)
-	return product, err
-}
-
 func (s *Service) DeleteKeyProduct(ctx context.Context, req *grpc.RequestKeyProductMerchant, res *grpc.EmptyResponseWithStatus) error {
-	product, err := s.getKeyProductById(req.Id)
+	product, err := s.keyProductRepository.GetById(req.Id)
 	res.Status = pkg.ResponseStatusOk
 
 	if err != nil {
@@ -527,19 +539,24 @@ func (s *Service) DeleteKeyProduct(ctx context.Context, req *grpc.RequestKeyProd
 			return nil
 		}
 
-		zap.S().Errorf("Error during getting key product", "err", err.Error(), "data", req)
+		zap.S().Errorw("Error during getting key product", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
 		res.Message = keyProductRetrieveError
+		return nil
+	}
+
+	if product.MerchantId != req.MerchantId {
+		zap.S().Errorw("Merchant for product is mismatch with requested", "data", req)
+		res.Status = http.StatusBadRequest
+		res.Message = keyProductNotFound
 		return nil
 	}
 
 	product.Deleted = true
 	product.UpdatedAt = ptypes.TimestampNow()
 
-	err = s.db.Collection(collectionKeyProduct).UpdateId(bson.ObjectIdHex(product.Id), product)
-
-	if err != nil {
-		zap.S().Errorf("Query to delete key product failed", "err", err.Error(), "data", req)
+	if err = s.keyProductRepository.Update(product); err != nil {
+		zap.S().Errorw("Query to delete key product failed", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
 		res.Message = keyProductErrorDelete
 		return nil
@@ -549,7 +566,7 @@ func (s *Service) DeleteKeyProduct(ctx context.Context, req *grpc.RequestKeyProd
 }
 
 func (s *Service) PublishKeyProduct(ctx context.Context, req *grpc.PublishKeyProductRequest, res *grpc.KeyProductResponse) error {
-	product, err := s.getKeyProductById(req.KeyProductId)
+	product, err := s.keyProductRepository.GetById(req.KeyProductId)
 	res.Status = pkg.ResponseStatusOk
 
 	if err != nil {
@@ -559,9 +576,16 @@ func (s *Service) PublishKeyProduct(ctx context.Context, req *grpc.PublishKeyPro
 			return nil
 		}
 
-		zap.S().Errorf("Error during getting key product", "err", err.Error(), "data", req)
+		zap.S().Errorw("Error during getting key product", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
 		res.Message = keyProductRetrieveError
+		return nil
+	}
+
+	if product.MerchantId != req.MerchantId {
+		zap.S().Errorw("Merchant for product is mismatch with requested", "data", req)
+		res.Status = http.StatusBadRequest
+		res.Message = keyProductNotFound
 		return nil
 	}
 
@@ -569,8 +593,8 @@ func (s *Service) PublishKeyProduct(ctx context.Context, req *grpc.PublishKeyPro
 	product.PublishedAt = ptypes.TimestampNow()
 	product.Enabled = true
 
-	if err := s.db.Collection(collectionKeyProduct).UpdateId(bson.ObjectIdHex(product.Id), product); err != nil {
-		zap.S().Errorf("Query to update product failed", "err", err.Error(), "data", req)
+	if err := s.keyProductRepository.Update(product); err != nil {
+		zap.S().Errorw("Query to update product failed", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
 		res.Message = keyProductErrorUpsert
 		return nil
@@ -583,7 +607,7 @@ func (s *Service) PublishKeyProduct(ctx context.Context, req *grpc.PublishKeyPro
 
 func (s *Service) GetKeyProductsForOrder(ctx context.Context, req *grpc.GetKeyProductsForOrderRequest, res *grpc.ListKeyProductsResponse) error {
 	if len(req.Ids) == 0 {
-		zap.S().Errorf("Ids list is empty", "data", req)
+		zap.S().Errorw("Ids list is empty", "data", req)
 		res.Status = http.StatusBadRequest
 		res.Message = keyProductIdsIsEmpty
 		return nil
@@ -705,7 +729,7 @@ func (s *Service) ChangeCodeInOrder(ctx context.Context, req *grpc.ChangeCodeInO
 }
 
 func (s *Service) UnPublishKeyProduct(ctx context.Context, req *grpc.UnPublishKeyProductRequest, res *grpc.KeyProductResponse) error {
-	product, err := s.getKeyProductById(req.KeyProductId)
+	product, err := s.keyProductRepository.GetById(req.KeyProductId)
 	res.Status = pkg.ResponseStatusOk
 
 	if err != nil {
@@ -721,6 +745,13 @@ func (s *Service) UnPublishKeyProduct(ctx context.Context, req *grpc.UnPublishKe
 		return nil
 	}
 
+	if product.MerchantId != req.MerchantId {
+		zap.S().Errorw("Merchant for product is mismatch with requested", "data", req)
+		res.Status = http.StatusBadRequest
+		res.Message = keyProductNotFound
+		return nil
+	}
+
 	if product.Enabled == false {
 		zap.S().Errorw("Key product not published", "key_product", req.KeyProductId)
 		res.Status = http.StatusBadRequest
@@ -730,7 +761,7 @@ func (s *Service) UnPublishKeyProduct(ctx context.Context, req *grpc.UnPublishKe
 
 	product.Enabled = false
 
-	if err := s.db.Collection(collectionKeyProduct).UpdateId(bson.ObjectIdHex(product.Id), product); err != nil {
+	if err := s.keyProductRepository.Update(product); err != nil {
 		zap.S().Errorf("Query to update product failed", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
 		res.Message = keyProductErrorUpsert
@@ -802,4 +833,32 @@ func getImageByLanguage(lng string, collection *billing.ImageCollection) string 
 	}
 
 	return image
+}
+
+type KeyProductRepositoryInterface interface {
+	GetById(string) (*grpc.KeyProduct, error)
+	Update(*grpc.KeyProduct) error
+}
+
+func newKeyProductRepository(svc *Service) *KeyProductRepository {
+	s := &KeyProductRepository{svc: svc}
+	return s
+}
+
+func (h *KeyProductRepository) GetById(id string) (*grpc.KeyProduct, error) {
+	query := bson.M{
+		"_id":     bson.ObjectIdHex(id),
+		"deleted": false,
+	}
+
+	product := &grpc.KeyProduct{}
+	err := h.svc.db.Collection(collectionKeyProduct).Find(query).One(product)
+
+	return product, err
+}
+
+func (h *KeyProductRepository) Update(keyProduct *grpc.KeyProduct) error {
+	err := h.svc.db.Collection(collectionKeyProduct).UpdateId(bson.ObjectIdHex(keyProduct.Id), keyProduct)
+
+	return err
 }

@@ -56,6 +56,10 @@ backend:
     - DASHBOARD_PROJECTS_URL
     - MERCHANTS_AGREEMENT_SIGNATURE_URL
     - ADMIN_ONBOARDING_REQUESTS_URL
+    - USER_INVITE_TOKEN_SECRET
+    - USER_INVITE_TOKEN_TIMEOUT
+    - EMAIL_CONFIRM_URL
+    - USER_INVITE_URL
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious

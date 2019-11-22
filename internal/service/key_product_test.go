@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/golang-migrate/migrate/v4"
+	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
@@ -100,6 +101,7 @@ func (suite *KeyProductTestSuite) SetupTest() {
 		&reportingMocks.ReporterService{},
 		mocks.NewFormatterOK(),
 		mocks.NewBrokerMockOk(),
+		&casbinMocks.CasbinService{},
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -111,6 +113,13 @@ func (suite *KeyProductTestSuite) SetupTest() {
 	pgs := []*billing.PriceGroup{pgRub, pgUsd, pgEur}
 	if err := suite.service.priceGroup.MultipleInsert(pgs); err != nil {
 		suite.FailNow("Insert price group test data failed", "%v", err)
+	}
+
+	if err := suite.service.project.Insert(&billing.Project{
+		Id: projectId,
+		MerchantId: merchantId,
+	}); err != nil {
+		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 }
 
@@ -416,7 +425,7 @@ func (suite *KeyProductTestSuite) Test_CreateOrUpdateKeyProduct() {
 	err = suite.service.CreateOrUpdateKeyProduct(context.TODO(), req, &res2)
 	shouldBe.Nil(err)
 	shouldBe.NotNil(res2.Message)
-	shouldBe.EqualValues(400, res2.Status)
+	shouldBe.EqualValues(500, res2.Status)
 }
 
 func (suite *KeyProductTestSuite) Test_GetKeyProducts() {
@@ -763,9 +772,13 @@ func (suite *KeyProductTestSuite) Test_UnPublishKeyProduct() {
 
 	err = suite.service.UnPublishKeyProduct(context.TODO(), &grpc.UnPublishKeyProductRequest{KeyProductId: product.Id}, res)
 	shouldBe.Nil(err)
+	shouldBe.EqualValues(400, res.Status)
+
+	err = suite.service.UnPublishKeyProduct(context.TODO(), &grpc.UnPublishKeyProductRequest{KeyProductId: product.Id, MerchantId: product.MerchantId}, res)
+	shouldBe.Nil(err)
 	shouldBe.EqualValues(200, res.Status)
 
-	err = suite.service.UnPublishKeyProduct(context.TODO(), &grpc.UnPublishKeyProductRequest{KeyProductId: product.Id}, res)
+	err = suite.service.UnPublishKeyProduct(context.TODO(), &grpc.UnPublishKeyProductRequest{KeyProductId: product.Id, MerchantId: product.MerchantId}, res)
 	shouldBe.Nil(err)
 	shouldBe.EqualValues(400, res.Status)
 	shouldBe.Equal(keyProductNotPublished, res.Message)
@@ -775,7 +788,7 @@ func (suite *KeyProductTestSuite) Test_UnPublishKeyProduct() {
 	shouldBe.Nil(err)
 	shouldBe.EqualValuesf(200, emptyRes.Status, "%v", emptyRes.Message)
 
-	err = suite.service.UnPublishKeyProduct(context.TODO(), &grpc.UnPublishKeyProductRequest{KeyProductId: product.Id}, res)
+	err = suite.service.UnPublishKeyProduct(context.TODO(), &grpc.UnPublishKeyProductRequest{KeyProductId: product.Id, MerchantId: product.MerchantId}, res)
 	shouldBe.Nil(err)
 	shouldBe.EqualValues(400, res.Status)
 	shouldBe.Equal(keyProductNotFound, res.Message)

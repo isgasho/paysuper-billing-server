@@ -2,7 +2,7 @@
 
 p1pipeline("p1paybilling",
            "p1paybilling",
-           "feature/PAY-261", // development branch for test releases
-           "feature261", // kubernetes namespace for test releases
-           "261-" // domain name prefix in kubernetes for test releases
+           "190482", // development branch for test releases
+           "190482", // kubernetes namespace for test releases
+           "190482-" // domain name prefix in kubernetes for test releases
 )

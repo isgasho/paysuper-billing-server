@@ -122,7 +122,7 @@ service BillingService {
 
     rpc GetUserProfile (GetUserProfileRequest) returns (GetUserProfileResponse) {}
     rpc CreateOrUpdateUserProfile (UserProfile) returns (GetUserProfileResponse) {}
-    rpc ConfirmUserEmail (ConfirmUserEmailRequest) returns (CheckProjectRequestSignatureResponse) {}
+    rpc ConfirmUserEmail (ConfirmUserEmailRequest) returns (ConfirmUserEmailResponse) {}
     rpc CreatePageReview (CreatePageReviewRequest) returns (CheckProjectRequestSignatureResponse) {}
 
     rpc CreateRoyaltyReport (CreateRoyaltyReportRequest) returns (CreateRoyaltyReportRequest) {}
@@ -201,6 +201,24 @@ service BillingService {
 
     rpc GetPaymentMinLimitsSystem (EmptyRequest) returns (GetPaymentMinLimitsSystemResponse) {}
     rpc SetPaymentMinLimitSystem (billing.PaymentMinLimitSystem) returns (EmptyResponseWithStatus) {}
+
+    rpc GetMerchantUsers(GetMerchantUsersRequest) returns (GetMerchantUsersResponse) {}
+    rpc GetAdminUsers(EmptyRequest) returns (GetAdminUsersResponse) {}
+    rpc InviteUserMerchant(InviteUserMerchantRequest) returns (InviteUserMerchantResponse) {}
+    rpc InviteUserAdmin(InviteUserAdminRequest) returns (InviteUserAdminResponse) {}
+    rpc ResendInviteMerchant(ResendInviteMerchantRequest) returns (EmptyResponseWithStatus) {}
+    rpc ResendInviteAdmin(ResendInviteAdminRequest) returns (EmptyResponseWithStatus) {}
+    rpc AcceptInvite(AcceptInviteRequest) returns (AcceptInviteResponse) {}
+    rpc CheckInviteToken(CheckInviteTokenRequest) returns (CheckInviteTokenResponse) {}
+    rpc GetMerchantsForUser(GetMerchantsForUserRequest) returns (GetMerchantsForUserResponse) {}
+    rpc ChangeRoleForMerchantUser(ChangeRoleForMerchantUserRequest) returns (EmptyResponseWithStatus) {}
+    rpc ChangeRoleForAdminUser(ChangeRoleForAdminUserRequest) returns (EmptyResponseWithStatus) {}
+    rpc GetRoleList(GetRoleListRequest) returns (GetRoleListResponse) {}
+    rpc DeleteMerchantUser(MerchantRoleRequest) returns (EmptyResponseWithStatus) {}
+    rpc DeleteAdminUser(AdminRoleRequest) returns (EmptyResponseWithStatus) {}
+    rpc GetMerchantUserRole(MerchantRoleRequest) returns (UserRoleResponse) {}
+    rpc GetAdminUserRole(AdminRoleRequest) returns (UserRoleResponse) {}
+    rpc GetCommonUserProfile(CommonUserProfileRequest) returns (CommonUserProfileResponse) {}
 }
 
 message EmptyRequest {
@@ -216,8 +234,7 @@ message EmptyResponseWithStatus {
 message CheckSkuAndKeyProjectRequest {
     //@inject_tag: validate:"required,max=255"
     string sku = 1;
-
-    //@inject_tag: validate:"required,hexadecimal,len=24"
+    //@inject_tag: validate:"required,hexadecimal,len=24" param:"project_id"
     string project_id = 2;
 }
 
@@ -350,6 +367,8 @@ message CreateOrUpdateKeyProductRequest {
 message UnPublishKeyProductRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string key_product_id = 1;
+    //@inject_tag: validate:"required"
+    string merchant_id = 2;
 }
 
 message PublishKeyProductRequest {
@@ -401,7 +420,7 @@ message ListKeyProductsRequest {
     int32 limit = 3;
     // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0" json:"offset"
     int32 offset = 4;
-    //@inject_tag: query:"merchant_id" validate:"required,hexadecimal,len=24"
+    //@inject_tag: validate:"required,hexadecimal,len=24"
     string merchant_id = 5;
     //@inject_tag: query:"project_id" validate:"omitempty,hexadecimal,len=24"
     string project_id = 6;
@@ -606,7 +625,7 @@ message ListingMerchantPaymentMethod {
 }
 
 message GetMerchantPaymentMethodRequest {
-    // @inject_tag: query:"merchant_id", validate:"required,hexadecimal,len=24"
+    // @inject_tag: validate:"required,hexadecimal,len=24"
     string merchant_id = 1;
     // @inject_tag: query:"payment_method_id", validate:"required,hexadecimal,len=24"
     string payment_method_id = 2;
@@ -619,7 +638,7 @@ message GetMerchantPaymentMethodResponse {
 }
 
 message ListMerchantPaymentMethodsRequest {
-    // @inject_tag: query:"merchant_id", validate:"required,hexadecimal,len=24"
+    // @inject_tag: validate:"required,hexadecimal,len=24"
     string merchant_id = 1;
     // @inject_tag: query:"method_name"
     string payment_method_name = 2;
@@ -655,7 +674,9 @@ message GetMerchantResponse {
 }
 
 message GetNotificationRequest {
+    // @inject_tag: validate:"required,hexadecimal,len=24" param:"merchant_id"
     string merchant_id = 1;
+    // @inject_tag: validate:"required,hexadecimal,len=24" param:"notification_id"
     string notification_id = 2;
 }
 
@@ -667,6 +688,8 @@ message CreateRefundRequest {
     string creator_id = 3;
     string reason = 4;
     bool is_chargeback = 5;
+    // @inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 6;
 }
 
 message CreateRefundResponse {
@@ -676,8 +699,10 @@ message CreateRefundResponse {
 }
 
 message ListRefundsRequest {
-    // @inject_tag: validate:"required,uuid"
+    // @inject_tag: validate:"required,uuid" param:"order_id"
     string order_id = 1;
+    // @inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 2;
     // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
     int32 limit = 7;
     // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
@@ -692,10 +717,12 @@ message ListRefundsResponse {
 }
 
 message GetRefundRequest {
-    // @inject_tag: validate:"required,uuid"
+    // @inject_tag: validate:"required,uuid" param:"order_id"
     string order_id = 1;
-    // @inject_tag: validate:"required,hexadecimal,len=24"
+    // @inject_tag: validate:"required,hexadecimal,len=24" param:"refund_id"
     string refund_id = 2;
+    // @inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 3;
 }
 
 message CallbackRequest {
@@ -959,17 +986,17 @@ message Product {
 }
 
 message ListProductsRequest {
-    //@inject_tag: json:"name"
+    //@inject_tag: json:"name" query:"name"
     string name = 1;
-    //@inject_tag: json:"sku"
+    //@inject_tag: json:"sku" query:"sku"
     string sku = 2;
-    // @inject_tag: validate:"required,numeric,gt=0" json:"limit"
+    // @inject_tag: validate:"required,numeric,gt=0" json:"limit" query:"limit"
     int32 limit = 3;
-    // @inject_tag: validate:"omitempty,numeric,gte=0" json:"offset"
+    // @inject_tag: validate:"omitempty,numeric,gte=0" json:"offset" query:"offset"
     int32 offset = 4;
     //@inject_tag: validate:"required,hexadecimal,len=24" json:"merchant_id" bson:"merchant_id"
     string merchant_id = 5;
-    //@inject_tag: validate:"omitempty,hexadecimal,len=24" json:"project_id" bson:"project_id"
+    //@inject_tag: validate:"omitempty,hexadecimal,len=24" json:"project_id" bson:"project_id" query:"project_id"
     string project_id = 6;
     //@inject_tag: json:"enable"
     int32 enable = 7;
@@ -1018,7 +1045,7 @@ message ListProductsResponse {
 }
 
 message RequestProduct {
-    //@inject_tag: validate:"required,hexadecimal,len=24"
+    //@inject_tag: validate:"required,hexadecimal,len=24" param:"product_id"
     string id = 1;
     //@inject_tag: validate:"hexadecimal,len=24"
     string merchant_id = 2;
@@ -1027,7 +1054,7 @@ message RequestProduct {
 message RequestKeyProductMerchant {
     //@inject_tag: query:"id" validate:"required,hexadecimal,len=24"
     string id = 1;
-    //@inject_tag: query:"merchant_id" validate:"hexadecimal,len=24"
+    //@inject_tag: validate:"hexadecimal,len=24"
     string merchant_id = 2;
 }
 
@@ -1052,12 +1079,12 @@ message ChangeProjectResponse {
 message GetProjectRequest {
     //@inject_tag: validate:"omitempty,hexadecimal,len=24"
     string merchant_id = 1;
-    //@inject_tag: validate:"required,hexadecimal,len=24"
+    //@inject_tag: validate:"required,hexadecimal,len=24" param:"project_id"
     string project_id = 2;
 }
 
 message ListProjectsRequest {
-    //@inject_tag: query:"merchant_id" validate:"omitempty,hexadecimal,len=24"
+    //@inject_tag: validate:"omitempty,hexadecimal,len=24"
     string merchant_id = 1;
     // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
     int32 limit = 2;
@@ -1131,7 +1158,7 @@ message ListOrdersRequest {
     int32 offset = 13;
     // @inject_tag: query:"sort[]"
     repeated string sort = 14;
-    // @inject_tag: query:"merchant[]" validate:"omitempty,dive,hexadecimal,len=24"
+    // @inject_tag: validate:"omitempty,dive,hexadecimal,len=24"
     repeated string merchant = 15;
     // @inject_tag: query:"-"  json:"-"
     string status_notification_failed_for = 16;
@@ -1140,10 +1167,10 @@ message ListOrdersRequest {
 }
 
 message GetOrderRequest {
-    // @inject_tag: query:"id" validate:"required,uuid"
-    string id = 1;
-    // @inject_tag: query:"merchant" validate:"omitempty,hexadecimal,len=24"
-    string merchant = 2;
+    // @inject_tag: validate:"required,uuid" param:"order_id"
+    string order_id = 1;
+    // @inject_tag: validate:"omitempty,hexadecimal,len=24"
+    string merchant_id = 2;
 }
 
 message IsOrderCanBePayingRequest {
@@ -1302,7 +1329,7 @@ message ListRoyaltyReportsRequest {
     int64 period_from = 1;
     // @inject_tag: query:"period_to" validate:"omitempty,numeric,gt=0"
     int64 period_to = 2;
-    // @inject_tag: query:"merchant_id" validate:"required,hexadecimal,len=24"
+    // @inject_tag: validate:"required,hexadecimal,len=24"
     string merchant_id = 3;
     //@inject_tag: query:"status[]" validate:"omitempty,dive,oneof=pending accepted canceled dispute waiting_payment paid"
     repeated string status = 4;
@@ -1328,12 +1355,14 @@ message ListRoyaltyReportsResponse {
 }
 
 message ListRoyaltyReportOrdersRequest {
-    // @inject_tag: query:"report_id" validate:"required,hexadecimal,len=24"
-    string report_id = 1;
+    // @inject_tag: validate:"required,hexadecimal,len=24" param:"merchant_id"
+    string merchant_id = 1;
+    // @inject_tag: query:"report_id" validate:"required,hexadecimal,len=24" param:"report_id"
+    string report_id = 2;
     // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
-    int32 limit = 5;
+    int32 limit = 3;
     // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
-    int32 offset = 6;
+    int32 offset = 4;
 }
 
 message ChangeRoyaltyReportCorrection {
@@ -1342,8 +1371,10 @@ message ChangeRoyaltyReportCorrection {
 }
 
 message GetRoyaltyReportRequest {
-    // @inject_tag: json:"report_id" validate:"required,hexadecimal,len=24"
-    string report_id = 1;
+    // @inject_tag: json:"merchant_id" validate:"required,hexadecimal,len=24"
+    string merchant_id = 1;
+    // @inject_tag: json:"report_id" validate:"required,hexadecimal,len=24" param:"report_id"
+    string report_id = 2;
 }
 
 message GetRoyaltyReportResponse {
@@ -1356,23 +1387,27 @@ message GetRoyaltyReportResponse {
 }
 
 message ChangeRoyaltyReportRequest {
-    // @inject_tag: json:"report_id" validate:"required,hexadecimal,len=24"
-    string report_id = 1;
+    // @inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 1;
+    // @inject_tag: json:"report_id" validate:"required,hexadecimal,len=24" param:"report_id"
+    string report_id = 2;
     // @inject_tag: json:"status" validate:"omitempty,oneof=pending skipped accepted canceled dispute ready_for_invoice payment_in_progress payment_done payment_error"
-    string status = 2;
+    string status = 3;
     // @inject_tag: json:"correction"
-    ChangeRoyaltyReportCorrection correction = 3;
+    ChangeRoyaltyReportCorrection correction = 4;
     string ip = 5;
 }
 
 message MerchantReviewRoyaltyReportRequest {
     // @inject_tag: validate:"required,hexadecimal,len=24"
-    string report_id = 1;
+    string merchant_id = 1;
+    // @inject_tag: validate:"required,hexadecimal,len=24" param:"report_id"
+    string report_id = 2;
     //@inject_tag: json:"is_accepted"
-    bool is_accepted = 2;
-    string ip = 3;
+    bool is_accepted = 3;
+    string ip = 4;
     //@inject_tag: json:"dispute_reason"
-    string dispute_reason = 4;
+    string dispute_reason = 5;
 }
 
 message PaymentChannelCostSystemListResponse {
@@ -1504,10 +1539,12 @@ message ProductPricesResponse {
 }
 
 message UpdateProductPricesRequest {
-    //@inject_tag: validate:"required,hexadecimal,len=24" json:"product_id"
+    //@inject_tag: validate:"required,hexadecimal,len=24" json:"product_id" param:"product_id"
     string product_id = 1;
     //@inject_tag: validate:"required,min=1,currency_price,dive" json:"prices"
     repeated billing.ProductPrice prices = 2;
+    //@inject_tag: validate:"hexadecimal,len=24"
+    string merchant_id = 3;
 }
 
 message UserProfilePersonal {
@@ -1609,6 +1646,26 @@ message UserProfile {
     google.protobuf.Timestamp updated_at = 10;
 }
 
+message CommonUserProfileRequest {
+    //@inject_tag: json:"user_id" validate:"required,hexadecimal,len=24"
+    string user_id = 1;
+    //@inject_tag: json:"merchant_id" validate:"omitempty,hexadecimal,len=24"
+    string merchant_id = 2;
+}
+
+message CommonUserProfileResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    CommonUserProfile profile = 3;
+}
+
+message CommonUserProfile {
+    UserProfile profile = 1;
+    billing.UserRole role = 2;
+    repeated Permission permissions = 3;
+    billing.Merchant merchant = 4;
+}
+
 message GetUserProfileRequest {
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string user_id = 1;
@@ -1649,6 +1706,11 @@ message ConfirmUserEmailRequest {
     string token = 1;
 }
 
+message ConfirmUserEmailResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    UserProfile profile = 3;
+}
 
 message VatTransactionsRequest {
     //@inject_tag: json:"vat_report_id" validate:"required,hexadecimal,len=24"
@@ -2053,7 +2115,7 @@ message GetPayoutDocumentsRequest {
     string payout_document_id = 1;
     //@inject_tag: query:"status[]" validate:"omitempty,dive,oneof=skip pending in_progress paid canceled failed"
     repeated string status = 2;
-    //@inject_tag: query:"merchant_id" validate:"omitempty,hexadecimal,len=24"
+    //@inject_tag: validate:"omitempty,hexadecimal,len=24"
     string merchant_id = 3;
     // @inject_tag: query:"period_from" validate:"omitempty,numeric,gt=0"
     int64 period_from = 4;
@@ -2194,7 +2256,7 @@ message PaylinkRequestById {
 }
 
 message PaylinkRequest {
-    //@inject_tag: validate:"required,hexadecimal,len=24"
+    //@inject_tag: validate:"required,hexadecimal,len=24" param="id"
     string id = 1;
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string merchant_id = 2;
@@ -2231,7 +2293,7 @@ message GetPaylinkUrlResponse {
 }
 
 message GetPaylinkStatCommonRequest {
-    //@inject_tag: validate:"required,hexadecimal"
+    //@inject_tag: validate:"required,hexadecimal" param:"id"
     string id = 1;
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string merchant_id = 2;
@@ -2323,4 +2385,177 @@ message GetOperatingCompanyResponse {
 
 message OrderReCreateProcessRequest {
     string order_id = 1;
+}
+
+message GetMerchantUsersRequest {
+    //@inject_tag: json:"merchant_id" validate:"required"
+    string merchant_id = 1;
+}
+
+message GetMerchantUsersResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    repeated billing.UserRole users = 3;
+}
+
+message InviteUserMerchantRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 1;
+    //@inject_tag: validate:"required,email"
+    string email = 2;
+    //@inject_tag: validate:"required"
+    string role = 3;
+}
+
+message InviteUserMerchantResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.UserRole role = 3;
+}
+
+message InviteUserAdminRequest {
+    //@inject_tag: validate:"required,email"
+    string email = 1;
+    //@inject_tag: validate:"required"
+    string role = 2;
+}
+
+message InviteUserAdminResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.UserRole role = 3;
+}
+
+message ResendInviteMerchantRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 1;
+    //@inject_tag: validate:"required,email"
+    string email = 2;
+}
+
+message ResendInviteAdminRequest {
+    //@inject_tag: validate:"required,email"
+    string email = 1;
+}
+
+message GetMerchantUserRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string id = 1;
+}
+
+message GetMerchantUserResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.UserRole role = 3;
+}
+
+message GetAdminUserRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string id = 1;
+}
+
+message GetAdminUserResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.UserRole role = 3;
+}
+
+message CheckInviteTokenRequest {
+    //@inject_tag: validate:"required"
+    string token = 1;
+    //@inject_tag: validate:"required,email"
+    string email = 2;
+}
+
+message CheckInviteTokenResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    string role_id = 3;
+    string role_type = 4;
+}
+
+message AcceptInviteRequest {
+    //@inject_tag: validate:"required"
+    string token = 1;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string user_id = 2;
+    //@inject_tag: validate:"required,email"
+    string email = 5;
+}
+
+message AcceptInviteResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.UserRole role = 3;
+}
+
+message GetAdminUsersResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    repeated billing.UserRole users = 3;
+}
+
+message GetMerchantsForUserRequest {
+    //@inject_tag: json:"user_id" validate:"required"
+    string user_id = 1;
+}
+
+message GetMerchantsForUserResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    repeated MerchantForUserInfo merchants = 3;
+}
+
+message MerchantForUserInfo {
+    string id = 1;
+    string name = 2;
+    string role = 3;
+}
+
+message ChangeRoleForMerchantUserRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24" param:"role_id"
+    string role_id = 1;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 2;
+    //@inject_tag: validate:"required"
+    string role = 3;
+}
+
+message ChangeRoleForAdminUserRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24" param:"role_id"
+    string role_id = 1;
+    //@inject_tag: validate:"required"
+    string role = 3;
+}
+
+message GetRoleListRequest {
+    //@inject_tag: validate:"required,oneof=merchant system"
+    string type = 1;
+}
+
+message GetRoleListResponse {
+    repeated billing.RoleListItem items = 1;
+}
+
+message AdminRoleRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24" param:"role_id"
+    string role_id = 1;
+}
+
+message MerchantRoleRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24" param:"role_id"
+    string role_id = 1;
+    //@inject_tag: validate:"required,hexadecimal,len=24"
+    string merchant_id = 2;
+}
+
+message Permission {
+    string name = 1;
+    string access = 2;
+}
+
+message UserRoleResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.UserRole user_role = 3;
 }
