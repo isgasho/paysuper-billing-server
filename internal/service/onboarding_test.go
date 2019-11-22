@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/centrifugal/gocent"
-	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/client"
@@ -17,16 +16,18 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	reporterConst "github.com/paysuper/paysuper-reporter/pkg"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	proto2 "github.com/paysuper/paysuper-reporter/pkg/proto"
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"strconv"
 	"testing"
 	"time"
@@ -72,7 +73,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 	assert.NoError(suite.T(), err, "Database connection failed")
 
 	suite.operatingCompany = &billing.OperatingCompany{
-		Id:                 bson.NewObjectId().Hex(),
+		Id:                 primitive.NewObjectID().Hex(),
 		Name:               "Legal name",
 		Country:            "RU",
 		RegistrationNumber: "some number",
@@ -85,7 +86,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 		PaymentCountries:   []string{},
 	}
 
-	err = db.Collection(collectionOperatingCompanies).Insert(suite.operatingCompany)
+	_, err = db.Collection(collectionOperatingCompanies).InsertOne(ctx, suite.operatingCompany)
 	if err != nil {
 		suite.FailNow("Insert operatingCompany test data failed", "%v", err)
 	}
@@ -103,7 +104,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 	}
 
 	ps := &billing.PaymentSystem{
-		Id:                 bson.NewObjectId().Hex(),
+		Id:                 primitive.NewObjectID().Hex(),
 		Name:               "CardPay",
 		AccountingCurrency: "RUB",
 		AccountingPeriod:   "every-day",
@@ -113,7 +114,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 	}
 
 	pmBankCard := &billing.PaymentMethod{
-		Id:               bson.NewObjectId().Hex(),
+		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bank card",
 		Group:            "BANKCARD",
 		MinPaymentAmount: 100,
@@ -133,7 +134,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 	}
 
 	pmQiwi := &billing.PaymentMethod{
-		Id:               bson.NewObjectId().Hex(),
+		Id:               primitive.NewObjectID().Hex(),
 		Name:             "QIWI",
 		Group:            "QIWI",
 		MinPaymentAmount: 100,
@@ -156,7 +157,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 	assert.NoError(suite.T(), err, "Generate merchant date failed")
 
 	merchant := &billing.Merchant{
-		Id: bson.NewObjectId().Hex(),
+		Id: primitive.NewObjectID().Hex(),
 		User: &billing.MerchantUser{
 			Id:    uuid.New().String(),
 			Email: "test@unit.test",
@@ -230,7 +231,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 	assert.NoError(suite.T(), err, "Generate merchant date failed")
 
 	merchantAgreement := &billing.Merchant{
-		Id: bson.NewObjectId().Hex(),
+		Id: primitive.NewObjectID().Hex(),
 		User: &billing.MerchantUser{
 			Id:    uuid.New().String(),
 			Email: "test_agreement@unit.test",
@@ -271,7 +272,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 		MccCode:  pkg.MccCodeLowRisk,
 	}
 	merchant1 := &billing.Merchant{
-		Id: bson.NewObjectId().Hex(),
+		Id: primitive.NewObjectID().Hex(),
 		User: &billing.MerchantUser{
 			Id:    uuid.New().String(),
 			Email: "test_merchant1@unit.test",
@@ -311,7 +312,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 	}
 
 	project := &billing.Project{
-		Id:                       bson.NewObjectId().Hex(),
+		Id:                       primitive.NewObjectID().Hex(),
 		CallbackCurrency:         "RUB",
 		CallbackProtocol:         "default",
 		LimitsCurrency:           "RUB",
@@ -351,16 +352,16 @@ func (suite *OnboardingTestSuite) SetupTest() {
 	}
 
 	pms := []*billing.PaymentMethod{pmBankCard, pmQiwi}
-	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {
+	if err := suite.service.paymentMethod.MultipleInsert(ctx, pms); err != nil {
 		suite.FailNow("Insert payment methods test data failed", "%v", err)
 	}
 
 	merchants := []*billing.Merchant{merchant, merchantAgreement, merchant1}
-	if err := suite.service.merchant.MultipleInsert(merchants); err != nil {
+	if err := suite.service.merchant.MultipleInsert(ctx, merchants); err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
 	}
 
-	if err := suite.service.project.Insert(project); err != nil {
+	if err := suite.service.project.Insert(ctx, project); err != nil {
 		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 
@@ -389,7 +390,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 			PayerTariffRegion: "europe",
 		},
 	}
-	err = suite.service.country.MultipleInsert(countries)
+	err = suite.service.country.MultipleInsert(ctx, countries)
 
 	if err != nil {
 		suite.FailNow("Insert countries test data failed", "%v", err)
@@ -542,7 +543,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 		tariffs = append(tariffs, v)
 	}
 
-	err = suite.service.db.Collection(collectionMerchantsPaymentTariffs).Insert(tariffs...)
+	_, err = suite.service.db.Collection(collectionMerchantsPaymentTariffs).InsertMany(ctx, tariffs)
 
 	if err != nil {
 		suite.FailNow("Insert merchant tariffs test data failed", "%v", err)
@@ -609,7 +610,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 		MccCode: pkg.MccCodeLowRisk,
 	}
 
-	err = suite.service.db.Collection(collectionMerchantTariffsSettings).Insert(tariffsSettings)
+	_, err = suite.service.db.Collection(collectionMerchantTariffsSettings).InsertOne(ctx, tariffsSettings)
 
 	if err != nil {
 		suite.FailNow("Insert merchant tariffs settings test data failed", "%v", err)
@@ -658,7 +659,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_NewMerchant_Ok()
 
 	req := &grpc.OnboardingRequest{
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -723,7 +724,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_NewMerchant_Ok()
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)
 
-	err = suite.service.db.Collection(collectionMerchant).Find(bson.M{"_id": bson.ObjectIdHex(rsp.Id)}).One(&merchant)
+	id, err := primitive.ObjectIDFromHex(rsp.Id)
+	err = suite.service.db.Collection(collectionMerchant).FindOne(ctx, bson.M{"_id": id}).Decode(&merchant)
 
 	assert.NotNil(suite.T(), merchant)
 	assert.Equal(suite.T(), rsp.Status, merchant.Status)
@@ -735,7 +737,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_NewMerchant_Ok()
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_UpdateMerchant_Ok() {
 	req := &grpc.OnboardingRequest{
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -780,7 +782,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_UpdateMerchant_O
 	assert.NotZero(suite.T(), rsp.CentrifugoToken)
 
 	var merchant *billing.Merchant
-	err = suite.service.db.Collection(collectionMerchant).Find(bson.M{"_id": bson.ObjectIdHex(rsp.Id)}).One(&merchant)
+	id, err := primitive.ObjectIDFromHex(rsp.Id)
+	err = suite.service.db.Collection(collectionMerchant).FindOne(ctx, bson.M{"_id": id}).Decode(&merchant)
 
 	assert.NotNil(suite.T(), merchant)
 	assert.Equal(suite.T(), rsp.Status, merchant.Status)
@@ -803,7 +806,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_UpdateMerchantNo
 	req := &grpc.OnboardingRequest{
 		Id: suite.merchantAgreement.Id,
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -918,7 +921,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantById_UserId_Ok() {
 
 func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantById_Error() {
 	req := &grpc.GetMerchantByRequest{
-		MerchantId: bson.NewObjectId().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
 	}
 
 	rsp := &grpc.GetMerchantResponse{}
@@ -968,7 +971,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_NameQuery_Ok() {
 func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_StatusesQuery_Ok() {
 	req := &grpc.OnboardingRequest{
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -1005,57 +1008,59 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_StatusesQuery_Ok(
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
 
-	req.User.Id = bson.NewObjectId().Hex()
+	req.User.Id = primitive.NewObjectID().Hex()
 	req.Company.Name = req.Company.Name + "_1"
 	err = suite.service.ChangeMerchant(context.TODO(), req, rsp)
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
 
-	merchant, err := suite.service.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(rsp.Item.Id)})
+	id, err := primitive.ObjectIDFromHex(rsp.Item.Id)
+	merchant, err := suite.service.getMerchantBy(ctx, bson.M{"_id": id})
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), merchant)
 
 	merchant.Status = pkg.MerchantStatusAgreementSigned
-	err = suite.service.merchant.Update(merchant)
+	err = suite.service.merchant.Update(ctx, merchant)
 
-	req.User.Id = bson.NewObjectId().Hex()
+	req.User.Id = primitive.NewObjectID().Hex()
 	req.Company.Name = req.Company.Name + "_2"
 	err = suite.service.ChangeMerchant(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
 
-	merchant, err = suite.service.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(rsp.Item.Id)})
+	merchant, err = suite.service.getMerchantBy(ctx, bson.M{"_id": bson.ObjectIdHex(rsp.Item.Id)})
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), merchant)
 
 	merchant.Status = pkg.MerchantStatusAgreementSigning
-	err = suite.service.merchant.Update(merchant)
+	err = suite.service.merchant.Update(ctx, merchant)
 
-	req.User.Id = bson.NewObjectId().Hex()
+	req.User.Id = primitive.NewObjectID().Hex()
 	req.Company.Name = req.Company.Name + "_3"
 	err = suite.service.ChangeMerchant(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
 
-	merchant, err = suite.service.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(rsp.Item.Id)})
+	merchant, err = suite.service.getMerchantBy(ctx, bson.M{"_id": bson.ObjectIdHex(rsp.Item.Id)})
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), merchant)
 
 	merchant.Status = pkg.MerchantStatusAgreementSigned
-	err = suite.service.merchant.Update(merchant)
+	err = suite.service.merchant.Update(ctx, merchant)
 
-	req.User.Id = bson.NewObjectId().Hex()
+	req.User.Id = primitive.NewObjectID().Hex()
 	req.Company.Name = req.Company.Name + "_4"
 	err = suite.service.ChangeMerchant(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
 
-	merchant, err = suite.service.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(rsp.Item.Id)})
+	id, _ = primitive.ObjectIDFromHex(rsp.Item.Id)
+	merchant, err = suite.service.getMerchantBy(ctx, bson.M{"_id": id})
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), merchant)
 
 	merchant.Status = pkg.MerchantStatusAgreementSigned
-	err = suite.service.merchant.Update(merchant)
+	err = suite.service.merchant.Update(ctx, merchant)
 
 	req1 := &grpc.MerchantListingRequest{Statuses: []int32{pkg.MerchantStatusDraft}}
 	rsp1 := &grpc.MerchantListingResponse{}
@@ -1228,7 +1233,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_Sort_Ok() {
 
 func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_EmptyResult_Ok() {
 	req := &grpc.MerchantListingRequest{
-		Name: bson.NewObjectId().Hex(),
+		Name: primitive.NewObjectID().Hex(),
 	}
 	rsp := &grpc.MerchantListingResponse{}
 
@@ -1241,7 +1246,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_EmptyResult_Ok() 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_Ok() {
 	req := &grpc.OnboardingRequest{
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -1280,12 +1285,12 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_Ok() {
 	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
 	assert.Equal(suite.T(), pkg.MerchantStatusDraft, rsp.Item.Status)
 
-	merchant, err := suite.service.merchant.GetById(rsp.Item.Id)
+	merchant, err := suite.service.merchant.GetById(ctx, rsp.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), merchant)
 
 	merchant.Status = pkg.MerchantStatusAgreementSigning
-	err = suite.service.merchant.Update(merchant)
+	err = suite.service.merchant.Update(ctx, merchant)
 	assert.NoError(suite.T(), err)
 
 	reqChangeStatus := &grpc.MerchantChangeStatusRequest{
@@ -1303,6 +1308,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_Ok() {
 
 func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_MerchantPaymentMethodsEmpty_Ok() {
 	var merchant *billing.Merchant
+	
 	err := suite.service.db.Collection(collectionMerchant).FindId(bson.ObjectIdHex(suite.merchant1.Id)).One(&merchant)
 
 	assert.NotNil(suite.T(), merchant)
@@ -1365,7 +1371,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_Exis
 func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_NewMerchant_Ok() {
 	req := &grpc.OnboardingRequest{
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -1448,7 +1454,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_NewM
 			Integrated:       true,
 		},
 		IsActive: true,
-		UserId:   bson.NewObjectId().Hex(),
+		UserId:   primitive.NewObjectID().Hex(),
 	}
 	rspMerchantPaymentMethodAdd := &grpc.MerchantPaymentMethodResponse{}
 	err = suite.service.ChangeMerchantPaymentMethod(context.TODO(), reqMerchantPaymentMethodAdd, rspMerchantPaymentMethodAdd)
@@ -1520,7 +1526,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_Upda
 			Integrated:       true,
 		},
 		IsActive: true,
-		UserId:   bson.NewObjectId().Hex(),
+		UserId:   primitive.NewObjectID().Hex(),
 	}
 	rspMerchantPaymentMethodAdd := &grpc.MerchantPaymentMethodResponse{}
 	err := suite.service.ChangeMerchantPaymentMethod(context.TODO(), reqMerchantPaymentMethodAdd, rspMerchantPaymentMethodAdd)
@@ -1584,7 +1590,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_Sort
 
 func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_MerchantNotFound_EmptyResult() {
 	req := &grpc.ListMerchantPaymentMethodsRequest{
-		MerchantId: bson.NewObjectId().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
 	}
 	rsp := &grpc.ListingMerchantPaymentMethod{}
 	err := suite.service.ListMerchantPaymentMethods(context.TODO(), req, rsp)
@@ -1654,7 +1660,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantPaymentMethod_NotExi
 func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantPaymentMethod_PaymentMethodNotFound_Error() {
 	req := &grpc.GetMerchantPaymentMethodRequest{
 		MerchantId:      suite.merchant.Id,
-		PaymentMethodId: bson.NewObjectId().Hex(),
+		PaymentMethodId: primitive.NewObjectID().Hex(),
 	}
 	rsp := &grpc.GetMerchantPaymentMethodResponse{}
 	err := suite.service.GetMerchantPaymentMethod(context.TODO(), req, rsp)
@@ -1665,7 +1671,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantPaymentMethod_Paymen
 
 func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantPaymentMethod_MerchantNotFound_Error() {
 	req := &grpc.GetMerchantPaymentMethodRequest{
-		MerchantId:      bson.NewObjectId().Hex(),
+		MerchantId:      primitive.NewObjectID().Hex(),
 		PaymentMethodId: suite.pmBankCard.Id,
 	}
 	rsp := &grpc.GetMerchantPaymentMethodResponse{}
@@ -1679,7 +1685,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantPaymentMethod_Pay
 	req := &grpc.MerchantPaymentMethodRequest{
 		MerchantId: suite.merchant.Id,
 		PaymentMethod: &billing.MerchantPaymentMethodIdentification{
-			Id:   bson.NewObjectId().Hex(),
+			Id:   primitive.NewObjectID().Hex(),
 			Name: "Unit test",
 		},
 		Commission: &billing.MerchantPaymentMethodCommissions{
@@ -1777,7 +1783,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_CreateNotification_Ok() {
 func (suite *OnboardingTestSuite) TestOnboarding_CreateNotification_MessageEmpty_Error() {
 	req := &grpc.NotificationRequest{
 		MerchantId: suite.merchant.Id,
-		UserId:     bson.NewObjectId().Hex(),
+		UserId:     primitive.NewObjectID().Hex(),
 		Title:      "Unit test title",
 	}
 	rsp := &grpc.CreateNotificationResponse{}
@@ -1791,7 +1797,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_CreateNotification_MessageEmpty
 func (suite *OnboardingTestSuite) TestOnboarding_CreateNotification_AddNotification_Error() {
 	req := &grpc.NotificationRequest{
 		MerchantId: "ffffffffffffffffffffffff",
-		UserId:     bson.NewObjectId().Hex(),
+		UserId:     primitive.NewObjectID().Hex(),
 		Title:      "Unit test title",
 		Message:    "Unit test message",
 	}
@@ -1806,7 +1812,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_CreateNotification_AddNotificat
 func (suite *OnboardingTestSuite) TestOnboarding_GetNotification_Ok() {
 	req := &grpc.NotificationRequest{
 		MerchantId: suite.merchant.Id,
-		UserId:     bson.NewObjectId().Hex(),
+		UserId:     primitive.NewObjectID().Hex(),
 		Title:      "Unit test title",
 		Message:    "Unit test message",
 	}
@@ -1836,8 +1842,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetNotification_Ok() {
 
 func (suite *OnboardingTestSuite) TestOnboarding_NotFound_Error() {
 	reqGetNotification := &grpc.GetNotificationRequest{
-		MerchantId:     bson.NewObjectId().Hex(),
-		NotificationId: bson.NewObjectId().Hex(),
+		MerchantId:     primitive.NewObjectID().Hex(),
+		NotificationId: primitive.NewObjectID().Hex(),
 	}
 	rspGetNotification := &billing.Notification{}
 	err := suite.service.GetNotification(context.TODO(), reqGetNotification, rspGetNotification)
@@ -1848,7 +1854,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_NotFound_Error() {
 func (suite *OnboardingTestSuite) TestOnboarding_ListNotifications_Merchant_Ok() {
 	req1 := &grpc.NotificationRequest{
 		MerchantId: suite.merchant.Id,
-		UserId:     bson.NewObjectId().Hex(),
+		UserId:     primitive.NewObjectID().Hex(),
 		Title:      "Unit test title 1",
 		Message:    "Unit test message 1",
 	}
@@ -1861,7 +1867,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListNotifications_Merchant_Ok()
 
 	req2 := &grpc.NotificationRequest{
 		MerchantId: suite.merchant.Id,
-		UserId:     bson.NewObjectId().Hex(),
+		UserId:     primitive.NewObjectID().Hex(),
 		Title:      "Unit test title 1",
 		Message:    "Unit test message 1",
 	}
@@ -1888,7 +1894,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListNotifications_Merchant_Ok()
 func (suite *OnboardingTestSuite) TestOnboarding_ListNotifications_Sort_Ok() {
 	req := &grpc.NotificationRequest{
 		MerchantId: suite.merchant.Id,
-		UserId:     bson.NewObjectId().Hex(),
+		UserId:     primitive.NewObjectID().Hex(),
 		Title:      "Unit test title 1",
 		Message:    "Unit test message 1",
 	}
@@ -1923,7 +1929,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListNotifications_Sort_Ok() {
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_ListNotifications_User_Ok() {
-	userId := bson.NewObjectId().Hex()
+	userId := primitive.NewObjectID().Hex()
 
 	req1 := &grpc.NotificationRequest{
 		MerchantId: suite.merchant.Id,
@@ -1980,7 +1986,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListNotifications_User_Ok() {
 func (suite *OnboardingTestSuite) TestOnboarding_MarkNotificationAsRead_Ok() {
 	req1 := &grpc.NotificationRequest{
 		MerchantId: suite.merchant.Id,
-		UserId:     bson.NewObjectId().Hex(),
+		UserId:     primitive.NewObjectID().Hex(),
 		Title:      "Unit test title 1",
 		Message:    "Unit test message 1",
 	}
@@ -2012,7 +2018,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_MarkNotificationAsRead_Ok() {
 func (suite *OnboardingTestSuite) TestOnboarding_MarkNotificationAsRead_NotFound_Error() {
 	req1 := &grpc.NotificationRequest{
 		MerchantId: suite.merchant.Id,
-		UserId:     bson.NewObjectId().Hex(),
+		UserId:     primitive.NewObjectID().Hex(),
 		Title:      "Unit test title 1",
 		Message:    "Unit test message 1",
 	}
@@ -2025,8 +2031,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_MarkNotificationAsRead_NotFound
 	assert.False(suite.T(), rsp1.Item.IsRead)
 
 	req2 := &grpc.GetNotificationRequest{
-		MerchantId:     bson.NewObjectId().Hex(),
-		NotificationId: bson.NewObjectId().Hex(),
+		MerchantId:     primitive.NewObjectID().Hex(),
+		NotificationId: primitive.NewObjectID().Hex(),
 	}
 	rsp2 := &billing.Notification{}
 	err = suite.service.MarkNotificationAsRead(context.TODO(), req2, rsp2)
@@ -2039,7 +2045,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_MarkNotificationAsRead_NotFound
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantData_Ok() {
 	req := &grpc.OnboardingRequest{
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -2142,7 +2148,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantData_Ok() {
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantData_MerchantNotFound_Error() {
 	req1 := &grpc.ChangeMerchantDataRequest{
-		MerchantId:           bson.NewObjectId().Hex(),
+		MerchantId:           primitive.NewObjectID().Hex(),
 		HasPspSignature:      true,
 		HasMerchantSignature: true,
 	}
@@ -2156,7 +2162,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantData_MerchantNotF
 func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantS3Agreement_Ok() {
 	req := &grpc.OnboardingRequest{
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -2245,8 +2251,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantS3Agreement_Ok() {
 
 func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantS3Agreement_MerchantNotFound_Error() {
 	req1 := &grpc.SetMerchantS3AgreementRequest{
-		MerchantId:      bson.NewObjectId().Hex(),
-		S3AgreementName: "agreement_" + bson.NewObjectId().Hex() + ".pdf",
+		MerchantId:      primitive.NewObjectID().Hex(),
+		S3AgreementName: "agreement_" + primitive.NewObjectID().Hex() + ".pdf",
 	}
 	rsp1 := &grpc.ChangeMerchantDataResponse{}
 	err := suite.service.SetMerchantS3Agreement(context.TODO(), req1, rsp1)
@@ -2258,7 +2264,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantS3Agreement_Merchant
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_UserNotifications_Ok() {
 	req := &grpc.OnboardingRequest{
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -2299,7 +2305,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_UserNotifi
 
 	req1 := &grpc.NotificationRequest{
 		MerchantId: rsp.Id,
-		UserId:     bson.NewObjectId().Hex(),
+		UserId:     primitive.NewObjectID().Hex(),
 		Title:      "some title",
 		Message:    "some message",
 	}
@@ -2365,7 +2371,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_UserNotifi
 func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_Ok() {
 	req0 := &grpc.OnboardingRequest{
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -2389,7 +2395,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_Ok() {
 	req := &grpc.OnboardingRequest{
 		Id: rsp0.Item.Id,
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -2468,7 +2474,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_Ok() {
 
 func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_MerchantNotFound_Error() {
 	req := &grpc.GetMerchantAgreementSignUrlRequest{
-		MerchantId: bson.NewObjectId().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
 	}
 	rsp := &grpc.GetMerchantAgreementSignUrlResponse{}
 	err := suite.service.GetMerchantAgreementSignUrl(context.TODO(), req, rsp)
@@ -2481,7 +2487,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_MerchantNotFound_
 func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_MerchantHasSignatureRequest_Ok() {
 	req0 := &grpc.OnboardingRequest{
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -2500,7 +2506,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_MerchantHasSignat
 	req := &grpc.OnboardingRequest{
 		Id: rsp0.Item.Id,
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -2576,7 +2582,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_MerchantHasSignat
 func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerSystemError() {
 	req0 := &grpc.OnboardingRequest{
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -2600,7 +2606,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerSys
 	req := &grpc.OnboardingRequest{
 		Id: rsp0.Item.Id,
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -2675,7 +2681,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerSys
 func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerResultError() {
 	req0 := &grpc.OnboardingRequest{
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -2694,7 +2700,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerRes
 	req := &grpc.OnboardingRequest{
 		Id: rsp0.Item.Id,
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -2768,7 +2774,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerRes
 func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_UpdateError() {
 	req0 := &grpc.OnboardingRequest{
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -2787,7 +2793,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_UpdateError() {
 	req := &grpc.OnboardingRequest{
 		Id: rsp0.Item.Id,
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -2866,7 +2872,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_UpdateError() {
 func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantOnboardingCompleteData_Ok() {
 	req := &grpc.OnboardingRequest{
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -2917,7 +2923,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantOnboardingCompleteDa
 func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantOnboardingCompleteData_FullyCompleteAndLive_Ok() {
 	req0 := &grpc.OnboardingRequest{
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -2936,7 +2942,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantOnboardingCompleteDa
 	req := &grpc.OnboardingRequest{
 		Id: rsp0.Item.Id,
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -3018,7 +3024,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantOnboardingCompleteDa
 
 func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantOnboardingCompleteData_MerchantNotFound_Error() {
 	req := &grpc.SetMerchantS3AgreementRequest{
-		MerchantId: bson.NewObjectId().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
 	}
 	rsp := &grpc.GetMerchantOnboardingCompleteDataResponse{}
 	err := suite.service.GetMerchantOnboardingCompleteData(context.TODO(), req, rsp)
@@ -3031,7 +3037,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantOnboardingCompleteDa
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_GetMerchantAgreementSignature_Error() {
 	req0 := &grpc.OnboardingRequest{
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -3054,7 +3060,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_GetMerchantAgree
 	req := &grpc.OnboardingRequest{
 		Id: rsp0.Item.Id,
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -3120,7 +3126,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_GetMerchantAgree
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_Upsert_Error() {
 	req := &grpc.OnboardingRequest{
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -3168,7 +3174,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_Upsert_Error() {
 func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_AgreementSignatureDataIsNil_Error() {
 	req := &grpc.OnboardingRequest{
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -3208,7 +3214,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_Agr
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_GetMerchantAgreementSignature_ResultError() {
 	req0 := &grpc.OnboardingRequest{
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -3236,7 +3242,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_GetMerchantAgree
 	req := &grpc.OnboardingRequest{
 		Id: rsp0.Item.Id,
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -3302,7 +3308,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_GetMerchantAgree
 func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_PaysuperSign_Ok() {
 	req0 := &grpc.OnboardingRequest{
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -3321,7 +3327,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_Pay
 	req := &grpc.OnboardingRequest{
 		Id: rsp0.Item.Id,
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -3456,7 +3462,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantTariffRates_Reposito
 func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_Ok() {
 	req0 := &grpc.OnboardingRequest{
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -3556,7 +3562,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_Ok() {
 
 func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_MerchantNotFound_Error() {
 	req := &grpc.SetMerchantTariffRatesRequest{
-		MerchantId:             bson.NewObjectId().Hex(),
+		MerchantId:             primitive.NewObjectID().Hex(),
 		HomeRegion:             "russia_and_cis",
 		MerchantOperationsType: pkg.MerchantOperationTypeLowRisk,
 	}
@@ -3626,9 +3632,9 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_ChangeTa
 	suite.merchant.AgreementSignatureData = &billing.MerchantAgreementSignatureData{
 		DetailsUrl:          "http://localhost",
 		FilesUrl:            "http://localhost",
-		SignatureRequestId:  bson.NewObjectId().Hex(),
-		MerchantSignatureId: bson.NewObjectId().Hex(),
-		PsSignatureId:       bson.NewObjectId().Hex(),
+		SignatureRequestId:  primitive.NewObjectID().Hex(),
+		MerchantSignatureId: primitive.NewObjectID().Hex(),
+		PsSignatureId:       primitive.NewObjectID().Hex(),
 	}
 	err := suite.service.merchant.Update(suite.merchant)
 	assert.NoError(suite.T(), err)
@@ -3716,7 +3722,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_Merchant
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_NewMerchant_WithBeforeCreatedUserProfile_Ok() {
 	req := &grpc.UserProfile{
-		UserId: bson.NewObjectId().Hex(),
+		UserId: primitive.NewObjectID().Hex(),
 		Email: &grpc.UserProfileEmail{
 			Email: "test@unit.test",
 		},
@@ -3800,7 +3806,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_QuickSearchQuery_
 	lastName := "LastName"
 
 	req := &grpc.UserProfile{
-		UserId: bson.NewObjectId().Hex(),
+		UserId: primitive.NewObjectID().Hex(),
 		Email: &grpc.UserProfileEmail{
 			Email: "test@unit.test",
 		},
@@ -3821,7 +3827,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_QuickSearchQuery_
 
 	for i := 0; i < 5; i++ {
 		if i > 0 {
-			req.UserId = bson.NewObjectId().Hex()
+			req.UserId = primitive.NewObjectID().Hex()
 			req.Personal.LastName = lastName + "_" + strconv.Itoa(i)
 		}
 
@@ -3874,7 +3880,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_QuickSearchQuery_
 	}
 
 	for i := 0; i < 10; i++ {
-		req.User.Id = bson.NewObjectId().Hex()
+		req.User.Id = primitive.NewObjectID().Hex()
 		req.User.Email = "test_" + strconv.Itoa(i) + "@unit.test"
 		rsp := &grpc.ChangeMerchantResponse{}
 		err := suite.service.ChangeMerchant(context.TODO(), req, rsp)
@@ -3925,7 +3931,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_QuickSearchQuery_
 	}
 
 	for i := 0; i < 10; i++ {
-		req.User.Id = bson.NewObjectId().Hex()
+		req.User.Id = primitive.NewObjectID().Hex()
 		req.User.Email = "test_" + strconv.Itoa(i) + "@unit.test"
 		rsp := &grpc.ChangeMerchantResponse{}
 		err := suite.service.ChangeMerchant(context.TODO(), req, rsp)
@@ -3966,7 +3972,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_QuickSearchQuery_
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_MerchantNotFound() {
 	req := &grpc.MerchantChangeStatusRequest{
-		MerchantId: bson.NewObjectId().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
 		Status:     pkg.MerchantStatusRejected,
 	}
 	rsp := &grpc.ChangeMerchantStatusResponse{}
@@ -4130,7 +4136,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantManualPayouts_Ok(
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantManualPayouts_MerchantNotFound_Error() {
 	req1 := &grpc.ChangeMerchantManualPayoutsRequest{
-		MerchantId:           bson.NewObjectId().Hex(),
+		MerchantId:           primitive.NewObjectID().Hex(),
 		ManualPayoutsEnabled: true,
 	}
 	rsp1 := &grpc.ChangeMerchantManualPayoutsResponse{}
@@ -4143,7 +4149,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantManualPayouts_Mer
 func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantS3Agreement_AgreementReadyToSign_CentrifigoError() {
 	req := &grpc.OnboardingRequest{
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -4200,7 +4206,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantS3Agreement_Agreemen
 func (suite *OnboardingTestSuite) TestOnboarding_GenerateMerchantAgreement_CheckFullAddress_Ok() {
 	req := &grpc.OnboardingRequest{
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -4299,7 +4305,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GenerateMerchantAgreement_Check
 func (suite *OnboardingTestSuite) TestOnboarding_GenerateMerchantAgreement_CheckWithoutStateAddress_Ok() {
 	req := &grpc.OnboardingRequest{
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
