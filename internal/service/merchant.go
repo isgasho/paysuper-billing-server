@@ -27,6 +27,14 @@ func (s *Service) MerchantsMigrate() error {
 	}
 
 	for _, merchant := range merchants {
+		if merchant.User == nil ||
+			merchant.User.Id == "" ||
+			merchant.User.Email == "" ||
+			merchant.User.FirstName == "" ||
+			merchant.User.LastName == "" {
+			continue
+		}
+
 		userRole := &billing.UserRole{
 			Id:         bson.NewObjectId().Hex(),
 			MerchantId: merchant.Id,
