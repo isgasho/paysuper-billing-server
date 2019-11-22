@@ -1426,7 +1426,7 @@ func (s *Service) ProcessBillingAddress(
 			return nil
 		}
 
-		zip, err = s.zipCode.getByZipAndCountry(req.Zip, req.Country)
+		zip, err = s.zipCode.getByZipAndCountry(ctx, req.Zip, req.Country)
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusBadData
@@ -2854,7 +2854,7 @@ func (v *PaymentCreateProcessor) processPaymentFormData(ctx context.Context) err
 				return orderErrorCreatePaymentRequiredFieldUserZipNotFound
 			}
 
-			zipData, err := v.service.zipCode.getByZipAndCountry(zip, country)
+			zipData, err := v.service.zipCode.getByZipAndCountry(ctx, zip, country)
 
 			if err != nil {
 				return orderErrorZipCodeNotFound
