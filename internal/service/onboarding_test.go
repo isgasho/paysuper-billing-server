@@ -2208,6 +2208,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantS3Agreement_Ok() {
 		),
 	}
 
+	ocRep := &mocks.OperatingCompanyInterface{}
+	ocRep.On("GetById", mock2.Anything).Return(&billing.OperatingCompany{SignatoryName: "name", Email: "email"}, nil)
+	suite.service.operatingCompany = ocRep
+
 	req1 := &grpc.SetMerchantS3AgreementRequest{
 		MerchantId:      rsp.Id,
 		S3AgreementName: "agreement_" + rsp.Id + ".pdf",
@@ -2845,6 +2849,12 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_UpdateError() {
 	cache.On("Set", fmt.Sprintf(cacheMerchantId, rsp.Item.Id), mock2.Anything, mock2.Anything).
 		Return(errors.New(mocks.SomeError))
 	suite.service.cacher = cache
+
+	merchRep := &mocks.MerchantRepositoryInterface{}
+	merchRep.On("GetById", mock2.Anything).Return(merchant, nil)
+	merchRep.On("Update", mock2.Anything).Return(errors.New("error"))
+	suite.service.merchant = merchRep
+
 	zap.ReplaceGlobals(suite.logObserver)
 
 	req2 := &grpc.GetMerchantAgreementSignUrlRequest{
@@ -2857,10 +2867,6 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_UpdateError() {
 	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp2.Status)
 	assert.Equal(suite.T(), merchantErrorUnknown, rsp2.Message)
 	assert.Nil(suite.T(), rsp2.Item)
-
-	messages := suite.zapRecorder.All()
-	assert.Equal(suite.T(), pkg.ErrorCacheQueryFailed, messages[0].Message)
-	assert.Equal(suite.T(), zapcore.ErrorLevel, messages[0].Level)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantOnboardingCompleteData_Ok() {
@@ -4185,6 +4191,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantS3Agreement_Agreemen
 	centrifugoMock.On("GetChannelToken", mock2.Anything, mock2.Anything).Return("token")
 	centrifugoMock.On("Publish", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New("some error"))
 	suite.service.centrifugo = centrifugoMock
+
+	ocRep := &mocks.OperatingCompanyInterface{}
+	ocRep.On("GetById", mock2.Anything).Return(&billing.OperatingCompany{SignatoryName: "name", Email: "email"}, nil)
+	suite.service.operatingCompany = ocRep
 
 	req1 := &grpc.SetMerchantS3AgreementRequest{
 		MerchantId:      rsp.Item.Id,

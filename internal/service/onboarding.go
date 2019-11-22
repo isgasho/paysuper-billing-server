@@ -1105,7 +1105,7 @@ func (s *Service) GetMerchantAgreementSignUrl(
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
+		rsp.Message = merchantErrorNotFound
 
 		return nil
 	}
