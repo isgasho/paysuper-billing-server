@@ -9,7 +9,6 @@ import (
 	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,6 +16,7 @@ import (
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
 	"gopkg.in/mgo.v2/bson"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"testing"
 )
 
@@ -106,10 +106,10 @@ func (suite *KeyProductTestSuite) SetupTest() {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 
-	suite.NoError(suite.service.merchant.Insert(&billing.Merchant{Id: merchantId, Banking: &billing.MerchantBanking{Currency: "USD"}}))
+	suite.NoError(suite.service.merchant.Insert(ctx, &billing.Merchant{Id: merchantId, Banking: &billing.MerchantBanking{Currency: "USD"}}))
 
 	pgs := []*billing.PriceGroup{pgRub, pgUsd, pgEur}
-	if err := suite.service.priceGroup.MultipleInsert(pgs); err != nil {
+	if err := suite.service.priceGroup.MultipleInsert(ctx, pgs); err != nil {
 		suite.FailNow("Insert price group test data failed", "%v", err)
 	}
 }

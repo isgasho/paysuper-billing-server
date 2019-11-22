@@ -70,7 +70,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -163,7 +163,7 @@ func (suite *DashboardRepositoryTestSuite) TearDownTest() {
 }
 
 func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_EmptyResult_Ok() {
-	report, err := suite.service.dashboardRepository.GetMainReport(suite.project.MerchantId, pkg.DashboardPeriodCurrentMonth)
+	report, err := suite.service.dashboardRepository.GetMainReport(ctx, suite.project.MerchantId, pkg.DashboardPeriodCurrentMonth)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), report)
 
@@ -194,7 +194,7 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_CurrentMo
 	iterations := (current.Day() - monthBeginning.Day()) + 1
 	suite.createOrdersForPeriod(iterations, pkg.DashboardPeriodCurrentMonth, monthBeginning)
 
-	report, err := suite.service.dashboardRepository.GetMainReport(suite.project.MerchantId, pkg.DashboardPeriodCurrentMonth)
+	report, err := suite.service.dashboardRepository.GetMainReport(ctx, suite.project.MerchantId, pkg.DashboardPeriodCurrentMonth)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), report)
 
@@ -250,7 +250,7 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_PreviousM
 	iterations := (monthEnd.Day() - monthBeginning.Day()) + 1
 	suite.createOrdersForPeriod(iterations, pkg.DashboardPeriodPreviousMonth, monthBeginning)
 
-	report, err := suite.service.dashboardRepository.GetMainReport(suite.project.MerchantId, pkg.DashboardPeriodPreviousMonth)
+	report, err := suite.service.dashboardRepository.GetMainReport(ctx, suite.project.MerchantId, pkg.DashboardPeriodPreviousMonth)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), report)
 
@@ -306,7 +306,7 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_CurrentQu
 	iterations := int(math.Ceil(float64(current.Unix()-monthBeginning.Unix()) / 604800))
 
 	suite.createOrdersForPeriod(iterations, pkg.DashboardPeriodCurrentQuarter, monthBeginning)
-	report, err := suite.service.dashboardRepository.GetMainReport(suite.project.MerchantId, pkg.DashboardPeriodCurrentQuarter)
+	report, err := suite.service.dashboardRepository.GetMainReport(ctx, suite.project.MerchantId, pkg.DashboardPeriodCurrentQuarter)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), report)
 
@@ -362,7 +362,7 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_PreviousQ
 	iterations := 3
 
 	suite.createOrdersForPeriod(iterations, pkg.DashboardPeriodPreviousQuarter, quarterBeginning)
-	report, err := suite.service.dashboardRepository.GetMainReport(suite.project.MerchantId, pkg.DashboardPeriodPreviousQuarter)
+	report, err := suite.service.dashboardRepository.GetMainReport(ctx, suite.project.MerchantId, pkg.DashboardPeriodPreviousQuarter)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), report)
 
@@ -418,7 +418,7 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_CurrentYe
 	iterations := int((current.Month() - beginning.Month()) + 1)
 	suite.createOrdersForPeriod(iterations, pkg.DashboardPeriodCurrentYear, beginning)
 
-	report, err := suite.service.dashboardRepository.GetMainReport(suite.project.MerchantId, pkg.DashboardPeriodCurrentYear)
+	report, err := suite.service.dashboardRepository.GetMainReport(ctx, suite.project.MerchantId, pkg.DashboardPeriodCurrentYear)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), report)
 
@@ -474,7 +474,7 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardRevenueDynamicsRepor
 	iterations := (current.Day() - monthBeginning.Day()) + 1
 	suite.createOrdersForPeriod(iterations, pkg.DashboardPeriodCurrentMonth, monthBeginning)
 
-	report, err := suite.service.dashboardRepository.GetRevenueDynamicsReport(suite.project.MerchantId, pkg.DashboardPeriodCurrentMonth)
+	report, err := suite.service.dashboardRepository.GetRevenueDynamicsReport(ctx, suite.project.MerchantId, pkg.DashboardPeriodCurrentMonth)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), report)
 	assert.Len(suite.T(), report.Items, iterations)
@@ -488,7 +488,7 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardRevenueDynamicsRepor
 }
 
 func (suite *DashboardRepositoryTestSuite) Test_GetDashboardRevenueDynamicsReport_EmptyResult_Ok() {
-	report, err := suite.service.dashboardRepository.GetRevenueDynamicsReport(suite.project.MerchantId, pkg.DashboardPeriodCurrentMonth)
+	report, err := suite.service.dashboardRepository.GetRevenueDynamicsReport(ctx, suite.project.MerchantId, pkg.DashboardPeriodCurrentMonth)
 	assert.NoError(suite.T(), err)
 	assert.Empty(suite.T(), report)
 }
@@ -498,7 +498,7 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardBaseReport_CurrentMo
 	monthBeginning := now.BeginningOfMonth()
 	iterations := (current.Day() - monthBeginning.Day()) + 1
 	suite.createOrdersForPeriod(iterations, pkg.DashboardPeriodCurrentMonth, monthBeginning)
-	report, err := suite.service.dashboardRepository.GetBaseReport(suite.project.MerchantId, pkg.DashboardPeriodCurrentMonth)
+	report, err := suite.service.dashboardRepository.GetBaseReport(ctx, suite.project.MerchantId, pkg.DashboardPeriodCurrentMonth)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), report)
 
@@ -554,7 +554,7 @@ func (suite *DashboardRepositoryTestSuite) Test_GetDashboardBaseReport_CurrentMo
 }
 
 func (suite *DashboardRepositoryTestSuite) Test_GetDashboardBaseReport_EmptyResult_Ok() {
-	report, err := suite.service.dashboardRepository.GetBaseReport(suite.project.MerchantId, pkg.DashboardPeriodCurrentMonth)
+	report, err := suite.service.dashboardRepository.GetBaseReport(ctx, suite.project.MerchantId, pkg.DashboardPeriodCurrentMonth)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), report)
 	assert.NotNil(suite.T(), report.SalesToday)
