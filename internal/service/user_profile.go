@@ -14,6 +14,9 @@ import (
 	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
 	"github.com/streadway/amqp"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 	"strings"
 	"time"
@@ -43,11 +46,11 @@ func (s *Service) CreateOrUpdateUserProfile(
 	rsp *grpc.GetUserProfileResponse,
 ) error {
 	var err error
-	profile := s.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
+	profile := s.getOnboardingProfileBy(ctx, bson.M{"user_id": req.UserId})
 
 	if profile == nil {
 		profile = req
-		profile.Id = bson.NewObjectId().Hex()
+		profile.Id = primitive.NewObjectID().Hex()
 		profile.CreatedAt = ptypes.TimestampNow()
 	} else {
 		profile = s.updateOnboardingProfile(profile, req)
@@ -63,7 +66,10 @@ func (s *Service) CreateOrUpdateUserProfile(
 		return nil
 	}
 
-	_, err = s.db.Collection(collectionUserProfile).UpsertId(bson.ObjectIdHex(profile.Id), profile)
+	oid, _ := primitive.ObjectIDFromHex(profile.Id)
+	filter := bson.M{"_id": oid}
+	opts := options.FindOneAndUpdate().SetUpsert(true)
+	err = s.db.Collection(collectionUserProfile).FindOneAndUpdate(ctx, filter, profile, opts).Err()
 
 	if err != nil {
 		zap.S().Error(
@@ -89,7 +95,7 @@ func (s *Service) CreateOrUpdateUserProfile(
 			return nil
 		}
 
-		err = s.sendUserEmailConfirmationToken(profile)
+		err = s.sendUserEmailConfirmationToken(ctx, profile)
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusSystemError
@@ -113,10 +119,14 @@ func (s *Service) GetUserProfile(
 	query := bson.M{"user_id": req.UserId}
 
 	if req.ProfileId != "" {
-		query = bson.M{"_id": bson.ObjectIdHex(req.ProfileId)}
+		profileOid, err := primitive.ObjectIDFromHex(req.ProfileId)
+
+		if err != nil {
+			query = bson.M{"_id": profileOid}
+		}
 	}
 
-	profile := s.getOnboardingProfileBy(query)
+	profile := s.getOnboardingProfileBy(ctx, query)
 
 	if profile == nil {
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -142,10 +152,10 @@ func (s *Service) GetUserProfile(
 	return nil
 }
 
-func (s *Service) getOnboardingProfileBy(query bson.M) (profile *grpc.UserProfile) {
-	err := s.db.Collection(collectionUserProfile).Find(query).One(&profile)
+func (s *Service) getOnboardingProfileBy(ctx context.Context, query bson.M) (profile *grpc.UserProfile) {
+	err := s.db.Collection(collectionUserProfile).FindOne(ctx, query).Decode(&profile)
 
-	if err != nil && err != mgo.ErrNotFound {
+	if err != nil && err != mongo.ErrNoDocuments {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
@@ -333,7 +343,7 @@ func (s *Service) ConfirmUserEmail(
 		return nil
 	}
 
-	profile := s.getOnboardingProfileBy(bson.M{"user_id": userId})
+	profile := s.getOnboardingProfileBy(ctx, bson.M{"user_id": userId})
 
 	if profile == nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -359,11 +369,11 @@ func (s *Service) ConfirmUserEmail(
 		return nil
 	}
 
-	merchant, err := s.getMerchantBy(bson.M{"user.id": userId})
+	merchant, err := s.getMerchantBy(ctx, bson.M{"user.id": userId})
 
 	if err == nil {
 		merchant.User.RegistrationDate = profile.Email.ConfirmedAt
-		_ = s.merchant.Update(merchant)
+		_ = s.merchant.Update(ctx, merchant)
 	}
 
 	return nil
@@ -421,7 +431,7 @@ func (s *Service) getUserEmailConfirmationToken(token string) (string, error) {
 	return data, err
 }
 
-func (s *Service) sendUserEmailConfirmationToken(profile *grpc.UserProfile) error {
+func (s *Service) sendUserEmailConfirmationToken(ctx context.Context, profile *grpc.UserProfile) error {
 	payload := &postmarkSdrPkg.Payload{
 		TemplateAlias: s.cfg.EmailConfirmTemplate,
 		TemplateModel: map[string]string{
@@ -442,9 +452,10 @@ func (s *Service) sendUserEmailConfirmationToken(profile *grpc.UserProfile) erro
 		return err
 	}
 
-	query := bson.M{"_id": bson.ObjectIdHex(profile.Id)}
+	profileOid, _ := primitive.ObjectIDFromHex(profile.Id)
+	query := bson.M{"_id": profileOid}
 	set := bson.M{"$set": bson.M{"email.is_confirmation_email_sent": true}}
-	err = s.db.Collection(collectionUserProfile).Update(query, set)
+	_, err = s.db.Collection(collectionUserProfile).UpdateOne(ctx, query, set)
 
 	if err != nil {
 		zap.S().Error(
@@ -469,13 +480,15 @@ func (s *Service) emailConfirmedSuccessfully(ctx context.Context, profile *grpc.
 	profile.Email.Confirmed = true
 	profile.Email.ConfirmedAt = ptypes.TimestampNow()
 
-	err := s.db.Collection(collectionUserProfile).UpdateId(bson.ObjectIdHex(profile.Id), profile)
+	oid, _ := primitive.ObjectIDFromHex(profile.Id)
+	filter := bson.M{"_id": oid}
+	_, err := s.db.Collection(collectionUserProfile).UpdateOne(ctx, filter, profile)
 
 	if err != nil {
 		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String("collection", collectionUserProfile),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionUserProfile),
 			zap.Any("query", profile),
 		)
 
@@ -494,21 +507,21 @@ func (s *Service) CreatePageReview(
 	rsp *grpc.CheckProjectRequestSignatureResponse,
 ) error {
 	review := &grpc.PageReview{
-		Id:        bson.NewObjectId().Hex(),
+		Id:        primitive.NewObjectID().Hex(),
 		UserId:    req.UserId,
 		Review:    req.Review,
 		Url:       req.Url,
 		CreatedAt: ptypes.TimestampNow(),
 	}
 
-	err := s.db.Collection(collectionOPageReview).Insert(review)
+	_, err := s.db.Collection(collectionOPageReview).InsertOne(ctx, review)
 
 	if err != nil {
 		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String("collection", collectionOPageReview),
-			zap.Any("data", review),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOPageReview),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, review),
 		)
 
 		rsp.Status = pkg.ResponseStatusSystemError

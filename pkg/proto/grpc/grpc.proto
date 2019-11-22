@@ -1653,9 +1653,9 @@ message VatTransactionsRequest {
     //@inject_tag: json:"vat_report_id" validate:"required,hexadecimal,len=24"
     string vat_report_id = 1;
     // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
-    int32 limit = 2;
+    int64 limit = 2;
     // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
-    int32 offset = 3;
+    int64 offset = 3;
     // @inject_tag: query:"sort[]"
     repeated string sort = 4;
 }
@@ -1679,9 +1679,9 @@ message VatReportsRequest {
     //@inject_tag: json:"country" query:"country" validate:"required,alpha,len=2"
     string country = 1;
     // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
-    int32 limit = 2;
+    int64 limit = 2;
     // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
-    int32 offset = 3;
+    int64 offset = 3;
     // @inject_tag: query:"sort[]"
     repeated string sort = 4;
 }
