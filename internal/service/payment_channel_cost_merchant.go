@@ -263,7 +263,16 @@ func (h PaymentChannelCostMerchant) MultipleInsert(obj []*billing.PaymentChannel
 		c[i] = v
 	}
 
-	if err := h.svc.db.Collection(collectionPaymentChannelCostMerchant).Insert(c...); err != nil {
+	err := h.svc.db.Collection(collectionPaymentChannelCostMerchant).Insert(c...)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionPaymentChannelCostMerchant),
+			zap.String(pkg.ErrorDatabaseFieldOperation, pkg.ErrorDatabaseFieldOperationInsert),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, c),
+		)
 		return err
 	}
 

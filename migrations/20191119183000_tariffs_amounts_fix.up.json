@@ -1,0 +1,31 @@
+[
+  {
+    "update": "merchants_payment_tariffs",
+    "updates": [
+      {
+        "q": {
+          "min_amount": 111.0
+        },
+        "u": {
+          "$set": {
+            "min_amount": 100.0
+          }
+        },
+        "multi": true
+      },
+      {
+        "q": {
+          "max_amount": {
+            "$gte": 99999999
+          }
+        },
+        "u": {
+          "$set": {
+            "max_amount": 10000.0
+          }
+        },
+        "multi": true
+      }
+    ]
+  }
+]

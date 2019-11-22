@@ -1273,6 +1273,7 @@ message PaymentChannelCostSystemRequest {
 }
 
 message PaymentChannelCostSystemList {
+    //@inject_tag: json:"items"
     repeated PaymentChannelCostSystem items = 1;
 }
 
@@ -1331,6 +1332,7 @@ message PaymentChannelCostMerchantRequest {
 }
 
 message PaymentChannelCostMerchantList {
+    //@inject_tag: json:"items"
     repeated PaymentChannelCostMerchant items = 1;
 }
 
@@ -1396,6 +1398,7 @@ message MoneyBackCostSystemRequest {
 }
 
 message MoneyBackCostSystemList {
+    //@inject_tag: json:"items"
     repeated MoneyBackCostSystem items = 1;
 }
 
@@ -1463,6 +1466,7 @@ message PaymentCostDeleteRequest {
 }
 
 message MoneyBackCostMerchantList {
+    //@inject_tag: json:"items"
     repeated MoneyBackCostMerchant items = 1;
 }
 
@@ -2361,6 +2365,8 @@ message OperatingCompany {
     google.protobuf.Timestamp updated_at = 13;
     // @inject_tag: bson:"registration_date" json:"registration_date" validate:"required"
     string registration_date = 14;
+    // @inject_tag: bson:"email" json:"email" validate:"required,email"
+    string email = 15;
 }
 
 message PaymentMinLimitSystem {

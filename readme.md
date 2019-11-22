@@ -90,16 +90,10 @@ To run application as microservice simply don't pass any flags to command line :
 | EMAIL_UPDATE_ROYALTY_REPORT_TEMPLATE                | Royalty report update notification email template name                                                                              |
 | EMAIL_VAT_REPORT_TEMPLATE                           | New vat report notification email template name                                                                                     |
 | EMAIL_NEW_PAYOUT_TEMPLATE                           | New payout notification email template name                                                                                         |
-| PAYSUPER_DOCUMENT_SIGNER_EMAIL                      | Paysuper signer email for sign license agreements                                                                                   |
-| PAYSUPER_DOCUMENT_SIGNER_NAME                       | Paysuper signer name for sign license agreements                                                                                    |
 | HELLO_SIGN_DEFAULT_TEMPLATE                         | License agreement template identifier in HelloSign                                                                                  |
 | HELLO_SIGN_AGREEMENT_CLIENT_ID                      | Client application identifier in HelloSign for Merchant Agreement sign                                                              |
-| HELLO_SIGN_PAYOUTS_CLIENT_ID                        | Client application identifier in HelloSign for Payout Invoice sign                                                                  |
 | KEY_DAEMON_RESTART_INTERVAL                         | Starting frequency in seconds of the script to check the locked keys and return them to the stack.                                  |
 | EMAIL_ACTIVATION_CODE_TEMPLATE                      | Postmark Email template id for sending to user with activation code                                                                 |
-| HELLO_SIGN_PAYOUTS_TITLE                            | Hellosign title for payout invoices                                                                                                 |
-| HELLO_SIGN_PAYOUTS_SUBJECT                          | Hellosign subject for payout invoices                                                                                               |
-| HELLO_SIGN_PAYOUTS_MESSAGE                          | Hellosign prompt message for payout invoices                                                                                        |
 | PAYLINK_MIN_PRODUCTS                                | Minimum number of products allowed for one payment link (must be >= 1)                                                              |
 | PAYLINK_MAX_PRODUCTS                                | Maximum number of products allowed for one payment link                                                                             |
 | ROYALTY_REPORTS_URL                                 | Url to use in template of royalty reports                                                                                           |
@@ -110,6 +104,7 @@ To run application as microservice simply don't pass any flags to command line :
 | EMAIL_ONBOARDING_ADMIN_RECIPIENT                    | Email of onboarding administrator                                                                                                   |
 | MERCHANTS_AGREEMENT_SIGNATURE_URL                   | Merchant license agreement page url                                                                                                 |
 | ADMIN_ONBOARDING_REQUESTS_URL                       | Onboarding administrator agreement requests page url                                                                                |
+| MIGRATIONS_LOCK_TIMEOUT                             | Timeout for process db migrations on app start                                                                                       |
 | USER_INVITE_TOKEN_SECRET                            | Secret key for generation invitation token of user                                                                                  |
 | USER_INVITE_TOKEN_TIMEOUT                           | Timeout in hours for lifetime of invitation token of user                                                                           |
 

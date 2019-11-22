@@ -1,0 +1,109 @@
+[
+  {
+    "update": "country",
+    "updates": [
+      {
+        "q": {
+          "payer_tariff_region": "latam"
+        },
+        "u": {
+          "$set": {
+            "payer_tariff_region": "latin_america"
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "update": "merchants_payment_tariffs",
+    "updates": [
+      {
+        "q": {
+          "payer_region": "latam"
+        },
+        "u": {
+          "$set": {
+            "payer_region": "latin_america"
+          }
+        },
+        "multi": true
+      },
+      {
+        "q": {
+          "merchant_home_region": "latam"
+        },
+        "u": {
+          "$set": {
+            "merchant_home_region": "latin_america"
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "update": "money_back_cost_system",
+    "updates": [
+      {
+        "q": {
+          "region": "latam"
+        },
+        "u": {
+          "$set": {
+            "region": "latin_america"
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "update": "payment_channel_cost_system",
+    "updates": [
+      {
+        "q": {
+          "region": "latam"
+        },
+        "u": {
+          "$set": {
+            "region": "latin_america"
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "update": "payment_channel_cost_merchant",
+    "updates": [
+      {
+        "q": {
+          "region": "latam"
+        },
+        "u": {
+          "$set": {
+            "region": "latin_america"
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "update": "money_back_cost_merchant",
+    "updates": [
+      {
+        "q": {
+          "region": "latam"
+        },
+        "u": {
+          "$set": {
+            "region": "latin_america"
+          }
+        },
+        "multi": true
+      }
+    ]
+  }
+]

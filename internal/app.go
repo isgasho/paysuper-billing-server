@@ -78,20 +78,23 @@ func (app *Application) Init() {
 
 	app.cfg = cfg
 
-	//app.logger.Info("db migrations started")
-	//migrations, err := migrate.New(pkg.MigrationSource, app.cfg.MongoDsn)
-	//
-	//if err != nil {
-	//	app.logger.Fatal("Migrations initialization failed", zap.Error(err))
-	//}
-	//
-	//err = migrations.Up()
-	//
-	//if err != nil && err != migrate.ErrNoChange && err != migrate.ErrNilVersion {
-	//	app.logger.Fatal("Migrations processing failed", zap.Error(err))
-	//}
-	//
-	//app.logger.Info("db migrations applied")
+	app.logger.Info("db migrations started")
+
+	migrations, err := migrate.New(pkg.MigrationSource, app.cfg.MongoDsn)
+
+	if err != nil {
+		app.logger.Fatal("Migrations initialization failed", zap.Error(err))
+	}
+
+	migrations.LockTimeout = time.Duration(cfg.MigrationsLockTimeout) * time.Second
+
+	err = migrations.Up()
+
+	if err != nil && err != migrate.ErrNoChange && err != migrate.ErrNilVersion {
+		app.logger.Fatal("Migrations processing failed", zap.Error(err))
+	}
+
+	app.logger.Info("db migrations applied")
 
 	opts := []mongodb.Option{mongodb.Mode(mgo.Primary)}
 	db, err := mongodb.NewDatabase(opts...)

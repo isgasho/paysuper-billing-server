@@ -13,6 +13,19 @@ const (
 	orderPaymentMethodNotSet   = "payment method not set"
 )
 
+func (m *Order) CanBeRecreated() bool {
+	if m.PrivateStatus != constant.OrderStatusPaymentSystemRejectOnCreate &&
+		m.PrivateStatus != constant.OrderStatusPaymentSystemReject &&
+		m.PrivateStatus != constant.OrderStatusProjectReject &&
+		m.PrivateStatus != constant.OrderStatusPaymentSystemDeclined &&
+		m.PrivateStatus != constant.OrderStatusPaymentSystemCanceled {
+
+		return false
+	}
+
+	return true
+}
+
 func (m *Order) GetMerchantId() string {
 	return m.Project.MerchantId
 }

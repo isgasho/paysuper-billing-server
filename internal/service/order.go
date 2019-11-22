@@ -15,6 +15,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/google/uuid"
+	"github.com/jinzhu/copier"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -137,6 +138,9 @@ var (
 	orderErrorMerchantDoNotHaveCompanyInfo                    = newBillingServerErrorMsg("fm000070", "merchant don't have completed company info")
 	orderErrorMerchantDoNotHaveBanking                        = newBillingServerErrorMsg("fm000071", "merchant don't have completed banking info")
 	orderErrorAmountLowerThanMinLimitSystem                   = newBillingServerErrorMsg("fm000072", "order amount is lower than min system limit")
+	orderErrorAlreadyProcessed                                = newBillingServerErrorMsg("fm000073", "order is already processed")
+	orderErrorDontHaveReceiptUrl                              = newBillingServerErrorMsg("fm000074", "processed order don't have receipt url")
+	orderErrorWrongPrivateStatus                              = newBillingServerErrorMsg("fm000075", "order has wrong private status and cannot be recreated")
 
 	virtualCurrencyPayoutCurrencyMissed = newBillingServerErrorMsg("vc000001", "virtual currency don't have price in merchant payout currency")
 
@@ -547,6 +551,18 @@ func (s *Service) PaymentFormJsonDataProcess(
 		return err
 	}
 
+	if order.PrivateStatus != constant.OrderStatusNew && order.PrivateStatus != constant.OrderStatusPaymentSystemComplete {
+		if len(order.ReceiptUrl) == 0 {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = orderErrorDontHaveReceiptUrl
+			return nil
+		}
+		s.fillPaymentFormJsonData(order, rsp)
+		rsp.Item.IsAlreadyProcessed = true
+		rsp.Item.ReceiptUrl = order.ReceiptUrl
+		return nil
+	}
+
 	p := &PaymentFormProcessor{service: s, order: order, request: req}
 	p1 := &OrderCreateRequestProcessor{
 		Service: s,
@@ -721,7 +737,17 @@ func (s *Service) PaymentFormJsonDataProcess(
 	}
 	order.Issuer.ReferrerHost = getHostFromUrl(order.Issuer.Url)
 
-	p1.processOrderVat(order)
+	err = p1.processOrderVat(order)
+	if err != nil {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error(), "method", "processOrderVat")
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = e
+			return nil
+		}
+		return err
+	}
+
 	err = s.updateOrder(order)
 
 	if err != nil {
@@ -759,6 +785,19 @@ func (s *Service) PaymentFormJsonDataProcess(
 		return err
 	}
 
+	s.fillPaymentFormJsonData(order, rsp)
+	rsp.Item.PaymentMethods = pms
+
+	cookie, err := s.generateBrowserCookie(browserCustomer)
+
+	if err == nil {
+		rsp.Item.Cookie = cookie
+	}
+
+	return nil
+}
+
+func (s *Service) fillPaymentFormJsonData(order *billing.Order, rsp *grpc.PaymentFormJsonDataResponse) {
 	projectName, ok := order.Project.Name[order.User.Locale]
 
 	if !ok {
@@ -779,7 +818,6 @@ func (s *Service) PaymentFormJsonDataProcess(
 		UrlSuccess: order.Project.UrlSuccess,
 		UrlFail:    order.Project.UrlFail,
 	}
-	rsp.Item.PaymentMethods = pms
 	rsp.Item.Token, _ = token.SignedString([]byte(s.cfg.CentrifugoSecret))
 	rsp.Item.Amount = order.OrderAmount
 	rsp.Item.TotalAmount = order.TotalPaymentAmount
@@ -800,14 +838,6 @@ func (s *Service) PaymentFormJsonDataProcess(
 		Zip:     order.User.Address.PostalCode,
 	}
 	rsp.Item.Lang = order.User.Locale
-
-	cookie, err := s.generateBrowserCookie(browserCustomer)
-
-	if err == nil {
-		rsp.Item.Cookie = cookie
-	}
-
-	return nil
 }
 
 func (s *Service) PaymentCreateProcess(
@@ -902,7 +932,16 @@ func (s *Service) PaymentCreateProcess(
 	}
 
 	p1 := &OrderCreateRequestProcessor{Service: s}
-	p1.processOrderVat(order)
+	err = p1.processOrderVat(order)
+	if err != nil {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error(), "method", "processOrderVat")
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = e
+			return nil
+		}
+		return err
+	}
 
 	if _, ok := order.PaymentRequisites[pkg.PaymentCreateFieldRecurringId]; ok {
 		req.Data[pkg.PaymentCreateFieldRecurringId] = order.PaymentRequisites[pkg.PaymentCreateFieldRecurringId]
@@ -1432,7 +1471,16 @@ func (s *Service) ProcessBillingAddress(
 	}
 
 	processor := &OrderCreateRequestProcessor{Service: s}
-	processor.processOrderVat(order)
+	err = processor.processOrderVat(order)
+	if err != nil {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error(), "method", "processOrderVat")
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = e
+			return nil
+		}
+		return err
+	}
 
 	err = s.updateOrder(order)
 
@@ -1944,7 +1992,11 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 		}
 	} else {
 		if order.User.Address != nil {
-			v.processOrderVat(order)
+			err := v.processOrderVat(order)
+			if err != nil {
+				zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error(), "method", "processOrderVat")
+				return nil, err
+			}
 
 			restricted, err := v.applyCountryRestriction(order, order.GetCountry())
 			if err != nil {
@@ -2369,12 +2421,25 @@ func (v *OrderCreateRequestProcessor) processSignature() error {
 }
 
 // Calculate VAT for order
-func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) {
+func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) error {
 
 	order.Tax = &billing.OrderTax{
 		Type:     taxTypeVat,
 		Currency: order.Currency,
 	}
+	order.TotalPaymentAmount = order.OrderAmount
+
+	countryCode := order.GetCountry()
+	if countryCode != "" {
+		country, err := v.country.GetByIsoCodeA2(countryCode)
+		if err != nil {
+			return err
+		}
+		if country.VatEnabled == false {
+			return nil
+		}
+	}
+
 	req := &tax_service.GetRateRequest{
 		IpData:   &tax_service.GeoIdentity{},
 		UserData: &tax_service.GeoIdentity{},
@@ -2406,7 +2471,7 @@ func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) {
 
 	if err != nil {
 		v.logError("Tax service return error", []interface{}{"error", err.Error(), "request", req})
-		return
+		return err
 	}
 
 	if order.BillingAddress != nil {
@@ -2417,7 +2482,7 @@ func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) {
 	order.Tax.Amount = tools.FormatAmount(order.OrderAmount * order.Tax.Rate)
 	order.TotalPaymentAmount = tools.FormatAmount(order.OrderAmount + order.Tax.Amount)
 
-	return
+	return nil
 }
 
 func (v *OrderCreateRequestProcessor) processCustomerToken() error {
@@ -2693,6 +2758,10 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 		return err
 	}
 
+	if order.PrivateStatus != constant.OrderStatusNew && order.PrivateStatus != constant.OrderStatusPaymentSystemComplete {
+		return orderErrorAlreadyProcessed
+	}
+
 	if order.UserAddressDataRequired == true {
 		country, ok := v.data[pkg.PaymentCreateFieldUserCountry]
 
@@ -2806,7 +2875,11 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 			}
 		}
 
-		processor.processOrderVat(order)
+		err = processor.processOrderVat(order)
+		if err != nil {
+			zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error(), "method", "processOrderVat")
+			return err
+		}
 		updCustomerReq.User.Address = order.BillingAddress
 	}
 
@@ -4154,5 +4227,68 @@ func (v *OrderCreateRequestProcessor) processVirtualCurrency() error {
 	}
 
 	v.checked.virtualAmount = amount
+	return nil
+}
+
+func (s *Service) OrderReCreateProcess(ctx context.Context, req *grpc.OrderReCreateProcessRequest, res *grpc.OrderCreateProcessResponse) error {
+	res.Status = pkg.ResponseStatusOk
+
+	order, err := s.orderRepository.GetByUuid(req.OrderId)
+	if err != nil {
+		zap.S().Errorw(pkg.ErrorGrpcServiceCallFailed, "err", err.Error(), "data", req)
+		res.Status = pkg.ResponseStatusNotFound
+		res.Message = orderErrorUnknown
+		return nil
+	}
+
+	if !order.CanBeRecreated() {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = orderErrorWrongPrivateStatus
+		return nil
+	}
+
+	newOrder := new(billing.Order)
+	err = copier.Copy(&newOrder, &order)
+
+	if err != nil {
+		zap.S().Error(
+			"Copy order to new structure order by refund failed",
+			zap.Error(err),
+			zap.Any("order", order),
+		)
+
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = orderErrorUnknown
+
+		return nil
+	}
+
+	newOrder.PrivateStatus = constant.OrderStatusNew
+	newOrder.Status = constant.OrderPublicStatusCreated
+	newOrder.Id = bson.NewObjectId().Hex()
+	newOrder.Uuid = uuid.New().String()
+	newOrder.ReceiptId = uuid.New().String()
+	newOrder.CreatedAt = ptypes.TimestampNow()
+	newOrder.UpdatedAt = ptypes.TimestampNow()
+	newOrder.Canceled = false
+	newOrder.CanceledAt = nil
+	newOrder.ReceiptUrl = ""
+	newOrder.PaymentMethod = nil
+
+	err = s.db.Collection(collectionOrder).Insert(newOrder)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrder),
+		)
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = orderErrorCanNotCreate
+		return nil
+	}
+
+	res.Item = newOrder
+
 	return nil
 }

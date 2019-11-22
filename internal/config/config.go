@@ -86,14 +86,8 @@ type Config struct {
 
 	OrderViewUpdateBatchSize int `envconfig:"ORDER_VIEW_UPDATE_BATCH_SIZE" default:"200"`
 
-	HelloSignDefaultTemplate    string `envconfig:"HELLO_SIGN_DEFAULT_TEMPLATE" required:"true"`
-	HelloSignAgreementClientId  string `envconfig:"HELLO_SIGN_AGREEMENT_CLIENT_ID" required:"true"`
-	HelloSignPayoutsClientId    string `envconfig:"HELLO_SIGN_PAYOUTS_CLIENT_ID" required:"true"`
-	HelloSignPayoutsTitle       string `envconfig:"HELLO_SIGN_PAYOUTS_TITLE" default:"Payout invoice"`
-	HelloSignPayoutsSubject     string `envconfig:"HELLO_SIGN_PAYOUTS_SUBJECT" default:"Merchant's payout invoice"`
-	HelloSignPayoutsMessage     string `envconfig:"HELLO_SIGN_PAYOUTS_MESSAGE" default:"Please sign this invoice to get your royalty"`
-	PaysuperDocumentSignerEmail string `envconfig:"PAYSUPER_DOCUMENT_SIGNER_EMAIL" required:"true"`
-	PaysuperDocumentSignerName  string `envconfig:"PAYSUPER_DOCUMENT_SIGNER_NAME" required:"true"`
+	HelloSignDefaultTemplate   string `envconfig:"HELLO_SIGN_DEFAULT_TEMPLATE" required:"true"`
+	HelloSignAgreementClientId string `envconfig:"HELLO_SIGN_AGREEMENT_CLIENT_ID" required:"true"`
 
 	KeyDaemonRestartInterval int64  `envconfig:"KEY_DAEMON_RESTART_INTERVAL" default:"60"`
 	DashboardProjectsUrl     string `envconfig:"DASHBOARD_PROJECTS_URL" default:"https://paysupermgmt.tst.protocol.one/projects"`
@@ -120,6 +114,8 @@ type Config struct {
 	EmailConfirmUrlParsed    *url.URL
 	RedirectUrlSuccessParsed *url.URL
 	RedirectUrlFailParsed    *url.URL
+
+	MigrationsLockTimeout int64 `envconfig:"MIGRATIONS_LOCK_TIMEOUT" default:"60"`
 }
 
 func NewConfig() (*Config, error) {
