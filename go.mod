@@ -23,7 +23,7 @@ require (
 	github.com/micro/cli v0.2.0
 	github.com/micro/go-micro v1.8.0
 	github.com/micro/go-plugins v1.2.0
-	github.com/paysuper/casbin-server v0.0.0-20191031114753-f40b0e2b42ba
+	github.com/paysuper/casbin-server v0.0.0-20191122132246-d8ec49ebf099 // indirect
 	github.com/paysuper/document-signer v0.0.0-20190930091754-a3f6474309f3
 	github.com/paysuper/paysuper-currencies v0.0.0-20190903083641-668b8b2b997d
 	github.com/paysuper/paysuper-database-mongo v0.1.3
@@ -52,7 +52,6 @@ replace (
 	github.com/lucas-clemente/quic-go => github.com/lucas-clemente/quic-go v0.12.0
 	github.com/marten-seemann/qtls => github.com/marten-seemann/qtls v0.3.2
 	golang.org/x/sys => golang.org/x/sys v0.0.0-20190927073244-c990c680b611
-	gopkg.in/DATA-DOG/go-sqlmock.v1 => github.com/DATA-DOG/go-sqlmock v1.3.3
 	gopkg.in/urfave/cli.v1 => github.com/urfave/cli v1.21.0
 	sourcegraph.com/sourcegraph/go-diff => github.com/sourcegraph/go-diff v0.5.1
 )
