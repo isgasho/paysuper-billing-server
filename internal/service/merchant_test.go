@@ -7,12 +7,12 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"testing"
 )
 
@@ -96,7 +96,7 @@ func (suite *MerchantTestSuite) SetupTest() {
 			},
 		},
 	}
-	if err := suite.service.merchant.Insert(suite.merchant); err != nil {
+	if err := suite.service.merchant.Insert(ctx, suite.merchant); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 }
@@ -110,7 +110,7 @@ func (suite *MerchantTestSuite) TearDownTest() {
 }
 
 func (suite *MerchantTestSuite) TestMerchant_Insert_Ok() {
-	assert.NoError(suite.T(), suite.service.merchant.Insert(&billing.Merchant{}))
+	assert.NoError(suite.T(), suite.service.merchant.Insert(ctx, &billing.Merchant{}))
 }
 
 func (suite *MerchantTestSuite) TestMerchant_Insert_ErrorCacheUpdate() {
@@ -119,18 +119,18 @@ func (suite *MerchantTestSuite) TestMerchant_Insert_ErrorCacheUpdate() {
 	ci.On("Set", "merchant:id:"+id, mock2.Anything, mock2.Anything).
 		Return(errors.New("service unavailable"))
 	suite.service.cacher = ci
-	err := suite.service.merchant.Insert(&billing.Merchant{Id: id})
+	err := suite.service.merchant.Insert(ctx, &billing.Merchant{Id: id})
 
 	assert.Error(suite.T(), err)
 	assert.EqualError(suite.T(), err, "service unavailable")
 }
 
 func (suite *MerchantTestSuite) TestMerchant_Update_Ok() {
-	assert.NoError(suite.T(), suite.service.merchant.Update(&billing.Merchant{Id: suite.merchant.Id}))
+	assert.NoError(suite.T(), suite.service.merchant.Update(ctx, &billing.Merchant{Id: suite.merchant.Id}))
 }
 
 func (suite *MerchantTestSuite) TestMerchant_Update_NotFound() {
-	err := suite.service.merchant.Update(&billing.Merchant{Id: bson.NewObjectId().Hex()})
+	err := suite.service.merchant.Update(ctx, &billing.Merchant{Id: bson.NewObjectId().Hex()})
 
 	assert.Error(suite.T(), err)
 	assert.EqualError(suite.T(), err, "not found")
@@ -142,8 +142,8 @@ func (suite *MerchantTestSuite) TestMerchant_Update_ErrorCacheUpdate() {
 	ci.On("Set", "merchant:id:"+id, mock2.Anything, mock2.Anything).
 		Return(errors.New("service unavailable"))
 	suite.service.cacher = ci
-	_ = suite.service.merchant.Insert(&billing.Merchant{Id: id})
-	err := suite.service.merchant.Update(&billing.Merchant{Id: id})
+	_ = suite.service.merchant.Insert(ctx, &billing.Merchant{Id: id})
+	err := suite.service.merchant.Update(ctx, &billing.Merchant{Id: id})
 
 	assert.Error(suite.T(), err)
 	assert.EqualError(suite.T(), err, "service unavailable")
@@ -153,10 +153,10 @@ func (suite *MerchantTestSuite) TestMerchant_GetById_Ok() {
 	merchant := &billing.Merchant{
 		Id: bson.NewObjectId().Hex(),
 	}
-	if err := suite.service.merchant.Insert(merchant); err != nil {
+	if err := suite.service.merchant.Insert(ctx, merchant); err != nil {
 		suite.Assert().NoError(err)
 	}
-	c, err := suite.service.merchant.GetById(merchant.Id)
+	c, err := suite.service.merchant.GetById(ctx, merchant.Id)
 
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), c)
@@ -168,21 +168,21 @@ func (suite *MerchantTestSuite) TestMerchant_GetById_Ok_ByCache() {
 	ci.On("Get", "merchant:id:"+suite.merchant.Id, mock2.Anything).
 		Return(nil)
 	suite.service.cacher = ci
-	c, err := suite.service.merchant.GetById(suite.merchant.Id)
+	c, err := suite.service.merchant.GetById(ctx, suite.merchant.Id)
 
 	assert.Nil(suite.T(), err)
 	assert.IsType(suite.T(), &billing.Merchant{}, c)
 }
 
 func (suite *MerchantTestSuite) TestMerchant_GetPaymentMethod_Ok() {
-	pm, err := suite.service.merchant.GetPaymentMethod(suite.merchant.Id, suite.pmBankCard.Id)
+	pm, err := suite.service.merchant.GetPaymentMethod(ctx, suite.merchant.Id, suite.pmBankCard.Id)
 
 	assert.NoError(suite.T(), err)
 	assert.IsType(suite.T(), &billing.MerchantPaymentMethod{}, pm)
 }
 
 func (suite *MerchantTestSuite) TestMerchant_GetPaymentMethod_ErrorByMerchantNotFound() {
-	_, err := suite.service.merchant.GetPaymentMethod(bson.NewObjectId().Hex(), "")
+	_, err := suite.service.merchant.GetPaymentMethod(ctx, bson.NewObjectId().Hex(), "")
 
 	assert.Error(suite.T(), err)
 	assert.EqualError(suite.T(), err, "merchant not found")
