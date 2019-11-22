@@ -11,12 +11,12 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"testing"
 )
 
@@ -99,7 +99,7 @@ func (suite *MoneyBackCostSystemTestSuite) SetupTest() {
 		PayerTariffRegion: pkg.TariffRegionWorldwide,
 	}
 	countries := []*billing.Country{countryAz, countryUs}
-	if err := suite.service.country.MultipleInsert(countries); err != nil {
+	if err := suite.service.country.MultipleInsert(ctx, countries); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 
@@ -155,7 +155,7 @@ func (suite *MoneyBackCostSystemTestSuite) SetupTest() {
 		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 	pucs := []*billing.MoneyBackCostSystem{moneyBackCostSystem, moneyBackCostSystem2, anotherMoneyBackCostSystem}
-	if err := suite.service.moneyBackCostSystem.MultipleInsert(pucs); err != nil {
+	if err := suite.service.moneyBackCostSystem.MultipleInsert(ctx, pucs); err != nil {
 		suite.FailNow("Insert MoneyBackCostSystem test data failed", "%v", err)
 	}
 }
@@ -245,7 +245,7 @@ func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_Insert_Ok() {
 		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
-	assert.NoError(suite.T(), suite.service.moneyBackCostSystem.Insert(req))
+	assert.NoError(suite.T(), suite.service.moneyBackCostSystem.Insert(ctx, req))
 }
 
 func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_Insert_ErrorCacheUpdate() {
@@ -269,7 +269,7 @@ func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_Insert_ErrorC
 		MccCode:            pkg.MccCodeLowRisk,
 		OperatingCompanyId: suite.operatingCompany.Id,
 	}
-	err := suite.service.moneyBackCostSystem.Insert(obj)
+	err := suite.service.moneyBackCostSystem.Insert(ctx, obj)
 
 	assert.Error(suite.T(), err)
 	assert.EqualError(suite.T(), err, "service unavailable")
@@ -293,17 +293,17 @@ func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_UpdateOk() {
 		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
-	assert.NoError(suite.T(), suite.service.moneyBackCostSystem.Update(obj))
+	assert.NoError(suite.T(), suite.service.moneyBackCostSystem.Update(ctx, obj))
 }
 
 func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_Get_Ok() {
-	val, err := suite.service.moneyBackCostSystem.Get("VISA", "USD", "chargeback", pkg.TariffRegionRussiaAndCis, "AZ", pkg.MccCodeLowRisk, suite.operatingCompany.Id, 1)
+	val, err := suite.service.moneyBackCostSystem.Get(ctx, "VISA", "USD", "chargeback", pkg.TariffRegionRussiaAndCis, "AZ", pkg.MccCodeLowRisk, suite.operatingCompany.Id, 1)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), len(val), 2)
 	assert.Equal(suite.T(), val[0].Set[0].Country, "AZ")
 	assert.Equal(suite.T(), val[0].Set[0].FixAmount, float64(5))
 
-	val, err = suite.service.moneyBackCostSystem.Get("VISA", "USD", "chargeback", pkg.TariffRegionRussiaAndCis, "", pkg.MccCodeLowRisk, suite.operatingCompany.Id, 1)
+	val, err = suite.service.moneyBackCostSystem.Get(ctx, "VISA", "USD", "chargeback", pkg.TariffRegionRussiaAndCis, "", pkg.MccCodeLowRisk, suite.operatingCompany.Id, 1)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), len(val), 1)
 	assert.Equal(suite.T(), val[0].Set[0].Country, "")
@@ -323,14 +323,14 @@ func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_getMoneyBackC
 		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 
-	val, err := suite.service.getMoneyBackCostSystem(req)
+	val, err := suite.service.getMoneyBackCostSystem(ctx, req)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), val.DaysFrom, int32(0))
 	assert.Equal(suite.T(), val.Percent, float64(3))
 	assert.Equal(suite.T(), val.FixAmount, float64(5))
 
 	req.Days = 45
-	val, err = suite.service.getMoneyBackCostSystem(req)
+	val, err = suite.service.getMoneyBackCostSystem(ctx, req)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), val.DaysFrom, int32(30))
 	assert.Equal(suite.T(), val.Percent, float64(10))
@@ -347,7 +347,7 @@ func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_Delete_Ok() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
 
-	_, err = suite.service.moneyBackCostSystem.GetById(suite.moneyBackCostSystemId)
+	_, err = suite.service.moneyBackCostSystem.GetById(ctx, suite.moneyBackCostSystemId)
 	assert.EqualError(suite.T(), err, fmt.Sprintf(errorNotFound, collectionMoneyBackCostSystem))
 }
 
