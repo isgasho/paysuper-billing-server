@@ -315,7 +315,7 @@ func (s *Service) ProcessRefundCallback(
 		processor := &createRefundProcessor{service: s}
 		refundedAmount, _ := processor.getRefundedAmount(order)
 
-		if refundedAmount == order.TotalPaymentAmount {
+		if refundedAmount == order.ChargeAmount {
 			if refund.IsChargeback == true {
 				order.PrivateStatus = constant.OrderStatusChargeback
 				order.Status = constant.OrderPublicStatusChargeback
@@ -427,7 +427,7 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 	refundOrder.ParentPaymentAt = refundOrder.PaymentMethodOrderClosedAt
 	refundOrder.PaymentMethodOrderClosedAt = ptypes.TimestampNow()
 
-	refundOrder.TotalPaymentAmount = refund.Amount
+	refundOrder.ChargeAmount = refund.Amount
 
 	refundOrder.Tax.Amount = tools.FormatAmount(refund.Amount / (1 + refundOrder.Tax.Rate) * refundOrder.Tax.Rate)
 	refundOrder.OrderAmount = tools.FormatAmount(refundOrder.TotalPaymentAmount - refundOrder.Tax.Amount)
@@ -494,7 +494,7 @@ func (p *createRefundProcessor) processCreateRefund() (*billing.Refund, error) {
 	}
 
 	if refund.IsChargeback == true {
-		refund.Amount = p.checked.order.TotalPaymentAmount
+		refund.Amount = p.checked.order.ChargeAmount
 		refund.IsChargeback = p.request.IsChargeback
 	}
 
@@ -543,7 +543,7 @@ func (p *createRefundProcessor) processRefundsByOrder() error {
 		return newBillingServerResponseError(pkg.ResponseStatusBadData, refundErrorUnknown)
 	}
 
-	if p.checked.order.TotalPaymentAmount < (refundedAmount + p.request.Amount) {
+	if p.checked.order.ChargeAmount < (refundedAmount + p.request.Amount) {
 		return newBillingServerResponseError(pkg.ResponseStatusBadData, refundErrorPaymentAmountLess)
 	}
 

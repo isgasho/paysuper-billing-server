@@ -394,19 +394,20 @@ func (h *accountingEntry) processPaymentEvent() error {
 
 	// 1. realGrossRevenue
 	realGrossRevenue := h.newEntry(pkg.AccountingEntryTypeRealGrossRevenue)
-	realGrossRevenue.Amount, err = h.GetExchangePsCurrentCommon(h.order.Currency, h.order.TotalPaymentAmount)
+	realGrossRevenue.Amount, err = h.GetExchangePsCurrentCommon(h.order.ChargeCurrency, h.order.ChargeAmount)
 	if err != nil {
 		return err
 	}
-	realGrossRevenue.OriginalAmount = h.order.TotalPaymentAmount
-	realGrossRevenue.OriginalCurrency = h.order.Currency
+	realGrossRevenue.OriginalAmount = h.order.ChargeAmount
+	realGrossRevenue.OriginalCurrency = h.order.ChargeCurrency
 	if err = h.addEntry(realGrossRevenue); err != nil {
 		return err
 	}
 
 	// 2. realTaxFee
 	realTaxFee := h.newEntry(pkg.AccountingEntryTypeRealTaxFee)
-	realTaxFee.Amount, err = h.GetExchangePsCurrentCommon(h.order.Tax.Currency, h.order.Tax.Amount)
+	orderTaxAmount := h.order.ChargeAmount / (1 + h.order.Tax.Rate) * h.order.Tax.Rate
+	realTaxFee.Amount, err = h.GetExchangePsCurrentCommon(h.order.Tax.Currency, orderTaxAmount)
 	if err != nil {
 		return err
 	}
@@ -428,7 +429,7 @@ func (h *accountingEntry) processPaymentEvent() error {
 
 	// 5. psGrossRevenueFx
 	psGrossRevenueFx := h.newEntry(pkg.AccountingEntryTypePsGrossRevenueFx)
-	amount, err = h.GetExchangePsCurrentMerchant(h.order.Currency, h.order.TotalPaymentAmount)
+	amount, err = h.GetExchangePsCurrentMerchant(h.order.ChargeCurrency, h.order.ChargeAmount)
 	if err != nil {
 		return err
 	}
@@ -630,7 +631,7 @@ func (h *accountingEntry) processRefundEvent() error {
 		return err
 	}
 
-	partialRefundCorrection := h.refund.Amount / h.order.TotalPaymentAmount
+	partialRefundCorrection := h.refund.Amount / h.order.ChargeAmount
 	if partialRefundCorrection > 1 {
 		return accountingEntryErrorRefundExceedsOrderAmount
 	}

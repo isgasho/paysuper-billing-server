@@ -200,7 +200,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_RUB_RUB() {
 	err = suite.service.paymentSystem.Update(suite.paymentSystem)
 	assert.NoError(suite.T(), err)
 
-	refund := helperMakeRefund(suite.Suite, suite.service, order, order.TotalPaymentAmount, false)
+	refund := helperMakeRefund(suite.Suite, suite.service, order, order.ChargeAmount, false)
 	assert.NotNil(suite.T(), refund)
 
 	accountingEntries := suite.helperGetAccountingEntries(order.Id, collectionOrder)
@@ -310,7 +310,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_RUB() {
 	err := suite.service.paymentSystem.Update(suite.paymentSystem)
 	assert.NoError(suite.T(), err)
 
-	refund := helperMakeRefund(suite.Suite, suite.service, order, order.TotalPaymentAmount, false)
+	refund := helperMakeRefund(suite.Suite, suite.service, order, order.ChargeAmount, false)
 	assert.NotNil(suite.T(), refund)
 
 	orderAccountingEntries := suite.helperGetAccountingEntries(order.Id, collectionOrder)
@@ -420,7 +420,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_USD() {
 	err := suite.service.paymentSystem.Update(suite.paymentSystem)
 	assert.NoError(suite.T(), err)
 
-	refund := helperMakeRefund(suite.Suite, suite.service, order, order.TotalPaymentAmount, false)
+	refund := helperMakeRefund(suite.Suite, suite.service, order, order.ChargeAmount, false)
 	assert.NotNil(suite.T(), refund)
 
 	orderAccountingEntries := suite.helperGetAccountingEntries(order.Id, collectionOrder)
@@ -530,7 +530,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_EUR() {
 	err := suite.service.paymentSystem.Update(suite.paymentSystem)
 	assert.NoError(suite.T(), err)
 
-	refund := helperMakeRefund(suite.Suite, suite.service, order, order.TotalPaymentAmount, false)
+	refund := helperMakeRefund(suite.Suite, suite.service, order, order.ChargeAmount, false)
 	assert.NotNil(suite.T(), refund)
 
 	orderAccountingEntries := suite.helperGetAccountingEntries(order.Id, collectionOrder)
@@ -607,7 +607,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_PartialRefund_Ok_RUB_
 	err := suite.service.paymentSystem.Update(suite.paymentSystem)
 	assert.NoError(suite.T(), err)
 
-	refund := helperMakeRefund(suite.Suite, suite.service, order, order.TotalPaymentAmount*0.5, false)
+	refund := helperMakeRefund(suite.Suite, suite.service, order, order.ChargeAmount*0.5, false)
 	assert.NotNil(suite.T(), refund)
 	refundAccountingEntries := suite.helperGetAccountingEntries(refund.CreatedOrderId, collectionRefund)
 	assert.Equal(suite.T(), len(refundAccountingEntries), len(refundControlResults)-7)
@@ -683,7 +683,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_RUB
 	err = suite.service.paymentSystem.Update(suite.paymentSystem)
 	assert.NoError(suite.T(), err)
 
-	refund := helperMakeRefund(suite.Suite, suite.service, order, order.TotalPaymentAmount, true)
+	refund := helperMakeRefund(suite.Suite, suite.service, order, order.ChargeAmount, true)
 	assert.NotNil(suite.T(), refund)
 	refundAccountingEntries := suite.helperGetAccountingEntries(refund.CreatedOrderId, collectionRefund)
 	assert.Equal(suite.T(), len(refundAccountingEntries), len(refundControlResults)-7)
@@ -744,7 +744,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_USD
 	err := suite.service.paymentSystem.Update(suite.paymentSystem)
 	assert.NoError(suite.T(), err)
 
-	refund := helperMakeRefund(suite.Suite, suite.service, order, order.TotalPaymentAmount, true)
+	refund := helperMakeRefund(suite.Suite, suite.service, order, order.ChargeAmount, true)
 	assert.NotNil(suite.T(), refund)
 	refundAccountingEntries := suite.helperGetAccountingEntries(refund.CreatedOrderId, collectionRefund)
 	assert.Equal(suite.T(), len(refundAccountingEntries), len(refundControlResults)-7)
@@ -805,7 +805,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_USD
 	err := suite.service.paymentSystem.Update(suite.paymentSystem)
 	assert.NoError(suite.T(), err)
 
-	refund := helperMakeRefund(suite.Suite, suite.service, order, order.TotalPaymentAmount, true)
+	refund := helperMakeRefund(suite.Suite, suite.service, order, order.ChargeAmount, true)
 	assert.NotNil(suite.T(), refund)
 	refundAccountingEntries := suite.helperGetAccountingEntries(refund.CreatedOrderId, collectionRefund)
 	assert.Equal(suite.T(), len(refundAccountingEntries), len(refundControlResults)-7)
@@ -866,7 +866,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_USD
 	err := suite.service.paymentSystem.Update(suite.paymentSystem)
 	assert.NoError(suite.T(), err)
 
-	refund := helperMakeRefund(suite.Suite, suite.service, order, order.TotalPaymentAmount, true)
+	refund := helperMakeRefund(suite.Suite, suite.service, order, order.ChargeAmount, true)
 	assert.NotNil(suite.T(), refund)
 	refundAccountingEntries := suite.helperGetAccountingEntries(refund.CreatedOrderId, collectionRefund)
 	assert.Equal(suite.T(), len(refundAccountingEntries), len(refundControlResults)-7)
@@ -902,7 +902,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_CreateAccountingEntry
 	err := suite.service.paymentSystem.Update(suite.paymentSystem)
 	assert.NoError(suite.T(), err)
 
-	refund := helperMakeRefund(suite.Suite, suite.service, order, order.TotalPaymentAmount, true)
+	refund := helperMakeRefund(suite.Suite, suite.service, order, order.ChargeAmount, true)
 	assert.NotNil(suite.T(), refund)
 
 	req := &grpc.CreateAccountingEntryRequest{
@@ -953,7 +953,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_CreateAccountingEntry
 	err := suite.service.paymentSystem.Update(suite.paymentSystem)
 	assert.NoError(suite.T(), err)
 
-	refund := helperMakeRefund(suite.Suite, suite.service, order, order.TotalPaymentAmount, true)
+	refund := helperMakeRefund(suite.Suite, suite.service, order, order.ChargeAmount, true)
 	assert.NotNil(suite.T(), refund)
 
 	req := &grpc.CreateAccountingEntryRequest{
@@ -1039,7 +1039,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_CreateAccountingEntry
 	err := suite.service.paymentSystem.Update(suite.paymentSystem)
 	assert.NoError(suite.T(), err)
 
-	refund := helperMakeRefund(suite.Suite, suite.service, order, order.TotalPaymentAmount, true)
+	refund := helperMakeRefund(suite.Suite, suite.service, order, order.ChargeAmount, true)
 	assert.NotNil(suite.T(), refund)
 
 	refund.OriginalOrder.Id = bson.NewObjectId().Hex()

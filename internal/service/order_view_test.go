@@ -437,7 +437,7 @@ func (suite *OrderViewTestSuite) Test_OrderView_GetRoyaltySummary_Ok_SalesAndRef
 	assert.NoError(suite.T(), err)
 
 	for _, order := range orders {
-		refund := helperMakeRefund(suite.Suite, suite.service, order, order.TotalPaymentAmount, false)
+		refund := helperMakeRefund(suite.Suite, suite.service, order, order.ChargeAmount, false)
 		assert.NotNil(suite.T(), refund)
 	}
 
@@ -552,7 +552,7 @@ func (suite *OrderViewTestSuite) Test_OrderView_PaylinkStat() {
 
 	count = 0
 	for count < maxRefunds {
-		refund := helperMakeRefund(suite.Suite, suite.service, orders[count], orders[count].TotalPaymentAmount, false)
+		refund := helperMakeRefund(suite.Suite, suite.service, orders[count], orders[count].ChargeAmount, false)
 		assert.NotNil(suite.T(), refund)
 		count++
 	}

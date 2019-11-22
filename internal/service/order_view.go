@@ -3046,6 +3046,14 @@ func (s *Service) doUpdateOrderView(match bson.M) error {
 			},
 		},
 		{
+			"$addFields": bson.M{
+				"order_charge": bson.M{
+					"amount":   "$charge_amount",
+					"currency": "$charge_currency",
+				},
+			},
+		},
+		{
 			"$project": bson.M{
 				"_id":                  1,
 				"uuid":                 1,
@@ -3136,6 +3144,9 @@ func (s *Service) doUpdateOrderView(match bson.M) error {
 				"mcc_code":                                          1,
 				"operating_company_id":                              1,
 				"is_high_risk":                                      1,
+				"payment_ip_country":                                1,
+				"is_ip_country_mismatch_bin":                        1,
+				"order_charge":                                      1,
 				"merchant_payout_currency": bson.M{
 					"$ifNull": list{"$net_revenue.currency", "$refund_reverse_revenue.currency"},
 				},

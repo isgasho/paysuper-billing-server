@@ -506,6 +506,10 @@ message PaymentFormJsonData {
     bool is_already_processed = 22;
     //@inject_tag: json:"receipt_url"
     string receipt_url = 23;
+    // @inject_tag: json:"charge_currency"
+    string charge_currency = 24;
+    // @inject_tag: json:"charge_amount"
+    double charge_amount = 25;
 }
 
 message PaymentFormJsonDataResponse {
@@ -796,8 +800,14 @@ message ProcessBillingAddressResponseItem {
     string currency = 6;
     // @inject_tag: json:"items"
     repeated billing.OrderItem items = 7;
+    // @inject_tag: json:"charge_currency"
+    string charge_currency = 8;
+    // @inject_tag: json:"charge_amount"
+    double charge_amount = 9;
+    // @inject_tag: json:"vat_in_charge_currency"
+    double vat_in_charge_currency = 10;
     // @inject_tag: json:"-"
-    string cookie = 8;
+    string cookie = 11;
 }
 
 message ProcessBillingAddressResponse {

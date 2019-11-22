@@ -1200,7 +1200,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		CardCategory:       "WORLD",
 		BankName:           "ALFA BANK",
 		BankCountryName:    "UKRAINE",
-		BankCountryIsoCode: "US",
+		BankCountryIsoCode: "UA",
 	}
 
 	bin2 := &BinData{
@@ -1211,7 +1211,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		CardCategory:       "WORLD",
 		BankName:           "ALFA BANK",
 		BankCountryName:    "UKRAINE",
-		BankCountryIsoCode: "US",
+		BankCountryIsoCode: "UA",
 	}
 
 	err = db.Collection(collectionBinData).Insert(bin)
@@ -5287,7 +5287,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_BankCard
 	assert.Empty(suite.T(), rsp1.Message)
 	assert.NotNil(suite.T(), rsp1.Item)
 	assert.True(suite.T(), rsp1.Item.UserAddressDataRequired)
-	assert.Equal(suite.T(), "US", rsp1.Item.UserIpData.Country)
+	assert.Equal(suite.T(), "UA", rsp1.Item.UserIpData.Country)
 	assert.Equal(suite.T(), rsp.User.Address.PostalCode, rsp1.Item.UserIpData.Zip)
 	assert.Equal(suite.T(), rsp.User.Address.City, rsp1.Item.UserIpData.City)
 	assert.Equal(suite.T(), "MASTERCARD", rsp1.Item.Brand)
@@ -7928,7 +7928,7 @@ func (suite *OrderTestSuite) TestOrder_RefundReceipt_Ok() {
 	postmarkBrokerMock := &mocks.BrokerInterface{}
 	postmarkBrokerMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(postmarkBrokerMockFn, nil)
 	suite.service.postmarkBroker = postmarkBrokerMock
-	refund := helperMakeRefund(suite.Suite, suite.service, order, order.TotalPaymentAmount, false)
+	refund := helperMakeRefund(suite.Suite, suite.service, order, order.ChargeAmount, false)
 	assert.NotNil(suite.T(), refund)
 
 	order, err := suite.service.getOrderById(order.Id)

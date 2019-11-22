@@ -243,11 +243,12 @@ const (
 	OrderTypeOrder  = "order"
 	OrderTypeRefund = "refund"
 
-	PaymentCreateBankCardFieldBrand         = "card_brand"
-	PaymentCreateBankCardFieldType          = "card_type"
-	PaymentCreateBankCardFieldCategory      = "card_category"
-	PaymentCreateBankCardFieldIssuerName    = "bank_issuer_name"
-	PaymentCreateBankCardFieldIssuerCountry = "bank_issuer_country"
+	PaymentCreateBankCardFieldBrand                = "card_brand"
+	PaymentCreateBankCardFieldType                 = "card_type"
+	PaymentCreateBankCardFieldCategory             = "card_category"
+	PaymentCreateBankCardFieldIssuerName           = "bank_issuer_name"
+	PaymentCreateBankCardFieldIssuerCountry        = "bank_issuer_country"
+	PaymentCreateBankCardFieldIssuerCountryIsoCode = "bank_issuer_country_iso_code"
 
 	RoyaltyReportStatusPending        = "pending"
 	RoyaltyReportStatusAccepted       = "accepted"

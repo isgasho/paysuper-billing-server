@@ -5,6 +5,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
+	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"time"
 )
 
@@ -221,6 +222,16 @@ func (m *Order) GetPaymentFormDataChangeResult(brand string) *PaymentFormDataCha
 		item.CountryPaymentsAllowed = true
 		item.CountryChangeAllowed = true
 	}
+
+	item.HasVat = m.Tax.Rate > 0
+	item.Vat = tools.FormatAmount(m.Tax.Amount)
+	item.VatInChargeCurrency = tools.FormatAmount(m.ChargeAmount / (1 + m.Tax.Rate) * m.Tax.Rate)
+	item.ChargeAmount = tools.FormatAmount(m.ChargeAmount)
+	item.ChargeCurrency = m.ChargeCurrency
+	item.Currency = m.Currency
+	item.Amount = tools.FormatAmount(m.OrderAmount)
+	item.TotalAmount = tools.FormatAmount(m.TotalPaymentAmount)
+	item.Items = m.Items
 
 	return item
 }

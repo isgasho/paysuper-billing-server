@@ -625,6 +625,14 @@ message Order {
     bool is_high_risk = 78;
     // @inject_tag: json:"-"
     bool is_currency_predefined = 79;
+    // @inject_tag: json:"charge_currency"
+    string charge_currency = 80;
+    // @inject_tag: json:"charge_amount"
+    double charge_amount = 81;
+    // @inject_tag: json:"payment_ip_country"
+    string payment_ip_country = 82;
+    // @inject_tag: json:"is_ip_country_mismatch_bin"
+    bool is_ip_country_mismatch_bin = 83;
 }
 
 message ParentOrder {
@@ -1835,6 +1843,12 @@ message OrderViewPublic {
     string operating_company_id = 44;
     // @inject_tag: json:"refund_allowed" bson:"refund_allowed"
     bool refund_allowed = 45;
+    // @inject_tag: json:"order_charge" bson:"order_charge"
+    OrderViewMoney order_charge = 46;
+    // @inject_tag: json:"payment_ip_country"
+    string payment_ip_country = 47;
+    // @inject_tag: json:"is_ip_country_mismatch_bin" bson:"is_ip_country_mismatch_bin"
+    bool is_ip_country_mismatch_bin = 48;
 }
 
 message OrderViewPrivate {
@@ -1998,6 +2012,12 @@ message OrderViewPrivate {
     bool is_high_risk = 79;
     // @inject_tag: json:"refund_allowed"  bson:"refund_allowed"
     bool refund_allowed = 80;
+    // @inject_tag: json:"order_charge" bson:"order_charge"
+    OrderViewMoney order_charge = 81;
+    // @inject_tag: json:"payment_ip_country"
+    string payment_ip_country = 82;
+    // @inject_tag: json:"is_ip_country_mismatch_bin" bson:"is_ip_country_mismatch_bin"
+    bool is_ip_country_mismatch_bin = 83;
 }
 
 message RecommendedPrice {
@@ -2334,9 +2354,27 @@ message PaymentFormDataChangeResponseItem {
     UserIpData user_ip_data = 2;
     string brand = 3;
     //@inject_tag: json:"country_payments_allowed"
-    bool country_payments_allowed = 18;
+    bool country_payments_allowed = 4;
     //@inject_tag: json:"country_change_allowed"
-    bool country_change_allowed = 19;
+    bool country_change_allowed = 5;
+    // @inject_tag: json:"has_vat"
+    bool has_vat = 6;
+    // @inject_tag: json:"vat"
+    double vat = 7;
+    // @inject_tag: json:"amount"
+    double amount = 8;
+    // @inject_tag: json:"total_amount"
+    double total_amount = 9;
+    //@inject_tag: json:"currency"
+    string currency = 10;
+    // @inject_tag: json:"items"
+    repeated billing.OrderItem items = 11;
+    // @inject_tag: json:"charge_currency"
+    string charge_currency = 12;
+    // @inject_tag: json:"charge_amount"
+    double charge_amount = 13;
+    // @inject_tag: json:"vat_in_charge_currency"
+    double vat_in_charge_currency = 14;
 }
 
 message OperatingCompany {

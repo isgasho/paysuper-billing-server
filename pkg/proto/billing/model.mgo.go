@@ -284,6 +284,10 @@ type MgoOrder struct {
 	MccCode                    string                         `bson:"mcc_code"`
 	OperatingCompanyId         string                         `bson:"operating_company_id"`
 	IsHighRisk                 bool                           `bson:"is_high_risk"`
+	ChargeCurrency             string                         `bson:"charge_currency"`
+	ChargeAmount               float64                        `bson:"charge_amount"`
+	PaymentIpCountry           string                         `bson:"payment_ip_country"`
+	IsIpCountryMismatchBin     bool                           `bson:"is_ip_country_mismatch_bin"`
 }
 
 type MgoOrderItem struct {
@@ -1660,6 +1664,10 @@ func (m *Order) GetBSON() (interface{}, error) {
 		MccCode:                   m.MccCode,
 		OperatingCompanyId:        m.OperatingCompanyId,
 		IsHighRisk:                m.IsHighRisk,
+		ChargeCurrency:            m.ChargeCurrency,
+		ChargeAmount:              m.ChargeAmount,
+		PaymentIpCountry:          m.PaymentIpCountry,
+		IsIpCountryMismatchBin:    m.IsIpCountryMismatchBin,
 	}
 
 	if m.Refund != nil {
@@ -1874,6 +1882,10 @@ func (m *Order) SetBSON(raw bson.Raw) error {
 	m.MccCode = decoded.MccCode
 	m.OperatingCompanyId = decoded.OperatingCompanyId
 	m.IsHighRisk = decoded.IsHighRisk
+	m.ChargeCurrency = decoded.ChargeCurrency
+	m.ChargeAmount = decoded.ChargeAmount
+	m.PaymentIpCountry = decoded.PaymentIpCountry
+	m.IsIpCountryMismatchBin = decoded.IsIpCountryMismatchBin
 
 	if decoded.Refund != nil {
 		m.Refund = &OrderNotificationRefund{

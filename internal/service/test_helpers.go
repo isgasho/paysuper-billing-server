@@ -143,7 +143,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		CardCategory:       "WORLD",
 		BankName:           "ALFA BANK",
 		BankCountryName:    "UKRAINE",
-		BankCountryIsoCode: "US",
+		BankCountryIsoCode: "UA",
 	}
 
 	err = service.db.Collection(collectionBinData).Insert(bin)
@@ -898,8 +898,8 @@ func helperPayOrder(
 		},
 		PaymentData: &billing.CallbackCardPayPaymentData{
 			Id:          bson.NewObjectId().Hex(),
-			Amount:      order.TotalPaymentAmount,
-			Currency:    order.Currency,
+			Amount:      order.ChargeAmount,
+			Currency:    order.ChargeCurrency,
 			Description: order.Description,
 			Is_3D:       true,
 			Rrn:         bson.NewObjectId().Hex(),
@@ -1230,8 +1230,8 @@ func helperCreateAndPayOrder2(
 		},
 		PaymentData: &billing.CallbackCardPayPaymentData{
 			Id:          bson.NewObjectId().Hex(),
-			Amount:      order.TotalPaymentAmount,
-			Currency:    order.Currency,
+			Amount:      order.ChargeAmount,
+			Currency:    order.ChargeCurrency,
 			Description: order.Description,
 			Is_3D:       true,
 			Rrn:         bson.NewObjectId().Hex(),

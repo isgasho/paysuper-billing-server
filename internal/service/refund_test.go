@@ -82,7 +82,7 @@ func (suite *RefundTestSuite) SetupTest() {
 
 	keyRub := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
 
-	country := &billing.Country{
+	countryRu := &billing.Country{
 		IsoCodeA2:       "RU",
 		Region:          "Russia",
 		Currency:        "RUB",
@@ -100,6 +100,29 @@ func (suite *RefundTestSuite) SetupTest() {
 		VatStoreYears:           5,
 		VatCurrencyRatesPolicy:  "last-day",
 		VatCurrencyRatesSource:  "cbrf",
+		PayerTariffRegion:       pkg.TariffRegionRussiaAndCis,
+		HighRiskPaymentsAllowed: false,
+		HighRiskChangeAllowed:   false,
+	}
+
+	countryUa := &billing.Country{
+		IsoCodeA2:       "UA",
+		Region:          "CIS",
+		Currency:        "UAH",
+		PaymentsAllowed: true,
+		ChangeAllowed:   true,
+		VatEnabled:      false,
+		PriceGroupId:    "",
+		VatCurrency:     "",
+		VatThreshold: &billing.CountryVatThreshold{
+			Year:  0,
+			World: 0,
+		},
+		VatPeriodMonth:          0,
+		VatDeadlineDays:         0,
+		VatStoreYears:           0,
+		VatCurrencyRatesPolicy:  "",
+		VatCurrencyRatesSource:  "",
 		PayerTariffRegion:       pkg.TariffRegionRussiaAndCis,
 		HighRiskPaymentsAllowed: false,
 		HighRiskChangeAllowed:   false,
@@ -459,7 +482,10 @@ func (suite *RefundTestSuite) SetupTest() {
 		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 
-	if err := suite.service.country.Insert(country); err != nil {
+	if err := suite.service.country.Insert(countryRu); err != nil {
+		suite.FailNow("Insert country test data failed", "%v", err)
+	}
+	if err := suite.service.country.Insert(countryUa); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 
@@ -752,7 +778,7 @@ func (suite *RefundTestSuite) SetupTest() {
 			CardCategory:       "WORLD",
 			BankName:           "ALFA BANK",
 			BankCountryName:    "UKRAINE",
-			BankCountryIsoCode: "US",
+			BankCountryIsoCode: "UA",
 		},
 		&BinData{
 			Id:                 bson.NewObjectId(),
@@ -762,7 +788,7 @@ func (suite *RefundTestSuite) SetupTest() {
 			CardCategory:       "WORLD",
 			BankName:           "ALFA BANK",
 			BankCountryName:    "UKRAINE",
-			BankCountryIsoCode: "US",
+			BankCountryIsoCode: "UA",
 		},
 	}
 
@@ -1662,7 +1688,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 	assert.Equal(suite.T(), rsp.Id, refundOrder.ParentOrder.Id)
 	assert.EqualValues(suite.T(), constant.OrderStatusRefund, refundOrder.PrivateStatus)
 	assert.Equal(suite.T(), constant.OrderPublicStatusRefunded, refundOrder.Status)
-	assert.EqualValues(suite.T(), refund.Amount, refundOrder.TotalPaymentAmount)
+	assert.EqualValues(suite.T(), refund.Amount, refundOrder.ChargeAmount)
 	assert.Equal(suite.T(), refund.Currency, refundOrder.Currency)
 	assert.Equal(suite.T(), pkg.OrderTypeRefund, refundOrder.Type)
 }
