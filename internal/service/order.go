@@ -2412,11 +2412,12 @@ func (v *OrderCreateRequestProcessor) processLimitAmounts() (err error) {
 			return orderErrorCurrencyNotFound
 		}
 		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
-			From:       v.checked.currency,
-			To:         v.checked.project.LimitsCurrency,
-			MerchantId: v.checked.merchant.Id,
-			RateType:   curPkg.RateTypeOxr,
-			Amount:     amount,
+			From:              v.checked.currency,
+			To:                v.checked.project.LimitsCurrency,
+			MerchantId:        v.checked.merchant.Id,
+			RateType:          curPkg.RateTypeOxr,
+			ExchangeDirection: curPkg.ExchangeDirectionSell,
+			Amount:            amount,
 		}
 
 		rsp, err := v.curService.ExchangeCurrencyCurrentForMerchant(context.TODO(), req)

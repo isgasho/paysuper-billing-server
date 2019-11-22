@@ -841,10 +841,11 @@ func (h *accountingEntry) GetExchangePsCurrentCommon(from string, amount float64
 		return amount, nil
 	}
 	return h.GetExchangeCurrentCommon(&currencies.ExchangeCurrencyCurrentCommonRequest{
-		From:     from,
-		To:       to,
-		RateType: curPkg.RateTypePaysuper,
-		Amount:   amount,
+		From:              from,
+		To:                to,
+		RateType:          curPkg.RateTypePaysuper,
+		ExchangeDirection: curPkg.ExchangeDirectionBuy,
+		Amount:            amount,
 	})
 }
 
@@ -855,10 +856,11 @@ func (h *accountingEntry) GetExchangeStockCurrentCommon(from string, amount floa
 		return amount, nil
 	}
 	return h.GetExchangeCurrentCommon(&currencies.ExchangeCurrencyCurrentCommonRequest{
-		From:     from,
-		To:       to,
-		RateType: curPkg.RateTypeStock,
-		Amount:   amount,
+		From:              from,
+		To:                to,
+		RateType:          curPkg.RateTypeStock,
+		ExchangeDirection: curPkg.ExchangeDirectionSell,
+		Amount:            amount,
 	})
 }
 
@@ -870,11 +872,12 @@ func (h *accountingEntry) GetExchangePsCurrentMerchant(from string, amount float
 	}
 
 	return h.GetExchangeCurrentMerchant(&currencies.ExchangeCurrencyCurrentForMerchantRequest{
-		From:       from,
-		To:         to,
-		RateType:   curPkg.RateTypePaysuper,
-		MerchantId: h.order.GetMerchantId(),
-		Amount:     amount,
+		From:              from,
+		To:                to,
+		RateType:          curPkg.RateTypePaysuper,
+		ExchangeDirection: curPkg.ExchangeDirectionBuy,
+		MerchantId:        h.order.GetMerchantId(),
+		Amount:            amount,
 	})
 }
 
@@ -886,11 +889,12 @@ func (h *accountingEntry) GetExchangeCbCurrentCommon(from string, amount float64
 	}
 
 	return h.GetExchangeCurrentCommon(&currencies.ExchangeCurrencyCurrentCommonRequest{
-		From:     from,
-		To:       to,
-		RateType: curPkg.RateTypeCentralbanks,
-		Source:   h.country.VatCurrencyRatesSource,
-		Amount:   amount,
+		From:              from,
+		To:                to,
+		RateType:          curPkg.RateTypeCentralbanks,
+		ExchangeDirection: curPkg.ExchangeDirectionSell,
+		Source:            h.country.VatCurrencyRatesSource,
+		Amount:            amount,
 	})
 }
 
@@ -986,11 +990,12 @@ func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
 			entry.LocalAmount = entry.OriginalAmount
 		} else {
 			req := &currencies.ExchangeCurrencyCurrentCommonRequest{
-				From:     entry.OriginalCurrency,
-				To:       entry.LocalCurrency,
-				RateType: rateType,
-				Source:   rateSource,
-				Amount:   entry.OriginalAmount,
+				From:              entry.OriginalCurrency,
+				To:                entry.LocalCurrency,
+				RateType:          rateType,
+				ExchangeDirection: curPkg.ExchangeDirectionBuy,
+				Source:            rateSource,
+				Amount:            entry.OriginalAmount,
 			}
 
 			if req.Amount != 0 && req.From != req.To {

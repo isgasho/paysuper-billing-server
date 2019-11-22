@@ -905,12 +905,13 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.
 
 func (h *vatReportProcessor) exchangeAmount(from, to string, amount float64, source string) (float64, error) {
 	req := &currencies.ExchangeCurrencyByDateCommonRequest{
-		From:     from,
-		To:       to,
-		RateType: curPkg.RateTypeCentralbanks,
-		Source:   source,
-		Amount:   amount,
-		Datetime: h.ts,
+		From:              from,
+		To:                to,
+		RateType:          curPkg.RateTypeCentralbanks,
+		ExchangeDirection: curPkg.ExchangeDirectionBuy,
+		Source:            source,
+		Amount:            amount,
+		Datetime:          h.ts,
 	}
 
 	rsp, err := h.Service.curService.ExchangeCurrencyByDateCommon(h.ctx, req)

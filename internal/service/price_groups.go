@@ -8,7 +8,7 @@ import (
 	our "github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	"github.com/paysuper/paysuper-currencies/pkg"
+	curPkg "github.com/paysuper/paysuper-currencies/pkg"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	"go.uber.org/zap"
 	"math"
@@ -325,10 +325,11 @@ func (s *Service) GetPriceGroupByRegion(ctx context.Context, req *grpc.GetPriceG
 
 func (s *Service) getPriceInCurrencyByAmount(targetCurrency string, originalCurrency string, amount float64) (float64, error) {
 	req := &currencies.ExchangeCurrencyCurrentCommonRequest{
-		Amount:   amount,
-		From:     originalCurrency,
-		To:       targetCurrency,
-		RateType: pkg.RateTypeOxr,
+		Amount:            amount,
+		From:              originalCurrency,
+		To:                targetCurrency,
+		RateType:          curPkg.RateTypeOxr,
+		ExchangeDirection: curPkg.ExchangeDirectionSell,
 	}
 	res, err := s.curService.ExchangeCurrencyCurrentCommon(context.Background(), req)
 

@@ -235,12 +235,13 @@ func (s *Service) getTurnover(
 		}
 
 		req := &currencies.ExchangeCurrencyByDateCommonRequest{
-			From:     v.Id,
-			To:       targetCurrency,
-			RateType: ratesType,
-			Source:   ratesSource,
-			Amount:   v.Amount,
-			Datetime: toTimestamp,
+			From:              v.Id,
+			To:                targetCurrency,
+			RateType:          ratesType,
+			ExchangeDirection: curPkg.ExchangeDirectionBuy,
+			Source:            ratesSource,
+			Amount:            v.Amount,
+			Datetime:          toTimestamp,
 		}
 
 		rsp, err := s.curService.ExchangeCurrencyByDateCommon(ctx, req)
