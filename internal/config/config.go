@@ -85,10 +85,8 @@ type Config struct {
 
 	OrderViewUpdateBatchSize int `envconfig:"ORDER_VIEW_UPDATE_BATCH_SIZE" default:"200"`
 
-	HelloSignDefaultTemplate    string `envconfig:"HELLO_SIGN_DEFAULT_TEMPLATE" required:"true"`
-	HelloSignAgreementClientId  string `envconfig:"HELLO_SIGN_AGREEMENT_CLIENT_ID" required:"true"`
-	PaysuperDocumentSignerEmail string `envconfig:"PAYSUPER_DOCUMENT_SIGNER_EMAIL" required:"true"`
-	PaysuperDocumentSignerName  string `envconfig:"PAYSUPER_DOCUMENT_SIGNER_NAME" required:"true"`
+	HelloSignDefaultTemplate   string `envconfig:"HELLO_SIGN_DEFAULT_TEMPLATE" required:"true"`
+	HelloSignAgreementClientId string `envconfig:"HELLO_SIGN_AGREEMENT_CLIENT_ID" required:"true"`
 
 	KeyDaemonRestartInterval int64  `envconfig:"KEY_DAEMON_RESTART_INTERVAL" default:"60"`
 	DashboardProjectsUrl     string `envconfig:"DASHBOARD_PROJECTS_URL" default:"https://paysupermgmt.tst.protocol.one/projects"`
