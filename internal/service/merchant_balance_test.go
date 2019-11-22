@@ -16,7 +16,6 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -24,6 +23,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
 	rabbitmq "gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"net/http"
 	"testing"
 	"time"
@@ -159,7 +159,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_GetMerchantBalance_Ok
 	count := suite.mbRecordsCount(suite.merchant.Id, suite.merchant.GetPayoutCurrency())
 	assert.Equal(suite.T(), count, 0)
 
-	mb, err := suite.service.updateMerchantBalance(suite.merchant.Id)
+	mb, err := suite.service.updateMerchantBalance(ctx, suite.merchant.Id)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), mb.MerchantId, suite.merchant.Id)
 	assert.Equal(suite.T(), mb.Currency, suite.merchant.GetPayoutCurrency())
@@ -238,7 +238,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_updateMerchantBalance
 	count := suite.mbRecordsCount(merchantId, "")
 	assert.Equal(suite.T(), count, 0)
 
-	mb, err := suite.service.updateMerchantBalance(merchantId)
+	mb, err := suite.service.updateMerchantBalance(ctx, merchantId)
 	assert.EqualError(suite.T(), err, "merchant not found")
 	assert.Nil(suite.T(), mb)
 
@@ -250,7 +250,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_updateMerchantBalance
 	count := suite.mbRecordsCount(suite.merchant2.Id, suite.merchant2.GetPayoutCurrency())
 	assert.Equal(suite.T(), count, 0)
 
-	mb, err := suite.service.updateMerchantBalance(suite.merchant2.Id)
+	mb, err := suite.service.updateMerchantBalance(ctx, suite.merchant2.Id)
 	assert.EqualError(suite.T(), err, errorMerchantPayoutCurrencyNotSet.Error())
 	assert.Nil(suite.T(), mb)
 
@@ -276,7 +276,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_updateMerchantBalance
 		AcceptExpireAt: ptypes.TimestampNow(),
 		Currency:       suite.merchant.GetPayoutCurrency(),
 	}
-	err := suite.service.db.Collection(collectionRoyaltyReport).Insert(report)
+	_, err := suite.service.db.Collection(collectionRoyaltyReport).InsertOne(ctx, report)
 	assert.NoError(suite.T(), err)
 
 	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -480))
@@ -300,7 +300,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_updateMerchantBalance
 		FailureMessage:     "",
 		FailureCode:        "",
 	}
-	err = suite.service.payoutDocument.Insert(payout, "127.0.0.1", payoutChangeSourceAdmin)
+	err = suite.service.payoutDocument.Insert(ctx, payout, "127.0.0.1", payoutChangeSourceAdmin)
 	assert.NoError(suite.T(), err)
 
 	ae1 := &billing.AccountingEntry{
@@ -332,13 +332,13 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_updateMerchantBalance
 	}
 
 	accountingEntries := []interface{}{ae1, ae2}
-	err = suite.service.db.Collection(collectionAccountingEntry).Insert(accountingEntries...)
+	_, err = suite.service.db.Collection(collectionAccountingEntry).InsertMany(ctx, accountingEntries)
 	assert.NoError(suite.T(), err)
 
 	count := suite.mbRecordsCount(suite.merchant.Id, suite.merchant.GetPayoutCurrency())
 	assert.Equal(suite.T(), count, 0)
 
-	mb, err := suite.service.updateMerchantBalance(suite.merchant.Id)
+	mb, err := suite.service.updateMerchantBalance(ctx, suite.merchant.Id)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), mb.MerchantId, suite.merchant.Id)
 	assert.Equal(suite.T(), mb.Currency, suite.merchant.GetPayoutCurrency())
@@ -374,10 +374,10 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_getRollingReserveForB
 		FailureMessage:     "",
 		FailureCode:        "",
 	}
-	err = suite.service.payoutDocument.Insert(payout, "127.0.0.1", payoutChangeSourceAdmin)
+	err = suite.service.payoutDocument.Insert(ctx, payout, "127.0.0.1", payoutChangeSourceAdmin)
 	assert.NoError(suite.T(), err)
 
-	rr, err := suite.service.getRollingReserveForBalance(suite.merchant.Id, suite.merchant.GetPayoutCurrency())
+	rr, err := suite.service.getRollingReserveForBalance(ctx, suite.merchant.Id, suite.merchant.GetPayoutCurrency())
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), rr, float64(0))
 }
@@ -403,7 +403,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 		AcceptExpireAt: ptypes.TimestampNow(),
 		Currency:       suite.merchant.GetPayoutCurrency(),
 	}
-	err := suite.service.db.Collection(collectionRoyaltyReport).Insert(report)
+	_, err := suite.service.db.Collection(collectionRoyaltyReport).InsertOne(ctx, report)
 	assert.NoError(suite.T(), err)
 
 	req1 := &grpc.MerchantReviewRoyaltyReportRequest{
@@ -458,7 +458,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 		Currency:       suite.merchant.GetPayoutCurrency(),
 	}
 
-	err := suite.service.db.Collection(collectionRoyaltyReport).Insert(report)
+	_, err := suite.service.db.Collection(collectionRoyaltyReport).InsertOne(ctx, report)
 	assert.NoError(suite.T(), err)
 
 	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -480))
@@ -482,7 +482,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 		FailureMessage:     "",
 		FailureCode:        "",
 	}
-	err = suite.service.payoutDocument.Insert(payout, "127.0.0.1", payoutChangeSourceAdmin)
+	err = suite.service.payoutDocument.Insert(ctx, payout, "127.0.0.1", payoutChangeSourceAdmin)
 	assert.NoError(suite.T(), err)
 
 	req3 := &grpc.UpdatePayoutDocumentRequest{
@@ -621,7 +621,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 		AcceptExpireAt: date,
 		Currency:       suite.merchant.GetPayoutCurrency(),
 	}
-	err = suite.service.db.Collection(collectionRoyaltyReport).Insert(report)
+	_, err = suite.service.db.Collection(collectionRoyaltyReport).InsertOne(ctx, report)
 	assert.NoError(suite.T(), err)
 
 	req6 := &grpc.EmptyRequest{}
@@ -672,7 +672,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 		AcceptExpireAt: date,
 		Currency:       suite.merchant.GetPayoutCurrency(),
 	}
-	err = suite.service.db.Collection(collectionRoyaltyReport).Insert(report)
+	_, err = suite.service.db.Collection(collectionRoyaltyReport).InsertOne(ctx, report)
 	assert.NoError(suite.T(), err)
 
 	req7 := &grpc.ChangeRoyaltyReportRequest{
@@ -704,12 +704,12 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	assert.Equal(suite.T(), mbRes.Item.Total, float64(500))
 }
 
-func (suite *MerchantBalanceTestSuite) mbRecordsCount(merchantId, currency string) int {
+func (suite *MerchantBalanceTestSuite) mbRecordsCount(merchantId, currency string) int64 {
 	query := bson.M{
 		"merchant_id": bson.ObjectIdHex(merchantId),
 		"currency":    currency,
 	}
-	count, err := suite.service.db.Collection(collectionMerchantBalances).Find(query).Count()
+	count, err := suite.service.db.Collection(collectionMerchantBalances).CountDocuments(ctx, query)
 	if err == nil {
 		return count
 	}
