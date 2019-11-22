@@ -10,6 +10,29 @@ type MerchantRepositoryInterface struct {
 	mock.Mock
 }
 
+// GetAll provides a mock function with given fields:
+func (_m *MerchantRepositoryInterface) GetAll() ([]*billing.Merchant, error) {
+	ret := _m.Called()
+
+	var r0 []*billing.Merchant
+	if rf, ok := ret.Get(0).(func() []*billing.Merchant); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*billing.Merchant)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetById provides a mock function with given fields: id
 func (_m *MerchantRepositoryInterface) GetById(id string) (*billing.Merchant, error) {
 	ret := _m.Called(id)
