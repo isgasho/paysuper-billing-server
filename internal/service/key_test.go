@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
@@ -17,6 +16,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"testing"
@@ -73,12 +75,15 @@ func (suite *KeyTestSuite) SetupTest() {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 
-	idx := mgo.Index{
-		Unique: true,
-		Name:   "udx_key_platform_code",
-		Key:    []string{"platform_id", "code"},
+	mod := mongo.IndexModel{
+		Keys: bson.M{
+			"platform_id": 1,
+			"code": 1,
+		},
+		Options: options.Index().SetUnique(true).SetName("udx_key_platform_code"),
 	}
-	_ = suite.service.db.Collection(collectionKey).EnsureIndex(idx)
+
+	_, _ = suite.service.db.Collection(collectionKey).Indexes().CreateOne(ctx, mod)
 }
 
 func (suite *KeyTestSuite) TearDownTest() {
@@ -90,7 +95,7 @@ func (suite *KeyTestSuite) TearDownTest() {
 }
 
 func (suite *KeyTestSuite) TestKey_Insert_Ok() {
-	assert.NoError(suite.T(), suite.service.keyRepository.Insert(&billing.Key{
+	assert.NoError(suite.T(), suite.service.keyRepository.Insert(ctx, &billing.Key{
 		Id:           bson.NewObjectId().Hex(),
 		PlatformId:   "steam",
 		KeyProductId: bson.NewObjectId().Hex(),
@@ -106,10 +111,10 @@ func (suite *KeyTestSuite) TestKey_Insert_Error_Duplicate() {
 		OrderId:      bson.NewObjectId().Hex(),
 		Code:         "code",
 	}
-	assert.NoError(suite.T(), suite.service.keyRepository.Insert(key))
+	assert.NoError(suite.T(), suite.service.keyRepository.Insert(ctx, key))
 
 	key.Id = bson.NewObjectId().Hex()
-	assert.Errorf(suite.T(), suite.service.keyRepository.Insert(key), "duplicate key error collection")
+	assert.Errorf(suite.T(), suite.service.keyRepository.Insert(ctx, key), "duplicate key error collection")
 }
 
 func (suite *KeyTestSuite) TestKey_GetById_Ok() {
@@ -120,9 +125,9 @@ func (suite *KeyTestSuite) TestKey_GetById_Ok() {
 		OrderId:      bson.NewObjectId().Hex(),
 		Code:         "code",
 	}
-	assert.NoError(suite.T(), suite.service.keyRepository.Insert(key))
+	assert.NoError(suite.T(), suite.service.keyRepository.Insert(ctx, key))
 
-	k, err := suite.service.keyRepository.GetById(key.Id)
+	k, err := suite.service.keyRepository.GetById(ctx, key.Id)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), key.Id, k.Id)
 	assert.Equal(suite.T(), key.PlatformId, k.PlatformId)
@@ -132,7 +137,7 @@ func (suite *KeyTestSuite) TestKey_GetById_Ok() {
 }
 
 func (suite *KeyTestSuite) TestKey_GetById_Error_NotFound() {
-	_, err := suite.service.keyRepository.GetById(bson.NewObjectId().Hex())
+	_, err := suite.service.keyRepository.GetById(ctx, bson.NewObjectId().Hex())
 	assert.Error(suite.T(), err)
 }
 
@@ -145,10 +150,10 @@ func (suite *KeyTestSuite) TestKey_ReserveKey_Ok() {
 	}
 	duration := int32(3)
 	orderId := bson.NewObjectId().Hex()
-	assert.NoError(suite.T(), suite.service.keyRepository.Insert(key))
+	assert.NoError(suite.T(), suite.service.keyRepository.Insert(ctx, key))
 
 	now := time.Now().UTC()
-	k, err := suite.service.keyRepository.ReserveKey(key.KeyProductId, key.PlatformId, orderId, duration)
+	k, err := suite.service.keyRepository.ReserveKey(ctx, key.KeyProductId, key.PlatformId, orderId, duration)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), key.Id, k.Id)
 	assert.Equal(suite.T(), key.PlatformId, k.PlatformId)
@@ -182,7 +187,7 @@ func (suite *KeyTestSuite) TestKey_ReserveKey_Error_NotFound() {
 	}
 	orderId := bson.NewObjectId().Hex()
 
-	_, err := suite.service.keyRepository.ReserveKey(key.KeyProductId, key.PlatformId, orderId, 3)
+	_, err := suite.service.keyRepository.ReserveKey(ctx, key.KeyProductId, key.PlatformId, orderId, 3)
 	assert.Error(suite.T(), err)
 }
 
@@ -194,9 +199,9 @@ func (suite *KeyTestSuite) TestKey_ReserveKey_Error_NotFree() {
 		OrderId:      bson.NewObjectId().Hex(),
 		Code:         "code1",
 	}
-	assert.NoError(suite.T(), suite.service.keyRepository.Insert(key))
+	assert.NoError(suite.T(), suite.service.keyRepository.Insert(ctx, key))
 
-	_, err := suite.service.keyRepository.ReserveKey(key.KeyProductId, key.PlatformId, key.OrderId, 3)
+	_, err := suite.service.keyRepository.ReserveKey(ctx, key.KeyProductId, key.PlatformId, key.OrderId, 3)
 	assert.Error(suite.T(), err)
 }
 
@@ -208,12 +213,12 @@ func (suite *KeyTestSuite) TestKey_CancelById_Ok() {
 		Code:         "code1",
 	}
 	orderId := bson.NewObjectId().Hex()
-	assert.NoError(suite.T(), suite.service.keyRepository.Insert(key))
+	assert.NoError(suite.T(), suite.service.keyRepository.Insert(ctx, key))
 
-	_, err := suite.service.keyRepository.ReserveKey(key.KeyProductId, key.PlatformId, orderId, 3)
+	_, err := suite.service.keyRepository.ReserveKey(ctx, key.KeyProductId, key.PlatformId, orderId, 3)
 	assert.NoError(suite.T(), err)
 
-	k, err := suite.service.keyRepository.CancelById(key.Id)
+	k, err := suite.service.keyRepository.CancelById(ctx, key.Id)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), key.Id, k.Id)
 	assert.Equal(suite.T(), key.PlatformId, k.PlatformId)
@@ -229,7 +234,7 @@ func (suite *KeyTestSuite) TestKey_CancelById_Ok() {
 }
 
 func (suite *KeyTestSuite) TestKey_CancelById_Error_NotFound() {
-	_, err := suite.service.keyRepository.CancelById(bson.NewObjectId().Hex())
+	_, err := suite.service.keyRepository.CancelById(ctx, bson.NewObjectId().Hex())
 	assert.Error(suite.T(), err)
 }
 
@@ -241,12 +246,12 @@ func (suite *KeyTestSuite) TestKey_FinishRedeemById_Ok() {
 		Code:         "code1",
 	}
 	orderId := bson.NewObjectId().Hex()
-	assert.NoError(suite.T(), suite.service.keyRepository.Insert(key))
+	assert.NoError(suite.T(), suite.service.keyRepository.Insert(ctx, key))
 
-	_, err := suite.service.keyRepository.ReserveKey(key.KeyProductId, key.PlatformId, orderId, 3)
+	_, err := suite.service.keyRepository.ReserveKey(ctx, key.KeyProductId, key.PlatformId, orderId, 3)
 	assert.NoError(suite.T(), err)
 
-	k, err := suite.service.keyRepository.FinishRedeemById(key.Id)
+	k, err := suite.service.keyRepository.FinishRedeemById(ctx, key.Id)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), key.Id, k.Id)
 	assert.Equal(suite.T(), key.PlatformId, k.PlatformId)
@@ -266,7 +271,7 @@ func (suite *KeyTestSuite) TestKey_FinishRedeemById_Ok() {
 }
 
 func (suite *KeyTestSuite) TestKey_FinishRedeemById_Error_NotFound() {
-	_, err := suite.service.keyRepository.FinishRedeemById(bson.NewObjectId().Hex())
+	_, err := suite.service.keyRepository.FinishRedeemById(ctx, primitive.NewObjectID().Hex())
 	assert.Error(suite.T(), err)
 }
 
@@ -274,28 +279,28 @@ func (suite *KeyTestSuite) TestKey_CountKeysByProductPlatform_Ok() {
 	platformId := "steam"
 	keyProductId := bson.NewObjectId().Hex()
 
-	cnt, err := suite.service.keyRepository.CountKeysByProductPlatform(keyProductId, platformId)
+	cnt, err := suite.service.keyRepository.CountKeysByProductPlatform(ctx, keyProductId, platformId)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), 0, cnt)
 
-	assert.NoError(suite.T(), suite.service.keyRepository.Insert(&billing.Key{
+	assert.NoError(suite.T(), suite.service.keyRepository.Insert(ctx, &billing.Key{
 		Id:           bson.NewObjectId().Hex(),
 		PlatformId:   platformId,
 		KeyProductId: keyProductId,
 		Code:         "code1",
 	}))
-	cnt, err = suite.service.keyRepository.CountKeysByProductPlatform(keyProductId, platformId)
+	cnt, err = suite.service.keyRepository.CountKeysByProductPlatform(ctx, keyProductId, platformId)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), 1, cnt)
 
-	assert.NoError(suite.T(), suite.service.keyRepository.Insert(&billing.Key{
+	assert.NoError(suite.T(), suite.service.keyRepository.Insert(ctx, &billing.Key{
 		Id:           bson.NewObjectId().Hex(),
 		PlatformId:   platformId,
 		KeyProductId: keyProductId,
 		Code:         "code2",
 		OrderId:      bson.NewObjectId().Hex(),
 	}))
-	cnt, err = suite.service.keyRepository.CountKeysByProductPlatform(keyProductId, platformId)
+	cnt, err = suite.service.keyRepository.CountKeysByProductPlatform(ctx, keyProductId, platformId)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), 1, cnt)
 }
@@ -517,7 +522,7 @@ func (suite *KeyTestSuite) TestKey_KeyDaemonProcess_Ok() {
 	kr.On("CancelById", keys[0].Id).Return(&billing.Key{}, nil)
 	suite.service.keyRepository = kr
 
-	count, err := suite.service.KeyDaemonProcess()
+	count, err := suite.service.KeyDaemonProcess(ctx)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), 1, count)
 }
@@ -527,7 +532,7 @@ func (suite *KeyTestSuite) TestKey_KeyDaemonProcess_Error_FindUnfinished() {
 	kr.On("FindUnfinished").Return(nil, errors.New("not found"))
 	suite.service.keyRepository = kr
 
-	count, err := suite.service.KeyDaemonProcess()
+	count, err := suite.service.KeyDaemonProcess(ctx)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), 0, count)
 }
@@ -555,7 +560,7 @@ func (suite *KeyTestSuite) TestKey_FindUnfinished_Ok() {
 		Code:         "code1",
 		ReservedTo:   reserveExpireTime,
 	}
-	assert.NoError(suite.T(), suite.service.keyRepository.Insert(keyReserveExpire))
+	assert.NoError(suite.T(), suite.service.keyRepository.Insert(ctx, keyReserveExpire))
 
 	keyReserveNoExpire := &billing.Key{
 		Id:           bson.NewObjectId().Hex(),
@@ -564,9 +569,9 @@ func (suite *KeyTestSuite) TestKey_FindUnfinished_Ok() {
 		Code:         "code1",
 		ReservedTo:   reserveNoExpireTime,
 	}
-	assert.NoError(suite.T(), suite.service.keyRepository.Insert(keyReserveNoExpire))
+	assert.NoError(suite.T(), suite.service.keyRepository.Insert(ctx, keyReserveNoExpire))
 
-	keys, err := suite.service.keyRepository.FindUnfinished()
+	keys, err := suite.service.keyRepository.FindUnfinished(ctx)
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), keys, 1)
 	assert.Equal(suite.T(), keyReserveExpire.Id, keys[0].Id)
