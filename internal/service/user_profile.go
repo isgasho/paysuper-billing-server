@@ -562,7 +562,9 @@ func (s *Service) GetCommonUserProfile(
 			time.Now().Add(time.Hour*3).Unix(),
 		)
 
-		if role.Role != pkg.RoleMerchantOwner {
+		if role.Role != pkg.RoleMerchantOwner &&
+			role.Role != pkg.RoleMerchantAccounting &&
+			role.Role != pkg.RoleMerchantDeveloper {
 			merchant := &billing.Merchant{
 				Id:          rsp.Profile.Merchant.Id,
 				Company:     &billing.MerchantCompanyInfo{Name: rsp.Profile.Merchant.Company.Name},
