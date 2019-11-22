@@ -10,6 +10,7 @@ import (
 	metrics "github.com/ProtocolONE/go-micro-plugins/wrapper/monitoring/prometheus"
 	"github.com/globalsign/mgo"
 	"github.com/go-redis/redis"
+	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/golang/protobuf/ptypes"
@@ -354,6 +355,10 @@ func (app *Application) TaskAutoCreatePayouts() error {
 
 func (app *Application) TaskRebuildOrderView() error {
 	return app.svc.RebuildOrderView()
+}
+
+func (app *Application) TaskMerchantsMigrate() error {
+	return app.svc.MerchantsMigrate()
 }
 
 func (app *Application) KeyDaemonStart() {
