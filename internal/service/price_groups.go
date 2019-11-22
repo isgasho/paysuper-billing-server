@@ -36,7 +36,7 @@ func (s *Service) GetPriceGroup(
 	req *billing.GetPriceGroupRequest,
 	res *billing.PriceGroup,
 ) error {
-	pg, err := s.priceGroup.GetById(req.Id)
+	pg, err := s.priceGroup.GetById(ctx, req.Id)
 	if err != nil {
 		return err
 	}
@@ -70,18 +70,18 @@ func (s *Service) UpdatePriceGroup(
 	var err error
 
 	if req.Id != "" {
-		data, err := s.priceGroup.GetById(req.Id)
+		data, err := s.priceGroup.GetById(ctx, req.Id)
 		if err != nil {
 			return err
 		}
 		pg.Id = data.Id
 		pg.CreatedAt = data.CreatedAt
 		pg.UpdatedAt = ptypes.TimestampNow()
-		err = s.priceGroup.Update(pg)
+		err = s.priceGroup.Update(ctx, pg)
 	} else {
 		pg.Id = primitive.NewObjectID().Hex()
 		pg.CreatedAt = ptypes.TimestampNow()
-		err = s.priceGroup.Insert(pg)
+		err = s.priceGroup.Insert(ctx, pg)
 	}
 
 	if err != nil {
@@ -105,14 +105,14 @@ func (s *Service) GetPriceGroupByCountry(
 	req *grpc.PriceGroupByCountryRequest,
 	res *billing.PriceGroup,
 ) error {
-	country, err := s.country.GetByIsoCodeA2(req.Country)
+	country, err := s.country.GetByIsoCodeA2(ctx, req.Country)
 
 	if err != nil {
 		zap.S().Errorw("Country not found", "req", req)
 		return err
 	}
 
-	group, err := s.priceGroup.GetById(country.PriceGroupId)
+	group, err := s.priceGroup.GetById(ctx, country.PriceGroupId)
 
 	if err != nil {
 		zap.S().Errorw("Price group not found", "error", err, "price_group_id", country.PriceGroupId)
@@ -129,14 +129,14 @@ func (s *Service) GetPriceGroupCurrencies(
 	req *grpc.EmptyRequest,
 	res *grpc.PriceGroupCurrenciesResponse,
 ) error {
-	regions, err := s.priceGroup.GetAll()
+	regions, err := s.priceGroup.GetAll(ctx)
 
 	if err != nil {
 		zap.S().Errorw("Unable to load price groups", "error", err)
 		return err
 	}
 
-	countries, err := s.country.GetAll()
+	countries, err := s.country.GetAll(ctx)
 
 	if err != nil {
 		zap.S().Errorw("Unable to get countries", "error", err)
@@ -153,14 +153,14 @@ func (s *Service) GetPriceGroupCurrencyByRegion(
 	req *grpc.PriceGroupByRegionRequest,
 	res *grpc.PriceGroupCurrenciesResponse,
 ) error {
-	region, err := s.priceGroup.GetByRegion(req.Region)
+	region, err := s.priceGroup.GetByRegion(ctx, req.Region)
 
 	if err != nil {
 		zap.S().Errorw("Price group not found", "req", req)
 		return err
 	}
 
-	countries, err := s.country.GetAll()
+	countries, err := s.country.GetAll(ctx)
 
 	if err != nil {
 		zap.S().Errorw("Unable to get countries", "error", err)
@@ -179,14 +179,14 @@ func (s *Service) GetRecommendedPriceByPriceGroup(
 	req *grpc.RecommendedPriceRequest,
 	res *grpc.RecommendedPriceResponse,
 ) error {
-	regions, err := s.priceGroup.GetAll()
+	regions, err := s.priceGroup.GetAll(ctx)
 
 	if err != nil {
 		zap.S().Errorw("Unable to get price regions", "err", err, "req", req)
 		return err
 	}
 
-	priceTable, err := s.priceTable.GetByRegion(req.Currency)
+	priceTable, err := s.priceTable.GetByRegion(ctx, req.Currency)
 
 	if err != nil {
 		zap.S().Errorw("Unable to get price table", "err", err, "req", req)
@@ -196,7 +196,7 @@ func (s *Service) GetRecommendedPriceByPriceGroup(
 	priceRange := s.getPriceTableRange(priceTable, req.Amount)
 
 	for _, region := range regions {
-		price, err := s.getRecommendedPriceForRegion(region, priceRange, req.Amount)
+		price, err := s.getRecommendedPriceForRegion(ctx, region, priceRange, req.Amount)
 
 		if err != nil {
 			zap.S().Errorw("Unable to get recommended price for region", "err", err, "region", region)
@@ -239,8 +239,13 @@ func (s *Service) getPriceTableRange(pt *billing.PriceTable, amount float64) *bi
 	}
 }
 
-func (s *Service) getRecommendedPriceForRegion(region *billing.PriceGroup, rng *billing.PriceTableRange, amount float64) (float64, error) {
-	table, err := s.priceTable.GetByRegion(region.Region)
+func (s *Service) getRecommendedPriceForRegion(
+	ctx context.Context,
+	region *billing.PriceGroup,
+	rng *billing.PriceTableRange,
+	amount float64,
+) (float64, error) {
+	table, err := s.priceTable.GetByRegion(ctx, region.Region)
 
 	if err != nil {
 		return 0, err
@@ -279,7 +284,7 @@ func (s *Service) GetRecommendedPriceByConversion(
 	req *grpc.RecommendedPriceRequest,
 	res *grpc.RecommendedPriceResponse,
 ) error {
-	regions, err := s.priceGroup.GetAll()
+	regions, err := s.priceGroup.GetAll(ctx)
 
 	if err != nil {
 		zap.S().Errorw("Unable to get price regions", "err", err, "req", req)
@@ -305,7 +310,7 @@ func (s *Service) GetRecommendedPriceByConversion(
 }
 
 func (s *Service) GetPriceGroupByRegion(ctx context.Context, req *grpc.GetPriceGroupByRegionRequest, rsp *grpc.GetPriceGroupByRegionResponse) error {
-	group, err := s.priceGroup.GetByRegion(req.Region)
+	group, err := s.priceGroup.GetByRegion(ctx, req.Region)
 	rsp.Status = our.ResponseStatusOk
 
 	if err != nil {

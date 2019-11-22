@@ -50,7 +50,7 @@ func (s *Service) CreateOrUpdatePaymentMethod(
 	}
 
 	if req.Id != "" {
-		pm, err = s.paymentMethod.GetById(req.Id)
+		pm, err = s.paymentMethod.GetById(ctx, req.Id)
 
 		if err != nil {
 			zap.S().Errorf("Invalid id of payment method", "err", err.Error(), "data", req)
@@ -73,7 +73,7 @@ func (s *Service) CreateOrUpdatePaymentMethod(
 
 	if pm == nil {
 		req.CreatedAt = ptypes.TimestampNow()
-		err = s.paymentMethod.Insert(req)
+		err = s.paymentMethod.Insert(ctx, req)
 	} else {
 		pm.ExternalId = req.ExternalId
 		pm.TestSettings = req.TestSettings
@@ -85,7 +85,7 @@ func (s *Service) CreateOrUpdatePaymentMethod(
 		pm.AccountRegexp = req.AccountRegexp
 		pm.MaxPaymentAmount = req.MaxPaymentAmount
 		pm.MinPaymentAmount = req.MinPaymentAmount
-		err = s.paymentMethod.Update(pm)
+		err = s.paymentMethod.Update(ctx, pm)
 	}
 
 	if err != nil {
@@ -109,7 +109,7 @@ func (s *Service) CreateOrUpdatePaymentMethodProductionSettings(
 	var pm *billing.PaymentMethod
 	var err error
 
-	pm, err = s.paymentMethod.GetById(req.PaymentMethodId)
+	pm, err = s.paymentMethod.GetById(ctx, req.PaymentMethodId)
 	if err != nil {
 		zap.S().Errorf("Unable to get payment method for update production settings", "err", err.Error(), "data", req)
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -132,7 +132,7 @@ func (s *Service) CreateOrUpdatePaymentMethodProductionSettings(
 		MccCode:            req.Params.MccCode,
 		OperatingCompanyId: req.Params.OperatingCompanyId,
 	}
-	if err := s.paymentMethod.Update(pm); err != nil {
+	if err := s.paymentMethod.Update(ctx, pm); err != nil {
 		zap.S().Errorf("Query to update production settings of project method is failed", "err", err.Error(), "data", req)
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = err.Error()
@@ -150,7 +150,7 @@ func (s *Service) GetPaymentMethodProductionSettings(
 	req *grpc.GetPaymentMethodSettingsRequest,
 	rsp *grpc.GetPaymentMethodSettingsResponse,
 ) error {
-	pm, err := s.paymentMethod.GetById(req.PaymentMethodId)
+	pm, err := s.paymentMethod.GetById(ctx, req.PaymentMethodId)
 	if err != nil {
 		zap.S().Errorf("Query to get production settings of project method is failed", "err", err.Error(), "data", req)
 		return nil
@@ -175,7 +175,7 @@ func (s *Service) DeletePaymentMethodProductionSettings(
 	req *grpc.GetPaymentMethodSettingsRequest,
 	rsp *grpc.ChangePaymentMethodParamsResponse,
 ) error {
-	pm, err := s.paymentMethod.GetById(req.PaymentMethodId)
+	pm, err := s.paymentMethod.GetById(ctx, req.PaymentMethodId)
 	if err != nil {
 		zap.S().Errorf("Unable to get payment method for delete production settings", "err", err.Error(), "data", req)
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -196,7 +196,7 @@ func (s *Service) DeletePaymentMethodProductionSettings(
 
 	delete(pm.ProductionSettings, key)
 
-	if err := s.paymentMethod.Update(pm); err != nil {
+	if err := s.paymentMethod.Update(ctx, pm); err != nil {
 		zap.S().Errorf("Query to delete production settings of project method is failed", "err", err.Error(), "data", req)
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = err.Error()
@@ -217,7 +217,7 @@ func (s *Service) CreateOrUpdatePaymentMethodTestSettings(
 	var pm *billing.PaymentMethod
 	var err error
 
-	pm, err = s.paymentMethod.GetById(req.PaymentMethodId)
+	pm, err = s.paymentMethod.GetById(ctx, req.PaymentMethodId)
 	if err != nil {
 		zap.S().Errorf("Unable to get payment method for update production settings", "err", err.Error(), "data", req)
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -240,7 +240,7 @@ func (s *Service) CreateOrUpdatePaymentMethodTestSettings(
 		MccCode:            req.Params.MccCode,
 		OperatingCompanyId: req.Params.OperatingCompanyId,
 	}
-	if err := s.paymentMethod.Update(pm); err != nil {
+	if err := s.paymentMethod.Update(ctx, pm); err != nil {
 		zap.S().Errorf("Query to update production settings of project method is failed", "err", err.Error(), "data", req)
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = err.Error()
@@ -258,7 +258,7 @@ func (s *Service) GetPaymentMethodTestSettings(
 	req *grpc.GetPaymentMethodSettingsRequest,
 	rsp *grpc.GetPaymentMethodSettingsResponse,
 ) error {
-	pm, err := s.paymentMethod.GetById(req.PaymentMethodId)
+	pm, err := s.paymentMethod.GetById(ctx, req.PaymentMethodId)
 	if err != nil {
 		zap.S().Errorf("Query to get production settings of project method is failed", "err", err.Error(), "data", req)
 		return nil
@@ -283,7 +283,7 @@ func (s *Service) DeletePaymentMethodTestSettings(
 	req *grpc.GetPaymentMethodSettingsRequest,
 	rsp *grpc.ChangePaymentMethodParamsResponse,
 ) error {
-	pm, err := s.paymentMethod.GetById(req.PaymentMethodId)
+	pm, err := s.paymentMethod.GetById(ctx, req.PaymentMethodId)
 	if err != nil {
 		zap.S().Errorf("Unable to get payment method for delete production settings", "err", err.Error(), "data", req)
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -304,7 +304,7 @@ func (s *Service) DeletePaymentMethodTestSettings(
 
 	delete(pm.TestSettings, key)
 
-	if err := s.paymentMethod.Update(pm); err != nil {
+	if err := s.paymentMethod.Update(ctx, pm); err != nil {
 		zap.S().Errorf("Query to delete production settings of project method is failed", "err", err.Error(), "data", req)
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = err.Error()

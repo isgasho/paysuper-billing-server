@@ -382,7 +382,7 @@ func (s *Service) createOrderByRefund(ctx context.Context, order *billing.Order,
 		return "", refundErrorUnknown
 	}
 
-	country, err := s.country.GetByIsoCodeA2(order.GetCountry())
+	country, err := s.country.GetByIsoCodeA2(ctx, order.GetCountry())
 	if err != nil {
 		zap.S().Error(
 			"country not found",
@@ -477,7 +477,7 @@ func (p *createRefundProcessor) processCreateRefund() (*billing.Refund, error) {
 		return nil, err
 	}
 
-	if !p.hasMoneyBackCosts(p.checked.order) {
+	if !p.hasMoneyBackCosts(p.ctx, p.checked.order) {
 		return nil, newBillingServerResponseError(pkg.ResponseStatusBadData, refundErrorCostsRatesNotFound)
 	}
 
@@ -643,8 +643,8 @@ func (s *Service) getRefundById(ctx context.Context, id string) (*billing.Refund
 	return refund, nil
 }
 
-func (p *createRefundProcessor) hasMoneyBackCosts(order *billing.Order) bool {
-	country, err := p.service.country.GetByIsoCodeA2(order.GetCountry())
+func (p *createRefundProcessor) hasMoneyBackCosts(ctx context.Context, order *billing.Order) bool {
+	country, err := p.service.country.GetByIsoCodeA2(ctx, order.GetCountry())
 
 	if err != nil {
 		return false
