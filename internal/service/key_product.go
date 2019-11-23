@@ -73,7 +73,7 @@ func (s *Service) CreateOrUpdateKeyProduct(
 	)
 	res.Status = pkg.ResponseStatusOk
 
-	project, err := s.project.GetById(req.ProjectId)
+	project, err := s.project.GetById(ctx, req.ProjectId)
 
 	if err != nil {
 		zap.S().Errorw("internal error when getting project", "err", err)
@@ -177,7 +177,7 @@ func (s *Service) CreateOrUpdateKeyProduct(
 
 	countUserDefinedPlatforms := 0
 
-	merchant, err := s.merchant.GetById(product.MerchantId)
+	merchant, err := s.merchant.GetById(ctx, product.MerchantId)
 	if err != nil {
 		res.Status = pkg.ResponseStatusNotFound
 		res.Message = merchantErrorNotFound
@@ -744,7 +744,7 @@ func (s *Service) GetKeyProductsForOrder(
 func (s *Service) ChangeCodeInOrder(ctx context.Context, req *grpc.ChangeCodeInOrderRequest, res *grpc.ChangeCodeInOrderResponse) error {
 	res.Status = pkg.ResponseStatusOk
 
-	order, err := s.getOrderByUuid(req.OrderId)
+	order, err := s.getOrderByUuid(ctx, req.OrderId)
 	if err != nil {
 		zap.S().Error("Query to get order failed", "err", err.Error(), "data", req)
 		if messageErr, ok := err.(*grpc.ResponseErrorMessage); ok {
@@ -817,7 +817,7 @@ func (s *Service) ChangeCodeInOrder(ctx context.Context, req *grpc.ChangeCodeInO
 	s.sendMailWithCode(ctx, order, keyRsp.Key)
 	order.PrivateStatus = constant.OrderStatusItemReplaced
 
-	err = s.updateOrder(order)
+	err = s.updateOrder(ctx, order)
 	if err != nil {
 		zap.S().Error("Error during updating order", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
@@ -826,7 +826,7 @@ func (s *Service) ChangeCodeInOrder(ctx context.Context, req *grpc.ChangeCodeInO
 		return nil
 	}
 
-	s.orderNotifyMerchant(order)
+	s.orderNotifyMerchant(ctx, order)
 
 	res.Order = order
 	return nil

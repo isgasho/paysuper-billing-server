@@ -70,7 +70,7 @@ func (s *Service) GetAvailableKeysCount(
 	req *grpc.GetPlatformKeyCountRequest,
 	res *grpc.GetPlatformKeyCountResponse,
 ) error {
-	keyProduct, err := s.keyProductRepository.GetById(req.KeyProductId)
+	keyProduct, err := s.keyProductRepository.GetById(ctx, req.KeyProductId)
 
 	if err != nil {
 		zap.S().Errorf(keyProductNotFound.Message, "err", err.Error(), "keyProductId", req.KeyProductId, "platformId", req.PlatformId)
