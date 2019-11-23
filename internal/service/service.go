@@ -289,6 +289,7 @@ func (s *Service) CheckProjectRequestSignature(
 		Service: s,
 		request: &billing.OrderCreateRequest{ProjectId: req.ProjectId},
 		checked: &orderCreateRequestProcessorChecked{},
+		ctx:     ctx,
 	}
 
 	err := p.processProject()

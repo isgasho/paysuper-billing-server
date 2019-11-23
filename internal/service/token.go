@@ -95,6 +95,7 @@ func (s *Service) CreateToken(
 			IsBuyForVirtualCurrency: req.Settings.IsBuyForVirtualCurrency,
 		},
 		checked: &orderCreateRequestProcessorChecked{},
+		ctx:     ctx,
 	}
 
 	err := processor.processProject()
