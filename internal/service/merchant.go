@@ -48,10 +48,10 @@ func (s *Service) MerchantsMigrate(ctx context.Context) error {
 			Status:     pkg.UserRoleStatusAccepted,
 		}
 
-		_, err := s.userRoleRepository.GetMerchantUserByUserId(userRole.MerchantId, userRole.UserId)
+		_, err := s.userRoleRepository.GetMerchantUserByUserId(ctx, userRole.MerchantId, userRole.UserId)
 
 		if err != nil {
-			err = s.userRoleRepository.AddMerchantUser(userRole)
+			err = s.userRoleRepository.AddMerchantUser(ctx, userRole)
 		}
 
 		if err != nil {

@@ -33,17 +33,17 @@ type utmQueryParams struct {
 }
 
 type PaylinkServiceInterface interface {
-	CountByQuery(query bson.M) (n int, err error)
-	GetListByQuery(query bson.M, limit, offset int) (result []*paylink.Paylink, err error)
-	GetById(id string) (pl *paylink.Paylink, err error)
-	GetByIdAndMerchant(id, merchantId string) (pl *paylink.Paylink, err error)
-	IncrVisits(id string) error
-	GetUrl(id, merchantId, urlMask, utmSource, utmMedium, utmCampaign string) (string, error)
-	Delete(id, merchantId string) error
-	Insert(pl *paylink.Paylink) error
-	Update(pl *paylink.Paylink) error
-	UpdatePaylinkTotalStat(id, merchantId string) error
-	GetPaylinkVisits(id string, from, to int64) (int, error)
+	CountByQuery(ctx context.Context, query bson.M) (n int64, err error)
+	GetListByQuery(ctx context.Context, query bson.M, limit, offset int64) (result []*paylink.Paylink, err error)
+	GetById(ctx context.Context, id string) (pl *paylink.Paylink, err error)
+	GetByIdAndMerchant(ctx context.Context, id, merchantId string) (pl *paylink.Paylink, err error)
+	IncrVisits(ctx context.Context, id string) error
+	GetUrl(ctx context.Context, id, merchantId, urlMask, utmSource, utmMedium, utmCampaign string) (string, error)
+	Delete(ctx context.Context, id, merchantId string) error
+	Insert(ctx context.Context, pl *paylink.Paylink) error
+	Update(ctx context.Context, pl *paylink.Paylink) error
+	UpdatePaylinkTotalStat(ctx context.Context, id, merchantId string) error
+	GetPaylinkVisits(ctx context.Context, id string, from, to int64) (int64, error)
 }
 
 const (
@@ -95,7 +95,7 @@ func (s *Service) GetPaylinks(
 		dbQuery["project_id"], _ = primitive.ObjectIDFromHex(req.ProjectId)
 	}
 
-	n, err := s.paylinkService.CountByQuery(dbQuery)
+	n, err := s.paylinkService.CountByQuery(ctx, dbQuery)
 	if err != nil {
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			res.Status = pkg.ResponseStatusBadData
@@ -108,7 +108,7 @@ func (s *Service) GetPaylinks(
 	res.Data = &grpc.PaylinksPaginate{}
 
 	if n > 0 {
-		res.Data.Items, err = s.paylinkService.GetListByQuery(dbQuery, int(req.Limit), int(req.Offset))
+		res.Data.Items, err = s.paylinkService.GetListByQuery(ctx, dbQuery, req.Limit, req.Offset)
 		if err != nil {
 			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 				res.Status = pkg.ResponseStatusBadData
@@ -119,7 +119,7 @@ func (s *Service) GetPaylinks(
 		}
 
 		for _, pl := range res.Data.Items {
-			visits, err := s.paylinkService.GetPaylinkVisits(pl.Id, 0, 0)
+			visits, err := s.paylinkService.GetPaylinkVisits(ctx, pl.Id, 0, 0)
 			if err == nil {
 				pl.Visits = int32(visits)
 			}
@@ -141,7 +141,7 @@ func (s *Service) GetPaylink(
 	res *grpc.GetPaylinkResponse,
 ) (err error) {
 
-	res.Item, err = s.paylinkService.GetByIdAndMerchant(req.Id, req.MerchantId)
+	res.Item, err = s.paylinkService.GetByIdAndMerchant(ctx, req.Id, req.MerchantId)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			res.Status = pkg.ResponseStatusNotFound
@@ -156,7 +156,7 @@ func (s *Service) GetPaylink(
 		return err
 	}
 
-	visits, err := s.paylinkService.GetPaylinkVisits(res.Item.Id, 0, 0)
+	visits, err := s.paylinkService.GetPaylinkVisits(ctx, res.Item.Id, 0, 0)
 	if err == nil {
 		res.Item.Visits = int32(visits)
 	}
@@ -172,7 +172,7 @@ func (s *Service) IncrPaylinkVisits(
 	req *grpc.PaylinkRequestById,
 	res *grpc.EmptyResponse,
 ) error {
-	err := s.paylinkService.IncrVisits(req.Id)
+	err := s.paylinkService.IncrVisits(ctx, req.Id)
 	if err != nil {
 		return err
 	}
@@ -186,7 +186,7 @@ func (s *Service) GetPaylinkURL(
 	res *grpc.GetPaylinkUrlResponse,
 ) (err error) {
 
-	res.Url, err = s.paylinkService.GetUrl(req.Id, req.MerchantId, req.UrlMask, req.UtmMedium, req.UtmMedium, req.UtmCampaign)
+	res.Url, err = s.paylinkService.GetUrl(ctx, req.Id, req.MerchantId, req.UrlMask, req.UtmMedium, req.UtmMedium, req.UtmCampaign)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			res.Status = pkg.ResponseStatusNotFound
@@ -217,7 +217,7 @@ func (s *Service) DeletePaylink(
 	res *grpc.EmptyResponseWithStatus,
 ) error {
 
-	err := s.paylinkService.Delete(req.Id, req.MerchantId)
+	err := s.paylinkService.Delete(ctx, req.Id, req.MerchantId)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			res.Status = pkg.ResponseStatusNotFound
@@ -255,7 +255,7 @@ func (s *Service) CreateOrUpdatePaylink(
 		pl.ProjectId = req.ProjectId
 		pl.ProductsType = req.ProductsType
 	} else {
-		pl, err = s.paylinkService.GetByIdAndMerchant(req.Id, req.MerchantId)
+		pl, err = s.paylinkService.GetByIdAndMerchant(ctx, req.Id, req.MerchantId)
 		if err != nil {
 			if err == mongo.ErrNoDocuments {
 				res.Status = pkg.ResponseStatusNotFound
@@ -397,9 +397,9 @@ func (s *Service) CreateOrUpdatePaylink(
 	pl.Products = req.Products
 
 	if isNew {
-		err = s.paylinkService.Insert(pl)
+		err = s.paylinkService.Insert(ctx, pl)
 	} else {
-		err = s.paylinkService.Update(pl)
+		err = s.paylinkService.Update(ctx, pl)
 	}
 	if err != nil {
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
@@ -423,7 +423,7 @@ func (s *Service) GetPaylinkStatTotal(
 	res *grpc.GetPaylinkStatCommonResponse,
 ) (err error) {
 
-	pl, err := s.paylinkService.GetByIdAndMerchant(req.Id, req.MerchantId)
+	pl, err := s.paylinkService.GetByIdAndMerchant(ctx, req.Id, req.MerchantId)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			res.Status = pkg.ResponseStatusNotFound
@@ -438,7 +438,7 @@ func (s *Service) GetPaylinkStatTotal(
 		return err
 	}
 
-	visits, err := s.paylinkService.GetPaylinkVisits(pl.Id, req.PeriodFrom, req.PeriodTo)
+	visits, err := s.paylinkService.GetPaylinkVisits(ctx, pl.Id, req.PeriodFrom, req.PeriodTo)
 	if err != nil {
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			res.Status = pkg.ResponseStatusBadData
@@ -524,7 +524,7 @@ func (s *Service) getPaylinkStatGroup(
 	res *grpc.GetPaylinkStatCommonGroupResponse,
 	function string,
 ) (err error) {
-	pl, err := s.paylinkService.GetByIdAndMerchant(req.Id, req.MerchantId)
+	pl, err := s.paylinkService.GetByIdAndMerchant(ctx, req.Id, req.MerchantId)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			res.Status = pkg.ResponseStatusNotFound

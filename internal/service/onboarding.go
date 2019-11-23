@@ -110,7 +110,7 @@ func (s *Service) GetMerchantBy(
 	}
 
 	merchant.CentrifugoToken = s.centrifugo.GetChannelToken(merchant.Id, time.Now().Add(time.Hour*3).Unix())
-	merchant.HasProjects = s.getProjectsCountByMerchant(merchant.Id) > 0
+	merchant.HasProjects = s.getProjectsCountByMerchant(ctx, merchant.Id) > 0
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = merchant
@@ -370,7 +370,7 @@ func (s *Service) ChangeMerchant(
 	merchant.Steps.Banking = merchant.IsBankingComplete()
 
 	if !merchant.HasPrimaryOnboardingUserName() {
-		profile, _ := s.userProfileRepository.GetByUserId(req.User.Id)
+		profile, _ := s.userProfileRepository.GetByUserId(ctx, req.User.Id)
 
 		if profile != nil {
 			merchant.User.ProfileId = profile.Id
@@ -396,16 +396,19 @@ func (s *Service) ChangeMerchant(
 	}
 
 	if isNewMerchant == true {
-		err = s.userRoleRepository.AddMerchantUser(&billing.UserRole{
-			Id:         primitive.NewObjectID().Hex(),
-			MerchantId: merchant.Id,
-			Status:     pkg.UserRoleStatusAccepted,
-			Role:       pkg.RoleMerchantOwner,
-			UserId:     merchant.User.Id,
-			Email:      merchant.User.Email,
-			FirstName:  merchant.User.FirstName,
-			LastName:   merchant.User.LastName,
-		})
+		err = s.userRoleRepository.AddMerchantUser(
+			ctx,
+			&billing.UserRole{
+				Id:         primitive.NewObjectID().Hex(),
+				MerchantId: merchant.Id,
+				Status:     pkg.UserRoleStatusAccepted,
+				Role:       pkg.RoleMerchantOwner,
+				UserId:     merchant.User.Id,
+				Email:      merchant.User.Email,
+				FirstName:  merchant.User.FirstName,
+				LastName:   merchant.User.LastName,
+			},
+		)
 
 		if err == nil {
 			_, err = s.casbinService.AddRoleForUser(ctx, &casbinProto.UserRoleRequest{

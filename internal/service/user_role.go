@@ -1,10 +1,12 @@
 package service
 
 import (
+	"context"
 	"fmt"
-	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 )
 
@@ -16,23 +18,23 @@ const (
 )
 
 type UserRoleServiceInterface interface {
-	AddMerchantUser(*billing.UserRole) error
-	AddAdminUser(*billing.UserRole) error
-	UpdateMerchantUser(*billing.UserRole) error
-	UpdateAdminUser(*billing.UserRole) error
-	GetMerchantUserByEmail(string, string) (*billing.UserRole, error)
-	GetAdminUserByEmail(string) (*billing.UserRole, error)
-	GetMerchantUserById(string) (*billing.UserRole, error)
-	GetAdminUserById(string) (*billing.UserRole, error)
-	GetMerchantUserByUserId(string, string) (*billing.UserRole, error)
-	GetAdminUserByUserId(string) (*billing.UserRole, error)
-	GetUsersForMerchant(string) ([]*billing.UserRole, error)
-	GetUsersForAdmin() ([]*billing.UserRole, error)
-	GetMerchantsForUser(string) ([]*billing.UserRole, error)
-	DeleteAdminUser(*billing.UserRole) error
-	DeleteMerchantUser(*billing.UserRole) error
-	GetSystemAdmin() (*billing.UserRole, error)
-	GetMerchantOwner(string) (*billing.UserRole, error)
+	AddMerchantUser(context.Context, *billing.UserRole) error
+	AddAdminUser(context.Context, *billing.UserRole) error
+	UpdateMerchantUser(context.Context, *billing.UserRole) error
+	UpdateAdminUser(context.Context, *billing.UserRole) error
+	GetMerchantUserByEmail(context.Context, string, string) (*billing.UserRole, error)
+	GetAdminUserByEmail(context.Context, string) (*billing.UserRole, error)
+	GetMerchantUserById(context.Context, string) (*billing.UserRole, error)
+	GetAdminUserById(context.Context, string) (*billing.UserRole, error)
+	GetMerchantUserByUserId(context.Context, string, string) (*billing.UserRole, error)
+	GetAdminUserByUserId(context.Context, string) (*billing.UserRole, error)
+	GetUsersForMerchant(context.Context, string) ([]*billing.UserRole, error)
+	GetUsersForAdmin(context.Context) ([]*billing.UserRole, error)
+	GetMerchantsForUser(context.Context, string) ([]*billing.UserRole, error)
+	DeleteAdminUser(context.Context, *billing.UserRole) error
+	DeleteMerchantUser(context.Context, *billing.UserRole) error
+	GetSystemAdmin(context.Context) (*billing.UserRole, error)
+	GetMerchantOwner(context.Context, string) (*billing.UserRole, error)
 }
 
 func newUserRoleRepository(svc *Service) UserRoleServiceInterface {
@@ -40,23 +42,35 @@ func newUserRoleRepository(svc *Service) UserRoleServiceInterface {
 	return s
 }
 
-func (h *UserRoleRepository) GetMerchantsForUser(userId string) ([]*billing.UserRole, error) {
+func (h *UserRoleRepository) GetMerchantsForUser(ctx context.Context, userId string) ([]*billing.UserRole, error) {
 	var users []*billing.UserRole
 
 	if err := h.svc.cacher.Get(fmt.Sprintf(cacheUserMerchants, userId), users); err == nil {
 		return users, nil
 	}
 
-	query := bson.M{"user_id": bson.ObjectIdHex(userId)}
-	err := h.svc.db.Collection(collectionMerchantUsersTable).Find(query).All(&users)
+	oid, _ := primitive.ObjectIDFromHex(userId)
+	query := bson.M{"user_id": oid}
+	cursor, err := h.svc.db.Collection(collectionMerchantUsersTable).Find(ctx, query)
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchantUsersTable),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
+		return nil, err
+	}
 
+	err = cursor.All(ctx, &users)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorQueryCursorExecutionFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchantUsersTable),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
 		return nil, err
 	}
 
@@ -68,29 +82,41 @@ func (h *UserRoleRepository) GetMerchantsForUser(userId string) ([]*billing.User
 	return users, nil
 }
 
-func (h *UserRoleRepository) GetUsersForAdmin() ([]*billing.UserRole, error) {
+func (h *UserRoleRepository) GetUsersForAdmin(ctx context.Context) ([]*billing.UserRole, error) {
 	var users []*billing.UserRole
 
-	err := h.svc.db.Collection(collectionAdminUsersTable).Find(nil).All(&users)
+	cursor, err := h.svc.db.Collection(collectionAdminUsersTable).Find(ctx, nil)
 
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionAdminUsersTable),
 		)
 
+		return nil, err
+	}
+
+	err = cursor.All(ctx, &users)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorQueryCursorExecutionFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionAdminUsersTable),
+		)
 		return nil, err
 	}
 
 	return users, nil
 }
 
-func (h *UserRoleRepository) GetUsersForMerchant(merchantId string) ([]*billing.UserRole, error) {
+func (h *UserRoleRepository) GetUsersForMerchant(ctx context.Context, merchantId string) ([]*billing.UserRole, error) {
 	var users []*billing.UserRole
 
-	query := bson.M{"merchant_id": bson.ObjectIdHex(merchantId)}
-	err := h.svc.db.Collection(collectionMerchantUsersTable).Find(query).All(&users)
+	oid, _ := primitive.ObjectIDFromHex(merchantId)
+	query := bson.M{"merchant_id": oid}
+	cursor, err := h.svc.db.Collection(collectionMerchantUsersTable).Find(ctx, query)
 
 	if err != nil {
 		zap.L().Error(
@@ -103,27 +129,47 @@ func (h *UserRoleRepository) GetUsersForMerchant(merchantId string) ([]*billing.
 		return nil, err
 	}
 
+	err = cursor.All(ctx, &users)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorQueryCursorExecutionFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchantUsersTable),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return nil, err
+	}
+
 	return users, nil
 }
 
-func (h *UserRoleRepository) AddMerchantUser(u *billing.UserRole) error {
-	if err := h.svc.db.Collection(collectionMerchantUsersTable).Insert(u); err != nil {
+func (h *UserRoleRepository) AddMerchantUser(ctx context.Context, u *billing.UserRole) error {
+	_, err := h.svc.db.Collection(collectionMerchantUsersTable).InsertOne(ctx, u)
+
+	if err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (h *UserRoleRepository) AddAdminUser(u *billing.UserRole) error {
-	if err := h.svc.db.Collection(collectionAdminUsersTable).Insert(u); err != nil {
+func (h *UserRoleRepository) AddAdminUser(ctx context.Context, u *billing.UserRole) error {
+	_, err := h.svc.db.Collection(collectionAdminUsersTable).InsertOne(ctx, u)
+
+	if err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (h *UserRoleRepository) UpdateMerchantUser(u *billing.UserRole) error {
-	if err := h.svc.db.Collection(collectionMerchantUsersTable).UpdateId(bson.ObjectIdHex(u.Id), u); err != nil {
+func (h *UserRoleRepository) UpdateMerchantUser(ctx context.Context, u *billing.UserRole) error {
+	oid, _ := primitive.ObjectIDFromHex(u.Id)
+	filter := bson.M{"_id": oid}
+	_, err := h.svc.db.Collection(collectionMerchantUsersTable).ReplaceOne(ctx, filter, u)
+
+	if err != nil {
 		return err
 	}
 
@@ -134,20 +180,22 @@ func (h *UserRoleRepository) UpdateMerchantUser(u *billing.UserRole) error {
 	return nil
 }
 
-func (h *UserRoleRepository) UpdateAdminUser(u *billing.UserRole) error {
-	if err := h.svc.db.Collection(collectionAdminUsersTable).UpdateId(bson.ObjectIdHex(u.Id), u); err != nil {
+func (h *UserRoleRepository) UpdateAdminUser(ctx context.Context, u *billing.UserRole) error {
+	oid, _ := primitive.ObjectIDFromHex(u.Id)
+	filter := bson.M{"_id": oid}
+	_, err := h.svc.db.Collection(collectionAdminUsersTable).ReplaceOne(ctx, filter, u)
+
+	if err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (h *UserRoleRepository) GetAdminUserByEmail(email string) (*billing.UserRole, error) {
+func (h *UserRoleRepository) GetAdminUserByEmail(ctx context.Context, email string) (*billing.UserRole, error) {
 	var user *billing.UserRole
 
-	err := h.svc.db.Collection(collectionAdminUsersTable).
-		Find(bson.M{"email": email}).
-		One(&user)
+	err := h.svc.db.Collection(collectionAdminUsersTable).FindOne(ctx, bson.M{"email": email}).Decode(&user)
 
 	if err != nil {
 		return nil, err
@@ -156,12 +204,12 @@ func (h *UserRoleRepository) GetAdminUserByEmail(email string) (*billing.UserRol
 	return user, nil
 }
 
-func (h *UserRoleRepository) GetMerchantUserByEmail(merchantId string, email string) (*billing.UserRole, error) {
+func (h *UserRoleRepository) GetMerchantUserByEmail(ctx context.Context, merchantId string, email string) (*billing.UserRole, error) {
 	var user *billing.UserRole
 
-	err := h.svc.db.Collection(collectionMerchantUsersTable).
-		Find(bson.M{"merchant_id": bson.ObjectIdHex(merchantId), "email": email}).
-		One(&user)
+	oid, _ := primitive.ObjectIDFromHex(merchantId)
+	filter := bson.M{"merchant_id": oid, "email": email}
+	err := h.svc.db.Collection(collectionMerchantUsersTable).FindOne(ctx, filter).Decode(&user)
 
 	if err != nil {
 		return nil, err
@@ -170,12 +218,12 @@ func (h *UserRoleRepository) GetMerchantUserByEmail(merchantId string, email str
 	return user, nil
 }
 
-func (h *UserRoleRepository) GetAdminUserByUserId(userId string) (*billing.UserRole, error) {
+func (h *UserRoleRepository) GetAdminUserByUserId(ctx context.Context, userId string) (*billing.UserRole, error) {
 	var user *billing.UserRole
 
-	err := h.svc.db.Collection(collectionAdminUsersTable).
-		Find(bson.M{"user_id": bson.ObjectIdHex(userId)}).
-		One(&user)
+	oid, _ := primitive.ObjectIDFromHex(userId)
+	filter := bson.M{"user_id": oid}
+	err := h.svc.db.Collection(collectionAdminUsersTable).FindOne(ctx, filter).Decode(&user)
 
 	if err != nil {
 		return nil, err
@@ -184,12 +232,13 @@ func (h *UserRoleRepository) GetAdminUserByUserId(userId string) (*billing.UserR
 	return user, nil
 }
 
-func (h *UserRoleRepository) GetMerchantUserByUserId(merchantId string, id string) (*billing.UserRole, error) {
+func (h *UserRoleRepository) GetMerchantUserByUserId(ctx context.Context, merchantId string, id string) (*billing.UserRole, error) {
 	var user *billing.UserRole
 
-	err := h.svc.db.Collection(collectionMerchantUsersTable).
-		Find(bson.M{"merchant_id": bson.ObjectIdHex(merchantId), "user_id": bson.ObjectIdHex(id)}).
-		One(&user)
+	oid, _ := primitive.ObjectIDFromHex(id)
+	merchantOid, _ := primitive.ObjectIDFromHex(merchantId)
+	filter := bson.M{"merchant_id": merchantOid, "user_id": oid}
+	err := h.svc.db.Collection(collectionMerchantUsersTable).FindOne(ctx, filter).Decode(&user)
 
 	if err != nil {
 		return nil, err
@@ -198,10 +247,12 @@ func (h *UserRoleRepository) GetMerchantUserByUserId(merchantId string, id strin
 	return user, nil
 }
 
-func (h *UserRoleRepository) GetAdminUserById(id string) (*billing.UserRole, error) {
+func (h *UserRoleRepository) GetAdminUserById(ctx context.Context, id string) (*billing.UserRole, error) {
 	var user *billing.UserRole
 
-	err := h.svc.db.Collection(collectionAdminUsersTable).FindId(bson.ObjectIdHex(id)).One(&user)
+	oid, _ := primitive.ObjectIDFromHex(id)
+	filter := bson.M{"_id": oid}
+	err := h.svc.db.Collection(collectionAdminUsersTable).FindOne(ctx, filter).Decode(&user)
 
 	if err != nil {
 		return nil, err
@@ -210,10 +261,12 @@ func (h *UserRoleRepository) GetAdminUserById(id string) (*billing.UserRole, err
 	return user, nil
 }
 
-func (h *UserRoleRepository) GetMerchantUserById(id string) (*billing.UserRole, error) {
+func (h *UserRoleRepository) GetMerchantUserById(ctx context.Context, id string) (*billing.UserRole, error) {
 	var user *billing.UserRole
 
-	err := h.svc.db.Collection(collectionMerchantUsersTable).FindId(bson.ObjectIdHex(id)).One(&user)
+	oid, _ := primitive.ObjectIDFromHex(id)
+	filter := bson.M{"_id": oid}
+	err := h.svc.db.Collection(collectionMerchantUsersTable).FindOne(ctx, filter).Decode(&user)
 
 	if err != nil {
 		return nil, err
@@ -222,16 +275,24 @@ func (h *UserRoleRepository) GetMerchantUserById(id string) (*billing.UserRole, 
 	return user, nil
 }
 
-func (h *UserRoleRepository) DeleteAdminUser(u *billing.UserRole) error {
-	if err := h.svc.db.Collection(collectionAdminUsersTable).RemoveId(bson.ObjectIdHex(u.Id)); err != nil {
+func (h *UserRoleRepository) DeleteAdminUser(ctx context.Context, u *billing.UserRole) error {
+	oid, _ := primitive.ObjectIDFromHex(u.Id)
+	filter := bson.M{"_id": oid}
+	_, err := h.svc.db.Collection(collectionAdminUsersTable).DeleteOne(ctx, filter)
+
+	if err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (h *UserRoleRepository) DeleteMerchantUser(u *billing.UserRole) error {
-	if err := h.svc.db.Collection(collectionMerchantUsersTable).RemoveId(bson.ObjectIdHex(u.Id)); err != nil {
+func (h *UserRoleRepository) DeleteMerchantUser(ctx context.Context, u *billing.UserRole) error {
+	oid, _ := primitive.ObjectIDFromHex(u.Id)
+	filter := bson.M{"_id": oid}
+	_, err := h.svc.db.Collection(collectionMerchantUsersTable).DeleteOne(ctx, filter)
+
+	if err != nil {
 		return err
 	}
 
@@ -242,10 +303,10 @@ func (h *UserRoleRepository) DeleteMerchantUser(u *billing.UserRole) error {
 	return nil
 }
 
-func (h *UserRoleRepository) GetSystemAdmin() (*billing.UserRole, error) {
+func (h *UserRoleRepository) GetSystemAdmin(ctx context.Context) (*billing.UserRole, error) {
 	var user *billing.UserRole
 
-	err := h.svc.db.Collection(collectionAdminUsersTable).Find(bson.M{"role": pkg.RoleSystemAdmin}).One(&user)
+	err := h.svc.db.Collection(collectionAdminUsersTable).FindOne(ctx, bson.M{"role": pkg.RoleSystemAdmin}).Decode(&user)
 
 	if err != nil {
 		return nil, err
@@ -254,12 +315,12 @@ func (h *UserRoleRepository) GetSystemAdmin() (*billing.UserRole, error) {
 	return user, nil
 }
 
-func (h *UserRoleRepository) GetMerchantOwner(merchantId string) (*billing.UserRole, error) {
+func (h *UserRoleRepository) GetMerchantOwner(ctx context.Context, merchantId string) (*billing.UserRole, error) {
 	var user *billing.UserRole
 
-	err := h.svc.db.Collection(collectionMerchantUsersTable).
-		Find(bson.M{"merchant_id": bson.ObjectIdHex(merchantId), "role": pkg.RoleMerchantOwner}).
-		One(&user)
+	oid, _ := primitive.ObjectIDFromHex(merchantId)
+	filter := bson.M{"merchant_id": oid, "role": pkg.RoleMerchantOwner}
+	err := h.svc.db.Collection(collectionMerchantUsersTable).FindOne(ctx, filter).Decode(&user)
 
 	if err != nil {
 		return nil, err

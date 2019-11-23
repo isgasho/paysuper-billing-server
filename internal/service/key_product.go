@@ -922,3 +922,31 @@ func getImageByLanguage(lng string, collection *billing.ImageCollection) string 
 
 	return image
 }
+
+type KeyProductRepositoryInterface interface {
+	GetById(context.Context, string) (*grpc.KeyProduct, error)
+	Update(context.Context, *grpc.KeyProduct) error
+}
+
+func newKeyProductRepository(svc *Service) *KeyProductRepository {
+	s := &KeyProductRepository{svc: svc}
+	return s
+}
+
+func (h *KeyProductRepository) GetById(ctx context.Context, id string) (*grpc.KeyProduct, error) {
+	oid, _ := primitive.ObjectIDFromHex(id)
+	query := bson.M{"_id": oid, "deleted": false}
+
+	product := &grpc.KeyProduct{}
+	err := h.svc.db.Collection(collectionKeyProduct).FindOne(ctx, query).Decode(product)
+
+	return product, err
+}
+
+func (h *KeyProductRepository) Update(ctx context.Context, keyProduct *grpc.KeyProduct) error {
+	oid, _ := primitive.ObjectIDFromHex(keyProduct.Id)
+	filter := bson.M{"_id": oid}
+	_, err := h.svc.db.Collection(collectionKeyProduct).UpdateOne(ctx, filter, keyProduct)
+
+	return err
+}

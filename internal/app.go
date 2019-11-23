@@ -352,11 +352,11 @@ func (app *Application) TaskAutoCreatePayouts() error {
 }
 
 func (app *Application) TaskRebuildOrderView() error {
-	return app.svc.RebuildOrderView()
+	return app.svc.RebuildOrderView(context.TODO())
 }
 
 func (app *Application) TaskMerchantsMigrate() error {
-	return app.svc.MerchantsMigrate()
+	return app.svc.MerchantsMigrate(context.TODO())
 }
 
 func (app *Application) KeyDaemonStart() {
@@ -375,7 +375,7 @@ func (app *Application) KeyDaemonStart() {
 				zap.S().Info("Key daemon stopping")
 				return
 			default:
-				count, err := app.svc.KeyDaemonProcess()
+				count, err := app.svc.KeyDaemonProcess(context.TODO())
 				if err != nil {
 					zap.L().Error("Key daemon process failed", zap.Error(err))
 				}

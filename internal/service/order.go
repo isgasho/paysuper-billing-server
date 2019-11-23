@@ -209,7 +209,7 @@ func (s *Service) OrderCreateByPaylink(
 	req *billing.OrderCreateByPaylink,
 	rsp *grpc.OrderCreateProcessResponse,
 ) error {
-	pl, err := s.paylinkService.GetById(req.PaylinkId)
+	pl, err := s.paylinkService.GetById(ctx, req.PaylinkId)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			rsp.Status = pkg.ResponseStatusNotFound
@@ -786,7 +786,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 		return err
 	}
 
-	project, err := s.project.GetById(order.Project.Id)
+	project, err := s.project.GetById(ctx, order.Project.Id)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -1768,7 +1768,7 @@ func (s *Service) getPayloadForReceipt(ctx context.Context, order *billing.Order
 	currency := order.Currency
 
 	if order.IsBuyForVirtualCurrency {
-		project, _ := s.project.GetById(order.GetProjectId())
+		project, _ := s.project.GetById(ctx, order.GetProjectId())
 		currency, _ = project.VirtualCurrency.Name[DefaultLanguage]
 	}
 
@@ -2105,7 +2105,7 @@ func (v *OrderCreateRequestProcessor) processMerchant() error {
 }
 
 func (v *OrderCreateRequestProcessor) processProject() error {
-	project, err := v.project.GetById(v.request.ProjectId)
+	project, err := v.project.GetById(v.ctx, v.request.ProjectId)
 
 	if err != nil {
 		zap.S().Errorw("Order create get project error", "err", err, "request", v.request)
@@ -3342,7 +3342,7 @@ func (s *Service) ProcessOrderVirtualCurrency(ctx context.Context, order *billin
 
 	zap.S().Infow("try to use detected currency for order amount", "currency", currency, "order.Uuid", order.Uuid)
 
-	project, err := s.project.GetById(order.GetProjectId())
+	project, err := s.project.GetById(ctx, order.GetProjectId())
 
 	if project == nil || project.VirtualCurrency == nil {
 		return orderErrorVirtualCurrencyNotFilled
@@ -3381,7 +3381,7 @@ func (s *Service) GetAmountForVirtualCurrency(virtualAmount float64, group *bill
 }
 
 func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Order) ([]*grpc.Platform, error) {
-	project, err := s.project.GetById(order.Project.Id)
+	project, err := s.project.GetById(ctx, order.Project.Id)
 	if err != nil {
 		return nil, orderErrorProjectNotFound
 	}
@@ -3504,7 +3504,7 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 }
 
 func (s *Service) ProcessOrderProducts(ctx context.Context, order *billing.Order) error {
-	project, err := s.project.GetById(order.Project.Id)
+	project, err := s.project.GetById(ctx, order.Project.Id)
 	if err != nil {
 		return orderErrorProjectNotFound
 	}
@@ -3641,7 +3641,7 @@ func (s *Service) processAmountForVirtualCurrency(ctx context.Context, order *bi
 		return 0, nil, err
 	}
 
-	project, err := s.project.GetById(order.GetProjectId())
+	project, err := s.project.GetById(ctx, order.GetProjectId())
 	if err != nil {
 		return 0, nil, err
 	}
@@ -3859,7 +3859,7 @@ func (s *Service) SetUserNotifySales(
 		if err != nil {
 			return err
 		}
-		project, err := s.project.GetById(order.Project.Id)
+		project, err := s.project.GetById(ctx, order.Project.Id)
 		if err != nil {
 			return err
 		}
@@ -3936,7 +3936,7 @@ func (s *Service) SetUserNotifyNewRegion(
 		if err != nil {
 			return err
 		}
-		project, err := s.project.GetById(order.Project.Id)
+		project, err := s.project.GetById(ctx, order.Project.Id)
 		if err != nil {
 			return err
 		}

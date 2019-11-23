@@ -46,7 +46,7 @@ func (s *Service) GetOperatingCompaniesList(
 	req *grpc.EmptyRequest,
 	res *grpc.GetOperatingCompaniesListResponse,
 ) (err error) {
-	res.Items, err = s.operatingCompany.GetAll()
+	res.Items, err = s.operatingCompany.GetAll(ctx)
 	if err != nil {
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			res.Status = pkg.ResponseStatusBadData
@@ -72,7 +72,7 @@ func (s *Service) AddOperatingCompany(
 	}
 
 	if req.Id != "" {
-		oc, err = s.operatingCompany.GetById(req.Id)
+		oc, err = s.operatingCompany.GetById(ctx, req.Id)
 		if err != nil {
 			res.Status = pkg.ResponseStatusBadData
 			res.Message = errorOperatingCompanyNotFound
@@ -81,7 +81,7 @@ func (s *Service) AddOperatingCompany(
 	}
 
 	if req.PaymentCountries == nil || len(req.PaymentCountries) == 0 {
-		ocCheck, err := s.operatingCompany.GetByPaymentCountry("")
+		ocCheck, err := s.operatingCompany.GetByPaymentCountry(ctx, "")
 		if err != nil && err != errorOperatingCompanyNotFound {
 			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 				res.Status = pkg.ResponseStatusBadData
@@ -99,7 +99,7 @@ func (s *Service) AddOperatingCompany(
 
 	} else {
 		for _, countryCode := range req.PaymentCountries {
-			ocCheck, err := s.operatingCompany.GetByPaymentCountry(countryCode)
+			ocCheck, err := s.operatingCompany.GetByPaymentCountry(ctx, countryCode)
 			if err != nil && err != errorOperatingCompanyNotFound {
 				if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 					res.Status = pkg.ResponseStatusBadData
@@ -114,7 +114,7 @@ func (s *Service) AddOperatingCompany(
 				return nil
 			}
 
-			_, err = s.country.GetByIsoCodeA2(countryCode)
+			_, err = s.country.GetByIsoCodeA2(ctx, countryCode)
 			if err != nil {
 				res.Status = pkg.ResponseStatusBadData
 				res.Message = errorOperatingCompanyCountryUnknown
@@ -137,7 +137,7 @@ func (s *Service) AddOperatingCompany(
 	oc.VatAddress = req.VatAddress
 	oc.Email = req.Email
 
-	err = s.operatingCompany.Upsert(oc)
+	err = s.operatingCompany.Upsert(ctx, oc)
 	if err != nil {
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			res.Status = pkg.ResponseStatusBadData
@@ -156,7 +156,7 @@ func (s *Service) GetOperatingCompany(
 	req *grpc.GetOperatingCompanyRequest,
 	res *grpc.GetOperatingCompanyResponse,
 ) (err error) {
-	oc, err := s.operatingCompany.GetById(req.Id)
+	oc, err := s.operatingCompany.GetById(ctx, req.Id)
 
 	if err != nil {
 		res.Status = pkg.ResponseStatusBadData
@@ -223,7 +223,7 @@ func (o OperatingCompany) GetByPaymentCountry(
 	if countryCode == "" {
 		query["payment_countries"] = bson.M{"$size": 0}
 	} else {
-		_, err = o.svc.country.GetByIsoCodeA2(countryCode)
+		_, err = o.svc.country.GetByIsoCodeA2(ctx, countryCode)
 		if err != nil {
 			return nil, errorOperatingCompanyCountryUnknown
 		}
