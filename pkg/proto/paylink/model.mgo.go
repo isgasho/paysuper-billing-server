@@ -2,8 +2,9 @@ package paylink
 
 import (
 	"errors"
-	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 )
 
@@ -12,34 +13,34 @@ const (
 )
 
 type mgoPaylink struct {
-	Id                   bson.ObjectId `bson:"_id"`
-	Object               string        `bson:"object"`
-	Products             []string      `bson:"products"`
-	ExpiresAt            time.Time     `bson:"expires_at"`
-	CreatedAt            time.Time     `bson:"created_at"`
-	UpdatedAt            time.Time     `bson:"updated_at"`
-	MerchantId           bson.ObjectId `bson:"merchant_id"`
-	ProjectId            bson.ObjectId `bson:"project_id"`
-	Name                 string        `bson:"name"`
-	ProductsType         string        `bson:"products_type"`
-	IsExpired            bool          `bson:"is_expired"`
-	Visits               int32         `bson:"visits"`
-	NoExpiryDate         bool          `bson:"no_expiry_date"`
-	TotalTransactions    int32         `bson:"total_transactions"`
-	SalesCount           int32         `bson:"sales_count"`
-	ReturnsCount         int32         `bson:"returns_count"`
-	Conversion           float64       `bson:"conversion"`
-	GrossSalesAmount     float64       `bson:"gross_sales_amount"`
-	GrossReturnsAmount   float64       `bson:"gross_returns_amount"`
-	GrossTotalAmount     float64       `bson:"gross_total_amount"`
-	TransactionsCurrency string        `bson:"transactions_currency"`
-	Deleted              bool          `bson:"deleted"`
+	Id                   primitive.ObjectID `bson:"_id"`
+	Object               string             `bson:"object"`
+	Products             []string           `bson:"products"`
+	ExpiresAt            time.Time          `bson:"expires_at"`
+	CreatedAt            time.Time          `bson:"created_at"`
+	UpdatedAt            time.Time          `bson:"updated_at"`
+	MerchantId           primitive.ObjectID `bson:"merchant_id"`
+	ProjectId            primitive.ObjectID `bson:"project_id"`
+	Name                 string             `bson:"name"`
+	ProductsType         string             `bson:"products_type"`
+	IsExpired            bool               `bson:"is_expired"`
+	Visits               int32              `bson:"visits"`
+	NoExpiryDate         bool               `bson:"no_expiry_date"`
+	TotalTransactions    int32              `bson:"total_transactions"`
+	SalesCount           int32              `bson:"sales_count"`
+	ReturnsCount         int32              `bson:"returns_count"`
+	Conversion           float64            `bson:"conversion"`
+	GrossSalesAmount     float64            `bson:"gross_sales_amount"`
+	GrossReturnsAmount   float64            `bson:"gross_returns_amount"`
+	GrossTotalAmount     float64            `bson:"gross_total_amount"`
+	TransactionsCurrency string             `bson:"transactions_currency"`
+	Deleted              bool               `bson:"deleted"`
 }
 
 // RateData.SetBSON
-func (p *Paylink) SetBSON(raw bson.Raw) error {
+func (p *Paylink) UnmarshalBSON(raw []byte) error {
 	decoded := new(mgoPaylink)
-	err := raw.Unmarshal(decoded)
+	err := bson.Unmarshal(raw, decoded)
 
 	if err != nil {
 		return err
@@ -85,7 +86,7 @@ func (p *Paylink) SetBSON(raw bson.Raw) error {
 }
 
 // RateData.GetBSON
-func (p *Paylink) GetBSON() (interface{}, error) {
+func (p *Paylink) MarshalBSON() ([]byte, error) {
 	st := &mgoPaylink{
 		Object:               p.Object,
 		Products:             p.Products,
@@ -105,27 +106,32 @@ func (p *Paylink) GetBSON() (interface{}, error) {
 	}
 
 	if len(p.Id) <= 0 {
-		st.Id = bson.NewObjectId()
+		st.Id = primitive.NewObjectID()
 	} else {
-		if bson.IsObjectIdHex(p.Id) == false {
+		oid, err := primitive.ObjectIDFromHex(p.Id)
+
+		if err != nil {
 			return nil, errors.New(errorInvalidObjectId)
 		}
-		st.Id = bson.ObjectIdHex(p.Id)
+		st.Id = oid
 	}
 
-	if bson.IsObjectIdHex(p.MerchantId) == false {
+	oid, err := primitive.ObjectIDFromHex(p.MerchantId)
+
+	if err != nil {
 		return nil, errors.New(errorInvalidObjectId)
 	}
-	st.MerchantId = bson.ObjectIdHex(p.MerchantId)
 
-	if bson.IsObjectIdHex(p.ProjectId) == false {
+	st.MerchantId = oid
+	oid, err = primitive.ObjectIDFromHex(p.ProjectId)
+
+	if err != nil {
 		return nil, errors.New(errorInvalidObjectId)
 	}
-	st.ProjectId = bson.ObjectIdHex(p.ProjectId)
 
-	var err error
-
+	st.ProjectId = oid
 	st.CreatedAt, err = ptypes.Timestamp(p.CreatedAt)
+
 	if err != nil {
 		return nil, err
 	}
@@ -144,5 +150,5 @@ func (p *Paylink) GetBSON() (interface{}, error) {
 
 	st.IsExpired = p.IsPaylinkExpired()
 
-	return st, nil
+	return bson.Marshal(st)
 }
