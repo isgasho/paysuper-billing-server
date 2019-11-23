@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/ProtocolONE/geoip-service/pkg/proto"
 	"github.com/go-redis/redis"
+	casbinProto "github.com/paysuper/casbin-server/pkg/generated/api/proto/casbinpb"
 	documentSignerProto "github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
@@ -88,6 +89,9 @@ type Service struct {
 	keyRepository              KeyRepositoryInterface
 	dashboardRepository        DashboardRepositoryInterface
 	orderRepository            OrderRepositoryInterface
+	userRoleRepository         UserRoleServiceInterface
+	userProfileRepository      UserProfileRepositoryInterface
+	keyProductRepository       KeyProductRepositoryInterface
 	centrifugo                 CentrifugoInterface
 	formatter                  paysuper_i18n.Formatter
 	reporterService            reporterProto.ReporterService
@@ -95,6 +99,7 @@ type Service struct {
 	paylinkService             PaylinkServiceInterface
 	operatingCompany           OperatingCompanyInterface
 	paymentMinLimitSystem      PaymentMinLimitSystemInterface
+	casbinService              casbinProto.CasbinService
 }
 
 func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {
@@ -128,6 +133,7 @@ func NewBillingService(
 	reporterService reporterProto.ReporterService,
 	formatter paysuper_i18n.Formatter,
 	postmarkBroker rabbitmq.BrokerInterface,
+	casbinService casbinProto.CasbinService,
 ) *Service {
 	return &Service{
 		db:              db,
@@ -143,6 +149,7 @@ func NewBillingService(
 		reporterService: reporterService,
 		formatter:       formatter,
 		postmarkBroker:  postmarkBroker,
+		casbinService:   casbinService,
 	}
 }
 
@@ -171,6 +178,9 @@ func (s *Service) Init() (err error) {
 	s.keyRepository = newKeyRepository(s)
 	s.dashboardRepository = newDashboardRepository(s)
 	s.orderRepository = newOrderRepository(s)
+	s.userRoleRepository = newUserRoleRepository(s)
+	s.userProfileRepository = newUserProfileRepository(s)
+	s.keyProductRepository = newKeyProductRepository(s)
 	s.centrifugo = newCentrifugo(s)
 	s.paylinkService = newPaylinkService(s)
 	s.operatingCompany = newOperatingCompanyService(s)

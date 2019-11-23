@@ -34,6 +34,9 @@ func main() {
 
 		case "rebuild_order_view":
 			err = app.TaskRebuildOrderView()
+
+		case "merchants_migrate":
+			err = app.TaskMerchantsMigrate()
 		}
 
 		if err != nil {

@@ -943,6 +943,7 @@ func helperMakeRefund(suite suite.Suite, service *Service, order *billing.Order,
 		CreatorId:    primitive.NewObjectID().Hex(),
 		Reason:       "unit test",
 		IsChargeback: isChargeback,
+		MerchantId:   order.GetMerchantId(),
 	}
 	rsp2 := &grpc.CreateRefundResponse{}
 	err := service.CreateRefund(context.TODO(), req2, rsp2)

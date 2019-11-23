@@ -12,6 +12,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
 	"github.com/jinzhu/now"
+	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
@@ -1271,6 +1272,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		nil,
 		mocks.NewFormatterOK(),
 		mocks.NewBrokerMockOk(),
+		&casbinMocks.CasbinService{},
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -8443,4 +8445,62 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_MinSystemLimit
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusBadData)
 	assert.Equal(suite.T(), errorPaymentMinLimitSystemNotFound, rsp1.Message)
+}
+
+func (suite *OrderTestSuite) TestOrder_ReCreateOrder_Ok() {
+	shouldBe := require.New(suite.T())
+	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
+		ProjectId:   suite.project.Id,
+		Currency:    "RUB",
+		Amount:      100,
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+	}
+
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
+	shouldBe.Nil(err)
+	shouldBe.Equal(rsp0.Status, pkg.ResponseStatusOk)
+	order := rsp0.Item
+
+	order.PrivateStatus = constant.OrderStatusPaymentSystemDeclined
+	shouldBe.NoError(suite.service.updateOrder(order))
+
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	shouldBe.NoError(suite.service.OrderReCreateProcess(context.TODO(), &grpc.OrderReCreateProcessRequest{OrderId: order.GetUuid()}, rsp1))
+	shouldBe.EqualValues(200, rsp1.Status)
+	shouldBe.NotEqual(order.Id, rsp1.Item.Id)
+	shouldBe.NotEqual(order.Uuid, rsp1.Item.Uuid)
+	shouldBe.NotEqual(order.Status, rsp1.Item.Status)
+	shouldBe.NotEqual(order.PrivateStatus, rsp1.Item.PrivateStatus)
+	shouldBe.Empty(rsp1.Item.ReceiptUrl)
+	shouldBe.NotEqual(order.ReceiptId, rsp1.Item.ReceiptId)
+}
+
+func (suite *OrderTestSuite) TestOrder_ReCreateOrder_Error() {
+	shouldBe := require.New(suite.T())
+	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
+		ProjectId:   suite.project.Id,
+		Currency:    "RUB",
+		Amount:      100,
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+	}
+
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
+	shouldBe.Nil(err)
+	shouldBe.Equal(rsp0.Status, pkg.ResponseStatusOk)
+	order := rsp0.Item
+
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	shouldBe.NoError(suite.service.OrderReCreateProcess(context.TODO(), &grpc.OrderReCreateProcessRequest{OrderId: order.GetUuid()}, rsp1))
+	shouldBe.EqualValues(400, rsp1.Status)
+	shouldBe.NotNil(rsp1.Message)
 }

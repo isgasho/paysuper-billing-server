@@ -9,6 +9,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/golang/protobuf/ptypes"
+	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
@@ -105,6 +106,7 @@ func (suite *MerchantBalanceTestSuite) SetupTest() {
 		&reportingMocks.ReporterService{},
 		mocks.NewFormatterOK(),
 		mocks.NewBrokerMockOk(),
+		&casbinMocks.CasbinService{},
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -410,6 +412,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 		ReportId:   report.Id,
 		IsAccepted: true,
 		Ip:         "127.0.0.1",
+		MerchantId: suite.merchant.Id,
 	}
 	rsp1 := &grpc.ResponseError{}
 	err = suite.service.MerchantReviewRoyaltyReport(context.TODO(), req1, rsp1)
@@ -429,10 +432,10 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	assert.Equal(suite.T(), mbRes.Status, pkg.ResponseStatusOk)
 	assert.Equal(suite.T(), mbRes.Item.MerchantId, suite.merchant.Id)
 	assert.Equal(suite.T(), mbRes.Item.Currency, suite.merchant.GetPayoutCurrency())
-	assert.Equal(suite.T(), mbRes.Item.Debit, float64(1234.5))
-	assert.Equal(suite.T(), mbRes.Item.Credit, float64(0))
-	assert.Equal(suite.T(), mbRes.Item.RollingReserve, float64(0))
-	assert.Equal(suite.T(), mbRes.Item.Total, float64(1234.5))
+	assert.Equal(suite.T(), float64(1234.5), mbRes.Item.Debit)
+	assert.Equal(suite.T(), float64(0), mbRes.Item.Credit)
+	assert.Equal(suite.T(), float64(0), mbRes.Item.RollingReserve)
+	assert.Equal(suite.T(), float64(1234.5), mbRes.Item.Total)
 }
 
 // 2. Triggering on payout status change
@@ -676,9 +679,10 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	assert.NoError(suite.T(), err)
 
 	req7 := &grpc.ChangeRoyaltyReportRequest{
-		ReportId: report.Id,
-		Status:   pkg.RoyaltyReportStatusAccepted,
-		Ip:       "127.0.0.1",
+		ReportId:   report.Id,
+		Status:     pkg.RoyaltyReportStatusAccepted,
+		Ip:         "127.0.0.1",
+		MerchantId: suite.merchant.Id,
 	}
 	rsp7 := &grpc.ResponseError{}
 	err = suite.service.ChangeRoyaltyReport(context.TODO(), req7, rsp7)
