@@ -39,7 +39,6 @@ var (
 	keyProductErrorUpsert                   = newBillingServerErrorMsg("kp000013", "query to insert/update key product failed")
 	keyProductErrorDelete                   = newBillingServerErrorMsg("kp000014", "query to remove key product failed")
 	keyProductMerchantNotFound              = newBillingServerErrorMsg("kp000015", "merchant not found")
-	keyProductMerchantDbError               = newBillingServerErrorMsg("kp000016", "can't retrieve data from db for merchant")
 	keyProductNotFound                      = newBillingServerErrorMsg("kp000017", "key product not found")
 	keyProductInternalError                 = newBillingServerErrorMsg("kp000018", "unknown error")
 	keyProductOrderIsNotProcessedError      = newBillingServerErrorMsg("kp000019", "order has wrong public status")
@@ -60,11 +59,7 @@ var availablePlatforms = map[string]*grpc.Platform{
 	"egs":      {Id: "egs", Name: "Epic Games Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-epic.png", Order: 9},
 }
 
-func (s *Service) CreateOrUpdateKeyProduct(
-	ctx context.Context,
-	req *grpc.CreateOrUpdateKeyProductRequest,
-	res *grpc.KeyProductResponse,
-) error {
+func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.CreateOrUpdateKeyProductRequest, res *grpc.KeyProductResponse) error {
 	var (
 		err     error
 		isNew   = len(req.Id) == 0
@@ -72,22 +67,6 @@ func (s *Service) CreateOrUpdateKeyProduct(
 		product = &grpc.KeyProduct{}
 	)
 	res.Status = pkg.ResponseStatusOk
-
-	project, err := s.project.GetById(ctx, req.ProjectId)
-
-	if err != nil {
-		zap.S().Errorw("internal error when getting project", "err", err)
-		res.Status = pkg.ResponseStatusSystemError
-		res.Message = keyProductInternalError
-		return nil
-	}
-
-	if project.MerchantId != req.MerchantId {
-		zap.S().Errorw("Merchant for project is mismatch with requested", "data", req)
-		res.Status = http.StatusBadRequest
-		res.Message = keyProductNotFound
-		return nil
-	}
 
 	if isNew {
 		product.Id = primitive.NewObjectID().Hex()
@@ -99,7 +78,7 @@ func (s *Service) CreateOrUpdateKeyProduct(
 		productResponse := &grpc.KeyProductResponse{}
 		err = s.GetKeyProduct(ctx, &grpc.RequestKeyProductMerchant{Id: req.Id, MerchantId: req.MerchantId}, productResponse)
 		if err != nil {
-			zap.S().Errorw("internal error when getting product", "err", err)
+			zap.S().Errorf("internal error when getting product", "err", err)
 			res.Status = pkg.ResponseStatusSystemError
 			res.Message = keyProductInternalError
 			return nil
@@ -108,7 +87,7 @@ func (s *Service) CreateOrUpdateKeyProduct(
 		product = productResponse.Product
 
 		if productResponse.Status != pkg.ResponseStatusOk {
-			zap.S().Errorw("failed to fetch key product", "message", productResponse.Message, "req", req)
+			zap.S().Errorf("failed to fetch key product", "message", productResponse.Message, "req", req)
 			res.Status = productResponse.Status
 			res.Message = productResponse.Message
 			return nil
@@ -152,7 +131,11 @@ func (s *Service) CreateOrUpdateKeyProduct(
 
 	// Prevent duplicated key products (by projectId+sku)
 	projectOid, _ := primitive.ObjectIDFromHex(req.ProjectId)
-	dupQuery := bson.M{"project_id": projectOid, "sku": req.Sku, "deleted": false}
+	dupQuery := bson.M{
+		"project_id": projectOid,
+		"sku":        req.Sku,
+		"deleted":    false,
+	}
 	found, err := s.db.Collection(collectionKeyProduct).CountDocuments(ctx, dupQuery)
 
 	if err != nil {
@@ -273,9 +256,9 @@ func (s *Service) CreateOrUpdateKeyProduct(
 	product.Pricing = req.Pricing
 	product.UpdatedAt = now
 
-	productOid, _ := primitive.ObjectIDFromHex(product.Id)
-	filter := bson.M{"_id": productOid}
+	oid, _ := primitive.ObjectIDFromHex(product.Id)
 	opts := options.FindOneAndUpdate().SetUpsert(true)
+	filter := bson.M{"_id": oid}
 	err = s.db.Collection(collectionKeyProduct).FindOneAndUpdate(ctx, filter, product, opts).Err()
 
 	if err != nil {
@@ -283,7 +266,9 @@ func (s *Service) CreateOrUpdateKeyProduct(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
 			zap.String(pkg.ErrorDatabaseFieldCollection, collectionKeyProduct),
+			zap.String(pkg.ErrorDatabaseFieldOperation, pkg.ErrorDatabaseFieldOperationUpsert),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, filter),
+			zap.Any(pkg.ErrorDatabaseFieldSet, product),
 		)
 		res.Status = http.StatusInternalServerError
 		res.Message = keyProductErrorUpsert
@@ -294,31 +279,15 @@ func (s *Service) CreateOrUpdateKeyProduct(
 	return nil
 }
 
-func (s *Service) checkMerchantExist(ctx context.Context, id string) (bool, error) {
-	var c billing.Merchant
-	oid, _ := primitive.ObjectIDFromHex(id)
-	filter := bson.M{"_id": oid}
-	err := s.db.Collection(collectionMerchant).FindOne(ctx, filter).Decode(&c)
-
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return false, nil
-		}
-
-		return false, keyProductMerchantDbError
-	}
-
-	return true, nil
-}
-
 func (s *Service) GetKeyProducts(
 	ctx context.Context,
 	req *grpc.ListKeyProductsRequest,
 	res *grpc.ListKeyProductsResponse,
 ) error {
 	res.Status = pkg.ResponseStatusOk
+	merchant, err := s.merchant.GetById(ctx, req.MerchantId)
 
-	if exist, err := s.checkMerchantExist(ctx, req.MerchantId); exist == false || err != nil {
+	if merchant == nil || err != nil {
 		if err != nil {
 			res.Status = pkg.ResponseStatusSystemError
 			res.Message = keyProductInternalError
@@ -353,12 +322,7 @@ func (s *Service) GetKeyProducts(
 	total, err := s.db.Collection(collectionKeyProduct).CountDocuments(ctx, query)
 
 	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionKeyProduct),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
-		)
+		zap.S().Errorf("Query to find key products by id failed", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
 		res.Message = keyProductInternalError
 		res.Message.Details = err.Error()
@@ -371,25 +335,25 @@ func (s *Service) GetKeyProducts(
 	res.Offset = req.Offset
 	res.Count = total
 	res.Products = items
+
 	if res.Count == 0 || res.Offset > res.Count {
 		return nil
 	}
 
 	opts := options.Find().
-		SetLimit(req.Limit).
-		SetSkip(req.Offset)
+		SetSkip(req.Offset).
+		SetLimit(req.Limit)
 	cursor, err := s.db.Collection(collectionKeyProduct).Find(ctx, query, opts)
 
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionKeyProduct),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionCountry),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
 		res.Status = http.StatusInternalServerError
-		res.Message = keyProductInternalError
-		res.Message.Details = err.Error()
+		res.Message = keyProductInternalError.GetResponseErrorWithDetails(err.Error())
 		return nil
 	}
 
@@ -399,12 +363,11 @@ func (s *Service) GetKeyProducts(
 		zap.L().Error(
 			pkg.ErrorQueryCursorExecutionFailed,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionKeyProduct),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionCountry),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
 		res.Status = http.StatusInternalServerError
-		res.Message = keyProductInternalError
-		res.Message.Details = err.Error()
+		res.Message = keyProductInternalError.GetResponseErrorWithDetails(err.Error())
 		return nil
 	}
 
@@ -439,7 +402,7 @@ func (s *Service) GetKeyProductInfo(
 	res *grpc.GetKeyProductInfoResponse,
 ) error {
 	res.Status = pkg.ResponseStatusOk
-	product, err := s.keyProductRepository.GetById(ctx, req.KeyProductId)
+	product, err := s.getKeyProductById(ctx, req.KeyProductId)
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -562,7 +525,7 @@ func (s *Service) GetKeyProduct(
 	res *grpc.KeyProductResponse,
 ) error {
 	res.Status = pkg.ResponseStatusOk
-	product, err := s.keyProductRepository.GetById(ctx, req.Id)
+	product, err := s.getKeyProductById(ctx, req.Id)
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -571,16 +534,9 @@ func (s *Service) GetKeyProduct(
 			return nil
 		}
 
-		zap.S().Errorw("Query to find key product by id failed", "err", err.Error(), "data", req)
+		zap.S().Errorf("Query to find key product by id failed", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
 		res.Message = keyProductRetrieveError
-		return nil
-	}
-
-	if product.MerchantId != req.MerchantId {
-		zap.S().Errorw("Merchant for product is mismatch with requested", "data", req)
-		res.Status = http.StatusBadRequest
-		res.Message = keyProductNotFound
 		return nil
 	}
 
@@ -589,12 +545,25 @@ func (s *Service) GetKeyProduct(
 	return nil
 }
 
+func (s *Service) getKeyProductById(ctx context.Context, id string) (*grpc.KeyProduct, error) {
+	oid, err := primitive.ObjectIDFromHex(id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	query := bson.M{"_id": oid, "deleted": false}
+	product := new(grpc.KeyProduct)
+	err = s.db.Collection(collectionKeyProduct).FindOne(ctx, query).Decode(product)
+	return product, err
+}
+
 func (s *Service) DeleteKeyProduct(
 	ctx context.Context,
 	req *grpc.RequestKeyProductMerchant,
 	res *grpc.EmptyResponseWithStatus,
 ) error {
-	product, err := s.keyProductRepository.GetById(ctx, req.Id)
+	product, err := s.getKeyProductById(ctx, req.Id)
 	res.Status = pkg.ResponseStatusOk
 
 	if err != nil {
@@ -604,24 +573,27 @@ func (s *Service) DeleteKeyProduct(
 			return nil
 		}
 
-		zap.S().Errorw("Error during getting key product", "err", err.Error(), "data", req)
+		zap.S().Errorf("Error during getting key product", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
 		res.Message = keyProductRetrieveError
-		return nil
-	}
-
-	if product.MerchantId != req.MerchantId {
-		zap.S().Errorw("Merchant for product is mismatch with requested", "data", req)
-		res.Status = http.StatusBadRequest
-		res.Message = keyProductNotFound
 		return nil
 	}
 
 	product.Deleted = true
 	product.UpdatedAt = ptypes.TimestampNow()
 
-	if err = s.keyProductRepository.Update(ctx, product); err != nil {
-		zap.S().Errorw("Query to delete key product failed", "err", err.Error(), "data", req)
+	oid, _ := primitive.ObjectIDFromHex(product.Id)
+	filter := bson.M{"_id": oid}
+	_, err = s.db.Collection(collectionKeyProduct).UpdateOne(ctx, filter, product)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionCountry),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, filter),
+			zap.Any(pkg.ErrorDatabaseFieldSet, product),
+		)
 		res.Status = http.StatusInternalServerError
 		res.Message = keyProductErrorDelete
 		return nil
@@ -635,7 +607,7 @@ func (s *Service) PublishKeyProduct(
 	req *grpc.PublishKeyProductRequest,
 	res *grpc.KeyProductResponse,
 ) error {
-	product, err := s.keyProductRepository.GetById(ctx, req.KeyProductId)
+	product, err := s.getKeyProductById(ctx, req.KeyProductId)
 	res.Status = pkg.ResponseStatusOk
 
 	if err != nil {
@@ -645,16 +617,9 @@ func (s *Service) PublishKeyProduct(
 			return nil
 		}
 
-		zap.S().Errorw("Error during getting key product", "err", err.Error(), "data", req)
+		zap.S().Errorf("Error during getting key product", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
 		res.Message = keyProductRetrieveError
-		return nil
-	}
-
-	if product.MerchantId != req.MerchantId {
-		zap.S().Errorw("Merchant for product is mismatch with requested", "data", req)
-		res.Status = http.StatusBadRequest
-		res.Message = keyProductNotFound
 		return nil
 	}
 
@@ -662,15 +627,24 @@ func (s *Service) PublishKeyProduct(
 	product.PublishedAt = ptypes.TimestampNow()
 	product.Enabled = true
 
-	if err := s.keyProductRepository.Update(ctx, product); err != nil {
-		zap.S().Errorw("Query to update product failed", "err", err.Error(), "data", req)
+	oid, _ := primitive.ObjectIDFromHex(product.Id)
+	filter := bson.M{"_id": oid}
+	_, err = s.db.Collection(collectionKeyProduct).UpdateOne(ctx, filter, product)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionCountry),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, filter),
+			zap.Any(pkg.ErrorDatabaseFieldSet, product),
+		)
 		res.Status = http.StatusInternalServerError
 		res.Message = keyProductErrorUpsert
 		return nil
 	}
 
 	res.Product = product
-
 	return nil
 }
 
@@ -680,15 +654,14 @@ func (s *Service) GetKeyProductsForOrder(
 	res *grpc.ListKeyProductsResponse,
 ) error {
 	if len(req.Ids) == 0 {
-		zap.S().Errorw("Ids list is empty", "data", req)
+		zap.S().Errorf("Ids list is empty", "data", req)
 		res.Status = http.StatusBadRequest
 		res.Message = keyProductIdsIsEmpty
 		return nil
 	}
 
-	projectOid, _ := primitive.ObjectIDFromHex(req.ProjectId)
-	query := bson.M{"enabled": true, "deleted": false, "project_id": projectOid}
-	var items []primitive.ObjectID
+	idsLen := len(req.Ids)
+	items := make([]primitive.ObjectID, idsLen)
 
 	for _, id := range req.Ids {
 		oid, err := primitive.ObjectIDFromHex(id)
@@ -700,9 +673,13 @@ func (s *Service) GetKeyProductsForOrder(
 		items = append(items, oid)
 	}
 
-	query["_id"] = bson.M{"$in": items}
-
-	var found []*grpc.KeyProduct
+	projectOid, _ := primitive.ObjectIDFromHex(req.ProjectId)
+	query := bson.M{
+		"_id":        bson.M{"$in": items},
+		"enabled":    true,
+		"deleted":    false,
+		"project_id": projectOid,
+	}
 	cursor, err := s.db.Collection(collectionKeyProduct).Find(ctx, query)
 
 	if err != nil {
@@ -714,11 +691,11 @@ func (s *Service) GetKeyProductsForOrder(
 		)
 
 		res.Status = http.StatusInternalServerError
-		res.Message = keyProductInternalError
-		res.Message.Details = err.Error()
+		res.Message = keyProductInternalError.GetResponseErrorWithDetails(err.Error())
 		return nil
 	}
 
+	var found []*grpc.KeyProduct
 	err = cursor.All(ctx, &found)
 
 	if err != nil {
@@ -729,8 +706,7 @@ func (s *Service) GetKeyProductsForOrder(
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
 		res.Status = http.StatusInternalServerError
-		res.Message = keyProductInternalError
-		res.Message.Details = err.Error()
+		res.Message = keyProductInternalError.GetResponseErrorWithDetails(err.Error())
 		return nil
 	}
 
@@ -744,7 +720,7 @@ func (s *Service) GetKeyProductsForOrder(
 func (s *Service) ChangeCodeInOrder(ctx context.Context, req *grpc.ChangeCodeInOrderRequest, res *grpc.ChangeCodeInOrderResponse) error {
 	res.Status = pkg.ResponseStatusOk
 
-	order, err := s.getOrderByUuid(ctx, req.OrderId)
+	order, err := s.getOrderByUuid(req.OrderId)
 	if err != nil {
 		zap.S().Error("Query to get order failed", "err", err.Error(), "data", req)
 		if messageErr, ok := err.(*grpc.ResponseErrorMessage); ok {
@@ -837,7 +813,7 @@ func (s *Service) UnPublishKeyProduct(
 	req *grpc.UnPublishKeyProductRequest,
 	res *grpc.KeyProductResponse,
 ) error {
-	product, err := s.keyProductRepository.GetById(ctx, req.KeyProductId)
+	product, err := s.getKeyProductById(ctx, req.KeyProductId)
 	res.Status = pkg.ResponseStatusOk
 
 	if err != nil {
@@ -853,13 +829,6 @@ func (s *Service) UnPublishKeyProduct(
 		return nil
 	}
 
-	if product.MerchantId != req.MerchantId {
-		zap.S().Errorw("Merchant for product is mismatch with requested", "data", req)
-		res.Status = http.StatusBadRequest
-		res.Message = keyProductNotFound
-		return nil
-	}
-
 	if product.Enabled == false {
 		zap.S().Errorw("Key product not published", "key_product", req.KeyProductId)
 		res.Status = http.StatusBadRequest
@@ -869,8 +838,19 @@ func (s *Service) UnPublishKeyProduct(
 
 	product.Enabled = false
 
-	if err := s.keyProductRepository.Update(ctx, product); err != nil {
-		zap.S().Errorf("Query to update product failed", "err", err.Error(), "data", req)
+	oid, _ := primitive.ObjectIDFromHex(product.Id)
+	filter := bson.M{"_id": oid}
+	_, err = s.db.Collection(collectionKeyProduct).UpdateOne(ctx, filter, product)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionCountry),
+			zap.Any(pkg.ErrorDatabaseFieldOperation, pkg.ErrorDatabaseFieldOperationUpdate),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, filter),
+			zap.Any(pkg.ErrorDatabaseFieldSet, product),
+		)
 		res.Status = http.StatusInternalServerError
 		res.Message = keyProductErrorUpsert
 		return nil
@@ -941,32 +921,4 @@ func getImageByLanguage(lng string, collection *billing.ImageCollection) string 
 	}
 
 	return image
-}
-
-type KeyProductRepositoryInterface interface {
-	GetById(context.Context, string) (*grpc.KeyProduct, error)
-	Update(context.Context, *grpc.KeyProduct) error
-}
-
-func newKeyProductRepository(svc *Service) *KeyProductRepository {
-	s := &KeyProductRepository{svc: svc}
-	return s
-}
-
-func (h *KeyProductRepository) GetById(ctx context.Context, id string) (*grpc.KeyProduct, error) {
-	oid, _ := primitive.ObjectIDFromHex(id)
-	query := bson.M{"_id": oid, "deleted": false}
-
-	product := &grpc.KeyProduct{}
-	err := h.svc.db.Collection(collectionKeyProduct).FindOne(ctx, query).Decode(product)
-
-	return product, err
-}
-
-func (h *KeyProductRepository) Update(ctx context.Context, keyProduct *grpc.KeyProduct) error {
-	oid, _ := primitive.ObjectIDFromHex(keyProduct.Id)
-	filter := bson.M{"_id": oid}
-	_, err := h.svc.db.Collection(collectionKeyProduct).UpdateOne(ctx, filter, keyProduct)
-
-	return err
 }

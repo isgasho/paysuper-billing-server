@@ -158,7 +158,7 @@ func (s *Service) CreateAccountingEntry(
 	_, err := primitive.ObjectIDFromHex(req.OrderId)
 
 	if req.OrderId != "" && err == nil {
-		order, err := s.getOrderById(req.OrderId)
+		order, err := s.getOrderById(ctx, req.OrderId)
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusNotFound
@@ -174,7 +174,7 @@ func (s *Service) CreateAccountingEntry(
 	_, err = primitive.ObjectIDFromHex(req.RefundId)
 
 	if req.RefundId != "" && err == nil {
-		refund, err := s.getRefundById(req.RefundId)
+		refund, err := s.getRefundById(ctx, req.RefundId)
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusNotFound
@@ -183,7 +183,7 @@ func (s *Service) CreateAccountingEntry(
 			return nil
 		}
 
-		order, err := s.getOrderById(refund.OriginalOrder.Id)
+		order, err := s.getOrderById(ctx, refund.OriginalOrder.Id)
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusNotFound
@@ -192,7 +192,7 @@ func (s *Service) CreateAccountingEntry(
 			return nil
 		}
 
-		refundOrder, err := s.getOrderById(refund.CreatedOrderId)
+		refundOrder, err := s.getOrderById(ctx, refund.CreatedOrderId)
 		if err != nil {
 			return err
 		}
@@ -206,7 +206,7 @@ func (s *Service) CreateAccountingEntry(
 	oid, err := primitive.ObjectIDFromHex(req.MerchantId)
 
 	if req.MerchantId != "" && err != nil {
-		merchant, err := s.getMerchantBy(bson.M{"_id": oid})
+		merchant, err := s.getMerchantBy(ctx, bson.M{"_id": oid})
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusNotFound
@@ -223,7 +223,7 @@ func (s *Service) CreateAccountingEntry(
 		countryCode = req.Country
 	}
 
-	country, err := s.country.GetByIsoCodeA2(countryCode)
+	country, err := s.country.GetByIsoCodeA2(ctx, countryCode)
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = accountingEntryErrorCountryNotFound
@@ -249,7 +249,7 @@ func (s *Service) CreateAccountingEntry(
 	}
 
 	if _, ok := rollingReserveAccountingEntries[req.Type]; ok {
-		_, err = s.updateMerchantBalance(handler.merchant.Id)
+		_, err = s.updateMerchantBalance(ctx, handler.merchant.Id)
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusSystemError
 			rsp.Message = accountingEntryBalanceUpdateFailed
@@ -266,12 +266,12 @@ func (s *Service) CreateAccountingEntry(
 
 func (s *Service) onPaymentNotify(ctx context.Context, order *billing.Order) error {
 
-	country, err := s.country.GetByIsoCodeA2(order.GetCountry())
+	country, err := s.country.GetByIsoCodeA2(ctx, order.GetCountry())
 	if err != nil {
 		return err
 	}
 
-	merchant, err := s.merchant.GetById(order.GetMerchantId())
+	merchant, err := s.merchant.GetById(ctx, order.GetMerchantId())
 	if err != nil {
 		return err
 	}
@@ -288,19 +288,19 @@ func (s *Service) onPaymentNotify(ctx context.Context, order *billing.Order) err
 }
 
 func (s *Service) onRefundNotify(ctx context.Context, refund *billing.Refund, order *billing.Order) error {
-	country, err := s.country.GetByIsoCodeA2(order.GetCountry())
+	country, err := s.country.GetByIsoCodeA2(ctx, order.GetCountry())
 
 	if err != nil {
 		return err
 	}
 
-	refundOrder, err := s.getOrderById(refund.CreatedOrderId)
+	refundOrder, err := s.getOrderById(ctx, refund.CreatedOrderId)
 
 	if err != nil {
 		return err
 	}
 
-	merchant, err := s.merchant.GetById(refundOrder.GetMerchantId())
+	merchant, err := s.merchant.GetById(ctx, refundOrder.GetMerchantId())
 	if err != nil {
 		return err
 	}
@@ -379,9 +379,10 @@ func (h *accountingEntry) processPaymentEvent() error {
 		err    error
 	)
 
+	id, err := primitive.ObjectIDFromHex(h.order.Id)
 	query := bson.M{
 		"object":      pkg.ObjectTypeBalanceTransaction,
-		"source.id":   primitive.ObjectIDFromHex(h.order.Id),
+		"source.id":   id,
 		"source.type": collectionOrder,
 	}
 	var aes []*billing.AccountingEntry
@@ -596,9 +597,10 @@ func (h *accountingEntry) processRefundEvent() error {
 		err error
 	)
 
+	id, err := primitive.ObjectIDFromHex(h.refund.CreatedOrderId)
 	query := bson.M{
 		"object":      pkg.ObjectTypeBalanceTransaction,
-		"source.id":   primitive.ObjectIDFromHex(h.refund.CreatedOrderId),
+		"source.id":   id,
 		"source.type": collectionRefund,
 	}
 	var aes []*billing.AccountingEntry
@@ -676,12 +678,13 @@ func (h *accountingEntry) processRefundEvent() error {
 		return err
 	}
 
+	sourceId, err := primitive.ObjectIDFromHex(h.order.Id)
 	// 2. realRefundTaxFee
 	realTaxFee := h.newEntry("")
 	query = bson.M{
 		"object":      pkg.ObjectTypeBalanceTransaction,
 		"type":        pkg.AccountingEntryTypeRealTaxFee,
-		"source.id":   primitive.ObjectIDFromHex(h.order.Id),
+		"source.id":   sourceId,
 		"source.type": collectionOrder,
 	}
 	err = h.Service.db.Collection(collectionAccountingEntry).FindOne(h.ctx, query).Decode(&realTaxFee)
@@ -1002,7 +1005,7 @@ func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
 			rateType = curPkg.RateTypeCentralbanks
 			rateSource = h.country.VatCurrencyRatesSource
 		} else {
-			priceGroup, err := h.Service.priceGroup.GetById(h.country.PriceGroupId)
+			priceGroup, err := h.Service.priceGroup.GetById(h.ctx, h.country.PriceGroupId)
 			if err != nil {
 				return err
 			}
@@ -1093,7 +1096,7 @@ func (h *accountingEntry) saveAccountingEntries() error {
 	}
 
 	for paylinkId, merchantId := range paylinks {
-		err = h.Service.paylinkService.UpdatePaylinkTotalStat(paylinkId, merchantId)
+		err = h.Service.paylinkService.UpdatePaylinkTotalStat(h.ctx, paylinkId, merchantId)
 		if err != nil {
 			return err
 		}
@@ -1171,7 +1174,7 @@ func (h *accountingEntry) getPaymentChannelCostSystem() (*billing.PaymentChannel
 		return nil, err
 	}
 
-	cost, err := h.Service.paymentChannelCostSystem.Get(name, h.country.PayerTariffRegion, h.country.IsoCodeA2, h.getMccCode(), h.getOperatingCompanyId())
+	cost, err := h.Service.paymentChannelCostSystem.Get(h.ctx, name, h.country.PayerTariffRegion, h.country.IsoCodeA2, h.getMccCode(), h.getOperatingCompanyId())
 
 	if err != nil {
 		zap.L().Error(
@@ -1202,7 +1205,7 @@ func (h *accountingEntry) getPaymentChannelCostMerchant(amount float64) (*billin
 		Country:        h.country.IsoCodeA2,
 		MccCode:        h.getMccCode(),
 	}
-	cost, err := h.Service.getPaymentChannelCostMerchant(req)
+	cost, err := h.Service.getPaymentChannelCostMerchant(h.ctx, req)
 
 	if err != nil {
 		zap.L().Error(
@@ -1238,7 +1241,7 @@ func (h *accountingEntry) getMoneyBackCostMerchant(reason string) (*billing.Mone
 		Days:           int32(refundAt.Sub(paymentAt).Hours() / 24),
 		MccCode:        h.getMccCode(),
 	}
-	return h.Service.getMoneyBackCostMerchant(data)
+	return h.Service.getMoneyBackCostMerchant(h.ctx, data)
 }
 
 func (h *accountingEntry) getMoneyBackCostSystem(reason string) (*billing.MoneyBackCostSystem, error) {
@@ -1262,7 +1265,7 @@ func (h *accountingEntry) getMoneyBackCostSystem(reason string) (*billing.MoneyB
 		MccCode:            h.getMccCode(),
 		OperatingCompanyId: h.getOperatingCompanyId(),
 	}
-	return h.Service.getMoneyBackCostSystem(data)
+	return h.Service.getMoneyBackCostSystem(h.ctx, data)
 }
 
 func (h *accountingEntry) getMccCode() string {
@@ -1296,8 +1299,9 @@ func (a *Accounting) GetCorrectionsForRoyaltyReport(
 	merchantId, operatingCompanyId, currency string,
 	from, to time.Time,
 ) (items []*billing.AccountingEntry, err error) {
+	id, err := primitive.ObjectIDFromHex(merchantId)
 	query := bson.M{
-		"merchant_id":          primitive.ObjectIDFromHex(merchantId),
+		"merchant_id":          id,
 		"currency":             currency,
 		"created_at":           bson.M{"$gte": from, "$lte": to},
 		"type":                 pkg.AccountingEntryTypeMerchantRoyaltyCorrection,
@@ -1339,8 +1343,9 @@ func (a Accounting) GetRollingReservesForRoyaltyReport(
 	merchantId, operatingCompanyId, currency string,
 	from, to time.Time,
 ) (items []*billing.AccountingEntry, err error) {
+	id, err := primitive.ObjectIDFromHex(merchantId)
 	query := bson.M{
-		"merchant_id":          primitive.ObjectIDFromHex(merchantId),
+		"merchant_id":          id,
 		"currency":             currency,
 		"created_at":           bson.M{"$gte": from, "$lte": to},
 		"type":                 bson.M{"$in": rollingReserveAccountingEntriesList},

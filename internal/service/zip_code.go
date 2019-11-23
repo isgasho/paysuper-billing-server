@@ -30,8 +30,6 @@ func (s *Service) FindByZipCode(
 		return nil
 	}
 
-	var data []*billing.ZipCode
-
 	query := bson.D{{"zip", primitive.Regex{Pattern: req.Zip}}, {"country", req.Country}}
 	count, err := s.db.Collection(collectionZipCode).CountDocuments(ctx, query)
 
@@ -65,13 +63,14 @@ func (s *Service) FindByZipCode(
 		return orderErrorUnknown
 	}
 
+	var data []*billing.ZipCode
 	err = cursor.All(ctx, &data)
 
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorQueryCursorExecutionFailed,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionZipCode),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
 		return err

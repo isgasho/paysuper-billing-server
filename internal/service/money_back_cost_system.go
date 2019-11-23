@@ -91,7 +91,7 @@ func (s *Service) SetMoneyBackCostSystem(
 	var err error
 
 	if req.Country != "" {
-		country, err := s.country.GetByIsoCodeA2(req.Country)
+		country, err := s.country.GetByIsoCodeA2(ctx, req.Country)
 		if err != nil {
 			res.Status = pkg.ResponseStatusNotFound
 			res.Message = errorCountryNotFound

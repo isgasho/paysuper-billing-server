@@ -48,7 +48,7 @@ type MgoProject struct {
 	Status                   int32           `bson:"status"`
 	CreatedAt                time.Time       `bson:"created_at"`
 	UpdatedAt                time.Time       `bson:"updated_at"`
-	ProductsCount            int32           `bson:"products_count"`
+	ProductsCount            int64           `bson:"products_count"`
 	IdString                 string          `bson:"id_string"`
 	UrlChargebackPayment     string          `bson:"url_chargeback_payment"`
 	UrlCancelPayment         string          `bson:"url_cancel_payment"`

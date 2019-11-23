@@ -16,7 +16,7 @@ func (s *Service) GetDashboardMainReport(
 	req *grpc.GetDashboardMainRequest,
 	rsp *grpc.GetDashboardMainResponse,
 ) error {
-	_, err := s.merchant.GetById(req.MerchantId)
+	_, err := s.merchant.GetById(ctx, req.MerchantId)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -49,7 +49,7 @@ func (s *Service) GetDashboardRevenueDynamicsReport(
 	req *grpc.GetDashboardMainRequest,
 	rsp *grpc.GetDashboardRevenueDynamicsReportResponse,
 ) error {
-	_, err := s.merchant.GetById(req.MerchantId)
+	_, err := s.merchant.GetById(ctx, req.MerchantId)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -82,7 +82,7 @@ func (s *Service) GetDashboardBaseReport(
 	req *grpc.GetDashboardBaseReportRequest,
 	rsp *grpc.GetDashboardBaseReportResponse,
 ) error {
-	_, err := s.merchant.GetById(req.MerchantId)
+	_, err := s.merchant.GetById(ctx, req.MerchantId)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
