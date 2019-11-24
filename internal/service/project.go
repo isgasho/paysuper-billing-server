@@ -564,7 +564,7 @@ func (h *Project) MultipleInsert(ctx context.Context, projects []*billing.Projec
 func (h *Project) Update(ctx context.Context, project *billing.Project) error {
 	oid, _ := primitive.ObjectIDFromHex(project.Id)
 	filter := bson.M{"_id": oid}
-	_, err := h.svc.db.Collection(collectionProject).UpdateOne(ctx, filter, project)
+	_, err := h.svc.db.Collection(collectionProject).ReplaceOne(ctx, filter, project)
 
 	if err != nil {
 		zap.L().Error(

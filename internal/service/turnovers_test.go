@@ -257,7 +257,7 @@ func (suite *TurnoversTestSuite) TestTurnovers_CalcAnnualTurnovers() {
 
 	n, err := suite.service.db.Collection(collectionAnnualTurnovers).CountDocuments(context.TODO(), bson.M{})
 	assert.NoError(suite.T(), err)
-	assert.EqualValues(suite.T(), n, len(countries.Countries)+1)
+	assert.EqualValues(suite.T(), len(countries.Countries)+1, n)
 }
 
 func (suite *TurnoversTestSuite) fillAccountingEntries(operatingCompanyId, countryCode string, daysMultiplier int) {

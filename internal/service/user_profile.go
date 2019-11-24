@@ -68,8 +68,8 @@ func (s *Service) CreateOrUpdateUserProfile(
 
 	oid, _ := primitive.ObjectIDFromHex(profile.Id)
 	filter := bson.M{"_id": oid}
-	opts := options.FindOneAndReplace().SetUpsert(true)
-	err = s.db.Collection(collectionUserProfile).FindOneAndReplace(ctx, filter, profile, opts).Err()
+	opts := options.Replace().SetUpsert(true)
+	_, err = s.db.Collection(collectionUserProfile).ReplaceOne(ctx, filter, profile, opts)
 
 	if err != nil {
 		zap.S().Error(

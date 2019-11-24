@@ -144,7 +144,7 @@ func (h PaymentSystemService) MultipleInsert(ctx context.Context, ps []*billing.
 func (h *PaymentSystemService) Update(ctx context.Context, ps *billing.PaymentSystem) error {
 	oid, _ := primitive.ObjectIDFromHex(ps.Id)
 	filter := bson.M{"_id": oid}
-	_, err := h.svc.db.Collection(collectionPaymentSystem).UpdateOne(ctx, filter, ps)
+	_, err := h.svc.db.Collection(collectionPaymentSystem).ReplaceOne(ctx, filter, ps)
 
 	if err != nil {
 		return err

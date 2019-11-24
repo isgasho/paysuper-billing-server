@@ -86,7 +86,7 @@ func (suite *UsersTestSuite) TestGetUsers_Error() {
 	shouldBe := require.New(suite.T())
 
 	repository := &mocks.UserRoleServiceInterface{}
-	repository.On("GetUsersForMerchant", mock.Anything).Return(nil, errors.New("error"))
+	repository.On("GetUsersForMerchant", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = repository
 
 	res := &grpc.GetMerchantUsersResponse{}
@@ -99,7 +99,7 @@ func (suite *UsersTestSuite) TestGetUsers_Ok() {
 	shouldBe := require.New(suite.T())
 
 	repository := &mocks.UserRoleServiceInterface{}
-	repository.On("GetUsersForMerchant", mock.Anything).Return([]*billing.UserRole{}, nil)
+	repository.On("GetUsersForMerchant", mock.Anything, mock.Anything).Return([]*billing.UserRole{}, nil)
 	suite.service.userRoleRepository = repository
 
 	res := &grpc.GetMerchantUsersResponse{}
@@ -112,7 +112,7 @@ func (suite *UsersTestSuite) TestGetAdminUsers_Error() {
 	shouldBe := require.New(suite.T())
 
 	repository := &mocks.UserRoleServiceInterface{}
-	repository.On("GetUsersForAdmin", mock.Anything).Return(nil, errors.New("error"))
+	repository.On("GetUsersForAdmin", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = repository
 
 	res := &grpc.GetAdminUsersResponse{}
@@ -125,7 +125,7 @@ func (suite *UsersTestSuite) TestGetAdminUsers_Ok() {
 	shouldBe := require.New(suite.T())
 
 	repository := &mocks.UserRoleServiceInterface{}
-	repository.On("GetUsersForAdmin", mock.Anything).Return([]*billing.UserRole{}, nil)
+	repository.On("GetUsersForAdmin", mock.Anything, mock.Anything).Return([]*billing.UserRole{}, nil)
 	suite.service.userRoleRepository = repository
 
 	res := &grpc.GetAdminUsersResponse{}
@@ -138,7 +138,7 @@ func (suite *UsersTestSuite) TestGetMerchantsForUser_Error_GetMerchantsForUser()
 	shouldBe := require.New(suite.T())
 
 	repository := &mocks.UserRoleServiceInterface{}
-	repository.On("GetMerchantsForUser", mock.Anything).Return(nil, errors.New("error"))
+	repository.On("GetMerchantsForUser", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = repository
 
 	res := &grpc.GetMerchantsForUserResponse{}
@@ -153,12 +153,12 @@ func (suite *UsersTestSuite) TestGetMerchantsForUser_Error_GetById() {
 	shouldBe := require.New(suite.T())
 
 	repository := &mocks.UserRoleServiceInterface{}
-	repository.On("GetMerchantsForUser", mock.Anything).Return([]*billing.UserRole{{Id: primitive.NewObjectID().Hex()}}, nil)
+	repository.On("GetMerchantsForUser", mock.Anything, mock.Anything).Return([]*billing.UserRole{{Id: primitive.NewObjectID().Hex()}}, nil)
 	suite.service.userRoleRepository = repository
 
 	repositoryM := &mocks.MerchantRepositoryInterface{}
 	repositoryM.
-		On("GetById", mock.Anything).
+		On("GetById", mock.Anything, mock.Anything).
 		Return(nil, errors.New("error"))
 	suite.service.merchant = repositoryM
 
@@ -174,7 +174,7 @@ func (suite *UsersTestSuite) TestGetMerchantsForUser_Ok_Empty() {
 	shouldBe := require.New(suite.T())
 
 	repository := &mocks.UserRoleServiceInterface{}
-	repository.On("GetMerchantsForUser", mock.Anything).Return([]*billing.UserRole{}, nil)
+	repository.On("GetMerchantsForUser", mock.Anything, mock.Anything).Return([]*billing.UserRole{}, nil)
 	suite.service.userRoleRepository = repository
 
 	res := &grpc.GetMerchantsForUserResponse{}
@@ -190,12 +190,12 @@ func (suite *UsersTestSuite) TestGetMerchantsForUser_Ok_NotEmpty() {
 	shouldBe := require.New(suite.T())
 
 	repository := &mocks.UserRoleServiceInterface{}
-	repository.On("GetMerchantsForUser", mock.Anything).Return([]*billing.UserRole{{Id: primitive.NewObjectID().Hex()}}, nil)
+	repository.On("GetMerchantsForUser", mock.Anything, mock.Anything).Return([]*billing.UserRole{{Id: primitive.NewObjectID().Hex()}}, nil)
 	suite.service.userRoleRepository = repository
 
 	repositoryM := &mocks.MerchantRepositoryInterface{}
 	repositoryM.
-		On("GetById", mock.Anything).
+		On("GetById", mock.Anything, mock.Anything).
 		Return(&billing.Merchant{Id: primitive.NewObjectID().Hex(), Company: &billing.MerchantCompanyInfo{Name: "name"}}, nil)
 	suite.service.merchant = repositoryM
 
@@ -212,7 +212,7 @@ func (suite *UsersTestSuite) TestChangeAdminUserRole_Error_GetUser() {
 	shouldBe := require.New(suite.T())
 
 	repository := &mocks.UserRoleServiceInterface{}
-	repository.On("GetAdminUserById", mock.Anything).Return(nil, errors.New("error"))
+	repository.On("GetAdminUserById", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = repository
 
 	res := &grpc.EmptyResponseWithStatus{}
@@ -228,9 +228,9 @@ func (suite *UsersTestSuite) TestChangeAdminUserRole_Error_Update() {
 	shouldBe := require.New(suite.T())
 
 	repository := &mocks.UserRoleServiceInterface{}
-	repository.On("GetAdminUserByUserId", mock.Anything).Return(&billing.UserRole{Role: pkg.RoleSystemAdmin}, nil)
-	repository.On("GetAdminUserById", mock.Anything).Return(&billing.UserRole{Role: "test"}, nil)
-	repository.On("UpdateAdminUser", mock.Anything).Return(errors.New("error"))
+	repository.On("GetAdminUserByUserId", mock.Anything, mock.Anything).Return(&billing.UserRole{Role: pkg.RoleSystemAdmin}, nil)
+	repository.On("GetAdminUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{Role: "test"}, nil)
+	repository.On("UpdateAdminUser", mock.Anything, mock.Anything).Return(errors.New("error"))
 	suite.service.userRoleRepository = repository
 
 	res := &grpc.EmptyResponseWithStatus{}
@@ -247,13 +247,13 @@ func (suite *UsersTestSuite) TestChangeAdminUserRole_Error_DeleteFromCasbin() {
 
 	repository := &mocks.UserRoleServiceInterface{}
 	repository.
-		On("GetAdminUserById", mock.Anything).
+		On("GetAdminUserById", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{Role: "test", UserId: primitive.NewObjectID().Hex()}, nil)
-	repository.On("UpdateAdminUser", mock.Anything).Return(nil)
+	repository.On("UpdateAdminUser", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userRoleRepository = repository
 
 	casbin := &casbinMocks.CasbinService{}
-	casbin.On("DeleteUser", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
+	casbin.On("DeleteUser", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.casbinService = casbin
 
 	res := &grpc.EmptyResponseWithStatus{}
@@ -270,9 +270,9 @@ func (suite *UsersTestSuite) TestChangeAdminUserRole_Error_AddRoleForUserCasbin(
 
 	repository := &mocks.UserRoleServiceInterface{}
 	repository.
-		On("GetAdminUserById", mock.Anything).
+		On("GetAdminUserById", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{Role: "test", UserId: primitive.NewObjectID().Hex()}, nil)
-	repository.On("UpdateAdminUser", mock.Anything).Return(nil)
+	repository.On("UpdateAdminUser", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userRoleRepository = repository
 
 	casbin := &casbinMocks.CasbinService{}
@@ -294,14 +294,14 @@ func (suite *UsersTestSuite) TestChangeAdminUserRole_Ok() {
 
 	repository := &mocks.UserRoleServiceInterface{}
 	repository.
-		On("GetAdminUserById", mock.Anything).
+		On("GetAdminUserById", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{Role: "test", UserId: primitive.NewObjectID().Hex()}, nil)
-	repository.On("UpdateAdminUser", mock.Anything).Return(nil)
+	repository.On("UpdateAdminUser", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userRoleRepository = repository
 
 	casbin := &casbinMocks.CasbinService{}
-	casbin.On("DeleteUser", mock.Anything, mock.Anything).Return(&casbinProto.Empty{}, nil)
-	casbin.On("AddRoleForUser", mock.Anything, mock.Anything).Return(&casbinProto.Empty{}, nil)
+	casbin.On("DeleteUser", mock.Anything, mock.Anything, mock.Anything).Return(&casbinProto.Empty{}, nil)
+	casbin.On("AddRoleForUser", mock.Anything, mock.Anything, mock.Anything).Return(&casbinProto.Empty{}, nil)
 	suite.service.casbinService = casbin
 
 	res := &grpc.EmptyResponseWithStatus{}
@@ -317,7 +317,7 @@ func (suite *UsersTestSuite) TestChangeMerchantUserRole_Error_GetUser() {
 	shouldBe := require.New(suite.T())
 
 	repository := &mocks.UserRoleServiceInterface{}
-	repository.On("GetMerchantUserById", mock.Anything).Return(nil, errors.New("error"))
+	repository.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = repository
 
 	res := &grpc.EmptyResponseWithStatus{}
@@ -333,9 +333,9 @@ func (suite *UsersTestSuite) TestChangeMerchantUserRole_Error_Update() {
 	shouldBe := require.New(suite.T())
 
 	repository := &mocks.UserRoleServiceInterface{}
-	repository.On("GetMerchantUserByUserId", mock.Anything, mock.Anything).Return(&billing.UserRole{Role: pkg.RoleMerchantOwner}, nil)
-	repository.On("GetMerchantUserById", mock.Anything).Return(&billing.UserRole{Role: "test"}, nil)
-	repository.On("UpdateMerchantUser", mock.Anything).Return(errors.New("error"))
+	repository.On("GetMerchantUserByUserId", mock.Anything, mock.Anything, mock.Anything).Return(&billing.UserRole{Role: pkg.RoleMerchantOwner}, nil)
+	repository.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{Role: "test"}, nil)
+	repository.On("UpdateMerchantUser", mock.Anything, mock.Anything).Return(errors.New("error"))
 	suite.service.userRoleRepository = repository
 
 	res := &grpc.EmptyResponseWithStatus{}
@@ -352,13 +352,13 @@ func (suite *UsersTestSuite) TestChangeMerchantUserRole_Error_DeleteFromCasbin()
 
 	repository := &mocks.UserRoleServiceInterface{}
 	repository.
-		On("GetMerchantUserById", mock.Anything).
+		On("GetMerchantUserById", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{Role: "test", UserId: primitive.NewObjectID().Hex()}, nil)
-	repository.On("UpdateMerchantUser", mock.Anything).Return(nil)
+	repository.On("UpdateMerchantUser", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userRoleRepository = repository
 
 	casbin := &casbinMocks.CasbinService{}
-	casbin.On("DeleteUser", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
+	casbin.On("DeleteUser", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.casbinService = casbin
 
 	res := &grpc.EmptyResponseWithStatus{}
@@ -375,14 +375,14 @@ func (suite *UsersTestSuite) TestChangeMerchantUserRole_Error_AddRoleForUserCasb
 
 	repository := &mocks.UserRoleServiceInterface{}
 	repository.
-		On("GetMerchantUserById", mock.Anything).
+		On("GetMerchantUserById", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{Role: "test", UserId: primitive.NewObjectID().Hex()}, nil)
-	repository.On("UpdateMerchantUser", mock.Anything).Return(nil)
+	repository.On("UpdateMerchantUser", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userRoleRepository = repository
 
 	casbin := &casbinMocks.CasbinService{}
-	casbin.On("DeleteUser", mock.Anything, mock.Anything).Return(&casbinProto.Empty{}, nil)
-	casbin.On("AddRoleForUser", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
+	casbin.On("DeleteUser", mock.Anything, mock.Anything, mock.Anything).Return(&casbinProto.Empty{}, nil)
+	casbin.On("AddRoleForUser", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.casbinService = casbin
 
 	res := &grpc.EmptyResponseWithStatus{}
@@ -399,14 +399,14 @@ func (suite *UsersTestSuite) TestChangeMerchantUserRole_Ok() {
 
 	repository := &mocks.UserRoleServiceInterface{}
 	repository.
-		On("GetMerchantUserById", mock.Anything).
+		On("GetMerchantUserById", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{Role: "test", UserId: primitive.NewObjectID().Hex()}, nil)
-	repository.On("UpdateMerchantUser", mock.Anything).Return(nil)
+	repository.On("UpdateMerchantUser", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userRoleRepository = repository
 
 	casbin := &casbinMocks.CasbinService{}
-	casbin.On("DeleteUser", mock.Anything, mock.Anything).Return(&casbinProto.Empty{}, nil)
-	casbin.On("AddRoleForUser", mock.Anything, mock.Anything).Return(&casbinProto.Empty{}, nil)
+	casbin.On("DeleteUser", mock.Anything, mock.Anything, mock.Anything).Return(&casbinProto.Empty{}, nil)
+	casbin.On("AddRoleForUser", mock.Anything, mock.Anything, mock.Anything).Return(&casbinProto.Empty{}, nil)
 	suite.service.casbinService = casbin
 
 	res := &grpc.EmptyResponseWithStatus{}

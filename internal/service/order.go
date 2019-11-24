@@ -1863,7 +1863,7 @@ func (s *Service) orderNotifyMerchant(ctx context.Context, order *billing.Order)
 	order.SetNotificationStatus(order.GetPublicStatus(), err == nil)
 	oid, _ := primitive.ObjectIDFromHex(order.Id)
 	filter := bson.M{"_id": oid}
-	_, err = s.db.Collection(collectionOrder).UpdateOne(ctx, filter, order)
+	_, err = s.db.Collection(collectionOrder).ReplaceOne(ctx, filter, order)
 	if err != nil {
 		zap.S().Debug("[orderNotifyMerchant] notification status update failed", "order_id", order.Id)
 		s.logError(orderErrorUpdateOrderDataFailed, []interface{}{"error", err.Error(), "order", order})

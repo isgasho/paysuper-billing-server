@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 )
 
@@ -308,7 +309,7 @@ func (o OperatingCompany) GetAll(ctx context.Context) ([]*billing.OperatingCompa
 func (o OperatingCompany) Upsert(ctx context.Context, oc *billing.OperatingCompany) error {
 	oid, _ := primitive.ObjectIDFromHex(oc.Id)
 	filter := bson.M{"_id": oid}
-	_, err := o.svc.db.Collection(collectionOperatingCompanies).ReplaceOne(ctx, filter, oc)
+	_, err := o.svc.db.Collection(collectionOperatingCompanies).ReplaceOne(ctx, filter, oc, options.Replace().SetUpsert(true))
 
 	if err != nil {
 		zap.S().Error(

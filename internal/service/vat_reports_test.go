@@ -348,6 +348,7 @@ func (suite *VatReportsTestSuite) TestVatReports_PaymentDateSet() {
 	err = suite.service.UpdateVatReportStatus(context.TODO(), req, res)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
+	assert.Empty(suite.T(), res.Message)
 
 	err = suite.service.db.Collection(collectionVatReports).FindOne(context.TODO(), query).Decode(&vr)
 	assert.NoError(suite.T(), err)

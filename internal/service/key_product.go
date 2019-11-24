@@ -584,7 +584,7 @@ func (s *Service) DeleteKeyProduct(
 
 	oid, _ := primitive.ObjectIDFromHex(product.Id)
 	filter := bson.M{"_id": oid}
-	_, err = s.db.Collection(collectionKeyProduct).UpdateOne(ctx, filter, product)
+	_, err = s.db.Collection(collectionKeyProduct).ReplaceOne(ctx, filter, product)
 
 	if err != nil {
 		zap.L().Error(
@@ -629,7 +629,7 @@ func (s *Service) PublishKeyProduct(
 
 	oid, _ := primitive.ObjectIDFromHex(product.Id)
 	filter := bson.M{"_id": oid}
-	_, err = s.db.Collection(collectionKeyProduct).UpdateOne(ctx, filter, product)
+	_, err = s.db.Collection(collectionKeyProduct).ReplaceOne(ctx, filter, product)
 
 	if err != nil {
 		zap.L().Error(
@@ -840,7 +840,7 @@ func (s *Service) UnPublishKeyProduct(
 
 	oid, _ := primitive.ObjectIDFromHex(product.Id)
 	filter := bson.M{"_id": oid}
-	_, err = s.db.Collection(collectionKeyProduct).UpdateOne(ctx, filter, product)
+	_, err = s.db.Collection(collectionKeyProduct).ReplaceOne(ctx, filter, product)
 
 	if err != nil {
 		zap.L().Error(
@@ -946,7 +946,7 @@ func (h *KeyProductRepository) GetById(ctx context.Context, id string) (*grpc.Ke
 func (h *KeyProductRepository) Update(ctx context.Context, keyProduct *grpc.KeyProduct) error {
 	oid, _ := primitive.ObjectIDFromHex(keyProduct.Id)
 	filter := bson.M{"_id": oid}
-	_, err := h.svc.db.Collection(collectionKeyProduct).UpdateOne(ctx, filter, keyProduct)
+	_, err := h.svc.db.Collection(collectionKeyProduct).ReplaceOne(ctx, filter, keyProduct)
 
 	return err
 }

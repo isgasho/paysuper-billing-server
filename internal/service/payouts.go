@@ -745,7 +745,7 @@ func (h *PayoutDocument) Insert(ctx context.Context, pd *billing.PayoutDocument,
 func (h *PayoutDocument) Update(ctx context.Context, pd *billing.PayoutDocument, ip, source string) error {
 	oid, _ := primitive.ObjectIDFromHex(pd.Id)
 	filter := bson.M{"_id": oid}
-	_, err := h.svc.db.Collection(collectionPayoutDocuments).UpdateOne(ctx, filter, pd)
+	_, err := h.svc.db.Collection(collectionPayoutDocuments).ReplaceOne(ctx, filter, pd)
 
 	if err != nil {
 		zap.L().Error(

@@ -873,7 +873,7 @@ func (s *Service) MarkNotificationAsRead(
 
 	oid, _ := primitive.ObjectIDFromHex(notification.Id)
 	filter := bson.M{"_id": oid}
-	_, err = s.db.Collection(collectionNotification).UpdateOne(ctx, filter, notification)
+	_, err = s.db.Collection(collectionNotification).ReplaceOne(ctx, filter, notification)
 
 	if err != nil {
 		zap.S().Errorf("Update notification failed", "err", err.Error(), "query", notification)

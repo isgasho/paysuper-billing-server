@@ -290,9 +290,3 @@ func (suite *UserRoleTestSuite) TestUserRole_GetUsersForAdmin_Ok() {
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), users, 1)
 }
-
-func (suite *UserRoleTestSuite) TestUserRole_GetUsersForAdmin_Error_NotFound() {
-	users, err := suite.service.userRoleRepository.GetUsersForAdmin(context.TODO())
-	assert.NoError(suite.T(), err)
-	assert.Len(suite.T(), users, 0)
-}
