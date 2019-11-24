@@ -464,7 +464,7 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_getRecommendedPriceForRegion_Ok
 	amount := float64(1)
 	pg := &billing.PriceGroup{Fraction: 0}
 	pt := &billing.PriceTableRange{From: 0, To: 2, Position: 1}
-	price, err := suite.service.getRecommendedPriceForRegion(pg, pt, amount)
+	price, err := suite.service.getRecommendedPriceForRegion(context.TODO(), pg, pt, amount)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), float64(12), price)
 }

@@ -249,7 +249,8 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_RUB_RUB() {
 	assert.NoError(suite.T(), err)
 	suite.helperCheckOrderView(order.Id, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, orderControlResults)
 
-	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": primitive.ObjectIDFromHex(refund.Id)}).Decode(&refund)
+	oid, _ := primitive.ObjectIDFromHex(refund.Id)
+	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
 	assert.NoError(suite.T(), err)
 	suite.helperCheckRefundView(refund.CreatedOrderId, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, refundControlResults)
 }
@@ -359,7 +360,8 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_RUB() {
 	assert.NoError(suite.T(), err)
 	suite.helperCheckOrderView(order.Id, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, orderControlResults)
 
-	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": primitive.ObjectIDFromHex(refund.Id)}).Decode(&refund)
+	oid, _ := primitive.ObjectIDFromHex(refund.Id)
+	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
 	assert.NoError(suite.T(), err)
 	suite.helperCheckRefundView(refund.CreatedOrderId, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, refundControlResults)
 }
@@ -469,7 +471,8 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_USD() {
 	assert.NoError(suite.T(), err)
 	suite.helperCheckOrderView(order.Id, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, orderControlResults)
 
-	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": primitive.ObjectIDFromHex(refund.Id)}).Decode(&refund)
+	oid, _ := primitive.ObjectIDFromHex(refund.Id)
+	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
 	assert.NoError(suite.T(), err)
 	suite.helperCheckRefundView(refund.CreatedOrderId, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, refundControlResults)
 }
@@ -579,7 +582,8 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_EUR() {
 	assert.NoError(suite.T(), err)
 	suite.helperCheckOrderView(order.Id, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, orderControlResults)
 
-	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": primitive.ObjectIDFromHex(refund.Id)}).Decode(&refund)
+	oid, _ := primitive.ObjectIDFromHex(refund.Id)
+	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
 	assert.NoError(suite.T(), err)
 	suite.helperCheckRefundView(refund.CreatedOrderId, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, refundControlResults)
 }
@@ -635,7 +639,8 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_PartialRefund_Ok_RUB_
 
 	country, err := suite.service.country.GetByIsoCodeA2(ctx, orderCountry)
 	assert.NoError(suite.T(), err)
-	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": primitive.ObjectIDFromHex(refund.Id)}).Decode(&refund)
+	oid, _ := primitive.ObjectIDFromHex(refund.Id)
+	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
 	assert.NoError(suite.T(), err)
 	suite.helperCheckRefundView(refund.CreatedOrderId, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, refundControlResults)
 }
@@ -711,7 +716,8 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_RUB
 
 	country, err := suite.service.country.GetByIsoCodeA2(ctx, orderCountry)
 	assert.NoError(suite.T(), err)
-	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": primitive.ObjectIDFromHex(refund.Id)}).Decode(&refund)
+	oid, _ := primitive.ObjectIDFromHex(refund.Id)
+	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
 	assert.NoError(suite.T(), err)
 	suite.helperCheckRefundView(refund.CreatedOrderId, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, refundControlResults)
 }
@@ -772,7 +778,8 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_USD
 
 	country, err := suite.service.country.GetByIsoCodeA2(ctx, orderCountry)
 	assert.NoError(suite.T(), err)
-	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": primitive.ObjectIDFromHex(refund.Id)}).Decode(&refund)
+	oid, _ := primitive.ObjectIDFromHex(refund.Id)
+	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
 	assert.NoError(suite.T(), err)
 	suite.helperCheckRefundView(refund.CreatedOrderId, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, refundControlResults)
 }
@@ -833,7 +840,8 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_USD
 
 	country, err := suite.service.country.GetByIsoCodeA2(ctx, orderCountry)
 	assert.NoError(suite.T(), err)
-	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": primitive.ObjectIDFromHex(refund.Id)}).Decode(&refund)
+	oid, _ := primitive.ObjectIDFromHex(refund.Id)
+	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
 	assert.NoError(suite.T(), err)
 	suite.helperCheckRefundView(refund.CreatedOrderId, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, refundControlResults)
 }
@@ -894,7 +902,8 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_USD
 
 	country, err := suite.service.country.GetByIsoCodeA2(ctx, orderCountry)
 	assert.NoError(suite.T(), err)
-	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": primitive.ObjectIDFromHex(refund.Id)}).Decode(&refund)
+	oid, _ := primitive.ObjectIDFromHex(refund.Id)
+	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
 	assert.NoError(suite.T(), err)
 	suite.helperCheckRefundView(refund.CreatedOrderId, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, refundControlResults)
 }
@@ -933,7 +942,8 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_CreateAccountingEntry
 	assert.NotNil(suite.T(), rsp.Item)
 
 	var accountingEntry *billing.AccountingEntry
-	err = suite.service.db.Collection(collectionAccountingEntry).FindOne(ctx, bson.M{"_id": primitive.ObjectIDFromHex(rsp.Item.Id)}).Decode(&accountingEntry)
+	oid, _ := primitive.ObjectIDFromHex(rsp.Item.Id)
+	err = suite.service.db.Collection(collectionAccountingEntry).FindOne(ctx, bson.M{"_id": oid}).Decode(&accountingEntry)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), accountingEntry)
 
@@ -1052,7 +1062,8 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_CreateAccountingEntry
 	assert.NotNil(suite.T(), refund)
 
 	refund.OriginalOrder.Id = primitive.NewObjectID().Hex()
-	_, err = suite.service.db.Collection(collectionRefund).UpdateOne(ctx, bson.M{"_id": primitive.ObjectIDFromHex(refund.Id)}, refund)
+	oid, _ := primitive.ObjectIDFromHex(refund.Id)
+	_, err = suite.service.db.Collection(collectionRefund).UpdateOne(ctx, bson.M{"_id": oid}, refund)
 	assert.NoError(suite.T(), err)
 
 	req := &grpc.CreateAccountingEntryRequest{

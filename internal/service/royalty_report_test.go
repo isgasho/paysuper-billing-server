@@ -384,7 +384,8 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_Ok() {
 	to := now.Monday().In(loc).Add(time.Duration(suite.service.cfg.RoyaltyReportPeriodEndHour) * time.Hour).Add(-time.Duration(168) * time.Hour)
 	from := to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).In(loc)
 
-	query := bson.M{"merchant_id": primitive.ObjectIDFromHex(suite.project.GetMerchantId())}
+	oid, _ := primitive.ObjectIDFromHex(suite.project.GetMerchantId())
+	query := bson.M{"merchant_id": oid}
 	set := bson.M{"$set": bson.M{"period_from": from, "period_to": to}}
 	_, err = suite.service.db.Collection(collectionRoyaltyReport).UpdateMany(context.TODO(), query, set)
 
@@ -463,7 +464,8 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindBy
 	to := now.Monday().In(loc).Add(time.Duration(suite.service.cfg.RoyaltyReportPeriodEndHour) * time.Hour).Add(-time.Duration(168) * time.Hour)
 	from := to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).In(loc)
 
-	query := bson.M{"merchant_id": primitive.ObjectIDFromHex(suite.project.GetMerchantId())}
+	oid, _ := primitive.ObjectIDFromHex(suite.project.GetMerchantId())
+	query := bson.M{"merchant_id": oid}
 	set := bson.M{"$set": bson.M{"period_from": from, "period_to": to}}
 	_, err = suite.service.db.Collection(collectionRoyaltyReport).UpdateMany(context.TODO(), query, set)
 
@@ -511,7 +513,8 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindBy
 	to := now.Monday().In(loc).Add(time.Duration(suite.service.cfg.RoyaltyReportPeriodEndHour) * time.Hour).Add(-time.Duration(168) * time.Hour)
 	from := to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).In(loc)
 
-	query := bson.M{"merchant_id": primitive.ObjectIDFromHex(suite.project.GetMerchantId())}
+	oid, _ := primitive.ObjectIDFromHex(suite.project.GetMerchantId())
+	query := bson.M{"merchant_id": oid}
 	set := bson.M{"$set": bson.M{"period_from": from, "period_to": to}}
 	_, err = suite.service.db.Collection(collectionRoyaltyReport).UpdateMany(context.TODO(), query, set)
 
