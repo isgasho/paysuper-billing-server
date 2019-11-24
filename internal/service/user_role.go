@@ -85,7 +85,7 @@ func (h *UserRoleRepository) GetMerchantsForUser(ctx context.Context, userId str
 func (h *UserRoleRepository) GetUsersForAdmin(ctx context.Context) ([]*billing.UserRole, error) {
 	var users []*billing.UserRole
 
-	cursor, err := h.svc.db.Collection(collectionAdminUsersTable).Find(ctx, nil)
+	cursor, err := h.svc.db.Collection(collectionAdminUsersTable).Find(ctx, bson.M{})
 
 	if err != nil {
 		zap.L().Error(
@@ -167,7 +167,7 @@ func (h *UserRoleRepository) AddAdminUser(ctx context.Context, u *billing.UserRo
 func (h *UserRoleRepository) UpdateMerchantUser(ctx context.Context, u *billing.UserRole) error {
 	oid, _ := primitive.ObjectIDFromHex(u.Id)
 	filter := bson.M{"_id": oid}
-	_, err := h.svc.db.Collection(collectionMerchantUsersTable).ReplaceOne(ctx, filter, u)
+	err := h.svc.db.Collection(collectionMerchantUsersTable).FindOneAndReplace(ctx, filter, u).Err()
 
 	if err != nil {
 		return err
@@ -183,7 +183,7 @@ func (h *UserRoleRepository) UpdateMerchantUser(ctx context.Context, u *billing.
 func (h *UserRoleRepository) UpdateAdminUser(ctx context.Context, u *billing.UserRole) error {
 	oid, _ := primitive.ObjectIDFromHex(u.Id)
 	filter := bson.M{"_id": oid}
-	_, err := h.svc.db.Collection(collectionAdminUsersTable).ReplaceOne(ctx, filter, u)
+	err := h.svc.db.Collection(collectionAdminUsersTable).FindOneAndReplace(ctx, filter, u).Err()
 
 	if err != nil {
 		return err
@@ -278,7 +278,7 @@ func (h *UserRoleRepository) GetMerchantUserById(ctx context.Context, id string)
 func (h *UserRoleRepository) DeleteAdminUser(ctx context.Context, u *billing.UserRole) error {
 	oid, _ := primitive.ObjectIDFromHex(u.Id)
 	filter := bson.M{"_id": oid}
-	_, err := h.svc.db.Collection(collectionAdminUsersTable).DeleteOne(ctx, filter)
+	err := h.svc.db.Collection(collectionAdminUsersTable).FindOneAndDelete(ctx, filter).Err()
 
 	if err != nil {
 		return err
@@ -290,7 +290,7 @@ func (h *UserRoleRepository) DeleteAdminUser(ctx context.Context, u *billing.Use
 func (h *UserRoleRepository) DeleteMerchantUser(ctx context.Context, u *billing.UserRole) error {
 	oid, _ := primitive.ObjectIDFromHex(u.Id)
 	filter := bson.M{"_id": oid}
-	_, err := h.svc.db.Collection(collectionMerchantUsersTable).DeleteOne(ctx, filter)
+	err := h.svc.db.Collection(collectionMerchantUsersTable).FindOneAndDelete(ctx, filter).Err()
 
 	if err != nil {
 		return err
