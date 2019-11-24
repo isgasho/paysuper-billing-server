@@ -126,7 +126,7 @@ func (suite *ReportTestSuite) TestReport_ReturnEmptyList() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 	assert.NotNil(suite.T(), rsp.Item)
-	assert.Equal(suite.T(), int32(0), rsp.Item.Count)
+	assert.EqualValues(suite.T(), int32(0), rsp.Item.Count)
 	assert.Empty(suite.T(), rsp.Item.Items)
 
 	rsp1 := &grpc.ListOrdersPrivateResponse{}
@@ -134,7 +134,7 @@ func (suite *ReportTestSuite) TestReport_ReturnEmptyList() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 	assert.NotNil(suite.T(), rsp1.Item)
-	assert.Equal(suite.T(), int32(0), rsp1.Item.Count)
+	assert.EqualValues(suite.T(), int32(0), rsp1.Item.Count)
 	assert.Empty(suite.T(), rsp1.Item.Items)
 
 	rsp2 := &grpc.ListOrdersResponse{}
@@ -142,7 +142,7 @@ func (suite *ReportTestSuite) TestReport_ReturnEmptyList() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 	assert.NotNil(suite.T(), rsp1.Item)
-	assert.Equal(suite.T(), int32(0), rsp1.Item.Count)
+	assert.EqualValues(suite.T(), int32(0), rsp1.Item.Count)
 	assert.Empty(suite.T(), rsp1.Item.Items)
 }
 
@@ -153,7 +153,7 @@ func (suite *ReportTestSuite) TestReport_FindById() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 	assert.NotNil(suite.T(), rsp.Item)
-	assert.Equal(suite.T(), int32(0), rsp.Item.Count)
+	assert.EqualValues(suite.T(), int32(0), rsp.Item.Count)
 
 	order := helperCreateAndPayOrder(suite.Suite, suite.service, 555.55, "RUB", "RU", suite.project, suite.pmBankCard)
 
@@ -162,7 +162,7 @@ func (suite *ReportTestSuite) TestReport_FindById() {
 	err = suite.service.FindAllOrdersPublic(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
-	assert.Equal(suite.T(), int32(1), rsp.Item.Count)
+	assert.EqualValues(suite.T(), int32(1), rsp.Item.Count)
 	assert.Equal(suite.T(), order.Id, rsp.Item.Items[0].Id)
 
 	rsp1 := &grpc.ListOrdersPrivateResponse{}
@@ -170,7 +170,7 @@ func (suite *ReportTestSuite) TestReport_FindById() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 	assert.NotNil(suite.T(), rsp1.Item)
-	assert.Equal(suite.T(), int32(1), rsp1.Item.Count)
+	assert.EqualValues(suite.T(), int32(1), rsp1.Item.Count)
 	assert.Equal(suite.T(), order.Id, rsp1.Item.Items[0].Id)
 
 	rsp2 := &grpc.ListOrdersResponse{}
@@ -178,7 +178,7 @@ func (suite *ReportTestSuite) TestReport_FindById() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 	assert.NotNil(suite.T(), rsp1.Item)
-	assert.Equal(suite.T(), int32(1), rsp1.Item.Count)
+	assert.EqualValues(suite.T(), int32(1), rsp1.Item.Count)
 	assert.Equal(suite.T(), order.Id, rsp1.Item.Items[0].Id)
 }
 
@@ -189,7 +189,7 @@ func (suite *ReportTestSuite) TestReport_FindByMerchantId() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 	assert.NotNil(suite.T(), rsp.Item)
-	assert.Equal(suite.T(), int32(0), rsp.Item.Count)
+	assert.EqualValues(suite.T(), int32(0), rsp.Item.Count)
 
 	order1 := helperCreateAndPayOrder(suite.Suite, suite.service, 555.55, "RUB", "RU", suite.project, suite.pmBankCard)
 	order2 := helperCreateAndPayOrder(suite.Suite, suite.service, 555.55, "RUB", "RU", suite.project, suite.pmBankCard)
@@ -219,7 +219,7 @@ func (suite *ReportTestSuite) TestReport_FindByProject() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 	assert.NotNil(suite.T(), rsp.Item)
-	assert.Equal(suite.T(), int32(0), rsp.Item.Count)
+	assert.EqualValues(suite.T(), int32(0), rsp.Item.Count)
 
 	var orderIds []string
 
@@ -247,7 +247,7 @@ func (suite *ReportTestSuite) TestReport_FindByCountry() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 	assert.NotNil(suite.T(), rsp.Item)
-	assert.Equal(suite.T(), int32(0), rsp.Item.Count)
+	assert.EqualValues(suite.T(), int32(0), rsp.Item.Count)
 
 	var orderIds []string
 
@@ -275,7 +275,7 @@ func (suite *ReportTestSuite) TestReport_FindByPaymentMethod() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 	assert.NotNil(suite.T(), rsp.Item)
-	assert.Equal(suite.T(), int32(0), rsp.Item.Count)
+	assert.EqualValues(suite.T(), int32(0), rsp.Item.Count)
 
 	var orderIds []string
 
@@ -303,7 +303,7 @@ func (suite *ReportTestSuite) TestReport_FindByStatus() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 	assert.NotNil(suite.T(), rsp.Item)
-	assert.Equal(suite.T(), int32(0), rsp.Item.Count)
+	assert.EqualValues(suite.T(), int32(0), rsp.Item.Count)
 
 	var orderIds []string
 
@@ -331,7 +331,7 @@ func (suite *ReportTestSuite) TestReport_FindByAccount() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 	assert.NotNil(suite.T(), rsp.Item)
-	assert.Equal(suite.T(), int32(0), rsp.Item.Count)
+	assert.EqualValues(suite.T(), 0, rsp.Item.Count)
 
 	var orderIds []string
 
@@ -383,7 +383,7 @@ func (suite *ReportTestSuite) TestReport_FindByPmDateFrom() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 	assert.NotNil(suite.T(), rsp.Item)
-	assert.Equal(suite.T(), int32(0), rsp.Item.Count)
+	assert.EqualValues(suite.T(), int32(0), rsp.Item.Count)
 
 	var orderIds []string
 
@@ -411,7 +411,7 @@ func (suite *ReportTestSuite) TestReport_FindByPmDateTo() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 	assert.NotNil(suite.T(), rsp.Item)
-	assert.Equal(suite.T(), int32(0), rsp.Item.Count)
+	assert.EqualValues(suite.T(), int32(0), rsp.Item.Count)
 
 	var orderIds []string
 	date := &timestamp.Timestamp{}
@@ -442,7 +442,7 @@ func (suite *ReportTestSuite) TestReport_FindByProjectDateFrom() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 	assert.NotNil(suite.T(), rsp.Item)
-	assert.Equal(suite.T(), int32(0), rsp.Item.Count)
+	assert.EqualValues(suite.T(), int32(0), rsp.Item.Count)
 
 	var orderIds []string
 
@@ -470,7 +470,7 @@ func (suite *ReportTestSuite) TestReport_FindByProjectDateTo() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 	assert.NotNil(suite.T(), rsp.Item)
-	assert.Equal(suite.T(), int32(0), rsp.Item.Count)
+	assert.EqualValues(suite.T(), int32(0), rsp.Item.Count)
 
 	var orderIds []string
 

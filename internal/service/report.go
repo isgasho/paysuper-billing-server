@@ -295,7 +295,17 @@ func (s *Service) getOrdersList(
 		return 0, nil, err
 	}
 
-	err = cursor.All(ctx, &receiver)
+
+	if res, ok := receiver.([]*billing.OrderViewPublic); ok {
+		err = cursor.All(ctx, &res)
+		receiver = res
+	} else if res, ok := receiver.([]*billing.OrderViewPrivate); ok {
+		err = cursor.All(ctx, &res)
+		receiver = res
+	} else if res, ok := receiver.([]*billing.Order); ok {
+		err = cursor.All(ctx, &res)
+		receiver = res
+	}
 
 	if err != nil {
 		zap.L().Error(
