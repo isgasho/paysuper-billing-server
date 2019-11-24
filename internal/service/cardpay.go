@@ -36,7 +36,7 @@ const (
 	cardPayDateFormat          = "2006-01-02T15:04:05Z"
 	cardPayInitiatorCardholder = "cit"
 
-	cardPayMaxItemNameLength = 50
+	cardPayMaxItemNameLength        = 50
 	cardPayMaxItemDescriptionLength = 200
 )
 
