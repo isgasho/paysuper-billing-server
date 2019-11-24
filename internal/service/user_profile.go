@@ -68,8 +68,8 @@ func (s *Service) CreateOrUpdateUserProfile(
 
 	oid, _ := primitive.ObjectIDFromHex(profile.Id)
 	filter := bson.M{"_id": oid}
-	opts := options.FindOneAndReplace().SetUpsert(true)
-	err = s.db.Collection(collectionUserProfile).FindOneAndReplace(ctx, filter, profile, opts).Err()
+	opts := options.Replace().SetUpsert(true)
+	_, err = s.db.Collection(collectionUserProfile).ReplaceOne(ctx, filter, profile, opts)
 
 	if err != nil {
 		zap.S().Error(
@@ -430,7 +430,7 @@ func (s *Service) sendUserEmailConfirmationToken(ctx context.Context, profile *g
 	oid, _ := primitive.ObjectIDFromHex(profile.Id)
 	query := bson.M{"_id": oid}
 	set := bson.M{"$set": bson.M{"email.is_confirmation_email_sent": true}}
-	_, err = s.db.Collection(collectionUserProfile).ReplaceOne(ctx, query, set)
+	_, err = s.db.Collection(collectionUserProfile).UpdateOne(ctx, query, set)
 
 	if err != nil {
 		zap.S().Error(
