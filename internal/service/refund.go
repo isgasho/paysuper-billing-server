@@ -605,17 +605,20 @@ func (p *createRefundProcessor) getRefundedAmount(order *billing.Order) (float64
 		return 0, refundErrorUnknown
 	}
 
-	err = cursor.Decode(&res)
+	for cursor.Next(context.Background()) {
+		err = cursor.Decode(&res)
 
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorQueryCursorExecutionFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionRefund),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
-		)
-		return 0, refundErrorUnknown
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorQueryCursorExecutionFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, collectionRefund),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			)
+			return 0, refundErrorUnknown
+		}
 	}
+	cursor.Close(p.ctx)
 
 	return res.Amount, nil
 }
