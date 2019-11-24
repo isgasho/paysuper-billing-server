@@ -284,8 +284,8 @@ func newTurnoverService(svc *Service) *Turnover {
 
 func (h *Turnover) Insert(ctx context.Context, turnover *billing.AnnualTurnover) error {
 	filter := bson.M{"year": turnover.Year, "country": turnover.Country}
-	opts := options.FindOneAndUpdate().SetUpsert(true)
-	err := h.svc.db.Collection(collectionAnnualTurnovers).FindOneAndUpdate(ctx, filter, turnover, opts).Err()
+	opts := options.FindOneAndReplace().SetUpsert(true)
+	err := h.svc.db.Collection(collectionAnnualTurnovers).FindOneAndReplace(ctx, filter, turnover, opts).Err()
 
 	if err != nil {
 		zap.L().Error(

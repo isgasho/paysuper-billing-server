@@ -272,7 +272,7 @@ func (h *Key) ReserveKey(
 		},
 	}
 
-	err := h.svc.db.Collection(collectionKey).FindOneAndUpdate(ctx, query, update).Decode(&key)
+	err := h.svc.db.Collection(collectionKey).FindOneAndReplace(ctx, query, update).Decode(&key)
 
 	if err == mongo.ErrNoDocuments {
 		return nil, errors.KeyErrorNotFound
@@ -300,7 +300,7 @@ func (h *Key) CancelById(ctx context.Context, id string) (*billing.Key, error) {
 		},
 	}
 
-	err := h.svc.db.Collection(collectionKey).FindOneAndUpdate(ctx, query, update).Decode(&key)
+	err := h.svc.db.Collection(collectionKey).FindOneAndReplace(ctx, query, update).Decode(&key)
 
 	if err != nil {
 		return nil, err
@@ -324,7 +324,7 @@ func (h *Key) FinishRedeemById(ctx context.Context, id string) (*billing.Key, er
 		},
 	}
 
-	err := h.svc.db.Collection(collectionKey).FindOneAndUpdate(ctx, query, update).Decode(&key)
+	err := h.svc.db.Collection(collectionKey).FindOneAndReplace(ctx, query, update).Decode(&key)
 
 	if err != nil {
 		return nil, err

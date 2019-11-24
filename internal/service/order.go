@@ -1599,7 +1599,7 @@ func (s *Service) updateOrder(ctx context.Context, order *billing.Order) error {
 
 	oid, _ := primitive.ObjectIDFromHex(order.Id)
 	filter := bson.M{"_id": oid}
-	_, err := s.db.Collection(collectionOrder).UpdateOne(ctx, filter, order)
+	_, err := s.db.Collection(collectionOrder).ReplaceOne(ctx, filter, order)
 
 	if err != nil {
 		s.logError(orderErrorUpdateOrderDataFailed, []interface{}{"error", err.Error(), "order", order})

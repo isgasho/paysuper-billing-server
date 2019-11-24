@@ -789,8 +789,8 @@ func (p Paylink) Update(ctx context.Context, pl *paylink.Paylink) (err error) {
 func (p Paylink) Insert(ctx context.Context, pl *paylink.Paylink) (err error) {
 	oid, _ := primitive.ObjectIDFromHex(pl.Id)
 	filter := bson.M{"_id": oid}
-	opts := options.FindOneAndUpdate().SetUpsert(true)
-	err = p.svc.db.Collection(collectionPaylinks).FindOneAndUpdate(ctx, filter, pl, opts).Err()
+	opts := options.FindOneAndReplace().SetUpsert(true)
+	err = p.svc.db.Collection(collectionPaylinks).FindOneAndReplace(ctx, filter, pl, opts).Err()
 
 	if err != nil {
 		zap.S().Error(
