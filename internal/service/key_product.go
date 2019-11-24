@@ -257,9 +257,9 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 	product.UpdatedAt = now
 
 	oid, _ := primitive.ObjectIDFromHex(product.Id)
-	opts := options.FindOneAndReplace().SetUpsert(true)
+	opts := options.Replace().SetUpsert(true)
 	filter := bson.M{"_id": oid}
-	err = s.db.Collection(collectionKeyProduct).FindOneAndReplace(ctx, filter, product, opts).Err()
+	_, err = s.db.Collection(collectionKeyProduct).ReplaceOne(ctx, filter, product, opts)
 
 	if err != nil {
 		zap.L().Error(
