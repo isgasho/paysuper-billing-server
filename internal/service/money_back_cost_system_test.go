@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/globalsign/mgo/bson"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
@@ -16,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"testing"
@@ -77,7 +77,7 @@ func (suite *MoneyBackCostSystemTestSuite) SetupTest() {
 	suite.operatingCompany = helperOperatingCompany(suite.Suite, suite.service)
 
 	countryAz := &billing.Country{
-		Id:                bson.NewObjectId().Hex(),
+		Id:                primitive.NewObjectID().Hex(),
 		IsoCodeA2:         "AZ",
 		Region:            "CIS",
 		Currency:          "AZN",
@@ -89,7 +89,7 @@ func (suite *MoneyBackCostSystemTestSuite) SetupTest() {
 		PayerTariffRegion: pkg.TariffRegionRussiaAndCis,
 	}
 	countryUs := &billing.Country{
-		Id:                bson.NewObjectId().Hex(),
+		Id:                primitive.NewObjectID().Hex(),
 		IsoCodeA2:         "US",
 		Region:            "US",
 		Currency:          "USD",
@@ -105,8 +105,8 @@ func (suite *MoneyBackCostSystemTestSuite) SetupTest() {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 
-	suite.moneyBackCostSystemId = bson.NewObjectId().Hex()
-	suite.merchantId = bson.NewObjectId().Hex()
+	suite.moneyBackCostSystemId = primitive.NewObjectID().Hex()
+	suite.merchantId = primitive.NewObjectID().Hex()
 
 	moneyBackCostSystem := &billing.MoneyBackCostSystem{
 		Id:                 suite.moneyBackCostSystemId,
@@ -163,12 +163,17 @@ func (suite *MoneyBackCostSystemTestSuite) SetupTest() {
 }
 
 func (suite *MoneyBackCostSystemTestSuite) TearDownTest() {
-	suite.cache.Clean()
-	if err := suite.service.db.Drop(); err != nil {
+	err := suite.service.db.Drop()
+
+	if err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}
 
-	suite.service.db.Close()
+	err = suite.service.db.Close()
+
+	if err != nil {
+		suite.FailNow("Database close failed", "%v", err)
+	}
 }
 
 func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_GrpcGet_Ok() {

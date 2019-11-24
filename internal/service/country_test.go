@@ -4,18 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/globalsign/mgo/bson"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"testing"
 )
 
@@ -72,7 +72,7 @@ func (suite *CountryTestSuite) SetupTest() {
 	}
 
 	pg := &billing.PriceGroup{
-		Id:       bson.NewObjectId().Hex(),
+		Id:       primitive.NewObjectID().Hex(),
 		Currency: "USD",
 		Region:   "",
 		IsActive: true,
@@ -82,7 +82,7 @@ func (suite *CountryTestSuite) SetupTest() {
 	}
 
 	suite.country = &billing.Country{
-		Id:              bson.NewObjectId().Hex(),
+		Id:              primitive.NewObjectID().Hex(),
 		IsoCodeA2:       "RU",
 		Region:          "Russia",
 		Currency:        "RUB",
@@ -107,11 +107,17 @@ func (suite *CountryTestSuite) SetupTest() {
 }
 
 func (suite *CountryTestSuite) TearDownTest() {
-	if err := suite.service.db.Drop(); err != nil {
+	err := suite.service.db.Drop()
+
+	if err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}
 
-	suite.service.db.Close()
+	err = suite.service.db.Close()
+
+	if err != nil {
+		suite.FailNow("Database close failed", "%v", err)
+	}
 }
 
 func (suite *CountryTestSuite) TestCountry_TestCountry() {

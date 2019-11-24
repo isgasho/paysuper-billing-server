@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
@@ -17,6 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -80,7 +80,7 @@ func (suite *KeyTestSuite) SetupTest() {
 	mod := mongo.IndexModel{
 		Keys: bson.M{
 			"platform_id": 1,
-			"code": 1,
+			"code":        1,
 		},
 		Options: options.Index().SetUnique(true).SetName("udx_key_platform_code"),
 	}
@@ -98,33 +98,33 @@ func (suite *KeyTestSuite) TearDownTest() {
 
 func (suite *KeyTestSuite) TestKey_Insert_Ok() {
 	assert.NoError(suite.T(), suite.service.keyRepository.Insert(ctx, &billing.Key{
-		Id:           bson.NewObjectId().Hex(),
+		Id:           primitive.NewObjectID().Hex(),
 		PlatformId:   "steam",
-		KeyProductId: bson.NewObjectId().Hex(),
+		KeyProductId: primitive.NewObjectID().Hex(),
 		Code:         "code",
 	}))
 }
 
 func (suite *KeyTestSuite) TestKey_Insert_Error_Duplicate() {
 	key := &billing.Key{
-		Id:           bson.NewObjectId().Hex(),
+		Id:           primitive.NewObjectID().Hex(),
 		PlatformId:   "steam",
-		KeyProductId: bson.NewObjectId().Hex(),
-		OrderId:      bson.NewObjectId().Hex(),
+		KeyProductId: primitive.NewObjectID().Hex(),
+		OrderId:      primitive.NewObjectID().Hex(),
 		Code:         "code",
 	}
 	assert.NoError(suite.T(), suite.service.keyRepository.Insert(ctx, key))
 
-	key.Id = bson.NewObjectId().Hex()
+	key.Id = primitive.NewObjectID().Hex()
 	assert.Errorf(suite.T(), suite.service.keyRepository.Insert(ctx, key), "duplicate key error collection")
 }
 
 func (suite *KeyTestSuite) TestKey_GetById_Ok() {
 	key := &billing.Key{
-		Id:           bson.NewObjectId().Hex(),
+		Id:           primitive.NewObjectID().Hex(),
 		PlatformId:   "steam",
-		KeyProductId: bson.NewObjectId().Hex(),
-		OrderId:      bson.NewObjectId().Hex(),
+		KeyProductId: primitive.NewObjectID().Hex(),
+		OrderId:      primitive.NewObjectID().Hex(),
 		Code:         "code",
 	}
 	assert.NoError(suite.T(), suite.service.keyRepository.Insert(ctx, key))
@@ -139,19 +139,19 @@ func (suite *KeyTestSuite) TestKey_GetById_Ok() {
 }
 
 func (suite *KeyTestSuite) TestKey_GetById_Error_NotFound() {
-	_, err := suite.service.keyRepository.GetById(ctx, bson.NewObjectId().Hex())
+	_, err := suite.service.keyRepository.GetById(ctx, primitive.NewObjectID().Hex())
 	assert.Error(suite.T(), err)
 }
 
 func (suite *KeyTestSuite) TestKey_ReserveKey_Ok() {
 	key := &billing.Key{
-		Id:           bson.NewObjectId().Hex(),
+		Id:           primitive.NewObjectID().Hex(),
 		PlatformId:   "steam",
-		KeyProductId: bson.NewObjectId().Hex(),
+		KeyProductId: primitive.NewObjectID().Hex(),
 		Code:         "code1",
 	}
 	duration := int32(3)
-	orderId := bson.NewObjectId().Hex()
+	orderId := primitive.NewObjectID().Hex()
 	assert.NoError(suite.T(), suite.service.keyRepository.Insert(ctx, key))
 
 	now := time.Now().UTC()
@@ -182,12 +182,12 @@ func (suite *KeyTestSuite) TestKey_ReserveKey_Ok() {
 
 func (suite *KeyTestSuite) TestKey_ReserveKey_Error_NotFound() {
 	key := &billing.Key{
-		Id:           bson.NewObjectId().Hex(),
+		Id:           primitive.NewObjectID().Hex(),
 		PlatformId:   "steam",
-		KeyProductId: bson.NewObjectId().Hex(),
+		KeyProductId: primitive.NewObjectID().Hex(),
 		Code:         "code1",
 	}
-	orderId := bson.NewObjectId().Hex()
+	orderId := primitive.NewObjectID().Hex()
 
 	_, err := suite.service.keyRepository.ReserveKey(ctx, key.KeyProductId, key.PlatformId, orderId, 3)
 	assert.Error(suite.T(), err)
@@ -195,10 +195,10 @@ func (suite *KeyTestSuite) TestKey_ReserveKey_Error_NotFound() {
 
 func (suite *KeyTestSuite) TestKey_ReserveKey_Error_NotFree() {
 	key := &billing.Key{
-		Id:           bson.NewObjectId().Hex(),
+		Id:           primitive.NewObjectID().Hex(),
 		PlatformId:   "steam",
-		KeyProductId: bson.NewObjectId().Hex(),
-		OrderId:      bson.NewObjectId().Hex(),
+		KeyProductId: primitive.NewObjectID().Hex(),
+		OrderId:      primitive.NewObjectID().Hex(),
 		Code:         "code1",
 	}
 	assert.NoError(suite.T(), suite.service.keyRepository.Insert(ctx, key))
@@ -209,12 +209,12 @@ func (suite *KeyTestSuite) TestKey_ReserveKey_Error_NotFree() {
 
 func (suite *KeyTestSuite) TestKey_CancelById_Ok() {
 	key := &billing.Key{
-		Id:           bson.NewObjectId().Hex(),
+		Id:           primitive.NewObjectID().Hex(),
 		PlatformId:   "steam",
-		KeyProductId: bson.NewObjectId().Hex(),
+		KeyProductId: primitive.NewObjectID().Hex(),
 		Code:         "code1",
 	}
-	orderId := bson.NewObjectId().Hex()
+	orderId := primitive.NewObjectID().Hex()
 	assert.NoError(suite.T(), suite.service.keyRepository.Insert(ctx, key))
 
 	_, err := suite.service.keyRepository.ReserveKey(ctx, key.KeyProductId, key.PlatformId, orderId, 3)
@@ -236,18 +236,18 @@ func (suite *KeyTestSuite) TestKey_CancelById_Ok() {
 }
 
 func (suite *KeyTestSuite) TestKey_CancelById_Error_NotFound() {
-	_, err := suite.service.keyRepository.CancelById(ctx, bson.NewObjectId().Hex())
+	_, err := suite.service.keyRepository.CancelById(ctx, primitive.NewObjectID().Hex())
 	assert.Error(suite.T(), err)
 }
 
 func (suite *KeyTestSuite) TestKey_FinishRedeemById_Ok() {
 	key := &billing.Key{
-		Id:           bson.NewObjectId().Hex(),
+		Id:           primitive.NewObjectID().Hex(),
 		PlatformId:   "steam",
-		KeyProductId: bson.NewObjectId().Hex(),
+		KeyProductId: primitive.NewObjectID().Hex(),
 		Code:         "code1",
 	}
-	orderId := bson.NewObjectId().Hex()
+	orderId := primitive.NewObjectID().Hex()
 	assert.NoError(suite.T(), suite.service.keyRepository.Insert(ctx, key))
 
 	_, err := suite.service.keyRepository.ReserveKey(ctx, key.KeyProductId, key.PlatformId, orderId, 3)
@@ -279,14 +279,14 @@ func (suite *KeyTestSuite) TestKey_FinishRedeemById_Error_NotFound() {
 
 func (suite *KeyTestSuite) TestKey_CountKeysByProductPlatform_Ok() {
 	platformId := "steam"
-	keyProductId := bson.NewObjectId().Hex()
+	keyProductId := primitive.NewObjectID().Hex()
 
 	cnt, err := suite.service.keyRepository.CountKeysByProductPlatform(ctx, keyProductId, platformId)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), 0, cnt)
 
 	assert.NoError(suite.T(), suite.service.keyRepository.Insert(ctx, &billing.Key{
-		Id:           bson.NewObjectId().Hex(),
+		Id:           primitive.NewObjectID().Hex(),
 		PlatformId:   platformId,
 		KeyProductId: keyProductId,
 		Code:         "code1",
@@ -296,11 +296,11 @@ func (suite *KeyTestSuite) TestKey_CountKeysByProductPlatform_Ok() {
 	assert.Equal(suite.T(), 1, cnt)
 
 	assert.NoError(suite.T(), suite.service.keyRepository.Insert(ctx, &billing.Key{
-		Id:           bson.NewObjectId().Hex(),
+		Id:           primitive.NewObjectID().Hex(),
 		PlatformId:   platformId,
 		KeyProductId: keyProductId,
 		Code:         "code2",
-		OrderId:      bson.NewObjectId().Hex(),
+		OrderId:      primitive.NewObjectID().Hex(),
 	}))
 	cnt, err = suite.service.keyRepository.CountKeysByProductPlatform(ctx, keyProductId, platformId)
 	assert.NoError(suite.T(), err)
@@ -310,7 +310,7 @@ func (suite *KeyTestSuite) TestKey_CountKeysByProductPlatform_Ok() {
 func (suite *KeyTestSuite) TestKey_GetAvailableKeysCount_Ok() {
 	req := &grpc.GetPlatformKeyCountRequest{
 		PlatformId:   "steam",
-		KeyProductId: bson.NewObjectId().Hex(),
+		KeyProductId: primitive.NewObjectID().Hex(),
 	}
 	res := grpc.GetPlatformKeyCountResponse{}
 
@@ -330,7 +330,7 @@ func (suite *KeyTestSuite) TestKey_GetAvailableKeysCount_Ok() {
 func (suite *KeyTestSuite) TestKey_GetAvailableKeysCount_Error_KeyProductNotFound() {
 	req := &grpc.GetPlatformKeyCountRequest{
 		PlatformId:   "steam",
-		KeyProductId: bson.NewObjectId().Hex(),
+		KeyProductId: primitive.NewObjectID().Hex(),
 	}
 	res := grpc.GetPlatformKeyCountResponse{}
 
@@ -347,8 +347,8 @@ func (suite *KeyTestSuite) TestKey_GetAvailableKeysCount_Error_KeyProductNotFoun
 func (suite *KeyTestSuite) TestKey_GetAvailableKeysCount_Error_MerchantMismatch() {
 	req := &grpc.GetPlatformKeyCountRequest{
 		PlatformId:   "steam",
-		KeyProductId: bson.NewObjectId().Hex(),
-		MerchantId:   bson.NewObjectId().Hex(),
+		KeyProductId: primitive.NewObjectID().Hex(),
+		MerchantId:   primitive.NewObjectID().Hex(),
 	}
 	res := grpc.GetPlatformKeyCountResponse{}
 
@@ -357,7 +357,7 @@ func (suite *KeyTestSuite) TestKey_GetAvailableKeysCount_Error_MerchantMismatch(
 	suite.service.keyRepository = kr
 
 	kp := &mocks.KeyProductRepositoryInterface{}
-	kp.On("GetById", req.KeyProductId).Return(&grpc.KeyProduct{MerchantId: bson.NewObjectId().Hex()}, nil)
+	kp.On("GetById", req.KeyProductId).Return(&grpc.KeyProduct{MerchantId: primitive.NewObjectID().Hex()}, nil)
 	suite.service.keyProductRepository = kp
 
 	err := suite.service.GetAvailableKeysCount(context.TODO(), req, &res)
@@ -369,8 +369,8 @@ func (suite *KeyTestSuite) TestKey_GetAvailableKeysCount_Error_MerchantMismatch(
 func (suite *KeyTestSuite) TestKey_GetAvailableKeysCount_Error_NotFound() {
 	req := &grpc.GetPlatformKeyCountRequest{
 		PlatformId:   "steam",
-		KeyProductId: bson.NewObjectId().Hex(),
-		MerchantId:   bson.NewObjectId().Hex(),
+		KeyProductId: primitive.NewObjectID().Hex(),
+		MerchantId:   primitive.NewObjectID().Hex(),
 	}
 	res := grpc.GetPlatformKeyCountResponse{}
 
@@ -390,7 +390,7 @@ func (suite *KeyTestSuite) TestKey_GetAvailableKeysCount_Error_NotFound() {
 
 func (suite *KeyTestSuite) TestKey_GetKeyByID_Ok() {
 	req := &grpc.KeyForOrderRequest{
-		KeyId: bson.NewObjectId().Hex(),
+		KeyId: primitive.NewObjectID().Hex(),
 	}
 	res := grpc.GetKeyForOrderRequestResponse{}
 
@@ -404,7 +404,7 @@ func (suite *KeyTestSuite) TestKey_GetKeyByID_Ok() {
 
 func (suite *KeyTestSuite) TestKey_GetKeyByID_Error_NotFound() {
 	req := &grpc.KeyForOrderRequest{
-		KeyId: bson.NewObjectId().Hex(),
+		KeyId: primitive.NewObjectID().Hex(),
 	}
 	res := grpc.GetKeyForOrderRequestResponse{}
 
@@ -421,12 +421,12 @@ func (suite *KeyTestSuite) TestKey_GetKeyByID_Error_NotFound() {
 func (suite *KeyTestSuite) TestKey_ReserveKeyForOrder_Ok() {
 	req := &grpc.PlatformKeyReserveRequest{
 		PlatformId:   "steam",
-		KeyProductId: bson.NewObjectId().Hex(),
-		OrderId:      bson.NewObjectId().Hex(),
+		KeyProductId: primitive.NewObjectID().Hex(),
+		OrderId:      primitive.NewObjectID().Hex(),
 		Ttl:          3,
 	}
 	res := grpc.PlatformKeyReserveResponse{}
-	keyId := bson.NewObjectId().Hex()
+	keyId := primitive.NewObjectID().Hex()
 
 	kr := &mocks.KeyRepositoryInterface{}
 	kr.On("ReserveKey", req.KeyProductId, req.PlatformId, req.OrderId, req.Ttl).Return(&billing.Key{Id: keyId}, nil)
@@ -441,8 +441,8 @@ func (suite *KeyTestSuite) TestKey_ReserveKeyForOrder_Ok() {
 func (suite *KeyTestSuite) TestKey_ReserveKeyForOrder_Error_Reserve() {
 	req := &grpc.PlatformKeyReserveRequest{
 		PlatformId:   "steam",
-		KeyProductId: bson.NewObjectId().Hex(),
-		OrderId:      bson.NewObjectId().Hex(),
+		KeyProductId: primitive.NewObjectID().Hex(),
+		OrderId:      primitive.NewObjectID().Hex(),
 		Ttl:          3,
 	}
 	res := grpc.PlatformKeyReserveResponse{}
@@ -459,11 +459,11 @@ func (suite *KeyTestSuite) TestKey_ReserveKeyForOrder_Error_Reserve() {
 
 func (suite *KeyTestSuite) TestKey_FinishRedeemKeyForOrder_Ok() {
 	req := &grpc.KeyForOrderRequest{
-		KeyId: bson.NewObjectId().Hex(),
+		KeyId: primitive.NewObjectID().Hex(),
 	}
 	res := grpc.GetKeyForOrderRequestResponse{}
 	key := &billing.Key{
-		Id: bson.NewObjectId().Hex(),
+		Id: primitive.NewObjectID().Hex(),
 	}
 
 	kr := &mocks.KeyRepositoryInterface{}
@@ -478,7 +478,7 @@ func (suite *KeyTestSuite) TestKey_FinishRedeemKeyForOrder_Ok() {
 
 func (suite *KeyTestSuite) TestKey_FinishRedeemKeyForOrder_Error_NotFound() {
 	req := &grpc.KeyForOrderRequest{
-		KeyId: bson.NewObjectId().Hex(),
+		KeyId: primitive.NewObjectID().Hex(),
 	}
 	res := grpc.GetKeyForOrderRequestResponse{}
 
@@ -494,11 +494,11 @@ func (suite *KeyTestSuite) TestKey_FinishRedeemKeyForOrder_Error_NotFound() {
 
 func (suite *KeyTestSuite) TestKey_CancelRedeemKeyForOrder_Ok() {
 	req := &grpc.KeyForOrderRequest{
-		KeyId: bson.NewObjectId().Hex(),
+		KeyId: primitive.NewObjectID().Hex(),
 	}
 	res := grpc.EmptyResponseWithStatus{}
 	key := &billing.Key{
-		Id: bson.NewObjectId().Hex(),
+		Id: primitive.NewObjectID().Hex(),
 	}
 
 	kr := &mocks.KeyRepositoryInterface{}
@@ -512,7 +512,7 @@ func (suite *KeyTestSuite) TestKey_CancelRedeemKeyForOrder_Ok() {
 
 func (suite *KeyTestSuite) TestKey_CancelRedeemKeyForOrder_Error_NotFound() {
 	req := &grpc.KeyForOrderRequest{
-		KeyId: bson.NewObjectId().Hex(),
+		KeyId: primitive.NewObjectID().Hex(),
 	}
 	res := grpc.EmptyResponseWithStatus{}
 
@@ -528,7 +528,7 @@ func (suite *KeyTestSuite) TestKey_CancelRedeemKeyForOrder_Error_NotFound() {
 
 func (suite *KeyTestSuite) TestKey_UploadKeysFile_Ok() {
 	req := &grpc.PlatformKeysFileRequest{
-		KeyProductId: bson.NewObjectId().Hex(),
+		KeyProductId: primitive.NewObjectID().Hex(),
 		PlatformId:   "steam",
 		File:         []byte{},
 	}
@@ -548,7 +548,7 @@ func (suite *KeyTestSuite) TestKey_UploadKeysFile_Ok() {
 
 func (suite *KeyTestSuite) TestKey_UploadKeysFile_Error_CountKeysByProductPlatform() {
 	req := &grpc.PlatformKeysFileRequest{
-		KeyProductId: bson.NewObjectId().Hex(),
+		KeyProductId: primitive.NewObjectID().Hex(),
 		PlatformId:   "steam",
 		File:         []byte{},
 	}
@@ -566,7 +566,7 @@ func (suite *KeyTestSuite) TestKey_UploadKeysFile_Error_CountKeysByProductPlatfo
 }
 
 func (suite *KeyTestSuite) TestKey_KeyDaemonProcess_Ok() {
-	keys := []*billing.Key{{Id: bson.NewObjectId().Hex()}}
+	keys := []*billing.Key{{Id: primitive.NewObjectID().Hex()}}
 	kr := &mocks.KeyRepositoryInterface{}
 	kr.On("FindUnfinished").Return(keys, nil)
 	kr.On("CancelById", keys[0].Id).Return(&billing.Key{}, nil)
@@ -588,14 +588,14 @@ func (suite *KeyTestSuite) TestKey_KeyDaemonProcess_Error_FindUnfinished() {
 }
 
 func (suite *KeyTestSuite) TestKey_KeyDaemonProcess_Error_CancelById() {
-	keys := []*billing.Key{{Id: bson.NewObjectId().Hex()}}
+	keys := []*billing.Key{{Id: primitive.NewObjectID().Hex()}}
 
 	kr := &mocks.KeyRepositoryInterface{}
 	kr.On("FindUnfinished").Return(keys, nil)
 	kr.On("CancelById", keys[0].Id).Return(nil, errors.New("not found"))
 	suite.service.keyRepository = kr
 
-	count, _ := suite.service.KeyDaemonProcess()
+	count, _ := suite.service.KeyDaemonProcess(context.TODO())
 	assert.Equal(suite.T(), 0, count)
 }
 
@@ -604,18 +604,18 @@ func (suite *KeyTestSuite) TestKey_FindUnfinished_Ok() {
 	reserveNoExpireTime, err := ptypes.TimestampProto(time.Now().AddDate(0, 0, 1))
 
 	keyReserveExpire := &billing.Key{
-		Id:           bson.NewObjectId().Hex(),
+		Id:           primitive.NewObjectID().Hex(),
 		PlatformId:   "steam",
-		KeyProductId: bson.NewObjectId().Hex(),
+		KeyProductId: primitive.NewObjectID().Hex(),
 		Code:         "code1",
 		ReservedTo:   reserveExpireTime,
 	}
 	assert.NoError(suite.T(), suite.service.keyRepository.Insert(ctx, keyReserveExpire))
 
 	keyReserveNoExpire := &billing.Key{
-		Id:           bson.NewObjectId().Hex(),
+		Id:           primitive.NewObjectID().Hex(),
 		PlatformId:   "gog",
-		KeyProductId: bson.NewObjectId().Hex(),
+		KeyProductId: primitive.NewObjectID().Hex(),
 		Code:         "code1",
 		ReservedTo:   reserveNoExpireTime,
 	}

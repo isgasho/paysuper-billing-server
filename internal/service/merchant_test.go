@@ -2,7 +2,6 @@ package service
 
 import (
 	"errors"
-	"github.com/globalsign/mgo/bson"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
@@ -12,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"testing"
@@ -71,11 +71,11 @@ func (suite *MerchantTestSuite) SetupTest() {
 	}
 
 	suite.pmBankCard = &billing.PaymentMethod{
-		Id:   bson.NewObjectId().Hex(),
+		Id:   primitive.NewObjectID().Hex(),
 		Name: "Bank card",
 	}
 	suite.merchant = &billing.Merchant{
-		Id: bson.NewObjectId().Hex(),
+		Id: primitive.NewObjectID().Hex(),
 		PaymentMethods: map[string]*billing.MerchantPaymentMethod{
 			suite.pmBankCard.Id: {
 				PaymentMethod: &billing.MerchantPaymentMethodIdentification{
@@ -104,11 +104,17 @@ func (suite *MerchantTestSuite) SetupTest() {
 }
 
 func (suite *MerchantTestSuite) TearDownTest() {
-	if err := suite.service.db.Drop(); err != nil {
+	err := suite.service.db.Drop()
+
+	if err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}
 
-	suite.service.db.Close()
+	err = suite.service.db.Close()
+
+	if err != nil {
+		suite.FailNow("Database close failed", "%v", err)
+	}
 }
 
 func (suite *MerchantTestSuite) TestMerchant_Insert_Ok() {
@@ -116,7 +122,7 @@ func (suite *MerchantTestSuite) TestMerchant_Insert_Ok() {
 }
 
 func (suite *MerchantTestSuite) TestMerchant_Insert_ErrorCacheUpdate() {
-	id := bson.NewObjectId().Hex()
+	id := primitive.NewObjectID().Hex()
 	ci := &mocks.CacheInterface{}
 	ci.On("Set", "merchant:id:"+id, mock2.Anything, mock2.Anything).
 		Return(errors.New("service unavailable"))
@@ -132,14 +138,14 @@ func (suite *MerchantTestSuite) TestMerchant_Update_Ok() {
 }
 
 func (suite *MerchantTestSuite) TestMerchant_Update_NotFound() {
-	err := suite.service.merchant.Update(ctx, &billing.Merchant{Id: bson.NewObjectId().Hex()})
+	err := suite.service.merchant.Update(ctx, &billing.Merchant{Id: primitive.NewObjectID().Hex()})
 
 	assert.Error(suite.T(), err)
 	assert.EqualError(suite.T(), err, "not found")
 }
 
 func (suite *MerchantTestSuite) TestMerchant_Update_ErrorCacheUpdate() {
-	id := bson.NewObjectId().Hex()
+	id := primitive.NewObjectID().Hex()
 	ci := &mocks.CacheInterface{}
 	ci.On("Set", "merchant:id:"+id, mock2.Anything, mock2.Anything).
 		Return(errors.New("service unavailable"))
@@ -153,7 +159,7 @@ func (suite *MerchantTestSuite) TestMerchant_Update_ErrorCacheUpdate() {
 
 func (suite *MerchantTestSuite) TestMerchant_GetById_Ok() {
 	merchant := &billing.Merchant{
-		Id: bson.NewObjectId().Hex(),
+		Id: primitive.NewObjectID().Hex(),
 	}
 	if err := suite.service.merchant.Insert(ctx, merchant); err != nil {
 		suite.Assert().NoError(err)
@@ -184,7 +190,7 @@ func (suite *MerchantTestSuite) TestMerchant_GetPaymentMethod_Ok() {
 }
 
 func (suite *MerchantTestSuite) TestMerchant_GetPaymentMethod_ErrorByMerchantNotFound() {
-	_, err := suite.service.merchant.GetPaymentMethod(ctx, bson.NewObjectId().Hex(), "")
+	_, err := suite.service.merchant.GetPaymentMethod(ctx, primitive.NewObjectID().Hex(), "")
 
 	assert.Error(suite.T(), err)
 	assert.EqualError(suite.T(), err, "merchant not found")

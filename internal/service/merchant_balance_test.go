@@ -2,8 +2,6 @@ package service
 
 import (
 	"context"
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
@@ -20,6 +18,9 @@ import (
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
@@ -126,11 +127,17 @@ func (suite *MerchantBalanceTestSuite) SetupTest() {
 }
 
 func (suite *MerchantBalanceTestSuite) TearDownTest() {
-	if err := suite.service.db.Drop(); err != nil {
+	err := suite.service.db.Drop()
+
+	if err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}
 
-	suite.service.db.Close()
+	err = suite.service.db.Close()
+
+	if err != nil {
+		suite.FailNow("Database close failed", "%v", err)
+	}
 }
 
 func (suite *MerchantBalanceTestSuite) TestMerchantBalance_GetMerchantBalance_Ok_AutoCreateBalance() {
@@ -198,7 +205,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_GetMerchantBalance_Ok
 }
 
 func (suite *MerchantBalanceTestSuite) TestMerchantBalance_GetMerchantBalance_Failed_MerchantNotFound() {
-	merchantId = bson.NewObjectId().Hex()
+	merchantId = primitive.NewObjectID().Hex()
 
 	count := suite.mbRecordsCount(merchantId, "")
 	assert.Equal(suite.T(), count, 0)
@@ -236,7 +243,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_GetMerchantBalance_Fa
 }
 
 func (suite *MerchantBalanceTestSuite) TestMerchantBalance_updateMerchantBalance_Failed_MerchantNotFound() {
-	merchantId = bson.NewObjectId().Hex()
+	merchantId = primitive.NewObjectID().Hex()
 	count := suite.mbRecordsCount(merchantId, "")
 	assert.Equal(suite.T(), count, 0)
 
@@ -263,7 +270,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_updateMerchantBalance
 func (suite *MerchantBalanceTestSuite) TestMerchantBalance_updateMerchantBalance_Ok() {
 
 	report := &billing.RoyaltyReport{
-		Id:         bson.NewObjectId().Hex(),
+		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: suite.merchant.Id,
 		Totals: &billing.RoyaltyReportTotals{
 			TransactionsCount: 10,
@@ -285,9 +292,9 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_updateMerchantBalance
 	assert.NoError(suite.T(), err, "Generate PayoutDocument date failed")
 
 	payout := &billing.PayoutDocument{
-		Id:                 bson.NewObjectId().Hex(),
+		Id:                 primitive.NewObjectID().Hex(),
 		MerchantId:         suite.merchant.Id,
-		SourceId:           []string{bson.NewObjectId().Hex()},
+		SourceId:           []string{primitive.NewObjectID().Hex()},
 		TotalFees:          1000,
 		Balance:            1000,
 		Currency:           "RUB",
@@ -306,7 +313,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_updateMerchantBalance
 	assert.NoError(suite.T(), err)
 
 	ae1 := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
+		Id:     primitive.NewObjectID().Hex(),
 		Type:   pkg.AccountingEntryTypeMerchantRollingReserveCreate,
 		Object: pkg.ObjectTypeBalanceTransaction,
 		Source: &billing.AccountingEntrySource{
@@ -320,7 +327,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_updateMerchantBalance
 	}
 
 	ae2 := &billing.AccountingEntry{
-		Id:     bson.NewObjectId().Hex(),
+		Id:     primitive.NewObjectID().Hex(),
 		Type:   pkg.AccountingEntryTypeMerchantRollingReserveRelease,
 		Object: pkg.ObjectTypeBalanceTransaction,
 		Source: &billing.AccountingEntrySource{
@@ -359,9 +366,9 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_getRollingReserveForB
 	assert.NoError(suite.T(), err, "Generate PayoutDocument date failed")
 
 	payout := &billing.PayoutDocument{
-		Id:                 bson.NewObjectId().Hex(),
+		Id:                 primitive.NewObjectID().Hex(),
 		MerchantId:         suite.merchant.Id,
-		SourceId:           []string{bson.NewObjectId().Hex()},
+		SourceId:           []string{primitive.NewObjectID().Hex()},
 		TotalFees:          1000,
 		Balance:            1000,
 		Currency:           "RUB",
@@ -390,7 +397,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	assert.Equal(suite.T(), count, 0)
 
 	report := &billing.RoyaltyReport{
-		Id:         bson.NewObjectId().Hex(),
+		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: suite.merchant.Id,
 		Totals: &billing.RoyaltyReportTotals{
 			TransactionsCount: 10,
@@ -445,7 +452,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	assert.Equal(suite.T(), count, 0)
 
 	report := &billing.RoyaltyReport{
-		Id:         bson.NewObjectId().Hex(),
+		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: suite.merchant.Id,
 		Totals: &billing.RoyaltyReportTotals{
 			TransactionsCount: 100,
@@ -468,7 +475,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	assert.NoError(suite.T(), err, "Generate PayoutDocument date failed")
 
 	payout := &billing.PayoutDocument{
-		Id:                 bson.NewObjectId().Hex(),
+		Id:                 primitive.NewObjectID().Hex(),
 		MerchantId:         suite.merchant.Id,
 		SourceId:           []string{report.Id},
 		TotalFees:          1000,
@@ -609,7 +616,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	assert.NoError(suite.T(), err, "Generate PayoutDocument date failed")
 
 	report := &billing.RoyaltyReport{
-		Id:         bson.NewObjectId().Hex(),
+		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: suite.merchant.Id,
 		Totals: &billing.RoyaltyReportTotals{
 			TransactionsCount: 10,
@@ -660,7 +667,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	assert.NoError(suite.T(), err, "Generate PayoutDocument date failed")
 
 	report := &billing.RoyaltyReport{
-		Id:         bson.NewObjectId().Hex(),
+		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: suite.merchant.Id,
 		Totals: &billing.RoyaltyReportTotals{
 			TransactionsCount: 10,
@@ -709,15 +716,17 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 }
 
 func (suite *MerchantBalanceTestSuite) mbRecordsCount(merchantId, currency string) int64 {
+	oid, err := primitive.ObjectIDFromHex(merchantId)
+	assert.NoError(suite.T(), err)
 	query := bson.M{
-		"merchant_id": bson.ObjectIdHex(merchantId),
+		"merchant_id": oid,
 		"currency":    currency,
 	}
 	count, err := suite.service.db.Collection(collectionMerchantBalances).CountDocuments(ctx, query)
 	if err == nil {
 		return count
 	}
-	if err == mgo.ErrNotFound {
+	if err == mongo.ErrNoDocuments {
 		return 0
 	}
 	return -1

@@ -2,7 +2,6 @@ package service
 
 import (
 	"fmt"
-	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
@@ -13,6 +12,7 @@ import (
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"testing"
@@ -54,7 +54,7 @@ func (suite *EntityTestSuite) SetupTest() {
 	}
 
 	suite.operatingCompany = &billing.OperatingCompany{
-		Id:                 bson.NewObjectId().Hex(),
+		Id:                 primitive.NewObjectID().Hex(),
 		Name:               "Legal name",
 		Country:            "RU",
 		RegistrationNumber: "some number",
@@ -73,7 +73,7 @@ func (suite *EntityTestSuite) SetupTest() {
 	}
 
 	ps1 := &billing.PaymentSystem{
-		Id:                 bson.NewObjectId().Hex(),
+		Id:                 primitive.NewObjectID().Hex(),
 		Name:               "CardPay",
 		AccountingCurrency: "RUB",
 		AccountingPeriod:   "every-day",
@@ -82,8 +82,8 @@ func (suite *EntityTestSuite) SetupTest() {
 		Handler:            "cardpay",
 	}
 	project := &billing.Project{
-		Id:                 bson.NewObjectId().Hex(),
-		MerchantId:         bson.NewObjectId().Hex(),
+		Id:                 primitive.NewObjectID().Hex(),
+		MerchantId:         primitive.NewObjectID().Hex(),
 		CallbackCurrency:   "RUB",
 		CallbackProtocol:   "default",
 		LimitsCurrency:     "RUB",
@@ -98,7 +98,7 @@ func (suite *EntityTestSuite) SetupTest() {
 	keyRub := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
 
 	pmBankCard := &billing.PaymentMethod{
-		Id:               bson.NewObjectId().Hex(),
+		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bank card",
 		Group:            "BANKCARD",
 		MinPaymentAmount: 0,
@@ -118,7 +118,7 @@ func (suite *EntityTestSuite) SetupTest() {
 		PaymentSystemId: ps1.Id,
 	}
 	pmQiwi := &billing.PaymentMethod{
-		Id:               bson.NewObjectId().Hex(),
+		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Qiwi",
 		Group:            "QIWI",
 		MinPaymentAmount: 0,
@@ -133,7 +133,7 @@ func (suite *EntityTestSuite) SetupTest() {
 		PaymentSystemId: ps1.Id,
 	}
 	pmBitcoin := &billing.PaymentMethod{
-		Id:               bson.NewObjectId().Hex(),
+		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bitcoin",
 		Group:            "BITCOIN",
 		MinPaymentAmount: 0,
@@ -167,7 +167,7 @@ func (suite *EntityTestSuite) SetupTest() {
 	}
 
 	merchant := &billing.Merchant{
-		Id: bson.NewObjectId().Hex(),
+		Id: primitive.NewObjectID().Hex(),
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -225,7 +225,7 @@ func (suite *EntityTestSuite) SetupTest() {
 	}
 
 	merchantAgreement := &billing.Merchant{
-		Id: bson.NewObjectId().Hex(),
+		Id: primitive.NewObjectID().Hex(),
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -261,7 +261,7 @@ func (suite *EntityTestSuite) SetupTest() {
 		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 	merchant1 := &billing.Merchant{
-		Id: bson.NewObjectId().Hex(),
+		Id: primitive.NewObjectID().Hex(),
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -349,11 +349,17 @@ func (suite *EntityTestSuite) SetupTest() {
 }
 
 func (suite *EntityTestSuite) TearDownTest() {
-	if err := suite.service.db.Drop(); err != nil {
+	err := suite.service.db.Drop()
+
+	if err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}
 
-	suite.service.db.Close()
+	err = suite.service.db.Close()
+
+	if err != nil {
+		suite.FailNow("Database close failed", "%v", err)
+	}
 }
 
 func (suite *EntityTestSuite) TestProject_GetPaymentMethodByGroupAndCurrency_Ok() {

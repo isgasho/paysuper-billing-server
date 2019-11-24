@@ -11,14 +11,14 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
-	"gopkg.in/mgo.v2/bson"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"testing"
 )
 
@@ -54,13 +54,13 @@ func (suite *ProductTestSuite) SetupTest() {
 	}
 
 	pgRub := &billing.PriceGroup{
-		Id:       bson.NewObjectId().Hex(),
+		Id:       primitive.NewObjectID().Hex(),
 		Region:   "RUB",
 		Currency: "RUB",
 		IsActive: true,
 	}
 	pgUsd := &billing.PriceGroup{
-		Id:       bson.NewObjectId().Hex(),
+		Id:       primitive.NewObjectID().Hex(),
 		Region:   "USD",
 		Currency: "USD",
 		IsActive: true,
@@ -96,12 +96,12 @@ func (suite *ProductTestSuite) SetupTest() {
 	}
 
 	pgs := []*billing.PriceGroup{pgRub, pgUsd}
-	if err := suite.service.priceGroup.MultipleInsert(pgs); err != nil {
+	if err := suite.service.priceGroup.MultipleInsert(context.TODO(), pgs); err != nil {
 		suite.FailNow("Insert price group test data failed", "%v", err)
 	}
 
-	suite.merchant = &billing.Merchant{Id: bson.NewObjectId().Hex(), Banking: &billing.MerchantBanking{Currency: "RUB"}}
-	if err := suite.service.merchant.Insert(suite.merchant); err != nil {
+	suite.merchant = &billing.Merchant{Id: primitive.NewObjectID().Hex(), Banking: &billing.MerchantBanking{Currency: "RUB"}}
+	if err := suite.service.merchant.Insert(context.TODO(), suite.merchant); err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
 	}
 
@@ -112,8 +112,8 @@ func (suite *ProductTestSuite) SetupTest() {
 		DefaultCurrency: "USD",
 		Enabled:         true,
 		Description:     map[string]string{"en": "blah-blah-blah"},
-		MerchantId:      bson.NewObjectId().Hex(),
-		ProjectId:       bson.NewObjectId().Hex(),
+		MerchantId:      primitive.NewObjectID().Hex(),
+		ProjectId:       primitive.NewObjectID().Hex(),
 		Prices: []*billing.ProductPrice{{
 			Currency: "USD",
 			Region:   "USD",
@@ -123,16 +123,22 @@ func (suite *ProductTestSuite) SetupTest() {
 }
 
 func (suite *ProductTestSuite) TearDownTest() {
-	if err := suite.service.db.Drop(); err != nil {
+	err := suite.service.db.Drop()
+
+	if err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}
 
-	suite.service.db.Close()
+	err = suite.service.db.Close()
+
+	if err != nil {
+		suite.FailNow("Database close failed", "%v", err)
+	}
 }
 
 func (suite *ProductTestSuite) TestProduct_GetProduct_Ok() {
-	id := bson.NewObjectId().Hex()
-	merchantId := bson.NewObjectId().Hex()
+	id := primitive.NewObjectID().Hex()
+	merchantId := primitive.NewObjectID().Hex()
 
 	ps := &mocks.ProductServiceInterface{}
 	ps.On("GetById", mock2.Anything).Return(&grpc.Product{MerchantId: merchantId}, nil)
@@ -152,8 +158,8 @@ func (suite *ProductTestSuite) TestProduct_GetProduct_Ok() {
 }
 
 func (suite *ProductTestSuite) TestProduct_GetProduct_Error_NotFound() {
-	id := bson.NewObjectId().Hex()
-	merchantId := bson.NewObjectId().Hex()
+	id := primitive.NewObjectID().Hex()
+	merchantId := primitive.NewObjectID().Hex()
 
 	ps := &mocks.ProductServiceInterface{}
 	ps.On("GetById", mock2.Anything).Return(nil, errors.New("not found"))
@@ -171,8 +177,8 @@ func (suite *ProductTestSuite) TestProduct_GetProduct_Error_NotFound() {
 }
 
 func (suite *ProductTestSuite) TestProduct_GetProduct_Error_Merchant() {
-	id := bson.NewObjectId().Hex()
-	merchantId := bson.NewObjectId().Hex()
+	id := primitive.NewObjectID().Hex()
+	merchantId := primitive.NewObjectID().Hex()
 
 	ps := &mocks.ProductServiceInterface{}
 	ps.On("GetById", mock2.Anything).Return(&grpc.Product{MerchantId: merchantId}, nil)
@@ -180,7 +186,7 @@ func (suite *ProductTestSuite) TestProduct_GetProduct_Error_Merchant() {
 
 	req := &grpc.RequestProduct{
 		Id:         id,
-		MerchantId: bson.NewObjectId().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
 	}
 	res := grpc.GetProductResponse{}
 	err := suite.service.GetProduct(context.TODO(), req, &res)
@@ -228,7 +234,7 @@ func (suite *ProductTestSuite) TestProduct_CreateOrUpdateProduct_Ok_Exists() {
 	suite.service.productService = ps
 
 	res := grpc.Product{}
-	suite.product.Id = bson.NewObjectId().Hex()
+	suite.product.Id = primitive.NewObjectID().Hex()
 	suite.product.Sku = ""
 	err := suite.service.CreateOrUpdateProduct(context.TODO(), suite.product, &res)
 
@@ -245,7 +251,7 @@ func (suite *ProductTestSuite) TestProduct_CreateOrUpdateProduct_Error_NotFound(
 	suite.service.productService = ps
 
 	res := grpc.Product{}
-	suite.product.Id = bson.NewObjectId().Hex()
+	suite.product.Id = primitive.NewObjectID().Hex()
 	err := suite.service.CreateOrUpdateProduct(context.TODO(), suite.product, &res)
 
 	assert.Error(suite.T(), err)
@@ -254,13 +260,13 @@ func (suite *ProductTestSuite) TestProduct_CreateOrUpdateProduct_Error_NotFound(
 
 func (suite *ProductTestSuite) TestProduct_CreateOrUpdateProduct_Error_MerchantNotEqual() {
 	ps := &mocks.ProductServiceInterface{}
-	ps.On("GetById", mock2.Anything).Return(&grpc.Product{Sku: "ru_double_yeti", MerchantId: bson.NewObjectId().Hex()}, nil)
+	ps.On("GetById", mock2.Anything).Return(&grpc.Product{Sku: "ru_double_yeti", MerchantId: primitive.NewObjectID().Hex()}, nil)
 	ps.On("CountByProjectSku", mock2.Anything, mock2.Anything).Return(0, nil)
 	ps.On("Upsert", mock2.Anything).Return(nil)
 	suite.service.productService = ps
 
 	res := grpc.Product{}
-	suite.product.Id = bson.NewObjectId().Hex()
+	suite.product.Id = primitive.NewObjectID().Hex()
 	suite.product.Sku = ""
 	err := suite.service.CreateOrUpdateProduct(context.TODO(), suite.product, &res)
 
@@ -270,13 +276,13 @@ func (suite *ProductTestSuite) TestProduct_CreateOrUpdateProduct_Error_MerchantN
 
 func (suite *ProductTestSuite) TestProduct_CreateOrUpdateProduct_Error_SkuNotEqual() {
 	ps := &mocks.ProductServiceInterface{}
-	ps.On("GetById", mock2.Anything).Return(&grpc.Product{MerchantId: bson.NewObjectId().Hex()}, nil)
+	ps.On("GetById", mock2.Anything).Return(&grpc.Product{MerchantId: primitive.NewObjectID().Hex()}, nil)
 	ps.On("CountByProjectSku", mock2.Anything, mock2.Anything).Return(0, nil)
 	ps.On("Upsert", mock2.Anything).Return(nil)
 	suite.service.productService = ps
 
 	res := grpc.Product{}
-	suite.product.Id = bson.NewObjectId().Hex()
+	suite.product.Id = primitive.NewObjectID().Hex()
 	err := suite.service.CreateOrUpdateProduct(context.TODO(), suite.product, &res)
 
 	assert.Error(suite.T(), err)
@@ -285,13 +291,13 @@ func (suite *ProductTestSuite) TestProduct_CreateOrUpdateProduct_Error_SkuNotEqu
 
 func (suite *ProductTestSuite) TestProduct_CreateOrUpdateProduct_Error_ProjectNotEqual() {
 	ps := &mocks.ProductServiceInterface{}
-	ps.On("GetById", mock2.Anything).Return(&grpc.Product{Sku: "ru_double_yeti", MerchantId: suite.product.MerchantId, ProjectId: bson.NewObjectId().Hex()}, nil)
+	ps.On("GetById", mock2.Anything).Return(&grpc.Product{Sku: "ru_double_yeti", MerchantId: suite.product.MerchantId, ProjectId: primitive.NewObjectID().Hex()}, nil)
 	ps.On("CountByProjectSku", mock2.Anything, mock2.Anything).Return(0, nil)
 	ps.On("Upsert", mock2.Anything).Return(nil)
 	suite.service.productService = ps
 
 	res := grpc.Product{}
-	suite.product.Id = bson.NewObjectId().Hex()
+	suite.product.Id = primitive.NewObjectID().Hex()
 	suite.product.Sku = ""
 	err := suite.service.CreateOrUpdateProduct(context.TODO(), suite.product, &res)
 
@@ -406,7 +412,7 @@ func (suite *ProductTestSuite) TestProduct_DeleteProduct_Error_MerchantNotEqual(
 	ps.On("Upsert", mock2.Anything).Return(nil)
 	suite.service.productService = ps
 
-	req := grpc.RequestProduct{MerchantId: bson.NewObjectId().Hex()}
+	req := grpc.RequestProduct{MerchantId: primitive.NewObjectID().Hex()}
 	res := grpc.EmptyResponse{}
 	err := suite.service.DeleteProduct(context.TODO(), &req, &res)
 
@@ -564,21 +570,24 @@ func (suite *ProductTestSuite) TestProduct_UpdateProductPrices_Ok() {
 }
 
 func (suite *ProductTestSuite) TestProduct_Upsert_Ok() {
-	err := suite.service.productService.Upsert(&grpc.Product{
-		Id:         bson.NewObjectId().Hex(),
-		ProjectId:  bson.NewObjectId().Hex(),
-		MerchantId: bson.NewObjectId().Hex(),
-	})
+	err := suite.service.productService.Upsert(
+		context.TODO(),
+		&grpc.Product{
+			Id:         primitive.NewObjectID().Hex(),
+			ProjectId:  primitive.NewObjectID().Hex(),
+			MerchantId: primitive.NewObjectID().Hex(),
+		},
+	)
 
 	assert.NoError(suite.T(), err)
 }
 
 func (suite *ProductTestSuite) TestProduct_GetById_Ok() {
-	suite.product.Id = bson.NewObjectId().Hex()
-	if err := suite.service.productService.Upsert(suite.product); err != nil {
+	suite.product.Id = primitive.NewObjectID().Hex()
+	if err := suite.service.productService.Upsert(context.TODO(), suite.product); err != nil {
 		suite.Assert().NoError(err)
 	}
-	c, err := suite.service.productService.GetById(suite.product.Id)
+	c, err := suite.service.productService.GetById(context.TODO(), suite.product.Id)
 
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), c)
@@ -590,57 +599,57 @@ func (suite *ProductTestSuite) TestProduct_GetById_Ok_ByCache() {
 	ci.On("Get", "product:id:"+suite.product.Id, mock2.Anything).
 		Return(nil)
 	suite.service.cacher = ci
-	c, err := suite.service.productService.GetById(suite.product.Id)
+	c, err := suite.service.productService.GetById(context.TODO(), suite.product.Id)
 
 	assert.NoError(suite.T(), err)
 	assert.IsType(suite.T(), &grpc.Product{}, c)
 }
 
 func (suite *ProductTestSuite) TestProduct_GetById_Error_NotFound() {
-	_, err := suite.service.productService.GetById(bson.NewObjectId().Hex())
+	_, err := suite.service.productService.GetById(context.TODO(), primitive.NewObjectID().Hex())
 
 	assert.Error(suite.T(), err)
 }
 
 func (suite *ProductTestSuite) TestProduct_CountByProjectSku_Ok() {
-	suite.product.Id = bson.NewObjectId().Hex()
-	if err := suite.service.productService.Upsert(suite.product); err != nil {
+	suite.product.Id = primitive.NewObjectID().Hex()
+	if err := suite.service.productService.Upsert(context.TODO(), suite.product); err != nil {
 		suite.Assert().NoError(err)
 	}
-	c, err := suite.service.productService.CountByProjectSku(suite.product.ProjectId, suite.product.Sku)
+	c, err := suite.service.productService.CountByProjectSku(context.TODO(), suite.product.ProjectId, suite.product.Sku)
 
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), 1, c)
 }
 
 func (suite *ProductTestSuite) TestProduct_CountByProjectSku_NotMatch_Sku() {
-	suite.product.Id = bson.NewObjectId().Hex()
-	if err := suite.service.productService.Upsert(suite.product); err != nil {
+	suite.product.Id = primitive.NewObjectID().Hex()
+	if err := suite.service.productService.Upsert(context.TODO(), suite.product); err != nil {
 		suite.Assert().NoError(err)
 	}
-	c, err := suite.service.productService.CountByProjectSku(suite.product.ProjectId, "")
+	c, err := suite.service.productService.CountByProjectSku(context.TODO(), suite.product.ProjectId, "")
 
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), 0, c)
 }
 
 func (suite *ProductTestSuite) TestProduct_CountByProjectSku_NotMatch_Project() {
-	suite.product.Id = bson.NewObjectId().Hex()
-	if err := suite.service.productService.Upsert(suite.product); err != nil {
+	suite.product.Id = primitive.NewObjectID().Hex()
+	if err := suite.service.productService.Upsert(context.TODO(), suite.product); err != nil {
 		suite.Assert().NoError(err)
 	}
-	c, err := suite.service.productService.CountByProjectSku(bson.NewObjectId().Hex(), suite.product.Sku)
+	c, err := suite.service.productService.CountByProjectSku(context.TODO(), primitive.NewObjectID().Hex(), suite.product.Sku)
 
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), 0, c)
 }
 
 func (suite *ProductTestSuite) TestProduct_List_Ok() {
-	suite.product.Id = bson.NewObjectId().Hex()
-	if err := suite.service.productService.Upsert(suite.product); err != nil {
+	suite.product.Id = primitive.NewObjectID().Hex()
+	if err := suite.service.productService.Upsert(context.TODO(), suite.product); err != nil {
 		suite.Assert().NoError(err)
 	}
-	count, list := suite.service.productService.List(suite.product.MerchantId, "", "", "", 0, 10, 0)
+	count, list := suite.service.productService.List(context.TODO(), suite.product.MerchantId, "", "", "", 0, 10, 0)
 
 	assert.Equal(suite.T(), int32(1), count)
 	assert.Equal(suite.T(), suite.product.MerchantId, list[0].MerchantId)
@@ -648,11 +657,11 @@ func (suite *ProductTestSuite) TestProduct_List_Ok() {
 }
 
 func (suite *ProductTestSuite) TestProduct_List_Ok_Project() {
-	suite.product.Id = bson.NewObjectId().Hex()
-	if err := suite.service.productService.Upsert(suite.product); err != nil {
+	suite.product.Id = primitive.NewObjectID().Hex()
+	if err := suite.service.productService.Upsert(context.TODO(), suite.product); err != nil {
 		suite.Assert().NoError(err)
 	}
-	count, list := suite.service.productService.List(suite.product.MerchantId, suite.product.ProjectId, "", "", 0, 10, 0)
+	count, list := suite.service.productService.List(context.TODO(), suite.product.MerchantId, suite.product.ProjectId, "", "", 0, 10, 0)
 
 	assert.Equal(suite.T(), int32(1), count)
 	assert.Equal(suite.T(), suite.product.MerchantId, list[0].MerchantId)
@@ -661,11 +670,11 @@ func (suite *ProductTestSuite) TestProduct_List_Ok_Project() {
 }
 
 func (suite *ProductTestSuite) TestProduct_List_Ok_Sku() {
-	suite.product.Id = bson.NewObjectId().Hex()
-	if err := suite.service.productService.Upsert(suite.product); err != nil {
+	suite.product.Id = primitive.NewObjectID().Hex()
+	if err := suite.service.productService.Upsert(context.TODO(), suite.product); err != nil {
 		suite.Assert().NoError(err)
 	}
-	count, list := suite.service.productService.List(suite.product.MerchantId, "", suite.product.Sku, "", 0, 10, 0)
+	count, list := suite.service.productService.List(context.TODO(), suite.product.MerchantId, "", suite.product.Sku, "", 0, 10, 0)
 
 	assert.Equal(suite.T(), int32(1), count)
 	assert.Equal(suite.T(), suite.product.MerchantId, list[0].MerchantId)
@@ -674,11 +683,11 @@ func (suite *ProductTestSuite) TestProduct_List_Ok_Sku() {
 }
 
 func (suite *ProductTestSuite) TestProduct_List_Ok_Name() {
-	suite.product.Id = bson.NewObjectId().Hex()
-	if err := suite.service.productService.Upsert(suite.product); err != nil {
+	suite.product.Id = primitive.NewObjectID().Hex()
+	if err := suite.service.productService.Upsert(context.TODO(), suite.product); err != nil {
 		suite.Assert().NoError(err)
 	}
-	count, list := suite.service.productService.List(suite.product.MerchantId, "", "", suite.product.Name["en"], 0, 10, 0)
+	count, list := suite.service.productService.List(context.TODO(), suite.product.MerchantId, "", "", suite.product.Name["en"], 0, 10, 0)
 
 	assert.Equal(suite.T(), int32(1), count)
 	assert.Equal(suite.T(), suite.product.MerchantId, list[0].MerchantId)
@@ -687,22 +696,22 @@ func (suite *ProductTestSuite) TestProduct_List_Ok_Name() {
 }
 
 func (suite *ProductTestSuite) TestProduct_List_Error_Empty() {
-	suite.product.Id = bson.NewObjectId().Hex()
-	if err := suite.service.productService.Upsert(suite.product); err != nil {
+	suite.product.Id = primitive.NewObjectID().Hex()
+	if err := suite.service.productService.Upsert(context.TODO(), suite.product); err != nil {
 		suite.Assert().NoError(err)
 	}
 
-	count, list := suite.service.productService.List(bson.NewObjectId().Hex(), "", "", "", 0, 10, 0)
+	count, list := suite.service.productService.List(context.TODO(), primitive.NewObjectID().Hex(), "", "", "", 0, 10, 0)
 	assert.EqualValues(suite.T(), 0, count)
 	assert.Empty(suite.T(), list)
 }
 
 func (suite *ProductTestSuite) TestProduct_List_Error_Offset() {
-	suite.product.Id = bson.NewObjectId().Hex()
-	if err := suite.service.productService.Upsert(suite.product); err != nil {
+	suite.product.Id = primitive.NewObjectID().Hex()
+	if err := suite.service.productService.Upsert(context.TODO(), suite.product); err != nil {
 		suite.Assert().NoError(err)
 	}
-	count, list := suite.service.productService.List(suite.product.MerchantId, "", "", "", 5, 10, 0)
+	count, list := suite.service.productService.List(context.TODO(), suite.product.MerchantId, "", "", "", 5, 10, 0)
 	assert.EqualValues(suite.T(), 0, count)
 	assert.Empty(suite.T(), list)
 }
@@ -712,10 +721,10 @@ func (suite *ProductTestSuite) TestProduct_List_Enable_Ok() {
 		product := &grpc.Product{}
 		err := copier.Copy(&product, &suite.product)
 		assert.NoError(suite.T(), err)
-		product.Id = bson.NewObjectId().Hex()
+		product.Id = primitive.NewObjectID().Hex()
 		product.Enabled = true
 
-		err = suite.service.productService.Upsert(product)
+		err = suite.service.productService.Upsert(context.TODO(), product)
 		assert.NoError(suite.T(), err)
 	}
 
@@ -723,18 +732,18 @@ func (suite *ProductTestSuite) TestProduct_List_Enable_Ok() {
 		product := &grpc.Product{}
 		err := copier.Copy(&product, &suite.product)
 		assert.NoError(suite.T(), err)
-		product.Id = bson.NewObjectId().Hex()
+		product.Id = primitive.NewObjectID().Hex()
 		product.Enabled = false
 
-		err = suite.service.productService.Upsert(product)
+		err = suite.service.productService.Upsert(context.TODO(), product)
 		assert.NoError(suite.T(), err)
 	}
 
-	count, list := suite.service.productService.List(suite.product.MerchantId, "", "", "", 0, 10, 1)
+	count, list := suite.service.productService.List(context.TODO(), suite.product.MerchantId, "", "", "", 0, 10, 1)
 	assert.EqualValues(suite.T(), 5, count)
 	assert.Len(suite.T(), list, 5)
 
-	count, list = suite.service.productService.List(suite.product.MerchantId, "", "", "", 0, 10, 2)
+	count, list = suite.service.productService.List(context.TODO(), suite.product.MerchantId, "", "", "", 0, 10, 2)
 	assert.EqualValues(suite.T(), 3, count)
 	assert.Len(suite.T(), list, 3)
 }

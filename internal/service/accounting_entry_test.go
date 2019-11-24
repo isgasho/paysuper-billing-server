@@ -3,8 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
@@ -22,7 +20,9 @@ import (
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
 	rabbitmq "gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
 	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
@@ -42,7 +42,7 @@ type AccountingEntryTestSuite struct {
 	merchant           *billing.Merchant
 }
 
-var	ctx = context.TODO()
+var ctx = context.TODO()
 
 func Test_AccountingEntry(t *testing.T) {
 	suite.Run(t, new(AccountingEntryTestSuite))
@@ -116,11 +116,17 @@ func (suite *AccountingEntryTestSuite) SetupTest() {
 }
 
 func (suite *AccountingEntryTestSuite) TearDownTest() {
-	if err := suite.service.db.Drop(); err != nil {
+	err := suite.service.db.Drop()
+
+	if err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}
 
-	suite.service.db.Close()
+	err = suite.service.db.Close()
+
+	if err != nil {
+		suite.FailNow("Database close failed", "%v", err)
+	}
 }
 
 func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_RUB_RUB() {
@@ -963,7 +969,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_CreateAccountingEntry
 		Type:       pkg.AccountingEntryTypeRealGrossRevenue,
 		OrderId:    order.Id,
 		RefundId:   refund.Id,
-		MerchantId: bson.NewObjectId().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
 		Amount:     10,
 		Currency:   "RUB",
 		Status:     pkg.BalanceTransactionStatusAvailable,
@@ -981,13 +987,13 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_CreateAccountingEntry
 	var accountingEntry *billing.AccountingEntry
 	err = suite.service.db.Collection(collectionAccountingEntry).
 		FindOne(ctx, bson.M{"source.id": req.MerchantId, "source.type": collectionMerchant}).Decode(&accountingEntry)
-	assert.Error(suite.T(), mgo.ErrNotFound, err)
+	assert.Error(suite.T(), mongo.ErrNoDocuments, err)
 }
 
 func (suite *AccountingEntryTestSuite) TestAccountingEntry_CreateAccountingEntry_OrderNotFound_Error() {
 	req := &grpc.CreateAccountingEntryRequest{
 		Type:     pkg.AccountingEntryTypeRealGrossRevenue,
-		OrderId:  bson.NewObjectId().Hex(),
+		OrderId:  primitive.NewObjectID().Hex(),
 		Amount:   10,
 		Currency: "RUB",
 		Status:   pkg.BalanceTransactionStatusAvailable,
@@ -1004,13 +1010,13 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_CreateAccountingEntry
 	var accountingEntry *billing.AccountingEntry
 	err = suite.service.db.Collection(collectionAccountingEntry).
 		FindOne(ctx, bson.M{"source.id": req.OrderId, "source.type": collectionOrder}).Decode(&accountingEntry)
-	assert.Error(suite.T(), mgo.ErrNotFound, err)
+	assert.Error(suite.T(), mongo.ErrNoDocuments, err)
 }
 
 func (suite *AccountingEntryTestSuite) TestAccountingEntry_CreateAccountingEntry_RefundNotFound_Error() {
 	req := &grpc.CreateAccountingEntryRequest{
 		Type:     pkg.AccountingEntryTypeRealGrossRevenue,
-		RefundId: bson.NewObjectId().Hex(),
+		RefundId: primitive.NewObjectID().Hex(),
 		Amount:   10,
 		Currency: "RUB",
 		Status:   pkg.BalanceTransactionStatusAvailable,
@@ -1027,7 +1033,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_CreateAccountingEntry
 	var accountingEntry *billing.AccountingEntry
 	err = suite.service.db.Collection(collectionAccountingEntry).
 		FindOne(ctx, bson.M{"source.id": req.RefundId, "source.type": collectionRefund}).Decode(&accountingEntry)
-	assert.Error(suite.T(), mgo.ErrNotFound, err)
+	assert.Error(suite.T(), mongo.ErrNoDocuments, err)
 }
 
 func (suite *AccountingEntryTestSuite) TestAccountingEntry_CreateAccountingEntry_Refund_OrderNotFound_Error() {
@@ -1045,7 +1051,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_CreateAccountingEntry
 	refund := helperMakeRefund(suite.Suite, suite.service, order, order.TotalPaymentAmount, true)
 	assert.NotNil(suite.T(), refund)
 
-	refund.OriginalOrder.Id = bson.NewObjectId().Hex()
+	refund.OriginalOrder.Id = primitive.NewObjectID().Hex()
 	_, err = suite.service.db.Collection(collectionRefund).UpdateOne(ctx, bson.M{"_id": primitive.ObjectIDFromHex(refund.Id)}, refund)
 	assert.NoError(suite.T(), err)
 
@@ -1068,7 +1074,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_CreateAccountingEntry
 	var accountingEntry *billing.AccountingEntry
 	err = suite.service.db.Collection(collectionAccountingEntry).
 		FindOne(ctx, bson.M{"source.id": req.RefundId, "source.type": collectionRefund}).Decode(&accountingEntry)
-	assert.Error(suite.T(), mgo.ErrNotFound, err)
+	assert.Error(suite.T(), mongo.ErrNoDocuments, err)
 }
 
 func (suite *AccountingEntryTestSuite) TestAccountingEntry_CreateAccountingEntry_EntryNotExist_Error() {
@@ -1098,13 +1104,15 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_CreateAccountingEntry
 	var accountingEntry *billing.AccountingEntry
 	err = suite.service.db.Collection(collectionAccountingEntry).
 		FindOne(ctx, bson.M{"source.id": req.OrderId, "source.type": collectionOrder}).Decode(&accountingEntry)
-	assert.Error(suite.T(), mgo.ErrNotFound, err)
+	assert.Error(suite.T(), mongo.ErrNoDocuments, err)
 }
 
 func (suite *AccountingEntryTestSuite) helperGetAccountingEntries(orderId, collection string) []*billing.AccountingEntry {
 	var accountingEntries []*billing.AccountingEntry
-	err := suite.service.db.Collection(collectionAccountingEntry).
-		FindOne(ctx, bson.M{"source.id": bson.ObjectIdHex(orderId), "source.type": collection}).Decode(&accountingEntries)
+	oid, err := primitive.ObjectIDFromHex(orderId)
+	assert.NoError(suite.T(), err)
+	err = suite.service.db.Collection(collectionAccountingEntry).
+		FindOne(ctx, bson.M{"source.id": oid, "source.type": collection}).Decode(&accountingEntries)
 	assert.NoError(suite.T(), err)
 
 	return accountingEntries

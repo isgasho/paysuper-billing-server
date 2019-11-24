@@ -71,11 +71,11 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"math"
 	"math/rand"
 	"testing"
@@ -158,10 +158,17 @@ func (suite *DashboardRepositoryTestSuite) SetupTest() {
 
 func (suite *DashboardRepositoryTestSuite) TearDownTest() {
 	suite.cache.Clean()
-	if err := suite.service.db.Drop(); err != nil {
+	err := suite.service.db.Drop()
+
+	if err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}
-	suite.service.db.Close()
+
+	err = suite.service.db.Close()
+
+	if err != nil {
+		suite.FailNow("Database close failed", "%v", err)
+	}
 }
 
 func (suite *DashboardRepositoryTestSuite) Test_GetDashboardMainReport_EmptyResult_Ok() {

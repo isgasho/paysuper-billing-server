@@ -2,19 +2,19 @@ package service
 
 import (
 	"context"
-	"github.com/globalsign/mgo/bson"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"testing"
 )
 
@@ -71,29 +71,35 @@ func (suite *PriceTableTestSuite) SetupTest() {
 }
 
 func (suite *PriceTableTestSuite) TearDownTest() {
-	if err := suite.service.db.Drop(); err != nil {
+	err := suite.service.db.Drop()
+
+	if err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}
 
-	suite.service.db.Close()
+	err = suite.service.db.Close()
+
+	if err != nil {
+		suite.FailNow("Database close failed", "%v", err)
+	}
 }
 
 func (suite *PriceTableTestSuite) TestPriceTable_Insert_Ok() {
-	assert.NoError(suite.T(), suite.service.priceTable.Insert(&billing.PriceTable{Id: bson.NewObjectId().Hex()}))
+	assert.NoError(suite.T(), suite.service.priceTable.Insert(context.TODO(), &billing.PriceTable{Id: primitive.NewObjectID().Hex()}))
 }
 
 func (suite *PriceTableTestSuite) TestPriceTable_GetByRegion_Ok() {
-	table := &billing.PriceTable{Id: bson.NewObjectId().Hex(), Currency: "TST"}
-	assert.NoError(suite.T(), suite.service.priceTable.Insert(table))
+	table := &billing.PriceTable{Id: primitive.NewObjectID().Hex(), Currency: "TST"}
+	assert.NoError(suite.T(), suite.service.priceTable.Insert(context.TODO(), table))
 
-	t, err := suite.service.priceTable.GetByRegion(table.Currency)
+	t, err := suite.service.priceTable.GetByRegion(context.TODO(), table.Currency)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), table.Id, t.Id)
 	assert.Equal(suite.T(), table.Currency, t.Currency)
 }
 
 func (suite *PriceTableTestSuite) TestPriceTable_GetByRegion_Error_NotFound() {
-	_, err := suite.service.priceTable.GetByRegion("TST")
+	_, err := suite.service.priceTable.GetByRegion(context.TODO(), "TST")
 	assert.Error(suite.T(), err)
 }
 
