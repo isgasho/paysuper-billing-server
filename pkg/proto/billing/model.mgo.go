@@ -2857,8 +2857,11 @@ func (m *Refund) UnmarshalBSON(raw []byte) error {
 	m.PayerData = decoded.PayerData
 	m.SalesTax = decoded.SalesTax
 	m.IsChargeback = decoded.IsChargeback
-	m.CreatedOrderId = decoded.CreatedOrderId.Hex()
 	m.Reason = decoded.Reason
+
+	if !decoded.CreatedOrderId.IsZero() {
+		m.CreatedOrderId = decoded.CreatedOrderId.Hex()
+	}
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 

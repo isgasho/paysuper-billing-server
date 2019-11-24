@@ -1122,8 +1122,10 @@ func (suite *AccountingEntryTestSuite) helperGetAccountingEntries(orderId, colle
 	var accountingEntries []*billing.AccountingEntry
 	oid, err := primitive.ObjectIDFromHex(orderId)
 	assert.NoError(suite.T(), err)
-	err = suite.service.db.Collection(collectionAccountingEntry).
-		FindOne(ctx, bson.M{"source.id": oid, "source.type": collection}).Decode(&accountingEntries)
+	cursor, err := suite.service.db.Collection(collectionAccountingEntry).
+		Find(ctx, bson.M{"source.id": oid, "source.type": collection})
+	assert.NoError(suite.T(), err)
+	err = cursor.All(ctx, &accountingEntries)
 	assert.NoError(suite.T(), err)
 
 	return accountingEntries

@@ -205,7 +205,7 @@ func (s *Service) CreateAccountingEntry(
 
 	oid, err := primitive.ObjectIDFromHex(req.MerchantId)
 
-	if req.MerchantId != "" && err != nil {
+	if req.MerchantId != "" && err == nil {
 		merchant, err := s.getMerchantBy(ctx, bson.M{"_id": oid})
 
 		if err != nil {
