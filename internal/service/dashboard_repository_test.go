@@ -60,6 +60,7 @@ package service
 //6.4. Ошибка получения результата выборки за предыдущий период
 
 import (
+	"context"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -117,7 +118,9 @@ func (suite *DashboardRepositoryTestSuite) SetupTest() {
 		suite.FailNow("Migrations failed", "%v", err)
 	}
 
-	db, err := mongodb.NewDatabase()
+	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	opts := []mongodb.Option{mongodb.Context(ctx)}
+	db, err := mongodb.NewDatabase(opts...)
 	if err != nil {
 		suite.FailNow("Database connection failed", "%v", err)
 	}

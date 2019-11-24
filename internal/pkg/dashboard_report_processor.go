@@ -137,17 +137,20 @@ func (m *DashboardReportProcessor) ExecuteGrossRevenueAndVatReports(receiver int
 		return nil, m.Errors["unknown"]
 	}
 
-	err = cursor.Decode(receiver)
+	for cursor.Next(m.Ctx) {
+		err = cursor.Decode(receiver)
 
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorQueryCursorExecutionFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
-		)
-		return nil, m.Errors["unknown"]
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorQueryCursorExecutionFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			)
+			return nil, m.Errors["unknown"]
+		}
 	}
+	cursor.Close(m.Ctx)
 
 	return receiver, nil
 }
@@ -234,17 +237,20 @@ func (m *DashboardReportProcessor) ExecuteTotalTransactionsAndArpuReports(receiv
 		return nil, m.Errors["unknown"]
 	}
 
-	err = cursor.Decode(receiver)
+	for cursor.Next(m.Ctx) {
+		err = cursor.Decode(receiver)
 
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorQueryCursorExecutionFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
-		)
-		return nil, m.Errors["unknown"]
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorQueryCursorExecutionFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			)
+			return nil, m.Errors["unknown"]
+		}
 	}
+	cursor.Close(m.Ctx)
 
 	return receiver, nil
 }
@@ -288,6 +294,7 @@ func (m *DashboardReportProcessor) ExecuteRevenueDynamicReport(receiver interfac
 	}
 
 	err = cursor.All(m.Ctx, &receiverTyped.Items)
+	cursor.Close(m.Ctx)
 
 	if err != nil {
 		zap.L().Error(
@@ -417,21 +424,23 @@ func (m *DashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interf
 			zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
-
 		return nil, m.Errors["unknown"]
 	}
 
-	err = cursor.Decode(receiver)
+	for cursor.Next(m.Ctx) {
+		err = cursor.Decode(receiver)
 
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorQueryCursorExecutionFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
-		)
-		return nil, m.Errors["unknown"]
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorQueryCursorExecutionFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			)
+			return nil, m.Errors["unknown"]
+		}
 	}
+	cursor.Close(m.Ctx)
 
 	return receiver, nil
 }
@@ -552,17 +561,20 @@ func (m *DashboardReportProcessor) ExecuteSalesTodayReport(receiver interface{})
 		return nil, m.Errors["unknown"]
 	}
 
-	err = cursor.Decode(receiver)
+	for cursor.Next(m.Ctx) {
+		err = cursor.Decode(receiver)
 
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorQueryCursorExecutionFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
-		)
-		return nil, m.Errors["unknown"]
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorQueryCursorExecutionFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			)
+			return nil, m.Errors["unknown"]
+		}
 	}
+	cursor.Close(m.Ctx)
 
 	return receiver, nil
 }
@@ -667,17 +679,20 @@ func (m *DashboardReportProcessor) ExecuteSourcesReport(receiver interface{}) (i
 		return nil, m.Errors["unknown"]
 	}
 
-	err = cursor.Decode(receiver)
+	for cursor.Next(m.Ctx) {
+		err = cursor.Decode(receiver)
 
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorQueryCursorExecutionFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
-		)
-		return nil, m.Errors["unknown"]
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorQueryCursorExecutionFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			)
+			return nil, m.Errors["unknown"]
+		}
 	}
+	cursor.Close(m.Ctx)
 
 	return receiver, nil
 }

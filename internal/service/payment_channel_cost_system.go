@@ -337,7 +337,7 @@ func (h PaymentChannelCostSystem) Get(
 		return nil, fmt.Errorf(errorNotFound, collectionPaymentChannelCostSystem)
 	}
 
-	for cursor.Next(context.Background()) {
+	for cursor.Next(ctx) {
 		err = cursor.Decode(&set)
 
 		if err != nil {
