@@ -350,7 +350,7 @@ func (h PaymentChannelCostSystem) Get(
 			return nil, fmt.Errorf(errorNotFound, collectionPaymentChannelCostSystem)
 		}
 	}
-	cursor.Close(ctx)
+	_ = cursor.Close(ctx)
 
 	if len(set.Set) == 0 {
 		return nil, fmt.Errorf(errorNotFound, collectionPaymentChannelCostSystem)

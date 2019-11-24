@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/jinzhu/now"
@@ -1157,6 +1158,9 @@ func (r *RoyaltyReport) GetBalanceAmount(ctx context.Context, merchantId, curren
 		return 0, err
 	}
 
+	if cursor.Next(ctx) == false {
+		return 0, errors.New(errorNoData)
+	}
 	err = cursor.Decode(&res)
 
 	if err != nil {

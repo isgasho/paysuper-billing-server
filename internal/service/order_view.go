@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/paylink"
@@ -20,6 +21,8 @@ const (
 	collectionOrderView = "order_view"
 
 	errorOrderViewUpdateQuery = "order query view update failed"
+
+	errorNoData = "no data in cursor"
 )
 
 var (
@@ -3474,6 +3477,11 @@ func (ow *OrderView) GetRoyaltySummary(
 	}
 
 	var result *royaltySummaryResult
+	if cursor.Next(ctx) == false {
+		err = errors.New(errorNoData)
+		return
+	}
+
 	err = cursor.Decode(&result)
 
 	if result == nil {
@@ -3745,6 +3753,9 @@ func (ow *OrderView) getPaylinkGroupStat(
 		return nil, err
 	}
 
+	if cursor.Next(ctx) == false {
+		return nil, errors.New(errorNoData)
+	}
 	err = cursor.Decode(&result)
 
 	if err != nil {
