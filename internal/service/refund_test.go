@@ -1328,7 +1328,7 @@ func (suite *RefundTestSuite) TestRefund_ListRefunds_Ok() {
 	rsp3 := &grpc.ListRefundsResponse{}
 	err = suite.service.ListRefunds(context.TODO(), req3, rsp3)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), int32(3), rsp3.Count)
+	assert.EqualValues(suite.T(), int32(3), rsp3.Count)
 	assert.Len(suite.T(), rsp3.Items, int(rsp3.Count))
 	assert.Equal(suite.T(), rsp2.Item.Id, rsp3.Items[2].Id)
 }
@@ -1419,7 +1419,7 @@ func (suite *RefundTestSuite) TestRefund_ListRefunds_Limit_Ok() {
 	rsp3 := &grpc.ListRefundsResponse{}
 	err = suite.service.ListRefunds(context.TODO(), req3, rsp3)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), int32(3), rsp3.Count)
+	assert.EqualValues(suite.T(), int32(3), rsp3.Count)
 	assert.Len(suite.T(), rsp3.Items, int(req3.Limit))
 }
 
@@ -1432,7 +1432,7 @@ func (suite *RefundTestSuite) TestRefund_ListRefunds_NoResults_Ok() {
 	rsp3 := &grpc.ListRefundsResponse{}
 	err := suite.service.ListRefunds(context.TODO(), req3, rsp3)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), int32(0), rsp3.Count)
+	assert.EqualValues(suite.T(), int32(0), rsp3.Count)
 	assert.Len(suite.T(), rsp3.Items, 0)
 }
 

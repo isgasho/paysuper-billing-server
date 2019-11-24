@@ -595,7 +595,7 @@ func (p *createRefundProcessor) getRefundedAmount(order *billing.Order) (float64
 				"original_order.id": oid,
 			},
 		},
-		{"$group": bson.M{"_id": "$order.id", "amount": bson.M{"$sum": "$amount"}}},
+		{"$group": bson.M{"_id": "$original_order.id", "amount": bson.M{"$sum": "$amount"}}},
 	}
 
 	cursor, err := p.service.db.Collection(collectionRefund).Aggregate(p.ctx, query)
