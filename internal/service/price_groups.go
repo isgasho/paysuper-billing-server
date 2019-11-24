@@ -393,7 +393,7 @@ func (h PriceGroup) MultipleInsert(ctx context.Context, pg []*billing.PriceGroup
 func (h PriceGroup) Update(ctx context.Context, pg *billing.PriceGroup) error {
 	oid, _ := primitive.ObjectIDFromHex(pg.Id)
 	filter := bson.M{"_id": oid}
-	_, err := h.svc.db.Collection(collectionPriceGroup).UpdateOne(ctx, filter, pg)
+	_, err := h.svc.db.Collection(collectionPriceGroup).ReplaceOne(ctx, filter, pg)
 
 	if err != nil {
 		return err

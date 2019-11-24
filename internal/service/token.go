@@ -435,7 +435,7 @@ func (s *Service) updateCustomer(
 	s.processCustomer(req, project, customer)
 	oid, _ := primitive.ObjectIDFromHex(customer.Id)
 	filter := bson.M{"_id": oid}
-	_, err := s.db.Collection(collectionCustomer).UpdateOne(ctx, filter, customer)
+	_, err := s.db.Collection(collectionCustomer).ReplaceOne(ctx, filter, customer)
 
 	if err != nil {
 		zap.L().Error(

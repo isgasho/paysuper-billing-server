@@ -251,7 +251,7 @@ func (h *Country) Update(ctx context.Context, country *billing.Country) error {
 		return err
 	}
 
-	_, err = h.svc.db.Collection(collectionCountry).UpdateOne(ctx, bson.M{"_id": oid}, country)
+	_, err = h.svc.db.Collection(collectionCountry).ReplaceOne(ctx, bson.M{"_id": oid}, country)
 	if err != nil {
 		return err
 	}

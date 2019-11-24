@@ -1063,7 +1063,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_CreateAccountingEntry
 
 	refund.OriginalOrder.Id = primitive.NewObjectID().Hex()
 	oid, _ := primitive.ObjectIDFromHex(refund.Id)
-	_, err = suite.service.db.Collection(collectionRefund).UpdateOne(ctx, bson.M{"_id": oid}, refund)
+	_, err = suite.service.db.Collection(collectionRefund).ReplaceOne(ctx, bson.M{"_id": oid}, refund)
 	assert.NoError(suite.T(), err)
 
 	req := &grpc.CreateAccountingEntryRequest{

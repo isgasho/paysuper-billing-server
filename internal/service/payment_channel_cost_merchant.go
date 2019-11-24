@@ -312,7 +312,7 @@ func (h PaymentChannelCostMerchant) Update(ctx context.Context, obj *billing.Pay
 
 	oid, _ := primitive.ObjectIDFromHex(obj.Id)
 	filter := bson.M{"_id": oid}
-	_, err := h.svc.db.Collection(collectionPaymentChannelCostMerchant).UpdateOne(ctx, filter, obj)
+	_, err := h.svc.db.Collection(collectionPaymentChannelCostMerchant).ReplaceOne(ctx, filter, obj)
 
 	if err != nil {
 		return err
@@ -436,7 +436,7 @@ func (h PaymentChannelCostMerchant) Delete(ctx context.Context, obj *billing.Pay
 
 	oid, _ := primitive.ObjectIDFromHex(obj.Id)
 	filter := bson.M{"_id": oid}
-	_, err := h.svc.db.Collection(collectionPaymentChannelCostMerchant).UpdateOne(ctx, filter, obj)
+	_, err := h.svc.db.Collection(collectionPaymentChannelCostMerchant).ReplaceOne(ctx, filter, obj)
 
 	if err != nil {
 		return err

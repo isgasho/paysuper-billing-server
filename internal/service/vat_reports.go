@@ -438,7 +438,7 @@ func (s *Service) updateVatReport(ctx context.Context, vr *billing.VatReport) er
 
 	oid, _ := primitive.ObjectIDFromHex(vr.Id)
 	filter := bson.M{"_id": oid}
-	_, err := s.db.Collection(collectionVatReports).UpdateOne(ctx, filter, vr)
+	_, err := s.db.Collection(collectionVatReports).ReplaceOne(ctx, filter, vr)
 
 	if err != nil {
 		return err
