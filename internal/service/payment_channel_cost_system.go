@@ -337,17 +337,20 @@ func (h PaymentChannelCostSystem) Get(
 		return nil, fmt.Errorf(errorNotFound, collectionPaymentChannelCostSystem)
 	}
 
-	err = cursor.Decode(&set)
+	for cursor.Next(context.Background()) {
+		err = cursor.Decode(&set)
 
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorQueryCursorExecutionFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionPaymentChannelCostSystem),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
-		)
-		return nil, fmt.Errorf(errorNotFound, collectionPaymentChannelCostSystem)
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorQueryCursorExecutionFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, collectionPaymentChannelCostSystem),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			)
+			return nil, fmt.Errorf(errorNotFound, collectionPaymentChannelCostSystem)
+		}
 	}
+	cursor.Close(ctx)
 
 	if len(set.Set) == 0 {
 		return nil, fmt.Errorf(errorNotFound, collectionPaymentChannelCostSystem)
