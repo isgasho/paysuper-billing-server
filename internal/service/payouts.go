@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/jinzhu/now"
@@ -953,21 +952,19 @@ func (h *PayoutDocument) GetBalanceAmount(ctx context.Context, merchantId, curre
 		return 0, err
 	}
 
-
-	if cursor.Next(ctx) == false {
-		return 0, errors.New(errorNoData)
+	for cursor.Next(ctx) {
+		err = cursor.Decode(&res)
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorQueryCursorExecutionFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, collectionPayoutDocuments),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			)
+			return 0, err
+		}
 	}
-	err = cursor.Decode(&res)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorQueryCursorExecutionFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionPayoutDocuments),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
-		)
-		return 0, err
-	}
+	_ = cursor.Close(ctx)
 
 	return res.Amount, nil
 }

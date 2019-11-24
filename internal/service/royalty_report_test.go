@@ -890,7 +890,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReportOrders_O
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 	assert.NotEmpty(suite.T(), rsp1.Data)
-	assert.Equal(suite.T(), rsp1.Data.Count, req1.Limit)
+	assert.EqualValues(suite.T(), rsp1.Data.Count, req1.Limit)
 	assert.Len(suite.T(), rsp1.Data.Items, int(req1.Limit))
 
 	for _, v := range rsp1.Data.Items {

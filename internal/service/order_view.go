@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/paylink"
@@ -21,8 +20,6 @@ const (
 	collectionOrderView = "order_view"
 
 	errorOrderViewUpdateQuery = "order query view update failed"
-
-	errorNoData = "no data in cursor"
 )
 
 var (
@@ -3477,12 +3474,14 @@ func (ow *OrderView) GetRoyaltySummary(
 	}
 
 	var result *royaltySummaryResult
-	if cursor.Next(ctx) == false {
-		err = errors.New(errorNoData)
-		return
+	for cursor.Next(ctx) {
+		err = cursor.Decode(&result)
+		if err != nil {
+			return
+		}
 	}
+	_ = cursor.Close(ctx)
 
-	err = cursor.Decode(&result)
 
 	if result == nil {
 		return
@@ -3753,20 +3752,19 @@ func (ow *OrderView) getPaylinkGroupStat(
 		return nil, err
 	}
 
-	if cursor.Next(ctx) == false {
-		return nil, errors.New(errorNoData)
+	for cursor.Next(ctx) {
+		err = cursor.Decode(&result)
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorQueryCursorExecutionFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrderView),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			)
+			return nil, err
+		}
 	}
-	err = cursor.Decode(&result)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorQueryCursorExecutionFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrderView),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
-		)
-		return nil, err
-	}
+	_ = cursor.Close(ctx)
 
 	if result == nil {
 		return
@@ -3821,8 +3819,9 @@ func (ow *OrderView) GetRoyaltyOperatingCompaniesIds(
 
 	ids := make([]string, len(res))
 
-	for _, v := range res {
-		ids = append(ids, v.(string))
+	for i, v := range res {
+		//ids = append(ids, v.(string))
+		ids[i] = v.(string)
 	}
 
 	return ids, nil
