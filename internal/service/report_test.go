@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
@@ -17,13 +16,14 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"testing"
 	"time"
 )
@@ -105,11 +105,17 @@ func (suite *ReportTestSuite) SetupTest() {
 }
 
 func (suite *ReportTestSuite) TearDownTest() {
-	if err := suite.service.db.Drop(); err != nil {
+	err := suite.service.db.Drop()
+
+	if err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}
 
-	suite.service.db.Close()
+	err = suite.service.db.Close()
+
+	if err != nil {
+		suite.FailNow("Database close failed", "%v", err)
+	}
 }
 
 func (suite *ReportTestSuite) TestReport_ReturnEmptyList() {
@@ -487,7 +493,7 @@ func (suite *ReportTestSuite) TestReport_FindByProjectDateTo() {
 
 func (suite *ReportTestSuite) TestReport_GetOrder() {
 	req := &grpc.GetOrderRequest{
-		OrderId:    bson.NewObjectId().Hex(),
+		OrderId:    primitive.NewObjectID().Hex(),
 		MerchantId: suite.project.MerchantId,
 	}
 	rsp := &grpc.GetOrderPublicResponse{}
