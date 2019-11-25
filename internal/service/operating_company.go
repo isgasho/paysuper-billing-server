@@ -380,6 +380,6 @@ func (o OperatingCompany) Upsert(ctx context.Context, oc *billing.OperatingCompa
 }
 
 func (o OperatingCompany) Exists(ctx context.Context, id string) bool {
-	_, err := o.GetById(ctx, id)
-	return err != nil
+	c, err := o.GetById(ctx, id)
+	return err == nil && c != nil
 }

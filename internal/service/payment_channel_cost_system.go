@@ -322,6 +322,9 @@ func (h PaymentChannelCostSystem) Get(
 		{
 			"$sort": bson.M{"_id": -1},
 		},
+		{
+			"$limit": 1,
+		},
 	}
 
 	set := &internalPkg.PaymentChannelCostSystemSet{}
