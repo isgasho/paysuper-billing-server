@@ -754,9 +754,9 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_NotEnough
 func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_InsertError() {
 
 	pds := &mocks.PayoutDocumentServiceInterface{}
-	pds.On("Insert", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New(mocks.SomeError))
-	pds.On("GetBalanceAmount", mock2.Anything, mock2.Anything).Return(float64(0), nil)
-	pds.On("GetLast", mock2.Anything, mock2.Anything).Return(nil, nil)
+	pds.On("Insert", mock2.Anything, mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New(mocks.SomeError))
+	pds.On("GetBalanceAmount", mock2.Anything, mock2.Anything, mock2.Anything).Return(float64(0), nil)
+	pds.On("GetLast", mock2.Anything, mock2.Anything, mock2.Anything).Return(nil, nil)
 	suite.service.payoutDocument = pds
 
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report1, suite.report2})
@@ -779,9 +779,9 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_InsertErr
 func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_InsertErrorWithResponse() {
 
 	pds := &mocks.PayoutDocumentServiceInterface{}
-	pds.On("Insert", mock2.Anything, mock2.Anything, mock2.Anything).Return(newBillingServerErrorMsg("0", "test"))
-	pds.On("GetBalanceAmount", mock2.Anything, mock2.Anything).Return(float64(0), nil)
-	pds.On("GetLast", mock2.Anything, mock2.Anything).Return(nil, nil)
+	pds.On("Insert", mock2.Anything, mock2.Anything, mock2.Anything, mock2.Anything).Return(newBillingServerErrorMsg("0", "test"))
+	pds.On("GetBalanceAmount", mock2.Anything, mock2.Anything, mock2.Anything).Return(float64(0), nil)
+	pds.On("GetLast", mock2.Anything, mock2.Anything, mock2.Anything).Return(nil, nil)
 	suite.service.payoutDocument = pds
 
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report1, suite.report2})
@@ -919,8 +919,8 @@ func (suite *PayoutsTestSuite) TestPayouts_UpdatePayoutDocument_Failed_UpdateErr
 	suite.helperInsertPayoutDocuments([]*billing.PayoutDocument{suite.payout1})
 
 	pds := &mocks.PayoutDocumentServiceInterface{}
-	pds.On("Update", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New(mocks.SomeError))
-	pds.On("GetById", mock2.Anything).Return(suite.payout2, nil)
+	pds.On("Update", mock2.Anything, mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New(mocks.SomeError))
+	pds.On("GetById", mock2.Anything, mock2.Anything).Return(suite.payout2, nil)
 	suite.service.payoutDocument = pds
 
 	req := &grpc.UpdatePayoutDocumentRequest{
