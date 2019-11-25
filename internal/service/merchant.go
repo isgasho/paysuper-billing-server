@@ -181,8 +181,8 @@ func (h *Merchant) Insert(ctx context.Context, merchant *billing.Merchant) error
 func (h *Merchant) Upsert(ctx context.Context, merchant *billing.Merchant) error {
 	oid, _ := primitive.ObjectIDFromHex(merchant.Id)
 	filter := bson.M{"_id": oid}
-	opts := options.FindOneAndReplace().SetUpsert(true)
-	err := h.svc.db.Collection(collectionMerchant).FindOneAndReplace(ctx, filter, merchant, opts).Err()
+	opts := options.Replace().SetUpsert(true)
+	_, err := h.svc.db.Collection(collectionMerchant).ReplaceOne(ctx, filter, merchant, opts)
 
 	if err != nil {
 		zap.L().Error(

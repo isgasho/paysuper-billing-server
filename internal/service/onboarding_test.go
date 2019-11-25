@@ -962,7 +962,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_EmptyQuery_Ok() {
 	err := suite.service.ListMerchants(context.TODO(), req, rsp)
 
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), int32(3), rsp.Count)
+	assert.EqualValues(suite.T(), 3, rsp.Count)
 	assert.Equal(suite.T(), suite.merchant.Id, rsp.Items[0].Id)
 }
 
@@ -975,7 +975,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_NameQuery_Ok() {
 	err := suite.service.ListMerchants(context.TODO(), req, rsp)
 
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), int32(2), rsp.Count)
+	assert.EqualValues(suite.T(), 2, rsp.Count)
 	assert.Equal(suite.T(), suite.merchant.Id, rsp.Items[0].Id)
 }
 
@@ -1081,7 +1081,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_StatusesQuery_Ok(
 	err = suite.service.ListMerchants(context.TODO(), req1, rsp1)
 
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), int32(3), rsp1.Count)
+	assert.EqualValues(suite.T(), 3, rsp1.Count)
 	assert.Equal(suite.T(), suite.merchant.Id, rsp1.Items[0].Id)
 
 	req1 = &grpc.MerchantListingRequest{Statuses: []int32{pkg.MerchantStatusAgreementSigning}}
@@ -1115,7 +1115,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_QuickSearchQuery_
 	err := suite.service.ListMerchants(context.TODO(), req, rsp)
 
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), int32(1), rsp.Count)
+	assert.EqualValues(suite.T(), 1, rsp.Count)
 	assert.Equal(suite.T(), suite.merchantAgreement.Id, rsp.Items[0].Id)
 }
 
@@ -1130,7 +1130,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_PayoutDateFromQue
 	err := suite.service.ListMerchants(context.TODO(), req, rsp)
 
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), int32(2), rsp.Count)
+	assert.EqualValues(suite.T(), 2, rsp.Count)
 	assert.Equal(suite.T(), suite.merchantAgreement.Id, rsp.Items[0].Id)
 }
 
@@ -1145,7 +1145,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_PayoutDateToQuery
 	err := suite.service.ListMerchants(context.TODO(), req, rsp)
 
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), int32(3), rsp.Count)
+	assert.EqualValues(suite.T(), 3, rsp.Count)
 	assert.Equal(suite.T(), suite.merchant.Id, rsp.Items[0].Id)
 }
 
@@ -1159,7 +1159,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_PayoutDateFromToQ
 	err := suite.service.ListMerchants(context.TODO(), req, rsp)
 
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), int32(1), rsp.Count)
+	assert.EqualValues(suite.T(), 1, rsp.Count)
 	assert.Equal(suite.T(), suite.merchant.Id, rsp.Items[0].Id)
 }
 
@@ -1172,7 +1172,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_PayoutAmountQuery
 	err := suite.service.ListMerchants(context.TODO(), req, rsp)
 
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), int32(1), rsp.Count)
+	assert.EqualValues(suite.T(), 1, rsp.Count)
 	assert.Equal(suite.T(), suite.merchant.Id, rsp.Items[0].Id)
 }
 
@@ -1185,7 +1185,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_IsAgreementFalseQ
 	err := suite.service.ListMerchants(context.TODO(), req, rsp)
 
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), int32(1), rsp.Count)
+	assert.EqualValues(suite.T(), 1, rsp.Count)
 	assert.Equal(suite.T(), suite.merchant1.Id, rsp.Items[0].Id)
 }
 
@@ -1198,7 +1198,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_IsAgreementTrueQu
 	err := suite.service.ListMerchants(context.TODO(), req, rsp)
 
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), int32(2), rsp.Count)
+	assert.EqualValues(suite.T(), 2, rsp.Count)
 	assert.Equal(suite.T(), suite.merchant.Id, rsp.Items[0].Id)
 }
 
@@ -1211,7 +1211,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_Limit_Ok() {
 	err := suite.service.ListMerchants(context.TODO(), req, rsp)
 
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), int32(3), rsp.Count)
+	assert.EqualValues(suite.T(), 3, rsp.Count)
 	assert.Len(suite.T(), rsp.Items, 2)
 	assert.Equal(suite.T(), suite.merchant.Id, rsp.Items[0].Id)
 }
@@ -1225,7 +1225,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_Offset_Ok() {
 	err := suite.service.ListMerchants(context.TODO(), req, rsp)
 
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), int32(3), rsp.Count)
+	assert.EqualValues(suite.T(), 3, rsp.Count)
 	assert.Len(suite.T(), rsp.Items, 2)
 	assert.Equal(suite.T(), suite.merchantAgreement.Id, rsp.Items[0].Id)
 }
@@ -1240,7 +1240,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_Sort_Ok() {
 	err := suite.service.ListMerchants(context.TODO(), req, rsp)
 
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), int32(3), rsp.Count)
+	assert.EqualValues(suite.T(), 3, rsp.Count)
 	assert.Len(suite.T(), rsp.Items, 2)
 	assert.Equal(suite.T(), suite.merchant1.Id, rsp.Items[0].Id)
 }
@@ -1254,7 +1254,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_EmptyResult_Ok() 
 	err := suite.service.ListMerchants(context.TODO(), req, rsp)
 
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), int32(0), rsp.Count)
+	assert.EqualValues(suite.T(), 0, rsp.Count)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_Ok() {
@@ -2244,7 +2244,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantS3Agreement_Ok() {
 	}
 
 	ocRep := &mocks.OperatingCompanyInterface{}
-	ocRep.On("GetById", mock2.Anything).Return(&billing.OperatingCompany{SignatoryName: "name", Email: "email"}, nil)
+	ocRep.On("GetById", mock2.Anything, mock2.Anything).Return(&billing.OperatingCompany{SignatoryName: "name", Email: "email"}, nil)
 	suite.service.operatingCompany = ocRep
 
 	req1 := &grpc.SetMerchantS3AgreementRequest{
@@ -2380,7 +2380,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_UserNotifi
 	rsp2 := &grpc.Notifications{}
 	err = suite.service.ListNotifications(context.TODO(), req2, rsp2)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), int32(4), rsp2.Count)
+	assert.EqualValues(suite.T(), 4, rsp2.Count)
 	assert.Len(suite.T(), rsp2.Items, 4)
 
 	for _, v := range rsp2.Items {
@@ -2390,13 +2390,13 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_UserNotifi
 	req2.IsSystem = 0
 	err = suite.service.ListNotifications(context.TODO(), req2, rsp2)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), int32(4), rsp2.Count)
+	assert.EqualValues(suite.T(), 4, rsp2.Count)
 	assert.Len(suite.T(), rsp2.Items, 4)
 
 	req2.IsSystem = 2
 	err = suite.service.ListNotifications(context.TODO(), req2, rsp2)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), int32(0), rsp2.Count)
+	assert.EqualValues(suite.T(), 0, rsp2.Count)
 	assert.Empty(suite.T(), rsp2.Items)
 }
 
@@ -2891,8 +2891,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_UpdateError() {
 	suite.service.cacher = cache
 
 	merchRep := &mocks.MerchantRepositoryInterface{}
-	merchRep.On("GetById", mock2.Anything).Return(merchant, nil)
-	merchRep.On("Update", mock2.Anything).Return(errors.New("error"))
+	merchRep.On("GetById", mock2.Anything, mock2.Anything).Return(merchant, nil)
+	merchRep.On("Update", mock2.Anything, mock2.Anything).Return(errors.New("error"))
 	suite.service.merchant = merchRep
 
 	zap.ReplaceGlobals(suite.logObserver)
@@ -3490,7 +3490,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantTariffRates_WithoutR
 
 func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantTariffRates_RepositoryError() {
 	mtf := &mocks.MerchantTariffRatesInterface{}
-	mtf.On("GetBy", mock2.Anything).Return(nil, merchantErrorUnknown)
+	mtf.On("GetBy", mock2.Anything, mock2.Anything).Return(nil, merchantErrorUnknown)
 	suite.service.merchantTariffRates = mtf
 
 	req := &grpc.GetMerchantTariffRatesRequest{HomeRegion: "russia_and_cis"}
@@ -3618,7 +3618,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_Merchant
 
 func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_GetBy_Error() {
 	mtf := &mocks.MerchantTariffRatesInterface{}
-	mtf.On("GetBy", mock2.Anything).Return(nil, errors.New(mocks.SomeError))
+	mtf.On("GetBy", mock2.Anything, mock2.Anything).Return(nil, errors.New(mocks.SomeError))
 	suite.service.merchantTariffRates = mtf
 
 	req := &grpc.SetMerchantTariffRatesRequest{
@@ -3905,13 +3905,13 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_QuickSearchQuery_
 
 	err := suite.service.ListMerchants(context.TODO(), req2, rsp2)
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), int32(5), rsp2.Count)
+	assert.EqualValues(suite.T(), 5, rsp2.Count)
 	assert.Len(suite.T(), rsp2.Items, int(rsp2.Count))
 
 	req2.QuickSearch = "name_1"
 	err = suite.service.ListMerchants(context.TODO(), req2, rsp2)
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), int32(1), rsp2.Count)
+	assert.EqualValues(suite.T(), 1, rsp2.Count)
 	assert.Len(suite.T(), rsp2.Items, int(rsp2.Count))
 }
 
@@ -3953,19 +3953,19 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_QuickSearchQuery_
 
 	err := suite.service.ListMerchants(context.TODO(), req2, rsp2)
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), int32(7), rsp2.Count)
+	assert.EqualValues(suite.T(), 7, rsp2.Count)
 	assert.Len(suite.T(), rsp2.Items, int(rsp2.Count))
 
 	req2.RegistrationDateTo = time.Now().Add(-23 * time.Hour).Unix()
 	err = suite.service.ListMerchants(context.TODO(), req2, rsp2)
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), int32(3), rsp2.Count)
+	assert.EqualValues(suite.T(), 3, rsp2.Count)
 	assert.Len(suite.T(), rsp2.Items, int(rsp2.Count))
 
 	req2 = &grpc.MerchantListingRequest{RegistrationDateTo: time.Now().Add(-48 * time.Hour).Unix()}
 	err = suite.service.ListMerchants(context.TODO(), req2, rsp2)
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), int32(6), rsp2.Count)
+	assert.EqualValues(suite.T(), 6, rsp2.Count)
 	assert.Len(suite.T(), rsp2.Items, int(rsp2.Count))
 }
 
@@ -4007,19 +4007,19 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_QuickSearchQuery_
 
 	err := suite.service.ListMerchants(context.TODO(), req2, rsp2)
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), int32(7), rsp2.Count)
+	assert.EqualValues(suite.T(), 7, rsp2.Count)
 	assert.Len(suite.T(), rsp2.Items, int(rsp2.Count))
 
 	req2.ReceivedDateTo = time.Now().Add(-23 * time.Hour).Unix()
 	err = suite.service.ListMerchants(context.TODO(), req2, rsp2)
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), int32(3), rsp2.Count)
+	assert.EqualValues(suite.T(), 3, rsp2.Count)
 	assert.Len(suite.T(), rsp2.Items, int(rsp2.Count))
 
 	req2 = &grpc.MerchantListingRequest{ReceivedDateTo: time.Now().Add(-48 * time.Hour).Unix()}
 	err = suite.service.ListMerchants(context.TODO(), req2, rsp2)
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), int32(6), rsp2.Count)
+	assert.EqualValues(suite.T(), 6, rsp2.Count)
 	assert.Len(suite.T(), rsp2.Items, int(rsp2.Count))
 }
 
@@ -4110,7 +4110,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_UpdateMerc
 	}
 
 	merchantMock := &mocks.MerchantRepositoryInterface{}
-	merchantMock.On("Update", mock2.Anything).Return(errors.New("some error"))
+	merchantMock.On("GetById", mock2.Anything, mock2.Anything).Return(suite.merchant, nil)
+	merchantMock.On("Update", mock2.Anything, mock2.Anything).Return(errors.New("some error"))
 	suite.service.merchant = merchantMock
 
 	rsp := &grpc.ChangeMerchantStatusResponse{}
@@ -4161,7 +4162,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantData_UpdateMercha
 	rsp := &grpc.ChangeMerchantDataResponse{}
 
 	merchantMock := &mocks.MerchantRepositoryInterface{}
-	merchantMock.On("Update", mock2.Anything).Return(errors.New("some error"))
+	merchantMock.On("GetById", mock2.Anything, mock2.Anything).Return(suite.merchant, nil)
+	merchantMock.On("Update", mock2.Anything, mock2.Anything).Return(errors.New("some error"))
 	suite.service.merchant = merchantMock
 
 	err := suite.service.ChangeMerchantData(context.TODO(), req, rsp)
@@ -4248,7 +4250,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantS3Agreement_Agreemen
 	suite.service.centrifugo = centrifugoMock
 
 	ocRep := &mocks.OperatingCompanyInterface{}
-	ocRep.On("GetById", mock2.Anything).Return(&billing.OperatingCompany{SignatoryName: "name", Email: "email"}, nil)
+	ocRep.On("GetById", mock2.Anything, mock2.Anything).Return(&billing.OperatingCompany{SignatoryName: "name", Email: "email"}, nil)
 	suite.service.operatingCompany = ocRep
 
 	req1 := &grpc.SetMerchantS3AgreementRequest{
@@ -4343,7 +4345,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GenerateMerchantAgreement_Check
 
 	ocMock := &mocks.OperatingCompanyInterface{}
 	ocMock.
-		On("GetById", mock2.Anything).
+		On("GetById", mock2.Anything, mock2.Anything).
 		Return(&billing.OperatingCompany{
 			Name:               "name",
 			Address:            "address",
@@ -4441,7 +4443,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GenerateMerchantAgreement_Check
 
 	ocMock := &mocks.OperatingCompanyInterface{}
 	ocMock.
-		On("GetById", mock2.Anything).
+		On("GetById", mock2.Anything, mock2.Anything).
 		Return(&billing.OperatingCompany{
 			Name:               "name",
 			Address:            "address",
