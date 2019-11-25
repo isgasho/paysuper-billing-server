@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/jinzhu/now"
@@ -773,7 +775,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, coun
 		},
 		{
 			"$group": bson.M{
-				"_id":                                "$country",
+				"_id":                                "$country_code",
 				"count":                              bson.M{"$sum": 1},
 				"payment_gross_revenue_local":        bson.M{"$sum": "$payment_gross_revenue_local.amount"},
 				"payment_tax_fee_local":              bson.M{"$sum": "$payment_tax_fee_local.amount"},
@@ -785,6 +787,9 @@ func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, coun
 		},
 	}
 
+	bytes, err := json.Marshal(query)
+	sQuery := string(bytes)
+	fmt.Printf(sQuery)
 	cursor, err := h.Service.db.Collection(collectionOrderView).Aggregate(ctx, query)
 
 	if err != nil {
