@@ -801,7 +801,7 @@ func (suite *PaylinkTestSuite) Test_Paylink_Delete_Ok() {
 	query["deleted"] = true
 	n, err = suite.service.db.Collection(collectionPaylinks).CountDocuments(context.TODO(), query)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 1)
+	assert.EqualValues(suite.T(), n, 1)
 
 	var pl1 paylink.Paylink
 	key := fmt.Sprintf(cacheKeyPaylink, suite.paylink1.Id)
