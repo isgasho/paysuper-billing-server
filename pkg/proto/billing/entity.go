@@ -53,52 +53,10 @@ func (m *Merchant) GetPayoutCurrency() string {
 	return m.Banking.Currency
 }
 
-func (m *Merchant) NeedMarkESignAgreementAsSigned() bool {
-	return m.HasMerchantSignature == true && m.HasPspSignature == true &&
-		m.Status != pkg.MerchantStatusAgreementSigned
-}
-
 func (m *Merchant) CanGenerateAgreement() bool {
 	return (m.Status == pkg.MerchantStatusAgreementSigning ||
 		m.Status == pkg.MerchantStatusAgreementSigned) && m.Banking != nil && m.Company.Country != "" &&
 		m.Contacts != nil && m.Contacts.Authorized != nil
-}
-
-func (m *Merchant) CanChangeStatusToSigning() bool {
-	return m.Banking != nil && m.Company.Country != "" &&
-		m.Contacts != nil && m.Contacts.Authorized != nil
-}
-
-func (m *Merchant) CanChangeStatusTo(status int32) bool {
-	if status == pkg.MerchantStatusDraft && (m.Status == pkg.MerchantStatusPending || m.Status == pkg.MerchantStatusRejected) {
-		return true
-	}
-
-	if status == pkg.MerchantStatusPending && m.Status == pkg.MerchantStatusDraft {
-		return true
-	}
-
-	if status == pkg.MerchantStatusAccepted && m.Status == pkg.MerchantStatusPending {
-		return true
-	}
-
-	if status == pkg.MerchantStatusAgreementSigning && m.Status == pkg.MerchantStatusAccepted {
-		return true
-	}
-
-	if status == pkg.MerchantStatusAgreementSigned && m.Status == pkg.MerchantStatusAgreementSigning {
-		return true
-	}
-
-	if status == pkg.MerchantStatusRejected && (m.Status == pkg.MerchantStatusPending || m.Status == pkg.MerchantStatusAgreementSigning) {
-		return true
-	}
-
-	if status == pkg.MerchantStatusDeleted && (m.Status == pkg.MerchantStatusRejected || m.Status == pkg.MerchantStatusDraft) {
-		return true
-	}
-
-	return false
 }
 
 func (m *Merchant) IsFullySigned() bool {
@@ -107,6 +65,51 @@ func (m *Merchant) IsFullySigned() bool {
 
 func (m *Merchant) IsDeleted() bool {
 	return m.Status == pkg.MerchantStatusDeleted
+}
+
+func (m *Project) IsProduction() bool {
+	return m.Status == pkg.ProjectStatusInProduction
+}
+
+func (m *Project) IsDeleted() bool {
+	return m.Status == pkg.ProjectStatusDeleted
+}
+
+func (m *Project) NeedChangeStatusToDraft(req *Project) bool {
+	if m.Status != pkg.ProjectStatusTestCompleted &&
+		m.Status != pkg.ProjectStatusInProduction {
+		return false
+	}
+
+	if m.CallbackProtocol == pkg.ProjectCallbackProtocolEmpty &&
+		req.CallbackProtocol == pkg.ProjectCallbackProtocolDefault {
+		return true
+	}
+
+	if req.UrlCheckAccount != "" &&
+		req.UrlCheckAccount != m.UrlCheckAccount {
+		return true
+	}
+
+	if req.UrlProcessPayment != "" &&
+		req.UrlProcessPayment != m.UrlProcessPayment {
+		return true
+	}
+
+	return false
+}
+
+func (m *OrderUser) IsIdentified() bool {
+	return m.Id != "" && bson.IsObjectIdHex(m.Id) == true
+}
+
+func (m *PaymentMethod) IsValid() bool {
+	return m.ExternalId != "" &&
+		m.Type != "" &&
+		m.Group != "" &&
+		m.Name != "" &&
+		m.TestSettings != nil &&
+		m.ProductionSettings != nil
 }
 
 func (m *Merchant) HasAuthorizedEmail() bool {
@@ -126,6 +129,27 @@ func (m *Merchant) GetAuthorizedName() string {
 		return ""
 	}
 	return m.Contacts.Authorized.Name
+}
+
+func (m *RoyaltyReport) ChangesAvailable(newStatus string) bool {
+	if m.Status == pkg.RoyaltyReportStatusAccepted {
+		return false
+	}
+
+	if m.Status == pkg.RoyaltyReportStatusPending && newStatus != pkg.RoyaltyReportStatusAccepted &&
+		newStatus != pkg.RoyaltyReportStatusDispute {
+		return false
+	}
+
+	if m.Status == pkg.RoyaltyReportStatusCanceled && newStatus != pkg.RoyaltyReportStatusPending {
+		return false
+	}
+
+	if m.Status == pkg.RoyaltyReportStatusDispute && newStatus != pkg.RoyaltyReportStatusPending {
+		return false
+	}
+
+	return true
 }
 
 func (m *Merchant) IsAgreementSigningStarted() bool {
@@ -218,6 +242,10 @@ func (m *Merchant) GetAddress() string {
 	return address
 }
 
+func (m *PaymentMethodParams) IsSettingComplete() bool {
+	return m.TerminalId != "" && m.Secret != "" && m.SecretCallback != ""
+}
+
 func (m *Merchant) IsCompanyComplete() bool {
 	return m.Company != nil && m.Company.Name != "" && m.Company.AlternativeName != "" && m.Company.Website != "" &&
 		m.Company.Country != "" && m.Company.Zip != "" && m.Company.City != "" &&
@@ -234,80 +262,6 @@ func (m *Merchant) IsContactsComplete() bool {
 func (m *Merchant) IsBankingComplete() bool {
 	return m.Banking != nil && m.Banking.Currency != "" && m.Banking.Name != "" && m.Banking.Address != "" &&
 		m.Banking.AccountNumber != "" && m.Banking.Swift != ""
-}
-
-func (m *Merchant) IsHighRisk() bool {
-	return m.MccCode == pkg.MccCodeHighRisk
-}
-
-func (m *Project) IsProduction() bool {
-	return m.Status == pkg.ProjectStatusInProduction
-}
-
-func (m *Project) IsDeleted() bool {
-	return m.Status == pkg.ProjectStatusDeleted
-}
-
-func (m *Project) NeedChangeStatusToDraft(req *Project) bool {
-	if m.Status != pkg.ProjectStatusTestCompleted &&
-		m.Status != pkg.ProjectStatusInProduction {
-		return false
-	}
-
-	if m.CallbackProtocol == pkg.ProjectCallbackProtocolEmpty &&
-		req.CallbackProtocol == pkg.ProjectCallbackProtocolDefault {
-		return true
-	}
-
-	if req.UrlCheckAccount != "" &&
-		req.UrlCheckAccount != m.UrlCheckAccount {
-		return true
-	}
-
-	if req.UrlProcessPayment != "" &&
-		req.UrlProcessPayment != m.UrlProcessPayment {
-		return true
-	}
-
-	return false
-}
-
-func (m *OrderUser) IsIdentified() bool {
-	return m.Id != "" && bson.IsObjectIdHex(m.Id) == true
-}
-
-func (m *PaymentMethod) IsValid() bool {
-	return m.ExternalId != "" &&
-		m.Type != "" &&
-		m.Group != "" &&
-		m.Name != "" &&
-		m.TestSettings != nil &&
-		m.ProductionSettings != nil
-}
-
-func (m *RoyaltyReport) ChangesAvailable(newStatus string) bool {
-	if m.Status == pkg.RoyaltyReportStatusAccepted {
-		return false
-	}
-
-	if m.Status == pkg.RoyaltyReportStatusPending && newStatus != pkg.RoyaltyReportStatusAccepted &&
-		newStatus != pkg.RoyaltyReportStatusDispute {
-		return false
-	}
-
-	if m.Status == pkg.RoyaltyReportStatusCanceled && newStatus != pkg.RoyaltyReportStatusPending {
-		return false
-	}
-
-	if m.Status == pkg.RoyaltyReportStatusDispute && newStatus != pkg.RoyaltyReportStatusPending {
-		return false
-	}
-
-	return true
-}
-
-func (m *PaymentMethodParams) IsSettingComplete() bool {
-	return m.TerminalId != "" && m.Secret != "" && m.SecretCallback != ""
 }
 
 func (c *Country) GetVatCurrencyCode() string {
@@ -349,4 +303,36 @@ func (m *UserRole) IsOwner() bool {
 
 func (m *UserRole) IsAdmin() bool {
 	return m.Role == pkg.RoleSystemAdmin
+}
+
+func (m *Merchant) CanChangeStatusTo(status int32) bool {
+	if status == pkg.MerchantStatusDraft && (m.Status == pkg.MerchantStatusPending || m.Status == pkg.MerchantStatusRejected) {
+		return true
+	}
+
+	if status == pkg.MerchantStatusPending && m.Status == pkg.MerchantStatusDraft {
+		return true
+	}
+
+	if status == pkg.MerchantStatusAccepted && m.Status == pkg.MerchantStatusPending {
+		return true
+	}
+
+	if status == pkg.MerchantStatusAgreementSigning && m.Status == pkg.MerchantStatusAccepted {
+		return true
+	}
+
+	if status == pkg.MerchantStatusAgreementSigned && m.Status == pkg.MerchantStatusAgreementSigning {
+		return true
+	}
+
+	if status == pkg.MerchantStatusRejected && (m.Status == pkg.MerchantStatusPending || m.Status == pkg.MerchantStatusAgreementSigning) {
+		return true
+	}
+
+	if status == pkg.MerchantStatusDeleted && (m.Status == pkg.MerchantStatusRejected || m.Status == pkg.MerchantStatusDraft) {
+		return true
+	}
+
+	return false
 }
