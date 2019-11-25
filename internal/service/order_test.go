@@ -8466,18 +8466,32 @@ func (suite *OrderTestSuite) TestOrder_ReCreateOrder_Ok() {
 	shouldBe.Equal(rsp0.Status, pkg.ResponseStatusOk)
 	order := rsp0.Item
 
-	order.PrivateStatus = constant.OrderStatusPaymentSystemDeclined
-	shouldBe.NoError(suite.service.updateOrder(order))
+	allowedStatuses := []int32{
+		constant.OrderStatusPaymentSystemRejectOnCreate,
+		constant.OrderStatusPaymentSystemReject,
+		constant.OrderStatusProjectReject,
+		constant.OrderStatusPaymentSystemDeclined,
+		constant.OrderStatusNew,
+		constant.OrderStatusPaymentSystemCreate,
+		constant.OrderStatusPaymentSystemCreate,
+		constant.OrderStatusPaymentSystemCanceled,
+	}
 
-	rsp1 := &grpc.OrderCreateProcessResponse{}
-	shouldBe.NoError(suite.service.OrderReCreateProcess(context.TODO(), &grpc.OrderReCreateProcessRequest{OrderId: order.GetUuid()}, rsp1))
-	shouldBe.EqualValues(200, rsp1.Status)
-	shouldBe.NotEqual(order.Id, rsp1.Item.Id)
-	shouldBe.NotEqual(order.Uuid, rsp1.Item.Uuid)
-	shouldBe.NotEqual(order.Status, rsp1.Item.Status)
-	shouldBe.NotEqual(order.PrivateStatus, rsp1.Item.PrivateStatus)
-	shouldBe.Empty(rsp1.Item.ReceiptUrl)
-	shouldBe.NotEqual(order.ReceiptId, rsp1.Item.ReceiptId)
+	for _, status := range allowedStatuses {
+		order.PrivateStatus = status
+		shouldBe.NoError(suite.service.updateOrder(order))
+
+		rsp1 := &grpc.OrderCreateProcessResponse{}
+		shouldBe.NoError(suite.service.OrderReCreateProcess(context.TODO(), &grpc.OrderReCreateProcessRequest{OrderId: order.GetUuid()}, rsp1))
+		shouldBe.EqualValues(200, rsp1.Status)
+		shouldBe.NotEqual(order.Id, rsp1.Item.Id)
+		shouldBe.NotEqual(order.Uuid, rsp1.Item.Uuid)
+		shouldBe.NotEqual(order.Status, rsp1.Item.Status)
+		shouldBe.EqualValues(constant.OrderStatusNew, rsp1.Item.PrivateStatus)
+		shouldBe.Empty(rsp1.Item.ReceiptUrl)
+		shouldBe.NotEqual(order.ReceiptId, rsp1.Item.ReceiptId)
+	}
+
 }
 
 func (suite *OrderTestSuite) TestOrder_ReCreateOrder_Error() {
