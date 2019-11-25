@@ -78,6 +78,10 @@ func (s *Service) updateOrderView(ctx context.Context, ids []string) error {
 		}
 
 		count = len(ids)
+
+		if count == 0 {
+			return nil
+		}
 	}
 
 	if count > 0 && count <= batchSize {
