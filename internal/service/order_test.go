@@ -8499,6 +8499,9 @@ func (suite *OrderTestSuite) TestOrder_ReCreateOrder_Error() {
 	shouldBe.Equal(rsp0.Status, pkg.ResponseStatusOk)
 	order := rsp0.Item
 
+	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
+	shouldBe.NoError(suite.service.updateOrder(order))
+
 	rsp1 := &grpc.OrderCreateProcessResponse{}
 	shouldBe.NoError(suite.service.OrderReCreateProcess(context.TODO(), &grpc.OrderReCreateProcessRequest{OrderId: order.GetUuid()}, rsp1))
 	shouldBe.EqualValues(400, rsp1.Status)
