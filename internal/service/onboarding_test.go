@@ -731,7 +731,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_NewMerchant_Ok()
 	err = suite.service.db.Collection(collectionMerchant).Find(bson.M{"_id": bson.ObjectIdHex(rsp.Id)}).One(&merchant)
 
 	assert.NotNil(suite.T(), merchant)
-	assert.Equal(suite.T(), rsp.Status, merchant.Status)
+	assert.Equal(suite.T(), pkg.MerchantStatusPending, merchant.Status)
 	assert.Equal(suite.T(), rsp.Contacts.Authorized.Position, merchant.Contacts.Authorized.Position)
 	assert.Equal(suite.T(), rsp.Banking.Name, merchant.Banking.Name)
 	assert.True(suite.T(), merchant.Steps.Banking)
@@ -2452,6 +2452,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_Ok() {
 	assert.Nil(suite.T(), merchant.AgreementSignatureData)
 
 	merchant.AgreementSignatureData = &billing.MerchantAgreementSignatureData{}
+	merchant.Status = pkg.MerchantStatusAccepted
 	err = suite.service.merchant.Update(merchant)
 	assert.NoError(suite.T(), err)
 
@@ -2567,6 +2568,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_MerchantHasSignat
 			ExpiresAt: mocks.GetSignatureUrlResponse.Item.ExpiresAt,
 		},
 	}
+	merchant.Status = pkg.MerchantStatusAccepted
 	err = suite.service.merchant.Update(merchant)
 	assert.NoError(suite.T(), err)
 
@@ -2660,6 +2662,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerSys
 	merchant, err := suite.service.merchant.GetById(rsp.Item.Id)
 	assert.NoError(suite.T(), err)
 	merchant.AgreementSignatureData = &billing.MerchantAgreementSignatureData{}
+	merchant.Status = pkg.MerchantStatusAccepted
 	err = suite.service.merchant.Update(merchant)
 	assert.NoError(suite.T(), err)
 
@@ -2754,6 +2757,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerRes
 	merchant, err := suite.service.merchant.GetById(rsp.Item.Id)
 	assert.NoError(suite.T(), err)
 	merchant.AgreementSignatureData = &billing.MerchantAgreementSignatureData{}
+	merchant.Status = pkg.MerchantStatusAccepted
 	err = suite.service.merchant.Update(merchant)
 	assert.NoError(suite.T(), err)
 
@@ -2847,6 +2851,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_UpdateError() {
 	merchant, err := suite.service.merchant.GetById(rsp.Item.Id)
 	assert.NoError(suite.T(), err)
 	merchant.AgreementSignatureData = &billing.MerchantAgreementSignatureData{}
+	merchant.Status = pkg.MerchantStatusAccepted
 	err = suite.service.merchant.Update(merchant)
 	assert.NoError(suite.T(), err)
 
@@ -3383,6 +3388,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_Pay
 	merchant, err := suite.service.merchant.GetById(rsp.Item.Id)
 	assert.NoError(suite.T(), err)
 	merchant.AgreementSignatureData = &billing.MerchantAgreementSignatureData{}
+	merchant.Status = pkg.MerchantStatusAccepted
 	err = suite.service.merchant.Update(merchant)
 	assert.NoError(suite.T(), err)
 
@@ -4023,18 +4029,6 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_SetFromDra
 	err := suite.service.ChangeMerchantStatus(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
-}
-
-func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_MessageNotFound_Error() {
-	req := &grpc.MerchantChangeStatusRequest{
-		MerchantId: suite.merchant.Id,
-		Status:     999,
-	}
-	rsp := &grpc.ChangeMerchantStatusResponse{}
-	err := suite.service.ChangeMerchantStatus(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp.Status)
-	assert.Equal(suite.T(), merchantNotificationSettingNotFound, rsp.Message)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_AddNotification_Error() {

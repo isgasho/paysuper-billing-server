@@ -53,19 +53,9 @@ func (m *Merchant) GetPayoutCurrency() string {
 	return m.Banking.Currency
 }
 
-func (m *Merchant) NeedMarkESignAgreementAsSigned() bool {
-	return m.HasMerchantSignature == true && m.HasPspSignature == true &&
-		m.Status != pkg.MerchantStatusAgreementSigned
-}
-
 func (m *Merchant) CanGenerateAgreement() bool {
 	return (m.Status == pkg.MerchantStatusAgreementSigning ||
 		m.Status == pkg.MerchantStatusAgreementSigned) && m.Banking != nil && m.Company.Country != "" &&
-		m.Contacts != nil && m.Contacts.Authorized != nil
-}
-
-func (m *Merchant) CanChangeStatusToSigning() bool {
-	return m.Banking != nil && m.Company.Country != "" &&
 		m.Contacts != nil && m.Contacts.Authorized != nil
 }
 
@@ -313,4 +303,36 @@ func (m *UserRole) IsOwner() bool {
 
 func (m *UserRole) IsAdmin() bool {
 	return m.Role == pkg.RoleSystemAdmin
+}
+
+func (m *Merchant) CanChangeStatusTo(status int32) bool {
+	if status == pkg.MerchantStatusDraft && (m.Status == pkg.MerchantStatusPending || m.Status == pkg.MerchantStatusRejected) {
+		return true
+	}
+
+	if status == pkg.MerchantStatusPending && m.Status == pkg.MerchantStatusDraft {
+		return true
+	}
+
+	if status == pkg.MerchantStatusAccepted && m.Status == pkg.MerchantStatusPending {
+		return true
+	}
+
+	if status == pkg.MerchantStatusAgreementSigning && m.Status == pkg.MerchantStatusAccepted {
+		return true
+	}
+
+	if status == pkg.MerchantStatusAgreementSigned && m.Status == pkg.MerchantStatusAgreementSigning {
+		return true
+	}
+
+	if status == pkg.MerchantStatusRejected && (m.Status == pkg.MerchantStatusPending || m.Status == pkg.MerchantStatusAgreementSigning) {
+		return true
+	}
+
+	if status == pkg.MerchantStatusDeleted && (m.Status == pkg.MerchantStatusRejected || m.Status == pkg.MerchantStatusDraft) {
+		return true
+	}
+
+	return false
 }
