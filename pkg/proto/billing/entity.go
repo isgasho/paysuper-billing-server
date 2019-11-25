@@ -338,3 +338,15 @@ func (m *Project) GetVirtualCurrencyRate(group *PriceGroup) (float64, error) {
 
 	return 0, errors.New(fmt.Sprintf(productNoPriceInCurrency, group.Region))
 }
+
+func (m *Merchant) IsHighRisk() bool {
+	return m.MccCode == pkg.MccCodeHighRisk
+}
+
+func (m *UserRole) IsOwner() bool {
+	return m.Role == pkg.RoleMerchantOwner
+}
+
+func (m *UserRole) IsAdmin() bool {
+	return m.Role == pkg.RoleSystemAdmin
+}

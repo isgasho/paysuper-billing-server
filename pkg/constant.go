@@ -327,6 +327,26 @@ const (
 	TariffRegionWorldwide    = "worldwide"
 
 	PaymentMethodKey = "%s:%s:%s" // currency:mcc_code:operating_company_id, for example: "USD:5816:5dc3f70deb494903d835f28a"
+
+	RoleTypeMerchant = "merchant"
+	RoleTypeSystem   = "system"
+
+	RoleMerchantOwner      = "merchant_owner"
+	RoleMerchantDeveloper  = "merchant_developer"
+	RoleMerchantAccounting = "merchant_accounting"
+	RoleMerchantSupport    = "merchant_support"
+	RoleMerchantViewOnly   = "merchant_view_only"
+	RoleSystemAdmin        = "system_admin"
+	RoleSystemRiskManager  = "system_risk_manager"
+	RoleSystemFinancial    = "system_financial"
+	RoleSystemSupport      = "system_support"
+	RoleSystemViewOnly     = "system_view_only"
+
+	UserRoleStatusInvited  = "invited"
+	UserRoleStatusAccepted = "accepted"
+
+	// MerchantId_UserId
+	CasbinMerchantUserMask = "%s_%s"
 )
 
 var (

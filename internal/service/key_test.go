@@ -6,6 +6,7 @@ import (
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
+	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
@@ -67,6 +68,7 @@ func (suite *KeyTestSuite) SetupTest() {
 		&reportingMocks.ReporterService{},
 		mocks.NewFormatterOK(),
 		mocks.NewBrokerMockOk(),
+		&casbinMocks.CasbinService{},
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -311,12 +313,16 @@ func (suite *KeyTestSuite) TestKey_GetAvailableKeysCount_Ok() {
 	kr.On("CountKeysByProductPlatform", req.KeyProductId, req.PlatformId).Return(1, nil)
 	suite.service.keyRepository = kr
 
+	kp := &mocks.KeyProductRepositoryInterface{}
+	kp.On("GetById", req.KeyProductId).Return(&grpc.KeyProduct{MerchantId: req.MerchantId}, nil)
+	suite.service.keyProductRepository = kp
+
 	err := suite.service.GetAvailableKeysCount(context.TODO(), req, &res)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(1), res.Count)
 }
 
-func (suite *KeyTestSuite) TestKey_GetAvailableKeysCount_Error_NotFound() {
+func (suite *KeyTestSuite) TestKey_GetAvailableKeysCount_Error_KeyProductNotFound() {
 	req := &grpc.GetPlatformKeyCountRequest{
 		PlatformId:   "steam",
 		KeyProductId: bson.NewObjectId().Hex(),
@@ -326,6 +332,50 @@ func (suite *KeyTestSuite) TestKey_GetAvailableKeysCount_Error_NotFound() {
 	kr := &mocks.KeyRepositoryInterface{}
 	kr.On("CountKeysByProductPlatform", req.KeyProductId, req.PlatformId).Return(0, errors.New("not found"))
 	suite.service.keyRepository = kr
+
+	err := suite.service.GetAvailableKeysCount(context.TODO(), req, &res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, res.Status)
+	assert.Equal(suite.T(), keyProductNotFound, res.Message)
+}
+
+func (suite *KeyTestSuite) TestKey_GetAvailableKeysCount_Error_MerchantMismatch() {
+	req := &grpc.GetPlatformKeyCountRequest{
+		PlatformId:   "steam",
+		KeyProductId: bson.NewObjectId().Hex(),
+		MerchantId:   bson.NewObjectId().Hex(),
+	}
+	res := grpc.GetPlatformKeyCountResponse{}
+
+	kr := &mocks.KeyRepositoryInterface{}
+	kr.On("CountKeysByProductPlatform", req.KeyProductId, req.PlatformId).Return(0, errors.New("not found"))
+	suite.service.keyRepository = kr
+
+	kp := &mocks.KeyProductRepositoryInterface{}
+	kp.On("GetById", req.KeyProductId).Return(&grpc.KeyProduct{MerchantId: bson.NewObjectId().Hex()}, nil)
+	suite.service.keyProductRepository = kp
+
+	err := suite.service.GetAvailableKeysCount(context.TODO(), req, &res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, res.Status)
+	assert.Equal(suite.T(), keyProductMerchantMismatch, res.Message)
+}
+
+func (suite *KeyTestSuite) TestKey_GetAvailableKeysCount_Error_NotFound() {
+	req := &grpc.GetPlatformKeyCountRequest{
+		PlatformId:   "steam",
+		KeyProductId: bson.NewObjectId().Hex(),
+		MerchantId:   bson.NewObjectId().Hex(),
+	}
+	res := grpc.GetPlatformKeyCountResponse{}
+
+	kr := &mocks.KeyRepositoryInterface{}
+	kr.On("CountKeysByProductPlatform", req.KeyProductId, req.PlatformId).Return(0, errors.New("not found"))
+	suite.service.keyRepository = kr
+
+	kp := &mocks.KeyProductRepositoryInterface{}
+	kp.On("GetById", req.KeyProductId).Return(&grpc.KeyProduct{MerchantId: req.MerchantId}, nil)
+	suite.service.keyProductRepository = kp
 
 	err := suite.service.GetAvailableKeysCount(context.TODO(), req, &res)
 	assert.NoError(suite.T(), err)

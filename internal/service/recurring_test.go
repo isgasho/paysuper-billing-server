@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"github.com/globalsign/mgo/bson"
+	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -33,6 +34,8 @@ func (suite *RecurringTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	cache := NewCacheRedis(redisdb)
+	casbin := &casbinMocks.CasbinService{}
+
 	suite.service = NewBillingService(
 		db,
 		cfg,
@@ -47,6 +50,7 @@ func (suite *RecurringTestSuite) SetupTest() {
 		&reportingMocks.ReporterService{},
 		mocks.NewFormatterOK(),
 		mocks.NewBrokerMockOk(),
+		casbin,
 	)
 
 	if err := suite.service.Init(); err != nil {

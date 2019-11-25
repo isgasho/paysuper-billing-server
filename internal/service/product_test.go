@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/jinzhu/copier"
+	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
@@ -87,6 +88,7 @@ func (suite *ProductTestSuite) SetupTest() {
 		&reportingMocks.ReporterService{},
 		mocks.NewFormatterOK(),
 		mocks.NewBrokerMockOk(),
+		&casbinMocks.CasbinService{},
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -520,7 +522,7 @@ func (suite *ProductTestSuite) TestProduct_UpdateProductPrices_Error_DefaultCurr
 	ps.On("Upsert", mock2.Anything).Return(nil)
 	suite.service.productService = ps
 
-	req := grpc.UpdateProductPricesRequest{Prices: []*billing.ProductPrice{{Currency: "RUB"}}}
+	req := grpc.UpdateProductPricesRequest{MerchantId: suite.merchant.Id, Prices: []*billing.ProductPrice{{Currency: "RUB"}}}
 	res := grpc.ResponseError{}
 	err := suite.service.UpdateProductPrices(context.TODO(), &req, &res)
 
@@ -534,7 +536,7 @@ func (suite *ProductTestSuite) TestProduct_UpdateProductPrices_Error_Upsert() {
 	ps.On("Upsert", mock2.Anything).Return(errors.New(""))
 	suite.service.productService = ps
 
-	req := grpc.UpdateProductPricesRequest{Prices: []*billing.ProductPrice{{Currency: "RUB", Region: "RUB"}}}
+	req := grpc.UpdateProductPricesRequest{MerchantId: suite.merchant.Id, Prices: []*billing.ProductPrice{{Currency: "RUB", Region: "RUB"}}}
 	res := grpc.ResponseError{}
 	err := suite.service.UpdateProductPrices(context.TODO(), &req, &res)
 
@@ -548,13 +550,13 @@ func (suite *ProductTestSuite) TestProduct_UpdateProductPrices_Ok() {
 	ps.On("Upsert", mock2.Anything).Return(nil)
 	suite.service.productService = ps
 
-	req := grpc.UpdateProductPricesRequest{Prices: []*billing.ProductPrice{{Currency: "RUB", Region: "RUB"}}}
+	req := grpc.UpdateProductPricesRequest{MerchantId: suite.merchant.Id, Prices: []*billing.ProductPrice{{Currency: "RUB", Region: "RUB"}}}
 	res := grpc.ResponseError{}
 	err := suite.service.UpdateProductPrices(context.TODO(), &req, &res)
 
 	assert.NoError(suite.T(), err)
 
-	req = grpc.UpdateProductPricesRequest{Prices: []*billing.ProductPrice{{IsVirtualCurrency: true}}}
+	req = grpc.UpdateProductPricesRequest{MerchantId: suite.merchant.Id, Prices: []*billing.ProductPrice{{IsVirtualCurrency: true}}}
 	res = grpc.ResponseError{}
 	err = suite.service.UpdateProductPrices(context.TODO(), &req, &res)
 

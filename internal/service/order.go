@@ -15,6 +15,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/google/uuid"
+	"github.com/jinzhu/copier"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -138,7 +139,8 @@ var (
 	orderErrorMerchantDoNotHaveBanking                        = newBillingServerErrorMsg("fm000071", "merchant don't have completed banking info")
 	orderErrorAmountLowerThanMinLimitSystem                   = newBillingServerErrorMsg("fm000072", "order amount is lower than min system limit")
 	orderErrorAlreadyProcessed                                = newBillingServerErrorMsg("fm000073", "order is already processed")
-	orderErrorDontHaveReceiptUrl                                = newBillingServerErrorMsg("fm000074", "processed order don't have receipt url")
+	orderErrorDontHaveReceiptUrl                              = newBillingServerErrorMsg("fm000074", "processed order don't have receipt url")
+	orderErrorWrongPrivateStatus                              = newBillingServerErrorMsg("fm000075", "order has wrong private status and cannot be recreated")
 
 	virtualCurrencyPayoutCurrencyMissed = newBillingServerErrorMsg("vc000001", "virtual currency don't have price in merchant payout currency")
 
@@ -4225,5 +4227,68 @@ func (v *OrderCreateRequestProcessor) processVirtualCurrency() error {
 	}
 
 	v.checked.virtualAmount = amount
+	return nil
+}
+
+func (s *Service) OrderReCreateProcess(ctx context.Context, req *grpc.OrderReCreateProcessRequest, res *grpc.OrderCreateProcessResponse) error {
+	res.Status = pkg.ResponseStatusOk
+
+	order, err := s.orderRepository.GetByUuid(req.OrderId)
+	if err != nil {
+		zap.S().Errorw(pkg.ErrorGrpcServiceCallFailed, "err", err.Error(), "data", req)
+		res.Status = pkg.ResponseStatusNotFound
+		res.Message = orderErrorUnknown
+		return nil
+	}
+
+	if !order.CanBeRecreated() {
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = orderErrorWrongPrivateStatus
+		return nil
+	}
+
+	newOrder := new(billing.Order)
+	err = copier.Copy(&newOrder, &order)
+
+	if err != nil {
+		zap.S().Error(
+			"Copy order to new structure order by refund failed",
+			zap.Error(err),
+			zap.Any("order", order),
+		)
+
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = orderErrorUnknown
+
+		return nil
+	}
+
+	newOrder.PrivateStatus = constant.OrderStatusNew
+	newOrder.Status = constant.OrderPublicStatusCreated
+	newOrder.Id = bson.NewObjectId().Hex()
+	newOrder.Uuid = uuid.New().String()
+	newOrder.ReceiptId = uuid.New().String()
+	newOrder.CreatedAt = ptypes.TimestampNow()
+	newOrder.UpdatedAt = ptypes.TimestampNow()
+	newOrder.Canceled = false
+	newOrder.CanceledAt = nil
+	newOrder.ReceiptUrl = ""
+	newOrder.PaymentMethod = nil
+
+	err = s.db.Collection(collectionOrder).Insert(newOrder)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrder),
+		)
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = orderErrorCanNotCreate
+		return nil
+	}
+
+	res.Item = newOrder
+
 	return nil
 }

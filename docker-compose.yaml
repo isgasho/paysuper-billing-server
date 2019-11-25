@@ -17,6 +17,7 @@ services:
       BROKER_ADDRESS: "amqp://rabbitmq:5672"
       MICRO_REGISTRY: consul
       MICRO_REGISTRY_ADDRESS: consul
+      USER_INVITE_TOKEN_SECRET: "Secret"
     tty: true
 
   payone-billing-service-redis:

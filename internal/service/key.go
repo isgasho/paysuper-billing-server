@@ -61,6 +61,22 @@ func (s *Service) UploadKeysFile(ctx context.Context, req *grpc.PlatformKeysFile
 }
 
 func (s *Service) GetAvailableKeysCount(ctx context.Context, req *grpc.GetPlatformKeyCountRequest, res *grpc.GetPlatformKeyCountResponse) error {
+	keyProduct, err := s.keyProductRepository.GetById(req.KeyProductId)
+
+	if err != nil {
+		zap.S().Errorf(keyProductNotFound.Message, "err", err.Error(), "keyProductId", req.KeyProductId, "platformId", req.PlatformId)
+		res.Status = pkg.ResponseStatusNotFound
+		res.Message = keyProductNotFound
+		return nil
+	}
+
+	if keyProduct.MerchantId != req.MerchantId {
+		zap.S().Error(keyProductMerchantMismatch.Message, "keyProductId", req.KeyProductId)
+		res.Status = pkg.ResponseStatusNotFound
+		res.Message = keyProductMerchantMismatch
+		return nil
+	}
+
 	count, err := s.keyRepository.CountKeysByProductPlatform(req.KeyProductId, req.PlatformId)
 
 	if err != nil {

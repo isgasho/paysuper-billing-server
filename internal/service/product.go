@@ -254,6 +254,11 @@ func (s *Service) GetProductPrices(ctx context.Context, req *grpc.RequestProduct
 		return productErrorNotFound
 	}
 
+	if req.MerchantId != product.MerchantId {
+		zap.S().Errorf("MerchantId mismatch", "product", product, "data", req)
+		return productErrorMerchantNotEqual
+	}
+
 	res.ProductPrice = product.Prices
 
 	return nil
@@ -270,6 +275,11 @@ func (s *Service) UpdateProductPrices(ctx context.Context, req *grpc.UpdateProdu
 	if err != nil {
 		zap.S().Errorf("Unable to get product", "err", err.Error(), "req", req)
 		return productErrorNotFound
+	}
+
+	if req.MerchantId != product.MerchantId {
+		zap.S().Errorf("MerchantId mismatch", "product", product, "data", req)
+		return productErrorMerchantNotEqual
 	}
 
 	product.Prices = req.Prices
