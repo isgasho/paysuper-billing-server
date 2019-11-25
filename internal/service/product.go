@@ -359,7 +359,7 @@ func newProductService(svc *Service) *Product {
 func (h *Product) Upsert(ctx context.Context, p *grpc.Product) error {
 	oid, _ := primitive.ObjectIDFromHex(p.Id)
 	filter := bson.M{"_id": oid}
-	_, err := h.svc.db.Collection(collectionProduct).ReplaceOne(ctx, filter, p)
+	_, err := h.svc.db.Collection(collectionProduct).ReplaceOne(ctx, filter, p, options.Replace().SetUpsert(true))
 
 	if err != nil {
 		return err
