@@ -69,10 +69,36 @@ func (m *Merchant) CanChangeStatusToSigning() bool {
 		m.Contacts != nil && m.Contacts.Authorized != nil
 }
 
-func (m *Merchant) CanChangeStatusToDeleted() bool {
-	return m.Status != pkg.MerchantStatusDraft &&
-		m.Status != pkg.MerchantStatusAgreementSigning &&
-		m.Status != pkg.MerchantStatusRejected
+func (m *Merchant) CanChangeStatusTo(status int32) bool {
+	if status == pkg.MerchantStatusDraft && (m.Status == pkg.MerchantStatusPending || m.Status == pkg.MerchantStatusRejected) {
+		return true
+	}
+
+	if status == pkg.MerchantStatusPending && m.Status == pkg.MerchantStatusDraft {
+		return true
+	}
+
+	if status == pkg.MerchantStatusAccepted && m.Status == pkg.MerchantStatusPending {
+		return true
+	}
+
+	if status == pkg.MerchantStatusAgreementSigning && m.Status == pkg.MerchantStatusAccepted {
+		return true
+	}
+
+	if status == pkg.MerchantStatusAgreementSigned && m.Status == pkg.MerchantStatusAgreementSigning {
+		return true
+	}
+
+	if status == pkg.MerchantStatusRejected && (m.Status == pkg.MerchantStatusPending || m.Status == pkg.MerchantStatusAgreementSigning) {
+		return true
+	}
+
+	if status == pkg.MerchantStatusDeleted && (m.Status == pkg.MerchantStatusRejected || m.Status == pkg.MerchantStatusDraft) {
+		return true
+	}
+
+	return false
 }
 
 func (m *Merchant) IsFullySigned() bool {

@@ -4020,18 +4020,6 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_SetFromDra
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 }
 
-func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_MessageNotFound_Error() {
-	req := &grpc.MerchantChangeStatusRequest{
-		MerchantId: suite.merchant.Id,
-		Status:     999,
-	}
-	rsp := &grpc.ChangeMerchantStatusResponse{}
-	err := suite.service.ChangeMerchantStatus(context.TODO(), req, rsp)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp.Status)
-	assert.Equal(suite.T(), merchantNotificationSettingNotFound, rsp.Message)
-}
-
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_AddNotification_Error() {
 	req := &grpc.MerchantChangeStatusRequest{
 		MerchantId: suite.merchantAgreement.Id,

@@ -399,14 +399,7 @@ func (s *Service) ChangeMerchantStatus(
 		return nil
 	}
 
-	if req.Status == pkg.MerchantStatusRejected && merchant.Status != pkg.MerchantStatusAgreementSigning {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = merchantStatusChangeNotPossible
-
-		return nil
-	}
-
-	if req.Status == pkg.MerchantStatusDeleted && merchant.CanChangeStatusToDeleted() {
+	if !merchant.CanChangeStatusTo(req.Status) {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = merchantStatusChangeNotPossible
 
@@ -1160,12 +1153,8 @@ func (s *Service) GetMerchantAgreementSignUrl(
 }
 
 func (s *Service) IsChangeDataAllow(merchant *billing.Merchant, data *grpc.OnboardingRequest) bool {
-	if merchant.IsAgreementSigningStarted() && (data.Company != nil || data.Contacts != nil || data.Banking != nil ||
-		merchant.HasTariff()) {
-		return false
-	}
-
-	if merchant.IsAgreementSigned() && merchant.HasTariff() {
+	if merchant.Status != pkg.MerchantStatusDraft &&
+		(data.Company != nil || data.Contacts != nil || data.Banking != nil || merchant.HasTariff()) {
 		return false
 	}
 
