@@ -30,7 +30,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"math"
@@ -1600,7 +1599,7 @@ func (s *Service) updateOrder(ctx context.Context, order *billing.Order) error {
 
 	oid, _ := primitive.ObjectIDFromHex(order.Id)
 	filter := bson.M{"_id": oid}
-	_, err := s.db.Collection(collectionOrder).ReplaceOne(ctx, filter, order, options.Replace().SetUpsert(true))
+	_, err := s.db.Collection(collectionOrder).ReplaceOne(ctx, filter, order)
 
 	if err != nil {
 		s.logError(orderErrorUpdateOrderDataFailed, []interface{}{"error", err.Error(), "order", order})

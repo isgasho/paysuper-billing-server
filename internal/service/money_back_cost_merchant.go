@@ -421,7 +421,7 @@ func (h MoneyBackCostMerchant) Delete(ctx context.Context, obj *billing.MoneyBac
 	obj.IsActive = false
 
 	oid, _ := primitive.ObjectIDFromHex(obj.Id)
-	filter := bson.M{"id": oid}
+	filter := bson.M{"_id": oid}
 	_, err := h.svc.db.Collection(collectionMoneyBackCostMerchant).ReplaceOne(ctx, filter, obj)
 
 	if err != nil {

@@ -1378,7 +1378,10 @@ func (suite *OrderTestSuite) SetupTest() {
 		})
 
 		prod := grpc.Product{}
-		assert.NoError(suite.T(), suite.service.CreateOrUpdateProduct(context.TODO(), req, &prod))
+
+		if err := suite.service.CreateOrUpdateProduct(context.TODO(), req, &prod); err != nil {
+			suite.FailNow("Product create failed", "%v", err)
+		}
 
 		productIdsWithVirtualCurrency = append(productIdsWithVirtualCurrency, prod.Id)
 	}

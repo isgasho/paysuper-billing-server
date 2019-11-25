@@ -141,7 +141,7 @@ func (suite *MerchantTestSuite) TestMerchant_Update_NotFound() {
 	err := suite.service.merchant.Update(ctx, &billing.Merchant{Id: primitive.NewObjectID().Hex()})
 
 	assert.Error(suite.T(), err)
-	assert.EqualError(suite.T(), err, "not found")
+	assert.EqualError(suite.T(), err, "mongo: no documents in result")
 }
 
 func (suite *MerchantTestSuite) TestMerchant_Update_ErrorCacheUpdate() {

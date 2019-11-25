@@ -231,7 +231,7 @@ func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_GrpcSet_Ok() 
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
 	assert.Equal(suite.T(), res.Item.Country, "AZ")
-	assert.Equal(suite.T(), res.Item.FixAmount, float64(7.5))
+	assert.EqualValues(suite.T(), res.Item.FixAmount, 7.5)
 	assert.Equal(suite.T(), res.Item.Id, suite.moneyBackCostSystemId)
 }
 

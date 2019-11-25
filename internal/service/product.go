@@ -142,6 +142,7 @@ func (s *Service) GetProductsForOrder(ctx context.Context, req *grpc.GetProducts
 	}
 
 	var found []*grpc.Product
+
 	for _, id := range req.Ids {
 		p, err := s.productService.GetById(ctx, id)
 
@@ -359,7 +360,8 @@ func newProductService(svc *Service) *Product {
 func (h *Product) Upsert(ctx context.Context, p *grpc.Product) error {
 	oid, _ := primitive.ObjectIDFromHex(p.Id)
 	filter := bson.M{"_id": oid}
-	_, err := h.svc.db.Collection(collectionProduct).ReplaceOne(ctx, filter, p)
+	opts := options.Replace().SetUpsert(true)
+	_, err := h.svc.db.Collection(collectionProduct).ReplaceOne(ctx, filter, p, opts)
 
 	if err != nil {
 		return err

@@ -768,7 +768,7 @@ func (p Paylink) Update(ctx context.Context, pl *paylink.Paylink) (err error) {
 		"products_type":  pl.ProductsType,
 		"is_expired":     pl.GetIsExpired(),
 	}}
-	_, err = p.svc.db.Collection(collectionPaylinks).ReplaceOne(ctx, dbQuery, set)
+	_, err = p.svc.db.Collection(collectionPaylinks).UpdateOne(ctx, dbQuery, set)
 	if err != nil {
 		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
@@ -875,7 +875,7 @@ func (p Paylink) UpdatePaylinkTotalStat(ctx context.Context, id, merchantId stri
 		"transactions_currency": stat.TransactionsCurrency,
 		"is_expired":            pl.GetIsExpired(),
 	}}
-	_, err = p.svc.db.Collection(collectionPaylinks).ReplaceOne(ctx, dbQuery, set)
+	_, err = p.svc.db.Collection(collectionPaylinks).UpdateOne(ctx, dbQuery, set)
 	if err != nil {
 		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
