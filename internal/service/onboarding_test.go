@@ -1081,7 +1081,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_StatusesQuery_Ok(
 	err = suite.service.ListMerchants(context.TODO(), req1, rsp1)
 
 	assert.Nil(suite.T(), err)
-	assert.EqualValues(suite.T(), 3, rsp1.Count)
+	assert.EqualValues(suite.T(), 4, rsp1.Count)
 	assert.Equal(suite.T(), suite.merchant.Id, rsp1.Items[0].Id)
 
 	req1 = &grpc.MerchantListingRequest{Statuses: []int32{pkg.MerchantStatusAgreementSigning}}
@@ -1089,21 +1089,21 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_StatusesQuery_Ok(
 	err = suite.service.ListMerchants(context.TODO(), req1, rsp1)
 
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), int32(2), rsp1.Count)
+	assert.EqualValues(suite.T(), int32(1), rsp1.Count)
 
 	req1 = &grpc.MerchantListingRequest{Statuses: []int32{pkg.MerchantStatusAgreementSigned}}
 	rsp1 = &grpc.MerchantListingResponse{}
 	err = suite.service.ListMerchants(context.TODO(), req1, rsp1)
 
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), int32(3), rsp1.Count)
+	assert.EqualValues(suite.T(), int32(3), rsp1.Count)
 
 	req1 = &grpc.MerchantListingRequest{Statuses: []int32{pkg.MerchantStatusAgreementSigning, pkg.MerchantStatusAgreementSigned}}
 	rsp1 = &grpc.MerchantListingResponse{}
 	err = suite.service.ListMerchants(context.TODO(), req1, rsp1)
 
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), int32(5), rsp1.Count)
+	assert.EqualValues(suite.T(), int32(4), rsp1.Count)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_QuickSearchQuery_Ok() {
@@ -4109,6 +4109,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_UpdateMerc
 		Status:     pkg.MerchantStatusRejected,
 	}
 
+	suite.merchant.Status = pkg.MerchantStatusAgreementSigning
 	merchantMock := &mocks.MerchantRepositoryInterface{}
 	merchantMock.On("GetById", mock2.Anything, mock2.Anything).Return(suite.merchant, nil)
 	merchantMock.On("Update", mock2.Anything, mock2.Anything).Return(errors.New("some error"))

@@ -78,10 +78,6 @@ func (s *Service) updateOrderView(ctx context.Context, ids []string) error {
 		}
 
 		count = len(ids)
-
-		if count == 0 {
-			return nil
-		}
 	}
 
 	if count > 0 && count <= batchSize {
@@ -107,7 +103,7 @@ func (s *Service) updateOrderView(ctx context.Context, ids []string) error {
 }
 
 func (s *Service) getUpdateOrderViewMatchQuery(ids []string) bson.M {
-	var idsHex []primitive.ObjectID
+	idsHex := []primitive.ObjectID{}
 
 	for _, id := range ids {
 		oid, err := primitive.ObjectIDFromHex(id)

@@ -247,7 +247,7 @@ func (h *Merchant) GetById(ctx context.Context, id string) (*billing.Merchant, e
 			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
-		return nil, fmt.Errorf(errorNotFound, collectionMerchant)
+		return nil,	merchantErrorNotFound
 	}
 
 	if err := h.svc.cacher.Set(key, c, 0); err != nil {
