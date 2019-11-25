@@ -782,7 +782,7 @@ func (suite *PaylinkTestSuite) Test_Paylink_Delete_Ok() {
 	}
 	n, err := suite.service.db.Collection(collectionPaylinks).CountDocuments(context.TODO(), query)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 1)
+	assert.EqualValues(suite.T(), n, 1)
 
 	req := &grpc.PaylinkRequest{
 		Id:         suite.paylink1.Id,
@@ -796,7 +796,7 @@ func (suite *PaylinkTestSuite) Test_Paylink_Delete_Ok() {
 
 	n, err = suite.service.db.Collection(collectionPaylinks).CountDocuments(context.TODO(), query)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 0)
+	assert.EqualValues(suite.T(), n, 0)
 
 	query["deleted"] = true
 	n, err = suite.service.db.Collection(collectionPaylinks).CountDocuments(context.TODO(), query)
@@ -829,7 +829,7 @@ func (suite *PaylinkTestSuite) Test_Paylink_Delete_Fail_AlreadyDeleted() {
 	}
 	n, err := suite.service.db.Collection(collectionPaylinks).CountDocuments(context.TODO(), query)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 1)
+	assert.EqualValues(suite.T(), n, 1)
 
 	req := &grpc.PaylinkRequest{
 		Id:         suite.paylink2.Id,
@@ -843,7 +843,7 @@ func (suite *PaylinkTestSuite) Test_Paylink_Delete_Fail_AlreadyDeleted() {
 
 	n, err = suite.service.db.Collection(collectionPaylinks).CountDocuments(context.TODO(), query)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 1)
+	assert.EqualValues(suite.T(), n, 1)
 }
 
 func (suite *PaylinkTestSuite) Test_Paylink_Delete_Fail_MerchantInvalid() {
@@ -856,7 +856,7 @@ func (suite *PaylinkTestSuite) Test_Paylink_Delete_Fail_MerchantInvalid() {
 	}
 	n, err := suite.service.db.Collection(collectionPaylinks).CountDocuments(context.TODO(), query)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 1)
+	assert.EqualValues(suite.T(), n, 1)
 
 	req := &grpc.PaylinkRequest{
 		Id:         suite.paylink1.Id,
@@ -870,7 +870,7 @@ func (suite *PaylinkTestSuite) Test_Paylink_Delete_Fail_MerchantInvalid() {
 
 	n, err = suite.service.db.Collection(collectionPaylinks).CountDocuments(context.TODO(), query)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 1)
+	assert.EqualValues(suite.T(), n, 1)
 }
 
 func (suite *PaylinkTestSuite) Test_Paylink_Delete_Fail_IdInvalid() {
@@ -881,7 +881,7 @@ func (suite *PaylinkTestSuite) Test_Paylink_Delete_Fail_IdInvalid() {
 	}
 	n, err := suite.service.db.Collection(collectionPaylinks).CountDocuments(context.TODO(), query)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 0)
+	assert.EqualValues(suite.T(), n, 0)
 
 	req := &grpc.PaylinkRequest{
 		Id:         someId.Hex(),
@@ -903,7 +903,7 @@ func (suite *PaylinkTestSuite) Test_Paylink_IncrPaylinkVisits_Ok() {
 	}
 	n, err := suite.service.db.Collection(collectionPaylinkVisits).CountDocuments(context.TODO(), query)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 0)
+	assert.EqualValues(suite.T(), n, 0)
 
 	req := &grpc.PaylinkRequestById{
 		Id: suite.paylink1.Id,
@@ -915,7 +915,7 @@ func (suite *PaylinkTestSuite) Test_Paylink_IncrPaylinkVisits_Ok() {
 
 	n, err = suite.service.db.Collection(collectionPaylinkVisits).CountDocuments(context.TODO(), query)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 1)
+	assert.EqualValues(suite.T(), n, 1)
 }
 
 func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkURL_Ok() {
@@ -1573,7 +1573,7 @@ func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkVisits_Ok() {
 	}
 	n, err := suite.service.db.Collection(collectionPaylinkVisits).CountDocuments(context.TODO(), query)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 0)
+	assert.EqualValues(suite.T(), n, 0)
 
 	req := &grpc.PaylinkRequestById{
 		Id: suite.paylink1.Id,
@@ -1585,15 +1585,15 @@ func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkVisits_Ok() {
 
 	n, err = suite.service.db.Collection(collectionPaylinkVisits).CountDocuments(context.TODO(), query)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 1)
+	assert.EqualValues(suite.T(), n, 1)
 
 	n, err = suite.service.paylinkService.GetPaylinkVisits(context.TODO(), suite.paylink1.Id, 0, 0)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 1)
+	assert.EqualValues(suite.T(), n, 1)
 
 	oneHourBefore := time.Now().Add(-1 * time.Hour).Unix()
 	twoHourBefore := time.Now().Add(-2 * time.Hour).Unix()
 	n, err = suite.service.paylinkService.GetPaylinkVisits(context.TODO(), suite.paylink1.Id, twoHourBefore, oneHourBefore)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 0)
+	assert.EqualValues(suite.T(), n, 0)
 }
