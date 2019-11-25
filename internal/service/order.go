@@ -371,7 +371,7 @@ func (s *Service) OrderCreateProcess(
 		}
 	}
 
-	if processor.checked.user != nil && processor.checked.user.Ip != "" && !processor.checked.user.HasTrustedAddress() {
+	if processor.checked.user != nil && processor.checked.user.Ip != "" && !processor.checked.user.HasAddress() {
 		err := processor.processPayerIp()
 
 		if err != nil {
