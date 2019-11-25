@@ -197,8 +197,8 @@ func (p PaymentMinLimitSystem) Upsert(ctx context.Context, pmls *billing.Payment
 	pmls.Amount = tools.FormatAmount(pmls.Amount)
 	oid, _ := primitive.ObjectIDFromHex(pmls.Id)
 	filter := bson.M{"_id": oid}
-	opts := options.FindOneAndReplace().SetUpsert(true)
-	err = p.svc.db.Collection(collectionPaymentMinLimitSystem).FindOneAndReplace(ctx, filter, pmls, opts).Err()
+	opts := options.Replace().SetUpsert(true)
+	_, err = p.svc.db.Collection(collectionPaymentMinLimitSystem).ReplaceOne(ctx, filter, pmls, opts)
 
 	if err != nil {
 		zap.S().Error(

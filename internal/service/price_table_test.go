@@ -106,7 +106,7 @@ func (suite *PriceTableTestSuite) TestPriceTable_GetByRegion_Error_NotFound() {
 func (suite *PriceTableTestSuite) TestPriceTable_GetRecommendedPriceTable_Ok() {
 	rep := &mocks.PriceTableServiceInterface{}
 	rep.
-		On("GetByRegion", mock.Anything).
+		On("GetByRegion", mock.Anything, mock.Anything).
 		Return(&billing.PriceTable{Ranges: []*billing.PriceTableRange{{From: 0, To: 0, Position: 0}}}, nil)
 	suite.service.priceTable = rep
 

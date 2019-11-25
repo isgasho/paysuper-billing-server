@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"github.com/globalsign/mgo/bson"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
@@ -98,18 +99,18 @@ func (suite *PaymentMinLimitSystemTestSuite) TearDownTest() {
 }
 
 func (suite *PaymentMinLimitSystemTestSuite) Test_PaymentMinLimitSystem_AddOk() {
-	count, err := suite.service.db.Collection(collectionPaymentMinLimitSystem).CountDocuments(context.TODO(), nil)
+	count, err := suite.service.db.Collection(collectionPaymentMinLimitSystem).CountDocuments(context.TODO(), bson.M{})
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), count, 0)
+	assert.EqualValues(suite.T(), count, 0)
 
 	res := &grpc.EmptyResponseWithStatus{}
 	err = suite.service.SetPaymentMinLimitSystem(context.TODO(), suite.PaymentMinLimitSystem, res)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
 
-	count, err = suite.service.db.Collection(collectionPaymentMinLimitSystem).CountDocuments(context.TODO(), nil)
+	count, err = suite.service.db.Collection(collectionPaymentMinLimitSystem).CountDocuments(context.TODO(), bson.M{})
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), count, 1)
+	assert.EqualValues(suite.T(), count, 1)
 }
 
 func (suite *PaymentMinLimitSystemTestSuite) Test_PaymentMinLimitSystem_ListOk() {
@@ -126,9 +127,9 @@ func (suite *PaymentMinLimitSystemTestSuite) Test_PaymentMinLimitSystem_ListOk()
 }
 
 func (suite *PaymentMinLimitSystemTestSuite) Test_PaymentMinLimitSystem_AddFail_PaymentCountryUnknown() {
-	count, err := suite.service.db.Collection(collectionPaymentMinLimitSystem).CountDocuments(context.TODO(), nil)
+	count, err := suite.service.db.Collection(collectionPaymentMinLimitSystem).CountDocuments(context.TODO(), bson.M{})
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), count, 0)
+	assert.EqualValues(suite.T(), count, 0)
 
 	suite.PaymentMinLimitSystem.Currency = "XXX"
 

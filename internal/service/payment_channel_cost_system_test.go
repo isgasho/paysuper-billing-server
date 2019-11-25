@@ -272,12 +272,12 @@ func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_Get
 	val, err := suite.service.paymentChannelCostSystem.Get(context.TODO(), "VISA", pkg.TariffRegionRussiaAndCis, "AZ", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), val.Country, "AZ")
-	assert.Equal(suite.T(), val.FixAmount, float64(5))
+	assert.EqualValues(suite.T(), val.FixAmount, float64(5))
 
 	val, err = suite.service.paymentChannelCostSystem.Get(context.TODO(), "VISA", pkg.TariffRegionRussiaAndCis, "", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), val.Country, "")
-	assert.Equal(suite.T(), val.FixAmount, float64(0))
+	assert.EqualValues(suite.T(), val.FixAmount, float64(0))
 }
 
 func (suite *PaymentChannelCostSystemTestSuite) TestPaymentChannelCostSystem_Delete_Ok() {

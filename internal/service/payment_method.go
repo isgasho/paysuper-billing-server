@@ -476,7 +476,7 @@ func (h *PaymentMethod) Insert(ctx context.Context, pm *billing.PaymentMethod) e
 func (h *PaymentMethod) Update(ctx context.Context, pm *billing.PaymentMethod) error {
 	oid, _ := primitive.ObjectIDFromHex(pm.Id)
 	filter := bson.M{"_id": oid}
-	_, err := h.svc.db.Collection(collectionPaymentMethod).ReplaceOne(ctx, filter, pm)
+	err := h.svc.db.Collection(collectionPaymentMethod).FindOneAndReplace(ctx, filter, pm).Err()
 
 	if err != nil {
 		return err
