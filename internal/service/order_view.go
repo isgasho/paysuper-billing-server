@@ -3482,7 +3482,6 @@ func (ow *OrderView) GetRoyaltySummary(
 	}
 	_ = cursor.Close(ctx)
 
-
 	if result == nil {
 		return
 	}
@@ -3730,7 +3729,7 @@ func (ow *OrderView) getPaylinkGroupStat(
 				bson.M{"$sort": bson.M{"_id": 1}},
 				bson.M{"$limit": 10},
 			),
-			"total": ow.getPaylinkStatGroupingQuery(nil),
+			"total": ow.getPaylinkStatGroupingQuery(""),
 		},
 	},
 		bson.M{

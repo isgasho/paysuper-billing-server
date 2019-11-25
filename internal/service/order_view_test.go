@@ -67,7 +67,9 @@ func (suite *OrderViewTestSuite) SetupTest() {
 		suite.FailNow("Migrations failed", "%v", err)
 	}
 
-	db, err := mongodb.NewDatabase()
+	ctx, _ := context.WithTimeout(context.Background(), 50*time.Second)
+	opts := []mongodb.Option{mongodb.Context(ctx)}
+	db, err := mongodb.NewDatabase(opts...)
 	if err != nil {
 		suite.FailNow("Database connection failed", "%v", err)
 	}
