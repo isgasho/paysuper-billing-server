@@ -3474,7 +3474,7 @@ func (ow *OrderView) GetRoyaltySummary(
 	}
 
 	var result *royaltySummaryResult
-	for cursor.Next(ctx) {
+	if cursor.Next(ctx) {
 		err = cursor.Decode(&result)
 		if err != nil {
 			return
@@ -3751,7 +3751,7 @@ func (ow *OrderView) getPaylinkGroupStat(
 		return nil, err
 	}
 
-	for cursor.Next(ctx) {
+	if cursor.Next(ctx) {
 		err = cursor.Decode(&result)
 		if err != nil {
 			zap.L().Error(

@@ -952,7 +952,7 @@ func (h *PayoutDocument) GetBalanceAmount(ctx context.Context, merchantId, curre
 		return 0, err
 	}
 
-	for cursor.Next(ctx) {
+	if cursor.Next(ctx) {
 		err = cursor.Decode(&res)
 		if err != nil {
 			zap.L().Error(

@@ -1157,7 +1157,7 @@ func (r *RoyaltyReport) GetBalanceAmount(ctx context.Context, merchantId, curren
 		return 0, err
 	}
 
-	for cursor.Next(ctx) {
+	if cursor.Next(ctx) {
 		err = cursor.Decode(&res)
 		if err != nil {
 			zap.L().Error(
