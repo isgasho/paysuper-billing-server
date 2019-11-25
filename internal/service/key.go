@@ -11,6 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 	"time"
 )
@@ -272,7 +273,8 @@ func (h *Key) ReserveKey(
 		},
 	}
 
-	err := h.svc.db.Collection(collectionKey).FindOneAndReplace(ctx, query, update).Decode(&key)
+	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
+	err := h.svc.db.Collection(collectionKey).FindOneAndUpdate(ctx, query, update, opts).Decode(&key)
 
 	if err == mongo.ErrNoDocuments {
 		return nil, errors.KeyErrorNotFound
@@ -295,12 +297,13 @@ func (h *Key) CancelById(ctx context.Context, id string) (*billing.Key, error) {
 	query := bson.M{"_id": oid}
 	update := bson.M{
 		"$set": bson.M{
-			"reserved_to": "",
+			"reserved_to": time.Time{},
 			"order_id":    nil,
 		},
 	}
 
-	err := h.svc.db.Collection(collectionKey).FindOneAndReplace(ctx, query, update).Decode(&key)
+	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
+	err := h.svc.db.Collection(collectionKey).FindOneAndUpdate(ctx, query, update, opts).Decode(&key)
 
 	if err != nil {
 		return nil, err
@@ -319,12 +322,13 @@ func (h *Key) FinishRedeemById(ctx context.Context, id string) (*billing.Key, er
 	query := bson.M{"_id": oid}
 	update := bson.M{
 		"$set": bson.M{
-			"reserved_to": "",
+			"reserved_to": time.Time{},
 			"redeemed_at": time.Now().UTC(),
 		},
 	}
 
-	err := h.svc.db.Collection(collectionKey).FindOneAndReplace(ctx, query, update).Decode(&key)
+	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
+	err := h.svc.db.Collection(collectionKey).FindOneAndUpdate(ctx, query, update, opts).Decode(&key)
 
 	if err != nil {
 		return nil, err
