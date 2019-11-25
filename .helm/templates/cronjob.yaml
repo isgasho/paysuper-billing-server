@@ -3,7 +3,7 @@
 apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
-  name: "{{ .Release.Name }}-vat-reports"
+  name: "{{ .Chart.Name }}-vat-reports"
   labels:
     app: {{ .Chart.Name }}
     chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
@@ -44,7 +44,7 @@ spec:
 apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
-  name: "{{ .Release.Name }}-royalty-reports"
+  name: "{{ .Chart.Name }}-royalty-reports"
   labels:
     app: {{ .Chart.Name }}
     chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
@@ -85,7 +85,7 @@ spec:
 apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
-  name: "{{ .Release.Name }}-royalty-reports-accept"
+  name: "{{ .Chart.Name }}-royalty-reports-accept"
   labels:
     app: {{ .Chart.Name }}
     chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
