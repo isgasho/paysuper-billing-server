@@ -1157,6 +1157,8 @@ func (r *RoyaltyReport) GetBalanceAmount(ctx context.Context, merchantId, curren
 		return 0, err
 	}
 
+	defer cursor.Close(ctx)
+
 	if cursor.Next(ctx) {
 		err = cursor.Decode(&res)
 		if err != nil {
@@ -1169,7 +1171,6 @@ func (r *RoyaltyReport) GetBalanceAmount(ctx context.Context, merchantId, curren
 			return 0, err
 		}
 	}
-	_ = cursor.Close(ctx)
 
 	return res.Amount, nil
 }

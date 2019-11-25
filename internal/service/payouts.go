@@ -952,6 +952,8 @@ func (h *PayoutDocument) GetBalanceAmount(ctx context.Context, merchantId, curre
 		return 0, err
 	}
 
+	defer cursor.Close(ctx)
+
 	if cursor.Next(ctx) {
 		err = cursor.Decode(&res)
 		if err != nil {
@@ -964,7 +966,6 @@ func (h *PayoutDocument) GetBalanceAmount(ctx context.Context, merchantId, curre
 			return 0, err
 		}
 	}
-	_ = cursor.Close(ctx)
 
 	return res.Amount, nil
 }

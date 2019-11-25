@@ -340,6 +340,8 @@ func (h PaymentChannelCostSystem) Get(
 		return nil, fmt.Errorf(errorNotFound, collectionPaymentChannelCostSystem)
 	}
 
+	defer cursor.Close(ctx)
+
 	if cursor.Next(ctx) {
 		err = cursor.Decode(&set)
 		if err != nil {
@@ -353,7 +355,6 @@ func (h PaymentChannelCostSystem) Get(
 		}
 	}
 
-	_ = cursor.Close(ctx)
 
 	if len(set.Set) == 0 {
 		return nil, fmt.Errorf(errorNotFound, collectionPaymentChannelCostSystem)
