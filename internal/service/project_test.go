@@ -339,7 +339,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_Ok()
 	assert.Equal(suite.T(), req.MaxPaymentAmount, rsp.Item.MaxPaymentAmount)
 	assert.Equal(suite.T(), req.IsProductsCheckout, rsp.Item.IsProductsCheckout)
 	assert.Equal(suite.T(), pkg.ProjectStatusDraft, rsp.Item.Status)
-	assert.Equal(suite.T(), int32(0), rsp.Item.ProductsCount)
+	assert.EqualValues(suite.T(), int32(0), rsp.Item.ProductsCount)
 	assert.Equal(suite.T(), req.Localizations, rsp.Item.Localizations)
 	assert.Equal(suite.T(), req.FullDescription, rsp.Item.FullDescription)
 	assert.Equal(suite.T(), req.ShortDescription, rsp.Item.ShortDescription)
@@ -575,7 +575,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_GetProject_Ok() {
 	assert.Equal(suite.T(), suite.project.MaxPaymentAmount, rsp.Item.MaxPaymentAmount)
 	assert.Equal(suite.T(), suite.project.IsProductsCheckout, rsp.Item.IsProductsCheckout)
 	assert.Equal(suite.T(), suite.project.Status, rsp.Item.Status)
-	assert.Equal(suite.T(), int32(3), rsp.Item.ProductsCount)
+	assert.EqualValues(suite.T(), int32(3), rsp.Item.ProductsCount)
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_GetProject_NotFound_Error() {
@@ -629,9 +629,9 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ListProjects_Ok() {
 	rsp1 := &grpc.ListProjectsResponse{}
 	err = suite.service.ListProjects(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), int32(5), rsp1.Count)
+	assert.EqualValues(suite.T(), int32(5), rsp1.Count)
 	assert.Len(suite.T(), rsp1.Items, 5)
-	assert.Equal(suite.T(), int32(3), rsp1.Items[0].ProductsCount)
+	assert.EqualValues(suite.T(), int32(3), rsp1.Items[0].ProductsCount)
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ListProjects_NameQuery_Ok() {
@@ -673,7 +673,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ListProjects_NameQuery_Ok() {
 	rsp1 := &grpc.ListProjectsResponse{}
 	err = suite.service.ListProjects(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), int32(2), rsp1.Count)
+	assert.EqualValues(suite.T(), int32(2), rsp1.Count)
 	assert.Len(suite.T(), rsp1.Items, 2)
 }
 
@@ -731,19 +731,19 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ListProjects_StatusQuery_Ok()
 	rsp1 := &grpc.ListProjectsResponse{}
 	err = suite.service.ListProjects(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), int32(2), rsp1.Count)
+	assert.EqualValues(suite.T(), int32(2), rsp1.Count)
 	assert.Len(suite.T(), rsp1.Items, 2)
 
 	req1.Statuses = []int32{pkg.ProjectStatusTestCompleted}
 	err = suite.service.ListProjects(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), int32(2), rsp1.Count)
+	assert.EqualValues(suite.T(), int32(2), rsp1.Count)
 	assert.Len(suite.T(), rsp1.Items, 2)
 
 	req1.Statuses = []int32{pkg.ProjectStatusDraft, pkg.ProjectStatusTestCompleted}
 	err = suite.service.ListProjects(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), int32(3), rsp1.Count)
+	assert.EqualValues(suite.T(), int32(3), rsp1.Count)
 	assert.Len(suite.T(), rsp1.Items, 3)
 }
 
@@ -786,7 +786,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ListProjects_SortQuery_Ok() {
 	rsp1 := &grpc.ListProjectsResponse{}
 	err = suite.service.ListProjects(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), int32(5), rsp1.Count)
+	assert.EqualValues(suite.T(), int32(5), rsp1.Count)
 	assert.Len(suite.T(), rsp1.Items, 5)
 	assert.Equal(suite.T(), "A", rsp1.Items[0].Name["en"])
 	assert.Equal(suite.T(), "А", rsp1.Items[0].Name["ru"])
