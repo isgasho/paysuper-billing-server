@@ -829,6 +829,13 @@ func (s *Service) UnPublishKeyProduct(
 		return nil
 	}
 
+	if product.MerchantId != req.MerchantId {
+		zap.S().Errorw("Key product not published", "key_product", req.KeyProductId)
+		res.Status = http.StatusBadRequest
+		res.Message = keyProductMerchantMismatch
+		return nil
+	}
+
 	if product.Enabled == false {
 		zap.S().Errorw("Key product not published", "key_product", req.KeyProductId)
 		res.Status = http.StatusBadRequest

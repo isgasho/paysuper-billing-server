@@ -431,7 +431,7 @@ func (suite *KeyProductTestSuite) Test_CreateOrUpdateKeyProduct() {
 	err = suite.service.CreateOrUpdateKeyProduct(context.TODO(), req, &res2)
 	shouldBe.Nil(err)
 	shouldBe.NotNil(res2.Message)
-	shouldBe.EqualValues(500, res2.Status)
+	shouldBe.EqualValues(400, res2.Status)
 }
 
 func (suite *KeyProductTestSuite) Test_GetKeyProducts() {
