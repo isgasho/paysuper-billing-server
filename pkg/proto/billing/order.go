@@ -19,6 +19,7 @@ func (m *Order) CanBeRecreated() bool {
 		m.PrivateStatus != constant.OrderStatusProjectReject &&
 		m.PrivateStatus != constant.OrderStatusPaymentSystemDeclined &&
 		m.PrivateStatus != constant.OrderStatusNew &&
+		m.PrivateStatus != constant.OrderStatusPaymentSystemCreate &&
 		m.PrivateStatus != constant.OrderStatusPaymentSystemCanceled {
 
 		return false
