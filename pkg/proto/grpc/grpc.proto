@@ -506,10 +506,12 @@ message PaymentFormJsonData {
     bool is_already_processed = 22;
     //@inject_tag: json:"receipt_url"
     string receipt_url = 23;
+    //@inject_tag: json:"type"
+    string type = 24;
     // @inject_tag: json:"charge_currency"
-    string charge_currency = 24;
+    string charge_currency = 25;
     // @inject_tag: json:"charge_amount"
-    double charge_amount = 25;
+    double charge_amount = 26;
 }
 
 message PaymentFormJsonDataResponse {
