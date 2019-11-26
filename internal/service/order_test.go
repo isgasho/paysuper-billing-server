@@ -8522,8 +8522,6 @@ func (suite *OrderTestSuite) TestOrder_ReCreateOrder_Ok() {
 	shouldBe.Equal(rsp0.Status, pkg.ResponseStatusOk)
 	order := rsp0.Item
 
-	order.PrivateStatus = constant.OrderStatusPaymentSystemDeclined
-	shouldBe.NoError(suite.service.updateOrder(context.TODO(), order))
 	allowedStatuses := []int32{
 		constant.OrderStatusPaymentSystemRejectOnCreate,
 		constant.OrderStatusPaymentSystemReject,
@@ -8537,7 +8535,7 @@ func (suite *OrderTestSuite) TestOrder_ReCreateOrder_Ok() {
 
 	for _, status := range allowedStatuses {
 		order.PrivateStatus = status
-		shouldBe.NoError(suite.service.updateOrder(order))
+		shouldBe.NoError(suite.service.updateOrder(ctx, order))
 
 		rsp1 := &grpc.OrderCreateProcessResponse{}
 		shouldBe.NoError(suite.service.OrderReCreateProcess(context.TODO(), &grpc.OrderReCreateProcessRequest{OrderId: order.GetUuid()}, rsp1))
@@ -8572,7 +8570,7 @@ func (suite *OrderTestSuite) TestOrder_ReCreateOrder_Error() {
 	order := rsp0.Item
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
-	shouldBe.NoError(suite.service.updateOrder(order))
+	shouldBe.NoError(suite.service.updateOrder(ctx, order))
 
 	rsp1 := &grpc.OrderCreateProcessResponse{}
 	shouldBe.NoError(suite.service.OrderReCreateProcess(context.TODO(), &grpc.OrderReCreateProcessRequest{OrderId: order.GetUuid()}, rsp1))
