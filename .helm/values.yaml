@@ -60,6 +60,8 @@ backend:
     - USER_INVITE_TOKEN_TIMEOUT
     - EMAIL_CONFIRM_URL
     - USER_INVITE_URL
+    - RECEIPT_PURCHASE_URL
+    - RECEIPT_REFUND_URL
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
