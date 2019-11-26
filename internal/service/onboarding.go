@@ -34,6 +34,8 @@ const (
 	merchantStatusSignedMessage   = "Your license agreement signing request is confirmed and document is signed by Pay Super. Let us have productive cooperation!"
 	merchantStatusRejectedMessage = "Your license agreement signing request was confirmed as SPAM and will be no longer processed."
 	merchantStatusDeletedMessage  = "Sorry, but while processing your license agreement signing request we encountered insuperable obstacles which lead to termination of our deal."
+	merchantStatusPendingMessage  = "We've got your onboarding request. We will check information about your company and return with resolution."
+	merchantStatusAcceptedMessage = "Preliminary verification is complete and now you are welcome to sign the license agreement."
 )
 
 var (
@@ -67,6 +69,8 @@ var (
 		pkg.MerchantStatusAgreementSigned:  merchantStatusSignedMessage,
 		pkg.MerchantStatusDeleted:          merchantStatusDeletedMessage,
 		pkg.MerchantStatusRejected:         merchantStatusRejectedMessage,
+		pkg.MerchantStatusPending:          merchantStatusPendingMessage,
+		pkg.MerchantStatusAccepted:         merchantStatusAcceptedMessage,
 	}
 )
 
@@ -447,15 +451,7 @@ func (s *Service) ChangeMerchantStatus(
 		return nil
 	}
 
-	if req.Status == pkg.MerchantStatusRejected && merchant.Status != pkg.MerchantStatusAgreementSigning {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = merchantStatusChangeNotPossible
-
-		return nil
-	}
-
-	if req.Status == pkg.MerchantStatusDeleted && merchant.Status != pkg.MerchantStatusDraft &&
-		merchant.Status != pkg.MerchantStatusAgreementSigning && merchant.Status != pkg.MerchantStatusRejected {
+	if !merchant.CanChangeStatusTo(req.Status) {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = merchantStatusChangeNotPossible
 
@@ -602,7 +598,29 @@ func (s *Service) SetMerchantOperatingCompany(
 		return nil
 	}
 
+	statusChange := &billing.SystemNotificationStatuses{From: merchant.Status, To: pkg.MerchantStatusAccepted}
+
 	merchant.OperatingCompanyId = req.OperatingCompanyId
+	merchant.Status = pkg.MerchantStatusAccepted
+	merchant.StatusLastUpdatedAt = ptypes.TimestampNow()
+
+	message, ok := merchantStatusChangesMessages[merchant.Status]
+
+	if !ok {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = merchantNotificationSettingNotFound
+
+		return nil
+	}
+
+	_, err = s.addNotification(ctx, message, merchant.Id, "", statusChange)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
+
+		return nil
+	}
 
 	err = s.merchant.Update(ctx, merchant)
 
@@ -1135,14 +1153,10 @@ func (s *Service) addNotification(
 		Id:         primitive.NewObjectID().Hex(),
 		Message:    msg,
 		MerchantId: merchantId,
+		UserId:     userId,
 		IsRead:     false,
+		IsSystem:   userId == "",
 		Statuses:   nStatuses,
-	}
-
-	if userId == "" {
-		notification.IsSystem = true
-	} else {
-		notification.UserId = userId
 	}
 
 	_, err = s.db.Collection(collectionNotification).InsertOne(ctx, notification)
@@ -1215,7 +1229,7 @@ func (s *Service) GetMerchantAgreementSignUrl(
 		return nil
 	}
 
-	if merchant.AgreementSignatureData == nil {
+	if merchant.AgreementSignatureData == nil || merchant.Status != pkg.MerchantStatusAccepted {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = merchantErrorOnboardingNotComplete
 
@@ -1245,12 +1259,8 @@ func (s *Service) GetMerchantAgreementSignUrl(
 }
 
 func (s *Service) IsChangeDataAllow(merchant *billing.Merchant, data *grpc.OnboardingRequest) bool {
-	if merchant.IsAgreementSigningStarted() && (data.Company != nil || data.Contacts != nil || data.Banking != nil ||
-		merchant.HasTariff()) {
-		return false
-	}
-
-	if merchant.IsAgreementSigned() && merchant.HasTariff() {
+	if merchant.Status != pkg.MerchantStatusDraft &&
+		(data.Company != nil || data.Contacts != nil || data.Banking != nil || merchant.HasTariff()) {
 		return false
 	}
 
@@ -1672,6 +1682,28 @@ func (s *Service) SetMerchantTariffRates(
 				return nil
 			}
 			return err
+		}
+
+		statusChange := &billing.SystemNotificationStatuses{From: merchant.Status, To: pkg.MerchantStatusPending}
+
+		merchant.Status = pkg.MerchantStatusPending
+		merchant.StatusLastUpdatedAt = ptypes.TimestampNow()
+		message, ok := merchantStatusChangesMessages[merchant.Status]
+
+		if !ok {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = merchantNotificationSettingNotFound
+
+			return nil
+		}
+
+		_, err = s.addNotification(ctx, message, merchant.Id, "", statusChange)
+
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = err.(*grpc.ResponseErrorMessage)
+
+			return nil
 		}
 	}
 
