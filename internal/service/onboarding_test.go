@@ -2697,8 +2697,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerSys
 	merchant, err := suite.service.merchant.GetById(context.TODO(), rsp.Item.Id)
 	assert.NoError(suite.T(), err)
 	merchant.AgreementSignatureData = &billing.MerchantAgreementSignatureData{}
-	err = suite.service.merchant.Update(context.TODO(), merchant)
 	merchant.Status = pkg.MerchantStatusAccepted
+	err = suite.service.merchant.Update(context.TODO(), merchant)
 	assert.NoError(suite.T(), err)
 
 	zap.ReplaceGlobals(suite.logObserver)
@@ -2792,8 +2792,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerRes
 	merchant, err := suite.service.merchant.GetById(context.TODO(), rsp.Item.Id)
 	assert.NoError(suite.T(), err)
 	merchant.AgreementSignatureData = &billing.MerchantAgreementSignatureData{}
-	err = suite.service.merchant.Update(context.TODO(), merchant)
 	merchant.Status = pkg.MerchantStatusAccepted
+	err = suite.service.merchant.Update(context.TODO(), merchant)
 	assert.NoError(suite.T(), err)
 
 	ds := &mocks.DocumentSignerService{}
@@ -3426,8 +3426,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_Pay
 	merchant, err := suite.service.merchant.GetById(context.TODO(), rsp.Item.Id)
 	assert.NoError(suite.T(), err)
 	merchant.AgreementSignatureData = &billing.MerchantAgreementSignatureData{}
-	err = suite.service.merchant.Update(context.TODO(), merchant)
 	merchant.Status = pkg.MerchantStatusAccepted
+	err = suite.service.merchant.Update(context.TODO(), merchant)
 	assert.NoError(suite.T(), err)
 
 	req1 := &grpc.GetMerchantAgreementSignUrlRequest{
