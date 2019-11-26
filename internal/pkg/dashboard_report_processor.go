@@ -19,15 +19,14 @@ type DashboardReportProcessor struct {
 	Collection  string
 	Match       bson.M
 	GroupBy     string
-	DbQueryFn   func(interface{}) (interface{}, error)
+	DbQueryFn   func(ctx context.Context, receiver interface{}) (interface{}, error)
 	Cache       CacheInterface
 	CacheKey    string
 	CacheExpire time.Duration
 	Errors      map[string]*grpc.ResponseErrorMessage
-	Ctx         context.Context
 }
 
-func (m *DashboardReportProcessor) ExecuteReport(receiver interface{}) (interface{}, error) {
+func (m *DashboardReportProcessor) ExecuteReport(ctx context.Context, receiver interface{}) (interface{}, error) {
 	if m.CacheExpire > 0 {
 		err := m.Cache.Get(m.CacheKey, &receiver)
 
@@ -36,7 +35,7 @@ func (m *DashboardReportProcessor) ExecuteReport(receiver interface{}) (interfac
 		}
 	}
 
-	receiver, err := m.DbQueryFn(receiver)
+	receiver, err := m.DbQueryFn(ctx, receiver)
 
 	if err != nil {
 		return nil, m.Errors["unknown"]
@@ -61,7 +60,7 @@ func (m *DashboardReportProcessor) ExecuteReport(receiver interface{}) (interfac
 	return receiver, nil
 }
 
-func (m *DashboardReportProcessor) ExecuteGrossRevenueAndVatReports(receiver interface{}) (interface{}, error) {
+func (m *DashboardReportProcessor) ExecuteGrossRevenueAndVatReports(ctx context.Context, receiver interface{}) (interface{}, error) {
 	query := []bson.M{
 		{"$match": m.Match},
 		{
@@ -125,7 +124,7 @@ func (m *DashboardReportProcessor) ExecuteGrossRevenueAndVatReports(receiver int
 		},
 	}
 
-	cursor, err := m.Db.Collection(m.Collection).Aggregate(m.Ctx, query)
+	cursor, err := m.Db.Collection(m.Collection).Aggregate(ctx, query)
 
 	if err != nil {
 		zap.L().Error(
@@ -137,9 +136,9 @@ func (m *DashboardReportProcessor) ExecuteGrossRevenueAndVatReports(receiver int
 		return nil, m.Errors["unknown"]
 	}
 
-	defer cursor.Close(m.Ctx)
+	defer cursor.Close(ctx)
 
-	if cursor.Next(m.Ctx) {
+	if cursor.Next(ctx) {
 		err = cursor.Decode(receiver)
 
 		if err != nil {
@@ -156,7 +155,7 @@ func (m *DashboardReportProcessor) ExecuteGrossRevenueAndVatReports(receiver int
 	return receiver, nil
 }
 
-func (m *DashboardReportProcessor) ExecuteTotalTransactionsAndArpuReports(receiver interface{}) (interface{}, error) {
+func (m *DashboardReportProcessor) ExecuteTotalTransactionsAndArpuReports(ctx context.Context, receiver interface{}) (interface{}, error) {
 	query := []bson.M{
 		{"$match": m.Match},
 		{
@@ -226,7 +225,7 @@ func (m *DashboardReportProcessor) ExecuteTotalTransactionsAndArpuReports(receiv
 		},
 	}
 
-	cursor, err := m.Db.Collection(m.Collection).Aggregate(m.Ctx, query)
+	cursor, err := m.Db.Collection(m.Collection).Aggregate(ctx, query)
 
 	if err != nil {
 		zap.L().Error(
@@ -238,9 +237,9 @@ func (m *DashboardReportProcessor) ExecuteTotalTransactionsAndArpuReports(receiv
 		return nil, m.Errors["unknown"]
 	}
 
-	defer cursor.Close(m.Ctx)
+	defer cursor.Close(ctx)
 
-	if cursor.Next(m.Ctx) {
+	if cursor.Next(ctx) {
 		err = cursor.Decode(receiver)
 
 		if err != nil {
@@ -257,7 +256,7 @@ func (m *DashboardReportProcessor) ExecuteTotalTransactionsAndArpuReports(receiv
 	return receiver, nil
 }
 
-func (m *DashboardReportProcessor) ExecuteRevenueDynamicReport(receiver interface{}) (interface{}, error) {
+func (m *DashboardReportProcessor) ExecuteRevenueDynamicReport(ctx context.Context, receiver interface{}) (interface{}, error) {
 	query := []bson.M{
 		{"$match": m.Match},
 		{
@@ -283,7 +282,7 @@ func (m *DashboardReportProcessor) ExecuteRevenueDynamicReport(receiver interfac
 	}
 
 	receiverTyped := receiver.(*grpc.DashboardRevenueDynamicReport)
-	cursor, err := m.Db.Collection(m.Collection).Aggregate(m.Ctx, query)
+	cursor, err := m.Db.Collection(m.Collection).Aggregate(ctx, query)
 
 	if err != nil {
 		zap.L().Error(
@@ -295,8 +294,8 @@ func (m *DashboardReportProcessor) ExecuteRevenueDynamicReport(receiver interfac
 		return nil, m.Errors["unknown"]
 	}
 
-	err = cursor.All(m.Ctx, &receiverTyped.Items)
-	cursor.Close(m.Ctx)
+	err = cursor.All(ctx, &receiverTyped.Items)
+	cursor.Close(ctx)
 
 	if err != nil {
 		zap.L().Error(
@@ -311,7 +310,7 @@ func (m *DashboardReportProcessor) ExecuteRevenueDynamicReport(receiver interfac
 	return receiverTyped, nil
 }
 
-func (m *DashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interface{}) (interface{}, error) {
+func (m *DashboardReportProcessor) ExecuteRevenueByCountryReport(ctx context.Context, receiver interface{}) (interface{}, error) {
 	query := []bson.M{
 		{"$match": m.Match},
 		{
@@ -417,7 +416,7 @@ func (m *DashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interf
 		},
 	}
 
-	cursor, err := m.Db.Collection(m.Collection).Aggregate(m.Ctx, query)
+	cursor, err := m.Db.Collection(m.Collection).Aggregate(ctx, query)
 
 	if err != nil {
 		zap.L().Error(
@@ -429,9 +428,9 @@ func (m *DashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interf
 		return nil, m.Errors["unknown"]
 	}
 
-	defer cursor.Close(m.Ctx)
+	defer cursor.Close(ctx)
 
-	if cursor.Next(m.Ctx) {
+	if cursor.Next(ctx) {
 		err = cursor.Decode(receiver)
 
 		if err != nil {
@@ -448,7 +447,7 @@ func (m *DashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interf
 	return receiver, nil
 }
 
-func (m *DashboardReportProcessor) ExecuteSalesTodayReport(receiver interface{}) (interface{}, error) {
+func (m *DashboardReportProcessor) ExecuteSalesTodayReport(ctx context.Context, receiver interface{}) (interface{}, error) {
 	query := []bson.M{
 		{"$match": m.Match},
 		{
@@ -552,7 +551,7 @@ func (m *DashboardReportProcessor) ExecuteSalesTodayReport(receiver interface{})
 		},
 	}
 
-	cursor, err := m.Db.Collection(m.Collection).Aggregate(m.Ctx, query)
+	cursor, err := m.Db.Collection(m.Collection).Aggregate(ctx, query)
 
 	if err != nil {
 		zap.L().Error(
@@ -564,9 +563,9 @@ func (m *DashboardReportProcessor) ExecuteSalesTodayReport(receiver interface{})
 		return nil, m.Errors["unknown"]
 	}
 
-	defer cursor.Close(m.Ctx)
+	defer cursor.Close(ctx)
 
-	if cursor.Next(m.Ctx) {
+	if cursor.Next(ctx) {
 		err = cursor.Decode(receiver)
 
 		if err != nil {
@@ -583,7 +582,7 @@ func (m *DashboardReportProcessor) ExecuteSalesTodayReport(receiver interface{})
 	return receiver, nil
 }
 
-func (m *DashboardReportProcessor) ExecuteSourcesReport(receiver interface{}) (interface{}, error) {
+func (m *DashboardReportProcessor) ExecuteSourcesReport(ctx context.Context, receiver interface{}) (interface{}, error) {
 	delete(m.Match, "status")
 	query := []bson.M{
 		{"$match": m.Match},
@@ -671,7 +670,7 @@ func (m *DashboardReportProcessor) ExecuteSourcesReport(receiver interface{}) (i
 		},
 	}
 
-	cursor, err := m.Db.Collection(m.Collection).Aggregate(m.Ctx, query)
+	cursor, err := m.Db.Collection(m.Collection).Aggregate(ctx, query)
 
 	if err != nil {
 		zap.L().Error(
@@ -683,9 +682,9 @@ func (m *DashboardReportProcessor) ExecuteSourcesReport(receiver interface{}) (i
 		return nil, m.Errors["unknown"]
 	}
 
-	defer cursor.Close(m.Ctx)
+	defer cursor.Close(ctx)
 
-	if cursor.Next(m.Ctx) {
+	if cursor.Next(ctx) {
 		err = cursor.Decode(receiver)
 
 		if err != nil {

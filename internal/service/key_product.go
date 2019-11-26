@@ -59,7 +59,11 @@ var availablePlatforms = map[string]*grpc.Platform{
 	"egs":      {Id: "egs", Name: "Epic Games Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-epic.png", Order: 9},
 }
 
-func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.CreateOrUpdateKeyProductRequest, res *grpc.KeyProductResponse) error {
+func (s *Service) CreateOrUpdateKeyProduct(
+	ctx context.Context,
+	req *grpc.CreateOrUpdateKeyProductRequest,
+	res *grpc.KeyProductResponse,
+) error {
 	var (
 		err     error
 		isNew   = len(req.Id) == 0
@@ -67,6 +71,21 @@ func (s *Service) CreateOrUpdateKeyProduct(ctx context.Context, req *grpc.Create
 		product = &grpc.KeyProduct{}
 	)
 	res.Status = pkg.ResponseStatusOk
+	project, err := s.project.GetById(ctx, req.ProjectId)
+
+	if err != nil {
+		zap.S().Errorw("internal error when getting project", "err", err)
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = keyProductInternalError
+		return nil
+	}
+
+	if project.MerchantId != req.MerchantId {
+		zap.S().Errorw("Merchant for project is mismatch with requested", "data", req)
+		res.Status = http.StatusBadRequest
+		res.Message = keyProductNotFound
+		return nil
+	}
 
 	if isNew {
 		product.Id = primitive.NewObjectID().Hex()
@@ -643,7 +662,6 @@ func (s *Service) PublishKeyProduct(
 		res.Message = keyProductMerchantMismatch
 		return nil
 	}
-
 
 	product.UpdatedAt = ptypes.TimestampNow()
 	product.PublishedAt = ptypes.TimestampNow()

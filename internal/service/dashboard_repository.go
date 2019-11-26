@@ -99,7 +99,7 @@ func (m *DashboardRepository) GetMainReport(
 	}
 
 	processorGrossRevenueAndVatCurrent.DbQueryFn = processorGrossRevenueAndVatCurrent.ExecuteGrossRevenueAndVatReports
-	dataGrossRevenueAndVatCurrent, err := processorGrossRevenueAndVatCurrent.ExecuteReport(new(GrossRevenueAndVatReports))
+	dataGrossRevenueAndVatCurrent, err := processorGrossRevenueAndVatCurrent.ExecuteReport(ctx, new(GrossRevenueAndVatReports))
 
 	if err != nil {
 		return nil, dashboardErrorUnknown
@@ -120,7 +120,7 @@ func (m *DashboardRepository) GetMainReport(
 	}
 
 	processorGrossRevenueAndVatPrevious.DbQueryFn = processorGrossRevenueAndVatPrevious.ExecuteGrossRevenueAndVatReports
-	dataGrossRevenueAndVatPrevious, err := processorGrossRevenueAndVatPrevious.ExecuteReport(new(GrossRevenueAndVatReports))
+	dataGrossRevenueAndVatPrevious, err := processorGrossRevenueAndVatPrevious.ExecuteReport(ctx, new(GrossRevenueAndVatReports))
 
 	if err != nil {
 		return nil, dashboardErrorUnknown
@@ -141,7 +141,7 @@ func (m *DashboardRepository) GetMainReport(
 	}
 
 	processorTotalTransactionsAndArpuCurrent.DbQueryFn = processorTotalTransactionsAndArpuCurrent.ExecuteTotalTransactionsAndArpuReports
-	dataTotalTransactionsAndArpuCurrent, err := processorTotalTransactionsAndArpuCurrent.ExecuteReport(new(TotalTransactionsAndArpuReports))
+	dataTotalTransactionsAndArpuCurrent, err := processorTotalTransactionsAndArpuCurrent.ExecuteReport(ctx, new(TotalTransactionsAndArpuReports))
 
 	if err != nil {
 		return nil, dashboardErrorUnknown
@@ -162,7 +162,7 @@ func (m *DashboardRepository) GetMainReport(
 	}
 
 	processorTotalTransactionsAndArpuPrevious.DbQueryFn = processorTotalTransactionsAndArpuPrevious.ExecuteTotalTransactionsAndArpuReports
-	dataTotalTransactionsAndArpuPrevious, err := processorTotalTransactionsAndArpuPrevious.ExecuteReport(new(TotalTransactionsAndArpuReports))
+	dataTotalTransactionsAndArpuPrevious, err := processorTotalTransactionsAndArpuPrevious.ExecuteReport(ctx, new(TotalTransactionsAndArpuReports))
 
 	if err != nil {
 		return nil, dashboardErrorUnknown
@@ -221,7 +221,7 @@ func (m *DashboardRepository) GetRevenueDynamicsReport(
 	}
 
 	processor.DbQueryFn = processor.ExecuteRevenueDynamicReport
-	data, err := processor.ExecuteReport(new(grpc.DashboardRevenueDynamicReport))
+	data, err := processor.ExecuteReport(ctx, new(grpc.DashboardRevenueDynamicReport))
 
 	if err != nil {
 		return nil, dashboardErrorUnknown
@@ -301,13 +301,13 @@ func (m *DashboardRepository) GetBaseRevenueByCountryReport(
 
 	processorCurrent.DbQueryFn = processorCurrent.ExecuteRevenueByCountryReport
 	processorPrevious.DbQueryFn = processorPrevious.ExecuteRevenueByCountryReport
-	dataCurrent, err := processorCurrent.ExecuteReport(new(grpc.DashboardRevenueByCountryReport))
+	dataCurrent, err := processorCurrent.ExecuteReport(ctx, new(grpc.DashboardRevenueByCountryReport))
 
 	if err != nil {
 		return nil, dashboardErrorUnknown
 	}
 
-	dataPrevious, err := processorPrevious.ExecuteReport(new(grpc.DashboardRevenueByCountryReport))
+	dataPrevious, err := processorPrevious.ExecuteReport(ctx, new(grpc.DashboardRevenueByCountryReport))
 
 	if err != nil {
 		return nil, dashboardErrorUnknown
@@ -364,13 +364,13 @@ func (m *DashboardRepository) GetBaseSalesTodayReport(
 
 	processorCurrent.DbQueryFn = processorCurrent.ExecuteSalesTodayReport
 	processorPrevious.DbQueryFn = processorPrevious.ExecuteSalesTodayReport
-	dataCurrent, err := processorCurrent.ExecuteReport(new(grpc.DashboardSalesTodayReport))
+	dataCurrent, err := processorCurrent.ExecuteReport(ctx, new(grpc.DashboardSalesTodayReport))
 
 	if err != nil {
 		return nil, dashboardErrorUnknown
 	}
 
-	dataPrevious, err := processorPrevious.ExecuteReport(new(grpc.DashboardSalesTodayReport))
+	dataPrevious, err := processorPrevious.ExecuteReport(ctx, new(grpc.DashboardSalesTodayReport))
 
 	if err != nil {
 		return nil, dashboardErrorUnknown
@@ -417,13 +417,13 @@ func (m *DashboardRepository) GetBaseSourcesReport(
 
 	processorCurrent.DbQueryFn = processorCurrent.ExecuteSourcesReport
 	processorPrevious.DbQueryFn = processorPrevious.ExecuteSourcesReport
-	dataCurrent, err := processorCurrent.ExecuteReport(new(grpc.DashboardSourcesReport))
+	dataCurrent, err := processorCurrent.ExecuteReport(ctx, new(grpc.DashboardSourcesReport))
 
 	if err != nil {
 		return nil, dashboardErrorUnknown
 	}
 
-	dataPrevious, err := processorPrevious.ExecuteReport(new(grpc.DashboardSourcesReport))
+	dataPrevious, err := processorPrevious.ExecuteReport(ctx, new(grpc.DashboardSourcesReport))
 
 	if err != nil {
 		return nil, dashboardErrorUnknown
@@ -459,7 +459,6 @@ func (m *DashboardRepository) NewDashboardReportProcessor(
 		Errors: map[string]*grpc.ResponseErrorMessage{
 			"unknown": dashboardErrorUnknown,
 		},
-		Ctx: ctx,
 	}
 
 	switch period {
