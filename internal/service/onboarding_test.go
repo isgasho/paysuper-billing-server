@@ -3583,7 +3583,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_Ok() {
 	paymentCosts, err = suite.service.paymentChannelCostMerchant.GetAllForMerchant(context.TODO(), rsp0.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), paymentCosts.Items)
-	assert.Len(suite.T(), paymentCosts.Items, 2)
+	assert.Len(suite.T(), paymentCosts.Items, 3)
 
 	moneyBackCosts, err = suite.service.moneyBackCostMerchant.GetAllForMerchant(context.TODO(), rsp0.Item.Id)
 	assert.NoError(suite.T(), err)

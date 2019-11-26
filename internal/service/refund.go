@@ -443,7 +443,6 @@ func (s *Service) createOrderByRefund(ctx context.Context, order *billing.Order,
 	refundOrder.UpdatedAt = ptypes.TimestampNow()
 	refundOrder.RefundedAt = ptypes.TimestampNow()
 	refundOrder.Refunded = true
-	refundOrder.PaymentMethodOrderClosedAt = ptypes.TimestampNow()
 	refundOrder.Refund = &billing.OrderNotificationRefund{
 		Amount:        refund.Amount,
 		Currency:      refund.Currency,
@@ -455,8 +454,7 @@ func (s *Service) createOrderByRefund(ctx context.Context, order *billing.Order,
 		Uuid: order.Uuid,
 	}
 	refundOrder.IsVatDeduction = isVatDeduction
-	refundOrder.ParentPaymentAt = refundOrder.PaymentMethodOrderClosedAt
-	refundOrder.PaymentMethodOrderClosedAt = ptypes.TimestampNow()
+	refundOrder.ParentPaymentAt = order.PaymentMethodOrderClosedAt
 
 	refundOrder.TotalPaymentAmount = refund.Amount
 

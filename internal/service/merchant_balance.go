@@ -49,7 +49,6 @@ func (s *Service) GetMerchantBalance(
 	req *grpc.GetMerchantBalanceRequest,
 	res *grpc.GetMerchantBalanceResponse,
 ) error {
-
 	var err error
 	res.Status = pkg.ResponseStatusOk
 

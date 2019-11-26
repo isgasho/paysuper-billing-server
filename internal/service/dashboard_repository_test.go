@@ -118,7 +118,7 @@ func (suite *DashboardRepositoryTestSuite) SetupTest() {
 		suite.FailNow("Migrations failed", "%v", err)
 	}
 
-	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, _ := context.WithTimeout(context.Background(), 60*time.Second)
 	opts := []mongodb.Option{mongodb.Context(ctx)}
 	db, err := mongodb.NewDatabase(opts...)
 	if err != nil {

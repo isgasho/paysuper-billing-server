@@ -77,9 +77,16 @@ func NewCardPayMock() PaymentSystem {
 	cpMock.On("ProcessRefund", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(
 			func(order *billing.Order, refund *billing.Refund, message proto.Message, raw, signature string) error {
+				req := message.(*billing.CardPayRefundCallback)
+
+				t, _ := time.Parse(cardPayDateFormat, req.CallbackTime)
+				ts, _ := ptypes.TimestampProto(t)
+
 				refund.Status = pkg.RefundStatusCompleted
 				refund.ExternalId = "0987654321"
-				refund.UpdatedAt = ptypes.TimestampNow()
+				refund.UpdatedAt = ts
+
+				order.PaymentMethodOrderClosedAt = ts
 				return nil
 			},
 			nil,

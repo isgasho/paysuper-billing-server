@@ -133,9 +133,7 @@ func (h *MerchantsTariffRatesRepository) GetPaymentTariffsBy(
 
 	query := bson.M{"merchant_home_region": in.HomeRegion, "mcc_code": mccCode}
 
-	if in.PayerRegion == "" {
-		query["payer_region"] = in.HomeRegion
-	} else {
+	if in.PayerRegion != "" {
 		query["payer_region"] = in.PayerRegion
 	}
 
@@ -159,6 +157,7 @@ func (h *MerchantsTariffRatesRepository) GetPaymentTariffsBy(
 	}
 
 	err = cursor.All(ctx, &item.Items)
+	_ = cursor.Close(ctx)
 
 	if err != nil {
 		zap.L().Error(

@@ -94,7 +94,6 @@ type vatReportQueryResItem struct {
 
 type vatReportProcessor struct {
 	*Service
-	ctx                context.Context
 	date               time.Time
 	ts                 *timestamp.Timestamp
 	countries          []*billing.Country
@@ -118,7 +117,6 @@ func NewVatReportProcessor(s *Service, ctx context.Context, date *timestamp.Time
 
 	processor := &vatReportProcessor{
 		Service:            s,
-		ctx:                ctx,
 		date:               eod,
 		ts:                 eodTimestamp,
 		countries:          countries.Countries,
@@ -331,13 +329,13 @@ func (s *Service) ProcessVatReports(
 	}
 
 	zap.S().Info("process accounting entries")
-	err = handler.ProcessAccountingEntries()
+	err = handler.ProcessAccountingEntries(ctx)
 	if err != nil {
 		return err
 	}
 
 	zap.S().Info("updating order view")
-	err = handler.UpdateOrderView()
+	err = handler.UpdateOrderView(ctx)
 	if err != nil {
 		return err
 	}
@@ -349,13 +347,13 @@ func (s *Service) ProcessVatReports(
 	}
 
 	zap.S().Info("processing vat reports")
-	err = handler.ProcessVatReports()
+	err = handler.ProcessVatReports(ctx)
 	if err != nil {
 		return err
 	}
 
 	zap.S().Info("updating vat reports status")
-	err = handler.ProcessVatReportsStatus()
+	err = handler.ProcessVatReportsStatus(ctx)
 	if err != nil {
 		return err
 	}
@@ -515,14 +513,14 @@ func (s *Service) getLastVatReportTime(VatPeriodMonth int32) (from, to time.Time
 	return s.getVatReportTime(VatPeriodMonth, time.Time{})
 }
 
-func (h *vatReportProcessor) ProcessVatReportsStatus() error {
+func (h *vatReportProcessor) ProcessVatReportsStatus(ctx context.Context) error {
 	currentUnixTime := time.Now().Unix()
 
 	query := bson.M{
 		"status": bson.M{"$in": []string{pkg.VatReportStatusThreshold, pkg.VatReportStatusNeedToPay}},
 	}
 
-	cursor, err := h.Service.db.Collection(collectionVatReports).Find(h.ctx, query)
+	cursor, err := h.Service.db.Collection(collectionVatReports).Find(ctx, query)
 
 	if err != nil {
 		zap.L().Error(
@@ -535,7 +533,7 @@ func (h *vatReportProcessor) ProcessVatReportsStatus() error {
 	}
 
 	var reports []*billing.VatReport
-	err = cursor.All(h.ctx, &reports)
+	err = cursor.All(ctx, &reports)
 
 	if err != nil {
 		zap.L().Error(
@@ -569,7 +567,7 @@ func (h *vatReportProcessor) ProcessVatReportsStatus() error {
 			}
 			if currentUnixTime >= reportDeadline.Unix() {
 				report.Status = pkg.VatReportStatusOverdue
-				err = h.Service.updateVatReport(h.ctx, report)
+				err = h.Service.updateVatReport(ctx, report)
 				if err != nil {
 					return err
 				}
@@ -589,7 +587,7 @@ func (h *vatReportProcessor) ProcessVatReportsStatus() error {
 		} else {
 			report.Status = pkg.VatReportStatusExpired
 		}
-		err = h.Service.updateVatReport(h.ctx, report)
+		err = h.Service.updateVatReport(ctx, report)
 		if err != nil {
 			return err
 		}
@@ -606,8 +604,8 @@ func (h *vatReportProcessor) getCountry(countryCode string) *billing.Country {
 	return nil
 }
 
-func (h *vatReportProcessor) ProcessVatReports() error {
-	operatingCompanies, err := h.Service.operatingCompany.GetAll(h.ctx)
+func (h *vatReportProcessor) ProcessVatReports(ctx context.Context) error {
+	operatingCompanies, err := h.Service.operatingCompany.GetAll(ctx)
 	if err != nil {
 		return err
 	}
@@ -619,7 +617,7 @@ func (h *vatReportProcessor) ProcessVatReports() error {
 			countries = h.countries
 		} else {
 			for _, countryCode := range oc.PaymentCountries {
-				country, err := h.Service.country.GetByIsoCodeA2(h.ctx, countryCode)
+				country, err := h.Service.country.GetByIsoCodeA2(ctx, countryCode)
 				if err != nil {
 					return err
 				}
@@ -627,7 +625,7 @@ func (h *vatReportProcessor) ProcessVatReports() error {
 			}
 		}
 		for _, c := range h.countries {
-			err := h.processVatReportForPeriod(h.ctx, c, oc.Id)
+			err := h.processVatReportForPeriod(ctx, c, oc.Id)
 			if err != nil {
 				return err
 			}
@@ -637,9 +635,9 @@ func (h *vatReportProcessor) ProcessVatReports() error {
 	return nil
 }
 
-func (h *vatReportProcessor) ProcessAccountingEntries() error {
+func (h *vatReportProcessor) ProcessAccountingEntries(ctx context.Context) error {
 	for _, c := range h.countries {
-		err := h.processAccountingEntriesForPeriod(c)
+		err := h.processAccountingEntriesForPeriod(ctx, c)
 		if err != nil {
 			return err
 		}
@@ -647,7 +645,7 @@ func (h *vatReportProcessor) ProcessAccountingEntries() error {
 	return nil
 }
 
-func (h *vatReportProcessor) UpdateOrderView() error {
+func (h *vatReportProcessor) UpdateOrderView(ctx context.Context) error {
 	if len(h.orderViewUpdateIds) == 0 {
 		return nil
 	}
@@ -657,7 +655,7 @@ func (h *vatReportProcessor) UpdateOrderView() error {
 		ids = append(ids, k)
 	}
 
-	err := h.Service.updateOrderView(h.ctx, ids)
+	err := h.Service.updateOrderView(ctx, ids)
 	if err != nil {
 		return err
 	}
@@ -686,7 +684,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, coun
 		UserData: &taxService.GeoIdentity{},
 	}
 
-	rsp, err := h.Service.tax.GetRate(h.ctx, req)
+	rsp, err := h.Service.tax.GetRate(ctx, req)
 	if err != nil {
 		zap.L().Error(errorMsgVatReportTaxServiceGetRateFailed, zap.Error(err))
 		return err
@@ -719,7 +717,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, coun
 		return err
 	}
 
-	countryTurnover, err := h.Service.turnover.Get(h.ctx, operatingCompanyId, country.IsoCodeA2, from.Year())
+	countryTurnover, err := h.Service.turnover.Get(ctx, operatingCompanyId, country.IsoCodeA2, from.Year())
 
 	if err != nil {
 		zap.S().Warn(
@@ -732,7 +730,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, coun
 	}
 	report.CountryAnnualTurnover = tools.FormatAmount(countryTurnover.Amount)
 
-	worldTurnover, err := h.Service.turnover.Get(h.ctx, operatingCompanyId, "", from.Year())
+	worldTurnover, err := h.Service.turnover.Get(ctx, operatingCompanyId, "", from.Year())
 
 	if err != nil {
 		return err
@@ -747,7 +745,14 @@ func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, coun
 		targetCurrency = country.Currency
 	}
 	if worldTurnover.Currency != targetCurrency {
-		report.WorldAnnualTurnover, err = h.exchangeAmount(worldTurnover.Currency, targetCurrency, worldTurnover.Amount, country.VatCurrencyRatesSource)
+		report.WorldAnnualTurnover, err = h.exchangeAmount(
+			ctx,
+			worldTurnover.Currency,
+			targetCurrency,
+			worldTurnover.Amount,
+			country.VatCurrencyRatesSource,
+		)
+
 		if err != nil {
 			return err
 		}
@@ -883,7 +888,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, coun
 
 }
 
-func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.Country) error {
+func (h *vatReportProcessor) processAccountingEntriesForPeriod(ctx context.Context, country *billing.Country) error {
 	if !country.VatEnabled {
 		return errorVatReportNotEnabledForCountry
 	}
@@ -921,7 +926,7 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.
 		"type":    bson.M{"$in": AccountingEntriesLocalAmountsUpdate},
 	}
 
-	cursor, err := h.Service.db.Collection(collectionAccountingEntry).Find(h.ctx, query)
+	cursor, err := h.Service.db.Collection(collectionAccountingEntry).Find(ctx, query)
 
 	if err != nil {
 		if err != mongo.ErrNoDocuments {
@@ -936,7 +941,7 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.
 	}
 
 	var aes []*billing.AccountingEntry
-	err = cursor.All(h.ctx, &aes)
+	err = cursor.All(ctx, &aes)
 
 	if err != nil {
 		zap.L().Error(
@@ -968,7 +973,14 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.
 		}
 		amount := ae.LocalAmount
 		if ae.LocalCurrency != ae.OriginalCurrency {
-			amount, err = h.exchangeAmount(ae.OriginalCurrency, ae.LocalCurrency, ae.OriginalAmount, country.VatCurrencyRatesSource)
+			amount, err = h.exchangeAmount(
+				ctx,
+				ae.OriginalCurrency,
+				ae.LocalCurrency,
+				ae.OriginalAmount,
+				country.VatCurrencyRatesSource,
+			)
+
 			if err != nil {
 				return err
 			}
@@ -1009,7 +1021,12 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(country *billing.
 	return nil
 }
 
-func (h *vatReportProcessor) exchangeAmount(from, to string, amount float64, source string) (float64, error) {
+func (h *vatReportProcessor) exchangeAmount(
+	ctx context.Context,
+	from, to string,
+	amount float64,
+	source string,
+) (float64, error) {
 	req := &currencies.ExchangeCurrencyByDateCommonRequest{
 		From:     from,
 		To:       to,
@@ -1019,7 +1036,7 @@ func (h *vatReportProcessor) exchangeAmount(from, to string, amount float64, sou
 		Datetime: h.ts,
 	}
 
-	rsp, err := h.Service.curService.ExchangeCurrencyByDateCommon(h.ctx, req)
+	rsp, err := h.Service.curService.ExchangeCurrencyByDateCommon(ctx, req)
 
 	if err != nil {
 		zap.L().Error(

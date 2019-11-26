@@ -215,9 +215,10 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_GetMerchantBalance_Fa
 	}
 
 	res := &grpc.GetMerchantBalanceResponse{}
-
 	err := suite.service.GetMerchantBalance(context.TODO(), req, res)
-	assert.EqualError(suite.T(), err, "merchant not found")
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, res.Status)
+	assert.Equal(suite.T(), merchantErrorNotFound, res.Message)
 
 	count = suite.mbRecordsCount(merchantId, "")
 	assert.EqualValues(suite.T(), count, 0)
@@ -248,7 +249,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_updateMerchantBalance
 	assert.EqualValues(suite.T(), count, 0)
 
 	mb, err := suite.service.updateMerchantBalance(ctx, merchantId)
-	assert.EqualError(suite.T(), err, "merchant not found")
+	assert.EqualError(suite.T(), err, "merchant with specified identifier not found")
 	assert.Nil(suite.T(), mb)
 
 	count = suite.mbRecordsCount(merchantId, "")

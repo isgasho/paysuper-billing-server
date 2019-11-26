@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/uuid"
@@ -675,7 +674,7 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_MerchantN
 
 	err := suite.service.CreatePayoutDocument(context.TODO(), req, res)
 	assert.Error(suite.T(), err)
-	assert.EqualError(suite.T(), err, fmt.Errorf(errorNotFound, collectionMerchant).Error())
+	assert.Equal(suite.T(), err, merchantErrorNotFound)
 }
 
 func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_ZeroAmount() {

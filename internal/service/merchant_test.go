@@ -193,5 +193,5 @@ func (suite *MerchantTestSuite) TestMerchant_GetPaymentMethod_ErrorByMerchantNot
 	_, err := suite.service.merchant.GetPaymentMethod(ctx, primitive.NewObjectID().Hex(), "")
 
 	assert.Error(suite.T(), err)
-	assert.EqualError(suite.T(), err, "merchant not found")
+	assert.Equal(suite.T(), err, merchantErrorNotFound)
 }

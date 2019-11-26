@@ -441,7 +441,7 @@ func (h MoneyBackCostMerchant) GetAllForMerchant(
 	merchantId string,
 ) (*billing.MoneyBackCostMerchantList, error) {
 	item := new(billing.MoneyBackCostMerchantList)
-	key := fmt.Sprintf(cachePaymentChannelCostMerchantAll, merchantId)
+	key := fmt.Sprintf(cacheMoneyBackCostMerchantAll, merchantId)
 
 	if err := h.svc.cacher.Get(key, item); err == nil {
 		return item, nil
