@@ -3315,7 +3315,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_GetMerchantAgree
 	assert.Equal(suite.T(), mocks.SomeError, rsp3.Message.Message)
 }
 
-func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_PaysuperSign_Ok() {
+func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_MerchantSign_Ok() {
 	req0 := &grpc.OnboardingRequest{
 		User: &billing.MerchantUser{
 			Id:    bson.NewObjectId().Hex(),
@@ -3394,7 +3394,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_Pay
 
 	req1 := &grpc.GetMerchantAgreementSignUrlRequest{
 		MerchantId: rsp.Item.Id,
-		SignerType: 1,
+		SignerType: pkg.SignerTypeMerchant,
 	}
 	rsp1 := &grpc.GetMerchantAgreementSignUrlResponse{}
 	err = suite.service.GetMerchantAgreementSignUrl(context.TODO(), req1, rsp1)
@@ -3402,6 +3402,269 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_Pay
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)
 	assert.NotNil(suite.T(), rsp1.Item)
+}
+
+func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_MerchantSign_Error() {
+	req0 := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
+		Company: &billing.MerchantCompanyInfo{
+			Name:    "merchant1",
+			Country: "RU",
+			Zip:     "190000",
+			City:    "St.Petersburg",
+		},
+	}
+	rsp0 := &grpc.ChangeMerchantResponse{}
+	err := suite.service.ChangeMerchant(context.TODO(), req0, rsp0)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	assert.Empty(suite.T(), rsp0.Message)
+
+	req := &grpc.OnboardingRequest{
+		Id: rsp0.Item.Id,
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
+		Company: &billing.MerchantCompanyInfo{
+			Name:    "merchant1",
+			Country: "RU",
+			Zip:     "190000",
+			City:    "St.Petersburg",
+		},
+		Contacts: &billing.MerchantContact{
+			Authorized: &billing.MerchantContactAuthorized{
+				Name:     "Unit Test",
+				Email:    "test@unit.test",
+				Phone:    "1234567890",
+				Position: "Unit Test",
+			},
+			Technical: &billing.MerchantContactTechnical{
+				Name:  "Unit Test",
+				Email: "test@unit.test",
+				Phone: "1234567890",
+			},
+		},
+		Banking: &billing.MerchantBanking{
+			Currency:      "RUB",
+			Name:          "Bank name",
+			Address:       "Unknown",
+			AccountNumber: "1234567890",
+			Swift:         "TEST",
+			Details:       "",
+		},
+	}
+	rsp := &grpc.ChangeMerchantResponse{}
+	err = suite.service.ChangeMerchant(context.TODO(), req, rsp)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+
+	req2 := &grpc.SetMerchantTariffRatesRequest{
+		MerchantId:             rsp0.Item.Id,
+		HomeRegion:             "russia_and_cis",
+		MerchantOperationsType: pkg.MerchantOperationTypeLowRisk,
+	}
+	rsp2 := &grpc.CheckProjectRequestSignatureResponse{}
+	err = suite.service.SetMerchantTariffRates(context.TODO(), req2, rsp2)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
+	assert.Empty(suite.T(), rsp2.Message)
+
+	merchant, err := suite.service.merchant.GetById(rsp.Item.Id)
+	assert.NoError(suite.T(), err)
+	merchant.AgreementSignatureData = &billing.MerchantAgreementSignatureData{}
+	merchant.Status = pkg.MerchantStatusPending
+	err = suite.service.merchant.Update(merchant)
+	assert.NoError(suite.T(), err)
+
+	req1 := &grpc.GetMerchantAgreementSignUrlRequest{
+		MerchantId: rsp.Item.Id,
+		SignerType: pkg.SignerTypeMerchant,
+	}
+	rsp1 := &grpc.GetMerchantAgreementSignUrlResponse{}
+	err = suite.service.GetMerchantAgreementSignUrl(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
+}
+
+func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_PaysuperSign_Ok() {
+	req0 := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
+		Company: &billing.MerchantCompanyInfo{
+			Name:    "merchant1",
+			Country: "RU",
+			Zip:     "190000",
+			City:    "St.Petersburg",
+		},
+	}
+	rsp0 := &grpc.ChangeMerchantResponse{}
+	err := suite.service.ChangeMerchant(context.TODO(), req0, rsp0)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	assert.Empty(suite.T(), rsp0.Message)
+
+	req := &grpc.OnboardingRequest{
+		Id: rsp0.Item.Id,
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
+		Company: &billing.MerchantCompanyInfo{
+			Name:    "merchant1",
+			Country: "RU",
+			Zip:     "190000",
+			City:    "St.Petersburg",
+		},
+		Contacts: &billing.MerchantContact{
+			Authorized: &billing.MerchantContactAuthorized{
+				Name:     "Unit Test",
+				Email:    "test@unit.test",
+				Phone:    "1234567890",
+				Position: "Unit Test",
+			},
+			Technical: &billing.MerchantContactTechnical{
+				Name:  "Unit Test",
+				Email: "test@unit.test",
+				Phone: "1234567890",
+			},
+		},
+		Banking: &billing.MerchantBanking{
+			Currency:      "RUB",
+			Name:          "Bank name",
+			Address:       "Unknown",
+			AccountNumber: "1234567890",
+			Swift:         "TEST",
+			Details:       "",
+		},
+	}
+	rsp := &grpc.ChangeMerchantResponse{}
+	err = suite.service.ChangeMerchant(context.TODO(), req, rsp)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+
+	req2 := &grpc.SetMerchantTariffRatesRequest{
+		MerchantId:             rsp0.Item.Id,
+		HomeRegion:             "russia_and_cis",
+		MerchantOperationsType: pkg.MerchantOperationTypeLowRisk,
+	}
+	rsp2 := &grpc.CheckProjectRequestSignatureResponse{}
+	err = suite.service.SetMerchantTariffRates(context.TODO(), req2, rsp2)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
+	assert.Empty(suite.T(), rsp2.Message)
+
+	merchant, err := suite.service.merchant.GetById(rsp.Item.Id)
+	assert.NoError(suite.T(), err)
+	merchant.AgreementSignatureData = &billing.MerchantAgreementSignatureData{}
+	merchant.Status = pkg.MerchantStatusAgreementSigning
+	err = suite.service.merchant.Update(merchant)
+	assert.NoError(suite.T(), err)
+
+	req1 := &grpc.GetMerchantAgreementSignUrlRequest{
+		MerchantId: rsp.Item.Id,
+		SignerType: pkg.SignerTypePs,
+	}
+	rsp1 := &grpc.GetMerchantAgreementSignUrlResponse{}
+	err = suite.service.GetMerchantAgreementSignUrl(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.Empty(suite.T(), rsp1.Message)
+	assert.NotNil(suite.T(), rsp1.Item)
+}
+
+func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_PaysuperSign_Error() {
+	req0 := &grpc.OnboardingRequest{
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
+		Company: &billing.MerchantCompanyInfo{
+			Name:    "merchant1",
+			Country: "RU",
+			Zip:     "190000",
+			City:    "St.Petersburg",
+		},
+	}
+	rsp0 := &grpc.ChangeMerchantResponse{}
+	err := suite.service.ChangeMerchant(context.TODO(), req0, rsp0)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	assert.Empty(suite.T(), rsp0.Message)
+
+	req := &grpc.OnboardingRequest{
+		Id: rsp0.Item.Id,
+		User: &billing.MerchantUser{
+			Id:    bson.NewObjectId().Hex(),
+			Email: "test@unit.test",
+		},
+		Company: &billing.MerchantCompanyInfo{
+			Name:    "merchant1",
+			Country: "RU",
+			Zip:     "190000",
+			City:    "St.Petersburg",
+		},
+		Contacts: &billing.MerchantContact{
+			Authorized: &billing.MerchantContactAuthorized{
+				Name:     "Unit Test",
+				Email:    "test@unit.test",
+				Phone:    "1234567890",
+				Position: "Unit Test",
+			},
+			Technical: &billing.MerchantContactTechnical{
+				Name:  "Unit Test",
+				Email: "test@unit.test",
+				Phone: "1234567890",
+			},
+		},
+		Banking: &billing.MerchantBanking{
+			Currency:      "RUB",
+			Name:          "Bank name",
+			Address:       "Unknown",
+			AccountNumber: "1234567890",
+			Swift:         "TEST",
+			Details:       "",
+		},
+	}
+	rsp := &grpc.ChangeMerchantResponse{}
+	err = suite.service.ChangeMerchant(context.TODO(), req, rsp)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+
+	req2 := &grpc.SetMerchantTariffRatesRequest{
+		MerchantId:             rsp0.Item.Id,
+		HomeRegion:             "russia_and_cis",
+		MerchantOperationsType: pkg.MerchantOperationTypeLowRisk,
+	}
+	rsp2 := &grpc.CheckProjectRequestSignatureResponse{}
+	err = suite.service.SetMerchantTariffRates(context.TODO(), req2, rsp2)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
+	assert.Empty(suite.T(), rsp2.Message)
+
+	merchant, err := suite.service.merchant.GetById(rsp.Item.Id)
+	assert.NoError(suite.T(), err)
+	merchant.AgreementSignatureData = &billing.MerchantAgreementSignatureData{}
+	merchant.Status = pkg.MerchantStatusAccepted
+	err = suite.service.merchant.Update(merchant)
+	assert.NoError(suite.T(), err)
+
+	req1 := &grpc.GetMerchantAgreementSignUrlRequest{
+		MerchantId: rsp.Item.Id,
+		SignerType: pkg.SignerTypePs,
+	}
+	rsp1 := &grpc.GetMerchantAgreementSignUrlResponse{}
+	err = suite.service.GetMerchantAgreementSignUrl(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantTariffRates_Ok() {
