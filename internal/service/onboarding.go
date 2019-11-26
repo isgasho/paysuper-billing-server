@@ -1154,18 +1154,16 @@ func (s *Service) GetMerchantAgreementSignUrl(
 		return nil
 	}
 
-	if merchant.AgreementSignatureData == nil ||
-		(req.SignerType == pkg.SignerTypeMerchant && merchant.Status != pkg.MerchantStatusAccepted) ||
-		(req.SignerType == pkg.SignerTypePs && merchant.Status != pkg.MerchantStatusAgreementSigning) {
+	if merchant.IsAgreementSigned() {
 		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = merchantErrorOnboardingNotComplete
+		rsp.Message = merchantErrorAlreadySigned
 
 		return nil
 	}
 
-	if merchant.IsAgreementSigned() {
+	if !merchant.CanSignAgreement(req.SignerType) {
 		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = merchantErrorAlreadySigned
+		rsp.Message = merchantErrorOnboardingNotComplete
 
 		return nil
 	}

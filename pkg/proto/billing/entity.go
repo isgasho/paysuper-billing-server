@@ -156,6 +156,12 @@ func (m *Merchant) IsAgreementSigningStarted() bool {
 	return m.AgreementSignatureData != nil && (!m.HasPspSignature || !m.HasMerchantSignature)
 }
 
+func (m *Merchant) CanSignAgreement(singerType int32) bool {
+	return m.AgreementSignatureData != nil &&
+		(singerType == pkg.SignerTypeMerchant && m.Status == pkg.MerchantStatusAccepted) ||
+		(singerType == pkg.SignerTypePs && m.Status == pkg.MerchantStatusAgreementSigning)
+}
+
 func (m *Merchant) IsAgreementSigned() bool {
 	return m.HasMerchantSignature && m.HasPspSignature
 }
