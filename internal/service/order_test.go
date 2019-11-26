@@ -3928,6 +3928,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcessAlreadyProcesse
 	err = suite.service.PaymentFormJsonDataProcess(context.TODO(), req1, rsp2)
 	assert.Nil(suite.T(), err)
 	assert.EqualValues(suite.T(), 200, rsp2.Status)
+	assert.Equal(suite.T(), billing.OrderType_simple, rsp2.Item.Type)
 	assert.True(suite.T(), rsp2.Item.IsAlreadyProcessed)
 	assert.EqualValues(suite.T(), order.ReceiptUrl, rsp2.Item.ReceiptUrl)
 }
@@ -3972,6 +3973,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_Ok() {
 	err = suite.service.PaymentFormJsonDataProcess(context.TODO(), req1, rsp)
 
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), billing.OrderType_simple, rsp.Item.Type)
 	assert.True(suite.T(), len(rsp.Item.PaymentMethods) > 0)
 	assert.True(suite.T(), len(rsp.Item.PaymentMethods[0].Id) > 0)
 	assert.Equal(suite.T(), len(rsp.Item.Items), 0)
@@ -4017,6 +4019,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcessWithProducts_Ok
 	err = suite.service.PaymentFormJsonDataProcess(context.TODO(), req1, rsp)
 
 	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), billing.OrderType_product, rsp.Item.Type)
 	assert.True(suite.T(), len(rsp.Item.PaymentMethods) > 0)
 	assert.True(suite.T(), len(rsp.Item.PaymentMethods[0].Id) > 0)
 	assert.Equal(suite.T(), len(rsp.Item.Items), 2)
