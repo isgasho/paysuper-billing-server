@@ -286,7 +286,7 @@ func (s *Service) GetRecommendedPriceByConversion(
 	}
 
 	for _, region := range regions {
-		amount, err := s.getPriceInCurrencyByAmount(region.Currency, req.Currency, req.Amount)
+		amount, err := s.getPriceInCurrencyByAmount(ctx, region.Currency, req.Currency, req.Amount)
 
 		if err != nil {
 			zap.S().Errorw("Unable to get amount for region", "err", err, "region", region)
@@ -323,7 +323,7 @@ func (s *Service) GetPriceGroupByRegion(ctx context.Context, req *grpc.GetPriceG
 	return nil
 }
 
-func (s *Service) getPriceInCurrencyByAmount(targetCurrency string, originalCurrency string, amount float64) (float64, error) {
+func (s *Service) getPriceInCurrencyByAmount(ctx context.Context, targetCurrency string, originalCurrency string, amount float64) (float64, error) {
 	req := &currencies.ExchangeCurrencyCurrentCommonRequest{
 		Amount:            amount,
 		From:              originalCurrency,
@@ -331,7 +331,7 @@ func (s *Service) getPriceInCurrencyByAmount(targetCurrency string, originalCurr
 		RateType:          curPkg.RateTypeOxr,
 		ExchangeDirection: curPkg.ExchangeDirectionSell,
 	}
-	res, err := s.curService.ExchangeCurrencyCurrentCommon(context.Background(), req)
+	res, err := s.curService.ExchangeCurrencyCurrentCommon(ctx, req)
 
 	if err != nil {
 		return 0, err

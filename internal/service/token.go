@@ -85,11 +85,6 @@ func (s *Service) CreateToken(
 		return nil
 	}
 
-	userIp := ""
-	if req.User != nil && req.User.Ip != nil {
-		userIp = req.User.Ip.Value
-	}
-
 	processor := &OrderCreateRequestProcessor{
 		Service: s,
 		request: &billing.OrderCreateRequest{
@@ -101,9 +96,7 @@ func (s *Service) CreateToken(
 			IsBuyForVirtualCurrency: req.Settings.IsBuyForVirtualCurrency,
 		},
 		checked: &orderCreateRequestProcessorChecked{
-			user: &billing.OrderUser{
-				Ip: userIp,
-			},
+			user: &billing.OrderUser{},
 		},
 	}
 
@@ -137,21 +130,24 @@ func (s *Service) CreateToken(
 		}
 	}
 
-	if processor.checked.user.Ip != "" {
-		err = processor.processPayerIp()
-		if err != nil {
-			zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
-			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-				rsp.Status = pkg.ResponseStatusBadData
-				rsp.Message = e
-				return nil
+	if req.User != nil {
+		if req.User.Address != nil && req.User.Address.Country != "" {
+			processor.checked.user.Address = req.User.Address
+		} else {
+			if req.User.Ip != nil {
+				address, err := s.getAddressByIp(req.User.Ip.Value)
+				if err != nil {
+					zap.L().Error(pkg.MethodFinishedWithError, zap.Error(err))
+					if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+						rsp.Status = pkg.ResponseStatusBadData
+						rsp.Message = e
+						return nil
+					}
+					return err
+				}
+				processor.checked.user.Address = address
 			}
-			return err
 		}
-	}
-
-	if req.User.Address != nil && req.User.Address.Country != "" {
-		processor.checked.user.Address = req.User.Address
 	}
 
 	err = processor.processCurrency(req.Settings.Type == billing.OrderType_simple)

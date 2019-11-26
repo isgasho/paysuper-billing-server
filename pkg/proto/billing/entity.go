@@ -346,3 +346,10 @@ func (m *Merchant) CanChangeStatusTo(status int32) bool {
 func (ou *OrderUser) HasAddress() bool {
 	return ou.Address != nil && ou.Address.Country != ""
 }
+
+func (ou *OrderUser) GetCountry() string {
+	if ou.Address == nil {
+		return ""
+	}
+	return ou.Address.Country
+}

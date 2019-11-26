@@ -58,9 +58,6 @@ const (
 	collectionBinData         = "bank_bin"
 	collectionNotifySales     = "notify_sales"
 	collectionNotifyNewRegion = "notify_new_region"
-
-	processPaylinkKeyProductsTemplate      = "[processPaylinkKeyProducts] %s"
-	processProcessOrderKeyProductsTemplate = "[ProcessOrderKeyProducts] %s"
 )
 
 var (
@@ -409,12 +406,6 @@ func (s *Service) OrderCreateProcess(
 			return nil
 		}
 		return err
-	}
-
-	if processor.checked.currency == "" {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = orderErrorCurrencyIsRequired
-		return nil
 	}
 
 	switch req.Type {
@@ -2338,8 +2329,7 @@ func (v *OrderCreateRequestProcessor) processCurrency(isSimpleCheckout bool) err
 	}
 
 	if isSimpleCheckout {
-		v.checked.currency = ""
-		return nil
+		return orderErrorCurrencyIsRequired
 	}
 
 	v.checked.isCurrencyPredefined = false
@@ -2396,10 +2386,7 @@ func (v *OrderCreateRequestProcessor) getCountry() string {
 	if v.checked.user == nil {
 		return ""
 	}
-	if v.checked.user.Address == nil {
-		return ""
-	}
-	return v.checked.user.Address.Country
+	return v.checked.user.GetCountry()
 }
 
 func (v *OrderCreateRequestProcessor) processPayerIp() error {
@@ -2425,11 +2412,13 @@ func (v *OrderCreateRequestProcessor) processPaylinkKeyProducts() error {
 		return err
 	}
 
-	pid := v.request.PrivateMetadata["PaylinkId"]
 	currency := v.checked.currency
-	logInfo := processPaylinkKeyProductsTemplate
 
-	zap.S().Infow(fmt.Sprintf(logInfo, "use currency"), "currency", currency, "paylink", pid)
+	zap.L().Info(
+		fmt.Sprintf("processPaylinkKeyProducts use currency"),
+		zap.String("currency", currency),
+		zap.String("paylink", v.request.PrivateMetadata["PaylinkId"]),
+	)
 
 	if v.checked.priceGroup == nil {
 		zap.L().Error("processPaylinkKeyProducts no checked price group")
@@ -2479,11 +2468,13 @@ func (v *OrderCreateRequestProcessor) processPaylinkProducts() error {
 		return err
 	}
 
-	logInfo := "[processPaylinkProducts] %s"
-	pid := v.request.PrivateMetadata["PaylinkId"]
 	currency := v.checked.currency
 
-	zap.S().Infow(fmt.Sprintf(logInfo, "use currency"), "currency", currency, "paylink", pid)
+	zap.L().Info(
+		fmt.Sprintf("processPaylinkProducts use currency"),
+		zap.String("currency", currency),
+		zap.String("paylink", v.request.PrivateMetadata["PaylinkId"]),
+	)
 
 	if v.checked.priceGroup == nil {
 		zap.L().Error("processPaylinkProducts no checked price group")
@@ -3628,7 +3619,6 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 		priceGroup *billing.PriceGroup
 		platformId string
 		locale     string
-		logInfo    = processProcessOrderKeyProductsTemplate
 	)
 
 	// filter available platformIds for all products in request
@@ -3665,7 +3655,13 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 		return nil, err
 	}
 
-	zap.S().Infow(fmt.Sprintf(logInfo, "try to use detected currency for order amount"), "currency", priceGroup.Currency, "order.Uuid", order.Uuid, "platform_id", platformId, "order.PlatformId", order.PlatformId)
+	zap.L().Info(
+		"ProcessOrderKeyProducts try to use detected currency for order amount",
+		zap.String("currency", priceGroup.Currency),
+		zap.String("order.Uuid", order.Uuid),
+		zap.String("platform_id", platformId),
+		zap.String("order.PlatformId", order.PlatformId),
+	)
 	// try to get order Amount in requested currency
 	amount, err := s.GetOrderKeyProductsAmount(orderProducts, priceGroup, platformId)
 	if err != nil {
@@ -3720,7 +3716,6 @@ func (s *Service) ProcessOrderProducts(ctx context.Context, order *billing.Order
 	var (
 		priceGroup *billing.PriceGroup
 		locale     string
-		logInfo    = "[ProcessOrderProducts] %s"
 		amount     float64
 	)
 
@@ -3741,7 +3736,11 @@ func (s *Service) ProcessOrderProducts(ctx context.Context, order *billing.Order
 
 	defaultPriceGroup, err := s.priceGroup.GetByRegion(merchant.GetPayoutCurrency())
 
-	zap.S().Infow(fmt.Sprintf(logInfo, "try to use detected currency for order amount"), "currency", priceGroup.Currency, "order.Uuid", order.Uuid)
+	zap.L().Info(
+		"ProcessOrderProducts try to use detected currency for order amount",
+		zap.String("currency", priceGroup.Currency),
+		zap.String("order.Uuid", order.Uuid),
+	)
 
 	if order.IsBuyForVirtualCurrency {
 		zap.S().Infow("payment in virtual currency", "order.Uuid", order.Uuid)
