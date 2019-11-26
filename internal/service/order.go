@@ -569,6 +569,8 @@ func (s *Service) PaymentFormJsonDataProcess(
 		return err
 	}
 
+	rsp.Item.Type = order.ProductType
+
 	if order.PrivateStatus != constant.OrderStatusNew && order.PrivateStatus != constant.OrderStatusPaymentSystemComplete {
 		if len(order.ReceiptUrl) == 0 {
 			rsp.Status = pkg.ResponseStatusBadData
