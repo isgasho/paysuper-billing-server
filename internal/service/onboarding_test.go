@@ -4455,3 +4455,23 @@ func (suite *OnboardingTestSuite) TestOnboarding_GenerateMerchantAgreement_Check
 	assert.Equal(suite.T(), zapcore.InfoLevel, messages[0].Level)
 	assert.Contains(suite.T(), messages[0].Context[0].String, "address, address_additional, St.Petersburg, RU, 190000")
 }
+
+func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantTariffRates_WithPayerRegion_Ok() {
+	req := &grpc.GetMerchantTariffRatesRequest{
+		HomeRegion:             "russia_and_cis",
+		PayerRegion:            "europe",
+		MerchantOperationsType: pkg.MerchantOperationTypeLowRisk,
+	}
+	rsp := &grpc.GetMerchantTariffRatesResponse{}
+	err := suite.service.GetMerchantTariffRates(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotEmpty(suite.T(), rsp.Items)
+	assert.NotEmpty(suite.T(), rsp.Items.Payment)
+	assert.Len(suite.T(), rsp.Items.Payment, 1)
+	assert.Equal(suite.T(), rsp.Items.Payment[0], suite.cisTariff[2])
+	assert.NotEmpty(suite.T(), rsp.Items.Chargeback)
+	assert.NotNil(suite.T(), rsp.Items.Chargeback)
+	assert.NotNil(suite.T(), rsp.Items.Payout)
+}
