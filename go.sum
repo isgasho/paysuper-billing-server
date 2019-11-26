@@ -720,6 +720,8 @@ github.com/paysuper/paysuper-currencies v0.0.0-20190903083641-668b8b2b997d h1:ho
 github.com/paysuper/paysuper-currencies v0.0.0-20190903083641-668b8b2b997d/go.mod h1:C+QHdgbjIlAPxHD93/08yi+xWfUgk8maLY8FKFqNzMQ=
 github.com/paysuper/paysuper-currencies v0.0.0-20191121131020-65fd9220f98f h1:Y/BG9D86Kr06yaIA0327fIfEtcBq2vSG+Q7vEcK8sB0=
 github.com/paysuper/paysuper-currencies v0.0.0-20191121131020-65fd9220f98f/go.mod h1:Ll2/XKTtyRPUUci4hyYSp8Ip+N6MpUrBBOh6MbZhQOU=
+github.com/paysuper/paysuper-currencies v0.0.0-20191126123753-5139d3b5c8d2 h1:pDMgavqw+g/PAE8nRo6T2njno0FgsJzrLZjABkwtp+0=
+github.com/paysuper/paysuper-currencies v0.0.0-20191126123753-5139d3b5c8d2/go.mod h1:E4w9GTFf1OFe2tCPxIUJR3EW3M8UqwxpRzxMS5aymc4=
 github.com/paysuper/paysuper-database-mongo v0.1.0/go.mod h1:IZu996j//Qoq+uzzCBL5GEYisfF4di/fwedWHlLz7sc=
 github.com/paysuper/paysuper-database-mongo v0.1.1/go.mod h1:IZu996j//Qoq+uzzCBL5GEYisfF4di/fwedWHlLz7sc=
 github.com/paysuper/paysuper-database-mongo v0.1.3 h1:ftHxVMqxdZ7T2RhL/s1b0yu0TfL+yJ0zOZz7Dr7Ca6Q=
