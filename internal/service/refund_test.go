@@ -113,7 +113,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		AccountingPeriod:   "every-day",
 		Country:            "",
 		IsActive:           true,
-		Handler:            "mock_ok",
+		Handler:            paymentSystemHandlerCardPayMock,
 	}
 	pmBankCard := &billing.PaymentMethod{
 		Id:               primitive.NewObjectID().Hex(),
@@ -3012,4 +3012,41 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_NotHasCostsRates() {
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp2.Status)
 	assert.Equal(suite.T(), refundErrorCostsRatesNotFound, rsp2.Message)
 	assert.Nil(suite.T(), rsp2.Item)
+}
+
+func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunded_OtherOrders_Ok() {
+	orderAmounts := []float64{100, 200, 300}
+	refundAmounts := []float64{20, 30, 50}
+	orders := make([]*billing.Order, 3)
+
+	for _, v := range orderAmounts {
+		order := helperCreateAndPayOrder(suite.Suite, suite.service, v, "RUB", "RU", suite.project, suite.pmBankCard)
+		assert.NotNil(suite.T(), order)
+
+		orders = append(orders, order)
+	}
+
+	for _, v := range refundAmounts {
+		for _, v1 := range orders {
+			_ = helperMakeRefund(suite.Suite, suite.service, v1, v, false)
+		}
+	}
+
+	for k, v := range orders {
+		order, err := suite.service.getOrderById(context.TODO(), v.Id)
+		assert.NoError(suite.T(), err)
+		assert.NotNil(suite.T(), order)
+
+		if k == 0 {
+			assert.EqualValues(suite.T(), constant.OrderStatusRefund, order.PrivateStatus)
+			assert.Equal(suite.T(), constant.OrderPublicStatusRefunded, order.Status)
+			assert.NotNil(suite.T(), order.Refund)
+			assert.NotZero(suite.T(), order.Refund.Amount)
+			assert.NotZero(suite.T(), order.Refund.Reason)
+			assert.NotZero(suite.T(), order.Refund.ReceiptNumber)
+		} else {
+			assert.EqualValues(suite.T(), constant.OrderPublicStatusProcessed, order.Status)
+			assert.Nil(suite.T(), order.Refund)
+		}
+	}
 }
