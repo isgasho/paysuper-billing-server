@@ -3016,8 +3016,8 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_NotHasCostsRates() {
 
 func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunded_OtherOrders_Ok() {
 	orderAmounts := []float64{100, 200, 300}
-	refundAmounts := []float64{20, 30, 50}
-	orders := make([]*billing.Order, 3)
+	refundAmounts := []float64{20, 40, 60}
+	orders := make([]*billing.Order, 0)
 
 	for _, v := range orderAmounts {
 		order := helperCreateAndPayOrder(suite.Suite, suite.service, v, "RUB", "RU", suite.project, suite.pmBankCard)
