@@ -540,6 +540,13 @@ func (s *Service) GetKeyProduct(
 		return nil
 	}
 
+	if product.MerchantId != req.MerchantId {
+		zap.S().Errorw("Merchant for product is mismatch with requested", "data", req)
+		res.Status = http.StatusBadRequest
+		res.Message = keyProductMerchantMismatch
+		return nil
+	}
+
 	res.Product = product
 
 	return nil
@@ -576,6 +583,13 @@ func (s *Service) DeleteKeyProduct(
 		zap.S().Errorf("Error during getting key product", "err", err.Error(), "data", req)
 		res.Status = http.StatusInternalServerError
 		res.Message = keyProductRetrieveError
+		return nil
+	}
+
+	if product.MerchantId != req.MerchantId {
+		zap.S().Errorw("Merchant for product is mismatch with requested", "data", req)
+		res.Status = http.StatusBadRequest
+		res.Message = keyProductMerchantMismatch
 		return nil
 	}
 
@@ -622,6 +636,14 @@ func (s *Service) PublishKeyProduct(
 		res.Message = keyProductRetrieveError
 		return nil
 	}
+
+	if product.MerchantId != req.MerchantId {
+		zap.S().Errorw("Merchant for product is mismatch with requested", "data", req)
+		res.Status = http.StatusBadRequest
+		res.Message = keyProductMerchantMismatch
+		return nil
+	}
+
 
 	product.UpdatedAt = ptypes.TimestampNow()
 	product.PublishedAt = ptypes.TimestampNow()

@@ -603,7 +603,9 @@ func (p *createRefundProcessor) getRefundedAmount(order *billing.Order) (float64
 		return 0, refundErrorUnknown
 	}
 
-	for cursor.Next(context.Background()) {
+	defer cursor.Close(p.ctx)
+
+	if cursor.Next(p.ctx) {
 		err = cursor.Decode(&res)
 
 		if err != nil {
@@ -616,7 +618,6 @@ func (p *createRefundProcessor) getRefundedAmount(order *billing.Order) (float64
 			return 0, refundErrorUnknown
 		}
 	}
-	cursor.Close(p.ctx)
 
 	return res.Amount, nil
 }

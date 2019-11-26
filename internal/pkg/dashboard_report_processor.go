@@ -137,7 +137,9 @@ func (m *DashboardReportProcessor) ExecuteGrossRevenueAndVatReports(receiver int
 		return nil, m.Errors["unknown"]
 	}
 
-	for cursor.Next(m.Ctx) {
+	defer cursor.Close(m.Ctx)
+
+	if cursor.Next(m.Ctx) {
 		err = cursor.Decode(receiver)
 
 		if err != nil {
@@ -150,7 +152,6 @@ func (m *DashboardReportProcessor) ExecuteGrossRevenueAndVatReports(receiver int
 			return nil, m.Errors["unknown"]
 		}
 	}
-	cursor.Close(m.Ctx)
 
 	return receiver, nil
 }
@@ -237,7 +238,9 @@ func (m *DashboardReportProcessor) ExecuteTotalTransactionsAndArpuReports(receiv
 		return nil, m.Errors["unknown"]
 	}
 
-	for cursor.Next(m.Ctx) {
+	defer cursor.Close(m.Ctx)
+
+	if cursor.Next(m.Ctx) {
 		err = cursor.Decode(receiver)
 
 		if err != nil {
@@ -250,7 +253,6 @@ func (m *DashboardReportProcessor) ExecuteTotalTransactionsAndArpuReports(receiv
 			return nil, m.Errors["unknown"]
 		}
 	}
-	cursor.Close(m.Ctx)
 
 	return receiver, nil
 }
@@ -427,7 +429,9 @@ func (m *DashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interf
 		return nil, m.Errors["unknown"]
 	}
 
-	for cursor.Next(m.Ctx) {
+	defer cursor.Close(m.Ctx)
+
+	if cursor.Next(m.Ctx) {
 		err = cursor.Decode(receiver)
 
 		if err != nil {
@@ -440,7 +444,6 @@ func (m *DashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interf
 			return nil, m.Errors["unknown"]
 		}
 	}
-	cursor.Close(m.Ctx)
 
 	return receiver, nil
 }
@@ -561,7 +564,9 @@ func (m *DashboardReportProcessor) ExecuteSalesTodayReport(receiver interface{})
 		return nil, m.Errors["unknown"]
 	}
 
-	for cursor.Next(m.Ctx) {
+	defer cursor.Close(m.Ctx)
+
+	if cursor.Next(m.Ctx) {
 		err = cursor.Decode(receiver)
 
 		if err != nil {
@@ -574,7 +579,6 @@ func (m *DashboardReportProcessor) ExecuteSalesTodayReport(receiver interface{})
 			return nil, m.Errors["unknown"]
 		}
 	}
-	cursor.Close(m.Ctx)
 
 	return receiver, nil
 }
@@ -679,7 +683,9 @@ func (m *DashboardReportProcessor) ExecuteSourcesReport(receiver interface{}) (i
 		return nil, m.Errors["unknown"]
 	}
 
-	for cursor.Next(m.Ctx) {
+	defer cursor.Close(m.Ctx)
+
+	if cursor.Next(m.Ctx) {
 		err = cursor.Decode(receiver)
 
 		if err != nil {
@@ -692,7 +698,6 @@ func (m *DashboardReportProcessor) ExecuteSourcesReport(receiver interface{}) (i
 			return nil, m.Errors["unknown"]
 		}
 	}
-	cursor.Close(m.Ctx)
 
 	return receiver, nil
 }

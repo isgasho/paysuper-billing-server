@@ -3184,7 +3184,21 @@ func (s *Service) doUpdateOrderView(ctx context.Context, match bson.M) error {
 
 	cursor, err := s.db.Collection(collectionOrder).Aggregate(ctx, orderViewQuery)
 
-	if err != nil || cursor.Err() != nil {
+	if err != nil {
+		zap.L().Error(
+			errorOrderViewUpdateQuery,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrder),
+		)
+		return err
+	}
+
+	defer cursor.Close(ctx)
+
+	cursor.Next(ctx)
+	err = cursor.Err()
+
+	if err != nil {
 		zap.L().Error(
 			errorOrderViewUpdateQuery,
 			zap.Error(err),
@@ -3473,6 +3487,8 @@ func (ow *OrderView) GetRoyaltySummary(
 		return
 	}
 
+	defer cursor.Close(ctx)
+
 	var result *royaltySummaryResult
 	if cursor.Next(ctx) {
 		err = cursor.Decode(&result)
@@ -3480,7 +3496,6 @@ func (ow *OrderView) GetRoyaltySummary(
 			return
 		}
 	}
-	_ = cursor.Close(ctx)
 
 	if result == nil {
 		return
@@ -3751,6 +3766,8 @@ func (ow *OrderView) getPaylinkGroupStat(
 		return nil, err
 	}
 
+	defer cursor.Close(ctx)
+
 	if cursor.Next(ctx) {
 		err = cursor.Decode(&result)
 
@@ -3764,7 +3781,6 @@ func (ow *OrderView) getPaylinkGroupStat(
 			return nil, err
 		}
 	}
-	_ = cursor.Close(ctx)
 
 	if result == nil {
 		return
