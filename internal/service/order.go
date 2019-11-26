@@ -388,6 +388,7 @@ func (s *Service) OrderCreateProcess(
 			if err == nil &&
 				processor.checked.user.Address != nil &&
 				processor.checked.user.Address.Country == decryptedBrowserCustomer.IpCountry &&
+				processor.checked.user.Ip == decryptedBrowserCustomer.Ip &&
 				decryptedBrowserCustomer.SelectedCountry != "" {
 
 				processor.checked.user.Address = &billing.OrderBillingAddress{
@@ -794,11 +795,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 	s.fillPaymentFormJsonData(order, rsp)
 	rsp.Item.PaymentMethods = pms
 
-	if order.Currency == order.ChargeCurrency {
-		rsp.Item.VatInChargeCurrency = tools.FormatAmount(order.Tax.Amount)
-	} else {
-		rsp.Item.VatInChargeCurrency = tools.FormatAmount(order.ChargeAmount / (1 + order.Tax.Rate) * order.Tax.Rate)
-	}
+	rsp.Item.VatInChargeCurrency = tools.FormatAmount(order.GetTaxAmountInChargeCurrency())
 
 	cookie, err := s.generateBrowserCookie(browserCustomer)
 
@@ -1555,6 +1552,7 @@ func (s *Service) ProcessBillingAddress(
 
 	address, err := s.getAddressByIp(req.Ip)
 	if err == nil {
+		customer.Ip = req.Ip
 		customer.IpCountry = address.Country
 	}
 
@@ -1612,7 +1610,7 @@ func (s *Service) ProcessBillingAddress(
 	rsp.Item = &grpc.ProcessBillingAddressResponseItem{
 		HasVat:              order.Tax.Rate > 0,
 		Vat:                 tools.FormatAmount(order.Tax.Amount),
-		VatInChargeCurrency: tools.FormatAmount(order.ChargeAmount / (1 + order.Tax.Rate) * order.Tax.Rate),
+		VatInChargeCurrency: tools.FormatAmount(order.GetTaxAmountInChargeCurrency()),
 		Amount:              tools.FormatAmount(order.OrderAmount),
 		TotalAmount:         tools.FormatAmount(order.TotalPaymentAmount),
 		Currency:            order.Currency,
@@ -2569,9 +2567,6 @@ func (v *OrderCreateRequestProcessor) processSignature() error {
 
 // Calculate VAT for order
 func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) error {
-
-	useUsaMaxTaxRate := false
-
 	order.Tax = &billing.OrderTax{
 		Type:     taxTypeVat,
 		Currency: order.Currency,
@@ -2618,35 +2613,18 @@ func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) erro
 		req.UserData.State = order.BillingAddress.State
 	}
 
-	if req.UserData.Country != "" {
-		if req.UserData.Country == CountryCodeUSA && req.UserData.Zip == "" {
-			useUsaMaxTaxRate = true
-		}
-	} else {
-		if req.IpData.Country == CountryCodeUSA && req.IpData.Zip == "" {
-			useUsaMaxTaxRate = true
-		}
+	rsp, err := v.tax.GetRate(context.TODO(), req)
+
+	if err != nil {
+		v.logError("Tax service return error", []interface{}{"error", err.Error(), "request", req})
+		return err
 	}
 
-	rate := DefaultTaxRateUSA
-
-	if !useUsaMaxTaxRate {
-
-		rsp, err := v.tax.GetRate(context.TODO(), req)
-
-		if err != nil {
-			v.logError("Tax service return error", []interface{}{"error", err.Error(), "request", req})
-			return err
-		}
-
-		if order.BillingAddress != nil {
-			req.UserData.State = rsp.Rate.State
-		}
-
-		rate = rsp.Rate.Rate
+	if order.BillingAddress != nil {
+		req.UserData.State = rsp.Rate.State
 	}
 
-	order.Tax.Rate = rate
+	order.Tax.Rate = rsp.Rate.Rate
 	order.Tax.Amount = tools.FormatAmount(order.OrderAmount * order.Tax.Rate)
 	order.TotalPaymentAmount = tools.FormatAmount(order.OrderAmount + order.Tax.Amount)
 	order.ChargeAmount = order.TotalPaymentAmount

@@ -28,7 +28,7 @@ require (
 	github.com/paysuper/paysuper-currencies v0.0.0-20191126123753-5139d3b5c8d2
 	github.com/paysuper/paysuper-database-mongo v0.1.3
 	github.com/paysuper/paysuper-i18n v0.0.0-20190926113224-7eaca4563c7b
-	github.com/paysuper/paysuper-recurring-repository v1.0.126
+	github.com/paysuper/paysuper-recurring-repository v1.0.127
 	github.com/paysuper/paysuper-reporter v0.0.0-20191113111020-e3a5369c6d6a
 	github.com/paysuper/paysuper-tax-service v0.0.0-20190903084038-7849f394f122
 	github.com/paysuper/postmark-sender v0.0.0-20190926173213-1b6244122c49

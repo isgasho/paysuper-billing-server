@@ -406,7 +406,7 @@ func (h *accountingEntry) processPaymentEvent() error {
 
 	// 2. realTaxFee
 	realTaxFee := h.newEntry(pkg.AccountingEntryTypeRealTaxFee)
-	orderTaxAmount := h.order.ChargeAmount / (1 + h.order.Tax.Rate) * h.order.Tax.Rate
+	orderTaxAmount := h.order.GetTaxAmountInChargeCurrency()
 	realTaxFee.Amount, err = h.GetExchangePsCurrentCommon(h.order.Tax.Currency, orderTaxAmount)
 	if err != nil {
 		return err
@@ -440,7 +440,7 @@ func (h *accountingEntry) processPaymentEvent() error {
 
 	// 6. psGrossRevenueFxTaxFee
 	psGrossRevenueFxTaxFee := h.newEntry(pkg.AccountingEntryTypePsGrossRevenueFxTaxFee)
-	psGrossRevenueFxTaxFee.Amount = psGrossRevenueFx.Amount / (1 + h.order.Tax.Rate) * h.order.Tax.Rate
+	psGrossRevenueFxTaxFee.Amount = tools.GetPercentPartFromAmount(psGrossRevenueFx.Amount, h.order.Tax.Rate)
 	if err = h.addEntry(psGrossRevenueFxTaxFee); err != nil {
 		return err
 	}
@@ -455,7 +455,7 @@ func (h *accountingEntry) processPaymentEvent() error {
 
 	// 9. merchantTaxFeeCostValue
 	merchantTaxFeeCostValue := h.newEntry(pkg.AccountingEntryTypeMerchantTaxFeeCostValue)
-	merchantTaxFeeCostValue.Amount = merchantGrossRevenue.Amount / (1 + h.order.Tax.Rate) * h.order.Tax.Rate
+	merchantTaxFeeCostValue.Amount = tools.GetPercentPartFromAmount(merchantGrossRevenue.Amount, h.order.Tax.Rate)
 	if err = h.addEntry(merchantTaxFeeCostValue); err != nil {
 		return err
 	}
@@ -797,7 +797,7 @@ func (h *accountingEntry) processRefundEvent() error {
 		// after that converting it back from vat currency  to merchant currency by stock rate,
 		// next getting Centralbank fx for restored value as difference between converted and restored values,
 		// and finally getting difference between old merchantTaxFeeCentralBankFx amount and calculated new.
-		amountVatRestored := merchantRefund.Amount / (1 + h.order.Tax.Rate) * h.order.Tax.Rate
+		amountVatRestored := tools.GetPercentPartFromAmount(merchantRefund.Amount, h.order.Tax.Rate)
 		amountVatCb, err := h.GetExchangeCbCurrentCommon(h.order.GetMerchantRoyaltyCurrency(), amountVatRestored)
 		if err != nil {
 			return err
