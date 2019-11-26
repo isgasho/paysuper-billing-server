@@ -2381,7 +2381,7 @@ func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_DifferentCurrencie
 
 	_, err := suite.service.GetOrderProductsAmount(p, &billing.PriceGroup{Currency: "RUB", IsActive: true})
 	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), orderErrorNoProductsCommonCurrency, err)
+	assert.Equal(suite.T(), grpc.ProductNoPriceInCurrencyError, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_DifferentCurrenciesWithFallback_Fail() {
@@ -2445,7 +2445,7 @@ func (suite *OrderTestSuite) TestOrder_GetProductsOrderAmount_DifferentCurrencie
 
 	_, err := suite.service.GetOrderProductsAmount(p, &billing.PriceGroup{Currency: "RUB", IsActive: true})
 	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), orderErrorNoProductsCommonCurrency, err)
+	assert.Equal(suite.T(), grpc.ProductNoPriceInCurrencyError, err)
 }
 
 func (suite *OrderTestSuite) TestOrder_GetOrderProductsItems_Ok() {

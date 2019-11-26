@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"go.uber.org/zap"
 )
 
 var (
@@ -11,6 +12,8 @@ var (
 	productNoNameInLanguage            = "no name in language %s"
 	productNoDescriptionInLanguage     = "no description in language %s"
 	productNoLongDescriptionInLanguage = "no long description in language %s"
+
+	ProductNoPriceInCurrencyError = errors.New("No product price in requested currency")
 )
 
 const VirtualCurrencyPriceGroup = "virtual"
@@ -54,7 +57,11 @@ func (p *Product) GetPriceInCurrency(group *billing.PriceGroup) (float64, error)
 			return price.Amount, nil
 		}
 	}
-	return 0, errors.New(fmt.Sprintf(productNoPriceInCurrency, group.Region))
+	zap.L().Error(
+		fmt.Sprintf(productNoPriceInCurrency, group.Region),
+	)
+
+	return 0, ProductNoPriceInCurrencyError
 }
 
 func (p *Product) GetLocalizedName(lang string) (string, error) {
@@ -75,7 +82,7 @@ func (p *Product) GetLocalizedDescription(lang string) (string, error) {
 
 func (p *Product) GetLocalizedLongDescription(lang string) (string, error) {
 	v, ok := p.LongDescription[lang]
-	if !ok || len(v) == 0  {
+	if !ok || len(v) == 0 {
 		return "", errors.New(fmt.Sprintf(productNoLongDescriptionInLanguage, lang))
 	}
 	return v, nil
@@ -162,7 +169,7 @@ func (p *KeyProduct) GetLocalizedName(lang string) (string, error) {
 
 func (p *KeyProduct) GetLocalizedDescription(lang string) (string, error) {
 	v, ok := p.Description[lang]
-	if !ok || len(v) == 0  {
+	if !ok || len(v) == 0 {
 		return "", errors.New(fmt.Sprintf(productNoDescriptionInLanguage, lang))
 	}
 	return v, nil

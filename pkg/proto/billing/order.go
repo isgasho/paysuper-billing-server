@@ -223,9 +223,14 @@ func (m *Order) GetPaymentFormDataChangeResult(brand string) *PaymentFormDataCha
 		item.CountryChangeAllowed = true
 	}
 
+	if m.Currency == m.ChargeCurrency {
+		item.VatInChargeCurrency = tools.FormatAmount(m.Tax.Amount)
+	} else {
+		item.VatInChargeCurrency = tools.FormatAmount(m.ChargeAmount / (1 + m.Tax.Rate) * m.Tax.Rate)
+	}
+
 	item.HasVat = m.Tax.Rate > 0
 	item.Vat = tools.FormatAmount(m.Tax.Amount)
-	item.VatInChargeCurrency = tools.FormatAmount(m.ChargeAmount / (1 + m.Tax.Rate) * m.Tax.Rate)
 	item.ChargeAmount = tools.FormatAmount(m.ChargeAmount)
 	item.ChargeCurrency = m.ChargeCurrency
 	item.Currency = m.Currency

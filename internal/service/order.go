@@ -803,6 +803,12 @@ func (s *Service) PaymentFormJsonDataProcess(
 	s.fillPaymentFormJsonData(order, rsp)
 	rsp.Item.PaymentMethods = pms
 
+	if order.Currency == order.ChargeCurrency {
+		rsp.Item.VatInChargeCurrency = tools.FormatAmount(order.Tax.Amount)
+	} else {
+		rsp.Item.VatInChargeCurrency = tools.FormatAmount(order.ChargeAmount / (1 + order.Tax.Rate) * order.Tax.Rate)
+	}
+
 	cookie, err := s.generateBrowserCookie(browserCustomer)
 
 	if err == nil {
@@ -3315,7 +3321,7 @@ func (s *Service) GetOrderProductsAmount(products []*grpc.Product, group *billin
 		amount, err := p.GetPriceInCurrency(group)
 
 		if err != nil {
-			return 0, orderErrorNoProductsCommonCurrency
+			return 0, err
 		}
 
 		sum += amount
@@ -3686,13 +3692,20 @@ func (s *Service) ProcessOrderProducts(ctx context.Context, order *billing.Order
 		return err
 	}
 
+	merchant, err := s.merchant.GetById(order.GetMerchantId())
+	if err != nil {
+		return err
+	}
+
+	defaultPriceGroup, err := s.priceGroup.GetByRegion(merchant.GetPayoutCurrency())
+
 	zap.S().Infow(fmt.Sprintf(logInfo, "try to use detected currency for order amount"), "currency", priceGroup.Currency, "order.Uuid", order.Uuid)
 
 	if order.IsBuyForVirtualCurrency {
 		zap.S().Infow("payment in virtual currency", "order.Uuid", order.Uuid)
-		amount, priceGroup, err = s.processAmountForVirtualCurrency(ctx, order, orderProducts, priceGroup)
+		amount, priceGroup, err = s.processAmountForVirtualCurrency(ctx, order, orderProducts, priceGroup, defaultPriceGroup)
 	} else {
-		amount, priceGroup, err = s.processAmountForFiatCurrency(ctx, order, orderProducts, priceGroup)
+		amount, priceGroup, err = s.processAmountForFiatCurrency(ctx, order, orderProducts, priceGroup, defaultPriceGroup)
 	}
 
 	if err != nil {
@@ -3734,11 +3747,21 @@ func (s *Service) processAmountForFiatCurrency(
 	order *billing.Order,
 	orderProducts []*grpc.Product,
 	priceGroup *billing.PriceGroup,
+	defaultPriceGroup *billing.PriceGroup,
 ) (float64, *billing.PriceGroup, error) {
 	// try to get order Amount in requested currency
 	amount, err := s.GetOrderProductsAmount(orderProducts, priceGroup)
 	if err != nil {
-		return 0, nil, err
+		if err != grpc.ProductNoPriceInCurrencyError {
+			return 0, nil, err
+		}
+
+		// try to get order Amount in fallback currency
+		amount, err = s.GetOrderProductsAmount(orderProducts, defaultPriceGroup)
+		if err != nil {
+			return 0, nil, err
+		}
+		return amount, defaultPriceGroup, nil
 	}
 
 	return amount, priceGroup, nil
@@ -3749,12 +3772,24 @@ func (s *Service) processAmountForVirtualCurrency(
 	order *billing.Order,
 	orderProducts []*grpc.Product,
 	priceGroup *billing.PriceGroup,
+	defaultPriceGroup *billing.PriceGroup,
 ) (float64, *billing.PriceGroup, error) {
 	var amount float64
 
+	usedPriceGroup := priceGroup
+
 	virtualAmount, err := s.GetOrderProductsAmount(orderProducts, &billing.PriceGroup{Currency: grpc.VirtualCurrencyPriceGroup})
 	if err != nil {
-		return 0, nil, err
+		if err != grpc.ProductNoPriceInCurrencyError {
+			return 0, nil, err
+		}
+
+		// try to get order Amount in fallback currency
+		usedPriceGroup = defaultPriceGroup
+		amount, err = s.GetOrderProductsAmount(orderProducts, defaultPriceGroup)
+		if err != nil {
+			return 0, nil, err
+		}
 	}
 
 	project, err := s.project.GetById(order.GetProjectId())
@@ -3766,12 +3801,12 @@ func (s *Service) processAmountForVirtualCurrency(
 		return 0, nil, orderErrorVirtualCurrencyNotFilled
 	}
 
-	amount, err = s.GetAmountForVirtualCurrency(virtualAmount, priceGroup, project.VirtualCurrency.Prices)
+	amount, err = s.GetAmountForVirtualCurrency(virtualAmount, usedPriceGroup, project.VirtualCurrency.Prices)
 	if err != nil {
 		return 0, nil, err
 	}
 
-	return amount, priceGroup, nil
+	return amount, usedPriceGroup, nil
 }
 
 func (s *Service) notifyPaylinkError(ctx context.Context, paylinkId string, err error, req interface{}, order interface{}) {

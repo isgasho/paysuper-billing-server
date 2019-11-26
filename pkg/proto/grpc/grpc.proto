@@ -512,6 +512,8 @@ message PaymentFormJsonData {
     string charge_currency = 25;
     // @inject_tag: json:"charge_amount"
     double charge_amount = 26;
+    // @inject_tag: json:"vat_in_charge_currency"
+    double vat_in_charge_currency = 27;
 }
 
 message PaymentFormJsonDataResponse {
