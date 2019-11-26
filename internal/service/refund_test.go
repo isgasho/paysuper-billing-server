@@ -2740,7 +2740,11 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 	filter = bson.M{"_id": oid}
 
 	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
-	assert.Equal(suite.T(), int32(constant.OrderStatusRefund), order.PrivateStatus)
+	assert.EqualValues(suite.T(), constant.OrderStatusRefund, order.PrivateStatus)
+	assert.NotNil(suite.T(), order.Refund)
+	assert.Equal(suite.T(), req2.Amount, order.Refund.Amount)
+	assert.Equal(suite.T(), req2.Reason, order.Refund.Reason)
+	assert.Equal(suite.T(), rsp2.Item.Id, order.Refund.ReceiptNumber)
 }
 
 func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Chargeback_Ok() {
