@@ -8,6 +8,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
@@ -431,7 +432,8 @@ func (suite *KeyProductTestSuite) Test_CreateOrUpdateKeyProduct() {
 	err = suite.service.CreateOrUpdateKeyProduct(context.TODO(), req, &res2)
 	shouldBe.Nil(err)
 	shouldBe.NotNil(res2.Message)
-	shouldBe.EqualValues(400, res2.Status)
+	shouldBe.EqualValues(pkg.ResponseStatusSystemError, res2.Status)
+	shouldBe.Equal(keyProductInternalError, res2.Message)
 }
 
 func (suite *KeyProductTestSuite) Test_GetKeyProducts() {

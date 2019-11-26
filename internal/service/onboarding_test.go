@@ -3445,7 +3445,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_Mer
 func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_MerchantSign_Error() {
 	req0 := &grpc.OnboardingRequest{
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -3464,7 +3464,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_Mer
 	req := &grpc.OnboardingRequest{
 		Id: rsp0.Item.Id,
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -3512,11 +3512,11 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_Mer
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
 	assert.Empty(suite.T(), rsp2.Message)
 
-	merchant, err := suite.service.merchant.GetById(rsp.Item.Id)
+	merchant, err := suite.service.merchant.GetById(ctx, rsp.Item.Id)
 	assert.NoError(suite.T(), err)
 	merchant.AgreementSignatureData = &billing.MerchantAgreementSignatureData{}
 	merchant.Status = pkg.MerchantStatusPending
-	err = suite.service.merchant.Update(merchant)
+	err = suite.service.merchant.Update(ctx, merchant)
 	assert.NoError(suite.T(), err)
 
 	req1 := &grpc.GetMerchantAgreementSignUrlRequest{
@@ -3532,7 +3532,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_Mer
 func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_PaysuperSign_Ok() {
 	req0 := &grpc.OnboardingRequest{
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -3551,7 +3551,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_Pay
 	req := &grpc.OnboardingRequest{
 		Id: rsp0.Item.Id,
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -3599,11 +3599,11 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_Pay
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
 	assert.Empty(suite.T(), rsp2.Message)
 
-	merchant, err := suite.service.merchant.GetById(rsp.Item.Id)
+	merchant, err := suite.service.merchant.GetById(ctx, rsp.Item.Id)
 	assert.NoError(suite.T(), err)
 	merchant.AgreementSignatureData = &billing.MerchantAgreementSignatureData{}
 	merchant.Status = pkg.MerchantStatusAgreementSigning
-	err = suite.service.merchant.Update(merchant)
+	err = suite.service.merchant.Update(ctx, merchant)
 	assert.NoError(suite.T(), err)
 
 	req1 := &grpc.GetMerchantAgreementSignUrlRequest{
@@ -3621,7 +3621,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_Pay
 func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_PaysuperSign_Error() {
 	req0 := &grpc.OnboardingRequest{
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -3640,7 +3640,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_Pay
 	req := &grpc.OnboardingRequest{
 		Id: rsp0.Item.Id,
 		User: &billing.MerchantUser{
-			Id:    bson.NewObjectId().Hex(),
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
 		Company: &billing.MerchantCompanyInfo{
@@ -3688,11 +3688,11 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantAgreementSignUrl_Pay
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
 	assert.Empty(suite.T(), rsp2.Message)
 
-	merchant, err := suite.service.merchant.GetById(rsp.Item.Id)
+	merchant, err := suite.service.merchant.GetById(ctx, rsp.Item.Id)
 	assert.NoError(suite.T(), err)
 	merchant.AgreementSignatureData = &billing.MerchantAgreementSignatureData{}
 	merchant.Status = pkg.MerchantStatusAccepted
-	err = suite.service.merchant.Update(merchant)
+	err = suite.service.merchant.Update(ctx, merchant)
 	assert.NoError(suite.T(), err)
 
 	req1 := &grpc.GetMerchantAgreementSignUrlRequest{

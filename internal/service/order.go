@@ -553,7 +553,6 @@ func (s *Service) PaymentFormJsonDataProcess(
 	req *grpc.PaymentFormJsonDataRequest,
 	rsp *grpc.PaymentFormJsonDataResponse,
 ) error {
-
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = &grpc.PaymentFormJsonData{}
 
