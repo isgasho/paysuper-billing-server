@@ -933,63 +933,14 @@ func (s *Service) PaymentCreateProcess(
 	order.ChargeAmount = order.TotalPaymentAmount
 	order.ChargeCurrency = order.Currency
 
-	binCountryCode, ok := order.PaymentRequisites[pkg.PaymentCreateBankCardFieldIssuerCountryIsoCode]
-	if ok && binCountryCode != "" {
-
-		if order.PaymentIpCountry != "" {
-			order.IsIpCountryMismatchBin = order.PaymentIpCountry != binCountryCode
+	err = s.setOrderChargeAmountAndCurrency(ctx, order)
+	if err != nil {
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
 		}
-
-		binCountry, err := s.country.GetByIsoCodeA2(binCountryCode)
-		if err != nil {
-			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-				rsp.Status = pkg.ResponseStatusBadData
-				rsp.Message = e
-				return nil
-			}
-			return err
-		}
-		if binCountry.Currency != order.Currency {
-			sCurr, err := s.curService.GetPriceCurrencies(ctx, &currencies.EmptyRequest{})
-			if err != nil {
-				if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-					rsp.Status = pkg.ResponseStatusBadData
-					rsp.Message = e
-					return nil
-				}
-				return err
-			}
-			if contains(sCurr.Currencies, binCountry.Currency) {
-				order.ChargeCurrency = binCountry.Currency
-
-				reqCur := &currencies.ExchangeCurrencyCurrentCommonRequest{
-					From:              order.Currency,
-					To:                binCountry.Currency,
-					RateType:          curPkg.RateTypePaysuper,
-					Amount:            order.TotalPaymentAmount,
-					ExchangeDirection: curPkg.ExchangeDirectionSell,
-				}
-
-				rspCur, err := s.curService.ExchangeCurrencyCurrentCommon(ctx, reqCur)
-
-				if err != nil {
-					zap.L().Error(
-						pkg.ErrorGrpcServiceCallFailed,
-						zap.Error(err),
-						zap.String(errorFieldService, "CurrencyRatesService"),
-						zap.String(errorFieldMethod, "ExchangeCurrencyCurrentCommon"),
-						zap.Any(errorFieldRequest, req),
-						zap.Any(errorFieldEntrySource, order.Id),
-					)
-
-					rsp.Status = pkg.ResponseStatusBadData
-					rsp.Message = orderErrorConvertionCurrency
-					return nil
-				}
-
-				order.ChargeAmount = rspCur.ExchangedAmount
-			}
-		}
+		return err
 	}
 
 	settings, err := s.paymentMethod.GetPaymentSettings(
@@ -1409,59 +1360,16 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		brand = data.CardBrand
 		country = data.BankCountryIsoCode
 		order.PaymentRequisites[pkg.PaymentCreateBankCardFieldBrand] = brand
+		order.PaymentRequisites[pkg.PaymentCreateBankCardFieldIssuerCountryIsoCode] = country
 
-		if country != "" {
-			binCountry, err := s.country.GetByIsoCodeA2(country)
-			if err != nil {
-				if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-					rsp.Status = pkg.ResponseStatusSystemError
-					rsp.Message = e
-					return nil
-				}
-				return err
+		err = s.setOrderChargeAmountAndCurrency(ctx, order)
+		if err != nil {
+			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+				rsp.Status = pkg.ResponseStatusBadData
+				rsp.Message = e
+				return nil
 			}
-
-			if binCountry.Currency != order.Currency {
-				sCurr, err := s.curService.GetPriceCurrencies(ctx, &currencies.EmptyRequest{})
-				if err != nil {
-					if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-						rsp.Status = pkg.ResponseStatusBadData
-						rsp.Message = e
-						return nil
-					}
-					return err
-				}
-				if contains(sCurr.Currencies, binCountry.Currency) {
-					order.ChargeCurrency = binCountry.Currency
-
-					reqCur := &currencies.ExchangeCurrencyCurrentCommonRequest{
-						From:              order.Currency,
-						To:                binCountry.Currency,
-						RateType:          curPkg.RateTypePaysuper,
-						Amount:            order.TotalPaymentAmount,
-						ExchangeDirection: curPkg.ExchangeDirectionSell,
-					}
-
-					rspCur, err := s.curService.ExchangeCurrencyCurrentCommon(ctx, reqCur)
-
-					if err != nil {
-						zap.L().Error(
-							pkg.ErrorGrpcServiceCallFailed,
-							zap.Error(err),
-							zap.String(errorFieldService, "CurrencyRatesService"),
-							zap.String(errorFieldMethod, "ExchangeCurrencyCurrentCommon"),
-							zap.Any(errorFieldRequest, req),
-							zap.Any(errorFieldEntrySource, order.Id),
-						)
-
-						rsp.Status = pkg.ResponseStatusBadData
-						rsp.Message = orderErrorConvertionCurrency
-						return nil
-					}
-
-					order.ChargeAmount = rspCur.ExchangedAmount
-				}
-			}
+			return err
 		}
 		break
 
@@ -4581,4 +4489,66 @@ func (s *Service) getOrderPriceGroup(order *billing.Order) (priceGroup *billing.
 
 	priceGroup, err = s.priceGroup.GetById(country.PriceGroupId)
 	return
+}
+
+func (s *Service) setOrderChargeAmountAndCurrency(ctx context.Context, order *billing.Order) (err error) {
+	binCountryCode, ok := order.PaymentRequisites[pkg.PaymentCreateBankCardFieldIssuerCountryIsoCode]
+	if !ok || binCountryCode == "" {
+		return nil
+	}
+
+	if order.PaymentIpCountry != "" {
+		order.IsIpCountryMismatchBin = order.PaymentIpCountry != binCountryCode
+	}
+
+	binCountry, err := s.country.GetByIsoCodeA2(binCountryCode)
+	if err != nil {
+		return err
+	}
+	if binCountry.Currency == order.Currency {
+		return nil
+	}
+
+	sCurr, err := s.curService.GetPriceCurrencies(ctx, &currencies.EmptyRequest{})
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorGrpcServiceCallFailed,
+			zap.Error(err),
+			zap.String(errorFieldService, "CurrencyRatesService"),
+			zap.String(errorFieldMethod, "GetPriceCurrencies"),
+			zap.Any(errorFieldEntrySource, order.Id),
+		)
+		return err
+	}
+	if !contains(sCurr.Currencies, binCountry.Currency) {
+		return nil
+	}
+
+	reqCur := &currencies.ExchangeCurrencyCurrentCommonRequest{
+		From:              order.Currency,
+		To:                binCountry.Currency,
+		RateType:          curPkg.RateTypePaysuper,
+		Amount:            order.TotalPaymentAmount,
+		ExchangeDirection: curPkg.ExchangeDirectionSell,
+	}
+
+	rspCur, err := s.curService.ExchangeCurrencyCurrentCommon(ctx, reqCur)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorGrpcServiceCallFailed,
+			zap.Error(err),
+			zap.String(errorFieldService, "CurrencyRatesService"),
+			zap.String(errorFieldMethod, "ExchangeCurrencyCurrentCommon"),
+			zap.Any(errorFieldRequest, reqCur),
+			zap.Any(errorFieldEntrySource, order.Id),
+		)
+
+		return orderErrorConvertionCurrency
+	}
+
+	order.ChargeCurrency = binCountry.Currency
+	order.ChargeAmount = rspCur.ExchangedAmount
+
+	return nil
 }
