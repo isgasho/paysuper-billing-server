@@ -1359,11 +1359,27 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		return nil
 	}
 
+	project, err := s.project.GetById(order.Project.Id)
+	if err != nil {
+		return orderErrorProjectNotFound
+	}
+	if project.IsDeleted() == true {
+		return orderErrorProjectInactive
+	}
+
 	pm, err := s.paymentMethod.GetById(req.MethodId)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = orderErrorPaymentMethodNotFound
+		return nil
+	}
+
+	ps, err := s.paymentSystem.GetById(pm.PaymentSystemId)
+	if err != nil {
+		rsp.Message = orderErrorPaymentSystemInactive
+		rsp.Status = pkg.ResponseStatusBadData
+
 		return nil
 	}
 
@@ -1401,6 +1417,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 
 		brand = data.CardBrand
 		country = data.BankCountryIsoCode
+		order.PaymentRequisites[pkg.PaymentCreateBankCardFieldBrand] = brand
 
 		if country != "" {
 			binCountry, err := s.country.GetByIsoCodeA2(country)
@@ -1455,8 +1472,8 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 				}
 			}
 		}
-
 		break
+
 	case constant.PaymentSystemGroupAliasQiwi:
 		req.Account = "+" + req.Account
 		num, err := libphonenumber.Parse(req.Account, CountryCodeUSA)
@@ -1476,18 +1493,30 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 			return nil
 		}
 		break
-	default:
-		rsp.Item = order.GetPaymentFormDataChangeResult(brand)
-		return nil
 	}
 
-	if order.User.Address.Country == country {
-		rsp.Item = order.GetPaymentFormDataChangeResult(brand)
-		return nil
+	settings, err := s.paymentMethod.GetPaymentSettings(
+		pm,
+		order.ChargeCurrency,
+		order.MccCode,
+		order.OperatingCompanyId,
+		project,
+	)
+
+	order.PaymentMethod = &billing.PaymentMethodOrder{
+		Id:              pm.Id,
+		Name:            pm.Name,
+		Params:          settings,
+		PaymentSystemId: ps.Id,
+		Group:           pm.Group,
+		ExternalId:      pm.ExternalId,
+		Handler:         ps.Handler,
+		RefundAllowed:   pm.RefundAllowed,
 	}
 
-	order.User.Address.Country = country
-	order.UserAddressDataRequired = true
+	if country != "" && country != order.GetCountry() && order.BillingAddress == nil {
+		order.UserAddressDataRequired = true
+	}
 
 	restricted, err := s.applyCountryRestriction(order, country)
 
@@ -1511,6 +1540,12 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 	if restricted == true {
 		rsp.Status = pkg.ResponseStatusForbidden
 		rsp.Message = orderCountryPaymentRestrictedError
+		return nil
+	}
+
+	if !s.hasPaymentCosts(order) {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = orderErrorCostsRatesNotFound
 		return nil
 	}
 
@@ -1653,6 +1688,13 @@ func (s *Service) ProcessBillingAddress(
 			return nil
 		}
 		return err
+	}
+
+	methodName, _ := order.GetCostPaymentMethodName()
+	if methodName != "" && !s.hasPaymentCosts(order) {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = orderErrorCostsRatesNotFound
+		return nil
 	}
 
 	err = s.updateOrder(order)

@@ -61,6 +61,7 @@ type OrderTestSuite struct {
 	paymentMethod                          *billing.PaymentMethod
 	inactivePaymentMethod                  *billing.PaymentMethod
 	paymentMethodWithInactivePaymentSystem *billing.PaymentMethod
+	paymentMethodQiwi                      *billing.PaymentMethod
 	pmWebMoney                             *billing.PaymentMethod
 	pmBitcoin1                             *billing.PaymentMethod
 	pmBitcoin2                             *billing.PaymentMethod
@@ -557,6 +558,55 @@ func (suite *OrderTestSuite) SetupTest() {
 		PaymentSystemId: ps3.Id,
 	}
 
+	pmQiwiActive := &billing.PaymentMethod{
+		Id:               bson.NewObjectId().Hex(),
+		Name:             "Qiwi",
+		Group:            "QIWI",
+		MinPaymentAmount: 0,
+		MaxPaymentAmount: 0,
+		ExternalId:       "QIWI",
+		ProductionSettings: map[string]*billing.PaymentMethodParams{
+			keyRub: {
+				TerminalId:         "15993",
+				Secret:             "1234567890",
+				SecretCallback:     "1234567890",
+				Currency:           "RUB",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
+			},
+			keyUsd: {
+				TerminalId:         "16007",
+				Secret:             "1234567890",
+				SecretCallback:     "1234567890",
+				Currency:           "USD",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
+			},
+		},
+		TestSettings: map[string]*billing.PaymentMethodParams{
+			keyRub: {
+				TerminalId:         "15993",
+				Secret:             "1234567890",
+				SecretCallback:     "1234567890",
+				Currency:           "RUB",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
+			},
+			keyUah: {
+				TerminalId:         "15993",
+				Secret:             "1234567890",
+				SecretCallback:     "1234567890",
+				Currency:           "UAH",
+				MccCode:            pkg.MccCodeLowRisk,
+				OperatingCompanyId: suite.operatingCompany.Id,
+			},
+		},
+		Type:            "ewallet",
+		IsActive:        true,
+		AccountRegexp:   "^\\d{1,15}",
+		PaymentSystemId: ps1.Id,
+	}
+
 	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -360))
 
 	if err != nil {
@@ -646,10 +696,10 @@ func (suite *OrderTestSuite) SetupTest() {
 				},
 				IsActive: true,
 			},
-			pmQiwi.Id: {
+			pmQiwiActive.Id: {
 				PaymentMethod: &billing.MerchantPaymentMethodIdentification{
-					Id:   pmQiwi.Id,
-					Name: pmQiwi.Name,
+					Id:   pmQiwiActive.Id,
+					Name: pmQiwiActive.Name,
 				},
 				Commission: &billing.MerchantPaymentMethodCommissions{
 					Fee: 3.5,
@@ -1291,6 +1341,7 @@ func (suite *OrderTestSuite) SetupTest() {
 	pms := []*billing.PaymentMethod{
 		pmBankCard,
 		pmQiwi,
+		pmQiwiActive,
 		pmBitcoin,
 		pmWebMoney,
 		pmWebMoneyWME,
@@ -1824,6 +1875,7 @@ func (suite *OrderTestSuite) SetupTest() {
 	suite.paymentMethodWithoutCommission = pmBankCardNotUsed
 	suite.inactivePaymentMethod = pmBitcoin
 	suite.paymentMethodWithInactivePaymentSystem = pmQiwi
+	suite.paymentMethodQiwi = pmQiwiActive
 	suite.pmWebMoney = pmWebMoney
 	suite.pmBitcoin1 = pmBitcoin1
 	suite.pmBitcoin2 = pmBitcoin2
@@ -5290,13 +5342,92 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_BankCard
 	assert.Empty(suite.T(), rsp1.Message)
 	assert.NotNil(suite.T(), rsp1.Item)
 	assert.True(suite.T(), rsp1.Item.UserAddressDataRequired)
-	assert.Equal(suite.T(), "UA", rsp1.Item.UserIpData.Country)
+	assert.Equal(suite.T(), "RU", rsp1.Item.UserIpData.Country)
 	assert.Equal(suite.T(), rsp.User.Address.PostalCode, rsp1.Item.UserIpData.Zip)
 	assert.Equal(suite.T(), rsp.User.Address.City, rsp1.Item.UserIpData.City)
 	assert.Equal(suite.T(), "MASTERCARD", rsp1.Item.Brand)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_Qiwi_Ok() {
+	sysCost := &billing.PaymentChannelCostSystem{
+		Id:                 bson.NewObjectId().Hex(),
+		Name:               "QIWI",
+		Region:             pkg.TariffRegionRussiaAndCis,
+		Country:            "RU",
+		Percent:            1.5,
+		FixAmount:          5,
+		FixAmountCurrency:  "USD",
+		CreatedAt:          nil,
+		UpdatedAt:          nil,
+		IsActive:           true,
+		MccCode:            pkg.MccCodeLowRisk,
+		OperatingCompanyId: suite.operatingCompany.Id,
+	}
+
+	err := suite.service.paymentChannelCostSystem.Insert(sysCost)
+	assert.NoError(suite.T(), err)
+
+	merCost := &billing.PaymentChannelCostMerchant{
+		Id:                      bson.NewObjectId().Hex(),
+		MerchantId:              suite.project.MerchantId,
+		Name:                    "QIWI",
+		PayoutCurrency:          "USD",
+		MinAmount:               0.75,
+		Region:                  pkg.TariffRegionRussiaAndCis,
+		Country:                 "RU",
+		MethodPercent:           1.5,
+		MethodFixAmount:         0.01,
+		PsPercent:               3,
+		PsFixedFee:              0.01,
+		PsFixedFeeCurrency:      "EUR",
+		MethodFixAmountCurrency: "USD",
+		IsActive:                true,
+		MccCode:                 pkg.MccCodeLowRisk,
+	}
+	err = suite.service.paymentChannelCostMerchant.Insert(merCost)
+	assert.NoError(suite.T(), err)
+
+	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
+		ProjectId:   suite.project.Id,
+		Currency:    "RUB",
+		Amount:      100,
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+	}
+
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err = suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
+	assert.True(suite.T(), len(rsp.Id) > 0)
+
+	req1 := &grpc.PaymentFormUserChangePaymentAccountRequest{
+		OrderId:  rsp.Uuid,
+		MethodId: suite.paymentMethodQiwi.Id,
+		Account:  "380123456789",
+	}
+	rsp1 := &grpc.PaymentFormDataChangeResponse{}
+	err = suite.service.PaymentFormPaymentAccountChanged(context.TODO(), req1, rsp1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.Empty(suite.T(), rsp1.Message)
+	assert.NotNil(suite.T(), rsp1.Item)
+	assert.True(suite.T(), rsp1.Item.UserAddressDataRequired)
+	assert.Equal(suite.T(), "RU", rsp1.Item.UserIpData.Country)
+	assert.Equal(suite.T(), rsp.User.Address.PostalCode, rsp1.Item.UserIpData.Zip)
+	assert.Equal(suite.T(), rsp.User.Address.City, rsp1.Item.UserIpData.City)
+	assert.Empty(suite.T(), rsp1.Item.Brand)
+}
+
+func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_Qiwi_SystemCostNotFound() {
 	req := &billing.OrderCreateRequest{
 		Type:        billing.OrderType_simple,
 		ProjectId:   suite.project.Id,
@@ -5321,20 +5452,14 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_Qiwi_Ok(
 
 	req1 := &grpc.PaymentFormUserChangePaymentAccountRequest{
 		OrderId:  rsp.Uuid,
-		MethodId: suite.paymentMethodWithInactivePaymentSystem.Id,
+		MethodId: suite.paymentMethodQiwi.Id,
 		Account:  "380123456789",
 	}
 	rsp1 := &grpc.PaymentFormDataChangeResponse{}
 	err = suite.service.PaymentFormPaymentAccountChanged(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
-	assert.Empty(suite.T(), rsp1.Message)
-	assert.NotNil(suite.T(), rsp1.Item)
-	assert.True(suite.T(), rsp1.Item.UserAddressDataRequired)
-	assert.Equal(suite.T(), "UA", rsp1.Item.UserIpData.Country)
-	assert.Equal(suite.T(), rsp.User.Address.PostalCode, rsp1.Item.UserIpData.Zip)
-	assert.Equal(suite.T(), rsp.User.Address.City, rsp1.Item.UserIpData.City)
-	assert.Empty(suite.T(), rsp1.Item.Brand)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
+	assert.Equal(suite.T(), rsp1.Message, orderErrorCostsRatesNotFound)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_OrderNotFound_Error() {
@@ -5502,7 +5627,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_QiwiAcco
 
 	req1 := &grpc.PaymentFormUserChangePaymentAccountRequest{
 		OrderId:  rsp.Uuid,
-		MethodId: suite.paymentMethodWithInactivePaymentSystem.Id,
+		MethodId: suite.paymentMethodQiwi.Id,
 		Account:  "some_account",
 	}
 	rsp1 := &grpc.PaymentFormDataChangeResponse{}
@@ -5537,7 +5662,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_QiwiAcco
 
 	req1 := &grpc.PaymentFormUserChangePaymentAccountRequest{
 		OrderId:  rsp.Uuid,
-		MethodId: suite.paymentMethodWithInactivePaymentSystem.Id,
+		MethodId: suite.paymentMethodQiwi.Id,
 		Account:  "244636739467",
 	}
 	rsp1 := &grpc.PaymentFormDataChangeResponse{}
@@ -5581,7 +5706,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_Bitcoin_
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)
 	assert.NotNil(suite.T(), rsp1.Item)
-	assert.False(suite.T(), rsp1.Item.UserAddressDataRequired)
+	assert.True(suite.T(), rsp1.Item.UserAddressDataRequired)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_NoChanges_Ok() {
@@ -5615,10 +5740,9 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_NoChange
 	rsp1 := &grpc.PaymentFormDataChangeResponse{}
 	err = suite.service.PaymentFormPaymentAccountChanged(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
-	assert.Empty(suite.T(), rsp1.Message)
-	assert.NotNil(suite.T(), rsp1.Item)
-	assert.False(suite.T(), rsp1.Item.UserAddressDataRequired)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
+	assert.Equal(suite.T(), rsp1.Message, orderErrorPaymentSystemInactive)
+	assert.Nil(suite.T(), rsp1.Item)
 }
 
 func (suite *OrderTestSuite) TestOrder_OrderReCalculateAmounts_Ok() {
@@ -7660,7 +7784,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_AllPaymentMeth
 	assert.Nil(suite.T(), err)
 	assert.True(suite.T(), len(rsp.Item.PaymentMethods) > 0)
 	assert.True(suite.T(), len(rsp.Item.PaymentMethods[0].Id) > 0)
-	assert.Len(suite.T(), rsp.Item.PaymentMethods, 5)
+	assert.Len(suite.T(), rsp.Item.PaymentMethods, 6)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_OnePaymentMethods() {
