@@ -101,6 +101,7 @@ func (h PaymentSystemService) GetById(ctx context.Context, id string) (*billing.
 	err := h.svc.db.Collection(collectionPaymentSystem).FindOne(ctx, filter).Decode(&c)
 
 	if err != nil {
+		zap.L().Error("dkfsldkjfkl", zap.Any("query", filter), zap.Error(err))
 		return nil, fmt.Errorf(errorNotFound, collectionPaymentSystem)
 	}
 
