@@ -581,7 +581,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 		},
 	}
 
-	if p1.checked.user.Ip != "" {
+	if !order.User.HasAddress() && p1.checked.user.Ip != "" {
 		err = p1.processPayerIp()
 
 		if err != nil {
@@ -592,6 +592,14 @@ func (s *Service) PaymentFormJsonDataProcess(
 				return nil
 			}
 			return err
+		}
+
+		order.User.Ip = p1.checked.user.Ip
+		order.User.Address = &billing.OrderBillingAddress{
+			Country:    p1.checked.user.Address.Country,
+			City:       p1.checked.user.Address.City,
+			PostalCode: p1.checked.user.Address.PostalCode,
+			State:      p1.checked.user.Address.State,
 		}
 	}
 
@@ -643,6 +651,18 @@ func (s *Service) PaymentFormJsonDataProcess(
 						browserCustomer.VirtualCustomerId = decryptedBrowserCustomer.VirtualCustomerId
 					}
 				}
+
+				// restore user address from cookie, if it was changed manually
+				if order.User.Address != nil &&
+					order.User.Address.Country == decryptedBrowserCustomer.IpCountry &&
+					order.User.Ip == decryptedBrowserCustomer.Ip &&
+					decryptedBrowserCustomer.SelectedCountry != "" {
+
+					order.User.Address = &billing.OrderBillingAddress{
+						Country: decryptedBrowserCustomer.SelectedCountry,
+					}
+				}
+
 			} else {
 				browserCustomer.VirtualCustomerId = s.getTokenString(s.cfg.Length)
 			}
@@ -656,16 +676,6 @@ func (s *Service) PaymentFormJsonDataProcess(
 
 		if order.User.TechEmail == "" {
 			order.User.TechEmail = order.User.Id + pkg.TechEmailDomain
-		}
-	}
-
-	if order.User.Ip == "" || req.Ip != order.User.Ip {
-		order.User.Ip = p1.checked.user.Ip
-		order.User.Address = &billing.OrderBillingAddress{
-			Country:    p1.checked.user.Address.Country,
-			City:       p1.checked.user.Address.City,
-			PostalCode: p1.checked.user.Address.PostalCode,
-			State:      p1.checked.user.Address.State,
 		}
 	}
 
@@ -800,7 +810,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 	cookie, err := s.generateBrowserCookie(browserCustomer)
 
 	if err == nil {
-		rsp.Item.Cookie = cookie
+		rsp.Cookie = cookie
 	}
 
 	return nil
@@ -1534,26 +1544,30 @@ func (s *Service) ProcessBillingAddress(
 	}
 
 	// save user replace country rule to cookie - start
-	customer := &BrowserCookieCustomer{}
+	cookie := ""
+	customer := &BrowserCookieCustomer{
+		CreatedAt: time.Now(),
+	}
 	if req.Cookie != "" {
 		customer, err = s.decryptBrowserCookie(req.Cookie)
 		if err != nil || customer == nil {
-			customer = &BrowserCookieCustomer{}
+			customer = &BrowserCookieCustomer{
+				CreatedAt: time.Now(),
+			}
 		}
 	}
-
-	customer.Ip = req.Ip
-	customer.SelectedCountry = req.Country
 
 	address, err := s.getAddressByIp(req.Ip)
 	if err == nil {
 		customer.Ip = req.Ip
 		customer.IpCountry = address.Country
-	}
+		customer.SelectedCountry = req.Country
+		customer.UpdatedAt = time.Now()
 
-	cookie, err := s.generateBrowserCookie(customer)
-	if err != nil {
-		cookie = ""
+		cookie, err = s.generateBrowserCookie(customer)
+		if err != nil {
+			cookie = ""
+		}
 	}
 	// save user replace country rule to cookie - end
 
@@ -1612,6 +1626,7 @@ func (s *Service) ProcessBillingAddress(
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
+	rsp.Cookie = cookie
 	rsp.Item = &grpc.ProcessBillingAddressResponseItem{
 		HasVat:              order.Tax.Rate > 0,
 		Vat:                 tools.FormatAmount(order.Tax.Amount),
@@ -1622,7 +1637,6 @@ func (s *Service) ProcessBillingAddress(
 		ChargeCurrency:      order.ChargeCurrency,
 		ChargeAmount:        tools.FormatAmount(order.ChargeAmount),
 		Items:               order.Items,
-		Cookie:              cookie,
 	}
 
 	return nil

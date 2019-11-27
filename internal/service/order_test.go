@@ -4013,11 +4013,8 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_Ok() {
 		Description:   "unit test",
 		OrderId:       bson.NewObjectId().Hex(),
 		User: &billing.OrderUser{
-			Email: "test@unit.unit",
-			Ip:    "127.0.0.1",
-			Address: &billing.OrderBillingAddress{
-				Country: "RU",
-			},
+			Email:  "test@unit.unit",
+			Ip:     "127.0.0.1",
 			Locale: "ru-RU",
 		},
 	}
@@ -4047,15 +4044,15 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_Ok() {
 	assert.True(suite.T(), len(rsp.Item.PaymentMethods[0].Id) > 0)
 	assert.Equal(suite.T(), len(rsp.Item.Items), 0)
 	assert.Equal(suite.T(), req.Description, rsp.Item.Description)
-	assert.False(suite.T(), rsp.Item.CountryPaymentsAllowed)
+	assert.True(suite.T(), rsp.Item.CountryPaymentsAllowed)
 	assert.True(suite.T(), rsp.Item.CountryChangeAllowed)
 	assert.Equal(suite.T(), req.User.Locale, rsp.Item.Lang)
 
 	order, err = suite.service.getOrderByUuid(order.Uuid)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), order.CountryRestriction)
-	assert.Equal(suite.T(), order.CountryRestriction.IsoCodeA2, "UA")
-	assert.False(suite.T(), order.CountryRestriction.PaymentsAllowed)
+	assert.Equal(suite.T(), order.CountryRestriction.IsoCodeA2, "RU")
+	assert.True(suite.T(), order.CountryRestriction.PaymentsAllowed)
 	assert.True(suite.T(), order.CountryRestriction.ChangeAllowed)
 	assert.True(suite.T(), order.UserAddressDataRequired)
 }
@@ -6169,6 +6166,9 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_NewCookie_Ok()
 		Account:     "unit test",
 		Description: "unit test",
 		OrderId:     bson.NewObjectId().Hex(),
+		User: &billing.OrderUser{
+			Ip: "127.0.0.1",
+		},
 	}
 
 	rsp0 := &grpc.OrderCreateProcessResponse{}
@@ -6186,12 +6186,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_NewCookie_Ok()
 	rsp1 := &grpc.PaymentFormJsonDataResponse{}
 	err = suite.service.PaymentFormJsonDataProcess(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.NotEmpty(suite.T(), rsp1.Item.Cookie)
+	assert.NotEmpty(suite.T(), rsp1.Cookie)
 
-	browserCustomer, err := suite.service.decryptBrowserCookie(rsp1.Item.Cookie)
+	browserCustomer, err := suite.service.decryptBrowserCookie(rsp1.Cookie)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), browserCustomer)
-	assert.Empty(suite.T(), browserCustomer.CustomerId)
+	assert.NotEmpty(suite.T(), browserCustomer.CustomerId)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_ExistCookie_Ok() {
@@ -6268,9 +6268,9 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_ExistCookie_Ok
 	rsp2 := &grpc.PaymentFormJsonDataResponse{}
 	err = suite.service.PaymentFormJsonDataProcess(context.TODO(), req2, rsp2)
 	assert.NoError(suite.T(), err)
-	assert.NotEmpty(suite.T(), rsp2.Item.Cookie)
+	assert.NotEmpty(suite.T(), rsp2.Cookie)
 
-	browserCustomer, err = suite.service.decryptBrowserCookie(rsp2.Item.Cookie)
+	browserCustomer, err = suite.service.decryptBrowserCookie(rsp2.Cookie)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), browserCustomer)
 	assert.NotEmpty(suite.T(), browserCustomer.CustomerId)
@@ -6481,7 +6481,7 @@ func (suite *OrderTestSuite) TestOrder_CreatePayment_ChangeCustomerData_Ok() {
 	assert.NotNil(suite.T(), order)
 	assert.NotNil(suite.T(), order.User)
 	assert.Equal(suite.T(), customer2.Id, order.User.Id)
-	assert.Equal(suite.T(), order.User.Ip, net.IP(customer2.Ip).String())
+	assert.Equal(suite.T(), order.User.Ip, "127.0.0.1")
 	assert.Equal(suite.T(), order.User.Locale, customer2.Locale)
 	assert.Equal(suite.T(), order.User.Email, customer2.Email)
 	assert.True(suite.T(), order.UserAddressDataRequired)

@@ -488,8 +488,6 @@ message PaymentFormJsonData {
     billing.UserIpData user_ip_data = 13;
     // @inject_tag: json:"items" validate="omitempty,gte=1,dive"
     repeated billing.OrderItem items = 14;
-    // @inject_tag: json:"cookie"
-    string cookie = 15;
     // @inject_tag: json:"email"
     string email = 16;
     // @inject_tag: json:"description"
@@ -523,6 +521,8 @@ message PaymentFormJsonDataResponse {
     ResponseErrorMessage message = 2;
     //@inject_tag: json:"item"
     PaymentFormJsonData item = 3;
+    // @inject_tag: json:"-"
+    string cookie = 4;
 }
 
 message PaymentNotifyRequest {
@@ -810,14 +810,14 @@ message ProcessBillingAddressResponseItem {
     double charge_amount = 9;
     // @inject_tag: json:"vat_in_charge_currency"
     double vat_in_charge_currency = 10;
-    // @inject_tag: json:"-"
-    string cookie = 11;
 }
 
 message ProcessBillingAddressResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     ProcessBillingAddressResponseItem item = 3;
+    // @inject_tag: json:"-"
+    string cookie = 4;
 }
 
 message GetMerchantByRequest {
