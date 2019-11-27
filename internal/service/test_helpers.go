@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -18,6 +17,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"math/rand"
 	"strconv"
 	"time"
@@ -44,7 +45,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 			Amount:   0.01,
 		},
 	}
-	err := service.paymentMinLimitSystem.MultipleInsert(paymentMinLimitsSystem)
+	err := service.paymentMinLimitSystem.MultipleInsert(context.TODO(), paymentMinLimitsSystem)
 	if err != nil {
 		suite.FailNow("Insert PaymentMinLimitSystem test data failed", "%v", err)
 	}
@@ -56,7 +57,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 	keyEur := fmt.Sprintf(pkg.PaymentMethodKey, "EUR", pkg.MccCodeLowRisk, operatingCompany.Id)
 
 	paymentSystem := &billing.PaymentSystem{
-		Id:                 bson.NewObjectId().Hex(),
+		Id:                 primitive.NewObjectID().Hex(),
 		Name:               "CardPay",
 		AccountingCurrency: "RUB",
 		AccountingPeriod:   "every-day",
@@ -66,7 +67,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 	}
 
 	pmBankCard := &billing.PaymentMethod{
-		Id:               bson.NewObjectId().Hex(),
+		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bank card",
 		Group:            "BANKCARD",
 		MinPaymentAmount: 10,
@@ -136,7 +137,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 	projectFixedAmount := helperCreateProject(suite, service, merchant.Id)
 
 	bin := &BinData{
-		Id:                 bson.NewObjectId(),
+		Id:                 primitive.NewObjectID(),
 		CardBin:            400000,
 		CardBrand:          "MASTERCARD",
 		CardType:           "DEBIT",
@@ -146,19 +147,19 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		BankCountryIsoCode: "US",
 	}
 
-	err = service.db.Collection(collectionBinData).Insert(bin)
+	_, err = service.db.Collection(collectionBinData).InsertOne(context.TODO(), bin)
 
 	if err != nil {
 		suite.FailNow("Insert BIN test data failed", "%v", err)
 	}
 
 	pms := []*billing.PaymentMethod{pmBankCard}
-	if err := service.paymentMethod.MultipleInsert(pms); err != nil {
+	if err := service.paymentMethod.MultipleInsert(context.TODO(), pms); err != nil {
 		suite.FailNow("Insert payment methods test data failed", "%v", err)
 	}
 
 	ps := []*billing.PaymentSystem{paymentSystem}
-	if err := service.paymentSystem.MultipleInsert(ps); err != nil {
+	if err := service.paymentSystem.MultipleInsert(context.TODO(), ps); err != nil {
 		suite.FailNow("Insert payment system test data failed", "%v", err)
 	}
 
@@ -275,7 +276,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		OperatingCompanyId: operatingCompany.Id,
 	}
 
-	err = service.moneyBackCostSystem.MultipleInsert([]*billing.MoneyBackCostSystem{sysCost, sysCost2, sysCost3, sysCost4, sysCost5, sysCost6, sysCost7, sysCost8})
+	err = service.moneyBackCostSystem.MultipleInsert(context.TODO(), []*billing.MoneyBackCostSystem{sysCost, sysCost2, sysCost3, sysCost4, sysCost5, sysCost6, sysCost7, sysCost8})
 
 	if err != nil {
 		suite.FailNow("Insert MoneyBackCostSystem test data failed", "%v", err)
@@ -337,13 +338,16 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		OperatingCompanyId: operatingCompany.Id,
 	}
 
-	err = service.paymentChannelCostSystem.MultipleInsert([]*billing.PaymentChannelCostSystem{
-		paymentSysCost1,
-		paymentSysCost2,
-		paymentSysCost3,
-		paymentSysCost4,
-		paymentSysCost5,
-	})
+	err = service.paymentChannelCostSystem.MultipleInsert(
+		context.TODO(),
+		[]*billing.PaymentChannelCostSystem{
+			paymentSysCost1,
+			paymentSysCost2,
+			paymentSysCost3,
+			paymentSysCost4,
+			paymentSysCost5,
+		},
+	)
 
 	if err != nil {
 		suite.FailNow("Insert PaymentChannelCostSystem test data failed", "%v", err)
@@ -358,7 +362,7 @@ func helperOperatingCompany(
 ) *billing.OperatingCompany {
 
 	operatingCompany := &billing.OperatingCompany{
-		Id:                 bson.NewObjectId().Hex(),
+		Id:                 primitive.NewObjectID().Hex(),
 		Name:               "Legal name",
 		Country:            "RU",
 		RegistrationNumber: "some number",
@@ -371,7 +375,7 @@ func helperOperatingCompany(
 		PaymentCountries:   []string{},
 	}
 
-	err := service.operatingCompany.Upsert(operatingCompany)
+	err := service.operatingCompany.Upsert(context.TODO(), operatingCompany)
 	if err != nil {
 		suite.FailNow("Insert operatingCompany failed", "%v", err)
 	}
@@ -394,9 +398,9 @@ func helperCreateMerchant(
 	}
 
 	merchant := &billing.Merchant{
-		Id: bson.NewObjectId().Hex(),
+		Id: primitive.NewObjectID().Hex(),
 		User: &billing.MerchantUser{
-			Id: bson.NewObjectId().Hex(),
+			Id: primitive.NewObjectID().Hex(),
 		},
 		Company: &billing.MerchantCompanyInfo{
 			Name:               "Unit test",
@@ -506,12 +510,12 @@ func helperCreateMerchant(
 	}
 
 	merchants := []*billing.Merchant{merchant}
-	if err := service.merchant.MultipleInsert(merchants); err != nil {
+	if err := service.merchant.MultipleInsert(context.TODO(), merchants); err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
 	}
 
 	merCost1 := &billing.MoneyBackCostMerchant{
-		Id:                bson.NewObjectId().Hex(),
+		Id:                primitive.NewObjectID().Hex(),
 		MerchantId:        merchant.Id,
 		Name:              "MASTERCARD",
 		PayoutCurrency:    "USD",
@@ -528,7 +532,7 @@ func helperCreateMerchant(
 	}
 
 	merCost2 := &billing.MoneyBackCostMerchant{
-		Id:                bson.NewObjectId().Hex(),
+		Id:                primitive.NewObjectID().Hex(),
 		MerchantId:        merchant.Id,
 		Name:              "MASTERCARD",
 		PayoutCurrency:    "RUB",
@@ -545,7 +549,7 @@ func helperCreateMerchant(
 	}
 
 	merCost3 := &billing.MoneyBackCostMerchant{
-		Id:                bson.NewObjectId().Hex(),
+		Id:                primitive.NewObjectID().Hex(),
 		MerchantId:        merchant.Id,
 		Name:              "MASTERCARD",
 		PayoutCurrency:    "USD",
@@ -562,7 +566,7 @@ func helperCreateMerchant(
 	}
 
 	merCost4 := &billing.MoneyBackCostMerchant{
-		Id:                bson.NewObjectId().Hex(),
+		Id:                primitive.NewObjectID().Hex(),
 		MerchantId:        merchant.Id,
 		Name:              "MASTERCARD",
 		PayoutCurrency:    "USD",
@@ -579,7 +583,7 @@ func helperCreateMerchant(
 	}
 
 	merCost5 := &billing.MoneyBackCostMerchant{
-		Id:                bson.NewObjectId().Hex(),
+		Id:                primitive.NewObjectID().Hex(),
 		MerchantId:        merchant.Id,
 		Name:              "MASTERCARD",
 		PayoutCurrency:    "USD",
@@ -596,7 +600,7 @@ func helperCreateMerchant(
 	}
 
 	merCost6 := &billing.MoneyBackCostMerchant{
-		Id:                bson.NewObjectId().Hex(),
+		Id:                primitive.NewObjectID().Hex(),
 		MerchantId:        merchant.Id,
 		Name:              "MASTERCARD",
 		PayoutCurrency:    "RUB",
@@ -613,7 +617,7 @@ func helperCreateMerchant(
 	}
 
 	merCost7 := &billing.MoneyBackCostMerchant{
-		Id:                bson.NewObjectId().Hex(),
+		Id:                primitive.NewObjectID().Hex(),
 		MerchantId:        merchant.Id,
 		Name:              "MASTERCARD",
 		PayoutCurrency:    "USD",
@@ -630,7 +634,7 @@ func helperCreateMerchant(
 	}
 
 	merCost8 := &billing.MoneyBackCostMerchant{
-		Id:                bson.NewObjectId().Hex(),
+		Id:                primitive.NewObjectID().Hex(),
 		MerchantId:        merchant.Id,
 		Name:              "MASTERCARD",
 		PayoutCurrency:    "USD",
@@ -646,7 +650,7 @@ func helperCreateMerchant(
 		MccCode:           pkg.MccCodeLowRisk,
 	}
 
-	err = service.moneyBackCostMerchant.MultipleInsert([]*billing.MoneyBackCostMerchant{merCost1, merCost2, merCost3, merCost4, merCost5, merCost6, merCost7, merCost8})
+	err = service.moneyBackCostMerchant.MultipleInsert(context.TODO(), []*billing.MoneyBackCostMerchant{merCost1, merCost2, merCost3, merCost4, merCost5, merCost6, merCost7, merCost8})
 
 	if err != nil {
 		suite.FailNow("Insert MoneyBackCostMerchant test data failed", "%v", err)
@@ -713,7 +717,7 @@ func helperCreateMerchant(
 		MccCode:                 pkg.MccCodeLowRisk,
 	}
 
-	err = service.paymentChannelCostMerchant.MultipleInsert([]*billing.PaymentChannelCostMerchant{paymentMerCost1, paymentMerCost2, paymentMerCost3, paymentMerCost4})
+	err = service.paymentChannelCostMerchant.MultipleInsert(context.TODO(), []*billing.PaymentChannelCostMerchant{paymentMerCost1, paymentMerCost2, paymentMerCost3, paymentMerCost4})
 
 	if err != nil {
 		suite.FailNow("Insert PaymentChannelCostMerchant test data failed", "%v", err)
@@ -728,7 +732,7 @@ func helperCreateProject(
 	merchantId string,
 ) *billing.Project {
 	project := &billing.Project{
-		Id:                       bson.NewObjectId().Hex(),
+		Id:                       primitive.NewObjectID().Hex(),
 		CallbackCurrency:         "RUB",
 		CallbackProtocol:         "default",
 		LimitsCurrency:           "USD",
@@ -742,7 +746,7 @@ func helperCreateProject(
 		MerchantId:               merchantId,
 	}
 
-	if err := service.project.Insert(project); err != nil {
+	if err := service.project.Insert(context.TODO(), project); err != nil {
 		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 
@@ -790,7 +794,10 @@ func helperCreateAndPayPaylinkOrder(
 	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
 
 	order := &billing.Order{}
-	err = service.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(rsp.Item.Id)).One(&order)
+
+	oid, _ := primitive.ObjectIDFromHex(rsp.Item.Id)
+	filter := bson.M{"_id": oid}
+	err = service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.NotNil(suite.T(), order)
 	assert.IsType(suite.T(), &billing.Order{}, order)
 
@@ -817,7 +824,7 @@ func helperCreateAndPayOrder(
 		Currency:    currency,
 		Account:     "unit test",
 		Description: "unit test",
-		OrderId:     bson.NewObjectId().Hex(),
+		OrderId:     primitive.NewObjectID().Hex(),
 		User: &billing.OrderUser{
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
@@ -866,7 +873,9 @@ func helperPayOrder(
 	assert.NoError(suite.T(), err)
 	assert.Equalf(suite.T(), pkg.ResponseStatusOk, rsp1.Status, "%v", rsp1.Message)
 
-	err = service.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(order.Id)).One(&order)
+	oid, _ := primitive.ObjectIDFromHex(order.Id)
+	filter := bson.M{"_id": oid}
+	err = service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.NotNil(suite.T(), order)
 	assert.IsType(suite.T(), &billing.Order{}, order)
 
@@ -881,7 +890,7 @@ func helperPayOrder(
 			Holder:             order.PaymentRequisites[pkg.PaymentCreateFieldHolder],
 			IssuingCountryCode: country,
 			MaskedPan:          order.PaymentRequisites[pkg.PaymentCreateFieldPan],
-			Token:              bson.NewObjectId().Hex(),
+			Token:              primitive.NewObjectID().Hex(),
 		},
 		Customer: &billing.CardPayCustomer{
 			Email:  order.User.Email,
@@ -890,12 +899,12 @@ func helperPayOrder(
 			Locale: "Europe/Moscow",
 		},
 		PaymentData: &billing.CallbackCardPayPaymentData{
-			Id:          bson.NewObjectId().Hex(),
+			Id:          primitive.NewObjectID().Hex(),
 			Amount:      order.TotalPaymentAmount,
 			Currency:    order.Currency,
 			Description: order.Description,
 			Is_3D:       true,
-			Rrn:         bson.NewObjectId().Hex(),
+			Rrn:         primitive.NewObjectID().Hex(),
 			Status:      pkg.CardPayPaymentResponseStatusCompleted,
 		},
 	}
@@ -917,7 +926,9 @@ func helperPayOrder(
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.StatusOK, callbackResponse.Status)
 
-	err = service.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(order.Id)).One(&order)
+	oid, _ = primitive.ObjectIDFromHex(order.Id)
+	filter = bson.M{"_id": oid}
+	err = service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.NotNil(suite.T(), order)
 	assert.IsType(suite.T(), &billing.Order{}, order)
 	assert.Equal(suite.T(), int32(constant.OrderStatusPaymentSystemComplete), order.PrivateStatus)
@@ -929,7 +940,7 @@ func helperMakeRefund(suite suite.Suite, service *Service, order *billing.Order,
 	req2 := &grpc.CreateRefundRequest{
 		OrderId:      order.Uuid,
 		Amount:       amount,
-		CreatorId:    bson.NewObjectId().Hex(),
+		CreatorId:    primitive.NewObjectID().Hex(),
 		Reason:       "unit test",
 		IsChargeback: isChargeback,
 		MerchantId:   order.GetMerchantId(),
@@ -940,7 +951,7 @@ func helperMakeRefund(suite suite.Suite, service *Service, order *billing.Order,
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
 	assert.Empty(suite.T(), rsp2.Message)
 
-	err = service.updateOrder(order)
+	err = service.updateOrder(context.TODO(), order)
 	assert.NoError(suite.T(), err)
 
 	refundReq := &billing.CardPayRefundCallback{
@@ -955,12 +966,12 @@ func helperMakeRefund(suite suite.Suite, service *Service, order *billing.Order,
 		RefundData: &billing.CardPayRefundCallbackRefundData{
 			Amount:   10,
 			Created:  time.Now().Format(cardPayDateFormat),
-			Id:       bson.NewObjectId().Hex(),
+			Id:       primitive.NewObjectID().Hex(),
 			Currency: rsp2.Item.Currency,
 			Status:   pkg.CardPayPaymentResponseStatusCompleted,
-			AuthCode: bson.NewObjectId().Hex(),
+			AuthCode: primitive.NewObjectID().Hex(),
 			Is_3D:    true,
-			Rrn:      bson.NewObjectId().Hex(),
+			Rrn:      primitive.NewObjectID().Hex(),
 		},
 		CallbackTime: time.Now().Format(cardPayDateFormat),
 		Customer: &billing.CardPayCustomer{
@@ -987,7 +998,9 @@ func helperMakeRefund(suite suite.Suite, service *Service, order *billing.Order,
 	assert.Empty(suite.T(), rsp3.Error)
 
 	var refund *billing.Refund
-	err = service.db.Collection(collectionRefund).FindId(bson.ObjectIdHex(rsp2.Item.Id)).One(&refund)
+	oid, _ := primitive.ObjectIDFromHex(rsp2.Item.Id)
+	filter := bson.M{"_id": oid}
+	err = service.db.Collection(collectionRefund).FindOne(context.TODO(), filter).Decode(&refund)
 	assert.NotNil(suite.T(), refund)
 	assert.Equal(suite.T(), pkg.RefundStatusCompleted, refund.Status)
 
@@ -1141,7 +1154,7 @@ func helperCreateAndPayOrder2(
 		ProjectId:   project.Id,
 		Account:     "unit test",
 		Description: "unit test",
-		OrderId:     bson.NewObjectId().Hex(),
+		OrderId:     primitive.NewObjectID().Hex(),
 		User: &billing.OrderUser{
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
@@ -1193,7 +1206,9 @@ func helperCreateAndPayOrder2(
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 
 	var order *billing.Order
-	err = service.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(rsp.Item.Id)).One(&order)
+	oid, _ := primitive.ObjectIDFromHex(rsp.Item.Id)
+	filter := bson.M{"_id": oid}
+	err = service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.NotNil(suite.T(), order)
 	assert.IsType(suite.T(), &billing.Order{}, order)
 
@@ -1208,7 +1223,7 @@ func helperCreateAndPayOrder2(
 			Holder:             order.PaymentRequisites[pkg.PaymentCreateFieldHolder],
 			IssuingCountryCode: country,
 			MaskedPan:          order.PaymentRequisites[pkg.PaymentCreateFieldPan],
-			Token:              bson.NewObjectId().Hex(),
+			Token:              primitive.NewObjectID().Hex(),
 		},
 		Customer: &billing.CardPayCustomer{
 			Email:  rsp.Item.User.Email,
@@ -1217,12 +1232,12 @@ func helperCreateAndPayOrder2(
 			Locale: "Europe/Moscow",
 		},
 		PaymentData: &billing.CallbackCardPayPaymentData{
-			Id:          bson.NewObjectId().Hex(),
+			Id:          primitive.NewObjectID().Hex(),
 			Amount:      order.TotalPaymentAmount,
 			Currency:    order.Currency,
 			Description: order.Description,
 			Is_3D:       true,
-			Rrn:         bson.NewObjectId().Hex(),
+			Rrn:         primitive.NewObjectID().Hex(),
 			Status:      pkg.CardPayPaymentResponseStatusCompleted,
 		},
 	}
@@ -1244,7 +1259,9 @@ func helperCreateAndPayOrder2(
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.StatusOK, callbackResponse.Status)
 
-	err = service.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(order.Id)).One(&order)
+	oid, _ = primitive.ObjectIDFromHex(order.Id)
+	filter = bson.M{"_id": oid}
+	err = service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.NotNil(suite.T(), order)
 	assert.IsType(suite.T(), &billing.Order{}, order)
 	assert.Equal(suite.T(), int32(constant.OrderStatusPaymentSystemComplete), order.PrivateStatus)

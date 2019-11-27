@@ -34,7 +34,7 @@ func (s *Service) DeleteSavedCard(
 	}
 
 	if customer.CustomerId != "" {
-		_, err = s.getCustomerById(customer.CustomerId)
+		_, err = s.getCustomerById(ctx, customer.CustomerId)
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusNotFound

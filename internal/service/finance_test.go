@@ -1,7 +1,6 @@
 package service
 
 import (
-	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
@@ -9,11 +8,12 @@ import (
 	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"testing"
 	"time"
 )
@@ -44,7 +44,7 @@ func (suite *FinanceTestSuite) SetupTest() {
 	}
 
 	ps1 := &billing.PaymentSystem{
-		Id:                 bson.NewObjectId().Hex(),
+		Id:                 primitive.NewObjectID().Hex(),
 		Name:               "CardPay",
 		AccountingCurrency: "RUB",
 		AccountingPeriod:   "every-day",
@@ -53,7 +53,7 @@ func (suite *FinanceTestSuite) SetupTest() {
 		Handler:            "cardpay",
 	}
 	pmBankCard := &billing.PaymentMethod{
-		Id:               bson.NewObjectId().Hex(),
+		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bank card",
 		Group:            "BANKCARD",
 		MinPaymentAmount: 0,
@@ -83,7 +83,7 @@ func (suite *FinanceTestSuite) SetupTest() {
 	assert.NoError(suite.T(), err, "Generate merchant date failed")
 
 	merchant := &billing.Merchant{
-		Id: bson.NewObjectId().Hex(),
+		Id: primitive.NewObjectID().Hex(),
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -176,7 +176,7 @@ func (suite *FinanceTestSuite) SetupTest() {
 	}
 
 	project := &billing.Project{
-		Id:                 bson.NewObjectId().Hex(),
+		Id:                 primitive.NewObjectID().Hex(),
 		CallbackCurrency:   "RUB",
 		CallbackProtocol:   "default",
 		LimitsCurrency:     "RUB",
@@ -190,7 +190,7 @@ func (suite *FinanceTestSuite) SetupTest() {
 	}
 
 	pmQiwi := &billing.PaymentMethod{
-		Id:               bson.NewObjectId().Hex(),
+		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Qiwi",
 		Group:            "QIWI",
 		MinPaymentAmount: 0,
@@ -205,7 +205,7 @@ func (suite *FinanceTestSuite) SetupTest() {
 		PaymentSystemId: ps1.Id,
 	}
 	pmBitcoin := &billing.PaymentMethod{
-		Id:               bson.NewObjectId().Hex(),
+		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bitcoin",
 		Group:            "BITCOIN",
 		MinPaymentAmount: 0,
@@ -250,23 +250,23 @@ func (suite *FinanceTestSuite) SetupTest() {
 	}
 
 	pms := []*billing.PaymentMethod{pmBankCard, pmQiwi, pmBitcoin}
-	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {
+	if err := suite.service.paymentMethod.MultipleInsert(ctx, pms); err != nil {
 		suite.FailNow("Insert payment methods test data failed", "%v", err)
 	}
 
-	if err := suite.service.merchant.Insert(merchant); err != nil {
+	if err := suite.service.merchant.Insert(ctx, merchant); err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
 	}
 
-	if err := suite.service.project.Insert(project); err != nil {
+	if err := suite.service.project.Insert(ctx, project); err != nil {
 		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 
-	if err := suite.service.country.Insert(country); err != nil {
+	if err := suite.service.country.Insert(ctx, country); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 
-	if err := suite.service.paymentSystem.Insert(ps1); err != nil {
+	if err := suite.service.paymentSystem.Insert(ctx, ps1); err != nil {
 		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 
@@ -275,9 +275,15 @@ func (suite *FinanceTestSuite) SetupTest() {
 }
 
 func (suite *FinanceTestSuite) TearDownTest() {
-	if err := suite.service.db.Drop(); err != nil {
+	err := suite.service.db.Drop()
+
+	if err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}
 
-	suite.service.db.Close()
+	err = suite.service.db.Close()
+
+	if err != nil {
+		suite.FailNow("Database close failed", "%v", err)
+	}
 }

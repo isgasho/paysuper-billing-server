@@ -7,13 +7,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
 	"github.com/streadway/amqp"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 	"strings"
 	"time"
@@ -44,11 +46,11 @@ func (s *Service) CreateOrUpdateUserProfile(
 ) error {
 	var err error
 
-	profile, err := s.userProfileRepository.GetByUserId(req.UserId)
+	profile, err := s.userProfileRepository.GetByUserId(ctx, req.UserId)
 
 	if profile == nil {
 		profile = req
-		profile.Id = bson.NewObjectId().Hex()
+		profile.Id = primitive.NewObjectID().Hex()
 		profile.CreatedAt = ptypes.TimestampNow()
 	} else {
 		profile = s.updateOnboardingProfile(profile, req)
@@ -64,7 +66,10 @@ func (s *Service) CreateOrUpdateUserProfile(
 		return nil
 	}
 
-	_, err = s.db.Collection(collectionUserProfile).UpsertId(bson.ObjectIdHex(profile.Id), profile)
+	oid, _ := primitive.ObjectIDFromHex(profile.Id)
+	filter := bson.M{"_id": oid}
+	opts := options.Replace().SetUpsert(true)
+	_, err = s.db.Collection(collectionUserProfile).ReplaceOne(ctx, filter, profile, opts)
 
 	if err != nil {
 		zap.S().Error(
@@ -90,7 +95,7 @@ func (s *Service) CreateOrUpdateUserProfile(
 			return nil
 		}
 
-		err = s.sendUserEmailConfirmationToken(profile)
+		err = s.sendUserEmailConfirmationToken(ctx, profile)
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusSystemError
@@ -115,9 +120,9 @@ func (s *Service) GetUserProfile(
 	var profile *grpc.UserProfile
 
 	if req.ProfileId != "" {
-		profile, err = s.userProfileRepository.GetById(req.ProfileId)
+		profile, err = s.userProfileRepository.GetById(ctx, req.ProfileId)
 	} else {
-		profile, err = s.userProfileRepository.GetByUserId(req.UserId)
+		profile, err = s.userProfileRepository.GetByUserId(ctx, req.UserId)
 	}
 
 	if err != nil {
@@ -320,7 +325,7 @@ func (s *Service) ConfirmUserEmail(
 		return nil
 	}
 
-	rsp.Profile, err = s.userProfileRepository.GetByUserId(userId)
+	rsp.Profile, err = s.userProfileRepository.GetByUserId(ctx, userId)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -401,7 +406,7 @@ func (s *Service) getUserEmailConfirmationToken(token string) (string, error) {
 	return data, err
 }
 
-func (s *Service) sendUserEmailConfirmationToken(profile *grpc.UserProfile) error {
+func (s *Service) sendUserEmailConfirmationToken(ctx context.Context, profile *grpc.UserProfile) error {
 	payload := &postmarkSdrPkg.Payload{
 		TemplateAlias: s.cfg.EmailConfirmTemplate,
 		TemplateModel: map[string]string{
@@ -422,9 +427,10 @@ func (s *Service) sendUserEmailConfirmationToken(profile *grpc.UserProfile) erro
 		return err
 	}
 
-	query := bson.M{"_id": bson.ObjectIdHex(profile.Id)}
+	oid, _ := primitive.ObjectIDFromHex(profile.Id)
+	query := bson.M{"_id": oid}
 	set := bson.M{"$set": bson.M{"email.is_confirmation_email_sent": true}}
-	err = s.db.Collection(collectionUserProfile).Update(query, set)
+	_, err = s.db.Collection(collectionUserProfile).UpdateOne(ctx, query, set)
 
 	if err != nil {
 		zap.S().Error(
@@ -449,7 +455,9 @@ func (s *Service) emailConfirmedSuccessfully(ctx context.Context, profile *grpc.
 	profile.Email.Confirmed = true
 	profile.Email.ConfirmedAt = ptypes.TimestampNow()
 
-	err := s.db.Collection(collectionUserProfile).UpdateId(bson.ObjectIdHex(profile.Id), profile)
+	oid, _ := primitive.ObjectIDFromHex(profile.Id)
+	filter := bson.M{"_id": oid}
+	_, err := s.db.Collection(collectionUserProfile).ReplaceOne(ctx, filter, profile)
 
 	if err != nil {
 		zap.S().Error(
@@ -472,7 +480,9 @@ func (s *Service) emailConfirmedTruncate(ctx context.Context, profile *grpc.User
 	profile.Email.Confirmed = false
 	profile.Email.ConfirmedAt = nil
 
-	err := s.db.Collection(collectionUserProfile).UpdateId(bson.ObjectIdHex(profile.Id), profile)
+	oid, _ := primitive.ObjectIDFromHex(profile.Id)
+	filter := bson.M{"_id": oid}
+	_, err := s.db.Collection(collectionUserProfile).ReplaceOne(ctx, filter, profile)
 
 	if err != nil {
 		zap.S().Error(
@@ -497,14 +507,14 @@ func (s *Service) CreatePageReview(
 	rsp *grpc.CheckProjectRequestSignatureResponse,
 ) error {
 	review := &grpc.PageReview{
-		Id:        bson.NewObjectId().Hex(),
+		Id:        primitive.NewObjectID().Hex(),
 		UserId:    req.UserId,
 		Review:    req.Review,
 		Url:       req.Url,
 		CreatedAt: ptypes.TimestampNow(),
 	}
 
-	err := s.db.Collection(collectionOPageReview).Insert(review)
+	_, err := s.db.Collection(collectionOPageReview).InsertOne(ctx, review)
 
 	if err != nil {
 		zap.S().Error(
@@ -530,7 +540,7 @@ func (s *Service) GetCommonUserProfile(
 	req *grpc.CommonUserProfileRequest,
 	rsp *grpc.CommonUserProfileResponse,
 ) error {
-	profile, err := s.userProfileRepository.GetByUserId(req.UserId)
+	profile, err := s.userProfileRepository.GetByUserId(ctx, req.UserId)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -552,11 +562,11 @@ func (s *Service) GetCommonUserProfile(
 		return nil
 	}
 
-	role := s.findRoleForUser(req.MerchantId, req.UserId)
+	role := s.findRoleForUser(ctx, req.MerchantId, req.UserId)
 
 	if role != nil {
 		rsp.Profile.Role = role
-		rsp.Profile.Merchant, _ = s.merchant.GetById(role.MerchantId)
+		rsp.Profile.Merchant, _ = s.merchant.GetById(ctx, role.MerchantId)
 		rsp.Profile.Merchant.CentrifugoToken = s.centrifugo.GetChannelToken(
 			rsp.Profile.Merchant.Id,
 			time.Now().Add(time.Hour*3).Unix(),
@@ -575,7 +585,7 @@ func (s *Service) GetCommonUserProfile(
 			rsp.Profile.Merchant = merchant
 		}
 	} else {
-		rsp.Profile.Role, _ = s.userRoleRepository.GetAdminUserByUserId(req.UserId)
+		rsp.Profile.Role, _ = s.userRoleRepository.GetAdminUserByUserId(ctx, req.UserId)
 	}
 
 	if rsp.Profile.Role != nil {
@@ -595,13 +605,13 @@ func (s *Service) GetCommonUserProfile(
 	return nil
 }
 
-func (s *Service) findRoleForUser(merchantId string, userId string) *billing.UserRole {
+func (s *Service) findRoleForUser(ctx context.Context, merchantId string, userId string) *billing.UserRole {
 	if merchantId != "" {
-		role, _ := s.userRoleRepository.GetMerchantUserByUserId(merchantId, userId)
+		role, _ := s.userRoleRepository.GetMerchantUserByUserId(ctx, merchantId, userId)
 		return role
 	}
 
-	roles, _ := s.userRoleRepository.GetMerchantsForUser(userId)
+	roles, _ := s.userRoleRepository.GetMerchantsForUser(ctx, userId)
 	if len(roles) > 0 {
 		return roles[0]
 	}
@@ -610,8 +620,8 @@ func (s *Service) findRoleForUser(merchantId string, userId string) *billing.Use
 }
 
 type UserProfileRepositoryInterface interface {
-	GetById(string) (*grpc.UserProfile, error)
-	GetByUserId(string) (*grpc.UserProfile, error)
+	GetById(context.Context, string) (*grpc.UserProfile, error)
+	GetByUserId(context.Context, string) (*grpc.UserProfile, error)
 }
 
 func newUserProfileRepository(svc *Service) UserProfileRepositoryInterface {
@@ -619,10 +629,12 @@ func newUserProfileRepository(svc *Service) UserProfileRepositoryInterface {
 	return s
 }
 
-func (r *UserProfileRepository) GetById(id string) (*grpc.UserProfile, error) {
+func (r *UserProfileRepository) GetById(ctx context.Context, id string) (*grpc.UserProfile, error) {
 	var c *grpc.UserProfile
 
-	err := r.svc.db.Collection(collectionUserProfile).Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&c)
+	oid, _ := primitive.ObjectIDFromHex(id)
+	filter := bson.M{"_id": oid}
+	err := r.svc.db.Collection(collectionUserProfile).FindOne(ctx, filter).Decode(&c)
 
 	if err != nil {
 		zap.L().Error(
@@ -636,10 +648,10 @@ func (r *UserProfileRepository) GetById(id string) (*grpc.UserProfile, error) {
 	return c, nil
 }
 
-func (r *UserProfileRepository) GetByUserId(userId string) (*grpc.UserProfile, error) {
+func (r *UserProfileRepository) GetByUserId(ctx context.Context, userId string) (*grpc.UserProfile, error) {
 	var c *grpc.UserProfile
 
-	err := r.svc.db.Collection(collectionUserProfile).Find(bson.M{"user_id": userId}).One(&c)
+	err := r.svc.db.Collection(collectionUserProfile).FindOne(ctx, bson.M{"user_id": userId}).Decode(&c)
 
 	if err != nil {
 		zap.L().Error(

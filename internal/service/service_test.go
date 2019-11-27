@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
@@ -11,12 +10,13 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"testing"
 	"time"
 )
@@ -85,7 +85,7 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 	}
 
 	ps := &billing.PaymentSystem{
-		Id:                 bson.NewObjectId().Hex(),
+		Id:                 primitive.NewObjectID().Hex(),
 		Name:               "CardPay",
 		AccountingCurrency: "RUB",
 		AccountingPeriod:   "every-day",
@@ -105,7 +105,7 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 	}
 
 	pmBankCard := &billing.PaymentMethod{
-		Id:               bson.NewObjectId().Hex(),
+		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bank card",
 		Group:            "BANKCARD",
 		MinPaymentAmount: 100,
@@ -128,7 +128,7 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 	assert.NoError(suite.T(), err, "Generate merchant date failed")
 
 	merchant := &billing.Merchant{
-		Id: bson.NewObjectId().Hex(),
+		Id: primitive.NewObjectID().Hex(),
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -184,7 +184,7 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 	}
 
 	projectDefault := &billing.Project{
-		Id:                       bson.NewObjectId().Hex(),
+		Id:                       primitive.NewObjectID().Hex(),
 		CallbackCurrency:         "RUB",
 		CallbackProtocol:         "default",
 		LimitsCurrency:           "RUB",
@@ -198,8 +198,8 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		MerchantId:               merchant.Id,
 	}
 	projectXsolla := &billing.Project{
-		Id:                 bson.NewObjectId().Hex(),
-		MerchantId:         bson.NewObjectId().Hex(),
+		Id:                 primitive.NewObjectID().Hex(),
+		MerchantId:         primitive.NewObjectID().Hex(),
 		CallbackCurrency:   "RUB",
 		CallbackProtocol:   "xsolla",
 		LimitsCurrency:     "RUB",
@@ -211,8 +211,8 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		Status:             pkg.ProjectStatusInProduction,
 	}
 	projectCardpay := &billing.Project{
-		Id:                 bson.NewObjectId().Hex(),
-		MerchantId:         bson.NewObjectId().Hex(),
+		Id:                 primitive.NewObjectID().Hex(),
+		MerchantId:         primitive.NewObjectID().Hex(),
 		CallbackCurrency:   "RUB",
 		CallbackProtocol:   "cardpay",
 		LimitsCurrency:     "RUB",
@@ -225,7 +225,7 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 	}
 
 	pmQiwi := &billing.PaymentMethod{
-		Id:               bson.NewObjectId().Hex(),
+		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Qiwi",
 		Group:            "QIWI",
 		MinPaymentAmount: 0,
@@ -242,7 +242,7 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		PaymentSystemId: ps.Id,
 	}
 	pmBitcoin := &billing.PaymentMethod{
-		Id:               bson.NewObjectId().Hex(),
+		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bitcoin",
 		Group:            "BITCOIN",
 		MinPaymentAmount: 0,
@@ -266,19 +266,19 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 	}
 
 	pms := []*billing.PaymentMethod{pmBankCard, pmQiwi, pmBitcoin}
-	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {
+	if err := suite.service.paymentMethod.MultipleInsert(context.TODO(), pms); err != nil {
 		suite.FailNow("Insert payment methods test data failed", "%v", err)
 	}
 
-	if err := suite.service.merchant.Insert(merchant); err != nil {
+	if err := suite.service.merchant.Insert(context.TODO(), merchant); err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
 	}
 
-	if err := suite.service.country.Insert(country); err != nil {
+	if err := suite.service.country.Insert(context.TODO(), country); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 
-	if err := suite.service.project.MultipleInsert(projects); err != nil {
+	if err := suite.service.project.MultipleInsert(context.TODO(), projects); err != nil {
 		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 
@@ -287,11 +287,17 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 }
 
 func (suite *BillingServiceTestSuite) TearDownTest() {
-	if err := suite.db.Drop(); err != nil {
+	err := suite.service.db.Drop()
+
+	if err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}
 
-	suite.db.Close()
+	err = suite.service.db.Close()
+
+	if err != nil {
+		suite.FailNow("Database close failed", "%v", err)
+	}
 }
 
 func (suite *BillingServiceTestSuite) TestNewBillingService() {
@@ -386,7 +392,7 @@ func (suite *BillingServiceTestSuite) TestBillingService_CheckProjectRequestSign
 func (suite *BillingServiceTestSuite) TestBillingService_CheckProjectRequestSignature_ProjectNotFound_Error() {
 	req := &grpc.CheckProjectRequestSignatureRequest{
 		Body:      `{"field1": "val1", "field2": "val2", "field3": "val3"}`,
-		ProjectId: bson.NewObjectId().Hex(),
+		ProjectId: primitive.NewObjectID().Hex(),
 	}
 	rsp := &grpc.CheckProjectRequestSignatureResponse{}
 

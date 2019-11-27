@@ -3,6 +3,7 @@ package grpc
 import (
 	"errors"
 	"fmt"
+	"github.com/jinzhu/copier"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 )
 
@@ -75,7 +76,7 @@ func (p *Product) GetLocalizedDescription(lang string) (string, error) {
 
 func (p *Product) GetLocalizedLongDescription(lang string) (string, error) {
 	v, ok := p.LongDescription[lang]
-	if !ok || len(v) == 0  {
+	if !ok || len(v) == 0 {
 		return "", errors.New(fmt.Sprintf(productNoLongDescriptionInLanguage, lang))
 	}
 	return v, nil
@@ -83,6 +84,19 @@ func (p *Product) GetLocalizedLongDescription(lang string) (string, error) {
 
 func (r *ResponseErrorMessage) Error() string {
 	return r.Message
+}
+
+func (r *ResponseErrorMessage) GetResponseErrorWithDetails(details string) *ResponseErrorMessage {
+	newResponseErrorMessage := new(ResponseErrorMessage)
+	err := copier.Copy(&newResponseErrorMessage, &r)
+
+	if err != nil {
+		r.Details = details
+		return r
+	}
+
+	newResponseErrorMessage.Details = details
+	return newResponseErrorMessage
 }
 
 func (r *ResponseError) Error() string {
@@ -162,7 +176,7 @@ func (p *KeyProduct) GetLocalizedName(lang string) (string, error) {
 
 func (p *KeyProduct) GetLocalizedDescription(lang string) (string, error) {
 	v, ok := p.Description[lang]
-	if !ok || len(v) == 0  {
+	if !ok || len(v) == 0 {
 		return "", errors.New(fmt.Sprintf(productNoDescriptionInLanguage, lang))
 	}
 	return v, nil
