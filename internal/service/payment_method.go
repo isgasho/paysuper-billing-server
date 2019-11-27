@@ -547,6 +547,7 @@ func (h *PaymentMethod) ListByParams(
 	err := h.svc.cacher.Get(key, &val)
 
 	if err == nil {
+		zap.S().Infow("Found payment methods in cache", "key", key, "data", val.PaymentMethods)
 		return val.PaymentMethods, nil
 	}
 
@@ -559,6 +560,8 @@ func (h *PaymentMethod) ListByParams(
 			},
 		},
 	}
+
+	zap.S().Infow("Find payment methods", "query", query)
 	cursor, err := h.svc.db.Collection(collectionPaymentMethod).Find(ctx, query)
 
 	if err != nil {
