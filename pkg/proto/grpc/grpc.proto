@@ -65,6 +65,7 @@ service BillingService {
     rpc CheckProjectRequestSignature (CheckProjectRequestSignatureRequest) returns (CheckProjectRequestSignatureResponse) {}
 
     rpc GetCountriesList (EmptyRequest) returns (billing.CountriesList) {}
+    rpc GetCountriesListForOrder (GetCountriesListForOrderRequest) returns (GetCountriesListForOrderResponse) {}
     rpc GetCountry (billing.GetCountryRequest) returns (billing.Country) {}
     rpc UpdateCountry (billing.Country) returns (billing.Country) {}
 
@@ -2576,4 +2577,15 @@ message UserRoleResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     billing.UserRole user_role = 3;
+}
+
+message GetCountriesListForOrderRequest {
+    //@inject_tag: validate:"required,hexadecimal,len=24" json:"order_id" query:"order_id"
+    string order_id = 1;
+}
+
+message GetCountriesListForOrderResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.CountriesList item = 3;
 }

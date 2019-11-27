@@ -57,6 +57,29 @@ func (_m *CountryServiceInterface) GetByIsoCodeA2(_a0 string) (*billing.Country,
 	return r0, r1
 }
 
+// GetByRisk provides a mock function with given fields: isHighRisk
+func (_m *CountryServiceInterface) GetByRisk(isHighRisk bool) (*billing.CountriesList, error) {
+	ret := _m.Called(isHighRisk)
+
+	var r0 *billing.CountriesList
+	if rf, ok := ret.Get(0).(func(bool) *billing.CountriesList); ok {
+		r0 = rf(isHighRisk)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*billing.CountriesList)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(bool) error); ok {
+		r1 = rf(isHighRisk)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetCountriesAndRegionsByTariffRegion provides a mock function with given fields: tariffRegion
 func (_m *CountryServiceInterface) GetCountriesAndRegionsByTariffRegion(tariffRegion string) ([]*pkg.CountryAndRegionItem, error) {
 	ret := _m.Called(tariffRegion)

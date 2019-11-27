@@ -629,9 +629,9 @@ message Order {
     string charge_currency = 80;
     // @inject_tag: json:"charge_amount"
     double charge_amount = 81;
-    // @inject_tag: json:"payment_ip_country"
+    // @inject_tag: json:"-"
     string payment_ip_country = 82;
-    // @inject_tag: json:"is_ip_country_mismatch_bin"
+    // @inject_tag: json:"-"
     bool is_ip_country_mismatch_bin = 83;
 }
 
@@ -1165,37 +1165,37 @@ message Country {
     string region = 3;
     //@inject_tag: json:"currency" bson:"currency" validate:"required,alpha,len=3"
     string currency = 4;
-    //@inject_tag: json:"payments_allowed" bson:"payments_allowed"
+    //@inject_tag: json:"-" bson:"payments_allowed"
     bool payments_allowed = 5;
-    //@inject_tag: json:"change_allowed" bson:"change_allowed"
+    //@inject_tag: json:"-" bson:"change_allowed"
     bool change_allowed = 6;
-    //@inject_tag: json:"vat_enabled" bson:"vat_enabled"
+    //@inject_tag: json:"-" bson:"vat_enabled"
     bool vat_enabled = 7;
-    //@inject_tag: json:"vat_currency" bson:"vat_currency" validate:"omitempty,alpha,len=3"
+    //@inject_tag: json:"-" bson:"vat_currency" validate:"omitempty,alpha,len=3"
     string vat_currency = 8;
-    //@inject_tag: json:"price_group_id" bson:"price_group_id" validate:"required,hexadecimal,len=24"
+    //@inject_tag: json:"-" bson:"price_group_id" validate:"required,hexadecimal,len=24"
     string price_group_id = 9;
-    // @inject_tag: json:"vat_threshold" bson:"vat_threshold" validate:"required,dive"
+    // @inject_tag: json:"-" bson:"vat_threshold" validate:"required,dive"
     CountryVatThreshold vat_threshold = 10;
-    // @inject_tag: json:"vat_period_month" bson:"vat_period_month" validate:"numeric,gte=0,lte=12"
+    // @inject_tag: json:"-" bson:"vat_period_month" validate:"numeric,gte=0,lte=12"
     int32 vat_period_month = 11;
-    // @inject_tag: json:"vat_deadline_days" bson:"vat_deadline_days" validate:"numeric,gte=0"
+    // @inject_tag: json:"-" bson:"vat_deadline_days" validate:"numeric,gte=0"
     int32 vat_deadline_days = 12;
-    // @inject_tag: json:"vat_store_years" bson:"vat_store_years" validate:"numeric,gte=0"
+    // @inject_tag: json:"-" bson:"vat_store_years" validate:"numeric,gte=0"
     int32 vat_store_years = 13;
-    // @inject_tag: json:"vat_currency_rates_policy" bson:"vat_currency_rates_policy" validate:"omitempty,oneof=on-day last-day mid-month"
+    // @inject_tag: json:"-" bson:"vat_currency_rates_policy" validate:"omitempty,oneof=on-day last-day mid-month"
     string vat_currency_rates_policy = 14;
-    // @inject_tag: json:"vat_currency_rates_source" bson:"vat_currency_rates_source" validate:"alpha"
+    // @inject_tag: json:"-" bson:"vat_currency_rates_source" validate:"alpha"
     string vat_currency_rates_source = 15;
-    //@inject_tag: json:"created_at" bson:"created_at"
+    //@inject_tag: json:"-" bson:"created_at"
     google.protobuf.Timestamp created_at = 16;
-    //@inject_tag: json:"updated_at" bson:"updated_at"
+    //@inject_tag: json:"-" bson:"updated_at"
     google.protobuf.Timestamp updated_at = 17;
-    //@inject_tag: json:"payer_tariff_region" bson:"payer_tariff_region"
+    //@inject_tag: json:"-" bson:"payer_tariff_region"
     string payer_tariff_region = 18;
-    //@inject_tag: json:"high_risk_payments_allowed" bson:"high_risk_payments_allowed"
+    //@inject_tag: json:"-" bson:"high_risk_payments_allowed"
     bool high_risk_payments_allowed = 19;
-    //@inject_tag: json:"high_risk_change_allowed" bson:"high_risk_change_allowed"
+    //@inject_tag: json:"-" bson:"high_risk_change_allowed"
     bool high_risk_change_allowed = 20;
 }
 

@@ -278,6 +278,8 @@ It has these top-level messages:
 	MerchantRoleRequest
 	Permission
 	UserRoleResponse
+	GetCountriesListForOrderRequest
+	GetCountriesListForOrderResponse
 */
 package grpc
 
@@ -362,6 +364,7 @@ type BillingService interface {
 	CreateToken(ctx context.Context, in *TokenRequest, opts ...client.CallOption) (*TokenResponse, error)
 	CheckProjectRequestSignature(ctx context.Context, in *CheckProjectRequestSignatureRequest, opts ...client.CallOption) (*CheckProjectRequestSignatureResponse, error)
 	GetCountriesList(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*billing.CountriesList, error)
+	GetCountriesListForOrder(ctx context.Context, in *GetCountriesListForOrderRequest, opts ...client.CallOption) (*GetCountriesListForOrderResponse, error)
 	GetCountry(ctx context.Context, in *billing.GetCountryRequest, opts ...client.CallOption) (*billing.Country, error)
 	UpdateCountry(ctx context.Context, in *billing.Country, opts ...client.CallOption) (*billing.Country, error)
 	GetOrderPublic(ctx context.Context, in *GetOrderRequest, opts ...client.CallOption) (*GetOrderPublicResponse, error)
@@ -972,6 +975,16 @@ func (c *billingService) CheckProjectRequestSignature(ctx context.Context, in *C
 func (c *billingService) GetCountriesList(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*billing.CountriesList, error) {
 	req := c.c.NewRequest(c.name, "BillingService.GetCountriesList", in)
 	out := new(billing.CountriesList)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetCountriesListForOrder(ctx context.Context, in *GetCountriesListForOrderRequest, opts ...client.CallOption) (*GetCountriesListForOrderResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetCountriesListForOrder", in)
+	out := new(GetCountriesListForOrderResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -2299,6 +2312,7 @@ type BillingServiceHandler interface {
 	CreateToken(context.Context, *TokenRequest, *TokenResponse) error
 	CheckProjectRequestSignature(context.Context, *CheckProjectRequestSignatureRequest, *CheckProjectRequestSignatureResponse) error
 	GetCountriesList(context.Context, *EmptyRequest, *billing.CountriesList) error
+	GetCountriesListForOrder(context.Context, *GetCountriesListForOrderRequest, *GetCountriesListForOrderResponse) error
 	GetCountry(context.Context, *billing.GetCountryRequest, *billing.Country) error
 	UpdateCountry(context.Context, *billing.Country, *billing.Country) error
 	GetOrderPublic(context.Context, *GetOrderRequest, *GetOrderPublicResponse) error
@@ -2477,6 +2491,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		CreateToken(ctx context.Context, in *TokenRequest, out *TokenResponse) error
 		CheckProjectRequestSignature(ctx context.Context, in *CheckProjectRequestSignatureRequest, out *CheckProjectRequestSignatureResponse) error
 		GetCountriesList(ctx context.Context, in *EmptyRequest, out *billing.CountriesList) error
+		GetCountriesListForOrder(ctx context.Context, in *GetCountriesListForOrderRequest, out *GetCountriesListForOrderResponse) error
 		GetCountry(ctx context.Context, in *billing.GetCountryRequest, out *billing.Country) error
 		UpdateCountry(ctx context.Context, in *billing.Country, out *billing.Country) error
 		GetOrderPublic(ctx context.Context, in *GetOrderRequest, out *GetOrderPublicResponse) error
@@ -2802,6 +2817,10 @@ func (h *billingServiceHandler) CheckProjectRequestSignature(ctx context.Context
 
 func (h *billingServiceHandler) GetCountriesList(ctx context.Context, in *EmptyRequest, out *billing.CountriesList) error {
 	return h.BillingServiceHandler.GetCountriesList(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetCountriesListForOrder(ctx context.Context, in *GetCountriesListForOrderRequest, out *GetCountriesListForOrderResponse) error {
+	return h.BillingServiceHandler.GetCountriesListForOrder(ctx, in, out)
 }
 
 func (h *billingServiceHandler) GetCountry(ctx context.Context, in *billing.GetCountryRequest, out *billing.Country) error {
