@@ -1309,7 +1309,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 	regex := pm.AccountRegexp
 
 	if pm.ExternalId == constant.PaymentSystemGroupAliasBankCard {
-		regex = "^\\d{6,18}$"
+		regex = "^\\d{6}(.*)\\d{4}$"
 	}
 
 	match, err := regexp.MatchString(regex, req.Account)
@@ -2632,6 +2632,7 @@ func (v *PaymentFormProcessor) processRenderFormPaymentMethods(
 	)
 
 	if err != nil {
+		zap.S().Errorw("ListByParams failed", "error", err, "order_id", v.order.Id, "order_uuid", v.order.Uuid)
 		return nil, err
 	}
 
@@ -2642,7 +2643,12 @@ func (v *PaymentFormProcessor) processRenderFormPaymentMethods(
 
 		ps, err := v.service.paymentSystem.GetById(ctx, pm.PaymentSystemId)
 
-		if err != nil || ps.IsActive == false {
+		if err != nil {
+			zap.S().Errorw("GetById failed", "error", err, "order_id", v.order.Id, "order_uuid", v.order.Uuid)
+			continue
+		}
+
+		if ps.IsActive == false {
 			continue
 		}
 
@@ -2654,6 +2660,7 @@ func (v *PaymentFormProcessor) processRenderFormPaymentMethods(
 		_, err = v.service.paymentMethod.GetPaymentSettings(pm, v.order.Currency, v.order.MccCode, v.order.OperatingCompanyId, project)
 
 		if err != nil {
+			zap.S().Errorw("GetPaymentSettings failed", "error", err, "order_id", v.order.Id, "order_uuid", v.order.Uuid)
 			continue
 		}
 
@@ -2680,6 +2687,7 @@ func (v *PaymentFormProcessor) processRenderFormPaymentMethods(
 	}
 
 	if len(projectPms) <= 0 {
+		zap.S().Errorw("Not found any active payment methods", "order_id", v.order.Id, "order_uuid", v.order.Uuid)
 		return projectPms, orderErrorPaymentMethodNotAllowed
 	}
 
