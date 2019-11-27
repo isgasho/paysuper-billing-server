@@ -927,9 +927,6 @@ func (s *Service) PaymentCreateProcess(
 		}
 	}
 
-	order.ChargeAmount = order.TotalPaymentAmount
-	order.ChargeCurrency = order.Currency
-
 	err = s.setOrderChargeAmountAndCurrency(ctx, order)
 	if err != nil {
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
@@ -1341,9 +1338,6 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 
 	rsp.Status = pkg.ResponseStatusOk
 
-	order.ChargeAmount = order.TotalPaymentAmount
-	order.ChargeCurrency = order.Currency
-
 	switch pm.ExternalId {
 	case constant.PaymentSystemGroupAliasBankCard:
 		data := s.getBinData(req.Account)
@@ -1359,15 +1353,6 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		order.PaymentRequisites[pkg.PaymentCreateBankCardFieldBrand] = brand
 		order.PaymentRequisites[pkg.PaymentCreateBankCardFieldIssuerCountryIsoCode] = country
 
-		err = s.setOrderChargeAmountAndCurrency(ctx, order)
-		if err != nil {
-			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-				rsp.Status = pkg.ResponseStatusBadData
-				rsp.Message = e
-				return nil
-			}
-			return err
-		}
 		break
 
 	case constant.PaymentSystemGroupAliasQiwi:
@@ -1389,6 +1374,16 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 			return nil
 		}
 		break
+	}
+
+	err = s.setOrderChargeAmountAndCurrency(ctx, order)
+	if err != nil {
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
 	}
 
 	settings, err := s.paymentMethod.GetPaymentSettings(
@@ -1581,6 +1576,16 @@ func (s *Service) ProcessBillingAddress(
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error(), "method", "processOrderVat")
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = e
+			return nil
+		}
+		return err
+	}
+
+	err = s.setOrderChargeAmountAndCurrency(ctx, order)
+	if err != nil {
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = e
 			return nil
 		}
@@ -4470,6 +4475,13 @@ func (s *Service) getOrderPriceGroup(order *billing.Order) (priceGroup *billing.
 }
 
 func (s *Service) setOrderChargeAmountAndCurrency(ctx context.Context, order *billing.Order) (err error) {
+	order.ChargeAmount = order.TotalPaymentAmount
+	order.ChargeCurrency = order.Currency
+
+	if order.PaymentRequisites == nil {
+		return nil
+	}
+
 	binCountryCode, ok := order.PaymentRequisites[pkg.PaymentCreateBankCardFieldIssuerCountryIsoCode]
 	if !ok || binCountryCode == "" {
 		return nil

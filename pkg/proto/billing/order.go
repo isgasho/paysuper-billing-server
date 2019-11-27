@@ -212,26 +212,24 @@ func (m *Order) GetPaymentFormDataChangeResult(brand string) *PaymentFormDataCha
 			City:    m.User.Address.City,
 			Zip:     m.User.Address.PostalCode,
 		},
-		Brand: brand,
+		Brand:                  brand,
+		HasVat:                 m.Tax.Rate > 0,
+		Vat:                    tools.FormatAmount(m.Tax.Amount),
+		VatInChargeCurrency:    tools.FormatAmount(m.GetTaxAmountInChargeCurrency()),
+		ChargeAmount:           tools.FormatAmount(m.ChargeAmount),
+		ChargeCurrency:         m.ChargeCurrency,
+		Currency:               m.Currency,
+		Amount:                 tools.FormatAmount(m.OrderAmount),
+		TotalAmount:            tools.FormatAmount(m.TotalPaymentAmount),
+		Items:                  m.Items,
+		CountryPaymentsAllowed: true,
+		CountryChangeAllowed:   true,
 	}
 
 	if m.CountryRestriction != nil {
 		item.CountryPaymentsAllowed = m.CountryRestriction.PaymentsAllowed
 		item.CountryChangeAllowed = m.CountryRestriction.ChangeAllowed
-	} else {
-		item.CountryPaymentsAllowed = true
-		item.CountryChangeAllowed = true
 	}
-
-	item.HasVat = m.Tax.Rate > 0
-	item.Vat = tools.FormatAmount(m.Tax.Amount)
-	item.VatInChargeCurrency = tools.FormatAmount(m.GetTaxAmountInChargeCurrency())
-	item.ChargeAmount = tools.FormatAmount(m.ChargeAmount)
-	item.ChargeCurrency = m.ChargeCurrency
-	item.Currency = m.Currency
-	item.Amount = tools.FormatAmount(m.OrderAmount)
-	item.TotalAmount = tools.FormatAmount(m.TotalPaymentAmount)
-	item.Items = m.Items
 
 	return item
 }
