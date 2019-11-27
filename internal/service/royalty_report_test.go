@@ -14,7 +14,6 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -39,7 +38,7 @@ type RoyaltyReportTestSuite struct {
 	suite.Suite
 	service    *Service
 	log        *zap.Logger
-	cache      internalPkg.CacheInterface
+	cache      CacheInterface
 	httpClient *http.Client
 
 	project   *billing.Project
@@ -101,7 +100,7 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	suite.httpClient = mocks.NewClientStatusOk()
-	suite.cache = NewCacheRedis(redisdb)
+	suite.cache, err = NewCacheRedis(redisdb, "cache")
 
 	reporterMock := &reportingMocks.ReporterService{}
 	reporterMock.On("CreateFile", mock2.Anything, mock2.Anything, mock2.Anything).
@@ -547,10 +546,10 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_Ok() 
 	assert.Equal(suite.T(), pkg.RoyaltyReportStatusPending, report.Status)
 
 	req1 := &grpc.ChangeRoyaltyReportRequest{
-		ReportId: report.Id,
+		ReportId:   report.Id,
 		MerchantId: report.MerchantId,
-		Status:   pkg.RoyaltyReportStatusAccepted,
-		Ip:       "127.0.0.1",
+		Status:     pkg.RoyaltyReportStatusAccepted,
+		Ip:         "127.0.0.1",
 	}
 	rsp1 := &grpc.ResponseError{}
 	err = suite.service.ChangeRoyaltyReport(context.TODO(), req1, rsp1)
@@ -615,8 +614,8 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_Dispu
 	assert.Equal(suite.T(), pkg.RoyaltyReportStatusDispute, report.Status)
 
 	req2 := &grpc.ChangeRoyaltyReportRequest{
-		ReportId: report.Id,
-		Status:   pkg.RoyaltyReportStatusPending,
+		ReportId:   report.Id,
+		Status:     pkg.RoyaltyReportStatusPending,
 		MerchantId: report.MerchantId,
 		Correction: &grpc.ChangeRoyaltyReportCorrection{
 			Amount: 10,
@@ -769,10 +768,10 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_Chang
 	assert.Equal(suite.T(), pkg.RoyaltyReportStatusPending, report.Status)
 
 	req1 := &grpc.ChangeRoyaltyReportRequest{
-		ReportId: report.Id,
-		Status:   pkg.RoyaltyReportStatusCanceled,
+		ReportId:   report.Id,
+		Status:     pkg.RoyaltyReportStatusCanceled,
 		MerchantId: report.MerchantId,
-		Ip:       "127.0.0.1",
+		Ip:         "127.0.0.1",
 	}
 	rsp1 := &grpc.ResponseError{}
 	err = suite.service.ChangeRoyaltyReport(context.TODO(), req1, rsp1)
@@ -803,10 +802,10 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_Statu
 	assert.NoError(suite.T(), err)
 
 	req1 := &grpc.ChangeRoyaltyReportRequest{
-		ReportId: report.Id,
-		Status:   pkg.RoyaltyReportStatusDispute,
+		ReportId:   report.Id,
+		Status:     pkg.RoyaltyReportStatusDispute,
 		MerchantId: report.MerchantId,
-		Ip:       "127.0.0.1",
+		Ip:         "127.0.0.1",
 	}
 	rsp1 := &grpc.ResponseError{}
 	err = suite.service.ChangeRoyaltyReport(context.TODO(), req1, rsp1)
@@ -1118,7 +1117,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_GetRoyaltyReport_Ok() {
 	assert.Equal(suite.T(), pkg.RoyaltyReportStatusPending, report.Status)
 
 	req1 := &grpc.GetRoyaltyReportRequest{
-		ReportId: report.Id,
+		ReportId:   report.Id,
 		MerchantId: report.MerchantId,
 	}
 	rsp1 := &grpc.GetRoyaltyReportResponse{}

@@ -33,7 +33,7 @@ func (suite *RecurringTestSuite) SetupTest() {
 	assert.NoError(suite.T(), err, "Database connection failed")
 
 	redisdb := mocks.NewTestRedis()
-	cache := NewCacheRedis(redisdb)
+	cache, err := NewCacheRedis(redisdb, "cache")
 	casbin := &casbinMocks.CasbinService{}
 
 	suite.service = NewBillingService(

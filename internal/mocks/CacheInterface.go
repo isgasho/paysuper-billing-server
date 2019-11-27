@@ -11,9 +11,25 @@ type CacheInterface struct {
 	mock.Mock
 }
 
-// Clean provides a mock function with given fields:
-func (_m *CacheInterface) Clean() {
-	_m.Called()
+// CleanOldestVersion provides a mock function with given fields: _a0
+func (_m *CacheInterface) CleanOldestVersion(_a0 int) (int, error) {
+	ret := _m.Called(_a0)
+
+	var r0 int
+	if rf, ok := ret.Get(0).(func(int) int); ok {
+		r0 = rf(_a0)
+	} else {
+		r0 = ret.Get(0).(int)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(int) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // Delete provides a mock function with given fields: _a0
@@ -30,6 +46,11 @@ func (_m *CacheInterface) Delete(_a0 string) error {
 	return r0
 }
 
+// FlushAll provides a mock function with given fields:
+func (_m *CacheInterface) FlushAll() {
+	_m.Called()
+}
+
 // Get provides a mock function with given fields: _a0, _a1
 func (_m *CacheInterface) Get(_a0 string, _a1 interface{}) error {
 	ret := _m.Called(_a0, _a1)
@@ -42,6 +63,27 @@ func (_m *CacheInterface) Get(_a0 string, _a1 interface{}) error {
 	}
 
 	return r0
+}
+
+// HasVersionToClean provides a mock function with given fields: _a0
+func (_m *CacheInterface) HasVersionToClean(_a0 int) (bool, error) {
+	ret := _m.Called(_a0)
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(int) bool); ok {
+		r0 = rf(_a0)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(int) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // Set provides a mock function with given fields: _a0, _a1, _a2

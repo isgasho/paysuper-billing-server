@@ -7,7 +7,6 @@ import (
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -22,7 +21,7 @@ import (
 type ProjectCRUDTestSuite struct {
 	suite.Suite
 	service *Service
-	cache   internalPkg.CacheInterface
+	cache   CacheInterface
 
 	merchant *billing.Merchant
 	project  *billing.Project
@@ -219,7 +218,7 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 	err = db.Collection(collectionProduct).Insert(products...)
 	assert.NoError(suite.T(), err, "Insert product test data failed")
 	redisdb := mocks.NewTestRedis()
-	suite.cache = NewCacheRedis(redisdb)
+	suite.cache, err = NewCacheRedis(redisdb, "cache")
 	suite.service = NewBillingService(
 		db,
 		cfg,
@@ -860,7 +859,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_DeleteDeletedProject_Ok() {
 type ProjectTestSuite struct {
 	suite.Suite
 	service *Service
-	cache   internalPkg.CacheInterface
+	cache   CacheInterface
 	log     *zap.Logger
 	project *billing.Project
 }
@@ -901,7 +900,7 @@ func (suite *ProjectTestSuite) SetupTest() {
 	}
 
 	redisdb := mocks.NewTestRedis()
-	suite.cache = NewCacheRedis(redisdb)
+	suite.cache, err = NewCacheRedis(redisdb, "cache")
 	suite.service = NewBillingService(
 		db,
 		cfg,

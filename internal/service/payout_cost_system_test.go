@@ -6,7 +6,6 @@ import (
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
@@ -21,7 +20,7 @@ type PayoutCostSystemTestSuite struct {
 	suite.Suite
 	service            *Service
 	log                *zap.Logger
-	cache              internalPkg.CacheInterface
+	cache              CacheInterface
 	PayoutCostSystemId string
 }
 
@@ -47,7 +46,7 @@ func (suite *PayoutCostSystemTestSuite) SetupTest() {
 	}
 
 	redisdb := mocks.NewTestRedis()
-	suite.cache = NewCacheRedis(redisdb)
+	suite.cache, err = NewCacheRedis(redisdb, "cache")
 	suite.service = NewBillingService(
 		db,
 		cfg,
@@ -85,7 +84,7 @@ func (suite *PayoutCostSystemTestSuite) SetupTest() {
 }
 
 func (suite *PayoutCostSystemTestSuite) TearDownTest() {
-	suite.cache.Clean()
+	suite.cache.FlushAll()
 	if err := suite.service.db.Drop(); err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}

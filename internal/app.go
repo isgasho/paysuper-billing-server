@@ -2,6 +2,8 @@ package internal
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"errors"
 	"github.com/InVisionApp/go-health"
 	"github.com/InVisionApp/go-health/handlers"
@@ -42,6 +44,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -186,6 +189,12 @@ func (app *Application) Init() {
 	reporter := reporterService.NewReporterService(reporterServiceConst.ServiceName, app.service.Client())
 	casbin := casbinProto.NewCasbinService("p1casbin", app.service.Client())
 
+	formatter, err := paysuperI18n.NewFormatter([]string{"i18n/rules"}, []string{"i18n/messages"})
+
+	if err != nil {
+		app.logger.Fatal("Create il8n formatter failed", zap.Error(err))
+	}
+
 	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
 		Addrs:        cfg.CacheRedis.Address,
 		Password:     cfg.CacheRedis.Password,
@@ -194,10 +203,23 @@ func (app *Application) Init() {
 		PoolSize:     cfg.CacheRedis.PoolSize,
 	})
 
-	formatter, err := paysuperI18n.NewFormatter([]string{"i18n/rules"}, []string{"i18n/messages"})
+	hash, err := app.calculateHash()
+	if err != nil {
+		app.logger.Error("Unable to calculate hash of the application", zap.Error(err))
+	}
+
+	runes := []rune(hash)
+	cache, err := service.NewCacheRedis(redisdb, string(runes[len(runes)-10:]))
+	if err != nil {
+		app.logger.Error("Unable to calculate hash of the application", zap.Error(err))
+	}
+
+	cleanedCount, err := cache.CleanOldestVersion(cfg.CacheRedis.VersionLimit)
 
 	if err != nil {
-		app.logger.Fatal("Create il8n formatter failed", zap.Error(err))
+		app.logger.Error("Unable to clean oldest versions of cache", zap.Error(err))
+	} else {
+		app.logger.Info("Cleaned oldest versions of cache", zap.Int("count", cleanedCount))
 	}
 
 	app.svc = service.NewBillingService(
@@ -208,7 +230,7 @@ func (app *Application) Init() {
 		taxService,
 		broker,
 		app.redis,
-		service.NewCacheRedis(redisdb),
+		cache,
 		curService,
 		documentSignerService,
 		reporter,
@@ -387,4 +409,23 @@ func (app *Application) KeyDaemonStart() {
 			}
 		}
 	}()
+}
+
+func (app *Application) calculateHash() (string, error) {
+	file, err := os.Open(os.Args[0])
+
+	if err != nil {
+		return "", err
+	}
+
+	defer file.Close()
+
+	hash := md5.New()
+	_, err = io.Copy(hash, file)
+
+	if err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(hash.Sum(nil)), nil
 }

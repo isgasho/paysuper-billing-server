@@ -77,6 +77,7 @@ To run application as microservice simply don't pass any flags to command line :
 | CACHE_REDIS_POOL_SIZE                               | PoolSize applies per cluster node and not for the whole cluster                                                                     |
 | CACHE_REDIS_MAX_RETRIES                             | Maximum retries for connection                                                                                                      |
 | CACHE_REDIS_MAX_REDIRECTS                           | The maximum number of retries before giving up                                                                                      |
+| CACHE_REDIS_VERSION_LIMIT                           | The maximum number versions of cache (used for versioned update of the application)                                                 |
 | CUSTOMER_COOKIE_PUBLIC_KEY                          | Base64 encoded RSA public key - used for encrypt customer browser cookies content. Minimal length of RSA public key must be 4096    |
 | CUSTOMER_COOKIE_PRIVATE_KEY                         | Base64 encoded RSA private key - used for decrypt customer browser cookies content. Minimal length of RSA private key must be 4096  |
 | REDIS_HOST                                          | Redis server host                                                                                                                   |

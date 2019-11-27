@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/jinzhu/now"
-	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	mongodb "github.com/paysuper/paysuper-database-mongo"
@@ -45,7 +44,6 @@ var (
 )
 
 type DashboardRepositoryInterface interface {
-	NewDashboardReportProcessor(string, string, string, interface{}, *mongodb.Source, internalPkg.CacheInterface) (*internalPkg.DashboardReportProcessor, error)
 	GetMainReport(string, string) (*grpc.DashboardMainReport, error)
 	GetRevenueDynamicsReport(string, string) (*grpc.DashboardRevenueDynamicReport, error)
 	GetBaseReport(string, string) (*grpc.DashboardBaseReports, error)
@@ -417,10 +415,10 @@ func (m *DashboardRepository) NewDashboardReportProcessor(
 	merchantId, period, cacheKeyMask string,
 	status interface{},
 	db *mongodb.Source,
-	cache internalPkg.CacheInterface,
-) (*internalPkg.DashboardReportProcessor, error) {
+	cache CacheInterface,
+) (*DashboardReportProcessor, error) {
 	current := time.Now()
-	processor := &internalPkg.DashboardReportProcessor{
+	processor := &DashboardReportProcessor{
 		Match:       bson.M{"merchant_id": bson.ObjectIdHex(merchantId), "status": status, "type": "order"},
 		Db:          db,
 		Collection:  collectionOrderView,
