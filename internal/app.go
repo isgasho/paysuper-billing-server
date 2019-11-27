@@ -209,15 +209,15 @@ func (app *Application) Init() {
 	runes := []rune(hash)
 	cache, err := service.NewCacheRedis(redisdb, string(runes[len(runes)-10:]))
 	if err != nil {
-		app.logger.Error("Unable to calculate hash of the application", zap.Error(err))
-	}
-
-	cleanedCount, err := cache.CleanOldestVersion(cfg.CacheRedis.VersionLimit)
-
-	if err != nil {
-		app.logger.Error("Unable to clean oldest versions of cache", zap.Error(err))
+		app.logger.Error("Unable to initialize cache for the application", zap.Error(err))
 	} else {
-		app.logger.Info("Cleaned oldest versions of cache", zap.Int("count", cleanedCount))
+		cleanedCount, err := cache.CleanOldestVersion(cfg.CacheRedis.VersionLimit)
+
+		if err != nil {
+			app.logger.Error("Unable to clean oldest versions of cache", zap.Error(err))
+		} else {
+			app.logger.Info("Cleaned oldest versions of cache", zap.Int("count", cleanedCount))
+		}
 	}
 
 	app.svc = service.NewBillingService(

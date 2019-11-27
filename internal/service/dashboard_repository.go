@@ -438,9 +438,9 @@ func (m *DashboardRepository) NewDashboardReportProcessor(
 	merchantId, period, cacheKeyMask string,
 	status interface{},
 	db *mongodb.Source,
-	cache internalPkg.CacheInterface,
+	cache CacheInterface,
 	ctx context.Context,
-) (*internalPkg.DashboardReportProcessor, error) {
+) (*DashboardReportProcessor, error) {
 	current := time.Now()
 	merchantOid, err := primitive.ObjectIDFromHex(merchantId)
 
@@ -448,7 +448,7 @@ func (m *DashboardRepository) NewDashboardReportProcessor(
 		return nil, dashboardErrorUnknown
 	}
 
-	processor := &internalPkg.DashboardReportProcessor{
+	processor := &DashboardReportProcessor{
 		Match:       bson.M{"merchant_id": merchantOid, "status": status, "type": "order"},
 		Db:          db,
 		Collection:  collectionOrderView,
