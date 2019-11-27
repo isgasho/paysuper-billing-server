@@ -1000,7 +1000,7 @@ message ListProductsRequest {
     string merchant_id = 5;
     //@inject_tag: validate:"omitempty,hexadecimal,len=24" json:"project_id" bson:"project_id" query:"project_id"
     string project_id = 6;
-    //@inject_tag: validate:"omitempty,oneof=0 1" json:"enable" query:"enable"
+    //@inject_tag: validate:"omitempty,oneof=0 1 2" json:"enable" query:"enable"
     int32 enable = 7;
 }
 

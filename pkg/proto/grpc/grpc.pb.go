@@ -5273,8 +5273,8 @@ type ListProductsRequest struct {
 	MerchantId string `protobuf:"bytes,5,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id" validate:"required,hexadecimal,len=24" bson:"merchant_id"`
 	//@inject_tag: validate:"omitempty,hexadecimal,len=24" json:"project_id" bson:"project_id" query:"project_id"
 	ProjectId string `protobuf:"bytes,6,opt,name=project_id,json=projectId,proto3" json:"project_id" validate:"omitempty,hexadecimal,len=24" bson:"project_id" query:"project_id"`
-	//@inject_tag: validate:"omitempty,oneof=0 1" json:"enable" query:"enable"
-	Enable               int32    `protobuf:"varint,7,opt,name=enable,proto3" json:"enable" validate:"omitempty,oneof=0 1" query:"enable"`
+	//@inject_tag: validate:"omitempty,oneof=0 1 2" json:"enable" query:"enable"
+	Enable               int32    `protobuf:"varint,7,opt,name=enable,proto3" json:"enable" validate:"omitempty,oneof=0 1 2" query:"enable"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`
