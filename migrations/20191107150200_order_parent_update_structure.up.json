@@ -1,20 +1,48 @@
 [
   {
+    "aggregate": "order",
+    "pipeline": [
+      {
+        "$set": {
+          "parent_order": {
+            "id": "$parent_id",
+            "uuid": ""
+          }
+        }
+      },
+      {
+        "$out": "order"
+      }
+    ],
+    "cursor": {}
+  },
+  {
     "update": "order",
     "updates": [
       {
         "q": {
-          "parent_id": {
-            "$exists": true
+          "parent_order.id": {
+            "$exists": false
           }
         },
         "u": {
           "$set": {
             "parent_order": {
-              "id": "$parent_id",
+              "id": "",
               "uuid": ""
             }
-          },
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "update": "order",
+    "updates": [
+      {
+        "q": {},
+        "u": {
           "$unset": {
             "parent_id": ""
           }
