@@ -1,0 +1,62 @@
+[
+  {
+    "update": "bank_bin",
+    "updates": [
+      {
+        "q": {
+          "bank_phone": null
+        },
+        "u": {
+          "$set": {
+            "bank_phone": ""
+          }
+        },
+        "multi": true
+      },
+      {
+        "q": {
+          "bank_site": null
+        },
+        "u": {
+          "$set": {
+            "bank_site": ""
+          }
+        },
+        "multi": true
+      },
+      {
+        "q": {
+          "card_category": null
+        },
+        "u": {
+          "$set": {
+            "card_category": ""
+          }
+        },
+        "multi": true
+      },
+      {
+        "q": {
+          "card_type": null
+        },
+        "u": {
+          "$set": {
+            "card_type": ""
+          }
+        },
+        "multi": true
+      },
+      {
+        "q": {
+          "bank_name": null
+        },
+        "u": {
+          "$set": {
+            "bank_name": ""
+          }
+        },
+        "multi": true
+      }
+    ]
+  }
+]

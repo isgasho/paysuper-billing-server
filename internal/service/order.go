@@ -1309,7 +1309,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 	regex := pm.AccountRegexp
 
 	if pm.ExternalId == constant.PaymentSystemGroupAliasBankCard {
-		regex = "^\\d{6,18}$"
+		regex = "^\\d{6}(.*)\\d{4}$"
 	}
 
 	match, err := regexp.MatchString(regex, req.Account)
