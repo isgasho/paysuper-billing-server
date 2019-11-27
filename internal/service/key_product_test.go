@@ -8,16 +8,17 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
-	"gopkg.in/mgo.v2/bson"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"testing"
 )
 
@@ -58,19 +59,19 @@ func (suite *KeyProductTestSuite) SetupTest() {
 	}
 
 	pgRub := &billing.PriceGroup{
-		Id:       bson.NewObjectId().Hex(),
+		Id:       primitive.NewObjectID().Hex(),
 		Region:   "RUB",
 		Currency: "RUB",
 		IsActive: true,
 	}
 	pgUsd := &billing.PriceGroup{
-		Id:       bson.NewObjectId().Hex(),
+		Id:       primitive.NewObjectID().Hex(),
 		Region:   "USD",
 		Currency: "USD",
 		IsActive: true,
 	}
 	pgEur := &billing.PriceGroup{
-		Id:       bson.NewObjectId().Hex(),
+		Id:       primitive.NewObjectID().Hex(),
 		Region:   "EUR",
 		Currency: "EUR",
 		IsActive: true,
@@ -108,15 +109,15 @@ func (suite *KeyProductTestSuite) SetupTest() {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 
-	suite.NoError(suite.service.merchant.Insert(&billing.Merchant{Id: merchantId, Banking: &billing.MerchantBanking{Currency: "USD"}}))
+	suite.NoError(suite.service.merchant.Insert(ctx, &billing.Merchant{Id: merchantId, Banking: &billing.MerchantBanking{Currency: "USD"}}))
 
 	pgs := []*billing.PriceGroup{pgRub, pgUsd, pgEur}
-	if err := suite.service.priceGroup.MultipleInsert(pgs); err != nil {
+	if err := suite.service.priceGroup.MultipleInsert(ctx, pgs); err != nil {
 		suite.FailNow("Insert price group test data failed", "%v", err)
 	}
 
-	if err := suite.service.project.Insert(&billing.Project{
-		Id: projectId,
+	if err := suite.service.project.Insert(context.TODO(), &billing.Project{
+		Id:         projectId,
 		MerchantId: merchantId,
 	}); err != nil {
 		suite.FailNow("Insert project test data failed", "%v", err)
@@ -124,11 +125,17 @@ func (suite *KeyProductTestSuite) SetupTest() {
 }
 
 func (suite *KeyProductTestSuite) TearDownTest() {
-	if err := suite.service.db.Drop(); err != nil {
+	err := suite.service.db.Drop()
+
+	if err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}
 
-	suite.service.db.Close()
+	err = suite.service.db.Close()
+
+	if err != nil {
+		suite.FailNow("Database close failed", "%v", err)
+	}
 }
 
 func (suite *KeyProductTestSuite) Test_GetKeyProductInfo() {
@@ -397,7 +404,7 @@ func (suite *KeyProductTestSuite) Test_CreateOrUpdateKeyProduct() {
 	shouldBe.Nil(res2.Message)
 
 	res2 = grpc.KeyProductResponse{}
-	req.Id = bson.NewObjectId().Hex()
+	req.Id = primitive.NewObjectID().Hex()
 	err = suite.service.CreateOrUpdateKeyProduct(context.TODO(), req, &res2)
 	shouldBe.Nil(err)
 	shouldBe.NotNil(res2.Message)
@@ -412,7 +419,7 @@ func (suite *KeyProductTestSuite) Test_CreateOrUpdateKeyProduct() {
 	shouldBe.EqualValues(400, res2.Status)
 
 	req.Sku = res.Sku
-	req.MerchantId = bson.NewObjectId().Hex()
+	req.MerchantId = primitive.NewObjectID().Hex()
 	res2 = grpc.KeyProductResponse{}
 	err = suite.service.CreateOrUpdateKeyProduct(context.TODO(), req, &res2)
 	shouldBe.Nil(err)
@@ -420,12 +427,13 @@ func (suite *KeyProductTestSuite) Test_CreateOrUpdateKeyProduct() {
 	shouldBe.EqualValues(400, res2.Status)
 
 	req.MerchantId = res.MerchantId
-	req.ProjectId = bson.NewObjectId().Hex()
+	req.ProjectId = primitive.NewObjectID().Hex()
 	res2 = grpc.KeyProductResponse{}
 	err = suite.service.CreateOrUpdateKeyProduct(context.TODO(), req, &res2)
 	shouldBe.Nil(err)
 	shouldBe.NotNil(res2.Message)
-	shouldBe.EqualValues(500, res2.Status)
+	shouldBe.EqualValues(pkg.ResponseStatusSystemError, res2.Status)
+	shouldBe.Equal(keyProductInternalError, res2.Message)
 }
 
 func (suite *KeyProductTestSuite) Test_GetKeyProducts() {
@@ -508,7 +516,7 @@ func (suite *KeyProductTestSuite) createKeyProduct() *grpc.KeyProduct {
 
 	req := &grpc.CreateOrUpdateKeyProductRequest{
 		Object:          "product",
-		Sku:             bson.NewObjectId().Hex(),
+		Sku:             primitive.NewObjectID().Hex(),
 		Name:            map[string]string{"en": initialName},
 		DefaultCurrency: "USD",
 		Description:     map[string]string{"en": "blah-blah-blah"},

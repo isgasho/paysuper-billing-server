@@ -5,14 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
 	casbinProto "github.com/paysuper/casbin-server/pkg/generated/api/proto/casbinpb"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
 	"github.com/streadway/amqp"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
 	"time"
 )
@@ -45,11 +45,9 @@ var (
 	errorUserInviteAlreadyAccepted    = newBillingServerErrorMsg("uu000005", "user already accepted invite")
 	errorUserMerchantNotFound         = newBillingServerErrorMsg("uu000006", "merchant not found")
 	errorUserUnableToSendInvite       = newBillingServerErrorMsg("uu000007", "unable to send invite email")
-	errorUserNoHavePermission         = newBillingServerErrorMsg("uu000008", "user not have permission to invite users")
 	errorUserUnableToCreateToken      = newBillingServerErrorMsg("uu000009", "unable to create invite token")
 	errorUserInvalidToken             = newBillingServerErrorMsg("uu000010", "invalid token string")
 	errorUserInvalidInviteEmail       = newBillingServerErrorMsg("uu000011", "email in request and token are not equal")
-	errorUserAlreadyHasRole           = newBillingServerErrorMsg("uu000012", "user already has role")
 	errorUserUnableToSave             = newBillingServerErrorMsg("uu000013", "can't update user in db")
 	errorUserUnableToAddToCasbin      = newBillingServerErrorMsg("uu000014", "unable to add user to the casbin server")
 	errorUserUnsupportedRoleType      = newBillingServerErrorMsg("uu000015", "unsupported role type")
@@ -82,7 +80,7 @@ var (
 )
 
 func (s *Service) GetMerchantUsers(ctx context.Context, req *grpc.GetMerchantUsersRequest, res *grpc.GetMerchantUsersResponse) error {
-	users, err := s.userRoleRepository.GetUsersForMerchant(req.MerchantId)
+	users, err := s.userRoleRepository.GetUsersForMerchant(ctx, req.MerchantId)
 
 	if err != nil {
 		res.Status = pkg.ResponseStatusSystemError
@@ -99,7 +97,7 @@ func (s *Service) GetMerchantUsers(ctx context.Context, req *grpc.GetMerchantUse
 }
 
 func (s *Service) GetAdminUsers(ctx context.Context, _ *grpc.EmptyRequest, res *grpc.GetAdminUsersResponse) error {
-	users, err := s.userRoleRepository.GetUsersForAdmin()
+	users, err := s.userRoleRepository.GetUsersForAdmin(ctx)
 
 	if err != nil {
 		res.Status = pkg.ResponseStatusSystemError
@@ -115,7 +113,7 @@ func (s *Service) GetAdminUsers(ctx context.Context, _ *grpc.EmptyRequest, res *
 }
 
 func (s *Service) GetMerchantsForUser(ctx context.Context, req *grpc.GetMerchantsForUserRequest, res *grpc.GetMerchantsForUserResponse) error {
-	users, err := s.userRoleRepository.GetMerchantsForUser(req.UserId)
+	users, err := s.userRoleRepository.GetMerchantsForUser(ctx, req.UserId)
 
 	if err != nil {
 		res.Status = pkg.ResponseStatusSystemError
@@ -128,7 +126,7 @@ func (s *Service) GetMerchantsForUser(ctx context.Context, req *grpc.GetMerchant
 	merchants := make([]*grpc.MerchantForUserInfo, len(users))
 
 	for i, user := range users {
-		merchant, err := s.merchant.GetById(user.MerchantId)
+		merchant, err := s.merchant.GetById(ctx, user.MerchantId)
 		if err != nil {
 			zap.L().Error(
 				"Can't get merchant by id",
@@ -165,7 +163,7 @@ func (s *Service) InviteUserMerchant(
 	req *grpc.InviteUserMerchantRequest,
 	res *grpc.InviteUserMerchantResponse,
 ) error {
-	merchant, err := s.merchant.GetById(req.MerchantId)
+	merchant, err := s.merchant.GetById(ctx, req.MerchantId)
 
 	if err != nil {
 		zap.L().Error(errorUserMerchantNotFound.Message, zap.Error(err), zap.Any("req", req))
@@ -183,7 +181,7 @@ func (s *Service) InviteUserMerchant(
 		return nil
 	}
 
-	owner, err := s.userRoleRepository.GetMerchantOwner(merchant.Id)
+	owner, err := s.userRoleRepository.GetMerchantOwner(ctx, merchant.Id)
 
 	if err != nil {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
@@ -193,9 +191,9 @@ func (s *Service) InviteUserMerchant(
 		return nil
 	}
 
-	user, err := s.userRoleRepository.GetMerchantUserByEmail(merchant.Id, req.Email)
+	user, err := s.userRoleRepository.GetMerchantUserByEmail(ctx, merchant.Id, req.Email)
 	zap.L().Error("[InviteUserMerchant] GetMerchantUserByEmail", zap.Error(err), zap.Any("req", req), zap.Any("user", user))
-	if (err != nil && err != mgo.ErrNotFound) || user != nil {
+	if (err != nil && err != mongo.ErrNoDocuments) || user != nil {
 		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req), zap.Any("user", user))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserAlreadyExist
@@ -204,14 +202,14 @@ func (s *Service) InviteUserMerchant(
 	}
 
 	role := &billing.UserRole{
-		Id:         bson.NewObjectId().Hex(),
+		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: merchant.Id,
 		Role:       req.Role,
 		Status:     pkg.UserRoleStatusInvited,
 		Email:      req.Email,
 	}
 
-	if err = s.userRoleRepository.AddMerchantUser(role); err != nil {
+	if err = s.userRoleRepository.AddMerchantUser(ctx, role); err != nil {
 		zap.L().Error(errorUserUnableToAdd.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserUnableToAdd
@@ -264,7 +262,7 @@ func (s *Service) InviteUserAdmin(
 	req *grpc.InviteUserAdminRequest,
 	res *grpc.InviteUserAdminResponse,
 ) error {
-	owner, err := s.userRoleRepository.GetSystemAdmin()
+	owner, err := s.userRoleRepository.GetSystemAdmin(ctx)
 
 	if err != nil {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
@@ -274,9 +272,9 @@ func (s *Service) InviteUserAdmin(
 		return nil
 	}
 
-	user, err := s.userRoleRepository.GetAdminUserByEmail(req.Email)
+	user, err := s.userRoleRepository.GetAdminUserByEmail(ctx, req.Email)
 
-	if (err != nil && err != mgo.ErrNotFound) || user != nil {
+	if (err != nil && err != mongo.ErrNoDocuments) || user != nil {
 		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserAlreadyExist
@@ -285,13 +283,13 @@ func (s *Service) InviteUserAdmin(
 	}
 
 	role := &billing.UserRole{
-		Id:     bson.NewObjectId().Hex(),
+		Id:     primitive.NewObjectID().Hex(),
 		Role:   req.Role,
 		Status: pkg.UserRoleStatusInvited,
 		Email:  req.Email,
 	}
 
-	if err = s.userRoleRepository.AddAdminUser(role); err != nil {
+	if err = s.userRoleRepository.AddAdminUser(ctx, role); err != nil {
 		zap.L().Error(errorUserUnableToAdd.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserUnableToAdd
@@ -343,7 +341,7 @@ func (s *Service) ResendInviteMerchant(
 	req *grpc.ResendInviteMerchantRequest,
 	res *grpc.EmptyResponseWithStatus,
 ) error {
-	merchant, err := s.merchant.GetById(req.MerchantId)
+	merchant, err := s.merchant.GetById(ctx, req.MerchantId)
 
 	if err != nil {
 		zap.L().Error(errorUserMerchantNotFound.Message, zap.Error(err), zap.Any("req", req))
@@ -353,7 +351,7 @@ func (s *Service) ResendInviteMerchant(
 		return nil
 	}
 
-	owner, err := s.userRoleRepository.GetMerchantOwner(merchant.Id)
+	owner, err := s.userRoleRepository.GetMerchantOwner(ctx, merchant.Id)
 
 	if err != nil {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
@@ -363,7 +361,7 @@ func (s *Service) ResendInviteMerchant(
 		return nil
 	}
 
-	role, err := s.userRoleRepository.GetMerchantUserByEmail(merchant.Id, req.Email)
+	role, err := s.userRoleRepository.GetMerchantUserByEmail(ctx, merchant.Id, req.Email)
 
 	if err != nil {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
@@ -425,7 +423,7 @@ func (s *Service) ResendInviteAdmin(
 	req *grpc.ResendInviteAdminRequest,
 	res *grpc.EmptyResponseWithStatus,
 ) error {
-	owner, err := s.userRoleRepository.GetSystemAdmin()
+	owner, err := s.userRoleRepository.GetSystemAdmin(ctx)
 
 	if err != nil {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
@@ -435,7 +433,7 @@ func (s *Service) ResendInviteAdmin(
 		return nil
 	}
 
-	role, err := s.userRoleRepository.GetAdminUserByEmail(req.Email)
+	role, err := s.userRoleRepository.GetAdminUserByEmail(ctx, req.Email)
 
 	if err != nil {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
@@ -506,7 +504,7 @@ func (s *Service) AcceptInvite(
 		return nil
 	}
 
-	profile, err := s.userProfileRepository.GetByUserId(req.UserId)
+	profile, err := s.userProfileRepository.GetByUserId(ctx, req.UserId)
 
 	if err != nil {
 		zap.L().Error(errorUserProfileNotFound.Message, zap.Error(err), zap.String("user_id", req.UserId))
@@ -528,10 +526,10 @@ func (s *Service) AcceptInvite(
 
 	switch claims[claimType] {
 	case pkg.RoleTypeMerchant:
-		user, err = s.userRoleRepository.GetMerchantUserById(claims[claimRoleId].(string))
+		user, err = s.userRoleRepository.GetMerchantUserById(ctx, claims[claimRoleId].(string))
 		break
 	case pkg.RoleTypeSystem:
-		user, err = s.userRoleRepository.GetAdminUserById(claims[claimRoleId].(string))
+		user, err = s.userRoleRepository.GetAdminUserById(ctx, claims[claimRoleId].(string))
 		break
 	default:
 		err = errors.New(errorUserUnsupportedRoleType.Message)
@@ -558,10 +556,10 @@ func (s *Service) AcceptInvite(
 
 	switch claims[claimType] {
 	case pkg.RoleTypeMerchant:
-		err = s.userRoleRepository.UpdateMerchantUser(user)
+		err = s.userRoleRepository.UpdateMerchantUser(ctx, user)
 		break
 	case pkg.RoleTypeSystem:
-		err = s.userRoleRepository.UpdateAdminUser(user)
+		err = s.userRoleRepository.UpdateAdminUser(ctx, user)
 		break
 	default:
 		err = errors.New(errorUserUnsupportedRoleType.Message)
@@ -683,7 +681,7 @@ func (s *Service) sendInviteEmail(receiverEmail, senderEmail, senderFirstName, s
 }
 
 func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.ChangeRoleForMerchantUserRequest, res *grpc.EmptyResponseWithStatus) error {
-	user, err := s.userRoleRepository.GetMerchantUserById(req.RoleId)
+	user, err := s.userRoleRepository.GetMerchantUserById(ctx, req.RoleId)
 
 	if err != nil || user.MerchantId != req.MerchantId {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
@@ -694,7 +692,7 @@ func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.Chang
 	}
 
 	user.Role = req.Role
-	err = s.userRoleRepository.UpdateMerchantUser(user)
+	err = s.userRoleRepository.UpdateMerchantUser(ctx, user)
 
 	if err != nil {
 		zap.L().Error(errorUserUnableToSave.Message, zap.Error(err), zap.Any("req", req))
@@ -735,7 +733,7 @@ func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.Chang
 }
 
 func (s *Service) ChangeRoleForAdminUser(ctx context.Context, req *grpc.ChangeRoleForAdminUserRequest, res *grpc.EmptyResponseWithStatus) error {
-	user, err := s.userRoleRepository.GetAdminUserById(req.RoleId)
+	user, err := s.userRoleRepository.GetAdminUserById(ctx, req.RoleId)
 
 	if err != nil {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
@@ -746,7 +744,7 @@ func (s *Service) ChangeRoleForAdminUser(ctx context.Context, req *grpc.ChangeRo
 	}
 
 	user.Role = req.Role
-	err = s.userRoleRepository.UpdateAdminUser(user)
+	err = s.userRoleRepository.UpdateAdminUser(ctx, user)
 
 	if err != nil {
 		zap.L().Error(errorUserUnableToSave.Message, zap.Error(err), zap.Any("req", req))
@@ -803,7 +801,7 @@ func (s *Service) DeleteMerchantUser(
 	req *grpc.MerchantRoleRequest,
 	res *grpc.EmptyResponseWithStatus,
 ) error {
-	user, err := s.userRoleRepository.GetMerchantUserById(req.RoleId)
+	user, err := s.userRoleRepository.GetMerchantUserById(ctx, req.RoleId)
 
 	if err != nil || user.MerchantId != req.MerchantId {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
@@ -813,7 +811,7 @@ func (s *Service) DeleteMerchantUser(
 		return nil
 	}
 
-	if err = s.userRoleRepository.DeleteMerchantUser(user); err != nil {
+	if err = s.userRoleRepository.DeleteMerchantUser(ctx, user); err != nil {
 		zap.L().Error(errorUserUnableToDelete.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserUnableToDelete
@@ -834,7 +832,7 @@ func (s *Service) DeleteMerchantUser(
 		}
 	}
 
-	profile, err := s.userProfileRepository.GetByUserId(user.UserId)
+	profile, err := s.userProfileRepository.GetByUserId(ctx, user.UserId)
 
 	if profile != nil {
 		if err = s.emailConfirmedTruncate(ctx, profile); err != nil {
@@ -855,7 +853,7 @@ func (s *Service) DeleteAdminUser(
 	req *grpc.AdminRoleRequest,
 	res *grpc.EmptyResponseWithStatus,
 ) error {
-	user, err := s.userRoleRepository.GetAdminUserById(req.RoleId)
+	user, err := s.userRoleRepository.GetAdminUserById(ctx, req.RoleId)
 
 	if err != nil {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
@@ -865,7 +863,7 @@ func (s *Service) DeleteAdminUser(
 		return nil
 	}
 
-	if err = s.userRoleRepository.DeleteAdminUser(user); err != nil {
+	if err = s.userRoleRepository.DeleteAdminUser(ctx, user); err != nil {
 		zap.L().Error(errorUserUnableToDelete.Message, zap.Error(err), zap.Any("req", req))
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserUnableToDelete
@@ -884,7 +882,7 @@ func (s *Service) DeleteAdminUser(
 		}
 	}
 
-	profile, err := s.userProfileRepository.GetByUserId(user.UserId)
+	profile, err := s.userProfileRepository.GetByUserId(ctx, user.UserId)
 
 	if profile != nil {
 		if err = s.emailConfirmedTruncate(ctx, profile); err != nil {
@@ -935,7 +933,7 @@ func (s *Service) GetMerchantUserRole(
 	req *grpc.MerchantRoleRequest,
 	res *grpc.UserRoleResponse,
 ) error {
-	user, err := s.userRoleRepository.GetMerchantUserById(req.RoleId)
+	user, err := s.userRoleRepository.GetMerchantUserById(ctx, req.RoleId)
 
 	if err != nil || user.MerchantId != req.MerchantId {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
@@ -956,7 +954,7 @@ func (s *Service) GetAdminUserRole(
 	req *grpc.AdminRoleRequest,
 	res *grpc.UserRoleResponse,
 ) error {
-	user, err := s.userRoleRepository.GetAdminUserById(req.RoleId)
+	user, err := s.userRoleRepository.GetAdminUserById(ctx, req.RoleId)
 
 	if err != nil {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))

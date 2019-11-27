@@ -3,8 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -12,7 +10,11 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"sort"
 )
 
@@ -39,7 +41,7 @@ var (
 type MoneyBackCostSystemInterface interface {
 	MultipleInsert(obj []*billing.MoneyBackCostSystem) error
 	Update(obj *billing.MoneyBackCostSystem) error
-	Get(name, payout_currency, undo_reason, region, country, mcc_code, operating_company_id string, payment_stage int32) (c []*internalPkg.MoneyBackCostSystemSet, err error)
+	Get(name, payoutCurrency, undoReason, region, country, mccCode, operatingCompanyId string, paymentStage int32) (c []*internalPkg.MoneyBackCostSystemSet, err error)
 	GetById(id string) (*billing.MoneyBackCostSystem, error)
 	Delete(obj *billing.MoneyBackCostSystem) error
 	GetAll() (*billing.MoneyBackCostSystemList, error)
@@ -50,7 +52,7 @@ func (s *Service) GetAllMoneyBackCostSystem(
 	req *grpc.EmptyRequest,
 	res *grpc.MoneyBackCostSystemListResponse,
 ) error {
-	val, err := s.moneyBackCostSystem.GetAll()
+	val, err := s.moneyBackCostSystem.GetAll(ctx)
 	if err != nil {
 		res.Status = pkg.ResponseStatusSystemError
 		res.Message = errorMoneybackSystemGetAll
@@ -68,7 +70,7 @@ func (s *Service) GetMoneyBackCostSystem(
 	req *billing.MoneyBackCostSystemRequest,
 	res *grpc.MoneyBackCostSystemResponse,
 ) error {
-	val, err := s.getMoneyBackCostSystem(req)
+	val, err := s.getMoneyBackCostSystem(ctx, req)
 	if err != nil {
 		res.Status = pkg.ResponseStatusNotFound
 		res.Message = errorMoneybackSystemGet
@@ -86,11 +88,10 @@ func (s *Service) SetMoneyBackCostSystem(
 	req *billing.MoneyBackCostSystem,
 	res *grpc.MoneyBackCostSystemResponse,
 ) error {
-
 	var err error
 
 	if req.Country != "" {
-		country, err := s.country.GetByIsoCodeA2(req.Country)
+		country, err := s.country.GetByIsoCodeA2(ctx, req.Country)
 		if err != nil {
 			res.Status = pkg.ResponseStatusNotFound
 			res.Message = errorCountryNotFound
@@ -127,7 +128,7 @@ func (s *Service) SetMoneyBackCostSystem(
 		res.Message = errorMoneybackSystemMccCode
 		return nil
 	}
-	if !s.operatingCompany.Exists(req.OperatingCompanyId) {
+	if !s.operatingCompany.Exists(ctx, req.OperatingCompanyId) {
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorMoneybackSystemOperatingCompanyNotExists
 		return nil
@@ -137,7 +138,7 @@ func (s *Service) SetMoneyBackCostSystem(
 	req.IsActive = true
 
 	if req.Id != "" {
-		val, err := s.moneyBackCostSystem.GetById(req.Id)
+		val, err := s.moneyBackCostSystem.GetById(ctx, req.Id)
 		if err != nil {
 			res.Status = pkg.ResponseStatusNotFound
 			res.Message = errorMoneybackSystemSetFailed
@@ -145,17 +146,17 @@ func (s *Service) SetMoneyBackCostSystem(
 		}
 		req.Id = val.Id
 		req.CreatedAt = val.CreatedAt
-		err = s.moneyBackCostSystem.Update(req)
+		err = s.moneyBackCostSystem.Update(ctx, req)
 	} else {
-		req.Id = bson.NewObjectId().Hex()
+		req.Id = primitive.NewObjectID().Hex()
 		req.CreatedAt = ptypes.TimestampNow()
-		err = s.moneyBackCostSystem.Insert(req)
+		err = s.moneyBackCostSystem.Insert(ctx, req)
 	}
 	if err != nil {
 		res.Status = pkg.ResponseStatusSystemError
 		res.Message = errorMoneybackSystemSetFailed
 
-		if mgo.IsDup(err) {
+		if mongodb.IsDuplicate(err) {
 			res.Status = pkg.ResponseStatusBadData
 			res.Message = errorMoneybackCostAlreadyExist
 		}
@@ -174,13 +175,13 @@ func (s *Service) DeleteMoneyBackCostSystem(
 	req *billing.PaymentCostDeleteRequest,
 	res *grpc.ResponseError,
 ) error {
-	pc, err := s.moneyBackCostSystem.GetById(req.Id)
+	pc, err := s.moneyBackCostSystem.GetById(ctx, req.Id)
 	if err != nil {
 		res.Status = pkg.ResponseStatusNotFound
 		res.Message = errorCostRateNotFound
 		return nil
 	}
-	err = s.moneyBackCostSystem.Delete(pc)
+	err = s.moneyBackCostSystem.Delete(ctx, pc)
 	if err != nil {
 		res.Status = pkg.ResponseStatusSystemError
 		res.Message = errorMoneybackSystemDelete
@@ -190,8 +191,22 @@ func (s *Service) DeleteMoneyBackCostSystem(
 	return nil
 }
 
-func (s *Service) getMoneyBackCostSystem(req *billing.MoneyBackCostSystemRequest) (*billing.MoneyBackCostSystem, error) {
-	val, err := s.moneyBackCostSystem.Get(req.Name, req.PayoutCurrency, req.UndoReason, req.Region, req.Country, req.MccCode, req.OperatingCompanyId, req.PaymentStage)
+func (s *Service) getMoneyBackCostSystem(
+	ctx context.Context,
+	req *billing.MoneyBackCostSystemRequest,
+) (*billing.MoneyBackCostSystem, error) {
+	val, err := s.moneyBackCostSystem.Get(
+		ctx,
+		req.Name,
+		req.PayoutCurrency,
+		req.UndoReason,
+		req.Region,
+		req.Country,
+		req.MccCode,
+		req.OperatingCompanyId,
+		req.PaymentStage,
+	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -225,19 +240,21 @@ func newMoneyBackCostSystemService(svc *Service) *MoneyBackCostSystem {
 	return s
 }
 
-func (h *MoneyBackCostSystem) Insert(obj *billing.MoneyBackCostSystem) error {
+func (h *MoneyBackCostSystem) Insert(ctx context.Context, obj *billing.MoneyBackCostSystem) error {
 	obj.FixAmount = tools.FormatAmount(obj.FixAmount)
 	obj.Percent = tools.ToPrecise(obj.Percent)
 	obj.CreatedAt = ptypes.TimestampNow()
 	obj.UpdatedAt = ptypes.TimestampNow()
 	obj.IsActive = true
 
-	if err := h.svc.db.Collection(collectionMoneyBackCostSystem).Insert(obj); err != nil {
+	_, err := h.svc.db.Collection(collectionMoneyBackCostSystem).InsertOne(ctx, obj)
+
+	if err != nil {
 		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String("collection", collectionMoneyBackCostSystem),
-			zap.Any("query", obj),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMoneyBackCostSystem),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, obj),
 		)
 
 		return err
@@ -246,12 +263,14 @@ func (h *MoneyBackCostSystem) Insert(obj *billing.MoneyBackCostSystem) error {
 	return h.updateCaches(obj)
 }
 
-func (h MoneyBackCostSystem) MultipleInsert(obj []*billing.MoneyBackCostSystem) error {
+func (h MoneyBackCostSystem) MultipleInsert(ctx context.Context, obj []*billing.MoneyBackCostSystem) error {
 	c := make([]interface{}, len(obj))
+
 	for i, v := range obj {
 		if v.Id == "" {
-			v.Id = bson.NewObjectId().Hex()
+			v.Id = primitive.NewObjectID().Hex()
 		}
+
 		v.FixAmount = tools.FormatAmount(v.FixAmount)
 		v.Percent = tools.ToPrecise(v.Percent)
 		v.CreatedAt = ptypes.TimestampNow()
@@ -260,7 +279,9 @@ func (h MoneyBackCostSystem) MultipleInsert(obj []*billing.MoneyBackCostSystem) 
 		c[i] = v
 	}
 
-	if err := h.svc.db.Collection(collectionMoneyBackCostSystem).Insert(c...); err != nil {
+	_, err := h.svc.db.Collection(collectionMoneyBackCostSystem).InsertMany(ctx, c)
+
+	if err != nil {
 		return err
 	}
 
@@ -273,18 +294,24 @@ func (h MoneyBackCostSystem) MultipleInsert(obj []*billing.MoneyBackCostSystem) 
 	return nil
 }
 
-func (h MoneyBackCostSystem) Update(obj *billing.MoneyBackCostSystem) error {
+func (h MoneyBackCostSystem) Update(ctx context.Context, obj *billing.MoneyBackCostSystem) error {
 	obj.FixAmount = tools.FormatAmount(obj.FixAmount)
 	obj.Percent = tools.ToPrecise(obj.Percent)
 	obj.UpdatedAt = ptypes.TimestampNow()
 	obj.IsActive = true
-	if err := h.svc.db.Collection(collectionMoneyBackCostSystem).UpdateId(bson.ObjectIdHex(obj.Id), obj); err != nil {
+
+	oid, _ := primitive.ObjectIDFromHex(obj.Id)
+	filter := bson.M{"_id": oid}
+	_, err := h.svc.db.Collection(collectionMoneyBackCostSystem).ReplaceOne(ctx, filter, obj)
+
+	if err != nil {
 		return err
 	}
 	return h.updateCaches(obj)
 }
 
 func (h MoneyBackCostSystem) Get(
+	ctx context.Context,
 	name string,
 	payoutCurrency string,
 	undoReason string,
@@ -294,14 +321,24 @@ func (h MoneyBackCostSystem) Get(
 	operatingCompanyId string,
 	paymentStage int32,
 ) (c []*internalPkg.MoneyBackCostSystemSet, err error) {
-	key := fmt.Sprintf(cacheMoneyBackCostSystemKey, name, payoutCurrency, undoReason, region, country, paymentStage, mccCode, operatingCompanyId)
+	key := fmt.Sprintf(
+		cacheMoneyBackCostSystemKey,
+		name,
+		payoutCurrency,
+		undoReason,
+		region,
+		country,
+		paymentStage,
+		mccCode,
+		operatingCompanyId,
+	)
 
 	if err := h.svc.cacher.Get(key, c); err == nil {
 		return c, nil
 	}
 
 	matchQuery := bson.M{
-		"name":                 bson.RegEx{Pattern: "^" + name + "$", Options: "i"},
+		"name":                 primitive.Regex{Pattern: "^" + name + "$", Options: "i"},
 		"payout_currency":      payoutCurrency,
 		"undo_reason":          undoReason,
 		"payment_stage":        paymentStage,
@@ -338,7 +375,8 @@ func (h MoneyBackCostSystem) Get(
 		},
 	}
 
-	err = h.svc.db.Collection(collectionMoneyBackCostSystem).Pipe(query).All(&c)
+	cursor, err := h.svc.db.Collection(collectionMoneyBackCostSystem).Aggregate(ctx, query)
+
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
@@ -349,7 +387,20 @@ func (h MoneyBackCostSystem) Get(
 		return nil, fmt.Errorf(errorNotFound, collectionMoneyBackCostSystem)
 	}
 
+	err = cursor.All(ctx, &c)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorQueryCursorExecutionFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMoneyBackCostSystem),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return nil, fmt.Errorf(errorNotFound, collectionMoneyBackCostSystem)
+	}
+
 	err = h.svc.cacher.Set(key, c, 0)
+
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorCacheQueryFailed,
@@ -362,7 +413,7 @@ func (h MoneyBackCostSystem) Get(
 	return c, nil
 }
 
-func (h MoneyBackCostSystem) GetById(id string) (*billing.MoneyBackCostSystem, error) {
+func (h MoneyBackCostSystem) GetById(ctx context.Context, id string) (*billing.MoneyBackCostSystem, error) {
 	var c billing.MoneyBackCostSystem
 	key := fmt.Sprintf(cacheMoneyBackCostSystemKeyId, id)
 
@@ -370,9 +421,11 @@ func (h MoneyBackCostSystem) GetById(id string) (*billing.MoneyBackCostSystem, e
 		return &c, nil
 	}
 
-	if err := h.svc.db.Collection(collectionMoneyBackCostSystem).
-		Find(bson.M{"_id": bson.ObjectIdHex(id), "is_active": true}).
-		One(&c); err != nil {
+	oid, _ := primitive.ObjectIDFromHex(id)
+	filter := bson.M{"_id": oid, "is_active": true}
+	err := h.svc.db.Collection(collectionMoneyBackCostSystem).FindOne(ctx, filter).Decode(&c)
+
+	if err != nil {
 		return nil, fmt.Errorf(errorNotFound, collectionMoneyBackCostSystem)
 	}
 
@@ -380,27 +433,41 @@ func (h MoneyBackCostSystem) GetById(id string) (*billing.MoneyBackCostSystem, e
 	return &c, nil
 }
 
-func (h MoneyBackCostSystem) Delete(obj *billing.MoneyBackCostSystem) error {
+func (h MoneyBackCostSystem) Delete(ctx context.Context, obj *billing.MoneyBackCostSystem) error {
 	obj.UpdatedAt = ptypes.TimestampNow()
 	obj.IsActive = false
-	if err := h.svc.db.Collection(collectionMoneyBackCostSystem).UpdateId(bson.ObjectIdHex(obj.Id), obj); err != nil {
+
+	oid, _ := primitive.ObjectIDFromHex(obj.Id)
+	filter := bson.M{"_id": oid}
+	_, err := h.svc.db.Collection(collectionMoneyBackCostSystem).ReplaceOne(ctx, filter, obj)
+
+	if err != nil {
 		return err
 	}
 	return h.updateCaches(obj)
 }
 
-func (h MoneyBackCostSystem) GetAll() (*billing.MoneyBackCostSystemList, error) {
+func (h MoneyBackCostSystem) GetAll(ctx context.Context) (*billing.MoneyBackCostSystemList, error) {
 	var c = &billing.MoneyBackCostSystemList{}
 	key := cacheMoneyBackCostSystemAll
+	err := h.svc.cacher.Get(key, c)
 
-	if err := h.svc.cacher.Get(key, c); err != nil {
-		err = h.svc.db.Collection(collectionMoneyBackCostSystem).
-			Find(bson.M{"is_active": true}).
-			Sort("name", "payout_currency", "undo_reason", "region", "country", "payment_stage").
-			All(&c.Items)
+	if err != nil {
+		filter := bson.M{"is_active": true}
+		opts := options.Find().
+			SetSort(bson.M{"name": 1, "payout_currency": 1, "undo_reason": 1, "region": 1, "country": 1, "payment_stage": 1})
+		cursor, err := h.svc.db.Collection(collectionMoneyBackCostSystem).Find(ctx, filter, opts)
+
 		if err != nil {
 			return nil, err
 		}
+
+		err = cursor.All(ctx, &c.Items)
+
+		if err != nil {
+			return nil, err
+		}
+
 		_ = h.svc.cacher.Set(key, c, 0)
 	}
 

@@ -8,12 +8,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
 	"math/rand"
 	"net"
@@ -86,14 +87,15 @@ func (s *Service) CreateToken(
 	processor := &OrderCreateRequestProcessor{
 		Service: s,
 		request: &billing.OrderCreateRequest{
-			ProjectId:  req.Settings.ProjectId,
-			Amount:     req.Settings.Amount,
-			Currency:   req.Settings.Currency,
-			Products:   req.Settings.ProductsIds,
-			PlatformId: req.Settings.PlatformId,
+			ProjectId:               req.Settings.ProjectId,
+			Amount:                  req.Settings.Amount,
+			Currency:                req.Settings.Currency,
+			Products:                req.Settings.ProductsIds,
+			PlatformId:              req.Settings.PlatformId,
 			IsBuyForVirtualCurrency: req.Settings.IsBuyForVirtualCurrency,
 		},
 		checked: &orderCreateRequestProcessorChecked{},
+		ctx:     ctx,
 	}
 
 	err := processor.processProject()
@@ -209,7 +211,7 @@ func (s *Service) CreateToken(
 	}
 
 	project := processor.checked.project
-	customer, err := s.findCustomer(req, project)
+	customer, err := s.findCustomer(ctx, req, project)
 
 	if err != nil && err != customerNotFound {
 		rsp.Status = pkg.ResponseStatusBadData
@@ -218,9 +220,9 @@ func (s *Service) CreateToken(
 	}
 
 	if customer == nil {
-		customer, err = s.createCustomer(req, project)
+		customer, err = s.createCustomer(ctx, req, project)
 	} else {
-		customer, err = s.updateCustomer(req, project, customer)
+		customer, err = s.updateCustomer(ctx, req, project, customer)
 	}
 
 	if err != nil {
@@ -284,16 +286,19 @@ func (s *Service) getTokenBy(token string) (*Token, error) {
 	return tokenRep.token, nil
 }
 
-func (s *Service) getCustomerById(id string) (*billing.Customer, error) {
+func (s *Service) getCustomerById(ctx context.Context, id string) (*billing.Customer, error) {
 	var customer *billing.Customer
-	err := s.db.Collection(collectionCustomer).FindId(bson.ObjectIdHex(id)).One(&customer)
+	oid, _ := primitive.ObjectIDFromHex(id)
+	filter := bson.M{"_id": oid}
+	err := s.db.Collection(collectionCustomer).FindOne(ctx, filter).Decode(&customer)
 
 	if err != nil {
-		if err != mgo.ErrNotFound {
+		if err != mongo.ErrNoDocuments {
 			zap.L().Error(
-				"find customer by id failed",
+				pkg.ErrorDatabaseQueryFailed,
 				zap.Error(err),
-				zap.String("id", id),
+				zap.String(pkg.ErrorDatabaseFieldCollection, collectionCustomer),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, filter),
 			)
 			return nil, orderErrorUnknown
 		}
@@ -305,6 +310,7 @@ func (s *Service) getCustomerById(id string) (*billing.Customer, error) {
 }
 
 func (s *Service) findCustomer(
+	ctx context.Context,
 	req *grpc.TokenRequest,
 	project *billing.Project,
 ) (*billing.Customer, error) {
@@ -312,11 +318,12 @@ func (s *Service) findCustomer(
 	var subQueryItem bson.M
 
 	if req.User.Id != "" {
+		merchantOid, _ := primitive.ObjectIDFromHex(project.MerchantId)
 		subQueryItem = bson.M{
 			"identity": bson.M{
 				"$elemMatch": bson.M{
 					"type":        pkg.UserIdentityTypeExternal,
-					"merchant_id": bson.ObjectIdHex(project.MerchantId),
+					"merchant_id": merchantOid,
 					"value":       req.User.Id,
 				},
 			},
@@ -326,11 +333,12 @@ func (s *Service) findCustomer(
 	}
 
 	if req.User.Email != nil && req.User.Email.Value != "" {
+		merchantOid, _ := primitive.ObjectIDFromHex(project.MerchantId)
 		subQueryItem = bson.M{
 			"identity": bson.M{
 				"$elemMatch": bson.M{
 					"type":        pkg.UserIdentityTypeEmail,
-					"merchant_id": bson.ObjectIdHex(project.MerchantId),
+					"merchant_id": merchantOid,
 					"value":       req.User.Email.Value,
 				},
 			},
@@ -340,11 +348,12 @@ func (s *Service) findCustomer(
 	}
 
 	if req.User.Phone != nil && req.User.Phone.Value != "" {
+		merchantOid, _ := primitive.ObjectIDFromHex(project.MerchantId)
 		subQueryItem = bson.M{
 			"identity": bson.M{
 				"$elemMatch": bson.M{
 					"type":        pkg.UserIdentityTypePhone,
-					"merchant_id": bson.ObjectIdHex(project.MerchantId),
+					"merchant_id": merchantOid,
 					"value":       req.User.Phone.Value,
 				},
 			},
@@ -366,10 +375,10 @@ func (s *Service) findCustomer(
 		query = subQuery[0]
 	}
 
-	err := s.db.Collection(collectionCustomer).Find(query).One(&customer)
+	err := s.db.Collection(collectionCustomer).FindOne(ctx, query).Decode(&customer)
 
 	if err != nil {
-		if err != mgo.ErrNotFound {
+		if err != mongo.ErrNoDocuments {
 			zap.L().Error(
 				pkg.ErrorDatabaseQueryFailed,
 				zap.Error(err),
@@ -386,10 +395,11 @@ func (s *Service) findCustomer(
 }
 
 func (s *Service) createCustomer(
+	ctx context.Context,
 	req *grpc.TokenRequest,
 	project *billing.Project,
 ) (*billing.Customer, error) {
-	id := bson.NewObjectId().Hex()
+	id := primitive.NewObjectID().Hex()
 
 	customer := &billing.Customer{
 		Id:        id,
@@ -400,10 +410,16 @@ func (s *Service) createCustomer(
 	}
 	s.processCustomer(req, project, customer)
 
-	err := s.db.Collection(collectionCustomer).Insert(customer)
+	_, err := s.db.Collection(collectionCustomer).InsertOne(ctx, customer)
 
 	if err != nil {
-		zap.S().Errorf("Query to create new customer failed", "err", err.Error(), "data", customer)
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionCustomer),
+			zap.String(pkg.ErrorDatabaseFieldOperation, pkg.ErrorDatabaseFieldOperationInsert),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, customer),
+		)
 		return nil, tokenErrorUnknown
 	}
 
@@ -411,15 +427,24 @@ func (s *Service) createCustomer(
 }
 
 func (s *Service) updateCustomer(
+	ctx context.Context,
 	req *grpc.TokenRequest,
 	project *billing.Project,
 	customer *billing.Customer,
 ) (*billing.Customer, error) {
 	s.processCustomer(req, project, customer)
-	err := s.db.Collection(collectionCustomer).UpdateId(bson.ObjectIdHex(customer.Id), customer)
+	oid, _ := primitive.ObjectIDFromHex(customer.Id)
+	filter := bson.M{"_id": oid}
+	_, err := s.db.Collection(collectionCustomer).ReplaceOne(ctx, filter, customer)
 
 	if err != nil {
-		zap.S().Errorf("Query to update customer data failed", "err", err.Error(), "data", customer)
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionCustomer),
+			zap.String(pkg.ErrorDatabaseFieldOperation, pkg.ErrorDatabaseFieldOperationUpdate),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, customer),
+		)
 		return nil, tokenErrorUnknown
 	}
 
@@ -666,11 +691,12 @@ func (s *Service) getTokenString(n int) string {
 }
 
 func (s *Service) updateCustomerFromRequest(
+	ctx context.Context,
 	order *billing.Order,
 	req *grpc.TokenRequest,
 	ip, acceptLanguage, userAgent string,
 ) (*billing.Customer, error) {
-	customer, err := s.getCustomerById(order.User.Id)
+	customer, err := s.getCustomerById(ctx, order.User.Id)
 	project := &billing.Project{Id: order.Project.Id, MerchantId: order.Project.MerchantId}
 
 	if err != nil {
@@ -684,10 +710,11 @@ func (s *Service) updateCustomerFromRequest(
 	req.User.Locale = &billing.TokenUserLocaleValue{}
 	req.User.Locale.Value, _ = s.getCountryFromAcceptLanguage(acceptLanguage)
 
-	return s.updateCustomer(req, project, customer)
+	return s.updateCustomer(ctx, req, project, customer)
 }
 
 func (s *Service) updateCustomerFromRequestLocale(
+	ctx context.Context,
 	order *billing.Order,
 	ip, acceptLanguage, userAgent, locale string,
 ) {
@@ -697,7 +724,7 @@ func (s *Service) updateCustomerFromRequestLocale(
 		},
 	}
 
-	_, err := s.updateCustomerFromRequest(order, tokenReq, ip, acceptLanguage, userAgent)
+	_, err := s.updateCustomerFromRequest(ctx, order, tokenReq, ip, acceptLanguage, userAgent)
 
 	if err != nil {
 		zap.S().Errorf("Update customer data by request failed", "err", err.Error())

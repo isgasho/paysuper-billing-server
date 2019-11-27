@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/globalsign/mgo/bson"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
@@ -12,12 +11,13 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"testing"
 )
 
@@ -75,7 +75,7 @@ func (suite *PaymentChannelCostMerchantTestSuite) SetupTest() {
 	}
 
 	countryAz := &billing.Country{
-		Id:                bson.NewObjectId().Hex(),
+		Id:                primitive.NewObjectID().Hex(),
 		IsoCodeA2:         "AZ",
 		Region:            "CIS",
 		Currency:          "AZN",
@@ -87,7 +87,7 @@ func (suite *PaymentChannelCostMerchantTestSuite) SetupTest() {
 		PayerTariffRegion: pkg.TariffRegionRussiaAndCis,
 	}
 	countryUs := &billing.Country{
-		Id:                bson.NewObjectId().Hex(),
+		Id:                primitive.NewObjectID().Hex(),
 		IsoCodeA2:         "US",
 		Region:            "US",
 		Currency:          "USD",
@@ -99,15 +99,15 @@ func (suite *PaymentChannelCostMerchantTestSuite) SetupTest() {
 		PayerTariffRegion: pkg.TariffRegionWorldwide,
 	}
 	countries := []*billing.Country{countryAz, countryUs}
-	if err := suite.service.country.MultipleInsert(countries); err != nil {
+	if err := suite.service.country.MultipleInsert(context.TODO(), countries); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 
-	suite.paymentChannelCostMerchantId = bson.NewObjectId().Hex()
-	suite.merchantId = bson.NewObjectId().Hex()
+	suite.paymentChannelCostMerchantId = primitive.NewObjectID().Hex()
+	suite.merchantId = primitive.NewObjectID().Hex()
 
 	pmBankCard := &billing.PaymentMethod{
-		Id:   bson.NewObjectId().Hex(),
+		Id:   primitive.NewObjectID().Hex(),
 		Name: "Bank card",
 	}
 	merchant := &billing.Merchant{
@@ -134,7 +134,7 @@ func (suite *PaymentChannelCostMerchantTestSuite) SetupTest() {
 			},
 		},
 	}
-	if err := suite.service.merchant.Insert(merchant); err != nil {
+	if err := suite.service.merchant.Insert(context.TODO(), merchant); err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
 	}
 
@@ -187,18 +187,24 @@ func (suite *PaymentChannelCostMerchantTestSuite) SetupTest() {
 		MccCode:                 pkg.MccCodeLowRisk,
 	}
 	pccm := []*billing.PaymentChannelCostMerchant{paymentChannelCostMerchant, paymentChannelCostMerchant2, anotherPaymentChannelCostMerchant}
-	if err := suite.service.paymentChannelCostMerchant.MultipleInsert(pccm); err != nil {
+	if err := suite.service.paymentChannelCostMerchant.MultipleInsert(context.TODO(), pccm); err != nil {
 		suite.FailNow("Insert PaymentChannelCostMerchant test data failed", "%v", err)
 	}
 }
 
 func (suite *PaymentChannelCostMerchantTestSuite) TearDownTest() {
 	suite.cache.Clean()
-	if err := suite.service.db.Drop(); err != nil {
+	err := suite.service.db.Drop()
+
+	if err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}
 
-	suite.service.db.Close()
+	err = suite.service.db.Close()
+
+	if err != nil {
+		suite.FailNow("Database close failed", "%v", err)
+	}
 }
 
 func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant_GrpcGet_Ok() {
@@ -253,7 +259,7 @@ func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
 	assert.Equal(suite.T(), res.Item.Country, "AZ")
-	assert.Equal(suite.T(), res.Item.MethodFixAmount, float64(1.01))
+	assert.EqualValues(suite.T(), res.Item.MethodFixAmount, 1.01)
 	assert.Equal(suite.T(), res.Item.Id, suite.paymentChannelCostMerchantId)
 }
 
@@ -268,7 +274,7 @@ func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant
 		MccCode:         pkg.MccCodeLowRisk,
 	}
 
-	assert.NoError(suite.T(), suite.service.paymentChannelCostMerchant.Insert(req))
+	assert.NoError(suite.T(), suite.service.paymentChannelCostMerchant.Insert(context.TODO(), req))
 }
 
 func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant_Insert_ErrorCacheUpdate() {
@@ -286,7 +292,7 @@ func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant
 		MethodFixAmount: 0,
 		MccCode:         pkg.MccCodeLowRisk,
 	}
-	err := suite.service.paymentChannelCostMerchant.Insert(obj)
+	err := suite.service.paymentChannelCostMerchant.Insert(context.TODO(), obj)
 
 	assert.Error(suite.T(), err)
 	assert.EqualError(suite.T(), err, "service unavailable")
@@ -304,18 +310,18 @@ func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant
 		MccCode:         pkg.MccCodeLowRisk,
 	}
 
-	assert.NoError(suite.T(), suite.service.paymentChannelCostMerchant.Update(obj))
+	assert.NoError(suite.T(), suite.service.paymentChannelCostMerchant.Update(context.TODO(), obj))
 }
 
 func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant_Get_Ok() {
-	val, err := suite.service.paymentChannelCostMerchant.Get(suite.merchantId, "VISA", "USD", pkg.TariffRegionRussiaAndCis, "AZ", pkg.MccCodeLowRisk)
+	val, err := suite.service.paymentChannelCostMerchant.Get(context.TODO(), suite.merchantId, "VISA", "USD", pkg.TariffRegionRussiaAndCis, "AZ", pkg.MccCodeLowRisk)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), len(val), 2)
 	assert.Equal(suite.T(), val[0].Set[0].Country, "AZ")
-	assert.Equal(suite.T(), val[0].Set[0].MethodFixAmount, float64(0.01))
+	assert.EqualValues(suite.T(), val[0].Set[0].MethodFixAmount, 0.01)
 	assert.Equal(suite.T(), val[1].Set[0].Country, "")
 
-	val, err = suite.service.paymentChannelCostMerchant.Get(suite.merchantId, "VISA", "USD", pkg.TariffRegionRussiaAndCis, "", pkg.MccCodeLowRisk)
+	val, err = suite.service.paymentChannelCostMerchant.Get(context.TODO(), suite.merchantId, "VISA", "USD", pkg.TariffRegionRussiaAndCis, "", pkg.MccCodeLowRisk)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), len(val), 1)
 	assert.Equal(suite.T(), val[0].Set[0].Country, "")
@@ -333,34 +339,34 @@ func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant
 		MccCode:        pkg.MccCodeLowRisk,
 	}
 
-	val, err := suite.service.getPaymentChannelCostMerchant(req)
+	val, err := suite.service.getPaymentChannelCostMerchant(context.TODO(), req)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), val.Country, "")
 	assert.Equal(suite.T(), val.MinAmount, float64(0))
-	assert.Equal(suite.T(), val.MethodPercent, float64(2.2))
-	assert.Equal(suite.T(), val.MethodFixAmount, float64(0.))
-	assert.Equal(suite.T(), val.PsPercent, float64(5))
-	assert.Equal(suite.T(), val.PsFixedFee, float64(0.05))
+	assert.EqualValues(suite.T(), val.MethodPercent, 2.2)
+	assert.EqualValues(suite.T(), val.MethodFixAmount, 0.)
+	assert.EqualValues(suite.T(), val.PsPercent, 5)
+	assert.EqualValues(suite.T(), val.PsFixedFee, 0.05)
 
 	req.Amount = 1
-	val, err = suite.service.getPaymentChannelCostMerchant(req)
+	val, err = suite.service.getPaymentChannelCostMerchant(context.TODO(), req)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), val.Country, "AZ")
-	assert.Equal(suite.T(), val.MinAmount, float64(0.75))
-	assert.Equal(suite.T(), val.MethodPercent, float64(1.5))
-	assert.Equal(suite.T(), val.MethodFixAmount, float64(0.01))
-	assert.Equal(suite.T(), val.PsPercent, float64(3))
-	assert.Equal(suite.T(), val.PsFixedFee, float64(0.01))
+	assert.EqualValues(suite.T(), val.MinAmount, 0.75)
+	assert.EqualValues(suite.T(), val.MethodPercent, 1.5)
+	assert.EqualValues(suite.T(), val.MethodFixAmount, 0.01)
+	assert.EqualValues(suite.T(), val.PsPercent, 3)
+	assert.EqualValues(suite.T(), val.PsFixedFee, 0.01)
 
 	req.Amount = 10
-	val, err = suite.service.getPaymentChannelCostMerchant(req)
+	val, err = suite.service.getPaymentChannelCostMerchant(context.TODO(), req)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), val.Country, "AZ")
-	assert.Equal(suite.T(), val.MinAmount, float64(5))
-	assert.Equal(suite.T(), val.MethodPercent, float64(2.5))
-	assert.Equal(suite.T(), val.MethodFixAmount, float64(2))
-	assert.Equal(suite.T(), val.PsPercent, float64(5))
-	assert.Equal(suite.T(), val.PsFixedFee, float64(0.05))
+	assert.EqualValues(suite.T(), val.MinAmount, 5)
+	assert.EqualValues(suite.T(), val.MethodPercent, 2.5)
+	assert.EqualValues(suite.T(), val.MethodFixAmount, 2)
+	assert.EqualValues(suite.T(), val.PsPercent, 5)
+	assert.EqualValues(suite.T(), val.PsFixedFee, 0.05)
 }
 
 func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant_Delete_Ok() {
@@ -373,7 +379,7 @@ func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
 
-	_, err = suite.service.paymentChannelCostMerchant.GetById(suite.paymentChannelCostMerchantId)
+	_, err = suite.service.paymentChannelCostMerchant.GetById(context.TODO(), suite.paymentChannelCostMerchantId)
 	assert.EqualError(suite.T(), err, fmt.Sprintf(errorNotFound, collectionPaymentChannelCostMerchant))
 }
 

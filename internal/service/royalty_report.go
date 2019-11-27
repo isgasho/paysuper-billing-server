@@ -10,8 +10,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/jinzhu/now"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -23,6 +21,10 @@ import (
 	reporterProto "github.com/paysuper/paysuper-reporter/pkg/proto"
 	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
 	"github.com/streadway/amqp"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 	"mime"
 	"path/filepath"
@@ -72,7 +74,7 @@ var (
 )
 
 type RoyaltyReportMerchant struct {
-	Id bson.ObjectId `bson:"_id"`
+	Id primitive.ObjectID `bson:"_id"`
 }
 
 type royaltyHandler struct {
@@ -82,18 +84,18 @@ type royaltyHandler struct {
 }
 
 type RoyaltyReportServiceInterface interface {
-	Insert(document *billing.RoyaltyReport, ip, source string) error
-	Update(document *billing.RoyaltyReport, ip, source string) error
-	GetById(id string) (*billing.RoyaltyReport, error)
-	GetNonPayoutReports(merchantId, operatingCompanyId, currency string) ([]*billing.RoyaltyReport, error)
-	GetNonPayoutReportsOperatingCompaniesIds(merchantId, currency string) ([]string, error)
-	GetByPayoutId(payoutId string) ([]*billing.RoyaltyReport, error)
-	GetBalanceAmount(merchantId, currency string) (float64, error)
-	CheckReportExists(merchantId, operatingCompanyId, currency string, from, to time.Time) (exists bool, err error)
-	SetPayoutDocumentId(reportIds []string, payoutDocumentId, ip, source string) (err error)
-	UnsetPayoutDocumentId(reportIds []string, ip, source string) (err error)
-	SetPaid(reportIds []string, payoutDocumentId, ip, source string) (err error)
-	UnsetPaid(reportIds []string, ip, source string) (err error)
+	Insert(ctx context.Context, document *billing.RoyaltyReport, ip, source string) error
+	Update(ctx context.Context, document *billing.RoyaltyReport, ip, source string) error
+	GetById(ctx context.Context, id string) (*billing.RoyaltyReport, error)
+	GetNonPayoutReports(ctx context.Context, merchantId, operatingCompanyId, currency string) ([]*billing.RoyaltyReport, error)
+	GetNonPayoutReportsOperatingCompaniesIds(ctx context.Context, merchantId, currency string) ([]string, error)
+	GetByPayoutId(ctx context.Context, payoutId string) ([]*billing.RoyaltyReport, error)
+	GetBalanceAmount(ctx context.Context, merchantId, currency string) (float64, error)
+	CheckReportExists(ctx context.Context, merchantId, operatingCompanyId, currency string, from, to time.Time) (exists bool, err error)
+	SetPayoutDocumentId(ctx context.Context, reportIds []string, payoutDocumentId, ip, source string) (err error)
+	UnsetPayoutDocumentId(ctx context.Context, reportIds []string, ip, source string) (err error)
+	SetPaid(ctx context.Context, reportIds []string, payoutDocumentId, ip, source string) (err error)
+	UnsetPaid(ctx context.Context, reportIds []string, ip, source string) (err error)
 }
 
 func newRoyaltyReport(svc *Service) RoyaltyReportServiceInterface {
@@ -126,14 +128,16 @@ func (s *Service) CreateRoyaltyReport(
 
 	if len(req.Merchants) > 0 {
 		for _, v := range req.Merchants {
-			if bson.IsObjectIdHex(v) == false {
+			oid, err := primitive.ObjectIDFromHex(v)
+
+			if err != nil {
 				continue
 			}
 
-			merchants = append(merchants, &RoyaltyReportMerchant{Id: bson.ObjectIdHex(v)})
+			merchants = append(merchants, &RoyaltyReportMerchant{Id: oid})
 		}
 	} else {
-		merchants = s.getRoyaltyReportMerchantsByPeriod(from, to)
+		merchants = s.getRoyaltyReportMerchantsByPeriod(ctx, from, to)
 	}
 
 	if len(merchants) <= 0 {
@@ -151,7 +155,7 @@ func (s *Service) CreateRoyaltyReport(
 	}
 
 	for _, v := range merchants {
-		go func(merchantId bson.ObjectId) {
+		go func(merchantId primitive.ObjectID) {
 			err := handler.createMerchantRoyaltyReport(ctx, merchantId)
 
 			if err == nil {
@@ -188,10 +192,24 @@ func (s *Service) AutoAcceptRoyaltyReports(
 	}
 
 	var reports []*billing.RoyaltyReport
-	err := s.db.Collection(collectionRoyaltyReport).Find(query).All(&reports)
-	if err != nil && err != mgo.ErrNotFound {
+	cursor, err := s.db.Collection(collectionRoyaltyReport).Find(ctx, query)
+	if err != nil {
+		if err != mongo.ErrNoDocuments {
+			zap.L().Error(
+				pkg.ErrorDatabaseQueryFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, collectionRoyaltyReport),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			)
+		}
+		return err
+	}
+
+	err = cursor.All(ctx, &reports)
+
+	if err != nil {
 		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
+			pkg.ErrorQueryCursorExecutionFailed,
 			zap.Error(err),
 			zap.String(pkg.ErrorDatabaseFieldCollection, collectionRoyaltyReport),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
@@ -205,12 +223,12 @@ func (s *Service) AutoAcceptRoyaltyReports(
 		report.UpdatedAt = ptypes.TimestampNow()
 		report.IsAutoAccepted = true
 
-		err = s.royaltyReport.Update(report, "", pkg.RoyaltyReportChangeSourceAuto)
+		err = s.royaltyReport.Update(ctx, report, "", pkg.RoyaltyReportChangeSourceAuto)
 		if err != nil {
 			return err
 		}
 
-		_, err = s.updateMerchantBalance(report.MerchantId)
+		_, err = s.updateMerchantBalance(ctx, report.MerchantId)
 		if err != nil {
 			return err
 		}
@@ -228,7 +246,7 @@ func (s *Service) ListRoyaltyReports(
 	query := bson.M{}
 
 	if req.MerchantId != "" {
-		query["merchant_id"] = bson.ObjectIdHex(req.MerchantId)
+		query["merchant_id"], _ = primitive.ObjectIDFromHex(req.MerchantId)
 	}
 
 	if len(req.Status) > 0 {
@@ -243,7 +261,7 @@ func (s *Service) ListRoyaltyReports(
 		query["period_to"] = bson.M{"$gte": time.Unix(req.PeriodFrom, 0)}
 	}
 
-	count, err := s.db.Collection(collectionRoyaltyReport).Find(query).Count()
+	count, err := s.db.Collection(collectionRoyaltyReport).CountDocuments(ctx, query)
 
 	if err != nil {
 		zap.L().Error(
@@ -265,7 +283,10 @@ func (s *Service) ListRoyaltyReports(
 	}
 
 	var reports []*billing.RoyaltyReport
-	err = s.db.Collection(collectionRoyaltyReport).Find(query).Limit(int(req.Limit)).Skip(int(req.Offset)).All(&reports)
+	opts := options.Find().
+		SetLimit(req.Limit).
+		SetSkip(req.Offset)
+	cursor, err := s.db.Collection(collectionRoyaltyReport).Find(ctx, query, opts)
 
 	if err != nil {
 		zap.L().Error(
@@ -281,8 +302,22 @@ func (s *Service) ListRoyaltyReports(
 		return nil
 	}
 
+	err = cursor.All(ctx, &reports)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorQueryCursorExecutionFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionRoyaltyReport),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = royaltyReportEntryErrorUnknown
+		return nil
+	}
+
 	rsp.Data = &grpc.RoyaltyReportsPaginate{
-		Count: int32(count),
+		Count: count,
 		Items: reports,
 	}
 
@@ -294,10 +329,10 @@ func (s *Service) MerchantReviewRoyaltyReport(
 	req *grpc.MerchantReviewRoyaltyReportRequest,
 	rsp *grpc.ResponseError,
 ) error {
-	report, err := s.royaltyReport.GetById(req.ReportId)
+	report, err := s.royaltyReport.GetById(ctx, req.ReportId)
 
 	if err != nil {
-		if err == mgo.ErrNotFound {
+		if err == mongo.ErrNoDocuments {
 			rsp.Status = pkg.ResponseStatusNotFound
 			rsp.Message = royaltyReportErrorReportNotFound
 			return nil
@@ -307,7 +342,7 @@ func (s *Service) MerchantReviewRoyaltyReport(
 	}
 
 	if report.MerchantId != req.MerchantId {
-		if err == mgo.ErrNotFound {
+		if err == mongo.ErrNoDocuments {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = royaltyReportErrorNotOwnedByMerchant
 
@@ -332,7 +367,7 @@ func (s *Service) MerchantReviewRoyaltyReport(
 
 	report.UpdatedAt = ptypes.TimestampNow()
 
-	err = s.royaltyReport.Update(report, req.Ip, pkg.RoyaltyReportChangeSourceMerchant)
+	err = s.royaltyReport.Update(ctx, report, req.Ip, pkg.RoyaltyReportChangeSourceMerchant)
 
 	if err != nil {
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
@@ -344,7 +379,7 @@ func (s *Service) MerchantReviewRoyaltyReport(
 	}
 
 	if req.IsAccepted {
-		_, err = s.updateMerchantBalance(report.MerchantId)
+		_, err = s.updateMerchantBalance(ctx, report.MerchantId)
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusSystemError
 			rsp.Message = royaltyReportUpdateBalanceError
@@ -363,10 +398,10 @@ func (s *Service) GetRoyaltyReport(
 	req *grpc.GetRoyaltyReportRequest,
 	rsp *grpc.GetRoyaltyReportResponse,
 ) error {
-	report, err := s.royaltyReport.GetById(req.ReportId)
+	report, err := s.royaltyReport.GetById(ctx, req.ReportId)
 
 	if err != nil {
-		if err == mgo.ErrNotFound {
+		if err == mongo.ErrNoDocuments {
 			rsp.Status = pkg.ResponseStatusNotFound
 			rsp.Message = royaltyReportErrorReportNotFound
 			return nil
@@ -394,10 +429,10 @@ func (s *Service) ChangeRoyaltyReport(
 	req *grpc.ChangeRoyaltyReportRequest,
 	rsp *grpc.ResponseError,
 ) error {
-	report, err := s.royaltyReport.GetById(req.ReportId)
+	report, err := s.royaltyReport.GetById(ctx, req.ReportId)
 
 	if err != nil {
-		if err == mgo.ErrNotFound {
+		if err == mongo.ErrNoDocuments {
 			rsp.Status = pkg.ResponseStatusNotFound
 			rsp.Message = royaltyReportErrorReportNotFound
 			return nil
@@ -489,7 +524,7 @@ func (s *Service) ChangeRoyaltyReport(
 			from:    from,
 			to:      to,
 		}
-		report.Summary.Corrections, report.Totals.CorrectionAmount, err = handler.getRoyaltyReportCorrections(report.MerchantId, report.OperatingCompanyId, report.Currency)
+		report.Summary.Corrections, report.Totals.CorrectionAmount, err = handler.getRoyaltyReportCorrections(ctx, report.MerchantId, report.OperatingCompanyId, report.Currency)
 		if err != nil {
 			zap.L().Error("get royalty report corrections error", zap.Error(err))
 			rsp.Status = pkg.ResponseStatusSystemError
@@ -521,7 +556,7 @@ func (s *Service) ChangeRoyaltyReport(
 
 	report.UpdatedAt = ptypes.TimestampNow()
 
-	err = s.royaltyReport.Update(report, req.Ip, pkg.RoyaltyReportChangeSourceAdmin)
+	err = s.royaltyReport.Update(ctx, report, req.Ip, pkg.RoyaltyReportChangeSourceAdmin)
 	if err != nil {
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusSystemError
@@ -533,7 +568,7 @@ func (s *Service) ChangeRoyaltyReport(
 
 	s.sendRoyaltyReportNotification(ctx, report)
 
-	_, err = s.updateMerchantBalance(report.MerchantId)
+	_, err = s.updateMerchantBalance(ctx, report.MerchantId)
 	if err != nil {
 		return err
 	}
@@ -550,10 +585,10 @@ func (s *Service) ListRoyaltyReportOrders(
 ) error {
 	res.Status = pkg.ResponseStatusOk
 
-	report, err := s.royaltyReport.GetById(req.ReportId)
+	report, err := s.royaltyReport.GetById(ctx, req.ReportId)
 
 	if err != nil {
-		if err == mgo.ErrNotFound {
+		if err == mongo.ErrNoDocuments {
 			res.Status = pkg.ResponseStatusNotFound
 			res.Message = royaltyReportErrorReportNotFound
 
@@ -565,8 +600,7 @@ func (s *Service) ListRoyaltyReportOrders(
 		return nil
 	}
 
-
-	if err == mgo.ErrNotFound {
+	if err == mongo.ErrNoDocuments {
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = royaltyReportErrorReportNotFound
 		return nil
@@ -575,13 +609,14 @@ func (s *Service) ListRoyaltyReportOrders(
 	from, _ := ptypes.Timestamp(report.PeriodFrom)
 	to, _ := ptypes.Timestamp(report.PeriodTo)
 
+	oid, _ := primitive.ObjectIDFromHex(report.MerchantId)
 	match := bson.M{
-		"merchant_id":         bson.ObjectIdHex(report.MerchantId),
+		"merchant_id":         oid,
 		"pm_order_close_date": bson.M{"$gte": from, "$lte": to},
 		"status":              bson.M{"$in": orderStatusForRoyaltyReports},
 	}
 
-	ts, err := s.orderView.GetTransactionsPublic(match, int(req.Limit), int(req.Offset))
+	ts, err := s.orderView.GetTransactionsPublic(ctx, match, req.Limit, req.Offset)
 
 	if err != nil {
 		return err
@@ -595,7 +630,7 @@ func (s *Service) ListRoyaltyReportOrders(
 	return nil
 }
 
-func (s *Service) getRoyaltyReportMerchantsByPeriod(from, to time.Time) []*RoyaltyReportMerchant {
+func (s *Service) getRoyaltyReportMerchantsByPeriod(ctx context.Context, from, to time.Time) []*RoyaltyReportMerchant {
 	var merchants []*RoyaltyReportMerchant
 
 	query := []bson.M{
@@ -609,26 +644,41 @@ func (s *Service) getRoyaltyReportMerchantsByPeriod(from, to time.Time) []*Royal
 		{"$group": bson.M{"_id": "$project.merchant_id"}},
 	}
 
-	err := s.db.Collection(collectionOrderView).Pipe(query).All(&merchants)
+	cursor, err := s.db.Collection(collectionOrderView).Aggregate(ctx, query)
 
-	if err != nil && err != mgo.ErrNotFound {
+	if err != nil {
+		if err != mongo.ErrNoDocuments {
+			zap.L().Error(
+				pkg.ErrorDatabaseQueryFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrderView),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			)
+		}
+		return nil
+	}
+
+	err = cursor.All(ctx, &merchants)
+
+	if err != nil {
 		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
+			pkg.ErrorQueryCursorExecutionFailed,
 			zap.Error(err),
 			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrderView),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
+		return nil
 	}
 
 	return merchants
 }
 
-func (h *royaltyHandler) getRoyaltyReportCorrections(merchantId, operatingCompanyId, currency string) (
+func (h *royaltyHandler) getRoyaltyReportCorrections(ctx context.Context, merchantId, operatingCompanyId, currency string) (
 	entries []*billing.RoyaltyReportCorrectionItem,
 	total float64,
 	err error) {
 
-	accountingEntries, err := h.accounting.GetCorrectionsForRoyaltyReport(merchantId, operatingCompanyId, currency, h.from, h.to)
+	accountingEntries, err := h.accounting.GetCorrectionsForRoyaltyReport(ctx, merchantId, operatingCompanyId, currency, h.from, h.to)
 	if err != nil {
 		return
 	}
@@ -646,12 +696,15 @@ func (h *royaltyHandler) getRoyaltyReportCorrections(merchantId, operatingCompan
 	return
 }
 
-func (h *royaltyHandler) getRoyaltyReportRollingReserves(merchantId, operatingCompanyId, currency string) (
+func (h *royaltyHandler) getRoyaltyReportRollingReserves(
+	ctx context.Context,
+	merchantId, operatingCompanyId, currency string,
+) (
 	entries []*billing.RoyaltyReportCorrectionItem,
 	total float64,
 	err error) {
 
-	accountingEntries, err := h.accounting.GetRollingReservesForRoyaltyReport(merchantId, operatingCompanyId, currency, h.from, h.to)
+	accountingEntries, err := h.accounting.GetRollingReservesForRoyaltyReport(ctx, merchantId, operatingCompanyId, currency, h.from, h.to)
 	if err != nil {
 		return
 	}
@@ -669,40 +722,40 @@ func (h *royaltyHandler) getRoyaltyReportRollingReserves(merchantId, operatingCo
 	return
 }
 
-func (h *royaltyHandler) createMerchantRoyaltyReport(ctx context.Context, merchantId bson.ObjectId) error {
+func (h *royaltyHandler) createMerchantRoyaltyReport(ctx context.Context, merchantId primitive.ObjectID) error {
 	zap.L().Info("generating royalty reports for merchant", zap.String("merchant_id", merchantId.Hex()))
 
-	merchant, err := h.merchant.GetById(merchantId.Hex())
+	merchant, err := h.merchant.GetById(ctx, merchantId.Hex())
 	if err != nil {
 		return err
 	}
 
-	ocIds, err := h.orderView.GetRoyaltyOperatingCompaniesIds(merchant.Id, merchant.GetPayoutCurrency(), h.from, h.to)
+	ocIds, err := h.orderView.GetRoyaltyOperatingCompaniesIds(ctx, merchant.Id, merchant.GetPayoutCurrency(), h.from, h.to)
 
 	for _, operatingCompanyId := range ocIds {
 
-		isExists, err := h.royaltyReport.CheckReportExists(merchant.Id, operatingCompanyId, merchant.GetPayoutCurrency(), h.from, h.to)
+		isExists, err := h.royaltyReport.CheckReportExists(ctx, merchant.Id, operatingCompanyId, merchant.GetPayoutCurrency(), h.from, h.to)
 		if isExists {
 			return royaltyReportErrorAlreadyExists
 		}
 
-		summaryItems, summaryTotal, err := h.orderView.GetRoyaltySummary(merchant.Id, operatingCompanyId, merchant.GetPayoutCurrency(), h.from, h.to)
+		summaryItems, summaryTotal, err := h.orderView.GetRoyaltySummary(ctx, merchant.Id, operatingCompanyId, merchant.GetPayoutCurrency(), h.from, h.to)
 		if err != nil {
 			return err
 		}
 
-		corrections, correctionsTotal, err := h.getRoyaltyReportCorrections(merchant.Id, operatingCompanyId, merchant.GetPayoutCurrency())
+		corrections, correctionsTotal, err := h.getRoyaltyReportCorrections(ctx, merchant.Id, operatingCompanyId, merchant.GetPayoutCurrency())
 		if err != nil {
 			return err
 		}
 
-		reserves, reservesTotal, err := h.getRoyaltyReportRollingReserves(merchant.Id, operatingCompanyId, merchant.GetPayoutCurrency())
+		reserves, reservesTotal, err := h.getRoyaltyReportRollingReserves(ctx, merchant.Id, operatingCompanyId, merchant.GetPayoutCurrency())
 		if err != nil {
 			return err
 		}
 
 		report := &billing.RoyaltyReport{
-			Id:                 bson.NewObjectId().Hex(),
+			Id:                 primitive.NewObjectID().Hex(),
 			MerchantId:         merchantId.Hex(),
 			OperatingCompanyId: operatingCompanyId,
 			Currency:           merchant.GetPayoutCurrency(),
@@ -739,7 +792,7 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(ctx context.Context, mercha
 			return err
 		}
 
-		err = h.royaltyReport.Insert(report, "", pkg.RoyaltyReportChangeSourceAuto)
+		err = h.royaltyReport.Insert(ctx, report, "", pkg.RoyaltyReportChangeSourceAuto)
 
 		err = h.Service.renderRoyaltyReport(ctx, report, merchant)
 		if err != nil {
@@ -792,9 +845,9 @@ func (s *Service) RoyaltyReportPdfUploaded(
 	res *grpc.RoyaltyReportPdfUploadedResponse,
 ) error {
 
-	report, err := s.royaltyReport.GetById(req.RoyaltyReportId)
+	report, err := s.royaltyReport.GetById(ctx, req.RoyaltyReportId)
 	if err != nil {
-		if err == mgo.ErrNotFound {
+		if err == mongo.ErrNoDocuments {
 			res.Status = pkg.ResponseStatusNotFound
 			res.Message = royaltyReportErrorReportNotFound
 			return nil
@@ -802,7 +855,7 @@ func (s *Service) RoyaltyReportPdfUploaded(
 		return err
 	}
 
-	merchant, err := s.merchant.GetById(report.MerchantId)
+	merchant, err := s.merchant.GetById(ctx, report.MerchantId)
 
 	if err != nil {
 		zap.L().Error("Merchant not found", zap.Error(err), zap.String("merchant_id", report.MerchantId))
@@ -839,7 +892,7 @@ func (s *Service) RoyaltyReportPdfUploaded(
 		return err
 	}
 
-	operatingCompany, err := s.operatingCompany.GetById(report.OperatingCompanyId)
+	operatingCompany, err := s.operatingCompany.GetById(ctx, report.OperatingCompanyId)
 	if err != nil {
 		zap.L().Error("Operating company not found", zap.Error(err), zap.String("operating_company_id", report.OperatingCompanyId))
 		return err
@@ -884,7 +937,7 @@ func (s *Service) RoyaltyReportPdfUploaded(
 }
 
 func (s *Service) sendRoyaltyReportNotification(ctx context.Context, report *billing.RoyaltyReport) {
-	merchant, err := s.merchant.GetById(report.MerchantId)
+	merchant, err := s.merchant.GetById(ctx, report.MerchantId)
 
 	if err != nil {
 		zap.L().Error("Merchant not found", zap.Error(err), zap.String("merchant_id", report.MerchantId))
@@ -953,17 +1006,22 @@ func (s *Service) sendRoyaltyReportNotification(ctx context.Context, report *bil
 	return
 }
 
-func (r *RoyaltyReport) GetNonPayoutReports(merchantId, operatingCompanyId, currency string) (result []*billing.RoyaltyReport, err error) {
+func (r *RoyaltyReport) GetNonPayoutReports(
+	ctx context.Context,
+	merchantId, operatingCompanyId, currency string,
+) (result []*billing.RoyaltyReport, err error) {
+	oid, _ := primitive.ObjectIDFromHex(merchantId)
 	query := bson.M{
-		"merchant_id":          bson.ObjectIdHex(merchantId),
+		"merchant_id":          oid,
 		"currency":             currency,
 		"status":               bson.M{"$in": royaltyReportsStatusActive},
 		"operating_company_id": operatingCompanyId,
 		"payout_document_id":   "",
 	}
 
-	sorts := "period_from"
-	err = r.svc.db.Collection(collectionRoyaltyReport).Find(query).Sort(sorts).All(&result)
+	sorts := bson.M{"period_from": 1}
+	opts := options.Find().SetSort(sorts)
+	cursor, err := r.svc.db.Collection(collectionRoyaltyReport).Find(ctx, query, opts)
 
 	if err != nil {
 		zap.L().Error(
@@ -973,20 +1031,38 @@ func (r *RoyaltyReport) GetNonPayoutReports(merchantId, operatingCompanyId, curr
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 			zap.Any(pkg.ErrorDatabaseFieldSorts, sorts),
 		)
+		return
+	}
+
+	err = cursor.All(ctx, &result)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorQueryCursorExecutionFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionRoyaltyReport),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return
 	}
 
 	return
 }
 
-func (r *RoyaltyReport) GetNonPayoutReportsOperatingCompaniesIds(merchantId, currency string) (result []string, err error) {
+func (r *RoyaltyReport) GetNonPayoutReportsOperatingCompaniesIds(
+	ctx context.Context,
+	merchantId, currency string,
+) (result []string, err error) {
+	oid, _ := primitive.ObjectIDFromHex(merchantId)
 	query := bson.M{
-		"merchant_id":        bson.ObjectIdHex(merchantId),
+		"merchant_id":        oid,
 		"currency":           currency,
 		"status":             bson.M{"$in": royaltyReportsStatusActive},
 		"payout_document_id": "",
 	}
 
-	err = r.svc.db.Collection(collectionRoyaltyReport).Find(query).Distinct("operating_company_id", &result)
+	res, err := r.svc.db.Collection(collectionRoyaltyReport).Distinct(ctx, "operating_company_id", query)
+
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
@@ -994,18 +1070,24 @@ func (r *RoyaltyReport) GetNonPayoutReportsOperatingCompaniesIds(merchantId, cur
 			zap.String(pkg.ErrorDatabaseFieldCollection, collectionRoyaltyReport),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
+		return
+	}
+
+	for _, v := range res {
+		result = append(result, v.(string))
 	}
 
 	return
 }
 
-func (r *RoyaltyReport) GetByPayoutId(payoutId string) (result []*billing.RoyaltyReport, err error) {
+func (r *RoyaltyReport) GetByPayoutId(ctx context.Context, payoutId string) (result []*billing.RoyaltyReport, err error) {
 	query := bson.M{
 		"payout_document_id": payoutId,
 	}
 
-	sorts := "period_from"
-	err = r.svc.db.Collection(collectionRoyaltyReport).Find(query).Sort(sorts).All(&result)
+	sorts := bson.M{"period_from": 1}
+	opts := options.Find().SetSort(sorts)
+	cursor, err := r.svc.db.Collection(collectionRoyaltyReport).Find(ctx, query, opts)
 
 	if err != nil {
 		zap.L().Error(
@@ -1015,16 +1097,31 @@ func (r *RoyaltyReport) GetByPayoutId(payoutId string) (result []*billing.Royalt
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 			zap.Any(pkg.ErrorDatabaseFieldSorts, sorts),
 		)
+		return
+	}
+
+	err = cursor.All(ctx, &result)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorQueryCursorExecutionFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionRoyaltyReport),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			zap.Any(pkg.ErrorDatabaseFieldSorts, sorts),
+		)
+		return
 	}
 
 	return
 }
 
-func (r *RoyaltyReport) GetBalanceAmount(merchantId, currency string) (float64, error) {
+func (r *RoyaltyReport) GetBalanceAmount(ctx context.Context, merchantId, currency string) (float64, error) {
+	oid, _ := primitive.ObjectIDFromHex(merchantId)
 	query := []bson.M{
 		{
 			"$match": bson.M{
-				"merchant_id": bson.ObjectIdHex(merchantId),
+				"merchant_id": oid,
 				"currency":    currency,
 				"status":      bson.M{"$in": royaltyReportsStatusForBalance},
 			},
@@ -1046,31 +1143,54 @@ func (r *RoyaltyReport) GetBalanceAmount(merchantId, currency string) (float64, 
 
 	res := &balanceQueryResItem{}
 
-	err := r.svc.db.Collection(collectionRoyaltyReport).Pipe(query).One(&res)
-	if err != nil && err != mgo.ErrNotFound {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String("collection", collectionRoyaltyReport),
-			zap.Any("query", query),
-		)
+	cursor, err := r.svc.db.Collection(collectionRoyaltyReport).Aggregate(ctx, query)
+
+	if err != nil {
+		if err != mongo.ErrNoDocuments {
+			zap.L().Error(
+				pkg.ErrorDatabaseQueryFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, collectionRoyaltyReport),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			)
+		}
 		return 0, err
+	}
+
+	defer cursor.Close(ctx)
+
+	if cursor.Next(ctx) {
+		err = cursor.Decode(&res)
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorQueryCursorExecutionFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, collectionPayoutDocuments),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			)
+			return 0, err
+		}
 	}
 
 	return res.Amount, nil
 }
 
-func (r *RoyaltyReport) CheckReportExists(merchantId, operatingCompanyId, currency string, from, to time.Time) (bool, error) {
+func (r *RoyaltyReport) CheckReportExists(
+	ctx context.Context,
+	merchantId, operatingCompanyId, currency string,
+	from, to time.Time,
+) (bool, error) {
+	oid, _ := primitive.ObjectIDFromHex(merchantId)
 	query := bson.M{
-		"merchant_id":          bson.ObjectIdHex(merchantId),
+		"merchant_id":          oid,
 		"period_from":          bson.M{"$gte": from},
 		"period_to":            bson.M{"$lte": to},
 		"currency":             currency,
 		"operating_company_id": operatingCompanyId,
 	}
 	var report *billing.RoyaltyReport
-	err := r.svc.db.Collection(collectionRoyaltyReport).Find(query).One(&report)
-	if err == mgo.ErrNotFound || report == nil {
+	err := r.svc.db.Collection(collectionRoyaltyReport).FindOne(ctx, query).Decode(&report)
+	if err == mongo.ErrNoDocuments || report == nil {
 		return false, nil
 	}
 
@@ -1087,8 +1207,8 @@ func (r *RoyaltyReport) CheckReportExists(merchantId, operatingCompanyId, curren
 	return true, nil
 }
 
-func (r *RoyaltyReport) Insert(rr *billing.RoyaltyReport, ip, source string) (err error) {
-	err = r.svc.db.Collection(collectionRoyaltyReport).Insert(rr)
+func (r *RoyaltyReport) Insert(ctx context.Context, rr *billing.RoyaltyReport, ip, source string) (err error) {
+	_, err = r.svc.db.Collection(collectionRoyaltyReport).InsertOne(ctx, rr)
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
@@ -1100,7 +1220,7 @@ func (r *RoyaltyReport) Insert(rr *billing.RoyaltyReport, ip, source string) (er
 		return
 	}
 
-	err = r.onRoyaltyReportChange(rr, ip, source)
+	err = r.onRoyaltyReportChange(ctx, rr, ip, source)
 	if err != nil {
 		return
 	}
@@ -1119,8 +1239,10 @@ func (r *RoyaltyReport) Insert(rr *billing.RoyaltyReport, ip, source string) (er
 	return
 }
 
-func (r *RoyaltyReport) Update(rr *billing.RoyaltyReport, ip, source string) error {
-	err := r.svc.db.Collection(collectionRoyaltyReport).UpdateId(bson.ObjectIdHex(rr.Id), rr)
+func (r *RoyaltyReport) Update(ctx context.Context, rr *billing.RoyaltyReport, ip, source string) error {
+	oid, _ := primitive.ObjectIDFromHex(rr.Id)
+	filter := bson.M{"_id": oid}
+	_, err := r.svc.db.Collection(collectionRoyaltyReport).ReplaceOne(ctx, filter, rr)
 
 	if err != nil {
 		zap.L().Error(
@@ -1134,7 +1256,7 @@ func (r *RoyaltyReport) Update(rr *billing.RoyaltyReport, ip, source string) err
 		return err
 	}
 
-	err = r.onRoyaltyReportChange(rr, ip, source)
+	err = r.onRoyaltyReportChange(ctx, rr, ip, source)
 	if err != nil {
 		return err
 	}
@@ -1154,7 +1276,7 @@ func (r *RoyaltyReport) Update(rr *billing.RoyaltyReport, ip, source string) err
 	return nil
 }
 
-func (r *RoyaltyReport) GetById(id string) (rr *billing.RoyaltyReport, err error) {
+func (r *RoyaltyReport) GetById(ctx context.Context, id string) (rr *billing.RoyaltyReport, err error) {
 
 	var c billing.RoyaltyReport
 	key := fmt.Sprintf(cacheKeyRoyaltyReport, id)
@@ -1162,7 +1284,10 @@ func (r *RoyaltyReport) GetById(id string) (rr *billing.RoyaltyReport, err error
 		return &c, nil
 	}
 
-	err = r.svc.db.Collection(collectionRoyaltyReport).FindId(bson.ObjectIdHex(id)).One(&rr)
+	oid, _ := primitive.ObjectIDFromHex(id)
+	filter := bson.M{"_id": oid}
+	err = r.svc.db.Collection(collectionRoyaltyReport).FindOne(ctx, filter).Decode(&rr)
+
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
@@ -1188,9 +1313,13 @@ func (r *RoyaltyReport) GetById(id string) (rr *billing.RoyaltyReport, err error
 	return
 }
 
-func (r *RoyaltyReport) onRoyaltyReportChange(document *billing.RoyaltyReport, ip, source string) (err error) {
+func (r *RoyaltyReport) onRoyaltyReportChange(
+	ctx context.Context,
+	document *billing.RoyaltyReport,
+	ip, source string,
+) (err error) {
 	change := &billing.RoyaltyReportChanges{
-		Id:              bson.NewObjectId().Hex(),
+		Id:              primitive.NewObjectID().Hex(),
 		RoyaltyReportId: document.Id,
 		Source:          source,
 		Ip:              ip,
@@ -1209,7 +1338,7 @@ func (r *RoyaltyReport) onRoyaltyReportChange(document *billing.RoyaltyReport, i
 	hash.Write(b)
 	change.Hash = hex.EncodeToString(hash.Sum(nil))
 
-	err = r.svc.db.Collection(collectionRoyaltyReportChanges).Insert(change)
+	_, err = r.svc.db.Collection(collectionRoyaltyReportChanges).InsertOne(ctx, change)
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
@@ -1224,13 +1353,15 @@ func (r *RoyaltyReport) onRoyaltyReportChange(document *billing.RoyaltyReport, i
 	return
 }
 
-func (r *RoyaltyReport) SetPayoutDocumentId(reportIds []string, payoutDocumentId, ip, source string) error {
-	if bson.IsObjectIdHex(payoutDocumentId) == false {
+func (r *RoyaltyReport) SetPayoutDocumentId(ctx context.Context, reportIds []string, payoutDocumentId, ip, source string) error {
+	_, err := primitive.ObjectIDFromHex(payoutDocumentId)
+
+	if err != nil {
 		return royaltyReportErrorPayoutDocumentIdInvalid
 	}
 
 	for _, id := range reportIds {
-		rr, err := r.GetById(id)
+		rr, err := r.GetById(ctx, id)
 		if err != nil {
 			return err
 		}
@@ -1238,7 +1369,7 @@ func (r *RoyaltyReport) SetPayoutDocumentId(reportIds []string, payoutDocumentId
 		rr.PayoutDocumentId = payoutDocumentId
 		rr.Status = pkg.RoyaltyReportStatusWaitForPayment
 
-		err = r.Update(rr, ip, source)
+		err = r.Update(ctx, rr, ip, source)
 		if err != nil {
 			return err
 		}
@@ -1246,9 +1377,9 @@ func (r *RoyaltyReport) SetPayoutDocumentId(reportIds []string, payoutDocumentId
 	return nil
 }
 
-func (r *RoyaltyReport) UnsetPayoutDocumentId(reportIds []string, ip, source string) (err error) {
+func (r *RoyaltyReport) UnsetPayoutDocumentId(ctx context.Context, reportIds []string, ip, source string) (err error) {
 	for _, id := range reportIds {
-		rr, err := r.GetById(id)
+		rr, err := r.GetById(ctx, id)
 		if err != nil {
 			return err
 		}
@@ -1256,7 +1387,7 @@ func (r *RoyaltyReport) UnsetPayoutDocumentId(reportIds []string, ip, source str
 		rr.PayoutDocumentId = ""
 		rr.Status = pkg.RoyaltyReportStatusAccepted
 
-		err = r.Update(rr, ip, source)
+		err = r.Update(ctx, rr, ip, source)
 		if err != nil {
 			return err
 		}
@@ -1264,13 +1395,15 @@ func (r *RoyaltyReport) UnsetPayoutDocumentId(reportIds []string, ip, source str
 	return nil
 }
 
-func (r *RoyaltyReport) SetPaid(reportIds []string, payoutDocumentId, ip, source string) (err error) {
-	if bson.IsObjectIdHex(payoutDocumentId) == false {
+func (r *RoyaltyReport) SetPaid(ctx context.Context, reportIds []string, payoutDocumentId, ip, source string) (err error) {
+	_, err = primitive.ObjectIDFromHex(payoutDocumentId)
+
+	if err != nil {
 		return royaltyReportErrorPayoutDocumentIdInvalid
 	}
 
 	for _, id := range reportIds {
-		rr, err := r.GetById(id)
+		rr, err := r.GetById(ctx, id)
 		if err != nil {
 			return err
 		}
@@ -1279,7 +1412,7 @@ func (r *RoyaltyReport) SetPaid(reportIds []string, payoutDocumentId, ip, source
 		rr.Status = pkg.RoyaltyReportStatusPaid
 		rr.PayoutDate = ptypes.TimestampNow()
 
-		err = r.Update(rr, ip, source)
+		err = r.Update(ctx, rr, ip, source)
 		if err != nil {
 			return err
 		}
@@ -1287,9 +1420,9 @@ func (r *RoyaltyReport) SetPaid(reportIds []string, payoutDocumentId, ip, source
 	return nil
 }
 
-func (r *RoyaltyReport) UnsetPaid(reportIds []string, ip, source string) (err error) {
+func (r *RoyaltyReport) UnsetPaid(ctx context.Context, reportIds []string, ip, source string) (err error) {
 	for _, id := range reportIds {
-		rr, err := r.GetById(id)
+		rr, err := r.GetById(ctx, id)
 		if err != nil {
 			return err
 		}
@@ -1298,7 +1431,7 @@ func (r *RoyaltyReport) UnsetPaid(reportIds []string, ip, source string) (err er
 		rr.Status = pkg.RoyaltyReportStatusAccepted
 		rr.PayoutDate = nil
 
-		err = r.Update(rr, ip, source)
+		err = r.Update(ctx, rr, ip, source)
 		if err != nil {
 			return err
 		}
