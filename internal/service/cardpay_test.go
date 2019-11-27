@@ -2,7 +2,6 @@ package service
 
 import (
 	"fmt"
-	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
@@ -11,6 +10,7 @@ import (
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
@@ -27,14 +27,14 @@ var (
 	}
 
 	orderSimpleBankCard = &billing.Order{
-		Id: bson.NewObjectId().Hex(),
+		Id: primitive.NewObjectID().Hex(),
 		Project: &billing.ProjectOrder{
-			Id:         bson.NewObjectId().Hex(),
+			Id:         primitive.NewObjectID().Hex(),
 			Name:       map[string]string{"en": "Project Name"},
 			UrlSuccess: "http://localhost/success",
 			UrlFail:    "http://localhost/false",
 		},
-		Description:        fmt.Sprintf(orderDefaultDescription, bson.NewObjectId().Hex()),
+		Description:        fmt.Sprintf(orderDefaultDescription, primitive.NewObjectID().Hex()),
 		PrivateStatus:      constant.OrderStatusNew,
 		CreatedAt:          ptypes.TimestampNow(),
 		IsJsonRequest:      false,
@@ -42,7 +42,7 @@ var (
 		TotalPaymentAmount: 10.2,
 		Currency:           "RUB",
 		User: &billing.OrderUser{
-			Id:     bson.NewObjectId().Hex(),
+			Id:     primitive.NewObjectID().Hex(),
 			Object: "user",
 			Email:  "test@unit.test",
 			Ip:     "127.0.0.1",
@@ -53,10 +53,10 @@ var (
 				PostalCode: "190000",
 				State:      "SPE",
 			},
-			TechEmail: fmt.Sprintf("%s@paysuper.com", bson.NewObjectId().Hex()),
+			TechEmail: fmt.Sprintf("%s@paysuper.com", primitive.NewObjectID().Hex()),
 		},
 		PaymentMethod: &billing.PaymentMethodOrder{
-			Id:         bson.NewObjectId().Hex(),
+			Id:         primitive.NewObjectID().Hex(),
 			Name:       "Bank card",
 			Handler:    "cardpay",
 			ExternalId: "BANKCARD",
@@ -67,7 +67,7 @@ var (
 				SecretCallback: "callback_secret_key",
 				ApiUrl:         "https://sandbox.cardpay.com",
 			},
-			PaymentSystemId: bson.NewObjectId().Hex(),
+			PaymentSystemId: primitive.NewObjectID().Hex(),
 			Group:           "BANKCARD",
 			Saved:           false,
 		},

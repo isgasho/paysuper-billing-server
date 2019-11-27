@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/ProtocolONE/geoip-service/pkg/proto"
-	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
 	casbinProto "github.com/paysuper/casbin-server/pkg/generated/api/proto/casbinpb"
 	documentSignerProto "github.com/paysuper/document-signer/pkg/proto"
@@ -13,21 +12,21 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	"github.com/paysuper/paysuper-i18n"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
 	reporterProto "github.com/paysuper/paysuper-reporter/pkg/proto"
 	"github.com/paysuper/paysuper-tax-service/proto"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
 	"gopkg.in/gomail.v2"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"strings"
 	"sync"
 )
 
 const (
 	errorNotFound      = "%s not found"
-	errorQueryMask     = "Query from collection \"%s\" failed"
 	errorInterfaceCast = "unable to cast interface to object %s"
 
 	errorBbNotFoundMessage = "not found"
@@ -208,7 +207,7 @@ func (s *Service) logError(msg string, data []interface{}) {
 }
 
 func (s *Service) UpdateOrder(ctx context.Context, req *billing.Order, rsp *grpc.EmptyResponse) error {
-	err := s.updateOrder(req)
+	err := s.updateOrder(ctx, req)
 
 	if err != nil {
 		return err
@@ -218,7 +217,7 @@ func (s *Service) UpdateOrder(ctx context.Context, req *billing.Order, rsp *grpc
 }
 
 func (s *Service) UpdateMerchant(ctx context.Context, req *billing.Merchant, rsp *grpc.EmptyResponse) error {
-	err := s.merchant.Update(req)
+	err := s.merchant.Update(ctx, req)
 
 	if err != nil {
 		zap.S().Errorf("Update merchant failed", "err", err.Error(), "order", req)
@@ -289,6 +288,7 @@ func (s *Service) CheckProjectRequestSignature(
 		Service: s,
 		request: &billing.OrderCreateRequest{ProjectId: req.ProjectId},
 		checked: &orderCreateRequestProcessorChecked{},
+		ctx:     ctx,
 	}
 
 	err := p.processProject()

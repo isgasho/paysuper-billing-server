@@ -10,7 +10,6 @@ import (
 	"github.com/ProtocolONE/geoip-service/pkg"
 	"github.com/ProtocolONE/geoip-service/pkg/proto"
 	metrics "github.com/ProtocolONE/go-micro-plugins/wrapper/monitoring/prometheus"
-	"github.com/globalsign/mgo"
 	"github.com/go-redis/redis"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
@@ -32,7 +31,6 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	curPkg "github.com/paysuper/paysuper-currencies/pkg"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	paysuperI18n "github.com/paysuper/paysuper-i18n"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
@@ -44,6 +42,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"io"
 	"log"
 	"net/http"
@@ -100,8 +99,7 @@ func (app *Application) Init() {
 
 	app.logger.Info("db migrations applied")
 
-	opts := []mongodb.Option{mongodb.Mode(mgo.Primary)}
-	db, err := mongodb.NewDatabase(opts...)
+	db, err := mongodb.NewDatabase()
 	if err != nil {
 		app.logger.Fatal("Database connection failed", zap.Error(err))
 	}
@@ -326,7 +324,7 @@ func (app *Application) Stop() {
 		app.logger.Info("Http server stopped")
 	}
 
-	app.database.Close()
+	_ = app.database.Close()
 	app.logger.Info("Database connection closed")
 
 	if err := app.redis.Close(); err != nil {
@@ -376,11 +374,11 @@ func (app *Application) TaskAutoCreatePayouts() error {
 }
 
 func (app *Application) TaskRebuildOrderView() error {
-	return app.svc.RebuildOrderView()
+	return app.svc.RebuildOrderView(context.TODO())
 }
 
 func (app *Application) TaskMerchantsMigrate() error {
-	return app.svc.MerchantsMigrate()
+	return app.svc.MerchantsMigrate(context.TODO())
 }
 
 func (app *Application) KeyDaemonStart() {
@@ -399,7 +397,7 @@ func (app *Application) KeyDaemonStart() {
 				zap.S().Info("Key daemon stopping")
 				return
 			default:
-				count, err := app.svc.KeyDaemonProcess()
+				count, err := app.svc.KeyDaemonProcess(context.TODO())
 				if err != nil {
 					zap.L().Error("Key daemon process failed", zap.Error(err))
 				}

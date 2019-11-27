@@ -3,8 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"fmt"
-	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/uuid"
@@ -14,14 +12,15 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"testing"
 	"time"
 )
@@ -79,7 +78,7 @@ func (suite *PayoutsTestSuite) SetupTest() {
 	assert.NoError(suite.T(), err, "Database connection failed")
 
 	suite.operatingCompany = &billing.OperatingCompany{
-		Id:                 bson.NewObjectId().Hex(),
+		Id:                 primitive.NewObjectID().Hex(),
 		Name:               "Legal name",
 		Country:            "RU",
 		RegistrationNumber: "some number",
@@ -92,7 +91,7 @@ func (suite *PayoutsTestSuite) SetupTest() {
 		PaymentCountries:   []string{},
 	}
 
-	err = db.Collection(collectionOperatingCompanies).Insert(suite.operatingCompany)
+	_, err = db.Collection(collectionOperatingCompanies).InsertOne(context.TODO(), suite.operatingCompany)
 	if err != nil {
 		suite.FailNow("Insert operatingCompany test data failed", "%v", err)
 	}
@@ -112,7 +111,7 @@ func (suite *PayoutsTestSuite) SetupTest() {
 	assert.NoError(suite.T(), err, "Generate merchant date failed")
 
 	suite.merchant = &billing.Merchant{
-		Id: bson.NewObjectId().Hex(),
+		Id: primitive.NewObjectID().Hex(),
 		User: &billing.MerchantUser{
 			Id:    uuid.New().String(),
 			Email: "test@unit.test",
@@ -178,7 +177,7 @@ func (suite *PayoutsTestSuite) SetupTest() {
 	assert.NoError(suite.T(), err, "Generate date failed")
 
 	suite.report1 = &billing.RoyaltyReport{
-		Id:         bson.NewObjectId().Hex(),
+		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: suite.merchant.Id,
 		Totals: &billing.RoyaltyReportTotals{
 			TransactionsCount:    100,
@@ -198,7 +197,7 @@ func (suite *PayoutsTestSuite) SetupTest() {
 	}
 
 	suite.report2 = &billing.RoyaltyReport{
-		Id:         bson.NewObjectId().Hex(),
+		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: suite.merchant.Id,
 		Totals: &billing.RoyaltyReportTotals{
 			TransactionsCount: 10,
@@ -216,7 +215,7 @@ func (suite *PayoutsTestSuite) SetupTest() {
 	}
 
 	suite.report3 = &billing.RoyaltyReport{
-		Id:         bson.NewObjectId().Hex(),
+		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: suite.merchant.Id,
 		Totals: &billing.RoyaltyReportTotals{
 			TransactionsCount: 10,
@@ -234,7 +233,7 @@ func (suite *PayoutsTestSuite) SetupTest() {
 	}
 
 	suite.report4 = &billing.RoyaltyReport{
-		Id:         bson.NewObjectId().Hex(),
+		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: suite.merchant.Id,
 		Totals: &billing.RoyaltyReportTotals{
 			TransactionsCount: 0,
@@ -252,7 +251,7 @@ func (suite *PayoutsTestSuite) SetupTest() {
 	}
 
 	suite.report5 = &billing.RoyaltyReport{
-		Id:         bson.NewObjectId().Hex(),
+		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: suite.merchant.Id,
 		Totals: &billing.RoyaltyReportTotals{
 			TransactionsCount: 10,
@@ -270,7 +269,7 @@ func (suite *PayoutsTestSuite) SetupTest() {
 	}
 
 	suite.report6 = &billing.RoyaltyReport{
-		Id:         bson.NewObjectId().Hex(),
+		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: suite.merchant.Id,
 		Totals: &billing.RoyaltyReportTotals{
 			TransactionsCount: 100,
@@ -288,7 +287,7 @@ func (suite *PayoutsTestSuite) SetupTest() {
 	}
 
 	suite.report7 = &billing.RoyaltyReport{
-		Id:         bson.NewObjectId().Hex(),
+		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: suite.merchant.Id,
 		Totals: &billing.RoyaltyReportTotals{
 			TransactionsCount: 100,
@@ -306,7 +305,7 @@ func (suite *PayoutsTestSuite) SetupTest() {
 	}
 
 	suite.payout1 = &billing.PayoutDocument{
-		Id:                 bson.NewObjectId().Hex(),
+		Id:                 primitive.NewObjectID().Hex(),
 		MerchantId:         suite.merchant.Id,
 		SourceId:           []string{suite.report1.Id, suite.report2.Id},
 		TotalFees:          765000,
@@ -326,7 +325,7 @@ func (suite *PayoutsTestSuite) SetupTest() {
 	}
 
 	suite.payout2 = &billing.PayoutDocument{
-		Id:                 bson.NewObjectId().Hex(),
+		Id:                 primitive.NewObjectID().Hex(),
 		MerchantId:         suite.merchant.Id,
 		SourceId:           []string{suite.report6.Id},
 		TotalFees:          alreadyPaidRoyalty,
@@ -346,7 +345,7 @@ func (suite *PayoutsTestSuite) SetupTest() {
 	}
 
 	suite.payout3 = &billing.PayoutDocument{
-		Id:                 bson.NewObjectId().Hex(),
+		Id:                 primitive.NewObjectID().Hex(),
 		MerchantId:         suite.merchant.Id,
 		OperatingCompanyId: suite.operatingCompany.Id,
 	}
@@ -354,9 +353,9 @@ func (suite *PayoutsTestSuite) SetupTest() {
 	assert.NoError(suite.T(), err, "Generate payout url expire date failed")
 
 	suite.payout4 = &billing.PayoutDocument{
-		Id:                 bson.NewObjectId().Hex(),
+		Id:                 primitive.NewObjectID().Hex(),
 		MerchantId:         suite.merchant.Id,
-		SourceId:           []string{bson.NewObjectId().Hex(), bson.NewObjectId().Hex(), bson.NewObjectId().Hex()},
+		SourceId:           []string{primitive.NewObjectID().Hex(), primitive.NewObjectID().Hex(), primitive.NewObjectID().Hex()},
 		TotalFees:          765000,
 		Balance:            765000,
 		Currency:           "RUB",
@@ -374,9 +373,9 @@ func (suite *PayoutsTestSuite) SetupTest() {
 	}
 
 	suite.payout5 = &billing.PayoutDocument{
-		Id:                 bson.NewObjectId().Hex(),
+		Id:                 primitive.NewObjectID().Hex(),
 		MerchantId:         suite.merchant.Id,
-		SourceId:           []string{bson.NewObjectId().Hex(), bson.NewObjectId().Hex(), bson.NewObjectId().Hex()},
+		SourceId:           []string{primitive.NewObjectID().Hex(), primitive.NewObjectID().Hex(), primitive.NewObjectID().Hex()},
 		TotalFees:          765000,
 		Balance:            765000,
 		Currency:           "RUB",
@@ -394,9 +393,9 @@ func (suite *PayoutsTestSuite) SetupTest() {
 	}
 
 	suite.payout6 = &billing.PayoutDocument{
-		Id:                 bson.NewObjectId().Hex(),
+		Id:                 primitive.NewObjectID().Hex(),
 		MerchantId:         suite.merchant.Id,
-		SourceId:           []string{bson.NewObjectId().Hex(), bson.NewObjectId().Hex(), bson.NewObjectId().Hex()},
+		SourceId:           []string{primitive.NewObjectID().Hex(), primitive.NewObjectID().Hex(), primitive.NewObjectID().Hex()},
 		TotalFees:          765000,
 		Balance:            765000,
 		Currency:           "RUB",
@@ -414,7 +413,7 @@ func (suite *PayoutsTestSuite) SetupTest() {
 	}
 
 	suite.payout7 = &billing.PayoutDocument{
-		Id:                 bson.NewObjectId().Hex(),
+		Id:                 primitive.NewObjectID().Hex(),
 		MerchantId:         suite.merchant.Id,
 		SourceId:           []string{suite.report6.Id},
 		TotalFees:          alreadyPaidRoyalty,
@@ -460,11 +459,11 @@ func (suite *PayoutsTestSuite) SetupTest() {
 	}
 
 	merchants := []*billing.Merchant{suite.merchant}
-	if err := suite.service.merchant.MultipleInsert(merchants); err != nil {
+	if err := suite.service.merchant.MultipleInsert(context.TODO(), merchants); err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
 	}
 
-	if err := suite.service.country.Insert(country); err != nil {
+	if err := suite.service.country.Insert(context.TODO(), country); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 
@@ -476,16 +475,22 @@ func (suite *PayoutsTestSuite) SetupTest() {
 }
 
 func (suite *PayoutsTestSuite) TearDownTest() {
-	if err := suite.service.db.Drop(); err != nil {
+	err := suite.service.db.Drop()
+
+	if err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}
 
-	suite.service.db.Close()
+	err = suite.service.db.Close()
+
+	if err != nil {
+		suite.FailNow("Database close failed", "%v", err)
+	}
 }
 
 func (suite *PayoutsTestSuite) helperInsertRoyaltyReports(data []*billing.RoyaltyReport) {
 	for _, r := range data {
-		if err := suite.service.db.Collection(collectionRoyaltyReport).Insert(r); err != nil {
+		if _, err := suite.service.db.Collection(collectionRoyaltyReport).InsertOne(context.TODO(), r); err != nil {
 			suite.FailNow("Insert royalty report test data failed", "%v", err)
 		}
 	}
@@ -493,7 +498,7 @@ func (suite *PayoutsTestSuite) helperInsertRoyaltyReports(data []*billing.Royalt
 
 func (suite *PayoutsTestSuite) helperInsertPayoutDocuments(data []*billing.PayoutDocument) {
 	for _, p := range data {
-		if err := suite.service.payoutDocument.Insert(p, "127.0.0.1", payoutChangeSourceAdmin); err != nil {
+		if err := suite.service.payoutDocument.Insert(context.TODO(), p, "127.0.0.1", payoutChangeSourceAdmin); err != nil {
 			suite.FailNow("Insert payout test data failed", "%v", err)
 		}
 	}
@@ -502,7 +507,7 @@ func (suite *PayoutsTestSuite) helperInsertPayoutDocuments(data []*billing.Payou
 func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Ok_NoPayoutsYet() {
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report1, suite.report6})
 
-	reports, err := suite.service.getPayoutDocumentSources(suite.merchant, suite.operatingCompany.Id)
+	reports, err := suite.service.getPayoutDocumentSources(context.TODO(), suite.merchant, suite.operatingCompany.Id)
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), reports, 2)
 }
@@ -510,20 +515,20 @@ func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Ok_NoPayouts
 func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Ok_FilteringByCurrency() {
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report1, suite.report5, suite.report6})
 
-	reports, err := suite.service.getPayoutDocumentSources(suite.merchant, suite.operatingCompany.Id)
+	reports, err := suite.service.getPayoutDocumentSources(context.TODO(), suite.merchant, suite.operatingCompany.Id)
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), reports, 2)
 }
 
 func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Fail_NotFound() {
-	reports, err := suite.service.getPayoutDocumentSources(suite.merchant, suite.operatingCompany.Id)
+	reports, err := suite.service.getPayoutDocumentSources(context.TODO(), suite.merchant, suite.operatingCompany.Id)
 	assert.EqualError(suite.T(), err, errorPayoutSourcesNotFound.Error())
 	assert.Len(suite.T(), reports, 0)
 }
 
 func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Fail_MerchantNotFound() {
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report1, suite.report6})
-	reports, err := suite.service.getPayoutDocumentSources(&billing.Merchant{Id: bson.NewObjectId().Hex()}, suite.operatingCompany.Id)
+	reports, err := suite.service.getPayoutDocumentSources(context.TODO(), &billing.Merchant{Id: primitive.NewObjectID().Hex()}, suite.operatingCompany.Id)
 	assert.EqualError(suite.T(), err, errorPayoutSourcesNotFound.Error())
 	assert.Len(suite.T(), reports, 0)
 }
@@ -531,7 +536,7 @@ func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Fail_Merchan
 func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Fail_HasPendingReports() {
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report1, suite.report3})
 
-	reports, err := suite.service.getPayoutDocumentSources(suite.merchant, suite.operatingCompany.Id)
+	reports, err := suite.service.getPayoutDocumentSources(context.TODO(), suite.merchant, suite.operatingCompany.Id)
 	assert.EqualError(suite.T(), err, errorPayoutSourcesPending.Error())
 	assert.Len(suite.T(), reports, 0)
 }
@@ -539,7 +544,7 @@ func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Fail_HasPend
 func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Fail_HasDisputingReports() {
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report1, suite.report7})
 
-	reports, err := suite.service.getPayoutDocumentSources(suite.merchant, suite.operatingCompany.Id)
+	reports, err := suite.service.getPayoutDocumentSources(context.TODO(), suite.merchant, suite.operatingCompany.Id)
 	assert.EqualError(suite.T(), err, errorPayoutSourcesDispute.Error())
 	assert.Len(suite.T(), reports, 0)
 }
@@ -551,7 +556,7 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Ok_Pending() {
 
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report1, suite.report2})
 
-	_, err := suite.service.updateMerchantBalance(suite.merchant.Id)
+	_, err := suite.service.updateMerchantBalance(context.TODO(), suite.merchant.Id)
 	assert.NoError(suite.T(), err)
 
 	req := &grpc.CreatePayoutDocumentRequest{
@@ -567,7 +572,7 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Ok_Pending() {
 	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
 	controlAmount := suite.report1.Totals.PayoutAmount + suite.report2.Totals.PayoutAmount
 	assert.Equal(suite.T(), res.Items[0].Balance, controlAmount)
-	assert.Equal(suite.T(), res.Items[0].Balance, float64(13579.5))
+	assert.EqualValues(suite.T(), res.Items[0].Balance, 13579.5)
 	assert.True(suite.T(), suite.merchant.MinPayoutAmount < controlAmount)
 	assert.Equal(suite.T(), res.Items[0].Status, pkg.PayoutDocumentStatusPending)
 	assert.Len(suite.T(), res.Items[0].SourceId, 2)
@@ -582,7 +587,7 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Ok_SkipByAmount(
 
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report2})
 
-	_, err := suite.service.updateMerchantBalance(suite.merchant.Id)
+	_, err := suite.service.updateMerchantBalance(context.TODO(), suite.merchant.Id)
 	assert.NoError(suite.T(), err)
 
 	req := &grpc.CreatePayoutDocumentRequest{
@@ -598,7 +603,7 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Ok_SkipByAmount(
 	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
 	controlAmount := suite.report2.Totals.PayoutAmount
 	assert.Equal(suite.T(), res.Items[0].Balance, controlAmount)
-	assert.Equal(suite.T(), res.Items[0].Balance, float64(1234.5))
+	assert.EqualValues(suite.T(), res.Items[0].Balance, 1234.5)
 	assert.True(suite.T(), suite.merchant.MinPayoutAmount > controlAmount)
 	assert.Equal(suite.T(), res.Items[0].Status, pkg.PayoutDocumentStatusSkip)
 	assert.Len(suite.T(), res.Items[0].SourceId, 1)
@@ -615,7 +620,7 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Ok_SkipByRolling
 
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report1, suite.report2})
 
-	_, err := suite.service.updateMerchantBalance(suite.merchant.Id)
+	_, err := suite.service.updateMerchantBalance(context.TODO(), suite.merchant.Id)
 	assert.NoError(suite.T(), err)
 
 	req1 := &grpc.CreatePayoutDocumentRequest{
@@ -632,7 +637,7 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Ok_SkipByRolling
 	controlAmount := (suite.report1.Totals.PayoutAmount - suite.report1.Totals.CorrectionAmount - suite.report1.Totals.RollingReserveAmount) +
 		(suite.report2.Totals.PayoutAmount - suite.report2.Totals.CorrectionAmount - suite.report2.Totals.RollingReserveAmount)
 	assert.Equal(suite.T(), res1.Items[0].Balance, controlAmount)
-	assert.Equal(suite.T(), res1.Items[0].Balance, float64(12979.5))
+	assert.EqualValues(suite.T(), res1.Items[0].Balance, 12979.5)
 	assert.True(suite.T(), suite.merchant.MinPayoutAmount > controlAmount)
 	assert.Equal(suite.T(), res1.Items[0].Status, pkg.PayoutDocumentStatusSkip)
 	assert.Len(suite.T(), res1.Items[0].SourceId, 2)
@@ -659,7 +664,7 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_NoSources
 func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_MerchantNotFound() {
 
 	req := &grpc.CreatePayoutDocumentRequest{
-		MerchantId:  bson.NewObjectId().Hex(),
+		MerchantId:  primitive.NewObjectID().Hex(),
 		Description: "test payout",
 		Ip:          "127.0.0.1",
 	}
@@ -668,13 +673,13 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_MerchantN
 
 	err := suite.service.CreatePayoutDocument(context.TODO(), req, res)
 	assert.Error(suite.T(), err)
-	assert.EqualError(suite.T(), err, fmt.Errorf(errorNotFound, collectionMerchant).Error())
+	assert.Equal(suite.T(), err, merchantErrorNotFound)
 }
 
 func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_ZeroAmount() {
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report4})
 
-	_, err := suite.service.updateMerchantBalance(suite.merchant.Id)
+	_, err := suite.service.updateMerchantBalance(context.TODO(), suite.merchant.Id)
 	assert.NoError(suite.T(), err)
 
 	req := &grpc.CreatePayoutDocumentRequest{
@@ -713,7 +718,7 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_NotEnough
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report1})
 	suite.helperInsertPayoutDocuments([]*billing.PayoutDocument{suite.payout2})
 
-	_, err := suite.service.updateMerchantBalance(suite.merchant.Id)
+	_, err := suite.service.updateMerchantBalance(context.TODO(), suite.merchant.Id)
 	assert.NoError(suite.T(), err)
 
 	req := &grpc.GetMerchantBalanceRequest{
@@ -747,14 +752,14 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_NotEnough
 func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_InsertError() {
 
 	pds := &mocks.PayoutDocumentServiceInterface{}
-	pds.On("Insert", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New(mocks.SomeError))
-	pds.On("GetBalanceAmount", mock2.Anything, mock2.Anything).Return(float64(0), nil)
-	pds.On("GetLast", mock2.Anything, mock2.Anything).Return(nil, nil)
+	pds.On("Insert", mock2.Anything, mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New(mocks.SomeError))
+	pds.On("GetBalanceAmount", mock2.Anything, mock2.Anything, mock2.Anything).Return(float64(0), nil)
+	pds.On("GetLast", mock2.Anything, mock2.Anything, mock2.Anything).Return(nil, nil)
 	suite.service.payoutDocument = pds
 
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report1, suite.report2})
 
-	_, err := suite.service.updateMerchantBalance(suite.merchant.Id)
+	_, err := suite.service.updateMerchantBalance(context.TODO(), suite.merchant.Id)
 	assert.NoError(suite.T(), err)
 
 	req := &grpc.CreatePayoutDocumentRequest{
@@ -772,14 +777,14 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_InsertErr
 func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_InsertErrorWithResponse() {
 
 	pds := &mocks.PayoutDocumentServiceInterface{}
-	pds.On("Insert", mock2.Anything, mock2.Anything, mock2.Anything).Return(newBillingServerErrorMsg("0", "test"))
-	pds.On("GetBalanceAmount", mock2.Anything, mock2.Anything).Return(float64(0), nil)
-	pds.On("GetLast", mock2.Anything, mock2.Anything).Return(nil, nil)
+	pds.On("Insert", mock2.Anything, mock2.Anything, mock2.Anything, mock2.Anything).Return(newBillingServerErrorMsg("0", "test"))
+	pds.On("GetBalanceAmount", mock2.Anything, mock2.Anything, mock2.Anything).Return(float64(0), nil)
+	pds.On("GetLast", mock2.Anything, mock2.Anything, mock2.Anything).Return(nil, nil)
 	suite.service.payoutDocument = pds
 
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report1, suite.report2})
 
-	_, err := suite.service.updateMerchantBalance(suite.merchant.Id)
+	_, err := suite.service.updateMerchantBalance(context.TODO(), suite.merchant.Id)
 	assert.NoError(suite.T(), err)
 
 	req := &grpc.CreatePayoutDocumentRequest{
@@ -845,7 +850,7 @@ func (suite *PayoutsTestSuite) TestPayouts_UpdatePayoutDocument_Ok_PaidOk() {
 	assert.Equal(suite.T(), res.Item.Status, pkg.PayoutDocumentStatusPaid)
 	assert.Equal(suite.T(), res.Item.Transaction, "transaction123")
 
-	rr, err := suite.service.royaltyReport.GetById(suite.report6.Id)
+	rr, err := suite.service.royaltyReport.GetById(context.TODO(), suite.report6.Id)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), rr.Status, pkg.RoyaltyReportStatusPaid)
 	assert.Equal(suite.T(), rr.PayoutDocumentId, suite.payout2.Id)
@@ -896,7 +901,7 @@ func (suite *PayoutsTestSuite) TestPayouts_UpdatePayoutDocument_Ok_NotModified()
 func (suite *PayoutsTestSuite) TestPayouts_UpdatePayoutDocument_Failed_NotFound() {
 
 	req := &grpc.UpdatePayoutDocumentRequest{
-		PayoutDocumentId: bson.NewObjectId().Hex(),
+		PayoutDocumentId: primitive.NewObjectID().Hex(),
 	}
 
 	res := &grpc.PayoutDocumentResponse{}
@@ -912,8 +917,8 @@ func (suite *PayoutsTestSuite) TestPayouts_UpdatePayoutDocument_Failed_UpdateErr
 	suite.helperInsertPayoutDocuments([]*billing.PayoutDocument{suite.payout1})
 
 	pds := &mocks.PayoutDocumentServiceInterface{}
-	pds.On("Update", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New(mocks.SomeError))
-	pds.On("GetById", mock2.Anything).Return(suite.payout2, nil)
+	pds.On("Update", mock2.Anything, mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New(mocks.SomeError))
+	pds.On("GetById", mock2.Anything, mock2.Anything).Return(suite.payout2, nil)
 	suite.service.payoutDocument = pds
 
 	req := &grpc.UpdatePayoutDocumentRequest{
@@ -988,8 +993,8 @@ func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocuments_AllWithPaging_Ok()
 
 func (suite *PayoutsTestSuite) TestPayouts_GetPayoutDocuments_Ok_NotFound() {
 	req := &grpc.GetPayoutDocumentsRequest{
-		MerchantId:       bson.NewObjectId().Hex(),
-		PayoutDocumentId: bson.NewObjectId().Hex(),
+		MerchantId:       primitive.NewObjectID().Hex(),
+		PayoutDocumentId: primitive.NewObjectID().Hex(),
 	}
 
 	res := &grpc.GetPayoutDocumentsResponse{}

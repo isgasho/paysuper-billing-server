@@ -1,18 +1,19 @@
 package service
 
 import (
+	"context"
 	"errors"
-	"github.com/globalsign/mgo/bson"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"testing"
 )
 
@@ -68,7 +69,7 @@ func (suite *PayoutCostSystemTestSuite) SetupTest() {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 
-	suite.PayoutCostSystemId = bson.NewObjectId().Hex()
+	suite.PayoutCostSystemId = primitive.NewObjectID().Hex()
 
 	PayoutCostSystem := &billing.PayoutCostSystem{
 		Id:                    suite.PayoutCostSystemId,
@@ -78,22 +79,28 @@ func (suite *PayoutCostSystemTestSuite) SetupTest() {
 		InterbankCostCurrency: "EUR",
 	}
 
-	if err := suite.service.payoutCostSystem.Set(PayoutCostSystem); err != nil {
+	if err := suite.service.payoutCostSystem.Set(context.TODO(), PayoutCostSystem); err != nil {
 		suite.FailNow("Insert PayoutCostSystem test data failed", "%v", err)
 	}
 }
 
 func (suite *PayoutCostSystemTestSuite) TearDownTest() {
 	suite.cache.FlushAll()
-	if err := suite.service.db.Drop(); err != nil {
+	err := suite.service.db.Drop()
+
+	if err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}
 
-	suite.service.db.Close()
+	err = suite.service.db.Close()
+
+	if err != nil {
+		suite.FailNow("Database close failed", "%v", err)
+	}
 }
 
 func (suite *PayoutCostSystemTestSuite) TestPayoutCostSystem_Get_Ok() {
-	val, err := suite.service.payoutCostSystem.Get()
+	val, err := suite.service.payoutCostSystem.Get(context.TODO())
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), val.Id, suite.PayoutCostSystemId)
 	assert.Equal(suite.T(), val.IntrabankCostAmount, float64(0))
@@ -109,9 +116,9 @@ func (suite *PayoutCostSystemTestSuite) TestPayoutCostSystem_Set_Ok() {
 		InterbankCostAmount:   7,
 		InterbankCostCurrency: "USD",
 	}
-	assert.NoError(suite.T(), suite.service.payoutCostSystem.Set(req))
+	assert.NoError(suite.T(), suite.service.payoutCostSystem.Set(context.TODO(), req))
 
-	val, err := suite.service.payoutCostSystem.Get()
+	val, err := suite.service.payoutCostSystem.Get(context.TODO())
 	assert.NoError(suite.T(), err)
 	assert.NotEqual(suite.T(), val.Id, suite.PayoutCostSystemId)
 	assert.Equal(suite.T(), val.IntrabankCostAmount, float64(2))
@@ -131,7 +138,7 @@ func (suite *PayoutCostSystemTestSuite) TestPayoutCostSystem_Insert_ErrorCacheUp
 	ci.On("Set", cachePayoutCostSystemKey, mock2.Anything, mock2.Anything).
 		Return(errors.New("service unavailable"))
 	suite.service.cacher = ci
-	err := suite.service.payoutCostSystem.Set(obj)
+	err := suite.service.payoutCostSystem.Set(context.TODO(), obj)
 
 	assert.Error(suite.T(), err)
 	assert.EqualError(suite.T(), err, "service unavailable")
