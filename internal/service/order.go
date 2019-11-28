@@ -4132,6 +4132,7 @@ func (s *Service) OrderReceipt(
 	currency := order.Currency
 	if currency == grpc.VirtualCurrencyPriceGroup {
 		project, err := s.project.GetById(ctx, order.GetProjectId())
+
 		if err != nil {
 			zap.L().Error(
 				projectErrorUnknown.Message,
@@ -4139,8 +4140,8 @@ func (s *Service) OrderReceipt(
 				zap.String("order.uuid", order.Uuid),
 			)
 
-			rsp.Status = pkg.ResponseStatusSystemError
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = projectErrorUnknown
 
 			return nil
 		}
@@ -4155,7 +4156,7 @@ func (s *Service) OrderReceipt(
 				zap.String("order.uuid", order.Uuid),
 			)
 
-			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = projectErrorVirtualCurrencyNameDefaultLangRequired
 
 			return nil
