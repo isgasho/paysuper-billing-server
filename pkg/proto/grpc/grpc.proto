@@ -2580,7 +2580,7 @@ message UserRoleResponse {
 }
 
 message GetCountriesListForOrderRequest {
-    //@inject_tag: validate:"required,hexadecimal,len=24" json:"order_id" query:"order_id"
+    //@inject_tag: validate:"required,uuid" json:"order_id" query:"order_id"
     string order_id = 1;
 }
 

@@ -16398,8 +16398,8 @@ func (m *UserRoleResponse) GetUserRole() *billing.UserRole {
 }
 
 type GetCountriesListForOrderRequest struct {
-	//@inject_tag: validate:"required,hexadecimal,len=24" json:"order_id" query:"order_id"
-	OrderId              string   `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id" validate:"required,hexadecimal,len=24" query:"order_id"`
+	//@inject_tag: validate:"required,uuid" json:"order_id" query:"order_id"
+	OrderId              string   `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id" validate:"required,uuid" query:"order_id"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`
