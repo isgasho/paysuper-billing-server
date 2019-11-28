@@ -25,13 +25,13 @@ func (_m *MoneyBackCostSystemInterface) Delete(obj *billing.MoneyBackCostSystem)
 	return r0
 }
 
-// Get provides a mock function with given fields: name, payout_currency, undo_reason, region, country, mcc_code, operating_company_id, payment_stage
-func (_m *MoneyBackCostSystemInterface) Get(name string, payout_currency string, undo_reason string, region string, country string, mcc_code string, operating_company_id string, payment_stage int32) ([]*pkg.MoneyBackCostSystemSet, error) {
-	ret := _m.Called(name, payout_currency, undo_reason, region, country, mcc_code, operating_company_id, payment_stage)
+// Get provides a mock function with given fields: name, payoutCurrency, undoReason, region, country, mccCode, operatingCompanyId, paymentStage
+func (_m *MoneyBackCostSystemInterface) Get(name string, payoutCurrency string, undoReason string, region string, country string, mccCode string, operatingCompanyId string, paymentStage int32) ([]*pkg.MoneyBackCostSystemSet, error) {
+	ret := _m.Called(name, payoutCurrency, undoReason, region, country, mccCode, operatingCompanyId, paymentStage)
 
 	var r0 []*pkg.MoneyBackCostSystemSet
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string, string, string, int32) []*pkg.MoneyBackCostSystemSet); ok {
-		r0 = rf(name, payout_currency, undo_reason, region, country, mcc_code, operating_company_id, payment_stage)
+		r0 = rf(name, payoutCurrency, undoReason, region, country, mccCode, operatingCompanyId, paymentStage)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*pkg.MoneyBackCostSystemSet)
@@ -40,7 +40,7 @@ func (_m *MoneyBackCostSystemInterface) Get(name string, payout_currency string,
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(string, string, string, string, string, string, string, int32) error); ok {
-		r1 = rf(name, payout_currency, undo_reason, region, country, mcc_code, operating_company_id, payment_stage)
+		r1 = rf(name, payoutCurrency, undoReason, region, country, mccCode, operatingCompanyId, paymentStage)
 	} else {
 		r1 = ret.Error(1)
 	}
