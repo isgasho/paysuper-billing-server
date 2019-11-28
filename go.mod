@@ -23,7 +23,7 @@ require (
 	github.com/micro/cli v0.2.0
 	github.com/micro/go-micro v1.8.0
 	github.com/micro/go-plugins v1.2.0
-	github.com/paysuper/casbin-server v0.0.0-20191122132246-d8ec49ebf099
+	github.com/paysuper/casbin-server v0.0.0-20191128090724-930a08d68cec
 	github.com/paysuper/document-signer v0.0.0-20190930091754-a3f6474309f3
 	github.com/paysuper/paysuper-currencies v0.0.0-20191126123753-5139d3b5c8d2
 	github.com/paysuper/paysuper-database-mongo v0.1.3
@@ -37,6 +37,7 @@ require (
 	github.com/streadway/amqp v0.0.0-20190827072141-edfb9018d271
 	github.com/stretchr/testify v1.4.0
 	github.com/ttacon/libphonenumber v1.0.1
+	github.com/yuin/gopher-lua v0.0.0-20191128022950-c6266f4fe8d7 // indirect
 	go.mongodb.org/mongo-driver v1.1.3
 	go.uber.org/zap v1.10.0
 	golang.org/x/crypto v0.0.0-20191112222119-e1110fd1c708
