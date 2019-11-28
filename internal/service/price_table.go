@@ -2,15 +2,15 @@ package service
 
 import (
 	"context"
-	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.uber.org/zap"
 )
 
 type PriceTableServiceInterface interface {
-	Insert(*billing.PriceTable) error
-	GetByRegion(string) (*billing.PriceTable, error)
+	Insert(context.Context, *billing.PriceTable) error
+	GetByRegion(context.Context, string) (*billing.PriceTable, error)
 }
 
 func newPriceTableService(svc *Service) PriceTableServiceInterface {
@@ -18,19 +18,19 @@ func newPriceTableService(svc *Service) PriceTableServiceInterface {
 	return s
 }
 
-func (h *PriceTable) Insert(pt *billing.PriceTable) error {
-	if err := h.svc.db.Collection(collectionPriceTable).Insert(pt); err != nil {
+func (h *PriceTable) Insert(ctx context.Context, pt *billing.PriceTable) error {
+	_, err := h.svc.db.Collection(collectionPriceTable).InsertOne(ctx, pt)
+
+	if err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (h *PriceTable) GetByRegion(region string) (*billing.PriceTable, error) {
+func (h *PriceTable) GetByRegion(ctx context.Context, region string) (*billing.PriceTable, error) {
 	var price *billing.PriceTable
-	err := h.svc.db.Collection(collectionPriceTable).
-		Find(bson.M{"currency": region}).
-		One(&price)
+	err := h.svc.db.Collection(collectionPriceTable).FindOne(ctx, bson.M{"currency": region}).Decode(&price)
 
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func (s *Service) GetRecommendedPriceTable(
 	req *grpc.RecommendedPriceTableRequest,
 	res *grpc.RecommendedPriceTableResponse,
 ) error {
-	table, err := s.priceTable.GetByRegion(req.Currency)
+	table, err := s.priceTable.GetByRegion(ctx, req.Currency)
 
 	if err != nil {
 		zap.L().Error("Price table not found", zap.Any("req", req))

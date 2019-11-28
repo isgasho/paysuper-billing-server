@@ -6,7 +6,6 @@ import (
 )
 
 type formatterOk struct {
-
 }
 
 func (formatterOk) FormatDateTime(locale string, datetime time.Time) (string, error) {
@@ -18,6 +17,5 @@ func (formatterOk) FormatCurrency(locale string, amount float64, currency string
 }
 
 func NewFormatterOK() paysuper_i18n.Formatter {
-	return &formatterOk{
-	}
+	return &formatterOk{}
 }

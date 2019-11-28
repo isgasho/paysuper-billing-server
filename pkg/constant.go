@@ -174,6 +174,7 @@ const (
 	ErrorTimeConversionMethod = "conversion method"
 
 	ErrorDatabaseQueryFailed          = "Query to database collection failed"
+	ErrorQueryCursorExecutionFailed   = "Execute result from query cursor failed"
 	ErrorDatabaseFieldCollection      = "collection"
 	ErrorDatabaseFieldDocumentId      = "document_id"
 	ErrorDatabaseFieldQuery           = "query"
@@ -304,7 +305,7 @@ const (
 
 	PaylinkUrlDefaultMask = "/paylink/%s"
 
-	DatabaseRequestDefaultLimit = int(100)
+	DatabaseRequestDefaultLimit = int64(100)
 
 	ProjectSellCountTypeFractional = "fractional"
 	ProjectSellCountTypeIntegral   = "integral"

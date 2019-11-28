@@ -16,7 +16,7 @@ func (s *Service) GetDashboardMainReport(
 	req *grpc.GetDashboardMainRequest,
 	rsp *grpc.GetDashboardMainResponse,
 ) error {
-	_, err := s.merchant.GetById(req.MerchantId)
+	_, err := s.merchant.GetById(ctx, req.MerchantId)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -29,7 +29,7 @@ func (s *Service) GetDashboardMainReport(
 		return nil
 	}
 
-	report, err := s.dashboardRepository.GetMainReport(req.MerchantId, req.Period)
+	report, err := s.dashboardRepository.GetMainReport(ctx, req.MerchantId, req.Period)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -49,7 +49,7 @@ func (s *Service) GetDashboardRevenueDynamicsReport(
 	req *grpc.GetDashboardMainRequest,
 	rsp *grpc.GetDashboardRevenueDynamicsReportResponse,
 ) error {
-	_, err := s.merchant.GetById(req.MerchantId)
+	_, err := s.merchant.GetById(ctx, req.MerchantId)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -62,7 +62,7 @@ func (s *Service) GetDashboardRevenueDynamicsReport(
 		return nil
 	}
 
-	report, err := s.dashboardRepository.GetRevenueDynamicsReport(req.MerchantId, req.Period)
+	report, err := s.dashboardRepository.GetRevenueDynamicsReport(ctx, req.MerchantId, req.Period)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -82,7 +82,7 @@ func (s *Service) GetDashboardBaseReport(
 	req *grpc.GetDashboardBaseReportRequest,
 	rsp *grpc.GetDashboardBaseReportResponse,
 ) error {
-	_, err := s.merchant.GetById(req.MerchantId)
+	_, err := s.merchant.GetById(ctx, req.MerchantId)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -95,7 +95,7 @@ func (s *Service) GetDashboardBaseReport(
 		return nil
 	}
 
-	report, err := s.dashboardRepository.GetBaseReport(req.MerchantId, req.Period)
+	report, err := s.dashboardRepository.GetBaseReport(ctx, req.MerchantId, req.Period)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError

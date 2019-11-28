@@ -1,11 +1,12 @@
 package pkg
 
 import (
-	"github.com/globalsign/mgo/bson"
+	"context"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.uber.org/zap"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"time"
 )
 
@@ -18,14 +19,14 @@ type DashboardReportProcessor struct {
 	Collection  string
 	Match       bson.M
 	GroupBy     string
-	DbQueryFn   func(interface{}) (interface{}, error)
+	DbQueryFn   func(ctx context.Context, receiver interface{}) (interface{}, error)
 	Cache       CacheInterface
 	CacheKey    string
 	CacheExpire time.Duration
 	Errors      map[string]*grpc.ResponseErrorMessage
 }
 
-func (m *DashboardReportProcessor) ExecuteReport(receiver interface{}) (interface{}, error) {
+func (m *DashboardReportProcessor) ExecuteReport(ctx context.Context, receiver interface{}) (interface{}, error) {
 	if m.CacheExpire > 0 {
 		err := m.Cache.Get(m.CacheKey, &receiver)
 
@@ -34,7 +35,7 @@ func (m *DashboardReportProcessor) ExecuteReport(receiver interface{}) (interfac
 		}
 	}
 
-	receiver, err := m.DbQueryFn(receiver)
+	receiver, err := m.DbQueryFn(ctx, receiver)
 
 	if err != nil {
 		return nil, m.Errors["unknown"]
@@ -59,7 +60,7 @@ func (m *DashboardReportProcessor) ExecuteReport(receiver interface{}) (interfac
 	return receiver, nil
 }
 
-func (m *DashboardReportProcessor) ExecuteGrossRevenueAndVatReports(receiver interface{}) (interface{}, error) {
+func (m *DashboardReportProcessor) ExecuteGrossRevenueAndVatReports(ctx context.Context, receiver interface{}) (interface{}, error) {
 	query := []bson.M{
 		{"$match": m.Match},
 		{
@@ -123,7 +124,7 @@ func (m *DashboardReportProcessor) ExecuteGrossRevenueAndVatReports(receiver int
 		},
 	}
 
-	err := m.Db.Collection(m.Collection).Pipe(query).One(receiver)
+	cursor, err := m.Db.Collection(m.Collection).Aggregate(ctx, query)
 
 	if err != nil {
 		zap.L().Error(
@@ -132,14 +133,29 @@ func (m *DashboardReportProcessor) ExecuteGrossRevenueAndVatReports(receiver int
 			zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
-
 		return nil, m.Errors["unknown"]
+	}
+
+	defer cursor.Close(ctx)
+
+	if cursor.Next(ctx) {
+		err = cursor.Decode(receiver)
+
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorQueryCursorExecutionFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			)
+			return nil, m.Errors["unknown"]
+		}
 	}
 
 	return receiver, nil
 }
 
-func (m *DashboardReportProcessor) ExecuteTotalTransactionsAndArpuReports(receiver interface{}) (interface{}, error) {
+func (m *DashboardReportProcessor) ExecuteTotalTransactionsAndArpuReports(ctx context.Context, receiver interface{}) (interface{}, error) {
 	query := []bson.M{
 		{"$match": m.Match},
 		{
@@ -209,7 +225,7 @@ func (m *DashboardReportProcessor) ExecuteTotalTransactionsAndArpuReports(receiv
 		},
 	}
 
-	err := m.Db.Collection(m.Collection).Pipe(query).One(receiver)
+	cursor, err := m.Db.Collection(m.Collection).Aggregate(ctx, query)
 
 	if err != nil {
 		zap.L().Error(
@@ -218,14 +234,29 @@ func (m *DashboardReportProcessor) ExecuteTotalTransactionsAndArpuReports(receiv
 			zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
-
 		return nil, m.Errors["unknown"]
+	}
+
+	defer cursor.Close(ctx)
+
+	if cursor.Next(ctx) {
+		err = cursor.Decode(receiver)
+
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorQueryCursorExecutionFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			)
+			return nil, m.Errors["unknown"]
+		}
 	}
 
 	return receiver, nil
 }
 
-func (m *DashboardReportProcessor) ExecuteRevenueDynamicReport(receiver interface{}) (interface{}, error) {
+func (m *DashboardReportProcessor) ExecuteRevenueDynamicReport(ctx context.Context, receiver interface{}) (interface{}, error) {
 	query := []bson.M{
 		{"$match": m.Match},
 		{
@@ -251,7 +282,7 @@ func (m *DashboardReportProcessor) ExecuteRevenueDynamicReport(receiver interfac
 	}
 
 	receiverTyped := receiver.(*grpc.DashboardRevenueDynamicReport)
-	err := m.Db.Collection(m.Collection).Pipe(query).All(&receiverTyped.Items)
+	cursor, err := m.Db.Collection(m.Collection).Aggregate(ctx, query)
 
 	if err != nil {
 		zap.L().Error(
@@ -260,14 +291,26 @@ func (m *DashboardReportProcessor) ExecuteRevenueDynamicReport(receiver interfac
 			zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
+		return nil, m.Errors["unknown"]
+	}
 
+	err = cursor.All(ctx, &receiverTyped.Items)
+	cursor.Close(ctx)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorQueryCursorExecutionFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
 		return nil, m.Errors["unknown"]
 	}
 
 	return receiverTyped, nil
 }
 
-func (m *DashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interface{}) (interface{}, error) {
+func (m *DashboardReportProcessor) ExecuteRevenueByCountryReport(ctx context.Context, receiver interface{}) (interface{}, error) {
 	query := []bson.M{
 		{"$match": m.Match},
 		{
@@ -373,7 +416,7 @@ func (m *DashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interf
 		},
 	}
 
-	err := m.Db.Collection(m.Collection).Pipe(query).One(receiver)
+	cursor, err := m.Db.Collection(m.Collection).Aggregate(ctx, query)
 
 	if err != nil {
 		zap.L().Error(
@@ -382,14 +425,29 @@ func (m *DashboardReportProcessor) ExecuteRevenueByCountryReport(receiver interf
 			zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
-
 		return nil, m.Errors["unknown"]
+	}
+
+	defer cursor.Close(ctx)
+
+	if cursor.Next(ctx) {
+		err = cursor.Decode(receiver)
+
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorQueryCursorExecutionFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			)
+			return nil, m.Errors["unknown"]
+		}
 	}
 
 	return receiver, nil
 }
 
-func (m *DashboardReportProcessor) ExecuteSalesTodayReport(receiver interface{}) (interface{}, error) {
+func (m *DashboardReportProcessor) ExecuteSalesTodayReport(ctx context.Context, receiver interface{}) (interface{}, error) {
 	query := []bson.M{
 		{"$match": m.Match},
 		{
@@ -493,7 +551,7 @@ func (m *DashboardReportProcessor) ExecuteSalesTodayReport(receiver interface{})
 		},
 	}
 
-	err := m.Db.Collection(m.Collection).Pipe(query).One(receiver)
+	cursor, err := m.Db.Collection(m.Collection).Aggregate(ctx, query)
 
 	if err != nil {
 		zap.L().Error(
@@ -502,14 +560,29 @@ func (m *DashboardReportProcessor) ExecuteSalesTodayReport(receiver interface{})
 			zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
-
 		return nil, m.Errors["unknown"]
+	}
+
+	defer cursor.Close(ctx)
+
+	if cursor.Next(ctx) {
+		err = cursor.Decode(receiver)
+
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorQueryCursorExecutionFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			)
+			return nil, m.Errors["unknown"]
+		}
 	}
 
 	return receiver, nil
 }
 
-func (m *DashboardReportProcessor) ExecuteSourcesReport(receiver interface{}) (interface{}, error) {
+func (m *DashboardReportProcessor) ExecuteSourcesReport(ctx context.Context, receiver interface{}) (interface{}, error) {
 	delete(m.Match, "status")
 	query := []bson.M{
 		{"$match": m.Match},
@@ -597,7 +670,7 @@ func (m *DashboardReportProcessor) ExecuteSourcesReport(receiver interface{}) (i
 		},
 	}
 
-	err := m.Db.Collection(m.Collection).Pipe(query).One(receiver)
+	cursor, err := m.Db.Collection(m.Collection).Aggregate(ctx, query)
 
 	if err != nil {
 		zap.L().Error(
@@ -606,8 +679,23 @@ func (m *DashboardReportProcessor) ExecuteSourcesReport(receiver interface{}) (i
 			zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
-
 		return nil, m.Errors["unknown"]
+	}
+
+	defer cursor.Close(ctx)
+
+	if cursor.Next(ctx) {
+		err = cursor.Decode(receiver)
+
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorQueryCursorExecutionFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			)
+			return nil, m.Errors["unknown"]
+		}
 	}
 
 	return receiver, nil

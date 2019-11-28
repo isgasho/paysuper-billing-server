@@ -1,11 +1,11 @@
 package mocks
 
 import (
-	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	mock2 "github.com/stretchr/testify/mock"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 )
 
@@ -15,9 +15,9 @@ var (
 		Item: &proto.CreateSignatureResponseItem{
 			DetailsUrl:          "http:/127.0.0.1",
 			FilesUrl:            "http:/127.0.0.1",
-			SignatureRequestId:  bson.NewObjectId().Hex(),
-			MerchantSignatureId: bson.NewObjectId().Hex(),
-			PsSignatureId:       bson.NewObjectId().Hex(),
+			SignatureRequestId:  primitive.NewObjectID().Hex(),
+			MerchantSignatureId: primitive.NewObjectID().Hex(),
+			PsSignatureId:       primitive.NewObjectID().Hex(),
 		},
 	}
 	GetSignatureUrlResponse = &proto.GetSignatureUrlResponse{

@@ -1030,6 +1030,18 @@ func (h *cardPay) ProcessRefund(
 		return newBillingServerResponseError(pkg.ResponseStatusBadData, paymentSystemErrorRefundRequestAmountOrCurrencyIsInvalid)
 	}
 
+	t, err := time.Parse(cardPayDateFormat, req.CallbackTime)
+
+	if err != nil {
+		return newBillingServerResponseError(pkg.StatusErrorValidation, paymentSystemErrorRequestTimeFieldIsInvalid)
+	}
+
+	ts, err := ptypes.TimestampProto(t)
+
+	if err != nil {
+		return newBillingServerResponseError(pkg.StatusErrorValidation, paymentSystemErrorRequestTimeFieldIsInvalid)
+	}
+
 	switch req.RefundData.Status {
 	case pkg.CardPayPaymentResponseStatusDeclined:
 		refund.Status = pkg.RefundStatusPaymentSystemDeclined
@@ -1046,6 +1058,7 @@ func (h *cardPay) ProcessRefund(
 
 	refund.ExternalId = req.RefundData.Id
 	refund.UpdatedAt = ptypes.TimestampNow()
+	order.PaymentMethodOrderClosedAt = ts
 
 	return nil
 }

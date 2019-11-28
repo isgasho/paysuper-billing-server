@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
@@ -19,12 +18,14 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/paylink"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	rabbitmq "gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"testing"
 	"time"
 )
@@ -128,7 +129,7 @@ func (suite *PaylinkTestSuite) SetupTest() {
 	suite.merchant2 = helperCreateMerchant(suite.Suite, suite.service, "USD", "RU", suite.paymentMethod, suite.merchant.MinPayoutAmount, suite.merchant.OperatingCompanyId)
 
 	suite.product1 = &grpc.Product{
-		Id:              bson.NewObjectId().Hex(),
+		Id:              primitive.NewObjectID().Hex(),
 		Object:          "product",
 		Sku:             "ru_double_yeti",
 		Name:            map[string]string{"en": "Double Yeti"},
@@ -143,12 +144,12 @@ func (suite *PaylinkTestSuite) SetupTest() {
 			Amount:   1005.00,
 		}},
 	}
-	if err := suite.service.productService.Upsert(suite.product1); err != nil {
+	if err := suite.service.productService.Upsert(context.TODO(), suite.product1); err != nil {
 		suite.FailNow("Product1 insert failed", "%v", err)
 	}
 
 	suite.product2 = &grpc.Product{
-		Id:              bson.NewObjectId().Hex(),
+		Id:              primitive.NewObjectID().Hex(),
 		Object:          "product",
 		Sku:             "my_favorite_game",
 		Name:            map[string]string{"en": "My Favorite Game"},
@@ -163,12 +164,12 @@ func (suite *PaylinkTestSuite) SetupTest() {
 			Amount:   1005.00,
 		}},
 	}
-	if err := suite.service.productService.Upsert(suite.product2); err != nil {
+	if err := suite.service.productService.Upsert(context.TODO(), suite.product2); err != nil {
 		suite.FailNow("Product2 insert failed", "%v", err)
 	}
 
 	suite.product3 = &grpc.Product{
-		Id:              bson.NewObjectId().Hex(),
+		Id:              primitive.NewObjectID().Hex(),
 		Object:          "product",
 		Sku:             "doom 2",
 		Name:            map[string]string{"en": "My Favorite Game"},
@@ -176,34 +177,34 @@ func (suite *PaylinkTestSuite) SetupTest() {
 		Enabled:         true,
 		Description:     map[string]string{"en": "blah-blah-blah"},
 		MerchantId:      suite.merchant.Id,
-		ProjectId:       bson.NewObjectId().Hex(),
+		ProjectId:       primitive.NewObjectID().Hex(),
 		Prices: []*billing.ProductPrice{{
 			Currency: "USD",
 			Region:   "USD",
 			Amount:   1005.00,
 		}},
 	}
-	if err := suite.service.productService.Upsert(suite.product3); err != nil {
+	if err := suite.service.productService.Upsert(context.TODO(), suite.product3); err != nil {
 		suite.FailNow("Product3 insert failed", "%v", err)
 	}
 
 	suite.product4 = &grpc.Product{
-		Id:              bson.NewObjectId().Hex(),
+		Id:              primitive.NewObjectID().Hex(),
 		Object:          "product",
 		Sku:             "my_favorite_game",
 		Name:            map[string]string{"en": "My Favorite Game"},
 		DefaultCurrency: "USD",
 		Enabled:         true,
 		Description:     map[string]string{"en": "blah-blah-blah"},
-		MerchantId:      bson.NewObjectId().Hex(),
-		ProjectId:       bson.NewObjectId().Hex(),
+		MerchantId:      primitive.NewObjectID().Hex(),
+		ProjectId:       primitive.NewObjectID().Hex(),
 		Prices: []*billing.ProductPrice{{
 			Currency: "USD",
 			Region:   "USD",
 			Amount:   1005.00,
 		}},
 	}
-	if err := suite.service.productService.Upsert(suite.product4); err != nil {
+	if err := suite.service.productService.Upsert(context.TODO(), suite.product4); err != nil {
 		suite.FailNow("Product4 insert failed", "%v", err)
 	}
 
@@ -305,7 +306,7 @@ func (suite *PaylinkTestSuite) SetupTest() {
 	expiresAt, _ := ptypes.TimestampProto(time.Now().Add(1 * time.Hour))
 
 	suite.paylink1 = &paylink.Paylink{
-		Id:                   bson.NewObjectId().Hex(),
+		Id:                   primitive.NewObjectID().Hex(),
 		Object:               "paylink",
 		Products:             []string{suite.product1.Id, suite.product2.Id},
 		ExpiresAt:            expiresAt,
@@ -329,11 +330,11 @@ func (suite *PaylinkTestSuite) SetupTest() {
 		TransactionsCurrency: "",
 	}
 
-	err = suite.service.paylinkService.Insert(suite.paylink1)
+	err = suite.service.paylinkService.Insert(context.TODO(), suite.paylink1)
 	assert.NoError(suite.T(), err)
 
 	suite.paylink2 = &paylink.Paylink{
-		Id:                   bson.NewObjectId().Hex(),
+		Id:                   primitive.NewObjectID().Hex(),
 		Object:               "paylink",
 		Products:             []string{suite.product1.Id, suite.product2.Id},
 		ExpiresAt:            expiresAt,
@@ -357,13 +358,13 @@ func (suite *PaylinkTestSuite) SetupTest() {
 		TransactionsCurrency: "",
 	}
 
-	err = suite.service.paylinkService.Insert(suite.paylink2)
+	err = suite.service.paylinkService.Insert(context.TODO(), suite.paylink2)
 	assert.NoError(suite.T(), err)
 
 	alreadyExpiredAt, _ := ptypes.TimestampProto(time.Now().Add(-25 * time.Hour))
 
 	suite.paylink3 = &paylink.Paylink{
-		Id:                   bson.NewObjectId().Hex(),
+		Id:                   primitive.NewObjectID().Hex(),
 		Object:               "paylink",
 		Products:             []string{suite.product1.Id, suite.product2.Id},
 		ExpiresAt:            alreadyExpiredAt,
@@ -387,16 +388,22 @@ func (suite *PaylinkTestSuite) SetupTest() {
 		TransactionsCurrency: "",
 	}
 
-	err = suite.service.paylinkService.Insert(suite.paylink3)
+	err = suite.service.paylinkService.Insert(context.TODO(), suite.paylink3)
 	assert.NoError(suite.T(), err)
 }
 
 func (suite *PaylinkTestSuite) TearDownTest() {
-	if err := suite.service.db.Drop(); err != nil {
+	err := suite.service.db.Drop()
+
+	if err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}
 
-	suite.service.db.Close()
+	err = suite.service.db.Close()
+
+	if err != nil {
+		suite.FailNow("Database close failed", "%v", err)
+	}
 }
 
 func (suite *PaylinkTestSuite) Test_Paylink_Create_Ok_SimpleProducts() {
@@ -489,7 +496,7 @@ func (suite *PaylinkTestSuite) Test_Paylink_Create_Fail_ProductNotFound() {
 		ExpiresAt:    time.Now().Add(1 * time.Hour).Unix(),
 		Products: []string{
 			suite.product1.Id,
-			bson.NewObjectId().Hex(),
+			primitive.NewObjectID().Hex(),
 		},
 		MerchantId: suite.merchant.Id,
 		ProjectId:  suite.projectFixedAmount.Id,
@@ -564,7 +571,7 @@ func (suite *PaylinkTestSuite) Test_Paylink_Create_Fail_ProductFromAnotherMercha
 
 func (suite *PaylinkTestSuite) Test_Paylink_Create_Fail_KeyProductFromAnotherProject() {
 	project := &billing.Project{
-		Id:                       bson.NewObjectId().Hex(),
+		Id:                       primitive.NewObjectID().Hex(),
 		CallbackCurrency:         "RUB",
 		CallbackProtocol:         "default",
 		LimitsCurrency:           "USD",
@@ -577,7 +584,7 @@ func (suite *PaylinkTestSuite) Test_Paylink_Create_Fail_KeyProductFromAnotherPro
 		Status:                   pkg.ProjectStatusDraft,
 		MerchantId:               suite.merchant.Id,
 	}
-	if err := suite.service.project.Insert(project); err != nil {
+	if err := suite.service.project.Insert(context.TODO(), project); err != nil {
 		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 
@@ -606,7 +613,7 @@ func (suite *PaylinkTestSuite) Test_Paylink_Create_Fail_KeyProductNotFound() {
 		ProductsType: "key",
 		ExpiresAt:    time.Now().Add(1 * time.Hour).Unix(),
 		Products: []string{
-			bson.NewObjectId().Hex(),
+			primitive.NewObjectID().Hex(),
 		},
 		MerchantId: suite.merchant.Id,
 		ProjectId:  suite.projectFixedAmount.Id,
@@ -621,7 +628,7 @@ func (suite *PaylinkTestSuite) Test_Paylink_Create_Fail_KeyProductNotFound() {
 
 func (suite *PaylinkTestSuite) Test_Paylink_Create_Fail_KeyProductFromAnotherMerchant() {
 	project := &billing.Project{
-		Id:                       bson.NewObjectId().Hex(),
+		Id:                       primitive.NewObjectID().Hex(),
 		CallbackCurrency:         "RUB",
 		CallbackProtocol:         "default",
 		LimitsCurrency:           "USD",
@@ -634,7 +641,7 @@ func (suite *PaylinkTestSuite) Test_Paylink_Create_Fail_KeyProductFromAnotherMer
 		Status:                   pkg.ProjectStatusDraft,
 		MerchantId:               suite.merchant2.Id,
 	}
-	if err := suite.service.project.Insert(project); err != nil {
+	if err := suite.service.project.Insert(context.TODO(), project); err != nil {
 		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 
@@ -732,7 +739,7 @@ func (suite *PaylinkTestSuite) Test_Paylink_Update_Fail_ProjectMismatch() {
 		ExpiresAt:    suite.paylink1.ExpiresAt.Seconds,
 		Products:     suite.paylink1.Products,
 		MerchantId:   suite.paylink1.MerchantId,
-		ProjectId:    bson.NewObjectId().Hex(),
+		ProjectId:    primitive.NewObjectID().Hex(),
 		NoExpiryDate: suite.paylink1.NoExpiryDate,
 	}
 
@@ -745,7 +752,7 @@ func (suite *PaylinkTestSuite) Test_Paylink_Update_Fail_ProjectMismatch() {
 
 func (suite *PaylinkTestSuite) Test_Paylink_Update_Fail_NotFound() {
 	req := &paylink.CreatePaylinkRequest{
-		Id:           bson.NewObjectId().Hex(),
+		Id:           primitive.NewObjectID().Hex(),
 		Name:         suite.paylink1.Name,
 		ProductsType: suite.paylink1.ProductsType,
 		ExpiresAt:    suite.paylink1.ExpiresAt.Seconds,
@@ -763,14 +770,19 @@ func (suite *PaylinkTestSuite) Test_Paylink_Update_Fail_NotFound() {
 }
 
 func (suite *PaylinkTestSuite) Test_Paylink_Delete_Ok() {
+	paylinkOid, err := primitive.ObjectIDFromHex(suite.paylink1.Id)
+	assert.NoError(suite.T(), err)
+	merchantOid, err := primitive.ObjectIDFromHex(suite.paylink1.MerchantId)
+	assert.NoError(suite.T(), err)
+
 	query := bson.M{
-		"_id":         bson.ObjectIdHex(suite.paylink1.Id),
-		"merchant_id": bson.ObjectIdHex(suite.paylink1.MerchantId),
+		"_id":         paylinkOid,
+		"merchant_id": merchantOid,
 		"deleted":     false,
 	}
-	n, err := suite.service.db.Collection(collectionPaylinks).Find(query).Count()
+	n, err := suite.service.db.Collection(collectionPaylinks).CountDocuments(context.TODO(), query)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 1)
+	assert.EqualValues(suite.T(), n, 1)
 
 	req := &grpc.PaylinkRequest{
 		Id:         suite.paylink1.Id,
@@ -782,14 +794,14 @@ func (suite *PaylinkTestSuite) Test_Paylink_Delete_Ok() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
 
-	n, err = suite.service.db.Collection(collectionPaylinks).Find(query).Count()
+	n, err = suite.service.db.Collection(collectionPaylinks).CountDocuments(context.TODO(), query)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 0)
+	assert.EqualValues(suite.T(), n, 0)
 
 	query["deleted"] = true
-	n, err = suite.service.db.Collection(collectionPaylinks).Find(query).Count()
+	n, err = suite.service.db.Collection(collectionPaylinks).CountDocuments(context.TODO(), query)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 1)
+	assert.EqualValues(suite.T(), n, 1)
 
 	var pl1 paylink.Paylink
 	key := fmt.Sprintf(cacheKeyPaylink, suite.paylink1.Id)
@@ -805,14 +817,19 @@ func (suite *PaylinkTestSuite) Test_Paylink_Delete_Ok() {
 }
 
 func (suite *PaylinkTestSuite) Test_Paylink_Delete_Fail_AlreadyDeleted() {
+	paylinkOid, err := primitive.ObjectIDFromHex(suite.paylink2.Id)
+	assert.NoError(suite.T(), err)
+	merchantOid, err := primitive.ObjectIDFromHex(suite.paylink2.MerchantId)
+	assert.NoError(suite.T(), err)
+
 	query := bson.M{
-		"_id":         bson.ObjectIdHex(suite.paylink2.Id),
-		"merchant_id": bson.ObjectIdHex(suite.paylink2.MerchantId),
+		"_id":         paylinkOid,
+		"merchant_id": merchantOid,
 		"deleted":     true,
 	}
-	n, err := suite.service.db.Collection(collectionPaylinks).Find(query).Count()
+	n, err := suite.service.db.Collection(collectionPaylinks).CountDocuments(context.TODO(), query)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 1)
+	assert.EqualValues(suite.T(), n, 1)
 
 	req := &grpc.PaylinkRequest{
 		Id:         suite.paylink2.Id,
@@ -824,23 +841,26 @@ func (suite *PaylinkTestSuite) Test_Paylink_Delete_Fail_AlreadyDeleted() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusNotFound)
 
-	n, err = suite.service.db.Collection(collectionPaylinks).Find(query).Count()
+	n, err = suite.service.db.Collection(collectionPaylinks).CountDocuments(context.TODO(), query)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 1)
+	assert.EqualValues(suite.T(), n, 1)
 }
 
 func (suite *PaylinkTestSuite) Test_Paylink_Delete_Fail_MerchantInvalid() {
+	paylinkOid, err := primitive.ObjectIDFromHex(suite.paylink1.Id)
+	assert.NoError(suite.T(), err)
+
 	query := bson.M{
-		"_id":     bson.ObjectIdHex(suite.paylink1.Id),
+		"_id":     paylinkOid,
 		"deleted": false,
 	}
-	n, err := suite.service.db.Collection(collectionPaylinks).Find(query).Count()
+	n, err := suite.service.db.Collection(collectionPaylinks).CountDocuments(context.TODO(), query)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 1)
+	assert.EqualValues(suite.T(), n, 1)
 
 	req := &grpc.PaylinkRequest{
 		Id:         suite.paylink1.Id,
-		MerchantId: bson.NewObjectId().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
 	}
 
 	res := &grpc.EmptyResponseWithStatus{}
@@ -848,23 +868,23 @@ func (suite *PaylinkTestSuite) Test_Paylink_Delete_Fail_MerchantInvalid() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusNotFound)
 
-	n, err = suite.service.db.Collection(collectionPaylinks).Find(query).Count()
+	n, err = suite.service.db.Collection(collectionPaylinks).CountDocuments(context.TODO(), query)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 1)
+	assert.EqualValues(suite.T(), n, 1)
 }
 
 func (suite *PaylinkTestSuite) Test_Paylink_Delete_Fail_IdInvalid() {
-	someId := bson.NewObjectId().Hex()
+	someId := primitive.NewObjectID()
 	query := bson.M{
-		"_id":     bson.ObjectIdHex(someId),
+		"_id":     someId,
 		"deleted": false,
 	}
-	n, err := suite.service.db.Collection(collectionPaylinks).Find(query).Count()
+	n, err := suite.service.db.Collection(collectionPaylinks).CountDocuments(context.TODO(), query)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 0)
+	assert.EqualValues(suite.T(), n, 0)
 
 	req := &grpc.PaylinkRequest{
-		Id:         someId,
+		Id:         someId.Hex(),
 		MerchantId: suite.paylink1.MerchantId,
 	}
 
@@ -875,12 +895,15 @@ func (suite *PaylinkTestSuite) Test_Paylink_Delete_Fail_IdInvalid() {
 }
 
 func (suite *PaylinkTestSuite) Test_Paylink_IncrPaylinkVisits_Ok() {
-	query := bson.M{
-		"paylink_id": bson.ObjectIdHex(suite.paylink1.Id),
-	}
-	n, err := suite.service.db.Collection(collectionPaylinkVisits).Find(query).Count()
+	oid, err := primitive.ObjectIDFromHex(suite.paylink1.Id)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 0)
+
+	query := bson.M{
+		"paylink_id": oid,
+	}
+	n, err := suite.service.db.Collection(collectionPaylinkVisits).CountDocuments(context.TODO(), query)
+	assert.NoError(suite.T(), err)
+	assert.EqualValues(suite.T(), n, 0)
 
 	req := &grpc.PaylinkRequestById{
 		Id: suite.paylink1.Id,
@@ -890,9 +913,9 @@ func (suite *PaylinkTestSuite) Test_Paylink_IncrPaylinkVisits_Ok() {
 	err = suite.service.IncrPaylinkVisits(context.TODO(), req, res)
 	assert.NoError(suite.T(), err)
 
-	n, err = suite.service.db.Collection(collectionPaylinkVisits).Find(query).Count()
+	n, err = suite.service.db.Collection(collectionPaylinkVisits).CountDocuments(context.TODO(), query)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 1)
+	assert.EqualValues(suite.T(), n, 1)
 }
 
 func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkURL_Ok() {
@@ -957,7 +980,7 @@ func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkURL_FailExpired() {
 func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkURL_Fail_MerchantMismatch() {
 	req := &grpc.GetPaylinkURLRequest{
 		Id:         suite.paylink2.Id,
-		MerchantId: bson.NewObjectId().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
 	}
 
 	res := &grpc.GetPaylinkUrlResponse{}
@@ -969,8 +992,8 @@ func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkURL_Fail_MerchantMismatch(
 
 func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkURL_Fail_NotExists() {
 	req := &grpc.GetPaylinkURLRequest{
-		Id:         bson.NewObjectId().Hex(),
-		MerchantId: bson.NewObjectId().Hex(),
+		Id:         primitive.NewObjectID().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
 	}
 
 	res := &grpc.GetPaylinkUrlResponse{}
@@ -1036,7 +1059,7 @@ func (suite *PaylinkTestSuite) Test_Paylink_GetPaylink_Fail_Deleted() {
 func (suite *PaylinkTestSuite) Test_Paylink_GetPaylink_Fail_MerchantMismatch() {
 	req := &grpc.PaylinkRequest{
 		Id:         suite.paylink1.Id,
-		MerchantId: bson.NewObjectId().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
 	}
 
 	res := &grpc.GetPaylinkResponse{}
@@ -1048,8 +1071,8 @@ func (suite *PaylinkTestSuite) Test_Paylink_GetPaylink_Fail_MerchantMismatch() {
 
 func (suite *PaylinkTestSuite) Test_Paylink_GetPaylink_Fail_NotExists() {
 	req := &grpc.PaylinkRequest{
-		Id:         bson.NewObjectId().Hex(),
-		MerchantId: bson.NewObjectId().Hex(),
+		Id:         primitive.NewObjectID().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
 	}
 
 	res := &grpc.GetPaylinkResponse{}
@@ -1075,7 +1098,7 @@ func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinks_Ok() {
 
 func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinks_Ok_NoPaylinks() {
 	req := &grpc.GetPaylinksRequest{
-		MerchantId: bson.NewObjectId().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
 	}
 
 	res := &grpc.GetPaylinksResponse{}
@@ -1148,7 +1171,7 @@ func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkStatTotal_Fail_Deleted() {
 func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkStatTotal_Fail_MerchantMismatch() {
 	req := &grpc.GetPaylinkStatCommonRequest{
 		Id:         suite.paylink1.Id,
-		MerchantId: bson.NewObjectId().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
 		PeriodFrom: time.Now().Add(-1 * time.Hour).Unix(),
 		PeriodTo:   time.Now().Add(1 * time.Hour).Unix(),
 	}
@@ -1161,8 +1184,8 @@ func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkStatTotal_Fail_MerchantMis
 
 func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkStatTotal_Fail_NotExists() {
 	req := &grpc.GetPaylinkStatCommonRequest{
-		Id:         bson.NewObjectId().Hex(),
-		MerchantId: bson.NewObjectId().Hex(),
+		Id:         primitive.NewObjectID().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
 		PeriodFrom: time.Now().Add(-1 * time.Hour).Unix(),
 		PeriodTo:   time.Now().Add(1 * time.Hour).Unix(),
 	}
@@ -1240,7 +1263,7 @@ func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkStatByCountry_Fail_Deleted
 func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkStatByCountry_Fail_MerchantMismatch() {
 	req := &grpc.GetPaylinkStatCommonRequest{
 		Id:         suite.paylink1.Id,
-		MerchantId: bson.NewObjectId().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
 		PeriodFrom: time.Now().Add(-1 * time.Hour).Unix(),
 		PeriodTo:   time.Now().Add(1 * time.Hour).Unix(),
 	}
@@ -1253,8 +1276,8 @@ func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkStatByCountry_Fail_Merchan
 
 func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkStatByCountry_Fail_NotExists() {
 	req := &grpc.GetPaylinkStatCommonRequest{
-		Id:         bson.NewObjectId().Hex(),
-		MerchantId: bson.NewObjectId().Hex(),
+		Id:         primitive.NewObjectID().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
 		PeriodFrom: time.Now().Add(-1 * time.Hour).Unix(),
 		PeriodTo:   time.Now().Add(1 * time.Hour).Unix(),
 	}
@@ -1332,7 +1355,7 @@ func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkStatByReferrer_Fail_Delete
 func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkStatByReferrer_Fail_MerchantMismatch() {
 	req := &grpc.GetPaylinkStatCommonRequest{
 		Id:         suite.paylink1.Id,
-		MerchantId: bson.NewObjectId().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
 		PeriodFrom: time.Now().Add(-1 * time.Hour).Unix(),
 		PeriodTo:   time.Now().Add(1 * time.Hour).Unix(),
 	}
@@ -1345,8 +1368,8 @@ func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkStatByReferrer_Fail_Mercha
 
 func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkStatByReferrer_Fail_NotExists() {
 	req := &grpc.GetPaylinkStatCommonRequest{
-		Id:         bson.NewObjectId().Hex(),
-		MerchantId: bson.NewObjectId().Hex(),
+		Id:         primitive.NewObjectID().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
 		PeriodFrom: time.Now().Add(-1 * time.Hour).Unix(),
 		PeriodTo:   time.Now().Add(1 * time.Hour).Unix(),
 	}
@@ -1424,7 +1447,7 @@ func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkStatByDate_Fail_Deleted() 
 func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkStatByDate_Fail_MerchantMismatch() {
 	req := &grpc.GetPaylinkStatCommonRequest{
 		Id:         suite.paylink1.Id,
-		MerchantId: bson.NewObjectId().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
 		PeriodFrom: time.Now().Add(-1 * time.Hour).Unix(),
 		PeriodTo:   time.Now().Add(1 * time.Hour).Unix(),
 	}
@@ -1437,8 +1460,8 @@ func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkStatByDate_Fail_MerchantMi
 
 func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkStatByDate_Fail_NotExists() {
 	req := &grpc.GetPaylinkStatCommonRequest{
-		Id:         bson.NewObjectId().Hex(),
-		MerchantId: bson.NewObjectId().Hex(),
+		Id:         primitive.NewObjectID().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
 		PeriodFrom: time.Now().Add(-1 * time.Hour).Unix(),
 		PeriodTo:   time.Now().Add(1 * time.Hour).Unix(),
 	}
@@ -1516,7 +1539,7 @@ func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkStatByUtm_Fail_Deleted() {
 func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkStatByUtm_Fail_MerchantMismatch() {
 	req := &grpc.GetPaylinkStatCommonRequest{
 		Id:         suite.paylink1.Id,
-		MerchantId: bson.NewObjectId().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
 		PeriodFrom: time.Now().Add(-1 * time.Hour).Unix(),
 		PeriodTo:   time.Now().Add(1 * time.Hour).Unix(),
 	}
@@ -1529,8 +1552,8 @@ func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkStatByUtm_Fail_MerchantMis
 
 func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkStatByUtm_Fail_NotExists() {
 	req := &grpc.GetPaylinkStatCommonRequest{
-		Id:         bson.NewObjectId().Hex(),
-		MerchantId: bson.NewObjectId().Hex(),
+		Id:         primitive.NewObjectID().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
 		PeriodFrom: time.Now().Add(-1 * time.Hour).Unix(),
 		PeriodTo:   time.Now().Add(1 * time.Hour).Unix(),
 	}
@@ -1542,12 +1565,15 @@ func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkStatByUtm_Fail_NotExists()
 }
 
 func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkVisits_Ok() {
-	query := bson.M{
-		"paylink_id": bson.ObjectIdHex(suite.paylink1.Id),
-	}
-	n, err := suite.service.db.Collection(collectionPaylinkVisits).Find(query).Count()
+	oid, err := primitive.ObjectIDFromHex(suite.paylink1.Id)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 0)
+
+	query := bson.M{
+		"paylink_id": oid,
+	}
+	n, err := suite.service.db.Collection(collectionPaylinkVisits).CountDocuments(context.TODO(), query)
+	assert.NoError(suite.T(), err)
+	assert.EqualValues(suite.T(), n, 0)
 
 	req := &grpc.PaylinkRequestById{
 		Id: suite.paylink1.Id,
@@ -1557,17 +1583,17 @@ func (suite *PaylinkTestSuite) Test_Paylink_GetPaylinkVisits_Ok() {
 	err = suite.service.IncrPaylinkVisits(context.TODO(), req, res)
 	assert.NoError(suite.T(), err)
 
-	n, err = suite.service.db.Collection(collectionPaylinkVisits).Find(query).Count()
+	n, err = suite.service.db.Collection(collectionPaylinkVisits).CountDocuments(context.TODO(), query)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 1)
+	assert.EqualValues(suite.T(), n, 1)
 
-	n, err = suite.service.paylinkService.GetPaylinkVisits(suite.paylink1.Id, 0, 0)
+	n, err = suite.service.paylinkService.GetPaylinkVisits(context.TODO(), suite.paylink1.Id, 0, 0)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 1)
+	assert.EqualValues(suite.T(), n, 1)
 
 	oneHourBefore := time.Now().Add(-1 * time.Hour).Unix()
 	twoHourBefore := time.Now().Add(-2 * time.Hour).Unix()
-	n, err = suite.service.paylinkService.GetPaylinkVisits(suite.paylink1.Id, twoHourBefore, oneHourBefore)
+	n, err = suite.service.paylinkService.GetPaylinkVisits(context.TODO(), suite.paylink1.Id, twoHourBefore, oneHourBefore)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), n, 0)
+	assert.EqualValues(suite.T(), n, 0)
 }

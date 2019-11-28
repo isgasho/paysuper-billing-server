@@ -2,7 +2,6 @@ package service
 
 import (
 	"errors"
-	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
@@ -10,6 +9,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/stretchr/testify/mock"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 )
 
@@ -77,9 +77,16 @@ func NewCardPayMock() PaymentSystem {
 	cpMock.On("ProcessRefund", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(
 			func(order *billing.Order, refund *billing.Refund, message proto.Message, raw, signature string) error {
+				req := message.(*billing.CardPayRefundCallback)
+
+				t, _ := time.Parse(cardPayDateFormat, req.CallbackTime)
+				ts, _ := ptypes.TimestampProto(t)
+
 				refund.Status = pkg.RefundStatusCompleted
 				refund.ExternalId = "0987654321"
-				refund.UpdatedAt = ptypes.TimestampNow()
+				refund.UpdatedAt = ts
+
+				order.PaymentMethodOrderClosedAt = ts
 				return nil
 			},
 			nil,
@@ -105,14 +112,14 @@ func (m *PaymentSystemMockOk) GetRecurringId(request proto.Message) string {
 
 func (m *PaymentSystemMockOk) CreateRefund(order *billing.Order, refund *billing.Refund) error {
 	refund.Status = pkg.RefundStatusInProgress
-	refund.ExternalId = bson.NewObjectId().Hex()
+	refund.ExternalId = primitive.NewObjectID().Hex()
 
 	return nil
 }
 
 func (m *PaymentSystemMockOk) ProcessRefund(order *billing.Order, refund *billing.Refund, message proto.Message, raw, signature string) error {
 	refund.Status = pkg.RefundStatusCompleted
-	refund.ExternalId = bson.NewObjectId().Hex()
+	refund.ExternalId = primitive.NewObjectID().Hex()
 
 	return nil
 }

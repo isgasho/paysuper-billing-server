@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
 	protobuf "github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
@@ -15,6 +13,10 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 	"time"
 )
@@ -43,6 +45,7 @@ type createRefundProcessor struct {
 	service *Service
 	request *grpc.CreateRefundRequest
 	checked *createRefundChecked
+	ctx     context.Context
 }
 
 func (s *Service) CreateRefund(
@@ -54,6 +57,7 @@ func (s *Service) CreateRefund(
 		service: s,
 		request: req,
 		checked: &createRefundChecked{},
+		ctx:     ctx,
 	}
 
 	refund, err := processor.processCreateRefund()
@@ -65,7 +69,7 @@ func (s *Service) CreateRefund(
 		return nil
 	}
 
-	h, err := s.NewPaymentSystem(s.cfg.PaymentSystemConfig, processor.checked.order)
+	h, err := s.NewPaymentSystem(ctx, s.cfg.PaymentSystemConfig, processor.checked.order)
 
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
@@ -86,7 +90,9 @@ func (s *Service) CreateRefund(
 		return nil
 	}
 
-	err = s.db.Collection(collectionRefund).UpdateId(bson.ObjectIdHex(refund.Id), refund)
+	oid, _ := primitive.ObjectIDFromHex(refund.Id)
+	filter := bson.M{"_id": oid}
+	_, err = s.db.Collection(collectionRefund).ReplaceOne(ctx, filter, refund)
 
 	if err != nil {
 		zap.S().Errorf("Query to update refund failed", "err", err.Error(), "data", refund)
@@ -111,16 +117,36 @@ func (s *Service) ListRefunds(
 	var refunds []*billing.Refund
 
 	order := &billing.OrderViewPublic{}
-	err := s.db.Collection(collectionOrderView).Find(bson.M{"uuid": req.OrderId}).One(order)
+	err := s.db.Collection(collectionOrderView).FindOne(ctx, bson.M{"uuid": req.OrderId}).Decode(order)
 
 	query := bson.M{"original_order.uuid": req.OrderId}
-	err = s.db.Collection(collectionRefund).Find(query).Limit(int(req.Limit)).Skip(int(req.Offset)).All(&refunds)
+	opts := options.Find().
+		SetLimit(req.Limit).
+		SetSkip(req.Offset)
+	cursor, err := s.db.Collection(collectionRefund).Find(ctx, query, opts)
 
 	if err != nil {
-		if err != mgo.ErrNotFound {
-			zap.S().Errorw("Query to find refunds by order failed", "err", err.Error(), "query", query)
+		if err != mongo.ErrNoDocuments {
+			zap.L().Error(
+				pkg.ErrorDatabaseQueryFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, collectionRefund),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			)
 		}
 
+		return nil
+	}
+
+	err = cursor.All(ctx, &refunds)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorQueryCursorExecutionFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionRefund),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
 		return nil
 	}
 
@@ -129,7 +155,7 @@ func (s *Service) ListRefunds(
 		return nil
 	}
 
-	count, err := s.db.Collection(collectionRefund).Find(query).Count()
+	count, err := s.db.Collection(collectionRefund).CountDocuments(ctx, query)
 
 	if err != nil {
 		zap.S().Errorf("Query to count refunds by order failed", "err", err.Error(), "query", query)
@@ -137,7 +163,7 @@ func (s *Service) ListRefunds(
 	}
 
 	if refunds != nil {
-		rsp.Count = int32(count)
+		rsp.Count = count
 		rsp.Items = refunds
 	}
 
@@ -152,10 +178,10 @@ func (s *Service) GetRefund(
 	var refund *billing.Refund
 
 	order := &billing.Order{}
-	err := s.db.Collection(collectionOrder).Find(bson.M{"uuid": req.OrderId}).One(order)
+	err := s.db.Collection(collectionOrder).FindOne(ctx, bson.M{"uuid": req.OrderId}).Decode(order)
 
 	if err != nil {
-		if err != mgo.ErrNotFound {
+		if err != mongo.ErrNoDocuments {
 			zap.S().Errorf("Query to find refund by id failed", "err", err.Error(), "uuid", req.OrderId)
 		}
 
@@ -173,11 +199,12 @@ func (s *Service) GetRefund(
 		return nil
 	}
 
-	query := bson.M{"_id": bson.ObjectIdHex(req.RefundId), "original_order.uuid": req.OrderId}
-	err = s.db.Collection(collectionRefund).Find(query).One(&refund)
+	oid, _ := primitive.ObjectIDFromHex(req.RefundId)
+	query := bson.M{"_id": oid, "original_order.uuid": req.OrderId}
+	err = s.db.Collection(collectionRefund).FindOne(ctx, query).Decode(&refund)
 
 	if err != nil {
-		if err != mgo.ErrNotFound {
+		if err != mongo.ErrNoDocuments {
 			zap.S().Errorf("Query to find refund by id failed", "err", err.Error(), "query", query)
 		}
 
@@ -224,10 +251,12 @@ func (s *Service) ProcessRefundCallback(
 		return nil
 	}
 
-	err := s.db.Collection(collectionRefund).FindId(bson.ObjectIdHex(refundId)).One(&refund)
+	oid, _ := primitive.ObjectIDFromHex(refundId)
+	filter := bson.M{"_id": oid}
+	err := s.db.Collection(collectionRefund).FindOne(ctx, filter).Decode(&refund)
 
 	if err != nil || refund == nil {
-		if err != nil && err != mgo.ErrNotFound {
+		if err != nil && err != mongo.ErrNoDocuments {
 			zap.S().Errorf("Query to find refund by id failed", "err", err.Error(), "id", refundId)
 		}
 
@@ -237,7 +266,7 @@ func (s *Service) ProcessRefundCallback(
 		return nil
 	}
 
-	order, err := s.getOrderById(refund.OriginalOrder.Id)
+	order, err := s.getOrderById(ctx, refund.OriginalOrder.Id)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -246,7 +275,7 @@ func (s *Service) ProcessRefundCallback(
 		return nil
 	}
 
-	h, err := s.NewPaymentSystem(s.cfg.PaymentSystemConfig, order)
+	h, err := s.NewPaymentSystem(ctx, s.cfg.PaymentSystemConfig, order)
 
 	if err != nil {
 		zap.L().Error(
@@ -274,7 +303,7 @@ func (s *Service) ProcessRefundCallback(
 	}
 
 	if pErr == nil && refund.CreatedOrderId == "" {
-		refund.CreatedOrderId, err = s.createOrderByRefund(order, refund)
+		refund.CreatedOrderId, err = s.createOrderByRefund(ctx, order, refund)
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusSystemError
@@ -283,7 +312,9 @@ func (s *Service) ProcessRefundCallback(
 		}
 	}
 
-	err = s.db.Collection(collectionRefund).UpdateId(bson.ObjectIdHex(refundId), refund)
+	oid, _ = primitive.ObjectIDFromHex(refundId)
+	filter = bson.M{"_id": oid}
+	_, err = s.db.Collection(collectionRefund).ReplaceOne(ctx, filter, refund)
 
 	if err != nil {
 		zap.S().Errorf("Update refund data failed", "err", err.Error(), "refund", refund)
@@ -312,7 +343,7 @@ func (s *Service) ProcessRefundCallback(
 			return nil
 		}
 
-		processor := &createRefundProcessor{service: s}
+		processor := &createRefundProcessor{service: s, ctx: ctx}
 		refundedAmount, _ := processor.getRefundedAmount(order)
 
 		if refundedAmount == order.ChargeAmount {
@@ -334,7 +365,7 @@ func (s *Service) ProcessRefundCallback(
 				ReceiptNumber: refund.Id,
 			}
 
-			err = s.updateOrder(order)
+			err = s.updateOrder(ctx, order)
 
 			if err != nil {
 				zap.S().Errorf("Update order data failed", "err", err.Error(), "order", order)
@@ -347,7 +378,7 @@ func (s *Service) ProcessRefundCallback(
 	return nil
 }
 
-func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refund) (string, error) {
+func (s *Service) createOrderByRefund(ctx context.Context, order *billing.Order, refund *billing.Refund) (string, error) {
 	refundOrder := new(billing.Order)
 	err := copier.Copy(&refundOrder, &order)
 
@@ -361,7 +392,7 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 		return "", refundErrorUnknown
 	}
 
-	country, err := s.country.GetByIsoCodeA2(order.GetCountry())
+	country, err := s.country.GetByIsoCodeA2(ctx, order.GetCountry())
 	if err != nil {
 		zap.S().Error(
 			"country not found",
@@ -397,7 +428,7 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 		}
 	}
 
-	refundOrder.Id = bson.NewObjectId().Hex()
+	refundOrder.Id = primitive.NewObjectID().Hex()
 	refundOrder.Uuid = uuid.New().String()
 	refundOrder.Type = pkg.OrderTypeRefund
 	refundOrder.PrivateStatus = constant.OrderStatusRefund
@@ -412,7 +443,6 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 	refundOrder.UpdatedAt = ptypes.TimestampNow()
 	refundOrder.RefundedAt = ptypes.TimestampNow()
 	refundOrder.Refunded = true
-	refundOrder.PaymentMethodOrderClosedAt = ptypes.TimestampNow()
 	refundOrder.Refund = &billing.OrderNotificationRefund{
 		Amount:        refund.Amount,
 		Currency:      refund.Currency,
@@ -424,8 +454,7 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 		Uuid: order.Uuid,
 	}
 	refundOrder.IsVatDeduction = isVatDeduction
-	refundOrder.ParentPaymentAt = refundOrder.PaymentMethodOrderClosedAt
-	refundOrder.PaymentMethodOrderClosedAt = ptypes.TimestampNow()
+	refundOrder.ParentPaymentAt = order.PaymentMethodOrderClosedAt
 
 	refundOrder.ChargeAmount = refund.Amount
 
@@ -433,7 +462,7 @@ func (s *Service) createOrderByRefund(order *billing.Order, refund *billing.Refu
 	refundOrder.OrderAmount = tools.FormatAmount(refundOrder.TotalPaymentAmount - refundOrder.Tax.Amount)
 	refundOrder.ReceiptId = uuid.New().String()
 
-	err = s.db.Collection(collectionOrder).Insert(refundOrder)
+	_, err = s.db.Collection(collectionOrder).InsertOne(ctx, refundOrder)
 
 	if err != nil {
 		zap.S().Error(
@@ -456,7 +485,7 @@ func (p *createRefundProcessor) processCreateRefund() (*billing.Refund, error) {
 		return nil, err
 	}
 
-	if !p.hasMoneyBackCosts(p.checked.order) {
+	if !p.hasMoneyBackCosts(p.ctx, p.checked.order) {
 		return nil, newBillingServerResponseError(pkg.ResponseStatusBadData, refundErrorCostsRatesNotFound)
 	}
 
@@ -473,7 +502,7 @@ func (p *createRefundProcessor) processCreateRefund() (*billing.Refund, error) {
 	}
 
 	refund := &billing.Refund{
-		Id: bson.NewObjectId().Hex(),
+		Id: primitive.NewObjectID().Hex(),
 		OriginalOrder: &billing.RefundOrder{
 			Id:   order.Id,
 			Uuid: order.Uuid,
@@ -506,7 +535,7 @@ func (p *createRefundProcessor) processCreateRefund() (*billing.Refund, error) {
 		refund.Reason = p.request.Reason
 	}
 
-	err = p.service.db.Collection(collectionRefund).Insert(refund)
+	_, err = p.service.db.Collection(collectionRefund).InsertOne(p.ctx, refund)
 
 	if err != nil {
 		p.service.logError("Query to insert refund failed", []interface{}{"err", err.Error(), "data", refund})
@@ -517,7 +546,7 @@ func (p *createRefundProcessor) processCreateRefund() (*billing.Refund, error) {
 }
 
 func (p *createRefundProcessor) processOrder() error {
-	order, err := p.service.getOrderByUuid(p.request.OrderId)
+	order, err := p.service.getOrderByUuid(p.ctx, p.request.OrderId)
 
 	if err != nil {
 		return newBillingServerResponseError(pkg.ResponseStatusNotFound, refundErrorNotFound)
@@ -552,37 +581,56 @@ func (p *createRefundProcessor) processRefundsByOrder() error {
 
 func (p *createRefundProcessor) getRefundedAmount(order *billing.Order) (float64, error) {
 	var res struct {
-		Id     bson.ObjectId `bson:"_id"`
-		Amount float64       `bson:"amount"`
+		Id     primitive.ObjectID `bson:"_id"`
+		Amount float64            `bson:"amount"`
 	}
 
+	oid, _ := primitive.ObjectIDFromHex(order.Id)
 	query := []bson.M{
 		{
 			"$match": bson.M{
 				"status":            bson.M{"$nin": []int32{pkg.RefundStatusRejected}},
-				"original_order.id": bson.ObjectIdHex(order.Id),
+				"original_order.id": oid,
 			},
 		},
-		{"$group": bson.M{"_id": "$order.id", "amount": bson.M{"$sum": "$amount"}}},
+		{"$group": bson.M{"_id": "$original_order.id", "amount": bson.M{"$sum": "$amount"}}},
 	}
 
-	err := p.service.db.Collection(collectionRefund).Pipe(query).One(&res)
+	cursor, err := p.service.db.Collection(collectionRefund).Aggregate(p.ctx, query)
 
-	if err != nil && !p.service.IsDbNotFoundError(err) {
+	if err != nil {
 		p.service.logError("Query to calculate refunded amount by order failed", []interface{}{"err", err.Error(), "query", query})
 		return 0, refundErrorUnknown
+	}
+
+	defer cursor.Close(p.ctx)
+
+	if cursor.Next(p.ctx) {
+		err = cursor.Decode(&res)
+
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorQueryCursorExecutionFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, collectionRefund),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			)
+			return 0, refundErrorUnknown
+		}
 	}
 
 	return res.Amount, nil
 }
 
-func (s *Service) getRefundById(id string) (*billing.Refund, error) {
+func (s *Service) getRefundById(ctx context.Context, id string) (*billing.Refund, error) {
 	var refund *billing.Refund
 
-	err := s.db.Collection(collectionRefund).FindId(bson.ObjectIdHex(id)).One(&refund)
+	oid, _ := primitive.ObjectIDFromHex(id)
+	filter := bson.M{"_id": oid}
+	err := s.db.Collection(collectionRefund).FindOne(ctx, filter).Decode(&refund)
 
 	if err != nil {
-		if err != mgo.ErrNotFound {
+		if err != mongo.ErrNoDocuments {
 			zap.S().Errorf("Query to find refund by id failed", "err", err.Error(), "id", id)
 		}
 
@@ -592,8 +640,8 @@ func (s *Service) getRefundById(id string) (*billing.Refund, error) {
 	return refund, nil
 }
 
-func (p *createRefundProcessor) hasMoneyBackCosts(order *billing.Order) bool {
-	country, err := p.service.country.GetByIsoCodeA2(order.GetCountry())
+func (p *createRefundProcessor) hasMoneyBackCosts(ctx context.Context, order *billing.Order) bool {
+	country, err := p.service.country.GetByIsoCodeA2(ctx, order.GetCountry())
 
 	if err != nil {
 		return false
@@ -624,7 +672,7 @@ func (p *createRefundProcessor) hasMoneyBackCosts(order *billing.Order) bool {
 		MccCode:            order.MccCode,
 		OperatingCompanyId: order.OperatingCompanyId,
 	}
-	_, err = p.service.getMoneyBackCostSystem(data)
+	_, err = p.service.getMoneyBackCostSystem(ctx, data)
 
 	if err != nil {
 		return false
@@ -641,6 +689,6 @@ func (p *createRefundProcessor) hasMoneyBackCosts(order *billing.Order) bool {
 		Days:           int32(refundAt.Sub(paymentAt).Hours() / 24),
 		MccCode:        order.MccCode,
 	}
-	_, err = p.service.getMoneyBackCostMerchant(data1)
+	_, err = p.service.getMoneyBackCostMerchant(ctx, data1)
 	return err == nil
 }

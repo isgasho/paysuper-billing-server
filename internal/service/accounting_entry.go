@@ -2,8 +2,6 @@ package service
 
 import (
 	"context"
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -11,6 +9,10 @@ import (
 	curPkg "github.com/paysuper/paysuper-currencies/pkg"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 	"time"
 )
@@ -129,8 +131,8 @@ type accountingEntry struct {
 }
 
 type AccountingServiceInterface interface {
-	GetCorrectionsForRoyaltyReport(merchantId, operatingCompanyId, currency string, from, to time.Time) (items []*billing.AccountingEntry, err error)
-	GetRollingReservesForRoyaltyReport(merchantId, operatingCompanyId, currency string, from, to time.Time) (items []*billing.AccountingEntry, err error)
+	GetCorrectionsForRoyaltyReport(ctx context.Context, merchantId, operatingCompanyId, currency string, from, to time.Time) (items []*billing.AccountingEntry, err error)
+	GetRollingReservesForRoyaltyReport(ctx context.Context, merchantId, operatingCompanyId, currency string, from, to time.Time) (items []*billing.AccountingEntry, err error)
 }
 
 func newAccounting(svc *Service) AccountingServiceInterface {
@@ -153,9 +155,10 @@ func (s *Service) CreateAccountingEntry(
 	handler := &accountingEntry{Service: s, req: req, ctx: ctx}
 
 	countryCode := ""
+	_, err := primitive.ObjectIDFromHex(req.OrderId)
 
-	if req.OrderId != "" && bson.IsObjectIdHex(req.OrderId) == true {
-		order, err := s.getOrderById(req.OrderId)
+	if req.OrderId != "" && err == nil {
+		order, err := s.getOrderById(ctx, req.OrderId)
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusNotFound
@@ -168,8 +171,10 @@ func (s *Service) CreateAccountingEntry(
 		countryCode = order.GetCountry()
 	}
 
-	if req.RefundId != "" && bson.IsObjectIdHex(req.RefundId) == true {
-		refund, err := s.getRefundById(req.RefundId)
+	_, err = primitive.ObjectIDFromHex(req.RefundId)
+
+	if req.RefundId != "" && err == nil {
+		refund, err := s.getRefundById(ctx, req.RefundId)
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusNotFound
@@ -178,7 +183,7 @@ func (s *Service) CreateAccountingEntry(
 			return nil
 		}
 
-		order, err := s.getOrderById(refund.OriginalOrder.Id)
+		order, err := s.getOrderById(ctx, refund.OriginalOrder.Id)
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusNotFound
@@ -187,7 +192,7 @@ func (s *Service) CreateAccountingEntry(
 			return nil
 		}
 
-		refundOrder, err := s.getOrderById(refund.CreatedOrderId)
+		refundOrder, err := s.getOrderById(ctx, refund.CreatedOrderId)
 		if err != nil {
 			return err
 		}
@@ -198,8 +203,10 @@ func (s *Service) CreateAccountingEntry(
 		countryCode = order.GetCountry()
 	}
 
-	if req.MerchantId != "" && bson.IsObjectIdHex(req.MerchantId) == true {
-		merchant, err := s.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(req.MerchantId)})
+	oid, err := primitive.ObjectIDFromHex(req.MerchantId)
+
+	if req.MerchantId != "" && err == nil {
+		merchant, err := s.getMerchantBy(ctx, bson.M{"_id": oid})
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusNotFound
@@ -216,7 +223,7 @@ func (s *Service) CreateAccountingEntry(
 		countryCode = req.Country
 	}
 
-	country, err := s.country.GetByIsoCodeA2(countryCode)
+	country, err := s.country.GetByIsoCodeA2(ctx, countryCode)
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = accountingEntryErrorCountryNotFound
@@ -242,7 +249,7 @@ func (s *Service) CreateAccountingEntry(
 	}
 
 	if _, ok := rollingReserveAccountingEntries[req.Type]; ok {
-		_, err = s.updateMerchantBalance(handler.merchant.Id)
+		_, err = s.updateMerchantBalance(ctx, handler.merchant.Id)
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusSystemError
 			rsp.Message = accountingEntryBalanceUpdateFailed
@@ -259,12 +266,12 @@ func (s *Service) CreateAccountingEntry(
 
 func (s *Service) onPaymentNotify(ctx context.Context, order *billing.Order) error {
 
-	country, err := s.country.GetByIsoCodeA2(order.GetCountry())
+	country, err := s.country.GetByIsoCodeA2(ctx, order.GetCountry())
 	if err != nil {
 		return err
 	}
 
-	merchant, err := s.merchant.GetById(order.GetMerchantId())
+	merchant, err := s.merchant.GetById(ctx, order.GetMerchantId())
 	if err != nil {
 		return err
 	}
@@ -281,19 +288,19 @@ func (s *Service) onPaymentNotify(ctx context.Context, order *billing.Order) err
 }
 
 func (s *Service) onRefundNotify(ctx context.Context, refund *billing.Refund, order *billing.Order) error {
-	country, err := s.country.GetByIsoCodeA2(order.GetCountry())
+	country, err := s.country.GetByIsoCodeA2(ctx, order.GetCountry())
 
 	if err != nil {
 		return err
 	}
 
-	refundOrder, err := s.getOrderById(refund.CreatedOrderId)
+	refundOrder, err := s.getOrderById(ctx, refund.CreatedOrderId)
 
 	if err != nil {
 		return err
 	}
 
-	merchant, err := s.merchant.GetById(refundOrder.GetMerchantId())
+	merchant, err := s.merchant.GetById(ctx, refundOrder.GetMerchantId())
 	if err != nil {
 		return err
 	}
@@ -372,14 +379,21 @@ func (h *accountingEntry) processPaymentEvent() error {
 		err    error
 	)
 
+	id, err := primitive.ObjectIDFromHex(h.order.Id)
 	query := bson.M{
 		"object":      pkg.ObjectTypeBalanceTransaction,
-		"source.id":   bson.ObjectIdHex(h.order.Id),
+		"source.id":   id,
 		"source.type": collectionOrder,
 	}
 	var aes []*billing.AccountingEntry
-	err = h.Service.db.Collection(collectionAccountingEntry).Find(query).All(&aes)
+	cursor, err := h.Service.db.Collection(collectionAccountingEntry).Find(h.ctx, query)
+
+	if err == nil {
+		_ = cursor.All(h.ctx, &aes)
+	}
+
 	foundCount := len(aes)
+
 	if foundCount > 0 {
 		zap.L().Error(
 			accountingEntryAlreadyCreated.Message,
@@ -584,13 +598,15 @@ func (h *accountingEntry) processRefundEvent() error {
 		err error
 	)
 
+	id, err := primitive.ObjectIDFromHex(h.refund.CreatedOrderId)
 	query := bson.M{
 		"object":      pkg.ObjectTypeBalanceTransaction,
-		"source.id":   bson.ObjectIdHex(h.refund.CreatedOrderId),
+		"source.id":   id,
 		"source.type": collectionRefund,
 	}
 	var aes []*billing.AccountingEntry
-	err = h.Service.db.Collection(collectionAccountingEntry).Find(query).All(&aes)
+	cursor, err := h.Service.db.Collection(collectionAccountingEntry).Find(h.ctx, query)
+
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
@@ -600,6 +616,20 @@ func (h *accountingEntry) processRefundEvent() error {
 		)
 		return err
 	}
+
+	err = cursor.All(h.ctx, &aes)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorQueryCursorExecutionFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionAccountingEntry),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+
+		return err
+	}
+
 	foundCount := len(aes)
 	if foundCount > 0 {
 		zap.L().Error(
@@ -649,15 +679,16 @@ func (h *accountingEntry) processRefundEvent() error {
 		return err
 	}
 
+	sourceId, err := primitive.ObjectIDFromHex(h.order.Id)
 	// 2. realRefundTaxFee
 	realTaxFee := h.newEntry("")
 	query = bson.M{
 		"object":      pkg.ObjectTypeBalanceTransaction,
 		"type":        pkg.AccountingEntryTypeRealTaxFee,
-		"source.id":   bson.ObjectIdHex(h.order.Id),
+		"source.id":   sourceId,
 		"source.type": collectionOrder,
 	}
-	err = h.Service.db.Collection(collectionAccountingEntry).Find(query).One(&realTaxFee)
+	err = h.Service.db.Collection(collectionAccountingEntry).FindOne(h.ctx, query).Decode(&realTaxFee)
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
@@ -665,7 +696,8 @@ func (h *accountingEntry) processRefundEvent() error {
 			zap.String(pkg.ErrorDatabaseFieldCollection, collectionAccountingEntry),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
-		if err == mgo.ErrNotFound {
+
+		if err == mongo.ErrNoDocuments {
 			return accountingEntryOriginalTaxNotFound
 		}
 
@@ -764,13 +796,13 @@ func (h *accountingEntry) processRefundEvent() error {
 	if h.country.VatEnabled {
 		merchantTaxFeeCostValue := h.newEntry("")
 		query["type"] = pkg.AccountingEntryTypeMerchantTaxFeeCostValue
-		err = h.Service.db.Collection(collectionAccountingEntry).Find(query).One(&merchantTaxFeeCostValue)
+		err = h.Service.db.Collection(collectionAccountingEntry).FindOne(h.ctx, query).Decode(&merchantTaxFeeCostValue)
 		if err != nil {
 			return err
 		}
 
 		query["type"] = pkg.AccountingEntryTypeMerchantTaxFeeCentralBankFx
-		err = h.Service.db.Collection(collectionAccountingEntry).Find(query).One(&merchantTaxFeeCentralBankFx)
+		err = h.Service.db.Collection(collectionAccountingEntry).FindOne(h.ctx, query).Decode(&merchantTaxFeeCentralBankFx)
 		if err != nil {
 			return err
 		}
@@ -978,7 +1010,7 @@ func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
 			rateType = curPkg.RateTypeCentralbanks
 			rateSource = h.country.VatCurrencyRatesSource
 		} else {
-			priceGroup, err := h.Service.priceGroup.GetById(h.country.PriceGroupId)
+			priceGroup, err := h.Service.priceGroup.GetById(h.ctx, h.country.PriceGroupId)
 			if err != nil {
 				return err
 			}
@@ -1032,7 +1064,7 @@ func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
 }
 
 func (h *accountingEntry) saveAccountingEntries() error {
-	err := h.db.Collection(collectionAccountingEntry).Insert(h.accountingEntries...)
+	_, err := h.db.Collection(collectionAccountingEntry).InsertMany(h.ctx, h.accountingEntries)
 
 	if err != nil {
 		zap.L().Error(
@@ -1064,13 +1096,13 @@ func (h *accountingEntry) saveAccountingEntries() error {
 		return nil
 	}
 
-	err = h.Service.updateOrderView(ids)
+	err = h.Service.updateOrderView(h.ctx, ids)
 	if err != nil {
 		return err
 	}
 
 	for paylinkId, merchantId := range paylinks {
-		err = h.Service.paylinkService.UpdatePaylinkTotalStat(paylinkId, merchantId)
+		err = h.Service.paylinkService.UpdatePaylinkTotalStat(h.ctx, paylinkId, merchantId)
 		if err != nil {
 			return err
 		}
@@ -1129,7 +1161,7 @@ func (h *accountingEntry) newEntry(entryType string) *billing.AccountingEntry {
 	}
 
 	return &billing.AccountingEntry{
-		Id:                 bson.NewObjectId().Hex(),
+		Id:                 primitive.NewObjectID().Hex(),
 		Object:             pkg.ObjectTypeBalanceTransaction,
 		Type:               entryType,
 		Source:             source,
@@ -1148,7 +1180,7 @@ func (h *accountingEntry) getPaymentChannelCostSystem() (*billing.PaymentChannel
 		return nil, err
 	}
 
-	cost, err := h.Service.paymentChannelCostSystem.Get(name, h.country.PayerTariffRegion, h.country.IsoCodeA2, h.getMccCode(), h.getOperatingCompanyId())
+	cost, err := h.Service.paymentChannelCostSystem.Get(h.ctx, name, h.country.PayerTariffRegion, h.country.IsoCodeA2, h.getMccCode(), h.getOperatingCompanyId())
 
 	if err != nil {
 		zap.L().Error(
@@ -1179,7 +1211,7 @@ func (h *accountingEntry) getPaymentChannelCostMerchant(amount float64) (*billin
 		Country:        h.country.IsoCodeA2,
 		MccCode:        h.getMccCode(),
 	}
-	cost, err := h.Service.getPaymentChannelCostMerchant(req)
+	cost, err := h.Service.getPaymentChannelCostMerchant(h.ctx, req)
 
 	if err != nil {
 		zap.L().Error(
@@ -1215,7 +1247,7 @@ func (h *accountingEntry) getMoneyBackCostMerchant(reason string) (*billing.Mone
 		Days:           int32(refundAt.Sub(paymentAt).Hours() / 24),
 		MccCode:        h.getMccCode(),
 	}
-	return h.Service.getMoneyBackCostMerchant(data)
+	return h.Service.getMoneyBackCostMerchant(h.ctx, data)
 }
 
 func (h *accountingEntry) getMoneyBackCostSystem(reason string) (*billing.MoneyBackCostSystem, error) {
@@ -1239,7 +1271,7 @@ func (h *accountingEntry) getMoneyBackCostSystem(reason string) (*billing.MoneyB
 		MccCode:            h.getMccCode(),
 		OperatingCompanyId: h.getOperatingCompanyId(),
 	}
-	return h.Service.getMoneyBackCostSystem(data)
+	return h.Service.getMoneyBackCostSystem(h.ctx, data)
 }
 
 func (h *accountingEntry) getMccCode() string {
@@ -1268,20 +1300,24 @@ func (h *accountingEntry) getOperatingCompanyId() string {
 	return ""
 }
 
-func (a Accounting) GetCorrectionsForRoyaltyReport(
+func (a *Accounting) GetCorrectionsForRoyaltyReport(
+	ctx context.Context,
 	merchantId, operatingCompanyId, currency string,
 	from, to time.Time,
 ) (items []*billing.AccountingEntry, err error) {
+	id, err := primitive.ObjectIDFromHex(merchantId)
 	query := bson.M{
-		"merchant_id":          bson.ObjectIdHex(merchantId),
+		"merchant_id":          id,
 		"currency":             currency,
 		"created_at":           bson.M{"$gte": from, "$lte": to},
 		"type":                 pkg.AccountingEntryTypeMerchantRoyaltyCorrection,
 		"operating_company_id": operatingCompanyId,
 	}
 
-	sorts := "created_at"
-	err = a.svc.db.Collection(collectionAccountingEntry).Find(query).Sort(sorts).All(&items)
+	sorts := bson.M{"created_at": 1}
+	opts := options.Find()
+	opts.SetSort(sorts)
+	cursor, err := a.svc.db.Collection(collectionAccountingEntry).Find(ctx, query, opts)
 
 	if err != nil {
 		zap.L().Error(
@@ -1293,27 +1329,55 @@ func (a Accounting) GetCorrectionsForRoyaltyReport(
 		)
 	}
 
+	err = cursor.All(ctx, &items)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorQueryCursorExecutionFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionAccountingEntry),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			zap.Any(pkg.ErrorDatabaseFieldSorts, sorts),
+		)
+	}
+
 	return
 }
 
 func (a Accounting) GetRollingReservesForRoyaltyReport(
+	ctx context.Context,
 	merchantId, operatingCompanyId, currency string,
 	from, to time.Time,
 ) (items []*billing.AccountingEntry, err error) {
+	id, err := primitive.ObjectIDFromHex(merchantId)
 	query := bson.M{
-		"merchant_id":          bson.ObjectIdHex(merchantId),
+		"merchant_id":          id,
 		"currency":             currency,
 		"created_at":           bson.M{"$gte": from, "$lte": to},
 		"type":                 bson.M{"$in": rollingReserveAccountingEntriesList},
 		"operating_company_id": operatingCompanyId,
 	}
 
-	sorts := "created_at"
-	err = a.svc.db.Collection(collectionAccountingEntry).Find(query).Sort(sorts).All(&items)
+	sorts := bson.M{"created_at": 1}
+	opts := options.Find()
+	opts.SetSort(sorts)
+	cursor, err := a.svc.db.Collection(collectionAccountingEntry).Find(ctx, query, opts)
 
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionAccountingEntry),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			zap.Any(pkg.ErrorDatabaseFieldSorts, sorts),
+		)
+	}
+
+	err = cursor.All(ctx, &items)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorQueryCursorExecutionFailed,
 			zap.Error(err),
 			zap.String(pkg.ErrorDatabaseFieldCollection, collectionAccountingEntry),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),

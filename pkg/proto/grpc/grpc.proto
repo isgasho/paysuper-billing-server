@@ -403,11 +403,11 @@ message ListKeyProductsResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     // @inject_tag: json:"limit"
-    int32 limit = 3;
+    int64 limit = 3;
     // @inject_tag: json:"offset"
-    int32 offset = 4;
+    int64 offset = 4;
     // @inject_tag: json:"count"
-    int32 count = 5;
+    int64 count = 5;
     // @inject_tag: json:"products"
     repeated KeyProduct products = 6;
 }
@@ -418,9 +418,9 @@ message ListKeyProductsRequest {
     //@inject_tag: query:"sku" json:"sku"
     string sku = 2;
     // @inject_tag: query:"limit" validate:"required,numeric,gt=0" json:"limit"
-    int32 limit = 3;
+    int64 limit = 3;
     // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0" json:"offset"
-    int32 offset = 4;
+    int64 offset = 4;
     //@inject_tag: validate:"required,hexadecimal,len=24"
     string merchant_id = 5;
     //@inject_tag: query:"project_id" validate:"omitempty,hexadecimal,len=24"
@@ -564,9 +564,9 @@ message MerchantListingRequest {
     // @inject_tag: query:"sort[]"
     repeated string sort = 6;
     // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
-    int32 limit = 7;
+    int64 limit = 7;
     // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
-    int32 offset = 8;
+    int64 offset = 8;
     // @inject_tag: query:"quick_search"
     string quick_search = 9;
     // @inject_tag: query:"status[]"
@@ -583,7 +583,7 @@ message MerchantListingRequest {
 
 message MerchantListingResponse {
     // @inject_tag: json:"count"
-    int32 count = 1;
+    int64 count = 1;
     // @inject_tag: json:"items"
     repeated billing.Merchant items = 2;
 }
@@ -609,7 +609,7 @@ message NotificationRequest {
 
 message Notifications {
     // @inject_tag: json:"count"
-    int32 count = 1;
+    int64 count = 1;
     // @inject_tag: json:"items"
     repeated billing.Notification items = 2;
 }
@@ -622,9 +622,9 @@ message ListingNotificationRequest {
     // @inject_tag: validate:"omitempty,numeric,oneof=1 2"
     int32 is_system = 3;
     // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
-    int32 limit = 4;
+    int64 limit = 4;
     // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
-    int32 offset = 5;
+    int64 offset = 5;
     // @inject_tag: query:"sort[]"
     repeated string sort = 6;
 }
@@ -713,14 +713,14 @@ message ListRefundsRequest {
     // @inject_tag: validate:"required,hexadecimal,len=24"
     string merchant_id = 2;
     // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
-    int32 limit = 7;
+    int64 limit = 7;
     // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
-    int32 offset = 8;
+    int64 offset = 8;
 }
 
 message ListRefundsResponse {
     // @inject_tag: json:"count"
-    int32 count = 1;
+    int64 count = 1;
     // @inject_tag: json:"items"
     repeated billing.Refund items = 2;
 }
@@ -1010,15 +1010,15 @@ message ListProductsRequest {
     //@inject_tag: json:"sku" query:"sku"
     string sku = 2;
     // @inject_tag: validate:"required,numeric,gt=0" json:"limit" query:"limit"
-    int32 limit = 3;
+    int64 limit = 3;
     // @inject_tag: validate:"omitempty,numeric,gte=0" json:"offset" query:"offset"
-    int32 offset = 4;
+    int64 offset = 4;
     //@inject_tag: validate:"required,hexadecimal,len=24" json:"merchant_id" bson:"merchant_id"
     string merchant_id = 5;
     //@inject_tag: validate:"omitempty,hexadecimal,len=24" json:"project_id" bson:"project_id" query:"project_id"
     string project_id = 6;
-    //@inject_tag: json:"enable"
-    int32 enable = 7;
+    //@inject_tag: validate:"omitempty,oneof=all true false" json:"enabled" query:"enabled"
+    string enabled = 7;
 }
 
 message GetProductsForOrderRequest {
@@ -1054,11 +1054,11 @@ message GetKeyProductsForOrderRequest {
 
 message ListProductsResponse {
     // @inject_tag: json:"limit"
-    int32 limit = 1;
+    int64 limit = 1;
     // @inject_tag: json:"offset"
-    int32 offset = 2;
+    int64 offset = 2;
     // @inject_tag: json:"count"
-    int32 total = 3;
+    int64 total = 3;
     // @inject_tag: json:"items"
     repeated Product products = 5;
 }
@@ -1119,7 +1119,7 @@ message ListProjectsRequest {
 
 message ListProjectsResponse {
     //@inject_tag: json:"count"
-    int32 count = 1;
+    int64 count = 1;
     //@inject_tag: json:"items"
     repeated billing.Project items = 2;
 }
@@ -1172,9 +1172,9 @@ message ListOrdersRequest {
     // @inject_tag: query:"quick_search"
     string quick_search = 11;
     // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0,lte=1000"
-    int32 limit = 12;
+    int64 limit = 12;
     // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
-    int32 offset = 13;
+    int64 offset = 13;
     // @inject_tag: query:"sort[]"
     repeated string sort = 14;
     // @inject_tag: validate:"omitempty,dive,hexadecimal,len=24"
@@ -1282,9 +1282,9 @@ message FindByZipCodeRequest {
     // @inject_tag: query:"zip" validate:"required,gte=2"
     string zip = 2;
     // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
-    int32 limit = 3;
+    int64 limit = 3;
     // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
-    int32 offset = 4;
+    int64 offset = 4;
 }
 
 message FindByZipCodeResponse {
@@ -1353,14 +1353,14 @@ message ListRoyaltyReportsRequest {
     //@inject_tag: query:"status[]" validate:"omitempty,dive,oneof=pending accepted canceled dispute waiting_payment paid"
     repeated string status = 4;
     // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
-    int32 limit = 5;
+    int64 limit = 5;
     // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
-    int32 offset = 6;
+    int64 offset = 6;
 }
 
 message RoyaltyReportsPaginate {
     // @inject_tag: json:"count"
-    int32 count = 1; // total count of selected orders
+    int64 count = 1; // total count of selected orders
     // @inject_tag: json:"items"
     repeated billing.RoyaltyReport items = 2; // array of selected orders
 }
@@ -1379,9 +1379,9 @@ message ListRoyaltyReportOrdersRequest {
     // @inject_tag: query:"report_id" validate:"required,hexadecimal,len=24" param:"report_id"
     string report_id = 2;
     // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
-    int32 limit = 3;
+    int64 limit = 3;
     // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
-    int32 offset = 4;
+    int64 offset = 4;
 }
 
 message ChangeRoyaltyReportCorrection {
@@ -1735,9 +1735,9 @@ message VatTransactionsRequest {
     //@inject_tag: json:"vat_report_id" validate:"required,hexadecimal,len=24"
     string vat_report_id = 1;
     // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
-    int32 limit = 2;
+    int64 limit = 2;
     // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
-    int32 offset = 3;
+    int64 offset = 3;
     // @inject_tag: query:"sort[]"
     repeated string sort = 4;
 }
@@ -1761,9 +1761,9 @@ message VatReportsRequest {
     //@inject_tag: json:"country" query:"country" validate:"required,alpha,len=2"
     string country = 1;
     // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
-    int32 limit = 2;
+    int64 limit = 2;
     // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
-    int32 offset = 3;
+    int64 offset = 3;
     // @inject_tag: query:"sort[]"
     repeated string sort = 4;
 }
@@ -1866,14 +1866,14 @@ message SetMerchantTariffRatesRequest {
 
 message ListOrdersPublicResponseItem {
     // @inject_tag: json:"count"
-    int32 count = 1;
+    int64 count = 1;
     // @inject_tag: json:"items"
     repeated billing.OrderViewPublic items = 2;
 }
 
 message ListOrdersPrivateResponseItem {
     // @inject_tag: json:"count"
-    int32 count = 1;
+    int64 count = 1;
     // @inject_tag: json:"items"
     repeated billing.OrderViewPrivate items = 2;
 }
@@ -1891,7 +1891,7 @@ message ListOrdersPrivateResponse {
 }
 
 message ListOrdersResponseItem {
-    int32 count = 1;
+    int64 count = 1;
     // @inject_tag: json:"items"
     repeated billing.Order items = 2;
 }
@@ -2141,9 +2141,9 @@ message GetPayoutDocumentsRequest {
     // @inject_tag: query:"period_to" validate:"omitempty,numeric,gt=0"
     int64 period_to = 5;
     // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
-    int32 limit = 6;
+    int64 limit = 6;
     // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
-    int32 offset = 7;
+    int64 offset = 7;
 }
 
 message PayoutDocumentsPaginate {
@@ -2249,9 +2249,9 @@ message GetPaylinksRequest {
     //@inject_tag: validate:"omitempty,hexadecimal,len=24"
     string project_id = 2;
     // @inject_tag: validate:"required,numeric,gte=1"
-    int32 limit = 3;
+    int64 limit = 3;
     // @inject_tag: validate:"omitempty,numeric,gte=0"
-    int32 offset = 4;
+    int64 offset = 4;
 }
 
 message PaylinksPaginate {

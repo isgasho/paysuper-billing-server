@@ -1,17 +1,18 @@
 package service
 
 import (
-	"github.com/globalsign/mgo/bson"
+	"context"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"testing"
 )
 
@@ -68,41 +69,47 @@ func (suite *UserRoleTestSuite) SetupTest() {
 }
 
 func (suite *UserRoleTestSuite) TearDownTest() {
-	if err := suite.service.db.Drop(); err != nil {
+	err := suite.service.db.Drop()
+
+	if err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}
 
-	suite.service.db.Close()
+	err = suite.service.db.Close()
+
+	if err != nil {
+		suite.FailNow("Database close failed", "%v", err)
+	}
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_AddMerchantUser_Ok() {
-	assert.NoError(suite.T(), suite.service.userRoleRepository.AddMerchantUser(&billing.UserRole{Id: bson.NewObjectId().Hex()}))
+	assert.NoError(suite.T(), suite.service.userRoleRepository.AddMerchantUser(context.TODO(), &billing.UserRole{Id: primitive.NewObjectID().Hex()}))
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_UpdateMerchantUser_Ok() {
 	role := &billing.UserRole{
-		Id:     bson.NewObjectId().Hex(),
-		UserId: bson.NewObjectId().Hex(),
+		Id:     primitive.NewObjectID().Hex(),
+		UserId: primitive.NewObjectID().Hex(),
 	}
-	assert.NoError(suite.T(), suite.service.userRoleRepository.AddMerchantUser(role))
+	assert.NoError(suite.T(), suite.service.userRoleRepository.AddMerchantUser(context.TODO(), role))
 
 	role.Role = "test"
-	assert.NoError(suite.T(), suite.service.userRoleRepository.UpdateMerchantUser(role))
+	assert.NoError(suite.T(), suite.service.userRoleRepository.UpdateMerchantUser(context.TODO(), role))
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_UpdateMerchantUser_Error_NotFound() {
-	assert.Error(suite.T(), suite.service.userRoleRepository.UpdateMerchantUser(&billing.UserRole{Id: bson.NewObjectId().Hex()}))
+	assert.Error(suite.T(), suite.service.userRoleRepository.UpdateMerchantUser(context.TODO(), &billing.UserRole{Id: primitive.NewObjectID().Hex()}))
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetMerchantUserByEmail_Ok() {
 	role := &billing.UserRole{
-		Id:         bson.NewObjectId().Hex(),
-		MerchantId: bson.NewObjectId().Hex(),
+		Id:         primitive.NewObjectID().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
 		Email:      "test",
 	}
-	assert.NoError(suite.T(), suite.service.userRoleRepository.AddMerchantUser(role))
+	assert.NoError(suite.T(), suite.service.userRoleRepository.AddMerchantUser(context.TODO(), role))
 
-	role2, err := suite.service.userRoleRepository.GetMerchantUserByEmail(role.MerchantId, role.Email)
+	role2, err := suite.service.userRoleRepository.GetMerchantUserByEmail(context.TODO(), role.MerchantId, role.Email)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), role.Email, role2.Email)
 	assert.Equal(suite.T(), role.Id, role2.Id)
@@ -110,19 +117,19 @@ func (suite *UserRoleTestSuite) TestUserRole_GetMerchantUserByEmail_Ok() {
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetMerchantUserByEmail_Error_NotFound() {
-	_, err := suite.service.userRoleRepository.GetMerchantUserByEmail(bson.NewObjectId().Hex(), "test")
+	_, err := suite.service.userRoleRepository.GetMerchantUserByEmail(context.TODO(), primitive.NewObjectID().Hex(), "test")
 	assert.Error(suite.T(), err)
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetMerchantUserByUserId_Ok() {
 	role := &billing.UserRole{
-		Id:         bson.NewObjectId().Hex(),
-		MerchantId: bson.NewObjectId().Hex(),
-		UserId:     bson.NewObjectId().Hex(),
+		Id:         primitive.NewObjectID().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
+		UserId:     primitive.NewObjectID().Hex(),
 	}
-	assert.NoError(suite.T(), suite.service.userRoleRepository.AddMerchantUser(role))
+	assert.NoError(suite.T(), suite.service.userRoleRepository.AddMerchantUser(context.TODO(), role))
 
-	role2, err := suite.service.userRoleRepository.GetMerchantUserByUserId(role.MerchantId, role.UserId)
+	role2, err := suite.service.userRoleRepository.GetMerchantUserByUserId(context.TODO(), role.MerchantId, role.UserId)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), role.UserId, role2.UserId)
 	assert.Equal(suite.T(), role.Id, role2.Id)
@@ -130,162 +137,156 @@ func (suite *UserRoleTestSuite) TestUserRole_GetMerchantUserByUserId_Ok() {
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetMerchantUserByUserId_Error_NotFound() {
-	_, err := suite.service.userRoleRepository.GetMerchantUserByUserId(bson.NewObjectId().Hex(), bson.NewObjectId().Hex())
+	_, err := suite.service.userRoleRepository.GetMerchantUserByUserId(context.TODO(), primitive.NewObjectID().Hex(), primitive.NewObjectID().Hex())
 	assert.Error(suite.T(), err)
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetMerchantUserById_Ok() {
 	role := &billing.UserRole{
-		Id: bson.NewObjectId().Hex(),
+		Id: primitive.NewObjectID().Hex(),
 	}
-	assert.NoError(suite.T(), suite.service.userRoleRepository.AddMerchantUser(role))
+	assert.NoError(suite.T(), suite.service.userRoleRepository.AddMerchantUser(context.TODO(), role))
 
-	role2, err := suite.service.userRoleRepository.GetMerchantUserById(role.Id)
+	role2, err := suite.service.userRoleRepository.GetMerchantUserById(context.TODO(), role.Id)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), role.Id, role2.Id)
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetMerchantUserById_Error_NotFound() {
-	_, err := suite.service.userRoleRepository.GetMerchantUserById(bson.NewObjectId().Hex())
+	_, err := suite.service.userRoleRepository.GetMerchantUserById(context.TODO(), primitive.NewObjectID().Hex())
 	assert.Error(suite.T(), err)
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_DeleteMerchantUser_Ok() {
 	role := &billing.UserRole{
-		Id:     bson.NewObjectId().Hex(),
-		UserId: bson.NewObjectId().Hex(),
+		Id:     primitive.NewObjectID().Hex(),
+		UserId: primitive.NewObjectID().Hex(),
 	}
-	assert.NoError(suite.T(), suite.service.userRoleRepository.AddMerchantUser(role))
-	assert.NoError(suite.T(), suite.service.userRoleRepository.DeleteMerchantUser(role))
+	assert.NoError(suite.T(), suite.service.userRoleRepository.AddMerchantUser(context.TODO(), role))
+	assert.NoError(suite.T(), suite.service.userRoleRepository.DeleteMerchantUser(context.TODO(), role))
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_DeleteMerchantUser_Error_NotFound() {
-	assert.Error(suite.T(), suite.service.userRoleRepository.DeleteMerchantUser(&billing.UserRole{Id: bson.NewObjectId().Hex()}))
+	assert.Error(suite.T(), suite.service.userRoleRepository.DeleteMerchantUser(context.TODO(), &billing.UserRole{Id: primitive.NewObjectID().Hex()}))
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetUsersForMerchant_Ok() {
-	role := &billing.UserRole{Id: bson.NewObjectId().Hex(), MerchantId: bson.NewObjectId().Hex()}
-	assert.NoError(suite.T(), suite.service.userRoleRepository.AddMerchantUser(role))
+	role := &billing.UserRole{Id: primitive.NewObjectID().Hex(), MerchantId: primitive.NewObjectID().Hex()}
+	assert.NoError(suite.T(), suite.service.userRoleRepository.AddMerchantUser(context.TODO(), role))
 
-	users, err := suite.service.userRoleRepository.GetUsersForMerchant(role.MerchantId)
+	users, err := suite.service.userRoleRepository.GetUsersForMerchant(context.TODO(), role.MerchantId)
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), users, 1)
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetUsersForMerchant_Error_NotFound() {
-	users, err := suite.service.userRoleRepository.GetUsersForMerchant(bson.NewObjectId().Hex())
+	users, err := suite.service.userRoleRepository.GetUsersForMerchant(context.TODO(), primitive.NewObjectID().Hex())
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), users, 0)
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetMerchantsForUser_Ok() {
 	role := &billing.UserRole{
-		Id:         bson.NewObjectId().Hex(),
-		MerchantId: bson.NewObjectId().Hex(),
-		UserId:     bson.NewObjectId().Hex(),
+		Id:         primitive.NewObjectID().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
+		UserId:     primitive.NewObjectID().Hex(),
 	}
-	assert.NoError(suite.T(), suite.service.userRoleRepository.AddMerchantUser(role))
+	assert.NoError(suite.T(), suite.service.userRoleRepository.AddMerchantUser(context.TODO(), role))
 
-	merchants, err := suite.service.userRoleRepository.GetMerchantsForUser(role.UserId)
+	merchants, err := suite.service.userRoleRepository.GetMerchantsForUser(context.TODO(), role.UserId)
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), merchants, 1)
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetMerchantsForUser_Error_NotFound() {
-	merchants, err := suite.service.userRoleRepository.GetMerchantsForUser(bson.NewObjectId().Hex())
+	merchants, err := suite.service.userRoleRepository.GetMerchantsForUser(context.TODO(), primitive.NewObjectID().Hex())
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), merchants, 0)
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_AddAdminUser_Ok() {
-	assert.NoError(suite.T(), suite.service.userRoleRepository.AddAdminUser(&billing.UserRole{Id: bson.NewObjectId().Hex()}))
+	assert.NoError(suite.T(), suite.service.userRoleRepository.AddAdminUser(context.TODO(), &billing.UserRole{Id: primitive.NewObjectID().Hex()}))
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_UpdateAdminUser_Ok() {
-	role := &billing.UserRole{Id: bson.NewObjectId().Hex()}
-	assert.NoError(suite.T(), suite.service.userRoleRepository.AddAdminUser(role))
+	role := &billing.UserRole{Id: primitive.NewObjectID().Hex()}
+	assert.NoError(suite.T(), suite.service.userRoleRepository.AddAdminUser(context.TODO(), role))
 
 	role.Role = "test"
-	assert.NoError(suite.T(), suite.service.userRoleRepository.UpdateAdminUser(role))
+	assert.NoError(suite.T(), suite.service.userRoleRepository.UpdateAdminUser(context.TODO(), role))
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_UpdateAdminUser_Error_NotFound() {
-	assert.Error(suite.T(), suite.service.userRoleRepository.UpdateAdminUser(&billing.UserRole{Id: bson.NewObjectId().Hex()}))
+	assert.Error(suite.T(), suite.service.userRoleRepository.UpdateAdminUser(context.TODO(), &billing.UserRole{Id: primitive.NewObjectID().Hex()}))
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetAdminUserByEmail_Ok() {
 	role := &billing.UserRole{
-		Id:    bson.NewObjectId().Hex(),
+		Id:    primitive.NewObjectID().Hex(),
 		Email: "test",
 	}
-	assert.NoError(suite.T(), suite.service.userRoleRepository.AddAdminUser(role))
+	assert.NoError(suite.T(), suite.service.userRoleRepository.AddAdminUser(context.TODO(), role))
 
-	role2, err := suite.service.userRoleRepository.GetAdminUserByEmail(role.Email)
+	role2, err := suite.service.userRoleRepository.GetAdminUserByEmail(context.TODO(), role.Email)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), role.Email, role2.Email)
 	assert.Equal(suite.T(), role.Id, role2.Id)
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetAdminUserByEmail_Error_NotFound() {
-	_, err := suite.service.userRoleRepository.GetAdminUserByEmail("test")
+	_, err := suite.service.userRoleRepository.GetAdminUserByEmail(context.TODO(), "test")
 	assert.Error(suite.T(), err)
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetAdminUserByUserId_Ok() {
 	role := &billing.UserRole{
-		Id:     bson.NewObjectId().Hex(),
-		UserId: bson.NewObjectId().Hex(),
+		Id:     primitive.NewObjectID().Hex(),
+		UserId: primitive.NewObjectID().Hex(),
 	}
-	assert.NoError(suite.T(), suite.service.userRoleRepository.AddAdminUser(role))
+	assert.NoError(suite.T(), suite.service.userRoleRepository.AddAdminUser(context.TODO(), role))
 
-	role2, err := suite.service.userRoleRepository.GetAdminUserByUserId(role.UserId)
+	role2, err := suite.service.userRoleRepository.GetAdminUserByUserId(context.TODO(), role.UserId)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), role.UserId, role2.UserId)
 	assert.Equal(suite.T(), role.Id, role2.Id)
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetAdminUserByUserId_Error_NotFound() {
-	_, err := suite.service.userRoleRepository.GetAdminUserByUserId(bson.NewObjectId().Hex())
+	_, err := suite.service.userRoleRepository.GetAdminUserByUserId(context.TODO(), primitive.NewObjectID().Hex())
 	assert.Error(suite.T(), err)
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetAdminUserById_Ok() {
 	role := &billing.UserRole{
-		Id: bson.NewObjectId().Hex(),
+		Id: primitive.NewObjectID().Hex(),
 	}
-	assert.NoError(suite.T(), suite.service.userRoleRepository.AddAdminUser(role))
+	assert.NoError(suite.T(), suite.service.userRoleRepository.AddAdminUser(context.TODO(), role))
 
-	role2, err := suite.service.userRoleRepository.GetAdminUserById(role.Id)
+	role2, err := suite.service.userRoleRepository.GetAdminUserById(context.TODO(), role.Id)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), role.Id, role2.Id)
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetAdminUserById_Error_NotFound() {
-	_, err := suite.service.userRoleRepository.GetAdminUserById(bson.NewObjectId().Hex())
+	_, err := suite.service.userRoleRepository.GetAdminUserById(context.TODO(), primitive.NewObjectID().Hex())
 	assert.Error(suite.T(), err)
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_DeleteAdminUser_Ok() {
-	role := &billing.UserRole{Id: bson.NewObjectId().Hex()}
-	assert.NoError(suite.T(), suite.service.userRoleRepository.AddAdminUser(role))
-	assert.NoError(suite.T(), suite.service.userRoleRepository.DeleteAdminUser(role))
+	role := &billing.UserRole{Id: primitive.NewObjectID().Hex()}
+	assert.NoError(suite.T(), suite.service.userRoleRepository.AddAdminUser(context.TODO(), role))
+	assert.NoError(suite.T(), suite.service.userRoleRepository.DeleteAdminUser(context.TODO(), role))
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_DeleteAdminUser_Error_NotFound() {
-	assert.Error(suite.T(), suite.service.userRoleRepository.DeleteAdminUser(&billing.UserRole{Id: bson.NewObjectId().Hex()}))
+	assert.Error(suite.T(), suite.service.userRoleRepository.DeleteAdminUser(context.TODO(), &billing.UserRole{Id: primitive.NewObjectID().Hex()}))
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetUsersForAdmin_Ok() {
-	role := &billing.UserRole{Id: bson.NewObjectId().Hex()}
-	assert.NoError(suite.T(), suite.service.userRoleRepository.AddAdminUser(role))
+	role := &billing.UserRole{Id: primitive.NewObjectID().Hex()}
+	assert.NoError(suite.T(), suite.service.userRoleRepository.AddAdminUser(context.TODO(), role))
 
-	users, err := suite.service.userRoleRepository.GetUsersForAdmin()
+	users, err := suite.service.userRoleRepository.GetUsersForAdmin(context.TODO())
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), users, 1)
-}
-
-func (suite *UserRoleTestSuite) TestUserRole_GetUsersForAdmin_Error_NotFound() {
-	users, err := suite.service.userRoleRepository.GetUsersForAdmin()
-	assert.NoError(suite.T(), err)
-	assert.Len(suite.T(), users, 0)
 }

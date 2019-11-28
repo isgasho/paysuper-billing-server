@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/globalsign/mgo/bson"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
@@ -12,12 +11,13 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"testing"
 )
 
@@ -75,7 +75,7 @@ func (suite *MoneyBackCostMerchantTestSuite) SetupTest() {
 	}
 
 	countryAz := &billing.Country{
-		Id:                bson.NewObjectId().Hex(),
+		Id:                primitive.NewObjectID().Hex(),
 		IsoCodeA2:         "AZ",
 		Region:            "CIS",
 		Currency:          "AZN",
@@ -87,7 +87,7 @@ func (suite *MoneyBackCostMerchantTestSuite) SetupTest() {
 		PayerTariffRegion: pkg.TariffRegionRussiaAndCis,
 	}
 	countryUs := &billing.Country{
-		Id:                bson.NewObjectId().Hex(),
+		Id:                primitive.NewObjectID().Hex(),
 		IsoCodeA2:         "US",
 		Region:            "US",
 		Currency:          "USD",
@@ -99,15 +99,15 @@ func (suite *MoneyBackCostMerchantTestSuite) SetupTest() {
 		PayerTariffRegion: pkg.TariffRegionWorldwide,
 	}
 	countries := []*billing.Country{countryAz, countryUs}
-	if err := suite.service.country.MultipleInsert(countries); err != nil {
+	if err := suite.service.country.MultipleInsert(ctx, countries); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 
-	suite.moneyBackCostMerchantId = bson.NewObjectId().Hex()
-	suite.merchantId = bson.NewObjectId().Hex()
+	suite.moneyBackCostMerchantId = primitive.NewObjectID().Hex()
+	suite.merchantId = primitive.NewObjectID().Hex()
 
 	pmBankCard := &billing.PaymentMethod{
-		Id:   bson.NewObjectId().Hex(),
+		Id:   primitive.NewObjectID().Hex(),
 		Name: "Bank card",
 	}
 	merchant := &billing.Merchant{
@@ -134,7 +134,7 @@ func (suite *MoneyBackCostMerchantTestSuite) SetupTest() {
 			},
 		},
 	}
-	if err := suite.service.merchant.Insert(merchant); err != nil {
+	if err := suite.service.merchant.Insert(ctx, merchant); err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
 	}
 
@@ -190,18 +190,23 @@ func (suite *MoneyBackCostMerchantTestSuite) SetupTest() {
 		MccCode:           pkg.MccCodeLowRisk,
 	}
 	pucs := []*billing.MoneyBackCostMerchant{moneyBackCostMerchant, moneyBackCostMerchant2, anotherMoneyBackCostMerchant}
-	if err := suite.service.moneyBackCostMerchant.MultipleInsert(pucs); err != nil {
+	if err := suite.service.moneyBackCostMerchant.MultipleInsert(ctx, pucs); err != nil {
 		suite.FailNow("Insert MoneyBackCostMerchant test data failed", "%v", err)
 	}
 }
 
 func (suite *MoneyBackCostMerchantTestSuite) TearDownTest() {
-	suite.cache.Clean()
-	if err := suite.service.db.Drop(); err != nil {
+	err := suite.service.db.Drop()
+
+	if err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}
 
-	suite.service.db.Close()
+	err = suite.service.db.Close()
+
+	if err != nil {
+		suite.FailNow("Database close failed", "%v", err)
+	}
 }
 
 func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_GrpcGet_Ok() {
@@ -279,7 +284,7 @@ func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_Insert_Ok
 		MccCode:        pkg.MccCodeLowRisk,
 	}
 
-	assert.NoError(suite.T(), suite.service.moneyBackCostMerchant.Insert(req))
+	assert.NoError(suite.T(), suite.service.moneyBackCostMerchant.Insert(ctx, req))
 }
 
 func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_Insert_ErrorCacheUpdate() {
@@ -302,7 +307,7 @@ func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_Insert_Er
 		IsActive:       true,
 		MccCode:        pkg.MccCodeLowRisk,
 	}
-	err := suite.service.moneyBackCostMerchant.Insert(obj)
+	err := suite.service.moneyBackCostMerchant.Insert(ctx, obj)
 
 	assert.Error(suite.T(), err)
 	assert.EqualError(suite.T(), err, "service unavailable")
@@ -325,17 +330,17 @@ func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_UpdateOk(
 		MccCode:        pkg.MccCodeLowRisk,
 	}
 
-	assert.NoError(suite.T(), suite.service.moneyBackCostMerchant.Update(obj))
+	assert.NoError(suite.T(), suite.service.moneyBackCostMerchant.Update(ctx, obj))
 }
 
 func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_Get_Ok() {
-	val, err := suite.service.moneyBackCostMerchant.Get(suite.merchantId, "VISA", "USD", "chargeback", pkg.TariffRegionRussiaAndCis, "AZ", pkg.MccCodeLowRisk, 1)
+	val, err := suite.service.moneyBackCostMerchant.Get(ctx, suite.merchantId, "VISA", "USD", "chargeback", pkg.TariffRegionRussiaAndCis, "AZ", pkg.MccCodeLowRisk, 1)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), len(val), 2)
 	assert.Equal(suite.T(), val[0].Set[0].Country, "AZ")
 	assert.Equal(suite.T(), val[0].Set[0].FixAmount, float64(5))
 
-	val, err = suite.service.moneyBackCostMerchant.Get(suite.merchantId, "VISA", "USD", "chargeback", pkg.TariffRegionRussiaAndCis, "", pkg.MccCodeLowRisk, 1)
+	val, err = suite.service.moneyBackCostMerchant.Get(ctx, suite.merchantId, "VISA", "USD", "chargeback", pkg.TariffRegionRussiaAndCis, "", pkg.MccCodeLowRisk, 1)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), len(val), 1)
 	assert.Equal(suite.T(), val[0].Set[0].Country, "")
@@ -355,14 +360,14 @@ func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_getMoneyB
 		MccCode:        pkg.MccCodeLowRisk,
 	}
 
-	val, err := suite.service.getMoneyBackCostMerchant(req)
+	val, err := suite.service.getMoneyBackCostMerchant(ctx, req)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), val.DaysFrom, int32(0))
 	assert.Equal(suite.T(), val.Percent, float64(3))
 	assert.Equal(suite.T(), val.FixAmount, float64(5))
 
 	req.Days = 45
-	val, err = suite.service.getMoneyBackCostMerchant(req)
+	val, err = suite.service.getMoneyBackCostMerchant(ctx, req)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), val.DaysFrom, int32(30))
 	assert.Equal(suite.T(), val.Percent, float64(10))
@@ -379,7 +384,7 @@ func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_Delete_Ok
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
 
-	_, err = suite.service.moneyBackCostMerchant.GetById(suite.moneyBackCostMerchantId)
+	_, err = suite.service.moneyBackCostMerchant.GetById(ctx, suite.moneyBackCostMerchantId)
 	assert.EqualError(suite.T(), err, fmt.Sprintf(errorNotFound, collectionMoneyBackCostMerchant))
 }
 

@@ -3,8 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/jinzhu/now"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -13,6 +11,9 @@ import (
 	curPkg "github.com/paysuper/paysuper-currencies/pkg"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 	"time"
 )
@@ -40,22 +41,23 @@ type turnoverQueryResItem struct {
 }
 
 func (s *Service) CalcAnnualTurnovers(ctx context.Context, req *grpc.EmptyRequest, res *grpc.EmptyResponse) error {
-	operatingCompanies, err := s.operatingCompany.GetAll()
+	operatingCompanies, err := s.operatingCompany.GetAll(ctx)
 	if err != nil {
 		return err
 	}
 
-	countries, err := s.country.GetCountriesWithVatEnabled()
+	countries, err := s.country.GetCountriesWithVatEnabled(ctx)
 	if err != nil {
 		return err
 	}
 	for _, operatingCompany := range operatingCompanies {
-		cnt := []*billing.Country{}
+		var cnt []*billing.Country
+
 		if len(operatingCompany.PaymentCountries) == 0 {
 			cnt = countries.Countries
 		} else {
 			for _, countryCode := range operatingCompany.PaymentCountries {
-				country, err := s.country.GetByIsoCodeA2(countryCode)
+				country, err := s.country.GetByIsoCodeA2(ctx, countryCode)
 				if err != nil {
 					return err
 				}
@@ -103,7 +105,7 @@ func (s *Service) calcAnnualTurnover(ctx context.Context, countryCode, operating
 	)
 
 	if countryCode != "" {
-		country, err := s.country.GetByIsoCodeA2(countryCode)
+		country, err := s.country.GetByIsoCodeA2(ctx, countryCode)
 		if err != nil {
 			return errorCountryNotFound
 		}
@@ -155,7 +157,8 @@ func (s *Service) calcAnnualTurnover(ctx context.Context, countryCode, operating
 		OperatingCompanyId: operatingCompanyId,
 	}
 
-	err = s.turnover.Insert(at)
+	err = s.turnover.Insert(ctx, at)
+
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
@@ -204,20 +207,31 @@ func (s *Service) getTurnover(
 		return
 	}
 
-	var res []*turnoverQueryResItem
-
-	err = s.db.Collection(collectionAccountingEntry).Pipe(query).All(&res)
+	cursor, err := s.db.Collection(collectionAccountingEntry).Aggregate(ctx, query)
 
 	if err != nil {
-		if err == mgo.ErrNotFound {
+		if err == mongo.ErrNoDocuments {
 			err = nil
 			return
 		}
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String("collection", collectionAccountingEntry),
-			zap.Any("query", query),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionAccountingEntry),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return
+	}
+
+	var res []*turnoverQueryResItem
+	err = cursor.All(ctx, &res)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorQueryCursorExecutionFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionAccountingEntry),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
 		return
 	}
@@ -269,8 +283,10 @@ func newTurnoverService(svc *Service) *Turnover {
 	return s
 }
 
-func (h *Turnover) Insert(turnover *billing.AnnualTurnover) error {
-	_, err := h.svc.db.Collection(collectionAnnualTurnovers).Upsert(bson.M{"year": turnover.Year, "country": turnover.Country}, turnover)
+func (h *Turnover) Insert(ctx context.Context, turnover *billing.AnnualTurnover) error {
+	filter := bson.M{"year": turnover.Year, "country": turnover.Country}
+	_, err := h.svc.db.Collection(collectionAnnualTurnovers).ReplaceOne(ctx, filter, turnover, options.Replace().SetUpsert(true))
+
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
@@ -291,11 +307,11 @@ func (h *Turnover) Insert(turnover *billing.AnnualTurnover) error {
 	return nil
 }
 
-func (h *Turnover) Update(turnover *billing.AnnualTurnover) error {
-	return h.Insert(turnover)
+func (h *Turnover) Update(ctx context.Context, turnover *billing.AnnualTurnover) error {
+	return h.Insert(ctx, turnover)
 }
 
-func (h *Turnover) Get(operatingCompanyId, country string, year int) (*billing.AnnualTurnover, error) {
+func (h *Turnover) Get(ctx context.Context, operatingCompanyId, country string, year int) (*billing.AnnualTurnover, error) {
 	var c billing.AnnualTurnover
 	key := fmt.Sprintf(cacheTurnoverKey, operatingCompanyId, country, year)
 
@@ -304,10 +320,8 @@ func (h *Turnover) Get(operatingCompanyId, country string, year int) (*billing.A
 	}
 
 	query := bson.M{"operating_company_id": operatingCompanyId, "country": country, "year": year}
+	err := h.svc.db.Collection(collectionAnnualTurnovers).FindOne(ctx, query).Decode(&c)
 
-	err := h.svc.db.Collection(collectionAnnualTurnovers).
-		Find(query).
-		One(&c)
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,

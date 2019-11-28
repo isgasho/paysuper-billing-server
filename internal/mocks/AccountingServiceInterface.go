@@ -3,6 +3,7 @@
 package mocks
 
 import billing "github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+import context "context"
 import mock "github.com/stretchr/testify/mock"
 
 import time "time"
@@ -12,13 +13,13 @@ type AccountingServiceInterface struct {
 	mock.Mock
 }
 
-// GetCorrectionsForRoyaltyReport provides a mock function with given fields: merchantId, operatingCompanyId, currency, from, to
-func (_m *AccountingServiceInterface) GetCorrectionsForRoyaltyReport(merchantId string, operatingCompanyId string, currency string, from time.Time, to time.Time) ([]*billing.AccountingEntry, error) {
-	ret := _m.Called(merchantId, operatingCompanyId, currency, from, to)
+// GetCorrectionsForRoyaltyReport provides a mock function with given fields: ctx, merchantId, operatingCompanyId, currency, from, to
+func (_m *AccountingServiceInterface) GetCorrectionsForRoyaltyReport(ctx context.Context, merchantId string, operatingCompanyId string, currency string, from time.Time, to time.Time) ([]*billing.AccountingEntry, error) {
+	ret := _m.Called(ctx, merchantId, operatingCompanyId, currency, from, to)
 
 	var r0 []*billing.AccountingEntry
-	if rf, ok := ret.Get(0).(func(string, string, string, time.Time, time.Time) []*billing.AccountingEntry); ok {
-		r0 = rf(merchantId, operatingCompanyId, currency, from, to)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, time.Time, time.Time) []*billing.AccountingEntry); ok {
+		r0 = rf(ctx, merchantId, operatingCompanyId, currency, from, to)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*billing.AccountingEntry)
@@ -26,8 +27,8 @@ func (_m *AccountingServiceInterface) GetCorrectionsForRoyaltyReport(merchantId 
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string, string, time.Time, time.Time) error); ok {
-		r1 = rf(merchantId, operatingCompanyId, currency, from, to)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, time.Time, time.Time) error); ok {
+		r1 = rf(ctx, merchantId, operatingCompanyId, currency, from, to)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -35,13 +36,13 @@ func (_m *AccountingServiceInterface) GetCorrectionsForRoyaltyReport(merchantId 
 	return r0, r1
 }
 
-// GetRollingReservesForRoyaltyReport provides a mock function with given fields: merchantId, operatingCompanyId, currency, from, to
-func (_m *AccountingServiceInterface) GetRollingReservesForRoyaltyReport(merchantId string, operatingCompanyId string, currency string, from time.Time, to time.Time) ([]*billing.AccountingEntry, error) {
-	ret := _m.Called(merchantId, operatingCompanyId, currency, from, to)
+// GetRollingReservesForRoyaltyReport provides a mock function with given fields: ctx, merchantId, operatingCompanyId, currency, from, to
+func (_m *AccountingServiceInterface) GetRollingReservesForRoyaltyReport(ctx context.Context, merchantId string, operatingCompanyId string, currency string, from time.Time, to time.Time) ([]*billing.AccountingEntry, error) {
+	ret := _m.Called(ctx, merchantId, operatingCompanyId, currency, from, to)
 
 	var r0 []*billing.AccountingEntry
-	if rf, ok := ret.Get(0).(func(string, string, string, time.Time, time.Time) []*billing.AccountingEntry); ok {
-		r0 = rf(merchantId, operatingCompanyId, currency, from, to)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, time.Time, time.Time) []*billing.AccountingEntry); ok {
+		r0 = rf(ctx, merchantId, operatingCompanyId, currency, from, to)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*billing.AccountingEntry)
@@ -49,8 +50,8 @@ func (_m *AccountingServiceInterface) GetRollingReservesForRoyaltyReport(merchan
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string, string, time.Time, time.Time) error); ok {
-		r1 = rf(merchantId, operatingCompanyId, currency, from, to)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, time.Time, time.Time) error); ok {
+		r1 = rf(ctx, merchantId, operatingCompanyId, currency, from, to)
 	} else {
 		r1 = ret.Error(1)
 	}

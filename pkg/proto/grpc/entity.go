@@ -3,6 +3,7 @@ package grpc
 import (
 	"errors"
 	"fmt"
+	"github.com/jinzhu/copier"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"go.uber.org/zap"
 )
@@ -90,6 +91,19 @@ func (p *Product) GetLocalizedLongDescription(lang string) (string, error) {
 
 func (r *ResponseErrorMessage) Error() string {
 	return r.Message
+}
+
+func (r *ResponseErrorMessage) GetResponseErrorWithDetails(details string) *ResponseErrorMessage {
+	newResponseErrorMessage := new(ResponseErrorMessage)
+	err := copier.Copy(&newResponseErrorMessage, &r)
+
+	if err != nil {
+		r.Details = details
+		return r
+	}
+
+	newResponseErrorMessage.Details = details
+	return newResponseErrorMessage
 }
 
 func (r *ResponseError) Error() string {

@@ -9,8 +9,6 @@ import (
 	"fmt"
 	geoip "github.com/ProtocolONE/geoip-service/pkg/proto"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
 	protobuf "github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	structpb "github.com/golang/protobuf/ptypes/struct"
@@ -29,6 +27,9 @@ import (
 	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
 	"github.com/streadway/amqp"
 	"github.com/ttacon/libphonenumber"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"math"
@@ -161,6 +162,7 @@ type OrderCreateRequestProcessor struct {
 	*Service
 	checked *orderCreateRequestProcessorChecked
 	request *billing.OrderCreateRequest
+	ctx     context.Context
 }
 
 type PaymentFormProcessor struct {
@@ -183,16 +185,16 @@ type PaymentCreateProcessor struct {
 }
 
 type BinData struct {
-	Id                 bson.ObjectId `bson:"_id"`
-	CardBin            int32         `bson:"card_bin"`
-	CardBrand          string        `bson:"card_brand"`
-	CardType           string        `bson:"card_type"`
-	CardCategory       string        `bson:"card_category"`
-	BankName           string        `bson:"bank_name"`
-	BankCountryName    string        `bson:"bank_country_name"`
-	BankCountryIsoCode string        `bson:"bank_country_code_a2"`
-	BankSite           string        `bson:"bank_site"`
-	BankPhone          string        `bson:"bank_phone"`
+	Id                 primitive.ObjectID `bson:"_id"`
+	CardBin            int32              `bson:"card_bin"`
+	CardBrand          string             `bson:"card_brand"`
+	CardType           string             `bson:"card_type"`
+	CardCategory       string             `bson:"card_category"`
+	BankName           string             `bson:"bank_name"`
+	BankCountryName    string             `bson:"bank_country_name"`
+	BankCountryIsoCode string             `bson:"bank_country_code_a2"`
+	BankSite           string             `bson:"bank_site"`
+	BankPhone          string             `bson:"bank_phone"`
 }
 
 func (s *Service) OrderCreateByPaylink(
@@ -200,9 +202,9 @@ func (s *Service) OrderCreateByPaylink(
 	req *billing.OrderCreateByPaylink,
 	rsp *grpc.OrderCreateProcessResponse,
 ) error {
-	pl, err := s.paylinkService.GetById(req.PaylinkId)
+	pl, err := s.paylinkService.GetById(ctx, req.PaylinkId)
 	if err != nil {
-		if err == mgo.ErrNotFound {
+		if err == mongo.ErrNoDocuments {
 			rsp.Status = pkg.ResponseStatusNotFound
 			rsp.Message = errorPaylinkNotFound
 			return nil
@@ -266,6 +268,7 @@ func (s *Service) OrderCreateProcess(
 		Service: s,
 		request: req,
 		checked: &orderCreateRequestProcessorChecked{},
+		ctx:     ctx,
 	}
 
 	if req.Token != "" {
@@ -281,7 +284,15 @@ func (s *Service) OrderCreateProcess(
 			return err
 		}
 	} else {
-		if req.ProjectId == "" || bson.IsObjectIdHex(req.ProjectId) == false {
+		if req.ProjectId == "" {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = orderErrorProjectIdIncorrect
+			return nil
+		}
+
+		_, err := primitive.ObjectIDFromHex(req.ProjectId)
+
+		if err != nil {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = orderErrorProjectIdIncorrect
 			return nil
@@ -472,6 +483,7 @@ func (s *Service) OrderCreateProcess(
 
 	if req.PaymentMethod != "" {
 		pm, err := s.paymentMethod.GetByGroupAndCurrency(
+			ctx,
 			processor.checked.project,
 			req.PaymentMethod,
 			processor.checked.currency,
@@ -521,10 +533,16 @@ func (s *Service) OrderCreateProcess(
 		return err
 	}
 
-	err = s.db.Collection(collectionOrder).Insert(order)
+	_, err = s.db.Collection(collectionOrder).InsertOne(ctx, order)
 
 	if err != nil {
-		zap.S().Errorw(fmt.Sprintf(errorQueryMask, collectionOrder), "err", err.Error(), "inserted_data", order)
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrder),
+			zap.String(pkg.ErrorDatabaseFieldOperation, pkg.ErrorDatabaseFieldOperationInsert),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, order),
+		)
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = orderErrorCanNotCreate
 		return nil
@@ -540,11 +558,10 @@ func (s *Service) PaymentFormJsonDataProcess(
 	req *grpc.PaymentFormJsonDataRequest,
 	rsp *grpc.PaymentFormJsonDataResponse,
 ) error {
-
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = &grpc.PaymentFormJsonData{}
 
-	order, err := s.getOrderByUuid(req.OrderId)
+	order, err := s.getOrderByUuid(ctx, req.OrderId)
 
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
@@ -579,6 +596,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 				Address: &billing.OrderBillingAddress{},
 			},
 		},
+		ctx: ctx,
 	}
 
 	if !order.User.HasAddress() && p1.checked.user.Ip != "" {
@@ -614,7 +632,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 	}
 
 	if isIdentified == true {
-		customer, err := s.processCustomerData(order.User.Id, order, req, browserCustomer, loc)
+		customer, err := s.processCustomerData(ctx, order.User.Id, order, req, browserCustomer, loc)
 
 		if err == nil {
 			browserCustomer.CustomerId = customer.Id
@@ -631,7 +649,14 @@ func (s *Service) PaymentFormJsonDataProcess(
 				}
 
 				if decryptedBrowserCustomer.CustomerId != "" {
-					customer, err := s.processCustomerData(decryptedBrowserCustomer.CustomerId, order, req, decryptedBrowserCustomer, loc)
+					customer, err := s.processCustomerData(
+						ctx,
+						decryptedBrowserCustomer.CustomerId,
+						order,
+						req,
+						decryptedBrowserCustomer,
+						loc,
+					)
 
 					if err != nil {
 						zap.L().Error("Customer by identifier in browser cookie not processed", zap.Error(err))
@@ -688,7 +713,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 		}
 	}
 
-	restricted, err := s.applyCountryRestriction(order, order.GetCountry())
+	restricted, err := s.applyCountryRestriction(ctx, order, order.GetCountry())
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
@@ -765,7 +790,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 		return err
 	}
 
-	err = s.updateOrder(order)
+	err = s.updateOrder(ctx, order)
 
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
@@ -777,7 +802,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 		return err
 	}
 
-	project, err := s.project.GetById(order.Project.Id)
+	project, err := s.project.GetById(ctx, order.Project.Id)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
@@ -785,7 +810,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 		return nil
 	}
 
-	pms, err := p.processRenderFormPaymentMethods(project)
+	pms, err := p.processRenderFormPaymentMethods(ctx, project)
 
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
@@ -874,7 +899,7 @@ func (s *Service) PaymentCreateProcess(
 		userAgent:      req.UserAgent,
 	}
 
-	err := processor.processPaymentFormData()
+	err := processor.processPaymentFormData(ctx)
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
@@ -918,7 +943,7 @@ func (s *Service) PaymentCreateProcess(
 		return err
 	}
 
-	p1 := &OrderCreateRequestProcessor{Service: s}
+	p1 := &OrderCreateRequestProcessor{Service: s, ctx: ctx}
 	err = p1.processOrderVat(order)
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error(), "method", "processOrderVat")
@@ -962,7 +987,7 @@ func (s *Service) PaymentCreateProcess(
 		return nil
 	}
 
-	ps, err := s.paymentSystem.GetById(processor.checked.paymentMethod.PaymentSystemId)
+	ps, err := s.paymentSystem.GetById(ctx, processor.checked.paymentMethod.PaymentSystemId)
 	if err != nil {
 		rsp.Message = orderErrorPaymentSystemInactive
 		rsp.Status = pkg.ResponseStatusBadData
@@ -986,14 +1011,14 @@ func (s *Service) PaymentCreateProcess(
 		delete(order.PaymentRequisites, pkg.PaymentCreateFieldRecurringId)
 	}
 
-	merchant, err := s.merchant.GetById(order.GetMerchantId())
+	merchant, err := s.merchant.GetById(ctx, order.GetMerchantId())
 	if err != nil {
 		return err
 	}
 	order.MccCode = merchant.MccCode
 	order.IsHighRisk = merchant.IsHighRisk()
 
-	order.OperatingCompanyId, err = s.getOrderOperatingCompanyId(order.GetCountry(), merchant)
+	order.OperatingCompanyId, err = s.getOrderOperatingCompanyId(ctx, order.GetCountry(), merchant)
 	if err != nil {
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusBadData
@@ -1003,7 +1028,7 @@ func (s *Service) PaymentCreateProcess(
 		return err
 	}
 
-	err = s.updateOrder(order)
+	err = s.updateOrder(ctx, order)
 
 	if err != nil {
 		zap.L().Error(
@@ -1022,13 +1047,13 @@ func (s *Service) PaymentCreateProcess(
 		return nil
 	}
 
-	if !s.hasPaymentCosts(order) {
+	if !s.hasPaymentCosts(ctx, order) {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = orderErrorCostsRatesNotFound
 		return nil
 	}
 
-	h, err := s.NewPaymentSystem(s.cfg.PaymentSystemConfig, order)
+	h, err := s.NewPaymentSystem(ctx, s.cfg.PaymentSystemConfig, order)
 
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
@@ -1059,7 +1084,7 @@ func (s *Service) PaymentCreateProcess(
 		return nil
 	}
 
-	err = s.updateOrder(order)
+	err = s.updateOrder(ctx, order)
 	if err != nil {
 		zap.S().Errorf("Order create in payment system failed", "err", err.Error(), "order", order)
 
@@ -1083,8 +1108,12 @@ func (s *Service) PaymentCreateProcess(
 	return nil
 }
 
-func (s *Service) getOrderOperatingCompanyId(orderCountry string, merchant *billing.Merchant) (string, error) {
-	orderOperatingCompany, err := s.operatingCompany.GetByPaymentCountry(orderCountry)
+func (s *Service) getOrderOperatingCompanyId(
+	ctx context.Context,
+	orderCountry string,
+	merchant *billing.Merchant,
+) (string, error) {
+	orderOperatingCompany, err := s.operatingCompany.GetByPaymentCountry(ctx, orderCountry)
 	if err != nil {
 		if err == errorOperatingCompanyNotFound {
 			return merchant.OperatingCompanyId, nil
@@ -1100,7 +1129,7 @@ func (s *Service) PaymentCallbackProcess(
 	req *grpc.PaymentNotifyRequest,
 	rsp *grpc.PaymentNotifyResponse,
 ) error {
-	order, err := s.getOrderById(req.OrderId)
+	order, err := s.getOrderById(ctx, req.OrderId)
 
 	if err != nil {
 		return orderErrorNotFound
@@ -1108,7 +1137,7 @@ func (s *Service) PaymentCallbackProcess(
 
 	var data protobuf.Message
 
-	ps, err := s.paymentSystem.GetById(order.PaymentMethod.PaymentSystemId)
+	ps, err := s.paymentSystem.GetById(ctx, order.PaymentMethod.PaymentSystemId)
 	if err != nil {
 		return orderErrorPaymentSystemInactive
 	}
@@ -1126,7 +1155,7 @@ func (s *Service) PaymentCallbackProcess(
 		return orderErrorPaymentMethodNotFound
 	}
 
-	h, err := s.NewPaymentSystem(s.cfg.PaymentSystemConfig, order)
+	h, err := s.NewPaymentSystem(ctx, s.cfg.PaymentSystemConfig, order)
 
 	if err != nil {
 		return err
@@ -1166,7 +1195,7 @@ func (s *Service) PaymentCallbackProcess(
 		break
 	}
 
-	err = s.updateOrder(order)
+	err = s.updateOrder(ctx, order)
 
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
@@ -1209,7 +1238,7 @@ func (s *Service) PaymentCallbackProcess(
 		}
 
 		if h.IsRecurringCallback(data) {
-			s.saveRecurringCard(order, h.GetRecurringId(data))
+			s.saveRecurringCard(ctx, order, h.GetRecurringId(data))
 		}
 
 		rsp.Status = pkg.StatusOK
@@ -1223,7 +1252,7 @@ func (s *Service) PaymentFormLanguageChanged(
 	req *grpc.PaymentFormUserChangeLangRequest,
 	rsp *grpc.PaymentFormDataChangeResponse,
 ) error {
-	order, err := s.getOrderByUuidToForm(req.OrderId)
+	order, err := s.getOrderByUuidToForm(ctx, req.OrderId)
 
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
@@ -1245,7 +1274,7 @@ func (s *Service) PaymentFormLanguageChanged(
 	}
 
 	if order.User.IsIdentified() == true {
-		s.updateCustomerFromRequestLocale(order, req.Ip, req.AcceptLanguage, req.UserAgent, req.Lang)
+		s.updateCustomerFromRequestLocale(ctx, order, req.Ip, req.AcceptLanguage, req.UserAgent, req.Lang)
 	}
 
 	order.User.Locale = req.Lang
@@ -1270,7 +1299,7 @@ func (s *Service) PaymentFormLanguageChanged(
 		return err
 	}
 
-	err = s.updateOrder(order)
+	err = s.updateOrder(ctx, order)
 
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
@@ -1297,7 +1326,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 	req *grpc.PaymentFormUserChangePaymentAccountRequest,
 	rsp *grpc.PaymentFormDataChangeResponse,
 ) error {
-	order, err := s.getOrderByUuidToForm(req.OrderId)
+	order, err := s.getOrderByUuidToForm(ctx, req.OrderId)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusBadData
@@ -1305,7 +1334,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		return nil
 	}
 
-	project, err := s.project.GetById(order.Project.Id)
+	project, err := s.project.GetById(ctx, order.Project.Id)
 	if err != nil {
 		return orderErrorProjectNotFound
 	}
@@ -1313,7 +1342,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		return orderErrorProjectInactive
 	}
 
-	pm, err := s.paymentMethod.GetById(req.MethodId)
+	pm, err := s.paymentMethod.GetById(ctx, req.MethodId)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusBadData
@@ -1321,7 +1350,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		return nil
 	}
 
-	ps, err := s.paymentSystem.GetById(pm.PaymentSystemId)
+	ps, err := s.paymentSystem.GetById(ctx, pm.PaymentSystemId)
 	if err != nil {
 		rsp.Message = orderErrorPaymentSystemInactive
 		rsp.Status = pkg.ResponseStatusBadData
@@ -1332,7 +1361,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 	regex := pm.AccountRegexp
 
 	if pm.ExternalId == constant.PaymentSystemGroupAliasBankCard {
-		regex = "^\\d{6,18}$"
+		regex = "^\\d{6}(.*)\\d{4}$"
 	}
 
 	match, err := regexp.MatchString(regex, req.Account)
@@ -1350,7 +1379,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 
 	switch pm.ExternalId {
 	case constant.PaymentSystemGroupAliasBankCard:
-		data := s.getBinData(req.Account)
+		data := s.getBinData(ctx, req.Account)
 
 		if data == nil {
 			rsp.Status = pkg.ResponseStatusBadData
@@ -1360,6 +1389,10 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 
 		brand = data.CardBrand
 		country = data.BankCountryIsoCode
+
+		if order.PaymentRequisites == nil {
+			order.PaymentRequisites = make(map[string]string)
+		}
 		order.PaymentRequisites[pkg.PaymentCreateBankCardFieldBrand] = brand
 		order.PaymentRequisites[pkg.PaymentCreateBankCardFieldIssuerCountryIsoCode] = country
 
@@ -1419,7 +1452,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		order.UserAddressDataRequired = true
 	}
 
-	restricted, err := s.applyCountryRestriction(order, country)
+	restricted, err := s.applyCountryRestriction(ctx, order, country)
 
 	if err != nil {
 		zap.L().Error(
@@ -1444,13 +1477,13 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		return nil
 	}
 
-	if !s.hasPaymentCosts(order) {
+	if !s.hasPaymentCosts(ctx, order) {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = orderErrorCostsRatesNotFound
 		return nil
 	}
 
-	err = s.updateOrder(order)
+	err = s.updateOrder(ctx, order)
 
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
@@ -1482,7 +1515,7 @@ func (s *Service) ProcessBillingAddress(
 			return nil
 		}
 
-		zip, err = s.zipCode.getByZipAndCountry(req.Zip, req.Country)
+		zip, err = s.zipCode.getByZipAndCountry(ctx, req.Zip, req.Country)
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusBadData
@@ -1492,7 +1525,7 @@ func (s *Service) ProcessBillingAddress(
 		}
 	}
 
-	order, err := s.getOrderByUuidToForm(req.OrderId)
+	order, err := s.getOrderByUuidToForm(ctx, req.OrderId)
 
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
@@ -1520,7 +1553,7 @@ func (s *Service) ProcessBillingAddress(
 		order.BillingAddress.State = zip.State.Code
 	}
 
-	restricted, err := s.applyCountryRestriction(order, req.Country)
+	restricted, err := s.applyCountryRestriction(ctx, order, req.Country)
 	if err != nil {
 		zap.L().Error(
 			"s.applyCountryRestriction Method failed",
@@ -1584,7 +1617,7 @@ func (s *Service) ProcessBillingAddress(
 		return err
 	}
 
-	processor := &OrderCreateRequestProcessor{Service: s}
+	processor := &OrderCreateRequestProcessor{Service: s, ctx: ctx}
 	err = processor.processOrderVat(order)
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error(), "method", "processOrderVat")
@@ -1607,13 +1640,13 @@ func (s *Service) ProcessBillingAddress(
 	}
 
 	methodName, _ := order.GetCostPaymentMethodName()
-	if methodName != "" && !s.hasPaymentCosts(order) {
+	if methodName != "" && !s.hasPaymentCosts(ctx, order) {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = orderErrorCostsRatesNotFound
 		return nil
 	}
 
-	err = s.updateOrder(order)
+	err = s.updateOrder(ctx, order)
 
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
@@ -1642,7 +1675,7 @@ func (s *Service) ProcessBillingAddress(
 	return nil
 }
 
-func (s *Service) saveRecurringCard(order *billing.Order, recurringId string) {
+func (s *Service) saveRecurringCard(ctx context.Context, order *billing.Order, recurringId string) {
 	req := &repo.SavedCardRequest{
 		Token:      order.User.Id,
 		ProjectId:  order.Project.Id,
@@ -1656,7 +1689,7 @@ func (s *Service) saveRecurringCard(order *billing.Order, recurringId string) {
 		RecurringId: recurringId,
 	}
 
-	_, err := s.rep.InsertSavedCard(context.TODO(), req)
+	_, err := s.rep.InsertSavedCard(ctx, req)
 
 	if err != nil {
 		s.logError(
@@ -1668,19 +1701,19 @@ func (s *Service) saveRecurringCard(order *billing.Order, recurringId string) {
 		)
 	} else {
 		order.PaymentRequisites["saved"] = "1"
-		err = s.updateOrder(order)
+		err = s.updateOrder(ctx, order)
 		if err != nil {
 			zap.S().Errorf("Failed to update order after save recurruing card", "err", err.Error())
 		}
 	}
 }
 
-func (s *Service) updateOrder(order *billing.Order) error {
+func (s *Service) updateOrder(ctx context.Context, order *billing.Order) error {
 	ps := order.GetPublicStatus()
 
 	zap.S().Debug("[updateOrder] updating order", "order_id", order.Id, "status", ps)
 
-	originalOrder, _ := s.getOrderById(order.Id)
+	originalOrder, _ := s.getOrderById(ctx, order.Id)
 
 	statusChanged := false
 	if originalOrder != nil {
@@ -1702,11 +1735,13 @@ func (s *Service) updateOrder(order *billing.Order) error {
 		}
 	}
 
-	err := s.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	oid, _ := primitive.ObjectIDFromHex(order.Id)
+	filter := bson.M{"_id": oid}
+	_, err := s.db.Collection(collectionOrder).ReplaceOne(ctx, filter, order)
 
 	if err != nil {
 		s.logError(orderErrorUpdateOrderDataFailed, []interface{}{"error", err.Error(), "order", order})
-		if err == mgo.ErrNotFound {
+		if err == mongo.ErrNoDocuments {
 			return orderErrorNotFound
 		}
 		return orderErrorUnknown
@@ -1723,12 +1758,12 @@ func (s *Service) updateOrder(order *billing.Order) error {
 
 		switch ps {
 		case constant.OrderPublicStatusRefunded:
-			s.sendMailWithRefund(order)
+			s.sendMailWithRefund(ctx, order)
 		case constant.OrderPublicStatusProcessed:
-			s.sendMailWithReceipt(order)
+			s.sendMailWithReceipt(ctx, order)
 		}
 
-		s.orderNotifyMerchant(order)
+		s.orderNotifyMerchant(ctx, order)
 	}
 
 	return nil
@@ -1781,8 +1816,8 @@ func (s *Service) orderNotifyKeyProducts(ctx context.Context, order *billing.Ord
 	}
 }
 
-func (s *Service) sendMailWithRefund(order *billing.Order) {
-	payload := s.getPayloadForReceipt(order)
+func (s *Service) sendMailWithRefund(ctx context.Context, order *billing.Order) {
+	payload := s.getPayloadForReceipt(ctx, order)
 	payload.TemplateAlias = s.cfg.EmailRefundTransactionTemplate
 
 	zap.S().Infow("sending receipt to broker", "order_id", order.Id)
@@ -1794,8 +1829,8 @@ func (s *Service) sendMailWithRefund(order *billing.Order) {
 	}
 }
 
-func (s *Service) sendMailWithReceipt(order *billing.Order) {
-	payload := s.getPayloadForReceipt(order)
+func (s *Service) sendMailWithReceipt(ctx context.Context, order *billing.Order) {
+	payload := s.getPayloadForReceipt(ctx, order)
 
 	zap.S().Infow("sending receipt to broker", "order_id", order.Id, "topic", postmarkSdrPkg.PostmarkSenderTopicName)
 	err := s.postmarkBroker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
@@ -1823,7 +1858,7 @@ func (s *Service) getReceiptModel(name string, price string) *structpb.Value {
 	}
 }
 
-func (s *Service) getPayloadForReceipt(order *billing.Order) *postmarkSdrPkg.Payload {
+func (s *Service) getPayloadForReceipt(ctx context.Context, order *billing.Order) *postmarkSdrPkg.Payload {
 	totalPrice, err := s.formatter.FormatCurrency(DefaultLanguage, order.OrderAmount, order.Currency)
 	if err != nil {
 		zap.S().Errorw("Error during formatting currency", "price", order.OrderAmount, "locale", DefaultLanguage, "currency", order.Currency)
@@ -1835,7 +1870,7 @@ func (s *Service) getPayloadForReceipt(order *billing.Order) *postmarkSdrPkg.Pay
 	}
 
 	merchantName := order.GetMerchantId()
-	merchant, err := s.merchant.GetById(order.GetMerchantId())
+	merchant, err := s.merchant.GetById(ctx, order.GetMerchantId())
 	if err != nil {
 		zap.S().Errorw("Error during getting merchant", "merchant_id", order.GetMerchantId(), "order.uuid", order.Uuid, "err", err)
 	} else {
@@ -1843,7 +1878,7 @@ func (s *Service) getPayloadForReceipt(order *billing.Order) *postmarkSdrPkg.Pay
 	}
 
 	paymentPartner := "PaySuper"
-	oc, err := s.operatingCompany.GetById(order.OperatingCompanyId)
+	oc, err := s.operatingCompany.GetById(ctx, order.OperatingCompanyId)
 
 	if err != nil {
 		zap.L().Error("unable to get operating company", zap.Error(err))
@@ -1871,7 +1906,7 @@ func (s *Service) getPayloadForReceipt(order *billing.Order) *postmarkSdrPkg.Pay
 	currency := order.Currency
 
 	if order.IsBuyForVirtualCurrency {
-		project, _ := s.project.GetById(order.GetProjectId())
+		project, _ := s.project.GetById(ctx, order.GetProjectId())
 		currency, _ = project.VirtualCurrency.Name[DefaultLanguage]
 	}
 
@@ -1951,7 +1986,7 @@ func (s *Service) sendMailWithCode(ctx context.Context, order *billing.Order, ke
 	zap.S().Errorw("Mail not sent because no items found for key", "order_id", order.Id, "key_id", key.Id, "email", order.ReceiptEmail)
 }
 
-func (s *Service) orderNotifyMerchant(order *billing.Order) {
+func (s *Service) orderNotifyMerchant(ctx context.Context, order *billing.Order) {
 	zap.S().Debug("[orderNotifyMerchant] try to send notify merchant to rmq", "order_id", order.Id, "status", order.GetPublicStatus())
 
 	err := s.broker.Publish(constant.PayOneTopicNotifyPaymentName, order, amqp.Table{"x-retry-count": int32(0)})
@@ -1964,7 +1999,9 @@ func (s *Service) orderNotifyMerchant(order *billing.Order) {
 		zap.S().Debug("[orderNotifyMerchant] send notify merchant to rmq failed", "order_id", order.Id)
 	}
 	order.SetNotificationStatus(order.GetPublicStatus(), err == nil)
-	err = s.db.Collection(collectionOrder).UpdateId(bson.ObjectIdHex(order.Id), order)
+	oid, _ := primitive.ObjectIDFromHex(order.Id)
+	filter := bson.M{"_id": oid}
+	_, err = s.db.Collection(collectionOrder).ReplaceOne(ctx, filter, order)
 	if err != nil {
 		zap.S().Debug("[orderNotifyMerchant] notification status update failed", "order_id", order.Id)
 		s.logError(orderErrorUpdateOrderDataFailed, []interface{}{"error", err.Error(), "order", order})
@@ -1973,10 +2010,12 @@ func (s *Service) orderNotifyMerchant(order *billing.Order) {
 	}
 }
 
-func (s *Service) getOrderById(id string) (order *billing.Order, err error) {
-	err = s.db.Collection(collectionOrder).FindId(bson.ObjectIdHex(id)).One(&order)
+func (s *Service) getOrderById(ctx context.Context, id string) (order *billing.Order, err error) {
+	oid, _ := primitive.ObjectIDFromHex(id)
+	filter := bson.M{"_id": oid}
+	err = s.db.Collection(collectionOrder).FindOne(ctx, filter).Decode(&order)
 
-	if err != nil && err != mgo.ErrNotFound {
+	if err != nil && err != mongo.ErrNoDocuments {
 		zap.S().Errorf("Order not found in payment create process", "err", err.Error(), "order_id", id)
 	}
 
@@ -1987,10 +2026,10 @@ func (s *Service) getOrderById(id string) (order *billing.Order, err error) {
 	return
 }
 
-func (s *Service) getOrderByUuid(uuid string) (order *billing.Order, err error) {
-	order, err = s.orderRepository.GetByUuid(uuid)
+func (s *Service) getOrderByUuid(ctx context.Context, uuid string) (order *billing.Order, err error) {
+	order, err = s.orderRepository.GetByUuid(ctx, uuid)
 
-	if err != nil && err != mgo.ErrNotFound {
+	if err != nil && err != mongo.ErrNoDocuments {
 		zap.S().Errorf("Order not found in payment create process", "err", err.Error(), "uuid", uuid)
 	}
 
@@ -2001,8 +2040,8 @@ func (s *Service) getOrderByUuid(uuid string) (order *billing.Order, err error) 
 	return
 }
 
-func (s *Service) getOrderByUuidToForm(uuid string) (*billing.Order, error) {
-	order, err := s.getOrderByUuid(uuid)
+func (s *Service) getOrderByUuidToForm(ctx context.Context, uuid string) (*billing.Order, error) {
+	order, err := s.getOrderByUuid(ctx, uuid)
 
 	if err != nil {
 		return nil, orderErrorNotFound
@@ -2019,7 +2058,7 @@ func (s *Service) getOrderByUuidToForm(uuid string) (*billing.Order, error) {
 	return order, nil
 }
 
-func (s *Service) getBinData(pan string) (data *BinData) {
+func (s *Service) getBinData(ctx context.Context, pan string) (data *BinData) {
 	if len(pan) < 6 {
 		zap.S().Errorf("Incorrect PAN to get BIN data", "pan", pan)
 		return
@@ -2032,7 +2071,7 @@ func (s *Service) getBinData(pan string) (data *BinData) {
 		return
 	}
 
-	err = s.db.Collection(collectionBinData).Find(bson.M{"card_bin": int32(i)}).One(&data)
+	err = s.db.Collection(collectionBinData).FindOne(ctx, bson.M{"card_bin": int32(i)}).Decode(&data)
 
 	if err != nil {
 		zap.S().Errorf("Query to get bank card BIN data failed", "error", err.Error(), "pan", pan)
@@ -2043,7 +2082,7 @@ func (s *Service) getBinData(pan string) (data *BinData) {
 }
 
 func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
-	id := bson.NewObjectId().Hex()
+	id := primitive.NewObjectID().Hex()
 	amount := tools.FormatAmount(v.checked.amount)
 
 	if (v.request.UrlVerify != "" || v.request.UrlNotify != "") && v.checked.project.AllowDynamicNotifyUrls == false {
@@ -2136,7 +2175,7 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 				return nil, err
 			}
 
-			restricted, err := v.applyCountryRestriction(order, order.GetCountry())
+			restricted, err := v.applyCountryRestriction(v.ctx, order, order.GetCountry())
 			if err != nil {
 				return nil, err
 			}
@@ -2159,7 +2198,7 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 	}
 
 	if v.checked.paymentMethod != nil {
-		ps, err := v.paymentSystem.GetById(v.checked.paymentMethod.PaymentSystemId)
+		ps, err := v.paymentSystem.GetById(v.ctx, v.checked.paymentMethod.PaymentSystemId)
 		if err != nil {
 			return nil, err
 		}
@@ -2207,7 +2246,7 @@ func (v *OrderCreateRequestProcessor) processMerchant() error {
 }
 
 func (v *OrderCreateRequestProcessor) processProject() error {
-	project, err := v.project.GetById(v.request.ProjectId)
+	project, err := v.project.GetById(v.ctx, v.request.ProjectId)
 
 	if err != nil {
 		zap.S().Errorw("Order create get project error", "err", err, "request", v.request)
@@ -2218,11 +2257,17 @@ func (v *OrderCreateRequestProcessor) processProject() error {
 		return orderErrorProjectInactive
 	}
 
-	if project.MerchantId == "" || bson.IsObjectIdHex(project.MerchantId) == false {
+	if project.MerchantId == "" {
 		return orderErrorProjectMerchantNotFound
 	}
 
-	merchant, err := v.merchant.GetById(project.MerchantId)
+	_, err = primitive.ObjectIDFromHex(project.MerchantId)
+
+	if err != nil {
+		return orderErrorProjectMerchantNotFound
+	}
+
+	merchant, err := v.merchant.GetById(v.ctx, project.MerchantId)
 	if err != nil {
 		return orderErrorProjectMerchantNotFound
 	}
@@ -2246,7 +2291,7 @@ func (v *OrderCreateRequestProcessor) processCurrency(isSimpleCheckout bool) err
 		v.checked.currency = v.request.Currency
 		v.checked.isCurrencyPredefined = true
 
-		pricegroup, err := v.priceGroup.GetByRegion(v.checked.currency)
+		pricegroup, err := v.priceGroup.GetByRegion(v.ctx, v.checked.currency)
 		if err == nil {
 			v.checked.priceGroup = pricegroup
 		}
@@ -2262,27 +2307,27 @@ func (v *OrderCreateRequestProcessor) processCurrency(isSimpleCheckout bool) err
 	countryCode := v.getCountry()
 	if countryCode == "" {
 		v.checked.currency = v.checked.merchant.GetPayoutCurrency()
-		pricegroup, err := v.priceGroup.GetByRegion(v.checked.currency)
+		pricegroup, err := v.priceGroup.GetByRegion(v.ctx, v.checked.currency)
 		if err == nil {
 			v.checked.priceGroup = pricegroup
 		}
 		return nil
 	}
 
-	country, err := v.country.GetByIsoCodeA2(countryCode)
+	country, err := v.country.GetByIsoCodeA2(v.ctx, countryCode)
 	if err != nil {
 		v.checked.currency = v.checked.merchant.GetPayoutCurrency()
-		pricegroup, err := v.priceGroup.GetByRegion(v.checked.currency)
+		pricegroup, err := v.priceGroup.GetByRegion(v.ctx, v.checked.currency)
 		if err == nil {
 			v.checked.priceGroup = pricegroup
 		}
 		return nil
 	}
 
-	pricegroup, err := v.priceGroup.GetById(country.PriceGroupId)
+	pricegroup, err := v.priceGroup.GetById(v.ctx, country.PriceGroupId)
 	if err != nil {
 		v.checked.currency = v.checked.merchant.GetPayoutCurrency()
-		pricegroup, err := v.priceGroup.GetByRegion(v.checked.currency)
+		pricegroup, err := v.priceGroup.GetByRegion(v.ctx, v.checked.currency)
 		if err == nil {
 			v.checked.priceGroup = pricegroup
 		}
@@ -2450,14 +2495,11 @@ func (v *OrderCreateRequestProcessor) processPaylinkProducts() error {
 func (v *OrderCreateRequestProcessor) processProjectOrderId() error {
 	var order *billing.Order
 
-	filter := bson.M{
-		"project._id":      bson.ObjectIdHex(v.checked.project.Id),
-		"project_order_id": v.request.OrderId,
-	}
+	oid, _ := primitive.ObjectIDFromHex(v.checked.project.Id)
+	filter := bson.M{"project._id": oid, "project_order_id": v.request.OrderId}
+	err := v.db.Collection(collectionOrder).FindOne(v.ctx, filter).Decode(&order)
 
-	err := v.db.Collection(collectionOrder).Find(filter).One(&order)
-
-	if err != nil && err != mgo.ErrNotFound {
+	if err != nil && err != mongo.ErrNoDocuments {
 		zap.S().Errorw("Order create check project order id unique", "err", err, "filter", filter)
 		return orderErrorCanNotCreate
 	}
@@ -2474,7 +2516,7 @@ func (v *OrderCreateRequestProcessor) processPaymentMethod(pm *billing.PaymentMe
 		return orderErrorPaymentMethodInactive
 	}
 
-	if _, err := v.paymentSystem.GetById(pm.PaymentSystemId); err != nil {
+	if _, err := v.paymentSystem.GetById(v.ctx, pm.PaymentSystemId); err != nil {
 		return orderErrorPaymentSystemInactive
 	}
 
@@ -2492,7 +2534,7 @@ func (v *OrderCreateRequestProcessor) processPaymentMethod(pm *billing.PaymentMe
 func (v *OrderCreateRequestProcessor) processLimitAmounts() (err error) {
 	amount := v.checked.amount
 
-	pmls, err := v.paymentMinLimitSystem.GetByCurrency(v.checked.currency)
+	pmls, err := v.paymentMinLimitSystem.GetByCurrency(v.ctx, v.checked.currency)
 	if err != nil {
 		return err
 	}
@@ -2596,7 +2638,7 @@ func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) erro
 
 	countryCode := order.GetCountry()
 	if countryCode != "" {
-		country, err := v.country.GetByIsoCodeA2(countryCode)
+		country, err := v.country.GetByIsoCodeA2(v.ctx, countryCode)
 		if err != nil {
 			return err
 		}
@@ -2658,7 +2700,7 @@ func (v *OrderCreateRequestProcessor) processCustomerToken() error {
 		return err
 	}
 
-	customer, err := v.getCustomerById(token.CustomerId)
+	customer, err := v.getCustomerById(v.ctx, token.CustomerId)
 
 	if err != nil {
 		return err
@@ -2721,13 +2763,13 @@ func (v *OrderCreateRequestProcessor) processUserData() (err error) {
 	tokenReq := v.transformOrderUser2TokenRequest(v.request.User)
 
 	if v.request.Token == "" {
-		customer, _ = v.findCustomer(tokenReq, v.checked.project)
+		customer, _ = v.findCustomer(v.ctx, tokenReq, v.checked.project)
 	}
 
 	if customer != nil {
-		customer, err = v.updateCustomer(tokenReq, v.checked.project, customer)
+		customer, err = v.updateCustomer(v.ctx, tokenReq, v.checked.project, customer)
 	} else {
-		customer, err = v.createCustomer(tokenReq, v.checked.project)
+		customer, err = v.createCustomer(v.ctx, tokenReq, v.checked.project)
 	}
 
 	if err != nil {
@@ -2744,13 +2786,21 @@ func (v *OrderCreateRequestProcessor) processUserData() (err error) {
 
 // GetById payment methods of project for rendering in payment form
 func (v *PaymentFormProcessor) processRenderFormPaymentMethods(
+	ctx context.Context,
 	project *billing.Project,
 ) ([]*billing.PaymentFormPaymentMethod, error) {
 	var projectPms []*billing.PaymentFormPaymentMethod
 
-	paymentMethods, err := v.service.paymentMethod.ListByParams(project, v.order.Currency, v.order.MccCode, v.order.OperatingCompanyId)
+	paymentMethods, err := v.service.paymentMethod.ListByParams(
+		ctx,
+		project,
+		v.order.Currency,
+		v.order.MccCode,
+		v.order.OperatingCompanyId,
+	)
 
 	if err != nil {
+		zap.S().Errorw("ListByParams failed", "error", err, "order_id", v.order.Id, "order_uuid", v.order.Uuid)
 		return nil, err
 	}
 
@@ -2759,9 +2809,14 @@ func (v *PaymentFormProcessor) processRenderFormPaymentMethods(
 			continue
 		}
 
-		ps, err := v.service.paymentSystem.GetById(pm.PaymentSystemId)
+		ps, err := v.service.paymentSystem.GetById(ctx, pm.PaymentSystemId)
 
-		if err != nil || ps.IsActive == false {
+		if err != nil {
+			zap.S().Errorw("GetById failed", "error", err, "order_id", v.order.Id, "order_uuid", v.order.Uuid)
+			continue
+		}
+
+		if ps.IsActive == false {
 			continue
 		}
 
@@ -2773,6 +2828,7 @@ func (v *PaymentFormProcessor) processRenderFormPaymentMethods(
 		_, err = v.service.paymentMethod.GetPaymentSettings(pm, v.order.Currency, v.order.MccCode, v.order.OperatingCompanyId, project)
 
 		if err != nil {
+			zap.S().Errorw("GetPaymentSettings failed", "error", err, "order_id", v.order.Id, "order_uuid", v.order.Uuid)
 			continue
 		}
 
@@ -2799,6 +2855,7 @@ func (v *PaymentFormProcessor) processRenderFormPaymentMethods(
 	}
 
 	if len(projectPms) <= 0 {
+		zap.S().Errorw("Not found any active payment methods", "order_id", v.order.Id, "order_uuid", v.order.Uuid)
 		return projectPms, orderErrorPaymentMethodNotAllowed
 	}
 
@@ -2902,7 +2959,7 @@ func (v *PaymentCreateProcessor) reserveKeysForOrder(ctx context.Context, order 
 }
 
 // Validate data received from payment form and write validated data to order
-func (v *PaymentCreateProcessor) processPaymentFormData() error {
+func (v *PaymentCreateProcessor) processPaymentFormData(ctx context.Context) error {
 	if _, ok := v.data[pkg.PaymentCreateFieldOrderId]; !ok ||
 		v.data[pkg.PaymentCreateFieldOrderId] == "" {
 		return orderErrorCreatePaymentRequiredFieldIdNotFound
@@ -2918,7 +2975,7 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 		return orderErrorCreatePaymentRequiredFieldEmailNotFound
 	}
 
-	order, err := v.service.getOrderByUuidToForm(v.data[pkg.PaymentCreateFieldOrderId])
+	order, err := v.service.getOrderByUuidToForm(ctx, v.data[pkg.PaymentCreateFieldOrderId])
 
 	if err != nil {
 		return err
@@ -2942,7 +2999,7 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 				return orderErrorCreatePaymentRequiredFieldUserZipNotFound
 			}
 
-			zipData, err := v.service.zipCode.getByZipAndCountry(zip, country)
+			zipData, err := v.service.zipCode.getByZipAndCountry(ctx, zip, country)
 
 			if err != nil {
 				return orderErrorZipCodeNotFound
@@ -2953,7 +3010,7 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 		}
 	}
 
-	merchant, err := v.service.merchant.GetById(order.GetMerchantId())
+	merchant, err := v.service.merchant.GetById(ctx, order.GetMerchantId())
 	if err != nil {
 		return err
 	}
@@ -2963,7 +3020,7 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 		order.IsHighRisk = merchant.IsHighRisk()
 	}
 
-	order.OperatingCompanyId, err = v.service.getOrderOperatingCompanyId(order.GetCountry(), merchant)
+	order.OperatingCompanyId, err = v.service.getOrderOperatingCompanyId(ctx, order.GetCountry(), merchant)
 	if err != nil {
 		return err
 	}
@@ -2980,13 +3037,14 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 			mccCode:            order.MccCode,
 			operatingCompanyId: order.OperatingCompanyId,
 		},
+		ctx: ctx,
 	}
 
 	if err := processor.processProject(); err != nil {
 		return err
 	}
 
-	pm, err := v.service.paymentMethod.GetById(v.data[pkg.PaymentCreateFieldPaymentMethodId])
+	pm, err := v.service.paymentMethod.GetById(ctx, v.data[pkg.PaymentCreateFieldPaymentMethodId])
 	if err != nil {
 		return orderErrorPaymentMethodNotFound
 	}
@@ -3049,7 +3107,7 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 		updCustomerReq.User.Address = order.BillingAddress
 	}
 
-	restricted, err := v.service.applyCountryRestriction(order, order.GetCountry())
+	restricted, err := v.service.applyCountryRestriction(ctx, order, order.GetCountry())
 	if err != nil {
 		zap.L().Error(
 			"v.service.applyCountryRestriction Method failed",
@@ -3066,7 +3124,7 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 	}
 
 	if order.User.IsIdentified() == true {
-		customer, err := v.service.updateCustomerFromRequest(order, updCustomerReq, v.ip, v.acceptLanguage, v.userAgent)
+		customer, err := v.service.updateCustomerFromRequest(ctx, order, updCustomerReq, v.ip, v.acceptLanguage, v.userAgent)
 
 		if err != nil {
 			v.service.logError("Update customer data by request failed", []interface{}{"error", err.Error(), "data", updCustomerReq})
@@ -3127,7 +3185,7 @@ func (v *PaymentCreateProcessor) processPaymentFormData() error {
 			order.PaymentRequisites[pkg.PaymentCreateFieldYear] = v.data[pkg.PaymentCreateFieldYear]
 		}
 
-		bin := v.service.getBinData(order.PaymentRequisites[pkg.PaymentCreateFieldPan])
+		bin := v.service.getBinData(ctx, order.PaymentRequisites[pkg.PaymentCreateFieldPan])
 
 		if bin != nil {
 			order.PaymentRequisites[pkg.PaymentCreateBankCardFieldBrand] = bin.CardBrand
@@ -3189,7 +3247,7 @@ func (s *Service) GetOrderKeyProducts(ctx context.Context, projectId string, pro
 		return nil, orderErrorUnknown
 	}
 
-	if result.Count != int32(len(productIds)) {
+	if result.Count != int64(len(productIds)) {
 		return nil, orderErrorProductsInvalid
 	}
 
@@ -3241,7 +3299,7 @@ func (s *Service) GetOrderProducts(projectId string, productIds []string) ([]*gr
 		return nil, orderErrorUnknown
 	}
 
-	if result.Total != int32(len(productIds)) {
+	if result.Total != int64(len(productIds)) {
 		return nil, orderErrorProductsInvalid
 	}
 
@@ -3425,7 +3483,7 @@ func (s *Service) ProcessOrderVirtualCurrency(ctx context.Context, order *billin
 		priceGroup *billing.PriceGroup
 	)
 
-	merchant, _ := s.merchant.GetById(order.Project.MerchantId)
+	merchant, _ := s.merchant.GetById(ctx, order.Project.MerchantId)
 	defaultCurrency := merchant.GetPayoutCurrency()
 
 	if defaultCurrency == "" {
@@ -3433,7 +3491,7 @@ func (s *Service) ProcessOrderVirtualCurrency(ctx context.Context, order *billin
 		return orderErrorNoProductsCommonCurrency
 	}
 
-	defaultPriceGroup, err := s.priceGroup.GetByRegion(defaultCurrency)
+	defaultPriceGroup, err := s.priceGroup.GetByRegion(ctx, defaultCurrency)
 	if err != nil {
 		zap.S().Errorw("Price group not found", "currency", currency)
 		return orderErrorUnknown
@@ -3445,13 +3503,13 @@ func (s *Service) ProcessOrderVirtualCurrency(ctx context.Context, order *billin
 	country = order.GetCountry()
 
 	if country != "" {
-		countryData, err := s.country.GetByIsoCodeA2(country)
+		countryData, err := s.country.GetByIsoCodeA2(ctx, country)
 		if err != nil {
 			zap.S().Errorw("Country not found", "country", country)
 			return orderErrorUnknown
 		}
 
-		priceGroup, err = s.priceGroup.GetById(countryData.PriceGroupId)
+		priceGroup, err = s.priceGroup.GetById(ctx, countryData.PriceGroupId)
 		if err != nil {
 			zap.S().Errorw("Price group not found", "countryData", countryData)
 			return orderErrorUnknown
@@ -3462,7 +3520,7 @@ func (s *Service) ProcessOrderVirtualCurrency(ctx context.Context, order *billin
 
 	zap.S().Infow("try to use detected currency for order amount", "currency", currency, "order.Uuid", order.Uuid)
 
-	project, err := s.project.GetById(order.GetProjectId())
+	project, err := s.project.GetById(ctx, order.GetProjectId())
 
 	if project == nil || project.VirtualCurrency == nil {
 		return orderErrorVirtualCurrencyNotFilled
@@ -3503,7 +3561,7 @@ func (s *Service) GetAmountForVirtualCurrency(virtualAmount float64, group *bill
 }
 
 func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Order) ([]*grpc.Platform, error) {
-	project, err := s.project.GetById(order.Project.Id)
+	project, err := s.project.GetById(ctx, order.Project.Id)
 	if err != nil {
 		return nil, orderErrorProjectNotFound
 	}
@@ -3550,7 +3608,7 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 		platformId = platforms[0].Id
 	}
 
-	priceGroup, err = s.getOrderPriceGroup(order)
+	priceGroup, err = s.getOrderPriceGroup(ctx, order)
 	if err != nil {
 		zap.L().Error(
 			"ProcessOrderKeyProducts getOrderPriceGroup failed",
@@ -3597,7 +3655,7 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 }
 
 func (s *Service) ProcessOrderProducts(ctx context.Context, order *billing.Order) error {
-	project, err := s.project.GetById(order.Project.Id)
+	project, err := s.project.GetById(ctx, order.Project.Id)
 	if err != nil {
 		return orderErrorProjectNotFound
 	}
@@ -3624,7 +3682,7 @@ func (s *Service) ProcessOrderProducts(ctx context.Context, order *billing.Order
 		amount     float64
 	)
 
-	priceGroup, err = s.getOrderPriceGroup(order)
+	priceGroup, err = s.getOrderPriceGroup(ctx, order)
 	if err != nil {
 		zap.L().Error(
 			"ProcessOrderProducts getOrderPriceGroup failed",
@@ -3634,12 +3692,12 @@ func (s *Service) ProcessOrderProducts(ctx context.Context, order *billing.Order
 		return err
 	}
 
-	merchant, err := s.merchant.GetById(order.GetMerchantId())
+	merchant, err := s.merchant.GetById(ctx, order.GetMerchantId())
 	if err != nil {
 		return err
 	}
 
-	defaultPriceGroup, err := s.priceGroup.GetByRegion(merchant.GetPayoutCurrency())
+	defaultPriceGroup, err := s.priceGroup.GetByRegion(ctx, merchant.GetPayoutCurrency())
 
 	zap.L().Info(
 		"ProcessOrderProducts try to use detected currency for order amount",
@@ -3738,7 +3796,7 @@ func (s *Service) processAmountForVirtualCurrency(
 		}
 	}
 
-	project, err := s.project.GetById(order.GetProjectId())
+	project, err := s.project.GetById(ctx, order.GetProjectId())
 	if err != nil {
 		return 0, nil, err
 	}
@@ -3772,13 +3830,14 @@ func (v *PaymentCreateProcessor) GetMerchantId() string {
 }
 
 func (s *Service) processCustomerData(
+	ctx context.Context,
 	customerId string,
 	order *billing.Order,
 	req *grpc.PaymentFormJsonDataRequest,
 	browserCustomer *BrowserCookieCustomer,
 	locale string,
 ) (*billing.Customer, error) {
-	customer, err := s.getCustomerById(customerId)
+	customer, err := s.getCustomerById(ctx, customerId)
 
 	if err != nil {
 		return nil, err
@@ -3798,7 +3857,7 @@ func (s *Service) processCustomerData(
 	}
 
 	browserCustomer.CustomerId = customer.Id
-	_, err = s.updateCustomer(tokenReq, project, customer)
+	_, err = s.updateCustomer(ctx, tokenReq, project, customer)
 
 	return customer, err
 }
@@ -3808,7 +3867,7 @@ func (s *Service) IsOrderCanBePaying(
 	req *grpc.IsOrderCanBePayingRequest,
 	rsp *grpc.IsOrderCanBePayingResponse,
 ) error {
-	order, err := s.getOrderByUuidToForm(req.OrderId)
+	order, err := s.getOrderByUuidToForm(ctx, req.OrderId)
 	rsp.Status = pkg.ResponseStatusBadData
 
 	if err != nil {
@@ -3903,7 +3962,7 @@ func (s *Service) SetUserNotifySales(
 	rsp *grpc.EmptyResponse,
 ) error {
 
-	order, err := s.getOrderByUuid(req.OrderUuid)
+	order, err := s.getOrderByUuid(ctx, req.OrderUuid)
 
 	if err != nil {
 		s.logError(orderErrorNotFound.Message, []interface{}{"error", err.Error(), "request", req})
@@ -3916,7 +3975,7 @@ func (s *Service) SetUserNotifySales(
 
 	order.NotifySale = req.EnableNotification
 	order.NotifySaleEmail = req.Email
-	err = s.updateOrder(order)
+	err = s.updateOrder(ctx, order)
 	if err != nil {
 		return err
 	}
@@ -3933,7 +3992,7 @@ func (s *Service) SetUserNotifySales(
 	if order.User != nil {
 		data.UserId = order.User.Id
 	}
-	err = s.db.Collection(collectionNotifySales).Insert(data)
+	_, err = s.db.Collection(collectionNotifySales).InsertOne(ctx, data)
 	if err != nil {
 
 		zap.S().Errorf(
@@ -3946,11 +4005,11 @@ func (s *Service) SetUserNotifySales(
 	}
 
 	if order.User.IsIdentified() == true {
-		customer, err := s.getCustomerById(order.User.Id)
+		customer, err := s.getCustomerById(ctx, order.User.Id)
 		if err != nil {
 			return err
 		}
-		project, err := s.project.GetById(order.Project.Id)
+		project, err := s.project.GetById(ctx, order.Project.Id)
 		if err != nil {
 			return err
 		}
@@ -3959,7 +4018,7 @@ func (s *Service) SetUserNotifySales(
 		customer.NotifySaleEmail = req.Email
 
 		tokenReq := s.transformOrderUser2TokenRequest(order.User)
-		_, err = s.updateCustomer(tokenReq, project, customer)
+		_, err = s.updateCustomer(ctx, tokenReq, project, customer)
 		if err != nil {
 			return err
 		}
@@ -3974,7 +4033,7 @@ func (s *Service) SetUserNotifyNewRegion(
 	rsp *grpc.EmptyResponse,
 ) error {
 
-	order, err := s.getOrderByUuid(req.OrderUuid)
+	order, err := s.getOrderByUuid(ctx, req.OrderUuid)
 
 	if err != nil {
 		s.logError(orderErrorNotFound.Message, []interface{}{"error", err.Error(), "request", req})
@@ -3995,7 +4054,7 @@ func (s *Service) SetUserNotifyNewRegion(
 	}
 	order.User.NotifyNewRegion = req.EnableNotification
 	order.User.NotifyNewRegionEmail = req.Email
-	err = s.updateOrder(order)
+	err = s.updateOrder(ctx, order)
 	if err != nil {
 		return err
 	}
@@ -4011,7 +4070,7 @@ func (s *Service) SetUserNotifyNewRegion(
 		Date:             time.Now().Format(time.RFC3339),
 		CountryIsoCodeA2: order.CountryRestriction.IsoCodeA2,
 	}
-	err = s.db.Collection(collectionNotifyNewRegion).Insert(data)
+	_, err = s.db.Collection(collectionNotifyNewRegion).InsertOne(ctx, data)
 	if err != nil {
 		zap.S().Errorf(
 			"Save email to collection failed",
@@ -4023,11 +4082,11 @@ func (s *Service) SetUserNotifyNewRegion(
 	}
 
 	if order.User.IsIdentified() == true {
-		customer, err := s.getCustomerById(order.User.Id)
+		customer, err := s.getCustomerById(ctx, order.User.Id)
 		if err != nil {
 			return err
 		}
-		project, err := s.project.GetById(order.Project.Id)
+		project, err := s.project.GetById(ctx, order.Project.Id)
 		if err != nil {
 			return err
 		}
@@ -4036,7 +4095,7 @@ func (s *Service) SetUserNotifyNewRegion(
 		customer.NotifyNewRegionEmail = req.Email
 
 		tokenReq := s.transformOrderUser2TokenRequest(order.User)
-		_, err = s.updateCustomer(tokenReq, project, customer)
+		_, err = s.updateCustomer(ctx, tokenReq, project, customer)
 		if err != nil {
 			return err
 		}
@@ -4045,18 +4104,22 @@ func (s *Service) SetUserNotifyNewRegion(
 	return nil
 }
 
-func (s *Service) applyCountryRestriction(order *billing.Order, countryCode string) (restricted bool, err error) {
+func (s *Service) applyCountryRestriction(
+	ctx context.Context,
+	order *billing.Order,
+	countryCode string,
+) (restricted bool, err error) {
 	restricted = false
 	if countryCode == "" {
 		order.UserAddressDataRequired = true
 		return
 	}
-	country, err := s.country.GetByIsoCodeA2(countryCode)
+	country, err := s.country.GetByIsoCodeA2(ctx, countryCode)
 	if err != nil {
 		return
 	}
 
-	merchant, err := s.merchant.GetById(order.GetMerchantId())
+	merchant, err := s.merchant.GetById(ctx, order.GetMerchantId())
 	if err != nil {
 		return
 	}
@@ -4077,7 +4140,7 @@ func (s *Service) applyCountryRestriction(order *billing.Order, countryCode stri
 	}
 	order.PrivateStatus = constant.OrderStatusPaymentSystemDeclined
 	restricted = true
-	err = s.updateOrder(order)
+	err = s.updateOrder(ctx, order)
 	if err != nil && err.Error() == orderErrorNotFound.Error() {
 		err = nil
 	}
@@ -4085,7 +4148,7 @@ func (s *Service) applyCountryRestriction(order *billing.Order, countryCode stri
 }
 
 func (s *Service) PaymentFormPlatformChanged(ctx context.Context, req *grpc.PaymentFormUserChangePlatformRequest, rsp *grpc.EmptyResponseWithStatus) error {
-	order, err := s.getOrderByUuidToForm(req.OrderId)
+	order, err := s.getOrderByUuidToForm(ctx, req.OrderId)
 
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
@@ -4120,7 +4183,7 @@ func (s *Service) PaymentFormPlatformChanged(ctx context.Context, req *grpc.Paym
 		return err
 	}
 
-	err = s.updateOrder(order)
+	err = s.updateOrder(ctx, order)
 
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
@@ -4140,7 +4203,7 @@ func (s *Service) OrderReceipt(
 	req *grpc.OrderReceiptRequest,
 	rsp *grpc.OrderReceiptResponse,
 ) error {
-	order, err := s.orderRepository.GetByUuid(req.OrderId)
+	order, err := s.orderRepository.GetByUuid(ctx, req.OrderId)
 
 	if err != nil {
 		zap.L().Error(pkg.MethodFinishedWithError, zap.Error(err))
@@ -4164,7 +4227,7 @@ func (s *Service) OrderReceipt(
 		return nil
 	}
 
-	merchant, err := s.merchant.GetById(order.GetMerchantId())
+	merchant, err := s.merchant.GetById(ctx, order.GetMerchantId())
 
 	if err != nil {
 		zap.L().Error(orderErrorMerchantForOrderNotFound.Message, zap.Error(err))
@@ -4234,7 +4297,7 @@ func (s *Service) OrderReceipt(
 		platformName = platform.Name
 	}
 
-	oc, err := s.operatingCompany.GetById(order.OperatingCompanyId)
+	oc, err := s.operatingCompany.GetById(ctx, order.OperatingCompanyId)
 
 	if err != nil {
 		zap.L().Error(pkg.MethodFinishedWithError, zap.Error(err))
@@ -4264,7 +4327,7 @@ func (s *Service) OrderReceipt(
 }
 
 type OrderRepositoryInterface interface {
-	GetByUuid(string) (*billing.Order, error)
+	GetByUuid(context.Context, string) (*billing.Order, error)
 }
 
 func newOrderRepository(svc *Service) OrderRepositoryInterface {
@@ -4272,9 +4335,9 @@ func newOrderRepository(svc *Service) OrderRepositoryInterface {
 	return s
 }
 
-func (h *OrderRepository) GetByUuid(uuid string) (*billing.Order, error) {
+func (h *OrderRepository) GetByUuid(ctx context.Context, uuid string) (*billing.Order, error) {
 	order := &billing.Order{}
-	err := h.svc.db.Collection(collectionOrder).Find(bson.M{"uuid": uuid}).One(order)
+	err := h.svc.db.Collection(collectionOrder).FindOne(ctx, bson.M{"uuid": uuid}).Decode(order)
 
 	if err != nil {
 		return nil, err
@@ -4305,8 +4368,8 @@ func intersect(a []string, b []string) []string {
 	return set
 }
 
-func (s *Service) hasPaymentCosts(order *billing.Order) bool {
-	country, err := s.country.GetByIsoCodeA2(order.GetCountry())
+func (s *Service) hasPaymentCosts(ctx context.Context, order *billing.Order) bool {
+	country, err := s.country.GetByIsoCodeA2(ctx, order.GetCountry())
 
 	if err != nil {
 		return false
@@ -4318,7 +4381,14 @@ func (s *Service) hasPaymentCosts(order *billing.Order) bool {
 		return false
 	}
 
-	_, err = s.paymentChannelCostSystem.Get(methodName, country.PayerTariffRegion, country.IsoCodeA2, order.MccCode, order.OperatingCompanyId)
+	_, err = s.paymentChannelCostSystem.Get(
+		ctx,
+		methodName,
+		country.PayerTariffRegion,
+		country.IsoCodeA2,
+		order.MccCode,
+		order.OperatingCompanyId,
+	)
 
 	if err != nil {
 		return false
@@ -4333,7 +4403,7 @@ func (s *Service) hasPaymentCosts(order *billing.Order) bool {
 		Country:        country.IsoCodeA2,
 		MccCode:        order.MccCode,
 	}
-	_, err = s.getPaymentChannelCostMerchant(data)
+	_, err = s.getPaymentChannelCostMerchant(ctx, data)
 	return err == nil
 }
 
@@ -4370,10 +4440,14 @@ func (v *OrderCreateRequestProcessor) processVirtualCurrency() error {
 	return nil
 }
 
-func (s *Service) OrderReCreateProcess(ctx context.Context, req *grpc.OrderReCreateProcessRequest, res *grpc.OrderCreateProcessResponse) error {
+func (s *Service) OrderReCreateProcess(
+	ctx context.Context,
+	req *grpc.OrderReCreateProcessRequest,
+	res *grpc.OrderCreateProcessResponse,
+) error {
 	res.Status = pkg.ResponseStatusOk
 
-	order, err := s.orderRepository.GetByUuid(req.OrderId)
+	order, err := s.orderRepository.GetByUuid(ctx, req.OrderId)
 	if err != nil {
 		zap.S().Errorw(pkg.ErrorGrpcServiceCallFailed, "err", err.Error(), "data", req)
 		res.Status = pkg.ResponseStatusNotFound
@@ -4405,7 +4479,7 @@ func (s *Service) OrderReCreateProcess(ctx context.Context, req *grpc.OrderReCre
 
 	newOrder.PrivateStatus = constant.OrderStatusNew
 	newOrder.Status = constant.OrderPublicStatusCreated
-	newOrder.Id = bson.NewObjectId().Hex()
+	newOrder.Id = primitive.NewObjectID().Hex()
 	newOrder.Uuid = uuid.New().String()
 	newOrder.ReceiptId = uuid.New().String()
 	newOrder.CreatedAt = ptypes.TimestampNow()
@@ -4415,7 +4489,7 @@ func (s *Service) OrderReCreateProcess(ctx context.Context, req *grpc.OrderReCre
 	newOrder.ReceiptUrl = ""
 	newOrder.PaymentMethod = nil
 
-	err = s.db.Collection(collectionOrder).Insert(newOrder)
+	_, err = s.db.Collection(collectionOrder).InsertOne(ctx, newOrder)
 
 	if err != nil {
 		zap.L().Error(
@@ -4461,30 +4535,30 @@ func (s *Service) getAddressByIp(ip string) (order *billing.OrderBillingAddress,
 	return address, nil
 }
 
-func (s *Service) getOrderPriceGroup(order *billing.Order) (priceGroup *billing.PriceGroup, err error) {
+func (s *Service) getOrderPriceGroup(ctx context.Context, order *billing.Order) (priceGroup *billing.PriceGroup, err error) {
 	if order.IsCurrencyPredefined {
-		priceGroup, err = s.priceGroup.GetByRegion(order.Currency)
+		priceGroup, err = s.priceGroup.GetByRegion(ctx, order.Currency)
 		return
 	}
 
-	merchant, err := s.merchant.GetById(order.GetMerchantId())
+	merchant, err := s.merchant.GetById(ctx, order.GetMerchantId())
 	if err != nil {
 		return
 	}
 
-	defaultPriceGroup, err := s.priceGroup.GetByRegion(merchant.GetPayoutCurrency())
+	defaultPriceGroup, err := s.priceGroup.GetByRegion(ctx, merchant.GetPayoutCurrency())
 
 	countryCode := order.GetCountry()
 	if countryCode == "" {
 		return defaultPriceGroup, nil
 	}
 
-	country, err := s.country.GetByIsoCodeA2(countryCode)
+	country, err := s.country.GetByIsoCodeA2(ctx, countryCode)
 	if err != nil {
 		return defaultPriceGroup, nil
 	}
 
-	priceGroup, err = s.priceGroup.GetById(country.PriceGroupId)
+	priceGroup, err = s.priceGroup.GetById(ctx, country.PriceGroupId)
 	return
 }
 
@@ -4505,7 +4579,7 @@ func (s *Service) setOrderChargeAmountAndCurrency(ctx context.Context, order *bi
 		order.IsIpCountryMismatchBin = order.PaymentIpCountry != binCountryCode
 	}
 
-	binCountry, err := s.country.GetByIsoCodeA2(binCountryCode)
+	binCountry, err := s.country.GetByIsoCodeA2(ctx, binCountryCode)
 	if err != nil {
 		return err
 	}

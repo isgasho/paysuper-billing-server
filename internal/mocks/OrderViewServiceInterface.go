@@ -3,9 +3,10 @@
 package mocks
 
 import billing "github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-import bson "github.com/globalsign/mgo/bson"
+import context "context"
 import mock "github.com/stretchr/testify/mock"
 import paylink "github.com/paysuper/paysuper-billing-server/pkg/proto/paylink"
+import primitive "go.mongodb.org/mongo-driver/bson/primitive"
 
 import time "time"
 
@@ -14,20 +15,20 @@ type OrderViewServiceInterface struct {
 	mock.Mock
 }
 
-// CountTransactions provides a mock function with given fields: match
-func (_m *OrderViewServiceInterface) CountTransactions(match bson.M) (int, error) {
-	ret := _m.Called(match)
+// CountTransactions provides a mock function with given fields: ctx, match
+func (_m *OrderViewServiceInterface) CountTransactions(ctx context.Context, match primitive.M) (int64, error) {
+	ret := _m.Called(ctx, match)
 
-	var r0 int
-	if rf, ok := ret.Get(0).(func(bson.M) int); ok {
-		r0 = rf(match)
+	var r0 int64
+	if rf, ok := ret.Get(0).(func(context.Context, primitive.M) int64); ok {
+		r0 = rf(ctx, match)
 	} else {
-		r0 = ret.Get(0).(int)
+		r0 = ret.Get(0).(int64)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(bson.M) error); ok {
-		r1 = rf(match)
+	if rf, ok := ret.Get(1).(func(context.Context, primitive.M) error); ok {
+		r1 = rf(ctx, match)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -35,13 +36,13 @@ func (_m *OrderViewServiceInterface) CountTransactions(match bson.M) (int, error
 	return r0, r1
 }
 
-// GetOrderBy provides a mock function with given fields: id, uuid, merchantId, receiver
-func (_m *OrderViewServiceInterface) GetOrderBy(id string, uuid string, merchantId string, receiver interface{}) (interface{}, error) {
-	ret := _m.Called(id, uuid, merchantId, receiver)
+// GetOrderBy provides a mock function with given fields: ctx, id, uuid, merchantId, receiver
+func (_m *OrderViewServiceInterface) GetOrderBy(ctx context.Context, id string, uuid string, merchantId string, receiver interface{}) (interface{}, error) {
+	ret := _m.Called(ctx, id, uuid, merchantId, receiver)
 
 	var r0 interface{}
-	if rf, ok := ret.Get(0).(func(string, string, string, interface{}) interface{}); ok {
-		r0 = rf(id, uuid, merchantId, receiver)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, interface{}) interface{}); ok {
+		r0 = rf(ctx, id, uuid, merchantId, receiver)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(interface{})
@@ -49,8 +50,8 @@ func (_m *OrderViewServiceInterface) GetOrderBy(id string, uuid string, merchant
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string, string, interface{}) error); ok {
-		r1 = rf(id, uuid, merchantId, receiver)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, interface{}) error); ok {
+		r1 = rf(ctx, id, uuid, merchantId, receiver)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -58,13 +59,13 @@ func (_m *OrderViewServiceInterface) GetOrderBy(id string, uuid string, merchant
 	return r0, r1
 }
 
-// GetPaylinkStat provides a mock function with given fields: paylinkId, merchantId, from, to
-func (_m *OrderViewServiceInterface) GetPaylinkStat(paylinkId string, merchantId string, from int64, to int64) (*paylink.StatCommon, error) {
-	ret := _m.Called(paylinkId, merchantId, from, to)
+// GetPaylinkStat provides a mock function with given fields: ctx, paylinkId, merchantId, from, to
+func (_m *OrderViewServiceInterface) GetPaylinkStat(ctx context.Context, paylinkId string, merchantId string, from int64, to int64) (*paylink.StatCommon, error) {
+	ret := _m.Called(ctx, paylinkId, merchantId, from, to)
 
 	var r0 *paylink.StatCommon
-	if rf, ok := ret.Get(0).(func(string, string, int64, int64) *paylink.StatCommon); ok {
-		r0 = rf(paylinkId, merchantId, from, to)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, int64, int64) *paylink.StatCommon); ok {
+		r0 = rf(ctx, paylinkId, merchantId, from, to)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*paylink.StatCommon)
@@ -72,8 +73,8 @@ func (_m *OrderViewServiceInterface) GetPaylinkStat(paylinkId string, merchantId
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string, int64, int64) error); ok {
-		r1 = rf(paylinkId, merchantId, from, to)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, int64, int64) error); ok {
+		r1 = rf(ctx, paylinkId, merchantId, from, to)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -81,13 +82,13 @@ func (_m *OrderViewServiceInterface) GetPaylinkStat(paylinkId string, merchantId
 	return r0, r1
 }
 
-// GetPaylinkStatByCountry provides a mock function with given fields: paylinkId, merchantId, from, to
-func (_m *OrderViewServiceInterface) GetPaylinkStatByCountry(paylinkId string, merchantId string, from int64, to int64) (*paylink.GroupStatCommon, error) {
-	ret := _m.Called(paylinkId, merchantId, from, to)
+// GetPaylinkStatByCountry provides a mock function with given fields: ctx, paylinkId, merchantId, from, to
+func (_m *OrderViewServiceInterface) GetPaylinkStatByCountry(ctx context.Context, paylinkId string, merchantId string, from int64, to int64) (*paylink.GroupStatCommon, error) {
+	ret := _m.Called(ctx, paylinkId, merchantId, from, to)
 
 	var r0 *paylink.GroupStatCommon
-	if rf, ok := ret.Get(0).(func(string, string, int64, int64) *paylink.GroupStatCommon); ok {
-		r0 = rf(paylinkId, merchantId, from, to)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, int64, int64) *paylink.GroupStatCommon); ok {
+		r0 = rf(ctx, paylinkId, merchantId, from, to)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*paylink.GroupStatCommon)
@@ -95,8 +96,8 @@ func (_m *OrderViewServiceInterface) GetPaylinkStatByCountry(paylinkId string, m
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string, int64, int64) error); ok {
-		r1 = rf(paylinkId, merchantId, from, to)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, int64, int64) error); ok {
+		r1 = rf(ctx, paylinkId, merchantId, from, to)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -104,13 +105,13 @@ func (_m *OrderViewServiceInterface) GetPaylinkStatByCountry(paylinkId string, m
 	return r0, r1
 }
 
-// GetPaylinkStatByDate provides a mock function with given fields: paylinkId, merchantId, from, to
-func (_m *OrderViewServiceInterface) GetPaylinkStatByDate(paylinkId string, merchantId string, from int64, to int64) (*paylink.GroupStatCommon, error) {
-	ret := _m.Called(paylinkId, merchantId, from, to)
+// GetPaylinkStatByDate provides a mock function with given fields: ctx, paylinkId, merchantId, from, to
+func (_m *OrderViewServiceInterface) GetPaylinkStatByDate(ctx context.Context, paylinkId string, merchantId string, from int64, to int64) (*paylink.GroupStatCommon, error) {
+	ret := _m.Called(ctx, paylinkId, merchantId, from, to)
 
 	var r0 *paylink.GroupStatCommon
-	if rf, ok := ret.Get(0).(func(string, string, int64, int64) *paylink.GroupStatCommon); ok {
-		r0 = rf(paylinkId, merchantId, from, to)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, int64, int64) *paylink.GroupStatCommon); ok {
+		r0 = rf(ctx, paylinkId, merchantId, from, to)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*paylink.GroupStatCommon)
@@ -118,8 +119,8 @@ func (_m *OrderViewServiceInterface) GetPaylinkStatByDate(paylinkId string, merc
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string, int64, int64) error); ok {
-		r1 = rf(paylinkId, merchantId, from, to)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, int64, int64) error); ok {
+		r1 = rf(ctx, paylinkId, merchantId, from, to)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -127,13 +128,13 @@ func (_m *OrderViewServiceInterface) GetPaylinkStatByDate(paylinkId string, merc
 	return r0, r1
 }
 
-// GetPaylinkStatByReferrer provides a mock function with given fields: paylinkId, merchantId, from, to
-func (_m *OrderViewServiceInterface) GetPaylinkStatByReferrer(paylinkId string, merchantId string, from int64, to int64) (*paylink.GroupStatCommon, error) {
-	ret := _m.Called(paylinkId, merchantId, from, to)
+// GetPaylinkStatByReferrer provides a mock function with given fields: ctx, paylinkId, merchantId, from, to
+func (_m *OrderViewServiceInterface) GetPaylinkStatByReferrer(ctx context.Context, paylinkId string, merchantId string, from int64, to int64) (*paylink.GroupStatCommon, error) {
+	ret := _m.Called(ctx, paylinkId, merchantId, from, to)
 
 	var r0 *paylink.GroupStatCommon
-	if rf, ok := ret.Get(0).(func(string, string, int64, int64) *paylink.GroupStatCommon); ok {
-		r0 = rf(paylinkId, merchantId, from, to)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, int64, int64) *paylink.GroupStatCommon); ok {
+		r0 = rf(ctx, paylinkId, merchantId, from, to)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*paylink.GroupStatCommon)
@@ -141,8 +142,8 @@ func (_m *OrderViewServiceInterface) GetPaylinkStatByReferrer(paylinkId string, 
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string, int64, int64) error); ok {
-		r1 = rf(paylinkId, merchantId, from, to)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, int64, int64) error); ok {
+		r1 = rf(ctx, paylinkId, merchantId, from, to)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -150,13 +151,13 @@ func (_m *OrderViewServiceInterface) GetPaylinkStatByReferrer(paylinkId string, 
 	return r0, r1
 }
 
-// GetPaylinkStatByUtm provides a mock function with given fields: paylinkId, merchantId, from, to
-func (_m *OrderViewServiceInterface) GetPaylinkStatByUtm(paylinkId string, merchantId string, from int64, to int64) (*paylink.GroupStatCommon, error) {
-	ret := _m.Called(paylinkId, merchantId, from, to)
+// GetPaylinkStatByUtm provides a mock function with given fields: ctx, paylinkId, merchantId, from, to
+func (_m *OrderViewServiceInterface) GetPaylinkStatByUtm(ctx context.Context, paylinkId string, merchantId string, from int64, to int64) (*paylink.GroupStatCommon, error) {
+	ret := _m.Called(ctx, paylinkId, merchantId, from, to)
 
 	var r0 *paylink.GroupStatCommon
-	if rf, ok := ret.Get(0).(func(string, string, int64, int64) *paylink.GroupStatCommon); ok {
-		r0 = rf(paylinkId, merchantId, from, to)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, int64, int64) *paylink.GroupStatCommon); ok {
+		r0 = rf(ctx, paylinkId, merchantId, from, to)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*paylink.GroupStatCommon)
@@ -164,8 +165,8 @@ func (_m *OrderViewServiceInterface) GetPaylinkStatByUtm(paylinkId string, merch
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string, int64, int64) error); ok {
-		r1 = rf(paylinkId, merchantId, from, to)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, int64, int64) error); ok {
+		r1 = rf(ctx, paylinkId, merchantId, from, to)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -173,13 +174,13 @@ func (_m *OrderViewServiceInterface) GetPaylinkStatByUtm(paylinkId string, merch
 	return r0, r1
 }
 
-// GetRoyaltyOperatingCompaniesIds provides a mock function with given fields: merchantId, currency, from, to
-func (_m *OrderViewServiceInterface) GetRoyaltyOperatingCompaniesIds(merchantId string, currency string, from time.Time, to time.Time) ([]string, error) {
-	ret := _m.Called(merchantId, currency, from, to)
+// GetRoyaltyOperatingCompaniesIds provides a mock function with given fields: ctx, merchantId, currency, from, to
+func (_m *OrderViewServiceInterface) GetRoyaltyOperatingCompaniesIds(ctx context.Context, merchantId string, currency string, from time.Time, to time.Time) ([]string, error) {
+	ret := _m.Called(ctx, merchantId, currency, from, to)
 
 	var r0 []string
-	if rf, ok := ret.Get(0).(func(string, string, time.Time, time.Time) []string); ok {
-		r0 = rf(merchantId, currency, from, to)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, time.Time, time.Time) []string); ok {
+		r0 = rf(ctx, merchantId, currency, from, to)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]string)
@@ -187,8 +188,8 @@ func (_m *OrderViewServiceInterface) GetRoyaltyOperatingCompaniesIds(merchantId 
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string, time.Time, time.Time) error); ok {
-		r1 = rf(merchantId, currency, from, to)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, time.Time, time.Time) error); ok {
+		r1 = rf(ctx, merchantId, currency, from, to)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -196,13 +197,13 @@ func (_m *OrderViewServiceInterface) GetRoyaltyOperatingCompaniesIds(merchantId 
 	return r0, r1
 }
 
-// GetRoyaltySummary provides a mock function with given fields: merchantId, operatingCompanyId, currency, from, to
-func (_m *OrderViewServiceInterface) GetRoyaltySummary(merchantId string, operatingCompanyId string, currency string, from time.Time, to time.Time) ([]*billing.RoyaltyReportProductSummaryItem, *billing.RoyaltyReportProductSummaryItem, error) {
-	ret := _m.Called(merchantId, operatingCompanyId, currency, from, to)
+// GetRoyaltySummary provides a mock function with given fields: ctx, merchantId, operatingCompanyId, currency, from, to
+func (_m *OrderViewServiceInterface) GetRoyaltySummary(ctx context.Context, merchantId string, operatingCompanyId string, currency string, from time.Time, to time.Time) ([]*billing.RoyaltyReportProductSummaryItem, *billing.RoyaltyReportProductSummaryItem, error) {
+	ret := _m.Called(ctx, merchantId, operatingCompanyId, currency, from, to)
 
 	var r0 []*billing.RoyaltyReportProductSummaryItem
-	if rf, ok := ret.Get(0).(func(string, string, string, time.Time, time.Time) []*billing.RoyaltyReportProductSummaryItem); ok {
-		r0 = rf(merchantId, operatingCompanyId, currency, from, to)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, time.Time, time.Time) []*billing.RoyaltyReportProductSummaryItem); ok {
+		r0 = rf(ctx, merchantId, operatingCompanyId, currency, from, to)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*billing.RoyaltyReportProductSummaryItem)
@@ -210,8 +211,8 @@ func (_m *OrderViewServiceInterface) GetRoyaltySummary(merchantId string, operat
 	}
 
 	var r1 *billing.RoyaltyReportProductSummaryItem
-	if rf, ok := ret.Get(1).(func(string, string, string, time.Time, time.Time) *billing.RoyaltyReportProductSummaryItem); ok {
-		r1 = rf(merchantId, operatingCompanyId, currency, from, to)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, time.Time, time.Time) *billing.RoyaltyReportProductSummaryItem); ok {
+		r1 = rf(ctx, merchantId, operatingCompanyId, currency, from, to)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(*billing.RoyaltyReportProductSummaryItem)
@@ -219,8 +220,8 @@ func (_m *OrderViewServiceInterface) GetRoyaltySummary(merchantId string, operat
 	}
 
 	var r2 error
-	if rf, ok := ret.Get(2).(func(string, string, string, time.Time, time.Time) error); ok {
-		r2 = rf(merchantId, operatingCompanyId, currency, from, to)
+	if rf, ok := ret.Get(2).(func(context.Context, string, string, string, time.Time, time.Time) error); ok {
+		r2 = rf(ctx, merchantId, operatingCompanyId, currency, from, to)
 	} else {
 		r2 = ret.Error(2)
 	}
@@ -228,13 +229,13 @@ func (_m *OrderViewServiceInterface) GetRoyaltySummary(merchantId string, operat
 	return r0, r1, r2
 }
 
-// GetTransactionsPrivate provides a mock function with given fields: match, limit, offset
-func (_m *OrderViewServiceInterface) GetTransactionsPrivate(match bson.M, limit int, offset int) ([]*billing.OrderViewPrivate, error) {
-	ret := _m.Called(match, limit, offset)
+// GetTransactionsPrivate provides a mock function with given fields: ctx, match, limit, offset
+func (_m *OrderViewServiceInterface) GetTransactionsPrivate(ctx context.Context, match primitive.M, limit int64, offset int64) ([]*billing.OrderViewPrivate, error) {
+	ret := _m.Called(ctx, match, limit, offset)
 
 	var r0 []*billing.OrderViewPrivate
-	if rf, ok := ret.Get(0).(func(bson.M, int, int) []*billing.OrderViewPrivate); ok {
-		r0 = rf(match, limit, offset)
+	if rf, ok := ret.Get(0).(func(context.Context, primitive.M, int64, int64) []*billing.OrderViewPrivate); ok {
+		r0 = rf(ctx, match, limit, offset)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*billing.OrderViewPrivate)
@@ -242,8 +243,8 @@ func (_m *OrderViewServiceInterface) GetTransactionsPrivate(match bson.M, limit 
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(bson.M, int, int) error); ok {
-		r1 = rf(match, limit, offset)
+	if rf, ok := ret.Get(1).(func(context.Context, primitive.M, int64, int64) error); ok {
+		r1 = rf(ctx, match, limit, offset)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -251,13 +252,13 @@ func (_m *OrderViewServiceInterface) GetTransactionsPrivate(match bson.M, limit 
 	return r0, r1
 }
 
-// GetTransactionsPublic provides a mock function with given fields: match, limit, offset
-func (_m *OrderViewServiceInterface) GetTransactionsPublic(match bson.M, limit int, offset int) ([]*billing.OrderViewPublic, error) {
-	ret := _m.Called(match, limit, offset)
+// GetTransactionsPublic provides a mock function with given fields: ctx, match, limit, offset
+func (_m *OrderViewServiceInterface) GetTransactionsPublic(ctx context.Context, match primitive.M, limit int64, offset int64) ([]*billing.OrderViewPublic, error) {
+	ret := _m.Called(ctx, match, limit, offset)
 
 	var r0 []*billing.OrderViewPublic
-	if rf, ok := ret.Get(0).(func(bson.M, int, int) []*billing.OrderViewPublic); ok {
-		r0 = rf(match, limit, offset)
+	if rf, ok := ret.Get(0).(func(context.Context, primitive.M, int64, int64) []*billing.OrderViewPublic); ok {
+		r0 = rf(ctx, match, limit, offset)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*billing.OrderViewPublic)
@@ -265,8 +266,8 @@ func (_m *OrderViewServiceInterface) GetTransactionsPublic(match bson.M, limit i
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(bson.M, int, int) error); ok {
-		r1 = rf(match, limit, offset)
+	if rf, ok := ret.Get(1).(func(context.Context, primitive.M, int64, int64) error); ok {
+		r1 = rf(ctx, match, limit, offset)
 	} else {
 		r1 = ret.Error(1)
 	}

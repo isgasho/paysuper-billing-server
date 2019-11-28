@@ -2,7 +2,6 @@ package service
 
 import (
 	"fmt"
-	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
@@ -10,11 +9,12 @@ import (
 	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"testing"
 	"time"
 )
@@ -54,7 +54,7 @@ func (suite *EntityTestSuite) SetupTest() {
 	}
 
 	suite.operatingCompany = &billing.OperatingCompany{
-		Id:                 bson.NewObjectId().Hex(),
+		Id:                 primitive.NewObjectID().Hex(),
 		Name:               "Legal name",
 		Country:            "RU",
 		RegistrationNumber: "some number",
@@ -67,13 +67,13 @@ func (suite *EntityTestSuite) SetupTest() {
 		PaymentCountries:   []string{},
 	}
 
-	err = db.Collection(collectionOperatingCompanies).Insert(suite.operatingCompany)
+	_, err = db.Collection(collectionOperatingCompanies).InsertOne(ctx, suite.operatingCompany)
 	if err != nil {
 		suite.FailNow("Insert operatingCompany test data failed", "%v", err)
 	}
 
 	ps1 := &billing.PaymentSystem{
-		Id:                 bson.NewObjectId().Hex(),
+		Id:                 primitive.NewObjectID().Hex(),
 		Name:               "CardPay",
 		AccountingCurrency: "RUB",
 		AccountingPeriod:   "every-day",
@@ -82,8 +82,8 @@ func (suite *EntityTestSuite) SetupTest() {
 		Handler:            "cardpay",
 	}
 	project := &billing.Project{
-		Id:                 bson.NewObjectId().Hex(),
-		MerchantId:         bson.NewObjectId().Hex(),
+		Id:                 primitive.NewObjectID().Hex(),
+		MerchantId:         primitive.NewObjectID().Hex(),
 		CallbackCurrency:   "RUB",
 		CallbackProtocol:   "default",
 		LimitsCurrency:     "RUB",
@@ -98,7 +98,7 @@ func (suite *EntityTestSuite) SetupTest() {
 	keyRub := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
 
 	pmBankCard := &billing.PaymentMethod{
-		Id:               bson.NewObjectId().Hex(),
+		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bank card",
 		Group:            "BANKCARD",
 		MinPaymentAmount: 0,
@@ -118,7 +118,7 @@ func (suite *EntityTestSuite) SetupTest() {
 		PaymentSystemId: ps1.Id,
 	}
 	pmQiwi := &billing.PaymentMethod{
-		Id:               bson.NewObjectId().Hex(),
+		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Qiwi",
 		Group:            "QIWI",
 		MinPaymentAmount: 0,
@@ -133,7 +133,7 @@ func (suite *EntityTestSuite) SetupTest() {
 		PaymentSystemId: ps1.Id,
 	}
 	pmBitcoin := &billing.PaymentMethod{
-		Id:               bson.NewObjectId().Hex(),
+		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bitcoin",
 		Group:            "BITCOIN",
 		MinPaymentAmount: 0,
@@ -167,7 +167,7 @@ func (suite *EntityTestSuite) SetupTest() {
 	}
 
 	merchant := &billing.Merchant{
-		Id: bson.NewObjectId().Hex(),
+		Id: primitive.NewObjectID().Hex(),
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -225,7 +225,7 @@ func (suite *EntityTestSuite) SetupTest() {
 	}
 
 	merchantAgreement := &billing.Merchant{
-		Id: bson.NewObjectId().Hex(),
+		Id: primitive.NewObjectID().Hex(),
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -261,7 +261,7 @@ func (suite *EntityTestSuite) SetupTest() {
 		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 	merchant1 := &billing.Merchant{
-		Id: bson.NewObjectId().Hex(),
+		Id: primitive.NewObjectID().Hex(),
 		Company: &billing.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
@@ -324,24 +324,24 @@ func (suite *EntityTestSuite) SetupTest() {
 	}
 
 	pms := []*billing.PaymentMethod{pmBankCard, pmQiwi, pmBitcoin}
-	if err := suite.service.paymentMethod.MultipleInsert(pms); err != nil {
+	if err := suite.service.paymentMethod.MultipleInsert(ctx, pms); err != nil {
 		suite.FailNow("Insert payment methods test data failed", "%v", err)
 	}
 
 	merchants := []*billing.Merchant{merchant, merchantAgreement, merchant1}
-	if err := suite.service.merchant.MultipleInsert(merchants); err != nil {
+	if err := suite.service.merchant.MultipleInsert(ctx, merchants); err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
 	}
 
-	if err := suite.service.project.Insert(project); err != nil {
+	if err := suite.service.project.Insert(ctx, project); err != nil {
 		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 
-	if err := suite.service.country.Insert(country); err != nil {
+	if err := suite.service.country.Insert(ctx, country); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 
-	if err := suite.service.paymentSystem.Insert(ps1); err != nil {
+	if err := suite.service.paymentSystem.Insert(ctx, ps1); err != nil {
 		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 
@@ -349,15 +349,21 @@ func (suite *EntityTestSuite) SetupTest() {
 }
 
 func (suite *EntityTestSuite) TearDownTest() {
-	if err := suite.service.db.Drop(); err != nil {
+	err := suite.service.db.Drop()
+
+	if err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}
 
-	suite.service.db.Close()
+	err = suite.service.db.Close()
+
+	if err != nil {
+		suite.FailNow("Database close failed", "%v", err)
+	}
 }
 
 func (suite *EntityTestSuite) TestProject_GetPaymentMethodByGroupAndCurrency_Ok() {
-	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(suite.project, suite.paymentMethod.Group, "RUB")
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(ctx, suite.project, suite.paymentMethod.Group, "RUB")
 
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
@@ -366,7 +372,7 @@ func (suite *EntityTestSuite) TestProject_GetPaymentMethodByGroupAndCurrency_Ok(
 }
 
 func (suite *EntityTestSuite) TestProject_GetPaymentMethodByGroupAndCurrency_GroupError() {
-	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(suite.project, "group_from_my_head", "RUB")
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(ctx, suite.project, "group_from_my_head", "RUB")
 
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), pm)
@@ -374,7 +380,7 @@ func (suite *EntityTestSuite) TestProject_GetPaymentMethodByGroupAndCurrency_Gro
 }
 
 func (suite *EntityTestSuite) TestProject_GetPaymentMethodByGroupAndCurrency_CurrencyError() {
-	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(suite.project, suite.paymentMethod.Group, "XDR")
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(ctx, suite.project, suite.paymentMethod.Group, "XDR")
 
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), pm)

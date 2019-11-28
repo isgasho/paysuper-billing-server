@@ -2,10 +2,11 @@ package grpc
 
 import (
 	"errors"
-	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 )
 
@@ -14,7 +15,7 @@ const (
 )
 
 type MgoKeyProduct struct {
-	Id              bson.ObjectId            `bson:"_id" json:"id"`
+	Id              primitive.ObjectID       `bson:"_id" json:"id"`
 	Object          string                   `bson:"object" json:"object"`
 	Sku             string                   `bson:"sku" json:"sku"`
 	Name            []*I18NTextSearchable    `bson:"name" json:"name"`
@@ -30,8 +31,8 @@ type MgoKeyProduct struct {
 	Url             string                   `bson:"url,omitempty" json:"url"`
 	Metadata        map[string]string        `bson:"metadata,omitempty" json:"metadata"`
 	Deleted         bool                     `bson:"deleted" json:"deleted"`
-	MerchantId      bson.ObjectId            `bson:"merchant_id" json:"-"`
-	ProjectId       bson.ObjectId            `bson:"project_id" json:"project_id"`
+	MerchantId      primitive.ObjectID       `bson:"merchant_id" json:"-"`
+	ProjectId       primitive.ObjectID       `bson:"project_id" json:"project_id"`
 	Pricing         string                   `bson:"pricing" json:"pricing"`
 }
 
@@ -44,7 +45,7 @@ type MgoPlatformPrice struct {
 }
 
 type MgoProduct struct {
-	Id              bson.ObjectId           `bson:"_id" json:"id"`
+	Id              primitive.ObjectID      `bson:"_id" json:"id"`
 	Object          string                  `bson:"object" json:"object"`
 	Type            string                  `bson:"type" json:"type"`
 	Sku             string                  `bson:"sku" json:"sku"`
@@ -60,8 +61,8 @@ type MgoProduct struct {
 	Url             string                  `bson:"url,omitempty" json:"url"`
 	Metadata        map[string]string       `bson:"metadata,omitempty" json:"metadata"`
 	Deleted         bool                    `bson:"deleted" json:"deleted"`
-	MerchantId      bson.ObjectId           `bson:"merchant_id" json:"-"`
-	ProjectId       bson.ObjectId           `bson:"project_id" json:"project_id"`
+	MerchantId      primitive.ObjectID      `bson:"merchant_id" json:"-"`
+	ProjectId       primitive.ObjectID      `bson:"project_id" json:"project_id"`
 	Pricing         string                  `bson:"pricing" json:"pricing"`
 	BillingType     string                  `bson:"billing_type" json:"billing_type"`
 }
@@ -74,7 +75,7 @@ type MgoUserProfileEmail struct {
 }
 
 type MgoUserProfile struct {
-	Id        bson.ObjectId        `bson:"_id"`
+	Id        primitive.ObjectID   `bson:"_id"`
 	UserId    string               `bson:"user_id"`
 	Email     *MgoUserProfileEmail `bson:"email"`
 	Personal  *UserProfilePersonal `bson:"personal"`
@@ -86,13 +87,13 @@ type MgoUserProfile struct {
 }
 
 type MgoPageReview struct {
-	Id        bson.ObjectId `bson:"_id"`
-	UserId    string        `bson:"user_id"`
-	Review    string        `bson:"review"`
-	Url       string        `bson:"url"`
-	IsRead    bool          `bson:"is_read"`
-	CreatedAt time.Time     `bson:"created_at"`
-	UpdatedAt time.Time     `bson:"updated_at"`
+	Id        primitive.ObjectID `bson:"_id"`
+	UserId    string             `bson:"user_id"`
+	Review    string             `bson:"review"`
+	Url       string             `bson:"url"`
+	IsRead    bool               `bson:"is_read"`
+	CreatedAt time.Time          `bson:"created_at"`
+	UpdatedAt time.Time          `bson:"updated_at"`
 }
 
 type MgoDashboardAmountItemWithChart struct {
@@ -126,9 +127,9 @@ type MgoDashboardRevenueByCountryReport struct {
 	Chart         []*DashboardRevenueByCountryReportChartItem `bson:"chart"`
 }
 
-func (p *Product) SetBSON(raw bson.Raw) error {
+func (p *Product) UnmarshalBSON(raw []byte) error {
 	decoded := new(MgoProduct)
-	err := raw.Unmarshal(decoded)
+	err := bson.Unmarshal(raw, decoded)
 
 	if err != nil {
 		return err
@@ -172,7 +173,7 @@ func (p *Product) SetBSON(raw bson.Raw) error {
 	return nil
 }
 
-func (p *Product) GetBSON() (interface{}, error) {
+func (p *Product) MarshalBSON() ([]byte, error) {
 	st := &MgoProduct{
 		Object:          p.Object,
 		Type:            p.Type,
@@ -190,33 +191,39 @@ func (p *Product) GetBSON() (interface{}, error) {
 	}
 
 	if len(p.Id) <= 0 {
-		st.Id = bson.NewObjectId()
+		st.Id = primitive.NewObjectID()
 	} else {
-		if bson.IsObjectIdHex(p.Id) == false {
+		oid, err := primitive.ObjectIDFromHex(p.Id)
+
+		if err != nil {
 			return nil, errors.New(errorInvalidObjectId)
 		}
 
-		st.Id = bson.ObjectIdHex(p.Id)
+		st.Id = oid
 	}
 
 	if len(p.MerchantId) <= 0 {
 		return nil, errors.New(errorInvalidObjectId)
 	} else {
-		if bson.IsObjectIdHex(p.MerchantId) == false {
+		merchantOid, err := primitive.ObjectIDFromHex(p.MerchantId)
+
+		if err != nil {
 			return nil, errors.New(errorInvalidObjectId)
 		}
 
-		st.MerchantId = bson.ObjectIdHex(p.MerchantId)
+		st.MerchantId = merchantOid
 	}
 
 	if len(p.ProjectId) <= 0 {
 		return nil, errors.New(errorInvalidObjectId)
 	} else {
-		if bson.IsObjectIdHex(p.ProjectId) == false {
+		projectOid, err := primitive.ObjectIDFromHex(p.ProjectId)
+
+		if err != nil {
 			return nil, errors.New(errorInvalidObjectId)
 		}
 
-		st.ProjectId = bson.ObjectIdHex(p.ProjectId)
+		st.ProjectId = projectOid
 	}
 
 	if p.CreatedAt != nil {
@@ -250,19 +257,20 @@ func (p *Product) GetBSON() (interface{}, error) {
 
 	for _, price := range p.Prices {
 		st.Prices = append(st.Prices, &billing.ProductPrice{
-			Currency: price.Currency,
-			Region:   price.Region,
-			Amount:   tools.FormatAmount(price.Amount),
+			Currency:          price.Currency,
+			Region:            price.Region,
+			Amount:            tools.FormatAmount(price.Amount),
 			IsVirtualCurrency: price.IsVirtualCurrency,
 		})
 	}
 
-	return st, nil
+	return bson.Marshal(st)
 }
 
-func (m *UserProfile) GetBSON() (interface{}, error) {
+func (m *UserProfile) MarshalBSON() ([]byte, error) {
+	oid, _ := primitive.ObjectIDFromHex(m.Id)
 	st := &MgoUserProfile{
-		Id:     bson.ObjectIdHex(m.Id),
+		Id:     oid,
 		UserId: m.UserId,
 		Email: &MgoUserProfileEmail{
 			Email:                   m.Email.Email,
@@ -309,12 +317,12 @@ func (m *UserProfile) GetBSON() (interface{}, error) {
 		st.Email.ConfirmedAt = t
 	}
 
-	return st, nil
+	return bson.Marshal(st)
 }
 
-func (m *UserProfile) SetBSON(raw bson.Raw) error {
+func (m *UserProfile) UnmarshalBSON(raw []byte) error {
 	decoded := new(MgoUserProfile)
-	err := raw.Unmarshal(decoded)
+	err := bson.Unmarshal(raw, decoded)
 
 	if err != nil {
 		return err
@@ -353,9 +361,10 @@ func (m *UserProfile) SetBSON(raw bson.Raw) error {
 	return nil
 }
 
-func (m *PageReview) GetBSON() (interface{}, error) {
+func (m *PageReview) MarshalBSON() ([]byte, error) {
+	oid, _ := primitive.ObjectIDFromHex(m.Id)
 	st := &MgoPageReview{
-		Id:     bson.ObjectIdHex(m.Id),
+		Id:     oid,
 		UserId: m.UserId,
 		Review: m.Review,
 		Url:    m.Url,
@@ -386,12 +395,12 @@ func (m *PageReview) GetBSON() (interface{}, error) {
 		st.UpdatedAt = time.Now()
 	}
 
-	return st, nil
+	return bson.Marshal(st)
 }
 
-func (m *PageReview) SetBSON(raw bson.Raw) error {
+func (m *PageReview) UnmarshalBSON(raw []byte) error {
 	decoded := new(MgoPageReview)
-	err := raw.Unmarshal(decoded)
+	err := bson.Unmarshal(raw, decoded)
 
 	if err != nil {
 		return err
@@ -417,9 +426,9 @@ func (m *PageReview) SetBSON(raw bson.Raw) error {
 	return nil
 }
 
-func (p *KeyProduct) SetBSON(raw bson.Raw) error {
+func (p *KeyProduct) UnmarshalBSON(raw []byte) error {
 	decoded := new(MgoKeyProduct)
-	err := raw.Unmarshal(decoded)
+	err := bson.Unmarshal(raw, decoded)
 
 	if err != nil {
 		return err
@@ -479,7 +488,7 @@ func (p *KeyProduct) SetBSON(raw bson.Raw) error {
 	return nil
 }
 
-func (p *KeyProduct) GetBSON() (interface{}, error) {
+func (p *KeyProduct) MarshalBSON() ([]byte, error) {
 	st := &MgoKeyProduct{
 		Object:          p.Object,
 		Sku:             p.Sku,
@@ -495,33 +504,39 @@ func (p *KeyProduct) GetBSON() (interface{}, error) {
 	}
 
 	if len(p.Id) <= 0 {
-		st.Id = bson.NewObjectId()
+		st.Id = primitive.NewObjectID()
 	} else {
-		if bson.IsObjectIdHex(p.Id) == false {
+		oid, err := primitive.ObjectIDFromHex(p.Id)
+
+		if err != nil {
 			return nil, errors.New(errorInvalidObjectId)
 		}
 
-		st.Id = bson.ObjectIdHex(p.Id)
+		st.Id = oid
 	}
 
 	if len(p.MerchantId) <= 0 {
 		return nil, errors.New(errorInvalidObjectId)
 	} else {
-		if bson.IsObjectIdHex(p.MerchantId) == false {
+		merchantOid, err := primitive.ObjectIDFromHex(p.MerchantId)
+
+		if err != nil {
 			return nil, errors.New(errorInvalidObjectId)
 		}
 
-		st.MerchantId = bson.ObjectIdHex(p.MerchantId)
+		st.MerchantId = merchantOid
 	}
 
 	if len(p.ProjectId) <= 0 {
 		return nil, errors.New(errorInvalidObjectId)
 	} else {
-		if bson.IsObjectIdHex(p.ProjectId) == false {
+		projectOId, err := primitive.ObjectIDFromHex(p.ProjectId)
+
+		if err != nil {
 			return nil, errors.New(errorInvalidObjectId)
 		}
 
-		st.ProjectId = bson.ObjectIdHex(p.ProjectId)
+		st.ProjectId = projectOId
 	}
 
 	if p.CreatedAt != nil {
@@ -571,9 +586,9 @@ func (p *KeyProduct) GetBSON() (interface{}, error) {
 		prices = make([]*billing.ProductPrice, len(pl.Prices))
 		for j, price := range pl.Prices {
 			prices[j] = &billing.ProductPrice{
-				Currency: price.Currency,
-				Region:   price.Region,
-				Amount:   tools.FormatAmount(price.Amount),
+				Currency:          price.Currency,
+				Region:            price.Region,
+				Amount:            tools.FormatAmount(price.Amount),
 				IsVirtualCurrency: price.IsVirtualCurrency,
 			}
 		}
@@ -586,12 +601,12 @@ func (p *KeyProduct) GetBSON() (interface{}, error) {
 		}
 	}
 
-	return st, nil
+	return bson.Marshal(st)
 }
 
-func (m *DashboardAmountItemWithChart) SetBSON(raw bson.Raw) error {
+func (m *DashboardAmountItemWithChart) UnmarshalBSON(raw []byte) error {
 	decoded := new(MgoDashboardAmountItemWithChart)
-	err := raw.Unmarshal(decoded)
+	err := bson.Unmarshal(raw, decoded)
 
 	if err != nil {
 		return err
@@ -611,9 +626,9 @@ func (m *DashboardAmountItemWithChart) SetBSON(raw bson.Raw) error {
 	return nil
 }
 
-func (m *DashboardRevenueDynamicReportItem) SetBSON(raw bson.Raw) error {
+func (m *DashboardRevenueDynamicReportItem) UnmarshalBSON(raw []byte) error {
 	decoded := new(MgoDashboardRevenueDynamicReportItem)
-	err := raw.Unmarshal(decoded)
+	err := bson.Unmarshal(raw, decoded)
 
 	if err != nil {
 		return err
@@ -627,9 +642,9 @@ func (m *DashboardRevenueDynamicReportItem) SetBSON(raw bson.Raw) error {
 	return nil
 }
 
-func (m *DashboardRevenueByCountryReportTop) SetBSON(raw bson.Raw) error {
+func (m *DashboardRevenueByCountryReportTop) UnmarshalBSON(raw []byte) error {
 	decoded := new(MgoDashboardRevenueByCountryReportTop)
-	err := raw.Unmarshal(decoded)
+	err := bson.Unmarshal(raw, decoded)
 
 	if err != nil {
 		return err
@@ -641,9 +656,9 @@ func (m *DashboardRevenueByCountryReportTop) SetBSON(raw bson.Raw) error {
 	return nil
 }
 
-func (m *DashboardRevenueByCountryReportChartItem) SetBSON(raw bson.Raw) error {
+func (m *DashboardRevenueByCountryReportChartItem) UnmarshalBSON(raw []byte) error {
 	decoded := new(MgoDashboardRevenueByCountryReportChartItem)
-	err := raw.Unmarshal(decoded)
+	err := bson.Unmarshal(raw, decoded)
 
 	if err != nil {
 		return err
@@ -655,9 +670,9 @@ func (m *DashboardRevenueByCountryReportChartItem) SetBSON(raw bson.Raw) error {
 	return nil
 }
 
-func (m *DashboardRevenueByCountryReport) SetBSON(raw bson.Raw) error {
+func (m *DashboardRevenueByCountryReport) UnmarshalBSON(raw []byte) error {
 	decoded := new(MgoDashboardRevenueByCountryReport)
-	err := raw.Unmarshal(decoded)
+	err := bson.Unmarshal(raw, decoded)
 
 	if err != nil {
 		return err

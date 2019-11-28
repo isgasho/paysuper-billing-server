@@ -3,12 +3,12 @@ package mocks
 import (
 	"context"
 	"errors"
-	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/micro/go-micro/client"
 	curPkg "github.com/paysuper/paysuper-currencies/pkg"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 const (
@@ -24,7 +24,7 @@ const (
 )
 
 var (
-	MerchantIdMock = bson.NewObjectId().Hex()
+	MerchantIdMock = primitive.NewObjectID().Hex()
 )
 
 type CurrencyServiceMockOk struct{}
@@ -52,11 +52,11 @@ func (s *CurrencyServiceMockOk) GetRateByDateCommon(
 	opts ...client.CallOption,
 ) (*currencies.RateData, error) {
 	return &currencies.RateData{
-		Id:        bson.NewObjectId().Hex(),
+		Id:        primitive.NewObjectID().Hex(),
 		CreatedAt: ptypes.TimestampNow(),
 		Pair:      in.From + in.To,
 		Rate:      3,
-		Source:    bson.NewObjectId().Hex(),
+		Source:    primitive.NewObjectID().Hex(),
 		Volume:    3,
 	}, nil
 }
@@ -67,11 +67,11 @@ func (s *CurrencyServiceMockOk) GetRateCurrentForMerchant(
 	opts ...client.CallOption,
 ) (*currencies.RateData, error) {
 	return &currencies.RateData{
-		Id:        bson.NewObjectId().Hex(),
+		Id:        primitive.NewObjectID().Hex(),
 		CreatedAt: ptypes.TimestampNow(),
 		Pair:      in.From + in.To,
 		Rate:      3,
-		Source:    bson.NewObjectId().Hex(),
+		Source:    primitive.NewObjectID().Hex(),
 		Volume:    3,
 	}, nil
 }

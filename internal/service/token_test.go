@@ -2,10 +2,9 @@ package service
 
 import (
 	"context"
-	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
-	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/golang/protobuf/ptypes"
+	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
@@ -13,10 +12,12 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"net"
 	"testing"
 )
@@ -49,7 +50,7 @@ func (suite *TokenTestSuite) SetupTest() {
 	assert.NoError(suite.T(), err, "Database connection failed")
 
 	paymentMinLimitSystem1 := &billing.PaymentMinLimitSystem{
-		Id:        bson.NewObjectId().Hex(),
+		Id:        primitive.NewObjectID().Hex(),
 		Currency:  "RUB",
 		Amount:    0.01,
 		CreatedAt: ptypes.TimestampNow(),
@@ -57,13 +58,13 @@ func (suite *TokenTestSuite) SetupTest() {
 	}
 
 	pgRub := &billing.PriceGroup{
-		Id:       bson.NewObjectId().Hex(),
+		Id:       primitive.NewObjectID().Hex(),
 		Region:   "RUB",
 		Currency: "RUB",
 		IsActive: true,
 	}
 	pgUsd := &billing.PriceGroup{
-		Id:       bson.NewObjectId().Hex(),
+		Id:       primitive.NewObjectID().Hex(),
 		Region:   "USD",
 		Currency: "USD",
 		IsActive: true,
@@ -108,7 +109,7 @@ func (suite *TokenTestSuite) SetupTest() {
 	}
 
 	merchant := &billing.Merchant{
-		Id: bson.NewObjectId().Hex(),
+		Id: primitive.NewObjectID().Hex(),
 		Company: &billing.MerchantCompanyInfo{
 			Name:               "Unit test",
 			AlternativeName:    "merchant1",
@@ -185,7 +186,7 @@ func (suite *TokenTestSuite) SetupTest() {
 		},
 	}
 	merchantWithoutTariffs := &billing.Merchant{
-		Id: bson.NewObjectId().Hex(),
+		Id: primitive.NewObjectID().Hex(),
 		Company: &billing.MerchantCompanyInfo{
 			Name:               "Unit test",
 			AlternativeName:    "merchant1",
@@ -226,7 +227,7 @@ func (suite *TokenTestSuite) SetupTest() {
 	}
 
 	project := &billing.Project{
-		Id:                       bson.NewObjectId().Hex(),
+		Id:                       primitive.NewObjectID().Hex(),
 		CallbackCurrency:         "RUB",
 		CallbackProtocol:         pkg.ProjectCallbackProtocolEmpty,
 		LimitsCurrency:           "RUB",
@@ -240,7 +241,7 @@ func (suite *TokenTestSuite) SetupTest() {
 		MerchantId:               merchant.Id,
 	}
 	projectWithProducts := &billing.Project{
-		Id:                       bson.NewObjectId().Hex(),
+		Id:                       primitive.NewObjectID().Hex(),
 		CallbackCurrency:         "RUB",
 		CallbackProtocol:         pkg.ProjectCallbackProtocolEmpty,
 		LimitsCurrency:           "RUB",
@@ -254,7 +255,7 @@ func (suite *TokenTestSuite) SetupTest() {
 		MerchantId:               merchant.Id,
 	}
 	projectWithMerchantWithoutTariffs := &billing.Project{
-		Id:                       bson.NewObjectId().Hex(),
+		Id:                       primitive.NewObjectID().Hex(),
 		CallbackCurrency:         "RUB",
 		CallbackProtocol:         pkg.ProjectCallbackProtocolEmpty,
 		LimitsCurrency:           "RUB",
@@ -268,7 +269,7 @@ func (suite *TokenTestSuite) SetupTest() {
 		MerchantId:               merchantWithoutTariffs.Id,
 	}
 	projectWithVirtualCurrencyProducts := &billing.Project{
-		Id:                       bson.NewObjectId().Hex(),
+		Id:                       primitive.NewObjectID().Hex(),
 		CallbackCurrency:         "RUB",
 		CallbackProtocol:         pkg.ProjectCallbackProtocolEmpty,
 		LimitsCurrency:           "RUB",
@@ -290,7 +291,7 @@ func (suite *TokenTestSuite) SetupTest() {
 	}
 
 	product3 := &grpc.Product{
-		Id:              bson.NewObjectId().Hex(),
+		Id:              primitive.NewObjectID().Hex(),
 		Object:          "product",
 		Type:            "simple_product",
 		Sku:             "ru_double_yeti",
@@ -310,7 +311,7 @@ func (suite *TokenTestSuite) SetupTest() {
 	}
 
 	product1 := &grpc.Product{
-		Id:              bson.NewObjectId().Hex(),
+		Id:              primitive.NewObjectID().Hex(),
 		Object:          "product",
 		Type:            "simple_product",
 		Sku:             "ru_double_yeti",
@@ -329,7 +330,7 @@ func (suite *TokenTestSuite) SetupTest() {
 		Prices: []*billing.ProductPrice{{Currency: "RUB", Amount: 1005.00, Region: "RUB"}},
 	}
 	product2 := &grpc.Product{
-		Id:              bson.NewObjectId().Hex(),
+		Id:              primitive.NewObjectID().Hex(),
 		Object:          "product1",
 		Type:            "simple_product",
 		Sku:             "ru_double_yeti1",
@@ -348,7 +349,7 @@ func (suite *TokenTestSuite) SetupTest() {
 		Prices: []*billing.ProductPrice{{Currency: "RUB", Amount: 1005.00, Region: "RUB"}},
 	}
 
-	err = db.Collection(collectionProduct).Insert([]interface{}{product1, product2, product3}...)
+	_, err = db.Collection(collectionProduct).InsertMany(context.TODO(), []interface{}{product1, product2, product3})
 	assert.NoError(suite.T(), err, "Insert product test data failed")
 
 	redisClient := database.NewRedis(
@@ -384,29 +385,29 @@ func (suite *TokenTestSuite) SetupTest() {
 	}
 
 	limits := []interface{}{paymentMinLimitSystem1}
-	err = suite.service.db.Collection(collectionPaymentMinLimitSystem).Insert(limits...)
+	_, err = suite.service.db.Collection(collectionPaymentMinLimitSystem).InsertMany(context.TODO(), limits)
 	assert.NoError(suite.T(), err)
 
-	err = suite.service.merchant.MultipleInsert([]*billing.Merchant{merchant, merchantWithoutTariffs})
+	err = suite.service.merchant.MultipleInsert(context.TODO(), []*billing.Merchant{merchant, merchantWithoutTariffs})
 
 	if err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
 	}
 
 	projects := []*billing.Project{project, projectWithProducts, projectWithMerchantWithoutTariffs, projectWithVirtualCurrencyProducts}
-	err = suite.service.project.MultipleInsert(projects)
+	err = suite.service.project.MultipleInsert(context.TODO(), projects)
 
 	if err != nil {
 		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 
-	err = suite.service.country.MultipleInsert([]*billing.Country{ru, us})
+	err = suite.service.country.MultipleInsert(context.TODO(), []*billing.Country{ru, us})
 
 	if err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 
-	err = suite.service.priceGroup.MultipleInsert([]*billing.PriceGroup{pgRub, pgUsd})
+	err = suite.service.priceGroup.MultipleInsert(context.TODO(), []*billing.PriceGroup{pgRub, pgUsd})
 
 	if err != nil {
 		suite.FailNow("Insert price group test data failed", "%v", err)
@@ -424,17 +425,23 @@ func (suite *TokenTestSuite) SetupTest() {
 }
 
 func (suite *TokenTestSuite) TearDownTest() {
-	if err := suite.service.db.Drop(); err != nil {
+	err := suite.service.db.Drop()
+
+	if err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}
 
-	suite.service.db.Close()
+	err = suite.service.db.Close()
+
+	if err != nil {
+		suite.FailNow("Database close failed", "%v", err)
+	}
 }
 
 func (suite *TokenTestSuite) TestToken_CreateToken_NewCustomer_Ok() {
 	req := &grpc.TokenRequest{
 		User: &billing.TokenUser{
-			Id: bson.NewObjectId().Hex(),
+			Id: primitive.NewObjectID().Hex(),
 			Email: &billing.TokenUserEmailValue{
 				Value:    "test@unit.test",
 				Verified: true,
@@ -464,8 +471,12 @@ func (suite *TokenTestSuite) TestToken_CreateToken_NewCustomer_Ok() {
 	err = rep.getToken(rsp.Token)
 	assert.NoError(suite.T(), err)
 
+	oid, err := primitive.ObjectIDFromHex(rep.token.CustomerId)
+	assert.NoError(suite.T(), err)
+	filter := bson.M{"_id": oid}
+
 	var customer *billing.Customer
-	err = suite.service.db.Collection(collectionCustomer).FindId(bson.ObjectIdHex(rep.token.CustomerId)).One(&customer)
+	err = suite.service.db.Collection(collectionCustomer).FindOne(context.TODO(), filter).Decode(&customer)
 	assert.NotNil(suite.T(), customer)
 
 	assert.Equal(suite.T(), req.User.Id, customer.ExternalId)
@@ -504,7 +515,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_ExistCustomer_Ok() {
 
 	req := &grpc.TokenRequest{
 		User: &billing.TokenUser{
-			Id: bson.NewObjectId().Hex(),
+			Id: primitive.NewObjectID().Hex(),
 			Email: &billing.TokenUserEmailValue{
 				Value:    email,
 				Verified: true,
@@ -556,8 +567,15 @@ func (suite *TokenTestSuite) TestToken_CreateToken_ExistCustomer_Ok() {
 
 	assert.Equal(suite.T(), rep.token.CustomerId, rep1.token.CustomerId)
 
+	oid, err := primitive.ObjectIDFromHex(rep.token.CustomerId)
+	assert.NoError(suite.T(), err)
+	filter := bson.M{"_id": oid}
+
 	var customers []*billing.Customer
-	err = suite.service.db.Collection(collectionCustomer).FindId(bson.ObjectIdHex(rep.token.CustomerId)).All(&customers)
+	cursor, err := suite.service.db.Collection(collectionCustomer).Find(context.TODO(), filter)
+	assert.NoError(suite.T(), err)
+	err = cursor.All(context.TODO(), &customers)
+	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), customers, 1)
 
 	assert.Len(suite.T(), customers[0].Identity, 4)
@@ -596,7 +614,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_ExistCustomer_UpdateExistIden
 
 	req := &grpc.TokenRequest{
 		User: &billing.TokenUser{
-			Id: bson.NewObjectId().Hex(),
+			Id: primitive.NewObjectID().Hex(),
 			Email: &billing.TokenUserEmailValue{
 				Value: email,
 			},
@@ -626,8 +644,12 @@ func (suite *TokenTestSuite) TestToken_CreateToken_ExistCustomer_UpdateExistIden
 	err = rep.getToken(rsp.Token)
 	assert.NoError(suite.T(), err)
 
+	oid, err := primitive.ObjectIDFromHex(rep.token.CustomerId)
+	assert.NoError(suite.T(), err)
+	filter := bson.M{"_id": oid}
+
 	var customer *billing.Customer
-	err = suite.service.db.Collection(collectionCustomer).FindId(bson.ObjectIdHex(rep.token.CustomerId)).One(&customer)
+	err = suite.service.db.Collection(collectionCustomer).FindOne(context.TODO(), filter).Decode(&customer)
 	assert.NotNil(suite.T(), customer)
 	assert.False(suite.T(), customer.Identity[1].Verified)
 
@@ -666,11 +688,13 @@ func (suite *TokenTestSuite) TestToken_CreateToken_ExistCustomer_UpdateExistIden
 	}
 	err = rep1.getToken(rsp.Token)
 	assert.NoError(suite.T(), err)
-
 	assert.Equal(suite.T(), rep.token.CustomerId, rep1.token.CustomerId)
 
 	var customers []*billing.Customer
-	err = suite.service.db.Collection(collectionCustomer).FindId(bson.ObjectIdHex(rep.token.CustomerId)).All(&customers)
+	cursor, err := suite.service.db.Collection(collectionCustomer).Find(context.TODO(), filter)
+	assert.NoError(suite.T(), err)
+	err = cursor.All(context.TODO(), &customers)
+	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), customers, 1)
 
 	assert.Len(suite.T(), customers[0].Identity, 3)
@@ -730,13 +754,13 @@ func (suite *TokenTestSuite) TestToken_CreateToken_CustomerIdentityInformationNo
 func (suite *TokenTestSuite) TestToken_CreateToken_ProjectNotFound_Error() {
 	req := &grpc.TokenRequest{
 		User: &billing.TokenUser{
-			Id: bson.NewObjectId().Hex(),
+			Id: primitive.NewObjectID().Hex(),
 			Locale: &billing.TokenUserLocaleValue{
 				Value: "en",
 			},
 		},
 		Settings: &billing.TokenSettings{
-			ProjectId: bson.NewObjectId().Hex(),
+			ProjectId: primitive.NewObjectID().Hex(),
 			Amount:    100,
 			Currency:  "RUB",
 		},
@@ -752,7 +776,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_ProjectNotFound_Error() {
 func (suite *TokenTestSuite) TestToken_CreateToken_AmountIncorrect_Error() {
 	req := &grpc.TokenRequest{
 		User: &billing.TokenUser{
-			Id: bson.NewObjectId().Hex(),
+			Id: primitive.NewObjectID().Hex(),
 			Locale: &billing.TokenUserLocaleValue{
 				Value: "en",
 			},
@@ -775,14 +799,14 @@ func (suite *TokenTestSuite) TestToken_CreateToken_AmountIncorrect_Error() {
 func (suite *TokenTestSuite) TestToken_CreateToken_ProjectIsProductCheckout_ProductInvalid_Error() {
 	req := &grpc.TokenRequest{
 		User: &billing.TokenUser{
-			Id: bson.NewObjectId().Hex(),
+			Id: primitive.NewObjectID().Hex(),
 			Locale: &billing.TokenUserLocaleValue{
 				Value: "en",
 			},
 		},
 		Settings: &billing.TokenSettings{
 			ProjectId:   suite.projectWithProducts.Id,
-			ProductsIds: []string{bson.NewObjectId().Hex(), bson.NewObjectId().Hex(), bson.NewObjectId().Hex()},
+			ProductsIds: []string{primitive.NewObjectID().Hex(), primitive.NewObjectID().Hex(), primitive.NewObjectID().Hex()},
 			Type:        billing.OrderType_product,
 		},
 	}
@@ -797,7 +821,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_ProjectIsProductCheckout_Prod
 func (suite *TokenTestSuite) TestToken_CreateToken_ProjectIsProductCheckout_Ok() {
 	req := &grpc.TokenRequest{
 		User: &billing.TokenUser{
-			Id: bson.NewObjectId().Hex(),
+			Id: primitive.NewObjectID().Hex(),
 			Locale: &billing.TokenUserLocaleValue{
 				Value: "en",
 			},
@@ -828,7 +852,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_ProjectIsProductCheckout_Ok()
 func (suite *TokenTestSuite) TestToken_CreateToken_MerchantWithoutTariffs_Error() {
 	req := &grpc.TokenRequest{
 		User: &billing.TokenUser{
-			Id: bson.NewObjectId().Hex(),
+			Id: primitive.NewObjectID().Hex(),
 			Locale: &billing.TokenUserLocaleValue{
 				Value: "en",
 			},
@@ -851,7 +875,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_MerchantWithoutTariffs_Error(
 func (suite *TokenTestSuite) TestToken_CreateToken_ProductCheckout_ProductListEmpty_Error() {
 	req := &grpc.TokenRequest{
 		User: &billing.TokenUser{
-			Id: bson.NewObjectId().Hex(),
+			Id: primitive.NewObjectID().Hex(),
 			Locale: &billing.TokenUserLocaleValue{
 				Value: "en",
 			},
@@ -872,7 +896,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_ProductCheckout_ProductListEm
 func (suite *TokenTestSuite) TestToken_CreateToken_SimpleCheckout_InvalidCurrency_Error() {
 	req := &grpc.TokenRequest{
 		User: &billing.TokenUser{
-			Id: bson.NewObjectId().Hex(),
+			Id: primitive.NewObjectID().Hex(),
 			Locale: &billing.TokenUserLocaleValue{
 				Value: "en",
 			},
@@ -895,7 +919,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_SimpleCheckout_InvalidCurrenc
 func (suite *TokenTestSuite) TestToken_CreateToken_SimpleCheckout_LimitsAmount_Error() {
 	req := &grpc.TokenRequest{
 		User: &billing.TokenUser{
-			Id: bson.NewObjectId().Hex(),
+			Id: primitive.NewObjectID().Hex(),
 			Locale: &billing.TokenUserLocaleValue{
 				Value: "en",
 			},
@@ -918,7 +942,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_SimpleCheckout_LimitsAmount_E
 func (suite *TokenTestSuite) TestToken_CreateToken_KeyProductCheckout_Ok() {
 	req := &grpc.TokenRequest{
 		User: &billing.TokenUser{
-			Id: bson.NewObjectId().Hex(),
+			Id: primitive.NewObjectID().Hex(),
 			Locale: &billing.TokenUserLocaleValue{
 				Value: "en",
 			},
@@ -941,7 +965,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_KeyProductCheckout_Ok() {
 func (suite *TokenTestSuite) TestToken_CreateToken_KeyProductCheckout_ProjectWithoutKeyProducts_Error() {
 	req := &grpc.TokenRequest{
 		User: &billing.TokenUser{
-			Id: bson.NewObjectId().Hex(),
+			Id: primitive.NewObjectID().Hex(),
 			Locale: &billing.TokenUserLocaleValue{
 				Value: "en",
 			},
@@ -964,7 +988,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_KeyProductCheckout_ProjectWit
 func (suite *TokenTestSuite) TestToken_CreateToken_UnknownType_Error() {
 	req := &grpc.TokenRequest{
 		User: &billing.TokenUser{
-			Id: bson.NewObjectId().Hex(),
+			Id: primitive.NewObjectID().Hex(),
 			Locale: &billing.TokenUserLocaleValue{
 				Value: "en",
 			},
@@ -985,7 +1009,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_UnknownType_Error() {
 func (suite *TokenTestSuite) TestToken_CreateToken_KeyProductCheckout_WithAmount_Error() {
 	req := &grpc.TokenRequest{
 		User: &billing.TokenUser{
-			Id: bson.NewObjectId().Hex(),
+			Id: primitive.NewObjectID().Hex(),
 			Locale: &billing.TokenUserLocaleValue{
 				Value: "en",
 			},
@@ -1008,7 +1032,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_KeyProductCheckout_WithAmount
 func (suite *TokenTestSuite) TestToken_CreateToken_KeyProductCheckout_WithCurrency_Error() {
 	req := &grpc.TokenRequest{
 		User: &billing.TokenUser{
-			Id: bson.NewObjectId().Hex(),
+			Id: primitive.NewObjectID().Hex(),
 			Locale: &billing.TokenUserLocaleValue{
 				Value: "en",
 			},
@@ -1031,7 +1055,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_KeyProductCheckout_WithCurren
 func (suite *TokenTestSuite) TestToken_CreateToken_KeyProductCheckout_WithAmountAndCurrency_Error() {
 	req := &grpc.TokenRequest{
 		User: &billing.TokenUser{
-			Id: bson.NewObjectId().Hex(),
+			Id: primitive.NewObjectID().Hex(),
 			Locale: &billing.TokenUserLocaleValue{
 				Value: "en",
 			},
@@ -1055,7 +1079,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_KeyProductCheckout_WithAmount
 func (suite *TokenTestSuite) TestToken_CreateToken_SimpleCheckout_WithProductIds_Error() {
 	req := &grpc.TokenRequest{
 		User: &billing.TokenUser{
-			Id: bson.NewObjectId().Hex(),
+			Id: primitive.NewObjectID().Hex(),
 			Email: &billing.TokenUserEmailValue{
 				Value:    "test@unit.test",
 				Verified: true,
@@ -1083,7 +1107,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_SimpleCheckout_WithProductIds
 func (suite *TokenTestSuite) TestToken_CreateToken_ProjectWithVirtualCurrency_Ok() {
 	req := &grpc.TokenRequest{
 		User: &billing.TokenUser{
-			Id: bson.NewObjectId().Hex(),
+			Id: primitive.NewObjectID().Hex(),
 			Locale: &billing.TokenUserLocaleValue{
 				Value: "en",
 			},
