@@ -2224,8 +2224,10 @@ func (m *MerchantCommon) GetHasProjects() bool {
 }
 
 type SystemNotificationStatuses struct {
-	From                 int32    `protobuf:"varint,1,opt,name=from,proto3" json:"from,omitempty"`
-	To                   int32    `protobuf:"varint,2,opt,name=to,proto3" json:"to,omitempty"`
+	// @inject_tag: json:"from"
+	From int32 `protobuf:"varint,1,opt,name=from,proto3" json:"from"`
+	// @inject_tag: json:"to"
+	To                   int32    `protobuf:"varint,2,opt,name=to,proto3" json:"to"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`
