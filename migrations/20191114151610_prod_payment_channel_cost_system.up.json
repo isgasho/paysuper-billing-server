@@ -224,6 +224,7 @@
             "updated_at": true
           },
           "$set": {
+            "country": "",
             "is_active": true
           }
         },
