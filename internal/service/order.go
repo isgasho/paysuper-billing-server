@@ -4249,8 +4249,42 @@ func (s *Service) OrderReceipt(
 
 	items := make([]*billing.OrderReceiptItem, len(order.Items))
 
+	currency := order.Currency
+	if currency == grpc.VirtualCurrencyPriceGroup {
+		project, err := s.project.GetById(ctx, order.GetProjectId())
+
+		if err != nil {
+			zap.L().Error(
+				projectErrorUnknown.Message,
+				zap.Error(err),
+				zap.String("order.uuid", order.Uuid),
+			)
+
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = projectErrorUnknown
+
+			return nil
+		}
+
+		var ok = false
+		currency, ok = project.VirtualCurrency.Name[DefaultLanguage]
+
+		if !ok  {
+			zap.L().Error(
+				projectErrorVirtualCurrencyNameDefaultLangRequired.Message,
+				zap.Error(err),
+				zap.String("order.uuid", order.Uuid),
+			)
+
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = projectErrorVirtualCurrencyNameDefaultLangRequired
+
+			return nil
+		}
+	}
+
 	for i, item := range order.Items {
-		price, err := s.formatter.FormatCurrency("en", item.Amount, item.Currency)
+		price, err := s.formatter.FormatCurrency(DefaultLanguage, item.Amount, currency)
 
 		if err != nil {
 			zap.L().Error(
@@ -4259,11 +4293,6 @@ func (s *Service) OrderReceipt(
 				zap.String("locale", DefaultLanguage),
 				zap.String("currency", item.Currency),
 			)
-
-			rsp.Status = pkg.ResponseStatusSystemError
-			rsp.Message = orderErrorDuringFormattingCurrency
-
-			return nil
 		}
 
 		items[i] = &billing.OrderReceiptItem{Name: item.Name, Price: price}

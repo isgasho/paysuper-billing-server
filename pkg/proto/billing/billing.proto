@@ -407,7 +407,9 @@ message MerchantCommon {
 }
 
 message SystemNotificationStatuses {
+    // @inject_tag: json:"from"
     int32 from = 1;
+    // @inject_tag: json:"to"
     int32 to = 2;
 }
 
