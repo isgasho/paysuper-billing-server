@@ -4144,7 +4144,22 @@ func (s *Service) OrderReceipt(
 
 			return nil
 		}
-		currency, _ = project.VirtualCurrency.Name[DefaultLanguage]
+
+		var ok = false
+		currency, ok = project.VirtualCurrency.Name[DefaultLanguage]
+
+		if !ok  {
+			zap.L().Error(
+				projectErrorVirtualCurrencyNameDefaultLangRequired.Message,
+				zap.Error(err),
+				zap.String("order.uuid", order.Uuid),
+			)
+
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = projectErrorVirtualCurrencyNameDefaultLangRequired
+
+			return nil
+		}
 	}
 
 	for i, item := range order.Items {
