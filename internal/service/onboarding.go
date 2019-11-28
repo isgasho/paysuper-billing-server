@@ -1684,7 +1684,7 @@ func (s *Service) SetMerchantTariffRates(
 			return err
 		}
 
-		statusChange := &billing.SystemNotificationStatuses{From: merchant.Status, To: pkg.MerchantStatusPending}
+		statusChange := &billing.SystemNotificationStatuses{From: pkg.MerchantStatusDraft, To: pkg.MerchantStatusPending}
 
 		merchant.Status = pkg.MerchantStatusPending
 		merchant.StatusLastUpdatedAt = ptypes.TimestampNow()
