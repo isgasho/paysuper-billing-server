@@ -4347,7 +4347,15 @@ func (s *Service) OrderReCreateProcess(
 	newOrder.ReceiptUrl = ""
 	newOrder.PaymentMethod = nil
 
-	newOrder.User = &billing.OrderUser{}
+	newOrder.User = &billing.OrderUser{
+		Id: order.User.Id,
+		Phone: order.User.Phone,
+		PhoneVerified: order.User.PhoneVerified,
+		Metadata: order.Metadata,
+		Object: order.User.Object,
+		Name: order.User.Name,
+		ExternalId: order.User.ExternalId,
+	}
 
 	_, err = s.db.Collection(collectionOrder).InsertOne(ctx, newOrder)
 
