@@ -58,29 +58,6 @@ func (_m *CountryServiceInterface) GetByIsoCodeA2(_a0 context.Context, _a1 strin
 	return r0, r1
 }
 
-// GetByRisk provides a mock function with given fields: ctx, isHighRisk
-func (_m *CountryServiceInterface) GetByRisk(ctx context.Context, isHighRisk bool) (*billing.CountriesList, error) {
-	ret := _m.Called(ctx, isHighRisk)
-
-	var r0 *billing.CountriesList
-	if rf, ok := ret.Get(0).(func(context.Context, bool) *billing.CountriesList); ok {
-		r0 = rf(ctx, isHighRisk)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*billing.CountriesList)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, bool) error); ok {
-		r1 = rf(ctx, isHighRisk)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // GetCountriesAndRegionsByTariffRegion provides a mock function with given fields: ctx, tariffRegion
 func (_m *CountryServiceInterface) GetCountriesAndRegionsByTariffRegion(ctx context.Context, tariffRegion string) ([]*pkg.CountryAndRegionItem, error) {
 	ret := _m.Called(ctx, tariffRegion)
@@ -120,6 +97,29 @@ func (_m *CountryServiceInterface) GetCountriesWithVatEnabled(_a0 context.Contex
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
 		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetPaymentCountriesForOrder provides a mock function with given fields: ctx, isHighRiskOrder
+func (_m *CountryServiceInterface) GetPaymentCountriesForOrder(ctx context.Context, isHighRiskOrder bool) (*billing.CountriesList, error) {
+	ret := _m.Called(ctx, isHighRiskOrder)
+
+	var r0 *billing.CountriesList
+	if rf, ok := ret.Get(0).(func(context.Context, bool) *billing.CountriesList); ok {
+		r0 = rf(ctx, isHighRiskOrder)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*billing.CountriesList)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, bool) error); ok {
+		r1 = rf(ctx, isHighRiskOrder)
 	} else {
 		r1 = ret.Error(1)
 	}

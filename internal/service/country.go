@@ -81,12 +81,13 @@ func (s *Service) GetCountriesListForOrder(
 		return err
 	}
 
-	countries, err := s.country.GetByRisk(ctx, order.IsHighRisk)
+	countries, err := s.country.GetPaymentCountriesForOrder(ctx, order.IsHighRisk)
 	if err != nil {
 		return err
 	}
 
-	res.Item.Countries = countries.Countries
+	res.Item = countries
+	res.Status = pkg.ResponseStatusOk
 
 	return nil
 }
@@ -206,7 +207,7 @@ type CountryServiceInterface interface {
 	Update(context.Context, *billing.Country) error
 	GetByIsoCodeA2(context.Context, string) (*billing.Country, error)
 	GetAll(context.Context) (*billing.CountriesList, error)
-	GetByRisk(ctx context.Context, isHighRisk bool) (*billing.CountriesList, error)
+	GetPaymentCountriesForOrder(ctx context.Context, isHighRiskOrder bool) (*billing.CountriesList, error)
 	IsRegionExists(context.Context, string) (bool, error)
 	IsTariffRegionExists(string) bool
 	GetCountriesWithVatEnabled(context.Context) (*billing.CountriesList, error)
@@ -454,15 +455,15 @@ func (h *Country) GetAll(ctx context.Context) (*billing.CountriesList, error) {
 	return c, nil
 }
 
-func (h *Country) GetByRisk(ctx context.Context, isHighRisk bool) (*billing.CountriesList, error) {
+func (h *Country) GetPaymentCountriesForOrder(ctx context.Context, isHighRiskOrder bool) (*billing.CountriesList, error) {
 	var c = &billing.CountriesList{}
-	var key = fmt.Sprintf(cacheCountryRisk, isHighRisk)
+	var key = fmt.Sprintf(cacheCountryRisk, isHighRiskOrder)
 	if err := h.svc.cacher.Get(key, c); err == nil {
 		return c, nil
 	}
 
 	field := "payments_allowed"
-	if isHighRisk {
+	if isHighRiskOrder {
 		field = "high_risk_payments_allowed"
 	}
 
