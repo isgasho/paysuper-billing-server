@@ -8549,6 +8549,16 @@ func (suite *OrderTestSuite) TestOrder_ReCreateOrder_Ok() {
 		shouldBe.EqualValues(constant.OrderStatusNew, rsp1.Item.PrivateStatus)
 		shouldBe.Empty(rsp1.Item.ReceiptUrl)
 		shouldBe.NotEqual(order.ReceiptId, rsp1.Item.ReceiptId)
+
+		req1 := &grpc.PaymentFormJsonDataRequest{OrderId: rsp1.Item.Uuid, Scheme: "https", Host: "unit.test",
+			Ip: "127.0.0.1",
+		}
+		rsp2 := &grpc.PaymentFormJsonDataResponse{}
+		err = suite.service.PaymentFormJsonDataProcess(context.TODO(), req1, rsp2)
+		assert.Nil(suite.T(), err)
+		assert.EqualValues(suite.T(), 200, rsp2.Status, rsp2.Message)
+		assert.Equal(suite.T(), billing.OrderType_simple, rsp2.Item.Type)
+		assert.NotNil(suite.T(), rsp2.Item.UserIpData)
 	}
 
 }

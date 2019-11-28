@@ -4347,6 +4347,8 @@ func (s *Service) OrderReCreateProcess(
 	newOrder.ReceiptUrl = ""
 	newOrder.PaymentMethod = nil
 
+	newOrder.User = &billing.OrderUser{}
+
 	_, err = s.db.Collection(collectionOrder).InsertOne(ctx, newOrder)
 
 	if err != nil {
