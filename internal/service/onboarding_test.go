@@ -4014,6 +4014,22 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantOperatingCompany_Get
 	assert.Equal(suite.T(), mocks.SomeError, rsp3.Message.Message)
 }
 
+func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_SetStatusToPending() {
+	req := &grpc.SetMerchantTariffRatesRequest{
+		MerchantId:             suite.merchant.Id,
+		HomeRegion:             "russia_and_cis",
+		MerchantOperationsType: pkg.MerchantOperationTypeLowRisk,
+	}
+	rsp := &grpc.CheckProjectRequestSignatureResponse{}
+	err := suite.service.SetMerchantTariffRates(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+
+	merchant, err := suite.service.merchant.GetById(context.TODO(), suite.merchant.Id)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.MerchantStatusPending, merchant.Status)
+}
+
 func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_MerchantHasTariff_Error() {
 	req := &grpc.SetMerchantTariffRatesRequest{
 		MerchantId:             suite.merchant.Id,
