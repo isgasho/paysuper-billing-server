@@ -2647,31 +2647,13 @@ func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) erro
 		}
 	}
 
-	req := &tax_service.GetRateRequest{
-		IpData:   &tax_service.GeoIdentity{},
-		UserData: &tax_service.GeoIdentity{},
+	req := &tax_service.GeoIdentity{
+		Country: countryCode,
 	}
 
-	if order.User != nil && order.User.Address != nil {
-		req.IpData.Country = order.User.Address.Country
-		req.IpData.City = order.User.Address.City
-
-		if order.User.Address.Country == CountryCodeUSA {
-			order.Tax.Type = taxTypeSalesTax
-
-			req.IpData.Zip = order.User.Address.PostalCode
-			req.IpData.State = order.User.Address.State
-
-			if order.BillingAddress != nil {
-				req.UserData.Zip = order.BillingAddress.PostalCode
-			}
-		}
-	}
-
-	if order.BillingAddress != nil {
-		req.UserData.Country = order.BillingAddress.Country
-		req.UserData.City = order.BillingAddress.City
-		req.UserData.State = order.BillingAddress.State
+	if countryCode == CountryCodeUSA {
+		order.Tax.Type = taxTypeSalesTax
+		req.Zip = order.GetPostalCode()
 	}
 
 	rsp, err := v.tax.GetRate(context.TODO(), req)
@@ -2681,11 +2663,7 @@ func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) erro
 		return err
 	}
 
-	if order.BillingAddress != nil {
-		req.UserData.State = rsp.Rate.State
-	}
-
-	order.Tax.Rate = rsp.Rate.Rate
+	order.Tax.Rate = rsp.Rate
 	order.Tax.Amount = tools.FormatAmount(order.OrderAmount * order.Tax.Rate)
 	order.TotalPaymentAmount = tools.FormatAmount(order.OrderAmount + order.Tax.Amount)
 	order.ChargeAmount = order.TotalPaymentAmount
