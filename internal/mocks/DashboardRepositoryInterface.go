@@ -2,6 +2,7 @@
 
 package mocks
 
+import context "context"
 import grpc "github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 import mock "github.com/stretchr/testify/mock"
 
@@ -10,13 +11,13 @@ type DashboardRepositoryInterface struct {
 	mock.Mock
 }
 
-// GetBaseReport provides a mock function with given fields: _a0, _a1
-func (_m *DashboardRepositoryInterface) GetBaseReport(_a0 string, _a1 string) (*grpc.DashboardBaseReports, error) {
-	ret := _m.Called(_a0, _a1)
+// GetBaseReport provides a mock function with given fields: _a0, _a1, _a2
+func (_m *DashboardRepositoryInterface) GetBaseReport(_a0 context.Context, _a1 string, _a2 string) (*grpc.DashboardBaseReports, error) {
+	ret := _m.Called(_a0, _a1, _a2)
 
 	var r0 *grpc.DashboardBaseReports
-	if rf, ok := ret.Get(0).(func(string, string) *grpc.DashboardBaseReports); ok {
-		r0 = rf(_a0, _a1)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *grpc.DashboardBaseReports); ok {
+		r0 = rf(_a0, _a1, _a2)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*grpc.DashboardBaseReports)
@@ -24,8 +25,8 @@ func (_m *DashboardRepositoryInterface) GetBaseReport(_a0 string, _a1 string) (*
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(_a0, _a1)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(_a0, _a1, _a2)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -33,13 +34,13 @@ func (_m *DashboardRepositoryInterface) GetBaseReport(_a0 string, _a1 string) (*
 	return r0, r1
 }
 
-// GetBaseRevenueByCountryReport provides a mock function with given fields: _a0, _a1
-func (_m *DashboardRepositoryInterface) GetBaseRevenueByCountryReport(_a0 string, _a1 string) (*grpc.DashboardRevenueByCountryReport, error) {
-	ret := _m.Called(_a0, _a1)
+// GetBaseRevenueByCountryReport provides a mock function with given fields: _a0, _a1, _a2
+func (_m *DashboardRepositoryInterface) GetBaseRevenueByCountryReport(_a0 context.Context, _a1 string, _a2 string) (*grpc.DashboardRevenueByCountryReport, error) {
+	ret := _m.Called(_a0, _a1, _a2)
 
 	var r0 *grpc.DashboardRevenueByCountryReport
-	if rf, ok := ret.Get(0).(func(string, string) *grpc.DashboardRevenueByCountryReport); ok {
-		r0 = rf(_a0, _a1)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *grpc.DashboardRevenueByCountryReport); ok {
+		r0 = rf(_a0, _a1, _a2)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*grpc.DashboardRevenueByCountryReport)
@@ -47,8 +48,8 @@ func (_m *DashboardRepositoryInterface) GetBaseRevenueByCountryReport(_a0 string
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(_a0, _a1)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(_a0, _a1, _a2)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -56,13 +57,13 @@ func (_m *DashboardRepositoryInterface) GetBaseRevenueByCountryReport(_a0 string
 	return r0, r1
 }
 
-// GetBaseSalesTodayReport provides a mock function with given fields: _a0, _a1
-func (_m *DashboardRepositoryInterface) GetBaseSalesTodayReport(_a0 string, _a1 string) (*grpc.DashboardSalesTodayReport, error) {
-	ret := _m.Called(_a0, _a1)
+// GetBaseSalesTodayReport provides a mock function with given fields: _a0, _a1, _a2
+func (_m *DashboardRepositoryInterface) GetBaseSalesTodayReport(_a0 context.Context, _a1 string, _a2 string) (*grpc.DashboardSalesTodayReport, error) {
+	ret := _m.Called(_a0, _a1, _a2)
 
 	var r0 *grpc.DashboardSalesTodayReport
-	if rf, ok := ret.Get(0).(func(string, string) *grpc.DashboardSalesTodayReport); ok {
-		r0 = rf(_a0, _a1)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *grpc.DashboardSalesTodayReport); ok {
+		r0 = rf(_a0, _a1, _a2)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*grpc.DashboardSalesTodayReport)
@@ -70,8 +71,8 @@ func (_m *DashboardRepositoryInterface) GetBaseSalesTodayReport(_a0 string, _a1 
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(_a0, _a1)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(_a0, _a1, _a2)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -79,13 +80,13 @@ func (_m *DashboardRepositoryInterface) GetBaseSalesTodayReport(_a0 string, _a1 
 	return r0, r1
 }
 
-// GetBaseSourcesReport provides a mock function with given fields: _a0, _a1
-func (_m *DashboardRepositoryInterface) GetBaseSourcesReport(_a0 string, _a1 string) (*grpc.DashboardSourcesReport, error) {
-	ret := _m.Called(_a0, _a1)
+// GetBaseSourcesReport provides a mock function with given fields: _a0, _a1, _a2
+func (_m *DashboardRepositoryInterface) GetBaseSourcesReport(_a0 context.Context, _a1 string, _a2 string) (*grpc.DashboardSourcesReport, error) {
+	ret := _m.Called(_a0, _a1, _a2)
 
 	var r0 *grpc.DashboardSourcesReport
-	if rf, ok := ret.Get(0).(func(string, string) *grpc.DashboardSourcesReport); ok {
-		r0 = rf(_a0, _a1)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *grpc.DashboardSourcesReport); ok {
+		r0 = rf(_a0, _a1, _a2)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*grpc.DashboardSourcesReport)
@@ -93,8 +94,8 @@ func (_m *DashboardRepositoryInterface) GetBaseSourcesReport(_a0 string, _a1 str
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(_a0, _a1)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(_a0, _a1, _a2)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -102,13 +103,13 @@ func (_m *DashboardRepositoryInterface) GetBaseSourcesReport(_a0 string, _a1 str
 	return r0, r1
 }
 
-// GetMainReport provides a mock function with given fields: _a0, _a1
-func (_m *DashboardRepositoryInterface) GetMainReport(_a0 string, _a1 string) (*grpc.DashboardMainReport, error) {
-	ret := _m.Called(_a0, _a1)
+// GetMainReport provides a mock function with given fields: _a0, _a1, _a2
+func (_m *DashboardRepositoryInterface) GetMainReport(_a0 context.Context, _a1 string, _a2 string) (*grpc.DashboardMainReport, error) {
+	ret := _m.Called(_a0, _a1, _a2)
 
 	var r0 *grpc.DashboardMainReport
-	if rf, ok := ret.Get(0).(func(string, string) *grpc.DashboardMainReport); ok {
-		r0 = rf(_a0, _a1)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *grpc.DashboardMainReport); ok {
+		r0 = rf(_a0, _a1, _a2)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*grpc.DashboardMainReport)
@@ -116,8 +117,8 @@ func (_m *DashboardRepositoryInterface) GetMainReport(_a0 string, _a1 string) (*
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(_a0, _a1)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(_a0, _a1, _a2)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -125,13 +126,13 @@ func (_m *DashboardRepositoryInterface) GetMainReport(_a0 string, _a1 string) (*
 	return r0, r1
 }
 
-// GetRevenueDynamicsReport provides a mock function with given fields: _a0, _a1
-func (_m *DashboardRepositoryInterface) GetRevenueDynamicsReport(_a0 string, _a1 string) (*grpc.DashboardRevenueDynamicReport, error) {
-	ret := _m.Called(_a0, _a1)
+// GetRevenueDynamicsReport provides a mock function with given fields: _a0, _a1, _a2
+func (_m *DashboardRepositoryInterface) GetRevenueDynamicsReport(_a0 context.Context, _a1 string, _a2 string) (*grpc.DashboardRevenueDynamicReport, error) {
+	ret := _m.Called(_a0, _a1, _a2)
 
 	var r0 *grpc.DashboardRevenueDynamicReport
-	if rf, ok := ret.Get(0).(func(string, string) *grpc.DashboardRevenueDynamicReport); ok {
-		r0 = rf(_a0, _a1)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *grpc.DashboardRevenueDynamicReport); ok {
+		r0 = rf(_a0, _a1, _a2)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*grpc.DashboardRevenueDynamicReport)
@@ -139,8 +140,8 @@ func (_m *DashboardRepositoryInterface) GetRevenueDynamicsReport(_a0 string, _a1
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(_a0, _a1)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(_a0, _a1, _a2)
 	} else {
 		r1 = ret.Error(1)
 	}
