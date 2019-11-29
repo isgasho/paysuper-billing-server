@@ -331,7 +331,18 @@ func (s *Service) GetPayoutDocumentRoyaltyReports(
 		return err
 	}
 
+	res.Data = &grpc.RoyaltyReportsPaginate{}
 	res.Data.Items, err = s.royaltyReport.GetByPayoutId(ctx, pd.Id)
+
+	if err != nil {
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			res.Status = pkg.ResponseStatusBadData
+			res.Message = e
+			return nil
+		}
+		return err
+	}
+
 	res.Data.Count = int64(len(res.Data.Items))
 	res.Status = pkg.ResponseStatusOk
 
