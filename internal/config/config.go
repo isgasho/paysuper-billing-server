@@ -34,7 +34,7 @@ type CacheRedis struct {
 	PoolSize     int      `envconfig:"CACHE_REDIS_POOL_SIZE" default:"1"`
 	MaxRetries   int      `envconfig:"CACHE_REDIS_MAX_RETRIES" default:"10"`
 	MaxRedirects int      `envconfig:"CACHE_REDIS_MAX_REDIRECTS" default:"8"`
-	VersionLimit int      `envconfig:"CACHE_REDIS_VERSION_LIMIT" default:"2"`
+	Version      string   `envconfig:"CACHE_REDIS_VERSION" default:"1.0.0"`
 }
 
 type Config struct {

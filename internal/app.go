@@ -2,8 +2,6 @@ package internal
 
 import (
 	"context"
-	"crypto/md5"
-	"encoding/hex"
 	"errors"
 	"github.com/InVisionApp/go-health"
 	"github.com/InVisionApp/go-health/handlers"
@@ -44,7 +42,6 @@ import (
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
 	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -201,24 +198,16 @@ func (app *Application) Init() {
 		MaxRedirects: cfg.CacheRedis.MaxRedirects,
 		PoolSize:     cfg.CacheRedis.PoolSize,
 	})
+	cache, err := service.NewCacheRedis(redisdb, cfg.CacheRedis.Version)
 
-	hash, err := app.calculateHash()
-	if err != nil {
-		app.logger.Error("Unable to calculate hash of the application", zap.Error(err))
-	}
-
-	runes := []rune(hash)
-	cache, err := service.NewCacheRedis(redisdb, string(runes[len(runes)-10:]))
 	if err != nil {
 		app.logger.Error("Unable to initialize cache for the application", zap.Error(err))
 	} else {
-		cleanedCount, err := cache.CleanOldestVersion(cfg.CacheRedis.VersionLimit)
-
-		if err != nil {
-			app.logger.Error("Unable to clean oldest versions of cache", zap.Error(err))
-		} else {
-			app.logger.Info("Cleaned oldest versions of cache", zap.Int("count", cleanedCount))
-		}
+		go func() {
+			if err = cache.CleanOldestVersion(); err != nil {
+				app.logger.Error("Unable to clean oldest versions of cache", zap.Error(err))
+			}
+		}()
 	}
 
 	app.svc = service.NewBillingService(
@@ -408,23 +397,4 @@ func (app *Application) KeyDaemonStart() {
 			}
 		}
 	}()
-}
-
-func (app *Application) calculateHash() (string, error) {
-	file, err := os.Open(os.Args[0])
-
-	if err != nil {
-		return "", err
-	}
-
-	defer file.Close()
-
-	hash := md5.New()
-	_, err = io.Copy(hash, file)
-
-	if err != nil {
-		return "", err
-	}
-
-	return hex.EncodeToString(hash.Sum(nil)), nil
 }

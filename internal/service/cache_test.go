@@ -66,50 +66,20 @@ func (suite *CacheTestSuite) TearDownTest() {
 	suite.cache.FlushAll()
 }
 
-func (suite *CacheTestSuite) TestCache_HasVersionToClean_ReturnFalse() {
-	res, err := suite.cache.HasVersionToClean(2)
-	assert.NoError(suite.T(), err)
-	assert.False(suite.T(), res)
-}
-
-func (suite *CacheTestSuite) TestCache_HasVersionToClean_ReturnFalse_ExistsVersion() {
-	versionLimit := 2
-	for i := 0; i <= versionLimit; i++ {
-		_, _ = NewCacheRedis(suite.redis, "cache")
-	}
-	res, err := suite.cache.HasVersionToClean(versionLimit)
-	assert.NoError(suite.T(), err)
-	assert.False(suite.T(), res)
-}
-
-func (suite *CacheTestSuite) TestCache_HasVersionToClean_ReturnTrue() {
-	versionLimit := 2
-	for i := 0; i <= versionLimit; i++ {
-		_, _ = NewCacheRedis(suite.redis, fmt.Sprintf("cache%d", i))
-	}
-	res, err := suite.cache.HasVersionToClean(versionLimit)
-	assert.NoError(suite.T(), err)
-	assert.True(suite.T(), res)
-}
-
 func (suite *CacheTestSuite) TestCache_CleanOldestVersion_NoOldestVersions() {
-	cleaned, err := suite.cache.CleanOldestVersion(2)
+	err := suite.cache.CleanOldestVersion()
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), 0, cleaned)
 }
 
 func (suite *CacheTestSuite) TestCache_CleanOldestVersion_ReturnTrue() {
-	versionLimit := 2
 	for i := 0; i <= versionLimit; i++ {
 		_, _ = NewCacheRedis(suite.redis, fmt.Sprintf("cache%d", i))
 	}
-	cleaned, err := suite.cache.CleanOldestVersion(versionLimit)
+	err := suite.cache.CleanOldestVersion()
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), 2, cleaned)
 }
 
 func (suite *CacheTestSuite) TestCache_CleanOldestVersion_SuccessfullyDeletedKeys() {
-	versionLimit := 2
 	oldestCache, _ := NewCacheRedis(suite.redis, "cache_old")
 	_, _ = NewCacheRedis(suite.redis, "cache_new1")
 	_, _ = NewCacheRedis(suite.redis, "cache_new2")
@@ -120,7 +90,7 @@ func (suite *CacheTestSuite) TestCache_CleanOldestVersion_SuccessfullyDeletedKey
 	_ = oldestCache.Get("test", &val1)
 	assert.NotEmpty(suite.T(), val1)
 
-	_, err := suite.cache.CleanOldestVersion(versionLimit)
+	err := suite.cache.CleanOldestVersion()
 	assert.NoError(suite.T(), err)
 
 	var val2 interface{}

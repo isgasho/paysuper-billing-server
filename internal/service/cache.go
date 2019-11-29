@@ -10,6 +10,8 @@ import (
 const (
 	CacheStorageKey = "cache:%s:%s"
 	CacheVersionKey = "cache:versions"
+
+	versionLimit = 2
 )
 
 type CacheInterface interface {
@@ -17,23 +19,22 @@ type CacheInterface interface {
 	Get(string, interface{}) error
 	Delete(string) error
 	FlushAll()
-	CleanOldestVersion(int) (int, error)
-	HasVersionToClean(int) (bool, error)
+	CleanOldestVersion() error
 }
 
 type Cache struct {
-	redis redis.Cmdable
-	hash  string
+	redis   redis.Cmdable
+	version string
 }
 
-func NewCacheRedis(r redis.Cmdable, hash string) (*Cache, error) {
-	result := r.ZAdd(CacheVersionKey, redis.Z{Member: hash, Score: float64(time.Now().UnixNano())})
+func NewCacheRedis(r redis.Cmdable, version string) (*Cache, error) {
+	result := r.ZAdd(CacheVersionKey, redis.Z{Member: version, Score: float64(time.Now().UnixNano())})
 
 	if result.Err() != nil {
 		return nil, result.Err()
 	}
 
-	return &Cache{redis: r, hash: hash}, nil
+	return &Cache{redis: r, version: version}, nil
 }
 
 func (c *Cache) Set(key string, value interface{}, duration time.Duration) error {
@@ -71,30 +72,22 @@ func (c *Cache) FlushAll() {
 	c.redis.FlushAll()
 }
 
-func (c *Cache) CleanOldestVersion(versionLimit int) (int, error) {
-	needToClean, err := c.HasVersionToClean(versionLimit)
-
-	if err != nil {
-		return 0, err
-	}
-
-	if !needToClean {
-		return 0, nil
-	}
-
+func (c *Cache) CleanOldestVersion() error {
 	res := c.redis.ZRevRange(CacheVersionKey, 0, -1)
 
 	if res.Err() != nil {
-		return 0, res.Err()
+		return res.Err()
 	}
 
 	for _, val := range res.Val()[versionLimit:] {
-		if err = c.cleanVersion(val); err != nil {
-			return 0, err
+		if err := c.cleanVersion(val); err != nil {
+			return err
 		}
+
+		c.redis.ZRem(CacheVersionKey, val)
 	}
 
-	return len(res.Val()) - versionLimit, nil
+	return nil
 }
 
 func (c *Cache) cleanVersion(version string) error {
@@ -126,16 +119,6 @@ func (c *Cache) cleanVersion(version string) error {
 	return nil
 }
 
-func (c *Cache) HasVersionToClean(versionLimit int) (bool, error) {
-	res := c.redis.ZCard(CacheVersionKey)
-
-	if res.Err() != nil {
-		return false, res.Err()
-	}
-
-	return int(res.Val()) > versionLimit, nil
-}
-
 func (c Cache) getStorageKey(key string) string {
-	return fmt.Sprintf(CacheStorageKey, c.hash, key)
+	return fmt.Sprintf(CacheStorageKey, c.version, key)
 }
