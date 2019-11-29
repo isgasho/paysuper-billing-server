@@ -2279,14 +2279,18 @@ type Notification struct {
 	Message string `protobuf:"bytes,3,opt,name=message,proto3" json:"message"`
 	// @inject_tag: json:"merchant_id"
 	MerchantId string `protobuf:"bytes,4,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id"`
-	UserId     string `protobuf:"bytes,5,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	IsSystem   bool   `protobuf:"varint,6,opt,name=is_system,json=isSystem,proto3" json:"is_system,omitempty"`
+	// @inject_tag: json:"user_id"
+	UserId string `protobuf:"bytes,5,opt,name=user_id,json=userId,proto3" json:"user_id"`
+	// @inject_tag: json:"is_system"
+	IsSystem bool `protobuf:"varint,6,opt,name=is_system,json=isSystem,proto3" json:"is_system"`
 	// @inject_tag: json:"is_read"
-	IsRead   bool                        `protobuf:"varint,7,opt,name=is_read,json=isRead,proto3" json:"is_read"`
-	Statuses *SystemNotificationStatuses `protobuf:"bytes,8,opt,name=statuses,proto3" json:"statuses,omitempty"`
+	IsRead bool `protobuf:"varint,7,opt,name=is_read,json=isRead,proto3" json:"is_read"`
+	// @inject_tag: json:"statuses"
+	Statuses *SystemNotificationStatuses `protobuf:"bytes,8,opt,name=statuses,proto3" json:"statuses"`
 	// @inject_tag: json:"created_at"
-	CreatedAt            *timestamp.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at"`
-	UpdatedAt            *timestamp.Timestamp `protobuf:"bytes,10,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	CreatedAt *timestamp.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at"`
+	// @inject_tag: json:"updated_at"
+	UpdatedAt            *timestamp.Timestamp `protobuf:"bytes,10,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte               `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32                `json:"-" bson:"-" structure:"-" validate:"-"`

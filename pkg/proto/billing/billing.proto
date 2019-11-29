@@ -420,13 +420,17 @@ message Notification {
     string message = 3;
     // @inject_tag: json:"merchant_id"
     string merchant_id = 4;
+    // @inject_tag: json:"user_id"
     string user_id = 5;
+    // @inject_tag: json:"is_system"
     bool is_system = 6;
     // @inject_tag: json:"is_read"
     bool is_read = 7;
+    // @inject_tag: json:"statuses"
     SystemNotificationStatuses statuses = 8;
     // @inject_tag: json:"created_at"
     google.protobuf.Timestamp created_at = 9;
+    // @inject_tag: json:"updated_at"
     google.protobuf.Timestamp updated_at = 10;
 }
 
