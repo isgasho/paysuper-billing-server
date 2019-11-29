@@ -32,7 +32,8 @@ func NewDocumentSignerMockOk() proto.DocumentSignerService {
 	GetSignatureUrlResponse.Item.ExpiresAt, _ = ptypes.TimestampProto(time.Now().Add(time.Duration(1 * time.Hour)))
 
 	ds := &DocumentSignerService{}
-	ds.On("CreateSignature", mock2.Anything, mock2.Anything).Return(CreateSignatureResponse, nil)
+	ds.On("CreateSignature", mock2.Anything, mock2.Anything, mock2.Anything).
+		Return(CreateSignatureResponse, nil)
 	ds.On("GetSignatureUrl", mock2.Anything, mock2.Anything).Return(GetSignatureUrlResponse, nil)
 
 	return ds
