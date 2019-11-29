@@ -1809,7 +1809,8 @@
             "updated_at": true
           },
           "$set": {
-            "is_active": true
+            "is_active": true,
+            "country": ""
           }
         },
         "multi": true
