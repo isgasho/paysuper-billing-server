@@ -1443,16 +1443,14 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		return err
 	}
 
-	if order.PaymentMethod == nil {
-		order.PaymentMethod = &billing.PaymentMethodOrder{
-			Id:              pm.Id,
-			Name:            pm.Name,
-			PaymentSystemId: ps.Id,
-			Group:           pm.Group,
-			ExternalId:      pm.ExternalId,
-			Handler:         ps.Handler,
-			RefundAllowed:   pm.RefundAllowed,
-		}
+	order.PaymentMethod = &billing.PaymentMethodOrder{
+		Id:              pm.Id,
+		Name:            pm.Name,
+		PaymentSystemId: ps.Id,
+		Group:           pm.Group,
+		ExternalId:      pm.ExternalId,
+		Handler:         ps.Handler,
+		RefundAllowed:   pm.RefundAllowed,
 	}
 
 	methodName, err := order.GetCostPaymentMethodName()
