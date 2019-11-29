@@ -485,40 +485,40 @@ func (suite *OrderTestSuite) SetupTest() {
 	}
 	pmBitcoin2 := &billing.PaymentMethod{
 		Id:               primitive.NewObjectID().Hex(),
-		Name:             "Bitcoin_2",
+		Name:             "Bitcoin 2",
 		Group:            "BITCOIN_2",
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
 		ExternalId:       "BITCOIN",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			keyRubBitcoin + "_2": {
+			keyRubBitcoin + " 2": {
 				TerminalId:         "16007",
 				Secret:             "1234567890",
 				SecretCallback:     "1234567890",
 				Currency:           "RUB",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
-				Brand:              []string{"BITCOIN_2"},
+				Brand:              []string{"BITCOIN 2"},
 			},
-			keyUsdBitcoin + "_2": {
+			keyUsdBitcoin + " 2": {
 				TerminalId:         "16007",
 				Secret:             "1234567890",
 				SecretCallback:     "1234567890",
 				Currency:           "USD",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
-				Brand:              []string{"BITCOIN_2"},
+				Brand:              []string{"BITCOIN 2"},
 			},
 		},
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			keyRubBitcoin + "_2": {
+			keyRubBitcoin + " 2": {
 				TerminalId:         "16007",
 				Secret:             "1234567890",
 				SecretCallback:     "1234567890",
 				Currency:           "RUB",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
-				Brand:              []string{"BITCOIN_2"},
+				Brand:              []string{"BITCOIN 2"},
 			},
 		},
 		Type:            "crypto",
