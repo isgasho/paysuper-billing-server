@@ -1213,6 +1213,7 @@ func (s *Service) mapNotificationData(rsp *billing.Notification, notification *b
 	rsp.IsRead = notification.IsRead
 	rsp.CreatedAt = notification.CreatedAt
 	rsp.UpdatedAt = notification.UpdatedAt
+	rsp.Statuses = notification.Statuses
 }
 
 func (s *Service) GetMerchantAgreementSignUrl(
@@ -1684,7 +1685,7 @@ func (s *Service) SetMerchantTariffRates(
 			return err
 		}
 
-		statusChange := &billing.SystemNotificationStatuses{From: merchant.Status, To: pkg.MerchantStatusPending}
+		statusChange := &billing.SystemNotificationStatuses{From: pkg.MerchantStatusDraft, To: pkg.MerchantStatusPending}
 
 		merchant.Status = pkg.MerchantStatusPending
 		merchant.StatusLastUpdatedAt = ptypes.TimestampNow()

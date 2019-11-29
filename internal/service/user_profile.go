@@ -571,6 +571,7 @@ func (s *Service) GetCommonUserProfile(
 			rsp.Profile.Merchant.Id,
 			time.Now().Add(time.Hour*3).Unix(),
 		)
+		rsp.Profile.Merchant.HasProjects = s.getProjectsCountByMerchant(ctx, rsp.Profile.Merchant.Id) > 0
 
 		if role.Role != pkg.RoleMerchantOwner &&
 			role.Role != pkg.RoleMerchantAccounting &&
@@ -622,6 +623,7 @@ func (s *Service) findRoleForUser(ctx context.Context, merchantId string, userId
 type UserProfileRepositoryInterface interface {
 	GetById(context.Context, string) (*grpc.UserProfile, error)
 	GetByUserId(context.Context, string) (*grpc.UserProfile, error)
+	Add(context.Context, *grpc.UserProfile) error
 }
 
 func newUserProfileRepository(svc *Service) UserProfileRepositoryInterface {
@@ -663,4 +665,14 @@ func (r *UserProfileRepository) GetByUserId(ctx context.Context, userId string) 
 	}
 
 	return c, nil
+}
+
+func (r *UserProfileRepository) Add(ctx context.Context, profile *grpc.UserProfile) error {
+	_, err := r.svc.db.Collection(collectionUserProfile).InsertOne(ctx, profile)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

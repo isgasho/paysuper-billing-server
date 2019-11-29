@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/elliotchance/redismock"
 	"github.com/go-redis/redis"
+	"github.com/paysuper/casbin-server/pkg/generated/api/proto/casbinpb"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
@@ -907,4 +908,67 @@ func (suite *UserProfileTestSuite) TestUserProfile_GetUserProfile_ByProfileId_Ok
 	assert.NotNil(suite.T(), rsp1.Item)
 	assert.Equal(suite.T(), rsp.Item.Id, rsp1.Item.Id)
 	assert.Equal(suite.T(), rsp.Item.UserId, rsp1.Item.UserId)
+}
+
+func (suite *UserProfileTestSuite) TestUserProfile_GetCommonUserProfile_HasProjectsTrue() {
+	ctx := context.TODO()
+	userProfile := &grpc.UserProfile{
+		UserId: primitive.NewObjectID().Hex(),
+		Email: &grpc.UserProfileEmail{
+			Email: "test@unit.test",
+		},
+		Personal: &grpc.UserProfilePersonal{
+			FirstName: "Unit test",
+			LastName:  "Unit Test",
+			Position:  "test",
+		},
+		Help: &grpc.UserProfileHelp{
+			ProductPromotionAndDevelopment: false,
+			ReleasedGamePromotion:          true,
+			InternationalSales:             true,
+			Other:                          false,
+		},
+		LastStep: "step2",
+	}
+	err := suite.service.userProfileRepository.Add(ctx, userProfile)
+	assert.NoError(suite.T(), err)
+
+	merchant := &billing.Merchant{
+		Id:      primitive.NewObjectID().Hex(),
+		Company: &billing.MerchantCompanyInfo{Name: "name"},
+		Banking: &billing.MerchantBanking{Currency: "currency"},
+	}
+	err = suite.service.merchant.Insert(ctx, merchant)
+	assert.NoError(suite.T(), err)
+
+	role := &billing.UserRole{
+		Id:         primitive.NewObjectID().Hex(),
+		UserId:     userProfile.UserId,
+		MerchantId: merchant.Id,
+		Role:       pkg.RoleMerchantOwner,
+	}
+	err = suite.service.userRoleRepository.AddMerchantUser(ctx, role)
+	assert.NoError(suite.T(), err)
+
+	project := &billing.Project{
+		Id:         primitive.NewObjectID().Hex(),
+		MerchantId: merchant.Id,
+	}
+	err = suite.service.project.Insert(ctx, project)
+	assert.NoError(suite.T(), err)
+
+	casbin := &casbinMocks.CasbinService{}
+	casbin.
+		On("GetImplicitPermissionsForUser", mock2.Anything, mock2.Anything).
+		Return(&casbinpb.Array2DReply{D2: nil}, nil)
+	suite.service.casbinService = casbin
+
+	req := &grpc.CommonUserProfileRequest{UserId: userProfile.UserId, MerchantId: merchant.Id}
+	rsp := &grpc.CommonUserProfileResponse{}
+	err = suite.service.GetCommonUserProfile(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.NotNil(suite.T(), rsp.Profile.Merchant)
+	assert.Equal(suite.T(), merchant.Id, rsp.Profile.Merchant.Id)
+	assert.True(suite.T(), rsp.Profile.Merchant.HasProjects)
 }
