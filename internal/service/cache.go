@@ -79,6 +79,10 @@ func (c *Cache) CleanOldestVersion() error {
 		return res.Err()
 	}
 
+	if len(res.Val()) <= versionLimit {
+		return nil
+	}
+
 	for _, val := range res.Val()[versionLimit:] {
 		if err := c.cleanVersion(val); err != nil {
 			return err
