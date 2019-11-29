@@ -692,6 +692,8 @@ github.com/patrickmn/go-cache v0.0.0-20180527043350-9f6ff22cfff8/go.mod h1:3Qf8k
 github.com/patrickmn/go-cache v2.1.0+incompatible/go.mod h1:3Qf8kWWT7OJRJbdiICTKqZju1ZixQ/KpMGzzAfe6+WQ=
 github.com/paysuper/casbin-server v0.0.0-20191122132246-d8ec49ebf099 h1:Oyb+/qmUSSGb9k8FyuO9hymZXysigphA6OALjFhrHE0=
 github.com/paysuper/casbin-server v0.0.0-20191122132246-d8ec49ebf099/go.mod h1:2Jdkjg2fQ2echfcyS4xZDM04uBxfr3bfk8bAT+iJSGA=
+github.com/paysuper/casbin-server v0.0.0-20191128090724-930a08d68cec h1:lwjofa1ELNtdtXF/qMGje8VL+tMcRN2bJf0LGVGwM20=
+github.com/paysuper/casbin-server v0.0.0-20191128090724-930a08d68cec/go.mod h1:2Jdkjg2fQ2echfcyS4xZDM04uBxfr3bfk8bAT+iJSGA=
 github.com/paysuper/document-signer v0.0.0-20190903102235-df82efbb7d26/go.mod h1:39VQOEQm+WdUrGOAHDGnE8ks86mAPEKpgBwxP9mQfSA=
 github.com/paysuper/document-signer v0.0.0-20190906075749-af06b306ee92/go.mod h1:gqEKigUzMNjJ9P+OYeKCu+wOA17/Q2EElpJnd6O3Zr4=
 github.com/paysuper/document-signer v0.0.0-20190923080905-cb9cc2665d8b/go.mod h1:3yaO+xYLvqjkj7mJqNKuzp8ncd7gj75jud4KIkiLMzc=

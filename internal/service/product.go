@@ -166,6 +166,19 @@ func (s *Service) GetProductsForOrder(ctx context.Context, req *grpc.GetProducts
 }
 
 func (s *Service) ListProducts(ctx context.Context, req *grpc.ListProductsRequest, res *grpc.ListProductsResponse) error {
+	var enabled int32
+
+	switch req.Enabled {
+	case "false":
+		enabled = 1
+		break
+	case "true":
+		enabled = 2
+		break
+	default:
+		enabled = 0
+	}
+
 	res.Total, res.Products = s.productService.List(
 		ctx,
 		req.MerchantId,
@@ -174,7 +187,7 @@ func (s *Service) ListProducts(ctx context.Context, req *grpc.ListProductsReques
 		req.Name,
 		req.Offset,
 		req.Limit,
-		req.Enable,
+		enabled,
 	)
 
 	res.Limit = req.Limit
@@ -418,7 +431,7 @@ func (h *Product) List(
 	name string,
 	offset int64,
 	limit int64,
-	enable int32,
+	enabled int32,
 ) (int64, []*grpc.Product) {
 	merchantOid, _ := primitive.ObjectIDFromHex(merchantId)
 	query := bson.M{"merchant_id": merchantOid, "deleted": false}
@@ -434,8 +447,8 @@ func (h *Product) List(
 		query["name"] = bson.M{"$elemMatch": bson.M{"value": primitive.Regex{Pattern: name, Options: "i"}}}
 	}
 
-	if enable > 0 {
-		if enable == 1 {
+	if enabled > 0 {
+		if enabled == 1 {
 			query["enabled"] = false
 		} else {
 			query["enabled"] = true

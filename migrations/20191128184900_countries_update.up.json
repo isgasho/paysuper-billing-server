@@ -1,0 +1,1587 @@
+[
+  {
+    "update": "country",
+    "updates": [
+      {
+        "q": {
+          "iso_code_a2": "AD"
+        },
+        "u": {
+          "$set": {
+            "`high_risk_payments_allowed`": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AG"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AI"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AL"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AM"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AO"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AQ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AR"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AS"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AW"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BB"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BF"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BI"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BL"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BR"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BV"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BZ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CC"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CD"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CF"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CG"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CH"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CI"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CK"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CL"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CM"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CO"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CR"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CV"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CW"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CX"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CY"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CZ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "EC"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "EE"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "EH"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "ER"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "ES"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "FI"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "FJ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "FK"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "FM"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "FO"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "FR"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GF"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GH"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GN"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GP"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GQ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GS"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GT"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GW"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "HM"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "HR"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "ID"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "IE"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "IL"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "IM"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "IO"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "IS"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "IT"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "JE"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "KE"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "KG"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "KI"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "KM"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "KN"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "KY"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "KZ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "LA"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "LC"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "LI"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "LK"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "LR"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "LS"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "LT"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "LU"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "LV"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MC"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MD"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "ME"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MF"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MH"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MK"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MM"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MN"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MP"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MQ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MS"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MT"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MX"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "MZ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "NA"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "NC"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "NE"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "NF"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "NI"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "NL"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "NO"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "NR"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "NU"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "NZ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "PA"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "PE"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "PF"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "PL"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "PM"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "PN"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "PR"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "PT"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "PW"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "PY"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "RO"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "RS"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SB"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SC"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SE"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SH"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SI"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SJ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SK"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SL"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SM"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SN"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SO"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SR"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "ST"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SV"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SX"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SZ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TC"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TD"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TF"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TG"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TH"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TJ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TK"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TO"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TT"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TV"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TZ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "US"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "UY"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "VC"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "VU"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "WS"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "ZM"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "ZW"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "IN"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "IQ"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "IR"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "JM"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "JO"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "JP"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "KH"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "KP"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "KR"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "KW"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": false
+          }
+        }
+      }
+    ]
+  }
+]

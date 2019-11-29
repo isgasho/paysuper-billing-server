@@ -19,6 +19,7 @@ import (
 	"github.com/micro/go-micro/config/source"
 	goConfigCli "github.com/micro/go-micro/config/source/cli"
 	"github.com/micro/go-plugins/client/selector/static"
+	casbinPkg "github.com/paysuper/casbin-server/pkg"
 	casbinProto "github.com/paysuper/casbin-server/pkg/generated/api/proto/casbinpb"
 	documentSignerConst "github.com/paysuper/document-signer/pkg/constant"
 	documentSignerProto "github.com/paysuper/document-signer/pkg/proto"
@@ -182,7 +183,7 @@ func (app *Application) Init() {
 	curService := currencies.NewCurrencyratesService(curPkg.ServiceName, app.service.Client())
 	documentSignerService := documentSignerProto.NewDocumentSignerService(documentSignerConst.ServiceName, app.service.Client())
 	reporter := reporterService.NewReporterService(reporterServiceConst.ServiceName, app.service.Client())
-	casbin := casbinProto.NewCasbinService("p1casbin", app.service.Client())
+	casbin := casbinProto.NewCasbinService(casbinPkg.ServiceName, app.service.Client())
 
 	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
 		Addrs:        cfg.CacheRedis.Address,
