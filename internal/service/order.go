@@ -1309,7 +1309,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 	regex := pm.AccountRegexp
 
 	if pm.ExternalId == constant.PaymentSystemGroupAliasBankCard {
-		regex = "^\\d{6,18}$"
+		regex = "^\\d{6}(.*)\\d{4}$"
 	}
 
 	match, err := regexp.MatchString(regex, req.Account)
@@ -2632,6 +2632,7 @@ func (v *PaymentFormProcessor) processRenderFormPaymentMethods(
 	)
 
 	if err != nil {
+		zap.S().Errorw("ListByParams failed", "error", err, "order_id", v.order.Id, "order_uuid", v.order.Uuid)
 		return nil, err
 	}
 
@@ -2642,7 +2643,12 @@ func (v *PaymentFormProcessor) processRenderFormPaymentMethods(
 
 		ps, err := v.service.paymentSystem.GetById(ctx, pm.PaymentSystemId)
 
-		if err != nil || ps.IsActive == false {
+		if err != nil {
+			zap.S().Errorw("GetById failed", "error", err, "order_id", v.order.Id, "order_uuid", v.order.Uuid)
+			continue
+		}
+
+		if ps.IsActive == false {
 			continue
 		}
 
@@ -2654,6 +2660,7 @@ func (v *PaymentFormProcessor) processRenderFormPaymentMethods(
 		_, err = v.service.paymentMethod.GetPaymentSettings(pm, v.order.Currency, v.order.MccCode, v.order.OperatingCompanyId, project)
 
 		if err != nil {
+			zap.S().Errorw("GetPaymentSettings failed", "error", err, "order_id", v.order.Id, "order_uuid", v.order.Uuid)
 			continue
 		}
 
@@ -2680,6 +2687,7 @@ func (v *PaymentFormProcessor) processRenderFormPaymentMethods(
 	}
 
 	if len(projectPms) <= 0 {
+		zap.S().Errorw("Not found any active payment methods", "order_id", v.order.Id, "order_uuid", v.order.Uuid)
 		return projectPms, orderErrorPaymentMethodNotAllowed
 	}
 
@@ -4121,8 +4129,42 @@ func (s *Service) OrderReceipt(
 
 	items := make([]*billing.OrderReceiptItem, len(order.Items))
 
+	currency := order.Currency
+	if currency == grpc.VirtualCurrencyPriceGroup {
+		project, err := s.project.GetById(ctx, order.GetProjectId())
+
+		if err != nil {
+			zap.L().Error(
+				projectErrorUnknown.Message,
+				zap.Error(err),
+				zap.String("order.uuid", order.Uuid),
+			)
+
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = projectErrorUnknown
+
+			return nil
+		}
+
+		var ok = false
+		currency, ok = project.VirtualCurrency.Name[DefaultLanguage]
+
+		if !ok  {
+			zap.L().Error(
+				projectErrorVirtualCurrencyNameDefaultLangRequired.Message,
+				zap.Error(err),
+				zap.String("order.uuid", order.Uuid),
+			)
+
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = projectErrorVirtualCurrencyNameDefaultLangRequired
+
+			return nil
+		}
+	}
+
 	for i, item := range order.Items {
-		price, err := s.formatter.FormatCurrency("en", item.Amount, item.Currency)
+		price, err := s.formatter.FormatCurrency(DefaultLanguage, item.Amount, currency)
 
 		if err != nil {
 			zap.L().Error(
@@ -4131,11 +4173,6 @@ func (s *Service) OrderReceipt(
 				zap.String("locale", DefaultLanguage),
 				zap.String("currency", item.Currency),
 			)
-
-			rsp.Status = pkg.ResponseStatusSystemError
-			rsp.Message = orderErrorDuringFormattingCurrency
-
-			return nil
 		}
 
 		items[i] = &billing.OrderReceiptItem{Name: item.Name, Price: price}
