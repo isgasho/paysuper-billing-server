@@ -328,7 +328,7 @@ const (
 	TariffRegionLatAm        = "latin_america"
 	TariffRegionWorldwide    = "worldwide"
 
-	PaymentMethodKey = "%s:%s:%s" // currency:mcc_code:operating_company_id, for example: "USD:5816:5dc3f70deb494903d835f28a"
+	PaymentMethodKey = "%s:%s:%s:%s" // currency:mcc_code:operating_company_id:brand, for example: "USD:5816:5dc3f70deb494903d835f28a:VISA"
 
 	RoleTypeMerchant = "merchant"
 	RoleTypeSystem   = "system"

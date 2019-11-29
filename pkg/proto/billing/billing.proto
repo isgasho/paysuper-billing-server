@@ -733,6 +733,8 @@ message PaymentMethodParams {
     string mcc_code = 7;
     // @inject_tag: bson:"operating_company_id" json:"operating_company_id" validate:"required,hexadecimal,len=24"
     string operating_company_id = 8;
+    // @inject_tag: bson:"brand" json:"brand" validate:"required"
+    repeated string brand = 9;
 }
 
 message PaymentSystem {

@@ -11,6 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
+	"strings"
 )
 
 const (
@@ -122,16 +123,29 @@ func (s *Service) CreateOrUpdatePaymentMethodProductionSettings(
 		pm.ProductionSettings = map[string]*billing.PaymentMethodParams{}
 	}
 
-	key := fmt.Sprintf(pkg.PaymentMethodKey, req.Params.Currency, req.Params.MccCode, req.Params.OperatingCompanyId)
+	brands := []string{}
+	for _, brand := range req.Params.Brand {
+		brands = append(brands, strings.ToUpper(brand))
+	}
 
-	pm.ProductionSettings[key] = &billing.PaymentMethodParams{
-		Currency:           req.Params.Currency,
+	settings := &billing.PaymentMethodParams{
+		Currency:           strings.ToUpper(req.Params.Currency),
 		Secret:             req.Params.Secret,
 		SecretCallback:     req.Params.SecretCallback,
 		TerminalId:         req.Params.TerminalId,
 		MccCode:            req.Params.MccCode,
-		OperatingCompanyId: req.Params.OperatingCompanyId,
+		OperatingCompanyId: strings.ToLower(req.Params.OperatingCompanyId),
+		Brand:              brands,
 	}
+
+	key := pkg.GetPaymentMethodKey(req.Params.Currency, req.Params.MccCode, req.Params.OperatingCompanyId, "")
+	pm.ProductionSettings[key] = settings
+
+	for _, brand := range req.Params.Brand {
+		key := pkg.GetPaymentMethodKey(req.Params.Currency, req.Params.MccCode, req.Params.OperatingCompanyId, brand)
+		pm.ProductionSettings[key] = settings
+	}
+
 	if err := s.paymentMethod.Update(ctx, pm); err != nil {
 		zap.S().Errorf("Query to update production settings of project method is failed", "err", err.Error(), "data", req)
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -156,7 +170,18 @@ func (s *Service) GetPaymentMethodProductionSettings(
 		return nil
 	}
 
+	check := make(map[string]bool)
+
 	for _, param := range pm.ProductionSettings {
+
+		key := pkg.GetPaymentMethodKey(param.Currency, param.MccCode, param.OperatingCompanyId, "")
+
+		if check[key] == true {
+			continue
+		}
+
+		check[key] = true
+
 		rsp.Params = append(rsp.Params, &billing.PaymentMethodParams{
 			Currency:           param.Currency,
 			TerminalId:         param.TerminalId,
@@ -164,6 +189,7 @@ func (s *Service) GetPaymentMethodProductionSettings(
 			SecretCallback:     param.SecretCallback,
 			MccCode:            param.MccCode,
 			OperatingCompanyId: param.OperatingCompanyId,
+			Brand:              param.Brand,
 		})
 	}
 
@@ -184,9 +210,13 @@ func (s *Service) DeletePaymentMethodProductionSettings(
 		return nil
 	}
 
-	key := fmt.Sprintf(pkg.PaymentMethodKey, req.CurrencyA3, req.MccCode, req.OperatingCompanyId)
+	deleteKeys := []string{}
 
-	if _, ok := pm.ProductionSettings[key]; !ok {
+	key := pkg.GetPaymentMethodKey(req.CurrencyA3, req.MccCode, req.OperatingCompanyId, "")
+	deleteKeys = append(deleteKeys, key)
+
+	setting, ok := pm.ProductionSettings[key]
+	if !ok {
 		zap.S().Errorf("Unable to get production settings for currency", "data", req)
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = paymentMethodErrorNotFoundProductionSettings
@@ -194,7 +224,14 @@ func (s *Service) DeletePaymentMethodProductionSettings(
 		return nil
 	}
 
-	delete(pm.ProductionSettings, key)
+	for _, brand := range setting.Brand {
+		key := pkg.GetPaymentMethodKey(req.CurrencyA3, req.MccCode, req.OperatingCompanyId, brand)
+		deleteKeys = append(deleteKeys, key)
+	}
+
+	for _, key := range deleteKeys {
+		delete(pm.ProductionSettings, key)
+	}
 
 	if err := s.paymentMethod.Update(ctx, pm); err != nil {
 		zap.S().Errorf("Query to delete production settings of project method is failed", "err", err.Error(), "data", req)
@@ -230,16 +267,29 @@ func (s *Service) CreateOrUpdatePaymentMethodTestSettings(
 		pm.TestSettings = map[string]*billing.PaymentMethodParams{}
 	}
 
-	key := fmt.Sprintf(pkg.PaymentMethodKey, req.Params.Currency, req.Params.MccCode, req.Params.OperatingCompanyId)
+	brands := []string{}
+	for _, brand := range req.Params.Brand {
+		brands = append(brands, strings.ToUpper(brand))
+	}
 
-	pm.TestSettings[key] = &billing.PaymentMethodParams{
-		Currency:           req.Params.Currency,
+	settings := &billing.PaymentMethodParams{
+		Currency:           strings.ToUpper(req.Params.Currency),
 		Secret:             req.Params.Secret,
 		SecretCallback:     req.Params.SecretCallback,
 		TerminalId:         req.Params.TerminalId,
 		MccCode:            req.Params.MccCode,
-		OperatingCompanyId: req.Params.OperatingCompanyId,
+		OperatingCompanyId: strings.ToLower(req.Params.OperatingCompanyId),
+		Brand:              brands,
 	}
+
+	key := pkg.GetPaymentMethodKey(req.Params.Currency, req.Params.MccCode, req.Params.OperatingCompanyId, "")
+	pm.TestSettings[key] = settings
+
+	for _, brand := range req.Params.Brand {
+		key := pkg.GetPaymentMethodKey(req.Params.Currency, req.Params.MccCode, req.Params.OperatingCompanyId, brand)
+		pm.TestSettings[key] = settings
+	}
+
 	if err := s.paymentMethod.Update(ctx, pm); err != nil {
 		zap.S().Errorf("Query to update production settings of project method is failed", "err", err.Error(), "data", req)
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -264,7 +314,18 @@ func (s *Service) GetPaymentMethodTestSettings(
 		return nil
 	}
 
+	check := make(map[string]bool)
+
 	for _, param := range pm.TestSettings {
+
+		key := pkg.GetPaymentMethodKey(param.Currency, param.MccCode, param.OperatingCompanyId, "")
+
+		if check[key] == true {
+			continue
+		}
+
+		check[key] = true
+
 		rsp.Params = append(rsp.Params, &billing.PaymentMethodParams{
 			Currency:           param.Currency,
 			TerminalId:         param.TerminalId,
@@ -272,6 +333,7 @@ func (s *Service) GetPaymentMethodTestSettings(
 			SecretCallback:     param.SecretCallback,
 			MccCode:            param.MccCode,
 			OperatingCompanyId: param.OperatingCompanyId,
+			Brand:              param.Brand,
 		})
 	}
 
@@ -292,9 +354,13 @@ func (s *Service) DeletePaymentMethodTestSettings(
 		return nil
 	}
 
-	key := fmt.Sprintf(pkg.PaymentMethodKey, req.CurrencyA3, req.MccCode, req.OperatingCompanyId)
+	deleteKeys := []string{}
 
-	if _, ok := pm.TestSettings[key]; !ok {
+	key := pkg.GetPaymentMethodKey(req.CurrencyA3, req.MccCode, req.OperatingCompanyId, "")
+	deleteKeys = append(deleteKeys, key)
+
+	setting, ok := pm.TestSettings[key]
+	if !ok {
 		zap.S().Errorf("Unable to get production settings for currency", "data", req)
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = paymentMethodErrorNotFoundProductionSettings
@@ -302,7 +368,14 @@ func (s *Service) DeletePaymentMethodTestSettings(
 		return nil
 	}
 
-	delete(pm.TestSettings, key)
+	for _, brand := range setting.Brand {
+		key := pkg.GetPaymentMethodKey(req.CurrencyA3, req.MccCode, req.OperatingCompanyId, brand)
+		deleteKeys = append(deleteKeys, key)
+	}
+
+	for _, key := range deleteKeys {
+		delete(pm.ProductionSettings, key)
+	}
 
 	if err := s.paymentMethod.Update(ctx, pm); err != nil {
 		zap.S().Errorf("Query to delete production settings of project method is failed", "err", err.Error(), "data", req)
@@ -324,7 +397,7 @@ type PaymentMethodInterface interface {
 	MultipleInsert(context.Context, []*billing.PaymentMethod) error
 	Insert(context.Context, *billing.PaymentMethod) error
 	Update(context.Context, *billing.PaymentMethod) error
-	GetPaymentSettings(paymentMethod *billing.PaymentMethod, currency, mccCode, operatingCompanyId string, project *billing.Project) (*billing.PaymentMethodParams, error)
+	GetPaymentSettings(paymentMethod *billing.PaymentMethod, currency, mccCode, operatingCompanyId, paymentMethodBrand string, project *billing.Project) (*billing.PaymentMethodParams, error)
 	ListByParams(ctx context.Context, project *billing.Project, currency, mccCode, operatingCompanyId string) ([]*billing.PaymentMethod, error)
 }
 
@@ -499,6 +572,7 @@ func (h *PaymentMethod) GetPaymentSettings(
 	currency string,
 	mccCode string,
 	operatingCompanyId string,
+	paymentMethodBrand string,
 	project *billing.Project,
 ) (*billing.PaymentMethodParams, error) {
 	settings := paymentMethod.TestSettings
@@ -511,7 +585,7 @@ func (h *PaymentMethod) GetPaymentSettings(
 		return nil, orderErrorPaymentMethodEmptySettings
 	}
 
-	key := fmt.Sprintf(pkg.PaymentMethodKey, currency, mccCode, operatingCompanyId)
+	key := pkg.GetPaymentMethodKey(currency, mccCode, operatingCompanyId, paymentMethodBrand)
 
 	setting, ok := settings[key]
 
@@ -552,6 +626,7 @@ func (h *PaymentMethod) ListByParams(
 	}
 
 	query := bson.M{
+		"is_active": true,
 		field: bson.M{
 			"$elemMatch": bson.M{
 				"currency":             currency,

@@ -155,9 +155,21 @@ func (suite *OrderTestSuite) SetupTest() {
 		suite.FailNow("Insert operatingCompany test data failed", "%v", err)
 	}
 
-	keyRub := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
-	keyUsd := fmt.Sprintf(pkg.PaymentMethodKey, "USD", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
-	keyUah := fmt.Sprintf(pkg.PaymentMethodKey, "UAH", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
+	keyRubVisa := pkg.GetPaymentMethodKey("RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "Visa")
+	keyUsdVisa := pkg.GetPaymentMethodKey("USD", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "Visa")
+	keyUahVisa := pkg.GetPaymentMethodKey("UAH", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "Visa")
+
+	keyRubBitcoin := pkg.GetPaymentMethodKey("RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "Bitcoin")
+	keyUsdBitcoin := pkg.GetPaymentMethodKey("USD", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "Bitcoin")
+	keyUahBitcoin := pkg.GetPaymentMethodKey("UAH", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "Bitcoin")
+
+	keyRubQiwi := pkg.GetPaymentMethodKey("RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "Qiwi")
+	keyUsdQiwi := pkg.GetPaymentMethodKey("USD", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "Qiwi")
+	keyUahQiwi := pkg.GetPaymentMethodKey("UAH", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "Qiwi")
+
+	keyRubWebmoney := pkg.GetPaymentMethodKey("RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "Webmoney")
+	keyUsdWebmoney := pkg.GetPaymentMethodKey("USD", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "Webmoney")
+	keyUahWebmoney := pkg.GetPaymentMethodKey("UAH", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "Webmoney")
 
 	pgRub := &billing.PriceGroup{
 		Id:       primitive.NewObjectID().Hex(),
@@ -303,31 +315,34 @@ func (suite *OrderTestSuite) SetupTest() {
 		MaxPaymentAmount: 15000,
 		ExternalId:       "BANKCARD",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			keyRub: {
+			keyRubVisa: {
 				TerminalId:         "15985",
 				Secret:             "A1tph4I6BD0f",
 				SecretCallback:     "0V1rJ7t4jCRv",
 				Currency:           "RUB",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
-			keyUsd: {
+			keyUsdVisa: {
 				TerminalId:         "15985",
 				Secret:             "A1tph4I6BD0f",
 				SecretCallback:     "0V1rJ7t4jCRv",
 				Currency:           "USD",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
 		},
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			keyUsd: {
+			keyUsdVisa: {
 				TerminalId:         "15985",
 				Secret:             "A1tph4I6BD0f",
 				SecretCallback:     "0V1rJ7t4jCRv",
 				Currency:           "USD",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
 		},
 		Type:            "bank_card",
@@ -354,55 +369,61 @@ func (suite *OrderTestSuite) SetupTest() {
 		MaxPaymentAmount: 15000,
 		ExternalId:       "BANKCARD",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			keyRub: {
+			keyRubVisa: {
 				TerminalId:         "15985",
 				Secret:             "A1tph4I6BD0f",
 				SecretCallback:     "0V1rJ7t4jCRv",
 				Currency:           "RUB",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
-			keyUsd: {
+			keyUsdVisa: {
 				TerminalId:         "15985",
 				Secret:             "A1tph4I6BD0f",
 				SecretCallback:     "0V1rJ7t4jCRv",
 				Currency:           "USD",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
-			keyUah: {
+			keyUahVisa: {
 				TerminalId:         "15985",
 				Secret:             "A1tph4I6BD0f",
 				SecretCallback:     "0V1rJ7t4jCRv",
 				Currency:           "UAH",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
 		},
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			keyUsd: {
+			keyUsdVisa: {
 				TerminalId:         "15985",
 				Secret:             "A1tph4I6BD0f",
 				SecretCallback:     "0V1rJ7t4jCRv",
 				Currency:           "USD",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
-			keyRub: {
+			keyRubVisa: {
 				TerminalId:         "15985",
 				Secret:             "A1tph4I6BD0f",
 				SecretCallback:     "0V1rJ7t4jCRv",
 				Currency:           "RUB",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
-			keyUah: {
+			keyUahVisa: {
 				TerminalId:         "15985",
 				Secret:             "A1tph4I6BD0f",
 				SecretCallback:     "0V1rJ7t4jCRv",
 				Currency:           "UAH",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
 		},
 		Type:            "bank_card",
@@ -429,15 +450,16 @@ func (suite *OrderTestSuite) SetupTest() {
 		MaxPaymentAmount: 0,
 		ExternalId:       "BITCOIN",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			keyRub: {
+			keyRubBitcoin: {
 				TerminalId:         "16007",
 				Secret:             "1234567890",
 				SecretCallback:     "1234567890",
 				Currency:           "RUB",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"BITCOIN"},
 			},
-			keyUsd: {
+			keyUsdBitcoin: {
 				TerminalId:         "16007",
 				Secret:             "1234567890",
 				SecretCallback:     "1234567890",
@@ -447,13 +469,14 @@ func (suite *OrderTestSuite) SetupTest() {
 			},
 		},
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			keyRub: {
+			keyRubBitcoin: {
 				TerminalId:         "16007",
 				Secret:             "1234567890",
 				SecretCallback:     "1234567890",
 				Currency:           "RUB",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"BITCOIN"},
 			},
 		},
 		Type:            "crypto",
@@ -468,31 +491,34 @@ func (suite *OrderTestSuite) SetupTest() {
 		MaxPaymentAmount: 0,
 		ExternalId:       "BITCOIN",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			keyRub: {
+			keyRubBitcoin + "_2": {
 				TerminalId:         "16007",
 				Secret:             "1234567890",
 				SecretCallback:     "1234567890",
 				Currency:           "RUB",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"BITCOIN_2"},
 			},
-			keyUsd: {
+			keyUsdBitcoin + "_2": {
 				TerminalId:         "16007",
 				Secret:             "1234567890",
 				SecretCallback:     "1234567890",
 				Currency:           "USD",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"BITCOIN_2"},
 			},
 		},
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			keyRub: {
+			keyRubBitcoin + "_2": {
 				TerminalId:         "16007",
 				Secret:             "1234567890",
 				SecretCallback:     "1234567890",
 				Currency:           "RUB",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"BITCOIN_2"},
 			},
 		},
 		Type:            "crypto",
@@ -518,39 +544,43 @@ func (suite *OrderTestSuite) SetupTest() {
 		MaxPaymentAmount: 0,
 		ExternalId:       "QIWI",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			keyRub: {
+			keyRubQiwi: {
 				TerminalId:         "15993",
 				Secret:             "1234567890",
 				SecretCallback:     "1234567890",
 				Currency:           "RUB",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"QIWI"},
 			},
-			keyUsd: {
+			keyUsdQiwi: {
 				TerminalId:         "16007",
 				Secret:             "1234567890",
 				SecretCallback:     "1234567890",
 				Currency:           "USD",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"QIWI"},
 			},
 		},
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			keyRub: {
+			keyRubQiwi: {
 				TerminalId:         "15993",
 				Secret:             "1234567890",
 				SecretCallback:     "1234567890",
 				Currency:           "RUB",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"QIWI"},
 			},
-			keyUah: {
+			keyUahQiwi: {
 				TerminalId:         "15993",
 				Secret:             "1234567890",
 				SecretCallback:     "1234567890",
 				Currency:           "UAH",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"QIWI"},
 			},
 		},
 		Type:            "ewallet",
@@ -567,39 +597,43 @@ func (suite *OrderTestSuite) SetupTest() {
 		MaxPaymentAmount: 0,
 		ExternalId:       "QIWI",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			keyRub: {
+			keyRubQiwi: {
 				TerminalId:         "15993",
 				Secret:             "1234567890",
 				SecretCallback:     "1234567890",
 				Currency:           "RUB",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"QIWI"},
 			},
-			keyUsd: {
+			keyUsdQiwi: {
 				TerminalId:         "16007",
 				Secret:             "1234567890",
 				SecretCallback:     "1234567890",
 				Currency:           "USD",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"QIWI"},
 			},
 		},
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			keyRub: {
+			keyRubQiwi: {
 				TerminalId:         "15993",
 				Secret:             "1234567890",
 				SecretCallback:     "1234567890",
 				Currency:           "RUB",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"QIWI"},
 			},
-			keyUah: {
+			keyUahQiwi: {
 				TerminalId:         "15993",
 				Secret:             "1234567890",
 				SecretCallback:     "1234567890",
 				Currency:           "UAH",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"QIWI"},
 			},
 		},
 		Type:            "ewallet",
@@ -1108,31 +1142,34 @@ func (suite *OrderTestSuite) SetupTest() {
 		MaxPaymentAmount: 0,
 		ExternalId:       "WEBMONEY",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			keyRub: {
+			keyRubWebmoney: {
 				TerminalId:         "15985",
 				Secret:             "1234567890",
 				SecretCallback:     "1234567890",
 				Currency:           "RUB",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"WEBMONEY"},
 			},
-			keyUsd: {
+			keyUsdWebmoney: {
 				TerminalId:         "15985",
 				Secret:             "1234567890",
 				SecretCallback:     "1234567890",
 				Currency:           "USD",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"WEBMONEY"},
 			},
 		},
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			keyRub: {
+			keyRubWebmoney: {
 				TerminalId:         "15985",
 				Secret:             "1234567890",
 				SecretCallback:     "1234567890",
 				Currency:           "RUB",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"WEBMONEY"},
 			},
 		},
 		Type:            "ewallet",
@@ -1158,37 +1195,41 @@ func (suite *OrderTestSuite) SetupTest() {
 		MaxPaymentAmount: 0,
 		ExternalId:       "WEBMONEY",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			keyRub: {
+			keyRubWebmoney: {
 				TerminalId:         "15985",
 				Secret:             "1234567890",
 				SecretCallback:     "1234567890",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"WEBMONEY"},
 			},
-			keyUsd: {
+			keyUsdWebmoney: {
 				TerminalId:         "15985",
 				Secret:             "1234567890",
 				SecretCallback:     "1234567890",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"WEBMONEY"},
 			},
 		},
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			keyRub: {
+			keyRubWebmoney: {
 				TerminalId:         "15985",
 				Secret:             "1234567890",
 				SecretCallback:     "1234567890",
 				Currency:           "RUB",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"WEBMONEY"},
 			},
-			keyUah: {
+			keyUahWebmoney: {
 				Currency:           "UAH",
 				TerminalId:         "16007",
 				Secret:             "A1tph4I6BD0f",
 				SecretCallback:     "0V1rJ7t4jCRv",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"WEBMONEY"},
 			},
 		},
 		Type:            "ewallet",
@@ -1203,39 +1244,43 @@ func (suite *OrderTestSuite) SetupTest() {
 		MaxPaymentAmount: 0,
 		ExternalId:       "BITCOIN",
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			keyRub: {
+			keyRubBitcoin: {
 				TerminalId:         "16007",
 				Secret:             "1234567890",
 				SecretCallback:     "1234567890",
 				Currency:           "RUB",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"BITCOIN"},
 			},
-			keyUsd: {
+			keyUsdBitcoin: {
 				TerminalId:         "16007",
 				Secret:             "1234567890",
 				SecretCallback:     "1234567890",
 				Currency:           "USD",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"BITCOIN"},
 			},
 		},
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			keyRub: {
+			keyRubBitcoin: {
 				Currency:           "RUB",
 				TerminalId:         "16007",
 				Secret:             "A1tph4I6BD0f",
 				SecretCallback:     "0V1rJ7t4jCRv",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"BITCOIN"},
 			},
-			keyUah: {
+			keyUahBitcoin: {
 				Currency:           "UAH",
 				TerminalId:         "16007",
 				Secret:             "A1tph4I6BD0f",
 				SecretCallback:     "0V1rJ7t4jCRv",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"BITCOIN"},
 			},
 		},
 		Type:            "crypto",

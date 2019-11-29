@@ -52,9 +52,9 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 
 	operatingCompany := helperOperatingCompany(suite, service)
 
-	keyRub := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, operatingCompany.Id)
-	keyUsd := fmt.Sprintf(pkg.PaymentMethodKey, "USD", pkg.MccCodeLowRisk, operatingCompany.Id)
-	keyEur := fmt.Sprintf(pkg.PaymentMethodKey, "EUR", pkg.MccCodeLowRisk, operatingCompany.Id)
+	keyRub := pkg.GetPaymentMethodKey("RUB", pkg.MccCodeLowRisk, operatingCompany.Id, "")
+	keyUsd := pkg.GetPaymentMethodKey("USD", pkg.MccCodeLowRisk, operatingCompany.Id, "")
+	keyEur := pkg.GetPaymentMethodKey("EUR", pkg.MccCodeLowRisk, operatingCompany.Id, "")
 
 	paymentSystem := &billing.PaymentSystem{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -81,6 +81,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 				Currency:           "RUB",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
 			keyUsd: {
 				TerminalId:         "15985",
@@ -89,6 +90,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 				Currency:           "USD",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
 			keyEur: {
 				TerminalId:         "15985",
@@ -97,6 +99,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 				Currency:           "EUR",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
 		},
 		TestSettings: map[string]*billing.PaymentMethodParams{
@@ -107,6 +110,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 				Currency:           "RUB",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
 			keyUsd: {
 				TerminalId:         "15985",
@@ -115,6 +119,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 				Currency:           "USD",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
 			keyEur: {
 				TerminalId:         "15985",
@@ -123,6 +128,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 				Currency:           "EUR",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
 		},
 		Type:            "bank_card",

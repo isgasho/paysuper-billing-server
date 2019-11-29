@@ -2,7 +2,6 @@ package billing
 
 import (
 	"errors"
-	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
@@ -341,13 +340,14 @@ type MgoPaymentMethod struct {
 }
 
 type MgoPaymentMethodParam struct {
-	TerminalId         string `bson:"terminal_id"`
-	Secret             string `bson:"secret"`
-	SecretCallback     string `bson:"secret_callback"`
-	Currency           string `bson:"currency"`
-	ApiUrl             string `bson:"api_url"`
-	MccCode            string `bson:"mcc_code"`
-	OperatingCompanyId string `bson:"operating_company_id"`
+	TerminalId         string   `bson:"terminal_id"`
+	Secret             string   `bson:"secret"`
+	SecretCallback     string   `bson:"secret_callback"`
+	Currency           string   `bson:"currency"`
+	ApiUrl             string   `bson:"api_url"`
+	MccCode            string   `bson:"mcc_code"`
+	OperatingCompanyId string   `bson:"operating_company_id"`
+	Brand              []string `bson:"brand"`
 }
 
 type MgoNotification struct {
@@ -2085,7 +2085,18 @@ func (m *PaymentMethod) MarshalBSON() ([]byte, error) {
 	}
 
 	if m.TestSettings != nil {
+		check := make(map[string]bool)
+
 		for _, value := range m.TestSettings {
+
+			key := pkg.GetPaymentMethodKey(value.Currency, value.MccCode, value.OperatingCompanyId, "")
+
+			if check[key] == true {
+				continue
+			}
+
+			check[key] = true
+
 			st.TestSettings = append(st.TestSettings, &MgoPaymentMethodParam{
 				Currency:           value.Currency,
 				TerminalId:         value.TerminalId,
@@ -2094,12 +2105,24 @@ func (m *PaymentMethod) MarshalBSON() ([]byte, error) {
 				ApiUrl:             value.ApiUrl,
 				MccCode:            value.MccCode,
 				OperatingCompanyId: value.OperatingCompanyId,
+				Brand:              value.Brand,
 			})
 		}
 	}
 
 	if m.ProductionSettings != nil {
+		check := make(map[string]bool)
+
 		for _, value := range m.ProductionSettings {
+
+			key := pkg.GetPaymentMethodKey(value.Currency, value.MccCode, value.OperatingCompanyId, "")
+
+			if check[key] == true {
+				continue
+			}
+
+			check[key] = true
+
 			st.ProductionSettings = append(st.ProductionSettings, &MgoPaymentMethodParam{
 				Currency:           value.Currency,
 				TerminalId:         value.TerminalId,
@@ -2108,6 +2131,7 @@ func (m *PaymentMethod) MarshalBSON() ([]byte, error) {
 				ApiUrl:             value.ApiUrl,
 				MccCode:            value.MccCode,
 				OperatingCompanyId: value.OperatingCompanyId,
+				Brand:              value.Brand,
 			})
 		}
 	}
@@ -2173,9 +2197,7 @@ func (m *PaymentMethod) UnmarshalBSON(raw []byte) error {
 		pmp := make(map[string]*PaymentMethodParams, len(decoded.TestSettings))
 		for _, value := range decoded.TestSettings {
 
-			key := fmt.Sprintf(pkg.PaymentMethodKey, value.Currency, value.MccCode, value.OperatingCompanyId)
-
-			pmp[key] = &PaymentMethodParams{
+			params := &PaymentMethodParams{
 				Currency:           value.Currency,
 				TerminalId:         value.TerminalId,
 				Secret:             value.Secret,
@@ -2183,7 +2205,17 @@ func (m *PaymentMethod) UnmarshalBSON(raw []byte) error {
 				ApiUrl:             value.ApiUrl,
 				MccCode:            value.MccCode,
 				OperatingCompanyId: value.OperatingCompanyId,
+				Brand:              value.Brand,
 			}
+
+			key := pkg.GetPaymentMethodKey(value.Currency, value.MccCode, value.OperatingCompanyId, "")
+			pmp[key] = params
+
+			for _, brand := range value.Brand {
+				key := pkg.GetPaymentMethodKey(value.Currency, value.MccCode, value.OperatingCompanyId, brand)
+				pmp[key] = params
+			}
+
 		}
 		m.TestSettings = pmp
 	}
@@ -2192,9 +2224,7 @@ func (m *PaymentMethod) UnmarshalBSON(raw []byte) error {
 		pmp := make(map[string]*PaymentMethodParams, len(decoded.ProductionSettings))
 		for _, value := range decoded.ProductionSettings {
 
-			key := fmt.Sprintf(pkg.PaymentMethodKey, value.Currency, value.MccCode, value.OperatingCompanyId)
-
-			pmp[key] = &PaymentMethodParams{
+			params := &PaymentMethodParams{
 				Currency:           value.Currency,
 				TerminalId:         value.TerminalId,
 				Secret:             value.Secret,
@@ -2202,6 +2232,15 @@ func (m *PaymentMethod) UnmarshalBSON(raw []byte) error {
 				ApiUrl:             value.ApiUrl,
 				MccCode:            value.MccCode,
 				OperatingCompanyId: value.OperatingCompanyId,
+				Brand:              value.Brand,
+			}
+
+			key := pkg.GetPaymentMethodKey(value.Currency, value.MccCode, value.OperatingCompanyId, "")
+			pmp[key] = params
+
+			for _, brand := range value.Brand {
+				key := pkg.GetPaymentMethodKey(value.Currency, value.MccCode, value.OperatingCompanyId, brand)
+				pmp[key] = params
 			}
 		}
 		m.ProductionSettings = pmp

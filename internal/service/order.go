@@ -972,21 +972,6 @@ func (s *Service) PaymentCreateProcess(
 		return err
 	}
 
-	settings, err := s.paymentMethod.GetPaymentSettings(
-		processor.checked.paymentMethod,
-		order.ChargeCurrency,
-		order.MccCode,
-		order.OperatingCompanyId,
-		processor.checked.project,
-	)
-
-	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
-
-		return nil
-	}
-
 	ps, err := s.paymentSystem.GetById(ctx, processor.checked.paymentMethod.PaymentSystemId)
 	if err != nil {
 		rsp.Message = orderErrorPaymentSystemInactive
@@ -998,12 +983,41 @@ func (s *Service) PaymentCreateProcess(
 	order.PaymentMethod = &billing.PaymentMethodOrder{
 		Id:              processor.checked.paymentMethod.Id,
 		Name:            processor.checked.paymentMethod.Name,
-		Params:          settings,
 		PaymentSystemId: ps.Id,
 		Group:           processor.checked.paymentMethod.Group,
 		ExternalId:      processor.checked.paymentMethod.ExternalId,
 		Handler:         ps.Handler,
 		RefundAllowed:   processor.checked.paymentMethod.RefundAllowed,
+	}
+
+	methodName, err := order.GetCostPaymentMethodName()
+	if err != nil {
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+
+		return err
+	}
+
+	order.PaymentMethod.Params, err = s.paymentMethod.GetPaymentSettings(
+		processor.checked.paymentMethod,
+		order.ChargeCurrency,
+		order.MccCode,
+		order.OperatingCompanyId,
+		methodName,
+		processor.checked.project,
+	)
+
+	if err != nil {
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+
+		return err
 	}
 
 	if _, ok := order.PaymentRequisites[pkg.PaymentCreateFieldRecurringId]; ok {
@@ -1429,23 +1443,46 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		return err
 	}
 
-	settings, err := s.paymentMethod.GetPaymentSettings(
+	if order.PaymentMethod == nil {
+		order.PaymentMethod = &billing.PaymentMethodOrder{
+			Id:              pm.Id,
+			Name:            pm.Name,
+			PaymentSystemId: ps.Id,
+			Group:           pm.Group,
+			ExternalId:      pm.ExternalId,
+			Handler:         ps.Handler,
+			RefundAllowed:   pm.RefundAllowed,
+		}
+	}
+
+	methodName, err := order.GetCostPaymentMethodName()
+	if err != nil {
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+
+		return err
+	}
+
+	order.PaymentMethod.Params, err = s.paymentMethod.GetPaymentSettings(
 		pm,
 		order.ChargeCurrency,
 		order.MccCode,
 		order.OperatingCompanyId,
+		methodName,
 		project,
 	)
 
-	order.PaymentMethod = &billing.PaymentMethodOrder{
-		Id:              pm.Id,
-		Name:            pm.Name,
-		Params:          settings,
-		PaymentSystemId: ps.Id,
-		Group:           pm.Group,
-		ExternalId:      pm.ExternalId,
-		Handler:         ps.Handler,
-		RefundAllowed:   pm.RefundAllowed,
+	if err != nil {
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+
+		return err
 	}
 
 	if country != "" && country != order.GetCountry() && order.BillingAddress == nil {
@@ -2203,24 +2240,27 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 			return nil, err
 		}
 
-		settings, err := v.paymentMethod.GetPaymentSettings(
-			v.checked.paymentMethod,
-			v.checked.currency,
-			v.checked.mccCode,
-			v.checked.operatingCompanyId,
-			v.checked.project,
-		)
-
-		if err != nil {
-			return nil, err
-		}
-
 		order.PaymentMethod = &billing.PaymentMethodOrder{
 			Id:              v.checked.paymentMethod.Id,
 			Name:            v.checked.paymentMethod.Name,
-			Params:          settings,
 			PaymentSystemId: ps.Id,
 			Group:           v.checked.paymentMethod.Group,
+		}
+
+		methodName, err := order.GetCostPaymentMethodName()
+		if err == nil {
+			order.PaymentMethod.Params, err = v.paymentMethod.GetPaymentSettings(
+				v.checked.paymentMethod,
+				v.checked.currency,
+				v.checked.mccCode,
+				v.checked.operatingCompanyId,
+				methodName,
+				v.checked.project,
+			)
+
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -2520,7 +2560,7 @@ func (v *OrderCreateRequestProcessor) processPaymentMethod(pm *billing.PaymentMe
 		return orderErrorPaymentSystemInactive
 	}
 
-	_, err := v.Service.paymentMethod.GetPaymentSettings(pm, v.checked.currency, v.checked.mccCode, v.checked.operatingCompanyId, v.checked.project)
+	_, err := v.Service.paymentMethod.GetPaymentSettings(pm, v.checked.currency, v.checked.mccCode, v.checked.operatingCompanyId, "", v.checked.project)
 
 	if err != nil {
 		return err
@@ -2802,8 +2842,7 @@ func (v *PaymentFormProcessor) processRenderFormPaymentMethods(
 			(pm.MaxPaymentAmount > 0 && v.order.OrderAmount > pm.MaxPaymentAmount) {
 			continue
 		}
-
-		_, err = v.service.paymentMethod.GetPaymentSettings(pm, v.order.Currency, v.order.MccCode, v.order.OperatingCompanyId, project)
+		_, err = v.service.paymentMethod.GetPaymentSettings(pm, v.order.Currency, v.order.MccCode, v.order.OperatingCompanyId, "", project)
 
 		if err != nil {
 			zap.S().Errorw("GetPaymentSettings failed", "error", err, "order_id", v.order.Id, "order_uuid", v.order.Uuid)
@@ -3027,11 +3066,13 @@ func (v *PaymentCreateProcessor) processPaymentFormData(ctx context.Context) err
 		return orderErrorPaymentMethodNotFound
 	}
 
-	if err = processor.processPaymentMethod(pm); err != nil {
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			return e
-		}
-		return err
+	if pm.IsActive == false {
+		return orderErrorPaymentMethodInactive
+	}
+
+	ps, err := v.service.paymentSystem.GetById(ctx, pm.PaymentSystemId)
+	if err != nil {
+		return orderErrorPaymentSystemInactive
 	}
 
 	if err := processor.processLimitAmounts(); err != nil {
@@ -3117,7 +3158,7 @@ func (v *PaymentCreateProcessor) processPaymentFormData(ctx context.Context) err
 	delete(v.data, pkg.PaymentCreateFieldPaymentMethodId)
 	delete(v.data, pkg.PaymentCreateFieldEmail)
 
-	if processor.checked.paymentMethod.IsBankCard() == true {
+	if pm.IsBankCard() == true {
 		if id, ok := v.data[pkg.PaymentCreateFieldStoredCardId]; ok {
 			storedCard, err := v.service.rep.FindSavedCardById(context.TODO(), &repo.FindByStringValue{Value: id})
 
@@ -3191,8 +3232,36 @@ func (v *PaymentCreateProcessor) processPaymentFormData(ctx context.Context) err
 		order.PaymentRequisites = v.data
 	}
 
+	if order.PaymentMethod == nil {
+		order.PaymentMethod = &billing.PaymentMethodOrder{
+			Id:              pm.Id,
+			Name:            pm.Name,
+			PaymentSystemId: ps.Id,
+			Group:           pm.Group,
+			ExternalId:      pm.ExternalId,
+			Handler:         ps.Handler,
+			RefundAllowed:   pm.RefundAllowed,
+		}
+	}
+
+	methodName, err := order.GetCostPaymentMethodName()
+	if err == nil {
+		order.PaymentMethod.Params, err = v.service.paymentMethod.GetPaymentSettings(
+			pm,
+			processor.checked.currency,
+			processor.checked.mccCode,
+			processor.checked.operatingCompanyId,
+			methodName,
+			processor.checked.project,
+		)
+
+		if err != nil {
+			return err
+		}
+	}
+
 	v.checked.project = processor.checked.project
-	v.checked.paymentMethod = processor.checked.paymentMethod
+	v.checked.paymentMethod = pm
 	v.checked.order = order
 
 	if order.ProjectAccount == "" {
@@ -4269,7 +4338,7 @@ func (s *Service) OrderReceipt(
 		var ok = false
 		currency, ok = project.VirtualCurrency.Name[DefaultLanguage]
 
-		if !ok  {
+		if !ok {
 			zap.L().Error(
 				projectErrorVirtualCurrencyNameDefaultLangRequired.Message,
 				zap.Error(err),

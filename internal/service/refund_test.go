@@ -5,7 +5,6 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
@@ -81,7 +80,9 @@ func (suite *RefundTestSuite) SetupTest() {
 		suite.FailNow("Insert operatingCompany test data failed", "%v", err)
 	}
 
-	keyRub := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
+	keyRubVisa := pkg.GetPaymentMethodKey("RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "Visa")
+	keyRubBitcoin := pkg.GetPaymentMethodKey("RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "Bitcoin")
+	keyRubQiwi := pkg.GetPaymentMethodKey("RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "Qiwi")
 
 	countryRu := &billing.Country{
 		IsoCodeA2:       "RU",
@@ -146,23 +147,25 @@ func (suite *RefundTestSuite) SetupTest() {
 		MaxPaymentAmount: 15000,
 		ExternalId:       "BANKCARD",
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			keyRub: {
+			keyRubVisa: {
 				Currency:           "RUB",
 				TerminalId:         "15985",
 				Secret:             "A1tph4I6BD0f",
 				SecretCallback:     "0V1rJ7t4jCRv",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
 		},
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			keyRub: {
+			keyRubVisa: {
 				TerminalId:         "15985",
 				Secret:             "A1tph4I6BD0f",
 				SecretCallback:     "0V1rJ7t4jCRv",
 				Currency:           "RUB",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			}},
 		Type:            "bank_card",
 		IsActive:        true,
@@ -308,11 +311,12 @@ func (suite *RefundTestSuite) SetupTest() {
 		MaxPaymentAmount: 0,
 		ExternalId:       "QIWI",
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			keyRub: {
+			keyRubQiwi: {
 				Currency:           "RUB",
 				TerminalId:         "15993",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"QIWI"},
 			},
 		},
 		Type:            "ewallet",
@@ -327,19 +331,21 @@ func (suite *RefundTestSuite) SetupTest() {
 		MaxPaymentAmount: 0,
 		ExternalId:       "BITCOIN",
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			keyRub: {
+			keyRubBitcoin: {
 				Currency:           "RUB",
 				TerminalId:         "16007",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"BITCOIN"},
 			},
 		},
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			keyRub: {
+			keyRubBitcoin: {
 				TerminalId:         "16007",
 				Currency:           "RUB",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"BITCOIN"},
 			}},
 		Type:            "crypto",
 		IsActive:        true,
