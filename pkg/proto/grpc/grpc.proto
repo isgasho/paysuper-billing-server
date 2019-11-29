@@ -2089,7 +2089,7 @@ message CreatePayoutDocumentResponse {
 }
 
 message UpdatePayoutDocumentRequest {
-    //@inject_tag: json:"payout_document_id" validate:"required,hexadecimal,len=24"
+    //@inject_tag: json:"payout_document_id" validate:"required,hexadecimal,len=24" param:"payout_document_id"
     string payout_document_id = 1;
     //@inject_tag: json:"transaction" validate:"omitempty,max=255"
     string transaction = 2;

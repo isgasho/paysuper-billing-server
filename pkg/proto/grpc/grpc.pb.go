@@ -12772,8 +12772,8 @@ func (m *CreatePayoutDocumentResponse) GetItems() []*billing.PayoutDocument {
 }
 
 type UpdatePayoutDocumentRequest struct {
-	//@inject_tag: json:"payout_document_id" validate:"required,hexadecimal,len=24"
-	PayoutDocumentId string `protobuf:"bytes,1,opt,name=payout_document_id,json=payoutDocumentId,proto3" json:"payout_document_id" validate:"required,hexadecimal,len=24"`
+	//@inject_tag: json:"payout_document_id" validate:"required,hexadecimal,len=24" param:"payout_document_id"
+	PayoutDocumentId string `protobuf:"bytes,1,opt,name=payout_document_id,json=payoutDocumentId,proto3" json:"payout_document_id" validate:"required,hexadecimal,len=24" param:"payout_document_id"`
 	//@inject_tag: json:"transaction" validate:"omitempty,max=255"
 	Transaction string `protobuf:"bytes,2,opt,name=transaction,proto3" json:"transaction" validate:"omitempty,max=255"`
 	//@inject_tag: json:"status" validate:"required,oneof=skip pending in_progress paid canceled failed"
