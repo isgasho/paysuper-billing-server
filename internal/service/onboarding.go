@@ -1213,6 +1213,7 @@ func (s *Service) mapNotificationData(rsp *billing.Notification, notification *b
 	rsp.IsRead = notification.IsRead
 	rsp.CreatedAt = notification.CreatedAt
 	rsp.UpdatedAt = notification.UpdatedAt
+	rsp.Statuses = notification.Statuses
 }
 
 func (s *Service) GetMerchantAgreementSignUrl(
