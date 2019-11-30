@@ -2204,7 +2204,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessCurrency_Ok() {
 	}
 	assert.Empty(suite.T(), processor.checked.currency)
 
-	err := processor.processCurrency(req.Type == billing.OrderType_simple)
+	err := processor.processCurrency(req.Type)
 
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), processor.checked.currency)
@@ -2226,7 +2226,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessCurrency_Error() {
 	suite.service.curService = mocks.NewCurrencyServiceMockError()
 	suite.service.supportedCurrencies = []string{}
 
-	err := processor.processCurrency(req.Type == billing.OrderType_simple)
+	err := processor.processCurrency(req.Type)
 
 	assert.Error(suite.T(), err)
 	assert.Empty(suite.T(), processor.checked.currency)
@@ -2714,7 +2714,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessProjectOrderId_Duplicate_Error() {
 	err = processor.processUserData()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processCurrency(req.Type == billing.OrderType_simple)
+	err = processor.processCurrency(req.Type)
 	assert.Nil(suite.T(), err)
 
 	err = processor.processPayerIp()
@@ -2777,7 +2777,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethod_Ok() {
 	err := processor.processProject()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processCurrency(req.Type == billing.OrderType_simple)
+	err = processor.processCurrency(req.Type)
 	assert.Nil(suite.T(), err)
 
 	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project, req.PaymentMethod, processor.checked.currency)
@@ -2802,7 +2802,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethod_PaymentMethodInactiv
 	}
 	assert.Nil(suite.T(), processor.checked.paymentMethod)
 
-	err := processor.processCurrency(req.Type == billing.OrderType_simple)
+	err := processor.processCurrency(req.Type)
 	assert.Nil(suite.T(), err)
 
 	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project, req.PaymentMethod, processor.checked.currency)
@@ -2828,7 +2828,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethod_PaymentSystemInactiv
 	}
 	assert.Nil(suite.T(), processor.checked.paymentMethod)
 
-	err := processor.processCurrency(req.Type == billing.OrderType_simple)
+	err := processor.processCurrency(req.Type)
 	assert.Nil(suite.T(), err)
 
 	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project, req.PaymentMethod, processor.checked.currency)
@@ -2862,7 +2862,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_Ok() {
 	err := processor.processProject()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processCurrency(req.Type == billing.OrderType_simple)
+	err = processor.processCurrency(req.Type)
 	assert.Nil(suite.T(), err)
 
 	processor.processAmount()
@@ -2899,7 +2899,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_ConvertAmount_Ok() {
 	err := processor.processProject()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processCurrency(req.Type == billing.OrderType_simple)
+	err = processor.processCurrency(req.Type)
 	assert.Nil(suite.T(), err)
 
 	processor.processAmount()
@@ -2938,7 +2938,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_ProjectMinAmount_Erro
 	err := processor.processProject()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processCurrency(req.Type == billing.OrderType_simple)
+	err = processor.processCurrency(req.Type)
 	assert.Nil(suite.T(), err)
 
 	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project, req.PaymentMethod, processor.checked.currency)
@@ -2974,7 +2974,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_ProjectMaxAmount_Erro
 	err := processor.processProject()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processCurrency(req.Type == billing.OrderType_simple)
+	err = processor.processCurrency(req.Type)
 	assert.Nil(suite.T(), err)
 
 	processor.processAmount()
@@ -3012,7 +3012,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_PaymentMethodMinAmoun
 	err := processor.processProject()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processCurrency(req.Type == billing.OrderType_simple)
+	err = processor.processCurrency(req.Type)
 	assert.Nil(suite.T(), err)
 
 	processor.processAmount()
@@ -3050,7 +3050,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_PaymentMethodMaxAmoun
 	err := processor.processProject()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processCurrency(req.Type == billing.OrderType_simple)
+	err = processor.processCurrency(req.Type)
 	assert.Nil(suite.T(), err)
 
 	processor.processAmount()
@@ -3245,7 +3245,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_Ok() {
 	err = processor.processPayerIp()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processCurrency(req.Type == billing.OrderType_simple)
+	err = processor.processCurrency(req.Type)
 	assert.Nil(suite.T(), err)
 
 	err = processor.processPaylinkProducts()
@@ -3299,7 +3299,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_PaymentMethod_Ok() {
 	err = processor.processPayerIp()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processCurrency(req.Type == billing.OrderType_simple)
+	err = processor.processCurrency(req.Type)
 	assert.Nil(suite.T(), err)
 
 	err = processor.processPaylinkProducts()
@@ -3362,7 +3362,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_UrlVerify_Error() {
 	err = processor.processPayerIp()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processCurrency(req.Type == billing.OrderType_simple)
+	err = processor.processCurrency(req.Type)
 	assert.Nil(suite.T(), err)
 
 	err = processor.processPaylinkProducts()
@@ -3413,7 +3413,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_UrlRedirect_Error() {
 	err = processor.processPayerIp()
 	assert.Nil(suite.T(), err)
 
-	err = processor.processCurrency(req.Type == billing.OrderType_simple)
+	err = processor.processCurrency(req.Type)
 	assert.Nil(suite.T(), err)
 
 	err = processor.processPaylinkProducts()

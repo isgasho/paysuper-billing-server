@@ -409,7 +409,7 @@ func (s *Service) OrderCreateProcess(
 		}
 	}
 
-	err := processor.processCurrency(req.Type == billing.OrderType_simple)
+	err := processor.processCurrency(req.Type)
 	if err != nil {
 		zap.L().Error("process currency failed", zap.Error(err))
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
@@ -2320,7 +2320,7 @@ func (v *OrderCreateRequestProcessor) processProject() error {
 	return nil
 }
 
-func (v *OrderCreateRequestProcessor) processCurrency(isSimpleCheckout bool) error {
+func (v *OrderCreateRequestProcessor) processCurrency(orderType string) error {
 	if v.request.Currency != "" {
 		if !contains(v.supportedCurrencies, v.request.Currency) {
 			return orderErrorCurrencyNotFound
@@ -2336,7 +2336,7 @@ func (v *OrderCreateRequestProcessor) processCurrency(isSimpleCheckout bool) err
 		return nil
 	}
 
-	if isSimpleCheckout {
+	if orderType == billing.OrderType_simple {
 		return orderErrorCurrencyIsRequired
 	}
 
@@ -4564,13 +4564,13 @@ func (s *Service) OrderReCreateProcess(
 	newOrder.PaymentMethod = nil
 
 	newOrder.User = &billing.OrderUser{
-		Id: order.User.Id,
-		Phone: order.User.Phone,
+		Id:            order.User.Id,
+		Phone:         order.User.Phone,
 		PhoneVerified: order.User.PhoneVerified,
-		Metadata: order.Metadata,
-		Object: order.User.Object,
-		Name: order.User.Name,
-		ExternalId: order.User.ExternalId,
+		Metadata:      order.Metadata,
+		Object:        order.User.Object,
+		Name:          order.User.Name,
+		ExternalId:    order.User.ExternalId,
 	}
 
 	_, err = s.db.Collection(collectionOrder).InsertOne(ctx, newOrder)

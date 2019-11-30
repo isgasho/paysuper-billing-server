@@ -99,7 +99,7 @@ func (s *Service) CreateToken(
 		checked: &orderCreateRequestProcessorChecked{
 			user: &billing.OrderUser{},
 		},
-		ctx:     ctx,
+		ctx: ctx,
 	}
 
 	err := processor.processProject()
@@ -152,7 +152,7 @@ func (s *Service) CreateToken(
 		}
 	}
 
-	err = processor.processCurrency(req.Settings.Type == billing.OrderType_simple)
+	err = processor.processCurrency(req.Settings.Type)
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = err.(*grpc.ResponseErrorMessage)
