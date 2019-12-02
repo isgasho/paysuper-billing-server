@@ -2419,7 +2419,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_Ok() {
 	assert.Empty(suite.T(), rsp0.Message)
 
 	ds := &mocks.DocumentSignerService{}
-	ds.On("CreateSignature", mock2.Anything, mock2.Anything).Return(mocks.CreateSignatureResponse, nil)
+	ds.On("CreateSignature", mock2.Anything, mock2.Anything, mock2.Anything).
+		Return(mocks.CreateSignatureResponse, nil)
 	ds.On("GetSignatureUrl", mock2.Anything, mock2.Anything).Return(mocks.GetSignatureUrlResponse, nil)
 	suite.service.documentSigner = ds
 
@@ -2638,7 +2639,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_AgreementSign_DocumentSignerSys
 	assert.Empty(suite.T(), rsp0.Message)
 
 	ds := &mocks.DocumentSignerService{}
-	ds.On("CreateSignature", mock2.Anything, mock2.Anything).Return(mocks.CreateSignatureResponse, nil)
+	ds.On("CreateSignature", mock2.Anything, mock2.Anything, mock2.Anything).Return(mocks.CreateSignatureResponse, nil)
 	ds.On("GetSignatureUrl", mock2.Anything, mock2.Anything).Return(nil, errors.New(mocks.SomeError))
 	suite.service.documentSigner = ds
 
