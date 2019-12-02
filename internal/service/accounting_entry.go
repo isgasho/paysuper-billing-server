@@ -265,7 +265,6 @@ func (s *Service) CreateAccountingEntry(
 }
 
 func (s *Service) onPaymentNotify(ctx context.Context, order *billing.Order) error {
-
 	country, err := s.country.GetByIsoCodeA2(ctx, order.GetCountry())
 	if err != nil {
 		return err
@@ -283,6 +282,8 @@ func (s *Service) onPaymentNotify(ctx context.Context, order *billing.Order) err
 		country:  country,
 		merchant: merchant,
 	}
+
+	s.sendMailWithReceipt(ctx, order)
 
 	return s.processEvent(handler, accountingEventTypePayment)
 }
@@ -304,6 +305,8 @@ func (s *Service) onRefundNotify(ctx context.Context, refund *billing.Refund, or
 	if err != nil {
 		return err
 	}
+
+	s.sendMailWithReceipt(ctx, refundOrder)
 
 	handler := &accountingEntry{
 		Service:     s,

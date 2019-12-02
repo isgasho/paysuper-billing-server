@@ -1595,8 +1595,6 @@ func (s *Service) updateOrder(ctx context.Context, order *billing.Order) error {
 			order.ReceiptUrl = s.cfg.GetReceiptRefundUrl(order.Uuid, order.ReceiptId)
 		case pkg.OrderTypeOrder:
 			order.ReceiptUrl = s.cfg.GetReceiptPurchaseUrl(order.Uuid, order.ReceiptId)
-			zap.S().Infow("[updateOrder] notify merchant", "order_id", order.Id, "status", ps)
-			s.sendMailWithReceipt(ctx, order)
 		}
 	}
 
@@ -1672,21 +1670,12 @@ func (s *Service) orderNotifyKeyProducts(ctx context.Context, order *billing.Ord
 	}
 }
 
-func (s *Service) sendMailWithRefund(ctx context.Context, order *billing.Order) {
-	payload := s.getPayloadForReceipt(ctx, order)
-	payload.TemplateAlias = s.cfg.EmailRefundTransactionTemplate
-
-	zap.S().Infow("sending receipt to broker", "order_id", order.Id)
-	err := s.postmarkBroker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
-	if err != nil {
-		zap.S().Errorw(
-			"Publication refund transaction to user email queue is failed",
-			"err", err, "email", order.ReceiptEmail, "order_id", order.Id)
-	}
-}
-
 func (s *Service) sendMailWithReceipt(ctx context.Context, order *billing.Order) {
 	payload := s.getPayloadForReceipt(ctx, order)
+
+	if order.Type == pkg.OrderTypeRefund {
+		payload.TemplateAlias = s.cfg.EmailRefundTransactionTemplate
+	}
 
 	zap.S().Infow("sending receipt to broker", "order_id", order.Id, "topic", postmarkSdrPkg.PostmarkSenderTopicName)
 	err := s.postmarkBroker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})

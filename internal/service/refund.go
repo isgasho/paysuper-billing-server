@@ -476,8 +476,6 @@ func (s *Service) createOrderByRefund(ctx context.Context, order *billing.Order,
 		return "", refundErrorUnknown
 	}
 
-	s.sendMailWithRefund(ctx, refundOrder)
-
 	return refundOrder.Id, nil
 }
 
