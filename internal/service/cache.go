@@ -96,7 +96,7 @@ func (c *Cache) CleanOldestVersion() error {
 
 func (c *Cache) cleanVersion(version string) error {
 	var cursor uint64
-	var limit int64 = 1
+	var limit int64 = 100
 	var err error
 
 	for {

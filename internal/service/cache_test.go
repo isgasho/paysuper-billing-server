@@ -39,6 +39,7 @@ func (suite *CacheTestSuite) SetupTest() {
 		},
 	)
 	suite.cache, err = NewCacheRedis(suite.redis, "cache")
+	assert.NoError(suite.T(), err)
 
 	suite.service = NewBillingService(
 		nil,
@@ -73,7 +74,8 @@ func (suite *CacheTestSuite) TestCache_CleanOldestVersion_NoOldestVersions() {
 
 func (suite *CacheTestSuite) TestCache_CleanOldestVersion_ReturnTrue() {
 	for i := 0; i <= versionLimit; i++ {
-		_, _ = NewCacheRedis(suite.redis, fmt.Sprintf("cache%d", i))
+		_, err := NewCacheRedis(suite.redis, fmt.Sprintf("cache%d", i))
+		assert.NoError(suite.T(), err)
 	}
 	err := suite.cache.CleanOldestVersion()
 	assert.NoError(suite.T(), err)
@@ -81,8 +83,10 @@ func (suite *CacheTestSuite) TestCache_CleanOldestVersion_ReturnTrue() {
 
 func (suite *CacheTestSuite) TestCache_CleanOldestVersion_SuccessfullyDeletedKeys() {
 	oldestCache, _ := NewCacheRedis(suite.redis, "cache_old")
-	_, _ = NewCacheRedis(suite.redis, "cache_new1")
-	_, _ = NewCacheRedis(suite.redis, "cache_new2")
+	_, err := NewCacheRedis(suite.redis, "cache_new1")
+	assert.NoError(suite.T(), err)
+	_, err = NewCacheRedis(suite.redis, "cache_new2")
+	assert.NoError(suite.T(), err)
 
 	_ = oldestCache.Set("test", 1, 0)
 
@@ -90,7 +94,7 @@ func (suite *CacheTestSuite) TestCache_CleanOldestVersion_SuccessfullyDeletedKey
 	_ = oldestCache.Get("test", &val1)
 	assert.NotEmpty(suite.T(), val1)
 
-	err := suite.cache.CleanOldestVersion()
+	err = suite.cache.CleanOldestVersion()
 	assert.NoError(suite.T(), err)
 
 	var val2 interface{}
