@@ -1595,6 +1595,8 @@ func (s *Service) updateOrder(ctx context.Context, order *billing.Order) error {
 			order.ReceiptUrl = s.cfg.GetReceiptRefundUrl(order.Uuid, order.ReceiptId)
 		case pkg.OrderTypeOrder:
 			order.ReceiptUrl = s.cfg.GetReceiptPurchaseUrl(order.Uuid, order.ReceiptId)
+			zap.S().Infow("[updateOrder] notify merchant", "order_id", order.Id, "status", ps)
+			s.sendMailWithReceipt(ctx, order)
 		}
 	}
 
@@ -1617,15 +1619,6 @@ func (s *Service) updateOrder(ctx context.Context, order *billing.Order) error {
 	}
 
 	if needReceipt {
-		zap.S().Infow("[updateOrder] notify merchant", "order_id", order.Id, "status", ps)
-
-		switch ps {
-		case constant.OrderPublicStatusRefunded:
-			s.sendMailWithRefund(ctx, order)
-		case constant.OrderPublicStatusProcessed:
-			s.sendMailWithReceipt(ctx, order)
-		}
-
 		s.orderNotifyMerchant(ctx, order)
 	}
 
