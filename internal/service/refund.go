@@ -461,6 +461,7 @@ func (s *Service) createOrderByRefund(ctx context.Context, order *billing.Order,
 	refundOrder.Tax.Amount = tools.FormatAmount(refund.Amount / (1 + refundOrder.Tax.Rate) * refundOrder.Tax.Rate)
 	refundOrder.OrderAmount = tools.FormatAmount(refundOrder.TotalPaymentAmount - refundOrder.Tax.Amount)
 	refundOrder.ReceiptId = uuid.New().String()
+	refundOrder.ReceiptUrl = s.cfg.GetReceiptRefundUrl(refundOrder.Uuid, refundOrder.ReceiptId)
 
 	_, err = s.db.Collection(collectionOrder).InsertOne(ctx, refundOrder)
 
