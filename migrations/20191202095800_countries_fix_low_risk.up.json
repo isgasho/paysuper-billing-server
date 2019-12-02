@@ -293,11 +293,13 @@
         }
       },
       {
+        "q": {},
         "u": {
           "$unset": {
             "`payments_allowed`": ""
           }
-        }
+        },
+        "multi": true
       }
     ]
   }
