@@ -643,6 +643,8 @@ message Order {
     bool is_ip_country_mismatch_bin = 83;
     // @inject_tag: json:"-"
     bool billing_country_changed_by_user = 84;
+    // @inject_tag: json:"-"
+    bool is_refund_allowed = 85;
 }
 
 message ParentOrder {

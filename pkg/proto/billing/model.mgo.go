@@ -290,6 +290,7 @@ type MgoOrder struct {
 	PaymentIpCountry            string                         `bson:"payment_ip_country"`
 	IsIpCountryMismatchBin      bool                           `bson:"is_ip_country_mismatch_bin"`
 	BillingCountryChangedByUser bool                           `bson:"billing_country_changed_by_user"`
+	IsRefundAllowed             bool                           `bson:"is_refund_allowed"`
 }
 
 type MgoOrderItem struct {
@@ -1722,6 +1723,7 @@ func (m *Order) MarshalBSON() ([]byte, error) {
 		PaymentIpCountry:            m.PaymentIpCountry,
 		IsIpCountryMismatchBin:      m.IsIpCountryMismatchBin,
 		BillingCountryChangedByUser: m.BillingCountryChangedByUser,
+		IsRefundAllowed:             m.IsRefundAllowed,
 	}
 
 	if m.Refund != nil {
@@ -1957,6 +1959,7 @@ func (m *Order) UnmarshalBSON(raw []byte) error {
 	m.PaymentIpCountry = decoded.PaymentIpCountry
 	m.IsIpCountryMismatchBin = decoded.IsIpCountryMismatchBin
 	m.BillingCountryChangedByUser = decoded.BillingCountryChangedByUser
+	m.IsRefundAllowed = decoded.IsRefundAllowed
 
 	if decoded.Refund != nil {
 		m.Refund = &OrderNotificationRefund{

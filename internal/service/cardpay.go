@@ -448,6 +448,7 @@ func (h *cardPay) ProcessPayment(order *billing.Order, message proto.Message, ra
 		break
 	case pkg.CardPayPaymentResponseStatusCompleted:
 		order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
+		order.IsRefundAllowed = order.PaymentMethod.RefundAllowed
 		break
 	default:
 		return newBillingServerResponseError(pkg.StatusTemporary, paymentSystemErrorRequestTemporarySkipped)

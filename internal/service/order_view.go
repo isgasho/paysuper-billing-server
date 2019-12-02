@@ -3163,21 +3163,9 @@ func (s *Service) doUpdateOrderView(ctx context.Context, match bson.M) error {
 				"is_ip_country_mismatch_bin":                        1,
 				"order_charge":                                      1,
 				"billing_country_changed_by_user":                   1,
+				"refund_allowed":                                    "$is_refund_allowed",
 				"merchant_payout_currency": bson.M{
 					"$ifNull": list{"$net_revenue.currency", "$refund_reverse_revenue.currency"},
-				},
-				"refund_allowed": bson.M{
-					"$cond": list{
-						bson.M{
-							"$and": []bson.M{
-								{"$eq": list{"$payment_method.refund_allowed", true}},
-								{"$eq": list{"$type", "order"}},
-								{"$eq": list{"$refunded", false}},
-							},
-						},
-						true,
-						false,
-					},
 				},
 			},
 		},
