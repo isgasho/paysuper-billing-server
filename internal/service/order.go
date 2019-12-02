@@ -1572,6 +1572,8 @@ func (s *Service) ProcessBillingAddress(
 		return err
 	}
 
+	initialCountry := order.GetCountry()
+
 	if order.CountryRestriction != nil && order.CountryRestriction.ChangeAllowed != true {
 		rsp.Status = pkg.ResponseStatusForbidden
 		rsp.Message = orderCountryPaymentRestrictedError
@@ -1680,6 +1682,8 @@ func (s *Service) ProcessBillingAddress(
 		rsp.Message = orderErrorCostsRatesNotFound
 		return nil
 	}
+
+	order.BillingCountryChangedByUser = initialCountry != order.GetCountry()
 
 	err = s.updateOrder(ctx, order)
 

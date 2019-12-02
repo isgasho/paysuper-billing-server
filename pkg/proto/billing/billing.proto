@@ -639,6 +639,8 @@ message Order {
     string payment_ip_country = 82;
     // @inject_tag: json:"-"
     bool is_ip_country_mismatch_bin = 83;
+    // @inject_tag: json:"-"
+    bool billing_country_changed_by_user = 84;
 }
 
 message ParentOrder {
@@ -1857,6 +1859,8 @@ message OrderViewPublic {
     string payment_ip_country = 47;
     // @inject_tag: json:"is_ip_country_mismatch_bin" bson:"is_ip_country_mismatch_bin"
     bool is_ip_country_mismatch_bin = 48;
+    // @inject_tag: json:"billing_country_changed_by_user" bson:"billing_country_changed_by_user"
+    bool billing_country_changed_by_user = 49;
 }
 
 message OrderViewPrivate {
@@ -2026,6 +2030,8 @@ message OrderViewPrivate {
     string payment_ip_country = 82;
     // @inject_tag: json:"is_ip_country_mismatch_bin" bson:"is_ip_country_mismatch_bin"
     bool is_ip_country_mismatch_bin = 83;
+    // @inject_tag: json:"billing_country_changed_by_user" bson:"billing_country_changed_by_user"
+    bool billing_country_changed_by_user = 84;
 }
 
 message RecommendedPrice {

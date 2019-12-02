@@ -20,6 +20,7 @@ const (
 	collectionOrderView = "order_view"
 
 	errorOrderViewUpdateQuery = "order query view update failed"
+	errorDbCurdorCloseFailed  = "db cursor close failed"
 )
 
 var (
@@ -3161,6 +3162,7 @@ func (s *Service) doUpdateOrderView(ctx context.Context, match bson.M) error {
 				"payment_ip_country":                                1,
 				"is_ip_country_mismatch_bin":                        1,
 				"order_charge":                                      1,
+				"billing_country_changed_by_user":                   1,
 				"merchant_payout_currency": bson.M{
 					"$ifNull": list{"$net_revenue.currency", "$refund_reverse_revenue.currency"},
 				},
@@ -3204,7 +3206,16 @@ func (s *Service) doUpdateOrderView(ctx context.Context, match bson.M) error {
 		return err
 	}
 
-	defer cursor.Close(ctx)
+	defer func() {
+		err := cursor.Close(ctx)
+		if err != nil {
+			zap.L().Error(
+				errorDbCurdorCloseFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrder),
+			)
+		}
+	}()
 
 	cursor.Next(ctx)
 	err = cursor.Err()
@@ -3498,7 +3509,16 @@ func (ow *OrderView) GetRoyaltySummary(
 		return
 	}
 
-	defer cursor.Close(ctx)
+	defer func() {
+		err := cursor.Close(ctx)
+		if err != nil {
+			zap.L().Error(
+				errorDbCurdorCloseFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrder),
+			)
+		}
+	}()
 
 	var result *royaltySummaryResult
 	if cursor.Next(ctx) {
@@ -3777,7 +3797,16 @@ func (ow *OrderView) getPaylinkGroupStat(
 		return nil, err
 	}
 
-	defer cursor.Close(ctx)
+	defer func() {
+		err := cursor.Close(ctx)
+		if err != nil {
+			zap.L().Error(
+				errorDbCurdorCloseFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrder),
+			)
+		}
+	}()
 
 	if cursor.Next(ctx) {
 		err = cursor.Decode(&result)
