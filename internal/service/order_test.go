@@ -7976,7 +7976,14 @@ func (suite *OrderTestSuite) TestOrder_RefundReceipt_Ok() {
 	order, err := suite.service.getOrderById(context.TODO(), order.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), order)
-	assert.Equal(suite.T(), order.ReceiptUrl, suite.service.cfg.GetReceiptRefundUrl(order.Uuid, order.ReceiptId))
+
+
+	refundOrder, err := suite.service.getOrderById(context.TODO(), refund.CreatedOrderId)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), refundOrder)
+
+	assert.Equal(suite.T(), suite.service.cfg.GetReceiptRefundUrl(refundOrder.Uuid, refundOrder.ReceiptId), refundOrder.ReceiptUrl)
+	assert.Equal(suite.T(), suite.service.cfg.GetReceiptPurchaseUrl(order.Uuid, order.ReceiptId), order.ReceiptUrl)
 	assert.Nil(suite.T(), order.Cancellation)
 
 	messages := suite.zapRecorder.All()
