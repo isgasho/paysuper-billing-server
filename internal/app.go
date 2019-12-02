@@ -185,6 +185,12 @@ func (app *Application) Init() {
 	reporter := reporterService.NewReporterService(reporterServiceConst.ServiceName, app.service.Client())
 	casbin := casbinProto.NewCasbinService(casbinPkg.ServiceName, app.service.Client())
 
+	formatter, err := paysuperI18n.NewFormatter([]string{"i18n/rules"}, []string{"i18n/messages"})
+
+	if err != nil {
+		app.logger.Fatal("Create il8n formatter failed", zap.Error(err))
+	}
+
 	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
 		Addrs:        cfg.CacheRedis.Address,
 		Password:     cfg.CacheRedis.Password,
@@ -192,11 +198,16 @@ func (app *Application) Init() {
 		MaxRedirects: cfg.CacheRedis.MaxRedirects,
 		PoolSize:     cfg.CacheRedis.PoolSize,
 	})
-
-	formatter, err := paysuperI18n.NewFormatter([]string{"i18n/rules"}, []string{"i18n/messages"})
+	cache, err := service.NewCacheRedis(redisdb, cfg.CacheRedis.Version)
 
 	if err != nil {
-		app.logger.Fatal("Create il8n formatter failed", zap.Error(err))
+		app.logger.Error("Unable to initialize cache for the application", zap.Error(err))
+	} else {
+		go func() {
+			if err = cache.CleanOldestVersion(); err != nil {
+				app.logger.Error("Unable to clean oldest versions of cache", zap.Error(err))
+			}
+		}()
 	}
 
 	app.svc = service.NewBillingService(
@@ -207,7 +218,7 @@ func (app *Application) Init() {
 		taxService,
 		broker,
 		app.redis,
-		service.NewCacheRedis(redisdb),
+		cache,
 		curService,
 		documentSignerService,
 		reporter,

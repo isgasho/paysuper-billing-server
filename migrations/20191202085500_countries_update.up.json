@@ -1,0 +1,17 @@
+[
+  {
+    "update": "country",
+    "updates": [
+      {
+        "q": {
+          "iso_code_a2": "IO"
+        },
+        "u": {
+          "$set": {
+            "payer_tariff_region": "asia"
+          }
+        }
+      }
+    ]
+  }
+]

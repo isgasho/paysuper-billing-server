@@ -7,7 +7,6 @@ import (
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
@@ -23,7 +22,7 @@ type CountryTestSuite struct {
 	suite.Suite
 	service                *Service
 	log                    *zap.Logger
-	cache                  internalPkg.CacheInterface
+	cache                  CacheInterface
 	country                *billing.Country
 	countryHighRiskAllowed *billing.Country
 }
@@ -50,7 +49,7 @@ func (suite *CountryTestSuite) SetupTest() {
 	}
 
 	redisdb := mocks.NewTestRedis()
-	suite.cache = NewCacheRedis(redisdb)
+	suite.cache, err = NewCacheRedis(redisdb, "cache")
 	suite.service = NewBillingService(
 		db,
 		cfg,

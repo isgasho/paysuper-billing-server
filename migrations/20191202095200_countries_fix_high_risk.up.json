@@ -1,0 +1,20 @@
+[
+  {
+    "update": "country",
+    "updates": [
+      {
+        "q": {
+          "iso_code_a2": "AD"
+        },
+        "u": {
+          "$set": {
+            "high_risk_payments_allowed": true
+          },
+          "$unset": {
+            "`high_risk_payments_allowed`": ""
+          }
+        }
+      }
+    ]
+  }
+]

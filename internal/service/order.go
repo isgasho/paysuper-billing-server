@@ -1759,13 +1759,13 @@ func (s *Service) updateOrder(ctx context.Context, order *billing.Order) error {
 		zap.S().Debug("[updateOrder] no original order found", "order_id", order.Id)
 	}
 
-	needReceipt := statusChanged && ps != constant.OrderPublicStatusCreated && ps != constant.OrderPublicStatusPending
+	needReceipt := statusChanged && (ps == constant.OrderPublicStatusRefunded || ps == constant.OrderPublicStatusProcessed)
 
 	if needReceipt {
-		switch ps {
-		case constant.OrderPublicStatusRefunded:
+		switch order.Type {
+		case pkg.OrderTypeRefund:
 			order.ReceiptUrl = s.cfg.GetReceiptRefundUrl(order.Uuid, order.ReceiptId)
-		case constant.OrderPublicStatusProcessed:
+		case pkg.OrderTypeOrder:
 			order.ReceiptUrl = s.cfg.GetReceiptPurchaseUrl(order.Uuid, order.ReceiptId)
 		}
 	}

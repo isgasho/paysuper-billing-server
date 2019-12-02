@@ -9,7 +9,7 @@ addons:
 stages:
   - test
   - name: deploy
-    if: branch in (master, 192585-user-country-and-currency)
+    if: branch in (develop, 192585-user-country-and-currency)
 jobs:
   include:
   - stage: test

@@ -56,7 +56,7 @@ func (suite *ZipCodeTestSuite) SetupTest() {
 	}
 
 	redisdb := mocks.NewTestRedis()
-	cache := NewCacheRedis(redisdb)
+	cache, err := NewCacheRedis(redisdb, "cache")
 	suite.service = NewBillingService(
 		db,
 		cfg,

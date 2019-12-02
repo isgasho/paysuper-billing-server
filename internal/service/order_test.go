@@ -15,7 +15,6 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -46,7 +45,7 @@ import (
 type OrderTestSuite struct {
 	suite.Suite
 	service *Service
-	cache   internalPkg.CacheInterface
+	cache   CacheInterface
 	log     *zap.Logger
 
 	project                                *billing.Project
@@ -1358,7 +1357,7 @@ func (suite *OrderTestSuite) SetupTest() {
 	)
 
 	redisdb := mocks.NewTestRedis()
-	suite.cache = NewCacheRedis(redisdb)
+	suite.cache, err = NewCacheRedis(redisdb, "cache")
 	suite.service = NewBillingService(
 		db,
 		cfg,
@@ -8162,7 +8161,14 @@ func (suite *OrderTestSuite) TestOrder_RefundReceipt_Ok() {
 	order, err := suite.service.getOrderById(context.TODO(), order.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), order)
-	assert.Equal(suite.T(), order.ReceiptUrl, suite.service.cfg.GetReceiptRefundUrl(order.Uuid, order.ReceiptId))
+
+
+	refundOrder, err := suite.service.getOrderById(context.TODO(), refund.CreatedOrderId)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), refundOrder)
+
+	assert.Equal(suite.T(), suite.service.cfg.GetReceiptRefundUrl(refundOrder.Uuid, refundOrder.ReceiptId), refundOrder.ReceiptUrl)
+	assert.Equal(suite.T(), suite.service.cfg.GetReceiptPurchaseUrl(order.Uuid, order.ReceiptId), order.ReceiptUrl)
 	assert.Nil(suite.T(), order.Cancellation)
 
 	messages := suite.zapRecorder.All()
