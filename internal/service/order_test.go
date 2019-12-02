@@ -4109,7 +4109,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_Ok() {
 	assert.Equal(suite.T(), order.CountryRestriction.IsoCodeA2, "RU")
 	assert.True(suite.T(), order.CountryRestriction.PaymentsAllowed)
 	assert.True(suite.T(), order.CountryRestriction.ChangeAllowed)
-	assert.True(suite.T(), order.UserAddressDataRequired)
+	assert.False(suite.T(), order.UserAddressDataRequired)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcessWithProducts_Ok() {
@@ -5290,7 +5290,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormLanguageChanged_Ok() {
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)
 	assert.NotNil(suite.T(), rsp1.Item)
-	assert.True(suite.T(), rsp1.Item.UserAddressDataRequired)
+	assert.False(suite.T(), rsp1.Item.UserAddressDataRequired)
 	assert.Equal(suite.T(), rsp.User.Address.Country, rsp1.Item.UserIpData.Country)
 	assert.Equal(suite.T(), rsp.User.Address.PostalCode, rsp1.Item.UserIpData.Zip)
 	assert.Equal(suite.T(), rsp.User.Address.City, rsp1.Item.UserIpData.City)
@@ -6558,7 +6558,7 @@ func (suite *OrderTestSuite) TestOrder_CreatePayment_ChangeCustomerData_Ok() {
 	assert.Equal(suite.T(), order.User.Ip, "127.0.0.1")
 	assert.Equal(suite.T(), order.User.Locale, customer2.Locale)
 	assert.Equal(suite.T(), order.User.Email, customer2.Email)
-	assert.True(suite.T(), order.UserAddressDataRequired)
+	assert.False(suite.T(), order.UserAddressDataRequired)
 
 	assert.NotNil(suite.T(), customer2)
 	assert.Equal(suite.T(), customer1.Id, customer2.Id)
@@ -8161,7 +8161,6 @@ func (suite *OrderTestSuite) TestOrder_RefundReceipt_Ok() {
 	order, err := suite.service.getOrderById(context.TODO(), order.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), order)
-
 
 	refundOrder, err := suite.service.getOrderById(context.TODO(), refund.CreatedOrderId)
 	assert.NoError(suite.T(), err)

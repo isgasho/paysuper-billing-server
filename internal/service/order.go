@@ -621,7 +621,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 		}
 	}
 
-	loc, ctr := s.getCountryFromAcceptLanguage(req.Locale)
+	loc, _ := s.getCountryFromAcceptLanguage(req.Locale)
 	isIdentified := order.User.IsIdentified()
 	browserCustomer := &BrowserCookieCustomer{
 		Ip:             req.Ip,
@@ -704,13 +704,8 @@ func (s *Service) PaymentFormJsonDataProcess(
 		}
 	}
 
-	if (order.User.Address != nil && ctr != order.User.Address.Country) || loc != order.User.Locale {
-		order.UserAddressDataRequired = true
-		rsp.Item.UserAddressDataRequired = order.UserAddressDataRequired
-
-		if loc != "" && loc != order.User.Locale {
-			order.User.Locale = loc
-		}
+	if loc != "" && loc != order.User.Locale {
+		order.User.Locale = loc
 	}
 
 	restricted, err := s.applyCountryRestriction(ctx, order, order.GetCountry())
@@ -1292,7 +1287,6 @@ func (s *Service) PaymentFormLanguageChanged(
 	}
 
 	order.User.Locale = req.Lang
-	order.UserAddressDataRequired = true
 
 	if order.ProductType == billing.OrderType_product {
 		err = s.ProcessOrderProducts(ctx, order)
@@ -1325,7 +1319,6 @@ func (s *Service) PaymentFormLanguageChanged(
 		return err
 	}
 
-	rsp.Item.UserAddressDataRequired = true
 	rsp.Item.UserIpData = &billing.UserIpData{
 		Country: order.User.Address.Country,
 		City:    order.User.Address.City,
