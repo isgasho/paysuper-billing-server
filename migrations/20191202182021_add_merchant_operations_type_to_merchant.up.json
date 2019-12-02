@@ -1,0 +1,35 @@
+[
+  {
+    "update": "merchant",
+    "updates": [
+      {
+        "q": {
+          "mcc_code": "5816"
+        },
+        "u": {
+          "$set": {
+            "merchant_operations_type": "low-risk"
+          },
+          "$currentDate": {
+            "updated_at": true
+          }
+        },
+        "multi": true
+      },
+      {
+        "q": {
+          "mcc_code": "5967"
+        },
+        "u": {
+          "$set": {
+            "merchant_operations_type": "high-risk"
+          },
+          "$currentDate": {
+            "updated_at": true
+          }
+        },
+        "multi": true
+      }
+    ]
+  }
+]

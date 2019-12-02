@@ -1541,6 +1541,7 @@ func (s *Service) SetMerchantTariffRates(
 
 	timestampNow := ptypes.TimestampNow()
 
+	merchant.MerchantOperationsType = req.MerchantOperationsType
 	merchant.Tariff = &billing.MerchantTariff{
 		Payment:    tariffs.Payment,
 		Payout:     payoutTariff,

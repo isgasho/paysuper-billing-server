@@ -144,6 +144,7 @@ type MgoMerchant struct {
 	ManualPayoutsEnabled                          bool                                 `bson:"manual_payouts_enabled"`
 	MccCode                                       string                               `bson:"mcc_code"`
 	OperatingCompanyId                            string                               `bson:"operating_company_id"`
+	MerchantOperationsType                        string                               `bson:"merchant_operations_type"`
 }
 
 type MgoMerchantCommon struct {
@@ -2365,16 +2366,17 @@ func (m *Merchant) MarshalBSON() ([]byte, error) {
 		RollingReserveThreshold:   m.RollingReserveThreshold,
 		RollingReserveDays:        m.RollingReserveDays,
 		RollingReserveChargebackTransactionsThreshold: m.RollingReserveChargebackTransactionsThreshold,
-		ItemMinCostAmount:    m.ItemMinCostAmount,
-		ItemMinCostCurrency:  m.ItemMinCostCurrency,
-		Tariff:               m.Tariff,
-		Steps:                m.Steps,
-		AgreementTemplate:    m.AgreementTemplate,
-		AgreementNumber:      m.AgreementNumber,
-		MinimalPayoutLimit:   m.MinimalPayoutLimit,
-		ManualPayoutsEnabled: m.ManualPayoutsEnabled,
-		MccCode:              m.MccCode,
-		OperatingCompanyId:   m.OperatingCompanyId,
+		ItemMinCostAmount:      m.ItemMinCostAmount,
+		ItemMinCostCurrency:    m.ItemMinCostCurrency,
+		Tariff:                 m.Tariff,
+		Steps:                  m.Steps,
+		AgreementTemplate:      m.AgreementTemplate,
+		AgreementNumber:        m.AgreementNumber,
+		MinimalPayoutLimit:     m.MinimalPayoutLimit,
+		ManualPayoutsEnabled:   m.ManualPayoutsEnabled,
+		MccCode:                m.MccCode,
+		OperatingCompanyId:     m.OperatingCompanyId,
+		MerchantOperationsType: m.MerchantOperationsType,
 	}
 
 	if len(m.Id) <= 0 {
@@ -2578,6 +2580,7 @@ func (m *Merchant) UnmarshalBSON(raw []byte) error {
 	m.ManualPayoutsEnabled = decoded.ManualPayoutsEnabled
 	m.MccCode = decoded.MccCode
 	m.OperatingCompanyId = decoded.OperatingCompanyId
+	m.MerchantOperationsType = decoded.MerchantOperationsType
 
 	if decoded.User != nil {
 		m.User = &MerchantUser{
