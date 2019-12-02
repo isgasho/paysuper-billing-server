@@ -12772,8 +12772,8 @@ func (m *CreatePayoutDocumentResponse) GetItems() []*billing.PayoutDocument {
 }
 
 type UpdatePayoutDocumentRequest struct {
-	//@inject_tag: json:"payout_document_id" validate:"required,hexadecimal,len=24"
-	PayoutDocumentId string `protobuf:"bytes,1,opt,name=payout_document_id,json=payoutDocumentId,proto3" json:"payout_document_id" validate:"required,hexadecimal,len=24"`
+	//@inject_tag: json:"payout_document_id" validate:"required,hexadecimal,len=24" param:"payout_document_id"
+	PayoutDocumentId string `protobuf:"bytes,1,opt,name=payout_document_id,json=payoutDocumentId,proto3" json:"payout_document_id" validate:"required,hexadecimal,len=24" param:"payout_document_id"`
 	//@inject_tag: json:"transaction" validate:"omitempty,max=255"
 	Transaction string `protobuf:"bytes,2,opt,name=transaction,proto3" json:"transaction" validate:"omitempty,max=255"`
 	//@inject_tag: json:"status" validate:"required,oneof=skip pending in_progress paid canceled failed"
@@ -12866,10 +12866,10 @@ func (m *UpdatePayoutDocumentRequest) GetIp() string {
 }
 
 type GetPayoutDocumentRequest struct {
-	//@inject_tag: query:"payout_document_id" validate:"omitempty,hexadecimal,len=24"
-	PayoutDocumentId string `protobuf:"bytes,1,opt,name=payout_document_id,json=payoutDocumentId,proto3" json:"payout_document_id,omitempty" query:"payout_document_id" validate:"omitempty,hexadecimal,len=24"`
-	//@inject_tag: query:"merchant_id" validate:"omitempty,hexadecimal,len=24"
-	MerchantId           string   `protobuf:"bytes,2,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id,omitempty" query:"merchant_id" validate:"omitempty,hexadecimal,len=24"`
+	//@inject_tag: validate:"required,hexadecimal,len=24" param:"payout_document_id"
+	PayoutDocumentId string `protobuf:"bytes,1,opt,name=payout_document_id,json=payoutDocumentId,proto3" json:"payout_document_id,omitempty" validate:"required,hexadecimal,len=24" param:"payout_document_id"`
+	//@inject_tag: validate:"required,hexadecimal,len=24"
+	MerchantId           string   `protobuf:"bytes,2,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id,omitempty" validate:"required,hexadecimal,len=24"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`
