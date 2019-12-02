@@ -1,0 +1,304 @@
+[
+  {
+    "update": "country",
+    "updates": [
+      {
+        "q": {
+          "iso_code_a2": "AL"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "IS"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "LI"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "RS"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CH"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AR"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BR"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "CO"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "UY"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AM"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "RU"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "GH"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "KE"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "NZ"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TZ"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BH"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "IN"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "AE"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SA"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "SG"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TW"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "JP"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "BY"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "EG"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "ZA"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "IO"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "TL"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "VN"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": true
+          }
+        }
+      },
+      {
+        "q": {
+          "iso_code_a2": "KP"
+        },
+        "u": {
+          "$set": {
+            "payments_allowed": false
+          }
+        }
+      },
+      {
+        "u": {
+          "$unset": {
+            "`payments_allowed`": ""
+          }
+        }
+      }
+    ]
+  }
+]
