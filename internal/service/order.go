@@ -575,6 +575,12 @@ func (s *Service) PaymentFormJsonDataProcess(
 
 	rsp.Item.Type = order.ProductType
 
+	if order.IsDeclinedByCountry() {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = orderCountryPaymentRestrictedError
+		return nil
+	}
+
 	if order.PrivateStatus != constant.OrderStatusNew && order.PrivateStatus != constant.OrderStatusPaymentSystemComplete {
 		if len(order.ReceiptUrl) == 0 {
 			rsp.Status = pkg.ResponseStatusBadData

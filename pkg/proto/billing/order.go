@@ -243,3 +243,10 @@ func (m *Order) GetTaxAmountInChargeCurrency() float64 {
 	}
 	return tools.GetPercentPartFromAmount(m.ChargeAmount, m.Tax.Rate)
 }
+
+func (m *Order) IsDeclinedByCountry() bool {
+	return m.PrivateStatus == constant.OrderStatusPaymentSystemDeclined &&
+		m.CountryRestriction != nil &&
+		m.CountryRestriction.PaymentsAllowed == false &&
+		m.CountryRestriction.ChangeAllowed == false
+}
