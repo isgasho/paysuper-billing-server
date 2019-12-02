@@ -13,7 +13,6 @@ import (
 	"github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -38,7 +37,7 @@ type OnboardingTestSuite struct {
 	suite.Suite
 	service *Service
 	log     *zap.Logger
-	cache   internalPkg.CacheInterface
+	cache   CacheInterface
 
 	operatingCompany *billing.OperatingCompany
 
@@ -334,7 +333,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 	casbin.On("AddRoleForUser", mock2.Anything, mock2.Anything).Return(nil, nil)
 
 	redisdb := mocks.NewTestRedis()
-	suite.cache = NewCacheRedis(redisdb)
+	suite.cache, err = NewCacheRedis(redisdb, "cache")
 	suite.service = NewBillingService(
 		db,
 		cfg,

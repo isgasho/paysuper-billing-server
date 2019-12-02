@@ -8,7 +8,6 @@ import (
 	casbinProto "github.com/paysuper/casbin-server/pkg/generated/api/proto/casbinpb"
 	documentSignerProto "github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -60,7 +59,7 @@ type Service struct {
 	tax                        tax_service.TaxService
 	broker                     rabbitmq.BrokerInterface
 	redis                      redis.Cmdable
-	cacher                     internalPkg.CacheInterface
+	cacher                     CacheInterface
 	curService                 currencies.CurrencyratesService
 	smtpCl                     gomail.SendCloser
 	supportedCurrencies        []string
@@ -127,7 +126,7 @@ func NewBillingService(
 	tax tax_service.TaxService,
 	broker rabbitmq.BrokerInterface,
 	redis redis.Cmdable,
-	cache internalPkg.CacheInterface,
+	cache CacheInterface,
 	curService currencies.CurrencyratesService,
 	documentSigner documentSignerProto.DocumentSignerService,
 	reporterService reporterProto.ReporterService,

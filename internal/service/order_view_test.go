@@ -12,7 +12,6 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -34,7 +33,7 @@ type OrderViewTestSuite struct {
 	suite.Suite
 	service *Service
 	log     *zap.Logger
-	cache   internalPkg.CacheInterface
+	cache   CacheInterface
 
 	merchant            *billing.Merchant
 	projectFixedAmount  *billing.Project
@@ -94,7 +93,7 @@ func (suite *OrderViewTestSuite) SetupTest() {
 	)
 
 	redisdb := mocks.NewTestRedis()
-	suite.cache = NewCacheRedis(redisdb)
+	suite.cache, err = NewCacheRedis(redisdb, "cache")
 	suite.service = NewBillingService(
 		db,
 		cfg,
