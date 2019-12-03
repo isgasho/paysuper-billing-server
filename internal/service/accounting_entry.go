@@ -265,7 +265,6 @@ func (s *Service) CreateAccountingEntry(
 }
 
 func (s *Service) onPaymentNotify(ctx context.Context, order *billing.Order) error {
-
 	country, err := s.country.GetByIsoCodeA2(ctx, order.GetCountry())
 	if err != nil {
 		return err

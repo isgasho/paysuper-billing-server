@@ -7957,18 +7957,18 @@ func (suite *OrderTestSuite) TestOrder_RefundReceipt_Ok() {
 	postmarkBrokerMockFn := func(topicName string, payload proto.Message, t amqp.Table) error {
 		msg := payload.(*postmarkSdrPkg.Payload)
 		zap.L().Info("order_test_refund", zap.String("url", msg.TemplateModel["url"]))
-
 		return nil
 	}
 
+	postmarkBrokerMock := &mocks.BrokerInterface{}
+	postmarkBrokerMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(postmarkBrokerMockFn, nil)
+	suite.service.postmarkBroker = postmarkBrokerMock
+	
 	order := helperCreateAndPayOrder(suite.Suite, suite.service, 100, "RUB", "RU", suite.project, suite.paymentMethod)
 	assert.NotNil(suite.T(), order)
 	assert.Equal(suite.T(), order.ReceiptUrl, suite.service.cfg.GetReceiptPurchaseUrl(order.Uuid, order.ReceiptId))
 	assert.Nil(suite.T(), order.Cancellation)
 
-	postmarkBrokerMock := &mocks.BrokerInterface{}
-	postmarkBrokerMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(postmarkBrokerMockFn, nil)
-	suite.service.postmarkBroker = postmarkBrokerMock
 	refund := helperMakeRefund(suite.Suite, suite.service, order, order.TotalPaymentAmount, false)
 	assert.NotNil(suite.T(), refund)
 
@@ -7987,13 +7987,19 @@ func (suite *OrderTestSuite) TestOrder_RefundReceipt_Ok() {
 
 	messages := suite.zapRecorder.All()
 
+	urlsSent := map[string]bool{
+		refundOrder.ReceiptUrl: false,
+		order.ReceiptUrl: false,
+	}
 	for _, v := range messages {
 		if v.Entry.Message != "order_test_refund" {
 			continue
 		}
+		urlsSent[v.Context[0].String] = true
+	}
 
-		assert.Equal(suite.T(), zapcore.InfoLevel, v.Level)
-		assert.Equal(suite.T(), v.Context[0].String, order.ReceiptUrl)
+	for key, v := range urlsSent {
+		assert.True(suite.T(), v, key)
 	}
 }
 
