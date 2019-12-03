@@ -106,9 +106,9 @@ var (
 	orderErrorCreatePaymentRequiredFieldPaymentMethodNotFound = newBillingServerErrorMsg("fm000043", "required field with payment Method identifier not found")
 	orderErrorCreatePaymentRequiredFieldEmailNotFound         = newBillingServerErrorMsg("fm000044", "required field \"email\" not found")
 	orderErrorCreatePaymentRequiredFieldUserCountryNotFound   = newBillingServerErrorMsg("fm000045", "user country is required")
+	orderErrorCreatePaymentRequiredFieldUserZipNotFound       = newBillingServerErrorMsg("fm000046", "user zip is required")
 	orderErrorOrderAlreadyComplete                            = newBillingServerErrorMsg("fm000047", "order with specified identifier payed early")
 	orderErrorSignatureInvalid                                = newBillingServerErrorMsg("fm000048", "request signature is invalid")
-	orderErrorZipCodeNotFound                                 = newBillingServerErrorMsg("fm000050", "zip_code not found")
 	orderErrorProductsPrice                                   = newBillingServerErrorMsg("fm000051", "can't get product price")
 	orderErrorCheckoutWithoutProducts                         = newBillingServerErrorMsg("fm000052", "order products not specified")
 	orderErrorCheckoutWithoutAmount                           = newBillingServerErrorMsg("fm000053", "order amount not specified")
@@ -1543,17 +1543,6 @@ func (s *Service) ProcessBillingAddress(
 	var err error
 	var zip *billing.ZipCode
 
-	if req.Country == CountryCodeUSA && req.Zip != "" {
-		zip, err = s.zipCode.getByZipAndCountry(ctx, req.Zip, req.Country)
-
-		if err != nil {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = orderErrorZipCodeNotFound
-
-			return nil
-		}
-	}
-
 	order, err := s.getOrderByUuidToForm(ctx, req.OrderId)
 
 	if err != nil {
@@ -1572,11 +1561,17 @@ func (s *Service) ProcessBillingAddress(
 		Country: req.Country,
 	}
 
-	if zip != nil {
-		billingAddress.Country = zip.Country
-		billingAddress.PostalCode = zip.Zip
-		billingAddress.City = zip.City
-		billingAddress.State = zip.State.Code
+	if req.Country == CountryCodeUSA && req.Zip != "" {
+		billingAddress.PostalCode = req.Zip
+
+		zip, err = s.zipCode.getByZipAndCountry(ctx, req.Zip, req.Country)
+
+		if err == nil && zip != nil {
+			billingAddress.Country = zip.Country
+			billingAddress.PostalCode = zip.Zip
+			billingAddress.City = zip.City
+			billingAddress.State = zip.State.Code
+		}
 	}
 
 	if !order.CountryChangeAllowed() && initialCountry != billingAddress.Country {
@@ -2995,14 +2990,13 @@ func (v *PaymentCreateProcessor) processPaymentFormData(ctx context.Context) err
 		if country == CountryCodeUSA {
 			zip, ok := v.data[pkg.PaymentCreateFieldUserZip]
 
-			if ok && zip != "" {
+			if !ok || zip == "" {
+				return orderErrorCreatePaymentRequiredFieldUserZipNotFound
+			}
 
-				zipData, err := v.service.zipCode.getByZipAndCountry(ctx, zip, country)
+			zipData, err := v.service.zipCode.getByZipAndCountry(ctx, zip, country)
 
-				if err != nil {
-					return orderErrorZipCodeNotFound
-				}
-
+			if err == nil && zipData != nil {
 				v.data[pkg.PaymentCreateFieldUserCity] = zipData.City
 				v.data[pkg.PaymentCreateFieldUserState] = zipData.State.Code
 			}

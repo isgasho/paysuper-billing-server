@@ -6040,7 +6040,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequi
 	assert.Nil(suite.T(), order1.BillingAddress)
 }
 
-func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequired_ZipFieldNotFound_Ok() {
+/*func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequired_ZipFieldNotFound_Ok() {
 	req := &billing.OrderCreateRequest{
 		Type:        billing.OrderType_simple,
 		ProjectId:   suite.project.Id,
@@ -6104,7 +6104,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequi
 	assert.Equal(suite.T(), order.Tax.Amount, order1.Tax.Amount)
 	assert.Equal(suite.T(), order.TotalPaymentAmount, order1.TotalPaymentAmount)
 	assert.Nil(suite.T(), order1.BillingAddress)
-}
+}*/
 
 func (suite *OrderTestSuite) TestOrder_CreateOrderByToken_Ok() {
 	req := &grpc.TokenRequest{
@@ -7240,85 +7240,7 @@ func (suite *OrderTestSuite) TestBillingService_PaymentCreateProcess_CountryRest
 	assert.Equal(suite.T(), orderCountryPaymentRestrictedError, rsp.Message)
 }
 
-func (suite *OrderTestSuite) TestOrder_ProcessBillingAddress_USAZipIsUnknown_Error() {
-	req := &billing.OrderCreateRequest{
-		ProjectId:   suite.project.Id,
-		Currency:    "RUB",
-		Amount:      100,
-		Account:     "unit test",
-		Description: "unit test",
-		OrderId:     primitive.NewObjectID().Hex(),
-		User: &billing.OrderUser{
-			Email: "test@unit.unit",
-			Ip:    "127.0.0.1",
-		},
-		Type: billing.OrderType_simple,
-	}
-
-	rsp0 := &grpc.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
-	rsp := rsp0.Item
-	assert.True(suite.T(), len(rsp.Id) > 0)
-
-	order, err := suite.service.getOrderByUuid(context.TODO(), rsp.Uuid)
-	assert.NoError(suite.T(), err)
-	assert.Nil(suite.T(), order.BillingAddress)
-
-	req1 := &grpc.ProcessBillingAddressRequest{
-		OrderId: rsp.Uuid,
-		Country: "US",
-		Zip:     "111111",
-	}
-	rsp1 := &grpc.ProcessBillingAddressResponse{}
-	err = suite.service.ProcessBillingAddress(context.TODO(), req1, rsp1)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
-	assert.Equal(suite.T(), orderErrorZipCodeNotFound, rsp1.Message)
-	assert.Nil(suite.T(), rsp1.Item)
-}
-
-func (suite *OrderTestSuite) TestOrder_ProcessBillingAddress_USAZipNotFound_Error() {
-	req := &billing.OrderCreateRequest{
-		ProjectId:   suite.project.Id,
-		Currency:    "RUB",
-		Amount:      100,
-		Account:     "unit test",
-		Description: "unit test",
-		OrderId:     primitive.NewObjectID().Hex(),
-		User: &billing.OrderUser{
-			Email: "test@unit.unit",
-			Ip:    "127.0.0.1",
-		},
-		Type: billing.OrderType_simple,
-	}
-
-	rsp0 := &grpc.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
-	rsp := rsp0.Item
-	assert.True(suite.T(), len(rsp.Id) > 0)
-
-	order, err := suite.service.getOrderByUuid(context.TODO(), rsp.Uuid)
-	assert.NoError(suite.T(), err)
-	assert.Nil(suite.T(), order.BillingAddress)
-
-	req1 := &grpc.ProcessBillingAddressRequest{
-		OrderId: rsp.Uuid,
-		Country: "US",
-		Zip:     "98002",
-	}
-	rsp1 := &grpc.ProcessBillingAddressResponse{}
-	err = suite.service.ProcessBillingAddress(context.TODO(), req1, rsp1)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionZipCode), rsp1.Message.Message)
-	assert.Nil(suite.T(), rsp1.Item)
-}
-
-func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequired_USAZipNotFound_Error() {
+func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequired_USAZipRequired_Error() {
 	req := &billing.OrderCreateRequest{
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
@@ -7361,7 +7283,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequi
 			pkg.PaymentCreateFieldYear:            expireYear.Format("2006"),
 			pkg.PaymentCreateFieldHolder:          "Mr. Card Holder",
 			pkg.PaymentCreateFieldUserCountry:     "US",
-			pkg.PaymentCreateFieldUserZip:         "98002",
+			pkg.PaymentCreateFieldUserZip:         "",
 		},
 	}
 
@@ -7370,7 +7292,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequi
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.RedirectUrl)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionZipCode), rsp1.Message.Message)
+	assert.Equal(suite.T(), orderErrorCreatePaymentRequiredFieldUserZipNotFound, rsp1.Message)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_AccountingEntries_Ok() {
