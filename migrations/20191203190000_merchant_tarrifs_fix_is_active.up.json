@@ -79,6 +79,18 @@
           }
         },
         "multi": true
+      },
+      {
+        "q": {
+          "method_name": "China UnionPay",
+          "mcc_code": "5816"
+        },
+        "u": {
+          "$set": {
+            "is_active": true
+          }
+        },
+        "multi": true
       }
     ]
   }
