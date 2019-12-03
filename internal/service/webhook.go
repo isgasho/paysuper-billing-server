@@ -145,7 +145,7 @@ func (s *Service) SendWebhookToMerchant(ctx context.Context, req *billing.OrderC
 func (s *Service) NotifyWebhookTestResults(ctx context.Context, req *grpc.NotifyWebhookTestResultsRequest, res *grpc.EmptyResponseWithStatus) error {
 	res.Status = pkg.ResponseStatusOk
 
-	project, err := s.project.GetById(req.ProjectId)
+	project, err := s.project.GetById(ctx, req.ProjectId)
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorGrpcServiceCallFailed,
