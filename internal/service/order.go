@@ -1252,6 +1252,8 @@ func (s *Service) PaymentCallbackProcess(
 			return err
 		}
 
+		s.sendMailWithReceipt(ctx, order)
+
 		if h.IsRecurringCallback(data) {
 			s.saveRecurringCard(ctx, order, h.GetRecurringId(data))
 		}
@@ -1792,15 +1794,6 @@ func (s *Service) updateOrder(ctx context.Context, order *billing.Order) error {
 	}
 
 	if needReceipt {
-		zap.S().Infow("[updateOrder] notify merchant", "order_id", order.Id, "status", ps)
-
-		switch ps {
-		case constant.OrderPublicStatusRefunded:
-			s.sendMailWithRefund(ctx, order)
-		case constant.OrderPublicStatusProcessed:
-			s.sendMailWithReceipt(ctx, order)
-		}
-
 		s.orderNotifyMerchant(ctx, order)
 	}
 
@@ -1851,19 +1844,6 @@ func (s *Service) orderNotifyKeyProducts(ctx context.Context, order *billing.Ord
 		}
 		order.IsKeyProductNotified = true
 		break
-	}
-}
-
-func (s *Service) sendMailWithRefund(ctx context.Context, order *billing.Order) {
-	payload := s.getPayloadForReceipt(ctx, order)
-	payload.TemplateAlias = s.cfg.EmailRefundTransactionTemplate
-
-	zap.S().Infow("sending receipt to broker", "order_id", order.Id)
-	err := s.postmarkBroker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
-	if err != nil {
-		zap.S().Errorw(
-			"Publication refund transaction to user email queue is failed",
-			"err", err, "email", order.ReceiptEmail, "order_id", order.Id)
 	}
 }
 
@@ -1924,8 +1904,13 @@ func (s *Service) getPayloadForReceipt(ctx context.Context, order *billing.Order
 		paymentPartner = oc.Name
 	}
 
+	template := s.cfg.EmailSuccessTransactionTemplate
+	if order.Type == pkg.OrderTypeRefund {
+		template = s.cfg.EmailRefundTransactionTemplate
+	}
+
 	payload := &postmarkSdrPkg.Payload{
-		TemplateAlias: s.cfg.EmailSuccessTransactionTemplate,
+		TemplateAlias: template,
 		TemplateModel: map[string]string{
 			"total_price":      totalPrice,
 			"transaction_id":   order.Uuid,

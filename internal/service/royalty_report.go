@@ -253,14 +253,18 @@ func (s *Service) ListRoyaltyReports(
 		query["status"] = bson.M{"$in": req.Status}
 	}
 
-	if req.PeriodFrom != 0 {
-		query["period_from"] = bson.M{"$gte": time.Unix(req.PeriodFrom, 0)}
+	if req.PeriodFrom > 0 || req.PeriodTo > 0 {
+		date := bson.M{}
+		if req.PeriodFrom > 0 {
+			date["$gte"] = time.Unix(req.PeriodFrom, 0)
+		}
+		if req.PeriodTo > 0 {
+			date["$lte"] = time.Unix(req.PeriodTo, 0)
+		}
+		query["created_at"] = date
 	}
 
-	if req.PeriodTo != 0 {
-		query["period_to"] = bson.M{"$gte": time.Unix(req.PeriodFrom, 0)}
-	}
-
+	zap.L().Info("Find royalty docs", zap.Any("req", req), zap.Any("query", query))
 	count, err := s.db.Collection(collectionRoyaltyReport).CountDocuments(ctx, query)
 
 	if err != nil {

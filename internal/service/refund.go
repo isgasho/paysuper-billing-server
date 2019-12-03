@@ -343,6 +343,23 @@ func (s *Service) ProcessRefundCallback(
 			return nil
 		}
 
+		refundOrder, err := s.getOrderById(ctx, refund.CreatedOrderId)
+		if err != nil {
+			zap.L().Error(
+				pkg.MethodFinishedWithError,
+				zap.String("method", "getOrderById"),
+				zap.Error(err),
+				zap.String("refundId", refund.Id),
+				zap.String("refund-create-orderId", refund.CreatedOrderId),
+			)
+
+			rsp.Error = err.Error()
+			rsp.Status = pkg.ResponseStatusSystemError
+
+			return nil
+		}
+		s.sendMailWithReceipt(ctx, refundOrder)
+
 		processor := &createRefundProcessor{service: s, ctx: ctx}
 		refundedAmount, _ := processor.getRefundedAmount(order)
 
