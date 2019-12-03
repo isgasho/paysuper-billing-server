@@ -56,6 +56,7 @@ func (suite *CacheTestSuite) SetupTest() {
 		mocks.NewFormatterOK(),
 		mocks.NewBrokerMockOk(),
 		&casbinMocks.CasbinService{},
+		nil,
 	)
 
 	if err := suite.service.Init(); err != nil {
