@@ -1,7 +1,6 @@
 package service
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/go-redis/redis"
 	"github.com/ugorji/go/codec"
