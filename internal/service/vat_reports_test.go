@@ -2,27 +2,28 @@ package service
 
 import (
 	"context"
-	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/jinzhu/now"
+	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	rabbitmq "gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"testing"
 	"time"
 )
@@ -31,7 +32,7 @@ type VatReportsTestSuite struct {
 	suite.Suite
 	service *Service
 	log     *zap.Logger
-	cache   internalPkg.CacheInterface
+	cache   CacheInterface
 
 	projectFixedAmount *billing.Project
 	paymentMethod      *billing.PaymentMethod
@@ -60,7 +61,9 @@ func (suite *VatReportsTestSuite) SetupTest() {
 		suite.FailNow("Migrations failed", "%v", err)
 	}
 
-	db, err := mongodb.NewDatabase()
+	ctx, _ := context.WithTimeout(context.Background(), 60*time.Second)
+	opts := []mongodb.Option{mongodb.Context(ctx)}
+	db, err := mongodb.NewDatabase(opts...)
 	if err != nil {
 		suite.FailNow("Database connection failed", "%v", err)
 	}
@@ -85,8 +88,24 @@ func (suite *VatReportsTestSuite) SetupTest() {
 	)
 
 	redisdb := mocks.NewTestRedis()
-	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), broker, redisClient, suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), mocks.NewBrokerMockOk(), nil, )
+	suite.cache, err = NewCacheRedis(redisdb, "cache")
+	suite.service = NewBillingService(
+		db,
+		cfg,
+		mocks.NewGeoIpServiceTestOk(),
+		mocks.NewRepositoryServiceOk(),
+		mocks.NewTaxServiceOkMock(),
+		broker,
+		redisClient,
+		suite.cache,
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
+		&reportingMocks.ReporterService{},
+		mocks.NewFormatterOK(),
+		mocks.NewBrokerMockOk(),
+		&casbinMocks.CasbinService{},
+		nil,
+	)
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -96,11 +115,17 @@ func (suite *VatReportsTestSuite) SetupTest() {
 }
 
 func (suite *VatReportsTestSuite) TearDownTest() {
-	if err := suite.service.db.Drop(); err != nil {
+	err := suite.service.db.Drop()
+
+	if err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}
 
-	suite.service.db.Close()
+	err = suite.service.db.Close()
+
+	if err != nil {
+		suite.FailNow("Database close failed", "%v", err)
+	}
 }
 
 func (suite *VatReportsTestSuite) TestVatReports_getLastVatReportTime() {
@@ -216,7 +241,7 @@ func (suite *VatReportsTestSuite) TestVatReports_ProcessVatReports() {
 	}
 
 	suite.paymentSystem.Handler = "mock_ok"
-	err := suite.service.paymentSystem.Update(suite.paymentSystem)
+	err := suite.service.paymentSystem.Update(context.TODO(), suite.paymentSystem)
 	assert.NoError(suite.T(), err)
 
 	for _, order := range orders {
@@ -261,13 +286,13 @@ func (suite *VatReportsTestSuite) TestVatReports_ProcessVatReports() {
 	assert.NotNil(suite.T(), report)
 	assert.Equal(suite.T(), report.Country, "FI")
 	assert.Equal(suite.T(), report.Currency, "EUR")
-	assert.Equal(suite.T(), report.TransactionsCount, int32(numberOfOrders))
-	assert.Equal(suite.T(), report.GrossRevenue, float64(81.31))
-	assert.Equal(suite.T(), report.VatAmount, float64(13.55))
-	assert.Equal(suite.T(), report.FeesAmount, float64(8.89))
-	assert.Equal(suite.T(), report.DeductionAmount, float64(0))
-	assert.Equal(suite.T(), report.CountryAnnualTurnover, float64(162))
-	assert.Equal(suite.T(), report.WorldAnnualTurnover, float64(188.33))
+	assert.EqualValues(suite.T(), report.TransactionsCount, numberOfOrders)
+	assert.EqualValues(suite.T(), report.GrossRevenue, 81.31)
+	assert.EqualValues(suite.T(), report.VatAmount, 13.55)
+	assert.EqualValues(suite.T(), report.FeesAmount, 8.89)
+	assert.EqualValues(suite.T(), report.DeductionAmount, 0)
+	assert.EqualValues(suite.T(), report.CountryAnnualTurnover, 162)
+	assert.EqualValues(suite.T(), report.WorldAnnualTurnover, 188.33)
 	assert.Equal(suite.T(), report.Status, pkg.VatReportStatusThreshold)
 
 	assert.NoError(suite.T(), err)
@@ -282,7 +307,7 @@ func (suite *VatReportsTestSuite) TestVatReports_PaymentDateSet() {
 	nowTimestamp := time.Now().Unix()
 
 	vatReport := &billing.VatReport{
-		Id:                    bson.NewObjectId().Hex(),
+		Id:                    primitive.NewObjectID().Hex(),
 		Country:               "RU",
 		VatRate:               20,
 		Currency:              "RUB",
@@ -303,14 +328,16 @@ func (suite *VatReportsTestSuite) TestVatReports_PaymentDateSet() {
 		PayUntilDate:          ptypes.TimestampNow(),
 	}
 
-	err := suite.service.insertVatReport(vatReport)
+	err := suite.service.insertVatReport(context.TODO(), vatReport)
 	assert.NoError(suite.T(), err)
 
+	oid, err := primitive.ObjectIDFromHex(vatReport.Id)
+	assert.NoError(suite.T(), err)
 	query := bson.M{
-		"_id": bson.ObjectIdHex(vatReport.Id),
+		"_id": oid,
 	}
 	var vr *billing.VatReport
-	err = suite.service.db.Collection(collectionVatReports).Find(query).One(&vr)
+	err = suite.service.db.Collection(collectionVatReports).FindOne(context.TODO(), query).Decode(&vr)
 	assert.NoError(suite.T(), err)
 	assert.NotEqual(suite.T(), vr.Status, pkg.VatReportStatusPaid)
 	assert.EqualValues(suite.T(), -62135596800, vr.PaidAt.Seconds)
@@ -323,8 +350,9 @@ func (suite *VatReportsTestSuite) TestVatReports_PaymentDateSet() {
 	err = suite.service.UpdateVatReportStatus(context.TODO(), req, res)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
+	assert.Empty(suite.T(), res.Message)
 
-	err = suite.service.db.Collection(collectionVatReports).Find(query).One(&vr)
+	err = suite.service.db.Collection(collectionVatReports).FindOne(context.TODO(), query).Decode(&vr)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), vr.Status, pkg.VatReportStatusPaid)
 	assert.GreaterOrEqual(suite.T(), nowTimestamp, vr.PaidAt.Seconds)

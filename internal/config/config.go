@@ -34,6 +34,7 @@ type CacheRedis struct {
 	PoolSize     int      `envconfig:"CACHE_REDIS_POOL_SIZE" default:"1"`
 	MaxRetries   int      `envconfig:"CACHE_REDIS_MAX_RETRIES" default:"10"`
 	MaxRedirects int      `envconfig:"CACHE_REDIS_MAX_REDIRECTS" default:"8"`
+	Version      string   `envconfig:"CACHE_REDIS_VERSION" default:"1.0.0"`
 }
 
 type Config struct {
@@ -63,6 +64,7 @@ type Config struct {
 	EmailMerchantNewOnboardingRequestTemplate      string `envconfig:"EMAIL_MERCHANT_NEW_ONBOARDING_REQUEST_TEMPLATE" default:"p1_email_merchant_new_onboarding_request_template"`
 	EmailAdminNewOnboardingRequestTemplate         string `envconfig:"EMAIL_ADMIN_NEW_ONBOARDING_REQUEST_TEMPLATE" default:"p1_email_admin_new_onboarding_request_template"`
 	EmailMerchantOnboardingRequestCompleteTemplate string `envconfig:"EMAIL_MERCHANT_ONBOARDING_REQUEST_COMPLETE_TEMPLATE" default:"p1_email_merchant_onboarding_request_complete_template"`
+	EmailInviteTemplate                            string `envconfig:"EMAIL_INVITE_TEMPLATE" default:"code-your-own"`
 
 	RoyaltyReportsUrl string `envconfig:"ROYALTY_REPORTS_URL" default:"https://paysupermgmt.tst.protocol.one/royalty_reports"`
 	PayoutsUrl        string `envconfig:"PAYOUTS_URL" default:"https://paysupermgmt.tst.protocol.one/payout_documents"`
@@ -85,10 +87,8 @@ type Config struct {
 
 	OrderViewUpdateBatchSize int `envconfig:"ORDER_VIEW_UPDATE_BATCH_SIZE" default:"200"`
 
-	HelloSignDefaultTemplate    string `envconfig:"HELLO_SIGN_DEFAULT_TEMPLATE" required:"true"`
-	HelloSignAgreementClientId  string `envconfig:"HELLO_SIGN_AGREEMENT_CLIENT_ID" required:"true"`
-	PaysuperDocumentSignerEmail string `envconfig:"PAYSUPER_DOCUMENT_SIGNER_EMAIL" required:"true"`
-	PaysuperDocumentSignerName  string `envconfig:"PAYSUPER_DOCUMENT_SIGNER_NAME" required:"true"`
+	HelloSignDefaultTemplate   string `envconfig:"HELLO_SIGN_DEFAULT_TEMPLATE" required:"true"`
+	HelloSignAgreementClientId string `envconfig:"HELLO_SIGN_AGREEMENT_CLIENT_ID" required:"true"`
 
 	KeyDaemonRestartInterval int64  `envconfig:"KEY_DAEMON_RESTART_INTERVAL" default:"60"`
 	DashboardProjectsUrl     string `envconfig:"DASHBOARD_PROJECTS_URL" default:"https://paysupermgmt.tst.protocol.one/projects"`
@@ -103,6 +103,10 @@ type Config struct {
 
 	MerchantsAgreementSignatureUrl string `envconfig:"MERCHANTS_AGREEMENT_SIGNATURE_URL" default:"https://dashboard.pay.super.com/company"`
 	AdminOnboardingRequestsUrl     string `envconfig:"ADMIN_ONBOARDING_REQUESTS_URL" default:"https://dashboard.pay.super.com/agreement-requests"`
+
+	UserInviteTokenSecret  string `envconfig:"USER_INVITE_TOKEN_SECRET" required:"true"`
+	UserInviteTokenTimeout int64  `envconfig:"USER_INVITE_TOKEN_TIMEOUT" default:"48"`
+	UserInviteUrl          string `envconfig:"USER_INVITE_URL" default:"https://paysupermgmt.tst.protocol.one/login?invite_token=%s"`
 
 	*PaymentSystemConfig
 	*CustomerTokenConfig

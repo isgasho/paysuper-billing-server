@@ -2,18 +2,19 @@ package service
 
 import (
 	"context"
-	"github.com/globalsign/mgo/bson"
+	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"testing"
 )
 
@@ -21,7 +22,7 @@ type OperatingCompanyTestSuite struct {
 	suite.Suite
 	service           *Service
 	log               *zap.Logger
-	cache             internalPkg.CacheInterface
+	cache             CacheInterface
 	operatingCompany  *billing.OperatingCompany
 	operatingCompany2 *billing.OperatingCompany
 }
@@ -48,7 +49,9 @@ func (suite *OperatingCompanyTestSuite) SetupTest() {
 	}
 
 	redisdb := mocks.NewTestRedis()
-	suite.cache = NewCacheRedis(redisdb)
+	suite.cache, err = NewCacheRedis(redisdb, "cache")
+	casbin := &casbinMocks.CasbinService{}
+
 	suite.service = NewBillingService(
 		db,
 		cfg,
@@ -63,6 +66,7 @@ func (suite *OperatingCompanyTestSuite) SetupTest() {
 		&reportingMocks.ReporterService{},
 		mocks.NewFormatterOK(),
 		mocks.NewBrokerMockOk(),
+		casbin,
 		nil,
 	)
 
@@ -71,19 +75,19 @@ func (suite *OperatingCompanyTestSuite) SetupTest() {
 	}
 
 	countryRu := &billing.Country{
-		Id:                bson.NewObjectId().Hex(),
+		Id:                primitive.NewObjectID().Hex(),
 		IsoCodeA2:         "RU",
 		Region:            "Russia",
 		Currency:          "RUB",
 		PaymentsAllowed:   true,
 		ChangeAllowed:     true,
 		VatEnabled:        true,
-		PriceGroupId:      bson.NewObjectId().Hex(),
+		PriceGroupId:      primitive.NewObjectID().Hex(),
 		VatCurrency:       "RUB",
 		PayerTariffRegion: pkg.TariffRegionRussiaAndCis,
 	}
 	countryUa := &billing.Country{
-		Id:                bson.NewObjectId().Hex(),
+		Id:                primitive.NewObjectID().Hex(),
 		IsoCodeA2:         "UA",
 		Region:            "UA",
 		Currency:          "UAH",
@@ -95,7 +99,7 @@ func (suite *OperatingCompanyTestSuite) SetupTest() {
 		PayerTariffRegion: pkg.TariffRegionRussiaAndCis,
 	}
 	countries := []*billing.Country{countryRu, countryUa}
-	if err := suite.service.country.MultipleInsert(countries); err != nil {
+	if err := suite.service.country.MultipleInsert(context.TODO(), countries); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 
@@ -127,26 +131,32 @@ func (suite *OperatingCompanyTestSuite) SetupTest() {
 }
 
 func (suite *OperatingCompanyTestSuite) TearDownTest() {
-	if err := suite.service.db.Drop(); err != nil {
+	err := suite.service.db.Drop()
+
+	if err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}
 
-	suite.service.db.Close()
+	err = suite.service.db.Close()
+
+	if err != nil {
+		suite.FailNow("Database close failed", "%v", err)
+	}
 }
 
 func (suite *OperatingCompanyTestSuite) Test_OperatingCompany_AddOk() {
-	count, err := suite.service.db.Collection(collectionOperatingCompanies).Find(nil).Count()
+	count, err := suite.service.db.Collection(collectionOperatingCompanies).CountDocuments(context.TODO(), bson.M{})
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), count, 0)
+	assert.EqualValues(suite.T(), count, 0)
 
 	res := &grpc.EmptyResponseWithStatus{}
 	err = suite.service.AddOperatingCompany(context.TODO(), suite.operatingCompany, res)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
 
-	count, err = suite.service.db.Collection(collectionOperatingCompanies).Find(nil).Count()
+	count, err = suite.service.db.Collection(collectionOperatingCompanies).CountDocuments(context.TODO(), bson.M{})
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), count, 1)
+	assert.EqualValues(suite.T(), count, 1)
 }
 
 func (suite *OperatingCompanyTestSuite) Test_OperatingCompany_ListOk() {
@@ -163,18 +173,18 @@ func (suite *OperatingCompanyTestSuite) Test_OperatingCompany_ListOk() {
 }
 
 func (suite *OperatingCompanyTestSuite) Test_OperatingCompany_AddFail_DuplicatePaymentCountry() {
-	count, err := suite.service.db.Collection(collectionOperatingCompanies).Find(nil).Count()
+	count, err := suite.service.db.Collection(collectionOperatingCompanies).CountDocuments(context.TODO(), bson.M{})
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), count, 0)
+	assert.EqualValues(suite.T(), count, 0)
 
 	res := &grpc.EmptyResponseWithStatus{}
 	err = suite.service.AddOperatingCompany(context.TODO(), suite.operatingCompany, res)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
 
-	count, err = suite.service.db.Collection(collectionOperatingCompanies).Find(nil).Count()
+	count, err = suite.service.db.Collection(collectionOperatingCompanies).CountDocuments(context.TODO(), bson.M{})
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), count, 1)
+	assert.EqualValues(suite.T(), count, 1)
 
 	err = suite.service.AddOperatingCompany(context.TODO(), suite.operatingCompany, res)
 	assert.NoError(suite.T(), err)
@@ -183,9 +193,9 @@ func (suite *OperatingCompanyTestSuite) Test_OperatingCompany_AddFail_DuplicateP
 }
 
 func (suite *OperatingCompanyTestSuite) Test_OperatingCompany_AddFail_PaymentCountryUnknown() {
-	count, err := suite.service.db.Collection(collectionOperatingCompanies).Find(nil).Count()
+	count, err := suite.service.db.Collection(collectionOperatingCompanies).CountDocuments(context.TODO(), bson.M{})
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), count, 0)
+	assert.EqualValues(suite.T(), count, 0)
 
 	suite.operatingCompany.PaymentCountries = []string{"RU", "UA", "XXX"}
 
@@ -197,31 +207,31 @@ func (suite *OperatingCompanyTestSuite) Test_OperatingCompany_AddFail_PaymentCou
 }
 
 func (suite *OperatingCompanyTestSuite) Test_OperatingCompany_GetByPaymentCountry() {
-	count, err := suite.service.db.Collection(collectionOperatingCompanies).Find(nil).Count()
+	count, err := suite.service.db.Collection(collectionOperatingCompanies).CountDocuments(context.TODO(), bson.M{})
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), count, 0)
+	assert.EqualValues(suite.T(), count, 0)
 
-	suite.operatingCompany.Id = bson.NewObjectId().Hex()
-	err = suite.service.operatingCompany.Upsert(suite.operatingCompany)
-	assert.NoError(suite.T(), err)
-
-	suite.operatingCompany2.Id = bson.NewObjectId().Hex()
-	err = suite.service.operatingCompany.Upsert(suite.operatingCompany2)
+	suite.operatingCompany.Id = primitive.NewObjectID().Hex()
+	err = suite.service.operatingCompany.Upsert(context.TODO(), suite.operatingCompany)
 	assert.NoError(suite.T(), err)
 
-	count, err = suite.service.db.Collection(collectionOperatingCompanies).Find(nil).Count()
+	suite.operatingCompany2.Id = primitive.NewObjectID().Hex()
+	err = suite.service.operatingCompany.Upsert(context.TODO(), suite.operatingCompany2)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), count, 2)
 
-	oc, err := suite.service.operatingCompany.GetByPaymentCountry("")
+	count, err = suite.service.db.Collection(collectionOperatingCompanies).CountDocuments(context.TODO(), bson.M{})
+	assert.NoError(suite.T(), err)
+	assert.EqualValues(suite.T(), count, 2)
+
+	oc, err := suite.service.operatingCompany.GetByPaymentCountry(context.TODO(), "")
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), oc.Id, suite.operatingCompany.Id)
 
-	oc, err = suite.service.operatingCompany.GetByPaymentCountry("RU")
+	oc, err = suite.service.operatingCompany.GetByPaymentCountry(context.TODO(), "RU")
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), oc.Id, suite.operatingCompany2.Id)
 
-	oc, err = suite.service.operatingCompany.GetByPaymentCountry("XXX")
+	oc, err = suite.service.operatingCompany.GetByPaymentCountry(context.TODO(), "XXX")
 	assert.Error(suite.T(), err)
 	assert.EqualError(suite.T(), err, errorOperatingCompanyCountryUnknown.Error())
 }

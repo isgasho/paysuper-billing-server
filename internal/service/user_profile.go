@@ -7,14 +7,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
 	"github.com/streadway/amqp"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 	"strings"
 	"time"
@@ -44,11 +45,12 @@ func (s *Service) CreateOrUpdateUserProfile(
 	rsp *grpc.GetUserProfileResponse,
 ) error {
 	var err error
-	profile := s.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
+
+	profile, err := s.userProfileRepository.GetByUserId(ctx, req.UserId)
 
 	if profile == nil {
 		profile = req
-		profile.Id = bson.NewObjectId().Hex()
+		profile.Id = primitive.NewObjectID().Hex()
 		profile.CreatedAt = ptypes.TimestampNow()
 	} else {
 		profile = s.updateOnboardingProfile(profile, req)
@@ -64,7 +66,10 @@ func (s *Service) CreateOrUpdateUserProfile(
 		return nil
 	}
 
-	_, err = s.db.Collection(collectionUserProfile).UpsertId(bson.ObjectIdHex(profile.Id), profile)
+	oid, _ := primitive.ObjectIDFromHex(profile.Id)
+	filter := bson.M{"_id": oid}
+	opts := options.Replace().SetUpsert(true)
+	_, err = s.db.Collection(collectionUserProfile).ReplaceOne(ctx, filter, profile, opts)
 
 	if err != nil {
 		zap.S().Error(
@@ -90,7 +95,7 @@ func (s *Service) CreateOrUpdateUserProfile(
 			return nil
 		}
 
-		err = s.sendUserEmailConfirmationToken(profile)
+		err = s.sendUserEmailConfirmationToken(ctx, profile)
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusSystemError
@@ -111,15 +116,16 @@ func (s *Service) GetUserProfile(
 	req *grpc.GetUserProfileRequest,
 	rsp *grpc.GetUserProfileResponse,
 ) error {
-	query := bson.M{"user_id": req.UserId}
+	var err error
+	var profile *grpc.UserProfile
 
 	if req.ProfileId != "" {
-		query = bson.M{"_id": bson.ObjectIdHex(req.ProfileId)}
+		profile, err = s.userProfileRepository.GetById(ctx, req.ProfileId)
+	} else {
+		profile, err = s.userProfileRepository.GetByUserId(ctx, req.UserId)
 	}
 
-	profile := s.getOnboardingProfileBy(query)
-
-	if profile == nil {
+	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = userProfileErrorNotFound
 
@@ -141,21 +147,6 @@ func (s *Service) GetUserProfile(
 	rsp.Item = profile
 
 	return nil
-}
-
-func (s *Service) getOnboardingProfileBy(query bson.M) (profile *grpc.UserProfile) {
-	err := s.db.Collection(collectionUserProfile).Find(query).One(&profile)
-
-	if err != nil && err != mgo.ErrNotFound {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionUserProfile),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
-		)
-	}
-
-	return profile
 }
 
 func (s *Service) updateOnboardingProfile(profile, profileReq *grpc.UserProfile) *grpc.UserProfile {
@@ -323,7 +314,7 @@ func (s *Service) getUserCentrifugoToken(profile *grpc.UserProfile) (string, err
 func (s *Service) ConfirmUserEmail(
 	ctx context.Context,
 	req *grpc.ConfirmUserEmailRequest,
-	rsp *grpc.CheckProjectRequestSignatureResponse,
+	rsp *grpc.ConfirmUserEmailResponse,
 ) error {
 	userId, err := s.getUserEmailConfirmationToken(req.Token)
 
@@ -334,24 +325,7 @@ func (s *Service) ConfirmUserEmail(
 		return nil
 	}
 
-	profile := s.getOnboardingProfileBy(bson.M{"user_id": userId})
-
-	if profile == nil {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = userProfileErrorUnknown
-
-		return nil
-	}
-
-	rsp.Status = pkg.ResponseStatusOk
-
-	if profile.IsEmailVerified() {
-		rsp.Status = pkg.ResponseStatusOk
-
-		return nil
-	}
-
-	err = s.emailConfirmedSuccessfully(ctx, profile)
+	rsp.Profile, err = s.userProfileRepository.GetByUserId(ctx, userId)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -360,11 +334,21 @@ func (s *Service) ConfirmUserEmail(
 		return nil
 	}
 
-	merchant, err := s.getMerchantBy(bson.M{"user.id": userId})
+	rsp.Status = pkg.ResponseStatusOk
 
-	if err == nil {
-		merchant.User.RegistrationDate = profile.Email.ConfirmedAt
-		_ = s.merchant.Update(merchant)
+	if rsp.Profile.IsEmailVerified() {
+		rsp.Status = pkg.ResponseStatusOk
+
+		return nil
+	}
+
+	err = s.emailConfirmedSuccessfully(ctx, rsp.Profile)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = userProfileErrorUnknown
+
+		return nil
 	}
 
 	return nil
@@ -422,7 +406,7 @@ func (s *Service) getUserEmailConfirmationToken(token string) (string, error) {
 	return data, err
 }
 
-func (s *Service) sendUserEmailConfirmationToken(profile *grpc.UserProfile) error {
+func (s *Service) sendUserEmailConfirmationToken(ctx context.Context, profile *grpc.UserProfile) error {
 	payload := &postmarkSdrPkg.Payload{
 		TemplateAlias: s.cfg.EmailConfirmTemplate,
 		TemplateModel: map[string]string{
@@ -443,9 +427,10 @@ func (s *Service) sendUserEmailConfirmationToken(profile *grpc.UserProfile) erro
 		return err
 	}
 
-	query := bson.M{"_id": bson.ObjectIdHex(profile.Id)}
+	oid, _ := primitive.ObjectIDFromHex(profile.Id)
+	query := bson.M{"_id": oid}
 	set := bson.M{"$set": bson.M{"email.is_confirmation_email_sent": true}}
-	err = s.db.Collection(collectionUserProfile).Update(query, set)
+	_, err = s.db.Collection(collectionUserProfile).UpdateOne(ctx, query, set)
 
 	if err != nil {
 		zap.S().Error(
@@ -470,7 +455,34 @@ func (s *Service) emailConfirmedSuccessfully(ctx context.Context, profile *grpc.
 	profile.Email.Confirmed = true
 	profile.Email.ConfirmedAt = ptypes.TimestampNow()
 
-	err := s.db.Collection(collectionUserProfile).UpdateId(bson.ObjectIdHex(profile.Id), profile)
+	oid, _ := primitive.ObjectIDFromHex(profile.Id)
+	filter := bson.M{"_id": oid}
+	_, err := s.db.Collection(collectionUserProfile).ReplaceOne(ctx, filter, profile)
+
+	if err != nil {
+		zap.S().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String("collection", collectionUserProfile),
+			zap.Any("query", profile),
+		)
+
+		return err
+	}
+
+	msg := map[string]string{"code": "op000005", "message": "user email confirmed successfully"}
+	ch := fmt.Sprintf(s.cfg.CentrifugoUserChannel, profile.Id)
+
+	return s.centrifugo.Publish(ctx, ch, msg)
+}
+
+func (s *Service) emailConfirmedTruncate(ctx context.Context, profile *grpc.UserProfile) error {
+	profile.Email.Confirmed = false
+	profile.Email.ConfirmedAt = nil
+
+	oid, _ := primitive.ObjectIDFromHex(profile.Id)
+	filter := bson.M{"_id": oid}
+	_, err := s.db.Collection(collectionUserProfile).ReplaceOne(ctx, filter, profile)
 
 	if err != nil {
 		zap.S().Error(
@@ -495,14 +507,14 @@ func (s *Service) CreatePageReview(
 	rsp *grpc.CheckProjectRequestSignatureResponse,
 ) error {
 	review := &grpc.PageReview{
-		Id:        bson.NewObjectId().Hex(),
+		Id:        primitive.NewObjectID().Hex(),
 		UserId:    req.UserId,
 		Review:    req.Review,
 		Url:       req.Url,
 		CreatedAt: ptypes.TimestampNow(),
 	}
 
-	err := s.db.Collection(collectionOPageReview).Insert(review)
+	_, err := s.db.Collection(collectionOPageReview).InsertOne(ctx, review)
 
 	if err != nil {
 		zap.S().Error(
@@ -519,6 +531,148 @@ func (s *Service) CreatePageReview(
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
+
+	return nil
+}
+
+func (s *Service) GetCommonUserProfile(
+	ctx context.Context,
+	req *grpc.CommonUserProfileRequest,
+	rsp *grpc.CommonUserProfileResponse,
+) error {
+	profile, err := s.userProfileRepository.GetByUserId(ctx, req.UserId)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Message = userProfileErrorNotFound
+
+		return nil
+	}
+
+	rsp.Profile = &grpc.CommonUserProfile{
+		Profile: profile,
+	}
+
+	rsp.Profile.Profile.CentrifugoToken, err = s.getUserCentrifugoToken(profile)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = userProfileErrorUnknown
+
+		return nil
+	}
+
+	role := s.findRoleForUser(ctx, req.MerchantId, req.UserId)
+
+	if role != nil {
+		rsp.Profile.Role = role
+		rsp.Profile.Merchant, _ = s.merchant.GetById(ctx, role.MerchantId)
+		rsp.Profile.Merchant.CentrifugoToken = s.centrifugo.GetChannelToken(
+			rsp.Profile.Merchant.Id,
+			time.Now().Add(time.Hour*3).Unix(),
+		)
+		rsp.Profile.Merchant.HasProjects = s.getProjectsCountByMerchant(ctx, rsp.Profile.Merchant.Id) > 0
+
+		if role.Role != pkg.RoleMerchantOwner &&
+			role.Role != pkg.RoleMerchantAccounting &&
+			role.Role != pkg.RoleMerchantDeveloper {
+			merchant := &billing.Merchant{
+				Id:          rsp.Profile.Merchant.Id,
+				Company:     &billing.MerchantCompanyInfo{Name: rsp.Profile.Merchant.Company.Name},
+				Banking:     &billing.MerchantBanking{Currency: rsp.Profile.Merchant.Banking.Currency},
+				Status:      rsp.Profile.Merchant.Status,
+				HasProjects: rsp.Profile.Merchant.HasProjects,
+			}
+			rsp.Profile.Merchant = merchant
+		}
+	} else {
+		rsp.Profile.Role, _ = s.userRoleRepository.GetAdminUserByUserId(ctx, req.UserId)
+	}
+
+	if rsp.Profile.Role != nil {
+		rsp.Profile.Permissions, err = s.getUserPermissions(ctx, req.UserId, rsp.Profile.Role.MerchantId)
+
+		if err != nil {
+			zap.S().Error(
+				"unable to get user permissions",
+				zap.Error(err),
+				zap.Any("req", req),
+			)
+		}
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
+
+	return nil
+}
+
+func (s *Service) findRoleForUser(ctx context.Context, merchantId string, userId string) *billing.UserRole {
+	if merchantId != "" {
+		role, _ := s.userRoleRepository.GetMerchantUserByUserId(ctx, merchantId, userId)
+		return role
+	}
+
+	roles, _ := s.userRoleRepository.GetMerchantsForUser(ctx, userId)
+	if len(roles) > 0 {
+		return roles[0]
+	}
+
+	return nil
+}
+
+type UserProfileRepositoryInterface interface {
+	GetById(context.Context, string) (*grpc.UserProfile, error)
+	GetByUserId(context.Context, string) (*grpc.UserProfile, error)
+	Add(context.Context, *grpc.UserProfile) error
+}
+
+func newUserProfileRepository(svc *Service) UserProfileRepositoryInterface {
+	s := &UserProfileRepository{svc: svc}
+	return s
+}
+
+func (r *UserProfileRepository) GetById(ctx context.Context, id string) (*grpc.UserProfile, error) {
+	var c *grpc.UserProfile
+
+	oid, _ := primitive.ObjectIDFromHex(id)
+	filter := bson.M{"_id": oid}
+	err := r.svc.db.Collection(collectionUserProfile).FindOne(ctx, filter).Decode(&c)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionUserProfile),
+		)
+		return nil, fmt.Errorf(errorNotFound, collectionUserProfile)
+	}
+
+	return c, nil
+}
+
+func (r *UserProfileRepository) GetByUserId(ctx context.Context, userId string) (*grpc.UserProfile, error) {
+	var c *grpc.UserProfile
+
+	err := r.svc.db.Collection(collectionUserProfile).FindOne(ctx, bson.M{"user_id": userId}).Decode(&c)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionUserProfile),
+		)
+		return nil, fmt.Errorf(errorNotFound, collectionUserProfile)
+	}
+
+	return c, nil
+}
+
+func (r *UserProfileRepository) Add(ctx context.Context, profile *grpc.UserProfile) error {
+	_, err := r.svc.db.Collection(collectionUserProfile).InsertOne(ctx, profile)
+
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -3,11 +3,11 @@ package mocks
 import (
 	"context"
 	"errors"
-	"github.com/globalsign/mgo/bson"
 	"github.com/micro/go-micro/client"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/entity"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type RepositoryServiceOk struct{}
@@ -47,21 +47,21 @@ func (r *RepositoryServiceOk) FindSavedCards(
 	in *repository.SavedCardRequest,
 	opts ...client.CallOption,
 ) (*repository.SavedCardList, error) {
-	projectId := bson.NewObjectId().Hex()
+	projectId := primitive.NewObjectID().Hex()
 
 	return &repository.SavedCardList{
 		SavedCards: []*entity.SavedCard{
 			{
-				Id:        bson.NewObjectId().Hex(),
-				Token:     bson.NewObjectId().Hex(),
+				Id:        primitive.NewObjectID().Hex(),
+				Token:     primitive.NewObjectID().Hex(),
 				ProjectId: projectId,
 				MaskedPan: "555555******4444",
 				Expire:    &entity.CardExpire{Month: "12", Year: "2019"},
 				IsActive:  true,
 			},
 			{
-				Id:        bson.NewObjectId().Hex(),
-				Token:     bson.NewObjectId().Hex(),
+				Id:        primitive.NewObjectID().Hex(),
+				Token:     primitive.NewObjectID().Hex(),
 				ProjectId: projectId,
 				MaskedPan: "400000******0002",
 				Expire:    &entity.CardExpire{Month: "12", Year: "2019"},
@@ -77,12 +77,12 @@ func (r *RepositoryServiceOk) FindSavedCardById(
 	opts ...client.CallOption,
 ) (*entity.SavedCard, error) {
 	return &entity.SavedCard{
-		Id:          bson.NewObjectId().Hex(),
-		Token:       bson.NewObjectId().Hex(),
-		ProjectId:   bson.NewObjectId().Hex(),
-		MerchantId:  bson.NewObjectId().Hex(),
+		Id:          primitive.NewObjectID().Hex(),
+		Token:       primitive.NewObjectID().Hex(),
+		ProjectId:   primitive.NewObjectID().Hex(),
+		MerchantId:  primitive.NewObjectID().Hex(),
 		MaskedPan:   "400000******0002",
-		RecurringId: bson.NewObjectId().Hex(),
+		RecurringId: primitive.NewObjectID().Hex(),
 		Expire:      &entity.CardExpire{Month: "12", Year: "2019"},
 		IsActive:    true,
 	}, nil

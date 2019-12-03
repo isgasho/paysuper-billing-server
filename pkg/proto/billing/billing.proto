@@ -145,7 +145,7 @@ message Project {
     // @inject_tag: json:"updated_at"
     google.protobuf.Timestamp updated_at = 24;
     // @inject_tag: json:"products_count"
-    int32 products_count = 25;
+    int64 products_count = 25;
     // @inject_tag: json:"url_chargeback_payment" validate:"omitempty,url"
     string url_chargeback_payment = 26;
     // @inject_tag: json:"url_cancel_payment" validate:"omitempty,url"
@@ -424,10 +424,27 @@ message Merchant {
     string mcc_code = 55;
     // @inject_tag: json:"operating_company_id"
     string operating_company_id = 56;
+    // @inject_tag: json:"merchant_operations_type" validate:"oneof=high-risk low-risk"
+    string merchant_operations_type = 57;
+}
+
+message MerchantCommon {
+    // @inject_tag: bson:"_id"
+    string id = 1;
+    // @inject_tag: json:"name"
+    string name = 2;
+    // @inject_tag: json:"currency"
+    string currency = 3;
+    // @inject_tag: json:"status"
+    int32 status = 4;
+    // @inject_tag: json:"has_projects"
+    bool has_projects = 5;
 }
 
 message SystemNotificationStatuses {
+    // @inject_tag: json:"from"
     int32 from = 1;
+    // @inject_tag: json:"to"
     int32 to = 2;
 }
 
@@ -438,13 +455,17 @@ message Notification {
     string message = 3;
     // @inject_tag: json:"merchant_id"
     string merchant_id = 4;
+    // @inject_tag: json:"user_id"
     string user_id = 5;
+    // @inject_tag: json:"is_system"
     bool is_system = 6;
     // @inject_tag: json:"is_read"
     bool is_read = 7;
+    // @inject_tag: json:"statuses"
     SystemNotificationStatuses statuses = 8;
     // @inject_tag: json:"created_at"
     google.protobuf.Timestamp created_at = 9;
+    // @inject_tag: json:"updated_at"
     google.protobuf.Timestamp updated_at = 10;
 }
 
@@ -1295,6 +1316,7 @@ message PaymentChannelCostSystemRequest {
 }
 
 message PaymentChannelCostSystemList {
+    //@inject_tag: json:"items"
     repeated PaymentChannelCostSystem items = 1;
 }
 
@@ -1353,6 +1375,7 @@ message PaymentChannelCostMerchantRequest {
 }
 
 message PaymentChannelCostMerchantList {
+    //@inject_tag: json:"items"
     repeated PaymentChannelCostMerchant items = 1;
 }
 
@@ -1418,6 +1441,7 @@ message MoneyBackCostSystemRequest {
 }
 
 message MoneyBackCostSystemList {
+    //@inject_tag: json:"items"
     repeated MoneyBackCostSystem items = 1;
 }
 
@@ -1485,6 +1509,7 @@ message PaymentCostDeleteRequest {
 }
 
 message MoneyBackCostMerchantList {
+    //@inject_tag: json:"items"
     repeated MoneyBackCostMerchant items = 1;
 }
 
@@ -2383,6 +2408,8 @@ message OperatingCompany {
     google.protobuf.Timestamp updated_at = 13;
     // @inject_tag: bson:"registration_date" json:"registration_date" validate:"required"
     string registration_date = 14;
+    // @inject_tag: bson:"email" json:"email" validate:"required,email"
+    string email = 15;
 }
 
 message PaymentMinLimitSystem {
@@ -2396,4 +2423,34 @@ message PaymentMinLimitSystem {
     google.protobuf.Timestamp created_at = 4;
     // @inject_tag: json:"updated_at"
     google.protobuf.Timestamp updated_at = 5;
+}
+
+message UserRole {
+    //@inject_tag: json:"id" validate:"required,hexadecimal,len=24"
+    string id = 1;
+    //@inject_tag: json:"merchant_id" validate:"required,hexadecimal,len=24"
+    string merchant_id = 3;
+    //@inject_tag: json:"role" validate:"required"
+    string role = 4;
+    //@inject_tag: json:"status" bson:"status" validate="oneof=invited accepted"
+    string status = 5;
+    //@inject_tag: json:"user_id" bson:"user_id" validate:"required,hexadecimal,len=24"
+    string user_id = 6;
+    //@inject_tag: json:"first_name" bson:"first_name"  validate:"required"
+    string first_name = 7;
+    //@inject_tag: json:"last_name" bson:"last_name" validate:"required"
+    string last_name = 8;
+    //@inject_tag: json:"email" bson:"email" validate:"required,email"
+    string email = 9;
+    // @inject_tag: json:"created_at"
+    google.protobuf.Timestamp created_at = 10;
+    // @inject_tag: json:"updated_at"
+    google.protobuf.Timestamp updated_at = 11;
+}
+
+message RoleListItem {
+    //@inject_tag: json:"id"
+    string id = 1;
+    //@inject_tag: json:"name"
+    string name = 2;
 }

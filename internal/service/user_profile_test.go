@@ -4,22 +4,24 @@ import (
 	"context"
 	"errors"
 	"github.com/elliotchance/redismock"
-	"github.com/globalsign/mgo/bson"
 	"github.com/go-redis/redis"
+	"github.com/paysuper/casbin-server/pkg/generated/api/proto/casbinpb"
+	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"net/url"
 	"testing"
 )
@@ -28,7 +30,7 @@ type UserProfileTestSuite struct {
 	suite.Suite
 	service *Service
 	log     *zap.Logger
-	cache   internalPkg.CacheInterface
+	cache   CacheInterface
 
 	merchant          *billing.Merchant
 	merchantAgreement *billing.Merchant
@@ -66,8 +68,24 @@ func (suite *UserProfileTestSuite) SetupTest() {
 	}
 
 	redisdb := mocks.NewTestRedis()
-	suite.cache = NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), mocks.NewTaxServiceOkMock(), mocks.NewBrokerMockOk(), mocks.NewTestRedis(), suite.cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), mocks.NewBrokerMockOk(), nil, )
+	suite.cache, err = NewCacheRedis(redisdb, "cache")
+	suite.service = NewBillingService(
+		db,
+		cfg,
+		mocks.NewGeoIpServiceTestOk(),
+		mocks.NewRepositoryServiceOk(),
+		mocks.NewTaxServiceOkMock(),
+		mocks.NewBrokerMockOk(),
+		mocks.NewTestRedis(),
+		suite.cache,
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
+		&reportingMocks.ReporterService{},
+		mocks.NewFormatterOK(),
+		mocks.NewBrokerMockOk(),
+		&casbinMocks.CasbinService{},
+		nil,
+	)
 
 	err = suite.service.Init()
 
@@ -86,22 +104,28 @@ func (suite *UserProfileTestSuite) SetupTest() {
 		VatCurrency:     "RUB",
 	}
 
-	if err := suite.service.country.Insert(country); err != nil {
+	if err := suite.service.country.Insert(context.TODO(), country); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 }
 
 func (suite *UserProfileTestSuite) TearDownTest() {
-	if err := suite.service.db.Drop(); err != nil {
+	err := suite.service.db.Drop()
+
+	if err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}
 
-	suite.service.db.Close()
+	err = suite.service.db.Close()
+
+	if err != nil {
+		suite.FailNow("Database close failed", "%v", err)
+	}
 }
 
 func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_NewProfile_Ok() {
 	req := &grpc.UserProfile{
-		UserId: bson.NewObjectId().Hex(),
+		UserId: primitive.NewObjectID().Hex(),
 		Email: &grpc.UserProfileEmail{
 			Email: "test@unit.test",
 		},
@@ -120,10 +144,11 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	}
 	rsp := &grpc.GetUserProfileResponse{}
 
-	profile := suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
+	profile, err := suite.service.userProfileRepository.GetByUserId(context.TODO(), req.UserId)
+	assert.NotNil(suite.T(), err)
 	assert.Nil(suite.T(), profile)
 
-	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
+	err = suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 	assert.Empty(suite.T(), rsp.Message)
@@ -133,7 +158,9 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	assert.NotEmpty(suite.T(), rsp.Item.CreatedAt)
 	assert.NotEmpty(suite.T(), rsp.Item.UpdatedAt)
 
-	profile = suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
+	profile, err = suite.service.userProfileRepository.GetByUserId(context.TODO(), req.UserId)
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), profile)
 	assert.NotNil(suite.T(), rsp.Item)
 	assert.IsType(suite.T(), &grpc.UserProfile{}, rsp.Item)
 
@@ -155,7 +182,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 
 func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_ChangeProfileWithSendConfirmEmail_Ok() {
 	req := &grpc.UserProfile{
-		UserId: bson.NewObjectId().Hex(),
+		UserId: primitive.NewObjectID().Hex(),
 		Email: &grpc.UserProfileEmail{
 			Email: "test@unit.test",
 		},
@@ -174,10 +201,11 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_Cha
 	}
 	rsp := &grpc.GetUserProfileResponse{}
 
-	profile := suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
+	profile, err := suite.service.userProfileRepository.GetByUserId(context.TODO(), req.UserId)
+	assert.NotNil(suite.T(), err)
 	assert.Nil(suite.T(), profile)
 
-	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
+	err = suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 	assert.Empty(suite.T(), rsp.Message)
@@ -211,7 +239,9 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_Cha
 	assert.Empty(suite.T(), rsp.Message)
 	assert.NotNil(suite.T(), rsp.Item)
 
-	profile = suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
+	profile, err = suite.service.userProfileRepository.GetByUserId(context.TODO(), req.UserId)
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), profile)
 	assert.NotNil(suite.T(), rsp.Item)
 	assert.IsType(suite.T(), &grpc.UserProfile{}, rsp.Item)
 
@@ -233,7 +263,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_Cha
 
 func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateOnboardingProfile_ExistProfile_Ok() {
 	req := &grpc.UserProfile{
-		UserId: bson.NewObjectId().Hex(),
+		UserId: primitive.NewObjectID().Hex(),
 		Email: &grpc.UserProfileEmail{
 			Email: "test@unit.test",
 		},
@@ -328,7 +358,8 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateOnboardingProfi
 	assert.NotEqual(suite.T(), rsp.Item.Help, rsp1.Item.Help)
 	assert.NotEqual(suite.T(), rsp.Item.Company, rsp1.Item.Company)
 
-	profile := suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
+	profile, err := suite.service.userProfileRepository.GetByUserId(context.TODO(), req.UserId)
+	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), profile)
 
 	assert.Equal(suite.T(), profile.UserId, rsp1.Item.UserId)
@@ -342,7 +373,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateOnboardingProfi
 
 func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_NewProfile_SetUserEmailConfirmationToken_Error() {
 	req := &grpc.UserProfile{
-		UserId: bson.NewObjectId().Hex(),
+		UserId: primitive.NewObjectID().Hex(),
 		Email: &grpc.UserProfileEmail{
 			Email: "test@unit.test",
 		},
@@ -374,7 +405,8 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	}
 	rsp := &grpc.GetUserProfileResponse{}
 
-	profile := suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
+	profile, err := suite.service.userProfileRepository.GetByUserId(context.TODO(), req.UserId)
+	assert.NotNil(suite.T(), err)
 	assert.Nil(suite.T(), profile)
 
 	redisCl, ok := suite.service.redis.(*redismock.ClientMock)
@@ -387,18 +419,18 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	redisCl.On("Set").
 		Return(redis.NewStatusResult("", errors.New("server not available")))
 
-	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
+	err = suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp.Status)
 	assert.Equal(suite.T(), userProfileErrorUnknown, rsp.Message)
 
 	messages := recorded.All()
-	assert.Contains(suite.T(), messages[0].Message, "Save confirm email token to Redis failed")
+	assert.Contains(suite.T(), messages[1].Message, "Save confirm email token to Redis failed")
 }
 
 func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_NewProfile_SendUserEmailConfirmationToken_Error() {
 	req := &grpc.UserProfile{
-		UserId: bson.NewObjectId().Hex(),
+		UserId: primitive.NewObjectID().Hex(),
 		Email: &grpc.UserProfileEmail{
 			Email: "test@unit.test",
 		},
@@ -430,7 +462,8 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	}
 	rsp := &grpc.GetUserProfileResponse{}
 
-	profile := suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
+	profile, err := suite.service.userProfileRepository.GetByUserId(context.TODO(), req.UserId)
+	assert.NotNil(suite.T(), err)
 	assert.Nil(suite.T(), profile)
 
 	suite.service.postmarkBroker = mocks.NewBrokerMockError()
@@ -439,18 +472,18 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	logger := zap.New(core)
 	zap.ReplaceGlobals(logger)
 
-	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
+	err = suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp.Status)
 	assert.Equal(suite.T(), userProfileErrorUnknown, rsp.Message)
 
 	messages := recorded.All()
-	assert.Contains(suite.T(), messages[0].Message, "Publication message to user email confirmation to queue failed")
+	assert.Contains(suite.T(), messages[1].Message, "Publication message to user email confirmation to queue failed")
 }
 
 func (suite *UserProfileTestSuite) TestUserProfile_GetOnboardingProfile_Ok() {
 	req := &grpc.UserProfile{
-		UserId: bson.NewObjectId().Hex(),
+		UserId: primitive.NewObjectID().Hex(),
 		Email: &grpc.UserProfileEmail{
 			Email: "test@unit.test",
 		},
@@ -500,7 +533,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_GetOnboardingProfile_Ok() {
 }
 
 func (suite *UserProfileTestSuite) TestUserProfile_GetOnboardingProfile_NotFound_Error() {
-	req := &grpc.GetUserProfileRequest{UserId: bson.NewObjectId().Hex()}
+	req := &grpc.GetUserProfileRequest{UserId: primitive.NewObjectID().Hex()}
 	rsp := &grpc.GetUserProfileResponse{}
 	err := suite.service.GetUserProfile(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
@@ -511,7 +544,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_GetOnboardingProfile_NotFound
 
 func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_Ok() {
 	req := &grpc.UserProfile{
-		UserId: bson.NewObjectId().Hex(),
+		UserId: primitive.NewObjectID().Hex(),
 		Email: &grpc.UserProfileEmail{
 			Email: "test@unit.test",
 		},
@@ -564,21 +597,22 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_Ok() {
 	suite.service.centrifugo = ci
 
 	req2 := &grpc.ConfirmUserEmailRequest{Token: p["token"][0]}
-	rsp2 := &grpc.CheckProjectRequestSignatureResponse{}
+	rsp2 := &grpc.ConfirmUserEmailResponse{}
 	err = suite.service.ConfirmUserEmail(context.TODO(), req2, rsp2)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
 	assert.Empty(suite.T(), rsp2.Message)
 
-	profile := suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
+	profile, err := suite.service.userProfileRepository.GetByUserId(context.TODO(), req.UserId)
+	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), profile)
 	assert.True(suite.T(), profile.Email.Confirmed)
 	assert.NotNil(suite.T(), profile.Email.ConfirmedAt)
 }
 
 func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_TokenNotFound_Error() {
-	req := &grpc.ConfirmUserEmailRequest{Token: bson.NewObjectId().Hex()}
-	rsp := &grpc.CheckProjectRequestSignatureResponse{}
+	req := &grpc.ConfirmUserEmailRequest{Token: primitive.NewObjectID().Hex()}
+	rsp := &grpc.ConfirmUserEmailResponse{}
 	err := suite.service.ConfirmUserEmail(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, rsp.Status)
@@ -587,7 +621,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_TokenNotFoun
 
 func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_UserNotFound_Error() {
 	req := &grpc.UserProfile{
-		UserId: bson.NewObjectId().Hex(),
+		UserId: primitive.NewObjectID().Hex(),
 		Email: &grpc.UserProfileEmail{
 			Email: "test@unit.test",
 		},
@@ -638,13 +672,13 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_UserNotFound
 	token := p["token"][0]
 	err = suite.service.redis.Set(
 		suite.service.getConfirmEmailStorageKey(token),
-		bson.NewObjectId().Hex(),
+		primitive.NewObjectID().Hex(),
 		suite.service.cfg.GetEmailConfirmTokenLifetime(),
 	).Err()
 	assert.NoError(suite.T(), err)
 
 	req2 := &grpc.ConfirmUserEmailRequest{Token: token}
-	rsp2 := &grpc.CheckProjectRequestSignatureResponse{}
+	rsp2 := &grpc.ConfirmUserEmailResponse{}
 	err = suite.service.ConfirmUserEmail(context.TODO(), req2, rsp2)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp2.Status)
@@ -653,7 +687,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_UserNotFound
 
 func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_EmailAlreadyConfirmed_Error() {
 	req := &grpc.UserProfile{
-		UserId: bson.NewObjectId().Hex(),
+		UserId: primitive.NewObjectID().Hex(),
 		Email: &grpc.UserProfileEmail{
 			Email: "test@unit.test",
 		},
@@ -706,7 +740,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_EmailAlready
 	suite.service.centrifugo = ci
 
 	req2 := &grpc.ConfirmUserEmailRequest{Token: p["token"][0]}
-	rsp2 := &grpc.CheckProjectRequestSignatureResponse{}
+	rsp2 := &grpc.ConfirmUserEmailResponse{}
 	err = suite.service.ConfirmUserEmail(context.TODO(), req2, rsp2)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
@@ -720,7 +754,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_EmailAlready
 
 func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_EmailConfirmedSuccessfully_Error() {
 	req := &grpc.UserProfile{
-		UserId: bson.NewObjectId().Hex(),
+		UserId: primitive.NewObjectID().Hex(),
 		Email: &grpc.UserProfileEmail{
 			Email: "test@unit.test",
 		},
@@ -769,7 +803,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_EmailConfirm
 	assert.Contains(suite.T(), p, "token")
 
 	req2 := &grpc.ConfirmUserEmailRequest{Token: p["token"][0]}
-	rsp2 := &grpc.CheckProjectRequestSignatureResponse{}
+	rsp2 := &grpc.ConfirmUserEmailResponse{}
 	err = suite.service.ConfirmUserEmail(context.TODO(), req2, rsp2)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp2.Status)
@@ -778,7 +812,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_EmailConfirm
 
 func (suite *UserProfileTestSuite) TestUserProfile_CreatePageReview_Ok() {
 	req := &grpc.UserProfile{
-		UserId: bson.NewObjectId().Hex(),
+		UserId: primitive.NewObjectID().Hex(),
 		Email: &grpc.UserProfileEmail{
 			Email: "test@unit.test",
 		},
@@ -827,7 +861,9 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreatePageReview_Ok() {
 	assert.Empty(suite.T(), rsp.Message)
 
 	var reviews []*grpc.PageReview
-	err = suite.service.db.Collection(collectionOPageReview).Find(bson.M{}).All(&reviews)
+	cursor, err := suite.service.db.Collection(collectionOPageReview).Find(context.TODO(), bson.M{})
+	assert.NoError(suite.T(), err)
+	err = cursor.All(context.TODO(), &reviews)
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), reviews, 3)
 
@@ -840,7 +876,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreatePageReview_Ok() {
 
 func (suite *UserProfileTestSuite) TestUserProfile_GetUserProfile_ByProfileId_Ok() {
 	req := &grpc.UserProfile{
-		UserId: bson.NewObjectId().Hex(),
+		UserId: primitive.NewObjectID().Hex(),
 		Email: &grpc.UserProfileEmail{
 			Email: "test@unit.test",
 		},
@@ -874,9 +910,10 @@ func (suite *UserProfileTestSuite) TestUserProfile_GetUserProfile_ByProfileId_Ok
 	assert.Equal(suite.T(), rsp.Item.UserId, rsp1.Item.UserId)
 }
 
-func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_WithExistMerchant_Ok() {
-	req := &grpc.UserProfile{
-		UserId: bson.NewObjectId().Hex(),
+func (suite *UserProfileTestSuite) TestUserProfile_GetCommonUserProfile_HasProjectsTrue() {
+	ctx := context.TODO()
+	userProfile := &grpc.UserProfile{
+		UserId: primitive.NewObjectID().Hex(),
 		Email: &grpc.UserProfileEmail{
 			Email: "test@unit.test",
 		},
@@ -891,80 +928,47 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_WithExistMer
 			InternationalSales:             true,
 			Other:                          false,
 		},
-		Company: &grpc.UserProfileCompany{
-			CompanyName:       "Unit test",
-			Website:           "http://localhost",
-			AnnualIncome:      &billing.RangeInt{From: 10, To: 100},
-			NumberOfEmployees: &billing.RangeInt{From: 10, To: 100},
-			KindOfActivity:    "develop_and_publish_your_games",
-			Monetization: &grpc.UserProfileCompanyMonetization{
-				PaidSubscription: true,
-			},
-			Platforms: &grpc.UserProfileCompanyPlatforms{
-				WebBrowser: true,
-			},
-		},
-		LastStep: "step3",
+		LastStep: "step2",
 	}
-	rsp := &grpc.GetUserProfileResponse{}
+	err := suite.service.userProfileRepository.Add(ctx, userProfile)
+	assert.NoError(suite.T(), err)
 
-	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
+	merchant := &billing.Merchant{
+		Id:      primitive.NewObjectID().Hex(),
+		Company: &billing.MerchantCompanyInfo{Name: "name"},
+		Banking: &billing.MerchantBanking{Currency: "currency"},
+	}
+	err = suite.service.merchant.Insert(ctx, merchant)
+	assert.NoError(suite.T(), err)
+
+	role := &billing.UserRole{
+		Id:         primitive.NewObjectID().Hex(),
+		UserId:     userProfile.UserId,
+		MerchantId: merchant.Id,
+		Role:       pkg.RoleMerchantOwner,
+	}
+	err = suite.service.userRoleRepository.AddMerchantUser(ctx, role)
+	assert.NoError(suite.T(), err)
+
+	project := &billing.Project{
+		Id:         primitive.NewObjectID().Hex(),
+		MerchantId: merchant.Id,
+	}
+	err = suite.service.project.Insert(ctx, project)
+	assert.NoError(suite.T(), err)
+
+	casbin := &casbinMocks.CasbinService{}
+	casbin.
+		On("GetImplicitPermissionsForUser", mock2.Anything, mock2.Anything).
+		Return(&casbinpb.Array2DReply{D2: nil}, nil)
+	suite.service.casbinService = casbin
+
+	req := &grpc.CommonUserProfileRequest{UserId: userProfile.UserId, MerchantId: merchant.Id}
+	rsp := &grpc.CommonUserProfileResponse{}
+	err = suite.service.GetCommonUserProfile(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
-	assert.Empty(suite.T(), rsp.Message)
-	assert.NotNil(suite.T(), rsp.Item)
-
-	u, err := url.ParseRequestURI(rsp.Item.Email.ConfirmationUrl)
-	assert.NoError(suite.T(), err)
-	assert.NotNil(suite.T(), u)
-	assert.NotEmpty(suite.T(), u.RawQuery)
-
-	p, err := url.ParseQuery(u.RawQuery)
-	assert.NoError(suite.T(), err)
-	assert.Len(suite.T(), p, 1)
-	assert.Contains(suite.T(), p, "token")
-
-	req1 := &grpc.OnboardingRequest{
-		User: &billing.MerchantUser{
-			Id:    req.UserId,
-			Email: req.Email.Email,
-		},
-		Company: &billing.MerchantCompanyInfo{
-			Name:    "merchant1",
-			Country: "RU",
-			Zip:     "190000",
-			City:    "St.Petersburg",
-		},
-	}
-
-	rsp1 := &grpc.ChangeMerchantResponse{}
-	err = suite.service.ChangeMerchant(context.TODO(), req1, rsp1)
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
-
-	merchant, err := suite.service.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(rsp1.Item.Id)})
-	assert.NoError(suite.T(), err)
-	assert.NotNil(suite.T(), merchant)
-	assert.Empty(suite.T(), merchant.User.RegistrationDate)
-
-	ci := &mocks.CentrifugoInterface{}
-	ci.On("Publish", mock2.Anything, mock2.Anything, mock2.Anything).Return(nil)
-	suite.service.centrifugo = ci
-
-	req2 := &grpc.ConfirmUserEmailRequest{Token: p["token"][0]}
-	rsp2 := &grpc.CheckProjectRequestSignatureResponse{}
-	err = suite.service.ConfirmUserEmail(context.TODO(), req2, rsp2)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
-	assert.Empty(suite.T(), rsp2.Message)
-
-	profile := suite.service.getOnboardingProfileBy(bson.M{"user_id": req.UserId})
-	assert.NotNil(suite.T(), profile)
-	assert.True(suite.T(), profile.Email.Confirmed)
-	assert.NotNil(suite.T(), profile.Email.ConfirmedAt)
-
-	merchant, err = suite.service.getMerchantBy(bson.M{"_id": bson.ObjectIdHex(rsp1.Item.Id)})
-	assert.NoError(suite.T(), err)
-	assert.NotNil(suite.T(), merchant)
-	assert.Equal(suite.T(), merchant.User.RegistrationDate.Seconds, profile.Email.ConfirmedAt.Seconds)
+	assert.NotNil(suite.T(), rsp.Profile.Merchant)
+	assert.Equal(suite.T(), merchant.Id, rsp.Profile.Merchant.Id)
+	assert.True(suite.T(), rsp.Profile.Merchant.HasProjects)
 }

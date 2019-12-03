@@ -77,6 +77,7 @@ To run application as microservice simply don't pass any flags to command line :
 | CACHE_REDIS_POOL_SIZE                               | PoolSize applies per cluster node and not for the whole cluster                                                                     |
 | CACHE_REDIS_MAX_RETRIES                             | Maximum retries for connection                                                                                                      |
 | CACHE_REDIS_MAX_REDIRECTS                           | The maximum number of retries before giving up                                                                                      |
+| CACHE_REDIS_VERSION                                 | Version of cache (if you need to flush all cache)                                                                                   |
 | CUSTOMER_COOKIE_PUBLIC_KEY                          | Base64 encoded RSA public key - used for encrypt customer browser cookies content. Minimal length of RSA public key must be 4096    |
 | CUSTOMER_COOKIE_PRIVATE_KEY                         | Base64 encoded RSA private key - used for decrypt customer browser cookies content. Minimal length of RSA private key must be 4096  |
 | REDIS_HOST                                          | Redis server host                                                                                                                   |
@@ -90,8 +91,6 @@ To run application as microservice simply don't pass any flags to command line :
 | EMAIL_UPDATE_ROYALTY_REPORT_TEMPLATE                | Royalty report update notification email template name                                                                              |
 | EMAIL_VAT_REPORT_TEMPLATE                           | New vat report notification email template name                                                                                     |
 | EMAIL_NEW_PAYOUT_TEMPLATE                           | New payout notification email template name                                                                                         |
-| PAYSUPER_DOCUMENT_SIGNER_EMAIL                      | Paysuper signer email for sign license agreements                                                                                   |
-| PAYSUPER_DOCUMENT_SIGNER_NAME                       | Paysuper signer name for sign license agreements                                                                                    |
 | HELLO_SIGN_DEFAULT_TEMPLATE                         | License agreement template identifier in HelloSign                                                                                  |
 | HELLO_SIGN_AGREEMENT_CLIENT_ID                      | Client application identifier in HelloSign for Merchant Agreement sign                                                              |
 | KEY_DAEMON_RESTART_INTERVAL                         | Starting frequency in seconds of the script to check the locked keys and return them to the stack.                                  |
@@ -107,6 +106,8 @@ To run application as microservice simply don't pass any flags to command line :
 | MERCHANTS_AGREEMENT_SIGNATURE_URL                   | Merchant license agreement page url                                                                                                 |
 | ADMIN_ONBOARDING_REQUESTS_URL                       | Onboarding administrator agreement requests page url                                                                                |
 | MIGRATIONS_LOCK_TIMEOUT                             | Timeout for process db migrations on app start                                                                                       |
+| USER_INVITE_TOKEN_SECRET                            | Secret key for generation invitation token of user                                                                                  |
+| USER_INVITE_TOKEN_TIMEOUT                           | Timeout in hours for lifetime of invitation token of user                                                                           |
 
 
 ## Architecture

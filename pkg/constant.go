@@ -59,6 +59,8 @@ const (
 	MerchantStatusAgreementSigned  = int32(4)
 	MerchantStatusDeleted          = int32(5)
 	MerchantStatusRejected         = int32(6)
+	MerchantStatusPending          = int32(7)
+	MerchantStatusAccepted         = int32(8)
 
 	MerchantMinimalPayoutLimit = float32(1000)
 
@@ -175,6 +177,7 @@ const (
 	ErrorTimeConversionMethod = "conversion method"
 
 	ErrorDatabaseQueryFailed          = "Query to database collection failed"
+	ErrorQueryCursorExecutionFailed   = "Execute result from query cursor failed"
 	ErrorDatabaseFieldCollection      = "collection"
 	ErrorDatabaseFieldDocumentId      = "document_id"
 	ErrorDatabaseFieldQuery           = "query"
@@ -306,7 +309,7 @@ const (
 
 	PaylinkUrlDefaultMask = "/paylink/%s"
 
-	DatabaseRequestDefaultLimit = int(100)
+	DatabaseRequestDefaultLimit = int64(100)
 
 	ProjectSellCountTypeFractional = "fractional"
 	ProjectSellCountTypeIntegral   = "integral"
@@ -331,12 +334,32 @@ const (
 
 	PaymentMethodKey = "%s:%s:%s" // currency:mcc_code:operating_company_id, for example: "USD:5816:5dc3f70deb494903d835f28a"
 
+	RoleTypeMerchant = "merchant"
+	RoleTypeSystem   = "system"
+
 	UnknownTypeError = "unknown type in request"
 
 	TestCaseNonExistingUser = "non_existing_user"
 	TestCaseExistingUser = "existing_user"
 	TestCaseCorrectPayment = "correct_payment"
 	TestCaseIncorrectPayment = "incorrect_payment"
+
+	RoleMerchantOwner      = "merchant_owner"
+	RoleMerchantDeveloper  = "merchant_developer"
+	RoleMerchantAccounting = "merchant_accounting"
+	RoleMerchantSupport    = "merchant_support"
+	RoleMerchantViewOnly   = "merchant_view_only"
+	RoleSystemAdmin        = "system_admin"
+	RoleSystemRiskManager  = "system_risk_manager"
+	RoleSystemFinancial    = "system_financial"
+	RoleSystemSupport      = "system_support"
+	RoleSystemViewOnly     = "system_view_only"
+
+	UserRoleStatusInvited  = "invited"
+	UserRoleStatusAccepted = "accepted"
+
+	// MerchantId_UserId
+	CasbinMerchantUserMask = "%s_%s"
 )
 
 var (

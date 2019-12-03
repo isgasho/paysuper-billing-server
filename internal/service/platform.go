@@ -8,7 +8,7 @@ import (
 )
 
 func (s *Service) GetPlatforms(ctx context.Context, req *grpc.ListPlatformsRequest, rsp *grpc.ListPlatformsResponse) error {
-	platforms := []*grpc.Platform{}
+	var platforms []*grpc.Platform
 	rsp.Status = pkg.ResponseStatusOk
 	var i int32
 	for _, pl := range availablePlatforms {
@@ -24,7 +24,7 @@ func (s *Service) GetPlatforms(ctx context.Context, req *grpc.ListPlatformsReque
 		i++
 	}
 
-	sort.Slice(platforms, func(i, j int)bool {
+	sort.Slice(platforms, func(i, j int) bool {
 		return platforms[i].Order < platforms[j].Order
 	})
 
@@ -33,4 +33,3 @@ func (s *Service) GetPlatforms(ctx context.Context, req *grpc.ListPlatformsReque
 
 	return nil
 }
-

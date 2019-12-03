@@ -2,16 +2,17 @@ package service
 
 import (
 	"context"
-	"github.com/globalsign/mgo/bson"
+	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"testing"
 )
 
@@ -32,8 +33,26 @@ func (suite *RecurringTestSuite) SetupTest() {
 	assert.NoError(suite.T(), err, "Database connection failed")
 
 	redisdb := mocks.NewTestRedis()
-	cache := NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, mocks.NewGeoIpServiceTestOk(), mocks.NewRepositoryServiceOk(), &mocks.TaxServiceOkMock{}, mocks.NewBrokerMockOk(), nil, cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), mocks.NewBrokerMockOk(), nil, )
+	cache, err := NewCacheRedis(redisdb, "cache")
+	casbin := &casbinMocks.CasbinService{}
+
+	suite.service = NewBillingService(
+		db,
+		cfg,
+		mocks.NewGeoIpServiceTestOk(),
+		mocks.NewRepositoryServiceOk(),
+		&mocks.TaxServiceOkMock{},
+		mocks.NewBrokerMockOk(),
+		nil,
+		cache,
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
+		&reportingMocks.ReporterService{},
+		mocks.NewFormatterOK(),
+		mocks.NewBrokerMockOk(),
+		casbin,
+		mocks.NewNotifierOk(),
+	)
 
 	if err := suite.service.Init(); err != nil {
 		suite.FailNow("Billing service initialization failed", "%v", err)
@@ -41,16 +60,22 @@ func (suite *RecurringTestSuite) SetupTest() {
 }
 
 func (suite *RecurringTestSuite) TearDownTest() {
-	if err := suite.service.db.Drop(); err != nil {
+	err := suite.service.db.Drop()
+
+	if err != nil {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}
 
-	suite.service.db.Close()
+	err = suite.service.db.Close()
+
+	if err != nil {
+		suite.FailNow("Database close failed", "%v", err)
+	}
 }
 
 func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_Ok() {
 	customer := &BrowserCookieCustomer{
-		VirtualCustomerId: bson.NewObjectId().Hex(),
+		VirtualCustomerId: primitive.NewObjectID().Hex(),
 		Ip:                "127.0.0.1",
 		AcceptLanguage:    "fr-CA",
 		UserAgent:         "windows",
@@ -61,7 +86,7 @@ func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_Ok() {
 	assert.NotEmpty(suite.T(), cookie)
 
 	req := &grpc.DeleteSavedCardRequest{
-		Id:     bson.NewObjectId().Hex(),
+		Id:     primitive.NewObjectID().Hex(),
 		Cookie: cookie,
 	}
 	rsp := &grpc.EmptyResponseWithStatus{}
@@ -73,8 +98,8 @@ func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_Ok() {
 
 func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_IncorrectCookie_Error() {
 	req := &grpc.DeleteSavedCardRequest{
-		Id:     bson.NewObjectId().Hex(),
-		Cookie: bson.NewObjectId().Hex(),
+		Id:     primitive.NewObjectID().Hex(),
+		Cookie: primitive.NewObjectID().Hex(),
 	}
 	rsp := &grpc.EmptyResponseWithStatus{}
 	err := suite.service.DeleteSavedCard(context.TODO(), req, rsp)
@@ -95,7 +120,7 @@ func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_DontHaveCustomerI
 	assert.NotEmpty(suite.T(), cookie)
 
 	req := &grpc.DeleteSavedCardRequest{
-		Id:     bson.NewObjectId().Hex(),
+		Id:     primitive.NewObjectID().Hex(),
 		Cookie: cookie,
 	}
 	rsp := &grpc.EmptyResponseWithStatus{}
@@ -107,12 +132,12 @@ func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_DontHaveCustomerI
 
 func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_RealCustomer_Ok() {
 	project := &billing.Project{
-		Id:         bson.NewObjectId().Hex(),
-		MerchantId: bson.NewObjectId().Hex(),
+		Id:         primitive.NewObjectID().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
 	}
 	req0 := &grpc.TokenRequest{
 		User: &billing.TokenUser{
-			Id: bson.NewObjectId().Hex(),
+			Id: primitive.NewObjectID().Hex(),
 			Locale: &billing.TokenUserLocaleValue{
 				Value: "en",
 			},
@@ -124,7 +149,7 @@ func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_RealCustomer_Ok()
 			Type:      billing.OrderType_simple,
 		},
 	}
-	customer, err := suite.service.createCustomer(req0, project)
+	customer, err := suite.service.createCustomer(context.TODO(), req0, project)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), customer)
 
@@ -140,7 +165,7 @@ func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_RealCustomer_Ok()
 	assert.NotEmpty(suite.T(), cookie)
 
 	req := &grpc.DeleteSavedCardRequest{
-		Id:     bson.NewObjectId().Hex(),
+		Id:     primitive.NewObjectID().Hex(),
 		Cookie: cookie,
 	}
 	rsp := &grpc.EmptyResponseWithStatus{}
@@ -152,7 +177,7 @@ func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_RealCustomer_Ok()
 
 func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_RealCustomerNotFound_Error() {
 	browserCustomer := &BrowserCookieCustomer{
-		CustomerId:     bson.NewObjectId().Hex(),
+		CustomerId:     primitive.NewObjectID().Hex(),
 		Ip:             "127.0.0.1",
 		AcceptLanguage: "fr-CA",
 		UserAgent:      "windows",
@@ -163,7 +188,7 @@ func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_RealCustomerNotFo
 	assert.NotEmpty(suite.T(), cookie)
 
 	req := &grpc.DeleteSavedCardRequest{
-		Id:     bson.NewObjectId().Hex(),
+		Id:     primitive.NewObjectID().Hex(),
 		Cookie: cookie,
 	}
 	rsp := &grpc.EmptyResponseWithStatus{}
@@ -175,7 +200,7 @@ func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_RealCustomerNotFo
 
 func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_RecurringServiceSystem_Error() {
 	browserCustomer := &BrowserCookieCustomer{
-		VirtualCustomerId: bson.NewObjectId().Hex(),
+		VirtualCustomerId: primitive.NewObjectID().Hex(),
 		Ip:                "127.0.0.1",
 		AcceptLanguage:    "fr-CA",
 		UserAgent:         "windows",
@@ -188,7 +213,7 @@ func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_RecurringServiceS
 	suite.service.rep = mocks.NewRepositoryServiceError()
 
 	req := &grpc.DeleteSavedCardRequest{
-		Id:     bson.NewObjectId().Hex(),
+		Id:     primitive.NewObjectID().Hex(),
 		Cookie: cookie,
 	}
 	rsp := &grpc.EmptyResponseWithStatus{}
@@ -200,7 +225,7 @@ func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_RecurringServiceS
 
 func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_RecurringServiceResult_Error() {
 	browserCustomer := &BrowserCookieCustomer{
-		VirtualCustomerId: bson.NewObjectId().Hex(),
+		VirtualCustomerId: primitive.NewObjectID().Hex(),
 		Ip:                "127.0.0.1",
 		AcceptLanguage:    "fr-CA",
 		UserAgent:         "windows",
@@ -213,7 +238,7 @@ func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_RecurringServiceR
 	suite.service.rep = mocks.NewRepositoryServiceEmpty()
 
 	req := &grpc.DeleteSavedCardRequest{
-		Id:     bson.NewObjectId().Hex(),
+		Id:     primitive.NewObjectID().Hex(),
 		Cookie: cookie,
 	}
 	rsp := &grpc.EmptyResponseWithStatus{}
@@ -238,7 +263,7 @@ func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_RecurringServiceR
 	suite.service.rep = mocks.NewRepositoryServiceEmpty()
 
 	req := &grpc.DeleteSavedCardRequest{
-		Id:     bson.NewObjectId().Hex(),
+		Id:     primitive.NewObjectID().Hex(),
 		Cookie: cookie,
 	}
 	rsp := &grpc.EmptyResponseWithStatus{}

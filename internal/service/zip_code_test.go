@@ -4,14 +4,15 @@ import (
 	"context"
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
+	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"testing"
 )
 
@@ -48,15 +49,31 @@ func (suite *ZipCodeTestSuite) SetupTest() {
 		CreatedAt: ptypes.TimestampNow(),
 	}
 
-	err = db.Collection(collectionZipCode).Insert(zipCode)
+	_, err = db.Collection(collectionZipCode).InsertOne(context.TODO(), zipCode)
 
 	if err != nil {
 		suite.FailNow("Insert zip codes test data failed", "%v", err)
 	}
 
 	redisdb := mocks.NewTestRedis()
-	cache := NewCacheRedis(redisdb)
-	suite.service = NewBillingService(db, cfg, nil, nil, nil, nil, nil, cache, mocks.NewCurrencyServiceMockOk(), mocks.NewDocumentSignerMockOk(), &reportingMocks.ReporterService{}, mocks.NewFormatterOK(), mocks.NewBrokerMockOk(), nil, )
+	cache, err := NewCacheRedis(redisdb, "cache")
+	suite.service = NewBillingService(
+		db,
+		cfg,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		cache,
+		mocks.NewCurrencyServiceMockOk(),
+		mocks.NewDocumentSignerMockOk(),
+		&reportingMocks.ReporterService{},
+		mocks.NewFormatterOK(),
+		mocks.NewBrokerMockOk(),
+		&casbinMocks.CasbinService{},
+		nil,
+	)
 	err = suite.service.Init()
 
 	if err != nil {
@@ -71,18 +88,22 @@ func (suite *ZipCodeTestSuite) TearDownTest() {
 		suite.FailNow("Database deletion failed", "%v", err)
 	}
 
-	suite.service.db.Close()
+	err = suite.service.db.Close()
+
+	if err != nil {
+		suite.FailNow("Database close failed", "%v", err)
+	}
 }
 
 func (suite *ZipCodeTestSuite) TestZipCode_GetExist_Ok() {
 	zip := "98001"
-	zipCode, err := suite.service.zipCode.getByZipAndCountry(zip, CountryCodeUSA)
+	zipCode, err := suite.service.zipCode.getByZipAndCountry(context.TODO(), zip, CountryCodeUSA)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), zipCode)
 	assert.Equal(suite.T(), zip, zipCode.Zip)
 	assert.Equal(suite.T(), CountryCodeUSA, zipCode.Country)
 
-	zipCode, err = suite.service.zipCode.getByZipAndCountry(zip, CountryCodeUSA)
+	zipCode, err = suite.service.zipCode.getByZipAndCountry(context.TODO(), zip, CountryCodeUSA)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), zipCode)
 	assert.Equal(suite.T(), zip, zipCode.Zip)
@@ -91,7 +112,7 @@ func (suite *ZipCodeTestSuite) TestZipCode_GetExist_Ok() {
 
 func (suite *ZipCodeTestSuite) TestZipCode_NotFound_Error() {
 	zip := "98002"
-	zipCode, err := suite.service.zipCode.getByZipAndCountry(zip, CountryCodeUSA)
+	zipCode, err := suite.service.zipCode.getByZipAndCountry(context.TODO(), zip, CountryCodeUSA)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionZipCode), err.Error())
 	assert.Nil(suite.T(), zipCode)

@@ -8,7 +8,6 @@ import (
 	"github.com/ProtocolONE/geoip-service/pkg"
 	"github.com/ProtocolONE/geoip-service/pkg/proto"
 	metrics "github.com/ProtocolONE/go-micro-plugins/wrapper/monitoring/prometheus"
-	"github.com/globalsign/mgo"
 	"github.com/go-redis/redis"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
@@ -20,6 +19,8 @@ import (
 	"github.com/micro/go-micro/config/source"
 	goConfigCli "github.com/micro/go-micro/config/source/cli"
 	"github.com/micro/go-plugins/client/selector/static"
+	casbinPkg "github.com/paysuper/casbin-server/pkg"
+	casbinProto "github.com/paysuper/casbin-server/pkg/generated/api/proto/casbinpb"
 	documentSignerConst "github.com/paysuper/document-signer/pkg/constant"
 	documentSignerProto "github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
@@ -29,7 +30,6 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	curPkg "github.com/paysuper/paysuper-currencies/pkg"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
-	mongodb "github.com/paysuper/paysuper-database-mongo"
 	paysuperI18n "github.com/paysuper/paysuper-i18n"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
@@ -43,6 +43,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"log"
 	"net/http"
 	"os"
@@ -98,8 +99,7 @@ func (app *Application) Init() {
 
 	app.logger.Info("db migrations applied")
 
-	opts := []mongodb.Option{mongodb.Mode(mgo.Primary)}
-	db, err := mongodb.NewDatabase(opts...)
+	db, err := mongodb.NewDatabase()
 	if err != nil {
 		app.logger.Fatal("Database connection failed", zap.Error(err))
 	}
@@ -185,7 +185,14 @@ func (app *Application) Init() {
 	curService := currencies.NewCurrencyratesService(curPkg.ServiceName, app.service.Client())
 	documentSignerService := documentSignerProto.NewDocumentSignerService(documentSignerConst.ServiceName, app.service.Client())
 	reporter := reporterService.NewReporterService(reporterServiceConst.ServiceName, app.service.Client())
+	casbin := casbinProto.NewCasbinService(casbinPkg.ServiceName, app.service.Client())
 	webHookNotifier := notifier.NewNotifierService(notifierPkg.ServiceName, app.service.Client())
+
+	formatter, err := paysuperI18n.NewFormatter([]string{"i18n/rules"}, []string{"i18n/messages"})
+
+	if err != nil {
+		app.logger.Fatal("Create il8n formatter failed", zap.Error(err))
+	}
 
 	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
 		Addrs:        cfg.CacheRedis.Address,
@@ -194,14 +201,34 @@ func (app *Application) Init() {
 		MaxRedirects: cfg.CacheRedis.MaxRedirects,
 		PoolSize:     cfg.CacheRedis.PoolSize,
 	})
-
-	formatter, err := paysuperI18n.NewFormatter([]string{"i18n/rules"}, []string{"i18n/messages"})
+	cache, err := service.NewCacheRedis(redisdb, cfg.CacheRedis.Version)
 
 	if err != nil {
-		app.logger.Fatal("Create il8n formatter failed", zap.Error(err))
+		app.logger.Error("Unable to initialize cache for the application", zap.Error(err))
+	} else {
+		go func() {
+			if err = cache.CleanOldestVersion(); err != nil {
+				app.logger.Error("Unable to clean oldest versions of cache", zap.Error(err))
+			}
+		}()
 	}
 
-	app.svc = service.NewBillingService(app.database, app.cfg, geoService, repService, taxService, broker, app.redis, service.NewCacheRedis(redisdb), curService, documentSignerService, reporter, formatter, postmarkBroker, webHookNotifier, )
+	app.svc = service.NewBillingService(
+		app.database,
+		app.cfg,
+		geoService,
+		repService,
+		taxService,
+		broker,
+		app.redis,
+		cache,
+		curService,
+		documentSignerService,
+		reporter,
+		formatter,
+		postmarkBroker,
+		casbin,
+	)
 
 	if err := app.svc.Init(); err != nil {
 		app.logger.Fatal("Create service instance failed", zap.Error(err))
@@ -290,7 +317,7 @@ func (app *Application) Stop() {
 		app.logger.Info("Http server stopped")
 	}
 
-	app.database.Close()
+	_ = app.database.Close()
 	app.logger.Info("Database connection closed")
 
 	if err := app.redis.Close(); err != nil {
@@ -340,7 +367,11 @@ func (app *Application) TaskAutoCreatePayouts() error {
 }
 
 func (app *Application) TaskRebuildOrderView() error {
-	return app.svc.RebuildOrderView()
+	return app.svc.RebuildOrderView(context.TODO())
+}
+
+func (app *Application) TaskMerchantsMigrate() error {
+	return app.svc.MerchantsMigrate(context.TODO())
 }
 
 func (app *Application) KeyDaemonStart() {
@@ -359,7 +390,7 @@ func (app *Application) KeyDaemonStart() {
 				zap.S().Info("Key daemon stopping")
 				return
 			default:
-				count, err := app.svc.KeyDaemonProcess()
+				count, err := app.svc.KeyDaemonProcess(context.TODO())
 				if err != nil {
 					zap.L().Error("Key daemon process failed", zap.Error(err))
 				}

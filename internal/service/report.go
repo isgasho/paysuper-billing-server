@@ -3,11 +3,14 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/globalsign/mgo/bson"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"time"
 )
 
@@ -24,7 +27,7 @@ func (s *Service) FindAllOrdersPublic(
 	req *grpc.ListOrdersRequest,
 	rsp *grpc.ListOrdersPublicResponse,
 ) error {
-	count, orders, err := s.getOrdersList(req, collectionOrderView, make([]*billing.OrderViewPublic, 1))
+	count, orders, err := s.getOrdersList(ctx, req, collectionOrderView, make([]*billing.OrderViewPublic, 1))
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -33,10 +36,19 @@ func (s *Service) FindAllOrdersPublic(
 		return nil
 	}
 
+	orderList := orders.([]*billing.OrderViewPublic)
+
+	if len(orderList) > 0 && orderList[0].MerchantId != req.Merchant[0] {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = reportErrorUnknown
+
+		return nil
+	}
+
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = &grpc.ListOrdersPublicResponseItem{
-		Count: int32(count),
-		Items: orders.([]*billing.OrderViewPublic),
+		Count: count,
+		Items: orderList,
 	}
 
 	return nil
@@ -47,7 +59,7 @@ func (s *Service) FindAllOrdersPrivate(
 	req *grpc.ListOrdersRequest,
 	rsp *grpc.ListOrdersPrivateResponse,
 ) error {
-	count, orders, err := s.getOrdersList(req, collectionOrderView, make([]*billing.OrderViewPrivate, 1))
+	count, orders, err := s.getOrdersList(ctx, req, collectionOrderView, make([]*billing.OrderViewPrivate, 1))
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -58,7 +70,7 @@ func (s *Service) FindAllOrdersPrivate(
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = &grpc.ListOrdersPrivateResponseItem{
-		Count: int32(count),
+		Count: count,
 		Items: orders.([]*billing.OrderViewPrivate),
 	}
 
@@ -70,7 +82,7 @@ func (s *Service) FindAllOrders(
 	req *grpc.ListOrdersRequest,
 	rsp *grpc.ListOrdersResponse,
 ) error {
-	count, orders, err := s.getOrdersList(req, collectionOrder, make([]*billing.Order, 1))
+	count, orders, err := s.getOrdersList(ctx, req, collectionOrder, make([]*billing.Order, 1))
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -81,7 +93,7 @@ func (s *Service) FindAllOrders(
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = &grpc.ListOrdersResponseItem{
-		Count: int32(count),
+		Count: count,
 		Items: orders.([]*billing.Order),
 	}
 
@@ -93,7 +105,7 @@ func (s *Service) GetOrderPublic(
 	req *grpc.GetOrderRequest,
 	rsp *grpc.GetOrderPublicResponse,
 ) error {
-	order, err := s.orderView.GetOrderBy("", req.Id, req.Merchant, new(billing.OrderViewPublic))
+	order, err := s.orderView.GetOrderBy(ctx, "", req.OrderId, req.MerchantId, new(billing.OrderViewPublic))
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -106,8 +118,16 @@ func (s *Service) GetOrderPublic(
 		return nil
 	}
 
-	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = order.(*billing.OrderViewPublic)
+
+	if rsp.Item.MerchantId != req.MerchantId {
+		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
+
+		return nil
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
 
 	return nil
 }
@@ -117,7 +137,7 @@ func (s *Service) GetOrderPrivate(
 	req *grpc.GetOrderRequest,
 	rsp *grpc.GetOrderPrivateResponse,
 ) error {
-	order, err := s.orderView.GetOrderBy("", req.Id, req.Merchant, new(billing.OrderViewPrivate))
+	order, err := s.orderView.GetOrderBy(ctx, "", req.OrderId, req.MerchantId, new(billing.OrderViewPrivate))
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -137,24 +157,26 @@ func (s *Service) GetOrderPrivate(
 }
 
 func (s *Service) getOrdersList(
+	ctx context.Context,
 	req *grpc.ListOrdersRequest,
 	source string,
 	receiver interface{},
-) (int, interface{}, error) {
+) (int64, interface{}, error) {
 	query := make(bson.M)
 
 	if len(req.Merchant) > 0 {
-		var merchants []bson.ObjectId
+		var merchants []primitive.ObjectID
 
 		for _, v := range req.Merchant {
-			merchants = append(merchants, bson.ObjectIdHex(v))
+			oid, _ := primitive.ObjectIDFromHex(v)
+			merchants = append(merchants, oid)
 		}
 
 		query["project.merchant_id"] = bson.M{"$in": merchants}
 	}
 
 	if req.QuickSearch != "" {
-		r := bson.RegEx{Pattern: ".*" + req.QuickSearch + ".*", Options: "i"}
+		r := primitive.Regex{Pattern: ".*" + req.QuickSearch + ".*", Options: "i"}
 
 		query["$or"] = []bson.M{
 			{"uuid": bson.M{"$regex": r}},
@@ -169,10 +191,11 @@ func (s *Service) getOrdersList(
 		}
 
 		if len(req.Project) > 0 {
-			var projects []bson.ObjectId
+			var projects []primitive.ObjectID
 
 			for _, v := range req.Project {
-				projects = append(projects, bson.ObjectIdHex(v))
+				oid, _ := primitive.ObjectIDFromHex(v)
+				projects = append(projects, oid)
 			}
 
 			query["project._id"] = bson.M{"$in": projects}
@@ -183,10 +206,11 @@ func (s *Service) getOrdersList(
 		}
 
 		if len(req.PaymentMethod) > 0 {
-			var paymentMethod []bson.ObjectId
+			var paymentMethod []primitive.ObjectID
 
 			for _, v := range req.PaymentMethod {
-				paymentMethod = append(paymentMethod, bson.ObjectIdHex(v))
+				oid, _ := primitive.ObjectIDFromHex(v)
+				paymentMethod = append(paymentMethod, oid)
 			}
 
 			query["payment_method._id"] = bson.M{"$in": paymentMethod}
@@ -197,7 +221,7 @@ func (s *Service) getOrdersList(
 		}
 
 		if req.Account != "" {
-			r := bson.RegEx{Pattern: ".*" + req.Account + ".*", Options: "i"}
+			r := primitive.Regex{Pattern: ".*" + req.Account + ".*", Options: "i"}
 			query["$or"] = []bson.M{
 				{"user.external_id": r},
 				{"user.phone": r},
@@ -242,7 +266,7 @@ func (s *Service) getOrdersList(
 		}
 	}
 
-	count, err := s.db.Collection(source).Find(query).Count()
+	count, err := s.db.Collection(source).CountDocuments(ctx, query)
 
 	if err != nil {
 		zap.L().Error(
@@ -255,8 +279,11 @@ func (s *Service) getOrdersList(
 		return 0, nil, err
 	}
 
-	err = s.db.Collection(source).Find(query).Sort(req.Sort...).Limit(int(req.Limit)).
-		Skip(int(req.Offset)).All(&receiver)
+	opts := options.Find().
+		SetSort(mongodb.ToSortOption(req.Sort)).
+		SetLimit(req.Limit).
+		SetSkip(req.Offset)
+	cursor, err := s.db.Collection(source).Find(ctx, query, opts)
 
 	if err != nil {
 		zap.L().Error(
@@ -265,7 +292,28 @@ func (s *Service) getOrdersList(
 			zap.String(pkg.ErrorDatabaseFieldCollection, source),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
+		return 0, nil, err
+	}
 
+
+	if res, ok := receiver.([]*billing.OrderViewPublic); ok {
+		err = cursor.All(ctx, &res)
+		receiver = res
+	} else if res, ok := receiver.([]*billing.OrderViewPrivate); ok {
+		err = cursor.All(ctx, &res)
+		receiver = res
+	} else if res, ok := receiver.([]*billing.Order); ok {
+		err = cursor.All(ctx, &res)
+		receiver = res
+	}
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorQueryCursorExecutionFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, source),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
 		return 0, nil, err
 	}
 
