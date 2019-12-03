@@ -25,12 +25,12 @@ require (
 	github.com/micro/go-plugins v1.2.0
 	github.com/paysuper/casbin-server v0.0.0-20191128090724-930a08d68cec
 	github.com/paysuper/document-signer v0.0.0-20190930091754-a3f6474309f3
-	github.com/paysuper/paysuper-currencies v0.0.0-20191126123753-5139d3b5c8d2
+	github.com/paysuper/paysuper-currencies v0.0.0-20191203095905-dc61e294d7d9
 	github.com/paysuper/paysuper-database-mongo v0.1.3
 	github.com/paysuper/paysuper-i18n v0.0.0-20190926113224-7eaca4563c7b
 	github.com/paysuper/paysuper-recurring-repository v1.0.127
 	github.com/paysuper/paysuper-reporter v0.0.0-20191113111020-e3a5369c6d6a
-	github.com/paysuper/paysuper-tax-service v0.0.0-20191128110119-afbea6dc5aaf
+	github.com/paysuper/paysuper-tax-service v0.0.0-20191203095739-78a9b3c20e88
 	github.com/paysuper/postmark-sender v0.0.0-20190926173213-1b6244122c49
 	github.com/prometheus/client_golang v1.1.0
 	github.com/stoewer/go-strcase v1.0.2
