@@ -5,6 +5,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
+	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"time"
 )
 
@@ -211,16 +212,41 @@ func (m *Order) GetPaymentFormDataChangeResult(brand string) *PaymentFormDataCha
 			City:    m.User.Address.City,
 			Zip:     m.User.Address.PostalCode,
 		},
-		Brand: brand,
+		Brand:                  brand,
+		HasVat:                 m.Tax.Rate > 0,
+		Vat:                    tools.FormatAmount(m.Tax.Amount),
+		VatInChargeCurrency:    tools.FormatAmount(m.GetTaxAmountInChargeCurrency()),
+		ChargeAmount:           tools.FormatAmount(m.ChargeAmount),
+		ChargeCurrency:         m.ChargeCurrency,
+		Currency:               m.Currency,
+		Amount:                 tools.FormatAmount(m.OrderAmount),
+		TotalAmount:            tools.FormatAmount(m.TotalPaymentAmount),
+		Items:                  m.Items,
+		CountryPaymentsAllowed: true,
+		CountryChangeAllowed:   true,
 	}
 
 	if m.CountryRestriction != nil {
 		item.CountryPaymentsAllowed = m.CountryRestriction.PaymentsAllowed
 		item.CountryChangeAllowed = m.CountryRestriction.ChangeAllowed
-	} else {
-		item.CountryPaymentsAllowed = true
-		item.CountryChangeAllowed = true
 	}
 
 	return item
+}
+
+func (m *Order) GetTaxAmountInChargeCurrency() float64 {
+	if m.Tax.Amount == 0 {
+		return 0
+	}
+	if m.Currency == m.ChargeCurrency {
+		return m.Tax.Amount
+	}
+	return tools.GetPercentPartFromAmount(m.ChargeAmount, m.Tax.Rate)
+}
+
+func (m *Order) IsDeclinedByCountry() bool {
+	return m.PrivateStatus == constant.OrderStatusPaymentSystemDeclined &&
+		m.CountryRestriction != nil &&
+		m.CountryRestriction.PaymentsAllowed == false &&
+		m.CountryRestriction.ChangeAllowed == false
 }

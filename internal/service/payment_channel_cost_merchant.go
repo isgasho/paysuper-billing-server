@@ -35,6 +35,7 @@ var (
 	errorPaymentChannelMerchantCostAlreadyExist = newBillingServerErrorMsg("pcm000006", "cost with specified parameters already exist")
 	errorCostMatchedToAmountNotFound            = newBillingServerErrorMsg("pcm000007", "cost matched to amount not found")
 	errorPaymentChannelMccCode                  = newBillingServerErrorMsg("pcm000008", "mcc code not supported")
+	errorCostMatchedNotFound                    = newBillingServerErrorMsg("pcm000009", "cost matched not found")
 )
 
 type PaymentChannelCostMerchantInterface interface {
@@ -220,7 +221,7 @@ func (s *Service) getPaymentChannelCostMerchant(
 	}
 
 	if val == nil {
-		return nil, errorMoneybackMerchantDaysMatchedNotFound
+		return nil, errorCostMatchedNotFound
 	}
 
 	var matched []*kvIntFloat

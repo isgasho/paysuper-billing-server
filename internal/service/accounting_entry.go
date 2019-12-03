@@ -407,19 +407,20 @@ func (h *accountingEntry) processPaymentEvent() error {
 
 	// 1. realGrossRevenue
 	realGrossRevenue := h.newEntry(pkg.AccountingEntryTypeRealGrossRevenue)
-	realGrossRevenue.Amount, err = h.GetExchangePsCurrentCommon(h.order.Currency, h.order.TotalPaymentAmount)
+	realGrossRevenue.Amount, err = h.GetExchangePsCurrentCommon(h.order.ChargeCurrency, h.order.ChargeAmount)
 	if err != nil {
 		return err
 	}
-	realGrossRevenue.OriginalAmount = h.order.TotalPaymentAmount
-	realGrossRevenue.OriginalCurrency = h.order.Currency
+	realGrossRevenue.OriginalAmount = h.order.ChargeAmount
+	realGrossRevenue.OriginalCurrency = h.order.ChargeCurrency
 	if err = h.addEntry(realGrossRevenue); err != nil {
 		return err
 	}
 
 	// 2. realTaxFee
 	realTaxFee := h.newEntry(pkg.AccountingEntryTypeRealTaxFee)
-	realTaxFee.Amount, err = h.GetExchangePsCurrentCommon(h.order.Tax.Currency, h.order.Tax.Amount)
+	orderTaxAmount := h.order.GetTaxAmountInChargeCurrency()
+	realTaxFee.Amount, err = h.GetExchangePsCurrentCommon(h.order.Tax.Currency, orderTaxAmount)
 	if err != nil {
 		return err
 	}
@@ -441,7 +442,7 @@ func (h *accountingEntry) processPaymentEvent() error {
 
 	// 5. psGrossRevenueFx
 	psGrossRevenueFx := h.newEntry(pkg.AccountingEntryTypePsGrossRevenueFx)
-	amount, err = h.GetExchangePsCurrentMerchant(h.order.Currency, h.order.TotalPaymentAmount)
+	amount, err = h.GetExchangePsCurrentMerchant(h.order.ChargeCurrency, h.order.ChargeAmount)
 	if err != nil {
 		return err
 	}
@@ -452,7 +453,7 @@ func (h *accountingEntry) processPaymentEvent() error {
 
 	// 6. psGrossRevenueFxTaxFee
 	psGrossRevenueFxTaxFee := h.newEntry(pkg.AccountingEntryTypePsGrossRevenueFxTaxFee)
-	psGrossRevenueFxTaxFee.Amount = psGrossRevenueFx.Amount / (1 + h.order.Tax.Rate) * h.order.Tax.Rate
+	psGrossRevenueFxTaxFee.Amount = tools.GetPercentPartFromAmount(psGrossRevenueFx.Amount, h.order.Tax.Rate)
 	if err = h.addEntry(psGrossRevenueFxTaxFee); err != nil {
 		return err
 	}
@@ -467,7 +468,7 @@ func (h *accountingEntry) processPaymentEvent() error {
 
 	// 9. merchantTaxFeeCostValue
 	merchantTaxFeeCostValue := h.newEntry(pkg.AccountingEntryTypeMerchantTaxFeeCostValue)
-	merchantTaxFeeCostValue.Amount = merchantGrossRevenue.Amount / (1 + h.order.Tax.Rate) * h.order.Tax.Rate
+	merchantTaxFeeCostValue.Amount = tools.GetPercentPartFromAmount(merchantGrossRevenue.Amount, h.order.Tax.Rate)
 	if err = h.addEntry(merchantTaxFeeCostValue); err != nil {
 		return err
 	}
@@ -659,7 +660,7 @@ func (h *accountingEntry) processRefundEvent() error {
 		return err
 	}
 
-	partialRefundCorrection := h.refund.Amount / h.order.TotalPaymentAmount
+	partialRefundCorrection := h.refund.Amount / h.order.ChargeAmount
 	if partialRefundCorrection > 1 {
 		return accountingEntryErrorRefundExceedsOrderAmount
 	}
@@ -827,7 +828,7 @@ func (h *accountingEntry) processRefundEvent() error {
 		// after that converting it back from vat currency  to merchant currency by stock rate,
 		// next getting Centralbank fx for restored value as difference between converted and restored values,
 		// and finally getting difference between old merchantTaxFeeCentralBankFx amount and calculated new.
-		amountVatRestored := merchantRefund.Amount / (1 + h.order.Tax.Rate) * h.order.Tax.Rate
+		amountVatRestored := tools.GetPercentPartFromAmount(merchantRefund.Amount, h.order.Tax.Rate)
 		amountVatCb, err := h.GetExchangeCbCurrentCommon(h.order.GetMerchantRoyaltyCurrency(), amountVatRestored)
 		if err != nil {
 			return err
@@ -872,10 +873,11 @@ func (h *accountingEntry) GetExchangePsCurrentCommon(from string, amount float64
 		return amount, nil
 	}
 	return h.GetExchangeCurrentCommon(&currencies.ExchangeCurrencyCurrentCommonRequest{
-		From:     from,
-		To:       to,
-		RateType: curPkg.RateTypePaysuper,
-		Amount:   amount,
+		From:              from,
+		To:                to,
+		RateType:          curPkg.RateTypePaysuper,
+		ExchangeDirection: curPkg.ExchangeDirectionBuy,
+		Amount:            amount,
 	})
 }
 
@@ -886,10 +888,11 @@ func (h *accountingEntry) GetExchangeStockCurrentCommon(from string, amount floa
 		return amount, nil
 	}
 	return h.GetExchangeCurrentCommon(&currencies.ExchangeCurrencyCurrentCommonRequest{
-		From:     from,
-		To:       to,
-		RateType: curPkg.RateTypeStock,
-		Amount:   amount,
+		From:              from,
+		To:                to,
+		RateType:          curPkg.RateTypeStock,
+		ExchangeDirection: curPkg.ExchangeDirectionSell,
+		Amount:            amount,
 	})
 }
 
@@ -901,11 +904,12 @@ func (h *accountingEntry) GetExchangePsCurrentMerchant(from string, amount float
 	}
 
 	return h.GetExchangeCurrentMerchant(&currencies.ExchangeCurrencyCurrentForMerchantRequest{
-		From:       from,
-		To:         to,
-		RateType:   curPkg.RateTypePaysuper,
-		MerchantId: h.order.GetMerchantId(),
-		Amount:     amount,
+		From:              from,
+		To:                to,
+		RateType:          curPkg.RateTypePaysuper,
+		ExchangeDirection: curPkg.ExchangeDirectionBuy,
+		MerchantId:        h.order.GetMerchantId(),
+		Amount:            amount,
 	})
 }
 
@@ -917,11 +921,12 @@ func (h *accountingEntry) GetExchangeCbCurrentCommon(from string, amount float64
 	}
 
 	return h.GetExchangeCurrentCommon(&currencies.ExchangeCurrencyCurrentCommonRequest{
-		From:     from,
-		To:       to,
-		RateType: curPkg.RateTypeCentralbanks,
-		Source:   h.country.VatCurrencyRatesSource,
-		Amount:   amount,
+		From:              from,
+		To:                to,
+		RateType:          curPkg.RateTypeCentralbanks,
+		ExchangeDirection: curPkg.ExchangeDirectionSell,
+		Source:            h.country.VatCurrencyRatesSource,
+		Amount:            amount,
 	})
 }
 
@@ -1017,11 +1022,12 @@ func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
 			entry.LocalAmount = entry.OriginalAmount
 		} else {
 			req := &currencies.ExchangeCurrencyCurrentCommonRequest{
-				From:     entry.OriginalCurrency,
-				To:       entry.LocalCurrency,
-				RateType: rateType,
-				Source:   rateSource,
-				Amount:   entry.OriginalAmount,
+				From:              entry.OriginalCurrency,
+				To:                entry.LocalCurrency,
+				RateType:          rateType,
+				ExchangeDirection: curPkg.ExchangeDirectionBuy,
+				Source:            rateSource,
+				Amount:            entry.OriginalAmount,
 			}
 
 			if req.Amount != 0 && req.From != req.To {

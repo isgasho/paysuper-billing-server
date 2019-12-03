@@ -21,6 +21,7 @@ backend:
   replicas: 1
   service: 
     type: ClusterIP
+    name: p1paybilling
     port: 8080
     protocol: TCP
   env:

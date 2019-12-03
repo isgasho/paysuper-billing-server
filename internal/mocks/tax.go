@@ -14,36 +14,28 @@ func NewTaxServiceOkMock() tax_service.TaxService {
 
 func (m *TaxServiceOkMock) GetRate(
 	ctx context.Context,
-	in *tax_service.GetRateRequest,
+	in *tax_service.GeoIdentity,
 	opts ...client.CallOption,
-) (*tax_service.GetRateResponse, error) {
-	rate := &tax_service.GetRateResponse{
-		Rate: &tax_service.TaxRate{
-			Id:      0,
-			Zip:     "190000",
-			Country: "RU",
-			State:   "SPE",
-			City:    "St.Petersburg",
-			Rate:    0.20,
-		},
-		UserDataPriority: false,
+) (*tax_service.TaxRate, error) {
+	if in.Country == "US" {
+		return &tax_service.TaxRate{
+			Id:      1,
+			Zip:     "98001",
+			Country: "US",
+			State:   "NY",
+			City:    "Washington",
+			Rate:    0.19,
+		}, nil
 	}
+	return &tax_service.TaxRate{
+		Id:      0,
+		Zip:     "190000",
+		Country: "RU",
+		State:   "SPE",
+		City:    "St.Petersburg",
+		Rate:    0.20,
+	}, nil
 
-	if in.UserData != nil && in.UserData.Country == "US" {
-		rate = &tax_service.GetRateResponse{
-			Rate: &tax_service.TaxRate{
-				Id:      1,
-				Zip:     "98001",
-				Country: "US",
-				State:   "NY",
-				City:    "Washington",
-				Rate:    0.15,
-			},
-			UserDataPriority: true,
-		}
-	}
-
-	return rate, nil
 }
 
 func (m *TaxServiceOkMock) GetRates(

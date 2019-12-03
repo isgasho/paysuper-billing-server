@@ -155,7 +155,7 @@ func (suite *DashboardRepositoryTestSuite) SetupTest() {
 
 	suite.merchant, suite.project, suite.paymentMethod, _ = helperCreateEntitiesForTests(suite.Suite, suite.service)
 	suite.products = createProductsForProject(suite.Suite, suite.service, suite.project, 3)
-	suite.keyProducts = createKeyProductsFroProject(suite.Suite, suite.service, suite.project, 3)
+	suite.keyProducts = createKeyProductsForProject(suite.Suite, suite.service, suite.project, 3)
 }
 
 func (suite *DashboardRepositoryTestSuite) TearDownTest() {

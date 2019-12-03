@@ -2,7 +2,6 @@ package billing
 
 import (
 	"errors"
-	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
@@ -223,69 +222,75 @@ type MgoOrderNotificationRefund struct {
 }
 
 type MgoOrder struct {
-	Id                         primitive.ObjectID             `bson:"_id"`
-	Uuid                       string                         `bson:"uuid"`
-	Transaction                string                         `bson:"pm_order_id"`
-	Object                     string                         `bson:"object"`
-	Status                     string                         `bson:"status"`
-	PrivateStatus              int32                          `bson:"private_status"`
-	Description                string                         `bson:"description"`
-	CreatedAt                  time.Time                      `bson:"created_at"`
-	UpdatedAt                  time.Time                      `bson:"updated_at"`
-	CanceledAt                 time.Time                      `bson:"canceled_at"`
-	Canceled                   bool                           `bson:"canceled"`
-	Cancellation               *OrderNotificationCancellation `bson:"cancellation"`
-	Refunded                   bool                           `bson:"refunded"`
-	RefundedAt                 time.Time                      `bson:"refunded_at"`
-	ReceiptEmail               string                         `bson:"receipt_email"`
-	ReceiptPhone               string                         `bson:"receipt_phone"`
-	ReceiptNumber              string                         `bson:"receipt_number"`
-	ReceiptUrl                 string                         `bson:"receipt_url"`
-	AgreementVersion           string                         `bson:"agreement_version"`
-	AgreementAccepted          bool                           `bson:"agreement_accepted"`
-	NotifySale                 bool                           `bson:"notify_sale"`
-	NotifySaleEmail            string                         `bson:"notify_sale_email"`
-	Issuer                     *OrderIssuer                   `bson:"issuer"`
-	TotalPaymentAmount         float64                        `bson:"total_payment_amount"`
-	Currency                   string                         `bson:"currency"`
-	User                       *OrderUser                     `bson:"user"`
-	BillingAddress             *OrderBillingAddress           `bson:"billing_address"`
-	Tax                        *OrderTax                      `bson:"tax"`
-	PaymentMethod              *MgoOrderPaymentMethod         `bson:"payment_method"`
-	Items                      []*MgoOrderItem                `bson:"items"`
-	Refund                     *MgoOrderNotificationRefund    `bson:"refund"`
-	Metadata                   map[string]string              `bson:"metadata"`
-	PrivateMetadata            map[string]string              `bson:"private_metadata"`
-	Project                    *MgoOrderProject               `bson:"project"`
-	ProjectOrderId             string                         `bson:"project_order_id"`
-	ProjectAccount             string                         `bson:"project_account"`
-	ProjectLastRequestedAt     time.Time                      `bson:"project_last_requested_at"`
-	ProjectParams              map[string]string              `bson:"project_params"`
-	PaymentMethodOrderClosedAt time.Time                      `bson:"pm_order_close_date"`
-	IsJsonRequest              bool                           `bson:"created_by_json"`
-	OrderAmount                float64                        `bson:"private_amount"`
-	PaymentMethodPayerAccount  string                         `bson:"pm_account"`
-	PaymentMethodTxnParams     map[string]string              `bson:"pm_txn_params"`
-	PaymentRequisites          map[string]string              `bson:"payment_requisites"`
-	ExpireDateToFormInput      time.Time                      `bson:"expire_date_to_form_input"`
-	UserAddressDataRequired    bool                           `bson:"user_address_data_required"`
-	Products                   []string                       `bson:"products"`
-	IsNotificationsSent        map[string]bool                `bson:"is_notifications_sent"`
-	CountryRestriction         *CountryRestriction            `bson:"country_restriction"`
-	ParentOrder                *ParentOrder                   `bson:"parent_order"`
-	ParentPaymentAt            time.Time                      `bson:"parent_payment_at"`
-	Type                       string                         `bson:"type"`
-	IsVatDeduction             bool                           `bson:"is_vat_deduction"`
-	CountryCode                string                         `bson:"country_code"`
-	PlatformId                 string                         `bson:"platform_id"`
-	ProductType                string                         `bson:"product_type"`
-	Keys                       []string                       `bson:"keys"`
-	IsKeyProductNotified       bool                           `bson:"is_key_product_notified"`
-	ReceiptId                  string                         `bson:"receipt_id"`
-	IsBuyForVirtualCurrency    bool                           `bson:"is_buy_for_virtual_currency"`
-	MccCode                    string                         `bson:"mcc_code"`
-	OperatingCompanyId         string                         `bson:"operating_company_id"`
-	IsHighRisk                 bool                           `bson:"is_high_risk"`
+	Id                          primitive.ObjectID             `bson:"_id"`
+	Uuid                        string                         `bson:"uuid"`
+	Transaction                 string                         `bson:"pm_order_id"`
+	Object                      string                         `bson:"object"`
+	Status                      string                         `bson:"status"`
+	PrivateStatus               int32                          `bson:"private_status"`
+	Description                 string                         `bson:"description"`
+	CreatedAt                   time.Time                      `bson:"created_at"`
+	UpdatedAt                   time.Time                      `bson:"updated_at"`
+	CanceledAt                  time.Time                      `bson:"canceled_at"`
+	Canceled                    bool                           `bson:"canceled"`
+	Cancellation                *OrderNotificationCancellation `bson:"cancellation"`
+	Refunded                    bool                           `bson:"refunded"`
+	RefundedAt                  time.Time                      `bson:"refunded_at"`
+	ReceiptEmail                string                         `bson:"receipt_email"`
+	ReceiptPhone                string                         `bson:"receipt_phone"`
+	ReceiptNumber               string                         `bson:"receipt_number"`
+	ReceiptUrl                  string                         `bson:"receipt_url"`
+	AgreementVersion            string                         `bson:"agreement_version"`
+	AgreementAccepted           bool                           `bson:"agreement_accepted"`
+	NotifySale                  bool                           `bson:"notify_sale"`
+	NotifySaleEmail             string                         `bson:"notify_sale_email"`
+	Issuer                      *OrderIssuer                   `bson:"issuer"`
+	TotalPaymentAmount          float64                        `bson:"total_payment_amount"`
+	Currency                    string                         `bson:"currency"`
+	User                        *OrderUser                     `bson:"user"`
+	BillingAddress              *OrderBillingAddress           `bson:"billing_address"`
+	Tax                         *OrderTax                      `bson:"tax"`
+	PaymentMethod               *MgoOrderPaymentMethod         `bson:"payment_method"`
+	Items                       []*MgoOrderItem                `bson:"items"`
+	Refund                      *MgoOrderNotificationRefund    `bson:"refund"`
+	Metadata                    map[string]string              `bson:"metadata"`
+	PrivateMetadata             map[string]string              `bson:"private_metadata"`
+	Project                     *MgoOrderProject               `bson:"project"`
+	ProjectOrderId              string                         `bson:"project_order_id"`
+	ProjectAccount              string                         `bson:"project_account"`
+	ProjectLastRequestedAt      time.Time                      `bson:"project_last_requested_at"`
+	ProjectParams               map[string]string              `bson:"project_params"`
+	PaymentMethodOrderClosedAt  time.Time                      `bson:"pm_order_close_date"`
+	IsJsonRequest               bool                           `bson:"created_by_json"`
+	OrderAmount                 float64                        `bson:"private_amount"`
+	PaymentMethodPayerAccount   string                         `bson:"pm_account"`
+	PaymentMethodTxnParams      map[string]string              `bson:"pm_txn_params"`
+	PaymentRequisites           map[string]string              `bson:"payment_requisites"`
+	ExpireDateToFormInput       time.Time                      `bson:"expire_date_to_form_input"`
+	UserAddressDataRequired     bool                           `bson:"user_address_data_required"`
+	Products                    []string                       `bson:"products"`
+	IsNotificationsSent         map[string]bool                `bson:"is_notifications_sent"`
+	CountryRestriction          *CountryRestriction            `bson:"country_restriction"`
+	ParentOrder                 *ParentOrder                   `bson:"parent_order"`
+	ParentPaymentAt             time.Time                      `bson:"parent_payment_at"`
+	Type                        string                         `bson:"type"`
+	IsVatDeduction              bool                           `bson:"is_vat_deduction"`
+	CountryCode                 string                         `bson:"country_code"`
+	PlatformId                  string                         `bson:"platform_id"`
+	ProductType                 string                         `bson:"product_type"`
+	Keys                        []string                       `bson:"keys"`
+	IsKeyProductNotified        bool                           `bson:"is_key_product_notified"`
+	ReceiptId                   string                         `bson:"receipt_id"`
+	IsBuyForVirtualCurrency     bool                           `bson:"is_buy_for_virtual_currency"`
+	MccCode                     string                         `bson:"mcc_code"`
+	OperatingCompanyId          string                         `bson:"operating_company_id"`
+	IsHighRisk                  bool                           `bson:"is_high_risk"`
+	ChargeCurrency              string                         `bson:"charge_currency"`
+	ChargeAmount                float64                        `bson:"charge_amount"`
+	PaymentIpCountry            string                         `bson:"payment_ip_country"`
+	IsIpCountryMismatchBin      bool                           `bson:"is_ip_country_mismatch_bin"`
+	BillingCountryChangedByUser bool                           `bson:"billing_country_changed_by_user"`
+	IsRefundAllowed             bool                           `bson:"is_refund_allowed"`
 }
 
 type MgoOrderItem struct {
@@ -338,13 +343,14 @@ type MgoPaymentMethod struct {
 }
 
 type MgoPaymentMethodParam struct {
-	TerminalId         string `bson:"terminal_id"`
-	Secret             string `bson:"secret"`
-	SecretCallback     string `bson:"secret_callback"`
-	Currency           string `bson:"currency"`
-	ApiUrl             string `bson:"api_url"`
-	MccCode            string `bson:"mcc_code"`
-	OperatingCompanyId string `bson:"operating_company_id"`
+	TerminalId         string   `bson:"terminal_id"`
+	Secret             string   `bson:"secret"`
+	SecretCallback     string   `bson:"secret_callback"`
+	Currency           string   `bson:"currency"`
+	ApiUrl             string   `bson:"api_url"`
+	MccCode            string   `bson:"mcc_code"`
+	OperatingCompanyId string   `bson:"operating_company_id"`
+	Brand              []string `bson:"brand"`
 }
 
 type MgoNotification struct {
@@ -1687,31 +1693,37 @@ func (m *Order) MarshalBSON() ([]byte, error) {
 			Status:                  m.Project.Status,
 			MerchantRoyaltyCurrency: m.Project.MerchantRoyaltyCurrency,
 		},
-		ProjectOrderId:            m.ProjectOrderId,
-		ProjectAccount:            m.ProjectAccount,
-		ProjectParams:             m.ProjectParams,
-		IsJsonRequest:             m.IsJsonRequest,
-		OrderAmount:               m.OrderAmount,
-		PaymentMethodPayerAccount: m.PaymentMethodPayerAccount,
-		PaymentMethodTxnParams:    m.PaymentMethodTxnParams,
-		PaymentRequisites:         m.PaymentRequisites,
-		UserAddressDataRequired:   m.UserAddressDataRequired,
-		Products:                  m.Products,
-		IsNotificationsSent:       m.IsNotificationsSent,
-		CountryRestriction:        m.CountryRestriction,
-		ParentOrder:               m.ParentOrder,
-		Type:                      m.Type,
-		IsVatDeduction:            m.IsVatDeduction,
-		CountryCode:               m.GetCountry(),
-		ProductType:               m.ProductType,
-		PlatformId:                m.PlatformId,
-		Keys:                      m.Keys,
-		IsKeyProductNotified:      m.IsKeyProductNotified,
-		ReceiptId:                 m.ReceiptId,
-		IsBuyForVirtualCurrency:   m.IsBuyForVirtualCurrency,
-		MccCode:                   m.MccCode,
-		OperatingCompanyId:        m.OperatingCompanyId,
-		IsHighRisk:                m.IsHighRisk,
+		ProjectOrderId:              m.ProjectOrderId,
+		ProjectAccount:              m.ProjectAccount,
+		ProjectParams:               m.ProjectParams,
+		IsJsonRequest:               m.IsJsonRequest,
+		OrderAmount:                 m.OrderAmount,
+		PaymentMethodPayerAccount:   m.PaymentMethodPayerAccount,
+		PaymentMethodTxnParams:      m.PaymentMethodTxnParams,
+		PaymentRequisites:           m.PaymentRequisites,
+		UserAddressDataRequired:     m.UserAddressDataRequired,
+		Products:                    m.Products,
+		IsNotificationsSent:         m.IsNotificationsSent,
+		CountryRestriction:          m.CountryRestriction,
+		ParentOrder:                 m.ParentOrder,
+		Type:                        m.Type,
+		IsVatDeduction:              m.IsVatDeduction,
+		CountryCode:                 m.GetCountry(),
+		ProductType:                 m.ProductType,
+		PlatformId:                  m.PlatformId,
+		Keys:                        m.Keys,
+		IsKeyProductNotified:        m.IsKeyProductNotified,
+		ReceiptId:                   m.ReceiptId,
+		IsBuyForVirtualCurrency:     m.IsBuyForVirtualCurrency,
+		MccCode:                     m.MccCode,
+		OperatingCompanyId:          m.OperatingCompanyId,
+		IsHighRisk:                  m.IsHighRisk,
+		ChargeCurrency:              m.ChargeCurrency,
+		ChargeAmount:                m.ChargeAmount,
+		PaymentIpCountry:            m.PaymentIpCountry,
+		IsIpCountryMismatchBin:      m.IsIpCountryMismatchBin,
+		BillingCountryChangedByUser: m.BillingCountryChangedByUser,
+		IsRefundAllowed:             m.IsRefundAllowed,
 	}
 
 	if m.Refund != nil {
@@ -1942,6 +1954,12 @@ func (m *Order) UnmarshalBSON(raw []byte) error {
 	m.MccCode = decoded.MccCode
 	m.OperatingCompanyId = decoded.OperatingCompanyId
 	m.IsHighRisk = decoded.IsHighRisk
+	m.ChargeCurrency = decoded.ChargeCurrency
+	m.ChargeAmount = decoded.ChargeAmount
+	m.PaymentIpCountry = decoded.PaymentIpCountry
+	m.IsIpCountryMismatchBin = decoded.IsIpCountryMismatchBin
+	m.BillingCountryChangedByUser = decoded.BillingCountryChangedByUser
+	m.IsRefundAllowed = decoded.IsRefundAllowed
 
 	if decoded.Refund != nil {
 		m.Refund = &OrderNotificationRefund{
@@ -2074,7 +2092,18 @@ func (m *PaymentMethod) MarshalBSON() ([]byte, error) {
 	}
 
 	if m.TestSettings != nil {
+		check := make(map[string]bool)
+
 		for _, value := range m.TestSettings {
+
+			key := pkg.GetPaymentMethodKey(value.Currency, value.MccCode, value.OperatingCompanyId, "")
+
+			if check[key] == true {
+				continue
+			}
+
+			check[key] = true
+
 			st.TestSettings = append(st.TestSettings, &MgoPaymentMethodParam{
 				Currency:           value.Currency,
 				TerminalId:         value.TerminalId,
@@ -2083,12 +2112,24 @@ func (m *PaymentMethod) MarshalBSON() ([]byte, error) {
 				ApiUrl:             value.ApiUrl,
 				MccCode:            value.MccCode,
 				OperatingCompanyId: value.OperatingCompanyId,
+				Brand:              value.Brand,
 			})
 		}
 	}
 
 	if m.ProductionSettings != nil {
+		check := make(map[string]bool)
+
 		for _, value := range m.ProductionSettings {
+
+			key := pkg.GetPaymentMethodKey(value.Currency, value.MccCode, value.OperatingCompanyId, "")
+
+			if check[key] == true {
+				continue
+			}
+
+			check[key] = true
+
 			st.ProductionSettings = append(st.ProductionSettings, &MgoPaymentMethodParam{
 				Currency:           value.Currency,
 				TerminalId:         value.TerminalId,
@@ -2097,6 +2138,7 @@ func (m *PaymentMethod) MarshalBSON() ([]byte, error) {
 				ApiUrl:             value.ApiUrl,
 				MccCode:            value.MccCode,
 				OperatingCompanyId: value.OperatingCompanyId,
+				Brand:              value.Brand,
 			})
 		}
 	}
@@ -2162,9 +2204,7 @@ func (m *PaymentMethod) UnmarshalBSON(raw []byte) error {
 		pmp := make(map[string]*PaymentMethodParams, len(decoded.TestSettings))
 		for _, value := range decoded.TestSettings {
 
-			key := fmt.Sprintf(pkg.PaymentMethodKey, value.Currency, value.MccCode, value.OperatingCompanyId)
-
-			pmp[key] = &PaymentMethodParams{
+			params := &PaymentMethodParams{
 				Currency:           value.Currency,
 				TerminalId:         value.TerminalId,
 				Secret:             value.Secret,
@@ -2172,7 +2212,17 @@ func (m *PaymentMethod) UnmarshalBSON(raw []byte) error {
 				ApiUrl:             value.ApiUrl,
 				MccCode:            value.MccCode,
 				OperatingCompanyId: value.OperatingCompanyId,
+				Brand:              value.Brand,
 			}
+
+			key := pkg.GetPaymentMethodKey(value.Currency, value.MccCode, value.OperatingCompanyId, "")
+			pmp[key] = params
+
+			for _, brand := range value.Brand {
+				key := pkg.GetPaymentMethodKey(value.Currency, value.MccCode, value.OperatingCompanyId, brand)
+				pmp[key] = params
+			}
+
 		}
 		m.TestSettings = pmp
 	}
@@ -2181,9 +2231,7 @@ func (m *PaymentMethod) UnmarshalBSON(raw []byte) error {
 		pmp := make(map[string]*PaymentMethodParams, len(decoded.ProductionSettings))
 		for _, value := range decoded.ProductionSettings {
 
-			key := fmt.Sprintf(pkg.PaymentMethodKey, value.Currency, value.MccCode, value.OperatingCompanyId)
-
-			pmp[key] = &PaymentMethodParams{
+			params := &PaymentMethodParams{
 				Currency:           value.Currency,
 				TerminalId:         value.TerminalId,
 				Secret:             value.Secret,
@@ -2191,6 +2239,15 @@ func (m *PaymentMethod) UnmarshalBSON(raw []byte) error {
 				ApiUrl:             value.ApiUrl,
 				MccCode:            value.MccCode,
 				OperatingCompanyId: value.OperatingCompanyId,
+				Brand:              value.Brand,
+			}
+
+			key := pkg.GetPaymentMethodKey(value.Currency, value.MccCode, value.OperatingCompanyId, "")
+			pmp[key] = params
+
+			for _, brand := range value.Brand {
+				key := pkg.GetPaymentMethodKey(value.Currency, value.MccCode, value.OperatingCompanyId, brand)
+				pmp[key] = params
 			}
 		}
 		m.ProductionSettings = pmp

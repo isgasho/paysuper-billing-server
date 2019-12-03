@@ -80,13 +80,13 @@ func (_m *PaymentMethodInterface) GetById(_a0 context.Context, _a1 string) (*bil
 	return r0, r1
 }
 
-// GetPaymentSettings provides a mock function with given fields: paymentMethod, currency, mccCode, operatingCompanyId, project
-func (_m *PaymentMethodInterface) GetPaymentSettings(paymentMethod *billing.PaymentMethod, currency string, mccCode string, operatingCompanyId string, project *billing.Project) (*billing.PaymentMethodParams, error) {
-	ret := _m.Called(paymentMethod, currency, mccCode, operatingCompanyId, project)
+// GetPaymentSettings provides a mock function with given fields: paymentMethod, currency, mccCode, operatingCompanyId, paymentMethodBrand, project
+func (_m *PaymentMethodInterface) GetPaymentSettings(paymentMethod *billing.PaymentMethod, currency string, mccCode string, operatingCompanyId string, paymentMethodBrand string, project *billing.Project) (*billing.PaymentMethodParams, error) {
+	ret := _m.Called(paymentMethod, currency, mccCode, operatingCompanyId, paymentMethodBrand, project)
 
 	var r0 *billing.PaymentMethodParams
-	if rf, ok := ret.Get(0).(func(*billing.PaymentMethod, string, string, string, *billing.Project) *billing.PaymentMethodParams); ok {
-		r0 = rf(paymentMethod, currency, mccCode, operatingCompanyId, project)
+	if rf, ok := ret.Get(0).(func(*billing.PaymentMethod, string, string, string, string, *billing.Project) *billing.PaymentMethodParams); ok {
+		r0 = rf(paymentMethod, currency, mccCode, operatingCompanyId, paymentMethodBrand, project)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*billing.PaymentMethodParams)
@@ -94,8 +94,8 @@ func (_m *PaymentMethodInterface) GetPaymentSettings(paymentMethod *billing.Paym
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*billing.PaymentMethod, string, string, string, *billing.Project) error); ok {
-		r1 = rf(paymentMethod, currency, mccCode, operatingCompanyId, project)
+	if rf, ok := ret.Get(1).(func(*billing.PaymentMethod, string, string, string, string, *billing.Project) error); ok {
+		r1 = rf(paymentMethod, currency, mccCode, operatingCompanyId, paymentMethodBrand, project)
 	} else {
 		r1 = ret.Error(1)
 	}
