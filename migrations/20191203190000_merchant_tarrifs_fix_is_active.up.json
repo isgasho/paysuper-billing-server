@@ -1,0 +1,86 @@
+[
+  {
+    "update": "merchants_payment_tariffs",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$set": {
+            "is_active": false
+          }
+        },
+        "multi": true
+      },
+      {
+        "q": {
+          "method_name": "VISA"
+        },
+        "u": {
+          "$set": {
+            "is_active": true
+          }
+        },
+        "multi": true
+      },
+      {
+        "q": {
+          "method_name": "Mastercard"
+        },
+        "u": {
+          "$set": {
+            "is_active": true
+          }
+        },
+        "multi": true
+      },
+      {
+        "q": {
+          "method_name": "DirectBanking EU"
+        },
+        "u": {
+          "$set": {
+            "is_active": true
+          }
+        },
+        "multi": true
+      },
+      {
+        "q": {
+          "method_name": "Alipay",
+          "mcc_code": "5816"
+        },
+        "u": {
+          "$set": {
+            "is_active": true
+          }
+        },
+        "multi": true
+      },
+      {
+        "q": {
+          "method_name": "Bitcoin",
+          "mcc_code": "5816"
+        },
+        "u": {
+          "$set": {
+            "is_active": true
+          }
+        },
+        "multi": true
+      },
+      {
+        "q": {
+          "method_name": "JCB",
+          "mcc_code": "5816"
+        },
+        "u": {
+          "$set": {
+            "is_active": true
+          }
+        },
+        "multi": true
+      }
+    ]
+  }
+]
+
