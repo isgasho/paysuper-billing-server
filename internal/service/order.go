@@ -4638,8 +4638,17 @@ func (s *Service) setOrderChargeAmountAndCurrency(ctx context.Context, order *bi
 		return nil
 	}
 
+	if order.PaymentMethod == nil {
+		return nil
+	}
+
 	binCountryCode, ok := order.PaymentRequisites[pkg.PaymentCreateBankCardFieldIssuerCountryIsoCode]
 	if !ok || binCountryCode == "" {
+		return nil
+	}
+
+	binCardBrand, ok := order.PaymentRequisites[pkg.PaymentCreateBankCardFieldBrand]
+	if !ok || binCardBrand == "" {
 		return nil
 	}
 
@@ -4667,6 +4676,22 @@ func (s *Service) setOrderChargeAmountAndCurrency(ctx context.Context, order *bi
 		return err
 	}
 	if !contains(sCurr.Currencies, binCountry.Currency) {
+		return nil
+	}
+
+	// check that we have terminal in payment method for bin country currency
+	project, err := s.project.GetById(ctx, order.Project.Id)
+	if err != nil {
+		return nil
+	}
+
+	pm, err := s.paymentMethod.GetById(ctx, order.PaymentMethod.Id)
+	if err != nil {
+		return nil
+	}
+
+	_, err = s.paymentMethod.GetPaymentSettings(pm, binCountry.Currency, order.MccCode, order.OperatingCompanyId, binCardBrand, project)
+	if err != nil {
 		return nil
 	}
 
