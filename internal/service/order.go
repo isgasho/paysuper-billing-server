@@ -1201,6 +1201,8 @@ func (s *Service) PaymentCallbackProcess(
 			return err
 		}
 
+		s.sendMailWithReceipt(ctx, order)
+
 		if h.IsRecurringCallback(data) {
 			s.saveRecurringCard(ctx, order, h.GetRecurringId(data))
 		}
@@ -1673,10 +1675,6 @@ func (s *Service) orderNotifyKeyProducts(ctx context.Context, order *billing.Ord
 func (s *Service) sendMailWithReceipt(ctx context.Context, order *billing.Order) {
 	payload := s.getPayloadForReceipt(ctx, order)
 
-	if order.Type == pkg.OrderTypeRefund {
-		payload.TemplateAlias = s.cfg.EmailRefundTransactionTemplate
-	}
-
 	zap.S().Infow("sending receipt to broker", "order_id", order.Id, "topic", postmarkSdrPkg.PostmarkSenderTopicName)
 	err := s.postmarkBroker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 	if err != nil {
@@ -1731,8 +1729,13 @@ func (s *Service) getPayloadForReceipt(ctx context.Context, order *billing.Order
 		paymentPartner = oc.Name
 	}
 
+	template := s.cfg.EmailSuccessTransactionTemplate
+	if order.Type == pkg.OrderTypeRefund {
+		template = s.cfg.EmailRefundTransactionTemplate
+	}
+
 	payload := &postmarkSdrPkg.Payload{
-		TemplateAlias: s.cfg.EmailSuccessTransactionTemplate,
+		TemplateAlias: template,
 		TemplateModel: map[string]string{
 			"total_price":      totalPrice,
 			"transaction_id":   order.Uuid,
