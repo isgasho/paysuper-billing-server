@@ -1001,6 +1001,10 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(ctx context.Conte
 		h.orderViewUpdateIds[ae.Source.Id] = true
 	}
 
+	if len(operations) == 0 {
+		return nil
+	}
+
 	bulkResult, err := h.Service.db.Collection(collectionAccountingEntry).BulkWrite(h.ctx, operations)
 
 	if err != nil {
