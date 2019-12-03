@@ -811,6 +811,8 @@ message ProcessBillingAddressResponseItem {
     double charge_amount = 9;
     // @inject_tag: json:"vat_in_charge_currency"
     double vat_in_charge_currency = 10;
+    // @inject_tag: json:"country_change_allowed"
+    bool country_change_allowed = 11;
 }
 
 message ProcessBillingAddressResponse {

@@ -6085,6 +6085,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequi
 			pkg.PaymentCreateFieldHolder:          "Mr. Card Holder",
 			pkg.PaymentCreateFieldUserCountry:     "US",
 			pkg.PaymentCreateFieldUserCity:        "Washington",
+			pkg.PaymentCreateFieldUserZip:         "000000",
 		},
 	}
 
@@ -6094,7 +6095,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequi
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.RedirectUrl)
-	assert.Equal(suite.T(), orderErrorCreatePaymentRequiredFieldUserZipNotFound, rsp1.Message)
+	assert.Equal(suite.T(), orderErrorZipCodeNotFound, rsp1.Message)
 
 	order1, err := suite.service.getOrderByUuid(context.TODO(), rsp.Uuid)
 	assert.NoError(suite.T(), err)
@@ -7239,7 +7240,7 @@ func (suite *OrderTestSuite) TestBillingService_PaymentCreateProcess_CountryRest
 	assert.Equal(suite.T(), orderCountryPaymentRestrictedError, rsp.Message)
 }
 
-func (suite *OrderTestSuite) TestOrder_ProcessBillingAddress_USAZipIsEmpty_Error() {
+func (suite *OrderTestSuite) TestOrder_ProcessBillingAddress_USAZipIsUnknown_Error() {
 	req := &billing.OrderCreateRequest{
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
@@ -7268,12 +7269,13 @@ func (suite *OrderTestSuite) TestOrder_ProcessBillingAddress_USAZipIsEmpty_Error
 	req1 := &grpc.ProcessBillingAddressRequest{
 		OrderId: rsp.Uuid,
 		Country: "US",
+		Zip:     "111111",
 	}
 	rsp1 := &grpc.ProcessBillingAddressResponse{}
 	err = suite.service.ProcessBillingAddress(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
-	assert.Equal(suite.T(), orderErrorCreatePaymentRequiredFieldUserZipNotFound, rsp1.Message)
+	assert.Equal(suite.T(), orderErrorZipCodeNotFound, rsp1.Message)
 	assert.Nil(suite.T(), rsp1.Item)
 }
 
@@ -8174,7 +8176,7 @@ func (suite *OrderTestSuite) TestOrder_RefundReceipt_Ok() {
 
 	urlsSent := map[string]bool{
 		refundOrder.ReceiptUrl: false,
-		order.ReceiptUrl: false,
+		order.ReceiptUrl:       false,
 	}
 	for _, v := range messages {
 		if v.Entry.Message != "order_test_refund" {

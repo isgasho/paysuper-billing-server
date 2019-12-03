@@ -106,7 +106,6 @@ var (
 	orderErrorCreatePaymentRequiredFieldPaymentMethodNotFound = newBillingServerErrorMsg("fm000043", "required field with payment Method identifier not found")
 	orderErrorCreatePaymentRequiredFieldEmailNotFound         = newBillingServerErrorMsg("fm000044", "required field \"email\" not found")
 	orderErrorCreatePaymentRequiredFieldUserCountryNotFound   = newBillingServerErrorMsg("fm000045", "user country is required")
-	orderErrorCreatePaymentRequiredFieldUserZipNotFound       = newBillingServerErrorMsg("fm000046", "user zip is required")
 	orderErrorOrderAlreadyComplete                            = newBillingServerErrorMsg("fm000047", "order with specified identifier payed early")
 	orderErrorSignatureInvalid                                = newBillingServerErrorMsg("fm000048", "request signature is invalid")
 	orderErrorZipCodeNotFound                                 = newBillingServerErrorMsg("fm000050", "zip_code not found")
@@ -133,6 +132,7 @@ var (
 	orderErrorAlreadyProcessed                                = newBillingServerErrorMsg("fm000073", "order is already processed")
 	orderErrorDontHaveReceiptUrl                              = newBillingServerErrorMsg("fm000074", "processed order don't have receipt url")
 	orderErrorWrongPrivateStatus                              = newBillingServerErrorMsg("fm000075", "order has wrong private status and cannot be recreated")
+	orderCountryChangeRestrictedError                         = newBillingServerErrorMsg("fm000076", "change country is not allowed")
 
 	virtualCurrencyPayoutCurrencyMissed = newBillingServerErrorMsg("vc000001", "virtual currency don't have price in merchant payout currency")
 
@@ -561,12 +561,12 @@ func (s *Service) PaymentFormJsonDataProcess(
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = &grpc.PaymentFormJsonData{}
 
-	order, err := s.getOrderByUuid(ctx, req.OrderId)
+	order, err := s.getOrderByUuidToForm(ctx, req.OrderId)
 
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = e
 			return nil
 		}
@@ -1543,14 +1543,7 @@ func (s *Service) ProcessBillingAddress(
 	var err error
 	var zip *billing.ZipCode
 
-	if req.Country == CountryCodeUSA {
-		if req.Zip == "" {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = orderErrorCreatePaymentRequiredFieldUserZipNotFound
-
-			return nil
-		}
-
+	if req.Country == CountryCodeUSA && req.Zip != "" {
 		zip, err = s.zipCode.getByZipAndCountry(ctx, req.Zip, req.Country)
 
 		if err != nil {
@@ -1575,23 +1568,26 @@ func (s *Service) ProcessBillingAddress(
 
 	initialCountry := order.GetCountry()
 
-	if order.CountryRestriction != nil && order.CountryRestriction.ChangeAllowed != true {
-		rsp.Status = pkg.ResponseStatusForbidden
-		rsp.Message = orderCountryPaymentRestrictedError
-		return nil
-	}
-
-	order.BillingAddress = &billing.OrderBillingAddress{
+	billingAddress := &billing.OrderBillingAddress{
 		Country: req.Country,
 	}
 
 	if zip != nil {
-		order.BillingAddress.PostalCode = zip.Zip
-		order.BillingAddress.City = zip.City
-		order.BillingAddress.State = zip.State.Code
+		billingAddress.Country = zip.Country
+		billingAddress.PostalCode = zip.Zip
+		billingAddress.City = zip.City
+		billingAddress.State = zip.State.Code
 	}
 
-	restricted, err := s.applyCountryRestriction(ctx, order, req.Country)
+	if !order.CountryChangeAllowed() && initialCountry != billingAddress.Country {
+		rsp.Status = pkg.ResponseStatusForbidden
+		rsp.Message = orderCountryChangeRestrictedError
+		return nil
+	}
+
+	order.BillingAddress = billingAddress
+
+	restricted, err := s.applyCountryRestriction(ctx, order, billingAddress.Country)
 	if err != nil {
 		zap.L().Error(
 			"s.applyCountryRestriction Method failed",
@@ -1632,7 +1628,7 @@ func (s *Service) ProcessBillingAddress(
 	if err == nil {
 		customer.Ip = req.Ip
 		customer.IpCountry = address.Country
-		customer.SelectedCountry = req.Country
+		customer.SelectedCountry = billingAddress.Country
 		customer.UpdatedAt = time.Now()
 
 		cookie, err = s.generateBrowserCookie(customer)
@@ -1684,7 +1680,7 @@ func (s *Service) ProcessBillingAddress(
 		return nil
 	}
 
-	order.BillingCountryChangedByUser = initialCountry != order.GetCountry()
+	order.BillingCountryChangedByUser = order.BillingCountryChangedByUser == true || initialCountry != order.GetCountry()
 
 	err = s.updateOrder(ctx, order)
 
@@ -1701,15 +1697,16 @@ func (s *Service) ProcessBillingAddress(
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Cookie = cookie
 	rsp.Item = &grpc.ProcessBillingAddressResponseItem{
-		HasVat:              order.Tax.Rate > 0,
-		Vat:                 tools.FormatAmount(order.Tax.Amount),
-		VatInChargeCurrency: tools.FormatAmount(order.GetTaxAmountInChargeCurrency()),
-		Amount:              tools.FormatAmount(order.OrderAmount),
-		TotalAmount:         tools.FormatAmount(order.TotalPaymentAmount),
-		Currency:            order.Currency,
-		ChargeCurrency:      order.ChargeCurrency,
-		ChargeAmount:        tools.FormatAmount(order.ChargeAmount),
-		Items:               order.Items,
+		HasVat:               order.Tax.Rate > 0,
+		Vat:                  tools.FormatAmount(order.Tax.Amount),
+		VatInChargeCurrency:  tools.FormatAmount(order.GetTaxAmountInChargeCurrency()),
+		Amount:               tools.FormatAmount(order.OrderAmount),
+		TotalAmount:          tools.FormatAmount(order.TotalPaymentAmount),
+		Currency:             order.Currency,
+		ChargeCurrency:       order.ChargeCurrency,
+		ChargeAmount:         tools.FormatAmount(order.ChargeAmount),
+		Items:                order.Items,
+		CountryChangeAllowed: order.CountryChangeAllowed(),
 	}
 
 	return nil
@@ -2998,18 +2995,17 @@ func (v *PaymentCreateProcessor) processPaymentFormData(ctx context.Context) err
 		if country == CountryCodeUSA {
 			zip, ok := v.data[pkg.PaymentCreateFieldUserZip]
 
-			if !ok || zip == "" {
-				return orderErrorCreatePaymentRequiredFieldUserZipNotFound
+			if ok && zip != "" {
+
+				zipData, err := v.service.zipCode.getByZipAndCountry(ctx, zip, country)
+
+				if err != nil {
+					return orderErrorZipCodeNotFound
+				}
+
+				v.data[pkg.PaymentCreateFieldUserCity] = zipData.City
+				v.data[pkg.PaymentCreateFieldUserState] = zipData.State.Code
 			}
-
-			zipData, err := v.service.zipCode.getByZipAndCountry(ctx, zip, country)
-
-			if err != nil {
-				return orderErrorZipCodeNotFound
-			}
-
-			v.data[pkg.PaymentCreateFieldUserCity] = zipData.City
-			v.data[pkg.PaymentCreateFieldUserState] = zipData.State.Code
 		}
 	}
 
