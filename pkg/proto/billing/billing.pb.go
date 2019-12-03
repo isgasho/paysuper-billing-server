@@ -6829,38 +6829,38 @@ type Country struct {
 	Region string `protobuf:"bytes,3,opt,name=region,proto3" json:"region" bson:"region" validate:"required"`
 	//@inject_tag: json:"currency" bson:"currency" validate:"required,alpha,len=3"
 	Currency string `protobuf:"bytes,4,opt,name=currency,proto3" json:"currency" bson:"currency" validate:"required,alpha,len=3"`
-	//@inject_tag: json:"-" bson:"payments_allowed"
-	PaymentsAllowed bool `protobuf:"varint,5,opt,name=payments_allowed,json=paymentsAllowed,proto3" json:"-" bson:"payments_allowed"`
-	//@inject_tag: json:"-" bson:"change_allowed"
-	ChangeAllowed bool `protobuf:"varint,6,opt,name=change_allowed,json=changeAllowed,proto3" json:"-" bson:"change_allowed"`
-	//@inject_tag: json:"-" bson:"vat_enabled"
-	VatEnabled bool `protobuf:"varint,7,opt,name=vat_enabled,json=vatEnabled,proto3" json:"-" bson:"vat_enabled"`
-	//@inject_tag: json:"-" bson:"vat_currency" validate:"omitempty,alpha,len=3"
-	VatCurrency string `protobuf:"bytes,8,opt,name=vat_currency,json=vatCurrency,proto3" json:"-" bson:"vat_currency" validate:"omitempty,alpha,len=3"`
-	//@inject_tag: json:"-" bson:"price_group_id" validate:"required,hexadecimal,len=24"
-	PriceGroupId string `protobuf:"bytes,9,opt,name=price_group_id,json=priceGroupId,proto3" json:"-" bson:"price_group_id" validate:"required,hexadecimal,len=24"`
-	// @inject_tag: json:"-" bson:"vat_threshold" validate:"required,dive"
-	VatThreshold *CountryVatThreshold `protobuf:"bytes,10,opt,name=vat_threshold,json=vatThreshold,proto3" json:"-" bson:"vat_threshold" validate:"required,dive"`
-	// @inject_tag: json:"-" bson:"vat_period_month" validate:"numeric,gte=0,lte=12"
-	VatPeriodMonth int32 `protobuf:"varint,11,opt,name=vat_period_month,json=vatPeriodMonth,proto3" json:"-" bson:"vat_period_month" validate:"numeric,gte=0,lte=12"`
-	// @inject_tag: json:"-" bson:"vat_deadline_days" validate:"numeric,gte=0"
-	VatDeadlineDays int32 `protobuf:"varint,12,opt,name=vat_deadline_days,json=vatDeadlineDays,proto3" json:"-" bson:"vat_deadline_days" validate:"numeric,gte=0"`
-	// @inject_tag: json:"-" bson:"vat_store_years" validate:"numeric,gte=0"
-	VatStoreYears int32 `protobuf:"varint,13,opt,name=vat_store_years,json=vatStoreYears,proto3" json:"-" bson:"vat_store_years" validate:"numeric,gte=0"`
-	// @inject_tag: json:"-" bson:"vat_currency_rates_policy" validate:"omitempty,oneof=on-day last-day mid-month"
-	VatCurrencyRatesPolicy string `protobuf:"bytes,14,opt,name=vat_currency_rates_policy,json=vatCurrencyRatesPolicy,proto3" json:"-" bson:"vat_currency_rates_policy" validate:"omitempty,oneof=on-day last-day mid-month"`
-	// @inject_tag: json:"-" bson:"vat_currency_rates_source" validate:"alpha"
-	VatCurrencyRatesSource string `protobuf:"bytes,15,opt,name=vat_currency_rates_source,json=vatCurrencyRatesSource,proto3" json:"-" bson:"vat_currency_rates_source" validate:"alpha"`
+	//@inject_tag: json:"payments_allowed" bson:"payments_allowed"
+	PaymentsAllowed bool `protobuf:"varint,5,opt,name=payments_allowed,json=paymentsAllowed,proto3" json:"payments_allowed" bson:"payments_allowed"`
+	//@inject_tag: json:"change_allowed" bson:"change_allowed"
+	ChangeAllowed bool `protobuf:"varint,6,opt,name=change_allowed,json=changeAllowed,proto3" json:"change_allowed" bson:"change_allowed"`
+	//@inject_tag: json:"vat_enabled" bson:"vat_enabled"
+	VatEnabled bool `protobuf:"varint,7,opt,name=vat_enabled,json=vatEnabled,proto3" json:"vat_enabled" bson:"vat_enabled"`
+	//@inject_tag: json:"vat_currency" bson:"vat_currency" validate:"omitempty,alpha,len=3"
+	VatCurrency string `protobuf:"bytes,8,opt,name=vat_currency,json=vatCurrency,proto3" json:"vat_currency" bson:"vat_currency" validate:"omitempty,alpha,len=3"`
+	//@inject_tag: json:"price_group_id" bson:"price_group_id" validate:"required,hexadecimal,len=24"
+	PriceGroupId string `protobuf:"bytes,9,opt,name=price_group_id,json=priceGroupId,proto3" json:"price_group_id" bson:"price_group_id" validate:"required,hexadecimal,len=24"`
+	// @inject_tag: json:"vat_threshold" bson:"vat_threshold" validate:"required,dive"
+	VatThreshold *CountryVatThreshold `protobuf:"bytes,10,opt,name=vat_threshold,json=vatThreshold,proto3" json:"vat_threshold" bson:"vat_threshold" validate:"required,dive"`
+	// @inject_tag: json:"vat_period_month" bson:"vat_period_month" validate:"numeric,gte=0,lte=12"
+	VatPeriodMonth int32 `protobuf:"varint,11,opt,name=vat_period_month,json=vatPeriodMonth,proto3" json:"vat_period_month" bson:"vat_period_month" validate:"numeric,gte=0,lte=12"`
+	// @inject_tag: json:"vat_deadline_days" bson:"vat_deadline_days" validate:"numeric,gte=0"
+	VatDeadlineDays int32 `protobuf:"varint,12,opt,name=vat_deadline_days,json=vatDeadlineDays,proto3" json:"vat_deadline_days" bson:"vat_deadline_days" validate:"numeric,gte=0"`
+	// @inject_tag: json:"vat_store_years" bson:"vat_store_years" validate:"numeric,gte=0"
+	VatStoreYears int32 `protobuf:"varint,13,opt,name=vat_store_years,json=vatStoreYears,proto3" json:"vat_store_years" bson:"vat_store_years" validate:"numeric,gte=0"`
+	// @inject_tag: json:"vat_currency_rates_policy" bson:"vat_currency_rates_policy" validate:"omitempty,oneof=on-day last-day mid-month"
+	VatCurrencyRatesPolicy string `protobuf:"bytes,14,opt,name=vat_currency_rates_policy,json=vatCurrencyRatesPolicy,proto3" json:"vat_currency_rates_policy" bson:"vat_currency_rates_policy" validate:"omitempty,oneof=on-day last-day mid-month"`
+	// @inject_tag: json:"vat_currency_rates_source" bson:"vat_currency_rates_source" validate:"alpha"
+	VatCurrencyRatesSource string `protobuf:"bytes,15,opt,name=vat_currency_rates_source,json=vatCurrencyRatesSource,proto3" json:"vat_currency_rates_source" bson:"vat_currency_rates_source" validate:"alpha"`
 	//@inject_tag: json:"-" bson:"created_at"
 	CreatedAt *timestamp.Timestamp `protobuf:"bytes,16,opt,name=created_at,json=createdAt,proto3" json:"-" bson:"created_at"`
 	//@inject_tag: json:"-" bson:"updated_at"
 	UpdatedAt *timestamp.Timestamp `protobuf:"bytes,17,opt,name=updated_at,json=updatedAt,proto3" json:"-" bson:"updated_at"`
-	//@inject_tag: json:"-" bson:"payer_tariff_region"
-	PayerTariffRegion string `protobuf:"bytes,18,opt,name=payer_tariff_region,json=payerTariffRegion,proto3" json:"-" bson:"payer_tariff_region"`
-	//@inject_tag: json:"-" bson:"high_risk_payments_allowed"
-	HighRiskPaymentsAllowed bool `protobuf:"varint,19,opt,name=high_risk_payments_allowed,json=highRiskPaymentsAllowed,proto3" json:"-" bson:"high_risk_payments_allowed"`
-	//@inject_tag: json:"-" bson:"high_risk_change_allowed"
-	HighRiskChangeAllowed bool     `protobuf:"varint,20,opt,name=high_risk_change_allowed,json=highRiskChangeAllowed,proto3" json:"-" bson:"high_risk_change_allowed"`
+	//@inject_tag: json:"payer_tariff_region" bson:"payer_tariff_region"
+	PayerTariffRegion string `protobuf:"bytes,18,opt,name=payer_tariff_region,json=payerTariffRegion,proto3" json:"payer_tariff_region" bson:"payer_tariff_region"`
+	//@inject_tag: json:"high_risk_payments_allowed" bson:"high_risk_payments_allowed"
+	HighRiskPaymentsAllowed bool `protobuf:"varint,19,opt,name=high_risk_payments_allowed,json=highRiskPaymentsAllowed,proto3" json:"high_risk_payments_allowed" bson:"high_risk_payments_allowed"`
+	//@inject_tag: json:"high_risk_change_allowed" bson:"high_risk_change_allowed"
+	HighRiskChangeAllowed bool     `protobuf:"varint,20,opt,name=high_risk_change_allowed,json=highRiskChangeAllowed,proto3" json:"high_risk_change_allowed" bson:"high_risk_change_allowed"`
 	XXX_NoUnkeyedLiteral  struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized      []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache         int32    `json:"-" bson:"-" structure:"-" validate:"-"`
