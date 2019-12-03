@@ -280,8 +280,7 @@ func (s *Service) ListRoyaltyReports(
 
 		return nil
 	}
-	fmt.Println(query)
-	fmt.Println(count)
+
 	if count <= 0 {
 		rsp.Data = &grpc.RoyaltyReportsPaginate{}
 		return nil
