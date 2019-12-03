@@ -1,0 +1,72 @@
+[
+  {
+    "update": "order",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$set": {
+            "billing_country_changed_by_user": false
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "update": "order",
+    "updates": [
+      {
+        "q": {
+          "billing_address": {
+            "$ne": null
+          },
+          "billing_address.country": {
+            "$ne": ""
+          }
+        },
+        "u": {
+          "$set": {
+            "billing_country_changed_by_user": true
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "update": "order_view",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$set": {
+            "billing_country_changed_by_user": false
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "update": "order_view",
+    "updates": [
+      {
+        "q": {
+          "billing_address": {
+            "$ne": null
+          },
+          "billing_address.country": {
+            "$ne": ""
+          }
+        },
+        "u": {
+          "$set": {
+            "billing_country_changed_by_user": true
+          }
+        },
+        "multi": true
+      }
+    ]
+  }
+]

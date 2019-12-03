@@ -363,7 +363,7 @@ func (suite *TokenTestSuite) SetupTest() {
 	suite.service = NewBillingService(
 		db,
 		cfg,
-		nil,
+		mocks.NewGeoIpServiceTestOk(),
 		nil,
 		nil,
 		nil,
@@ -421,7 +421,7 @@ func (suite *TokenTestSuite) SetupTest() {
 	suite.product2 = product2
 	suite.product3 = product3
 
-	suite.keyProducts = createKeyProductsFroProject(suite.Suite, suite.service, suite.project, 3)
+	suite.keyProducts = createKeyProductsForProject(suite.Suite, suite.service, suite.project, 3)
 }
 
 func (suite *TokenTestSuite) TearDownTest() {

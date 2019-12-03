@@ -245,7 +245,7 @@ func (suite *VatReportsTestSuite) TestVatReports_ProcessVatReports() {
 	assert.NoError(suite.T(), err)
 
 	for _, order := range orders {
-		refund := helperMakeRefund(suite.Suite, suite.service, order, order.TotalPaymentAmount*0.5, false)
+		refund := helperMakeRefund(suite.Suite, suite.service, order, order.ChargeAmount*0.5, false)
 		assert.NotNil(suite.T(), refund)
 	}
 

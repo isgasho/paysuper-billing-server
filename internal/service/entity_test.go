@@ -94,7 +94,7 @@ func (suite *EntityTestSuite) SetupTest() {
 		Status:             pkg.ProjectStatusInProduction,
 	}
 
-	keyRub := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
+	keyRub := pkg.GetPaymentMethodKey("RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "")
 
 	pmBankCard := &billing.PaymentMethod{
 		Id:               primitive.NewObjectID().Hex(),

@@ -52,9 +52,9 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 
 	operatingCompany := helperOperatingCompany(suite, service)
 
-	keyRub := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, operatingCompany.Id)
-	keyUsd := fmt.Sprintf(pkg.PaymentMethodKey, "USD", pkg.MccCodeLowRisk, operatingCompany.Id)
-	keyEur := fmt.Sprintf(pkg.PaymentMethodKey, "EUR", pkg.MccCodeLowRisk, operatingCompany.Id)
+	keyRub := pkg.GetPaymentMethodKey("RUB", pkg.MccCodeLowRisk, operatingCompany.Id, "")
+	keyUsd := pkg.GetPaymentMethodKey("USD", pkg.MccCodeLowRisk, operatingCompany.Id, "")
+	keyEur := pkg.GetPaymentMethodKey("EUR", pkg.MccCodeLowRisk, operatingCompany.Id, "")
 
 	paymentSystem := &billing.PaymentSystem{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -81,6 +81,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 				Currency:           "RUB",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
 			keyUsd: {
 				TerminalId:         "15985",
@@ -89,6 +90,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 				Currency:           "USD",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
 			keyEur: {
 				TerminalId:         "15985",
@@ -97,6 +99,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 				Currency:           "EUR",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
 		},
 		TestSettings: map[string]*billing.PaymentMethodParams{
@@ -107,6 +110,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 				Currency:           "RUB",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
 			keyUsd: {
 				TerminalId:         "15985",
@@ -115,6 +119,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 				Currency:           "USD",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
 			keyEur: {
 				TerminalId:         "15985",
@@ -123,6 +128,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 				Currency:           "EUR",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
 		},
 		Type:            "bank_card",
@@ -144,7 +150,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		CardCategory:       "WORLD",
 		BankName:           "ALFA BANK",
 		BankCountryName:    "UKRAINE",
-		BankCountryIsoCode: "US",
+		BankCountryIsoCode: "UA",
 	}
 
 	_, err = service.db.Collection(collectionBinData).InsertOne(context.TODO(), bin)
@@ -832,6 +838,11 @@ func helperCreateAndPayOrder(
 	centrifugoMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	service.centrifugo = centrifugoMock
 
+	zip := ""
+	if country == CountryCodeUSA {
+		zip = "98001"
+	}
+
 	req := &billing.OrderCreateRequest{
 		Type:        billing.OrderType_simple,
 		ProjectId:   project.Id,
@@ -841,10 +852,12 @@ func helperCreateAndPayOrder(
 		Description: "unit test",
 		OrderId:     primitive.NewObjectID().Hex(),
 		User: &billing.OrderUser{
+			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 			Address: &billing.OrderBillingAddress{
-				Country: country,
+				Country:    country,
+				PostalCode: zip,
 			},
 		},
 	}
@@ -915,8 +928,8 @@ func helperPayOrder(
 		},
 		PaymentData: &billing.CallbackCardPayPaymentData{
 			Id:          primitive.NewObjectID().Hex(),
-			Amount:      order.TotalPaymentAmount,
-			Currency:    order.Currency,
+			Amount:      order.ChargeAmount,
+			Currency:    order.ChargeCurrency,
 			Description: order.Description,
 			Is_3D:       true,
 			Rrn:         primitive.NewObjectID().Hex(),
@@ -1052,6 +1065,11 @@ func createProductsForProject(
 			Amount:   baseAmount,
 		})
 		req.Prices = append(req.Prices, &billing.ProductPrice{
+			Currency: "EUR",
+			Region:   "EUR",
+			Amount:   baseAmount * 0.9,
+		})
+		req.Prices = append(req.Prices, &billing.ProductPrice{
 			Currency: "RUB",
 			Region:   "RUB",
 			Amount:   baseAmount * 65.13,
@@ -1070,7 +1088,7 @@ func createProductsForProject(
 	return products
 }
 
-func createKeyProductsFroProject(
+func createKeyProductsForProject(
 	suite suite.Suite,
 	service *Service,
 	project *billing.Project,
@@ -1248,8 +1266,8 @@ func helperCreateAndPayOrder2(
 		},
 		PaymentData: &billing.CallbackCardPayPaymentData{
 			Id:          primitive.NewObjectID().Hex(),
-			Amount:      order.TotalPaymentAmount,
-			Currency:    order.Currency,
+			Amount:      order.ChargeAmount,
+			Currency:    order.ChargeCurrency,
 			Description: order.Description,
 			Is_3D:       true,
 			Rrn:         primitive.NewObjectID().Hex(),

@@ -62,6 +62,8 @@ type BrowserCookieCustomer struct {
 	CustomerId        string    `json:"customer_id"`
 	VirtualCustomerId string    `json:"virtual_customer_id"`
 	Ip                string    `json:"ip"`
+	IpCountry         string    `json:"ip_country"`
+	SelectedCountry   string    `json:"selected_country"`
 	UserAgent         string    `json:"user_agent"`
 	AcceptLanguage    string    `json:"accept_language"`
 	SessionCount      int32     `json:"session_count"`
@@ -94,8 +96,10 @@ func (s *Service) CreateToken(
 			PlatformId:              req.Settings.PlatformId,
 			IsBuyForVirtualCurrency: req.Settings.IsBuyForVirtualCurrency,
 		},
-		checked: &orderCreateRequestProcessorChecked{},
-		ctx:     ctx,
+		checked: &orderCreateRequestProcessorChecked{
+			user: &billing.OrderUser{},
+		},
+		ctx: ctx,
 	}
 
 	err := processor.processProject()
@@ -128,6 +132,33 @@ func (s *Service) CreateToken(
 		}
 	}
 
+	if req.User != nil {
+		if req.User.Address != nil && req.User.Address.Country != "" {
+			processor.checked.user.Address = req.User.Address
+		} else {
+			if req.User.Ip != nil {
+				address, err := s.getAddressByIp(req.User.Ip.Value)
+				if err != nil {
+					zap.L().Error(pkg.MethodFinishedWithError, zap.Error(err))
+					if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+						rsp.Status = pkg.ResponseStatusBadData
+						rsp.Message = e
+						return nil
+					}
+					return err
+				}
+				processor.checked.user.Address = address
+			}
+		}
+	}
+
+	err = processor.processCurrency(req.Settings.Type)
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
+		return nil
+	}
+
 	switch req.Settings.Type {
 	case billing.OrderType_simple:
 		if len(req.Settings.ProductsIds) > 0 {
@@ -139,14 +170,6 @@ func (s *Service) CreateToken(
 		if req.Settings.Amount <= 0 || req.Settings.Currency == "" {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = tokenErrorSettingsSimpleCheckoutParamsRequired
-			return nil
-		}
-
-		err = processor.processCurrency()
-
-		if err != nil {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
 			return nil
 		}
 

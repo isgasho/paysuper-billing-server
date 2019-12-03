@@ -1,0 +1,812 @@
+[
+  {
+    "update": "payment_method",
+    "updates": [
+      {
+        "q": {
+          "name": "VISA/MasterCard"
+        },
+        "u": {
+          "$set": {
+            "name": "Bank card"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "update": "payment_method",
+    "updates": [
+      {
+        "q": {
+          "name": "Bank card"
+        },
+        "u": {
+          "$set": {
+            "test_settings.$[].brand": [
+              "VISA",
+              "MASTERCARD"
+            ],
+            "production_settings.$[].brand": [
+              "VISA",
+              "MASTERCARD"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "update": "payment_method",
+    "updates": [
+      {
+        "q": {
+          "name": "Alipay"
+        },
+        "u": {
+          "$set": {
+            "test_settings.$[].brand": [
+              "ALIPAY"
+            ],
+            "production_settings.$[].brand": [
+              "ALIPAY"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "update": "payment_method",
+    "updates": [
+      {
+        "q": {
+          "name": "Uganda Mobile Money"
+        },
+        "u": {
+          "$set": {
+            "test_settings.$[].brand": [
+              "UGANDA MOBILE MONEY"
+            ],
+            "production_settings.$[].brand": [
+              "UGANDA MOBILE MONEY"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "update": "payment_method",
+    "updates": [
+      {
+        "q": {
+          "name": "JCB"
+        },
+        "u": {
+          "$set": {
+            "test_settings.$[].brand": [
+              "JCB"
+            ],
+            "production_settings.$[].brand": [
+              "JCB"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "update": "payment_method",
+    "updates": [
+      {
+        "q": {
+          "name": "Direct Banking Nigeria"
+        },
+        "u": {
+          "$set": {
+            "test_settings.$[].brand": [
+              "DIRECT BANKING NIGERIA"
+            ],
+            "production_settings.$[].brand": [
+              "DIRECT BANKING NIGERIA"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "update": "payment_method",
+    "updates": [
+      {
+        "q": {
+          "name": "DirectBanking EU"
+        },
+        "u": {
+          "$set": {
+            "test_settings.$[].brand": [
+              "DIRECTBANKING EU"
+            ],
+            "production_settings.$[].brand": [
+              "DIRECTBANKING EU"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "update": "payment_method",
+    "updates": [
+      {
+        "q": {
+          "name": "China UnionPay"
+        },
+        "u": {
+          "$set": {
+            "test_settings.$[].brand": [
+              "CHINA UNION PAY"
+            ],
+            "production_settings.$[].brand": [
+              "CHINA UNION PAY"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "update": "payment_method",
+    "updates": [
+      {
+        "q": {
+          "name": "Bitcoin"
+        },
+        "u": {
+          "$set": {
+            "test_settings.$[].brand": [
+              "BITCOIN"
+            ],
+            "production_settings.$[].brand": [
+              "BITCOIN"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "update": "payment_method",
+    "updates": [
+      {
+        "q": {
+          "name": "QR code Nigeria"
+        },
+        "u": {
+          "$set": {
+            "test_settings.$[].brand": [
+              "QR CODE NIGERIA"
+            ],
+            "production_settings.$[].brand": [
+              "QR CODE NIGERIA"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "update": "payment_method",
+    "updates": [
+      {
+        "q": {
+          "name": "Qiwi"
+        },
+        "u": {
+          "$set": {
+            "test_settings.$[].brand": [
+              "QIWI"
+            ],
+            "production_settings.$[].brand": [
+              "QIWI"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "update": "payment_method",
+    "updates": [
+      {
+        "q": {
+          "name": "WebMoney"
+        },
+        "u": {
+          "$set": {
+            "test_settings.$[].brand": [
+              "WEBMONEY"
+            ],
+            "production_settings.$[].brand": [
+              "WEBMONEY"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "update": "payment_method",
+    "updates": [
+      {
+        "q": {
+          "name": "Neteller"
+        },
+        "u": {
+          "$set": {
+            "test_settings.$[].brand": [
+              "NETELLER"
+            ],
+            "production_settings.$[].brand": [
+              "NETELLER"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "aggregate": "payment_method",
+    "pipeline": [
+      {
+        "$match": {
+          "name": {
+            "$in": [
+              "Bank card",
+              "JCB"
+            ]
+          }
+        }
+      },
+      {
+        "$sort": {
+          "name": 1
+        }
+      },
+      {
+        "$group": {
+          "_id": null,
+          "id": {
+            "$first": "$_id"
+          },
+          "name": {
+            "$first": "$name"
+          },
+          "group_alias": {
+            "$first": "$group_alias"
+          },
+          "external_id": {
+            "$first": "$external_id"
+          },
+          "handler": {
+            "$first": "$handler"
+          },
+          "min_payment_amount": {
+            "$first": "$min_payment_amount"
+          },
+          "max_payment_amount": {
+            "$first": "$max_payment_amount"
+          },
+          "is_active": {
+            "$first": "$is_active"
+          },
+          "created_at": {
+            "$first": "$created_at"
+          },
+          "updated_at": {
+            "$first": "$updated_at"
+          },
+          "payment_system_id": {
+            "$first": "$payment_system_id"
+          },
+          "type": {
+            "$first": "$type"
+          },
+          "account_regexp": {
+            "$first": "$account_regexp"
+          },
+          "refund_allowed": {
+            "$first": "$refund_allowed"
+          },
+          "test_settings1": {
+            "$first": "$test_settings"
+          },
+          "test_settings2": {
+            "$last": "$test_settings"
+          },
+          "production_settings1": {
+            "$first": "$production_settings"
+          },
+          "production_settings2": {
+            "$last": "$production_settings"
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "id": 1,
+          "name": 1,
+          "group_alias": 1,
+          "external_id": 1,
+          "handler": 1,
+          "min_payment_amount": 1,
+          "max_payment_amount": 1,
+          "is_active": 1,
+          "created_at": 1,
+          "updated_at": 1,
+          "payment_system_id": 1,
+          "type": 1,
+          "account_regexp": 1,
+          "refund_allowed": 1,
+          "test_settings": {
+            "$concatArrays": [
+              "$test_settings1",
+              "$test_settings2"
+            ]
+          },
+          "production_settings": {
+            "$concatArrays": [
+              "$production_settings1",
+              "$production_settings2"
+            ]
+          }
+        }
+      },
+      {
+        "$unwind": {
+          "path": "$test_settings",
+          "preserveNullAndEmptyArrays": true
+        }
+      },
+      {
+        "$group": {
+          "_id": null,
+          "id": {
+            "$first": "$id"
+          },
+          "name": {
+            "$first": "$name"
+          },
+          "group_alias": {
+            "$first": "$group_alias"
+          },
+          "external_id": {
+            "$first": "$external_id"
+          },
+          "handler": {
+            "$first": "$handler"
+          },
+          "min_payment_amount": {
+            "$first": "$min_payment_amount"
+          },
+          "max_payment_amount": {
+            "$first": "$max_payment_amount"
+          },
+          "is_active": {
+            "$first": "$is_active"
+          },
+          "created_at": {
+            "$first": "$created_at"
+          },
+          "updated_at": {
+            "$first": "$updated_at"
+          },
+          "payment_system_id": {
+            "$first": "$payment_system_id"
+          },
+          "type": {
+            "$first": "$type"
+          },
+          "account_regexp": {
+            "$first": "$account_regexp"
+          },
+          "refund_allowed": {
+            "$first": "$refund_allowed"
+          },
+          "test_settings": {
+            "$addToSet": "$test_settings"
+          },
+          "production_settings": {
+            "$first": "$production_settings"
+          }
+        }
+      },
+      {
+        "$unwind": {
+          "path": "$production_settings",
+          "preserveNullAndEmptyArrays": true
+        }
+      },
+      {
+        "$group": {
+          "_id": null,
+          "id": {
+            "$first": "$id"
+          },
+          "name": {
+            "$first": "$name"
+          },
+          "group_alias": {
+            "$first": "$group_alias"
+          },
+          "external_id": {
+            "$first": "$external_id"
+          },
+          "handler": {
+            "$first": "$handler"
+          },
+          "min_payment_amount": {
+            "$first": "$min_payment_amount"
+          },
+          "max_payment_amount": {
+            "$first": "$max_payment_amount"
+          },
+          "is_active": {
+            "$first": "$is_active"
+          },
+          "created_at": {
+            "$first": "$created_at"
+          },
+          "updated_at": {
+            "$first": "$updated_at"
+          },
+          "payment_system_id": {
+            "$first": "$payment_system_id"
+          },
+          "type": {
+            "$first": "$type"
+          },
+          "account_regexp": {
+            "$first": "$account_regexp"
+          },
+          "refund_allowed": {
+            "$first": "$refund_allowed"
+          },
+          "test_settings": {
+            "$first": "$test_settings"
+          },
+          "production_settings": {
+            "$addToSet": "$production_settings"
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": "$id",
+          "name": 1,
+          "group_alias": 1,
+          "external_id": 1,
+          "handler": 1,
+          "min_payment_amount": 1,
+          "max_payment_amount": 1,
+          "is_active": 1,
+          "created_at": 1,
+          "updated_at": 1,
+          "payment_system_id": 1,
+          "type": 1,
+          "account_regexp": 1,
+          "refund_allowed": 1,
+          "test_settings": 1,
+          "production_settings": 1
+        }
+      },
+      {
+        "$merge": {
+          "into": "tmp1",
+          "whenMatched": "replace"
+        }
+      }
+    ],
+    "cursor": {}
+  },
+  {
+    "aggregate": "tmp1",
+    "pipeline": [
+      {
+        "$merge": {
+          "into": "payment_method",
+          "whenMatched": "replace"
+        }
+      }
+    ],
+    "cursor": {}
+  },
+  {
+    "aggregate": "payment_method",
+    "pipeline": [
+      {
+        "$match": {
+          "name": {
+            "$in": [
+              "Bank card",
+              "China UnionPay"
+            ]
+          }
+        }
+      },
+      {
+        "$sort": {
+          "name": 1
+        }
+      },
+      {
+        "$group": {
+          "_id": null,
+          "id": {
+            "$first": "$_id"
+          },
+          "name": {
+            "$first": "$name"
+          },
+          "group_alias": {
+            "$first": "$group_alias"
+          },
+          "external_id": {
+            "$first": "$external_id"
+          },
+          "handler": {
+            "$first": "$handler"
+          },
+          "min_payment_amount": {
+            "$first": "$min_payment_amount"
+          },
+          "max_payment_amount": {
+            "$first": "$max_payment_amount"
+          },
+          "is_active": {
+            "$first": "$is_active"
+          },
+          "created_at": {
+            "$first": "$created_at"
+          },
+          "updated_at": {
+            "$first": "$updated_at"
+          },
+          "payment_system_id": {
+            "$first": "$payment_system_id"
+          },
+          "type": {
+            "$first": "$type"
+          },
+          "account_regexp": {
+            "$first": "$account_regexp"
+          },
+          "refund_allowed": {
+            "$first": "$refund_allowed"
+          },
+          "test_settings1": {
+            "$first": "$test_settings"
+          },
+          "test_settings2": {
+            "$last": "$test_settings"
+          },
+          "production_settings1": {
+            "$first": "$production_settings"
+          },
+          "production_settings2": {
+            "$last": "$production_settings"
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "id": 1,
+          "name": 1,
+          "group_alias": 1,
+          "external_id": 1,
+          "handler": 1,
+          "min_payment_amount": 1,
+          "max_payment_amount": 1,
+          "is_active": 1,
+          "created_at": 1,
+          "updated_at": 1,
+          "payment_system_id": 1,
+          "type": 1,
+          "account_regexp": 1,
+          "refund_allowed": 1,
+          "test_settings": {
+            "$concatArrays": [
+              "$test_settings1",
+              "$test_settings2"
+            ]
+          },
+          "production_settings": {
+            "$concatArrays": [
+              "$production_settings1",
+              "$production_settings2"
+            ]
+          }
+        }
+      },
+      {
+        "$unwind": {
+          "path": "$test_settings",
+          "preserveNullAndEmptyArrays": true
+        }
+      },
+      {
+        "$group": {
+          "_id": null,
+          "id": {
+            "$first": "$id"
+          },
+          "name": {
+            "$first": "$name"
+          },
+          "group_alias": {
+            "$first": "$group_alias"
+          },
+          "external_id": {
+            "$first": "$external_id"
+          },
+          "handler": {
+            "$first": "$handler"
+          },
+          "min_payment_amount": {
+            "$first": "$min_payment_amount"
+          },
+          "max_payment_amount": {
+            "$first": "$max_payment_amount"
+          },
+          "is_active": {
+            "$first": "$is_active"
+          },
+          "created_at": {
+            "$first": "$created_at"
+          },
+          "updated_at": {
+            "$first": "$updated_at"
+          },
+          "payment_system_id": {
+            "$first": "$payment_system_id"
+          },
+          "type": {
+            "$first": "$type"
+          },
+          "account_regexp": {
+            "$first": "$account_regexp"
+          },
+          "refund_allowed": {
+            "$first": "$refund_allowed"
+          },
+          "test_settings": {
+            "$addToSet": "$test_settings"
+          },
+          "production_settings": {
+            "$first": "$production_settings"
+          }
+        }
+      },
+      {
+        "$unwind": {
+          "path": "$production_settings",
+          "preserveNullAndEmptyArrays": true
+        }
+      },
+      {
+        "$group": {
+          "_id": null,
+          "id": {
+            "$first": "$id"
+          },
+          "name": {
+            "$first": "$name"
+          },
+          "group_alias": {
+            "$first": "$group_alias"
+          },
+          "external_id": {
+            "$first": "$external_id"
+          },
+          "handler": {
+            "$first": "$handler"
+          },
+          "min_payment_amount": {
+            "$first": "$min_payment_amount"
+          },
+          "max_payment_amount": {
+            "$first": "$max_payment_amount"
+          },
+          "is_active": {
+            "$first": "$is_active"
+          },
+          "created_at": {
+            "$first": "$created_at"
+          },
+          "updated_at": {
+            "$first": "$updated_at"
+          },
+          "payment_system_id": {
+            "$first": "$payment_system_id"
+          },
+          "type": {
+            "$first": "$type"
+          },
+          "account_regexp": {
+            "$first": "$account_regexp"
+          },
+          "refund_allowed": {
+            "$first": "$refund_allowed"
+          },
+          "test_settings": {
+            "$first": "$test_settings"
+          },
+          "production_settings": {
+            "$addToSet": "$production_settings"
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": "$id",
+          "name": 1,
+          "group_alias": 1,
+          "external_id": 1,
+          "handler": 1,
+          "min_payment_amount": 1,
+          "max_payment_amount": 1,
+          "is_active": 1,
+          "created_at": 1,
+          "updated_at": 1,
+          "payment_system_id": 1,
+          "type": 1,
+          "account_regexp": 1,
+          "refund_allowed": 1,
+          "test_settings": 1,
+          "production_settings": 1
+        }
+      },
+      {
+        "$merge": {
+          "into": "tmp1",
+          "whenMatched": "replace"
+        }
+      }
+    ],
+    "cursor": {}
+  },
+  {
+    "aggregate": "tmp1",
+    "pipeline": [
+      {
+        "$merge": {
+          "into": "payment_method",
+          "whenMatched": "replace"
+        }
+      }
+    ],
+    "cursor": {}
+  },
+  {
+    "drop": "tmp1"
+  },
+  {
+    "delete": "payment_method",
+    "deletes": [
+      {
+        "q": {
+          "name": {
+            "$in": [
+              "JCB",
+              "China UnionPay"
+            ]
+          }
+        },
+        "limit": 0
+      }
+    ]
+  }
+]

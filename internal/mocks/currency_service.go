@@ -422,7 +422,12 @@ func (s *CurrencyServiceMockOk) GetPriceCurrencies(
 	in *currencies.EmptyRequest,
 	opts ...client.CallOption,
 ) (*currencies.CurrenciesList, error) {
-	return &currencies.CurrenciesList{}, nil
+	return &currencies.CurrenciesList{
+		Currencies: []string{"AED", "ARS", "AUD", "BHD", "BRL", "CAD", "CHF", "CLP", "CNY", "COP", "CRC", "CZK", "DKK",
+			"EGP", "EUR", "GBP", "HKD", "HRK", "HUF", "IDR", "ILS", "INR", "JPY", "KRW", "KZT", "MXN",
+			"MYR", "NOK", "NZD", "PEN", "PHP", "PLN", "QAR", "RON", "RSD", "RUB", "SAR", "SEK", "SGD",
+			"THB", "TRY", "TWD", "USD", "VND", "ZAR"},
+	}, nil
 }
 
 func (s *CurrencyServiceMockOk) GetVatCurrencies(
