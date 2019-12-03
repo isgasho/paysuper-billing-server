@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-redis/redis"
+	"github.com/ugorji/go/codec"
+	"io"
 	"time"
 )
 
@@ -38,8 +40,16 @@ func NewCacheRedis(r redis.Cmdable, version string) (*Cache, error) {
 }
 
 func (c *Cache) Set(key string, value interface{}, duration time.Duration) error {
-	b, err := json.Marshal(value)
-	if err != nil {
+	var (
+		w  io.Writer
+		mh codec.MsgpackHandle
+		b  []byte
+	)
+
+	enc := codec.NewEncoder(w, &mh)
+	enc = codec.NewEncoderBytes(&b, &mh)
+
+	if err := enc.Encode(value); err != nil {
 		return err
 	}
 
@@ -51,13 +61,21 @@ func (c *Cache) Set(key string, value interface{}, duration time.Duration) error
 }
 
 func (c *Cache) Get(key string, obj interface{}) error {
+	var (
+		r  io.Reader
+		mh codec.MsgpackHandle
+	)
+
 	b, err := c.redis.Get(c.getStorageKey(key)).Bytes()
 
 	if err != nil {
 		return err
 	}
 
-	if err := json.Unmarshal(b, obj); err != nil {
+	dec := codec.NewDecoder(r, &mh)
+	dec = codec.NewDecoderBytes(b, &mh)
+
+	if err = dec.Decode(&obj); err != nil {
 		return fmt.Errorf(errorInterfaceCast, err.Error())
 	}
 
