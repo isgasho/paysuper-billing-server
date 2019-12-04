@@ -414,6 +414,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 			MerchantHomeRegion:     "europe",
 			PayerRegion:            "europe",
 			MccCode:                pkg.MccCodeLowRisk,
+			IsActive:               true,
 		},
 		{
 			MinAmount:              0,
@@ -428,6 +429,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 			MerchantHomeRegion:     "europe",
 			PayerRegion:            "europe",
 			MccCode:                pkg.MccCodeLowRisk,
+			IsActive:               true,
 		},
 		{
 			MinAmount:              0,
@@ -442,6 +444,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 			MerchantHomeRegion:     "europe",
 			PayerRegion:            "europe",
 			MccCode:                pkg.MccCodeLowRisk,
+			IsActive:               true,
 		},
 	}
 	cisTariff := []*billing.MerchantTariffRatesPayment{
@@ -458,6 +461,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 			MerchantHomeRegion:     "russia_and_cis",
 			PayerRegion:            "russia_and_cis",
 			MccCode:                pkg.MccCodeLowRisk,
+			IsActive:               true,
 		},
 		{
 			MinAmount:              0,
@@ -472,6 +476,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 			MerchantHomeRegion:     "russia_and_cis",
 			PayerRegion:            "russia_and_cis",
 			MccCode:                pkg.MccCodeLowRisk,
+			IsActive:               true,
 		},
 		{
 			MinAmount:              0,
@@ -486,6 +491,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 			MerchantHomeRegion:     "russia_and_cis",
 			PayerRegion:            "europe",
 			MccCode:                pkg.MccCodeLowRisk,
+			IsActive:               true,
 		},
 	}
 	asiaTariff := []*billing.MerchantTariffRatesPayment{
@@ -502,6 +508,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 			MerchantHomeRegion:     "asia",
 			PayerRegion:            "europe",
 			MccCode:                pkg.MccCodeLowRisk,
+			IsActive:               true,
 		},
 		{
 			MinAmount:              0,
@@ -516,6 +523,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 			MerchantHomeRegion:     "asia",
 			PayerRegion:            "europe",
 			MccCode:                pkg.MccCodeLowRisk,
+			IsActive:               true,
 		},
 		{
 			MinAmount:              0,
@@ -530,6 +538,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 			MerchantHomeRegion:     "asia",
 			PayerRegion:            "europe",
 			MccCode:                pkg.MccCodeLowRisk,
+			IsActive:               true,
 		},
 	}
 

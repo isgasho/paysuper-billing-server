@@ -2101,6 +2101,8 @@ message MerchantTariffRatesPayment {
     string payer_region = 11;
     // @inject_tag: json:"mcc_code" bson:"mcc_code"
     string mcc_code = 12;
+    // @inject_tag: json:"is_active" bson:"is_active"
+    bool is_active = 13;
 }
 
 message MerchantTariffRatesSettingsItem {
