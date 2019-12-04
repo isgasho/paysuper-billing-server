@@ -1,0 +1,19 @@
+[
+  {
+    "update": "merchants_payment_tariffs",
+    "updates": [
+      {
+        "q": {
+          "min_amount": 0,
+          "mcc_code": "5816"
+        },
+        "u": {
+          "$set": {
+            "min_amount": 1
+          }
+        },
+        "multi": true
+      }
+    ]
+  }
+]

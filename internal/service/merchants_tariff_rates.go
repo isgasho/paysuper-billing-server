@@ -131,7 +131,7 @@ func (h *MerchantsTariffRatesRepository) GetPaymentTariffsBy(
 		return nil, err
 	}
 
-	query := bson.M{"merchant_home_region": in.HomeRegion, "mcc_code": mccCode}
+	query := bson.M{"merchant_home_region": in.HomeRegion, "mcc_code": mccCode, "is_active": true}
 
 	if in.PayerRegion != "" {
 		query["payer_region"] = in.PayerRegion
