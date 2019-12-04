@@ -4713,7 +4713,7 @@ func (s *Service) setOrderChargeAmountAndCurrency(ctx context.Context, order *bi
 	}
 
 	order.ChargeCurrency = binCountry.Currency
-	order.ChargeAmount = rspCur.ExchangedAmount
+	order.ChargeAmount = tools.FormatAmount(rspCur.ExchangedAmount)
 
 	return nil
 }
