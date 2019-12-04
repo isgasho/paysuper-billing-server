@@ -1,0 +1,19 @@
+[
+  {
+    "update": "price_group",
+    "updates": [
+      {
+        "q": {
+          "region": "TRY"
+        },
+        "u": {
+          "$set": {
+            "is_active": false
+          }
+        },
+        "multi": true
+      }
+    ]
+  }
+]
+
