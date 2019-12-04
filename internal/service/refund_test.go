@@ -5,13 +5,11 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -32,7 +30,7 @@ type RefundTestSuite struct {
 	suite.Suite
 	service *Service
 	log     *zap.Logger
-	cache   internalPkg.CacheInterface
+	cache   CacheInterface
 
 	paySys           *billing.PaymentSystem
 	project          *billing.Project
@@ -81,9 +79,11 @@ func (suite *RefundTestSuite) SetupTest() {
 		suite.FailNow("Insert operatingCompany test data failed", "%v", err)
 	}
 
-	keyRub := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
+	keyRubVisa := pkg.GetPaymentMethodKey("RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "Visa")
+	keyRubBitcoin := pkg.GetPaymentMethodKey("RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "Bitcoin")
+	keyRubQiwi := pkg.GetPaymentMethodKey("RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "Qiwi")
 
-	country := &billing.Country{
+	countryRu := &billing.Country{
 		IsoCodeA2:       "RU",
 		Region:          "Russia",
 		Currency:        "RUB",
@@ -106,6 +106,29 @@ func (suite *RefundTestSuite) SetupTest() {
 		HighRiskChangeAllowed:   false,
 	}
 
+	countryUa := &billing.Country{
+		IsoCodeA2:       "UA",
+		Region:          "CIS",
+		Currency:        "UAH",
+		PaymentsAllowed: true,
+		ChangeAllowed:   true,
+		VatEnabled:      false,
+		PriceGroupId:    "",
+		VatCurrency:     "",
+		VatThreshold: &billing.CountryVatThreshold{
+			Year:  0,
+			World: 0,
+		},
+		VatPeriodMonth:          0,
+		VatDeadlineDays:         0,
+		VatStoreYears:           0,
+		VatCurrencyRatesPolicy:  "",
+		VatCurrencyRatesSource:  "",
+		PayerTariffRegion:       pkg.TariffRegionRussiaAndCis,
+		HighRiskPaymentsAllowed: false,
+		HighRiskChangeAllowed:   false,
+	}
+
 	suite.paySys = &billing.PaymentSystem{
 		Id:                 primitive.NewObjectID().Hex(),
 		Name:               "CardPay",
@@ -123,23 +146,25 @@ func (suite *RefundTestSuite) SetupTest() {
 		MaxPaymentAmount: 15000,
 		ExternalId:       "BANKCARD",
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			keyRub: {
+			keyRubVisa: {
 				Currency:           "RUB",
 				TerminalId:         "15985",
 				Secret:             "A1tph4I6BD0f",
 				SecretCallback:     "0V1rJ7t4jCRv",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
 		},
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			keyRub: {
+			keyRubVisa: {
 				TerminalId:         "15985",
 				Secret:             "A1tph4I6BD0f",
 				SecretCallback:     "0V1rJ7t4jCRv",
 				Currency:           "RUB",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			}},
 		Type:            "bank_card",
 		IsActive:        true,
@@ -285,11 +310,12 @@ func (suite *RefundTestSuite) SetupTest() {
 		MaxPaymentAmount: 0,
 		ExternalId:       "QIWI",
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			keyRub: {
+			keyRubQiwi: {
 				Currency:           "RUB",
 				TerminalId:         "15993",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"QIWI"},
 			},
 		},
 		Type:            "ewallet",
@@ -304,19 +330,21 @@ func (suite *RefundTestSuite) SetupTest() {
 		MaxPaymentAmount: 0,
 		ExternalId:       "BITCOIN",
 		TestSettings: map[string]*billing.PaymentMethodParams{
-			keyRub: {
+			keyRubBitcoin: {
 				Currency:           "RUB",
 				TerminalId:         "16007",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"BITCOIN"},
 			},
 		},
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
-			keyRub: {
+			keyRubBitcoin: {
 				TerminalId:         "16007",
 				Currency:           "RUB",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"BITCOIN"},
 			}},
 		Type:            "crypto",
 		IsActive:        true,
@@ -420,7 +448,7 @@ func (suite *RefundTestSuite) SetupTest() {
 	assert.NoError(suite.T(), err, "Creating RabbitMQ publisher failed")
 
 	redisdb := mocks.NewTestRedis()
-	suite.cache = NewCacheRedis(redisdb)
+	suite.cache, err = NewCacheRedis(redisdb, "cache")
 	suite.service = NewBillingService(
 		db,
 		cfg,
@@ -460,7 +488,10 @@ func (suite *RefundTestSuite) SetupTest() {
 		suite.FailNow("Insert project test data failed", "%v", err)
 	}
 
-	if err := suite.service.country.Insert(context.TODO(), country); err != nil {
+	if err := suite.service.country.Insert(context.TODO(), countryRu); err != nil {
+		suite.FailNow("Insert country test data failed", "%v", err)
+	}
+	if err := suite.service.country.Insert(context.TODO(), countryUa); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 
@@ -753,7 +784,7 @@ func (suite *RefundTestSuite) SetupTest() {
 			CardCategory:       "WORLD",
 			BankName:           "ALFA BANK",
 			BankCountryName:    "UKRAINE",
-			BankCountryIsoCode: "US",
+			BankCountryIsoCode: "UA",
 		},
 		&BinData{
 			Id:                 primitive.NewObjectID(),
@@ -763,7 +794,7 @@ func (suite *RefundTestSuite) SetupTest() {
 			CardCategory:       "WORLD",
 			BankName:           "ALFA BANK",
 			BankCountryName:    "UKRAINE",
-			BankCountryIsoCode: "US",
+			BankCountryIsoCode: "UA",
 		},
 	}
 
@@ -1723,7 +1754,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 	assert.Equal(suite.T(), rsp.Id, refundOrder.ParentOrder.Id)
 	assert.EqualValues(suite.T(), constant.OrderStatusRefund, refundOrder.PrivateStatus)
 	assert.Equal(suite.T(), constant.OrderPublicStatusRefunded, refundOrder.Status)
-	assert.EqualValues(suite.T(), refund.Amount, refundOrder.TotalPaymentAmount)
+	assert.EqualValues(suite.T(), refund.Amount, refundOrder.ChargeAmount)
 	assert.Equal(suite.T(), refund.Currency, refundOrder.Currency)
 	assert.Equal(suite.T(), pkg.OrderTypeRefund, refundOrder.Type)
 }

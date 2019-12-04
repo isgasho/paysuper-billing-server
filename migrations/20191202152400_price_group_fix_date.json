@@ -1,0 +1,16 @@
+[
+  {
+    "update": "price_group",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$set": {
+            "created_at": {"$date":{"$numberLong":"1562258329000"}},
+            "updated_at": {"$date":{"$numberLong":"1562258329000"}}
+          }
+        }
+      }
+    ]
+  }
+]

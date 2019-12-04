@@ -414,8 +414,8 @@ func (h *cardPay) ProcessPayment(order *billing.Order, message proto.Message, ra
 
 	reqAmount := req.GetAmount()
 
-	if reqAmount != order.TotalPaymentAmount ||
-		req.GetCurrency() != order.Currency {
+	if reqAmount != order.ChargeAmount ||
+		req.GetCurrency() != order.ChargeCurrency {
 		return newBillingServerResponseError(pkg.StatusErrorValidation, paymentSystemErrorRequestAmountOrCurrencyIsInvalid)
 	}
 
@@ -448,6 +448,7 @@ func (h *cardPay) ProcessPayment(order *billing.Order, message proto.Message, ra
 		break
 	case pkg.CardPayPaymentResponseStatusCompleted:
 		order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
+		order.IsRefundAllowed = order.PaymentMethod.RefundAllowed
 		break
 	default:
 		return newBillingServerResponseError(pkg.StatusTemporary, paymentSystemErrorRequestTemporarySkipped)
@@ -727,8 +728,8 @@ func (h *cardPay) getCardPayOrder(
 	if order.PaymentMethod.IsBankCard() && (okStoreData && storeData == "1") ||
 		(okRecurringId && recurringId != "") {
 		cardPayOrder.RecurringData = &CardPayRecurringData{
-			Currency:  order.Currency,
-			Amount:    order.TotalPaymentAmount,
+			Currency:  order.ChargeCurrency,
+			Amount:    order.ChargeAmount,
 			Initiator: cardPayInitiatorCardholder,
 		}
 
@@ -741,8 +742,8 @@ func (h *cardPay) getCardPayOrder(
 		}
 	} else {
 		cardPayOrder.PaymentData = &CardPayPaymentData{
-			Currency: order.Currency,
-			Amount:   order.TotalPaymentAmount,
+			Currency: order.ChargeCurrency,
+			Amount:   order.ChargeAmount,
 		}
 	}
 

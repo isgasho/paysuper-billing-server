@@ -1,0 +1,18 @@
+[
+  {
+    "update": "project",
+    "updates": [
+      {
+        "q": {
+          "callback_protocol": ""
+        },
+        "u": {
+          "$set": {
+            "callback_protocol": "empty"
+          }
+        },
+        "multi": true
+      }
+    ]
+  }
+]

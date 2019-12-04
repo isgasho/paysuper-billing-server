@@ -1,0 +1,65 @@
+[
+  {
+    "update": "order",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$set": {
+            "is_currency_predefined": true,
+            "payment_ip_country": "",
+            "is_ip_country_mismatch_bin": false
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "aggregate": "order",
+    "pipeline": [
+      {
+        "$addFields": {
+          "charge_currency": "$currency",
+          "charge_amount": "$total_payment_amount"
+        }
+      },
+      {
+        "$out": "order"
+      }
+    ],
+    "cursor": {}
+  },
+  {
+    "update": "order_view",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$set": {
+            "payment_ip_country": "",
+            "is_ip_country_mismatch_bin": false
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "aggregate": "order_view",
+    "pipeline": [
+      {
+        "$addFields": {
+          "charge_amount": {
+            "charge_currency": "$currency",
+            "charge_amount": "$total_payment_amount"
+          }
+        }
+      },
+      {
+        "$out": "order_view"
+      }
+    ],
+    "cursor": {}
+  }
+]

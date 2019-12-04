@@ -11,9 +11,18 @@ type CacheInterface struct {
 	mock.Mock
 }
 
-// Clean provides a mock function with given fields:
-func (_m *CacheInterface) Clean() {
-	_m.Called()
+// CleanOldestVersion provides a mock function with given fields:
+func (_m *CacheInterface) CleanOldestVersion() error {
+	ret := _m.Called()
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func() error); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // Delete provides a mock function with given fields: _a0
@@ -28,6 +37,11 @@ func (_m *CacheInterface) Delete(_a0 string) error {
 	}
 
 	return r0
+}
+
+// FlushAll provides a mock function with given fields:
+func (_m *CacheInterface) FlushAll() {
+	_m.Called()
 }
 
 // Get provides a mock function with given fields: _a0, _a1

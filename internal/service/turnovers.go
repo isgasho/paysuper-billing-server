@@ -249,12 +249,13 @@ func (s *Service) getTurnover(
 		}
 
 		req := &currencies.ExchangeCurrencyByDateCommonRequest{
-			From:     v.Id,
-			To:       targetCurrency,
-			RateType: ratesType,
-			Source:   ratesSource,
-			Amount:   v.Amount,
-			Datetime: toTimestamp,
+			From:              v.Id,
+			To:                targetCurrency,
+			RateType:          ratesType,
+			ExchangeDirection: curPkg.ExchangeDirectionBuy,
+			Source:            ratesSource,
+			Amount:            v.Amount,
+			Datetime:          toTimestamp,
 		}
 
 		rsp, err := s.curService.ExchangeCurrencyByDateCommon(ctx, req)
@@ -283,7 +284,12 @@ func newTurnoverService(svc *Service) *Turnover {
 }
 
 func (h *Turnover) Insert(ctx context.Context, turnover *billing.AnnualTurnover) error {
-	filter := bson.M{"year": turnover.Year, "country": turnover.Country}
+	filter := bson.M{
+		"year":                 turnover.Year,
+		"country":              turnover.Country,
+		"operating_company_id": turnover.OperatingCompanyId,
+	}
+
 	_, err := h.svc.db.Collection(collectionAnnualTurnovers).ReplaceOne(ctx, filter, turnover, options.Replace().SetUpsert(true))
 
 	if err != nil {

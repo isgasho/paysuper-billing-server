@@ -7,7 +7,6 @@ import (
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -25,7 +24,7 @@ type MoneyBackCostSystemTestSuite struct {
 	suite.Suite
 	service               *Service
 	log                   *zap.Logger
-	cache                 internalPkg.CacheInterface
+	cache                 CacheInterface
 	moneyBackCostSystemId string
 	merchantId            string
 	operatingCompany      *billing.OperatingCompany
@@ -53,7 +52,7 @@ func (suite *MoneyBackCostSystemTestSuite) SetupTest() {
 	}
 
 	redisdb := mocks.NewTestRedis()
-	suite.cache = NewCacheRedis(redisdb)
+	suite.cache, err = NewCacheRedis(redisdb, "cache")
 	suite.service = NewBillingService(
 		db,
 		cfg,

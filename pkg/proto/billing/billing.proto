@@ -43,7 +43,6 @@ message OrderCreateRequest {
     string payer_phone = 14;
     // @inject_tag: query:"PO_REGION" form:"PO_REGION" json:"region" validate:"omitempty,alpha,len=2"
     string region = 15;
-    string payer_ip = 16;
     map<string, string> other = 17;
     // @inject_tag: json:"-"
     map<string, string> raw_params = 18;
@@ -91,6 +90,7 @@ message OrderCreateRequest {
     string utm_campaign = 38;
     //@inject_tag: bson:"is_buy_for_virtual_currency" json:"is_buy_for_virtual_currency"
     bool is_buy_for_virtual_currency = 39;
+    string cookie = 40;
 }
 
 message Project {
@@ -391,6 +391,8 @@ message Merchant {
     string mcc_code = 55;
     // @inject_tag: json:"operating_company_id"
     string operating_company_id = 56;
+    // @inject_tag: json:"merchant_operations_type" validate:"oneof=high-risk low-risk"
+    string merchant_operations_type = 57;
 }
 
 message MerchantCommon {
@@ -629,6 +631,20 @@ message Order {
     string operating_company_id = 77;
     // @inject_tag: json:"-"
     bool is_high_risk = 78;
+    // @inject_tag: json:"-"
+    bool is_currency_predefined = 79;
+    // @inject_tag: json:"charge_currency"
+    string charge_currency = 80;
+    // @inject_tag: json:"charge_amount"
+    double charge_amount = 81;
+    // @inject_tag: json:"-"
+    string payment_ip_country = 82;
+    // @inject_tag: json:"-"
+    bool is_ip_country_mismatch_bin = 83;
+    // @inject_tag: json:"-"
+    bool billing_country_changed_by_user = 84;
+    // @inject_tag: json:"-"
+    bool is_refund_allowed = 85;
 }
 
 message ParentOrder {
@@ -727,6 +743,8 @@ message PaymentMethodParams {
     string mcc_code = 7;
     // @inject_tag: bson:"operating_company_id" json:"operating_company_id" validate:"required,hexadecimal,len=24"
     string operating_company_id = 8;
+    // @inject_tag: bson:"brand" json:"brand" validate:"required"
+    repeated string brand = 9;
 }
 
 message PaymentSystem {
@@ -1183,9 +1201,9 @@ message Country {
     string vat_currency_rates_policy = 14;
     // @inject_tag: json:"vat_currency_rates_source" bson:"vat_currency_rates_source" validate:"alpha"
     string vat_currency_rates_source = 15;
-    //@inject_tag: json:"created_at" bson:"created_at"
+    //@inject_tag: json:"-" bson:"created_at"
     google.protobuf.Timestamp created_at = 16;
-    //@inject_tag: json:"updated_at" bson:"updated_at"
+    //@inject_tag: json:"-" bson:"updated_at"
     google.protobuf.Timestamp updated_at = 17;
     //@inject_tag: json:"payer_tariff_region" bson:"payer_tariff_region"
     string payer_tariff_region = 18;
@@ -1839,6 +1857,14 @@ message OrderViewPublic {
     string operating_company_id = 44;
     // @inject_tag: json:"refund_allowed" bson:"refund_allowed"
     bool refund_allowed = 45;
+    // @inject_tag: json:"order_charge" bson:"order_charge"
+    OrderViewMoney order_charge = 46;
+    // @inject_tag: json:"payment_ip_country"
+    string payment_ip_country = 47;
+    // @inject_tag: json:"is_ip_country_mismatch_bin" bson:"is_ip_country_mismatch_bin"
+    bool is_ip_country_mismatch_bin = 48;
+    // @inject_tag: json:"billing_country_changed_by_user" bson:"billing_country_changed_by_user"
+    bool billing_country_changed_by_user = 49;
 }
 
 message OrderViewPrivate {
@@ -2002,6 +2028,14 @@ message OrderViewPrivate {
     bool is_high_risk = 79;
     // @inject_tag: json:"refund_allowed"  bson:"refund_allowed"
     bool refund_allowed = 80;
+    // @inject_tag: json:"order_charge" bson:"order_charge"
+    OrderViewMoney order_charge = 81;
+    // @inject_tag: json:"payment_ip_country"
+    string payment_ip_country = 82;
+    // @inject_tag: json:"is_ip_country_mismatch_bin" bson:"is_ip_country_mismatch_bin"
+    bool is_ip_country_mismatch_bin = 83;
+    // @inject_tag: json:"billing_country_changed_by_user" bson:"billing_country_changed_by_user"
+    bool billing_country_changed_by_user = 84;
 }
 
 message RecommendedPrice {
@@ -2067,6 +2101,8 @@ message MerchantTariffRatesPayment {
     string payer_region = 11;
     // @inject_tag: json:"mcc_code" bson:"mcc_code"
     string mcc_code = 12;
+    // @inject_tag: json:"is_active" bson:"is_active"
+    bool is_active = 13;
 }
 
 message MerchantTariffRatesSettingsItem {
@@ -2319,6 +2355,7 @@ message OrderCreateByPaylink {
     string utm_medium = 6;
     //@inject_tag: bson:"utm_campaign" json:"utm_campaign"
     string utm_campaign = 7;
+    string cookie = 8;
 }
 
 message UserIpData {
@@ -2337,9 +2374,27 @@ message PaymentFormDataChangeResponseItem {
     UserIpData user_ip_data = 2;
     string brand = 3;
     //@inject_tag: json:"country_payments_allowed"
-    bool country_payments_allowed = 18;
+    bool country_payments_allowed = 4;
     //@inject_tag: json:"country_change_allowed"
-    bool country_change_allowed = 19;
+    bool country_change_allowed = 5;
+    // @inject_tag: json:"has_vat"
+    bool has_vat = 6;
+    // @inject_tag: json:"vat"
+    double vat = 7;
+    // @inject_tag: json:"amount"
+    double amount = 8;
+    // @inject_tag: json:"total_amount"
+    double total_amount = 9;
+    //@inject_tag: json:"currency"
+    string currency = 10;
+    // @inject_tag: json:"items"
+    repeated billing.OrderItem items = 11;
+    // @inject_tag: json:"charge_currency"
+    string charge_currency = 12;
+    // @inject_tag: json:"charge_amount"
+    double charge_amount = 13;
+    // @inject_tag: json:"vat_in_charge_currency"
+    double vat_in_charge_currency = 14;
 }
 
 message OperatingCompany {

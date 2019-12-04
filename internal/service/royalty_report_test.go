@@ -13,7 +13,6 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -41,7 +40,7 @@ type RoyaltyReportTestSuite struct {
 	suite.Suite
 	service    *Service
 	log        *zap.Logger
-	cache      internalPkg.CacheInterface
+	cache      CacheInterface
 	httpClient *http.Client
 
 	project   *billing.Project
@@ -103,7 +102,7 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	suite.httpClient = mocks.NewClientStatusOk()
-	suite.cache = NewCacheRedis(redisdb)
+	suite.cache, err = NewCacheRedis(redisdb, "cache")
 
 	reporterMock := &reportingMocks.ReporterService{}
 	reporterMock.On("CreateFile", mock2.Anything, mock2.Anything, mock2.Anything).
@@ -398,7 +397,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_Ok() {
 	rsp1 := &grpc.ListRoyaltyReportsResponse{}
 	err = suite.service.ListRoyaltyReports(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.EqualValues(suite.T(), int32(1), rsp1.Data.Count)
+	assert.EqualValues(suite.T(), int64(1), rsp1.Data.Count)
 	assert.Len(suite.T(), rsp1.Data.Items, int(rsp1.Data.Count))
 }
 
@@ -507,33 +506,24 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindBy
 	assert.NoError(suite.T(), err)
 	assert.NotEmpty(suite.T(), rsp.Merchants)
 
-	loc, err := time.LoadLocation(suite.service.cfg.RoyaltyReportTimeZone)
-	assert.NoError(suite.T(), err)
-
-	to := now.Monday().In(loc).Add(time.Duration(suite.service.cfg.RoyaltyReportPeriodEndHour) * time.Hour).Add(-time.Duration(168) * time.Hour)
-	from := to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).In(loc)
-
 	oid, _ := primitive.ObjectIDFromHex(suite.project.GetMerchantId())
 	query := bson.M{"merchant_id": oid}
-	set := bson.M{"$set": bson.M{"period_from": from, "period_to": to}}
+	set := bson.M{"$set": bson.M{"created_at": time.Now().Add(24 * -time.Hour)}}
 	_, err = suite.service.db.Collection(collectionRoyaltyReport).UpdateMany(context.TODO(), query, set)
 
 	err = suite.service.CreateRoyaltyReport(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.NotEmpty(suite.T(), rsp.Merchants)
 
-	to = now.Monday().In(loc).Add(time.Duration(suite.service.cfg.RoyaltyReportPeriodEndHour) * time.Hour)
-	from = to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).In(loc)
-
 	req1 := &grpc.ListRoyaltyReportsRequest{
 		MerchantId: suite.project.GetMerchantId(),
-		PeriodFrom: from.Unix(),
-		PeriodTo:   to.Unix(),
+		PeriodFrom: time.Now().Add(30 * -time.Hour).Unix(),
+		PeriodTo:   time.Now().Add(20 * -time.Hour).Unix(),
 	}
 	rsp1 := &grpc.ListRoyaltyReportsResponse{}
 	err = suite.service.ListRoyaltyReports(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.EqualValues(suite.T(), int32(1), rsp1.Data.Count)
+	assert.EqualValues(suite.T(), int64(1), rsp1.Data.Count)
 	assert.Len(suite.T(), rsp1.Data.Items, int(rsp1.Data.Count))
 }
 

@@ -7,7 +7,6 @@ import (
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
@@ -21,10 +20,11 @@ import (
 
 type CountryTestSuite struct {
 	suite.Suite
-	service *Service
-	log     *zap.Logger
-	cache   internalPkg.CacheInterface
-	country *billing.Country
+	service                *Service
+	log                    *zap.Logger
+	cache                  CacheInterface
+	country                *billing.Country
+	countryHighRiskAllowed *billing.Country
 }
 
 func Test_Country(t *testing.T) {
@@ -49,7 +49,7 @@ func (suite *CountryTestSuite) SetupTest() {
 	}
 
 	redisdb := mocks.NewTestRedis()
-	suite.cache = NewCacheRedis(redisdb)
+	suite.cache, err = NewCacheRedis(redisdb, "cache")
 	suite.service = NewBillingService(
 		db,
 		cfg,
@@ -89,19 +89,49 @@ func (suite *CountryTestSuite) SetupTest() {
 		PaymentsAllowed: true,
 		ChangeAllowed:   true,
 		VatEnabled:      true,
-		PriceGroupId:    pg.Id,
 		VatCurrency:     "RUB",
+		PriceGroupId:    pg.Id,
 		VatThreshold: &billing.CountryVatThreshold{
 			Year:  0,
 			World: 0,
 		},
-		VatPeriodMonth:         3,
-		VatDeadlineDays:        25,
-		VatStoreYears:          5,
-		VatCurrencyRatesPolicy: "last-day",
-		VatCurrencyRatesSource: "cbrf",
+		VatPeriodMonth:          3,
+		VatDeadlineDays:         25,
+		VatStoreYears:           5,
+		VatCurrencyRatesPolicy:  "last-day",
+		VatCurrencyRatesSource:  "cbrf",
+		PayerTariffRegion:       "",
+		HighRiskPaymentsAllowed: false,
+		HighRiskChangeAllowed:   false,
 	}
 	if err := suite.service.country.Insert(ctx, suite.country); err != nil {
+		suite.FailNow("Insert country test data failed", "%v", err)
+	}
+
+	suite.countryHighRiskAllowed = &billing.Country{
+		Id:              primitive.NewObjectID().Hex(),
+		IsoCodeA2:       "RU",
+		Region:          "Russia",
+		Currency:        "RUB",
+		PaymentsAllowed: true,
+		ChangeAllowed:   true,
+		VatEnabled:      true,
+		VatCurrency:     "RUB",
+		PriceGroupId:    pg.Id,
+		VatThreshold: &billing.CountryVatThreshold{
+			Year:  0,
+			World: 0,
+		},
+		VatPeriodMonth:          3,
+		VatDeadlineDays:         25,
+		VatStoreYears:           5,
+		VatCurrencyRatesPolicy:  "last-day",
+		VatCurrencyRatesSource:  "cbrf",
+		PayerTariffRegion:       "",
+		HighRiskPaymentsAllowed: true,
+		HighRiskChangeAllowed:   true,
+	}
+	if err := suite.service.country.Insert(ctx, suite.countryHighRiskAllowed); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 }
@@ -262,4 +292,18 @@ func (suite *CountryTestSuite) TestCountry_GetCountriesWithVatEnabled_Ok() {
 	c5 := &billing.CountriesList{}
 	err = suite.service.cacher.Get(cacheCountriesWithVatEnabled, c5)
 	assert.EqualError(suite.T(), err, "redis: nil")
+}
+
+func (suite *CountryTestSuite) TestCountry_GetPaymentCountriesForOrder_LowRisk_Ok() {
+	c, err := suite.service.country.GetPaymentCountriesForOrder(ctx, false)
+
+	assert.Nil(suite.T(), err)
+	assert.Len(suite.T(), c.Countries, 2)
+}
+
+func (suite *CountryTestSuite) TestCountry_GetPaymentCountriesForOrder_HighRisk_Ok() {
+	c, err := suite.service.country.GetPaymentCountriesForOrder(ctx, true)
+
+	assert.Nil(suite.T(), err)
+	assert.Len(suite.T(), c.Countries, 1)
 }

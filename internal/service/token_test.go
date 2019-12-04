@@ -8,7 +8,6 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -25,7 +24,7 @@ import (
 type TokenTestSuite struct {
 	suite.Suite
 	service *Service
-	cache   internalPkg.CacheInterface
+	cache   CacheInterface
 
 	project                            *billing.Project
 	projectWithProducts                *billing.Project
@@ -360,11 +359,11 @@ func (suite *TokenTestSuite) SetupTest() {
 	)
 
 	redisdb := mocks.NewTestRedis()
-	suite.cache = NewCacheRedis(redisdb)
+	suite.cache, err = NewCacheRedis(redisdb, "cache")
 	suite.service = NewBillingService(
 		db,
 		cfg,
-		nil,
+		mocks.NewGeoIpServiceTestOk(),
 		nil,
 		nil,
 		nil,
@@ -421,7 +420,7 @@ func (suite *TokenTestSuite) SetupTest() {
 	suite.product2 = product2
 	suite.product3 = product3
 
-	suite.keyProducts = createKeyProductsFroProject(suite.Suite, suite.service, suite.project, 3)
+	suite.keyProducts = createKeyProductsForProject(suite.Suite, suite.service, suite.project, 3)
 }
 
 func (suite *TokenTestSuite) TearDownTest() {

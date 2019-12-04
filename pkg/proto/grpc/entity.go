@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/jinzhu/copier"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"go.uber.org/zap"
 )
 
 var (
@@ -12,6 +13,8 @@ var (
 	productNoNameInLanguage            = "no name in language %s"
 	productNoDescriptionInLanguage     = "no description in language %s"
 	productNoLongDescriptionInLanguage = "no long description in language %s"
+
+	ProductNoPriceInCurrencyError = errors.New("No product price in requested currency")
 )
 
 const VirtualCurrencyPriceGroup = "virtual"
@@ -55,7 +58,11 @@ func (p *Product) GetPriceInCurrency(group *billing.PriceGroup) (float64, error)
 			return price.Amount, nil
 		}
 	}
-	return 0, errors.New(fmt.Sprintf(productNoPriceInCurrency, group.Region))
+	zap.L().Error(
+		fmt.Sprintf(productNoPriceInCurrency, group.Region),
+	)
+
+	return 0, ProductNoPriceInCurrencyError
 }
 
 func (p *Product) GetLocalizedName(lang string) (string, error) {

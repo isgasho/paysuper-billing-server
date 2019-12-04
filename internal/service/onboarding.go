@@ -1329,7 +1329,11 @@ func (s *Service) getMerchantAgreementSignature(
 		},
 	}
 
-	rsp, err := s.documentSigner.CreateSignature(ctx, req)
+	ctx, _ = context.WithTimeout(context.Background(), time.Minute*2)
+	opts := []client.CallOption{
+		client.WithRequestTimeout(time.Minute * 2),
+	}
+	rsp, err := s.documentSigner.CreateSignature(ctx, req, opts...)
 
 	if err != nil {
 		zap.L().Error(
@@ -1537,6 +1541,7 @@ func (s *Service) SetMerchantTariffRates(
 
 	timestampNow := ptypes.TimestampNow()
 
+	merchant.MerchantOperationsType = req.MerchantOperationsType
 	merchant.Tariff = &billing.MerchantTariff{
 		Payment:    tariffs.Payment,
 		Payout:     payoutTariff,

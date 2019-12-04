@@ -677,11 +677,8 @@ func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, coun
 		"to", to.Format(time.RFC3339),
 	)
 
-	req := &taxService.GetRateRequest{
-		IpData: &taxService.GeoIdentity{
-			Country: country.IsoCodeA2,
-		},
-		UserData: &taxService.GeoIdentity{},
+	req := &taxService.GeoIdentity{
+		Country: country.IsoCodeA2,
 	}
 
 	rsp, err := h.Service.tax.GetRate(ctx, req)
@@ -690,7 +687,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, coun
 		return err
 	}
 
-	rate := rsp.Rate.Rate
+	rate := rsp.Rate
 
 	report := &billing.VatReport{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -1004,6 +1001,10 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(ctx context.Conte
 		h.orderViewUpdateIds[ae.Source.Id] = true
 	}
 
+	if len(operations) == 0 {
+		return nil
+	}
+
 	bulkResult, err := h.Service.db.Collection(collectionAccountingEntry).BulkWrite(h.ctx, operations)
 
 	if err != nil {
@@ -1028,12 +1029,13 @@ func (h *vatReportProcessor) exchangeAmount(
 	source string,
 ) (float64, error) {
 	req := &currencies.ExchangeCurrencyByDateCommonRequest{
-		From:     from,
-		To:       to,
-		RateType: curPkg.RateTypeCentralbanks,
-		Source:   source,
-		Amount:   amount,
-		Datetime: h.ts,
+		From:              from,
+		To:                to,
+		RateType:          curPkg.RateTypeCentralbanks,
+		ExchangeDirection: curPkg.ExchangeDirectionBuy,
+		Source:            source,
+		Amount:            amount,
+		Datetime:          h.ts,
 	}
 
 	rsp, err := h.Service.curService.ExchangeCurrencyByDateCommon(ctx, req)

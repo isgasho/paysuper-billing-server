@@ -18,6 +18,7 @@ import (
 
 const (
 	cacheCountryCodeA2                    = "country:code_a2:%s"
+	cacheCountryRisk                      = "country:risk:%t"
 	cacheCountryAll                       = "country:all"
 	cacheCountryRegions                   = "country:regions"
 	cacheCountriesWithVatEnabled          = "country:with_vat"
@@ -29,6 +30,7 @@ const (
 var (
 	errorCountryNotFound        = newBillingServerErrorMsg("co000001", "country not found")
 	errorCountryRegionNotExists = newBillingServerErrorMsg("co000002", "region not exists")
+	errorCountryOrderIdRequired = newBillingServerErrorMsg("co000003", "order id required")
 
 	errorTariffsNotFound = errors.New("tariffs not found")
 )
@@ -52,6 +54,40 @@ func (s *Service) GetCountriesList(
 	}
 
 	res.Countries = countries.Countries
+
+	return nil
+}
+
+func (s *Service) GetCountriesListForOrder(
+	ctx context.Context,
+	req *grpc.GetCountriesListForOrderRequest,
+	res *grpc.GetCountriesListForOrderResponse,
+) error {
+	if req.OrderId == "" {
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorCountryOrderIdRequired
+		return nil
+	}
+
+	order, err := s.orderRepository.GetByUuid(ctx, req.OrderId)
+	if err != nil {
+		zap.L().Error(pkg.MethodFinishedWithError, zap.Error(err))
+
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			res.Status = pkg.ResponseStatusSystemError
+			res.Message = e
+			return nil
+		}
+		return err
+	}
+
+	countries, err := s.country.GetPaymentCountriesForOrder(ctx, order.IsHighRisk)
+	if err != nil {
+		return err
+	}
+
+	res.Item = countries
+	res.Status = pkg.ResponseStatusOk
 
 	return nil
 }
@@ -171,6 +207,7 @@ type CountryServiceInterface interface {
 	Update(context.Context, *billing.Country) error
 	GetByIsoCodeA2(context.Context, string) (*billing.Country, error)
 	GetAll(context.Context) (*billing.CountriesList, error)
+	GetPaymentCountriesForOrder(ctx context.Context, isHighRiskOrder bool) (*billing.CountriesList, error)
 	IsRegionExists(context.Context, string) (bool, error)
 	IsTariffRegionExists(string) bool
 	GetCountriesWithVatEnabled(context.Context) (*billing.CountriesList, error)
@@ -204,6 +241,12 @@ func (h *Country) Insert(ctx context.Context, country *billing.Country) error {
 	if err := h.svc.cacher.Delete(cacheCountriesWithVatEnabled); err != nil {
 		return err
 	}
+	if err := h.svc.cacher.Delete(fmt.Sprintf(cacheCountryRisk, false)); err != nil {
+		return err
+	}
+	if err := h.svc.cacher.Delete(fmt.Sprintf(cacheCountryRisk, true)); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -235,6 +278,12 @@ func (h *Country) MultipleInsert(ctx context.Context, country []*billing.Country
 		return err
 	}
 	if err := h.svc.cacher.Delete(cacheCountriesWithVatEnabled); err != nil {
+		return err
+	}
+	if err := h.svc.cacher.Delete(fmt.Sprintf(cacheCountryRisk, false)); err != nil {
+		return err
+	}
+	if err := h.svc.cacher.Delete(fmt.Sprintf(cacheCountryRisk, true)); err != nil {
 		return err
 	}
 
@@ -271,14 +320,19 @@ func (h *Country) Update(ctx context.Context, country *billing.Country) error {
 	if err := h.svc.cacher.Delete(cacheCountriesWithVatEnabled); err != nil {
 		return err
 	}
+	if err := h.svc.cacher.Delete(fmt.Sprintf(cacheCountryRisk, false)); err != nil {
+		return err
+	}
+	if err := h.svc.cacher.Delete(fmt.Sprintf(cacheCountryRisk, true)); err != nil {
+		return err
+	}
 
 	return nil
 }
 
 func (h *Country) GetByIsoCodeA2(ctx context.Context, code string) (*billing.Country, error) {
 	var c billing.Country
-	key := fmt.Sprintf(cacheCountryCodeA2, code)
-
+	var key = fmt.Sprintf(cacheCountryCodeA2, code)
 	if err := h.svc.cacher.Get(key, c); err == nil {
 		return &c, nil
 	}
@@ -396,6 +450,61 @@ func (h *Country) GetAll(ctx context.Context) (*billing.CountriesList, error) {
 	err = h.svc.cacher.Set(key, c, 0)
 	if err != nil {
 		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", key, "data", c)
+	}
+
+	return c, nil
+}
+
+func (h *Country) GetPaymentCountriesForOrder(ctx context.Context, isHighRiskOrder bool) (*billing.CountriesList, error) {
+	var c = &billing.CountriesList{}
+	var key = fmt.Sprintf(cacheCountryRisk, isHighRiskOrder)
+	if err := h.svc.cacher.Get(key, c); err == nil {
+		return c, nil
+	}
+
+	field := "payments_allowed"
+	if isHighRiskOrder {
+		field = "high_risk_payments_allowed"
+	}
+
+	query := bson.M{
+		field: true,
+	}
+	opts := options.Find().SetSort(bson.M{"iso_code_a2": 1})
+	cursor, err := h.svc.db.Collection(collectionCountry).Find(ctx, query, opts)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionCountry),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return nil, err
+	}
+
+	err = cursor.All(ctx, &c.Countries)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorQueryCursorExecutionFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionCountry),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return nil, err
+	}
+
+	err = h.svc.cacher.Set(key, c, 0)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
+			zap.String(pkg.ErrorCacheFieldKey, key),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, c),
+		)
 	}
 
 	return c, nil

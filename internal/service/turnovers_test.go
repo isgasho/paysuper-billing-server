@@ -7,7 +7,6 @@ import (
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -29,7 +28,7 @@ type TurnoversTestSuite struct {
 	suite.Suite
 	service          *Service
 	log              *zap.Logger
-	cache            internalPkg.CacheInterface
+	cache            CacheInterface
 	country          *billing.Country
 	operatingCompany *billing.OperatingCompany
 }
@@ -56,7 +55,7 @@ func (suite *TurnoversTestSuite) SetupTest() {
 	}
 
 	redisdb := mocks.NewTestRedis()
-	suite.cache = NewCacheRedis(redisdb)
+	suite.cache, err = NewCacheRedis(redisdb, "cache")
 	suite.service = NewBillingService(
 		db,
 		cfg,
@@ -363,11 +362,12 @@ func (suite *TurnoversTestSuite) getTurnoverReference(from, to time.Time, operat
 		}
 
 		req := &currencies.ExchangeCurrencyByDateCommonRequest{
-			From:     v.Id,
-			To:       targetCurrency,
-			RateType: "",
-			Amount:   v.Amount,
-			Datetime: nil,
+			From:              v.Id,
+			To:                targetCurrency,
+			RateType:          curPkg.RateTypeOxr,
+			ExchangeDirection: curPkg.ExchangeDirectionBuy,
+			Amount:            v.Amount,
+			Datetime:          nil,
 		}
 
 		rsp, err := suite.service.curService.ExchangeCurrencyByDateCommon(context.TODO(), req)

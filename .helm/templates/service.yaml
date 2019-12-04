@@ -1,5 +1,6 @@
 {{- $deployment := .Values.backend -}}
-{{- $svcName := printf "%s" .Release.Name }}
+#{{- $svcName := printf "%s" .Release.Name }}
+{{- $svcName := printf "%s" $deployment.service.name }}
 apiVersion: v1
 kind: Service
 metadata:
