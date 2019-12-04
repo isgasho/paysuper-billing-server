@@ -223,12 +223,11 @@ func (m *Order) GetPaymentFormDataChangeResult(brand string) *PaymentFormDataCha
 		TotalAmount:            tools.FormatAmount(m.TotalPaymentAmount),
 		Items:                  m.Items,
 		CountryPaymentsAllowed: true,
-		CountryChangeAllowed:   true,
+		CountryChangeAllowed:   m.CountryChangeAllowed(),
 	}
 
 	if m.CountryRestriction != nil {
 		item.CountryPaymentsAllowed = m.CountryRestriction.PaymentsAllowed
-		item.CountryChangeAllowed = m.CountryRestriction.ChangeAllowed
 	}
 
 	return item
@@ -249,4 +248,8 @@ func (m *Order) IsDeclinedByCountry() bool {
 		m.CountryRestriction != nil &&
 		m.CountryRestriction.PaymentsAllowed == false &&
 		m.CountryRestriction.ChangeAllowed == false
+}
+
+func (m *Order) CountryChangeAllowed() bool {
+	return m.CountryRestriction == nil || m.CountryRestriction.ChangeAllowed == true
 }
