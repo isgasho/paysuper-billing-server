@@ -408,7 +408,7 @@ func (s *Service) getUserEmailConfirmationToken(token string) (string, error) {
 
 func (s *Service) sendUserEmailConfirmationToken(ctx context.Context, profile *grpc.UserProfile) error {
 	payload := &postmarkSdrPkg.Payload{
-		TemplateAlias: s.cfg.EmailConfirmTemplate,
+		TemplateAlias: s.cfg.EmailTemplates.ConfirmAccount,
 		TemplateModel: map[string]string{
 			"confirm_url": profile.Email.ConfirmationUrl,
 		},
