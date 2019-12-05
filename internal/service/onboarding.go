@@ -342,7 +342,7 @@ func (s *Service) ChangeMerchant(
 	}
 
 	if merchant.IsDataComplete() {
-		err = s.sendOnboardingLetter(merchant, s.cfg.EmailMerchantNewOnboardingRequestTemplate, merchant.GetAuthorizedEmail())
+		err = s.sendOnboardingLetter(merchant, nil, s.cfg.EmailTemplates.OnboardingVerificationMerchant, merchant.GetAuthorizedEmail())
 		if err != nil {
 			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 				rsp.Status = pkg.ResponseStatusSystemError
@@ -352,7 +352,7 @@ func (s *Service) ChangeMerchant(
 			return err
 		}
 
-		err = s.sendOnboardingLetter(merchant, s.cfg.EmailAdminNewOnboardingRequestTemplate, s.cfg.EmailOnboardingAdminRecipient)
+		err = s.sendOnboardingLetter(merchant, nil, s.cfg.EmailTemplates.OnboardingVerificationAdmin, s.cfg.EmailOnboardingAdminRecipient)
 		if err != nil {
 			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 				rsp.Status = pkg.ResponseStatusSystemError
@@ -586,6 +586,15 @@ func (s *Service) SetMerchantOperatingCompany(
 		return nil
 	}
 
+	oc, err := s.operatingCompany.GetById(ctx, req.OperatingCompanyId)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
+
+		return nil
+	}
+
 	if !merchant.IsDataComplete() {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = merchantErrorOnboardingNotComplete
@@ -600,7 +609,7 @@ func (s *Service) SetMerchantOperatingCompany(
 
 	statusChange := &billing.SystemNotificationStatuses{From: merchant.Status, To: pkg.MerchantStatusAccepted}
 
-	merchant.OperatingCompanyId = req.OperatingCompanyId
+	merchant.OperatingCompanyId = oc.Id
 	merchant.Status = pkg.MerchantStatusAccepted
 	merchant.StatusLastUpdatedAt = ptypes.TimestampNow()
 
@@ -640,7 +649,7 @@ func (s *Service) SetMerchantOperatingCompany(
 		return nil
 	}
 
-	err = s.sendOnboardingLetter(merchant, s.cfg.EmailMerchantOnboardingRequestCompleteTemplate, merchant.GetAuthorizedEmail())
+	err = s.sendOnboardingLetter(merchant, oc, s.cfg.EmailTemplates.OnboardingCompleted, merchant.GetAuthorizedEmail())
 	if err != nil {
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusSystemError
@@ -1378,12 +1387,10 @@ func (s *Service) changeMerchantAgreementSingUrl(
 		signatureId string
 	)
 
+	signatureId = merchant.GetPaysuperSignatureId()
+
 	if signerType == pkg.SignerTypeMerchant {
-		signUrl = merchant.GetMerchantSignUrl()
 		signatureId = merchant.GetMerchantSignatureId()
-	} else {
-		signUrl = merchant.GetPaysuperSignUrl()
-		signatureId = merchant.GetPaysuperSignatureId()
 	}
 
 	req := &proto.GetSignatureUrlRequest{SignatureId: signatureId}
@@ -1670,7 +1677,7 @@ func (s *Service) SetMerchantTariffRates(
 	merchant.Steps.Tariff = true
 
 	if merchant.IsDataComplete() {
-		err = s.sendOnboardingLetter(merchant, s.cfg.EmailMerchantNewOnboardingRequestTemplate, merchant.GetAuthorizedEmail())
+		err = s.sendOnboardingLetter(merchant, nil, s.cfg.EmailTemplates.OnboardingVerificationMerchant, merchant.GetAuthorizedEmail())
 		if err != nil {
 			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 				rsp.Status = pkg.ResponseStatusSystemError
@@ -1680,7 +1687,7 @@ func (s *Service) SetMerchantTariffRates(
 			return err
 		}
 
-		err = s.sendOnboardingLetter(merchant, s.cfg.EmailAdminNewOnboardingRequestTemplate, s.cfg.EmailOnboardingAdminRecipient)
+		err = s.sendOnboardingLetter(merchant, nil, s.cfg.EmailTemplates.OnboardingVerificationAdmin, s.cfg.EmailOnboardingAdminRecipient)
 		if err != nil {
 			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 				rsp.Status = pkg.ResponseStatusSystemError
@@ -1811,13 +1818,20 @@ func (s *Service) getMerchantAgreementNumber(merchantId string) string {
 	return fmt.Sprintf("%s%s-%03d", now.Format("01"), now.Format("02"), mongodb.GetObjectIDCounter(merchantOid))
 }
 
-func (s *Service) sendOnboardingLetter(merchant *billing.Merchant, template, recipientEmail string) (err error) {
+func (s *Service) sendOnboardingLetter(merchant *billing.Merchant, oc *billing.OperatingCompany, template, recipientEmail string) (err error) {
+	ocName := ""
+	if oc != nil {
+		ocName = oc.Name
+	}
+
 	payload := &postmarkSdrPkg.Payload{
 		TemplateAlias: template,
 		TemplateModel: map[string]string{
 			"merchant_id":                   merchant.Id,
-			"merchant_agreement_sign_url":   s.cfg.MerchantsAgreementSignatureUrl,
-			"admin_onboarding_requests_url": s.cfg.AdminOnboardingRequestsUrl,
+			"operating_name":                ocName,
+			"merchant_agreement_sign_url":   s.cfg.GetMerchantCompanyUrl(),
+			"admin_company_url":             s.cfg.GetAdminCompanyUrl(merchant.Id),
+			"admin_onboarding_requests_url": s.cfg.GetAdminOnboardingRequestsUrl(),
 		},
 		To: recipientEmail,
 	}
