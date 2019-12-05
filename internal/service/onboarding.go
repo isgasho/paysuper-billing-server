@@ -1270,8 +1270,8 @@ func (s *Service) getMerchantAgreementSignature(
 
 	req := &proto.CreateSignatureRequest{
 		RequestType: documentSignerConst.RequestTypeCreateWebsite,
-		Subject:     "PaySuper and " + op.Name + " License Agreement signing request",
-		Title:       "License Agreement # " + merchant.AgreementNumber,
+		Subject:     "PaySuper and " + merchant.Company.Name + " License Agreement signing request",
+		Title:       "License Agreement #" + merchant.AgreementNumber,
 		Message:     message,
 		ClientId:    s.cfg.HelloSignAgreementClientId,
 		Ccs: []*proto.CreateSignatureRequestCcs{
