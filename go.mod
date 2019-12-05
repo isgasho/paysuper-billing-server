@@ -37,7 +37,7 @@ require (
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/paysuper/casbin-server v0.0.0-20191128090724-930a08d68cec
-	github.com/paysuper/document-signer v0.0.0-20191204115220-0923445761d6
+	github.com/paysuper/document-signer v0.0.0-20191205124524-761027640a4f
 	github.com/paysuper/paysuper-currencies v0.0.0-20191203095905-dc61e294d7d9
 	github.com/paysuper/paysuper-database-mongo v0.1.3
 	github.com/paysuper/paysuper-i18n v0.0.0-20190926113224-7eaca4563c7b

@@ -1269,10 +1269,11 @@ func (s *Service) getMerchantAgreementSignature(
 		"After signing you will get a both sides signed PDF-copy in next email."
 
 	req := &proto.CreateSignatureRequest{
-		Subject:  "PaySuper and " + op.Name + " License Agreement signing request",
-		Title:    "License Agreement # " + merchant.AgreementNumber,
-		Message:  message,
-		ClientId: s.cfg.HelloSignAgreementClientId,
+		RequestType: documentSignerConst.RequestTypeCreateWebsite,
+		Subject:     "PaySuper and " + op.Name + " License Agreement signing request",
+		Title:       "License Agreement # " + merchant.AgreementNumber,
+		Message:     message,
+		ClientId:    s.cfg.HelloSignAgreementClientId,
 		Ccs: []*proto.CreateSignatureRequestCcs{
 			{EmailAddress: merchant.User.Email, RoleName: "Merchant Owner"},
 			{EmailAddress: s.cfg.EmailOnboardingAdminRecipient, RoleName: "PaySuper Verifier"},
