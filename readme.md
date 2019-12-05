@@ -97,17 +97,14 @@ To run application as microservice simply don't pass any flags to command line :
 | EMAIL_ACTIVATION_CODE_TEMPLATE                      | Postmark Email template id for sending to user with activation code                                                                 |
 | PAYLINK_MIN_PRODUCTS                                | Minimum number of products allowed for one payment link (must be >= 1)                                                              |
 | PAYLINK_MAX_PRODUCTS                                | Maximum number of products allowed for one payment link                                                                             |
-| ROYALTY_REPORTS_URL                                 | Url to use in template of royalty reports                                                                                           |
-| PAYOUTS_URL                                         | Url to use in template of payouts                                                                                                   |
 | EMAIL_MERCHANT_NEW_ONBOARDING_REQUEST_TEMPLATE      | New onboarding request letter to merchant template                                                                                  |
 | EMAIL_ADMIN_NEW_ONBOARDING_REQUEST_TEMPLATE         | New onboarding request letter to admin template                                                                                     |
 | EMAIL_MERCHANT_ONBOARDING_REQUEST_COMPLETE_TEMPLATE | Onboarding request complated letter to merchant template                                                                            |
 | EMAIL_ONBOARDING_ADMIN_RECIPIENT                    | Email of onboarding administrator                                                                                                   |
-| MERCHANTS_AGREEMENT_SIGNATURE_URL                   | Merchant license agreement page url                                                                                                 |
-| ADMIN_ONBOARDING_REQUESTS_URL                       | Onboarding administrator agreement requests page url                                                                                |
-| MIGRATIONS_LOCK_TIMEOUT                             | Timeout for process db migrations on app start                                                                                       |
+| MIGRATIONS_LOCK_TIMEOUT                             | Timeout for process db migrations on app start                                                                                      |
 | USER_INVITE_TOKEN_SECRET                            | Secret key for generation invitation token of user                                                                                  |
 | USER_INVITE_TOKEN_TIMEOUT                           | Timeout in hours for lifetime of invitation token of user                                                                           |
+| DASHBOARD_URL                                       | URL of dashboard for generate links in a notifications                                                                              |
 
 
 ## Architecture

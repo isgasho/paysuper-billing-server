@@ -1897,9 +1897,9 @@ func (s *Service) getPayloadForReceipt(ctx context.Context, order *billing.Order
 		paymentPartner = oc.Name
 	}
 
-	template := s.cfg.EmailSuccessTransactionTemplate
+	template := s.cfg.EmailTemplates.SuccessTransaction
 	if order.Type == pkg.OrderTypeRefund {
-		template = s.cfg.EmailRefundTransactionTemplate
+		template = s.cfg.EmailTemplates.RefundTransaction
 	}
 
 	payload := &postmarkSdrPkg.Payload{
@@ -1973,7 +1973,7 @@ func (s *Service) sendMailWithCode(ctx context.Context, order *billing.Order, ke
 		if item.Id == key.KeyProductId {
 			item.Code = key.Code
 			payload := &postmarkSdrPkg.Payload{
-				TemplateAlias: s.cfg.EmailGameCodeTemplate,
+				TemplateAlias: s.cfg.EmailTemplates.ActivationGameKey,
 				TemplateModel: map[string]string{
 					"code":          key.Code,
 					"platform_icon": platformIconUrl,
