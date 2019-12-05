@@ -601,12 +601,6 @@ func (s *Service) SetMerchantOperatingCompany(
 		return nil
 	}
 
-	if !s.operatingCompany.Exists(ctx, req.OperatingCompanyId) {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = merchantErrorOperatingCompanyNotExists
-		return nil
-	}
-
 	statusChange := &billing.SystemNotificationStatuses{From: merchant.Status, To: pkg.MerchantStatusAccepted}
 
 	merchant.OperatingCompanyId = oc.Id
@@ -1225,49 +1219,6 @@ func (s *Service) mapNotificationData(rsp *billing.Notification, notification *b
 	rsp.Statuses = notification.Statuses
 }
 
-func (s *Service) GetMerchantAgreementSignUrl(
-	ctx context.Context,
-	req *grpc.GetMerchantAgreementSignUrlRequest,
-	rsp *grpc.GetMerchantAgreementSignUrlResponse,
-) error {
-	merchant, err := s.merchant.GetById(ctx, req.MerchantId)
-
-	if err != nil {
-		rsp.Status = pkg.ResponseStatusNotFound
-		rsp.Message = merchantErrorNotFound
-
-		return nil
-	}
-
-	if merchant.IsAgreementSigned() {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = merchantErrorAlreadySigned
-
-		return nil
-	}
-
-	if !merchant.CanSignAgreement(req.SignerType) {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = merchantErrorOnboardingNotComplete
-
-		return nil
-	}
-
-	data, err := s.changeMerchantAgreementSingUrl(ctx, req.SignerType, merchant)
-
-	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
-
-		return nil
-	}
-
-	rsp.Status = pkg.ResponseStatusOk
-	rsp.Item = data
-
-	return nil
-}
-
 func (s *Service) IsChangeDataAllow(merchant *billing.Merchant, data *grpc.OnboardingRequest) bool {
 	if merchant.Status != pkg.MerchantStatusDraft &&
 		(data.Company != nil || data.Contacts != nil || data.Banking != nil || merchant.HasTariff()) {
@@ -1312,9 +1263,20 @@ func (s *Service) getMerchantAgreementSignature(
 		return nil, err
 	}
 
+	message := "License Agreement signing procedure between your company and PaySuper was initiated.\r\n" +
+		"This service provides legally binding e-signatures, so please check carefully this signing request origin " +
+		"and then click the big blue button to review and then sign the document.\r\n" +
+		"After signing you will get a both sides signed PDF-copy in next email."
+
 	req := &proto.CreateSignatureRequest{
-		RequestType: documentSignerConst.RequestTypeCreateEmbedded,
-		ClientId:    s.cfg.HelloSignAgreementClientId,
+		Subject:  "PaySuper and " + op.Name + " License Agreement signing request",
+		Title:    "License Agreement # " + merchant.AgreementNumber,
+		Message:  message,
+		ClientId: s.cfg.HelloSignAgreementClientId,
+		Ccs: []*proto.CreateSignatureRequestCcs{
+			{EmailAddress: merchant.User.Email, RoleName: "Merchant Owner"},
+			{EmailAddress: s.cfg.EmailOnboardingAdminRecipient, RoleName: "PaySuper Verifier"},
+		},
 		Signers: []*proto.CreateSignatureRequestSigner{
 			{
 				Email:    merchant.GetAuthorizedEmail(),
@@ -1375,67 +1337,6 @@ func (s *Service) getMerchantAgreementSignature(
 	}
 
 	return data, nil
-}
-
-func (s *Service) changeMerchantAgreementSingUrl(
-	ctx context.Context,
-	signerType int32,
-	merchant *billing.Merchant,
-) (*billing.MerchantAgreementSignatureDataSignUrl, error) {
-	var (
-		signUrl     *billing.MerchantAgreementSignatureDataSignUrl
-		signatureId string
-	)
-
-	signatureId = merchant.GetPaysuperSignatureId()
-
-	if signerType == pkg.SignerTypeMerchant {
-		signatureId = merchant.GetMerchantSignatureId()
-	}
-
-	req := &proto.GetSignatureUrlRequest{SignatureId: signatureId}
-	rsp, err := s.documentSigner.GetSignatureUrl(ctx, req)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorGrpcServiceCallFailed,
-			zap.Error(err),
-			zap.String(errorFieldService, "DocumentSignerService"),
-			zap.String(errorFieldMethod, "GetSignatureUrl"),
-			zap.Any(errorFieldRequest, req),
-		)
-
-		return nil, merchantErrorUnknown
-	}
-
-	if rsp.Status != pkg.ResponseStatusOk {
-		err = &grpc.ResponseErrorMessage{
-			Code:    rsp.Message.Code,
-			Message: rsp.Message.Message,
-			Details: rsp.Message.Details,
-		}
-
-		return nil, err
-	}
-
-	signUrl = &billing.MerchantAgreementSignatureDataSignUrl{
-		SignUrl:   rsp.Item.SignUrl,
-		ExpiresAt: rsp.Item.ExpiresAt,
-	}
-
-	if signerType == pkg.SignerTypeMerchant {
-		merchant.AgreementSignatureData.MerchantSignUrl = signUrl
-	} else {
-		merchant.AgreementSignatureData.PsSignUrl = signUrl
-	}
-
-	err = s.merchant.Update(ctx, merchant)
-
-	if err != nil {
-		return nil, merchantErrorUnknown
-	}
-
-	return signUrl, nil
 }
 
 func (s *Service) GetMerchantTariffRates(
