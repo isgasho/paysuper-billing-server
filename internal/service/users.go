@@ -661,13 +661,13 @@ func (s *Service) parseInviteToken(t string) (jwt.MapClaims, error) {
 
 func (s *Service) sendInviteEmail(receiverEmail, senderEmail, senderFirstName, senderLastName, senderCompany, token string) error {
 	payload := &postmarkSdrPkg.Payload{
-		TemplateAlias: s.cfg.EmailInviteTemplate,
+		TemplateAlias: s.cfg.EmailTemplates.UserInvite,
 		TemplateModel: map[string]string{
 			"sender_first_name": senderFirstName,
 			"sender_last_name":  senderLastName,
 			"sender_email":      senderEmail,
 			"sender_company":    senderCompany,
-			"invite_link":       fmt.Sprintf(s.cfg.UserInviteUrl, token),
+			"invite_link":       s.cfg.GetUserInviteUrl(token),
 		},
 		To: receiverEmail,
 	}

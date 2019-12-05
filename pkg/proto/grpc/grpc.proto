@@ -65,6 +65,7 @@ service BillingService {
     rpc CheckProjectRequestSignature (CheckProjectRequestSignatureRequest) returns (CheckProjectRequestSignatureResponse) {}
 
     rpc GetCountriesList (EmptyRequest) returns (billing.CountriesList) {}
+    rpc GetCountriesListForOrder (GetCountriesListForOrderRequest) returns (GetCountriesListForOrderResponse) {}
     rpc GetCountry (billing.GetCountryRequest) returns (billing.Country) {}
     rpc UpdateCountry (billing.Country) returns (billing.Country) {}
 
@@ -141,7 +142,6 @@ service BillingService {
     rpc UpdateVatReportStatus (UpdateVatReportStatusRequest) returns (ResponseError) {}
 
     rpc CalcAnnualTurnovers (EmptyRequest) returns (EmptyResponse) {}
-    rpc GetMerchantAgreementSignUrl (GetMerchantAgreementSignUrlRequest) returns (GetMerchantAgreementSignUrlResponse) {}
     rpc GetMerchantOnboardingCompleteData (SetMerchantS3AgreementRequest) returns (GetMerchantOnboardingCompleteDataResponse) {}
     rpc CreateOrUpdateKeyProduct (CreateOrUpdateKeyProductRequest) returns (KeyProductResponse) {}
     rpc GetKeyProducts (ListKeyProductsRequest) returns (ListKeyProductsResponse) {}
@@ -488,8 +488,6 @@ message PaymentFormJsonData {
     billing.UserIpData user_ip_data = 13;
     // @inject_tag: json:"items" validate="omitempty,gte=1,dive"
     repeated billing.OrderItem items = 14;
-    // @inject_tag: json:"cookie"
-    string cookie = 15;
     // @inject_tag: json:"email"
     string email = 16;
     // @inject_tag: json:"description"
@@ -508,6 +506,12 @@ message PaymentFormJsonData {
     string receipt_url = 23;
     //@inject_tag: json:"type"
     string type = 24;
+    // @inject_tag: json:"charge_currency"
+    string charge_currency = 25;
+    // @inject_tag: json:"charge_amount"
+    double charge_amount = 26;
+    // @inject_tag: json:"vat_in_charge_currency"
+    double vat_in_charge_currency = 27;
 }
 
 message PaymentFormJsonDataResponse {
@@ -517,6 +521,8 @@ message PaymentFormJsonDataResponse {
     ResponseErrorMessage message = 2;
     //@inject_tag: json:"item"
     PaymentFormJsonData item = 3;
+    // @inject_tag: json:"-"
+    string cookie = 4;
 }
 
 message PaymentNotifyRequest {
@@ -781,6 +787,8 @@ message ProcessBillingAddressRequest {
     string country = 2;
     // @inject_tag: validate:"omitempty,zip_usa"
     string zip = 4;
+    string ip = 5;
+    string cookie = 6;
 }
 
 message ProcessBillingAddressResponseItem {
@@ -796,12 +804,22 @@ message ProcessBillingAddressResponseItem {
     string currency = 6;
     // @inject_tag: json:"items"
     repeated billing.OrderItem items = 7;
+    // @inject_tag: json:"charge_currency"
+    string charge_currency = 8;
+    // @inject_tag: json:"charge_amount"
+    double charge_amount = 9;
+    // @inject_tag: json:"vat_in_charge_currency"
+    double vat_in_charge_currency = 10;
+    // @inject_tag: json:"country_change_allowed"
+    bool country_change_allowed = 11;
 }
 
 message ProcessBillingAddressResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     ProcessBillingAddressResponseItem item = 3;
+    // @inject_tag: json:"-"
+    string cookie = 4;
 }
 
 message GetMerchantByRequest {
@@ -1792,19 +1810,6 @@ message GetMerchantOnboardingCompleteDataResponse {
     GetMerchantOnboardingCompleteDataResponseItem item = 3;
 }
 
-message GetMerchantAgreementSignUrlRequest {
-    //@inject_tag: json:"merchant_id" validate:"required,hexadecimal,len=24"
-    string merchant_id = 1;
-    //@inject_tag: json:"signer_type" validate:"oneof=0 1"
-    int32 signer_type = 2;
-}
-
-message GetMerchantAgreementSignUrlResponse {
-    int32 status = 1;
-    ResponseErrorMessage message = 2;
-    billing.MerchantAgreementSignatureDataSignUrl item = 3;
-}
-
 message GetMerchantTariffRatesRequest {
     // @inject_tag: query:"region" validate:"required,tariff_region"
     string home_region = 1;
@@ -2560,4 +2565,15 @@ message UserRoleResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     billing.UserRole user_role = 3;
+}
+
+message GetCountriesListForOrderRequest {
+    //@inject_tag: validate:"required,uuid" json:"order_id" query:"order_id"
+    string order_id = 1;
+}
+
+message GetCountriesListForOrderResponse {
+    int32 status = 1;
+    ResponseErrorMessage message = 2;
+    billing.CountriesList item = 3;
 }

@@ -75,7 +75,7 @@ func (suite *PaymentMethodTestSuite) SetupTest() {
 		Handler:            "cardpay",
 	}
 
-	key := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
+	key := pkg.GetPaymentMethodKey("RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "")
 
 	suite.pmQiwi = &billing.PaymentMethod{
 		Id:               primitive.NewObjectID().Hex(),
@@ -91,6 +91,7 @@ func (suite *PaymentMethodTestSuite) SetupTest() {
 				Secret:             "A1tph4I6BD0f",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
 		},
 		Type:            "ewallet",
@@ -268,14 +269,14 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_Update_ErrorCacheUpdate()
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_ErrorNoTestSettings() {
 	method := &billing.PaymentMethod{}
 	project := &billing.Project{}
-	_, err := suite.service.paymentMethod.GetPaymentSettings(method, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, project)
+	_, err := suite.service.paymentMethod.GetPaymentSettings(method, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "VISA", project)
 
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), err, orderErrorPaymentMethodEmptySettings)
 }
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_OkTestSettings() {
-	key := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
+	key := pkg.GetPaymentMethodKey("RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "VISA")
 
 	method := &billing.PaymentMethod{
 		Id:         primitive.NewObjectID().Hex(),
@@ -290,6 +291,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_OkTest
 				SecretCallback:     "A1tph4I6BD0f",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
 		},
 		Type:            "ewallet",
@@ -303,7 +305,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_OkTest
 	err = suite.service.project.Update(context.TODO(), suite.project)
 	assert.NoError(suite.T(), err)
 
-	settings, err := suite.service.paymentMethod.GetPaymentSettings(method, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, suite.project)
+	settings, err := suite.service.paymentMethod.GetPaymentSettings(method, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "VISA", suite.project)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), method.ProductionSettings[key].Secret, settings.Secret)
 }
@@ -317,13 +319,13 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_ErrorN
 	project := &billing.Project{
 		Status: pkg.ProjectStatusInProduction,
 	}
-	_, err := suite.service.paymentMethod.GetPaymentSettings(method, "EUR", pkg.MccCodeLowRisk, suite.operatingCompany.Id, project)
+	_, err := suite.service.paymentMethod.GetPaymentSettings(method, "EUR", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "VISA", project)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), err, orderErrorPaymentMethodEmptySettings)
 }
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_Ok() {
-	key := fmt.Sprintf(pkg.PaymentMethodKey, "EUR", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
+	key := pkg.GetPaymentMethodKey("EUR", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "VISA")
 
 	method := &billing.PaymentMethod{
 		Id:         primitive.NewObjectID().Hex(),
@@ -338,6 +340,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_Ok() {
 				SecretCallback:     "A1tph4I6BD0f",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
 		},
 		Type:            "ewallet",
@@ -347,7 +350,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_Ok() {
 	err := suite.service.paymentMethod.Insert(context.TODO(), method)
 	assert.NoError(suite.T(), err)
 
-	settings, err := suite.service.paymentMethod.GetPaymentSettings(method, "EUR", pkg.MccCodeLowRisk, suite.operatingCompany.Id, suite.project)
+	settings, err := suite.service.paymentMethod.GetPaymentSettings(method, "EUR", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "VISA", suite.project)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), method.TestSettings[key].Secret, settings.Secret)
 }
@@ -559,13 +562,14 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodProductio
 	rsp := &grpc.GetPaymentMethodSettingsResponse{}
 	method := &mocks.PaymentMethodInterface{}
 
-	key := fmt.Sprintf(pkg.PaymentMethodKey, "EUR", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
+	key := pkg.GetPaymentMethodKey("EUR", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "")
 	method.On("GetById", mock2.Anything, req.PaymentMethodId).Return(&billing.PaymentMethod{
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
 			key: {
 				Currency:           "EUR",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 				Secret:             "secret",
 				SecretCallback:     "secret_callback",
 				TerminalId:         "terminal_id",
@@ -609,7 +613,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodProduc
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
 	method := &mocks.PaymentMethodInterface{}
 
-	key := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
+	key := pkg.GetPaymentMethodKey("RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "")
 	method.On("GetById", mock2.Anything, req.PaymentMethodId).Return(&billing.PaymentMethod{
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
 			key: {Currency: "RUB", Secret: "unit_test"},
@@ -633,7 +637,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodProduc
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
 	method := &mocks.PaymentMethodInterface{}
 
-	key := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
+	key := pkg.GetPaymentMethodKey("RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "")
 	method.On("GetById", mock2.Anything, req.PaymentMethodId).Return(&billing.PaymentMethod{
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
 			key: {Currency: "RUB", Secret: "unit_test"},
@@ -658,7 +662,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodProduc
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
 	method := &mocks.PaymentMethodInterface{}
 
-	key := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
+	key := pkg.GetPaymentMethodKey("RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "")
 	method.On("GetById", mock2.Anything, req.PaymentMethodId).Return(&billing.PaymentMethod{
 		ProductionSettings: map[string]*billing.PaymentMethodParams{
 			key: {Currency: "RUB", Secret: "unit_test"},
@@ -756,7 +760,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodTestSetti
 	rsp := &grpc.GetPaymentMethodSettingsResponse{}
 	method := &mocks.PaymentMethodInterface{}
 
-	key := fmt.Sprintf(pkg.PaymentMethodKey, "EUR", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
+	key := pkg.GetPaymentMethodKey("EUR", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "")
 	method.On("GetById", mock2.Anything, req.PaymentMethodId).Return(&billing.PaymentMethod{
 		TestSettings: map[string]*billing.PaymentMethodParams{
 			key: {
@@ -766,6 +770,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodTestSetti
 				TerminalId:         "terminal_id",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
 		},
 	}, nil)
@@ -806,7 +811,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodTestSe
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
 	method := &mocks.PaymentMethodInterface{}
 
-	key := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
+	key := pkg.GetPaymentMethodKey("RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "")
 	method.On("GetById", mock2.Anything, req.PaymentMethodId).Return(&billing.PaymentMethod{
 		TestSettings: map[string]*billing.PaymentMethodParams{
 			key: {
@@ -814,6 +819,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodTestSe
 				Secret:             "unit_test",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
 		},
 	}, nil)
@@ -835,7 +841,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodTestSe
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
 	method := &mocks.PaymentMethodInterface{}
 
-	key := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
+	key := pkg.GetPaymentMethodKey("RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "")
 	method.On("GetById", mock2.Anything, req.PaymentMethodId).Return(&billing.PaymentMethod{
 		TestSettings: map[string]*billing.PaymentMethodParams{
 			key: {
@@ -843,6 +849,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodTestSe
 				Secret:             "unit_test",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
 		},
 	}, nil)
@@ -865,7 +872,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodTestSe
 	rsp := &grpc.ChangePaymentMethodParamsResponse{}
 	method := &mocks.PaymentMethodInterface{}
 
-	key := fmt.Sprintf(pkg.PaymentMethodKey, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id)
+	key := pkg.GetPaymentMethodKey("RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "")
 	method.On("GetById", mock2.Anything, req.PaymentMethodId).Return(&billing.PaymentMethod{
 		TestSettings: map[string]*billing.PaymentMethodParams{
 			key: {
@@ -873,6 +880,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodTestSe
 				Secret:             "unit_test",
 				MccCode:            pkg.MccCodeLowRisk,
 				OperatingCompanyId: suite.operatingCompany.Id,
+				Brand:              []string{"VISA", "MASTERCARD"},
 			},
 		},
 	}, nil)

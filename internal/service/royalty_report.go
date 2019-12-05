@@ -253,14 +253,18 @@ func (s *Service) ListRoyaltyReports(
 		query["status"] = bson.M{"$in": req.Status}
 	}
 
-	if req.PeriodFrom != 0 {
-		query["period_from"] = bson.M{"$gte": time.Unix(req.PeriodFrom, 0)}
+	if req.PeriodFrom > 0 || req.PeriodTo > 0 {
+		date := bson.M{}
+		if req.PeriodFrom > 0 {
+			date["$gte"] = time.Unix(req.PeriodFrom, 0)
+		}
+		if req.PeriodTo > 0 {
+			date["$lte"] = time.Unix(req.PeriodTo, 0)
+		}
+		query["created_at"] = date
 	}
 
-	if req.PeriodTo != 0 {
-		query["period_to"] = bson.M{"$gte": time.Unix(req.PeriodFrom, 0)}
-	}
-
+	zap.L().Info("Find royalty docs", zap.Any("req", req), zap.Any("query", query))
 	count, err := s.db.Collection(collectionRoyaltyReport).CountDocuments(ctx, query)
 
 	if err != nil {
@@ -899,7 +903,7 @@ func (s *Service) RoyaltyReportPdfUploaded(
 	}
 
 	payload := &postmarkSdrPkg.Payload{
-		TemplateAlias: s.cfg.EmailNewRoyaltyReportTemplate,
+		TemplateAlias: s.cfg.EmailTemplates.NewRoyaltyReport,
 		TemplateModel: map[string]string{
 			"merchant_id":            merchant.Id,
 			"royalty_report_id":      report.Id,
@@ -908,7 +912,7 @@ func (s *Service) RoyaltyReportPdfUploaded(
 			"license_agreement":      merchant.AgreementNumber,
 			"status":                 report.Status,
 			"merchant_greeting":      merchant.GetAuthorizedName(),
-			"royalty_reports_url":    s.cfg.RoyaltyReportsUrl,
+			"royalty_reports_url":    s.cfg.GetRoyaltyReportsUrl(),
 			"operating_company_name": operatingCompany.Name,
 		},
 		To: merchant.GetAuthorizedEmail(),
@@ -967,7 +971,7 @@ func (s *Service) sendRoyaltyReportNotification(ctx context.Context, report *bil
 		}
 
 		payload := &postmarkSdrPkg.Payload{
-			TemplateAlias: s.cfg.EmailUpdateRoyaltyReportTemplate,
+			TemplateAlias: s.cfg.EmailTemplates.UpdateRoyaltyReport,
 			TemplateModel: map[string]string{
 				"merchant_id":         merchant.Id,
 				"royalty_report_id":   report.Id,
@@ -976,7 +980,7 @@ func (s *Service) sendRoyaltyReportNotification(ctx context.Context, report *bil
 				"license_agreement":   merchant.AgreementNumber,
 				"status":              report.Status,
 				"merchant_greeting":   merchant.GetAuthorizedName(),
-				"royalty_reports_url": s.cfg.RoyaltyReportsUrl,
+				"royalty_reports_url": s.cfg.GetRoyaltyReportsUrl(),
 			},
 			To: merchant.GetAuthorizedEmail(),
 		}

@@ -576,6 +576,7 @@ func (s *Service) GetPayoutDocuments(
 		query["created_at"] = date
 	}
 
+	zap.L().Info("Find payout docs", zap.Any("req", req), zap.Any("query", query))
 	count, err := s.payoutDocument.CountByQuery(ctx, query)
 
 	if err != nil && err != mongo.ErrNoDocuments {
@@ -667,7 +668,7 @@ func (s *Service) PayoutDocumentPdfUploaded(
 	}
 
 	payload := &postmarkSdrPkg.Payload{
-		TemplateAlias: s.cfg.EmailNewRoyaltyReportTemplate,
+		TemplateAlias: s.cfg.EmailTemplates.NewRoyaltyReport,
 		TemplateModel: map[string]string{
 			"merchant_id":            merchant.Id,
 			"payout_id":              pd.Id,
@@ -676,7 +677,7 @@ func (s *Service) PayoutDocumentPdfUploaded(
 			"license_agreement":      merchant.AgreementNumber,
 			"status":                 pd.Status,
 			"merchant_greeting":      merchant.GetAuthorizedName(),
-			"payouts_url":            s.cfg.PayoutsUrl,
+			"payouts_url":            s.cfg.GetPayoutsUrl(),
 			"operating_company_name": operatingCompany.Name,
 		},
 		To: merchant.GetAuthorizedEmail(),

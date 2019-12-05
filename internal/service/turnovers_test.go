@@ -362,11 +362,12 @@ func (suite *TurnoversTestSuite) getTurnoverReference(from, to time.Time, operat
 		}
 
 		req := &currencies.ExchangeCurrencyByDateCommonRequest{
-			From:     v.Id,
-			To:       targetCurrency,
-			RateType: "",
-			Amount:   v.Amount,
-			Datetime: nil,
+			From:              v.Id,
+			To:                targetCurrency,
+			RateType:          curPkg.RateTypeOxr,
+			ExchangeDirection: curPkg.ExchangeDirectionBuy,
+			Amount:            v.Amount,
+			Datetime:          nil,
 		}
 
 		rsp, err := suite.service.curService.ExchangeCurrencyByDateCommon(context.TODO(), req)

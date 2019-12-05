@@ -84,6 +84,7 @@ type BillingService interface {
 	CreateToken(ctx context.Context, in *TokenRequest, opts ...client.CallOption) (*TokenResponse, error)
 	CheckProjectRequestSignature(ctx context.Context, in *CheckProjectRequestSignatureRequest, opts ...client.CallOption) (*CheckProjectRequestSignatureResponse, error)
 	GetCountriesList(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*billing.CountriesList, error)
+	GetCountriesListForOrder(ctx context.Context, in *GetCountriesListForOrderRequest, opts ...client.CallOption) (*GetCountriesListForOrderResponse, error)
 	GetCountry(ctx context.Context, in *billing.GetCountryRequest, opts ...client.CallOption) (*billing.Country, error)
 	UpdateCountry(ctx context.Context, in *billing.Country, opts ...client.CallOption) (*billing.Country, error)
 	GetOrderPublic(ctx context.Context, in *GetOrderRequest, opts ...client.CallOption) (*GetOrderPublicResponse, error)
@@ -146,7 +147,6 @@ type BillingService interface {
 	ProcessVatReports(ctx context.Context, in *ProcessVatReportsRequest, opts ...client.CallOption) (*EmptyResponse, error)
 	UpdateVatReportStatus(ctx context.Context, in *UpdateVatReportStatusRequest, opts ...client.CallOption) (*ResponseError, error)
 	CalcAnnualTurnovers(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*EmptyResponse, error)
-	GetMerchantAgreementSignUrl(ctx context.Context, in *GetMerchantAgreementSignUrlRequest, opts ...client.CallOption) (*GetMerchantAgreementSignUrlResponse, error)
 	GetMerchantOnboardingCompleteData(ctx context.Context, in *SetMerchantS3AgreementRequest, opts ...client.CallOption) (*GetMerchantOnboardingCompleteDataResponse, error)
 	CreateOrUpdateKeyProduct(ctx context.Context, in *CreateOrUpdateKeyProductRequest, opts ...client.CallOption) (*KeyProductResponse, error)
 	GetKeyProducts(ctx context.Context, in *ListKeyProductsRequest, opts ...client.CallOption) (*ListKeyProductsResponse, error)
@@ -694,6 +694,16 @@ func (c *billingService) CheckProjectRequestSignature(ctx context.Context, in *C
 func (c *billingService) GetCountriesList(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*billing.CountriesList, error) {
 	req := c.c.NewRequest(c.name, "BillingService.GetCountriesList", in)
 	out := new(billing.CountriesList)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) GetCountriesListForOrder(ctx context.Context, in *GetCountriesListForOrderRequest, opts ...client.CallOption) (*GetCountriesListForOrderResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetCountriesListForOrder", in)
+	out := new(GetCountriesListForOrderResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1314,16 +1324,6 @@ func (c *billingService) UpdateVatReportStatus(ctx context.Context, in *UpdateVa
 func (c *billingService) CalcAnnualTurnovers(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*EmptyResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.CalcAnnualTurnovers", in)
 	out := new(EmptyResponse)
-	err := c.c.Call(ctx, req, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *billingService) GetMerchantAgreementSignUrl(ctx context.Context, in *GetMerchantAgreementSignUrlRequest, opts ...client.CallOption) (*GetMerchantAgreementSignUrlResponse, error) {
-	req := c.c.NewRequest(c.name, "BillingService.GetMerchantAgreementSignUrl", in)
-	out := new(GetMerchantAgreementSignUrlResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -2021,6 +2021,7 @@ type BillingServiceHandler interface {
 	CreateToken(context.Context, *TokenRequest, *TokenResponse) error
 	CheckProjectRequestSignature(context.Context, *CheckProjectRequestSignatureRequest, *CheckProjectRequestSignatureResponse) error
 	GetCountriesList(context.Context, *EmptyRequest, *billing.CountriesList) error
+	GetCountriesListForOrder(context.Context, *GetCountriesListForOrderRequest, *GetCountriesListForOrderResponse) error
 	GetCountry(context.Context, *billing.GetCountryRequest, *billing.Country) error
 	UpdateCountry(context.Context, *billing.Country, *billing.Country) error
 	GetOrderPublic(context.Context, *GetOrderRequest, *GetOrderPublicResponse) error
@@ -2083,7 +2084,6 @@ type BillingServiceHandler interface {
 	ProcessVatReports(context.Context, *ProcessVatReportsRequest, *EmptyResponse) error
 	UpdateVatReportStatus(context.Context, *UpdateVatReportStatusRequest, *ResponseError) error
 	CalcAnnualTurnovers(context.Context, *EmptyRequest, *EmptyResponse) error
-	GetMerchantAgreementSignUrl(context.Context, *GetMerchantAgreementSignUrlRequest, *GetMerchantAgreementSignUrlResponse) error
 	GetMerchantOnboardingCompleteData(context.Context, *SetMerchantS3AgreementRequest, *GetMerchantOnboardingCompleteDataResponse) error
 	CreateOrUpdateKeyProduct(context.Context, *CreateOrUpdateKeyProductRequest, *KeyProductResponse) error
 	GetKeyProducts(context.Context, *ListKeyProductsRequest, *ListKeyProductsResponse) error
@@ -2199,6 +2199,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		CreateToken(ctx context.Context, in *TokenRequest, out *TokenResponse) error
 		CheckProjectRequestSignature(ctx context.Context, in *CheckProjectRequestSignatureRequest, out *CheckProjectRequestSignatureResponse) error
 		GetCountriesList(ctx context.Context, in *EmptyRequest, out *billing.CountriesList) error
+		GetCountriesListForOrder(ctx context.Context, in *GetCountriesListForOrderRequest, out *GetCountriesListForOrderResponse) error
 		GetCountry(ctx context.Context, in *billing.GetCountryRequest, out *billing.Country) error
 		UpdateCountry(ctx context.Context, in *billing.Country, out *billing.Country) error
 		GetOrderPublic(ctx context.Context, in *GetOrderRequest, out *GetOrderPublicResponse) error
@@ -2261,7 +2262,6 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		ProcessVatReports(ctx context.Context, in *ProcessVatReportsRequest, out *EmptyResponse) error
 		UpdateVatReportStatus(ctx context.Context, in *UpdateVatReportStatusRequest, out *ResponseError) error
 		CalcAnnualTurnovers(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error
-		GetMerchantAgreementSignUrl(ctx context.Context, in *GetMerchantAgreementSignUrlRequest, out *GetMerchantAgreementSignUrlResponse) error
 		GetMerchantOnboardingCompleteData(ctx context.Context, in *SetMerchantS3AgreementRequest, out *GetMerchantOnboardingCompleteDataResponse) error
 		CreateOrUpdateKeyProduct(ctx context.Context, in *CreateOrUpdateKeyProductRequest, out *KeyProductResponse) error
 		GetKeyProducts(ctx context.Context, in *ListKeyProductsRequest, out *ListKeyProductsResponse) error
@@ -2526,6 +2526,10 @@ func (h *billingServiceHandler) GetCountriesList(ctx context.Context, in *EmptyR
 	return h.BillingServiceHandler.GetCountriesList(ctx, in, out)
 }
 
+func (h *billingServiceHandler) GetCountriesListForOrder(ctx context.Context, in *GetCountriesListForOrderRequest, out *GetCountriesListForOrderResponse) error {
+	return h.BillingServiceHandler.GetCountriesListForOrder(ctx, in, out)
+}
+
 func (h *billingServiceHandler) GetCountry(ctx context.Context, in *billing.GetCountryRequest, out *billing.Country) error {
 	return h.BillingServiceHandler.GetCountry(ctx, in, out)
 }
@@ -2772,10 +2776,6 @@ func (h *billingServiceHandler) UpdateVatReportStatus(ctx context.Context, in *U
 
 func (h *billingServiceHandler) CalcAnnualTurnovers(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error {
 	return h.BillingServiceHandler.CalcAnnualTurnovers(ctx, in, out)
-}
-
-func (h *billingServiceHandler) GetMerchantAgreementSignUrl(ctx context.Context, in *GetMerchantAgreementSignUrlRequest, out *GetMerchantAgreementSignUrlResponse) error {
-	return h.BillingServiceHandler.GetMerchantAgreementSignUrl(ctx, in, out)
 }
 
 func (h *billingServiceHandler) GetMerchantOnboardingCompleteData(ctx context.Context, in *SetMerchantS3AgreementRequest, out *GetMerchantOnboardingCompleteDataResponse) error {
