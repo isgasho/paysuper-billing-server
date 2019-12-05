@@ -142,7 +142,6 @@ service BillingService {
     rpc UpdateVatReportStatus (UpdateVatReportStatusRequest) returns (ResponseError) {}
 
     rpc CalcAnnualTurnovers (EmptyRequest) returns (EmptyResponse) {}
-    rpc GetMerchantAgreementSignUrl (GetMerchantAgreementSignUrlRequest) returns (GetMerchantAgreementSignUrlResponse) {}
     rpc GetMerchantOnboardingCompleteData (SetMerchantS3AgreementRequest) returns (GetMerchantOnboardingCompleteDataResponse) {}
     rpc CreateOrUpdateKeyProduct (CreateOrUpdateKeyProductRequest) returns (KeyProductResponse) {}
     rpc GetKeyProducts (ListKeyProductsRequest) returns (ListKeyProductsResponse) {}
@@ -811,6 +810,8 @@ message ProcessBillingAddressResponseItem {
     double charge_amount = 9;
     // @inject_tag: json:"vat_in_charge_currency"
     double vat_in_charge_currency = 10;
+    // @inject_tag: json:"country_change_allowed"
+    bool country_change_allowed = 11;
 }
 
 message ProcessBillingAddressResponse {
@@ -1807,19 +1808,6 @@ message GetMerchantOnboardingCompleteDataResponse {
     int32 status = 1;
     ResponseErrorMessage message = 2;
     GetMerchantOnboardingCompleteDataResponseItem item = 3;
-}
-
-message GetMerchantAgreementSignUrlRequest {
-    //@inject_tag: json:"merchant_id" validate:"required,hexadecimal,len=24"
-    string merchant_id = 1;
-    //@inject_tag: json:"signer_type" validate:"oneof=0 1"
-    int32 signer_type = 2;
-}
-
-message GetMerchantAgreementSignUrlResponse {
-    int32 status = 1;
-    ResponseErrorMessage message = 2;
-    billing.MerchantAgreementSignatureDataSignUrl item = 3;
 }
 
 message GetMerchantTariffRatesRequest {

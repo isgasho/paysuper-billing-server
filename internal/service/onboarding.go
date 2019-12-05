@@ -342,7 +342,7 @@ func (s *Service) ChangeMerchant(
 	}
 
 	if merchant.IsDataComplete() {
-		err = s.sendOnboardingLetter(merchant, s.cfg.EmailMerchantNewOnboardingRequestTemplate, merchant.GetAuthorizedEmail())
+		err = s.sendOnboardingLetter(merchant, nil, s.cfg.EmailTemplates.OnboardingVerificationMerchant, merchant.GetAuthorizedEmail())
 		if err != nil {
 			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 				rsp.Status = pkg.ResponseStatusSystemError
@@ -352,7 +352,7 @@ func (s *Service) ChangeMerchant(
 			return err
 		}
 
-		err = s.sendOnboardingLetter(merchant, s.cfg.EmailAdminNewOnboardingRequestTemplate, s.cfg.EmailOnboardingAdminRecipient)
+		err = s.sendOnboardingLetter(merchant, nil, s.cfg.EmailTemplates.OnboardingVerificationAdmin, s.cfg.EmailOnboardingAdminRecipient)
 		if err != nil {
 			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 				rsp.Status = pkg.ResponseStatusSystemError
@@ -586,21 +586,24 @@ func (s *Service) SetMerchantOperatingCompany(
 		return nil
 	}
 
+	oc, err := s.operatingCompany.GetById(ctx, req.OperatingCompanyId)
+
+	if err != nil {
+		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Message = err.(*grpc.ResponseErrorMessage)
+
+		return nil
+	}
+
 	if !merchant.IsDataComplete() {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = merchantErrorOnboardingNotComplete
 		return nil
 	}
 
-	if !s.operatingCompany.Exists(ctx, req.OperatingCompanyId) {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = merchantErrorOperatingCompanyNotExists
-		return nil
-	}
-
 	statusChange := &billing.SystemNotificationStatuses{From: merchant.Status, To: pkg.MerchantStatusAccepted}
 
-	merchant.OperatingCompanyId = req.OperatingCompanyId
+	merchant.OperatingCompanyId = oc.Id
 	merchant.Status = pkg.MerchantStatusAccepted
 	merchant.StatusLastUpdatedAt = ptypes.TimestampNow()
 
@@ -640,7 +643,7 @@ func (s *Service) SetMerchantOperatingCompany(
 		return nil
 	}
 
-	err = s.sendOnboardingLetter(merchant, s.cfg.EmailMerchantOnboardingRequestCompleteTemplate, merchant.GetAuthorizedEmail())
+	err = s.sendOnboardingLetter(merchant, oc, s.cfg.EmailTemplates.OnboardingCompleted, merchant.GetAuthorizedEmail())
 	if err != nil {
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusSystemError
@@ -1216,49 +1219,6 @@ func (s *Service) mapNotificationData(rsp *billing.Notification, notification *b
 	rsp.Statuses = notification.Statuses
 }
 
-func (s *Service) GetMerchantAgreementSignUrl(
-	ctx context.Context,
-	req *grpc.GetMerchantAgreementSignUrlRequest,
-	rsp *grpc.GetMerchantAgreementSignUrlResponse,
-) error {
-	merchant, err := s.merchant.GetById(ctx, req.MerchantId)
-
-	if err != nil {
-		rsp.Status = pkg.ResponseStatusNotFound
-		rsp.Message = merchantErrorNotFound
-
-		return nil
-	}
-
-	if merchant.IsAgreementSigned() {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = merchantErrorAlreadySigned
-
-		return nil
-	}
-
-	if !merchant.CanSignAgreement(req.SignerType) {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = merchantErrorOnboardingNotComplete
-
-		return nil
-	}
-
-	data, err := s.changeMerchantAgreementSingUrl(ctx, req.SignerType, merchant)
-
-	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
-
-		return nil
-	}
-
-	rsp.Status = pkg.ResponseStatusOk
-	rsp.Item = data
-
-	return nil
-}
-
 func (s *Service) IsChangeDataAllow(merchant *billing.Merchant, data *grpc.OnboardingRequest) bool {
 	if merchant.Status != pkg.MerchantStatusDraft &&
 		(data.Company != nil || data.Contacts != nil || data.Banking != nil || merchant.HasTariff()) {
@@ -1303,9 +1263,21 @@ func (s *Service) getMerchantAgreementSignature(
 		return nil, err
 	}
 
+	message := "License Agreement signing procedure between your company and PaySuper was initiated.\r\n" +
+		"This service provides legally binding e-signatures, so please check carefully this signing request origin " +
+		"and then click the big blue button to review and then sign the document.\r\n" +
+		"After signing you will get a both sides signed PDF-copy in next email."
+
 	req := &proto.CreateSignatureRequest{
-		RequestType: documentSignerConst.RequestTypeCreateEmbedded,
+		RequestType: documentSignerConst.RequestTypeCreateWebsite,
+		Subject:     "PaySuper and " + op.Name + " License Agreement signing request",
+		Title:       "License Agreement # " + merchant.AgreementNumber,
+		Message:     message,
 		ClientId:    s.cfg.HelloSignAgreementClientId,
+		Ccs: []*proto.CreateSignatureRequestCcs{
+			{EmailAddress: merchant.User.Email, RoleName: "Merchant Owner"},
+			{EmailAddress: s.cfg.EmailOnboardingAdminRecipient, RoleName: "PaySuper Verifier"},
+		},
 		Signers: []*proto.CreateSignatureRequestSigner{
 			{
 				Email:    merchant.GetAuthorizedEmail(),
@@ -1366,69 +1338,6 @@ func (s *Service) getMerchantAgreementSignature(
 	}
 
 	return data, nil
-}
-
-func (s *Service) changeMerchantAgreementSingUrl(
-	ctx context.Context,
-	signerType int32,
-	merchant *billing.Merchant,
-) (*billing.MerchantAgreementSignatureDataSignUrl, error) {
-	var (
-		signUrl     *billing.MerchantAgreementSignatureDataSignUrl
-		signatureId string
-	)
-
-	if signerType == pkg.SignerTypeMerchant {
-		signUrl = merchant.GetMerchantSignUrl()
-		signatureId = merchant.GetMerchantSignatureId()
-	} else {
-		signUrl = merchant.GetPaysuperSignUrl()
-		signatureId = merchant.GetPaysuperSignatureId()
-	}
-
-	req := &proto.GetSignatureUrlRequest{SignatureId: signatureId}
-	rsp, err := s.documentSigner.GetSignatureUrl(ctx, req)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorGrpcServiceCallFailed,
-			zap.Error(err),
-			zap.String(errorFieldService, "DocumentSignerService"),
-			zap.String(errorFieldMethod, "GetSignatureUrl"),
-			zap.Any(errorFieldRequest, req),
-		)
-
-		return nil, merchantErrorUnknown
-	}
-
-	if rsp.Status != pkg.ResponseStatusOk {
-		err = &grpc.ResponseErrorMessage{
-			Code:    rsp.Message.Code,
-			Message: rsp.Message.Message,
-			Details: rsp.Message.Details,
-		}
-
-		return nil, err
-	}
-
-	signUrl = &billing.MerchantAgreementSignatureDataSignUrl{
-		SignUrl:   rsp.Item.SignUrl,
-		ExpiresAt: rsp.Item.ExpiresAt,
-	}
-
-	if signerType == pkg.SignerTypeMerchant {
-		merchant.AgreementSignatureData.MerchantSignUrl = signUrl
-	} else {
-		merchant.AgreementSignatureData.PsSignUrl = signUrl
-	}
-
-	err = s.merchant.Update(ctx, merchant)
-
-	if err != nil {
-		return nil, merchantErrorUnknown
-	}
-
-	return signUrl, nil
 }
 
 func (s *Service) GetMerchantTariffRates(
@@ -1670,7 +1579,7 @@ func (s *Service) SetMerchantTariffRates(
 	merchant.Steps.Tariff = true
 
 	if merchant.IsDataComplete() {
-		err = s.sendOnboardingLetter(merchant, s.cfg.EmailMerchantNewOnboardingRequestTemplate, merchant.GetAuthorizedEmail())
+		err = s.sendOnboardingLetter(merchant, nil, s.cfg.EmailTemplates.OnboardingVerificationMerchant, merchant.GetAuthorizedEmail())
 		if err != nil {
 			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 				rsp.Status = pkg.ResponseStatusSystemError
@@ -1680,7 +1589,7 @@ func (s *Service) SetMerchantTariffRates(
 			return err
 		}
 
-		err = s.sendOnboardingLetter(merchant, s.cfg.EmailAdminNewOnboardingRequestTemplate, s.cfg.EmailOnboardingAdminRecipient)
+		err = s.sendOnboardingLetter(merchant, nil, s.cfg.EmailTemplates.OnboardingVerificationAdmin, s.cfg.EmailOnboardingAdminRecipient)
 		if err != nil {
 			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 				rsp.Status = pkg.ResponseStatusSystemError
@@ -1811,13 +1720,20 @@ func (s *Service) getMerchantAgreementNumber(merchantId string) string {
 	return fmt.Sprintf("%s%s-%03d", now.Format("01"), now.Format("02"), mongodb.GetObjectIDCounter(merchantOid))
 }
 
-func (s *Service) sendOnboardingLetter(merchant *billing.Merchant, template, recipientEmail string) (err error) {
+func (s *Service) sendOnboardingLetter(merchant *billing.Merchant, oc *billing.OperatingCompany, template, recipientEmail string) (err error) {
+	ocName := ""
+	if oc != nil {
+		ocName = oc.Name
+	}
+
 	payload := &postmarkSdrPkg.Payload{
 		TemplateAlias: template,
 		TemplateModel: map[string]string{
 			"merchant_id":                   merchant.Id,
-			"merchant_agreement_sign_url":   s.cfg.MerchantsAgreementSignatureUrl,
-			"admin_onboarding_requests_url": s.cfg.AdminOnboardingRequestsUrl,
+			"operating_name":                ocName,
+			"merchant_agreement_sign_url":   s.cfg.GetMerchantCompanyUrl(),
+			"admin_company_url":             s.cfg.GetAdminCompanyUrl(merchant.Id),
+			"admin_onboarding_requests_url": s.cfg.GetAdminOnboardingRequestsUrl(),
 		},
 		To: recipientEmail,
 	}
