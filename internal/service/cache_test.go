@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"testing"
+	"time"
 )
 
 type CacheTestSuite struct {
@@ -96,6 +97,8 @@ func (suite *CacheTestSuite) TestCache_CleanOldestVersion_SuccessfullyDeletedKey
 
 	err = suite.cache.CleanOldestVersion()
 	assert.NoError(suite.T(), err)
+
+	time.Sleep(1 * time.Second)
 
 	var val2 interface{}
 	_ = oldestCache.Get("test", &val2)
