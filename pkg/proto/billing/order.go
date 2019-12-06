@@ -204,7 +204,7 @@ func (m *Order) GetPaymentSystemApiUrl() string {
 	return m.PaymentMethod.Params.ApiUrl
 }
 
-func (m *Order) GetPaymentFormDataChangeResult(brand string) *PaymentFormDataChangeResponseItem {
+func (m *Order) GetPaymentFormDataChangeResult() *PaymentFormDataChangeResponseItem {
 	item := &PaymentFormDataChangeResponseItem{
 		UserAddressDataRequired: m.UserAddressDataRequired,
 		UserIpData: &UserIpData{
@@ -212,7 +212,7 @@ func (m *Order) GetPaymentFormDataChangeResult(brand string) *PaymentFormDataCha
 			City:    m.User.Address.City,
 			Zip:     m.User.Address.PostalCode,
 		},
-		Brand:                  brand,
+		Brand:                  "",
 		HasVat:                 m.Tax.Rate > 0,
 		Vat:                    tools.FormatAmount(m.Tax.Amount),
 		VatInChargeCurrency:    tools.FormatAmount(m.GetTaxAmountInChargeCurrency()),
@@ -224,6 +224,11 @@ func (m *Order) GetPaymentFormDataChangeResult(brand string) *PaymentFormDataCha
 		Items:                  m.Items,
 		CountryPaymentsAllowed: true,
 		CountryChangeAllowed:   m.CountryChangeAllowed(),
+	}
+
+	brand, err := m.GetBankCardBrand()
+	if err == nil {
+		item.Brand = brand
 	}
 
 	if m.CountryRestriction != nil {
