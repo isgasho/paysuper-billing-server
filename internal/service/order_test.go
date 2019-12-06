@@ -6557,7 +6557,7 @@ func (suite *OrderTestSuite) TestOrder_CreatePayment_ChangeCustomerData_Ok() {
 	assert.NotNil(suite.T(), order.User)
 	assert.Equal(suite.T(), customer2.Id, order.User.Id)
 	assert.Equal(suite.T(), order.User.Ip, "127.0.0.1")
-	assert.Equal(suite.T(), order.User.Locale, customer2.Locale)
+	assert.Equal(suite.T(), order.User.Locale, customer2.LocaleHistory[0].Value)
 	assert.Equal(suite.T(), order.User.Email, customer2.Email)
 	assert.False(suite.T(), order.UserAddressDataRequired)
 
@@ -6572,7 +6572,7 @@ func (suite *OrderTestSuite) TestOrder_CreatePayment_ChangeCustomerData_Ok() {
 	assert.Equal(suite.T(), rsp.User.Email, customer2.Identity[0].Value)
 	assert.Equal(suite.T(), req1.Locale, customer2.AcceptLanguage)
 	assert.Empty(suite.T(), customer2.AcceptLanguageHistory)
-	assert.Equal(suite.T(), "en", customer2.Locale)
+	assert.Equal(suite.T(), "en-US", customer2.Locale)
 	assert.NotEmpty(suite.T(), customer2.LocaleHistory)
 	assert.Len(suite.T(), customer2.LocaleHistory, 1)
 	assert.Equal(suite.T(), customer1.Locale, customer2.LocaleHistory[0].Value)
@@ -6613,7 +6613,7 @@ func (suite *OrderTestSuite) TestOrder_CreatePayment_ChangeCustomerData_Ok() {
 	assert.Equal(suite.T(), customer2.Id, customer3.Id)
 	assert.Equal(suite.T(), customer3.Id, order.User.Id)
 	assert.Equal(suite.T(), order.User.Ip, req2.Ip)
-	assert.Equal(suite.T(), "fr", order.User.Locale)
+	assert.Equal(suite.T(), req.User.Locale, order.User.Locale)
 	assert.Equal(suite.T(), "test123@unit.unit", order.User.Email)
 
 	assert.Equal(suite.T(), order.User.Email, customer3.Email)
@@ -6630,7 +6630,7 @@ func (suite *OrderTestSuite) TestOrder_CreatePayment_ChangeCustomerData_Ok() {
 	assert.Len(suite.T(), customer3.AcceptLanguageHistory, 1)
 	assert.Equal(suite.T(), customer2.AcceptLanguage, customer3.AcceptLanguageHistory[0].Value)
 
-	assert.Equal(suite.T(), order.User.Locale, customer3.Locale)
+	assert.Equal(suite.T(), req2.AcceptLanguage, customer3.Locale)
 	assert.Len(suite.T(), customer3.LocaleHistory, 2)
 	assert.Equal(suite.T(), customer1.Locale, customer3.LocaleHistory[0].Value)
 	assert.Equal(suite.T(), customer2.Locale, customer3.LocaleHistory[1].Value)
