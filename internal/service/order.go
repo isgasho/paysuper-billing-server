@@ -711,7 +711,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 		}
 	}
 
-	if loc != "" && loc != order.User.Locale {
+	if order.User.Locale == "" && loc != "" && loc != order.User.Locale {
 		order.User.Locale = loc
 	}
 
@@ -3047,7 +3047,8 @@ func (v *PaymentCreateProcessor) processPaymentFormData(ctx context.Context) err
 		if err != nil {
 			v.service.logError("Update customer data by request failed", []interface{}{"error", err.Error(), "data", updCustomerReq})
 		} else {
-			if customer.Locale != order.User.Locale {
+			if order.User.Locale == "" && customer.Locale != "" &&
+				customer.Locale != order.User.Locale {
 				order.User.Locale = customer.Locale
 			}
 		}

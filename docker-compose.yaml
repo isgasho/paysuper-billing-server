@@ -44,8 +44,20 @@ services:
       - '7000-7007:7000-7007'
       - '5000-5002:5000-5002'
 
+  paysuper-mongo:
+    image: mongo:4.2
+    restart: always
+    ports:
+      - 3002:27017
+    networks:
+      - p1devnet
+    volumes:
+      - payone-mongo:/data/db
+
 volumes:
   payone-billing-service-redis:
+    external: true
+  payone-mongo:
     external: true
 
 networks:
