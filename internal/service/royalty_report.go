@@ -264,7 +264,6 @@ func (s *Service) ListRoyaltyReports(
 		query["created_at"] = date
 	}
 
-	zap.L().Info("Find royalty docs", zap.Any("req", req), zap.Any("query", query))
 	count, err := s.db.Collection(collectionRoyaltyReport).CountDocuments(ctx, query)
 
 	if err != nil {

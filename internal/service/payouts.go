@@ -576,7 +576,6 @@ func (s *Service) GetPayoutDocuments(
 		query["created_at"] = date
 	}
 
-	zap.L().Info("Find payout docs", zap.Any("req", req), zap.Any("query", query))
 	count, err := s.payoutDocument.CountByQuery(ctx, query)
 
 	if err != nil && err != mongo.ErrNoDocuments {
