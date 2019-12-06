@@ -1283,9 +1283,7 @@ func (s *Service) PaymentFormLanguageChanged(
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
-	rsp.Item = &billing.PaymentFormDataChangeResponseItem{
-		UserAddressDataRequired: false,
-	}
+	rsp.Item = order.GetPaymentFormDataChangeResult()
 
 	if order.User.Locale == req.Lang {
 		return nil
@@ -1328,11 +1326,7 @@ func (s *Service) PaymentFormLanguageChanged(
 		return err
 	}
 
-	rsp.Item.UserIpData = &billing.UserIpData{
-		Country: order.User.Address.Country,
-		City:    order.User.Address.City,
-		Zip:     order.User.Address.PostalCode,
-	}
+	rsp.Item = order.GetPaymentFormDataChangeResult()
 
 	return nil
 }
@@ -1388,7 +1382,6 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		return nil
 	}
 
-	brand := ""
 	country := ""
 
 	rsp.Status = pkg.ResponseStatusOk
@@ -1403,13 +1396,12 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 			return nil
 		}
 
-		brand = data.CardBrand
 		country = data.BankCountryIsoCode
 
 		if order.PaymentRequisites == nil {
 			order.PaymentRequisites = make(map[string]string)
 		}
-		order.PaymentRequisites[pkg.PaymentCreateBankCardFieldBrand] = brand
+		order.PaymentRequisites[pkg.PaymentCreateBankCardFieldBrand] = data.CardBrand
 		order.PaymentRequisites[pkg.PaymentCreateBankCardFieldIssuerCountryIsoCode] = country
 
 		break
@@ -1532,7 +1524,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		return err
 	}
 
-	rsp.Item = order.GetPaymentFormDataChangeResult(brand)
+	rsp.Item = order.GetPaymentFormDataChangeResult()
 	return nil
 }
 
