@@ -512,6 +512,8 @@ message PaymentFormJsonData {
     double charge_amount = 26;
     // @inject_tag: json:"vat_in_charge_currency"
     double vat_in_charge_currency = 27;
+    // @inject_tag: json:"vat_rate"
+    double vat_rate = 28;
 }
 
 message PaymentFormJsonDataResponse {
@@ -812,6 +814,8 @@ message ProcessBillingAddressResponseItem {
     double vat_in_charge_currency = 10;
     // @inject_tag: json:"country_change_allowed"
     bool country_change_allowed = 11;
+    // @inject_tag: json:"vat_rate"
+    double vat_rate = 12;
 }
 
 message ProcessBillingAddressResponse {

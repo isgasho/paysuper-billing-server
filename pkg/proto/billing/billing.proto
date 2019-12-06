@@ -2395,6 +2395,8 @@ message PaymentFormDataChangeResponseItem {
     double charge_amount = 13;
     // @inject_tag: json:"vat_in_charge_currency"
     double vat_in_charge_currency = 14;
+    // @inject_tag: json:"vat_rate"
+    double vat_rate = 15;
 }
 
 message OperatingCompany {

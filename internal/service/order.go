@@ -833,6 +833,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 	rsp.Item.PaymentMethods = pms
 
 	rsp.Item.VatInChargeCurrency = tools.FormatAmount(order.GetTaxAmountInChargeCurrency())
+	rsp.Item.VatRate = tools.ToPrecise(order.Tax.Rate)
 
 	cookie, err := s.generateBrowserCookie(browserCustomer)
 
@@ -1686,6 +1687,7 @@ func (s *Service) ProcessBillingAddress(
 	rsp.Cookie = cookie
 	rsp.Item = &grpc.ProcessBillingAddressResponseItem{
 		HasVat:               order.Tax.Rate > 0,
+		VatRate:              tools.ToPrecise(order.Tax.Rate),
 		Vat:                  tools.FormatAmount(order.Tax.Amount),
 		VatInChargeCurrency:  tools.FormatAmount(order.GetTaxAmountInChargeCurrency()),
 		Amount:               tools.FormatAmount(order.OrderAmount),
