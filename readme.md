@@ -22,8 +22,6 @@ Learn more about a [payments flow](https://docs.pay.super.com/docs/payments/quic
 
 ## Features
 
-* A nice looking dashboard with the graph and key metrics.
-
 * Support for the payment tokens for the order and user data.
 
 * The next payment without asking payment information.
@@ -35,10 +33,6 @@ Learn more about a [payments flow](https://docs.pay.super.com/docs/payments/quic
 * Detailed statistics for each transaction.
 
 * Transparent payout calculation.
-
-* Reports like `Live Transaction`, `Country Distribution`, `Revenue By Client`, `Items Sales` and more to come.
-
-* Export all reports to PDF, XLSX or CSV format for a period.
 
 * Recurring invoices (work is in progress).
 
