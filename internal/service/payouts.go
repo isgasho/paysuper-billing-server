@@ -565,13 +565,13 @@ func (s *Service) GetPayoutDocuments(
 		query["status"] = bson.M{"$in": req.Status}
 	}
 
-	if req.PeriodFrom > 0 || req.PeriodTo > 0 {
+	if req.DateFrom > 0 || req.DateTo > 0 {
 		date := bson.M{}
-		if req.PeriodFrom > 0 {
-			date["$gte"] = time.Unix(req.PeriodFrom, 0)
+		if req.DateFrom > 0 {
+			date["$gte"] = time.Unix(req.DateFrom, 0)
 		}
-		if req.PeriodTo > 0 {
-			date["$lte"] = time.Unix(req.PeriodTo, 0)
+		if req.DateTo > 0 {
+			date["$lte"] = time.Unix(req.DateTo, 0)
 		}
 		query["created_at"] = date
 	}
