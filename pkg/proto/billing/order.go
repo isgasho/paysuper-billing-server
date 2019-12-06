@@ -214,6 +214,7 @@ func (m *Order) GetPaymentFormDataChangeResult() *PaymentFormDataChangeResponseI
 		},
 		Brand:                  "",
 		HasVat:                 m.Tax.Rate > 0,
+		VatRate:                tools.ToPrecise(m.Tax.Rate),
 		Vat:                    tools.FormatAmount(m.Tax.Amount),
 		VatInChargeCurrency:    tools.FormatAmount(m.GetTaxAmountInChargeCurrency()),
 		ChargeAmount:           tools.FormatAmount(m.ChargeAmount),
