@@ -32,6 +32,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
+	"log"
 	"math"
 	"regexp"
 	"sort"
@@ -1751,7 +1752,7 @@ func (s *Service) updateOrder(ctx context.Context, order *billing.Order) error {
 		zap.S().Debug("[updateOrder] no original order found", "order_id", order.Id)
 	}
 
-	needReceipt := statusChanged && (ps == constant.OrderPublicStatusRefunded || ps == constant.OrderPublicStatusProcessed)
+	needReceipt := statusChanged && order.NeedCallbackNotification()
 
 	if needReceipt {
 		switch order.Type {

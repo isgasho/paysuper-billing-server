@@ -259,3 +259,8 @@ func (m *Order) IsDeclinedByCountry() bool {
 func (m *Order) CountryChangeAllowed() bool {
 	return m.CountryRestriction == nil || m.CountryRestriction.ChangeAllowed == true
 }
+
+func (m *Order) NeedCallbackNotification() bool {
+	status := m.GetPublicStatus()
+	return status == constant.OrderPublicStatusRefunded || status == constant.OrderPublicStatusProcessed || m.IsDeclined()
+}
