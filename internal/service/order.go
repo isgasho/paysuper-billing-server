@@ -1751,7 +1751,7 @@ func (s *Service) updateOrder(ctx context.Context, order *billing.Order) error {
 		zap.S().Debug("[updateOrder] no original order found", "order_id", order.Id)
 	}
 
-	needReceipt := statusChanged && order.NeedCallbackNotification()
+	needReceipt := statusChanged && (ps == constant.OrderPublicStatusRefunded || ps == constant.OrderPublicStatusProcessed)
 
 	if needReceipt {
 		switch order.Type {
@@ -1780,7 +1780,7 @@ func (s *Service) updateOrder(ctx context.Context, order *billing.Order) error {
 		s.orderNotifyKeyProducts(context.TODO(), order)
 	}
 
-	if needReceipt {
+	if statusChanged && order.NeedCallbackNotification() {
 		s.orderNotifyMerchant(ctx, order)
 	}
 
