@@ -29,7 +29,8 @@ const (
 	tokenLetterIdxMask = uint64(1<<tokenLetterIdxBits - 1)
 	tokenLetterIdxMax  = 63 / tokenLetterIdxBits
 
-	collectionCustomer = "customer"
+	collectionCustomer      = "customer"
+	collectionCustomerToken = "customer_token"
 )
 
 var (
@@ -48,9 +49,9 @@ var (
 )
 
 type Token struct {
-	CustomerId string                 `json:"customer_id"`
-	User       *billing.TokenUser     `json:"user"`
-	Settings   *billing.TokenSettings `json:"settings"`
+	CustomerId string                 `bson:"customer_id"`
+	User       *billing.TokenUser     `bson:"user"`
+	Settings   *billing.TokenSettings `bson:"settings"`
 }
 
 type tokenRepository struct {

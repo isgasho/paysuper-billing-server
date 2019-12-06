@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/ProtocolONE/geoip-service/pkg/proto"
-	"github.com/go-redis/redis"
 	casbinProto "github.com/paysuper/casbin-server/pkg/generated/api/proto/casbinpb"
 	documentSignerProto "github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
@@ -58,7 +57,6 @@ type Service struct {
 	rep                        repository.RepositoryService
 	tax                        tax_service.TaxService
 	broker                     rabbitmq.BrokerInterface
-	redis                      redis.Cmdable
 	cacher                     CacheInterface
 	curService                 currencies.CurrencyratesService
 	smtpCl                     gomail.SendCloser
@@ -125,7 +123,6 @@ func NewBillingService(
 	rep repository.RepositoryService,
 	tax tax_service.TaxService,
 	broker rabbitmq.BrokerInterface,
-	redis redis.Cmdable,
 	cache CacheInterface,
 	curService currencies.CurrencyratesService,
 	documentSigner documentSignerProto.DocumentSignerService,
@@ -141,7 +138,6 @@ func NewBillingService(
 		rep:             rep,
 		tax:             tax,
 		broker:          broker,
-		redis:           redis,
 		cacher:          cache,
 		curService:      curService,
 		documentSigner:  documentSigner,
@@ -206,7 +202,7 @@ func (s *Service) logError(msg string, data []interface{}) {
 	zap.S().Errorw(msg, data...)
 }
 
-func (s *Service) UpdateOrder(ctx context.Context, req *billing.Order, rsp *grpc.EmptyResponse) error {
+func (s *Service) UpdateOrder(ctx context.Context, req *billing.Order, _ *grpc.EmptyResponse) error {
 	err := s.updateOrder(ctx, req)
 
 	if err != nil {
@@ -216,7 +212,7 @@ func (s *Service) UpdateOrder(ctx context.Context, req *billing.Order, rsp *grpc
 	return nil
 }
 
-func (s *Service) UpdateMerchant(ctx context.Context, req *billing.Merchant, rsp *grpc.EmptyResponse) error {
+func (s *Service) UpdateMerchant(ctx context.Context, req *billing.Merchant, _ *grpc.EmptyResponse) error {
 	err := s.merchant.Update(ctx, req)
 
 	if err != nil {
