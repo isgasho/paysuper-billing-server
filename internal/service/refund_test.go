@@ -3081,3 +3081,162 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 		}
 	}
 }
+
+func (suite *RefundTestSuite) TestRefund_ProcessChargebackCallback_Ok() {
+	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
+		ProjectId:   suite.project.Id,
+		Currency:    "RUB",
+		Amount:      100,
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     primitive.NewObjectID().Hex(),
+		User: &billing.OrderUser{
+			Email: "some_email@unit.com",
+			Ip:    "127.0.0.1",
+			Phone: "123456789",
+		},
+	}
+
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
+
+	expireYear := time.Now().AddDate(1, 0, 0)
+
+	createPaymentRequest := &grpc.PaymentCreateRequest{
+		Data: map[string]string{
+			pkg.PaymentCreateFieldOrderId:         rsp.Uuid,
+			pkg.PaymentCreateFieldPaymentMethodId: suite.pmBankCard.Id,
+			pkg.PaymentCreateFieldEmail:           "test@unit.unit",
+			pkg.PaymentCreateFieldPan:             "4000000000000002",
+			pkg.PaymentCreateFieldCvv:             "123",
+			pkg.PaymentCreateFieldMonth:           "02",
+			pkg.PaymentCreateFieldYear:            expireYear.Format("2006"),
+			pkg.PaymentCreateFieldHolder:          "Mr. Card Holder",
+		},
+	}
+
+	rsp1 := &grpc.PaymentCreateResponse{}
+	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
+	assert.NoError(suite.T(), err)
+
+	oid, err := primitive.ObjectIDFromHex(rsp.Id)
+	assert.NoError(suite.T(), err)
+	filter := bson.M{"_id": oid}
+
+	var order *billing.Order
+	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
+	assert.NotNil(suite.T(), order)
+
+	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
+	order.Tax = &billing.OrderTax{
+		Type:     taxTypeVat,
+		Rate:     20,
+		Amount:   20,
+		Currency: "RUB",
+	}
+	order.PaymentMethod.Params.Currency = "USD"
+	order.PaymentMethodOrderClosedAt, _ = ptypes.TimestampProto(time.Now().Add(-30 * time.Minute))
+	err = suite.service.updateOrder(context.TODO(), order)
+
+	ae := &billing.AccountingEntry{
+		Id:     primitive.NewObjectID().Hex(),
+		Object: pkg.ObjectTypeBalanceTransaction,
+		Type:   pkg.AccountingEntryTypeMerchantTaxFeeCostValue,
+		Source: &billing.AccountingEntrySource{
+			Id:   order.Id,
+			Type: collectionOrder,
+		},
+		MerchantId: order.GetMerchantId(),
+		Status:     pkg.BalanceTransactionStatusAvailable,
+		CreatedAt:  ptypes.TimestampNow(),
+		Country:    order.GetCountry(),
+		Currency:   order.GetMerchantRoyaltyCurrency(),
+	}
+
+	ae2 := &billing.AccountingEntry{
+		Id:     primitive.NewObjectID().Hex(),
+		Object: pkg.ObjectTypeBalanceTransaction,
+		Type:   pkg.AccountingEntryTypeMerchantTaxFeeCentralBankFx,
+		Source: &billing.AccountingEntrySource{
+			Id:   order.Id,
+			Type: collectionOrder,
+		},
+		MerchantId: order.GetMerchantId(),
+		Status:     pkg.BalanceTransactionStatusAvailable,
+		CreatedAt:  ptypes.TimestampNow(),
+		Country:    order.GetCountry(),
+		Currency:   order.GetMerchantRoyaltyCurrency(),
+	}
+
+	ae3 := &billing.AccountingEntry{
+		Id:     primitive.NewObjectID().Hex(),
+		Object: pkg.ObjectTypeBalanceTransaction,
+		Type:   pkg.AccountingEntryTypeRealTaxFee,
+		Source: &billing.AccountingEntrySource{
+			Id:   order.Id,
+			Type: collectionOrder,
+		},
+		MerchantId: order.GetMerchantId(),
+		Status:     pkg.BalanceTransactionStatusAvailable,
+		CreatedAt:  ptypes.TimestampNow(),
+		Country:    order.GetCountry(),
+		Currency:   order.GetMerchantRoyaltyCurrency(),
+	}
+
+	accountingEntries := []interface{}{ae, ae2, ae3}
+	_, err = suite.service.db.Collection(collectionAccountingEntry).InsertMany(context.TODO(), accountingEntries)
+	assert.NoError(suite.T(), err)
+
+	chargebackReq := &billing.CardPayRefundCallback{
+		MerchantOrder: &billing.CardPayMerchantOrder{
+			Id: order.Uuid,
+		},
+		CallbackTime: time.Now().Format(cardPayDateFormat),
+	}
+
+	b, err := json.Marshal(chargebackReq)
+	assert.NoError(suite.T(), err)
+
+	hash := sha512.New()
+	hash.Write([]byte(string(b) + order.PaymentMethod.Params.SecretCallback))
+
+	req3 := &grpc.CallbackRequest{
+		Handler:   pkg.PaymentSystemHandlerCardPay,
+		Body:      b,
+		Signature: hex.EncodeToString(hash.Sum(nil)),
+	}
+	rsp3 := &grpc.PaymentNotifyResponse{}
+	err = suite.service.ProcessChargebackCallback(context.TODO(), req3, rsp3)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp3.Status)
+	assert.Empty(suite.T(), rsp3.Error)
+
+	order, err = suite.service.getOrderById(context.TODO(), order.Id)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), order)
+	assert.EqualValues(suite.T(), constant.OrderStatusChargeback, order.PrivateStatus)
+
+	oid, err = primitive.ObjectIDFromHex(order.Chargeback.ReceiptNumber)
+	assert.NoError(suite.T(), err)
+	filter = bson.M{"_id": oid}
+
+	var refund *billing.Refund
+	err = suite.service.db.Collection(collectionRefund).FindOne(context.TODO(), filter).Decode(&refund)
+	assert.NotNil(suite.T(), refund)
+	assert.Equal(suite.T(), pkg.RefundStatusCompleted, refund.Status)
+	assert.True(suite.T(), refund.IsChargeback)
+
+	oid, err = primitive.ObjectIDFromHex(refund.CreatedOrderId)
+	assert.NoError(suite.T(), err)
+	filter = bson.M{"source.id": oid, "source.type": collectionRefund}
+
+	cursor, err := suite.service.db.Collection(collectionAccountingEntry).Find(context.TODO(), filter)
+	assert.NoError(suite.T(), err)
+	err = cursor.All(context.TODO(), &accountingEntries)
+	assert.NoError(suite.T(), err)
+	assert.NotEmpty(suite.T(), accountingEntries)
+}

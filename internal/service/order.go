@@ -1751,7 +1751,7 @@ func (s *Service) updateOrder(ctx context.Context, order *billing.Order) error {
 		zap.S().Debug("[updateOrder] no original order found", "order_id", order.Id)
 	}
 
-	needReceipt := statusChanged && (ps == constant.OrderPublicStatusRefunded || ps == constant.OrderPublicStatusProcessed)
+	needReceipt := statusChanged && (ps == constant.OrderPublicStatusChargeback || ps == constant.OrderPublicStatusRefunded || ps == constant.OrderPublicStatusProcessed)
 
 	if needReceipt {
 		switch order.Type {

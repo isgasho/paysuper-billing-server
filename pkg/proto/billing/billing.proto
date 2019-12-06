@@ -645,6 +645,12 @@ message Order {
     bool billing_country_changed_by_user = 84;
     // @inject_tag: json:"-"
     bool is_refund_allowed = 85;
+    //@inject_tag: json:"charged_back" bson:"charged_back"
+    bool charged_back = 86;
+    //@inject_tag: json:"charged_back_at" bson:"charged_back_at"
+    google.protobuf.Timestamp charged_back_at = 87;
+    //@inject_tag: json:"chargeback" bson:"chargeback" validate:"omitempty,dive"
+    OrderNotificationRefund chargeback = 88;
 }
 
 message ParentOrder {
@@ -1865,6 +1871,12 @@ message OrderViewPublic {
     bool is_ip_country_mismatch_bin = 48;
     // @inject_tag: json:"billing_country_changed_by_user" bson:"billing_country_changed_by_user"
     bool billing_country_changed_by_user = 49;
+    //@inject_tag: json:"charged_back" bson:"charged_back"
+    bool charged_back = 50;
+    //@inject_tag: json:"charged_back_at" bson:"charged_back_at"
+    google.protobuf.Timestamp charged_back_at = 51;
+    //@inject_tag: json:"chargeback" bson:"chargeback" validate:"omitempty,dive"
+    OrderNotificationRefund chargeback = 52;
 }
 
 message OrderViewPrivate {
@@ -2036,6 +2048,12 @@ message OrderViewPrivate {
     bool is_ip_country_mismatch_bin = 83;
     // @inject_tag: json:"billing_country_changed_by_user" bson:"billing_country_changed_by_user"
     bool billing_country_changed_by_user = 84;
+    //@inject_tag: json:"charged_back" bson:"charged_back"
+    bool charged_back = 85;
+    //@inject_tag: json:"charged_back_at" bson:"charged_back_at"
+    google.protobuf.Timestamp charged_back_at = 86;
+    //@inject_tag: json:"chargeback" bson:"chargeback" validate:"omitempty,dive"
+    OrderNotificationRefund chargeback = 87;
 }
 
 message RecommendedPrice {

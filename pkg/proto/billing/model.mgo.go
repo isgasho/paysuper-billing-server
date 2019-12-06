@@ -291,6 +291,9 @@ type MgoOrder struct {
 	IsIpCountryMismatchBin      bool                           `bson:"is_ip_country_mismatch_bin"`
 	BillingCountryChangedByUser bool                           `bson:"billing_country_changed_by_user"`
 	IsRefundAllowed             bool                           `bson:"is_refund_allowed"`
+	ChargedBack                 bool                           `bson:"charged_back"`
+	ChargedBackAt               time.Time                      `bson:"charged_back_at"`
+	Chargeback                  *MgoOrderNotificationRefund    `bson:"chargeback"`
 }
 
 type MgoOrderItem struct {
@@ -756,6 +759,9 @@ type MgoOrderViewPrivate struct {
 	OperatingCompanyId                         string                         `bson:"operating_company_id"`
 	IsHighRisk                                 bool                           `bson:"is_high_risk"`
 	RefundAllowed                              bool                           `bson:"refund_allowed"`
+	ChargedBack                                bool                           `bson:"charged_back"`
+	ChargedBackAt                              time.Time                      `bson:"charged_back_at"`
+	Chargeback                                 *MgoOrderNotificationRefund    `bson:"chargeback"`
 }
 
 type MgoOrderViewPublic struct {
@@ -804,6 +810,9 @@ type MgoOrderViewPublic struct {
 	Cancellation                            *OrderNotificationCancellation `bson:"cancellation"`
 	OperatingCompanyId                      string                         `bson:"operating_company_id"`
 	RefundAllowed                           bool                           `bson:"refund_allowed"`
+	ChargedBack                             bool                           `bson:"charged_back"`
+	ChargedBackAt                           time.Time                      `bson:"charged_back_at"`
+	Chargeback                              *MgoOrderNotificationRefund    `bson:"chargeback"`
 }
 
 /*type MgoMerchantTariffRates struct {
@@ -1723,6 +1732,7 @@ func (m *Order) MarshalBSON() ([]byte, error) {
 		IsIpCountryMismatchBin:      m.IsIpCountryMismatchBin,
 		BillingCountryChangedByUser: m.BillingCountryChangedByUser,
 		IsRefundAllowed:             m.IsRefundAllowed,
+		ChargedBack:                 m.ChargedBack,
 	}
 
 	if m.Refund != nil {
@@ -1733,6 +1743,17 @@ func (m *Order) MarshalBSON() ([]byte, error) {
 			Code:          m.Refund.Code,
 			ReceiptNumber: m.Refund.ReceiptNumber,
 			ReceiptUrl:    m.Refund.ReceiptUrl,
+		}
+	}
+
+	if m.Chargeback != nil {
+		st.Chargeback = &MgoOrderNotificationRefund{
+			Amount:        m.Chargeback.Amount,
+			Currency:      m.Chargeback.Currency,
+			Reason:        m.Chargeback.Reason,
+			Code:          m.Chargeback.Code,
+			ReceiptNumber: m.Chargeback.ReceiptNumber,
+			ReceiptUrl:    m.Chargeback.ReceiptUrl,
 		}
 	}
 
@@ -1907,6 +1928,16 @@ func (m *Order) MarshalBSON() ([]byte, error) {
 		st.ParentPaymentAt = t
 	}
 
+	if m.ChargedBackAt != nil {
+		t, err := ptypes.Timestamp(m.ChargedBackAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		st.ChargedBackAt = t
+	}
+
 	return bson.Marshal(st)
 }
 
@@ -1959,6 +1990,7 @@ func (m *Order) UnmarshalBSON(raw []byte) error {
 	m.IsIpCountryMismatchBin = decoded.IsIpCountryMismatchBin
 	m.BillingCountryChangedByUser = decoded.BillingCountryChangedByUser
 	m.IsRefundAllowed = decoded.IsRefundAllowed
+	m.ChargedBack = decoded.ChargedBack
 
 	if decoded.Refund != nil {
 		m.Refund = &OrderNotificationRefund{
@@ -1968,6 +2000,16 @@ func (m *Order) UnmarshalBSON(raw []byte) error {
 			Code:          decoded.Refund.Code,
 			ReceiptNumber: decoded.Refund.ReceiptNumber,
 			ReceiptUrl:    decoded.Refund.ReceiptUrl,
+		}
+	}
+	if decoded.Chargeback != nil {
+		m.Chargeback = &OrderNotificationRefund{
+			Amount:        decoded.Chargeback.Amount,
+			Currency:      decoded.Chargeback.Currency,
+			Reason:        decoded.Chargeback.Reason,
+			Code:          decoded.Chargeback.Code,
+			ReceiptNumber: decoded.Chargeback.ReceiptNumber,
+			ReceiptUrl:    decoded.Chargeback.ReceiptUrl,
 		}
 	}
 	m.Metadata = decoded.Metadata
@@ -2058,6 +2100,11 @@ func (m *Order) UnmarshalBSON(raw []byte) error {
 	}
 
 	m.ExpireDateToFormInput, err = ptypes.TimestampProto(decoded.ExpireDateToFormInput)
+	if err != nil {
+		return err
+	}
+
+	m.ChargedBackAt, err = ptypes.TimestampProto(decoded.ChargedBackAt)
 	if err != nil {
 		return err
 	}
@@ -4300,6 +4347,17 @@ func (m *OrderViewPrivate) UnmarshalBSON(raw []byte) error {
 		}
 	}
 
+	if decoded.Chargeback != nil {
+		m.Chargeback = &OrderNotificationRefund{
+			Amount:        decoded.Chargeback.Amount,
+			Currency:      decoded.Chargeback.Currency,
+			Reason:        decoded.Chargeback.Reason,
+			Code:          decoded.Chargeback.Code,
+			ReceiptNumber: decoded.Chargeback.ReceiptNumber,
+			ReceiptUrl:    decoded.Chargeback.ReceiptUrl,
+		}
+	}
+
 	m.PaymentGrossRevenueLocal = getOrderViewMoney(decoded.PaymentGrossRevenueLocal)
 	m.PaymentGrossRevenueOrigin = getOrderViewMoney(decoded.PaymentGrossRevenueOrigin)
 	m.PaymentGrossRevenue = getOrderViewMoney(decoded.PaymentGrossRevenue)
@@ -4358,6 +4416,7 @@ func (m *OrderViewPrivate) UnmarshalBSON(raw []byte) error {
 	m.OperatingCompanyId = decoded.OperatingCompanyId
 	m.IsHighRisk = decoded.IsHighRisk
 	m.RefundAllowed = decoded.RefundAllowed
+	m.ChargedBack = decoded.ChargedBack
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {
@@ -4411,6 +4470,17 @@ func (m *OrderViewPublic) UnmarshalBSON(raw []byte) error {
 		}
 	}
 
+	if decoded.Chargeback != nil {
+		m.Chargeback = &OrderNotificationRefund{
+			Amount:        decoded.Chargeback.Amount,
+			Currency:      decoded.Chargeback.Currency,
+			Reason:        decoded.Chargeback.Reason,
+			Code:          decoded.Chargeback.Code,
+			ReceiptNumber: decoded.Chargeback.ReceiptNumber,
+			ReceiptUrl:    decoded.Chargeback.ReceiptUrl,
+		}
+	}
+
 	m.GrossRevenue = getOrderViewMoney(decoded.GrossRevenue)
 	m.TaxFee = getOrderViewMoney(decoded.TaxFee)
 	m.TaxFeeCurrencyExchangeFee = getOrderViewMoney(decoded.TaxFeeCurrencyExchangeFee)
@@ -4434,6 +4504,7 @@ func (m *OrderViewPublic) UnmarshalBSON(raw []byte) error {
 	m.Items = getOrderViewItems(decoded.Items)
 	m.OperatingCompanyId = decoded.OperatingCompanyId
 	m.RefundAllowed = decoded.RefundAllowed
+	m.ChargedBack = decoded.ChargedBack
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {

@@ -43,6 +43,7 @@ service BillingService {
     rpc ListRefunds (ListRefundsRequest) returns (ListRefundsResponse) {}
     rpc GetRefund (GetRefundRequest) returns (CreateRefundResponse) {}
     rpc ProcessRefundCallback (CallbackRequest) returns (PaymentNotifyResponse) {}
+    rpc ProcessChargebackCallback (CallbackRequest) returns (PaymentNotifyResponse) {}
 
     rpc PaymentFormLanguageChanged (PaymentFormUserChangeLangRequest) returns (PaymentFormDataChangeResponse) {}
     rpc PaymentFormPaymentAccountChanged (PaymentFormUserChangePaymentAccountRequest) returns (PaymentFormDataChangeResponse) {}

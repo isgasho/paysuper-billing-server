@@ -345,6 +345,7 @@ type BillingService interface {
 	ListRefunds(ctx context.Context, in *ListRefundsRequest, opts ...client.CallOption) (*ListRefundsResponse, error)
 	GetRefund(ctx context.Context, in *GetRefundRequest, opts ...client.CallOption) (*CreateRefundResponse, error)
 	ProcessRefundCallback(ctx context.Context, in *CallbackRequest, opts ...client.CallOption) (*PaymentNotifyResponse, error)
+	ProcessChargebackCallback(ctx context.Context, in *CallbackRequest, opts ...client.CallOption) (*PaymentNotifyResponse, error)
 	PaymentFormLanguageChanged(ctx context.Context, in *PaymentFormUserChangeLangRequest, opts ...client.CallOption) (*PaymentFormDataChangeResponse, error)
 	PaymentFormPaymentAccountChanged(ctx context.Context, in *PaymentFormUserChangePaymentAccountRequest, opts ...client.CallOption) (*PaymentFormDataChangeResponse, error)
 	ProcessBillingAddress(ctx context.Context, in *ProcessBillingAddressRequest, opts ...client.CallOption) (*ProcessBillingAddressResponse, error)
@@ -801,6 +802,16 @@ func (c *billingService) GetRefund(ctx context.Context, in *GetRefundRequest, op
 
 func (c *billingService) ProcessRefundCallback(ctx context.Context, in *CallbackRequest, opts ...client.CallOption) (*PaymentNotifyResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.ProcessRefundCallback", in)
+	out := new(PaymentNotifyResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingService) ProcessChargebackCallback(ctx context.Context, in *CallbackRequest, opts ...client.CallOption) (*PaymentNotifyResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.ProcessChargebackCallback", in)
 	out := new(PaymentNotifyResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
@@ -2282,6 +2293,7 @@ type BillingServiceHandler interface {
 	ListRefunds(context.Context, *ListRefundsRequest, *ListRefundsResponse) error
 	GetRefund(context.Context, *GetRefundRequest, *CreateRefundResponse) error
 	ProcessRefundCallback(context.Context, *CallbackRequest, *PaymentNotifyResponse) error
+	ProcessChargebackCallback(context.Context, *CallbackRequest, *PaymentNotifyResponse) error
 	PaymentFormLanguageChanged(context.Context, *PaymentFormUserChangeLangRequest, *PaymentFormDataChangeResponse) error
 	PaymentFormPaymentAccountChanged(context.Context, *PaymentFormUserChangePaymentAccountRequest, *PaymentFormDataChangeResponse) error
 	ProcessBillingAddress(context.Context, *ProcessBillingAddressRequest, *ProcessBillingAddressResponse) error
@@ -2460,6 +2472,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		ListRefunds(ctx context.Context, in *ListRefundsRequest, out *ListRefundsResponse) error
 		GetRefund(ctx context.Context, in *GetRefundRequest, out *CreateRefundResponse) error
 		ProcessRefundCallback(ctx context.Context, in *CallbackRequest, out *PaymentNotifyResponse) error
+		ProcessChargebackCallback(ctx context.Context, in *CallbackRequest, out *PaymentNotifyResponse) error
 		PaymentFormLanguageChanged(ctx context.Context, in *PaymentFormUserChangeLangRequest, out *PaymentFormDataChangeResponse) error
 		PaymentFormPaymentAccountChanged(ctx context.Context, in *PaymentFormUserChangePaymentAccountRequest, out *PaymentFormDataChangeResponse) error
 		ProcessBillingAddress(ctx context.Context, in *ProcessBillingAddressRequest, out *ProcessBillingAddressResponse) error
@@ -2734,6 +2747,10 @@ func (h *billingServiceHandler) GetRefund(ctx context.Context, in *GetRefundRequ
 
 func (h *billingServiceHandler) ProcessRefundCallback(ctx context.Context, in *CallbackRequest, out *PaymentNotifyResponse) error {
 	return h.BillingServiceHandler.ProcessRefundCallback(ctx, in, out)
+}
+
+func (h *billingServiceHandler) ProcessChargebackCallback(ctx context.Context, in *CallbackRequest, out *PaymentNotifyResponse) error {
+	return h.BillingServiceHandler.ProcessChargebackCallback(ctx, in, out)
 }
 
 func (h *billingServiceHandler) PaymentFormLanguageChanged(ctx context.Context, in *PaymentFormUserChangeLangRequest, out *PaymentFormDataChangeResponse) error {
