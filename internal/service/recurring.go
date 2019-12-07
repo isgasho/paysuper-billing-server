@@ -4,7 +4,9 @@ import (
 	"context"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
+	"go.uber.org/zap"
 )
 
 var (
@@ -55,6 +57,14 @@ func (s *Service) DeleteSavedCard(
 	rsp1, err := s.rep.DeleteSavedCard(ctx, req1)
 
 	if err != nil {
+		zap.L().Error(
+			pkg.ErrorGrpcServiceCallFailed,
+			zap.Error(err),
+			zap.String(errorFieldService, constant.PayOneRepositoryServiceName),
+			zap.String(errorFieldMethod, "DeleteSavedCard"),
+			zap.Any(errorFieldRequest, req),
+		)
+
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = recurringErrorUnknown
 		return nil
@@ -64,6 +74,14 @@ func (s *Service) DeleteSavedCard(
 		rsp.Status = rsp1.Status
 
 		if rsp.Status == pkg.ResponseStatusSystemError {
+			zap.L().Error(
+				pkg.ErrorGrpcServiceCallFailed,
+				zap.String(errorFieldService, constant.PayOneRepositoryServiceName),
+				zap.String(errorFieldMethod, "DeleteSavedCard"),
+				zap.Any(errorFieldRequest, req),
+				zap.Any(pkg.LogFieldResponse, rsp1),
+			)
+
 			rsp.Message = recurringErrorUnknown
 		} else {
 			rsp.Message = recurringSavedCardNotFount

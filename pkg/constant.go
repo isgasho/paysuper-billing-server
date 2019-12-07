@@ -113,7 +113,7 @@ const (
 	ErrorVatReportDateCantBeInFuture = "vat report date cant be in future"
 	MethodFinishedWithError          = "method finished with error"
 	LogFieldRequest                  = "request"
-	LogFieldResponse                 = "request"
+	LogFieldResponse                 = "response"
 	LogFieldHandler                  = "handler"
 
 	ObjectTypeBalanceTransaction = "balance_transaction"
