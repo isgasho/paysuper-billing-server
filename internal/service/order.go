@@ -1780,7 +1780,7 @@ func (s *Service) updateOrder(ctx context.Context, order *billing.Order) error {
 		s.orderNotifyKeyProducts(context.TODO(), order)
 	}
 
-	if needReceipt {
+	if statusChanged && order.NeedCallbackNotification() {
 		s.orderNotifyMerchant(ctx, order)
 	}
 
