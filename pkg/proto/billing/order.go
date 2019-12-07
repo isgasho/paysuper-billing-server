@@ -204,7 +204,7 @@ func (m *Order) GetPaymentSystemApiUrl() string {
 	return m.PaymentMethod.Params.ApiUrl
 }
 
-func (m *Order) GetPaymentFormDataChangeResult(brand string) *PaymentFormDataChangeResponseItem {
+func (m *Order) GetPaymentFormDataChangeResult() *PaymentFormDataChangeResponseItem {
 	item := &PaymentFormDataChangeResponseItem{
 		UserAddressDataRequired: m.UserAddressDataRequired,
 		UserIpData: &UserIpData{
@@ -212,8 +212,9 @@ func (m *Order) GetPaymentFormDataChangeResult(brand string) *PaymentFormDataCha
 			City:    m.User.Address.City,
 			Zip:     m.User.Address.PostalCode,
 		},
-		Brand:                  brand,
+		Brand:                  "",
 		HasVat:                 m.Tax.Rate > 0,
+		VatRate:                tools.ToPrecise(m.Tax.Rate),
 		Vat:                    tools.FormatAmount(m.Tax.Amount),
 		VatInChargeCurrency:    tools.FormatAmount(m.GetTaxAmountInChargeCurrency()),
 		ChargeAmount:           tools.FormatAmount(m.ChargeAmount),
@@ -224,6 +225,11 @@ func (m *Order) GetPaymentFormDataChangeResult(brand string) *PaymentFormDataCha
 		Items:                  m.Items,
 		CountryPaymentsAllowed: true,
 		CountryChangeAllowed:   m.CountryChangeAllowed(),
+	}
+
+	brand, err := m.GetBankCardBrand()
+	if err == nil {
+		item.Brand = brand
 	}
 
 	if m.CountryRestriction != nil {
@@ -252,4 +258,9 @@ func (m *Order) IsDeclinedByCountry() bool {
 
 func (m *Order) CountryChangeAllowed() bool {
 	return m.CountryRestriction == nil || m.CountryRestriction.ChangeAllowed == true
+}
+
+func (m *Order) NeedCallbackNotification() bool {
+	status := m.GetPublicStatus()
+	return status == constant.OrderPublicStatusRefunded || status == constant.OrderPublicStatusProcessed || m.IsDeclined()
 }

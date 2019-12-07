@@ -512,6 +512,8 @@ message PaymentFormJsonData {
     double charge_amount = 26;
     // @inject_tag: json:"vat_in_charge_currency"
     double vat_in_charge_currency = 27;
+    // @inject_tag: json:"vat_rate"
+    double vat_rate = 28;
 }
 
 message PaymentFormJsonDataResponse {
@@ -812,6 +814,8 @@ message ProcessBillingAddressResponseItem {
     double vat_in_charge_currency = 10;
     // @inject_tag: json:"country_change_allowed"
     bool country_change_allowed = 11;
+    // @inject_tag: json:"vat_rate"
+    double vat_rate = 12;
 }
 
 message ProcessBillingAddressResponse {
@@ -2124,10 +2128,10 @@ message GetPayoutDocumentsRequest {
     repeated string status = 2;
     //@inject_tag: validate:"omitempty,hexadecimal,len=24"
     string merchant_id = 3;
-    // @inject_tag: query:"period_from" validate:"omitempty,numeric,gt=0"
-    int64 period_from = 4;
-    // @inject_tag: query:"period_to" validate:"omitempty,numeric,gt=0"
-    int64 period_to = 5;
+    // @inject_tag: query:"date_from" validate:"omitempty,numeric,gt=0"
+    int64 date_from = 4;
+    // @inject_tag: query:"date_to" validate:"omitempty,numeric,gt=0"
+    int64 date_to = 5;
     // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
     int64 limit = 6;
     // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"

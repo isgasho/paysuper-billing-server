@@ -237,9 +237,8 @@ func (s *Service) getCountryFromAcceptLanguage(acceptLanguage string) (string, s
 		return "", ""
 	}
 
-	it = strings.Split(it[0], "-")
-
-	return strings.ToLower(it[0]), strings.ToUpper(it[1])
+	it1 := strings.Split(it[0], "-")
+	return it[0], strings.ToUpper(it1[1])
 }
 
 func (s *Service) mgoPipeSort(query []bson.M, sort []string) []bson.M {

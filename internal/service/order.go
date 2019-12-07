@@ -711,7 +711,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 		}
 	}
 
-	if loc != "" && loc != order.User.Locale {
+	if order.User.Locale == "" && loc != "" && loc != order.User.Locale {
 		order.User.Locale = loc
 	}
 
@@ -833,6 +833,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 	rsp.Item.PaymentMethods = pms
 
 	rsp.Item.VatInChargeCurrency = tools.FormatAmount(order.GetTaxAmountInChargeCurrency())
+	rsp.Item.VatRate = tools.ToPrecise(order.Tax.Rate)
 
 	cookie, err := s.generateBrowserCookie(browserCustomer)
 
@@ -1283,9 +1284,7 @@ func (s *Service) PaymentFormLanguageChanged(
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
-	rsp.Item = &billing.PaymentFormDataChangeResponseItem{
-		UserAddressDataRequired: false,
-	}
+	rsp.Item = order.GetPaymentFormDataChangeResult()
 
 	if order.User.Locale == req.Lang {
 		return nil
@@ -1328,11 +1327,7 @@ func (s *Service) PaymentFormLanguageChanged(
 		return err
 	}
 
-	rsp.Item.UserIpData = &billing.UserIpData{
-		Country: order.User.Address.Country,
-		City:    order.User.Address.City,
-		Zip:     order.User.Address.PostalCode,
-	}
+	rsp.Item = order.GetPaymentFormDataChangeResult()
 
 	return nil
 }
@@ -1388,7 +1383,6 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		return nil
 	}
 
-	brand := ""
 	country := ""
 
 	rsp.Status = pkg.ResponseStatusOk
@@ -1403,13 +1397,12 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 			return nil
 		}
 
-		brand = data.CardBrand
 		country = data.BankCountryIsoCode
 
 		if order.PaymentRequisites == nil {
 			order.PaymentRequisites = make(map[string]string)
 		}
-		order.PaymentRequisites[pkg.PaymentCreateBankCardFieldBrand] = brand
+		order.PaymentRequisites[pkg.PaymentCreateBankCardFieldBrand] = data.CardBrand
 		order.PaymentRequisites[pkg.PaymentCreateBankCardFieldIssuerCountryIsoCode] = country
 
 		break
@@ -1532,7 +1525,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		return err
 	}
 
-	rsp.Item = order.GetPaymentFormDataChangeResult(brand)
+	rsp.Item = order.GetPaymentFormDataChangeResult()
 	return nil
 }
 
@@ -1694,6 +1687,7 @@ func (s *Service) ProcessBillingAddress(
 	rsp.Cookie = cookie
 	rsp.Item = &grpc.ProcessBillingAddressResponseItem{
 		HasVat:               order.Tax.Rate > 0,
+		VatRate:              tools.ToPrecise(order.Tax.Rate),
 		Vat:                  tools.FormatAmount(order.Tax.Amount),
 		VatInChargeCurrency:  tools.FormatAmount(order.GetTaxAmountInChargeCurrency()),
 		Amount:               tools.FormatAmount(order.OrderAmount),
@@ -1786,7 +1780,7 @@ func (s *Service) updateOrder(ctx context.Context, order *billing.Order) error {
 		s.orderNotifyKeyProducts(context.TODO(), order)
 	}
 
-	if needReceipt {
+	if statusChanged && order.NeedCallbackNotification() {
 		s.orderNotifyMerchant(ctx, order)
 	}
 
@@ -3055,7 +3049,8 @@ func (v *PaymentCreateProcessor) processPaymentFormData(ctx context.Context) err
 		if err != nil {
 			v.service.logError("Update customer data by request failed", []interface{}{"error", err.Error(), "data", updCustomerReq})
 		} else {
-			if customer.Locale != order.User.Locale {
+			if order.User.Locale == "" && customer.Locale != "" &&
+				customer.Locale != order.User.Locale {
 				order.User.Locale = customer.Locale
 			}
 		}

@@ -131,6 +131,17 @@ func (m *Merchant) GetAuthorizedName() string {
 	return m.Contacts.Authorized.Name
 }
 
+func (m *Merchant) GetCompanyName() string {
+	if m.Company == nil || m.Company.Name == "" {
+		zap.L().Warn(
+			"Merchant has no company name",
+			zap.Any("Merchant company are", m.Company),
+		)
+		return ""
+	}
+	return m.Company.Name
+}
+
 func (m *RoyaltyReport) ChangesAvailable(newStatus string) bool {
 	if m.Status == pkg.RoyaltyReportStatusAccepted {
 		return false

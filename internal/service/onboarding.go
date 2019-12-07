@@ -1731,6 +1731,7 @@ func (s *Service) sendOnboardingLetter(merchant *billing.Merchant, oc *billing.O
 		TemplateModel: map[string]string{
 			"merchant_id":                   merchant.Id,
 			"operating_name":                ocName,
+			"merchant_legal_name":           merchant.GetCompanyName(),
 			"merchant_agreement_sign_url":   s.cfg.GetMerchantCompanyUrl(),
 			"admin_company_url":             s.cfg.GetAdminCompanyUrl(merchant.Id),
 			"admin_onboarding_requests_url": s.cfg.GetAdminOnboardingRequestsUrl(),
