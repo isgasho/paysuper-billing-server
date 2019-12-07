@@ -1691,13 +1691,13 @@ func (s *Service) ProcessBillingAddress(
 	rsp.Item = &grpc.ProcessBillingAddressResponseItem{
 		HasVat:               order.Tax.Rate > 0,
 		VatRate:              tools.ToPrecise(order.Tax.Rate),
-		Vat:                  tools.FormatAmount(order.Tax.Amount),
-		VatInChargeCurrency:  tools.FormatAmount(order.GetTaxAmountInChargeCurrency()),
-		Amount:               tools.FormatAmount(order.OrderAmount),
-		TotalAmount:          tools.FormatAmount(order.TotalPaymentAmount),
+		Vat:                  order.Tax.Amount,
+		VatInChargeCurrency:  s.FormatAmount(order.GetTaxAmountInChargeCurrency(), order.Currency),
+		Amount:               order.OrderAmount,
+		TotalAmount:          order.TotalPaymentAmount,
 		Currency:             order.Currency,
 		ChargeCurrency:       order.ChargeCurrency,
-		ChargeAmount:         tools.FormatAmount(order.ChargeAmount),
+		ChargeAmount:         order.ChargeAmount,
 		Items:                order.Items,
 		CountryChangeAllowed: order.CountryChangeAllowed(),
 	}
@@ -2096,7 +2096,7 @@ func (s *Service) getBinData(ctx context.Context, pan string) (data *BinData) {
 
 func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 	id := primitive.NewObjectID().Hex()
-	amount := tools.FormatAmount(v.checked.amount)
+	amount := v.FormatAmount(v.checked.amount, v.checked.currency)
 
 	if (v.request.UrlVerify != "" || v.request.UrlNotify != "") && v.checked.project.AllowDynamicNotifyUrls == false {
 		return nil, orderErrorDynamicNotifyUrlsNotAllowed
@@ -2610,8 +2610,8 @@ func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) erro
 	}
 
 	order.Tax.Rate = rsp.Rate
-	order.Tax.Amount = tools.FormatAmount(order.OrderAmount * order.Tax.Rate)
-	order.TotalPaymentAmount = tools.FormatAmount(order.OrderAmount + order.Tax.Amount)
+	order.Tax.Amount = v.FormatAmount(order.OrderAmount*order.Tax.Rate, order.Currency)
+	order.TotalPaymentAmount = v.FormatAmount(order.OrderAmount+order.Tax.Amount, order.Currency)
 	order.ChargeAmount = order.TotalPaymentAmount
 
 	return nil
@@ -3489,7 +3489,7 @@ func (s *Service) ProcessOrderVirtualCurrency(ctx context.Context, order *billin
 		}
 	}
 
-	amount = tools.FormatAmount(amount)
+	amount = s.FormatAmount(amount, currency)
 
 	order.Currency = currency
 	order.OrderAmount = amount
@@ -4551,7 +4551,7 @@ func (s *Service) setOrderChargeAmountAndCurrency(ctx context.Context, order *bi
 	}
 
 	order.ChargeCurrency = binCountry.Currency
-	order.ChargeAmount = tools.FormatAmount(rspCur.ExchangedAmount)
+	order.ChargeAmount = s.FormatAmount(rspCur.ExchangedAmount, binCountry.Currency)
 
 	return nil
 }
@@ -4607,7 +4607,7 @@ func (s *Service) processProducts(
 		return
 	}
 
-	amount = tools.FormatAmount(amount)
+	amount = s.FormatAmount(amount, usedPriceGroup.Currency)
 
 	if isBuyForVirtualCurrency {
 		items, err = s.GetOrderProductsItems(orderProducts, locale, &billing.PriceGroup{Currency: grpc.VirtualCurrencyPriceGroup})
@@ -4696,7 +4696,7 @@ func (s *Service) processKeyProducts(
 		}
 	}
 
-	amount = tools.FormatAmount(amount)
+	amount = s.FormatAmount(amount, usedPriceGroup.Currency)
 
 	items, err = s.GetOrderKeyProductsItems(orderProducts, locale, usedPriceGroup, platformId)
 

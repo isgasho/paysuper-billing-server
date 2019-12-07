@@ -38,6 +38,68 @@ func NewCurrencyServiceMockError() currencies.CurrencyratesService {
 	return &CurrencyServiceMockError{}
 }
 
+func (s *CurrencyServiceMockOk) GetCurrenciesPrecision(ctx context.Context, in *currencies.EmptyRequest, opts ...client.CallOption) (*currencies.CurrenciesPrecisionResponse, error) {
+	return &currencies.CurrenciesPrecisionResponse{
+		Values: map[string]int32{
+			"AED": 2,
+			"ALL": 2,
+			"AMD": 2,
+			"ARS": 2,
+			"AUD": 2,
+			"BGN": 2,
+			"BHD": 3,
+			"BRL": 2,
+			"BYN": 2,
+			"CAD": 2,
+			"CHF": 2,
+			"CLP": 0,
+			"CNY": 2,
+			"COP": 2,
+			"CZK": 2,
+			"DKK": 2,
+			"EGP": 2,
+			"EUR": 2,
+			"GBP": 2,
+			"GHS": 2,
+			"HKD": 2,
+			"HRK": 2,
+			"HUF": 2,
+			"IDR": 2,
+			"ILS": 2,
+			"INR": 2,
+			"ISK": 0,
+			"JPY": 0,
+			"KES": 2,
+			"KRW": 0,
+			"KWD": 3,
+			"KZT": 2,
+			"MXN": 2,
+			"MYR": 2,
+			"NOK": 2,
+			"NZD": 2,
+			"PEN": 2,
+			"PHP": 2,
+			"PLN": 2,
+			"QAR": 2,
+			"RON": 2,
+			"RSD": 2,
+			"RUB": 2,
+			"SAR": 2,
+			"SEK": 2,
+			"SGD": 2,
+			"THB": 2,
+			"TRY": 2,
+			"TWD": 2,
+			"TZS": 2,
+			"UAH": 2,
+			"USD": 2,
+			"UYU": 2,
+			"VND": 0,
+			"ZAR": 2,
+		},
+	}, nil
+}
+
 func (s *CurrencyServiceMockOk) GetRateCurrentCommon(
 	ctx context.Context,
 	in *currencies.GetRateCurrentCommonRequest,
@@ -444,6 +506,10 @@ func (s *CurrencyServiceMockOk) GetAccountingCurrencies(
 	opts ...client.CallOption,
 ) (*currencies.CurrenciesList, error) {
 	return &currencies.CurrenciesList{}, nil
+}
+
+func (s *CurrencyServiceMockError) GetCurrenciesPrecision(ctx context.Context, in *currencies.EmptyRequest, opts ...client.CallOption) (*currencies.CurrenciesPrecisionResponse, error) {
+	panic("implement me")
 }
 
 func (s *CurrencyServiceMockError) GetRateCurrentCommon(
