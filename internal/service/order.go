@@ -1254,7 +1254,9 @@ func (s *Service) PaymentCallbackProcess(
 			return err
 		}
 
-		s.sendMailWithReceipt(ctx, order)
+		if order.PrivateStatus == constant.OrderStatusPaymentSystemComplete {
+			s.sendMailWithReceipt(ctx, order)
+		}
 
 		if h.IsRecurringCallback(data) {
 			s.saveRecurringCard(ctx, order, h.GetRecurringId(data))
