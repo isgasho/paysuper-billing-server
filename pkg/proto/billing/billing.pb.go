@@ -141,8 +141,8 @@ type OrderCreateRequest struct {
 	UtmMedium string `protobuf:"bytes,37,opt,name=utm_medium,json=utmMedium,proto3" json:"utm_medium" bson:"utm_medium"`
 	//@inject_tag: bson:"utm_campaign" json:"utm_campaign"
 	UtmCampaign string `protobuf:"bytes,38,opt,name=utm_campaign,json=utmCampaign,proto3" json:"utm_campaign" bson:"utm_campaign"`
-	//@inject_tag: bson:"is_buy_for_virtual_currency" json:"is_buy_for_virtual_currency"
-	IsBuyForVirtualCurrency bool     `protobuf:"varint,39,opt,name=is_buy_for_virtual_currency,json=isBuyForVirtualCurrency,proto3" json:"is_buy_for_virtual_currency" bson:"is_buy_for_virtual_currency"`
+	//@inject_tag: bson:"-" json:"-"
+	IsBuyForVirtualCurrency bool     `protobuf:"varint,39,opt,name=is_buy_for_virtual_currency,json=isBuyForVirtualCurrency,proto3" json:"-" bson:"-"`
 	Cookie                  string   `protobuf:"bytes,40,opt,name=cookie,proto3" json:"cookie,omitempty"`
 	XXX_NoUnkeyedLiteral    struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized        []byte   `json:"-" bson:"-" structure:"-" validate:"-"`

@@ -8456,7 +8456,6 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcessVirtualCurrency_Ok() {
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		IsBuyForVirtualCurrency: true,
 	}
 
 	rsp := &grpc.OrderCreateProcessResponse{}
@@ -8469,30 +8468,6 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcessVirtualCurrency_Ok() {
 	assert.Equal(suite.T(), "RUB", rsp.Item.Currency)
 	assert.Equal(suite.T(), "virtual", rsp.Item.Items[0].Currency)
 	assert.EqualValues(suite.T(), 100, rsp.Item.Items[0].Amount)
-}
-
-func (suite *OrderTestSuite) TestOrder_OrderCreateProcessVirtualCurrency_Fail() {
-	req := &billing.OrderCreateRequest{
-		Type:          billing.OrderType_product,
-		ProjectId:     suite.projectWithProducts.Id,
-		PaymentMethod: suite.paymentMethod.Group,
-		Account:       "unit test",
-		Description:   "unit test",
-		Products:      suite.productIds,
-		OrderId:       primitive.NewObjectID().Hex(),
-		User: &billing.OrderUser{
-			Email: "test@unit.unit",
-			Ip:    "127.0.0.1",
-		},
-		IsBuyForVirtualCurrency: true,
-	}
-
-	rsp := &grpc.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
-	assert.Equal(suite.T(), orderErrorVirtualCurrencyNotFilled, rsp.Message)
 }
 
 func (suite *OrderTestSuite) TestOrder_CreateOrderByTokenWithVirtualCurrency_Ok() {
