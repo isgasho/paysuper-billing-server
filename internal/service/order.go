@@ -141,22 +141,23 @@ var (
 )
 
 type orderCreateRequestProcessorChecked struct {
-	id                   string
-	project              *billing.Project
-	merchant             *billing.Merchant
-	currency             string
-	amount               float64
-	paymentMethod        *billing.PaymentMethod
-	products             []string
-	items                []*billing.OrderItem
-	metadata             map[string]string
-	privateMetadata      map[string]string
-	user                 *billing.OrderUser
-	virtualAmount        float64
-	mccCode              string
-	operatingCompanyId   string
-	priceGroup           *billing.PriceGroup
-	isCurrencyPredefined bool
+	id                      string
+	project                 *billing.Project
+	merchant                *billing.Merchant
+	currency                string
+	amount                  float64
+	paymentMethod           *billing.PaymentMethod
+	products                []string
+	items                   []*billing.OrderItem
+	metadata                map[string]string
+	privateMetadata         map[string]string
+	user                    *billing.OrderUser
+	virtualAmount           float64
+	mccCode                 string
+	operatingCompanyId      string
+	priceGroup              *billing.PriceGroup
+	isCurrencyPredefined    bool
+	isBuyForVirtualCurrency bool
 }
 
 type OrderCreateRequestProcessor struct {
@@ -2130,7 +2131,7 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 		},
 		PlatformId:              v.request.PlatformId,
 		ProductType:             v.request.Type,
-		IsBuyForVirtualCurrency: v.request.IsBuyForVirtualCurrency,
+		IsBuyForVirtualCurrency: v.checked.isBuyForVirtualCurrency,
 		MccCode:                 v.checked.merchant.MccCode,
 		OperatingCompanyId:      v.checked.merchant.OperatingCompanyId,
 		IsHighRisk:              v.checked.merchant.IsHighRisk(),
@@ -2380,14 +2381,15 @@ func (v *OrderCreateRequestProcessor) processPaylinkKeyProducts() error {
 
 func (v *OrderCreateRequestProcessor) processPaylinkProducts() error {
 
-	amount, priceGroup, items, err := v.processProducts(
+	amount, priceGroup, items, isBuyForVirtual, err := v.processProducts(
 		v.ctx,
 		v.checked.project.Id,
 		v.request.Products,
 		v.checked.priceGroup,
 		DefaultLanguage,
-		v.request.IsBuyForVirtualCurrency,
 	)
+
+	v.checked.isBuyForVirtualCurrency = isBuyForVirtual
 
 	if err != nil {
 		return err
@@ -2605,7 +2607,6 @@ func (v *OrderCreateRequestProcessor) processCustomerToken() error {
 	v.request.Products = token.Settings.ProductsIds
 	v.request.Metadata = token.Settings.Metadata
 	v.request.PaymentMethod = token.Settings.PaymentMethod
-	v.request.IsBuyForVirtualCurrency = token.Settings.IsBuyForVirtualCurrency
 
 	if token.Settings.ReturnUrl != nil {
 		v.request.UrlSuccess = token.Settings.ReturnUrl.Success
@@ -3540,13 +3541,12 @@ func (s *Service) ProcessOrderProducts(ctx context.Context, order *billing.Order
 		locale = order.User.Locale
 	}
 
-	amount, priceGroup, items, err := s.processProducts(
+	amount, priceGroup, items, _, err := s.processProducts(
 		ctx,
 		order.Project.Id,
 		order.Products,
 		priceGroup,
 		locale,
-		order.IsBuyForVirtualCurrency,
 	)
 
 	if err != nil {
@@ -4521,14 +4521,30 @@ func (s *Service) setOrderChargeAmountAndCurrency(ctx context.Context, order *bi
 	return nil
 }
 
+func (s *Service) checkVirtualCurrencyProduct(products []*grpc.Product) bool {
+	if len(products) == 0 {
+		return false
+	}
+
+	for _, product := range products {
+		if len(product.Prices) != 1 {
+			return false
+		}
+		if product.Prices[0].IsVirtualCurrency == false {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (s *Service) processProducts(
 	ctx context.Context,
 	projectId string,
 	productIds []string,
 	priceGroup *billing.PriceGroup,
 	locale string,
-	isBuyForVirtualCurrency bool,
-) (amount float64, usedPriceGroup *billing.PriceGroup, items []*billing.OrderItem, err error) {
+) (amount float64, usedPriceGroup *billing.PriceGroup, items []*billing.OrderItem, 	isBuyForVirtualCurrency bool, err error) {
 	project, err := s.project.GetById(ctx, projectId)
 	if err != nil {
 		return
@@ -4561,6 +4577,8 @@ func (s *Service) processProducts(
 	if priceGroup == nil {
 		priceGroup = defaultPriceGroup
 	}
+
+	isBuyForVirtualCurrency = s.checkVirtualCurrencyProduct(orderProducts)
 
 	if isBuyForVirtualCurrency {
 		amount, usedPriceGroup, err = s.processAmountForVirtualCurrency(ctx, project, orderProducts, priceGroup, defaultPriceGroup)

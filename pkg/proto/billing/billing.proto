@@ -88,7 +88,7 @@ message OrderCreateRequest {
     string utm_medium = 37;
     //@inject_tag: bson:"utm_campaign" json:"utm_campaign"
     string utm_campaign = 38;
-    //@inject_tag: bson:"is_buy_for_virtual_currency" json:"is_buy_for_virtual_currency"
+    //@inject_tag: bson:"-" json:"-"
     bool is_buy_for_virtual_currency = 39;
     string cookie = 40;
 }
