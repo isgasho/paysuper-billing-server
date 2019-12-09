@@ -4006,7 +4006,7 @@ func (s *Service) applyCountryRestriction(
 	return
 }
 
-func (s *Service) PaymentFormPlatformChanged(ctx context.Context, req *grpc.PaymentFormUserChangePlatformRequest, rsp *grpc.EmptyResponseWithStatus) error {
+func (s *Service) PaymentFormPlatformChanged(ctx context.Context, req *grpc.PaymentFormUserChangePlatformRequest, rsp *grpc.PaymentFormDataChangeResponse) error {
 	order, err := s.getOrderByUuidToForm(ctx, req.OrderId)
 
 	if err != nil {
@@ -4053,6 +4053,8 @@ func (s *Service) PaymentFormPlatformChanged(ctx context.Context, req *grpc.Paym
 		}
 		return err
 	}
+
+	rsp.Item = order.GetPaymentFormDataChangeResult()
 
 	return nil
 }
