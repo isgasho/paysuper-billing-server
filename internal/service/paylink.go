@@ -734,34 +734,9 @@ func (p Paylink) Update(ctx context.Context, pl *paylink.Paylink) (err error) {
 	oid, _ := primitive.ObjectIDFromHex(pl.Id)
 	dbQuery := bson.M{"_id": oid}
 
-	expiresAt := int64(0)
-	if pl.ExpiresAt != nil {
-		expiresAt, err := ptypes.Timestamp(pl.ExpiresAt)
-		if err != nil {
-			zap.L().Error(
-				pkg.ErrorTimeConversion,
-				zap.Any(pkg.ErrorTimeConversionMethod, "ptypes.Timestamp"),
-				zap.Any(pkg.ErrorTimeConversionValue, expiresAt),
-				zap.Error(err),
-			)
-			return err
-		}
-	}
-
-	updatedAt, err := ptypes.Timestamp(pl.UpdatedAt)
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorTimeConversion,
-			zap.Any(pkg.ErrorTimeConversionMethod, "ptypes.Timestamp"),
-			zap.Any(pkg.ErrorTimeConversionValue, expiresAt),
-			zap.Error(err),
-		)
-		return err
-	}
-
 	set := bson.M{"$set": bson.M{
-		"expires_at":     expiresAt,
-		"updated_at":     updatedAt,
+		"expires_at":     pl.ExpiresAt,
+		"updated_at":     pl.UpdatedAt,
 		"products":       pl.Products,
 		"name":           pl.Name,
 		"no_expiry_date": pl.NoExpiryDate,
