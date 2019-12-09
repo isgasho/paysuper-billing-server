@@ -24,7 +24,7 @@ Learn more about a [payments flow](https://docs.pay.super.com/docs/payments/quic
 
 * Support for the payment tokens for the order and user data.
 
-* The next payment without asking payment information.
+* PaySuper can securely store your customer’s billing address and the payment method data to prefill the Checkout Form with. The customer has to agree for this to happen.
 
 * VAT/Sales tax have a clear and automatic calculation.
 
