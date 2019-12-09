@@ -7667,12 +7667,12 @@ func (suite *OrderTestSuite) Test_ChangePlatformInForm() {
 	shouldBe.Equal(pkg.ResponseStatusOk, rsp1.Status)
 
 	order := rsp1.Item
-	codeRsp := &grpc.EmptyResponseWithStatus{}
+	codeRsp := &grpc.PaymentFormDataChangeResponse{}
 	err = suite.service.PaymentFormPlatformChanged(context.TODO(), &grpc.PaymentFormUserChangePlatformRequest{OrderId: order.Uuid, Platform: "gog"}, codeRsp)
 	shouldBe.Nil(err)
 	shouldBe.EqualValuesf(pkg.ResponseStatusOk, codeRsp.Status, "%v", codeRsp.Message)
 
-	codeRsp = &grpc.EmptyResponseWithStatus{}
+	codeRsp = &grpc.PaymentFormDataChangeResponse{}
 	err = suite.service.PaymentFormPlatformChanged(context.TODO(), &grpc.PaymentFormUserChangePlatformRequest{OrderId: order.Uuid, Platform: "xbox"}, codeRsp)
 	shouldBe.Nil(err)
 	shouldBe.Equal(pkg.ResponseStatusBadData, codeRsp.Status)

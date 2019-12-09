@@ -177,7 +177,7 @@ service BillingService {
 
     rpc GetMerchantBalance (GetMerchantBalanceRequest) returns (GetMerchantBalanceResponse) {}
 
-    rpc PaymentFormPlatformChanged (PaymentFormUserChangePlatformRequest) returns (EmptyResponseWithStatus) {}
+    rpc PaymentFormPlatformChanged (PaymentFormUserChangePlatformRequest) returns (PaymentFormDataChangeResponse) {}
 
     rpc CheckSkuAndKeyProject(CheckSkuAndKeyProjectRequest) returns (EmptyResponseWithStatus) {}
 
