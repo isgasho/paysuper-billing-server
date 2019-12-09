@@ -4102,6 +4102,8 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_Ok() {
 	assert.True(suite.T(), rsp.Item.CountryPaymentsAllowed)
 	assert.True(suite.T(), rsp.Item.CountryChangeAllowed)
 	assert.Equal(suite.T(), req.User.Locale, rsp.Item.Lang)
+	assert.NotNil(suite.T(), rsp.Item.Project)
+	assert.NotZero(suite.T(), rsp.Item.Project.Id)
 
 	order, err = suite.service.getOrderByUuid(context.TODO(), order.Uuid)
 	assert.Nil(suite.T(), err)
@@ -4110,6 +4112,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_Ok() {
 	assert.True(suite.T(), order.CountryRestriction.PaymentsAllowed)
 	assert.True(suite.T(), order.CountryRestriction.ChangeAllowed)
 	assert.False(suite.T(), order.UserAddressDataRequired)
+	assert.Equal(suite.T(), rsp.Item.Project.Id, order.Project.Id)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcessWithProducts_Ok() {

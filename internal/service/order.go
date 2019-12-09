@@ -861,6 +861,7 @@ func (s *Service) fillPaymentFormJsonData(order *billing.Order, rsp *grpc.Paymen
 	rsp.Item.Vat = order.Tax.Amount
 	rsp.Item.Currency = order.Currency
 	rsp.Item.Project = &grpc.PaymentFormJsonDataProject{
+		Id:         order.Project.Id,
 		Name:       projectName,
 		UrlSuccess: order.Project.UrlSuccess,
 		UrlFail:    order.Project.UrlFail,
