@@ -1386,8 +1386,6 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		return nil
 	}
 
-	country := ""
-
 	rsp.Status = pkg.ResponseStatusOk
 
 	switch pm.ExternalId {
@@ -1400,13 +1398,11 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 			return nil
 		}
 
-		country = data.BankCountryIsoCode
-
 		if order.PaymentRequisites == nil {
 			order.PaymentRequisites = make(map[string]string)
 		}
 		order.PaymentRequisites[pkg.PaymentCreateBankCardFieldBrand] = data.CardBrand
-		order.PaymentRequisites[pkg.PaymentCreateBankCardFieldIssuerCountryIsoCode] = country
+		order.PaymentRequisites[pkg.PaymentCreateBankCardFieldIssuerCountryIsoCode] = data.BankCountryIsoCode
 
 		break
 
@@ -1420,9 +1416,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 			return nil
 		}
 
-		ok := false
-		country, ok = pkg.CountryPhoneCodes[*num.CountryCode]
-
+		_, ok := pkg.CountryPhoneCodes[*num.CountryCode]
 		if !ok {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = orderErrorCountryByPaymentAccountNotFound
@@ -1479,35 +1473,6 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		}
 
 		return err
-	}
-
-	if country != "" && country != order.GetCountry() && order.BillingAddress == nil {
-		order.UserAddressDataRequired = true
-	}
-
-	restricted, err := s.applyCountryRestriction(ctx, order, country)
-
-	if err != nil {
-		zap.L().Error(
-			"s.applyCountryRestriction Method failed",
-			zap.Error(err),
-			zap.Any("order", order),
-		)
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			rsp.Status = pkg.ResponseStatusSystemError
-			rsp.Message = e
-			return nil
-		} else {
-			rsp.Message = orderErrorUnknown
-			rsp.Status = pkg.ResponseStatusSystemError
-		}
-		return nil
-	}
-
-	if restricted == true {
-		rsp.Status = pkg.ResponseStatusForbidden
-		rsp.Message = orderCountryPaymentRestrictedError
-		return nil
 	}
 
 	if !s.hasPaymentCosts(ctx, order) {
