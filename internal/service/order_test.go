@@ -5415,7 +5415,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_BankCard
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)
 	assert.NotNil(suite.T(), rsp1.Item)
-	assert.True(suite.T(), rsp1.Item.UserAddressDataRequired)
+	assert.False(suite.T(), rsp1.Item.UserAddressDataRequired)
 	assert.Equal(suite.T(), "RU", rsp1.Item.UserIpData.Country)
 	assert.Equal(suite.T(), rsp.User.Address.PostalCode, rsp1.Item.UserIpData.Zip)
 	assert.Equal(suite.T(), rsp.User.Address.City, rsp1.Item.UserIpData.City)
@@ -5494,7 +5494,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_Qiwi_Ok(
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)
 	assert.NotNil(suite.T(), rsp1.Item)
-	assert.True(suite.T(), rsp1.Item.UserAddressDataRequired)
+	assert.False(suite.T(), rsp1.Item.UserAddressDataRequired)
 	assert.Equal(suite.T(), "RU", rsp1.Item.UserIpData.Country)
 	assert.Equal(suite.T(), rsp.User.Address.PostalCode, rsp1.Item.UserIpData.Zip)
 	assert.Equal(suite.T(), rsp.User.Address.City, rsp1.Item.UserIpData.City)
@@ -5780,7 +5780,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_Bitcoin_
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)
 	assert.NotNil(suite.T(), rsp1.Item)
-	assert.True(suite.T(), rsp1.Item.UserAddressDataRequired)
+	assert.False(suite.T(), rsp1.Item.UserAddressDataRequired)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_NoChanges_Ok() {
