@@ -545,10 +545,7 @@ func (h *vatReportProcessor) ProcessVatReportsStatus(ctx context.Context) error 
 
 	for _, report := range reports {
 		country := h.getCountry(report.Country)
-		if country == nil {
-			continue
-		}
-		if country.VatEnabled == false {
+		if country == nil || country.VatEnabled == false {
 			continue
 		}
 		currentFrom, _, err := h.Service.getLastVatReportTime(country.VatPeriodMonth)
