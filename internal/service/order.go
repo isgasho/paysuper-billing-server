@@ -4098,7 +4098,7 @@ func (s *Service) OrderReceipt(
 	items := make([]*billing.OrderReceiptItem, len(order.Items))
 
 	currency := order.Currency
-	if currency == grpc.VirtualCurrencyPriceGroup {
+	if order.IsBuyForVirtualCurrency {
 		project, err := s.project.GetById(ctx, order.GetProjectId())
 
 		if err != nil {
