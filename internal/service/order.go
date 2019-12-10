@@ -4554,11 +4554,6 @@ func (s *Service) processProducts(
 		return
 	}
 
-	if project.IsProductsCheckout == false {
-		err = orderErrorIncompatibleProject
-		return
-	}
-
 	orderProducts, err := s.GetOrderProducts(project.Id, productIds)
 	if err != nil {
 		return
