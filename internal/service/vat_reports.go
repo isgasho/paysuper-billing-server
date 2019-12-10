@@ -2,8 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/jinzhu/now"
@@ -547,6 +545,12 @@ func (h *vatReportProcessor) ProcessVatReportsStatus(ctx context.Context) error 
 
 	for _, report := range reports {
 		country := h.getCountry(report.Country)
+		if country == nil {
+			continue
+		}
+		if country.VatEnabled == false {
+			continue
+		}
 		currentFrom, _, err := h.Service.getLastVatReportTime(country.VatPeriodMonth)
 		if err != nil {
 			return err
@@ -789,9 +793,6 @@ func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, coun
 		},
 	}
 
-	bytes, err := json.Marshal(query)
-	sQuery := string(bytes)
-	fmt.Printf(sQuery)
 	cursor, err := h.Service.db.Collection(collectionOrderView).Aggregate(ctx, query)
 
 	if err != nil {
