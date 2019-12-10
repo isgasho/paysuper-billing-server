@@ -3612,25 +3612,24 @@ func (s *Service) processAmountForVirtualCurrency(
 
 	virtualAmount, err := s.GetOrderProductsAmount(orderProducts, &billing.PriceGroup{Currency: grpc.VirtualCurrencyPriceGroup})
 	if err != nil {
-		if err != grpc.ProductNoPriceInCurrencyError {
-			return 0, nil, err
-		}
+		zap.L().Error(pkg.MethodFinishedWithError, zap.Error(err))
+		return 0, nil, err
+	}
 
+	amount, err = s.GetAmountForVirtualCurrency(virtualAmount, usedPriceGroup, project.VirtualCurrency.Prices)
+	if err != nil {
+		zap.L().Error(pkg.MethodFinishedWithError, zap.Error(err))
 		if priceGroup.Id == defaultPriceGroup.Id {
 			return 0, nil, err
 		}
 
 		// try to get order Amount in fallback currency
 		usedPriceGroup = defaultPriceGroup
-		amount, err = s.GetOrderProductsAmount(orderProducts, defaultPriceGroup)
+		amount, err = s.GetAmountForVirtualCurrency(virtualAmount, usedPriceGroup, project.VirtualCurrency.Prices)
 		if err != nil {
+			zap.L().Error(pkg.MethodFinishedWithError, zap.Error(err))
 			return 0, nil, err
 		}
-	}
-
-	amount, err = s.GetAmountForVirtualCurrency(virtualAmount, usedPriceGroup, project.VirtualCurrency.Prices)
-	if err != nil {
-		return 0, nil, err
 	}
 
 	return amount, usedPriceGroup, nil
