@@ -228,6 +228,7 @@ func (app *Application) Init() {
 		formatter,
 		postmarkBroker,
 		casbin,
+		webHookNotifier,
 	)
 
 	if err := app.svc.Init(); err != nil {
