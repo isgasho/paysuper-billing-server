@@ -27,6 +27,16 @@ func (s *Service) SendWebhookToMerchant(ctx context.Context, req *billing.OrderC
 		checked: &orderCreateRequestProcessorChecked{},
 	}
 
+	if err := processor.processProject(); err != nil {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			res.Status = pkg.ResponseStatusBadData
+			res.Message = e
+			return nil
+		}
+		return err
+	}
+
 	if req.Signature != "" || processor.checked.project.SignatureRequired == true {
 		if err := processor.processSignature(); err != nil {
 			zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
