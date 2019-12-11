@@ -451,6 +451,13 @@ func (s *Service) OrderCreateProcess(
 				rsp.Message = e
 				return nil
 			}
+
+			if err == grpc.ProductNoPriceInCurrencyError {
+				rsp.Status = pkg.ResponseStatusBadData
+				rsp.Message = productNoPriceInCurrencyError
+				return nil
+			}
+
 			return err
 		}
 		break
