@@ -4012,6 +4012,28 @@ func (s *Service) PaymentFormPlatformChanged(ctx context.Context, req *grpc.Paym
 		return err
 	}
 
+	processor := &OrderCreateRequestProcessor{Service: s, ctx: ctx}
+	err = processor.processOrderVat(order)
+	if err != nil {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error(), "method", "processOrderVat")
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = e
+			return nil
+		}
+		return err
+	}
+
+	err = s.setOrderChargeAmountAndCurrency(ctx, order)
+	if err != nil {
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
+	}
+
 	err = s.updateOrder(ctx, order)
 
 	if err != nil {
