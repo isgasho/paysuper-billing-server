@@ -110,7 +110,6 @@ var (
 	orderErrorCreatePaymentRequiredFieldUserZipNotFound       = newBillingServerErrorMsg("fm000046", "user zip is required")
 	orderErrorOrderAlreadyComplete                            = newBillingServerErrorMsg("fm000047", "order with specified identifier payed early")
 	orderErrorSignatureInvalid                                = newBillingServerErrorMsg("fm000048", "request signature is invalid")
-	orderErrorZipCodeNotFound                                 = newBillingServerErrorMsg("fm000050", "zip_code not found")
 	orderErrorProductsPrice                                   = newBillingServerErrorMsg("fm000051", "can't get product price")
 	orderErrorCheckoutWithoutProducts                         = newBillingServerErrorMsg("fm000052", "order products not specified")
 	orderErrorCheckoutWithoutAmount                           = newBillingServerErrorMsg("fm000053", "order amount not specified")
@@ -137,6 +136,7 @@ var (
 	orderErrorAlreadyProcessed                                = newBillingServerErrorMsg("fm000073", "order is already processed")
 	orderErrorDontHaveReceiptUrl                              = newBillingServerErrorMsg("fm000074", "processed order don't have receipt url")
 	orderErrorWrongPrivateStatus                              = newBillingServerErrorMsg("fm000075", "order has wrong private status and cannot be recreated")
+	orderCountryChangeRestrictedError                         = newBillingServerErrorMsg("fm000076", "change country is not allowed")
 
 	virtualCurrencyPayoutCurrencyMissed = newBillingServerErrorMsg("vc000001", "virtual currency don't have price in merchant payout currency")
 
@@ -144,22 +144,23 @@ var (
 )
 
 type orderCreateRequestProcessorChecked struct {
-	id                   string
-	project              *billing.Project
-	merchant             *billing.Merchant
-	currency             string
-	amount               float64
-	paymentMethod        *billing.PaymentMethod
-	products             []string
-	items                []*billing.OrderItem
-	metadata             map[string]string
-	privateMetadata      map[string]string
-	user                 *billing.OrderUser
-	virtualAmount        float64
-	mccCode              string
-	operatingCompanyId   string
-	priceGroup           *billing.PriceGroup
-	isCurrencyPredefined bool
+	id                      string
+	project                 *billing.Project
+	merchant                *billing.Merchant
+	currency                string
+	amount                  float64
+	paymentMethod           *billing.PaymentMethod
+	products                []string
+	items                   []*billing.OrderItem
+	metadata                map[string]string
+	privateMetadata         map[string]string
+	user                    *billing.OrderUser
+	virtualAmount           float64
+	mccCode                 string
+	operatingCompanyId      string
+	priceGroup              *billing.PriceGroup
+	isCurrencyPredefined    bool
+	isBuyForVirtualCurrency bool
 }
 
 type OrderCreateRequestProcessor struct {
@@ -454,6 +455,13 @@ func (s *Service) OrderCreateProcess(
 				rsp.Message = e
 				return nil
 			}
+
+			if err == grpc.ProductNoPriceInCurrencyError {
+				rsp.Status = pkg.ResponseStatusBadData
+				rsp.Message = productNoPriceInCurrencyError
+				return nil
+			}
+
 			return err
 		}
 		break
@@ -565,12 +573,12 @@ func (s *Service) PaymentFormJsonDataProcess(
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = &grpc.PaymentFormJsonData{}
 
-	order, err := s.getOrderByUuid(ctx, req.OrderId)
+	order, err := s.getOrderByUuidToForm(ctx, req.OrderId)
 
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = e
 			return nil
 		}
@@ -714,7 +722,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 		}
 	}
 
-	if loc != "" && loc != order.User.Locale {
+	if order.User.Locale == "" && loc != "" && loc != order.User.Locale {
 		order.User.Locale = loc
 	}
 
@@ -836,6 +844,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 	rsp.Item.PaymentMethods = pms
 
 	rsp.Item.VatInChargeCurrency = tools.FormatAmount(order.GetTaxAmountInChargeCurrency())
+	rsp.Item.VatRate = tools.ToPrecise(order.Tax.Rate)
 
 	cookie, err := s.generateBrowserCookie(browserCustomer)
 
@@ -863,6 +872,7 @@ func (s *Service) fillPaymentFormJsonData(order *billing.Order, rsp *grpc.Paymen
 	rsp.Item.Vat = order.Tax.Amount
 	rsp.Item.Currency = order.Currency
 	rsp.Item.Project = &grpc.PaymentFormJsonDataProject{
+		Id:         order.Project.Id,
 		Name:       projectName,
 		UrlSuccess: order.Project.UrlSuccess,
 		UrlFail:    order.Project.UrlFail,
@@ -1256,7 +1266,9 @@ func (s *Service) PaymentCallbackProcess(
 			return err
 		}
 
-		s.sendMailWithReceipt(ctx, order)
+		if order.PrivateStatus == constant.OrderStatusPaymentSystemComplete {
+			s.sendMailWithReceipt(ctx, order)
+		}
 
 		if h.IsRecurringCallback(data) {
 			s.saveRecurringCard(ctx, order, h.GetRecurringId(data))
@@ -1286,9 +1298,7 @@ func (s *Service) PaymentFormLanguageChanged(
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
-	rsp.Item = &billing.PaymentFormDataChangeResponseItem{
-		UserAddressDataRequired: false,
-	}
+	rsp.Item = order.GetPaymentFormDataChangeResult()
 
 	if order.User.Locale == req.Lang {
 		return nil
@@ -1331,11 +1341,7 @@ func (s *Service) PaymentFormLanguageChanged(
 		return err
 	}
 
-	rsp.Item.UserIpData = &billing.UserIpData{
-		Country: order.User.Address.Country,
-		City:    order.User.Address.City,
-		Zip:     order.User.Address.PostalCode,
-	}
+	rsp.Item = order.GetPaymentFormDataChangeResult()
 
 	return nil
 }
@@ -1391,9 +1397,6 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		return nil
 	}
 
-	brand := ""
-	country := ""
-
 	rsp.Status = pkg.ResponseStatusOk
 
 	switch pm.ExternalId {
@@ -1406,14 +1409,11 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 			return nil
 		}
 
-		brand = data.CardBrand
-		country = data.BankCountryIsoCode
-
 		if order.PaymentRequisites == nil {
 			order.PaymentRequisites = make(map[string]string)
 		}
-		order.PaymentRequisites[pkg.PaymentCreateBankCardFieldBrand] = brand
-		order.PaymentRequisites[pkg.PaymentCreateBankCardFieldIssuerCountryIsoCode] = country
+		order.PaymentRequisites[pkg.PaymentCreateBankCardFieldBrand] = data.CardBrand
+		order.PaymentRequisites[pkg.PaymentCreateBankCardFieldIssuerCountryIsoCode] = data.BankCountryIsoCode
 
 		break
 
@@ -1427,9 +1427,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 			return nil
 		}
 
-		ok := false
-		country, ok = pkg.CountryPhoneCodes[*num.CountryCode]
-
+		_, ok := pkg.CountryPhoneCodes[*num.CountryCode]
 		if !ok {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = orderErrorCountryByPaymentAccountNotFound
@@ -1488,35 +1486,6 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		return err
 	}
 
-	if country != "" && country != order.GetCountry() && order.BillingAddress == nil {
-		order.UserAddressDataRequired = true
-	}
-
-	restricted, err := s.applyCountryRestriction(ctx, order, country)
-
-	if err != nil {
-		zap.L().Error(
-			"s.applyCountryRestriction Method failed",
-			zap.Error(err),
-			zap.Any("order", order),
-		)
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			rsp.Status = pkg.ResponseStatusSystemError
-			rsp.Message = e
-			return nil
-		} else {
-			rsp.Message = orderErrorUnknown
-			rsp.Status = pkg.ResponseStatusSystemError
-		}
-		return nil
-	}
-
-	if restricted == true {
-		rsp.Status = pkg.ResponseStatusForbidden
-		rsp.Message = orderCountryPaymentRestrictedError
-		return nil
-	}
-
 	if !s.hasPaymentCosts(ctx, order) {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = orderErrorCostsRatesNotFound
@@ -1535,7 +1504,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		return err
 	}
 
-	rsp.Item = order.GetPaymentFormDataChangeResult(brand)
+	rsp.Item = order.GetPaymentFormDataChangeResult()
 	return nil
 }
 
@@ -1546,24 +1515,6 @@ func (s *Service) ProcessBillingAddress(
 ) error {
 	var err error
 	var zip *billing.ZipCode
-
-	if req.Country == CountryCodeUSA {
-		if req.Zip == "" {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = orderErrorCreatePaymentRequiredFieldUserZipNotFound
-
-			return nil
-		}
-
-		zip, err = s.zipCode.getByZipAndCountry(ctx, req.Zip, req.Country)
-
-		if err != nil {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = orderErrorZipCodeNotFound
-
-			return nil
-		}
-	}
 
 	order, err := s.getOrderByUuidToForm(ctx, req.OrderId)
 
@@ -1579,23 +1530,32 @@ func (s *Service) ProcessBillingAddress(
 
 	initialCountry := order.GetCountry()
 
-	if order.CountryRestriction != nil && order.CountryRestriction.ChangeAllowed != true {
-		rsp.Status = pkg.ResponseStatusForbidden
-		rsp.Message = orderCountryPaymentRestrictedError
-		return nil
-	}
-
-	order.BillingAddress = &billing.OrderBillingAddress{
+	billingAddress := &billing.OrderBillingAddress{
 		Country: req.Country,
 	}
 
-	if zip != nil {
-		order.BillingAddress.PostalCode = zip.Zip
-		order.BillingAddress.City = zip.City
-		order.BillingAddress.State = zip.State.Code
+	if req.Country == CountryCodeUSA && req.Zip != "" {
+		billingAddress.PostalCode = req.Zip
+
+		zip, err = s.zipCode.getByZipAndCountry(ctx, req.Zip, req.Country)
+
+		if err == nil && zip != nil {
+			billingAddress.Country = zip.Country
+			billingAddress.PostalCode = zip.Zip
+			billingAddress.City = zip.City
+			billingAddress.State = zip.State.Code
+		}
 	}
 
-	restricted, err := s.applyCountryRestriction(ctx, order, req.Country)
+	if !order.CountryChangeAllowed() && initialCountry != billingAddress.Country {
+		rsp.Status = pkg.ResponseStatusForbidden
+		rsp.Message = orderCountryChangeRestrictedError
+		return nil
+	}
+
+	order.BillingAddress = billingAddress
+
+	restricted, err := s.applyCountryRestriction(ctx, order, billingAddress.Country)
 	if err != nil {
 		zap.L().Error(
 			"s.applyCountryRestriction Method failed",
@@ -1636,7 +1596,7 @@ func (s *Service) ProcessBillingAddress(
 	if err == nil {
 		customer.Ip = req.Ip
 		customer.IpCountry = address.Country
-		customer.SelectedCountry = req.Country
+		customer.SelectedCountry = billingAddress.Country
 		customer.UpdatedAt = time.Now()
 
 		cookie, err = s.generateBrowserCookie(customer)
@@ -1688,7 +1648,7 @@ func (s *Service) ProcessBillingAddress(
 		return nil
 	}
 
-	order.BillingCountryChangedByUser = initialCountry != order.GetCountry()
+	order.BillingCountryChangedByUser = order.BillingCountryChangedByUser == true || initialCountry != order.GetCountry()
 
 	err = s.updateOrder(ctx, order)
 
@@ -1705,15 +1665,17 @@ func (s *Service) ProcessBillingAddress(
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Cookie = cookie
 	rsp.Item = &grpc.ProcessBillingAddressResponseItem{
-		HasVat:              order.Tax.Rate > 0,
-		Vat:                 tools.FormatAmount(order.Tax.Amount),
-		VatInChargeCurrency: tools.FormatAmount(order.GetTaxAmountInChargeCurrency()),
-		Amount:              tools.FormatAmount(order.OrderAmount),
-		TotalAmount:         tools.FormatAmount(order.TotalPaymentAmount),
-		Currency:            order.Currency,
-		ChargeCurrency:      order.ChargeCurrency,
-		ChargeAmount:        tools.FormatAmount(order.ChargeAmount),
-		Items:               order.Items,
+		HasVat:               order.Tax.Rate > 0,
+		VatRate:              tools.ToPrecise(order.Tax.Rate),
+		Vat:                  order.Tax.Amount,
+		VatInChargeCurrency:  s.FormatAmount(order.GetTaxAmountInChargeCurrency(), order.Currency),
+		Amount:               order.OrderAmount,
+		TotalAmount:          order.TotalPaymentAmount,
+		Currency:             order.Currency,
+		ChargeCurrency:       order.ChargeCurrency,
+		ChargeAmount:         order.ChargeAmount,
+		Items:                order.Items,
+		CountryChangeAllowed: order.CountryChangeAllowed(),
 	}
 
 	return nil
@@ -1797,7 +1759,7 @@ func (s *Service) updateOrder(ctx context.Context, order *billing.Order) error {
 		s.orderNotifyKeyProducts(context.TODO(), order)
 	}
 
-	if needReceipt {
+	if statusChanged && order.NeedCallbackNotification() {
 		s.orderNotifyMerchant(ctx, order)
 	}
 
@@ -1908,9 +1870,9 @@ func (s *Service) getPayloadForReceipt(ctx context.Context, order *billing.Order
 		paymentPartner = oc.Name
 	}
 
-	template := s.cfg.EmailSuccessTransactionTemplate
+	template := s.cfg.EmailTemplates.SuccessTransaction
 	if order.Type == pkg.OrderTypeRefund {
-		template = s.cfg.EmailRefundTransactionTemplate
+		template = s.cfg.EmailTemplates.RefundTransaction
 	}
 
 	payload := &postmarkSdrPkg.Payload{
@@ -1984,7 +1946,7 @@ func (s *Service) sendMailWithCode(ctx context.Context, order *billing.Order, ke
 		if item.Id == key.KeyProductId {
 			item.Code = key.Code
 			payload := &postmarkSdrPkg.Payload{
-				TemplateAlias: s.cfg.EmailGameCodeTemplate,
+				TemplateAlias: s.cfg.EmailTemplates.ActivationGameKey,
 				TemplateModel: map[string]string{
 					"code":          key.Code,
 					"platform_icon": platformIconUrl,
@@ -2110,7 +2072,7 @@ func (s *Service) getBinData(ctx context.Context, pan string) (data *BinData) {
 
 func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 	id := primitive.NewObjectID().Hex()
-	amount := tools.FormatAmount(v.checked.amount)
+	amount := v.FormatAmount(v.checked.amount, v.checked.currency)
 
 	if (v.request.UrlVerify != "" || v.request.UrlNotify != "") && v.checked.project.AllowDynamicNotifyUrls == false {
 		return nil, orderErrorDynamicNotifyUrlsNotAllowed
@@ -2179,7 +2141,7 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 		},
 		PlatformId:              v.request.PlatformId,
 		ProductType:             v.request.Type,
-		IsBuyForVirtualCurrency: v.request.IsBuyForVirtualCurrency,
+		IsBuyForVirtualCurrency: v.checked.isBuyForVirtualCurrency,
 		MccCode:                 v.checked.merchant.MccCode,
 		OperatingCompanyId:      v.checked.merchant.OperatingCompanyId,
 		IsHighRisk:              v.checked.merchant.IsHighRisk(),
@@ -2404,52 +2366,21 @@ func (v *OrderCreateRequestProcessor) processPayerIp() error {
 }
 
 func (v *OrderCreateRequestProcessor) processPaylinkKeyProducts() error {
-	if len(v.request.Products) == 0 {
-		return orderErrorProductsEmpty
-	}
 
-	orderProducts, err := v.GetOrderKeyProducts(context.TODO(), v.checked.project.Id, v.request.Products)
-	if err != nil {
-		return err
-	}
-
-	currency := v.checked.currency
-
-	zap.L().Info(
-		fmt.Sprintf("processPaylinkKeyProducts use currency"),
-		zap.String("currency", currency),
-		zap.String("paylink", v.request.PrivateMetadata["PaylinkId"]),
+	amount, priceGroup, items, _, err := v.processKeyProducts(
+		v.ctx,
+		v.checked.project.Id,
+		v.request.Products,
+		v.checked.priceGroup,
+		DefaultLanguage,
+		v.request.PlatformId,
 	)
 
-	if v.checked.priceGroup == nil {
-		zap.L().Error("processPaylinkKeyProducts no checked price group")
-		return priceGroupErrorNotFound
-	}
-	priceGroup := v.checked.priceGroup
-
-	platformId := v.request.PlatformId
-
-	if len(platformId) == 0 {
-		platforms := v.filterPlatforms(orderProducts)
-		if len(platforms) == 0 {
-			zap.S().Errorw("No available platformIds")
-			return orderErrorNoPlatforms
-		}
-		sort.Slice(platforms, func(i, j int) bool {
-			return availablePlatforms[platforms[i]].Order < availablePlatforms[platforms[j]].Order
-		})
-		platformId = platforms[0]
-	}
-
-	amount, err := v.GetOrderKeyProductsAmount(orderProducts, priceGroup, platformId)
 	if err != nil {
 		return err
 	}
 
-	items, err := v.GetOrderKeyProductsItems(orderProducts, DefaultLanguage, priceGroup, platformId)
-	if err != nil {
-		return err
-	}
+	v.checked.priceGroup = priceGroup
 
 	if v.checked.project.CallbackProtocol == pkg.ProjectCallbackProtocolDefault {
 		if v.checked.project.WebhookTesting == nil ||
@@ -2459,7 +2390,7 @@ func (v *OrderCreateRequestProcessor) processPaylinkKeyProducts() error {
 	}
 
 	v.checked.products = v.request.Products
-	v.checked.currency = currency
+	v.checked.currency = priceGroup.Currency
 	v.checked.amount = amount
 	v.checked.items = items
 
@@ -2467,56 +2398,16 @@ func (v *OrderCreateRequestProcessor) processPaylinkKeyProducts() error {
 }
 
 func (v *OrderCreateRequestProcessor) processPaylinkProducts(ctx context.Context) error {
-	if len(v.request.Products) == 0 {
-		return orderErrorProductsEmpty
-	}
 
-	orderProducts, err := v.GetOrderProducts(v.checked.project.Id, v.request.Products)
-	if err != nil {
-		return err
-	}
-
-	currency := v.checked.currency
-
-	zap.L().Info(
-		fmt.Sprintf("processPaylinkProducts use currency"),
-		zap.String("currency", currency),
-		zap.String("paylink", v.request.PrivateMetadata["PaylinkId"]),
+	amount, priceGroup, items, isBuyForVirtual, err := v.processProducts(
+		v.ctx,
+		v.checked.project.Id,
+		v.request.Products,
+		v.checked.priceGroup,
+		DefaultLanguage,
 	)
 
-	if v.checked.priceGroup == nil {
-		zap.L().Error("processPaylinkProducts no checked price group")
-		return priceGroupErrorNotFound
-	}
-	priceGroup := v.checked.priceGroup
-
-	var amount float64
-	if v.request.IsBuyForVirtualCurrency {
-		if v.checked.project.VirtualCurrency == nil || len(v.checked.project.VirtualCurrency.Prices) == 0 {
-			return orderErrorVirtualCurrencyNotFilled
-		}
-
-		virtualAmount, err := v.GetOrderProductsAmount(orderProducts, &billing.PriceGroup{Currency: grpc.VirtualCurrencyPriceGroup})
-		if err != nil {
-			return err
-		}
-		amount, err = v.GetAmountForVirtualCurrency(virtualAmount, priceGroup, v.checked.project.VirtualCurrency.Prices)
-		if err != nil {
-			return err
-		}
-	} else {
-		amount, err = v.GetOrderProductsAmount(orderProducts, priceGroup)
-		if err != nil {
-			return err
-		}
-	}
-
-	var items []*billing.OrderItem
-	if v.request.IsBuyForVirtualCurrency {
-		items, err = v.GetOrderProductsItems(orderProducts, DefaultLanguage, &billing.PriceGroup{Currency: grpc.VirtualCurrencyPriceGroup})
-	} else {
-		items, err = v.GetOrderProductsItems(orderProducts, DefaultLanguage, priceGroup)
-	}
+	v.checked.isBuyForVirtualCurrency = isBuyForVirtual
 
 	if err != nil {
 		return err
@@ -2531,9 +2422,11 @@ func (v *OrderCreateRequestProcessor) processPaylinkProducts(ctx context.Context
 			return orderErrorMerchantWebHookTestingNotPassed
 		}
 	}
+	v.checked.priceGroup = priceGroup
+
 
 	v.checked.products = v.request.Products
-	v.checked.currency = currency
+	v.checked.currency = priceGroup.Currency
 	v.checked.amount = amount
 	v.checked.items = items
 
@@ -2712,8 +2605,8 @@ func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) erro
 	}
 
 	order.Tax.Rate = rsp.Rate
-	order.Tax.Amount = tools.FormatAmount(order.OrderAmount * order.Tax.Rate)
-	order.TotalPaymentAmount = tools.FormatAmount(order.OrderAmount + order.Tax.Amount)
+	order.Tax.Amount = v.FormatAmount(order.OrderAmount*order.Tax.Rate, order.Currency)
+	order.TotalPaymentAmount = v.FormatAmount(order.OrderAmount+order.Tax.Amount, order.Currency)
 	order.ChargeAmount = order.TotalPaymentAmount
 
 	return nil
@@ -2742,7 +2635,6 @@ func (v *OrderCreateRequestProcessor) processCustomerToken() error {
 	v.request.Products = token.Settings.ProductsIds
 	v.request.Metadata = token.Settings.Metadata
 	v.request.PaymentMethod = token.Settings.PaymentMethod
-	v.request.IsBuyForVirtualCurrency = token.Settings.IsBuyForVirtualCurrency
 
 	if token.Settings.ReturnUrl != nil {
 		v.request.UrlSuccess = token.Settings.ReturnUrl.Success
@@ -3026,12 +2918,10 @@ func (v *PaymentCreateProcessor) processPaymentFormData(ctx context.Context) err
 
 			zipData, err := v.service.zipCode.getByZipAndCountry(ctx, zip, country)
 
-			if err != nil {
-				return orderErrorZipCodeNotFound
+			if err == nil && zipData != nil {
+				v.data[pkg.PaymentCreateFieldUserCity] = zipData.City
+				v.data[pkg.PaymentCreateFieldUserState] = zipData.State.Code
 			}
-
-			v.data[pkg.PaymentCreateFieldUserCity] = zipData.City
-			v.data[pkg.PaymentCreateFieldUserState] = zipData.State.Code
 		}
 	}
 
@@ -3156,7 +3046,8 @@ func (v *PaymentCreateProcessor) processPaymentFormData(ctx context.Context) err
 		if err != nil {
 			v.service.logError("Update customer data by request failed", []interface{}{"error", err.Error(), "data", updCustomerReq})
 		} else {
-			if customer.Locale != order.User.Locale {
+			if order.User.Locale == "" && customer.Locale != "" &&
+				customer.Locale != order.User.Locale {
 				order.User.Locale = customer.Locale
 			}
 		}
@@ -3360,9 +3251,7 @@ func (s *Service) GetOrderKeyProductsAmount(products []*grpc.KeyProduct, group *
 		sum += amount
 	}
 
-	totalAmount := tools.FormatAmount(sum)
-
-	return totalAmount, nil
+	return sum, nil
 }
 
 func (s *Service) GetOrderProducts(projectId string, productIds []string) ([]*grpc.Product, error) {
@@ -3628,7 +3517,7 @@ func (s *Service) ProcessOrderVirtualCurrency(ctx context.Context, order *billin
 		}
 	}
 
-	amount = tools.FormatAmount(amount)
+	amount = s.FormatAmount(amount, currency)
 
 	order.Currency = currency
 	order.OrderAmount = amount
@@ -3650,54 +3539,11 @@ func (s *Service) GetAmountForVirtualCurrency(virtualAmount float64, group *bill
 }
 
 func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Order) ([]*grpc.Platform, error) {
-	project, err := s.project.GetById(ctx, order.Project.Id)
-	if err != nil {
-		return nil, orderErrorProjectNotFound
-	}
-	if project.IsDeleted() == true {
-		return nil, orderErrorProjectInactive
-	}
-
 	if order.ProductType != billing.OrderType_key {
 		return nil, nil
 	}
 
-	orderProducts, err := s.GetOrderKeyProducts(ctx, project.Id, order.Products)
-	if err != nil {
-		return nil, err
-	}
-
-	var (
-		priceGroup *billing.PriceGroup
-		platformId string
-		locale     string
-	)
-
-	// filter available platformIds for all products in request
-	platformIds := s.filterPlatforms(orderProducts)
-
-	if len(platformIds) == 0 {
-		zap.S().Errorw("No available platformIds", "order.uuid", order.Uuid)
-		return nil, orderErrorNoPlatforms
-	}
-
-	platforms := make([]*grpc.Platform, len(platformIds))
-	for i, v := range platformIds {
-		platforms[i] = availablePlatforms[v]
-	}
-
-	sort.Slice(platforms, func(i, j int) bool {
-		return platforms[i].Order < platforms[j].Order
-	})
-
-	if len(order.PlatformId) > 0 {
-		platformId = order.PlatformId
-	} else {
-		// default platform if not specified before
-		platformId = platforms[0].Id
-	}
-
-	priceGroup, err = s.getOrderPriceGroup(ctx, order)
+	priceGroup, err := s.getOrderPriceGroup(ctx, order)
 	if err != nil {
 		zap.L().Error(
 			"ProcessOrderKeyProducts getOrderPriceGroup failed",
@@ -3707,71 +3553,42 @@ func (s *Service) ProcessOrderKeyProducts(ctx context.Context, order *billing.Or
 		return nil, err
 	}
 
-	zap.L().Info(
-		"ProcessOrderKeyProducts try to use detected currency for order amount",
-		zap.String("currency", priceGroup.Currency),
-		zap.String("order.Uuid", order.Uuid),
-		zap.String("platform_id", platformId),
-		zap.String("order.PlatformId", order.PlatformId),
-	)
-	// try to get order Amount in requested currency
-	amount, err := s.GetOrderKeyProductsAmount(orderProducts, priceGroup, platformId)
-	if err != nil {
-		return nil, err
-	}
-
+	locale := DefaultLanguage
 	if order.User != nil && order.User.Locale != "" {
 		locale = order.User.Locale
-	} else {
-		locale = DefaultLanguage
 	}
 
-	items, err := s.GetOrderKeyProductsItems(orderProducts, locale, priceGroup, platformId)
+	amount, priceGroup, items, platforms, err := s.processKeyProducts(
+		ctx,
+		order.Project.Id,
+		order.Products,
+		priceGroup,
+		locale,
+		order.PlatformId,
+	)
+
 	if err != nil {
 		return nil, err
 	}
-
-	amount = tools.FormatAmount(amount)
 
 	order.Currency = priceGroup.Currency
 	order.OrderAmount = amount
 	order.TotalPaymentAmount = amount
-	order.ChargeAmount = amount
-	order.ChargeCurrency = priceGroup.Currency
+
+	order.ChargeAmount = order.TotalPaymentAmount
+	order.ChargeCurrency = order.Currency
+
 	order.Items = items
 
 	return platforms, nil
 }
 
 func (s *Service) ProcessOrderProducts(ctx context.Context, order *billing.Order) error {
-	project, err := s.project.GetById(ctx, order.Project.Id)
-	if err != nil {
-		return orderErrorProjectNotFound
-	}
-	if project.IsDeleted() == true {
-		return orderErrorProjectInactive
-	}
 
 	if order.ProductType != billing.OrderType_product {
 		return nil
 	}
-
-	if project.IsProductsCheckout == false {
-		return nil
-	}
-
-	orderProducts, err := s.GetOrderProducts(project.Id, order.Products)
-	if err != nil {
-		return err
-	}
-
-	var (
-		priceGroup *billing.PriceGroup
-		locale     string
-		amount     float64
-	)
-
-	priceGroup, err = s.getOrderPriceGroup(ctx, order)
+	priceGroup, err := s.getOrderPriceGroup(ctx, order)
 	if err != nil {
 		zap.L().Error(
 			"ProcessOrderProducts getOrderPriceGroup failed",
@@ -3781,54 +3598,30 @@ func (s *Service) ProcessOrderProducts(ctx context.Context, order *billing.Order
 		return err
 	}
 
-	merchant, err := s.merchant.GetById(ctx, order.GetMerchantId())
-	if err != nil {
-		return err
-	}
-
-	defaultPriceGroup, err := s.priceGroup.GetByRegion(ctx, merchant.GetPayoutCurrency())
-
-	zap.L().Info(
-		"ProcessOrderProducts try to use detected currency for order amount",
-		zap.String("currency", priceGroup.Currency),
-		zap.String("order.Uuid", order.Uuid),
-	)
-
-	if order.IsBuyForVirtualCurrency {
-		zap.S().Infow("payment in virtual currency", "order.Uuid", order.Uuid)
-		amount, priceGroup, err = s.processAmountForVirtualCurrency(ctx, order, orderProducts, priceGroup, defaultPriceGroup)
-	} else {
-		amount, priceGroup, err = s.processAmountForFiatCurrency(ctx, order, orderProducts, priceGroup, defaultPriceGroup)
-	}
-
-	if err != nil {
-		return err
-	}
-
+	locale := DefaultLanguage
 	if order.User != nil && order.User.Locale != "" {
 		locale = order.User.Locale
-	} else {
-		locale = DefaultLanguage
 	}
 
-	var items []*billing.OrderItem
-	if order.IsBuyForVirtualCurrency {
-		items, err = s.GetOrderProductsItems(orderProducts, locale, &billing.PriceGroup{Currency: grpc.VirtualCurrencyPriceGroup})
-	} else {
-		items, err = s.GetOrderProductsItems(orderProducts, locale, priceGroup)
-	}
+	amount, priceGroup, items, _, err := s.processProducts(
+		ctx,
+		order.Project.Id,
+		order.Products,
+		priceGroup,
+		locale,
+	)
 
 	if err != nil {
 		return err
 	}
 
-	amount = tools.FormatAmount(amount)
-
 	order.Currency = priceGroup.Currency
+
 	order.OrderAmount = amount
 	order.TotalPaymentAmount = amount
-	order.ChargeAmount = amount
-	order.ChargeCurrency = priceGroup.Currency
+
+	order.ChargeAmount = order.TotalPaymentAmount
+	order.ChargeCurrency = order.Currency
 
 	order.Items = items
 
@@ -3837,7 +3630,7 @@ func (s *Service) ProcessOrderProducts(ctx context.Context, order *billing.Order
 
 func (s *Service) processAmountForFiatCurrency(
 	ctx context.Context,
-	order *billing.Order,
+	project *billing.Project,
 	orderProducts []*grpc.Product,
 	priceGroup *billing.PriceGroup,
 	defaultPriceGroup *billing.PriceGroup,
@@ -3846,6 +3639,10 @@ func (s *Service) processAmountForFiatCurrency(
 	amount, err := s.GetOrderProductsAmount(orderProducts, priceGroup)
 	if err != nil {
 		if err != grpc.ProductNoPriceInCurrencyError {
+			return 0, nil, err
+		}
+
+		if priceGroup.Id == defaultPriceGroup.Id {
 			return 0, nil, err
 		}
 
@@ -3862,41 +3659,40 @@ func (s *Service) processAmountForFiatCurrency(
 
 func (s *Service) processAmountForVirtualCurrency(
 	ctx context.Context,
-	order *billing.Order,
+	project *billing.Project,
 	orderProducts []*grpc.Product,
 	priceGroup *billing.PriceGroup,
 	defaultPriceGroup *billing.PriceGroup,
 ) (float64, *billing.PriceGroup, error) {
+
+	if project.VirtualCurrency == nil || len(project.VirtualCurrency.Prices) == 0 {
+		return 0, nil, orderErrorVirtualCurrencyNotFilled
+	}
+
 	var amount float64
 
 	usedPriceGroup := priceGroup
 
 	virtualAmount, err := s.GetOrderProductsAmount(orderProducts, &billing.PriceGroup{Currency: grpc.VirtualCurrencyPriceGroup})
 	if err != nil {
-		if err != grpc.ProductNoPriceInCurrencyError {
+		zap.L().Error(pkg.MethodFinishedWithError, zap.Error(err))
+		return 0, nil, err
+	}
+
+	amount, err = s.GetAmountForVirtualCurrency(virtualAmount, usedPriceGroup, project.VirtualCurrency.Prices)
+	if err != nil {
+		zap.L().Error(pkg.MethodFinishedWithError, zap.Error(err))
+		if priceGroup.Id == defaultPriceGroup.Id {
 			return 0, nil, err
 		}
 
 		// try to get order Amount in fallback currency
 		usedPriceGroup = defaultPriceGroup
-		amount, err = s.GetOrderProductsAmount(orderProducts, defaultPriceGroup)
+		amount, err = s.GetAmountForVirtualCurrency(virtualAmount, usedPriceGroup, project.VirtualCurrency.Prices)
 		if err != nil {
+			zap.L().Error(pkg.MethodFinishedWithError, zap.Error(err))
 			return 0, nil, err
 		}
-	}
-
-	project, err := s.project.GetById(ctx, order.GetProjectId())
-	if err != nil {
-		return 0, nil, err
-	}
-
-	if project.VirtualCurrency == nil || len(project.VirtualCurrency.Prices) == 0 {
-		return 0, nil, orderErrorVirtualCurrencyNotFilled
-	}
-
-	amount, err = s.GetAmountForVirtualCurrency(virtualAmount, usedPriceGroup, project.VirtualCurrency.Prices)
-	if err != nil {
-		return 0, nil, err
 	}
 
 	return amount, usedPriceGroup, nil
@@ -4236,7 +4032,7 @@ func (s *Service) applyCountryRestriction(
 	return
 }
 
-func (s *Service) PaymentFormPlatformChanged(ctx context.Context, req *grpc.PaymentFormUserChangePlatformRequest, rsp *grpc.EmptyResponseWithStatus) error {
+func (s *Service) PaymentFormPlatformChanged(ctx context.Context, req *grpc.PaymentFormUserChangePlatformRequest, rsp *grpc.PaymentFormDataChangeResponse) error {
 	order, err := s.getOrderByUuidToForm(ctx, req.OrderId)
 
 	if err != nil {
@@ -4283,6 +4079,8 @@ func (s *Service) PaymentFormPlatformChanged(ctx context.Context, req *grpc.Paym
 		}
 		return err
 	}
+
+	rsp.Item = order.GetPaymentFormDataChangeResult()
 
 	return nil
 }
@@ -4361,7 +4159,7 @@ func (s *Service) OrderReceipt(
 	items := make([]*billing.OrderReceiptItem, len(order.Items))
 
 	currency := order.Currency
-	if currency == grpc.VirtualCurrencyPriceGroup {
+	if order.IsBuyForVirtualCurrency {
 		project, err := s.project.GetById(ctx, order.GetProjectId())
 
 		if err != nil {
@@ -4709,8 +4507,17 @@ func (s *Service) setOrderChargeAmountAndCurrency(ctx context.Context, order *bi
 		return nil
 	}
 
+	if order.PaymentMethod == nil {
+		return nil
+	}
+
 	binCountryCode, ok := order.PaymentRequisites[pkg.PaymentCreateBankCardFieldIssuerCountryIsoCode]
 	if !ok || binCountryCode == "" {
+		return nil
+	}
+
+	binCardBrand, ok := order.PaymentRequisites[pkg.PaymentCreateBankCardFieldBrand]
+	if !ok || binCardBrand == "" {
 		return nil
 	}
 
@@ -4741,6 +4548,22 @@ func (s *Service) setOrderChargeAmountAndCurrency(ctx context.Context, order *bi
 		return nil
 	}
 
+	// check that we have terminal in payment method for bin country currency
+	project, err := s.project.GetById(ctx, order.Project.Id)
+	if err != nil {
+		return nil
+	}
+
+	pm, err := s.paymentMethod.GetById(ctx, order.PaymentMethod.Id)
+	if err != nil {
+		return nil
+	}
+
+	_, err = s.paymentMethod.GetPaymentSettings(pm, binCountry.Currency, order.MccCode, order.OperatingCompanyId, binCardBrand, project)
+	if err != nil {
+		return nil
+	}
+
 	reqCur := &currencies.ExchangeCurrencyCurrentCommonRequest{
 		From:              order.Currency,
 		To:                binCountry.Currency,
@@ -4765,7 +4588,167 @@ func (s *Service) setOrderChargeAmountAndCurrency(ctx context.Context, order *bi
 	}
 
 	order.ChargeCurrency = binCountry.Currency
-	order.ChargeAmount = rspCur.ExchangedAmount
+	order.ChargeAmount = s.FormatAmount(rspCur.ExchangedAmount, binCountry.Currency)
 
 	return nil
+}
+
+func (s *Service) checkVirtualCurrencyProduct(products []*grpc.Product) bool {
+	if len(products) == 0 {
+		return false
+	}
+
+	for _, product := range products {
+		if len(product.Prices) != 1 {
+			return false
+		}
+		if product.Prices[0].IsVirtualCurrency == false {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (s *Service) processProducts(
+	ctx context.Context,
+	projectId string,
+	productIds []string,
+	priceGroup *billing.PriceGroup,
+	locale string,
+) (amount float64, usedPriceGroup *billing.PriceGroup, items []*billing.OrderItem, 	isBuyForVirtualCurrency bool, err error) {
+	project, err := s.project.GetById(ctx, projectId)
+	if err != nil {
+		return
+	}
+	if project.IsDeleted() == true {
+		err = orderErrorProjectInactive
+		return
+	}
+
+	orderProducts, err := s.GetOrderProducts(project.Id, productIds)
+	if err != nil {
+		return
+	}
+
+	merchant, err := s.merchant.GetById(ctx, project.MerchantId)
+	if err != nil {
+		return
+	}
+
+	defaultPriceGroup, err := s.priceGroup.GetByRegion(ctx, merchant.GetPayoutCurrency())
+	if err != nil {
+		return
+	}
+
+	if priceGroup == nil {
+		priceGroup = defaultPriceGroup
+	}
+
+	isBuyForVirtualCurrency = s.checkVirtualCurrencyProduct(orderProducts)
+
+	if isBuyForVirtualCurrency {
+		amount, usedPriceGroup, err = s.processAmountForVirtualCurrency(ctx, project, orderProducts, priceGroup, defaultPriceGroup)
+	} else {
+		amount, usedPriceGroup, err = s.processAmountForFiatCurrency(ctx, project, orderProducts, priceGroup, defaultPriceGroup)
+	}
+
+	if err != nil {
+		return
+	}
+
+	amount = s.FormatAmount(amount, usedPriceGroup.Currency)
+
+	if isBuyForVirtualCurrency {
+		items, err = s.GetOrderProductsItems(orderProducts, locale, &billing.PriceGroup{Currency: grpc.VirtualCurrencyPriceGroup})
+	} else {
+		items, err = s.GetOrderProductsItems(orderProducts, locale, usedPriceGroup)
+	}
+
+	return
+}
+
+func (s *Service) processKeyProducts(
+	ctx context.Context,
+	projectId string,
+	productIds []string,
+	priceGroup *billing.PriceGroup,
+	locale string,
+	platformId string,
+) (amount float64, usedPriceGroup *billing.PriceGroup, items []*billing.OrderItem, platforms []*grpc.Platform, err error) {
+
+	project, err := s.project.GetById(ctx, projectId)
+	if err != nil {
+		return
+	}
+	if project.IsDeleted() == true {
+		err = orderErrorProjectInactive
+		return
+	}
+
+	orderProducts, err := s.GetOrderKeyProducts(ctx, project.Id, productIds)
+	if err != nil {
+		return
+	}
+
+	platformIds := s.filterPlatforms(orderProducts)
+	if len(platformIds) == 0 {
+		zap.L().Error("No available platformIds")
+		err = orderErrorNoPlatforms
+		return
+	}
+
+	platforms = make([]*grpc.Platform, len(platformIds))
+	for i, v := range platformIds {
+		platforms[i] = availablePlatforms[v]
+	}
+	sort.Slice(platforms, func(i, j int) bool {
+		return platforms[i].Order < platforms[j].Order
+	})
+
+	if platformId == "" {
+		platformId = platforms[0].Id
+	}
+
+	merchant, err := s.merchant.GetById(ctx, project.MerchantId)
+	if err != nil {
+		return
+	}
+
+	defaultPriceGroup, err := s.priceGroup.GetByRegion(ctx, merchant.GetPayoutCurrency())
+	if err != nil {
+		return
+	}
+
+	if priceGroup == nil {
+		priceGroup = defaultPriceGroup
+	}
+
+	usedPriceGroup = priceGroup
+
+	amount, err = s.GetOrderKeyProductsAmount(orderProducts, priceGroup, platformId)
+	if err != nil {
+		if err != orderErrorNoProductsCommonCurrency {
+			return
+		} else {
+
+			if priceGroup.Id == defaultPriceGroup.Id {
+				return
+			}
+
+			usedPriceGroup = defaultPriceGroup
+
+			// try to get order Amount in fallback currency
+			amount, err = s.GetOrderKeyProductsAmount(orderProducts, defaultPriceGroup, platformId)
+			if err != nil {
+				return
+			}
+		}
+	}
+
+	amount = s.FormatAmount(amount, usedPriceGroup.Currency)
+
+	items, err = s.GetOrderKeyProductsItems(orderProducts, locale, usedPriceGroup, platformId)
+
+	return
 }

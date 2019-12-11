@@ -329,7 +329,6 @@ type MgoPaymentMethod struct {
 	Name               string                   `bson:"name"`
 	Group              string                   `bson:"group_alias"`
 	ExternalId         string                   `bson:"external_id"`
-	Handler            string                   `bson:"handler"`
 	MinPaymentAmount   float64                  `bson:"min_payment_amount"`
 	MaxPaymentAmount   float64                  `bson:"max_payment_amount"`
 	TestSettings       []*MgoPaymentMethodParam `bson:"test_settings"`

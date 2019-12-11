@@ -116,7 +116,7 @@ const (
 	ErrorVatReportDateCantBeInFuture = "vat report date cant be in future"
 	MethodFinishedWithError          = "method finished with error"
 	LogFieldRequest                  = "request"
-	LogFieldResponse                 = "request"
+	LogFieldResponse                 = "response"
 	LogFieldHandler                  = "handler"
 
 	ObjectTypeBalanceTransaction = "balance_transaction"
@@ -361,6 +361,16 @@ const (
 
 	// MerchantId_UserId
 	CasbinMerchantUserMask = "%s_%s"
+
+	EmailConfirmUrl            = "%s/confirm_email"
+	RoyaltyReportsUrl          = "%s/royalty_reports"
+	PayoutsUrl                 = "%s/payout_documents"
+	ReceiptPurchaseUrl         = "%s/receipt/purchase/%s/%s"
+	ReceiptRefundUrl           = "%s/receipt/refund/%s/%s"
+	MerchantCompanyUrl         = "%s/company"
+	AdminCompanyUrl            = "%s/merchants/%s/company-info"
+	AdminOnboardingRequestsUrl = "%s/agreement-requests"
+	UserInviteUrl              = "%s/login?invite_token=%s"
 )
 
 var (

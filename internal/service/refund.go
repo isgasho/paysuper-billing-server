@@ -475,7 +475,7 @@ func (s *Service) createOrderByRefund(ctx context.Context, order *billing.Order,
 	refundOrder.IsVatDeduction = isVatDeduction
 	refundOrder.ParentPaymentAt = order.PaymentMethodOrderClosedAt
 
-	refundOrder.ChargeAmount = refund.Amount
+	refundOrder.ChargeAmount = s.FormatAmount(refund.Amount, refund.Currency)
 
 	refundOrder.Tax.Amount = tools.FormatAmount(tools.GetPercentPartFromAmount(refund.Amount, refundOrder.Tax.Rate))
 	refundOrder.OrderAmount = tools.FormatAmount(refundOrder.TotalPaymentAmount - refundOrder.Tax.Amount)

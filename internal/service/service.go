@@ -14,6 +14,7 @@ import (
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	"github.com/paysuper/paysuper-i18n"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
+	"github.com/paysuper/paysuper-recurring-repository/tools"
 	reporterProto "github.com/paysuper/paysuper-reporter/pkg/proto"
 	"github.com/paysuper/paysuper-tax-service/proto"
 	"go.mongodb.org/mongo-driver/bson"
@@ -64,6 +65,7 @@ type Service struct {
 	curService                 currencies.CurrencyratesService
 	smtpCl                     gomail.SendCloser
 	supportedCurrencies        []string
+	currenciesPrecision        map[string]int32
 	country                    CountryServiceInterface
 	project                    *Project
 	merchant                   MerchantRepositoryInterface
@@ -203,7 +205,34 @@ func (s *Service) Init() (err error) {
 
 	s.supportedCurrencies = sCurr.Currencies
 
+	cp, err := s.curService.GetCurrenciesPrecision(context.TODO(), &currencies.EmptyRequest{})
+	if err != nil {
+		zap.S().Error(
+			pkg.ErrorGrpcServiceCallFailed,
+			zap.Error(err),
+			zap.String(errorFieldService, "CurrencyRatesService"),
+			zap.String(errorFieldMethod, "GetCurrenciesPrecision"),
+		)
+
+		return err
+	}
+
+	s.currenciesPrecision = cp.Values
+
 	return
+}
+
+func (s *Service) getCurrencyPrecision(currency string) int32 {
+	p, ok := s.currenciesPrecision[currency]
+	if !ok {
+		return 2
+	}
+	return p
+}
+
+func (s *Service) FormatAmount(amount float64, currency string) float64 {
+	p := s.getCurrencyPrecision(currency)
+	return tools.ToFixed(amount, int(p))
 }
 
 func (s *Service) logError(msg string, data []interface{}) {
@@ -241,9 +270,8 @@ func (s *Service) getCountryFromAcceptLanguage(acceptLanguage string) (string, s
 		return "", ""
 	}
 
-	it = strings.Split(it[0], "-")
-
-	return strings.ToLower(it[0]), strings.ToUpper(it[1])
+	it1 := strings.Split(it[0], "-")
+	return it[0], strings.ToUpper(it1[1])
 }
 
 func (s *Service) mgoPipeSort(query []bson.M, sort []string) []bson.M {

@@ -1,43 +1,76 @@
-PaySuper Billing Server
-=====
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-brightgreen.svg)](https://www.gnu.org/licenses/gpl-3.0)
+# PaySuper Billing Server
+
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-brightgreen.svg)](https://www.gnu.org/licenses/gpl-3.0) 
+[![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/paysuper/paysuper-/issues)
 [![Build Status](https://travis-ci.org/paysuper/paysuper-billing-server.svg?branch=master)](https://travis-ci.org/paysuper/paysuper-billing-server) 
-[![codecov](https://codecov.io/gh/paysuper/paysuper-billing-server/branch/master/graph/badge.svg)](https://codecov.io/gh/paysuper/paysuper-billing-server)
-[![Go Report Card](https://goreportcard.com/badge/github.com/paysuper/paysuper-billing-server)](https://goreportcard.com/report/github.com/paysuper/paysuper-billing-server) 
+[![codecov](https://codecov.io/gh/paysuper/paysuper-billing-server/branch/master/graph/badge.svg)](https://codecov.io/gh/paysuper/paysuper-billing-server) 
+[![Go Report Card](https://goreportcard.com/badge/github.com/paysuper/paysuper-billing-server)](https://goreportcard.com/report/github.com/paysuper/paysuper-billing-server)
 
-PaySuper is a unique, simple payment toolkit designed to make developers self-reliant. It’s an open-source payment service 
-with a highly customizable payment form, an intuitive API, and comprehensible, eye-catching reports.
+PaySuper is a unique, simple payment toolkit designed to make developers self-reliant. It’s an open-source payment service with a highly customizable payment form, an intuitive API, and comprehensible, eye-catching reports.
 
-Billing Server is a core and heart of all PaySuper for payment processing business logic. It designed to be mediator 
-micro-service for [Management API](https://github.com/paysuper/paysuper-management-api) covering all REST API based 
-interfaces for [dashboard](https://github.com/paysuper/paysuper-management-server) and [payment form](https://github.com/paysuper/paysuper-payment-form).
+Billing Server is a core and heart of all PaySuper for a payment processing business logic. It is designed to be mediator micro-service for [Management API](https://github.com/paysuper/paysuper-management-api) covering all REST API for based interfaces for [Dashboard](https://github.com/paysuper/paysuper-management-server) and [Payment Form](https://github.com/paysuper/paysuper-payment-form). PaySuper Management API is documented in the [API Reference](https://docs.pay.super.com/api).
+
+Learn more about a [payments flow](https://docs.pay.super.com/docs/payments/quick-start) and [PaySuper Checkout integration](https://docs.pay.super.com/docs/payments/quick-start/#step-4-set-up-a-checkout-form).
+
+|   | PaySuper Service Architecture
+:---: | :---
+✨ | **Checkout integration.** [PaySuper JS SDK](https://github.com/paysuper/paysuper-js-sdk) is designed to integrate a Checkout Form on a merchant's website or a game client.
+💵 | **Frontend for a payment form.** [PaySuper Checkout Form](https://github.com/paysuper/paysuper-payment-form) is a frontend for a sigle-page application with a payment form.
+📊 | **Frontend for a merchant.** [PaySuper Dashboard](https://github.com/paysuper/paysuper-dashboard) is the BFF server and frontend to interact with all PaySuper related features for merchants.
+🔧 | **API Backend.** [PaySuper Management API](https://github.com/paysuper/paysuper-management-api) is a REST API backend for the [PaySuper Dashboard](https://github.com/paysuper/paysuper-management-server) and the [PaySuper Checkout Form](https://github.com/paysuper/paysuper-payment-form). Public API methods are documented in the [API Reference](https://docs.pay.super.com/api).
+💳 | **Payment processing.** [Billing Server](https://github.com/paysuper/paysuper-billing-server) is a micro-service that provides with any payment processing business logic.
+
+***
 
 ## Features
 
-* A nice looking dashboard with graph and key metrics.
-* Support for payment tokens and next payment without asking payment information.
-* VAT/Sales tax calculating. 
+* Support for the payment tokens for the order and user data.
+
+* PaySuper can securely store your customer’s billing address and the payment method data to prefill the Checkout Form with. The customer has to agree for this to happen.
+
+* VAT/Sales tax have a clear and automatic calculation.
+
 * Payment Link feature.
+
 * Detailed statistics for each transaction.
-* Transparent payout calculation.  
-* Reports like `Live Transaction`, `Country Distribution`, `Revenue By Client`, `Items Sales` and more to come.
-* Export all reports to PDF, XLSX or CSV format.
-* Customizable payment form.
-* Recurring invoices (work in progress)  
 
-# Getting Started 
+* Transparent payout calculation.
 
-Billing Server is designed to be cloud agnostic application. In general we use Kubernetes based installation to launch 
-PaySuper in a dev environment cloud and AWS for production. 
+* Recurring invoices (work is in progress).
 
-## Docker Deployment
+## Table of Contents
+
+- [Getting Started](#getting-started)
+    - [Architecture](#architecture)
+- [Developing](#developing)
+    - [Branches](#branches)
+    - [Docker deployment](#docker-deployment)
+    - [Starting the application](#starting-the-application)
+- [Contributing](#contributing-support-feature-requests)
+- [License](#license)
+
+## Getting Started
+
+Billing Server is designed to be cloud agnostic application. In general we use Kubernetes based installation to launch PaySuper in a dev environment cloud and AWS for production.
+
+### Architecture
+
+![Schema of the architecture](docs/schema.png)
+
+## Developing
+
+### Branches
+
+We use the [GitFlow](https://nvie.com/posts/a-successful-git-branching-model) as a branching model for Git.
+
+### Docker deployment
 
 ```bash
 docker build -f Dockerfile -t paysuper_billing_service .
 docker run -d -e "MONGO_HOST=127.0.0.1:27017" -e "MONGO_DB="paysuper" ... e="CACHE_PROJECT_PAYMENT_METHOD_TIMEOUT=600" paysuper_billing_service
 ```
 
-## Starting the app
+### Starting the application
 
 Billing Server application can be started in 2 modes:
 
@@ -60,10 +93,10 @@ last day of December, 2018.
 
 To run application as microservice simply don't pass any flags to command line :)  
 
-## Environment variables:
+### Environment variables
 
-| Name                                 | Description                                                                                                                         |
-|:-------------------------------------|:------------------------------------------------------------------------------------------------------------------------------------|
+|Name|Description|
+|:---|:---|
 | MONGO_DSN                                           | MongoBD DSN connection string                                                                                                       |
 | MONGO_DIAL_TIMEOUT                                  | MongoBD dial timeout in seconds                                                                                                     |
 | PSP_ACCOUNTING_CURRENCY                             | PaySuper accounting currency                                                                                                        |
@@ -97,28 +130,29 @@ To run application as microservice simply don't pass any flags to command line :
 | EMAIL_ACTIVATION_CODE_TEMPLATE                      | Postmark Email template id for sending to user with activation code                                                                 |
 | PAYLINK_MIN_PRODUCTS                                | Minimum number of products allowed for one payment link (must be >= 1)                                                              |
 | PAYLINK_MAX_PRODUCTS                                | Maximum number of products allowed for one payment link                                                                             |
-| ROYALTY_REPORTS_URL                                 | Url to use in template of royalty reports                                                                                           |
-| PAYOUTS_URL                                         | Url to use in template of payouts                                                                                                   |
 | EMAIL_MERCHANT_NEW_ONBOARDING_REQUEST_TEMPLATE      | New onboarding request letter to merchant template                                                                                  |
 | EMAIL_ADMIN_NEW_ONBOARDING_REQUEST_TEMPLATE         | New onboarding request letter to admin template                                                                                     |
 | EMAIL_MERCHANT_ONBOARDING_REQUEST_COMPLETE_TEMPLATE | Onboarding request complated letter to merchant template                                                                            |
 | EMAIL_ONBOARDING_ADMIN_RECIPIENT                    | Email of onboarding administrator                                                                                                   |
-| MERCHANTS_AGREEMENT_SIGNATURE_URL                   | Merchant license agreement page url                                                                                                 |
-| ADMIN_ONBOARDING_REQUESTS_URL                       | Onboarding administrator agreement requests page url                                                                                |
-| MIGRATIONS_LOCK_TIMEOUT                             | Timeout for process db migrations on app start                                                                                       |
+| MIGRATIONS_LOCK_TIMEOUT                             | Timeout for process db migrations on app start                                                                                      |
 | USER_INVITE_TOKEN_SECRET                            | Secret key for generation invitation token of user                                                                                  |
 | USER_INVITE_TOKEN_TIMEOUT                           | Timeout in hours for lifetime of invitation token of user                                                                           |
+| DASHBOARD_URL                                       | URL of dashboard for generate links in a notifications                                                                              |
 
 
-## Architecture
+## Contributing, Support, Feature Requests
+If you like this project then you can put a ⭐️ on it. It means a lot to us.
 
-WIP. Draft described in docs folder.
+If you have an idea of how to improve PaySuper (or any of the product parts) or have general feedback, you're welcome to submit a [feature request](../../issues/new?assignees=&labels=&template=feature_request.md&title=).
 
-## Contributing
+Chances are, you like what we have already but you may require a custom integration, a special license or something else big and specific to your needs. We're generally open to such conversations.
+
+If you have a question and can't find the answer yourself, you can [raise an issue](../../issues/new?assignees=&labels=&template=support-request.md&title=I+have+a+question+about+%3Cthis+and+that%3E+%5BSupport%5D) and describe what exactly you're trying to do. We'll do our best to reply in a meaningful time.
+
 We feel that a welcoming community is important and we ask that you follow PaySuper's [Open Source Code of Conduct](https://github.com/paysuper/code-of-conduct/blob/master/README.md) in all interactions with the community.
 
-PaySuper welcomes contributions from anyone and everyone. Please refer to each project's style and contribution guidelines for submitting patches and additions. In general, we follow the "fork-and-pull" Git workflow.
+PaySuper welcomes contributions from anyone and everyone. Please refer to [our contribution guide to learn more](CONTRIBUTING.md).
 
-The master branch of this repository contains the latest stable release of this component.
+## License
 
- 
+The project is available as open source under the terms of the [GPL v3 License](https://www.gnu.org/licenses/gpl-3.0).

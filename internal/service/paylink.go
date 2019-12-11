@@ -731,42 +731,23 @@ func (p Paylink) Delete(ctx context.Context, id, merchantId string) error {
 }
 
 func (p Paylink) Update(ctx context.Context, pl *paylink.Paylink) (err error) {
-	oid, _ := primitive.ObjectIDFromHex(pl.Id)
-	dbQuery := bson.M{"_id": oid}
+	pl.IsExpired = pl.IsPaylinkExpired()
 
-	expiresAt := int64(0)
-	if pl.ExpiresAt != nil {
-		expiresAt, err := ptypes.Timestamp(pl.ExpiresAt)
-		if err != nil {
-			zap.L().Error(
-				pkg.ErrorTimeConversion,
-				zap.Any(pkg.ErrorTimeConversionMethod, "ptypes.Timestamp"),
-				zap.Any(pkg.ErrorTimeConversionValue, expiresAt),
-				zap.Error(err),
-			)
-			return err
-		}
-	}
-
-	updatedAt, err := ptypes.Timestamp(pl.UpdatedAt)
+	plMgo, err := pl.GetMgoPaylink()
 	if err != nil {
-		zap.L().Error(
-			pkg.ErrorTimeConversion,
-			zap.Any(pkg.ErrorTimeConversionMethod, "ptypes.Timestamp"),
-			zap.Any(pkg.ErrorTimeConversionValue, expiresAt),
-			zap.Error(err),
-		)
 		return err
 	}
 
+	dbQuery := bson.M{"_id": plMgo.Id}
+
 	set := bson.M{"$set": bson.M{
-		"expires_at":     expiresAt,
-		"updated_at":     updatedAt,
-		"products":       pl.Products,
-		"name":           pl.Name,
-		"no_expiry_date": pl.NoExpiryDate,
-		"products_type":  pl.ProductsType,
-		"is_expired":     pl.GetIsExpired(),
+		"expires_at":     plMgo.ExpiresAt,
+		"updated_at":     plMgo.UpdatedAt,
+		"products":       plMgo.Products,
+		"name":           plMgo.Name,
+		"no_expiry_date": plMgo.NoExpiryDate,
+		"products_type":  plMgo.ProductsType,
+		"is_expired":     plMgo.IsExpired,
 	}}
 	_, err = p.svc.db.Collection(collectionPaylinks).UpdateOne(ctx, dbQuery, set)
 	if err != nil {
@@ -858,22 +839,27 @@ func (p Paylink) UpdatePaylinkTotalStat(ctx context.Context, id, merchantId stri
 	pl.GrossTotalAmount = stat.GrossTotalAmount
 	pl.GrossSalesAmount = stat.GrossSalesAmount
 	pl.GrossReturnsAmount = stat.GrossReturnsAmount
+	pl.IsExpired = pl.IsPaylinkExpired()
 	pl.UpdateConversion()
 
-	oid, _ := primitive.ObjectIDFromHex(pl.Id)
-	dbQuery := bson.M{"_id": oid}
+	plMgo, err := pl.GetMgoPaylink()
+	if err != nil {
+		return err
+	}
+
+	dbQuery := bson.M{"_id": plMgo.Id}
 
 	set := bson.M{"$set": bson.M{
-		"visits":                pl.Visits,
-		"conversion":            pl.Conversion,
-		"total_transactions":    stat.TotalTransactions,
-		"sales_count":           stat.SalesCount,
-		"returns_count":         stat.ReturnsCount,
-		"gross_sales_amount":    stat.GrossSalesAmount,
-		"gross_returns_amount":  stat.GrossReturnsAmount,
-		"gross_total_amount":    stat.GrossTotalAmount,
-		"transactions_currency": stat.TransactionsCurrency,
-		"is_expired":            pl.GetIsExpired(),
+		"visits":                plMgo.Visits,
+		"conversion":            plMgo.Conversion,
+		"total_transactions":    plMgo.TotalTransactions,
+		"sales_count":           plMgo.SalesCount,
+		"returns_count":         plMgo.ReturnsCount,
+		"gross_sales_amount":    plMgo.GrossSalesAmount,
+		"gross_returns_amount":  plMgo.GrossReturnsAmount,
+		"gross_total_amount":    plMgo.GrossTotalAmount,
+		"transactions_currency": plMgo.TransactionsCurrency,
+		"is_expired":            plMgo.IsExpired,
 	}}
 	_, err = p.svc.db.Collection(collectionPaylinks).UpdateOne(ctx, dbQuery, set)
 	if err != nil {

@@ -94,7 +94,6 @@ func (s *Service) CreateToken(
 			Currency:                req.Settings.Currency,
 			Products:                req.Settings.ProductsIds,
 			PlatformId:              req.Settings.PlatformId,
-			IsBuyForVirtualCurrency: req.Settings.IsBuyForVirtualCurrency,
 		},
 		checked: &orderCreateRequestProcessorChecked{
 			user: &billing.OrderUser{},

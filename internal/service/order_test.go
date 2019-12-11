@@ -4148,6 +4148,8 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_Ok() {
 	assert.True(suite.T(), rsp.Item.CountryPaymentsAllowed)
 	assert.True(suite.T(), rsp.Item.CountryChangeAllowed)
 	assert.Equal(suite.T(), req.User.Locale, rsp.Item.Lang)
+	assert.NotNil(suite.T(), rsp.Item.Project)
+	assert.NotZero(suite.T(), rsp.Item.Project.Id)
 
 	order, err = suite.service.getOrderByUuid(context.TODO(), order.Uuid)
 	assert.Nil(suite.T(), err)
@@ -4156,6 +4158,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_Ok() {
 	assert.True(suite.T(), order.CountryRestriction.PaymentsAllowed)
 	assert.True(suite.T(), order.CountryRestriction.ChangeAllowed)
 	assert.False(suite.T(), order.UserAddressDataRequired)
+	assert.Equal(suite.T(), rsp.Item.Project.Id, order.Project.Id)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcessWithProducts_Ok() {
@@ -5458,7 +5461,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_BankCard
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)
 	assert.NotNil(suite.T(), rsp1.Item)
-	assert.True(suite.T(), rsp1.Item.UserAddressDataRequired)
+	assert.False(suite.T(), rsp1.Item.UserAddressDataRequired)
 	assert.Equal(suite.T(), "RU", rsp1.Item.UserIpData.Country)
 	assert.Equal(suite.T(), rsp.User.Address.PostalCode, rsp1.Item.UserIpData.Zip)
 	assert.Equal(suite.T(), rsp.User.Address.City, rsp1.Item.UserIpData.City)
@@ -5537,7 +5540,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_Qiwi_Ok(
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)
 	assert.NotNil(suite.T(), rsp1.Item)
-	assert.True(suite.T(), rsp1.Item.UserAddressDataRequired)
+	assert.False(suite.T(), rsp1.Item.UserAddressDataRequired)
 	assert.Equal(suite.T(), "RU", rsp1.Item.UserIpData.Country)
 	assert.Equal(suite.T(), rsp.User.Address.PostalCode, rsp1.Item.UserIpData.Zip)
 	assert.Equal(suite.T(), rsp.User.Address.City, rsp1.Item.UserIpData.City)
@@ -5823,7 +5826,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_Bitcoin_
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)
 	assert.NotNil(suite.T(), rsp1.Item)
-	assert.True(suite.T(), rsp1.Item.UserAddressDataRequired)
+	assert.False(suite.T(), rsp1.Item.UserAddressDataRequired)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_NoChanges_Ok() {
@@ -6086,7 +6089,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequi
 	assert.Nil(suite.T(), order1.BillingAddress)
 }
 
-func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequired_ZipFieldNotFound_Ok() {
+/*func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequired_ZipFieldNotFound_Ok() {
 	req := &billing.OrderCreateRequest{
 		Type:        billing.OrderType_simple,
 		ProjectId:   suite.project.Id,
@@ -6131,6 +6134,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequi
 			pkg.PaymentCreateFieldHolder:          "Mr. Card Holder",
 			pkg.PaymentCreateFieldUserCountry:     "US",
 			pkg.PaymentCreateFieldUserCity:        "Washington",
+			pkg.PaymentCreateFieldUserZip:         "000000",
 		},
 	}
 
@@ -6140,7 +6144,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequi
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.RedirectUrl)
-	assert.Equal(suite.T(), orderErrorCreatePaymentRequiredFieldUserZipNotFound, rsp1.Message)
+	assert.Equal(suite.T(), orderErrorZipCodeNotFound, rsp1.Message)
 
 	order1, err := suite.service.getOrderByUuid(context.TODO(), rsp.Uuid)
 	assert.NoError(suite.T(), err)
@@ -6149,7 +6153,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequi
 	assert.Equal(suite.T(), order.Tax.Amount, order1.Tax.Amount)
 	assert.Equal(suite.T(), order.TotalPaymentAmount, order1.TotalPaymentAmount)
 	assert.Nil(suite.T(), order1.BillingAddress)
-}
+}*/
 
 func (suite *OrderTestSuite) TestOrder_CreateOrderByToken_Ok() {
 	req := &grpc.TokenRequest{
@@ -6602,7 +6606,7 @@ func (suite *OrderTestSuite) TestOrder_CreatePayment_ChangeCustomerData_Ok() {
 	assert.NotNil(suite.T(), order.User)
 	assert.Equal(suite.T(), customer2.Id, order.User.Id)
 	assert.Equal(suite.T(), order.User.Ip, "127.0.0.1")
-	assert.Equal(suite.T(), order.User.Locale, customer2.Locale)
+	assert.Equal(suite.T(), order.User.Locale, customer2.LocaleHistory[0].Value)
 	assert.Equal(suite.T(), order.User.Email, customer2.Email)
 	assert.False(suite.T(), order.UserAddressDataRequired)
 
@@ -6617,7 +6621,7 @@ func (suite *OrderTestSuite) TestOrder_CreatePayment_ChangeCustomerData_Ok() {
 	assert.Equal(suite.T(), rsp.User.Email, customer2.Identity[0].Value)
 	assert.Equal(suite.T(), req1.Locale, customer2.AcceptLanguage)
 	assert.Empty(suite.T(), customer2.AcceptLanguageHistory)
-	assert.Equal(suite.T(), "en", customer2.Locale)
+	assert.Equal(suite.T(), "en-US", customer2.Locale)
 	assert.NotEmpty(suite.T(), customer2.LocaleHistory)
 	assert.Len(suite.T(), customer2.LocaleHistory, 1)
 	assert.Equal(suite.T(), customer1.Locale, customer2.LocaleHistory[0].Value)
@@ -6658,7 +6662,7 @@ func (suite *OrderTestSuite) TestOrder_CreatePayment_ChangeCustomerData_Ok() {
 	assert.Equal(suite.T(), customer2.Id, customer3.Id)
 	assert.Equal(suite.T(), customer3.Id, order.User.Id)
 	assert.Equal(suite.T(), order.User.Ip, req2.Ip)
-	assert.Equal(suite.T(), "fr", order.User.Locale)
+	assert.Equal(suite.T(), req.User.Locale, order.User.Locale)
 	assert.Equal(suite.T(), "test123@unit.unit", order.User.Email)
 
 	assert.Equal(suite.T(), order.User.Email, customer3.Email)
@@ -6675,7 +6679,7 @@ func (suite *OrderTestSuite) TestOrder_CreatePayment_ChangeCustomerData_Ok() {
 	assert.Len(suite.T(), customer3.AcceptLanguageHistory, 1)
 	assert.Equal(suite.T(), customer2.AcceptLanguage, customer3.AcceptLanguageHistory[0].Value)
 
-	assert.Equal(suite.T(), order.User.Locale, customer3.Locale)
+	assert.Equal(suite.T(), req2.AcceptLanguage, customer3.Locale)
 	assert.Len(suite.T(), customer3.LocaleHistory, 2)
 	assert.Equal(suite.T(), customer1.Locale, customer3.LocaleHistory[0].Value)
 	assert.Equal(suite.T(), customer2.Locale, customer3.LocaleHistory[1].Value)
@@ -7285,84 +7289,7 @@ func (suite *OrderTestSuite) TestBillingService_PaymentCreateProcess_CountryRest
 	assert.Equal(suite.T(), orderCountryPaymentRestrictedError, rsp.Message)
 }
 
-func (suite *OrderTestSuite) TestOrder_ProcessBillingAddress_USAZipIsEmpty_Error() {
-	req := &billing.OrderCreateRequest{
-		ProjectId:   suite.project.Id,
-		Currency:    "RUB",
-		Amount:      100,
-		Account:     "unit test",
-		Description: "unit test",
-		OrderId:     primitive.NewObjectID().Hex(),
-		User: &billing.OrderUser{
-			Email: "test@unit.unit",
-			Ip:    "127.0.0.1",
-		},
-		Type: billing.OrderType_simple,
-	}
-
-	rsp0 := &grpc.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
-	rsp := rsp0.Item
-	assert.True(suite.T(), len(rsp.Id) > 0)
-
-	order, err := suite.service.getOrderByUuid(context.TODO(), rsp.Uuid)
-	assert.NoError(suite.T(), err)
-	assert.Nil(suite.T(), order.BillingAddress)
-
-	req1 := &grpc.ProcessBillingAddressRequest{
-		OrderId: rsp.Uuid,
-		Country: "US",
-	}
-	rsp1 := &grpc.ProcessBillingAddressResponse{}
-	err = suite.service.ProcessBillingAddress(context.TODO(), req1, rsp1)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
-	assert.Equal(suite.T(), orderErrorCreatePaymentRequiredFieldUserZipNotFound, rsp1.Message)
-	assert.Nil(suite.T(), rsp1.Item)
-}
-
-func (suite *OrderTestSuite) TestOrder_ProcessBillingAddress_USAZipNotFound_Error() {
-	req := &billing.OrderCreateRequest{
-		ProjectId:   suite.project.Id,
-		Currency:    "RUB",
-		Amount:      100,
-		Account:     "unit test",
-		Description: "unit test",
-		OrderId:     primitive.NewObjectID().Hex(),
-		User: &billing.OrderUser{
-			Email: "test@unit.unit",
-			Ip:    "127.0.0.1",
-		},
-		Type: billing.OrderType_simple,
-	}
-
-	rsp0 := &grpc.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
-	rsp := rsp0.Item
-	assert.True(suite.T(), len(rsp.Id) > 0)
-
-	order, err := suite.service.getOrderByUuid(context.TODO(), rsp.Uuid)
-	assert.NoError(suite.T(), err)
-	assert.Nil(suite.T(), order.BillingAddress)
-
-	req1 := &grpc.ProcessBillingAddressRequest{
-		OrderId: rsp.Uuid,
-		Country: "US",
-		Zip:     "98002",
-	}
-	rsp1 := &grpc.ProcessBillingAddressResponse{}
-	err = suite.service.ProcessBillingAddress(context.TODO(), req1, rsp1)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionZipCode), rsp1.Message.Message)
-	assert.Nil(suite.T(), rsp1.Item)
-}
-
-func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequired_USAZipNotFound_Error() {
+func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequired_USAZipRequired_Error() {
 	req := &billing.OrderCreateRequest{
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
@@ -7405,7 +7332,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequi
 			pkg.PaymentCreateFieldYear:            expireYear.Format("2006"),
 			pkg.PaymentCreateFieldHolder:          "Mr. Card Holder",
 			pkg.PaymentCreateFieldUserCountry:     "US",
-			pkg.PaymentCreateFieldUserZip:         "98002",
+			pkg.PaymentCreateFieldUserZip:         "",
 		},
 	}
 
@@ -7414,7 +7341,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequi
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.RedirectUrl)
-	assert.Equal(suite.T(), fmt.Sprintf(errorNotFound, collectionZipCode), rsp1.Message.Message)
+	assert.Equal(suite.T(), orderErrorCreatePaymentRequiredFieldUserZipNotFound, rsp1.Message)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_AccountingEntries_Ok() {
@@ -7786,12 +7713,12 @@ func (suite *OrderTestSuite) Test_ChangePlatformInForm() {
 	shouldBe.Equal(pkg.ResponseStatusOk, rsp1.Status)
 
 	order := rsp1.Item
-	codeRsp := &grpc.EmptyResponseWithStatus{}
+	codeRsp := &grpc.PaymentFormDataChangeResponse{}
 	err = suite.service.PaymentFormPlatformChanged(context.TODO(), &grpc.PaymentFormUserChangePlatformRequest{OrderId: order.Uuid, Platform: "gog"}, codeRsp)
 	shouldBe.Nil(err)
 	shouldBe.EqualValuesf(pkg.ResponseStatusOk, codeRsp.Status, "%v", codeRsp.Message)
 
-	codeRsp = &grpc.EmptyResponseWithStatus{}
+	codeRsp = &grpc.PaymentFormDataChangeResponse{}
 	err = suite.service.PaymentFormPlatformChanged(context.TODO(), &grpc.PaymentFormUserChangePlatformRequest{OrderId: order.Uuid, Platform: "xbox"}, codeRsp)
 	shouldBe.Nil(err)
 	shouldBe.Equal(pkg.ResponseStatusBadData, codeRsp.Status)
@@ -8220,7 +8147,7 @@ func (suite *OrderTestSuite) TestOrder_RefundReceipt_Ok() {
 
 	urlsSent := map[string]bool{
 		refundOrder.ReceiptUrl: false,
-		order.ReceiptUrl: false,
+		order.ReceiptUrl:       false,
 	}
 	for _, v := range messages {
 		if v.Entry.Message != "order_test_refund" {
@@ -8575,7 +8502,6 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcessVirtualCurrency_Ok() {
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		IsBuyForVirtualCurrency: true,
 	}
 
 	rsp := &grpc.OrderCreateProcessResponse{}
@@ -8588,30 +8514,6 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcessVirtualCurrency_Ok() {
 	assert.Equal(suite.T(), "RUB", rsp.Item.Currency)
 	assert.Equal(suite.T(), "virtual", rsp.Item.Items[0].Currency)
 	assert.EqualValues(suite.T(), 100, rsp.Item.Items[0].Amount)
-}
-
-func (suite *OrderTestSuite) TestOrder_OrderCreateProcessVirtualCurrency_Fail() {
-	req := &billing.OrderCreateRequest{
-		Type:          billing.OrderType_product,
-		ProjectId:     suite.projectWithProducts.Id,
-		PaymentMethod: suite.paymentMethod.Group,
-		Account:       "unit test",
-		Description:   "unit test",
-		Products:      suite.productIds,
-		OrderId:       primitive.NewObjectID().Hex(),
-		User: &billing.OrderUser{
-			Email: "test@unit.unit",
-			Ip:    "127.0.0.1",
-		},
-		IsBuyForVirtualCurrency: true,
-	}
-
-	rsp := &grpc.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
-	assert.Equal(suite.T(), orderErrorVirtualCurrencyNotFilled, rsp.Message)
 }
 
 func (suite *OrderTestSuite) TestOrder_CreateOrderByTokenWithVirtualCurrency_Ok() {

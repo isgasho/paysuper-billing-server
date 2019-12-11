@@ -147,7 +147,6 @@ type BillingService interface {
 	ProcessVatReports(ctx context.Context, in *ProcessVatReportsRequest, opts ...client.CallOption) (*EmptyResponse, error)
 	UpdateVatReportStatus(ctx context.Context, in *UpdateVatReportStatusRequest, opts ...client.CallOption) (*ResponseError, error)
 	CalcAnnualTurnovers(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*EmptyResponse, error)
-	GetMerchantAgreementSignUrl(ctx context.Context, in *GetMerchantAgreementSignUrlRequest, opts ...client.CallOption) (*GetMerchantAgreementSignUrlResponse, error)
 	GetMerchantOnboardingCompleteData(ctx context.Context, in *SetMerchantS3AgreementRequest, opts ...client.CallOption) (*GetMerchantOnboardingCompleteDataResponse, error)
 	CreateOrUpdateKeyProduct(ctx context.Context, in *CreateOrUpdateKeyProductRequest, opts ...client.CallOption) (*KeyProductResponse, error)
 	GetKeyProducts(ctx context.Context, in *ListKeyProductsRequest, opts ...client.CallOption) (*ListKeyProductsResponse, error)
@@ -176,7 +175,7 @@ type BillingService interface {
 	PayoutDocumentPdfUploaded(ctx context.Context, in *PayoutDocumentPdfUploadedRequest, opts ...client.CallOption) (*PayoutDocumentPdfUploadedResponse, error)
 	AutoCreatePayoutDocuments(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*EmptyResponse, error)
 	GetMerchantBalance(ctx context.Context, in *GetMerchantBalanceRequest, opts ...client.CallOption) (*GetMerchantBalanceResponse, error)
-	PaymentFormPlatformChanged(ctx context.Context, in *PaymentFormUserChangePlatformRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
+	PaymentFormPlatformChanged(ctx context.Context, in *PaymentFormUserChangePlatformRequest, opts ...client.CallOption) (*PaymentFormDataChangeResponse, error)
 	CheckSkuAndKeyProject(ctx context.Context, in *CheckSkuAndKeyProjectRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error)
 	GetPaylinks(ctx context.Context, in *GetPaylinksRequest, opts ...client.CallOption) (*GetPaylinksResponse, error)
 	GetPaylink(ctx context.Context, in *PaylinkRequest, opts ...client.CallOption) (*GetPaylinkResponse, error)
@@ -1334,16 +1333,6 @@ func (c *billingService) CalcAnnualTurnovers(ctx context.Context, in *EmptyReque
 	return out, nil
 }
 
-func (c *billingService) GetMerchantAgreementSignUrl(ctx context.Context, in *GetMerchantAgreementSignUrlRequest, opts ...client.CallOption) (*GetMerchantAgreementSignUrlResponse, error) {
-	req := c.c.NewRequest(c.name, "BillingService.GetMerchantAgreementSignUrl", in)
-	out := new(GetMerchantAgreementSignUrlResponse)
-	err := c.c.Call(ctx, req, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *billingService) GetMerchantOnboardingCompleteData(ctx context.Context, in *SetMerchantS3AgreementRequest, opts ...client.CallOption) (*GetMerchantOnboardingCompleteDataResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.GetMerchantOnboardingCompleteData", in)
 	out := new(GetMerchantOnboardingCompleteDataResponse)
@@ -1624,9 +1613,9 @@ func (c *billingService) GetMerchantBalance(ctx context.Context, in *GetMerchant
 	return out, nil
 }
 
-func (c *billingService) PaymentFormPlatformChanged(ctx context.Context, in *PaymentFormUserChangePlatformRequest, opts ...client.CallOption) (*EmptyResponseWithStatus, error) {
+func (c *billingService) PaymentFormPlatformChanged(ctx context.Context, in *PaymentFormUserChangePlatformRequest, opts ...client.CallOption) (*PaymentFormDataChangeResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.PaymentFormPlatformChanged", in)
-	out := new(EmptyResponseWithStatus)
+	out := new(PaymentFormDataChangeResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -2117,7 +2106,6 @@ type BillingServiceHandler interface {
 	ProcessVatReports(context.Context, *ProcessVatReportsRequest, *EmptyResponse) error
 	UpdateVatReportStatus(context.Context, *UpdateVatReportStatusRequest, *ResponseError) error
 	CalcAnnualTurnovers(context.Context, *EmptyRequest, *EmptyResponse) error
-	GetMerchantAgreementSignUrl(context.Context, *GetMerchantAgreementSignUrlRequest, *GetMerchantAgreementSignUrlResponse) error
 	GetMerchantOnboardingCompleteData(context.Context, *SetMerchantS3AgreementRequest, *GetMerchantOnboardingCompleteDataResponse) error
 	CreateOrUpdateKeyProduct(context.Context, *CreateOrUpdateKeyProductRequest, *KeyProductResponse) error
 	GetKeyProducts(context.Context, *ListKeyProductsRequest, *ListKeyProductsResponse) error
@@ -2146,7 +2134,7 @@ type BillingServiceHandler interface {
 	PayoutDocumentPdfUploaded(context.Context, *PayoutDocumentPdfUploadedRequest, *PayoutDocumentPdfUploadedResponse) error
 	AutoCreatePayoutDocuments(context.Context, *EmptyRequest, *EmptyResponse) error
 	GetMerchantBalance(context.Context, *GetMerchantBalanceRequest, *GetMerchantBalanceResponse) error
-	PaymentFormPlatformChanged(context.Context, *PaymentFormUserChangePlatformRequest, *EmptyResponseWithStatus) error
+	PaymentFormPlatformChanged(context.Context, *PaymentFormUserChangePlatformRequest, *PaymentFormDataChangeResponse) error
 	CheckSkuAndKeyProject(context.Context, *CheckSkuAndKeyProjectRequest, *EmptyResponseWithStatus) error
 	GetPaylinks(context.Context, *GetPaylinksRequest, *GetPaylinksResponse) error
 	GetPaylink(context.Context, *PaylinkRequest, *GetPaylinkResponse) error
@@ -2298,7 +2286,6 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		ProcessVatReports(ctx context.Context, in *ProcessVatReportsRequest, out *EmptyResponse) error
 		UpdateVatReportStatus(ctx context.Context, in *UpdateVatReportStatusRequest, out *ResponseError) error
 		CalcAnnualTurnovers(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error
-		GetMerchantAgreementSignUrl(ctx context.Context, in *GetMerchantAgreementSignUrlRequest, out *GetMerchantAgreementSignUrlResponse) error
 		GetMerchantOnboardingCompleteData(ctx context.Context, in *SetMerchantS3AgreementRequest, out *GetMerchantOnboardingCompleteDataResponse) error
 		CreateOrUpdateKeyProduct(ctx context.Context, in *CreateOrUpdateKeyProductRequest, out *KeyProductResponse) error
 		GetKeyProducts(ctx context.Context, in *ListKeyProductsRequest, out *ListKeyProductsResponse) error
@@ -2327,7 +2314,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		PayoutDocumentPdfUploaded(ctx context.Context, in *PayoutDocumentPdfUploadedRequest, out *PayoutDocumentPdfUploadedResponse) error
 		AutoCreatePayoutDocuments(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error
 		GetMerchantBalance(ctx context.Context, in *GetMerchantBalanceRequest, out *GetMerchantBalanceResponse) error
-		PaymentFormPlatformChanged(ctx context.Context, in *PaymentFormUserChangePlatformRequest, out *EmptyResponseWithStatus) error
+		PaymentFormPlatformChanged(ctx context.Context, in *PaymentFormUserChangePlatformRequest, out *PaymentFormDataChangeResponse) error
 		CheckSkuAndKeyProject(ctx context.Context, in *CheckSkuAndKeyProjectRequest, out *EmptyResponseWithStatus) error
 		GetPaylinks(ctx context.Context, in *GetPaylinksRequest, out *GetPaylinksResponse) error
 		GetPaylink(ctx context.Context, in *PaylinkRequest, out *GetPaylinkResponse) error
@@ -2817,10 +2804,6 @@ func (h *billingServiceHandler) CalcAnnualTurnovers(ctx context.Context, in *Emp
 	return h.BillingServiceHandler.CalcAnnualTurnovers(ctx, in, out)
 }
 
-func (h *billingServiceHandler) GetMerchantAgreementSignUrl(ctx context.Context, in *GetMerchantAgreementSignUrlRequest, out *GetMerchantAgreementSignUrlResponse) error {
-	return h.BillingServiceHandler.GetMerchantAgreementSignUrl(ctx, in, out)
-}
-
 func (h *billingServiceHandler) GetMerchantOnboardingCompleteData(ctx context.Context, in *SetMerchantS3AgreementRequest, out *GetMerchantOnboardingCompleteDataResponse) error {
 	return h.BillingServiceHandler.GetMerchantOnboardingCompleteData(ctx, in, out)
 }
@@ -2933,7 +2916,7 @@ func (h *billingServiceHandler) GetMerchantBalance(ctx context.Context, in *GetM
 	return h.BillingServiceHandler.GetMerchantBalance(ctx, in, out)
 }
 
-func (h *billingServiceHandler) PaymentFormPlatformChanged(ctx context.Context, in *PaymentFormUserChangePlatformRequest, out *EmptyResponseWithStatus) error {
+func (h *billingServiceHandler) PaymentFormPlatformChanged(ctx context.Context, in *PaymentFormUserChangePlatformRequest, out *PaymentFormDataChangeResponse) error {
 	return h.BillingServiceHandler.PaymentFormPlatformChanged(ctx, in, out)
 }
 
