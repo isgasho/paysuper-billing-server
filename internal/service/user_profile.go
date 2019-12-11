@@ -455,11 +455,7 @@ func (s *Service) emailConfirmedSuccessfully(ctx context.Context, profile *grpc.
 	profile.Email.Confirmed = true
 	profile.Email.ConfirmedAt = ptypes.TimestampNow()
 
-	oid, _ := primitive.ObjectIDFromHex(profile.Id)
-	filter := bson.M{"_id": oid}
-	_, err := s.db.Collection(collectionUserProfile).ReplaceOne(ctx, filter, profile)
-
-	if err != nil {
+	if err := s.userProfileRepository.Update(ctx, profile); err != nil {
 		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
@@ -480,11 +476,7 @@ func (s *Service) emailConfirmedTruncate(ctx context.Context, profile *grpc.User
 	profile.Email.Confirmed = false
 	profile.Email.ConfirmedAt = nil
 
-	oid, _ := primitive.ObjectIDFromHex(profile.Id)
-	filter := bson.M{"_id": oid}
-	_, err := s.db.Collection(collectionUserProfile).ReplaceOne(ctx, filter, profile)
-
-	if err != nil {
+	if err := s.userProfileRepository.Update(ctx, profile); err != nil {
 		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
@@ -624,6 +616,7 @@ type UserProfileRepositoryInterface interface {
 	GetById(context.Context, string) (*grpc.UserProfile, error)
 	GetByUserId(context.Context, string) (*grpc.UserProfile, error)
 	Add(context.Context, *grpc.UserProfile) error
+	Update(context.Context, *grpc.UserProfile) error
 }
 
 func newUserProfileRepository(svc *Service) UserProfileRepositoryInterface {
@@ -669,6 +662,18 @@ func (r *UserProfileRepository) GetByUserId(ctx context.Context, userId string) 
 
 func (r *UserProfileRepository) Add(ctx context.Context, profile *grpc.UserProfile) error {
 	_, err := r.svc.db.Collection(collectionUserProfile).InsertOne(ctx, profile)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *UserProfileRepository) Update(ctx context.Context, profile *grpc.UserProfile) error {
+	oid, _ := primitive.ObjectIDFromHex(profile.Id)
+	filter := bson.M{"_id": oid}
+	err := r.svc.db.Collection(collectionUserProfile).FindOneAndReplace(ctx, filter, profile).Err()
 
 	if err != nil {
 		return err
