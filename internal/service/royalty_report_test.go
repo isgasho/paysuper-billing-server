@@ -205,14 +205,14 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_CreateRoyaltyReport_AllMe
 	assert.Contains(suite.T(), rsp.Merchants, suite.merchant1.Id)
 	assert.Contains(suite.T(), rsp.Merchants, suite.merchant2.Id)
 
-	loc, err := time.LoadLocation(suite.service.cfg.RoyaltyReportTimeZone)
-	assert.NoError(suite.T(), err)
-
-	to := now.Monday().In(loc).Add(time.Duration(suite.service.cfg.RoyaltyReportPeriodEndHour) * time.Hour)
-	from := to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).In(loc)
+	to := now.Monday().Add(time.Duration(suite.service.cfg.RoyaltyReportPeriodEndHour) * time.Hour).UTC()
+	from := to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).UTC()
 
 	var reports []*billing.RoyaltyReport
-	cursor, err := suite.service.db.Collection(collectionRoyaltyReport).Find(context.TODO(), bson.M{"period_from": from, "period_to": to})
+	cursor, err := suite.service.db.Collection(collectionRoyaltyReport).
+		Find(
+			context.TODO(),
+			bson.M{"period_from": bson.M{"$gte": from}, "period_to": bson.M{"$lte": to}})
 	assert.NoError(suite.T(), err)
 	err = cursor.All(context.TODO(), &reports)
 	assert.NoError(suite.T(), err)
@@ -239,8 +239,8 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_CreateRoyaltyReport_AllMe
 		t1, err := ptypes.Timestamp(v.PeriodTo)
 		assert.NoError(suite.T(), err)
 
-		assert.Equal(suite.T(), t.In(loc), from)
-		assert.Equal(suite.T(), t1.In(loc), to)
+		assert.Equal(suite.T(), t.Second(), from.Second())
+		assert.Equal(suite.T(), t1.Second(), to.Second())
 		assert.InDelta(suite.T(), suite.service.cfg.RoyaltyReportAcceptTimeout, v.AcceptExpireAt.Seconds-time.Now().Unix(), 10)
 
 		existMerchants = append(existMerchants, v.MerchantId)
@@ -305,8 +305,8 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_CreateRoyaltyReport_Selec
 		t1, err := ptypes.Timestamp(v.PeriodTo)
 		assert.NoError(suite.T(), err)
 
-		assert.Equal(suite.T(), t.In(loc), from)
-		assert.Equal(suite.T(), t1.In(loc), to)
+		assert.Equal(suite.T(), t.Second(), from.Second())
+		assert.Equal(suite.T(), t1.Second(), to.Second())
 		assert.InDelta(suite.T(), suite.service.cfg.RoyaltyReportAcceptTimeout, v.AcceptExpireAt.Seconds-time.Now().Unix(), 10)
 
 		existMerchants = append(existMerchants, v.MerchantId)

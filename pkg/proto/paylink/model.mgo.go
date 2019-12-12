@@ -12,7 +12,7 @@ const (
 	errorInvalidObjectId = "invalid bson object id"
 )
 
-type mgoPaylink struct {
+type MgoPaylink struct {
 	Id                   primitive.ObjectID `bson:"_id"`
 	Object               string             `bson:"object"`
 	Products             []string           `bson:"products"`
@@ -39,7 +39,7 @@ type mgoPaylink struct {
 
 // RateData.SetBSON
 func (p *Paylink) UnmarshalBSON(raw []byte) error {
-	decoded := new(mgoPaylink)
+	decoded := new(MgoPaylink)
 	err := bson.Unmarshal(raw, decoded)
 
 	if err != nil {
@@ -87,7 +87,7 @@ func (p *Paylink) UnmarshalBSON(raw []byte) error {
 
 // RateData.GetBSON
 func (p *Paylink) MarshalBSON() ([]byte, error) {
-	st := &mgoPaylink{
+	st := &MgoPaylink{
 		Object:               p.Object,
 		Products:             p.Products,
 		Name:                 p.Name,
@@ -141,11 +141,9 @@ func (p *Paylink) MarshalBSON() ([]byte, error) {
 		return nil, err
 	}
 
-	if p.ExpiresAt != nil {
-		st.ExpiresAt, err = ptypes.Timestamp(p.ExpiresAt)
-		if err != nil {
-			return nil, err
-		}
+	st.ExpiresAt, err = ptypes.Timestamp(p.ExpiresAt)
+	if err != nil && err.Error() != "timestamp: nil Timestamp" {
+		return nil, err
 	}
 
 	st.IsExpired = p.IsPaylinkExpired()

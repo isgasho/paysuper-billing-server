@@ -133,7 +133,6 @@ var (
 	orderErrorDontHaveReceiptUrl                              = newBillingServerErrorMsg("fm000074", "processed order don't have receipt url")
 	orderErrorWrongPrivateStatus                              = newBillingServerErrorMsg("fm000075", "order has wrong private status and cannot be recreated")
 	orderCountryChangeRestrictedError                         = newBillingServerErrorMsg("fm000076", "change country is not allowed")
-	orderErrorIncompatibleProject                             = newBillingServerErrorMsg("fm000077", "this is not product project")
 
 	virtualCurrencyPayoutCurrencyMissed = newBillingServerErrorMsg("vc000001", "virtual currency don't have price in merchant payout currency")
 
@@ -141,22 +140,23 @@ var (
 )
 
 type orderCreateRequestProcessorChecked struct {
-	id                   string
-	project              *billing.Project
-	merchant             *billing.Merchant
-	currency             string
-	amount               float64
-	paymentMethod        *billing.PaymentMethod
-	products             []string
-	items                []*billing.OrderItem
-	metadata             map[string]string
-	privateMetadata      map[string]string
-	user                 *billing.OrderUser
-	virtualAmount        float64
-	mccCode              string
-	operatingCompanyId   string
-	priceGroup           *billing.PriceGroup
-	isCurrencyPredefined bool
+	id                      string
+	project                 *billing.Project
+	merchant                *billing.Merchant
+	currency                string
+	amount                  float64
+	paymentMethod           *billing.PaymentMethod
+	products                []string
+	items                   []*billing.OrderItem
+	metadata                map[string]string
+	privateMetadata         map[string]string
+	user                    *billing.OrderUser
+	virtualAmount           float64
+	mccCode                 string
+	operatingCompanyId      string
+	priceGroup              *billing.PriceGroup
+	isCurrencyPredefined    bool
+	isBuyForVirtualCurrency bool
 }
 
 type OrderCreateRequestProcessor struct {
@@ -711,7 +711,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 		}
 	}
 
-	if loc != "" && loc != order.User.Locale {
+	if order.User.Locale == "" && loc != "" && loc != order.User.Locale {
 		order.User.Locale = loc
 	}
 
@@ -833,6 +833,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 	rsp.Item.PaymentMethods = pms
 
 	rsp.Item.VatInChargeCurrency = tools.FormatAmount(order.GetTaxAmountInChargeCurrency())
+	rsp.Item.VatRate = tools.ToPrecise(order.Tax.Rate)
 
 	cookie, err := s.generateBrowserCookie(browserCustomer)
 
@@ -860,6 +861,7 @@ func (s *Service) fillPaymentFormJsonData(order *billing.Order, rsp *grpc.Paymen
 	rsp.Item.Vat = order.Tax.Amount
 	rsp.Item.Currency = order.Currency
 	rsp.Item.Project = &grpc.PaymentFormJsonDataProject{
+		Id:         order.Project.Id,
 		Name:       projectName,
 		UrlSuccess: order.Project.UrlSuccess,
 		UrlFail:    order.Project.UrlFail,
@@ -1253,7 +1255,9 @@ func (s *Service) PaymentCallbackProcess(
 			return err
 		}
 
-		s.sendMailWithReceipt(ctx, order)
+		if order.PrivateStatus == constant.OrderStatusPaymentSystemComplete {
+			s.sendMailWithReceipt(ctx, order)
+		}
 
 		if h.IsRecurringCallback(data) {
 			s.saveRecurringCard(ctx, order, h.GetRecurringId(data))
@@ -1283,9 +1287,7 @@ func (s *Service) PaymentFormLanguageChanged(
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
-	rsp.Item = &billing.PaymentFormDataChangeResponseItem{
-		UserAddressDataRequired: false,
-	}
+	rsp.Item = order.GetPaymentFormDataChangeResult()
 
 	if order.User.Locale == req.Lang {
 		return nil
@@ -1328,11 +1330,7 @@ func (s *Service) PaymentFormLanguageChanged(
 		return err
 	}
 
-	rsp.Item.UserIpData = &billing.UserIpData{
-		Country: order.User.Address.Country,
-		City:    order.User.Address.City,
-		Zip:     order.User.Address.PostalCode,
-	}
+	rsp.Item = order.GetPaymentFormDataChangeResult()
 
 	return nil
 }
@@ -1388,9 +1386,6 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		return nil
 	}
 
-	brand := ""
-	country := ""
-
 	rsp.Status = pkg.ResponseStatusOk
 
 	switch pm.ExternalId {
@@ -1403,14 +1398,11 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 			return nil
 		}
 
-		brand = data.CardBrand
-		country = data.BankCountryIsoCode
-
 		if order.PaymentRequisites == nil {
 			order.PaymentRequisites = make(map[string]string)
 		}
-		order.PaymentRequisites[pkg.PaymentCreateBankCardFieldBrand] = brand
-		order.PaymentRequisites[pkg.PaymentCreateBankCardFieldIssuerCountryIsoCode] = country
+		order.PaymentRequisites[pkg.PaymentCreateBankCardFieldBrand] = data.CardBrand
+		order.PaymentRequisites[pkg.PaymentCreateBankCardFieldIssuerCountryIsoCode] = data.BankCountryIsoCode
 
 		break
 
@@ -1424,9 +1416,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 			return nil
 		}
 
-		ok := false
-		country, ok = pkg.CountryPhoneCodes[*num.CountryCode]
-
+		_, ok := pkg.CountryPhoneCodes[*num.CountryCode]
 		if !ok {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = orderErrorCountryByPaymentAccountNotFound
@@ -1485,35 +1475,6 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		return err
 	}
 
-	if country != "" && country != order.GetCountry() && order.BillingAddress == nil {
-		order.UserAddressDataRequired = true
-	}
-
-	restricted, err := s.applyCountryRestriction(ctx, order, country)
-
-	if err != nil {
-		zap.L().Error(
-			"s.applyCountryRestriction Method failed",
-			zap.Error(err),
-			zap.Any("order", order),
-		)
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			rsp.Status = pkg.ResponseStatusSystemError
-			rsp.Message = e
-			return nil
-		} else {
-			rsp.Message = orderErrorUnknown
-			rsp.Status = pkg.ResponseStatusSystemError
-		}
-		return nil
-	}
-
-	if restricted == true {
-		rsp.Status = pkg.ResponseStatusForbidden
-		rsp.Message = orderCountryPaymentRestrictedError
-		return nil
-	}
-
 	if !s.hasPaymentCosts(ctx, order) {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = orderErrorCostsRatesNotFound
@@ -1532,7 +1493,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		return err
 	}
 
-	rsp.Item = order.GetPaymentFormDataChangeResult(brand)
+	rsp.Item = order.GetPaymentFormDataChangeResult()
 	return nil
 }
 
@@ -1694,13 +1655,14 @@ func (s *Service) ProcessBillingAddress(
 	rsp.Cookie = cookie
 	rsp.Item = &grpc.ProcessBillingAddressResponseItem{
 		HasVat:               order.Tax.Rate > 0,
-		Vat:                  tools.FormatAmount(order.Tax.Amount),
-		VatInChargeCurrency:  tools.FormatAmount(order.GetTaxAmountInChargeCurrency()),
-		Amount:               tools.FormatAmount(order.OrderAmount),
-		TotalAmount:          tools.FormatAmount(order.TotalPaymentAmount),
+		VatRate:              tools.ToPrecise(order.Tax.Rate),
+		Vat:                  order.Tax.Amount,
+		VatInChargeCurrency:  s.FormatAmount(order.GetTaxAmountInChargeCurrency(), order.Currency),
+		Amount:               order.OrderAmount,
+		TotalAmount:          order.TotalPaymentAmount,
 		Currency:             order.Currency,
 		ChargeCurrency:       order.ChargeCurrency,
-		ChargeAmount:         tools.FormatAmount(order.ChargeAmount),
+		ChargeAmount:         order.ChargeAmount,
 		Items:                order.Items,
 		CountryChangeAllowed: order.CountryChangeAllowed(),
 	}
@@ -1786,7 +1748,7 @@ func (s *Service) updateOrder(ctx context.Context, order *billing.Order) error {
 		s.orderNotifyKeyProducts(context.TODO(), order)
 	}
 
-	if needReceipt {
+	if statusChanged && order.NeedCallbackNotification() {
 		s.orderNotifyMerchant(ctx, order)
 	}
 
@@ -2099,7 +2061,7 @@ func (s *Service) getBinData(ctx context.Context, pan string) (data *BinData) {
 
 func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 	id := primitive.NewObjectID().Hex()
-	amount := tools.FormatAmount(v.checked.amount)
+	amount := v.FormatAmount(v.checked.amount, v.checked.currency)
 
 	if (v.request.UrlVerify != "" || v.request.UrlNotify != "") && v.checked.project.AllowDynamicNotifyUrls == false {
 		return nil, orderErrorDynamicNotifyUrlsNotAllowed
@@ -2168,7 +2130,7 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 		},
 		PlatformId:              v.request.PlatformId,
 		ProductType:             v.request.Type,
-		IsBuyForVirtualCurrency: v.request.IsBuyForVirtualCurrency,
+		IsBuyForVirtualCurrency: v.checked.isBuyForVirtualCurrency,
 		MccCode:                 v.checked.merchant.MccCode,
 		OperatingCompanyId:      v.checked.merchant.OperatingCompanyId,
 		IsHighRisk:              v.checked.merchant.IsHighRisk(),
@@ -2418,14 +2380,15 @@ func (v *OrderCreateRequestProcessor) processPaylinkKeyProducts() error {
 
 func (v *OrderCreateRequestProcessor) processPaylinkProducts() error {
 
-	amount, priceGroup, items, err := v.processProducts(
+	amount, priceGroup, items, isBuyForVirtual, err := v.processProducts(
 		v.ctx,
 		v.checked.project.Id,
 		v.request.Products,
 		v.checked.priceGroup,
 		DefaultLanguage,
-		v.request.IsBuyForVirtualCurrency,
 	)
+
+	v.checked.isBuyForVirtualCurrency = isBuyForVirtual
 
 	if err != nil {
 		return err
@@ -2613,8 +2576,8 @@ func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) erro
 	}
 
 	order.Tax.Rate = rsp.Rate
-	order.Tax.Amount = tools.FormatAmount(order.OrderAmount * order.Tax.Rate)
-	order.TotalPaymentAmount = tools.FormatAmount(order.OrderAmount + order.Tax.Amount)
+	order.Tax.Amount = v.FormatAmount(order.OrderAmount*order.Tax.Rate, order.Currency)
+	order.TotalPaymentAmount = v.FormatAmount(order.OrderAmount+order.Tax.Amount, order.Currency)
 	order.ChargeAmount = order.TotalPaymentAmount
 
 	return nil
@@ -2643,7 +2606,6 @@ func (v *OrderCreateRequestProcessor) processCustomerToken() error {
 	v.request.Products = token.Settings.ProductsIds
 	v.request.Metadata = token.Settings.Metadata
 	v.request.PaymentMethod = token.Settings.PaymentMethod
-	v.request.IsBuyForVirtualCurrency = token.Settings.IsBuyForVirtualCurrency
 
 	if token.Settings.ReturnUrl != nil {
 		v.request.UrlSuccess = token.Settings.ReturnUrl.Success
@@ -3055,7 +3017,8 @@ func (v *PaymentCreateProcessor) processPaymentFormData(ctx context.Context) err
 		if err != nil {
 			v.service.logError("Update customer data by request failed", []interface{}{"error", err.Error(), "data", updCustomerReq})
 		} else {
-			if customer.Locale != order.User.Locale {
+			if order.User.Locale == "" && customer.Locale != "" &&
+				customer.Locale != order.User.Locale {
 				order.User.Locale = customer.Locale
 			}
 		}
@@ -3491,7 +3454,7 @@ func (s *Service) ProcessOrderVirtualCurrency(ctx context.Context, order *billin
 		}
 	}
 
-	amount = tools.FormatAmount(amount)
+	amount = s.FormatAmount(amount, currency)
 
 	order.Currency = currency
 	order.OrderAmount = amount
@@ -3577,13 +3540,12 @@ func (s *Service) ProcessOrderProducts(ctx context.Context, order *billing.Order
 		locale = order.User.Locale
 	}
 
-	amount, priceGroup, items, err := s.processProducts(
+	amount, priceGroup, items, _, err := s.processProducts(
 		ctx,
 		order.Project.Id,
 		order.Products,
 		priceGroup,
 		locale,
-		order.IsBuyForVirtualCurrency,
 	)
 
 	if err != nil {
@@ -4008,7 +3970,7 @@ func (s *Service) applyCountryRestriction(
 	return
 }
 
-func (s *Service) PaymentFormPlatformChanged(ctx context.Context, req *grpc.PaymentFormUserChangePlatformRequest, rsp *grpc.EmptyResponseWithStatus) error {
+func (s *Service) PaymentFormPlatformChanged(ctx context.Context, req *grpc.PaymentFormUserChangePlatformRequest, rsp *grpc.PaymentFormDataChangeResponse) error {
 	order, err := s.getOrderByUuidToForm(ctx, req.OrderId)
 
 	if err != nil {
@@ -4055,6 +4017,8 @@ func (s *Service) PaymentFormPlatformChanged(ctx context.Context, req *grpc.Paym
 		}
 		return err
 	}
+
+	rsp.Item = order.GetPaymentFormDataChangeResult()
 
 	return nil
 }
@@ -4133,7 +4097,7 @@ func (s *Service) OrderReceipt(
 	items := make([]*billing.OrderReceiptItem, len(order.Items))
 
 	currency := order.Currency
-	if currency == grpc.VirtualCurrencyPriceGroup {
+	if order.IsBuyForVirtualCurrency {
 		project, err := s.project.GetById(ctx, order.GetProjectId())
 
 		if err != nil {
@@ -4551,9 +4515,26 @@ func (s *Service) setOrderChargeAmountAndCurrency(ctx context.Context, order *bi
 	}
 
 	order.ChargeCurrency = binCountry.Currency
-	order.ChargeAmount = tools.FormatAmount(rspCur.ExchangedAmount)
+	order.ChargeAmount = s.FormatAmount(rspCur.ExchangedAmount, binCountry.Currency)
 
 	return nil
+}
+
+func (s *Service) checkVirtualCurrencyProduct(products []*grpc.Product) bool {
+	if len(products) == 0 {
+		return false
+	}
+
+	for _, product := range products {
+		if len(product.Prices) != 1 {
+			return false
+		}
+		if product.Prices[0].IsVirtualCurrency == false {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (s *Service) processProducts(
@@ -4562,19 +4543,13 @@ func (s *Service) processProducts(
 	productIds []string,
 	priceGroup *billing.PriceGroup,
 	locale string,
-	isBuyForVirtualCurrency bool,
-) (amount float64, usedPriceGroup *billing.PriceGroup, items []*billing.OrderItem, err error) {
+) (amount float64, usedPriceGroup *billing.PriceGroup, items []*billing.OrderItem, 	isBuyForVirtualCurrency bool, err error) {
 	project, err := s.project.GetById(ctx, projectId)
 	if err != nil {
 		return
 	}
 	if project.IsDeleted() == true {
 		err = orderErrorProjectInactive
-		return
-	}
-
-	if project.IsProductsCheckout == false {
-		err = orderErrorIncompatibleProject
 		return
 	}
 
@@ -4597,6 +4572,8 @@ func (s *Service) processProducts(
 		priceGroup = defaultPriceGroup
 	}
 
+	isBuyForVirtualCurrency = s.checkVirtualCurrencyProduct(orderProducts)
+
 	if isBuyForVirtualCurrency {
 		amount, usedPriceGroup, err = s.processAmountForVirtualCurrency(ctx, project, orderProducts, priceGroup, defaultPriceGroup)
 	} else {
@@ -4607,7 +4584,7 @@ func (s *Service) processProducts(
 		return
 	}
 
-	amount = tools.FormatAmount(amount)
+	amount = s.FormatAmount(amount, usedPriceGroup.Currency)
 
 	if isBuyForVirtualCurrency {
 		items, err = s.GetOrderProductsItems(orderProducts, locale, &billing.PriceGroup{Currency: grpc.VirtualCurrencyPriceGroup})
@@ -4696,7 +4673,7 @@ func (s *Service) processKeyProducts(
 		}
 	}
 
-	amount = tools.FormatAmount(amount)
+	amount = s.FormatAmount(amount, usedPriceGroup.Currency)
 
 	items, err = s.GetOrderKeyProductsItems(orderProducts, locale, usedPriceGroup, platformId)
 
