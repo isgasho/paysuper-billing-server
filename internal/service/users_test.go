@@ -312,7 +312,20 @@ func (suite *UsersTestSuite) Test_ChangeAdminUserRole_Ok() {
 	shouldBe.EqualValues(pkg.ResponseStatusOk, res.Status)
 }
 
-func (suite *UsersTestSuite) Test_ChangeMerchantUserRole_Error_GetUser() {
+func (suite *UsersTestSuite) Test_ChangeRoleForMerchantUser_Error_SetRoleOwner() {
+	shouldBe := require.New(suite.T())
+
+	res := &grpc.EmptyResponseWithStatus{}
+	err := suite.service.ChangeRoleForMerchantUser(context.TODO(), &grpc.ChangeRoleForMerchantUserRequest{
+		RoleId: primitive.NewObjectID().Hex(),
+		Role:   pkg.RoleMerchantOwner,
+	}, res)
+	shouldBe.NoError(err)
+	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(errorUserUnsupportedRoleType, res.Message)
+}
+
+func (suite *UsersTestSuite) Test_ChangeRoleForMerchantUser_Error_GetUser() {
 	shouldBe := require.New(suite.T())
 
 	repository := &mocks.UserRoleServiceInterface{}
@@ -328,7 +341,7 @@ func (suite *UsersTestSuite) Test_ChangeMerchantUserRole_Error_GetUser() {
 	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
 }
 
-func (suite *UsersTestSuite) Test_ChangeMerchantUserRole_Error_Update() {
+func (suite *UsersTestSuite) Test_ChangeRoleForMerchantUser_Error_Update() {
 	shouldBe := require.New(suite.T())
 
 	repository := &mocks.UserRoleServiceInterface{}
@@ -346,7 +359,7 @@ func (suite *UsersTestSuite) Test_ChangeMerchantUserRole_Error_Update() {
 	shouldBe.EqualValues(pkg.ResponseStatusSystemError, res.Status)
 }
 
-func (suite *UsersTestSuite) Test_ChangeMerchantUserRole_Error_DeleteFromCasbin() {
+func (suite *UsersTestSuite) Test_ChangeRoleForMerchantUser_Error_DeleteFromCasbin() {
 	shouldBe := require.New(suite.T())
 
 	repository := &mocks.UserRoleServiceInterface{}
@@ -369,7 +382,7 @@ func (suite *UsersTestSuite) Test_ChangeMerchantUserRole_Error_DeleteFromCasbin(
 	shouldBe.EqualValues(pkg.ResponseStatusSystemError, res.Status)
 }
 
-func (suite *UsersTestSuite) Test_ChangeMerchantUserRole_Error_AddRoleForUserCasbin() {
+func (suite *UsersTestSuite) Test_ChangeRoleForMerchantUser_Error_AddRoleForUserCasbin() {
 	shouldBe := require.New(suite.T())
 
 	repository := &mocks.UserRoleServiceInterface{}
@@ -393,7 +406,7 @@ func (suite *UsersTestSuite) Test_ChangeMerchantUserRole_Error_AddRoleForUserCas
 	shouldBe.EqualValues(pkg.ResponseStatusSystemError, res.Status)
 }
 
-func (suite *UsersTestSuite) Test_ChangeMerchantUserRole_Ok() {
+func (suite *UsersTestSuite) Test_ChangeRoleForMerchantUser_Ok() {
 	shouldBe := require.New(suite.T())
 
 	repository := &mocks.UserRoleServiceInterface{}
@@ -415,6 +428,20 @@ func (suite *UsersTestSuite) Test_ChangeMerchantUserRole_Ok() {
 	}, res)
 	shouldBe.NoError(err)
 	shouldBe.EqualValues(pkg.ResponseStatusOk, res.Status)
+}
+
+func (suite *UsersTestSuite) TestInviteUserMerchant_Error_SetRoleOwner() {
+	shouldBe := require.New(suite.T())
+
+	res := &grpc.InviteUserMerchantResponse{}
+	err := suite.service.InviteUserMerchant(context.TODO(), &grpc.InviteUserMerchantRequest{
+		MerchantId: primitive.NewObjectID().Hex(),
+		Role:       pkg.RoleMerchantOwner,
+		Email:      "test@test.com",
+	}, res)
+	shouldBe.NoError(err)
+	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(errorUserUnsupportedRoleType, res.Message)
 }
 
 func (suite *UsersTestSuite) Test_InviteUserMerchant_Error_GetMerchant() {
