@@ -452,7 +452,7 @@ func (s *Service) updateVatReport(ctx context.Context, vr *billing.VatReport) er
 
 	if contains(VatReportOnStatusNotifyToEmail, vr.Status) {
 		payload := &postmarkSdrPkg.Payload{
-			TemplateAlias: s.cfg.EmailVatReportTemplate,
+			TemplateAlias: s.cfg.EmailTemplates.VatReportChanged,
 			TemplateModel: map[string]string{
 				"country": vr.Country,
 				"status":  vr.Status,
