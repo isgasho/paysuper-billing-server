@@ -91,6 +91,8 @@ func (s *Service) SendWebhookToMerchant(ctx context.Context, req *billing.OrderC
 			return nil
 		}
 		break
+	case billing.OrderType_simple:
+		processor.processAmount()
 	default:
 		zap.L().Error(
 			webhookTypeIncorrect.Message,
