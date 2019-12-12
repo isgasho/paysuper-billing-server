@@ -54,6 +54,15 @@ type EmailTemplates struct {
 	UserInvite                     string `envconfig:"EMAIL_INVITE_TEMPLATE" default:"code-your-own"`
 }
 
+type Centrifugo struct {
+	CentrifugoApiSecretPaymentForm string `envconfig:"CENTRIFUGO_API_SECRET_PAYMENT_FORM" required:"true"`
+	CentrifugoSecretPaymentForm    string `envconfig:"CENTRIFUGO_SECRET_PAYMENT_FORM" required:"true"`
+	CentrifugoURLPaymentForm       string `envconfig:"CENTRIFUGO_URL_PAYMENT_FORM" required:"false" default:"http://127.0.0.1:8000"`
+	CentrifugoApiSecretDashboard   string `envconfig:"CENTRIFUGO_API_SECRET_DASHBOARD" required:"true"`
+	CentrifugoSecretDashboard      string `envconfig:"CENTRIFUGO_SECRET_DASHBOARD" required:"true"`
+	CentrifugoURLDashboard         string `envconfig:"CENTRIFUGO_URL_DASHBOARD" required:"false" default:"http://127.0.0.1:8000"`
+}
+
 type Config struct {
 	MongoDsn         string `envconfig:"MONGO_DSN" required:"true"`
 	MongoDialTimeout string `envconfig:"MONGO_DIAL_TIMEOUT" required:"false" default:"10"`
@@ -62,10 +71,7 @@ type Config struct {
 	RedisHost        string `envconfig:"REDIS_HOST" default:"127.0.0.1:6379"`
 	RedisPassword    string `envconfig:"REDIS_PASSWORD" default:""`
 
-	CentrifugoApiSecret string `envconfig:"CENTRIFUGO_API_SECRET" required:"true"`
-	CentrifugoSecret    string `envconfig:"CENTRIFUGO_SECRET" required:"true"`
-	CentrifugoURL       string `envconfig:"CENTRIFUGO_URL" required:"false" default:"http://127.0.0.1:8000"`
-	BrokerAddress       string `envconfig:"BROKER_ADDRESS" default:"amqp://127.0.0.1:5672"`
+	BrokerAddress string `envconfig:"BROKER_ADDRESS" default:"amqp://127.0.0.1:5672"`
 
 	CentrifugoUserChannel     string `envconfig:"CENTRIFUGO_USER_CHANNEL" default:"paysuper:user#%s"`
 	EmailConfirmTokenLifetime int64  `envconfig:"EMAIL_CONFIRM_TOKEN_LIFETIME" default:"86400"`
@@ -105,6 +111,7 @@ type Config struct {
 	*CustomerTokenConfig
 	*CacheRedis
 	*EmailTemplates
+	*Centrifugo
 
 	EmailConfirmUrlParsed    *url.URL
 	RedirectUrlSuccessParsed *url.URL

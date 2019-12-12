@@ -93,7 +93,8 @@ type Service struct {
 	userRoleRepository         UserRoleServiceInterface
 	userProfileRepository      UserProfileRepositoryInterface
 	keyProductRepository       KeyProductRepositoryInterface
-	centrifugo                 CentrifugoInterface
+	centrifugoPaymentForm      CentrifugoInterface
+	centrifugoDashboard        CentrifugoInterface
 	formatter                  paysuper_i18n.Formatter
 	reporterService            reporterProto.ReporterService
 	postmarkBroker             rabbitmq.BrokerInterface

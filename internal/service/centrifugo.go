@@ -19,15 +19,25 @@ type Centrifugo struct {
 	centrifugoClient *gocent.Client
 }
 
-func newCentrifugo(svc *Service) CentrifugoInterface {
-	s := &Centrifugo{svc: svc}
-	s.centrifugoClient = gocent.New(
+func newCentrifugo(svc *Service) (CentrifugoInterface, CentrifugoInterface) {
+	centrifugoPaymentForm := &Centrifugo{svc: svc}
+	centrifugoPaymentForm.centrifugoClient = gocent.New(
 		gocent.Config{
-			Addr:       s.svc.cfg.CentrifugoURL,
-			Key:        s.svc.cfg.CentrifugoApiSecret,
+			Addr:       svc.cfg.CentrifugoURLPaymentForm,
+			Key:        svc.cfg.CentrifugoApiSecretPaymentForm,
 			HTTPClient: tools.NewLoggedHttpClient(zap.S()),
 		},
 	)
+
+	centrifugoDashboard := &Centrifugo{svc: svc}
+	centrifugoDashboard.centrifugoClient = gocent.New(
+		gocent.Config{
+			Addr:       svc.cfg.CentrifugoURLDashboard,
+			Key:        svc.cfg.CentrifugoApiSecretDashboard,
+			HTTPClient: tools.NewLoggedHttpClient(zap.S()),
+		},
+	)
+
 	return s
 }
 
