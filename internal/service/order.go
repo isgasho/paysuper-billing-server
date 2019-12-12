@@ -451,6 +451,13 @@ func (s *Service) OrderCreateProcess(
 				rsp.Message = e
 				return nil
 			}
+
+			if err == grpc.ProductNoPriceInCurrencyError {
+				rsp.Status = pkg.ResponseStatusBadData
+				rsp.Message = productNoPriceInCurrencyError
+				return nil
+			}
+
 			return err
 		}
 		break
@@ -3612,25 +3619,24 @@ func (s *Service) processAmountForVirtualCurrency(
 
 	virtualAmount, err := s.GetOrderProductsAmount(orderProducts, &billing.PriceGroup{Currency: grpc.VirtualCurrencyPriceGroup})
 	if err != nil {
-		if err != grpc.ProductNoPriceInCurrencyError {
-			return 0, nil, err
-		}
+		zap.L().Error(pkg.MethodFinishedWithError, zap.Error(err))
+		return 0, nil, err
+	}
 
+	amount, err = s.GetAmountForVirtualCurrency(virtualAmount, usedPriceGroup, project.VirtualCurrency.Prices)
+	if err != nil {
+		zap.L().Error(pkg.MethodFinishedWithError, zap.Error(err))
 		if priceGroup.Id == defaultPriceGroup.Id {
 			return 0, nil, err
 		}
 
 		// try to get order Amount in fallback currency
 		usedPriceGroup = defaultPriceGroup
-		amount, err = s.GetOrderProductsAmount(orderProducts, defaultPriceGroup)
+		amount, err = s.GetAmountForVirtualCurrency(virtualAmount, usedPriceGroup, project.VirtualCurrency.Prices)
 		if err != nil {
+			zap.L().Error(pkg.MethodFinishedWithError, zap.Error(err))
 			return 0, nil, err
 		}
-	}
-
-	amount, err = s.GetAmountForVirtualCurrency(virtualAmount, usedPriceGroup, project.VirtualCurrency.Prices)
-	if err != nil {
-		return 0, nil, err
 	}
 
 	return amount, usedPriceGroup, nil
@@ -3998,6 +4004,28 @@ func (s *Service) PaymentFormPlatformChanged(ctx context.Context, req *grpc.Paym
 			s.notifyPaylinkError(ctx, pid, err, req, order)
 		}
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
+	}
+
+	processor := &OrderCreateRequestProcessor{Service: s, ctx: ctx}
+	err = processor.processOrderVat(order)
+	if err != nil {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error(), "method", "processOrderVat")
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Message = e
+			return nil
+		}
+		return err
+	}
+
+	err = s.setOrderChargeAmountAndCurrency(ctx, order)
+	if err != nil {
 		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = e

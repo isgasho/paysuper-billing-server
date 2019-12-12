@@ -209,7 +209,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_CreateRoyaltyReport_AllMe
 	assert.NoError(suite.T(), err)
 
 	to := now.Monday().In(loc).Add(time.Duration(suite.service.cfg.RoyaltyReportPeriodEndHour) * time.Hour)
-	from := to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).In(loc)
+	from := to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).Add(1 * time.Millisecond).In(loc)
 
 	var reports []*billing.RoyaltyReport
 	cursor, err := suite.service.db.Collection(collectionRoyaltyReport).Find(context.TODO(), bson.M{"period_from": from, "period_to": to})
@@ -284,7 +284,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_CreateRoyaltyReport_Selec
 	assert.NoError(suite.T(), err)
 
 	to := now.Monday().In(loc).Add(time.Duration(suite.service.cfg.RoyaltyReportPeriodEndHour) * time.Hour)
-	from := to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).In(loc)
+	from := to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).Add(1 * time.Millisecond).In(loc)
 
 	for _, v := range reports {
 		assert.NotZero(suite.T(), v.Id)
@@ -381,7 +381,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_Ok() {
 	assert.NoError(suite.T(), err)
 
 	to := now.Monday().In(loc).Add(time.Duration(suite.service.cfg.RoyaltyReportPeriodEndHour) * time.Hour).Add(-time.Duration(168) * time.Hour)
-	from := to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).In(loc)
+	from := to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).Add(1 * time.Millisecond).In(loc)
 
 	oid, _ := primitive.ObjectIDFromHex(suite.project.GetMerchantId())
 	query := bson.M{"merchant_id": oid}
@@ -461,7 +461,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindBy
 	assert.NoError(suite.T(), err)
 
 	to := now.Monday().In(loc).Add(time.Duration(suite.service.cfg.RoyaltyReportPeriodEndHour) * time.Hour).Add(-time.Duration(168) * time.Hour)
-	from := to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).In(loc)
+	from := to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).Add(1 * time.Millisecond).In(loc)
 
 	oid, _ := primitive.ObjectIDFromHex(suite.project.GetMerchantId())
 	query := bson.M{"merchant_id": oid}

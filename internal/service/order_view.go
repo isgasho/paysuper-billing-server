@@ -44,8 +44,7 @@ type OrderViewServiceInterface interface {
 	CountTransactions(ctx context.Context, match bson.M) (n int64, err error)
 	GetTransactionsPublic(ctx context.Context, match bson.M, limit, offset int64) (result []*billing.OrderViewPublic, err error)
 	GetTransactionsPrivate(ctx context.Context, match bson.M, limit, offset int64) (result []*billing.OrderViewPrivate, err error)
-	GetRoyaltyOperatingCompaniesIds(ctx context.Context, merchantId, currency string, from, to time.Time) (ids []string, err error)
-	GetRoyaltySummary(ctx context.Context, merchantId, operatingCompanyId, currency string, from, to time.Time) (items []*billing.RoyaltyReportProductSummaryItem, total *billing.RoyaltyReportProductSummaryItem, err error)
+	GetRoyaltySummary(ctx context.Context, merchantId, currency string, from, to time.Time) (items []*billing.RoyaltyReportProductSummaryItem, total *billing.RoyaltyReportProductSummaryItem, err error)
 	GetOrderBy(ctx context.Context, id, uuid, merchantId string, receiver interface{}) (interface{}, error)
 	GetPaylinkStat(ctx context.Context, paylinkId, merchantId string, from, to int64) (*paylink.StatCommon, error)
 	GetPaylinkStatByCountry(ctx context.Context, paylinkId, merchantId string, from, to int64) (result *paylink.GroupStatCommon, err error)
@@ -3377,7 +3376,7 @@ func (ow *OrderView) getRoyaltySummaryGroupingQuery(isTotal bool) []bson.M {
 
 func (ow *OrderView) GetRoyaltySummary(
 	ctx context.Context,
-	merchantId, operatingCompanyId, currency string,
+	merchantId, currency string,
 	from, to time.Time,
 ) (items []*billing.RoyaltyReportProductSummaryItem, total *billing.RoyaltyReportProductSummaryItem, err error) {
 	items = []*billing.RoyaltyReportProductSummaryItem{}
@@ -3391,7 +3390,6 @@ func (ow *OrderView) GetRoyaltySummary(
 				"merchant_payout_currency": currency,
 				"pm_order_close_date":      bson.M{"$gte": from, "$lte": to},
 				"status":                   bson.M{"$in": statusForRoyaltySummary},
-				"operating_company_id":     operatingCompanyId,
 			},
 		},
 		{
@@ -3835,38 +3833,4 @@ func (ow *OrderView) paylinkStatItemPrecise(item *paylink.StatCommon) {
 	item.GrossSalesAmount = tools.ToPrecise(item.GrossSalesAmount)
 	item.GrossReturnsAmount = tools.ToPrecise(item.GrossReturnsAmount)
 	item.GrossTotalAmount = tools.ToPrecise(item.GrossTotalAmount)
-}
-
-func (ow *OrderView) GetRoyaltyOperatingCompaniesIds(
-	ctx context.Context,
-	merchantId, currency string,
-	from, to time.Time,
-) ([]string, error) {
-	oid, _ := primitive.ObjectIDFromHex(merchantId)
-	query := bson.M{
-		"merchant_id":              oid,
-		"merchant_payout_currency": currency,
-		"pm_order_close_date":      bson.M{"$gte": from, "$lte": to},
-		"status":                   bson.M{"$in": statusForRoyaltySummary},
-	}
-	res, err := ow.svc.db.Collection(collectionOrderView).Distinct(ctx, "operating_company_id", bson.M{})
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String("collection", collectionOrderView),
-			zap.Any("query", query),
-		)
-		return nil, err
-	}
-
-	ids := make([]string, len(res))
-
-	for i, v := range res {
-		//ids = append(ids, v.(string))
-		ids[i] = v.(string)
-	}
-
-	return ids, nil
 }
