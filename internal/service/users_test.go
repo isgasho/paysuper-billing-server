@@ -312,6 +312,19 @@ func (suite *UsersTestSuite) TestChangeAdminUserRole_Ok() {
 	shouldBe.EqualValues(pkg.ResponseStatusOk, res.Status)
 }
 
+func (suite *UsersTestSuite) TestChangeMerchantUserRole_Error_SetRoleOwner() {
+	shouldBe := require.New(suite.T())
+
+	res := &grpc.EmptyResponseWithStatus{}
+	err := suite.service.ChangeRoleForMerchantUser(context.TODO(), &grpc.ChangeRoleForMerchantUserRequest{
+		RoleId: primitive.NewObjectID().Hex(),
+		Role:   pkg.RoleMerchantOwner,
+	}, res)
+	shouldBe.NoError(err)
+	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(errorUserUnsupportedRoleType, res.Message)
+}
+
 func (suite *UsersTestSuite) TestChangeMerchantUserRole_Error_GetUser() {
 	shouldBe := require.New(suite.T())
 
@@ -415,4 +428,18 @@ func (suite *UsersTestSuite) TestChangeMerchantUserRole_Ok() {
 	}, res)
 	shouldBe.NoError(err)
 	shouldBe.EqualValues(pkg.ResponseStatusOk, res.Status)
+}
+
+func (suite *UsersTestSuite) TestInviteUserMerchant_Error_SetRoleOwner() {
+	shouldBe := require.New(suite.T())
+
+	res := &grpc.InviteUserMerchantResponse{}
+	err := suite.service.InviteUserMerchant(context.TODO(), &grpc.InviteUserMerchantRequest{
+		MerchantId: primitive.NewObjectID().Hex(),
+		Role:       pkg.RoleMerchantOwner,
+		Email:      "test@test.com",
+	}, res)
+	shouldBe.NoError(err)
+	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(errorUserUnsupportedRoleType, res.Message)
 }
