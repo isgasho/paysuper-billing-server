@@ -1,0 +1,211 @@
+[
+  {
+    "delete": "payment_min_limit_system",
+    "deletes": [
+      {
+        "q": {},
+        "limit": 0
+      }
+    ]
+  },
+  {
+    "insert": "payment_min_limit_system",
+    "documents": [
+      {
+        "currency": "USD",
+        "amount": 1.00
+      },
+      {
+        "currency": "GBP",
+        "amount": 0.75
+      },
+      {
+        "currency": "EUR",
+        "amount": 1.00
+      },
+      {
+        "currency": "RUB",
+        "amount": 65.00
+      },
+      {
+        "currency": "BRL",
+        "amount": 5.00
+      },
+      {
+        "currency": "JPY",
+        "amount": 100.00
+      },
+      {
+        "currency": "IDR",
+        "amount": 15000.00
+      },
+      {
+        "currency": "MYR",
+        "amount": 5.00
+      },
+      {
+        "currency": "PHP",
+        "amount": 50.00
+      },
+      {
+        "currency": "SGD",
+        "amount": 1.50
+      },
+      {
+        "currency": "THB",
+        "amount": 30.00
+      },
+      {
+        "currency": "VND",
+        "amount": 23000.00
+      },
+      {
+        "currency": "KRW",
+        "amount": 1200.00
+      },
+      {
+        "currency": "TRY",
+        "amount": 5.00
+      },
+      {
+        "currency": "MXN",
+        "amount": 20.00
+      },
+      {
+        "currency": "CAD",
+        "amount": 1.50
+      },
+      {
+        "currency": "AUD",
+        "amount": 1.50
+      },
+      {
+        "currency": "NZD",
+        "amount": 1.50
+      },
+      {
+        "currency": "NOK",
+        "amount": 10.00
+      },
+      {
+        "currency": "PLN",
+        "amount": 3.50
+      },
+      {
+        "currency": "CHF",
+        "amount": 1.00
+      },
+      {
+        "currency": "CNY",
+        "amount": 7.00
+      },
+      {
+        "currency": "INR",
+        "amount": 70.00
+      },
+      {
+        "currency": "CLP",
+        "amount": 800.00
+      },
+      {
+        "currency": "PEN",
+        "amount": 3.50
+      },
+      {
+        "currency": "COP",
+        "amount": 3500.00
+      },
+      {
+        "currency": "ZAR",
+        "amount": 15.00
+      },
+      {
+        "currency": "HKD",
+        "amount": 8.00
+      },
+      {
+        "currency": "TWD",
+        "amount": 30.00
+      },
+      {
+        "currency": "SAR",
+        "amount": 4.00
+      },
+      {
+        "currency": "AED",
+        "amount": 4.00
+      },
+      {
+        "currency": "ARS",
+        "amount": 60.00
+      },
+      {
+        "currency": "ILS",
+        "amount": 3.50
+      },
+      {
+        "currency": "KZT",
+        "amount": 400.00
+      },
+      {
+        "currency": "QAR",
+        "amount": 3.50
+      },
+      {
+        "currency": "CRC",
+        "amount": 600.00
+      },
+      {
+        "currency": "HRK",
+        "amount": 7.00
+      },
+      {
+        "currency": "CZK",
+        "amount": 25.00
+      },
+      {
+        "currency": "RSD",
+        "amount": 100.00
+      },
+      {
+        "currency": "RON",
+        "amount": 4.50
+      },
+      {
+        "currency": "EGP",
+        "amount": 17.00
+      },
+      {
+        "currency": "DKK",
+        "amount": 7.00
+      },
+      {
+        "currency": "HUF",
+        "amount": 300.00
+      },
+      {
+        "currency": "BHD",
+        "amount": 0.50
+      },
+      {
+        "currency": "SEK",
+        "amount": 10.00
+      }
+    ]
+  },
+  {
+    "update": "payment_min_limit_system",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$currentDate": {
+            "created_at": true,
+            "updated_at": true
+          }
+        },
+        "multi": true
+      }
+    ]
+  }
+]

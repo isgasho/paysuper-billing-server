@@ -45,6 +45,7 @@ var (
 	errorUserInviteAlreadyAccepted    = newBillingServerErrorMsg("uu000005", "user already accepted invite")
 	errorUserMerchantNotFound         = newBillingServerErrorMsg("uu000006", "merchant not found")
 	errorUserUnableToSendInvite       = newBillingServerErrorMsg("uu000007", "unable to send invite email")
+	errorUserConfirmEmail             = newBillingServerErrorMsg("uu000008", "unable to confirm email")
 	errorUserUnableToCreateToken      = newBillingServerErrorMsg("uu000009", "unable to create invite token")
 	errorUserInvalidToken             = newBillingServerErrorMsg("uu000010", "invalid token string")
 	errorUserInvalidInviteEmail       = newBillingServerErrorMsg("uu000011", "email in request and token are not equal")
@@ -59,7 +60,6 @@ var (
 	errorUserProfileNotFound          = newBillingServerErrorMsg("uu000021", "unable to get user profile")
 	errorUserEmptyNames               = newBillingServerErrorMsg("uu000022", "first and last names cannot be empty")
 	errorUserEmptyCompanyName         = newBillingServerErrorMsg("uu000023", "company name cannot be empty")
-	errorUserConfirmEmail             = newBillingServerErrorMsg("uu000023", "unable to confirm email")
 
 	merchantUserRoles = map[string][]*billing.RoleListItem{
 		pkg.RoleTypeMerchant: {
@@ -163,6 +163,14 @@ func (s *Service) InviteUserMerchant(
 	req *grpc.InviteUserMerchantRequest,
 	res *grpc.InviteUserMerchantResponse,
 ) error {
+	if req.Role == pkg.RoleMerchantOwner {
+		zap.L().Error(errorUserUnsupportedRoleType.Message, zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserUnsupportedRoleType
+
+		return nil
+	}
+
 	merchant, err := s.merchant.GetById(ctx, req.MerchantId)
 
 	if err != nil {
@@ -681,6 +689,14 @@ func (s *Service) sendInviteEmail(receiverEmail, senderEmail, senderFirstName, s
 }
 
 func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.ChangeRoleForMerchantUserRequest, res *grpc.EmptyResponseWithStatus) error {
+	if req.Role == pkg.RoleMerchantOwner {
+		zap.L().Error(errorUserUnsupportedRoleType.Message, zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserUnsupportedRoleType
+
+		return nil
+	}
+
 	user, err := s.userRoleRepository.GetMerchantUserById(ctx, req.RoleId)
 
 	if err != nil || user.MerchantId != req.MerchantId {
