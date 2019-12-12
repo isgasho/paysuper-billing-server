@@ -133,8 +133,8 @@ type accountingEntry struct {
 }
 
 type AccountingServiceInterface interface {
-	GetCorrectionsForRoyaltyReport(ctx context.Context, merchantId, operatingCompanyId, currency string, from, to time.Time) (items []*billing.AccountingEntry, err error)
-	GetRollingReservesForRoyaltyReport(ctx context.Context, merchantId, operatingCompanyId, currency string, from, to time.Time) (items []*billing.AccountingEntry, err error)
+	GetCorrectionsForRoyaltyReport(ctx context.Context, merchantId, currency string, from, to time.Time) (items []*billing.AccountingEntry, err error)
+	GetRollingReservesForRoyaltyReport(ctx context.Context, merchantId, currency string, from, to time.Time) (items []*billing.AccountingEntry, err error)
 }
 
 func newAccounting(svc *Service) AccountingServiceInterface {
@@ -1303,16 +1303,15 @@ func (h *accountingEntry) getOperatingCompanyId() string {
 
 func (a *Accounting) GetCorrectionsForRoyaltyReport(
 	ctx context.Context,
-	merchantId, operatingCompanyId, currency string,
+	merchantId, currency string,
 	from, to time.Time,
 ) (items []*billing.AccountingEntry, err error) {
 	id, err := primitive.ObjectIDFromHex(merchantId)
 	query := bson.M{
-		"merchant_id":          id,
-		"currency":             currency,
-		"created_at":           bson.M{"$gte": from, "$lte": to},
-		"type":                 pkg.AccountingEntryTypeMerchantRoyaltyCorrection,
-		"operating_company_id": operatingCompanyId,
+		"merchant_id": id,
+		"currency":    currency,
+		"created_at":  bson.M{"$gte": from, "$lte": to},
+		"type":        pkg.AccountingEntryTypeMerchantRoyaltyCorrection,
 	}
 
 	sorts := bson.M{"created_at": 1}
@@ -1347,16 +1346,15 @@ func (a *Accounting) GetCorrectionsForRoyaltyReport(
 
 func (a Accounting) GetRollingReservesForRoyaltyReport(
 	ctx context.Context,
-	merchantId, operatingCompanyId, currency string,
+	merchantId, currency string,
 	from, to time.Time,
 ) (items []*billing.AccountingEntry, err error) {
 	id, err := primitive.ObjectIDFromHex(merchantId)
 	query := bson.M{
-		"merchant_id":          id,
-		"currency":             currency,
-		"created_at":           bson.M{"$gte": from, "$lte": to},
-		"type":                 bson.M{"$in": rollingReserveAccountingEntriesList},
-		"operating_company_id": operatingCompanyId,
+		"merchant_id": id,
+		"currency":    currency,
+		"created_at":  bson.M{"$gte": from, "$lte": to},
+		"type":        bson.M{"$in": rollingReserveAccountingEntriesList},
 	}
 
 	sorts := bson.M{"created_at": 1}

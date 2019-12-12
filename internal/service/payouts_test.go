@@ -508,7 +508,7 @@ func (suite *PayoutsTestSuite) helperInsertPayoutDocuments(data []*billing.Payou
 func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Ok_NoPayoutsYet() {
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report1, suite.report6})
 
-	reports, err := suite.service.getPayoutDocumentSources(context.TODO(), suite.merchant, suite.operatingCompany.Id)
+	reports, err := suite.service.getPayoutDocumentSources(context.TODO(), suite.merchant)
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), reports, 2)
 }
@@ -516,20 +516,20 @@ func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Ok_NoPayouts
 func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Ok_FilteringByCurrency() {
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report1, suite.report5, suite.report6})
 
-	reports, err := suite.service.getPayoutDocumentSources(context.TODO(), suite.merchant, suite.operatingCompany.Id)
+	reports, err := suite.service.getPayoutDocumentSources(context.TODO(), suite.merchant)
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), reports, 2)
 }
 
 func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Fail_NotFound() {
-	reports, err := suite.service.getPayoutDocumentSources(context.TODO(), suite.merchant, suite.operatingCompany.Id)
+	reports, err := suite.service.getPayoutDocumentSources(context.TODO(), suite.merchant)
 	assert.EqualError(suite.T(), err, errorPayoutSourcesNotFound.Error())
 	assert.Len(suite.T(), reports, 0)
 }
 
 func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Fail_MerchantNotFound() {
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report1, suite.report6})
-	reports, err := suite.service.getPayoutDocumentSources(context.TODO(), &billing.Merchant{Id: primitive.NewObjectID().Hex()}, suite.operatingCompany.Id)
+	reports, err := suite.service.getPayoutDocumentSources(context.TODO(), &billing.Merchant{Id: primitive.NewObjectID().Hex()})
 	assert.EqualError(suite.T(), err, errorPayoutSourcesNotFound.Error())
 	assert.Len(suite.T(), reports, 0)
 }
@@ -537,7 +537,7 @@ func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Fail_Merchan
 func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Fail_HasPendingReports() {
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report1, suite.report3})
 
-	reports, err := suite.service.getPayoutDocumentSources(context.TODO(), suite.merchant, suite.operatingCompany.Id)
+	reports, err := suite.service.getPayoutDocumentSources(context.TODO(), suite.merchant)
 	assert.EqualError(suite.T(), err, errorPayoutSourcesPending.Error())
 	assert.Len(suite.T(), reports, 0)
 }
@@ -545,7 +545,7 @@ func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Fail_HasPend
 func (suite *PayoutsTestSuite) TestPayouts_getPayoutDocumentSources_Fail_HasDisputingReports() {
 	suite.helperInsertRoyaltyReports([]*billing.RoyaltyReport{suite.report1, suite.report7})
 
-	reports, err := suite.service.getPayoutDocumentSources(context.TODO(), suite.merchant, suite.operatingCompany.Id)
+	reports, err := suite.service.getPayoutDocumentSources(context.TODO(), suite.merchant)
 	assert.EqualError(suite.T(), err, errorPayoutSourcesDispute.Error())
 	assert.Len(suite.T(), reports, 0)
 }
