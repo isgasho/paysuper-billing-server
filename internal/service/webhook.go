@@ -118,10 +118,33 @@ func (s *Service) SendWebhookToMerchant(ctx context.Context, req *billing.OrderC
 		}
 	}
 
+	err := processor.processCurrency(req.Type)
+	if err != nil {
+		zap.L().Error("process currency failed", zap.Error(err))
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			res.Status = pkg.ResponseStatusBadData
+			res.Message = e
+			return nil
+		}
+		return err
+	}
+
 	if processor.checked.currency == "" {
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = orderErrorCurrencyIsRequired
 		return nil
+	}
+
+	if req.OrderId != "" {
+		if err := processor.processProjectOrderId(); err != nil {
+			zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
+			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+				res.Status = pkg.ResponseStatusBadData
+				res.Message = e
+				return nil
+			}
+			return err
+		}
 	}
 
 	processor.processMetadata()
