@@ -343,7 +343,7 @@ const (
 	TestCaseNonExistingUser = "non_existing_user"
 	TestCaseExistingUser = "existing_user"
 	TestCaseCorrectPayment = "correct_payment"
-	TestCaseIncorrectPayment = "incorrect_payment"
+	TestCaseIncorrectPayment = "invalid_signature"
 
 	RoleMerchantOwner      = "merchant_owner"
 	RoleMerchantDeveloper  = "merchant_developer"
