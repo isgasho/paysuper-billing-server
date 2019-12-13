@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"github.com/centrifugal/gocent"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"go.uber.org/zap"
+	"net/http"
 )
 
 type CentrifugoInterface interface {
 	Publish(context.Context, string, interface{}) error
-	GetChannelToken(subject string, expire int64) string
+	GetChannelToken(secret, subject string, expire int64) string
 }
 
 type Centrifugo struct {
@@ -19,26 +19,30 @@ type Centrifugo struct {
 	centrifugoClient *gocent.Client
 }
 
-func newCentrifugo(svc *Service) (CentrifugoInterface, CentrifugoInterface) {
-	centrifugoPaymentForm := &Centrifugo{svc: svc}
-	centrifugoPaymentForm.centrifugoClient = gocent.New(
-		gocent.Config{
-			Addr:       svc.cfg.CentrifugoURLPaymentForm,
-			Key:        svc.cfg.CentrifugoApiSecretPaymentForm,
-			HTTPClient: tools.NewLoggedHttpClient(zap.S()),
-		},
-	)
+func newCentrifugo(svc *Service, httpClient *http.Client) (CentrifugoInterface, CentrifugoInterface) {
+	centrifugoPaymentForm := &Centrifugo{
+		svc: svc,
+		centrifugoClient: gocent.New(
+			gocent.Config{
+				Addr:       svc.cfg.CentrifugoURLPaymentForm,
+				Key:        svc.cfg.CentrifugoApiSecretPaymentForm,
+				HTTPClient: httpClient,
+			},
+		),
+	}
 
-	centrifugoDashboard := &Centrifugo{svc: svc}
-	centrifugoDashboard.centrifugoClient = gocent.New(
-		gocent.Config{
-			Addr:       svc.cfg.CentrifugoURLDashboard,
-			Key:        svc.cfg.CentrifugoApiSecretDashboard,
-			HTTPClient: tools.NewLoggedHttpClient(zap.S()),
-		},
-	)
+	centrifugoDashboard := &Centrifugo{
+		svc: svc,
+		centrifugoClient: gocent.New(
+			gocent.Config{
+				Addr:       svc.cfg.CentrifugoURLDashboard,
+				Key:        svc.cfg.CentrifugoApiSecretDashboard,
+				HTTPClient: httpClient,
+			},
+		),
+	}
 
-	return s
+	return centrifugoPaymentForm, centrifugoDashboard
 }
 
 func (c *Centrifugo) Publish(ctx context.Context, channel string, msg interface{}) error {
@@ -57,9 +61,9 @@ func (c *Centrifugo) Publish(ctx context.Context, channel string, msg interface{
 	return c.centrifugoClient.Publish(ctx, channel, b)
 }
 
-func (c *Centrifugo) GetChannelToken(subject string, expire int64) string {
+func (c *Centrifugo) GetChannelToken(secret, subject string, expire int64) string {
 	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": subject, "exp": expire})
-	token, err := claims.SignedString([]byte(c.svc.cfg.CentrifugoSecret))
+	token, err := claims.SignedString([]byte(secret))
 
 	if err != nil {
 		zap.L().Error(

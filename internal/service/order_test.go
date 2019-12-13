@@ -1986,7 +1986,8 @@ func (suite *OrderTestSuite) SetupTest() {
 	centrifugoMock := &mocks.CentrifugoInterface{}
 	centrifugoMock.On("GetChannelToken", mock.Anything, mock.Anything).Return("token")
 	centrifugoMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	suite.service.centrifugo = centrifugoMock
+	suite.service.centrifugoDashboard = centrifugoMock
+	suite.service.centrifugoPaymentForm = centrifugoMock
 
 	var core zapcore.Core
 
@@ -5112,6 +5113,9 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Ok() {
 		Signature: hex.EncodeToString(hash.Sum(nil)),
 	}
 
+	zap.ReplaceGlobals(suite.logObserver)
+	suite.service.centrifugoPaymentForm, suite.service.centrifugoDashboard = newCentrifugo(suite.service, mocks.NewClientStatusOk())
+
 	callbackResponse := &grpc.PaymentNotifyResponse{}
 	err = suite.service.PaymentCallbackProcess(context.TODO(), callbackData, callbackResponse)
 	assert.Nil(suite.T(), err)
@@ -5136,6 +5140,9 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Ok() {
 	assert.Equal(suite.T(), order2.PaymentMethod.Card.ExpiryYear, expireYear.Format("2006"))
 	assert.Equal(suite.T(), order2.PaymentMethod.Card.Secure3D, true)
 	assert.NotEmpty(suite.T(), order2.PaymentMethod.Card.Fingerprint)
+
+	messages := suite.zapRecorder.All()
+	assert.Regexp(suite.T(), "payment_from", messages[0].Message)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Recurring_Ok() {
@@ -8213,7 +8220,8 @@ func (suite *OrderTestSuite) TestOrder_DeclineOrder_Ok() {
 	centrifugoMock := &mocks.CentrifugoInterface{}
 	centrifugoMock.On("GetChannelToken", mock.Anything, mock.Anything).Return("token")
 	centrifugoMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(centrifugoPublishMockFn)
-	suite.service.centrifugo = centrifugoMock
+	suite.service.centrifugoDashboard = centrifugoMock
+	suite.service.centrifugoPaymentForm = centrifugoMock
 
 	req3 := &grpc.PaymentNotifyRequest{
 		OrderId:   order.Id,
@@ -8340,7 +8348,8 @@ func (suite *OrderTestSuite) TestOrder_SuccessOrderCentrifugoPaymentSystemError_
 	centrifugoMock := &mocks.CentrifugoInterface{}
 	centrifugoMock.On("GetChannelToken", mock.Anything, mock.Anything).Return("token")
 	centrifugoMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(centrifugoPublishMockFn)
-	suite.service.centrifugo = centrifugoMock
+	suite.service.centrifugoDashboard = centrifugoMock
+	suite.service.centrifugoPaymentForm = centrifugoMock
 
 	req3 := &grpc.PaymentNotifyRequest{
 		OrderId:   order.Id,

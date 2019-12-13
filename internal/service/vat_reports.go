@@ -445,7 +445,7 @@ func (s *Service) updateVatReport(ctx context.Context, vr *billing.VatReport) er
 	}
 
 	if contains(VatReportOnStatusNotifyToCentrifugo, vr.Status) {
-		if err = s.centrifugo.Publish(ctx, s.cfg.CentrifugoFinancierChannel, vr); err != nil {
+		if err = s.centrifugoDashboard.Publish(ctx, s.cfg.CentrifugoFinancierChannel, vr); err != nil {
 			return err
 		}
 	}

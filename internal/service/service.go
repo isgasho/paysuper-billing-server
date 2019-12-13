@@ -183,7 +183,7 @@ func (s *Service) Init() (err error) {
 	s.userRoleRepository = newUserRoleRepository(s)
 	s.userProfileRepository = newUserProfileRepository(s)
 	s.keyProductRepository = newKeyProductRepository(s)
-	s.centrifugo = newCentrifugo(s)
+	s.centrifugoPaymentForm, s.centrifugoDashboard = newCentrifugo(s, tools.NewLoggedHttpClient(zap.S()))
 	s.paylinkService = newPaylinkService(s)
 	s.operatingCompany = newOperatingCompanyService(s)
 	s.paymentMinLimitSystem = newPaymentMinLimitSystem(s)
@@ -236,7 +236,7 @@ func (s *Service) logError(msg string, data []interface{}) {
 	zap.S().Errorw(msg, data...)
 }
 
-func (s *Service) UpdateOrder(ctx context.Context, req *billing.Order, rsp *grpc.EmptyResponse) error {
+func (s *Service) UpdateOrder(ctx context.Context, req *billing.Order, _ *grpc.EmptyResponse) error {
 	err := s.updateOrder(ctx, req)
 
 	if err != nil {
@@ -246,7 +246,7 @@ func (s *Service) UpdateOrder(ctx context.Context, req *billing.Order, rsp *grpc
 	return nil
 }
 
-func (s *Service) UpdateMerchant(ctx context.Context, req *billing.Merchant, rsp *grpc.EmptyResponse) error {
+func (s *Service) UpdateMerchant(ctx context.Context, req *billing.Merchant, _ *grpc.EmptyResponse) error {
 	err := s.merchant.Update(ctx, req)
 
 	if err != nil {

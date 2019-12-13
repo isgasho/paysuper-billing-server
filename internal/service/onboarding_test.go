@@ -655,7 +655,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 	centrifugoMock := &mocks.CentrifugoInterface{}
 	centrifugoMock.On("GetChannelToken", mock2.Anything, mock2.Anything).Return("token")
 	centrifugoMock.On("Publish", mock2.Anything, mock2.Anything, mock2.Anything).Return(nil)
-	suite.service.centrifugo = centrifugoMock
+	suite.service.centrifugoDashboard = centrifugoMock
 }
 
 func (suite *OnboardingTestSuite) TearDownTest() {
@@ -2239,7 +2239,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantS3Agreement_Ok() {
 	assert.Empty(suite.T(), rsp.S3AgreementName)
 
 	zap.ReplaceGlobals(suite.logObserver)
-	suite.service.centrifugo = &Centrifugo{
+	suite.service.centrifugoDashboard = &Centrifugo{
 		svc: suite.service,
 		centrifugoClient: gocent.New(
 			gocent.Config{
@@ -3468,7 +3468,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_AddNotific
 	centrifugoMock := &mocks.CentrifugoInterface{}
 	centrifugoMock.On("GetChannelToken", mock2.Anything, mock2.Anything).Return("token")
 	centrifugoMock.On("Publish", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New("some error"))
-	suite.service.centrifugo = centrifugoMock
+	suite.service.centrifugoDashboard = centrifugoMock
 
 	rsp := &grpc.ChangeMerchantStatusResponse{}
 	err := suite.service.ChangeMerchantStatus(context.TODO(), req, rsp)
@@ -3521,7 +3521,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantData_AddNotificat
 	centrifugoMock := &mocks.CentrifugoInterface{}
 	centrifugoMock.On("GetChannelToken", mock2.Anything, mock2.Anything).Return("token")
 	centrifugoMock.On("Publish", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New("some error"))
-	suite.service.centrifugo = centrifugoMock
+	suite.service.centrifugoDashboard = centrifugoMock
 
 	err := suite.service.ChangeMerchantData(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
@@ -3622,7 +3622,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantS3Agreement_Agreemen
 	centrifugoMock := &mocks.CentrifugoInterface{}
 	centrifugoMock.On("GetChannelToken", mock2.Anything, mock2.Anything).Return("token")
 	centrifugoMock.On("Publish", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New("some error"))
-	suite.service.centrifugo = centrifugoMock
+	suite.service.centrifugoDashboard = centrifugoMock
 
 	ocRep := &mocks.OperatingCompanyInterface{}
 	ocRep.On("GetById", mock2.Anything, mock2.Anything).Return(&billing.OperatingCompany{SignatoryName: "name", Email: "email"}, nil)

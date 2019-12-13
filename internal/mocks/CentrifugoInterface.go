@@ -11,7 +11,7 @@ type CentrifugoInterface struct {
 }
 
 // GetChannelToken provides a mock function with given fields: subject, expire
-func (_m *CentrifugoInterface) GetChannelToken(subject string, expire int64) string {
+func (_m *CentrifugoInterface) GetChannelToken(secret, subject string, expire int64) string {
 	ret := _m.Called(subject, expire)
 
 	var r0 string

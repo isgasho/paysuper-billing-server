@@ -52,6 +52,9 @@ type RoyaltyReportTestSuite struct {
 
 	paymentMethod *billing.PaymentMethod
 	paymentSystem *billing.PaymentSystem
+
+	logObserver *zap.Logger
+	zapRecorder *observer.ObservedLogs
 }
 
 func Test_RoyaltyReport(t *testing.T) {
@@ -168,6 +171,12 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 	if err != nil {
 		suite.FailNow("Insert projects test data failed", "%v", err)
 	}
+
+	var core zapcore.Core
+
+	lvl := zap.NewAtomicLevel()
+	core, suite.zapRecorder = observer.New(lvl)
+	suite.logObserver = zap.New(core)
 }
 
 func (suite *RoyaltyReportTestSuite) TearDownTest() {
@@ -557,6 +566,9 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_Ok() 
 	assert.NotNil(suite.T(), report)
 	assert.Equal(suite.T(), pkg.RoyaltyReportStatusPending, report.Status)
 
+	zap.ReplaceGlobals(suite.logObserver)
+	suite.service.centrifugoPaymentForm, suite.service.centrifugoDashboard = newCentrifugo(suite.service, mocks.NewClientStatusOk())
+
 	req1 := &grpc.ChangeRoyaltyReportRequest{
 		ReportId:   report.Id,
 		MerchantId: report.MerchantId,
@@ -568,6 +580,9 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_Ok() 
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)
+
+	messages := suite.zapRecorder.All()
+	assert.Regexp(suite.T(), "dashboard", messages[0].Message)
 
 	oid, err := primitive.ObjectIDFromHex(report.Id)
 	assert.NoError(suite.T(), err)
@@ -954,7 +969,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_SendRoyaltyReportNotifica
 
 	ci := &mocks.CentrifugoInterface{}
 	ci.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("error"))
-	suite.service.centrifugo = ci
+	suite.service.centrifugoDashboard = ci
 
 	core, recorded := observer.New(zapcore.ErrorLevel)
 	logger := zap.New(core)
@@ -972,7 +987,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_AutoAcceptRoyaltyReports_
 
 	ci := &mocks.CentrifugoInterface{}
 	ci.On("Publish", mock2.Anything, mock2.Anything, mock2.Anything).Return(nil)
-	suite.service.centrifugo = ci
+	suite.service.centrifugoDashboard = ci
 
 	for _, v := range projects {
 		for i := 0; i < 5; i++ {
