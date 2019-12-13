@@ -91,7 +91,7 @@ message OrderCreateRequest {
     //@inject_tag: bson:"-" json:"-"
     bool is_buy_for_virtual_currency = 39;
     string cookie = 40;
-    //@inject_tag: bson:"testing_case" json:"testing_case" validate:"omitempty,oneof=keys non_existing_user existing_user incorrect_payment"
+    //@inject_tag: bson:"testing_case" json:"testing_case" validate:"omitempty,oneof=correct_payment non_existing_user existing_user incorrect_signature"
     string testing_case = 41;
 }
 
