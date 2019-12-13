@@ -44,7 +44,7 @@ jobs:
       --logpath ${PWD}/mongodb-linux-x86_64-${MONGODB}/mongodb.log --fork"
     script:
     - go test ./... -coverprofile=coverage.out -covermode=atomic -p=1
-    - sonar-scanner
+    #- sonar-scanner
     after_script:
     - pkill mongod
     after_success:
