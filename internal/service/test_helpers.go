@@ -140,7 +140,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 
 	merchant := helperCreateMerchant(suite, service, "USD", "RU", pmBankCard, 0, operatingCompany.Id)
 
-	projectFixedAmount := helperCreateProject(suite, service, merchant.Id)
+	projectFixedAmount := helperCreateProject(suite, service, merchant.Id, pkg.VatPayerBuyer)
 
 	bin := &BinData{
 		Id:                 primitive.NewObjectID(),
@@ -490,6 +490,7 @@ func helperCreateMerchant(
 		},
 		MccCode:            pkg.MccCodeLowRisk,
 		OperatingCompanyId: operatingCompanyId,
+		DontChargeVat:      false,
 	}
 
 	if paymentMethod != nil {
@@ -736,6 +737,7 @@ func helperCreateProject(
 	suite suite.Suite,
 	service *Service,
 	merchantId string,
+	vatPayer string,
 ) *billing.Project {
 	project := &billing.Project{
 		Id:                       primitive.NewObjectID().Hex(),
@@ -750,6 +752,7 @@ func helperCreateProject(
 		SecretKey:                "test project 1 secret key",
 		Status:                   pkg.ProjectStatusDraft,
 		MerchantId:               merchantId,
+		VatPayer:                 vatPayer,
 	}
 
 	if err := service.project.Insert(context.TODO(), project); err != nil {

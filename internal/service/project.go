@@ -34,6 +34,7 @@ var (
 	projectErrorVirtualCurrencyLimitsIncorrect                   = newBillingServerErrorMsg("pr000011", `project virtual currency purchase limits is incorrect`)
 	projectErrorShortDescriptionDefaultLangRequired              = newBillingServerErrorMsg("pr000012", "project short description in \""+DefaultLanguage+"\" locale is required")
 	projectErrorFullDescriptionDefaultLangRequired               = newBillingServerErrorMsg("pr000013", "project full description in \""+DefaultLanguage+"\" locale is required")
+	projectErrorVatPayerUnknown                                  = newBillingServerErrorMsg("pr000014", "project vat payer unknown")
 )
 
 func (s *Service) ChangeProject(
@@ -156,6 +157,19 @@ func (s *Service) ChangeProject(
 		rsp.Message = projectErrorUnknown
 
 		return nil
+	}
+
+	if merchant.DontChargeVat == true {
+		project.VatPayer = pkg.VatPayerNobody
+	} else {
+		if req.VatPayer != pkg.VatPayerBuyer && req.VatPayer != pkg.VatPayerSeller {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = projectErrorVatPayerUnknown
+
+			return nil
+		}
+
+		project.VatPayer = req.VatPayer
 	}
 
 	rsp.Status = pkg.ResponseStatusOk

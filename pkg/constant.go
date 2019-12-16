@@ -359,6 +359,10 @@ const (
 	AdminCompanyUrl            = "%s/merchants/%s/company-info"
 	AdminOnboardingRequestsUrl = "%s/agreement-requests"
 	UserInviteUrl              = "%s/login?invite_token=%s"
+
+	VatPayerBuyer  = "buyer"
+	VatPayerSeller = "seller"
+	VatPayerNobody = "nobody"
 )
 
 var (
