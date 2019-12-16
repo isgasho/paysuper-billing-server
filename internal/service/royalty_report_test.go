@@ -567,7 +567,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_Ok() 
 	assert.Equal(suite.T(), pkg.RoyaltyReportStatusPending, report.Status)
 
 	zap.ReplaceGlobals(suite.logObserver)
-	suite.service.centrifugoPaymentForm, suite.service.centrifugoDashboard = newCentrifugo(suite.service, mocks.NewClientStatusOk())
+	suite.service.centrifugoDashboard = newCentrifugo(suite.service.cfg.CentrifugoDashboard, mocks.NewClientStatusOk())
 
 	req1 := &grpc.ChangeRoyaltyReportRequest{
 		ReportId:   report.Id,

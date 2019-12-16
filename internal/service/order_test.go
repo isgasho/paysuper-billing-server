@@ -5114,7 +5114,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Ok() {
 	}
 
 	zap.ReplaceGlobals(suite.logObserver)
-	suite.service.centrifugoPaymentForm, suite.service.centrifugoDashboard = newCentrifugo(suite.service, mocks.NewClientStatusOk())
+	suite.service.centrifugoPaymentForm = newCentrifugo(suite.service.cfg.CentrifugoPaymentForm, mocks.NewClientStatusOk())
 
 	callbackResponse := &grpc.PaymentNotifyResponse{}
 	err = suite.service.PaymentCallbackProcess(context.TODO(), callbackData, callbackResponse)
@@ -5142,7 +5142,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Ok() {
 	assert.NotEmpty(suite.T(), order2.PaymentMethod.Card.Fingerprint)
 
 	messages := suite.zapRecorder.All()
-	assert.Regexp(suite.T(), "payment_from", messages[0].Message)
+	assert.Regexp(suite.T(), "payment_form", messages[0].Message)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Recurring_Ok() {

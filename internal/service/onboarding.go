@@ -112,7 +112,7 @@ func (s *Service) GetMerchantBy(
 	}
 
 	merchant.CentrifugoToken = s.centrifugoDashboard.GetChannelToken(
-		s.cfg.CentrifugoSecretDashboard,
+		s.cfg.CentrifugoDashboard.Secret,
 		merchant.Id,
 		time.Now().Add(time.Hour*3).Unix(),
 	)
@@ -432,7 +432,7 @@ func (s *Service) ChangeMerchant(
 	}
 
 	merchant.CentrifugoToken = s.centrifugoDashboard.GetChannelToken(
-		s.cfg.CentrifugoSecretDashboard,
+		s.cfg.CentrifugoDashboard.Secret,
 		merchant.Id,
 		time.Now().Add(time.Hour*3).Unix(),
 	)

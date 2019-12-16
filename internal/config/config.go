@@ -55,12 +55,9 @@ type EmailTemplates struct {
 }
 
 type Centrifugo struct {
-	CentrifugoApiSecretPaymentForm string `envconfig:"CENTRIFUGO_API_SECRET_PAYMENT_FORM" required:"true"`
-	CentrifugoSecretPaymentForm    string `envconfig:"CENTRIFUGO_SECRET_PAYMENT_FORM" required:"true"`
-	CentrifugoURLPaymentForm       string `envconfig:"CENTRIFUGO_URL_PAYMENT_FORM" required:"false" default:"http://127.0.0.1:8000"`
-	CentrifugoApiSecretDashboard   string `envconfig:"CENTRIFUGO_API_SECRET_DASHBOARD" required:"true"`
-	CentrifugoSecretDashboard      string `envconfig:"CENTRIFUGO_SECRET_DASHBOARD" required:"true"`
-	CentrifugoURLDashboard         string `envconfig:"CENTRIFUGO_URL_DASHBOARD" required:"false" default:"http://127.0.0.1:8000"`
+	ApiSecret string `required:"true"`
+	Secret    string `required:"true"`
+	URL       string `default:"http://127.0.0.1:8000"`
 }
 
 type Config struct {
@@ -111,7 +108,9 @@ type Config struct {
 	*CustomerTokenConfig
 	*CacheRedis
 	*EmailTemplates
-	*Centrifugo
+
+	CentrifugoPaymentForm *Centrifugo `envconfig:"CENTRIFUGO_PAYMENT_FORM"`
+	CentrifugoDashboard   *Centrifugo `envconfig:"CENTRIFUGO_DASHBOARD"`
 
 	EmailConfirmUrlParsed    *url.URL
 	RedirectUrlSuccessParsed *url.URL
@@ -125,6 +124,7 @@ type Config struct {
 func NewConfig() (*Config, error) {
 	cfg := &Config{}
 	err := envconfig.Process("", cfg)
+
 	if err != nil {
 		return nil, err
 	}

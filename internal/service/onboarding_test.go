@@ -2240,7 +2240,6 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantS3Agreement_Ok() {
 
 	zap.ReplaceGlobals(suite.logObserver)
 	suite.service.centrifugoDashboard = &Centrifugo{
-		svc: suite.service,
 		centrifugoClient: gocent.New(
 			gocent.Config{
 				Addr:       "http://localhost",

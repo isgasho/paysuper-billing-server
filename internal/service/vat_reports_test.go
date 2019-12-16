@@ -309,7 +309,7 @@ func (suite *VatReportsTestSuite) TestVatReports_ProcessVatReports() {
 
 func (suite *VatReportsTestSuite) TestVatReports_PaymentDateSet() {
 	zap.ReplaceGlobals(suite.logObserver)
-	suite.service.centrifugoPaymentForm, suite.service.centrifugoDashboard = newCentrifugo(suite.service, mocks.NewClientStatusOk())
+	suite.service.centrifugoDashboard = newCentrifugo(suite.service.cfg.CentrifugoDashboard, mocks.NewClientStatusOk())
 
 	nowTimestamp := time.Now().Unix()
 

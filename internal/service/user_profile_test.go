@@ -601,7 +601,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_Ok() {
 	assert.Contains(suite.T(), p, "token")
 
 	zap.ReplaceGlobals(suite.logObserver)
-	suite.service.centrifugoPaymentForm, suite.service.centrifugoDashboard = newCentrifugo(suite.service, mocks.NewClientStatusOk())
+	suite.service.centrifugoDashboard = newCentrifugo(suite.service.cfg.CentrifugoDashboard, mocks.NewClientStatusOk())
 
 	req2 := &grpc.ConfirmUserEmailRequest{Token: p["token"][0]}
 	rsp2 := &grpc.ConfirmUserEmailResponse{}

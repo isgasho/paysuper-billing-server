@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/centrifugal/gocent"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"go.uber.org/zap"
 	"net/http"
 )
@@ -15,34 +16,21 @@ type CentrifugoInterface interface {
 }
 
 type Centrifugo struct {
-	svc              *Service
 	centrifugoClient *gocent.Client
 }
 
-func newCentrifugo(svc *Service, httpClient *http.Client) (CentrifugoInterface, CentrifugoInterface) {
-	centrifugoPaymentForm := &Centrifugo{
-		svc: svc,
+func newCentrifugo(cfg *config.Centrifugo, httpClient *http.Client) CentrifugoInterface {
+	centrifugo := &Centrifugo{
 		centrifugoClient: gocent.New(
 			gocent.Config{
-				Addr:       svc.cfg.CentrifugoURLPaymentForm,
-				Key:        svc.cfg.CentrifugoApiSecretPaymentForm,
+				Addr:       cfg.URL,
+				Key:        cfg.ApiSecret,
 				HTTPClient: httpClient,
 			},
 		),
 	}
 
-	centrifugoDashboard := &Centrifugo{
-		svc: svc,
-		centrifugoClient: gocent.New(
-			gocent.Config{
-				Addr:       svc.cfg.CentrifugoURLDashboard,
-				Key:        svc.cfg.CentrifugoApiSecretDashboard,
-				HTTPClient: httpClient,
-			},
-		),
-	}
-
-	return centrifugoPaymentForm, centrifugoDashboard
+	return centrifugo
 }
 
 func (c *Centrifugo) Publish(ctx context.Context, channel string, msg interface{}) error {
