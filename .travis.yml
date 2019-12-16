@@ -36,7 +36,7 @@ jobs:
     - CENTRIFUGO_DASHBOARD_APISECRET=api_secret;
     - CENTRIFUGO_PAYMENT_FORM_SECRET=secret;
     - CENTRIFUGO_DASHBOARD_SECRET=secret;
-    - CENTRIFUGO_PAYMENT_FORM_URL="http://localhost/payment_from";
+    - CENTRIFUGO_PAYMENT_FORM_URL="http://localhost/payment_form";
     - CENTRIFUGO_DASHBOARD_URL="http://localhost/dashboard";
     install:
     - wget https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-${MONGODB}.tgz
