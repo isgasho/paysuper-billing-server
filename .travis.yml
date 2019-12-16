@@ -32,12 +32,12 @@ jobs:
     - CACHE_REDIS_ADDRESS="127.0.0.1:6379"
     - EMAIL_ONBOARDING_ADMIN_RECIPIENT=test@protocol.one
     - USER_INVITE_TOKEN_SECRET=Secret
-    - CENTRIFUGO_API_SECRET_PAYMENT_FORM=api_secret;
-    - CENTRIFUGO_API_SECRET_DASHBOARD=api_secret;
-    - CENTRIFUGO_SECRET_PAYMENT_FORM=secret;
-    - CENTRIFUGO_SECRET_DASHBOARD=secret;
-    - CENTRIFUGO_URL_PAYMENT_FORM="http://localhost/payment_from";
-    - CENTRIFUGO_URL_DASHBOARD="http://localhost/dashboard";
+    - CENTRIFUGO_PAYMENT_FORM_APISECRET=api_secret;
+    - CENTRIFUGO_DASHBOARD_APISECRET=api_secret;
+    - CENTRIFUGO_PAYMENT_FORM_SECRET=secret;
+    - CENTRIFUGO_DASHBOARD_SECRET=secret;
+    - CENTRIFUGO_PAYMENT_FORM_URL="http://localhost/payment_from";
+    - CENTRIFUGO_DASHBOARD_URL="http://localhost/dashboard";
     install:
     - wget https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-${MONGODB}.tgz
     - tar xzf mongodb-linux-x86_64-${MONGODB}.tgz
