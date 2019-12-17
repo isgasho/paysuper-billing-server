@@ -444,6 +444,7 @@ message PaymentCreateResponse {
 }
 
 message PaymentFormJsonDataRequest {
+    // @inject_tag: validate:"required,uuid" param:"order_id"
     string order_id = 1;
     string scheme = 2;
     string host = 3;
@@ -751,14 +752,14 @@ message PaymentFormDataChangedRequest {
 }
 
 message PaymentFormUserChangePlatformRequest {
-    // @inject_tag: validate:"required,uuid"
+    // @inject_tag: validate:"required,uuid" param:"order_id"
     string order_id = 1;
     // @inject_tag: validate:"required,min=2,max=255"
     string platform = 2;
 }
 
 message PaymentFormUserChangeLangRequest {
-    // @inject_tag: validate:"required,uuid"
+    // @inject_tag: validate:"required,uuid" param:"order_id"
     string order_id = 1;
     // @inject_tag: validate:"required,len=2"
     string lang = 2;
@@ -768,7 +769,7 @@ message PaymentFormUserChangeLangRequest {
 }
 
 message PaymentFormUserChangePaymentAccountRequest {
-    // @inject_tag: validate:"required,uuid"
+    // @inject_tag: validate:"required,uuid" param:"order_id"
     string order_id = 1;
     // @inject_tag: validate:"required,hexadecimal,len=24"
     string method_id = 2;
@@ -786,7 +787,7 @@ message PaymentFormDataChangeResponse {
 }
 
 message ProcessBillingAddressRequest {
-    // @inject_tag: validate:"required,uuid"
+    // @inject_tag: validate:"required,uuid" param:"order_id"
     string order_id = 1;
     // @inject_tag: validate:"required,len=2"
     string country = 2;
@@ -1212,7 +1213,7 @@ message IsOrderCanBePayingResponse {
 }
 
 message SetUserNotifyRequest {
-    // @inject_tag: validate:"required,uuid"
+    // @inject_tag: validate:"required,uuid" param:"order_id"
     string order_uuid = 1;
     // @inject_tag: query:"enable_notification" form:"enable_notification" json:"enable_notification"
     bool enable_notification = 2;
@@ -2196,9 +2197,9 @@ message PayoutDocumentPdfUploadedResponse {
 }
 
 message OrderReceiptRequest {
-    // @inject_tag: validate:"required,uuid"
+    // @inject_tag: validate:"required,uuid" param:"order_id"
     string order_id = 1;
-    // @inject_tag: validate:"required,uuid"
+    // @inject_tag: validate:"required,uuid" param:"receipt_id"
     string receipt_id = 2;
 }
 
@@ -2409,6 +2410,7 @@ message GetOperatingCompanyResponse {
 }
 
 message OrderReCreateProcessRequest {
+    // @inject_tag: validate:"required,uuid"
     string order_id = 1;
 }
 
@@ -2586,7 +2588,7 @@ message UserRoleResponse {
 }
 
 message GetCountriesListForOrderRequest {
-    //@inject_tag: validate:"required,uuid" json:"order_id" query:"order_id"
+    //@inject_tag: validate:"required,uuid" json:"order_id" query:"order_id" param:"order_id"
     string order_id = 1;
 }
 
