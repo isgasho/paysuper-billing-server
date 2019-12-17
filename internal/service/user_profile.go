@@ -57,7 +57,7 @@ func (s *Service) CreateOrUpdateUserProfile(
 
 	profile.UpdatedAt = ptypes.TimestampNow()
 	expire := time.Now().Add(time.Minute * 30).Unix()
-	profile.CentrifugoToken = s.centrifugoDashboard.GetChannelToken(s.cfg.CentrifugoDashboard.Secret, profile.Id, expire)
+	profile.CentrifugoToken = s.centrifugoDashboard.GetChannelToken(profile.Id, expire)
 
 	oid, _ := primitive.ObjectIDFromHex(profile.Id)
 	filter := bson.M{"_id": oid}
@@ -126,7 +126,7 @@ func (s *Service) GetUserProfile(
 	}
 
 	expire := time.Now().Add(time.Minute * 30).Unix()
-	centrifugoToken := s.centrifugoDashboard.GetChannelToken(s.cfg.CentrifugoDashboard.Secret, profile.Id, expire)
+	centrifugoToken := s.centrifugoDashboard.GetChannelToken(profile.Id, expire)
 
 	profile.CentrifugoToken = centrifugoToken
 
@@ -525,11 +525,7 @@ func (s *Service) GetCommonUserProfile(
 	}
 
 	expire := time.Now().Add(time.Minute * 30).Unix()
-	rsp.Profile.Profile.CentrifugoToken = s.centrifugoDashboard.GetChannelToken(
-		s.cfg.CentrifugoDashboard.Secret,
-		profile.Id,
-		expire,
-	)
+	rsp.Profile.Profile.CentrifugoToken = s.centrifugoDashboard.GetChannelToken(profile.Id, expire)
 
 	role := s.findRoleForUser(ctx, req.MerchantId, req.UserId)
 
@@ -537,7 +533,6 @@ func (s *Service) GetCommonUserProfile(
 		rsp.Profile.Role = role
 		rsp.Profile.Merchant, _ = s.merchant.GetById(ctx, role.MerchantId)
 		rsp.Profile.Merchant.CentrifugoToken = s.centrifugoDashboard.GetChannelToken(
-			s.cfg.CentrifugoDashboard.Secret,
 			rsp.Profile.Merchant.Id,
 			time.Now().Add(time.Hour*3).Unix(),
 		)

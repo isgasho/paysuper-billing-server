@@ -111,11 +111,7 @@ func (s *Service) GetMerchantBy(
 		return err
 	}
 
-	merchant.CentrifugoToken = s.centrifugoDashboard.GetChannelToken(
-		s.cfg.CentrifugoDashboard.Secret,
-		merchant.Id,
-		time.Now().Add(time.Hour*3).Unix(),
-	)
+	merchant.CentrifugoToken = s.centrifugoDashboard.GetChannelToken(merchant.Id, time.Now().Add(time.Hour*3).Unix())
 	merchant.HasProjects = s.getProjectsCountByMerchant(ctx, merchant.Id) > 0
 
 	rsp.Status = pkg.ResponseStatusOk
@@ -431,11 +427,7 @@ func (s *Service) ChangeMerchant(
 		return nil
 	}
 
-	merchant.CentrifugoToken = s.centrifugoDashboard.GetChannelToken(
-		s.cfg.CentrifugoDashboard.Secret,
-		merchant.Id,
-		time.Now().Add(time.Hour*3).Unix(),
-	)
+	merchant.CentrifugoToken = s.centrifugoDashboard.GetChannelToken(merchant.Id, time.Now().Add(time.Hour*3).Unix())
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = merchant

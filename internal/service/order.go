@@ -871,7 +871,7 @@ func (s *Service) fillPaymentFormJsonData(order *billing.Order, rsp *grpc.Paymen
 		UrlSuccess: order.Project.UrlSuccess,
 		UrlFail:    order.Project.UrlFail,
 	}
-	rsp.Item.Token = s.centrifugoPaymentForm.GetChannelToken(s.cfg.CentrifugoPaymentForm.Secret, order.Uuid, expire)
+	rsp.Item.Token = s.centrifugoPaymentForm.GetChannelToken(order.Uuid, expire)
 	rsp.Item.Amount = order.OrderAmount
 	rsp.Item.TotalAmount = order.TotalPaymentAmount
 	rsp.Item.ChargeCurrency = order.ChargeCurrency

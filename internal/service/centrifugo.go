@@ -12,15 +12,17 @@ import (
 
 type CentrifugoInterface interface {
 	Publish(context.Context, string, interface{}) error
-	GetChannelToken(secret, subject string, expire int64) string
+	GetChannelToken(subject string, expire int64) string
 }
 
 type Centrifugo struct {
+	secret           string
 	centrifugoClient *gocent.Client
 }
 
 func newCentrifugo(cfg *config.Centrifugo, httpClient *http.Client) CentrifugoInterface {
 	centrifugo := &Centrifugo{
+		secret: cfg.Secret,
 		centrifugoClient: gocent.New(
 			gocent.Config{
 				Addr:       cfg.URL,
@@ -49,9 +51,9 @@ func (c *Centrifugo) Publish(ctx context.Context, channel string, msg interface{
 	return c.centrifugoClient.Publish(ctx, channel, b)
 }
 
-func (c *Centrifugo) GetChannelToken(secret, subject string, expire int64) string {
+func (c *Centrifugo) GetChannelToken(subject string, expire int64) string {
 	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": subject, "exp": expire})
-	token, err := claims.SignedString([]byte(secret))
+	token, err := claims.SignedString([]byte(c.secret))
 
 	if err != nil {
 		zap.L().Error(
