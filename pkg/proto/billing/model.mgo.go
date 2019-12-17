@@ -811,17 +811,6 @@ type MgoOrderViewPublic struct {
 	VatPayer                                string                         `bson:"vat_payer"`
 }
 
-/*type MgoMerchantTariffRates struct {
-	Id         primitive.ObjectID                   `bson:"_id"`
-	Payment    []*MerchantTariffRatesPayments  `bson:"payment"`
-	MoneyBack  []*MerchantTariffRatesMoneyBack `bson:"money_back"`
-	Payout     *TariffRatesItem                `bson:"payout"`
-	Chargeback *TariffRatesItem                `bson:"chargeback"`
-	Region     string                          `bson:"region"`
-	CreatedAt  time.Time                       `bson:"created_at"`
-	UpdatedAt  time.Time                       `bson:"updated_at"`
-}*/
-
 type MgoKey struct {
 	Id           primitive.ObjectID  `bson:"_id"`
 	Code         string              `bson:"code"`
