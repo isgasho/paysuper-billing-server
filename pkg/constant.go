@@ -352,7 +352,7 @@ const (
 
 	EmailConfirmUrl            = "%s/confirm_email"
 	RoyaltyReportsUrl          = "%s/royalty_reports"
-	PayoutsUrl                 = "%s/payout_documents"
+	PayoutsUrl                 = "%s/payouts"
 	ReceiptPurchaseUrl         = "%s/receipt/purchase/%s/%s"
 	ReceiptRefundUrl           = "%s/receipt/refund/%s/%s"
 	MerchantCompanyUrl         = "%s/company"
