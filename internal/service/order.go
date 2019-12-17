@@ -973,16 +973,6 @@ func (s *Service) PaymentCreateProcess(
 		}
 	}
 
-	err = s.setOrderChargeAmountAndCurrency(ctx, order)
-	if err != nil {
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = e
-			return nil
-		}
-		return err
-	}
-
 	ps, err := s.paymentSystem.GetById(ctx, processor.checked.paymentMethod.PaymentSystemId)
 	if err != nil {
 		rsp.Message = orderErrorPaymentSystemInactive
@@ -999,6 +989,16 @@ func (s *Service) PaymentCreateProcess(
 		ExternalId:      processor.checked.paymentMethod.ExternalId,
 		Handler:         ps.Handler,
 		RefundAllowed:   processor.checked.paymentMethod.RefundAllowed,
+	}
+
+	err = s.setOrderChargeAmountAndCurrency(ctx, order)
+	if err != nil {
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
 	}
 
 	methodName, err := order.GetCostPaymentMethodName()
@@ -1432,16 +1432,6 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		break
 	}
 
-	err = s.setOrderChargeAmountAndCurrency(ctx, order)
-	if err != nil {
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = e
-			return nil
-		}
-		return err
-	}
-
 	order.PaymentMethod = &billing.PaymentMethodOrder{
 		Id:              pm.Id,
 		Name:            pm.Name,
@@ -1450,6 +1440,16 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		ExternalId:      pm.ExternalId,
 		Handler:         ps.Handler,
 		RefundAllowed:   pm.RefundAllowed,
+	}
+
+	err = s.setOrderChargeAmountAndCurrency(ctx, order)
+	if err != nil {
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
 	}
 
 	methodName, err := order.GetCostPaymentMethodName()
@@ -4571,7 +4571,7 @@ func (s *Service) processProducts(
 	productIds []string,
 	priceGroup *billing.PriceGroup,
 	locale string,
-) (amount float64, usedPriceGroup *billing.PriceGroup, items []*billing.OrderItem, 	isBuyForVirtualCurrency bool, err error) {
+) (amount float64, usedPriceGroup *billing.PriceGroup, items []*billing.OrderItem, isBuyForVirtualCurrency bool, err error) {
 	project, err := s.project.GetById(ctx, projectId)
 	if err != nil {
 		return
