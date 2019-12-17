@@ -48,7 +48,6 @@ var (
 	notificationErrorMerchantIdIncorrect      = newBillingServerErrorMsg("mr000012", "merchant identifier incorrect, notification can't be saved")
 	notificationErrorMessageIsEmpty           = newBillingServerErrorMsg("mr000014", "notification message can't be empty")
 	notificationErrorNotFound                 = newBillingServerErrorMsg("mr000015", "notification not found")
-	merchantErrorAlreadySigned                = newBillingServerErrorMsg("mr000016", "merchant already fully signed")
 	merchantErrorOnboardingNotComplete        = newBillingServerErrorMsg("mr000019", "merchant onboarding not complete")
 	merchantErrorOnboardingTariffAlreadyExist = newBillingServerErrorMsg("mr000020", "merchant tariffs already sets")
 	merchantStatusChangeNotPossible           = newBillingServerErrorMsg("mr000021", "change status not possible by merchant flow")
@@ -56,7 +55,6 @@ var (
 	merchantTariffsNotFound                   = newBillingServerErrorMsg("mr000023", "tariffs for merchant not found")
 	merchantPayoutCurrencyMissed              = newBillingServerErrorMsg("mr000024", "merchant don't have payout currency")
 	merchantErrorOperationsTypeNotSupported   = newBillingServerErrorMsg("mr000025", "merchant operations type not supported")
-	merchantErrorOperatingCompanyNotExists    = newBillingServerErrorMsg("mr000026", "operating company not exists")
 	merchantErrorCurrencyNotSet               = newBillingServerErrorMsg("mr000027", "merchant payout currency not set")
 	merchantErrorNoTariffsInPayoutCurrency    = newBillingServerErrorMsg("mr000028", "no tariffs found for merchant payout currency")
 	merchantUnableToAddMerchantUserRole       = newBillingServerErrorMsg("mr000029", "unable to add user role to merchant")
@@ -113,7 +111,7 @@ func (s *Service) GetMerchantBy(
 		return err
 	}
 
-	merchant.CentrifugoToken = s.centrifugo.GetChannelToken(merchant.Id, time.Now().Add(time.Hour*3).Unix())
+	merchant.CentrifugoToken = s.centrifugoDashboard.GetChannelToken(merchant.Id, time.Now().Add(time.Hour*3).Unix())
 	merchant.HasProjects = s.getProjectsCountByMerchant(ctx, merchant.Id) > 0
 
 	rsp.Status = pkg.ResponseStatusOk
@@ -429,7 +427,7 @@ func (s *Service) ChangeMerchant(
 		return nil
 	}
 
-	merchant.CentrifugoToken = s.centrifugo.GetChannelToken(merchant.Id, time.Now().Add(time.Hour*3).Unix())
+	merchant.CentrifugoToken = s.centrifugoDashboard.GetChannelToken(merchant.Id, time.Now().Add(time.Hour*3).Unix())
 
 	rsp.Status = pkg.ResponseStatusOk
 	rsp.Item = merchant
@@ -521,7 +519,7 @@ func (s *Service) ChangeMerchantData(
 		merchant.ReceivedDate = ptypes.TimestampNow()
 		merchant.HasMerchantSignature = req.HasMerchantSignature
 
-		_ = s.centrifugo.Publish(ctx, s.cfg.CentrifugoAdminChannel, merchantSignAgreementMessage)
+		_ = s.centrifugoDashboard.Publish(ctx, s.cfg.CentrifugoAdminChannel, merchantSignAgreementMessage)
 	}
 
 	merchant.IsSigned = merchant.HasPspSignature == true && merchant.HasMerchantSignature == true
@@ -728,7 +726,7 @@ func (s *Service) SetMerchantS3Agreement(
 	}
 
 	channel := s.getMerchantCentrifugoChannel(merchant.Id)
-	err = s.centrifugo.Publish(ctx, channel, merchantAgreementReadyToSignMessage)
+	err = s.centrifugoDashboard.Publish(ctx, channel, merchantAgreementReadyToSignMessage)
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -1174,7 +1172,7 @@ func (s *Service) addNotification(
 	}
 
 	channel := s.getMerchantCentrifugoChannel(merchantId)
-	err = s.centrifugo.Publish(ctx, channel, notification)
+	err = s.centrifugoDashboard.Publish(ctx, channel, notification)
 
 	if err != nil {
 		return nil, merchantErrorUnknown

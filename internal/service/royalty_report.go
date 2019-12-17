@@ -173,8 +173,8 @@ func (s *Service) CreateRoyaltyReport(
 
 func (s *Service) AutoAcceptRoyaltyReports(
 	ctx context.Context,
-	req *grpc.EmptyRequest,
-	rsp *grpc.EmptyResponse,
+	_ *grpc.EmptyRequest,
+	_ *grpc.EmptyResponse,
 ) error {
 	tNow := time.Now()
 	query := bson.M{
@@ -1023,7 +1023,7 @@ func (s *Service) sendRoyaltyReportNotification(ctx context.Context, report *bil
 	}
 
 	msg := map[string]interface{}{"id": report.Id, "code": "rr00001", "message": pkg.EmailRoyaltyReportMessage}
-	err = s.centrifugo.Publish(ctx, fmt.Sprintf(s.cfg.CentrifugoMerchantChannel, report.MerchantId), msg)
+	err = s.centrifugoDashboard.Publish(ctx, fmt.Sprintf(s.cfg.CentrifugoMerchantChannel, report.MerchantId), msg)
 
 	if err != nil {
 		zap.L().Error(
