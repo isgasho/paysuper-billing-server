@@ -8278,8 +8278,8 @@ type MoneyBackCostMerchant struct {
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" bson:"_id" validate:"omitempty,hexadecimal,len=24"`
 	//@inject_tag: json:"merchant_id" bson:"merchant_id" validate:"required,hexadecimal,len=24"
 	MerchantId string `protobuf:"bytes,2,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id" bson:"merchant_id" validate:"required,hexadecimal,len=24"`
-	//@inject_tag: json:"name" bson:"name" validate:"required,alpha"
-	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name" bson:"name" validate:"required,alpha"`
+	//@inject_tag: json:"name" bson:"name" validate:"required,name"
+	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name" bson:"name" validate:"required,name"`
 	//@inject_tag: json:"payout_currency" bson:"payout_currency" validate:"required,alpha,len=3"
 	PayoutCurrency string `protobuf:"bytes,4,opt,name=payout_currency,json=payoutCurrency,proto3" json:"payout_currency" bson:"payout_currency" validate:"required,alpha,len=3"`
 	//@inject_tag: json:"undo_reason" bson:"undo_reason" validate:"required,alpha,oneof=refund reversal chargeback"

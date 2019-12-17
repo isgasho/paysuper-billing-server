@@ -1562,7 +1562,8 @@ func (m *PaymentCreateResponse) GetNeedRedirect() bool {
 }
 
 type PaymentFormJsonDataRequest struct {
-	OrderId              string   `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
+	// @inject_tag: validate:"required,uuid" param:"order_id"
+	OrderId              string   `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty" validate:"required,uuid" param:"order_id"`
 	Scheme               string   `protobuf:"bytes,2,opt,name=scheme,proto3" json:"scheme,omitempty"`
 	Host                 string   `protobuf:"bytes,3,opt,name=host,proto3" json:"host,omitempty"`
 	Locale               string   `protobuf:"bytes,4,opt,name=locale,proto3" json:"locale,omitempty"`
@@ -3647,8 +3648,8 @@ func (m *PaymentFormDataChangedRequest) GetAccount() string {
 }
 
 type PaymentFormUserChangePlatformRequest struct {
-	// @inject_tag: validate:"required,uuid"
-	OrderId string `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty" validate:"required,uuid"`
+	// @inject_tag: validate:"required,uuid" param:"order_id"
+	OrderId string `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty" validate:"required,uuid" param:"order_id"`
 	// @inject_tag: validate:"required,min=2,max=255"
 	Platform             string   `protobuf:"bytes,2,opt,name=platform,proto3" json:"platform,omitempty" validate:"required,min=2,max=255"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -3696,8 +3697,8 @@ func (m *PaymentFormUserChangePlatformRequest) GetPlatform() string {
 }
 
 type PaymentFormUserChangeLangRequest struct {
-	// @inject_tag: validate:"required,uuid"
-	OrderId string `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty" validate:"required,uuid"`
+	// @inject_tag: validate:"required,uuid" param:"order_id"
+	OrderId string `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty" validate:"required,uuid" param:"order_id"`
 	// @inject_tag: validate:"required,len=2"
 	Lang                 string   `protobuf:"bytes,2,opt,name=lang,proto3" json:"lang,omitempty" validate:"required,len=2"`
 	Ip                   string   `protobuf:"bytes,3,opt,name=ip,proto3" json:"ip,omitempty"`
@@ -3769,8 +3770,8 @@ func (m *PaymentFormUserChangeLangRequest) GetUserAgent() string {
 }
 
 type PaymentFormUserChangePaymentAccountRequest struct {
-	// @inject_tag: validate:"required,uuid"
-	OrderId string `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty" validate:"required,uuid"`
+	// @inject_tag: validate:"required,uuid" param:"order_id"
+	OrderId string `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty" validate:"required,uuid" param:"order_id"`
 	// @inject_tag: validate:"required,hexadecimal,len=24"
 	MethodId string `protobuf:"bytes,2,opt,name=method_id,json=methodId,proto3" json:"method_id,omitempty" validate:"required,hexadecimal,len=24"`
 	// @inject_tag: validate:"required"
@@ -3910,8 +3911,8 @@ func (m *PaymentFormDataChangeResponse) GetItem() *billing.PaymentFormDataChange
 }
 
 type ProcessBillingAddressRequest struct {
-	// @inject_tag: validate:"required,uuid"
-	OrderId string `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty" validate:"required,uuid"`
+	// @inject_tag: validate:"required,uuid" param:"order_id"
+	OrderId string `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty" validate:"required,uuid" param:"order_id"`
 	// @inject_tag: validate:"required,len=2"
 	Country string `protobuf:"bytes,2,opt,name=country,proto3" json:"country,omitempty" validate:"required,len=2"`
 	// @inject_tag: validate:"omitempty,zip_usa"
@@ -6723,8 +6724,8 @@ func (m *IsOrderCanBePayingResponse) GetItem() *billing.Order {
 }
 
 type SetUserNotifyRequest struct {
-	// @inject_tag: validate:"required,uuid"
-	OrderUuid string `protobuf:"bytes,1,opt,name=order_uuid,json=orderUuid,proto3" json:"order_uuid,omitempty" validate:"required,uuid"`
+	// @inject_tag: validate:"required,uuid" param:"order_id"
+	OrderUuid string `protobuf:"bytes,1,opt,name=order_uuid,json=orderUuid,proto3" json:"order_uuid,omitempty" validate:"required,uuid" param:"order_id"`
 	// @inject_tag: query:"enable_notification" form:"enable_notification" json:"enable_notification"
 	EnableNotification bool `protobuf:"varint,2,opt,name=enable_notification,json=enableNotification,proto3" json:"enable_notification" query:"enable_notification" form:"enable_notification"`
 	// @inject_tag: query:"email" form:"email" json:"email" validate:"omitempty,email"
@@ -13410,10 +13411,10 @@ func (m *PayoutDocumentPdfUploadedResponse) GetMessage() *ResponseErrorMessage {
 }
 
 type OrderReceiptRequest struct {
-	// @inject_tag: validate:"required,uuid"
-	OrderId string `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty" validate:"required,uuid"`
-	// @inject_tag: validate:"required,uuid"
-	ReceiptId            string   `protobuf:"bytes,2,opt,name=receipt_id,json=receiptId,proto3" json:"receipt_id,omitempty" validate:"required,uuid"`
+	// @inject_tag: validate:"required,uuid" param:"order_id"
+	OrderId string `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty" validate:"required,uuid" param:"order_id"`
+	// @inject_tag: validate:"required,uuid" param:"receipt_id"
+	ReceiptId            string   `protobuf:"bytes,2,opt,name=receipt_id,json=receiptId,proto3" json:"receipt_id,omitempty" validate:"required,uuid" param:"receipt_id"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -14960,7 +14961,8 @@ func (m *GetOperatingCompanyResponse) GetCompany() *billing.OperatingCompany {
 }
 
 type OrderReCreateProcessRequest struct {
-	OrderId              string   `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
+	// @inject_tag: validate:"required,uuid"
+	OrderId              string   `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty" validate:"required,uuid"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -16397,8 +16399,8 @@ func (m *UserRoleResponse) GetUserRole() *billing.UserRole {
 }
 
 type GetCountriesListForOrderRequest struct {
-	//@inject_tag: validate:"required,uuid" json:"order_id" query:"order_id"
-	OrderId              string   `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id" validate:"required,uuid" query:"order_id"`
+	//@inject_tag: validate:"required,uuid" json:"order_id" query:"order_id" param:"order_id"
+	OrderId              string   `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id" validate:"required,uuid" query:"order_id" param:"order_id"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`

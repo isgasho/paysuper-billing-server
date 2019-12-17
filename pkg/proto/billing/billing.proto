@@ -1431,7 +1431,7 @@ message MoneyBackCostMerchant {
     string id = 1;
     //@inject_tag: json:"merchant_id" bson:"merchant_id" validate:"required,hexadecimal,len=24"
     string merchant_id = 2;
-    //@inject_tag: json:"name" bson:"name" validate:"required,alpha"
+    //@inject_tag: json:"name" bson:"name" validate:"required,name"
     string name = 3;
     //@inject_tag: json:"payout_currency" bson:"payout_currency" validate:"required,alpha,len=3"
     string payout_currency = 4;

@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	geoip "github.com/ProtocolONE/geoip-service/pkg/proto"
-	"github.com/dgrijalva/jwt-go"
 	protobuf "github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	structpb "github.com/golang/protobuf/ptypes/struct"
@@ -859,7 +858,6 @@ func (s *Service) fillPaymentFormJsonData(order *billing.Order, rsp *grpc.Paymen
 	}
 
 	expire := time.Now().Add(time.Minute * 30).Unix()
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": order.Uuid, "exp": expire})
 
 	rsp.Item.Id = order.Uuid
 	rsp.Item.Account = order.ProjectAccount
@@ -873,7 +871,7 @@ func (s *Service) fillPaymentFormJsonData(order *billing.Order, rsp *grpc.Paymen
 		UrlSuccess: order.Project.UrlSuccess,
 		UrlFail:    order.Project.UrlFail,
 	}
-	rsp.Item.Token, _ = token.SignedString([]byte(s.cfg.CentrifugoSecret))
+	rsp.Item.Token = s.centrifugoPaymentForm.GetChannelToken(order.Uuid, expire)
 	rsp.Item.Amount = order.OrderAmount
 	rsp.Item.TotalAmount = order.TotalPaymentAmount
 	rsp.Item.ChargeCurrency = order.ChargeCurrency
@@ -973,16 +971,6 @@ func (s *Service) PaymentCreateProcess(
 		}
 	}
 
-	err = s.setOrderChargeAmountAndCurrency(ctx, order)
-	if err != nil {
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = e
-			return nil
-		}
-		return err
-	}
-
 	ps, err := s.paymentSystem.GetById(ctx, processor.checked.paymentMethod.PaymentSystemId)
 	if err != nil {
 		rsp.Message = orderErrorPaymentSystemInactive
@@ -999,6 +987,16 @@ func (s *Service) PaymentCreateProcess(
 		ExternalId:      processor.checked.paymentMethod.ExternalId,
 		Handler:         ps.Handler,
 		RefundAllowed:   processor.checked.paymentMethod.RefundAllowed,
+	}
+
+	err = s.setOrderChargeAmountAndCurrency(ctx, order)
+	if err != nil {
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
 	}
 
 	methodName, err := order.GetCostPaymentMethodName()
@@ -1432,16 +1430,6 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		break
 	}
 
-	err = s.setOrderChargeAmountAndCurrency(ctx, order)
-	if err != nil {
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = e
-			return nil
-		}
-		return err
-	}
-
 	order.PaymentMethod = &billing.PaymentMethodOrder{
 		Id:              pm.Id,
 		Name:            pm.Name,
@@ -1450,6 +1438,16 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		ExternalId:      pm.ExternalId,
 		Handler:         ps.Handler,
 		RefundAllowed:   pm.RefundAllowed,
+	}
+
+	err = s.setOrderChargeAmountAndCurrency(ctx, order)
+	if err != nil {
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
 	}
 
 	methodName, err := order.GetCostPaymentMethodName()
@@ -1932,7 +1930,7 @@ func (s *Service) getPayloadForReceipt(ctx context.Context, order *billing.Order
 	return payload
 }
 
-func (s *Service) sendMailWithCode(ctx context.Context, order *billing.Order, key *billing.Key) {
+func (s *Service) sendMailWithCode(_ context.Context, order *billing.Order, key *billing.Key) {
 	var platformIconUrl = ""
 	if platform, ok := availablePlatforms[order.PlatformId]; ok {
 		platformIconUrl = platform.Icon
@@ -3573,8 +3571,8 @@ func (s *Service) ProcessOrderProducts(ctx context.Context, order *billing.Order
 }
 
 func (s *Service) processAmountForFiatCurrency(
-	ctx context.Context,
-	project *billing.Project,
+	_ context.Context,
+	_ *billing.Project,
 	orderProducts []*grpc.Product,
 	priceGroup *billing.PriceGroup,
 	defaultPriceGroup *billing.PriceGroup,
@@ -3602,7 +3600,7 @@ func (s *Service) processAmountForFiatCurrency(
 }
 
 func (s *Service) processAmountForVirtualCurrency(
-	ctx context.Context,
+	_ context.Context,
 	project *billing.Project,
 	orderProducts []*grpc.Product,
 	priceGroup *billing.PriceGroup,
@@ -3651,7 +3649,7 @@ func (s *Service) notifyPaylinkError(ctx context.Context, paylinkId string, err 
 		"request":   req,
 		"order":     order,
 	}
-	_ = s.centrifugo.Publish(ctx, centrifugoChannel, msg)
+	_ = s.centrifugoDashboard.Publish(ctx, centrifugoChannel, msg)
 }
 
 func (v *PaymentCreateProcessor) GetMerchantId() string {
@@ -3788,7 +3786,7 @@ func (s *Service) fillPaymentDataCrypto(order *billing.Order) error {
 func (s *Service) SetUserNotifySales(
 	ctx context.Context,
 	req *grpc.SetUserNotifyRequest,
-	rsp *grpc.EmptyResponse,
+	_ *grpc.EmptyResponse,
 ) error {
 
 	order, err := s.getOrderByUuid(ctx, req.OrderUuid)
@@ -3859,9 +3857,8 @@ func (s *Service) SetUserNotifySales(
 func (s *Service) SetUserNotifyNewRegion(
 	ctx context.Context,
 	req *grpc.SetUserNotifyRequest,
-	rsp *grpc.EmptyResponse,
+	_ *grpc.EmptyResponse,
 ) error {
-
 	order, err := s.getOrderByUuid(ctx, req.OrderUuid)
 
 	if err != nil {
@@ -4296,7 +4293,7 @@ func (s *Service) paymentSystemPaymentCallbackComplete(ctx context.Context, orde
 		"status":                      paymentSystemPaymentProcessingSuccessStatus,
 	}
 
-	return s.centrifugo.Publish(ctx, ch, message)
+	return s.centrifugoPaymentForm.Publish(ctx, ch, message)
 }
 
 func (v *OrderCreateRequestProcessor) processVirtualCurrency() error {
@@ -4571,7 +4568,7 @@ func (s *Service) processProducts(
 	productIds []string,
 	priceGroup *billing.PriceGroup,
 	locale string,
-) (amount float64, usedPriceGroup *billing.PriceGroup, items []*billing.OrderItem, 	isBuyForVirtualCurrency bool, err error) {
+) (amount float64, usedPriceGroup *billing.PriceGroup, items []*billing.OrderItem, isBuyForVirtualCurrency bool, err error) {
 	project, err := s.project.GetById(ctx, projectId)
 	if err != nil {
 		return
