@@ -144,8 +144,8 @@ type OrderCreateRequest struct {
 	//@inject_tag: bson:"-" json:"-"
 	IsBuyForVirtualCurrency bool   `protobuf:"varint,39,opt,name=is_buy_for_virtual_currency,json=isBuyForVirtualCurrency,proto3" json:"-" bson:"-"`
 	Cookie                  string `protobuf:"bytes,40,opt,name=cookie,proto3" json:"cookie,omitempty"`
-	//@inject_tag: bson:"testing_case" json:"testing_case" validate:"omitempty,oneof=correct_payment non_existing_user existing_user incorrect_signature"
-	TestingCase          string   `protobuf:"bytes,41,opt,name=testing_case,json=testingCase,proto3" json:"testing_case" bson:"testing_case" validate:"omitempty,oneof=correct_payment non_existing_user existing_user incorrect_signature"`
+	//@inject_tag: bson:"testing_case" json:"testing_case" validate:"omitempty,oneof=correct_payment non_existing_user existing_user invalid_signature"
+	TestingCase          string   `protobuf:"bytes,41,opt,name=testing_case,json=testingCase,proto3" json:"testing_case" bson:"testing_case" validate:"omitempty,oneof=correct_payment non_existing_user existing_user invalid_signature"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`
