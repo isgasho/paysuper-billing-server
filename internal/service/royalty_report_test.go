@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/go-redis/redis"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
@@ -16,8 +18,11 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	reporterPkg "github.com/paysuper/paysuper-reporter/pkg"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	proto2 "github.com/paysuper/paysuper-reporter/pkg/proto"
+	reporterProto "github.com/paysuper/paysuper-reporter/pkg/proto"
+	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	mock2 "github.com/stretchr/testify/mock"
@@ -185,6 +190,34 @@ func (suite *RoyaltyReportTestSuite) TearDownTest() {
 }
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_CreateRoyaltyReport_AllMerchants_Ok() {
+	reporterMock := &reportingMocks.ReporterService{}
+	reporterMock.On("CreateFile", mock2.Anything, mock2.Anything, mock2.Anything).
+		Return(&proto2.CreateFileResponse{Status: pkg.ResponseStatusOk}, nil).
+		Run(func(args mock2.Arguments) {
+			incomingCtx := args.Get(0).(context.Context)
+			incomingReq := args.Get(1).(*reporterProto.ReportFile)
+			var params map[string]interface{}
+
+			if incomingReq.Params != nil {
+				if err := json.Unmarshal(incomingReq.Params, &params); err != nil {
+					return
+				}
+			}
+			// we must take real RoyaltyReportId value from request,
+			// to awoid royaltyReportErrorReportNotFound during the RoyaltyReportPdfUploaded process
+			req := &grpc.RoyaltyReportPdfUploadedRequest{
+				Id:              primitive.NewObjectID().Hex(),
+				RoyaltyReportId: fmt.Sprintf("%s", params[reporterPkg.ParamsFieldId]),
+				Filename:        "somename.pdf",
+				RetentionTime:   int32(123),
+				Content:         []byte{},
+			}
+
+			res := &grpc.RoyaltyReportPdfUploadedResponse{}
+			_ = suite.service.RoyaltyReportPdfUploaded(incomingCtx, req, res)
+		})
+	suite.service.reporterService = reporterMock
+
 	projects := []*billing.Project{suite.project, suite.project1, suite.project2}
 
 	for _, v := range projects {
@@ -194,6 +227,14 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_CreateRoyaltyReport_AllMe
 	}
 	err := suite.service.updateOrderView(context.TODO(), []string{})
 	assert.NoError(suite.T(), err)
+
+	postmarkBrokerMock := &mocks.BrokerInterface{}
+	postmarkBrokerMock.On("Publish", postmarkSdrPkg.PostmarkSenderTopicName, mock.Anything, mock.Anything).Return(nil, nil)
+
+	// Warning! For correct counting of calls for sending royalty report email,
+	// replacing of postmarkBroker with custom mock must be here
+	// to prevent counting a calls for sending transaction success mails due to orders creation and payment
+	suite.service.postmarkBroker = postmarkBrokerMock
 
 	req := &grpc.CreateRoyaltyReportRequest{}
 	rsp := &grpc.CreateRoyaltyReportRequest{}
@@ -249,6 +290,11 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_CreateRoyaltyReport_AllMe
 	assert.Contains(suite.T(), existMerchants, suite.merchant.Id)
 	assert.Contains(suite.T(), existMerchants, suite.merchant1.Id)
 	assert.Contains(suite.T(), existMerchants, suite.merchant2.Id)
+
+	// check for sending requests for pdf generation
+	reporterMock.AssertNumberOfCalls(suite.T(), "CreateFile", len(reports))
+	// check for requests to send emails with generated pdfs
+	postmarkBrokerMock.AssertNumberOfCalls(suite.T(), "Publish", len(reports))
 }
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_CreateRoyaltyReport_SelectedMerchants_Ok() {

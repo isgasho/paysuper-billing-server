@@ -826,10 +826,10 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(ctx context.Context, mercha
 		err = h.royaltyReport.Insert(ctx, newReport, "", pkg.RoyaltyReportChangeSourceAuto)
 	}
 
-	/*err = h.Service.renderRoyaltyReport(ctx, newReport, merchant)
+	err = h.Service.renderRoyaltyReport(ctx, newReport, merchant)
 	if err != nil {
 		return err
-	}*/
+	}
 
 	zap.L().Info("generating royalty reports for merchant finished", zap.String("merchant_id", merchantId.Hex()))
 
