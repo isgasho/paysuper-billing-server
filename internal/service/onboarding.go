@@ -587,10 +587,12 @@ func (s *Service) SetMerchantOperatingCompany(
 	oc, err := s.operatingCompany.GetById(ctx, req.OperatingCompanyId)
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusNotFound
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
-
-		return nil
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
 	}
 
 	if !merchant.IsDataComplete() {
@@ -602,6 +604,7 @@ func (s *Service) SetMerchantOperatingCompany(
 	statusChange := &billing.SystemNotificationStatuses{From: merchant.Status, To: pkg.MerchantStatusAccepted}
 
 	merchant.OperatingCompanyId = oc.Id
+	merchant.DontChargeVat = req.DontChargeVat
 	merchant.Status = pkg.MerchantStatusAccepted
 	merchant.StatusLastUpdatedAt = ptypes.TimestampNow()
 

@@ -277,6 +277,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		},
 		MccCode:            pkg.MccCodeLowRisk,
 		OperatingCompanyId: suite.operatingCompany.Id,
+		DontChargeVat:      false,
 	}
 
 	project := &billing.Project{
@@ -292,6 +293,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		SecretKey:                "test project 1 secret key",
 		Status:                   pkg.ProjectStatusInProduction,
 		MerchantId:               merchant.Id,
+		VatPayer:                 pkg.VatPayerBuyer,
 	}
 	psErr := &billing.PaymentSystem{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -396,6 +398,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		IsSigned:           true,
 		MccCode:            pkg.MccCodeLowRisk,
 		OperatingCompanyId: suite.operatingCompany.Id,
+		DontChargeVat:      false,
 	}
 	merchant1 := &billing.Merchant{
 		Id: primitive.NewObjectID().Hex(),
@@ -442,6 +445,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		IsSigned:           false,
 		MccCode:            pkg.MccCodeLowRisk,
 		OperatingCompanyId: suite.operatingCompany.Id,
+		DontChargeVat:      false,
 	}
 
 	broker, err := rabbitmq.NewBroker(cfg.BrokerAddress)

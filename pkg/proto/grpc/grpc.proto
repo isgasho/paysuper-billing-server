@@ -518,6 +518,8 @@ message PaymentFormJsonData {
     double vat_in_charge_currency = 27;
     // @inject_tag: json:"vat_rate"
     double vat_rate = 28;
+    // @inject_tag: json:"vat_payer"
+    string vat_payer = 29;
 }
 
 message PaymentFormJsonDataResponse {
@@ -2390,6 +2392,8 @@ message SetMerchantOperatingCompanyRequest {
     string merchant_id = 1;
     // @inject_tag: json:"operating_company_id" validate:"required,hexadecimal,len=24"
     string operating_company_id = 2;
+    // @inject_tag: json:"dont_charge_vat"
+    bool dont_charge_vat = 3;
 }
 
 message SetMerchantOperatingCompanyResponse {

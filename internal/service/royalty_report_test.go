@@ -154,6 +154,7 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 		SecretKey:                "test project 1 secret key",
 		Status:                   pkg.ProjectStatusDraft,
 		MerchantId:               suite.merchant1.Id,
+		VatPayer:                 pkg.VatPayerBuyer,
 	}
 	suite.project2 = &billing.Project{
 		Id:                       primitive.NewObjectID().Hex(),
@@ -168,6 +169,7 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 		SecretKey:                "test project 2 secret key",
 		Status:                   pkg.ProjectStatusDraft,
 		MerchantId:               suite.merchant2.Id,
+		VatPayer:                 pkg.VatPayerBuyer,
 	}
 
 	projects := []*billing.Project{suite.project1, suite.project2}

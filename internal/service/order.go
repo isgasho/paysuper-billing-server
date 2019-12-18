@@ -132,6 +132,7 @@ var (
 	orderErrorDontHaveReceiptUrl                              = newBillingServerErrorMsg("fm000074", "processed order don't have receipt url")
 	orderErrorWrongPrivateStatus                              = newBillingServerErrorMsg("fm000075", "order has wrong private status and cannot be recreated")
 	orderCountryChangeRestrictedError                         = newBillingServerErrorMsg("fm000076", "change country is not allowed")
+	orderErrorVatPayerUnknown                                 = newBillingServerErrorMsg("fm000077", "vat payer unknown")
 
 	virtualCurrencyPayoutCurrencyMissed = newBillingServerErrorMsg("vc000001", "virtual currency don't have price in merchant payout currency")
 
@@ -893,6 +894,7 @@ func (s *Service) fillPaymentFormJsonData(order *billing.Order, rsp *grpc.Paymen
 		Zip:     order.User.Address.PostalCode,
 	}
 	rsp.Item.Lang = order.User.Locale
+	rsp.Item.VatPayer = order.VatPayer
 }
 
 func (s *Service) PaymentCreateProcess(
@@ -1880,6 +1882,7 @@ func (s *Service) getPayloadForReceipt(ctx context.Context, order *billing.Order
 			"merchant_name":    merchantName,
 			"url":              order.ReceiptUrl,
 			"payment_partner":  paymentPartner,
+			"vat_payer":        order.VatPayer,
 		},
 		To: order.ReceiptEmail,
 	}
@@ -2140,6 +2143,7 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 		OperatingCompanyId:      v.checked.merchant.OperatingCompanyId,
 		IsHighRisk:              v.checked.merchant.IsHighRisk(),
 		IsCurrencyPredefined:    v.checked.isCurrencyPredefined,
+		VatPayer:                v.checked.project.VatPayer,
 	}
 
 	if v.checked.virtualAmount > 0 {
@@ -2546,6 +2550,8 @@ func (v *OrderCreateRequestProcessor) processSignature() error {
 // Calculate VAT for order
 func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) error {
 	order.Tax = &billing.OrderTax{
+		Amount:   0,
+		Rate:     0,
 		Type:     taxTypeVat,
 		Currency: order.Currency,
 	}
@@ -2554,6 +2560,14 @@ func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) erro
 	order.ChargeCurrency = order.Currency
 
 	countryCode := order.GetCountry()
+	if countryCode == CountryCodeUSA {
+		order.Tax.Type = taxTypeSalesTax
+	}
+
+	if order.VatPayer == pkg.VatPayerNobody {
+		return nil
+	}
+
 	if countryCode != "" {
 		country, err := v.country.GetByIsoCodeA2(v.ctx, countryCode)
 		if err != nil {
@@ -2569,7 +2583,6 @@ func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) erro
 	}
 
 	if countryCode == CountryCodeUSA {
-		order.Tax.Type = taxTypeSalesTax
 		req.Zip = order.GetPostalCode()
 	}
 
@@ -2581,9 +2594,22 @@ func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) erro
 	}
 
 	order.Tax.Rate = rsp.Rate
-	order.Tax.Amount = v.FormatAmount(order.OrderAmount*order.Tax.Rate, order.Currency)
-	order.TotalPaymentAmount = v.FormatAmount(order.OrderAmount+order.Tax.Amount, order.Currency)
-	order.ChargeAmount = order.TotalPaymentAmount
+
+	switch order.VatPayer {
+
+	case pkg.VatPayerBuyer:
+		order.Tax.Amount = v.FormatAmount(order.OrderAmount*order.Tax.Rate, order.Currency)
+		order.TotalPaymentAmount = v.FormatAmount(order.OrderAmount+order.Tax.Amount, order.Currency)
+		order.ChargeAmount = order.TotalPaymentAmount
+		break
+
+	case pkg.VatPayerSeller:
+		order.Tax.Amount = v.FormatAmount(tools.GetPercentPartFromAmount(order.TotalPaymentAmount, order.Tax.Rate), order.Currency)
+		break
+
+	default:
+		return orderErrorVatPayerUnknown
+	}
 
 	return nil
 }
@@ -4197,6 +4223,7 @@ func (s *Service) OrderReceipt(
 		Items:           items,
 		PlatformName:    platformName,
 		PaymentPartner:  oc.Name,
+		VatPayer:        order.VatPayer,
 	}
 
 	rsp.Status = pkg.ResponseStatusOk

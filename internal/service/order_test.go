@@ -789,6 +789,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 		MccCode:            pkg.MccCodeLowRisk,
 		OperatingCompanyId: suite.operatingCompany.Id,
+		DontChargeVat:      false,
 	}
 
 	merchantAgreement := &billing.Merchant{
@@ -873,6 +874,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 		MccCode:            pkg.MccCodeLowRisk,
 		OperatingCompanyId: suite.operatingCompany.Id,
+		DontChargeVat:      false,
 	}
 	merchant1 := &billing.Merchant{
 		Id: primitive.NewObjectID().Hex(),
@@ -956,6 +958,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 		MccCode:            pkg.MccCodeLowRisk,
 		OperatingCompanyId: suite.operatingCompany.Id,
+		DontChargeVat:      false,
 	}
 
 	project := &billing.Project{
@@ -971,6 +974,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		SecretKey:                "test project 1 secret key",
 		Status:                   pkg.ProjectStatusInProduction,
 		MerchantId:               merchant.Id,
+		VatPayer:                 pkg.VatPayerBuyer,
 	}
 	projectFixedAmount := &billing.Project{
 		Id:                       primitive.NewObjectID().Hex(),
@@ -985,6 +989,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		SecretKey:                "test project 1 secret key",
 		Status:                   pkg.ProjectStatusDraft,
 		MerchantId:               merchant.Id,
+		VatPayer:                 pkg.VatPayerBuyer,
 	}
 
 	projectWithProductsInVirtualCurrency := &billing.Project{
@@ -1015,6 +1020,7 @@ func (suite *OrderTestSuite) SetupTest() {
 				},
 			},
 		},
+		VatPayer: pkg.VatPayerBuyer,
 	}
 
 	projectWithProducts := &billing.Project{
@@ -1030,6 +1036,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		SecretKey:                "test project 1 secret key",
 		Status:                   pkg.ProjectStatusDraft,
 		MerchantId:               merchant.Id,
+		VatPayer:                 pkg.VatPayerBuyer,
 	}
 	projectWithKeyProducts := &billing.Project{
 		Id:                       primitive.NewObjectID().Hex(),
@@ -1044,6 +1051,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		SecretKey:                "test key project secret key",
 		Status:                   pkg.ProjectStatusDraft,
 		MerchantId:               merchant.Id,
+		VatPayer:                 pkg.VatPayerBuyer,
 	}
 	projectUahLimitCurrency := &billing.Project{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -1057,6 +1065,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		SecretKey:          "project uah limit currency secret key",
 		Status:             pkg.ProjectStatusInProduction,
 		MerchantId:         merchant1.Id,
+		VatPayer:           pkg.VatPayerBuyer,
 	}
 	projectIncorrectPaymentMethodId := &billing.Project{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -1070,6 +1079,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		SecretKey:          "project incorrect payment Method id secret key",
 		Status:             pkg.ProjectStatusInProduction,
 		MerchantId:         merchant1.Id,
+		VatPayer:           pkg.VatPayerBuyer,
 	}
 	projectEmptyPaymentMethodTerminal := &billing.Project{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -1083,6 +1093,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		IsProductsCheckout: false,
 		SecretKey:          "project incorrect payment Method id secret key",
 		Status:             pkg.ProjectStatusInProduction,
+		VatPayer:           pkg.VatPayerBuyer,
 	}
 	projectWithoutPaymentMethods := &billing.Project{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -1096,6 +1107,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		IsProductsCheckout: true,
 		SecretKey:          "test project 1 secret key",
 		Status:             pkg.ProjectStatusInProduction,
+		VatPayer:           pkg.VatPayerBuyer,
 	}
 	inactiveProject := &billing.Project{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -1109,6 +1121,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		IsProductsCheckout: true,
 		SecretKey:          "test project 2 secret key",
 		Status:             pkg.ProjectStatusDeleted,
+		VatPayer:           pkg.VatPayerBuyer,
 	}
 	projects := []*billing.Project{
 		project,
@@ -6050,72 +6063,6 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequi
 	assert.Nil(suite.T(), order1.BillingAddress)
 }
 
-/*func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequired_ZipFieldNotFound_Ok() {
-	req := &billing.OrderCreateRequest{
-		Type:        billing.OrderType_simple,
-		ProjectId:   suite.project.Id,
-		Currency:    "RUB",
-		Amount:      100,
-		Account:     "unit test",
-		Description: "unit test",
-		OrderId:     primitive.NewObjectID().Hex(),
-		User: &billing.OrderUser{
-			Email: "test@unit.unit",
-			Ip:    "127.0.0.1",
-		},
-	}
-
-	rsp0 := &grpc.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
-
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
-	rsp := rsp0.Item
-
-	order, err := suite.service.getOrderByUuid(context.TODO(), rsp.Uuid)
-	assert.NoError(suite.T(), err)
-	assert.NotNil(suite.T(), order)
-	assert.Nil(suite.T(), order.BillingAddress)
-
-	order.UserAddressDataRequired = true
-	err = suite.service.updateOrder(context.TODO(), order)
-	assert.NoError(suite.T(), err)
-
-	expireYear := time.Now().AddDate(1, 0, 0)
-
-	req1 := &grpc.PaymentCreateRequest{
-		Data: map[string]string{
-			pkg.PaymentCreateFieldOrderId:         rsp.Uuid,
-			pkg.PaymentCreateFieldPaymentMethodId: suite.paymentMethod.Id,
-			pkg.PaymentCreateFieldEmail:           "test@unit.unit",
-			pkg.PaymentCreateFieldPan:             "4000000000000002",
-			pkg.PaymentCreateFieldCvv:             "123",
-			pkg.PaymentCreateFieldMonth:           "02",
-			pkg.PaymentCreateFieldYear:            expireYear.Format("2006"),
-			pkg.PaymentCreateFieldHolder:          "Mr. Card Holder",
-			pkg.PaymentCreateFieldUserCountry:     "US",
-			pkg.PaymentCreateFieldUserCity:        "Washington",
-			pkg.PaymentCreateFieldUserZip:         "000000",
-		},
-	}
-
-	rsp1 := &grpc.PaymentCreateResponse{}
-	err = suite.service.PaymentCreateProcess(context.TODO(), req1, rsp1)
-
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
-	assert.Empty(suite.T(), rsp1.RedirectUrl)
-	assert.Equal(suite.T(), orderErrorZipCodeNotFound, rsp1.Message)
-
-	order1, err := suite.service.getOrderByUuid(context.TODO(), rsp.Uuid)
-	assert.NoError(suite.T(), err)
-	assert.NotNil(suite.T(), order1)
-
-	assert.Equal(suite.T(), order.Tax.Amount, order1.Tax.Amount)
-	assert.Equal(suite.T(), order.TotalPaymentAmount, order1.TotalPaymentAmount)
-	assert.Nil(suite.T(), order1.BillingAddress)
-}*/
-
 func (suite *OrderTestSuite) TestOrder_CreateOrderByToken_Ok() {
 	req := &grpc.TokenRequest{
 		User: &billing.TokenUser{
@@ -8699,4 +8646,90 @@ func (suite *OrderTestSuite) TestOrder_ReCreateOrder_Error() {
 	shouldBe.NoError(suite.service.OrderReCreateProcess(context.TODO(), &grpc.OrderReCreateProcessRequest{OrderId: order.GetUuid()}, rsp1))
 	shouldBe.EqualValues(400, rsp1.Status)
 	shouldBe.NotNil(rsp1.Message)
+}
+
+func (suite *OrderTestSuite) TestOrder_processOrderVat_Error_VatPayer_Unknown() {
+	order := &billing.Order{}
+
+	p1 := &OrderCreateRequestProcessor{Service: suite.service, ctx: context.TODO()}
+	err := p1.processOrderVat(order)
+	assert.EqualError(suite.T(), err, orderErrorVatPayerUnknown.Message)
+}
+
+func (suite *OrderTestSuite) TestOrder_processOrderVat_Ok_VatPayer_Nobody() {
+	order := &billing.Order{
+		OrderAmount: 100,
+		Currency:    "USD",
+		User: &billing.OrderUser{
+			Id: primitive.NewObjectID().Hex(),
+			Ip: "127.0.0.1",
+			Address: &billing.OrderBillingAddress{
+				Country: "RU",
+			},
+		},
+		VatPayer: pkg.VatPayerNobody,
+	}
+
+	p1 := &OrderCreateRequestProcessor{Service: suite.service, ctx: context.TODO()}
+	err := p1.processOrderVat(order)
+	assert.NoError(suite.T(), err)
+	assert.EqualValues(suite.T(), order.TotalPaymentAmount, order.OrderAmount)
+	assert.EqualValues(suite.T(), order.ChargeAmount, order.OrderAmount)
+	assert.EqualValues(suite.T(), order.ChargeCurrency, order.Currency)
+	assert.NotNil(suite.T(), order.Tax)
+	assert.EqualValues(suite.T(), order.Tax.Currency, order.Currency)
+	assert.EqualValues(suite.T(), order.Tax.Rate, 0)
+	assert.EqualValues(suite.T(), order.Tax.Amount, 0)
+}
+
+func (suite *OrderTestSuite) TestOrder_processOrderVat_Ok_VatPayer_Seller() {
+	order := &billing.Order{
+		OrderAmount: 100,
+		Currency:    "USD",
+		User: &billing.OrderUser{
+			Id: primitive.NewObjectID().Hex(),
+			Ip: "127.0.0.1",
+			Address: &billing.OrderBillingAddress{
+				Country: "RU",
+			},
+		},
+		VatPayer: pkg.VatPayerSeller,
+	}
+
+	p1 := &OrderCreateRequestProcessor{Service: suite.service, ctx: context.TODO()}
+	err := p1.processOrderVat(order)
+	assert.NoError(suite.T(), err)
+	assert.EqualValues(suite.T(), order.TotalPaymentAmount, order.OrderAmount)
+	assert.EqualValues(suite.T(), order.ChargeAmount, order.OrderAmount)
+	assert.EqualValues(suite.T(), order.ChargeCurrency, order.Currency)
+	assert.NotNil(suite.T(), order.Tax)
+	assert.EqualValues(suite.T(), order.Tax.Currency, order.Currency)
+	assert.EqualValues(suite.T(), order.Tax.Rate, 0.20)
+	assert.EqualValues(suite.T(), order.Tax.Amount, 16.66)
+}
+
+func (suite *OrderTestSuite) TestOrder_processOrderVat_Ok_VatPayer_Buyer() {
+	order := &billing.Order{
+		OrderAmount: 100,
+		Currency:    "USD",
+		User: &billing.OrderUser{
+			Id: primitive.NewObjectID().Hex(),
+			Ip: "127.0.0.1",
+			Address: &billing.OrderBillingAddress{
+				Country: "RU",
+			},
+		},
+		VatPayer: pkg.VatPayerBuyer,
+	}
+
+	p1 := &OrderCreateRequestProcessor{Service: suite.service, ctx: context.TODO()}
+	err := p1.processOrderVat(order)
+	assert.NoError(suite.T(), err)
+	assert.EqualValues(suite.T(), order.TotalPaymentAmount, order.OrderAmount+20)
+	assert.EqualValues(suite.T(), order.ChargeAmount, order.OrderAmount+20)
+	assert.EqualValues(suite.T(), order.ChargeCurrency, order.Currency)
+	assert.NotNil(suite.T(), order.Tax)
+	assert.EqualValues(suite.T(), order.Tax.Currency, order.Currency)
+	assert.EqualValues(suite.T(), order.Tax.Rate, 0.20)
+	assert.EqualValues(suite.T(), order.Tax.Amount, 20)
 }
