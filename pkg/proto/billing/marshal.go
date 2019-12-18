@@ -67,6 +67,43 @@ type JsonMerchantBalance struct {
 	CreatedAt      string  `json:"created_at"`
 }
 
+func (m *Order) MarshalJSON() ([]byte, error) {
+	type Alias Order
+
+	createdAt, _ := ptypes.Timestamp(m.CreatedAt)
+	canceledAt, _ := ptypes.Timestamp(m.CanceledAt)
+	refundedAt, _ := ptypes.Timestamp(m.RefundedAt)
+
+	return json.Marshal(&struct {
+		*Alias
+		CreatedAt  time.Time `json:"created_at"`
+		CanceledAt time.Time `json:"canceled_at"`
+		RefundedAt time.Time `json:"refunded_at"`
+	}{
+		Alias:      (*Alias)(m),
+		CreatedAt:  createdAt,
+		CanceledAt: canceledAt,
+		RefundedAt: refundedAt,
+	})
+}
+
+func (m *OrderItem) MarshalJSON() ([]byte, error) {
+	type Alias OrderItem
+
+	createdAt, _ := ptypes.Timestamp(m.CreatedAt)
+	updatedAt, _ := ptypes.Timestamp(m.UpdatedAt)
+
+	return json.Marshal(&struct {
+		*Alias
+		CreatedAt time.Time `json:"created_at"`
+		UpdatedAt time.Time `json:"updated_at"`
+	}{
+		Alias:     (*Alias)(m),
+		CreatedAt: createdAt,
+		UpdatedAt: updatedAt,
+	})
+}
+
 func (m *Refund) MarshalJSON() ([]byte, error) {
 	return json.Marshal(
 		&JsonRefund{

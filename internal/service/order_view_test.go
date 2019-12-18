@@ -131,6 +131,7 @@ func (suite *OrderViewTestSuite) SetupTest() {
 		SecretKey:                "test project 1 secret key",
 		Status:                   pkg.ProjectStatusDraft,
 		MerchantId:               suite.merchant.Id,
+		VatPayer:                 pkg.VatPayerBuyer,
 		WebhookTesting: &billing.WebHookTesting {
 			Products:             &billing.ProductsTesting{
 				NonExistingUser:      true,

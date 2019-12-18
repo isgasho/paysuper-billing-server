@@ -54,6 +54,12 @@ type EmailTemplates struct {
 	UserInvite                     string `envconfig:"EMAIL_INVITE_TEMPLATE" default:"code-your-own"`
 }
 
+type Centrifugo struct {
+	ApiSecret string `required:"true"`
+	Secret    string `required:"true"`
+	URL       string `default:"http://127.0.0.1:8000"`
+}
+
 type Config struct {
 	MongoDsn         string `envconfig:"MONGO_DSN" required:"true"`
 	MongoDialTimeout string `envconfig:"MONGO_DIAL_TIMEOUT" required:"false" default:"10"`
@@ -62,10 +68,7 @@ type Config struct {
 	RedisHost        string `envconfig:"REDIS_HOST" default:"127.0.0.1:6379"`
 	RedisPassword    string `envconfig:"REDIS_PASSWORD" default:""`
 
-	CentrifugoApiSecret string `envconfig:"CENTRIFUGO_API_SECRET" required:"true"`
-	CentrifugoSecret    string `envconfig:"CENTRIFUGO_SECRET" required:"true"`
-	CentrifugoURL       string `envconfig:"CENTRIFUGO_URL" required:"false" default:"http://127.0.0.1:8000"`
-	BrokerAddress       string `envconfig:"BROKER_ADDRESS" default:"amqp://127.0.0.1:5672"`
+	BrokerAddress string `envconfig:"BROKER_ADDRESS" default:"amqp://127.0.0.1:5672"`
 
 	CentrifugoUserChannel     string `envconfig:"CENTRIFUGO_USER_CHANNEL" default:"paysuper:user#%s"`
 	EmailConfirmTokenLifetime int64  `envconfig:"EMAIL_CONFIRM_TOKEN_LIFETIME" default:"86400"`
@@ -106,6 +109,9 @@ type Config struct {
 	*CacheRedis
 	*EmailTemplates
 
+	CentrifugoPaymentForm *Centrifugo `envconfig:"CENTRIFUGO_PAYMENT_FORM"`
+	CentrifugoDashboard   *Centrifugo `envconfig:"CENTRIFUGO_DASHBOARD"`
+
 	EmailConfirmUrlParsed    *url.URL
 	RedirectUrlSuccessParsed *url.URL
 	RedirectUrlFailParsed    *url.URL
@@ -113,11 +119,13 @@ type Config struct {
 	MigrationsLockTimeout int64 `envconfig:"MIGRATIONS_LOCK_TIMEOUT" default:"60"`
 
 	DashboardUrl string `envconfig:"DASHBOARD_URL" default:"https://paysupermgmt.tst.protocol.one"`
+	CheckoutUrl  string `envconfig:"CHECKOUT_URL" default:"https://checkout.tst.pay.super.com"`
 }
 
 func NewConfig() (*Config, error) {
 	cfg := &Config{}
 	err := envconfig.Process("", cfg)
+
 	if err != nil {
 		return nil, err
 	}
@@ -218,11 +226,11 @@ func (cfg *Config) GetCentrifugoOrderChannel(orderUuid string) string {
 }
 
 func (cfg *Config) GetReceiptPurchaseUrl(transactionId, receiptId string) string {
-	return fmt.Sprintf(pkg.ReceiptPurchaseUrl, cfg.DashboardUrl, receiptId, transactionId)
+	return fmt.Sprintf(pkg.ReceiptPurchaseUrl, cfg.CheckoutUrl, receiptId, transactionId)
 }
 
 func (cfg *Config) GetReceiptRefundUrl(transactionId, receiptId string) string {
-	return fmt.Sprintf(pkg.ReceiptRefundUrl, cfg.DashboardUrl, receiptId, transactionId)
+	return fmt.Sprintf(pkg.ReceiptRefundUrl, cfg.CheckoutUrl, receiptId, transactionId)
 }
 
 func (cfg *Config) GetEmailConfirmUrl() string {
