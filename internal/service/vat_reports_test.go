@@ -17,11 +17,12 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
-	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"go.uber.org/zap/zaptest/observer"
 	rabbitmq "gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
 	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 	"testing"
@@ -37,6 +38,9 @@ type VatReportsTestSuite struct {
 	projectFixedAmount *billing.Project
 	paymentMethod      *billing.PaymentMethod
 	paymentSystem      *billing.PaymentSystem
+
+	logObserver *zap.Logger
+	zapRecorder *observer.ObservedLogs
 }
 
 func Test_VatReports(t *testing.T) {
@@ -111,6 +115,12 @@ func (suite *VatReportsTestSuite) SetupTest() {
 	}
 
 	_, suite.projectFixedAmount, suite.paymentMethod, suite.paymentSystem = helperCreateEntitiesForTests(suite.Suite, suite.service)
+
+	var core zapcore.Core
+
+	lvl := zap.NewAtomicLevel()
+	core, suite.zapRecorder = observer.New(lvl)
+	suite.logObserver = zap.New(core)
 }
 
 func (suite *VatReportsTestSuite) TearDownTest() {
@@ -298,10 +308,8 @@ func (suite *VatReportsTestSuite) TestVatReports_ProcessVatReports() {
 }
 
 func (suite *VatReportsTestSuite) TestVatReports_PaymentDateSet() {
-
-	ci := &mocks.CentrifugoInterface{}
-	ci.On("Publish", mock2.Anything, mock2.Anything, mock2.Anything).Return(nil)
-	suite.service.centrifugo = ci
+	zap.ReplaceGlobals(suite.logObserver)
+	suite.service.centrifugoDashboard = newCentrifugo(suite.service.cfg.CentrifugoDashboard, mocks.NewClientStatusOk())
 
 	nowTimestamp := time.Now().Unix()
 
@@ -355,4 +363,7 @@ func (suite *VatReportsTestSuite) TestVatReports_PaymentDateSet() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), vr.Status, pkg.VatReportStatusPaid)
 	assert.GreaterOrEqual(suite.T(), nowTimestamp, vr.PaidAt.Seconds)
+
+	messages := suite.zapRecorder.All()
+	assert.Regexp(suite.T(), "dashboard", messages[0].Message)
 }

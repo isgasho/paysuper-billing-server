@@ -142,6 +142,7 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		Status:                    pkg.MerchantStatusDraft,
 		IsSigned:                  true,
 		PaymentMethods:            paymentMethods,
+		DontChargeVat:             false,
 	}
 
 	project := &billing.Project{
@@ -157,6 +158,7 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		SecretKey:                "test project 1 secret key",
 		Status:                   pkg.ProjectStatusInProduction,
 		MerchantId:               merchant.Id,
+		VatPayer:                 pkg.VatPayerBuyer,
 	}
 
 	products := []interface{}{
@@ -319,6 +321,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_Ok()
 			MaxPurchaseValue: 1000000,
 			SellCountType:    "fractional",
 		},
+		VatPayer: pkg.VatPayerBuyer,
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
@@ -453,6 +456,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_MerchantNotFoun
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
+		VatPayer:           pkg.VatPayerBuyer,
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
@@ -474,6 +478,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_ExistProjectIdN
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
+		VatPayer:           pkg.VatPayerBuyer,
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
@@ -494,6 +499,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NameInDefaultLa
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
+		VatPayer:           pkg.VatPayerBuyer,
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
@@ -514,6 +520,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_CallbackCurrenc
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
+		VatPayer:           pkg.VatPayerBuyer,
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 
@@ -538,6 +545,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_LimitCurrencyNo
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
+		VatPayer:           pkg.VatPayerBuyer,
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 
@@ -600,6 +608,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ListProjects_Ok() {
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
+		VatPayer:           pkg.VatPayerBuyer,
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
@@ -643,6 +652,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ListProjects_NameQuery_Ok() {
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
+		VatPayer:           pkg.VatPayerBuyer,
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
@@ -686,6 +696,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ListProjects_StatusQuery_Ok()
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
+		VatPayer:           pkg.VatPayerBuyer,
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
@@ -756,6 +767,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ListProjects_SortQuery_Ok() {
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
+		VatPayer:           pkg.VatPayerBuyer,
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
@@ -801,6 +813,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_DeleteProject_Ok() {
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
+		VatPayer:           pkg.VatPayerBuyer,
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
@@ -852,6 +865,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_DeleteDeletedProject_Ok() {
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
+		VatPayer:           pkg.VatPayerBuyer,
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
@@ -910,6 +924,7 @@ func (suite *ProjectTestSuite) SetupTest() {
 		IsProductsCheckout: true,
 		SecretKey:          "test project 1 secret key",
 		Status:             pkg.ProjectStatusInProduction,
+		VatPayer:           pkg.VatPayerBuyer,
 	}
 
 	suite.log, err = zap.NewProduction()
@@ -1024,6 +1039,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_IncorrectCurren
 			MaxPurchaseValue: 1000000,
 			SellCountType:    "fractional",
 		},
+		VatPayer: pkg.VatPayerBuyer,
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
@@ -1080,6 +1096,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_ShortDescriptio
 			MaxPurchaseValue: 1000000,
 			SellCountType:    "fractional",
 		},
+		VatPayer: pkg.VatPayerBuyer,
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
@@ -1134,6 +1151,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_FullDescription
 			MaxPurchaseValue: 1000000,
 			SellCountType:    "fractional",
 		},
+		VatPayer: pkg.VatPayerBuyer,
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
@@ -1188,6 +1206,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_VirtualCurrency
 			MaxPurchaseValue: 1000000,
 			SellCountType:    "fractional",
 		},
+		VatPayer: pkg.VatPayerBuyer,
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
@@ -1242,6 +1261,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_VirtualCurrency
 			MaxPurchaseValue: 1000000,
 			SellCountType:    "fractional",
 		},
+		VatPayer: pkg.VatPayerBuyer,
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
@@ -1298,6 +1318,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_VirtualCurrency
 			MaxPurchaseValue: 1000000,
 			SellCountType:    "fractional",
 		},
+		VatPayer: pkg.VatPayerBuyer,
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
@@ -1356,6 +1377,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_VirtualCurrency
 			MaxPurchaseValue: 100,
 			SellCountType:    "fractional",
 		},
+		VatPayer: pkg.VatPayerBuyer,
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
@@ -1410,6 +1432,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_LimitAmounts_Er
 			MaxPurchaseValue: 100,
 			SellCountType:    "fractional",
 		},
+		VatPayer: pkg.VatPayerBuyer,
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)

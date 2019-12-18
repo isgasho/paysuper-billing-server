@@ -1231,7 +1231,7 @@ func (suite *UsersTestSuite) Test_AcceptInvite_Error_CentrifugoPublish() {
 
 	centrifugo := &mocks.CentrifugoInterface{}
 	centrifugo.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("error"))
-	suite.service.centrifugo = centrifugo
+	suite.service.centrifugoDashboard = centrifugo
 
 	res := &grpc.AcceptInviteResponse{}
 	err = suite.service.AcceptInvite(context.TODO(), &grpc.AcceptInviteRequest{Email: role.Email, Token: token}, res)
@@ -1274,7 +1274,7 @@ func (suite *UsersTestSuite) Test_AcceptInvite_Ok() {
 
 	centrifugo := &mocks.CentrifugoInterface{}
 	centrifugo.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	suite.service.centrifugo = centrifugo
+	suite.service.centrifugoDashboard = centrifugo
 
 	res := &grpc.AcceptInviteResponse{}
 	err = suite.service.AcceptInvite(context.TODO(), &grpc.AcceptInviteRequest{Email: role.Email, Token: token}, res)
@@ -1436,7 +1436,7 @@ func (suite *UsersTestSuite) Test_DeleteMerchantUser_Error_CentrifugoPublish() {
 
 	centrifugo := &mocks.CentrifugoInterface{}
 	centrifugo.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("error"))
-	suite.service.centrifugo = centrifugo
+	suite.service.centrifugoDashboard = centrifugo
 
 	res := &grpc.EmptyResponseWithStatus{}
 	err := suite.service.DeleteMerchantUser(context.TODO(), &grpc.MerchantRoleRequest{}, res)
@@ -1464,7 +1464,7 @@ func (suite *UsersTestSuite) Test_DeleteMerchantUser_Ok() {
 
 	centrifugo := &mocks.CentrifugoInterface{}
 	centrifugo.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	suite.service.centrifugo = centrifugo
+	suite.service.centrifugoDashboard = centrifugo
 
 	res := &grpc.EmptyResponseWithStatus{}
 	err := suite.service.DeleteMerchantUser(context.TODO(), &grpc.MerchantRoleRequest{}, res)
@@ -1563,7 +1563,7 @@ func (suite *UsersTestSuite) Test_DeleteAdminUser_Error_CentrifugoPublish() {
 
 	centrifugo := &mocks.CentrifugoInterface{}
 	centrifugo.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("error"))
-	suite.service.centrifugo = centrifugo
+	suite.service.centrifugoDashboard = centrifugo
 
 	res := &grpc.EmptyResponseWithStatus{}
 	err := suite.service.DeleteAdminUser(context.TODO(), &grpc.AdminRoleRequest{}, res)
@@ -1591,7 +1591,7 @@ func (suite *UsersTestSuite) Test_DeleteAdminUser_Ok() {
 
 	centrifugo := &mocks.CentrifugoInterface{}
 	centrifugo.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	suite.service.centrifugo = centrifugo
+	suite.service.centrifugoDashboard = centrifugo
 
 	res := &grpc.EmptyResponseWithStatus{}
 	err := suite.service.DeleteAdminUser(context.TODO(), &grpc.AdminRoleRequest{}, res)

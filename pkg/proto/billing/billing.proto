@@ -164,6 +164,8 @@ message Project {
     ImageCollection cover = 34;
     //@inject_tag: json:"virtual_currency" validate:"omitempty,dive"
     ProjectVirtualCurrency virtual_currency = 35;
+    // @inject_tag: json:"vat_payer" bson:"vat_payer" validate:"oneof=buyer seller nobody"
+    string vat_payer = 36;
 }
 
 message ProjectOrder {
@@ -393,6 +395,8 @@ message Merchant {
     string operating_company_id = 56;
     // @inject_tag: json:"merchant_operations_type" validate:"oneof=high-risk low-risk"
     string merchant_operations_type = 57;
+    // @inject_tag: json:"dont_charge_vat"
+    bool dont_charge_vat = 58;
 }
 
 message MerchantCommon {
@@ -645,6 +649,8 @@ message Order {
     bool billing_country_changed_by_user = 84;
     // @inject_tag: json:"-"
     bool is_refund_allowed = 85;
+    // @inject_tag: json:"vat_payer" bson:"vat_payer" validate:"oneof=buyer seller nobody"
+    string vat_payer = 86;
 }
 
 message ParentOrder {
@@ -1865,6 +1871,8 @@ message OrderViewPublic {
     bool is_ip_country_mismatch_bin = 48;
     // @inject_tag: json:"billing_country_changed_by_user" bson:"billing_country_changed_by_user"
     bool billing_country_changed_by_user = 49;
+    // @inject_tag: json:"vat_payer" bson:"vat_payer" validate:"oneof=buyer seller nobody"
+    string vat_payer = 50;
 }
 
 message OrderViewPrivate {
@@ -2036,6 +2044,8 @@ message OrderViewPrivate {
     bool is_ip_country_mismatch_bin = 83;
     // @inject_tag: json:"billing_country_changed_by_user" bson:"billing_country_changed_by_user"
     bool billing_country_changed_by_user = 84;
+    // @inject_tag: json:"vat_payer" bson:"vat_payer" validate:"oneof=buyer seller nobody"
+    string vat_payer = 85;
 }
 
 message RecommendedPrice {
@@ -2245,6 +2255,8 @@ message OrderReceipt {
     string platform_name = 8;
     //@inject_tag: json:"payment_partner"
     string payment_partner = 9;
+    // @inject_tag: json:"vat_payer"
+    string vat_payer = 10;
 }
 
 message OrderReceiptItem {

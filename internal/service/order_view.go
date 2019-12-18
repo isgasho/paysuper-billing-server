@@ -3163,6 +3163,7 @@ func (s *Service) doUpdateOrderView(ctx context.Context, match bson.M) error {
 				"order_charge":                                      1,
 				"billing_country_changed_by_user":                   1,
 				"refund_allowed":                                    "$is_refund_allowed",
+				"vat_payer":                                         1,
 				"merchant_payout_currency": bson.M{
 					"$ifNull": list{"$net_revenue.currency", "$refund_reverse_revenue.currency"},
 				},

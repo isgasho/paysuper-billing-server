@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	geoip "github.com/ProtocolONE/geoip-service/pkg/proto"
-	"github.com/dgrijalva/jwt-go"
 	protobuf "github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	structpb "github.com/golang/protobuf/ptypes/struct"
@@ -133,6 +132,7 @@ var (
 	orderErrorDontHaveReceiptUrl                              = newBillingServerErrorMsg("fm000074", "processed order don't have receipt url")
 	orderErrorWrongPrivateStatus                              = newBillingServerErrorMsg("fm000075", "order has wrong private status and cannot be recreated")
 	orderCountryChangeRestrictedError                         = newBillingServerErrorMsg("fm000076", "change country is not allowed")
+	orderErrorVatPayerUnknown                                 = newBillingServerErrorMsg("fm000077", "vat payer unknown")
 
 	virtualCurrencyPayoutCurrencyMissed = newBillingServerErrorMsg("vc000001", "virtual currency don't have price in merchant payout currency")
 
@@ -859,7 +859,6 @@ func (s *Service) fillPaymentFormJsonData(order *billing.Order, rsp *grpc.Paymen
 	}
 
 	expire := time.Now().Add(time.Minute * 30).Unix()
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": order.Uuid, "exp": expire})
 
 	rsp.Item.Id = order.Uuid
 	rsp.Item.Account = order.ProjectAccount
@@ -873,7 +872,7 @@ func (s *Service) fillPaymentFormJsonData(order *billing.Order, rsp *grpc.Paymen
 		UrlSuccess: order.Project.UrlSuccess,
 		UrlFail:    order.Project.UrlFail,
 	}
-	rsp.Item.Token, _ = token.SignedString([]byte(s.cfg.CentrifugoSecret))
+	rsp.Item.Token = s.centrifugoPaymentForm.GetChannelToken(order.Uuid, expire)
 	rsp.Item.Amount = order.OrderAmount
 	rsp.Item.TotalAmount = order.TotalPaymentAmount
 	rsp.Item.ChargeCurrency = order.ChargeCurrency
@@ -895,6 +894,7 @@ func (s *Service) fillPaymentFormJsonData(order *billing.Order, rsp *grpc.Paymen
 		Zip:     order.User.Address.PostalCode,
 	}
 	rsp.Item.Lang = order.User.Locale
+	rsp.Item.VatPayer = order.VatPayer
 }
 
 func (s *Service) PaymentCreateProcess(
@@ -973,16 +973,6 @@ func (s *Service) PaymentCreateProcess(
 		}
 	}
 
-	err = s.setOrderChargeAmountAndCurrency(ctx, order)
-	if err != nil {
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = e
-			return nil
-		}
-		return err
-	}
-
 	ps, err := s.paymentSystem.GetById(ctx, processor.checked.paymentMethod.PaymentSystemId)
 	if err != nil {
 		rsp.Message = orderErrorPaymentSystemInactive
@@ -999,6 +989,16 @@ func (s *Service) PaymentCreateProcess(
 		ExternalId:      processor.checked.paymentMethod.ExternalId,
 		Handler:         ps.Handler,
 		RefundAllowed:   processor.checked.paymentMethod.RefundAllowed,
+	}
+
+	err = s.setOrderChargeAmountAndCurrency(ctx, order)
+	if err != nil {
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
 	}
 
 	methodName, err := order.GetCostPaymentMethodName()
@@ -1432,16 +1432,6 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		break
 	}
 
-	err = s.setOrderChargeAmountAndCurrency(ctx, order)
-	if err != nil {
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = e
-			return nil
-		}
-		return err
-	}
-
 	order.PaymentMethod = &billing.PaymentMethodOrder{
 		Id:              pm.Id,
 		Name:            pm.Name,
@@ -1450,6 +1440,16 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		ExternalId:      pm.ExternalId,
 		Handler:         ps.Handler,
 		RefundAllowed:   pm.RefundAllowed,
+	}
+
+	err = s.setOrderChargeAmountAndCurrency(ctx, order)
+	if err != nil {
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
 	}
 
 	methodName, err := order.GetCostPaymentMethodName()
@@ -1882,6 +1882,7 @@ func (s *Service) getPayloadForReceipt(ctx context.Context, order *billing.Order
 			"merchant_name":    merchantName,
 			"url":              order.ReceiptUrl,
 			"payment_partner":  paymentPartner,
+			"vat_payer":        order.VatPayer,
 		},
 		To: order.ReceiptEmail,
 	}
@@ -1932,7 +1933,7 @@ func (s *Service) getPayloadForReceipt(ctx context.Context, order *billing.Order
 	return payload
 }
 
-func (s *Service) sendMailWithCode(ctx context.Context, order *billing.Order, key *billing.Key) {
+func (s *Service) sendMailWithCode(_ context.Context, order *billing.Order, key *billing.Key) {
 	var platformIconUrl = ""
 	if platform, ok := availablePlatforms[order.PlatformId]; ok {
 		platformIconUrl = platform.Icon
@@ -2142,6 +2143,7 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 		OperatingCompanyId:      v.checked.merchant.OperatingCompanyId,
 		IsHighRisk:              v.checked.merchant.IsHighRisk(),
 		IsCurrencyPredefined:    v.checked.isCurrencyPredefined,
+		VatPayer:                v.checked.project.VatPayer,
 	}
 
 	if v.checked.virtualAmount > 0 {
@@ -2548,6 +2550,8 @@ func (v *OrderCreateRequestProcessor) processSignature() error {
 // Calculate VAT for order
 func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) error {
 	order.Tax = &billing.OrderTax{
+		Amount:   0,
+		Rate:     0,
 		Type:     taxTypeVat,
 		Currency: order.Currency,
 	}
@@ -2556,6 +2560,14 @@ func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) erro
 	order.ChargeCurrency = order.Currency
 
 	countryCode := order.GetCountry()
+	if countryCode == CountryCodeUSA {
+		order.Tax.Type = taxTypeSalesTax
+	}
+
+	if order.VatPayer == pkg.VatPayerNobody {
+		return nil
+	}
+
 	if countryCode != "" {
 		country, err := v.country.GetByIsoCodeA2(v.ctx, countryCode)
 		if err != nil {
@@ -2571,7 +2583,6 @@ func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) erro
 	}
 
 	if countryCode == CountryCodeUSA {
-		order.Tax.Type = taxTypeSalesTax
 		req.Zip = order.GetPostalCode()
 	}
 
@@ -2583,9 +2594,22 @@ func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) erro
 	}
 
 	order.Tax.Rate = rsp.Rate
-	order.Tax.Amount = v.FormatAmount(order.OrderAmount*order.Tax.Rate, order.Currency)
-	order.TotalPaymentAmount = v.FormatAmount(order.OrderAmount+order.Tax.Amount, order.Currency)
-	order.ChargeAmount = order.TotalPaymentAmount
+
+	switch order.VatPayer {
+
+	case pkg.VatPayerBuyer:
+		order.Tax.Amount = v.FormatAmount(order.OrderAmount*order.Tax.Rate, order.Currency)
+		order.TotalPaymentAmount = v.FormatAmount(order.OrderAmount+order.Tax.Amount, order.Currency)
+		order.ChargeAmount = order.TotalPaymentAmount
+		break
+
+	case pkg.VatPayerSeller:
+		order.Tax.Amount = v.FormatAmount(tools.GetPercentPartFromAmount(order.TotalPaymentAmount, order.Tax.Rate), order.Currency)
+		break
+
+	default:
+		return orderErrorVatPayerUnknown
+	}
 
 	return nil
 }
@@ -3573,8 +3597,8 @@ func (s *Service) ProcessOrderProducts(ctx context.Context, order *billing.Order
 }
 
 func (s *Service) processAmountForFiatCurrency(
-	ctx context.Context,
-	project *billing.Project,
+	_ context.Context,
+	_ *billing.Project,
 	orderProducts []*grpc.Product,
 	priceGroup *billing.PriceGroup,
 	defaultPriceGroup *billing.PriceGroup,
@@ -3602,7 +3626,7 @@ func (s *Service) processAmountForFiatCurrency(
 }
 
 func (s *Service) processAmountForVirtualCurrency(
-	ctx context.Context,
+	_ context.Context,
 	project *billing.Project,
 	orderProducts []*grpc.Product,
 	priceGroup *billing.PriceGroup,
@@ -3651,7 +3675,7 @@ func (s *Service) notifyPaylinkError(ctx context.Context, paylinkId string, err 
 		"request":   req,
 		"order":     order,
 	}
-	_ = s.centrifugo.Publish(ctx, centrifugoChannel, msg)
+	_ = s.centrifugoDashboard.Publish(ctx, centrifugoChannel, msg)
 }
 
 func (v *PaymentCreateProcessor) GetMerchantId() string {
@@ -3788,7 +3812,7 @@ func (s *Service) fillPaymentDataCrypto(order *billing.Order) error {
 func (s *Service) SetUserNotifySales(
 	ctx context.Context,
 	req *grpc.SetUserNotifyRequest,
-	rsp *grpc.EmptyResponse,
+	_ *grpc.EmptyResponse,
 ) error {
 
 	order, err := s.getOrderByUuid(ctx, req.OrderUuid)
@@ -3859,9 +3883,8 @@ func (s *Service) SetUserNotifySales(
 func (s *Service) SetUserNotifyNewRegion(
 	ctx context.Context,
 	req *grpc.SetUserNotifyRequest,
-	rsp *grpc.EmptyResponse,
+	_ *grpc.EmptyResponse,
 ) error {
-
 	order, err := s.getOrderByUuid(ctx, req.OrderUuid)
 
 	if err != nil {
@@ -4200,6 +4223,7 @@ func (s *Service) OrderReceipt(
 		Items:           items,
 		PlatformName:    platformName,
 		PaymentPartner:  oc.Name,
+		VatPayer:        order.VatPayer,
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
@@ -4296,7 +4320,7 @@ func (s *Service) paymentSystemPaymentCallbackComplete(ctx context.Context, orde
 		"status":                      paymentSystemPaymentProcessingSuccessStatus,
 	}
 
-	return s.centrifugo.Publish(ctx, ch, message)
+	return s.centrifugoPaymentForm.Publish(ctx, ch, message)
 }
 
 func (v *OrderCreateRequestProcessor) processVirtualCurrency() error {
@@ -4571,7 +4595,7 @@ func (s *Service) processProducts(
 	productIds []string,
 	priceGroup *billing.PriceGroup,
 	locale string,
-) (amount float64, usedPriceGroup *billing.PriceGroup, items []*billing.OrderItem, 	isBuyForVirtualCurrency bool, err error) {
+) (amount float64, usedPriceGroup *billing.PriceGroup, items []*billing.OrderItem, isBuyForVirtualCurrency bool, err error) {
 	project, err := s.project.GetById(ctx, projectId)
 	if err != nil {
 		return

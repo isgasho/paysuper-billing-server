@@ -66,8 +66,9 @@ We use the [GitFlow](https://nvie.com/posts/a-successful-git-branching-model) as
 ### Docker deployment
 
 ```bash
-docker build -f Dockerfile -t paysuper_billing_service .
-docker run -d -e "MONGO_HOST=127.0.0.1:27017" -e "MONGO_DB="paysuper" ... e="CACHE_PROJECT_PAYMENT_METHOD_TIMEOUT=600" paysuper_billing_service
+docker build -f Dockerfile -t paysuper_billing_service
+
+docker run -d -e "MONGO_DSN=mongodb://127.0.0.1:27017/billing_repository" -e "CACHE_PROJECT_PAYMENT_METHOD_TIMEOUT=600" paysuper_billing_service
 ```
 
 ### Starting the application
@@ -97,8 +98,8 @@ To run application as microservice simply don't pass any flags to command line :
 
 |Name|Description|
 |:---|:---|
-| MONGO_DSN                                           | MongoBD DSN connection string                                                                                                       |
-| MONGO_DIAL_TIMEOUT                                  | MongoBD dial timeout in seconds                                                                                                     |
+| MONGO_DSN                                           | MongoDB DSN connection string                                                                                                       |
+| MONGO_DIAL_TIMEOUT                                  | MongoDB dial timeout in seconds                                                                                                     |
 | PSP_ACCOUNTING_CURRENCY                             | PaySuper accounting currency                                                                                                        |
 | METRICS_PORT                                        | Http server port for health and metrics request                                                                                     |
 | CENTRIFUGO_SECRET                                   | Centrifugo secret key                                                                                                               |
