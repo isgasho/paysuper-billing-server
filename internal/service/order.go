@@ -1884,16 +1884,16 @@ func (s *Service) getPayloadForReceipt(ctx context.Context, order *billing.Order
 
 	// add vat_payer value field to template model, for easy template condition
 	// for example {{#vat_payer_buyer}} ... {{/vat_payer_buyer}}
-	templateModel["vat_payer_"+receipt.VatPayer] = "true"
+	templateModel["vatPayer_"+receipt.VatPayer] = "true"
 
 	// add flag that charge currency differs from order currency to template model, for easy email template condition
 	if order.Currency != order.ChargeCurrency {
-		templateModel["show_total_charge"] = "true"
+		templateModel["showTotalCharge"] = "true"
 	}
 
 	// add order has vat flag to template model, for easy email template condition
 	if order.Tax.Amount > 0 {
-		templateModel["order_has_vat"] = "true"
+		templateModel["orderHasVat"] = "true"
 	}
 
 	payload := &postmarkSdrPkg.Payload{
@@ -4249,6 +4249,7 @@ func (s *Service) getOrderReceiptObject(ctx context.Context, order *billing.Orde
 		TotalCharge:         totalCharge,
 		ReceiptId:           order.ReceiptId,
 		Url:                 order.ReceiptUrl,
+		VatRate:             fmt.Sprintf("%g", order.Tax.Rate*100) + "%",
 	}
 
 	return receipt, nil
