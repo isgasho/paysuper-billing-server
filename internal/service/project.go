@@ -279,6 +279,7 @@ func (s *Service) ListProjects(
 				"full_description":            "$full_description",
 				"localizations":               "$localizations",
 				"virtual_currency":            "$virtual_currency",
+				"vat_payer":                   "$vat_payer",
 			},
 		},
 		{"$skip": req.Offset},
