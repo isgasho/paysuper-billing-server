@@ -2545,14 +2545,6 @@ func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) erro
 	countryCode := order.GetCountry()
 
 	if countryCode == "" {
-		if order.CountryRestriction == nil {
-			order.CountryRestriction = &billing.CountryRestriction{}
-		}
-
-		order.CountryRestriction.PaymentsAllowed = false
-		order.CountryRestriction.ChangeAllowed = true
-		order.UserAddressDataRequired = true
-
 		return nil
 	}
 
@@ -3959,9 +3951,16 @@ func (s *Service) applyCountryRestriction(
 ) (restricted bool, err error) {
 	restricted = false
 	if countryCode == "" {
+		if order.CountryRestriction == nil {
+			order.CountryRestriction = &billing.CountryRestriction{}
+		}
+
+		order.CountryRestriction.PaymentsAllowed = false
+		order.CountryRestriction.ChangeAllowed = true
 		order.UserAddressDataRequired = true
 		return
 	}
+
 	country, err := s.country.GetByIsoCodeA2(ctx, countryCode)
 	if err != nil {
 		return
