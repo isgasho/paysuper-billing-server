@@ -119,6 +119,7 @@ type Config struct {
 	MigrationsLockTimeout int64 `envconfig:"MIGRATIONS_LOCK_TIMEOUT" default:"60"`
 
 	DashboardUrl string `envconfig:"DASHBOARD_URL" default:"https://paysupermgmt.tst.protocol.one"`
+	CheckoutUrl  string `envconfig:"CHECKOUT_URL" default:"https://checkout.tst.pay.super.com"`
 }
 
 func NewConfig() (*Config, error) {
@@ -225,11 +226,11 @@ func (cfg *Config) GetCentrifugoOrderChannel(orderUuid string) string {
 }
 
 func (cfg *Config) GetReceiptPurchaseUrl(transactionId, receiptId string) string {
-	return fmt.Sprintf(pkg.ReceiptPurchaseUrl, cfg.DashboardUrl, receiptId, transactionId)
+	return fmt.Sprintf(pkg.ReceiptPurchaseUrl, cfg.CheckoutUrl, receiptId, transactionId)
 }
 
 func (cfg *Config) GetReceiptRefundUrl(transactionId, receiptId string) string {
-	return fmt.Sprintf(pkg.ReceiptRefundUrl, cfg.DashboardUrl, receiptId, transactionId)
+	return fmt.Sprintf(pkg.ReceiptRefundUrl, cfg.CheckoutUrl, receiptId, transactionId)
 }
 
 func (cfg *Config) GetEmailConfirmUrl() string {
