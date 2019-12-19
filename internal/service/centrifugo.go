@@ -55,8 +55,6 @@ func (c *Centrifugo) GetChannelToken(subject string, expire int64) string {
 	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": subject, "exp": expire})
 	token, err := claims.SignedString([]byte(c.secret))
 
-	zap.L().Info("debug_centrifugo_secret", zap.String("secret", c.secret), zap.Any("claims", jwt.MapClaims{"sub": subject, "exp": expire}))
-
 	if err != nil {
 		zap.L().Error(
 			"Generate centrifugo channel token failed",
