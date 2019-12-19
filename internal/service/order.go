@@ -1882,18 +1882,45 @@ func (s *Service) getPayloadForReceipt(ctx context.Context, order *billing.Order
 		delete(templateModel, "platform")
 	}
 
-	// add vat_payer value field to template model, for easy template condition
-	// for example {{#vat_payer_buyer}} ... {{/vat_payer_buyer}}
-	templateModel["vatPayer_"+receipt.VatPayer] = "true"
-
-	// add flag that charge currency differs from order currency to template model, for easy email template condition
-	if order.Currency != order.ChargeCurrency {
-		templateModel["showTotalCharge"] = "true"
+	// pass subtotal row info as struct, for email template condition
+	var subTotal *structpb.Value
+	if receipt.TotalAmount != receipt.TotalCharge {
+		subTotal = &structpb.Value{
+			Kind: &structpb.Value_StructValue{
+				StructValue: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"totalAmount": {
+							Kind: &structpb.Value_StringValue{StringValue: receipt.TotalAmount},
+						},
+						"totalCharge": {
+							Kind: &structpb.Value_StringValue{StringValue: receipt.TotalCharge},
+						},
+					},
+				},
+			},
+		}
 	}
 
-	// add order has vat flag to template model, for easy email template condition
-	if order.Tax.Amount > 0 {
-		templateModel["orderHasVat"] = "true"
+	// pass vat row info as struct, for email template condition
+	var vat *structpb.Value
+	if receipt.VatRate != "0%" {
+		vat = &structpb.Value{
+			Kind: &structpb.Value_StructValue{
+				StructValue: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"rate": {
+							Kind: &structpb.Value_StringValue{StringValue: receipt.VatRate},
+						},
+						"amount": {
+							Kind: &structpb.Value_StringValue{StringValue: receipt.VatInOrderCurrency},
+						},
+						"including": {
+							Kind: &structpb.Value_BoolValue{BoolValue: receipt.VatPayer == pkg.VatPayerSeller},
+						},
+					},
+				},
+			},
+		}
 	}
 
 	payload := &postmarkSdrPkg.Payload{
@@ -1909,6 +1936,8 @@ func (s *Service) getPayloadForReceipt(ctx context.Context, order *billing.Order
 					Values: items,
 				}},
 			},
+			"vat":      vat,
+			"subTotal": subTotal,
 		},
 	}
 
