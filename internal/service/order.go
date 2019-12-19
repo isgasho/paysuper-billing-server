@@ -879,6 +879,7 @@ func (s *Service) fillPaymentFormJsonData(order *billing.Order, rsp *grpc.Paymen
 	rsp.Item.ChargeAmount = order.ChargeAmount
 	rsp.Item.Items = order.Items
 	rsp.Item.Email = order.User.Email
+	rsp.Item.UserAddressDataRequired = order.UserAddressDataRequired
 
 	if order.CountryRestriction != nil {
 		rsp.Item.CountryPaymentsAllowed = order.CountryRestriction.PaymentsAllowed
@@ -2560,6 +2561,19 @@ func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) erro
 	order.ChargeCurrency = order.Currency
 
 	countryCode := order.GetCountry()
+
+	if countryCode == "" {
+		if order.CountryRestriction == nil {
+			order.CountryRestriction = &billing.CountryRestriction{}
+		}
+
+		order.CountryRestriction.PaymentsAllowed = false
+		order.CountryRestriction.ChangeAllowed = true
+		order.UserAddressDataRequired = true
+
+		return nil
+	}
+
 	if countryCode == CountryCodeUSA {
 		order.Tax.Type = taxTypeSalesTax
 	}
