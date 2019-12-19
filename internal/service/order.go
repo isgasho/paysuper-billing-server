@@ -3951,13 +3951,11 @@ func (s *Service) applyCountryRestriction(
 ) (restricted bool, err error) {
 	restricted = false
 	if countryCode == "" {
-		if order.CountryRestriction == nil {
-			order.CountryRestriction = &billing.CountryRestriction{}
-		}
-
-		order.CountryRestriction.PaymentsAllowed = false
-		order.CountryRestriction.ChangeAllowed = true
 		order.UserAddressDataRequired = true
+		order.CountryRestriction = &billing.CountryRestriction{
+			PaymentsAllowed: false,
+			ChangeAllowed:   true,
+		}
 		return
 	}
 
