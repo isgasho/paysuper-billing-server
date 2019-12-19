@@ -66,8 +66,9 @@ We use the [GitFlow](https://nvie.com/posts/a-successful-git-branching-model) as
 ### Docker deployment
 
 ```bash
-docker build -f Dockerfile -t paysuper_billing_service .
-docker run -d -e "MONGO_HOST=127.0.0.1:27017" -e "MONGO_DB="paysuper" ... e="CACHE_PROJECT_PAYMENT_METHOD_TIMEOUT=600" paysuper_billing_service
+docker build -f Dockerfile -t paysuper_billing_service
+
+docker run -d -e "MONGO_DSN=mongodb://127.0.0.1:27017/billing_repository" -e "CACHE_PROJECT_PAYMENT_METHOD_TIMEOUT=600" paysuper_billing_service
 ```
 
 ### Starting the application
@@ -97,47 +98,47 @@ To run application as microservice simply don't pass any flags to command line :
 
 |Name|Description|
 |:---|:---|
-| MONGO_DSN                                           | MongoBD DSN connection string                                                                                                       |
-| MONGO_DIAL_TIMEOUT                                  | MongoBD dial timeout in seconds                                                                                                     |
+| MONGO_DSN                                           | MongoDB DSN connection string                                                                                                       |
+| MONGO_DIAL_TIMEOUT                                  | MongoDB dial timeout in seconds                                                                                                     |
 | PSP_ACCOUNTING_CURRENCY                             | PaySuper accounting currency                                                                                                        |
-| METRICS_PORT                                        | Http server port for health and metrics request                                                                                     |
+| METRICS_PORT                                        | HTTP server port for a health and metrics request                                                                                     |
 | CENTRIFUGO_SECRET                                   | Centrifugo secret key                                                                                                               |
 | CENTRIFUGO_API_SECRET                               | Centrifugo API secret key                                                                                                           |
-| BROKER_ADDRESS                                      | RabbitMQ url address                                                                                                                |
-| CARD_PAY_API_URL                                    | CardPay API url to process payments, more in [documentation](https://integration.cardpay.com/v3/)                                   | 
+| BROKER_ADDRESS                                      | RabbitMQ URL address                                                                                                                |
+| CARD_PAY_API_URL                                    | CardPay API URL to process payments, more in [documentation](https://integration.cardpay.com/v3/)                                   | 
 | CACHE_REDIS_ADDRESS                                 | A seed list of host:port addresses of cluster nodes                                                                                 |
-| CACHE_REDIS_PASSWORD                                | Password for connection string                                                                                                      |
+| CACHE_REDIS_PASSWORD                                | Password for a connection string                                                                                                      |
 | CACHE_REDIS_POOL_SIZE                               | PoolSize applies per cluster node and not for the whole cluster                                                                     |
 | CACHE_REDIS_MAX_RETRIES                             | Maximum retries for connection                                                                                                      |
 | CACHE_REDIS_MAX_REDIRECTS                           | The maximum number of retries before giving up                                                                                      |
 | CACHE_REDIS_VERSION                                 | Version of cache (if you need to flush all cache)                                                                                   |
-| CUSTOMER_COOKIE_PUBLIC_KEY                          | Base64 encoded RSA public key - used for encrypt customer browser cookies content. Minimal length of RSA public key must be 4096    |
-| CUSTOMER_COOKIE_PRIVATE_KEY                         | Base64 encoded RSA private key - used for decrypt customer browser cookies content. Minimal length of RSA private key must be 4096  |
+| CUSTOMER_COOKIE_PUBLIC_KEY                          | Base64 encoded RSA public key - used for encrypting customer browser cookies content. Minimal length of RSA public key must be 4096    |
+| CUSTOMER_COOKIE_PRIVATE_KEY                         | Base64 encoded RSA private key - used for decrypting customer browser cookies content. Minimal length of RSA private key must be 4096  |
 | REDIS_HOST                                          | Redis server host                                                                                                                   |
 | REDIS_PASSWORD                                      | Password to access to Redis server                                                                                                  |
 | CENTRIFUGO_MERCHANT_CHANNEL                         | Centrifugo channel name to send notifications to merchant                                                                           |
 | CENTRIFUGO_FINANCIER_CHANNEL                        | Centrifugo channel name to send notifications to financier                                                                          |
-| EMAIL_NOTIFICATION_FINANCIER_RECIPIENT              |Email of financier, to get vat reports notification                                                                                  |
-| EMAIL_CONFIRM_URL                                   | Url to use in template of confirmation email                                                                                        |
+| EMAIL_NOTIFICATION_FINANCIER_RECIPIENT              |Email of financier, to get VAT reports notification                                                                                  |
+| EMAIL_CONFIRM_URL                                   | URL to use in a template of the confirmation email                                                                                        |
 | EMAIL_CONFIRM_TEMPLATE                              | Confirmation email template name                                                                                                    |
 | EMAIL_NEW_ROYALTY_REPORT_TEMPLATE                   | New royalty report notification email template name                                                                                 |
 | EMAIL_UPDATE_ROYALTY_REPORT_TEMPLATE                | Royalty report update notification email template name                                                                              |
-| EMAIL_VAT_REPORT_TEMPLATE                           | New vat report notification email template name                                                                                     |
+| EMAIL_VAT_REPORT_TEMPLATE                           | New VAT report notification email template name                                                                                     |
 | EMAIL_NEW_PAYOUT_TEMPLATE                           | New payout notification email template name                                                                                         |
 | HELLO_SIGN_DEFAULT_TEMPLATE                         | License agreement template identifier in HelloSign                                                                                  |
-| HELLO_SIGN_AGREEMENT_CLIENT_ID                      | Client application identifier in HelloSign for Merchant Agreement sign                                                              |
-| KEY_DAEMON_RESTART_INTERVAL                         | Starting frequency in seconds of the script to check the locked keys and return them to the stack.                                  |
-| EMAIL_ACTIVATION_CODE_TEMPLATE                      | Postmark Email template id for sending to user with activation code                                                                 |
+| HELLO_SIGN_AGREEMENT_CLIENT_ID                      | Client application identifier in HelloSign for a Merchant Agreement sign                                                              |
+| KEY_DAEMON_RESTART_INTERVAL                         | Starting frequency in seconds of the script to check the locked keys and return them to the stack                                  |
+| EMAIL_ACTIVATION_CODE_TEMPLATE                      | Postmark Email template ID for sending to user with an activation code                                                                 |
 | PAYLINK_MIN_PRODUCTS                                | Minimum number of products allowed for one payment link (must be >= 1)                                                              |
 | PAYLINK_MAX_PRODUCTS                                | Maximum number of products allowed for one payment link                                                                             |
-| EMAIL_MERCHANT_NEW_ONBOARDING_REQUEST_TEMPLATE      | New onboarding request letter to merchant template                                                                                  |
-| EMAIL_ADMIN_NEW_ONBOARDING_REQUEST_TEMPLATE         | New onboarding request letter to admin template                                                                                     |
-| EMAIL_MERCHANT_ONBOARDING_REQUEST_COMPLETE_TEMPLATE | Onboarding request complated letter to merchant template                                                                            |
+| EMAIL_MERCHANT_NEW_ONBOARDING_REQUEST_TEMPLATE      | New onboarding request letter to a merchant template                                                                                  |
+| EMAIL_ADMIN_NEW_ONBOARDING_REQUEST_TEMPLATE         | New onboarding request letter to an admin template                                                                                     |
+| EMAIL_MERCHANT_ONBOARDING_REQUEST_COMPLETE_TEMPLATE | Onboarding request completed letter to a merchant template                                                                            |
 | EMAIL_ONBOARDING_ADMIN_RECIPIENT                    | Email of onboarding administrator                                                                                                   |
-| MIGRATIONS_LOCK_TIMEOUT                             | Timeout for process db migrations on app start                                                                                      |
+| MIGRATIONS_LOCK_TIMEOUT                             | Timeout for processing DB migrations on the app start                                                                                      |
 | USER_INVITE_TOKEN_SECRET                            | Secret key for generation invitation token of user                                                                                  |
 | USER_INVITE_TOKEN_TIMEOUT                           | Timeout in hours for lifetime of invitation token of user                                                                           |
-| DASHBOARD_URL                                       | URL of dashboard for generate links in a notifications                                                                              |
+| DASHBOARD_URL                                       | URL of dashboard for generating links in notifications                                                                              |
 
 
 ## Contributing, Support, Feature Requests
