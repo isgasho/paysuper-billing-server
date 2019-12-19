@@ -2257,6 +2257,18 @@ message OrderReceipt {
     string payment_partner = 9;
     // @inject_tag: json:"vat_payer"
     string vat_payer = 10;
+    //@inject_tag: json:"vat_in_order_currency"
+    string vat_in_order_currency = 11;
+    //@inject_tag: json:"vat_in_charge_currency"
+    string vat_in_charge_currency = 12;
+    //@inject_tag: json:"total_amount"
+    string total_amount = 13;
+    //@inject_tag: json:"total_charge"
+    string total_charge = 14;
+    //@inject_tag: json:"receipt_id"
+    string receipt_id = 15;
+    //@inject_tag: json:"url"
+    string url = 16;
 }
 
 message OrderReceiptItem {
