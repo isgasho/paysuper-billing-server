@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/go-redis/redis"
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -4101,6 +4102,9 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_Ok() {
 	assert.False(suite.T(), order.UserAddressDataRequired)
 	assert.Equal(suite.T(), order.PrivateStatus, int32(constant.OrderStatusNew))
 
+	suite.service.centrifugoPaymentForm = newCentrifugo(suite.service.cfg.CentrifugoPaymentForm, mocks.NewClientStatusOk())
+	assert.Regexp(suite.T(), "payment_form", suite.service.cfg.CentrifugoPaymentForm.Secret)
+
 	req1 := &grpc.PaymentFormJsonDataRequest{OrderId: order.Uuid, Scheme: "https", Host: "unit.test",
 		Ip: "94.131.198.60", // Ukrainian IP -> payments not allowed but available to change country
 	}
@@ -4118,6 +4122,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_Ok() {
 	assert.Equal(suite.T(), req.User.Locale, rsp.Item.Lang)
 	assert.NotNil(suite.T(), rsp.Item.Project)
 	assert.NotZero(suite.T(), rsp.Item.Project.Id)
+
+	expire := time.Now().Add(time.Minute * 30).Unix()
+	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": order.Uuid, "exp": expire})
+	token, err := claims.SignedString([]byte(suite.service.cfg.CentrifugoPaymentForm.Secret))
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), token, rsp.Item.Token)
 
 	order, err = suite.service.getOrderByUuid(context.TODO(), order.Uuid)
 	assert.Nil(suite.T(), err)
