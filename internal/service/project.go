@@ -145,6 +145,17 @@ func (s *Service) ChangeProject(
 		return nil
 	}
 
+	if merchant.DontChargeVat == true {
+		req.VatPayer = pkg.VatPayerNobody
+	} else {
+		if req.VatPayer != pkg.VatPayerBuyer && req.VatPayer != pkg.VatPayerSeller {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = projectErrorVatPayerUnknown
+
+			return nil
+		}
+	}
+
 	if project == nil {
 		project, err = s.createProject(ctx, req)
 	} else {
@@ -157,19 +168,6 @@ func (s *Service) ChangeProject(
 		rsp.Message = projectErrorUnknown
 
 		return nil
-	}
-
-	if merchant.DontChargeVat == true {
-		project.VatPayer = pkg.VatPayerNobody
-	} else {
-		if req.VatPayer != pkg.VatPayerBuyer && req.VatPayer != pkg.VatPayerSeller {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = projectErrorVatPayerUnknown
-
-			return nil
-		}
-
-		project.VatPayer = req.VatPayer
 	}
 
 	rsp.Status = pkg.ResponseStatusOk
@@ -403,6 +401,7 @@ func (s *Service) createProject(ctx context.Context, req *billing.Project) (*bil
 		ShortDescription:         req.ShortDescription,
 		Currencies:               req.Currencies,
 		VirtualCurrency:          req.VirtualCurrency,
+		VatPayer:                 req.VatPayer,
 		CreatedAt:                ptypes.TimestampNow(),
 		UpdatedAt:                ptypes.TimestampNow(),
 	}
@@ -450,6 +449,7 @@ func (s *Service) updateProject(ctx context.Context, req *billing.Project, proje
 	project.ShortDescription = req.ShortDescription
 	project.Currencies = req.Currencies
 	project.VirtualCurrency = req.VirtualCurrency
+	project.VatPayer = req.VatPayer
 	project.Cover = req.Cover
 
 	if err := s.project.Update(ctx, project); err != nil {
