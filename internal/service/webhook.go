@@ -161,6 +161,8 @@ func (s *Service) SendWebhookToMerchant(ctx context.Context, req *billing.OrderC
 		return err
 	}
 
+	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
+
 	zap.S().Debug("[orderNotifyMerchant] send notify merchant to rmq failed", "order_id", order.Id)
 	err = s.broker.Publish(constant.PayOneTopicNotifyPaymentName, order, amqp.Table{"x-retry-count": int32(0)})
 	if err != nil {
