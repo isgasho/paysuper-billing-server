@@ -321,7 +321,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_Ok()
 			MaxPurchaseValue: 1000000,
 			SellCountType:    "fractional",
 		},
-		VatPayer: pkg.VatPayerBuyer,
+		VatPayer: pkg.VatPayerSeller,
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
@@ -348,6 +348,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_Ok()
 	assert.Equal(suite.T(), req.Currencies, rsp.Item.Currencies)
 	assert.Equal(suite.T(), req.Cover, rsp.Item.Cover)
 	assert.Equal(suite.T(), req.VirtualCurrency, rsp.Item.VirtualCurrency)
+	assert.Equal(suite.T(), pkg.VatPayerSeller, rsp.Item.VatPayer)
 
 	oid, err := primitive.ObjectIDFromHex(rsp.Item.Id)
 	assert.NoError(suite.T(), err)
@@ -373,6 +374,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_Ok()
 	assert.Equal(suite.T(), project.Currencies, rsp.Item.Currencies)
 	assert.Equal(suite.T(), project.Cover, rsp.Item.Cover)
 	assert.Equal(suite.T(), project.VirtualCurrency, rsp.Item.VirtualCurrency)
+	assert.Equal(suite.T(), project.VatPayer, rsp.Item.VatPayer)
 
 	cProject, err := suite.service.project.GetById(context.TODO(), project.Id)
 	assert.NoError(suite.T(), err)
@@ -392,13 +394,16 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_Ok()
 	assert.Equal(suite.T(), project.Currencies, cProject.Currencies)
 	assert.Equal(suite.T(), project.Cover, cProject.Cover)
 	assert.Equal(suite.T(), project.VirtualCurrency, cProject.VirtualCurrency)
+	assert.Equal(suite.T(), project.VatPayer, cProject.VatPayer)
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_ExistProject_Ok() {
 	req := suite.project
+	assert.Equal(suite.T(), pkg.VatPayerBuyer, suite.project.VatPayer)
 	req.Name["ua"] = "модульний тест"
 	req.CallbackProtocol = pkg.ProjectCallbackProtocolDefault
 	req.SecretKey = "qwerty"
+	req.VatPayer = pkg.VatPayerSeller
 
 	rsp := &grpc.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
@@ -431,6 +436,8 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_ExistProject_Ok
 	assert.Equal(suite.T(), project.MaxPaymentAmount, rsp.Item.MaxPaymentAmount)
 	assert.Equal(suite.T(), project.IsProductsCheckout, rsp.Item.IsProductsCheckout)
 	assert.Equal(suite.T(), project.Status, rsp.Item.Status)
+	assert.Equal(suite.T(), project.VatPayer, rsp.Item.VatPayer)
+	assert.Equal(suite.T(), pkg.VatPayerSeller, rsp.Item.VatPayer)
 
 	cProject, err := suite.service.project.GetById(context.TODO(), project.Id)
 	assert.NoError(suite.T(), err)
@@ -444,6 +451,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_ExistProject_Ok
 	assert.Equal(suite.T(), project.MaxPaymentAmount, cProject.MaxPaymentAmount)
 	assert.Equal(suite.T(), project.IsProductsCheckout, cProject.IsProductsCheckout)
 	assert.Equal(suite.T(), project.Status, cProject.Status)
+	assert.Equal(suite.T(), project.VatPayer, cProject.VatPayer)
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_MerchantNotFound_Error() {

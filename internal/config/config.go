@@ -46,8 +46,8 @@ type EmailTemplates struct {
 	UpdateRoyaltyReport            string `envconfig:"EMAIL_UPDATE_ROYALTY_REPORT_TEMPLATE" default:"p1_update_royalty_report"`
 	VatReportChanged               string `envconfig:"EMAIL_VAT_REPORT_TEMPLATE" default:"p1_vat_report"`
 	ActivationGameKey              string `envconfig:"EMAIL_ACTIVATION_CODE_TEMPLATE" default:"p1_verify_letter-1"`
-	SuccessTransaction             string `envconfig:"EMAIL_SUCCESS_TRANSACTION_TEMPLATE" default:"p1_verify_letter-4"`
-	RefundTransaction              string `envconfig:"EMAIL_REFUND_TRANSACTION_TEMPLATE" default:"p1_verify_letter-5"`
+	SuccessTransaction             string `envconfig:"EMAIL_SUCCESS_TRANSACTION_TEMPLATE" default:"p1-success-transaction-letter-v2"`
+	RefundTransaction              string `envconfig:"EMAIL_REFUND_TRANSACTION_TEMPLATE" default:"p1-refund-transaction-letter-v2"`
 	OnboardingVerificationMerchant string `envconfig:"EMAIL_MERCHANT_NEW_ONBOARDING_REQUEST_TEMPLATE" default:"p1_email_merchant_new_onboarding_request_template"`
 	OnboardingVerificationAdmin    string `envconfig:"EMAIL_ADMIN_NEW_ONBOARDING_REQUEST_TEMPLATE" default:"p1_email_admin_new_onboarding_request_template"`
 	OnboardingCompleted            string `envconfig:"EMAIL_MERCHANT_ONBOARDING_REQUEST_COMPLETE_TEMPLATE" default:"p1_email_merchant_onboarding_request_complete_template"`
