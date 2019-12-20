@@ -8658,14 +8658,6 @@ func (suite *OrderTestSuite) TestOrder_ReCreateOrder_Error() {
 	shouldBe.NotNil(rsp1.Message)
 }
 
-func (suite *OrderTestSuite) TestOrder_processOrderVat_Error_VatPayer_Unknown() {
-	order := &billing.Order{}
-
-	p1 := &OrderCreateRequestProcessor{Service: suite.service, ctx: context.TODO()}
-	err := p1.processOrderVat(order)
-	assert.EqualError(suite.T(), err, orderErrorVatPayerUnknown.Message)
-}
-
 func (suite *OrderTestSuite) TestOrder_processOrderVat_Ok_VatPayer_Nobody() {
 	order := &billing.Order{
 		OrderAmount: 100,
@@ -8742,6 +8734,51 @@ func (suite *OrderTestSuite) TestOrder_processOrderVat_Ok_VatPayer_Buyer() {
 	assert.EqualValues(suite.T(), order.Tax.Currency, order.Currency)
 	assert.EqualValues(suite.T(), order.Tax.Rate, 0.20)
 	assert.EqualValues(suite.T(), order.Tax.Amount, 20)
+}
+
+func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_WithUnknownCountryByIp_Ok() {
+	req := &billing.OrderCreateRequest{
+		Type:          billing.OrderType_simple,
+		ProjectId:     suite.project.Id,
+		PaymentMethod: suite.paymentMethod.Group,
+		Currency:      "RUB",
+		Amount:        100,
+		Account:       "unit test",
+		Description:   "unit test",
+		OrderId:       primitive.NewObjectID().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+		},
+	}
+
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	order := rsp1.Item
+	assert.NotNil(suite.T(), order.CountryRestriction)
+	assert.True(suite.T(), order.CountryRestriction.PaymentsAllowed)
+	assert.True(suite.T(), order.CountryRestriction.ChangeAllowed)
+	assert.False(suite.T(), order.UserAddressDataRequired)
+	assert.Equal(suite.T(), order.PrivateStatus, int32(constant.OrderStatusNew))
+
+	req1 := &grpc.PaymentFormJsonDataRequest{
+		OrderId: order.Uuid,
+		Ip:      "127.0.0.3",
+	}
+	rsp := &grpc.PaymentFormJsonDataResponse{}
+	err = suite.service.PaymentFormJsonDataProcess(context.TODO(), req1, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.NotNil(suite.T(), rsp.Item)
+	assert.True(suite.T(), rsp.Item.UserAddressDataRequired)
+	assert.False(suite.T(), rsp.Item.CountryPaymentsAllowed)
+	assert.True(suite.T(), rsp.Item.CountryChangeAllowed)
+	assert.NotNil(suite.T(), rsp.Item.UserIpData)
+	assert.Zero(suite.T(), rsp.Item.UserIpData.Country)
+	assert.Zero(suite.T(), rsp.Item.UserIpData.City)
+	assert.Zero(suite.T(), rsp.Item.UserIpData.Zip)
 }
 
 func (suite *OrderTestSuite) TestOrder_BankCardAccountRegexp() {
