@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/paysuper/paysuper-billing-server/internal/repository"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -101,9 +102,9 @@ var (
 	}
 
 	availableAccountingEntriesSourceTypes = map[string]bool{
-		collectionOrder:    true,
-		collectionRefund:   true,
-		collectionMerchant: true,
+		collectionOrder:             true,
+		repository.CollectionRefund: true,
+		collectionMerchant:          true,
 	}
 
 	rollingReserveAccountingEntries = map[string]bool{
@@ -174,7 +175,7 @@ func (s *Service) CreateAccountingEntry(
 	_, err = primitive.ObjectIDFromHex(req.RefundId)
 
 	if req.RefundId != "" && err == nil {
-		refund, err := s.getRefundById(ctx, req.RefundId)
+		refund, err := s.refundRepository.GetById(ctx, req.RefundId)
 
 		if err != nil {
 			rsp.Status = pkg.ResponseStatusNotFound
@@ -601,7 +602,7 @@ func (h *accountingEntry) processRefundEvent() error {
 	query := bson.M{
 		"object":      pkg.ObjectTypeBalanceTransaction,
 		"source.id":   id,
-		"source.type": collectionRefund,
+		"source.type": repository.CollectionRefund,
 	}
 	var aes []*billing.AccountingEntry
 	cursor, err := h.Service.db.Collection(collectionAccountingEntry).Find(h.ctx, query)
@@ -634,7 +635,7 @@ func (h *accountingEntry) processRefundEvent() error {
 		zap.L().Error(
 			accountingEntryAlreadyCreated.Message,
 			zap.Error(err),
-			zap.String("source.type", collectionRefund),
+			zap.String("source.type", repository.CollectionRefund),
 			zap.String("source.id", h.refund.CreatedOrderId),
 			zap.Int("entries found", foundCount),
 		)
@@ -1129,7 +1130,7 @@ func (h *accountingEntry) newEntry(entryType string) *billing.AccountingEntry {
 		}
 		source = &billing.AccountingEntrySource{
 			Id:   h.refund.CreatedOrderId,
-			Type: collectionRefund,
+			Type: repository.CollectionRefund,
 		}
 	} else {
 		if h.order != nil {

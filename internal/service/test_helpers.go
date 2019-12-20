@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
+	"github.com/paysuper/paysuper-billing-server/internal/repository"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -1019,7 +1020,7 @@ func helperMakeRefund(suite suite.Suite, service *Service, order *billing.Order,
 	var refund *billing.Refund
 	oid, _ := primitive.ObjectIDFromHex(rsp2.Item.Id)
 	filter := bson.M{"_id": oid}
-	err = service.db.Collection(collectionRefund).FindOne(context.TODO(), filter).Decode(&refund)
+	err = service.db.Collection(repository.CollectionRefund).FindOne(context.TODO(), filter).Decode(&refund)
 	assert.NotNil(suite.T(), refund)
 	assert.Equal(suite.T(), pkg.RefundStatusCompleted, refund.Status)
 

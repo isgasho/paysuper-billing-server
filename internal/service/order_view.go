@@ -51,6 +51,7 @@ type OrderViewServiceInterface interface {
 	GetPaylinkStatByReferrer(ctx context.Context, paylinkId, merchantId string, from, to int64) (result *paylink.GroupStatCommon, err error)
 	GetPaylinkStatByDate(ctx context.Context, paylinkId, merchantId string, from, to int64) (result *paylink.GroupStatCommon, err error)
 	GetPaylinkStatByUtm(ctx context.Context, paylinkId, merchantId string, from, to int64) (result *paylink.GroupStatCommon, err error)
+	GetPublicByOrderId(ctx context.Context, merchantId string) (*billing.OrderViewPublic, error)
 }
 
 func newOrderView(svc *Service) OrderViewServiceInterface {
@@ -3834,4 +3835,15 @@ func (ow *OrderView) paylinkStatItemPrecise(item *paylink.StatCommon) {
 	item.GrossSalesAmount = tools.ToPrecise(item.GrossSalesAmount)
 	item.GrossReturnsAmount = tools.ToPrecise(item.GrossReturnsAmount)
 	item.GrossTotalAmount = tools.ToPrecise(item.GrossTotalAmount)
+}
+
+func (ow *OrderView) GetPublicByOrderId(ctx context.Context, orderId string) (*billing.OrderViewPublic, error) {
+	order := &billing.OrderViewPublic{}
+	err := ow.svc.db.Collection(collectionOrderView).FindOne(ctx, bson.M{"uuid": orderId}).Decode(order)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return order, nil
 }

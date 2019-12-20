@@ -174,6 +174,29 @@ func (_m *OrderViewServiceInterface) GetPaylinkStatByUtm(ctx context.Context, pa
 	return r0, r1
 }
 
+// GetPublicByOrderId provides a mock function with given fields: ctx, merchantId
+func (_m *OrderViewServiceInterface) GetPublicByOrderId(ctx context.Context, merchantId string) (*billing.OrderViewPublic, error) {
+	ret := _m.Called(ctx, merchantId)
+
+	var r0 *billing.OrderViewPublic
+	if rf, ok := ret.Get(0).(func(context.Context, string) *billing.OrderViewPublic); ok {
+		r0 = rf(ctx, merchantId)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*billing.OrderViewPublic)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, merchantId)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetRoyaltySummary provides a mock function with given fields: ctx, merchantId, currency, from, to
 func (_m *OrderViewServiceInterface) GetRoyaltySummary(ctx context.Context, merchantId string, currency string, from time.Time, to time.Time) ([]*billing.RoyaltyReportProductSummaryItem, *billing.RoyaltyReportProductSummaryItem, error) {
 	ret := _m.Called(ctx, merchantId, currency, from, to)

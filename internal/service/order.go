@@ -1979,13 +1979,7 @@ func (s *Service) orderNotifyMerchant(ctx context.Context, order *billing.Order)
 }
 
 func (s *Service) getOrderById(ctx context.Context, id string) (order *billing.Order, err error) {
-	oid, _ := primitive.ObjectIDFromHex(id)
-	filter := bson.M{"_id": oid}
-	err = s.db.Collection(collectionOrder).FindOne(ctx, filter).Decode(&order)
-
-	if err != nil && err != mongo.ErrNoDocuments {
-		zap.S().Errorf("Order not found in payment create process", "err", err.Error(), "order_id", id)
-	}
+	order, err = s.orderRepository.GetById(ctx, id)
 
 	if order == nil {
 		return order, orderErrorNotFound
@@ -4252,26 +4246,6 @@ func (s *Service) getOrderReceiptObject(ctx context.Context, order *billing.Orde
 	}
 
 	return receipt, nil
-}
-
-type OrderRepositoryInterface interface {
-	GetByUuid(context.Context, string) (*billing.Order, error)
-}
-
-func newOrderRepository(svc *Service) OrderRepositoryInterface {
-	s := &OrderRepository{svc: svc}
-	return s
-}
-
-func (h *OrderRepository) GetByUuid(ctx context.Context, uuid string) (*billing.Order, error) {
-	order := &billing.Order{}
-	err := h.svc.db.Collection(collectionOrder).FindOne(ctx, bson.M{"uuid": uuid}).Decode(order)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return order, nil
 }
 
 func (v *OrderCreateRequestProcessor) UserCountryExists() bool {

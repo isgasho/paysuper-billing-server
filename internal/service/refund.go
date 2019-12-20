@@ -13,18 +13,13 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 	"time"
 )
 
 const (
 	refundDefaultReasonMask = "Refund by order #%s"
-
-	collectionRefund = "refund"
 )
 
 var (
@@ -90,13 +85,7 @@ func (s *Service) CreateRefund(
 		return nil
 	}
 
-	oid, _ := primitive.ObjectIDFromHex(refund.Id)
-	filter := bson.M{"_id": oid}
-	_, err = s.db.Collection(collectionRefund).ReplaceOne(ctx, filter, refund)
-
-	if err != nil {
-		zap.S().Errorf("Query to update refund failed", "err", err.Error(), "data", refund)
-
+	if err = s.refundRepository.Update(ctx, refund); err != nil {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = orderErrorUnknown
 
@@ -114,51 +103,26 @@ func (s *Service) ListRefunds(
 	req *grpc.ListRefundsRequest,
 	rsp *grpc.ListRefundsResponse,
 ) error {
-	var refunds []*billing.Refund
-
-	order := &billing.OrderViewPublic{}
-	err := s.db.Collection(collectionOrderView).FindOne(ctx, bson.M{"uuid": req.OrderId}).Decode(order)
-
-	query := bson.M{"original_order.uuid": req.OrderId}
-	opts := options.Find().
-		SetLimit(req.Limit).
-		SetSkip(req.Offset)
-	cursor, err := s.db.Collection(collectionRefund).Find(ctx, query, opts)
+	order, err := s.orderRepository.GetByUuid(ctx, req.OrderId)
 
 	if err != nil {
-		if err != mongo.ErrNoDocuments {
-			zap.L().Error(
-				pkg.ErrorDatabaseQueryFailed,
-				zap.Error(err),
-				zap.String(pkg.ErrorDatabaseFieldCollection, collectionRefund),
-				zap.Any(pkg.ErrorDatabaseFieldQuery, query),
-			)
-		}
-
 		return nil
 	}
 
-	err = cursor.All(ctx, &refunds)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorQueryCursorExecutionFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionRefund),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
-		)
-		return nil
-	}
-
-	if order.MerchantId != req.MerchantId {
+	if order.GetMerchantId() != req.MerchantId {
 		zap.S().Errorw("Unable to get original order on refund", "uuid", req.OrderId, "merchantId", req.MerchantId)
 		return nil
 	}
 
-	count, err := s.db.Collection(collectionRefund).CountDocuments(ctx, query)
+	refunds, err := s.refundRepository.FindByOrderId(ctx, req.OrderId, req.Limit, req.Offset)
 
 	if err != nil {
-		zap.S().Errorf("Query to count refunds by order failed", "err", err.Error(), "query", query)
+		return nil
+	}
+
+	count, err := s.refundRepository.CountByOrderId(ctx, req.OrderId)
+
+	if err != nil {
 		return nil
 	}
 
@@ -175,16 +139,9 @@ func (s *Service) GetRefund(
 	req *grpc.GetRefundRequest,
 	rsp *grpc.CreateRefundResponse,
 ) error {
-	var refund *billing.Refund
-
-	order := &billing.Order{}
-	err := s.db.Collection(collectionOrder).FindOne(ctx, bson.M{"uuid": req.OrderId}).Decode(order)
+	order, err := s.orderRepository.GetByUuid(ctx, req.OrderId)
 
 	if err != nil {
-		if err != mongo.ErrNoDocuments {
-			zap.S().Errorf("Query to find refund by id failed", "err", err.Error(), "uuid", req.OrderId)
-		}
-
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = refundErrorNotFound
 
@@ -199,15 +156,9 @@ func (s *Service) GetRefund(
 		return nil
 	}
 
-	oid, _ := primitive.ObjectIDFromHex(req.RefundId)
-	query := bson.M{"_id": oid, "original_order.uuid": req.OrderId}
-	err = s.db.Collection(collectionRefund).FindOne(ctx, query).Decode(&refund)
+	refund, err := s.refundRepository.GetById(ctx, req.RefundId)
 
 	if err != nil {
-		if err != mongo.ErrNoDocuments {
-			zap.S().Errorf("Query to find refund by id failed", "err", err.Error(), "query", query)
-		}
-
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = refundErrorNotFound
 
@@ -227,7 +178,6 @@ func (s *Service) ProcessRefundCallback(
 ) error {
 	var data protobuf.Message
 	var refundId string
-	var refund *billing.Refund
 
 	switch req.Handler {
 	case pkg.PaymentSystemHandlerCardPay:
@@ -251,15 +201,9 @@ func (s *Service) ProcessRefundCallback(
 		return nil
 	}
 
-	oid, _ := primitive.ObjectIDFromHex(refundId)
-	filter := bson.M{"_id": oid}
-	err := s.db.Collection(collectionRefund).FindOne(ctx, filter).Decode(&refund)
+	refund, err := s.refundRepository.GetById(ctx, refundId)
 
-	if err != nil || refund == nil {
-		if err != nil && err != mongo.ErrNoDocuments {
-			zap.S().Errorf("Query to find refund by id failed", "err", err.Error(), "id", refundId)
-		}
-
+	if err != nil {
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Error = refundErrorNotFound.Error()
 
@@ -312,13 +256,7 @@ func (s *Service) ProcessRefundCallback(
 		}
 	}
 
-	oid, _ = primitive.ObjectIDFromHex(refundId)
-	filter = bson.M{"_id": oid}
-	_, err = s.db.Collection(collectionRefund).ReplaceOne(ctx, filter, refund)
-
-	if err != nil {
-		zap.S().Errorf("Update refund data failed", "err", err.Error(), "refund", refund)
-
+	if err = s.refundRepository.Update(ctx, refund); err != nil {
 		rsp.Error = orderErrorUnknown.Error()
 		rsp.Status = pkg.ResponseStatusSystemError
 
@@ -361,7 +299,7 @@ func (s *Service) ProcessRefundCallback(
 		s.sendMailWithReceipt(ctx, refundOrder)
 
 		processor := &createRefundProcessor{service: s, ctx: ctx}
-		refundedAmount, _ := processor.getRefundedAmount(order)
+		refundedAmount, _ := processor.service.refundRepository.GetAmountByOrderId(ctx, order.Id)
 
 		if refundedAmount == order.ChargeAmount {
 			if refund.IsChargeback == true {
@@ -482,16 +420,7 @@ func (s *Service) createOrderByRefund(ctx context.Context, order *billing.Order,
 	refundOrder.ReceiptId = uuid.New().String()
 	refundOrder.ReceiptUrl = s.cfg.GetReceiptRefundUrl(refundOrder.Uuid, refundOrder.ReceiptId)
 
-	_, err = s.db.Collection(collectionOrder).InsertOne(ctx, refundOrder)
-
-	if err != nil {
-		zap.S().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String("collection", collectionOrder),
-			zap.Any("query", refundOrder),
-		)
-
+	if err = s.orderRepository.Insert(ctx, refundOrder); err != nil {
 		return "", refundErrorUnknown
 	}
 
@@ -555,10 +484,7 @@ func (p *createRefundProcessor) processCreateRefund() (*billing.Refund, error) {
 		refund.Reason = p.request.Reason
 	}
 
-	_, err = p.service.db.Collection(collectionRefund).InsertOne(p.ctx, refund)
-
-	if err != nil {
-		p.service.logError("Query to insert refund failed", []interface{}{"err", err.Error(), "data", refund})
+	if err = p.service.refundRepository.Insert(p.ctx, refund); err != nil {
 		return nil, newBillingServerResponseError(pkg.ResponseStatusBadData, orderErrorUnknown)
 	}
 
@@ -586,7 +512,7 @@ func (p *createRefundProcessor) processOrder() error {
 }
 
 func (p *createRefundProcessor) processRefundsByOrder() error {
-	refundedAmount, err := p.getRefundedAmount(p.checked.order)
+	refundedAmount, err := p.service.refundRepository.GetAmountByOrderId(p.ctx, p.checked.order.Id)
 
 	if err != nil {
 		return newBillingServerResponseError(pkg.ResponseStatusBadData, refundErrorUnknown)
@@ -597,67 +523,6 @@ func (p *createRefundProcessor) processRefundsByOrder() error {
 	}
 
 	return nil
-}
-
-func (p *createRefundProcessor) getRefundedAmount(order *billing.Order) (float64, error) {
-	var res struct {
-		Id     primitive.ObjectID `bson:"_id"`
-		Amount float64            `bson:"amount"`
-	}
-
-	oid, _ := primitive.ObjectIDFromHex(order.Id)
-	query := []bson.M{
-		{
-			"$match": bson.M{
-				"status":            bson.M{"$nin": []int32{pkg.RefundStatusRejected}},
-				"original_order.id": oid,
-			},
-		},
-		{"$group": bson.M{"_id": "$original_order.id", "amount": bson.M{"$sum": "$amount"}}},
-	}
-
-	cursor, err := p.service.db.Collection(collectionRefund).Aggregate(p.ctx, query)
-
-	if err != nil {
-		p.service.logError("Query to calculate refunded amount by order failed", []interface{}{"err", err.Error(), "query", query})
-		return 0, refundErrorUnknown
-	}
-
-	defer cursor.Close(p.ctx)
-
-	if cursor.Next(p.ctx) {
-		err = cursor.Decode(&res)
-
-		if err != nil {
-			zap.L().Error(
-				pkg.ErrorQueryCursorExecutionFailed,
-				zap.Error(err),
-				zap.String(pkg.ErrorDatabaseFieldCollection, collectionRefund),
-				zap.Any(pkg.ErrorDatabaseFieldQuery, query),
-			)
-			return 0, refundErrorUnknown
-		}
-	}
-
-	return res.Amount, nil
-}
-
-func (s *Service) getRefundById(ctx context.Context, id string) (*billing.Refund, error) {
-	var refund *billing.Refund
-
-	oid, _ := primitive.ObjectIDFromHex(id)
-	filter := bson.M{"_id": oid}
-	err := s.db.Collection(collectionRefund).FindOne(ctx, filter).Decode(&refund)
-
-	if err != nil {
-		if err != mongo.ErrNoDocuments {
-			zap.S().Errorf("Query to find refund by id failed", "err", err.Error(), "id", id)
-		}
-
-		return nil, err
-	}
-
-	return refund, nil
 }
 
 func (p *createRefundProcessor) hasMoneyBackCosts(ctx context.Context, order *billing.Order) bool {

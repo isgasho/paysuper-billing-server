@@ -12,6 +12,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
+	"github.com/paysuper/paysuper-billing-server/internal/repository"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -230,7 +231,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_RUB_RUB() {
 		orderControlResults["ps_method_fee"] + orderControlResults["merchant_tax_fee"]
 	assert.Equal(suite.T(), orderControlResults["merchant_gross_revenue"], tools.ToPrecise(controlMerchantGrossRevenue))
 
-	refundAccountingEntries := suite.helperGetAccountingEntries(refund.CreatedOrderId, collectionRefund)
+	refundAccountingEntries := suite.helperGetAccountingEntries(refund.CreatedOrderId, repository.CollectionRefund)
 	assert.Equal(suite.T(), len(refundAccountingEntries), len(refundControlResults)-7)
 	assert.Equal(suite.T(), merchantRoyaltyCurrency, "RUB")
 	for _, entry := range refundAccountingEntries {
@@ -249,7 +250,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_RUB_RUB() {
 	suite.helperCheckOrderView(order.Id, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, orderControlResults)
 
 	oid, _ := primitive.ObjectIDFromHex(refund.Id)
-	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
+	err = suite.service.db.Collection(repository.CollectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
 	assert.NoError(suite.T(), err)
 	suite.helperCheckRefundView(refund.CreatedOrderId, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, refundControlResults)
 }
@@ -341,7 +342,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_RUB() {
 		orderControlResults["ps_method_fee"] + orderControlResults["merchant_tax_fee"]
 	assert.Equal(suite.T(), orderControlResults["merchant_gross_revenue"], tools.ToPrecise(controlMerchantGrossRevenue))
 
-	refundAccountingEntries := suite.helperGetAccountingEntries(refund.CreatedOrderId, collectionRefund)
+	refundAccountingEntries := suite.helperGetAccountingEntries(refund.CreatedOrderId, repository.CollectionRefund)
 	assert.Equal(suite.T(), len(refundAccountingEntries), len(refundControlResults)-7)
 	assert.Equal(suite.T(), merchantRoyaltyCurrency, "USD")
 	for _, entry := range refundAccountingEntries {
@@ -360,7 +361,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_RUB() {
 	suite.helperCheckOrderView(order.Id, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, orderControlResults)
 
 	oid, _ := primitive.ObjectIDFromHex(refund.Id)
-	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
+	err = suite.service.db.Collection(repository.CollectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
 	assert.NoError(suite.T(), err)
 	suite.helperCheckRefundView(refund.CreatedOrderId, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, refundControlResults)
 }
@@ -452,7 +453,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_USD() {
 		orderControlResults["ps_method_fee"] + orderControlResults["merchant_tax_fee"]
 	assert.Equal(suite.T(), orderControlResults["merchant_gross_revenue"], tools.ToPrecise(controlMerchantGrossRevenue))
 
-	refundAccountingEntries := suite.helperGetAccountingEntries(refund.CreatedOrderId, collectionRefund)
+	refundAccountingEntries := suite.helperGetAccountingEntries(refund.CreatedOrderId, repository.CollectionRefund)
 	assert.Equal(suite.T(), len(refundAccountingEntries), len(refundControlResults)-7)
 	assert.Equal(suite.T(), merchantRoyaltyCurrency, "USD")
 	for _, entry := range refundAccountingEntries {
@@ -471,7 +472,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_USD() {
 	suite.helperCheckOrderView(order.Id, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, orderControlResults)
 
 	oid, _ := primitive.ObjectIDFromHex(refund.Id)
-	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
+	err = suite.service.db.Collection(repository.CollectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
 	assert.NoError(suite.T(), err)
 	suite.helperCheckRefundView(refund.CreatedOrderId, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, refundControlResults)
 }
@@ -568,7 +569,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_EUR_VatPay
 		orderControlResults["ps_method_fee"] + orderControlResults["merchant_tax_fee"]
 	assert.Equal(suite.T(), orderControlResults["merchant_gross_revenue"], tools.ToPrecise(controlMerchantGrossRevenue))
 
-	refundAccountingEntries := suite.helperGetAccountingEntries(refund.CreatedOrderId, collectionRefund)
+	refundAccountingEntries := suite.helperGetAccountingEntries(refund.CreatedOrderId, repository.CollectionRefund)
 	assert.Equal(suite.T(), len(refundAccountingEntries), len(refundControlResults)-7)
 	assert.Equal(suite.T(), merchantRoyaltyCurrency, "USD")
 	for _, entry := range refundAccountingEntries {
@@ -587,7 +588,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_EUR_VatPay
 	suite.helperCheckOrderView(order.Id, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, orderControlResults)
 
 	oid, _ := primitive.ObjectIDFromHex(refund.Id)
-	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
+	err = suite.service.db.Collection(repository.CollectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
 	assert.NoError(suite.T(), err)
 	suite.helperCheckRefundView(refund.CreatedOrderId, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, refundControlResults)
 }
@@ -686,7 +687,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_EUR_VatPay
 		orderControlResults["ps_method_fee"] + orderControlResults["merchant_tax_fee"]
 	assert.Equal(suite.T(), orderControlResults["merchant_gross_revenue"], tools.ToPrecise(controlMerchantGrossRevenue))
 
-	refundAccountingEntries := suite.helperGetAccountingEntries(refund.CreatedOrderId, collectionRefund)
+	refundAccountingEntries := suite.helperGetAccountingEntries(refund.CreatedOrderId, repository.CollectionRefund)
 	assert.Equal(suite.T(), len(refundAccountingEntries), len(refundControlResults)-7)
 	assert.Equal(suite.T(), merchantRoyaltyCurrency, "USD")
 	for _, entry := range refundAccountingEntries {
@@ -705,7 +706,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_EUR_VatPay
 	suite.helperCheckOrderView(order.Id, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, orderControlResults)
 
 	oid, _ := primitive.ObjectIDFromHex(refund.Id)
-	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
+	err = suite.service.db.Collection(repository.CollectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
 	assert.NoError(suite.T(), err)
 	suite.helperCheckRefundView(refund.CreatedOrderId, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, refundControlResults)
 }
@@ -804,7 +805,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_EUR_VatPay
 		orderControlResults["ps_method_fee"] + orderControlResults["merchant_tax_fee"]
 	assert.Equal(suite.T(), orderControlResults["merchant_gross_revenue"], tools.ToPrecise(controlMerchantGrossRevenue))
 
-	refundAccountingEntries := suite.helperGetAccountingEntries(refund.CreatedOrderId, collectionRefund)
+	refundAccountingEntries := suite.helperGetAccountingEntries(refund.CreatedOrderId, repository.CollectionRefund)
 	assert.Equal(suite.T(), len(refundAccountingEntries), len(refundControlResults)-7)
 	assert.Equal(suite.T(), merchantRoyaltyCurrency, "USD")
 	for _, entry := range refundAccountingEntries {
@@ -823,7 +824,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_EUR_VatPay
 	suite.helperCheckOrderView(order.Id, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, orderControlResults)
 
 	oid, _ := primitive.ObjectIDFromHex(refund.Id)
-	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
+	err = suite.service.db.Collection(repository.CollectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
 	assert.NoError(suite.T(), err)
 	suite.helperCheckRefundView(refund.CreatedOrderId, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, refundControlResults)
 }
@@ -862,7 +863,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_PartialRefund_Ok_RUB_
 
 	refund := helperMakeRefund(suite.Suite, suite.service, order, order.ChargeAmount*0.5, false)
 	assert.NotNil(suite.T(), refund)
-	refundAccountingEntries := suite.helperGetAccountingEntries(refund.CreatedOrderId, collectionRefund)
+	refundAccountingEntries := suite.helperGetAccountingEntries(refund.CreatedOrderId, repository.CollectionRefund)
 	assert.Equal(suite.T(), len(refundAccountingEntries), len(refundControlResults)-7)
 	merchantRoyaltyCurrency := order.GetMerchantRoyaltyCurrency()
 	assert.Equal(suite.T(), merchantRoyaltyCurrency, "USD")
@@ -880,7 +881,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_PartialRefund_Ok_RUB_
 	country, err := suite.service.country.GetByIsoCodeA2(ctx, orderCountry)
 	assert.NoError(suite.T(), err)
 	oid, _ := primitive.ObjectIDFromHex(refund.Id)
-	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
+	err = suite.service.db.Collection(repository.CollectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
 	assert.NoError(suite.T(), err)
 	suite.helperCheckRefundView(refund.CreatedOrderId, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, refundControlResults)
 }
@@ -939,7 +940,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_RUB
 
 	refund := helperMakeRefund(suite.Suite, suite.service, order, order.ChargeAmount, true)
 	assert.NotNil(suite.T(), refund)
-	refundAccountingEntries := suite.helperGetAccountingEntries(refund.CreatedOrderId, collectionRefund)
+	refundAccountingEntries := suite.helperGetAccountingEntries(refund.CreatedOrderId, repository.CollectionRefund)
 	assert.Equal(suite.T(), len(refundAccountingEntries), len(refundControlResults)-7)
 	merchantRoyaltyCurrency := order.GetMerchantRoyaltyCurrency()
 	assert.Equal(suite.T(), merchantRoyaltyCurrency, "RUB")
@@ -957,7 +958,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_RUB
 	country, err := suite.service.country.GetByIsoCodeA2(ctx, orderCountry)
 	assert.NoError(suite.T(), err)
 	oid, _ := primitive.ObjectIDFromHex(refund.Id)
-	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
+	err = suite.service.db.Collection(repository.CollectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
 	assert.NoError(suite.T(), err)
 	suite.helperCheckRefundView(refund.CreatedOrderId, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, refundControlResults)
 }
@@ -1001,7 +1002,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_USD
 
 	refund := helperMakeRefund(suite.Suite, suite.service, order, order.ChargeAmount, true)
 	assert.NotNil(suite.T(), refund)
-	refundAccountingEntries := suite.helperGetAccountingEntries(refund.CreatedOrderId, collectionRefund)
+	refundAccountingEntries := suite.helperGetAccountingEntries(refund.CreatedOrderId, repository.CollectionRefund)
 	assert.Equal(suite.T(), len(refundAccountingEntries), len(refundControlResults)-7)
 	merchantRoyaltyCurrency := order.GetMerchantRoyaltyCurrency()
 	assert.Equal(suite.T(), merchantRoyaltyCurrency, "USD")
@@ -1019,7 +1020,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_USD
 	country, err := suite.service.country.GetByIsoCodeA2(ctx, orderCountry)
 	assert.NoError(suite.T(), err)
 	oid, _ := primitive.ObjectIDFromHex(refund.Id)
-	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
+	err = suite.service.db.Collection(repository.CollectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
 	assert.NoError(suite.T(), err)
 	suite.helperCheckRefundView(refund.CreatedOrderId, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, refundControlResults)
 }
@@ -1063,7 +1064,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_USD
 
 	refund := helperMakeRefund(suite.Suite, suite.service, order, order.ChargeAmount, true)
 	assert.NotNil(suite.T(), refund)
-	refundAccountingEntries := suite.helperGetAccountingEntries(refund.CreatedOrderId, collectionRefund)
+	refundAccountingEntries := suite.helperGetAccountingEntries(refund.CreatedOrderId, repository.CollectionRefund)
 	assert.Equal(suite.T(), len(refundAccountingEntries), len(refundControlResults)-7)
 	merchantRoyaltyCurrency := order.GetMerchantRoyaltyCurrency()
 	assert.Equal(suite.T(), merchantRoyaltyCurrency, "USD")
@@ -1081,7 +1082,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_USD
 	country, err := suite.service.country.GetByIsoCodeA2(ctx, orderCountry)
 	assert.NoError(suite.T(), err)
 	oid, _ := primitive.ObjectIDFromHex(refund.Id)
-	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
+	err = suite.service.db.Collection(repository.CollectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
 	assert.NoError(suite.T(), err)
 	suite.helperCheckRefundView(refund.CreatedOrderId, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, refundControlResults)
 }
@@ -1125,7 +1126,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_USD
 
 	refund := helperMakeRefund(suite.Suite, suite.service, order, order.ChargeAmount, true)
 	assert.NotNil(suite.T(), refund)
-	refundAccountingEntries := suite.helperGetAccountingEntries(refund.CreatedOrderId, collectionRefund)
+	refundAccountingEntries := suite.helperGetAccountingEntries(refund.CreatedOrderId, repository.CollectionRefund)
 	assert.Equal(suite.T(), len(refundAccountingEntries), len(refundControlResults)-7)
 	merchantRoyaltyCurrency := order.GetMerchantRoyaltyCurrency()
 	assert.Equal(suite.T(), merchantRoyaltyCurrency, "USD")
@@ -1143,7 +1144,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_USD
 	country, err := suite.service.country.GetByIsoCodeA2(ctx, orderCountry)
 	assert.NoError(suite.T(), err)
 	oid, _ := primitive.ObjectIDFromHex(refund.Id)
-	err = suite.service.db.Collection(collectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
+	err = suite.service.db.Collection(repository.CollectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
 	assert.NoError(suite.T(), err)
 	suite.helperCheckRefundView(refund.CreatedOrderId, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, refundControlResults)
 }
@@ -1282,7 +1283,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_CreateAccountingEntry
 
 	var accountingEntry *billing.AccountingEntry
 	err = suite.service.db.Collection(collectionAccountingEntry).
-		FindOne(ctx, bson.M{"source.id": req.RefundId, "source.type": collectionRefund}).Decode(&accountingEntry)
+		FindOne(ctx, bson.M{"source.id": req.RefundId, "source.type": repository.CollectionRefund}).Decode(&accountingEntry)
 	assert.Error(suite.T(), mongo.ErrNoDocuments, err)
 }
 
@@ -1303,7 +1304,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_CreateAccountingEntry
 
 	refund.OriginalOrder.Id = primitive.NewObjectID().Hex()
 	oid, _ := primitive.ObjectIDFromHex(refund.Id)
-	_, err = suite.service.db.Collection(collectionRefund).ReplaceOne(ctx, bson.M{"_id": oid}, refund)
+	_, err = suite.service.db.Collection(repository.CollectionRefund).ReplaceOne(ctx, bson.M{"_id": oid}, refund)
 	assert.NoError(suite.T(), err)
 
 	req := &grpc.CreateAccountingEntryRequest{
@@ -1324,7 +1325,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_CreateAccountingEntry
 
 	var accountingEntry *billing.AccountingEntry
 	err = suite.service.db.Collection(collectionAccountingEntry).
-		FindOne(ctx, bson.M{"source.id": req.RefundId, "source.type": collectionRefund}).Decode(&accountingEntry)
+		FindOne(ctx, bson.M{"source.id": req.RefundId, "source.type": repository.CollectionRefund}).Decode(&accountingEntry)
 	assert.Error(suite.T(), mongo.ErrNoDocuments, err)
 }
 
