@@ -428,7 +428,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 		Type:            "bank_card",
 		IsActive:        true,
-		AccountRegexp:   "^(?:4[0-9]{12}(?:[0-9]{3})?|[25][1-7][0-9]{14}|6(?:011|5[0-9][0-9])[0-9]{12}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|(?:2131|1800|35\\d{3})\\d{11})$",
+		AccountRegexp:   "^(?:4[0-9]{12}(?:[0-9]{3})?|[25][1-7][0-9]{14}|6(?:011|5[0-9][0-9])[0-9]{12}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|(?:2131|1800|35\\d{3})\\d{11})|62[0-9]{14,17}$",
 		PaymentSystemId: ps1.Id,
 	}
 
@@ -8742,4 +8742,19 @@ func (suite *OrderTestSuite) TestOrder_processOrderVat_Ok_VatPayer_Buyer() {
 	assert.EqualValues(suite.T(), order.Tax.Currency, order.Currency)
 	assert.EqualValues(suite.T(), order.Tax.Rate, 0.20)
 	assert.EqualValues(suite.T(), order.Tax.Amount, 20)
+}
+
+func (suite *OrderTestSuite) TestOrder_BankCardAccountRegexp() {
+	bankCards := map[string][]string{
+		"mastercard":      {"5418484942841090", "5445276803244639", "5476663734604183"},
+		"visa":            {"4035300539804083", "4902040983299568", "4207348797187339"},
+		"jcb":             {"3538684728624673", "3548847547798238", "3568008374132620"},
+		"china union pay": {"62600094752489245", "6231242135478485", "6254305291097527443"},
+	}
+
+	for k, v := range bankCards {
+		for k1, v1 := range v {
+			assert.Regexp(suite.T(), suite.paymentMethod.AccountRegexp, v1, fmt.Sprintf("bank card %s with number %d is incorrect by regexp", k, k1))
+		}
+	}
 }
