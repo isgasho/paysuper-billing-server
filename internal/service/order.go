@@ -1839,7 +1839,7 @@ func (s *Service) getPayloadForReceipt(ctx context.Context, order *billing.Order
 	}
 
 	var items []*structpb.Value
-	if receipt.Items != nil {
+	if receipt.Items != nil && len(receipt.Items) > 0 {
 		for _, item := range receipt.Items {
 			item := &structpb.Value{
 				Kind: &structpb.Value_StructValue{
@@ -1847,6 +1847,9 @@ func (s *Service) getPayloadForReceipt(ctx context.Context, order *billing.Order
 						Fields: map[string]*structpb.Value{
 							"name": {
 								Kind: &structpb.Value_StringValue{StringValue: item.Name},
+							},
+							"is-simple": {
+								Kind: &structpb.Value_BoolValue{BoolValue: false},
 							},
 							"price": {
 								Kind: &structpb.Value_StringValue{StringValue: item.Price},
@@ -1858,6 +1861,26 @@ func (s *Service) getPayloadForReceipt(ctx context.Context, order *billing.Order
 
 			items = append(items, item)
 		}
+	} else {
+		item := &structpb.Value{
+			Kind: &structpb.Value_StructValue{
+				StructValue: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"name": {
+							Kind: &structpb.Value_StringValue{StringValue: "In-game purchase"},
+						},
+						"is-simple": {
+							Kind: &structpb.Value_BoolValue{BoolValue: true},
+						},
+						"price": {
+							Kind: &structpb.Value_StringValue{StringValue: receipt.TotalPrice},
+						},
+					},
+				},
+			},
+		}
+
+		items = append(items, item)
 	}
 
 	// set receipt items to nil to omit this field in jsonpb Marshal result
@@ -1938,6 +1961,9 @@ func (s *Service) getPayloadForReceipt(ctx context.Context, order *billing.Order
 			},
 			"vat":      vat,
 			"subTotal": subTotal,
+			"showSummary": {
+				Kind: &structpb.Value_BoolValue{BoolValue: receipt.Items != nil && len(receipt.Items) > 1},
+			},
 		},
 	}
 
