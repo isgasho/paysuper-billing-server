@@ -1592,7 +1592,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 		Type:   pkg.AccountingEntryTypeMerchantTaxFeeCostValue,
 		Source: &billing.AccountingEntrySource{
 			Id:   order.Id,
-			Type: collectionOrder,
+			Type: repository.CollectionOrder,
 		},
 		MerchantId: order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusAvailable,
@@ -1607,7 +1607,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 		Type:   pkg.AccountingEntryTypeMerchantTaxFeeCentralBankFx,
 		Source: &billing.AccountingEntrySource{
 			Id:   order.Id,
-			Type: collectionOrder,
+			Type: repository.CollectionOrder,
 		},
 		MerchantId: order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusAvailable,
@@ -1622,7 +1622,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 		Type:   pkg.AccountingEntryTypeRealTaxFee,
 		Source: &billing.AccountingEntrySource{
 			Id:   order.Id,
-			Type: collectionOrder,
+			Type: repository.CollectionOrder,
 		},
 		MerchantId: order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusAvailable,
@@ -2583,7 +2583,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 		Type:   pkg.AccountingEntryTypeMerchantTaxFeeCostValue,
 		Source: &billing.AccountingEntrySource{
 			Id:   order.Id,
-			Type: collectionOrder,
+			Type: repository.CollectionOrder,
 		},
 		MerchantId: order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusAvailable,
@@ -2598,7 +2598,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 		Type:   pkg.AccountingEntryTypeMerchantTaxFeeCentralBankFx,
 		Source: &billing.AccountingEntrySource{
 			Id:   order.Id,
-			Type: collectionOrder,
+			Type: repository.CollectionOrder,
 		},
 		MerchantId: order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusAvailable,
@@ -2613,7 +2613,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 		Type:   pkg.AccountingEntryTypeRealTaxFee,
 		Source: &billing.AccountingEntrySource{
 			Id:   order.Id,
-			Type: collectionOrder,
+			Type: repository.CollectionOrder,
 		},
 		MerchantId: order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusAvailable,
@@ -2755,7 +2755,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Chargeback_Ok() {
 		Type:   pkg.AccountingEntryTypeMerchantTaxFeeCostValue,
 		Source: &billing.AccountingEntrySource{
 			Id:   order.Id,
-			Type: collectionOrder,
+			Type: repository.CollectionOrder,
 		},
 		MerchantId: order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusAvailable,
@@ -2770,7 +2770,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Chargeback_Ok() {
 		Type:   pkg.AccountingEntryTypeMerchantTaxFeeCentralBankFx,
 		Source: &billing.AccountingEntrySource{
 			Id:   order.Id,
-			Type: collectionOrder,
+			Type: repository.CollectionOrder,
 		},
 		MerchantId: order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusAvailable,
@@ -2785,7 +2785,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Chargeback_Ok() {
 		Type:   pkg.AccountingEntryTypeRealTaxFee,
 		Source: &billing.AccountingEntrySource{
 			Id:   order.Id,
-			Type: collectionOrder,
+			Type: repository.CollectionOrder,
 		},
 		MerchantId: order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusAvailable,

@@ -102,7 +102,7 @@ var (
 	}
 
 	availableAccountingEntriesSourceTypes = map[string]bool{
-		collectionOrder:             true,
+		repository.CollectionOrder:  true,
 		repository.CollectionRefund: true,
 		collectionMerchant:          true,
 	}
@@ -383,7 +383,7 @@ func (h *accountingEntry) processPaymentEvent() error {
 	query := bson.M{
 		"object":      pkg.ObjectTypeBalanceTransaction,
 		"source.id":   id,
-		"source.type": collectionOrder,
+		"source.type": repository.CollectionOrder,
 	}
 	var aes []*billing.AccountingEntry
 	cursor, err := h.Service.db.Collection(collectionAccountingEntry).Find(h.ctx, query)
@@ -398,7 +398,7 @@ func (h *accountingEntry) processPaymentEvent() error {
 		zap.L().Error(
 			accountingEntryAlreadyCreated.Message,
 			zap.Error(err),
-			zap.String("source.type", collectionOrder),
+			zap.String("source.type", repository.CollectionOrder),
 			zap.String("source.id", h.order.Id),
 			zap.Int("entries found", foundCount),
 		)
@@ -686,7 +686,7 @@ func (h *accountingEntry) processRefundEvent() error {
 		"object":      pkg.ObjectTypeBalanceTransaction,
 		"type":        pkg.AccountingEntryTypeRealTaxFee,
 		"source.id":   sourceId,
-		"source.type": collectionOrder,
+		"source.type": repository.CollectionOrder,
 	}
 	err = h.Service.db.Collection(collectionAccountingEntry).FindOne(h.ctx, query).Decode(&realTaxFee)
 	if err != nil {
@@ -1137,7 +1137,7 @@ func (h *accountingEntry) newEntry(entryType string) *billing.AccountingEntry {
 			createdTime = h.order.PaymentMethodOrderClosedAt
 			source = &billing.AccountingEntrySource{
 				Id:   h.order.Id,
-				Type: collectionOrder,
+				Type: repository.CollectionOrder,
 			}
 			merchantId = h.order.GetMerchantId()
 			currency = h.order.GetMerchantRoyaltyCurrency()

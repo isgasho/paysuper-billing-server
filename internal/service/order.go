@@ -56,7 +56,6 @@ const (
 	taxTypeVat      = "vat"
 	taxTypeSalesTax = "sales_tax"
 
-	collectionOrder           = "order"
 	collectionBinData         = "bank_bin"
 	collectionNotifySales     = "notify_sales"
 	collectionNotifyNewRegion = "notify_new_region"
@@ -543,16 +542,7 @@ func (s *Service) OrderCreateProcess(
 		return err
 	}
 
-	_, err = s.db.Collection(collectionOrder).InsertOne(ctx, order)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrder),
-			zap.String(pkg.ErrorDatabaseFieldOperation, pkg.ErrorDatabaseFieldOperationInsert),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, order),
-		)
+	if err = s.orderRepository.Insert(ctx, order); err != nil {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = orderErrorCanNotCreate
 		return nil
@@ -1739,12 +1729,7 @@ func (s *Service) updateOrder(ctx context.Context, order *billing.Order) error {
 		}
 	}
 
-	oid, _ := primitive.ObjectIDFromHex(order.Id)
-	filter := bson.M{"_id": oid}
-	_, err := s.db.Collection(collectionOrder).ReplaceOne(ctx, filter, order)
-
-	if err != nil {
-		s.logError(orderErrorUpdateOrderDataFailed, []interface{}{"error", err.Error(), "order", order})
+	if err := s.orderRepository.Update(ctx, order); err != nil {
 		if err == mongo.ErrNoDocuments {
 			return orderErrorNotFound
 		}
@@ -1967,10 +1952,8 @@ func (s *Service) orderNotifyMerchant(ctx context.Context, order *billing.Order)
 		zap.S().Debug("[orderNotifyMerchant] send notify merchant to rmq failed", "order_id", order.Id)
 	}
 	order.SetNotificationStatus(order.GetPublicStatus(), err == nil)
-	oid, _ := primitive.ObjectIDFromHex(order.Id)
-	filter := bson.M{"_id": oid}
-	_, err = s.db.Collection(collectionOrder).ReplaceOne(ctx, filter, order)
-	if err != nil {
+
+	if err = s.orderRepository.Update(ctx, order); err != nil {
 		zap.S().Debug("[orderNotifyMerchant] notification status update failed", "order_id", order.Id)
 		s.logError(orderErrorUpdateOrderDataFailed, []interface{}{"error", err.Error(), "order", order})
 	} else {
@@ -2390,14 +2373,9 @@ func (v *OrderCreateRequestProcessor) processPaylinkProducts() error {
 }
 
 func (v *OrderCreateRequestProcessor) processProjectOrderId() error {
-	var order *billing.Order
-
-	oid, _ := primitive.ObjectIDFromHex(v.checked.project.Id)
-	filter := bson.M{"project._id": oid, "project_order_id": v.request.OrderId}
-	err := v.db.Collection(collectionOrder).FindOne(v.ctx, filter).Decode(&order)
+	order, err := v.orderRepository.GetByProjectOrderId(v.ctx, v.checked.project.Id, v.request.OrderId)
 
 	if err != nil && err != mongo.ErrNoDocuments {
-		zap.S().Errorw("Order create check project order id unique", "err", err, "filter", filter)
 		return orderErrorCanNotCreate
 	}
 
@@ -4401,14 +4379,8 @@ func (s *Service) OrderReCreateProcess(
 		ExternalId:    order.User.ExternalId,
 	}
 
-	_, err = s.db.Collection(collectionOrder).InsertOne(ctx, newOrder)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrder),
-		)
+	if err = s.orderRepository.Insert(ctx, newOrder); err != nil {
+		fmt.Println(err)
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = orderErrorCanNotCreate
 		return nil

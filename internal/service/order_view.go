@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"github.com/paysuper/paysuper-billing-server/internal/repository"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/paylink"
@@ -3184,13 +3185,13 @@ func (s *Service) doUpdateOrderView(ctx context.Context, match bson.M) error {
 		},
 	}
 
-	cursor, err := s.db.Collection(collectionOrder).Aggregate(ctx, orderViewQuery)
+	cursor, err := s.db.Collection(repository.CollectionOrder).Aggregate(ctx, orderViewQuery)
 
 	if err != nil {
 		zap.L().Error(
 			errorOrderViewUpdateQuery,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrder),
+			zap.String(pkg.ErrorDatabaseFieldCollection, repository.CollectionOrder),
 		)
 		return err
 	}
@@ -3201,7 +3202,7 @@ func (s *Service) doUpdateOrderView(ctx context.Context, match bson.M) error {
 			zap.L().Error(
 				errorDbCurdorCloseFailed,
 				zap.Error(err),
-				zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrder),
+				zap.String(pkg.ErrorDatabaseFieldCollection, repository.CollectionOrder),
 			)
 		}
 	}()
@@ -3213,7 +3214,7 @@ func (s *Service) doUpdateOrderView(ctx context.Context, match bson.M) error {
 		zap.L().Error(
 			errorOrderViewUpdateQuery,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrder),
+			zap.String(pkg.ErrorDatabaseFieldCollection, repository.CollectionOrder),
 		)
 		return err
 	}
@@ -3503,7 +3504,7 @@ func (ow *OrderView) GetRoyaltySummary(
 			zap.L().Error(
 				errorDbCurdorCloseFailed,
 				zap.Error(err),
-				zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrder),
+				zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrderView),
 			)
 		}
 	}()
@@ -3791,7 +3792,7 @@ func (ow *OrderView) getPaylinkGroupStat(
 			zap.L().Error(
 				errorDbCurdorCloseFailed,
 				zap.Error(err),
-				zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrder),
+				zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrderView),
 			)
 		}
 	}()
