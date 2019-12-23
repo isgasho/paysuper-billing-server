@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/go-redis/redis"
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -427,7 +428,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 		Type:            "bank_card",
 		IsActive:        true,
-		AccountRegexp:   "^(?:4[0-9]{12}(?:[0-9]{3})?|[25][1-7][0-9]{14}|6(?:011|5[0-9][0-9])[0-9]{12}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|(?:2131|1800|35\\d{3})\\d{11})$",
+		AccountRegexp:   "^(?:4[0-9]{12}(?:[0-9]{3})?|[25][1-7][0-9]{14}|6(?:011|5[0-9][0-9])[0-9]{12}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|(?:2131|1800|35\\d{3})\\d{11})|62[0-9]{14,17}$",
 		PaymentSystemId: ps1.Id,
 	}
 
@@ -4147,6 +4148,9 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_Ok() {
 	assert.False(suite.T(), order.UserAddressDataRequired)
 	assert.Equal(suite.T(), order.PrivateStatus, int32(constant.OrderStatusNew))
 
+	suite.service.centrifugoPaymentForm = newCentrifugo(suite.service.cfg.CentrifugoPaymentForm, mocks.NewClientStatusOk())
+	assert.Regexp(suite.T(), "payment_form", suite.service.cfg.CentrifugoPaymentForm.Secret)
+
 	req1 := &grpc.PaymentFormJsonDataRequest{OrderId: order.Uuid, Scheme: "https", Host: "unit.test",
 		Ip: "94.131.198.60", // Ukrainian IP -> payments not allowed but available to change country
 	}
@@ -4164,6 +4168,12 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_Ok() {
 	assert.Equal(suite.T(), req.User.Locale, rsp.Item.Lang)
 	assert.NotNil(suite.T(), rsp.Item.Project)
 	assert.NotZero(suite.T(), rsp.Item.Project.Id)
+
+	expire := time.Now().Add(time.Minute * 30).Unix()
+	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": order.Uuid, "exp": expire})
+	token, err := claims.SignedString([]byte(suite.service.cfg.CentrifugoPaymentForm.Secret))
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), token, rsp.Item.Token)
 
 	order, err = suite.service.getOrderByUuid(context.TODO(), order.Uuid)
 	assert.Nil(suite.T(), err)
@@ -8694,14 +8704,6 @@ func (suite *OrderTestSuite) TestOrder_ReCreateOrder_Error() {
 	shouldBe.NotNil(rsp1.Message)
 }
 
-func (suite *OrderTestSuite) TestOrder_processOrderVat_Error_VatPayer_Unknown() {
-	order := &billing.Order{}
-
-	p1 := &OrderCreateRequestProcessor{Service: suite.service, ctx: context.TODO()}
-	err := p1.processOrderVat(order)
-	assert.EqualError(suite.T(), err, orderErrorVatPayerUnknown.Message)
-}
-
 func (suite *OrderTestSuite) TestOrder_processOrderVat_Ok_VatPayer_Nobody() {
 	order := &billing.Order{
 		OrderAmount: 100,
@@ -8778,4 +8780,64 @@ func (suite *OrderTestSuite) TestOrder_processOrderVat_Ok_VatPayer_Buyer() {
 	assert.EqualValues(suite.T(), order.Tax.Currency, order.Currency)
 	assert.EqualValues(suite.T(), order.Tax.Rate, 0.20)
 	assert.EqualValues(suite.T(), order.Tax.Amount, 20)
+}
+
+func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_WithUnknownCountryByIp_Ok() {
+	req := &billing.OrderCreateRequest{
+		Type:          billing.OrderType_simple,
+		ProjectId:     suite.project.Id,
+		PaymentMethod: suite.paymentMethod.Group,
+		Currency:      "RUB",
+		Amount:        100,
+		Account:       "unit test",
+		Description:   "unit test",
+		OrderId:       primitive.NewObjectID().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+		},
+	}
+
+	rsp1 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	order := rsp1.Item
+	assert.NotNil(suite.T(), order.CountryRestriction)
+	assert.True(suite.T(), order.CountryRestriction.PaymentsAllowed)
+	assert.True(suite.T(), order.CountryRestriction.ChangeAllowed)
+	assert.False(suite.T(), order.UserAddressDataRequired)
+	assert.Equal(suite.T(), order.PrivateStatus, int32(constant.OrderStatusNew))
+
+	req1 := &grpc.PaymentFormJsonDataRequest{
+		OrderId: order.Uuid,
+		Ip:      "127.0.0.3",
+	}
+	rsp := &grpc.PaymentFormJsonDataResponse{}
+	err = suite.service.PaymentFormJsonDataProcess(context.TODO(), req1, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.NotNil(suite.T(), rsp.Item)
+	assert.True(suite.T(), rsp.Item.UserAddressDataRequired)
+	assert.False(suite.T(), rsp.Item.CountryPaymentsAllowed)
+	assert.True(suite.T(), rsp.Item.CountryChangeAllowed)
+	assert.NotNil(suite.T(), rsp.Item.UserIpData)
+	assert.Zero(suite.T(), rsp.Item.UserIpData.Country)
+	assert.Zero(suite.T(), rsp.Item.UserIpData.City)
+	assert.Zero(suite.T(), rsp.Item.UserIpData.Zip)
+}
+
+func (suite *OrderTestSuite) TestOrder_BankCardAccountRegexp() {
+	bankCards := map[string][]string{
+		"mastercard":      {"5418484942841090", "5445276803244639", "5476663734604183"},
+		"visa":            {"4035300539804083", "4902040983299568", "4207348797187339"},
+		"jcb":             {"3538684728624673", "3548847547798238", "3568008374132620"},
+		"china union pay": {"62600094752489245", "6231242135478485", "6254305291097527443"},
+	}
+
+	for k, v := range bankCards {
+		for k1, v1 := range v {
+			assert.Regexp(suite.T(), suite.paymentMethod.AccountRegexp, v1, fmt.Sprintf("bank card %s with number %d is incorrect by regexp", k, k1))
+		}
+	}
 }

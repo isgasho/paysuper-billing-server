@@ -73,7 +73,27 @@ func (s *GeoIpServiceTestOk) GetIpData(
 			},
 		}
 		break
-
+	case "127.0.0.3":
+		data = &proto.GeoIpDataResponse{
+			Country: &proto.GeoIpCountry{
+				IsoCode: "",
+				Names:   map[string]string{"en": "", "ru": ""},
+			},
+			City: &proto.GeoIpCity{
+				Names: map[string]string{"en": "", "ru": ""},
+			},
+			Location: &proto.GeoIpLocation{
+				TimeZone: "",
+			},
+			Subdivisions: []*proto.GeoIpSubdivision{
+				{
+					GeoNameID: 0,
+					IsoCode:   "",
+					Names:     map[string]string{"en": "", "ru": ""},
+				},
+			},
+		}
+		break
 	default:
 		data = &proto.GeoIpDataResponse{
 			Country: &proto.GeoIpCountry{

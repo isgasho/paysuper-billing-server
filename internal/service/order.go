@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha512"
 	"encoding/hex"
@@ -8,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	geoip "github.com/ProtocolONE/geoip-service/pkg/proto"
+	"github.com/golang/protobuf/jsonpb"
 	protobuf "github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	structpb "github.com/golang/protobuf/ptypes/struct"
@@ -883,6 +885,7 @@ func (s *Service) fillPaymentFormJsonData(order *billing.Order, rsp *grpc.Paymen
 	rsp.Item.ChargeAmount = order.ChargeAmount
 	rsp.Item.Items = order.Items
 	rsp.Item.Email = order.User.Email
+	rsp.Item.UserAddressDataRequired = order.UserAddressDataRequired
 
 	if order.CountryRestriction != nil {
 		rsp.Item.CountryPaymentsAllowed = order.CountryRestriction.PaymentsAllowed
@@ -1730,7 +1733,7 @@ func (s *Service) updateOrder(ctx context.Context, order *billing.Order) error {
 		zap.S().Debug("[updateOrder] no original order found", "order_id", order.Id)
 	}
 
-	needReceipt := statusChanged && (ps == constant.OrderPublicStatusRefunded || ps == constant.OrderPublicStatusProcessed)
+	needReceipt := statusChanged && (ps == constant.OrderPublicStatusChargeback || ps == constant.OrderPublicStatusRefunded || ps == constant.OrderPublicStatusProcessed)
 
 	if needReceipt {
 		switch order.Type {
@@ -1814,10 +1817,14 @@ func (s *Service) orderNotifyKeyProducts(ctx context.Context, order *billing.Ord
 }
 
 func (s *Service) sendMailWithReceipt(ctx context.Context, order *billing.Order) {
-	payload := s.getPayloadForReceipt(ctx, order)
+	payload, err := s.getPayloadForReceipt(ctx, order)
+	if err != nil {
+		zap.L().Error("get order receipt object failed", zap.Error(err))
+		return
+	}
 
 	zap.S().Infow("sending receipt to broker", "order_id", order.Id, "topic", postmarkSdrPkg.PostmarkSenderTopicName)
-	err := s.postmarkBroker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+	err = s.postmarkBroker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
 	if err != nil {
 		zap.S().Errorw(
 			"Publication receipt to user email queue is failed",
@@ -1825,87 +1832,129 @@ func (s *Service) sendMailWithReceipt(ctx context.Context, order *billing.Order)
 	}
 }
 
-func (s *Service) getReceiptModel(name string, price string) *structpb.Value {
-	return &structpb.Value{
-		Kind: &structpb.Value_StructValue{
-			StructValue: &structpb.Struct{
-				Fields: map[string]*structpb.Value{
-					"name": {
-						Kind: &structpb.Value_StringValue{StringValue: name},
-					},
-					"price": {
-						Kind: &structpb.Value_StringValue{StringValue: price},
-					},
-				},
-			},
-		},
-	}
-}
-
-func (s *Service) getPayloadForReceipt(ctx context.Context, order *billing.Order) *postmarkSdrPkg.Payload {
-	totalPrice, err := s.formatter.FormatCurrency(DefaultLanguage, order.OrderAmount, order.Currency)
-	if err != nil {
-		zap.S().Errorw("Error during formatting currency", "price", order.OrderAmount, "locale", DefaultLanguage, "currency", order.Currency)
-	}
-
-	date, err := s.formatter.FormatDateTime(DefaultLanguage, time.Unix(order.CreatedAt.Seconds, 0))
-	if err != nil {
-		zap.S().Errorw("Error during formatting date", "date", order.CreatedAt, "locale", DefaultLanguage)
-	}
-
-	merchantName := order.GetMerchantId()
-	merchant, err := s.merchant.GetById(ctx, order.GetMerchantId())
-	if err != nil {
-		zap.S().Errorw("Error during getting merchant", "merchant_id", order.GetMerchantId(), "order.uuid", order.Uuid, "err", err)
-	} else {
-		merchantName = merchant.Company.Name
-	}
-
-	paymentPartner := "PaySuper"
-	oc, err := s.operatingCompany.GetById(ctx, order.OperatingCompanyId)
-
-	if err != nil {
-		zap.L().Error("unable to get operating company", zap.Error(err))
-	} else {
-		paymentPartner = oc.Name
-	}
-
+func (s *Service) getPayloadForReceipt(ctx context.Context, order *billing.Order) (*postmarkSdrPkg.Payload, error) {
 	template := s.cfg.EmailTemplates.SuccessTransaction
 	if order.Type == pkg.OrderTypeRefund {
 		template = s.cfg.EmailTemplates.RefundTransaction
 	}
 
-	payload := &postmarkSdrPkg.Payload{
-		TemplateAlias: template,
-		TemplateModel: map[string]string{
-			"total_price":      totalPrice,
-			"transaction_id":   order.Uuid,
-			"transaction_date": date,
-			"project_name":     order.Project.Name[DefaultLanguage],
-			"receipt_id":       order.ReceiptId,
-			"merchant_name":    merchantName,
-			"url":              order.ReceiptUrl,
-			"payment_partner":  paymentPartner,
-			"vat_payer":        order.VatPayer,
-		},
-		To: order.ReceiptEmail,
+	receipt, err := s.getOrderReceiptObject(ctx, order)
+	if err != nil {
+		return nil, err
 	}
 
 	var items []*structpb.Value
+	if receipt.Items != nil && len(receipt.Items) > 0 {
+		for _, item := range receipt.Items {
+			item := &structpb.Value{
+				Kind: &structpb.Value_StructValue{
+					StructValue: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"name": {
+								Kind: &structpb.Value_StringValue{StringValue: item.Name},
+							},
+							"is-simple": {
+								Kind: &structpb.Value_BoolValue{BoolValue: false},
+							},
+							"price": {
+								Kind: &structpb.Value_StringValue{StringValue: item.Price},
+							},
+						},
+					},
+				},
+			}
 
-	currency := order.Currency
+			items = append(items, item)
+		}
+	} else {
+		item := &structpb.Value{
+			Kind: &structpb.Value_StructValue{
+				StructValue: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"name": {
+							Kind: &structpb.Value_StringValue{StringValue: "In-game purchase"},
+						},
+						"is-simple": {
+							Kind: &structpb.Value_BoolValue{BoolValue: true},
+						},
+						"price": {
+							Kind: &structpb.Value_StringValue{StringValue: receipt.TotalPrice},
+						},
+					},
+				},
+			},
+		}
 
-	if order.IsBuyForVirtualCurrency {
-		project, _ := s.project.GetById(ctx, order.GetProjectId())
-		currency, _ = project.VirtualCurrency.Name[DefaultLanguage]
+		items = append(items, item)
 	}
 
-	for _, item := range order.Items {
-		price, err := s.formatter.FormatCurrency("en", item.Amount, currency)
-		if err != nil {
-			zap.S().Errorw("Error during formatting currency", "price", item.Amount, "locale", "en", "currency", item.Currency)
+	// set receipt items to nil to omit this field in jsonpb Marshal result
+	// otherwise we get an Unmarshal error on attempt to marshal array to string
+	receipt.Items = nil
+
+	march := &jsonpb.Marshaler{}
+	var buf bytes.Buffer
+	err = march.Marshal(&buf, receipt)
+	if err != nil {
+		return nil, err
+	}
+
+	templateModel := make(map[string]string)
+	err = json.Unmarshal(buf.Bytes(), &templateModel)
+	if err != nil {
+		return nil, err
+	}
+
+	// removing empty "platform" key (if any), for easy email template condition
+	if v, ok := templateModel["platform"]; ok && v == "" {
+		delete(templateModel, "platform")
+	}
+
+	// pass subtotal row info as struct, for email template condition
+	var subTotal *structpb.Value
+	if receipt.TotalAmount != receipt.TotalCharge {
+		subTotal = &structpb.Value{
+			Kind: &structpb.Value_StructValue{
+				StructValue: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"totalAmount": {
+							Kind: &structpb.Value_StringValue{StringValue: receipt.TotalAmount},
+						},
+						"totalCharge": {
+							Kind: &structpb.Value_StringValue{StringValue: receipt.TotalCharge},
+						},
+					},
+				},
+			},
 		}
-		items = append(items, s.getReceiptModel(item.Name, price))
+	}
+
+	// pass vat row info as struct, for email template condition
+	var vat *structpb.Value
+	if receipt.VatRate != "0%" {
+		vat = &structpb.Value{
+			Kind: &structpb.Value_StructValue{
+				StructValue: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"rate": {
+							Kind: &structpb.Value_StringValue{StringValue: receipt.VatRate},
+						},
+						"amount": {
+							Kind: &structpb.Value_StringValue{StringValue: receipt.VatInOrderCurrency},
+						},
+						"including": {
+							Kind: &structpb.Value_BoolValue{BoolValue: receipt.VatPayer == pkg.VatPayerSeller},
+						},
+					},
+				},
+			},
+		}
+	}
+
+	payload := &postmarkSdrPkg.Payload{
+		TemplateAlias: template,
+		TemplateModel: templateModel,
+		To:            order.ReceiptEmail,
 	}
 
 	payload.TemplateObjectModel = &structpb.Struct{
@@ -1915,26 +1964,15 @@ func (s *Service) getPayloadForReceipt(ctx context.Context, order *billing.Order
 					Values: items,
 				}},
 			},
+			"vat":      vat,
+			"subTotal": subTotal,
+			"showSummary": {
+				Kind: &structpb.Value_BoolValue{BoolValue: receipt.Items != nil && len(receipt.Items) > 1},
+			},
 		},
 	}
 
-	if platform, ok := availablePlatforms[order.PlatformId]; ok {
-		payload.TemplateObjectModel.Fields["platform"] = &structpb.Value{
-			Kind: &structpb.Value_StructValue{
-				StructValue: &structpb.Struct{
-					Fields: map[string]*structpb.Value{
-						"name": {
-							Kind: &structpb.Value_StringValue{
-								StringValue: platform.Name,
-							},
-						},
-					},
-				},
-			},
-		}
-	}
-
-	return payload
+	return payload, nil
 }
 
 func (s *Service) sendMailWithCode(_ context.Context, order *billing.Order, key *billing.Key) {
@@ -2582,6 +2620,11 @@ func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) erro
 	order.ChargeCurrency = order.Currency
 
 	countryCode := order.GetCountry()
+
+	if countryCode == "" {
+		return nil
+	}
+
 	if countryCode == CountryCodeUSA {
 		order.Tax.Type = taxTypeSalesTax
 	}
@@ -4020,8 +4063,13 @@ func (s *Service) applyCountryRestriction(
 	restricted = false
 	if countryCode == "" {
 		order.UserAddressDataRequired = true
+		order.CountryRestriction = &billing.CountryRestriction{
+			PaymentsAllowed: false,
+			ChangeAllowed:   true,
+		}
 		return
 	}
+
 	country, err := s.country.GetByIsoCodeA2(ctx, countryCode)
 	if err != nil {
 		return
@@ -4159,19 +4207,32 @@ func (s *Service) OrderReceipt(
 		return nil
 	}
 
+	receipt, err := s.getOrderReceiptObject(ctx, order)
+	if err != nil {
+		zap.L().Error("get order receipt object failed", zap.Error(err))
+		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
+	}
+
+	rsp.Status = pkg.ResponseStatusOk
+	rsp.Receipt = receipt
+
+	return nil
+}
+
+func (s *Service) getOrderReceiptObject(ctx context.Context, order *billing.Order) (*billing.OrderReceipt, error) {
 	merchant, err := s.merchant.GetById(ctx, order.GetMerchantId())
 
 	if err != nil {
 		zap.L().Error(orderErrorMerchantForOrderNotFound.Message, zap.Error(err))
-
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = orderErrorMerchantForOrderNotFound
-
-		return nil
+		return nil, orderErrorMerchantForOrderNotFound
 	}
 
 	totalPrice, err := s.formatter.FormatCurrency(DefaultLanguage, order.OrderAmount, order.Currency)
-
 	if err != nil {
 		zap.L().Error(
 			orderErrorDuringFormattingCurrency.Message,
@@ -4179,26 +4240,61 @@ func (s *Service) OrderReceipt(
 			zap.String("locale", DefaultLanguage),
 			zap.String("currency", order.Currency),
 		)
+		return nil, orderErrorDuringFormattingCurrency
+	}
 
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = orderErrorDuringFormattingCurrency
+	totalAmount, err := s.formatter.FormatCurrency(DefaultLanguage, order.TotalPaymentAmount, order.Currency)
+	if err != nil {
+		zap.L().Error(
+			orderErrorDuringFormattingCurrency.Message,
+			zap.Float64("price", order.TotalPaymentAmount),
+			zap.String("locale", DefaultLanguage),
+			zap.String("currency", order.Currency),
+		)
+		return nil, orderErrorDuringFormattingCurrency
+	}
 
-		return nil
+	vatInOrderCurrency, err := s.formatter.FormatCurrency(DefaultLanguage, order.Tax.Amount, order.Tax.Currency)
+	if err != nil {
+		zap.L().Error(
+			orderErrorDuringFormattingCurrency.Message,
+			zap.Float64("price", order.Tax.Amount),
+			zap.String("locale", DefaultLanguage),
+			zap.String("currency", order.Tax.Currency),
+		)
+		return nil, orderErrorDuringFormattingCurrency
+	}
+
+	vatInChargeCurrency, err := s.formatter.FormatCurrency(DefaultLanguage, order.GetTaxAmountInChargeCurrency(), order.ChargeCurrency)
+	if err != nil {
+		zap.L().Error(
+			orderErrorDuringFormattingCurrency.Message,
+			zap.Float64("price", order.GetTaxAmountInChargeCurrency()),
+			zap.String("locale", DefaultLanguage),
+			zap.String("currency", order.ChargeCurrency),
+		)
+		return nil, orderErrorDuringFormattingCurrency
+	}
+
+	totalCharge, err := s.formatter.FormatCurrency(DefaultLanguage, order.ChargeAmount, order.ChargeCurrency)
+	if err != nil {
+		zap.L().Error(
+			orderErrorDuringFormattingCurrency.Message,
+			zap.Float64("price", order.ChargeAmount),
+			zap.String("locale", DefaultLanguage),
+			zap.String("currency", order.ChargeCurrency),
+		)
+		return nil, orderErrorDuringFormattingCurrency
 	}
 
 	date, err := s.formatter.FormatDateTime(DefaultLanguage, time.Unix(order.CreatedAt.Seconds, 0))
-
 	if err != nil {
 		zap.L().Error(
 			orderErrorDuringFormattingDate.Message,
 			zap.Any("date", order.CreatedAt),
 			zap.String("locale", DefaultLanguage),
 		)
-
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = orderErrorDuringFormattingDate
-
-		return nil
+		return nil, orderErrorDuringFormattingDate
 	}
 
 	items := make([]*billing.OrderReceiptItem, len(order.Items))
@@ -4213,11 +4309,7 @@ func (s *Service) OrderReceipt(
 				zap.Error(err),
 				zap.String("order.uuid", order.Uuid),
 			)
-
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = projectErrorUnknown
-
-			return nil
+			return nil, projectErrorUnknown
 		}
 
 		var ok = false
@@ -4229,11 +4321,7 @@ func (s *Service) OrderReceipt(
 				zap.Error(err),
 				zap.String("order.uuid", order.Uuid),
 			)
-
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = projectErrorVirtualCurrencyNameDefaultLangRequired
-
-			return nil
+			return nil, projectErrorVirtualCurrencyNameDefaultLangRequired
 		}
 	}
 
@@ -4247,6 +4335,7 @@ func (s *Service) OrderReceipt(
 				zap.String("locale", DefaultLanguage),
 				zap.String("currency", item.Currency),
 			)
+			return nil, orderErrorDuringFormattingCurrency
 		}
 
 		items[i] = &billing.OrderReceiptItem{Name: item.Name, Price: price}
@@ -4262,30 +4351,30 @@ func (s *Service) OrderReceipt(
 
 	if err != nil {
 		zap.L().Error(pkg.MethodFinishedWithError, zap.Error(err))
-
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
-
-		return nil
+		return nil, err
 	}
 
 	receipt := &billing.OrderReceipt{
-		TotalPrice:      totalPrice,
-		TransactionId:   order.Uuid,
-		TransactionDate: date,
-		ProjectName:     order.Project.Name[DefaultLanguage],
-		MerchantName:    merchant.Company.Name,
-		OrderType:       order.Type,
-		Items:           items,
-		PlatformName:    platformName,
-		PaymentPartner:  oc.Name,
-		VatPayer:        order.VatPayer,
+		TotalPrice:          totalPrice,
+		TransactionId:       order.Uuid,
+		TransactionDate:     date,
+		ProjectName:         order.Project.Name[DefaultLanguage],
+		MerchantName:        merchant.Company.Name,
+		Items:               items,
+		OrderType:           order.Type,
+		PlatformName:        platformName,
+		PaymentPartner:      oc.Name,
+		VatPayer:            order.VatPayer,
+		VatInOrderCurrency:  vatInOrderCurrency,
+		VatInChargeCurrency: vatInChargeCurrency,
+		TotalAmount:         totalAmount,
+		TotalCharge:         totalCharge,
+		ReceiptId:           order.ReceiptId,
+		Url:                 order.ReceiptUrl,
+		VatRate:             fmt.Sprintf("%g", order.Tax.Rate*100) + "%",
 	}
 
-	rsp.Status = pkg.ResponseStatusOk
-	rsp.Receipt = receipt
-
-	return nil
+	return receipt, nil
 }
 
 type OrderRepositoryInterface interface {
