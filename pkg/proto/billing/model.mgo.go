@@ -808,6 +808,10 @@ type MgoOrderViewPublic struct {
 	Cancellation                            *OrderNotificationCancellation `bson:"cancellation"`
 	OperatingCompanyId                      string                         `bson:"operating_company_id"`
 	RefundAllowed                           bool                           `bson:"refund_allowed"`
+	OrderCharge                             *OrderViewMoney                `bson:"order_charge"`
+	PaymentIpCountry                        string                         `bson:"payment_ip_country"`
+	IsIpCountryMismatchBin                  bool                           `bson:"is_ip_country_mismatch_bin"`
+	BillingCountryChangedByUser             bool                           `bson:"billing_country_changed_by_user"`
 	VatPayer                                string                         `bson:"vat_payer"`
 }
 
@@ -4435,6 +4439,10 @@ func (m *OrderViewPublic) UnmarshalBSON(raw []byte) error {
 	m.Items = getOrderViewItems(decoded.Items)
 	m.OperatingCompanyId = decoded.OperatingCompanyId
 	m.RefundAllowed = decoded.RefundAllowed
+	m.OrderCharge = decoded.OrderCharge
+	m.PaymentIpCountry = decoded.PaymentIpCountry
+	m.IsIpCountryMismatchBin = decoded.IsIpCountryMismatchBin
+	m.BillingCountryChangedByUser = decoded.BillingCountryChangedByUser
 	m.VatPayer = decoded.VatPayer
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)

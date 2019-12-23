@@ -2269,6 +2269,8 @@ message OrderReceipt {
     string receipt_id = 15;
     //@inject_tag: json:"url"
     string url = 16;
+    //@inject_tag: json:"vat_rate"
+    string vat_rate = 17;
 }
 
 message OrderReceiptItem {
