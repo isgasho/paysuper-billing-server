@@ -627,6 +627,27 @@ func (s *Service) CheckInviteToken(
 	return nil
 }
 
+func (s *Service) sendInviteEmail(receiverEmail, senderEmail, senderFirstName, senderLastName, senderCompany, token string) error {
+	payload := &postmarkSdrPkg.Payload{
+		TemplateAlias: s.cfg.EmailTemplates.UserInvite,
+		TemplateModel: map[string]string{
+			"sender_first_name": senderFirstName,
+			"sender_last_name":  senderLastName,
+			"sender_email":      senderEmail,
+			"sender_company":    senderCompany,
+			"invite_link":       s.cfg.GetUserInviteUrl(token),
+		},
+		To: receiverEmail,
+	}
+	err := s.postmarkBroker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.ChangeRoleForMerchantUserRequest, res *grpc.EmptyResponseWithStatus) error {
 	if req.Role == pkg.RoleMerchantOwner {
 		zap.L().Error(errorUserUnsupportedRoleType.Message, zap.Any("req", req))
@@ -874,27 +895,6 @@ func (s *Service) GetMerchantUserRole(
 	return nil
 }
 
-func (s *Service) GetAdminUserRole(
-	ctx context.Context,
-	req *grpc.AdminRoleRequest,
-	res *grpc.UserRoleResponse,
-) error {
-	user, err := s.userRoleRepository.GetAdminUserById(ctx, req.RoleId)
-
-	if err != nil {
-		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
-		res.Message = errorUserNotFound
-
-		return nil
-	}
-
-	res.Status = pkg.ResponseStatusOk
-	res.UserRole = user
-
-	return nil
-}
-
 func (s *Service) parseInviteToken(t string) (jwt.MapClaims, error) {
 	token, err := jwt.Parse(t, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -919,27 +919,6 @@ func (s *Service) parseInviteToken(t string) (jwt.MapClaims, error) {
 	}
 
 	return claims, nil
-}
-
-func (s *Service) sendInviteEmail(receiverEmail, senderEmail, senderFirstName, senderLastName, senderCompany, token string) error {
-	payload := &postmarkSdrPkg.Payload{
-		TemplateAlias: s.cfg.EmailTemplates.UserInvite,
-		TemplateModel: map[string]string{
-			"sender_first_name": senderFirstName,
-			"sender_last_name":  senderLastName,
-			"sender_email":      senderEmail,
-			"sender_company":    senderCompany,
-			"invite_link":       s.cfg.GetUserInviteUrl(token),
-		},
-		To: receiverEmail,
-	}
-	err := s.postmarkBroker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
-
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (s *Service) createInviteToken(role *billing.UserRole) (string, error) {
@@ -987,4 +966,25 @@ func (s *Service) getUserPermissions(ctx context.Context, userId string, merchan
 	}
 
 	return permissions, nil
+}
+
+func (s *Service) GetAdminUserRole(
+	ctx context.Context,
+	req *grpc.AdminRoleRequest,
+	res *grpc.UserRoleResponse,
+) error {
+	user, err := s.userRoleRepository.GetAdminUserById(ctx, req.RoleId)
+
+	if err != nil {
+		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
+		res.Status = pkg.ResponseStatusBadData
+		res.Message = errorUserNotFound
+
+		return nil
+	}
+
+	res.Status = pkg.ResponseStatusOk
+	res.UserRole = user
+
+	return nil
 }
