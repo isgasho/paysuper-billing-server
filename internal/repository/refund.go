@@ -40,7 +40,7 @@ type RefundRepositoryInterface interface {
 	GetAmountByOrderId(context.Context, string) (float64, error)
 }
 
-func Refund(db *mongodb.Source) RefundRepositoryInterface {
+func NewRefundRepository(db *mongodb.Source) RefundRepositoryInterface {
 	s := &RefundRepository{db: db}
 	return s
 }

@@ -190,8 +190,8 @@ func (s *Service) Init() (err error) {
 	s.operatingCompany = newOperatingCompanyService(s)
 	s.paymentMinLimitSystem = newPaymentMinLimitSystem(s)
 
-	s.refundRepository = repository.Refund(s.db)
-	s.orderRepository = repository.Order(s.db)
+	s.refundRepository = repository.NewRefundRepository(s.db)
+	s.orderRepository = repository.NewOrderRepository(s.db)
 
 	sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currencies.EmptyRequest{})
 	if err != nil {

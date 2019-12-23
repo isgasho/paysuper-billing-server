@@ -39,7 +39,7 @@ type OrderRepositoryInterface interface {
 	GetByProjectOrderId(context.Context, string, string) (*billing.Order, error)
 }
 
-func Order(db *mongodb.Source) OrderRepositoryInterface {
+func NewOrderRepository(db *mongodb.Source) OrderRepositoryInterface {
 	s := &OrderRepository{db: db}
 	return s
 }
