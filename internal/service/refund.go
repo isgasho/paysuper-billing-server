@@ -302,13 +302,35 @@ func (s *Service) ProcessRefundCallback(
 		}
 	}
 
-	if pErr == nil && refund.CreatedOrderId == "" {
-		refund.CreatedOrderId, err = s.createOrderByRefund(ctx, order, refund)
+	refundOrder := &billing.Order{}
 
-		if err != nil {
-			rsp.Status = pkg.ResponseStatusSystemError
-			rsp.Error = err.Error()
-			return nil
+	if pErr == nil {
+		if refund.CreatedOrderId == "" {
+			refundOrder, err = s.createOrderByRefund(ctx, order, refund)
+
+			if err != nil {
+				rsp.Status = pkg.ResponseStatusSystemError
+				rsp.Error = err.Error()
+				return nil
+			}
+
+			refund.CreatedOrderId = refundOrder.Id
+		} else {
+			refundOrder, err = s.getOrderById(ctx, refund.CreatedOrderId)
+			if err != nil {
+				zap.L().Error(
+					pkg.MethodFinishedWithError,
+					zap.String("method", "getOrderById"),
+					zap.Error(err),
+					zap.String("refundId", refund.Id),
+					zap.String("refund-orderId", refund.CreatedOrderId),
+				)
+
+				rsp.Error = err.Error()
+				rsp.Status = pkg.ResponseStatusSystemError
+
+				return nil
+			}
 		}
 	}
 
@@ -326,40 +348,6 @@ func (s *Service) ProcessRefundCallback(
 	}
 
 	if pErr == nil {
-		err = s.onRefundNotify(ctx, refund, order)
-
-		if err != nil {
-			zap.L().Error(
-				pkg.MethodFinishedWithError,
-				zap.String("method", "onRefundNotify"),
-				zap.Error(err),
-				zap.String("refundId", refund.Id),
-				zap.String("refund-orderId", order.Id),
-			)
-
-			rsp.Error = err.Error()
-			rsp.Status = pkg.ResponseStatusSystemError
-
-			return nil
-		}
-
-		refundOrder, err := s.getOrderById(ctx, refund.CreatedOrderId)
-		if err != nil {
-			zap.L().Error(
-				pkg.MethodFinishedWithError,
-				zap.String("method", "getOrderById"),
-				zap.Error(err),
-				zap.String("refundId", refund.Id),
-				zap.String("refund-create-orderId", refund.CreatedOrderId),
-			)
-
-			rsp.Error = err.Error()
-			rsp.Status = pkg.ResponseStatusSystemError
-
-			return nil
-		}
-		s.sendMailWithReceipt(ctx, refundOrder)
-
 		processor := &createRefundProcessor{service: s, ctx: ctx}
 		refundedAmount, _ := processor.getRefundedAmount(order)
 
@@ -378,7 +366,7 @@ func (s *Service) ProcessRefundCallback(
 			order.IsRefundAllowed = false
 			order.Refund = &billing.OrderNotificationRefund{
 				Amount:        refundedAmount,
-				Currency:      order.Currency,
+				Currency:      order.ChargeCurrency,
 				Reason:        refund.Reason,
 				ReceiptNumber: refund.Id,
 			}
@@ -390,13 +378,32 @@ func (s *Service) ProcessRefundCallback(
 			}
 		}
 
+		err = s.onRefundNotify(ctx, refund, order)
+
+		if err != nil {
+			zap.L().Error(
+				pkg.MethodFinishedWithError,
+				zap.String("method", "onRefundNotify"),
+				zap.Error(err),
+				zap.String("refundId", refund.Id),
+				zap.String("refund-orderId", refundOrder.Id),
+			)
+
+			rsp.Error = err.Error()
+			rsp.Status = pkg.ResponseStatusSystemError
+
+			return nil
+		}
+
+		s.sendMailWithReceipt(ctx, refundOrder)
+
 		rsp.Status = pkg.ResponseStatusOk
 	}
 
 	return nil
 }
 
-func (s *Service) createOrderByRefund(ctx context.Context, order *billing.Order, refund *billing.Refund) (string, error) {
+func (s *Service) createOrderByRefund(ctx context.Context, order *billing.Order, refund *billing.Refund) (*billing.Order, error) {
 	refundOrder := new(billing.Order)
 	err := copier.Copy(&refundOrder, &order)
 
@@ -407,7 +414,7 @@ func (s *Service) createOrderByRefund(ctx context.Context, order *billing.Order,
 			zap.Any("refund", refund),
 		)
 
-		return "", refundErrorUnknown
+		return nil, refundErrorUnknown
 	}
 
 	country, err := s.country.GetByIsoCodeA2(ctx, order.GetCountry())
@@ -416,7 +423,7 @@ func (s *Service) createOrderByRefund(ctx context.Context, order *billing.Order,
 			"country not found",
 			zap.Error(err),
 		)
-		return "", refundErrorUnknown
+		return nil, refundErrorUnknown
 	}
 
 	isVatDeduction := false
@@ -428,7 +435,7 @@ func (s *Service) createOrderByRefund(ctx context.Context, order *billing.Order,
 				"cannot get last vat report time",
 				zap.Error(err),
 			)
-			return "", refundErrorUnknown
+			return nil, refundErrorUnknown
 		}
 
 		orderPayedAt, err := ptypes.Timestamp(order.PaymentMethodOrderClosedAt)
@@ -438,7 +445,7 @@ func (s *Service) createOrderByRefund(ctx context.Context, order *billing.Order,
 				"cannot get convert PaymentMethodOrderClosedAt date to time",
 				zap.Error(err),
 			)
-			return "", refundErrorUnknown
+			return nil, refundErrorUnknown
 		}
 
 		if orderPayedAt.Unix() < from.Unix() {
@@ -475,7 +482,7 @@ func (s *Service) createOrderByRefund(ctx context.Context, order *billing.Order,
 	refundOrder.IsVatDeduction = isVatDeduction
 	refundOrder.ParentPaymentAt = order.PaymentMethodOrderClosedAt
 
-	refundOrder.ChargeAmount = s.FormatAmount(refund.Amount, refund.Currency)
+	refundOrder.ChargeAmount = refund.Amount
 
 	refundOrder.Tax.Amount = tools.FormatAmount(tools.GetPercentPartFromAmount(refund.Amount, refundOrder.Tax.Rate))
 	refundOrder.OrderAmount = tools.FormatAmount(refundOrder.TotalPaymentAmount - refundOrder.Tax.Amount)
@@ -492,10 +499,10 @@ func (s *Service) createOrderByRefund(ctx context.Context, order *billing.Order,
 			zap.Any("query", refundOrder),
 		)
 
-		return "", refundErrorUnknown
+		return nil, refundErrorUnknown
 	}
 
-	return refundOrder.Id, nil
+	return refundOrder, nil
 }
 
 func (p *createRefundProcessor) processCreateRefund() (*billing.Refund, error) {
@@ -530,7 +537,7 @@ func (p *createRefundProcessor) processCreateRefund() (*billing.Refund, error) {
 		Amount:    p.request.Amount,
 		CreatorId: p.request.CreatorId,
 		Reason:    fmt.Sprintf(refundDefaultReasonMask, p.checked.order.Id),
-		Currency:  p.checked.order.Currency,
+		Currency:  p.checked.order.ChargeCurrency,
 		Status:    pkg.RefundStatusCreated,
 		CreatedAt: ptypes.TimestampNow(),
 		UpdatedAt: ptypes.TimestampNow(),
@@ -623,7 +630,16 @@ func (p *createRefundProcessor) getRefundedAmount(order *billing.Order) (float64
 		return 0, refundErrorUnknown
 	}
 
-	defer cursor.Close(p.ctx)
+	defer func() {
+		err := cursor.Close(p.ctx)
+		if err != nil {
+			zap.L().Error(
+				errorDbCurdorCloseFailed,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, collectionRefund),
+			)
+		}
+	}()
 
 	if cursor.Next(p.ctx) {
 		err = cursor.Decode(&res)

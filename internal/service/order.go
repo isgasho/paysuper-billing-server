@@ -881,6 +881,7 @@ func (s *Service) fillPaymentFormJsonData(order *billing.Order, rsp *grpc.Paymen
 	rsp.Item.ChargeAmount = order.ChargeAmount
 	rsp.Item.Items = order.Items
 	rsp.Item.Email = order.User.Email
+	rsp.Item.UserAddressDataRequired = order.UserAddressDataRequired
 
 	if order.CountryRestriction != nil {
 		rsp.Item.CountryPaymentsAllowed = order.CountryRestriction.PaymentsAllowed
@@ -1728,7 +1729,7 @@ func (s *Service) updateOrder(ctx context.Context, order *billing.Order) error {
 		zap.S().Debug("[updateOrder] no original order found", "order_id", order.Id)
 	}
 
-	needReceipt := statusChanged && (ps == constant.OrderPublicStatusRefunded || ps == constant.OrderPublicStatusProcessed)
+	needReceipt := statusChanged && (ps == constant.OrderPublicStatusChargeback || ps == constant.OrderPublicStatusRefunded || ps == constant.OrderPublicStatusProcessed)
 
 	if needReceipt {
 		switch order.Type {
@@ -1839,7 +1840,7 @@ func (s *Service) getPayloadForReceipt(ctx context.Context, order *billing.Order
 	}
 
 	var items []*structpb.Value
-	if receipt.Items != nil {
+	if receipt.Items != nil && len(receipt.Items) > 0 {
 		for _, item := range receipt.Items {
 			item := &structpb.Value{
 				Kind: &structpb.Value_StructValue{
@@ -1847,6 +1848,9 @@ func (s *Service) getPayloadForReceipt(ctx context.Context, order *billing.Order
 						Fields: map[string]*structpb.Value{
 							"name": {
 								Kind: &structpb.Value_StringValue{StringValue: item.Name},
+							},
+							"is-simple": {
+								Kind: &structpb.Value_BoolValue{BoolValue: false},
 							},
 							"price": {
 								Kind: &structpb.Value_StringValue{StringValue: item.Price},
@@ -1858,6 +1862,26 @@ func (s *Service) getPayloadForReceipt(ctx context.Context, order *billing.Order
 
 			items = append(items, item)
 		}
+	} else {
+		item := &structpb.Value{
+			Kind: &structpb.Value_StructValue{
+				StructValue: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"name": {
+							Kind: &structpb.Value_StringValue{StringValue: "In-game purchase"},
+						},
+						"is-simple": {
+							Kind: &structpb.Value_BoolValue{BoolValue: true},
+						},
+						"price": {
+							Kind: &structpb.Value_StringValue{StringValue: receipt.TotalPrice},
+						},
+					},
+				},
+			},
+		}
+
+		items = append(items, item)
 	}
 
 	// set receipt items to nil to omit this field in jsonpb Marshal result
@@ -1882,18 +1906,45 @@ func (s *Service) getPayloadForReceipt(ctx context.Context, order *billing.Order
 		delete(templateModel, "platform")
 	}
 
-	// add vat_payer value field to template model, for easy template condition
-	// for example {{#vat_payer_buyer}} ... {{/vat_payer_buyer}}
-	templateModel["vat_payer_"+receipt.VatPayer] = "true"
-
-	// add flag that charge currency differs from order currency to template model, for easy email template condition
-	if order.Currency != order.ChargeCurrency {
-		templateModel["show_total_charge"] = "true"
+	// pass subtotal row info as struct, for email template condition
+	var subTotal *structpb.Value
+	if receipt.TotalAmount != receipt.TotalCharge {
+		subTotal = &structpb.Value{
+			Kind: &structpb.Value_StructValue{
+				StructValue: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"totalAmount": {
+							Kind: &structpb.Value_StringValue{StringValue: receipt.TotalAmount},
+						},
+						"totalCharge": {
+							Kind: &structpb.Value_StringValue{StringValue: receipt.TotalCharge},
+						},
+					},
+				},
+			},
+		}
 	}
 
-	// add order has vat flag to template model, for easy email template condition
-	if order.Tax.Amount > 0 {
-		templateModel["order_has_vat"] = "true"
+	// pass vat row info as struct, for email template condition
+	var vat *structpb.Value
+	if receipt.VatRate != "0%" {
+		vat = &structpb.Value{
+			Kind: &structpb.Value_StructValue{
+				StructValue: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"rate": {
+							Kind: &structpb.Value_StringValue{StringValue: receipt.VatRate},
+						},
+						"amount": {
+							Kind: &structpb.Value_StringValue{StringValue: receipt.VatInOrderCurrency},
+						},
+						"including": {
+							Kind: &structpb.Value_BoolValue{BoolValue: receipt.VatPayer == pkg.VatPayerSeller},
+						},
+					},
+				},
+			},
+		}
 	}
 
 	payload := &postmarkSdrPkg.Payload{
@@ -1908,6 +1959,11 @@ func (s *Service) getPayloadForReceipt(ctx context.Context, order *billing.Order
 				Kind: &structpb.Value_ListValue{ListValue: &structpb.ListValue{
 					Values: items,
 				}},
+			},
+			"vat":      vat,
+			"subTotal": subTotal,
+			"showSummary": {
+				Kind: &structpb.Value_BoolValue{BoolValue: receipt.Items != nil && len(receipt.Items) > 1},
 			},
 		},
 	}
@@ -2542,6 +2598,11 @@ func (v *OrderCreateRequestProcessor) processOrderVat(order *billing.Order) erro
 	order.ChargeCurrency = order.Currency
 
 	countryCode := order.GetCountry()
+
+	if countryCode == "" {
+		return nil
+	}
+
 	if countryCode == CountryCodeUSA {
 		order.Tax.Type = taxTypeSalesTax
 	}
@@ -3946,8 +4007,13 @@ func (s *Service) applyCountryRestriction(
 	restricted = false
 	if countryCode == "" {
 		order.UserAddressDataRequired = true
+		order.CountryRestriction = &billing.CountryRestriction{
+			PaymentsAllowed: false,
+			ChangeAllowed:   true,
+		}
 		return
 	}
+
 	country, err := s.country.GetByIsoCodeA2(ctx, countryCode)
 	if err != nil {
 		return
@@ -4249,6 +4315,7 @@ func (s *Service) getOrderReceiptObject(ctx context.Context, order *billing.Orde
 		TotalCharge:         totalCharge,
 		ReceiptId:           order.ReceiptId,
 		Url:                 order.ReceiptUrl,
+		VatRate:             fmt.Sprintf("%g", order.Tax.Rate*100) + "%",
 	}
 
 	return receipt, nil

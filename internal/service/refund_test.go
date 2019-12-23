@@ -1761,6 +1761,34 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 	assert.EqualValues(suite.T(), refund.Amount, refundOrder.ChargeAmount)
 	assert.Equal(suite.T(), refund.Currency, refundOrder.Currency)
 	assert.Equal(suite.T(), pkg.OrderTypeRefund, refundOrder.Type)
+	assert.False(suite.T(), refundOrder.IsRefundAllowed)
+
+	// check RefundAllowed flag for original order has correct value in order
+	oid, err = primitive.ObjectIDFromHex(refund.OriginalOrder.Id)
+	assert.NoError(suite.T(), err)
+	filter = bson.M{"_id": oid}
+	originalOrder := new(billing.Order)
+	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&originalOrder)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), originalOrder)
+	assert.False(suite.T(), originalOrder.IsRefundAllowed)
+
+	// check RefundAllowed flag for original order has correct value on order view
+	originalOrderViewPublic := new(billing.OrderViewPublic)
+	err = suite.service.db.Collection(collectionOrderView).FindOne(context.TODO(), filter).Decode(&originalOrderViewPublic)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), originalOrder)
+	assert.False(suite.T(), originalOrderViewPublic.RefundAllowed)
+
+	// check that OrderCharge exists in json
+	originalOrderViewPublicJson, err := json.Marshal(originalOrderViewPublic)
+	assert.NoError(suite.T(), err)
+	originalOrderViewPublicFromJson := new(billing.OrderViewPublic)
+	err = json.Unmarshal(originalOrderViewPublicJson, &originalOrderViewPublicFromJson)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), originalOrderViewPublicFromJson)
+	assert.NotNil(suite.T(), originalOrderViewPublicFromJson.OrderCharge)
+	assert.Equal(suite.T(), originalOrderViewPublic.OrderCharge, originalOrderViewPublicFromJson.OrderCharge)
 }
 
 func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnmarshalError() {
