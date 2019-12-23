@@ -11,8 +11,8 @@ type RefundRepositoryInterface struct {
 	mock.Mock
 }
 
-// CountByOrderId provides a mock function with given fields: _a0, _a1
-func (_m *RefundRepositoryInterface) CountByOrderId(_a0 context.Context, _a1 string) (int64, error) {
+// CountByOrderUuid provides a mock function with given fields: _a0, _a1
+func (_m *RefundRepositoryInterface) CountByOrderUuid(_a0 context.Context, _a1 string) (int64, error) {
 	ret := _m.Called(_a0, _a1)
 
 	var r0 int64
@@ -32,8 +32,8 @@ func (_m *RefundRepositoryInterface) CountByOrderId(_a0 context.Context, _a1 str
 	return r0, r1
 }
 
-// FindByOrderId provides a mock function with given fields: _a0, _a1, _a2, _a3
-func (_m *RefundRepositoryInterface) FindByOrderId(_a0 context.Context, _a1 string, _a2 int64, _a3 int64) ([]*billing.Refund, error) {
+// FindByOrderUuid provides a mock function with given fields: _a0, _a1, _a2, _a3
+func (_m *RefundRepositoryInterface) FindByOrderUuid(_a0 context.Context, _a1 string, _a2 int64, _a3 int64) ([]*billing.Refund, error) {
 	ret := _m.Called(_a0, _a1, _a2, _a3)
 
 	var r0 []*billing.Refund

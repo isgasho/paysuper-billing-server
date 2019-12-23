@@ -12,17 +12,31 @@ import (
 )
 
 const (
+	// CollectionRefund is name of table for collection the refund.
 	CollectionRefund = "refund"
 )
 
+// RefundRepository is a repository for working with the Refund entity.
 type RefundRepository Repository
 
+// RefundRepositoryInterface is interface of RefundRepository.
 type RefundRepositoryInterface interface {
+	// Insert adds refund to the collection.
 	Insert(context.Context, *billing.Refund) error
+
+	// Update updates the refund in the collection.
 	Update(context.Context, *billing.Refund) error
+
+	// GetById returns a refund by its identifier.
 	GetById(context.Context, string) (*billing.Refund, error)
-	FindByOrderId(context.Context, string, int64, int64) ([]*billing.Refund, error)
-	CountByOrderId(context.Context, string) (int64, error)
+
+	// FindByOrderUuid returns a list of refunds by the public identifier of the purchase order.
+	FindByOrderUuid(context.Context, string, int64, int64) ([]*billing.Refund, error)
+
+	// CountByOrderUuid returns the number of refunds by the public identifier of the purchase order.
+	CountByOrderUuid(context.Context, string) (int64, error)
+
+	// GetAmountByOrderId returns the amount of refunds produced by order ID.
 	GetAmountByOrderId(context.Context, string) (float64, error)
 }
 
@@ -82,7 +96,7 @@ func (h *RefundRepository) GetById(ctx context.Context, id string) (*billing.Ref
 	return refund, nil
 }
 
-func (h *RefundRepository) FindByOrderId(ctx context.Context, id string, limit int64, offset int64) ([]*billing.Refund, error) {
+func (h *RefundRepository) FindByOrderUuid(ctx context.Context, id string, limit int64, offset int64) ([]*billing.Refund, error) {
 	var refunds []*billing.Refund
 
 	query := bson.M{"original_order.uuid": id}
@@ -116,7 +130,7 @@ func (h *RefundRepository) FindByOrderId(ctx context.Context, id string, limit i
 	return refunds, nil
 }
 
-func (h *RefundRepository) CountByOrderId(ctx context.Context, id string) (int64, error) {
+func (h *RefundRepository) CountByOrderUuid(ctx context.Context, id string) (int64, error) {
 	query := bson.M{"original_order.uuid": id}
 	count, err := h.db.Collection(CollectionRefund).CountDocuments(ctx, query)
 

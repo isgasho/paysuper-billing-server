@@ -11,17 +11,31 @@ import (
 )
 
 const (
+	// CollectionOrder is name of table for collection the order.
 	CollectionOrder = "order"
 )
 
+// OrderRepository is a repository for working with the Order entity.
 type OrderRepository Repository
 
+// OrderRepositoryInterface is interface of OrderRepository.
 type OrderRepositoryInterface interface {
+	// Insert adds order to the collection.
 	Insert(context.Context, *billing.Order) error
+
+	// Update updates the order in the collection.
 	Update(context.Context, *billing.Order) error
+
+	// GetById returns a order by its identifier.
 	GetById(context.Context, string) (*billing.Order, error)
+
+	// GetByUuid returns a order by its public (uuid) identifier.
 	GetByUuid(context.Context, string) (*billing.Order, error)
+
+	// GetByRefundReceiptNumber returns a order by its receipt number.
 	GetByRefundReceiptNumber(context.Context, string) (*billing.Order, error)
+
+	// GetByProjectOrderId returns a order by project and order identifiers.
 	GetByProjectOrderId(context.Context, string, string) (*billing.Order, error)
 }
 
@@ -119,10 +133,10 @@ func (h *OrderRepository) GetByRefundReceiptNumber(ctx context.Context, id strin
 	return order, nil
 }
 
-func (h *OrderRepository) GetByProjectOrderId(ctx context.Context, projectId, orderId string) (*billing.Order, error) {
+func (h *OrderRepository) GetByProjectOrderId(ctx context.Context, projectId, projectOrderId string) (*billing.Order, error) {
 	order := &billing.Order{}
 	id, _ := primitive.ObjectIDFromHex(projectId)
-	filter := bson.M{"project._id": id, "project_order_id": orderId}
+	filter := bson.M{"project._id": id, "project_order_id": projectOrderId}
 	err := h.db.Collection(CollectionOrder).FindOne(ctx, filter).Decode(&order)
 
 	if err != nil {

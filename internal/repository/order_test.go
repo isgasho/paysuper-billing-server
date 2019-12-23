@@ -57,8 +57,13 @@ func (suite *OrderTestSuite) TestOrder_Insert_Ok() {
 	}
 	err := suite.repository.Insert(context.TODO(), order)
 	assert.NoError(suite.T(), err)
+
+	order2, err := suite.repository.GetById(context.TODO(), order.Id)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), order.Id, order2.Id)
 }
 
+// TODO: Use the DB mock for return error on insert entry
 func (suite *OrderTestSuite) TestOrder_Insert_Error() {
 	order := &billing.Order{
 		Id: primitive.NewObjectID().Hex(),
@@ -70,6 +75,87 @@ func (suite *OrderTestSuite) TestOrder_Insert_Error() {
 	}
 	err := suite.repository.Insert(context.TODO(), order)
 	assert.Error(suite.T(), err)
+}
+
+// TODO: Use the DB mock for to skip really inserting the entry to DB
+func (suite *OrderTestSuite) TestOrder_Insert_DontHaveDbErrorButDontInserted() {
+	refund, err := suite.repository.GetById(context.TODO(), primitive.NewObjectID().Hex())
+	assert.Error(suite.T(), err)
+	assert.Nil(suite.T(), refund)
+}
+
+func (suite *OrderTestSuite) TestOrder_Update_Ok() {
+	order := &billing.Order{
+		Id: primitive.NewObjectID().Hex(),
+		Project: &billing.ProjectOrder{
+			Id:         primitive.NewObjectID().Hex(),
+			MerchantId: primitive.NewObjectID().Hex(),
+		},
+		MccCode: "code1",
+	}
+	err := suite.repository.Insert(context.TODO(), order)
+	assert.NoError(suite.T(), err)
+
+	refund1, err := suite.repository.GetById(context.TODO(), order.Id)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), order.Id, refund1.Id)
+	assert.Equal(suite.T(), order.MccCode, refund1.MccCode)
+
+	order.MccCode = "code2"
+	err = suite.repository.Update(context.TODO(), order)
+	assert.NoError(suite.T(), err)
+
+	order2, err := suite.repository.GetById(context.TODO(), order.Id)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), order.Id, order2.Id)
+	assert.Equal(suite.T(), order.MccCode, order2.MccCode)
+}
+
+// TODO: Use the DB mock for return error on insert entry
+func (suite *OrderTestSuite) TestOrder_Update_Error() {
+	order := &billing.Order{
+		Id: primitive.NewObjectID().Hex(),
+		Project: &billing.ProjectOrder{
+			Id:         primitive.NewObjectID().Hex(),
+			MerchantId: primitive.NewObjectID().Hex(),
+		},
+		MccCode: "code1",
+	}
+	err := suite.repository.Insert(context.TODO(), order)
+	assert.NoError(suite.T(), err)
+
+	order.CreatedAt = &timestamp.Timestamp{Seconds: -100000000000000}
+	err = suite.repository.Update(context.TODO(), order)
+	assert.Error(suite.T(), err)
+}
+
+// TODO: Use the DB mock for to skip really updating the entry to DB
+func (suite *OrderTestSuite) TestOrder_Update_DontHaveDbErrorButDontUpdated() {
+	order := &billing.Order{
+		Id: primitive.NewObjectID().Hex(),
+		Project: &billing.ProjectOrder{
+			Id:         primitive.NewObjectID().Hex(),
+			MerchantId: primitive.NewObjectID().Hex(),
+		},
+		MccCode: "code1",
+	}
+	err := suite.repository.Insert(context.TODO(), order)
+	assert.NoError(suite.T(), err)
+
+	order1, err := suite.repository.GetById(context.TODO(), order.Id)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), order.Id, order1.Id)
+	assert.Equal(suite.T(), order.MccCode, order1.MccCode)
+
+	order.MccCode = "test2"
+	// TODO: Use the mock of DB
+	//err = suite.repository.Update(context.TODO(), order)
+	//assert.NoError(suite.T(), err)
+
+	refund2, err := suite.repository.GetById(context.TODO(), order.Id)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), order.Id, refund2.Id)
+	assert.NotEqual(suite.T(), order.MccCode, refund2.MccCode)
 }
 
 func (suite *OrderTestSuite) TestOrder_GetById_Ok() {
@@ -90,10 +176,14 @@ func (suite *OrderTestSuite) TestOrder_GetById_Ok() {
 	assert.Equal(suite.T(), order, order2)
 }
 
-func (suite *OrderTestSuite) TestOrder_GetById_Error() {
-	order, err := suite.repository.GetById(context.TODO(), primitive.NewObjectID().Hex())
+func (suite *OrderTestSuite) TestOrder_GetById_ErrorNotFound() {
+	order := suite.getOrderTemplate()
+	err := suite.repository.Insert(context.TODO(), order)
+	assert.NoError(suite.T(), err)
+
+	order2, err := suite.repository.GetById(context.TODO(), order.Uuid)
 	assert.Error(suite.T(), err)
-	assert.Nil(suite.T(), order)
+	assert.Nil(suite.T(), order2)
 }
 
 func (suite *OrderTestSuite) TestOrder_GetByUuid_Ok() {
@@ -115,9 +205,13 @@ func (suite *OrderTestSuite) TestOrder_GetByUuid_Ok() {
 }
 
 func (suite *OrderTestSuite) TestOrder_GetByUuid_Error() {
-	order, err := suite.repository.GetByUuid(context.TODO(), primitive.NewObjectID().Hex())
+	order := suite.getOrderTemplate()
+	err := suite.repository.Insert(context.TODO(), order)
+	assert.NoError(suite.T(), err)
+
+	order2, err := suite.repository.GetByUuid(context.TODO(), order.Id)
 	assert.Error(suite.T(), err)
-	assert.Nil(suite.T(), order)
+	assert.Nil(suite.T(), order2)
 }
 
 func (suite *OrderTestSuite) TestOrder_GetByRefundReceiptNumber_Ok() {
@@ -140,9 +234,52 @@ func (suite *OrderTestSuite) TestOrder_GetByRefundReceiptNumber_Ok() {
 }
 
 func (suite *OrderTestSuite) TestOrder_GetByRefundReceiptNumber_Error() {
-	order, err := suite.repository.GetByRefundReceiptNumber(context.TODO(), primitive.NewObjectID().Hex())
+	order := suite.getOrderTemplate()
+	err := suite.repository.Insert(context.TODO(), order)
+	assert.NoError(suite.T(), err)
+
+	order2, err := suite.repository.GetByRefundReceiptNumber(context.TODO(), order.Uuid)
 	assert.Error(suite.T(), err)
-	assert.Nil(suite.T(), order)
+	assert.Nil(suite.T(), order2)
+}
+
+func (suite *OrderTestSuite) TestOrder_GetByProjectOrderId_Ok() {
+	order := suite.getOrderTemplate()
+	order.Refund = &billing.OrderNotificationRefund{ReceiptNumber: "number"}
+	err := suite.repository.Insert(context.TODO(), order)
+	assert.NoError(suite.T(), err)
+
+	order2, err := suite.repository.GetByProjectOrderId(context.TODO(), order.Project.Id, order.ProjectOrderId)
+	assert.NoError(suite.T(), err)
+
+	order.CreatedAt = order2.CreatedAt
+	order.UpdatedAt = order2.UpdatedAt
+	order.CanceledAt = order2.CanceledAt
+	order.RefundedAt = order2.RefundedAt
+	order.ProjectLastRequestedAt = order2.ProjectLastRequestedAt
+	order.PaymentMethodOrderClosedAt = order2.PaymentMethodOrderClosedAt
+	order.ExpireDateToFormInput = order2.ExpireDateToFormInput
+	assert.Equal(suite.T(), order, order2)
+}
+
+func (suite *OrderTestSuite) TestOrder_GetByProjectOrderId_ErrorNotFound_InvalidProjectId() {
+	order := suite.getOrderTemplate()
+	err := suite.repository.Insert(context.TODO(), order)
+	assert.NoError(suite.T(), err)
+
+	order2, err := suite.repository.GetByProjectOrderId(context.TODO(), order.Id, order.ProjectOrderId)
+	assert.Error(suite.T(), err)
+	assert.Nil(suite.T(), order2)
+}
+
+func (suite *OrderTestSuite) TestOrder_GetByProjectOrderId_ErrorNotFound_InvalidOrderId() {
+	order := suite.getOrderTemplate()
+	err := suite.repository.Insert(context.TODO(), order)
+	assert.NoError(suite.T(), err)
+
+	order2, err := suite.repository.GetByProjectOrderId(context.TODO(), order.Project.Id, order.Id)
+	assert.Error(suite.T(), err)
+	assert.Nil(suite.T(), order2)
 }
 
 func (suite *OrderTestSuite) getOrderTemplate() *billing.Order {

@@ -114,13 +114,13 @@ func (s *Service) ListRefunds(
 		return nil
 	}
 
-	refunds, err := s.refundRepository.FindByOrderId(ctx, req.OrderId, req.Limit, req.Offset)
+	refunds, err := s.refundRepository.FindByOrderUuid(ctx, req.OrderId, req.Limit, req.Offset)
 
 	if err != nil {
 		return nil
 	}
 
-	count, err := s.refundRepository.CountByOrderId(ctx, req.OrderId)
+	count, err := s.refundRepository.CountByOrderUuid(ctx, req.OrderId)
 
 	if err != nil {
 		return nil
