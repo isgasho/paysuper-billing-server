@@ -4447,7 +4447,6 @@ func (s *Service) OrderReCreateProcess(
 	}
 
 	if err = s.orderRepository.Insert(ctx, newOrder); err != nil {
-		fmt.Println(err)
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = orderErrorCanNotCreate
 		return nil

@@ -34,7 +34,7 @@ func (suite *OrderTestSuite) SetupTest() {
 	suite.db, err = mongodb.NewDatabase()
 	assert.NoError(suite.T(), err, "Database connection failed")
 
-	suite.repository = Order(suite.db)
+	suite.repository = NewOrderRepository(suite.db)
 }
 
 func (suite *OrderTestSuite) TearDownTest() {

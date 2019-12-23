@@ -1508,9 +1508,6 @@ func (suite *RefundTestSuite) TestRefund_GetRefund_Ok() {
 	}
 	rsp3 := &grpc.CreateRefundResponse{}
 	err = suite.service.GetRefund(context.TODO(), req3, rsp3)
-	fmt.Println(111)
-	fmt.Println(err)
-	fmt.Println(rsp3)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp3.Status)
 	assert.Empty(suite.T(), rsp3.Message)
@@ -1721,11 +1718,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 	assert.False(suite.T(), refundOrder.IsRefundAllowed)
 
 	// check RefundAllowed flag for original order has correct value in order
-	oid, err = primitive.ObjectIDFromHex(refund.OriginalOrder.Id)
-	assert.NoError(suite.T(), err)
-	filter = bson.M{"_id": oid}
-	originalOrder := new(billing.Order)
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&originalOrder)
+	originalOrder, err := suite.service.orderRepository.GetById(context.TODO(), refund.OriginalOrder.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), originalOrder)
 	assert.False(suite.T(), originalOrder.IsRefundAllowed)

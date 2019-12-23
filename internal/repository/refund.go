@@ -11,41 +11,16 @@ import (
 	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
 )
 
-const (
-	// CollectionRefund is name of table for collection the refund.
-	CollectionRefund = "refund"
-)
+type refundRepository repository
 
-// RefundRepository is a repository for working with the Refund entity.
-type RefundRepository Repository
-
-// RefundRepositoryInterface is interface of RefundRepository.
-type RefundRepositoryInterface interface {
-	// Insert adds refund to the collection.
-	Insert(context.Context, *billing.Refund) error
-
-	// Update updates the refund in the collection.
-	Update(context.Context, *billing.Refund) error
-
-	// GetById returns a refund by its identifier.
-	GetById(context.Context, string) (*billing.Refund, error)
-
-	// FindByOrderUuid returns a list of refunds by the public identifier of the purchase order.
-	FindByOrderUuid(context.Context, string, int64, int64) ([]*billing.Refund, error)
-
-	// CountByOrderUuid returns the number of refunds by the public identifier of the purchase order.
-	CountByOrderUuid(context.Context, string) (int64, error)
-
-	// GetAmountByOrderId returns the amount of refunds produced by order ID.
-	GetAmountByOrderId(context.Context, string) (float64, error)
-}
-
+// NewRefundRepository create and return an object for working with the refund repository.
+// The returned object implements the RefundRepositoryInterface interface.
 func NewRefundRepository(db *mongodb.Source) RefundRepositoryInterface {
-	s := &RefundRepository{db: db}
+	s := &refundRepository{db: db}
 	return s
 }
 
-func (h *RefundRepository) Insert(ctx context.Context, refund *billing.Refund) error {
+func (h *refundRepository) Insert(ctx context.Context, refund *billing.Refund) error {
 	_, err := h.db.Collection(CollectionRefund).InsertOne(ctx, refund)
 
 	if err != nil {
@@ -62,7 +37,7 @@ func (h *RefundRepository) Insert(ctx context.Context, refund *billing.Refund) e
 	return nil
 }
 
-func (h *RefundRepository) Update(ctx context.Context, refund *billing.Refund) error {
+func (h *refundRepository) Update(ctx context.Context, refund *billing.Refund) error {
 	oid, _ := primitive.ObjectIDFromHex(refund.Id)
 	filter := bson.M{"_id": oid}
 	_, err := h.db.Collection(CollectionRefund).ReplaceOne(ctx, filter, refund)
@@ -81,12 +56,21 @@ func (h *RefundRepository) Update(ctx context.Context, refund *billing.Refund) e
 	return nil
 }
 
-func (h *RefundRepository) GetById(ctx context.Context, id string) (*billing.Refund, error) {
+func (h *refundRepository) GetById(ctx context.Context, id string) (*billing.Refund, error) {
 	var refund *billing.Refund
+	oid, err := primitive.ObjectIDFromHex(id)
 
-	oid, _ := primitive.ObjectIDFromHex(id)
-	filter := bson.M{"_id": oid}
-	err := h.db.Collection(CollectionRefund).FindOne(ctx, filter).Decode(&refund)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseInvalidObjectId,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, CollectionRefund),
+			zap.String(pkg.ErrorDatabaseFieldQuery, id),
+		)
+		return nil, err
+	}
+
+	err = h.db.Collection(CollectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
 
 	if err != nil {
 		zap.S().Errorf("Query to find refund by id failed", "err", err.Error(), "id", id)
@@ -96,7 +80,7 @@ func (h *RefundRepository) GetById(ctx context.Context, id string) (*billing.Ref
 	return refund, nil
 }
 
-func (h *RefundRepository) FindByOrderUuid(ctx context.Context, id string, limit int64, offset int64) ([]*billing.Refund, error) {
+func (h *refundRepository) FindByOrderUuid(ctx context.Context, id string, limit int64, offset int64) ([]*billing.Refund, error) {
 	var refunds []*billing.Refund
 
 	query := bson.M{"original_order.uuid": id}
@@ -130,7 +114,7 @@ func (h *RefundRepository) FindByOrderUuid(ctx context.Context, id string, limit
 	return refunds, nil
 }
 
-func (h *RefundRepository) CountByOrderUuid(ctx context.Context, id string) (int64, error) {
+func (h *refundRepository) CountByOrderUuid(ctx context.Context, id string) (int64, error) {
 	query := bson.M{"original_order.uuid": id}
 	count, err := h.db.Collection(CollectionRefund).CountDocuments(ctx, query)
 
@@ -142,7 +126,7 @@ func (h *RefundRepository) CountByOrderUuid(ctx context.Context, id string) (int
 	return count, nil
 }
 
-func (h *RefundRepository) GetAmountByOrderId(ctx context.Context, orderId string) (float64, error) {
+func (h *refundRepository) GetAmountByOrderId(ctx context.Context, orderId string) (float64, error) {
 	var res struct {
 		Amount float64 `bson:"amount"`
 	}

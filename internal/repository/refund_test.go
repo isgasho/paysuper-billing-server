@@ -35,7 +35,7 @@ func (suite *RefundTestSuite) SetupTest() {
 	suite.db, err = mongodb.NewDatabase()
 	assert.NoError(suite.T(), err, "Database connection failed")
 
-	suite.repository = Refund(suite.db)
+	suite.repository = NewRefundRepository(suite.db)
 }
 
 func (suite *RefundTestSuite) TearDownTest() {

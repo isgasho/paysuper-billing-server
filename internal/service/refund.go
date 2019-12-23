@@ -110,7 +110,7 @@ func (s *Service) ListRefunds(
 	}
 
 	if order.GetMerchantId() != req.MerchantId {
-		zap.S().Errorw("Unable to get original order on refund", "uuid", req.OrderId, "merchantId", req.MerchantId)
+		zap.S().Errorw("Merchant ID does not match requested.", "uuid", req.OrderId, "merchantId", req.MerchantId)
 		return nil
 	}
 
@@ -149,7 +149,7 @@ func (s *Service) GetRefund(
 	}
 
 	if order.GetMerchantId() != req.MerchantId {
-		zap.S().Errorw("Unable to get original order on refund", "uuid", req.OrderId, "merchantId", req.MerchantId)
+		zap.S().Errorw("Merchant ID does not match requested.", "uuid", req.OrderId, "merchantId", req.MerchantId)
 		rsp.Status = pkg.ResponseStatusNotFound
 		rsp.Message = refundErrorNotFound
 
