@@ -278,13 +278,7 @@ func (s *Service) ProcessRefundCallback(
 		}
 	}
 
-	oid, _ = primitive.ObjectIDFromHex(refundId)
-	filter = bson.M{"_id": oid}
-	_, err = s.db.Collection(collectionRefund).ReplaceOne(ctx, filter, refund)
-
-	if err != nil {
-		zap.S().Errorf("Update refund data failed", "err", err.Error(), "refund", refund)
-
+	if err = s.refundRepository.Update(ctx, refund); err != nil {
 		rsp.Error = orderErrorUnknown.Error()
 		rsp.Status = pkg.ResponseStatusSystemError
 
