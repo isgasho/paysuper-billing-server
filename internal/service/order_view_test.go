@@ -130,7 +130,6 @@ func (suite *OrderViewTestSuite) SetupTest() {
 		SecretKey:                "test project 1 secret key",
 		Status:                   pkg.ProjectStatusDraft,
 		MerchantId:               suite.merchant.Id,
-		VatPayer:                 pkg.VatPayerBuyer,
 	}
 
 	if err := suite.service.project.Insert(context.TODO(), suite.projectWithProducts); err != nil {

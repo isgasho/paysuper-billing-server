@@ -5,9 +5,8 @@ import (
 	"encoding/json"
 	"github.com/centrifugal/gocent"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/paysuper/paysuper-billing-server/internal/config"
+	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"go.uber.org/zap"
-	"net/http"
 )
 
 type CentrifugoInterface interface {
@@ -16,23 +15,20 @@ type CentrifugoInterface interface {
 }
 
 type Centrifugo struct {
-	secret           string
+	svc              *Service
 	centrifugoClient *gocent.Client
 }
 
-func newCentrifugo(cfg *config.Centrifugo, httpClient *http.Client) CentrifugoInterface {
-	centrifugo := &Centrifugo{
-		secret: cfg.Secret,
-		centrifugoClient: gocent.New(
-			gocent.Config{
-				Addr:       cfg.URL,
-				Key:        cfg.ApiSecret,
-				HTTPClient: httpClient,
-			},
-		),
-	}
-
-	return centrifugo
+func newCentrifugo(svc *Service) CentrifugoInterface {
+	s := &Centrifugo{svc: svc}
+	s.centrifugoClient = gocent.New(
+		gocent.Config{
+			Addr:       s.svc.cfg.CentrifugoURL,
+			Key:        s.svc.cfg.CentrifugoApiSecret,
+			HTTPClient: tools.NewLoggedHttpClient(zap.S()),
+		},
+	)
+	return s
 }
 
 func (c *Centrifugo) Publish(ctx context.Context, channel string, msg interface{}) error {
@@ -53,7 +49,7 @@ func (c *Centrifugo) Publish(ctx context.Context, channel string, msg interface{
 
 func (c *Centrifugo) GetChannelToken(subject string, expire int64) string {
 	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": subject, "exp": expire})
-	token, err := claims.SignedString([]byte(c.secret))
+	token, err := claims.SignedString([]byte(c.svc.cfg.CentrifugoSecret))
 
 	if err != nil {
 		zap.L().Error(

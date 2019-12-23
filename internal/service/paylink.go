@@ -166,47 +166,6 @@ func (s *Service) GetPaylink(
 	return nil
 }
 
-func (s *Service) GetPaylinkTransactions(
-	ctx context.Context,
-	req *grpc.GetPaylinkTransactionsRequest,
-	res *grpc.TransactionsResponse,
-) error {
-	pl, err := s.paylinkService.GetByIdAndMerchant(ctx, req.Id, req.MerchantId)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			res.Status = pkg.ResponseStatusNotFound
-			res.Message = errorPaylinkNotFound
-			return nil
-		}
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			res.Status = pkg.ResponseStatusBadData
-			res.Message = e
-			return nil
-		}
-		return err
-	}
-
-	oid, _ := primitive.ObjectIDFromHex(pl.MerchantId)
-	match := bson.M{
-		"merchant_id":           oid,
-		"issuer.reference_type": pkg.OrderIssuerReferenceTypePaylink,
-		"issuer.reference":      pl.Id,
-	}
-
-	ts, err := s.orderView.GetTransactionsPublic(ctx, match, req.Limit, req.Offset)
-
-	if err != nil {
-		return err
-	}
-
-	res.Data = &grpc.TransactionsPaginate{
-		Count: int32(len(ts)),
-		Items: ts,
-	}
-
-	return nil
-}
-
 // IncrPaylinkVisits adds a visit hit to stat
 func (s *Service) IncrPaylinkVisits(
 	ctx context.Context,

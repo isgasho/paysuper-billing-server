@@ -192,7 +192,6 @@ service BillingService {
     rpc GetPaylinkStatByReferrer (GetPaylinkStatCommonRequest) returns (GetPaylinkStatCommonGroupResponse) {}
     rpc GetPaylinkStatByDate (GetPaylinkStatCommonRequest) returns (GetPaylinkStatCommonGroupResponse) {}
     rpc GetPaylinkStatByUtm (GetPaylinkStatCommonRequest) returns (GetPaylinkStatCommonGroupResponse) {}
-    rpc GetPaylinkTransactions (GetPaylinkTransactionsRequest) returns (TransactionsResponse) {}
 
     rpc DeleteSavedCard(DeleteSavedCardRequest) returns (EmptyResponseWithStatus) {}
 
@@ -444,7 +443,6 @@ message PaymentCreateResponse {
 }
 
 message PaymentFormJsonDataRequest {
-    // @inject_tag: validate:"required,uuid" param:"order_id"
     string order_id = 1;
     string scheme = 2;
     string host = 3;
@@ -518,8 +516,6 @@ message PaymentFormJsonData {
     double vat_in_charge_currency = 27;
     // @inject_tag: json:"vat_rate"
     double vat_rate = 28;
-    // @inject_tag: json:"vat_payer"
-    string vat_payer = 29;
 }
 
 message PaymentFormJsonDataResponse {
@@ -754,14 +750,14 @@ message PaymentFormDataChangedRequest {
 }
 
 message PaymentFormUserChangePlatformRequest {
-    // @inject_tag: validate:"required,uuid" param:"order_id"
+    // @inject_tag: validate:"required,uuid"
     string order_id = 1;
     // @inject_tag: validate:"required,min=2,max=255"
     string platform = 2;
 }
 
 message PaymentFormUserChangeLangRequest {
-    // @inject_tag: validate:"required,uuid" param:"order_id"
+    // @inject_tag: validate:"required,uuid"
     string order_id = 1;
     // @inject_tag: validate:"required,len=2"
     string lang = 2;
@@ -771,7 +767,7 @@ message PaymentFormUserChangeLangRequest {
 }
 
 message PaymentFormUserChangePaymentAccountRequest {
-    // @inject_tag: validate:"required,uuid" param:"order_id"
+    // @inject_tag: validate:"required,uuid"
     string order_id = 1;
     // @inject_tag: validate:"required,hexadecimal,len=24"
     string method_id = 2;
@@ -789,7 +785,7 @@ message PaymentFormDataChangeResponse {
 }
 
 message ProcessBillingAddressRequest {
-    // @inject_tag: validate:"required,uuid" param:"order_id"
+    // @inject_tag: validate:"required,uuid"
     string order_id = 1;
     // @inject_tag: validate:"required,len=2"
     string country = 2;
@@ -1215,7 +1211,7 @@ message IsOrderCanBePayingResponse {
 }
 
 message SetUserNotifyRequest {
-    // @inject_tag: validate:"required,uuid" param:"order_id"
+    // @inject_tag: validate:"required,uuid"
     string order_uuid = 1;
     // @inject_tag: query:"enable_notification" form:"enable_notification" json:"enable_notification"
     bool enable_notification = 2;
@@ -2199,9 +2195,9 @@ message PayoutDocumentPdfUploadedResponse {
 }
 
 message OrderReceiptRequest {
-    // @inject_tag: validate:"required,uuid" param:"order_id"
+    // @inject_tag: validate:"required,uuid"
     string order_id = 1;
-    // @inject_tag: validate:"required,uuid" param:"receipt_id"
+    // @inject_tag: validate:"required,uuid"
     string receipt_id = 2;
 }
 
@@ -2320,17 +2316,6 @@ message GetPaylinkStatCommonRequest {
     int64 period_to = 4;
 }
 
-message GetPaylinkTransactionsRequest {
-    // @inject_tag: validate:"required,hexadecimal,len=24" param:"merchant_id"
-    string merchant_id = 1;
-    //@inject_tag: validate:"required,hexadecimal,len=24" param="id"
-    string id = 2;
-    // @inject_tag: query:"limit" validate:"omitempty,numeric,gt=0"
-    int64 limit = 3;
-    // @inject_tag: query:"offset" validate:"omitempty,numeric,gte=0"
-    int64 offset = 4;
-}
-
 message GetPaylinkStatCommonResponse {
     int32 status = 1;
     // @inject_tag: json:"message,omitempty"
@@ -2392,8 +2377,6 @@ message SetMerchantOperatingCompanyRequest {
     string merchant_id = 1;
     // @inject_tag: json:"operating_company_id" validate:"required,hexadecimal,len=24"
     string operating_company_id = 2;
-    // @inject_tag: json:"dont_charge_vat"
-    bool dont_charge_vat = 3;
 }
 
 message SetMerchantOperatingCompanyResponse {
@@ -2414,7 +2397,6 @@ message GetOperatingCompanyResponse {
 }
 
 message OrderReCreateProcessRequest {
-    // @inject_tag: validate:"required,uuid"
     string order_id = 1;
 }
 
@@ -2592,7 +2574,7 @@ message UserRoleResponse {
 }
 
 message GetCountriesListForOrderRequest {
-    //@inject_tag: validate:"required,uuid" json:"order_id" query:"order_id" param:"order_id"
+    //@inject_tag: validate:"required,uuid" json:"order_id" query:"order_id"
     string order_id = 1;
 }
 

@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/go-redis/redis"
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -428,7 +427,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 		Type:            "bank_card",
 		IsActive:        true,
-		AccountRegexp:   "^(?:4[0-9]{12}(?:[0-9]{3})?|[25][1-7][0-9]{14}|6(?:011|5[0-9][0-9])[0-9]{12}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|(?:2131|1800|35\\d{3})\\d{11})|62[0-9]{14,17}$",
+		AccountRegexp:   "^(?:4[0-9]{12}(?:[0-9]{3})?|[25][1-7][0-9]{14}|6(?:011|5[0-9][0-9])[0-9]{12}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|(?:2131|1800|35\\d{3})\\d{11})$",
 		PaymentSystemId: ps1.Id,
 	}
 
@@ -790,7 +789,6 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 		MccCode:            pkg.MccCodeLowRisk,
 		OperatingCompanyId: suite.operatingCompany.Id,
-		DontChargeVat:      false,
 	}
 
 	merchantAgreement := &billing.Merchant{
@@ -875,7 +873,6 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 		MccCode:            pkg.MccCodeLowRisk,
 		OperatingCompanyId: suite.operatingCompany.Id,
-		DontChargeVat:      false,
 	}
 	merchant1 := &billing.Merchant{
 		Id: primitive.NewObjectID().Hex(),
@@ -959,7 +956,6 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 		MccCode:            pkg.MccCodeLowRisk,
 		OperatingCompanyId: suite.operatingCompany.Id,
-		DontChargeVat:      false,
 	}
 
 	project := &billing.Project{
@@ -975,7 +971,6 @@ func (suite *OrderTestSuite) SetupTest() {
 		SecretKey:                "test project 1 secret key",
 		Status:                   pkg.ProjectStatusInProduction,
 		MerchantId:               merchant.Id,
-		VatPayer:                 pkg.VatPayerBuyer,
 	}
 	projectFixedAmount := &billing.Project{
 		Id:                       primitive.NewObjectID().Hex(),
@@ -990,7 +985,6 @@ func (suite *OrderTestSuite) SetupTest() {
 		SecretKey:                "test project 1 secret key",
 		Status:                   pkg.ProjectStatusDraft,
 		MerchantId:               merchant.Id,
-		VatPayer:                 pkg.VatPayerBuyer,
 	}
 
 	projectWithProductsInVirtualCurrency := &billing.Project{
@@ -1021,7 +1015,6 @@ func (suite *OrderTestSuite) SetupTest() {
 				},
 			},
 		},
-		VatPayer: pkg.VatPayerBuyer,
 	}
 
 	projectWithProducts := &billing.Project{
@@ -1037,7 +1030,6 @@ func (suite *OrderTestSuite) SetupTest() {
 		SecretKey:                "test project 1 secret key",
 		Status:                   pkg.ProjectStatusDraft,
 		MerchantId:               merchant.Id,
-		VatPayer:                 pkg.VatPayerBuyer,
 	}
 	projectWithKeyProducts := &billing.Project{
 		Id:                       primitive.NewObjectID().Hex(),
@@ -1052,7 +1044,6 @@ func (suite *OrderTestSuite) SetupTest() {
 		SecretKey:                "test key project secret key",
 		Status:                   pkg.ProjectStatusDraft,
 		MerchantId:               merchant.Id,
-		VatPayer:                 pkg.VatPayerBuyer,
 	}
 	projectUahLimitCurrency := &billing.Project{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -1066,7 +1057,6 @@ func (suite *OrderTestSuite) SetupTest() {
 		SecretKey:          "project uah limit currency secret key",
 		Status:             pkg.ProjectStatusInProduction,
 		MerchantId:         merchant1.Id,
-		VatPayer:           pkg.VatPayerBuyer,
 	}
 	projectIncorrectPaymentMethodId := &billing.Project{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -1080,7 +1070,6 @@ func (suite *OrderTestSuite) SetupTest() {
 		SecretKey:          "project incorrect payment Method id secret key",
 		Status:             pkg.ProjectStatusInProduction,
 		MerchantId:         merchant1.Id,
-		VatPayer:           pkg.VatPayerBuyer,
 	}
 	projectEmptyPaymentMethodTerminal := &billing.Project{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -1094,7 +1083,6 @@ func (suite *OrderTestSuite) SetupTest() {
 		IsProductsCheckout: false,
 		SecretKey:          "project incorrect payment Method id secret key",
 		Status:             pkg.ProjectStatusInProduction,
-		VatPayer:           pkg.VatPayerBuyer,
 	}
 	projectWithoutPaymentMethods := &billing.Project{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -1108,7 +1096,6 @@ func (suite *OrderTestSuite) SetupTest() {
 		IsProductsCheckout: true,
 		SecretKey:          "test project 1 secret key",
 		Status:             pkg.ProjectStatusInProduction,
-		VatPayer:           pkg.VatPayerBuyer,
 	}
 	inactiveProject := &billing.Project{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -1122,7 +1109,6 @@ func (suite *OrderTestSuite) SetupTest() {
 		IsProductsCheckout: true,
 		SecretKey:          "test project 2 secret key",
 		Status:             pkg.ProjectStatusDeleted,
-		VatPayer:           pkg.VatPayerBuyer,
 	}
 	projects := []*billing.Project{
 		project,
@@ -2000,8 +1986,7 @@ func (suite *OrderTestSuite) SetupTest() {
 	centrifugoMock := &mocks.CentrifugoInterface{}
 	centrifugoMock.On("GetChannelToken", mock.Anything, mock.Anything).Return("token")
 	centrifugoMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	suite.service.centrifugoDashboard = centrifugoMock
-	suite.service.centrifugoPaymentForm = centrifugoMock
+	suite.service.centrifugo = centrifugoMock
 
 	var core zapcore.Core
 
@@ -4102,9 +4087,6 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_Ok() {
 	assert.False(suite.T(), order.UserAddressDataRequired)
 	assert.Equal(suite.T(), order.PrivateStatus, int32(constant.OrderStatusNew))
 
-	suite.service.centrifugoPaymentForm = newCentrifugo(suite.service.cfg.CentrifugoPaymentForm, mocks.NewClientStatusOk())
-	assert.Regexp(suite.T(), "payment_form", suite.service.cfg.CentrifugoPaymentForm.Secret)
-
 	req1 := &grpc.PaymentFormJsonDataRequest{OrderId: order.Uuid, Scheme: "https", Host: "unit.test",
 		Ip: "94.131.198.60", // Ukrainian IP -> payments not allowed but available to change country
 	}
@@ -4122,12 +4104,6 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_Ok() {
 	assert.Equal(suite.T(), req.User.Locale, rsp.Item.Lang)
 	assert.NotNil(suite.T(), rsp.Item.Project)
 	assert.NotZero(suite.T(), rsp.Item.Project.Id)
-
-	expire := time.Now().Add(time.Minute * 30).Unix()
-	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": order.Uuid, "exp": expire})
-	token, err := claims.SignedString([]byte(suite.service.cfg.CentrifugoPaymentForm.Secret))
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), token, rsp.Item.Token)
 
 	order, err = suite.service.getOrderByUuid(context.TODO(), order.Uuid)
 	assert.Nil(suite.T(), err)
@@ -5136,9 +5112,6 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Ok() {
 		Signature: hex.EncodeToString(hash.Sum(nil)),
 	}
 
-	zap.ReplaceGlobals(suite.logObserver)
-	suite.service.centrifugoPaymentForm = newCentrifugo(suite.service.cfg.CentrifugoPaymentForm, mocks.NewClientStatusOk())
-
 	callbackResponse := &grpc.PaymentNotifyResponse{}
 	err = suite.service.PaymentCallbackProcess(context.TODO(), callbackData, callbackResponse)
 	assert.Nil(suite.T(), err)
@@ -5163,9 +5136,6 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Ok() {
 	assert.Equal(suite.T(), order2.PaymentMethod.Card.ExpiryYear, expireYear.Format("2006"))
 	assert.Equal(suite.T(), order2.PaymentMethod.Card.Secure3D, true)
 	assert.NotEmpty(suite.T(), order2.PaymentMethod.Card.Fingerprint)
-
-	messages := suite.zapRecorder.All()
-	assert.Regexp(suite.T(), "payment_form", messages[0].Message)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Recurring_Ok() {
@@ -6072,6 +6042,72 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequi
 	assert.Equal(suite.T(), order.TotalPaymentAmount, order1.TotalPaymentAmount)
 	assert.Nil(suite.T(), order1.BillingAddress)
 }
+
+/*func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequired_ZipFieldNotFound_Ok() {
+	req := &billing.OrderCreateRequest{
+		Type:        billing.OrderType_simple,
+		ProjectId:   suite.project.Id,
+		Currency:    "RUB",
+		Amount:      100,
+		Account:     "unit test",
+		Description: "unit test",
+		OrderId:     primitive.NewObjectID().Hex(),
+		User: &billing.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+	}
+
+	rsp0 := &grpc.OrderCreateProcessResponse{}
+	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
+	rsp := rsp0.Item
+
+	order, err := suite.service.getOrderByUuid(context.TODO(), rsp.Uuid)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), order)
+	assert.Nil(suite.T(), order.BillingAddress)
+
+	order.UserAddressDataRequired = true
+	err = suite.service.updateOrder(context.TODO(), order)
+	assert.NoError(suite.T(), err)
+
+	expireYear := time.Now().AddDate(1, 0, 0)
+
+	req1 := &grpc.PaymentCreateRequest{
+		Data: map[string]string{
+			pkg.PaymentCreateFieldOrderId:         rsp.Uuid,
+			pkg.PaymentCreateFieldPaymentMethodId: suite.paymentMethod.Id,
+			pkg.PaymentCreateFieldEmail:           "test@unit.unit",
+			pkg.PaymentCreateFieldPan:             "4000000000000002",
+			pkg.PaymentCreateFieldCvv:             "123",
+			pkg.PaymentCreateFieldMonth:           "02",
+			pkg.PaymentCreateFieldYear:            expireYear.Format("2006"),
+			pkg.PaymentCreateFieldHolder:          "Mr. Card Holder",
+			pkg.PaymentCreateFieldUserCountry:     "US",
+			pkg.PaymentCreateFieldUserCity:        "Washington",
+			pkg.PaymentCreateFieldUserZip:         "000000",
+		},
+	}
+
+	rsp1 := &grpc.PaymentCreateResponse{}
+	err = suite.service.PaymentCreateProcess(context.TODO(), req1, rsp1)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp1.Status)
+	assert.Empty(suite.T(), rsp1.RedirectUrl)
+	assert.Equal(suite.T(), orderErrorZipCodeNotFound, rsp1.Message)
+
+	order1, err := suite.service.getOrderByUuid(context.TODO(), rsp.Uuid)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), order1)
+
+	assert.Equal(suite.T(), order.Tax.Amount, order1.Tax.Amount)
+	assert.Equal(suite.T(), order.TotalPaymentAmount, order1.TotalPaymentAmount)
+	assert.Nil(suite.T(), order1.BillingAddress)
+}*/
 
 func (suite *OrderTestSuite) TestOrder_CreateOrderByToken_Ok() {
 	req := &grpc.TokenRequest{
@@ -8177,8 +8213,7 @@ func (suite *OrderTestSuite) TestOrder_DeclineOrder_Ok() {
 	centrifugoMock := &mocks.CentrifugoInterface{}
 	centrifugoMock.On("GetChannelToken", mock.Anything, mock.Anything).Return("token")
 	centrifugoMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(centrifugoPublishMockFn)
-	suite.service.centrifugoDashboard = centrifugoMock
-	suite.service.centrifugoPaymentForm = centrifugoMock
+	suite.service.centrifugo = centrifugoMock
 
 	req3 := &grpc.PaymentNotifyRequest{
 		OrderId:   order.Id,
@@ -8305,8 +8340,7 @@ func (suite *OrderTestSuite) TestOrder_SuccessOrderCentrifugoPaymentSystemError_
 	centrifugoMock := &mocks.CentrifugoInterface{}
 	centrifugoMock.On("GetChannelToken", mock.Anything, mock.Anything).Return("token")
 	centrifugoMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(centrifugoPublishMockFn)
-	suite.service.centrifugoDashboard = centrifugoMock
-	suite.service.centrifugoPaymentForm = centrifugoMock
+	suite.service.centrifugo = centrifugoMock
 
 	req3 := &grpc.PaymentNotifyRequest{
 		OrderId:   order.Id,
@@ -8656,142 +8690,4 @@ func (suite *OrderTestSuite) TestOrder_ReCreateOrder_Error() {
 	shouldBe.NoError(suite.service.OrderReCreateProcess(context.TODO(), &grpc.OrderReCreateProcessRequest{OrderId: order.GetUuid()}, rsp1))
 	shouldBe.EqualValues(400, rsp1.Status)
 	shouldBe.NotNil(rsp1.Message)
-}
-
-func (suite *OrderTestSuite) TestOrder_processOrderVat_Ok_VatPayer_Nobody() {
-	order := &billing.Order{
-		OrderAmount: 100,
-		Currency:    "USD",
-		User: &billing.OrderUser{
-			Id: primitive.NewObjectID().Hex(),
-			Ip: "127.0.0.1",
-			Address: &billing.OrderBillingAddress{
-				Country: "RU",
-			},
-		},
-		VatPayer: pkg.VatPayerNobody,
-	}
-
-	p1 := &OrderCreateRequestProcessor{Service: suite.service, ctx: context.TODO()}
-	err := p1.processOrderVat(order)
-	assert.NoError(suite.T(), err)
-	assert.EqualValues(suite.T(), order.TotalPaymentAmount, order.OrderAmount)
-	assert.EqualValues(suite.T(), order.ChargeAmount, order.OrderAmount)
-	assert.EqualValues(suite.T(), order.ChargeCurrency, order.Currency)
-	assert.NotNil(suite.T(), order.Tax)
-	assert.EqualValues(suite.T(), order.Tax.Currency, order.Currency)
-	assert.EqualValues(suite.T(), order.Tax.Rate, 0)
-	assert.EqualValues(suite.T(), order.Tax.Amount, 0)
-}
-
-func (suite *OrderTestSuite) TestOrder_processOrderVat_Ok_VatPayer_Seller() {
-	order := &billing.Order{
-		OrderAmount: 100,
-		Currency:    "USD",
-		User: &billing.OrderUser{
-			Id: primitive.NewObjectID().Hex(),
-			Ip: "127.0.0.1",
-			Address: &billing.OrderBillingAddress{
-				Country: "RU",
-			},
-		},
-		VatPayer: pkg.VatPayerSeller,
-	}
-
-	p1 := &OrderCreateRequestProcessor{Service: suite.service, ctx: context.TODO()}
-	err := p1.processOrderVat(order)
-	assert.NoError(suite.T(), err)
-	assert.EqualValues(suite.T(), order.TotalPaymentAmount, order.OrderAmount)
-	assert.EqualValues(suite.T(), order.ChargeAmount, order.OrderAmount)
-	assert.EqualValues(suite.T(), order.ChargeCurrency, order.Currency)
-	assert.NotNil(suite.T(), order.Tax)
-	assert.EqualValues(suite.T(), order.Tax.Currency, order.Currency)
-	assert.EqualValues(suite.T(), order.Tax.Rate, 0.20)
-	assert.EqualValues(suite.T(), order.Tax.Amount, 16.66)
-}
-
-func (suite *OrderTestSuite) TestOrder_processOrderVat_Ok_VatPayer_Buyer() {
-	order := &billing.Order{
-		OrderAmount: 100,
-		Currency:    "USD",
-		User: &billing.OrderUser{
-			Id: primitive.NewObjectID().Hex(),
-			Ip: "127.0.0.1",
-			Address: &billing.OrderBillingAddress{
-				Country: "RU",
-			},
-		},
-		VatPayer: pkg.VatPayerBuyer,
-	}
-
-	p1 := &OrderCreateRequestProcessor{Service: suite.service, ctx: context.TODO()}
-	err := p1.processOrderVat(order)
-	assert.NoError(suite.T(), err)
-	assert.EqualValues(suite.T(), order.TotalPaymentAmount, order.OrderAmount+20)
-	assert.EqualValues(suite.T(), order.ChargeAmount, order.OrderAmount+20)
-	assert.EqualValues(suite.T(), order.ChargeCurrency, order.Currency)
-	assert.NotNil(suite.T(), order.Tax)
-	assert.EqualValues(suite.T(), order.Tax.Currency, order.Currency)
-	assert.EqualValues(suite.T(), order.Tax.Rate, 0.20)
-	assert.EqualValues(suite.T(), order.Tax.Amount, 20)
-}
-
-func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_WithUnknownCountryByIp_Ok() {
-	req := &billing.OrderCreateRequest{
-		Type:          billing.OrderType_simple,
-		ProjectId:     suite.project.Id,
-		PaymentMethod: suite.paymentMethod.Group,
-		Currency:      "RUB",
-		Amount:        100,
-		Account:       "unit test",
-		Description:   "unit test",
-		OrderId:       primitive.NewObjectID().Hex(),
-		User: &billing.OrderUser{
-			Email: "test@unit.unit",
-		},
-	}
-
-	rsp1 := &grpc.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
-
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
-	order := rsp1.Item
-	assert.NotNil(suite.T(), order.CountryRestriction)
-	assert.True(suite.T(), order.CountryRestriction.PaymentsAllowed)
-	assert.True(suite.T(), order.CountryRestriction.ChangeAllowed)
-	assert.False(suite.T(), order.UserAddressDataRequired)
-	assert.Equal(suite.T(), order.PrivateStatus, int32(constant.OrderStatusNew))
-
-	req1 := &grpc.PaymentFormJsonDataRequest{
-		OrderId: order.Uuid,
-		Ip:      "127.0.0.3",
-	}
-	rsp := &grpc.PaymentFormJsonDataResponse{}
-	err = suite.service.PaymentFormJsonDataProcess(context.TODO(), req1, rsp)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
-	assert.NotNil(suite.T(), rsp.Item)
-	assert.True(suite.T(), rsp.Item.UserAddressDataRequired)
-	assert.False(suite.T(), rsp.Item.CountryPaymentsAllowed)
-	assert.True(suite.T(), rsp.Item.CountryChangeAllowed)
-	assert.NotNil(suite.T(), rsp.Item.UserIpData)
-	assert.Zero(suite.T(), rsp.Item.UserIpData.Country)
-	assert.Zero(suite.T(), rsp.Item.UserIpData.City)
-	assert.Zero(suite.T(), rsp.Item.UserIpData.Zip)
-}
-
-func (suite *OrderTestSuite) TestOrder_BankCardAccountRegexp() {
-	bankCards := map[string][]string{
-		"mastercard":      {"5418484942841090", "5445276803244639", "5476663734604183"},
-		"visa":            {"4035300539804083", "4902040983299568", "4207348797187339"},
-		"jcb":             {"3538684728624673", "3548847547798238", "3568008374132620"},
-		"china union pay": {"62600094752489245", "6231242135478485", "6254305291097527443"},
-	}
-
-	for k, v := range bankCards {
-		for k1, v1 := range v {
-			assert.Regexp(suite.T(), suite.paymentMethod.AccountRegexp, v1, fmt.Sprintf("bank card %s with number %d is incorrect by regexp", k, k1))
-		}
-	}
 }

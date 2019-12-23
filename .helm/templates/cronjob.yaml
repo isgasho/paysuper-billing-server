@@ -103,8 +103,8 @@ spec:
           containers:
           - name: "{{ .Chart.Name }}-royalty-reports-accept"
             image: {{ $deployment.image }}:{{ $deployment.imageTag }}
-            command: ["/bin/sh","-c"]
-            args: ["/application/bin/paysuper_billing_service -task=royalty_reports_accept && /application/bin/paysuper_billing_service -task=create_payouts"]
+            command: ["/application/bin/paysuper_billing_service"]
+            args: ["-task=royalty_reports_accept"]
             env:
             - name: MICRO_SERVER_ADDRESS
               value: "0.0.0.0:{{ $deployment.port }}"

@@ -352,17 +352,13 @@ const (
 
 	EmailConfirmUrl            = "%s/confirm_email"
 	RoyaltyReportsUrl          = "%s/royalty_reports"
-	PayoutsUrl                 = "%s/payouts"
-	ReceiptPurchaseUrl         = "%s/pay/receipt/purchase/%s/%s"
-	ReceiptRefundUrl           = "%s/pay/receipt/refund/%s/%s"
+	PayoutsUrl                 = "%s/payout_documents"
+	ReceiptPurchaseUrl         = "%s/receipt/purchase/%s/%s"
+	ReceiptRefundUrl           = "%s/receipt/refund/%s/%s"
 	MerchantCompanyUrl         = "%s/company"
 	AdminCompanyUrl            = "%s/merchants/%s/company-info"
 	AdminOnboardingRequestsUrl = "%s/agreement-requests"
 	UserInviteUrl              = "%s/login?invite_token=%s"
-
-	VatPayerBuyer  = "buyer"
-	VatPayerSeller = "seller"
-	VatPayerNobody = "nobody"
 )
 
 var (

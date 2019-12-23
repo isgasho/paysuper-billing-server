@@ -40,9 +40,6 @@ type UserProfileTestSuite struct {
 
 	pmBankCard *billing.PaymentMethod
 	pmQiwi     *billing.PaymentMethod
-
-	logObserver *zap.Logger
-	zapRecorder *observer.ObservedLogs
 }
 
 func Test_UserProfile(t *testing.T) {
@@ -109,12 +106,6 @@ func (suite *UserProfileTestSuite) SetupTest() {
 	if err := suite.service.country.Insert(context.TODO(), country); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
-
-	var core zapcore.Core
-
-	lvl := zap.NewAtomicLevel()
-	core, suite.zapRecorder = observer.New(lvl)
-	suite.logObserver = zap.New(core)
 }
 
 func (suite *UserProfileTestSuite) TearDownTest() {
@@ -600,8 +591,9 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_Ok() {
 	assert.Len(suite.T(), p, 1)
 	assert.Contains(suite.T(), p, "token")
 
-	zap.ReplaceGlobals(suite.logObserver)
-	suite.service.centrifugoDashboard = newCentrifugo(suite.service.cfg.CentrifugoDashboard, mocks.NewClientStatusOk())
+	ci := &mocks.CentrifugoInterface{}
+	ci.On("Publish", mock2.Anything, mock2.Anything, mock2.Anything).Return(nil)
+	suite.service.centrifugo = ci
 
 	req2 := &grpc.ConfirmUserEmailRequest{Token: p["token"][0]}
 	rsp2 := &grpc.ConfirmUserEmailResponse{}
@@ -609,9 +601,6 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_Ok() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
 	assert.Empty(suite.T(), rsp2.Message)
-
-	messages := suite.zapRecorder.All()
-	assert.Regexp(suite.T(), "dashboard", messages[0].Message)
 
 	profile, err := suite.service.userProfileRepository.GetByUserId(context.TODO(), req.UserId)
 	assert.Nil(suite.T(), err)
@@ -747,7 +736,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_EmailAlready
 
 	ci := &mocks.CentrifugoInterface{}
 	ci.On("Publish", mock2.Anything, mock2.Anything, mock2.Anything).Return(nil)
-	suite.service.centrifugoDashboard = ci
+	suite.service.centrifugo = ci
 
 	req2 := &grpc.ConfirmUserEmailRequest{Token: p["token"][0]}
 	rsp2 := &grpc.ConfirmUserEmailResponse{}

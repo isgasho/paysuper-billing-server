@@ -387,7 +387,14 @@ func (s *Service) ResendInviteMerchant(
 		return nil
 	}
 
-	token, err := s.createInviteToken(role)
+	expire := time.Now().Add(time.Hour * time.Duration(s.cfg.UserInviteTokenTimeout)).Unix()
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		claimType:   pkg.RoleTypeMerchant,
+		claimEmail:  role.Email,
+		claimRoleId: role.Id,
+		claimExpire: expire,
+	})
+	tokenString, err := token.SignedString([]byte(s.cfg.UserInviteTokenSecret))
 
 	if err != nil {
 		zap.L().Error(errorUserUnableToCreateToken.Message, zap.Error(err), zap.Any("req", req))
@@ -397,16 +404,16 @@ func (s *Service) ResendInviteMerchant(
 		return nil
 	}
 
-	if err = s.sendInviteEmail(role.Email, owner.Email, owner.FirstName, owner.LastName, merchant.Company.Name, token); err != nil {
+	if err = s.sendInviteEmail(role.Email, owner.Email, owner.FirstName, owner.LastName, merchant.Company.Name, tokenString); err != nil {
 		zap.L().Error(
 			errorUserUnableToSendInvite.Message,
 			zap.Error(err),
 			zap.String("receiverEmail", role.Email),
-			zap.String("senderEmail", owner.Email),
-			zap.String("senderFirstName", owner.FirstName),
-			zap.String("senderLastName", owner.LastName),
+			zap.String("senderEmail", merchant.User.Email),
+			zap.String("senderFirstName", merchant.User.FirstName),
+			zap.String("senderLastName", merchant.User.LastName),
 			zap.String("senderCompany", merchant.Company.Name),
-			zap.String("tokenString", token),
+			zap.String("tokenString", tokenString),
 		)
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserUnableToSendInvite
@@ -444,7 +451,14 @@ func (s *Service) ResendInviteAdmin(
 		return nil
 	}
 
-	token, err := s.createInviteToken(role)
+	expire := time.Now().Add(time.Hour * time.Duration(s.cfg.UserInviteTokenTimeout)).Unix()
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		claimType:   pkg.RoleTypeSystem,
+		claimEmail:  role.Email,
+		claimRoleId: role.Id,
+		claimExpire: expire,
+	})
+	tokenString, err := token.SignedString([]byte(s.cfg.UserInviteTokenSecret))
 
 	if err != nil {
 		zap.L().Error(errorUserUnableToCreateToken.Message, zap.Error(err), zap.Any("req", req))
@@ -454,7 +468,7 @@ func (s *Service) ResendInviteAdmin(
 		return nil
 	}
 
-	if err = s.sendInviteEmail(role.Email, owner.Email, owner.FirstName, owner.LastName, defaultCompanyName, token); err != nil {
+	if err = s.sendInviteEmail(role.Email, owner.Email, owner.FirstName, owner.LastName, defaultCompanyName, tokenString); err != nil {
 		zap.L().Error(
 			errorUserUnableToSendInvite.Message,
 			zap.Error(err),
@@ -462,7 +476,7 @@ func (s *Service) ResendInviteAdmin(
 			zap.String("senderEmail", owner.Email),
 			zap.String("senderFirstName", owner.FirstName),
 			zap.String("senderLastName", owner.LastName),
-			zap.String("tokenString", token),
+			zap.String("tokenString", tokenString),
 		)
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorUserUnableToSendInvite
@@ -623,6 +637,53 @@ func (s *Service) CheckInviteToken(
 	res.Status = pkg.ResponseStatusOk
 	res.RoleId = claims[claimRoleId].(string)
 	res.RoleType = claims[claimType].(string)
+
+	return nil
+}
+
+func (s *Service) parseInviteToken(t string) (jwt.MapClaims, error) {
+	token, err := jwt.Parse(t, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New(errorUserInvalidToken.Message)
+		}
+
+		return []byte(s.cfg.UserInviteTokenSecret), nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !token.Valid {
+		return nil, errors.New("token isn't valid")
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+
+	if !ok {
+		return nil, errors.New("cannot read claims")
+	}
+
+	return claims, nil
+}
+
+func (s *Service) sendInviteEmail(receiverEmail, senderEmail, senderFirstName, senderLastName, senderCompany, token string) error {
+	payload := &postmarkSdrPkg.Payload{
+		TemplateAlias: s.cfg.EmailTemplates.UserInvite,
+		TemplateModel: map[string]string{
+			"sender_first_name": senderFirstName,
+			"sender_last_name":  senderLastName,
+			"sender_email":      senderEmail,
+			"sender_company":    senderCompany,
+			"invite_link":       s.cfg.GetUserInviteUrl(token),
+		},
+		To: receiverEmail,
+	}
+	err := s.postmarkBroker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -853,6 +914,36 @@ func (s *Service) DeleteAdminUser(
 	return nil
 }
 
+func (s *Service) getUserPermissions(ctx context.Context, userId string, merchantId string) ([]*grpc.Permission, error) {
+	id := userId
+
+	if len(merchantId) > 0 {
+		id = fmt.Sprintf(pkg.CasbinMerchantUserMask, merchantId, userId)
+	}
+
+	rsp, err := s.casbinService.GetImplicitPermissionsForUser(ctx, &casbinProto.PermissionRequest{User: id})
+
+	if err != nil {
+		zap.L().Error(errorUserGetImplicitPermissions.Message, zap.Error(err), zap.String("userId", id))
+		return nil, errorUserGetImplicitPermissions
+	}
+
+	if len(rsp.D2) == 0 {
+		zap.L().Error(errorUserDontHaveRole.Message, zap.String("userId", id))
+		return nil, errorUserDontHaveRole
+	}
+
+	permissions := make([]*grpc.Permission, len(rsp.D2))
+	for i, p := range rsp.D2 {
+		permissions[i] = &grpc.Permission{
+			Name:   p.D1[0],
+			Access: p.D1[1],
+		}
+	}
+
+	return permissions, nil
+}
+
 func (s *Service) GetMerchantUserRole(
 	ctx context.Context,
 	req *grpc.MerchantRoleRequest,
@@ -893,98 +984,4 @@ func (s *Service) GetAdminUserRole(
 	res.UserRole = user
 
 	return nil
-}
-
-func (s *Service) parseInviteToken(t string) (jwt.MapClaims, error) {
-	token, err := jwt.Parse(t, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New(errorUserInvalidToken.Message)
-		}
-
-		return []byte(s.cfg.UserInviteTokenSecret), nil
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	if !token.Valid {
-		return nil, errors.New("token isn't valid")
-	}
-
-	claims, ok := token.Claims.(jwt.MapClaims)
-
-	if !ok {
-		return nil, errors.New("cannot read claims")
-	}
-
-	return claims, nil
-}
-
-func (s *Service) sendInviteEmail(receiverEmail, senderEmail, senderFirstName, senderLastName, senderCompany, token string) error {
-	payload := &postmarkSdrPkg.Payload{
-		TemplateAlias: s.cfg.EmailTemplates.UserInvite,
-		TemplateModel: map[string]string{
-			"sender_first_name": senderFirstName,
-			"sender_last_name":  senderLastName,
-			"sender_email":      senderEmail,
-			"sender_company":    senderCompany,
-			"invite_link":       s.cfg.GetUserInviteUrl(token),
-		},
-		To: receiverEmail,
-	}
-	err := s.postmarkBroker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (s *Service) createInviteToken(role *billing.UserRole) (string, error) {
-	roleType := pkg.RoleTypeMerchant
-	if role.MerchantId == "" {
-		roleType = pkg.RoleTypeSystem
-	}
-
-	expire := time.Now().Add(time.Hour * time.Duration(s.cfg.UserInviteTokenTimeout)).Unix()
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		claimType:   roleType,
-		claimEmail:  role.Email,
-		claimRoleId: role.Id,
-		claimExpire: expire,
-	})
-
-	return token.SignedString([]byte(s.cfg.UserInviteTokenSecret))
-}
-
-func (s *Service) getUserPermissions(ctx context.Context, userId string, merchantId string) ([]*grpc.Permission, error) {
-	id := userId
-
-	if len(merchantId) > 0 {
-		id = fmt.Sprintf(pkg.CasbinMerchantUserMask, merchantId, userId)
-	}
-
-	rsp, err := s.casbinService.GetImplicitPermissionsForUser(ctx, &casbinProto.PermissionRequest{User: id})
-
-	if err != nil {
-		zap.L().Error(errorUserGetImplicitPermissions.Message, zap.Error(err), zap.String("userId", id))
-		return nil, errorUserGetImplicitPermissions
-	}
-
-	if len(rsp.D2) == 0 {
-		zap.L().Error(errorUserDontHaveRole.Message, zap.String("userId", id))
-		return nil, errorUserDontHaveRole
-	}
-
-	permissions := make([]*grpc.Permission, len(rsp.D2))
-	for i, p := range rsp.D2 {
-		permissions[i] = &grpc.Permission{
-			Name:   p.D1[0],
-			Access: p.D1[1],
-		}
-	}
-
-	return permissions, nil
 }

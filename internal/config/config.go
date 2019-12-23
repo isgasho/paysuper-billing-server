@@ -46,18 +46,12 @@ type EmailTemplates struct {
 	UpdateRoyaltyReport            string `envconfig:"EMAIL_UPDATE_ROYALTY_REPORT_TEMPLATE" default:"p1_update_royalty_report"`
 	VatReportChanged               string `envconfig:"EMAIL_VAT_REPORT_TEMPLATE" default:"p1_vat_report"`
 	ActivationGameKey              string `envconfig:"EMAIL_ACTIVATION_CODE_TEMPLATE" default:"p1_verify_letter-1"`
-	SuccessTransaction             string `envconfig:"EMAIL_SUCCESS_TRANSACTION_TEMPLATE" default:"p1-success-transaction-letter-v2"`
-	RefundTransaction              string `envconfig:"EMAIL_REFUND_TRANSACTION_TEMPLATE" default:"p1-refund-transaction-letter-v2"`
+	SuccessTransaction             string `envconfig:"EMAIL_SUCCESS_TRANSACTION_TEMPLATE" default:"p1_verify_letter-4"`
+	RefundTransaction              string `envconfig:"EMAIL_REFUND_TRANSACTION_TEMPLATE" default:"p1_verify_letter-5"`
 	OnboardingVerificationMerchant string `envconfig:"EMAIL_MERCHANT_NEW_ONBOARDING_REQUEST_TEMPLATE" default:"p1_email_merchant_new_onboarding_request_template"`
 	OnboardingVerificationAdmin    string `envconfig:"EMAIL_ADMIN_NEW_ONBOARDING_REQUEST_TEMPLATE" default:"p1_email_admin_new_onboarding_request_template"`
 	OnboardingCompleted            string `envconfig:"EMAIL_MERCHANT_ONBOARDING_REQUEST_COMPLETE_TEMPLATE" default:"p1_email_merchant_onboarding_request_complete_template"`
 	UserInvite                     string `envconfig:"EMAIL_INVITE_TEMPLATE" default:"code-your-own"`
-}
-
-type Centrifugo struct {
-	ApiSecret string `required:"true"`
-	Secret    string `required:"true"`
-	URL       string `default:"http://127.0.0.1:8000"`
 }
 
 type Config struct {
@@ -68,7 +62,10 @@ type Config struct {
 	RedisHost        string `envconfig:"REDIS_HOST" default:"127.0.0.1:6379"`
 	RedisPassword    string `envconfig:"REDIS_PASSWORD" default:""`
 
-	BrokerAddress string `envconfig:"BROKER_ADDRESS" default:"amqp://127.0.0.1:5672"`
+	CentrifugoApiSecret string `envconfig:"CENTRIFUGO_API_SECRET" required:"true"`
+	CentrifugoSecret    string `envconfig:"CENTRIFUGO_SECRET" required:"true"`
+	CentrifugoURL       string `envconfig:"CENTRIFUGO_URL" required:"false" default:"http://127.0.0.1:8000"`
+	BrokerAddress       string `envconfig:"BROKER_ADDRESS" default:"amqp://127.0.0.1:5672"`
 
 	CentrifugoUserChannel     string `envconfig:"CENTRIFUGO_USER_CHANNEL" default:"paysuper:user#%s"`
 	EmailConfirmTokenLifetime int64  `envconfig:"EMAIL_CONFIRM_TOKEN_LIFETIME" default:"86400"`
@@ -109,9 +106,6 @@ type Config struct {
 	*CacheRedis
 	*EmailTemplates
 
-	CentrifugoPaymentForm *Centrifugo `envconfig:"CENTRIFUGO_PAYMENT_FORM"`
-	CentrifugoDashboard   *Centrifugo `envconfig:"CENTRIFUGO_DASHBOARD"`
-
 	EmailConfirmUrlParsed    *url.URL
 	RedirectUrlSuccessParsed *url.URL
 	RedirectUrlFailParsed    *url.URL
@@ -119,13 +113,11 @@ type Config struct {
 	MigrationsLockTimeout int64 `envconfig:"MIGRATIONS_LOCK_TIMEOUT" default:"60"`
 
 	DashboardUrl string `envconfig:"DASHBOARD_URL" default:"https://paysupermgmt.tst.protocol.one"`
-	CheckoutUrl  string `envconfig:"CHECKOUT_URL" default:"https://checkout.tst.pay.super.com"`
 }
 
 func NewConfig() (*Config, error) {
 	cfg := &Config{}
 	err := envconfig.Process("", cfg)
-
 	if err != nil {
 		return nil, err
 	}
@@ -226,11 +218,11 @@ func (cfg *Config) GetCentrifugoOrderChannel(orderUuid string) string {
 }
 
 func (cfg *Config) GetReceiptPurchaseUrl(transactionId, receiptId string) string {
-	return fmt.Sprintf(pkg.ReceiptPurchaseUrl, cfg.CheckoutUrl, receiptId, transactionId)
+	return fmt.Sprintf(pkg.ReceiptPurchaseUrl, cfg.DashboardUrl, receiptId, transactionId)
 }
 
 func (cfg *Config) GetReceiptRefundUrl(transactionId, receiptId string) string {
-	return fmt.Sprintf(pkg.ReceiptRefundUrl, cfg.CheckoutUrl, receiptId, transactionId)
+	return fmt.Sprintf(pkg.ReceiptRefundUrl, cfg.DashboardUrl, receiptId, transactionId)
 }
 
 func (cfg *Config) GetEmailConfirmUrl() string {

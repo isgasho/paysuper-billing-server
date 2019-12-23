@@ -30,10 +30,9 @@ var (
 	productErrorUpsert                     = newBillingServerErrorMsg("pd000013", "query to insert/update product failed")
 	productErrorDelete                     = newBillingServerErrorMsg("pd000014", "query to delete product failed")
 	productErrorProjectAndSkuAlreadyExists = newBillingServerErrorMsg("pd000015", "pair projectId+Sku already exists")
-	productErrorListPrices                 = newBillingServerErrorMsg("pd000016", "list of prices is empty")
+	productErrorListPrices                 = newBillingServerErrorMsg("pd000017", "list of prices is empty")
 	productErrorPricesUpdate               = newBillingServerErrorMsg("pd000017", "query to update product prices is failed")
-	productSkuMismatch                     = newBillingServerErrorMsg("pd000018", "sku mismatch")
-	productNoPriceInCurrencyError          = newBillingServerErrorMsg("pd000019", "no product price in requested currency")
+	productSkuMismatch                     = newBillingServerErrorMsg("pd000008", "sku mismatch")
 )
 
 func (s *Service) CreateOrUpdateProduct(ctx context.Context, req *grpc.Product, res *grpc.Product) error {

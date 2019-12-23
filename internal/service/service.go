@@ -93,8 +93,7 @@ type Service struct {
 	userRoleRepository         UserRoleServiceInterface
 	userProfileRepository      UserProfileRepositoryInterface
 	keyProductRepository       KeyProductRepositoryInterface
-	centrifugoPaymentForm      CentrifugoInterface
-	centrifugoDashboard        CentrifugoInterface
+	centrifugo                 CentrifugoInterface
 	formatter                  paysuper_i18n.Formatter
 	reporterService            reporterProto.ReporterService
 	postmarkBroker             rabbitmq.BrokerInterface
@@ -183,8 +182,7 @@ func (s *Service) Init() (err error) {
 	s.userRoleRepository = newUserRoleRepository(s)
 	s.userProfileRepository = newUserProfileRepository(s)
 	s.keyProductRepository = newKeyProductRepository(s)
-	s.centrifugoPaymentForm = newCentrifugo(s.cfg.CentrifugoPaymentForm, tools.NewLoggedHttpClient(zap.S()))
-	s.centrifugoDashboard = newCentrifugo(s.cfg.CentrifugoDashboard, tools.NewLoggedHttpClient(zap.S()))
+	s.centrifugo = newCentrifugo(s)
 	s.paylinkService = newPaylinkService(s)
 	s.operatingCompany = newOperatingCompanyService(s)
 	s.paymentMinLimitSystem = newPaymentMinLimitSystem(s)
@@ -237,7 +235,7 @@ func (s *Service) logError(msg string, data []interface{}) {
 	zap.S().Errorw(msg, data...)
 }
 
-func (s *Service) UpdateOrder(ctx context.Context, req *billing.Order, _ *grpc.EmptyResponse) error {
+func (s *Service) UpdateOrder(ctx context.Context, req *billing.Order, rsp *grpc.EmptyResponse) error {
 	err := s.updateOrder(ctx, req)
 
 	if err != nil {
@@ -247,7 +245,7 @@ func (s *Service) UpdateOrder(ctx context.Context, req *billing.Order, _ *grpc.E
 	return nil
 }
 
-func (s *Service) UpdateMerchant(ctx context.Context, req *billing.Merchant, _ *grpc.EmptyResponse) error {
+func (s *Service) UpdateMerchant(ctx context.Context, req *billing.Merchant, rsp *grpc.EmptyResponse) error {
 	err := s.merchant.Update(ctx, req)
 
 	if err != nil {

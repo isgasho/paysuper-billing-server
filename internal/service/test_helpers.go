@@ -140,7 +140,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 
 	merchant := helperCreateMerchant(suite, service, "USD", "RU", pmBankCard, 0, operatingCompany.Id)
 
-	projectFixedAmount := helperCreateProject(suite, service, merchant.Id, pkg.VatPayerBuyer)
+	projectFixedAmount := helperCreateProject(suite, service, merchant.Id)
 
 	bin := &BinData{
 		Id:                 primitive.NewObjectID(),
@@ -490,7 +490,6 @@ func helperCreateMerchant(
 		},
 		MccCode:            pkg.MccCodeLowRisk,
 		OperatingCompanyId: operatingCompanyId,
-		DontChargeVat:      false,
 	}
 
 	if paymentMethod != nil {
@@ -737,7 +736,6 @@ func helperCreateProject(
 	suite suite.Suite,
 	service *Service,
 	merchantId string,
-	vatPayer string,
 ) *billing.Project {
 	project := &billing.Project{
 		Id:                       primitive.NewObjectID().Hex(),
@@ -752,7 +750,6 @@ func helperCreateProject(
 		SecretKey:                "test project 1 secret key",
 		Status:                   pkg.ProjectStatusDraft,
 		MerchantId:               merchantId,
-		VatPayer:                 vatPayer,
 	}
 
 	if err := service.project.Insert(context.TODO(), project); err != nil {
@@ -772,8 +769,7 @@ func helperCreateAndPayPaylinkOrder(
 	centrifugoMock := &mocks.CentrifugoInterface{}
 	centrifugoMock.On("GetChannelToken", mock.Anything, mock.Anything).Return("token")
 	centrifugoMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	service.centrifugoDashboard = centrifugoMock
-	service.centrifugoPaymentForm = centrifugoMock
+	service.centrifugo = centrifugoMock
 
 	req := &billing.OrderCreateByPaylink{
 		PaylinkId: paylinkId,
@@ -825,8 +821,7 @@ func helperCreateAndPayOrder(
 	centrifugoMock := &mocks.CentrifugoInterface{}
 	centrifugoMock.On("GetChannelToken", mock.Anything, mock.Anything).Return("token")
 	centrifugoMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	service.centrifugoDashboard = centrifugoMock
-	service.centrifugoPaymentForm = centrifugoMock
+	service.centrifugo = centrifugoMock
 
 	zip := ""
 	if country == CountryCodeUSA {
@@ -870,8 +865,7 @@ func helperPayOrder(
 	centrifugoMock := &mocks.CentrifugoInterface{}
 	centrifugoMock.On("GetChannelToken", mock.Anything, mock.Anything).Return("token")
 	centrifugoMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	service.centrifugoDashboard = centrifugoMock
-	service.centrifugoPaymentForm = centrifugoMock
+	service.centrifugo = centrifugoMock
 
 	req1 := &grpc.PaymentCreateRequest{
 		Data: map[string]string{
@@ -1172,8 +1166,7 @@ func helperCreateAndPayOrder2(
 	centrifugoMock := &mocks.CentrifugoInterface{}
 	centrifugoMock.On("GetChannelToken", mock.Anything, mock.Anything).Return("token")
 	centrifugoMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	service.centrifugoDashboard = centrifugoMock
-	service.centrifugoPaymentForm = centrifugoMock
+	service.centrifugo = centrifugoMock
 
 	req := &billing.OrderCreateRequest{
 		ProjectId:   project.Id,

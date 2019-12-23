@@ -61,7 +61,6 @@ type MgoProject struct {
 	ShortDescription map[string]string       `bson:"short_description"`
 	Currencies       []*HasCurrencyItem      `bson:"currencies"`
 	VirtualCurrency  *ProjectVirtualCurrency `bson:"virtual_currency"`
-	VatPayer         string                  `bson:"vat_payer"`
 }
 
 type MgoMerchantLastPayout struct {
@@ -146,7 +145,6 @@ type MgoMerchant struct {
 	MccCode                                       string                               `bson:"mcc_code"`
 	OperatingCompanyId                            string                               `bson:"operating_company_id"`
 	MerchantOperationsType                        string                               `bson:"merchant_operations_type"`
-	DontChargeVat                                 bool                                 `bson:"dont_charge_vat"`
 }
 
 type MgoMerchantCommon struct {
@@ -293,7 +291,6 @@ type MgoOrder struct {
 	IsIpCountryMismatchBin      bool                           `bson:"is_ip_country_mismatch_bin"`
 	BillingCountryChangedByUser bool                           `bson:"billing_country_changed_by_user"`
 	IsRefundAllowed             bool                           `bson:"is_refund_allowed"`
-	VatPayer                    string                         `bson:"vat_payer"`
 }
 
 type MgoOrderItem struct {
@@ -759,7 +756,6 @@ type MgoOrderViewPrivate struct {
 	OperatingCompanyId                         string                         `bson:"operating_company_id"`
 	IsHighRisk                                 bool                           `bson:"is_high_risk"`
 	RefundAllowed                              bool                           `bson:"refund_allowed"`
-	VatPayer                                   string                         `bson:"vat_payer"`
 }
 
 type MgoOrderViewPublic struct {
@@ -808,12 +804,18 @@ type MgoOrderViewPublic struct {
 	Cancellation                            *OrderNotificationCancellation `bson:"cancellation"`
 	OperatingCompanyId                      string                         `bson:"operating_company_id"`
 	RefundAllowed                           bool                           `bson:"refund_allowed"`
-	OrderCharge                             *OrderViewMoney                `bson:"order_charge"`
-	PaymentIpCountry                        string                         `bson:"payment_ip_country"`
-	IsIpCountryMismatchBin                  bool                           `bson:"is_ip_country_mismatch_bin"`
-	BillingCountryChangedByUser             bool                           `bson:"billing_country_changed_by_user"`
-	VatPayer                                string                         `bson:"vat_payer"`
 }
+
+/*type MgoMerchantTariffRates struct {
+	Id         primitive.ObjectID                   `bson:"_id"`
+	Payment    []*MerchantTariffRatesPayments  `bson:"payment"`
+	MoneyBack  []*MerchantTariffRatesMoneyBack `bson:"money_back"`
+	Payout     *TariffRatesItem                `bson:"payout"`
+	Chargeback *TariffRatesItem                `bson:"chargeback"`
+	Region     string                          `bson:"region"`
+	CreatedAt  time.Time                       `bson:"created_at"`
+	UpdatedAt  time.Time                       `bson:"updated_at"`
+}*/
 
 type MgoKey struct {
 	Id           primitive.ObjectID  `bson:"_id"`
@@ -1415,7 +1417,6 @@ func (m *Project) MarshalBSON() ([]byte, error) {
 		ShortDescription:         m.ShortDescription,
 		Currencies:               m.Currencies,
 		VirtualCurrency:          m.VirtualCurrency,
-		VatPayer:                 m.VatPayer,
 	}
 
 	if len(m.Name) > 0 {
@@ -1503,7 +1504,6 @@ func (m *Project) UnmarshalBSON(raw []byte) error {
 	m.ShortDescription = decoded.ShortDescription
 	m.Currencies = decoded.Currencies
 	m.VirtualCurrency = decoded.VirtualCurrency
-	m.VatPayer = decoded.VatPayer
 
 	nameLen := len(decoded.Name)
 
@@ -1723,7 +1723,6 @@ func (m *Order) MarshalBSON() ([]byte, error) {
 		IsIpCountryMismatchBin:      m.IsIpCountryMismatchBin,
 		BillingCountryChangedByUser: m.BillingCountryChangedByUser,
 		IsRefundAllowed:             m.IsRefundAllowed,
-		VatPayer:                    m.VatPayer,
 	}
 
 	if m.Refund != nil {
@@ -2022,7 +2021,6 @@ func (m *Order) UnmarshalBSON(raw []byte) error {
 	m.Type = decoded.Type
 	m.IsVatDeduction = decoded.IsVatDeduction
 	m.CountryCode = decoded.CountryCode
-	m.VatPayer = decoded.VatPayer
 
 	m.PaymentMethodOrderClosedAt, err = ptypes.TimestampProto(decoded.PaymentMethodOrderClosedAt)
 	if err != nil {
@@ -2381,7 +2379,6 @@ func (m *Merchant) MarshalBSON() ([]byte, error) {
 		MccCode:                m.MccCode,
 		OperatingCompanyId:     m.OperatingCompanyId,
 		MerchantOperationsType: m.MerchantOperationsType,
-		DontChargeVat:          m.DontChargeVat,
 	}
 
 	if len(m.Id) <= 0 {
@@ -2586,7 +2583,6 @@ func (m *Merchant) UnmarshalBSON(raw []byte) error {
 	m.MccCode = decoded.MccCode
 	m.OperatingCompanyId = decoded.OperatingCompanyId
 	m.MerchantOperationsType = decoded.MerchantOperationsType
-	m.DontChargeVat = decoded.DontChargeVat
 
 	if decoded.User != nil {
 		m.User = &MerchantUser{
@@ -4362,7 +4358,6 @@ func (m *OrderViewPrivate) UnmarshalBSON(raw []byte) error {
 	m.OperatingCompanyId = decoded.OperatingCompanyId
 	m.IsHighRisk = decoded.IsHighRisk
 	m.RefundAllowed = decoded.RefundAllowed
-	m.VatPayer = decoded.VatPayer
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {
@@ -4439,11 +4434,6 @@ func (m *OrderViewPublic) UnmarshalBSON(raw []byte) error {
 	m.Items = getOrderViewItems(decoded.Items)
 	m.OperatingCompanyId = decoded.OperatingCompanyId
 	m.RefundAllowed = decoded.RefundAllowed
-	m.OrderCharge = decoded.OrderCharge
-	m.PaymentIpCountry = decoded.PaymentIpCountry
-	m.IsIpCountryMismatchBin = decoded.IsIpCountryMismatchBin
-	m.BillingCountryChangedByUser = decoded.BillingCountryChangedByUser
-	m.VatPayer = decoded.VatPayer
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {

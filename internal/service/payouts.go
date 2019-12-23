@@ -648,7 +648,7 @@ func (s *Service) PayoutDocumentPdfUploaded(
 	}
 
 	payload := &postmarkSdrPkg.Payload{
-		TemplateAlias: s.cfg.EmailTemplates.NewPayout,
+		TemplateAlias: s.cfg.EmailTemplates.NewRoyaltyReport,
 		TemplateModel: map[string]string{
 			"merchant_id":            merchant.Id,
 			"payout_id":              pd.Id,
