@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -57,14 +56,8 @@ func (s *Service) CreateOrUpdateUserProfile(
 	}
 
 	profile.UpdatedAt = ptypes.TimestampNow()
-	profile.CentrifugoToken, err = s.getUserCentrifugoToken(profile)
-
-	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = userProfileErrorUnknown
-
-		return nil
-	}
+	expire := time.Now().Add(time.Minute * 30).Unix()
+	profile.CentrifugoToken = s.centrifugoDashboard.GetChannelToken(profile.Id, expire)
 
 	oid, _ := primitive.ObjectIDFromHex(profile.Id)
 	filter := bson.M{"_id": oid}
@@ -132,14 +125,8 @@ func (s *Service) GetUserProfile(
 		return nil
 	}
 
-	centrifugoToken, err := s.getUserCentrifugoToken(profile)
-
-	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = userProfileErrorUnknown
-
-		return nil
-	}
+	expire := time.Now().Add(time.Minute * 30).Unix()
+	centrifugoToken := s.centrifugoDashboard.GetChannelToken(profile.Id, expire)
 
 	profile.CentrifugoToken = centrifugoToken
 
@@ -295,22 +282,6 @@ func (s *Service) updateOnboardingProfile(profile, profileReq *grpc.UserProfile)
 	return profile
 }
 
-func (s *Service) getUserCentrifugoToken(profile *grpc.UserProfile) (string, error) {
-	expire := time.Now().Add(time.Minute * 30).Unix()
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": profile.Id, "exp": expire})
-	centrifugoToken, err := token.SignedString([]byte(s.cfg.CentrifugoSecret))
-
-	if err != nil {
-		zap.S().Error(
-			"Signing centrifugo token string failed",
-			zap.Error(err),
-			zap.Any("profile", profile),
-		)
-	}
-
-	return centrifugoToken, err
-}
-
 func (s *Service) ConfirmUserEmail(
 	ctx context.Context,
 	req *grpc.ConfirmUserEmailRequest,
@@ -455,11 +426,7 @@ func (s *Service) emailConfirmedSuccessfully(ctx context.Context, profile *grpc.
 	profile.Email.Confirmed = true
 	profile.Email.ConfirmedAt = ptypes.TimestampNow()
 
-	oid, _ := primitive.ObjectIDFromHex(profile.Id)
-	filter := bson.M{"_id": oid}
-	_, err := s.db.Collection(collectionUserProfile).ReplaceOne(ctx, filter, profile)
-
-	if err != nil {
+	if err := s.userProfileRepository.Update(ctx, profile); err != nil {
 		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
@@ -473,18 +440,14 @@ func (s *Service) emailConfirmedSuccessfully(ctx context.Context, profile *grpc.
 	msg := map[string]string{"code": "op000005", "message": "user email confirmed successfully"}
 	ch := fmt.Sprintf(s.cfg.CentrifugoUserChannel, profile.Id)
 
-	return s.centrifugo.Publish(ctx, ch, msg)
+	return s.centrifugoDashboard.Publish(ctx, ch, msg)
 }
 
 func (s *Service) emailConfirmedTruncate(ctx context.Context, profile *grpc.UserProfile) error {
 	profile.Email.Confirmed = false
 	profile.Email.ConfirmedAt = nil
 
-	oid, _ := primitive.ObjectIDFromHex(profile.Id)
-	filter := bson.M{"_id": oid}
-	_, err := s.db.Collection(collectionUserProfile).ReplaceOne(ctx, filter, profile)
-
-	if err != nil {
+	if err := s.userProfileRepository.Update(ctx, profile); err != nil {
 		zap.S().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
@@ -498,7 +461,7 @@ func (s *Service) emailConfirmedTruncate(ctx context.Context, profile *grpc.User
 	msg := map[string]string{"code": "op000005", "message": "user email confirmed successfully"}
 	ch := fmt.Sprintf(s.cfg.CentrifugoUserChannel, profile.Id)
 
-	return s.centrifugo.Publish(ctx, ch, msg)
+	return s.centrifugoDashboard.Publish(ctx, ch, msg)
 }
 
 func (s *Service) CreatePageReview(
@@ -553,21 +516,15 @@ func (s *Service) GetCommonUserProfile(
 		Profile: profile,
 	}
 
-	rsp.Profile.Profile.CentrifugoToken, err = s.getUserCentrifugoToken(profile)
-
-	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = userProfileErrorUnknown
-
-		return nil
-	}
+	expire := time.Now().Add(time.Minute * 30).Unix()
+	rsp.Profile.Profile.CentrifugoToken = s.centrifugoDashboard.GetChannelToken(profile.Id, expire)
 
 	role := s.findRoleForUser(ctx, req.MerchantId, req.UserId)
 
 	if role != nil {
 		rsp.Profile.Role = role
 		rsp.Profile.Merchant, _ = s.merchant.GetById(ctx, role.MerchantId)
-		rsp.Profile.Merchant.CentrifugoToken = s.centrifugo.GetChannelToken(
+		rsp.Profile.Merchant.CentrifugoToken = s.centrifugoDashboard.GetChannelToken(
 			rsp.Profile.Merchant.Id,
 			time.Now().Add(time.Hour*3).Unix(),
 		)
@@ -624,6 +581,7 @@ type UserProfileRepositoryInterface interface {
 	GetById(context.Context, string) (*grpc.UserProfile, error)
 	GetByUserId(context.Context, string) (*grpc.UserProfile, error)
 	Add(context.Context, *grpc.UserProfile) error
+	Update(context.Context, *grpc.UserProfile) error
 }
 
 func newUserProfileRepository(svc *Service) UserProfileRepositoryInterface {
@@ -669,6 +627,18 @@ func (r *UserProfileRepository) GetByUserId(ctx context.Context, userId string) 
 
 func (r *UserProfileRepository) Add(ctx context.Context, profile *grpc.UserProfile) error {
 	_, err := r.svc.db.Collection(collectionUserProfile).InsertOne(ctx, profile)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *UserProfileRepository) Update(ctx context.Context, profile *grpc.UserProfile) error {
+	oid, _ := primitive.ObjectIDFromHex(profile.Id)
+	filter := bson.M{"_id": oid}
+	err := r.svc.db.Collection(collectionUserProfile).FindOneAndReplace(ctx, filter, profile).Err()
 
 	if err != nil {
 		return err

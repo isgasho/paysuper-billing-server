@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/go-redis/redis"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
@@ -16,8 +18,11 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	reporterPkg "github.com/paysuper/paysuper-reporter/pkg"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	proto2 "github.com/paysuper/paysuper-reporter/pkg/proto"
+	reporterProto "github.com/paysuper/paysuper-reporter/pkg/proto"
+	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	mock2 "github.com/stretchr/testify/mock"
@@ -52,6 +57,9 @@ type RoyaltyReportTestSuite struct {
 
 	paymentMethod *billing.PaymentMethod
 	paymentSystem *billing.PaymentSystem
+
+	logObserver *zap.Logger
+	zapRecorder *observer.ObservedLogs
 }
 
 func Test_RoyaltyReport(t *testing.T) {
@@ -146,6 +154,7 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 		SecretKey:                "test project 1 secret key",
 		Status:                   pkg.ProjectStatusDraft,
 		MerchantId:               suite.merchant1.Id,
+		VatPayer:                 pkg.VatPayerBuyer,
 	}
 	suite.project2 = &billing.Project{
 		Id:                       primitive.NewObjectID().Hex(),
@@ -160,6 +169,7 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 		SecretKey:                "test project 2 secret key",
 		Status:                   pkg.ProjectStatusDraft,
 		MerchantId:               suite.merchant2.Id,
+		VatPayer:                 pkg.VatPayerBuyer,
 	}
 
 	projects := []*billing.Project{suite.project1, suite.project2}
@@ -168,6 +178,12 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 	if err != nil {
 		suite.FailNow("Insert projects test data failed", "%v", err)
 	}
+
+	var core zapcore.Core
+
+	lvl := zap.NewAtomicLevel()
+	core, suite.zapRecorder = observer.New(lvl)
+	suite.logObserver = zap.New(core)
 }
 
 func (suite *RoyaltyReportTestSuite) TearDownTest() {
@@ -185,6 +201,34 @@ func (suite *RoyaltyReportTestSuite) TearDownTest() {
 }
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_CreateRoyaltyReport_AllMerchants_Ok() {
+	reporterMock := &reportingMocks.ReporterService{}
+	reporterMock.On("CreateFile", mock2.Anything, mock2.Anything, mock2.Anything).
+		Return(&proto2.CreateFileResponse{Status: pkg.ResponseStatusOk}, nil).
+		Run(func(args mock2.Arguments) {
+			incomingCtx := args.Get(0).(context.Context)
+			incomingReq := args.Get(1).(*reporterProto.ReportFile)
+			var params map[string]interface{}
+
+			if incomingReq.Params != nil {
+				if err := json.Unmarshal(incomingReq.Params, &params); err != nil {
+					return
+				}
+			}
+			// we must take real RoyaltyReportId value from request,
+			// to awoid royaltyReportErrorReportNotFound during the RoyaltyReportPdfUploaded process
+			req := &grpc.RoyaltyReportPdfUploadedRequest{
+				Id:              primitive.NewObjectID().Hex(),
+				RoyaltyReportId: fmt.Sprintf("%s", params[reporterPkg.ParamsFieldId]),
+				Filename:        "somename.pdf",
+				RetentionTime:   int32(123),
+				Content:         []byte{},
+			}
+
+			res := &grpc.RoyaltyReportPdfUploadedResponse{}
+			_ = suite.service.RoyaltyReportPdfUploaded(incomingCtx, req, res)
+		})
+	suite.service.reporterService = reporterMock
+
 	projects := []*billing.Project{suite.project, suite.project1, suite.project2}
 
 	for _, v := range projects {
@@ -194,6 +238,14 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_CreateRoyaltyReport_AllMe
 	}
 	err := suite.service.updateOrderView(context.TODO(), []string{})
 	assert.NoError(suite.T(), err)
+
+	postmarkBrokerMock := &mocks.BrokerInterface{}
+	postmarkBrokerMock.On("Publish", postmarkSdrPkg.PostmarkSenderTopicName, mock.Anything, mock.Anything).Return(nil, nil)
+
+	// Warning! For correct counting of calls for sending royalty report email,
+	// replacing of postmarkBroker with custom mock must be here
+	// to prevent counting a calls for sending transaction success mails due to orders creation and payment
+	suite.service.postmarkBroker = postmarkBrokerMock
 
 	req := &grpc.CreateRoyaltyReportRequest{}
 	rsp := &grpc.CreateRoyaltyReportRequest{}
@@ -205,14 +257,14 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_CreateRoyaltyReport_AllMe
 	assert.Contains(suite.T(), rsp.Merchants, suite.merchant1.Id)
 	assert.Contains(suite.T(), rsp.Merchants, suite.merchant2.Id)
 
-	to := now.Monday().Add(time.Duration(suite.service.cfg.RoyaltyReportPeriodEndHour) * time.Hour).UTC()
-	from := to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).UTC()
+	loc, err := time.LoadLocation(suite.service.cfg.RoyaltyReportTimeZone)
+	assert.NoError(suite.T(), err)
+
+	to := now.Monday().In(loc).Add(time.Duration(suite.service.cfg.RoyaltyReportPeriodEndHour) * time.Hour)
+	from := to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).Add(1 * time.Millisecond).In(loc)
 
 	var reports []*billing.RoyaltyReport
-	cursor, err := suite.service.db.Collection(collectionRoyaltyReport).
-		Find(
-			context.TODO(),
-			bson.M{"period_from": bson.M{"$gte": from}, "period_to": bson.M{"$lte": to}})
+	cursor, err := suite.service.db.Collection(collectionRoyaltyReport).Find(context.TODO(), bson.M{"period_from": from, "period_to": to})
 	assert.NoError(suite.T(), err)
 	err = cursor.All(context.TODO(), &reports)
 	assert.NoError(suite.T(), err)
@@ -239,8 +291,8 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_CreateRoyaltyReport_AllMe
 		t1, err := ptypes.Timestamp(v.PeriodTo)
 		assert.NoError(suite.T(), err)
 
-		assert.Equal(suite.T(), t.Second(), from.Second())
-		assert.Equal(suite.T(), t1.Second(), to.Second())
+		assert.Equal(suite.T(), t.In(loc), from)
+		assert.Equal(suite.T(), t1.In(loc), to)
 		assert.InDelta(suite.T(), suite.service.cfg.RoyaltyReportAcceptTimeout, v.AcceptExpireAt.Seconds-time.Now().Unix(), 10)
 
 		existMerchants = append(existMerchants, v.MerchantId)
@@ -249,6 +301,11 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_CreateRoyaltyReport_AllMe
 	assert.Contains(suite.T(), existMerchants, suite.merchant.Id)
 	assert.Contains(suite.T(), existMerchants, suite.merchant1.Id)
 	assert.Contains(suite.T(), existMerchants, suite.merchant2.Id)
+
+	// check for sending requests for pdf generation
+	reporterMock.AssertNumberOfCalls(suite.T(), "CreateFile", len(reports))
+	// check for requests to send emails with generated pdfs
+	postmarkBrokerMock.AssertNumberOfCalls(suite.T(), "Publish", len(reports))
 }
 
 func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_CreateRoyaltyReport_SelectedMerchants_Ok() {
@@ -284,7 +341,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_CreateRoyaltyReport_Selec
 	assert.NoError(suite.T(), err)
 
 	to := now.Monday().In(loc).Add(time.Duration(suite.service.cfg.RoyaltyReportPeriodEndHour) * time.Hour)
-	from := to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).In(loc)
+	from := to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).Add(1 * time.Millisecond).In(loc)
 
 	for _, v := range reports {
 		assert.NotZero(suite.T(), v.Id)
@@ -305,8 +362,8 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_CreateRoyaltyReport_Selec
 		t1, err := ptypes.Timestamp(v.PeriodTo)
 		assert.NoError(suite.T(), err)
 
-		assert.Equal(suite.T(), t.Second(), from.Second())
-		assert.Equal(suite.T(), t1.Second(), to.Second())
+		assert.Equal(suite.T(), t.In(loc), from)
+		assert.Equal(suite.T(), t1.In(loc), to)
 		assert.InDelta(suite.T(), suite.service.cfg.RoyaltyReportAcceptTimeout, v.AcceptExpireAt.Seconds-time.Now().Unix(), 10)
 
 		existMerchants = append(existMerchants, v.MerchantId)
@@ -381,7 +438,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_Ok() {
 	assert.NoError(suite.T(), err)
 
 	to := now.Monday().In(loc).Add(time.Duration(suite.service.cfg.RoyaltyReportPeriodEndHour) * time.Hour).Add(-time.Duration(168) * time.Hour)
-	from := to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).In(loc)
+	from := to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).Add(1 * time.Millisecond).In(loc)
 
 	oid, _ := primitive.ObjectIDFromHex(suite.project.GetMerchantId())
 	query := bson.M{"merchant_id": oid}
@@ -461,7 +518,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ListRoyaltyReports_FindBy
 	assert.NoError(suite.T(), err)
 
 	to := now.Monday().In(loc).Add(time.Duration(suite.service.cfg.RoyaltyReportPeriodEndHour) * time.Hour).Add(-time.Duration(168) * time.Hour)
-	from := to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).In(loc)
+	from := to.Add(-time.Duration(suite.service.cfg.RoyaltyReportPeriod) * time.Second).Add(1 * time.Millisecond).In(loc)
 
 	oid, _ := primitive.ObjectIDFromHex(suite.project.GetMerchantId())
 	query := bson.M{"merchant_id": oid}
@@ -557,6 +614,9 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_Ok() 
 	assert.NotNil(suite.T(), report)
 	assert.Equal(suite.T(), pkg.RoyaltyReportStatusPending, report.Status)
 
+	zap.ReplaceGlobals(suite.logObserver)
+	suite.service.centrifugoDashboard = newCentrifugo(suite.service.cfg.CentrifugoDashboard, mocks.NewClientStatusOk())
+
 	req1 := &grpc.ChangeRoyaltyReportRequest{
 		ReportId:   report.Id,
 		MerchantId: report.MerchantId,
@@ -568,6 +628,9 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_ChangeRoyaltyReport_Ok() 
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)
+
+	messages := suite.zapRecorder.All()
+	assert.Regexp(suite.T(), "dashboard", messages[0].Message)
 
 	oid, err := primitive.ObjectIDFromHex(report.Id)
 	assert.NoError(suite.T(), err)
@@ -954,7 +1017,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_SendRoyaltyReportNotifica
 
 	ci := &mocks.CentrifugoInterface{}
 	ci.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("error"))
-	suite.service.centrifugo = ci
+	suite.service.centrifugoDashboard = ci
 
 	core, recorded := observer.New(zapcore.ErrorLevel)
 	logger := zap.New(core)
@@ -972,7 +1035,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_AutoAcceptRoyaltyReports_
 
 	ci := &mocks.CentrifugoInterface{}
 	ci.On("Publish", mock2.Anything, mock2.Anything, mock2.Anything).Return(nil)
-	suite.service.centrifugo = ci
+	suite.service.centrifugoDashboard = ci
 
 	for _, v := range projects {
 		for i := 0; i < 5; i++ {
