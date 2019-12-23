@@ -34,6 +34,7 @@ var (
 	projectErrorVirtualCurrencyLimitsIncorrect                   = newBillingServerErrorMsg("pr000011", `project virtual currency purchase limits is incorrect`)
 	projectErrorShortDescriptionDefaultLangRequired              = newBillingServerErrorMsg("pr000012", "project short description in \""+DefaultLanguage+"\" locale is required")
 	projectErrorFullDescriptionDefaultLangRequired               = newBillingServerErrorMsg("pr000013", "project full description in \""+DefaultLanguage+"\" locale is required")
+	projectErrorVatPayerUnknown                                  = newBillingServerErrorMsg("pr000014", "project vat payer unknown")
 )
 
 func (s *Service) ChangeProject(
@@ -142,6 +143,17 @@ func (s *Service) ChangeProject(
 		rsp.Message = projectErrorLimitCurrencyRequired
 
 		return nil
+	}
+
+	if merchant.DontChargeVat == true {
+		req.VatPayer = pkg.VatPayerNobody
+	} else {
+		if req.VatPayer != pkg.VatPayerBuyer && req.VatPayer != pkg.VatPayerSeller {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = projectErrorVatPayerUnknown
+
+			return nil
+		}
 	}
 
 	if project == nil {
@@ -265,6 +277,7 @@ func (s *Service) ListProjects(
 				"full_description":            "$full_description",
 				"localizations":               "$localizations",
 				"virtual_currency":            "$virtual_currency",
+				"vat_payer":                   "$vat_payer",
 			},
 		},
 		{"$skip": req.Offset},
@@ -388,6 +401,7 @@ func (s *Service) createProject(ctx context.Context, req *billing.Project) (*bil
 		ShortDescription:         req.ShortDescription,
 		Currencies:               req.Currencies,
 		VirtualCurrency:          req.VirtualCurrency,
+		VatPayer:                 req.VatPayer,
 		CreatedAt:                ptypes.TimestampNow(),
 		UpdatedAt:                ptypes.TimestampNow(),
 	}
@@ -435,6 +449,7 @@ func (s *Service) updateProject(ctx context.Context, req *billing.Project, proje
 	project.ShortDescription = req.ShortDescription
 	project.Currencies = req.Currencies
 	project.VirtualCurrency = req.VirtualCurrency
+	project.VatPayer = req.VatPayer
 	project.Cover = req.Cover
 
 	if err := s.project.Update(ctx, project); err != nil {

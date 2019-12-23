@@ -83,7 +83,7 @@ func (h *TransportCardPayOk) RoundTrip(req *http.Request) (*http.Response, error
 	}, nil
 }
 
-func (h *TransportStatusError) RoundTrip(req *http.Request) (*http.Response, error) {
+func (h *TransportStatusError) RoundTrip(_ *http.Request) (*http.Response, error) {
 	return &http.Response{
 		StatusCode: http.StatusBadRequest,
 		Body:       ioutil.NopCloser(strings.NewReader("{}")),
