@@ -174,6 +174,7 @@ const (
 	ErrorTimeConversionMethod = "conversion method"
 
 	ErrorDatabaseQueryFailed          = "Query to database collection failed"
+	ErrorDatabaseInvalidObjectId      = "String is not a valid ObjectID"
 	ErrorQueryCursorExecutionFailed   = "Execute result from query cursor failed"
 	ErrorDatabaseFieldCollection      = "collection"
 	ErrorDatabaseFieldDocumentId      = "document_id"

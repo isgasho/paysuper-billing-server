@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"github.com/paysuper/paysuper-billing-server/internal/repository"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -82,7 +83,7 @@ func (s *Service) FindAllOrders(
 	req *grpc.ListOrdersRequest,
 	rsp *grpc.ListOrdersResponse,
 ) error {
-	count, orders, err := s.getOrdersList(ctx, req, collectionOrder, make([]*billing.Order, 1))
+	count, orders, err := s.getOrdersList(ctx, req, repository.CollectionOrder, make([]*billing.Order, 1))
 
 	if err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
@@ -294,7 +295,6 @@ func (s *Service) getOrdersList(
 		)
 		return 0, nil, err
 	}
-
 
 	if res, ok := receiver.([]*billing.OrderViewPublic); ok {
 		err = cursor.All(ctx, &res)

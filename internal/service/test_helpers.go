@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
+	"github.com/paysuper/paysuper-billing-server/internal/repository"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -803,11 +804,8 @@ func helperCreateAndPayPaylinkOrder(
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
 
-	order := &billing.Order{}
-
-	oid, _ := primitive.ObjectIDFromHex(rsp.Item.Id)
-	filter := bson.M{"_id": oid}
-	err = service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
+	order, err := service.orderRepository.GetById(context.TODO(), rsp.Item.Id)
+	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), order)
 	assert.IsType(suite.T(), &billing.Order{}, order)
 
@@ -892,9 +890,8 @@ func helperPayOrder(
 	assert.NoError(suite.T(), err)
 	assert.Equalf(suite.T(), pkg.ResponseStatusOk, rsp1.Status, "%v", rsp1.Message)
 
-	oid, _ := primitive.ObjectIDFromHex(order.Id)
-	filter := bson.M{"_id": oid}
-	err = service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
+	order, err = service.orderRepository.GetById(context.TODO(), order.Id)
+	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), order)
 	assert.IsType(suite.T(), &billing.Order{}, order)
 
@@ -945,9 +942,8 @@ func helperPayOrder(
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.StatusOK, callbackResponse.Status)
 
-	oid, _ = primitive.ObjectIDFromHex(order.Id)
-	filter = bson.M{"_id": oid}
-	err = service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
+	order, err = service.orderRepository.GetById(context.TODO(), order.Id)
+	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), order)
 	assert.IsType(suite.T(), &billing.Order{}, order)
 	assert.Equal(suite.T(), int32(constant.OrderStatusPaymentSystemComplete), order.PrivateStatus)
@@ -1019,7 +1015,7 @@ func helperMakeRefund(suite suite.Suite, service *Service, order *billing.Order,
 	var refund *billing.Refund
 	oid, _ := primitive.ObjectIDFromHex(rsp2.Item.Id)
 	filter := bson.M{"_id": oid}
-	err = service.db.Collection(collectionRefund).FindOne(context.TODO(), filter).Decode(&refund)
+	err = service.db.Collection(repository.CollectionRefund).FindOne(context.TODO(), filter).Decode(&refund)
 	assert.NotNil(suite.T(), refund)
 	assert.Equal(suite.T(), pkg.RefundStatusCompleted, refund.Status)
 
@@ -1230,10 +1226,8 @@ func helperCreateAndPayOrder2(
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 
-	var order *billing.Order
-	oid, _ := primitive.ObjectIDFromHex(rsp.Item.Id)
-	filter := bson.M{"_id": oid}
-	err = service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
+	order, err := service.orderRepository.GetById(context.TODO(), rsp.Item.Id)
+	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), order)
 	assert.IsType(suite.T(), &billing.Order{}, order)
 
@@ -1284,9 +1278,8 @@ func helperCreateAndPayOrder2(
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.StatusOK, callbackResponse.Status)
 
-	oid, _ = primitive.ObjectIDFromHex(order.Id)
-	filter = bson.M{"_id": oid}
-	err = service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
+	order, err = service.orderRepository.GetById(context.TODO(), order.Id)
+	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), order)
 	assert.IsType(suite.T(), &billing.Order{}, order)
 	assert.Equal(suite.T(), int32(constant.OrderStatusPaymentSystemComplete), order.PrivateStatus)

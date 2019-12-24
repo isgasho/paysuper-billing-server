@@ -8,12 +8,13 @@ import (
 	casbinProto "github.com/paysuper/casbin-server/pkg/generated/api/proto/casbinpb"
 	documentSignerProto "github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
+	"github.com/paysuper/paysuper-billing-server/internal/repository"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	"github.com/paysuper/paysuper-i18n"
-	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
+	recurringRep "github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	reporterProto "github.com/paysuper/paysuper-reporter/pkg/proto"
 	"github.com/paysuper/paysuper-tax-service/proto"
@@ -56,7 +57,7 @@ type Service struct {
 	cfg                        *config.Config
 	ctx                        context.Context
 	geo                        proto.GeoIpService
-	rep                        repository.RepositoryService
+	rep                        recurringRep.RepositoryService
 	tax                        tax_service.TaxService
 	broker                     rabbitmq.BrokerInterface
 	redis                      redis.Cmdable
@@ -89,7 +90,7 @@ type Service struct {
 	merchantTariffRates        MerchantTariffRatesInterface
 	keyRepository              KeyRepositoryInterface
 	dashboardRepository        DashboardRepositoryInterface
-	orderRepository            OrderRepositoryInterface
+	orderRepository            repository.OrderRepositoryInterface
 	userRoleRepository         UserRoleServiceInterface
 	userProfileRepository      UserProfileRepositoryInterface
 	keyProductRepository       KeyProductRepositoryInterface
@@ -101,6 +102,7 @@ type Service struct {
 	paylinkService             PaylinkServiceInterface
 	operatingCompany           OperatingCompanyInterface
 	paymentMinLimitSystem      PaymentMinLimitSystemInterface
+	refundRepository           repository.RefundRepositoryInterface
 	casbinService              casbinProto.CasbinService
 }
 
@@ -125,7 +127,7 @@ func NewBillingService(
 	db *mongodb.Source,
 	cfg *config.Config,
 	geo proto.GeoIpService,
-	rep repository.RepositoryService,
+	rep recurringRep.RepositoryService,
 	tax tax_service.TaxService,
 	broker rabbitmq.BrokerInterface,
 	redis redis.Cmdable,
@@ -179,7 +181,6 @@ func (s *Service) Init() (err error) {
 	s.merchantTariffRates = newMerchantsTariffRatesRepository(s)
 	s.keyRepository = newKeyRepository(s)
 	s.dashboardRepository = newDashboardRepository(s)
-	s.orderRepository = newOrderRepository(s)
 	s.userRoleRepository = newUserRoleRepository(s)
 	s.userProfileRepository = newUserProfileRepository(s)
 	s.keyProductRepository = newKeyProductRepository(s)
@@ -188,6 +189,9 @@ func (s *Service) Init() (err error) {
 	s.paylinkService = newPaylinkService(s)
 	s.operatingCompany = newOperatingCompanyService(s)
 	s.paymentMinLimitSystem = newPaymentMinLimitSystem(s)
+
+	s.refundRepository = repository.NewRefundRepository(s.db)
+	s.orderRepository = repository.NewOrderRepository(s.db)
 
 	sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currencies.EmptyRequest{})
 	if err != nil {

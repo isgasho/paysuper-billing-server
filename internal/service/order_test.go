@@ -16,6 +16,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
+	"github.com/paysuper/paysuper-billing-server/internal/repository"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -2763,7 +2764,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessProjectOrderId_Duplicate_Error() {
 		IsJsonRequest:  false,
 	}
 
-	_, err = suite.service.db.Collection(collectionOrder).InsertOne(context.TODO(), order)
+	err = suite.service.orderRepository.Insert(context.TODO(), order)
 	assert.Nil(suite.T(), err)
 
 	err = processor.processProjectOrderId()
@@ -3710,7 +3711,7 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_DuplicateProjectOrderI
 		IsJsonRequest:  false,
 	}
 
-	_, err := suite.service.db.Collection(collectionOrder).InsertOne(context.TODO(), order)
+	err := suite.service.orderRepository.Insert(context.TODO(), order)
 	assert.Nil(suite.T(), err)
 
 	rsp := &grpc.OrderCreateProcessResponse{}
@@ -4836,12 +4837,8 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_Ok() {
 	assert.Nil(suite.T(), rsp.Message)
 	assert.True(suite.T(), rsp.NeedRedirect)
 
-	oid, err := primitive.ObjectIDFromHex(order.Id)
+	order1, err := suite.service.orderRepository.GetById(context.TODO(), order.Id)
 	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	var order1 *billing.Order
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order1)
 	assert.NotNil(suite.T(), order1)
 }
 
@@ -5000,12 +4997,8 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_FormInputTimeExpired
 	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
 	rsp1 := rsp.Item
 
-	oid, err := primitive.ObjectIDFromHex(rsp1.Id)
+	order, err := suite.service.orderRepository.GetById(context.TODO(), rsp1.Id)
 	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	var order *billing.Order
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.NotNil(suite.T(), order)
 
 	order.ExpireDateToFormInput, err = ptypes.TimestampProto(time.Now().Add(time.Minute * -40))
@@ -5079,12 +5072,8 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Ok() {
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 
-	oid, err := primitive.ObjectIDFromHex(order.Id)
+	order1, err := suite.service.orderRepository.GetById(context.TODO(), order.Id)
 	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	var order1 *billing.Order
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order1)
 
 	callbackRequest := &billing.CardPayPaymentCallback{
 		PaymentMethod: suite.paymentMethod.ExternalId,
@@ -5144,12 +5133,8 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Ok() {
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), pkg.StatusOK, callbackResponse.Status)
 
-	oid, err = primitive.ObjectIDFromHex(order.Id)
+	order2, err := suite.service.orderRepository.GetById(context.TODO(), order.Id)
 	assert.NoError(suite.T(), err)
-	filter = bson.M{"_id": oid}
-
-	var order2 *billing.Order
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order2)
 	suite.NotNil(suite.T(), order2)
 
 	assert.Equal(suite.T(), int32(constant.OrderStatusPaymentSystemComplete), order2.PrivateStatus)
@@ -5213,12 +5198,8 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Recurring_Ok() {
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 
-	oid, err := primitive.ObjectIDFromHex(order.Id)
+	order1, err := suite.service.orderRepository.GetById(context.TODO(), order.Id)
 	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	var order1 *billing.Order
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order1)
 	suite.NotNil(suite.T(), order1)
 
 	callbackRequest := &billing.CardPayPaymentCallback{
@@ -5280,8 +5261,8 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Recurring_Ok() {
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), pkg.StatusOK, callbackResponse.Status)
 
-	var order2 *billing.Order
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order2)
+	order2, err := suite.service.orderRepository.GetById(context.TODO(), order.Id)
+	assert.NoError(suite.T(), err)
 	suite.NotNil(suite.T(), order2)
 
 	assert.Equal(suite.T(), int32(constant.OrderStatusPaymentSystemComplete), order2.PrivateStatus)
@@ -7301,12 +7282,8 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_AccountingEntries_
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Item.Id)
+	order, err := suite.service.orderRepository.GetById(context.TODO(), rsp.Item.Id)
 	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	var order *billing.Order
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.NotNil(suite.T(), order)
 	assert.IsType(suite.T(), &billing.Order{}, order)
 
@@ -7365,16 +7342,14 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_AccountingEntries_
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.StatusOK, callbackResponse.Status)
 
-	oid, err = primitive.ObjectIDFromHex(order.Id)
+	order, err = suite.service.orderRepository.GetById(context.TODO(), order.Id)
 	assert.NoError(suite.T(), err)
-	filter = bson.M{"_id": oid}
-
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.NotNil(suite.T(), order)
 	assert.IsType(suite.T(), &billing.Order{}, order)
 	assert.Equal(suite.T(), int32(constant.OrderStatusPaymentSystemComplete), order.PrivateStatus)
 
-	filter = bson.M{"source.id": oid, "source.type": collectionOrder}
+	oid, err := primitive.ObjectIDFromHex(order.Id)
+	filter := bson.M{"source.id": oid, "source.type": repository.CollectionOrder}
 
 	var accountingEntries []*billing.AccountingEntry
 	cursor, err := suite.service.db.Collection(collectionAccountingEntry).Find(context.TODO(), filter)
@@ -7428,12 +7403,8 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Error() {
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
 
-	oid, err := primitive.ObjectIDFromHex(order.Id)
+	order1, err := suite.service.orderRepository.GetById(context.TODO(), order.Id)
 	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	var order1 *billing.Order
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order1)
 	suite.NotNil(suite.T(), order1)
 
 	callbackRequest := &billing.CardPayPaymentCallback{
@@ -7483,7 +7454,8 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Error() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.StatusErrorValidation, callbackResponse.Status)
 
-	filter = bson.M{"source.id": oid, "source.type": collectionOrder}
+	oid, err := primitive.ObjectIDFromHex(order.Id)
+	filter := bson.M{"source.id": oid, "source.type": repository.CollectionOrder}
 
 	var accountingEntries []*billing.AccountingEntry
 	cursor, err := suite.service.db.Collection(collectionAccountingEntry).Find(context.TODO(), filter)

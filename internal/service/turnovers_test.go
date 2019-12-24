@@ -7,6 +7,7 @@ import (
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
+	"github.com/paysuper/paysuper-billing-server/internal/repository"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -291,7 +292,7 @@ func (suite *TurnoversTestSuite) fillAccountingEntries(operatingCompanyId, count
 			Type:   types[count%2],
 			Source: &billing.AccountingEntrySource{
 				Id:   primitive.NewObjectID().Hex(),
-				Type: collectionOrder,
+				Type: repository.CollectionOrder,
 			},
 			MerchantId:         primitive.NewObjectID().Hex(),
 			Status:             pkg.BalanceTransactionStatusAvailable,

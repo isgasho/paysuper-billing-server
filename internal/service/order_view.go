@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"github.com/paysuper/paysuper-billing-server/internal/repository"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/paylink"
@@ -51,6 +52,7 @@ type OrderViewServiceInterface interface {
 	GetPaylinkStatByReferrer(ctx context.Context, paylinkId, merchantId string, from, to int64) (result *paylink.GroupStatCommon, err error)
 	GetPaylinkStatByDate(ctx context.Context, paylinkId, merchantId string, from, to int64) (result *paylink.GroupStatCommon, err error)
 	GetPaylinkStatByUtm(ctx context.Context, paylinkId, merchantId string, from, to int64) (result *paylink.GroupStatCommon, err error)
+	GetPublicByOrderId(ctx context.Context, merchantId string) (*billing.OrderViewPublic, error)
 }
 
 func newOrderView(svc *Service) OrderViewServiceInterface {
@@ -3183,13 +3185,13 @@ func (s *Service) doUpdateOrderView(ctx context.Context, match bson.M) error {
 		},
 	}
 
-	cursor, err := s.db.Collection(collectionOrder).Aggregate(ctx, orderViewQuery)
+	cursor, err := s.db.Collection(repository.CollectionOrder).Aggregate(ctx, orderViewQuery)
 
 	if err != nil {
 		zap.L().Error(
 			errorOrderViewUpdateQuery,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrder),
+			zap.String(pkg.ErrorDatabaseFieldCollection, repository.CollectionOrder),
 		)
 		return err
 	}
@@ -3200,7 +3202,7 @@ func (s *Service) doUpdateOrderView(ctx context.Context, match bson.M) error {
 			zap.L().Error(
 				errorDbCurdorCloseFailed,
 				zap.Error(err),
-				zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrder),
+				zap.String(pkg.ErrorDatabaseFieldCollection, repository.CollectionOrder),
 			)
 		}
 	}()
@@ -3212,7 +3214,7 @@ func (s *Service) doUpdateOrderView(ctx context.Context, match bson.M) error {
 		zap.L().Error(
 			errorOrderViewUpdateQuery,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrder),
+			zap.String(pkg.ErrorDatabaseFieldCollection, repository.CollectionOrder),
 		)
 		return err
 	}
@@ -3505,7 +3507,7 @@ func (ow *OrderView) GetRoyaltySummary(
 			zap.L().Error(
 				errorDbCurdorCloseFailed,
 				zap.Error(err),
-				zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrder),
+				zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrderView),
 			)
 		}
 	}()
@@ -3793,7 +3795,7 @@ func (ow *OrderView) getPaylinkGroupStat(
 			zap.L().Error(
 				errorDbCurdorCloseFailed,
 				zap.Error(err),
-				zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrder),
+				zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrderView),
 			)
 		}
 	}()
@@ -3837,4 +3839,15 @@ func (ow *OrderView) paylinkStatItemPrecise(item *paylink.StatCommon) {
 	item.GrossSalesAmount = tools.ToPrecise(item.GrossSalesAmount)
 	item.GrossReturnsAmount = tools.ToPrecise(item.GrossReturnsAmount)
 	item.GrossTotalAmount = tools.ToPrecise(item.GrossTotalAmount)
+}
+
+func (ow *OrderView) GetPublicByOrderId(ctx context.Context, orderId string) (*billing.OrderViewPublic, error) {
+	order := &billing.OrderViewPublic{}
+	err := ow.svc.db.Collection(collectionOrderView).FindOne(ctx, bson.M{"uuid": orderId}).Decode(order)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return order, nil
 }

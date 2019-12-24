@@ -56,7 +56,6 @@ const (
 	taxTypeVat      = "vat"
 	taxTypeSalesTax = "sales_tax"
 
-	collectionOrder           = "order"
 	collectionBinData         = "bank_bin"
 	collectionNotifySales     = "notify_sales"
 	collectionNotifyNewRegion = "notify_new_region"
@@ -543,16 +542,7 @@ func (s *Service) OrderCreateProcess(
 		return err
 	}
 
-	_, err = s.db.Collection(collectionOrder).InsertOne(ctx, order)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrder),
-			zap.String(pkg.ErrorDatabaseFieldOperation, pkg.ErrorDatabaseFieldOperationInsert),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, order),
-		)
+	if err = s.orderRepository.Insert(ctx, order); err != nil {
 		rsp.Status = pkg.ResponseStatusBadData
 		rsp.Message = orderErrorCanNotCreate
 		return nil
@@ -1740,12 +1730,7 @@ func (s *Service) updateOrder(ctx context.Context, order *billing.Order) error {
 		}
 	}
 
-	oid, _ := primitive.ObjectIDFromHex(order.Id)
-	filter := bson.M{"_id": oid}
-	_, err := s.db.Collection(collectionOrder).ReplaceOne(ctx, filter, order)
-
-	if err != nil {
-		s.logError(orderErrorUpdateOrderDataFailed, []interface{}{"error", err.Error(), "order", order})
+	if err := s.orderRepository.Update(ctx, order); err != nil {
 		if err == mongo.ErrNoDocuments {
 			return orderErrorNotFound
 		}
@@ -2023,10 +2008,8 @@ func (s *Service) orderNotifyMerchant(ctx context.Context, order *billing.Order)
 		zap.S().Debug("[orderNotifyMerchant] send notify merchant to rmq failed", "order_id", order.Id)
 	}
 	order.SetNotificationStatus(order.GetPublicStatus(), err == nil)
-	oid, _ := primitive.ObjectIDFromHex(order.Id)
-	filter := bson.M{"_id": oid}
-	_, err = s.db.Collection(collectionOrder).ReplaceOne(ctx, filter, order)
-	if err != nil {
+
+	if err = s.orderRepository.Update(ctx, order); err != nil {
 		zap.S().Debug("[orderNotifyMerchant] notification status update failed", "order_id", order.Id)
 		s.logError(orderErrorUpdateOrderDataFailed, []interface{}{"error", err.Error(), "order", order})
 	} else {
@@ -2035,13 +2018,7 @@ func (s *Service) orderNotifyMerchant(ctx context.Context, order *billing.Order)
 }
 
 func (s *Service) getOrderById(ctx context.Context, id string) (order *billing.Order, err error) {
-	oid, _ := primitive.ObjectIDFromHex(id)
-	filter := bson.M{"_id": oid}
-	err = s.db.Collection(collectionOrder).FindOne(ctx, filter).Decode(&order)
-
-	if err != nil && err != mongo.ErrNoDocuments {
-		zap.S().Errorf("Order not found in payment create process", "err", err.Error(), "order_id", id)
-	}
+	order, err = s.orderRepository.GetById(ctx, id)
 
 	if order == nil {
 		return order, orderErrorNotFound
@@ -2452,14 +2429,9 @@ func (v *OrderCreateRequestProcessor) processPaylinkProducts() error {
 }
 
 func (v *OrderCreateRequestProcessor) processProjectOrderId() error {
-	var order *billing.Order
-
-	oid, _ := primitive.ObjectIDFromHex(v.checked.project.Id)
-	filter := bson.M{"project._id": oid, "project_order_id": v.request.OrderId}
-	err := v.db.Collection(collectionOrder).FindOne(v.ctx, filter).Decode(&order)
+	order, err := v.orderRepository.GetByProjectOrderId(v.ctx, v.checked.project.Id, v.request.OrderId)
 
 	if err != nil && err != mongo.ErrNoDocuments {
-		zap.S().Errorw("Order create check project order id unique", "err", err, "filter", filter)
 		return orderErrorCanNotCreate
 	}
 
@@ -4321,26 +4293,6 @@ func (s *Service) getOrderReceiptObject(ctx context.Context, order *billing.Orde
 	return receipt, nil
 }
 
-type OrderRepositoryInterface interface {
-	GetByUuid(context.Context, string) (*billing.Order, error)
-}
-
-func newOrderRepository(svc *Service) OrderRepositoryInterface {
-	s := &OrderRepository{svc: svc}
-	return s
-}
-
-func (h *OrderRepository) GetByUuid(ctx context.Context, uuid string) (*billing.Order, error) {
-	order := &billing.Order{}
-	err := h.svc.db.Collection(collectionOrder).FindOne(ctx, bson.M{"uuid": uuid}).Decode(order)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return order, nil
-}
-
 func (v *OrderCreateRequestProcessor) UserCountryExists() bool {
 	return v.checked != nil && v.checked.user != nil && v.checked.user.Address != nil &&
 		v.checked.user.Address.Country != ""
@@ -4494,14 +4446,7 @@ func (s *Service) OrderReCreateProcess(
 		ExternalId:    order.User.ExternalId,
 	}
 
-	_, err = s.db.Collection(collectionOrder).InsertOne(ctx, newOrder)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrder),
-		)
+	if err = s.orderRepository.Insert(ctx, newOrder); err != nil {
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = orderErrorCanNotCreate
 		return nil

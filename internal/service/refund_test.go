@@ -10,6 +10,7 @@ import (
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
+	"github.com/paysuper/paysuper-billing-server/internal/repository"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -867,12 +868,8 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_Ok() {
 	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
 	assert.NoError(suite.T(), err)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Id)
+	order, err := suite.service.orderRepository.GetById(context.TODO(), rsp.Id)
 	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	var order *billing.Order
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
@@ -901,12 +898,8 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_Ok() {
 	assert.NotEmpty(suite.T(), rsp2.Item.ExternalId)
 	assert.Equal(suite.T(), pkg.RefundStatusInProgress, rsp2.Item.Status)
 
-	oid, err = primitive.ObjectIDFromHex(rsp2.Item.Id)
+	refund, err := suite.service.refundRepository.GetById(context.TODO(), rsp2.Item.Id)
 	assert.NoError(suite.T(), err)
-	filter = bson.M{"_id": oid}
-
-	var refund *billing.Refund
-	err = suite.service.db.Collection(collectionRefund).FindOne(context.TODO(), filter).Decode(&refund)
 	assert.NotNil(suite.T(), refund)
 	assert.Equal(suite.T(), pkg.RefundStatusInProgress, refund.Status)
 }
@@ -952,12 +945,8 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_AmountLess_Error() {
 	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
 	assert.NoError(suite.T(), err)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Id)
+	order, err := suite.service.orderRepository.GetById(context.TODO(), rsp.Id)
 	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	var order *billing.Order
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
@@ -1031,12 +1020,8 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_PaymentSystemNotExists_Err
 	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
 	assert.NoError(suite.T(), err)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Id)
+	order, err := suite.service.orderRepository.GetById(context.TODO(), rsp.Id)
 	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	var order *billing.Order
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
@@ -1101,12 +1086,8 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_PaymentSystemReturnError_E
 	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
 	assert.NoError(suite.T(), err)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Id)
+	order, err := suite.service.orderRepository.GetById(context.TODO(), rsp.Id)
 	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	var order *billing.Order
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
@@ -1191,12 +1172,8 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_RefundNotAllowed_Error() {
 	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
 	assert.NoError(suite.T(), err)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Id)
+	order, err := suite.service.orderRepository.GetById(context.TODO(), rsp.Id)
 	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	var order *billing.Order
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.NotNil(suite.T(), order)
 
 	req2 := &grpc.CreateRefundRequest{
@@ -1253,12 +1230,8 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_WasRefunded_Error() {
 	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
 	assert.NoError(suite.T(), err)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Id)
+	order, err := suite.service.orderRepository.GetById(context.TODO(), rsp.Id)
 	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	var order *billing.Order
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusRefund
@@ -1318,12 +1291,8 @@ func (suite *RefundTestSuite) TestRefund_ListRefunds_Ok() {
 	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
 	assert.NoError(suite.T(), err)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Id)
+	order, err := suite.service.orderRepository.GetById(context.TODO(), rsp.Id)
 	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	var order *billing.Order
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusProjectComplete
@@ -1356,14 +1325,15 @@ func (suite *RefundTestSuite) TestRefund_ListRefunds_Ok() {
 	assert.NotEmpty(suite.T(), rsp2.Item)
 
 	req3 := &grpc.ListRefundsRequest{
-		OrderId: order.Uuid,
-		Limit:   100,
-		Offset:  0,
+		MerchantId: order.GetMerchantId(),
+		OrderId:    order.Uuid,
+		Limit:      100,
+		Offset:     0,
 	}
 	rsp3 := &grpc.ListRefundsResponse{}
 	err = suite.service.ListRefunds(context.TODO(), req3, rsp3)
 	assert.NoError(suite.T(), err)
-	assert.EqualValues(suite.T(), int32(3), rsp3.Count)
+	assert.EqualValues(suite.T(), int64(3), rsp3.Count)
 	assert.Len(suite.T(), rsp3.Items, int(rsp3.Count))
 	assert.Equal(suite.T(), rsp2.Item.Id, rsp3.Items[2].Id)
 }
@@ -1409,12 +1379,8 @@ func (suite *RefundTestSuite) TestRefund_ListRefunds_Limit_Ok() {
 	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
 	assert.NoError(suite.T(), err)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Id)
+	order, err := suite.service.orderRepository.GetById(context.TODO(), rsp.Id)
 	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	var order *billing.Order
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusProjectComplete
@@ -1447,14 +1413,15 @@ func (suite *RefundTestSuite) TestRefund_ListRefunds_Limit_Ok() {
 	assert.NotEmpty(suite.T(), rsp2.Item)
 
 	req3 := &grpc.ListRefundsRequest{
-		OrderId: order.Uuid,
-		Limit:   1,
-		Offset:  0,
+		MerchantId: order.GetMerchantId(),
+		OrderId:    order.Uuid,
+		Limit:      1,
+		Offset:     0,
 	}
 	rsp3 := &grpc.ListRefundsResponse{}
 	err = suite.service.ListRefunds(context.TODO(), req3, rsp3)
 	assert.NoError(suite.T(), err)
-	assert.EqualValues(suite.T(), int32(3), rsp3.Count)
+	assert.EqualValues(suite.T(), int64(3), rsp3.Count)
 	assert.Len(suite.T(), rsp3.Items, int(req3.Limit))
 }
 
@@ -1512,12 +1479,8 @@ func (suite *RefundTestSuite) TestRefund_GetRefund_Ok() {
 	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
 	assert.NoError(suite.T(), err)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Id)
+	order, err := suite.service.orderRepository.GetById(context.TODO(), rsp.Id)
 	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	var order *billing.Order
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusProjectComplete
@@ -1604,12 +1567,8 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
 	assert.NoError(suite.T(), err)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Id)
+	order, err := suite.service.orderRepository.GetById(context.TODO(), rsp.Id)
 	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	var order *billing.Order
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
@@ -1629,7 +1588,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 		Type:   pkg.AccountingEntryTypeMerchantTaxFeeCostValue,
 		Source: &billing.AccountingEntrySource{
 			Id:   order.Id,
-			Type: collectionOrder,
+			Type: repository.CollectionOrder,
 		},
 		MerchantId: order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusAvailable,
@@ -1644,7 +1603,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 		Type:   pkg.AccountingEntryTypeMerchantTaxFeeCentralBankFx,
 		Source: &billing.AccountingEntrySource{
 			Id:   order.Id,
-			Type: collectionOrder,
+			Type: repository.CollectionOrder,
 		},
 		MerchantId: order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusAvailable,
@@ -1659,7 +1618,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 		Type:   pkg.AccountingEntryTypeRealTaxFee,
 		Source: &billing.AccountingEntrySource{
 			Id:   order.Id,
-			Type: collectionOrder,
+			Type: repository.CollectionOrder,
 		},
 		MerchantId: order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusAvailable,
@@ -1730,19 +1689,15 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp3.Status)
 	assert.Empty(suite.T(), rsp3.Error)
 
-	oid, err = primitive.ObjectIDFromHex(rsp2.Item.Id)
+	refund, err := suite.service.refundRepository.GetById(context.TODO(), rsp2.Item.Id)
 	assert.NoError(suite.T(), err)
-	filter = bson.M{"_id": oid}
-
-	var refund *billing.Refund
-	err = suite.service.db.Collection(collectionRefund).FindOne(context.TODO(), filter).Decode(&refund)
 	assert.NotNil(suite.T(), refund)
 	assert.Equal(suite.T(), pkg.RefundStatusCompleted, refund.Status)
 	assert.False(suite.T(), refund.IsChargeback)
 
-	oid, err = primitive.ObjectIDFromHex(refund.CreatedOrderId)
+	oid, err := primitive.ObjectIDFromHex(refund.CreatedOrderId)
 	assert.NoError(suite.T(), err)
-	filter = bson.M{"source.id": oid, "source.type": collectionRefund}
+	filter := bson.M{"source.id": oid, "source.type": repository.CollectionRefund}
 
 	cursor, err := suite.service.db.Collection(collectionAccountingEntry).Find(context.TODO(), filter)
 	assert.NoError(suite.T(), err)
@@ -1750,9 +1705,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 	assert.NoError(suite.T(), err)
 	assert.NotEmpty(suite.T(), accountingEntries)
 
-	refundOrder := new(billing.Order)
-	filter = bson.M{"refund.receipt_number": refund.Id}
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&refundOrder)
+	refundOrder, err := suite.service.orderRepository.GetByRefundReceiptNumber(context.TODO(), refund.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), refundOrder)
 	assert.Equal(suite.T(), rsp.Id, refundOrder.ParentOrder.Id)
@@ -1764,14 +1717,14 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 	assert.False(suite.T(), refundOrder.IsRefundAllowed)
 
 	// check RefundAllowed flag for original order has correct value in order
-	oid, err = primitive.ObjectIDFromHex(refund.OriginalOrder.Id)
-	assert.NoError(suite.T(), err)
-	filter = bson.M{"_id": oid}
-	originalOrder := new(billing.Order)
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&originalOrder)
+	originalOrder, err := suite.service.orderRepository.GetById(context.TODO(), refund.OriginalOrder.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), originalOrder)
 	assert.False(suite.T(), originalOrder.IsRefundAllowed)
+
+	oid, err = primitive.ObjectIDFromHex(refund.OriginalOrder.Id)
+	assert.NoError(suite.T(), err)
+	filter = bson.M{"_id": oid}
 
 	// check RefundAllowed flag for original order has correct value on order view
 	originalOrderViewPublic := new(billing.OrderViewPublic)
@@ -1832,12 +1785,8 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnmarshalError() 
 	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
 	assert.NoError(suite.T(), err)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Id)
+	order, err := suite.service.orderRepository.GetById(context.TODO(), rsp.Id)
 	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	var order *billing.Order
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
@@ -1922,12 +1871,8 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnknownHandler_Er
 	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
 	assert.NoError(suite.T(), err)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Id)
+	order, err := suite.service.orderRepository.GetById(context.TODO(), rsp.Id)
 	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	var order *billing.Order
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
@@ -2039,12 +1984,8 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_RefundNotFound_Er
 	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
 	assert.NoError(suite.T(), err)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Id)
+	order, err := suite.service.orderRepository.GetById(context.TODO(), rsp.Id)
 	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	var order *billing.Order
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
@@ -2156,12 +2097,8 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderNotFound_Err
 	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
 	assert.NoError(suite.T(), err)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Id)
+	order, err := suite.service.orderRepository.GetById(context.TODO(), rsp.Id)
 	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	var order *billing.Order
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
@@ -2188,20 +2125,13 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderNotFound_Err
 
 	err = suite.service.updateOrder(context.TODO(), order)
 
-	oid, err = primitive.ObjectIDFromHex(rsp2.Item.Id)
+	refund, err := suite.service.refundRepository.GetById(context.TODO(), rsp2.Item.Id)
 	assert.NoError(suite.T(), err)
-	filter = bson.M{"_id": oid}
-
-	var refund *billing.Refund
-	err = suite.service.db.Collection(collectionRefund).FindOne(context.TODO(), filter).Decode(&refund)
 	assert.NotNil(suite.T(), refund)
 
-	oid, err = primitive.ObjectIDFromHex(refund.Id)
-	assert.NoError(suite.T(), err)
-	filter = bson.M{"_id": oid}
-
 	refund.OriginalOrder = &billing.RefundOrder{Id: primitive.NewObjectID().Hex(), Uuid: uuid.New().String()}
-	_, err = suite.service.db.Collection(collectionRefund).ReplaceOne(context.TODO(), filter, refund)
+	err = suite.service.refundRepository.Update(context.TODO(), refund)
+	assert.NoError(suite.T(), err)
 
 	refundReq := &billing.CardPayRefundCallback{
 		MerchantOrder: &billing.CardPayMerchantOrder{
@@ -2288,12 +2218,8 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnknownPaymentSys
 	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
 	assert.NoError(suite.T(), err)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Id)
+	order, err := suite.service.orderRepository.GetById(context.TODO(), rsp.Id)
 	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	var order *billing.Order
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
@@ -2408,12 +2334,8 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_ProcessRefundErro
 	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
 	assert.NoError(suite.T(), err)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Id)
+	order, err := suite.service.orderRepository.GetById(context.TODO(), rsp.Id)
 	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	var order *billing.Order
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
@@ -2488,9 +2410,9 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_ProcessRefundErro
 	assert.Equal(suite.T(), paymentSystemErrorRefundRequestAmountOrCurrencyIsInvalid.Error(), rsp3.Error)
 
 	var accountingEntries []*billing.AccountingEntry
-	oid, err = primitive.ObjectIDFromHex(rsp2.Item.Id)
+	oid, err := primitive.ObjectIDFromHex(rsp2.Item.Id)
 	assert.NoError(suite.T(), err)
-	filter = bson.M{"source.id": oid, "source.type": collectionRefund}
+	filter := bson.M{"source.id": oid, "source.type": repository.CollectionRefund}
 	cursor, err := suite.service.db.Collection(collectionAccountingEntry).Find(context.TODO(), filter)
 	assert.NoError(suite.T(), err)
 	err = cursor.All(context.TODO(), &accountingEntries)
@@ -2543,12 +2465,8 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_TemporaryStatus_O
 	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
 	assert.NoError(suite.T(), err)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Id)
+	order, err := suite.service.orderRepository.GetById(context.TODO(), rsp.Id)
 	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	var order *billing.Order
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
@@ -2621,12 +2539,8 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_TemporaryStatus_O
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp3.Status)
 	assert.Equal(suite.T(), paymentSystemErrorRequestTemporarySkipped.Error(), rsp3.Error)
 
-	oid, err = primitive.ObjectIDFromHex(rsp2.Item.Id)
+	refund, err := suite.service.refundRepository.GetById(context.TODO(), rsp2.Item.Id)
 	assert.NoError(suite.T(), err)
-	filter = bson.M{"_id": oid}
-
-	var refund *billing.Refund
-	err = suite.service.db.Collection(collectionRefund).FindOne(context.TODO(), filter).Decode(&refund)
 	assert.NotNil(suite.T(), refund)
 	assert.Equal(suite.T(), pkg.RefundStatusInProgress, refund.Status)
 }
@@ -2672,12 +2586,8 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
 	assert.NoError(suite.T(), err)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Id)
+	order, err := suite.service.orderRepository.GetById(context.TODO(), rsp.Id)
 	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	var order *billing.Order
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
@@ -2697,7 +2607,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 		Type:   pkg.AccountingEntryTypeMerchantTaxFeeCostValue,
 		Source: &billing.AccountingEntrySource{
 			Id:   order.Id,
-			Type: collectionOrder,
+			Type: repository.CollectionOrder,
 		},
 		MerchantId: order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusAvailable,
@@ -2712,7 +2622,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 		Type:   pkg.AccountingEntryTypeMerchantTaxFeeCentralBankFx,
 		Source: &billing.AccountingEntrySource{
 			Id:   order.Id,
-			Type: collectionOrder,
+			Type: repository.CollectionOrder,
 		},
 		MerchantId: order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusAvailable,
@@ -2727,7 +2637,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 		Type:   pkg.AccountingEntryTypeRealTaxFee,
 		Source: &billing.AccountingEntrySource{
 			Id:   order.Id,
-			Type: collectionOrder,
+			Type: repository.CollectionOrder,
 		},
 		MerchantId: order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusAvailable,
@@ -2798,11 +2708,8 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp3.Status)
 	assert.Empty(suite.T(), rsp3.Error)
 
-	oid, err = primitive.ObjectIDFromHex(rsp.Id)
+	order, err = suite.service.orderRepository.GetById(context.TODO(), rsp.Id)
 	assert.NoError(suite.T(), err)
-	filter = bson.M{"_id": oid}
-
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.EqualValues(suite.T(), constant.OrderStatusRefund, order.PrivateStatus)
 	assert.NotNil(suite.T(), order.Refund)
 	assert.Equal(suite.T(), req2.Amount, order.Refund.Amount)
@@ -2851,12 +2758,8 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Chargeback_Ok() {
 	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
 	assert.NoError(suite.T(), err)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Id)
+	order, err := suite.service.orderRepository.GetById(context.TODO(), rsp.Id)
 	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	var order *billing.Order
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
@@ -2876,7 +2779,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Chargeback_Ok() {
 		Type:   pkg.AccountingEntryTypeMerchantTaxFeeCostValue,
 		Source: &billing.AccountingEntrySource{
 			Id:   order.Id,
-			Type: collectionOrder,
+			Type: repository.CollectionOrder,
 		},
 		MerchantId: order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusAvailable,
@@ -2891,7 +2794,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Chargeback_Ok() {
 		Type:   pkg.AccountingEntryTypeMerchantTaxFeeCentralBankFx,
 		Source: &billing.AccountingEntrySource{
 			Id:   order.Id,
-			Type: collectionOrder,
+			Type: repository.CollectionOrder,
 		},
 		MerchantId: order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusAvailable,
@@ -2906,7 +2809,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Chargeback_Ok() {
 		Type:   pkg.AccountingEntryTypeRealTaxFee,
 		Source: &billing.AccountingEntrySource{
 			Id:   order.Id,
-			Type: collectionOrder,
+			Type: repository.CollectionOrder,
 		},
 		MerchantId: order.GetMerchantId(),
 		Status:     pkg.BalanceTransactionStatusAvailable,
@@ -2978,12 +2881,8 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Chargeback_Ok() {
 	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp3.Status)
 	assert.Empty(suite.T(), rsp3.Error)
 
-	oid, err = primitive.ObjectIDFromHex(rsp2.Item.Id)
+	refund, err := suite.service.refundRepository.GetById(context.TODO(), rsp2.Item.Id)
 	assert.NoError(suite.T(), err)
-	filter = bson.M{"_id": oid}
-
-	var refund *billing.Refund
-	err = suite.service.db.Collection(collectionRefund).FindOne(context.TODO(), filter).Decode(&refund)
 	assert.NotNil(suite.T(), refund)
 	assert.Equal(suite.T(), pkg.RefundStatusCompleted, refund.Status)
 	assert.True(suite.T(), refund.IsChargeback)
@@ -2994,9 +2893,9 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Chargeback_Ok() {
 	assert.EqualValues(suite.T(), constant.OrderStatusChargeback, order.PrivateStatus)
 	assert.Equal(suite.T(), refund.Amount, order.TotalPaymentAmount)
 
-	oid, err = primitive.ObjectIDFromHex(refund.CreatedOrderId)
+	oid, err := primitive.ObjectIDFromHex(refund.CreatedOrderId)
 	assert.NoError(suite.T(), err)
-	filter = bson.M{"source.id": oid, "source.type": collectionRefund}
+	filter := bson.M{"source.id": oid, "source.type": repository.CollectionRefund}
 
 	cursor, err := suite.service.db.Collection(collectionAccountingEntry).Find(context.TODO(), filter)
 	assert.NoError(suite.T(), err)
@@ -3046,12 +2945,8 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_NotHasCostsRates() {
 	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
 	assert.NoError(suite.T(), err)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Id)
+	order, err := suite.service.orderRepository.GetById(context.TODO(), rsp.Id)
 	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	var order *billing.Order
-	err = suite.service.db.Collection(collectionOrder).FindOne(context.TODO(), filter).Decode(&order)
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
