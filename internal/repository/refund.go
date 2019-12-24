@@ -38,9 +38,19 @@ func (h *refundRepository) Insert(ctx context.Context, refund *billing.Refund) e
 }
 
 func (h *refundRepository) Update(ctx context.Context, refund *billing.Refund) error {
-	oid, _ := primitive.ObjectIDFromHex(refund.Id)
-	filter := bson.M{"_id": oid}
-	_, err := h.db.Collection(CollectionRefund).ReplaceOne(ctx, filter, refund)
+	oid, err := primitive.ObjectIDFromHex(refund.Id)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseInvalidObjectId,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, CollectionRefund),
+			zap.String(pkg.ErrorDatabaseFieldQuery, refund.Id),
+		)
+		return err
+	}
+
+	_, err = h.db.Collection(CollectionRefund).ReplaceOne(ctx, bson.M{"_id": oid}, refund)
 
 	if err != nil {
 		zap.L().Error(
@@ -70,10 +80,16 @@ func (h *refundRepository) GetById(ctx context.Context, id string) (*billing.Ref
 		return nil, err
 	}
 
-	err = h.db.Collection(CollectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
+	query := bson.M{"_id": oid}
+	err = h.db.Collection(CollectionRefund).FindOne(ctx, query).Decode(&refund)
 
 	if err != nil {
-		zap.S().Errorf("Query to find refund by id failed", "err", err.Error(), "id", id)
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, CollectionRefund),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
 		return nil, err
 	}
 
@@ -119,7 +135,12 @@ func (h *refundRepository) CountByOrderUuid(ctx context.Context, id string) (int
 	count, err := h.db.Collection(CollectionRefund).CountDocuments(ctx, query)
 
 	if err != nil {
-		zap.S().Errorf("Query to find refund by id failed", "err", err.Error(), "id", id)
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, CollectionRefund),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
 		return 0, err
 	}
 
@@ -145,7 +166,12 @@ func (h *refundRepository) GetAmountByOrderId(ctx context.Context, orderId strin
 	cursor, err := h.db.Collection(CollectionRefund).Aggregate(ctx, query)
 
 	if err != nil {
-		zap.S().Errorf("Query to calculate refunded amount by order failed", "err", err.Error(), "query", query)
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, CollectionRefund),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
 		return 0, err
 	}
 
